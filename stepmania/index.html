@@ -1,9 +1,41 @@
 <!DOCTYPE html>
 <html>
-<head>
-<script src="jquery-2.1.1.min.js"></script>
-</head>
-<body>
-Hi there
-</body>
+  <head>
+    <title>StepMania Micro</title>
+    <link href="css/screen.css" media="all" rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="js/jquery-2.1.1.min.js"></script>
+    <script type="text/javascript" src="js/sprite.js"></script>
+    <script type="text/javascript" src="js/Actor.js"></script>
+    <script type="text/javascript" src="js/song.js"></script>
+    <script type="text/javascript" src="js/steps.js"></script>
+    <script type="text/javascript" src="js/stepmania.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  </head>
+  <body>
+    <div id="sm-micro" style="background-image: url(songs/Lost/background.png);"><canvas width="320" height="360"></canvas>
+      <div class="button" id="button0"></div>
+      <div class="button" id="button1"></div>
+      <div class="button" id="button2"></div>
+      <div class="button" id="button3"></div>
+      <div id="bottom">
+        <a id="logo" title="StepMania Micro wiki page" href="http://www.stepmania.com/wiki/StepMania_Micro"></a>
+        <div id="alert" style="display: none;"><a id="alert-message" href="http://www.stepmania.com/wiki/StepMania_Micro"></a></div>
+        <audio id="audio_with_controls" controls="" autobuffer="" autoplay="">
+	  <source src="songs/Lost/Lost.mp3" type="audio/mpeg">
+	    <source src="songs/Lost/Lost.ogg" type="audio/ogg">
+	      Audio tag not supported
+        </audio>
+      </div>
+      <div id="FPS">83</div>
+      <table id="score">
+        <tbody><tr><td colspan="2" id="percent-score">-32.05%</td></tr>
+          <tr><th>Marvelous</th><td id="w0"></td></tr>
+          <tr><th>Perfect</th><td id="w1"></td></tr>
+          <tr><th>Great</th><td id="w2"></td></tr>
+          <tr><th>Good</th><td id="w3"></td></tr>
+          <tr><th>Boo</th><td id="w4"></td></tr>
+          <tr><th>Miss</th><td id="w5">80</td></tr>
+      </tbody></table>
+    </div>
+  </body>
 </html>
