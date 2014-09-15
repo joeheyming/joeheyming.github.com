@@ -5,9 +5,22 @@
 </script>
 </head>
 <body>
-<audio controls autoplay loop>
+<div id="awesome_div"></div>
+<audio id="awesome_audio" controls autoplay loop>
   <source src="http://36.webmusic.asia/music/english/movies/2014/t/the_lego/Everything-Is-Awesome!!!_(webmusic.in).mp3" type="audio/mpeg" />
 Your browser does not support the audio element.
 </audio>
+<script id="awesome_script">
+  var awesome_lyrics = [
+    "Everything is Awesome!", 
+    "Everything is cool when you're part of a Team!", 
+    "Everything is Awesome", 
+    "When you're living our dream"
+    ];
+  var awesome_counter = 1;
+  setInterval(function() {
+    window.awesome_div.innerText = awesome_lyrics[awesome_counter++ % awesome_lyrics.length ];
+  }, 4000)
+</script>
 </body>
 </html>
