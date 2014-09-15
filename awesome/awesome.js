@@ -71,7 +71,7 @@ var awesomeNamespace = (function() {
                 this.awesome_block = this.awesome_block + awesome_obj.wait;
             }
             this.clearAwesomeContent();
-            this.awesome_content.innerText = awesome_obj.lyric;
+            this.awesome_content.textContent = awesome_obj.lyric;
         },
         setAwesomeColor: function() {
             window.awesome_div.style.color = awesomeColor();       
@@ -96,23 +96,7 @@ var awesomeNamespace = (function() {
                 this.awesomePause();
             }
         },
-        awesomeFreezeGif: function(gif) {
-            var awesomeCanvas = document.createElement('canvas');
-            var width = awesomeCanvas.width = gif.width;
-            var hheight = awesomeCanvas.height = gif.height;
-            awesomeCanvas.getContext('2d').drawImage(gif, 0, 0, w, h);
-            try {
-                gif.src = awesomeCanvas.toDataURL("image/gif"); // if possible, retain all css aspects
-            } catch(e) { // cross-domain -- mimic original with all its tag attributes
-                for (var j = 0, a; a = gif.attributes[j]; j++)
-                    awesomeCanvas.setAttribute(a.name, a.value);
-                gif.parentNode.replaceChild(awesomeCanvas, i);
-            }
-        },
         awesomeCheckNyan: function() {
-            if (this.awesome_audio.paused && window.awesome_nyan) {
-                this.awesomeFreezeGif(window.awesome_nyan);
-            }
             if (window.awesome_nyan) {
                 return;
             }
@@ -120,7 +104,7 @@ var awesomeNamespace = (function() {
             var awesome_nyan = new Image();
             awesome_nyan.id = 'awesome_nyan';
             awesome_nyan.src = awesome_nyan_gif;
-            this.awesome_content.innerText = '';
+            this.awesome_content.textContent = '';
             this.awesome_content.appendChild(awesome_nyan);
         },
         installAwesomeEvents: function() {
