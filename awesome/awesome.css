@@ -1,0 +1,18 @@
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+div#awesome_parent {
+  min-height: 100%; 
+  width: 100%;
+  display: table;
+  transition: background-color 1.0s ease;
+}
+div#awesome_div {
+  transition: color 1.0s ease;
+  text-align: center;
+  display: table-cell;
+  font-size: 80px;
+  vertical-align: middle;
+}
