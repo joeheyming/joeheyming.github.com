@@ -1,8 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-<script>
-</script>
+<title>Everything is Awesome!</title>
+<style>
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+div#awesome_div {
+  min-height: 100%; 
+  transition: color 0.1s ease;
+}
+</style>
 </head>
 <body>
 <div id="awesome_div"></div>
@@ -11,15 +21,23 @@
 Your browser does not support the audio element.
 </audio>
 <script id="awesome_script">
+  function awesomeColor() {
+    var color = "#";
+    for (k = 0; k < 3; k++) {
+      color += ("0" + (Math.random()*256|0).toString(16)).substr(-2);
+    }
+    return color;
+  }
   var awesome_lyrics = [
     "Everything is Awesome!", 
     "Everything is cool when you're part of a Team!", 
     "Everything is Awesome", 
     "When you're living our dream"
     ];
-  var awesome_counter = 1;
+  var awesome_counter = 0;
   var awesome_func = function() {
     window.awesome_div.innerText = awesome_lyrics[awesome_counter++ % awesome_lyrics.length ];
+    window.awesome_div.style.background = awesomeColor();
   };
   setInterval(awesome_func, 4000);
 </script>
