@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Everything is Awesome!</title>
+    <style>
+     html, body {
+       height: 100%;
+       margin: 0;
+     }
+
+     div#awesome_parent {
+       min-height: 100%; 
+       width: 100%;
+       display: table;
+       transition: background-color 1.0s ease;
+     }
+     div#awesome_div {
+       transition: color 1.0s ease;
+       text-align: center;
+       display: table-cell;
+       font-size: 80px;
+       vertical-align: middle;
+     }
+    </style>
+  </head>
+  <body>
+    <div id="awesome_parent">
+      <div id="awesome_div"></div>
+    </div>
+    <audio id="awesome_audio" controls loop>
+      <source src="http://36.webmusic.asia/music/english/movies/2014/t/the_lego/Everything-Is-Awesome!!!_(webmusic.in).mp3" type="audio/mpeg" />
+      Your browser does not support the audio element.
+    </audio>
+    <script id="awesome_script">
+     var awesomeNamespace = (function() {
+       function awesomeColor() {
+         var color = "#";
+         for (k = 0; k < 3; k++) {
+           color += ("0" + (Math.random()*256|0).toString(16)).substr(-2);
+         }
+         return color;
+       };
+       function awesomeEventCode(e) {
+         e = e || window.event;
+         return (e.keyCode || e.which);
+       };
+
+       var awesome_lyrics = [
+         {lyric: 'Everything is Awesome!', wait: 4000},
+         {lyric: 'Everything is cool when you\'re part of a Team!', wait: 4000},
+         {lyric: 'Everything is Awesome', wait: 4000},
+         {lyric: 'When you\'re living our dream', wait: 4000}
+       ];
+       
+       function Awesome() {
+         this.awesomeReset();
+         this.installAwesomeEvents();
+       };
+       Awesome.prototype = {
+         awesomeColorInterval: null,
+         awesomeLyricInterval: null,
+         awesome_counter: 0,
+         awesome_block: 0,
+         awesome_time_counter: 0,
+         getAwesomeLyric: function() {
+           return awesome_lyrics[this.awesome_counter % awesome_lyrics.length ];
+         },
+         checkAwesomeLyric: function() {
+           var awesome_obj = this.getAwesomeLyric();
+           this.awesome_time_counter += 1000;
+           if (this.awesome_time_counter > this.awesome_block) {
+             this.awesome_counter++;
+             var awesome_obj = this.getAwesomeLyric();
+             this.awesome_block = this.awesome_block + awesome_obj.wait;
+           }
+           window.awesome_div.innerText = awesome_obj.lyric;
+         },
+         setAwesomeColor: function() {
+           window.awesome_div.style.color = awesomeColor();       
+           window.awesome_parent.style.background = awesomeColor();       
+         },
+         awesomeReset: function() {
+           this.awesome_counter = 0;
+           this.awesome_block = awesome_lyrics[this.awesome_counter % awesome_lyrics.length ].wait
+           this.awesome_time_counter = 0;
+           this.awesomePlay();
+         },
+         awesomePlay: function() {
+           window.awesome_audio.play();
+           this.awesomeLyricInterval = setInterval(this.checkAwesomeLyric.bind(this), 1000);
+           this.awesomeColorInterval = setInterval(this.setAwesomeColor.bind(this), 1000);
+         },
+         awesomePause: function() {
+           window.awesome_audio.pause();
+           clearInterval(this.awesomeLyricInterval);
+           clearInterval(this.awesomeColorInterval);
+         },
+         installAwesomeEvents: function() {
+           document.onkeydown = function(e) {
+             var key = awesomeEventCode(e);
+             window.console.log(key);
+             if (key == '32' || key == '13') {
+               if (window.awesome_audio.paused) {
+                 this.awesomePlay();
+               } else {
+                 this.awesomePause();
+               }
+             }
+             if (key == '27') {
+               this.awesomePause();
+               this.awesomeReset();
+               window.awesome_audio.currentTime = 0;
+             }
+           }.bind(this);
+           document.onmouseover = function(e) {
+             document.body.focus();
+           }.bind(this);
+         }
+       };
+       var awesomeObj = new Awesome();
+     })();
+    </script>
+  </body>
+</html>
