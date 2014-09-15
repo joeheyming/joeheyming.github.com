@@ -18,9 +18,11 @@ Your browser does not support the audio element.
     "When you're living our dream"
     ];
   var awesome_counter = 1;
-  setInterval(function() {
+  var awesome_func = function() {
     window.awesome_div.innerText = awesome_lyrics[awesome_counter++ % awesome_lyrics.length ];
-  }, 4000)
+  };
+  setInterval(awesome_func, 4000);
+  awesome_func();
 </script>
 </body>
 </html>
