@@ -13,6 +13,7 @@ function getMusicBeat(musicSec) {
 var audio = document.getElementById('audio_with_controls');
 
 var CANVAS_WIDTH = 320;
+var CANVAS_WIDTH = $(document.body).width();
 var CANVAS_HEIGHT = 360;
 var targetFps = 90;
 var lastDate = new Date();
@@ -139,10 +140,10 @@ $(document).ready(function () {
 
         var col;
         switch (keyCode) {
-            case 65/*d*/: case 37: col = 0; break;
-            case 87/*w*/: case 38: col = 2; break;
-            case 68/*d*/: case 39: col = 3; break;
-            case 83/*s*/: case 40: col = 1; break;
+        case 65/*d*/: case 37: col = 0; break;
+        case 87/*w*/: case 38: col = 2; break;
+        case 68/*d*/: case 39: col = 3; break;
+        case 83/*s*/: case 40: col = 1; break;
         }
         if (undefined != col) {
             step(col);
