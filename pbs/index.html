@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+     body {
+       margin: 0;
+       padding: 0;
+     }
+     img {
+       position: absolute;
+       width: 100%;
+       height: 100%;
+     }
+     h1 {
+       position: absolute;
+       top: 0;
+       left: 0;
+       z-index: 100;
+     }
+    </style>
+    <script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+  </head>
+  <body>
+    <h1>This is a Pirate Service Broadcast</h1>
+    <img src="Emergency-Broadcast-System.gif" />
+    <script>
+     var sounds = [
+       95695,
+       73926,
+       108856,
+       96620,
+       91704,
+       91427,
+       90901,
+       90380,
+       90202,
+       90145
+
+     ];
+
+     $(document).ready(function() {
+       window.setInterval(function() {
+         var sound = sounds[Math.floor(Math.random()*sounds.length)];
+         var audio = document.createElement('audio');
+         audio.setAttribute('src', 'http://www.soundsnap.com/audio/play/' + sound);
+         audio.setAttribute('autoplay', 'true');
+         document.body.appendChild(audio);
+       }, 4000);
+     });
+    </script>
+  </body>
+</html>
