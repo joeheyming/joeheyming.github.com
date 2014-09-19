@@ -38,15 +38,21 @@
        90145
 
      ];
-
+     function sayArrr() {
+       if (window.arrr) {
+         window.arrr.onended = undefined;
+         document.body.removeChild(window.arrr);
+       }
+       var sound = sounds[Math.floor(Math.random()*sounds.length)];
+       var audio = document.createElement('audio');
+       audio.id = 'arrr';
+       audio.setAttribute('src', 'http://www.soundsnap.com/audio/play/' + sound);
+       audio.setAttribute('autoplay', 'true');
+       document.body.appendChild(audio);
+       audio.onended = sayArrr;
+     };
      $(document).ready(function() {
-       window.setInterval(function() {
-         var sound = sounds[Math.floor(Math.random()*sounds.length)];
-         var audio = document.createElement('audio');
-         audio.setAttribute('src', 'http://www.soundsnap.com/audio/play/' + sound);
-         audio.setAttribute('autoplay', 'true');
-         document.body.appendChild(audio);
-       }, 4000);
+       sayArrr();
      });
     </script>
   </body>
