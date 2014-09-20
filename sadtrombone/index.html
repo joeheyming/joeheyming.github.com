@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  </head>
+  <body>
+    <img src="trombone_sliding.gif" />
+    <br />
+    <audio id="trombone" src="http://www.sadtrombone.com/assets/sound/trombone.ogg" autoplay controls />
+    <script>
+     document.onkeydown = function(e) {
+        e = e || window.event;
+       var key = (e.keyCode || e.which);
+       if (key == '32' || key == '13') { // enter or spacebar
+         if (trombone.paused) {
+           trombone.play();
+         } else {
+           trombone.pause();
+         }
+       }
+     }
+    </script>
+  </body>
+</html>
