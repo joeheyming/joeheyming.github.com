@@ -1,10 +1,10 @@
 var awesomeNamespace = (function() {
     var namespace = {};
-    var awesome_mp3 = 'http://36.webmusic.asia/music/english/movies/2014/t/the_lego/Everything-Is-Awesome!!!_(webmusic.in).mp3';
+    var awesome_mp3 = '/awesome/awesome.mp3';
     var awesome_nyan_gif = 'http://mlpforums.com/uploads/post_images/img-2896624-1-Nyan_Cat_Emoticon.gif';
     function awesomeColor() {
         var color = "#";
-        for (k = 0; k < 3; k++) {
+        for (var k = 0; k < 3; k++) {
             color += ("0" + (Math.random()*256|0).toString(16)).substr(-2);
         }
         return color;
