@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <style>
+   marquee {
+     position: absolute;
+     top: 0;
+     z-index: 100;
+   }
+  </style>
+  <body>
+    <h1>Farm Monitor</h1>
+    <marquee id="marquee" direction="right">
+    </marquee>
+
+    <script>
+     var data = [{
+       img: './nyan.gif',
+       mp3: './nyan.mp3'
+     }, {
+       img: './mario.gif',
+       mp3: './mario.mp3'
+     }, {
+       img: './gannam.gif',
+       mp3: './gannam.mp3'
+     }, {
+       img: './moonwalk.gif',
+       mp3: './beatit.mp3'
+     }];
+
+     var rand = Math.floor(Math.random() * data.length);
+     var img = new Image();
+     img.src = data[rand].img;
+     marquee.appendChild(img);
+
+     var audio = new Audio();
+     audio.autoplay = true;
+     audio.src = data[rand].mp3;
+     document.body.appendChild(audio);
+     
+    </script>
+  </body>
+</html>
