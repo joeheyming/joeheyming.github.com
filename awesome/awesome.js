@@ -1,6 +1,6 @@
 var awesomeNamespace = (function() {
     var namespace = {};
-    var awesome_mp3 = '/awesome/awesome.mp3';
+    var awesome_mp3 = 'awesome.mp3';
     var awesome_nyan_gif = 'http://mlpforums.com/uploads/post_images/img-2896624-1-Nyan_Cat_Emoticon.gif';
     function awesomeColor() {
         var color = "#";
@@ -128,7 +128,9 @@ var awesomeNamespace = (function() {
             document.onmouseover = function(e) {
                 document.body.focus();
             }.bind(this);
-            document.onclick = function(e) {
+          document.onclick = function(e) {
+                start.style = 'display: none;'
+                awesome_parent.style = 'display: table';
                 if (e.button == 0) {
                     this.awesomeToggle();
                 }

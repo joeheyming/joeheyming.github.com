@@ -1,12 +1,17 @@
 html, body {
-  height: 100%;
-  margin: 0;
+}
+
+#start {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  flex-direction: column;
 }
 
 div#awesome_parent {
-  min-height: 100%; 
+  display: none;
+  min-height: calc(100vh - 100px); 
   width: 100%;
-  display: table;
   transition: background-color 1.0s ease;
 }
 div#awesome_div {
