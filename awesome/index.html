@@ -6,8 +6,20 @@
     <script src="awesome.js"></script>
   </head>
   <body>
+    <div id="start">
+      <h1>Click to start awesome!</h1>
+      Keybindings:
+      <ul>
+        <li>a - Show awesome</li>
+        <li>n - Nyan!</li>
+        <li>ESC - restart</li>
+      </ul>
+    </div>
     <script id="awesome_script">
-     var awesome = new awesomeNamespace.Awesome();
+     document.addEventListener('DOMContentLoaded', function() {
+       var awesome = new awesomeNamespace.Awesome();
+       window.scroll(0,0)
+     })
     </script>
   </body>
 </html>
