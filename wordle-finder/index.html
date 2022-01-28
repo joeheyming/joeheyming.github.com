@@ -84,6 +84,7 @@
        notfourth.value = '';
        notfifth.value = '';
        randomWord.textContent = '';
+       guesses.textContent = '';
      }
      guessForm.onsubmit = guess;
      submit.onclick = guess;
@@ -140,6 +141,7 @@
    #randomWord {
      font-weight: 600;
      text-transform: uppercase;
+     margin-left: 15px;
    }
    body {
      font-family: Arial;
@@ -151,33 +153,33 @@
   </style>
   <body>
     <h1>Joe's Wordle Helper</h1>
-    <label>Generate random word</label>
+    <label>Random start word</label>
     <button id="randomWordButton">Go</button>
-    <div id="randomWord"></div>
+    <span id="randomWord"></span>
     <br />
 
-    <form id="guessForm">
+    <form id="guessForm" autocomplete="off">
       <br />
-      <label>Include</label><input class="correct" type="text" id="includeLetters" /><br />
+      <label>Include</label><input autocomplete="off" maxlength="5" class="correct" type="text" id="includeLetters" /><br />
       <br />
-      <label>Exclude</label><input class="incorrect" type="text" id="excludeLetters" /><br />
+      <label>Exclude</label><input autocomplete="off" class="incorrect" type="text" id="excludeLetters" /><br />
       <br />
       <div class="corrects">
         <label>Include in these spots</label>
-        <input type="text" maxlength="1" size="1" id="first" />
-        <input type="text" maxlength="1" size="1" id="second" />
-        <input type="text" maxlength="1" size="1" id="third" />
-        <input type="text" maxlength="1" size="1" id="fourth" />
-        <input type="text" maxlength="1" size="1" id="fifth" />
+        <input autocomplete="off" type="text" maxlength="1" size="1" id="first" />
+        <input autocomplete="off" type="text" maxlength="1" size="1" id="second" />
+        <input autocomplete="off" type="text" maxlength="1" size="1" id="third" />
+        <input autocomplete="off" type="text" maxlength="1" size="1" id="fourth" />
+        <input autocomplete="off" type="text" maxlength="1" size="1" id="fifth" />
       </div>
       <br />
       <div class="maybecorrects">
         <label>Ignore in these spots</label>
-        <input type="text" maxlength="5" size="5" id="notfirst" />
-        <input type="text" maxlength="5" size="5" id="notsecond" />
-        <input type="text" maxlength="5" size="5" id="notthird" />
-        <input type="text" maxlength="5" size="5" id="notfourth" />
-        <input type="text" maxlength="5" size="5" id="notfifth" />
+        <input autocomplete="off" type="text" maxlength="5" size="5" id="notfirst" />
+        <input autocomplete="off" type="text" maxlength="5" size="5" id="notsecond" />
+        <input autocomplete="off" type="text" maxlength="5" size="5" id="notthird" />
+        <input autocomplete="off" type="text" maxlength="5" size="5" id="notfourth" />
+        <input autocomplete="off" type="text" maxlength="5" size="5" id="notfifth" />
       </div>
       <br />
 
