@@ -24,7 +24,8 @@
 
      function guess(event) {
        event.preventDefault();
-       var included = includeLetters.value.toLowerCase().split('');
+       var includeLettersJoined = includeLetters.value.toLowerCase();
+       var included = includeLettersJoined.split('');
        var excluded = excludeLetters.value.toLowerCase().split('');
        var matched = words.filter(function(word) {
          return included.every(function(letter) {
@@ -43,11 +44,10 @@
            return word[spot] === lowerLetter;
          });
        }
-       filterSpot(0, first.value);
-       filterSpot(1, second.value);
-       filterSpot(2, third.value);
-       filterSpot(3, fourth.value);
-       filterSpot(4, fifth.value);
+       var spots = [first, second, third, fourth, fifth];
+       spots.map(function(spot, index) {
+         filterSpot(index, spot.value);
+       });
 
        function filterNotSpot(spot, letters) {
          if (!letters) {
@@ -61,12 +61,44 @@
          });
        }
 
-       filterNotSpot(0, notfirst.value);
-       filterNotSpot(1, notsecond.value);
-       filterNotSpot(2, notthird.value);
-       filterNotSpot(3, notfourth.value);
-       filterNotSpot(4, notfifth.value);
+       var notSpots = [notfirst, notsecond, notthird, notfourth, notfifth];
+       notSpots.map(function(spot, index) {
+         filterNotSpot(index, spot.value);
+       });
 
+       notLetters = notSpots.map(function(spot) { return spot.value.toLowerCase() }).join('');
+       letterStats = {}
+       matched.map(function(guess) {
+         guess.split('').map(function(letter) {
+           if (!letterStats[letter]) {
+             letterStats[letter] = 0;
+           }
+           letterStats[letter] = letterStats[letter] + 1;
+         });
+       });
+
+       maxStats = Object.keys(letterStats).map(function(letter) {
+         return [letter, letterStats[letter]];
+       });
+
+       maxStats.sort(function(a,b) {
+         return b[1] - a[1];
+       });
+
+       statContent = '<h3>Stats</h3><div>';
+       maxStats.map(function(stat) {
+         var letter = stat[0];
+         var count = stat[1];
+         var letterContent = letter;
+         if (includeLettersJoined.match(letter) !== null) {
+           letterContent = '<span class="included-stat">' + letter + '</span>';
+         } else if (notLetters.match(letter) !== null) {
+           letterContent = '<span class="included-stat-wront-spot">' + letter + '</span>';
+         }
+         statContent = statContent + letterContent + ': ' + count + '\n';
+       });
+       statContent = statContent + '</div><h3>Matches</h3>';
+       stats.innerHTML = statContent
        guesses.textContent = matched.join('\r\n');
        return false;
      }
@@ -84,6 +116,7 @@
        notfourth.value = '';
        notfifth.value = '';
        randomWord.textContent = '';
+       stats.innerHTML = '';
        guesses.textContent = '';
      }
      guessForm.onsubmit = guess;
@@ -134,7 +167,16 @@
      border: 2px solid #787c7e;
    }
 
-   #guesses {
+   .included-stat {
+     background-color: #6aaa64;
+     color: white;
+   }
+   .included-stat-wront-spot {
+     background-color: #c9b458;
+     color: white;
+   }
+
+   #guesses, #stats div {
      column-count: 4;
    }
 
@@ -188,6 +230,8 @@
     <button id="submit">Submit</button>
     <button id="reset">Reset</button>
     <br />
+
+    <pre id="stats"></pre>
 
     <pre id="guesses"></pre>
 
