@@ -84,6 +84,7 @@
        randomWord.textContent = '';
      }
      guessForm.onsubmit = guess;
+     submit.onclick = guess;
    }
   </script>
   <style>
@@ -133,13 +134,6 @@
      column-count: 4;
    }
 
-   button#reset {
-     margin-top: -21px;
-     position: relative;
-     left: 70px;
-     display: block;
-   }
-
    #randomWord {
      font-weight: 600;
      text-transform: uppercase;
@@ -184,8 +178,9 @@
       </div>
       <br />
 
-      <input type="submit" />
+      <input type="submit" style="display: none;"/>
     </form>
+    <button id="submit">Submit</button>
     <button id="reset">Reset</button>
     <br />
 
