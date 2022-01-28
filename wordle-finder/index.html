@@ -24,8 +24,8 @@
 
      function guess(event) {
        event.preventDefault();
-       var included = includeLetters.value.split('');
-       var excluded = excludeLetters.value.split('');
+       var included = includeLetters.value.toLowerCase().split('');
+       var excluded = excludeLetters.value.toLowerCase().split('');
        var matched = words.filter(function(word) {
          return included.every(function(letter) {
            return word.match(letter) !== null;
