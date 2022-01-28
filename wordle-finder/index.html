@@ -4,14 +4,21 @@
   <script>
    var res = fetch('words');
    var words
+   function isIsogram (str) {
+     return !/(.).*\1/.test(str);
+   }
    window.onload = function() {
      res.then(function(a) { return a.text(); }).then(function(b) {
        window.words = b.split('\n');
        words = window.words;
      });
      randomWordButton.onclick = function() {
-       var item = Math.floor(Math.random() * words.length);
-       const word = words[item];
+       var word;
+       var item;
+       do {
+         item = Math.floor(Math.random() * words.length);
+         word = words[item];
+       } while (!isIsogram(word));
        randomWord.textContent = word;
      }
 
@@ -119,19 +126,41 @@
      border: 2px solid #787c7e;
    }
 
+   #guesses {
+     column-count: 4;
+     margin-left: auto;
+     width: calc(100vw - 50px);
+     margin-right: auto;
+   }
+
+   button#reset {
+     margin-top: -21px;
+     position: relative;
+     left: 70px;
+     display: block;
+   }
+
+   #randomWord {
+     font-weight: 600;
+     text-transform: uppercase;
+   }
+   body {
+     font-family: Arial;
+   }
+
   </style>
   <body>
     <h1>Joe's Wordle Helper</h1>
-    <label>Generate random word:</label>
+    <label>Generate random word</label>
     <button id="randomWordButton">Go</button>
     <div id="randomWord"></div>
     <br />
 
     <form id="guessForm">
       <br />
-      <label>Include:</label><input class="correct" type="text" id="includeLetters" /><br />
+      <label>Include</label><input class="correct" type="text" id="includeLetters" /><br />
       <br />
-      <label>Exclude:</label><input class="incorrect" type="text" id="excludeLetters" /><br />
+      <label>Exclude</label><input class="incorrect" type="text" id="excludeLetters" /><br />
       <br />
       <div class="corrects">
         <label>Include in these spots</label>
@@ -154,7 +183,6 @@
 
       <input type="submit" />
     </form>
-    <br />
     <button id="reset">Reset</button>
     <br />
 
