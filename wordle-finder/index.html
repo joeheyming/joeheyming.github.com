@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+   var res = fetch('words');
+   var words
+   window.onload = function() {
+     res.then(function(a) { return a.text(); }).then(function(b) {
+       window.words = b.split('\n');
+       words = window.words;
+     });
+     randomWordButton.onclick = function() {
+       var item = Math.floor(Math.random() * words.length);
+       const word = words[item];
+       randomWord.textContent = word;
+     }
+
+     function guess(event) {
+       event.preventDefault();
+       var included = includeLetters.value.split('');
+       var excluded = excludeLetters.value.split('');
+       var matched = words.filter(function(word) {
+         return included.every(function(letter) {
+           return word.match(letter) !== null;
+         }) && !excluded.some(function(letter) {
+           return word.match(letter) !== null;
+         })
+       });
+
+       function filterSpot(spot, letter) {
+         if (!letter) {
+           return;
+         }
+         matched = matched.filter(function(word) {
+           return word[spot] === letter;
+         });
+       }
+       filterSpot(0, first.value);
+       filterSpot(1, second.value);
+       filterSpot(2, third.value);
+       filterSpot(3, fourth.value);
+       filterSpot(4, fifth.value);
+
+       function filterNotSpot(spot, letters) {
+         if (!letters) {
+           return;
+         }
+         matched = matched.filter(function(word) {
+           return !letters.split('').some(function(letter) {
+             return word[spot] === letter;
+           });
+         });
+       }
+
+       filterNotSpot(0, notfirst.value);
+       filterNotSpot(1, notsecond.value);
+       filterNotSpot(2, notthird.value);
+       filterNotSpot(3, notfourth.value);
+       filterNotSpot(4, notfifth.value);
+
+       guesses.textContent = matched.join('\r\n');
+       return false;
+     }
+     reset.onclick = function() {
+       includeLetters.value = '';
+       excludeLetters.value = '';
+       first.value = '';
+       second.value = '';
+       third.value = '';
+       fourth.value = '';
+       fifth.value = '';
+       notfirst.value = '';
+       notsecond.value = '';
+       notthird.value = '';
+       notfourth.value = '';
+       notfifth.value = '';
+       randomWord.textContent = '';
+     }
+     guessForm.onsubmit = guess;
+   }
+  </script>
+  <style>
+   label {
+     width: 100px;
+     display: inline-table;
+   }
+
+   input[type=text] {
+     text-transform: uppercase;
+     font-weight: bold;
+     text-align: center;
+     color: white;
+   }
+
+   .corrects input {
+     background-color: #6aaa64;
+     width: 30px;
+     height: 30px;
+     border: 2px solid #787c7e;
+   }
+
+   input.incorrect {
+     background-color: #86888a;
+     height: 30px;
+     border: 2px solid #787c7e;
+     width: 200px;
+   }
+   input.correct {
+     background-color: #6aaa64;
+     height: 30px;
+     border: 2px solid #787c7e;
+     width: 200px;
+   }
+
+   .maybecorrects input {
+     background-color: #c9b458;
+     width: 30px;
+     height: 30px;
+     border: 2px solid #787c7e;
+   }
+
+  </style>
+  <body>
+    <h1>Joe's Wordle Helper</h1>
+    <label>Generate random word:</label>
+    <button id="randomWordButton">Go</button>
+    <div id="randomWord"></div>
+    <br />
+
+    <form id="guessForm">
+      <br />
+      <label>Include:</label><input class="correct" type="text" id="includeLetters" /><br />
+      <br />
+      <label>Exclude:</label><input class="incorrect" type="text" id="excludeLetters" /><br />
+      <br />
+      <div class="corrects">
+        <label>Include in these spots</label>
+        <input type="text" maxlength="1" size="1" id="first" />
+        <input type="text" maxlength="1" size="1" id="second" />
+        <input type="text" maxlength="1" size="1" id="third" />
+        <input type="text" maxlength="1" size="1" id="fourth" />
+        <input type="text" maxlength="1" size="1" id="fifth" />
+      </div>
+      <br />
+      <div class="maybecorrects">
+        <label>Ignore in these spots</label>
+        <input type="text" maxlength="5" size="5" id="notfirst" />
+        <input type="text" maxlength="5" size="5" id="notsecond" />
+        <input type="text" maxlength="5" size="5" id="notthird" />
+        <input type="text" maxlength="5" size="5" id="notfourth" />
+        <input type="text" maxlength="5" size="5" id="notfifth" />
+      </div>
+      <br />
+
+      <input type="submit" />
+    </form>
+    <br />
+    <button id="reset">Reset</button>
+    <br />
+
+    <pre id="guesses"></pre>
+
+  </body>
+</html>
