@@ -38,8 +38,9 @@
          if (!letter) {
            return;
          }
+         var lowerLetter = letter.toLowerCase();
          matched = matched.filter(function(word) {
-           return word[spot] === letter;
+           return word[spot] === lowerLetter;
          });
        }
        filterSpot(0, first.value);
@@ -52,8 +53,9 @@
          if (!letters) {
            return;
          }
+         var lowerLetters = letters.toLowerCase().split('');
          matched = matched.filter(function(word) {
-           return !letters.split('').some(function(letter) {
+           return !lowerLetters.some(function(letter) {
              return word[spot] === letter;
            });
          });
