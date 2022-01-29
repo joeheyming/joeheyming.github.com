@@ -1,198 +1,207 @@
 <!DOCTYPE html>
 <html lang="en">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script>
-   var res = fetch('words');
-   var words
-   function isIsogram (str) {
-     return !/(.).*\1/.test(str);
-   }
-   window.onload = function() {
-     res.then(function(a) { return a.text(); }).then(function(b) {
-       window.words = b.split('\n');
-       words = window.words;
-     });
-     randomWordButton.onclick = function() {
-       var word;
-       var item;
-       do {
-         item = Math.floor(Math.random() * words.length);
-         word = words[item];
-       } while (!isIsogram(word));
-       randomWord.textContent = word;
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property=’og:title’ content="Joe's' Wordle Helper"/>
+    <meta property=’og:image’ content='https://joeheyming.github.io/wordle-finder/thumbnail.png'/>
+    <meta property=’og:description’ content='Use strategies to solve wordle'/>
+    <meta property=’og:url’ content='https://joeheyming.github.io/wordle-finder/index.html'/>
+    <meta property='og:image:width' content='359' />
+    <meta property='og:image:height' content='385' />
+    <meta property="og:type" content='website'/>
+    <script>
+     var res = fetch('words');
+     var words
+     function isIsogram (str) {
+       return !/(.).*\1/.test(str);
      }
-
-     function guess(event) {
-       event.preventDefault();
-       var includeLettersJoined = includeLetters.value.toLowerCase();
-       var included = includeLettersJoined.split('');
-       var excluded = excludeLetters.value.toLowerCase().split('');
-       var matched = words.filter(function(word) {
-         return included.every(function(letter) {
-           return word.match(letter) !== null;
-         }) && !excluded.some(function(letter) {
-           return word.match(letter) !== null;
-         })
+     window.onload = function() {
+       res.then(function(a) { return a.text(); }).then(function(b) {
+         window.words = b.split('\n');
+         words = window.words;
        });
-
-       function filterSpot(spot, letter) {
-         if (!letter) {
-           return;
-         }
-         var lowerLetter = letter.toLowerCase();
-         matched = matched.filter(function(word) {
-           return word[spot] === lowerLetter;
-         });
+       randomWordButton.onclick = function() {
+         var word;
+         var item;
+         do {
+           item = Math.floor(Math.random() * words.length);
+           word = words[item];
+         } while (!isIsogram(word));
+         randomWord.textContent = word;
        }
-       var spots = [first, second, third, fourth, fifth];
-       spots.map(function(spot, index) {
-         filterSpot(index, spot.value);
-       });
 
-       function filterNotSpot(spot, letters) {
-         if (!letters) {
-           return;
+       function guess(event) {
+         event.preventDefault();
+         var includeLettersJoined = includeLetters.value.toLowerCase();
+         var included = includeLettersJoined.split('');
+         var excluded = excludeLetters.value.toLowerCase().split('');
+         var matched = words.filter(function(word) {
+           return included.every(function(letter) {
+             return word.match(letter) !== null;
+           }) && !excluded.some(function(letter) {
+             return word.match(letter) !== null;
+           })
+         });
+
+         function filterSpot(spot, letter) {
+           if (!letter) {
+             return;
+           }
+           var lowerLetter = letter.toLowerCase();
+           matched = matched.filter(function(word) {
+             return word[spot] === lowerLetter;
+           });
          }
-         var lowerLetters = letters.toLowerCase().split('');
-         matched = matched.filter(function(word) {
-           return !lowerLetters.some(function(letter) {
-             return word[spot] === letter;
+         var spots = [first, second, third, fourth, fifth];
+         spots.map(function(spot, index) {
+           filterSpot(index, spot.value);
+         });
+
+         function filterNotSpot(spot, letters) {
+           if (!letters) {
+             return;
+           }
+           var lowerLetters = letters.toLowerCase().split('');
+           matched = matched.filter(function(word) {
+             return !lowerLetters.some(function(letter) {
+               return word[spot] === letter;
+             });
+           });
+         }
+
+         var notSpots = [notfirst, notsecond, notthird, notfourth, notfifth];
+         notSpots.map(function(spot, index) {
+           filterNotSpot(index, spot.value);
+         });
+
+         notLetters = notSpots.map(function(spot) { return spot.value.toLowerCase() }).join('');
+         letterStats = {}
+         matched.map(function(guess) {
+           guess.split('').map(function(letter) {
+             if (!letterStats[letter]) {
+               letterStats[letter] = 0;
+             }
+             letterStats[letter] = letterStats[letter] + 1;
            });
          });
-       }
 
-       var notSpots = [notfirst, notsecond, notthird, notfourth, notfifth];
-       notSpots.map(function(spot, index) {
-         filterNotSpot(index, spot.value);
-       });
-
-       notLetters = notSpots.map(function(spot) { return spot.value.toLowerCase() }).join('');
-       letterStats = {}
-       matched.map(function(guess) {
-         guess.split('').map(function(letter) {
-           if (!letterStats[letter]) {
-             letterStats[letter] = 0;
-           }
-           letterStats[letter] = letterStats[letter] + 1;
+         maxStats = Object.keys(letterStats).map(function(letter) {
+           return [letter, letterStats[letter]];
          });
-       });
 
-       maxStats = Object.keys(letterStats).map(function(letter) {
-         return [letter, letterStats[letter]];
-       });
+         maxStats.sort(function(a,b) {
+           return b[1] - a[1];
+         });
 
-       maxStats.sort(function(a,b) {
-         return b[1] - a[1];
-       });
-
-       statContent = '<h3>Stats</h3><div>';
-       maxStats.map(function(stat) {
-         var letter = stat[0];
-         var count = stat[1];
-         var letterContent = letter;
-         if (includeLettersJoined.match(letter) !== null) {
-           letterContent = '<span class="included-stat">' + letter + '</span>';
-         } else if (notLetters.match(letter) !== null) {
-           letterContent = '<span class="included-stat-wront-spot">' + letter + '</span>';
-         }
-         statContent = statContent + letterContent + ': ' + count + '\n';
-       });
-       statContent = statContent + '</div><h3>Matches</h3>';
-       stats.innerHTML = statContent
-       guesses.textContent = matched.join('\r\n');
-       return false;
+         statContent = '<h3>Stats</h3><div>';
+         maxStats.map(function(stat) {
+           var letter = stat[0];
+           var count = stat[1];
+           var letterContent = letter;
+           if (includeLettersJoined.match(letter) !== null) {
+             letterContent = '<span class="included-stat">' + letter + '</span>';
+           } else if (notLetters.match(letter) !== null) {
+             letterContent = '<span class="included-stat-wront-spot">' + letter + '</span>';
+           }
+           statContent = statContent + letterContent + ': ' + count + '\n';
+         });
+         statContent = statContent + '</div><h3>Matches</h3>';
+         stats.innerHTML = statContent
+         guesses.textContent = matched.join('\r\n');
+         return false;
+       }
+       reset.onclick = function() {
+         includeLetters.value = '';
+         excludeLetters.value = '';
+         first.value = '';
+         second.value = '';
+         third.value = '';
+         fourth.value = '';
+         fifth.value = '';
+         notfirst.value = '';
+         notsecond.value = '';
+         notthird.value = '';
+         notfourth.value = '';
+         notfifth.value = '';
+         randomWord.textContent = '';
+         stats.innerHTML = '';
+         guesses.textContent = '';
+       }
+       guessForm.onsubmit = guess;
+       submit.onclick = guess;
      }
-     reset.onclick = function() {
-       includeLetters.value = '';
-       excludeLetters.value = '';
-       first.value = '';
-       second.value = '';
-       third.value = '';
-       fourth.value = '';
-       fifth.value = '';
-       notfirst.value = '';
-       notsecond.value = '';
-       notthird.value = '';
-       notfourth.value = '';
-       notfifth.value = '';
-       randomWord.textContent = '';
-       stats.innerHTML = '';
-       guesses.textContent = '';
+    </script>
+    <style>
+     label {
+       width: 100px;
+       display: inline-table;
+       margin-right: 10px;
+       vertical-align: middle;
      }
-     guessForm.onsubmit = guess;
-     submit.onclick = guess;
-   }
-  </script>
-  <style>
-   label {
-     width: 100px;
-     display: inline-table;
-     margin-right: 10px;
-     vertical-align: middle;
-   }
 
-   input[type=text] {
-     text-transform: uppercase;
-     font-weight: bold;
-     text-align: center;
-     color: white;
-   }
+     input[type=text] {
+       text-transform: uppercase;
+       font-weight: bold;
+       text-align: center;
+       color: white;
+     }
 
-   .corrects input {
-     background-color: #6aaa64;
-     width: 30px;
-     height: 30px;
-     border: 2px solid #787c7e;
-   }
+     .corrects input {
+       background-color: #6aaa64;
+       width: 30px;
+       height: 30px;
+       border: 2px solid #787c7e;
+     }
 
-   input.incorrect {
-     background-color: #86888a;
-     height: 30px;
-     border: 2px solid #787c7e;
-     width: 200px;
-     margin-left: 4px;
-   }
-   input.correct {
-     background-color: #6aaa64;
-     height: 30px;
-     border: 2px solid #787c7e;
-     width: 200px;
-     margin-left: 4px;
-   }
+     input.incorrect {
+       background-color: #86888a;
+       height: 30px;
+       border: 2px solid #787c7e;
+       width: 200px;
+       margin-left: 4px;
+     }
+     input.correct {
+       background-color: #6aaa64;
+       height: 30px;
+       border: 2px solid #787c7e;
+       width: 200px;
+       margin-left: 4px;
+     }
 
-   .maybecorrects input {
-     background-color: #c9b458;
-     width: 30px;
-     height: 30px;
-     border: 2px solid #787c7e;
-   }
+     .maybecorrects input {
+       background-color: #c9b458;
+       width: 30px;
+       height: 30px;
+       border: 2px solid #787c7e;
+     }
 
-   .included-stat {
-     background-color: #6aaa64;
-     color: white;
-   }
-   .included-stat-wront-spot {
-     background-color: #c9b458;
-     color: white;
-   }
+     .included-stat {
+       background-color: #6aaa64;
+       color: white;
+     }
+     .included-stat-wront-spot {
+       background-color: #c9b458;
+       color: white;
+     }
 
-   #guesses, #stats div {
-     column-count: 4;
-   }
+     #guesses, #stats div {
+       column-count: 4;
+     }
 
-   #randomWord {
-     font-weight: 600;
-     text-transform: uppercase;
-     margin-left: 15px;
-   }
-   body {
-     font-family: Arial;
-     margin-left: auto;
-     width: calc(100vw - 50px);
-     margin-right: auto;
-   }
+     #randomWord {
+       font-weight: 600;
+       text-transform: uppercase;
+       margin-left: 15px;
+     }
+     body {
+       font-family: Arial;
+       margin-left: auto;
+       width: calc(100vw - 50px);
+       margin-right: auto;
+     }
 
-  </style>
+    </style>
+  </head>
   <body>
     <h1>Joe's Wordle Helper</h1>
     <label>Random start word</label>
