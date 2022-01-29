@@ -74,14 +74,22 @@
            filterNotSpot(index, spot.value);
          });
 
-         notLetters = notSpots.map(function(spot) { return spot.value.toLowerCase() }).join('');
          letterStats = {}
+         biLetterStats = {}
          matched.map(function(guess) {
-           guess.split('').map(function(letter) {
+           guess.split('').map(function(letter, i) {
              if (!letterStats[letter]) {
                letterStats[letter] = 0;
              }
              letterStats[letter] = letterStats[letter] + 1;
+
+             if (i < guess.length - 1) {
+               var combo = letter + guess[i+1];
+               if (!biLetterStats[combo]) {
+                 biLetterStats[combo] = 0;
+               }
+               biLetterStats[combo] = biLetterStats[combo] + 1;
+             }
            });
          });
 
@@ -93,12 +101,21 @@
            return b[1] - a[1];
          });
 
-         statContent = '<h3>Stats</h3><div>';
+         biMaxStats = Object.keys(biLetterStats).map(function(letter) {
+           return [letter, biLetterStats[letter]];
+         });
+
+         biMaxStats.sort(function(a,b) {
+           return b[1] - a[1];
+         });
+
+         notLetters = notSpots.map(function(spot) { return spot.value.toLowerCase() }).join('');
+         statContent = ''
          maxStats.map(function(stat) {
            var letter = stat[0];
            var count = stat[1];
            var letterContent = letter;
-           var letterClass = 'stat-letter';
+           var letterClass = 'stat-letter stat-letter-block';
            if (includeLettersJoined.match(letter) !== null) {
              letterClass = letterClass + ' included-stat';
            } else if (notLetters.match(letter) !== null) {
@@ -106,9 +123,21 @@
            }
            statContent = statContent + '<span class="' + letterClass + '">' + letterContent + '</span>&nbsp;' + count + '\n';
          });
-         statContent = statContent + '</div><h3>Matches</h3>';
-         stats.innerHTML = statContent
-         guesses.textContent = matched.join('\r\n');
+
+         comboStatContent = ''
+         if (biMaxStats.length > 0) {
+           comboStatContent = comboStatContent + '\n';
+           biMaxStats.map(function(stat) {
+             var combo = stat[0];
+             var count = stat[1];
+             comboStatContent = comboStatContent + '<span class="stat-letter">' + combo + '</span>:&nbsp;' + count + '\n';
+           });
+         }
+
+         window['tabpanel-matches'].innerHTML = '<pre>' + matched.join('\r\n') + '</pre>';
+         window['tabpanel-single'].innerHTML = '<pre>' + statContent + '</pre>';
+         window['tabpanel-combo'].innerHTML = '<pre>' + comboStatContent + '</pre>';
+         results.removeAttribute('hidden');
          return false;
        }
        reset.onclick = function() {
@@ -125,11 +154,42 @@
          notfourth.value = '';
          notfifth.value = '';
          randomWord.textContent = '';
-         stats.innerHTML = '';
-         guesses.textContent = '';
+         results.setAttribute('hidden','');
        }
        guessForm.onsubmit = guess;
        submit.onclick = guess;
+
+       const tabs = document.querySelectorAll('[role="tab"]');
+       const tabList = document.querySelector('[role="tablist"]');
+
+       function changeTabs(e) {
+         const target = e.target;
+         const parent = target.parentNode;
+         const grandparent = parent.parentNode;
+
+         // Remove all current selected tabs
+         parent
+           .querySelectorAll('[aria-selected="true"]')
+           .forEach(t => t.setAttribute('aria-selected', false));
+
+         // Set this tab as selected
+         target.setAttribute('aria-selected', true);
+
+         // Hide all tab panels
+         grandparent
+           .querySelectorAll('[role="tabpanel"]')
+           .forEach(p => p.setAttribute('hidden', true));
+
+         // Show the selected panel
+         grandparent.parentNode
+                    .querySelector(`#${target.getAttribute('aria-controls')}`)
+                    .removeAttribute('hidden');
+       }
+       // Add a click event handler to each tab
+       tabs.forEach(tab => {
+         tab.addEventListener('click', changeTabs);
+       });
+
      }
     </script>
     <style>
@@ -178,13 +238,17 @@
 
      .stat-letter {
        margin: 5px 5px 5px 0px;
-       border: solid 1px black;
        display: inline-block;
-       width: 20px;
        height: 100%;
        text-align: center;
        content: '';
        font-weight: 600;
+       width: 30px;
+     }
+
+     .stat-letter-block {
+       border: solid 1px #787c7e;
+       width: 20px;
      }
      .included-stat {
        color: white;
@@ -193,11 +257,6 @@
      .included-stat-wrong-spot {
        color: white;
        background-color: #c9b458;
-     }
-
-     #guesses, #stats div {
-       column-count: 4;
-       text-transform: uppercase;
      }
 
      #randomWord {
@@ -213,6 +272,51 @@
      }
      pre {
        font-family: sans-serif;
+       text-transform: uppercase;
+       column-count: 4;
+     }
+
+     #results {
+       margin-top: 10px;
+     }
+     .panels {
+       max-height: 300px;
+       overflow-y: auto;
+     }
+     #results [role=tablist] {
+       border-bottom: solid 1px #787c7e;
+     }
+
+     #results button[role=tab] {
+       border: solid 1px #787c7e;
+       color: inherit;
+       background-color: inherit;
+       border-bottom: none;
+     }
+
+     #results button[role=tab]:hover, #results button[role=tab]:focus, #results button[role=tab][aria-selected=true]  {
+       color: black;
+       background-color: #c9b458;
+     }
+
+     button {
+       font-weight: bold;
+       display: inline-block;
+       padding: 8px 16px;
+       vertical-align: middle;
+       overflow: hidden;
+       text-decoration: none;
+       text-align: center;
+       cursor: pointer;
+       white-space: nowrap;
+       width: auto;
+       outline: 0;
+       border: solid 1px #787c7e;
+     }
+
+     #submit {
+       color: white;
+       background-color: #6aaa64;
      }
 
     </style>
@@ -255,9 +359,17 @@
     <button id="reset">Reset</button>
     <br />
 
-    <pre id="stats"></pre>
-
-    <pre id="guesses"></pre>
-
+    <div id="results" hidden>
+      <div role="tablist">
+        <button aria-selected="true"  role="tab" aria-controls="tabpanel-matches" id="matches">Matches</button>
+        <button aria-selected="false" role="tab" aria-controls="tabpanel-single" id="single-stats">Letter Stats</button>
+        <button aria-selected="false" role="tab" aria-controls="tabpanel-combo" id="combo-stats">Combo Stats</button>
+      </div>
+      <div class="panels">
+        <div id="tabpanel-matches" role="tabpanel" tabindex="0" aria-labelledby="matches"></div>
+        <div id="tabpanel-single" role="tabpanel" tabindex="0" aria-labelledby="single-stats" hidden></div>
+        <div id="tabpanel-combo" role="tabpanel" tabindex="0" aria-labelledby="combo-stats" hidden></div>
+      </div>
+    </div>
   </body>
 </html>
