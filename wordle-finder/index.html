@@ -74,8 +74,8 @@
            filterNotSpot(index, spot.value);
          });
 
-         letterStats = {}
-         biLetterStats = {}
+         var letterStats = {}
+         var biLetterStats = {}
          matched.map(function(guess) {
            guess.split('').map(function(letter, i) {
              if (!letterStats[letter]) {
@@ -93,7 +93,17 @@
            });
          });
 
+         var matchStats = {};
+         matched.map(function(match) {
+           matchStats[match] = 0; 
+         });
+
          maxStats = Object.keys(letterStats).map(function(letter) {
+           matched.map(function(match) {
+             if (match.indexOf(letter) !== -1) {
+               matchStats[match] = matchStats[match] + letterStats[letter];
+             }
+           });
            return [letter, letterStats[letter]];
          });
 
@@ -101,13 +111,29 @@
            return b[1] - a[1];
          });
 
-         biMaxStats = Object.keys(biLetterStats).map(function(letter) {
-           return [letter, biLetterStats[letter]];
+         var biMaxStats = Object.keys(biLetterStats).map(function(letter) {
+           matched.map(function(match) {
+             if (match.indexOf(letter) !== -1) {
+               matchStats[match] = matchStats[match] + biLetterStats[letter];
+             }
+           });
+
+           return [letter, biLetterStats[letter], new RegExp(letter)];
          });
 
          biMaxStats.sort(function(a,b) {
            return b[1] - a[1];
          });
+
+         var scores = Object.keys(matchStats).map(function(match) {
+           return [match, matchStats[match]];
+         });
+         scores.sort(function(a,b) {
+           return b[1] - a[1];
+         });
+         var scoreContent = '\r\n<h3>Scores</h3>\r\n<pre>' + scores.map(function(score) {
+           return score.join(': ')
+         }).join('\r\n') + '</pre>';
 
          notLetters = notSpots.map(function(spot) { return spot.value.toLowerCase() }).join('');
          statContent = ''
@@ -135,7 +161,7 @@
          }
 
          window['tabpanel-matches'].innerHTML = '<pre>' + matched.join('\r\n') + '</pre>';
-         window['tabpanel-single'].innerHTML = '<pre>' + statContent + '</pre>';
+         window['tabpanel-single'].innerHTML = '<h3>Letter Counts</h3><pre>' + statContent + '</pre>' + scoreContent ;
          window['tabpanel-combo'].innerHTML = '<pre>' + comboStatContent + '</pre>';
          results.removeAttribute('hidden');
          return false;
@@ -188,7 +214,7 @@
        // Add a click event handler to each tab
        tabs.forEach(tab => {
          tab.addEventListener('click', changeTabs);
-       });
+     });
 
      }
     </script>
