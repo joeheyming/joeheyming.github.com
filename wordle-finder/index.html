@@ -98,12 +98,13 @@
            var letter = stat[0];
            var count = stat[1];
            var letterContent = letter;
+           var letterClass = 'stat-letter';
            if (includeLettersJoined.match(letter) !== null) {
-             letterContent = '<span class="included-stat">' + letter + '</span>';
+             letterClass = letterClass + ' included-stat';
            } else if (notLetters.match(letter) !== null) {
-             letterContent = '<span class="included-stat-wront-spot">' + letter + '</span>';
+             letterClass = letterClass + ' included-stat-wrong-spot';
            }
-           statContent = statContent + letterContent + ': ' + count + '\n';
+           statContent = statContent + '<span class="' + letterClass + '">' + letterContent + '</span>&nbsp;' + count + '\n';
          });
          statContent = statContent + '</div><h3>Matches</h3>';
          stats.innerHTML = statContent
@@ -175,17 +176,28 @@
        border: 2px solid #787c7e;
      }
 
-     .included-stat {
-       background-color: #6aaa64;
-       color: white;
+     .stat-letter {
+       margin: 5px 5px 5px 0px;
+       border: solid 1px black;
+       display: inline-block;
+       width: 20px;
+       height: 100%;
+       text-align: center;
+       content: '';
+       font-weight: 600;
      }
-     .included-stat-wront-spot {
-       background-color: #c9b458;
+     .included-stat {
        color: white;
+       background-color: #6aaa64;
+     }
+     .included-stat-wrong-spot {
+       color: white;
+       background-color: #c9b458;
      }
 
      #guesses, #stats div {
        column-count: 4;
+       text-transform: uppercase;
      }
 
      #randomWord {
@@ -198,6 +210,9 @@
        margin-left: auto;
        width: calc(100vw - 50px);
        margin-right: auto;
+     }
+     pre {
+       font-family: sans-serif;
      }
 
     </style>
