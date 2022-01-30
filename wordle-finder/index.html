@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta property="og:title" content="Joe's' Wordle Helper"/>
     <meta property="og:image" content="https://joeheyming.github.io/wordle-finder/thumbnail.png" />
@@ -131,8 +132,8 @@
          scores.sort(function(a,b) {
            return b[1] - a[1];
          });
-         var scoreContent = '\r\n<h3>Scores</h3>\r\n<pre>' + scores.map(function(score) {
-           return score.join(': ')
+         var scoreContent = '\r\n<h3>Top Words by Frequency</h3>\r\n<pre>' + scores.map(function(score) {
+           return [0];
          }).join('\r\n') + '</pre>';
 
          notLetters = notSpots.map(function(spot) { return spot.value.toLowerCase() }).join('');
@@ -339,16 +340,115 @@
        outline: 0;
        border: solid 1px #787c7e;
      }
+     button:focus {
+       outline: 3px solid #ffbf47;
+       outline-offset: 0;
+     }
 
      #submit {
        color: white;
        background-color: #6aaa64;
      }
 
+     .info {
+       background-color: #00a5ff;
+       border: none;
+       border-radius: 100%;
+       padding: 1px 6px;
+       color: white;
+     }
+     .modal-layer {
+       z-index: 3;
+       position: fixed;
+       left: 0;
+       top: 0;
+       width: 100%;
+       height: 100%;
+       overflow: auto;
+       background-color: rgba(0,0,0,0.4);
+       display: flex;
+       flex: 1;
+       flex-direction: column;
+       align-items: center;
+       justify-content: center;
+     }
+     .modal {
+       display: block;
+       background-color: white;
+       width: 80vw;
+       height: 600px;
+       border-radius: 4px;
+     }
+
+     .modal-title {
+       display: flex;
+       justify-content: space-between;
+       align-items: center;
+       margin: 0 20px;
+     }
+     .modal-content {
+       height: 500px;
+       margin: 0 20px;
+       overflow-y: auto;
+     }
+     .modal-content img {
+       max-width: 100%;
+     }
+     .close-modal {
+       border: none;
+     }
+
     </style>
   </head>
   <body>
-    <h1>Joe's Wordle Helper</h1>
+    <div id="dialog" class="modal-layer" style="display: none;">
+      <div class="modal">
+        <div class="modal-title">
+          <h2>Help</h2>
+          <button class="close-modal" onclick="dialog.style.display = 'none'">X</button>
+        </div>
+        <hr />
+        <div class="modal-content">
+          <p>
+            This tool helps narrow the possible words you can choose for Wordle.
+            To start wordle, you need a word to start with.
+            The <strong>Random start word</strong> section helps give you a start word with non-repeating letters.
+          </p>
+          <img src="random-words.png" alt="How to generate random words."/>
+          <p>
+            Once you know the results of your first guess, you can input the letters you know are correct into the include section.
+
+            Letters you don't want should be added to the exclude section.
+          </p>
+          <img src="include-exclude.png" alt="How to include and exclude letters."/>
+
+          <p>
+            If you know correct letters, and you know the right spot they should be in,
+            add the letter to the correct spot in the <strong>Include in these spots</strong> section.
+
+            If you know correct letters, and know the incorrect spots they are in,
+            simply add the letters to the <strong>Ignore in these spots</strong> section.
+
+            Once you are done, click submit.
+          </p>
+          <img src="spots.png" alt="How to narrow results of a particular spot."/>
+
+          <p>
+            All matches will be shown after clicking <strong>Submit</strong>.
+            Statistics for the matches are provided in separate tabs.
+            The <strong>reset</strong> button can be used when starting a new game.
+          </p>
+          <img src="results.png" alt="A sample view of results."/>
+
+          <p>
+            Statistics include the frequency of all letters and the frequency of each pair of letters in the word list.
+            The frequency of all the letters and the pairs of letters are used as weights to generate a score for each match.
+            Matches are sorted by score in the statistics tab.
+          </p>
+        </div>
+      </div>
+    </div>
+    <h1>Joe's Wordle Helper <button onclick="dialog.style.display = ''" class="info">ℹ</button></h1>
     <label>Random start word</label>
     <button id="randomWordButton">Go</button>
     <span id="randomWord"></span>
