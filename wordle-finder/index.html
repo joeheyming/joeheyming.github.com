@@ -133,7 +133,7 @@
            return b[1] - a[1];
          });
          var scoreContent = '\r\n<h3>Top Words by Frequency</h3>\r\n<pre>' + scores.map(function(score) {
-           return [0];
+           return score[0];
          }).join('\r\n') + '</pre>';
 
          notLetters = notSpots.map(function(spot) { return spot.value.toLowerCase() }).join('');
@@ -354,8 +354,8 @@
        background-color: #00a5ff;
        border: none;
        border-radius: 100%;
-       padding: 4px;
-       line-height: 8px;
+       padding: 5px;
+       line-height: 5px;
        color: white;
      }
      .modal-layer {
