@@ -132,8 +132,8 @@
          scores.sort(function(a,b) {
            return b[1] - a[1];
          });
-         var scoreContent = '\r\n<h3>Top Words by Frequency</h3>\r\n<pre>' + scores.map(function(score) {
-           return score[0];
+         var scoreContent = '\r\n<h3>Top Words by Frequency</h3>\r\n<pre>' + scores.map(function(score, i) {
+           return (i+1) + ': ' + score[0];
          }).join('\r\n') + '</pre>';
 
          notLetters = notSpots.map(function(spot) { return spot.value.toLowerCase() }).join('');
