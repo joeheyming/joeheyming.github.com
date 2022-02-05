@@ -24,7 +24,7 @@ randomWordButton.onclick = function() {
     word = words[item];
   } while (!isIsogram(word));
   randomWord.textContent = word;
-  gtag('event', 'generate-random-word', {
+  gtag('event', 'generate_random_word', {
     'event_category': 'user action'
   });
 }
@@ -223,6 +223,12 @@ window.onload = function() {
 
   guessForm.onsubmit = guess;
   submit.onclick = guess;
+  helpIcon.onclick = function helpClick() {
+    dialog.style.display = '';
+    gtag('event', 'help_click', {
+      'event_category': 'user action'
+    });
+  }
 
   const tabs = document.querySelectorAll('[role="tab"]');
   const tabList = document.querySelector('[role="tablist"]');
