@@ -10,6 +10,20 @@
     <meta property="og:image:width" content="359" />
     <meta property="og:image:height" content="385" />
     <meta property="og:type" content="website"/>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script>
+     function analytics() {
+       window.dataLayer = window.dataLayer || [];
+       function gtag(){dataLayer.push(arguments);}
+       gtag('js', new Date());
+
+       gtag('config', 'G-Q62Q3E20Y0');
+     }
+     if (location.hostname !== 'localhost') {
+       analytics();
+     }
+    </script>
     <script>
      var res = fetch('words');
      var words
@@ -29,6 +43,9 @@
            word = words[item];
          } while (!isIsogram(word));
          randomWord.textContent = word;
+         gtag('event', 'generate-random-word', {
+           'event_category': 'user action'
+         });
        }
 
        function guess(event) {
@@ -96,7 +113,7 @@
 
          var matchStats = {};
          matched.map(function(match) {
-           matchStats[match] = 0; 
+           matchStats[match] = 0;
          });
 
          maxStats = Object.keys(letterStats).map(function(letter) {
@@ -165,6 +182,10 @@
          window['tabpanel-single'].innerHTML = '<h3>Letter Counts</h3><pre>' + statContent + '</pre>' + scoreContent ;
          window['tabpanel-combo'].innerHTML = '<pre>' + comboStatContent + '</pre>';
          results.removeAttribute('hidden');
+         gtag('event', 'submit', {
+           'event_category': 'user action'
+         });
+
          return false;
        }
        reset.onclick = function() {
@@ -182,6 +203,9 @@
          notfifth.value = '';
          randomWord.textContent = '';
          results.setAttribute('hidden','');
+         gtag('event', 'reset', {
+           'event_category': 'user action'
+         });
        }
        guessForm.onsubmit = guess;
        submit.onclick = guess;
@@ -215,7 +239,7 @@
        // Add a click event handler to each tab
        tabs.forEach(tab => {
          tab.addEventListener('click', changeTabs);
-     });
+       });
 
      }
     </script>
@@ -354,9 +378,12 @@
        background-color: #00a5ff;
        border: none;
        border-radius: 100%;
-       padding: 5px;
-       line-height: 5px;
+       padding: 8px;
+       line-height: 3px;
        color: white;
+       font-family: initial;
+       font-style: italic;
+       font-weight: 900;
      }
      .modal-layer {
        z-index: 3;
@@ -449,7 +476,7 @@
         </div>
       </div>
     </div>
-    <h1>Joe's Wordle Helper <button onclick="dialog.style.display = ''" class="info">ℹ</button></h1>
+    <h1>Joe's Wordle Helper <button onclick="dialog.style.display = ''" class="info">i</button></h1>
     <label>Random start word</label>
     <button id="randomWordButton">Go</button>
     <span id="randomWord"></span>
