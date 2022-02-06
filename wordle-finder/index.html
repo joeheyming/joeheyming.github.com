@@ -14,6 +14,7 @@
     <meta property="og:image:height" content="385" />
     <meta property="og:type" content="website"/>
     <meta name="google-site-verification" content="G4xgpb4nOfGShosuh1Tg0z-702kfJqP3tuqbhh_2YRE" />
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
 
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
@@ -109,14 +110,14 @@
     <div id="results" hidden>
       <div role="tablist">
         <button aria-selected="true"  role="tab" aria-controls="tabpanel-matches" id="matches">Matches</button>
-        <button aria-selected="false" role="tab" aria-controls="tabpanel-single" id="single-stats">Letters</button>
-        <button aria-selected="false" role="tab" aria-controls="tabpanel-combo" id="combo-stats">Combos</button>
-        <button aria-selected="false" role="tab" aria-controls="tabpanel-probs" id="probability-stats">Probability</button>
+        <button aria-selected="false" role="tab" aria-controls="tabpanel-counts" id="count-stats">Counts</button>
+        <button aria-selected="false" role="tab" aria-controls="tabpanel-score" id="frequency-score">Score</button>
+        <button aria-selected="false" role="tab" aria-controls="tabpanel-probs" id="probability-stats">Weighted</button>
       </div>
       <div class="panels">
         <div id="tabpanel-matches" role="tabpanel" tabindex="0" aria-labelledby="matches"></div>
-        <div id="tabpanel-single" role="tabpanel" tabindex="0" aria-labelledby="single-stats" hidden></div>
-        <div id="tabpanel-combo" role="tabpanel" tabindex="0" aria-labelledby="combo-stats" hidden></div>
+        <div id="tabpanel-counts" role="tabpanel" tabindex="0" aria-labelledby="count-stats" hidden></div>
+        <div id="tabpanel-score" role="tabpanel" tabindex="0" aria-labelledby="frequency-score" hidden></div>
         <div id="tabpanel-probs" role="tabpanel" tabindex="0" aria-labelledby="probability-stats" hidden></div>
       </div>
     </div>
