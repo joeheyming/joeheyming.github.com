@@ -135,15 +135,28 @@ function guess(event) {
     });
   });
 
-  var matchStats = {};
-  matched.map(function (match) {
-    matchStats[match] = 0;
+  var probabilities = {};
+  var informationStats = {};
+  var statKeys = Object.keys(letterStats);
+  statKeys.map(function(letter) {
+    var probability = letterStats[letter] / matched.length;
+    probabilities[letter] = probability;
+    var information = Math.log2(1/probability);
+    informationStats[letter] = probability * information;
   });
 
-  maxStats = Object.keys(letterStats).map(function (letter) {
+  var matchStats = {};
+  var probabilityStats = {}
+  matched.map(function (match) {
+    matchStats[match] = 0;
+    probabilityStats[match] = 0;
+  });
+
+  maxStats = statKeys.map(function (letter) {
     matched.map(function (match) {
       if (match.indexOf(letter) !== -1) {
         matchStats[match] = matchStats[match] + letterStats[letter];
+        probabilityStats[match] = probabilityStats[match] + informationStats[letter];
       }
     });
     return [letter, letterStats[letter]];
@@ -168,19 +181,39 @@ function guess(event) {
   });
 
   delete matchStats[''];
+
   var scores = Object.keys(matchStats).map(function (match) {
     return [match, matchStats[match]];
   });
   scores.sort(function (a, b) {
     return b[1] - a[1];
   });
+
+  var joinedScores = scores
+    .map(function (score, i) {
+      return score[0] + ':&nbsp;' + score[1];
+    })
+    .join('\r\n');
   var scoreContent =
     '\r\n<h3>Top Words by Frequency Score</h3>\r\n<pre class="score">' +
-    scores
-      .map(function (score, i) {
-        return score[0] + ':&nbsp;' + score[1];
-      })
-      .join('\r\n') +
+    joinedScores +
+    '</pre>';
+
+  var probabilityScores = matched.map(function (match) {
+    return [match, probabilityStats[match].toFixed(4)];
+  });
+  probabilityScores.sort(function (a, b) {
+    return b[1] - a[1];
+  });
+
+  var joinedProbScores = probabilityScores
+    .map(function (score, i) {
+      return score[0] + ':&nbsp;' + score[1];
+    })
+    .join('\r\n');
+  var probabilityScoreContent =
+    '\r\n<h3>Top Words by Probability Score</h3><p>Each letter is weighted by it&apos;s probability it will occur times the amount of information the word provides <strong>log2(1/p(x))</strong>.<br/>Each word adds up their score.</p>\r\n<pre class="score">' +
+    joinedProbScores +
     '</pre>';
 
   statContent = '';
@@ -234,6 +267,7 @@ function guess(event) {
   var comboData =
     matched.length > 0 ? '<pre>' + comboStatContent + '</pre>' : emptyMatch;
   window['tabpanel-combo'].innerHTML = comboData;
+  window['tabpanel-probs'].innerHTML = probabilityScoreContent;
   results.removeAttribute('hidden');
   gtag('event', 'submit', {
     event_category: 'user action',
@@ -293,8 +327,8 @@ window.onload = function () {
       return a.text();
     })
     .then(function (b) {
-      window.words = b.split('\n');
-      words = window.words;
+      words = b.trim().split('\n');
+      window.words = words;
     });
 
   guessForm.onsubmit = guess;
