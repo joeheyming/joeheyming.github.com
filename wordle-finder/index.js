@@ -281,9 +281,10 @@ function changeTabs(e) {
   });
 
   // Show the selected panel
-  grandparent.parentNode
-    .querySelector('#' + target.getAttribute('aria-controls'))
-    .removeAttribute('hidden');
+  var panel = grandparent.parentNode
+    .querySelector('#' + target.getAttribute('aria-controls'));
+  panel.removeAttribute('hidden');
+  panel.parentNode.scrollTop = 0;
 }
 
 window.onload = function () {
