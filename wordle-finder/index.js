@@ -156,10 +156,24 @@ function guess(event) {
     matched.map(function (match) {
       if (match.indexOf(letter) !== -1) {
         matchStats[match] = matchStats[match] + letterStats[letter];
-        probabilityStats[match] = probabilityStats[match] + informationStats[letter];
       }
     });
     return [letter, letterStats[letter]];
+  });
+
+  matched.map(function(match) {
+    var letters = match.split('');
+    var score = 0;
+    var scoreMap = {};
+    letters.map(function(letter) {
+      if (!scoreMap[letter]) {
+        scoreMap[letter] = informationStats[letter];
+      }
+    });
+    Object.keys(scoreMap).map(function(letter) {
+      score = score + scoreMap[letter];
+    });
+    probabilityStats[match] = score;
   });
 
   maxStats.sort(function (a, b) {
@@ -211,10 +225,16 @@ function guess(event) {
       return score[0] + ':&nbsp;' + score[1];
     })
     .join('\r\n');
-  var probabilityScoreContent =
-    '\r\n<h3>Top Words by Probability Score</h3><p>Each letter is weighted by it&apos;s probability it will occur times the amount of information the word provides <strong>log2(1/p(x))</strong>.<br/>Each word adds up their score.</p>\r\n<pre class="score">' +
-    joinedProbScores +
-    '</pre>';
+  var probabilityScoreContent = [
+    '\r\n',
+    '<h3>Top Words by Probability Score</h3>' +
+    '<p>A weight is generated for each letter in a word.<br />' +
+    'The probabilty of the letter is multiplied by the likelyhood the letter will eliminate words in the set of possible words.<br />' +
+    'Each word adds up their letter weights.  Double letters don\'t add to the weight</p>\r\n' +
+    '<pre class="score">',
+    joinedProbScores,
+    '</pre>'
+  ].join('');
 
   statContent = '';
   maxStats.map(function (stat) {
@@ -259,15 +279,27 @@ function guess(event) {
   var matchData =
     matched.length > 0 ? '<pre>' + matched.join('\r\n') + '</pre>' : emptyMatch;
   window['tabpanel-matches'].innerHTML = matchData;
+
+  var comboData = '<pre>' + comboStatContent + '</pre>';
+
+  var countContent = [
+    '<h3>Letter Counts</h3><pre>',
+    statContent,
+    '</pre>',
+    '<h3>Combo Counts</h3>',
+    comboData
+  ].join('');
   var statData =
     matched.length > 0
-      ? '<h3>Letter Counts</h3><pre>' + statContent + '</pre>' + scoreContent
-      : emptyMatch;
-  window['tabpanel-single'].innerHTML = statData;
-  var comboData =
-    matched.length > 0 ? '<pre>' + comboStatContent + '</pre>' : emptyMatch;
-  window['tabpanel-combo'].innerHTML = comboData;
-  window['tabpanel-probs'].innerHTML = probabilityScoreContent;
+                   ? countContent
+                   : emptyMatch;
+  window['tabpanel-counts'].innerHTML = statData;
+
+  window['tabpanel-score'].innerHTML = scoreContent;
+
+  var probabilityData =
+    matched.length > 0 ? probabilityScoreContent : emptyMatch;
+  window['tabpanel-probs'].innerHTML = probabilityData;
   results.removeAttribute('hidden');
   gtag('event', 'submit', {
     event_category: 'user action',

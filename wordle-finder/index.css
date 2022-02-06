@@ -42,7 +42,7 @@ input.correct {
 }
 
 .stat-letter {
-  margin: 5px 5px 5px 0px;
+  margin: 5px 0px 5px 0px;
   display: inline-block;
   height: 100%;
   text-align: center;
@@ -54,6 +54,7 @@ input.correct {
 .stat-letter-block {
   border: solid 1px #787c7e;
   width: 20px;
+  margin-right: 5px;
 }
 .included-stat {
   color: white;
