@@ -35,11 +35,15 @@ function guess(event) {
   event.preventDefault();
   var spots = [first, second, third, fourth, fifth];
   var includedMap = {};
-  var spotLetters = spots.map(function (spot) {
-    var letter = spot.value[0] && spot.value[0].toLowerCase();
+  function addIncluded(letter) {
     if (letter) {
       includedMap[letter] = true;
     }
+  }
+
+  var spotLetters = spots.map(function (spot) {
+    var letter = spot.value[0] && spot.value[0].toLowerCase();
+    addIncluded(letter);
     return letter;
   });
   var notSpots = [notfirst, notsecond, notthird, notfourth, notfifth];
@@ -57,18 +61,19 @@ function guess(event) {
   var notSpotKeys = Object.keys(notSpotMap);
 
   var allIncludedMap = {};
-  function addIncluded(letter) {
+  function addAllIncluded(letter) {
     if (letter) {
       allIncludedMap[letter] = true;
     }
   }
-
-  includeLetters.value.split('').map(addIncluded);
+  var includeLettersSplit = includeLetters.value.toLowerCase().split('');
+  includeLettersSplit.map(addAllIncluded);
+  includeLettersSplit.map(addIncluded);
   // don't forget to include spots
   notSpotLetters.map(function (letters) {
-    letters.map(addIncluded);
+    letters.map(addAllIncluded);
   });
-  spotLetters.map(addIncluded);
+  spotLetters.map(addAllIncluded);
   var included = Object.keys(allIncludedMap);
 
   var excluded = excludeLetters.value.toLowerCase().split('');
