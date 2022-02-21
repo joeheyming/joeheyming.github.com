@@ -1,15 +1,16 @@
 function analytics() {
   window.dataLayer = window.dataLayer || [];
-  function gtag() {
+  window.gtag = function() {
     dataLayer.push(arguments);
   }
   gtag('js', new Date());
 
   gtag('config', 'G-Q62Q3E20Y0');
 }
-function gtag() {}
 if (location.hostname !== 'localhost') {
   analytics();
+} else {
+  window.gtag = function() {}
 }
 
 var res = fetch('words');
@@ -145,6 +146,7 @@ function guess(event) {
     informationStats[letter] = probability * information;
   });
 
+  // frequency score for each match
   var matchStats = {};
   var probabilityStats = {}
   matched.map(function (match) {
