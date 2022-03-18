@@ -1,7 +1,6 @@
-label {
-  width: 100px;
+label.form-label {
+  width: 112px;
   display: inline-table;
-  margin-right: 10px;
   vertical-align: middle;
 }
 
@@ -24,14 +23,12 @@ input.incorrect {
   height: 30px;
   border: 2px solid #787c7e;
   width: 200px;
-  margin-left: 4px;
 }
 input.correct {
   background-color: #6aaa64;
   height: 30px;
   border: 2px solid #787c7e;
   width: 200px;
-  margin-left: 4px;
 }
 
 .maybecorrects input {
@@ -68,13 +65,12 @@ input.correct {
 #randomWord {
   font-weight: 600;
   text-transform: uppercase;
-  margin-left: 15px;
+  margin-left: 56px;
 }
 body {
   font-family: Arial;
   margin-left: auto;
-  width: calc(100vw - 50px);
-  margin-right: auto;
+  margin: 16px;
 }
 pre {
   font-family: sans-serif;
@@ -102,6 +98,7 @@ pre.score {
   color: inherit;
   background-color: inherit;
   border-bottom: none;
+  padding: 8px 12px;
 }
 
 #results button[role=tab]:hover, #results button[role=tab]:focus, #results button[role=tab][aria-selected=true]  {
@@ -143,6 +140,9 @@ button:focus {
   font-family: initial;
   font-style: italic;
   font-weight: 900;
+  position: absolute;
+  margin-left: 8px;
+  margin-top: 8px;
 }
 .modal-layer {
   z-index: 3;
@@ -183,4 +183,31 @@ button:focus {
 }
 .close-modal {
   border: none;
+}
+
+.form-row {
+  width: 340px;
+}
+.form-controls {
+  width: 332px;
+}
+
+.form-row, .form-controls {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.form-input {
+  width: 216px;
+  margin-left: 12px
+}
+
+.form-controls {
+  line-height: 32px;
+}
+
+.form-input > input[type=checkbox] {
+  margin-left: 0;
 }
