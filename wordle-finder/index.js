@@ -1,3 +1,6 @@
+/**
+ * This file was intentionally vanilla js because I wanted a challenge
+ */
 function analytics() {
   window.dataLayer = window.dataLayer || [];
   window.gtag = function() {
@@ -13,8 +16,24 @@ if (location.hostname !== 'localhost') {
   window.gtag = function() {}
 }
 
-var res = fetch('words');
+var wordRequest = fetch('words');
+var answerRequest = fetch('answers');
+
+// current answer of hte day
+var currentAnswer;
+// Days since the first wordle.  Useful index for the answers
+var currentWordleDay;
+
+// words without past answers
+var wordsFilteredByAnswer;
+// all possible words
 var words;
+
+function getWords() {
+  return window.excludePreviousAnswers.checked ? wordsFilteredByAnswer : words;
+}
+
+var answers;
 function isIsogram(str) {
   return !/(.).*\1/.test(str);
 }
@@ -22,9 +41,10 @@ function isIsogram(str) {
 randomWordButton.onclick = function () {
   var word;
   var item;
+  var wordList = getWords();
   do {
-    item = Math.floor(Math.random() * words.length);
-    word = words[item];
+    item = Math.floor(Math.random() * wordList.length);
+    word = wordList[item];
   } while (!isIsogram(word));
   randomWord.textContent = word;
   gtag('event', 'generate_random_word', {
@@ -78,7 +98,8 @@ function guess(event) {
   var included = Object.keys(allIncludedMap);
 
   var excluded = excludeLetters.value.toLowerCase().split('');
-  var matched = words.filter(function (word) {
+  var wordList = getWords();
+  var matched = wordList.filter(function (word) {
     return (
       included.every(function (letter) {
         return word.match(letter) !== null;
@@ -231,7 +252,7 @@ function guess(event) {
     '\r\n',
     '<h3>Top Words by Probability Score</h3>' +
     '<p>A weight is generated for each letter in a word.<br />' +
-    'The probabilty of the letter is multiplied by the likelyhood the letter will eliminate words in the set of possible words.<br />' +
+    'The probability of the letter is multiplied by the likelihood the letter will eliminate words in the set of possible words.<br />' +
     'Each word adds up their letter weights.  Double letters don\'t add to the weight</p>\r\n' +
     '<pre class="score">',
     joinedProbScores,
@@ -297,12 +318,14 @@ function guess(event) {
                    : emptyMatch;
   window['tabpanel-counts'].innerHTML = statData;
 
-  window['tabpanel-score'].innerHTML = scoreContent;
+  window['tabpanel-score'].innerHTML = matched.length > 0 ? scoreContent : emptyMatch;
 
   var probabilityData =
     matched.length > 0 ? probabilityScoreContent : emptyMatch;
   window['tabpanel-probs'].innerHTML = probabilityData;
   results.removeAttribute('hidden');
+  window['match-count'].innerHTML = `Matches: <strong>${matched.length}</strong>`;
+  window['match-count'].removeAttribute('hidden');
   gtag('event', 'submit', {
     event_category: 'user action',
   });
@@ -324,6 +347,7 @@ reset.onclick = function () {
   notfourth.value = '';
   notfifth.value = '';
   randomWord.textContent = '';
+  window['match-count'].setAttribute('hidden', '');
   results.setAttribute('hidden', '');
   gtag('event', 'reset', {
     event_category: 'user action',
@@ -353,16 +377,39 @@ function changeTabs(e) {
     .querySelector('#' + target.getAttribute('aria-controls'));
   panel.removeAttribute('hidden');
   panel.parentNode.scrollTop = 0;
+  var tabName = panel.getAttribute('aria-labelledby');
+  gtag('event', 'changeTab', {
+    event_category: 'user_action',
+    event_label: tabName
+  });
 }
 
 window.onload = function () {
-  res
-    .then(function (a) {
-      return a.text();
-    })
-    .then(function (b) {
-      words = b.trim().split('\n');
-      window.words = words;
+  // there is a limit to the number of wordles
+  // eventually this number will overflow the list of answers
+  currentWordleDay = moment().diff(moment('20210619', 'YYYYMMDD'), 'days');
+
+  function getText(response) {
+    return response.text().then(function(text) {
+      return text.trim().split('\n');
+    });
+  }
+
+  Promise.all([wordRequest.then(getText), answerRequest.then(getText)])
+    .then(function (responses) {
+      words = responses[0];
+      answers = responses[1];
+      currentAnswer = answers[currentWordleDay];
+
+      // create a lookup to filter later
+      var pastAnswers = {};
+      for (var i = 0; i < currentWordleDay; i++) {
+        var word = answers[i];
+        pastAnswers[word] = true;
+      }
+      wordsFilteredByAnswer = words.filter(function(word) {
+        return pastAnswers[word] === undefined
+      });
     });
 
   guessForm.onsubmit = guess;

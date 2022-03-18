@@ -19,10 +19,11 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script defer src="index.js"></script>
+    <script src="https://momentjs.com/downloads/moment.js"></script>
     <link href="index.css" rel="stylesheet" />
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <noscript>You need to enable JavaScript to run this application.</noscript>
     <div id="dialog" class="modal-layer" style="display: none;">
       <div class="modal">
         <div class="modal-title">
@@ -33,10 +34,13 @@
         <div class="modal-content">
           <p>
             This tool helps narrow the possible words you can choose for Wordle.
-            To start wordle, you need a word to start with.
+            To start Wordle, you need a word to start with.
             The <strong>Random start word</strong> section helps give you a start word with non-repeating letters.
           </p>
           <img src="random-words.png" alt="How to generate random words."/>
+          <p>
+            If you want to exclude previous answers, selecting <strong>Exclude previous answers</strong> will filter answers from the random word generation as well as the matches from submitting the form.
+          </p>
           <p>
             Once you know the results of your first guess, you can input the letters you know are correct into the include section.
 
@@ -70,42 +74,66 @@
         </div>
       </div>
     </div>
-    <h1>Joe's Wordle Helper <button id="helpIcon" class="info">i</button></h1>
-    <label>Random start word</label>
-    <button id="randomWordButton">Generate</button>
-    <span id="randomWord"></span>
-    <br />
-
-    <form id="guessForm" autocomplete="off">
-      <br />
-      <label>Include</label><input autocomplete="off" maxlength="5" class="correct" type="text" id="includeLetters" /><br />
-      <br />
-      <label>Exclude</label><input autocomplete="off" class="incorrect" type="text" id="excludeLetters" /><br />
-      <br />
-      <div class="corrects">
-        <label>Include in these spots</label>
-        <input autocomplete="off" type="text" maxlength="1" size="1" id="first" />
-        <input autocomplete="off" type="text" maxlength="1" size="1" id="second" />
-        <input autocomplete="off" type="text" maxlength="1" size="1" id="third" />
-        <input autocomplete="off" type="text" maxlength="1" size="1" id="fourth" />
-        <input autocomplete="off" type="text" maxlength="1" size="1" id="fifth" />
+    <div class="main-content">
+      <h1>Joe's Wordle Helper <button id="helpIcon" class="info">i</button></h1>
+      <div class="form-row">
+        <label class="form-label"></label>
+        <label class="form-input">
+          <input type="checkbox" id="excludePreviousAnswers">
+          Exclude previous answers
+        </label>
       </div>
-      <br />
-      <div class="maybecorrects">
-        <label>Ignore in these spots</label>
-        <input autocomplete="off" type="text" maxlength="5" size="5" id="notfirst" />
-        <input autocomplete="off" type="text" maxlength="5" size="5" id="notsecond" />
-        <input autocomplete="off" type="text" maxlength="5" size="5" id="notthird" />
-        <input autocomplete="off" type="text" maxlength="5" size="5" id="notfourth" />
-        <input autocomplete="off" type="text" maxlength="5" size="5" id="notfifth" />
+      <div class="form-row">
+        <label class="form-label">Random start word</label>
+        <span class="form-input">
+          <button id="randomWordButton">Generate</button>
+          <span id="randomWord"></span>
+        </span>
       </div>
-      <br />
 
-      <input type="submit" style="display: none;"/>
-    </form>
-    <button id="submit">Submit</button>
-    <button id="reset">Reset</button>
-    <br />
+      <form id="guessForm" autocomplete="off">
+        <div class="form-row">
+          <label class="form-label">Include</label>
+          <span class="form-input">
+            <input autocomplete="off" maxlength="5" class="correct" type="text" id="includeLetters" />
+          </span>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Exclude</label>
+          <span class="form-input">
+            <input autocomplete="off" class="incorrect" type="text" id="excludeLetters" />
+          </span>
+        </div>
+        <div class="corrects form-row">
+          <label class="form-label">Include in these spots</label>
+          <span class="form-input">
+            <input autocomplete="off" type="text" maxlength="1" size="1" id="first" />
+            <input autocomplete="off" type="text" maxlength="1" size="1" id="second" />
+            <input autocomplete="off" type="text" maxlength="1" size="1" id="third" />
+            <input autocomplete="off" type="text" maxlength="1" size="1" id="fourth" />
+            <input autocomplete="off" type="text" maxlength="1" size="1" id="fifth" />
+          </span>
+        </div>
+        <div class="maybecorrects form-row">
+          <label class="form-label">Ignore in these spots</label>
+          <span class="form-input">
+            <input autocomplete="off" type="text" maxlength="5" size="5" id="notfirst" />
+            <input autocomplete="off" type="text" maxlength="5" size="5" id="notsecond" />
+            <input autocomplete="off" type="text" maxlength="5" size="5" id="notthird" />
+            <input autocomplete="off" type="text" maxlength="5" size="5" id="notfourth" />
+            <input autocomplete="off" type="text" maxlength="5" size="5" id="notfifth" />
+          </span>
+        </div>
+        <input type="submit" style="display: none;"/>
+      </form>
+      <div class="form-controls">
+        <span>
+          <button id="submit">Submit</button>
+          <button id="reset">Reset</button>
+        </span>
+        <span id="match-count" hidden></span>
+      </div>
+    </div>
 
     <div id="results" hidden>
       <div role="tablist">
