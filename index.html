@@ -8,10 +8,20 @@
 
 
 <body>
-  <h1>hello world!</h1>
+  <h1>Hello World!</h1>
+  <p>This page allows you to input arbitrary text and it will be spoken.</p>
   <div id="audio"></div>
+  <form id="helloForm">
+    <input id="text" value="I have spoken" /><button>Submit</button>
+    <input type="submit" style="display: none" />
+  </form>
   <script>
-   speak('hello world!');
+   window.onload = function() {
+     window.helloForm.onsubmit = function sayHello(event) {
+       event.preventDefault();
+       speak(window.text.value);
+     }
+   }
   </script>
 </body>
 
