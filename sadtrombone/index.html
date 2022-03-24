@@ -2,21 +2,38 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+     body {
+       width: 100vw;
+       height: 100vh;
+     }
+    </style>
   </head>
   <body>
-    <img src="trombone_sliding.gif" />
+    <h1>Click to play sad trombone</h1>
+    <img id="tromboneImg" src="trombone_sliding.gif" hidden />
     <br />
-    <audio id="trombone" src="http://www.sadtrombone.com/assets/sound/trombone.ogg" autoplay controls />
+    <audio id="trombone" src="http://www.sadtrombone.com/assets/sound/trombone.ogg" autoplay controls hidden />
     <script>
+     function doTrombone() {
+       if (trombone.paused) {
+         trombone.play();
+         window.tromboneImg.removeAttribute('hidden');
+       } else {
+         trombone.pause();
+         window.tromboneImg.setAttribute('hidden', '');
+       }
+     }
+     window.onload = function() {
+       document.body.onclick = function() {
+         doTrombone();
+       }
+     }
      document.onkeydown = function(e) {
-        e = e || window.event;
+       e = e || window.event;
        var key = (e.keyCode || e.which);
        if (key == '32' || key == '13') { // enter or spacebar
-         if (trombone.paused) {
-           trombone.play();
-         } else {
-           trombone.pause();
-         }
+         doTrombone();
        }
      }
     </script>
