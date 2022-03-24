@@ -11,6 +11,7 @@
     <h1>Farm Monitor</h1>
     <marquee id="marquee" direction="right">
     </marquee>
+    <button id="start">Start!</button>
 
     <script>
      var data = [{
@@ -27,16 +28,19 @@
        mp3: './beatit.mp3'
      }];
 
-     var rand = Math.floor(Math.random() * data.length);
-     var img = new Image();
-     img.src = data[rand].img;
-     marquee.appendChild(img);
+     window.onload = function() {
+       window.start.onclick = function() {
+         var rand = Math.floor(Math.random() * data.length);
+         var img = new Image();
+         img.src = data[rand].img;
+         marquee.appendChild(img);
 
-     var audio = new Audio();
-     audio.autoplay = true;
-     audio.src = data[rand].mp3;
-     document.body.appendChild(audio);
-     
+         var audio = new Audio();
+         audio.autoplay = true;
+         audio.src = data[rand].mp3;
+         document.body.appendChild(audio);
+       }
+     };
     </script>
   </body>
 </html>
