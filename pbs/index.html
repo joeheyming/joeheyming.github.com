@@ -4,8 +4,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
      body {
-       margin: 0;
-       padding: 0;
        font-family: "Comic Sans MS", "Comic Sans", cursive;
      }
      img {
@@ -17,7 +15,7 @@
        z-index: -1;
      }
      p {
-       font-size: 20px;
+       font-size: 30px;
      }
     </style>
     <script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
@@ -53,10 +51,9 @@
        var sound = sounds[Math.floor(Math.random()*sounds.length)];
        var audio = document.createElement('audio');
        audio.id = 'arrr';
-       audio.setAttribute('src', '/' + sound);
+       audio.setAttribute('src', '/pbs/' + sound);
        audio.setAttribute('autoplay', 'true');
        document.body.appendChild(audio);
-       //audio.onended = sayArrr;
      };
 
      window.onload = function() {
