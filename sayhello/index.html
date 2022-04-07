@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Joe's git web page</title>
+    <script type="text/javascript" src="speakGenerator.js"> </script> 
+    <script type="text/javascript" src="speakClient.js"> </script> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  </head>
+
+  <body>
+    <h1>Say: Hello World!</h1>
+    <p>This page allows you to input arbitrary text and it will be spoken.</p>
+    <div id="audio"></div>
+    <form id="helloForm">
+      <input id="utterance" value="I have spoken" />
+      <select id="voiceSelector"></select>
+      <button>Submit</button>
+      <input type="submit" style="display: none" />
+    </form>
+    <script>
+     window.onload = function() {
+       var voiceLookup = {};
+       window.speechSynthesis.onvoiceschanged = function() {
+         window.speechSynthesis.getVoices();
+         var voices = window.speechSynthesis.getVoices();
+         if (voices && voices.length > 0) {
+           Array.from(voices).forEach(function(voice, i) {
+             voiceLookup[voice.name] = voice;
+             var option = window.document.createElement('option');
+             option.value = voice.name;
+             option.textContent = voice.name;
+             window.voiceSelector.appendChild(option);
+           });
+         } else {
+           window.voiceSelector.setAttribute('hidden','');
+         }
+       };
+       window.helloForm.onsubmit = function sayHello(event) {
+         event.preventDefault();
+         var currentUtterance = window.utterance.value;
+         var voiceValue = window.voiceSelector.value;
+         var voice = voiceLookup[voiceValue];
+         if (voice) {
+           var utter = new SpeechSynthesisUtterance(currentUtterance);
+           utter.voice = voice;
+           window.speechSynthesis.speak(utter);
+         } else {
+           speak(currentUtterance);
+         }
+       }
+     }
+    </script>
+  </body>
+</html>
