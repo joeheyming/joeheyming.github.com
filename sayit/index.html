@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Say it</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src='https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js'></script>
+  </head>
+
+  <body>
+    <h1>Say it</h1>
+    <p>
+      A tool that tries to parse text in an image and then says it.
+    </p>
+    <img id="loading" src="loading.gif" />
+
+    <div id="controls" hidden>
+      <input type="file" id="imageUpload" onchange="previewFile()" />
+      <img id="imgPreview" height="200" alt="Image preview..." />
+      <pre id="parsedContent"></pre>
+    </div>
+    <script>
+     var worker;
+     window.onload = function() {
+       worker = Tesseract.createWorker();
+
+       worker.load().then(function() {
+         console.log('loaded');
+         worker.loadLanguage('eng').then(function() {
+           worker.initialize('eng').then(function() {
+             loading.setAttribute('hidden', '');
+             controls.removeAttribute('hidden');
+           })
+         });
+       });
+     }
+
+     function previewFile() {
+       const file = document.querySelector('input[type=file]').files[0];
+       const reader = new FileReader();
+
+       reader.addEventListener("load", function () {
+         // convert image file to base64 string
+         loading.removeAttribute('hidden');
+
+         worker.recognize(reader.result).then(function(payload) {
+           loading.setAttribute('hidden', '');
+           console.log(payload.data.text);
+           parsedContent.textContent = payload.data.text;
+           var utter = new SpeechSynthesisUtterance(payload.data.text);
+           window.speechSynthesis.speak(utter);
+         })
+         imgPreview.src = reader.result;
+       }, false);
+
+       if (file) {
+         reader.readAsDataURL(file);
+       }
+     }
+    </script>
+  </body>
+</html>
