@@ -4,6 +4,19 @@
     <title>Say it</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src='https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js'></script>
+    <style>
+     .pane {
+       display: flex;
+       flex-direction: row;
+       justify-content: start;
+     }
+     .pane > div {
+       margin: 20px;
+     }
+     .form-control {
+       margin-top: 8px;
+     }
+    </style>
   </head>
 
   <body>
@@ -11,27 +24,108 @@
     <p>
       A tool that tries to parse text in an image and then says it.
     </p>
-    <img id="loading" src="loading.gif" />
 
-    <div id="controls" hidden>
-      <input type="file" id="imageUpload" onchange="previewFile()" />
-      <img id="imgPreview" height="200" alt="Image preview..." />
-      <pre id="parsedContent"></pre>
+    <div class="pane">
+      <div id="controls" hidden>
+        <div class="form-control">
+          <label>
+            <input type="radio"
+              id="fromFile"
+              value="fromFile"
+              checked
+              name="creationMode">
+            File Upload
+          </label>
+          <label>
+            <input type="radio"
+              id="fromURL"
+              value="fromURL"
+              name="creationMode">
+            URL
+          </label>
+        </div>
+        <div class="form-control">
+          <input type="file" id="imageUpload" onchange="previewFile()" />
+        </div>
+        <div class="form-control">
+          <input id="urlUpload" hidden />
+        </div>
+      </div>
+      <div>
+        <img id="imgPreview" height="200" alt="Choose a file to preview..." />
+      </div>
+      <div>
+        <pre id="parsedContent"></pre>
+      </div>
+
+      <div>
+        <img id="loading" src="loading.gif" />
+      </div>
     </div>
     <script>
      var worker;
      window.onload = function() {
        worker = Tesseract.createWorker();
+       var OEM = Tesseract.OEM;
 
-       worker.load().then(function() {
-         console.log('loaded');
-         worker.loadLanguage('eng').then(function() {
-           worker.initialize('eng').then(function() {
-             loading.setAttribute('hidden', '');
-             controls.removeAttribute('hidden');
-           })
-         });
+       worker.load()
+             .then(function() { return worker.loadLanguage('eng'); })
+             .then(function() { return worker.initialize('eng'); })
+             .then(function() { return worker.setParameters({
+               init_oem: OEM.TESSERACT_ONLY,
+               tessedit_char_whitelist: "",
+               tessedit_pageseg_mode: "6",
+               tessjs_create_box: "0",
+               tessjs_create_hocr: "1",
+               tessjs_create_osd: "0",
+               tessjs_create_tsv: "1",
+               tessjs_create_unlv: "0"
+             }); })
+             .then(function() {
+               loading.setAttribute('hidden', '');
+               controls.removeAttribute('hidden');
+             }).catch(function(error) {
+               console.log('error = ', error);
+             });
+
+       function radioChange(event) {
+         if (event.target.value === 'fromURL'){
+           window.urlUpload.removeAttribute('hidden');
+           window.imageUpload.setAttribute('hidden','');
+         } else {
+           window.imageUpload.removeAttribute('hidden');
+           window.urlUpload.setAttribute('hidden','');
+         }
+
+       }
+       window.fromFile.onchange = radioChange;
+       window.fromURL.onchange = radioChange;
+       window.urlUpload.onkeyup = function(event) {
+         try {
+           const url = new URL(urlUpload.value);
+           console.log('url = ', url.toString());
+           recognize(url.toString());
+         } catch(error) {
+           // not a url
+         }
+       }
+
+     }
+     function recognize(url) {
+       // convert image file to base64 string
+       loading.removeAttribute('hidden');
+
+       worker.recognize(url, 'eng').then(function(payload) {
+         loading.setAttribute('hidden', '');
+         console.log(payload.data.text);
+         parsedContent.textContent = payload.data.text;
+         var utter = new SpeechSynthesisUtterance(payload.data.text);
+         window.speechSynthesis.speak(utter);
+       }).catch(function(error) {
+         console.log('error = ', error);
+
        });
+       imgPreview.src = url;
      }
 
      function previewFile() {
@@ -42,14 +136,7 @@
          // convert image file to base64 string
          loading.removeAttribute('hidden');
 
-         worker.recognize(reader.result).then(function(payload) {
-           loading.setAttribute('hidden', '');
-           console.log(payload.data.text);
-           parsedContent.textContent = payload.data.text;
-           var utter = new SpeechSynthesisUtterance(payload.data.text);
-           window.speechSynthesis.speak(utter);
-         })
-         imgPreview.src = reader.result;
+         recognize(reader.result);
        }, false);
 
        if (file) {
