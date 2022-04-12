@@ -67,12 +67,14 @@
      window.onload = function() {
        worker = Tesseract.createWorker();
        var OEM = Tesseract.OEM;
+       var PSM = Tesseract.PSM;
 
        worker.load()
              .then(function() { return worker.loadLanguage('eng'); })
              .then(function() { return worker.initialize('eng'); })
              .then(function() { return worker.setParameters({
                init_oem: OEM.TESSERACT_ONLY,
+               tessedit_pageseg_mode: PSM.AUTO,
                tessedit_char_whitelist: "",
                tessedit_pageseg_mode: "6",
                tessjs_create_box: "0",
@@ -118,8 +120,10 @@
        worker.recognize(url, 'eng').then(function(payload) {
          loading.setAttribute('hidden', '');
          console.log(payload.data.text);
-         parsedContent.textContent = payload.data.text;
-         var utter = new SpeechSynthesisUtterance(payload.data.text);
+         var filteredContent = payload.data.text.replace(/[()|\/\\]/g,'');
+         parsedContent.textContent = filteredContent;
+         var utter = new SpeechSynthesisUtterance(filteredContent);
+
          window.speechSynthesis.speak(utter);
        }).catch(function(error) {
          console.log('error = ', error);
