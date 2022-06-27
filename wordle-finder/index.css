@@ -1,7 +1,74 @@
-label.form-label {
-  width: 112px;
-  display: inline-table;
+:root {
+  --wordle-green: #6aaa64;
+  --wordle-gray: #787c7e;
+  --wordle-yellow: #c9b458;
+  --long-input-width: 182px;
+}
+
+.info {
+  background-color: #00a5ff;
+  border: none;
+  border-radius: 100%;
+  padding: 2px;
+  line-height: 16px;
+  color: white;
+  font-family: initial;
+  font-style: italic;
+  font-weight: 900;
+  text-transform: lowercase;
+  min-width: 24px;
+}
+
+
+button {
+  display: inline-flex;
+  -webkit-box-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  justify-content: center;
+  position: relative;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  outline: 0px;
+  margin: 0px;
+  border: 0;
+  cursor: pointer;
+  user-select: none;
   vertical-align: middle;
+  appearance: none;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  letter-spacing: 0.02857em;
+  text-transform: uppercase;
+  min-width: 64px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+  color: inherit;
+  background-color: inherit;
+  box-shadow: rgb(0 0 0 / 20%) 0px 3px 1px -2px, rgb(0 0 0 / 14%) 0px 2px 2px 0px, rgb(0 0 0 / 12%) 0px 1px 5px 0px;
+  color: white;
+}
+
+.btn-txt {
+  color: inherit;
+}
+
+.btn-bordered {
+  border: solid 1px var(--wordle-gray);
+}
+
+.corrects .form-input > input, .maybecorrects .form-input > input {
+  margin: 0;
+  padding: 0;
+}
+
+.form-input.form-grid {
+  display: grid;
+  grid-gap: 5px;
+  grid-template-columns: repeat(5, 1fr);
 }
 
 input[type=text] {
@@ -11,31 +78,42 @@ input[type=text] {
   color: white;
 }
 
+input.wordle-style {
+  border: 2px solid transparent;
+}
+
 .corrects input {
-  background-color: #6aaa64;
+  background-color: var(--wordle-green);
   width: 30px;
   height: 30px;
-  border: 2px solid #787c7e;
+}
+
+input.incorrect, input.correct {
+  height: 30px;
+  width: var(--long-input-width);
+}
+
+input.correct::placeholder, input.incorrect::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
+  color: white;
+  opacity: 1; /* Firefox */
+}
+
+input.correct::-ms-input-placeholder  input.incorrect::-ms-input-placeholder { /* Microsoft Edge */
+  color: white;
 }
 
 input.incorrect {
-  background-color: #86888a;
-  height: 30px;
-  border: 2px solid #787c7e;
-  width: 200px;
+  background-color: var(--wordle-gray);
 }
+
 input.correct {
-  background-color: #6aaa64;
-  height: 30px;
-  border: 2px solid #787c7e;
-  width: 200px;
+  background-color: var(--wordle-green);
 }
 
 .maybecorrects input {
-  background-color: #c9b458;
+  background-color: var(--wordle-yellow);
   width: 30px;
   height: 30px;
-  border: 2px solid #787c7e;
 }
 
 .stat-letter {
@@ -49,29 +127,47 @@ input.correct {
 }
 
 .stat-letter-block {
-  border: solid 1px #787c7e;
+  border: solid 1px var(--wordle-gray);
   width: 20px;
   margin-right: 5px;
 }
 .included-stat {
   color: white;
-  background-color: #6aaa64;
+  background-color: var(--wordle-green);
 }
 .included-stat-wrong-spot {
   color: white;
-  background-color: #c9b458;
+  background-color: var(--wordle-yellow);
 }
 
 #randomWord {
   font-weight: 600;
   text-transform: uppercase;
-  margin-left: 56px;
 }
+
+.fixed-input-control {
+  width: 190px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
 body {
-  font-family: Arial;
-  margin-left: auto;
-  margin: 16px;
+  font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
 }
+
+h1 {
+  margin-top: 0;
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+hr {
+  width: 100%;
+  border: solid 0.5px inherit;
+}
+
 pre {
   font-family: sans-serif;
   text-transform: uppercase;
@@ -90,36 +186,21 @@ pre.score {
   overflow-y: auto;
 }
 #results [role=tablist] {
-  border-bottom: solid 1px #787c7e;
+  border-bottom: solid 1px var(--wordle-gray);
 }
 
 #results button[role=tab] {
-  border: solid 1px #787c7e;
-  color: inherit;
-  background-color: inherit;
   border-bottom: none;
-  padding: 8px 12px;
+  border-radius: 4px 4px 0 0;
+  outline: none;
+  box-shadow: none;
 }
 
 #results button[role=tab]:hover, #results button[role=tab]:focus, #results button[role=tab][aria-selected=true]  {
-  color: black;
-  background-color: #c9b458;
+  background-color: var(--wordle-yellow);
+  color: white
 }
 
-button {
-  font-weight: bold;
-  display: inline-block;
-  padding: 8px 16px;
-  vertical-align: middle;
-  overflow: hidden;
-  text-decoration: none;
-  text-align: center;
-  cursor: pointer;
-  white-space: nowrap;
-  width: auto;
-  outline: 0;
-  border: solid 1px #787c7e;
-}
 button:focus {
   outline: 3px solid #ffbf47;
   outline-offset: 0;
@@ -127,23 +208,9 @@ button:focus {
 
 #submit {
   color: white;
-  background-color: #6aaa64;
+  background-color: var(--wordle-green);
 }
 
-.info {
-  background-color: #00a5ff;
-  border: none;
-  border-radius: 100%;
-  padding: 8px;
-  line-height: 3px;
-  color: white;
-  font-family: initial;
-  font-style: italic;
-  font-weight: 900;
-  position: absolute;
-  margin-left: 8px;
-  margin-top: 8px;
-}
 .modal-layer {
   z-index: 3;
   position: fixed;
@@ -173,6 +240,14 @@ button:focus {
   align-items: center;
   margin: 0 20px;
 }
+
+.main-content {
+  width: 380px;
+  display: flex;
+  flex-direction: column;
+  margin-right: auto;
+  margin-left: auto;
+}
 .modal-content {
   height: 500px;
   margin: 0 20px;
@@ -185,23 +260,20 @@ button:focus {
   border: none;
 }
 
-.form-row {
-  width: 340px;
-}
 .form-controls {
-  width: 332px;
+  width: 328px;
 }
 
 .form-row, .form-controls {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  margin-bottom: 12px;
+  align-items: center;
+  margin-bottom: 4px;
 }
 
-.form-input {
-  width: 216px;
-  margin-left: 12px
+label.form-input, .form-label {
+  font-weight: 400;
 }
 
 .form-controls {

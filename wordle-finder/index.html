@@ -1,26 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <title>Joe's Wordle Finder</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta property="og:title" content="Joe's' Wordle Helper"/>
-    <meta property="title" content="Joe's' Wordle Helper"/>
-    <meta property="og:image" content="https://joeheyming.github.io/wordle-finder/thumbnail.png" />
-    <meta property="og:description" content="Use strategies to solve wordle. Filter out words based on known letters." />
-    <meta name="description" content="Use strategies to solve wordle. Filter out words based on known letters." />
-    <meta property="keywords"  content="wordle, solver, finder, ignore, match, score, combo, combination, 5 letters, only these letters"/>
-    <meta property="og:url" content="https://joeheyming.github.io/wordle-finder/index.html" />
-    <meta property="og:image:width" content="359" />
-    <meta property="og:image:height" content="385" />
-    <meta property="og:type" content="website"/>
+    <meta name="description" content="Use strategies to solve wordle. Filter out words based on known letters. Find the answer to today's wordle." />
+    <meta name="og:description" content="Use strategies to solve wordle. Filter out words based on known letters. Find the answer to today's wordle." />
+    <meta property="og:description" content="Use strategies to solve wordle. Filter out words based on known letters. Find the answer to today's wordle." />
     <meta name="google-site-verification" content="G4xgpb4nOfGShosuh1Tg0z-702kfJqP3tuqbhh_2YRE" />
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <meta name="image" content="https://joeheyming.github.io/wordle-finder/thumbnail.png" />
+    <meta name="og:image" content="https://joeheyming.github.io/wordle-finder/thumbnail.png" />
+    <meta property="og:image" content="https://joeheyming.github.io/wordle-finder/thumbnail.png" />
+    <meta name="image:height" content="385" />
+    <meta name="og:image:height" content="385" />
+    <meta property="og:image:height" content="385" />
+    <meta name="image:width" content="359" />
+    <meta name="og:image:width" content="359" />
+    <meta property="og:image:width" content="359" />
+    <meta name="keywords"  content="wordle, solver, finder, ignore, match, score, combo, combination, 5 letters, only these letters, answer, solve, exclude"/>
+    <meta name="title" content="Joe's Wordle Helper"/>
+    <meta name="og:title" content="Joe's Wordle Helper"/>
+    <meta property="og:title" content="Joe's Wordle Helper"/>
+
+    <meta name="type" content="website"/>
+    <meta name="url" content="https://joeheyming.github.io/wordle-finder/index.html" />
+    <meta name="og:url" content="https://joeheyming.github.io/wordle-finder/index.html" />
+    <meta property="og:url" content="https://joeheyming.github.io/wordle-finder/index.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="favicon.ico" rel="icon" type="image/x-icon">
+    <link href="index.css" rel="stylesheet" />
+
+    <script type="application/ld+json">
+     {
+       "@context": "https://schema.org",
+       "@type": [ "BrowserApplication" ],
+       "applicationCategory": "BrowserApplication",
+       "learningResourceType": "Wordle solver"
+       "inLanguage": "en",
+       "name": "Joe's Worlde Finder / Solver",
+       "url": "https://joeheyming.github.io/wordle-finder/index.html"
+     }
+    </script>
 
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script defer src="index.js"></script>
     <script src="https://momentjs.com/downloads/moment.js"></script>
-    <link href="index.css" rel="stylesheet" />
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this application.</noscript>
@@ -28,7 +52,7 @@
       <div class="modal">
         <div class="modal-title">
           <h2>Help</h2>
-          <button class="close-modal" onclick="dialog.style.display = 'none'">X</button>
+          <button class="close-modal btn-txt" onclick="dialog.style.display = 'none'">X</button>
         </div>
         <hr />
         <div class="modal-content">
@@ -74,62 +98,63 @@
         </div>
       </div>
     </div>
+    <h1>Joe's Wordle Helper <button id="helpIcon" class="info">i</button></h1>
+    <hr />
     <div class="main-content">
-      <h1>Joe's Wordle Helper <button id="helpIcon" class="info">i</button></h1>
-      <div class="form-row">
-        <label class="form-label"></label>
-        <label class="form-input">
-          <input type="checkbox" id="excludePreviousAnswers">
-          Exclude previous answers
-        </label>
-      </div>
       <div class="form-row">
         <label class="form-label">Random start word</label>
-        <span class="form-input">
-          <button id="randomWordButton">Generate</button>
+        <div class="form-input fixed-input-control">
+          <button id="randomWordButton" class="btn-txt btn-bordered">Generate</button>
           <span id="randomWord"></span>
-        </span>
+        </div>
       </div>
 
       <form id="guessForm" autocomplete="off">
         <div class="form-row">
           <label class="form-label">Include</label>
           <span class="form-input">
-            <input autocomplete="off" maxlength="5" class="correct" type="text" id="includeLetters" />
+            <input autocomplete="off" maxlength="5" class="correct wordle-style" type="text" id="includeLetters" placeholder="Good letters"/>
           </span>
         </div>
         <div class="form-row">
           <label class="form-label">Exclude</label>
-          <span class="form-input">
-            <input autocomplete="off" class="incorrect" type="text" id="excludeLetters" />
-          </span>
+          <div class="form-input">
+            <input autocomplete="off" class="incorrect wordle-style" type="text" id="excludeLetters" placeholder="Bad letters"/>
+          </div>
         </div>
         <div class="corrects form-row">
           <label class="form-label">Include in these spots</label>
-          <span class="form-input">
-            <input autocomplete="off" type="text" maxlength="1" size="1" id="first" />
-            <input autocomplete="off" type="text" maxlength="1" size="1" id="second" />
-            <input autocomplete="off" type="text" maxlength="1" size="1" id="third" />
-            <input autocomplete="off" type="text" maxlength="1" size="1" id="fourth" />
-            <input autocomplete="off" type="text" maxlength="1" size="1" id="fifth" />
-          </span>
+          <div class="form-input form-grid">
+            <input autocomplete="off" type="text" maxlength="1" size="1" id="first" class="wordle-style" />
+            <input autocomplete="off" type="text" maxlength="1" size="1" id="second" class="wordle-style" />
+            <input autocomplete="off" type="text" maxlength="1" size="1" id="third" class="wordle-style" />
+            <input autocomplete="off" type="text" maxlength="1" size="1" id="fourth" class="wordle-style" />
+            <input autocomplete="off" type="text" maxlength="1" size="1" id="fifth" class="wordle-style" />
+          </div>
         </div>
         <div class="maybecorrects form-row">
           <label class="form-label">Ignore in these spots</label>
-          <span class="form-input">
-            <input autocomplete="off" type="text" maxlength="5" size="5" id="notfirst" />
-            <input autocomplete="off" type="text" maxlength="5" size="5" id="notsecond" />
-            <input autocomplete="off" type="text" maxlength="5" size="5" id="notthird" />
-            <input autocomplete="off" type="text" maxlength="5" size="5" id="notfourth" />
-            <input autocomplete="off" type="text" maxlength="5" size="5" id="notfifth" />
-          </span>
+          <div class="form-input form-grid">
+            <input autocomplete="off" type="text" maxlength="5" size="5" id="notfirst" class="wordle-style" />
+            <input autocomplete="off" type="text" maxlength="5" size="5" id="notsecond" class="wordle-style" />
+            <input autocomplete="off" type="text" maxlength="5" size="5" id="notthird" class="wordle-style" />
+            <input autocomplete="off" type="text" maxlength="5" size="5" id="notfourth" class="wordle-style" />
+            <input autocomplete="off" type="text" maxlength="5" size="5" id="notfifth" class="wordle-style" />
+          </div>
         </div>
         <input type="submit" style="display: none;"/>
       </form>
+      <div class="form-row">
+        <label class="form-label"></label>
+        <label class="form-input fixed-input-control">
+          <input type="checkbox" id="excludePreviousAnswers">
+          Hide previous answers
+        </label>
+      </div>
       <div class="form-controls">
         <span>
           <button id="submit">Submit</button>
-          <button id="reset">Reset</button>
+          <button id="reset" class="btn-bordered btn-txt">Reset</button>
         </span>
         <span id="match-count" hidden></span>
       </div>
@@ -137,10 +162,10 @@
 
     <div id="results" hidden>
       <div role="tablist">
-        <button aria-selected="true"  role="tab" aria-controls="tabpanel-matches" id="matches">Matches</button>
-        <button aria-selected="false" role="tab" aria-controls="tabpanel-counts" id="count-stats">Counts</button>
-        <button aria-selected="false" role="tab" aria-controls="tabpanel-score" id="frequency-score">Score</button>
-        <button aria-selected="false" role="tab" aria-controls="tabpanel-probs" id="probability-stats">Weighted</button>
+        <button aria-selected="true"  role="tab" aria-controls="tabpanel-matches" class="btn-txt btn-bordered" id="matches">Matches</button>
+        <button aria-selected="false" role="tab" aria-controls="tabpanel-counts" class="btn-txt btn-bordered" id="count-stats">Counts</button>
+        <button aria-selected="false" role="tab" aria-controls="tabpanel-score" class="btn-txt btn-bordered" id="frequency-score">Score</button>
+        <button aria-selected="false" role="tab" aria-controls="tabpanel-probs" class="btn-txt btn-bordered" id="probability-stats">Weighted</button>
       </div>
       <div class="panels">
         <div id="tabpanel-matches" role="tabpanel" tabindex="0" aria-labelledby="matches"></div>
