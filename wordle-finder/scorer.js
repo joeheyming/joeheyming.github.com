@@ -9,10 +9,14 @@ function renderFrequencyScoreTab(stats) {
       return score[0] + ':&nbsp;' + score[1];
     })
     .join('\r\n');
-  var scoreContent =
-    '\r\n<h3>Top Words by Frequency Score</h3>\r\n<pre class="score">' +
-    joinedScores +
-    '</pre>';
+  var scoreContent = [
+    '<h3>Top Words by Frequency Score</h3>',
+    '<p>Letters are counted over all the matched words.<br />',
+    'Then each word gets a score based on adding the counts per letter.<br />',
+    '<pre class="score">',
+    joinedScores,
+    '</pre>'
+  ].join('');
   updateTabContent('tabpanel-score', frequencyScore.length > 0 ? scoreContent : emptyMatch);
 }
 
@@ -25,11 +29,10 @@ function renderEntropyScore(filtered, stats) {
     })
     .join('\r\n');
   var probabilityScoreContent = [
-    '\r\n',
-    '<h3>Top Words by Probability Score</h3>' +
-    '<p>A weight is generated for each letter in a word.<br />' +
-    'The probability of the letter is multiplied by the likelihood the letter will eliminate words in the set of possible words.<br />' +
-    'Each word adds up their letter weights.  Double letters don\'t add to the weight</p>\r\n' +
+    '<h3>Top Words by Probability Score</h3>',
+    '<p>A weight is generated for each letter in a word.<br />',
+    'The probability of the letter is multiplied by the likelihood the letter will eliminate words in the set of possible words.<br />',
+    'Each word adds up their letter weights.  Double letters don\'t add to the weight</p>',
     '<pre class="score">',
     joinedProbScores,
     '</pre>'

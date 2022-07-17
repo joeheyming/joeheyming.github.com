@@ -170,6 +170,7 @@ window.onload = function () {
   solverMode.onchange = function() {
     setMode(this.value);
   }
+  //solverMode.value = 'play';
   solverMode.value = 'score';
   setMode(solverMode.value);
 

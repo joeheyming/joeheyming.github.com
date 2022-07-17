@@ -325,3 +325,7 @@ label.form-input, .form-label {
 .form-row#step1 {
   justify-content: space-around;
 }
+
+select {
+  width: 190px;
+}

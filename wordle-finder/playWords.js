@@ -10,23 +10,32 @@ function resetPlayer() {
   wordDisplay.innerHTML = '';
   chooseWord.innerText = 'Start';
   playWordsMode = 'start';
+  sortSelector.style.display = 'none';
 }
 
 function renderPlayWords(spots, notSpotsLetters, excluded) {
   var filtered = filterDictionary(spots, notSpotsLetters, excluded);
   var stats = getStats(filtered);
-  var frequencyScore = getEntropyScore(filtered, stats);
+  var sortValue = sortSelectorSelect.value;
 
-  const fragment = document.createDocumentFragment();
-  frequencyScore.forEach(function(score) {
-    var word = score[0];
-    const option = document.createElement('option');
+  var words = filtered.matched;
+  if (sortValue === 'frequency-score') {
+    var frequencyScores = getFrequencyScore(stats);
+    words = frequencyScores.map(function (score) { return score[0]; });
+  } else if (sortValue === 'entropy-score') {
+    var entropyScores = getEntropyScore(filtered, stats);
+    words = entropyScores.map(function (score) { return score[0]; });
+  }
+
+  var fragment = document.createDocumentFragment();
+  words.forEach(function(word) {
+    var option = document.createElement('option');
     option.value = word;
     option.innerText = word;
     fragment.appendChild(option);
   });
   playWords.appendChild(fragment);
-  playWords.value = frequencyScore[0][0];
+  playWords.value = words[0];
 }
 
 var chosenWords;
@@ -37,6 +46,7 @@ function onStart() {
   step1.style.display = 'none';
   playWordsWin.style.display = 'none';
   wordSelector.style.display = '';
+  sortSelector.style.display = '';
 
   // todo, support random and custom
   var radio = document.querySelector('[type=radio]:checked');
@@ -59,11 +69,11 @@ var playWordsMode;
 
 function renderWords() {
   wordDisplay.innerHTML = '';
-  const fragment = document.createDocumentFragment();
+  var fragment = document.createDocumentFragment();
   chosenWords.forEach(function(wordResults) {
-    const resultFragment = document.createElement('div');
+    var resultFragment = document.createElement('div');
     wordResults.forEach(function(result) {
-      const letterFragment = document.createElement('div');
+      var letterFragment = document.createElement('div');
       letterFragment.className = 'play-letter ' + result.result;
       letterFragment.innerHTML = result.letter
       resultFragment.appendChild(letterFragment);
@@ -82,7 +92,7 @@ function onChooseWord() {
     resetPlayer();
     return;
   }
-  const currentWord = playWords.value;
+  var currentWord = playWords.value;
   var wordDisplay = document.createDocumentFragment();
 
   // if they are equal, you win
@@ -90,7 +100,9 @@ function onChooseWord() {
     chooseWord.innerText = 'Start Over';
     playWordsWin.style.display = '';
     wordSelector.style.display = 'none';
+    sortSelector.style.display = 'none';
     playWordsMode = 'done';
+    playWordsCount.innerHTML = '<strong>You got it in ' + (chosenWords.length +1)+ '</strong>'
   }
 
   var guessResults = [];
@@ -115,5 +127,8 @@ function onChooseWord() {
 
 function initPlayer() {
   chooseWord.onclick = onChooseWord;
+  sortSelectorSelect.onchange = function() {
+    renderPlayWords(playWordsSpots, playwordsNotSpots, playWordsExclude);
+  }
   resetPlayer();
 }
