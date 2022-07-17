@@ -16,8 +16,8 @@ if (location.hostname !== 'localhost') {
   window.gtag = function() {}
 }
 
-var wordRequest = fetch('words');
-var answerRequest = fetch('answers');
+var wordRequest = fetch('words?bust_cache=' + Math.random());
+var answerRequest = fetch('answers?bust_cache' + Math.random());
 
 // current answer of hte day
 var currentAnswer;
@@ -52,280 +52,30 @@ randomWordButton.onclick = function () {
   });
 };
 
+
 function guess(event) {
   event.preventDefault();
-  var spots = [first, second, third, fourth, fifth];
-  var includedMap = {};
-  function addIncluded(letter) {
-    if (letter) {
-      includedMap[letter] = true;
-    }
-  }
-
-  var spotLetters = spots.map(function (spot) {
-    var letter = spot.value[0] && spot.value[0].toLowerCase();
-    addIncluded(letter);
-    return letter;
+  var spots = [first, second, third, fourth, fifth]
+    .map(function(spot) { return spot.value.toLowerCase() || ''; });
+  var notSpots = [notfirst, notsecond, notthird, notfourth, notfifth]
+    .map(function(spot) { return spot.value.toLowerCase() || ''; });
+  var notSpotsLetters = notSpots.map(function(spot) {
+    return spot.split('');
   });
-  var notSpots = [notfirst, notsecond, notthird, notfourth, notfifth];
-  var notSpotMap = {};
-  var notSpotLetters = notSpots.map(function (spot) {
-    var value = (spot.value && spot.value.toLowerCase()) || '';
-    var letters = value.split('');
-    letters.map(function (letter) {
-      if (letter) {
-        notSpotMap[letter] = true;
-      }
-    });
-    return letters;
-  });
-  var notSpotKeys = Object.keys(notSpotMap);
-
-  var allIncludedMap = {};
-  function addAllIncluded(letter) {
-    if (letter) {
-      allIncludedMap[letter] = true;
-    }
-  }
-  var includeLettersSplit = includeLetters.value.toLowerCase().split('');
-  includeLettersSplit.map(addAllIncluded);
-  includeLettersSplit.map(addIncluded);
-  // don't forget to include spots
-  notSpotLetters.map(function (letters) {
-    letters.map(addAllIncluded);
-  });
-  spotLetters.map(addAllIncluded);
-  var included = Object.keys(allIncludedMap);
-
   var excluded = excludeLetters.value.toLowerCase().split('');
-  var wordList = getWords();
-  var matched = wordList.filter(function (word) {
-    return (
-      included.every(function (letter) {
-        return word.match(letter) !== null;
-      }) &&
-      !excluded.some(function (letter) {
-        return word.match(letter) !== null;
-      })
-    );
-  });
 
-  function filterSpot(spot, letter) {
-    if (!letter) {
-      return;
-    }
-    var lowerLetter = letter.toLowerCase();
-    matched = matched.filter(function (word) {
-      return word[spot] === lowerLetter;
-    });
-  }
-  spotLetters.map(function (spot, index) {
-    filterSpot(index, spot);
-  });
+  var filtered = filterDictionary(spots, notSpotsLetters, excluded);
 
-  function filterNotSpot(spot, letters) {
-    if (!letters) {
-      return;
-    }
-    matched = matched.filter(function (word) {
-      return !letters.some(function (letter) {
-        return word[spot] === letter;
-      });
-    });
-  }
+  var stats = getStats(filtered);
 
-  notSpotLetters.map(function (letters, index) {
-    filterNotSpot(index, letters);
-  });
+  renderFrequencyScoreTab(stats);
+  renderEntropyScore(filtered, stats);
+  renderMatches(filtered);
+  renderCombos(filtered, stats);
+  renderMatchCount(filtered);
 
-  var letterStats = {};
-  var biLetterStats = {};
-  matched.map(function (guess) {
-    guess.split('').map(function (letter, i) {
-      if (!letterStats[letter]) {
-        letterStats[letter] = 0;
-      }
-      letterStats[letter] = letterStats[letter] + 1;
-
-      if (i < guess.length - 1) {
-        var combo = letter + guess[i + 1];
-        if (!biLetterStats[combo]) {
-          biLetterStats[combo] = 0;
-        }
-        biLetterStats[combo] = biLetterStats[combo] + 1;
-      }
-    });
-  });
-
-  var probabilities = {};
-  var informationStats = {};
-  var statKeys = Object.keys(letterStats);
-  statKeys.map(function(letter) {
-    var probability = letterStats[letter] / matched.length;
-    probabilities[letter] = probability;
-    var information = Math.log2(1/probability);
-    informationStats[letter] = probability * information;
-  });
-
-  // frequency score for each match
-  var matchStats = {};
-  var probabilityStats = {}
-  matched.map(function (match) {
-    matchStats[match] = 0;
-    probabilityStats[match] = 0;
-  });
-
-  maxStats = statKeys.map(function (letter) {
-    matched.map(function (match) {
-      if (match.indexOf(letter) !== -1) {
-        matchStats[match] = matchStats[match] + letterStats[letter];
-      }
-    });
-    return [letter, letterStats[letter]];
-  });
-
-  matched.map(function(match) {
-    var letters = match.split('');
-    var score = 0;
-    var scoreMap = {};
-    letters.map(function(letter) {
-      if (!scoreMap[letter]) {
-        scoreMap[letter] = informationStats[letter];
-      }
-    });
-    Object.keys(scoreMap).map(function(letter) {
-      score = score + scoreMap[letter];
-    });
-    probabilityStats[match] = score;
-  });
-
-  maxStats.sort(function (a, b) {
-    return b[1] - a[1];
-  });
-
-  var biMaxStats = Object.keys(biLetterStats).map(function (letter) {
-    matched.map(function (match) {
-      if (match.indexOf(letter) !== -1) {
-        matchStats[match] = matchStats[match] + biLetterStats[letter];
-      }
-    });
-
-    return [letter, biLetterStats[letter], new RegExp(letter)];
-  });
-
-  biMaxStats.sort(function (a, b) {
-    return b[1] - a[1];
-  });
-
-  delete matchStats[''];
-
-  var scores = Object.keys(matchStats).map(function (match) {
-    return [match, matchStats[match]];
-  });
-  scores.sort(function (a, b) {
-    return b[1] - a[1];
-  });
-
-  var joinedScores = scores
-    .map(function (score, i) {
-      return score[0] + ':&nbsp;' + score[1];
-    })
-    .join('\r\n');
-  var scoreContent =
-    '\r\n<h3>Top Words by Frequency Score</h3>\r\n<pre class="score">' +
-    joinedScores +
-    '</pre>';
-
-  var probabilityScores = matched.map(function (match) {
-    return [match, probabilityStats[match].toFixed(4)];
-  });
-  probabilityScores.sort(function (a, b) {
-    return b[1] - a[1];
-  });
-
-  var joinedProbScores = probabilityScores
-    .map(function (score, i) {
-      return score[0] + ':&nbsp;' + score[1];
-    })
-    .join('\r\n');
-  var probabilityScoreContent = [
-    '\r\n',
-    '<h3>Top Words by Probability Score</h3>' +
-    '<p>A weight is generated for each letter in a word.<br />' +
-    'The probability of the letter is multiplied by the likelihood the letter will eliminate words in the set of possible words.<br />' +
-    'Each word adds up their letter weights.  Double letters don\'t add to the weight</p>\r\n' +
-    '<pre class="score">',
-    joinedProbScores,
-    '</pre>'
-  ].join('');
-
-  statContent = '';
-  maxStats.map(function (stat) {
-    var letter = stat[0];
-    var count = stat[1];
-    var letterContent = letter;
-    var letterClass = 'stat-letter stat-letter-block';
-    if (includedMap[letter]) {
-      letterClass = letterClass + ' included-stat';
-    } else if (notSpotMap[letter]) {
-      letterClass = letterClass + ' included-stat-wrong-spot';
-    }
-    statContent =
-      statContent +
-      '<span class="' +
-      letterClass +
-      '">' +
-      letterContent +
-      '</span>&nbsp;' +
-      count +
-      '\n';
-  });
-
-  comboStatContent = '';
-  if (biMaxStats.length > 0) {
-    comboStatContent = comboStatContent + '\n';
-    biMaxStats.map(function (stat) {
-      var combo = stat[0];
-      var count = stat[1];
-      comboStatContent =
-        comboStatContent +
-        '<span class="stat-letter">' +
-        combo +
-        '</span>:&nbsp;' +
-        count +
-        '\n';
-    });
-  }
-
-  var emptyMatch =
-    '<p>No matches found.<br /><br />Please refine your matches and try again.</p>';
-  var matchData =
-    matched.length > 0 ? '<pre>' + matched.join('\r\n') + '</pre>' : emptyMatch;
-  window['tabpanel-matches'].innerHTML = matchData;
-
-  var comboData = '<pre>' + comboStatContent + '</pre>';
-
-  var countContent = [
-    '<h3>Letter Counts</h3><pre>',
-    statContent,
-    '</pre>',
-    '<h3>Combo Counts</h3>',
-    comboData
-  ].join('');
-  var statData =
-    matched.length > 0
-                   ? countContent
-                   : emptyMatch;
-  window['tabpanel-counts'].innerHTML = statData;
-
-  window['tabpanel-score'].innerHTML = matched.length > 0 ? scoreContent : emptyMatch;
-
-  var probabilityData =
-    matched.length > 0 ? probabilityScoreContent : emptyMatch;
-  window['tabpanel-probs'].innerHTML = probabilityData;
   results.removeAttribute('hidden');
-  window['match-count'].innerHTML = `Matches: <strong>${matched.length}</strong>`;
-  window['match-count'].removeAttribute('hidden');
+
   gtag('event', 'submit', {
     event_category: 'user action',
   });
@@ -333,8 +83,7 @@ function guess(event) {
   return false;
 }
 
-reset.onclick = function () {
-  includeLetters.value = '';
+function resetScorer() {
   excludeLetters.value = '';
   first.value = '';
   second.value = '';
@@ -349,46 +98,16 @@ reset.onclick = function () {
   randomWord.textContent = '';
   window['match-count'].setAttribute('hidden', '');
   results.setAttribute('hidden', '');
+}
+
+reset.onclick = function () {
+  resetScorer();
   gtag('event', 'reset', {
     event_category: 'user action',
   });
 };
 
-function changeTabs(e) {
-  var target = e.target;
-  var parent = target.parentNode;
-  var grandparent = parent.parentNode;
-
-  // Remove all current selected tabs
-  parent.querySelectorAll('[aria-selected="true"]').forEach(function (t) {
-    return t.setAttribute('aria-selected', false);
-  });
-
-  // Set this tab as selected
-  target.setAttribute('aria-selected', true);
-
-  // Hide all tab panels
-  grandparent.querySelectorAll('[role="tabpanel"]').forEach(function (p) {
-    return p.setAttribute('hidden', true);
-  });
-
-  // Show the selected panel
-  var panel = grandparent.parentNode
-    .querySelector('#' + target.getAttribute('aria-controls'));
-  panel.removeAttribute('hidden');
-  panel.parentNode.scrollTop = 0;
-  var tabName = panel.getAttribute('aria-labelledby');
-  gtag('event', 'changeTab', {
-    event_category: 'user_action',
-    event_label: tabName
-  });
-}
-
-window.onload = function () {
-  // there is a limit to the number of wordles
-  // eventually this number will overflow the list of answers
-  currentWordleDay = moment().diff(moment('20210619', 'YYYYMMDD'), 'days');
-
+function fetchWords() {
   function getText(response) {
     return response.text().then(function(text) {
       return text.trim().split('\n');
@@ -396,36 +115,63 @@ window.onload = function () {
   }
 
   Promise.all([wordRequest.then(getText), answerRequest.then(getText)])
-    .then(function (responses) {
-      words = responses[0];
-      answers = responses[1];
-      currentAnswer = answers[currentWordleDay];
+         .then(function (responses) {
+           words = responses[0];
+           answers = responses[1];
+           currentAnswer = answers[currentWordleDay];
 
-      // create a lookup to filter later
-      var pastAnswers = {};
-      for (var i = 0; i < currentWordleDay; i++) {
-        var word = answers[i];
-        pastAnswers[word] = true;
-      }
-      wordsFilteredByAnswer = words.filter(function(word) {
-        return pastAnswers[word] === undefined
-      });
-    });
+           // create a lookup to filter later
+           var pastAnswers = {};
+           for (var i = 0; i < currentWordleDay; i++) {
+             var word = answers[i];
+             pastAnswers[word] = true;
+           }
+           wordsFilteredByAnswer = words.filter(function(word) {
+             return pastAnswers[word] === undefined
+           });
+         });
+}
 
-  guessForm.onsubmit = guess;
-  submit.onclick = guess;
-  helpIcon.onclick = function helpClick() {
+function helpClick() {
     dialog.style.display = '';
     gtag('event', 'help_click', {
       event_category: 'user action',
     });
-  };
+};
 
-  var tabs = document.querySelectorAll('[role="tab"]');
-  var tabList = document.querySelector('[role="tablist"]');
 
-  // Add a click event handler to each tab
-  tabs.forEach(function (tab) {
-    tab.addEventListener('click', changeTabs);
-  });
+function setMode(mode) {
+  if (mode === 'play') {
+    resetPlayer();
+    scorer.style.display = 'none';
+    results.style.display = 'none';
+    player.style.display = '';
+  } else {
+    resetScorer();
+    scorer.style.display = '';
+    results.style.display = '';
+    player.style.display = 'none';
+  }
+}
+
+
+window.onload = function () {
+  // there is a limit to the number of wordles
+  // eventually this number will overflow the list of answers
+  currentWordleDay = moment().diff(moment('20210619', 'YYYYMMDD'), 'days');
+
+  fetchWords();
+
+  guessForm.onsubmit = guess;
+  submit.onclick = guess;
+  helpIcon.onclick = helpClick;
+
+  initTabs();
+  solverMode.onchange = function() {
+    setMode(this.value);
+  }
+  solverMode.value = 'score';
+  setMode(solverMode.value);
+
+  initPlayer();
 };
