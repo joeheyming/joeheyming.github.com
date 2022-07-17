@@ -106,7 +106,7 @@
     <hr />
     <div class="main-content">
       <div class="form-row">
-        <label class="form-label">Mode</label>
+        <label class="form-label"></label>
         <div class="form-input fixed-input-control">
           <div class="custom-select">
             <select id="solverMode">
@@ -185,16 +185,29 @@
       </div>
     </div>
     <div class="main-content" id="player">
+        <div class="form-row" id="wordChooseSubmit">
+          <button id="chooseWord" class="btn-primary btn-bordered">Choose</button>
+        </div>
         <div class="form-row" id="step1">
           <div>
             <div>
-              <input type="radio" id="wotd" name="playMode" value="wotd" checked>
-              <label for="wotd">Use word of the day</label>
-            </div>
-            <div>
-              <input type="radio" id="randomPlayWord" name="playMode" value="randomPlayWord">
+              <input type="radio" id="randomPlayWord" name="playMode" value="randomPlayWord" checked>
               <label for="randomPlayWord">Start with random answer</label>
             </div>
+            <div>
+              <input type="radio" id="wotd" name="playMode" value="wotd" >
+              <label for="wotd">Use word of the day</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-row" id="sortSelector">
+          <label class="form-label">Sort by:</label>
+          <div class="form-input fixed-input-control">
+            <select id="sortSelectorSelect">
+              <option value="frequency-score">Frequency Score</option>
+              <option value="entropy-score">Entropy Score</option>
+              <option value="alphabet">Alphabetically</option>
+            </select>
           </div>
         </div>
         <div class="form-row" id="wordSelector">
@@ -205,10 +218,10 @@
         </div>
         <div class="form-row" id="wordDisplay"></div>
         <div id="playWordsWin">
-          <h2>You Won!</h2>
-        </div>
-        <div class="form-row" id="wordChooseSubmit">
-          <button id="chooseWord" class="btn-primary btn-bordered">Choose</button>
+          <h2>
+            You Won!
+            <span id="playWordsCount"></span>
+          </h2>
         </div>
     </div>
   </body>

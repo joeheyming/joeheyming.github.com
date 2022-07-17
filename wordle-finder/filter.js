@@ -91,36 +91,42 @@ function filterDictionary(spots, notSpotsLetters, excluded) {
   };
 }
 
-function getLetterStats(matched) {
+function addLetterStats(matched, stats) {
   var letterStats = {};
+  var spotStats = [{},{},{},{},{}];
   matched.map(function (guess) {
     guess.split('').map(function (letter, i) {
       if (!letterStats[letter]) {
         letterStats[letter] = 0;
       }
+      if (!spotStats[i][letter]) {
+        spotStats[i][letter] = 0;
+      }
+      spotStats[i][letter] = spotStats[i][letter] + 1;
       letterStats[letter] = letterStats[letter] + 1;
 
     });
   });
-  return letterStats;
+  Object.assign(stats, {
+    letterStats: letterStats,
+    spotStats: spotStats
+  });
 }
 
 function getEntropyScore(filtered, stats) {
   var matched = filtered.matched;
 
-  var probabilities = {};
+  var probabilityStats = {}
+  matched.map(function (match) {
+    probabilityStats[match] = 0;
+  });
+
   var informationStats = {};
   var statKeys = Object.keys(stats.letterStats);
   statKeys.map(function(letter) {
     var probability = stats.letterStats[letter] / matched.length;
-    probabilities[letter] = probability;
     var information = Math.log2(1/probability);
     informationStats[letter] = probability * information;
-  });
-
-  var probabilityStats = {}
-  matched.map(function (match) {
-    probabilityStats[match] = 0;
   });
 
   matched.map(function(match) {
@@ -138,6 +144,17 @@ function getEntropyScore(filtered, stats) {
     probabilityStats[match] = score;
   });
 
+  /* matched.forEach(function(match) {
+   *   var letters = match.split('');
+   *   var matchSum = 0;
+   *   letters.forEach(function(letter, i) {
+   *     var probability = stats.spotStats[i][letter] / matched.length;
+   *     var information = probability * Math.log2(1/probability);
+   *     matchSum = matchSum + information;
+   *   });
+   *   probabilityStats[match] = matchSum;
+   * });
+   */
   var entropyScore = matched.map(function (match) {
     return [match, probabilityStats[match].toFixed(4)];
   });
@@ -229,13 +246,13 @@ function getBiMaxStats(stats) {
 }
 
 function getStats(filtered) {
+  var stats = {};
   var matched = filtered.matched;
-  var letterStats = getLetterStats(matched);
+  addLetterStats(matched, stats);
   var biLetterStats = getBiLetterStats(matched);
-  var stats = {
-    letterStats: letterStats,
+  Object.assign(stats, {
     biLetterStats: biLetterStats,
-  }
+  });
   stats.matchStats = getMatchStats(matched, stats);
 
   return stats;
