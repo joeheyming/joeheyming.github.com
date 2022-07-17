@@ -145,8 +145,11 @@ input.correct {
   text-transform: uppercase;
 }
 
-.fixed-input-control {
+.block-input-control, .fixed-input-control {
   width: 190px;
+}
+
+.fixed-input-control {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -182,7 +185,7 @@ pre.score {
   margin-top: 10px;
 }
 .panels {
-  max-height: 300px;
+  max-height: calc(100vh - 335px);
   overflow-y: auto;
 }
 #results [role=tablist] {
@@ -206,7 +209,7 @@ button:focus {
   outline-offset: 0;
 }
 
-#submit {
+.btn-primary {
   color: white;
   background-color: var(--wordle-green);
 }
@@ -282,4 +285,43 @@ label.form-input, .form-label {
 
 .form-input > input[type=checkbox] {
   margin-left: 0;
+}
+
+.form-row#wordSelector {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+.form-row#wordDisplay {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  display: grid;
+  grid-gap: 5px;
+  justify-content: space-around;
+}
+
+.play-letter {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  line-height: 30px;
+  text-align: center;
+  text-transform: uppercase;
+  vertical-align: middle;
+  margin-left: 5px;
+}
+
+.play-letter.correct {
+  background-color: var(--wordle-green);
+}
+
+.play-letter.maybecorrect {
+  background-color: var(--wordle-yellow);
+}
+
+.play-letter.incorrect {
+  background-color: var(--wordle-gray);
+}
+
+.form-row#step1 {
+  justify-content: space-around;
 }
