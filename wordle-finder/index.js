@@ -1,21 +1,20 @@
 /**
  * This file was intentionally vanilla js because I wanted a challenge
  */
-function analytics() {
+window.analytics = function () {
   window.dataLayer = window.dataLayer || [];
-  window.gtag = function() {
+  window.gtag = function () {
     dataLayer.push(arguments);
-  }
+  };
   gtag('js', new Date());
 
   gtag('config', 'G-Q62Q3E20Y0');
-}
+};
 if (location.hostname !== 'localhost') {
   analytics();
 } else {
-  window.gtag = function() {}
+  window.gtag = function () {};
 }
-
 var wordRequest = fetch('words?bust_cache=' + Math.random());
 var answerRequest = fetch('answers?bust_cache' + Math.random());
 
@@ -27,10 +26,13 @@ var currentWordleDay;
 // words without past answers
 var wordsFilteredByAnswer;
 // all possible words
-var words;
+var allWords;
 
 function getWords() {
-  return window.excludePreviousAnswers.checked ? wordsFilteredByAnswer : words;
+  var clonedList = Array.from(
+    window.excludePreviousAnswers.checked ? wordsFilteredByAnswer : allWords
+  );
+  return clonedList;
 }
 
 var answers;
@@ -48,18 +50,19 @@ randomWordButton.onclick = function () {
   } while (!isIsogram(word));
   randomWord.textContent = word;
   gtag('event', 'generate_random_word', {
-    event_category: 'user action',
+    event_category: 'user action'
   });
 };
 
-
 function guess(event) {
   event.preventDefault();
-  var spots = [first, second, third, fourth, fifth]
-    .map(function(spot) { return spot.value.toLowerCase() || ''; });
-  var notSpots = [notfirst, notsecond, notthird, notfourth, notfifth]
-    .map(function(spot) { return spot.value.toLowerCase() || ''; });
-  var notSpotsLetters = notSpots.map(function(spot) {
+  var spots = [first, second, third, fourth, fifth].map(function (spot) {
+    return spot.value.toLowerCase() || '';
+  });
+  var notSpots = [notfirst, notsecond, notthird, notfourth, notfifth].map(function (spot) {
+    return spot.value.toLowerCase() || '';
+  });
+  var notSpotsLetters = notSpots.map(function (spot) {
     return spot.split('');
   });
   var excluded = excludeLetters.value.toLowerCase().split('');
@@ -77,7 +80,7 @@ function guess(event) {
   results.removeAttribute('hidden');
 
   gtag('event', 'submit', {
-    event_category: 'user action',
+    event_category: 'user action'
   });
 
   return false;
@@ -103,42 +106,40 @@ function resetScorer() {
 reset.onclick = function () {
   resetScorer();
   gtag('event', 'reset', {
-    event_category: 'user action',
+    event_category: 'user action'
   });
 };
 
 function fetchWords() {
   function getText(response) {
-    return response.text().then(function(text) {
+    return response.text().then(function (text) {
       return text.trim().split('\n');
     });
   }
 
-  Promise.all([wordRequest.then(getText), answerRequest.then(getText)])
-         .then(function (responses) {
-           words = responses[0];
-           answers = responses[1];
-           currentAnswer = answers[currentWordleDay];
+  Promise.all([wordRequest.then(getText), answerRequest.then(getText)]).then(function (responses) {
+    allWords = responses[0];
+    answers = responses[1];
+    currentAnswer = answers[currentWordleDay];
 
-           // create a lookup to filter later
-           var pastAnswers = {};
-           for (var i = 0; i < currentWordleDay; i++) {
-             var word = answers[i];
-             pastAnswers[word] = true;
-           }
-           wordsFilteredByAnswer = words.filter(function(word) {
-             return pastAnswers[word] === undefined
-           });
-         });
+    // create a lookup to filter later
+    var pastAnswers = {};
+    for (var i = 0; i < currentWordleDay; i++) {
+      var word = answers[i];
+      pastAnswers[word] = true;
+    }
+    wordsFilteredByAnswer = allWords.filter(function (word) {
+      return pastAnswers[word] === undefined;
+    });
+  });
 }
 
 function helpClick() {
-    dialog.style.display = '';
-    gtag('event', 'help_click', {
-      event_category: 'user action',
-    });
-};
-
+  dialog.style.display = '';
+  gtag('event', 'help_click', {
+    event_category: 'user action'
+  });
+}
 
 function setMode(mode) {
   if (mode === 'play') {
@@ -154,25 +155,26 @@ function setMode(mode) {
   }
 }
 
-
 window.onload = function () {
-  // there is a limit to the number of wordles
-  // eventually this number will overflow the list of answers
-  currentWordleDay = moment().diff(moment('20210619', 'YYYYMMDD'), 'days');
+  setTimeout(function () {
+    // there is a limit to the number of wordles
+    // eventually this number will overflow the list of answers
+    currentWordleDay = moment().diff(moment('20210619', 'YYYYMMDD'), 'days');
 
-  fetchWords();
+    fetchWords();
 
-  guessForm.onsubmit = guess;
-  submit.onclick = guess;
-  helpIcon.onclick = helpClick;
+    guessForm.onsubmit = guess;
+    submit.onclick = guess;
+    helpIcon.onclick = helpClick;
 
-  initTabs();
-  solverMode.onchange = function() {
-    setMode(this.value);
-  }
-  //solverMode.value = 'play';
-  solverMode.value = 'score';
-  setMode(solverMode.value);
+    initTabs();
+    solverMode.onchange = function () {
+      setMode(this.value);
+    };
+    //solverMode.value = 'play';
+    solverMode.value = 'score';
+    setMode(solverMode.value);
 
-  initPlayer();
+    initPlayer();
+  }, 250);
 };

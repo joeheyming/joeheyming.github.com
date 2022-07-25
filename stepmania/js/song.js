@@ -1,4 +1,4 @@
 var song = {
-    bpm: 148,
-    addToMusicPosition: -0.03
+  bpm: 148,
+  addToMusicPosition: -0.03
 };

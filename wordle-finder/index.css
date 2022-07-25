@@ -328,4 +328,5 @@ label.form-input, .form-label {
 
 select {
   width: 190px;
+  height: 30px;
 }

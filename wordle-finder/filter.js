@@ -5,7 +5,9 @@ function getIncludeMap(spots) {
       includedMap[letter] = true;
     }
   }
-  spots.forEach(function(spot) { addIncluded(spot); });
+  spots.forEach(function (spot) {
+    addIncluded(spot);
+  });
   return includedMap;
 }
 
@@ -22,7 +24,7 @@ function getNotSpotMap(notSpotsLetters) {
 }
 
 function getAllIncludedMap(spots, notSpotsLetters) {
- var allIncludedMap = {};
+  var allIncludedMap = {};
   function addAllIncluded(letter) {
     if (letter) {
       allIncludedMap[letter] = true;
@@ -93,9 +95,19 @@ function filterDictionary(spots, notSpotsLetters, excluded) {
 
 function addLetterStats(matched, stats) {
   var letterStats = {};
-  var spotStats = [{},{},{},{},{}];
+  var spotStats = [{}, {}, {}, {}, {}];
+  var uniqueLetterStats = {};
   matched.map(function (guess) {
+    var seen = {};
     guess.split('').map(function (letter, i) {
+      if (!seen[letter]) {
+        seen[letter] = true;
+        if (uniqueLetterStats[letter]) {
+          uniqueLetterStats[letter] = uniqueLetterStats[letter] + 1;
+        } else {
+          uniqueLetterStats[letter] = 1;
+        }
+      }
       if (!letterStats[letter]) {
         letterStats[letter] = 0;
       }
@@ -104,57 +116,54 @@ function addLetterStats(matched, stats) {
       }
       spotStats[i][letter] = spotStats[i][letter] + 1;
       letterStats[letter] = letterStats[letter] + 1;
-
     });
   });
   Object.assign(stats, {
     letterStats: letterStats,
-    spotStats: spotStats
+    spotStats: spotStats,
+    uniqueLetterStats: uniqueLetterStats
   });
 }
 
-function getEntropyScore(filtered, stats) {
+function addEntropyScore(filtered, stats) {
   var matched = filtered.matched;
 
-  var probabilityStats = {}
+  var probabilityStats = {};
+  var probabilitySpotStats = {};
   matched.map(function (match) {
     probabilityStats[match] = 0;
+    probabilitySpotStats[match] = 0;
   });
 
   var informationStats = {};
   var statKeys = Object.keys(stats.letterStats);
-  statKeys.map(function(letter) {
+  statKeys.map(function (letter) {
     var probability = stats.letterStats[letter] / matched.length;
-    var information = Math.log2(1/probability);
+    var information = -Math.log2(probability);
     informationStats[letter] = probability * information;
   });
 
-  matched.map(function(match) {
+  matched.map(function (match) {
     var letters = match.split('');
     var score = 0;
+    var spotScore = 0;
     var scoreMap = {};
-    letters.map(function(letter) {
+    letters.map(function (letter, index) {
       if (!scoreMap[letter]) {
         scoreMap[letter] = informationStats[letter];
       }
     });
-    Object.keys(scoreMap).map(function(letter) {
+    Object.keys(scoreMap).map(function (letter, index) {
+      var probability = stats.spotStats[index][letter] / matched.length;
+      var information = -Math.log2(probability);
+
       score = score + scoreMap[letter];
+      spotScore = spotScore + probability * information;
     });
     probabilityStats[match] = score;
+    probabilitySpotStats[match] = spotScore;
   });
 
-  /* matched.forEach(function(match) {
-   *   var letters = match.split('');
-   *   var matchSum = 0;
-   *   letters.forEach(function(letter, i) {
-   *     var probability = stats.spotStats[i][letter] / matched.length;
-   *     var information = probability * Math.log2(1/probability);
-   *     matchSum = matchSum + information;
-   *   });
-   *   probabilityStats[match] = matchSum;
-   * });
-   */
   var entropyScore = matched.map(function (match) {
     return [match, probabilityStats[match].toFixed(4)];
   });
@@ -162,10 +171,26 @@ function getEntropyScore(filtered, stats) {
     return b[1] - a[1];
   });
 
-  return entropyScore;
+  stats.entropyScore = entropyScore;
+
+  var spotEntropyScore = matched.map(function (match) {
+    return [match, probabilitySpotStats[match].toFixed(4)];
+  });
+  spotEntropyScore.sort(function (a, b) {
+    return b[1] - a[1];
+  });
+  stats.spotEntropyScore = spotEntropyScore;
+
+  var combinedEntropyScore = matched.map(function (match) {
+    return [match, (probabilityStats[match] + probabilitySpotStats[match]).toFixed(4)];
+  });
+  combinedEntropyScore.sort(function (a, b) {
+    return b[1] - a[1];
+  });
+  stats.combinedEntropyScore = combinedEntropyScore;
 }
 
-function getMaxStats(stats) {
+function addMaxStats(stats) {
   var statKeys = Object.keys(stats.letterStats);
   var maxStats = statKeys.map(function (letter) {
     return [letter, stats.letterStats[letter]];
@@ -175,10 +200,10 @@ function getMaxStats(stats) {
     return b[1] - a[1];
   });
 
-  return maxStats;
+  stats.maxStats = maxStats;
 }
 
-function getMatchStats(matched, stats) {
+function addMatchStats(matched, stats) {
   var matchStats = {};
   matched.map(function (match) {
     matchStats[match] = 0;
@@ -204,10 +229,10 @@ function getMatchStats(matched, stats) {
    */
   delete matchStats[''];
 
-  return matchStats;
+  stats.matchStats = matchStats;
 }
 
-function getFrequencyScore(stats) {
+function addFrequencyScore(stats) {
   // frequency score for each match
   var frequencyScore = Object.keys(stats.matchStats).map(function (match) {
     return [match, stats.matchStats[match]];
@@ -215,10 +240,10 @@ function getFrequencyScore(stats) {
   frequencyScore.sort(function (a, b) {
     return b[1] - a[1];
   });
-  return frequencyScore;
+  stats.frequencyScore = frequencyScore;
 }
 
-function getBiLetterStats(matched) {
+function addBiLetterStats(matched, stats) {
   var biLetterStats = {};
   matched.map(function (guess) {
     guess.split('').map(function (letter, i) {
@@ -231,10 +256,10 @@ function getBiLetterStats(matched) {
       }
     });
   });
-  return biLetterStats;
+  stats.biLetterStats = biLetterStats;
 }
 
-function getBiMaxStats(stats) {
+function addBiMaxStats(stats) {
   var biMaxStats = Object.keys(stats.biLetterStats).map(function (letter) {
     return [letter, stats.biLetterStats[letter], new RegExp(letter)];
   });
@@ -242,18 +267,19 @@ function getBiMaxStats(stats) {
   biMaxStats.sort(function (a, b) {
     return b[1] - a[1];
   });
-  return biMaxStats;
+  stats.biMaxStats = biMaxStats;
 }
 
 function getStats(filtered) {
   var stats = {};
   var matched = filtered.matched;
   addLetterStats(matched, stats);
-  var biLetterStats = getBiLetterStats(matched);
-  Object.assign(stats, {
-    biLetterStats: biLetterStats,
-  });
-  stats.matchStats = getMatchStats(matched, stats);
+  addBiLetterStats(matched, stats);
+  addBiMaxStats(stats);
+  addMatchStats(matched, stats);
+  addMaxStats(stats);
+  addEntropyScore(filtered, stats);
+  addFrequencyScore(stats);
 
   return stats;
 }

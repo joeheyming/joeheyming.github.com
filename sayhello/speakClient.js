@@ -35,23 +35,24 @@ function speak(text, args) {
         leftchar = (leftchar << 8) | data[i];
         leftbits += 8;
         while (leftbits >= 6) {
-          var curr = (leftchar >> (leftbits-6)) & 0x3f;
+          var curr = (leftchar >> (leftbits - 6)) & 0x3f;
           leftbits -= 6;
           ret += BASE[curr];
         }
       }
       if (leftbits == 2) {
-        ret += BASE[(leftchar&3) << 4];
+        ret += BASE[(leftchar & 3) << 4];
         ret += PAD + PAD;
       } else if (leftbits == 4) {
-        ret += BASE[(leftchar&0xf) << 2];
+        ret += BASE[(leftchar & 0xf) << 2];
         ret += PAD;
       }
       return ret;
     }
 
-    document.getElementById("audio").innerHTML=("<audio id=\"player\" src=\"data:audio/x-wav;base64,"+encode64(wav)+"\">");
-    document.getElementById("player").play();
+    document.getElementById('audio').innerHTML =
+      '<audio id="player" src="data:audio/x-wav;base64,' + encode64(wav) + '">';
+    document.getElementById('player').play();
   }
 
   function playAudioDataAPI(data) {
@@ -62,13 +63,13 @@ function speak(text, args) {
       var buffer = data.samples;
       var f32Buffer = new Float32Array(num);
       for (var i = 0; i < num; i++) {
-        var value = buffer[i<<1] + (buffer[(i<<1)+1]<<8);
-        if (value >= 0x8000) value |= ~0x7FFF;
+        var value = buffer[i << 1] + (buffer[(i << 1) + 1] << 8);
+        if (value >= 0x8000) value |= ~0x7fff;
         f32Buffer[i] = value / 0x8000;
       }
       output.mozWriteAudio(f32Buffer);
       return true;
-    } catch(e) {
+    } catch (e) {
       return false;
     }
   }
@@ -78,13 +79,14 @@ function speak(text, args) {
     var data = parseWav(wav); // validate the data and parse it
     // TODO: try playAudioDataAPI(data), and fallback if failed
     playHTMLAudioElement(wav);
-    if (PROFILE) console.log('speak.js: wav processing took ' + (Date.now()-startTime).toFixed(2) + ' ms');
+    if (PROFILE)
+      console.log('speak.js: wav processing took ' + (Date.now() - startTime).toFixed(2) + ' ms');
   }
 
   // Do everything right now. speakGenerator.js must have been loaded.
   var startTime = Date.now();
   var wav = generateSpeech(text, args);
-  if (PROFILE) console.log('speak.js: processing took ' + (Date.now()-startTime).toFixed(2) + ' ms');
+  if (PROFILE)
+    console.log('speak.js: processing took ' + (Date.now() - startTime).toFixed(2) + ' ms');
   handleWav(wav);
 }
-

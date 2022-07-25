@@ -40,6 +40,9 @@
        "url": "https://joeheyming.github.io/wordle-finder/index.html"
      }
     </script>
+    <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+
+    <script src="https://cdn.plot.ly/plotly-2.12.1.min.js"></script>
 
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
@@ -117,7 +120,7 @@
         </div>
       </div>
     </div>
-    <div class="main-content" id="scorer">
+    <div class="main-content" id="scorer" style="display: none;">
       <div class="form-row">
         <label class="form-label">Random start word</label>
         <div class="form-input fixed-input-control">
@@ -184,14 +187,19 @@
         <div id="tabpanel-counts" role="tabpanel" tabindex="0" aria-labelledby="count-stats" hidden></div>
       </div>
     </div>
-    <div class="main-content" id="player">
+    <div class="main-content" id="player" style="display: none;">
         <div class="form-row" id="wordChooseSubmit">
           <button id="chooseWord" class="btn-primary btn-bordered">Choose</button>
         </div>
+        <div id="playWordsResults"></div>
         <div class="form-row" id="step1">
           <div>
             <div>
-              <input type="radio" id="randomPlayWord" name="playMode" value="randomPlayWord" checked>
+              <input type="radio" id="wotd" name="playMode" value="auto-play" checked>
+              <label for="wotd">Auto-play</label>
+            </div>
+            <div>
+              <input type="radio" id="randomPlayWord" name="playMode" value="randomPlayWord">
               <label for="randomPlayWord">Start with random answer</label>
             </div>
             <div>
@@ -201,22 +209,25 @@
           </div>
         </div>
         <div class="form-row" id="sortSelector">
-          <label class="form-label">Sort by:</label>
+          <label class="form-label">Sort by</label>
           <div class="form-input fixed-input-control">
             <select id="sortSelectorSelect">
               <option value="frequency-score">Frequency Score</option>
-              <option value="entropy-score">Entropy Score</option>
+              <option value="entropy-score">Entropy Score v1</option>
+              <option value="spot-entropy-score">Entropy Score v2</option>
+              <option value="combined-entropy-score">Entropy Score v3</option>
               <option value="alphabet">Alphabetically</option>
             </select>
           </div>
         </div>
         <div class="form-row" id="wordSelector">
-          <label class="form-label">Choose a word:</label>
+          <label class="form-label">Choose a word</label>
           <div class="form-input fixed-input-control">
             <select id="playWords"></select>
           </div>
         </div>
         <div class="form-row" id="wordDisplay"></div>
+
         <div id="playWordsWin">
           <h2>
             You Won!
