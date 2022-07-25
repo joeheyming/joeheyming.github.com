@@ -17,8 +17,7 @@ function changeTabs(e) {
   });
 
   // Show the selected panel
-  var panel = grandparent.parentNode
-    .querySelector('#' + target.getAttribute('aria-controls'));
+  var panel = grandparent.parentNode.querySelector('#' + target.getAttribute('aria-controls'));
   panel.removeAttribute('hidden');
   panel.parentNode.scrollTop = 0;
   var tabName = panel.getAttribute('aria-labelledby');
@@ -29,7 +28,7 @@ function changeTabs(e) {
 }
 
 function updateTabContent(tabId, html) {
-  var tab = document.getElementById(tabId)
+  var tab = document.getElementById(tabId);
   if (tab) {
     tab.innerHTML = html;
   }

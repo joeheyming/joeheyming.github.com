@@ -1,8 +1,7 @@
-var emptyMatch =
-  '<p>No matches found.<br /><br />Please refine your matches and try again.</p>';
+var emptyMatch = '<p>No matches found.<br /><br />Please refine your matches and try again.</p>';
 
 function renderFrequencyScoreTab(stats) {
-  var frequencyScore = getFrequencyScore(stats);
+  var frequencyScore = stats.frequencyScore;
 
   var joinedScores = frequencyScore
     .map(function (score, i) {
@@ -21,9 +20,7 @@ function renderFrequencyScoreTab(stats) {
 }
 
 function renderEntropyScore(filtered, stats) {
-  var entropyScore = getEntropyScore(filtered, stats);
-
-  var joinedProbScores = entropyScore
+  var joinedProbScores = stats.entropyScore
     .map(function (score, i) {
       return score[0] + ':&nbsp;' + score[1];
     })
@@ -32,20 +29,18 @@ function renderEntropyScore(filtered, stats) {
     '<h3>Top Words by Probability Score</h3>',
     '<p>A weight is generated for each letter in a word.<br />',
     'The probability of the letter is multiplied by the likelihood the letter will eliminate words in the set of possible words.<br />',
-    'Each word adds up their letter weights.  Double letters don\'t add to the weight</p>',
+    "Each word adds up their letter weights.  Double letters don't add to the weight</p>",
     '<pre class="score">',
     joinedProbScores,
     '</pre>'
   ].join('');
-  var probabilityData =
-    entropyScore.length > 0 ? probabilityScoreContent : emptyMatch;
+  var probabilityData = stats.entropyScore.length > 0 ? probabilityScoreContent : emptyMatch;
   updateTabContent('tabpanel-probs', probabilityData);
 }
 
 function renderMatches(filtered) {
   var matched = filtered.matched;
-  var matchData =
-    matched.length > 0 ? '<pre>' + matched.join('\r\n') + '</pre>' : emptyMatch;
+  var matchData = matched.length > 0 ? '<pre>' + matched.join('\r\n') + '</pre>' : emptyMatch;
   updateTabContent('tabpanel-matches', matchData);
 }
 
@@ -53,11 +48,8 @@ function renderCombos(filtered, stats) {
   var includedMap = filtered.includedMap;
   var notSpotMap = filtered.notSpotMap;
 
-  var maxStats = getMaxStats(stats);
-  var biMaxStats = getBiMaxStats(stats);
-
   var statContent = '';
-  maxStats.map(function (stat) {
+  stats.maxStats.map(function (stat) {
     var letter = stat[0];
     var count = stat[1];
     var letterContent = letter;
@@ -79,22 +71,17 @@ function renderCombos(filtered, stats) {
   });
 
   comboStatContent = '';
-  if (biMaxStats.length > 0) {
+  if (stats.biMaxStats.length > 0) {
     comboStatContent = comboStatContent + '\n';
-    biMaxStats.map(function (stat) {
+    stats.biMaxStats.map(function (stat) {
       var combo = stat[0];
       var count = stat[1];
       comboStatContent =
-        comboStatContent +
-        '<span class="stat-letter">' +
-        combo +
-        '</span>:&nbsp;' +
-        count +
-        '\n';
+        comboStatContent + '<span class="stat-letter">' + combo + '</span>:&nbsp;' + count + '\n';
     });
   }
 
- var comboData = '<pre>' + comboStatContent + '</pre>';
+  var comboData = '<pre>' + comboStatContent + '</pre>';
 
   var countContent = [
     '<h3>Letter Counts</h3><pre>',
@@ -103,10 +90,7 @@ function renderCombos(filtered, stats) {
     '<h3>Combo Counts</h3>',
     comboData
   ].join('');
-  var statData =
-    maxStats.length > 0
-                   ? countContent
-                   : emptyMatch;
+  var statData = stats.maxStats.length > 0 ? countContent : emptyMatch;
   updateTabContent('tabpanel-counts', statData);
 }
 
