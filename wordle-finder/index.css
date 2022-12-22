@@ -156,6 +156,16 @@ input.correct {
   align-items: center;
 }
 
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+main {
+  overflow: auto;
+}
+
 body {
   font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
 }
@@ -185,7 +195,7 @@ pre.score {
   margin-top: 10px;
 }
 .panels {
-  max-height: calc(100vh - 335px);
+  max-height: calc(100vh - 370px);
   overflow-y: auto;
 }
 #results [role=tablist] {
