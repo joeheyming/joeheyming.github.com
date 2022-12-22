@@ -355,3 +355,7 @@ select {
   position: static;
   margin: auto;
 }
+
+footer {
+  display: none;
+}
