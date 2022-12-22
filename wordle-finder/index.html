@@ -54,10 +54,10 @@
 
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
-    <script defer src="tabs.js"></script>
-    <script defer src="filter.js"></script>
-    <script defer src="scorer.js"></script>
-    <script defer src="playWords.js"></script>
+    <script async src="tabs.js"></script>
+    <script async src="filter.js"></script>
+    <script async src="scorer.js"></script>
+    <script async src="playWords.js"></script>
     <script defer src="index.js"></script>
     <script src="https://momentjs.com/downloads/moment.js"></script>
   </head>
@@ -117,8 +117,9 @@
       <h1>Joe's Wordle Helper <button id="helpIcon" class="info">i</button></h1>
     </header>
     <hr />
-    <main>
-      <div class="main-content">
+    <a href="#main-content" class="screenreader-text">Go to main content</a>
+    <main id="main-content">
+      <div class="content">
         <div class="form-row">
           <label class="form-label" for="solverMode">Mode</label>
           <div class="form-input fixed-input-control">
@@ -131,7 +132,7 @@
           </div>
         </div>
       </div>
-      <div class="main-content" id="scorer" style="display: none;">
+      <div class="content" id="scorer" style="display: none;">
         <div class="form-row">
           <label class="form-label">Random start word</label>
           <div class="form-input fixed-input-control">
@@ -198,7 +199,7 @@
           <div id="tabpanel-counts" role="tabpanel" tabindex="0" aria-labelledby="count-stats" hidden></div>
         </div>
       </div>
-      <div class="main-content" id="player" style="display: none;">
+      <div class="content" id="player" style="display: none;">
         <div class="form-row" id="wordChooseSubmit">
           <button id="chooseWord" class="btn-primary btn-bordered">Choose</button>
         </div>
