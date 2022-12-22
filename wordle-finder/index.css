@@ -253,7 +253,7 @@ button:focus {
   margin: 0 20px;
 }
 
-.main-content {
+.content {
   width: 380px;
   display: flex;
   flex-direction: column;
@@ -338,4 +338,20 @@ label.form-input, .form-label {
 select {
   width: 190px;
   height: 30px;
+}
+
+.screenreader-text {
+  position: absolute;
+  left: -999px;
+  width: 1px;
+  height: 1px;
+  top: auto;
+}
+.screenreader-text:focus {
+  color: black;
+  display: inline-block;
+  height: auto;
+  width: auto;
+  position: static;
+  margin: auto;
 }

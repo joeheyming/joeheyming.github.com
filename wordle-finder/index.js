@@ -165,6 +165,11 @@ window.onload = function () {
 
     guessForm.onsubmit = guess;
     submit.onclick = guess;
+    window.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        dialog.style.display = 'none';
+      }
+    });
     helpIcon.onclick = helpClick;
 
     initTabs();
