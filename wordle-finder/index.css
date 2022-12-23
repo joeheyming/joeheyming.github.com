@@ -194,11 +194,36 @@ hr {
 pre {
   font-family: sans-serif;
   text-transform: uppercase;
-  column-count: 4;
 }
 
-pre.score {
-  column-count: 2;
+@media screen and (max-width: 480px) {
+  pre {
+    column-count: 2;
+  }
+}
+@media screen and (min-width: 480px) {
+  pre {
+    column-count: 2;
+  }
+}
+
+@media screen and (min-width: 600px) {
+  pre {
+    column-count: 3;
+  }
+}
+
+@media screen and (min-width: 800px) {
+  pre {
+    column-count: 4;
+  }
+}
+
+
+@media screen and (min-width: 1024px) {
+  pre {
+    column-count: 5;
+  }
 }
 
 #results {
@@ -206,14 +231,26 @@ pre.score {
   margin-left: 10px;
   margin-right: 10px;
 }
+
+@media screen and (min-width: 480px) {
+  #results {
+    width: calc(100vw - 20px);
+  }
+}
+
 .panels {
   max-height: calc(100vh - 370px);
   overflow-y: auto;
 }
 #results [role=tablist] {
   border-bottom: solid 1px var(--wordle-gray);
-  display: flex;
-  justify-content: space-between;
+}
+
+@media screen and (max-width: 480px) {
+  #results [role=tablist] {
+    display: flex;
+    justify-content: space-between;
+  }
 }
 
 #results button[role=tab] {
