@@ -203,6 +203,8 @@ pre.score {
 }
 #results [role=tablist] {
   border-bottom: solid 1px var(--wordle-gray);
+  display: flex;
+  justify-content: space-between;
 }
 
 #results button[role=tab] {
