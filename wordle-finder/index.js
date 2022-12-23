@@ -155,8 +155,52 @@ function setMode(mode) {
   }
 }
 
+function addSwipe() {
+  let touchstartX = 0;
+  let touchendX = 0;
+  function checkDirection() {
+    if (results.getAttribute('hidden') === '') {
+      return;
+    }
+    var selected = document.querySelector("[role='tab'][aria-selected=true]");
+    var tabList = document.querySelector('[role=tablist]');
+    var children = Array.from(tabList.children);
+    var index = 0;
+    for (var i = 0; i < children.length; i++) {
+      index = i;
+      var child = children[i];
+      if (selected.id === child.id) {
+        break;
+      }
+    }
+
+    var target;
+    if (touchendX < touchstartX) {
+      var next = Math.min(children.length - 1, index + 1);
+      target = children[next];
+    }
+    if (touchendX > touchstartX) {
+      var next = Math.max(0, index - 1);
+      target = children[next];
+    }
+    if (target) {
+      changeTabs(target);
+    }
+  }
+
+  document.addEventListener('touchstart', (e) => {
+    touchstartX = e.changedTouches[0].screenX;
+  });
+
+  document.addEventListener('touchend', (e) => {
+    touchendX = e.changedTouches[0].screenX;
+    checkDirection();
+  });
+}
+
 window.onload = function () {
   setTimeout(function () {
+    addSwipe();
     // there is a limit to the number of wordles
     // eventually this number will overflow the list of answers
     currentWordleDay = moment().diff(moment('20210619', 'YYYYMMDD'), 'days');
@@ -181,5 +225,5 @@ window.onload = function () {
     setMode(solverMode.value);
 
     initPlayer();
-  }, 250);
+  }, 1);
 };

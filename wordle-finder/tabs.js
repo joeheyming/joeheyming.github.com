@@ -1,5 +1,4 @@
-function changeTabs(e) {
-  var target = e.target;
+function changeTabs(target) {
   var parent = target.parentNode;
   var grandparent = parent.parentNode;
 
@@ -40,6 +39,8 @@ function initTabs() {
 
   // Add a click event handler to each tab
   tabs.forEach(function (tab) {
-    tab.addEventListener('click', changeTabs);
+    tab.addEventListener('click', function (e) {
+      changeTabs(e.target);
+    });
   });
 }

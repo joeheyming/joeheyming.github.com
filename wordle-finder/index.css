@@ -159,14 +159,16 @@ input.correct {
 
 html, body {
   height: 100%;
+  width: 100%;
 }
 
 main {
-  overflow: auto;
+  width: calc(100vw - 20px);
 }
 
 body {
   font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
+  touch-action: manipulation
 }
 
 h1 {
@@ -192,6 +194,8 @@ pre.score {
 
 #results {
   margin-top: 10px;
+  margin-left: 10px;
+  margin-right: 10px;
 }
 .panels {
   max-height: calc(100vh - 370px);
@@ -254,11 +258,10 @@ button:focus {
 }
 
 .content {
-  width: 380px;
   display: flex;
   flex-direction: column;
-  margin-right: auto;
-  margin-left: auto;
+  margin-left: 10px;
+  margin-right: 10px;
 }
 .modal-content {
   height: 500px;
