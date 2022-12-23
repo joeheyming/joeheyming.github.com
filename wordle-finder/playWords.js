@@ -12,7 +12,6 @@ function resetPlayer() {
   playWordsMode = 'start';
   sortSelector.style.display = 'none';
   sortSelectorSelect.value = 'entropy-score';
-  window.excludePreviousAnswers.checked = false;
   var radio = document.querySelector('[type=radio]:checked');
   if (radio.value === 'auto-play') {
     sortSelector.style.display = '';
@@ -70,9 +69,7 @@ function onStart() {
 
   // todo, support random and custom
   var radio = document.querySelector('[type=radio]:checked');
-  if (radio.value === 'wotd') {
-    playWordsAnswer = currentAnswer;
-  } else if (radio.value === 'randomPlayWord') {
+  if (radio.value === 'randomPlayWord') {
     var selection = Math.floor(Math.random() * allWords.length);
     var randomWord = allWords[selection];
     playWordsAnswer = randomWord;

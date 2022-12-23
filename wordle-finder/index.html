@@ -169,13 +169,6 @@
           </div>
           <input type="submit" style="display: none;"/>
         </form>
-        <div class="form-row">
-          <label class="form-label"></label>
-          <label class="form-input fixed-input-control">
-            <input type="checkbox" id="excludePreviousAnswers">
-            Hide previous answers
-          </label>
-        </div>
         <div class="form-controls">
           <span>
             <button class="btn-primary btn-bordered" id="submit">Submit</button>
@@ -193,16 +186,12 @@
         <div class="form-row" id="step1">
           <div>
             <div>
-              <input type="radio" id="wotd" name="playMode" value="auto-play" checked>
+              <input type="radio" id="auto-play" name="playMode" value="auto-play" checked>
               <label for="wotd">Auto-play</label>
             </div>
             <div>
               <input type="radio" id="randomPlayWord" name="playMode" value="randomPlayWord">
               <label for="randomPlayWord">Start with random answer</label>
-            </div>
-            <div>
-              <input type="radio" id="wotd" name="playMode" value="wotd" >
-              <label for="wotd">Use word of the day</label>
             </div>
           </div>
         </div>
