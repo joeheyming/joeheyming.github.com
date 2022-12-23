@@ -185,20 +185,6 @@
         </div>
       </div>
 
-      <div id="results" hidden>
-        <div role="tablist">
-          <button aria-selected="true" role="tab" aria-controls="tabpanel-probs" class="btn-txt btn-bordered" id="probability-stats">Weighted</button>
-          <button aria-selected="false" role="tab" aria-controls="tabpanel-score" class="btn-txt btn-bordered" id="frequency-score">Score</button>
-          <button aria-selected="false"  role="tab" aria-controls="tabpanel-matches" class="btn-txt btn-bordered" id="matches">Matches</button>
-          <button aria-selected="false" role="tab" aria-controls="tabpanel-counts" class="btn-txt btn-bordered" id="count-stats">Counts</button>
-        </div>
-        <div class="panels">
-          <div id="tabpanel-probs" role="tabpanel" tabindex="0" aria-labelledby="probability-stats"></div>
-          <div id="tabpanel-score" role="tabpanel" tabindex="0" aria-labelledby="frequency-score" hidden></div>
-          <div id="tabpanel-matches" role="tabpanel" tabindex="0" aria-labelledby="matches" hidden></div>
-          <div id="tabpanel-counts" role="tabpanel" tabindex="0" aria-labelledby="count-stats" hidden></div>
-        </div>
-      </div>
       <div class="content" id="player" style="display: none;">
         <div class="form-row" id="wordChooseSubmit">
           <button id="chooseWord" class="btn-primary btn-bordered">Choose</button>
@@ -248,6 +234,21 @@
         </div>
       </div>
     </main>
+    <div id="results" hidden>
+      <div role="tablist">
+        <button aria-selected="true" role="tab" aria-controls="tabpanel-probs" class="btn-txt btn-bordered" id="probability-stats">Weighted</button>
+        <button aria-selected="false" role="tab" aria-controls="tabpanel-score" class="btn-txt btn-bordered" id="frequency-score">Score</button>
+        <button aria-selected="false"  role="tab" aria-controls="tabpanel-matches" class="btn-txt btn-bordered" id="matches">Matches</button>
+        <button aria-selected="false" role="tab" aria-controls="tabpanel-counts" class="btn-txt btn-bordered" id="count-stats">Counts</button>
+      </div>
+      <div class="panels">
+        <div id="tabpanel-probs" role="tabpanel" tabindex="0" aria-labelledby="probability-stats"></div>
+        <div id="tabpanel-score" role="tabpanel" tabindex="0" aria-labelledby="frequency-score" hidden></div>
+        <div id="tabpanel-matches" role="tabpanel" tabindex="0" aria-labelledby="matches" hidden></div>
+        <div id="tabpanel-counts" role="tabpanel" tabindex="0" aria-labelledby="count-stats" hidden></div>
+      </div>
+    </div>
+
     <footer>
       If you're regularly online - or just a lover of word games - there's a strong chance you've seen friends sharing a small colorful grid and discussing something named 'Wordle.' What is all the fuss about, you ask? We've got the answers!
 
