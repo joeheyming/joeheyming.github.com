@@ -1,49 +1,84 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <base href="./" />
     <style>
-     marquee {
-       position: absolute;
-       top: 0;
-       z-index: 100;
-     }
+      marquee {
+        position: absolute;
+        top: 80px;
+        z-index: 100;
+      }
     </style>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   </head>
   <body>
     <h1>Farm Monitor</h1>
-    <marquee id="marquee" direction="right">
-    </marquee>
+
     <button id="start">Start!</button>
-
     <script>
-     var data = [{
-       img: './nyan.gif',
-       mp3: './nyan.mp3'
-     }, {
-       img: './mario.gif',
-       mp3: './mario.mp3'
-     }, {
-       img: './gannam.gif',
-       mp3: './gannam.mp3'
-     }, {
-       img: './moonwalk.gif',
-       mp3: './beatit.mp3'
-     }];
+      var data = [
+        {
+          img: 'nyan.gif',
+          mp3: 'nyan.mp3'
+        },
+        {
+          img: 'mario.gif',
+          mp3: 'mario.mp3'
+        },
+        {
+          img: 'gannam.gif',
+          mp3: 'gannam.mp3'
+        },
+        {
+          img: 'moonwalk.gif',
+          mp3: 'beatit.mp3'
+        }
+      ];
 
-     window.onload = function() {
-       window.start.onclick = function() {
-         var rand = Math.floor(Math.random() * data.length);
-         var img = new Image();
-         img.src = data[rand].img;
-         marquee.appendChild(img);
+      var start;
+      var currentAudio;
 
-         var audio = new Audio();
-         audio.autoplay = true;
-         audio.src = data[rand].mp3;
-         document.body.appendChild(audio);
-       }
-     };
+      function startJob() {
+        var rand = Math.floor(Math.random() * data.length);
+        var img = new Image();
+        img.src = data[rand].img;
+        const marquee = document.createElement('marquee');
+        marquee.id = 'marquee';
+        marquee.direction = 'right';
+        marquee.appendChild(img);
+        document.body.appendChild(marquee);
+
+        currentAudio = new Audio();
+        currentAudio.autoplay = true;
+        currentAudio.src = data[rand].mp3;
+        document.body.appendChild(currentAudio);
+
+        start.textContent = 'Stop!';
+      }
+
+      function stopJob() {
+        // remove the audio and img
+        const marquee = document.getElementById('marquee');
+        if (marquee) {
+          marquee.remove();
+        }
+        if (currentAudio && currentAudio.parentNode) {
+          document.body.removeChild(currentAudio);
+        }
+
+        start.textContent = 'Start!';
+      }
+
+      window.onload = function () {
+        start = document.getElementById('start');
+        start.onclick = function toggle() {
+          if (start.textContent.match(/Start/)) {
+            startJob();
+          } else {
+            stopJob();
+          }
+        };
+      };
     </script>
   </body>
 </html>

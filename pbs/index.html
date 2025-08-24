@@ -1,22 +1,23 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="./" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
-     body {
-       font-family: "Comic Sans MS", "Comic Sans", cursive;
-     }
-     img {
-       top: 0;
-       left: 0;
-       position: absolute;
-       width: 100%;
-       height: 100%;
-       z-index: -1;
-     }
-     p {
-       font-size: 30px;
-     }
+      body {
+        font-family: 'Comic Sans MS', 'Comic Sans', cursive;
+      }
+      img {
+        top: 0;
+        left: 0;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+      }
+      p {
+        font-size: 30px;
+      }
     </style>
     <script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
     <title>Pirate Service Broadcast</title>
@@ -26,41 +27,41 @@
     <p>Jab Ye page of web t' connect wit' a pirate representative</p>
     <img src="Emergency-Broadcast-System.gif" />
     <script>
-     var sounds = [
-       'A_Pirates_Life_For_Me.mp3',
-       'Aye_Captain.mp3',
-       'Get_Me_Sword_Matey.mp3',
-       'Ahoy_Mate_Time_To_Set_Sail.mp3',
-       'Batten_Down_The_Hatches_Its_Going_To_Be_A_Rough_Ride.mp3',
-       'It_Will_Be_Davy_Jones_Locker_For_Ye.mp3',
-       'Argh_You_Son_Of_A_Biscuit_Eater.mp3',
-       'Batten_Down_The_Hatches_Mate.mp3',
-       'Listen_To_Your_Captain_Mate.mp3',
-       'Aye.mp3',
-       'Cross_Me_Mate_And_Youll_End_Up_Walking_The_Plank.mp3',
-       'Throw_Him_In_The_Brig.mp3',
-       'Aye2.mp3',
-       'Dont_You_Cross_Me_Laddie.mp3',
-       'To_The_Brig.mp3',
-     ];
-     function sayArrr() {
-       if (window.arrr) {
-         window.arrr.onended = undefined;
-         document.body.removeChild(window.arrr);
-       }
-       var sound = sounds[Math.floor(Math.random()*sounds.length)];
-       var audio = document.createElement('audio');
-       audio.id = 'arrr';
-       audio.setAttribute('src', '/pbs/' + sound);
-       audio.setAttribute('autoplay', 'true');
-       document.body.appendChild(audio);
-     };
+      var sounds = [
+        'A_Pirates_Life_For_Me.mp3',
+        'Aye_Captain.mp3',
+        'Get_Me_Sword_Matey.mp3',
+        'Ahoy_Mate_Time_To_Set_Sail.mp3',
+        'Batten_Down_The_Hatches_Its_Going_To_Be_A_Rough_Ride.mp3',
+        'It_Will_Be_Davy_Jones_Locker_For_Ye.mp3',
+        'Argh_You_Son_Of_A_Biscuit_Eater.mp3',
+        'Batten_Down_The_Hatches_Mate.mp3',
+        'Listen_To_Your_Captain_Mate.mp3',
+        'Aye.mp3',
+        'Cross_Me_Mate_And_Youll_End_Up_Walking_The_Plank.mp3',
+        'Throw_Him_In_The_Brig.mp3',
+        'Aye2.mp3',
+        'Dont_You_Cross_Me_Laddie.mp3',
+        'To_The_Brig.mp3'
+      ];
+      function sayArrr() {
+        if (window.arrr) {
+          window.arrr.onended = undefined;
+          document.body.removeChild(window.arrr);
+        }
+        var sound = sounds[Math.floor(Math.random() * sounds.length)];
+        var audio = document.createElement('audio');
+        audio.id = 'arrr';
+        audio.setAttribute('src', sound);
+        audio.setAttribute('autoplay', 'true');
+        document.body.appendChild(audio);
+      }
 
-     window.onload = function() {
-       document.body.onclick = function() {
-         sayArrr();
-       }
-     }
+      window.onload = function () {
+        document.body.onclick = function () {
+          sayArrr();
+        };
+      };
     </script>
   </body>
 </html>

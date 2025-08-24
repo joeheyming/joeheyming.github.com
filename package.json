@@ -1,8 +1,13 @@
 {
   "scripts": {
-    "lint:fix": "eslint --fix ."
+    "lint:fix": "eslint --fix .",
+    "format:fix": "prettier --write .",
+    "get-youtube-links": "node youtube/getLinks.js"
   },
   "Private": true,
+  "dependencies": {
+    "jsdom": "^23.0.0"
+  },
   "devDependencies": {
     "eslint": "^8.20.0",
     "eslint-config-prettier": "^8.5.0",

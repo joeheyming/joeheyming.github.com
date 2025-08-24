@@ -1,0 +1,78 @@
+.gradient-text {
+  background: linear-gradient(45deg, rgb(99 102 241), rgb(147 51 234));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-bg::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+  animation: spin 20s linear infinite;
+}
+
+/* Terminal-like scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  background: rgb(17 24 39);
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(31 41 55);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(16 185 129);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(5 150 105);
+}
+
+/* Desktop grid pattern */
+.desktop-pattern {
+  background-image: linear-gradient(rgba(16, 185, 129, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 185, 129, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Blinking cursor effect */
+.terminal-cursor::after {
+  content: '█';
+  animation: blink 1s infinite;
+  color: rgb(16 185 129);
+}
+
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Terminal Message and Help Content Styles */
+.help-section {
+  margin-bottom: 16px;
+}
+
+.command-list {
+  margin-left: 8px;
+}
+
+.command-item {
+  margin: 4px 0;
+}
+
+.command-name {
+  color: rgb(16 185 129);
+  font-family: monospace;
+}

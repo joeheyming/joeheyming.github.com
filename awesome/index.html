@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <base href="./" />
     <title>Everything is Awesome!</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="awesome.css" type="text/css" charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="awesome.css" type="text/css" charset="UTF-8" />
+    <script src="lyrics.js"></script>
     <script src="awesome.js"></script>
   </head>
   <body>
@@ -13,14 +15,15 @@
       <ul>
         <li>a - Show awesome</li>
         <li>n - Nyan!</li>
+        <li>c - Toggle color changes (accessibility)</li>
         <li>ESC - restart</li>
       </ul>
     </div>
     <script id="awesome_script">
-     document.addEventListener('DOMContentLoaded', function() {
-       var awesome = new awesomeNamespace.Awesome();
-       window.scroll(0,0)
-     })
+      document.addEventListener('DOMContentLoaded', function () {
+        var awesome = new awesomeNamespace.Awesome();
+        window.scroll(0, 0);
+      });
     </script>
   </body>
 </html>

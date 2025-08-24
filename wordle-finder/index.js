@@ -15,7 +15,6 @@ if (location.hostname !== 'localhost') {
 } else {
   window.gtag = function () {};
 }
-var wordRequest = fetch('words?bust_cache=' + Math.random());
 
 // current answer of hte day
 var currentAnswer;
@@ -108,15 +107,12 @@ reset.onclick = function () {
 };
 
 function fetchWords() {
-  function getText(response) {
-    return response.text().then(function (text) {
-      return text.trim().split('\n');
-    });
+  // words.js is loaded via HTML script tag and should populate window.allwords
+  if (window.allwords) {
+    allWords = window.allwords;
+  } else {
+    console.error('window.allwords not found. Make sure words.js is loaded.');
   }
-
-  Promise.all([wordRequest.then(getText)]).then(function (responses) {
-    allWords = responses[0];
-  });
 }
 
 function helpClick() {
@@ -186,12 +182,12 @@ function addSwipe() {
     if (Math.abs(xDiff) > Math.abs(yDiff)) {
       /*most significant*/
       if (xDiff > 0) {
-        var next = Math.max(0, index - 1);
-        target = children[next];
+        var prevIndex = Math.max(0, index - 1);
+        target = children[prevIndex];
         /* right swipe */
       } else {
-        var next = Math.min(children.length - 1, index + 1);
-        target = children[next];
+        var nextIndex = Math.min(children.length - 1, index + 1);
+        target = children[nextIndex];
       }
     }
     if (target) {

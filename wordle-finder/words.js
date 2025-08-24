@@ -1,4 +1,4 @@
-aahed
+window.allwords = `aahed
 aalii
 aapas
 aargh
@@ -14852,4 +14852,4 @@ zuzim
 zygal
 zygon
 zymes
-zymic
+zymic`.split('\n');
