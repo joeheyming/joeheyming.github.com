@@ -103,6 +103,125 @@ function calculateYearsExperience() {
   document.getElementById('years-experience').textContent = `${yearsExperience}+ years`;
 }
 
+// Hamburger Menu Functionality
+function generateHamburgerMenuItems() {
+  const menuContainer = document.getElementById('hamburger-app-links');
+  const menuItems = AppModule.generateHamburgerMenuItems();
+
+  // Clear existing content
+  menuContainer.innerHTML = '';
+
+  // Generate menu items
+  menuItems.forEach((app) => {
+    const menuItem = document.createElement('a');
+    menuItem.href = app.path + 'index.html';
+    menuItem.className = `hamburger-app-link flex items-center space-x-3 p-3 rounded-lg bg-gradient-to-r ${app.gradient} border ${app.border} transition-all duration-200 group`;
+
+    menuItem.innerHTML = `
+      <span class="text-2xl">${app.icon}</span>
+      <div>
+        <div class="text-green-400 font-mono font-bold group-hover:text-green-300">
+          ${app.name}
+        </div>
+        <div class="text-gray-400 text-sm">${app.description}</div>
+      </div>
+    `;
+
+    menuContainer.appendChild(menuItem);
+  });
+}
+
+function initHamburgerMenu() {
+  // Generate menu items from AppModule
+  generateHamburgerMenuItems();
+
+  const hamburgerToggle = document.getElementById('hamburger-toggle');
+  const hamburgerPanel = document.getElementById('hamburger-panel');
+  const menuClose = document.getElementById('menu-close');
+
+  let isMenuOpen = false;
+
+  function toggleMenu() {
+    isMenuOpen = !isMenuOpen;
+
+    if (isMenuOpen) {
+      // Open menu
+      hamburgerToggle.classList.add('active');
+      hamburgerPanel.classList.add('show');
+
+      // Add staggered animation to links
+      const links = hamburgerPanel.querySelectorAll('.hamburger-app-link');
+      links.forEach((link, index) => {
+        setTimeout(() => {
+          link.style.opacity = '1';
+        }, index * 50);
+      });
+    } else {
+      // Close menu
+      hamburgerToggle.classList.remove('active');
+      hamburgerPanel.classList.remove('show');
+
+      // Reset link opacity
+      const links = hamburgerPanel.querySelectorAll('.hamburger-app-link');
+      links.forEach((link) => {
+        link.style.opacity = '0';
+      });
+    }
+  }
+
+  function closeMenu() {
+    if (isMenuOpen) {
+      toggleMenu();
+    }
+  }
+
+  function attachMenuLinkListeners() {
+    // Handle app link clicks with some visual feedback
+    const appLinks = hamburgerPanel.querySelectorAll('.hamburger-app-link');
+
+    appLinks.forEach((link) => {
+      link.addEventListener('click', (e) => {
+        // Add click animation
+        link.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          link.style.transform = '';
+        }, 150);
+
+        // Close menu after a short delay for better UX
+        setTimeout(() => {
+          if (isMenuOpen) {
+            closeMenu();
+          }
+        }, 200);
+      });
+    });
+  }
+
+  // Event listeners
+  hamburgerToggle.addEventListener('click', toggleMenu);
+  menuClose.addEventListener('click', closeMenu);
+
+  // Close menu when clicking outside
+  document.addEventListener('click', (e) => {
+    if (isMenuOpen && !hamburgerToggle.contains(e.target) && !hamburgerPanel.contains(e.target)) {
+      closeMenu();
+    }
+  });
+
+  // Close menu on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isMenuOpen) {
+      closeMenu();
+    }
+  });
+
+  // Close menu when window loses focus (for better mobile experience)
+  window.addEventListener('blur', closeMenu);
+
+  // Attach listeners to dynamically generated menu items
+  attachMenuLinkListeners();
+}
+
 // Add some sparkle animation to cards on load
 document.addEventListener('DOMContentLoaded', () => {
   // Calculate experience on page load
@@ -113,6 +232,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize terminal
   namespace_os.setupTerminal();
+
+  // Initialize hamburger menu
+  initHamburgerMenu();
 
   const cards = document.querySelectorAll('.group');
   cards.forEach((card, index) => {

@@ -20,11 +20,7 @@
 }
 
 .window.dragging .window-header {
-  background: linear-gradient(
-    135deg,
-    rgb(16 185 129),
-    rgb(5 150 105)
-  ) !important;
+  background: linear-gradient(135deg, rgb(16 185 129), rgb(5 150 105)) !important;
   cursor: grabbing !important;
 }
 
@@ -70,7 +66,7 @@
 /* App launcher button styling (for taskbar) */
 .app-launcher {
   transition: all 0.2s ease;
-  font-family: "Courier New", monospace;
+  font-family: 'Courier New', monospace;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 

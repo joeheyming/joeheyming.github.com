@@ -1,0 +1,397 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Source Code Pro', 'Courier New', monospace;
+  background: #000;
+  color: #00ff00;
+  overflow: hidden;
+  height: 100vh;
+  position: relative;
+}
+
+/* Classification Banners */
+.classification-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 30px;
+  background: linear-gradient(90deg, #ff0000, #ff3333, #ff0000);
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  font-weight: bold;
+  font-size: 12px;
+  z-index: 1000;
+  animation: pulse-red 2s ease-in-out infinite alternate;
+}
+
+.classification-banner.top {
+  top: 0;
+}
+
+.classification-banner.bottom {
+  bottom: 0;
+}
+
+@keyframes pulse-red {
+  from {
+    background: linear-gradient(90deg, #ff0000, #ff3333, #ff0000);
+  }
+  to {
+    background: linear-gradient(90deg, #cc0000, #ff0000, #cc0000);
+  }
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 10px;
+  padding: 40px 10px 40px 10px;
+  height: 100vh;
+  background: radial-gradient(circle at center, #001100 0%, #000000 70%);
+}
+
+/* Panel Styles */
+.panel {
+  background: rgba(0, 20, 0, 0.8);
+  border: 2px solid #00ff00;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.3), inset 0 0 20px rgba(0, 255, 0, 0.1);
+  animation: panel-glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes panel-glow {
+  from {
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.3), inset 0 0 20px rgba(0, 255, 0, 0.1);
+  }
+  to {
+    box-shadow: 0 0 30px rgba(0, 255, 0, 0.5), inset 0 0 30px rgba(0, 255, 0, 0.2);
+  }
+}
+
+.panel-header {
+  background: rgba(0, 255, 0, 0.1);
+  padding: 8px 12px;
+  border-bottom: 1px solid #00ff00;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.panel-title {
+  color: #00ff00;
+  text-shadow: 0 0 5px #00ff00;
+}
+
+.panel-status {
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.panel-status.online {
+  background: #004400;
+  color: #00ff00;
+  animation: blink-green 1s infinite;
+}
+.panel-status.scanning {
+  background: #444400;
+  color: #ffff00;
+  animation: blink-yellow 1.5s infinite;
+}
+.panel-status.decrypting {
+  background: #400040;
+  color: #ff00ff;
+  animation: blink-purple 2s infinite;
+}
+.panel-status.active {
+  background: #440000;
+  color: #ff4444;
+  animation: blink-red 1.2s infinite;
+}
+.panel-status.monitoring {
+  background: #004444;
+  color: #44ffff;
+  animation: blink-cyan 1.8s infinite;
+}
+.panel-status.operational {
+  background: #002200;
+  color: #88ff88;
+}
+
+@keyframes blink-green {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0.3;
+  }
+}
+@keyframes blink-yellow {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0.3;
+  }
+}
+@keyframes blink-purple {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0.3;
+  }
+}
+@keyframes blink-red {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0.3;
+  }
+}
+@keyframes blink-cyan {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0.3;
+  }
+}
+
+.panel-content {
+  flex: 1;
+  padding: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Data Stream Styles */
+.data-stream {
+  height: 100%;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.2;
+  position: relative;
+}
+
+.data-stream::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: linear-gradient(to bottom, rgba(0, 20, 0, 0.8), transparent);
+  z-index: 10;
+}
+
+.data-stream::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: linear-gradient(to top, rgba(0, 20, 0, 0.8), transparent);
+  z-index: 10;
+}
+
+/* Specialized Panel Colors */
+.satellite-panel .data-stream {
+  color: #00ff00;
+}
+.network-panel .data-stream {
+  color: #ffff00;
+}
+.crypto-panel .data-stream {
+  color: #ff00ff;
+}
+.tracking-panel .data-stream {
+  color: #ff4444;
+}
+.sigint-panel .data-stream {
+  color: #44ffff;
+}
+.mission-panel .data-stream {
+  color: #88ff88;
+}
+
+/* Mission Progress Bar */
+.mission-progress {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid #00ff00;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #004400, #00ff00, #004400);
+  width: 0%;
+  transition: width 0.5s ease;
+  animation: progress-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes progress-glow {
+  from {
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+  }
+  to {
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.8);
+  }
+}
+
+.progress-text {
+  text-align: center;
+  display: block;
+  margin-top: 8px;
+  font-size: 10px;
+  color: #88ff88;
+}
+
+/* Exit Controls */
+.exit-controls {
+  position: fixed;
+  top: 50px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  gap: 10px;
+}
+
+.abort-btn,
+.stealth-btn {
+  padding: 10px 15px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  border: 2px solid;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.8);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.abort-btn {
+  color: #ff4444;
+  border-color: #ff4444;
+}
+
+.abort-btn:hover {
+  background: rgba(255, 68, 68, 0.1);
+  box-shadow: 0 0 15px rgba(255, 68, 68, 0.5);
+}
+
+.stealth-btn {
+  color: #44ffff;
+  border-color: #44ffff;
+}
+
+.stealth-btn:hover {
+  background: rgba(68, 255, 255, 0.1);
+  box-shadow: 0 0 15px rgba(68, 255, 255, 0.5);
+}
+
+/* Typing animation for data streams */
+.typing-line {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: typing 2s steps(40, end), cursor-blink 1s step-end infinite;
+}
+
+@keyframes typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes cursor-blink {
+  0%,
+  50% {
+    border-right: 2px solid;
+  }
+  51%,
+  100% {
+    border-right: 2px solid transparent;
+  }
+}
+
+/* Scroll animation */
+@keyframes scroll-up {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-100%);
+  }
+}
+
+.scrolling-data {
+  animation: scroll-up 20s linear infinite;
+}
+
+/* Glitch effect */
+@keyframes glitch {
+  0%,
+  98% {
+    transform: translateX(0);
+  }
+  99% {
+    transform: translateX(-2px);
+  }
+  100% {
+    transform: translateX(2px);
+  }
+}
+
+.glitch {
+  animation: glitch 0.3s infinite;
+}
+
+/* Stealth mode (hidden) */
+.stealth-mode {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}

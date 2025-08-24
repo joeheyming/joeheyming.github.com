@@ -8,6 +8,7 @@
       content="Joe Heyming - Principal UI Software Engineer at Roblox, UCSB graduate, patent holder, and creator of amazing web experiences."
     />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="app.js"></script>
     <script src="window.js"></script>
     <script src="os.js"></script>
     <script src="index.js"></script>
@@ -17,6 +18,46 @@
   <body
     class="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 overflow-x-hidden"
   >
+    <!-- Hamburger Menu -->
+    <div id="hamburger-menu" class="fixed top-6 right-6 z-[100]">
+      <!-- Hamburger Icon -->
+      <button
+        id="hamburger-toggle"
+        class="w-12 h-12 bg-gray-900/90 backdrop-blur-sm border border-green-500/50 rounded-lg flex flex-col justify-center items-center space-y-1 hover:bg-gray-800/90 transition-all duration-300 shadow-lg"
+        aria-label="Toggle navigation menu"
+      >
+        <span class="hamburger-line w-6 h-0.5 bg-green-400 transition-all duration-300"></span>
+        <span class="hamburger-line w-6 h-0.5 bg-green-400 transition-all duration-300"></span>
+        <span class="hamburger-line w-6 h-0.5 bg-green-400 transition-all duration-300"></span>
+      </button>
+
+      <!-- Menu Panel -->
+      <div
+        id="hamburger-panel"
+        class="absolute top-14 right-0 w-80 bg-gray-900/95 backdrop-blur-md border border-green-500/50 rounded-xl shadow-2xl transform translate-x-full transition-all duration-300 opacity-0"
+      >
+        <div class="p-6">
+          <!-- Menu Header -->
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-green-400 font-mono text-lg font-bold">🚀 Applications</h3>
+            <button
+              id="menu-close"
+              class="text-green-400 hover:text-green-300 text-xl transition-colors duration-200"
+              aria-label="Close menu"
+            >
+              ×
+            </button>
+          </div>
+
+          <nav id="hamburger-app-links" class="space-y-2 max-h-96 overflow-y-auto pr-2"></nav>
+
+          <!-- Menu Footer -->
+          <div class="mt-6 pt-4 border-t border-gray-700">
+            <div class="text-center text-gray-400 text-sm font-mono">🦄 Digital Playground 🦄</div>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- Minimized Tab Bar (hidden by default) -->
     <div
       id="minimized-tab-bar"
@@ -463,6 +504,10 @@
             <div class="command-item">
               <span class="command-name">fortune</span>
               - Get a random quote
+            </div>
+            <div class="command-item">
+              <span class="command-name">shadowbox</span>
+              - 🕵️ Launch Operation: SHADOWBOX (classified surveillance mode)
             </div>
           </div>
         </div>

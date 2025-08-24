@@ -76,3 +76,133 @@
   color: rgb(16 185 129);
   font-family: monospace;
 }
+
+/* Hamburger Menu Styles */
+#hamburger-menu {
+  /* Ensure it stays above everything */
+}
+
+.hamburger-line {
+  transform-origin: center;
+}
+
+/* Hamburger animation to X */
+#hamburger-toggle.active .hamburger-line:nth-child(1) {
+  transform: rotate(45deg) translate(2px, 2px);
+}
+
+#hamburger-toggle.active .hamburger-line:nth-child(2) {
+  opacity: 0;
+}
+
+#hamburger-toggle.active .hamburger-line:nth-child(3) {
+  transform: rotate(-45deg) translate(2px, -2px);
+}
+
+/* Menu panel animations */
+#hamburger-panel.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* App link hover effects */
+.hamburger-app-link:hover {
+  transform: translateX(-2px);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+}
+
+.hamburger-app-link:active {
+  transform: translateX(0) scale(0.98);
+}
+
+/* Staggered animation for app links */
+.hamburger-app-link:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.hamburger-app-link:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.hamburger-app-link:nth-child(3) {
+  animation-delay: 0.15s;
+}
+.hamburger-app-link:nth-child(4) {
+  animation-delay: 0.2s;
+}
+.hamburger-app-link:nth-child(5) {
+  animation-delay: 0.25s;
+}
+.hamburger-app-link:nth-child(6) {
+  animation-delay: 0.3s;
+}
+.hamburger-app-link:nth-child(7) {
+  animation-delay: 0.35s;
+}
+.hamburger-app-link:nth-child(8) {
+  animation-delay: 0.4s;
+}
+.hamburger-app-link:nth-child(9) {
+  animation-delay: 0.45s;
+}
+.hamburger-app-link:nth-child(10) {
+  animation-delay: 0.5s;
+}
+
+/* Menu show animation */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Apply animations when menu is shown */
+#hamburger-panel.show .hamburger-app-link {
+  animation: fadeInUp 0.3s ease-out forwards;
+  opacity: 0;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 640px) {
+  #hamburger-panel {
+    width: 95vw;
+    right: -2.5vw;
+  }
+
+  .hamburger-app-link {
+    padding: 0.75rem;
+  }
+
+  .hamburger-app-link span:first-child {
+    font-size: 1.25rem;
+  }
+}
+
+/* Backdrop blur for mobile */
+@media (max-width: 768px) {
+  #hamburger-panel::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(2px);
+    z-index: -1;
+  }
+}
