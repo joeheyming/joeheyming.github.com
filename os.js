@@ -433,6 +433,11 @@ function executeCommand(command) {
         showMessage('💡 App is not currently minimized.');
       }
       break;
+    case 'shadowbox':
+    case 'operation':
+      showMessage(`🕵️ Initiating Operation: SHADOWBOX... Classified surveillance mode activated.`);
+      namespace_window.openApp('shadowbox');
+      break;
     case 'exit':
     case 'quit':
       showMessage(`👋 Thanks for visiting! But you can't escape the terminal that easily... 😈`);
@@ -583,6 +588,8 @@ function setupTerminal() {
         'date',
         'fortune',
         'quote',
+        'shadowbox',
+        'operation',
         'fullscreen',
         'fs',
         'minimize',

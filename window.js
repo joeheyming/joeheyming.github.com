@@ -5,55 +5,11 @@ let activeWindows = [];
 let zIndexCounter = 1000;
 let currentlyFocusedWindow = null;
 
-// Available applications configuration
-const availableApps = {
-  awesome: {
-    name: 'Everything is Awesome 🎉',
-    description: 'Pure joy in digital form'
-  },
-  farm: {
-    name: 'Farm Adventures 🚜',
-    description: 'Digital agriculture adventures'
-  },
-  pbs: {
-    name: 'Pirate Broadcast System 🏴‍☠️',
-    description: 'Ahoy! Interactive pirate fun'
-  },
-  sadtrombone: {
-    name: 'Sad Trombone 🎺',
-    description: 'For those "oops" moments'
-  },
-  sayhello: {
-    name: 'Say Hello 👋',
-    description: 'Speech synthesis magic'
-  },
-  stepmania: {
-    name: 'Stepmania 💃',
-    description: 'Rhythm game excellence'
-  },
-  'wordle-finder': {
-    name: 'Wordle Finder 🔤',
-    description: 'Word puzzle solving tools'
-  },
-  sayit: { name: 'Say It 🗣️', description: 'Text-to-speech experiments' },
-  youtube: {
-    name: 'YouTube Channel 🎥',
-    description: "Joe's digital adventures & coding magic"
-  }
-};
+// Available applications configuration - now using AppModule
+const availableApps = AppModule.getTaskbarApps();
 
-// Window app configuration (icons and titles for window headers)
-const appConfig = {
-  awesome: { title: 'Everything is Awesome 🎉', icon: '🎉' },
-  farm: { title: 'Farm Adventures 🚜', icon: '🚜' },
-  pbs: { title: 'Pirate Broadcast System 🏴‍☠️', icon: '🏴‍☠️' },
-  sadtrombone: { title: 'Sad Trombone 🎺', icon: '🎺' },
-  sayhello: { title: 'Say Hello 👋', icon: '👋' },
-  stepmania: { title: 'Stepmania 💃', icon: '💃' },
-  'wordle-finder': { title: 'Wordle Finder 🔤', icon: '🔤' },
-  sayit: { title: 'Say It 🗣️', icon: '🗣️' },
-  youtube: { title: 'YouTube Channel 🎥', icon: '🎥' }
-};
+// Window app configuration - now using AppModule
+const appConfig = AppModule.getWindowConfig();
 
 // Main function to open an application in a new window
 function openApp(appName) {

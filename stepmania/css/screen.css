@@ -1,103 +1,103 @@
 body {
-    font-family: Verdana;
-    font-size: 10pt;
-    margin: 0;
+  font-family: Verdana;
+  font-size: 10pt;
+  margin: 0;
 }
 #sm-micro {
-    width: 320px;
-    height: 430px;
-    background-position: -160px -25px;
-	position: relative;
+  width: 320px;
+  height: 430px;
+  background-position: -160px -25px;
+  position: relative;
 }
 #sm-micro .button {
-	background: transparent url(../img/down%20button.png) 0 0 no-repeat;
-	position: absolute;
-	top: 0px;
-	width: 64px;
-	height: 64px;
+  background: transparent url(../img/down%20button.png) 0 0 no-repeat;
+  position: absolute;
+  top: 0px;
+  width: 64px;
+  height: 64px;
 }
 #sm-micro #button0 {
-	left: 64px;
-	top: 200px;
-    -webkit-transform: rotate(90deg);
-    -moz-transform: rotate(90deg);
-    -ms-transform: rotate(90deg);
-    -o-transform: rotate(90deg);
+  left: 64px;
+  top: 200px;
+  -webkit-transform: rotate(90deg);
+  -moz-transform: rotate(90deg);
+  -ms-transform: rotate(90deg);
+  -o-transform: rotate(90deg);
 }
 #sm-micro #button1 {
-	left: 128px;
-	top: 264px;
-    -webkit-transform: rotate(0deg);
-    -moz-transform: rotate(0deg);
-    -ms-transform: rotate(0deg);
-    -o-transform: rotate(0deg);
+  left: 128px;
+  top: 264px;
+  -webkit-transform: rotate(0deg);
+  -moz-transform: rotate(0deg);
+  -ms-transform: rotate(0deg);
+  -o-transform: rotate(0deg);
 }
 #sm-micro #button2 {
-	left: 128px;
-	top: 136px;
-    -webkit-transform: rotate(180deg);
-    -moz-transform: rotate(180deg);
-    -ms-transform: rotate(180deg);
-    -o-transform: rotate(180deg);
+  left: 128px;
+  top: 136px;
+  -webkit-transform: rotate(180deg);
+  -moz-transform: rotate(180deg);
+  -ms-transform: rotate(180deg);
+  -o-transform: rotate(180deg);
 }
 #sm-micro #button3 {
-	left: 192px;
-	top: 200px;
-    -webkit-transform: rotate(-90deg);
-    -moz-transform: rotate(-90deg);
-    -ms-transform: rotate(-90deg);
-    -o-transform: rotate(-90deg);
+  left: 192px;
+  top: 200px;
+  -webkit-transform: rotate(-90deg);
+  -moz-transform: rotate(-90deg);
+  -ms-transform: rotate(-90deg);
+  -o-transform: rotate(-90deg);
 }
 #sm-micro #bottom {
-	position: relative;
+  position: relative;
 }
 #sm-micro #alert {
-	background-color: red;
-	padding: 5px;
-	position: absolute;
-	top: 36px;
-	left: 10px;
-	width: 290px;
-	height: 30px;
-	overflow: none;
-	display: none;
+  background-color: red;
+  padding: 5px;
+  position: absolute;
+  top: 36px;
+  left: 10px;
+  width: 290px;
+  height: 30px;
+  overflow: none;
+  display: none;
 }
 #sm-micro #alert-message {
-	color: white;
-	font-family: Verdana;
-	font-size: 80%;
-	text-decoration: none;
+  color: white;
+  font-family: Verdana;
+  font-size: 80%;
+  text-decoration: none;
 }
 #sm-micro #alert-message:hover {
-	text-decoration: underline;
+  text-decoration: underline;
 }
 #sm-micro #logo {
-	background: transparent url(../img/logo.png) 0 0 no-repeat;
-	display:block;
-	position: absolute;
-	left: 10px;
-	width: 155px;
-	height: 30px;
+  background: transparent url(../img/logo.png) 0 0 no-repeat;
+  display: block;
+  position: absolute;
+  left: 10px;
+  width: 155px;
+  height: 30px;
 }
 #sm-micro #FPS {
-	position: absolute;
-	top: 430px;
-	left: 0px;
+  position: absolute;
+  top: 430px;
+  left: 0px;
 }
 #sm-micro audio {
-	position: absolute;
-	top: 32px;
-	left: 10px;
-    width:300px;
+  position: absolute;
+  top: 32px;
+  left: 10px;
+  width: 300px;
 }
 #sm-micro #score {
-	position: absolute;
-	left: 320px;
-	top: 150px;
-	min-width:110px;
+  position: absolute;
+  left: 320px;
+  top: 150px;
+  min-width: 110px;
 }
 #sm-micro #percent-score {
-	font-weight: bold;
-	font-size: 120%;
-	text-align:right;
+  font-weight: bold;
+  font-size: 120%;
+  text-align: right;
 }

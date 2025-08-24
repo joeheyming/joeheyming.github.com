@@ -13,25 +13,19 @@
     <!-- Terminal Window Container -->
     <div class="max-w-full h-screen flex flex-col">
       <!-- Terminal Header Bar -->
-      <div
-        class="os-window px-4 py-3 flex items-center justify-between rounded-t-lg"
-      >
+      <div class="os-window px-4 py-3 flex items-center justify-between rounded-t-lg">
         <div class="terminal-green font-mono text-xs">
-          <span id="video-counter">1/23</span> | <span id="current-time"></span>
+          <span id="video-counter">1/23</span>
+          |
+          <span id="current-time"></span>
         </div>
       </div>
 
       <!-- Main Content Area -->
-      <div
-        class="glass-terminal flex-1 rounded-b-lg overflow-hidden flex flex-col"
-      >
+      <div class="glass-terminal flex-1 rounded-b-lg overflow-hidden flex flex-col">
         <!-- Status Bar -->
-        <div
-          class="terminal-green px-4 py-2 border-b border-gray-600 font-mono text-xs"
-        >
-          <span class="terminal-cursor"
-            >Lazy loading enabled - only active videos in memory</span
-          >
+        <div class="terminal-green px-4 py-2 border-b border-gray-600 font-mono text-xs">
+          <span class="terminal-cursor">Lazy loading enabled - only active videos in memory</span>
           <span class="float-right">Status: READY | FPS: 60</span>
         </div>
 
@@ -48,28 +42,15 @@
         <div class="px-4 py-3 border-t border-gray-600">
           <!-- Navigation Buttons -->
           <div class="flex items-center justify-between mb-4">
-            <button
-              id="prev-btn"
-              class="nav-button px-4 py-2 rounded font-bold"
-            >
-              ◀ PREV
-            </button>
+            <button id="prev-btn" class="nav-button px-4 py-2 rounded font-bold">◀ PREV</button>
 
             <div class="flex items-center space-x-2">
-              <button
-                id="shuffle"
-                class="nav-button px-4 py-2 rounded font-bold"
-              >
+              <button id="shuffle" class="nav-button px-4 py-2 rounded font-bold">
                 🔀 SHUFFLE
               </button>
             </div>
 
-            <button
-              id="next-btn"
-              class="nav-button px-4 py-2 rounded font-bold"
-            >
-              NEXT ▶
-            </button>
+            <button id="next-btn" class="nav-button px-4 py-2 rounded font-bold">NEXT ▶</button>
           </div>
 
           <!-- Progress Indicators -->
@@ -82,7 +63,9 @@
           <!-- Current Video Info -->
           <div class="terminal-green font-mono text-center">
             <div id="current-video-info" class="text-sm">
-              🎬 Video <span id="current-index">1</span> of
+              🎬 Video
+              <span id="current-index">1</span>
+              of
               <span id="total-videos">23</span>
             </div>
             <div class="text-xs opacity-75 mt-1">
@@ -94,14 +77,9 @@
     </div>
 
     <!-- No Videos Message -->
-    <div
-      id="no-videos"
-      class="hidden fixed inset-0 flex items-center justify-center"
-    >
+    <div id="no-videos" class="hidden fixed inset-0 flex items-center justify-center">
       <div class="glass-terminal p-8 rounded-lg max-w-md mx-auto">
-        <h3 class="text-xl font-bold mb-4 terminal-green text-center">
-          🎬 No Videos Found
-        </h3>
+        <h3 class="text-xl font-bold mb-4 terminal-green text-center">🎬 No Videos Found</h3>
         <p class="mb-4 terminal-green text-center font-mono">
           ERROR: No video links detected in links.js
         </p>
@@ -121,8 +99,11 @@
               <!-- Title will be inserted here -->
             </div>
             <div class="text-xs opacity-75 mt-1">
-              ID: <span class="video-id"></span> | Video
-              <span class="video-number"></span> | Status:
+              ID:
+              <span class="video-id"></span>
+              | Video
+              <span class="video-number"></span>
+              | Status:
               <span class="video-status">WAITING</span>
             </div>
           </div>
@@ -136,9 +117,7 @@
               <div class="text-center terminal-green">
                 <div class="text-4xl mb-2">🎬</div>
                 <div class="font-mono text-sm">Video Ready to Load</div>
-                <div class="font-mono text-xs opacity-75 mt-1">
-                  Click to play
-                </div>
+                <div class="font-mono text-xs opacity-75 mt-1">Click to play</div>
               </div>
             </div>
           </div>
@@ -185,9 +164,7 @@
         <div class="text-center terminal-green">
           <div class="text-4xl mb-2">⏸️</div>
           <div class="font-mono text-sm">Video Unloaded</div>
-          <div class="font-mono text-xs opacity-75 mt-1">
-            Navigate back to reload
-          </div>
+          <div class="font-mono text-xs opacity-75 mt-1">Navigate back to reload</div>
         </div>
       </div>
     </template>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Operation: SHADOWBOX - Classified</title>
+    <link rel="stylesheet" href="shadowbox.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Top Classification Banner -->
+    <div class="classification-banner top">
+      <span class="classification-level">CLASSIFIED - EYES ONLY</span>
+      <span class="operation-name">OPERATION: SHADOWBOX</span>
+      <span class="timestamp" id="mission-time"></span>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="dashboard-grid">
+      <!-- Satellite Feed -->
+      <div class="panel satellite-panel">
+        <div class="panel-header">
+          <span class="panel-title">🛰️ SATELLITE UPLINK</span>
+          <span class="panel-status online">ONLINE</span>
+        </div>
+        <div class="panel-content">
+          <div id="satellite-feed" class="data-stream"></div>
+        </div>
+      </div>
+
+      <!-- Network Traffic -->
+      <div class="panel network-panel">
+        <div class="panel-header">
+          <span class="panel-title">🌐 NETWORK INTERCEPT</span>
+          <span class="panel-status scanning">SCANNING</span>
+        </div>
+        <div class="panel-content">
+          <div id="network-feed" class="data-stream"></div>
+        </div>
+      </div>
+
+      <!-- Crypto Analysis -->
+      <div class="panel crypto-panel">
+        <div class="panel-header">
+          <span class="panel-title">🔐 CIPHER BREAKING</span>
+          <span class="panel-status decrypting">DECRYPTING</span>
+        </div>
+        <div class="panel-content">
+          <div id="crypto-feed" class="data-stream"></div>
+        </div>
+      </div>
+
+      <!-- Target Tracking -->
+      <div class="panel tracking-panel">
+        <div class="panel-header">
+          <span class="panel-title">🎯 TARGET ANALYSIS</span>
+          <span class="panel-status active">ACTIVE</span>
+        </div>
+        <div class="panel-content">
+          <div id="tracking-feed" class="data-stream"></div>
+        </div>
+      </div>
+
+      <!-- Signal Intelligence -->
+      <div class="panel sigint-panel">
+        <div class="panel-header">
+          <span class="panel-title">📡 SIGINT MONITOR</span>
+          <span class="panel-status monitoring">MONITORING</span>
+        </div>
+        <div class="panel-content">
+          <div id="sigint-feed" class="data-stream"></div>
+        </div>
+      </div>
+
+      <!-- Mission Status -->
+      <div class="panel mission-panel">
+        <div class="panel-header">
+          <span class="panel-title">📋 MISSION STATUS</span>
+          <span class="panel-status operational">OPERATIONAL</span>
+        </div>
+        <div class="panel-content">
+          <div id="mission-feed" class="data-stream"></div>
+          <div class="mission-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" id="mission-progress"></div>
+            </div>
+            <span class="progress-text" id="progress-text">Initializing...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Classification Banner -->
+    <div class="classification-banner bottom">
+      <span class="classification-level">CLASSIFIED - EYES ONLY</span>
+      <span class="clearance-level">CLEARANCE LEVEL: COSMIC</span>
+      <span class="agency">NSA/CIA/DIA JOINT OPERATION</span>
+    </div>
+
+    <!-- Exit Button -->
+    <div class="exit-controls">
+      <button id="abort-mission" class="abort-btn">🚨 ABORT MISSION</button>
+      <button id="stealth-mode" class="stealth-btn">👻 STEALTH MODE</button>
+    </div>
+
+    <script src="shadowbox.js"></script>
+  </body>
+</html>
