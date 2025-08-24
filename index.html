@@ -3,6 +3,7 @@
   <head>
     <title>🦄 Joe Heyming 🦄 - Principal UI Engineer & Digital Wizard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
     <meta
       name="description"
       content="Joe Heyming - Principal UI Software Engineer at Roblox, UCSB graduate, patent holder, and creator of amazing web experiences."
@@ -19,22 +20,28 @@
     class="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 overflow-x-hidden"
   >
     <!-- Hamburger Menu -->
-    <div id="hamburger-menu" class="fixed top-6 right-6 z-[100]">
+    <div id="hamburger-menu" class="fixed top-4 right-4 sm:top-6 sm:right-6 z-[100]">
       <!-- Hamburger Icon -->
       <button
         id="hamburger-toggle"
-        class="w-12 h-12 bg-gray-900/90 backdrop-blur-sm border border-green-500/50 rounded-lg flex flex-col justify-center items-center space-y-1 hover:bg-gray-800/90 transition-all duration-300 shadow-lg"
+        class="w-14 h-14 sm:w-12 sm:h-12 bg-gray-900/90 backdrop-blur-sm border border-green-500/50 rounded-lg flex flex-col justify-center items-center space-y-1 hover:bg-gray-800/90 transition-all duration-300 shadow-lg"
         aria-label="Toggle navigation menu"
       >
-        <span class="hamburger-line w-6 h-0.5 bg-green-400 transition-all duration-300"></span>
-        <span class="hamburger-line w-6 h-0.5 bg-green-400 transition-all duration-300"></span>
-        <span class="hamburger-line w-6 h-0.5 bg-green-400 transition-all duration-300"></span>
+        <span
+          class="hamburger-line w-7 h-0.5 sm:w-6 bg-green-400 transition-all duration-300"
+        ></span>
+        <span
+          class="hamburger-line w-7 h-0.5 sm:w-6 bg-green-400 transition-all duration-300"
+        ></span>
+        <span
+          class="hamburger-line w-7 h-0.5 sm:w-6 bg-green-400 transition-all duration-300"
+        ></span>
       </button>
 
       <!-- Menu Panel -->
       <div
         id="hamburger-panel"
-        class="absolute top-14 right-0 w-80 bg-gray-900/95 backdrop-blur-md border border-green-500/50 rounded-xl shadow-2xl transform translate-x-full transition-all duration-300 opacity-0"
+        class="absolute top-16 sm:top-14 right-0 w-[90vw] max-w-80 bg-gray-900/95 backdrop-blur-md border border-green-500/50 rounded-xl shadow-2xl transform translate-x-full transition-all duration-300 opacity-0"
       >
         <div class="p-6">
           <!-- Menu Header -->
@@ -75,25 +82,31 @@
         </div>
       </div>
     </div>
-    <div id="main-content" class="max-w-6xl mx-auto px-4 py-8">
+    <div id="main-content" class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
       <!-- Hero Section -->
       <div
-        class="hero-bg relative bg-white/95 backdrop-blur-sm rounded-3xl p-20 mb-12 shadow-2xl text-center overflow-hidden"
+        class="hero-bg relative bg-white/95 backdrop-blur-sm rounded-3xl p-6 sm:p-12 lg:p-20 mb-12 shadow-2xl text-center overflow-hidden"
       >
         <div class="relative z-10">
-          <h1 class="text-6xl md:text-7xl font-bold mb-6 gradient-text animate-pulse-slow pb-2">
+          <h1
+            class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-6 gradient-text animate-pulse-slow pb-2"
+          >
             🦄 Joe Heyming 🦄
           </h1>
-          <div class="text-2xl md:text-3xl text-gray-600 mb-8 animate-fade-in-up">
+          <div
+            class="text-lg sm:text-xl md:text-2xl lg:text-3xl text-gray-600 mb-6 sm:mb-8 animate-fade-in-up"
+          >
             Principal UI Software Engineer & Digital Wizard
           </div>
-          <p class="text-xl md:text-2xl text-gray-700 mb-8 max-w-3xl mx-auto">
+          <p
+            class="text-lg sm:text-xl md:text-2xl text-gray-700 mb-6 sm:mb-8 max-w-3xl mx-auto px-2"
+          >
             Building amazing user experiences at Roblox 🎮
             <br />
             <em class="text-indigo-600">Where "lots of hard work" meets creative magic</em>
           </p>
           <div
-            class="fun-fact inline-block text-lg font-bold text-indigo-600 bg-indigo-50 px-6 py-3 rounded-full cursor-pointer transition-all duration-300 hover:scale-110 hover:bg-indigo-100 hover:shadow-lg"
+            class="fun-fact inline-block text-sm sm:text-base lg:text-lg font-bold text-indigo-600 bg-indigo-50 px-4 sm:px-6 py-2 sm:py-3 rounded-full cursor-pointer transition-all duration-300 hover:scale-110 hover:bg-indigo-100 hover:shadow-lg mx-2"
             onclick="changeFunFact()"
           >
             🚀 Currently crafting Trust & Safety UI at Roblox
@@ -102,8 +115,10 @@
       </div>
 
       <!-- Professional Highlights -->
-      <div class="bg-white/90 backdrop-blur-sm rounded-3xl p-10 mb-12 shadow-xl">
-        <h2 class="text-4xl font-bold text-center mb-10 gradient-text">🌟 Professional Journey</h2>
+      <div class="bg-white/90 backdrop-blur-sm rounded-3xl p-6 sm:p-10 mb-12 shadow-xl">
+        <h2 class="text-3xl sm:text-4xl font-bold text-center mb-6 sm:mb-10 gradient-text">
+          🌟 Professional Journey
+        </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div
             class="bg-gradient-to-r from-red-500 to-pink-500 text-white p-6 rounded-2xl transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl animate-float"
@@ -162,9 +177,11 @@
 
       <!-- Fun Facts -->
       <div
-        class="bg-gradient-to-r from-cyan-400 to-blue-500 text-white rounded-3xl p-10 mb-12 shadow-xl"
+        class="bg-gradient-to-r from-cyan-400 to-blue-500 text-white rounded-3xl p-6 sm:p-10 mb-12 shadow-xl"
       >
-        <h2 class="text-4xl font-bold text-center mb-10">🎪 Fun Facts & Achievements</h2>
+        <h2 class="text-3xl sm:text-4xl font-bold text-center mb-6 sm:mb-10">
+          🎪 Fun Facts & Achievements
+        </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div
             class="bg-white/20 backdrop-blur-sm p-6 rounded-2xl hover:bg-white/30 transition-all duration-300"
