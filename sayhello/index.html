@@ -1,54 +1,152 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
+    <base href="./" />
     <title>Joe's git web page</title>
-    <script type="text/javascript" src="speakGenerator.js"> </script> 
-    <script type="text/javascript" src="speakClient.js"> </script> 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script type="text/javascript" src="speakGenerator.js"></script>
+    <script type="text/javascript" src="speakClient.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      #helloForm {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 400px;
+      }
+      #helloForm select,
+      #helloForm textarea,
+      #helloForm button {
+        width: 100%;
+        box-sizing: border-box;
+      }
+      #helloForm label {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .header-icon {
+        font-size: 1.2em;
+        margin-right: 10px;
+      }
+      .speaking-indicator {
+        display: inline-block;
+        font-size: 1.5em;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      .speaking-indicator.active {
+        opacity: 1;
+        animation: pulse 1s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+      }
+      .learn-more {
+        font-size: 0.9em;
+        margin-top: 10px;
+      }
+      .learn-more a {
+        color: #0066cc;
+        text-decoration: none;
+        border-bottom: 1px dotted #0066cc;
+      }
+      .learn-more a:hover {
+        border-bottom-style: solid;
+      }
+    </style>
   </head>
 
   <body>
-    <h1>Say: Hello World!</h1>
+    <h1>
+      <span class="header-icon">🗣️</span>
+      Say: Hello World!
+      <span id="speakingIndicator" class="speaking-indicator">🔊</span>
+    </h1>
     <p>This page allows you to input arbitrary text and it will be spoken.</p>
+    <p class="learn-more">
+      📚
+      <a
+        href="https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesisUtterance"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Learn more about Speech Synthesis on MDN
+      </a>
+    </p>
     <div id="audio"></div>
     <form id="helloForm">
-      <input id="utterance" value="I have spoken" />
-      <select id="voiceSelector"></select>
+      <label for="voiceSelector">Choose Voice:</label>
+      <select id="voiceSelector">
+        <option value="">Default Voice</option>
+      </select>
+
+      <label for="utterance">Text to Speak:</label>
+      <textarea
+        id="utterance"
+        rows="10"
+        style="resize: both"
+        placeholder="Enter text to be spoken... (Cmd/Ctrl + Enter to submit)"
+      ></textarea>
+
       <button>Submit</button>
       <input type="submit" style="display: none" />
     </form>
     <script>
-     window.onload = function() {
-       var voiceLookup = {};
-       window.speechSynthesis.onvoiceschanged = function() {
-         window.speechSynthesis.getVoices();
-         var voices = window.speechSynthesis.getVoices();
-         if (voices && voices.length > 0) {
-           Array.from(voices).forEach(function(voice, i) {
-             voiceLookup[voice.name] = voice;
-             var option = window.document.createElement('option');
-             option.value = voice.name;
-             option.textContent = voice.name;
-             window.voiceSelector.appendChild(option);
-           });
-         } else {
-           window.voiceSelector.setAttribute('hidden','');
-         }
-       };
-       window.helloForm.onsubmit = function sayHello(event) {
-         event.preventDefault();
-         var currentUtterance = window.utterance.value;
-         var voiceValue = window.voiceSelector.value;
-         var voice = voiceLookup[voiceValue];
-         if (voice) {
-           var utter = new SpeechSynthesisUtterance(currentUtterance);
-           utter.voice = voice;
-           window.speechSynthesis.speak(utter);
-         } else {
-           speak(currentUtterance);
-         }
-       }
-     }
+      window.onload = function () {
+        var voiceLookup = {};
+        window.speechSynthesis.onvoiceschanged = function () {
+          window.speechSynthesis.getVoices();
+          var voices = window.speechSynthesis.getVoices();
+          if (voices && voices.length > 0) {
+            Array.from(voices).forEach(function (voice, i) {
+              voiceLookup[voice.name] = voice;
+              var option = window.document.createElement('option');
+              option.value = voice.name;
+              option.textContent = voice.name;
+              window.voiceSelector.appendChild(option);
+            });
+          } else {
+            window.voiceSelector.setAttribute('hidden', '');
+          }
+        };
+        window.helloForm.onsubmit = function sayHello(event) {
+          event.preventDefault();
+          var currentUtterance = window.utterance.value;
+          var voiceValue = window.voiceSelector.value;
+          var voice = voiceLookup[voiceValue];
+          // Show speaking indicator
+          var indicator = document.getElementById('speakingIndicator');
+          indicator.classList.add('active');
+
+          if (voice) {
+            var utter = new SpeechSynthesisUtterance(currentUtterance);
+            utter.voice = voice;
+            utter.onend = function () {
+              indicator.classList.remove('active');
+            };
+            window.speechSynthesis.speak(utter);
+          } else {
+            speak(currentUtterance);
+            // Hide indicator after a delay (since we can't detect when speak() ends)
+            setTimeout(function () {
+              indicator.classList.remove('active');
+            }, currentUtterance.length * 100 + 1000);
+          }
+        };
+
+        // Add keyboard shortcut: Cmd+Enter or Ctrl+Enter to submit
+        window.utterance.onkeydown = function (event) {
+          if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+            event.preventDefault();
+            window.helloForm.dispatchEvent(new Event('submit'));
+          }
+        };
+      };
     </script>
   </body>
 </html>

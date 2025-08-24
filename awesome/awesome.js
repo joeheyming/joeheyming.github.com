@@ -15,26 +15,31 @@ var awesomeNamespace = (function () {
     return e.keyCode || e.which;
   }
 
-  var awesome_lyrics = [
-    { lyric: 'Everything is Awesome!', wait: 4000 },
-    { lyric: "Everything is cool when you're part of a Team!", wait: 4000 },
-    { lyric: 'Everything is Awesome', wait: 4000 },
-    { lyric: "When you're living our dream", wait: 4000 }
-  ];
+  // Lyrics will be loaded from lyrics.js file
+  // You can populate lyrics.js with your actual lyrics and timing
+  var awesome_lyrics =
+    typeof awesomeLyricsData !== 'undefined'
+      ? awesomeLyricsData
+      : [
+          // Fallback lyrics if lyrics.js isn't loaded
+          { lyric: 'Add lyrics.js file with timing!', start: 0, end: 5 },
+          { lyric: 'Check the lyrics.js template', start: 5, end: 10 }
+        ];
 
   namespace.Awesome = function () {
     this.render();
     this.awesomeReset();
     this.installAwesomeEvents();
     this.awesomeCallback = this.checkAwesomeLyric.bind(this);
-    this.awesomeCheckInterval = setInterval(this.awesomeCheck.bind(this), 1000);
+    this.awesomeCheckInterval = setInterval(this.awesomeCheck.bind(this), 100); // Check more frequently for better sync
   };
   namespace.Awesome.prototype = {
     awesomeColorInterval: null,
     //awesomeLyricInterval: null,
-    awesome_counter: 0,
-    awesome_block: 0,
-    awesome_time_counter: 0,
+    current_lyric_index: -1,
+    last_color_change: 0,
+    color_change_interval: 2000, // Change color every 2 seconds
+    disable_colors: false, // Set to true to disable all color changes for accessibility
     render: function () {
       this.awesome_container = document.createElement('div');
       this.awesome_container.id = 'awesome_parent';
@@ -56,32 +61,52 @@ var awesomeNamespace = (function () {
     },
     awesomeCheck: function () {
       if (!this.awesome_audio.paused) {
-        this.setAwesomeColor();
+        // Only change colors at the specified interval to prevent epileptic seizures
+        if (!this.disable_colors) {
+          var now = Date.now();
+          if (now - this.last_color_change > this.color_change_interval) {
+            this.setAwesomeColor();
+            this.last_color_change = now;
+          }
+        }
         this.awesomeCallback();
       }
     },
-    getAwesomeLyric: function () {
-      return awesome_lyrics[this.awesome_counter % awesome_lyrics.length];
+    getCurrentLyric: function () {
+      var currentTime = this.awesome_audio.currentTime;
+
+      // Find the lyric that should be displayed at the current time
+      for (var i = 0; i < awesome_lyrics.length; i++) {
+        var lyric = awesome_lyrics[i];
+        if (currentTime >= lyric.start && currentTime < lyric.end) {
+          return { lyric: lyric, index: i };
+        }
+      }
+
+      // If no lyric found, return empty or last lyric if past the end
+      if (currentTime >= awesome_lyrics[awesome_lyrics.length - 1].end) {
+        return { lyric: { lyric: '' }, index: -1 };
+      }
+
+      return { lyric: { lyric: '' }, index: -1 };
     },
     checkAwesomeLyric: function () {
-      var awesome_obj = this.getAwesomeLyric();
-      this.awesome_time_counter += 1000;
-      if (this.awesome_time_counter > this.awesome_block) {
-        this.awesome_counter++;
-        var awesome_obj = this.getAwesomeLyric();
-        this.awesome_block = this.awesome_block + awesome_obj.wait;
+      var current = this.getCurrentLyric();
+
+      // Only update if the lyric has changed
+      if (current.index !== this.current_lyric_index) {
+        this.current_lyric_index = current.index;
+        this.clearAwesomeContent();
+        this.awesome_content.textContent = current.lyric.lyric;
       }
-      this.clearAwesomeContent();
-      this.awesome_content.textContent = awesome_obj.lyric;
     },
     setAwesomeColor: function () {
       window.awesome_div.style.color = awesomeColor();
       window.awesome_parent.style.background = awesomeColor();
     },
     awesomeReset: function () {
-      this.awesome_counter = 0;
-      this.awesome_block = awesome_lyrics[this.awesome_counter % awesome_lyrics.length].wait;
-      this.awesome_time_counter = 0;
+      this.current_lyric_index = -1;
+      this.clearAwesomeContent();
       this.awesomePlay();
     },
     awesomePlay: function () {
@@ -129,8 +154,17 @@ var awesomeNamespace = (function () {
           // n
           this.awesomeCallback = this.awesomeCheckNyan.bind(this);
         }
+        if (key == '67') {
+          // c - toggle color changes for accessibility
+          this.disable_colors = !this.disable_colors;
+          if (this.disable_colors) {
+            // Reset to default colors
+            window.awesome_div.style.color = '#000';
+            window.awesome_parent.style.background = '#fff';
+          }
+        }
       }.bind(this);
-      document.onmouseover = function (e) {
+      document.onmouseover = function () {
         document.body.focus();
       }.bind(this);
       document.onclick = function (e) {

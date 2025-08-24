@@ -11,15 +11,12 @@ function getMusicBeat(musicSec) {
 
 var audio = document.getElementById('audio_with_controls');
 
-var CANVAS_WIDTH = 320;
 var CANVAS_WIDTH = $(document.body).width();
 var CANVAS_HEIGHT = 360;
 var targetFps = 90;
 var lastDate = new Date();
 var uptimeSeconds = 0;
 var framesInCurrentSecond = 0;
-
-var playerBullets = [];
 
 var colInfos = [
   { x: 64 + 64 * 0, y: 32, rotation: 90 },
@@ -35,6 +32,9 @@ function merge(o1, o2) {
     o1[attr] = o2[attr];
   }
 }
+
+// Make globally accessible
+window.merge = merge;
 function deepCopy(o) {
   var ret = {};
   merge(ret, o);
@@ -127,29 +127,29 @@ if (text) {
 
 $(document).ready(function () {
   if (window.Touch) {
-    $('#button0')[0].ontouchstart = function (e) {
+    $('#button0')[0].ontouchstart = function () {
       step(0);
     };
-    $('#button1')[0].ontouchstart = function (e) {
+    $('#button1')[0].ontouchstart = function () {
       step(1);
     };
-    $('#button2')[0].ontouchstart = function (e) {
+    $('#button2')[0].ontouchstart = function () {
       step(2);
     };
-    $('#button3')[0].ontouchstart = function (e) {
+    $('#button3')[0].ontouchstart = function () {
       step(3);
     };
   } else {
-    $('#button0').click(function (e) {
+    $('#button0').click(function () {
       step(0);
     });
-    $('#button1').click(function (e) {
+    $('#button1').click(function () {
       step(1);
     });
-    $('#button2').click(function (e) {
+    $('#button2').click(function () {
       step(2);
     });
-    $('#button3').click(function (e) {
+    $('#button3').click(function () {
       step(3);
     });
   }

@@ -1,0 +1,128 @@
+/* OS Theme Styles */
+.os-window {
+  background: linear-gradient(135deg, #374151, #4b5563);
+  border: 2px solid #10b981;
+  font-family: "Courier New", monospace;
+}
+
+.terminal-green {
+  color: #10b981;
+}
+
+.terminal-bg {
+  background: #111827;
+}
+
+.glass-terminal {
+  background: rgba(17, 24, 39, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid #10b981;
+}
+
+/* Carousel Styles */
+.carousel-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.carousel-track {
+  display: flex;
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.carousel-slide {
+  min-width: 100%;
+  box-sizing: border-box;
+}
+
+.video-container {
+  position: relative;
+  width: 100%;
+  max-height: 50vh; /* Reduced to leave more room for controls */
+  aspect-ratio: 16/9; /* Modern CSS aspect ratio */
+  height: auto;
+}
+
+.video-container iframe {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  border: 2px solid #10b981;
+}
+
+/* Navigation Controls */
+.nav-button {
+  background: linear-gradient(135deg, #374151, #4b5563);
+  border: 2px solid #10b981;
+  color: #10b981;
+  transition: all 0.2s ease;
+  font-family: "Courier New", monospace;
+}
+
+.nav-button:hover {
+  background: linear-gradient(135deg, #4b5563, #6b7280);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+  transform: scale(1.05);
+}
+
+.nav-button:active {
+  transform: scale(0.95);
+}
+
+/* Progress indicators */
+.progress-dot {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #10b981;
+  background: transparent;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.progress-dot.active {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+}
+
+.progress-dot:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+/* Terminal Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  background: #111827;
+}
+
+::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #10b981;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #059669;
+}
+
+/* Blinking cursor effect */
+.terminal-cursor::after {
+  content: "█";
+  animation: blink 1s infinite;
+  color: #10b981;
+}
+
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}

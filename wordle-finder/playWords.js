@@ -35,13 +35,13 @@ function renderPlayWords(spots, notSpotsLetters, excluded) {
       return score[0];
     });
   } else if (sortValue === 'spot-entropy-score') {
-    var entropyScores = stats.spotEntropyScore;
-    currentWords = entropyScores.map(function (score) {
+    var spotEntropyScores = stats.spotEntropyScore;
+    currentWords = spotEntropyScores.map(function (score) {
       return score[0];
     });
   } else if (sortValue === 'combined-entropy-score') {
-    var entropyScores = stats.combinedEntropyScore;
-    currentWords = entropyScores.map(function (score, index) {
+    var combinedEntropyScores = stats.combinedEntropyScore;
+    currentWords = combinedEntropyScores.map(function (score, index) {
       return score[0];
     });
   }

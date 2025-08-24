@@ -474,3 +474,6 @@ var steps = {
     ]
   ]
 };
+
+// Make globally accessible
+window.steps = steps;

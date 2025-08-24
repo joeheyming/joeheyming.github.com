@@ -1,0 +1,25 @@
+{
+  "name": "Joe's Wordle Helper",
+  "short_name": "Wordle Helper",
+  "description": "Find the answer to today's Wordle puzzle with this helper tool",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "16x16 32x32",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "favicon.ico",
+      "sizes": "180x180",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["games", "education"],
+  "lang": "en",
+  "dir": "ltr"
+}

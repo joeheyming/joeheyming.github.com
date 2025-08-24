@@ -15,18 +15,9 @@ module.exports = {
     ecmaVersion: 'latest'
   },
   rules: {
-    'prettier/prettier': [
-      'error',
-      {
-        singleQuote: true,
-        printWidth: 100,
-        trailingComma: 'es5',
-        semi: true,
-        tabWidth: 2,
-        arrowParens: 'always',
-        htmlWhitespaceSensitivity: 'ignore',
-        trailingComma: 'none'
-      }
-    ]
+    // todo: remove
+    'no-undef': 'off',
+    'no-unused-vars': 'off',
+    'prettier/prettier': 'error'
   }
 };

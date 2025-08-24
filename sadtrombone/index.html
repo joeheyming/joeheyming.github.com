@@ -1,50 +1,55 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="./" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta property="og:audio" content="https://joeheyming.github.io/sadtrombone/trombine.ogg" />
-    <meta property="og:audio:secure_url" content="https://joeheyming.github.io/sadtrombone/trombine.ogg" />
+    <meta
+      property="og:audio:secure_url"
+      content="https://joeheyming.github.io/sadtrombone/trombine.ogg"
+    />
     <meta property="og:audio:type" content="audio/ogg" />
-    <meta property="og:title" content="Sad Trombine"/>
-    <meta property="title" content="Sad Trombine"/>
+    <meta property="og:title" content="Sad Trombine" />
+    <meta property="title" content="Sad Trombine" />
     <meta property="og:description" content="Waaa waaa waaa ~waaaaaaaaaaa~" />
     <meta name="description" content="Waaa waaa waaa ~waaaaaaaaaaa~" />
-    <meta property="keywords"  content="sad, trombone"/>
+    <meta property="keywords" content="sad, trombone" />
     <meta property="og:url" content="https://joeheyming.github.io/sadtrombone/index.html" />
     <style>
-     body {
-       width: 100vw;
-       height: 100vh;
-     }
+      body {
+        width: 100vw;
+        height: 100vh;
+      }
     </style>
   </head>
   <body>
     <h1>Click to play sad trombone</h1>
     <img id="tromboneImg" src="trombone_sliding.gif" hidden />
     <br />
-    <audio id="trombone" src="/sadtrombone/trombone.ogg" autoplay controls hidden />
+    <audio id="trombone" src="trombone.ogg" autoplay controls hidden />
     <script>
-     function doTrombone() {
-       if (trombone.paused) {
-         trombone.play();
-         window.tromboneImg.removeAttribute('hidden');
-       } else {
-         trombone.pause();
-         window.tromboneImg.setAttribute('hidden', '');
-       }
-     }
-     window.onload = function() {
-       document.body.onclick = function() {
-         doTrombone();
-       }
-     }
-     document.onkeydown = function(e) {
-       e = e || window.event;
-       var key = (e.keyCode || e.which);
-       if (key == '32' || key == '13') { // enter or spacebar
-         doTrombone();
-       }
-     }
+      function doTrombone() {
+        if (trombone.paused) {
+          trombone.play();
+          window.tromboneImg.removeAttribute('hidden');
+        } else {
+          trombone.pause();
+          window.tromboneImg.setAttribute('hidden', '');
+        }
+      }
+      window.onload = function () {
+        document.body.onclick = function () {
+          doTrombone();
+        };
+      };
+      document.onkeydown = function (e) {
+        e = e || window.event;
+        var key = e.keyCode || e.which;
+        if (key == '32' || key == '13') {
+          // enter or spacebar
+          doTrombone();
+        }
+      };
     </script>
   </body>
 </html>

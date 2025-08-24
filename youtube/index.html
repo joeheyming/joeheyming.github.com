@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🎥 Joe's YouTube Channel 🦄</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="links.js"></script>
+    <link rel="stylesheet" href="index.css" />
+    <script src="index.js"></script>
+  </head>
+  <body class="terminal-bg min-h-screen">
+    <!-- Terminal Window Container -->
+    <div class="max-w-full h-screen flex flex-col">
+      <!-- Terminal Header Bar -->
+      <div
+        class="os-window px-4 py-3 flex items-center justify-between rounded-t-lg"
+      >
+        <div class="terminal-green font-mono text-xs">
+          <span id="video-counter">1/23</span> | <span id="current-time"></span>
+        </div>
+      </div>
+
+      <!-- Main Content Area -->
+      <div
+        class="glass-terminal flex-1 rounded-b-lg overflow-hidden flex flex-col"
+      >
+        <!-- Status Bar -->
+        <div
+          class="terminal-green px-4 py-2 border-b border-gray-600 font-mono text-xs"
+        >
+          <span class="terminal-cursor"
+            >Lazy loading enabled - only active videos in memory</span
+          >
+          <span class="float-right">Status: READY | FPS: 60</span>
+        </div>
+
+        <!-- Carousel Container -->
+        <div class="flex-1 p-4 min-h-0">
+          <div id="carousel-container" class="carousel-container max-h-full">
+            <div id="carousel-track" class="carousel-track">
+              <!-- Slides will be dynamically generated here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation and Controls -->
+        <div class="px-4 py-3 border-t border-gray-600">
+          <!-- Navigation Buttons -->
+          <div class="flex items-center justify-between mb-4">
+            <button
+              id="prev-btn"
+              class="nav-button px-4 py-2 rounded font-bold"
+            >
+              ◀ PREV
+            </button>
+
+            <div class="flex items-center space-x-2">
+              <button
+                id="shuffle"
+                class="nav-button px-4 py-2 rounded font-bold"
+              >
+                🔀 SHUFFLE
+              </button>
+            </div>
+
+            <button
+              id="next-btn"
+              class="nav-button px-4 py-2 rounded font-bold"
+            >
+              NEXT ▶
+            </button>
+          </div>
+
+          <!-- Progress Indicators -->
+          <div class="flex justify-center space-x-2 mb-4">
+            <div id="progress-indicators" class="flex space-x-2">
+              <!-- Progress dots will be generated here -->
+            </div>
+          </div>
+
+          <!-- Current Video Info -->
+          <div class="terminal-green font-mono text-center">
+            <div id="current-video-info" class="text-sm">
+              🎬 Video <span id="current-index">1</span> of
+              <span id="total-videos">23</span>
+            </div>
+            <div class="text-xs opacity-75 mt-1">
+              Use arrow keys or click buttons to navigate | Press 'R' to shuffle
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- No Videos Message -->
+    <div
+      id="no-videos"
+      class="hidden fixed inset-0 flex items-center justify-center"
+    >
+      <div class="glass-terminal p-8 rounded-lg max-w-md mx-auto">
+        <h3 class="text-xl font-bold mb-4 terminal-green text-center">
+          🎬 No Videos Found
+        </h3>
+        <p class="mb-4 terminal-green text-center font-mono">
+          ERROR: No video links detected in links.js
+        </p>
+        <p class="text-sm opacity-75 terminal-green text-center font-mono">
+          Add YouTube URLs to the videoLinks array to initialize carousel
+        </p>
+      </div>
+    </div>
+
+    <!-- HTML Templates -->
+    <template id="carousel-slide-template">
+      <div class="carousel-slide p-4">
+        <div class="h-full flex flex-col">
+          <!-- Video Info Header -->
+          <div class="terminal-green font-mono text-center mb-4">
+            <div class="text-lg font-bold video-title">
+              <!-- Title will be inserted here -->
+            </div>
+            <div class="text-xs opacity-75 mt-1">
+              ID: <span class="video-id"></span> | Video
+              <span class="video-number"></span> | Status:
+              <span class="video-status">WAITING</span>
+            </div>
+          </div>
+
+          <!-- Video Container -->
+          <div class="video-container mb-4 flex-shrink-0">
+            <!-- Iframe will be loaded dynamically here -->
+            <div
+              class="flex items-center justify-center h-full border-2 border-dashed border-gray-600 rounded-lg video-placeholder"
+            >
+              <div class="text-center terminal-green">
+                <div class="text-4xl mb-2">🎬</div>
+                <div class="font-mono text-sm">Video Ready to Load</div>
+                <div class="font-mono text-xs opacity-75 mt-1">
+                  Click to play
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video Controls -->
+          <div class="flex justify-center space-x-4 mt-auto pt-4 flex-shrink-0">
+            <a
+              class="youtube-link nav-button px-4 py-2 rounded font-bold text-xs hover:scale-105 transition-transform"
+              target="_blank"
+            >
+              🔗 OPEN IN YOUTUBE
+            </a>
+            <button
+              class="copy-url-btn nav-button px-4 py-2 rounded font-bold text-xs hover:scale-105 transition-transform"
+            >
+              📋 COPY LINK
+            </button>
+            <button
+              class="copy-title-btn nav-button px-4 py-2 rounded font-bold text-xs hover:scale-105 transition-transform"
+            >
+              📝 COPY TITLE
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template id="video-placeholder-template">
+      <div
+        class="flex items-center justify-center h-full border-2 border-dashed border-gray-600 rounded-lg"
+      >
+        <div class="text-center terminal-green">
+          <div class="text-4xl mb-2">🎬</div>
+          <div class="font-mono text-sm">Video Ready to Load</div>
+          <div class="font-mono text-xs opacity-75 mt-1">Click to play</div>
+        </div>
+      </div>
+    </template>
+
+    <template id="video-unloaded-template">
+      <div
+        class="flex items-center justify-center h-full border-2 border-dashed border-gray-600 rounded-lg"
+      >
+        <div class="text-center terminal-green">
+          <div class="text-4xl mb-2">⏸️</div>
+          <div class="font-mono text-sm">Video Unloaded</div>
+          <div class="font-mono text-xs opacity-75 mt-1">
+            Navigate back to reload
+          </div>
+        </div>
+      </div>
+    </template>
+  </body>
+</html>
