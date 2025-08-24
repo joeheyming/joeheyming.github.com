@@ -179,8 +179,13 @@
 /* Mobile responsiveness */
 @media (max-width: 640px) {
   #hamburger-panel {
-    width: 95vw;
-    right: -2.5vw;
+    width: 90vw;
+    right: -45vw;
+    max-width: none;
+  }
+
+  #hamburger-panel.show {
+    right: -5vw;
   }
 
   .hamburger-app-link {
@@ -189,6 +194,12 @@
 
   .hamburger-app-link span:first-child {
     font-size: 1.25rem;
+  }
+
+  /* Ensure hamburger button is easily tappable on mobile */
+  #hamburger-toggle {
+    min-height: 56px;
+    min-width: 56px;
   }
 }
 

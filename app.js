@@ -18,6 +18,16 @@ const appRegistry = [
     taskbarText: 'text-black'
   },
   {
+    id: 'doom',
+    name: 'Doom 💀',
+    shortName: 'Doom',
+    description: 'Classic first-person shooter',
+    detailedDescription: 'Classic first-person shooter',
+    icon: '💀',
+    path: './doom/',
+    category: 'game'
+  },
+  {
     id: 'farm',
     name: 'Farm Adventures 🚜',
     shortName: 'Farm',

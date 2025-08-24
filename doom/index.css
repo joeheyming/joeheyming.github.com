@@ -1,0 +1,209 @@
+/* Reset and base styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, sans-serif;
+  background-color: #1a1a1a;
+  color: #fff;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* Main layout container */
+.main-container {
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  height: 100vh;
+  gap: 20px;
+  padding: 20px;
+  overflow: hidden;
+  align-items: stretch;
+}
+
+/* Game area - takes most of the space */
+.game-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px 0;
+  overflow: auto;
+  min-width: 0; /* Allow flex item to shrink below content size */
+}
+
+.header-section {
+  text-align: center;
+  margin-bottom: 30px;
+  flex-shrink: 0;
+}
+
+.header-section h1 {
+  margin: 0 0 10px 0;
+  font-size: 2.5em;
+  font-weight: 700;
+}
+
+.header-section p {
+  margin: 5px 0;
+  font-size: 1.1em;
+  opacity: 0.9;
+}
+
+.loading-indicator {
+  margin: 10px 0;
+}
+
+.loading-indicator p {
+  margin: 0;
+  font-size: 1em;
+  opacity: 0.8;
+}
+
+#game-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 500px;
+  flex-grow: 1;
+}
+
+/* Controls sidebar */
+.controls-sidebar {
+  width: 280px;
+  min-width: 280px;
+  flex-shrink: 0;
+}
+
+.controls-card {
+  background: linear-gradient(145deg, #2a2a2a, #1e1e1e);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid #333;
+  position: sticky;
+  top: 20px;
+}
+
+.controls-card h2 {
+  margin: 0 0 20px 0;
+  font-size: 1.4em;
+  font-weight: 600;
+  text-align: center;
+  color: #fff;
+}
+
+.controls-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.control-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.control-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.key {
+  font-weight: 600;
+  color: #ffd700;
+  font-size: 0.9em;
+  min-width: 80px;
+}
+
+.action {
+  font-size: 0.85em;
+  color: #ccc;
+  text-align: right;
+  line-height: 1.3;
+}
+
+/* Intermediate screen sizes - keep sidebar but adjust spacing */
+@media (max-width: 900px) and (min-width: 601px) {
+  .main-container {
+    gap: 15px;
+    padding: 15px;
+  }
+
+  .controls-sidebar {
+    width: 240px;
+    min-width: 240px;
+  }
+
+  .controls-card {
+    padding: 18px;
+  }
+}
+
+/* Responsive design - only switch to vertical layout on actual mobile devices */
+@media (max-width: 600px) {
+  .main-container {
+    flex-direction: column;
+    padding: 10px;
+    gap: 15px;
+    height: auto;
+    overflow: visible;
+  }
+
+  .game-area {
+    max-width: 100%;
+    order: 1;
+    height: auto;
+    min-height: 60vh;
+    padding: 10px 0;
+    overflow: visible;
+  }
+
+  .controls-sidebar {
+    width: 100%;
+    order: 0;
+  }
+
+  .controls-card {
+    position: static;
+    padding: 16px;
+  }
+
+  .controls-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+  }
+
+  .header-section h1 {
+    font-size: 2em;
+  }
+
+  .control-item {
+    padding: 8px 10px;
+  }
+
+  .key {
+    font-size: 0.8em;
+    min-width: 70px;
+  }
+
+  .action {
+    font-size: 0.8em;
+  }
+
+  #game-container {
+    min-height: 400px;
+  }
+}

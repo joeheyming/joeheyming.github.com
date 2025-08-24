@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Browser DOOM</title>
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <div class="main-container">
+      <!-- Game Area -->
+      <div class="game-area">
+        <div id="game-container">
+          <!-- DOOM game will be inserted here -->
+        </div>
+      </div>
+
+      <!-- Controls Sidebar -->
+      <aside class="controls-sidebar">
+        <div class="controls-card">
+          <h2>Controls</h2>
+          <div class="controls-list">
+            <div class="control-item">
+              <span class="key">Arrow Keys</span>
+              <span class="action">Move and turn</span>
+            </div>
+            <div class="control-item">
+              <span class="key">Q</span>
+              <span class="action">Fire weapon</span>
+            </div>
+            <div class="control-item">
+              <span class="key">E</span>
+              <span class="action">Open doors / Use switches</span>
+            </div>
+            <div class="control-item">
+              <span class="key">Alt</span>
+              <span class="action">Run / Strafe</span>
+            </div>
+            <div class="control-item">
+              <span class="key">Escape</span>
+              <span class="action">Menu</span>
+            </div>
+            <div class="control-item">
+              <span class="key">Enter</span>
+              <span class="action">Select menu item</span>
+            </div>
+            <div class="control-item">
+              <span class="key">Numbers</span>
+              <span class="action">Switch weapons</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Load DOOM WebAssembly module first -->
+    <script src="src/doom.js"></script>
+
+    <!-- Load our game modules -->
+    <script src="src/index.js"></script>
+
+    <script type="application/javascript">
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
+
+      if (isMobile) {
+        // Mobile optimization: Add mobile-specific styles or warnings if needed
+        document.body.classList.add('mobile-device');
+      }
+    </script>
+  </body>
+</html>
