@@ -4,8 +4,7 @@
     <base href="./" />
     <meta charset="UTF-8" />
     <title>Joe's git web page</title>
-    <script type="text/javascript" src="speakGenerator.js"></script>
-    <script type="text/javascript" src="speakClient.js"></script>
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="/back.js"></script>
     <style>
@@ -125,20 +124,14 @@
           var indicator = document.getElementById('speakingIndicator');
           indicator.classList.add('active');
 
+          var utter = new SpeechSynthesisUtterance(currentUtterance);
           if (voice) {
-            var utter = new SpeechSynthesisUtterance(currentUtterance);
             utter.voice = voice;
-            utter.onend = function () {
-              indicator.classList.remove('active');
-            };
-            window.speechSynthesis.speak(utter);
-          } else {
-            speak(currentUtterance);
-            // Hide indicator after a delay (since we can't detect when speak() ends)
-            setTimeout(function () {
-              indicator.classList.remove('active');
-            }, currentUtterance.length * 100 + 1000);
           }
+          utter.onend = function () {
+            indicator.classList.remove('active');
+          };
+          window.speechSynthesis.speak(utter);
         };
 
         // Add keyboard shortcut: Cmd+Enter or Ctrl+Enter to submit

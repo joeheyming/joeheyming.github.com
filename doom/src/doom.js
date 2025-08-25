@@ -1,15 +1,15 @@
-var Module = (function() {
+var Module = (function () {
   var _scriptDir =
-    typeof document !== "undefined" && document.currentScript
+    typeof document !== 'undefined' && document.currentScript
       ? document.currentScript.src
       : undefined;
-  if (typeof __filename !== "undefined") _scriptDir = _scriptDir || __filename;
-  return function(Module) {
+  if (typeof __filename !== 'undefined') _scriptDir = _scriptDir || __filename;
+  return function (Module) {
     Module = Module || {};
 
-    var Module = typeof Module !== "undefined" ? Module : {};
+    var Module = typeof Module !== 'undefined' ? Module : {};
     var readyPromiseResolve, readyPromiseReject;
-    Module["ready"] = new Promise(function(resolve, reject) {
+    Module['ready'] = new Promise(function (resolve, reject) {
       readyPromiseResolve = resolve;
       readyPromiseReject = reject;
     });
@@ -21,26 +21,25 @@ var Module = (function() {
       }
     }
     var arguments_ = [];
-    var thisProgram = "./this.program";
-    var quit_ = function(status, toThrow) {
+    var thisProgram = './this.program';
+    var quit_ = function (status, toThrow) {
       throw toThrow;
     };
     var ENVIRONMENT_IS_WEB = false;
     var ENVIRONMENT_IS_WORKER = false;
     var ENVIRONMENT_IS_NODE = false;
     var ENVIRONMENT_IS_SHELL = false;
-    ENVIRONMENT_IS_WEB = typeof window === "object";
-    ENVIRONMENT_IS_WORKER = typeof importScripts === "function";
+    ENVIRONMENT_IS_WEB = typeof window === 'object';
+    ENVIRONMENT_IS_WORKER = typeof importScripts === 'function';
     ENVIRONMENT_IS_NODE =
-      typeof process === "object" &&
-      typeof process.versions === "object" &&
-      typeof process.versions.node === "string";
-    ENVIRONMENT_IS_SHELL =
-      !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIRONMENT_IS_WORKER;
-    var scriptDirectory = "";
+      typeof process === 'object' &&
+      typeof process.versions === 'object' &&
+      typeof process.versions.node === 'string';
+    ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIRONMENT_IS_WORKER;
+    var scriptDirectory = '';
     function locateFile(path) {
-      if (Module["locateFile"]) {
-        return Module["locateFile"](path, scriptDirectory);
+      if (Module['locateFile']) {
+        return Module['locateFile'](path, scriptDirectory);
       }
       return scriptDirectory + path;
     }
@@ -49,15 +48,15 @@ var Module = (function() {
     var nodePath;
     if (ENVIRONMENT_IS_NODE) {
       if (ENVIRONMENT_IS_WORKER) {
-        scriptDirectory = require("path").dirname(scriptDirectory) + "/";
+        scriptDirectory = require('path').dirname(scriptDirectory) + '/';
       } else {
-        scriptDirectory = __dirname + "/";
+        scriptDirectory = __dirname + '/';
       }
       read_ = function shell_read(filename, binary) {
-        if (!nodeFS) nodeFS = require("fs");
-        if (!nodePath) nodePath = require("path");
-        filename = nodePath["normalize"](filename);
-        return nodeFS["readFileSync"](filename, binary ? null : "utf8");
+        if (!nodeFS) nodeFS = require('fs');
+        if (!nodePath) nodePath = require('path');
+        filename = nodePath['normalize'](filename);
+        return nodeFS['readFileSync'](filename, binary ? null : 'utf8');
       };
       readBinary = function readBinary(filename) {
         var ret = read_(filename, true);
@@ -67,52 +66,51 @@ var Module = (function() {
         assert(ret.buffer);
         return ret;
       };
-      if (process["argv"].length > 1) {
-        thisProgram = process["argv"][1].replace(/\\/g, "/");
+      if (process['argv'].length > 1) {
+        thisProgram = process['argv'][1].replace(/\\/g, '/');
       }
-      arguments_ = process["argv"].slice(2);
-      process["on"]("uncaughtException", function(ex) {
+      arguments_ = process['argv'].slice(2);
+      process['on']('uncaughtException', function (ex) {
         if (!(ex instanceof ExitStatus)) {
           throw ex;
         }
       });
-      process["on"]("unhandledRejection", abort);
-      quit_ = function(status) {
-        process["exit"](status);
+      process['on']('unhandledRejection', abort);
+      quit_ = function (status) {
+        process['exit'](status);
       };
-      Module["inspect"] = function() {
-        return "[Emscripten Module object]";
+      Module['inspect'] = function () {
+        return '[Emscripten Module object]';
       };
     } else if (ENVIRONMENT_IS_SHELL) {
-      if (typeof read != "undefined") {
+      if (typeof read != 'undefined') {
         read_ = function shell_read(f) {
           return read(f);
         };
       }
       readBinary = function readBinary(f) {
         var data;
-        if (typeof readbuffer === "function") {
+        if (typeof readbuffer === 'function') {
           return new Uint8Array(readbuffer(f));
         }
-        data = read(f, "binary");
-        assert(typeof data === "object");
+        data = read(f, 'binary');
+        assert(typeof data === 'object');
         return data;
       };
-      if (typeof scriptArgs != "undefined") {
+      if (typeof scriptArgs != 'undefined') {
         arguments_ = scriptArgs;
-      } else if (typeof arguments != "undefined") {
+      } else if (typeof arguments != 'undefined') {
         arguments_ = arguments;
       }
-      if (typeof quit === "function") {
-        quit_ = function(status) {
+      if (typeof quit === 'function') {
+        quit_ = function (status) {
           quit(status);
         };
       }
-      if (typeof print !== "undefined") {
-        if (typeof console === "undefined") console = {};
+      if (typeof print !== 'undefined') {
+        if (typeof console === 'undefined') console = {};
         console.log = print;
-        console.warn = console.error =
-          typeof printErr !== "undefined" ? printErr : print;
+        console.warn = console.error = typeof printErr !== 'undefined' ? printErr : print;
       }
     } else if (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) {
       if (ENVIRONMENT_IS_WORKER) {
@@ -123,34 +121,31 @@ var Module = (function() {
       if (_scriptDir) {
         scriptDirectory = _scriptDir;
       }
-      if (scriptDirectory.indexOf("blob:") !== 0) {
-        scriptDirectory = scriptDirectory.substr(
-          0,
-          scriptDirectory.lastIndexOf("/") + 1
-        );
+      if (scriptDirectory.indexOf('blob:') !== 0) {
+        scriptDirectory = scriptDirectory.substr(0, scriptDirectory.lastIndexOf('/') + 1);
       } else {
-        scriptDirectory = "";
+        scriptDirectory = '';
       }
       {
         read_ = function shell_read(url) {
           var xhr = new XMLHttpRequest();
-          xhr.open("GET", url, false);
+          xhr.open('GET', url, false);
           xhr.send(null);
           return xhr.responseText;
         };
         if (ENVIRONMENT_IS_WORKER) {
           readBinary = function readBinary(url) {
             var xhr = new XMLHttpRequest();
-            xhr.open("GET", url, false);
-            xhr.responseType = "arraybuffer";
+            xhr.open('GET', url, false);
+            xhr.responseType = 'arraybuffer';
             xhr.send(null);
             return new Uint8Array(xhr.response);
           };
         }
         readAsync = function readAsync(url, onload, onerror) {
           var xhr = new XMLHttpRequest();
-          xhr.open("GET", url, true);
-          xhr.responseType = "arraybuffer";
+          xhr.open('GET', url, true);
+          xhr.responseType = 'arraybuffer';
           xhr.onload = function xhr_onload() {
             if (xhr.status == 200 || (xhr.status == 0 && xhr.response)) {
               onload(xhr.response);
@@ -162,22 +157,22 @@ var Module = (function() {
           xhr.send(null);
         };
       }
-      setWindowTitle = function(title) {
+      setWindowTitle = function (title) {
         document.title = title;
       };
     } else {
     }
-    var out = Module["print"] || console.log.bind(console);
-    var err = Module["printErr"] || console.warn.bind(console);
+    var out = Module['print'] || console.log.bind(console);
+    var err = Module['printErr'] || console.warn.bind(console);
     for (key in moduleOverrides) {
       if (moduleOverrides.hasOwnProperty(key)) {
         Module[key] = moduleOverrides[key];
       }
     }
     moduleOverrides = null;
-    if (Module["arguments"]) arguments_ = Module["arguments"];
-    if (Module["thisProgram"]) thisProgram = Module["thisProgram"];
-    if (Module["quit"]) quit_ = Module["quit"];
+    if (Module['arguments']) arguments_ = Module['arguments'];
+    if (Module['thisProgram']) thisProgram = Module['thisProgram'];
+    if (Module['quit']) quit_ = Module['quit'];
     function dynamicAlloc(size) {
       var ret = HEAP32[DYNAMICTOP_PTR >> 2];
       var end = (ret + size + 15) & -16;
@@ -186,28 +181,25 @@ var Module = (function() {
     }
     function getNativeTypeSize(type) {
       switch (type) {
-        case "i1":
-        case "i8":
+        case 'i1':
+        case 'i8':
           return 1;
-        case "i16":
+        case 'i16':
           return 2;
-        case "i32":
+        case 'i32':
           return 4;
-        case "i64":
+        case 'i64':
           return 8;
-        case "float":
+        case 'float':
           return 4;
-        case "double":
+        case 'double':
           return 8;
         default: {
-          if (type[type.length - 1] === "*") {
+          if (type[type.length - 1] === '*') {
             return 4;
-          } else if (type[0] === "i") {
+          } else if (type[0] === 'i') {
             var bits = Number(type.substr(1));
-            assert(
-              bits % 8 === 0,
-              "getNativeTypeSize invalid bits " + bits + ", type " + type
-            );
+            assert(bits % 8 === 0, 'getNativeTypeSize invalid bits ' + bits + ', type ' + type);
             return bits / 8;
           } else {
             return 0;
@@ -223,101 +215,97 @@ var Module = (function() {
       }
     }
     var asm2wasmImports = {
-      "f64-rem": function(x, y) {
+      'f64-rem': function (x, y) {
         return x % y;
       },
-      debugger: function() {}
+      debugger: function () {}
     };
     var functionPointers = new Array(0);
     function dynCall(sig, ptr, args) {
       if (args && args.length) {
-        return Module["dynCall_" + sig].apply(null, [ptr].concat(args));
+        return Module['dynCall_' + sig].apply(null, [ptr].concat(args));
       } else {
-        return Module["dynCall_" + sig].call(null, ptr);
+        return Module['dynCall_' + sig].call(null, ptr);
       }
     }
     var tempRet0 = 0;
-    var setTempRet0 = function(value) {
+    var setTempRet0 = function (value) {
       tempRet0 = value;
     };
-    var getTempRet0 = function() {
+    var getTempRet0 = function () {
       return tempRet0;
     };
     var wasmBinary;
-    if (Module["wasmBinary"]) wasmBinary = Module["wasmBinary"];
+    if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
     var noExitRuntime;
-    if (Module["noExitRuntime"]) noExitRuntime = Module["noExitRuntime"];
-    if (typeof WebAssembly !== "object") {
-      err("no native wasm support detected");
+    if (Module['noExitRuntime']) noExitRuntime = Module['noExitRuntime'];
+    if (typeof WebAssembly !== 'object') {
+      err('no native wasm support detected');
     }
     function setValue(ptr, value, type, noSafe) {
-      type = type || "i8";
-      if (type.charAt(type.length - 1) === "*") type = "i32";
+      type = type || 'i8';
+      if (type.charAt(type.length - 1) === '*') type = 'i32';
       switch (type) {
-        case "i1":
+        case 'i1':
           HEAP8[ptr >> 0] = value;
           break;
-        case "i8":
+        case 'i8':
           HEAP8[ptr >> 0] = value;
           break;
-        case "i16":
+        case 'i16':
           HEAP16[ptr >> 1] = value;
           break;
-        case "i32":
+        case 'i32':
           HEAP32[ptr >> 2] = value;
           break;
-        case "i64":
+        case 'i64':
           (tempI64 = [
             value >>> 0,
             ((tempDouble = value),
             +Math_abs(tempDouble) >= 1
               ? tempDouble > 0
-                ? (Math_min(+Math_floor(tempDouble / 4294967296), 4294967295) |
-                    0) >>>
-                  0
-                : ~~+Math_ceil(
-                    (tempDouble - +(~~tempDouble >>> 0)) / 4294967296
-                  ) >>> 0
+                ? (Math_min(+Math_floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0
+                : ~~+Math_ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0
               : 0)
           ]),
             (HEAP32[ptr >> 2] = tempI64[0]),
             (HEAP32[(ptr + 4) >> 2] = tempI64[1]);
           break;
-        case "float":
+        case 'float':
           HEAPF32[ptr >> 2] = value;
           break;
-        case "double":
+        case 'double':
           HEAPF64[ptr >> 3] = value;
           break;
         default:
-          abort("invalid type for setValue: " + type);
+          abort('invalid type for setValue: ' + type);
       }
     }
     var wasmMemory;
     var wasmTable = new WebAssembly.Table({
       initial: 1394,
       maximum: 1394,
-      element: "anyfunc"
+      element: 'anyfunc'
     });
     var ABORT = false;
     var EXITSTATUS = 0;
     function assert(condition, text) {
       if (!condition) {
-        abort("Assertion failed: " + text);
+        abort('Assertion failed: ' + text);
       }
     }
     var ALLOC_NORMAL = 0;
     var ALLOC_NONE = 3;
     function allocate(slab, types, allocator, ptr) {
       var zeroinit, size;
-      if (typeof slab === "number") {
+      if (typeof slab === 'number') {
         zeroinit = true;
         size = slab;
       } else {
         zeroinit = false;
         size = slab.length;
       }
-      var singleType = typeof types === "string" ? types : null;
+      var singleType = typeof types === 'string' ? types : null;
       var ret;
       if (allocator == ALLOC_NONE) {
         ret = ptr;
@@ -340,7 +328,7 @@ var Module = (function() {
         }
         return ret;
       }
-      if (singleType === "i8") {
+      if (singleType === 'i8') {
         if (slab.subarray || slab.slice) {
           HEAPU8.set(slab, ret);
         } else {
@@ -359,7 +347,7 @@ var Module = (function() {
           i++;
           continue;
         }
-        if (type == "i64") type = "i32";
+        if (type == 'i64') type = 'i32';
         setValue(ret + i, curr, type);
         if (previousType !== type) {
           typeSize = getNativeTypeSize(type);
@@ -373,8 +361,7 @@ var Module = (function() {
       if (!runtimeInitialized) return dynamicAlloc(size);
       return _malloc(size);
     }
-    var UTF8Decoder =
-      typeof TextDecoder !== "undefined" ? new TextDecoder("utf8") : undefined;
+    var UTF8Decoder = typeof TextDecoder !== 'undefined' ? new TextDecoder('utf8') : undefined;
     function UTF8ArrayToString(heap, idx, maxBytesToRead) {
       var endIdx = idx + maxBytesToRead;
       var endPtr = idx;
@@ -382,7 +369,7 @@ var Module = (function() {
       if (endPtr - idx > 16 && heap.subarray && UTF8Decoder) {
         return UTF8Decoder.decode(heap.subarray(idx, endPtr));
       } else {
-        var str = "";
+        var str = '';
         while (idx < endPtr) {
           var u0 = heap[idx++];
           if (!(u0 & 128)) {
@@ -411,7 +398,7 @@ var Module = (function() {
       return str;
     }
     function UTF8ToString(ptr, maxBytesToRead) {
-      return ptr ? UTF8ArrayToString(HEAPU8, ptr, maxBytesToRead) : "";
+      return ptr ? UTF8ArrayToString(HEAPU8, ptr, maxBytesToRead) : '';
     }
     function stringToUTF8Array(str, heap, outIdx, maxBytesToWrite) {
       if (!(maxBytesToWrite > 0)) return 0;
@@ -487,31 +474,23 @@ var Module = (function() {
       }
       return x;
     }
-    var buffer,
-      HEAP8,
-      HEAPU8,
-      HEAP16,
-      HEAPU16,
-      HEAP32,
-      HEAPU32,
-      HEAPF32,
-      HEAPF64;
+    var buffer, HEAP8, HEAPU8, HEAP16, HEAPU16, HEAP32, HEAPU32, HEAPF32, HEAPF64;
     function updateGlobalBufferAndViews(buf) {
       buffer = buf;
-      Module["HEAP8"] = HEAP8 = new Int8Array(buf);
-      Module["HEAP16"] = HEAP16 = new Int16Array(buf);
-      Module["HEAP32"] = HEAP32 = new Int32Array(buf);
-      Module["HEAPU8"] = HEAPU8 = new Uint8Array(buf);
-      Module["HEAPU16"] = HEAPU16 = new Uint16Array(buf);
-      Module["HEAPU32"] = HEAPU32 = new Uint32Array(buf);
-      Module["HEAPF32"] = HEAPF32 = new Float32Array(buf);
-      Module["HEAPF64"] = HEAPF64 = new Float64Array(buf);
+      Module['HEAP8'] = HEAP8 = new Int8Array(buf);
+      Module['HEAP16'] = HEAP16 = new Int16Array(buf);
+      Module['HEAP32'] = HEAP32 = new Int32Array(buf);
+      Module['HEAPU8'] = HEAPU8 = new Uint8Array(buf);
+      Module['HEAPU16'] = HEAPU16 = new Uint16Array(buf);
+      Module['HEAPU32'] = HEAPU32 = new Uint32Array(buf);
+      Module['HEAPF32'] = HEAPF32 = new Float32Array(buf);
+      Module['HEAPF64'] = HEAPF64 = new Float64Array(buf);
     }
     var DYNAMIC_BASE = 7695792,
       DYNAMICTOP_PTR = 2452720;
-    var INITIAL_INITIAL_MEMORY = Module["INITIAL_MEMORY"] || 16777216;
-    if (Module["wasmMemory"]) {
-      wasmMemory = Module["wasmMemory"];
+    var INITIAL_INITIAL_MEMORY = Module['INITIAL_MEMORY'] || 16777216;
+    if (Module['wasmMemory']) {
+      wasmMemory = Module['wasmMemory'];
     } else {
       wasmMemory = new WebAssembly.Memory({
         initial: INITIAL_INITIAL_MEMORY / WASM_PAGE_SIZE,
@@ -527,16 +506,16 @@ var Module = (function() {
     function callRuntimeCallbacks(callbacks) {
       while (callbacks.length > 0) {
         var callback = callbacks.shift();
-        if (typeof callback == "function") {
+        if (typeof callback == 'function') {
           callback(Module);
           continue;
         }
         var func = callback.func;
-        if (typeof func === "number") {
+        if (typeof func === 'number') {
           if (callback.arg === undefined) {
-            Module["dynCall_v"](func);
+            Module['dynCall_v'](func);
           } else {
-            Module["dynCall_vi"](func, callback.arg);
+            Module['dynCall_vi'](func, callback.arg);
           }
         } else {
           func(callback.arg === undefined ? null : callback.arg);
@@ -551,18 +530,17 @@ var Module = (function() {
     var runtimeInitialized = false;
     var runtimeExited = false;
     function preRun() {
-      if (Module["preRun"]) {
-        if (typeof Module["preRun"] == "function")
-          Module["preRun"] = [Module["preRun"]];
-        while (Module["preRun"].length) {
-          addOnPreRun(Module["preRun"].shift());
+      if (Module['preRun']) {
+        if (typeof Module['preRun'] == 'function') Module['preRun'] = [Module['preRun']];
+        while (Module['preRun'].length) {
+          addOnPreRun(Module['preRun'].shift());
         }
       }
       callRuntimeCallbacks(__ATPRERUN__);
     }
     function initRuntime() {
       runtimeInitialized = true;
-      if (!Module["noFSInit"] && !FS.init.initialized) FS.init();
+      if (!Module['noFSInit'] && !FS.init.initialized) FS.init();
       TTY.init();
       callRuntimeCallbacks(__ATINIT__);
     }
@@ -574,11 +552,10 @@ var Module = (function() {
       runtimeExited = true;
     }
     function postRun() {
-      if (Module["postRun"]) {
-        if (typeof Module["postRun"] == "function")
-          Module["postRun"] = [Module["postRun"]];
-        while (Module["postRun"].length) {
-          addOnPostRun(Module["postRun"].shift());
+      if (Module['postRun']) {
+        if (typeof Module['postRun'] == 'function') Module['postRun'] = [Module['postRun']];
+        while (Module['postRun'].length) {
+          addOnPostRun(Module['postRun'].shift());
         }
       }
       callRuntimeCallbacks(__ATPOSTRUN__);
@@ -601,14 +578,14 @@ var Module = (function() {
     }
     function addRunDependency(id) {
       runDependencies++;
-      if (Module["monitorRunDependencies"]) {
-        Module["monitorRunDependencies"](runDependencies);
+      if (Module['monitorRunDependencies']) {
+        Module['monitorRunDependencies'](runDependencies);
       }
     }
     function removeRunDependency(id) {
       runDependencies--;
-      if (Module["monitorRunDependencies"]) {
-        Module["monitorRunDependencies"](runDependencies);
+      if (Module['monitorRunDependencies']) {
+        Module['monitorRunDependencies'](runDependencies);
       }
       if (runDependencies == 0) {
         if (runDependencyWatcher !== null) {
@@ -622,34 +599,32 @@ var Module = (function() {
         }
       }
     }
-    Module["preloadedImages"] = {};
-    Module["preloadedAudios"] = {};
+    Module['preloadedImages'] = {};
+    Module['preloadedAudios'] = {};
     function abort(what) {
-      if (Module["onAbort"]) {
-        Module["onAbort"](what);
+      if (Module['onAbort']) {
+        Module['onAbort'](what);
       }
-      what += "";
+      what += '';
       out(what);
       err(what);
       ABORT = true;
       EXITSTATUS = 1;
-      what = "abort(" + what + "). Build with -s ASSERTIONS=1 for more info.";
+      what = 'abort(' + what + '). Build with -s ASSERTIONS=1 for more info.';
       throw new WebAssembly.RuntimeError(what);
     }
     function hasPrefix(str, prefix) {
-      return String.prototype.startsWith
-        ? str.startsWith(prefix)
-        : str.indexOf(prefix) === 0;
+      return String.prototype.startsWith ? str.startsWith(prefix) : str.indexOf(prefix) === 0;
     }
-    var dataURIPrefix = "data:application/octet-stream;base64,";
+    var dataURIPrefix = 'data:application/octet-stream;base64,';
     function isDataURI(filename) {
       return hasPrefix(filename, dataURIPrefix);
     }
-    var fileURIPrefix = "file://";
+    var fileURIPrefix = 'file://';
     function isFileURI(filename) {
       return hasPrefix(filename, fileURIPrefix);
     }
-    var wasmBinaryFile = "doom.wasm";
+    var wasmBinaryFile = 'doom.wasm';
     if (!isDataURI(wasmBinaryFile)) {
       wasmBinaryFile = locateFile(wasmBinaryFile);
     }
@@ -661,7 +636,7 @@ var Module = (function() {
         if (readBinary) {
           return readBinary(wasmBinaryFile);
         } else {
-          throw "both async and sync fetching of the wasm failed";
+          throw 'both async and sync fetching of the wasm failed';
         }
       } catch (err) {
         abort(err);
@@ -671,23 +646,21 @@ var Module = (function() {
       if (
         !wasmBinary &&
         (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) &&
-        typeof fetch === "function" &&
+        typeof fetch === 'function' &&
         !isFileURI(wasmBinaryFile)
       ) {
-        return fetch(wasmBinaryFile, { credentials: "same-origin" })
-          .then(function(response) {
-            if (!response["ok"]) {
-              throw "failed to load wasm binary file at '" +
-                wasmBinaryFile +
-                "'";
+        return fetch(wasmBinaryFile, { credentials: 'same-origin' })
+          .then(function (response) {
+            if (!response['ok']) {
+              throw "failed to load wasm binary file at '" + wasmBinaryFile + "'";
             }
-            return response["arrayBuffer"]();
+            return response['arrayBuffer']();
           })
-          .catch(function() {
+          .catch(function () {
             return getBinary();
           });
       }
-      return new Promise(function(resolve, reject) {
+      return new Promise(function (resolve, reject) {
         resolve(getBinary());
       });
     }
@@ -696,43 +669,41 @@ var Module = (function() {
         env: asmLibraryArg,
         wasi_snapshot_preview1: asmLibraryArg,
         global: { NaN: NaN, Infinity: Infinity },
-        "global.Math": Math,
+        'global.Math': Math,
         asm2wasm: asm2wasmImports
       };
       function receiveInstance(instance, module) {
         var exports = instance.exports;
-        Module["asm"] = exports;
-        removeRunDependency("wasm-instantiate");
+        Module['asm'] = exports;
+        removeRunDependency('wasm-instantiate');
       }
-      addRunDependency("wasm-instantiate");
+      addRunDependency('wasm-instantiate');
       function receiveInstantiatedSource(output) {
-        receiveInstance(output["instance"]);
+        receiveInstance(output['instance']);
       }
       function instantiateArrayBuffer(receiver) {
         return getBinaryPromise()
-          .then(function(binary) {
+          .then(function (binary) {
             return WebAssembly.instantiate(binary, info);
           })
-          .then(receiver, function(reason) {
-            err("failed to asynchronously prepare wasm: " + reason);
+          .then(receiver, function (reason) {
+            err('failed to asynchronously prepare wasm: ' + reason);
             abort(reason);
           });
       }
       function instantiateAsync() {
         if (
           !wasmBinary &&
-          typeof WebAssembly.instantiateStreaming === "function" &&
+          typeof WebAssembly.instantiateStreaming === 'function' &&
           !isDataURI(wasmBinaryFile) &&
           !isFileURI(wasmBinaryFile) &&
-          typeof fetch === "function"
+          typeof fetch === 'function'
         ) {
-          fetch(wasmBinaryFile, { credentials: "same-origin" }).then(function(
-            response
-          ) {
+          fetch(wasmBinaryFile, { credentials: 'same-origin' }).then(function (response) {
             var result = WebAssembly.instantiateStreaming(response, info);
-            return result.then(receiveInstantiatedSource, function(reason) {
-              err("wasm streaming compile failed: " + reason);
-              err("falling back to ArrayBuffer instantiation");
+            return result.then(receiveInstantiatedSource, function (reason) {
+              err('wasm streaming compile failed: ' + reason);
+              err('falling back to ArrayBuffer instantiation');
               instantiateArrayBuffer(receiveInstantiatedSource);
             });
           });
@@ -740,48 +711,48 @@ var Module = (function() {
           return instantiateArrayBuffer(receiveInstantiatedSource);
         }
       }
-      if (Module["instantiateWasm"]) {
+      if (Module['instantiateWasm']) {
         try {
-          var exports = Module["instantiateWasm"](info, receiveInstance);
+          var exports = Module['instantiateWasm'](info, receiveInstance);
           return exports;
         } catch (e) {
-          err("Module.instantiateWasm callback failed with error: " + e);
+          err('Module.instantiateWasm callback failed with error: ' + e);
           return false;
         }
       }
       instantiateAsync();
       return {};
     }
-    Module["asm"] = createWasm;
+    Module['asm'] = createWasm;
     var tempDouble;
     var tempI64;
     var ASM_CONSTS = [
-      function($0, $1, $2) {
+      function ($0, $1, $2) {
         document.dispatchEvent(
-          new CustomEvent("G_InitNew", {
+          new CustomEvent('G_InitNew', {
             detail: { skill: $0, episode: $1, map: $2 }
           })
         );
       },
-      function($0) {
+      function ($0) {
         document.dispatchEvent(
-          new CustomEvent("G_DoLoadLevel", {
+          new CustomEvent('G_DoLoadLevel', {
             detail: { mapname: Module.UTF8ToString($0) }
           })
         );
       },
-      function($0) {
+      function ($0) {
         try {
           var filename = Module.UTF8ToString($0);
           var buffer = Module.FS.readFile(filename).buffer;
           document.dispatchEvent(
-            new CustomEvent("G_SaveGame", {
+            new CustomEvent('G_SaveGame', {
               detail: { filename: filename, buffer: buffer }
             })
           );
         } catch (err) {}
       },
-      function($0, $1, $2, $3, $4, $5, $6, $7, $8) {
+      function ($0, $1, $2, $3, $4, $5, $6, $7, $8) {
         var maxkills = $1;
         var maxitems = $2;
         var maxsecret = $3;
@@ -791,7 +762,7 @@ var Module = (function() {
         var secretcount = $7;
         var leveltime = $8;
         document.dispatchEvent(
-          new CustomEvent("G_DoCompleted", {
+          new CustomEvent('G_DoCompleted', {
             detail: {
               mapname: Module.UTF8ToString($0),
               maxkills: maxkills,
@@ -806,9 +777,9 @@ var Module = (function() {
           })
         );
       },
-      function($0, $1) {
+      function ($0, $1) {
         document.dispatchEvent(
-          new CustomEvent("P_KillMobj", {
+          new CustomEvent('P_KillMobj', {
             detail: {
               mapname: Module.UTF8ToString($0),
               source: Module.UTF8ToString($1)
@@ -816,46 +787,37 @@ var Module = (function() {
           })
         );
       },
-      function() {
-        if (
-          Module &&
-          Module.canvas &&
-          typeof Module.canvas.calcRatio == "function"
-        ) {
+      function () {
+        if (Module && Module.canvas && typeof Module.canvas.calcRatio == 'function') {
           Module.canvas.calcRatio(true);
         }
       },
-      function() {
-        document.dispatchEvent(new CustomEvent("I_Endoom", { detail: {} }));
+      function () {
+        document.dispatchEvent(new CustomEvent('I_Endoom', { detail: {} }));
       },
-      function($0) {
+      function ($0) {
         document.dispatchEvent(
-          new CustomEvent("I_Error", {
+          new CustomEvent('I_Error', {
             detail: { errorMsg: Module.UTF8ToString($0) }
           })
         );
       },
-      function() {
-        return +(typeof navigator.maxTouchPoints == "number"
+      function () {
+        return +(typeof navigator.maxTouchPoints == 'number'
           ? navigator.maxTouchPoints > 0
-          : "ontouchstart" in window);
+          : 'ontouchstart' in window);
       },
-      function() {
-        if (
-          Module &&
-          Module.canvas &&
-          typeof Module.canvas.calcRatio == "function"
-        ) {
+      function () {
+        if (Module && Module.canvas && typeof Module.canvas.calcRatio == 'function') {
           Module.canvas.calcRatio();
         }
       },
-      function() {
+      function () {
         try {
-          window.doom_music_offset =
-            SDL2.audioContext.currentTime - window.doom_music_start;
+          window.doom_music_offset = SDL2.audioContext.currentTime - window.doom_music_start;
         } catch (err) {}
       },
-      function() {
+      function () {
         if (window.doom_music_buffer) {
           const context = SDL2.audioContext;
           const source = context.createBufferSource();
@@ -867,42 +829,37 @@ var Module = (function() {
           source.start(0, window.doom_music_offset);
           window.doom_music = source;
           window.doom_music_gain = gain;
-          window.doom_music_start =
-            context.currentTime - window.doom_music_offset;
+          window.doom_music_start = context.currentTime - window.doom_music_offset;
           Module._ReadLoopPoints();
         }
       },
-      function($0, $1) {
+      function ($0, $1) {
         console.log($0);
         var filename = Module.UTF8ToString($0);
         window.doom_music_filename = filename;
-        const isDev =
-          location.hostname === "localhost" ||
-          location.hostname === "127.0.0.1";
+        const isDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
-        const fileUrl = isDev
-          ? filename
-          : "https://console-doom.netlify.app" + filename;
+        const fileUrl = isDev ? filename : 'https://console-doom.netlify.app' + filename;
 
         fetch(fileUrl)
-          .then(function(res) {
+          .then(function (res) {
             return res.arrayBuffer();
           })
-          .then(function(audio) {
+          .then(function (audio) {
             var context = SDL2.audioContext;
-            var path = "";
+            var path = '';
             filename
-              .split("/")
+              .split('/')
               .slice(1, -1)
-              .forEach(function(dir) {
-                if (path) path += "/";
+              .forEach(function (dir) {
+                if (path) path += '/';
                 path += dir;
                 try {
                   Module.FS.mkdir(path);
                 } catch (err) {}
               });
-            Module.FS.writeFile("./" + filename, new Uint8Array(audio));
-            context.decodeAudioData(audio, function(buffer) {
+            Module.FS.writeFile('./' + filename, new Uint8Array(audio));
+            context.decodeAudioData(audio, function (buffer) {
               if (window.doom_music_filename == filename) {
                 var source = context.createBufferSource();
                 source.buffer = buffer;
@@ -921,17 +878,14 @@ var Module = (function() {
               }
             });
           })
-          .catch(function() {
+          .catch(function () {
             Module._I_WEB_RegisterSongFallback();
           });
       },
-      function($0) {
+      function ($0) {
         try {
           if (window.doom_music) {
-            (window.doom_music.stop || window.doom_music.noteOff).call(
-              window.doom_music,
-              0
-            );
+            (window.doom_music.stop || window.doom_music.noteOff).call(window.doom_music, 0);
             window.doom_music.disconnect();
             window.doom_music_gain.disconnect();
           }
@@ -942,10 +896,10 @@ var Module = (function() {
           delete window.doom_music_start;
           delete window.doom_music_looping;
           var filename = Module.UTF8ToString($0);
-          Module.FS.unlink("./" + filename);
+          Module.FS.unlink('./' + filename);
         } catch (err) {}
       },
-      function($0) {
+      function ($0) {
         console.log($0);
         window.doom_music_looping = $0;
         if (window.doom_music_buffer) {
@@ -964,13 +918,10 @@ var Module = (function() {
           Module._ReadLoopPoints();
         }
       },
-      function() {
+      function () {
         try {
           if (window.doom_music) {
-            (window.doom_music.stop || window.doom_music.noteOff).call(
-              window.doom_music,
-              0
-            );
+            (window.doom_music.stop || window.doom_music.noteOff).call(window.doom_music, 0);
             window.doom_music.disconnect();
             window.doom_music_gain.disconnect();
             delete window.doom_music;
@@ -978,58 +929,56 @@ var Module = (function() {
           }
         } catch (err) {}
       },
-      function($0) {
+      function ($0) {
         return +(!!window.doom_music || $0);
       },
-      function($0) {
+      function ($0) {
         try {
           if (window.doom_music && window.doom_music_gain)
             window.doom_music_gain.gain.value = $0 / 255;
         } catch (err) {}
       },
-      function($0, $1) {
+      function ($0, $1) {
         if (window.doom_music) {
           window.doom_music.loopStart = $0;
           window.doom_music.loopEnd = $1;
         }
       },
-      function($0) {
+      function ($0) {
         var filename = Module.UTF8ToString($0);
         var url = URL.createObjectURL(
-          new Blob([Module.FS.readFile(filename)], { type: "image/png" })
+          new Blob([Module.FS.readFile(filename)], { type: 'image/png' })
         );
-        document.dispatchEvent(
-          new CustomEvent("V_ScreenShot", { detail: { url: url } })
-        );
+        document.dispatchEvent(new CustomEvent('V_ScreenShot', { detail: { url: url } }));
         Module.FS.unlink(filename);
       },
-      function() {
+      function () {
         return screen.width;
       },
-      function() {
+      function () {
         return screen.height;
       },
-      function() {
+      function () {
         return window.innerWidth;
       },
-      function() {
+      function () {
         return window.innerHeight;
       },
-      function($0) {
-        if (typeof setWindowTitle !== "undefined") {
+      function ($0) {
+        if (typeof setWindowTitle !== 'undefined') {
           setWindowTitle(UTF8ToString($0));
         }
         return 0;
       },
-      function($0, $1, $2) {
+      function ($0, $1, $2) {
         var w = $0;
         var h = $1;
         var pixels = $2;
-        if (!Module["SDL2"]) Module["SDL2"] = {};
-        var SDL2 = Module["SDL2"];
-        if (SDL2.ctxCanvas !== Module["canvas"]) {
-          SDL2.ctx = Module["createContext"](Module["canvas"], false, true);
-          SDL2.ctxCanvas = Module["canvas"];
+        if (!Module['SDL2']) Module['SDL2'] = {};
+        var SDL2 = Module['SDL2'];
+        if (SDL2.ctxCanvas !== Module['canvas']) {
+          SDL2.ctx = Module['createContext'](Module['canvas'], false, true);
+          SDL2.ctxCanvas = Module['canvas'];
         }
         if (SDL2.w !== w || SDL2.h !== h || SDL2.imageCtx !== SDL2.ctx) {
           SDL2.image = SDL2.ctx.createImageData(w, h);
@@ -1041,10 +990,7 @@ var Module = (function() {
         var src = pixels >> 2;
         var dst = 0;
         var num;
-        if (
-          typeof CanvasPixelArray !== "undefined" &&
-          data instanceof CanvasPixelArray
-        ) {
+        if (typeof CanvasPixelArray !== 'undefined' && data instanceof CanvasPixelArray) {
           num = data.length;
           while (dst < num) {
             var val = HEAP32[src];
@@ -1095,25 +1041,22 @@ var Module = (function() {
         SDL2.ctx.putImageData(SDL2.image, 0, 0);
         return 0;
       },
-      function($0, $1, $2, $3, $4) {
+      function ($0, $1, $2, $3, $4) {
         var w = $0;
         var h = $1;
         var hot_x = $2;
         var hot_y = $3;
         var pixels = $4;
-        var canvas = document.createElement("canvas");
+        var canvas = document.createElement('canvas');
         canvas.width = w;
         canvas.height = h;
-        var ctx = canvas.getContext("2d");
+        var ctx = canvas.getContext('2d');
         var image = ctx.createImageData(w, h);
         var data = image.data;
         var src = pixels >> 2;
         var dst = 0;
         var num;
-        if (
-          typeof CanvasPixelArray !== "undefined" &&
-          data instanceof CanvasPixelArray
-        ) {
+        if (typeof CanvasPixelArray !== 'undefined' && data instanceof CanvasPixelArray) {
           num = data.length;
           while (dst < num) {
             var val = HEAP32[src];
@@ -1132,115 +1075,96 @@ var Module = (function() {
         ctx.putImageData(image, 0, 0);
         var url =
           hot_x === 0 && hot_y === 0
-            ? "url(" + canvas.toDataURL() + "), auto"
-            : "url(" +
-              canvas.toDataURL() +
-              ") " +
-              hot_x +
-              " " +
-              hot_y +
-              ", auto";
+            ? 'url(' + canvas.toDataURL() + '), auto'
+            : 'url(' + canvas.toDataURL() + ') ' + hot_x + ' ' + hot_y + ', auto';
         var urlBuf = _malloc(url.length + 1);
         stringToUTF8(url, urlBuf, url.length + 1);
         return urlBuf;
       },
-      function($0) {
-        if (Module["canvas"]) {
-          Module["canvas"].style["cursor"] = UTF8ToString($0);
+      function ($0) {
+        if (Module['canvas']) {
+          Module['canvas'].style['cursor'] = UTF8ToString($0);
         }
         return 0;
       },
-      function() {
-        if (Module["canvas"]) {
-          Module["canvas"].style["cursor"] = "none";
+      function () {
+        if (Module['canvas']) {
+          Module['canvas'].style['cursor'] = 'none';
         }
       },
-      function() {
-        if (typeof AudioContext !== "undefined") {
+      function () {
+        if (typeof AudioContext !== 'undefined') {
           return 1;
-        } else if (typeof webkitAudioContext !== "undefined") {
+        } else if (typeof webkitAudioContext !== 'undefined') {
           return 1;
         }
         return 0;
       },
-      function() {
+      function () {
         if (
-          typeof navigator.mediaDevices !== "undefined" &&
-          typeof navigator.mediaDevices.getUserMedia !== "undefined"
+          typeof navigator.mediaDevices !== 'undefined' &&
+          typeof navigator.mediaDevices.getUserMedia !== 'undefined'
         ) {
           return 1;
-        } else if (typeof navigator.webkitGetUserMedia !== "undefined") {
+        } else if (typeof navigator.webkitGetUserMedia !== 'undefined') {
           return 1;
         }
         return 0;
       },
-      function($0) {
-        if (typeof Module["SDL2"] === "undefined") {
-          Module["SDL2"] = {};
+      function ($0) {
+        if (typeof Module['SDL2'] === 'undefined') {
+          Module['SDL2'] = {};
         }
-        var SDL2 = Module["SDL2"];
+        var SDL2 = Module['SDL2'];
         if (!$0) {
           SDL2.audio = {};
         } else {
           SDL2.capture = {};
         }
         if (!SDL2.audioContext) {
-          if (typeof AudioContext !== "undefined") {
+          if (typeof AudioContext !== 'undefined') {
             SDL2.audioContext = new AudioContext();
-          } else if (typeof webkitAudioContext !== "undefined") {
+          } else if (typeof webkitAudioContext !== 'undefined') {
             SDL2.audioContext = new webkitAudioContext();
           }
         }
         return SDL2.audioContext === undefined ? -1 : 0;
       },
-      function() {
-        var SDL2 = Module["SDL2"];
+      function () {
+        var SDL2 = Module['SDL2'];
         return SDL2.audioContext.sampleRate;
       },
-      function($0, $1, $2, $3) {
-        var SDL2 = Module["SDL2"];
-        var have_microphone = function(stream) {
+      function ($0, $1, $2, $3) {
+        var SDL2 = Module['SDL2'];
+        var have_microphone = function (stream) {
           if (SDL2.capture.silenceTimer !== undefined) {
             clearTimeout(SDL2.capture.silenceTimer);
             SDL2.capture.silenceTimer = undefined;
           }
-          SDL2.capture.mediaStreamNode = SDL2.audioContext.createMediaStreamSource(
-            stream
-          );
-          SDL2.capture.scriptProcessorNode = SDL2.audioContext.createScriptProcessor(
-            $1,
-            $0,
-            1
-          );
-          SDL2.capture.scriptProcessorNode.onaudioprocess = function(
-            audioProcessingEvent
-          ) {
+          SDL2.capture.mediaStreamNode = SDL2.audioContext.createMediaStreamSource(stream);
+          SDL2.capture.scriptProcessorNode = SDL2.audioContext.createScriptProcessor($1, $0, 1);
+          SDL2.capture.scriptProcessorNode.onaudioprocess = function (audioProcessingEvent) {
             if (SDL2 === undefined || SDL2.capture === undefined) {
               return;
             }
             audioProcessingEvent.outputBuffer.getChannelData(0).fill(0);
-            SDL2.capture.currentCaptureBuffer =
-              audioProcessingEvent.inputBuffer;
-            dynCall("vi", $2, [$3]);
+            SDL2.capture.currentCaptureBuffer = audioProcessingEvent.inputBuffer;
+            dynCall('vi', $2, [$3]);
           };
-          SDL2.capture.mediaStreamNode.connect(
-            SDL2.capture.scriptProcessorNode
-          );
-          SDL2.capture.scriptProcessorNode.connect(
-            SDL2.audioContext.destination
-          );
+          SDL2.capture.mediaStreamNode.connect(SDL2.capture.scriptProcessorNode);
+          SDL2.capture.scriptProcessorNode.connect(SDL2.audioContext.destination);
           SDL2.capture.stream = stream;
         };
-        var no_microphone = function(error) {};
+        var no_microphone = function (error) {};
         SDL2.capture.silenceBuffer = SDL2.audioContext.createBuffer(
           $0,
           $1,
           SDL2.audioContext.sampleRate
         );
         SDL2.capture.silenceBuffer.getChannelData(0).fill(0);
-        var silence_callback = function() {
+        var silence_callback = function () {
           SDL2.capture.currentCaptureBuffer = SDL2.capture.silenceBuffer;
-          dynCall("vi", $2, [$3]);
+          dynCall('vi', $2, [$3]);
         };
         SDL2.capture.silenceTimer = setTimeout(
           silence_callback,
@@ -1262,24 +1186,20 @@ var Module = (function() {
           );
         }
       },
-      function($0, $1, $2, $3) {
-        var SDL2 = Module["SDL2"];
-        SDL2.audio.scriptProcessorNode = SDL2.audioContext[
-          "createScriptProcessor"
-        ]($1, 0, $0);
-        SDL2.audio.scriptProcessorNode["onaudioprocess"] = function(e) {
+      function ($0, $1, $2, $3) {
+        var SDL2 = Module['SDL2'];
+        SDL2.audio.scriptProcessorNode = SDL2.audioContext['createScriptProcessor']($1, 0, $0);
+        SDL2.audio.scriptProcessorNode['onaudioprocess'] = function (e) {
           if (SDL2 === undefined || SDL2.audio === undefined) {
             return;
           }
-          SDL2.audio.currentOutputBuffer = e["outputBuffer"];
-          dynCall("vi", $2, [$3]);
+          SDL2.audio.currentOutputBuffer = e['outputBuffer'];
+          dynCall('vi', $2, [$3]);
         };
-        SDL2.audio.scriptProcessorNode["connect"](
-          SDL2.audioContext["destination"]
-        );
+        SDL2.audio.scriptProcessorNode['connect'](SDL2.audioContext['destination']);
       },
-      function($0) {
-        var SDL2 = Module["SDL2"];
+      function ($0) {
+        var SDL2 = Module['SDL2'];
         if ($0) {
           if (SDL2.capture.silenceTimer !== undefined) {
             clearTimeout(SDL2.capture.silenceTimer);
@@ -1292,9 +1212,7 @@ var Module = (function() {
             SDL2.capture.stream = undefined;
           }
           if (SDL2.capture.scriptProcessorNode !== undefined) {
-            SDL2.capture.scriptProcessorNode.onaudioprocess = function(
-              audioProcessingEvent
-            ) {};
+            SDL2.capture.scriptProcessorNode.onaudioprocess = function (audioProcessingEvent) {};
             SDL2.capture.scriptProcessorNode.disconnect();
             SDL2.capture.scriptProcessorNode = undefined;
           }
@@ -1322,56 +1240,57 @@ var Module = (function() {
           SDL2.audioContext = undefined;
         }
       },
-      function($0, $1) {
-        var SDL2 = Module["SDL2"];
+      function ($0, $1) {
+        var SDL2 = Module['SDL2'];
         var numChannels = SDL2.capture.currentCaptureBuffer.numberOfChannels;
         for (var c = 0; c < numChannels; ++c) {
           var channelData = SDL2.capture.currentCaptureBuffer.getChannelData(c);
           if (channelData.length != $1) {
-            throw "Web Audio capture buffer length mismatch! Destination size: " +
+            throw (
+              'Web Audio capture buffer length mismatch! Destination size: ' +
               channelData.length +
-              " samples vs expected " +
+              ' samples vs expected ' +
               $1 +
-              " samples!";
+              ' samples!'
+            );
           }
           if (numChannels == 1) {
             for (var j = 0; j < $1; ++j) {
-              setValue($0 + j * 4, channelData[j], "float");
+              setValue($0 + j * 4, channelData[j], 'float');
             }
           } else {
             for (var j = 0; j < $1; ++j) {
-              setValue($0 + (j * numChannels + c) * 4, channelData[j], "float");
+              setValue($0 + (j * numChannels + c) * 4, channelData[j], 'float');
             }
           }
         }
       },
-      function($0, $1) {
-        var SDL2 = Module["SDL2"];
-        var numChannels = SDL2.audio.currentOutputBuffer["numberOfChannels"];
+      function ($0, $1) {
+        var SDL2 = Module['SDL2'];
+        var numChannels = SDL2.audio.currentOutputBuffer['numberOfChannels'];
         for (var c = 0; c < numChannels; ++c) {
-          var channelData = SDL2.audio.currentOutputBuffer["getChannelData"](c);
+          var channelData = SDL2.audio.currentOutputBuffer['getChannelData'](c);
           if (channelData.length != $1) {
-            throw "Web Audio output buffer length mismatch! Destination size: " +
+            throw (
+              'Web Audio output buffer length mismatch! Destination size: ' +
               channelData.length +
-              " samples vs expected " +
+              ' samples vs expected ' +
               $1 +
-              " samples!";
+              ' samples!'
+            );
           }
           for (var j = 0; j < $1; ++j) {
             channelData[j] = HEAPF32[($0 + ((j * numChannels + c) << 2)) >> 2];
           }
         }
       },
-      function($0) {
-        var str =
-          UTF8ToString($0) +
-          "\n\n" +
-          "Abort/Retry/Ignore/AlwaysIgnore? [ariA] :";
-        var reply = window.prompt(str, "i");
+      function ($0) {
+        var str = UTF8ToString($0) + '\n\n' + 'Abort/Retry/Ignore/AlwaysIgnore? [ariA] :';
+        var reply = window.prompt(str, 'i');
         if (reply === null) {
-          reply = "i";
+          reply = 'i';
         }
-        return allocate(intArrayFromString(reply), "i8", ALLOC_NORMAL);
+        return allocate(intArrayFromString(reply), 'i8', ALLOC_NORMAL);
       }
     ];
     function _emscripten_asm_const_i(code) {
@@ -1392,25 +1311,14 @@ var Module = (function() {
     function _emscripten_asm_const_iiiii(code, a0, a1, a2, a3) {
       return ASM_CONSTS[code](a0, a1, a2, a3);
     }
-    function _emscripten_asm_const_iiiiiiiiii(
-      code,
-      a0,
-      a1,
-      a2,
-      a3,
-      a4,
-      a5,
-      a6,
-      a7,
-      a8
-    ) {
+    function _emscripten_asm_const_iiiiiiiiii(code, a0, a1, a2, a3, a4, a5, a6, a7, a8) {
       return ASM_CONSTS[code](a0, a1, a2, a3, a4, a5, a6, a7, a8);
     }
     function _emscripten_asm_const_iiiiii(code, a0, a1, a2, a3, a4) {
       return ASM_CONSTS[code](a0, a1, a2, a3, a4);
     }
     __ATINIT__.push({
-      func: function() {
+      func: function () {
         ___emscripten_environ_constructor();
       }
     });
@@ -1419,9 +1327,9 @@ var Module = (function() {
     }
     function demangleAll(text) {
       var regex = /\b__Z[\w\d_]+/g;
-      return text.replace(regex, function(x) {
+      return text.replace(regex, function (x) {
         var y = demangle(x);
-        return x === y ? x : y + " [" + x + "]";
+        return x === y ? x : y + ' [' + x + ']';
       });
     }
     function jsStackTrace() {
@@ -1433,31 +1341,31 @@ var Module = (function() {
           err = e;
         }
         if (!err.stack) {
-          return "(no stack trace available)";
+          return '(no stack trace available)';
         }
       }
       return err.stack.toString();
     }
     function stackTrace() {
       var js = jsStackTrace();
-      if (Module["extraStackTrace"]) js += "\n" + Module["extraStackTrace"]();
+      if (Module['extraStackTrace']) js += '\n' + Module['extraStackTrace']();
       return demangleAll(js);
     }
     function ___assert_fail(condition, filename, line, func) {
       abort(
-        "Assertion failed: " +
+        'Assertion failed: ' +
           UTF8ToString(condition) +
-          ", at: " +
+          ', at: ' +
           [
-            filename ? UTF8ToString(filename) : "unknown filename",
+            filename ? UTF8ToString(filename) : 'unknown filename',
             line,
-            func ? UTF8ToString(func) : "unknown function"
+            func ? UTF8ToString(func) : 'unknown function'
           ]
       );
     }
     var ENV = {};
     function __getExecutableName() {
-      return thisProgram || "./this.program";
+      return thisProgram || './this.program';
     }
     function ___buildEnvironment(environ) {
       var MAX_ENV_VALUES = 64;
@@ -1466,19 +1374,17 @@ var Module = (function() {
       var envPtr;
       if (!___buildEnvironment.called) {
         ___buildEnvironment.called = true;
-        ENV["USER"] = "web_user";
-        ENV["LOGNAME"] = "web_user";
-        ENV["PATH"] = "/";
-        ENV["PWD"] = "/";
-        ENV["HOME"] = "/home/web_user";
-        ENV["LANG"] =
+        ENV['USER'] = 'web_user';
+        ENV['LOGNAME'] = 'web_user';
+        ENV['PATH'] = '/';
+        ENV['PWD'] = '/';
+        ENV['HOME'] = '/home/web_user';
+        ENV['LANG'] =
           (
-            (typeof navigator === "object" &&
-              navigator.languages &&
-              navigator.languages[0]) ||
-            "C"
-          ).replace("-", "_") + ".UTF-8";
-        ENV["_"] = __getExecutableName();
+            (typeof navigator === 'object' && navigator.languages && navigator.languages[0]) ||
+            'C'
+          ).replace('-', '_') + '.UTF-8';
+        ENV['_'] = __getExecutableName();
         poolPtr = getMemory(TOTAL_ENV_SIZE);
         envPtr = getMemory(MAX_ENV_VALUES * 4);
         HEAP32[envPtr >> 2] = poolPtr;
@@ -1490,14 +1396,14 @@ var Module = (function() {
       var strings = [];
       var totalSize = 0;
       for (var key in ENV) {
-        if (typeof ENV[key] === "string") {
-          var line = key + "=" + ENV[key];
+        if (typeof ENV[key] === 'string') {
+          var line = key + '=' + ENV[key];
           strings.push(line);
           totalSize += line.length;
         }
       }
       if (totalSize > TOTAL_ENV_SIZE) {
-        throw new Error("Environment size exceeded TOTAL_ENV_SIZE!");
+        throw new Error('Environment size exceeded TOTAL_ENV_SIZE!');
       }
       var ptrSize = 4;
       for (var i = 0; i < strings.length; i++) {
@@ -1509,17 +1415,17 @@ var Module = (function() {
       HEAP32[(envPtr + strings.length * ptrSize) >> 2] = 0;
     }
     var PATH = {
-      splitPath: function(filename) {
+      splitPath: function (filename) {
         var splitPathRe = /^(\/?|)([\s\S]*?)((?:\.{1,2}|[^\/]+?|)(\.[^.\/]*|))(?:[\/]*)$/;
         return splitPathRe.exec(filename).slice(1);
       },
-      normalizeArray: function(parts, allowAboveRoot) {
+      normalizeArray: function (parts, allowAboveRoot) {
         var up = 0;
         for (var i = parts.length - 1; i >= 0; i--) {
           var last = parts[i];
-          if (last === ".") {
+          if (last === '.') {
             parts.splice(i, 1);
-          } else if (last === "..") {
+          } else if (last === '..') {
             parts.splice(i, 1);
             up++;
           } else if (up) {
@@ -1529,55 +1435,55 @@ var Module = (function() {
         }
         if (allowAboveRoot) {
           for (; up; up--) {
-            parts.unshift("..");
+            parts.unshift('..');
           }
         }
         return parts;
       },
-      normalize: function(path) {
-        var isAbsolute = path.charAt(0) === "/",
-          trailingSlash = path.substr(-1) === "/";
+      normalize: function (path) {
+        var isAbsolute = path.charAt(0) === '/',
+          trailingSlash = path.substr(-1) === '/';
         path = PATH.normalizeArray(
-          path.split("/").filter(function(p) {
+          path.split('/').filter(function (p) {
             return !!p;
           }),
           !isAbsolute
-        ).join("/");
+        ).join('/');
         if (!path && !isAbsolute) {
-          path = ".";
+          path = '.';
         }
         if (path && trailingSlash) {
-          path += "/";
+          path += '/';
         }
-        return (isAbsolute ? "/" : "") + path;
+        return (isAbsolute ? '/' : '') + path;
       },
-      dirname: function(path) {
+      dirname: function (path) {
         var result = PATH.splitPath(path),
           root = result[0],
           dir = result[1];
         if (!root && !dir) {
-          return ".";
+          return '.';
         }
         if (dir) {
           dir = dir.substr(0, dir.length - 1);
         }
         return root + dir;
       },
-      basename: function(path) {
-        if (path === "/") return "/";
-        var lastSlash = path.lastIndexOf("/");
+      basename: function (path) {
+        if (path === '/') return '/';
+        var lastSlash = path.lastIndexOf('/');
         if (lastSlash === -1) return path;
         return path.substr(lastSlash + 1);
       },
-      extname: function(path) {
+      extname: function (path) {
         return PATH.splitPath(path)[3];
       },
-      join: function() {
+      join: function () {
         var paths = Array.prototype.slice.call(arguments, 0);
-        return PATH.normalize(paths.join("/"));
+        return PATH.normalize(paths.join('/'));
       },
-      join2: function(l, r) {
-        return PATH.normalize(l + "/" + r);
+      join2: function (l, r) {
+        return PATH.normalize(l + '/' + r);
       }
     };
     function setErrNo(value) {
@@ -1585,44 +1491,44 @@ var Module = (function() {
       return value;
     }
     var PATH_FS = {
-      resolve: function() {
-        var resolvedPath = "",
+      resolve: function () {
+        var resolvedPath = '',
           resolvedAbsolute = false;
         for (var i = arguments.length - 1; i >= -1 && !resolvedAbsolute; i--) {
           var path = i >= 0 ? arguments[i] : FS.cwd();
-          if (typeof path !== "string") {
-            throw new TypeError("Arguments to path.resolve must be strings");
+          if (typeof path !== 'string') {
+            throw new TypeError('Arguments to path.resolve must be strings');
           } else if (!path) {
-            return "";
+            return '';
           }
-          resolvedPath = path + "/" + resolvedPath;
-          resolvedAbsolute = path.charAt(0) === "/";
+          resolvedPath = path + '/' + resolvedPath;
+          resolvedAbsolute = path.charAt(0) === '/';
         }
         resolvedPath = PATH.normalizeArray(
-          resolvedPath.split("/").filter(function(p) {
+          resolvedPath.split('/').filter(function (p) {
             return !!p;
           }),
           !resolvedAbsolute
-        ).join("/");
-        return (resolvedAbsolute ? "/" : "") + resolvedPath || ".";
+        ).join('/');
+        return (resolvedAbsolute ? '/' : '') + resolvedPath || '.';
       },
-      relative: function(from, to) {
+      relative: function (from, to) {
         from = PATH_FS.resolve(from).substr(1);
         to = PATH_FS.resolve(to).substr(1);
         function trim(arr) {
           var start = 0;
           for (; start < arr.length; start++) {
-            if (arr[start] !== "") break;
+            if (arr[start] !== '') break;
           }
           var end = arr.length - 1;
           for (; end >= 0; end--) {
-            if (arr[end] !== "") break;
+            if (arr[end] !== '') break;
           }
           if (start > end) return [];
           return arr.slice(start, end - start + 1);
         }
-        var fromParts = trim(from.split("/"));
-        var toParts = trim(to.split("/"));
+        var fromParts = trim(from.split('/'));
+        var toParts = trim(to.split('/'));
         var length = Math.min(fromParts.length, toParts.length);
         var samePartsLength = length;
         for (var i = 0; i < length; i++) {
@@ -1633,22 +1539,22 @@ var Module = (function() {
         }
         var outputParts = [];
         for (var i = samePartsLength; i < fromParts.length; i++) {
-          outputParts.push("..");
+          outputParts.push('..');
         }
         outputParts = outputParts.concat(toParts.slice(samePartsLength));
-        return outputParts.join("/");
+        return outputParts.join('/');
       }
     };
     var TTY = {
       ttys: [],
-      init: function() {},
-      shutdown: function() {},
-      register: function(dev, ops) {
+      init: function () {},
+      shutdown: function () {},
+      register: function (dev, ops) {
         TTY.ttys[dev] = { input: [], output: [], ops: ops };
         FS.registerDevice(dev, TTY.stream_ops);
       },
       stream_ops: {
-        open: function(stream) {
+        open: function (stream) {
           var tty = TTY.ttys[stream.node.rdev];
           if (!tty) {
             throw new FS.ErrnoError(43);
@@ -1656,13 +1562,13 @@ var Module = (function() {
           stream.tty = tty;
           stream.seekable = false;
         },
-        close: function(stream) {
+        close: function (stream) {
           stream.tty.ops.flush(stream.tty);
         },
-        flush: function(stream) {
+        flush: function (stream) {
           stream.tty.ops.flush(stream.tty);
         },
-        read: function(stream, buffer, offset, length, pos) {
+        read: function (stream, buffer, offset, length, pos) {
           if (!stream.tty || !stream.tty.ops.get_char) {
             throw new FS.ErrnoError(60);
           }
@@ -1686,7 +1592,7 @@ var Module = (function() {
           }
           return bytesRead;
         },
-        write: function(stream, buffer, offset, length, pos) {
+        write: function (stream, buffer, offset, length, pos) {
           if (!stream.tty || !stream.tty.ops.put_char) {
             throw new FS.ErrnoError(60);
           }
@@ -1704,44 +1610,33 @@ var Module = (function() {
         }
       },
       default_tty_ops: {
-        get_char: function(tty) {
+        get_char: function (tty) {
           if (!tty.input.length) {
             var result = null;
             if (ENVIRONMENT_IS_NODE) {
               var BUFSIZE = 256;
-              var buf = Buffer.alloc
-                ? Buffer.alloc(BUFSIZE)
-                : new Buffer(BUFSIZE);
+              var buf = Buffer.alloc ? Buffer.alloc(BUFSIZE) : new Buffer(BUFSIZE);
               var bytesRead = 0;
               try {
-                bytesRead = nodeFS.readSync(
-                  process.stdin.fd,
-                  buf,
-                  0,
-                  BUFSIZE,
-                  null
-                );
+                bytesRead = nodeFS.readSync(process.stdin.fd, buf, 0, BUFSIZE, null);
               } catch (e) {
-                if (e.toString().indexOf("EOF") != -1) bytesRead = 0;
+                if (e.toString().indexOf('EOF') != -1) bytesRead = 0;
                 else throw e;
               }
               if (bytesRead > 0) {
-                result = buf.slice(0, bytesRead).toString("utf-8");
+                result = buf.slice(0, bytesRead).toString('utf-8');
               } else {
                 result = null;
               }
-            } else if (
-              typeof window != "undefined" &&
-              typeof window.prompt == "function"
-            ) {
-              result = window.prompt("Input: ");
+            } else if (typeof window != 'undefined' && typeof window.prompt == 'function') {
+              result = window.prompt('Input: ');
               if (result !== null) {
-                result += "\n";
+                result += '\n';
               }
-            } else if (typeof readline == "function") {
+            } else if (typeof readline == 'function') {
               result = readline();
               if (result !== null) {
-                result += "\n";
+                result += '\n';
               }
             }
             if (!result) {
@@ -1751,7 +1646,7 @@ var Module = (function() {
           }
           return tty.input.shift();
         },
-        put_char: function(tty, val) {
+        put_char: function (tty, val) {
           if (val === null || val === 10) {
             out(UTF8ArrayToString(tty.output, 0));
             tty.output = [];
@@ -1759,7 +1654,7 @@ var Module = (function() {
             if (val != 0) tty.output.push(val);
           }
         },
-        flush: function(tty) {
+        flush: function (tty) {
           if (tty.output && tty.output.length > 0) {
             out(UTF8ArrayToString(tty.output, 0));
             tty.output = [];
@@ -1767,7 +1662,7 @@ var Module = (function() {
         }
       },
       default_tty1_ops: {
-        put_char: function(tty, val) {
+        put_char: function (tty, val) {
           if (val === null || val === 10) {
             err(UTF8ArrayToString(tty.output, 0));
             tty.output = [];
@@ -1775,7 +1670,7 @@ var Module = (function() {
             if (val != 0) tty.output.push(val);
           }
         },
-        flush: function(tty) {
+        flush: function (tty) {
           if (tty.output && tty.output.length > 0) {
             err(UTF8ArrayToString(tty.output, 0));
             tty.output = [];
@@ -1785,10 +1680,10 @@ var Module = (function() {
     };
     var MEMFS = {
       ops_table: null,
-      mount: function(mount) {
-        return MEMFS.createNode(null, "/", 16384 | 511, 0);
+      mount: function (mount) {
+        return MEMFS.createNode(null, '/', 16384 | 511, 0);
       },
-      createNode: function(parent, name, mode, dev) {
+      createNode: function (parent, name, mode, dev) {
         if (FS.isBlkdev(mode) || FS.isFIFO(mode)) {
           throw new FS.ErrnoError(63);
         }
@@ -1862,7 +1757,7 @@ var Module = (function() {
         }
         return node;
       },
-      getFileDataAsRegularArray: function(node) {
+      getFileDataAsRegularArray: function (node) {
         if (node.contents && node.contents.subarray) {
           var arr = [];
           for (var i = 0; i < node.usedBytes; ++i) arr.push(node.contents[i]);
@@ -1870,30 +1765,26 @@ var Module = (function() {
         }
         return node.contents;
       },
-      getFileDataAsTypedArray: function(node) {
+      getFileDataAsTypedArray: function (node) {
         if (!node.contents) return new Uint8Array(0);
-        if (node.contents.subarray)
-          return node.contents.subarray(0, node.usedBytes);
+        if (node.contents.subarray) return node.contents.subarray(0, node.usedBytes);
         return new Uint8Array(node.contents);
       },
-      expandFileStorage: function(node, newCapacity) {
+      expandFileStorage: function (node, newCapacity) {
         var prevCapacity = node.contents ? node.contents.length : 0;
         if (prevCapacity >= newCapacity) return;
         var CAPACITY_DOUBLING_MAX = 1024 * 1024;
         newCapacity = Math.max(
           newCapacity,
-          (prevCapacity *
-            (prevCapacity < CAPACITY_DOUBLING_MAX ? 2 : 1.125)) >>>
-            0
+          (prevCapacity * (prevCapacity < CAPACITY_DOUBLING_MAX ? 2 : 1.125)) >>> 0
         );
         if (prevCapacity != 0) newCapacity = Math.max(newCapacity, 256);
         var oldContents = node.contents;
         node.contents = new Uint8Array(newCapacity);
-        if (node.usedBytes > 0)
-          node.contents.set(oldContents.subarray(0, node.usedBytes), 0);
+        if (node.usedBytes > 0) node.contents.set(oldContents.subarray(0, node.usedBytes), 0);
         return;
       },
-      resizeFileStorage: function(node, newSize) {
+      resizeFileStorage: function (node, newSize) {
         if (node.usedBytes == newSize) return;
         if (newSize == 0) {
           node.contents = null;
@@ -1904,9 +1795,7 @@ var Module = (function() {
           var oldContents = node.contents;
           node.contents = new Uint8Array(newSize);
           if (oldContents) {
-            node.contents.set(
-              oldContents.subarray(0, Math.min(newSize, node.usedBytes))
-            );
+            node.contents.set(oldContents.subarray(0, Math.min(newSize, node.usedBytes)));
           }
           node.usedBytes = newSize;
           return;
@@ -1917,7 +1806,7 @@ var Module = (function() {
         node.usedBytes = newSize;
       },
       node_ops: {
-        getattr: function(node) {
+        getattr: function (node) {
           var attr = {};
           attr.dev = FS.isChrdev(node.mode) ? node.id : 1;
           attr.ino = node.id;
@@ -1942,7 +1831,7 @@ var Module = (function() {
           attr.blocks = Math.ceil(attr.size / attr.blksize);
           return attr;
         },
-        setattr: function(node, attr) {
+        setattr: function (node, attr) {
           if (attr.mode !== undefined) {
             node.mode = attr.mode;
           }
@@ -1953,13 +1842,13 @@ var Module = (function() {
             MEMFS.resizeFileStorage(node, attr.size);
           }
         },
-        lookup: function(parent, name) {
+        lookup: function (parent, name) {
           throw FS.genericErrors[44];
         },
-        mknod: function(parent, name, mode, dev) {
+        mknod: function (parent, name, mode, dev) {
           return MEMFS.createNode(parent, name, mode, dev);
         },
-        rename: function(old_node, new_dir, new_name) {
+        rename: function (old_node, new_dir, new_name) {
           if (FS.isDir(old_node.mode)) {
             var new_node;
             try {
@@ -1976,18 +1865,18 @@ var Module = (function() {
           new_dir.contents[new_name] = old_node;
           old_node.parent = new_dir;
         },
-        unlink: function(parent, name) {
+        unlink: function (parent, name) {
           delete parent.contents[name];
         },
-        rmdir: function(parent, name) {
+        rmdir: function (parent, name) {
           var node = FS.lookupNode(parent, name);
           for (var i in node.contents) {
             throw new FS.ErrnoError(55);
           }
           delete parent.contents[name];
         },
-        readdir: function(node) {
-          var entries = [".", ".."];
+        readdir: function (node) {
+          var entries = ['.', '..'];
           for (var key in node.contents) {
             if (!node.contents.hasOwnProperty(key)) {
               continue;
@@ -1996,12 +1885,12 @@ var Module = (function() {
           }
           return entries;
         },
-        symlink: function(parent, newname, oldpath) {
+        symlink: function (parent, newname, oldpath) {
           var node = MEMFS.createNode(parent, newname, 511 | 40960, 0);
           node.link = oldpath;
           return node;
         },
-        readlink: function(node) {
+        readlink: function (node) {
           if (!FS.isLink(node.mode)) {
             throw new FS.ErrnoError(28);
           }
@@ -2009,19 +1898,18 @@ var Module = (function() {
         }
       },
       stream_ops: {
-        read: function(stream, buffer, offset, length, position) {
+        read: function (stream, buffer, offset, length, position) {
           var contents = stream.node.contents;
           if (position >= stream.node.usedBytes) return 0;
           var size = Math.min(stream.node.usedBytes - position, length);
           if (size > 8 && contents.subarray) {
             buffer.set(contents.subarray(position, position + size), offset);
           } else {
-            for (var i = 0; i < size; i++)
-              buffer[offset + i] = contents[position + i];
+            for (var i = 0; i < size; i++) buffer[offset + i] = contents[position + i];
           }
           return size;
         },
-        write: function(stream, buffer, offset, length, position, canOwn) {
+        write: function (stream, buffer, offset, length, position, canOwn) {
           if (buffer.buffer === HEAP8.buffer) {
             canOwn = false;
           }
@@ -2038,19 +1926,13 @@ var Module = (function() {
               node.usedBytes = length;
               return length;
             } else if (position + length <= node.usedBytes) {
-              node.contents.set(
-                buffer.subarray(offset, offset + length),
-                position
-              );
+              node.contents.set(buffer.subarray(offset, offset + length), position);
               return length;
             }
           }
           MEMFS.expandFileStorage(node, position + length);
           if (node.contents.subarray && buffer.subarray)
-            node.contents.set(
-              buffer.subarray(offset, offset + length),
-              position
-            );
+            node.contents.set(buffer.subarray(offset, offset + length), position);
           else {
             for (var i = 0; i < length; i++) {
               node.contents[position + i] = buffer[offset + i];
@@ -2059,7 +1941,7 @@ var Module = (function() {
           node.usedBytes = Math.max(node.usedBytes, position + length);
           return length;
         },
-        llseek: function(stream, offset, whence) {
+        llseek: function (stream, offset, whence) {
           var position = offset;
           if (whence === 1) {
             position += stream.position;
@@ -2073,14 +1955,11 @@ var Module = (function() {
           }
           return position;
         },
-        allocate: function(stream, offset, length) {
+        allocate: function (stream, offset, length) {
           MEMFS.expandFileStorage(stream.node, offset + length);
-          stream.node.usedBytes = Math.max(
-            stream.node.usedBytes,
-            offset + length
-          );
+          stream.node.usedBytes = Math.max(stream.node.usedBytes, offset + length);
         },
-        mmap: function(stream, buffer, offset, length, position, prot, flags) {
+        mmap: function (stream, buffer, offset, length, position, prot, flags) {
           if (!FS.isFile(stream.node.mode)) {
             throw new FS.ErrnoError(43);
           }
@@ -2095,11 +1974,7 @@ var Module = (function() {
               if (contents.subarray) {
                 contents = contents.subarray(position, position + length);
               } else {
-                contents = Array.prototype.slice.call(
-                  contents,
-                  position,
-                  position + length
-                );
+                contents = Array.prototype.slice.call(contents, position, position + length);
               }
             }
             allocated = true;
@@ -2112,21 +1987,14 @@ var Module = (function() {
           }
           return { ptr: ptr, allocated: allocated };
         },
-        msync: function(stream, buffer, offset, length, mmapFlags) {
+        msync: function (stream, buffer, offset, length, mmapFlags) {
           if (!FS.isFile(stream.node.mode)) {
             throw new FS.ErrnoError(43);
           }
           if (mmapFlags & 2) {
             return 0;
           }
-          var bytesWritten = MEMFS.stream_ops.write(
-            stream,
-            buffer,
-            0,
-            length,
-            offset,
-            false
-          );
+          var bytesWritten = MEMFS.stream_ops.write(stream, buffer, 0, length, offset, false);
           return 0;
         }
       }
@@ -2138,7 +2006,7 @@ var Module = (function() {
       streams: [],
       nextInode: 1,
       nameTable: null,
-      currentPath: "/",
+      currentPath: '/',
       initialized: false,
       ignorePermissions: true,
       trackingDelegate: {},
@@ -2147,14 +2015,14 @@ var Module = (function() {
       genericErrors: {},
       filesystems: null,
       syncFSRequests: 0,
-      handleFSError: function(e) {
-        if (!(e instanceof FS.ErrnoError)) throw e + " : " + stackTrace();
+      handleFSError: function (e) {
+        if (!(e instanceof FS.ErrnoError)) throw e + ' : ' + stackTrace();
         return setErrNo(e.errno);
       },
-      lookupPath: function(path, opts) {
+      lookupPath: function (path, opts) {
         path = PATH_FS.resolve(FS.cwd(), path);
         opts = opts || {};
-        if (!path) return { path: "", node: null };
+        if (!path) return { path: '', node: null };
         var defaults = { follow_mount: true, recurse_count: 0 };
         for (var key in defaults) {
           if (opts[key] === undefined) {
@@ -2165,13 +2033,13 @@ var Module = (function() {
           throw new FS.ErrnoError(32);
         }
         var parts = PATH.normalizeArray(
-          path.split("/").filter(function(p) {
+          path.split('/').filter(function (p) {
             return !!p;
           }),
           false
         );
         var current = FS.root;
-        var current_path = "/";
+        var current_path = '/';
         for (var i = 0; i < parts.length; i++) {
           var islast = i === parts.length - 1;
           if (islast && opts.parent) {
@@ -2201,33 +2069,31 @@ var Module = (function() {
         }
         return { path: current_path, node: current };
       },
-      getPath: function(node) {
+      getPath: function (node) {
         var path;
         while (true) {
           if (FS.isRoot(node)) {
             var mount = node.mount.mountpoint;
             if (!path) return mount;
-            return mount[mount.length - 1] !== "/"
-              ? mount + "/" + path
-              : mount + path;
+            return mount[mount.length - 1] !== '/' ? mount + '/' + path : mount + path;
           }
-          path = path ? node.name + "/" + path : node.name;
+          path = path ? node.name + '/' + path : node.name;
           node = node.parent;
         }
       },
-      hashName: function(parentid, name) {
+      hashName: function (parentid, name) {
         var hash = 0;
         for (var i = 0; i < name.length; i++) {
           hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
         }
         return ((parentid + hash) >>> 0) % FS.nameTable.length;
       },
-      hashAddNode: function(node) {
+      hashAddNode: function (node) {
         var hash = FS.hashName(node.parent.id, node.name);
         node.name_next = FS.nameTable[hash];
         FS.nameTable[hash] = node;
       },
-      hashRemoveNode: function(node) {
+      hashRemoveNode: function (node) {
         var hash = FS.hashName(node.parent.id, node.name);
         if (FS.nameTable[hash] === node) {
           FS.nameTable[hash] = node.name_next;
@@ -2242,7 +2108,7 @@ var Module = (function() {
           }
         }
       },
-      lookupNode: function(parent, name) {
+      lookupNode: function (parent, name) {
         var errCode = FS.mayLookup(parent);
         if (errCode) {
           throw new FS.ErrnoError(errCode, parent);
@@ -2256,106 +2122,106 @@ var Module = (function() {
         }
         return FS.lookup(parent, name);
       },
-      createNode: function(parent, name, mode, rdev) {
+      createNode: function (parent, name, mode, rdev) {
         var node = new FS.FSNode(parent, name, mode, rdev);
         FS.hashAddNode(node);
         return node;
       },
-      destroyNode: function(node) {
+      destroyNode: function (node) {
         FS.hashRemoveNode(node);
       },
-      isRoot: function(node) {
+      isRoot: function (node) {
         return node === node.parent;
       },
-      isMountpoint: function(node) {
+      isMountpoint: function (node) {
         return !!node.mounted;
       },
-      isFile: function(mode) {
+      isFile: function (mode) {
         return (mode & 61440) === 32768;
       },
-      isDir: function(mode) {
+      isDir: function (mode) {
         return (mode & 61440) === 16384;
       },
-      isLink: function(mode) {
+      isLink: function (mode) {
         return (mode & 61440) === 40960;
       },
-      isChrdev: function(mode) {
+      isChrdev: function (mode) {
         return (mode & 61440) === 8192;
       },
-      isBlkdev: function(mode) {
+      isBlkdev: function (mode) {
         return (mode & 61440) === 24576;
       },
-      isFIFO: function(mode) {
+      isFIFO: function (mode) {
         return (mode & 61440) === 4096;
       },
-      isSocket: function(mode) {
+      isSocket: function (mode) {
         return (mode & 49152) === 49152;
       },
       flagModes: {
         r: 0,
         rs: 1052672,
-        "r+": 2,
+        'r+': 2,
         w: 577,
         wx: 705,
         xw: 705,
-        "w+": 578,
-        "wx+": 706,
-        "xw+": 706,
+        'w+': 578,
+        'wx+': 706,
+        'xw+': 706,
         a: 1089,
         ax: 1217,
         xa: 1217,
-        "a+": 1090,
-        "ax+": 1218,
-        "xa+": 1218
+        'a+': 1090,
+        'ax+': 1218,
+        'xa+': 1218
       },
-      modeStringToFlags: function(str) {
+      modeStringToFlags: function (str) {
         var flags = FS.flagModes[str];
-        if (typeof flags === "undefined") {
-          throw new Error("Unknown file open mode: " + str);
+        if (typeof flags === 'undefined') {
+          throw new Error('Unknown file open mode: ' + str);
         }
         return flags;
       },
-      flagsToPermissionString: function(flag) {
-        var perms = ["r", "w", "rw"][flag & 3];
+      flagsToPermissionString: function (flag) {
+        var perms = ['r', 'w', 'rw'][flag & 3];
         if (flag & 512) {
-          perms += "w";
+          perms += 'w';
         }
         return perms;
       },
-      nodePermissions: function(node, perms) {
+      nodePermissions: function (node, perms) {
         if (FS.ignorePermissions) {
           return 0;
         }
-        if (perms.indexOf("r") !== -1 && !(node.mode & 292)) {
+        if (perms.indexOf('r') !== -1 && !(node.mode & 292)) {
           return 2;
-        } else if (perms.indexOf("w") !== -1 && !(node.mode & 146)) {
+        } else if (perms.indexOf('w') !== -1 && !(node.mode & 146)) {
           return 2;
-        } else if (perms.indexOf("x") !== -1 && !(node.mode & 73)) {
+        } else if (perms.indexOf('x') !== -1 && !(node.mode & 73)) {
           return 2;
         }
         return 0;
       },
-      mayLookup: function(dir) {
-        var errCode = FS.nodePermissions(dir, "x");
+      mayLookup: function (dir) {
+        var errCode = FS.nodePermissions(dir, 'x');
         if (errCode) return errCode;
         if (!dir.node_ops.lookup) return 2;
         return 0;
       },
-      mayCreate: function(dir, name) {
+      mayCreate: function (dir, name) {
         try {
           var node = FS.lookupNode(dir, name);
           return 20;
         } catch (e) {}
-        return FS.nodePermissions(dir, "wx");
+        return FS.nodePermissions(dir, 'wx');
       },
-      mayDelete: function(dir, name, isdir) {
+      mayDelete: function (dir, name, isdir) {
         var node;
         try {
           node = FS.lookupNode(dir, name);
         } catch (e) {
           return e.errno;
         }
-        var errCode = FS.nodePermissions(dir, "wx");
+        var errCode = FS.nodePermissions(dir, 'wx');
         if (errCode) {
           return errCode;
         }
@@ -2373,21 +2239,21 @@ var Module = (function() {
         }
         return 0;
       },
-      mayOpen: function(node, flags) {
+      mayOpen: function (node, flags) {
         if (!node) {
           return 44;
         }
         if (FS.isLink(node.mode)) {
           return 32;
         } else if (FS.isDir(node.mode)) {
-          if (FS.flagsToPermissionString(flags) !== "r" || flags & 512) {
+          if (FS.flagsToPermissionString(flags) !== 'r' || flags & 512) {
             return 31;
           }
         }
         return FS.nodePermissions(node, FS.flagsToPermissionString(flags));
       },
       MAX_OPEN_FDS: 4096,
-      nextfd: function(fd_start, fd_end) {
+      nextfd: function (fd_start, fd_end) {
         fd_start = fd_start || 0;
         fd_end = fd_end || FS.MAX_OPEN_FDS;
         for (var fd = fd_start; fd <= fd_end; fd++) {
@@ -2397,33 +2263,33 @@ var Module = (function() {
         }
         throw new FS.ErrnoError(33);
       },
-      getStream: function(fd) {
+      getStream: function (fd) {
         return FS.streams[fd];
       },
-      createStream: function(stream, fd_start, fd_end) {
+      createStream: function (stream, fd_start, fd_end) {
         if (!FS.FSStream) {
-          FS.FSStream = function() {};
+          FS.FSStream = function () {};
           FS.FSStream.prototype = {
             object: {
-              get: function() {
+              get: function () {
                 return this.node;
               },
-              set: function(val) {
+              set: function (val) {
                 this.node = val;
               }
             },
             isRead: {
-              get: function() {
+              get: function () {
                 return (this.flags & 2097155) !== 1;
               }
             },
             isWrite: {
-              get: function() {
+              get: function () {
                 return (this.flags & 2097155) !== 0;
               }
             },
             isAppend: {
-              get: function() {
+              get: function () {
                 return this.flags & 1024;
               }
             }
@@ -2439,37 +2305,37 @@ var Module = (function() {
         FS.streams[fd] = stream;
         return stream;
       },
-      closeStream: function(fd) {
+      closeStream: function (fd) {
         FS.streams[fd] = null;
       },
       chrdev_stream_ops: {
-        open: function(stream) {
+        open: function (stream) {
           var device = FS.getDevice(stream.node.rdev);
           stream.stream_ops = device.stream_ops;
           if (stream.stream_ops.open) {
             stream.stream_ops.open(stream);
           }
         },
-        llseek: function() {
+        llseek: function () {
           throw new FS.ErrnoError(70);
         }
       },
-      major: function(dev) {
+      major: function (dev) {
         return dev >> 8;
       },
-      minor: function(dev) {
+      minor: function (dev) {
         return dev & 255;
       },
-      makedev: function(ma, mi) {
+      makedev: function (ma, mi) {
         return (ma << 8) | mi;
       },
-      registerDevice: function(dev, ops) {
+      registerDevice: function (dev, ops) {
         FS.devices[dev] = { stream_ops: ops };
       },
-      getDevice: function(dev) {
+      getDevice: function (dev) {
         return FS.devices[dev];
       },
-      getMounts: function(mount) {
+      getMounts: function (mount) {
         var mounts = [];
         var check = [mount];
         while (check.length) {
@@ -2479,17 +2345,17 @@ var Module = (function() {
         }
         return mounts;
       },
-      syncfs: function(populate, callback) {
-        if (typeof populate === "function") {
+      syncfs: function (populate, callback) {
+        if (typeof populate === 'function') {
           callback = populate;
           populate = false;
         }
         FS.syncFSRequests++;
         if (FS.syncFSRequests > 1) {
           err(
-            "warning: " +
+            'warning: ' +
               FS.syncFSRequests +
-              " FS.syncfs operations in flight at once, probably just doing extra work"
+              ' FS.syncfs operations in flight at once, probably just doing extra work'
           );
         }
         var mounts = FS.getMounts(FS.root.mount);
@@ -2510,15 +2376,15 @@ var Module = (function() {
             doCallback(null);
           }
         }
-        mounts.forEach(function(mount) {
+        mounts.forEach(function (mount) {
           if (!mount.type.syncfs) {
             return done(null);
           }
           mount.type.syncfs(mount, populate, done);
         });
       },
-      mount: function(type, opts, mountpoint) {
-        var root = mountpoint === "/";
+      mount: function (type, opts, mountpoint) {
+        var root = mountpoint === '/';
         var pseudo = !mountpoint;
         var node;
         if (root && FS.root) {
@@ -2553,7 +2419,7 @@ var Module = (function() {
         }
         return mountRoot;
       },
-      unmount: function(mountpoint) {
+      unmount: function (mountpoint) {
         var lookup = FS.lookupPath(mountpoint, { follow_mount: false });
         if (!FS.isMountpoint(lookup.node)) {
           throw new FS.ErrnoError(28);
@@ -2561,7 +2427,7 @@ var Module = (function() {
         var node = lookup.node;
         var mount = node.mounted;
         var mounts = FS.getMounts(mount);
-        Object.keys(FS.nameTable).forEach(function(hash) {
+        Object.keys(FS.nameTable).forEach(function (hash) {
           var current = FS.nameTable[hash];
           while (current) {
             var next = current.name_next;
@@ -2575,14 +2441,14 @@ var Module = (function() {
         var idx = node.mount.mounts.indexOf(mount);
         node.mount.mounts.splice(idx, 1);
       },
-      lookup: function(parent, name) {
+      lookup: function (parent, name) {
         return parent.node_ops.lookup(parent, name);
       },
-      mknod: function(path, mode, dev) {
+      mknod: function (path, mode, dev) {
         var lookup = FS.lookupPath(path, { parent: true });
         var parent = lookup.node;
         var name = PATH.basename(path);
-        if (!name || name === "." || name === "..") {
+        if (!name || name === '.' || name === '..') {
           throw new FS.ErrnoError(28);
         }
         var errCode = FS.mayCreate(parent, name);
@@ -2594,24 +2460,24 @@ var Module = (function() {
         }
         return parent.node_ops.mknod(parent, name, mode, dev);
       },
-      create: function(path, mode) {
+      create: function (path, mode) {
         mode = mode !== undefined ? mode : 438;
         mode &= 4095;
         mode |= 32768;
         return FS.mknod(path, mode, 0);
       },
-      mkdir: function(path, mode) {
+      mkdir: function (path, mode) {
         mode = mode !== undefined ? mode : 511;
         mode &= 511 | 512;
         mode |= 16384;
         return FS.mknod(path, mode, 0);
       },
-      mkdirTree: function(path, mode) {
-        var dirs = path.split("/");
-        var d = "";
+      mkdirTree: function (path, mode) {
+        var dirs = path.split('/');
+        var d = '';
         for (var i = 0; i < dirs.length; ++i) {
           if (!dirs[i]) continue;
-          d += "/" + dirs[i];
+          d += '/' + dirs[i];
           try {
             FS.mkdir(d, mode);
           } catch (e) {
@@ -2619,15 +2485,15 @@ var Module = (function() {
           }
         }
       },
-      mkdev: function(path, mode, dev) {
-        if (typeof dev === "undefined") {
+      mkdev: function (path, mode, dev) {
+        if (typeof dev === 'undefined') {
           dev = mode;
           mode = 438;
         }
         mode |= 8192;
         return FS.mknod(path, mode, dev);
       },
-      symlink: function(oldpath, newpath) {
+      symlink: function (oldpath, newpath) {
         if (!PATH_FS.resolve(oldpath)) {
           throw new FS.ErrnoError(44);
         }
@@ -2646,7 +2512,7 @@ var Module = (function() {
         }
         return parent.node_ops.symlink(parent, newname, oldpath);
       },
-      rename: function(old_path, new_path) {
+      rename: function (old_path, new_path) {
         var old_dirname = PATH.dirname(old_path);
         var new_dirname = PATH.dirname(new_path);
         var old_name = PATH.basename(old_path);
@@ -2666,11 +2532,11 @@ var Module = (function() {
         }
         var old_node = FS.lookupNode(old_dir, old_name);
         var relative = PATH_FS.relative(old_path, new_dirname);
-        if (relative.charAt(0) !== ".") {
+        if (relative.charAt(0) !== '.') {
           throw new FS.ErrnoError(28);
         }
         relative = PATH_FS.relative(new_path, old_dirname);
-        if (relative.charAt(0) !== ".") {
+        if (relative.charAt(0) !== '.') {
           throw new FS.ErrnoError(55);
         }
         var new_node;
@@ -2694,21 +2560,18 @@ var Module = (function() {
         if (!old_dir.node_ops.rename) {
           throw new FS.ErrnoError(63);
         }
-        if (
-          FS.isMountpoint(old_node) ||
-          (new_node && FS.isMountpoint(new_node))
-        ) {
+        if (FS.isMountpoint(old_node) || (new_node && FS.isMountpoint(new_node))) {
           throw new FS.ErrnoError(10);
         }
         if (new_dir !== old_dir) {
-          errCode = FS.nodePermissions(old_dir, "w");
+          errCode = FS.nodePermissions(old_dir, 'w');
           if (errCode) {
             throw new FS.ErrnoError(errCode);
           }
         }
         try {
-          if (FS.trackingDelegate["willMovePath"]) {
-            FS.trackingDelegate["willMovePath"](old_path, new_path);
+          if (FS.trackingDelegate['willMovePath']) {
+            FS.trackingDelegate['willMovePath'](old_path, new_path);
           }
         } catch (e) {
           err(
@@ -2729,8 +2592,8 @@ var Module = (function() {
           FS.hashAddNode(old_node);
         }
         try {
-          if (FS.trackingDelegate["onMovePath"])
-            FS.trackingDelegate["onMovePath"](old_path, new_path);
+          if (FS.trackingDelegate['onMovePath'])
+            FS.trackingDelegate['onMovePath'](old_path, new_path);
         } catch (e) {
           err(
             "FS.trackingDelegate['onMovePath']('" +
@@ -2742,7 +2605,7 @@ var Module = (function() {
           );
         }
       },
-      rmdir: function(path) {
+      rmdir: function (path) {
         var lookup = FS.lookupPath(path, { parent: true });
         var parent = lookup.node;
         var name = PATH.basename(path);
@@ -2758,32 +2621,25 @@ var Module = (function() {
           throw new FS.ErrnoError(10);
         }
         try {
-          if (FS.trackingDelegate["willDeletePath"]) {
-            FS.trackingDelegate["willDeletePath"](path);
+          if (FS.trackingDelegate['willDeletePath']) {
+            FS.trackingDelegate['willDeletePath'](path);
           }
         } catch (e) {
           err(
-            "FS.trackingDelegate['willDeletePath']('" +
-              path +
-              "') threw an exception: " +
-              e.message
+            "FS.trackingDelegate['willDeletePath']('" + path + "') threw an exception: " + e.message
           );
         }
         parent.node_ops.rmdir(parent, name);
         FS.destroyNode(node);
         try {
-          if (FS.trackingDelegate["onDeletePath"])
-            FS.trackingDelegate["onDeletePath"](path);
+          if (FS.trackingDelegate['onDeletePath']) FS.trackingDelegate['onDeletePath'](path);
         } catch (e) {
           err(
-            "FS.trackingDelegate['onDeletePath']('" +
-              path +
-              "') threw an exception: " +
-              e.message
+            "FS.trackingDelegate['onDeletePath']('" + path + "') threw an exception: " + e.message
           );
         }
       },
-      readdir: function(path) {
+      readdir: function (path) {
         var lookup = FS.lookupPath(path, { follow: true });
         var node = lookup.node;
         if (!node.node_ops.readdir) {
@@ -2791,7 +2647,7 @@ var Module = (function() {
         }
         return node.node_ops.readdir(node);
       },
-      unlink: function(path) {
+      unlink: function (path) {
         var lookup = FS.lookupPath(path, { parent: true });
         var parent = lookup.node;
         var name = PATH.basename(path);
@@ -2807,32 +2663,25 @@ var Module = (function() {
           throw new FS.ErrnoError(10);
         }
         try {
-          if (FS.trackingDelegate["willDeletePath"]) {
-            FS.trackingDelegate["willDeletePath"](path);
+          if (FS.trackingDelegate['willDeletePath']) {
+            FS.trackingDelegate['willDeletePath'](path);
           }
         } catch (e) {
           err(
-            "FS.trackingDelegate['willDeletePath']('" +
-              path +
-              "') threw an exception: " +
-              e.message
+            "FS.trackingDelegate['willDeletePath']('" + path + "') threw an exception: " + e.message
           );
         }
         parent.node_ops.unlink(parent, name);
         FS.destroyNode(node);
         try {
-          if (FS.trackingDelegate["onDeletePath"])
-            FS.trackingDelegate["onDeletePath"](path);
+          if (FS.trackingDelegate['onDeletePath']) FS.trackingDelegate['onDeletePath'](path);
         } catch (e) {
           err(
-            "FS.trackingDelegate['onDeletePath']('" +
-              path +
-              "') threw an exception: " +
-              e.message
+            "FS.trackingDelegate['onDeletePath']('" + path + "') threw an exception: " + e.message
           );
         }
       },
-      readlink: function(path) {
+      readlink: function (path) {
         var lookup = FS.lookupPath(path);
         var link = lookup.node;
         if (!link) {
@@ -2841,12 +2690,9 @@ var Module = (function() {
         if (!link.node_ops.readlink) {
           throw new FS.ErrnoError(28);
         }
-        return PATH_FS.resolve(
-          FS.getPath(link.parent),
-          link.node_ops.readlink(link)
-        );
+        return PATH_FS.resolve(FS.getPath(link.parent), link.node_ops.readlink(link));
       },
-      stat: function(path, dontFollow) {
+      stat: function (path, dontFollow) {
         var lookup = FS.lookupPath(path, { follow: !dontFollow });
         var node = lookup.node;
         if (!node) {
@@ -2857,12 +2703,12 @@ var Module = (function() {
         }
         return node.node_ops.getattr(node);
       },
-      lstat: function(path) {
+      lstat: function (path) {
         return FS.stat(path, true);
       },
-      chmod: function(path, mode, dontFollow) {
+      chmod: function (path, mode, dontFollow) {
         var node;
-        if (typeof path === "string") {
+        if (typeof path === 'string') {
           var lookup = FS.lookupPath(path, { follow: !dontFollow });
           node = lookup.node;
         } else {
@@ -2876,19 +2722,19 @@ var Module = (function() {
           timestamp: Date.now()
         });
       },
-      lchmod: function(path, mode) {
+      lchmod: function (path, mode) {
         FS.chmod(path, mode, true);
       },
-      fchmod: function(fd, mode) {
+      fchmod: function (fd, mode) {
         var stream = FS.getStream(fd);
         if (!stream) {
           throw new FS.ErrnoError(8);
         }
         FS.chmod(stream.node, mode);
       },
-      chown: function(path, uid, gid, dontFollow) {
+      chown: function (path, uid, gid, dontFollow) {
         var node;
-        if (typeof path === "string") {
+        if (typeof path === 'string') {
           var lookup = FS.lookupPath(path, { follow: !dontFollow });
           node = lookup.node;
         } else {
@@ -2899,22 +2745,22 @@ var Module = (function() {
         }
         node.node_ops.setattr(node, { timestamp: Date.now() });
       },
-      lchown: function(path, uid, gid) {
+      lchown: function (path, uid, gid) {
         FS.chown(path, uid, gid, true);
       },
-      fchown: function(fd, uid, gid) {
+      fchown: function (fd, uid, gid) {
         var stream = FS.getStream(fd);
         if (!stream) {
           throw new FS.ErrnoError(8);
         }
         FS.chown(stream.node, uid, gid);
       },
-      truncate: function(path, len) {
+      truncate: function (path, len) {
         if (len < 0) {
           throw new FS.ErrnoError(28);
         }
         var node;
-        if (typeof path === "string") {
+        if (typeof path === 'string') {
           var lookup = FS.lookupPath(path, { follow: true });
           node = lookup.node;
         } else {
@@ -2929,13 +2775,13 @@ var Module = (function() {
         if (!FS.isFile(node.mode)) {
           throw new FS.ErrnoError(28);
         }
-        var errCode = FS.nodePermissions(node, "w");
+        var errCode = FS.nodePermissions(node, 'w');
         if (errCode) {
           throw new FS.ErrnoError(errCode);
         }
         node.node_ops.setattr(node, { size: len, timestamp: Date.now() });
       },
-      ftruncate: function(fd, len) {
+      ftruncate: function (fd, len) {
         var stream = FS.getStream(fd);
         if (!stream) {
           throw new FS.ErrnoError(8);
@@ -2945,24 +2791,24 @@ var Module = (function() {
         }
         FS.truncate(stream.node, len);
       },
-      utime: function(path, atime, mtime) {
+      utime: function (path, atime, mtime) {
         var lookup = FS.lookupPath(path, { follow: true });
         var node = lookup.node;
         node.node_ops.setattr(node, { timestamp: Math.max(atime, mtime) });
       },
-      open: function(path, flags, mode, fd_start, fd_end) {
-        if (path === "") {
+      open: function (path, flags, mode, fd_start, fd_end) {
+        if (path === '') {
           throw new FS.ErrnoError(44);
         }
-        flags = typeof flags === "string" ? FS.modeStringToFlags(flags) : flags;
-        mode = typeof mode === "undefined" ? 438 : mode;
+        flags = typeof flags === 'string' ? FS.modeStringToFlags(flags) : flags;
+        mode = typeof mode === 'undefined' ? 438 : mode;
         if (flags & 64) {
           mode = (mode & 4095) | 32768;
         } else {
           mode = 0;
         }
         var node;
-        if (typeof path === "object") {
+        if (typeof path === 'object') {
           node = path;
         } else {
           path = PATH.normalize(path);
@@ -3018,15 +2864,15 @@ var Module = (function() {
         if (stream.stream_ops.open) {
           stream.stream_ops.open(stream);
         }
-        if (Module["logReadFiles"] && !(flags & 1)) {
+        if (Module['logReadFiles'] && !(flags & 1)) {
           if (!FS.readFiles) FS.readFiles = {};
           if (!(path in FS.readFiles)) {
             FS.readFiles[path] = 1;
-            err("FS.trackingDelegate error on read file: " + path);
+            err('FS.trackingDelegate error on read file: ' + path);
           }
         }
         try {
-          if (FS.trackingDelegate["onOpenFile"]) {
+          if (FS.trackingDelegate['onOpenFile']) {
             var trackingFlags = 0;
             if ((flags & 2097155) !== 1) {
               trackingFlags |= FS.tracking.openFlags.READ;
@@ -3034,7 +2880,7 @@ var Module = (function() {
             if ((flags & 2097155) !== 0) {
               trackingFlags |= FS.tracking.openFlags.WRITE;
             }
-            FS.trackingDelegate["onOpenFile"](path, trackingFlags);
+            FS.trackingDelegate['onOpenFile'](path, trackingFlags);
           }
         } catch (e) {
           err(
@@ -3046,7 +2892,7 @@ var Module = (function() {
         }
         return stream;
       },
-      close: function(stream) {
+      close: function (stream) {
         if (FS.isClosed(stream)) {
           throw new FS.ErrnoError(8);
         }
@@ -3062,10 +2908,10 @@ var Module = (function() {
         }
         stream.fd = null;
       },
-      isClosed: function(stream) {
+      isClosed: function (stream) {
         return stream.fd === null;
       },
-      llseek: function(stream, offset, whence) {
+      llseek: function (stream, offset, whence) {
         if (FS.isClosed(stream)) {
           throw new FS.ErrnoError(8);
         }
@@ -3079,7 +2925,7 @@ var Module = (function() {
         stream.ungotten = [];
         return stream.position;
       },
-      read: function(stream, buffer, offset, length, position) {
+      read: function (stream, buffer, offset, length, position) {
         if (length < 0 || position < 0) {
           throw new FS.ErrnoError(28);
         }
@@ -3095,23 +2941,17 @@ var Module = (function() {
         if (!stream.stream_ops.read) {
           throw new FS.ErrnoError(28);
         }
-        var seeking = typeof position !== "undefined";
+        var seeking = typeof position !== 'undefined';
         if (!seeking) {
           position = stream.position;
         } else if (!stream.seekable) {
           throw new FS.ErrnoError(70);
         }
-        var bytesRead = stream.stream_ops.read(
-          stream,
-          buffer,
-          offset,
-          length,
-          position
-        );
+        var bytesRead = stream.stream_ops.read(stream, buffer, offset, length, position);
         if (!seeking) stream.position += bytesRead;
         return bytesRead;
       },
-      write: function(stream, buffer, offset, length, position, canOwn) {
+      write: function (stream, buffer, offset, length, position, canOwn) {
         if (length < 0 || position < 0) {
           throw new FS.ErrnoError(28);
         }
@@ -3130,7 +2970,7 @@ var Module = (function() {
         if (stream.seekable && stream.flags & 1024) {
           FS.llseek(stream, 0, 2);
         }
-        var seeking = typeof position !== "undefined";
+        var seeking = typeof position !== 'undefined';
         if (!seeking) {
           position = stream.position;
         } else if (!stream.seekable) {
@@ -3146,8 +2986,8 @@ var Module = (function() {
         );
         if (!seeking) stream.position += bytesWritten;
         try {
-          if (stream.path && FS.trackingDelegate["onWriteToFile"])
-            FS.trackingDelegate["onWriteToFile"](stream.path);
+          if (stream.path && FS.trackingDelegate['onWriteToFile'])
+            FS.trackingDelegate['onWriteToFile'](stream.path);
         } catch (e) {
           err(
             "FS.trackingDelegate['onWriteToFile']('" +
@@ -3158,7 +2998,7 @@ var Module = (function() {
         }
         return bytesWritten;
       },
-      allocate: function(stream, offset, length) {
+      allocate: function (stream, offset, length) {
         if (FS.isClosed(stream)) {
           throw new FS.ErrnoError(8);
         }
@@ -3176,12 +3016,8 @@ var Module = (function() {
         }
         stream.stream_ops.allocate(stream, offset, length);
       },
-      mmap: function(stream, buffer, offset, length, position, prot, flags) {
-        if (
-          (prot & 2) !== 0 &&
-          (flags & 2) === 0 &&
-          (stream.flags & 2097155) !== 2
-        ) {
+      mmap: function (stream, buffer, offset, length, position, prot, flags) {
+        if ((prot & 2) !== 0 && (flags & 2) === 0 && (stream.flags & 2097155) !== 2) {
           throw new FS.ErrnoError(2);
         }
         if ((stream.flags & 2097155) === 1) {
@@ -3190,42 +3026,28 @@ var Module = (function() {
         if (!stream.stream_ops.mmap) {
           throw new FS.ErrnoError(43);
         }
-        return stream.stream_ops.mmap(
-          stream,
-          buffer,
-          offset,
-          length,
-          position,
-          prot,
-          flags
-        );
+        return stream.stream_ops.mmap(stream, buffer, offset, length, position, prot, flags);
       },
-      msync: function(stream, buffer, offset, length, mmapFlags) {
+      msync: function (stream, buffer, offset, length, mmapFlags) {
         if (!stream || !stream.stream_ops.msync) {
           return 0;
         }
-        return stream.stream_ops.msync(
-          stream,
-          buffer,
-          offset,
-          length,
-          mmapFlags
-        );
+        return stream.stream_ops.msync(stream, buffer, offset, length, mmapFlags);
       },
-      munmap: function(stream) {
+      munmap: function (stream) {
         return 0;
       },
-      ioctl: function(stream, cmd, arg) {
+      ioctl: function (stream, cmd, arg) {
         if (!stream.stream_ops.ioctl) {
           throw new FS.ErrnoError(59);
         }
         return stream.stream_ops.ioctl(stream, cmd, arg);
       },
-      readFile: function(path, opts) {
+      readFile: function (path, opts) {
         opts = opts || {};
-        opts.flags = opts.flags || "r";
-        opts.encoding = opts.encoding || "binary";
-        if (opts.encoding !== "utf8" && opts.encoding !== "binary") {
+        opts.flags = opts.flags || 'r';
+        opts.encoding = opts.encoding || 'binary';
+        if (opts.encoding !== 'utf8' && opts.encoding !== 'binary') {
           throw new Error('Invalid encoding type "' + opts.encoding + '"');
         }
         var ret;
@@ -3234,33 +3056,33 @@ var Module = (function() {
         var length = stat.size;
         var buf = new Uint8Array(length);
         FS.read(stream, buf, 0, length, 0);
-        if (opts.encoding === "utf8") {
+        if (opts.encoding === 'utf8') {
           ret = UTF8ArrayToString(buf, 0);
-        } else if (opts.encoding === "binary") {
+        } else if (opts.encoding === 'binary') {
           ret = buf;
         }
         FS.close(stream);
         return ret;
       },
-      writeFile: function(path, data, opts) {
+      writeFile: function (path, data, opts) {
         opts = opts || {};
-        opts.flags = opts.flags || "w";
+        opts.flags = opts.flags || 'w';
         var stream = FS.open(path, opts.flags, opts.mode);
-        if (typeof data === "string") {
+        if (typeof data === 'string') {
           var buf = new Uint8Array(lengthBytesUTF8(data) + 1);
           var actualNumBytes = stringToUTF8Array(data, buf, 0, buf.length);
           FS.write(stream, buf, 0, actualNumBytes, undefined, opts.canOwn);
         } else if (ArrayBuffer.isView(data)) {
           FS.write(stream, data, 0, data.byteLength, undefined, opts.canOwn);
         } else {
-          throw new Error("Unsupported data type");
+          throw new Error('Unsupported data type');
         }
         FS.close(stream);
       },
-      cwd: function() {
+      cwd: function () {
         return FS.currentPath;
       },
-      chdir: function(path) {
+      chdir: function (path) {
         var lookup = FS.lookupPath(path, { follow: true });
         if (lookup.node === null) {
           throw new FS.ErrnoError(44);
@@ -3268,79 +3090,76 @@ var Module = (function() {
         if (!FS.isDir(lookup.node.mode)) {
           throw new FS.ErrnoError(54);
         }
-        var errCode = FS.nodePermissions(lookup.node, "x");
+        var errCode = FS.nodePermissions(lookup.node, 'x');
         if (errCode) {
           throw new FS.ErrnoError(errCode);
         }
         FS.currentPath = lookup.path;
       },
-      createDefaultDirectories: function() {
-        FS.mkdir("/tmp");
-        FS.mkdir("/home");
-        FS.mkdir("/home/web_user");
+      createDefaultDirectories: function () {
+        FS.mkdir('/tmp');
+        FS.mkdir('/home');
+        FS.mkdir('/home/web_user');
       },
-      createDefaultDevices: function() {
-        FS.mkdir("/dev");
+      createDefaultDevices: function () {
+        FS.mkdir('/dev');
         FS.registerDevice(FS.makedev(1, 3), {
-          read: function() {
+          read: function () {
             return 0;
           },
-          write: function(stream, buffer, offset, length, pos) {
+          write: function (stream, buffer, offset, length, pos) {
             return length;
           }
         });
-        FS.mkdev("/dev/null", FS.makedev(1, 3));
+        FS.mkdev('/dev/null', FS.makedev(1, 3));
         TTY.register(FS.makedev(5, 0), TTY.default_tty_ops);
         TTY.register(FS.makedev(6, 0), TTY.default_tty1_ops);
-        FS.mkdev("/dev/tty", FS.makedev(5, 0));
-        FS.mkdev("/dev/tty1", FS.makedev(6, 0));
+        FS.mkdev('/dev/tty', FS.makedev(5, 0));
+        FS.mkdev('/dev/tty1', FS.makedev(6, 0));
         var random_device;
-        if (
-          typeof crypto === "object" &&
-          typeof crypto["getRandomValues"] === "function"
-        ) {
+        if (typeof crypto === 'object' && typeof crypto['getRandomValues'] === 'function') {
           var randomBuffer = new Uint8Array(1);
-          random_device = function() {
+          random_device = function () {
             crypto.getRandomValues(randomBuffer);
             return randomBuffer[0];
           };
         } else if (ENVIRONMENT_IS_NODE) {
           try {
-            var crypto_module = require("crypto");
-            random_device = function() {
-              return crypto_module["randomBytes"](1)[0];
+            var crypto_module = require('crypto');
+            random_device = function () {
+              return crypto_module['randomBytes'](1)[0];
             };
           } catch (e) {}
         } else {
         }
         if (!random_device) {
-          random_device = function() {
-            abort("random_device");
+          random_device = function () {
+            abort('random_device');
           };
         }
-        FS.createDevice("/dev", "random", random_device);
-        FS.createDevice("/dev", "urandom", random_device);
-        FS.mkdir("/dev/shm");
-        FS.mkdir("/dev/shm/tmp");
+        FS.createDevice('/dev', 'random', random_device);
+        FS.createDevice('/dev', 'urandom', random_device);
+        FS.mkdir('/dev/shm');
+        FS.mkdir('/dev/shm/tmp');
       },
-      createSpecialDirectories: function() {
-        FS.mkdir("/proc");
-        FS.mkdir("/proc/self");
-        FS.mkdir("/proc/self/fd");
+      createSpecialDirectories: function () {
+        FS.mkdir('/proc');
+        FS.mkdir('/proc/self');
+        FS.mkdir('/proc/self/fd');
         FS.mount(
           {
-            mount: function() {
-              var node = FS.createNode("/proc/self", "fd", 16384 | 511, 73);
+            mount: function () {
+              var node = FS.createNode('/proc/self', 'fd', 16384 | 511, 73);
               node.node_ops = {
-                lookup: function(parent, name) {
+                lookup: function (parent, name) {
                   var fd = +name;
                   var stream = FS.getStream(fd);
                   if (!stream) throw new FS.ErrnoError(8);
                   var ret = {
                     parent: null,
-                    mount: { mountpoint: "fake" },
+                    mount: { mountpoint: 'fake' },
                     node_ops: {
-                      readlink: function() {
+                      readlink: function () {
                         return stream.path;
                       }
                     }
@@ -3353,66 +3172,66 @@ var Module = (function() {
             }
           },
           {},
-          "/proc/self/fd"
+          '/proc/self/fd'
         );
       },
-      createStandardStreams: function() {
-        if (Module["stdin"]) {
-          FS.createDevice("/dev", "stdin", Module["stdin"]);
+      createStandardStreams: function () {
+        if (Module['stdin']) {
+          FS.createDevice('/dev', 'stdin', Module['stdin']);
         } else {
-          FS.symlink("/dev/tty", "/dev/stdin");
+          FS.symlink('/dev/tty', '/dev/stdin');
         }
-        if (Module["stdout"]) {
-          FS.createDevice("/dev", "stdout", null, Module["stdout"]);
+        if (Module['stdout']) {
+          FS.createDevice('/dev', 'stdout', null, Module['stdout']);
         } else {
-          FS.symlink("/dev/tty", "/dev/stdout");
+          FS.symlink('/dev/tty', '/dev/stdout');
         }
-        if (Module["stderr"]) {
-          FS.createDevice("/dev", "stderr", null, Module["stderr"]);
+        if (Module['stderr']) {
+          FS.createDevice('/dev', 'stderr', null, Module['stderr']);
         } else {
-          FS.symlink("/dev/tty1", "/dev/stderr");
+          FS.symlink('/dev/tty1', '/dev/stderr');
         }
-        var stdin = FS.open("/dev/stdin", "r");
-        var stdout = FS.open("/dev/stdout", "w");
-        var stderr = FS.open("/dev/stderr", "w");
+        var stdin = FS.open('/dev/stdin', 'r');
+        var stdout = FS.open('/dev/stdout', 'w');
+        var stderr = FS.open('/dev/stderr', 'w');
       },
-      ensureErrnoError: function() {
+      ensureErrnoError: function () {
         if (FS.ErrnoError) return;
         FS.ErrnoError = function ErrnoError(errno, node) {
           this.node = node;
-          this.setErrno = function(errno) {
+          this.setErrno = function (errno) {
             this.errno = errno;
           };
           this.setErrno(errno);
-          this.message = "FS error";
+          this.message = 'FS error';
         };
         FS.ErrnoError.prototype = new Error();
         FS.ErrnoError.prototype.constructor = FS.ErrnoError;
-        [44].forEach(function(code) {
+        [44].forEach(function (code) {
           FS.genericErrors[code] = new FS.ErrnoError(code);
-          FS.genericErrors[code].stack = "<generic error, no stack>";
+          FS.genericErrors[code].stack = '<generic error, no stack>';
         });
       },
-      staticInit: function() {
+      staticInit: function () {
         FS.ensureErrnoError();
         FS.nameTable = new Array(4096);
-        FS.mount(MEMFS, {}, "/");
+        FS.mount(MEMFS, {}, '/');
         FS.createDefaultDirectories();
         FS.createDefaultDevices();
         FS.createSpecialDirectories();
         FS.filesystems = { MEMFS: MEMFS };
       },
-      init: function(input, output, error) {
+      init: function (input, output, error) {
         FS.init.initialized = true;
         FS.ensureErrnoError();
-        Module["stdin"] = input || Module["stdin"];
-        Module["stdout"] = output || Module["stdout"];
-        Module["stderr"] = error || Module["stderr"];
+        Module['stdin'] = input || Module['stdin'];
+        Module['stdout'] = output || Module['stdout'];
+        Module['stderr'] = error || Module['stderr'];
         FS.createStandardStreams();
       },
-      quit: function() {
+      quit: function () {
         FS.init.initialized = false;
-        var fflush = Module["_fflush"];
+        var fflush = Module['_fflush'];
         if (fflush) fflush(0);
         for (var i = 0; i < FS.streams.length; i++) {
           var stream = FS.streams[i];
@@ -3422,24 +3241,24 @@ var Module = (function() {
           FS.close(stream);
         }
       },
-      getMode: function(canRead, canWrite) {
+      getMode: function (canRead, canWrite) {
         var mode = 0;
         if (canRead) mode |= 292 | 73;
         if (canWrite) mode |= 146;
         return mode;
       },
-      joinPath: function(parts, forceRelative) {
+      joinPath: function (parts, forceRelative) {
         var path = PATH.join.apply(null, parts);
-        if (forceRelative && path[0] == "/") path = path.substr(1);
+        if (forceRelative && path[0] == '/') path = path.substr(1);
         return path;
       },
-      absolutePath: function(relative, base) {
+      absolutePath: function (relative, base) {
         return PATH_FS.resolve(base, relative);
       },
-      standardizePath: function(path) {
+      standardizePath: function (path) {
         return PATH.normalize(path);
       },
-      findObject: function(path, dontResolveLastLink) {
+      findObject: function (path, dontResolveLastLink) {
         var ret = FS.analyzePath(path, dontResolveLastLink);
         if (ret.exists) {
           return ret.object;
@@ -3448,7 +3267,7 @@ var Module = (function() {
           return null;
         }
       },
-      analyzePath: function(path, dontResolveLastLink) {
+      analyzePath: function (path, dontResolveLastLink) {
         try {
           var lookup = FS.lookupPath(path, { follow: !dontResolveLastLink });
           path = lookup.path;
@@ -3475,23 +3294,20 @@ var Module = (function() {
           ret.path = lookup.path;
           ret.object = lookup.node;
           ret.name = lookup.node.name;
-          ret.isRoot = lookup.path === "/";
+          ret.isRoot = lookup.path === '/';
         } catch (e) {
           ret.error = e.errno;
         }
         return ret;
       },
-      createFolder: function(parent, name, canRead, canWrite) {
-        var path = PATH.join2(
-          typeof parent === "string" ? parent : FS.getPath(parent),
-          name
-        );
+      createFolder: function (parent, name, canRead, canWrite) {
+        var path = PATH.join2(typeof parent === 'string' ? parent : FS.getPath(parent), name);
         var mode = FS.getMode(canRead, canWrite);
         return FS.mkdir(path, mode);
       },
-      createPath: function(parent, path, canRead, canWrite) {
-        parent = typeof parent === "string" ? parent : FS.getPath(parent);
-        var parts = path.split("/").reverse();
+      createPath: function (parent, path, canRead, canWrite) {
+        parent = typeof parent === 'string' ? parent : FS.getPath(parent);
+        var parts = path.split('/').reverse();
         while (parts.length) {
           var part = parts.pop();
           if (!part) continue;
@@ -3503,56 +3319,46 @@ var Module = (function() {
         }
         return current;
       },
-      createFile: function(parent, name, properties, canRead, canWrite) {
-        var path = PATH.join2(
-          typeof parent === "string" ? parent : FS.getPath(parent),
-          name
-        );
+      createFile: function (parent, name, properties, canRead, canWrite) {
+        var path = PATH.join2(typeof parent === 'string' ? parent : FS.getPath(parent), name);
         var mode = FS.getMode(canRead, canWrite);
         return FS.create(path, mode);
       },
-      createDataFile: function(parent, name, data, canRead, canWrite, canOwn) {
+      createDataFile: function (parent, name, data, canRead, canWrite, canOwn) {
         var path = name
-          ? PATH.join2(
-              typeof parent === "string" ? parent : FS.getPath(parent),
-              name
-            )
+          ? PATH.join2(typeof parent === 'string' ? parent : FS.getPath(parent), name)
           : parent;
         var mode = FS.getMode(canRead, canWrite);
         var node = FS.create(path, mode);
         if (data) {
-          if (typeof data === "string") {
+          if (typeof data === 'string') {
             var arr = new Array(data.length);
-            for (var i = 0, len = data.length; i < len; ++i)
-              arr[i] = data.charCodeAt(i);
+            for (var i = 0, len = data.length; i < len; ++i) arr[i] = data.charCodeAt(i);
             data = arr;
           }
           FS.chmod(node, mode | 146);
-          var stream = FS.open(node, "w");
+          var stream = FS.open(node, 'w');
           FS.write(stream, data, 0, data.length, 0, canOwn);
           FS.close(stream);
           FS.chmod(node, mode);
         }
         return node;
       },
-      createDevice: function(parent, name, input, output) {
-        var path = PATH.join2(
-          typeof parent === "string" ? parent : FS.getPath(parent),
-          name
-        );
+      createDevice: function (parent, name, input, output) {
+        var path = PATH.join2(typeof parent === 'string' ? parent : FS.getPath(parent), name);
         var mode = FS.getMode(!!input, !!output);
         if (!FS.createDevice.major) FS.createDevice.major = 64;
         var dev = FS.makedev(FS.createDevice.major++, 0);
         FS.registerDevice(dev, {
-          open: function(stream) {
+          open: function (stream) {
             stream.seekable = false;
           },
-          close: function(stream) {
+          close: function (stream) {
             if (output && output.buffer && output.buffer.length) {
               output(10);
             }
           },
-          read: function(stream, buffer, offset, length, pos) {
+          read: function (stream, buffer, offset, length, pos) {
             var bytesRead = 0;
             for (var i = 0; i < length; i++) {
               var result;
@@ -3573,7 +3379,7 @@ var Module = (function() {
             }
             return bytesRead;
           },
-          write: function(stream, buffer, offset, length, pos) {
+          write: function (stream, buffer, offset, length, pos) {
             for (var i = 0; i < length; i++) {
               try {
                 output(buffer[offset + i]);
@@ -3589,20 +3395,16 @@ var Module = (function() {
         });
         return FS.mkdev(path, mode, dev);
       },
-      createLink: function(parent, name, target, canRead, canWrite) {
-        var path = PATH.join2(
-          typeof parent === "string" ? parent : FS.getPath(parent),
-          name
-        );
+      createLink: function (parent, name, target, canRead, canWrite) {
+        var path = PATH.join2(typeof parent === 'string' ? parent : FS.getPath(parent), name);
         return FS.symlink(target, path);
       },
-      forceLoadFile: function(obj) {
-        if (obj.isDevice || obj.isFolder || obj.link || obj.contents)
-          return true;
+      forceLoadFile: function (obj) {
+        if (obj.isDevice || obj.isFolder || obj.link || obj.contents) return true;
         var success = true;
-        if (typeof XMLHttpRequest !== "undefined") {
+        if (typeof XMLHttpRequest !== 'undefined') {
           throw new Error(
-            "Lazy loading should have been performed (contents set) in createLazyFile, but it was not. Lazy loading only works in web workers. Use --embed-file or --preload-file in emcc on the main thread."
+            'Lazy loading should have been performed (contents set) in createLazyFile, but it was not. Lazy loading only works in web workers. Use --embed-file or --preload-file in emcc on the main thread.'
           );
         } else if (read_) {
           try {
@@ -3612,12 +3414,12 @@ var Module = (function() {
             success = false;
           }
         } else {
-          throw new Error("Cannot load without read() or XMLHttpRequest.");
+          throw new Error('Cannot load without read() or XMLHttpRequest.');
         }
         if (!success) setErrNo(29);
         return success;
       },
-      createLazyFile: function(parent, name, url, canRead, canWrite) {
+      createLazyFile: function (parent, name, url, canRead, canWrite) {
         function LazyUint8Array() {
           this.lengthKnown = false;
           this.chunks = [];
@@ -3630,93 +3432,71 @@ var Module = (function() {
           var chunkNum = (idx / this.chunkSize) | 0;
           return this.getter(chunkNum)[chunkOffset];
         };
-        LazyUint8Array.prototype.setDataGetter = function LazyUint8Array_setDataGetter(
-          getter
-        ) {
+        LazyUint8Array.prototype.setDataGetter = function LazyUint8Array_setDataGetter(getter) {
           this.getter = getter;
         };
         LazyUint8Array.prototype.cacheLength = function LazyUint8Array_cacheLength() {
           var xhr = new XMLHttpRequest();
-          xhr.open("HEAD", url, false);
+          xhr.open('HEAD', url, false);
           xhr.send(null);
           if (!((xhr.status >= 200 && xhr.status < 300) || xhr.status === 304))
-            throw new Error("Couldn't load " + url + ". Status: " + xhr.status);
-          var datalength = Number(xhr.getResponseHeader("Content-length"));
+            throw new Error("Couldn't load " + url + '. Status: ' + xhr.status);
+          var datalength = Number(xhr.getResponseHeader('Content-length'));
           var header;
           var hasByteServing =
-            (header = xhr.getResponseHeader("Accept-Ranges")) &&
-            header === "bytes";
-          var usesGzip =
-            (header = xhr.getResponseHeader("Content-Encoding")) &&
-            header === "gzip";
+            (header = xhr.getResponseHeader('Accept-Ranges')) && header === 'bytes';
+          var usesGzip = (header = xhr.getResponseHeader('Content-Encoding')) && header === 'gzip';
           var chunkSize = 1024 * 1024;
           if (!hasByteServing) chunkSize = datalength;
-          var doXHR = function(from, to) {
+          var doXHR = function (from, to) {
             if (from > to)
-              throw new Error(
-                "invalid range (" +
-                  from +
-                  ", " +
-                  to +
-                  ") or no bytes requested!"
-              );
+              throw new Error('invalid range (' + from + ', ' + to + ') or no bytes requested!');
             if (to > datalength - 1)
-              throw new Error(
-                "only " + datalength + " bytes available! programmer error!"
-              );
+              throw new Error('only ' + datalength + ' bytes available! programmer error!');
             var xhr = new XMLHttpRequest();
-            xhr.open("GET", url, false);
-            if (datalength !== chunkSize)
-              xhr.setRequestHeader("Range", "bytes=" + from + "-" + to);
-            if (typeof Uint8Array != "undefined")
-              xhr.responseType = "arraybuffer";
+            xhr.open('GET', url, false);
+            if (datalength !== chunkSize) xhr.setRequestHeader('Range', 'bytes=' + from + '-' + to);
+            if (typeof Uint8Array != 'undefined') xhr.responseType = 'arraybuffer';
             if (xhr.overrideMimeType) {
-              xhr.overrideMimeType("text/plain; charset=x-user-defined");
+              xhr.overrideMimeType('text/plain; charset=x-user-defined');
             }
             xhr.send(null);
-            if (
-              !((xhr.status >= 200 && xhr.status < 300) || xhr.status === 304)
-            )
-              throw new Error(
-                "Couldn't load " + url + ". Status: " + xhr.status
-              );
+            if (!((xhr.status >= 200 && xhr.status < 300) || xhr.status === 304))
+              throw new Error("Couldn't load " + url + '. Status: ' + xhr.status);
             if (xhr.response !== undefined) {
               return new Uint8Array(xhr.response || []);
             } else {
-              return intArrayFromString(xhr.responseText || "", true);
+              return intArrayFromString(xhr.responseText || '', true);
             }
           };
           var lazyArray = this;
-          lazyArray.setDataGetter(function(chunkNum) {
+          lazyArray.setDataGetter(function (chunkNum) {
             var start = chunkNum * chunkSize;
             var end = (chunkNum + 1) * chunkSize - 1;
             end = Math.min(end, datalength - 1);
-            if (typeof lazyArray.chunks[chunkNum] === "undefined") {
+            if (typeof lazyArray.chunks[chunkNum] === 'undefined') {
               lazyArray.chunks[chunkNum] = doXHR(start, end);
             }
-            if (typeof lazyArray.chunks[chunkNum] === "undefined")
-              throw new Error("doXHR failed!");
+            if (typeof lazyArray.chunks[chunkNum] === 'undefined') throw new Error('doXHR failed!');
             return lazyArray.chunks[chunkNum];
           });
           if (usesGzip || !datalength) {
             chunkSize = datalength = 1;
             datalength = this.getter(0).length;
             chunkSize = datalength;
-            out(
-              "LazyFiles on gzip forces download of the whole file when length is accessed"
-            );
+            out('LazyFiles on gzip forces download of the whole file when length is accessed');
           }
           this._length = datalength;
           this._chunkSize = chunkSize;
           this.lengthKnown = true;
         };
-        if (typeof XMLHttpRequest !== "undefined") {
+        if (typeof XMLHttpRequest !== 'undefined') {
           if (!ENVIRONMENT_IS_WORKER)
-            throw "Cannot do synchronous binary XHRs outside webworkers in modern browsers. Use --embed-file or --preload-file in emcc";
+            throw 'Cannot do synchronous binary XHRs outside webworkers in modern browsers. Use --embed-file or --preload-file in emcc';
           var lazyArray = new LazyUint8Array();
           Object.defineProperties(lazyArray, {
             length: {
-              get: function() {
+              get: function () {
                 if (!this.lengthKnown) {
                   this.cacheLength();
                 }
@@ -3724,7 +3504,7 @@ var Module = (function() {
               }
             },
             chunkSize: {
-              get: function() {
+              get: function () {
                 if (!this.lengthKnown) {
                   this.cacheLength();
                 }
@@ -3745,14 +3525,14 @@ var Module = (function() {
         }
         Object.defineProperties(node, {
           usedBytes: {
-            get: function() {
+            get: function () {
               return this.contents.length;
             }
           }
         });
         var stream_ops = {};
         var keys = Object.keys(node.stream_ops);
-        keys.forEach(function(key) {
+        keys.forEach(function (key) {
           var fn = node.stream_ops[key];
           stream_ops[key] = function forceLoadLazyFile() {
             if (!FS.forceLoadFile(node)) {
@@ -3761,13 +3541,7 @@ var Module = (function() {
             return fn.apply(null, arguments);
           };
         });
-        stream_ops.read = function stream_ops_read(
-          stream,
-          buffer,
-          offset,
-          length,
-          position
-        ) {
+        stream_ops.read = function stream_ops_read(stream, buffer, offset, length, position) {
           if (!FS.forceLoadFile(node)) {
             throw new FS.ErrnoError(29);
           }
@@ -3788,7 +3562,7 @@ var Module = (function() {
         node.stream_ops = stream_ops;
         return node;
       },
-      createPreloadedFile: function(
+      createPreloadedFile: function (
         parent,
         name,
         url,
@@ -3801,31 +3575,22 @@ var Module = (function() {
         preFinish
       ) {
         Browser.init();
-        var fullname = name
-          ? PATH_FS.resolve(PATH.join2(parent, name))
-          : parent;
-        var dep = getUniqueRunDependency("cp " + fullname);
+        var fullname = name ? PATH_FS.resolve(PATH.join2(parent, name)) : parent;
+        var dep = getUniqueRunDependency('cp ' + fullname);
         function processData(byteArray) {
           function finish(byteArray) {
             if (preFinish) preFinish();
             if (!dontCreateFile) {
-              FS.createDataFile(
-                parent,
-                name,
-                byteArray,
-                canRead,
-                canWrite,
-                canOwn
-              );
+              FS.createDataFile(parent, name, byteArray, canRead, canWrite, canOwn);
             }
             if (onload) onload();
             removeRunDependency(dep);
           }
           var handled = false;
-          Module["preloadPlugins"].forEach(function(plugin) {
+          Module['preloadPlugins'].forEach(function (plugin) {
             if (handled) return;
-            if (plugin["canHandle"](fullname)) {
-              plugin["handle"](byteArray, fullname, finish, function() {
+            if (plugin['canHandle'](fullname)) {
+              plugin['handle'](byteArray, fullname, finish, function () {
                 if (onerror) onerror();
                 removeRunDependency(dep);
               });
@@ -3835,10 +3600,10 @@ var Module = (function() {
           if (!handled) finish(byteArray);
         }
         addRunDependency(dep);
-        if (typeof url == "string") {
+        if (typeof url == 'string') {
           Browser.asyncLoad(
             url,
-            function(byteArray) {
+            function (byteArray) {
               processData(byteArray);
             },
             onerror
@@ -3847,22 +3612,19 @@ var Module = (function() {
           processData(url);
         }
       },
-      indexedDB: function() {
+      indexedDB: function () {
         return (
-          window.indexedDB ||
-          window.mozIndexedDB ||
-          window.webkitIndexedDB ||
-          window.msIndexedDB
+          window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB
         );
       },
-      DB_NAME: function() {
-        return "EM_FS_" + window.location.pathname;
+      DB_NAME: function () {
+        return 'EM_FS_' + window.location.pathname;
       },
       DB_VERSION: 20,
-      DB_STORE_NAME: "FILE_DATA",
-      saveFilesToDB: function(paths, onload, onerror) {
-        onload = onload || function() {};
-        onerror = onerror || function() {};
+      DB_STORE_NAME: 'FILE_DATA',
+      saveFilesToDB: function (paths, onload, onerror) {
+        onload = onload || function () {};
+        onerror = onerror || function () {};
         var indexedDB = FS.indexedDB();
         try {
           var openRequest = indexedDB.open(FS.DB_NAME(), FS.DB_VERSION);
@@ -3870,13 +3632,13 @@ var Module = (function() {
           return onerror(e);
         }
         openRequest.onupgradeneeded = function openRequest_onupgradeneeded() {
-          out("creating db");
+          out('creating db');
           var db = openRequest.result;
           db.createObjectStore(FS.DB_STORE_NAME);
         };
         openRequest.onsuccess = function openRequest_onsuccess() {
           var db = openRequest.result;
-          var transaction = db.transaction([FS.DB_STORE_NAME], "readwrite");
+          var transaction = db.transaction([FS.DB_STORE_NAME], 'readwrite');
           var files = transaction.objectStore(FS.DB_STORE_NAME);
           var ok = 0,
             fail = 0,
@@ -3885,11 +3647,8 @@ var Module = (function() {
             if (fail == 0) onload();
             else onerror();
           }
-          paths.forEach(function(path) {
-            var putRequest = files.put(
-              FS.analyzePath(path).object.contents,
-              path
-            );
+          paths.forEach(function (path) {
+            var putRequest = files.put(FS.analyzePath(path).object.contents, path);
             putRequest.onsuccess = function putRequest_onsuccess() {
               ok++;
               if (ok + fail == total) finish();
@@ -3903,9 +3662,9 @@ var Module = (function() {
         };
         openRequest.onerror = onerror;
       },
-      loadFilesFromDB: function(paths, onload, onerror) {
-        onload = onload || function() {};
-        onerror = onerror || function() {};
+      loadFilesFromDB: function (paths, onload, onerror) {
+        onload = onload || function () {};
+        onerror = onerror || function () {};
         var indexedDB = FS.indexedDB();
         try {
           var openRequest = indexedDB.open(FS.DB_NAME(), FS.DB_VERSION);
@@ -3916,7 +3675,7 @@ var Module = (function() {
         openRequest.onsuccess = function openRequest_onsuccess() {
           var db = openRequest.result;
           try {
-            var transaction = db.transaction([FS.DB_STORE_NAME], "readonly");
+            var transaction = db.transaction([FS.DB_STORE_NAME], 'readonly');
           } catch (e) {
             onerror(e);
             return;
@@ -3929,7 +3688,7 @@ var Module = (function() {
             if (fail == 0) onload();
             else onerror();
           }
-          paths.forEach(function(path) {
+          paths.forEach(function (path) {
             var getRequest = files.get(path);
             getRequest.onsuccess = function getRequest_onsuccess() {
               if (FS.analyzePath(path).exists) {
@@ -3960,8 +3719,8 @@ var Module = (function() {
       mappings: {},
       DEFAULT_POLLMASK: 5,
       umask: 511,
-      calculateAt: function(dirfd, path) {
-        if (path[0] !== "/") {
+      calculateAt: function (dirfd, path) {
+        if (path[0] !== '/') {
           var dir;
           if (dirfd === -100) {
             dir = FS.cwd();
@@ -3974,15 +3733,11 @@ var Module = (function() {
         }
         return path;
       },
-      doStat: function(func, path, buf) {
+      doStat: function (func, path, buf) {
         try {
           var stat = func(path);
         } catch (e) {
-          if (
-            e &&
-            e.node &&
-            PATH.normalize(path) !== PATH.normalize(FS.getPath(e.node))
-          ) {
+          if (e && e.node && PATH.normalize(path) !== PATH.normalize(FS.getPath(e.node))) {
             return -54;
           }
           throw e;
@@ -4001,12 +3756,8 @@ var Module = (function() {
           ((tempDouble = stat.size),
           +Math_abs(tempDouble) >= 1
             ? tempDouble > 0
-              ? (Math_min(+Math_floor(tempDouble / 4294967296), 4294967295) |
-                  0) >>>
-                0
-              : ~~+Math_ceil(
-                  (tempDouble - +(~~tempDouble >>> 0)) / 4294967296
-                ) >>> 0
+              ? (Math_min(+Math_floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0
+              : ~~+Math_ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0
             : 0)
         ]),
           (HEAP32[(buf + 40) >> 2] = tempI64[0]),
@@ -4024,30 +3775,25 @@ var Module = (function() {
           ((tempDouble = stat.ino),
           +Math_abs(tempDouble) >= 1
             ? tempDouble > 0
-              ? (Math_min(+Math_floor(tempDouble / 4294967296), 4294967295) |
-                  0) >>>
-                0
-              : ~~+Math_ceil(
-                  (tempDouble - +(~~tempDouble >>> 0)) / 4294967296
-                ) >>> 0
+              ? (Math_min(+Math_floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0
+              : ~~+Math_ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0
             : 0)
         ]),
           (HEAP32[(buf + 80) >> 2] = tempI64[0]),
           (HEAP32[(buf + 84) >> 2] = tempI64[1]);
         return 0;
       },
-      doMsync: function(addr, stream, len, flags, offset) {
+      doMsync: function (addr, stream, len, flags, offset) {
         var buffer = HEAPU8.slice(addr, addr + len);
         FS.msync(stream, buffer, offset, len, flags);
       },
-      doMkdir: function(path, mode) {
+      doMkdir: function (path, mode) {
         path = PATH.normalize(path);
-        if (path[path.length - 1] === "/")
-          path = path.substr(0, path.length - 1);
+        if (path[path.length - 1] === '/') path = path.substr(0, path.length - 1);
         FS.mkdir(path, mode, 0);
         return 0;
       },
-      doMknod: function(path, mode, dev) {
+      doMknod: function (path, mode, dev) {
         switch (mode & 61440) {
           case 32768:
           case 8192:
@@ -4061,7 +3807,7 @@ var Module = (function() {
         FS.mknod(path, mode, dev);
         return 0;
       },
-      doReadlink: function(path, buf, bufsize) {
+      doReadlink: function (path, buf, bufsize) {
         if (bufsize <= 0) return -28;
         var ret = FS.readlink(path);
         var len = Math.min(bufsize, lengthBytesUTF8(ret));
@@ -4070,7 +3816,7 @@ var Module = (function() {
         HEAP8[buf + len] = endChar;
         return len;
       },
-      doAccess: function(path, amode) {
+      doAccess: function (path, amode) {
         if (amode & ~7) {
           return -28;
         }
@@ -4080,21 +3826,21 @@ var Module = (function() {
         if (!node) {
           return -44;
         }
-        var perms = "";
-        if (amode & 4) perms += "r";
-        if (amode & 2) perms += "w";
-        if (amode & 1) perms += "x";
+        var perms = '';
+        if (amode & 4) perms += 'r';
+        if (amode & 2) perms += 'w';
+        if (amode & 1) perms += 'x';
         if (perms && FS.nodePermissions(node, perms)) {
           return -2;
         }
         return 0;
       },
-      doDup: function(path, flags, suggestFD) {
+      doDup: function (path, flags, suggestFD) {
         var suggest = FS.getStream(suggestFD);
         if (suggest) FS.close(suggest);
         return FS.open(path, flags, 0, suggestFD, suggestFD).fd;
       },
-      doReadv: function(stream, iov, iovcnt, offset) {
+      doReadv: function (stream, iov, iovcnt, offset) {
         var ret = 0;
         for (var i = 0; i < iovcnt; i++) {
           var ptr = HEAP32[(iov + i * 8) >> 2];
@@ -4106,7 +3852,7 @@ var Module = (function() {
         }
         return ret;
       },
-      doWritev: function(stream, iov, iovcnt, offset) {
+      doWritev: function (stream, iov, iovcnt, offset) {
         var ret = 0;
         for (var i = 0; i < iovcnt; i++) {
           var ptr = HEAP32[(iov + i * 8) >> 2];
@@ -4118,21 +3864,21 @@ var Module = (function() {
         return ret;
       },
       varargs: undefined,
-      get: function() {
+      get: function () {
         SYSCALLS.varargs += 4;
         var ret = HEAP32[(SYSCALLS.varargs - 4) >> 2];
         return ret;
       },
-      getStr: function(ptr) {
+      getStr: function (ptr) {
         var ret = UTF8ToString(ptr);
         return ret;
       },
-      getStreamFromFD: function(fd) {
+      getStreamFromFD: function (fd) {
         var stream = FS.getStream(fd);
         if (!stream) throw new FS.ErrnoError(8);
         return stream;
       },
-      get64: function(low, high) {
+      get64: function (low, high) {
         return low;
       }
     };
@@ -4142,8 +3888,7 @@ var Module = (function() {
         FS.unlink(path);
         return 0;
       } catch (e) {
-        if (typeof FS === "undefined" || !(e instanceof FS.ErrnoError))
-          abort(e);
+        if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) abort(e);
         return -e.errno;
       }
     }
@@ -4194,8 +3939,7 @@ var Module = (function() {
           }
         }
       } catch (e) {
-        if (typeof FS === "undefined" || !(e instanceof FS.ErrnoError))
-          abort(e);
+        if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) abort(e);
         return -e.errno;
       }
     }
@@ -4209,8 +3953,7 @@ var Module = (function() {
         FS.rename(old_path, new_path);
         return 0;
       } catch (e) {
-        if (typeof FS === "undefined" || !(e instanceof FS.ErrnoError))
-          abort(e);
+        if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) abort(e);
         return -e.errno;
       }
     }
@@ -4222,8 +3965,7 @@ var Module = (function() {
         path = SYSCALLS.getStr(path);
         return SYSCALLS.doMkdir(path, mode);
       } catch (e) {
-        if (typeof FS === "undefined" || !(e instanceof FS.ErrnoError))
-          abort(e);
+        if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) abort(e);
         return -e.errno;
       }
     }
@@ -4236,8 +3978,7 @@ var Module = (function() {
         FS.rmdir(path);
         return 0;
       } catch (e) {
-        if (typeof FS === "undefined" || !(e instanceof FS.ErrnoError))
-          abort(e);
+        if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) abort(e);
         return -e.errno;
       }
     }
@@ -4252,8 +3993,7 @@ var Module = (function() {
         var stream = FS.open(pathname, flags, mode);
         return stream.fd;
       } catch (e) {
-        if (typeof FS === "undefined" || !(e instanceof FS.ErrnoError))
-          abort(e);
+        if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) abort(e);
         return -e.errno;
       }
     }
@@ -4302,11 +4042,10 @@ var Module = (function() {
             return 0;
           }
           default:
-            abort("bad ioctl syscall " + op);
+            abort('bad ioctl syscall ' + op);
         }
       } catch (e) {
-        if (typeof FS === "undefined" || !(e instanceof FS.ErrnoError))
-          abort(e);
+        if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) abort(e);
         return -e.errno;
       }
     }
@@ -4319,8 +4058,7 @@ var Module = (function() {
         FS.close(stream);
         return 0;
       } catch (e) {
-        if (typeof FS === "undefined" || !(e instanceof FS.ErrnoError))
-          abort(e);
+        if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) abort(e);
         return e.errno;
       }
     }
@@ -4334,8 +4072,7 @@ var Module = (function() {
         HEAP32[pnum >> 2] = num;
         return 0;
       } catch (e) {
-        if (typeof FS === "undefined" || !(e instanceof FS.ErrnoError))
-          abort(e);
+        if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) abort(e);
         return e.errno;
       }
     }
@@ -4357,22 +4094,16 @@ var Module = (function() {
           ((tempDouble = stream.position),
           +Math_abs(tempDouble) >= 1
             ? tempDouble > 0
-              ? (Math_min(+Math_floor(tempDouble / 4294967296), 4294967295) |
-                  0) >>>
-                0
-              : ~~+Math_ceil(
-                  (tempDouble - +(~~tempDouble >>> 0)) / 4294967296
-                ) >>> 0
+              ? (Math_min(+Math_floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0
+              : ~~+Math_ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0
             : 0)
         ]),
           (HEAP32[newOffset >> 2] = tempI64[0]),
           (HEAP32[(newOffset + 4) >> 2] = tempI64[1]);
-        if (stream.getdents && offset === 0 && whence === 0)
-          stream.getdents = null;
+        if (stream.getdents && offset === 0 && whence === 0) stream.getdents = null;
         return 0;
       } catch (e) {
-        if (typeof FS === "undefined" || !(e instanceof FS.ErrnoError))
-          abort(e);
+        if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) abort(e);
         return e.errno;
       }
     }
@@ -4386,8 +4117,7 @@ var Module = (function() {
         HEAP32[pnum >> 2] = num;
         return 0;
       } catch (e) {
-        if (typeof FS === "undefined" || !(e instanceof FS.ErrnoError))
-          abort(e);
+        if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) abort(e);
         return e.errno;
       }
     }
@@ -4399,14 +4129,14 @@ var Module = (function() {
     }
     var _emscripten_get_now;
     if (ENVIRONMENT_IS_NODE) {
-      _emscripten_get_now = function() {
-        var t = process["hrtime"]();
+      _emscripten_get_now = function () {
+        var t = process['hrtime']();
         return t[0] * 1e3 + t[1] / 1e6;
       };
-    } else if (typeof dateNow !== "undefined") {
+    } else if (typeof dateNow !== 'undefined') {
       _emscripten_get_now = dateNow;
     } else
-      _emscripten_get_now = function() {
+      _emscripten_get_now = function () {
         return performance.now();
       };
     var _emscripten_get_now_is_monotonic = true;
@@ -4414,10 +4144,7 @@ var Module = (function() {
       var now;
       if (clk_id === 0) {
         now = Date.now();
-      } else if (
-        (clk_id === 1 || clk_id === 4) &&
-        _emscripten_get_now_is_monotonic
-      ) {
+      } else if ((clk_id === 1 || clk_id === 4) && _emscripten_get_now_is_monotonic) {
         now = _emscripten_get_now();
       } else {
         setErrNo(28);
@@ -4441,23 +4168,20 @@ var Module = (function() {
       if (mode == 0) {
         Browser.mainLoop.scheduler = function Browser_mainLoop_scheduler_setTimeout() {
           var timeUntilNextTick =
-            Math.max(
-              0,
-              Browser.mainLoop.tickStartTime + value - _emscripten_get_now()
-            ) | 0;
+            Math.max(0, Browser.mainLoop.tickStartTime + value - _emscripten_get_now()) | 0;
           setTimeout(Browser.mainLoop.runner, timeUntilNextTick);
         };
-        Browser.mainLoop.method = "timeout";
+        Browser.mainLoop.method = 'timeout';
       } else if (mode == 1) {
         Browser.mainLoop.scheduler = function Browser_mainLoop_scheduler_rAF() {
           Browser.requestAnimationFrame(Browser.mainLoop.runner);
         };
-        Browser.mainLoop.method = "rAF";
+        Browser.mainLoop.method = 'rAF';
       } else if (mode == 2) {
-        if (typeof setImmediate === "undefined") {
+        if (typeof setImmediate === 'undefined') {
           var setImmediates = [];
-          var emscriptenMainLoopMessageId = "setimmediate";
-          var Browser_setImmediate_messageHandler = function(event) {
+          var emscriptenMainLoopMessageId = 'setimmediate';
+          var Browser_setImmediate_messageHandler = function (event) {
             if (
               event.data === emscriptenMainLoopMessageId ||
               event.data.target === emscriptenMainLoopMessageId
@@ -4466,50 +4190,39 @@ var Module = (function() {
               setImmediates.shift()();
             }
           };
-          addEventListener(
-            "message",
-            Browser_setImmediate_messageHandler,
-            true
-          );
+          addEventListener('message', Browser_setImmediate_messageHandler, true);
           setImmediate = function Browser_emulated_setImmediate(func) {
             setImmediates.push(func);
             if (ENVIRONMENT_IS_WORKER) {
-              if (Module["setImmediates"] === undefined)
-                Module["setImmediates"] = [];
-              Module["setImmediates"].push(func);
+              if (Module['setImmediates'] === undefined) Module['setImmediates'] = [];
+              Module['setImmediates'].push(func);
               postMessage({ target: emscriptenMainLoopMessageId });
-            } else postMessage(emscriptenMainLoopMessageId, "*");
+            } else postMessage(emscriptenMainLoopMessageId, '*');
           };
         }
         Browser.mainLoop.scheduler = function Browser_mainLoop_scheduler_setImmediate() {
           setImmediate(Browser.mainLoop.runner);
         };
-        Browser.mainLoop.method = "immediate";
+        Browser.mainLoop.method = 'immediate';
       }
       return 0;
     }
-    function _emscripten_set_main_loop(
-      func,
-      fps,
-      simulateInfiniteLoop,
-      arg,
-      noSetTiming
-    ) {
+    function _emscripten_set_main_loop(func, fps, simulateInfiniteLoop, arg, noSetTiming) {
       noExitRuntime = true;
       assert(
         !Browser.mainLoop.func,
-        "emscripten_set_main_loop: there can only be one main loop function at once: call emscripten_cancel_main_loop to cancel the previous one before setting a new one with different parameters."
+        'emscripten_set_main_loop: there can only be one main loop function at once: call emscripten_cancel_main_loop to cancel the previous one before setting a new one with different parameters.'
       );
       Browser.mainLoop.func = func;
       Browser.mainLoop.arg = arg;
       var browserIterationFunc;
-      if (typeof arg !== "undefined") {
-        browserIterationFunc = function() {
-          Module["dynCall_vi"](func, arg);
+      if (typeof arg !== 'undefined') {
+        browserIterationFunc = function () {
+          Module['dynCall_vi'](func, arg);
         };
       } else {
-        browserIterationFunc = function() {
-          Module["dynCall_v"](func);
+        browserIterationFunc = function () {
+          Module['dynCall_v'](func);
         };
       }
       var thisMainLoopId = Browser.mainLoop.currentlyRunningMainloop;
@@ -4521,8 +4234,7 @@ var Module = (function() {
           blocker.func(blocker.arg);
           if (Browser.mainLoop.remainingBlockers) {
             var remaining = Browser.mainLoop.remainingBlockers;
-            var next =
-              remaining % 1 == 0 ? remaining - 1 : Math.floor(remaining);
+            var next = remaining % 1 == 0 ? remaining - 1 : Math.floor(remaining);
             if (blocker.counted) {
               Browser.mainLoop.remainingBlockers = next;
             } else {
@@ -4531,26 +4243,19 @@ var Module = (function() {
             }
           }
           console.log(
-            'main loop blocker "' +
-              blocker.name +
-              '" took ' +
-              (Date.now() - start) +
-              " ms"
+            'main loop blocker "' + blocker.name + '" took ' + (Date.now() - start) + ' ms'
           );
           Browser.mainLoop.updateStatus();
-          if (thisMainLoopId < Browser.mainLoop.currentlyRunningMainloop)
-            return;
+          if (thisMainLoopId < Browser.mainLoop.currentlyRunningMainloop) return;
           setTimeout(Browser.mainLoop.runner, 0);
           return;
         }
         if (thisMainLoopId < Browser.mainLoop.currentlyRunningMainloop) return;
-        Browser.mainLoop.currentFrameNumber =
-          (Browser.mainLoop.currentFrameNumber + 1) | 0;
+        Browser.mainLoop.currentFrameNumber = (Browser.mainLoop.currentFrameNumber + 1) | 0;
         if (
           Browser.mainLoop.timingMode == 1 &&
           Browser.mainLoop.timingValue > 1 &&
-          Browser.mainLoop.currentFrameNumber % Browser.mainLoop.timingValue !=
-            0
+          Browser.mainLoop.currentFrameNumber % Browser.mainLoop.timingValue != 0
         ) {
           Browser.mainLoop.scheduler();
           return;
@@ -4559,7 +4264,7 @@ var Module = (function() {
         }
         Browser.mainLoop.runIter(browserIterationFunc);
         if (thisMainLoopId < Browser.mainLoop.currentlyRunningMainloop) return;
-        if (typeof SDL === "object" && SDL.audio && SDL.audio.queueNewAudioData)
+        if (typeof SDL === 'object' && SDL.audio && SDL.audio.queueNewAudioData)
           SDL.audio.queueNewAudioData();
         Browser.mainLoop.scheduler();
       };
@@ -4569,13 +4274,13 @@ var Module = (function() {
         Browser.mainLoop.scheduler();
       }
       if (simulateInfiniteLoop) {
-        throw "unwind";
+        throw 'unwind';
       }
     }
     var Browser = {
       mainLoop: {
         scheduler: null,
-        method: "",
+        method: '',
         currentlyRunningMainloop: 0,
         func: null,
         arg: 0,
@@ -4583,11 +4288,11 @@ var Module = (function() {
         timingValue: 0,
         currentFrameNumber: 0,
         queue: [],
-        pause: function() {
+        pause: function () {
           Browser.mainLoop.scheduler = null;
           Browser.mainLoop.currentlyRunningMainloop++;
         },
-        resume: function() {
+        resume: function () {
           Browser.mainLoop.currentlyRunningMainloop++;
           var timingMode = Browser.mainLoop.timingMode;
           var timingValue = Browser.mainLoop.timingValue;
@@ -4597,28 +4302,26 @@ var Module = (function() {
           _emscripten_set_main_loop_timing(timingMode, timingValue);
           Browser.mainLoop.scheduler();
         },
-        updateStatus: function() {
-          if (Module["setStatus"]) {
-            var message = Module["statusMessage"] || "Please wait...";
+        updateStatus: function () {
+          if (Module['setStatus']) {
+            var message = Module['statusMessage'] || 'Please wait...';
             var remaining = Browser.mainLoop.remainingBlockers;
             var expected = Browser.mainLoop.expectedBlockers;
             if (remaining) {
               if (remaining < expected) {
-                Module["setStatus"](
-                  message + " (" + (expected - remaining) + "/" + expected + ")"
-                );
+                Module['setStatus'](message + ' (' + (expected - remaining) + '/' + expected + ')');
               } else {
-                Module["setStatus"](message);
+                Module['setStatus'](message);
               }
             } else {
-              Module["setStatus"]("");
+              Module['setStatus']('');
             }
           }
         },
-        runIter: function(func) {
+        runIter: function (func) {
           if (ABORT) return;
-          if (Module["preMainLoop"]) {
-            var preRet = Module["preMainLoop"]();
+          if (Module['preMainLoop']) {
+            var preRet = Module['preMainLoop']();
             if (preRet === false) {
               return;
             }
@@ -4629,20 +4332,19 @@ var Module = (function() {
             if (e instanceof ExitStatus) {
               return;
             } else {
-              if (e && typeof e === "object" && e.stack)
-                err("exception thrown: " + [e, e.stack]);
+              if (e && typeof e === 'object' && e.stack) err('exception thrown: ' + [e, e.stack]);
               throw e;
             }
           }
-          if (Module["postMainLoop"]) Module["postMainLoop"]();
+          if (Module['postMainLoop']) Module['postMainLoop']();
         }
       },
       isFullscreen: false,
       pointerLock: false,
       moduleContextCreatedCallbacks: [],
       workers: [],
-      init: function() {
-        if (!Module["preloadPlugins"]) Module["preloadPlugins"] = [];
+      init: function () {
+        if (!Module['preloadPlugins']) Module['preloadPlugins'] = [];
         if (Browser.initted) return;
         Browser.initted = true;
         try {
@@ -4650,43 +4352,29 @@ var Module = (function() {
           Browser.hasBlobConstructor = true;
         } catch (e) {
           Browser.hasBlobConstructor = false;
-          console.log(
-            "warning: no blob constructor, cannot create blobs with mimetypes"
-          );
+          console.log('warning: no blob constructor, cannot create blobs with mimetypes');
         }
         Browser.BlobBuilder =
-          typeof MozBlobBuilder != "undefined"
+          typeof MozBlobBuilder != 'undefined'
             ? MozBlobBuilder
-            : typeof WebKitBlobBuilder != "undefined"
+            : typeof WebKitBlobBuilder != 'undefined'
             ? WebKitBlobBuilder
             : !Browser.hasBlobConstructor
-            ? console.log("warning: no BlobBuilder")
+            ? console.log('warning: no BlobBuilder')
             : null;
         Browser.URLObject =
-          typeof window != "undefined"
-            ? window.URL
-              ? window.URL
-              : window.webkitURL
-            : undefined;
-        if (
-          !Module.noImageDecoding &&
-          typeof Browser.URLObject === "undefined"
-        ) {
+          typeof window != 'undefined' ? (window.URL ? window.URL : window.webkitURL) : undefined;
+        if (!Module.noImageDecoding && typeof Browser.URLObject === 'undefined') {
           console.log(
-            "warning: Browser does not support creating object URLs. Built-in browser image decoding will not be available."
+            'warning: Browser does not support creating object URLs. Built-in browser image decoding will not be available.'
           );
           Module.noImageDecoding = true;
         }
         var imagePlugin = {};
-        imagePlugin["canHandle"] = function imagePlugin_canHandle(name) {
+        imagePlugin['canHandle'] = function imagePlugin_canHandle(name) {
           return !Module.noImageDecoding && /\.(jpg|jpeg|png|bmp)$/i.test(name);
         };
-        imagePlugin["handle"] = function imagePlugin_handle(
-          byteArray,
-          name,
-          onload,
-          onerror
-        ) {
+        imagePlugin['handle'] = function imagePlugin_handle(byteArray, name, onload, onerror) {
           var b = null;
           if (Browser.hasBlobConstructor) {
             try {
@@ -4698,9 +4386,7 @@ var Module = (function() {
               }
             } catch (e) {
               warnOnce(
-                "Blob constructor present but fails: " +
-                  e +
-                  "; falling back to blob builder"
+                'Blob constructor present but fails: ' + e + '; falling back to blob builder'
               );
             }
           }
@@ -4712,47 +4398,39 @@ var Module = (function() {
           var url = Browser.URLObject.createObjectURL(b);
           var img = new Image();
           img.onload = function img_onload() {
-            assert(img.complete, "Image " + name + " could not be decoded");
-            var canvas = document.createElement("canvas");
+            assert(img.complete, 'Image ' + name + ' could not be decoded');
+            var canvas = document.createElement('canvas');
             canvas.width = img.width;
             canvas.height = img.height;
-            var ctx = canvas.getContext("2d");
+            var ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0);
-            Module["preloadedImages"][name] = canvas;
+            Module['preloadedImages'][name] = canvas;
             Browser.URLObject.revokeObjectURL(url);
             if (onload) onload(byteArray);
           };
           img.onerror = function img_onerror(event) {
-            console.log("Image " + url + " could not be decoded");
+            console.log('Image ' + url + ' could not be decoded');
             if (onerror) onerror();
           };
           img.src = url;
         };
-        Module["preloadPlugins"].push(imagePlugin);
+        Module['preloadPlugins'].push(imagePlugin);
         var audioPlugin = {};
-        audioPlugin["canHandle"] = function audioPlugin_canHandle(name) {
-          return (
-            !Module.noAudioDecoding &&
-            name.substr(-4) in { ".ogg": 1, ".wav": 1, ".mp3": 1 }
-          );
+        audioPlugin['canHandle'] = function audioPlugin_canHandle(name) {
+          return !Module.noAudioDecoding && name.substr(-4) in { '.ogg': 1, '.wav': 1, '.mp3': 1 };
         };
-        audioPlugin["handle"] = function audioPlugin_handle(
-          byteArray,
-          name,
-          onload,
-          onerror
-        ) {
+        audioPlugin['handle'] = function audioPlugin_handle(byteArray, name, onload, onerror) {
           var done = false;
           function finish(audio) {
             if (done) return;
             done = true;
-            Module["preloadedAudios"][name] = audio;
+            Module['preloadedAudios'][name] = audio;
             if (onload) onload(byteArray);
           }
           function fail() {
             if (done) return;
             done = true;
-            Module["preloadedAudios"][name] = new Audio();
+            Module['preloadedAudios'][name] = new Audio();
             if (onerror) onerror();
           }
           if (Browser.hasBlobConstructor) {
@@ -4766,8 +4444,8 @@ var Module = (function() {
             var url = Browser.URLObject.createObjectURL(b);
             var audio = new Audio();
             audio.addEventListener(
-              "canplaythrough",
-              function() {
+              'canplaythrough',
+              function () {
                 finish(audio);
               },
               false
@@ -4775,15 +4453,14 @@ var Module = (function() {
             audio.onerror = function audio_onerror(event) {
               if (done) return;
               console.log(
-                "warning: browser could not fully decode audio " +
+                'warning: browser could not fully decode audio ' +
                   name +
-                  ", trying slower base64 approach"
+                  ', trying slower base64 approach'
               );
               function encode64(data) {
-                var BASE =
-                  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-                var PAD = "=";
-                var ret = "";
+                var BASE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+                var PAD = '=';
+                var ret = '';
                 var leftchar = 0;
                 var leftbits = 0;
                 for (var i = 0; i < data.length; i++) {
@@ -4804,73 +4481,50 @@ var Module = (function() {
                 }
                 return ret;
               }
-              audio.src =
-                "data:audio/x-" +
-                name.substr(-3) +
-                ";base64," +
-                encode64(byteArray);
+              audio.src = 'data:audio/x-' + name.substr(-3) + ';base64,' + encode64(byteArray);
               finish(audio);
             };
             audio.src = url;
-            Browser.safeSetTimeout(function() {
+            Browser.safeSetTimeout(function () {
               finish(audio);
             }, 1e4);
           } else {
             return fail();
           }
         };
-        Module["preloadPlugins"].push(audioPlugin);
+        Module['preloadPlugins'].push(audioPlugin);
         function pointerLockChange() {
           Browser.pointerLock =
-            document["pointerLockElement"] === Module["canvas"] ||
-            document["mozPointerLockElement"] === Module["canvas"] ||
-            document["webkitPointerLockElement"] === Module["canvas"] ||
-            document["msPointerLockElement"] === Module["canvas"];
+            document['pointerLockElement'] === Module['canvas'] ||
+            document['mozPointerLockElement'] === Module['canvas'] ||
+            document['webkitPointerLockElement'] === Module['canvas'] ||
+            document['msPointerLockElement'] === Module['canvas'];
         }
-        var canvas = Module["canvas"];
+        var canvas = Module['canvas'];
         if (canvas) {
           canvas.requestPointerLock =
-            canvas["requestPointerLock"] ||
-            canvas["mozRequestPointerLock"] ||
-            canvas["webkitRequestPointerLock"] ||
-            canvas["msRequestPointerLock"] ||
-            function() {};
+            canvas['requestPointerLock'] ||
+            canvas['mozRequestPointerLock'] ||
+            canvas['webkitRequestPointerLock'] ||
+            canvas['msRequestPointerLock'] ||
+            function () {};
           canvas.exitPointerLock =
-            document["exitPointerLock"] ||
-            document["mozExitPointerLock"] ||
-            document["webkitExitPointerLock"] ||
-            document["msExitPointerLock"] ||
-            function() {};
+            document['exitPointerLock'] ||
+            document['mozExitPointerLock'] ||
+            document['webkitExitPointerLock'] ||
+            document['msExitPointerLock'] ||
+            function () {};
           canvas.exitPointerLock = canvas.exitPointerLock.bind(document);
-          document.addEventListener(
-            "pointerlockchange",
-            pointerLockChange,
-            false
-          );
-          document.addEventListener(
-            "mozpointerlockchange",
-            pointerLockChange,
-            false
-          );
-          document.addEventListener(
-            "webkitpointerlockchange",
-            pointerLockChange,
-            false
-          );
-          document.addEventListener(
-            "mspointerlockchange",
-            pointerLockChange,
-            false
-          );
-          if (Module["elementPointerLock"]) {
+          document.addEventListener('pointerlockchange', pointerLockChange, false);
+          document.addEventListener('mozpointerlockchange', pointerLockChange, false);
+          document.addEventListener('webkitpointerlockchange', pointerLockChange, false);
+          document.addEventListener('mspointerlockchange', pointerLockChange, false);
+          if (Module['elementPointerLock']) {
             canvas.addEventListener(
-              "click",
-              function(ev) {
-                if (
-                  !Browser.pointerLock &&
-                  Module["canvas"].requestPointerLock
-                ) {
-                  Module["canvas"].requestPointerLock();
+              'click',
+              function (ev) {
+                if (!Browser.pointerLock && Module['canvas'].requestPointerLock) {
+                  Module['canvas'].requestPointerLock();
                   ev.preventDefault();
                 }
               },
@@ -4879,14 +4533,8 @@ var Module = (function() {
           }
         }
       },
-      createContext: function(
-        canvas,
-        useWebGL,
-        setInModule,
-        webGLContextAttributes
-      ) {
-        if (useWebGL && Module.ctx && canvas == Module.canvas)
-          return Module.ctx;
+      createContext: function (canvas, useWebGL, setInModule, webGLContextAttributes) {
+        if (useWebGL && Module.ctx && canvas == Module.canvas) return Module.ctx;
         var ctx;
         var contextHandle;
         if (useWebGL) {
@@ -4900,53 +4548,51 @@ var Module = (function() {
               contextAttributes[attribute] = webGLContextAttributes[attribute];
             }
           }
-          if (typeof GL !== "undefined") {
+          if (typeof GL !== 'undefined') {
             contextHandle = GL.createContext(canvas, contextAttributes);
             if (contextHandle) {
               ctx = GL.getContext(contextHandle).GLctx;
             }
           }
         } else {
-          ctx = canvas.getContext("2d");
+          ctx = canvas.getContext('2d');
         }
         if (!ctx) return null;
         if (setInModule) {
           if (!useWebGL)
             assert(
-              typeof GLctx === "undefined",
-              "cannot set in module if GLctx is used, but we are a non-GL context that would replace it"
+              typeof GLctx === 'undefined',
+              'cannot set in module if GLctx is used, but we are a non-GL context that would replace it'
             );
           Module.ctx = ctx;
           if (useWebGL) GL.makeContextCurrent(contextHandle);
           Module.useWebGL = useWebGL;
-          Browser.moduleContextCreatedCallbacks.forEach(function(callback) {
+          Browser.moduleContextCreatedCallbacks.forEach(function (callback) {
             callback();
           });
           Browser.init();
         }
         return ctx;
       },
-      destroyContext: function(canvas, useWebGL, setInModule) {},
+      destroyContext: function (canvas, useWebGL, setInModule) {},
       fullscreenHandlersInstalled: false,
       lockPointer: undefined,
       resizeCanvas: undefined,
-      requestFullscreen: function(lockPointer, resizeCanvas) {
+      requestFullscreen: function (lockPointer, resizeCanvas) {
         Browser.lockPointer = lockPointer;
         Browser.resizeCanvas = resizeCanvas;
-        if (typeof Browser.lockPointer === "undefined")
-          Browser.lockPointer = true;
-        if (typeof Browser.resizeCanvas === "undefined")
-          Browser.resizeCanvas = false;
-        var canvas = Module["canvas"];
+        if (typeof Browser.lockPointer === 'undefined') Browser.lockPointer = true;
+        if (typeof Browser.resizeCanvas === 'undefined') Browser.resizeCanvas = false;
+        var canvas = Module['canvas'];
         function fullscreenChange() {
           Browser.isFullscreen = false;
           var canvasContainer = canvas.parentNode;
           if (
-            (document["fullscreenElement"] ||
-              document["mozFullScreenElement"] ||
-              document["msFullscreenElement"] ||
-              document["webkitFullscreenElement"] ||
-              document["webkitCurrentFullScreenElement"]) === canvasContainer
+            (document['fullscreenElement'] ||
+              document['mozFullScreenElement'] ||
+              document['msFullscreenElement'] ||
+              document['webkitFullscreenElement'] ||
+              document['webkitCurrentFullScreenElement']) === canvasContainer
           ) {
             canvas.exitFullscreen = Browser.exitFullscreen;
             if (Browser.lockPointer) canvas.requestPointerLock();
@@ -4965,73 +4611,51 @@ var Module = (function() {
               Browser.updateCanvasDimensions(canvas);
             }
           }
-          if (Module["onFullScreen"])
-            Module["onFullScreen"](Browser.isFullscreen);
-          if (Module["onFullscreen"])
-            Module["onFullscreen"](Browser.isFullscreen);
+          if (Module['onFullScreen']) Module['onFullScreen'](Browser.isFullscreen);
+          if (Module['onFullscreen']) Module['onFullscreen'](Browser.isFullscreen);
         }
         if (!Browser.fullscreenHandlersInstalled) {
           Browser.fullscreenHandlersInstalled = true;
-          document.addEventListener(
-            "fullscreenchange",
-            fullscreenChange,
-            false
-          );
-          document.addEventListener(
-            "mozfullscreenchange",
-            fullscreenChange,
-            false
-          );
-          document.addEventListener(
-            "webkitfullscreenchange",
-            fullscreenChange,
-            false
-          );
-          document.addEventListener(
-            "MSFullscreenChange",
-            fullscreenChange,
-            false
-          );
+          document.addEventListener('fullscreenchange', fullscreenChange, false);
+          document.addEventListener('mozfullscreenchange', fullscreenChange, false);
+          document.addEventListener('webkitfullscreenchange', fullscreenChange, false);
+          document.addEventListener('MSFullscreenChange', fullscreenChange, false);
         }
-        var canvasContainer = document.createElement("div");
+        var canvasContainer = document.createElement('div');
         canvas.parentNode.insertBefore(canvasContainer, canvas);
         canvasContainer.appendChild(canvas);
         canvasContainer.requestFullscreen =
-          canvasContainer["requestFullscreen"] ||
-          canvasContainer["mozRequestFullScreen"] ||
-          canvasContainer["msRequestFullscreen"] ||
-          (canvasContainer["webkitRequestFullscreen"]
-            ? function() {
-                canvasContainer["webkitRequestFullscreen"](
-                  Element["ALLOW_KEYBOARD_INPUT"]
-                );
+          canvasContainer['requestFullscreen'] ||
+          canvasContainer['mozRequestFullScreen'] ||
+          canvasContainer['msRequestFullscreen'] ||
+          (canvasContainer['webkitRequestFullscreen']
+            ? function () {
+                canvasContainer['webkitRequestFullscreen'](Element['ALLOW_KEYBOARD_INPUT']);
               }
             : null) ||
-          (canvasContainer["webkitRequestFullScreen"]
-            ? function() {
-                canvasContainer["webkitRequestFullScreen"](
-                  Element["ALLOW_KEYBOARD_INPUT"]
-                );
+          (canvasContainer['webkitRequestFullScreen']
+            ? function () {
+                canvasContainer['webkitRequestFullScreen'](Element['ALLOW_KEYBOARD_INPUT']);
               }
             : null);
         canvasContainer.requestFullscreen();
       },
-      exitFullscreen: function() {
+      exitFullscreen: function () {
         if (!Browser.isFullscreen) {
           return false;
         }
         var CFS =
-          document["exitFullscreen"] ||
-          document["cancelFullScreen"] ||
-          document["mozCancelFullScreen"] ||
-          document["msExitFullscreen"] ||
-          document["webkitCancelFullScreen"] ||
-          function() {};
+          document['exitFullscreen'] ||
+          document['cancelFullScreen'] ||
+          document['mozCancelFullScreen'] ||
+          document['msExitFullscreen'] ||
+          document['webkitCancelFullScreen'] ||
+          function () {};
         CFS.apply(document, []);
         return true;
       },
       nextRAF: 0,
-      fakeRequestAnimationFrame: function(func) {
+      fakeRequestAnimationFrame: function (func) {
         var now = Date.now();
         if (Browser.nextRAF === 0) {
           Browser.nextRAF = now + 1e3 / 60;
@@ -5043,36 +4667,36 @@ var Module = (function() {
         var delay = Math.max(Browser.nextRAF - now, 0);
         setTimeout(func, delay);
       },
-      requestAnimationFrame: function(func) {
-        if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame: function (func) {
+        if (typeof requestAnimationFrame === 'function') {
           requestAnimationFrame(func);
           return;
         }
         var RAF = Browser.fakeRequestAnimationFrame;
         RAF(func);
       },
-      safeCallback: function(func) {
-        return function() {
+      safeCallback: function (func) {
+        return function () {
           if (!ABORT) return func.apply(null, arguments);
         };
       },
       allowAsyncCallbacks: true,
       queuedAsyncCallbacks: [],
-      pauseAsyncCallbacks: function() {
+      pauseAsyncCallbacks: function () {
         Browser.allowAsyncCallbacks = false;
       },
-      resumeAsyncCallbacks: function() {
+      resumeAsyncCallbacks: function () {
         Browser.allowAsyncCallbacks = true;
         if (Browser.queuedAsyncCallbacks.length > 0) {
           var callbacks = Browser.queuedAsyncCallbacks;
           Browser.queuedAsyncCallbacks = [];
-          callbacks.forEach(function(func) {
+          callbacks.forEach(function (func) {
             func();
           });
         }
       },
-      safeRequestAnimationFrame: function(func) {
-        return Browser.requestAnimationFrame(function() {
+      safeRequestAnimationFrame: function (func) {
+        return Browser.requestAnimationFrame(function () {
           if (ABORT) return;
           if (Browser.allowAsyncCallbacks) {
             func();
@@ -5081,9 +4705,9 @@ var Module = (function() {
           }
         });
       },
-      safeSetTimeout: function(func, timeout) {
+      safeSetTimeout: function (func, timeout) {
         noExitRuntime = true;
-        return setTimeout(function() {
+        return setTimeout(function () {
           if (ABORT) return;
           if (Browser.allowAsyncCallbacks) {
             func();
@@ -5092,59 +4716,48 @@ var Module = (function() {
           }
         }, timeout);
       },
-      safeSetInterval: function(func, timeout) {
+      safeSetInterval: function (func, timeout) {
         noExitRuntime = true;
-        return setInterval(function() {
+        return setInterval(function () {
           if (ABORT) return;
           if (Browser.allowAsyncCallbacks) {
             func();
           }
         }, timeout);
       },
-      getMimetype: function(name) {
+      getMimetype: function (name) {
         return {
-          jpg: "image/jpeg",
-          jpeg: "image/jpeg",
-          png: "image/png",
-          bmp: "image/bmp",
-          ogg: "audio/ogg",
-          wav: "audio/wav",
-          mp3: "audio/mpeg"
-        }[name.substr(name.lastIndexOf(".") + 1)];
+          jpg: 'image/jpeg',
+          jpeg: 'image/jpeg',
+          png: 'image/png',
+          bmp: 'image/bmp',
+          ogg: 'audio/ogg',
+          wav: 'audio/wav',
+          mp3: 'audio/mpeg'
+        }[name.substr(name.lastIndexOf('.') + 1)];
       },
-      getUserMedia: function(func) {
+      getUserMedia: function (func) {
         if (!window.getUserMedia) {
-          window.getUserMedia =
-            navigator["getUserMedia"] || navigator["mozGetUserMedia"];
+          window.getUserMedia = navigator['getUserMedia'] || navigator['mozGetUserMedia'];
         }
         window.getUserMedia(func);
       },
-      getMovementX: function(event) {
-        return (
-          event["movementX"] ||
-          event["mozMovementX"] ||
-          event["webkitMovementX"] ||
-          0
-        );
+      getMovementX: function (event) {
+        return event['movementX'] || event['mozMovementX'] || event['webkitMovementX'] || 0;
       },
-      getMovementY: function(event) {
-        return (
-          event["movementY"] ||
-          event["mozMovementY"] ||
-          event["webkitMovementY"] ||
-          0
-        );
+      getMovementY: function (event) {
+        return event['movementY'] || event['mozMovementY'] || event['webkitMovementY'] || 0;
       },
-      getMouseWheelDelta: function(event) {
+      getMouseWheelDelta: function (event) {
         var delta = 0;
         switch (event.type) {
-          case "DOMMouseScroll":
+          case 'DOMMouseScroll':
             delta = event.detail / 3;
             break;
-          case "mousewheel":
+          case 'mousewheel':
             delta = event.wheelDelta / 120;
             break;
-          case "wheel":
+          case 'wheel':
             delta = event.deltaY;
             switch (event.deltaMode) {
               case 0:
@@ -5157,11 +4770,11 @@ var Module = (function() {
                 delta *= 80;
                 break;
               default:
-                throw "unrecognized mouse wheel delta mode: " + event.deltaMode;
+                throw 'unrecognized mouse wheel delta mode: ' + event.deltaMode;
             }
             break;
           default:
-            throw "unrecognized mouse wheel event: " + event.type;
+            throw 'unrecognized mouse wheel event: ' + event.type;
         }
         return delta;
       },
@@ -5171,15 +4784,15 @@ var Module = (function() {
       mouseMovementY: 0,
       touches: {},
       lastTouches: {},
-      calculateMouseEvent: function(event) {
+      calculateMouseEvent: function (event) {
         if (Browser.pointerLock) {
-          if (event.type != "mousemove" && "mozMovementX" in event) {
+          if (event.type != 'mousemove' && 'mozMovementX' in event) {
             Browser.mouseMovementX = Browser.mouseMovementY = 0;
           } else {
             Browser.mouseMovementX = Browser.getMovementX(event);
             Browser.mouseMovementY = Browser.getMovementY(event);
           }
-          if (typeof SDL != "undefined") {
+          if (typeof SDL != 'undefined') {
             Browser.mouseX = SDL.mouseX + Browser.mouseMovementX;
             Browser.mouseY = SDL.mouseY + Browser.mouseMovementY;
           } else {
@@ -5187,21 +4800,15 @@ var Module = (function() {
             Browser.mouseY += Browser.mouseMovementY;
           }
         } else {
-          var rect = Module["canvas"].getBoundingClientRect();
-          var cw = Module["canvas"].width;
-          var ch = Module["canvas"].height;
-          var scrollX =
-            typeof window.scrollX !== "undefined"
-              ? window.scrollX
-              : window.pageXOffset;
-          var scrollY =
-            typeof window.scrollY !== "undefined"
-              ? window.scrollY
-              : window.pageYOffset;
+          var rect = Module['canvas'].getBoundingClientRect();
+          var cw = Module['canvas'].width;
+          var ch = Module['canvas'].height;
+          var scrollX = typeof window.scrollX !== 'undefined' ? window.scrollX : window.pageXOffset;
+          var scrollY = typeof window.scrollY !== 'undefined' ? window.scrollY : window.pageYOffset;
           if (
-            event.type === "touchstart" ||
-            event.type === "touchend" ||
-            event.type === "touchmove"
+            event.type === 'touchstart' ||
+            event.type === 'touchend' ||
+            event.type === 'touchmove'
           ) {
             var touch = event.touch;
             if (touch === undefined) {
@@ -5212,13 +4819,10 @@ var Module = (function() {
             adjustedX = adjustedX * (cw / rect.width);
             adjustedY = adjustedY * (ch / rect.height);
             var coords = { x: adjustedX, y: adjustedY };
-            if (event.type === "touchstart") {
+            if (event.type === 'touchstart') {
               Browser.lastTouches[touch.identifier] = coords;
               Browser.touches[touch.identifier] = coords;
-            } else if (
-              event.type === "touchend" ||
-              event.type === "touchmove"
-            ) {
+            } else if (event.type === 'touchend' || event.type === 'touchmove') {
               var last = Browser.touches[touch.identifier];
               if (!last) last = coords;
               Browser.lastTouches[touch.identifier] = last;
@@ -5236,19 +4840,16 @@ var Module = (function() {
           Browser.mouseY = y;
         }
       },
-      asyncLoad: function(url, onload, onerror, noRunDep) {
-        var dep = !noRunDep ? getUniqueRunDependency("al " + url) : "";
+      asyncLoad: function (url, onload, onerror, noRunDep) {
+        var dep = !noRunDep ? getUniqueRunDependency('al ' + url) : '';
         readAsync(
           url,
-          function(arrayBuffer) {
-            assert(
-              arrayBuffer,
-              'Loading data file "' + url + '" failed (no arrayBuffer).'
-            );
+          function (arrayBuffer) {
+            assert(arrayBuffer, 'Loading data file "' + url + '" failed (no arrayBuffer).');
             onload(new Uint8Array(arrayBuffer));
             if (dep) removeRunDependency(dep);
           },
-          function(event) {
+          function (event) {
             if (onerror) {
               onerror();
             } else {
@@ -5259,38 +4860,38 @@ var Module = (function() {
         if (dep) addRunDependency(dep);
       },
       resizeListeners: [],
-      updateResizeListeners: function() {
-        var canvas = Module["canvas"];
-        Browser.resizeListeners.forEach(function(listener) {
+      updateResizeListeners: function () {
+        var canvas = Module['canvas'];
+        Browser.resizeListeners.forEach(function (listener) {
           listener(canvas.width, canvas.height);
         });
       },
-      setCanvasSize: function(width, height, noUpdates) {
-        var canvas = Module["canvas"];
+      setCanvasSize: function (width, height, noUpdates) {
+        var canvas = Module['canvas'];
         Browser.updateCanvasDimensions(canvas, width, height);
         if (!noUpdates) Browser.updateResizeListeners();
       },
       windowedWidth: 0,
       windowedHeight: 0,
-      setFullscreenCanvasSize: function() {
-        if (typeof SDL != "undefined") {
+      setFullscreenCanvasSize: function () {
+        if (typeof SDL != 'undefined') {
           var flags = HEAPU32[SDL.screen >> 2];
           flags = flags | 8388608;
           HEAP32[SDL.screen >> 2] = flags;
         }
-        Browser.updateCanvasDimensions(Module["canvas"]);
+        Browser.updateCanvasDimensions(Module['canvas']);
         Browser.updateResizeListeners();
       },
-      setWindowedCanvasSize: function() {
-        if (typeof SDL != "undefined") {
+      setWindowedCanvasSize: function () {
+        if (typeof SDL != 'undefined') {
           var flags = HEAPU32[SDL.screen >> 2];
           flags = flags & ~8388608;
           HEAP32[SDL.screen >> 2] = flags;
         }
-        Browser.updateCanvasDimensions(Module["canvas"]);
+        Browser.updateCanvasDimensions(Module['canvas']);
         Browser.updateResizeListeners();
       },
-      updateCanvasDimensions: function(canvas, wNative, hNative) {
+      updateCanvasDimensions: function (canvas, wNative, hNative) {
         if (wNative && hNative) {
           canvas.widthNative = wNative;
           canvas.heightNative = hNative;
@@ -5300,20 +4901,20 @@ var Module = (function() {
         }
         var w = wNative;
         var h = hNative;
-        if (Module["forcedAspectRatio"] && Module["forcedAspectRatio"] > 0) {
-          if (w / h < Module["forcedAspectRatio"]) {
-            w = Math.round(h * Module["forcedAspectRatio"]);
+        if (Module['forcedAspectRatio'] && Module['forcedAspectRatio'] > 0) {
+          if (w / h < Module['forcedAspectRatio']) {
+            w = Math.round(h * Module['forcedAspectRatio']);
           } else {
-            h = Math.round(w / Module["forcedAspectRatio"]);
+            h = Math.round(w / Module['forcedAspectRatio']);
           }
         }
         if (
-          (document["fullscreenElement"] ||
-            document["mozFullScreenElement"] ||
-            document["msFullscreenElement"] ||
-            document["webkitFullscreenElement"] ||
-            document["webkitCurrentFullScreenElement"]) === canvas.parentNode &&
-          typeof screen != "undefined"
+          (document['fullscreenElement'] ||
+            document['mozFullScreenElement'] ||
+            document['msFullscreenElement'] ||
+            document['webkitFullscreenElement'] ||
+            document['webkitCurrentFullScreenElement']) === canvas.parentNode &&
+          typeof screen != 'undefined'
         ) {
           var factor = Math.min(screen.width / w, screen.height / h);
           w = Math.round(w * factor);
@@ -5322,27 +4923,27 @@ var Module = (function() {
         if (Browser.resizeCanvas) {
           if (canvas.width != w) canvas.width = w;
           if (canvas.height != h) canvas.height = h;
-          if (typeof canvas.style != "undefined") {
-            canvas.style.removeProperty("width");
-            canvas.style.removeProperty("height");
+          if (typeof canvas.style != 'undefined') {
+            canvas.style.removeProperty('width');
+            canvas.style.removeProperty('height');
           }
         } else {
           if (canvas.width != wNative) canvas.width = wNative;
           if (canvas.height != hNative) canvas.height = hNative;
-          if (typeof canvas.style != "undefined") {
+          if (typeof canvas.style != 'undefined') {
             if (w != wNative || h != hNative) {
-              canvas.style.setProperty("width", w + "px", "important");
-              canvas.style.setProperty("height", h + "px", "important");
+              canvas.style.setProperty('width', w + 'px', 'important');
+              canvas.style.setProperty('height', h + 'px', 'important');
             } else {
-              canvas.style.removeProperty("width");
-              canvas.style.removeProperty("height");
+              canvas.style.removeProperty('width');
+              canvas.style.removeProperty('height');
             }
           }
         }
       },
       wgetRequests: {},
       nextWgetRequestHandle: 0,
-      getNextWgetRequestHandle: function() {
+      getNextWgetRequestHandle: function () {
         var handle = Browser.nextWgetRequestHandle;
         Browser.nextWgetRequestHandle++;
         return handle;
@@ -5361,16 +4962,10 @@ var Module = (function() {
         antialias: false
       },
       stringCache: {},
-      setErrorCode: function(code) {
+      setErrorCode: function (code) {
         EGL.errorCode = code;
       },
-      chooseConfig: function(
-        display,
-        attribList,
-        config,
-        config_size,
-        numConfigs
-      ) {
+      chooseConfig: function (display, attribList, config, config_size, numConfigs) {
         if (display != 62e3) {
           EGL.setErrorCode(12296);
           return 0;
@@ -5425,71 +5020,47 @@ var Module = (function() {
         return 0;
       }
     }
-    function _eglChooseConfig(
-      display,
-      attrib_list,
-      configs,
-      config_size,
-      numConfigs
-    ) {
-      return EGL.chooseConfig(
-        display,
-        attrib_list,
-        configs,
-        config_size,
-        numConfigs
-      );
+    function _eglChooseConfig(display, attrib_list, configs, config_size, numConfigs) {
+      return EGL.chooseConfig(display, attrib_list, configs, config_size, numConfigs);
     }
     function __webgl_enable_ANGLE_instanced_arrays(ctx) {
-      var ext = ctx.getExtension("ANGLE_instanced_arrays");
+      var ext = ctx.getExtension('ANGLE_instanced_arrays');
       if (ext) {
-        ctx["vertexAttribDivisor"] = function(index, divisor) {
-          ext["vertexAttribDivisorANGLE"](index, divisor);
+        ctx['vertexAttribDivisor'] = function (index, divisor) {
+          ext['vertexAttribDivisorANGLE'](index, divisor);
         };
-        ctx["drawArraysInstanced"] = function(mode, first, count, primcount) {
-          ext["drawArraysInstancedANGLE"](mode, first, count, primcount);
+        ctx['drawArraysInstanced'] = function (mode, first, count, primcount) {
+          ext['drawArraysInstancedANGLE'](mode, first, count, primcount);
         };
-        ctx["drawElementsInstanced"] = function(
-          mode,
-          count,
-          type,
-          indices,
-          primcount
-        ) {
-          ext["drawElementsInstancedANGLE"](
-            mode,
-            count,
-            type,
-            indices,
-            primcount
-          );
+        ctx['drawElementsInstanced'] = function (mode, count, type, indices, primcount) {
+          ext['drawElementsInstancedANGLE'](mode, count, type, indices, primcount);
         };
         return 1;
       }
     }
     function __webgl_enable_OES_vertex_array_object(ctx) {
-      var ext = ctx.getExtension("OES_vertex_array_object");
+      var ext = ctx.getExtension('OES_vertex_array_object');
       if (ext) {
-        ctx["createVertexArray"] = function() {
-          return ext["createVertexArrayOES"]();
+        ctx['createVertexArray'] = function () {
+          return ext['createVertexArrayOES']();
         };
-        ctx["deleteVertexArray"] = function(vao) {
-          ext["deleteVertexArrayOES"](vao);
+        ctx['deleteVertexArray'] = function (vao) {
+          ext['deleteVertexArrayOES'](vao);
         };
-        ctx["bindVertexArray"] = function(vao) {
-          ext["bindVertexArrayOES"](vao);
+        ctx['bindVertexArray'] = function (vao) {
+          ext['bindVertexArrayOES'](vao);
         };
-        ctx["isVertexArray"] = function(vao) {
-          return ext["isVertexArrayOES"](vao);
+        ctx['isVertexArray'] = function (vao) {
+          return ext['isVertexArrayOES'](vao);
         };
         return 1;
       }
     }
     function __webgl_enable_WEBGL_draw_buffers(ctx) {
-      var ext = ctx.getExtension("WEBGL_draw_buffers");
+      var ext = ctx.getExtension('WEBGL_draw_buffers');
       if (ext) {
-        ctx["drawBuffers"] = function(n, bufs) {
-          ext["drawBuffersWEBGL"](n, bufs);
+        ctx['drawBuffers'] = function (n, bufs) {
+          ext['drawBuffersWEBGL'](n, bufs);
         };
         return 1;
       }
@@ -5513,13 +5084,10 @@ var Module = (function() {
       programInfos: {},
       stringCache: {},
       unpackAlignment: 4,
-      init: function() {
+      init: function () {
         var miniTempFloatBuffer = new Float32Array(GL.MINI_TEMP_BUFFER_SIZE);
         for (var i = 0; i < GL.MINI_TEMP_BUFFER_SIZE; i++) {
-          GL.miniTempBufferFloatViews[i] = miniTempFloatBuffer.subarray(
-            0,
-            i + 1
-          );
+          GL.miniTempBufferFloatViews[i] = miniTempFloatBuffer.subarray(0, i + 1);
         }
         var miniTempIntBuffer = new Int32Array(GL.MINI_TEMP_BUFFER_SIZE);
         for (var i = 0; i < GL.MINI_TEMP_BUFFER_SIZE; i++) {
@@ -5531,7 +5099,7 @@ var Module = (function() {
           GL.lastError = errorCode;
         }
       },
-      getNewId: function(table) {
+      getNewId: function (table) {
         var ret = GL.counter++;
         for (var i = table.length; i < ret; i++) {
           table[i] = null;
@@ -5541,24 +5109,21 @@ var Module = (function() {
       MINI_TEMP_BUFFER_SIZE: 256,
       miniTempBufferFloatViews: [0],
       miniTempBufferIntViews: [0],
-      getSource: function(shader, count, string, length) {
-        var source = "";
+      getSource: function (shader, count, string, length) {
+        var source = '';
         for (var i = 0; i < count; ++i) {
           var len = length ? HEAP32[(length + i * 4) >> 2] : -1;
-          source += UTF8ToString(
-            HEAP32[(string + i * 4) >> 2],
-            len < 0 ? undefined : len
-          );
+          source += UTF8ToString(HEAP32[(string + i * 4) >> 2], len < 0 ? undefined : len);
         }
         return source;
       },
-      createContext: function(canvas, webGLContextAttributes) {
-        var ctx = canvas.getContext("webgl", webGLContextAttributes);
+      createContext: function (canvas, webGLContextAttributes) {
+        var ctx = canvas.getContext('webgl', webGLContextAttributes);
         if (!ctx) return 0;
         var handle = GL.registerContext(ctx, webGLContextAttributes);
         return handle;
       },
-      registerContext: function(ctx, webGLContextAttributes) {
+      registerContext: function (ctx, webGLContextAttributes) {
         var handle = GL.getNewId(GL.contexts);
         var context = {
           handle: handle,
@@ -5569,37 +5134,30 @@ var Module = (function() {
         if (ctx.canvas) ctx.canvas.GLctxObject = context;
         GL.contexts[handle] = context;
         if (
-          typeof webGLContextAttributes.enableExtensionsByDefault ===
-            "undefined" ||
+          typeof webGLContextAttributes.enableExtensionsByDefault === 'undefined' ||
           webGLContextAttributes.enableExtensionsByDefault
         ) {
           GL.initExtensions(context);
         }
         return handle;
       },
-      makeContextCurrent: function(contextHandle) {
+      makeContextCurrent: function (contextHandle) {
         GL.currentContext = GL.contexts[contextHandle];
         Module.ctx = GLctx = GL.currentContext && GL.currentContext.GLctx;
         return !(contextHandle && !GLctx);
       },
-      getContext: function(contextHandle) {
+      getContext: function (contextHandle) {
         return GL.contexts[contextHandle];
       },
-      deleteContext: function(contextHandle) {
-        if (GL.currentContext === GL.contexts[contextHandle])
-          GL.currentContext = null;
-        if (typeof JSEvents === "object")
-          JSEvents.removeAllHandlersOnTarget(
-            GL.contexts[contextHandle].GLctx.canvas
-          );
-        if (
-          GL.contexts[contextHandle] &&
-          GL.contexts[contextHandle].GLctx.canvas
-        )
+      deleteContext: function (contextHandle) {
+        if (GL.currentContext === GL.contexts[contextHandle]) GL.currentContext = null;
+        if (typeof JSEvents === 'object')
+          JSEvents.removeAllHandlersOnTarget(GL.contexts[contextHandle].GLctx.canvas);
+        if (GL.contexts[contextHandle] && GL.contexts[contextHandle].GLctx.canvas)
           GL.contexts[contextHandle].GLctx.canvas.GLctxObject = undefined;
         GL.contexts[contextHandle] = null;
       },
-      initExtensions: function(context) {
+      initExtensions: function (context) {
         if (!context) context = GL.currentContext;
         if (context.initExtensionsDone) return;
         context.initExtensionsDone = true;
@@ -5607,47 +5165,45 @@ var Module = (function() {
         __webgl_enable_ANGLE_instanced_arrays(GLctx);
         __webgl_enable_OES_vertex_array_object(GLctx);
         __webgl_enable_WEBGL_draw_buffers(GLctx);
-        GLctx.disjointTimerQueryExt = GLctx.getExtension(
-          "EXT_disjoint_timer_query"
-        );
+        GLctx.disjointTimerQueryExt = GLctx.getExtension('EXT_disjoint_timer_query');
         var automaticallyEnabledExtensions = [
-          "OES_texture_float",
-          "OES_texture_half_float",
-          "OES_standard_derivatives",
-          "OES_vertex_array_object",
-          "WEBGL_compressed_texture_s3tc",
-          "WEBGL_depth_texture",
-          "OES_element_index_uint",
-          "EXT_texture_filter_anisotropic",
-          "EXT_frag_depth",
-          "WEBGL_draw_buffers",
-          "ANGLE_instanced_arrays",
-          "OES_texture_float_linear",
-          "OES_texture_half_float_linear",
-          "EXT_blend_minmax",
-          "EXT_shader_texture_lod",
-          "EXT_texture_norm16",
-          "WEBGL_compressed_texture_pvrtc",
-          "EXT_color_buffer_half_float",
-          "WEBGL_color_buffer_float",
-          "EXT_sRGB",
-          "WEBGL_compressed_texture_etc1",
-          "EXT_disjoint_timer_query",
-          "WEBGL_compressed_texture_etc",
-          "WEBGL_compressed_texture_astc",
-          "EXT_color_buffer_float",
-          "WEBGL_compressed_texture_s3tc_srgb",
-          "EXT_disjoint_timer_query_webgl2",
-          "WEBKIT_WEBGL_compressed_texture_pvrtc"
+          'OES_texture_float',
+          'OES_texture_half_float',
+          'OES_standard_derivatives',
+          'OES_vertex_array_object',
+          'WEBGL_compressed_texture_s3tc',
+          'WEBGL_depth_texture',
+          'OES_element_index_uint',
+          'EXT_texture_filter_anisotropic',
+          'EXT_frag_depth',
+          'WEBGL_draw_buffers',
+          'ANGLE_instanced_arrays',
+          'OES_texture_float_linear',
+          'OES_texture_half_float_linear',
+          'EXT_blend_minmax',
+          'EXT_shader_texture_lod',
+          'EXT_texture_norm16',
+          'WEBGL_compressed_texture_pvrtc',
+          'EXT_color_buffer_half_float',
+          'WEBGL_color_buffer_float',
+          'EXT_sRGB',
+          'WEBGL_compressed_texture_etc1',
+          'EXT_disjoint_timer_query',
+          'WEBGL_compressed_texture_etc',
+          'WEBGL_compressed_texture_astc',
+          'EXT_color_buffer_float',
+          'WEBGL_compressed_texture_s3tc_srgb',
+          'EXT_disjoint_timer_query_webgl2',
+          'WEBKIT_WEBGL_compressed_texture_pvrtc'
         ];
         var exts = GLctx.getSupportedExtensions() || [];
-        exts.forEach(function(ext) {
+        exts.forEach(function (ext) {
           if (automaticallyEnabledExtensions.indexOf(ext) != -1) {
             GLctx.getExtension(ext);
           }
         });
       },
-      populateUniformTable: function(program) {
+      populateUniformTable: function (program) {
         var p = GL.programs[program];
         var ptable = (GL.programInfos[program] = {
           uniforms: {},
@@ -5660,12 +5216,9 @@ var Module = (function() {
         for (var i = 0; i < numUniforms; ++i) {
           var u = GLctx.getActiveUniform(p, i);
           var name = u.name;
-          ptable.maxUniformLength = Math.max(
-            ptable.maxUniformLength,
-            name.length + 1
-          );
-          if (name.slice(-1) == "]") {
-            name = name.slice(0, name.lastIndexOf("["));
+          ptable.maxUniformLength = Math.max(ptable.maxUniformLength, name.length + 1);
+          if (name.slice(-1) == ']') {
+            name = name.slice(0, name.lastIndexOf('['));
           }
           var loc = GLctx.getUniformLocation(p, name);
           if (loc) {
@@ -5673,7 +5226,7 @@ var Module = (function() {
             utable[name] = [u.size, id];
             GL.uniforms[id] = loc;
             for (var j = 1; j < u.size; ++j) {
-              var n = name + "[" + j + "]";
+              var n = name + '[' + j + ']';
               loc = GLctx.getUniformLocation(p, n);
               id = GL.getNewId(GL.uniforms);
               GL.uniforms[id] = loc;
@@ -5706,12 +5259,12 @@ var Module = (function() {
       }
       EGL.contextAttributes.majorVersion = glesContextVersion - 1;
       EGL.contextAttributes.minorVersion = 0;
-      EGL.context = GL.createContext(Module["canvas"], EGL.contextAttributes);
+      EGL.context = GL.createContext(Module['canvas'], EGL.contextAttributes);
       if (EGL.context != 0) {
         EGL.setErrorCode(12288);
         GL.makeContextCurrent(EGL.context);
         Module.useWebGL = true;
-        Browser.moduleContextCreatedCallbacks.forEach(function(callback) {
+        Browser.moduleContextCreatedCallbacks.forEach(function (callback) {
           callback();
         });
         GL.makeContextCurrent(null);
@@ -5931,16 +5484,16 @@ var Module = (function() {
       var ret;
       switch (name) {
         case 12371:
-          ret = allocateUTF8("Emscripten");
+          ret = allocateUTF8('Emscripten');
           break;
         case 12372:
-          ret = allocateUTF8("1.4 Emscripten EGL");
+          ret = allocateUTF8('1.4 Emscripten EGL');
           break;
         case 12373:
-          ret = allocateUTF8("");
+          ret = allocateUTF8('');
           break;
         case 12429:
-          ret = allocateUTF8("OpenGL_ES");
+          ret = allocateUTF8('OpenGL_ES');
           break;
         default:
           EGL.setErrorCode(12300);
@@ -6015,21 +5568,21 @@ var Module = (function() {
       previousScreenX: null,
       previousScreenY: null,
       removeEventListenersRegistered: false,
-      removeAllEventListeners: function() {
+      removeAllEventListeners: function () {
         for (var i = JSEvents.eventHandlers.length - 1; i >= 0; --i) {
           JSEvents._removeHandler(i);
         }
         JSEvents.eventHandlers = [];
         JSEvents.deferredCalls = [];
       },
-      registerRemoveEventListeners: function() {
+      registerRemoveEventListeners: function () {
         if (!JSEvents.removeEventListenersRegistered) {
           __ATEXIT__.push(JSEvents.removeAllEventListeners);
           JSEvents.removeEventListenersRegistered = true;
         }
       },
       deferredCalls: [],
-      deferCall: function(targetFunction, precedence, argsList) {
+      deferCall: function (targetFunction, precedence, argsList) {
         function arraysHaveEqualContent(arrA, arrB) {
           if (arrA.length != arrB.length) return false;
           for (var i in arrA) {
@@ -6051,11 +5604,11 @@ var Module = (function() {
           precedence: precedence,
           argsList: argsList
         });
-        JSEvents.deferredCalls.sort(function(x, y) {
+        JSEvents.deferredCalls.sort(function (x, y) {
           return x.precedence < y.precedence;
         });
       },
-      removeDeferredCalls: function(targetFunction) {
+      removeDeferredCalls: function (targetFunction) {
         for (var i = 0; i < JSEvents.deferredCalls.length; ++i) {
           if (JSEvents.deferredCalls[i].targetFunction == targetFunction) {
             JSEvents.deferredCalls.splice(i, 1);
@@ -6063,13 +5616,10 @@ var Module = (function() {
           }
         }
       },
-      canPerformEventHandlerRequests: function() {
-        return (
-          JSEvents.inEventHandler &&
-          JSEvents.currentEventHandler.allowsDeferredCalls
-        );
+      canPerformEventHandlerRequests: function () {
+        return JSEvents.inEventHandler && JSEvents.currentEventHandler.allowsDeferredCalls;
       },
-      runDeferredCalls: function() {
+      runDeferredCalls: function () {
         if (!JSEvents.canPerformEventHandlerRequests()) {
           return;
         }
@@ -6083,27 +5633,22 @@ var Module = (function() {
       inEventHandler: 0,
       currentEventHandler: null,
       eventHandlers: [],
-      removeAllHandlersOnTarget: function(target, eventTypeString) {
+      removeAllHandlersOnTarget: function (target, eventTypeString) {
         for (var i = 0; i < JSEvents.eventHandlers.length; ++i) {
           if (
             JSEvents.eventHandlers[i].target == target &&
-            (!eventTypeString ||
-              eventTypeString == JSEvents.eventHandlers[i].eventTypeString)
+            (!eventTypeString || eventTypeString == JSEvents.eventHandlers[i].eventTypeString)
           ) {
             JSEvents._removeHandler(i--);
           }
         }
       },
-      _removeHandler: function(i) {
+      _removeHandler: function (i) {
         var h = JSEvents.eventHandlers[i];
-        h.target.removeEventListener(
-          h.eventTypeString,
-          h.eventListenerFunc,
-          h.useCapture
-        );
+        h.target.removeEventListener(h.eventTypeString, h.eventListenerFunc, h.useCapture);
         JSEvents.eventHandlers.splice(i, 1);
       },
-      registerOrRemoveHandler: function(eventHandler) {
+      registerOrRemoveHandler: function (eventHandler) {
         var jsEventHandler = function jsEventHandler(event) {
           ++JSEvents.inEventHandler;
           JSEvents.currentEventHandler = eventHandler;
@@ -6125,21 +5670,20 @@ var Module = (function() {
           for (var i = 0; i < JSEvents.eventHandlers.length; ++i) {
             if (
               JSEvents.eventHandlers[i].target == eventHandler.target &&
-              JSEvents.eventHandlers[i].eventTypeString ==
-                eventHandler.eventTypeString
+              JSEvents.eventHandlers[i].eventTypeString == eventHandler.eventTypeString
             ) {
               JSEvents._removeHandler(i--);
             }
           }
         }
       },
-      getNodeNameForTarget: function(target) {
-        if (!target) return "";
-        if (target == window) return "#window";
-        if (target == screen) return "#screen";
-        return target && target.nodeName ? target.nodeName : "";
+      getNodeNameForTarget: function (target) {
+        if (!target) return '';
+        if (target == window) return '#window';
+        if (target == screen) return '#screen';
+        return target && target.nodeName ? target.nodeName : '';
       },
-      fullscreenEnabled: function() {
+      fullscreenEnabled: function () {
         return document.fullscreenEnabled || document.webkitFullscreenEnabled;
       }
     };
@@ -6149,16 +5693,14 @@ var Module = (function() {
     }
     var specialHTMLTargets = [
       0,
-      typeof document !== "undefined" ? document : 0,
-      typeof window !== "undefined" ? window : 0
+      typeof document !== 'undefined' ? document : 0,
+      typeof window !== 'undefined' ? window : 0
     ];
     function __findEventTarget(target) {
       target = __maybeCStringToJsString(target);
       var domElement =
         specialHTMLTargets[target] ||
-        (typeof document !== "undefined"
-          ? document.querySelector(target)
-          : document);
+        (typeof document !== 'undefined' ? document.querySelector(target) : document);
       return domElement;
     }
     function __findCanvasEventTarget(target) {
@@ -6226,17 +5768,13 @@ var Module = (function() {
           document.webkitFullscreenElement ||
           document.msFullscreenElement;
         if (!fullscreenElement) {
-          document.removeEventListener("fullscreenchange", restoreOldStyle);
-          document.removeEventListener(
-            "webkitfullscreenchange",
-            restoreOldStyle
-          );
+          document.removeEventListener('fullscreenchange', restoreOldStyle);
+          document.removeEventListener('webkitfullscreenchange', restoreOldStyle);
           __set_canvas_element_size(canvas, oldWidth, oldHeight);
           canvas.style.width = oldCssWidth;
           canvas.style.height = oldCssHeight;
           canvas.style.backgroundColor = oldBackgroundColor;
-          if (!oldDocumentBackgroundColor)
-            document.body.style.backgroundColor = "white";
+          if (!oldDocumentBackgroundColor) document.body.style.backgroundColor = 'white';
           document.body.style.backgroundColor = oldDocumentBackgroundColor;
           canvas.style.paddingLeft = oldPaddingLeft;
           canvas.style.paddingRight = oldPaddingRight;
@@ -6250,8 +5788,7 @@ var Module = (function() {
           document.documentElement.style.overflow = oldDocumentOverflow;
           document.body.scroll = oldDocumentScroll;
           canvas.style.imageRendering = oldImageRendering;
-          if (canvas.GLctxObject)
-            canvas.GLctxObject.GLctx.viewport(0, 0, oldWidth, oldHeight);
+          if (canvas.GLctxObject) canvas.GLctxObject.GLctx.viewport(0, 0, oldWidth, oldHeight);
           if (__currentFullscreenStrategy.canvasResizedCallback) {
             dynCall_iiii(
               __currentFullscreenStrategy.canvasResizedCallback,
@@ -6262,18 +5799,16 @@ var Module = (function() {
           }
         }
       }
-      document.addEventListener("fullscreenchange", restoreOldStyle);
-      document.addEventListener("webkitfullscreenchange", restoreOldStyle);
+      document.addEventListener('fullscreenchange', restoreOldStyle);
+      document.addEventListener('webkitfullscreenchange', restoreOldStyle);
       return restoreOldStyle;
     }
     function __setLetterbox(element, topBottom, leftRight) {
-      element.style.paddingLeft = element.style.paddingRight = leftRight + "px";
-      element.style.paddingTop = element.style.paddingBottom = topBottom + "px";
+      element.style.paddingLeft = element.style.paddingRight = leftRight + 'px';
+      element.style.paddingTop = element.style.paddingBottom = topBottom + 'px';
     }
     function __getBoundingClientRect(e) {
-      return specialHTMLTargets.indexOf(e) < 0
-        ? e.getBoundingClientRect()
-        : { left: 0, top: 0 };
+      return specialHTMLTargets.indexOf(e) < 0 ? e.getBoundingClientRect() : { left: 0, top: 0 };
     }
     function _JSEvents_resizeCanvasForFullscreen(target, strategy) {
       var restoreOldStyle = __registerRestoreOldStyle(target);
@@ -6295,39 +5830,34 @@ var Module = (function() {
         cssHeight = windowedCssHeight;
       } else if (strategy.scaleMode == 2) {
         if (cssWidth * windowedRttHeight < windowedRttWidth * cssHeight) {
-          var desiredCssHeight =
-            (windowedRttHeight * cssWidth) / windowedRttWidth;
+          var desiredCssHeight = (windowedRttHeight * cssWidth) / windowedRttWidth;
           __setLetterbox(target, (cssHeight - desiredCssHeight) / 2, 0);
           cssHeight = desiredCssHeight;
         } else {
-          var desiredCssWidth =
-            (windowedRttWidth * cssHeight) / windowedRttHeight;
+          var desiredCssWidth = (windowedRttWidth * cssHeight) / windowedRttHeight;
           __setLetterbox(target, 0, (cssWidth - desiredCssWidth) / 2);
           cssWidth = desiredCssWidth;
         }
       }
-      if (!target.style.backgroundColor) target.style.backgroundColor = "black";
-      if (!document.body.style.backgroundColor)
-        document.body.style.backgroundColor = "black";
-      target.style.width = cssWidth + "px";
-      target.style.height = cssHeight + "px";
+      if (!target.style.backgroundColor) target.style.backgroundColor = 'black';
+      if (!document.body.style.backgroundColor) document.body.style.backgroundColor = 'black';
+      target.style.width = cssWidth + 'px';
+      target.style.height = cssHeight + 'px';
       if (strategy.filteringMode == 1) {
-        target.style.imageRendering = "optimizeSpeed";
-        target.style.imageRendering = "-moz-crisp-edges";
-        target.style.imageRendering = "-o-crisp-edges";
-        target.style.imageRendering = "-webkit-optimize-contrast";
-        target.style.imageRendering = "optimize-contrast";
-        target.style.imageRendering = "crisp-edges";
-        target.style.imageRendering = "pixelated";
+        target.style.imageRendering = 'optimizeSpeed';
+        target.style.imageRendering = '-moz-crisp-edges';
+        target.style.imageRendering = '-o-crisp-edges';
+        target.style.imageRendering = '-webkit-optimize-contrast';
+        target.style.imageRendering = 'optimize-contrast';
+        target.style.imageRendering = 'crisp-edges';
+        target.style.imageRendering = 'pixelated';
       }
-      var dpiScale =
-        strategy.canvasResolutionScaleMode == 2 ? devicePixelRatio : 1;
+      var dpiScale = strategy.canvasResolutionScaleMode == 2 ? devicePixelRatio : 1;
       if (strategy.canvasResolutionScaleMode != 0) {
         var newWidth = (cssWidth * dpiScale) | 0;
         var newHeight = (cssHeight * dpiScale) | 0;
         __set_canvas_element_size(target, newWidth, newHeight);
-        if (target.GLctxObject)
-          target.GLctxObject.GLctx.viewport(0, 0, newWidth, newHeight);
+        if (target.GLctxObject) target.GLctxObject.GLctx.viewport(0, 0, newWidth, newHeight);
       }
       return restoreOldStyle;
     }
@@ -6344,12 +5874,7 @@ var Module = (function() {
       }
       __currentFullscreenStrategy = strategy;
       if (strategy.canvasResizedCallback) {
-        dynCall_iiii(
-          strategy.canvasResizedCallback,
-          37,
-          0,
-          strategy.canvasResizedCallbackUserData
-        );
+        dynCall_iiii(strategy.canvasResizedCallback, 37, 0, strategy.canvasResizedCallbackUserData);
       }
       return 0;
     }
@@ -6372,10 +5897,7 @@ var Module = (function() {
       } else if (target.msRequestPointerLock) {
         target.msRequestPointerLock();
       } else {
-        if (
-          document.body.requestPointerLock ||
-          document.body.msRequestPointerLock
-        ) {
+        if (document.body.requestPointerLock || document.body.msRequestPointerLock) {
           return -3;
         } else {
           return -1;
@@ -6395,7 +5917,7 @@ var Module = (function() {
       return 0;
     }
     function _emscripten_get_device_pixel_ratio() {
-      return (typeof devicePixelRatio === "number" && devicePixelRatio) || 1;
+      return (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1;
     }
     function _emscripten_get_element_css_size(target, width, height) {
       target = __findEventTarget(target);
@@ -6411,14 +5933,14 @@ var Module = (function() {
         HEAPF64[(eventStruct + i * 8 + 16) >> 3] = e.axes[i];
       }
       for (var i = 0; i < e.buttons.length; ++i) {
-        if (typeof e.buttons[i] === "object") {
+        if (typeof e.buttons[i] === 'object') {
           HEAPF64[(eventStruct + i * 8 + 528) >> 3] = e.buttons[i].value;
         } else {
           HEAPF64[(eventStruct + i * 8 + 528) >> 3] = e.buttons[i];
         }
       }
       for (var i = 0; i < e.buttons.length; ++i) {
-        if (typeof e.buttons[i] === "object") {
+        if (typeof e.buttons[i] === 'object') {
           HEAP32[(eventStruct + i * 4 + 1040) >> 2] = e.buttons[i].pressed;
         } else {
           HEAP32[(eventStruct + i * 4 + 1040) >> 2] = e.buttons[i] == 1;
@@ -6444,16 +5966,13 @@ var Module = (function() {
       return JSEvents.lastGamepadState.length;
     }
     function _emscripten_glActiveTexture(x0) {
-      GLctx["activeTexture"](x0);
+      GLctx['activeTexture'](x0);
     }
     function _emscripten_glAttachShader(program, shader) {
       GLctx.attachShader(GL.programs[program], GL.shaders[shader]);
     }
     function _emscripten_glBeginQueryEXT(target, id) {
-      GLctx.disjointTimerQueryExt["beginQueryEXT"](
-        target,
-        GL.timerQueriesEXT[id]
-      );
+      GLctx.disjointTimerQueryExt['beginQueryEXT'](target, GL.timerQueriesEXT[id]);
     }
     function _emscripten_glBindAttribLocation(program, index, name) {
       GLctx.bindAttribLocation(GL.programs[program], index, UTF8ToString(name));
@@ -6471,47 +5990,43 @@ var Module = (function() {
       GLctx.bindTexture(target, GL.textures[texture]);
     }
     function _emscripten_glBindVertexArrayOES(vao) {
-      GLctx["bindVertexArray"](GL.vaos[vao]);
+      GLctx['bindVertexArray'](GL.vaos[vao]);
     }
     function _emscripten_glBlendColor(x0, x1, x2, x3) {
-      GLctx["blendColor"](x0, x1, x2, x3);
+      GLctx['blendColor'](x0, x1, x2, x3);
     }
     function _emscripten_glBlendEquation(x0) {
-      GLctx["blendEquation"](x0);
+      GLctx['blendEquation'](x0);
     }
     function _emscripten_glBlendEquationSeparate(x0, x1) {
-      GLctx["blendEquationSeparate"](x0, x1);
+      GLctx['blendEquationSeparate'](x0, x1);
     }
     function _emscripten_glBlendFunc(x0, x1) {
-      GLctx["blendFunc"](x0, x1);
+      GLctx['blendFunc'](x0, x1);
     }
     function _emscripten_glBlendFuncSeparate(x0, x1, x2, x3) {
-      GLctx["blendFuncSeparate"](x0, x1, x2, x3);
+      GLctx['blendFuncSeparate'](x0, x1, x2, x3);
     }
     function _emscripten_glBufferData(target, size, data, usage) {
-      GLctx.bufferData(
-        target,
-        data ? HEAPU8.subarray(data, data + size) : size,
-        usage
-      );
+      GLctx.bufferData(target, data ? HEAPU8.subarray(data, data + size) : size, usage);
     }
     function _emscripten_glBufferSubData(target, offset, size, data) {
       GLctx.bufferSubData(target, offset, HEAPU8.subarray(data, data + size));
     }
     function _emscripten_glCheckFramebufferStatus(x0) {
-      return GLctx["checkFramebufferStatus"](x0);
+      return GLctx['checkFramebufferStatus'](x0);
     }
     function _emscripten_glClear(x0) {
-      GLctx["clear"](x0);
+      GLctx['clear'](x0);
     }
     function _emscripten_glClearColor(x0, x1, x2, x3) {
-      GLctx["clearColor"](x0, x1, x2, x3);
+      GLctx['clearColor'](x0, x1, x2, x3);
     }
     function _emscripten_glClearDepthf(x0) {
-      GLctx["clearDepth"](x0);
+      GLctx['clearDepth'](x0);
     }
     function _emscripten_glClearStencil(x0) {
-      GLctx["clearStencil"](x0);
+      GLctx['clearStencil'](x0);
     }
     function _emscripten_glColorMask(red, green, blue, alpha) {
       GLctx.colorMask(!!red, !!green, !!blue, !!alpha);
@@ -6529,7 +6044,7 @@ var Module = (function() {
       imageSize,
       data
     ) {
-      GLctx["compressedTexImage2D"](
+      GLctx['compressedTexImage2D'](
         target,
         level,
         internalFormat,
@@ -6550,7 +6065,7 @@ var Module = (function() {
       imageSize,
       data
     ) {
-      GLctx["compressedTexSubImage2D"](
+      GLctx['compressedTexSubImage2D'](
         target,
         level,
         xoffset,
@@ -6562,10 +6077,10 @@ var Module = (function() {
       );
     }
     function _emscripten_glCopyTexImage2D(x0, x1, x2, x3, x4, x5, x6, x7) {
-      GLctx["copyTexImage2D"](x0, x1, x2, x3, x4, x5, x6, x7);
+      GLctx['copyTexImage2D'](x0, x1, x2, x3, x4, x5, x6, x7);
     }
     function _emscripten_glCopyTexSubImage2D(x0, x1, x2, x3, x4, x5, x6, x7) {
-      GLctx["copyTexSubImage2D"](x0, x1, x2, x3, x4, x5, x6, x7);
+      GLctx['copyTexSubImage2D'](x0, x1, x2, x3, x4, x5, x6, x7);
     }
     function _emscripten_glCreateProgram() {
       var id = GL.getNewId(GL.programs);
@@ -6580,7 +6095,7 @@ var Module = (function() {
       return id;
     }
     function _emscripten_glCullFace(x0) {
-      GLctx["cullFace"](x0);
+      GLctx['cullFace'](x0);
     }
     function _emscripten_glDeleteBuffers(n, buffers) {
       for (var i = 0; i < n; i++) {
@@ -6621,7 +6136,7 @@ var Module = (function() {
         var id = HEAP32[(ids + i * 4) >> 2];
         var query = GL.timerQueriesEXT[id];
         if (!query) continue;
-        GLctx.disjointTimerQueryExt["deleteQueryEXT"](query);
+        GLctx.disjointTimerQueryExt['deleteQueryEXT'](query);
         GL.timerQueriesEXT[id] = null;
       }
     }
@@ -6658,24 +6173,24 @@ var Module = (function() {
     function _emscripten_glDeleteVertexArraysOES(n, vaos) {
       for (var i = 0; i < n; i++) {
         var id = HEAP32[(vaos + i * 4) >> 2];
-        GLctx["deleteVertexArray"](GL.vaos[id]);
+        GLctx['deleteVertexArray'](GL.vaos[id]);
         GL.vaos[id] = null;
       }
     }
     function _emscripten_glDepthFunc(x0) {
-      GLctx["depthFunc"](x0);
+      GLctx['depthFunc'](x0);
     }
     function _emscripten_glDepthMask(flag) {
       GLctx.depthMask(!!flag);
     }
     function _emscripten_glDepthRangef(x0, x1) {
-      GLctx["depthRange"](x0, x1);
+      GLctx['depthRange'](x0, x1);
     }
     function _emscripten_glDetachShader(program, shader) {
       GLctx.detachShader(GL.programs[program], GL.shaders[shader]);
     }
     function _emscripten_glDisable(x0) {
-      GLctx["disable"](x0);
+      GLctx['disable'](x0);
     }
     function _emscripten_glDisableVertexAttribArray(index) {
       GLctx.disableVertexAttribArray(index);
@@ -6683,13 +6198,8 @@ var Module = (function() {
     function _emscripten_glDrawArrays(mode, first, count) {
       GLctx.drawArrays(mode, first, count);
     }
-    function _emscripten_glDrawArraysInstancedANGLE(
-      mode,
-      first,
-      count,
-      primcount
-    ) {
-      GLctx["drawArraysInstanced"](mode, first, count, primcount);
+    function _emscripten_glDrawArraysInstancedANGLE(mode, first, count, primcount) {
+      GLctx['drawArraysInstanced'](mode, first, count, primcount);
     }
     var __tempFixedLengthArray = [];
     function _emscripten_glDrawBuffersWEBGL(n, bufs) {
@@ -6697,34 +6207,28 @@ var Module = (function() {
       for (var i = 0; i < n; i++) {
         bufArray[i] = HEAP32[(bufs + i * 4) >> 2];
       }
-      GLctx["drawBuffers"](bufArray);
+      GLctx['drawBuffers'](bufArray);
     }
     function _emscripten_glDrawElements(mode, count, type, indices) {
       GLctx.drawElements(mode, count, type, indices);
     }
-    function _emscripten_glDrawElementsInstancedANGLE(
-      mode,
-      count,
-      type,
-      indices,
-      primcount
-    ) {
-      GLctx["drawElementsInstanced"](mode, count, type, indices, primcount);
+    function _emscripten_glDrawElementsInstancedANGLE(mode, count, type, indices, primcount) {
+      GLctx['drawElementsInstanced'](mode, count, type, indices, primcount);
     }
     function _emscripten_glEnable(x0) {
-      GLctx["enable"](x0);
+      GLctx['enable'](x0);
     }
     function _emscripten_glEnableVertexAttribArray(index) {
       GLctx.enableVertexAttribArray(index);
     }
     function _emscripten_glEndQueryEXT(target) {
-      GLctx.disjointTimerQueryExt["endQueryEXT"](target);
+      GLctx.disjointTimerQueryExt['endQueryEXT'](target);
     }
     function _emscripten_glFinish() {
-      GLctx["finish"]();
+      GLctx['finish']();
     }
     function _emscripten_glFlush() {
-      GLctx["flush"]();
+      GLctx['flush']();
     }
     function _emscripten_glFramebufferRenderbuffer(
       target,
@@ -6739,23 +6243,11 @@ var Module = (function() {
         GL.renderbuffers[renderbuffer]
       );
     }
-    function _emscripten_glFramebufferTexture2D(
-      target,
-      attachment,
-      textarget,
-      texture,
-      level
-    ) {
-      GLctx.framebufferTexture2D(
-        target,
-        attachment,
-        textarget,
-        GL.textures[texture],
-        level
-      );
+    function _emscripten_glFramebufferTexture2D(target, attachment, textarget, texture, level) {
+      GLctx.framebufferTexture2D(target, attachment, textarget, GL.textures[texture], level);
     }
     function _emscripten_glFrontFace(x0) {
-      GLctx["frontFace"](x0);
+      GLctx['frontFace'](x0);
     }
     function __glGenObject(n, buffers, createFunction, objectTable) {
       for (var i = 0; i < n; i++) {
@@ -6771,14 +6263,14 @@ var Module = (function() {
       }
     }
     function _emscripten_glGenBuffers(n, buffers) {
-      __glGenObject(n, buffers, "createBuffer", GL.buffers);
+      __glGenObject(n, buffers, 'createBuffer', GL.buffers);
     }
     function _emscripten_glGenFramebuffers(n, ids) {
-      __glGenObject(n, ids, "createFramebuffer", GL.framebuffers);
+      __glGenObject(n, ids, 'createFramebuffer', GL.framebuffers);
     }
     function _emscripten_glGenQueriesEXT(n, ids) {
       for (var i = 0; i < n; i++) {
-        var query = GLctx.disjointTimerQueryExt["createQueryEXT"]();
+        var query = GLctx.disjointTimerQueryExt['createQueryEXT']();
         if (!query) {
           GL.recordError(1282);
           while (i < n) HEAP32[(ids + i++ * 4) >> 2] = 0;
@@ -6791,26 +6283,18 @@ var Module = (function() {
       }
     }
     function _emscripten_glGenRenderbuffers(n, renderbuffers) {
-      __glGenObject(n, renderbuffers, "createRenderbuffer", GL.renderbuffers);
+      __glGenObject(n, renderbuffers, 'createRenderbuffer', GL.renderbuffers);
     }
     function _emscripten_glGenTextures(n, textures) {
-      __glGenObject(n, textures, "createTexture", GL.textures);
+      __glGenObject(n, textures, 'createTexture', GL.textures);
     }
     function _emscripten_glGenVertexArraysOES(n, arrays) {
-      __glGenObject(n, arrays, "createVertexArray", GL.vaos);
+      __glGenObject(n, arrays, 'createVertexArray', GL.vaos);
     }
     function _emscripten_glGenerateMipmap(x0) {
-      GLctx["generateMipmap"](x0);
+      GLctx['generateMipmap'](x0);
     }
-    function _emscripten_glGetActiveAttrib(
-      program,
-      index,
-      bufSize,
-      length,
-      size,
-      type,
-      name
-    ) {
+    function _emscripten_glGetActiveAttrib(program, index, bufSize, length, size, type, name) {
       program = GL.programs[program];
       var info = GLctx.getActiveAttrib(program, index);
       if (!info) return;
@@ -6820,15 +6304,7 @@ var Module = (function() {
       if (size) HEAP32[size >> 2] = info.size;
       if (type) HEAP32[type >> 2] = info.type;
     }
-    function _emscripten_glGetActiveUniform(
-      program,
-      index,
-      bufSize,
-      length,
-      size,
-      type,
-      name
-    ) {
+    function _emscripten_glGetActiveUniform(program, index, bufSize, length, size, type, name) {
       program = GL.programs[program];
       var info = GLctx.getActiveUniform(program, index);
       if (!info) return;
@@ -6838,12 +6314,7 @@ var Module = (function() {
       if (size) HEAP32[size >> 2] = info.size;
       if (type) HEAP32[type >> 2] = info.type;
     }
-    function _emscripten_glGetAttachedShaders(
-      program,
-      maxCount,
-      count,
-      shaders
-    ) {
+    function _emscripten_glGetAttachedShaders(program, maxCount, count, shaders) {
       var result = GLctx.getAttachedShaders(GL.programs[program]);
       var len = result.length;
       if (len > maxCount) {
@@ -6888,16 +6359,16 @@ var Module = (function() {
       if (ret === undefined) {
         var result = GLctx.getParameter(name_);
         switch (typeof result) {
-          case "number":
+          case 'number':
             ret = result;
             break;
-          case "boolean":
+          case 'boolean':
             ret = result ? 1 : 0;
             break;
-          case "string":
+          case 'string':
             GL.recordError(1280);
             return;
-          case "object":
+          case 'object':
             if (result === null) {
               switch (name_) {
                 case 34964:
@@ -6942,13 +6413,13 @@ var Module = (function() {
               } catch (e) {
                 GL.recordError(1280);
                 err(
-                  "GL_INVALID_ENUM in glGet" +
+                  'GL_INVALID_ENUM in glGet' +
                     type +
-                    "v: Unknown object returned from WebGL getParameter(" +
+                    'v: Unknown object returned from WebGL getParameter(' +
                     name_ +
-                    ")! (error: " +
+                    ')! (error: ' +
                     e +
-                    ")"
+                    ')'
                 );
                 return;
               }
@@ -6957,17 +6428,17 @@ var Module = (function() {
           default:
             GL.recordError(1280);
             err(
-              "GL_INVALID_ENUM in glGet" +
+              'GL_INVALID_ENUM in glGet' +
                 type +
-                "v: Native code calling glGet" +
+                'v: Native code calling glGet' +
                 type +
-                "v(" +
+                'v(' +
                 name_ +
-                ") and it returns " +
+                ') and it returns ' +
                 result +
-                " of type " +
+                ' of type ' +
                 typeof result +
-                "!"
+                '!'
             );
             return;
         }
@@ -7005,21 +6476,9 @@ var Module = (function() {
     function _emscripten_glGetFloatv(name_, p) {
       emscriptenWebGLGet(name_, p, 2);
     }
-    function _emscripten_glGetFramebufferAttachmentParameteriv(
-      target,
-      attachment,
-      pname,
-      params
-    ) {
-      var result = GLctx.getFramebufferAttachmentParameter(
-        target,
-        attachment,
-        pname
-      );
-      if (
-        result instanceof WebGLRenderbuffer ||
-        result instanceof WebGLTexture
-      ) {
+    function _emscripten_glGetFramebufferAttachmentParameteriv(target, attachment, pname, params) {
+      var result = GLctx.getFramebufferAttachmentParameter(target, attachment, pname);
+      if (result instanceof WebGLRenderbuffer || result instanceof WebGLTexture) {
         result = result.name | 0;
       }
       HEAP32[params >> 2] = result;
@@ -7027,14 +6486,9 @@ var Module = (function() {
     function _emscripten_glGetIntegerv(name_, p) {
       emscriptenWebGLGet(name_, p, 0);
     }
-    function _emscripten_glGetProgramInfoLog(
-      program,
-      maxLength,
-      length,
-      infoLog
-    ) {
+    function _emscripten_glGetProgramInfoLog(program, maxLength, length, infoLog) {
       var log = GLctx.getProgramInfoLog(GL.programs[program]);
-      if (log === null) log = "(unknown error)";
+      if (log === null) log = '(unknown error)';
       var numBytesWrittenExclNull =
         maxLength > 0 && infoLog ? stringToUTF8(log, infoLog, maxLength) : 0;
       if (length) HEAP32[length >> 2] = numBytesWrittenExclNull;
@@ -7055,7 +6509,7 @@ var Module = (function() {
       }
       if (pname == 35716) {
         var log = GLctx.getProgramInfoLog(GL.programs[program]);
-        if (log === null) log = "(unknown error)";
+        if (log === null) log = '(unknown error)';
         HEAP32[p >> 2] = log.length + 1;
       } else if (pname == 35719) {
         HEAP32[p >> 2] = ptable.maxUniformLength;
@@ -7097,12 +6551,9 @@ var Module = (function() {
         return;
       }
       var query = GL.timerQueriesEXT[id];
-      var param = GLctx.disjointTimerQueryExt["getQueryObjectEXT"](
-        query,
-        pname
-      );
+      var param = GLctx.disjointTimerQueryExt['getQueryObjectEXT'](query, pname);
       var ret;
-      if (typeof param == "boolean") {
+      if (typeof param == 'boolean') {
         ret = param ? 1 : 0;
       } else {
         ret = param;
@@ -7115,12 +6566,9 @@ var Module = (function() {
         return;
       }
       var query = GL.timerQueriesEXT[id];
-      var param = GLctx.disjointTimerQueryExt["getQueryObjectEXT"](
-        query,
-        pname
-      );
+      var param = GLctx.disjointTimerQueryExt['getQueryObjectEXT'](query, pname);
       var ret;
-      if (typeof param == "boolean") {
+      if (typeof param == 'boolean') {
         ret = param ? 1 : 0;
       } else {
         ret = param;
@@ -7133,12 +6581,9 @@ var Module = (function() {
         return;
       }
       var query = GL.timerQueriesEXT[id];
-      var param = GLctx.disjointTimerQueryExt["getQueryObjectEXT"](
-        query,
-        pname
-      );
+      var param = GLctx.disjointTimerQueryExt['getQueryObjectEXT'](query, pname);
       var ret;
-      if (typeof param == "boolean") {
+      if (typeof param == 'boolean') {
         ret = param ? 1 : 0;
       } else {
         ret = param;
@@ -7151,12 +6596,9 @@ var Module = (function() {
         return;
       }
       var query = GL.timerQueriesEXT[id];
-      var param = GLctx.disjointTimerQueryExt["getQueryObjectEXT"](
-        query,
-        pname
-      );
+      var param = GLctx.disjointTimerQueryExt['getQueryObjectEXT'](query, pname);
       var ret;
-      if (typeof param == "boolean") {
+      if (typeof param == 'boolean') {
         ret = param ? 1 : 0;
       } else {
         ret = param;
@@ -7168,10 +6610,7 @@ var Module = (function() {
         GL.recordError(1281);
         return;
       }
-      HEAP32[params >> 2] = GLctx.disjointTimerQueryExt["getQueryEXT"](
-        target,
-        pname
-      );
+      HEAP32[params >> 2] = GLctx.disjointTimerQueryExt['getQueryEXT'](target, pname);
     }
     function _emscripten_glGetRenderbufferParameteriv(target, pname, params) {
       if (!params) {
@@ -7180,24 +6619,14 @@ var Module = (function() {
       }
       HEAP32[params >> 2] = GLctx.getRenderbufferParameter(target, pname);
     }
-    function _emscripten_glGetShaderInfoLog(
-      shader,
-      maxLength,
-      length,
-      infoLog
-    ) {
+    function _emscripten_glGetShaderInfoLog(shader, maxLength, length, infoLog) {
       var log = GLctx.getShaderInfoLog(GL.shaders[shader]);
-      if (log === null) log = "(unknown error)";
+      if (log === null) log = '(unknown error)';
       var numBytesWrittenExclNull =
         maxLength > 0 && infoLog ? stringToUTF8(log, infoLog, maxLength) : 0;
       if (length) HEAP32[length >> 2] = numBytesWrittenExclNull;
     }
-    function _emscripten_glGetShaderPrecisionFormat(
-      shaderType,
-      precisionType,
-      range,
-      precision
-    ) {
+    function _emscripten_glGetShaderPrecisionFormat(shaderType, precisionType, range, precision) {
       var result = GLctx.getShaderPrecisionFormat(shaderType, precisionType);
       HEAP32[range >> 2] = result.rangeMin;
       HEAP32[(range + 4) >> 2] = result.rangeMax;
@@ -7217,12 +6646,11 @@ var Module = (function() {
       }
       if (pname == 35716) {
         var log = GLctx.getShaderInfoLog(GL.shaders[shader]);
-        if (log === null) log = "(unknown error)";
+        if (log === null) log = '(unknown error)';
         HEAP32[p >> 2] = log.length + 1;
       } else if (pname == 35720) {
         var source = GLctx.getShaderSource(GL.shaders[shader]);
-        var sourceLength =
-          source === null || source.length == 0 ? 0 : source.length + 1;
+        var sourceLength = source === null || source.length == 0 ? 0 : source.length + 1;
         HEAP32[p >> 2] = sourceLength;
       } else {
         HEAP32[p >> 2] = GLctx.getShaderParameter(GL.shaders[shader], pname);
@@ -7241,11 +6669,11 @@ var Module = (function() {
         case 7939:
           var exts = GLctx.getSupportedExtensions() || [];
           exts = exts.concat(
-            exts.map(function(e) {
-              return "GL_" + e;
+            exts.map(function (e) {
+              return 'GL_' + e;
             })
           );
-          ret = stringToNewUTF8(exts.join(" "));
+          ret = stringToNewUTF8(exts.join(' '));
           break;
         case 7936:
         case 7937:
@@ -7260,7 +6688,7 @@ var Module = (function() {
         case 7938:
           var glVersion = GLctx.getParameter(7938);
           {
-            glVersion = "OpenGL ES 2.0 (" + glVersion + ")";
+            glVersion = 'OpenGL ES 2.0 (' + glVersion + ')';
           }
           ret = stringToNewUTF8(glVersion);
           break;
@@ -7269,9 +6697,8 @@ var Module = (function() {
           var ver_re = /^WebGL GLSL ES ([0-9]\.[0-9][0-9]?)(?:$| .*)/;
           var ver_num = glslVersion.match(ver_re);
           if (ver_num !== null) {
-            if (ver_num[1].length == 3) ver_num[1] = ver_num[1] + "0";
-            glslVersion =
-              "OpenGL ES GLSL ES " + ver_num[1] + " (" + glslVersion + ")";
+            if (ver_num[1].length == 3) ver_num[1] = ver_num[1] + '0';
+            glslVersion = 'OpenGL ES GLSL ES ' + ver_num[1] + ' (' + glslVersion + ')';
           }
           ret = stringToNewUTF8(glslVersion);
           break;
@@ -7302,14 +6729,12 @@ var Module = (function() {
     function _emscripten_glGetUniformLocation(program, name) {
       name = UTF8ToString(name);
       var arrayIndex = 0;
-      if (name[name.length - 1] == "]") {
-        var leftBrace = name.lastIndexOf("[");
-        arrayIndex =
-          name[leftBrace + 1] != "]" ? jstoi_q(name.slice(leftBrace + 1)) : 0;
+      if (name[name.length - 1] == ']') {
+        var leftBrace = name.lastIndexOf('[');
+        arrayIndex = name[leftBrace + 1] != ']' ? jstoi_q(name.slice(leftBrace + 1)) : 0;
         name = name.slice(0, leftBrace);
       }
-      var uniformInfo =
-        GL.programInfos[program] && GL.programInfos[program].uniforms[name];
+      var uniformInfo = GL.programInfos[program] && GL.programInfos[program].uniforms[name];
       if (uniformInfo && arrayIndex >= 0 && arrayIndex < uniformInfo[0]) {
         return uniformInfo[1] + arrayIndex;
       } else {
@@ -7322,7 +6747,7 @@ var Module = (function() {
         return;
       }
       var data = GLctx.getUniform(GL.programs[program], GL.uniforms[location]);
-      if (typeof data == "number" || typeof data == "boolean") {
+      if (typeof data == 'number' || typeof data == 'boolean') {
         switch (type) {
           case 0:
             HEAP32[params >> 2] = data;
@@ -7331,8 +6756,7 @@ var Module = (function() {
             HEAPF32[params >> 2] = data;
             break;
           default:
-            throw "internal emscriptenWebGLGetUniform() error, bad type: " +
-              type;
+            throw 'internal emscriptenWebGLGetUniform() error, bad type: ' + type;
         }
       } else {
         for (var i = 0; i < data.length; i++) {
@@ -7344,8 +6768,7 @@ var Module = (function() {
               HEAPF32[(params + i * 4) >> 2] = data[i];
               break;
             default:
-              throw "internal emscriptenWebGLGetUniform() error, bad type: " +
-                type;
+              throw 'internal emscriptenWebGLGetUniform() error, bad type: ' + type;
           }
         }
       }
@@ -7370,8 +6793,8 @@ var Module = (function() {
       }
       var data = GLctx.getVertexAttrib(index, pname);
       if (pname == 34975) {
-        HEAP32[params >> 2] = data && data["name"];
-      } else if (typeof data == "number" || typeof data == "boolean") {
+        HEAP32[params >> 2] = data && data['name'];
+      } else if (typeof data == 'number' || typeof data == 'boolean') {
         switch (type) {
           case 0:
             HEAP32[params >> 2] = data;
@@ -7383,8 +6806,7 @@ var Module = (function() {
             HEAP32[params >> 2] = Math.fround(data);
             break;
           default:
-            throw "internal emscriptenWebGLGetVertexAttrib() error, bad type: " +
-              type;
+            throw 'internal emscriptenWebGLGetVertexAttrib() error, bad type: ' + type;
         }
       } else {
         for (var i = 0; i < data.length; i++) {
@@ -7399,8 +6821,7 @@ var Module = (function() {
               HEAP32[(params + i * 4) >> 2] = Math.fround(data[i]);
               break;
             default:
-              throw "internal emscriptenWebGLGetVertexAttrib() error, bad type: " +
-                type;
+              throw 'internal emscriptenWebGLGetVertexAttrib() error, bad type: ' + type;
           }
         }
       }
@@ -7412,7 +6833,7 @@ var Module = (function() {
       emscriptenWebGLGetVertexAttrib(index, pname, params, 5);
     }
     function _emscripten_glHint(x0, x1) {
-      GLctx["hint"](x0, x1);
+      GLctx['hint'](x0, x1);
     }
     function _emscripten_glIsBuffer(buffer) {
       var b = GL.buffers[buffer];
@@ -7420,7 +6841,7 @@ var Module = (function() {
       return GLctx.isBuffer(b);
     }
     function _emscripten_glIsEnabled(x0) {
-      return GLctx["isEnabled"](x0);
+      return GLctx['isEnabled'](x0);
     }
     function _emscripten_glIsFramebuffer(framebuffer) {
       var fb = GL.framebuffers[framebuffer];
@@ -7435,7 +6856,7 @@ var Module = (function() {
     function _emscripten_glIsQueryEXT(id) {
       var query = GL.timerQueriesEXT[id];
       if (!query) return 0;
-      return GLctx.disjointTimerQueryExt["isQueryEXT"](query);
+      return GLctx.disjointTimerQueryExt['isQueryEXT'](query);
     }
     function _emscripten_glIsRenderbuffer(renderbuffer) {
       var rb = GL.renderbuffers[renderbuffer];
@@ -7455,10 +6876,10 @@ var Module = (function() {
     function _emscripten_glIsVertexArrayOES(array) {
       var vao = GL.vaos[array];
       if (!vao) return 0;
-      return GLctx["isVertexArray"](vao);
+      return GLctx['isVertexArray'](vao);
     }
     function _emscripten_glLineWidth(x0) {
-      GLctx["lineWidth"](x0);
+      GLctx['lineWidth'](x0);
     }
     function _emscripten_glLinkProgram(program) {
       GLctx.linkProgram(GL.programs[program]);
@@ -7471,20 +6892,12 @@ var Module = (function() {
       GLctx.pixelStorei(pname, param);
     }
     function _emscripten_glPolygonOffset(x0, x1) {
-      GLctx["polygonOffset"](x0, x1);
+      GLctx['polygonOffset'](x0, x1);
     }
     function _emscripten_glQueryCounterEXT(id, target) {
-      GLctx.disjointTimerQueryExt["queryCounterEXT"](
-        GL.timerQueriesEXT[id],
-        target
-      );
+      GLctx.disjointTimerQueryExt['queryCounterEXT'](GL.timerQueriesEXT[id], target);
     }
-    function __computeUnpackAlignedImageSize(
-      width,
-      height,
-      sizePerPixel,
-      alignment
-    ) {
+    function __computeUnpackAlignedImageSize(width, height, sizePerPixel, alignment) {
       function roundedToNextMultipleOf(x, y) {
         return (x + y - 1) & -y;
       }
@@ -7507,43 +6920,16 @@ var Module = (function() {
     function __heapAccessShiftForWebGLHeap(heap) {
       return 31 - Math.clz32(heap.BYTES_PER_ELEMENT);
     }
-    function emscriptenWebGLGetTexPixelData(
-      type,
-      format,
-      width,
-      height,
-      pixels,
-      internalFormat
-    ) {
+    function emscriptenWebGLGetTexPixelData(type, format, width, height, pixels, internalFormat) {
       var heap = __heapObjectForWebGLType(type);
       var shift = __heapAccessShiftForWebGLHeap(heap);
       var byteSize = 1 << shift;
       var sizePerPixel = __colorChannelsInGlTextureFormat(format) * byteSize;
-      var bytes = __computeUnpackAlignedImageSize(
-        width,
-        height,
-        sizePerPixel,
-        GL.unpackAlignment
-      );
+      var bytes = __computeUnpackAlignedImageSize(width, height, sizePerPixel, GL.unpackAlignment);
       return heap.subarray(pixels >> shift, (pixels + bytes) >> shift);
     }
-    function _emscripten_glReadPixels(
-      x,
-      y,
-      width,
-      height,
-      format,
-      type,
-      pixels
-    ) {
-      var pixelData = emscriptenWebGLGetTexPixelData(
-        type,
-        format,
-        width,
-        height,
-        pixels,
-        format
-      );
+    function _emscripten_glReadPixels(x, y, width, height, format, type, pixels) {
+      var pixelData = emscriptenWebGLGetTexPixelData(type, format, width, height, pixels, format);
       if (!pixelData) {
         GL.recordError(1280);
         return;
@@ -7552,13 +6938,13 @@ var Module = (function() {
     }
     function _emscripten_glReleaseShaderCompiler() {}
     function _emscripten_glRenderbufferStorage(x0, x1, x2, x3) {
-      GLctx["renderbufferStorage"](x0, x1, x2, x3);
+      GLctx['renderbufferStorage'](x0, x1, x2, x3);
     }
     function _emscripten_glSampleCoverage(value, invert) {
       GLctx.sampleCoverage(value, !!invert);
     }
     function _emscripten_glScissor(x0, x1, x2, x3) {
-      GLctx["scissor"](x0, x1, x2, x3);
+      GLctx['scissor'](x0, x1, x2, x3);
     }
     function _emscripten_glShaderBinary() {
       GL.recordError(1280);
@@ -7568,22 +6954,22 @@ var Module = (function() {
       GLctx.shaderSource(GL.shaders[shader], source);
     }
     function _emscripten_glStencilFunc(x0, x1, x2) {
-      GLctx["stencilFunc"](x0, x1, x2);
+      GLctx['stencilFunc'](x0, x1, x2);
     }
     function _emscripten_glStencilFuncSeparate(x0, x1, x2, x3) {
-      GLctx["stencilFuncSeparate"](x0, x1, x2, x3);
+      GLctx['stencilFuncSeparate'](x0, x1, x2, x3);
     }
     function _emscripten_glStencilMask(x0) {
-      GLctx["stencilMask"](x0);
+      GLctx['stencilMask'](x0);
     }
     function _emscripten_glStencilMaskSeparate(x0, x1) {
-      GLctx["stencilMaskSeparate"](x0, x1);
+      GLctx['stencilMaskSeparate'](x0, x1);
     }
     function _emscripten_glStencilOp(x0, x1, x2) {
-      GLctx["stencilOp"](x0, x1, x2);
+      GLctx['stencilOp'](x0, x1, x2);
     }
     function _emscripten_glStencilOpSeparate(x0, x1, x2, x3) {
-      GLctx["stencilOpSeparate"](x0, x1, x2, x3);
+      GLctx['stencilOpSeparate'](x0, x1, x2, x3);
     }
     function _emscripten_glTexImage2D(
       target,
@@ -7606,26 +6992,19 @@ var Module = (function() {
         format,
         type,
         pixels
-          ? emscriptenWebGLGetTexPixelData(
-              type,
-              format,
-              width,
-              height,
-              pixels,
-              internalFormat
-            )
+          ? emscriptenWebGLGetTexPixelData(type, format, width, height, pixels, internalFormat)
           : null
       );
     }
     function _emscripten_glTexParameterf(x0, x1, x2) {
-      GLctx["texParameterf"](x0, x1, x2);
+      GLctx['texParameterf'](x0, x1, x2);
     }
     function _emscripten_glTexParameterfv(target, pname, params) {
       var param = HEAPF32[params >> 2];
       GLctx.texParameterf(target, pname, param);
     }
     function _emscripten_glTexParameteri(x0, x1, x2) {
-      GLctx["texParameteri"](x0, x1, x2);
+      GLctx['texParameteri'](x0, x1, x2);
     }
     function _emscripten_glTexParameteriv(target, pname, params) {
       var param = HEAP32[params >> 2];
@@ -7644,25 +7023,8 @@ var Module = (function() {
     ) {
       var pixelData = null;
       if (pixels)
-        pixelData = emscriptenWebGLGetTexPixelData(
-          type,
-          format,
-          width,
-          height,
-          pixels,
-          0
-        );
-      GLctx.texSubImage2D(
-        target,
-        level,
-        xoffset,
-        yoffset,
-        width,
-        height,
-        format,
-        type,
-        pixelData
-      );
+        pixelData = emscriptenWebGLGetTexPixelData(type, format, width, height, pixels, 0);
+      GLctx.texSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixelData);
     }
     function _emscripten_glUniform1f(location, v0) {
       GLctx.uniform1f(GL.uniforms[location], v0);
@@ -7860,30 +7222,25 @@ var Module = (function() {
       GLctx.validateProgram(GL.programs[program]);
     }
     function _emscripten_glVertexAttrib1f(x0, x1) {
-      GLctx["vertexAttrib1f"](x0, x1);
+      GLctx['vertexAttrib1f'](x0, x1);
     }
     function _emscripten_glVertexAttrib1fv(index, v) {
       GLctx.vertexAttrib1f(index, HEAPF32[v >> 2]);
     }
     function _emscripten_glVertexAttrib2f(x0, x1, x2) {
-      GLctx["vertexAttrib2f"](x0, x1, x2);
+      GLctx['vertexAttrib2f'](x0, x1, x2);
     }
     function _emscripten_glVertexAttrib2fv(index, v) {
       GLctx.vertexAttrib2f(index, HEAPF32[v >> 2], HEAPF32[(v + 4) >> 2]);
     }
     function _emscripten_glVertexAttrib3f(x0, x1, x2, x3) {
-      GLctx["vertexAttrib3f"](x0, x1, x2, x3);
+      GLctx['vertexAttrib3f'](x0, x1, x2, x3);
     }
     function _emscripten_glVertexAttrib3fv(index, v) {
-      GLctx.vertexAttrib3f(
-        index,
-        HEAPF32[v >> 2],
-        HEAPF32[(v + 4) >> 2],
-        HEAPF32[(v + 8) >> 2]
-      );
+      GLctx.vertexAttrib3f(index, HEAPF32[v >> 2], HEAPF32[(v + 4) >> 2], HEAPF32[(v + 8) >> 2]);
     }
     function _emscripten_glVertexAttrib4f(x0, x1, x2, x3, x4) {
-      GLctx["vertexAttrib4f"](x0, x1, x2, x3, x4);
+      GLctx['vertexAttrib4f'](x0, x1, x2, x3, x4);
     }
     function _emscripten_glVertexAttrib4fv(index, v) {
       GLctx.vertexAttrib4f(
@@ -7895,27 +7252,20 @@ var Module = (function() {
       );
     }
     function _emscripten_glVertexAttribDivisorANGLE(index, divisor) {
-      GLctx["vertexAttribDivisor"](index, divisor);
+      GLctx['vertexAttribDivisor'](index, divisor);
     }
-    function _emscripten_glVertexAttribPointer(
-      index,
-      size,
-      type,
-      normalized,
-      stride,
-      ptr
-    ) {
+    function _emscripten_glVertexAttribPointer(index, size, type, normalized, stride, ptr) {
       GLctx.vertexAttribPointer(index, size, type, !!normalized, stride, ptr);
     }
     function _emscripten_glViewport(x0, x1, x2, x3) {
-      GLctx["viewport"](x0, x1, x2, x3);
+      GLctx['viewport'](x0, x1, x2, x3);
     }
     function _emscripten_has_asyncify() {
       return 0;
     }
     function _longjmp(env, value) {
       _setThrew(env, value || 1);
-      throw "longjmp";
+      throw 'longjmp';
     }
     function _emscripten_longjmp(env, value) {
       _longjmp(env, value);
@@ -7930,10 +7280,7 @@ var Module = (function() {
       var canPerformRequests = JSEvents.canPerformEventHandlerRequests();
       if (!canPerformRequests) {
         if (strategy.deferUntilInEventHandler) {
-          JSEvents.deferCall(_JSEvents_requestFullscreen, 1, [
-            target,
-            strategy
-          ]);
+          JSEvents.deferCall(_JSEvents_requestFullscreen, 1, [target, strategy]);
           return 1;
         } else {
           return -2;
@@ -7991,16 +7338,10 @@ var Module = (function() {
       var minHeapSize = 16777216;
       for (var cutDown = 1; cutDown <= 4; cutDown *= 2) {
         var overGrownHeapSize = oldSize * (1 + 0.2 / cutDown);
-        overGrownHeapSize = Math.min(
-          overGrownHeapSize,
-          requestedSize + 100663296
-        );
+        overGrownHeapSize = Math.min(overGrownHeapSize, requestedSize + 100663296);
         var newSize = Math.min(
           maxHeapSize,
-          alignUp(
-            Math.max(minHeapSize, requestedSize, overGrownHeapSize),
-            PAGE_MULTIPLE
-          )
+          alignUp(Math.max(minHeapSize, requestedSize, overGrownHeapSize), PAGE_MULTIPLE)
         );
         var replacement = emscripten_realloc_buffer(newSize);
         if (replacement) {
@@ -8026,14 +7367,9 @@ var Module = (function() {
       eventTypeId,
       eventTypeString
     ) {
-      var beforeUnloadEventHandlerFunc = function(ev) {
+      var beforeUnloadEventHandlerFunc = function (ev) {
         var e = ev || event;
-        var confirmationMessage = dynCall_iiii(
-          callbackfunc,
-          eventTypeId,
-          0,
-          userData
-        );
+        var confirmationMessage = dynCall_iiii(callbackfunc, eventTypeId, 0, userData);
         if (confirmationMessage) {
           confirmationMessage = UTF8ToString(confirmationMessage);
         }
@@ -8052,21 +7388,10 @@ var Module = (function() {
       };
       JSEvents.registerOrRemoveHandler(eventHandler);
     }
-    function _emscripten_set_beforeunload_callback_on_thread(
-      userData,
-      callbackfunc,
-      targetThread
-    ) {
-      if (typeof onbeforeunload === "undefined") return -1;
+    function _emscripten_set_beforeunload_callback_on_thread(userData, callbackfunc, targetThread) {
+      if (typeof onbeforeunload === 'undefined') return -1;
       if (targetThread !== 1) return -5;
-      __registerBeforeUnloadEventCallback(
-        2,
-        userData,
-        true,
-        callbackfunc,
-        28,
-        "beforeunload"
-      );
+      __registerBeforeUnloadEventCallback(2, userData, true, callbackfunc, 28, 'beforeunload');
       return 0;
     }
     function __registerFocusEventCallback(
@@ -8079,15 +7404,14 @@ var Module = (function() {
       targetThread
     ) {
       if (!JSEvents.focusEvent) JSEvents.focusEvent = _malloc(256);
-      var focusEventHandlerFunc = function(ev) {
+      var focusEventHandlerFunc = function (ev) {
         var e = ev || event;
         var nodeName = JSEvents.getNodeNameForTarget(e.target);
-        var id = e.target.id ? e.target.id : "";
+        var id = e.target.id ? e.target.id : '';
         var focusEvent = JSEvents.focusEvent;
         stringToUTF8(nodeName, focusEvent + 0, 128);
         stringToUTF8(id, focusEvent + 128, 128);
-        if (dynCall_iiii(callbackfunc, eventTypeId, focusEvent, userData))
-          e.preventDefault();
+        if (dynCall_iiii(callbackfunc, eventTypeId, focusEvent, userData)) e.preventDefault();
       };
       var eventHandler = {
         target: __findEventTarget(target),
@@ -8111,7 +7435,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         12,
-        "blur",
+        'blur',
         targetThread
       );
       return 0;
@@ -8119,8 +7443,8 @@ var Module = (function() {
     function _emscripten_set_element_css_size(target, width, height) {
       target = __findEventTarget(target);
       if (!target) return -4;
-      target.style.width = width + "px";
-      target.style.height = height + "px";
+      target.style.width = width + 'px';
+      target.style.height = height + 'px';
       return 0;
     }
     function _emscripten_set_focus_callback_on_thread(
@@ -8136,7 +7460,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         13,
-        "focus",
+        'focus',
         targetThread
       );
       return 0;
@@ -8150,19 +7474,13 @@ var Module = (function() {
       var isFullscreen = !!fullscreenElement;
       HEAP32[eventStruct >> 2] = isFullscreen;
       HEAP32[(eventStruct + 4) >> 2] = JSEvents.fullscreenEnabled();
-      var reportedElement = isFullscreen
-        ? fullscreenElement
-        : JSEvents.previousFullscreenElement;
+      var reportedElement = isFullscreen ? fullscreenElement : JSEvents.previousFullscreenElement;
       var nodeName = JSEvents.getNodeNameForTarget(reportedElement);
-      var id = reportedElement && reportedElement.id ? reportedElement.id : "";
+      var id = reportedElement && reportedElement.id ? reportedElement.id : '';
       stringToUTF8(nodeName, eventStruct + 8, 128);
       stringToUTF8(id, eventStruct + 136, 128);
-      HEAP32[(eventStruct + 264) >> 2] = reportedElement
-        ? reportedElement.clientWidth
-        : 0;
-      HEAP32[(eventStruct + 268) >> 2] = reportedElement
-        ? reportedElement.clientHeight
-        : 0;
+      HEAP32[(eventStruct + 264) >> 2] = reportedElement ? reportedElement.clientWidth : 0;
+      HEAP32[(eventStruct + 268) >> 2] = reportedElement ? reportedElement.clientHeight : 0;
       HEAP32[(eventStruct + 272) >> 2] = screen.width;
       HEAP32[(eventStruct + 276) >> 2] = screen.height;
       if (isFullscreen) {
@@ -8178,20 +7496,12 @@ var Module = (function() {
       eventTypeString,
       targetThread
     ) {
-      if (!JSEvents.fullscreenChangeEvent)
-        JSEvents.fullscreenChangeEvent = _malloc(280);
-      var fullscreenChangeEventhandlerFunc = function(ev) {
+      if (!JSEvents.fullscreenChangeEvent) JSEvents.fullscreenChangeEvent = _malloc(280);
+      var fullscreenChangeEventhandlerFunc = function (ev) {
         var e = ev || event;
         var fullscreenChangeEvent = JSEvents.fullscreenChangeEvent;
         __fillFullscreenChangeEventData(fullscreenChangeEvent);
-        if (
-          dynCall_iiii(
-            callbackfunc,
-            eventTypeId,
-            fullscreenChangeEvent,
-            userData
-          )
-        )
+        if (dynCall_iiii(callbackfunc, eventTypeId, fullscreenChangeEvent, userData))
           e.preventDefault();
       };
       var eventHandler = {
@@ -8219,7 +7529,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         19,
-        "fullscreenchange",
+        'fullscreenchange',
         targetThread
       );
       __registerFullscreenChangeEventCallback(
@@ -8228,7 +7538,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         19,
-        "webkitfullscreenchange",
+        'webkitfullscreenchange',
         targetThread
       );
       return 0;
@@ -8243,12 +7553,11 @@ var Module = (function() {
       targetThread
     ) {
       if (!JSEvents.gamepadEvent) JSEvents.gamepadEvent = _malloc(1432);
-      var gamepadEventHandlerFunc = function(ev) {
+      var gamepadEventHandlerFunc = function (ev) {
         var e = ev || event;
         var gamepadEvent = JSEvents.gamepadEvent;
-        __fillGamepadEventData(gamepadEvent, e["gamepad"]);
-        if (dynCall_iiii(callbackfunc, eventTypeId, gamepadEvent, userData))
-          e.preventDefault();
+        __fillGamepadEventData(gamepadEvent, e['gamepad']);
+        if (dynCall_iiii(callbackfunc, eventTypeId, gamepadEvent, userData)) e.preventDefault();
       };
       var eventHandler = {
         target: __findEventTarget(target),
@@ -8273,7 +7582,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         26,
-        "gamepadconnected",
+        'gamepadconnected',
         targetThread
       );
       return 0;
@@ -8291,7 +7600,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         27,
-        "gamepaddisconnected",
+        'gamepaddisconnected',
         targetThread
       );
       return 0;
@@ -8306,24 +7615,23 @@ var Module = (function() {
       targetThread
     ) {
       if (!JSEvents.keyEvent) JSEvents.keyEvent = _malloc(164);
-      var keyEventHandlerFunc = function(ev) {
+      var keyEventHandlerFunc = function (ev) {
         var e = ev || event;
         var keyEventData = JSEvents.keyEvent;
-        stringToUTF8(e.key ? e.key : "", keyEventData + 0, 32);
-        stringToUTF8(e.code ? e.code : "", keyEventData + 32, 32);
+        stringToUTF8(e.key ? e.key : '', keyEventData + 0, 32);
+        stringToUTF8(e.code ? e.code : '', keyEventData + 32, 32);
         HEAP32[(keyEventData + 64) >> 2] = e.location;
         HEAP32[(keyEventData + 68) >> 2] = e.ctrlKey;
         HEAP32[(keyEventData + 72) >> 2] = e.shiftKey;
         HEAP32[(keyEventData + 76) >> 2] = e.altKey;
         HEAP32[(keyEventData + 80) >> 2] = e.metaKey;
         HEAP32[(keyEventData + 84) >> 2] = e.repeat;
-        stringToUTF8(e.locale ? e.locale : "", keyEventData + 88, 32);
-        stringToUTF8(e.char ? e.char : "", keyEventData + 120, 32);
+        stringToUTF8(e.locale ? e.locale : '', keyEventData + 88, 32);
+        stringToUTF8(e.char ? e.char : '', keyEventData + 120, 32);
         HEAP32[(keyEventData + 152) >> 2] = e.charCode;
         HEAP32[(keyEventData + 156) >> 2] = e.keyCode;
         HEAP32[(keyEventData + 160) >> 2] = e.which;
-        if (dynCall_iiii(callbackfunc, eventTypeId, keyEventData, userData))
-          e.preventDefault();
+        if (dynCall_iiii(callbackfunc, eventTypeId, keyEventData, userData)) e.preventDefault();
       };
       var eventHandler = {
         target: __findEventTarget(target),
@@ -8348,7 +7656,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         2,
-        "keydown",
+        'keydown',
         targetThread
       );
       return 0;
@@ -8366,7 +7674,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         1,
-        "keypress",
+        'keypress',
         targetThread
       );
       return 0;
@@ -8384,7 +7692,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         3,
-        "keyup",
+        'keyup',
         targetThread
       );
       return 0;
@@ -8400,14 +7708,14 @@ var Module = (function() {
       HEAP32[(eventStruct + 28) >> 2] = e.metaKey;
       HEAP16[(eventStruct + 32) >> 1] = e.button;
       HEAP16[(eventStruct + 34) >> 1] = e.buttons;
-      var movementX = e["movementX"] || e.screenX - JSEvents.previousScreenX;
-      var movementY = e["movementY"] || e.screenY - JSEvents.previousScreenY;
+      var movementX = e['movementX'] || e.screenX - JSEvents.previousScreenX;
+      var movementY = e['movementY'] || e.screenY - JSEvents.previousScreenY;
       HEAP32[(eventStruct + 36) >> 2] = movementX;
       HEAP32[(eventStruct + 40) >> 2] = movementY;
       var rect = __getBoundingClientRect(target);
       HEAP32[(eventStruct + 44) >> 2] = e.clientX - rect.left;
       HEAP32[(eventStruct + 48) >> 2] = e.clientY - rect.top;
-      if (e.type !== "wheel" && e.type !== "mousewheel") {
+      if (e.type !== 'wheel' && e.type !== 'mousewheel') {
         JSEvents.previousScreenX = e.screenX;
         JSEvents.previousScreenY = e.screenY;
       }
@@ -8423,20 +7731,18 @@ var Module = (function() {
     ) {
       if (!JSEvents.mouseEvent) JSEvents.mouseEvent = _malloc(64);
       target = __findEventTarget(target);
-      var mouseEventHandlerFunc = function(ev) {
+      var mouseEventHandlerFunc = function (ev) {
         var e = ev || event;
         __fillMouseEventData(JSEvents.mouseEvent, e, target);
-        if (
-          dynCall_iiii(callbackfunc, eventTypeId, JSEvents.mouseEvent, userData)
-        )
+        if (dynCall_iiii(callbackfunc, eventTypeId, JSEvents.mouseEvent, userData))
           e.preventDefault();
       };
       var eventHandler = {
         target: target,
         allowsDeferredCalls:
-          eventTypeString != "mousemove" &&
-          eventTypeString != "mouseenter" &&
-          eventTypeString != "mouseleave",
+          eventTypeString != 'mousemove' &&
+          eventTypeString != 'mouseenter' &&
+          eventTypeString != 'mouseleave',
         eventTypeString: eventTypeString,
         callbackfunc: callbackfunc,
         handlerFunc: mouseEventHandlerFunc,
@@ -8457,7 +7763,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         5,
-        "mousedown",
+        'mousedown',
         targetThread
       );
       return 0;
@@ -8475,7 +7781,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         33,
-        "mouseenter",
+        'mouseenter',
         targetThread
       );
       return 0;
@@ -8493,7 +7799,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         34,
-        "mouseleave",
+        'mouseleave',
         targetThread
       );
       return 0;
@@ -8511,7 +7817,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         8,
-        "mousemove",
+        'mousemove',
         targetThread
       );
       return 0;
@@ -8529,7 +7835,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         6,
-        "mouseup",
+        'mouseup',
         targetThread
       );
       return 0;
@@ -8543,10 +7849,7 @@ var Module = (function() {
       var isPointerlocked = !!pointerLockElement;
       HEAP32[eventStruct >> 2] = isPointerlocked;
       var nodeName = JSEvents.getNodeNameForTarget(pointerLockElement);
-      var id =
-        pointerLockElement && pointerLockElement.id
-          ? pointerLockElement.id
-          : "";
+      var id = pointerLockElement && pointerLockElement.id ? pointerLockElement.id : '';
       stringToUTF8(nodeName, eventStruct + 4, 128);
       stringToUTF8(id, eventStruct + 132, 128);
     }
@@ -8559,20 +7862,12 @@ var Module = (function() {
       eventTypeString,
       targetThread
     ) {
-      if (!JSEvents.pointerlockChangeEvent)
-        JSEvents.pointerlockChangeEvent = _malloc(260);
-      var pointerlockChangeEventHandlerFunc = function(ev) {
+      if (!JSEvents.pointerlockChangeEvent) JSEvents.pointerlockChangeEvent = _malloc(260);
+      var pointerlockChangeEventHandlerFunc = function (ev) {
         var e = ev || event;
         var pointerlockChangeEvent = JSEvents.pointerlockChangeEvent;
         __fillPointerlockChangeEventData(pointerlockChangeEvent);
-        if (
-          dynCall_iiii(
-            callbackfunc,
-            eventTypeId,
-            pointerlockChangeEvent,
-            userData
-          )
-        )
+        if (dynCall_iiii(callbackfunc, eventTypeId, pointerlockChangeEvent, userData))
           e.preventDefault();
       };
       var eventHandler = {
@@ -8609,7 +7904,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         20,
-        "pointerlockchange",
+        'pointerlockchange',
         targetThread
       );
       __registerPointerlockChangeEventCallback(
@@ -8618,7 +7913,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         20,
-        "mozpointerlockchange",
+        'mozpointerlockchange',
         targetThread
       );
       __registerPointerlockChangeEventCallback(
@@ -8627,7 +7922,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         20,
-        "webkitpointerlockchange",
+        'webkitpointerlockchange',
         targetThread
       );
       __registerPointerlockChangeEventCallback(
@@ -8636,7 +7931,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         20,
-        "mspointerlockchange",
+        'mspointerlockchange',
         targetThread
       );
       return 0;
@@ -8652,7 +7947,7 @@ var Module = (function() {
     ) {
       if (!JSEvents.uiEvent) JSEvents.uiEvent = _malloc(36);
       target = __findEventTarget(target);
-      var uiEventHandlerFunc = function(ev) {
+      var uiEventHandlerFunc = function (ev) {
         var e = ev || event;
         if (e.target != target) {
           return;
@@ -8668,8 +7963,7 @@ var Module = (function() {
         HEAP32[(uiEvent + 24) >> 2] = outerHeight;
         HEAP32[(uiEvent + 28) >> 2] = pageXOffset;
         HEAP32[(uiEvent + 32) >> 2] = pageYOffset;
-        if (dynCall_iiii(callbackfunc, eventTypeId, uiEvent, userData))
-          e.preventDefault();
+        if (dynCall_iiii(callbackfunc, eventTypeId, uiEvent, userData)) e.preventDefault();
       };
       var eventHandler = {
         target: target,
@@ -8693,7 +7987,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         10,
-        "resize",
+        'resize',
         targetThread
       );
       return 0;
@@ -8709,7 +8003,7 @@ var Module = (function() {
     ) {
       if (!JSEvents.touchEvent) JSEvents.touchEvent = _malloc(1684);
       target = __findEventTarget(target);
-      var touchEventHandlerFunc = function(ev) {
+      var touchEventHandlerFunc = function (ev) {
         var e = ev || event;
         var touches = {};
         for (var i = 0; i < e.touches.length; ++i) {
@@ -8754,13 +8048,11 @@ var Module = (function() {
           }
         }
         HEAP32[touchEvent >> 2] = numTouches;
-        if (dynCall_iiii(callbackfunc, eventTypeId, touchEvent, userData))
-          e.preventDefault();
+        if (dynCall_iiii(callbackfunc, eventTypeId, touchEvent, userData)) e.preventDefault();
       };
       var eventHandler = {
         target: target,
-        allowsDeferredCalls:
-          eventTypeString == "touchstart" || eventTypeString == "touchend",
+        allowsDeferredCalls: eventTypeString == 'touchstart' || eventTypeString == 'touchend',
         eventTypeString: eventTypeString,
         callbackfunc: callbackfunc,
         handlerFunc: touchEventHandlerFunc,
@@ -8781,7 +8073,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         25,
-        "touchcancel",
+        'touchcancel',
         targetThread
       );
       return 0;
@@ -8799,7 +8091,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         23,
-        "touchend",
+        'touchend',
         targetThread
       );
       return 0;
@@ -8817,7 +8109,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         24,
-        "touchmove",
+        'touchmove',
         targetThread
       );
       return 0;
@@ -8835,13 +8127,13 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         22,
-        "touchstart",
+        'touchstart',
         targetThread
       );
       return 0;
     }
     function __fillVisibilityChangeEventData(eventStruct) {
-      var visibilityStates = ["hidden", "visible", "prerender", "unloaded"];
+      var visibilityStates = ['hidden', 'visible', 'prerender', 'unloaded'];
       var visibilityState = visibilityStates.indexOf(document.visibilityState);
       HEAP32[eventStruct >> 2] = document.hidden;
       HEAP32[(eventStruct + 4) >> 2] = visibilityState;
@@ -8855,20 +8147,12 @@ var Module = (function() {
       eventTypeString,
       targetThread
     ) {
-      if (!JSEvents.visibilityChangeEvent)
-        JSEvents.visibilityChangeEvent = _malloc(8);
-      var visibilityChangeEventHandlerFunc = function(ev) {
+      if (!JSEvents.visibilityChangeEvent) JSEvents.visibilityChangeEvent = _malloc(8);
+      var visibilityChangeEventHandlerFunc = function (ev) {
         var e = ev || event;
         var visibilityChangeEvent = JSEvents.visibilityChangeEvent;
         __fillVisibilityChangeEventData(visibilityChangeEvent);
-        if (
-          dynCall_iiii(
-            callbackfunc,
-            eventTypeId,
-            visibilityChangeEvent,
-            userData
-          )
-        )
+        if (dynCall_iiii(callbackfunc, eventTypeId, visibilityChangeEvent, userData))
           e.preventDefault();
       };
       var eventHandler = {
@@ -8895,7 +8179,7 @@ var Module = (function() {
         useCapture,
         callbackfunc,
         21,
-        "visibilitychange",
+        'visibilitychange',
         targetThread
       );
       return 0;
@@ -8910,31 +8194,25 @@ var Module = (function() {
       targetThread
     ) {
       if (!JSEvents.wheelEvent) JSEvents.wheelEvent = _malloc(96);
-      var wheelHandlerFunc = function(ev) {
+      var wheelHandlerFunc = function (ev) {
         var e = ev || event;
         var wheelEvent = JSEvents.wheelEvent;
         __fillMouseEventData(wheelEvent, e, target);
-        HEAPF64[(wheelEvent + 64) >> 3] = e["deltaX"];
-        HEAPF64[(wheelEvent + 72) >> 3] = e["deltaY"];
-        HEAPF64[(wheelEvent + 80) >> 3] = e["deltaZ"];
-        HEAP32[(wheelEvent + 88) >> 2] = e["deltaMode"];
-        if (dynCall_iiii(callbackfunc, eventTypeId, wheelEvent, userData))
-          e.preventDefault();
+        HEAPF64[(wheelEvent + 64) >> 3] = e['deltaX'];
+        HEAPF64[(wheelEvent + 72) >> 3] = e['deltaY'];
+        HEAPF64[(wheelEvent + 80) >> 3] = e['deltaZ'];
+        HEAP32[(wheelEvent + 88) >> 2] = e['deltaMode'];
+        if (dynCall_iiii(callbackfunc, eventTypeId, wheelEvent, userData)) e.preventDefault();
       };
-      var mouseWheelHandlerFunc = function(ev) {
+      var mouseWheelHandlerFunc = function (ev) {
         var e = ev || event;
         __fillMouseEventData(JSEvents.wheelEvent, e, target);
-        HEAPF64[(JSEvents.wheelEvent + 64) >> 3] = e["wheelDeltaX"] || 0;
-        var wheelDeltaY = -(e["wheelDeltaY"] || e["wheelDelta"]);
+        HEAPF64[(JSEvents.wheelEvent + 64) >> 3] = e['wheelDeltaX'] || 0;
+        var wheelDeltaY = -(e['wheelDeltaY'] || e['wheelDelta']);
         HEAPF64[(JSEvents.wheelEvent + 72) >> 3] = wheelDeltaY;
         HEAPF64[(JSEvents.wheelEvent + 80) >> 3] = 0;
         HEAP32[(JSEvents.wheelEvent + 88) >> 2] = 0;
-        var shouldCancel = dynCall_iiii(
-          callbackfunc,
-          eventTypeId,
-          JSEvents.wheelEvent,
-          userData
-        );
+        var shouldCancel = dynCall_iiii(callbackfunc, eventTypeId, JSEvents.wheelEvent, userData);
         if (shouldCancel) {
           e.preventDefault();
         }
@@ -8944,8 +8222,7 @@ var Module = (function() {
         allowsDeferredCalls: true,
         eventTypeString: eventTypeString,
         callbackfunc: callbackfunc,
-        handlerFunc:
-          eventTypeString == "wheel" ? wheelHandlerFunc : mouseWheelHandlerFunc,
+        handlerFunc: eventTypeString == 'wheel' ? wheelHandlerFunc : mouseWheelHandlerFunc,
         useCapture: useCapture
       };
       JSEvents.registerOrRemoveHandler(eventHandler);
@@ -8958,25 +8235,25 @@ var Module = (function() {
       targetThread
     ) {
       target = __findEventTarget(target);
-      if (typeof target.onwheel !== "undefined") {
+      if (typeof target.onwheel !== 'undefined') {
         __registerWheelEventCallback(
           target,
           userData,
           useCapture,
           callbackfunc,
           9,
-          "wheel",
+          'wheel',
           targetThread
         );
         return 0;
-      } else if (typeof target.onmousewheel !== "undefined") {
+      } else if (typeof target.onmousewheel !== 'undefined') {
         __registerWheelEventCallback(
           target,
           userData,
           useCapture,
           callbackfunc,
           9,
-          "mousewheel",
+          'mousewheel',
           targetThread
         );
         return 0;
@@ -8985,7 +8262,7 @@ var Module = (function() {
       }
     }
     function _emscripten_sleep() {
-      throw "Please compile your program with async support in order to use asynchronous operations like emscripten_sleep";
+      throw 'Please compile your program with async support in order to use asynchronous operations like emscripten_sleep';
     }
     function _exit(status) {
       exit(status);
@@ -9005,7 +8282,7 @@ var Module = (function() {
       return 0;
     }
     var ___tm_current = 2452752;
-    var ___tm_timezone = (stringToUTF8("GMT", 2452800, 4), 2452800);
+    var ___tm_timezone = (stringToUTF8('GMT', 2452800, 4), 2452800);
     function _tzset() {
       if (_tzset.called) return;
       _tzset.called = true;
@@ -9018,7 +8295,7 @@ var Module = (function() {
       );
       function extractZone(date) {
         var match = date.toTimeString().match(/\(([A-Za-z ]+)\)$/);
-        return match ? match[1] : "GMT";
+        return match ? match[1] : 'GMT';
       }
       var winterName = extractZone(winter);
       var summerName = extractZone(summer);
@@ -9043,8 +8320,7 @@ var Module = (function() {
       HEAP32[(tmPtr + 20) >> 2] = date.getFullYear() - 1900;
       HEAP32[(tmPtr + 24) >> 2] = date.getDay();
       var start = new Date(date.getFullYear(), 0, 1);
-      var yday =
-        ((date.getTime() - start.getTime()) / (1e3 * 60 * 60 * 24)) | 0;
+      var yday = ((date.getTime() - start.getTime()) / (1e3 * 60 * 60 * 24)) | 0;
       HEAP32[(tmPtr + 28) >> 2] = yday;
       HEAP32[(tmPtr + 36) >> 2] = -(date.getTimezoneOffset() * 60);
       var summerOffset = new Date(date.getFullYear(), 6, 1).getTimezoneOffset();
@@ -9090,8 +8366,8 @@ var Module = (function() {
         return -1;
       }
       string = UTF8ToString(string);
-      var splitPoint = string.indexOf("=");
-      if (string === "" || string.indexOf("=") === -1) {
+      var splitPoint = string.indexOf('=');
+      if (string === '' || string.indexOf('=') === -1) {
         setErrNo(28);
         return -1;
       }
@@ -9121,7 +8397,7 @@ var Module = (function() {
       }
       return ret;
     }
-    var FSNode = function(parent, name, mode, rdev) {
+    var FSNode = function (parent, name, mode, rdev) {
       if (!parent) {
         parent = this;
       }
@@ -9139,73 +8415,59 @@ var Module = (function() {
     var writeMode = 146;
     Object.defineProperties(FSNode.prototype, {
       read: {
-        get: function() {
+        get: function () {
           return (this.mode & readMode) === readMode;
         },
-        set: function(val) {
+        set: function (val) {
           val ? (this.mode |= readMode) : (this.mode &= ~readMode);
         }
       },
       write: {
-        get: function() {
+        get: function () {
           return (this.mode & writeMode) === writeMode;
         },
-        set: function(val) {
+        set: function (val) {
           val ? (this.mode |= writeMode) : (this.mode &= ~writeMode);
         }
       },
       isFolder: {
-        get: function() {
+        get: function () {
           return FS.isDir(this.mode);
         }
       },
       isDevice: {
-        get: function() {
+        get: function () {
           return FS.isChrdev(this.mode);
         }
       }
     });
     FS.FSNode = FSNode;
     FS.staticInit();
-    Module["requestFullscreen"] = function Module_requestFullscreen(
-      lockPointer,
-      resizeCanvas
-    ) {
+    Module['requestFullscreen'] = function Module_requestFullscreen(lockPointer, resizeCanvas) {
       Browser.requestFullscreen(lockPointer, resizeCanvas);
     };
-    Module["requestAnimationFrame"] = function Module_requestAnimationFrame(
-      func
-    ) {
+    Module['requestAnimationFrame'] = function Module_requestAnimationFrame(func) {
       Browser.requestAnimationFrame(func);
     };
-    Module["setCanvasSize"] = function Module_setCanvasSize(
-      width,
-      height,
-      noUpdates
-    ) {
+    Module['setCanvasSize'] = function Module_setCanvasSize(width, height, noUpdates) {
       Browser.setCanvasSize(width, height, noUpdates);
     };
-    Module["pauseMainLoop"] = function Module_pauseMainLoop() {
+    Module['pauseMainLoop'] = function Module_pauseMainLoop() {
       Browser.mainLoop.pause();
     };
-    Module["resumeMainLoop"] = function Module_resumeMainLoop() {
+    Module['resumeMainLoop'] = function Module_resumeMainLoop() {
       Browser.mainLoop.resume();
     };
-    Module["getUserMedia"] = function Module_getUserMedia() {
+    Module['getUserMedia'] = function Module_getUserMedia() {
       Browser.getUserMedia();
     };
-    Module["createContext"] = function Module_createContext(
+    Module['createContext'] = function Module_createContext(
       canvas,
       useWebGL,
       setInModule,
       webGLContextAttributes
     ) {
-      return Browser.createContext(
-        canvas,
-        useWebGL,
-        setInModule,
-        webGLContextAttributes
-      );
+      return Browser.createContext(canvas, useWebGL, setInModule, webGLContextAttributes);
     };
     var GLctx;
     GL.init();
@@ -9213,12 +8475,7 @@ var Module = (function() {
     function intArrayFromString(stringy, dontAddNull, length) {
       var len = length > 0 ? length : lengthBytesUTF8(stringy) + 1;
       var u8array = new Array(len);
-      var numBytesWritten = stringToUTF8Array(
-        stringy,
-        u8array,
-        0,
-        u8array.length
-      );
+      var numBytesWritten = stringToUTF8Array(stringy, u8array, 0, u8array.length);
       if (dontAddNull) u8array.length = numBytesWritten;
       return u8array;
     }
@@ -9228,7 +8485,7 @@ var Module = (function() {
         return dynCall_iii(index, a1, a2);
       } catch (e) {
         stackRestore(sp);
-        if (e !== e + 0 && e !== "longjmp") throw e;
+        if (e !== e + 0 && e !== 'longjmp') throw e;
         _setThrew(1, 0);
       }
     }
@@ -9238,7 +8495,7 @@ var Module = (function() {
         dynCall_vii(index, a1, a2);
       } catch (e) {
         stackRestore(sp);
-        if (e !== e + 0 && e !== "longjmp") throw e;
+        if (e !== e + 0 && e !== 'longjmp') throw e;
         _setThrew(1, 0);
       }
     }
@@ -9248,7 +8505,7 @@ var Module = (function() {
         dynCall_viiii(index, a1, a2, a3, a4);
       } catch (e) {
         stackRestore(sp);
-        if (e !== e + 0 && e !== "longjmp") throw e;
+        if (e !== e + 0 && e !== 'longjmp') throw e;
         _setThrew(1, 0);
       }
     }
@@ -9519,228 +8776,221 @@ var Module = (function() {
       d: setTempRet0,
       table: wasmTable
     };
-    var asm = Module["asm"](asmGlobalArg, asmLibraryArg, buffer);
-    Module["asm"] = asm;
-    var _D_CancelLoopIter = (Module["_D_CancelLoopIter"] = function() {
-      return Module["asm"]["Sd"].apply(null, arguments);
+    var asm = Module['asm'](asmGlobalArg, asmLibraryArg, buffer);
+    Module['asm'] = asm;
+    var _D_CancelLoopIter = (Module['_D_CancelLoopIter'] = function () {
+      return Module['asm']['Sd'].apply(null, arguments);
     });
-    var _D_SetLoopIter = (Module["_D_SetLoopIter"] = function() {
-      return Module["asm"]["Td"].apply(null, arguments);
+    var _D_SetLoopIter = (Module['_D_SetLoopIter'] = function () {
+      return Module['asm']['Td'].apply(null, arguments);
     });
-    var _G_GetEpisodeCount = (Module["_G_GetEpisodeCount"] = function() {
-      return Module["asm"]["Ud"].apply(null, arguments);
+    var _G_GetEpisodeCount = (Module['_G_GetEpisodeCount'] = function () {
+      return Module['asm']['Ud'].apply(null, arguments);
     });
-    var _G_GetGameDescription = (Module["_G_GetGameDescription"] = function() {
-      return Module["asm"]["Vd"].apply(null, arguments);
+    var _G_GetGameDescription = (Module['_G_GetGameDescription'] = function () {
+      return Module['asm']['Vd'].apply(null, arguments);
     });
-    var _G_InitNew = (Module["_G_InitNew"] = function() {
-      return Module["asm"]["Wd"].apply(null, arguments);
+    var _G_InitNew = (Module['_G_InitNew'] = function () {
+      return Module['asm']['Wd'].apply(null, arguments);
     });
-    var _G_LoadGame = (Module["_G_LoadGame"] = function() {
-      return Module["asm"]["Xd"].apply(null, arguments);
+    var _G_LoadGame = (Module['_G_LoadGame'] = function () {
+      return Module['asm']['Xd'].apply(null, arguments);
     });
-    var _G_LoadGameDefault = (Module["_G_LoadGameDefault"] = function() {
-      return Module["asm"]["Yd"].apply(null, arguments);
+    var _G_LoadGameDefault = (Module['_G_LoadGameDefault'] = function () {
+      return Module['asm']['Yd'].apply(null, arguments);
     });
-    var _G_SaveGameDefault = (Module["_G_SaveGameDefault"] = function() {
-      return Module["asm"]["Zd"].apply(null, arguments);
+    var _G_SaveGameDefault = (Module['_G_SaveGameDefault'] = function () {
+      return Module['asm']['Zd'].apply(null, arguments);
     });
-    var _G_ScreenShot = (Module["_G_ScreenShot"] = function() {
-      return Module["asm"]["_d"].apply(null, arguments);
+    var _G_ScreenShot = (Module['_G_ScreenShot'] = function () {
+      return Module['asm']['_d'].apply(null, arguments);
     });
-    var _G_SetInspectMode = (Module["_G_SetInspectMode"] = function() {
-      return Module["asm"]["$d"].apply(null, arguments);
+    var _G_SetInspectMode = (Module['_G_SetInspectMode'] = function () {
+      return Module['asm']['$d'].apply(null, arguments);
     });
-    var _HU_GetMapName = (Module["_HU_GetMapName"] = function() {
-      return Module["asm"]["ae"].apply(null, arguments);
+    var _HU_GetMapName = (Module['_HU_GetMapName'] = function () {
+      return Module['asm']['ae'].apply(null, arguments);
     });
-    var _I_InitJoystick = (Module["_I_InitJoystick"] = function() {
-      return Module["asm"]["be"].apply(null, arguments);
+    var _I_InitJoystick = (Module['_I_InitJoystick'] = function () {
+      return Module['asm']['be'].apply(null, arguments);
     });
-    var _I_ShutdownJoystick = (Module["_I_ShutdownJoystick"] = function() {
-      return Module["asm"]["ce"].apply(null, arguments);
+    var _I_ShutdownJoystick = (Module['_I_ShutdownJoystick'] = function () {
+      return Module['asm']['ce'].apply(null, arguments);
     });
-    var _I_TouchMoveEvent = (Module["_I_TouchMoveEvent"] = function() {
-      return Module["asm"]["de"].apply(null, arguments);
+    var _I_TouchMoveEvent = (Module['_I_TouchMoveEvent'] = function () {
+      return Module['asm']['de'].apply(null, arguments);
     });
-    var _I_UpdateMouseButtonState = (Module[
-      "_I_UpdateMouseButtonState"
-    ] = function() {
-      return Module["asm"]["ee"].apply(null, arguments);
+    var _I_UpdateMouseButtonState = (Module['_I_UpdateMouseButtonState'] = function () {
+      return Module['asm']['ee'].apply(null, arguments);
     });
-    var _I_WEB_RegisterSongFallback = (Module[
-      "_I_WEB_RegisterSongFallback"
-    ] = function() {
-      return Module["asm"]["fe"].apply(null, arguments);
+    var _I_WEB_RegisterSongFallback = (Module['_I_WEB_RegisterSongFallback'] = function () {
+      return Module['asm']['fe'].apply(null, arguments);
     });
-    var _ReadLoopPoints = (Module["_ReadLoopPoints"] = function() {
-      return Module["asm"]["ge"].apply(null, arguments);
+    var _ReadLoopPoints = (Module['_ReadLoopPoints'] = function () {
+      return Module['asm']['ge'].apply(null, arguments);
     });
-    var _SendPause = (Module["_SendPause"] = function() {
-      return Module["asm"]["he"].apply(null, arguments);
+    var _SendPause = (Module['_SendPause'] = function () {
+      return Module['asm']['he'].apply(null, arguments);
     });
-    var ___emscripten_environ_constructor = (Module[
-      "___emscripten_environ_constructor"
-    ] = function() {
-      return Module["asm"]["ie"].apply(null, arguments);
+    var ___emscripten_environ_constructor = (Module['___emscripten_environ_constructor'] =
+      function () {
+        return Module['asm']['ie'].apply(null, arguments);
+      });
+    var ___errno_location = (Module['___errno_location'] = function () {
+      return Module['asm']['je'].apply(null, arguments);
     });
-    var ___errno_location = (Module["___errno_location"] = function() {
-      return Module["asm"]["je"].apply(null, arguments);
+    var __get_daylight = (Module['__get_daylight'] = function () {
+      return Module['asm']['ke'].apply(null, arguments);
     });
-    var __get_daylight = (Module["__get_daylight"] = function() {
-      return Module["asm"]["ke"].apply(null, arguments);
+    var __get_environ = (Module['__get_environ'] = function () {
+      return Module['asm']['le'].apply(null, arguments);
     });
-    var __get_environ = (Module["__get_environ"] = function() {
-      return Module["asm"]["le"].apply(null, arguments);
+    var __get_timezone = (Module['__get_timezone'] = function () {
+      return Module['asm']['me'].apply(null, arguments);
     });
-    var __get_timezone = (Module["__get_timezone"] = function() {
-      return Module["asm"]["me"].apply(null, arguments);
+    var __get_tzname = (Module['__get_tzname'] = function () {
+      return Module['asm']['ne'].apply(null, arguments);
     });
-    var __get_tzname = (Module["__get_tzname"] = function() {
-      return Module["asm"]["ne"].apply(null, arguments);
+    var _emscripten_GetProcAddress = (Module['_emscripten_GetProcAddress'] = function () {
+      return Module['asm']['oe'].apply(null, arguments);
     });
-    var _emscripten_GetProcAddress = (Module[
-      "_emscripten_GetProcAddress"
-    ] = function() {
-      return Module["asm"]["oe"].apply(null, arguments);
+    var _free = (Module['_free'] = function () {
+      return Module['asm']['pe'].apply(null, arguments);
     });
-    var _free = (Module["_free"] = function() {
-      return Module["asm"]["pe"].apply(null, arguments);
+    var _main = (Module['_main'] = function () {
+      return Module['asm']['qe'].apply(null, arguments);
     });
-    var _main = (Module["_main"] = function() {
-      return Module["asm"]["qe"].apply(null, arguments);
+    var _malloc = (Module['_malloc'] = function () {
+      return Module['asm']['re'].apply(null, arguments);
     });
-    var _malloc = (Module["_malloc"] = function() {
-      return Module["asm"]["re"].apply(null, arguments);
+    var _setThrew = (Module['_setThrew'] = function () {
+      return Module['asm']['se'].apply(null, arguments);
     });
-    var _setThrew = (Module["_setThrew"] = function() {
-      return Module["asm"]["se"].apply(null, arguments);
+    var _start = (Module['_start'] = function () {
+      return Module['asm']['te'].apply(null, arguments);
     });
-    var _start = (Module["_start"] = function() {
-      return Module["asm"]["te"].apply(null, arguments);
+    var _toggleMouse = (Module['_toggleMouse'] = function () {
+      return Module['asm']['ue'].apply(null, arguments);
     });
-    var _toggleMouse = (Module["_toggleMouse"] = function() {
-      return Module["asm"]["ue"].apply(null, arguments);
+    var stackAlloc = (Module['stackAlloc'] = function () {
+      return Module['asm']['bf'].apply(null, arguments);
     });
-    var stackAlloc = (Module["stackAlloc"] = function() {
-      return Module["asm"]["bf"].apply(null, arguments);
+    var stackRestore = (Module['stackRestore'] = function () {
+      return Module['asm']['cf'].apply(null, arguments);
     });
-    var stackRestore = (Module["stackRestore"] = function() {
-      return Module["asm"]["cf"].apply(null, arguments);
+    var stackSave = (Module['stackSave'] = function () {
+      return Module['asm']['df'].apply(null, arguments);
     });
-    var stackSave = (Module["stackSave"] = function() {
-      return Module["asm"]["df"].apply(null, arguments);
+    var dynCall_i = (Module['dynCall_i'] = function () {
+      return Module['asm']['ve'].apply(null, arguments);
     });
-    var dynCall_i = (Module["dynCall_i"] = function() {
-      return Module["asm"]["ve"].apply(null, arguments);
+    var dynCall_ii = (Module['dynCall_ii'] = function () {
+      return Module['asm']['we'].apply(null, arguments);
     });
-    var dynCall_ii = (Module["dynCall_ii"] = function() {
-      return Module["asm"]["we"].apply(null, arguments);
+    var dynCall_iidiiii = (Module['dynCall_iidiiii'] = function () {
+      return Module['asm']['xe'].apply(null, arguments);
     });
-    var dynCall_iidiiii = (Module["dynCall_iidiiii"] = function() {
-      return Module["asm"]["xe"].apply(null, arguments);
+    var dynCall_iii = (Module['dynCall_iii'] = function () {
+      return Module['asm']['ye'].apply(null, arguments);
     });
-    var dynCall_iii = (Module["dynCall_iii"] = function() {
-      return Module["asm"]["ye"].apply(null, arguments);
+    var dynCall_iiii = (Module['dynCall_iiii'] = function () {
+      return Module['asm']['ze'].apply(null, arguments);
     });
-    var dynCall_iiii = (Module["dynCall_iiii"] = function() {
-      return Module["asm"]["ze"].apply(null, arguments);
+    var dynCall_iiiii = (Module['dynCall_iiiii'] = function () {
+      return Module['asm']['Ae'].apply(null, arguments);
     });
-    var dynCall_iiiii = (Module["dynCall_iiiii"] = function() {
-      return Module["asm"]["Ae"].apply(null, arguments);
+    var dynCall_iiiiii = (Module['dynCall_iiiiii'] = function () {
+      return Module['asm']['Be'].apply(null, arguments);
     });
-    var dynCall_iiiiii = (Module["dynCall_iiiiii"] = function() {
-      return Module["asm"]["Be"].apply(null, arguments);
+    var dynCall_iiiiiidii = (Module['dynCall_iiiiiidii'] = function () {
+      return Module['asm']['Ce'].apply(null, arguments);
     });
-    var dynCall_iiiiiidii = (Module["dynCall_iiiiiidii"] = function() {
-      return Module["asm"]["Ce"].apply(null, arguments);
+    var dynCall_iiiiiiii = (Module['dynCall_iiiiiiii'] = function () {
+      return Module['asm']['De'].apply(null, arguments);
     });
-    var dynCall_iiiiiiii = (Module["dynCall_iiiiiiii"] = function() {
-      return Module["asm"]["De"].apply(null, arguments);
+    var dynCall_iiiiiiiii = (Module['dynCall_iiiiiiiii'] = function () {
+      return Module['asm']['Ee'].apply(null, arguments);
     });
-    var dynCall_iiiiiiiii = (Module["dynCall_iiiiiiiii"] = function() {
-      return Module["asm"]["Ee"].apply(null, arguments);
+    var dynCall_iiiiiiiiii = (Module['dynCall_iiiiiiiiii'] = function () {
+      return Module['asm']['Fe'].apply(null, arguments);
     });
-    var dynCall_iiiiiiiiii = (Module["dynCall_iiiiiiiiii"] = function() {
-      return Module["asm"]["Fe"].apply(null, arguments);
+    var dynCall_ji = (Module['dynCall_ji'] = function () {
+      return Module['asm']['Ge'].apply(null, arguments);
     });
-    var dynCall_ji = (Module["dynCall_ji"] = function() {
-      return Module["asm"]["Ge"].apply(null, arguments);
+    var dynCall_jiji = (Module['dynCall_jiji'] = function () {
+      return Module['asm']['He'].apply(null, arguments);
     });
-    var dynCall_jiji = (Module["dynCall_jiji"] = function() {
-      return Module["asm"]["He"].apply(null, arguments);
+    var dynCall_v = (Module['dynCall_v'] = function () {
+      return Module['asm']['Ie'].apply(null, arguments);
     });
-    var dynCall_v = (Module["dynCall_v"] = function() {
-      return Module["asm"]["Ie"].apply(null, arguments);
+    var dynCall_vf = (Module['dynCall_vf'] = function () {
+      return Module['asm']['Je'].apply(null, arguments);
     });
-    var dynCall_vf = (Module["dynCall_vf"] = function() {
-      return Module["asm"]["Je"].apply(null, arguments);
+    var dynCall_vff = (Module['dynCall_vff'] = function () {
+      return Module['asm']['Ke'].apply(null, arguments);
     });
-    var dynCall_vff = (Module["dynCall_vff"] = function() {
-      return Module["asm"]["Ke"].apply(null, arguments);
+    var dynCall_vffff = (Module['dynCall_vffff'] = function () {
+      return Module['asm']['Le'].apply(null, arguments);
     });
-    var dynCall_vffff = (Module["dynCall_vffff"] = function() {
-      return Module["asm"]["Le"].apply(null, arguments);
+    var dynCall_vfi = (Module['dynCall_vfi'] = function () {
+      return Module['asm']['Me'].apply(null, arguments);
     });
-    var dynCall_vfi = (Module["dynCall_vfi"] = function() {
-      return Module["asm"]["Me"].apply(null, arguments);
+    var dynCall_vi = (Module['dynCall_vi'] = function () {
+      return Module['asm']['Ne'].apply(null, arguments);
     });
-    var dynCall_vi = (Module["dynCall_vi"] = function() {
-      return Module["asm"]["Ne"].apply(null, arguments);
+    var dynCall_vif = (Module['dynCall_vif'] = function () {
+      return Module['asm']['Oe'].apply(null, arguments);
     });
-    var dynCall_vif = (Module["dynCall_vif"] = function() {
-      return Module["asm"]["Oe"].apply(null, arguments);
+    var dynCall_viff = (Module['dynCall_viff'] = function () {
+      return Module['asm']['Pe'].apply(null, arguments);
     });
-    var dynCall_viff = (Module["dynCall_viff"] = function() {
-      return Module["asm"]["Pe"].apply(null, arguments);
+    var dynCall_vifff = (Module['dynCall_vifff'] = function () {
+      return Module['asm']['Qe'].apply(null, arguments);
     });
-    var dynCall_vifff = (Module["dynCall_vifff"] = function() {
-      return Module["asm"]["Qe"].apply(null, arguments);
+    var dynCall_viffff = (Module['dynCall_viffff'] = function () {
+      return Module['asm']['Re'].apply(null, arguments);
     });
-    var dynCall_viffff = (Module["dynCall_viffff"] = function() {
-      return Module["asm"]["Re"].apply(null, arguments);
+    var dynCall_vii = (Module['dynCall_vii'] = function () {
+      return Module['asm']['Se'].apply(null, arguments);
     });
-    var dynCall_vii = (Module["dynCall_vii"] = function() {
-      return Module["asm"]["Se"].apply(null, arguments);
+    var dynCall_viif = (Module['dynCall_viif'] = function () {
+      return Module['asm']['Te'].apply(null, arguments);
     });
-    var dynCall_viif = (Module["dynCall_viif"] = function() {
-      return Module["asm"]["Te"].apply(null, arguments);
+    var dynCall_viii = (Module['dynCall_viii'] = function () {
+      return Module['asm']['Ue'].apply(null, arguments);
     });
-    var dynCall_viii = (Module["dynCall_viii"] = function() {
-      return Module["asm"]["Ue"].apply(null, arguments);
+    var dynCall_viiii = (Module['dynCall_viiii'] = function () {
+      return Module['asm']['Ve'].apply(null, arguments);
     });
-    var dynCall_viiii = (Module["dynCall_viiii"] = function() {
-      return Module["asm"]["Ve"].apply(null, arguments);
+    var dynCall_viiiii = (Module['dynCall_viiiii'] = function () {
+      return Module['asm']['We'].apply(null, arguments);
     });
-    var dynCall_viiiii = (Module["dynCall_viiiii"] = function() {
-      return Module["asm"]["We"].apply(null, arguments);
+    var dynCall_viiiiii = (Module['dynCall_viiiiii'] = function () {
+      return Module['asm']['Xe'].apply(null, arguments);
     });
-    var dynCall_viiiiii = (Module["dynCall_viiiiii"] = function() {
-      return Module["asm"]["Xe"].apply(null, arguments);
+    var dynCall_viiiiiii = (Module['dynCall_viiiiiii'] = function () {
+      return Module['asm']['Ye'].apply(null, arguments);
     });
-    var dynCall_viiiiiii = (Module["dynCall_viiiiiii"] = function() {
-      return Module["asm"]["Ye"].apply(null, arguments);
+    var dynCall_viiiiiiii = (Module['dynCall_viiiiiiii'] = function () {
+      return Module['asm']['Ze'].apply(null, arguments);
     });
-    var dynCall_viiiiiiii = (Module["dynCall_viiiiiiii"] = function() {
-      return Module["asm"]["Ze"].apply(null, arguments);
+    var dynCall_viiiiiiiii = (Module['dynCall_viiiiiiiii'] = function () {
+      return Module['asm']['_e'].apply(null, arguments);
     });
-    var dynCall_viiiiiiiii = (Module["dynCall_viiiiiiiii"] = function() {
-      return Module["asm"]["_e"].apply(null, arguments);
+    var dynCall_viiiiiiiiiii = (Module['dynCall_viiiiiiiiiii'] = function () {
+      return Module['asm']['$e'].apply(null, arguments);
     });
-    var dynCall_viiiiiiiiiii = (Module["dynCall_viiiiiiiiiii"] = function() {
-      return Module["asm"]["$e"].apply(null, arguments);
+    var dynCall_vjii = (Module['dynCall_vjii'] = function () {
+      return Module['asm']['af'].apply(null, arguments);
     });
-    var dynCall_vjii = (Module["dynCall_vjii"] = function() {
-      return Module["asm"]["af"].apply(null, arguments);
-    });
-    Module["_str"] = 286358;
-    Module["asm"] = asm;
-    Module["UTF8ToString"] = UTF8ToString;
-    Module["FS"] = FS;
+    Module['_str'] = 286358;
+    Module['asm'] = asm;
+    Module['UTF8ToString'] = UTF8ToString;
+    Module['FS'] = FS;
     var calledRun;
     function ExitStatus(status) {
-      this.name = "ExitStatus";
-      this.message = "Program terminated with exit(" + status + ")";
+      this.name = 'ExitStatus';
+      this.message = 'Program terminated with exit(' + status + ')';
       this.status = status;
     }
     var calledMain = false;
@@ -9749,7 +8999,7 @@ var Module = (function() {
       if (!calledRun) dependenciesFulfilled = runCaller;
     };
     function callMain(args) {
-      var entryFunction = Module["_main"];
+      var entryFunction = Module['_main'];
       args = args || [];
       var argc = args.length + 1;
       var argv = stackAlloc((argc + 1) * 4);
@@ -9764,15 +9014,15 @@ var Module = (function() {
       } catch (e) {
         if (e instanceof ExitStatus) {
           return;
-        } else if (e == "unwind") {
+        } else if (e == 'unwind') {
           noExitRuntime = true;
           return;
         } else {
           var toLog = e;
-          if (e && typeof e === "object" && e.stack) {
+          if (e && typeof e === 'object' && e.stack) {
             toLog = [e, e.stack];
           }
-          err("exception thrown: " + toLog);
+          err('exception thrown: ' + toLog);
           quit_(1, e);
         }
       } finally {
@@ -9789,20 +9039,20 @@ var Module = (function() {
       function doRun() {
         if (calledRun) return;
         calledRun = true;
-        Module["calledRun"] = true;
+        Module['calledRun'] = true;
         if (ABORT) return;
         initRuntime();
         preMain();
         readyPromiseResolve(Module);
-        if (Module["onRuntimeInitialized"]) Module["onRuntimeInitialized"]();
+        if (Module['onRuntimeInitialized']) Module['onRuntimeInitialized']();
         if (shouldRunNow) callMain(args);
         postRun();
       }
-      if (Module["setStatus"]) {
-        Module["setStatus"]("Running...");
-        setTimeout(function() {
-          setTimeout(function() {
-            Module["setStatus"]("");
+      if (Module['setStatus']) {
+        Module['setStatus']('Running...');
+        setTimeout(function () {
+          setTimeout(function () {
+            Module['setStatus']('');
           }, 1);
           doRun();
         }, 1);
@@ -9810,7 +9060,7 @@ var Module = (function() {
         doRun();
       }
     }
-    Module["run"] = run;
+    Module['run'] = run;
     function exit(status, implicit) {
       if (implicit && noExitRuntime && status === 0) {
         return;
@@ -9820,29 +9070,27 @@ var Module = (function() {
         ABORT = true;
         EXITSTATUS = status;
         exitRuntime();
-        if (Module["onExit"]) Module["onExit"](status);
+        if (Module['onExit']) Module['onExit'](status);
       }
       quit_(status, new ExitStatus(status));
     }
-    if (Module["preInit"]) {
-      if (typeof Module["preInit"] == "function")
-        Module["preInit"] = [Module["preInit"]];
-      while (Module["preInit"].length > 0) {
-        Module["preInit"].pop()();
+    if (Module['preInit']) {
+      if (typeof Module['preInit'] == 'function') Module['preInit'] = [Module['preInit']];
+      while (Module['preInit'].length > 0) {
+        Module['preInit'].pop()();
       }
     }
     var shouldRunNow = true;
-    if (Module["noInitialRun"]) shouldRunNow = false;
+    if (Module['noInitialRun']) shouldRunNow = false;
     noExitRuntime = true;
     run();
 
     return Module.ready;
   };
 })();
-if (typeof exports === "object" && typeof module === "object")
-  module.exports = Module;
-else if (typeof define === "function" && define["amd"])
-  define([], function() {
+if (typeof exports === 'object' && typeof module === 'object') module.exports = Module;
+else if (typeof define === 'function' && define['amd'])
+  define([], function () {
     return Module;
   });
-else if (typeof exports === "object") exports["Module"] = Module;
+else if (typeof exports === 'object') exports['Module'] = Module;
