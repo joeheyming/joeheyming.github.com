@@ -1,0 +1,249 @@
+body {
+  font-family: 'Courier New', monospace;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #e2e8f0;
+  margin: 0;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+/* Farm Marquee - The Quirky Feature! */
+marquee {
+  position: fixed;
+  top: 10px;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  pointer-events: none; /* Allows clicks to pass through */
+  height: 300px;
+  overflow: hidden;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: 12px;
+  border: 1px solid #334155;
+}
+
+.header h1 {
+  font-size: 2rem;
+  color: #f1c40f;
+  margin-bottom: 10px;
+  text-shadow: 0 0 10px rgba(241, 196, 15, 0.3);
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: white;
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  color: white;
+}
+
+.terminal-container {
+  background: #0f172a;
+  border-radius: 12px;
+  border: 1px solid #334155;
+  overflow: hidden;
+  margin-bottom: 25px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+}
+
+.terminal-header {
+  background: #1e293b;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #334155;
+}
+
+.terminal-title {
+  color: #e2e8f0;
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+.terminal-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.dot.red {
+  background: #ef4444;
+}
+.dot.yellow {
+  background: #f59e0b;
+}
+.dot.green {
+  background: #10b981;
+}
+
+.terminal {
+  background: #0f172a;
+  padding: 20px;
+  height: 500px;
+  overflow-y: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.terminal-line {
+  margin-bottom: 2px;
+  word-wrap: break-word;
+}
+
+.prompt {
+  color: #10b981;
+  font-weight: bold;
+}
+
+.text {
+  color: #e2e8f0;
+}
+
+.error {
+  color: #ef4444;
+  font-weight: bold;
+}
+
+.warning {
+  color: #f59e0b;
+}
+
+.success {
+  color: #10b981;
+  font-weight: bold;
+}
+
+.info {
+  color: #60a5fa;
+}
+
+.debug {
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.terminal::-webkit-scrollbar {
+  width: 8px;
+}
+
+.terminal::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.terminal::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+.status {
+  text-align: center;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.status-idle {
+  background: rgba(107, 114, 128, 0.2);
+  color: #9ca3af;
+  border: 1px solid #6b7280;
+}
+
+.status-running {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid #3b82f6;
+  animation: pulse 2s infinite;
+}
+
+.status-success {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid #059669;
+}
+
+.status-failed {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid #dc2626;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 15px;
+  }
+
+  .header h1 {
+    font-size: 1.5rem;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .terminal {
+    height: 400px;
+    font-size: 0.75rem;
+  }
+}
