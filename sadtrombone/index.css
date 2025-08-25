@@ -1,0 +1,511 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.background-particles {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.particle {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(180deg);
+  }
+}
+
+.container {
+  text-align: center;
+  z-index: 10;
+  position: relative;
+  max-width: 800px;
+  padding: 20px;
+}
+
+.title {
+  font-size: 3.5em;
+  font-weight: bold;
+  margin-bottom: 20px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3), 0 0 10px rgba(255, 255, 255, 0.2);
+  }
+  to {
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.4);
+  }
+}
+
+.subtitle {
+  font-size: 1.2em;
+  margin-bottom: 40px;
+  opacity: 0.9;
+}
+
+.trombone-container {
+  margin: 40px 0;
+  position: relative;
+}
+
+.trombone-img {
+  max-width: 300px;
+  height: auto;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.trombone-img.playing {
+  transform: scale(1.1);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+  animation: bounce 0.5s ease-in-out;
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: scale(1.1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+  margin: 40px 0;
+}
+
+.main-button {
+  background: linear-gradient(45deg, #ff6b6b, #ee5a6f);
+  border: none;
+  padding: 15px 30px;
+  font-size: 1.3em;
+  font-weight: bold;
+  color: white;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  min-width: 200px;
+}
+
+.main-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.main-button:active {
+  transform: translateY(0);
+}
+
+.sadness-meter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 20px;
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+}
+
+.meter-label {
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+.slider {
+  width: 200px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  outline: none;
+  appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #ff6b6b;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #ff6b6b;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+.scenario-box {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 20px;
+  border-radius: 15px;
+  margin: 20px 0;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.scenario-text {
+  font-size: 1.1em;
+  font-style: italic;
+  text-align: center;
+}
+
+.stats {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  margin: 30px 0;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 15px 25px;
+  border-radius: 10px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+}
+
+.stat-number {
+  font-size: 2em;
+  font-weight: bold;
+  display: block;
+}
+
+.stat-label {
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+.share-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 20px 0;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.share-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  padding: 10px 20px;
+  color: white;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.share-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.scenario-refresh-btn {
+  background: linear-gradient(45deg, #ffeaa7, #fdcb6e);
+  border: none;
+  padding: 15px;
+  color: #2d3436;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  font-size: 1.5em;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 10px;
+}
+
+.scenario-refresh-btn:hover {
+  transform: translateY(-3px) rotate(180deg);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.scenario-refresh-btn:active {
+  transform: translateY(0) rotate(180deg);
+}
+
+.shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+.sadness-level {
+  font-weight: bold;
+  color: #ffeb3b;
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 2.5em;
+  }
+
+  .controls {
+    gap: 15px;
+  }
+
+  .stats {
+    gap: 15px;
+  }
+
+  .slider {
+    width: 150px;
+  }
+}
+
+.hidden {
+  display: none !important;
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Sad Rain/Tears Styles */
+.confetti-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.confetti {
+  position: absolute;
+  animation: tears-fall 3s ease-in forwards;
+  pointer-events: none;
+  user-select: none;
+  z-index: 1001;
+  top: 0;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+}
+
+/* Teardrop shapes */
+.confetti.teardrop {
+  width: 8px;
+  height: 12px;
+  border-radius: 50% 0 50% 50%;
+  transform: rotate(-45deg);
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    rgba(100, 150, 255, 0.8) 50%,
+    rgba(50, 100, 200, 0.9) 100%
+  );
+  box-shadow: 0 0 3px rgba(100, 150, 255, 0.6);
+}
+
+.confetti.big-teardrop {
+  width: 12px;
+  height: 18px;
+  border-radius: 50% 0 50% 50%;
+  transform: rotate(-45deg);
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    rgba(70, 130, 255, 0.7) 50%,
+    rgba(30, 80, 180, 0.9) 100%
+  );
+  box-shadow: 0 0 4px rgba(70, 130, 255, 0.7);
+}
+
+/* Sad emoji falling */
+.confetti.emoji {
+  font-size: 28px;
+  line-height: 1;
+  user-select: none;
+  display: block;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+}
+
+.confetti.small-emoji {
+  font-size: 22px;
+  line-height: 1;
+  user-select: none;
+  display: block;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+}
+
+/* Rain streak */
+.confetti.rain-streak {
+  width: 2px;
+  height: 15px;
+  background: linear-gradient(to bottom, transparent, rgba(100, 150, 255, 0.6), transparent);
+  border-radius: 1px;
+}
+
+@keyframes tears-fall {
+  0% {
+    transform: translateY(-100vh) translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(calc(100vh + 50px)) translateX(var(--drift, 10px))
+      rotate(var(--rotation, 5deg));
+    opacity: 0;
+  }
+}
+
+/* Color variations for teardrops */
+.tear-1 {
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    rgba(100, 150, 255, 0.8) 50%,
+    rgba(50, 100, 200, 0.9) 100%
+  );
+}
+.tear-2 {
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    rgba(120, 170, 255, 0.7) 50%,
+    rgba(70, 120, 220, 0.8) 100%
+  );
+}
+.tear-3 {
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    rgba(80, 130, 255, 0.9) 50%,
+    rgba(40, 90, 200, 1) 100%
+  );
+}
+.tear-4 {
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    rgba(90, 140, 255, 0.6) 50%,
+    rgba(50, 100, 180, 0.8) 100%
+  );
+}
+.tear-5 {
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    rgba(110, 160, 255, 0.8) 50%,
+    rgba(60, 110, 210, 0.9) 100%
+  );
+}
+
+/* Special cloud-like background tears */
+.confetti.cloud-tear {
+  width: 16px;
+  height: 10px;
+  background: rgba(150, 170, 200, 0.4);
+  border-radius: 10px;
+  position: relative;
+}
+
+.confetti.cloud-tear::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 3px;
+  width: 10px;
+  height: 10px;
+  background: rgba(150, 170, 200, 0.4);
+  border-radius: 50%;
+}
+
+.confetti.cloud-tear::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: 3px;
+  width: 8px;
+  height: 8px;
+  background: rgba(150, 170, 200, 0.4);
+  border-radius: 50%;
+}

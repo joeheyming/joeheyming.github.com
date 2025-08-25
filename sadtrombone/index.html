@@ -1,55 +1,99 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <base href="./" />
+    <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta property="og:audio" content="https://joeheyming.github.io/sadtrombone/trombine.ogg" />
+    <title>🎺 Sad Trombone Symphony 🎺</title>
+    <meta property="og:title" content="Sad Trombone Symphony" />
+    <meta property="title" content="Sad Trombone Symphony" />
+    <meta
+      property="og:description"
+      content="The ultimate interactive sad trombone experience! Express your disappointment in style."
+    />
+    <meta
+      name="description"
+      content="The ultimate interactive sad trombone experience! Express your disappointment in style."
+    />
+    <meta property="keywords" content="sad, trombone, engineering, developer, confetti" />
     <meta
       property="og:audio:secure_url"
-      content="https://joeheyming.github.io/sadtrombone/trombine.ogg"
+      content="https://joeheyming.github.io/sadtrombone/trombone.ogg"
     />
+    <meta property="og:audio" content="https://joeheyming.github.io/sadtrombone/trombone.ogg" />
     <meta property="og:audio:type" content="audio/ogg" />
-    <meta property="og:title" content="Sad Trombine" />
-    <meta property="title" content="Sad Trombine" />
-    <meta property="og:description" content="Waaa waaa waaa ~waaaaaaaaaaa~" />
-    <meta name="description" content="Waaa waaa waaa ~waaaaaaaaaaa~" />
-    <meta property="keywords" content="sad, trombone" />
     <meta property="og:url" content="https://joeheyming.github.io/sadtrombone/index.html" />
-    <style>
-      body {
-        width: 100vw;
-        height: 100vh;
-      }
-    </style>
+
+    <link rel="stylesheet" href="index.css" />
   </head>
   <body>
-    <h1>Click to play sad trombone</h1>
-    <img id="tromboneImg" src="trombone_sliding.gif" hidden />
-    <br />
-    <audio id="trombone" src="trombone.ogg" autoplay controls hidden />
-    <script>
-      function doTrombone() {
-        if (trombone.paused) {
-          trombone.play();
-          window.tromboneImg.removeAttribute('hidden');
-        } else {
-          trombone.pause();
-          window.tromboneImg.setAttribute('hidden', '');
-        }
-      }
-      window.onload = function () {
-        document.body.onclick = function () {
-          doTrombone();
-        };
-      };
-      document.onkeydown = function (e) {
-        e = e || window.event;
-        var key = e.keyCode || e.which;
-        if (key == '32' || key == '13') {
-          // enter or spacebar
-          doTrombone();
-        }
-      };
-    </script>
+    <div class="background-particles" id="particles"></div>
+    <div class="confetti-container" id="tearsContainer"></div>
+
+    <div class="container">
+      <h1 class="title">🎺 Sad Trombone Symphony 🎺</h1>
+      <p class="subtitle">Express your disappointment in spectacular fashion!</p>
+
+      <div class="scenario-box" id="scenarioBox">
+        <div class="scenario-text" id="scenarioText">
+          Click the button when life gives you lemons 🍋... but you wanted oranges 🍊
+        </div>
+      </div>
+
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          margin: 20px 0;
+        "
+      >
+        <span style="font-size: 0.9em; opacity: 0.8">Need a different scenario?</span>
+        <button class="scenario-refresh-btn" onclick="randomScenario()" title="Get new scenario">
+          🎲
+        </button>
+      </div>
+
+      <div class="trombone-container">
+        <img
+          id="tromboneImg"
+          class="trombone-img hidden"
+          src="trombone_sliding.gif"
+          alt="Sad Trombone"
+        />
+      </div>
+
+      <div class="controls">
+        <button class="main-button" id="mainButton">💔 Express Sadness 💔</button>
+
+        <div class="sadness-meter">
+          <div class="meter-label">
+            Sadness Intensity:
+            <span class="sadness-level" id="sadnessLevel">Mildly Disappointed</span>
+          </div>
+          <input type="range" class="slider" id="sadnessSlider" min="1" max="10" value="5" />
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat-item">
+          <span class="stat-number" id="sadCount">0</span>
+          <span class="stat-label">Times Sad</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number" id="totalSadness">0</span>
+          <span class="stat-label">Total Sadness</span>
+        </div>
+      </div>
+
+      <div class="share-buttons">
+        <button class="share-btn" onclick="shareExperience()">📱 Share Your Sadness</button>
+        <button class="share-btn" onclick="resetStats()">🔄 Reset Stats</button>
+      </div>
+    </div>
+
+    <audio id="trombone" src="trombone.ogg" preload="auto"></audio>
+
+    <script src="index.js"></script>
   </body>
 </html>
