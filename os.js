@@ -19,6 +19,7 @@ class HeymingOS {
     this.bindEvents();
     this.createDesktopIcons();
     this.loadAppsFromRegistry();
+    this.handleViewportChanges();
   }
 
   loadAppsFromRegistry() {
@@ -132,6 +133,11 @@ class HeymingOS {
 
       // Prevent scrolling on main page
       document.body.style.overflow = 'hidden';
+
+      // Adjust existing windows to current viewport (in case viewport changed while OS was hidden)
+      setTimeout(() => {
+        this.adjustWindowsToViewport(true); // Force repositioning when showing OS
+      }, 100);
 
       // Show welcome notification
       setTimeout(() => {
@@ -308,10 +314,17 @@ class HeymingOS {
     `;
 
     // Use app's default dimensions if specified, otherwise use fallback dimensions
-    const width = app.defaultWidth || 900;
-    const height = app.defaultHeight || 700;
+    // Cap dimensions to viewport size for mobile compatibility
+    const requestedWidth = app.defaultWidth || 900;
+    const requestedHeight = app.defaultHeight || 700;
+    const cappedDimensions = this.getMaxWindowDimensions(requestedWidth, requestedHeight);
 
-    const window = this.createWindow(app.name, content, width, height);
+    const window = this.createWindow(
+      app.name,
+      content,
+      cappedDimensions.width,
+      cappedDimensions.height
+    );
     window.appId = app.id;
     return window;
   }
@@ -400,15 +413,373 @@ class HeymingOS {
     return categories[category] || category;
   }
 
+  getMaxWindowDimensions(requestedWidth, requestedHeight) {
+    // Get viewport dimensions
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Leave some margin for the OS interface (taskbar, title bars, etc.)
+    const margin = 80; // Space for taskbar and window decorations
+    const sideMargin = 40; // Space on sides
+
+    const maxWidth = Math.max(400, viewportWidth - sideMargin); // Minimum 400px width
+    const maxHeight = Math.max(300, viewportHeight - margin); // Minimum 300px height
+
+    // Cap the requested dimensions to the maximum allowed
+    const cappedWidth = Math.min(requestedWidth, maxWidth);
+    const cappedHeight = Math.min(requestedHeight, maxHeight);
+
+    return {
+      width: cappedWidth,
+      height: cappedHeight
+    };
+  }
+
+  // Helper functions for unified mouse/touch event handling
+  getPointerCoordinates(e) {
+    if (e.touches && e.touches.length > 0) {
+      return {
+        clientX: e.touches[0].clientX,
+        clientY: e.touches[0].clientY
+      };
+    }
+    return {
+      clientX: e.clientX,
+      clientY: e.clientY
+    };
+  }
+
+  addPointerEventListeners(element, startEvents, moveEvent, endEvent) {
+    // Add both mouse and touch event listeners
+    startEvents.forEach((eventType) => {
+      element.addEventListener(eventType, startEvent);
+    });
+
+    function startEvent(e) {
+      // Prevent default to avoid scrolling on touch
+      e.preventDefault();
+
+      // Add move and end listeners for both mouse and touch
+      document.addEventListener('mousemove', moveEvent);
+      document.addEventListener('mouseup', endEvent);
+      document.addEventListener('touchmove', moveEvent, { passive: false });
+      document.addEventListener('touchend', endEvent);
+
+      return startEvent;
+    }
+
+    return startEvent;
+  }
+
+  removePointerEventListeners(moveEvent, endEvent) {
+    document.removeEventListener('mousemove', moveEvent);
+    document.removeEventListener('mouseup', endEvent);
+    document.removeEventListener('touchmove', moveEvent);
+    document.removeEventListener('touchend', endEvent);
+  }
+
+  addDoubleTapHandler(element, callback) {
+    // Handle desktop double-click
+    element.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      callback();
+    });
+
+    // Handle mobile single tap
+    const handleTap = (e) => {
+      if (e.type === 'touchend') {
+        e.preventDefault();
+        e.stopPropagation();
+        // Single tap on mobile - immediate response
+        callback();
+      }
+    };
+
+    // Add touch event listener for mobile single tap
+    element.addEventListener('touchend', handleTap, { passive: false });
+
+    // Prevent text selection and context menus on touch devices
+    element.addEventListener(
+      'touchstart',
+      (e) => {
+        e.preventDefault();
+      },
+      { passive: false }
+    );
+
+    // Prevent context menu on long press
+    element.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+  }
+
+  handleViewportChanges() {
+    // Handle window resize and orientation changes
+    let resizeTimeout;
+    const handleResize = () => {
+      // Debounce resize events to avoid excessive calls
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        this.adjustWindowsToViewport();
+      }, 250);
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', () => {
+      // Orientation change needs a slight delay to get correct viewport dimensions
+      setTimeout(() => {
+        this.adjustWindowsToViewport(true); // Force repositioning on orientation change
+      }, 300);
+    });
+  }
+
+  adjustWindowsToViewport(forceReposition = false) {
+    if (!this.isVisible || this.windows.length === 0) return;
+
+    this.windows.forEach((window) => {
+      this.adjustWindowToViewport(window, forceReposition);
+    });
+  }
+
+  // Public method to force all windows back into view
+  bringAllWindowsIntoView() {
+    console.log('Forcing all windows back into viewport...');
+    this.adjustWindowsToViewport(true);
+    this.showNotification('All windows moved back into view', 'system');
+  }
+
+  adjustWindowToViewport(window, forceReposition = false) {
+    const element = window.element;
+    if (!element) return;
+
+    // Handle maximized windows - they should always fill the viewport
+    if (window.maximized) {
+      // Maximized windows should automatically adjust to new viewport size
+      element.style.left = '0px';
+      element.style.top = '0px';
+      element.style.width = window.innerWidth + 'px';
+      element.style.height = window.innerHeight - 48 + 'px'; // Account for taskbar
+      return;
+    }
+
+    // Get current window dimensions and position
+    const currentWidth = parseInt(element.style.width, 10);
+    const currentHeight = parseInt(element.style.height, 10);
+    const currentLeft = parseInt(element.style.left, 10);
+    const currentTop = parseInt(element.style.top, 10);
+
+    // Get new maximum dimensions for current viewport
+    const maxDimensions = this.getMaxWindowDimensions(currentWidth, currentHeight);
+
+    // Check if window needs resizing
+    let needsUpdate = false;
+    let newWidth = currentWidth;
+    let newHeight = currentHeight;
+    let newLeft = currentLeft;
+    let newTop = currentTop;
+
+    // Resize if window is too large for viewport
+    if (currentWidth > maxDimensions.width) {
+      newWidth = maxDimensions.width;
+      needsUpdate = true;
+    }
+    if (currentHeight > maxDimensions.height) {
+      newHeight = maxDimensions.height;
+      needsUpdate = true;
+    }
+
+    // Smart repositioning - ensure window is fully visible and accessible
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const taskbarHeight = 48;
+    const titleBarHeight = 40; // Approximate title bar height
+    const margin = 10; // Small margin from edges
+
+    // Calculate available space for window positioning
+    const maxLeft = Math.max(0, viewportWidth - newWidth);
+    const maxTop = Math.max(0, viewportHeight - taskbarHeight - newHeight);
+
+    // Enhanced off-screen detection - more aggressive when forced
+    let needsRepositioning = false;
+
+    // Check if window is completely off-screen or partially off-screen
+    const isCompletelyOffScreenLeft = currentLeft + newWidth <= 0;
+    const isCompletelyOffScreenRight = currentLeft >= viewportWidth;
+    const isCompletelyOffScreenTop = currentTop + newHeight <= 0;
+    const isCompletelyOffScreenBottom = currentTop >= viewportHeight - taskbarHeight;
+
+    const isPartiallyOffScreenLeft = currentLeft < 0;
+    const isPartiallyOffScreenRight = currentLeft + newWidth > viewportWidth;
+    const isPartiallyOffScreenTop = currentTop < 0;
+    const isPartiallyOffScreenBottom = currentTop + newHeight > viewportHeight - taskbarHeight;
+
+    // Force repositioning if completely off-screen or if forced and partially off-screen
+    if (
+      isCompletelyOffScreenLeft ||
+      isCompletelyOffScreenRight ||
+      isCompletelyOffScreenTop ||
+      isCompletelyOffScreenBottom
+    ) {
+      needsRepositioning = true;
+      console.log(`Window ${window.id} is completely off-screen, repositioning...`);
+    } else if (
+      forceReposition &&
+      (isPartiallyOffScreenLeft ||
+        isPartiallyOffScreenRight ||
+        isPartiallyOffScreenTop ||
+        isPartiallyOffScreenBottom)
+    ) {
+      needsRepositioning = true;
+      console.log(`Window ${window.id} is partially off-screen, force repositioning...`);
+    } else {
+      // Standard checks for normal repositioning
+      if (currentLeft < 0 || currentLeft + newWidth > viewportWidth) {
+        needsRepositioning = true;
+      }
+      if (currentTop < 0 || currentTop + newHeight > viewportHeight - taskbarHeight) {
+        needsRepositioning = true;
+      }
+      // Ensure at least the title bar is visible if window was partially off-screen
+      if (currentTop + titleBarHeight < 0) {
+        needsRepositioning = true;
+      }
+    }
+
+    if (needsRepositioning) {
+      // For completely off-screen windows or forced repositioning, use optimal positioning
+      if (
+        isCompletelyOffScreenLeft ||
+        isCompletelyOffScreenRight ||
+        isCompletelyOffScreenTop ||
+        isCompletelyOffScreenBottom ||
+        forceReposition
+      ) {
+        const optimalPosition = this.findOptimalWindowPosition(newWidth, newHeight, window.id);
+        if (optimalPosition) {
+          newLeft = optimalPosition.left;
+          newTop = optimalPosition.top;
+        } else {
+          // Fallback to center if no optimal position found
+          newLeft = Math.max(margin, Math.min((viewportWidth - newWidth) / 2, maxLeft - margin));
+          newTop = Math.max(
+            margin,
+            Math.min((viewportHeight - taskbarHeight - newHeight) / 2, maxTop - margin)
+          );
+        }
+      } else {
+        // Smart positioning: try to keep window in a reasonable position for partial off-screen
+        if (currentLeft < 0) {
+          newLeft = margin;
+        } else if (currentLeft + newWidth > viewportWidth) {
+          newLeft = Math.max(margin, maxLeft - margin);
+        } else {
+          // Window fits horizontally, keep current position if reasonable
+          newLeft = Math.max(margin, Math.min(currentLeft, maxLeft - margin));
+        }
+
+        if (currentTop < 0) {
+          newTop = margin;
+        } else if (currentTop + newHeight > viewportHeight - taskbarHeight) {
+          newTop = Math.max(margin, maxTop - margin);
+        } else {
+          // Window fits vertically, keep current position if reasonable
+          newTop = Math.max(margin, Math.min(currentTop, maxTop - margin));
+        }
+      }
+
+      needsUpdate = true;
+    }
+
+    // Apply changes if needed
+    if (needsUpdate) {
+      element.style.width = newWidth + 'px';
+      element.style.height = newHeight + 'px';
+      element.style.left = newLeft + 'px';
+      element.style.top = newTop + 'px';
+
+      // Clear any existing transform that might conflict
+      element.style.transform = '';
+
+      console.log(
+        `Repositioned window ${window.id} to: ${newLeft}px, ${newTop}px (${newWidth}x${newHeight})`
+      );
+    }
+  }
+
+  findOptimalWindowPosition(width, height, excludeWindowId) {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const taskbarHeight = 48;
+    const margin = 10;
+    const step = 30; // Step size for cascading windows
+
+    // Calculate maximum possible positions
+    const maxLeft = viewportWidth - width - margin;
+    const maxTop = viewportHeight - taskbarHeight - height - margin;
+
+    // Try cascading positions (similar to how new windows are positioned)
+    for (let cascade = 0; cascade < 10; cascade++) {
+      const testLeft = margin + cascade * step;
+      const testTop = margin + cascade * step;
+
+      // Check if this position is within viewport
+      if (testLeft > maxLeft || testTop > maxTop) {
+        break;
+      }
+
+      // Check if this position overlaps significantly with existing windows
+      const hasSignificantOverlap = this.windows.some((win) => {
+        if (win.id === excludeWindowId || !win.element || win.minimized) {
+          return false;
+        }
+
+        const winLeft = parseInt(win.element.style.left, 10);
+        const winTop = parseInt(win.element.style.top, 10);
+        const winWidth = parseInt(win.element.style.width, 10);
+        const winHeight = parseInt(win.element.style.height, 10);
+
+        // Calculate overlap area
+        const overlapLeft = Math.max(testLeft, winLeft);
+        const overlapTop = Math.max(testTop, winTop);
+        const overlapRight = Math.min(testLeft + width, winLeft + winWidth);
+        const overlapBottom = Math.min(testTop + height, winTop + winHeight);
+
+        const overlapWidth = Math.max(0, overlapRight - overlapLeft);
+        const overlapHeight = Math.max(0, overlapBottom - overlapTop);
+        const overlapArea = overlapWidth * overlapHeight;
+
+        // Consider significant if overlap is more than 25% of window area
+        const windowArea = width * height;
+        return overlapArea > windowArea * 0.25;
+      });
+
+      if (!hasSignificantOverlap) {
+        return { left: testLeft, top: testTop };
+      }
+    }
+
+    // If no good cascading position found, center the window
+    const centerLeft = Math.max(margin, (viewportWidth - width) / 2);
+    const centerTop = Math.max(margin, (viewportHeight - taskbarHeight - height) / 2);
+
+    return {
+      left: Math.min(centerLeft, maxLeft),
+      top: Math.min(centerTop, maxTop)
+    };
+  }
+
   createWindow(title, content, width = 600, height = 400) {
     const windowId = this.nextWindowId++;
     const windowsContainer = document.getElementById('os-windows');
 
+    // Cap dimensions to viewport size for mobile compatibility
+    const cappedDimensions = this.getMaxWindowDimensions(width, height);
+
     const windowElement = document.createElement('div');
     windowElement.className = 'os-window active';
     windowElement.id = `window-${windowId}`;
-    windowElement.style.width = width + 'px';
-    windowElement.style.height = height + 'px';
+    windowElement.style.width = cappedDimensions.width + 'px';
+    windowElement.style.height = cappedDimensions.height + 'px';
     windowElement.style.left = 50 + this.windows.length * 30 + 'px';
     windowElement.style.top = 50 + this.windows.length * 30 + 'px';
 
@@ -486,9 +857,12 @@ class HeymingOS {
   }
 
   bindWindowEvents(windowElement, windowId) {
-    // Window controls
-    windowElement.addEventListener('click', (e) => {
+    // Window controls - handle both mouse and touch events
+    const handleControlAction = (e) => {
       if (e.target.classList.contains('os-window-control')) {
+        e.preventDefault(); // Prevent default behavior
+        e.stopPropagation(); // Stop event bubbling
+
         const action = e.target.getAttribute('data-action');
         switch (action) {
           case 'minimize':
@@ -502,7 +876,13 @@ class HeymingOS {
             break;
         }
       }
-    });
+    };
+
+    // Add both click and touch event listeners for window controls
+    windowElement.addEventListener('click', handleControlAction);
+
+    // Touch events for better mobile responsiveness
+    windowElement.addEventListener('touchend', handleControlAction, { passive: false });
 
     // Window focus
     windowElement.addEventListener('mousedown', () => {
@@ -526,30 +906,36 @@ class HeymingOS {
     let initialLeft;
     let initialTop;
 
-    handle.addEventListener('mousedown', (e) => {
+    const startDrag = (e) => {
       const window = this.getWindow(windowId);
       if (window && window.maximized) return; // Don't drag maximized windows
+
+      const pointer = this.getPointerCoordinates(e);
 
       isDragging = true;
       initialLeft = windowElement.offsetLeft;
       initialTop = windowElement.offsetTop;
-      initialX = e.clientX - initialLeft;
-      initialY = e.clientY - initialTop;
+      initialX = pointer.clientX - initialLeft;
+      initialY = pointer.clientY - initialTop;
 
       // Add dragging class to disable transitions
       windowElement.classList.add('dragging');
 
+      // Add move and end listeners for both mouse and touch
       document.addEventListener('mousemove', drag);
       document.addEventListener('mouseup', stopDrag);
+      document.addEventListener('touchmove', drag, { passive: false });
+      document.addEventListener('touchend', stopDrag);
 
       e.preventDefault();
-    });
+    };
 
-    function drag(e) {
+    const drag = (e) => {
       if (!isDragging) return;
 
-      currentX = e.clientX - initialX;
-      currentY = e.clientY - initialY;
+      const pointer = this.getPointerCoordinates(e);
+      currentX = pointer.clientX - initialX;
+      currentY = pointer.clientY - initialY;
 
       // Constrain to screen bounds
       const maxX = window.innerWidth - windowElement.offsetWidth;
@@ -562,9 +948,12 @@ class HeymingOS {
       const deltaX = currentX - initialLeft;
       const deltaY = currentY - initialTop;
       windowElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-    }
 
-    function stopDrag() {
+      // Prevent scrolling on touch devices
+      e.preventDefault();
+    };
+
+    const stopDrag = () => {
       if (!isDragging) return;
 
       isDragging = false;
@@ -584,16 +973,19 @@ class HeymingOS {
 
       // Remove dragging class to re-enable transitions
       windowElement.classList.remove('dragging');
-      document.removeEventListener('mousemove', drag);
-      document.removeEventListener('mouseup', stopDrag);
-    }
+      this.removePointerEventListeners(drag, stopDrag);
+    };
+
+    // Add both mouse and touch event listeners for starting drag
+    handle.addEventListener('mousedown', startDrag);
+    handle.addEventListener('touchstart', startDrag, { passive: false });
   }
 
   makeResizable(windowElement, windowId) {
     const handles = windowElement.querySelectorAll('.resize-handle, .window-drag-handle');
 
     handles.forEach((handle) => {
-      handle.addEventListener('mousedown', (e) => {
+      const startResize = (e) => {
         const window = this.getWindow(windowId);
         if (window && window.maximized) return; // Don't resize maximized windows
 
@@ -603,8 +995,9 @@ class HeymingOS {
         // Add dragging class to disable transitions during resize
         windowElement.classList.add('dragging');
 
-        const startX = e.clientX;
-        const startY = e.clientY;
+        const pointer = this.getPointerCoordinates(e);
+        const startX = pointer.clientX;
+        const startY = pointer.clientY;
         const startWidth = parseInt(getComputedStyle(windowElement).width, 10);
         const startHeight = parseInt(getComputedStyle(windowElement).height, 10);
         const startLeft = parseInt(getComputedStyle(windowElement).left, 10);
@@ -618,12 +1011,10 @@ class HeymingOS {
           handleClass = handle.className.split(' ')[1];
         }
 
-        document.addEventListener('mousemove', resize);
-        document.addEventListener('mouseup', stopResize);
-
-        function resize(e) {
-          const deltaX = e.clientX - startX;
-          const deltaY = e.clientY - startY;
+        const resize = (e) => {
+          const pointer = this.getPointerCoordinates(e);
+          const deltaX = pointer.clientX - startX;
+          const deltaY = pointer.clientY - startY;
 
           let newWidth = startWidth;
           let newHeight = startHeight;
@@ -660,15 +1051,27 @@ class HeymingOS {
           windowElement.style.height = newHeight + 'px';
           windowElement.style.left = newLeft + 'px';
           windowElement.style.top = newTop + 'px';
-        }
 
-        function stopResize() {
+          // Prevent scrolling on touch devices
+          e.preventDefault();
+        };
+
+        const stopResize = () => {
           // Remove dragging class to re-enable transitions
           windowElement.classList.remove('dragging');
-          document.removeEventListener('mousemove', resize);
-          document.removeEventListener('mouseup', stopResize);
-        }
-      });
+          this.removePointerEventListeners(resize, stopResize);
+        };
+
+        // Add move and end listeners for both mouse and touch
+        document.addEventListener('mousemove', resize);
+        document.addEventListener('mouseup', stopResize);
+        document.addEventListener('touchmove', resize, { passive: false });
+        document.addEventListener('touchend', stopResize);
+      };
+
+      // Add both mouse and touch event listeners for starting resize
+      handle.addEventListener('mousedown', startResize);
+      handle.addEventListener('touchstart', startResize, { passive: false });
     });
   }
 
@@ -848,7 +1251,8 @@ class HeymingOS {
       <div class="label">${iconData.name}</div>
     `;
 
-    icon.addEventListener('dblclick', () => {
+    // Add unified double-tap/double-click handler
+    this.addDoubleTapHandler(icon, () => {
       this.launchApp(iconData.app);
     });
 
