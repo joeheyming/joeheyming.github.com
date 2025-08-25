@@ -2,83 +2,48 @@
 <html>
   <head>
     <base href="./" />
-    <style>
-      marquee {
-        position: absolute;
-        top: 80px;
-        z-index: 100;
-      }
-    </style>
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AMP Farm System - Aruba Networks Airwave CI</title>
+    <link rel="stylesheet" href="index.css" />
   </head>
   <body>
-    <h1>Farm Monitor</h1>
+    <div class="container">
+      <div class="header">
+        <h1>🏗️ AMP Farm Monitor</h1>
+        <p>Continuous Integration & Test Farm (bear-wrapper + Condor)</p>
+      </div>
 
-    <button id="start">Start!</button>
-    <script>
-      var data = [
-        {
-          img: 'nyan.gif',
-          mp3: 'nyan.mp3'
-        },
-        {
-          img: 'mario.gif',
-          mp3: 'mario.mp3'
-        },
-        {
-          img: 'gannam.gif',
-          mp3: 'gannam.mp3'
-        },
-        {
-          img: 'moonwalk.gif',
-          mp3: 'beatit.mp3'
-        }
-      ];
+      <div id="build-status" class="status status-idle">● Farm Ready - Monitoring SVN Checkins</div>
 
-      var start;
-      var currentAudio;
+      <div class="controls">
+        <button id="start" class="btn btn-primary">🚀 Submit Farm Job</button>
+        <button id="stop" class="btn btn-secondary" disabled>⏹️ Kill Farm Job</button>
+      </div>
 
-      function startJob() {
-        var rand = Math.floor(Math.random() * data.length);
-        var img = new Image();
-        img.src = data[rand].img;
-        const marquee = document.createElement('marquee');
-        marquee.id = 'marquee';
-        marquee.direction = 'right';
-        marquee.appendChild(img);
-        document.body.appendChild(marquee);
-
-        currentAudio = new Audio();
-        currentAudio.autoplay = true;
-        currentAudio.src = data[rand].mp3;
-        document.body.appendChild(currentAudio);
-
-        start.textContent = 'Stop!';
-      }
-
-      function stopJob() {
-        // remove the audio and img
-        const marquee = document.getElementById('marquee');
-        if (marquee) {
-          marquee.remove();
-        }
-        if (currentAudio && currentAudio.parentNode) {
-          document.body.removeChild(currentAudio);
-        }
-
-        start.textContent = 'Start!';
-      }
-
-      window.onload = function () {
-        start = document.getElementById('start');
-        start.onclick = function toggle() {
-          if (start.textContent.match(/Start/)) {
-            startJob();
-          } else {
-            stopJob();
-          }
-        };
-      };
-    </script>
+      <div class="terminal-container">
+        <div class="terminal-header">
+          <span class="terminal-title">AMP Farm Console Output</span>
+          <div class="terminal-controls">
+            <span class="dot red"></span>
+            <span class="dot yellow"></span>
+            <span class="dot green"></span>
+          </div>
+        </div>
+        <div id="terminal" class="terminal">
+          <div class="terminal-line">
+            <span class="prompt">[farm@svn.corp.airwave.com mercury]#</span>
+            <span class="text">AMP Farm System Ready - bear_status, condor_q available</span>
+          </div>
+          <div class="terminal-line">
+            <span class="debug">Monitoring: amp-integration.corp.airwave.com queue</span>
+          </div>
+          <div class="terminal-line">
+            <span class="text">● Ready to process SVN revisions...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="index.js"></script>
   </body>
 </html>
