@@ -126,6 +126,24 @@ if (text) {
 }
 
 $(document).ready(function () {
+  // Simple onclick handlers for each button
+  $('#button0').click(function () {
+    step(0); // Left button (red)
+  });
+
+  $('#button1').click(function () {
+    step(1); // Down button (blue)
+  });
+
+  $('#button2').click(function () {
+    step(2); // Up button (green)
+  });
+
+  $('#button3').click(function () {
+    step(3); // Right button (yellow)
+  });
+
+  // Also handle touch events for mobile
   if (window.Touch) {
     $('#button0')[0].ontouchstart = function () {
       step(0);
@@ -139,19 +157,6 @@ $(document).ready(function () {
     $('#button3')[0].ontouchstart = function () {
       step(3);
     };
-  } else {
-    $('#button0').click(function () {
-      step(0);
-    });
-    $('#button1').click(function () {
-      step(1);
-    });
-    $('#button2').click(function () {
-      step(2);
-    });
-    $('#button3').click(function () {
-      step(3);
-    });
   }
 
   $(document).keydown(function (event) {
@@ -178,6 +183,15 @@ $(document).ready(function () {
     }
     if (undefined != col) {
       step(col);
+      event.preventDefault();
+    }
+    // spacebar toggle play/pause
+    if (keyCode == 32) {
+      if (audio.paused) {
+        audio.play();
+      } else {
+        audio.pause();
+      }
       event.preventDefault();
     }
   });

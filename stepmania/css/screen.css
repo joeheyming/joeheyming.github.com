@@ -1,103 +1,164 @@
+/* Modern StepMania Micro CSS with Tailwind Compatibility */
+
+/* Base styles that complement Tailwind */
 body {
-  font-family: Verdana;
-  font-size: 10pt;
-  margin: 0;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
+
+/* Game area sizing - now responsive with Tailwind */
 #sm-micro {
-  width: 320px;
-  height: 430px;
-  background-position: -160px -25px;
-  position: relative;
+  width: 400px;
+  height: 500px;
+  max-width: 90vw;
+  max-height: 75vh;
 }
-#sm-micro .button {
-  background: transparent url(../img/down%20button.png) 0 0 no-repeat;
-  position: absolute;
-  top: 0px;
-  width: 64px;
-  height: 64px;
-}
-#sm-micro #button0 {
-  left: 64px;
-  top: 200px;
-  -webkit-transform: rotate(90deg);
-  -moz-transform: rotate(90deg);
-  -ms-transform: rotate(90deg);
-  -o-transform: rotate(90deg);
-}
-#sm-micro #button1 {
-  left: 128px;
-  top: 264px;
-  -webkit-transform: rotate(0deg);
-  -moz-transform: rotate(0deg);
-  -ms-transform: rotate(0deg);
-  -o-transform: rotate(0deg);
-}
-#sm-micro #button2 {
-  left: 128px;
-  top: 136px;
-  -webkit-transform: rotate(180deg);
-  -moz-transform: rotate(180deg);
-  -ms-transform: rotate(180deg);
-  -o-transform: rotate(180deg);
-}
-#sm-micro #button3 {
-  left: 192px;
-  top: 200px;
-  -webkit-transform: rotate(-90deg);
-  -moz-transform: rotate(-90deg);
-  -ms-transform: rotate(-90deg);
-  -o-transform: rotate(-90deg);
-}
-#sm-micro #bottom {
-  position: relative;
-}
-#sm-micro #alert {
-  background-color: red;
-  padding: 5px;
-  position: absolute;
-  top: 36px;
-  left: 10px;
-  width: 290px;
-  height: 30px;
-  overflow: none;
-  display: none;
-}
-#sm-micro #alert-message {
-  color: white;
-  font-family: Verdana;
-  font-size: 80%;
-  text-decoration: none;
-}
-#sm-micro #alert-message:hover {
-  text-decoration: underline;
-}
+
+/* Logo styling */
 #sm-micro #logo {
   background: transparent url(../img/logo.png) 0 0 no-repeat;
+  background-size: contain;
   display: block;
-  position: absolute;
-  left: 10px;
   width: 155px;
   height: 30px;
 }
-#sm-micro #FPS {
-  position: absolute;
-  top: 430px;
-  left: 0px;
+
+/* Canvas styling for smooth animations */
+#sm-micro canvas {
+  border-radius: 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
 }
-#sm-micro audio {
-  position: absolute;
-  top: 32px;
-  left: 10px;
-  width: 300px;
+
+/* Button hover effects with neon glow */
+.button:hover {
+  box-shadow: 0 0 20px currentColor;
+  transform: scale(1.1);
 }
-#sm-micro #score {
-  position: absolute;
-  left: 320px;
-  top: 150px;
-  min-width: 110px;
+
+.button:active {
+  transform: scale(0.95);
 }
-#sm-micro #percent-score {
-  font-weight: bold;
-  font-size: 120%;
-  text-align: right;
+
+/* Smooth transitions for all interactive elements */
+.button,
+#logo,
+#alert {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Score animation effects */
+#percent-score {
+  text-shadow: 0 0 10px currentColor;
+}
+
+/* Score panel optimizations for screens < 1024px */
+@media (max-width: 1024px) {
+  /* Make score panel full width and stack below game on tablets */
+  .lg\\:w-80 {
+    width: 100% !important;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* Adjust score panel layout for horizontal display */
+  .score-horizontal {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
+  }
+
+  /* Compact score display on smaller screens */
+  .score-compact {
+    padding: 0.75rem !important;
+  }
+
+  /* Smaller text on compact displays */
+  .score-compact h2 {
+    font-size: 1.25rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  /* Reduce performance controls size */
+  .performance-compact {
+    padding: 0.5rem !important;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  #sm-micro {
+    width: 350px;
+    height: 450px;
+  }
+
+  /* Stack score items vertically on mobile */
+  .score-horizontal {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  #sm-micro {
+    width: 300px;
+    height: 400px;
+  }
+
+  .button {
+    width: 60px !important;
+    height: 60px !important;
+    /* Ensure touch targets are at least 44px as per iOS guidelines */
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  /* Further compact score panel on very small screens */
+  .score-compact {
+    padding: 0.5rem !important;
+  }
+
+  .score-compact h2 {
+    font-size: 1.125rem !important;
+  }
+}
+
+/* Custom animations for game elements */
+@keyframes pulse-neon {
+  0%,
+  100% {
+    box-shadow: 0 0 5px currentColor;
+  }
+  50% {
+    box-shadow: 0 0 20px currentColor, 0 0 30px currentColor;
+  }
+}
+
+.pulse-neon {
+  animation: pulse-neon 2s ease-in-out infinite;
+}
+
+/* Backdrop blur support */
+@supports (backdrop-filter: blur(10px)) {
+  .backdrop-blur-custom {
+    backdrop-filter: blur(10px);
+  }
+}
+
+/* High contrast mode improvements */
+@media (prefers-contrast: high) {
+  .button {
+    border-width: 3px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .button,
+  #logo,
+  #alert,
+  .pulse-neon {
+    animation: none;
+    transition: none;
+  }
 }
