@@ -8,6 +8,7 @@
     <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
     <link rel="stylesheet" href="index.css" />
     <script src="index.js" defer></script>
+    <script src="/back.js"></script>
   </head>
 
   <body>
@@ -17,7 +18,7 @@
 
       <!-- Mode Switching -->
       <div class="mode-selector">
-        <button id="canvasMode" class="mode-button active">✏️ Draw Text</button>
+        <button id="canvasMode" class="mode-button active">✏️ Write something!</button>
         <button id="uploadMode" class="mode-button">📁 Upload Image</button>
       </div>
     </div>
@@ -25,7 +26,7 @@
     <!-- Canvas Mode -->
     <div id="canvasContainer" class="canvas-container">
       <div class="canvas-instructions">
-        <h3>✏️ Draw Your Text</h3>
+        <h3>✏️ Write something!</h3>
         <p>
           Use your mouse or finger to draw text on the canvas below. The brush size is set to an
           optimal thickness for better text recognition. Tap between pen and eraser tools to switch
