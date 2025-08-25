@@ -31,22 +31,27 @@ function createCarouselSlide(videoData, index) {
 
   // Populate template fields
   const titleElement = slideDiv.querySelector('.video-title');
-  titleElement.textContent = index === 0 ? '🌟 ' + videoTitle : videoTitle;
+  if (titleElement) {
+    titleElement.textContent = index === 0 ? '🌟 ' + videoTitle : videoTitle;
+  }
 
-  slideDiv.querySelector('.video-id').textContent = videoId;
-  slideDiv.querySelector('.video-number').textContent = index + 1;
+  const videoIdElement = slideDiv.querySelector('.video-id');
+  if (videoIdElement) {
+    videoIdElement.textContent = videoId;
+  }
+
+  const videoNumberElement = slideDiv.querySelector('.video-number');
+  if (videoNumberElement) {
+    videoNumberElement.textContent = index + 1;
+  }
 
   // Set unique ID for video container
-  slideDiv.querySelector('.video-container').id = `video-container-${index}`;
+  const videoContainer = slideDiv.querySelector('.video-container');
+  if (videoContainer) {
+    videoContainer.id = `video-container-${index}`;
+  }
 
-  // Set up YouTube link
-  slideDiv.querySelector('.youtube-link').href = videoUrl;
-
-  // Add event listeners for buttons
-  slideDiv.querySelector('.copy-url-btn').addEventListener('click', () => copyVideoUrl(videoUrl));
-  slideDiv
-    .querySelector('.copy-title-btn')
-    .addEventListener('click', () => copyVideoTitle(videoTitle));
+  // Store video data for centralized controls (no longer need individual button setup)
 
   return slideDiv;
 }
@@ -91,7 +96,9 @@ function loadVideoIframeWithAutoplay(index) {
   container.innerHTML = '';
   container.appendChild(iframe);
 
-  console.log(`🎬 Loaded video ${index + 1} (ID: ${videoId}) - Autoplay: true`);
+  console.log(
+    `🎪 ✨ JoeTube magic loaded video ${index + 1} (ID: ${videoId}) - Ready for the show!`
+  );
 }
 
 // Function to preload iframe without autoplay (for adjacent videos)
@@ -134,7 +141,7 @@ function preloadVideoIframe(index) {
   container.innerHTML = '';
   container.appendChild(iframe);
 
-  console.log(`🎬 Preloaded video ${index + 1} (ID: ${videoId}) - Autoplay: false`);
+  console.log(`🎭 Preloaded video ${index + 1} (ID: ${videoId}) - Magic is ready backstage!`);
 }
 
 // Function to unload iframe for a specific video
@@ -156,7 +163,7 @@ function unloadVideoIframe(index) {
   container.innerHTML = '';
   container.appendChild(placeholder);
 
-  console.log(`🗑️ Unloaded video ${index + 1} to free memory`);
+  console.log(`🎪 Video ${index + 1} went backstage for intermission - saving magic energy!`);
 }
 
 // Function to create progress indicators
@@ -185,13 +192,14 @@ function updateCarouselPosition() {
   });
 
   // Update counters and info
-  document.getElementById('video-counter').textContent = `${currentSlide + 1}/${totalVideos}`;
-  document.getElementById('current-index').textContent = currentSlide + 1;
-  document.getElementById('total-videos').textContent = totalVideos;
+  const currentIndexElement = document.getElementById('current-index');
+  const totalVideosElement = document.getElementById('total-videos');
 
-  // Update terminal status
-  const cursor = document.querySelector('.terminal-cursor');
-  cursor.innerHTML = `Loading video ${currentSlide + 1}/${totalVideos}`;
+  if (currentIndexElement) currentIndexElement.textContent = currentSlide + 1;
+  if (totalVideosElement) totalVideosElement.textContent = totalVideos;
+
+  // Update main video controls with current video data
+  updateMainVideoControls();
 
   // Load current video iframe with autoplay enabled
   loadVideoIframeWithAutoplay(currentSlide);
@@ -249,20 +257,62 @@ function shuffleVideos() {
   currentSlide = indices[0];
   updateCarouselPosition();
 
-  showTerminalMessage(`🔀 Shuffled to video ${currentSlide + 1}`);
+  showJoeTubeMessage(`🎲 ✨ SURPRISE! Magically teleported to video ${currentSlide + 1}! 🎪`);
 }
 
 // Manual navigation only - videos auto-play when navigated to
+
+// Function to update main video controls with current video data
+function updateMainVideoControls() {
+  const slides = document.querySelectorAll('.carousel-slide');
+  const currentSlideElement = slides[currentSlide];
+
+  if (!currentSlideElement) return;
+
+  const videoUrl = currentSlideElement.getAttribute('data-video-url');
+  const videoTitle = currentSlideElement.getAttribute('data-video-title');
+
+  // Update YouTube link
+  const youtubeLink = document.getElementById('youtube-link-main');
+  if (youtubeLink && videoUrl) {
+    youtubeLink.href = videoUrl;
+  }
+
+  // Store current video data for button handlers
+  window.currentVideoData = { url: videoUrl, title: videoTitle };
+}
+
+// Function to set up main button event listeners
+function setupMainVideoControls() {
+  const copyUrlBtn = document.getElementById('copy-url-btn-main');
+  const copyTitleBtn = document.getElementById('copy-title-btn-main');
+
+  if (copyUrlBtn) {
+    copyUrlBtn.addEventListener('click', () => {
+      if (window.currentVideoData) {
+        copyVideoUrl(window.currentVideoData.url);
+      }
+    });
+  }
+
+  if (copyTitleBtn) {
+    copyTitleBtn.addEventListener('click', () => {
+      if (window.currentVideoData) {
+        copyVideoTitle(window.currentVideoData.title);
+      }
+    });
+  }
+}
 
 // Utility functions
 function copyVideoUrl(url) {
   navigator.clipboard
     .writeText(url)
     .then(() => {
-      showTerminalMessage(`📋 URL copied to clipboard`);
+      showJoeTubeMessage(`🎭 ✨ Magic link copied to your clipboard! 📋`);
     })
     .catch(() => {
-      showTerminalMessage(`❌ Failed to copy URL`);
+      showJoeTubeMessage(`😵 Oops! The magic trick failed! Try again! 🎪`);
     });
 }
 
@@ -270,21 +320,26 @@ function copyVideoTitle(title) {
   navigator.clipboard
     .writeText(title)
     .then(() => {
-      showTerminalMessage(`📝 Title copied to clipboard`);
+      showJoeTubeMessage(`🎨 ✨ Title magically copied to your clipboard! 📝`);
     })
     .catch(() => {
-      showTerminalMessage(`❌ Failed to copy title`);
+      showJoeTubeMessage(`🎭 Whoops! The title escaped! Try catching it again! 🏃‍♂️`);
     });
 }
 
-function showTerminalMessage(message) {
-  const cursor = document.querySelector('.terminal-cursor');
-  const originalText = cursor.innerHTML;
-  cursor.innerHTML = message;
+function showJoeTubeMessage(message) {
+  const cursor = document.querySelector('.joe-tube-cursor');
+  if (cursor) {
+    const originalText = cursor.innerHTML;
+    cursor.innerHTML = message;
 
-  setTimeout(() => {
-    cursor.innerHTML = originalText;
-  }, 2000);
+    setTimeout(() => {
+      cursor.innerHTML = originalText;
+    }, 3000);
+  } else {
+    // Fallback: show message in console if cursor element doesn't exist
+    console.log(message);
+  }
 }
 
 function updateTime() {
@@ -295,7 +350,10 @@ function updateTime() {
     minute: '2-digit',
     second: '2-digit'
   });
-  document.getElementById('current-time').textContent = timeStr;
+  const timeElement = document.getElementById('current-time');
+  if (timeElement) {
+    timeElement.textContent = timeStr;
+  }
 }
 
 // Function to initialize the carousel
@@ -330,14 +388,21 @@ function initializeCarousel() {
   // Initialize position and load random video
   updateCarouselPosition();
 
-  console.log(`🎥 Carousel initialized with ${totalVideos} videos - lazy loading enabled`);
+  console.log(
+    `🎪 ✨ JoeTube circus opened with ${totalVideos} amazing acts - magic loading enabled!`
+  );
 }
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
   initializeCarousel();
-  updateTime();
-  setInterval(updateTime, 1000);
+  setupMainVideoControls();
+
+  // Only start time updates if time element exists
+  if (document.getElementById('current-time')) {
+    updateTime();
+    setInterval(updateTime, 1000);
+  }
 
   // Navigation button listeners
   document.getElementById('prev-btn').addEventListener('click', prevSlide);

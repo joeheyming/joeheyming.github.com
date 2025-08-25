@@ -9,26 +9,30 @@
     <link rel="stylesheet" href="index.css" />
     <script src="index.js"></script>
   </head>
-  <body class="terminal-bg min-h-screen">
-    <!-- Terminal Window Container -->
+  <body
+    class="min-h-screen"
+    style="
+      background: linear-gradient(135deg, #2c3e50, #3498db, #8e44ad);
+      background-attachment: fixed;
+    "
+  >
+    <!-- App Container -->
     <div class="max-w-full h-screen flex flex-col">
-      <!-- Terminal Header Bar -->
-      <div class="os-window px-4 py-3 flex items-center justify-between rounded-t-lg">
-        <div class="terminal-green font-mono text-xs">
-          <span id="video-counter">1/23</span>
-          |
-          <span id="current-time"></span>
-        </div>
+      <!-- App Title -->
+      <div class="px-4 py-6 text-center">
+        <h1 class="text-4xl font-bold joe-tube-text">🎬 JoeTube 🎬</h1>
       </div>
 
       <!-- Main Content Area -->
-      <div class="glass-terminal flex-1 rounded-b-lg overflow-hidden flex flex-col">
-        <!-- Status Bar -->
-        <div class="terminal-green px-4 py-2 border-b border-gray-600 font-mono text-xs">
-          <span class="terminal-cursor">Lazy loading enabled - only active videos in memory</span>
-          <span class="float-right">Status: READY | FPS: 60</span>
-        </div>
-
+      <div
+        class="flex-1 overflow-hidden flex flex-col"
+        style="
+          background: rgba(0, 0, 0, 0.3);
+          backdrop-filter: blur(10px);
+          border-radius: 15px;
+          margin: 10px;
+        "
+      >
         <!-- Carousel Container -->
         <div class="flex-1 p-4 min-h-0">
           <div id="carousel-container" class="carousel-container max-h-full">
@@ -53,6 +57,29 @@
             <button id="next-btn" class="nav-button px-4 py-2 rounded font-bold">NEXT ▶</button>
           </div>
 
+          <!-- Video Controls -->
+          <div class="flex justify-center space-x-3 mb-4">
+            <a
+              id="youtube-link-main"
+              class="nav-button joe-tube-button px-3 py-2 rounded font-bold text-xs hover:scale-105 transition-transform"
+              target="_blank"
+            >
+              🚀 YOUTUBE
+            </a>
+            <button
+              id="copy-url-btn-main"
+              class="nav-button joe-tube-button px-3 py-2 rounded font-bold text-xs hover:scale-105 transition-transform"
+            >
+              🎭 COPY LINK
+            </button>
+            <button
+              id="copy-title-btn-main"
+              class="nav-button joe-tube-button px-3 py-2 rounded font-bold text-xs hover:scale-105 transition-transform"
+            >
+              🎨 COPY TITLE
+            </button>
+          </div>
+
           <!-- Progress Indicators -->
           <div class="flex justify-center space-x-2 mb-4">
             <div id="progress-indicators" class="flex space-x-2">
@@ -68,8 +95,8 @@
               of
               <span id="total-videos">23</span>
             </div>
-            <div class="text-xs opacity-75 mt-1">
-              Use arrow keys or click buttons to navigate | Press 'R' to shuffle
+            <div class="text-xs joe-tube-subtitle mt-1">
+              🎮 Use arrow keys or click the colorful buttons | Press 'R' for random magic! 🎪
             </div>
           </div>
         </div>
@@ -78,13 +105,13 @@
 
     <!-- No Videos Message -->
     <div id="no-videos" class="hidden fixed inset-0 flex items-center justify-center">
-      <div class="glass-terminal p-8 rounded-lg max-w-md mx-auto">
-        <h3 class="text-xl font-bold mb-4 terminal-green text-center">🎬 No Videos Found</h3>
-        <p class="mb-4 terminal-green text-center font-mono">
-          ERROR: No video links detected in links.js
-        </p>
-        <p class="text-sm opacity-75 terminal-green text-center font-mono">
-          Add YouTube URLs to the videoLinks array to initialize carousel
+      <div class="joe-tube-main p-8 rounded-lg max-w-md mx-auto">
+        <h3 class="text-xl font-bold mb-4 joe-tube-text text-center">
+          🎪 No Videos Found in JoeTube!
+        </h3>
+        <p class="mb-4 joe-tube-text text-center">Oops! The magic hat is empty! 🎩✨</p>
+        <p class="text-sm joe-tube-subtitle text-center">
+          Add YouTube URLs to the videoLinks array to fill the magic carousel! 🎠
         </p>
       </div>
     </div>
@@ -94,17 +121,18 @@
       <div class="carousel-slide p-4">
         <div class="h-full flex flex-col">
           <!-- Video Info Header -->
-          <div class="terminal-green font-mono text-center mb-4">
+          <div class="joe-tube-text text-center mb-4">
             <div class="text-lg font-bold video-title">
               <!-- Title will be inserted here -->
             </div>
-            <div class="text-xs opacity-75 mt-1">
-              ID:
+            <div class="text-xs joe-tube-subtitle mt-1">
+              🎬 ID:
               <span class="video-id"></span>
               | Video
               <span class="video-number"></span>
               | Status:
               <span class="video-status">WAITING</span>
+              ✨
             </div>
           </div>
 
@@ -112,34 +140,14 @@
           <div class="video-container mb-4 flex-shrink-0">
             <!-- Iframe will be loaded dynamically here -->
             <div
-              class="flex items-center justify-center h-full border-2 border-dashed border-gray-600 rounded-lg video-placeholder"
+              class="flex items-center justify-center h-full border-2 border-dashed border-rainbow rounded-lg video-placeholder joe-tube-magic"
             >
-              <div class="text-center terminal-green">
-                <div class="text-4xl mb-2">🎬</div>
-                <div class="font-mono text-sm">Video Ready to Load</div>
-                <div class="font-mono text-xs opacity-75 mt-1">Click to play</div>
+              <div class="text-center joe-tube-text">
+                <div class="text-4xl mb-2">🎪</div>
+                <div class="text-sm">✨ Video Magic Awaits ✨</div>
+                <div class="text-xs joe-tube-subtitle mt-1">Click for the show!</div>
               </div>
             </div>
-          </div>
-
-          <!-- Video Controls -->
-          <div class="flex justify-center space-x-4 mt-auto pt-4 flex-shrink-0">
-            <a
-              class="youtube-link nav-button px-4 py-2 rounded font-bold text-xs hover:scale-105 transition-transform"
-              target="_blank"
-            >
-              🔗 OPEN IN YOUTUBE
-            </a>
-            <button
-              class="copy-url-btn nav-button px-4 py-2 rounded font-bold text-xs hover:scale-105 transition-transform"
-            >
-              📋 COPY LINK
-            </button>
-            <button
-              class="copy-title-btn nav-button px-4 py-2 rounded font-bold text-xs hover:scale-105 transition-transform"
-            >
-              📝 COPY TITLE
-            </button>
           </div>
         </div>
       </div>
@@ -147,24 +155,24 @@
 
     <template id="video-placeholder-template">
       <div
-        class="flex items-center justify-center h-full border-2 border-dashed border-gray-600 rounded-lg"
+        class="flex items-center justify-center h-full border-2 border-dashed border-rainbow rounded-lg joe-tube-magic"
       >
-        <div class="text-center terminal-green">
-          <div class="text-4xl mb-2">🎬</div>
-          <div class="font-mono text-sm">Video Ready to Load</div>
-          <div class="font-mono text-xs opacity-75 mt-1">Click to play</div>
+        <div class="text-center joe-tube-text">
+          <div class="text-4xl mb-2">🎪</div>
+          <div class="text-sm">✨ Video Magic Awaits ✨</div>
+          <div class="text-xs joe-tube-subtitle mt-1">Click for the show!</div>
         </div>
       </div>
     </template>
 
     <template id="video-unloaded-template">
       <div
-        class="flex items-center justify-center h-full border-2 border-dashed border-gray-600 rounded-lg"
+        class="flex items-center justify-center h-full border-2 border-dashed border-rainbow rounded-lg joe-tube-magic"
       >
-        <div class="text-center terminal-green">
-          <div class="text-4xl mb-2">⏸️</div>
-          <div class="font-mono text-sm">Video Unloaded</div>
-          <div class="font-mono text-xs opacity-75 mt-1">Navigate back to reload</div>
+        <div class="text-center joe-tube-text">
+          <div class="text-4xl mb-2">🎭</div>
+          <div class="text-sm">Show Intermission</div>
+          <div class="text-xs joe-tube-subtitle mt-1">Navigate back for more magic!</div>
         </div>
       </div>
     </template>

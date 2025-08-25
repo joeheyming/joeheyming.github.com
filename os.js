@@ -1,660 +1,1054 @@
-// OS-Level functionality for HEYMING-OS Desktop Environment
+// Heyming OS - A Fake Operating System
+class HeymingOS {
+  constructor() {
+    this.isVisible = false;
+    this.windows = [];
+    this.nextWindowId = 1;
+    this.activeWindow = null;
+    this.launcherVisible = false;
 
-// Desktop state management
-let isDesktopExpanded = false;
-let isAppMinimized = false;
-
-// System stats and time functions
-function updateSystemStats() {
-  document.getElementById('active-windows').textContent = `Windows: ${activeWindows.length}`;
-  document.getElementById('cpu-load').textContent = (0.5 + Math.random() * 2).toFixed(1);
-  document.getElementById('mem-usage').textContent = (2.1 + Math.random() * 4).toFixed(1) + 'GB';
-}
-
-function updateDesktopTime() {
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString('en-US', {
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
-  document.getElementById('desktop-time').textContent = timeStr;
-}
-
-// Desktop Expansion Control Functions
-function toggleFullscreen() {
-  if (!isDesktopExpanded) {
-    expandDesktop();
-  } else {
-    contractDesktop();
-  }
-}
-
-function expandDesktop() {
-  isDesktopExpanded = true;
-
-  // Hide other page content
-  const sectionsToHide = document.querySelectorAll('.max-w-6xl > *:not(#desktop-os)');
-  const footer = document.querySelector('footer');
-  const easterEggBtn = document.querySelector('.fixed.bottom-6.right-6');
-
-  sectionsToHide.forEach((section) => {
-    section.style.transition = 'opacity 0.3s ease-out';
-    section.style.opacity = '0';
-    setTimeout(() => {
-      section.style.display = 'none';
-    }, 300);
-  });
-
-  if (footer) {
-    footer.style.transition = 'opacity 0.3s ease-out';
-    footer.style.opacity = '0';
-    setTimeout(() => {
-      footer.style.display = 'none';
-    }, 300);
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => this.init());
+    } else {
+      this.init();
+    }
   }
 
-  if (easterEggBtn) {
-    easterEggBtn.style.transition = 'opacity 0.3s ease-out';
-    easterEggBtn.style.opacity = '0';
-    setTimeout(() => {
-      easterEggBtn.style.display = 'none';
-    }, 300);
+  init() {
+    this.bindEvents();
+    this.createDesktopIcons();
+    this.loadAppsFromRegistry();
   }
 
-  // Expand desktop OS to full viewport
-  setTimeout(() => {
-    const desktopOS = document.getElementById('desktop-os');
-    const container = document.querySelector('.max-w-6xl');
+  loadAppsFromRegistry() {
+    // Wait for AppModule to be available
+    if (typeof window.AppModule === 'undefined') {
+      setTimeout(() => this.loadAppsFromRegistry(), 100);
+      return;
+    }
+    this.availableApps = window.AppModule.getAllApps();
+    this.updateAppLauncher();
+  }
 
-    desktopOS.style.position = 'fixed';
-    desktopOS.style.top = '0';
-    desktopOS.style.left = '0';
-    desktopOS.style.width = '100vw';
-    desktopOS.style.height = '100vh';
-    desktopOS.style.borderRadius = '0';
-    desktopOS.style.zIndex = '9999';
+  bindEvents() {
+    // OS Shutdown button
+    const shutdownBtn = document.getElementById('os-close');
+    if (shutdownBtn) {
+      shutdownBtn.addEventListener('click', () => this.showShutdownDialog());
+    }
 
-    container.style.maxWidth = 'none';
-    container.style.padding = '0';
-  }, 350);
+    // Shutdown dialog handlers
+    const shutdownCancel = document.getElementById('shutdown-cancel');
+    const shutdownConfirm = document.getElementById('shutdown-confirm');
+    const shutdownDialog = document.getElementById('shutdown-dialog');
 
-  updateFullscreenButton(true);
-  setTimeout(() => {
-    showMessage('🖥️ Desktop expanded! Press ESC to close windows or minimize to return.');
-  }, 400);
-}
+    if (shutdownCancel) {
+      shutdownCancel.addEventListener('click', () => this.hideShutdownDialog());
+    }
 
-function contractDesktop() {
-  isDesktopExpanded = false;
+    if (shutdownConfirm) {
+      shutdownConfirm.addEventListener('click', () => this.confirmShutdown());
+    }
 
-  // Restore desktop OS to normal size
-  const desktopOS = document.getElementById('desktop-os');
-  const container = document.querySelector('.max-w-6xl');
+    // Click outside dialog to cancel
+    if (shutdownDialog) {
+      shutdownDialog.addEventListener('click', (e) => {
+        if (e.target === shutdownDialog) {
+          this.hideShutdownDialog();
+        }
+      });
+    }
 
-  desktopOS.style.position = 'relative';
-  desktopOS.style.top = 'auto';
-  desktopOS.style.left = 'auto';
-  desktopOS.style.width = 'auto';
-  desktopOS.style.height = '800px';
-  desktopOS.style.borderRadius = '1.5rem';
-  desktopOS.style.zIndex = 'auto';
+    // App launcher
+    const appLauncher = document.getElementById('app-launcher');
+    if (appLauncher) {
+      appLauncher.addEventListener('click', () => this.toggleLauncher());
+    }
 
-  container.style.maxWidth = '72rem';
-  container.style.padding = '0 1rem';
-
-  // Show other page content
-  setTimeout(() => {
-    const sectionsToShow = document.querySelectorAll('.max-w-6xl > *:not(#desktop-os)');
-    const footer = document.querySelector('footer');
-    const easterEggBtn = document.querySelector('.fixed.bottom-6.right-6');
-
-    sectionsToShow.forEach((section) => {
-      section.style.display = '';
-      setTimeout(() => {
-        section.style.opacity = '1';
-      }, 50);
+    // App launcher items
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('app-item')) {
+        const appName = e.target.getAttribute('data-app');
+        this.launchApp(appName);
+        this.hideLauncher();
+      }
     });
 
-    if (footer) {
-      footer.style.display = '';
+    // Hide launcher when clicking outside
+    document.addEventListener('click', (e) => {
+      const launcher = document.getElementById('app-launcher');
+      const menu = document.getElementById('app-launcher-menu');
+      if (this.launcherVisible && !launcher.contains(e.target) && !menu.contains(e.target)) {
+        this.hideLauncher();
+      }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (this.launcherVisible) {
+          this.hideLauncher();
+        } else if (this.isVisible) {
+          this.hide();
+        }
+      }
+
+      // Start/Cmd key to toggle app launcher (only when OS is visible)
+      if (e.key === 'Meta' && this.isVisible) {
+        e.preventDefault(); // Prevent default system behavior
+        this.toggleLauncher();
+      }
+
+      // Shutdown dialog keyboard shortcuts
+      if (this.isShutdownDialogVisible()) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          this.hideShutdownDialog();
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          this.confirmShutdown();
+        }
+      }
+    });
+
+    // Desktop double-click to hide launcher
+    const desktop = document.getElementById('os-desktop');
+    if (desktop) {
+      desktop.addEventListener('dblclick', (e) => {
+        if (e.target === desktop && this.launcherVisible) {
+          this.hideLauncher();
+        }
+      });
+    }
+  }
+
+  show() {
+    const osElement = document.getElementById('heyming-os');
+    if (osElement) {
+      osElement.classList.remove('hidden');
+      osElement.classList.add('os-fade-in');
+      this.isVisible = true;
+
+      // Prevent scrolling on main page
+      document.body.style.overflow = 'hidden';
+
+      // Show welcome notification
       setTimeout(() => {
-        footer.style.opacity = '1';
-      }, 50);
+        this.showNotification('Welcome to Heyming OS v1.0! 🚀', 'system');
+      }, 500);
     }
+  }
 
-    if (easterEggBtn) {
-      easterEggBtn.style.display = '';
+  hide() {
+    const osElement = document.getElementById('heyming-os');
+    if (osElement) {
+      osElement.classList.add('os-fade-out');
       setTimeout(() => {
-        easterEggBtn.style.opacity = '1';
-      }, 50);
+        osElement.classList.add('hidden');
+        osElement.classList.remove('os-fade-in', 'os-fade-out');
+        this.isVisible = false;
+
+        // Restore scrolling on main page
+        document.body.style.overflow = '';
+
+        // Close all windows
+        this.windows.forEach((window) => {
+          this.closeWindow(window.id);
+        });
+      }, 300);
     }
-  }, 200);
-
-  updateFullscreenButton(false);
-  showMessage('🪟 Desktop restored to normal view.');
-}
-
-function updateFullscreenButton(isExpanded) {
-  const btn = document.getElementById('fullscreen-btn');
-  if (isExpanded) {
-    btn.innerHTML = '🪟 Minimize';
-    btn.title = 'Minimize Desktop (ESC)';
-  } else {
-    btn.innerHTML = '📺 Expand';
-    btn.title = 'Expand Desktop (F11)';
-  }
-}
-
-function closeBrowser() {
-  // Simulate browser close with a fun message
-  showMessage("🚪 Attempting to close browser... (Just kidding! You're stuck with me! 😈)");
-
-  // Add some dramatic effect
-  document.body.style.transition = 'opacity 0.5s ease-out';
-  document.body.style.opacity = '0.3';
-  setTimeout(() => {
-    document.body.style.opacity = '1';
-    showMessage('💡 Tip: Use Ctrl+W or Cmd+W to actually close this tab!');
-  }, 1000);
-}
-
-// App minimization functions
-function minimizeBrowser() {
-  if (isDesktopExpanded) {
-    // Fancy minimize animation to taskbar
-    minimizeToTaskbar();
-  } else {
-    // Minimize entire app to bottom tab
-    minimizeToTab();
-  }
-}
-
-function minimizeToTab() {
-  if (isAppMinimized) return; // Already minimized
-
-  isAppMinimized = true;
-  const mainContent = document.getElementById('main-content');
-  const footer = document.getElementById('main-footer');
-  const easterEgg = document.querySelector('.fixed.bottom-6.right-6');
-  const tabBar = document.getElementById('minimized-tab-bar');
-
-  // Show the tab bar first
-  tabBar.classList.remove('hidden');
-
-  // Animate main content shrinking and moving to bottom
-  mainContent.style.transition = 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-  mainContent.style.transform = 'scale(0.1) translateY(calc(100vh - 200px))';
-  mainContent.style.opacity = '0.3';
-  mainContent.style.transformOrigin = 'center bottom';
-
-  // Hide footer and easter egg
-  if (footer) {
-    footer.style.transition = 'opacity 0.2s ease-out';
-    footer.style.opacity = '0';
-    setTimeout(() => {
-      footer.style.display = 'none';
-    }, 200);
   }
 
-  if (easterEgg) {
-    easterEgg.style.transition = 'opacity 0.2s ease-out';
-    easterEgg.style.opacity = '0';
-    setTimeout(() => {
-      easterEgg.style.display = 'none';
-    }, 200);
-  }
-
-  // Add pulsing effect to tab
-  setTimeout(() => {
-    const tab = document.getElementById('minimized-app-tab');
-    tab.classList.add('animate-pulse');
-    showMessage('📦 App minimized to tab! Click the tab at the bottom to restore.');
-
-    // Stop pulsing after 3 seconds
-    setTimeout(() => {
-      tab.classList.remove('animate-pulse');
-    }, 3000);
-  }, 400);
-}
-
-function restoreFromTab() {
-  if (!isAppMinimized) return; // Not minimized
-
-  isAppMinimized = false;
-  const mainContent = document.getElementById('main-content');
-  const footer = document.getElementById('main-footer');
-  const easterEgg = document.querySelector('.fixed.bottom-6.right-6');
-  const tabBar = document.getElementById('minimized-tab-bar');
-
-  // Animate content restoring to normal
-  mainContent.style.transition = 'all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-  mainContent.style.transform = 'scale(1) translateY(0)';
-  mainContent.style.opacity = '1';
-
-  // Restore footer and easter egg
-  if (footer) {
-    footer.style.display = '';
-    setTimeout(() => {
-      footer.style.transition = 'opacity 0.3s ease-in';
-      footer.style.opacity = '1';
-    }, 200);
-  }
-
-  if (easterEgg) {
-    easterEgg.style.display = '';
-    setTimeout(() => {
-      easterEgg.style.transition = 'opacity 0.3s ease-in';
-      easterEgg.style.opacity = '1';
-    }, 200);
-  }
-
-  // Hide tab bar after animation completes
-  setTimeout(() => {
-    tabBar.classList.add('hidden');
-
-    // Clean up styles
-    mainContent.style.transition = '';
-    mainContent.style.transform = '';
-    mainContent.style.opacity = '';
-    mainContent.style.transformOrigin = '';
-
-    if (footer) {
-      footer.style.transition = '';
+  toggle() {
+    if (this.isVisible) {
+      this.hide();
+    } else {
+      this.show();
     }
-    if (easterEgg) {
-      easterEgg.style.transition = '';
+  }
+
+  showShutdownDialog() {
+    const dialog = document.getElementById('shutdown-dialog');
+    if (dialog) {
+      dialog.classList.remove('hidden');
+      // Add a slight delay for animation
+      setTimeout(() => {
+        dialog.style.animation = 'fadeIn 0.2s ease-out';
+      }, 10);
+    }
+  }
+
+  hideShutdownDialog() {
+    const dialog = document.getElementById('shutdown-dialog');
+    if (dialog) {
+      dialog.style.animation = 'fadeOut 0.2s ease-in';
+      setTimeout(() => {
+        dialog.classList.add('hidden');
+        dialog.style.animation = '';
+      }, 200);
+    }
+  }
+
+  confirmShutdown() {
+    this.hideShutdownDialog();
+    // Add shutdown animation/effect
+    this.showNotification('Shutting down Heyming OS...', 'system');
+    setTimeout(() => {
+      this.hide();
+    }, 1000);
+  }
+
+  isShutdownDialogVisible() {
+    const dialog = document.getElementById('shutdown-dialog');
+    return dialog && !dialog.classList.contains('hidden');
+  }
+
+  toggleLauncher() {
+    if (this.launcherVisible) {
+      this.hideLauncher();
+    } else {
+      this.showLauncher();
+    }
+  }
+
+  showLauncher() {
+    const menu = document.getElementById('app-launcher-menu');
+    if (menu) {
+      // Remove hide class and show the menu
+      menu.classList.remove('hidden', 'hide');
+      menu.classList.add('show');
+      this.launcherVisible = true;
+
+      // Add staggered animation to app items
+      this.animateAppItems();
+    }
+  }
+
+  hideLauncher() {
+    const menu = document.getElementById('app-launcher-menu');
+    if (menu) {
+      // Start hide animation
+      menu.classList.remove('show');
+      menu.classList.add('hide');
+      this.launcherVisible = false;
+
+      // Hide menu after animation completes
+      setTimeout(() => {
+        if (!this.launcherVisible) {
+          menu.classList.add('hidden');
+          menu.classList.remove('hide');
+          this.resetAppItemsAnimation();
+        }
+      }, 300);
+    }
+  }
+
+  animateAppItems() {
+    const menu = document.getElementById('app-launcher-menu');
+    if (menu) {
+      const appItems = menu.querySelectorAll('.app-item');
+      appItems.forEach((item, index) => {
+        item.style.setProperty('--item-index', index.toString());
+        item.classList.remove('animated');
+        // Trigger reflow to restart animation
+        void item.offsetWidth;
+        item.classList.add('animated');
+      });
+    }
+  }
+
+  resetAppItemsAnimation() {
+    const menu = document.getElementById('app-launcher-menu');
+    if (menu) {
+      const appItems = menu.querySelectorAll('.app-item');
+      appItems.forEach((item) => {
+        item.classList.remove('animated');
+        item.style.removeProperty('--item-index');
+      });
+    }
+  }
+
+  launchApp(appName) {
+    // Handle built-in system apps
+    switch (appName) {
+      case 'terminal':
+        this.createTerminalWindow();
+        return;
+      case 'calculator':
+        this.createCalculatorWindow();
+        return;
+      case 'notepad':
+        this.createNotepadWindow();
+        return;
     }
 
-    showMessage('🖥️ App restored from tab!');
-  }, 500);
-}
-
-function minimizeToTaskbar() {
-  // Placeholder for taskbar minimization in expanded mode
-  showMessage('📋 Minimized to taskbar (expanded mode feature coming soon!)');
-}
-
-// Global keyboard handling for OS functions
-function initOSKeyboardHandlers() {
-  document.addEventListener('keydown', (e) => {
-    // F11 for desktop expansion toggle
-    if (e.key === 'F11') {
-      e.preventDefault();
-      toggleFullscreen();
-    }
-
-    // ESC to close active window, minimize desktop, or hide messages
-    if (e.key === 'Escape') {
-      // First priority: close currently focused window/iframe if any
-      const focusedWindow = getCurrentlyFocusedWindow();
-      if (focusedWindow) {
-        closeWindow(focusedWindow);
+    // Handle apps from registry
+    if (this.availableApps) {
+      const app = this.availableApps.find((a) => a.id === appName);
+      if (app) {
+        this.createIframeWindow(app);
         return;
       }
-
-      // Second priority: contract desktop if expanded
-      if (isDesktopExpanded) {
-        contractDesktop();
-      } else {
-        // Last priority: hide messages
-        hideMessage();
-      }
     }
 
-    // Alt+F4 for fun (simulate close)
-    if (e.altKey && e.key === 'F4') {
-      e.preventDefault();
-      closeBrowser();
-    }
-  });
-}
-
-// Initialize OS-level functionality
-function initOS() {
-  // Initialize keyboard handlers
-  initOSKeyboardHandlers();
-
-  // Start system monitoring
-  setInterval(updateSystemStats, 5000);
-  updateDesktopTime();
-  setInterval(updateDesktopTime, 1000);
-}
-
-// Utility functions for state access
-function getAppMinimizedState() {
-  return isAppMinimized;
-}
-
-function getDesktopExpandedState() {
-  return isDesktopExpanded;
-}
-
-// Terminal Command System
-let commandHistory = [];
-let historyIndex = -1;
-let messageTimeout;
-
-function executeCommand(command) {
-  const args = command.trim().split(' ');
-  const cmd = args[0].toLowerCase();
-  const params = args.slice(1);
-
-  // Add to history
-  if (command.trim()) {
-    commandHistory.push(command);
-    historyIndex = commandHistory.length;
+    this.showNotification(`App "${appName}" not found`, 'error');
   }
 
-  switch (cmd) {
-    case 'help':
-    case 'man':
-      showHelp();
-      break;
-    case 'ls':
-    case 'list':
-      listApps();
-      break;
-    case 'open':
-    case 'launch':
-      if (params.length > 0) {
-        const appName = params[0].toLowerCase();
-        if (namespace_window.getAvailableApps()[appName]) {
-          namespace_window.openApp(appName);
-          showMessage(`🚀 Launching ${namespace_window.getAvailableApps()[appName].name}...`);
-        } else {
-          showMessage(`❌ App '${params[0]}' not found. Type 'ls' to see available apps.`);
-        }
-      } else {
-        showMessage(`❌ Usage: open <app_name>`);
-      }
-      break;
-    case 'ps':
-    case 'windows':
-      showActiveWindows();
-      break;
-    case 'kill':
-    case 'close':
-      if (params.length > 0) {
-        const windowToClose = namespace_window
-          .getActiveWindows()
-          .find((w) => w.includes(params[0]));
-        if (windowToClose) {
-          namespace_window.closeWindow(windowToClose);
-          showMessage(`🗙 Closed window: ${params[0]}`);
-        } else {
-          showMessage(`❌ No window found matching: ${params[0]}`);
-        }
-      } else {
-        showMessage(`❌ Usage: kill <window_id>`);
-      }
-      break;
-    case 'clear':
-    case 'cls':
-      // Clear any status messages
-      hideMessage();
-      break;
-    case 'whoami':
-      showMessage(`🦄 Joe Heyming - Principal UI Engineer & Digital Wizard`);
-      break;
-    case 'pwd':
-      showMessage(`📁 /home/joe/playground`);
-      break;
-    case 'date':
-      showMessage(`📅 ${new Date().toLocaleString()}`);
-      break;
-    case 'fortune':
-    case 'quote': {
-      const fortunes = [
-        "🚀 'Lots of hard work.' - Joe's LinkedIn Philosophy",
-        '💻 Code is poetry written in the language of logic',
-        '🦄 Every bug is just a feature waiting to be discovered',
-        "☁️ Why don't you take it to the cloud?",
-        '🎮 Building amazing user experiences, one pixel at a time',
-        '🎯 Patent holder and master of RF visualization'
-      ];
-      showMessage(fortunes[Math.floor(Math.random() * fortunes.length)]);
-      break;
-    }
-    case 'fullscreen':
-    case 'fs':
-      toggleFullscreen();
-      break;
-    case 'minimize':
-    case 'min':
-      minimizeBrowser();
-      break;
-    case 'restore':
-      if (getAppMinimizedState()) {
-        restoreFromTab();
-        showMessage('🖥️ App restored from tab!');
-      } else {
-        showMessage('💡 App is not currently minimized.');
-      }
-      break;
-    case 'shadowbox':
-    case 'operation':
-      showMessage(`🕵️ Initiating Operation: SHADOWBOX... Classified surveillance mode activated.`);
-      namespace_window.openApp('shadowbox');
-      break;
-    case 'exit':
-    case 'quit':
-      showMessage(`👋 Thanks for visiting! But you can't escape the terminal that easily... 😈`);
-      break;
-    case '':
-      // Empty command, do nothing
-      break;
-    default:
-      showMessage(`❌ Command not found: ${cmd}. Type 'help' for available commands.`);
+  createIframeWindow(app) {
+    const content = `
+      <div class="iframe-content">
+        <iframe 
+          src="${app.path}" 
+          style="width: 100%; height: 100%; border: none; margin: 0; padding: 0; display: block;"
+          title="${app.name}"
+          allow="autoplay; microphone; camera; midi; encrypted-media; fullscreen"
+        ></iframe>
+      </div>
+    `;
+
+    // Use app's default dimensions if specified, otherwise use fallback dimensions
+    const width = app.defaultWidth || 900;
+    const height = app.defaultHeight || 700;
+
+    const window = this.createWindow(app.name, content, width, height);
+    window.appId = app.id;
+    return window;
   }
-}
 
-function showHelp() {
-  const template = document.getElementById('help-content-template');
-  const helpContent = template.content.cloneNode(true);
+  updateAppLauncher() {
+    const launcherMenu = document.getElementById('app-launcher-menu');
+    if (!launcherMenu || !this.availableApps) return;
 
-  showMessage({ template: true, content: helpContent }, true);
-}
+    const appsContainer = launcherMenu.querySelector('.space-y-2');
+    if (!appsContainer) return;
 
-function listApps() {
-  const template = document.getElementById('app-list-template');
-  const appListContent = template.content.cloneNode(true);
-  const entriesContainer = appListContent.querySelector('.app-entries');
+    // Clear existing apps (except system apps)
+    appsContainer.innerHTML = '';
 
-  const entryTemplate = document.getElementById('app-entry-template');
+    // Add system apps first
+    const systemApps = [
+      { id: 'terminal', name: '💻 Terminal' },
+      { id: 'calculator', name: '🔢 Calculator' },
+      { id: 'notepad', name: '📝 Notepad' }
+    ];
 
-  Object.entries(namespace_window.getAvailableApps()).forEach(([key, app]) => {
-    const entryContent = entryTemplate.content.cloneNode(true);
-    entryContent.querySelector('.app-name').textContent = key;
-    entryContent.querySelector('.app-title').textContent = app.name;
-    entryContent.querySelector('.app-description').textContent = app.description;
-    entriesContainer.appendChild(entryContent);
-  });
-
-  showMessage({ template: true, content: appListContent }, true);
-}
-
-function showActiveWindows() {
-  if (namespace_window.getActiveWindows().length === 0) {
-    showMessage('📋 No active windows');
-  } else {
-    const template = document.getElementById('window-list-template');
-    const windowListContent = template.content.cloneNode(true);
-    const entriesContainer = windowListContent.querySelector('.window-entries');
-
-    const entryTemplate = document.getElementById('window-entry-template');
-
-    namespace_window.getActiveWindows().forEach((windowId, index) => {
-      const appName = windowId.replace('window-', '').split('-')[0];
-      const entryContent = entryTemplate.content.cloneNode(true);
-      entryContent.querySelector('.window-number').textContent = index + 1;
-      entryContent.querySelector('.window-id').textContent = windowId;
-      entryContent.querySelector('.window-app').textContent = appName;
-      entriesContainer.appendChild(entryContent);
+    systemApps.forEach((sysApp) => {
+      const button = document.createElement('button');
+      button.className =
+        'app-item w-full text-left px-3 py-2 text-white hover:bg-gray-700 rounded transition-colors duration-200';
+      button.setAttribute('data-app', sysApp.id);
+      button.textContent = sysApp.name;
+      appsContainer.appendChild(button);
     });
 
-    showMessage({ template: true, content: windowListContent }, true);
-  }
-}
+    // Add separator
+    const separator = document.createElement('div');
+    separator.className = 'border-t border-gray-600 my-2';
+    appsContainer.appendChild(separator);
 
-function showMessage(message, useTemplate = false) {
-  let messageDiv = document.getElementById('terminal-message');
-  if (!messageDiv) {
-    // Clone the template
-    const template = document.getElementById('terminal-message-template');
-    const templateClone = template.content.cloneNode(true);
-    messageDiv = templateClone.querySelector('div');
-    messageDiv.id = 'terminal-message';
-    document.getElementById('desktop').appendChild(messageDiv);
-  }
-
-  const contentDiv = messageDiv.querySelector('.message-content');
-
-  if (useTemplate && typeof message === 'object' && message.template) {
-    // Clear existing content and append template content
-    contentDiv.innerHTML = '';
-    contentDiv.appendChild(message.content);
-  } else {
-    // Simple text message
-    contentDiv.textContent = message;
-  }
-
-  messageDiv.style.display = 'block';
-
-  // Auto-hide after 10 seconds for non-help messages
-  clearTimeout(messageTimeout);
-  if (!useTemplate && !message.includes('help')) {
-    messageTimeout = setTimeout(hideMessage, 10000);
-  }
-}
-
-function hideMessage() {
-  const messageDiv = document.getElementById('terminal-message');
-  if (messageDiv) {
-    messageDiv.style.display = 'none';
-  }
-}
-
-function setupTerminal() {
-  const terminalInput = document.getElementById('terminal-input');
-
-  // Focus input by default without scrolling to prevent page jump
-  terminalInput.focus({ preventScroll: true });
-
-  // Handle command execution
-  terminalInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      const command = terminalInput.value;
-      executeCommand(command);
-      terminalInput.value = '';
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (commandHistory.length > 0) {
-        if (historyIndex > 0) {
-          historyIndex--;
-        }
-        terminalInput.value = commandHistory[historyIndex] || '';
+    // Group apps by category
+    const categories = {};
+    this.availableApps.forEach((app) => {
+      if (!categories[app.category]) {
+        categories[app.category] = [];
       }
-    } else if (e.key === 'ArrowDown') {
+      categories[app.category].push(app);
+    });
+
+    // Sort apps within each category by name
+    Object.keys(categories).forEach((category) => {
+      categories[category].sort((a, b) => a.shortName.localeCompare(b.shortName));
+    });
+
+    // Define consistent category order
+    const categoryOrder = ['game', 'utility', 'entertainment'];
+
+    // Add categorized apps in defined order
+    categoryOrder.forEach((category) => {
+      if (!categories[category]) return;
+      // Add category header
+      const categoryHeader = document.createElement('div');
+      categoryHeader.className =
+        'text-gray-400 text-xs font-bold uppercase tracking-wide px-3 py-1 mt-3 mb-1';
+      categoryHeader.textContent = this.getCategoryName(category);
+      appsContainer.appendChild(categoryHeader);
+
+      // Add apps in this category
+      categories[category].forEach((app) => {
+        const button = document.createElement('button');
+        button.className =
+          'app-item w-full text-left px-3 py-2 text-white hover:bg-gray-700 rounded transition-colors duration-200';
+        button.setAttribute('data-app', app.id);
+        button.innerHTML = `${app.icon} ${app.shortName}`;
+        appsContainer.appendChild(button);
+      });
+    });
+
+    // If launcher is visible, re-animate the items
+    if (this.launcherVisible) {
+      setTimeout(() => this.animateAppItems(), 50);
+    }
+  }
+
+  getCategoryName(category) {
+    const categories = {
+      game: '🎮 Games',
+      utility: '🛠️ Utilities',
+      entertainment: '🎪 Entertainment'
+    };
+    return categories[category] || category;
+  }
+
+  createWindow(title, content, width = 600, height = 400) {
+    const windowId = this.nextWindowId++;
+    const windowsContainer = document.getElementById('os-windows');
+
+    const windowElement = document.createElement('div');
+    windowElement.className = 'os-window active';
+    windowElement.id = `window-${windowId}`;
+    windowElement.style.width = width + 'px';
+    windowElement.style.height = height + 'px';
+    windowElement.style.left = 50 + this.windows.length * 30 + 'px';
+    windowElement.style.top = 50 + this.windows.length * 30 + 'px';
+
+    windowElement.innerHTML = `
+      <div class="os-window-titlebar" data-window-id="${windowId}">
+        <span class="app-icon">${this.getAppIcon(title)}</span>
+        <span class="os-window-title">${title}</span>
+        <div class="os-window-controls">
+          <button class="os-window-control minimize" data-action="minimize" data-window-id="${windowId}">−</button>
+          <button class="os-window-control maximize" data-action="maximize" data-window-id="${windowId}">□</button>
+          <button class="os-window-control close" data-action="close" data-window-id="${windowId}">×</button>
+        </div>
+      </div>
+      <div class="os-window-content">
+        ${content}
+      </div>
+      ${this.createResizeHandles()}
+    `;
+
+    windowsContainer.appendChild(windowElement);
+
+    const window = {
+      id: windowId,
+      element: windowElement,
+      title: title,
+      minimized: false,
+      maximized: false,
+      originalBounds: null
+    };
+
+    this.windows.push(window);
+    this.makeWindowActive(windowId);
+    this.bindWindowEvents(windowElement, windowId);
+    this.createTaskbarButton(windowId, title);
+
+    return window;
+  }
+
+  getAppIcon(title) {
+    // System apps
+    const systemIcons = {
+      Terminal: '💻',
+      Calculator: '🔢',
+      Notepad: '📝'
+    };
+
+    // Check system apps first
+    if (systemIcons[title]) {
+      return systemIcons[title];
+    }
+
+    // Check registry apps
+    if (this.availableApps) {
+      const app = this.availableApps.find((a) => a.name === title);
+      if (app) {
+        return app.icon;
+      }
+    }
+
+    return '📱';
+  }
+
+  createResizeHandles() {
+    return `
+      <div class="resize-handle n"></div>
+      <div class="resize-handle s"></div>
+      <div class="resize-handle e"></div>
+      <div class="resize-handle w"></div>
+      <div class="resize-handle ne"></div>
+      <div class="resize-handle nw"></div>
+      <div class="resize-handle se"></div>
+      <div class="resize-handle sw"></div>
+      <div class="window-drag-handle"></div>
+    `;
+  }
+
+  bindWindowEvents(windowElement, windowId) {
+    // Window controls
+    windowElement.addEventListener('click', (e) => {
+      if (e.target.classList.contains('os-window-control')) {
+        const action = e.target.getAttribute('data-action');
+        switch (action) {
+          case 'minimize':
+            this.minimizeWindow(windowId);
+            break;
+          case 'maximize':
+            this.maximizeWindow(windowId);
+            break;
+          case 'close':
+            this.closeWindow(windowId);
+            break;
+        }
+      }
+    });
+
+    // Window focus
+    windowElement.addEventListener('mousedown', () => {
+      this.makeWindowActive(windowId);
+    });
+
+    // Window dragging
+    const titlebar = windowElement.querySelector('.os-window-titlebar');
+    this.makeDraggable(titlebar, windowElement, windowId);
+
+    // Window resizing
+    this.makeResizable(windowElement, windowId);
+  }
+
+  makeDraggable(handle, windowElement, windowId) {
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+    let initialLeft;
+    let initialTop;
+
+    handle.addEventListener('mousedown', (e) => {
+      const window = this.getWindow(windowId);
+      if (window && window.maximized) return; // Don't drag maximized windows
+
+      isDragging = true;
+      initialLeft = windowElement.offsetLeft;
+      initialTop = windowElement.offsetTop;
+      initialX = e.clientX - initialLeft;
+      initialY = e.clientY - initialTop;
+
+      // Add dragging class to disable transitions
+      windowElement.classList.add('dragging');
+
+      document.addEventListener('mousemove', drag);
+      document.addEventListener('mouseup', stopDrag);
+
       e.preventDefault();
-      if (commandHistory.length > 0) {
-        if (historyIndex < commandHistory.length - 1) {
-          historyIndex++;
-          terminalInput.value = commandHistory[historyIndex] || '';
+    });
+
+    function drag(e) {
+      if (!isDragging) return;
+
+      currentX = e.clientX - initialX;
+      currentY = e.clientY - initialY;
+
+      // Constrain to screen bounds
+      const maxX = window.innerWidth - windowElement.offsetWidth;
+      const maxY = window.innerHeight - windowElement.offsetHeight - 48; // Account for taskbar
+
+      currentX = Math.max(0, Math.min(currentX, maxX));
+      currentY = Math.max(0, Math.min(currentY, maxY));
+
+      // Use transform for smoother performance
+      const deltaX = currentX - initialLeft;
+      const deltaY = currentY - initialTop;
+      windowElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+    }
+
+    function stopDrag() {
+      if (!isDragging) return;
+
+      isDragging = false;
+
+      // Apply the final position and remove transform
+      const transform = windowElement.style.transform;
+      if (transform && transform !== 'none') {
+        const match = transform.match(/translate\((-?\d+(?:\.\d+)?)px, (-?\d+(?:\.\d+)?)px\)/);
+        if (match) {
+          const deltaX = parseFloat(match[1]);
+          const deltaY = parseFloat(match[2]);
+          windowElement.style.left = initialLeft + deltaX + 'px';
+          windowElement.style.top = initialTop + deltaY + 'px';
+        }
+        windowElement.style.transform = '';
+      }
+
+      // Remove dragging class to re-enable transitions
+      windowElement.classList.remove('dragging');
+      document.removeEventListener('mousemove', drag);
+      document.removeEventListener('mouseup', stopDrag);
+    }
+  }
+
+  makeResizable(windowElement, windowId) {
+    const handles = windowElement.querySelectorAll('.resize-handle, .window-drag-handle');
+
+    handles.forEach((handle) => {
+      handle.addEventListener('mousedown', (e) => {
+        const window = this.getWindow(windowId);
+        if (window && window.maximized) return; // Don't resize maximized windows
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Add dragging class to disable transitions during resize
+        windowElement.classList.add('dragging');
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startWidth = parseInt(getComputedStyle(windowElement).width, 10);
+        const startHeight = parseInt(getComputedStyle(windowElement).height, 10);
+        const startLeft = parseInt(getComputedStyle(windowElement).left, 10);
+        const startTop = parseInt(getComputedStyle(windowElement).top, 10);
+
+        // Determine handle direction - treat drag handle as southeast
+        let handleClass;
+        if (handle.classList.contains('window-drag-handle')) {
+          handleClass = 'se';
         } else {
-          historyIndex = commandHistory.length;
-          terminalInput.value = '';
+          handleClass = handle.className.split(' ')[1];
         }
-      }
-    } else if (e.key === 'Tab') {
-      e.preventDefault();
-      // Auto-complete functionality
-      const partial = terminalInput.value.toLowerCase();
-      const commands = [
-        'help',
-        'ls',
-        'list',
-        'open',
-        'launch',
-        'ps',
-        'windows',
-        'kill',
-        'close',
-        'clear',
-        'cls',
-        'whoami',
-        'pwd',
-        'date',
-        'fortune',
-        'quote',
-        'shadowbox',
-        'operation',
-        'fullscreen',
-        'fs',
-        'minimize',
-        'min',
-        'restore',
-        'exit',
-        'quit'
-      ];
 
-      // Try to complete command
-      const matchingCommands = commands.filter((cmd) => cmd.startsWith(partial));
-      const matchingApps = Object.keys(namespace_window.getAvailableApps()).filter((app) =>
-        app.startsWith(partial.replace('open ', ''))
-      );
+        document.addEventListener('mousemove', resize);
+        document.addEventListener('mouseup', stopResize);
 
-      if (partial.startsWith('open ') && matchingApps.length === 1) {
-        terminalInput.value = 'open ' + matchingApps[0];
-      } else if (matchingCommands.length === 1) {
-        terminalInput.value = matchingCommands[0];
-      }
-    } else if (e.key === 'Escape') {
-      hideMessage();
+        function resize(e) {
+          const deltaX = e.clientX - startX;
+          const deltaY = e.clientY - startY;
+
+          let newWidth = startWidth;
+          let newHeight = startHeight;
+          let newLeft = startLeft;
+          let newTop = startTop;
+
+          // Handle different resize directions
+          if (handleClass.includes('e')) {
+            newWidth = Math.max(400, startWidth + deltaX);
+          }
+          if (handleClass.includes('w')) {
+            newWidth = Math.max(400, startWidth - deltaX);
+            newLeft = startLeft + deltaX;
+            if (newWidth === 400) newLeft = startLeft + startWidth - 400;
+          }
+          if (handleClass.includes('s')) {
+            newHeight = Math.max(300, startHeight + deltaY);
+          }
+          if (handleClass.includes('n')) {
+            newHeight = Math.max(300, startHeight - deltaY);
+            newTop = startTop + deltaY;
+            if (newHeight === 300) newTop = startTop + startHeight - 300;
+          }
+
+          // Constrain to screen bounds
+          if (newLeft + newWidth > window.innerWidth) {
+            newWidth = window.innerWidth - newLeft;
+          }
+          if (newTop + newHeight > window.innerHeight - 48) {
+            newHeight = window.innerHeight - 48 - newTop;
+          }
+
+          windowElement.style.width = newWidth + 'px';
+          windowElement.style.height = newHeight + 'px';
+          windowElement.style.left = newLeft + 'px';
+          windowElement.style.top = newTop + 'px';
+        }
+
+        function stopResize() {
+          // Remove dragging class to re-enable transitions
+          windowElement.classList.remove('dragging');
+          document.removeEventListener('mousemove', resize);
+          document.removeEventListener('mouseup', stopResize);
+        }
+      });
+    });
+  }
+
+  makeWindowActive(windowId) {
+    // Remove active class from all windows
+    this.windows.forEach((w) => {
+      w.element.classList.remove('active');
+    });
+
+    // Add active class to current window
+    const window = this.getWindow(windowId);
+    if (window) {
+      window.element.classList.add('active');
+      this.activeWindow = window;
+
+      // Update taskbar
+      this.updateTaskbar();
     }
-  });
+  }
 
-  // Keep terminal focused when clicking on desktop
-  document.getElementById('desktop').addEventListener('click', (e) => {
-    if (
-      e.target === document.getElementById('desktop') ||
-      e.target.className.includes('desktop-pattern')
-    ) {
-      terminalInput.focus();
+  minimizeWindow(windowId) {
+    const window = this.getWindow(windowId);
+    if (window && !window.minimized) {
+      window.element.classList.add('minimized');
+      window.minimized = true;
+      this.updateTaskbar();
     }
-  });
+  }
 
-  // Show welcome message
-  setTimeout(() => {
-    showMessage(`🦄 Welcome to HEYMING-OS! Type 'help' to get started.`);
-  }, 1000);
+  maximizeWindow(windowId) {
+    const window = this.getWindow(windowId);
+    if (!window) return;
+
+    if (window.maximized) {
+      // Restore window
+      if (window.originalBounds) {
+        window.element.style.left = window.originalBounds.left;
+        window.element.style.top = window.originalBounds.top;
+        window.element.style.width = window.originalBounds.width;
+        window.element.style.height = window.originalBounds.height;
+      }
+      window.element.classList.remove('maximized');
+      window.maximized = false;
+    } else {
+      // Maximize window
+      window.originalBounds = {
+        left: window.element.style.left,
+        top: window.element.style.top,
+        width: window.element.style.width,
+        height: window.element.style.height
+      };
+      window.element.classList.add('maximized');
+      window.maximized = true;
+    }
+  }
+
+  closeWindow(windowId) {
+    const windowIndex = this.windows.findIndex((w) => w.id === windowId);
+    if (windowIndex === -1) return;
+
+    const window = this.windows[windowIndex];
+    window.element.remove();
+    this.windows.splice(windowIndex, 1);
+
+    // Remove taskbar button
+    const taskbarButton = document.querySelector(`[data-window-id="${windowId}"]`);
+    if (taskbarButton && taskbarButton.classList.contains('taskbar-app')) {
+      taskbarButton.remove();
+    }
+
+    // If this was the active window, activate another one
+    if (this.activeWindow && this.activeWindow.id === windowId) {
+      this.activeWindow = null;
+      if (this.windows.length > 0) {
+        this.makeWindowActive(this.windows[this.windows.length - 1].id);
+      }
+    }
+
+    this.updateTaskbar();
+  }
+
+  getWindow(windowId) {
+    return this.windows.find((w) => w.id === windowId);
+  }
+
+  createTaskbarButton(windowId, title) {
+    const runningApps = document.getElementById('running-apps');
+    const button = document.createElement('button');
+    button.className = 'taskbar-app active';
+    button.setAttribute('data-window-id', windowId);
+    button.innerHTML = `${this.getAppIcon(title)} ${title}`;
+
+    button.addEventListener('click', () => {
+      const window = this.getWindow(windowId);
+      if (window) {
+        if (window.minimized) {
+          window.element.classList.remove('minimized');
+          window.minimized = false;
+          this.makeWindowActive(windowId);
+        } else if (this.activeWindow && this.activeWindow.id === windowId) {
+          this.minimizeWindow(windowId);
+        } else {
+          this.makeWindowActive(windowId);
+        }
+        this.updateTaskbar();
+      }
+    });
+
+    runningApps.appendChild(button);
+  }
+
+  updateTaskbar() {
+    const taskbarApps = document.querySelectorAll('.taskbar-app');
+    taskbarApps.forEach((button) => {
+      const windowId = parseInt(button.getAttribute('data-window-id'));
+      const window = this.getWindow(windowId);
+
+      button.classList.remove('active');
+      if (window && this.activeWindow && this.activeWindow.id === windowId && !window.minimized) {
+        button.classList.add('active');
+      }
+    });
+  }
+
+  createDesktopIcons() {
+    const desktop = document.getElementById('os-desktop');
+
+    // System apps positioned on the left side
+    const systemIcons = [
+      { name: 'Terminal', icon: '💻', x: 30, y: 30, app: 'terminal' },
+      { name: 'Calculator', icon: '🔢', x: 30, y: 130, app: 'calculator' },
+      { name: 'Notepad', icon: '📝', x: 30, y: 230, app: 'notepad' }
+    ];
+
+    systemIcons.forEach((iconData) => {
+      this.createDesktopIcon(desktop, iconData);
+    });
+
+    // Add some popular apps from registry as desktop icons
+    setTimeout(() => {
+      if (this.availableApps) {
+        const desktopApps = this.availableApps.filter((app) =>
+          ['awesome', 'doom', 'farm', 'wordle-finder'].includes(app.id)
+        );
+
+        desktopApps.forEach((app, index) => {
+          // Create a grid layout with proper spacing
+          const iconsPerRow = 6; // Maximum icons per row
+          const iconSpacing = 90; // Horizontal spacing between icons
+          const rowSpacing = 100; // Vertical spacing between rows
+          const startX = 150; // Start position (after system icons)
+          const startY = 30; // Start position
+
+          const row = Math.floor(index / iconsPerRow);
+          const col = index % iconsPerRow;
+
+          const iconData = {
+            name: app.shortName,
+            icon: app.icon,
+            x: startX + col * iconSpacing,
+            y: startY + row * rowSpacing,
+            app: app.id
+          };
+          this.createDesktopIcon(desktop, iconData);
+        });
+      }
+    }, 100);
+  }
+
+  createDesktopIcon(desktop, iconData) {
+    const icon = document.createElement('div');
+    icon.className = 'desktop-icon';
+    icon.style.left = iconData.x + 'px';
+    icon.style.top = iconData.y + 'px';
+    icon.innerHTML = `
+      <div class="icon">${iconData.icon}</div>
+      <div class="label">${iconData.name}</div>
+    `;
+
+    icon.addEventListener('dblclick', () => {
+      this.launchApp(iconData.app);
+    });
+
+    desktop.appendChild(icon);
+  }
+
+  showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+
+    const colors = {
+      info: '#3182ce',
+      success: '#10b981',
+      error: '#ef4444',
+      warning: '#f59e0b',
+      system: '#8b5cf6'
+    };
+
+    notification.style.borderLeft = `4px solid ${colors[type] || colors.info}`;
+    notification.textContent = message;
+
+    document.getElementById('os-desktop').appendChild(notification);
+
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 3000);
+  }
+
+  // Application creators
+  createTerminalWindow() {
+    const content = `
+      <div class="terminal-content">
+        <div class="terminal-line">
+          <span class="terminal-prompt">user@heyming-os:~$</span> <span style="color: #00ff00;">echo "Welcome to Enhanced Heyming OS Terminal v2.0!"</span>
+        </div>
+        <div class="terminal-line">Welcome to Enhanced Heyming OS Terminal v2.0! 🚀</div>
+        <div class="terminal-line">Type 'help' for available commands, or try some easter eggs! 🎉</div>
+        <div class="terminal-line">
+          <span class="terminal-prompt">user@heyming-os:~$</span> <input type="text" class="terminal-input" placeholder="Type a command...">
+        </div>
+      </div>
+    `;
+
+    const window = this.createWindow('Terminal', content, 700, 500);
+
+    // Initialize enhanced terminal
+    if (typeof Terminal !== 'undefined') {
+      window.terminal = new Terminal(window.id, this);
+    } else {
+      console.error('Terminal class not found. Make sure terminal.js is loaded.');
+    }
+  }
+
+  createCalculatorWindow() {
+    const content = `
+      <div class="calculator-content">
+        <div class="calculator-display" id="calc-display">0</div>
+        <div class="calculator-buttons">
+          <button class="calculator-button" data-calc="clear">C</button>
+          <button class="calculator-button" data-calc="sign">±</button>
+          <button class="calculator-button" data-calc="percent">%</button>
+          <button class="calculator-button operator" data-calc="/">÷</button>
+          
+          <button class="calculator-button" data-calc="7">7</button>
+          <button class="calculator-button" data-calc="8">8</button>
+          <button class="calculator-button" data-calc="9">9</button>
+          <button class="calculator-button operator" data-calc="*">×</button>
+          
+          <button class="calculator-button" data-calc="4">4</button>
+          <button class="calculator-button" data-calc="5">5</button>
+          <button class="calculator-button" data-calc="6">6</button>
+          <button class="calculator-button operator" data-calc="-">-</button>
+          
+          <button class="calculator-button" data-calc="1">1</button>
+          <button class="calculator-button" data-calc="2">2</button>
+          <button class="calculator-button" data-calc="3">3</button>
+          <button class="calculator-button operator" data-calc="+">+</button>
+          
+          <button class="calculator-button" data-calc="0" style="grid-column: span 2;">0</button>
+          <button class="calculator-button" data-calc=".">.</button>
+          <button class="calculator-button equals" data-calc="=">=</button>
+        </div>
+      </div>
+    `;
+
+    const window = this.createWindow('Calculator', content, 350, 500);
+
+    setTimeout(() => {
+      this.initializeCalculator(window.id);
+    }, 100);
+  }
+
+  initializeCalculator(windowId) {
+    const windowElement = document.getElementById(`window-${windowId}`);
+    const display = windowElement.querySelector('#calc-display');
+    const buttons = windowElement.querySelectorAll('.calculator-button');
+
+    let currentValue = '0';
+    let previousValue = null;
+    let operation = null;
+    let waitingForOperand = false;
+
+    function updateDisplay() {
+      display.textContent = currentValue;
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const value = button.getAttribute('data-calc');
+
+        if ('0123456789'.includes(value)) {
+          if (waitingForOperand) {
+            currentValue = value;
+            waitingForOperand = false;
+          } else {
+            currentValue = currentValue === '0' ? value : currentValue + value;
+          }
+          updateDisplay();
+        } else if (value === '.') {
+          if (currentValue.indexOf('.') === -1) {
+            currentValue += '.';
+            updateDisplay();
+          }
+        } else if (['+', '-', '*', '/'].includes(value)) {
+          if (previousValue !== null && !waitingForOperand) {
+            calculate();
+          }
+
+          previousValue = parseFloat(currentValue);
+          operation = value;
+          waitingForOperand = true;
+        } else if (value === '=') {
+          calculate();
+        } else if (value === 'clear') {
+          currentValue = '0';
+          previousValue = null;
+          operation = null;
+          waitingForOperand = false;
+          updateDisplay();
+        } else if (value === 'sign') {
+          currentValue = (parseFloat(currentValue) * -1).toString();
+          updateDisplay();
+        } else if (value === 'percent') {
+          currentValue = (parseFloat(currentValue) / 100).toString();
+          updateDisplay();
+        }
+      });
+    });
+
+    function calculate() {
+      if (previousValue !== null && operation && !waitingForOperand) {
+        const current = parseFloat(currentValue);
+        const previous = previousValue;
+
+        let result;
+        switch (operation) {
+          case '+':
+            result = previous + current;
+            break;
+          case '-':
+            result = previous - current;
+            break;
+          case '*':
+            result = previous * current;
+            break;
+          case '/':
+            result = current !== 0 ? previous / current : 0;
+            break;
+          default:
+            return;
+        }
+
+        currentValue = result.toString();
+        previousValue = null;
+        operation = null;
+        waitingForOperand = true;
+        updateDisplay();
+      }
+    }
+  }
+
+  createNotepadWindow() {
+    const content = `
+      <div class="notepad-content">
+        <textarea class="notepad-textarea" placeholder="Start typing your notes here..."></textarea>
+      </div>
+    `;
+
+    const window = this.createWindow('Notepad', content, 600, 400);
+
+    setTimeout(() => {
+      const textarea = document.querySelector(`#window-${window.id} .notepad-textarea`);
+      if (textarea) {
+        textarea.focus();
+      }
+    }, 100);
+  }
 }
 
-// Create the OS namespace
-const namespace_os = {
-  // Desktop functions
-  toggleFullscreen,
-  expandDesktop,
-  contractDesktop,
-  closeBrowser,
-  minimizeBrowser,
-  restoreFromTab,
-  updateSystemStats,
-  updateDesktopTime,
-  initOS,
-  getAppMinimizedState,
-  getDesktopExpandedState,
-
-  // Terminal functions
-  executeCommand,
-  showMessage,
-  hideMessage,
-  showHelp,
-  listApps,
-  showActiveWindows,
-  setupTerminal
-};
-
-// Make the namespace globally available
-window.namespace_os = namespace_os;
+// Initialize the OS
+window.heymingOS = new HeymingOS();
