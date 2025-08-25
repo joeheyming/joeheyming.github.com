@@ -173,6 +173,11 @@ const main = async () => {
     if (loadingIndicator) {
       loadingIndicator.style.display = 'none';
     }
+    // Hide start prompt
+    const startPrompt = gameContainer.querySelector('.start-prompt');
+    if (startPrompt) {
+      startPrompt.style.display = 'none';
+    }
     gameContainer.appendChild(canvas);
   } else {
     // Fallback to body if container not found

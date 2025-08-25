@@ -2,7 +2,7 @@
 // Central configuration for all available applications
 
 // Main application registry
-const appRegistry = [
+let appRegistry = [
   {
     id: 'awesome',
     name: 'Everything is Awesome 🎉',
@@ -25,7 +25,9 @@ const appRegistry = [
     detailedDescription: 'Classic first-person shooter',
     icon: '💀',
     path: './doom/',
-    category: 'game'
+    category: 'game',
+    defaultWidth: 1024,
+    defaultHeight: 768
   },
   {
     id: 'farm',
@@ -106,6 +108,8 @@ const appRegistry = [
     icon: '💃',
     path: './stepmania/',
     category: 'game',
+    defaultWidth: 1000,
+    defaultHeight: 700,
     gradient: 'from-pink-500/20 to-rose-500/20',
     border: 'border-pink-500/30 hover:border-pink-400/50',
     taskbarGradient: 'from-pink-500 to-rose-500',
@@ -120,6 +124,8 @@ const appRegistry = [
     icon: '🔤',
     path: './wordle-finder/',
     category: 'utility',
+    defaultWidth: 800,
+    defaultHeight: 600,
     gradient: 'from-teal-500/20 to-cyan-500/20',
     border: 'border-teal-500/30 hover:border-teal-400/50',
     taskbarGradient: 'from-teal-500 to-cyan-500',
@@ -127,17 +133,19 @@ const appRegistry = [
   },
   {
     id: 'youtube',
-    name: 'YouTube Channel 🎥',
-    shortName: 'YouTube',
+    name: 'JoeTube 🎥',
+    shortName: 'JoeTube',
     description: "Joe's digital adventures & coding magic",
-    detailedDescription: 'YouTube link utilities',
+    detailedDescription: 'Watch JoeTube',
     icon: '🎥',
     path: './youtube/',
     category: 'utility',
     gradient: 'from-red-500/20 to-red-600/20',
     border: 'border-red-500/30 hover:border-red-400/50',
     taskbarGradient: 'from-red-500 to-red-600',
-    taskbarText: 'text-white'
+    taskbarText: 'text-white',
+    defaultWidth: 540,
+    defaultHeight: 780
   },
   {
     id: 'shadowbox',
@@ -153,7 +161,7 @@ const appRegistry = [
     taskbarGradient: 'from-gray-600 to-gray-700',
     taskbarText: 'text-white'
   }
-].sort((a, b) => a.name.localeCompare(b.name));
+];
 
 // App categories for organization
 const appCategories = {
@@ -222,15 +230,18 @@ const AppModule = {
 
   // Generate hamburger menu items
   generateHamburgerMenuItems: () => {
-    return AppModule.getAllApps().map((app) => ({
-      id: app.id,
-      name: app.shortName,
-      description: app.detailedDescription,
-      icon: app.icon,
-      path: app.path,
-      gradient: app.gradient,
-      border: app.border
-    }));
+    return AppModule.getAllApps()
+      .slice() // Create a copy to avoid modifying the original array
+      .sort((a, b) => a.shortName.localeCompare(b.shortName))
+      .map((app) => ({
+        id: app.id,
+        name: app.shortName,
+        description: app.detailedDescription,
+        icon: app.icon,
+        path: app.path,
+        gradient: app.gradient,
+        border: app.border
+      }));
   }
 };
 

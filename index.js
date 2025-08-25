@@ -227,12 +227,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Calculate experience on page load
   calculateYearsExperience();
 
-  // Initialize desktop OS functionality
-  namespace_os.initOS();
-
-  // Initialize terminal
-  namespace_os.setupTerminal();
-
   // Initialize hamburger menu
   initHamburgerMenu();
 
