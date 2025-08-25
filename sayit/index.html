@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="utf-8" />
     <base href="./" />
     <title>Say it</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -13,46 +14,89 @@
     <div class="header">
       <h1>Say it</h1>
       <p>A tool that extracts text from images using OCR and reads it aloud</p>
-    </div>
 
-    <div class="instructions">
-      <h3>📋 Instructions</h3>
-      <p>
-        <strong>Method 1:</strong>
-        Drag and drop an image file into the drop zone below
-      </p>
-      <p>
-        <strong>Method 2:</strong>
-        Click the drop zone to select a file from your computer
-      </p>
-      <p>
-        <strong>Method 3:</strong>
-        Try dragging or clicking the sample image below
-      </p>
-    </div>
-
-    <div class="drop-zone" id="dropZone">
-      <div class="drop-zone-text">
-        <strong>📁 Drop your image here or click to select</strong>
+      <!-- Mode Switching -->
+      <div class="mode-selector">
+        <button id="canvasMode" class="mode-button active">✏️ Draw Text</button>
+        <button id="uploadMode" class="mode-button">📁 Upload Image</button>
       </div>
-      <p>Supported formats: JPG, PNG, GIF, BMP</p>
     </div>
 
-    <div class="sample-section">
-      <h3>📖 Try with this sample:</h3>
-      <p>
-        Drag this handwritten sample image to the drop zone above, or simply click it to test OCR:
-      </p>
-      <img
-        src="Sample-handwritten-text-input-for-OCR.png"
-        alt="Sample handwritten text for OCR testing"
-        class="sample-image"
-        id="sampleImage"
-        draggable="true"
-      />
+    <!-- Canvas Mode -->
+    <div id="canvasContainer" class="canvas-container">
+      <div class="canvas-instructions">
+        <h3>✏️ Draw Your Text</h3>
+        <p>
+          Use your mouse or finger to draw text on the canvas below. The brush size is set to an
+          optimal thickness for better text recognition. Tap between pen and eraser tools to switch
+          modes. On desktop, you can also use keyboard shortcuts (P for pen, E for eraser). When
+          you're done, tap "Read & Say My Drawing" to automatically extract and speak the text
+          aloud.
+        </p>
+      </div>
+
+      <div class="canvas-controls">
+        <div class="tool-group">
+          <button id="penTool" class="tool-button active">✏️ Pen</button>
+          <button id="eraserTool" class="tool-button">🧽 Eraser</button>
+        </div>
+        <button id="clearCanvas" class="control-button">🗑️ Clear</button>
+        <label class="pen-size-label">
+          Size:
+          <input type="range" id="penSize" min="2" max="20" value="15" class="pen-size-slider" />
+        </label>
+        <div id="canvasStatus" class="canvas-status hidden">
+          💾 Drawing restored from previous session
+        </div>
+        <button id="readDrawing" class="read-button">📖🔊 Read & Say My Drawing</button>
+      </div>
+
+      <div class="canvas-wrapper">
+        <canvas id="drawingCanvas" width="800" height="400" style="touch-action: none"></canvas>
+      </div>
     </div>
 
-    <input type="file" id="imageUpload" class="file-input" accept="image/*" />
+    <!-- Upload Mode -->
+    <div id="uploadContainer" class="upload-container hidden">
+      <div class="instructions">
+        <h3>📋 Instructions</h3>
+        <p>
+          <strong>Method 1:</strong>
+          Drag and drop an image file into the drop zone below
+        </p>
+        <p>
+          <strong>Method 2:</strong>
+          Click the drop zone to select a file from your computer
+        </p>
+        <p>
+          <strong>Method 3:</strong>
+          Try dragging or clicking the sample image below
+        </p>
+      </div>
+
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-zone-text">
+          <strong>📁 Drop your image here or click to select</strong>
+        </div>
+        <p>Supported formats: JPG, PNG, GIF, BMP</p>
+      </div>
+
+      <div class="sample-section">
+        <h3>📖 Try with this sample:</h3>
+        <p>
+          Drag this handwritten sample image to the drop zone above, or simply click it to test OCR:
+        </p>
+        <img
+          src="Sample-handwritten-text-input-for-OCR.png"
+          alt="Sample handwritten text for OCR testing"
+          class="sample-image"
+          id="sampleImage"
+          draggable="true"
+        />
+      </div>
+
+      <input type="file" id="imageUpload" class="file-input" accept="image/*" />
+    </div>
 
     <img id="loading" src="loading.gif" class="hidden" />
 
