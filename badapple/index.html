@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <title>Bad Apple!!</title>
+    <script src="../back.js"></script>
+    <style>
+      body {
+        font-family: monospace;
+        background: black;
+        color: white;
+        margin: 0;
+        padding: 20px;
+        text-align: center;
+      }
+      h1 {
+        margin: 20px 0;
+      }
+      #controls {
+        margin: 20px 0;
+      }
+      button {
+        margin: 5px;
+        padding: 10px 20px;
+        font-size: 16px;
+        background: #333;
+        color: white;
+        border: 1px solid #666;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #555;
+      }
+      button:disabled {
+        background: #222;
+        color: #666;
+        cursor: not-allowed;
+      }
+      #info {
+        margin: 10px 0;
+        font-size: 14px;
+      }
+      #frame-display {
+        white-space: pre;
+        font-size: 6px;
+        line-height: 6px;
+        margin: 20px auto;
+        background: black;
+        padding: 10px;
+        max-width: 1200px;
+        min-height: 420px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        font-family: 'Courier New', 'Monaco', monospace;
+      }
+      audio {
+        width: 100%;
+        max-width: 600px;
+        margin: 20px 0;
+        display: none;
+      }
+      hr {
+        border: 1px solid #333;
+        margin: 30px 0;
+      }
+      a {
+        color: #66aaff;
+      }
+      a:hover {
+        color: #88ccff;
+      }
+      #legacy-link {
+        margin-top: 20px;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Bad Apple!!</h1>
+
+    <div id="controls">
+      <button id="playBtn" onclick="togglePlayPause()">▶ Play</button>
+      <button onclick="reset()">⏹ Reset</button>
+    </div>
+
+    <audio id="audio" controls>
+      <source src="bad-apple.ogg" type="audio/ogg" />
+      your browser doesn't support &lt;audio&gt;...
+    </audio>
+
+    <div id="frame-display" />
+
+    <hr />
+
+    <script>
+      const audio = document.getElementById('audio');
+      const frameDisplay = document.getElementById('frame-display');
+      const playBtn = document.getElementById('playBtn');
+
+      const FRAME_RATE = 15; // frames per second - high-quality smooth animation
+      const TOTAL_FRAMES = 4862; // Total frames at 15 FPS (5:24 video duration)
+      let frames = {}; // Cache for loaded frames
+      let isPlaying = false;
+      let lastFrameNum = 0;
+
+      // Load frame data from existing HTML files
+      async function loadFrame(frameNum) {
+        if (frames[frameNum]) return frames[frameNum];
+
+        try {
+          const response = await fetch(`frame/${frameNum}.html`);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+          const html = await response.text();
+          // Extract the ASCII art from between <pre> tags
+          const match = html.match(/<pre>\s*([\s\S]*?)\s*<\/pre>/);
+          if (match) {
+            frames[frameNum] = match[1];
+            return frames[frameNum];
+          } else {
+            throw new Error('No <pre> tag found');
+          }
+        } catch (error) {
+          console.error(`Could not load frame ${frameNum}:`, error);
+          return '';
+        }
+      }
+
+      // Preload nearby frames for smoother playback - more aggressive for higher FPS
+      async function preloadFrames(centerFrame, radius = 15) {
+        const promises = [];
+        for (
+          let i = Math.max(1, centerFrame - radius);
+          i <= Math.min(TOTAL_FRAMES, centerFrame + radius);
+          i++
+        ) {
+          if (!frames[i]) {
+            promises.push(loadFrame(i));
+          }
+        }
+        // Process in batches to avoid overwhelming the browser
+        const batchSize = 5;
+        for (let i = 0; i < promises.length; i += batchSize) {
+          const batch = promises.slice(i, i + batchSize);
+          await Promise.all(batch);
+        }
+      }
+
+      function updateFrame() {
+        if (!isPlaying) return;
+
+        const currentTime = audio.currentTime;
+        const currentFrame = Math.floor(currentTime * FRAME_RATE) + 1;
+
+        if (currentFrame !== lastFrameNum && currentFrame >= 1 && currentFrame <= TOTAL_FRAMES) {
+          lastFrameNum = currentFrame;
+
+          // Load and display the frame
+          loadFrame(currentFrame).then((frameContent) => {
+            if (frameContent && isPlaying) {
+              frameDisplay.textContent = frameContent;
+
+              // Preload upcoming frames more frequently for higher FPS
+              if (currentFrame % 30 === 0) {
+                // Every 30th frame (every 2 seconds at 15 FPS)
+                preloadFrames(currentFrame + 60); // Preload next 4 seconds
+              }
+            }
+          });
+        }
+      }
+
+      function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+      }
+
+      function togglePlayPause() {
+        if (isPlaying) {
+          pause();
+        } else {
+          play();
+        }
+      }
+
+      async function play() {
+        try {
+          playBtn.disabled = true;
+
+          // Preload first few frames for higher FPS
+          await preloadFrames(1, 30); // Preload first 2 seconds
+
+          isPlaying = true;
+          await audio.play();
+
+          playBtn.textContent = '⏸ Pause';
+          playBtn.disabled = false;
+
+          // Start the animation loop
+          updateFrame();
+        } catch (error) {
+          console.error('Playback failed:', error);
+          playBtn.disabled = false;
+          isPlaying = false;
+        }
+      }
+
+      function pause() {
+        isPlaying = false;
+        audio.pause();
+        playBtn.textContent = '▶ Play';
+      }
+
+      function reset() {
+        pause();
+        audio.currentTime = 0;
+        lastFrameNum = 0;
+      }
+
+      // Event listeners
+      audio.addEventListener('timeupdate', () => {
+        if (isPlaying) {
+          updateFrame();
+        }
+      });
+
+      audio.addEventListener('ended', () => {
+        isPlaying = false;
+        playBtn.textContent = '▶ Play';
+      });
+
+      audio.addEventListener('pause', () => {
+        if (isPlaying) {
+          // Only update if we were playing (not manually paused)
+          pause();
+        }
+      });
+
+      audio.addEventListener('play', () => {
+        if (!isPlaying) {
+          // Only start if we weren't already playing
+          isPlaying = true;
+          playBtn.textContent = '⏸ Pause';
+        }
+      });
+
+      // Keyboard controls
+      document.addEventListener('keydown', (e) => {
+        switch (e.code) {
+          case 'Space':
+            e.preventDefault();
+            togglePlayPause();
+            break;
+          case 'KeyR':
+            e.preventDefault();
+            reset();
+            break;
+        }
+      });
+    </script>
+  </body>
+</html>
