@@ -160,8 +160,25 @@ let appRegistry = [
     border: 'border-gray-500/30 hover:border-gray-400/50',
     taskbarGradient: 'from-gray-600 to-gray-700',
     taskbarText: 'text-white'
+  },
+  {
+    id: 'badapple',
+    name: 'Bad Apple',
+    shortName: 'Bad Apple',
+    description: 'Bad Apple',
+    detailedDescription: 'Bad Apple',
+    icon: '🍎',
+    path: './badapple/',
+    category: 'entertainment',
+    gradient: 'from-red-500/20 to-pink-500/20',
+    border: 'border-red-500/30 hover:border-red-400/50',
+    taskbarGradient: 'from-red-500 to-pink-500',
+    taskbarText: 'text-white'
   }
 ];
+
+// sort appRegistry by name
+appRegistry = appRegistry.sort((a, b) => a.name.localeCompare(b.name));
 
 // App categories for organization
 const appCategories = {
