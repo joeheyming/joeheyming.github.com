@@ -1,20 +1,6 @@
 /**
  * This file was intentionally vanilla js because I wanted a challenge
  */
-window.analytics = function () {
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = function () {
-    dataLayer.push(arguments);
-  };
-  gtag('js', new Date());
-
-  gtag('config', 'G-Q62Q3E20Y0');
-};
-if (location.hostname !== 'localhost') {
-  analytics();
-} else {
-  window.gtag = function () {};
-}
 
 // current answer of hte day
 var currentAnswer;
