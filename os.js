@@ -276,13 +276,6 @@ class HeymingOS {
   }
 
   launchApp(appName) {
-    // Handle built-in system apps
-    switch (appName) {
-      case 'notepad':
-        this.createNotepadWindow();
-        return;
-    }
-
     // Handle apps from registry
     if (this.availableApps) {
       const app = this.availableApps.find((a) => a.id === appName);
@@ -1275,24 +1268,6 @@ class HeymingOS {
         notification.parentNode.removeChild(notification);
       }
     }, 3000);
-  }
-
-  // Application creators
-  createNotepadWindow() {
-    const content = `
-      <div class="notepad-content">
-        <textarea class="notepad-textarea" placeholder="Start typing your notes here..."></textarea>
-      </div>
-    `;
-
-    const window = this.createWindow('Notepad', content, 600, 400);
-
-    setTimeout(() => {
-      const textarea = document.querySelector(`#window-${window.id} .notepad-textarea`);
-      if (textarea) {
-        textarea.focus();
-      }
-    }, 100);
   }
 }
 

@@ -1,0 +1,123 @@
+body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+  background: #ffffff;
+}
+
+.notepad-content {
+  padding: 8px;
+  background: #ffffff;
+  height: 100vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Quill Editor Customizations */
+#editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.ql-container {
+  flex: 1;
+  font-size: 22px; /* 50% bigger than 14px */
+  font-family: 'Georgia', 'Times New Roman', serif;
+  line-height: 1.6;
+}
+
+.ql-editor {
+  padding: 16px;
+  min-height: calc(100vh - 120px);
+}
+
+.ql-snow.ql-toolbar,
+.ql-snow .ql-toolbar {
+  border-top: 1px solid #ccc;
+  border-left: 1px solid #ccc;
+  border-right: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+  background: #f8f9fa;
+  font-size: 20px; /* 50% bigger toolbar icons */
+}
+
+.ql-snow.ql-toolbar .ql-formats,
+.ql-snow .ql-toolbar .ql-formats {
+  margin-right: 24px; /* 50% bigger spacing */
+}
+
+.ql-snow.ql-toolbar button,
+.ql-snow .ql-toolbar button {
+  width: 42px !important; /* 50% bigger than default ~28px */
+  height: 42px !important;
+  padding: 8px !important;
+}
+
+.ql-snow.ql-toolbar button svg,
+.ql-snow .ql-toolbar button svg {
+  width: 24px !important; /* 50% bigger icons */
+  height: 24px !important;
+}
+
+.ql-container.ql-snow {
+  border-left: 1px solid #ccc;
+  border-right: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+}
+
+/* Custom styling for better readability */
+.ql-editor h1 {
+  font-size: 3em; /* 50% bigger */
+  color: #2c3e50;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 0.3em;
+}
+
+.ql-editor h2 {
+  font-size: 2.25em; /* 50% bigger */
+  color: #34495e;
+  border-bottom: 1px solid #bdc3c7;
+  padding-bottom: 0.2em;
+}
+
+.ql-editor h3 {
+  font-size: 1.875em; /* 50% bigger */
+  color: #34495e;
+}
+
+.ql-editor blockquote {
+  border-left: 4px solid #3498db;
+  padding-left: 16px;
+  margin-left: 0;
+  font-style: italic;
+  color: #7f8c8d;
+}
+
+/* Custom Copy Button Styling */
+.ql-copy-button {
+  background: #f8f9fa;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  padding: 8px 12px; /* 50% bigger padding */
+  margin-left: 12px; /* 50% bigger margin */
+  cursor: pointer;
+  font-size: 20px; /* 50% bigger font */
+  transition: all 0.2s ease;
+  width: 42px; /* Match other toolbar buttons */
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ql-copy-button:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.ql-copy-button:active {
+  background: #dee2e6;
+}

@@ -293,27 +293,6 @@
   background: #10b981;
 }
 
-.notepad-content {
-  padding: 0;
-  background: #ffffff;
-  color: #000000;
-  height: 100%;
-}
-
-.notepad-textarea {
-  width: 100%;
-  height: 100%;
-  border: none;
-  outline: none;
-  resize: none;
-  padding: 16px;
-  font-family: 'Arial', sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
-  background: #ffffff;
-  color: #000000;
-}
-
 /* Animation Classes */
 .os-fade-in {
   animation: fadeIn 0.3s ease-out;
