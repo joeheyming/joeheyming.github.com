@@ -72,15 +72,11 @@ body {
 .ql-editor h1 {
   font-size: 3em; /* 50% bigger */
   color: #2c3e50;
-  border-bottom: 2px solid #3498db;
-  padding-bottom: 0.3em;
 }
 
 .ql-editor h2 {
   font-size: 2.25em; /* 50% bigger */
   color: #34495e;
-  border-bottom: 1px solid #bdc3c7;
-  padding-bottom: 0.2em;
 }
 
 .ql-editor h3 {
