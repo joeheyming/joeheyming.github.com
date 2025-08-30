@@ -44,6 +44,22 @@ let appRegistry = [
     taskbarText: 'text-white'
   },
   {
+    id: 'notepad',
+    name: 'Notepad 📝',
+    shortName: 'Notepad',
+    description: 'Simple text editor',
+    detailedDescription: 'A simple text editor for taking notes',
+    icon: '📝',
+    path: './notepad/',
+    category: 'productivity',
+    gradient: 'from-blue-500/20 to-indigo-500/20',
+    border: 'border-blue-500/30 hover:border-blue-400/50',
+    taskbarGradient: 'from-blue-400 to-indigo-500',
+    taskbarText: 'text-white',
+    defaultWidth: 600,
+    defaultHeight: 400
+  },
+  {
     id: 'pbs',
     name: 'Pirate Broadcast System 🏴‍☠️',
     shortName: 'Pirates',
