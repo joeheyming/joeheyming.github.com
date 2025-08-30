@@ -54,6 +54,105 @@
       </aside>
     </div>
 
+    <!-- Mobile Controls -->
+    <div class="mobile-controls">
+      <!-- Left side: Movement controls -->
+      <div class="mobile-controls-left">
+        <!-- Movement pad -->
+        <div class="movement-pad">
+          <button class="control-btn movement-btn" data-key="w" data-code="KeyW" data-keycode="87">
+            ↑
+          </button>
+          <div class="movement-row">
+            <button
+              class="control-btn movement-btn"
+              data-key="a"
+              data-code="KeyA"
+              data-keycode="65"
+            >
+              ←
+            </button>
+            <button
+              class="control-btn movement-btn"
+              data-key="s"
+              data-code="KeyS"
+              data-keycode="83"
+            >
+              ↓
+            </button>
+            <button
+              class="control-btn movement-btn"
+              data-key="d"
+              data-code="KeyD"
+              data-keycode="68"
+            >
+              →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center: Arrow keys -->
+      <div class="mobile-controls-center">
+        <div class="arrow-pad">
+          <button
+            class="control-btn arrow-btn"
+            data-key="ArrowUp"
+            data-code="ArrowUp"
+            data-keycode="38"
+          >
+            ▲
+          </button>
+          <div class="arrow-row">
+            <button
+              class="control-btn arrow-btn"
+              data-key="ArrowLeft"
+              data-code="ArrowLeft"
+              data-keycode="37"
+            >
+              ◄
+            </button>
+            <button
+              class="control-btn arrow-btn"
+              data-key="ArrowDown"
+              data-code="ArrowDown"
+              data-keycode="40"
+            >
+              ▼
+            </button>
+            <button
+              class="control-btn arrow-btn"
+              data-key="ArrowRight"
+              data-code="ArrowRight"
+              data-keycode="39"
+            >
+              ►
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right side: Action buttons -->
+      <div class="mobile-controls-right">
+        <div class="action-buttons">
+          <button class="control-btn action-btn" data-key="q" data-code="KeyQ" data-keycode="81">
+            🔫
+          </button>
+          <button class="control-btn action-btn" data-key="e" data-code="KeyE" data-keycode="69">
+            🚪
+          </button>
+          <button
+            class="control-btn action-btn"
+            data-key="Enter"
+            data-code="Enter"
+            data-keycode="13"
+          >
+            ⏎
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Load DOOM WebAssembly module first -->
     <script src="src/doom.js"></script>
 
