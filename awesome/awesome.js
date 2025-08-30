@@ -22,8 +22,7 @@ var awesomeNamespace = (function () {
       ? awesomeLyricsData
       : [
           // Fallback lyrics if lyrics.js isn't loaded
-          { lyric: 'Add lyrics.js file with timing!', start: 0, end: 5 },
-          { lyric: 'Check the lyrics.js template', start: 5, end: 10 }
+          { lyric: 'Everything is awesome', start: 0, end: 5 }
         ];
 
   namespace.Awesome = function () {
@@ -32,6 +31,14 @@ var awesomeNamespace = (function () {
     this.installAwesomeEvents();
     this.awesomeCallback = this.checkAwesomeLyric.bind(this);
     this.awesomeCheckInterval = setInterval(this.awesomeCheck.bind(this), 100); // Check more frequently for better sync
+
+    // Load and parse the LRC file
+    fetch('awesome.lrc')
+      .then((response) => response.text())
+      .then((lrcContent) => {
+        this.lyrics = this.parseLRC(lrcContent);
+      })
+      .catch((error) => console.error('Error loading LRC file:', error));
   };
   namespace.Awesome.prototype = {
     awesomeColorInterval: null,
@@ -53,12 +60,149 @@ var awesomeNamespace = (function () {
       this.awesome_audio.loop = true;
       document.body.appendChild(this.awesome_audio);
       this.awesome_audio.src = awesome_mp3;
+      this.awesome_audio.addEventListener('seeked', this.updateLyricsDisplay.bind(this));
     },
     clearAwesomeContent: function () {
       while (this.awesome_content.firstChild) {
         this.awesome_content.removeChild(this.awesome_content.firstChild);
       }
     },
+    animateEmojis: function () {
+      const emojis = ['🤘', '🎉', '😎', '🔥', '✨'];
+      const emojiElement = document.createElement('div');
+      emojiElement.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      emojiElement.style.position = 'absolute';
+      emojiElement.style.left = Math.random() * window.innerWidth + 'px';
+      emojiElement.style.top = Math.random() * window.innerHeight + 'px';
+      emojiElement.style.fontSize = '2em';
+      emojiElement.style.transition = 'transform 2s ease-out';
+      document.body.appendChild(emojiElement);
+
+      setTimeout(() => {
+        emojiElement.style.transform = 'translateY(-100vh)';
+        setTimeout(() => document.body.removeChild(emojiElement), 2000);
+      }, 100);
+    },
+
+    parseLRC: function (lrcContent) {
+      const lines = lrcContent.split('\n');
+      const lyrics = [];
+      const timePattern = /\[(\d{2}):(\d{2}\.\d{2})\]/;
+
+      lines.forEach((line) => {
+        const match = timePattern.exec(line);
+        if (match) {
+          const minutes = parseInt(match[1], 10);
+          const seconds = parseFloat(match[2]);
+          const time = minutes * 60 + seconds;
+          const text = line.replace(timePattern, '').trim();
+          lyrics.push({ time, text });
+        }
+      });
+
+      return lyrics;
+    },
+
+    showNyanCat: function () {
+      const showNyan = Math.random() < 0.1; // 10% chance to show Nyan Cat
+      if (showNyan) {
+        const nyanContainer = document.getElementById('nyan-container');
+        const nyanImage = document.getElementById('awesome_nyan');
+        nyanContainer.style.display = 'block';
+        nyanImage.style.top = Math.random() * (window.innerHeight - nyanImage.height) + 'px';
+        nyanImage.style.left = Math.random() * (window.innerWidth - nyanImage.width) + 'px';
+
+        setTimeout(() => {
+          nyanContainer.style.display = 'none';
+        }, 5000); // Show Nyan Cat for 5 seconds
+      }
+    },
+
+    showRandomContent: function () {
+      const apis = [
+        'https://cataas.com/cat',
+        'https://dog.ceo/api/breeds/image/random',
+        'https://randomfox.ca/floof/',
+        'https://meowfacts.herokuapp.com/'
+      ];
+
+      const randomApi = apis[Math.floor(Math.random() * apis.length)];
+
+      fetch(randomApi)
+        .then((response) => response.json())
+        .then((data) => {
+          let imageUrl = '';
+          if (randomApi.includes('cataas')) {
+            imageUrl = randomApi;
+          } else if (randomApi.includes('dog.ceo')) {
+            imageUrl = data.message;
+          } else if (randomApi.includes('randomfox')) {
+            imageUrl = data.image;
+          } else if (randomApi.includes('meowfacts')) {
+            const factDiv = document.createElement('div');
+            factDiv.textContent = 'MeowFacts: ' + data.data[0];
+            factDiv.className =
+              'fixed top-10 right-10 bg-blue-500 text-white p-4 rounded shadow-lg';
+            factDiv.style.maxWidth = '400px';
+            document.body.appendChild(factDiv);
+
+            setTimeout(() => {
+              factDiv.style.opacity = '0';
+              setTimeout(() => document.body.removeChild(factDiv), 2000);
+            }, 5000);
+            return;
+          }
+
+          const imageObjectURL = imageUrl;
+          const animalImage = document.createElement('img');
+          animalImage.src = imageObjectURL;
+          animalImage.alt = 'Random Animal';
+          animalImage.style.position = 'fixed';
+          animalImage.style.maxWidth = '150px';
+          animalImage.style.top = '10%';
+          animalImage.style.right = '10%';
+          animalImage.style.transition = 'opacity 2s ease-in-out';
+          animalImage.style.opacity = '0';
+          document.body.appendChild(animalImage);
+
+          setTimeout(() => {
+            animalImage.style.opacity = '1';
+          }, 100);
+
+          setTimeout(() => {
+            animalImage.style.opacity = '0';
+            setTimeout(() => document.body.removeChild(animalImage), 2000);
+          }, 5000);
+        })
+        .catch((error) => console.error('Error fetching data:', error));
+    },
+
+    updateLyricsDisplay: function () {
+      const currentTime = this.awesome_audio.currentTime;
+      let currentLyric = null;
+      for (let i = 0; i < this.lyrics.length; i++) {
+        const lyric = this.lyrics[i];
+        const nextLyricTime = i < this.lyrics.length - 1 ? this.lyrics[i + 1].time : Infinity;
+        if (currentTime >= lyric.time && currentTime < nextLyricTime) {
+          currentLyric = lyric;
+          break;
+        }
+      }
+      if (currentLyric && currentLyric.text !== this.currentLyricText) {
+        this.currentLyricText = currentLyric.text;
+        this.clearAwesomeContent();
+        this.awesome_content.textContent = currentLyric.text;
+        if (Math.random() < 0.3) {
+          // 30% chance to show random content
+          this.showRandomContent();
+        }
+      }
+    },
+
+    randomNyanDisplay: function () {
+      // Nyan Cat display functionality removed
+    },
+
     awesomeCheck: function () {
       if (!this.awesome_audio.paused) {
         // Only change colors at the specified interval to prevent epileptic seizures
@@ -70,6 +214,9 @@ var awesomeNamespace = (function () {
           }
         }
         this.awesomeCallback();
+        this.animateEmojis(); // Add this line to animate emojis when playing
+        this.updateLyricsDisplay(); // Update lyrics display
+        // Nyan Cat display removed
       }
     },
     getCurrentLyric: function () {
@@ -107,7 +254,6 @@ var awesomeNamespace = (function () {
     awesomeReset: function () {
       this.current_lyric_index = -1;
       this.clearAwesomeContent();
-      this.awesomePlay();
     },
     awesomePlay: function () {
       this.awesome_audio.play();
@@ -122,17 +268,7 @@ var awesomeNamespace = (function () {
         this.awesomePause();
       }
     },
-    awesomeCheckNyan: function () {
-      if (window.awesome_nyan) {
-        return;
-      }
 
-      var awesome_nyan = new Image();
-      awesome_nyan.id = 'awesome_nyan';
-      awesome_nyan.src = awesome_nyan_gif;
-      this.awesome_content.textContent = '';
-      this.awesome_content.appendChild(awesome_nyan);
-    },
     installAwesomeEvents: function () {
       document.onkeydown = function (e) {
         var key = awesomeEventCode(e);
@@ -149,10 +285,6 @@ var awesomeNamespace = (function () {
         if (key == '65') {
           // a
           this.awesomeCallback = this.checkAwesomeLyric.bind(this);
-        }
-        if (key == '78') {
-          // n
-          this.awesomeCallback = this.awesomeCheckNyan.bind(this);
         }
         if (key == '67') {
           // c - toggle color changes for accessibility
@@ -178,3 +310,7 @@ var awesomeNamespace = (function () {
   };
   return namespace;
 })();
+
+document.addEventListener('DOMContentLoaded', function () {
+  // Duplicate code removed
+});

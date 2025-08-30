@@ -16,20 +16,29 @@
     <title>Everything is Awesome!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="awesome.css" type="text/css" charset="UTF-8" />
-    <script src="lyrics.js"></script>
     <script src="awesome.js"></script>
     <script src="/back.js"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
   </head>
   <body>
-    <div id="start">
-      <h1>Click to start awesome!</h1>
-      Keybindings:
-      <ul>
-        <li>a - Show awesome</li>
-        <li>n - Nyan!</li>
-        <li>c - Toggle color changes (accessibility)</li>
-        <li>ESC - restart</li>
-      </ul>
+    <div id="start" class="flex items-center justify-center min-h-screen bg-gray-800">
+      <button
+        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-full shadow-lg transform transition-transform duration-300 hover:scale-105"
+      >
+        Click to start awesome!
+      </button>
+    </div>
+    <div id="cat-image-container" class="flex items-center justify-center mt-4"></div>
+    <div id="nyan-container" style="position: fixed; display: none; pointer-events: none">
+      <img
+        id="awesome_nyan"
+        src="http://mlpforums.com/uploads/post_images/img-2896624-1-Nyan_Cat_Emoticon.gif"
+        alt="Nyan Cat"
+        style="position: absolute; max-width: 200px; max-height: 200px"
+      />
     </div>
     <script id="awesome_script">
       document.addEventListener('DOMContentLoaded', function () {
