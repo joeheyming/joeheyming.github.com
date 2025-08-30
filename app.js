@@ -174,6 +174,20 @@ let appRegistry = [
     border: 'border-red-500/30 hover:border-red-400/50',
     taskbarGradient: 'from-red-500 to-pink-500',
     taskbarText: 'text-white'
+  },
+  {
+    id: 'terminal',
+    name: 'Terminal',
+    shortName: 'Terminal',
+    description: 'Command line interface',
+    detailedDescription: 'Interactive command line terminal',
+    icon: '🖥️',
+    path: './terminal/',
+    category: 'utility',
+    gradient: 'from-gray-500/20 to-gray-700/20',
+    border: 'border-gray-500/30 hover:border-gray-400/50',
+    taskbarGradient: 'from-gray-500 to-gray-700',
+    taskbarText: 'text-white'
   }
 ];
 

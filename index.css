@@ -41,24 +41,6 @@
   background-size: 20px 20px;
 }
 
-/* Blinking cursor effect */
-.terminal-cursor::after {
-  content: '█';
-  animation: blink 1s infinite;
-  color: rgb(16 185 129);
-}
-
-@keyframes blink {
-  0%,
-  50% {
-    opacity: 1;
-  }
-  51%,
-  100% {
-    opacity: 0;
-  }
-}
-
 /* Terminal Message and Help Content Styles */
 .help-section {
   margin-bottom: 16px;

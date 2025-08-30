@@ -278,9 +278,6 @@ class HeymingOS {
   launchApp(appName) {
     // Handle built-in system apps
     switch (appName) {
-      case 'terminal':
-        this.createTerminalWindow();
-        return;
       case 'calculator':
         this.createCalculatorWindow();
         return;
@@ -1284,29 +1281,6 @@ class HeymingOS {
   }
 
   // Application creators
-  createTerminalWindow() {
-    const content = `
-      <div class="terminal-content">
-        <div class="terminal-line">
-          <span class="terminal-prompt">user@heyming-os:~$</span> <span style="color: #00ff00;">echo "Welcome to Enhanced Heyming OS Terminal v2.0!"</span>
-        </div>
-        <div class="terminal-line">Welcome to Enhanced Heyming OS Terminal v2.0! 🚀</div>
-        <div class="terminal-line">Type 'help' for available commands, or try some easter eggs! 🎉</div>
-        <div class="terminal-line">
-          <span class="terminal-prompt">user@heyming-os:~$</span> <input type="text" class="terminal-input" placeholder="Type a command...">
-        </div>
-      </div>
-    `;
-
-    const window = this.createWindow('Terminal', content, 700, 500);
-
-    // Initialize enhanced terminal
-    if (typeof Terminal !== 'undefined') {
-      window.terminal = new Terminal(window.id, this);
-    } else {
-      console.error('Terminal class not found. Make sure terminal.js is loaded.');
-    }
-  }
 
   createCalculatorWindow() {
     const content = `
