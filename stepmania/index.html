@@ -44,10 +44,13 @@
       <p class="text-gray-300 text-sm md:text-lg">Dance to the Beat</p>
     </div>
 
+    <!-- Score Toggle Button for Mobile -->
+    <button class="score-toggle" id="scoreToggle">📊 Score</button>
+
     <!-- Main Game Container -->
-    <div class="flex flex-col lg:flex-row items-start justify-center gap-6 px-4 pb-4">
+    <div class="flex flex-col items-center gap-6 px-0 pb-4">
       <!-- Game Area -->
-      <div class="flex flex-col items-center">
+      <div class="flex flex-col items-center w-full max-w-4xl mx-auto">
         <!-- Game Canvas Container -->
         <div
           id="sm-micro"
@@ -167,7 +170,7 @@
 
       <!-- Score Panel - Right Side -->
       <div
-        class="w-full lg:w-80 xl:w-96 bg-black/30 backdrop-blur-lg rounded-2xl p-4 md:p-6 border border-purple-500/30 lg:max-h-screen lg:overflow-y-auto"
+        class="score-panel w-full lg:w-80 xl:w-96 bg-black/30 backdrop-blur-lg rounded-2xl p-4 md:p-6 border border-purple-500/30 lg:max-h-screen lg:overflow-y-auto"
       >
         <!-- Score Display -->
         <div class="mb-6 score-compact">
