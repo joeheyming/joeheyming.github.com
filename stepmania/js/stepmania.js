@@ -11,19 +11,25 @@ function getMusicBeat(musicSec) {
 
 var audio = document.getElementById('audio_with_controls');
 
-var CANVAS_WIDTH = $(document.body).width();
-var CANVAS_HEIGHT = 360;
+var CANVAS_WIDTH = $('#sm-micro').width();
+var CANVAS_HEIGHT = $('#sm-micro').height() - 150; // Account for controls
 var targetFps = 90;
 var lastDate = new Date();
 var uptimeSeconds = 0;
 var framesInCurrentSecond = 0;
 
-var colInfos = [
-  { x: 64 + 64 * 0, y: 32, rotation: 90 },
-  { x: 64 + 64 * 1, y: 32, rotation: 0 },
-  { x: 64 + 64 * 2, y: 32, rotation: 180 },
-  { x: 64 + 64 * 3, y: 32, rotation: -90 }
-];
+// Calculate responsive column positions
+function calculateColInfos(width) {
+  var colWidth = width / 5; // 5 columns with spacing
+  return [
+    { x: colWidth * 1, y: 32, rotation: 90 },
+    { x: colWidth * 2, y: 32, rotation: 0 },
+    { x: colWidth * 3, y: 32, rotation: 180 },
+    { x: colWidth * 4, y: 32, rotation: -90 }
+  ];
+}
+
+var colInfos = calculateColInfos(CANVAS_WIDTH);
 
 var targetsY = 32;
 
@@ -95,7 +101,7 @@ colInfos.forEach(function (colInfo) {
 var judgment = Actor(
   imgDir + 'judgment.png',
   { frameWidth: 168, frameHeight: 28, numFrames: 6 },
-  { x: 160, y: 160 }
+  { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 }
 );
 judgment.set({ alpha: 0 });
 var noteSprite = Sprite(imgDir + 'down-note.png', {
@@ -126,6 +132,56 @@ if (text) {
 }
 
 $(document).ready(function () {
+  // Mobile detection and CSS class addition
+  function isMobile() {
+    return window.innerWidth <= 768 || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  }
+
+  if (isMobile()) {
+    document.body.classList.add('mobile');
+  }
+
+  // Handle window resize to add/remove mobile class and update canvas
+  $(window).resize(function () {
+    if (isMobile()) {
+      document.body.classList.add('mobile');
+    } else {
+      document.body.classList.remove('mobile');
+    }
+    // Reinitialize canvas with new dimensions
+    setTimeout(initializeCanvas, 100); // Slight delay to ensure CSS updates
+  });
+
+  // Initialize canvas with proper dimensions
+  function initializeCanvas() {
+    CANVAS_WIDTH = $('#sm-micro').width();
+    CANVAS_HEIGHT = $('#sm-micro').height() - 150; // Account for controls
+    colInfos = calculateColInfos(CANVAS_WIDTH);
+
+    // Update judgment positioning
+    judgment.set({ x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 });
+
+    if (canvasElement) {
+      canvasElement.remove();
+    }
+
+    canvasElement = $(
+      "<canvas width='" + CANVAS_WIDTH + "' height='" + CANVAS_HEIGHT + "'></canvas>"
+    );
+    canvas = canvasElement.get(0).getContext('2d');
+    canvasElement.prependTo('#sm-micro');
+  }
+
+  // Initialize canvas
+  initializeCanvas();
+
+  // Score toggle functionality for mobile
+  $('#scoreToggle').click(function () {
+    $('.score-panel').toggleClass('show');
+    const isVisible = $('.score-panel').hasClass('show');
+    $(this).text(isVisible ? '✕ Close' : '📊 Score');
+  });
+
   // Simple onclick handlers for each button
   $('#button0').click(function () {
     step(0); // Left button (red)
@@ -244,11 +300,8 @@ $(document).ready(function () {
   }
 });
 
-var canvasElement = $(
-  "<canvas width='" + CANVAS_WIDTH + "' height='" + CANVAS_HEIGHT + "'></canvas>"
-);
-var canvas = canvasElement.get(0).getContext('2d');
-canvasElement.prependTo('#sm-micro');
+var canvasElement;
+var canvas;
 
 setInterval(function () {
   var thisDate = new Date();
