@@ -188,6 +188,16 @@ let appRegistry = [
     border: 'border-gray-500/30 hover:border-gray-400/50',
     taskbarGradient: 'from-gray-500 to-gray-700',
     taskbarText: 'text-white'
+  },
+  {
+    id: 'calculator',
+    name: 'Calculator',
+    shortName: 'Calculator',
+    description: 'Calculator',
+    detailedDescription: 'Calculator',
+    icon: '🧮',
+    path: './calculator/',
+    category: 'utility'
   }
 ];
 

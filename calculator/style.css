@@ -1,0 +1,123 @@
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+#calculator {
+  width: 100%;
+  height: 100%;
+  max-width: 800px;
+  max-height: 800px;
+  margin: auto;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #ffffff;
+}
+
+#display {
+  width: 100%;
+  height: 40px;
+  margin-bottom: 10px;
+  text-align: right;
+  padding: 5px;
+  font-size: 18px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+}
+
+#buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  width: 100%;
+}
+
+button {
+  padding: 2vh;
+  font-size: 2vh;
+  border: none;
+  border-radius: 3px;
+  background-color: #e0e0e0;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #d5d5d5;
+}
+
+button:active {
+  background-color: #ccc;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.calculator-content {
+  max-width: 800px;
+  width: 100%;
+  padding: 16px;
+  background: #2d3748;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 600px;
+}
+
+.calculator-display {
+  background: #000000;
+  color: #00ff00;
+  padding: 12px;
+  text-align: right;
+  font-family: 'Courier New', monospace;
+  font-size: 18px;
+  border: 1px solid #4a5568;
+  border-radius: 4px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.calculator-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.calculator-button {
+  height: 40px;
+  background: #4a5568;
+  border: 1px solid #2d3748;
+  color: #e2e8f0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.calculator-button:hover {
+  background: #2b6cb0;
+}
+
+.calculator-button:active {
+  transform: scale(0.95);
+}
+
+.calculator-button.operator {
+  background: #3182ce;
+}
+
+.calculator-button.equals {
+  background: #10b981;
+}
