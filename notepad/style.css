@@ -96,8 +96,10 @@ body {
   color: #7f8c8d;
 }
 
-/* Custom Copy Button Styling */
-.ql-copy-button {
+/* Custom Button Styling */
+.ql-copy-button,
+.ql-export-button,
+.ql-import-button {
   background: #f8f9fa;
   border: 1px solid #ccc;
   border-radius: 3px;
@@ -113,11 +115,15 @@ body {
   justify-content: center;
 }
 
-.ql-copy-button:hover {
+.ql-copy-button:hover,
+.ql-export-button:hover,
+.ql-import-button:hover {
   background: #e9ecef;
   border-color: #adb5bd;
 }
 
-.ql-copy-button:active {
+.ql-copy-button:active,
+.ql-export-button:active,
+.ql-import-button:active {
   background: #dee2e6;
 }
