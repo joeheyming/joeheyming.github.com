@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link
+      rel="icon"
+      id="site-favicon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦄</text></svg>"
+    />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+    <title>🦄 Joe Heyming 🦄 - Principal UI Engineer & Digital Wizard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta
+      name="description"
+      content="Joe Heyming - Principal UI Software Engineer at Roblox, UCSB graduate, patent holder, and creator of amazing web experiences."
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="calculator.js"></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="min-h-screen overflow-x-hidden">
+    <div class="calculator-content">
+      <div class="calculator-display" id="calc-display">0</div>
+      <div class="calculator-buttons">
+        <button class="calculator-button" data-calc="clear">C</button>
+        <button class="calculator-button" data-calc="sign">±</button>
+        <button class="calculator-button" data-calc="percent">%</button>
+        <button class="calculator-button operator" data-calc="/">÷</button>
+        <button class="calculator-button" data-calc="7">7</button>
+        <button class="calculator-button" data-calc="8">8</button>
+        <button class="calculator-button" data-calc="9">9</button>
+        <button class="calculator-button operator" data-calc="*">×</button>
+        <button class="calculator-button" data-calc="4">4</button>
+        <button class="calculator-button" data-calc="5">5</button>
+        <button class="calculator-button" data-calc="6">6</button>
+        <button class="calculator-button operator" data-calc="-">-</button>
+        <button class="calculator-button" data-calc="1">1</button>
+        <button class="calculator-button" data-calc="2">2</button>
+        <button class="calculator-button" data-calc="3">3</button>
+        <button class="calculator-button operator" data-calc="+">+</button>
+        <button class="calculator-button" data-calc="0" style="grid-column: span 2">0</button>
+        <button class="calculator-button" data-calc=".">.</button>
+        <button class="calculator-button equals" data-calc="=">=</button>
+      </div>
+    </div>
+  </body>
+</html>
