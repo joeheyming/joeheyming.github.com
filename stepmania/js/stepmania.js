@@ -4,6 +4,10 @@ var bpm = song.bpm;
 var beatsPerSec = bpm / 60;
 var addToMusicPositionSeconds = song.addToMusicPosition;
 
+// Make these globally accessible for dynamic loading
+window.noteData = noteData;
+window.bpm = bpm;
+
 var currentTime = 0;
 function getMusicBeat(musicSec) {
   return (musicSec + addToMusicPositionSeconds) * beatsPerSec;
@@ -252,6 +256,18 @@ $(document).ready(function () {
     }
   });
 
+  audio.addEventListener('ended', function () {
+    const gameOverMessage = document.getElementById('game-over-message');
+    gameOverMessage.classList.remove('hidden');
+    gameOverMessage.classList.add('animate-fade-in');
+
+    // Optionally hide the message after a few seconds
+    setTimeout(() => {
+      gameOverMessage.classList.add('hidden');
+      gameOverMessage.classList.remove('animate-fade-in');
+    }, 5000);
+  });
+
   function step(col) {
     // timestamp the input as early as possible
     var songSeconds = audio.currentTime;
@@ -410,3 +426,40 @@ function drawNoteField() {
     }
   }
 }
+
+// Reset function for dynamic song loading
+function resetGame() {
+  // Reset score data
+  tapNoteScores = [0, 0, 0, 0, 0, 0];
+  actualPoints = 0;
+
+  // Update score display
+  for (var i = 0; i < tapNoteScores.length; i++) {
+    $('#w' + i).text(tapNoteScores[i]);
+  }
+  $('#percent-score').text('0.00%');
+
+  // Update global variables from window
+  if (window.steps && window.steps.noteData) {
+    noteData = window.steps.noteData;
+  }
+  if (window.song) {
+    bpm = window.song.bpm;
+    beatsPerSec = bpm / 60;
+    addToMusicPositionSeconds = window.song.addToMusicPosition;
+  }
+
+  // Reset audio
+  currentTime = 0;
+  lastSeenCurrentTime = 0;
+  var audioEl = document.getElementById('audio_with_controls');
+  if (audioEl) {
+    audioEl.currentTime = 0;
+    audioEl.pause();
+  }
+
+  console.log('Game reset - Notes:', noteData.length, 'BPM:', bpm);
+}
+
+// Make reset function globally accessible
+window.resetGame = resetGame;
