@@ -142,8 +142,10 @@ var awesomeNamespace = (function () {
             const factDiv = document.createElement('div');
             factDiv.textContent = 'MeowFacts: ' + data.data[0];
             factDiv.className =
-              'fixed top-10 right-10 bg-blue-500 text-white p-4 rounded shadow-lg';
+              'absolute top-10 right-10 bg-blue-500 text-white p-4 rounded shadow-lg';
             factDiv.style.maxWidth = '400px';
+            factDiv.style.left = Math.random() * (window.innerWidth - factDiv.offsetWidth) + 'px';
+            factDiv.style.top = Math.random() * (window.innerHeight - factDiv.offsetHeight) + 'px';
             document.body.appendChild(factDiv);
 
             setTimeout(() => {
@@ -159,10 +161,29 @@ var awesomeNamespace = (function () {
           animalImage.alt = 'Random Animal';
           animalImage.style.position = 'fixed';
           animalImage.style.maxWidth = '150px';
-          animalImage.style.top = '10%';
-          animalImage.style.right = '10%';
-          animalImage.style.transition = 'opacity 2s ease-in-out';
-          animalImage.style.opacity = '0';
+          animalImage.style.top = Math.random() * (window.innerHeight - animalImage.height) + 'px';
+          animalImage.style.right = Math.random() * (window.innerWidth - animalImage.width) + 'px';
+          const transitions = [
+            'spin',
+            'opacity',
+            'slide',
+            'scale',
+            'fade',
+            'rotate',
+            'bounce',
+            'flip'
+          ];
+          const transitionType = transitions[Math.floor(Math.random() * transitions.length)];
+          animalImage.className = transitions[Math.floor(Math.random() * transitions.length)];
+          animalImage.classList.add(transitionType);
+
+          if (transitionType === 'spin') {
+            animalImage.style.transition = 'transform 2s ' + transitionType;
+            animalImage.style.transform = 'rotate(360deg)';
+          } else {
+            animalImage.style.transition = 'opacity 2s ' + transitionType;
+            animalImage.style.opacity = '0';
+          }
           document.body.appendChild(animalImage);
 
           setTimeout(() => {
@@ -192,10 +213,7 @@ var awesomeNamespace = (function () {
         this.currentLyricText = currentLyric.text;
         this.clearAwesomeContent();
         this.awesome_content.textContent = currentLyric.text;
-        if (Math.random() < 0.3) {
-          // 30% chance to show random content
-          this.showRandomContent();
-        }
+        this.showRandomContent();
       }
     },
 

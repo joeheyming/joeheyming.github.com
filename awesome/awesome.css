@@ -22,3 +22,58 @@ div#awesome_div {
   font-size: 80px;
   vertical-align: middle;
 }
+
+.spin {
+  transition: transform 2s ease-in-out;
+  transform: rotate(360deg);
+}
+
+.opacity {
+  transition: opacity 2s ease-in-out;
+  opacity: 0;
+}
+
+.slide {
+  transition: transform 2s ease-in-out;
+  transform: translateX(100px);
+}
+
+.scale {
+  transition: transform 2s ease-in-out;
+  transform: scale(1.5);
+}
+
+.fade {
+  transition: opacity 2s ease-in-out;
+  opacity: 0.5;
+}
+
+.rotate {
+  transition: transform 2s ease-in-out;
+  transform: rotate(180deg);
+}
+
+.bounce {
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-30px);
+  }
+  60% {
+    transform: translateY(-15px);
+  }
+}
+
+.flip {
+  transition: transform 2s ease-in-out;
+  transform: rotateY(180deg);
+}
