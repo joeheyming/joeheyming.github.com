@@ -37,37 +37,46 @@
     <script src="/back.js"></script>
   </head>
   <body
-    class="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 min-h-screen overflow-y-scroll"
+    class="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 h-screen overflow-hidden"
   >
     <!-- Title Header -->
-    <div class="text-center py-4 md:py-6">
+    <div class="text-center py-2 md:py-3">
       <h1
-        class="text-3xl sm:text-4xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-purple mb-2"
+        class="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-purple mb-1"
       >
         StepMania
       </h1>
-      <h2 id="sub-title" class="text-gray-300 text-sm md:text-lg">Dance to the Beat</h2>
+      <h2 id="sub-title" class="text-gray-300 text-xs md:text-sm">Dance to the Beat</h2>
     </div>
 
     <!-- Score Toggle Button for Mobile -->
     <button class="score-toggle" id="scoreToggle">📊 Score</button>
 
-    <!-- Main Game Container -->
+    <!-- Main Game Container - Fixed Layout -->
     <div
-      class="flex flex-col lg:flex-row items-center lg:items-start lg:justify-center gap-6 px-4 pb-4 max-w-7xl mx-auto"
+      class="flex flex-col lg:flex-row items-center lg:items-start lg:justify-center gap-3 px-4 max-w-7xl mx-auto main-game-container"
+      style="
+        height: calc(100vh - 80px - env(safe-area-inset-bottom));
+        max-height: calc(100vh - 80px - env(safe-area-inset-bottom));
+        overflow: hidden;
+      "
     >
       <!-- Game Area -->
-      <div class="flex flex-col items-center w-full max-w-4xl lg:max-w-none lg:flex-1">
+      <div
+        class="flex flex-col items-center justify-between w-full max-w-4xl lg:max-w-none lg:flex-1 h-full overflow-hidden"
+        style="margin-bottom: 60px"
+      >
         <!-- Game Canvas Container -->
         <div
           id="sm-micro"
-          class="relative bg-black/50 rounded-2xl md:rounded-3xl p-3 md:p-6 shadow-2xl border border-purple-500/30 overflow-hidden touch-manipulation"
+          class="relative bg-black/50 rounded-2xl md:rounded-3xl p-3 md:p-6 shadow-2xl border border-purple-500/30 overflow-hidden touch-manipulation flex-shrink-0"
           style="
             background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
               url(songs/Lost/background.png);
             background-size: cover;
             background-position: center;
             user-select: none;
+            min-height: 0;
           "
         >
           <!-- Alert Messages -->
@@ -80,56 +89,56 @@
               ></a>
             </div>
           </div>
+        </div>
 
-          <!-- Game Control Buttons - Bottom of Game Area -->
-          <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+        <!-- Step Buttons Container - Below Canvas -->
+        <div class="w-full flex justify-center py-2 step-button-container flex-shrink-0">
+          <div
+            class="relative w-52 h-32 bg-black/20 backdrop-blur-sm rounded-2xl p-3 border border-purple-400/30"
+          >
+            <!-- Up Button -->
+            <step-button
+              direction="up"
+              color="green"
+              id="button2"
+              style="position: absolute; left: 50%; top: 6px; transform: translateX(-50%)"
+            ></step-button>
+
+            <!-- Left Button -->
+            <step-button
+              direction="left"
+              color="red"
+              id="button0"
+              style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%)"
+            ></step-button>
+
+            <!-- Right Button -->
+            <step-button
+              direction="right"
+              color="yellow"
+              id="button3"
+              style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%)"
+            ></step-button>
+
+            <!-- Down Button -->
+            <step-button
+              direction="down"
+              color="blue"
+              id="button1"
+              style="position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%)"
+            ></step-button>
+
+            <!-- Instruction Text -->
             <div
-              class="relative w-52 h-32 bg-black/20 backdrop-blur-sm rounded-2xl p-3 border border-purple-400/30"
+              class="absolute bottom-[-18px] left-1/2 transform -translate-x-1/2 text-xs text-white/70 whitespace-nowrap"
             >
-              <!-- Up Button -->
-              <step-button
-                direction="up"
-                color="green"
-                id="button2"
-                style="position: absolute; left: 50%; top: 6px; transform: translateX(-50%)"
-              ></step-button>
-
-              <!-- Left Button -->
-              <step-button
-                direction="left"
-                color="red"
-                id="button0"
-                style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%)"
-              ></step-button>
-
-              <!-- Right Button -->
-              <step-button
-                direction="right"
-                color="yellow"
-                id="button3"
-                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%)"
-              ></step-button>
-
-              <!-- Down Button -->
-              <step-button
-                direction="down"
-                color="blue"
-                id="button1"
-                style="position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%)"
-              ></step-button>
-
-              <!-- Instruction Text -->
-              <div
-                class="absolute bottom-[-18px] left-1/2 transform -translate-x-1/2 text-xs text-white/70 whitespace-nowrap"
-              >
-                Click or use WASD/Arrow keys
-              </div>
+              Click or use WASD/Arrow keys
             </div>
           </div>
         </div>
 
-        <!-- Audio Controls -->
-        <div class="mt-6 w-full max-w-lg">
+        <!-- Audio Controls - Below Step Buttons -->
+        <div class="w-full max-w-lg pb-2 audio-controls-container flex-shrink-0 mt-2">
           <audio
             id="audio_with_controls"
             controls
@@ -145,7 +154,7 @@
 
       <!-- Score Panel - Right Side -->
       <div
-        class="score-panel w-full lg:w-80 xl:w-96 lg:flex-shrink-0 bg-black/30 backdrop-blur-lg rounded-2xl p-4 md:p-6 border border-purple-500/30 lg:max-h-screen lg:overflow-y-auto"
+        class="score-panel w-full lg:w-80 xl:w-96 lg:flex-shrink-0 bg-black/30 backdrop-blur-lg rounded-2xl p-4 md:p-6 border border-purple-500/30 lg:max-h-full lg:overflow-y-auto"
       >
         <!-- Score Display -->
         <div class="mb-6 score-compact">
