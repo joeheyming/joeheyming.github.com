@@ -7,12 +7,19 @@ class SongPicker {
     this.init();
   }
 
-  init() {
+  async init() {
     this.createSongPickerUI();
     this.bindEvents();
     // Add logging to verify song data
     console.log('Available songs:', Object.keys(window.songs));
-    this.initByURL();
+
+    // Check URL parameters first
+    const hasURLParams = await this.initByURL();
+
+    // Only load default song if no URL parameters were found
+    if (!hasURLParams) {
+      this.loadDefaultSong();
+    }
   }
 
   async initByURL() {
@@ -21,20 +28,66 @@ class SongPicker {
     const song = urlParams.get('song');
     const difficulty = urlParams.get('difficulty');
 
+    // Return false if no URL parameters
+    if (!song) {
+      return false;
+    }
+
     // Check if song exists in window.songs
     const foundSong = Object.keys(window.songs).find((s) => {
       return window.songs[s].title === song;
     });
+
     if (foundSong) {
       const songData = window.songs[foundSong];
-      this.selectSong(foundSong, songData, null);
-      this.selectDifficulty(difficulty, null);
-      await this.loadSongList();
-      await this.loadSimfile(songData.simfile);
 
-      this.startSelectedSong();
+      try {
+        // Show main page loading overlay for URL initialization
+        this.showMainLoading(songData.title, 'Loading from URL...', 5);
+
+        this.selectSong(foundSong, songData, null);
+        this.selectDifficulty(difficulty, null);
+
+        this.updateMainLoadingProgress('Loading song list...', 15);
+        await this.loadSongList();
+
+        if (songData.simfile) {
+          this.updateMainLoadingProgress('Fetching song charts...', 25);
+          await this.loadSimfile(songData.simfile);
+        }
+
+        this.updateMainLoadingProgress('Starting song...', 40);
+        document.getElementById('sub-title').textContent = songData.title;
+        await this.startSelectedSong(true, true); // Pass true to indicate loading is already shown, and true to use main loading
+
+        return true; // Successfully loaded from URL
+      } catch (error) {
+        this.hideMainLoading();
+        console.error('Error loading song from URL:', error);
+        return false;
+      }
     } else {
       console.error(`Song not found: ${song}`);
+      return false; // Song not found, should load default
+    }
+  }
+
+  loadDefaultSong() {
+    // Load Lost as the default song, but don't auto-play
+    const defaultSong = 'Lost';
+    const songData = window.songs[defaultSong];
+
+    if (songData) {
+      // Update audio source but don't start playing
+      const audioEl = document.getElementById('audio_with_controls');
+      audioEl.innerHTML = `<source src="${songData.url}" type="audio/mpeg" />`;
+      audioEl.load();
+
+      // Update background
+      const gameArea = document.getElementById('sm-micro');
+      gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${songData.background})`;
+
+      console.log('Default song loaded (Lost) - ready to play when user starts');
     }
   }
 
@@ -73,7 +126,19 @@ class SongPicker {
         
         <div id="loading-indicator" class="hidden text-center mt-6">
           <div class="inline-block w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-          <p class="text-white mt-2">Loading song data...</p>
+          <p id="loading-text" class="text-white mt-2">Loading song data...</p>
+        </div>
+        
+        <!-- Full-screen loading overlay for song loading -->
+        <div id="song-loading-overlay" class="hidden fixed inset-0 bg-black/90 backdrop-blur-lg z-[60] flex items-center justify-center">
+          <div class="text-center">
+            <div class="inline-block w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-6"></div>
+            <h2 id="song-loading-title" class="text-2xl font-bold text-white mb-2">Loading Song...</h2>
+            <p id="song-loading-status" class="text-purple-300">Preparing audio and charts...</p>
+            <div class="mt-4 w-64 bg-gray-700 rounded-full h-2">
+              <div id="song-loading-progress" class="bg-purple-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -114,6 +179,55 @@ class SongPicker {
     tooltip.className = 'hidden absolute bg-black text-white text-xs rounded py-1 px-2';
     tooltip.textContent = 'URL copied to clipboard!';
     document.body.appendChild(tooltip);
+  }
+
+  showSongLoading(songTitle, status = 'Preparing audio and charts...', progress = 0) {
+    const overlay = document.getElementById('song-loading-overlay');
+    const title = document.getElementById('song-loading-title');
+    const statusEl = document.getElementById('song-loading-status');
+    const progressBar = document.getElementById('song-loading-progress');
+
+    title.textContent = `Loading ${songTitle}...`;
+    statusEl.textContent = status;
+    progressBar.style.width = `${progress}%`;
+    overlay.classList.remove('hidden');
+  }
+
+  updateSongLoadingProgress(status, progress) {
+    const statusEl = document.getElementById('song-loading-status');
+    const progressBar = document.getElementById('song-loading-progress');
+
+    statusEl.textContent = status;
+    progressBar.style.width = `${progress}%`;
+  }
+
+  hideSongLoading() {
+    document.getElementById('song-loading-overlay').classList.add('hidden');
+  }
+
+  // Main page loading functions for URL initialization
+  showMainLoading(songTitle, status = 'Preparing audio and charts...', progress = 0) {
+    const overlay = document.getElementById('main-loading-overlay');
+    const title = document.getElementById('main-loading-title');
+    const statusEl = document.getElementById('main-loading-status');
+    const progressBar = document.getElementById('main-loading-progress');
+
+    title.textContent = `Loading ${songTitle}...`;
+    statusEl.textContent = status;
+    progressBar.style.width = `${progress}%`;
+    overlay.classList.remove('hidden');
+  }
+
+  updateMainLoadingProgress(status, progress) {
+    const statusEl = document.getElementById('main-loading-status');
+    const progressBar = document.getElementById('main-loading-progress');
+
+    statusEl.textContent = status;
+    progressBar.style.width = `${progress}%`;
+  }
+
+  hideMainLoading() {
+    document.getElementById('main-loading-overlay').classList.add('hidden');
   }
 
   bindEvents() {
@@ -171,7 +285,6 @@ class SongPicker {
           : window.location.href;
 
       copyToClipboard(url).then(() => {
-        // alert('URL copied to clipboard!'); // Removed alert, using tooltip instead
         this.showTooltip(document.getElementById('share-song'));
       });
     });
@@ -203,46 +316,12 @@ class SongPicker {
     const songListEl = document.getElementById('song-list');
     songListEl.innerHTML = '';
 
-    // Show loading message
-    const loadingMsg = document.createElement('div');
-    loadingMsg.className = 'text-center text-gray-400 py-8';
-    loadingMsg.innerHTML = `
-      <div class="inline-block w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-      <p>Loading song data and parsing BPMs...</p>
-    `;
-    songListEl.appendChild(loadingMsg);
-
-    // Load songs from the songs.js data and parse BPM from simfiles
+    // Load songs from the songs.js data (no need to prefetch simfiles for BPM)
     const songEntries = Object.entries(window.songs);
-    for (let i = 0; i < songEntries.length; i++) {
-      const [songKey, songData] = songEntries[i];
-
-      // Try to get BPM from simfile if available
-      let displayData = { ...songData };
-      if (songData.simfile) {
-        try {
-          const bpm = await this.getSimfileBPM(songData.simfile);
-          if (bpm) {
-            displayData.bpm = bpm;
-            displayData.bpmSource = 'simfile';
-          } else {
-            displayData.bpmSource = 'fallback';
-          }
-        } catch (error) {
-          console.warn(`Failed to parse BPM for ${songKey}:`, error);
-          displayData.bpmSource = 'fallback';
-        }
-      } else {
-        displayData.bpmSource = 'hardcoded';
-      }
-
-      // Create song item and replace loading message with first item, or just append subsequent items
-      const songItem = this.createSongItem(songKey, displayData);
-      if (i === 0) {
-        songListEl.innerHTML = ''; // Clear loading message
-      }
+    songEntries.forEach(([songKey, songData]) => {
+      const songItem = this.createSongItem(songKey, songData);
       songListEl.appendChild(songItem);
-    }
+    });
   }
 
   createSongItem(songKey, songData) {
@@ -254,20 +333,12 @@ class SongPicker {
     const emoji = songKey === 'Butterfly' ? '🦋' : '🎵';
     const hasSimfile = songData.simfile ? '(Simfile)' : '(Legacy)';
 
-    // Create BPM display with source indicator
-    let bpmDisplay = `BPM: ${songData.bpm}`;
-    if (songData.bpmSource === 'simfile') {
-      bpmDisplay += ' ✓'; // Checkmark to show it's from simfile
-    } else if (songData.bpmSource === 'fallback') {
-      bpmDisplay += ' ⚠️'; // Warning to show simfile parse failed
-    }
-
     item.innerHTML = `
       <div class="flex items-center justify-between">
         <div>
           <h3 class="text-xl font-bold text-white mb-1">${songData.title || songKey}</h3>
           <p class="text-gray-300 text-sm">by ${songData.artist || 'Unknown'}</p>
-          <p class="text-gray-400 text-xs">${hasSimfile} - ${bpmDisplay}</p>
+          <p class="text-gray-400 text-xs">${hasSimfile}</p>
         </div>
         <div class="text-4xl">${emoji}</div>
       </div>
@@ -302,6 +373,7 @@ class SongPicker {
     if (songData.simfile) {
       // Show loading indicator
       document.getElementById('loading-indicator').classList.remove('hidden');
+      document.getElementById('loading-text').textContent = `Loading ${songData.title} charts...`;
 
       try {
         // Load and parse simfile
@@ -311,9 +383,9 @@ class SongPicker {
         this.showDifficultySelector();
       } catch (error) {
         console.error('Failed to load simfile:', error);
-        alert('Failed to load song data. Please try another song.');
       } finally {
         document.getElementById('loading-indicator').classList.add('hidden');
+        document.getElementById('loading-text').textContent = 'Loading song data...';
       }
     }
   }
@@ -335,51 +407,6 @@ class SongPicker {
 
     // Store parsed data
     this.parsedSongs[this.selectedSong.key] = parsedData;
-  }
-
-  async getSimfileBPM(simfileUrl) {
-    try {
-      const response = await fetch(simfileUrl);
-      const simfileText = await response.text();
-
-      // Quick parse for BPM only - we don't need full chart parsing for display
-      const parser = new SimfileParser();
-
-      // Parse only metadata and BPM sections
-      const cleanContent = simfileText
-        .replace(/\/\/.*$/gm, '') // Remove line comments
-        .replace(/\/\*[\s\S]*?\*\//g, '') // Remove block comments
-        .replace(/\r\n/g, '\n')
-        .replace(/\r/g, '\n');
-
-      // Parse metadata for DISPLAYBPM
-      const metadataRegex = /#([A-Z]+):([^;]+);/g;
-      const metadata = {};
-      let match;
-      while ((match = metadataRegex.exec(cleanContent)) !== null) {
-        metadata[match[1]] = match[2].trim();
-      }
-
-      // Check for DISPLAYBPM first
-      if (metadata.DISPLAYBPM) {
-        const bpm = parseFloat(metadata.DISPLAYBPM);
-        if (!isNaN(bpm)) return bpm;
-      }
-
-      // Fall back to first BPM change
-      const bpmMatch = cleanContent.match(/#BPMS:([^;]+);/);
-      if (bpmMatch) {
-        const bpmString = bpmMatch[1];
-        const firstBpmPair = bpmString.split(',')[0];
-        const [, bpm] = firstBpmPair.split('=').map((s) => parseFloat(s.trim()));
-        if (!isNaN(bpm)) return bpm;
-      }
-
-      return null; // Could not parse BPM
-    } catch (error) {
-      console.warn('Error fetching simfile for BPM:', error);
-      return null;
-    }
   }
 
   showDifficultySelector() {
@@ -421,7 +448,7 @@ class SongPicker {
     document.getElementById('start-game-btn').classList.remove('hidden');
   }
 
-  async startSelectedSong() {
+  async startSelectedSong(loadingAlreadyShown = false, useMainLoading = false) {
     if (!this.selectedSong || this.selectedDifficulty === null) {
       alert('Please select a song and difficulty first.');
       return;
@@ -439,13 +466,60 @@ class SongPicker {
       return;
     }
 
-    // Load the song into the game
-    await this.loadSongIntoGame(parsedData, selectedChart);
+    try {
+      // Show loading overlay only if not already shown
+      if (!loadingAlreadyShown) {
+        if (useMainLoading) {
+          this.showMainLoading(this.selectedSong.data.title, 'Loading audio and charts...', 10);
+        } else {
+          this.showSongLoading(this.selectedSong.data.title, 'Loading audio and charts...', 10);
+        }
+      }
 
-    this.hideSongPicker();
+      // Load the song into the game (starts at 50% if from URL, 30% if standalone)
+      const startProgress = loadingAlreadyShown ? 50 : 30;
+      await this.loadSongIntoGame(parsedData, selectedChart, startProgress, useMainLoading);
+
+      if (useMainLoading) {
+        this.updateMainLoadingProgress('Starting game...', 90);
+      } else {
+        this.updateSongLoadingProgress('Starting game...', 90);
+      }
+
+      // Small delay to show completion
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      if (useMainLoading) {
+        this.updateMainLoadingProgress('Ready!', 100);
+      } else {
+        this.updateSongLoadingProgress('Ready!', 100);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      this.hideSongPicker();
+      if (useMainLoading) {
+        this.hideMainLoading();
+      } else {
+        this.hideSongLoading();
+      }
+    } catch (error) {
+      if (useMainLoading) {
+        this.hideMainLoading();
+      } else {
+        this.hideSongLoading();
+      }
+      console.error('Error starting song:', error);
+    }
   }
 
-  async loadSongIntoGame(parsedData, chart) {
+  async loadSongIntoGame(parsedData, chart, startProgress = 30, useMainLoading = false) {
+    // Update progress: Setting up game data
+    if (useMainLoading) {
+      this.updateMainLoadingProgress('Setting up game data...', startProgress);
+    } else {
+      this.updateSongLoadingProgress('Setting up game data...', startProgress);
+    }
+
     // Update global song data
     window.song = {
       bpm: parsedData.bpm,
@@ -457,23 +531,50 @@ class SongPicker {
       noteData: chart.noteData
     };
 
+    // Update progress: Loading audio
+    const audioProgress = startProgress + 20;
+    if (useMainLoading) {
+      this.updateMainLoadingProgress('Loading audio file...', audioProgress);
+    } else {
+      this.updateSongLoadingProgress('Loading audio file...', audioProgress);
+    }
+
     // Update audio source
     const audioEl = document.getElementById('audio_with_controls');
     audioEl.innerHTML = `<source src="${this.selectedSong.data.url}" type="audio/mpeg" />`;
     audioEl.load();
 
-    // Autoplay the new song
-    audioEl.addEventListener(
-      'canplay',
-      () => {
-        audioEl.play();
-      },
-      { once: true }
-    );
+    // Wait for audio to be ready and autoplay
+    await new Promise((resolve) => {
+      audioEl.addEventListener(
+        'canplay',
+        () => {
+          audioEl.play();
+          resolve();
+        },
+        { once: true }
+      );
+    });
+
+    // Update progress: Setting up visuals
+    const visualProgress = startProgress + 40;
+    if (useMainLoading) {
+      this.updateMainLoadingProgress('Setting up visuals...', visualProgress);
+    } else {
+      this.updateSongLoadingProgress('Setting up visuals...', visualProgress);
+    }
 
     // Update background
     const gameArea = document.getElementById('sm-micro');
     gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${this.selectedSong.data.background})`;
+
+    // Update progress: Preparing charts
+    const chartProgress = startProgress + 50;
+    if (useMainLoading) {
+      this.updateMainLoadingProgress('Preparing note charts...', chartProgress);
+    } else {
+      this.updateSongLoadingProgress('Preparing note charts...', chartProgress);
+    }
 
     // Reset game state
     if (window.resetGame) {

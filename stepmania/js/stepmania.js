@@ -15,7 +15,12 @@ function getMusicBeat(musicSec) {
 
 var audio = document.getElementById('audio_with_controls');
 
-var CANVAS_WIDTH = $('#sm-micro').width();
+// Apply width constraint: canvas can't be wider than 4 times the arrow width plus padding
+var containerWidth = $('#sm-micro').width();
+var arrowWidth = 64; // Width of each StepMania arrow
+var padding = 64; // Add padding around the arrows
+var maxCanvasWidth = arrowWidth * 4 + padding; // Maximum width: 4 times arrow width plus padding
+var CANVAS_WIDTH = Math.min(containerWidth, maxCanvasWidth);
 var CANVAS_HEIGHT = $('#sm-micro').height() - 150; // Account for controls
 var targetFps = 90;
 var lastDate = new Date();
@@ -158,8 +163,14 @@ $(document).ready(function () {
 
   // Initialize canvas with proper dimensions
   function initializeCanvas() {
-    CANVAS_WIDTH = $('#sm-micro').width();
-    CANVAS_HEIGHT = $('#sm-micro').height() - 150; // Account for controls
+    var containerWidth = $('#sm-micro').width();
+    var arrowWidth = 64; // Width of each StepMania arrow
+    var padding = 64; // Add padding around the arrows
+    var maxCanvasWidth = arrowWidth * 4 + padding; // Maximum width: 4 times arrow width plus padding
+
+    // Constrain canvas width to not exceed 4x arrow width plus padding
+    CANVAS_WIDTH = Math.min(containerWidth, maxCanvasWidth);
+    CANVAS_HEIGHT = $('#sm-micro').height() - 100; // Account for controls
     colInfos = calculateColInfos(CANVAS_WIDTH);
 
     // Update judgment positioning
@@ -170,7 +181,11 @@ $(document).ready(function () {
     }
 
     canvasElement = $(
-      "<canvas width='" + CANVAS_WIDTH + "' height='" + CANVAS_HEIGHT + "'></canvas>"
+      "<canvas id='sm-micro-canvas' width='" +
+        CANVAS_WIDTH +
+        "' height='" +
+        CANVAS_HEIGHT +
+        "'></canvas>"
     );
     canvas = canvasElement.get(0).getContext('2d');
     canvasElement.prependTo('#sm-micro');
@@ -189,34 +204,51 @@ $(document).ready(function () {
   // Simple onclick handlers for each button
   $('#button0').click(function () {
     step(0); // Left button (red)
+    addButtonFeedback(0);
   });
 
   $('#button1').click(function () {
     step(1); // Down button (blue)
+    addButtonFeedback(1);
   });
 
   $('#button2').click(function () {
     step(2); // Up button (green)
+    addButtonFeedback(2);
   });
 
   $('#button3').click(function () {
     step(3); // Right button (yellow)
+    addButtonFeedback(3);
   });
 
   // Also handle touch events for mobile
   if (window.Touch) {
     $('#button0')[0].ontouchstart = function () {
       step(0);
+      addButtonFeedback(0);
     };
     $('#button1')[0].ontouchstart = function () {
       step(1);
+      addButtonFeedback(1);
     };
     $('#button2')[0].ontouchstart = function () {
       step(2);
+      addButtonFeedback(2);
     };
     $('#button3')[0].ontouchstart = function () {
       step(3);
+      addButtonFeedback(3);
     };
+  }
+
+  // Function to add visual feedback to buttons
+  function addButtonFeedback(buttonId) {
+    var button = $('#button' + buttonId);
+    button.addClass('button-pressed');
+    setTimeout(function () {
+      button.removeClass('button-pressed');
+    }, 150);
   }
 
   $(document).keydown(function (event) {
@@ -224,7 +256,7 @@ $(document).ready(function () {
 
     var col;
     switch (keyCode) {
-      case 65 /*d*/:
+      case 65 /*a*/:
       case 37:
         col = 0;
         break;
@@ -243,6 +275,7 @@ $(document).ready(function () {
     }
     if (undefined != col) {
       step(col);
+      addButtonFeedback(col);
       event.preventDefault();
     }
     // spacebar toggle play/pause
