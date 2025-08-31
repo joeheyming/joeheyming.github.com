@@ -83,74 +83,40 @@
 
           <!-- Game Control Buttons - Bottom of Game Area -->
           <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
-            <div class="relative w-52 h-32 rounded-2xl p-3">
+            <div
+              class="relative w-52 h-32 bg-black/20 backdrop-blur-sm rounded-2xl p-3 border border-purple-400/30"
+            >
               <!-- Up Button -->
-              <div
-                class="button absolute w-11 h-11 md:w-12 md:h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-lg border-2 border-green-300 shadow-lg hover:shadow-green-400/70 hover:shadow-xl hover:border-green-200 hover:from-green-300 hover:to-green-500 transition-all duration-150 hover:scale-110 active:scale-90 active:shadow-inner active:from-green-500 active:to-green-700 cursor-pointer select-none transform-gpu"
+              <step-button
+                direction="up"
+                color="green"
                 id="button2"
-                style="left: 50%; top: 6px; transform: translateX(-50%); user-select: none"
-              >
-                <div
-                  class="absolute inset-1 bg-gradient-to-br from-green-200 to-green-400 rounded-lg opacity-60"
-                  style="user-select: none"
-                ></div>
-                <div
-                  class="absolute inset-0 flex items-center justify-center text-white font-bold text-sm"
-                >
-                  ↑
-                </div>
-              </div>
+                style="position: absolute; left: 50%; top: 6px; transform: translateX(-50%)"
+              ></step-button>
 
               <!-- Left Button -->
-              <div
-                class="button absolute w-11 h-11 md:w-12 md:h-12 bg-gradient-to-br from-red-400 to-red-600 rounded-lg border-2 border-red-300 shadow-lg hover:shadow-red-400/70 hover:shadow-xl hover:border-red-200 hover:from-red-300 hover:to-red-500 transition-all duration-150 hover:scale-110 active:scale-90 active:shadow-inner active:from-red-500 active:to-red-700 cursor-pointer select-none transform-gpu"
+              <step-button
+                direction="left"
+                color="red"
                 id="button0"
-                style="left: 12px; top: 50%; transform: translateY(-50%); user-select: none"
-              >
-                <div
-                  class="absolute inset-1 bg-gradient-to-br from-red-200 to-red-400 rounded-lg opacity-60"
-                  style="user-select: none"
-                ></div>
-                <div
-                  class="absolute inset-0 flex items-center justify-center text-white font-bold text-sm"
-                >
-                  ←
-                </div>
-              </div>
+                style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%)"
+              ></step-button>
 
               <!-- Right Button -->
-              <div
-                class="button absolute w-11 h-11 md:w-12 md:h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg border-2 border-yellow-300 shadow-lg hover:shadow-yellow-400/70 hover:shadow-xl hover:border-yellow-200 hover:from-yellow-300 hover:to-yellow-500 transition-all duration-150 hover:scale-110 active:scale-90 active:shadow-inner active:from-yellow-500 active:to-yellow-700 cursor-pointer select-none transform-gpu"
+              <step-button
+                direction="right"
+                color="yellow"
                 id="button3"
-                style="right: 12px; top: 50%; transform: translateY(-50%); user-select: none"
-              >
-                <div
-                  class="absolute inset-1 bg-gradient-to-br from-yellow-200 to-yellow-400 rounded-lg opacity-60"
-                  style="user-select: none"
-                ></div>
-                <div
-                  class="absolute inset-0 flex items-center justify-center text-white font-bold text-sm"
-                >
-                  →
-                </div>
-              </div>
+                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%)"
+              ></step-button>
 
               <!-- Down Button -->
-              <div
-                class="button absolute w-11 h-11 md:w-12 md:h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg border-2 border-blue-300 shadow-lg hover:shadow-blue-400/70 hover:shadow-xl hover:border-blue-200 hover:from-blue-300 hover:to-blue-500 transition-all duration-150 hover:scale-110 active:scale-90 active:shadow-inner active:from-blue-500 active:to-blue-700 cursor-pointer select-none transform-gpu"
+              <step-button
+                direction="down"
+                color="blue"
                 id="button1"
-                style="left: 50%; bottom: 6px; transform: translateX(-50%); user-select: none"
-              >
-                <div
-                  class="absolute inset-1 bg-gradient-to-br from-blue-200 to-blue-400 rounded-lg opacity-60"
-                  style="user-select: none"
-                ></div>
-                <div
-                  class="absolute inset-0 flex items-center justify-center text-white font-bold text-sm"
-                >
-                  ↓
-                </div>
-              </div>
+                style="position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%)"
+              ></step-button>
 
               <!-- Instruction Text -->
               <div
@@ -286,6 +252,7 @@
     <script type="text/javascript" src="js/simfileParser.js"></script>
     <script type="text/javascript" src="js/songPicker.js"></script>
     <script type="text/javascript" src="js/stepmania.js"></script>
+    <script type="text/javascript" src="step-button.js"></script>
     <!-- Main page loading overlay for URL initialization -->
     <div
       id="main-loading-overlay"

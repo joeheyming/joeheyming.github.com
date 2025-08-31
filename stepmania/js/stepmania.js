@@ -201,54 +201,66 @@ $(document).ready(function () {
     $(this).text(isVisible ? '✕ Close' : '📊 Score');
   });
 
-  // Simple onclick handlers for each button
-  $('#button0').click(function () {
-    step(0); // Left button (red)
-    addButtonFeedback(0);
+  // Simple onclick handlers for each button - REMOVED (now handled by web component)
+  // $('#button0').click(function () {
+  //   step(0); // Left button (red)
+  //   addButtonFeedback(0);
+  // });
+
+  // $('#button1').click(function () {
+  //   step(1); // Down button (blue)
+  //   addButtonFeedback(1);
+  // });
+
+  // $('#button2').click(function () {
+  //   step(2); // Up button (green)
+  //   addButtonFeedback(2);
+  // });
+
+  // $('#button3').click(function () {
+  //   step(3); // Right button (yellow)
+  //   addButtonFeedback(3);
+  // });
+
+  // Also handle touch events for mobile - REMOVED (now handled by web component)
+  // if (window.Touch) {
+  //   $('#button0')[0].ontouchstart = function () {
+  //     step(0);
+  //     addButtonFeedback(0);
+  //   };
+  //   $('#button1')[0].ontouchstart = function () {
+  //     step(1);
+  //     addButtonFeedback(1);
+  //   };
+  //   $('#button2')[0].ontouchstart = function () {
+  //     step(2);
+  //     addButtonFeedback(2);
+  //   };
+  //   $('#button3')[0].ontouchstart = function () {
+  //     step(3);
+  //     addButtonFeedback(3);
+  //   };
+  // }
+
+  // Handle web component button events
+  document.addEventListener('stepButtonClick', function (event) {
+    const buttonId = event.detail.buttonId;
+    const buttonNumber = buttonId.replace('button', '');
+    step(parseInt(buttonNumber));
+
+    // Add visual feedback to the web component
+    const stepButton = event.target;
+    if (stepButton && stepButton.addPressedFeedback) {
+      stepButton.addPressedFeedback();
+    }
   });
 
-  $('#button1').click(function () {
-    step(1); // Down button (blue)
-    addButtonFeedback(1);
-  });
-
-  $('#button2').click(function () {
-    step(2); // Up button (green)
-    addButtonFeedback(2);
-  });
-
-  $('#button3').click(function () {
-    step(3); // Right button (yellow)
-    addButtonFeedback(3);
-  });
-
-  // Also handle touch events for mobile
-  if (window.Touch) {
-    $('#button0')[0].ontouchstart = function () {
-      step(0);
-      addButtonFeedback(0);
-    };
-    $('#button1')[0].ontouchstart = function () {
-      step(1);
-      addButtonFeedback(1);
-    };
-    $('#button2')[0].ontouchstart = function () {
-      step(2);
-      addButtonFeedback(2);
-    };
-    $('#button3')[0].ontouchstart = function () {
-      step(3);
-      addButtonFeedback(3);
-    };
-  }
-
-  // Function to add visual feedback to buttons
+  // Function to add visual feedback to buttons (for keyboard)
   function addButtonFeedback(buttonId) {
-    var button = $('#button' + buttonId);
-    button.addClass('button-pressed');
-    setTimeout(function () {
-      button.removeClass('button-pressed');
-    }, 150);
+    var button = document.getElementById(buttonId);
+    if (button && button.addPressedFeedback) {
+      button.addPressedFeedback();
+    }
   }
 
   $(document).keydown(function (event) {
