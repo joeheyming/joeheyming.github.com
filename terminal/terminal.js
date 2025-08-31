@@ -3,25 +3,41 @@ class Terminal {
   constructor(windowId = null, osInstance = null) {
     this.windowId = windowId;
     this.os = osInstance;
-    this.currentDirectory = '/home/user';
     this.commandHistory = [];
     this.historyIndex = -1;
+    this.aliases = {}; // Command aliases
     this.fileSystemDB = new FileSystemDB();
     this.isStandalone = !windowId; // Detect if running standalone
     this.commandsLoaded = false;
     this.filesystemReady = false;
 
+    // Initialize environment variables
+    this.env = {
+      USER: 'jheyming',
+      HOME: '/home/jheyming',
+      PWD: '/home/jheyming',
+      SHELL: '/bin/jsh',
+      TERM: 'heyming-terminal',
+      PATH: '/bin:/usr/bin:/usr/local/bin',
+      HOSTNAME: 'heyming-os',
+      LANG: 'en_US.UTF-8',
+      EDITOR: 'nano',
+      PAGER: 'less'
+    };
+
+    this.currentDirectory = this.env.HOME;
+
     // Load command history from session storage
     this.loadCommandHistory();
 
-    // Initialize filesystem and load commands
-    this.initializeFilesystem()
-      .then(() => {
-        this.filesystemReady = true;
-        return this.loadCommands();
-      })
+    // Load commands first, then initialize filesystem with /bin files
+    this.loadCommands()
       .then(() => {
         this.commandsLoaded = true;
+        return this.initializeFilesystem();
+      })
+      .then(() => {
+        this.filesystemReady = true;
         // Initialize terminal after a brief delay
         setTimeout(() => this.initialize(), 100);
       })
@@ -30,10 +46,8 @@ class Terminal {
         // Fallback to in-memory filesystem
         this.fileSystem = this.initializeFileSystem();
         this.filesystemReady = true;
-        this.loadCommands().then(() => {
-          this.commandsLoaded = true;
-          setTimeout(() => this.initialize(), 100);
-        });
+        this.commandsLoaded = true;
+        setTimeout(() => this.initialize(), 100);
       });
   }
 
@@ -44,7 +58,7 @@ class Terminal {
   }
 
   async initializeFilesystem() {
-    await this.fileSystemDB.initializeWithScaffolding();
+    await this.fileSystemDB.initializeWithScaffolding(this.env.USER);
   }
 
   initializeFileSystem() {
@@ -55,7 +69,7 @@ class Terminal {
           home: {
             type: 'directory',
             contents: {
-              user: {
+              [this.env.USER]: {
                 type: 'directory',
                 contents: {
                   Desktop: { type: 'directory', contents: {} },
@@ -97,7 +111,10 @@ class Terminal {
           etc: {
             type: 'directory',
             contents: {
-              passwd: { type: 'file', content: 'user:x:1000:1000:User:/home/user:/bin/bash' },
+              passwd: {
+                type: 'file',
+                content: `${this.env.USER}:x:1000:1000:Joe Heyming:${this.env.HOME}:${this.env.SHELL}`
+              },
               hosts: { type: 'file', content: '127.0.0.1 localhost\n::1 localhost' }
             }
           }
@@ -182,7 +199,9 @@ class Terminal {
     } else {
       // OS-integrated mode - original behavior
       const currentLine = input.closest('.terminal-line');
-      currentLine.innerHTML = `<span class="terminal-prompt">user@heyming-os:${this.getShortPath()}$</span> ${command}`;
+      currentLine.innerHTML = `<span class="terminal-prompt">${this.env.USER}@${
+        this.env.HOSTNAME
+      }:${this.getShortPath()}$</span> ${command}`;
 
       // Process command and get output (now async)
       try {
@@ -203,11 +222,7 @@ class Terminal {
   }
 
   async processCommand(command) {
-    const parts = command.trim().split(/\s+/);
-    const cmd = parts[0].toLowerCase();
-    const args = parts.slice(1);
-
-    if (cmd === '') return '';
+    if (command.trim() === '') return '';
 
     // Check if commands are loaded
     if (!this.commandsLoaded) {
@@ -219,24 +234,320 @@ class Terminal {
       return 'Filesystem is still initializing, please wait...';
     }
 
-    // Special case for help command
-    if (cmd === 'help') {
-      return this.helpCommand();
+    // Handle history expansion
+    const expandedCommand = this.expandHistory(command);
+    if (expandedCommand !== command) {
+      // Show the expanded command
+      this.addOutput(`${expandedCommand}`);
     }
 
-    // Try to get command from registry
-    const commandHandler = window.commandRegistry.get(cmd);
-    if (commandHandler) {
-      try {
-        const result = commandHandler(this, args);
-        // Handle both sync and async command handlers
-        return result instanceof Promise ? await result : result;
-      } catch (error) {
-        return `Error executing ${cmd}: ${error.message}`;
+    // Parse command for pipes and redirections
+    const parsedCommand = this.parseCommand(expandedCommand);
+
+    try {
+      return await this.executeCommandChain(parsedCommand);
+    } catch (error) {
+      return `Error: ${error.message}`;
+    }
+  }
+
+  // Expand history (!!, !n, etc.)
+  expandHistory(command) {
+    // Handle !! (repeat last command)
+    if (command.trim() === '!!') {
+      if (this.commandHistory.length === 0) {
+        throw new Error('jsh: !!: event not found');
+      }
+      return this.commandHistory[this.commandHistory.length - 1];
+    }
+
+    // Handle !n (repeat command number n)
+    const historyMatch = command.match(/^!(\d+)$/);
+    if (historyMatch) {
+      const historyNumber = parseInt(historyMatch[1]);
+      if (historyNumber < 1 || historyNumber > this.commandHistory.length) {
+        throw new Error(`jsh: !${historyNumber}: event not found`);
+      }
+      return this.commandHistory[historyNumber - 1];
+    }
+
+    // Handle !string (repeat last command starting with string)
+    const stringMatch = command.match(/^!([a-zA-Z].*)$/);
+    if (stringMatch) {
+      const searchString = stringMatch[1];
+      for (let i = this.commandHistory.length - 1; i >= 0; i--) {
+        if (this.commandHistory[i].startsWith(searchString)) {
+          return this.commandHistory[i];
+        }
+      }
+      throw new Error(`jsh: !${searchString}: event not found`);
+    }
+
+    return command;
+  }
+
+  parseCommand(command) {
+    // Split by pipes first
+    const pipeSegments = command.split('|').map((seg) => seg.trim());
+
+    const commandChain = [];
+
+    for (let segment of pipeSegments) {
+      const cmd = this.parseSegment(segment);
+      commandChain.push(cmd);
+    }
+
+    return commandChain;
+  }
+
+  parseSegment(segment) {
+    const tokens = this.tokenize(segment);
+    const cmd = {
+      name: '',
+      args: [],
+      redirections: {
+        stdout: null,
+        stderr: null,
+        stdin: null,
+        append: false
+      }
+    };
+
+    let i = 0;
+    while (i < tokens.length) {
+      const token = tokens[i];
+
+      if (token === '>') {
+        // Stdout redirection
+        if (i + 1 < tokens.length) {
+          cmd.redirections.stdout = tokens[i + 1];
+          cmd.redirections.append = false;
+          i += 2;
+        } else {
+          throw new Error('Syntax error: expected filename after >');
+        }
+      } else if (token === '>>') {
+        // Stdout append redirection
+        if (i + 1 < tokens.length) {
+          cmd.redirections.stdout = tokens[i + 1];
+          cmd.redirections.append = true;
+          i += 2;
+        } else {
+          throw new Error('Syntax error: expected filename after >>');
+        }
+      } else if (token === '2>') {
+        // Stderr redirection
+        if (i + 1 < tokens.length) {
+          cmd.redirections.stderr = tokens[i + 1];
+          i += 2;
+        } else {
+          throw new Error('Syntax error: expected filename after 2>');
+        }
+      } else if (token === '<') {
+        // Stdin redirection
+        if (i + 1 < tokens.length) {
+          cmd.redirections.stdin = tokens[i + 1];
+          i += 2;
+        } else {
+          throw new Error('Syntax error: expected filename after <');
+        }
+      } else {
+        // Regular argument
+        if (cmd.name === '') {
+          cmd.name = token;
+        } else {
+          cmd.args.push(token);
+        }
+        i++;
       }
     }
 
-    return `bash: ${cmd}: command not found\nTry 'help' for available commands or 'sudo apt install ${cmd}' to pretend to install it! 😄`;
+    return cmd;
+  }
+
+  tokenize(segment) {
+    const tokens = [];
+    let current = '';
+    let inQuotes = false;
+    let quoteChar = '';
+
+    for (let i = 0; i < segment.length; i++) {
+      const char = segment[i];
+
+      if ((char === '"' || char === "'") && !inQuotes) {
+        inQuotes = true;
+        quoteChar = char;
+      } else if (char === quoteChar && inQuotes) {
+        inQuotes = false;
+        quoteChar = '';
+      } else if (!inQuotes && /\s/.test(char)) {
+        if (current) {
+          tokens.push(current);
+          current = '';
+        }
+      } else if (!inQuotes && (char === '>' || char === '<')) {
+        if (current) {
+          tokens.push(current);
+          current = '';
+        }
+
+        // Handle >> and 2>
+        if (char === '>' && i + 1 < segment.length && segment[i + 1] === '>') {
+          tokens.push('>>');
+          i++;
+        } else if (char === '>' && i > 0 && segment[i - 1] === '2') {
+          // Remove the '2' from the last token and add '2>'
+          if (tokens.length > 0 && tokens[tokens.length - 1].endsWith('2')) {
+            const lastToken = tokens.pop();
+            if (lastToken.length > 1) {
+              tokens.push(lastToken.slice(0, -1));
+            }
+          }
+          tokens.push('2>');
+        } else {
+          tokens.push(char);
+        }
+      } else {
+        current += char;
+      }
+    }
+
+    if (current) {
+      tokens.push(current);
+    }
+
+    return tokens;
+  }
+
+  async executeCommandChain(commandChain) {
+    let input = '';
+    let output = '';
+
+    for (let i = 0; i < commandChain.length; i++) {
+      const cmd = commandChain[i];
+      const isLastCommand = i === commandChain.length - 1;
+
+      try {
+        // Handle stdin redirection
+        if (cmd.redirections.stdin) {
+          const filePath = this.resolvePath(cmd.redirections.stdin);
+          const file = await this.getFileSystemItem(filePath);
+          if (!file || file.type !== 'file') {
+            throw new Error(
+              `cannot read from '${cmd.redirections.stdin}': No such file or directory`
+            );
+          }
+          input = file.content || '';
+        }
+
+        // Execute the command
+        const result = await this.executeSingleCommand(cmd, input);
+
+        // Handle stdout/stderr redirection
+        if (cmd.redirections.stdout) {
+          await this.redirectToFile(
+            cmd.redirections.stdout,
+            result.stdout,
+            cmd.redirections.append
+          );
+          if (isLastCommand) {
+            output = result.stderr || '';
+          }
+        } else if (cmd.redirections.stderr) {
+          await this.redirectToFile(cmd.redirections.stderr, result.stderr, false);
+          if (isLastCommand) {
+            output = result.stdout || '';
+          }
+        } else {
+          // No redirection, pass output to next command or return it
+          if (isLastCommand) {
+            output = result.stdout || '';
+            if (result.stderr) {
+              output += (output ? '\n' : '') + result.stderr;
+            }
+          } else {
+            input = result.stdout || '';
+          }
+        }
+      } catch (error) {
+        throw new Error(`${cmd.name}: ${error.message}`);
+      }
+    }
+
+    return output;
+  }
+
+  async executeSingleCommand(cmd, stdin = '') {
+    let cmdName = cmd.name.toLowerCase();
+
+    // Check for aliases first
+    if (this.aliases[cmdName]) {
+      const aliasCommand = this.aliases[cmdName];
+      // Simple alias expansion - replace command name with alias value
+      const expandedArgs = aliasCommand.split(' ').concat(cmd.args);
+      cmdName = expandedArgs[0].toLowerCase();
+      cmd.args = expandedArgs.slice(1);
+    }
+
+    // Special case for help command
+    if (cmdName === 'help') {
+      return { stdout: this.helpCommand(), stderr: '' };
+    }
+
+    // Try to get command from registry
+    const commandHandler = window.commandRegistry.get(cmdName);
+    if (commandHandler) {
+      try {
+        // Create a modified terminal context for piped commands
+        // For commands that modify terminal state (like cd), use the original terminal
+        const terminalContext = this;
+        terminalContext.stdin = stdin;
+        terminalContext.hasStdin = stdin.length > 0;
+
+        const result = commandHandler(terminalContext, cmd.args);
+        const output = result instanceof Promise ? await result : result;
+
+        // Clean up temporary properties
+        delete terminalContext.stdin;
+        delete terminalContext.hasStdin;
+
+        // Separate stdout and stderr (for now, everything goes to stdout)
+        return {
+          stdout: output || '',
+          stderr: ''
+        };
+      } catch (error) {
+        return {
+          stdout: '',
+          stderr: `Error executing ${cmdName}: ${error.message}`
+        };
+      }
+    }
+
+    return {
+      stdout: '',
+      stderr: `bash: ${cmdName}: command not found\nTry 'help' for available commands or 'sudo apt install ${cmdName}' to pretend to install it! 😄`
+    };
+  }
+
+  async redirectToFile(filename, content, append = false) {
+    const filePath = this.resolvePath(filename);
+
+    try {
+      if (append) {
+        // Read existing content and append
+        const existingFile = await this.getFileSystemItem(filePath);
+        const existingContent =
+          existingFile && existingFile.type === 'file' ? existingFile.content || '' : '';
+
+        await this.fileSystemDB.createFile(filePath, existingContent + content, true);
+      } else {
+        // Overwrite file
+        await this.fileSystemDB.createFile(filePath, content, true);
+      }
+    } catch (error) {
+      throw new Error(`cannot redirect to '${filename}': ${error.message}`);
+    }
   }
 
   helpCommand() {
@@ -293,28 +604,41 @@ class Terminal {
   - Ctrl+U to delete line backwards
   - Ctrl+K to delete line forwards
   - Ctrl+A/E to move to beginning/end of line
-  - Ctrl+R for reverse search`;
+  - Ctrl+R for reverse search
+
+🔧 Pipes & Redirection:
+  - Use | to pipe output: ls | grep txt
+  - Redirect output: echo "hello" > file.txt
+  - Append to file: echo "world" >> file.txt
+  - Redirect stderr: command 2> error.log
+  - Read from file: sort < data.txt`;
 
     return helpText;
   }
 
   // Helper methods
   resolvePath(path) {
-    if (path.startsWith('/')) {
-      return path;
-    }
+    let resolvedPath;
 
-    if (path === '..') {
+    if (path.startsWith('/')) {
+      resolvedPath = path;
+    } else if (path === '..') {
       const parts = this.currentDirectory.split('/').filter((p) => p);
       parts.pop();
-      return parts.length === 0 ? '/' : '/' + parts.join('/');
+      resolvedPath = parts.length === 0 ? '/' : '/' + parts.join('/');
+    } else if (path === '.') {
+      resolvedPath = this.currentDirectory;
+    } else {
+      resolvedPath =
+        this.currentDirectory === '/' ? `/${path}` : `${this.currentDirectory}/${path}`;
     }
 
-    if (path === '.') {
-      return this.currentDirectory;
+    // Normalize trailing slashes (except for root directory)
+    if (resolvedPath !== '/' && resolvedPath.endsWith('/')) {
+      resolvedPath = resolvedPath.slice(0, -1);
     }
 
-    return this.currentDirectory === '/' ? `/${path}` : `${this.currentDirectory}/${path}`;
+    return resolvedPath;
   }
 
   async getFileSystemItem(path) {
@@ -378,13 +702,45 @@ class Terminal {
   }
 
   getShortPath() {
-    if (this.currentDirectory === '/home/user') {
+    if (this.currentDirectory === this.env.HOME) {
       return '~';
     }
-    if (this.currentDirectory.startsWith('/home/user/')) {
-      return '~' + this.currentDirectory.substring(10);
+    if (this.currentDirectory.startsWith(this.env.HOME + '/')) {
+      return '~' + this.currentDirectory.substring(this.env.HOME.length);
     }
     return this.currentDirectory;
+  }
+
+  // Update PWD environment variable when directory changes
+  updatePWD(newDirectory) {
+    this.currentDirectory = newDirectory;
+    this.env.PWD = newDirectory;
+  }
+
+  // Expand environment variables in a string
+  expandVariables(str) {
+    return str
+      .replace(/\$([A-Z_][A-Z0-9_]*)/g, (match, varName) => {
+        return this.env[varName] || '';
+      })
+      .replace(/\$\{([A-Z_][A-Z0-9_]*)\}/g, (match, varName) => {
+        return this.env[varName] || '';
+      });
+  }
+
+  // Set environment variable
+  setEnv(name, value) {
+    this.env[name] = value;
+  }
+
+  // Get environment variable
+  getEnv(name) {
+    return this.env[name];
+  }
+
+  // Get all environment variables
+  getAllEnv() {
+    return { ...this.env };
   }
 
   navigateHistory(direction, input) {
@@ -411,20 +767,155 @@ class Terminal {
     input.value = this.commandHistory[this.historyIndex] || '';
   }
 
-  handleTabCompletion(input) {
+  async handleTabCompletion(input) {
     const value = input.value;
     const parts = value.split(' ');
     const lastPart = parts[parts.length - 1];
 
-    // Command completion
+    // Check for environment variable completion
+    if (lastPart.startsWith('$')) {
+      await this.handleEnvVarCompletion(input, parts, lastPart);
+      return;
+    }
+
+    // Command completion (first word)
     if (parts.length === 1) {
       const commands = window.commandRegistry.getCommandNames();
       const matches = commands.filter((cmd) => cmd.startsWith(lastPart));
 
       if (matches.length === 1) {
         input.value = matches[0] + ' ';
+      } else if (matches.length > 1) {
+        // Show multiple matches
+        const commonPrefix = this.findCommonPrefix(matches);
+        if (commonPrefix.length > lastPart.length) {
+          input.value = commonPrefix;
+        } else {
+          // Show all matches
+          this.addOutput(`\nAvailable commands: ${matches.join('  ')}`);
+          this.addCommandToOutput(value);
+        }
+      }
+    } else {
+      // Path completion (arguments to commands)
+      await this.handlePathCompletion(input, parts, lastPart);
+    }
+  }
+
+  async handleEnvVarCompletion(input, parts, lastPart) {
+    const varPrefix = lastPart.substring(1); // Remove the $
+    const envVars = Object.keys(this.env);
+    const matches = envVars.filter((varName) => varName.startsWith(varPrefix));
+
+    if (matches.length === 1) {
+      // Single match - complete it
+      const beforeLastPart = parts.slice(0, -1).join(' ');
+      input.value = beforeLastPart + (beforeLastPart ? ' ' : '') + '$' + matches[0] + ' ';
+    } else if (matches.length > 1) {
+      // Multiple matches
+      const commonPrefix = this.findCommonPrefix(matches);
+
+      if (commonPrefix.length > varPrefix.length) {
+        // Complete to common prefix
+        const beforeLastPart = parts.slice(0, -1).join(' ');
+        input.value = beforeLastPart + (beforeLastPart ? ' ' : '') + '$' + commonPrefix;
+      } else {
+        // Show all matches with their values
+        const matchDisplay = matches
+          .map((varName) => `$${varName}="${this.env[varName]}"`)
+          .join('  ');
+        this.addOutput(`\nEnvironment variables: ${matchDisplay}`);
+        this.addCommandToOutput(input.value);
       }
     }
+  }
+
+  async handlePathCompletion(input, parts, lastPart) {
+    // Determine the directory to search in
+    let searchDir = this.currentDirectory;
+    let searchPattern = lastPart;
+
+    // Handle absolute paths
+    if (lastPart.startsWith('/')) {
+      const lastSlash = lastPart.lastIndexOf('/');
+      if (lastSlash === 0) {
+        // Root directory
+        searchDir = '/';
+        searchPattern = lastPart.substring(1);
+      } else if (lastSlash > 0) {
+        // Subdirectory
+        searchDir = lastPart.substring(0, lastSlash);
+        searchPattern = lastPart.substring(lastSlash + 1);
+      }
+    } else if (lastPart.includes('/')) {
+      // Relative path with subdirectories
+      const lastSlash = lastPart.lastIndexOf('/');
+      const relativePath = lastPart.substring(0, lastSlash);
+      searchDir = this.resolvePath(relativePath);
+      searchPattern = lastPart.substring(lastSlash + 1);
+    }
+
+    // Get directory contents
+    try {
+      const entries = await this.listDirectoryContents(searchDir);
+      const matches = entries
+        .filter((entry) => entry.name.startsWith(searchPattern))
+        .map((entry) => {
+          const isDir = entry.type === 'directory';
+          const basePath = lastPart.substring(0, lastPart.lastIndexOf('/') + 1);
+          return {
+            name: entry.name,
+            fullPath: basePath + entry.name + (isDir ? '/' : ''),
+            isDirectory: isDir
+          };
+        });
+
+      if (matches.length === 1) {
+        // Single match - complete it
+        const beforeLastPart = parts.slice(0, -1).join(' ');
+        input.value = beforeLastPart + (beforeLastPart ? ' ' : '') + matches[0].fullPath;
+
+        // If it's a directory, don't add a space (user might want to continue the path)
+        if (!matches[0].isDirectory) {
+          input.value += ' ';
+        }
+      } else if (matches.length > 1) {
+        // Multiple matches
+        const matchNames = matches.map((m) => m.name);
+        const commonPrefix = this.findCommonPrefix(matchNames);
+
+        if (commonPrefix.length > searchPattern.length) {
+          // Complete to common prefix
+          const beforeLastPart = parts.slice(0, -1).join(' ');
+          const basePath = lastPart.substring(0, lastPart.lastIndexOf('/') + 1);
+          input.value = beforeLastPart + (beforeLastPart ? ' ' : '') + basePath + commonPrefix;
+        } else {
+          // Show all matches
+          const matchDisplay = matches
+            .map((m) => (m.isDirectory ? `📁 ${m.name}` : `📄 ${m.name}`))
+            .join('  ');
+          this.addOutput(`\n${matchDisplay}`);
+          this.addCommandToOutput(input.value);
+        }
+      }
+    } catch (error) {
+      // Directory doesn't exist or can't be read - no completion
+      console.log('Tab completion error:', error);
+    }
+  }
+
+  findCommonPrefix(strings) {
+    if (strings.length === 0) return '';
+    if (strings.length === 1) return strings[0];
+
+    let prefix = strings[0];
+    for (let i = 1; i < strings.length; i++) {
+      while (prefix.length > 0 && !strings[i].startsWith(prefix)) {
+        prefix = prefix.substring(0, prefix.length - 1);
+      }
+      if (prefix.length === 0) break;
+    }
+    return prefix;
   }
 
   // Advanced Ctrl shortcuts
@@ -566,7 +1057,9 @@ class Terminal {
 
     const newLine = document.createElement('div');
     newLine.className = 'terminal-line';
-    newLine.innerHTML = `<span class="terminal-prompt">user@heyming-os:${this.getShortPath()}$</span> <input type="text" class="terminal-input" placeholder="Type a command...">`;
+    newLine.innerHTML = `<span class="terminal-prompt">${this.env.USER}@${
+      this.env.HOSTNAME
+    }:${this.getShortPath()}$</span> <input type="text" class="terminal-input" placeholder="Type a command...">`;
     terminalContent.appendChild(newLine);
 
     const newInput = newLine.querySelector('.terminal-input');
@@ -607,10 +1100,10 @@ class Terminal {
 
     const welcome = `
 ╔══════════════════════════════════════════════════════════════╗
-║                    Welcome to Heyming Terminal v2.0          ║
+║                    Welcome to jsh (Joe Shell) v1.0          ║
 ║                                                              ║
 ║  Type 'help' for available commands                          ║
-║  Type 'matrix' for a special surprise!                       ║
+║  Try: history, !!, alias ll='ls -l', echo $USER             ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
         `;
@@ -621,7 +1114,7 @@ class Terminal {
     if (!this.isStandalone) return;
 
     const promptText = document.getElementById('prompt-text');
-    promptText.innerHTML = `user@heyming-os:${this.getShortPath()}$ `;
+    promptText.innerHTML = `${this.env.USER}@${this.env.HOSTNAME}:${this.getShortPath()}$ `;
     const terminalInput = document.getElementById('terminal-input');
     terminalInput.focus();
   }
@@ -632,7 +1125,9 @@ class Terminal {
     const terminalOutput = document.getElementById('terminal-output');
     const commandLine = document.createElement('div');
     commandLine.className = 'terminal-line';
-    commandLine.innerHTML = `<span class="prompt">user@heyming-os:${this.getShortPath()}$</span> ${command}`;
+    commandLine.innerHTML = `<span class="prompt">${this.env.USER}@${
+      this.env.HOSTNAME
+    }:${this.getShortPath()}$</span> ${command}`;
     terminalOutput.appendChild(commandLine);
   }
 }

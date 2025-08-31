@@ -44,7 +44,8 @@ class FileSystemDB {
   }
 
   // Create default filesystem structure
-  async createScaffolding() {
+  async createScaffolding(username = 'jheyming') {
+    const homeDir = `/home/${username}`;
     const defaultStructure = [
       // Root directory
       { path: '/', type: 'directory', parentPath: null, created: new Date(), modified: new Date() },
@@ -58,51 +59,51 @@ class FileSystemDB {
         modified: new Date()
       },
       {
-        path: '/home/user',
+        path: homeDir,
         type: 'directory',
         parentPath: '/home',
         created: new Date(),
         modified: new Date()
       },
       {
-        path: '/home/user/Desktop',
+        path: `${homeDir}/Desktop`,
         type: 'directory',
-        parentPath: '/home/user',
+        parentPath: homeDir,
         created: new Date(),
         modified: new Date()
       },
       {
-        path: '/home/user/Documents',
+        path: `${homeDir}/Documents`,
         type: 'directory',
-        parentPath: '/home/user',
+        parentPath: homeDir,
         created: new Date(),
         modified: new Date()
       },
       {
-        path: '/home/user/Downloads',
+        path: `${homeDir}/Downloads`,
         type: 'directory',
-        parentPath: '/home/user',
+        parentPath: homeDir,
         created: new Date(),
         modified: new Date()
       },
       {
-        path: '/home/user/Pictures',
+        path: `${homeDir}/Pictures`,
         type: 'directory',
-        parentPath: '/home/user',
+        parentPath: homeDir,
         created: new Date(),
         modified: new Date()
       },
       {
-        path: '/home/user/Music',
+        path: `${homeDir}/Music`,
         type: 'directory',
-        parentPath: '/home/user',
+        parentPath: homeDir,
         created: new Date(),
         modified: new Date()
       },
       {
-        path: '/home/user/Videos',
+        path: `${homeDir}/Videos`,
         type: 'directory',
-        parentPath: '/home/user',
+        parentPath: homeDir,
         created: new Date(),
         modified: new Date()
       },
@@ -139,9 +140,9 @@ class FileSystemDB {
 
       // Default files
       {
-        path: '/home/user/Documents/readme.txt',
+        path: `${homeDir}/Documents/readme.txt`,
         type: 'file',
-        parentPath: '/home/user/Documents',
+        parentPath: `${homeDir}/Documents`,
         content:
           'Welcome to Heyming OS!\n\nThis is a persistent filesystem powered by IndexedDB.\nYour files will be saved between sessions!\n\nTry creating some files with:\n- touch myfile.txt\n- echo "Hello World" > hello.txt\n- mkdir myfolder\n\nHave fun exploring!',
         created: new Date(),
@@ -149,9 +150,9 @@ class FileSystemDB {
         size: 0
       },
       {
-        path: '/home/user/Documents/secret.txt',
+        path: `${homeDir}/Documents/secret.txt`,
         type: 'file',
-        parentPath: '/home/user/Documents',
+        parentPath: `${homeDir}/Documents`,
         content:
           '🤫 You found the secret file!\n\nThis file persists between browser sessions.\nTry editing it and refreshing the page!',
         created: new Date(),
@@ -159,18 +160,18 @@ class FileSystemDB {
         size: 0
       },
       {
-        path: '/home/user/Pictures/selfie.jpg',
+        path: `${homeDir}/Pictures/selfie.jpg`,
         type: 'file',
-        parentPath: '/home/user/Pictures',
+        parentPath: `${homeDir}/Pictures`,
         content: '📸 A totally real selfie file\n[This would be binary data in a real filesystem]',
         created: new Date(),
         modified: new Date(),
         size: 0
       },
       {
-        path: '/home/user/Music/never_gonna_give_you_up.mp3',
+        path: `${homeDir}/Music/never_gonna_give_you_up.mp3`,
         type: 'file',
-        parentPath: '/home/user/Music',
+        parentPath: `${homeDir}/Music`,
         content:
           '🎵 Rick Astley - Never Gonna Give You Up\n[This would be audio data in a real filesystem]',
         created: new Date(),
@@ -178,19 +179,10 @@ class FileSystemDB {
         size: 0
       },
       {
-        path: '/bin/bash',
+        path: '/bin/jsh',
         type: 'file',
         parentPath: '/bin',
-        content: '#!/bin/bash\n# Bash shell executable',
-        created: new Date(),
-        modified: new Date(),
-        size: 0
-      },
-      {
-        path: '/bin/ls',
-        type: 'file',
-        parentPath: '/bin',
-        content: '#!/bin/ls\n# List directory contents',
+        content: '#!/bin/jsh\n# Joe Shell - jsh executable\n# This is the shell interpreter itself',
         created: new Date(),
         modified: new Date(),
         size: 0
@@ -199,7 +191,7 @@ class FileSystemDB {
         path: '/etc/passwd',
         type: 'file',
         parentPath: '/etc',
-        content: 'user:x:1000:1000:User:/home/user:/bin/bash\nroot:x:0:0:Root:/root:/bin/bash',
+        content: `${username}:x:1000:1000:Joe Heyming:${homeDir}:/bin/jsh\nroot:x:0:0:Root:/root:/bin/bash`,
         created: new Date(),
         modified: new Date(),
         size: 0
@@ -563,14 +555,18 @@ class FileSystemDB {
   }
 
   // Initialize filesystem with scaffolding if needed
-  async initializeWithScaffolding() {
+  async initializeWithScaffolding(username = 'jheyming') {
     await this.initialize();
 
     if (!(await this.hasScaffolding())) {
       console.log('No filesystem found, creating scaffolding...');
-      await this.createScaffolding();
+      await this.createScaffolding(username);
+      // Generate /bin files for all registered commands
+      await this.generateBinFiles();
     } else {
       console.log('Existing filesystem found');
+      // Always regenerate /bin files to keep them up to date
+      await this.generateBinFiles();
     }
   }
 
@@ -596,6 +592,113 @@ class FileSystemDB {
         resolve(stats);
       };
       request.onerror = () => reject(request.error);
+    });
+  }
+
+  // Generate /bin files for all registered commands
+  async generateBinFiles() {
+    if (!window.commandRegistry) {
+      console.log('Command registry not available, skipping /bin file generation');
+      return;
+    }
+
+    console.log('Generating /bin files for registered commands...');
+
+    // Get all registered commands
+    const commands = window.commandRegistry.getCommands();
+    console.log(
+      `Found ${commands.length} registered commands:`,
+      commands.map((c) => c.name)
+    );
+
+    for (const cmd of commands) {
+      const binPath = `/bin/${cmd.name}`;
+
+      // Get the actual handler function
+      const handler = window.commandRegistry.get(cmd.name);
+      if (!handler) continue;
+
+      // Generate the virtual file content
+      const content = this.generateCommandFileContent(
+        cmd.name,
+        handler,
+        cmd.description,
+        cmd.category
+      );
+
+      // Create or update the /bin file
+      const fileItem = {
+        path: binPath,
+        type: 'file',
+        parentPath: '/bin',
+        content: content,
+        created: new Date(),
+        modified: new Date(),
+        size: content.length
+      };
+
+      try {
+        await this.createFile(binPath, content, true); // overwrite = true
+      } catch (error) {
+        console.warn(`Failed to create /bin/${cmd.name}:`, error);
+      }
+    }
+
+    console.log(`Generated ${commands.length} /bin files`);
+  }
+
+  // Generate the content for a command's /bin file
+  generateCommandFileContent(commandName, handler, description, category) {
+    // Convert function to string and clean it up
+    let functionStr = handler.toString();
+
+    // Try to make the function more readable
+    functionStr = functionStr
+      .replace(/^\s*function\s*\(/, `function ${commandName}(`)
+      .replace(/^\s*\(/, `function ${commandName}(`)
+      .replace(/=>\s*{/, `function ${commandName}(terminal, args) {`)
+      .replace(/=>\s*/, `function ${commandName}(terminal, args) {\n  return `);
+
+    // If it's an arrow function without braces, add return and closing brace
+    if (!functionStr.includes('{') && functionStr.includes('=>')) {
+      functionStr = functionStr.replace(/=>\s*(.+)$/, '=> {\n  return $1;\n}');
+    }
+
+    return `#!/bin/jsh
+// ${commandName} command implementation
+// ${description}
+// Category: ${category}
+
+${functionStr}
+
+// Command metadata
+${commandName}.description = '${description}';
+${commandName}.category = '${category}';
+
+module.exports = ${commandName};`;
+  }
+
+  // Clear the entire database
+  async clearDatabase() {
+    if (!this.isInitialized) await this.initialize();
+
+    const transaction = this.db.transaction(['files', 'metadata'], 'readwrite');
+    const filesStore = transaction.objectStore('files');
+    const metadataStore = transaction.objectStore('metadata');
+
+    return new Promise((resolve, reject) => {
+      const clearFiles = filesStore.clear();
+      const clearMetadata = metadataStore.clear();
+
+      transaction.oncomplete = () => {
+        console.log('Database cleared successfully');
+        resolve();
+      };
+
+      transaction.onerror = () => {
+        console.error('Error clearing database:', transaction.error);
+        reject(transaction.error);
+      };
     });
   }
 }
