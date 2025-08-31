@@ -1,63 +1,434 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const terminalOutput = document.getElementById('terminal-output');
-  const terminalInput = document.getElementById('terminal-input');
-  let commandHistory = [];
-  let historyIndex = -1;
-  let currentDirectory = '/home/user';
-  let environment = {
-    PATH: '/usr/bin:/bin:/usr/local/bin',
-    USER: 'user',
-    HOME: '/home/user',
-    PWD: '/home/user'
-  };
+// Enhanced Terminal for Heyming OS - Modular Version
+class Terminal {
+  constructor(windowId = null, osInstance = null) {
+    this.windowId = windowId;
+    this.os = osInstance;
+    this.currentDirectory = '/home/user';
+    this.commandHistory = [];
+    this.historyIndex = -1;
+    this.fileSystemDB = new FileSystemDB();
+    this.isStandalone = !windowId; // Detect if running standalone
+    this.commandsLoaded = false;
+    this.filesystemReady = false;
 
-  let voicesLoaded = false;
-  let voicesReadyCallback = null;
+    // Load command history from session storage
+    this.loadCommandHistory();
 
-  function initializeVoices() {
-    const synth = window.speechSynthesis;
-    synth.onvoiceschanged = () => {
-      voicesLoaded = true;
-      if (voicesReadyCallback) {
-        voicesReadyCallback();
-        voicesReadyCallback = null;
+    // Initialize filesystem and load commands
+    this.initializeFilesystem()
+      .then(() => {
+        this.filesystemReady = true;
+        return this.loadCommands();
+      })
+      .then(() => {
+        this.commandsLoaded = true;
+        // Initialize terminal after a brief delay
+        setTimeout(() => this.initialize(), 100);
+      })
+      .catch((error) => {
+        console.error('Failed to initialize terminal:', error);
+        // Fallback to in-memory filesystem
+        this.fileSystem = this.initializeFileSystem();
+        this.filesystemReady = true;
+        this.loadCommands().then(() => {
+          this.commandsLoaded = true;
+          setTimeout(() => this.initialize(), 100);
+        });
+      });
+  }
+
+  async loadCommands() {
+    if (window.commandRegistry) {
+      await window.commandRegistry.loadCommands();
+    }
+  }
+
+  async initializeFilesystem() {
+    await this.fileSystemDB.initializeWithScaffolding();
+  }
+
+  initializeFileSystem() {
+    return {
+      '/': {
+        type: 'directory',
+        contents: {
+          home: {
+            type: 'directory',
+            contents: {
+              user: {
+                type: 'directory',
+                contents: {
+                  Desktop: { type: 'directory', contents: {} },
+                  Documents: {
+                    type: 'directory',
+                    contents: {
+                      'readme.txt': { type: 'file', content: 'Welcome to Heyming OS!' },
+                      'secret.txt': { type: 'file', content: '🤫 You found the secret file!' }
+                    }
+                  },
+                  Downloads: { type: 'directory', contents: {} },
+                  Pictures: {
+                    type: 'directory',
+                    contents: {
+                      'selfie.jpg': { type: 'file', content: '📸 A totally real selfie file' }
+                    }
+                  },
+                  Music: {
+                    type: 'directory',
+                    contents: {
+                      'never_gonna_give_you_up.mp3': {
+                        type: 'file',
+                        content: '🎵 Rick Astley - Never Gonna Give You Up'
+                      }
+                    }
+                  },
+                  Videos: { type: 'directory', contents: {} }
+                }
+              }
+            }
+          },
+          bin: {
+            type: 'directory',
+            contents: {
+              bash: { type: 'file', content: '#!/bin/bash' },
+              ls: { type: 'file', content: '#!/bin/ls' }
+            }
+          },
+          etc: {
+            type: 'directory',
+            contents: {
+              passwd: { type: 'file', content: 'user:x:1000:1000:User:/home/user:/bin/bash' },
+              hosts: { type: 'file', content: '127.0.0.1 localhost\n::1 localhost' }
+            }
+          }
+        }
       }
     };
   }
 
-  // Terminal startup
-  printWelcome();
-  printPrompt();
+  initialize() {
+    let terminalInput;
 
-  // Add click listener to focus terminal when clicking anywhere
-  document.addEventListener('click', () => {
-    terminalInput.focus();
-  });
-
-  terminalInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      const input = terminalInput.value;
-      terminalInput.value = '';
-      addToHistory(input);
-      processCommand(input);
-      printPrompt();
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      navigateHistory('up');
-    } else if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      navigateHistory('down');
-    } else if (event.key === 'Tab') {
-      event.preventDefault();
-      autoComplete();
-    } else if (event.ctrlKey) {
-      event.preventDefault();
-      handleCtrlShortcuts(event);
+    if (this.isStandalone) {
+      // Standalone mode - use direct element IDs
+      terminalInput = document.getElementById('terminal-input');
+      this.printWelcome();
+      this.printPrompt();
+    } else {
+      // OS-integrated mode - use window-specific selectors
+      const windowElement = document.getElementById(`window-${this.windowId}`);
+      terminalInput = windowElement.querySelector('.terminal-input');
     }
-  });
 
-  function handleCtrlShortcuts(event) {
-    const input = terminalInput;
+    if (!terminalInput) return;
+
+    terminalInput.focus();
+    this.bindInputEvents(terminalInput);
+
+    // Save command history on window unload
+    window.addEventListener('beforeunload', () => {
+      this.saveCommandHistory();
+    });
+  }
+
+  bindInputEvents(input) {
+    input.addEventListener('keydown', async (e) => {
+      if (e.key === 'Enter') {
+        await this.handleCommand(input);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        this.navigateHistory(-1, input);
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        this.navigateHistory(1, input);
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        this.handleTabCompletion(input);
+      } else if (e.ctrlKey) {
+        e.preventDefault();
+        this.handleCtrlShortcuts(e, input);
+      }
+    });
+  }
+
+  async handleCommand(input) {
+    const command = input.value.trim();
+
+    // Add command to history
+    if (command && command !== this.commandHistory[this.commandHistory.length - 1]) {
+      this.commandHistory.push(command);
+    }
+    this.historyIndex = -1;
+
+    if (this.isStandalone) {
+      // Standalone mode - add command to output and clear input
+      this.addCommandToOutput(command);
+      input.value = '';
+
+      // Process command and get output (now async)
+      try {
+        const output = await this.processCommand(command);
+
+        // Add output if any
+        if (output) {
+          this.addOutput(output);
+        }
+      } catch (error) {
+        this.addOutput(`Error: ${error.message}`);
+      }
+
+      // Show new prompt
+      this.printPrompt();
+    } else {
+      // OS-integrated mode - original behavior
+      const currentLine = input.closest('.terminal-line');
+      currentLine.innerHTML = `<span class="terminal-prompt">user@heyming-os:${this.getShortPath()}$</span> ${command}`;
+
+      // Process command and get output (now async)
+      try {
+        const output = await this.processCommand(command);
+
+        // Add output if any
+        if (output) {
+          this.addOutput(output);
+        }
+      } catch (error) {
+        this.addOutput(`Error: ${error.message}`);
+      }
+
+      // Add new input line
+      this.addNewInputLine();
+      this.scrollToBottom();
+    }
+  }
+
+  async processCommand(command) {
+    const parts = command.trim().split(/\s+/);
+    const cmd = parts[0].toLowerCase();
+    const args = parts.slice(1);
+
+    if (cmd === '') return '';
+
+    // Check if commands are loaded
+    if (!this.commandsLoaded) {
+      return 'Terminal is still loading commands, please wait...';
+    }
+
+    // Check if filesystem is ready
+    if (!this.filesystemReady) {
+      return 'Filesystem is still initializing, please wait...';
+    }
+
+    // Special case for help command
+    if (cmd === 'help') {
+      return this.helpCommand();
+    }
+
+    // Try to get command from registry
+    const commandHandler = window.commandRegistry.get(cmd);
+    if (commandHandler) {
+      try {
+        const result = commandHandler(this, args);
+        // Handle both sync and async command handlers
+        return result instanceof Promise ? await result : result;
+      } catch (error) {
+        return `Error executing ${cmd}: ${error.message}`;
+      }
+    }
+
+    return `bash: ${cmd}: command not found\nTry 'help' for available commands or 'sudo apt install ${cmd}' to pretend to install it! 😄`;
+  }
+
+  helpCommand() {
+    const commandsByCategory = window.commandRegistry.getCommandsByCategory();
+
+    // Define category emojis and preferred order
+    const categoryEmojis = {
+      'File System': '📁',
+      System: '📊',
+      Apps: '🚀',
+      'Fun Stuff': '🎪',
+      'Speech & Media': '🔊',
+      Other: '🔧'
+    };
+
+    // Preferred category order
+    const categoryOrder = ['File System', 'System', 'Apps', 'Fun Stuff', 'Speech & Media', 'Other'];
+
+    let helpText = 'Available commands:\n\n';
+
+    // Sort categories by preferred order, then alphabetically for any extras
+    const sortedCategories = Object.keys(commandsByCategory).sort((a, b) => {
+      const aIndex = categoryOrder.indexOf(a);
+      const bIndex = categoryOrder.indexOf(b);
+
+      if (aIndex !== -1 && bIndex !== -1) {
+        return aIndex - bIndex;
+      } else if (aIndex !== -1) {
+        return -1;
+      } else if (bIndex !== -1) {
+        return 1;
+      } else {
+        return a.localeCompare(b);
+      }
+    });
+
+    sortedCategories.forEach((category) => {
+      const commands = commandsByCategory[category];
+      const emoji = categoryEmojis[category] || '🔧';
+
+      helpText += `${emoji} ${category}:\n`;
+
+      commands.forEach((cmd) => {
+        helpText += `  ${cmd.name.padEnd(12)} - ${cmd.description}\n`;
+      });
+      helpText += '\n';
+    });
+
+    helpText += `💡 Pro Tips:
+  - Use arrow keys to navigate command history
+  - Tab completion works for commands
+  - clear/Ctrl+L to clear screen
+  - Ctrl+W to delete word backwards
+  - Ctrl+U to delete line backwards
+  - Ctrl+K to delete line forwards
+  - Ctrl+A/E to move to beginning/end of line
+  - Ctrl+R for reverse search`;
+
+    return helpText;
+  }
+
+  // Helper methods
+  resolvePath(path) {
+    if (path.startsWith('/')) {
+      return path;
+    }
+
+    if (path === '..') {
+      const parts = this.currentDirectory.split('/').filter((p) => p);
+      parts.pop();
+      return parts.length === 0 ? '/' : '/' + parts.join('/');
+    }
+
+    if (path === '.') {
+      return this.currentDirectory;
+    }
+
+    return this.currentDirectory === '/' ? `/${path}` : `${this.currentDirectory}/${path}`;
+  }
+
+  async getFileSystemItem(path) {
+    if (!this.filesystemReady) {
+      // Fallback to in-memory filesystem if IndexedDB not ready
+      if (this.fileSystem) {
+        const parts = path.split('/').filter((p) => p);
+        let current = this.fileSystem['/'];
+
+        for (const part of parts) {
+          if (current.type !== 'directory' || !current.contents[part]) {
+            return null;
+          }
+          current = current.contents[part];
+        }
+
+        return current;
+      }
+      return null;
+    }
+
+    try {
+      const item = await this.fileSystemDB.getItem(path);
+      return item;
+    } catch (error) {
+      console.error('Error accessing filesystem:', error);
+      return null;
+    }
+  }
+
+  async listDirectoryContents(path) {
+    if (!this.filesystemReady) {
+      // Fallback to in-memory filesystem
+      if (this.fileSystem) {
+        const item = await this.getFileSystemItem(path);
+        if (item && item.type === 'directory' && item.contents) {
+          return Object.entries(item.contents).map(([name, item]) => ({
+            name,
+            type: item.type,
+            path: path === '/' ? `/${name}` : `${path}/${name}`
+          }));
+        }
+      }
+      return [];
+    }
+
+    try {
+      const items = await this.fileSystemDB.listDirectory(path);
+      return items.map((item) => ({
+        name: this.fileSystemDB.getFileName(item.path),
+        type: item.type,
+        path: item.path,
+        size: item.size,
+        created: item.created,
+        modified: item.modified
+      }));
+    } catch (error) {
+      console.error('Error listing directory:', error);
+      return [];
+    }
+  }
+
+  getShortPath() {
+    if (this.currentDirectory === '/home/user') {
+      return '~';
+    }
+    if (this.currentDirectory.startsWith('/home/user/')) {
+      return '~' + this.currentDirectory.substring(10);
+    }
+    return this.currentDirectory;
+  }
+
+  navigateHistory(direction, input) {
+    if (this.commandHistory.length === 0) return;
+
+    if (direction === -1) {
+      // Go back in history
+      if (this.historyIndex === -1) {
+        this.historyIndex = this.commandHistory.length - 1;
+      } else if (this.historyIndex > 0) {
+        this.historyIndex--;
+      }
+    } else {
+      // Go forward in history
+      if (this.historyIndex < this.commandHistory.length - 1) {
+        this.historyIndex++;
+      } else {
+        this.historyIndex = -1;
+        input.value = '';
+        return;
+      }
+    }
+
+    input.value = this.commandHistory[this.historyIndex] || '';
+  }
+
+  handleTabCompletion(input) {
+    const value = input.value;
+    const parts = value.split(' ');
+    const lastPart = parts[parts.length - 1];
+
+    // Command completion
+    if (parts.length === 1) {
+      const commands = window.commandRegistry.getCommandNames();
+      const matches = commands.filter((cmd) => cmd.startsWith(lastPart));
+
+      if (matches.length === 1) {
+        input.value = matches[0] + ' ';
+      }
+    }
+  }
+
+  // Advanced Ctrl shortcuts
+  handleCtrlShortcuts(event, input) {
     const start = input.selectionStart;
     const end = input.selectionEnd;
     const value = input.value;
@@ -65,7 +436,6 @@ document.addEventListener('DOMContentLoaded', () => {
     switch (event.key) {
       case 'w': // Ctrl+W: Delete word backwards
         const beforeCursor = value.substring(0, start);
-        // Find the last word boundary, handling multiple spaces
         let lastWordStart = beforeCursor.length;
         let foundSpace = false;
 
@@ -107,31 +477,34 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
 
       case 'l': // Ctrl+L: Clear screen
-        terminalOutput.innerHTML = '';
+        const clearHandler = window.commandRegistry.get('clear');
+        if (clearHandler) {
+          clearHandler(this, []);
+        }
         break;
 
       case 'c': // Ctrl+C: Interrupt (clear current line)
         input.value = '';
-        appendOutput('^C', 'interrupt');
+        this.addOutput('^C');
         break;
 
       case 'd': // Ctrl+D: EOF (exit if line is empty)
         if (value.length === 0) {
-          appendOutput('exit', 'exit');
-          // Could implement actual exit functionality here
+          this.addOutput('exit');
         }
         break;
 
       case 'r': // Ctrl+R: Reverse search
-        let searchTerm = prompt('Enter search term:');
+        const searchTerm = prompt('Enter search term:');
         if (searchTerm) {
-          const foundCommand = commandHistory.reverse().find((cmd) => cmd.includes(searchTerm));
+          const foundCommand = [...this.commandHistory]
+            .reverse()
+            .find((cmd) => cmd.includes(searchTerm));
           if (foundCommand) {
-            terminalInput.value = foundCommand;
+            input.value = foundCommand;
           } else {
-            appendOutput(`No matching command found for: ${searchTerm}`, 'error');
+            this.addOutput(`No matching command found for: ${searchTerm}`);
           }
-          commandHistory.reverse(); // Restore original order
         }
         break;
 
@@ -143,13 +516,6 @@ document.addEventListener('DOMContentLoaded', () => {
           const after = value.substring(start + 1);
           input.value = before + char2 + char1 + after;
           input.setSelectionRange(start, start);
-        }
-        break;
-
-      case 'h': // Ctrl+H: Backspace (same as Backspace)
-        if (start > 0) {
-          input.value = value.substring(0, start - 1) + value.substring(end);
-          input.setSelectionRange(start - 1, start - 1);
         }
         break;
 
@@ -167,7 +533,78 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function printWelcome() {
+  addOutput(output) {
+    if (this.isStandalone) {
+      // Standalone mode - use terminal-output element
+      const terminalOutput = document.getElementById('terminal-output');
+      const outputLines = output.split('\n');
+      outputLines.forEach((line) => {
+        const outputElement = document.createElement('div');
+        outputElement.className = 'terminal-output';
+        outputElement.textContent = line;
+        terminalOutput.appendChild(outputElement);
+      });
+      terminalOutput.scrollTop = terminalOutput.scrollHeight;
+    } else {
+      // OS-integrated mode - original behavior
+      const windowElement = document.getElementById(`window-${this.windowId}`);
+      const terminalContent = windowElement.querySelector('.terminal-content');
+
+      const outputLines = output.split('\n');
+      outputLines.forEach((line) => {
+        const outputElement = document.createElement('div');
+        outputElement.className = 'terminal-line';
+        outputElement.textContent = line;
+        terminalContent.appendChild(outputElement);
+      });
+    }
+  }
+
+  addNewInputLine() {
+    const windowElement = document.getElementById(`window-${this.windowId}`);
+    const terminalContent = windowElement.querySelector('.terminal-content');
+
+    const newLine = document.createElement('div');
+    newLine.className = 'terminal-line';
+    newLine.innerHTML = `<span class="terminal-prompt">user@heyming-os:${this.getShortPath()}$</span> <input type="text" class="terminal-input" placeholder="Type a command...">`;
+    terminalContent.appendChild(newLine);
+
+    const newInput = newLine.querySelector('.terminal-input');
+    newInput.focus();
+    this.bindInputEvents(newInput);
+  }
+
+  scrollToBottom() {
+    const windowElement = document.getElementById(`window-${this.windowId}`);
+    const terminalContent = windowElement.querySelector('.terminal-content');
+    terminalContent.scrollTop = terminalContent.scrollHeight;
+  }
+
+  // Command history persistence
+  saveCommandHistory() {
+    try {
+      sessionStorage.setItem('heymingTerminalHistory', JSON.stringify(this.commandHistory));
+    } catch (e) {
+      // Ignore storage errors
+    }
+  }
+
+  loadCommandHistory() {
+    try {
+      const savedHistory = sessionStorage.getItem('heymingTerminalHistory');
+      if (savedHistory) {
+        this.commandHistory = JSON.parse(savedHistory);
+        this.historyIndex = this.commandHistory.length;
+      }
+    } catch (e) {
+      // Ignore storage errors
+    }
+  }
+
+  // Standalone mode specific methods
+  printWelcome() {
+    if (!this.isStandalone) return;
+
     const welcome = `
 ╔══════════════════════════════════════════════════════════════╗
 ║                    Welcome to Heyming Terminal v2.0          ║
@@ -177,566 +614,36 @@ document.addEventListener('DOMContentLoaded', () => {
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
         `;
-    appendOutput(welcome, 'welcome');
+    this.addOutput(welcome);
   }
 
-  function printPrompt() {
+  printPrompt() {
+    if (!this.isStandalone) return;
+
     const promptText = document.getElementById('prompt-text');
-    promptText.innerHTML = `${environment.USER}@heyming-os:${currentDirectory}$ `;
+    promptText.innerHTML = `user@heyming-os:${this.getShortPath()}$ `;
+    const terminalInput = document.getElementById('terminal-input');
     terminalInput.focus();
   }
 
-  function appendOutput(text, className = '') {
-    const output = document.createElement('div');
-    output.className = `terminal-output ${className}`;
-    output.innerHTML = text;
-    terminalOutput.appendChild(output);
-    terminalOutput.scrollTop = terminalOutput.scrollHeight;
-  }
+  addCommandToOutput(command) {
+    if (!this.isStandalone) return;
 
-  function addToHistory(command) {
-    if (command.trim()) {
-      commandHistory.push(command);
-      if (commandHistory.length > 50) commandHistory.shift();
-    }
-    historyIndex = commandHistory.length;
-  }
-
-  function navigateHistory(direction) {
-    if (direction === 'up' && historyIndex > 0) {
-      historyIndex--;
-      terminalInput.value = commandHistory[historyIndex];
-    } else if (direction === 'down' && historyIndex < commandHistory.length - 1) {
-      historyIndex++;
-      terminalInput.value = commandHistory[historyIndex];
-    } else if (direction === 'down' && historyIndex === commandHistory.length - 1) {
-      historyIndex++;
-      terminalInput.value = '';
-    }
-  }
-
-  function autoComplete() {
-    const commands = [
-      'help',
-      'ls',
-      'cd',
-      'pwd',
-      'cat',
-      'echo',
-      'touch',
-      'matrix',
-      'cowsay',
-      'fortune',
-      'neofetch',
-      'ping',
-      'top',
-      'ps',
-      'kill',
-      'date',
-      'whoami',
-      'uname',
-      'history',
-      'clear'
-    ];
-    const input = terminalInput.value;
-    const matches = commands.filter((cmd) => cmd.startsWith(input));
-
-    if (matches.length === 1) {
-      terminalInput.value = matches[0];
-    } else if (matches.length > 1) {
-      appendOutput(matches.join(' '), 'autocomplete');
-    }
-  }
-
-  function processCommand(input) {
-    const args = input.trim().split(' ');
-    const command = args[0];
-    const params = args.slice(1);
-
-    // Add the command to output history
+    const terminalOutput = document.getElementById('terminal-output');
     const commandLine = document.createElement('div');
     commandLine.className = 'terminal-line';
-    commandLine.innerHTML = `<span class="prompt">${environment.USER}@heyming-os:${currentDirectory}$</span> ${input}`;
+    commandLine.innerHTML = `<span class="prompt">user@heyming-os:${this.getShortPath()}$</span> ${command}`;
     terminalOutput.appendChild(commandLine);
-
-    switch (command) {
-      case 'help':
-        showHelp();
-        break;
-      case 'ls':
-        listFiles(params);
-        break;
-      case 'cd':
-        changeDirectory(params[0]);
-        break;
-      case 'pwd':
-        appendOutput(currentDirectory, 'success');
-        break;
-      case 'cat':
-        catFile(params[0]);
-        break;
-      case 'echo':
-        appendOutput(params.join(' '), 'echo');
-        break;
-      case 'touch':
-        touchFile(params[0]);
-        break;
-      case 'matrix':
-        startMatrix();
-        break;
-      case 'cowsay':
-        cowsay(params.join(' '));
-        break;
-      case 'fortune':
-        showFortune();
-        break;
-      case 'neofetch':
-        showNeofetch();
-        break;
-      case 'ping':
-        pingHost(params[0]);
-        break;
-      case 'top':
-        showTop();
-        break;
-      case 'ps':
-        showProcesses();
-        break;
-      case 'kill':
-        killProcess(params[0]);
-        break;
-      case 'date':
-        appendOutput(new Date().toString(), 'date');
-        break;
-      case 'whoami':
-        appendOutput(environment.USER, 'whoami');
-        break;
-      case 'uname':
-        appendOutput('Linux heyming-os 5.15.0-generic #1 SMP PREEMPT', 'uname');
-        break;
-      case 'history':
-        showHistory();
-        break;
-      case 'clear':
-        terminalOutput.innerHTML = '';
-        break;
-      case 'hollywood':
-        hollywood();
-        break;
-      case 'say':
-        handleSayCommand(params);
-        break;
-      case '':
-        break;
-      default:
-        appendOutput(`bash: ${command}: command not found`, 'error');
-    }
   }
+}
 
-  function handleSayCommand(params) {
-    if (params.includes('--list')) {
-      listVoices();
-      return;
-    }
-    if (params.includes('--help')) {
-      showSayHelp();
-      return;
-    }
-    const voiceIndex = params.indexOf('--voice');
-    let voiceName = 'Google US English'; // Default voice
-    if (voiceIndex !== -1 && params[voiceIndex + 1]) {
-      voiceName = params[voiceIndex + 1];
-      params.splice(voiceIndex, 2); // Remove --voice and its value
-    }
-    const text = params.join(' ');
-    say(text, voiceName);
-  }
+// Export for use in os.js
+window.Terminal = Terminal;
 
-  function listVoices() {
-    if (!voicesLoaded) {
-      voicesReadyCallback = listVoices;
-      appendOutput('Loading voices, please try again.', 'error');
-      return;
-    }
-    const synth = window.speechSynthesis;
-    const voices = synth.getVoices();
-    const voiceList = voices.map((voice) => voice.name).join('<br>');
-    appendOutput(`Available voices:<br>${voiceList}`, 'info');
-  }
-
-  function showSayHelp() {
-    const helpText = `
-    say [text] - Speak the text with the default voice<br>
-    say --voice [voiceName] [text] - Speak the text with the specified voice<br>
-    say --list - List available voices<br>
-    say --help - Show this help message
-  `;
-    appendOutput(helpText, 'info');
-  }
-
-  function say(text, voiceName) {
-    appendOutput(text, 'say');
-    const synth = window.speechSynthesis;
-    const utterance = new SpeechSynthesisUtterance(text);
-    const voices = synth.getVoices();
-    const selectedVoice = voices.find((voice) => voice.name === voiceName);
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-    }
-    synth.speak(utterance);
-  }
-
-  function showHelp() {
-    const help = `
-Available commands:
-  File System:
-    ls [directory]     - List files and directories
-    cd [directory]     - Change directory
-    pwd               - Print working directory
-    cat [file]        - Display file contents
-    echo [text]       - Print text
-    touch [file]      - Create empty file
-
-  System:
-    date              - Show current date/time
-    whoami            - Show current user
-    uname             - Show system information
-    top               - Show running processes
-    ps                - List processes
-    kill [pid]        - Kill process
-
-  Fun Commands:
-    matrix            - Matrix rain effect
-    say [text]        - Say something
-    cowsay [text]     - ASCII cow says something
-    fortune           - Get a fortune
-    neofetch          - System info display
-    ping [host]       - Ping a host
-    history           - Show command history
-    hollywood         - Start Hollywood terminal simulation
-
-  Utilities:
-    help              - Show this help
-    clear             - Clear terminal
-        `;
-    appendOutput(help, 'help');
-  }
-
-  function listFiles(params) {
-    const files = [
-      { name: 'Documents', type: 'dir' },
-      { name: 'Downloads', type: 'dir' },
-      { name: 'Pictures', type: 'dir' },
-      { name: 'readme.txt', type: 'file' },
-      { name: 'config.json', type: 'file' },
-      { name: 'script.sh', type: 'file' }
-    ];
-
-    let output = '';
-    files.forEach((file) => {
-      const color = file.type === 'dir' ? 'blue' : 'green';
-      output += `<span style="color: ${color};">${file.name}</span>  `;
-    });
-    appendOutput(output, 'ls');
-  }
-
-  function changeDirectory(dir) {
-    if (!dir || dir === '~') {
-      currentDirectory = environment.HOME;
-    } else if (dir === '..') {
-      currentDirectory = currentDirectory.split('/').slice(0, -1).join('/') || '/';
-    } else if (dir.startsWith('/')) {
-      currentDirectory = dir;
-    } else {
-      currentDirectory += '/' + dir;
-    }
-    environment.PWD = currentDirectory;
-  }
-
-  function catFile(filename) {
-    const files = {
-      'readme.txt': 'Welcome to Heyming Terminal!\nThis is a fun terminal simulation.',
-      'config.json': '{\n  "theme": "dark",\n  "user": "awesome"\n}',
-      'script.sh': '#!/bin/bash\necho "Hello from bash!"'
-    };
-
-    if (files[filename]) {
-      appendOutput(files[filename], 'cat');
-    } else {
-      appendOutput(`cat: ${filename}: No such file or directory`, 'error');
-    }
-  }
-
-  function touchFile(filename) {
-    appendOutput(`Created file: ${filename}`, 'success');
-  }
-
-  function startMatrix() {
-    const matrixOutput = document.createElement('div');
-    matrixOutput.className = 'matrix-container';
-    matrixOutput.innerHTML = '<div class="matrix-text">Entering the Matrix...</div>';
-    terminalOutput.appendChild(matrixOutput);
-
-    setTimeout(() => {
-      matrixOutput.innerHTML = '<div class="matrix-rain"></div>';
-      createMatrixRain(matrixOutput.querySelector('.matrix-rain'));
-    }, 2000);
-  }
-
-  function createMatrixRain(container) {
-    const chars =
-      '｢｣､ｦｧｨｩｪｫｬｭｮｯｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝﾞﾟ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()_+-=[]{}|;:,.<>?';
-    const columns = Math.floor(container.offsetWidth / 20);
-    const drops = [];
-
-    // Initialize drops
-    for (let i = 0; i < columns; i++) {
-      drops[i] = 1;
-    }
-
-    function draw() {
-      const html = [];
-      for (let i = 0; i < drops.length; i++) {
-        const char = chars[Math.floor(Math.random() * chars.length)];
-        const style = `position: absolute; left: ${i * 20}px; top: ${
-          drops[i] * 20
-        }px; color: #0f0; font-family: monospace; font-size: 16px;`;
-        html.push(`<span style="${style}">${char}</span>`);
-
-        if (drops[i] * 20 > container.offsetHeight && Math.random() > 0.975) {
-          drops[i] = 0;
-        }
-        drops[i]++;
-      }
-      container.innerHTML = html.join('');
-    }
-
-    const interval = setInterval(draw, 100);
-
-    // Stop after 10 seconds
-    setTimeout(() => {
-      clearInterval(interval);
-      container.innerHTML = `
-        <div style="text-align: center; color: #0f0; font-family: monospace; margin: 20px 0;">
-          <span style="color: #0f0;">Wake up, Neo...</span><br>
-          <span style="color: #0f0;">The Matrix has you...</span><br>
-          <span style="color: #0f0;">Follow the white rabbit.</span><br>
-          <span style="color: #0f0;">Knock, knock, Neo.</span>
-        </div>
-      `;
-    }, 10000);
-  }
-
-  function cowsay(text) {
-    const cow = `
- ${text}
-        \\   ^__^
-         \\  (oo)\\_______
-            (__)\\       )\\/\\
-                ||----w |
-                ||     ||
-        `;
-    appendOutput(cow, 'cowsay');
-  }
-
-  function showFortune() {
-    const fortunes = [
-      'You will find a bug in your code today, but it will be easy to fix.',
-      'A clean workspace leads to a clean mind.',
-      'Your next commit will be perfect.',
-      'The best code is no code at all.',
-      'You will solve a complex problem with a simple solution.',
-      'Your debugging skills will be tested today.'
-    ];
-    appendOutput(fortunes[Math.floor(Math.random() * fortunes.length)], 'fortune');
-  }
-
-  function showNeofetch() {
-    const neofetch = `
-user@heyming-os
-----------------
-OS: Heyming OS 2.0
-Kernel: Linux 5.15.0-generic
-Shell: bash 5.1.16
-Terminal: Heyming Terminal
-CPU: Intel i7-12700K
-Memory: 16GB RAM
-Disk: 1TB SSD
-Uptime: 3 days, 7 hours
-        `;
-    appendOutput(neofetch, 'neofetch');
-  }
-
-  function pingHost(host) {
-    if (!host) host = 'google.com';
-    appendOutput(`PING ${host} (142.250.191.78) 56(84) bytes of data.`, 'ping');
-    setTimeout(() => {
-      appendOutput('64 bytes from 142.250.191.78: icmp_seq=1 ttl=113 time=15.2 ms', 'ping');
-    }, 500);
-    setTimeout(() => {
-      appendOutput('64 bytes from 142.250.191.78: icmp_seq=2 ttl=113 time=14.8 ms', 'ping');
-    }, 1000);
-    setTimeout(() => {
-      appendOutput('--- google.com ping statistics ---', 'ping');
-      appendOutput('2 packets transmitted, 2 received, 0% packet loss, time 1001ms', 'ping');
-    }, 1500);
-  }
-
-  function showTop() {
-    const top = `
-top - 14:30:15 up 3 days,  7:15,  1 user,  load average: 0.52, 0.58, 0.55
-Tasks: 245 total,   1 running, 244 sleeping,   0 stopped,   0 zombie
-%Cpu(s):  2.1 us,  1.2 sy,  0.0 ni, 96.5 id,  0.2 wa,  0.0 hi,  0.0 si,  0.0 st
-MiB Mem :  16384.0 total,  10240.0 free,   2048.0 used,   4096.0 buff/cache
-MiB Swap:   8192.0 total,   8192.0 free,      0.0 used.  13312.0 avail Mem
-
-  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
- 1234 user      20   0  1234567  12345  1234 S   2.1   0.1   0:15.23 terminal
- 5678 user      20   0   987654   9876   987 S   1.8   0.1   0:12.45 browser
- 9012 user      20   0   654321   6543   654 S   1.5   0.0   0:08.92 editor
-        `;
-    appendOutput(top, 'top');
-  }
-
-  function showProcesses() {
-    const ps = `
-  PID TTY          TIME CMD
- 1234 pts/0    00:00:15 terminal
- 5678 pts/0    00:00:12 browser
- 9012 pts/0    00:00:08 editor
-13456 pts/0    00:00:05 shell
-        `;
-    appendOutput(ps, 'ps');
-  }
-
-  function killProcess(pid) {
-    if (!pid) {
-      appendOutput(
-        'kill: usage: kill [-s sigspec | -n signum | -sigspec] pid | jobspec ... or kill -l [sigspec]',
-        'error'
-      );
-      return;
-    }
-    appendOutput(`Process ${pid} killed`, 'success');
-  }
-
-  function showHistory() {
-    let output = '';
-    commandHistory.forEach((cmd, index) => {
-      output += `${index + 1}  ${cmd}\n`;
-    });
-    appendOutput(output, 'history');
-  }
-
-  function hollywood() {
-    appendOutput('🎬 Hollywood Terminal Simulation Starting...', 'hollywood');
-
-    // Create a Hollywood-style display with multiple "monitoring" panels
-    const hollywoodContainer = document.createElement('div');
-    hollywoodContainer.className = 'hollywood-container';
-    hollywoodContainer.innerHTML = `
-      <div class="hollywood-header">
-        <span style="color: #ff6b6b;">HOLLYWOOD TERMINAL</span> - <span style="color: #4ecdc4;">System Monitor v2.0</span>
-      </div>
-      <div class="hollywood-grid">
-        <div class="hollywood-panel" id="panel1">
-          <div class="panel-title">Network Traffic</div>
-          <div class="panel-content" id="content1"></div>
-        </div>
-        <div class="hollywood-panel" id="panel2">
-          <div class="panel-title">System Load</div>
-          <div class="panel-content" id="content2"></div>
-        </div>
-        <div class="hollywood-panel" id="panel3">
-          <div class="panel-title">Process Monitor</div>
-          <div class="panel-content" id="content3"></div>
-        </div>
-        <div class="hollywood-panel" id="panel4">
-          <div class="panel-title">Memory Usage</div>
-          <div class="panel-content" id="content4"></div>
-        </div>
-      </div>
-    `;
-    terminalOutput.appendChild(hollywoodContainer);
-
-    // Start the Hollywood effect
-    startHollywoodEffect();
-  }
-
-  function startHollywoodEffect() {
-    const panels = ['content1', 'content2', 'content3', 'content4'];
-    const intervals = [];
-
-    // Network traffic simulation
-    const networkData = [
-      'eth0: 1.2MB/s ↑ 856KB/s ↓',
-      'wlan0: 2.1MB/s ↑ 1.3MB/s ↓',
-      'lo: 45KB/s ↑ 45KB/s ↓',
-      'docker0: 0B/s ↑ 0B/s ↓'
-    ];
-
-    // System load simulation
-    const loadData = [
-      'Load: 0.52, 0.58, 0.55',
-      'CPU: 12% user, 8% system',
-      'Tasks: 245 total, 1 running',
-      'Uptime: 3d 7h 15m'
-    ];
-
-    // Process simulation
-    const processData = [
-      'PID 1234: terminal (2.1% CPU)',
-      'PID 5678: browser (1.8% CPU)',
-      'PID 9012: editor (1.5% CPU)',
-      'PID 3456: shell (0.9% CPU)'
-    ];
-
-    // Memory simulation
-    const memoryData = ['Total: 16GB', 'Used: 8.2GB (51%)', 'Free: 4.1GB', 'Cache: 3.7GB'];
-
-    const dataSets = [networkData, loadData, processData, memoryData];
-
-    panels.forEach((panelId, index) => {
-      const panel = document.getElementById(panelId);
-      const data = dataSets[index];
-      let dataIndex = 0;
-
-      const interval = setInterval(() => {
-        // Add new data line
-        const line = document.createElement('div');
-        line.className = 'data-line';
-        line.textContent = data[dataIndex];
-        line.style.color = `hsl(${120 + index * 60}, 70%, 60%)`;
-
-        panel.appendChild(line);
-
-        // Keep only last 8 lines
-        while (panel.children.length > 8) {
-          panel.removeChild(panel.firstChild);
-        }
-
-        dataIndex = (dataIndex + 1) % data.length;
-      }, 1000 + Math.random() * 2000);
-
-      intervals.push(interval);
-    });
-
-    // Stop after 15 seconds
-    setTimeout(() => {
-      intervals.forEach((interval) => clearInterval(interval));
-      appendOutput('🎬 Hollywood Terminal Simulation Complete!', 'hollywood');
-    }, 15000);
-  }
-
-  // Save command history to session storage
-  window.addEventListener('beforeunload', () => {
-    sessionStorage.setItem('commandHistory', JSON.stringify(commandHistory));
-  });
-
-  // Load command history from session storage
-  const savedHistory = sessionStorage.getItem('commandHistory');
-  if (savedHistory) {
-    commandHistory = JSON.parse(savedHistory);
-    historyIndex = commandHistory.length;
+// Initialize standalone terminal if not in OS mode
+document.addEventListener('DOMContentLoaded', () => {
+  // Check if we're in standalone mode (not in an OS window)
+  if (document.getElementById('terminal-container')) {
+    window.terminal = new Terminal();
   }
 });

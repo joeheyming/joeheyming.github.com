@@ -6,6 +6,7 @@ class HeymingOS {
     this.nextWindowId = 1;
     this.activeWindow = null;
     this.launcherVisible = false;
+    this.potentialActiveWindow = null;
 
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
@@ -20,6 +21,7 @@ class HeymingOS {
     this.createDesktopIcons();
     this.loadAppsFromRegistry();
     this.handleViewportChanges();
+    this.listenToIframeMessages();
   }
 
   loadAppsFromRegistry() {
@@ -144,6 +146,7 @@ class HeymingOS {
         this.showNotification('Welcome to Heyming OS v1.0! 🚀', 'system');
       }, 500);
     }
+    location.hash = '#os';
   }
 
   hide() {
@@ -164,6 +167,7 @@ class HeymingOS {
         });
       }, 300);
     }
+    location.hash = '';
   }
 
   toggle() {
@@ -876,6 +880,65 @@ class HeymingOS {
       this.makeWindowActive(windowId);
     });
 
+    // Iframe click detection for activation
+    const iframe = windowElement.querySelector('iframe');
+    if (iframe) {
+      // Use a combination of approaches to detect iframe interaction
+
+      // Method 1: Focus detection
+      iframe.addEventListener('focus', () => {
+        this.makeWindowActive(windowId);
+      });
+
+      // Method 2: Mouse enter detection (when mouse enters iframe area)
+      iframe.addEventListener('mouseenter', () => {
+        // Set a flag that this iframe might be clicked
+        this.potentialActiveWindow = windowId;
+      });
+
+      // Method 3: Window blur/focus detection to catch iframe clicks
+      let iframeClickTimer = null;
+      const checkIframeClick = () => {
+        if (this.potentialActiveWindow === windowId) {
+          this.makeWindowActive(windowId);
+          this.potentialActiveWindow = null;
+        }
+      };
+
+      // When the main window loses focus, check if it was due to iframe click
+      window.addEventListener('blur', () => {
+        if (this.potentialActiveWindow === windowId) {
+          // Small delay to ensure the iframe gets focus
+          iframeClickTimer = setTimeout(checkIframeClick, 10);
+        }
+      });
+
+      // Method 4: Periodic check for iframe focus (fallback)
+      let focusCheckInterval = null;
+      iframe.addEventListener('mouseenter', () => {
+        focusCheckInterval = setInterval(() => {
+          if (document.activeElement === iframe && this.activeWindow?.id !== windowId) {
+            this.makeWindowActive(windowId);
+            clearInterval(focusCheckInterval);
+          }
+        }, 100);
+      });
+
+      iframe.addEventListener('mouseleave', () => {
+        if (focusCheckInterval) {
+          clearInterval(focusCheckInterval);
+          focusCheckInterval = null;
+        }
+        this.potentialActiveWindow = null;
+      });
+
+      // Clean up timers when window is closed
+      windowElement.addEventListener('remove', () => {
+        if (iframeClickTimer) clearTimeout(iframeClickTimer);
+        if (focusCheckInterval) clearInterval(focusCheckInterval);
+      });
+    }
+
     // Window dragging
     const titlebar = windowElement.querySelector('.os-window-titlebar');
     this.makeDraggable(titlebar, windowElement, windowId);
@@ -1181,6 +1244,22 @@ class HeymingOS {
         button.classList.add('active');
       }
     });
+  }
+
+  listenToIframeMessages() {
+    window.addEventListener('message', (e) => {
+      const data = e.data;
+      if (data.type === 'iframe-message') {
+        this.handleIframeMessage(data.message);
+      }
+    });
+  }
+
+  handleIframeMessage(message) {
+    // currently only listen to "launch" requests
+    if (message.type === 'launch') {
+      this.launchApp(message.app);
+    }
   }
 
   createDesktopIcons() {

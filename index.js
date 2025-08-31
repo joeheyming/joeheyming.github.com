@@ -222,6 +222,28 @@ function initHamburgerMenu() {
   attachMenuLinkListeners();
 }
 
+// Hash-based OS auto-launch functionality
+function checkHashAndLaunchOS() {
+  const hash = window.location.hash;
+  if (hash === '#os') {
+    // Wait for heymingOS to be available and then launch it
+    if (typeof window.heymingOS !== 'undefined') {
+      // Only show if not already visible
+      if (!window.heymingOS.isVisible) {
+        window.heymingOS.show();
+      }
+    } else {
+      // Retry after a short delay if heymingOS isn't ready yet
+      setTimeout(checkHashAndLaunchOS, 100);
+    }
+  }
+}
+
+// Listen for hash changes to handle dynamic URL updates
+function handleHashChange() {
+  checkHashAndLaunchOS();
+}
+
 // Add some sparkle animation to cards on load
 document.addEventListener('DOMContentLoaded', () => {
   // Calculate experience on page load
@@ -229,6 +251,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize hamburger menu
   initHamburgerMenu();
+
+  // Check for #os hash and auto-launch OS
+  checkHashAndLaunchOS();
+
+  // Listen for hash changes
+  window.addEventListener('hashchange', handleHashChange);
 
   const cards = document.querySelectorAll('.group');
   cards.forEach((card, index) => {

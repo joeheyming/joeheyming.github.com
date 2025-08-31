@@ -26,9 +26,17 @@
       <div id="terminal-output"></div>
       <div id="current-prompt-line">
         <span id="prompt-text"></span>
-        <input type="text" id="terminal-input" autofocus placeholder="Type a command..." />
+        <input
+          type="text"
+          id="terminal-input"
+          autofocus
+          autocapitalize="none"
+          placeholder="Type a command..."
+        />
       </div>
     </div>
+    <script src="filesystem-db.js"></script>
+    <script src="commands.js"></script>
     <script src="terminal.js"></script>
   </body>
 </html>
