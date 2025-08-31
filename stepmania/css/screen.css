@@ -13,6 +13,9 @@ body {
   max-height: 60vh;
   min-height: 400px;
   margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Logo styling */
@@ -27,8 +30,6 @@ body {
 /* Canvas styling for smooth animations */
 #sm-micro canvas {
   border-radius: 1rem;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
 }
 
 /* Button hover effects with neon glow */
@@ -215,6 +216,13 @@ body:not(.mobile) .score-toggle {
 }
 
 /* Reduced motion support */
+/* Button pressed state for visual feedback */
+.button-pressed {
+  transform: scale(0.85) !important;
+  box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+  filter: brightness(0.8) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .button,
   #logo,
