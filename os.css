@@ -10,7 +10,7 @@
   border-radius: 8px 8px 0 0;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
   overflow: hidden;
-  z-index: 10;
+  z-index: 20;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, z-index 0.2s ease;
 }
 
@@ -201,7 +201,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
-  z-index: 10;
+  z-index: 5;
   padding: 4px;
 }
 
@@ -485,12 +485,12 @@
   position: relative;
   width: 100%;
   height: calc(100% - 20px); /* Leave space for drag handle */
-  z-index: 1;
+  z-index: 15; /* Higher than desktop icons */
 }
 
 .iframe-content iframe {
   position: relative;
-  z-index: 1;
+  z-index: 16;
 }
 
 /* Scrollbar Styling */
@@ -667,7 +667,7 @@
   background: #ffffff;
   overflow: hidden;
   position: relative;
-  z-index: 5; /* Higher than resize handles */
+  z-index: 15; /* Higher than desktop icons and resize handles */
   pointer-events: auto;
 }
 
@@ -675,7 +675,7 @@
   background: #ffffff;
   pointer-events: auto;
   position: relative;
-  z-index: 6;
+  z-index: 16;
 }
 
 /* Loading indicator for iframes */
