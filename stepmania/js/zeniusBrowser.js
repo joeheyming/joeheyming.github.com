@@ -18,14 +18,13 @@ class ZeniusBrowserElement extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         :host {
-          display: block;
-          width: 100%;
+          display: inline-block;
+          width: auto;
         }
         
         .zenius-browser-container {
           display: flex;
           justify-content: space-between;
-          margin-bottom: 1rem;
           width: 100%;
         }
         
@@ -40,6 +39,13 @@ class ZeniusBrowserElement extends HTMLElement {
           border: none;
           cursor: pointer;
           font-size: 14px;
+          height: 2.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          line-height: 1.2;
+          margin: 0;
+          white-space: nowrap;
         }
         
         .zenius-browser-btn:hover {
@@ -299,7 +305,7 @@ class ZeniusBrowserElement extends HTMLElement {
       </style>
       
       <div class="zenius-browser-container">
-        <button class="zenius-browser-btn" id="open-zenius-browser">🎵 Song Library</button>
+        <button class="zenius-browser-btn" id="open-zenius-browser">Songs</button>
       </div>
       
       <div class="modal" id="zenius-browser-modal">

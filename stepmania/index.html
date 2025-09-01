@@ -67,24 +67,15 @@
         style="margin-bottom: 60px"
       >
         <!-- Song Library Browser, Share Button, and Difficulty Selector Row -->
-        <div class="w-full flex flex-col lg:flex-row items-center lg:items-start gap-4 mb-4">
+        <div class="w-full flex flex-row items-center gap-2">
           <!-- Song Library Browser Web Component -->
-          <div class="flex-1">
-            <zenius-browser></zenius-browser>
-          </div>
+          <zenius-browser></zenius-browser>
 
           <!-- Share Button -->
-          <div class="w-full lg:w-auto">
-            <share-button></share-button>
-          </div>
+          <share-button></share-button>
 
           <!-- Main Difficulty Selector -->
-          <div class="w-full lg:w-auto">
-            <difficulty-selector
-              id="main-difficulty-selector"
-              layout="horizontal"
-            ></difficulty-selector>
-          </div>
+          <difficulty-selector id="main-difficulty-selector"></difficulty-selector>
         </div>
 
         <!-- Game Canvas Container -->
