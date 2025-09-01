@@ -205,48 +205,11 @@ class MainPageController {
 
   async fetchZeniusSimfile(simfileId) {
     try {
-      // Try multiple proxy options
+      // Use the global proxy service
       const zeniusPageUrl =
         'https://zenius-i-vanisher.com/v5.2/viewsimfile.php?simfileid=' + simfileId;
 
-      // Try different proxy services
-      const proxyOptions = [
-        'https://api.allorigins.win/raw?url=',
-        'https://cors-anywhere.herokuapp.com/',
-        'https://thingproxy.freeboard.io/fetch/'
-      ];
-
-      let html = null;
-      let lastError = null;
-
-      for (const proxy of proxyOptions) {
-        try {
-          const proxyUrl = proxy + encodeURIComponent(zeniusPageUrl);
-          console.log('Trying proxy:', proxy);
-
-          const response = await fetch(proxyUrl, {
-            method: 'GET',
-            headers: {
-              Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-              'Accept-Language': 'en-US,en;q=0.5',
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-          });
-
-          if (response.ok) {
-            html = await response.text();
-            console.log('Successfully fetched via proxy:', proxy);
-            break;
-          }
-        } catch (error) {
-          console.log('Proxy failed:', proxy, error);
-          lastError = error;
-        }
-      }
-
-      if (!html) {
-        throw new Error('All proxies failed: ' + lastError?.message || 'Unknown error');
-      }
+      const html = await window.proxyService.fetchWithProxy(zeniusPageUrl);
 
       // Debug: Log the HTML to see the actual structure
       console.log('Zenius page HTML (first 2000 chars):', html.substring(0, 2000));
@@ -259,15 +222,12 @@ class MainPageController {
       // If first pattern doesn't work, try alternative patterns
       if (!simfileMatch) {
         simfileMatch = html.match(/href="([^"]*\.sm)"/);
-        console.log('Trying alternative simfile pattern...');
       }
       if (!oggMatch) {
         oggMatch = html.match(/href="([^"]*\.ogg)"/);
-        console.log('Trying alternative ogg pattern...');
       }
       if (!backgroundMatch) {
         backgroundMatch = html.match(/href="([^"]*\.png)"/);
-        console.log('Trying alternative background pattern...');
       }
 
       console.log('Simfile match:', simfileMatch);
@@ -294,41 +254,9 @@ class MainPageController {
       const title = titleMatch ? titleMatch[1].trim() : 'Zenius Song ' + simfileId;
       const artist = artistMatch ? artistMatch[1].trim() : 'Unknown Artist';
 
-      console.log('Found song: ' + title + ' by ' + artist);
-      console.log('Simfile URL: ' + simfileUrl);
-      console.log('Audio URL: ' + oggUrl);
-
-      // Download the simfile through proxy
+      // Download the simfile through proxy service
       const simfileDirectUrl = 'https://zenius-i-vanisher.com' + simfileMatch[1];
-      let simfileText = null;
-
-      for (const proxy of proxyOptions) {
-        try {
-          const proxySimfileUrl = proxy + encodeURIComponent(simfileDirectUrl);
-          console.log('Trying to download simfile via proxy:', proxy);
-
-          const simfileResponse = await fetch(proxySimfileUrl, {
-            method: 'GET',
-            headers: {
-              Accept: 'text/plain,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-              'Accept-Language': 'en-US,en;q=0.5',
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-          });
-
-          if (simfileResponse.ok) {
-            simfileText = await simfileResponse.text();
-            console.log('Successfully downloaded simfile via proxy:', proxy);
-            break;
-          }
-        } catch (error) {
-          console.log('Simfile download failed via proxy:', proxy, error);
-        }
-      }
-
-      if (!simfileText) {
-        throw new Error('Failed to download simfile from all proxies');
-      }
+      const simfileText = await window.proxyService.fetchSimfile(simfileDirectUrl);
 
       return {
         title,
@@ -358,7 +286,7 @@ class MainPageController {
       const gameArea = document.getElementById('sm-micro');
       gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${songData.background})`;
 
-      console.log('Default song loaded (Lost) - ready to play when user starts');
+      // Default song loaded and ready
     }
   }
 
@@ -535,10 +463,6 @@ class MainPageController {
     // Update global background changes data
     if (parsedData.bgChanges) {
       window.bgChanges = parsedData.bgChanges;
-      console.log('Background changes loaded:', parsedData.bgChanges.length);
-      parsedData.bgChanges.forEach(function (bgChange, index) {
-        console.log(`BG Change ${index}:`, bgChange);
-      });
     } else {
       window.bgChanges = [];
     }
@@ -559,9 +483,6 @@ class MainPageController {
       audioEl.addEventListener(
         'canplay',
         () => {
-          // Don't autoplay - let user interact first
-          console.log('Audio ready to play. Click the play button or press spacebar to start.');
-
           // Show "ready to play" message
           this.showReadyToPlayMessage();
 
@@ -599,8 +520,6 @@ class MainPageController {
     if (window.bpm !== undefined) {
       window.bpm = parsedData.bpm;
     }
-
-    console.log('Song loaded:', parsedData.title, 'by', parsedData.artist);
   }
 
   handleURLChange() {
@@ -677,10 +596,8 @@ class MainPageController {
 
   async handleRetry() {
     if (this.lastZeniusUrl) {
-      console.log('Retrying Zenius URL:', this.lastZeniusUrl);
       await this.loadFromZeniusURL(this.lastZeniusUrl, this.lastDifficulty);
     } else if (this.lastSongKey) {
-      console.log('Retrying regular song:', this.lastSongKey);
       const songData = window.songs[this.lastSongKey];
       if (songData) {
         try {
@@ -709,7 +626,6 @@ class MainPageController {
         }
       }
     } else {
-      console.log('No previous URL to retry');
       this.hideMainLoading();
       // Load default song if no retry URL is available
       this.loadDefaultSong();

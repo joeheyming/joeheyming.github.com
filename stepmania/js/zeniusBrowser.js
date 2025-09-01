@@ -475,24 +475,12 @@ class ZeniusBrowserElement extends HTMLElement {
   async fetchZeniusContent(url) {
     // Check cache first
     if (this.cache.has(url)) {
-      console.log('Using cached content for:', url);
       return this.cache.get(url);
     }
 
     try {
-      // Use a CORS proxy to fetch the content
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-      const response = await fetch(proxyUrl);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const html = await response.text();
-
-      // Debug: Show a snippet of the HTML to understand the structure
-      const htmlSnippet = html.substring(0, 2000);
-
+      // Use the global proxy service
+      const html = await window.proxyService.fetchWithProxy(url);
       const content = this.parseZeniusContent(html);
 
       // Cache the result
