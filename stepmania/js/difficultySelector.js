@@ -20,19 +20,15 @@ class DifficultySelectorElement extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         :host {
-          display: inline-block;
-          width: auto;
-          margin: 0;
-          padding: 0;
+          display: block;
+          width: 100%;
         }
         
         .difficulty-selector {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          gap: 0;
-          margin: 0;
-          padding: 0;
+          display: ${isHorizontal ? 'flex' : 'block'};
+          flex-direction: ${isHorizontal ? 'row' : 'column'};
+          align-items: ${isHorizontal ? 'center' : 'flex-start'};
+          gap: ${isHorizontal ? '1rem' : '0'};
         }
         
         .difficulty-selector.hidden {
@@ -40,36 +36,33 @@ class DifficultySelectorElement extends HTMLElement {
         }
         
         .difficulty-title {
-          font-size: 1rem;
+          font-size: ${isHorizontal ? '1rem' : '1.25rem'};
           font-weight: bold;
           color: white;
           line-height: 1;
-          margin: 0;
-          text-align: left;
+          margin-bottom: ${isHorizontal ? '0' : '1rem'};
+          text-align: ${isHorizontal ? 'left' : 'center'};
           white-space: nowrap;
-          display: flex;
+          display: ${isHorizontal ? 'flex' : 'block'};
           align-items: center;
-          height: 100%;
+          height: ${isHorizontal ? '100%' : 'auto'};
         }
         
         .difficulty-select {
-          width: auto;
-          max-width: none;
-          margin: 0;
+          width: ${isHorizontal ? 'auto' : '100%'};
+          max-width: ${isHorizontal ? '200px' : '300px'};
+          margin: ${isHorizontal ? '0' : '0 auto'};
           display: block;
-          padding: 0.5rem 1rem;
-          font-size: 14px;
+          padding: 0.75rem 1rem;
+          font-size: 1rem;
           font-weight: bold;
           color: white;
           background: linear-gradient(to right, #3b82f6, #2563eb);
           border: 2px solid rgba(139, 92, 246, 0.3);
-          border-radius: 0.75rem;
+          border-radius: 0.5rem;
           cursor: pointer;
           transition: all 0.2s;
           outline: none;
-          height: 2.5rem;
-          line-height: 1.2;
-          white-space: nowrap;
         }
         
         .difficulty-select:hover {
