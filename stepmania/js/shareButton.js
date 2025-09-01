@@ -72,7 +72,7 @@ class ShareButtonElement extends HTMLElement {
       </style>
       
       <button class="share-btn" id="share-btn">
-        🔗 Share
+        Share
       </button>
       
       <div class="tooltip" id="tooltip">URL copied to clipboard!</div>

@@ -55,6 +55,20 @@ body {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Uniform button heights for consistent layout */
+.zenius-browser,
+.zenius-browser-btn,
+share-button,
+difficulty-selector,
+button {
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  line-height: 1.2;
+}
+
 /* Score animation effects */
 #percent-score {
   text-shadow: 0 0 10px currentColor;
