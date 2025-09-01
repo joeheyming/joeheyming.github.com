@@ -207,6 +207,10 @@ class ZeniusBrowserElement extends HTMLElement {
           display: none;
           text-align: center;
           margin-top: 1.5rem;
+          padding: 2rem;
+          background: rgba(59, 130, 246, 0.1);
+          border-radius: 0.75rem;
+          border: 1px solid rgba(59, 130, 246, 0.2);
         }
         
         .loading-indicator.show {
@@ -221,6 +225,7 @@ class ZeniusBrowserElement extends HTMLElement {
           border-top: 4px solid transparent;
           border-radius: 50%;
           animation: spin 1s linear infinite;
+          margin-bottom: 1rem;
         }
         
         @keyframes spin {
@@ -231,6 +236,31 @@ class ZeniusBrowserElement extends HTMLElement {
         .loading-text {
           color: white;
           margin-top: 0.5rem;
+          font-size: 1rem;
+          font-weight: 500;
+        }
+        
+        .loading-progress {
+          width: 100%;
+          height: 4px;
+          background: rgba(59, 130, 246, 0.2);
+          border-radius: 2px;
+          margin-top: 1rem;
+          overflow: hidden;
+        }
+        
+        .loading-progress-bar {
+          height: 100%;
+          background: linear-gradient(to right, #3b82f6, #1d4ed8);
+          border-radius: 2px;
+          width: 0%;
+          animation: progress 2s ease-in-out infinite;
+        }
+        
+        @keyframes progress {
+          0% { width: 0%; }
+          50% { width: 70%; }
+          100% { width: 100%; }
         }
         
         .search-container {
@@ -302,6 +332,14 @@ class ZeniusBrowserElement extends HTMLElement {
           color: #93c5fd;
           font-size: 0.875rem;
         }
+
+        .loading {
+          background: rgba(0, 0, 0, 0.5);
+          border-color: rgba(59, 130, 246, 0.6);
+          transform: scale(1.02);
+          cursor: not-allowed;
+          opacity: 0.7;
+        }
       </style>
       
       <div class="zenius-browser-container">
@@ -339,6 +377,9 @@ class ZeniusBrowserElement extends HTMLElement {
             <div class="loading-indicator" id="loading-indicator">
               <div class="spinner"></div>
               <p class="loading-text" id="loading-text">Loading content...</p>
+              <div class="loading-progress">
+                <div class="loading-progress-bar" id="loading-progress-bar"></div>
+              </div>
             </div>
           </div>
           
@@ -626,6 +667,16 @@ class ZeniusBrowserElement extends HTMLElement {
 
       itemEl.addEventListener('click', () => {
         if (item.type === 'directory') {
+          // Show loading state directly on the clicked item
+          itemEl.classList.add('loading');
+          itemEl.innerHTML = `
+            <div class="content-icon">⏳</div>
+            <div class="content-info">
+              <h3>${item.name}</h3>
+              <p>Loading...</p>
+            </div>
+          `;
+
           // Navigate to category page
           if (item.categoryId) {
             this.currentCategoryName = item.name;
@@ -818,9 +869,11 @@ class ZeniusBrowserElement extends HTMLElement {
   showLoading(text) {
     const loadingEl = this.shadowRoot.getElementById('loading-indicator');
     const textEl = this.shadowRoot.getElementById('loading-text');
+    const progressBar = this.shadowRoot.getElementById('loading-progress-bar');
 
     textEl.textContent = text;
     loadingEl.classList.add('show');
+    progressBar.style.width = '0%'; // Reset progress bar
   }
 
   hideLoading() {
