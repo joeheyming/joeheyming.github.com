@@ -8,6 +8,7 @@ class SimfileParser {
     this.metadata = {};
     this.charts = [];
     this.bpmChanges = [];
+    this.bgChanges = [];
   }
 
   parse(simfileContent) {
@@ -26,6 +27,9 @@ class SimfileParser {
     // Parse BPM changes
     this.parseBPMs(cleanContent);
 
+    // Parse background changes
+    this.parseBGChanges(cleanContent);
+
     // Parse charts
     this.parseCharts(cleanContent);
 
@@ -35,6 +39,7 @@ class SimfileParser {
       bpm: this.getDisplayBPM(),
       offset: this.parseOffset(),
       charts: this.charts,
+      bgChanges: this.bgChanges,
       metadata: this.metadata
     };
   }
@@ -65,6 +70,47 @@ class SimfileParser {
 
     // Sort by beat
     this.bpmChanges.sort((a, b) => a.beat - b.beat);
+  }
+
+  parseBGChanges(content) {
+    const bgMatch = content.match(/#BGCHANGES:([^;]+);/);
+    if (bgMatch) {
+      const bgString = bgMatch[1];
+      const bgPairs = bgString.split(',');
+
+      this.bgChanges = bgPairs
+        .map((pair) => {
+          const parts = pair.split('=').map((s) => s.trim());
+          if (parts.length >= 4) {
+            const beat = parseFloat(parts[0]);
+            const file = parts[1];
+            const effect = parts[2];
+            const x = parseFloat(parts[3]) || 0;
+            const y = parseFloat(parts[4]) || 0;
+
+            return {
+              beat,
+              file,
+              effect,
+              x,
+              y,
+              // Determine if this is a video file
+              isVideo:
+                file.toLowerCase().endsWith('.avi') ||
+                file.toLowerCase().endsWith('.mp4') ||
+                file.toLowerCase().endsWith('.webm') ||
+                file.toLowerCase().endsWith('.mov'),
+              // Determine if this is a "no background" command
+              isNoBackground: file === '-nosongbg-'
+            };
+          }
+          return null;
+        })
+        .filter((bg) => bg !== null);
+    }
+
+    // Sort by beat
+    this.bgChanges.sort((a, b) => a.beat - b.beat);
   }
 
   parseCharts(content) {
