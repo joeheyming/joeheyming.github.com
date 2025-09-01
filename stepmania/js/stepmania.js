@@ -4,9 +4,15 @@ var bpm = song.bpm;
 var beatsPerSec = bpm / 60;
 var addToMusicPositionSeconds = song.addToMusicPosition;
 
+// Background change support
+var bgChanges = [];
+var currentBackground = null;
+var backgroundVideo = null;
+
 // Make these globally accessible for dynamic loading
 window.noteData = noteData;
 window.bpm = bpm;
+window.bgChanges = bgChanges;
 
 var currentTime = 0;
 function getMusicBeat(musicSec) {
@@ -263,7 +269,43 @@ $(document).ready(function () {
     }
   }
 
+  // Sync video with audio playback
+  audio.addEventListener('play', function () {
+    var videoElement = document.getElementById('background-video');
+    if (videoElement && backgroundVideo) {
+      videoElement.play().catch(function (error) {
+        console.log('Video play failed:', error);
+      });
+    }
+  });
+
+  audio.addEventListener('pause', function () {
+    var videoElement = document.getElementById('background-video');
+    if (videoElement && backgroundVideo) {
+      videoElement.pause();
+    }
+  });
+
+  audio.addEventListener('play', function () {
+    // Hide the loading overlay when audio starts playing
+    const loadingOverlay = document.getElementById('main-loading-overlay');
+    if (loadingOverlay && !loadingOverlay.classList.contains('hidden')) {
+      loadingOverlay.classList.add('hidden');
+    }
+  });
+
   $(document).keydown(function (event) {
+    // Don't handle game controls when user is typing in an input field
+    if (
+      event.target.tagName === 'INPUT' ||
+      event.target.tagName === 'TEXTAREA' ||
+      event.target.contentEditable === 'true' ||
+      event.target.isContentEditable ||
+      event.target.nodeName === 'ZENIUS-BROWSER'
+    ) {
+      return;
+    }
+
     var keyCode = event.which;
 
     var col;
@@ -293,7 +335,9 @@ $(document).ready(function () {
     // spacebar toggle play/pause
     if (keyCode == 32) {
       if (audio.paused) {
-        audio.play();
+        audio.play().catch((error) => {
+          console.log('Audio play failed:', error);
+        });
       } else {
         audio.pause();
       }
@@ -391,6 +435,9 @@ function update(deltaSeconds) {
     if (audio.paused == false) currentTime += deltaSeconds;
   }
 
+  // Handle background changes
+  updateBackgroundChanges();
+
   targets.forEach(function (target) {
     target.update(deltaSeconds);
   });
@@ -414,6 +461,130 @@ function update(deltaSeconds) {
       }
     }
   });
+}
+
+function updateBackgroundChanges() {
+  if (!bgChanges || bgChanges.length === 0) return;
+
+  var musicBeat = getMusicBeat(currentTime);
+
+  // Find the next background change that should be triggered
+  for (var i = 0; i < bgChanges.length; i++) {
+    var bgChange = bgChanges[i];
+    if (bgChange.beat <= musicBeat && !bgChange.triggered) {
+      bgChange.triggered = true;
+      console.log('Triggering background change at beat', bgChange.beat, ':', bgChange.file);
+      console.log('Current music beat:', musicBeat, 'Current time:', currentTime);
+      applyBackgroundChange(bgChange);
+    }
+  }
+}
+
+function applyBackgroundChange(bgChange) {
+  var gameArea = document.getElementById('sm-micro');
+  var videoElement = document.getElementById('background-video');
+
+  console.log('Applying background change:', bgChange);
+
+  if (bgChange.isNoBackground) {
+    // Remove background
+    console.log('Removing background');
+    gameArea.style.backgroundImage = 'none';
+    if (videoElement) {
+      videoElement.style.opacity = '0';
+      videoElement.pause();
+    }
+    currentBackground = null;
+    backgroundVideo = null;
+  } else if (bgChange.isVideo) {
+    // Handle video background
+    console.log('Setting video background:', bgChange.file);
+    if (videoElement) {
+      // Construct full URL for video file
+      var videoUrl = bgChange.file;
+      if (!videoUrl.startsWith('http')) {
+        // If it's a relative path, construct the full URL using the OGG file's base URL
+        if (window.mainPageController && window.mainPageController.currentSong) {
+          var currentSongData = window.mainPageController.currentSong.data;
+          if (currentSongData.url) {
+            // Extract the base URL from the OGG URL and append the video filename
+            var baseUrl = currentSongData.url.substring(
+              0,
+              currentSongData.url.lastIndexOf('/') + 1
+            );
+            videoUrl = baseUrl + bgChange.file;
+            console.log('Constructed video URL:', videoUrl);
+          }
+        }
+      }
+
+      // Remove the static background image so video shows through
+      gameArea.style.backgroundImage = 'none';
+
+      videoElement.src = videoUrl;
+      videoElement.style.opacity = '1';
+
+      console.log('Starting video at beat:', bgChange.beat, 'current time:', currentTime);
+
+      // Handle video loading errors
+      videoElement.addEventListener(
+        'error',
+        function () {
+          console.log('Video failed to load:', videoUrl);
+          videoElement.style.opacity = '0';
+          backgroundVideo = null;
+          // Restore static background image
+          if (window.mainPageController && window.mainPageController.currentSong) {
+            var currentSongData = window.mainPageController.currentSong.data;
+            if (currentSongData.background) {
+              gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${currentSongData.background})`;
+            }
+          }
+        },
+        { once: true }
+      );
+
+      videoElement.play().catch(function (error) {
+        console.log('Video autoplay failed:', error);
+        // Hide the video element if it fails to load
+        videoElement.style.opacity = '0';
+        backgroundVideo = null;
+        // Restore static background image
+        if (window.mainPageController && window.mainPageController.currentSong) {
+          var currentSongData = window.mainPageController.currentSong.data;
+          if (currentSongData.background) {
+            gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${currentSongData.background})`;
+          }
+        }
+      });
+      backgroundVideo = videoUrl;
+    }
+    // Keep the static background as fallback
+    currentBackground = bgChange.file;
+  } else {
+    // Handle static image background
+    console.log('Setting image background:', bgChange.file);
+    var imageUrl = bgChange.file;
+    if (!imageUrl.startsWith('http')) {
+      // If it's a relative path, construct the full URL using the OGG file's base URL
+      if (window.mainPageController && window.mainPageController.currentSong) {
+        var currentSongData = window.mainPageController.currentSong.data;
+        if (currentSongData.url) {
+          var baseUrl = currentSongData.url.substring(0, currentSongData.url.lastIndexOf('/') + 1);
+          imageUrl = baseUrl + bgChange.file;
+          console.log('Constructed image URL:', imageUrl);
+        }
+      }
+    }
+
+    gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${imageUrl})`;
+    if (videoElement) {
+      videoElement.style.opacity = '0';
+      videoElement.pause();
+    }
+    currentBackground = imageUrl;
+    backgroundVideo = null;
+  }
 }
 
 function draw() {
@@ -492,6 +663,22 @@ function resetGame() {
     bpm = window.song.bpm;
     beatsPerSec = bpm / 60;
     addToMusicPositionSeconds = window.song.addToMusicPosition;
+  }
+  if (window.bgChanges) {
+    bgChanges = window.bgChanges;
+    // Reset triggered flags
+    bgChanges.forEach(function (bgChange) {
+      bgChange.triggered = false;
+    });
+  }
+
+  // Reset background
+  currentBackground = null;
+  backgroundVideo = null;
+  var videoElement = document.getElementById('background-video');
+  if (videoElement) {
+    videoElement.style.opacity = '0';
+    videoElement.pause();
   }
 
   // Reset audio

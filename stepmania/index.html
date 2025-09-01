@@ -66,6 +66,27 @@
         class="flex flex-col items-center justify-between w-full max-w-4xl lg:max-w-none lg:flex-1 h-full overflow-hidden"
         style="margin-bottom: 60px"
       >
+        <!-- Song Library Browser, Share Button, and Difficulty Selector Row -->
+        <div class="w-full flex flex-col lg:flex-row items-center lg:items-start gap-4 mb-4">
+          <!-- Song Library Browser Web Component -->
+          <div class="flex-1">
+            <zenius-browser></zenius-browser>
+          </div>
+
+          <!-- Share Button -->
+          <div class="w-full lg:w-auto">
+            <share-button></share-button>
+          </div>
+
+          <!-- Main Difficulty Selector -->
+          <div class="w-full lg:w-auto">
+            <difficulty-selector
+              id="main-difficulty-selector"
+              layout="horizontal"
+            ></difficulty-selector>
+          </div>
+        </div>
+
         <!-- Game Canvas Container -->
         <div
           id="sm-micro"
@@ -79,6 +100,23 @@
             min-height: 0;
           "
         >
+          <!-- Video Background Container -->
+          <div
+            id="video-background-container"
+            class="absolute inset-0 rounded-2xl md:rounded-3xl overflow-hidden pointer-events-none"
+            style="z-index: -1"
+          >
+            <video
+              id="background-video"
+              class="w-full h-full object-cover opacity-0 transition-opacity duration-500"
+              muted
+              loop
+              playsinline
+              preload="metadata"
+            >
+              Your browser does not support the video tag.
+            </video>
+          </div>
           <!-- Alert Messages -->
           <div id="alert" class="hidden fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
             <div class="bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg">
@@ -259,7 +297,10 @@
     <script type="text/javascript" src="js/steps.js"></script>
     <script type="text/javascript" src="js/songs.js"></script>
     <script type="text/javascript" src="js/simfileParser.js"></script>
-    <script type="text/javascript" src="js/songPicker.js"></script>
+    <script type="text/javascript" src="js/difficultySelector.js"></script>
+    <script type="text/javascript" src="js/zeniusBrowser.js"></script>
+    <script type="text/javascript" src="js/shareButton.js"></script>
+    <script type="text/javascript" src="js/mainPageController.js"></script>
     <script type="text/javascript" src="js/stepmania.js"></script>
     <script type="text/javascript" src="step-button.js"></script>
     <!-- Main page loading overlay for URL initialization -->
@@ -268,18 +309,47 @@
       class="hidden fixed inset-0 bg-black/90 backdrop-blur-lg z-[70] flex items-center justify-center"
     >
       <div class="text-center">
+        <!-- Loading spinner (shown during loading) -->
         <div
+          id="main-loading-spinner"
           class="inline-block w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-6"
         ></div>
+
+        <!-- Error icon (shown on error) -->
+        <div
+          id="main-loading-error-icon"
+          class="hidden inline-block w-16 h-16 bg-red-500 rounded-full mb-6 flex items-center justify-center"
+        >
+          <span class="text-white text-2xl">⚠️</span>
+        </div>
+
         <h2 id="main-loading-title" class="text-2xl font-bold text-white mb-2">Loading Song...</h2>
         <p id="main-loading-status" class="text-purple-300">Preparing audio and charts...</p>
-        <div class="mt-4 w-64 bg-gray-700 rounded-full h-2">
+
+        <!-- Progress bar (shown during loading) -->
+        <div id="main-loading-progress-container" class="mt-4 w-64 bg-gray-700 rounded-full h-2">
           <div
             id="main-loading-progress"
             class="bg-purple-500 h-2 rounded-full transition-all duration-300"
             style="width: 0%"
           ></div>
         </div>
+
+        <!-- Retry button (shown on error) -->
+        <button
+          id="main-loading-retry-btn"
+          class="hidden mt-4 px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors duration-200"
+        >
+          Retry
+        </button>
+
+        <!-- Back to Browser button (shown on error) -->
+        <button
+          id="main-loading-back-btn"
+          class="hidden mt-4 ml-2 px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
+        >
+          Back to Browser
+        </button>
       </div>
     </div>
 
