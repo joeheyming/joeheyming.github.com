@@ -75,7 +75,7 @@ function handleTapNoteScore(tapNoteScore) {
 
   var possiblePoints = 3 * noteData.length;
   actualPoints += tapNotePoints[tapNoteScore];
-  var percent = (actualPoints / possiblePoints) * 100;
+  var percent = Math.max(0, (actualPoints / possiblePoints) * 100);
   $('#percent-score').text(percent.toFixed(2) + '%');
 
   if (tapNoteScore == 5) {
