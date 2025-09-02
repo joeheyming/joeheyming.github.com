@@ -1,10 +1,10 @@
 (function () {
   function LoaderProxy() {
     return {
-      draw: $.noop,
-      fill: $.noop,
-      frame: $.noop,
-      update: $.noop,
+      draw: function () {}, // noop function
+      fill: function () {}, // noop function
+      frame: function () {}, // noop function
+      update: function () {}, // noop function
       width: null,
       height: null
     };
@@ -60,7 +60,12 @@
     img.onload = function () {
       var sprite = Sprite(this, options);
 
-      $.extend(proxy, sprite);
+      // Extend proxy with sprite properties
+      for (var key in sprite) {
+        if (sprite.hasOwnProperty(key)) {
+          proxy[key] = sprite[key];
+        }
+      }
 
       if (options && options.loadedCallback) {
         options.loadedCallback(proxy);

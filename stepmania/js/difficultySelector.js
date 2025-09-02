@@ -5,7 +5,6 @@ class DifficultySelectorElement extends HTMLElement {
     this.selectedDifficulty = null;
     this.charts = [];
     this.onChangeCallback = null;
-    this.layout = this.getAttribute('layout') || 'vertical'; // Default to vertical
     this.attachShadow({ mode: 'open' });
   }
 
@@ -15,54 +14,32 @@ class DifficultySelectorElement extends HTMLElement {
   }
 
   render() {
-    const isHorizontal = this.layout === 'horizontal';
-
     this.shadowRoot.innerHTML = `
       <style>
         :host {
-          display: block;
-          width: 100%;
-        }
-        
-        .difficulty-selector {
-          display: ${isHorizontal ? 'flex' : 'block'};
-          flex-direction: ${isHorizontal ? 'row' : 'column'};
-          align-items: ${isHorizontal ? 'center' : 'flex-start'};
-          gap: ${isHorizontal ? '1rem' : '0'};
+          display: inline-flex;
+          align-items: center;
         }
         
         .difficulty-selector.hidden {
           display: none;
         }
         
-        .difficulty-title {
-          font-size: ${isHorizontal ? '1rem' : '1.25rem'};
-          font-weight: bold;
-          color: white;
-          line-height: 1;
-          margin-bottom: ${isHorizontal ? '0' : '1rem'};
-          text-align: ${isHorizontal ? 'left' : 'center'};
-          white-space: nowrap;
-          display: ${isHorizontal ? 'flex' : 'block'};
-          align-items: center;
-          height: ${isHorizontal ? '100%' : 'auto'};
-        }
-        
         .difficulty-select {
-          width: ${isHorizontal ? 'auto' : '100%'};
-          max-width: ${isHorizontal ? '200px' : '300px'};
-          margin: ${isHorizontal ? '0' : '0 auto'};
-          display: block;
-          padding: 0.75rem 1rem;
-          font-size: 1rem;
+          display: flex;
+          padding: 0.5rem 1.5rem;
+          font-size: 14px;
           font-weight: bold;
           color: white;
           background: linear-gradient(to right, #3b82f6, #2563eb);
           border: 2px solid rgba(139, 92, 246, 0.3);
-          border-radius: 0.5rem;
+          border-radius: 0.75rem;
           cursor: pointer;
           transition: all 0.2s;
           outline: none;
+          height: 2.5rem;
+          align-items: center;
+          justify-content: center;
         }
         
         .difficulty-select:hover {
@@ -87,11 +64,11 @@ class DifficultySelectorElement extends HTMLElement {
         }
       </style>
       
-      <div class="difficulty-selector" id="difficulty-selector">
+      <span class="difficulty-selector" id="difficulty-selector">
         <select class="difficulty-select" id="difficulty-select">
-          <option value="">Choose a difficulty...</option>
+          <option value="">Difficulty</option>
         </select>
-      </div>
+      </span>
     `;
   }
 
@@ -167,7 +144,7 @@ class DifficultySelectorElement extends HTMLElement {
   // Private methods
   renderDifficultyOptions() {
     const select = this.shadowRoot.getElementById('difficulty-select');
-    select.innerHTML = '<option value="">Choose a difficulty...</option>';
+    select.innerHTML = '<option value="">Difficulty</option>';
 
     // Create difficulty options if charts are available
     if (this.charts && this.charts.length > 0) {

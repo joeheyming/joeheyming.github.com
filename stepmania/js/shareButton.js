@@ -31,6 +31,7 @@ class ShareButtonElement extends HTMLElement {
           display: flex;
           align-items: center;
           gap: 0.5rem;
+          height: 2.5rem;
         }
         
         .share-btn:hover {
