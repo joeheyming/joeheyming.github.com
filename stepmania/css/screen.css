@@ -18,7 +18,7 @@ body {
   justify-content: center;
   align-items: center;
   flex-shrink: 0;
-  max-height: 50vh;
+  max-height: 60vh;
   overflow: hidden;
 }
 
@@ -56,18 +56,6 @@ body {
 }
 
 /* Uniform button heights for consistent layout */
-.zenius-browser,
-.zenius-browser-btn,
-share-button,
-difficulty-selector,
-button {
-  height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 2.5rem;
-  line-height: 1.2;
-}
 
 /* Score animation effects */
 #percent-score {
@@ -114,7 +102,7 @@ button {
     width: 100%;
     height: 100%;
     min-height: 120px;
-    max-height: 50vh;
+    max-height: 55vh;
   }
 
   /* Stack score items vertically on mobile */
@@ -182,7 +170,7 @@ body.mobile .score-toggle:active {
 
 /* Hide score panel by default on mobile */
 body.mobile .score-panel:not(.show) {
-  display: block;
+  display: none;
 }
 
 /* Make score panel visible on non-mobile */
@@ -195,7 +183,7 @@ body:not(.mobile) .score-toggle {
     width: 100%;
     height: 100%;
     min-height: 100px;
-    max-height: 45vh;
+    max-height: 50vh;
   }
 
   .button {

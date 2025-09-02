@@ -22,12 +22,13 @@ function getMusicBeat(musicSec) {
 var audio = document.getElementById('audio_with_controls');
 
 // Apply width constraint: canvas can't be wider than 4 times the arrow width plus padding
-var containerWidth = $('#sm-micro').width();
+var smMicro = document.getElementById('sm-micro');
+var containerWidth = smMicro ? smMicro.offsetWidth : 800; // fallback width
 var arrowWidth = 64; // Width of each StepMania arrow
 var padding = 64; // Add padding around the arrows
 var maxCanvasWidth = arrowWidth * 4 + padding; // Maximum width: 4 times arrow width plus padding
 var CANVAS_WIDTH = Math.min(containerWidth, maxCanvasWidth);
-var CANVAS_HEIGHT = $('#sm-micro').height() - 150; // Account for controls
+var CANVAS_HEIGHT = smMicro ? smMicro.offsetHeight : 150; // Reduced from 150 to give more space for judgment messages
 var targetFps = 90;
 var lastDate = new Date();
 var uptimeSeconds = 0;
@@ -71,12 +72,14 @@ var actualPoints = 0;
 function handleTapNoteScore(tapNoteScore) {
   tapNoteScores[tapNoteScore]++;
   var id = tapNoteScore;
-  $('#w' + id).text(tapNoteScores[tapNoteScore]);
+  var scoreElement = document.getElementById('w' + id);
+  if (scoreElement) scoreElement.textContent = tapNoteScores[tapNoteScore];
 
   var possiblePoints = 3 * noteData.length;
   actualPoints += tapNotePoints[tapNoteScore];
   var percent = Math.max(0, (actualPoints / possiblePoints) * 100);
-  $('#percent-score').text(percent.toFixed(2) + '%');
+  var percentElement = document.getElementById('percent-score');
+  if (percentElement) percentElement.textContent = percent.toFixed(2) + '%';
 
   if (tapNoteScore == 5) {
     judgment
@@ -126,7 +129,12 @@ var noteSprite = Sprite(imgDir + 'down-note.png', {
 });
 
 function getBrowserAlertText() {
-  if ($.browser.mozilla && $.browser.version.substr(0, 3) < 2.0) {
+  // Modern browser detection without jQuery
+  var userAgent = navigator.userAgent;
+  var isFirefox = userAgent.indexOf('Firefox') !== -1;
+  var firefoxVersion = userAgent.match(/Firefox\/(\d+)/);
+
+  if (isFirefox && firefoxVersion && parseInt(firefoxVersion[1]) < 20) {
     return 'Your version of Firefox is known to have incorrect audio sync. More info...';
   }
   var supportsAudio = !!document.createElement('audio').canPlayType;
@@ -138,15 +146,22 @@ function getBrowserAlertText() {
 
 var text = getBrowserAlertText();
 if (text) {
-  $('#alert-message').text(text);
-  $('#logo').hide();
-  $('#alert').show();
+  var alertMessage = document.getElementById('alert-message');
+  var logo = document.getElementById('logo');
+  var alert = document.getElementById('alert');
+
+  if (alertMessage) alertMessage.textContent = text;
+  if (logo) logo.style.display = 'none';
+  if (alert) alert.style.display = 'block';
 } else {
-  $('#logo').show();
-  $('#alert').hide();
+  var logo = document.getElementById('logo');
+  var alert = document.getElementById('alert');
+
+  if (logo) logo.style.display = 'block';
+  if (alert) alert.style.display = 'none';
 }
 
-$(document).ready(function () {
+document.addEventListener('DOMContentLoaded', function () {
   // Mobile detection and CSS class addition
   function isMobile() {
     return window.innerWidth <= 768 || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -157,7 +172,7 @@ $(document).ready(function () {
   }
 
   // Handle window resize to add/remove mobile class and update canvas
-  $(window).resize(function () {
+  window.addEventListener('resize', function () {
     if (isMobile()) {
       document.body.classList.add('mobile');
     } else {
@@ -169,14 +184,14 @@ $(document).ready(function () {
 
   // Initialize canvas with proper dimensions
   function initializeCanvas() {
-    var containerWidth = $('#sm-micro').width();
+    var containerWidth = document.getElementById('sm-micro').offsetWidth;
     var arrowWidth = 64; // Width of each StepMania arrow
     var padding = 64; // Add padding around the arrows
     var maxCanvasWidth = arrowWidth * 4 + padding; // Maximum width: 4 times arrow width plus padding
 
     // Constrain canvas width to not exceed 4x arrow width plus padding
     CANVAS_WIDTH = Math.min(containerWidth, maxCanvasWidth);
-    CANVAS_HEIGHT = $('#sm-micro').height() - 100; // Account for controls
+    CANVAS_HEIGHT = document.getElementById('sm-micro').offsetHeight - 50; // Reduced from 100 to give more space for judgment messages
     colInfos = calculateColInfos(CANVAS_WIDTH);
 
     // Update judgment positioning
@@ -186,63 +201,63 @@ $(document).ready(function () {
       canvasElement.remove();
     }
 
-    canvasElement = $(
-      "<canvas id='sm-micro-canvas' width='" +
-        CANVAS_WIDTH +
-        "' height='" +
-        CANVAS_HEIGHT +
-        "'></canvas>"
-    );
-    canvas = canvasElement.get(0).getContext('2d');
-    canvasElement.prependTo('#sm-micro');
+    canvasElement = document.createElement('canvas');
+    canvasElement.id = 'sm-micro-canvas';
+    canvasElement.width = CANVAS_WIDTH;
+    canvasElement.height = CANVAS_HEIGHT;
+    document.getElementById('sm-micro').prepend(canvasElement);
+    canvas = canvasElement.getContext('2d');
   }
 
   // Initialize canvas
   initializeCanvas();
 
   // Score toggle functionality for mobile
-  $('#scoreToggle').click(function () {
-    $('.score-panel').toggleClass('show');
-    const isVisible = $('.score-panel').hasClass('show');
-    $(this).text(isVisible ? '✕ Close' : '📊 Score');
+  document.getElementById('scoreToggle').addEventListener('click', function () {
+    const scorePanel = document.querySelector('.score-panel');
+    if (scorePanel) {
+      scorePanel.classList.toggle('show');
+      const isVisible = scorePanel.classList.contains('show');
+      this.textContent = isVisible ? '✕ Close' : '📊 Score';
+    }
   });
 
   // Simple onclick handlers for each button - REMOVED (now handled by web component)
-  // $('#button0').click(function () {
+  // document.getElementById('button0').addEventListener('click', function () {
   //   step(0); // Left button (red)
   //   addButtonFeedback(0);
   // });
 
-  // $('#button1').click(function () {
+  // document.getElementById('button1').addEventListener('click', function () {
   //   step(1); // Down button (blue)
   //   addButtonFeedback(1);
   // });
 
-  // $('#button2').click(function () {
+  // document.getElementById('button2').addEventListener('click', function () {
   //   step(2); // Up button (green)
   //   addButtonFeedback(2);
   // });
 
-  // $('#button3').click(function () {
+  // document.getElementById('button3').addEventListener('click', function () {
   //   step(3); // Right button (yellow)
   //   addButtonFeedback(3);
   // });
 
   // Also handle touch events for mobile - REMOVED (now handled by web component)
   // if (window.Touch) {
-  //   $('#button0')[0].ontouchstart = function () {
+  //   document.getElementById('button0')[0].ontouchstart = function () {
   //     step(0);
   //     addButtonFeedback(0);
   //   };
-  //   $('#button1')[0].ontouchstart = function () {
+  //   document.getElementById('button1')[0].ontouchstart = function () {
   //     step(1);
   //     addButtonFeedback(1);
   //   };
-  //   $('#button2')[0].ontouchstart = function () {
+  //   document.getElementById('button2')[0].ontouchstart = function () {
   //     step(2);
   //     addButtonFeedback(2);
   //   };
-  //   $('#button3')[0].ontouchstart = function () {
+  //   document.getElementById('button3')[0].ontouchstart = function () {
   //     step(3);
   //     addButtonFeedback(3);
   //   };
@@ -294,7 +309,7 @@ $(document).ready(function () {
     }
   });
 
-  $(document).keydown(function (event) {
+  document.addEventListener('keydown', function (event) {
     // Don't handle game controls when user is typing in an input field
     if (
       event.target.tagName === 'INPUT' ||
@@ -419,7 +434,8 @@ setInterval(function () {
   var newSec = Math.floor(uptimeSeconds + deltaSeconds);
   if (oldSec != newSec) {
     var fps = framesInCurrentSecond / (newSec - oldSec);
-    $('#FPS').text(fps);
+    var fpsElement = document.getElementById('FPS');
+    if (fpsElement) fpsElement.textContent = fps;
     framesInCurrentSecond = 0;
   }
   uptimeSeconds += deltaSeconds;
@@ -588,6 +604,8 @@ function applyBackgroundChange(bgChange) {
 }
 
 function draw() {
+  if (!canvas) return; // Don't draw if canvas isn't ready
+
   canvas.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
   targets.forEach(function (target) {
@@ -651,9 +669,11 @@ function resetGame() {
 
   // Update score display
   for (var i = 0; i < tapNoteScores.length; i++) {
-    $('#w' + i).text(tapNoteScores[i]);
+    var scoreElement = document.getElementById('w' + i);
+    if (scoreElement) scoreElement.textContent = tapNoteScores[i];
   }
-  $('#percent-score').text('0.00%');
+  var percentElement = document.getElementById('percent-score');
+  if (percentElement) percentElement.textContent = '0.00%';
 
   // Update global variables from window
   if (window.steps && window.steps.noteData) {
