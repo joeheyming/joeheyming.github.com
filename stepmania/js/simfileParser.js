@@ -40,6 +40,7 @@ class SimfileParser {
       offset: this.parseOffset(),
       charts: this.charts,
       bgChanges: this.bgChanges,
+      bpmChanges: this.bpmChanges,
       metadata: this.metadata
     };
   }

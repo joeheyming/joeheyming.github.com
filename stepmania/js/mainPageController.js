@@ -452,7 +452,8 @@ class MainPageController {
     // Update global song data
     window.song = {
       bpm: parsedData.bpm,
-      addToMusicPosition: parsedData.offset || -0.03
+      addToMusicPosition: parsedData.offset || -0.03,
+      bpmChanges: parsedData.bpmChanges || []
     };
 
     // Update global steps data
