@@ -1,6 +1,7 @@
 var scrollSpeed = 2;
 var noteData = steps.noteData;
 var bpm = song.bpm;
+var bpmChanges = song.bpmChanges || [];
 var beatsPerSec = bpm / 60;
 var addToMusicPositionSeconds = song.addToMusicPosition;
 
@@ -12,11 +13,61 @@ var backgroundVideo = null;
 // Make these globally accessible for dynamic loading
 window.noteData = noteData;
 window.bpm = bpm;
+window.bpmChanges = bpmChanges;
 window.bgChanges = bgChanges;
 
 var currentTime = 0;
+
+// Function to get the current BPM at a given beat
+function getBPMAtBeat(beat) {
+  if (bpmChanges.length === 0) {
+    return bpm;
+  }
+
+  // Find the last BPM change that occurs at or before the given beat
+  let currentBPM = bpm;
+  for (let i = 0; i < bpmChanges.length; i++) {
+    if (bpmChanges[i].beat <= beat) {
+      currentBPM = bpmChanges[i].bpm;
+    } else {
+      break;
+    }
+  }
+
+  return currentBPM;
+}
+
+// Function to convert seconds to beats with BPM changes
+function secondsToBeats(seconds) {
+  if (bpmChanges.length === 0) {
+    return seconds * beatsPerSec;
+  }
+
+  let currentTime = 0;
+  let currentBeat = 0;
+  let currentBPM = bpm;
+
+  for (let i = 0; i < bpmChanges.length; i++) {
+    const bpmChange = bpmChanges[i];
+    const nextTime = currentTime + ((bpmChange.beat - currentBeat) / currentBPM) * 60;
+
+    if (seconds <= nextTime) {
+      // The target time is within this BPM segment
+      return currentBeat + (seconds - currentTime) * (currentBPM / 60);
+    }
+
+    // Move to the next BPM segment
+    currentTime = nextTime;
+    currentBeat = bpmChange.beat;
+    currentBPM = bpmChange.bpm;
+  }
+
+  // If we get here, the time is beyond all BPM changes
+  return currentBeat + (seconds - currentTime) * (currentBPM / 60);
+}
+
 function getMusicBeat(musicSec) {
-  return (musicSec + addToMusicPositionSeconds) * beatsPerSec;
+  return secondsToBeats(musicSec + addToMusicPositionSeconds);
 }
 
 var audio = document.getElementById('audio_with_controls');
@@ -68,6 +119,7 @@ var tapNotePoints = [3, 3, 2, 1, 0, -5];
 
 var tapNoteScores = [0, 0, 0, 0, 0, 0];
 var actualPoints = 0;
+var mineHits = 0;
 
 function handleTapNoteScore(tapNoteScore) {
   tapNoteScores[tapNoteScore]++;
@@ -122,6 +174,47 @@ var judgment = Actor(
   { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 }
 );
 judgment.set({ alpha: 0 });
+
+// Create a mine judgment text system
+var mineJudgment = {
+  text: '',
+  alpha: 0,
+  y: 0,
+  scale: 1,
+  show: function (text) {
+    this.text = text;
+    this.alpha = 1;
+    this.y = 160;
+    this.scale = 1.4;
+  },
+  update: function (deltaSeconds) {
+    if (this.alpha > 0) {
+      this.y += 50 * deltaSeconds; // Move up
+      this.scale = Math.max(1, this.scale - 0.4 * deltaSeconds); // Shrink
+      this.alpha = Math.max(0, this.alpha - 0.5 * deltaSeconds); // Fade out
+    }
+  },
+  draw: function () {
+    if (this.alpha > 0 && canvas) {
+      canvas.save();
+      canvas.globalAlpha = this.alpha;
+      canvas.fillStyle = '#ff4444'; // Red color for mine warnings
+      canvas.font = 'bold 24px Arial';
+      canvas.textAlign = 'center';
+      canvas.textBaseline = 'middle';
+
+      // Add text shadow for better visibility
+      canvas.shadowColor = 'black';
+      canvas.shadowBlur = 4;
+      canvas.shadowOffsetX = 2;
+      canvas.shadowOffsetY = 2;
+
+      canvas.scale(this.scale, this.scale);
+      canvas.fillText(this.text, CANVAS_WIDTH / 2 / this.scale, this.y / this.scale);
+      canvas.restore();
+    }
+  }
+};
 var noteSprite = Sprite(imgDir + 'down-note.png', {
   frameWidth: 64,
   frameHeight: 64,
@@ -221,47 +314,6 @@ document.addEventListener('DOMContentLoaded', function () {
       this.textContent = isVisible ? '✕ Close' : '📊 Score';
     }
   });
-
-  // Simple onclick handlers for each button - REMOVED (now handled by web component)
-  // document.getElementById('button0').addEventListener('click', function () {
-  //   step(0); // Left button (red)
-  //   addButtonFeedback(0);
-  // });
-
-  // document.getElementById('button1').addEventListener('click', function () {
-  //   step(1); // Down button (blue)
-  //   addButtonFeedback(1);
-  // });
-
-  // document.getElementById('button2').addEventListener('click', function () {
-  //   step(2); // Up button (green)
-  //   addButtonFeedback(2);
-  // });
-
-  // document.getElementById('button3').addEventListener('click', function () {
-  //   step(3); // Right button (yellow)
-  //   addButtonFeedback(3);
-  // });
-
-  // Also handle touch events for mobile - REMOVED (now handled by web component)
-  // if (window.Touch) {
-  //   document.getElementById('button0')[0].ontouchstart = function () {
-  //     step(0);
-  //     addButtonFeedback(0);
-  //   };
-  //   document.getElementById('button1')[0].ontouchstart = function () {
-  //     step(1);
-  //     addButtonFeedback(1);
-  //   };
-  //   document.getElementById('button2')[0].ontouchstart = function () {
-  //     step(2);
-  //     addButtonFeedback(2);
-  //   };
-  //   document.getElementById('button3')[0].ontouchstart = function () {
-  //     step(3);
-  //     addButtonFeedback(3);
-  //   };
-  // }
 
   // Handle web component button events
   document.addEventListener('stepButtonClick', function (event) {
@@ -381,9 +433,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var songSeconds = audio.currentTime;
     songSeconds += addToMusicPositionSeconds;
 
-    var songBeats = songSeconds * beatsPerSec;
+    var songBeats = secondsToBeats(songSeconds);
 
     var hit = false;
+    var mineHit = false;
     var tapNoteScore = 0;
     noteData.forEach(function (note) {
       var noteBeat = note[0];
@@ -397,6 +450,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
       if (diff >= timingWindows[timingWindows.length - 1]) return;
 
+      // Check if this is a mine
+      if (noteProps.Type === 'M') {
+        // Mine hit - mark as hit and trigger penalty
+        noteProps.tapNoteScore = 5; // Mark as hit (miss score)
+        mineHit = true;
+        mineHits++;
+
+        // Apply mine penalty (reduce score)
+        actualPoints = Math.max(0, actualPoints - 10); // Subtract 10 points
+        var possiblePoints = 3 * noteData.length;
+        var percent = Math.max(0, (actualPoints / possiblePoints) * 100);
+        var percentElement = document.getElementById('percent-score');
+        if (percentElement) percentElement.textContent = percent.toFixed(2) + '%';
+
+        return;
+      }
+
+      // Regular note hit
       for (var j = 0; j < timingWindows.length; j++) {
         if (diff <= timingWindows[j]) {
           noteProps.tapNoteScore = j;
@@ -408,7 +479,34 @@ document.addEventListener('DOMContentLoaded', function () {
       hit = true;
       //$('#note' + i).css({ alpha: 0 });
     });
-    if (hit) {
+
+    if (mineHit) {
+      // Show mine explosion effect
+      var explosion = explosions[col];
+      explosion
+        .stop()
+        .set({ scaleX: 1, scaleY: 1, alpha: 1 })
+        .animate({ scaleX: 1.5, scaleY: 1.5 }, 0.2) // Bigger explosion for mines
+        .animate({ alpha: 0 }, 0.3);
+
+      // Show mine hit judgment with appropriate text
+      var mineMessages = [
+        '💥 BOOM!',
+        '💣 MINE!',
+        '⚠️ DANGER!',
+        "🚫 DON'T STEP!",
+        '💥 EXPLOSION!',
+        '💣 AVOID!',
+        '💥 KABOOM!',
+        '💣 OUCH!',
+        '⚠️ WATCH OUT!',
+        '🚫 NO STEP!',
+        '💥 BLAST!',
+        '💣 HURT!'
+      ];
+      var randomMessage = mineMessages[Math.floor(Math.random() * mineMessages.length)];
+      mineJudgment.show(randomMessage);
+    } else if (hit) {
       handleTapNoteScore(tapNoteScore);
 
       var explosion = explosions[col];
@@ -420,6 +518,27 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
       var target = targets[col];
       target.stop().set({ scaleX: 0.5, scaleY: 0.5 }).animate({ scaleX: 1, scaleY: 1 }, 0.2);
+
+      // Check if there's a mine nearby and show warning
+      var songBeats = secondsToBeats(songSeconds);
+      var mineNearby = false;
+      noteData.forEach(function (note) {
+        var noteBeat = note[0];
+        var noteCol = note[1];
+        var noteProps = note[2];
+
+        if (noteProps.Type === 'M' && noteCol === col) {
+          var diff = Math.abs(noteBeat - songBeats);
+          if (diff < 1.0 && diff > 0.1) {
+            // Mine is within 1 beat but not hit
+            mineNearby = true;
+          }
+        }
+      });
+
+      if (mineNearby) {
+        mineJudgment.show('⚠️ MINE NEARBY!');
+      }
     }
   }
 
@@ -470,6 +589,7 @@ function update(deltaSeconds) {
     target.update(deltaSeconds);
   });
   judgment.update(deltaSeconds);
+  mineJudgment.update(deltaSeconds);
 
   var missIfOlderThanSeconds = currentTime - timingWindows[timingWindows.length - 1];
   var missIfOlderThanBeat = getMusicBeat(missIfOlderThanSeconds);
@@ -480,9 +600,14 @@ function update(deltaSeconds) {
     var noteProps = note[2];
     if (noteBeat < missIfOlderThanBeat) {
       if (!('tapNoteScore' in noteProps)) {
-        numMisses++;
-        noteProps.tapNoteScore = 5;
-        handleTapNoteScore(5);
+        // Check if this is a mine - mines don't count as misses when they pass by
+        if (noteProps.Type === 'M') {
+          noteProps.tapNoteScore = 5; // Mark as passed (but don't count as miss)
+        } else {
+          numMisses++;
+          noteProps.tapNoteScore = 5;
+          handleTapNoteScore(5);
+        }
       }
     }
   });
@@ -627,10 +752,13 @@ function draw() {
   drawNoteField();
 
   judgment.draw();
+  mineJudgment.draw();
 }
 
 function drawNoteField() {
   var musicBeat = getMusicBeat(currentTime);
+  var currentBPM = getBPMAtBeat(musicBeat);
+  var currentBeatsPerSec = currentBPM / 60;
 
   var arrowSize = 64;
   var arrowSpacing = arrowSize * scrollSpeed;
@@ -653,19 +781,85 @@ function drawNoteField() {
     var colInfo = colInfos[col];
     var beatUntilNote = beat - musicBeat;
 
-    var onScreen = beatUntilNote < 6.2 / scrollSpeed && beatUntilNote > -0.6 / scrollSpeed;
+    // Calculate scroll speed based on current BPM
+    var currentScrollSpeed = scrollSpeed * (currentBPM / bpm);
+    var onScreen =
+      beatUntilNote < 6.2 / currentScrollSpeed && beatUntilNote > -0.6 / currentScrollSpeed;
     var needUpdateOnScreen = note.lastOnScreen == null || onScreen != note.lastOnScreen;
 
     if (onScreen) {
       var beatFraction = beat - Math.floor(beat);
       var frameOffset = beatFraction * numNoteFrames;
       var thisNoteFrameIndex = Math.round(noteFrameIndex + frameOffset) % numNoteFrames;
-      var y = targetsY + beatUntilNote * arrowSpacing;
+      var y = targetsY + beatUntilNote * arrowSize * currentScrollSpeed;
       var alpha = 1;
       if ('tapNoteScore' in noteProps) {
         if (noteProps.tapNoteScore < 5) alpha = 0;
       }
-      noteSprite.draw(canvas, thisNoteFrameIndex, colInfo.x, y, 1, 1, colInfo.rotation, alpha);
+
+      // Check if this is a mine
+      if (noteProps.Type === 'M') {
+        // Draw mine as a pulsing red circle
+        var minePulse = Math.sin(currentTime * 8) * 0.3 + 0.7; // Pulsing effect
+        var mineSize = arrowSize * 0.6; // Smaller than arrows to match target size
+        var rotation = currentTime * 2; // Rotating effect
+
+        canvas.save();
+        canvas.globalAlpha = alpha * minePulse;
+
+        // Draw outer glow
+        var gradient = canvas.createRadialGradient(colInfo.x, y, 0, colInfo.x, y, mineSize * 0.8);
+        gradient.addColorStop(0, 'rgba(255, 0, 0, 0.8)');
+        gradient.addColorStop(0.5, 'rgba(255, 0, 0, 0.4)');
+        gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+        canvas.fillStyle = gradient;
+        canvas.beginPath();
+        canvas.arc(colInfo.x, y, mineSize * 0.8, 0, Math.PI * 2);
+        canvas.fill();
+
+        // Draw main circle
+        canvas.fillStyle = '#ff0000';
+        canvas.beginPath();
+        canvas.arc(colInfo.x, y, mineSize * 0.6, 0, Math.PI * 2);
+        canvas.fill();
+
+        // Draw inner highlight
+        canvas.fillStyle = '#ff6666';
+        canvas.beginPath();
+        canvas.arc(colInfo.x, y, mineSize * 0.4, 0, Math.PI * 2);
+        canvas.fill();
+
+        // Draw rotating border
+        canvas.strokeStyle = '#ffffff';
+        canvas.lineWidth = 3;
+        canvas.beginPath();
+        canvas.arc(colInfo.x, y, mineSize * 0.5, rotation, rotation + Math.PI * 1.5);
+        canvas.stroke();
+
+        // Draw danger zone indicator when mine is close to target
+        if (beatUntilNote < 2.0 && beatUntilNote > 0.5) {
+          var dangerPulse = Math.sin(currentTime * 12) * 0.5 + 0.5;
+          canvas.strokeStyle = 'rgba(255, 255, 0, ' + dangerPulse + ')';
+          canvas.lineWidth = 2;
+          canvas.setLineDash([5, 5]);
+          canvas.beginPath();
+          canvas.arc(colInfo.x, y, mineSize * 0.9, 0, Math.PI * 2);
+          canvas.stroke();
+          canvas.setLineDash([]);
+        }
+
+        // Draw danger symbol (exclamation mark)
+        canvas.fillStyle = '#ffffff';
+        canvas.font = 'bold ' + mineSize * 0.3 + 'px Arial';
+        canvas.textAlign = 'center';
+        canvas.textBaseline = 'middle';
+        canvas.fillText('!', colInfo.x, y);
+
+        canvas.restore();
+      } else {
+        // Draw regular note
+        noteSprite.draw(canvas, thisNoteFrameIndex, colInfo.x, y, 1, 1, colInfo.rotation, alpha);
+      }
     }
   }
 }
@@ -675,6 +869,7 @@ function resetGame() {
   // Reset score data
   tapNoteScores = [0, 0, 0, 0, 0, 0];
   actualPoints = 0;
+  mineHits = 0;
 
   // Update score display
   for (var i = 0; i < tapNoteScores.length; i++) {
@@ -690,6 +885,7 @@ function resetGame() {
   }
   if (window.song) {
     bpm = window.song.bpm;
+    bpmChanges = window.song.bpmChanges || [];
     beatsPerSec = bpm / 60;
     addToMusicPositionSeconds = window.song.addToMusicPosition;
   }
@@ -718,6 +914,9 @@ function resetGame() {
     audioEl.currentTime = 0;
     audioEl.pause();
   }
+
+  // Reset mine judgment
+  mineJudgment.alpha = 0;
 
   console.log('Game reset - Notes:', noteData.length, 'BPM:', bpm);
 }
