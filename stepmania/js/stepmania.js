@@ -284,6 +284,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // Expose functions globally for gamepad integration
+  window.step = step;
+  window.addButtonFeedback = addButtonFeedback;
+
   // Sync video with audio playback
   audio.addEventListener('play', function () {
     var videoElement = document.getElementById('background-video');
@@ -418,6 +422,11 @@ document.addEventListener('DOMContentLoaded', function () {
       target.stop().set({ scaleX: 0.5, scaleY: 0.5 }).animate({ scaleX: 1, scaleY: 1 }, 0.2);
     }
   }
+
+  // Expose functions globally for gamepad integration
+  window.step = step;
+  window.addButtonFeedback = addButtonFeedback;
+  console.log('🎮 StepMania functions exposed globally for gamepad integration');
 });
 
 var canvasElement;
