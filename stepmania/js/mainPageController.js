@@ -33,6 +33,9 @@ class MainPageController {
 
       // Show the difficulty selector initially (even if empty)
       difficultySelector.show();
+
+      // Initialize difficulty from URL if available
+      this.initializeDifficultyFromURL();
     }
 
     // Listen for URL changes (back/forward buttons)
@@ -54,6 +57,48 @@ class MainPageController {
       backBtn.addEventListener('click', () => {
         this.handleBackToBrowser();
       });
+    }
+  }
+
+  initializeDifficultyFromURL() {
+    // Check if we have URL parameters for difficulty
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlDifficulty = urlParams.get('difficulty');
+
+    console.log('initializeDifficultyFromURL called, URL difficulty:', urlDifficulty);
+
+    if (urlDifficulty !== null) {
+      const difficultyIndex = parseInt(urlDifficulty);
+      this.currentDifficulty = difficultyIndex;
+
+      console.log('Setting currentDifficulty to:', difficultyIndex);
+
+      // If we already have parsed data for the current song, update the selector
+      if (this.currentSong && this.parsedSongs[this.currentSong.key]) {
+        const difficultySelector = document.getElementById('main-difficulty-selector');
+        if (difficultySelector) {
+          const charts = this.parsedSongs[this.currentSong.key].charts;
+          console.log(
+            'Found',
+            charts.length,
+            'charts, attempting to select index',
+            difficultyIndex
+          );
+          if (difficultyIndex >= 0 && difficultyIndex < charts.length) {
+            difficultySelector.selectDifficultyByIndex(difficultyIndex);
+            console.log('Selected difficulty from URL:', charts[difficultyIndex]?.difficulty);
+          } else {
+            console.warn(
+              'Invalid difficulty index from URL in init:',
+              difficultyIndex,
+              'max:',
+              charts.length - 1
+            );
+          }
+        }
+      } else {
+        console.log('No current song or parsed data yet, will set difficulty later');
+      }
     }
   }
 
@@ -170,6 +215,51 @@ class MainPageController {
       // Select the song and difficulty
       this.setCurrentSong(tempSongKey, tempSongData);
       this.setCurrentDifficulty(difficulty || 0);
+
+      // Update the main difficulty selector with the charts and set the difficulty from URL
+      const mainDifficultySelector = document.getElementById('main-difficulty-selector');
+      if (mainDifficultySelector) {
+        mainDifficultySelector.setCharts(parsedData.charts);
+
+        // Set initial difficulty from URL if available (with a small delay to ensure charts are rendered)
+        setTimeout(() => {
+          const urlParams = new URLSearchParams(window.location.search);
+          const urlDifficulty = urlParams.get('difficulty');
+          if (urlDifficulty !== null) {
+            const difficultyIndex = parseInt(urlDifficulty);
+            console.log(
+              'Zenius: Attempting to select difficulty from URL:',
+              difficultyIndex,
+              'out of',
+              parsedData.charts.length,
+              'charts'
+            );
+            if (difficultyIndex >= 0 && difficultyIndex < parsedData.charts.length) {
+              mainDifficultySelector.selectDifficultyByIndex(difficultyIndex);
+              this.currentDifficulty = difficultyIndex;
+              console.log(
+                'Zenius: Selected difficulty',
+                difficultyIndex,
+                ':',
+                parsedData.charts[difficultyIndex]?.difficulty
+              );
+            } else {
+              console.warn(
+                'Zenius: Invalid difficulty index from URL:',
+                difficultyIndex,
+                'max:',
+                parsedData.charts.length - 1
+              );
+            }
+          }
+        }, 100);
+
+        console.log(
+          'Zenius: Updated difficulty selector with charts:',
+          parsedData.charts.length,
+          'difficulties'
+        );
+      }
 
       // Update URL with Zenius URL
       const url = new URL(window.location);
@@ -321,6 +411,40 @@ class MainPageController {
     const mainDifficultySelector = document.getElementById('main-difficulty-selector');
     if (mainDifficultySelector) {
       mainDifficultySelector.setCharts(parsedData.charts);
+
+      // Set initial difficulty from URL if available (with a small delay to ensure charts are rendered)
+      setTimeout(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlDifficulty = urlParams.get('difficulty');
+        if (urlDifficulty !== null) {
+          const difficultyIndex = parseInt(urlDifficulty);
+          console.log(
+            'Attempting to select difficulty from URL:',
+            difficultyIndex,
+            'out of',
+            parsedData.charts.length,
+            'charts'
+          );
+          if (difficultyIndex >= 0 && difficultyIndex < parsedData.charts.length) {
+            mainDifficultySelector.selectDifficultyByIndex(difficultyIndex);
+            this.currentDifficulty = difficultyIndex;
+            console.log(
+              'Selected difficulty',
+              difficultyIndex,
+              ':',
+              parsedData.charts[difficultyIndex]?.difficulty
+            );
+          } else {
+            console.warn(
+              'Invalid difficulty index from URL:',
+              difficultyIndex,
+              'max:',
+              parsedData.charts.length - 1
+            );
+          }
+        }
+      }, 100);
+
       console.log(
         'Main page controller received simfile data and updated difficulty selector:',
         parsedData.charts.length,
@@ -349,6 +473,40 @@ class MainPageController {
     const mainDifficultySelector = document.getElementById('main-difficulty-selector');
     if (mainDifficultySelector) {
       mainDifficultySelector.setCharts(parsedData.charts);
+
+      // Set initial difficulty from URL if available (with a small delay to ensure charts are rendered)
+      setTimeout(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlDifficulty = urlParams.get('difficulty');
+        if (urlDifficulty !== null) {
+          const difficultyIndex = parseInt(urlDifficulty);
+          console.log(
+            'Attempting to select difficulty from URL:',
+            difficultyIndex,
+            'out of',
+            parsedData.charts.length,
+            'charts'
+          );
+          if (difficultyIndex >= 0 && difficultyIndex < parsedData.charts.length) {
+            mainDifficultySelector.selectDifficultyByIndex(difficultyIndex);
+            this.currentDifficulty = difficultyIndex;
+            console.log(
+              'Selected difficulty',
+              difficultyIndex,
+              ':',
+              parsedData.charts[difficultyIndex]?.difficulty
+            );
+          } else {
+            console.warn(
+              'Invalid difficulty index from URL:',
+              difficultyIndex,
+              'max:',
+              parsedData.charts.length - 1
+            );
+          }
+        }
+      }, 100);
+
       console.log(
         'Main page controller updated difficulty selector with charts:',
         parsedData.charts.length,
