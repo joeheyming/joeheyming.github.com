@@ -132,44 +132,25 @@
 
         <!-- Step Buttons Container - Below Canvas -->
         <div class="w-full flex justify-center py-2 step-button-container flex-shrink-0">
-          <div
-            class="relative w-52 h-32 bg-black/20 backdrop-blur-sm rounded-2xl p-3 border border-purple-400/30"
-          >
-            <!-- Up Button -->
-            <step-button
-              direction="up"
-              color="green"
-              id="button2"
-              style="position: absolute; left: 50%; top: 6px; transform: translateX(-50%)"
-            ></step-button>
+          <div class="relative w-80 h-20 p-4">
+            <!-- Horizontal row layout for buttons -->
+            <div class="flex justify-between items-center h-full">
+              <!-- Left Button -->
+              <step-button direction="left" color="red" id="button0"></step-button>
 
-            <!-- Left Button -->
-            <step-button
-              direction="left"
-              color="red"
-              id="button0"
-              style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%)"
-            ></step-button>
+              <!-- Down Button -->
+              <step-button direction="down" color="blue" id="button1"></step-button>
 
-            <!-- Right Button -->
-            <step-button
-              direction="right"
-              color="yellow"
-              id="button3"
-              style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%)"
-            ></step-button>
+              <!-- Up Button -->
+              <step-button direction="up" color="green" id="button2"></step-button>
 
-            <!-- Down Button -->
-            <step-button
-              direction="down"
-              color="blue"
-              id="button1"
-              style="position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%)"
-            ></step-button>
+              <!-- Right Button -->
+              <step-button direction="right" color="yellow" id="button3"></step-button>
+            </div>
 
             <!-- Instruction Text -->
             <div
-              class="absolute bottom-[-18px] left-1/2 transform -translate-x-1/2 text-xs text-white/70 whitespace-nowrap"
+              class="absolute bottom-[-20px] left-1/2 transform -translate-x-1/2 text-xs text-white/70 whitespace-nowrap"
             >
               Click or use WASD/Arrow keys
             </div>
@@ -368,21 +349,56 @@
           Retry
         </button>
 
-        <!-- Back to Browser button (shown on error) -->
-        <button
-          id="main-loading-back-btn"
-          class="hidden mt-4 ml-2 px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
-        >
-          Back to Browser
-        </button>
+        <!-- Ready to play buttons container -->
+        <div id="ready-buttons-container" class="hidden mt-4 flex flex-col items-center gap-3">
+          <!-- Back to Browser button -->
+          <button
+            id="main-loading-back-btn"
+            class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
+          >
+            Back
+          </button>
+        </div>
       </div>
     </div>
 
     <div
       id="game-over-message"
-      class="hidden fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black/70 text-white text-4xl font-bold"
+      class="hidden fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black/70 z-50"
     >
-      Game Over!
+      <div
+        class="bg-gray-800 rounded-lg p-8 max-w-md w-full mx-4 border border-gray-600 text-center"
+      >
+        <h2 class="text-3xl font-bold text-white mb-6">🎵 Song Complete!</h2>
+
+        <div id="game-over-score" class="bg-gray-700 rounded-lg p-4 mb-6">
+          <div class="text-4xl font-bold mb-2" id="final-grade">A</div>
+          <div class="text-2xl font-bold text-green-400 mb-2" id="final-percentage">0.00%</div>
+          <div class="text-gray-300" id="final-notes">0 notes</div>
+          <div class="text-gray-300" id="final-points">0 points</div>
+        </div>
+
+        <div class="flex flex-col gap-3">
+          <button
+            id="share-score-btn"
+            class="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
+          >
+            📊 Share Score
+          </button>
+          <button
+            id="restart-song-btn"
+            class="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200"
+          >
+            🔄 Play Again
+          </button>
+          <button
+            id="close-game-over-btn"
+            class="w-full px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
+          >
+            ✕ Close
+          </button>
+        </div>
+      </div>
     </div>
   </body>
 </html>

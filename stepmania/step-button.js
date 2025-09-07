@@ -27,35 +27,32 @@ class StepButton extends HTMLElement {
 
     const colorMap = {
       green: {
-        bg: 'from-green-400 to-green-600',
-        border: 'border-green-300',
-        hover:
-          'hover:shadow-green-400/70 hover:border-green-200 hover:from-green-300 hover:to-green-500',
-        active: 'active:from-green-500 active:to-green-700',
-        inner: 'from-green-200 to-green-400'
+        bg: 'from-cyan-300 to-blue-400',
+        border: 'border-black',
+        hover: 'hover:shadow-cyan-300/80 hover:border-black hover:from-cyan-200 hover:to-blue-300',
+        active: 'active:from-cyan-400 active:to-blue-500',
+        inner: 'from-cyan-100 to-blue-200'
       },
       red: {
-        bg: 'from-red-400 to-red-600',
-        border: 'border-red-300',
-        hover: 'hover:shadow-red-400/70 hover:border-red-200 hover:from-red-300 hover:to-red-500',
-        active: 'active:from-red-500 active:to-red-700',
-        inner: 'from-red-200 to-red-400'
+        bg: 'from-pink-300 to-red-400',
+        border: 'border-black',
+        hover: 'hover:shadow-pink-300/80 hover:border-black hover:from-pink-200 hover:to-red-300',
+        active: 'active:from-pink-400 active:to-red-500',
+        inner: 'from-pink-100 to-red-200'
       },
       blue: {
-        bg: 'from-blue-400 to-blue-600',
-        border: 'border-blue-300',
-        hover:
-          'hover:shadow-blue-400/70 hover:border-blue-200 hover:from-blue-300 hover:to-blue-500',
-        active: 'active:from-blue-500 active:to-blue-700',
-        inner: 'from-blue-200 to-blue-400'
+        bg: 'from-cyan-300 to-blue-400',
+        border: 'border-black',
+        hover: 'hover:shadow-cyan-300/80 hover:border-black hover:from-cyan-200 hover:to-blue-300',
+        active: 'active:from-cyan-400 active:to-blue-500',
+        inner: 'from-cyan-100 to-blue-200'
       },
       yellow: {
-        bg: 'from-yellow-400 to-yellow-600',
-        border: 'border-yellow-300',
-        hover:
-          'hover:shadow-yellow-400/70 hover:border-yellow-200 hover:from-yellow-300 hover:to-yellow-500',
-        active: 'active:from-yellow-500 active:to-yellow-700',
-        inner: 'from-yellow-200 to-yellow-400'
+        bg: 'from-pink-300 to-red-400',
+        border: 'border-black',
+        hover: 'hover:shadow-pink-300/80 hover:border-black hover:from-pink-200 hover:to-red-300',
+        active: 'active:from-pink-400 active:to-red-500',
+        inner: 'from-pink-100 to-red-200'
       }
     };
 
@@ -69,12 +66,15 @@ class StepButton extends HTMLElement {
         }
         
         .button {
-          width: 44px;
-          height: 44px;
-          background: linear-gradient(to bottom right, var(--bg-from), var(--bg-to));
-          border: 2px solid var(--border-color);
-          border-radius: 8px;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          width: 60px;
+          height: 60px;
+          background: linear-gradient(135deg, var(--bg-from) 0%, var(--bg-to) 50%, var(--bg-from) 100%);
+          border: 3px solid var(--border-color);
+          border-radius: 12px;
+          box-shadow: 
+            0 4px 6px -1px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.2);
           cursor: pointer;
           user-select: none;
           position: relative;
@@ -83,16 +83,21 @@ class StepButton extends HTMLElement {
         }
 
         .button:hover {
-          box-shadow: 0 20px 25px -5px var(--hover-shadow);
+          box-shadow: 
+            0 20px 25px -5px var(--hover-shadow),
+            inset 0 1px 0 rgba(255, 255, 255, 0.4),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.3);
           border-color: var(--hover-border);
-          background: linear-gradient(to bottom right, var(--hover-from), var(--hover-to));
+          background: linear-gradient(135deg, var(--hover-from) 0%, var(--hover-to) 50%, var(--hover-from) 100%);
           transform: scale(1.1);
         }
 
         .button:active {
           transform: scale(0.9);
-          box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.3);
-          background: linear-gradient(to bottom right, var(--active-from), var(--active-to));
+          box-shadow: 
+            inset 0 4px 8px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          background: linear-gradient(135deg, var(--active-from) 0%, var(--active-to) 50%, var(--active-from) 100%);
         }
 
         .button-pressed {
@@ -115,19 +120,28 @@ class StepButton extends HTMLElement {
           display: flex;
           align-items: center;
           justify-content: center;
-          color: white;
-          font-weight: bold;
-          font-size: 14px;
+        }
+
+        .arrow-image {
+          width: 40px;
+          height: 40px;
+          background-image: url('img/down-target.png');
+          background-size: 120px 40px; /* 3 frames * 40px each */
+          background-repeat: no-repeat;
+          background-position: 0 0; /* Show first frame */
+          transition: transform 0.15s ease;
         }
 
         @media (min-width: 768px) {
           .button {
-            width: 48px;
-            height: 48px;
+            width: 64px;
+            height: 64px;
           }
           
-          .arrow {
-            font-size: 16px;
+          .arrow-image {
+            width: 48px;
+            height: 48px;
+            background-size: 144px 48px; /* 3 frames * 48px each */
           }
         }
 
@@ -160,65 +174,42 @@ class StepButton extends HTMLElement {
   }
 
   getArrowSymbol(direction) {
-    const symbols = {
-      up: '↑',
-      down: '↓',
-      left: '←',
-      right: '→'
+    // Use the existing down button image and rotate it for different directions
+    const rotations = {
+      up: 'rotate(180deg)',
+      down: 'rotate(0deg)',
+      left: 'rotate(90deg)',
+      right: 'rotate(-90deg)'
     };
-    return symbols[direction] || '↑';
+    return `<div class="arrow-image" style="transform: ${rotations[direction]}"></div>`;
   }
 
   getComputedValue(tailwindClass) {
-    // Convert Tailwind classes to CSS values
+    // Convert Tailwind classes to CSS values - Metallic Dance Pad Colors
     const colorMap = {
-      'from-green-400': '#4ade80',
-      'to-green-600': '#16a34a',
-      'border-green-300': '#86efac',
-      'hover:shadow-green-400/70': 'rgba(74, 222, 128, 0.7)',
-      'hover:border-green-200': '#bbf7d0',
-      'hover:from-green-300': '#86efac',
-      'hover:to-green-500': '#22c55e',
-      'active:from-green-500': '#22c55e',
-      'active:to-green-700': '#15803d',
-      'from-green-200': '#bbf7d0',
-      'to-green-400': '#4ade80',
+      // Metallic Blue (Up/Down arrows) - Shiny metallic blue gradient
+      'from-cyan-300': '#00bcd4',
+      'to-blue-400': '#1976d2',
+      'border-black': '#000000',
+      'hover:shadow-cyan-300/80': 'rgba(0, 188, 212, 0.8)',
+      'hover:border-black': '#000000',
+      'hover:from-cyan-200': '#26c6da',
+      'hover:to-blue-300': '#42a5f5',
+      'active:from-cyan-400': '#00acc1',
+      'active:to-blue-500': '#1565c0',
+      'from-cyan-100': '#b2ebf2',
+      'to-blue-200': '#90caf9',
 
-      'from-red-400': '#f87171',
-      'to-red-600': '#dc2626',
-      'border-red-300': '#fca5a5',
-      'hover:shadow-red-400/70': 'rgba(248, 113, 113, 0.7)',
-      'hover:border-red-200': '#fecaca',
-      'hover:from-red-300': '#fca5a5',
-      'hover:to-red-500': '#ef4444',
-      'active:from-red-500': '#ef4444',
-      'active:to-red-700': '#b91c1c',
-      'from-red-200': '#fecaca',
-      'to-red-400': '#f87171',
-
-      'from-blue-400': '#60a5fa',
-      'to-blue-600': '#2563eb',
-      'border-blue-300': '#93c5fd',
-      'hover:shadow-blue-400/70': 'rgba(96, 165, 250, 0.7)',
-      'hover:border-blue-200': '#bfdbfe',
-      'hover:from-blue-300': '#93c5fd',
-      'hover:to-blue-500': '#3b82f6',
-      'active:from-blue-500': '#3b82f6',
-      'active:to-blue-700': '#1d4ed8',
-      'from-blue-200': '#bfdbfe',
-      'to-blue-400': '#60a5fa',
-
-      'from-yellow-400': '#facc15',
-      'to-yellow-600': '#ca8a04',
-      'border-yellow-300': '#fde047',
-      'hover:shadow-yellow-400/70': 'rgba(250, 204, 21, 0.7)',
-      'hover:border-yellow-200': '#fef3c7',
-      'hover:from-yellow-300': '#fde047',
-      'hover:to-yellow-500': '#eab308',
-      'active:from-yellow-500': '#eab308',
-      'active:to-yellow-700': '#a16207',
-      'from-yellow-200': '#fef3c7',
-      'to-yellow-400': '#facc15'
+      // Metallic Red/Pink (Left/Right arrows) - Shiny metallic red gradient
+      'from-pink-300': '#e91e63',
+      'to-red-400': '#d32f2f',
+      'hover:shadow-pink-300/80': 'rgba(233, 30, 99, 0.8)',
+      'hover:from-pink-200': '#f06292',
+      'hover:to-red-300': '#ef5350',
+      'active:from-pink-400': '#c2185b',
+      'active:to-red-500': '#c62828',
+      'from-pink-100': '#f8bbd9',
+      'to-red-200': '#ffcdd2'
     };
 
     return colorMap[tailwindClass] || tailwindClass;
