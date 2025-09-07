@@ -214,6 +214,16 @@ let appRegistry = [
     icon: '🧮',
     path: './calculator/',
     category: 'utility'
+  },
+  {
+    id: 'nes',
+    name: 'NES',
+    shortName: 'NES',
+    description: 'NES emulator',
+    detailedDescription: 'NES emulator',
+    icon: '🕹️',
+    path: './nes/',
+    category: 'game'
   }
 ];
 
