@@ -48,6 +48,15 @@ class ZeniusBrowserElement extends HTMLElement {
           white-space: nowrap;
         }
         
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+          .zenius-browser-btn {
+            padding: 0.25rem 0.75rem;
+            font-size: 12px;
+            height: 2rem;
+          }
+        }
+        
         .zenius-browser-btn:hover {
           background: linear-gradient(to right, #2563eb, #1e40af);
           transform: scale(1.05);

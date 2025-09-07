@@ -417,15 +417,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   audio.addEventListener('ended', function () {
-    const gameOverMessage = document.getElementById('game-over-message');
-    gameOverMessage.classList.remove('hidden');
-    gameOverMessage.classList.add('animate-fade-in');
-
-    // Optionally hide the message after a few seconds
-    setTimeout(() => {
-      gameOverMessage.classList.add('hidden');
-      gameOverMessage.classList.remove('animate-fade-in');
-    }, 5000);
+    showGameOverModal();
   });
 
   function step(col) {
@@ -923,3 +915,249 @@ function resetGame() {
 
 // Make reset function globally accessible
 window.resetGame = resetGame;
+
+// Make score variables globally accessible for sharing
+window.tapNoteScores = tapNoteScores;
+window.actualPoints = actualPoints;
+
+// Game Over Modal Functions
+function showGameOverModal() {
+  // Update score display
+  updateGameOverScore();
+
+  // Show modal
+  const gameOverMessage = document.getElementById('game-over-message');
+  gameOverMessage.classList.remove('hidden');
+  gameOverMessage.classList.add('animate-fade-in');
+
+  // Bind button events
+  bindGameOverEvents();
+}
+
+function updateGameOverScore() {
+  // Get percentage from game display
+  const percentElement = document.getElementById('percent-score');
+  const percentage = percentElement ? percentElement.textContent.trim() : '0.00%';
+
+  // Calculate totals
+  const totalNotes = tapNoteScores.reduce((sum, count) => sum + count, 0);
+
+  // Calculate grade based on StepMania/DDR system
+  const grade = calculateGrade(tapNoteScores, totalNotes);
+
+  // Update modal elements
+  document.getElementById('final-grade').textContent = grade.letter;
+  document.getElementById('final-grade').style.color = grade.color;
+  document.getElementById('final-percentage').textContent = percentage;
+  document.getElementById('final-notes').textContent = `${totalNotes} notes`;
+  document.getElementById('final-points').textContent = `${actualPoints} points`;
+}
+
+function bindGameOverEvents() {
+  // Remove existing listeners to prevent duplicates
+  const shareBtn = document.getElementById('share-score-btn');
+  const restartBtn = document.getElementById('restart-song-btn');
+  const closeBtn = document.getElementById('close-game-over-btn');
+
+  // Clone buttons to remove all event listeners
+  const newShareBtn = shareBtn.cloneNode(true);
+  const newRestartBtn = restartBtn.cloneNode(true);
+  const newCloseBtn = closeBtn.cloneNode(true);
+
+  shareBtn.parentNode.replaceChild(newShareBtn, shareBtn);
+  restartBtn.parentNode.replaceChild(newRestartBtn, restartBtn);
+  closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+
+  // Add new event listeners
+  newShareBtn.addEventListener('click', shareGameScore);
+  newRestartBtn.addEventListener('click', restartCurrentSong);
+  newCloseBtn.addEventListener('click', closeGameOverModal);
+}
+
+function shareGameScore() {
+  const scoreData = getScoreData();
+  const songInfo = getCurrentSongInfo();
+  const message = createScoreMessage(scoreData, songInfo);
+
+  // Copy to clipboard
+  copyToClipboard(message)
+    .then(() => {
+      // Show success feedback
+      const shareBtn = document.getElementById('share-score-btn');
+      const originalText = shareBtn.textContent;
+      shareBtn.textContent = '✓ Copied!';
+      shareBtn.style.backgroundColor = '#10b981';
+
+      setTimeout(() => {
+        shareBtn.textContent = originalText;
+        shareBtn.style.backgroundColor = '';
+      }, 2000);
+    })
+    .catch(() => {
+      // Show error feedback
+      const shareBtn = document.getElementById('share-score-btn');
+      const originalText = shareBtn.textContent;
+      shareBtn.textContent = '✗ Failed';
+      shareBtn.style.backgroundColor = '#ef4444';
+
+      setTimeout(() => {
+        shareBtn.textContent = originalText;
+        shareBtn.style.backgroundColor = '';
+      }, 2000);
+    });
+}
+
+function restartCurrentSong() {
+  closeGameOverModal();
+
+  // Reset the game
+  resetGame();
+
+  // Restart audio
+  audio.currentTime = 0;
+  audio.play();
+}
+
+function closeGameOverModal() {
+  const gameOverMessage = document.getElementById('game-over-message');
+  gameOverMessage.classList.add('hidden');
+  gameOverMessage.classList.remove('animate-fade-in');
+
+  // Reset the game state when closing the modal
+  resetGame();
+}
+
+function calculateGrade(tapNoteScores, totalNotes) {
+  // StepMania/DDR grading system based on Dance Points (DP)
+  // Point values: Perfect = 2, Great = 1, Good = 0.5, Bad = 0, Miss = 0
+  const [perfect, great, good, bad, miss, ng] = tapNoteScores;
+
+  // Calculate Dance Points (DP) - using StepMania's system
+  const earnedDP = perfect * 2 + great * 1 + good * 0.5 + bad * 0 + miss * 0;
+  const maxDP = totalNotes * 2; // Maximum possible DP (all perfects)
+
+  // Calculate DP percentage
+  const dpPercentage = maxDP > 0 ? (earnedDP / maxDP) * 100 : 0;
+
+  // Determine grade based on DP percentage (StepMania system)
+  let letter, color;
+
+  if (dpPercentage === 100 && perfect === totalNotes) {
+    // AAAA (All Perfect/Marvelous)
+    letter = 'AAAA';
+    color = '#FFD700'; // Gold
+  } else if (dpPercentage === 100) {
+    // AAA (All Perfect + Great)
+    letter = 'AAA';
+    color = '#FFD700'; // Gold
+  } else if (dpPercentage >= 90) {
+    // AA
+    letter = 'AA';
+    color = '#C0C0C0'; // Silver
+  } else if (dpPercentage >= 80) {
+    // A
+    letter = 'A';
+    color = '#10B981'; // Green
+  } else if (dpPercentage >= 70) {
+    // B
+    letter = 'B';
+    color = '#3B82F6'; // Blue
+  } else if (dpPercentage >= 60) {
+    // C
+    letter = 'C';
+    color = '#F59E0B'; // Yellow/Orange
+  } else if (dpPercentage >= 50) {
+    // D
+    letter = 'D';
+    color = '#EF4444'; // Red
+  } else {
+    // F (Fail)
+    letter = 'F';
+    color = '#7F1D1D'; // Dark Red
+  }
+
+  return {
+    letter,
+    color,
+    dpPercentage: dpPercentage.toFixed(2)
+  };
+}
+
+function getScoreData() {
+  const percentElement = document.getElementById('percent-score');
+  const percentage = percentElement ? percentElement.textContent.trim() : '0.00%';
+  const totalNotes = tapNoteScores.reduce((sum, count) => sum + count, 0);
+
+  return {
+    tapNoteScores,
+    actualPoints,
+    totalNotes,
+    percentage
+  };
+}
+
+function getCurrentSongInfo() {
+  const searchParams = new URLSearchParams(window.location.search);
+  const song = searchParams.get('song');
+
+  let songTitle = song || 'Unknown Song';
+  let difficultyName = 'Unknown';
+  let difficultyRating = '';
+
+  if (window.mainPageController && window.mainPageController.currentSong) {
+    songTitle = window.mainPageController.currentSong.data.title || songTitle;
+
+    const currentSongKey = window.mainPageController.currentSong.key;
+    const parsedData = window.mainPageController.parsedSongs[currentSongKey];
+
+    if (parsedData && parsedData.charts && window.mainPageController.currentDifficulty !== null) {
+      const chart = parsedData.charts[window.mainPageController.currentDifficulty];
+      if (chart) {
+        difficultyName = chart.difficulty || difficultyName;
+        difficultyRating = chart.rating ? ` (${chart.rating})` : '';
+      }
+    }
+  }
+
+  return {
+    title: songTitle,
+    difficulty: difficultyName,
+    difficultyRating
+  };
+}
+
+function createScoreMessage(scoreData, songInfo) {
+  const [perfect, great, good, bad, miss] = scoreData.tapNoteScores;
+
+  // Calculate grade for the message
+  const grade = calculateGrade(scoreData.tapNoteScores, scoreData.totalNotes);
+
+  const message = `I just played "${songInfo.title}" on StepMania with ${songInfo.difficulty}${songInfo.difficultyRating} difficulty!
+
+Grade: ${grade.letter} | Score: ${scoreData.percentage}
+Notes: ${scoreData.totalNotes} total, ${scoreData.actualPoints} points
+
+Perfect: ${perfect} | Great: ${great} | Good: ${good} | Bad: ${bad} | Miss: ${miss}
+
+${window.location.href}`;
+
+  return message;
+}
+
+async function copyToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+  } else {
+    // Fallback for older browsers
+    const input = document.createElement('input');
+    input.value = text;
+    document.body.appendChild(input);
+    input.select();
+    const success = document.execCommand('copy', true, text);
+    document.body.removeChild(input);
+
+    if (!success) {
+      throw new Error('Failed to copy text');
+    }
+  }
+}

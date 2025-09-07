@@ -7,6 +7,7 @@ class MainPageController {
     this.lastZeniusUrl = null; // Store the last Zenius URL for retry
     this.lastDifficulty = null; // Store the last difficulty for retry
     this.lastSongKey = null; // Store the last song key for retry
+    this.isUpdatingDifficulty = false; // Flag to prevent infinite loops
     this.init();
   }
 
@@ -359,6 +360,11 @@ class MainPageController {
   }
 
   onDifficultySelected(index, chart) {
+    // Prevent infinite loops when syncing selectors
+    if (this.isUpdatingDifficulty) {
+      return;
+    }
+
     this.currentDifficulty = index;
     this.updateURLWithDifficulty(index);
 
@@ -384,6 +390,34 @@ class MainPageController {
 
     url.searchParams.set('difficulty', difficulty);
     window.history.pushState({}, '', url);
+
+    // Sync the main difficulty selector with the new difficulty
+    this.syncMainDifficultySelector(difficulty);
+  }
+
+  syncMainDifficultySelector(difficulty) {
+    // Set flag to prevent infinite loops
+    this.isUpdatingDifficulty = true;
+
+    const mainDifficultySelector = document.getElementById('main-difficulty-selector');
+    if (mainDifficultySelector && mainDifficultySelector.selectDifficultyByIndex) {
+      // Update the main selector without triggering its change event (to avoid loops)
+      mainDifficultySelector.selectDifficultyByIndex(difficulty);
+    }
+
+    // Also sync the ready difficulty selector if it exists
+    this.syncReadyDifficultySelector(difficulty);
+
+    // Clear flag after syncing
+    this.isUpdatingDifficulty = false;
+  }
+
+  syncReadyDifficultySelector(difficulty) {
+    const readyDifficultySelect = document.getElementById('ready-difficulty-select');
+    if (readyDifficultySelect) {
+      // Update the ready selector value without triggering change event
+      readyDifficultySelect.value = difficulty;
+    }
   }
 
   async startSelectedSong(loadingAlreadyShown = false, useMainLoading = false) {
@@ -668,6 +702,8 @@ class MainPageController {
   }
 
   showReadyToPlayMessage() {
+    console.log('showReadyToPlayMessage() called');
+
     const overlay = document.getElementById('main-loading-overlay');
     const title = document.getElementById('main-loading-title');
     const statusEl = document.getElementById('main-loading-status');
@@ -676,7 +712,12 @@ class MainPageController {
     const retryBtn = document.getElementById('main-loading-retry-btn');
     const backBtn = document.getElementById('main-loading-back-btn');
 
+    console.log('Overlay element found:', !!overlay);
+    console.log('Title element found:', !!title);
+    console.log('Status element found:', !!statusEl);
+
     if (overlay && title && statusEl) {
+      console.log('All elements found, showing ready to play message');
       // Hide spinner and progress bar
       spinner.classList.add('hidden');
       progressContainer.classList.add('hidden');
@@ -685,8 +726,18 @@ class MainPageController {
       title.textContent = 'Ready to Play!';
       statusEl.textContent = 'Click the Start Playing button to begin';
 
-      // Show play button and back button
-      backBtn.classList.remove('hidden');
+      // The back button is now shown via the ready buttons container
+
+      // Show the ready buttons container and ensure back button is visible
+      const readyButtonsContainer = document.getElementById('ready-buttons-container');
+      if (readyButtonsContainer) {
+        readyButtonsContainer.classList.remove('hidden');
+      }
+
+      // Make sure the back button is visible (remove hidden class)
+      if (backBtn) {
+        backBtn.classList.remove('hidden');
+      }
 
       // Create or show play button
       let playBtn = document.getElementById('main-loading-play-btn');
@@ -694,17 +745,97 @@ class MainPageController {
         playBtn = document.createElement('button');
         playBtn.id = 'main-loading-play-btn';
         playBtn.className =
-          'mt-4 px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200';
+          'px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200';
         playBtn.textContent = '🎵 Start Playing';
         playBtn.addEventListener('click', () => {
           this.startPlaying();
         });
 
-        // Insert play button before back button
-        const buttonContainer = backBtn.parentElement;
-        buttonContainer.insertBefore(playBtn, backBtn);
+        // Insert play button as first child in the ready buttons container
+        if (readyButtonsContainer) {
+          readyButtonsContainer.insertBefore(playBtn, readyButtonsContainer.firstChild);
+        }
       } else {
         playBtn.classList.remove('hidden');
+      }
+
+      // Create or show difficulty selector under the play button
+      let difficultySelectContainer = document.getElementById('ready-difficulty-container');
+      if (
+        !difficultySelectContainer &&
+        this.currentSong &&
+        this.parsedSongs[this.currentSong.key]
+      ) {
+        // Create container for difficulty selector
+        difficultySelectContainer = document.createElement('div');
+        difficultySelectContainer.id = 'ready-difficulty-container';
+        difficultySelectContainer.className = 'mt-3 text-center';
+
+        // Create label
+        const label = document.createElement('label');
+        label.className = 'block text-sm font-medium text-gray-300 mb-2';
+        label.textContent = 'Select Difficulty:';
+
+        // Create select element
+        const select = document.createElement('select');
+        select.id = 'ready-difficulty-select';
+        select.className =
+          'px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent';
+
+        // Populate with difficulties
+        const parsedData = this.parsedSongs[this.currentSong.key];
+        parsedData.charts.forEach((chart, index) => {
+          const option = document.createElement('option');
+          option.value = index;
+          option.textContent = `${chart.difficulty} (${chart.rating})`;
+          if (index === this.currentDifficulty) {
+            option.selected = true;
+          }
+          select.appendChild(option);
+        });
+
+        // Handle difficulty changes
+        select.addEventListener('change', (event) => {
+          // Prevent infinite loops when syncing selectors
+          if (this.isUpdatingDifficulty) {
+            return;
+          }
+
+          const selectedIndex = parseInt(event.target.value);
+          this.currentDifficulty = selectedIndex;
+          this.updateURLWithDifficulty(selectedIndex);
+          console.log(
+            `Difficulty changed to: ${parsedData.charts[selectedIndex].difficulty} (${parsedData.charts[selectedIndex].rating})`
+          );
+        });
+
+        difficultySelectContainer.appendChild(label);
+        difficultySelectContainer.appendChild(select);
+
+        // Insert after play button in the ready buttons container
+        if (readyButtonsContainer) {
+          readyButtonsContainer.appendChild(difficultySelectContainer);
+        }
+      } else if (difficultySelectContainer) {
+        // Update existing difficulty selector
+        const select = document.getElementById('ready-difficulty-select');
+        if (select && this.currentSong && this.parsedSongs[this.currentSong.key]) {
+          // Clear existing options
+          select.innerHTML = '';
+
+          // Repopulate with current song's difficulties
+          const parsedData = this.parsedSongs[this.currentSong.key];
+          parsedData.charts.forEach((chart, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = `${chart.difficulty} (${chart.rating})`;
+            if (index === this.currentDifficulty) {
+              option.selected = true;
+            }
+            select.appendChild(option);
+          });
+        }
+        difficultySelectContainer.classList.remove('hidden');
       }
 
       // Keep overlay visible but with ready state
@@ -713,6 +844,37 @@ class MainPageController {
   }
 
   startPlaying() {
+    // Get the currently selected difficulty from the ready difficulty selector
+    const difficultySelect = document.getElementById('ready-difficulty-select');
+    if (difficultySelect) {
+      const selectedIndex = parseInt(difficultySelect.value);
+      if (!isNaN(selectedIndex) && selectedIndex !== this.currentDifficulty) {
+        this.currentDifficulty = selectedIndex;
+
+        // Update just the note data for the selected difficulty
+        if (this.currentSong && this.parsedSongs[this.currentSong.key]) {
+          const parsedData = this.parsedSongs[this.currentSong.key];
+          const selectedChart = parsedData.charts[this.currentDifficulty];
+
+          if (selectedChart) {
+            // Update global steps data with new difficulty
+            window.steps = {
+              noteData: selectedChart.noteData
+            };
+
+            // Update stepmania.js variables
+            if (window.noteData !== undefined) {
+              window.noteData = selectedChart.noteData;
+            }
+
+            console.log(
+              `Switched to difficulty: ${selectedChart.difficulty} (${selectedChart.rating}) - ${selectedChart.noteData.length} notes`
+            );
+          }
+        }
+      }
+    }
+
     // Hide the loading overlay
     this.hideMainLoading();
 

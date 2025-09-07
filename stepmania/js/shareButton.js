@@ -34,6 +34,16 @@ class ShareButtonElement extends HTMLElement {
           height: 2.5rem;
         }
         
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+          .share-btn {
+            padding: 0.25rem 0.75rem;
+            font-size: 12px;
+            height: 2rem;
+            gap: 0.25rem;
+          }
+        }
+        
         .share-btn:hover {
           background: linear-gradient(to right, #2563eb, #059669);
           transform: scale(1.05);

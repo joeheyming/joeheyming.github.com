@@ -40,6 +40,17 @@ class DifficultySelectorElement extends HTMLElement {
           height: 2.5rem;
           align-items: center;
           justify-content: center;
+          width: auto;
+          min-width: fit-content;
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+          .difficulty-select {
+            padding: 0.25rem 0.75rem;
+            font-size: 12px;
+            height: 2rem;
+          }
         }
         
         .difficulty-select:hover {
@@ -144,7 +155,7 @@ class DifficultySelectorElement extends HTMLElement {
   // Private methods
   renderDifficultyOptions() {
     const select = this.shadowRoot.getElementById('difficulty-select');
-    select.innerHTML = '<option value="">Difficulty</option>';
+    select.innerHTML = '<option value="">Level</option>';
 
     // Create difficulty options if charts are available
     if (this.charts && this.charts.length > 0) {
