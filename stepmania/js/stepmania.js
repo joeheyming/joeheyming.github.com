@@ -100,6 +100,10 @@ var colInfos = calculateColInfos(CANVAS_WIDTH);
 
 var targetsY = 32;
 
+// Hold note tracking
+var activeHolds = {}; // Track which columns are being held
+var heldKeys = {}; // Track which keys are currently pressed
+
 function merge(o1, o2) {
   for (var attr in o2) {
     o1[attr] = o2[attr];
@@ -399,8 +403,12 @@ document.addEventListener('DOMContentLoaded', function () {
         break;
     }
     if (undefined != col) {
-      step(col);
-      addButtonFeedback(col);
+      // Only trigger step if key wasn't already held (prevent key repeat)
+      if (!heldKeys[keyCode]) {
+        step(col);
+        addButtonFeedback(col);
+        heldKeys[keyCode] = true;
+      }
       event.preventDefault();
     }
     // spacebar toggle play/pause
@@ -412,6 +420,47 @@ document.addEventListener('DOMContentLoaded', function () {
       } else {
         audio.pause();
       }
+      event.preventDefault();
+    }
+  });
+
+  document.addEventListener('keyup', function (event) {
+    // Don't handle game controls when user is typing in an input field
+    if (
+      event.target.tagName === 'INPUT' ||
+      event.target.tagName === 'TEXTAREA' ||
+      event.target.contentEditable === 'true' ||
+      event.target.isContentEditable ||
+      event.target.nodeName === 'ZENIUS-BROWSER'
+    ) {
+      return;
+    }
+
+    var keyCode = event.which;
+    var col;
+
+    switch (keyCode) {
+      case 65 /*a*/:
+      case 37:
+        col = 0;
+        break;
+      case 87 /*w*/:
+      case 38:
+        col = 2;
+        break;
+      case 68 /*d*/:
+      case 39:
+        col = 3;
+        break;
+      case 83 /*s*/:
+      case 40:
+        col = 1;
+        break;
+    }
+
+    if (undefined != col) {
+      heldKeys[keyCode] = false;
+      releaseHold(col);
       event.preventDefault();
     }
   });
@@ -459,12 +508,34 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
 
-      // Regular note hit
-      for (var j = 0; j < timingWindows.length; j++) {
-        if (diff <= timingWindows[j]) {
-          noteProps.tapNoteScore = j;
-          tapNoteScore = j;
-          break;
+      // Handle hold notes
+      if (noteProps.Type === 2 && noteProps.Duration) {
+        // This is a hold note
+        for (var j = 0; j < timingWindows.length; j++) {
+          if (diff <= timingWindows[j]) {
+            noteProps.tapNoteScore = j;
+            tapNoteScore = j;
+            // Start tracking this hold
+            activeHolds[col] = {
+              note: note,
+              startBeat: noteBeat,
+              endBeat: noteBeat + noteProps.Duration / 48,
+              startTime: songSeconds,
+              hitScore: j,
+              wasDropped: false, // Track if hold was dropped at any point
+              lastCheckTime: songSeconds // Track continuous holding
+            };
+            break;
+          }
+        }
+      } else {
+        // Regular note hit
+        for (var j = 0; j < timingWindows.length; j++) {
+          if (diff <= timingWindows[j]) {
+            noteProps.tapNoteScore = j;
+            tapNoteScore = j;
+            break;
+          }
         }
       }
 
@@ -540,6 +611,177 @@ document.addEventListener('DOMContentLoaded', function () {
   console.log('🎮 StepMania functions exposed globally for gamepad integration');
 });
 
+// Hold note functions (moved outside event listener for global access)
+function releaseHold(col) {
+  if (activeHolds[col]) {
+    var hold = activeHolds[col];
+    var audio = document.getElementById('audio_with_controls');
+    var songSeconds = audio.currentTime + addToMusicPositionSeconds;
+    var songBeats = secondsToBeats(songSeconds);
+    var holdEndBeat = hold.endBeat;
+
+    // If released before the hold should end, mark as dropped
+    if (songBeats < holdEndBeat - 0.1) {
+      // Small tolerance for timing
+      hold.wasDropped = true;
+      hold.dropTime = songSeconds;
+
+      // Immediate penalty for early release
+      var finalScore = Math.max(hold.hitScore, 4); // At least "Almost" or worse
+
+      tapNoteScores[finalScore]++;
+      actualPoints += 3 - finalScore;
+
+      var scoreElement = document.getElementById('w' + finalScore);
+      if (scoreElement) scoreElement.textContent = tapNoteScores[finalScore];
+
+      var possiblePoints = 3 * noteData.length;
+      var percent = (actualPoints / possiblePoints) * 100;
+      var percentElement = document.getElementById('percent-score');
+      if (percentElement) percentElement.textContent = percent.toFixed(2) + '%';
+
+      showJudgment('Hold Dropped!', finalScore);
+
+      // Mark the note as completed so it disappears
+      hold.note[2].holdCompleted = true;
+      delete activeHolds[col];
+    }
+    // If released at the right time, let updateHolds handle the scoring
+    // (this allows for proper timing-based scoring at the end)
+  }
+}
+
+// Show judgment function for hold notes
+function showJudgment(judgmentText, scoreIndex) {
+  // Use the existing judgment system
+  if (scoreIndex >= 0 && scoreIndex < 6) {
+    if (scoreIndex == 5) {
+      judgment
+        .stop()
+        .set({ frameIndex: scoreIndex, scaleX: 1, scaleY: 1, y: 160, alpha: 1 })
+        .animate({ y: 210 }, 0.5)
+        .animate({ alpha: 0 }, 0);
+    } else {
+      judgment
+        .stop()
+        .set({ frameIndex: scoreIndex })
+        .animate({ scaleX: 1.4, scaleY: 1.4, alpha: 1 }, 0)
+        .animate({ scaleX: 1, scaleY: 1 }, 0.1)
+        .animate({ scaleX: 1, scaleY: 1 }, 0.5)
+        .animate({ alpha: 0 }, 0.2);
+    }
+  }
+
+  // For special hold judgments, use the mine judgment system
+  if (judgmentText === 'Hold Dropped!' || judgmentText === 'Hold Broken!') {
+    mineJudgment.show(judgmentText);
+  }
+}
+
+// Check active holds during gameplay
+function updateHolds() {
+  var audio = document.getElementById('audio_with_controls');
+  var songSeconds = audio.currentTime + addToMusicPositionSeconds;
+  var songBeats = secondsToBeats(songSeconds);
+
+  // Check if any holds should be dropped (key not held or hold ended)
+  for (var col in activeHolds) {
+    var hold = activeHolds[col];
+    var keyHeld = false;
+
+    // Check if any key for this column is still held
+    var colKeys = getKeysForColumn(parseInt(col));
+    for (var i = 0; i < colKeys.length; i++) {
+      if (heldKeys[colKeys[i]]) {
+        keyHeld = true;
+        break;
+      }
+    }
+
+    // If key is not held, mark as dropped
+    if (!keyHeld && !hold.wasDropped) {
+      hold.wasDropped = true;
+      hold.dropTime = songSeconds;
+    }
+
+    // Update last check time if key is held
+    if (keyHeld) {
+      hold.lastCheckTime = songSeconds;
+    }
+
+    // Check if hold has ended naturally (reached end beat)
+    if (songBeats >= hold.endBeat) {
+      // Hold completed - score based on whether it was dropped
+      var finalScore;
+
+      if (hold.wasDropped) {
+        // Hold was dropped at some point - penalize
+        finalScore = Math.max(hold.hitScore, 4); // At least "Almost" or worse
+      } else {
+        // Hold was maintained throughout - use initial hit score
+        finalScore = hold.hitScore;
+      }
+
+      tapNoteScores[finalScore]++;
+      actualPoints += 3 - finalScore;
+
+      var scoreElement = document.getElementById('w' + finalScore);
+      if (scoreElement) scoreElement.textContent = tapNoteScores[finalScore];
+
+      var possiblePoints = 3 * noteData.length;
+      var percent = (actualPoints / possiblePoints) * 100;
+      var percentElement = document.getElementById('percent-score');
+      if (percentElement) percentElement.textContent = percent.toFixed(2) + '%';
+
+      var judgmentText = ['Perfect!', 'Great!', 'Good', 'OK', 'Almost', 'Miss'][finalScore];
+      if (hold.wasDropped) {
+        judgmentText = 'Hold Broken!';
+      }
+      showJudgment(judgmentText, finalScore);
+
+      // Mark the note as completed so it disappears
+      hold.note[2].holdCompleted = true;
+      delete activeHolds[col];
+    }
+    // Check if hold was missed entirely (went too far past end)
+    else if (songBeats > hold.endBeat + timingWindows[timingWindows.length - 1]) {
+      // Hold missed completely
+      var missScore = timingWindows.length - 1; // Miss
+      tapNoteScores[missScore]++;
+      actualPoints += 3 - missScore;
+
+      var scoreElement = document.getElementById('w' + missScore);
+      if (scoreElement) scoreElement.textContent = tapNoteScores[missScore];
+
+      var possiblePoints = 3 * noteData.length;
+      var percent = (actualPoints / possiblePoints) * 100;
+      var percentElement = document.getElementById('percent-score');
+      if (percentElement) percentElement.textContent = percent.toFixed(2) + '%';
+
+      showJudgment('Miss', missScore);
+
+      // Mark the note as completed so it disappears
+      hold.note[2].holdCompleted = true;
+      delete activeHolds[col];
+    }
+  }
+}
+
+function getKeysForColumn(col) {
+  switch (col) {
+    case 0:
+      return [65, 37]; // A, Left Arrow
+    case 1:
+      return [83, 40]; // S, Down Arrow
+    case 2:
+      return [87, 38]; // W, Up Arrow
+    case 3:
+      return [68, 39]; // D, Right Arrow
+    default:
+      return [];
+  }
+}
+
 var canvasElement;
 var canvas;
 
@@ -573,6 +815,13 @@ function update(deltaSeconds) {
 
   // Handle background changes
   updateBackgroundChanges();
+
+  // Update hold notes
+  if (typeof updateHolds === 'function') {
+    updateHolds();
+  } else {
+    console.warn('updateHolds function not defined - this may be a caching issue');
+  }
 
   targets.forEach(function (target) {
     target.update(deltaSeconds);
@@ -786,6 +1035,7 @@ function drawNoteField() {
       var y = targetsY + beatUntilNote * arrowSize * currentScrollSpeed;
       var alpha = 1;
       if ('tapNoteScore' in noteProps) {
+        // All note heads (including hold note heads) disappear when hit
         if (noteProps.tapNoteScore < 5) alpha = 0;
       }
 
@@ -848,6 +1098,77 @@ function drawNoteField() {
         canvas.fillText('!', colInfo.x, y);
 
         canvas.restore();
+      } else if (noteProps.Type === 2 && noteProps.Duration) {
+        // Draw hold note with body and tail
+        var holdDurationBeats = noteProps.Duration / 48; // Convert ticks back to beats
+        var holdEndY = y + holdDurationBeats * arrowSize * currentScrollSpeed;
+
+        // Only draw if any part of the hold is visible
+        var holdVisible = y < CANVAS_HEIGHT + 50 && holdEndY > -50;
+
+        if (holdVisible) {
+          // Check if this hold is currently active and if it was dropped
+          var isActiveHold = activeHolds[col] && activeHolds[col].note === note;
+          var wasDropped = isActiveHold && activeHolds[col].wasDropped;
+
+          // Determine hold body visibility
+          var holdBodyAlpha = alpha * 0.7;
+
+          // If note head is hit (alpha = 0) but hold is active, keep hold body visible
+          if (alpha === 0 && isActiveHold) {
+            holdBodyAlpha = 0.8; // Make hold body visible even when note head is hidden
+          }
+
+          // Draw hold body (connecting line)
+          canvas.save();
+          canvas.globalAlpha = holdBodyAlpha;
+
+          // Create gradient for hold body
+          var gradient = canvas.createLinearGradient(colInfo.x, y, colInfo.x, holdEndY);
+          if (wasDropped) {
+            // Red gradient for dropped holds
+            gradient.addColorStop(0, '#ff4444'); // Light red at start
+            gradient.addColorStop(0.5, '#cc0000'); // Dark red in middle
+            gradient.addColorStop(1, '#880000'); // Very dark red at end
+          } else {
+            // Normal gradient for active/good holds
+            gradient.addColorStop(0, '#00ff00'); // Green at start
+            gradient.addColorStop(0.5, '#ffff00'); // Yellow in middle
+            gradient.addColorStop(1, '#ff0000'); // Red at end
+          }
+
+          canvas.fillStyle = gradient;
+          canvas.fillRect(colInfo.x - 8, y, 16, holdEndY - y);
+
+          // Draw hold body border
+          canvas.strokeStyle = '#ffffff';
+          canvas.lineWidth = 2;
+          canvas.strokeRect(colInfo.x - 8, y, 16, holdEndY - y);
+
+          canvas.restore();
+
+          // Draw hold tail (end cap) if visible
+          if (holdEndY > -50 && holdEndY < CANVAS_HEIGHT + 50) {
+            canvas.save();
+
+            // Use same visibility logic as hold body
+            var holdTailAlpha = alpha;
+            if (alpha === 0 && isActiveHold) {
+              holdTailAlpha = 0.9; // Make hold tail visible even when note head is hidden
+            }
+
+            canvas.globalAlpha = holdTailAlpha;
+            canvas.fillStyle = wasDropped ? '#cc0000' : '#ff0000';
+            canvas.fillRect(colInfo.x - 16, holdEndY - 6, 32, 12);
+            canvas.strokeStyle = '#ffffff';
+            canvas.lineWidth = 2;
+            canvas.strokeRect(colInfo.x - 16, holdEndY - 6, 32, 12);
+            canvas.restore();
+          }
+        }
+
+        // Draw hold start note (head) - this will disappear when hit due to alpha logic
+        noteSprite.draw(canvas, thisNoteFrameIndex, colInfo.x, y, 1, 1, colInfo.rotation, alpha);
       } else {
         // Draw regular note
         noteSprite.draw(canvas, thisNoteFrameIndex, colInfo.x, y, 1, 1, colInfo.rotation, alpha);
@@ -862,6 +1183,10 @@ function resetGame() {
   tapNoteScores = [0, 0, 0, 0, 0, 0];
   actualPoints = 0;
   mineHits = 0;
+
+  // Reset hold note tracking
+  activeHolds = {};
+  heldKeys = {};
 
   // Update score display
   for (var i = 0; i < tapNoteScores.length; i++) {
