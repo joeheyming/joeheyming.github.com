@@ -1,0 +1,1013 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <base href="./" />
+
+    <script src="/back.js"></script>
+    <script src="../proxy.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="icon"
+      id="site-favicon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕹️</text></svg>"
+    />
+
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+    <title>NES 🕹️</title>
+
+    <!-- Third party libraries -->
+    <script type="text/javascript" src="js/polyfills/arrayPolyfills.js"></script>
+    <script type="text/javascript" src="js/polyfills/typedarrays.js"></script>
+    <script type="text/javascript" src="js/polyfills/setImmediatePolyfill.js"></script>
+    <script type="text/javascript" src="js/utils/typedArrayBoundsCheck.js"></script>
+    <script type="text/javascript" src="js/utils/nativeUI.js"></script>
+
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/canvas-toBlob.js/1.0.0/canvas-toBlob.min.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"
+    ></script>
+    <script type="text/javascript" src="js/utils/nativeZipReader.js"></script>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/fpsmeter/0.3.1/fpsmeter.min.js"
+    ></script>
+
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <!-- stops chrome from caching -->
+
+    <!-- Browser detection for IE <= 10 -->
+    <script language="javascript">
+      var UNSUPPORTED = false;
+    </script>
+    <!--[if lte IE 10]>
+      <script language="javascript">
+        UNSUPPORTED = true;
+      </script>
+    <![endif]-->
+
+    <!-- Third party CSS -->
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="css/main.css" />
+
+    <!-- WebNES core scripts -->
+    <script type="text/javascript" src="js/polyfills/fastSetImmediate.js"></script>
+    <script type="text/javascript" src="js/gui/logWindow.js"></script>
+
+    <script type="text/javascript" src="js/utils/event.js"></script>
+    <script type="text/javascript" src="js/utils/romLoader.js"></script>
+    <script type="text/javascript" src="js/utils/decompress7z.js"></script>
+    <script type="text/javascript" src="js/utils/serialisation.js"></script>
+
+    <script type="text/javascript" src="js/interface/webGlUtils.js"></script>
+    <script type="text/javascript" src="js/interface/canvasRenderSurface.js"></script>
+    <script type="text/javascript" src="js/interface/webGlRenderSurface.js"></script>
+    <script type="text/javascript" src="js/interface/dragDrop.js"></script>
+    <script type="text/javascript" src="js/interface/input.js"></script>
+    <script type="text/javascript" src="js/interface/saveLoadState.js?v=debug999"></script>
+    <script type="text/javascript" src="js/interface/trace.js"></script>
+    <script type="text/javascript" src="js/interface/webAudioRenderer.js"></script>
+    <script type="text/javascript" src="js/interface/mobileOptimizer.js"></script>
+    <script type="text/javascript" src="js/debug/performanceMonitor.js"></script>
+
+    <script type="text/javascript" src="js/gui/canvasParent.js"></script>
+    <script type="text/javascript" src="js/gui/controlBarElements.js"></script>
+    <script type="text/javascript" src="js/gui/controlBar.js"></script>
+    <script type="text/javascript" src="js/gui/loadStateDialog.js"></script>
+    <script type="text/javascript" src="js/gui/gameGenieDialog.js"></script>
+    <script type="text/javascript" src="js/gui/spriteDisplayWindow.js"></script>
+    <script type="text/javascript" src="js/gui/paletteDisplayWindow.js"></script>
+    <script type="text/javascript" src="js/gui/cpuInstructionsWindow.js"></script>
+    <script type="text/javascript" src="js/gui/keyboardRemapper.js"></script>
+    <script type="text/javascript" src="js/gui/initialMenu.js"></script>
+    <script type="text/javascript" src="js/gui/hotkeys.js"></script>
+
+    <script type="text/javascript" src="js/nes/consts.js"></script>
+    <script type="text/javascript" src="js/nes/synchroniser.js"></script>
+    <script type="text/javascript" src="js/nes/controller.js"></script>
+    <script type="text/javascript" src="js/nes/memory.js"></script>
+    <script type="text/javascript" src="js/nes/cpu6502_instructions_fast.js"></script>
+    <script type="text/javascript" src="js/nes/cpu6502_instructions_fast_switch.js"></script>
+    <script type="text/javascript" src="js/nes/cpu6502_instructions_trace.js"></script>
+    <script type="text/javascript" src="js/nes/cpu6502_instructions_formatString.js"></script>
+    <script type="text/javascript" src="js/nes/cpu6502.js"></script>
+
+    <!-- Blargg apu port -->
+    <script type="text/javascript" src="js/nes/apulib/Wave_Writer.js"></script>
+    <script type="text/javascript" src="js/nes/apulib/Blip_Buffer.js"></script>
+    <script type="text/javascript" src="js/nes/apulib/Blip_Synth.js"></script>
+    <script type="text/javascript" src="js/nes/apulib/Nes_Oscs.js"></script>
+    <script type="text/javascript" src="js/nes/apulib/Nes_Apu.js"></script>
+    <script type="text/javascript" src="js/nes/apu_legacy.js"></script>
+
+    <!-- new apu -->
+    <script type="text/javascript" src="js/nes/apu/frameCounter.js"></script>
+    <script type="text/javascript" src="js/nes/apu/outputBuffer.js"></script>
+    <script type="text/javascript" src="js/nes/apu/envelope.js"></script>
+    <script type="text/javascript" src="js/nes/apu/squareWave.js"></script>
+    <script type="text/javascript" src="js/nes/apu.js"></script>
+
+    <script type="text/javascript" src="js/nes/ppu_renderBg.js"></script>
+    <script type="text/javascript" src="js/nes/ppu_renderSprites.js"></script>
+    <script type="text/javascript" src="js/nes/ppu.js"></script>
+
+    <script type="text/javascript" src="js/nes/mappers/basemapper.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper0.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper1.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper2.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper3.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper4.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper5.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper6.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper7.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper8.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper9.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper11.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper13.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper15.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper17.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper34.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper41.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper64.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper65.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper66.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper71.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper78.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper79.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper180.js"></script>
+    <script type="text/javascript" src="js/nes/mappers/mapper206.js"></script>
+
+    <script type="text/javascript" src="js/nes/dbLookup.js"></script>
+    <script type="text/javascript" src="js/nes/gameGenie.js"></script>
+
+    <script type="text/javascript" src="js/nes/cartridge.js"></script>
+    <script type="text/javascript" src="js/nes/renderbuffer.js"></script>
+    <script type="text/javascript" src="js/nes/mainboard.js"></script>
+
+    <script type="text/javascript" src="js/app.js"></script>
+    <script type="text/javascript" src="js/saveStateManager.js"></script>
+    <script type="text/javascript" src="js/internetArchiveRoms.js"></script>
+    <script type="text/javascript" src="js/romBrowser.js"></script>
+  </head>
+
+  <!-- onunload="" prevents firefox caching javascript files -->
+  <body onunload="" id="body">
+    <noscript>
+      <p>You must have javascript enabled in your browser settings in order to visit this site</p>
+    </noscript>
+
+    <!-- Upgrade message for unsupported browsers -->
+    <div id="upgradeMessage" style="display: none; width: 100%; text-align: center">
+      <script src="js/utils/ie6_warning/warning.js"></script>
+      <script>
+        window.onload = function () {
+          if (UNSUPPORTED) {
+            e('js/utils/ie6_warning/');
+          }
+        };
+      </script>
+    </div>
+
+    <div id="content" class="normal">
+      <!-- Top Right Controls -->
+      <div class="fixed top-5 right-5 z-50 flex items-center gap-3">
+        <!-- Alerts Button (hidden by default, shown when there are alerts) -->
+        <button
+          class="controlBarButton w-10 h-10 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 flex items-center justify-center transition-colors duration-300 hidden"
+          id="controlBar_errorDisplay"
+          title="Alerts"
+        >
+          <span class="text-lg">⚠️</span>
+        </button>
+
+        <!-- Hamburger Menu -->
+        <div id="hamburgerMenu">
+          <button
+            id="hamburgerButton"
+            class="w-10 h-10 border rounded-lg flex flex-col justify-center items-center gap-1 transition-all duration-300"
+            style="
+              background: linear-gradient(145deg, #d4d4d8 0%, #a1a1aa 100%);
+              border-color: #000000;
+              box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+            "
+          >
+            <span
+              class="hamburger-line w-5 h-0.5 transition-all duration-300"
+              style="background: #2a2a2a"
+            ></span>
+            <span
+              class="hamburger-line w-5 h-0.5 transition-all duration-300"
+              style="background: #2a2a2a"
+            ></span>
+            <span
+              class="hamburger-line w-5 h-0.5 transition-all duration-300"
+              style="background: #2a2a2a"
+            ></span>
+          </button>
+          <div
+            id="hamburgerDropdown"
+            class="absolute top-12 right-0 border rounded-lg shadow-lg min-w-64 z-40 hidden"
+            style="
+              background: linear-gradient(145deg, #d4d4d8 0%, #a1a1aa 100%);
+              border-color: #000000;
+              box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+            "
+          >
+            <div class="p-3">
+              <div class="space-y-2">
+                <button
+                  class="controlBarButton w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-100 rounded-md transition-colors"
+                  id="controlBar_loadRomButton"
+                >
+                  <span class="text-lg">📁</span>
+                  <span class="text-sm font-medium">Open ROM</span>
+                </button>
+                <button
+                  class="controlBarButton w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-100 rounded-md transition-colors"
+                  id="controlBar_browseRomsButton"
+                >
+                  <span class="text-lg">🎮</span>
+                  <span class="text-sm font-medium">Browse ROMs</span>
+                </button>
+                <button
+                  class="controlBarButton w-full flex items-center justify-between px-3 py-2 text-left hover:bg-gray-100 rounded-md transition-colors"
+                  id="controlBar_resetButton"
+                >
+                  <div class="flex items-center gap-3">
+                    <span class="text-lg">🔄</span>
+                    <span class="text-sm font-medium">Reset</span>
+                  </div>
+                  <kbd
+                    class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-mono hidden md:inline"
+                  >
+                    R
+                  </kbd>
+                </button>
+                <button
+                  class="controlBarButton w-full flex items-center justify-between px-3 py-2 text-left hover:bg-gray-100 rounded-md transition-colors"
+                  id="controlBar_playButton"
+                >
+                  <div class="flex items-center gap-3">
+                    <span class="text-lg">⏸️</span>
+                    <span class="text-sm font-medium">Pause</span>
+                  </div>
+                  <kbd
+                    class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-mono hidden md:inline"
+                  >
+                    Space
+                  </kbd>
+                </button>
+                <div class="border-t border-gray-200 my-2"></div>
+                <button
+                  class="controlBarButton w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-100 rounded-md transition-colors"
+                  id="controlBar_screenshotButton"
+                >
+                  <span class="text-lg">📷</span>
+                  <span class="text-sm font-medium">Screenshot</span>
+                </button>
+                <div class="border-t border-gray-200 my-2"></div>
+                <button
+                  class="controlBarButton w-full flex items-center justify-between px-3 py-2 text-left hover:bg-gray-100 rounded-md transition-colors"
+                  id="controlBar_quickSaveButton"
+                >
+                  <div class="flex items-center gap-3">
+                    <span class="text-lg">💾</span>
+                    <span class="text-sm font-medium">Quick Save</span>
+                  </div>
+                  <kbd
+                    class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-mono hidden md:inline"
+                  >
+                    F5
+                  </kbd>
+                </button>
+                <button
+                  class="controlBarButton w-full flex items-center justify-between px-3 py-2 text-left hover:bg-gray-100 rounded-md transition-colors"
+                  id="controlBar_quickLoadButton"
+                >
+                  <div class="flex items-center gap-3">
+                    <span class="text-lg">📂</span>
+                    <span class="text-sm font-medium">Quick Load</span>
+                  </div>
+                  <kbd
+                    class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-mono hidden md:inline"
+                  >
+                    F9
+                  </kbd>
+                </button>
+                <div class="border-t border-gray-200 my-2"></div>
+                <button
+                  class="controlBarButton w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-100 rounded-md transition-colors hidden md:flex"
+                  id="controlBar_keyboardRemap"
+                >
+                  <span class="text-lg">⌨️</span>
+                  <span class="text-sm font-medium">Remap Controls</span>
+                </button>
+                <button
+                  class="controlBarButton w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-100 rounded-md transition-colors"
+                  id="controlBar_gameGenieButton"
+                >
+                  <span class="text-lg">⭐</span>
+                  <span class="text-sm font-medium">Game Genie</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Initial ROM Selection Menu -->
+      <div
+        id="initialMenu"
+        class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50"
+      >
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4 text-center shadow-2xl">
+          <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">🎮 NES Emulator</h1>
+            <p class="text-gray-600">Choose a ROM to get started</p>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Browse ROMs Button -->
+            <button
+              id="initialBrowseRomsButton"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+            >
+              <span class="text-xl">🎮</span>
+              <span>Browse ROM Collection</span>
+            </button>
+
+            <!-- Load Last ROM Button (hidden by default) -->
+            <button
+              id="initialLastRomButton"
+              class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 hidden"
+            >
+              <span class="text-xl">⚡</span>
+              <span>
+                Continue:
+                <span id="lastRomName">Loading...</span>
+              </span>
+            </button>
+
+            <!-- Load Local ROM Button -->
+            <button
+              id="initialLoadRomButton"
+              class="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+            >
+              <span class="text-xl">📁</span>
+              <span>Load Local ROM File</span>
+            </button>
+          </div>
+
+          <div class="mt-6 text-sm text-gray-500">
+            <p class="hidden md:block">Or drag a ROM file anywhere on the screen</p>
+            <p class="md:hidden">On-screen controls will appear after loading a ROM</p>
+          </div>
+
+          <!-- Controls Info (collapsed by default, hidden on mobile) -->
+          <details class="mt-6 text-left hidden md:block">
+            <summary class="cursor-pointer text-sm text-gray-600 hover:text-gray-800">
+              Controls & Hotkeys
+            </summary>
+            <div class="mt-2 text-sm text-gray-600 bg-gray-50 p-3 rounded">
+              <div class="mb-3">
+                <h4 class="font-semibold text-gray-700 mb-1">Game Controls</h4>
+                <ul class="space-y-1">
+                  <li>
+                    <kbd class="bg-gray-200 px-1 rounded">Z</kbd>
+                    - A button
+                  </li>
+                  <li>
+                    <kbd class="bg-gray-200 px-1 rounded">X</kbd>
+                    - B button
+                  </li>
+                  <li>
+                    <kbd class="bg-gray-200 px-1 rounded">C</kbd>
+                    - Select
+                  </li>
+                  <li>
+                    <kbd class="bg-gray-200 px-1 rounded">V</kbd>
+                    - Start
+                  </li>
+                  <li>
+                    <kbd class="bg-gray-200 px-1 rounded">Arrow keys</kbd>
+                    - D-Pad
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h4 class="font-semibold text-gray-700 mb-1">Hotkeys</h4>
+                <ul class="space-y-1">
+                  <li>
+                    <kbd class="bg-blue-200 px-1 rounded">F5</kbd>
+                    - Quick Save
+                  </li>
+                  <li>
+                    <kbd class="bg-green-200 px-1 rounded">F9</kbd>
+                    - Quick Load
+                  </li>
+                  <li>
+                    <kbd class="bg-yellow-200 px-1 rounded">Space</kbd>
+                    - Pause/Resume
+                  </li>
+                  <li>
+                    <kbd class="bg-red-200 px-1 rounded">R</kbd>
+                    - Reset Game
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- Desktop Info Panel (hidden on mobile, styled for desktop) -->
+      <div id="infoPanel" class="infoPanel">
+        <div class="text-center mb-6">
+          <h1 class="text-4xl font-bold text-gray-800 mb-2">🎮 NES</h1>
+          <p class="text-gray-600">Nintendo Entertainment System Emulator</p>
+        </div>
+
+        <div class="bg-gray-50 rounded-lg p-4 mb-4">
+          <h3 class="font-semibold text-gray-700 mb-2">Getting Started</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Drag a ROM file (can be zipped) onto the screen to load a game.
+          </p>
+        </div>
+
+        <div class="bg-blue-50 rounded-lg p-4">
+          <h3 class="font-semibold text-blue-700 mb-2">Controls</h3>
+          <div class="space-y-1 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">A Button:</span>
+              <kbd class="bg-blue-200 text-blue-800 px-2 py-1 rounded text-xs">Z</kbd>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">B Button:</span>
+              <kbd class="bg-blue-200 text-blue-800 px-2 py-1 rounded text-xs">X</kbd>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Select:</span>
+              <kbd class="bg-blue-200 text-blue-800 px-2 py-1 rounded text-xs">C</kbd>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Start:</span>
+              <kbd class="bg-blue-200 text-blue-800 px-2 py-1 rounded text-xs">V</kbd>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">D-Pad:</span>
+              <kbd class="bg-blue-200 text-blue-800 px-2 py-1 rounded text-xs">Arrow Keys</kbd>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Snackbar for notifications -->
+      <div
+        id="snackbar"
+        class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-all duration-300 pointer-events-none"
+      >
+        <span id="snackbarMessage"></span>
+      </div>
+
+      <!-- Hidden ROM browser element for functionality -->
+      <div style="visibility: hidden; position: absolute; top: -9999px">
+        <rom-browser></rom-browser>
+      </div>
+      <!-- Mobile Title (shown only on mobile) -->
+      <div class="md:hidden text-center py-4">
+        <h1 class="text-3xl font-bold text-gray-800">🎮 NES</h1>
+        <p class="text-sm text-gray-600">Rotate device for best experience</p>
+      </div>
+
+      <div id="canvasWrapper" class="wrapper"></div>
+
+      <!-- Mobile On-Screen Controller -->
+      <div id="mobileController" class="md:hidden fixed bottom-0 left-0 right-0">
+        <div class="max-w-screen-lg mx-auto">
+          <!-- Main controls row -->
+          <div class="flex justify-between items-center mb-4">
+            <!-- D-Pad -->
+            <div class="relative">
+              <!-- D-Pad Black Frame -->
+              <div
+                class="bg-black rounded-lg p-2 shadow-lg flex justify-center items-center"
+                style="width: 200px; height: 200px"
+              >
+                <div class="w-48 h-48 relative">
+                  <!-- D-Pad Background -->
+                  <div
+                    class="absolute inset-0 rounded-lg"
+                    style="
+                      background: linear-gradient(145deg, #2a2a2a 0%, #000000 100%);
+                      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+                    "
+                  >
+                    <!-- Horizontal bar -->
+                    <div
+                      class="absolute top-1/2 left-0 right-0 h-16 transform -translate-y-1/2"
+                      style="background: linear-gradient(145deg, #3a3a3a 0%, #1a1a1a 100%)"
+                    ></div>
+                    <!-- Vertical bar -->
+                    <div
+                      class="absolute left-1/2 top-0 bottom-0 w-16 transform -translate-x-1/2"
+                      style="background: linear-gradient(145deg, #3a3a3a 0%, #1a1a1a 100%)"
+                    ></div>
+                  </div>
+
+                  <!-- D-Pad Buttons -->
+                  <button
+                    id="dpad-up"
+                    class="absolute top-0 left-1/2 w-16 h-16 transform -translate-x-1/2 rounded-t-lg transition-all touch-manipulation"
+                    style="
+                      background: linear-gradient(145deg, #d4d4d8 0%, #a1a1aa 100%);
+                      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+                    "
+                    data-key="UP"
+                  >
+                    <span class="text-white text-base font-bold">▲</span>
+                  </button>
+                  <button
+                    id="dpad-down"
+                    class="absolute bottom-0 left-1/2 w-16 h-16 transform -translate-x-1/2 rounded-b-lg transition-all touch-manipulation"
+                    style="
+                      background: linear-gradient(145deg, #d4d4d8 0%, #a1a1aa 100%);
+                      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+                    "
+                    data-key="DOWN"
+                  >
+                    <span class="text-white text-base font-bold">▼</span>
+                  </button>
+                  <button
+                    id="dpad-left"
+                    class="absolute left-0 top-1/2 w-16 h-16 transform -translate-y-1/2 rounded-l-lg transition-all touch-manipulation"
+                    style="
+                      background: linear-gradient(145deg, #d4d4d8 0%, #a1a1aa 100%);
+                      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+                    "
+                    data-key="LEFT"
+                  >
+                    <span class="text-white text-base font-bold">◀</span>
+                  </button>
+                  <button
+                    id="dpad-right"
+                    class="absolute right-0 top-1/2 w-16 h-16 transform -translate-y-1/2 rounded-r-lg transition-all touch-manipulation"
+                    style="
+                      background: linear-gradient(145deg, #d4d4d8 0%, #a1a1aa 100%);
+                      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+                    "
+                    data-key="RIGHT"
+                  >
+                    <span class="text-white text-base font-bold">▶</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="relative">
+              <!-- Action Buttons Black Frame -->
+              <div
+                class="bg-black rounded-lg p-2 shadow-lg flex justify-center items-center"
+                style="width: 200px; height: 200px"
+              >
+                <div class="relative w-50 h-50">
+                  <!-- B Button (lower left) -->
+                  <button
+                    id="b-btn"
+                    class="absolute w-24 h-24 text-white text-xl font-bold rounded-full shadow-lg transition-all touch-manipulation"
+                    style="
+                      background: linear-gradient(145deg, #dc2626 0%, #b91c1c 100%);
+                      box-shadow:
+                        0 4px 8px rgba(0, 0, 0, 0.4),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.2);
+                      bottom: 0;
+                      left: 0;
+                    "
+                    data-key="B"
+                  >
+                    B
+                  </button>
+                  <!-- A Button (upper right) -->
+                  <button
+                    id="a-btn"
+                    class="absolute w-24 h-24 text-white text-xl font-bold rounded-full shadow-lg transition-all touch-manipulation"
+                    style="
+                      background: linear-gradient(145deg, #dc2626 0%, #b91c1c 100%);
+                      box-shadow:
+                        0 4px 8px rgba(0, 0, 0, 0.4),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.2);
+                      top: 0;
+                      right: 0;
+                    "
+                    data-key="A"
+                  >
+                    A
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Controls Row -->
+          <div class="flex justify-center gap-4">
+            <button
+              id="select-btn"
+              class="w-16 h-8 text-white text-xs font-bold rounded transition-all touch-manipulation"
+              style="
+                background: linear-gradient(145deg, #2a2a2a 0%, #000000 100%);
+                box-shadow:
+                  0 2px 4px rgba(0, 0, 0, 0.4),
+                  inset 0 1px 1px rgba(255, 255, 255, 0.1);
+              "
+              data-key="SELECT"
+            >
+              SELECT
+            </button>
+            <button
+              id="start-btn"
+              class="w-16 h-8 text-white text-xs font-bold rounded transition-all touch-manipulation"
+              style="
+                background: linear-gradient(145deg, #2a2a2a 0%, #000000 100%);
+                box-shadow:
+                  0 2px 4px rgba(0, 0, 0, 0.4),
+                  inset 0 1px 1px rgba(255, 255, 255, 0.1);
+              "
+              data-key="START"
+            >
+              START
+            </button>
+          </div>
+        </div>
+      </div>
+      <div id="controlBar_alertMessage"></div>
+      <div id="loadStateDialog">
+        <div id="loadStateDialog_contents"></div>
+      </div>
+      <div id="gameGenieDialog" class="gameGenieDialog">
+        <div id="gameGenieDialog_contents"></div>
+      </div>
+      <div id="keyboardRemapperDialog" class="gameGenieDialog">
+        <div id="keyboardRemapperDialog_contents">
+          <map name="controllermap1">
+            <area
+              shape="rect"
+              coords="50, 40, 74, 60"
+              alt="UP"
+              onclick="Gui.keyboardRemapperDialog_onsetkeyclick( 0, 'UP' );"
+              data-maphilight='{"strokeColor":"ff2a00","strokeWidth":1,"fillColor":"ff0000","fillOpacity":0.4}'
+            />
+            <area
+              shape="rect"
+              coords="50, 77, 74, 97"
+              alt="DOWN"
+              onclick="Gui.keyboardRemapperDialog_onsetkeyclick( 0, 'DOWN' );"
+              data-maphilight='{"strokeColor":"ff2a00","strokeWidth":1,"fillColor":"ff0000","fillOpacity":0.4}'
+            />
+            <area
+              shape="rect"
+              coords="34, 56, 54, 80"
+              alt="LEFT"
+              onclick="Gui.keyboardRemapperDialog_onsetkeyclick( 0, 'LEFT' );"
+              data-maphilight='{"strokeColor":"ff2a00","strokeWidth":1,"fillColor":"ff0000","fillOpacity":0.4}'
+            />
+            <area
+              shape="rect"
+              coords="72, 56, 91, 80"
+              alt="RIGHT"
+              onclick="Gui.keyboardRemapperDialog_onsetkeyclick( 0, 'RIGHT' );"
+              data-maphilight='{"strokeColor":"ff2a00","strokeWidth":1,"fillColor":"ff0000","fillOpacity":0.4}'
+            />
+            <area
+              shape="rect"
+              coords="110, 72, 137, 89"
+              alt="SELECT"
+              onclick="Gui.keyboardRemapperDialog_onsetkeyclick( 0, 'SELECT' );"
+              data-maphilight='{"strokeColor":"ff2a00","strokeWidth":1,"fillColor":"ff0000","fillOpacity":0.4}'
+            />
+            <area
+              shape="rect"
+              coords="137, 72, 165, 89"
+              alt="START"
+              onclick="Gui.keyboardRemapperDialog_onsetkeyclick( 0, 'START' );"
+              data-maphilight='{"strokeColor":"ff2a00","strokeWidth":1,"fillColor":"ff0000","fillOpacity":0.4}'
+            />
+            <area
+              shape="rect"
+              coords="182, 66, 210, 94"
+              alt="B"
+              onclick="Gui.keyboardRemapperDialog_onsetkeyclick( 0, 'B' );"
+              data-maphilight='{"strokeColor":"ff2a00","strokeWidth":1,"fillColor":"ff0000","fillOpacity":0.4}'
+            />
+            <area
+              shape="rect"
+              coords="219, 66, 248, 94"
+              alt="A"
+              onclick="Gui.keyboardRemapperDialog_onsetkeyclick( 0, 'A' );"
+              data-maphilight='{"strokeColor":"ff2a00","strokeWidth":1,"fillColor":"ff0000","fillOpacity":0.4}'
+            />
+          </map>
+          <map name="controllermap2">
+            <area
+              shape="rect"
+              coords="50, 40, 74, 60"
+              alt="UP"
+              onclick="Gui.keyboardRemapperDialog_onsetkeyclick( 1, 'UP' );"
+              data-maphilight='{"strokeColor":"ff2a00","strokeWidth":1,"fillColor":"ff0000","fillOpacity":0.4}'
+            />
+            <area
+              shape="rect"
+              coords="50, 77, 74, 97"
+              alt="DOWN"
+              onclick="Gui.keyboardRemapperDialog_onsetkeyclick( 1, 'DOWN' );"
+              data-maphilight='{"strokeColor":"ff2a00","strokeWidth":1,"fillColor":"ff0000","fillOpacity":0.4}'
+            />
+            <area
+              shape="rect"
+              coords="34, 56, 54, 80"
+              alt="LEFT"
+              onclick="Gui.keyboardRemapperDialog_onsetkeyclick( 1, 'LEFT' );"
+              data-maphilight='{"strokeColor":"ff2a00","strokeWidth":1,"fillColor":"ff0000","fillOpacity":0.4}'
+            />
+            <area
+              shape="rect"
+              coords="72, 56, 91, 80"
+              alt="RIGHT"
+              onclick="Gui.keyboardRemapperDialog_onsetkeyclick( 1, 'RIGHT' );"
+              data-maphilight='{"strokeColor":"ff2a00","strokeWidth":1,"fillColor":"ff0000","fillOpacity":0.4}'
+            />
+            <area
+              shape="rect"
+              coords="110, 72, 137, 89"
+              alt="SELECT"
+              onclick="Gui.keyboardRemapperDialog_onsetkeyclick( 1, 'SELECT' );"
+              data-maphilight='{"strokeColor":"ff2a00","strokeWidth":1,"fillColor":"ff0000","fillOpacity":0.4}'
+            />
+            <area
+              shape="rect"
+              coords="137, 72, 165, 89"
+              alt="START"
+              onclick="Gui.keyboardRemapperDialog_onsetkeyclick( 1, 'START' );"
+              data-maphilight='{"strokeColor":"ff2a00","strokeWidth":1,"fillColor":"ff0000","fillOpacity":0.4}'
+            />
+            <area
+              shape="rect"
+              coords="182, 66, 210, 94"
+              alt="B"
+              onclick="Gui.keyboardRemapperDialog_onsetkeyclick( 1, 'B' );"
+              data-maphilight='{"strokeColor":"ff2a00","strokeWidth":1,"fillColor":"ff0000","fillOpacity":0.4}'
+            />
+            <area
+              shape="rect"
+              coords="219, 66, 248, 94"
+              alt="A"
+              onclick="Gui.keyboardRemapperDialog_onsetkeyclick( 1, 'A' );"
+              data-maphilight='{"strokeColor":"ff2a00","strokeWidth":1,"fillColor":"ff0000","fillOpacity":0.4}'
+            />
+          </map>
+          <div>
+            <h1>Player 1</h1>
+            <img
+              class="keyboardMap"
+              src="images/nescontroller.jpg"
+              alt=""
+              usemap="#controllermap1"
+            />
+          </div>
+          <div>
+            <h1>Player 2</h1>
+            <img
+              class="keyboardMap"
+              src="images/nescontroller.jpg"
+              alt=""
+              usemap="#controllermap2"
+            />
+          </div>
+        </div>
+        <div id="keyboardRemapperSetKeyDialog">
+          <div id="keyboardRemapperSetKeyDialog_existingKeysContents"></div>
+          <div id="keyboardRemapperSetKeyDialog_contents"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Browser compatibility check -->
+    <script language="javascript">
+      if (UNSUPPORTED) {
+        document.getElementById('content').style.display = 'none';
+        document.getElementById('upgradeMessage').style.display = 'block';
+      }
+    </script>
+
+    <!-- Debug utilities -->
+    <script type="text/javascript" src="js/debug/memoryMonitor.js"></script>
+
+    <!-- Initialize the application after DOM is loaded -->
+    <script type="text/javascript" src="js/browserStart.js"></script>
+
+    <!-- Mobile Controller Script -->
+    <script>
+      // Mobile controller functionality
+      (function () {
+        'use strict';
+
+        // Check if we're on mobile
+        const isMobile =
+          /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+            navigator.userAgent
+          ) || window.innerWidth <= 768;
+
+        if (isMobile) {
+          // Show mobile controller
+          const mobileController = document.getElementById('mobileController');
+          if (mobileController) {
+            mobileController.style.display = 'block';
+          }
+
+          // Function to ensure mobile controller stays visible (but only when appropriate)
+          window.ensureMobileControllerVisible = function () {
+            const controller = document.getElementById('mobileController');
+
+            // Only show controller if we're on mobile AND no blocking UI is visible
+            if (controller && isMobile) {
+              // Check if initial menu is visible
+              const initialMenuVisible =
+                window.Gui && window.Gui.initialMenu && window.Gui.initialMenu.isVisible();
+
+              // Check if ROM browser modal is visible
+              const romBrowser = document.querySelector('rom-browser');
+              const romBrowserVisible =
+                romBrowser &&
+                romBrowser.shadowRoot &&
+                romBrowser.shadowRoot.querySelector('.modal.show');
+
+              // Check if hamburger menu is open
+              const hamburgerDropdown = document.getElementById('hamburgerDropdown');
+              const hamburgerMenuVisible =
+                hamburgerDropdown && !hamburgerDropdown.classList.contains('hidden');
+
+              if (!initialMenuVisible && !romBrowserVisible && !hamburgerMenuVisible) {
+                controller.style.display = 'block';
+              }
+            }
+          };
+
+          // Call this function periodically to ensure controller stays visible
+          setInterval(window.ensureMobileControllerVisible, 1000);
+
+          // Add landscape orientation message
+          function checkOrientation() {
+            const orientationMsg = document.querySelector('.md\\:hidden .text-sm');
+            if (orientationMsg) {
+              if (window.innerHeight > window.innerWidth) {
+                orientationMsg.textContent = 'Rotate device horizontally for best experience';
+                orientationMsg.className = 'text-sm text-orange-600 font-medium';
+              } else {
+                orientationMsg.textContent = 'Perfect! Enjoy your game';
+                orientationMsg.className = 'text-sm text-green-600';
+              }
+            }
+          }
+
+          window.addEventListener('orientationchange', checkOrientation);
+          window.addEventListener('resize', checkOrientation);
+          checkOrientation();
+        }
+
+        // Mobile touch controls
+        const mobileButtons = document.querySelectorAll('#mobileController button');
+
+        // Key mapping for NES controls
+        const keyMap = {
+          UP: 'ArrowUp',
+          DOWN: 'ArrowDown',
+          LEFT: 'ArrowLeft',
+          RIGHT: 'ArrowRight',
+          A: 'KeyZ',
+          B: 'KeyX',
+          SELECT: 'KeyC',
+          START: 'KeyV'
+        };
+
+        // Haptic feedback function
+        function triggerHapticFeedback() {
+          if (navigator.vibrate) {
+            // Light vibration for button press (30ms)
+            navigator.vibrate(30);
+          }
+        }
+
+        // Simulate keyboard events for mobile buttons
+        function simulateKeyEvent(type, key) {
+          const event = new KeyboardEvent(type, {
+            key: key,
+            code: keyMap[key] || key,
+            keyCode: getKeyCode(key),
+            which: getKeyCode(key),
+            bubbles: true,
+            cancelable: true
+          });
+          document.dispatchEvent(event);
+        }
+
+        function getKeyCode(key) {
+          const codes = {
+            UP: 38,
+            DOWN: 40,
+            LEFT: 37,
+            RIGHT: 39,
+            A: 90,
+            B: 88,
+            SELECT: 67,
+            START: 86
+          };
+          return codes[key] || 0;
+        }
+
+        // Add touch event listeners
+        mobileButtons.forEach((button) => {
+          const key = button.getAttribute('data-key');
+          if (key) {
+            // Prevent default touch behavior
+            button.addEventListener(
+              'touchstart',
+              function (e) {
+                e.preventDefault();
+                button.classList.add('active');
+                triggerHapticFeedback();
+                simulateKeyEvent('keydown', key);
+              },
+              { passive: false }
+            );
+
+            button.addEventListener(
+              'touchend',
+              function (e) {
+                e.preventDefault();
+                button.classList.remove('active');
+                simulateKeyEvent('keyup', key);
+              },
+              { passive: false }
+            );
+
+            button.addEventListener(
+              'touchcancel',
+              function (e) {
+                e.preventDefault();
+                button.classList.remove('active');
+                simulateKeyEvent('keyup', key);
+              },
+              { passive: false }
+            );
+
+            // Also handle mouse events for testing on desktop
+            button.addEventListener('mousedown', function (e) {
+              e.preventDefault();
+              button.classList.add('active');
+              triggerHapticFeedback();
+              simulateKeyEvent('keydown', key);
+            });
+
+            button.addEventListener('mouseup', function (e) {
+              e.preventDefault();
+              button.classList.remove('active');
+              simulateKeyEvent('keyup', key);
+            });
+
+            button.addEventListener('mouseleave', function (e) {
+              button.classList.remove('active');
+              simulateKeyEvent('keyup', key);
+            });
+          }
+        });
+
+        // Prevent scrolling when touching the controller area
+        const controller = document.getElementById('mobileController');
+        if (controller) {
+          controller.addEventListener(
+            'touchmove',
+            function (e) {
+              e.preventDefault();
+            },
+            { passive: false }
+          );
+        }
+      })();
+    </script>
+  </body>
+</html>

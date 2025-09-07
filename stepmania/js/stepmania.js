@@ -540,7 +540,6 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       hit = true;
-      //$('#note' + i).css({ alpha: 0 });
     });
 
     if (mineHit) {
