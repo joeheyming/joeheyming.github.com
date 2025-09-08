@@ -118,8 +118,52 @@
         />
       </div>
     </div>
+    <script src="/proxy.js"></script>
+
+    <!-- Core OS Components -->
+    <script src="core/memory-manager.js"></script>
+    <script src="core/security-manager.js"></script>
+    <script src="core/filesystem-manager.js"></script>
+    <script src="core/ipc-manager.js"></script>
+    <script src="core/process-manager.js"></script>
+    <script src="core/device-manager.js"></script>
+    <script src="core/scheduler-manager.js"></script>
+    <script src="core/kernel.js"></script>
+    <script src="core/heyming-os.js"></script>
+
+    <!-- Terminal Components -->
     <script src="filesystem-db.js"></script>
     <script src="commands.js"></script>
     <script src="terminal.js"></script>
+
+    <!-- Initialize OS -->
+    <script>
+      // Initialize Heyming OS when page loads
+      window.addEventListener('DOMContentLoaded', async () => {
+        try {
+          // Create and initialize the OS
+          window.heymingOS = new HeymingOS();
+          await window.heymingOS.initialize();
+
+          console.log('🎉 Heyming OS is ready!');
+        } catch (error) {
+          console.error('❌ Failed to initialize Heyming OS:', error);
+          console.error('💥 Cannot run without OS layer. Please check console for errors.');
+
+          // Show error message in the terminal area
+          const terminalOutput = document.getElementById('terminal-output');
+          if (terminalOutput) {
+            terminalOutput.innerHTML = `
+              <div style="color: red; font-weight: bold;">
+                ❌ System Initialization Failed<br/>
+                💥 Cannot start terminal without OS layer<br/>
+                🔧 Check browser console for details<br/>
+                🔄 Please refresh the page to retry
+              </div>
+            `;
+          }
+        }
+      });
+    </script>
   </body>
 </html>

@@ -364,6 +364,7 @@ Uptime: ${Math.floor(Math.random() * 10)} days, ${Math.floor(Math.random() * 24)
       handler: async (terminal, args) => {
         const host = args[0] || 'google.com';
         const count = parseInt(args.find((arg) => arg.startsWith('-c'))?.split('c')[1]) || 4;
+        const useProxy = !args.includes('--no-proxy');
 
         // Construct URL - try HTTPS first, fallback to HTTP
         let url = host;
@@ -371,7 +372,7 @@ Uptime: ${Math.floor(Math.random() * 10)} days, ${Math.floor(Math.random() * 24)
           url = `https://${host}`;
         }
 
-        terminal.addOutput(`PING ${host} - attempting HTTP fetch...`);
+        terminal.addOutput(`PING ${host} - attempting HTTP fetch${useProxy ? ' via proxy' : ' (direct)'}...`);
 
         let successCount = 0;
         let totalTime = 0;
@@ -380,30 +381,79 @@ Uptime: ${Math.floor(Math.random() * 10)} days, ${Math.floor(Math.random() * 24)
         for (let i = 1; i <= count; i++) {
           try {
             const startTime = performance.now();
+            let response;
+            let responseTime;
 
-            // Attempt fetch with timeout
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            // Try proxy service first if available and enabled
+            if (useProxy && window.proxyService) {
+              try {
+                // Use proxy service for HEAD request simulation
+                await window.proxyService.fetchWithProxy(url, {
+                  timeout: 5000,
+                  maxRetries: 0,
+                  headers: { 'Accept': 'text/html,*/*' }
+                });
+                
+                const endTime = performance.now();
+                responseTime = (endTime - startTime).toFixed(1);
+                
+                successCount++;
+                totalTime += parseFloat(responseTime);
+                times.push(parseFloat(responseTime));
 
-            const response = await fetch(url, {
-              method: 'HEAD', // Use HEAD to minimize data transfer
-              signal: controller.signal,
-              mode: 'no-cors' // Allow cross-origin requests
-            });
+                terminal.addOutput(
+                  `Response from ${host}: seq=${i} time=${responseTime} ms (via proxy)`
+                );
+              } catch (proxyError) {
+                // Fall back to direct fetch if proxy fails
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-            clearTimeout(timeoutId);
-            const endTime = performance.now();
-            const responseTime = (endTime - startTime).toFixed(1);
+                response = await fetch(url, {
+                  method: 'HEAD',
+                  signal: controller.signal,
+                  mode: 'no-cors'
+                });
 
-            successCount++;
-            totalTime += parseFloat(responseTime);
-            times.push(parseFloat(responseTime));
+                clearTimeout(timeoutId);
+                const endTime = performance.now();
+                responseTime = (endTime - startTime).toFixed(1);
 
-            terminal.addOutput(
-              `Response from ${host}: seq=${i} time=${responseTime} ms (status: ${
-                response.status || 'no-cors'
-              })`
-            );
+                successCount++;
+                totalTime += parseFloat(responseTime);
+                times.push(parseFloat(responseTime));
+
+                terminal.addOutput(
+                  `Response from ${host}: seq=${i} time=${responseTime} ms (proxy failed, direct: ${
+                    response.status || 'no-cors'
+                  })`
+                );
+              }
+            } else {
+              // Direct fetch
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+              response = await fetch(url, {
+                method: 'HEAD',
+                signal: controller.signal,
+                mode: 'no-cors'
+              });
+
+              clearTimeout(timeoutId);
+              const endTime = performance.now();
+              responseTime = (endTime - startTime).toFixed(1);
+
+              successCount++;
+              totalTime += parseFloat(responseTime);
+              times.push(parseFloat(responseTime));
+
+              terminal.addOutput(
+                `Response from ${host}: seq=${i} time=${responseTime} ms (status: ${
+                  response.status || 'no-cors'
+                })`
+              );
+            }
           } catch (error) {
             const endTime = performance.now();
             const responseTime = (endTime - startTime).toFixed(1);
@@ -416,27 +466,50 @@ Uptime: ${Math.floor(Math.random() * 10)} days, ${Math.floor(Math.random() * 24)
                 const httpUrl = url.replace('https://', 'http://');
                 try {
                   const startTime2 = performance.now();
-                  const controller2 = new AbortController();
-                  const timeoutId2 = setTimeout(() => controller2.abort(), 5000);
+                  
+                  if (useProxy && window.proxyService) {
+                    // Try proxy with HTTP URL
+                    await window.proxyService.fetchWithProxy(httpUrl, {
+                      timeout: 5000,
+                      maxRetries: 0,
+                      headers: { 'Accept': 'text/html,*/*' }
+                    });
+                    
+                    const endTime2 = performance.now();
+                    const responseTime2 = (endTime2 - startTime2).toFixed(1);
 
-                  const response2 = await fetch(httpUrl, {
-                    method: 'HEAD',
-                    signal: controller2.signal,
-                    mode: 'no-cors'
-                  });
+                    successCount++;
+                    totalTime += parseFloat(responseTime2);
+                    times.push(parseFloat(responseTime2));
 
-                  clearTimeout(timeoutId2);
-                  const endTime2 = performance.now();
-                  const responseTime2 = (endTime2 - startTime2).toFixed(1);
+                    terminal.addOutput(
+                      `Response from ${host}: seq=${i} time=${responseTime2} ms (HTTP via proxy)`
+                    );
+                    url = httpUrl; // Use HTTP for remaining requests
+                  } else {
+                    // Direct HTTP fallback
+                    const controller2 = new AbortController();
+                    const timeoutId2 = setTimeout(() => controller2.abort(), 5000);
 
-                  successCount++;
-                  totalTime += parseFloat(responseTime2);
-                  times.push(parseFloat(responseTime2));
+                    const response2 = await fetch(httpUrl, {
+                      method: 'HEAD',
+                      signal: controller2.signal,
+                      mode: 'no-cors'
+                    });
 
-                  terminal.addOutput(
-                    `Response from ${host}: seq=${i} time=${responseTime2} ms (HTTP fallback)`
-                  );
-                  url = httpUrl; // Use HTTP for remaining requests
+                    clearTimeout(timeoutId2);
+                    const endTime2 = performance.now();
+                    const responseTime2 = (endTime2 - startTime2).toFixed(1);
+
+                    successCount++;
+                    totalTime += parseFloat(responseTime2);
+                    times.push(parseFloat(responseTime2));
+
+                    terminal.addOutput(
+                      `Response from ${host}: seq=${i} time=${responseTime2} ms (HTTP fallback)`
+                    );
+                    url = httpUrl; // Use HTTP for remaining requests
+                  }
                 } catch (httpError) {
                   terminal.addOutput(`Request failed for ${host}: seq=${i} (${error.message})`);
                 }
@@ -468,7 +541,7 @@ Uptime: ${Math.floor(Math.random() * 10)} days, ${Math.floor(Math.random() * 24)
 
         return '';
       },
-      description: 'ping a host using HTTP fetch (ping [-c count] host)'
+      description: 'ping a host using HTTP fetch (ping [-c count] [--no-proxy] host)'
     },
 
     curl: {
@@ -488,7 +561,7 @@ Uptime: ${Math.floor(Math.random() * 10)} days, ${Math.floor(Math.random() * 24)
         let maxRedirects = 5;
         let timeout = 30000;
         let verbose = false;
-        let useProxy = false;
+        let useProxy = true; // Default to using proxy
 
         for (let i = 0; i < args.length; i++) {
           const arg = args[i];
@@ -508,13 +581,14 @@ Options:
   -v, --verbose              Make the operation more talkative
   --max-redirs <num>         Maximum number of redirects (default: 5)
   --connect-timeout <sec>    Maximum time for connection (default: 30)
-  --proxy                    Use CORS proxy to bypass restrictions
+  --no-proxy                 Disable CORS proxy (proxy enabled by default)
   -h, --help                 This help text
 
 Examples:
-  curl https://api.github.com/users/octocat
+  curl https://api.github.com/users/octocat                    # Uses proxy by default
+  curl --no-proxy https://example.com                          # Direct connection
   curl -X POST -H "Content-Type: application/json" -d '{"key":"value"}' https://httpbin.org/post
-  curl -i https://example.com`;
+  curl -i -v https://httpbin.org/json                          # Include headers with verbose output`;
           }
 
           if (arg === '-X' || arg === '--request') {
@@ -540,14 +614,14 @@ Examples:
             maxRedirects = parseInt(args[++i]) || 5;
           } else if (arg === '--connect-timeout') {
             timeout = (parseInt(args[++i]) || 30) * 1000;
-          } else if (arg === '--proxy') {
-            useProxy = true;
+          } else if (arg === '--no-proxy') {
+            useProxy = false;
           } else if (!arg.startsWith('-')) {
             url = arg;
           }
         }
 
-        if (!url) {
+          if (!url) {
           return 'curl: no URL specified!';
         }
 
@@ -566,137 +640,578 @@ Examples:
           url = `https://${url}`;
         }
 
-        // Use CORS proxy if requested
-        if (useProxy) {
-          if (!silent) terminal.addOutput('* Using CORS proxy...');
-          // Use a public CORS proxy service
-          const originalUrl = url;
-          url = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-          if (verbose) {
-            terminal.addOutput(`* Proxying ${originalUrl} through ${url}`);
-          }
-        }
-
+        // Build status messages but don't output them yet (for redirection compatibility)
+        let statusMessages = [];
+        
         if (!silent) {
-          terminal.addOutput(`* Trying ${url}...`);
+          statusMessages.push(`* Trying ${url}...`);
         }
 
         try {
           const startTime = performance.now();
-
-          // Setup fetch options
-          const fetchOptions = {
-            method,
-            headers,
-            signal: AbortSignal.timeout(timeout)
-          };
-
-          // Add body for POST/PUT/PATCH requests
-          if (data && ['POST', 'PUT', 'PATCH'].includes(method)) {
-            fetchOptions.body = data;
-            if (!headers['Content-Type']) {
-              headers['Content-Type'] = 'application/json';
-            }
-          }
-
-          if (verbose) {
-            terminal.addOutput(`> ${method} ${new URL(url).pathname} HTTP/1.1`);
-            terminal.addOutput(`> Host: ${new URL(url).host}`);
-            Object.entries(headers).forEach(([key, value]) => {
-              terminal.addOutput(`> ${key}: ${value}`);
-            });
-            if (data) {
-              terminal.addOutput(`> `);
-              terminal.addOutput(`${data}`);
-            }
-          }
-
-          const response = await fetch(url, fetchOptions);
-          const endTime = performance.now();
-          const responseTime = (endTime - startTime).toFixed(0);
-
-          if (!silent) {
-            terminal.addOutput(`* Connected to ${new URL(url).host}`);
-            terminal.addOutput(`* Request completed in ${responseTime}ms`);
-          }
-
-          if (verbose || showHeaders) {
-            terminal.addOutput(`< HTTP/1.1 ${response.status} ${response.statusText}`);
-            response.headers.forEach((value, key) => {
-              terminal.addOutput(`< ${key}: ${value}`);
-            });
-            terminal.addOutput(`< `);
-          }
-
-          // Get response body
-          const contentType = response.headers.get('content-type') || '';
           let responseText;
+          let responseTime;
 
-          try {
-            if (contentType.includes('application/json')) {
-              const json = await response.json();
-              responseText = JSON.stringify(json, null, 2);
-            } else {
+          // Use ProxyService for GET requests (default behavior)
+          if (useProxy && method === 'GET' && window.proxyService) {
+            if (!silent) statusMessages.push('* Using smart CORS proxy service...');
+            
+            if (verbose) {
+              terminal.addOutput(`> ${method} ${new URL(url).pathname} HTTP/1.1`);
+              terminal.addOutput(`> Host: ${new URL(url).host}`);
+              Object.entries(headers).forEach(([key, value]) => {
+                terminal.addOutput(`> ${key}: ${value}`);
+              });
+            }
+
+            try {
+              const proxyOptions = {
+                headers,
+                timeout: timeout,
+                maxRetries: 2
+              };
+
+              responseText = await window.proxyService.fetchWithProxy(url, proxyOptions);
+              const endTime = performance.now();
+              responseTime = (endTime - startTime).toFixed(0);
+
+              if (!silent) {
+                statusMessages.push(`* Connected via proxy to ${new URL(url).host}`);
+                statusMessages.push(`* Request completed in ${responseTime}ms`);
+              }
+
+              if (verbose || showHeaders) {
+                terminal.addOutput(`< HTTP/1.1 200 OK (via proxy)`);
+                terminal.addOutput(`< content-type: text/plain`);
+                terminal.addOutput(`< `);
+              }
+
+              // Try to parse as JSON if it looks like JSON
+              try {
+                if (responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) {
+                  const json = JSON.parse(responseText);
+                  responseText = JSON.stringify(json, null, 2);
+                }
+              } catch (e) {
+                // Keep as plain text if not valid JSON
+              }
+
+
+            } catch (proxyError) {
+              if (!silent) {
+                statusMessages.push(`* Proxy failed: ${proxyError.message}`);
+                statusMessages.push('* Falling back to direct connection...');
+              }
+              
+              // Fall back to direct fetch
+              const fetchOptions = {
+                method,
+                headers,
+                signal: AbortSignal.timeout(timeout)
+              };
+
+              const response = await fetch(url, fetchOptions);
+              const endTime = performance.now();
+              responseTime = (endTime - startTime).toFixed(0);
+
+              if (!silent) {
+                statusMessages.push(`* Connected to ${new URL(url).host}`);
+                statusMessages.push(`* Request completed in ${responseTime}ms`);
+              }
+
+              if (verbose || showHeaders) {
+                terminal.addOutput(`< HTTP/1.1 ${response.status} ${response.statusText}`);
+                response.headers.forEach((value, key) => {
+                  terminal.addOutput(`< ${key}: ${value}`);
+                });
+                terminal.addOutput(`< `);
+              }
+
+              const contentType = response.headers.get('content-type') || '';
+              try {
+                if (contentType.includes('application/json')) {
+                  const json = await response.json();
+                  responseText = JSON.stringify(json, null, 2);
+                } else {
+                  responseText = await response.text();
+                }
+              } catch (e) {
+                responseText = await response.text();
+              }
+
+              if (!silent && !response.ok) {
+                terminal.addOutput(`curl: (${response.status}) HTTP error`);
+              }
+            }
+          } else {
+            // Use regular fetch for non-GET requests or when proxy disabled
+            if (useProxy && method !== 'GET') {
+              if (!silent) statusMessages.push('* Note: Proxy only supported for GET requests, using direct connection');
+            } else if (!useProxy) {
+              if (!silent) statusMessages.push('* Using direct connection (proxy disabled)');
+            }
+
+            // Setup fetch options
+            const fetchOptions = {
+              method,
+              headers,
+              signal: AbortSignal.timeout(timeout)
+            };
+
+            // Add body for POST/PUT/PATCH requests
+            if (data && ['POST', 'PUT', 'PATCH'].includes(method)) {
+              fetchOptions.body = data;
+              if (!headers['Content-Type']) {
+                headers['Content-Type'] = 'application/json';
+              }
+            }
+
+            if (verbose) {
+              terminal.addOutput(`> ${method} ${new URL(url).pathname} HTTP/1.1`);
+              terminal.addOutput(`> Host: ${new URL(url).host}`);
+              Object.entries(headers).forEach(([key, value]) => {
+                terminal.addOutput(`> ${key}: ${value}`);
+              });
+              if (data) {
+                terminal.addOutput(`> `);
+                terminal.addOutput(`${data}`);
+              }
+            }
+
+            const response = await fetch(url, fetchOptions);
+            const endTime = performance.now();
+            responseTime = (endTime - startTime).toFixed(0);
+
+            if (!silent) {
+              statusMessages.push(`* Connected to ${new URL(url).host}`);
+              statusMessages.push(`* Request completed in ${responseTime}ms`);
+            }
+
+            if (verbose || showHeaders) {
+              terminal.addOutput(`< HTTP/1.1 ${response.status} ${response.statusText}`);
+              response.headers.forEach((value, key) => {
+                terminal.addOutput(`< ${key}: ${value}`);
+              });
+              terminal.addOutput(`< `);
+            }
+
+            // Get response body
+            const contentType = response.headers.get('content-type') || '';
+            try {
+              if (contentType.includes('application/json')) {
+                const json = await response.json();
+                responseText = JSON.stringify(json, null, 2);
+              } else {
+                responseText = await response.text();
+              }
+            } catch (e) {
               responseText = await response.text();
             }
-          } catch (e) {
-            responseText = await response.text();
+
+            if (!silent && !response.ok) {
+              terminal.addOutput(`curl: (${response.status}) HTTP error`);
+            }
           }
 
-          // Limit output size for very large responses
-          if (responseText.length > 10000) {
-            responseText = responseText.substring(0, 10000) + '\n... (response truncated)';
+          // Only show status messages if output is not being redirected
+          // In a real shell, these would go to stderr and not be captured by > redirection
+          const isRedirected = terminal.redirections && terminal.redirections.stdout;
+          if (!silent && statusMessages.length > 0) {
+            if (!isRedirected) {
+              statusMessages.forEach(msg => terminal.addOutput(msg));
+            }
+          }
+          
+          // If redirected, return full response; if not redirected, truncate for display
+          if (isRedirected) {
+            // Full response goes to file
+            return responseText;
+          } else {
+            // Truncate for terminal display only
+            if (responseText.length > 10000) {
+              responseText = responseText.substring(0, 10000) + '\n... (response truncated)';
+            }
+            return responseText;
           }
 
-          terminal.addOutput(responseText);
-
-          if (!silent && !response.ok) {
-            terminal.addOutput(`curl: (${response.status}) HTTP error`);
-          }
         } catch (error) {
           if (error.name === 'TimeoutError') {
-            terminal.addOutput(`curl: (28) Connection timed out after ${timeout / 1000} seconds`);
+            return `curl: (28) Connection timed out after ${timeout / 1000} seconds`;
           } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
-            terminal.addOutput(`curl: (6) Could not resolve host: ${new URL(url).host}`);
+            return `curl: (6) Could not resolve host: ${new URL(url).host}`;
           } else {
-            terminal.addOutput(`curl: (7) Failed to connect: ${error.message}`);
+            return `curl: (7) Failed to connect: ${error.message}`;
           }
         }
-
-        return '';
       },
       description: 'transfer data from or to a server (curl [options] <url>)'
     },
 
+    vi: {
+      handler: async (terminal, args) => {
+        if (args.length === 0) {
+          return 'vi: usage: vi <filename>';
+        }
+
+        if (args[0] === '--help' || args[0] === '-h') {
+          return `vi - simple text editor
+
+Usage: vi <filename>
+
+Basic Commands:
+  Normal Mode:
+    h,j,k,l or arrows - Move cursor
+    i               - Enter insert mode
+    x               - Delete character
+    o               - New line below and insert
+    :w              - Save file
+    :q              - Quit (if no changes)
+    :wq             - Save and quit
+    :q!             - Quit without saving
+  
+  Insert Mode:
+    Esc             - Return to normal mode
+    Type normally   - Insert text`;
+        }
+
+        const filename = args[0];
+        const filePath = terminal.resolvePath(filename);
+        
+        try {
+          // Try to read existing file
+          let content = '';
+          const file = await terminal.getFileSystemItem(filePath);
+          if (file && file.type === 'file') {
+            content = file.content || '';
+          }
+          
+          return terminal.showViEditor(content, filename, filePath);
+        } catch (error) {
+          return `vi: ${filename}: ${error.message}`;
+        }
+      },
+      description: 'simple text editor (vi <file>)'
+    },
+
+    less: {
+      handler: async (terminal, args) => {
+        let filename = '';
+        let renderHtml = false;
+        let argIndex = 0;
+
+        // Parse flags
+        while (argIndex < args.length) {
+          const arg = args[argIndex];
+          
+          if (arg === '--help' || arg === '-h') {
+            return `less - view file contents with paging and search
+
+Usage: less [options] <file>
+
+Options:
+  --html, -H    Render HTML content instead of escaping it
+  -h, --help    Show this help
+
+Navigation:
+  j, ↓          Move down one line
+  k, ↑          Move up one line  
+  Space, f      Move down one page
+  b             Move up one page
+  g             Go to beginning
+  G             Go to end
+  /             Start search
+  n             Next search result
+  N             Previous search result
+  q             Quit
+  h, ?          Show help in viewer
+
+Examples:
+  less file.txt         # View text file
+  less --html page.html # Render HTML file
+  cat file | less       # View piped content`;
+          } else if (arg === '--html' || arg === '-H') {
+            renderHtml = true;
+            argIndex++;
+          } else if (!arg.startsWith('-')) {
+            filename = arg;
+            argIndex++;
+          } else {
+            return `less: unknown option '${arg}'. Try 'less --help' for more information.`;
+          }
+        }
+
+        if (!filename) {
+          // Read from stdin if available
+          if (terminal.hasStdin) {
+            return terminal.showLessViewer(terminal.stdin, '(stdin)', { renderHtml });
+          } else {
+            return 'less: usage: less [options] <filename> or pipe content to less';
+          }
+        }
+
+        const filePath = terminal.resolvePath(filename);
+        
+        try {
+          const file = await terminal.getFileSystemItem(filePath);
+          if (!file) {
+            return `less: ${filename}: No such file or directory`;
+          }
+          
+          if (file.type !== 'file') {
+            return `less: ${filename}: Is a directory`;
+          }
+          
+          const content = file.content || '';
+          return terminal.showLessViewer(content, filename, { renderHtml });
+        } catch (error) {
+          return `less: ${filename}: ${error.message}`;
+        }
+      },
+      description: 'view file contents with paging and search (less [--html] <file>)'
+    },
+
+    'proxy-stats': {
+      handler: async (terminal, args) => {
+        if (!window.proxyService) {
+          return 'proxy-stats: ProxyService not available';
+        }
+
+        const stats = window.proxyService.getProxyStats();
+        
+        terminal.addOutput('🌐 Proxy Service Statistics');
+        terminal.addOutput('═══════════════════════════');
+        terminal.addOutput(`Proxy Count: ${stats.proxyCount}`);
+        terminal.addOutput(`Timeout: ${stats.timeoutMs}ms`);
+        terminal.addOutput(`Max Retries: ${stats.maxRetries}`);
+        terminal.addOutput(`Cache Size: ${stats.cacheSize} entries`);
+        terminal.addOutput('');
+        terminal.addOutput('Proxy Performance:');
+        terminal.addOutput('─────────────────');
+        
+        stats.proxyStats.forEach((proxy, index) => {
+          const rank = index + 1;
+          const emoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '  ';
+          terminal.addOutput(`${emoji} Score: ${proxy.score} | Success: ${proxy.successRate} (${proxy.successes}/${proxy.attempts})`);
+          terminal.addOutput(`   ${proxy.proxy.replace('https://', '').replace('http://', '').substring(0, 50)}...`);
+          terminal.addOutput('');
+        });
+
+        if (args.includes('--reset')) {
+          window.proxyService.resetProxyScores();
+          terminal.addOutput('✅ Proxy scores have been reset to default values');
+        }
+
+        return '';
+      },
+      description: 'show proxy service statistics and performance (proxy-stats [--reset])'
+    },
+
     top: {
       handler: (terminal, args) => {
-        return `top - ${new Date().toLocaleTimeString()} up 3 days,  7:15,  1 user,  load average: 0.52, 0.58, 0.55
-Tasks: 245 total,   1 running, 244 sleeping,   0 stopped,   0 zombie
-%Cpu(s):  2.1 us,  1.2 sy,  0.0 ni, 96.5 id,  0.2 wa,  0.0 hi,  0.0 si,  0.0 st
-MiB Mem :  16384.0 total,  10240.0 free,   2048.0 used,   4096.0 buff/cache
-MiB Swap:   8192.0 total,   8192.0 free,      0.0 used.  13312.0 avail Mem
-
-  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
- 1234 user      20   0  1234567  12345  1234 S   2.1   0.1   0:15.23 terminal
- 5678 user      20   0   987654   9876   987 S   1.8   0.1   0:12.45 browser
- 9012 user      20   0   654321   6543   654 S   1.5   0.0   0:08.92 editor`;
+        // Always use OS Mode - Real process information
+        const processes = terminal.os.kernel.processManager.getAllProcesses();
+        const memStats = terminal.os.kernel.memoryManager.getUsageStats();
+        const schedulerStats = terminal.os.kernel.schedulerManager.getStats();
+        const systemInfo = terminal.os.getSystemInfo();
+        
+        const uptime = Math.floor(systemInfo.os.uptime / 1000);
+        const uptimeStr = `${Math.floor(uptime / 3600)}:${Math.floor((uptime % 3600) / 60).toString().padStart(2, '0')}`;
+        
+        let output = `top - ${new Date().toLocaleTimeString()} up ${uptimeStr}, 1 user, load average: 0.${Math.floor(Math.random() * 99)}\n`;
+        output += `Tasks: ${processes.length} total, ${schedulerStats.readyProcesses} ready, ${schedulerStats.blockedProcesses} blocked\n`;
+        output += `Memory: ${Math.floor(memStats.used / 1024 / 1024)}MB used, ${Math.floor(memStats.free / 1024 / 1024)}MB free\n`;
+        output += `CPU: ${schedulerStats.cpuUtilization.toFixed(1)}% utilization, ${schedulerStats.contextSwitches} context switches\n\n`;
+        output += `  PID USER      STATE    CPU%   MEM     TIME+ COMMAND\n`;
+        
+        processes.forEach(proc => {
+          const cpuPercent = proc.cpuTime > 0 ? ((proc.cpuTime / systemInfo.os.uptime) * 100).toFixed(1) : '0.0';
+          const memUsage = terminal.os.kernel.memoryManager.getProcessMemory(proc.pid);
+          const memMB = memUsage ? Math.floor(memUsage.totalMemory / 1024 / 1024) : 0;
+          const timeStr = `${Math.floor(proc.cpuTime / 60000)}:${Math.floor((proc.cpuTime % 60000) / 1000).toString().padStart(2, '0')}`;
+          
+          output += `${proc.pid.toString().padStart(5)} ${proc.uid.toString().padStart(8)} ${proc.state.padEnd(8)} ${cpuPercent.padStart(5)}% ${memMB.toString().padStart(6)}MB ${timeStr.padStart(8)} ${proc.name}\n`;
+        });
+        
+        return output;
       },
       description: 'show system processes'
     },
 
-    kill: {
+    ps: {
       handler: (terminal, args) => {
-        if (!args[0]) {
-          return 'kill: usage: kill [-s sigspec | -n signum | -sigspec] pid | jobspec ... or kill -l [sigspec]';
-        }
-        return `Process ${args[0]} killed`;
+        // Always use OS Mode - Real process list
+        const processes = terminal.os.kernel.processManager.getAllProcesses();
+        let output = `  PID  PPID USER     STAT  COMMAND\n`;
+        
+        processes.forEach(proc => {
+          output += `${proc.pid.toString().padStart(5)} ${proc.parentPID.toString().padStart(5)} ${proc.uid.toString().padStart(8)} ${proc.state.padEnd(5)} ${proc.name}\n`;
+        });
+        
+        return output;
       },
-      description: 'kill a process'
+      description: 'show running processes'
+    },
+
+    kill: {
+      handler: async (terminal, args) => {
+        if (args.length === 0) {
+          return 'kill: usage: kill [-signal] pid';
+        }
+        
+        const pid = parseInt(args[args.length - 1]);
+        if (isNaN(pid)) {
+          return 'kill: invalid process ID';
+        }
+        
+        // Always use OS Mode - Real process killing
+        try {
+          const signal = args.length > 1 && args[0].startsWith('-') ? 
+            parseInt(args[0].substring(1)) : 15; // SIGTERM
+          
+          await terminal.os.kernel.processManager.kill(pid, signal);
+          return `Process ${pid} terminated`;
+        } catch (error) {
+          return `kill: ${error.message}`;
+        }
+      },
+      description: 'terminate processes by PID'
+    },
+
+    debug: {
+      handler: (terminal, args) => {
+
+        if (args.length === 0) {
+          return `debug: usage: debug [scheduler] [on|off]
+Available debug options:
+  scheduler - Enable/disable scheduler debug logging`;
+        }
+
+        const component = args[0];
+        const action = args[1];
+
+        if (component === 'scheduler') {
+          if (action === 'on') {
+            terminal.os.kernel.schedulerManager.setDebugLogging(true);
+            return 'Scheduler debug logging enabled';
+          } else if (action === 'off') {
+            terminal.os.kernel.schedulerManager.setDebugLogging(false);
+            return 'Scheduler debug logging disabled';
+          } else {
+            const isEnabled = terminal.os.kernel.schedulerManager.debugLogging;
+            return `Scheduler debug logging is currently ${isEnabled ? 'enabled' : 'disabled'}`;
+          }
+        }
+
+        return `debug: unknown component '${component}'`;
+      },
+      description: 'control debug logging for OS components'
+    },
+
+    osinfo: {
+      handler: (terminal, args) => {
+        let output = '=== Terminal OS Integration Status ===\n';
+        output += `OS Instance: ${terminal.os ? 'Present' : 'Missing'}\n`;
+        output += `Kernel: ${terminal.os && terminal.os.kernel ? 'Present' : 'Missing'}\n`;
+        output += `Process: ${terminal.process ? `PID ${terminal.process.pid}` : 'Missing'}\n`;
+        output += `OS Mode: Always Enabled\n`;
+        output += `FileSystemDB: ${terminal.fileSystemDB ? 'Present' : 'Missing'}\n`;
+        output += `Filesystem Ready: ${terminal.filesystemReady}\n`;
+        output += `Commands Loaded: ${terminal.commandsLoaded}\n`;
+        
+        if (terminal.os && terminal.os.kernel) {
+          const sysInfo = terminal.os.getSystemInfo();
+          output += `\n=== OS System Info ===\n`;
+          output += `OS Version: ${sysInfo.os.name} v${sysInfo.os.version}\n`;
+          output += `Processes: ${sysInfo.kernel.processCount}\n`;
+          output += `Memory: ${Math.floor(sysInfo.memory.used / 1024 / 1024)}MB used / ${Math.floor(sysInfo.memory.total / 1024 / 1024)}MB total\n`;
+          output += `Terminals: ${sysInfo.terminals}\n`;
+        }
+        
+        return output;
+      },
+      description: 'show OS integration status and system information'
     },
 
     uname: {
       handler: (terminal, args) => 'Linux heyming-os 5.15.0-generic #1 SMP PREEMPT',
       description: 'show system info'
+    },
+
+    fsck: {
+      handler: async (terminal, args) => {
+        const forceRecreate = args.includes('--recreate') || args.includes('-r');
+        const testPath = args.find(arg => arg.startsWith('--test='));
+        
+        if (testPath) {
+          // Test path resolution
+          const path = testPath.split('=')[1];
+          try {
+            console.log(`🔍 Testing path resolution for: ${path}`);
+            const directResult = await terminal.fileSystemDB.getItem(path);
+            console.log(`Direct FileSystemDB.getItem(${path}):`, directResult ? directResult.type : 'null');
+            
+            const osResult = await terminal.syscall('stat', path);
+            console.log(`OS syscall stat(${path}):`, osResult ? osResult.type : 'null');
+            
+            return `Direct: ${directResult ? directResult.type : 'null'}, OS: ${osResult ? osResult.type : 'null'}`;
+          } catch (error) {
+            return `❌ Test failed: ${error.message}`;
+          }
+        }
+        
+        if (forceRecreate) {
+          try {
+            console.log('🔧 Recreating filesystem scaffolding...');
+            await terminal.fileSystemDB.createScaffolding(terminal.env.USER);
+            await terminal.fileSystemDB.generateBinFiles();
+            return '✅ Filesystem scaffolding recreated successfully';
+          } catch (error) {
+            return `❌ Failed to recreate filesystem: ${error.message}`;
+          }
+        }
+        
+        // Show filesystem status
+        let output = '=== Filesystem Check ===\n';
+        
+        try {
+          const stats = await terminal.fileSystemDB.getStats();
+          output += `Total items: ${stats.totalItems}\n`;
+          output += `Files: ${stats.files}\n`;
+          output += `Directories: ${stats.directories}\n`;
+          output += `Total size: ${stats.totalSize} bytes\n\n`;
+          
+          // Check critical directories
+          const criticalPaths = [
+            '/',
+            '/home',
+            `/home/${terminal.env.USER}`,
+            '/tmp',
+            '/bin',
+            '/etc'
+          ];
+          
+          output += '=== Critical Directories ===\n';
+          for (const path of criticalPaths) {
+            const item = await terminal.fileSystemDB.getItem(path);
+            const status = item ? (item.type === 'directory' ? '📁 OK' : '📄 FILE') : '❌ MISSING';
+            output += `${path.padEnd(20)} ${status}\n`;
+          }
+          
+          // Check for scaffolding marker
+          const hasScaffolding = await terminal.fileSystemDB.hasScaffolding();
+          output += `\nScaffolding marker: ${hasScaffolding ? '✅ Present' : '❌ Missing'}\n`;
+          
+          if (!hasScaffolding) {
+            output += '\n💡 Run "fsck --recreate" to recreate the filesystem';
+          }
+          
+        } catch (error) {
+          output += `❌ Error checking filesystem: ${error.message}`;
+        }
+        
+        return output;
+      },
+      description: 'check filesystem integrity (--recreate to rebuild, --test=/path to test path resolution)'
     },
 
     history: {
