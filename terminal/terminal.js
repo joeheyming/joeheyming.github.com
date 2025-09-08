@@ -469,8 +469,8 @@ class Terminal {
       return { stdout: this.helpCommand(), stderr: '' };
     }
 
-    // Try to get command from registry
-    const commandHandler = window.commandRegistry.get(cmdName);
+    // Try to get command from registry (now async)
+    const commandHandler = await window.commandRegistry.get(cmdName);
     if (commandHandler) {
       try {
         // Create a modified terminal context for piped commands
@@ -906,7 +906,7 @@ class Terminal {
         break;
 
       case 'l': // Ctrl+L: Clear screen
-        const clearHandler = window.commandRegistry.get('clear');
+        const clearHandler = window.commandRegistry.getSync('clear');
         if (clearHandler) {
           clearHandler(this, []);
         }
