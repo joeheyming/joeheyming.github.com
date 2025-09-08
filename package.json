@@ -1,8 +1,7 @@
 {
   "scripts": {
     "lint:fix": "eslint --fix .",
-    "format:fix": "prettier --write .",
-    "get-youtube-links": "node youtube/getLinks.js"
+    "format:fix": "prettier --write ."
   },
   "Private": true,
   "dependencies": {
