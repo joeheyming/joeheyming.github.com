@@ -1114,7 +1114,7 @@ class Terminal {
       newLine.className = 'terminal-line';
       newLine.innerHTML = `<span class="terminal-prompt">${this.env.USER}@${
         this.env.HOSTNAME
-      }:${this.getShortPath()}$</span> <input type="text" class="terminal-input" placeholder="Type a command...">`;
+      }:${this.getShortPath()}$</span> <input type="text" class="terminal-input" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Type a command...">`;
       terminalContent.appendChild(newLine);
 
       const newInput = newLine.querySelector('.terminal-input');
@@ -1149,347 +1149,6 @@ class Terminal {
   }
 
   // Less viewer implementation
-  showLessViewer(content, filename = '', options = {}) {
-    const { renderHtml = false } = options;
-    const lines = content.split('\n');
-    let currentLine = 0;
-    const linesPerPage = 20;
-    let searchTerm = '';
-    let searchResults = [];
-    let currentSearchIndex = -1;
-    let lastSearchTerm = ''; // Remember last search for repeat searches
-
-    // Create less viewer modal
-    const modal = document.createElement('div');
-    modal.className = 'less-viewer-modal';
-    modal.innerHTML = `
-      <div class="less-viewer">
-        <div class="less-header">
-          <span class="less-filename">${filename ? filename : '(stdin)'}${renderHtml ? ' [HTML]' : ''}</span>
-          <span class="less-position">lines 1-${Math.min(linesPerPage, lines.length)} of ${lines.length}</span>
-        </div>
-        <div class="less-content" id="less-content"></div>
-        <div class="less-footer">
-          <span class="less-help">Press 'h' for help, 'q' to quit, '/' to search</span>
-          <span class="less-search" id="less-search" style="display: none;">
-            <span>Search: </span>
-            <input type="text" id="less-search-input" />
-          </span>
-        </div>
-      </div>
-    `;
-
-    // Add CSS styles
-    const style = document.createElement('style');
-    style.textContent = `
-      .less-viewer-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.9);
-        z-index: 1000;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-      .less-viewer {
-        width: 90%;
-        height: 90%;
-        background: #000;
-        color: #fff;
-        font-family: 'Courier New', monospace;
-        border: 1px solid #333;
-        display: flex;
-        flex-direction: column;
-      }
-      .less-header {
-        background: #333;
-        padding: 5px 10px;
-        display: flex;
-        justify-content: space-between;
-        font-size: 12px;
-      }
-      .less-content {
-        flex: 1;
-        padding: 10px;
-        overflow: hidden;
-        white-space: pre;
-        line-height: 1.4;
-      }
-      .html-content {
-        white-space: normal;
-        font-family: Arial, sans-serif;
-        background: white;
-        color: black;
-        padding: 10px;
-        border-radius: 4px;
-        max-height: 100%;
-        overflow: auto;
-      }
-      .less-footer {
-        background: #333;
-        padding: 5px 10px;
-        font-size: 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .less-search input {
-        background: #000;
-        color: #fff;
-        border: 1px solid #666;
-        padding: 2px 5px;
-        font-family: 'Courier New', monospace;
-      }
-      .less-highlight {
-        background: yellow;
-        color: black;
-      }
-      .less-current-match {
-        background: orange;
-        color: black;
-      }
-    `;
-    document.head.appendChild(style);
-
-    const updateDisplay = () => {
-      const contentDiv = modal.querySelector('#less-content');
-      const positionSpan = modal.querySelector('.less-position');
-      
-      const endLine = Math.min(currentLine + linesPerPage, lines.length);
-      let displayLines = lines.slice(currentLine, endLine);
-      
-      if (renderHtml) {
-        // HTML rendering mode - render HTML content
-        const htmlContent = displayLines.join('\n');
-        
-        // For HTML rendering, we need to handle it differently
-        // Create a wrapper div to contain the rendered HTML
-        contentDiv.innerHTML = `<div class="html-content">${htmlContent}</div>`;
-        
-        // Apply search highlighting after HTML rendering if needed
-        if (searchTerm && searchResults.length > 0) {
-          // Note: Search highlighting in HTML mode is complex because we need to avoid
-          // highlighting inside HTML tags. For now, we'll skip search in HTML mode.
-          // This could be enhanced later with proper HTML-aware search.
-        }
-      } else {
-        // Text mode - escape HTML entities first
-        displayLines = displayLines.map(line => 
-          line.replace(/&/g, '&amp;')
-              .replace(/</g, '&lt;')
-              .replace(/>/g, '&gt;')
-              .replace(/"/g, '&quot;')
-              .replace(/'/g, '&#39;')
-        );
-        
-        // Apply search highlighting after HTML escaping
-        if (searchTerm && searchResults.length > 0) {
-          displayLines = displayLines.map((line, index) => {
-            const globalIndex = currentLine + index;
-            if (searchResults.includes(globalIndex)) {
-              const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-                                                 .replace(/&/g, '&amp;')
-                                                 .replace(/</g, '&lt;')
-                                                 .replace(/>/g, '&gt;')
-                                                 .replace(/"/g, '&quot;')
-                                                 .replace(/'/g, '&#39;');
-              const regex = new RegExp(`(${escapedSearchTerm})`, 'gi');
-              const isCurrentMatch = globalIndex === searchResults[currentSearchIndex];
-              return line.replace(regex, (match) => 
-                `<span class="${isCurrentMatch ? 'less-current-match' : 'less-highlight'}">${match}</span>`
-              );
-            }
-            return line;
-          });
-        }
-        contentDiv.innerHTML = displayLines.join('\n');
-      }
-      positionSpan.textContent = `lines ${currentLine + 1}-${endLine} of ${lines.length}`;
-      
-      if (searchTerm) {
-        const searchCount = searchResults.length;
-        const currentPos = currentSearchIndex >= 0 ? currentSearchIndex + 1 : 0;
-        positionSpan.textContent += ` | Search: ${currentPos}/${searchCount}`;
-      }
-    };
-
-    const performSearch = (term, isRepeatSearch = false) => {
-      // If no term provided and we have a last search, repeat it
-      if (!term && lastSearchTerm) {
-        term = lastSearchTerm;
-        isRepeatSearch = true;
-      }
-      
-      if (!term) {
-        return; // No search term available
-      }
-      
-      // Only rebuild search results if it's a new search term
-      if (term !== searchTerm) {
-        searchTerm = term;
-        lastSearchTerm = term;
-        searchResults = [];
-        currentSearchIndex = -1;
-        
-        // Search in the original unescaped content
-        const regex = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-        lines.forEach((line, index) => {
-          if (regex.test(line)) {
-            searchResults.push(index);
-          }
-        });
-      }
-      
-      if (searchResults.length > 0) {
-        if (isRepeatSearch || term !== searchTerm) {
-          // For repeat searches or new searches, find next match after current position
-          let nextIndex = searchResults.findIndex(lineNum => lineNum > currentLine + Math.floor(linesPerPage / 2));
-          if (nextIndex === -1) {
-            // Wrap around to beginning
-            nextIndex = 0;
-          }
-          currentSearchIndex = nextIndex;
-        } else {
-          // For first search, find first match at or after current line
-          currentSearchIndex = searchResults.findIndex(lineNum => lineNum >= currentLine);
-          if (currentSearchIndex === -1) {
-            currentSearchIndex = 0; // Wrap to first match
-          }
-        }
-        
-        currentLine = Math.max(0, searchResults[currentSearchIndex] - Math.floor(linesPerPage / 2));
-      }
-      
-      updateDisplay();
-    };
-
-    const handleKeyPress = (e) => {
-      const searchDiv = modal.querySelector('#less-search');
-      const searchInput = modal.querySelector('#less-search-input');
-      
-      if (searchDiv.style.display !== 'none') {
-        // In search mode
-        if (e.key === 'Enter') {
-          const inputValue = searchInput.value.trim();
-          if (inputValue === '' && lastSearchTerm) {
-            // Empty search with previous term - repeat last search
-            performSearch(lastSearchTerm, true);
-          } else if (inputValue !== '') {
-            // New search term
-            performSearch(inputValue);
-          }
-          searchDiv.style.display = 'none';
-          e.preventDefault();
-        } else if (e.key === 'Escape') {
-          searchDiv.style.display = 'none';
-          e.preventDefault();
-        }
-        return;
-      }
-      
-      // Normal navigation mode
-      switch (e.key) {
-        case 'q':
-        case 'Q':
-          document.body.removeChild(modal);
-          document.head.removeChild(style);
-          document.removeEventListener('keydown', handleKeyPress);
-          break;
-        case 'j':
-        case 'ArrowDown':
-          if (currentLine < lines.length - linesPerPage) {
-            currentLine++;
-            updateDisplay();
-          }
-          e.preventDefault();
-          break;
-        case 'k':
-        case 'ArrowUp':
-          if (currentLine > 0) {
-            currentLine--;
-            updateDisplay();
-          }
-          e.preventDefault();
-          break;
-        case ' ':
-        case 'f':
-        case 'PageDown':
-          currentLine = Math.min(currentLine + linesPerPage, lines.length - linesPerPage);
-          updateDisplay();
-          e.preventDefault();
-          break;
-        case 'b':
-        case 'PageUp':
-          currentLine = Math.max(currentLine - linesPerPage, 0);
-          updateDisplay();
-          e.preventDefault();
-          break;
-        case 'g':
-          currentLine = 0;
-          updateDisplay();
-          e.preventDefault();
-          break;
-        case 'G':
-          currentLine = Math.max(lines.length - linesPerPage, 0);
-          updateDisplay();
-          e.preventDefault();
-          break;
-        case '/':
-          searchDiv.style.display = 'flex';
-          searchInput.value = '';
-          searchInput.placeholder = lastSearchTerm ? `Press Enter to repeat: ${lastSearchTerm}` : 'Enter search term';
-          searchInput.focus();
-          e.preventDefault();
-          break;
-        case 'n':
-          if (searchResults.length > 0) {
-            currentSearchIndex = (currentSearchIndex + 1) % searchResults.length;
-            currentLine = Math.max(0, searchResults[currentSearchIndex] - Math.floor(linesPerPage / 2));
-            updateDisplay();
-          }
-          e.preventDefault();
-          break;
-        case 'N':
-          if (searchResults.length > 0) {
-            currentSearchIndex = currentSearchIndex <= 0 ? searchResults.length - 1 : currentSearchIndex - 1;
-            currentLine = Math.max(0, searchResults[currentSearchIndex] - Math.floor(linesPerPage / 2));
-            updateDisplay();
-          }
-          e.preventDefault();
-          break;
-        case 'h':
-        case '?':
-          alert(`Less Viewer Help:
-          
-Navigation:
-  j, ↓     - Move down one line
-  k, ↑     - Move up one line  
-  Space, f - Move down one page
-  b        - Move up one page
-  g        - Go to beginning
-  G        - Go to end
-  
-Search:
-  /        - Start search (or repeat last search if empty)
-  n        - Next search result
-  N        - Previous search result
-  
-Other:
-  q        - Quit
-  h, ?     - Show this help`);
-          break;
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyPress);
-    document.body.appendChild(modal);
-    updateDisplay();
-    
-    return ''; // Don't return any output to terminal
-  }
 
   // HTML escape utility
   escapeHtml(text) {
@@ -1499,330 +1158,6 @@ Other:
   }
 
   // Vi editor implementation
-  showViEditor(content, filename, filePath) {
-    const lines = content.split('\n');
-    if (lines.length === 0 || (lines.length === 1 && lines[0] === '')) {
-      lines[0] = ''; // Ensure at least one empty line
-    }
-    
-    let cursorRow = 0;
-    let cursorCol = 0;
-    let mode = 'normal'; // 'normal', 'insert', or 'search'
-    let hasChanges = false;
-    let commandBuffer = '';
-    let pendingCommand = ''; // For multi-key commands like 'dd'
-    let searchTerm = '';
-    let searchResults = [];
-    let currentSearchIndex = -1;
-
-    // Create vi editor modal
-    const modal = document.createElement('div');
-    modal.className = 'vi-editor-modal';
-    modal.innerHTML = `
-      <div class="vi-editor">
-        <div class="vi-header">
-          <span class="vi-filename">"${filename}" ${lines.length} lines</span>
-          <span class="vi-mode">${mode.toUpperCase()}</span>
-        </div>
-        <div class="vi-content" id="vi-content"></div>
-        <div class="vi-footer">
-          <span class="vi-status" id="vi-status">Press 'i' for insert mode, ':' for commands</span>
-          <span class="vi-position">${cursorRow + 1},${cursorCol + 1}</span>
-        </div>
-      </div>
-    `;
-
-    // Add CSS styles
-    const style = document.createElement('style');
-    style.textContent = `
-      .vi-editor-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.9);
-        z-index: 1000;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-      .vi-editor {
-        width: 90%;
-        height: 90%;
-        background: #000;
-        color: #fff;
-        font-family: 'Courier New', monospace;
-        border: 1px solid #333;
-        display: flex;
-        flex-direction: column;
-      }
-      .vi-header {
-        background: #333;
-        padding: 5px 10px;
-        display: flex;
-        justify-content: space-between;
-        font-size: 12px;
-      }
-      .vi-content {
-        flex: 1;
-        padding: 10px;
-        overflow: auto;
-        white-space: pre;
-        line-height: 1.4;
-        position: relative;
-      }
-      .vi-footer {
-        background: #333;
-        padding: 5px 10px;
-        font-size: 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .vi-cursor {
-        background: #fff;
-        color: #000;
-        animation: blink 1s infinite;
-      }
-      .vi-cursor.insert {
-        background: #0f0;
-      }
-      @keyframes blink {
-        0%, 50% { opacity: 1; }
-        51%, 100% { opacity: 0; }
-      }
-      .vi-line {
-        min-height: 1.4em;
-      }
-    `;
-    document.head.appendChild(style);
-
-    const updateDisplay = () => {
-      const contentDiv = modal.querySelector('#vi-content');
-      const modeSpan = modal.querySelector('.vi-mode');
-      const positionSpan = modal.querySelector('.vi-position');
-      const statusSpan = modal.querySelector('#vi-status');
-      
-      // Ensure cursor is within bounds
-      cursorRow = Math.max(0, Math.min(cursorRow, lines.length - 1));
-      cursorCol = Math.max(0, Math.min(cursorCol, lines[cursorRow].length));
-      
-      // Build display with cursor - escape HTML to show raw text
-      let displayContent = '';
-      lines.forEach((line, rowIndex) => {
-        if (rowIndex === cursorRow) {
-          // Add cursor to current line
-          const beforeCursor = this.escapeHtml(line.substring(0, cursorCol));
-          const atCursor = cursorCol < line.length ? this.escapeHtml(line[cursorCol]) : ' ';
-          const afterCursor = this.escapeHtml(line.substring(cursorCol + 1));
-          displayContent += beforeCursor + 
-            `<span class="vi-cursor ${mode}">${atCursor}</span>` + 
-            afterCursor + '\n';
-        } else {
-          displayContent += this.escapeHtml(line) + '\n';
-        }
-      });
-      
-      contentDiv.innerHTML = displayContent;
-      modeSpan.textContent = mode.toUpperCase() + (hasChanges ? ' [+]' : '');
-      positionSpan.textContent = `${cursorRow + 1},${cursorCol + 1}`;
-      
-      if (commandBuffer) {
-        statusSpan.textContent = commandBuffer;
-      } else {
-        statusSpan.textContent = mode === 'normal' ? 
-          "Press 'i' for insert mode, ':' for commands" : 
-          "Press Esc to return to normal mode";
-      }
-    };
-
-    const saveFile = async () => {
-      try {
-        const content = lines.join('\n');
-        await this.fileSystemDB.createFile(filePath, content, true);
-        hasChanges = false;
-        modal.querySelector('#vi-status').textContent = `"${filename}" written`;
-        setTimeout(() => updateDisplay(), 1000);
-        return true;
-      } catch (error) {
-        modal.querySelector('#vi-status').textContent = `Error: ${error.message}`;
-        setTimeout(() => updateDisplay(), 2000);
-        return false;
-      }
-    };
-
-    const handleKeyPress = async (e) => {
-      if (mode === 'normal') {
-        // Command mode handling
-        if (commandBuffer.startsWith(':')) {
-          if (e.key === 'Enter') {
-            const command = commandBuffer.substring(1);
-            commandBuffer = '';
-            
-            switch (command) {
-              case 'w':
-                await saveFile();
-                break;
-              case 'q':
-                if (hasChanges) {
-                  modal.querySelector('#vi-status').textContent = 'No write since last change (use :q! to override)';
-                  setTimeout(() => updateDisplay(), 2000);
-                } else {
-                  document.body.removeChild(modal);
-                  document.head.removeChild(style);
-                  document.removeEventListener('keydown', handleKeyPress);
-                }
-                break;
-              case 'wq':
-                if (await saveFile()) {
-                  setTimeout(() => {
-                    document.body.removeChild(modal);
-                    document.head.removeChild(style);
-                    document.removeEventListener('keydown', handleKeyPress);
-                  }, 500);
-                }
-                break;
-              case 'q!':
-                document.body.removeChild(modal);
-                document.head.removeChild(style);
-                document.removeEventListener('keydown', handleKeyPress);
-                break;
-              default:
-                modal.querySelector('#vi-status').textContent = `Unknown command: ${command}`;
-                setTimeout(() => updateDisplay(), 2000);
-            }
-            updateDisplay();
-            e.preventDefault();
-            return;
-          } else if (e.key === 'Escape') {
-            commandBuffer = '';
-            updateDisplay();
-            e.preventDefault();
-            return;
-          } else if (e.key.length === 1) {
-            commandBuffer += e.key;
-            updateDisplay();
-            e.preventDefault();
-            return;
-          }
-        }
-        
-        // Normal mode navigation and commands
-        switch (e.key) {
-          case ':':
-            commandBuffer = ':';
-            updateDisplay();
-            e.preventDefault();
-            break;
-          case 'i':
-            mode = 'insert';
-            updateDisplay();
-            e.preventDefault();
-            break;
-          case 'o':
-            lines.splice(cursorRow + 1, 0, '');
-            cursorRow++;
-            cursorCol = 0;
-            mode = 'insert';
-            hasChanges = true;
-            updateDisplay();
-            e.preventDefault();
-            break;
-          case 'x':
-            if (cursorCol < lines[cursorRow].length) {
-              lines[cursorRow] = lines[cursorRow].substring(0, cursorCol) + 
-                                lines[cursorRow].substring(cursorCol + 1);
-              hasChanges = true;
-            }
-            updateDisplay();
-            e.preventDefault();
-            break;
-          case 'h':
-          case 'ArrowLeft':
-            cursorCol = Math.max(0, cursorCol - 1);
-            updateDisplay();
-            e.preventDefault();
-            break;
-          case 'l':
-          case 'ArrowRight':
-            cursorCol = Math.min(lines[cursorRow].length, cursorCol + 1);
-            updateDisplay();
-            e.preventDefault();
-            break;
-          case 'j':
-          case 'ArrowDown':
-            if (cursorRow < lines.length - 1) {
-              cursorRow++;
-              cursorCol = Math.min(cursorCol, lines[cursorRow].length);
-            }
-            updateDisplay();
-            e.preventDefault();
-            break;
-          case 'k':
-          case 'ArrowUp':
-            if (cursorRow > 0) {
-              cursorRow--;
-              cursorCol = Math.min(cursorCol, lines[cursorRow].length);
-            }
-            updateDisplay();
-            e.preventDefault();
-            break;
-        }
-      } else if (mode === 'insert') {
-        // Insert mode handling
-        if (e.key === 'Escape') {
-          mode = 'normal';
-          cursorCol = Math.max(0, cursorCol - 1);
-          updateDisplay();
-          e.preventDefault();
-        } else if (e.key === 'Enter') {
-          const currentLine = lines[cursorRow];
-          const beforeCursor = currentLine.substring(0, cursorCol);
-          const afterCursor = currentLine.substring(cursorCol);
-          lines[cursorRow] = beforeCursor;
-          lines.splice(cursorRow + 1, 0, afterCursor);
-          cursorRow++;
-          cursorCol = 0;
-          hasChanges = true;
-          updateDisplay();
-          e.preventDefault();
-        } else if (e.key === 'Backspace') {
-          if (cursorCol > 0) {
-            lines[cursorRow] = lines[cursorRow].substring(0, cursorCol - 1) + 
-                              lines[cursorRow].substring(cursorCol);
-            cursorCol--;
-            hasChanges = true;
-          } else if (cursorRow > 0) {
-            // Join with previous line
-            const currentLine = lines[cursorRow];
-            cursorCol = lines[cursorRow - 1].length;
-            lines[cursorRow - 1] += currentLine;
-            lines.splice(cursorRow, 1);
-            cursorRow--;
-            hasChanges = true;
-          }
-          updateDisplay();
-          e.preventDefault();
-        } else if (e.key.length === 1) {
-          // Insert character
-          lines[cursorRow] = lines[cursorRow].substring(0, cursorCol) + 
-                            e.key + 
-                            lines[cursorRow].substring(cursorCol);
-          cursorCol++;
-          hasChanges = true;
-          updateDisplay();
-          e.preventDefault();
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyPress);
-    document.body.appendChild(modal);
-    updateDisplay();
-    
-    return ''; // Don't return any output to terminal
-  }
 
   // Command history persistence
   saveCommandHistory() {
@@ -1842,6 +1177,277 @@ Other:
       }
     } catch (e) {
       // Ignore storage errors
+    }
+  }
+
+  // ============================================================================
+  // TERMINAL API METHODS - Commands should use these instead of direct DOM manipulation
+  // ============================================================================
+
+  /**
+   * Terminal I/O API - Standard input/output interface for commands
+   */
+  
+  // Write output to terminal (replaces direct DOM manipulation)
+  writeOutput(text, options = {}) {
+    return this.addOutput(text, options);
+  }
+
+  // Write error to terminal
+  writeError(text) {
+    return this.addOutput(`Error: ${text}`);
+  }
+
+  // Clear terminal screen (proper way for commands to clear)
+  clearScreen() {
+    if (this.windowId) {
+      // OS-integrated mode
+      const windowElement = document.getElementById(`window-${this.windowId}`);
+      const terminalContent = windowElement.querySelector('.terminal-content');
+      terminalContent.innerHTML = `
+        <div class="terminal-line">
+          <span class="terminal-prompt">${this.env.USER}@${this.env.HOSTNAME}:${this.getShortPath()}$</span> <input type="text" class="terminal-input" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Type a command...">
+        </div>
+      `;
+      this.initialize();
+    } else {
+      // Standalone mode
+      const terminalOutput = document.getElementById('terminal-output');
+      if (terminalOutput) {
+        terminalOutput.innerHTML = '';
+      }
+    }
+  }
+
+  /**
+   * Modal/Fullscreen API - For commands that need full-screen interfaces
+   */
+  
+  // Create a modal interface (for commands like less, vi)
+  createModal(options = {}) {
+    const {
+      className = 'terminal-modal',
+      title = '',
+      content = '',
+      onKeyDown = null,
+      onClose = null
+    } = options;
+
+    // Disable terminal input while modal is active
+    this.disableTerminalInput();
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = className;
+    modal.innerHTML = content;
+    modal.tabIndex = -1; // Make focusable for keyboard events
+
+    // Add to DOM
+    document.body.appendChild(modal);
+    modal.focus();
+
+    // Bind keyboard events if provided
+    if (onKeyDown) {
+      modal.addEventListener('keydown', onKeyDown);
+    }
+
+    // Return modal interface
+    return {
+      element: modal,
+      update: (newContent) => {
+        modal.innerHTML = newContent;
+      },
+      close: () => {
+        document.body.removeChild(modal);
+        this.enableTerminalInput();
+        if (onClose) onClose();
+      },
+      focus: () => modal.focus()
+    };
+  }
+
+  // Add CSS styles to document (utility for commands)
+  addStyles(cssText) {
+    const style = document.createElement('style');
+    style.textContent = cssText;
+    document.head.appendChild(style);
+    return style; // Return so commands can remove it later
+  }
+
+  /**
+   * Display Control API - For commands that need display control
+   */
+  
+  // Disable terminal input (for modal commands)
+  disableTerminalInput() {
+    const terminalInput = document.getElementById('terminal-input');
+    if (terminalInput) {
+      terminalInput.disabled = true;
+      terminalInput.blur();
+    }
+    // Also disable any other terminal inputs in multi-line mode
+    const allInputs = document.querySelectorAll('.terminal-input');
+    allInputs.forEach(input => {
+      input.disabled = true;
+      input.blur();
+    });
+  }
+
+  // Re-enable terminal input
+  enableTerminalInput() {
+    const terminalInput = document.getElementById('terminal-input');
+    if (terminalInput) {
+      terminalInput.disabled = false;
+      terminalInput.focus();
+    }
+    // Also re-enable any other terminal inputs
+    const allInputs = document.querySelectorAll('.terminal-input');
+    allInputs.forEach(input => {
+      input.disabled = false;
+    });
+    // Focus the most recent input
+    const lastInput = document.querySelector('.terminal-input:last-of-type');
+    if (lastInput) {
+      lastInput.focus();
+    }
+  }
+
+  /**
+   * Input API - For modal commands that need user input
+   */
+  
+  // Create an input prompt within a modal (replaces prompt())
+  createInputPrompt(modal, options = {}) {
+    const {
+      prompt = 'Input: ',
+      placeholder = '',
+      onEnter = null,
+      onEscape = null,
+      onInput = null
+    } = options;
+
+    // Create input overlay within the modal
+    const inputOverlay = document.createElement('div');
+    inputOverlay.className = 'terminal-input-overlay';
+    inputOverlay.innerHTML = `
+      <div class="terminal-input-prompt">
+        <span class="prompt-text">${this.escapeHtml(prompt)}</span>
+        <input type="text" class="prompt-input" placeholder="${this.escapeHtml(placeholder)}" />
+      </div>
+    `;
+
+    // Add CSS for the input overlay
+    const overlayStyle = `
+      .terminal-input-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #333;
+        border-top: 1px solid #555;
+        padding: 5px 10px;
+        z-index: 1001;
+      }
+      .terminal-input-prompt {
+        display: flex;
+        align-items: center;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+      }
+      .prompt-text {
+        color: #0f0;
+        margin-right: 5px;
+      }
+      .prompt-input {
+        flex: 1;
+        background: #000;
+        color: #0f0;
+        border: none;
+        padding: 2px 5px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        outline: none;
+      }
+    `;
+
+    // Add styles if not already present
+    if (!document.querySelector('#terminal-input-overlay-styles')) {
+      const style = document.createElement('style');
+      style.id = 'terminal-input-overlay-styles';
+      style.textContent = overlayStyle;
+      document.head.appendChild(style);
+    }
+
+    // Add overlay to modal
+    modal.element.appendChild(inputOverlay);
+    const input = inputOverlay.querySelector('.prompt-input');
+    
+    // Focus the input with a slight delay to ensure it's rendered
+    setTimeout(() => input.focus(), 10);
+
+    // Handle input events
+    const handleKeyDown = (e) => {
+      e.stopPropagation(); // Prevent modal from handling this event
+      
+      if (e.key === 'Enter') {
+        const value = input.value;
+        cleanup();
+        if (onEnter) onEnter(value);
+      } else if (e.key === 'Escape') {
+        cleanup();
+        if (onEscape) onEscape();
+      }
+    };
+
+    const handleInput = (e) => {
+      if (onInput) onInput(e.target.value);
+    };
+
+    input.addEventListener('keydown', handleKeyDown);
+    input.addEventListener('input', handleInput);
+
+    const cleanup = () => {
+      input.removeEventListener('keydown', handleKeyDown);
+      input.removeEventListener('input', handleInput);
+      modal.element.removeChild(inputOverlay);
+      // Use setTimeout to ensure proper focus after DOM changes
+      setTimeout(() => modal.focus(), 10);
+    };
+
+    return {
+      focus: () => input.focus(),
+      getValue: () => input.value,
+      setValue: (value) => { input.value = value; },
+      close: cleanup
+    };
+  }
+
+  /**
+   * Utility API - Helper methods for commands
+   */
+  
+  // HTML escape utility (safer than commands doing it themselves)
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Get terminal dimensions (useful for fullscreen commands)
+  getTerminalDimensions() {
+    if (this.windowId) {
+      const windowElement = document.getElementById(`window-${this.windowId}`);
+      const terminalContent = windowElement.querySelector('.terminal-content');
+      return {
+        width: terminalContent.clientWidth,
+        height: terminalContent.clientHeight
+      };
+    } else {
+      const terminalOutput = document.getElementById('terminal-output');
+      return {
+        width: terminalOutput.clientWidth,
+        height: terminalOutput.clientHeight
+      };
     }
   }
 
