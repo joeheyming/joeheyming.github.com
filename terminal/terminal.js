@@ -3,11 +3,11 @@ class Terminal {
   constructor(windowId = null, osInstance = null) {
     this.windowId = windowId;
     this.os = osInstance;
+    this.process = null; // Will be set by OS when terminal becomes a process
     this.commandHistory = [];
     this.historyIndex = -1;
     this.aliases = {}; // Command aliases
     this.fileSystemDB = new FileSystemDB();
-    this.isStandalone = !windowId; // Detect if running standalone
     this.commandsLoaded = false;
     this.filesystemReady = false;
 
@@ -34,7 +34,10 @@ class Terminal {
     this.loadCommands()
       .then(() => {
         this.commandsLoaded = true;
-        return this.initializeFilesystem();
+        // Always initialize filesystem (required for OS operation)
+        return this.initializeFilesystem().then(() => {
+          this.filesystemReady = true;
+        });
       })
       .then(() => {
         this.filesystemReady = true;
@@ -42,13 +45,36 @@ class Terminal {
         setTimeout(() => this.initialize(), 100);
       })
       .catch((error) => {
-        console.error('Failed to initialize terminal:', error);
-        // Fallback to in-memory filesystem
-        this.fileSystem = this.initializeFileSystem();
-        this.filesystemReady = true;
-        this.commandsLoaded = true;
-        setTimeout(() => this.initialize(), 100);
+        console.error('❌ Failed to initialize terminal:', error);
+        throw new Error('Terminal initialization failed - OS layer required');
       });
+  }
+
+  // OS Integration Methods
+  setProcess(process) {
+    this.process = process;
+    // Update environment from process
+    if (process) {
+      this.env = { ...this.env, ...process.env };
+      this.currentDirectory = process.cwd;
+    }
+  }
+
+  // System call wrapper - always use OS kernel
+  async syscall(name, ...args) {
+    if (!this.os || !this.os.kernel) {
+      throw new Error('OS kernel not available - system cannot function without OS layer');
+    }
+    return await this.os.kernel.syscall(name, ...args);
+  }
+
+
+  // Get current process info
+  getCurrentProcess() {
+    if (!this.process) {
+      throw new Error('Process not available - terminal must be running as an OS process');
+    }
+    return this.process;
   }
 
   async loadCommands() {
@@ -61,80 +87,23 @@ class Terminal {
     await this.fileSystemDB.initializeWithScaffolding(this.env.USER);
   }
 
-  initializeFileSystem() {
-    return {
-      '/': {
-        type: 'directory',
-        contents: {
-          home: {
-            type: 'directory',
-            contents: {
-              [this.env.USER]: {
-                type: 'directory',
-                contents: {
-                  Desktop: { type: 'directory', contents: {} },
-                  Documents: {
-                    type: 'directory',
-                    contents: {
-                      'readme.txt': { type: 'file', content: 'Welcome to Heyming OS!' },
-                      'secret.txt': { type: 'file', content: '🤫 You found the secret file!' }
-                    }
-                  },
-                  Downloads: { type: 'directory', contents: {} },
-                  Pictures: {
-                    type: 'directory',
-                    contents: {
-                      'selfie.jpg': { type: 'file', content: '📸 A totally real selfie file' }
-                    }
-                  },
-                  Music: {
-                    type: 'directory',
-                    contents: {
-                      'never_gonna_give_you_up.mp3': {
-                        type: 'file',
-                        content: '🎵 Rick Astley - Never Gonna Give You Up'
-                      }
-                    }
-                  },
-                  Videos: { type: 'directory', contents: {} }
-                }
-              }
-            }
-          },
-          bin: {
-            type: 'directory',
-            contents: {
-              bash: { type: 'file', content: '#!/bin/bash' },
-              ls: { type: 'file', content: '#!/bin/ls' }
-            }
-          },
-          etc: {
-            type: 'directory',
-            contents: {
-              passwd: {
-                type: 'file',
-                content: `${this.env.USER}:x:1000:1000:Joe Heyming:${this.env.HOME}:${this.env.SHELL}`
-              },
-              hosts: { type: 'file', content: '127.0.0.1 localhost\n::1 localhost' }
-            }
-          }
-        }
-      }
-    };
-  }
 
   initialize() {
     let terminalInput;
 
-    if (this.isStandalone) {
-      // Standalone mode - use direct element IDs
-      terminalInput = document.getElementById('terminal-input');
-      this.printWelcome();
-      this.printPrompt();
-    } else {
-      // OS-integrated mode - use window-specific selectors
-      const windowElement = document.getElementById(`window-${this.windowId}`);
+    // Check if we're in a windowed mode or using main terminal
+    const windowElement = this.windowId ? document.getElementById(`window-${this.windowId}`) : null;
+    if (windowElement) {
+      // Windowed mode - use window-specific selectors
       terminalInput = windowElement.querySelector('.terminal-input');
+    } else {
+      // Main terminal - only print welcome if not already shown
+      terminalInput = document.getElementById('terminal-input');
+      const terminalOutput = document.getElementById('terminal-output');
+      if (!terminalOutput || !terminalOutput.textContent.includes('Welcome to jsh')) {
+        this.printWelcome();
+        this.printPrompt();
+      }
     }
 
     if (!terminalInput) return;
@@ -177,8 +146,8 @@ class Terminal {
     }
     this.historyIndex = -1;
 
-    if (this.isStandalone) {
-      // Standalone mode - add command to output and clear input
+    if (!this.windowId) {
+      // Main terminal mode - add command to output and clear input
       this.addCommandToOutput(command);
       input.value = '';
 
@@ -199,9 +168,15 @@ class Terminal {
     } else {
       // OS-integrated mode - original behavior
       const currentLine = input.closest('.terminal-line');
-      currentLine.innerHTML = `<span class="terminal-prompt">${this.env.USER}@${
-        this.env.HOSTNAME
-      }:${this.getShortPath()}$</span> ${command}`;
+      if (currentLine) {
+        currentLine.innerHTML = `<span class="terminal-prompt">${this.env.USER}@${
+          this.env.HOSTNAME
+        }:${this.getShortPath()}$</span> ${command}`;
+      } else {
+        // Fallback if no terminal-line found
+        console.warn('No terminal-line found, using standalone mode behavior');
+        this.addOutput(`${this.env.USER}@${this.env.HOSTNAME}:${this.getShortPath()}$ ${command}`);
+      }
 
       // Process command and get output (now async)
       try {
@@ -503,6 +478,7 @@ class Terminal {
         const terminalContext = this;
         terminalContext.stdin = stdin;
         terminalContext.hasStdin = stdin.length > 0;
+        terminalContext.redirections = cmd.redirections; // Pass redirection info
 
         const result = commandHandler(terminalContext, cmd.args);
         const output = result instanceof Promise ? await result : result;
@@ -510,6 +486,7 @@ class Terminal {
         // Clean up temporary properties
         delete terminalContext.stdin;
         delete terminalContext.hasStdin;
+        delete terminalContext.redirections;
 
         // Separate stdout and stderr (for now, everything goes to stdout)
         return {
@@ -642,64 +619,25 @@ class Terminal {
   }
 
   async getFileSystemItem(path) {
-    if (!this.filesystemReady) {
-      // Fallback to in-memory filesystem if IndexedDB not ready
-      if (this.fileSystem) {
-        const parts = path.split('/').filter((p) => p);
-        let current = this.fileSystem['/'];
-
-        for (const part of parts) {
-          if (current.type !== 'directory' || !current.contents[part]) {
-            return null;
-          }
-          current = current.contents[part];
-        }
-
-        return current;
-      }
-      return null;
-    }
-
+    // Always use OS file system
     try {
-      const item = await this.fileSystemDB.getItem(path);
-      return item;
+      const stats = await this.syscall('stat', path);
+      return stats;
     } catch (error) {
-      console.error('Error accessing filesystem:', error);
       return null;
     }
   }
 
   async listDirectoryContents(path) {
-    if (!this.filesystemReady) {
-      // Fallback to in-memory filesystem
-      if (this.fileSystem) {
-        const item = await this.getFileSystemItem(path);
-        if (item && item.type === 'directory' && item.contents) {
-          return Object.entries(item.contents).map(([name, item]) => ({
-            name,
-            type: item.type,
-            path: path === '/' ? `/${name}` : `${path}/${name}`
-          }));
-        }
-      }
-      return [];
-    }
-
+    // Always use OS file system
     try {
-      const items = await this.fileSystemDB.listDirectory(path);
-      return items.map((item) => ({
-        name: this.fileSystemDB.getFileName(item.path),
-        type: item.type,
-        path: item.path,
-        size: item.size,
-        created: item.created,
-        modified: item.modified
-      }));
+      const entries = await this.syscall('readdir', path);
+      return entries;
     } catch (error) {
-      console.error('Error listing directory:', error);
       return [];
     }
   }
+
 
   getShortPath() {
     if (this.currentDirectory === this.env.HOME) {
@@ -1024,53 +962,866 @@ class Terminal {
     }
   }
 
-  addOutput(output) {
-    if (this.isStandalone) {
-      // Standalone mode - use terminal-output element
-      const terminalOutput = document.getElementById('terminal-output');
-      const outputLines = output.split('\n');
-      outputLines.forEach((line) => {
-        const outputElement = document.createElement('div');
-        outputElement.className = 'terminal-output';
-        outputElement.textContent = line;
-        terminalOutput.appendChild(outputElement);
+  // Process ANSI escape sequences and convert to HTML
+  processAnsiSequences(text) {
+    // ANSI color codes mapping
+    const ansiColors = {
+      '30': 'black', '31': 'red', '32': 'green', '33': 'yellow',
+      '34': 'blue', '35': 'magenta', '36': 'cyan', '37': 'white',
+      '90': 'gray', '91': 'lightred', '92': 'lightgreen', '93': 'lightyellow',
+      '94': 'lightblue', '95': 'lightmagenta', '96': 'lightcyan', '97': 'lightwhite'
+    };
+
+    const ansiBgColors = {
+      '40': 'black', '41': 'red', '42': 'green', '43': 'yellow',
+      '44': 'blue', '45': 'magenta', '46': 'cyan', '47': 'white',
+      '100': 'gray', '101': 'lightred', '102': 'lightgreen', '103': 'lightyellow',
+      '104': 'lightblue', '105': 'lightmagenta', '106': 'lightcyan', '107': 'lightwhite'
+    };
+
+    let result = text;
+    let currentStyles = [];
+
+    // Handle clear screen sequences
+    result = result.replace(/\x1b\[2J/g, ''); // Clear entire screen
+    result = result.replace(/\x1b\[H/g, ''); // Move cursor to home position
+    result = result.replace(/\x1b\[1;1H/g, ''); // Move cursor to 1,1
+    
+    // Handle cursor movement (simplified - just remove for now)
+    result = result.replace(/\x1b\[\d+;\d+H/g, ''); // Move cursor to specific position
+    result = result.replace(/\x1b\[\d+A/g, ''); // Move cursor up
+    result = result.replace(/\x1b\[\d+B/g, ''); // Move cursor down
+    result = result.replace(/\x1b\[\d+C/g, ''); // Move cursor right
+    result = result.replace(/\x1b\[\d+D/g, ''); // Move cursor left
+
+    // Handle color and style sequences
+    result = result.replace(/\x1b\[([0-9;]+)m/g, (match, codes) => {
+      const codeList = codes.split(';');
+      let html = '';
+      
+      codeList.forEach(code => {
+        switch (code) {
+          case '0': // Reset
+            if (currentStyles.length > 0) {
+              html += '</span>';
+              currentStyles = [];
+            }
+            break;
+          case '1': // Bold
+            html += '<span style="font-weight: bold;">';
+            currentStyles.push('bold');
+            break;
+          case '4': // Underline
+            html += '<span style="text-decoration: underline;">';
+            currentStyles.push('underline');
+            break;
+          default:
+            if (ansiColors[code]) {
+              html += `<span style="color: ${ansiColors[code]};">`;
+              currentStyles.push('color');
+            } else if (ansiBgColors[code]) {
+              html += `<span style="background-color: ${ansiBgColors[code]};">`;
+              currentStyles.push('bgcolor');
+            }
+        }
       });
-      terminalOutput.scrollTop = terminalOutput.scrollHeight;
-    } else {
-      // OS-integrated mode - original behavior
-      const windowElement = document.getElementById(`window-${this.windowId}`);
+      
+      return html;
+    });
+
+    return result;
+  }
+
+  addOutput(output, options = {}) {
+    const { preserveAnsi = false, streaming = false } = options;
+    
+    // Check if we're in a windowed mode or using main terminal
+    const windowElement = this.windowId ? document.getElementById(`window-${this.windowId}`) : null;
+    
+    if (windowElement) {
+      // Windowed mode - use window-specific elements
       const terminalContent = windowElement.querySelector('.terminal-content');
 
-      const outputLines = output.split('\n');
-      outputLines.forEach((line) => {
+      if (streaming) {
+        // Clear previous streaming content
+        const existingStreaming = terminalContent.querySelector('.streaming-output');
+        if (existingStreaming) {
+          existingStreaming.remove();
+        }
+      }
+
+      if (preserveAnsi) {
+        // Process ANSI sequences
+        const processedOutput = this.processAnsiSequences(output);
         const outputElement = document.createElement('div');
-        outputElement.className = 'terminal-line';
-        outputElement.textContent = line;
+        outputElement.className = streaming ? 'terminal-line streaming-output ansi-output' : 'terminal-line ansi-output';
+        outputElement.innerHTML = processedOutput;
         terminalContent.appendChild(outputElement);
-      });
+      } else {
+        // Regular text output
+        const outputLines = output.split('\n');
+        outputLines.forEach((line) => {
+          const outputElement = document.createElement('div');
+          outputElement.className = 'terminal-line';
+          outputElement.textContent = line;
+          terminalContent.appendChild(outputElement);
+        });
+      }
+    } else {
+      // Main terminal mode - use terminal-output element
+      const terminalOutput = document.getElementById('terminal-output');
+      
+      if (!terminalOutput) {
+        console.error('Terminal output element not found');
+        return;
+      }
+      
+      if (streaming) {
+        // For streaming content, clear previous content and add new
+        terminalOutput.innerHTML = '';
+      }
+      
+      if (preserveAnsi) {
+        // Process ANSI sequences for animations
+        const processedOutput = this.processAnsiSequences(output);
+        const outputElement = document.createElement('div');
+        outputElement.className = 'terminal-output ansi-output';
+        outputElement.innerHTML = processedOutput;
+        terminalOutput.appendChild(outputElement);
+      } else {
+        // Regular text output
+        const outputLines = output.split('\n');
+        outputLines.forEach((line) => {
+          const outputElement = document.createElement('div');
+          outputElement.className = 'terminal-output';
+          outputElement.textContent = line;
+          terminalOutput.appendChild(outputElement);
+        });
+      }
+      
+      terminalOutput.scrollTop = terminalOutput.scrollHeight;
     }
   }
 
   addNewInputLine() {
-    const windowElement = document.getElementById(`window-${this.windowId}`);
-    const terminalContent = windowElement.querySelector('.terminal-content');
+    // Check if we're in windowed mode
+    const windowElement = this.windowId ? document.getElementById(`window-${this.windowId}`) : null;
+    
+    if (windowElement) {
+      // Windowed mode
+      const terminalContent = windowElement.querySelector('.terminal-content');
+      const newLine = document.createElement('div');
+      newLine.className = 'terminal-line';
+      newLine.innerHTML = `<span class="terminal-prompt">${this.env.USER}@${
+        this.env.HOSTNAME
+      }:${this.getShortPath()}$</span> <input type="text" class="terminal-input" placeholder="Type a command...">`;
+      terminalContent.appendChild(newLine);
 
-    const newLine = document.createElement('div');
-    newLine.className = 'terminal-line';
-    newLine.innerHTML = `<span class="terminal-prompt">${this.env.USER}@${
-      this.env.HOSTNAME
-    }:${this.getShortPath()}$</span> <input type="text" class="terminal-input" placeholder="Type a command...">`;
-    terminalContent.appendChild(newLine);
-
-    const newInput = newLine.querySelector('.terminal-input');
-    newInput.focus();
-    this.bindInputEvents(newInput);
+      const newInput = newLine.querySelector('.terminal-input');
+      newInput.focus();
+      this.bindInputEvents(newInput);
+    } else {
+      // Main terminal mode - the input is already there, just focus it
+      const terminalInput = document.getElementById('terminal-input');
+      if (terminalInput) {
+        terminalInput.focus();
+      }
+    }
   }
 
   scrollToBottom() {
-    const windowElement = document.getElementById(`window-${this.windowId}`);
-    const terminalContent = windowElement.querySelector('.terminal-content');
-    terminalContent.scrollTop = terminalContent.scrollHeight;
+    // Check if we're in windowed mode
+    const windowElement = this.windowId ? document.getElementById(`window-${this.windowId}`) : null;
+    
+    if (windowElement) {
+      // Windowed mode
+      const terminalContent = windowElement.querySelector('.terminal-content');
+      if (terminalContent) {
+        terminalContent.scrollTop = terminalContent.scrollHeight;
+      }
+    } else {
+      // Main terminal mode
+      const terminalOutput = document.getElementById('terminal-output');
+      if (terminalOutput) {
+        terminalOutput.scrollTop = terminalOutput.scrollHeight;
+      }
+    }
+  }
+
+  // Less viewer implementation
+  showLessViewer(content, filename = '', options = {}) {
+    const { renderHtml = false } = options;
+    const lines = content.split('\n');
+    let currentLine = 0;
+    const linesPerPage = 20;
+    let searchTerm = '';
+    let searchResults = [];
+    let currentSearchIndex = -1;
+    let lastSearchTerm = ''; // Remember last search for repeat searches
+
+    // Create less viewer modal
+    const modal = document.createElement('div');
+    modal.className = 'less-viewer-modal';
+    modal.innerHTML = `
+      <div class="less-viewer">
+        <div class="less-header">
+          <span class="less-filename">${filename ? filename : '(stdin)'}${renderHtml ? ' [HTML]' : ''}</span>
+          <span class="less-position">lines 1-${Math.min(linesPerPage, lines.length)} of ${lines.length}</span>
+        </div>
+        <div class="less-content" id="less-content"></div>
+        <div class="less-footer">
+          <span class="less-help">Press 'h' for help, 'q' to quit, '/' to search</span>
+          <span class="less-search" id="less-search" style="display: none;">
+            <span>Search: </span>
+            <input type="text" id="less-search-input" />
+          </span>
+        </div>
+      </div>
+    `;
+
+    // Add CSS styles
+    const style = document.createElement('style');
+    style.textContent = `
+      .less-viewer-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 1000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .less-viewer {
+        width: 90%;
+        height: 90%;
+        background: #000;
+        color: #fff;
+        font-family: 'Courier New', monospace;
+        border: 1px solid #333;
+        display: flex;
+        flex-direction: column;
+      }
+      .less-header {
+        background: #333;
+        padding: 5px 10px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+      }
+      .less-content {
+        flex: 1;
+        padding: 10px;
+        overflow: hidden;
+        white-space: pre;
+        line-height: 1.4;
+      }
+      .html-content {
+        white-space: normal;
+        font-family: Arial, sans-serif;
+        background: white;
+        color: black;
+        padding: 10px;
+        border-radius: 4px;
+        max-height: 100%;
+        overflow: auto;
+      }
+      .less-footer {
+        background: #333;
+        padding: 5px 10px;
+        font-size: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .less-search input {
+        background: #000;
+        color: #fff;
+        border: 1px solid #666;
+        padding: 2px 5px;
+        font-family: 'Courier New', monospace;
+      }
+      .less-highlight {
+        background: yellow;
+        color: black;
+      }
+      .less-current-match {
+        background: orange;
+        color: black;
+      }
+    `;
+    document.head.appendChild(style);
+
+    const updateDisplay = () => {
+      const contentDiv = modal.querySelector('#less-content');
+      const positionSpan = modal.querySelector('.less-position');
+      
+      const endLine = Math.min(currentLine + linesPerPage, lines.length);
+      let displayLines = lines.slice(currentLine, endLine);
+      
+      if (renderHtml) {
+        // HTML rendering mode - render HTML content
+        const htmlContent = displayLines.join('\n');
+        
+        // For HTML rendering, we need to handle it differently
+        // Create a wrapper div to contain the rendered HTML
+        contentDiv.innerHTML = `<div class="html-content">${htmlContent}</div>`;
+        
+        // Apply search highlighting after HTML rendering if needed
+        if (searchTerm && searchResults.length > 0) {
+          // Note: Search highlighting in HTML mode is complex because we need to avoid
+          // highlighting inside HTML tags. For now, we'll skip search in HTML mode.
+          // This could be enhanced later with proper HTML-aware search.
+        }
+      } else {
+        // Text mode - escape HTML entities first
+        displayLines = displayLines.map(line => 
+          line.replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#39;')
+        );
+        
+        // Apply search highlighting after HTML escaping
+        if (searchTerm && searchResults.length > 0) {
+          displayLines = displayLines.map((line, index) => {
+            const globalIndex = currentLine + index;
+            if (searchResults.includes(globalIndex)) {
+              const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+                                                 .replace(/&/g, '&amp;')
+                                                 .replace(/</g, '&lt;')
+                                                 .replace(/>/g, '&gt;')
+                                                 .replace(/"/g, '&quot;')
+                                                 .replace(/'/g, '&#39;');
+              const regex = new RegExp(`(${escapedSearchTerm})`, 'gi');
+              const isCurrentMatch = globalIndex === searchResults[currentSearchIndex];
+              return line.replace(regex, (match) => 
+                `<span class="${isCurrentMatch ? 'less-current-match' : 'less-highlight'}">${match}</span>`
+              );
+            }
+            return line;
+          });
+        }
+        contentDiv.innerHTML = displayLines.join('\n');
+      }
+      positionSpan.textContent = `lines ${currentLine + 1}-${endLine} of ${lines.length}`;
+      
+      if (searchTerm) {
+        const searchCount = searchResults.length;
+        const currentPos = currentSearchIndex >= 0 ? currentSearchIndex + 1 : 0;
+        positionSpan.textContent += ` | Search: ${currentPos}/${searchCount}`;
+      }
+    };
+
+    const performSearch = (term, isRepeatSearch = false) => {
+      // If no term provided and we have a last search, repeat it
+      if (!term && lastSearchTerm) {
+        term = lastSearchTerm;
+        isRepeatSearch = true;
+      }
+      
+      if (!term) {
+        return; // No search term available
+      }
+      
+      // Only rebuild search results if it's a new search term
+      if (term !== searchTerm) {
+        searchTerm = term;
+        lastSearchTerm = term;
+        searchResults = [];
+        currentSearchIndex = -1;
+        
+        // Search in the original unescaped content
+        const regex = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        lines.forEach((line, index) => {
+          if (regex.test(line)) {
+            searchResults.push(index);
+          }
+        });
+      }
+      
+      if (searchResults.length > 0) {
+        if (isRepeatSearch || term !== searchTerm) {
+          // For repeat searches or new searches, find next match after current position
+          let nextIndex = searchResults.findIndex(lineNum => lineNum > currentLine + Math.floor(linesPerPage / 2));
+          if (nextIndex === -1) {
+            // Wrap around to beginning
+            nextIndex = 0;
+          }
+          currentSearchIndex = nextIndex;
+        } else {
+          // For first search, find first match at or after current line
+          currentSearchIndex = searchResults.findIndex(lineNum => lineNum >= currentLine);
+          if (currentSearchIndex === -1) {
+            currentSearchIndex = 0; // Wrap to first match
+          }
+        }
+        
+        currentLine = Math.max(0, searchResults[currentSearchIndex] - Math.floor(linesPerPage / 2));
+      }
+      
+      updateDisplay();
+    };
+
+    const handleKeyPress = (e) => {
+      const searchDiv = modal.querySelector('#less-search');
+      const searchInput = modal.querySelector('#less-search-input');
+      
+      if (searchDiv.style.display !== 'none') {
+        // In search mode
+        if (e.key === 'Enter') {
+          const inputValue = searchInput.value.trim();
+          if (inputValue === '' && lastSearchTerm) {
+            // Empty search with previous term - repeat last search
+            performSearch(lastSearchTerm, true);
+          } else if (inputValue !== '') {
+            // New search term
+            performSearch(inputValue);
+          }
+          searchDiv.style.display = 'none';
+          e.preventDefault();
+        } else if (e.key === 'Escape') {
+          searchDiv.style.display = 'none';
+          e.preventDefault();
+        }
+        return;
+      }
+      
+      // Normal navigation mode
+      switch (e.key) {
+        case 'q':
+        case 'Q':
+          document.body.removeChild(modal);
+          document.head.removeChild(style);
+          document.removeEventListener('keydown', handleKeyPress);
+          break;
+        case 'j':
+        case 'ArrowDown':
+          if (currentLine < lines.length - linesPerPage) {
+            currentLine++;
+            updateDisplay();
+          }
+          e.preventDefault();
+          break;
+        case 'k':
+        case 'ArrowUp':
+          if (currentLine > 0) {
+            currentLine--;
+            updateDisplay();
+          }
+          e.preventDefault();
+          break;
+        case ' ':
+        case 'f':
+        case 'PageDown':
+          currentLine = Math.min(currentLine + linesPerPage, lines.length - linesPerPage);
+          updateDisplay();
+          e.preventDefault();
+          break;
+        case 'b':
+        case 'PageUp':
+          currentLine = Math.max(currentLine - linesPerPage, 0);
+          updateDisplay();
+          e.preventDefault();
+          break;
+        case 'g':
+          currentLine = 0;
+          updateDisplay();
+          e.preventDefault();
+          break;
+        case 'G':
+          currentLine = Math.max(lines.length - linesPerPage, 0);
+          updateDisplay();
+          e.preventDefault();
+          break;
+        case '/':
+          searchDiv.style.display = 'flex';
+          searchInput.value = '';
+          searchInput.placeholder = lastSearchTerm ? `Press Enter to repeat: ${lastSearchTerm}` : 'Enter search term';
+          searchInput.focus();
+          e.preventDefault();
+          break;
+        case 'n':
+          if (searchResults.length > 0) {
+            currentSearchIndex = (currentSearchIndex + 1) % searchResults.length;
+            currentLine = Math.max(0, searchResults[currentSearchIndex] - Math.floor(linesPerPage / 2));
+            updateDisplay();
+          }
+          e.preventDefault();
+          break;
+        case 'N':
+          if (searchResults.length > 0) {
+            currentSearchIndex = currentSearchIndex <= 0 ? searchResults.length - 1 : currentSearchIndex - 1;
+            currentLine = Math.max(0, searchResults[currentSearchIndex] - Math.floor(linesPerPage / 2));
+            updateDisplay();
+          }
+          e.preventDefault();
+          break;
+        case 'h':
+        case '?':
+          alert(`Less Viewer Help:
+          
+Navigation:
+  j, ↓     - Move down one line
+  k, ↑     - Move up one line  
+  Space, f - Move down one page
+  b        - Move up one page
+  g        - Go to beginning
+  G        - Go to end
+  
+Search:
+  /        - Start search (or repeat last search if empty)
+  n        - Next search result
+  N        - Previous search result
+  
+Other:
+  q        - Quit
+  h, ?     - Show this help`);
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    document.body.appendChild(modal);
+    updateDisplay();
+    
+    return ''; // Don't return any output to terminal
+  }
+
+  // HTML escape utility
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Vi editor implementation
+  showViEditor(content, filename, filePath) {
+    const lines = content.split('\n');
+    if (lines.length === 0 || (lines.length === 1 && lines[0] === '')) {
+      lines[0] = ''; // Ensure at least one empty line
+    }
+    
+    let cursorRow = 0;
+    let cursorCol = 0;
+    let mode = 'normal'; // 'normal', 'insert', or 'search'
+    let hasChanges = false;
+    let commandBuffer = '';
+    let pendingCommand = ''; // For multi-key commands like 'dd'
+    let searchTerm = '';
+    let searchResults = [];
+    let currentSearchIndex = -1;
+
+    // Create vi editor modal
+    const modal = document.createElement('div');
+    modal.className = 'vi-editor-modal';
+    modal.innerHTML = `
+      <div class="vi-editor">
+        <div class="vi-header">
+          <span class="vi-filename">"${filename}" ${lines.length} lines</span>
+          <span class="vi-mode">${mode.toUpperCase()}</span>
+        </div>
+        <div class="vi-content" id="vi-content"></div>
+        <div class="vi-footer">
+          <span class="vi-status" id="vi-status">Press 'i' for insert mode, ':' for commands</span>
+          <span class="vi-position">${cursorRow + 1},${cursorCol + 1}</span>
+        </div>
+      </div>
+    `;
+
+    // Add CSS styles
+    const style = document.createElement('style');
+    style.textContent = `
+      .vi-editor-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 1000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .vi-editor {
+        width: 90%;
+        height: 90%;
+        background: #000;
+        color: #fff;
+        font-family: 'Courier New', monospace;
+        border: 1px solid #333;
+        display: flex;
+        flex-direction: column;
+      }
+      .vi-header {
+        background: #333;
+        padding: 5px 10px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+      }
+      .vi-content {
+        flex: 1;
+        padding: 10px;
+        overflow: auto;
+        white-space: pre;
+        line-height: 1.4;
+        position: relative;
+      }
+      .vi-footer {
+        background: #333;
+        padding: 5px 10px;
+        font-size: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .vi-cursor {
+        background: #fff;
+        color: #000;
+        animation: blink 1s infinite;
+      }
+      .vi-cursor.insert {
+        background: #0f0;
+      }
+      @keyframes blink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0; }
+      }
+      .vi-line {
+        min-height: 1.4em;
+      }
+    `;
+    document.head.appendChild(style);
+
+    const updateDisplay = () => {
+      const contentDiv = modal.querySelector('#vi-content');
+      const modeSpan = modal.querySelector('.vi-mode');
+      const positionSpan = modal.querySelector('.vi-position');
+      const statusSpan = modal.querySelector('#vi-status');
+      
+      // Ensure cursor is within bounds
+      cursorRow = Math.max(0, Math.min(cursorRow, lines.length - 1));
+      cursorCol = Math.max(0, Math.min(cursorCol, lines[cursorRow].length));
+      
+      // Build display with cursor - escape HTML to show raw text
+      let displayContent = '';
+      lines.forEach((line, rowIndex) => {
+        if (rowIndex === cursorRow) {
+          // Add cursor to current line
+          const beforeCursor = this.escapeHtml(line.substring(0, cursorCol));
+          const atCursor = cursorCol < line.length ? this.escapeHtml(line[cursorCol]) : ' ';
+          const afterCursor = this.escapeHtml(line.substring(cursorCol + 1));
+          displayContent += beforeCursor + 
+            `<span class="vi-cursor ${mode}">${atCursor}</span>` + 
+            afterCursor + '\n';
+        } else {
+          displayContent += this.escapeHtml(line) + '\n';
+        }
+      });
+      
+      contentDiv.innerHTML = displayContent;
+      modeSpan.textContent = mode.toUpperCase() + (hasChanges ? ' [+]' : '');
+      positionSpan.textContent = `${cursorRow + 1},${cursorCol + 1}`;
+      
+      if (commandBuffer) {
+        statusSpan.textContent = commandBuffer;
+      } else {
+        statusSpan.textContent = mode === 'normal' ? 
+          "Press 'i' for insert mode, ':' for commands" : 
+          "Press Esc to return to normal mode";
+      }
+    };
+
+    const saveFile = async () => {
+      try {
+        const content = lines.join('\n');
+        await this.fileSystemDB.createFile(filePath, content, true);
+        hasChanges = false;
+        modal.querySelector('#vi-status').textContent = `"${filename}" written`;
+        setTimeout(() => updateDisplay(), 1000);
+        return true;
+      } catch (error) {
+        modal.querySelector('#vi-status').textContent = `Error: ${error.message}`;
+        setTimeout(() => updateDisplay(), 2000);
+        return false;
+      }
+    };
+
+    const handleKeyPress = async (e) => {
+      if (mode === 'normal') {
+        // Command mode handling
+        if (commandBuffer.startsWith(':')) {
+          if (e.key === 'Enter') {
+            const command = commandBuffer.substring(1);
+            commandBuffer = '';
+            
+            switch (command) {
+              case 'w':
+                await saveFile();
+                break;
+              case 'q':
+                if (hasChanges) {
+                  modal.querySelector('#vi-status').textContent = 'No write since last change (use :q! to override)';
+                  setTimeout(() => updateDisplay(), 2000);
+                } else {
+                  document.body.removeChild(modal);
+                  document.head.removeChild(style);
+                  document.removeEventListener('keydown', handleKeyPress);
+                }
+                break;
+              case 'wq':
+                if (await saveFile()) {
+                  setTimeout(() => {
+                    document.body.removeChild(modal);
+                    document.head.removeChild(style);
+                    document.removeEventListener('keydown', handleKeyPress);
+                  }, 500);
+                }
+                break;
+              case 'q!':
+                document.body.removeChild(modal);
+                document.head.removeChild(style);
+                document.removeEventListener('keydown', handleKeyPress);
+                break;
+              default:
+                modal.querySelector('#vi-status').textContent = `Unknown command: ${command}`;
+                setTimeout(() => updateDisplay(), 2000);
+            }
+            updateDisplay();
+            e.preventDefault();
+            return;
+          } else if (e.key === 'Escape') {
+            commandBuffer = '';
+            updateDisplay();
+            e.preventDefault();
+            return;
+          } else if (e.key.length === 1) {
+            commandBuffer += e.key;
+            updateDisplay();
+            e.preventDefault();
+            return;
+          }
+        }
+        
+        // Normal mode navigation and commands
+        switch (e.key) {
+          case ':':
+            commandBuffer = ':';
+            updateDisplay();
+            e.preventDefault();
+            break;
+          case 'i':
+            mode = 'insert';
+            updateDisplay();
+            e.preventDefault();
+            break;
+          case 'o':
+            lines.splice(cursorRow + 1, 0, '');
+            cursorRow++;
+            cursorCol = 0;
+            mode = 'insert';
+            hasChanges = true;
+            updateDisplay();
+            e.preventDefault();
+            break;
+          case 'x':
+            if (cursorCol < lines[cursorRow].length) {
+              lines[cursorRow] = lines[cursorRow].substring(0, cursorCol) + 
+                                lines[cursorRow].substring(cursorCol + 1);
+              hasChanges = true;
+            }
+            updateDisplay();
+            e.preventDefault();
+            break;
+          case 'h':
+          case 'ArrowLeft':
+            cursorCol = Math.max(0, cursorCol - 1);
+            updateDisplay();
+            e.preventDefault();
+            break;
+          case 'l':
+          case 'ArrowRight':
+            cursorCol = Math.min(lines[cursorRow].length, cursorCol + 1);
+            updateDisplay();
+            e.preventDefault();
+            break;
+          case 'j':
+          case 'ArrowDown':
+            if (cursorRow < lines.length - 1) {
+              cursorRow++;
+              cursorCol = Math.min(cursorCol, lines[cursorRow].length);
+            }
+            updateDisplay();
+            e.preventDefault();
+            break;
+          case 'k':
+          case 'ArrowUp':
+            if (cursorRow > 0) {
+              cursorRow--;
+              cursorCol = Math.min(cursorCol, lines[cursorRow].length);
+            }
+            updateDisplay();
+            e.preventDefault();
+            break;
+        }
+      } else if (mode === 'insert') {
+        // Insert mode handling
+        if (e.key === 'Escape') {
+          mode = 'normal';
+          cursorCol = Math.max(0, cursorCol - 1);
+          updateDisplay();
+          e.preventDefault();
+        } else if (e.key === 'Enter') {
+          const currentLine = lines[cursorRow];
+          const beforeCursor = currentLine.substring(0, cursorCol);
+          const afterCursor = currentLine.substring(cursorCol);
+          lines[cursorRow] = beforeCursor;
+          lines.splice(cursorRow + 1, 0, afterCursor);
+          cursorRow++;
+          cursorCol = 0;
+          hasChanges = true;
+          updateDisplay();
+          e.preventDefault();
+        } else if (e.key === 'Backspace') {
+          if (cursorCol > 0) {
+            lines[cursorRow] = lines[cursorRow].substring(0, cursorCol - 1) + 
+                              lines[cursorRow].substring(cursorCol);
+            cursorCol--;
+            hasChanges = true;
+          } else if (cursorRow > 0) {
+            // Join with previous line
+            const currentLine = lines[cursorRow];
+            cursorCol = lines[cursorRow - 1].length;
+            lines[cursorRow - 1] += currentLine;
+            lines.splice(cursorRow, 1);
+            cursorRow--;
+            hasChanges = true;
+          }
+          updateDisplay();
+          e.preventDefault();
+        } else if (e.key.length === 1) {
+          // Insert character
+          lines[cursorRow] = lines[cursorRow].substring(0, cursorCol) + 
+                            e.key + 
+                            lines[cursorRow].substring(cursorCol);
+          cursorCol++;
+          hasChanges = true;
+          updateDisplay();
+          e.preventDefault();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    document.body.appendChild(modal);
+    updateDisplay();
+    
+    return ''; // Don't return any output to terminal
   }
 
   // Command history persistence
@@ -1096,14 +1847,14 @@ class Terminal {
 
   // Standalone mode specific methods
   printWelcome() {
-    if (!this.isStandalone) return;
+    if (this.windowId) return; // Only print welcome in main terminal mode
 
     const welcome = `
 ╔══════════════════════════════════════════════════════════════╗
-║                    Welcome to jsh (Joe Shell) v1.0          ║
+║                    Welcome to jsh (Joe Shell) v1.0           ║
 ║                                                              ║
 ║  Type 'help' for available commands                          ║
-║  Try: history, !!, alias ll='ls -l', echo $USER             ║
+║  Try: history, !!, alias ll='ls -l', echo $USER              ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
         `;
@@ -1111,7 +1862,7 @@ class Terminal {
   }
 
   printPrompt() {
-    if (!this.isStandalone) return;
+    if (this.windowId) return; // Only print prompt in main terminal mode
 
     const promptText = document.getElementById('prompt-text');
     promptText.innerHTML = `${this.env.USER}@${this.env.HOSTNAME}:${this.getShortPath()}$ `;
@@ -1120,7 +1871,7 @@ class Terminal {
   }
 
   addCommandToOutput(command) {
-    if (!this.isStandalone) return;
+    if (this.windowId) return; // Only add command to output in main terminal mode
 
     const terminalOutput = document.getElementById('terminal-output');
     const commandLine = document.createElement('div');
@@ -1135,10 +1886,5 @@ class Terminal {
 // Export for use in os.js
 window.Terminal = Terminal;
 
-// Initialize standalone terminal if not in OS mode
-document.addEventListener('DOMContentLoaded', () => {
-  // Check if we're in standalone mode (not in an OS window)
-  if (document.getElementById('terminal-container')) {
-    window.terminal = new Terminal();
-  }
-});
+// Terminal is now always initialized by the OS layer
+// No standalone initialization needed

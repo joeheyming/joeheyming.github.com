@@ -295,6 +295,67 @@ class FileSystemDB {
     });
   }
 
+  // Read directory contents (OS-compatible interface)
+  async readdir(path) {
+    const entries = await this.listDirectory(path);
+    return entries.map(entry => ({
+      name: this.getFileName(entry.path),
+      type: entry.type,
+      size: entry.size || 0,
+      modified: entry.modified,
+      mode: entry.mode || (entry.type === 'directory' ? 0o755 : 0o644)
+    }));
+  }
+
+  // Stat file/directory (OS-compatible interface - alias for getItem)
+  async stat(path) {
+    return await this.getItem(path);
+  }
+
+  // Open file (OS-compatible interface)
+  async open(path, flags = 'r', mode = 0o644) {
+    const item = await this.getItem(path);
+    if (!item) {
+      if (flags.includes('w') || flags.includes('a')) {
+        // Create file if it doesn't exist and we're writing
+        await this.createFile(path, '', true);
+        return { path, flags, mode };
+      } else {
+        throw new Error(`No such file: ${path}`);
+      }
+    }
+    return { path, flags, mode, item };
+  }
+
+  // Make directory (OS-compatible interface - alias for createDirectory)
+  async mkdir(path, mode = 0o755) {
+    return await this.createDirectory(path);
+  }
+
+  // Remove directory (OS-compatible interface)
+  async rmdir(path) {
+    const item = await this.getItem(path);
+    if (!item) {
+      throw new Error(`No such directory: ${path}`);
+    }
+    if (item.type !== 'directory') {
+      throw new Error(`Not a directory: ${path}`);
+    }
+    return await this.deleteItem(path);
+  }
+
+  // Remove file (OS-compatible interface)
+  async unlink(path) {
+    const item = await this.getItem(path);
+    if (!item) {
+      throw new Error(`No such file: ${path}`);
+    }
+    if (item.type !== 'file') {
+      throw new Error(`Not a file: ${path}`);
+    }
+    return await this.deleteItem(path);
+  }
+
   // Create file
   async createFile(path, content = '', overwrite = false) {
     if (!this.isInitialized) await this.initialize();
@@ -558,13 +619,26 @@ class FileSystemDB {
   async initializeWithScaffolding(username = 'jheyming') {
     await this.initialize();
 
-    if (!(await this.hasScaffolding())) {
+    const hasScaffolding = await this.hasScaffolding();
+    console.log(`Filesystem scaffolding check: ${hasScaffolding}`);
+    
+    if (!hasScaffolding) {
       console.log('No filesystem found, creating scaffolding...');
       await this.createScaffolding(username);
       // Generate /bin files for all registered commands
       await this.generateBinFiles();
+      console.log('Filesystem scaffolding created successfully');
     } else {
       console.log('Existing filesystem found');
+      // Check if critical directories exist
+      const homeExists = await this.getItem(`/home/${username}`);
+      console.log(`Home directory exists: ${!!homeExists}`);
+      
+      if (!homeExists) {
+        console.log('Home directory missing, recreating scaffolding...');
+        await this.createScaffolding(username);
+      }
+      
       // Always regenerate /bin files to keep them up to date
       await this.generateBinFiles();
     }
