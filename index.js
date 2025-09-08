@@ -114,7 +114,7 @@ function generateHamburgerMenuItems() {
   // Generate menu items
   menuItems.forEach((app) => {
     const menuItem = document.createElement('a');
-    menuItem.href = app.path + 'index.html';
+    menuItem.href = app.path;
     menuItem.className = `hamburger-app-link flex items-center space-x-3 p-3 rounded-lg bg-gradient-to-r ${app.gradient} border ${app.border} transition-all duration-200 group`;
 
     menuItem.innerHTML = `
