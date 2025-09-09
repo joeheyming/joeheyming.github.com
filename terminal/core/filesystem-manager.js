@@ -235,16 +235,12 @@ class FileSystemManager {
   async stat(path) {
     const { mount, relativePath } = this.resolvePath(path);
 
-    console.log(`[FS] stat(${path}) -> mount: ${mount.type}, relativePath: ${relativePath}`);
-
     // Check if file exists and get stats
     const stats = await mount.device.stat(relativePath);
     if (!stats) {
-      console.log(`[FS] stat(${path}) -> device.stat returned null`);
       throw new Error(`File not found: ${path}`);
     }
 
-    console.log(`[FS] stat(${path}) -> found: ${stats.type}`);
     return {
       ...stats,
       path: path,
@@ -256,23 +252,18 @@ class FileSystemManager {
   async readdir(path) {
     const { mount, relativePath } = this.resolvePath(path);
 
-    console.log(`[FS] readdir(${path}) -> mount: ${mount.type}, relativePath: ${relativePath}`);
-
     // Check if directory exists and get stats
     const stats = await mount.device.stat(relativePath);
     if (!stats) {
-      console.log(`[FS] readdir(${path}) -> directory not found`);
       throw new Error(`Directory not found: ${path}`);
     }
 
     if (stats.type !== 'directory') {
-      console.log(`[FS] readdir(${path}) -> not a directory, type: ${stats.type}`);
       throw new Error(`Not a directory: ${path}`);
     }
 
     // Check read permissions
     const currentProcess = this.kernel.processManager.currentProcess;
-    console.log(`[FS] readdir permission check - currentProcess:`, currentProcess);
     if (!(await this.checkPermissions(path, 'r', currentProcess))) {
       throw new Error('Permission denied');
     }
@@ -280,13 +271,11 @@ class FileSystemManager {
     // Get directory contents from the device
     if (mount.device.readdir) {
       const entries = await mount.device.readdir(relativePath);
-      console.log(`[FS] readdir(${path}) -> found ${entries.length} entries`);
       return entries.map((entry) => ({
         ...entry,
         path: path === '/' ? `/${entry.name}` : `${path}/${entry.name}`
       }));
     } else {
-      console.log(`[FS] readdir(${path}) -> device doesn't support readdir`);
       // Fallback for devices that don't implement readdir
       return [];
     }
@@ -339,13 +328,7 @@ class FileSystemManager {
 
   // Check file permissions
   async checkPermissions(path, operation, process) {
-    console.log(
-      `[FS] checkPermissions(${path}, ${operation}, process:`,
-      process ? `uid=${process.uid}, gid=${process.gid}` : 'null',
-      ')'
-    );
     if (!process) {
-      console.log(`[FS] checkPermissions -> DENIED (no process)`);
       return false;
     }
 
