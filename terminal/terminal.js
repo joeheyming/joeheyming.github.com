@@ -589,8 +589,19 @@ class Terminal {
           // Handle script files (e.g., ./script.js, /path/to/script.sh)
           if (actualCmd.endsWith('.js') || actualCmd.endsWith('.sh') || file.executable) {
             if (actualCmd.endsWith('.js')) {
-              // Execute JavaScript files
-              return await this.executeJavaScriptFile(filePath, file.content, cmd.args);
+              // Execute JavaScript files using the node command
+              const nodeCommand = await this.commandRegistry.get('node');
+              if (nodeCommand) {
+                return {
+                  stdout: await nodeCommand(this, [filePath, ...cmd.args]),
+                  stderr: ''
+                };
+              } else {
+                return {
+                  stdout: '',
+                  stderr: 'JavaScript execution not available. Node command not loaded.'
+                };
+              }
             } else {
               // For shell scripts and other executables, show content for now
               return {
@@ -658,87 +669,6 @@ class Terminal {
     };
   }
 
-  async executeJavaScriptFile(filePath, content, args = []) {
-    try {
-      // Create a safe execution context
-      let output = '';
-      let errorOutput = '';
-
-      // Override console.log to capture output
-      const originalConsole = console.log;
-      const originalError = console.error;
-      const originalWarn = console.warn;
-
-      console.log = (...args) => {
-        output += args.join(' ') + '\n';
-      };
-
-      console.error = (...args) => {
-        errorOutput += args.join(' ') + '\n';
-      };
-
-      console.warn = (...args) => {
-        errorOutput += args.join(' ') + '\n';
-      };
-
-      // Create a context with some useful variables
-      const scriptContext = {
-        __filename: filePath,
-        __dirname: filePath.substring(0, filePath.lastIndexOf('/')),
-        process: {
-          argv: ['node', filePath, ...args],
-          env: this.env,
-          cwd: () => this.currentDirectory,
-          exit: (code = 0) => {
-            throw new Error(`Process exited with code ${code}`);
-          }
-        },
-        require: (module) => {
-          // Basic require simulation for common modules
-          if (module === 'fs') {
-            return {
-              readFileSync: () => {
-                throw new Error('fs.readFileSync not available in web terminal');
-              },
-              writeFileSync: () => {
-                throw new Error('fs.writeFileSync not available in web terminal');
-              }
-            };
-          }
-          throw new Error(`Module '${module}' not found`);
-        },
-        console: {
-          log: console.log,
-          error: console.error,
-          warn: console.warn
-        }
-      };
-
-      try {
-        // Execute the JavaScript code
-        const func = new Function(...Object.keys(scriptContext), content);
-        await func(...Object.values(scriptContext));
-      } catch (execError) {
-        errorOutput += `Error: ${execError.message}\n`;
-      }
-
-      // Restore original console
-      console.log = originalConsole;
-      console.error = originalError;
-      console.warn = originalWarn;
-
-      return {
-        stdout: output.trim(),
-        stderr: errorOutput.trim()
-      };
-    } catch (error) {
-      return {
-        stdout: '',
-        stderr: `Error executing ${filePath}: ${error.message}`
-      };
-    }
-  }
-
   async executeHeredocCommand() {
     try {
       const content = this.heredocContent.join('\n');
@@ -801,8 +731,49 @@ class Terminal {
   }
 
   async executeJavaScriptContent(content) {
-    // Reuse the existing JavaScript execution logic
-    return await this.executeJavaScriptFile('<heredoc>', content, []);
+    // Simple JavaScript execution for heredoc content
+    try {
+      let output = '';
+      let errorOutput = '';
+
+      // Override console to capture output
+      const originalConsole = console.log;
+      const originalError = console.error;
+      const originalWarn = console.warn;
+
+      console.log = (...args) => {
+        output += args.join(' ') + '\n';
+      };
+
+      console.error = (...args) => {
+        errorOutput += args.join(' ') + '\n';
+      };
+
+      console.warn = (...args) => {
+        errorOutput += args.join(' ') + '\n';
+      };
+
+      try {
+        // Execute the JavaScript content
+        const func = new Function(content);
+        func();
+      } finally {
+        // Restore original console
+        console.log = originalConsole;
+        console.error = originalError;
+        console.warn = originalWarn;
+      }
+
+      return {
+        stdout: output.trim(),
+        stderr: errorOutput.trim()
+      };
+    } catch (error) {
+      return {
+        stdout: '',
+        stderr: `Error: ${error.message}`
+      };
+    }
   }
 
   printHeredocPrompt() {
