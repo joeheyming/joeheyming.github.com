@@ -21,6 +21,7 @@ class CommandRegistry {
       alias: 'commands/system/alias.js',
       unalias: 'commands/system/unalias.js',
       which: 'commands/system/which.js',
+      type: 'commands/system/type.js',
       ps: 'commands/system/ps.js',
       uptime: 'commands/system/uptime.js',
       reset: 'commands/system/reset.js',
