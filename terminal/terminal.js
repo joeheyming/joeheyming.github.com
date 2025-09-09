@@ -11,6 +11,16 @@ class Terminal {
     this.commandsLoaded = false;
     this.filesystemReady = false;
 
+    // Signal handling system (like Unix signals)
+    this.signalHandlers = {}; // Map of signal -> handler function
+    this.currentProcess = null; // Currently running interactive process
+
+    // Heredoc state management
+    this.heredocMode = false;
+    this.heredocDelimiter = null;
+    this.heredocContent = [];
+    this.heredocCommand = null;
+
     // Initialize environment variables
     this.env = {
       USER: 'jheyming',
@@ -68,7 +78,6 @@ class Terminal {
     return await this.os.kernel.syscall(name, ...args);
   }
 
-
   // Get current process info
   getCurrentProcess() {
     if (!this.process) {
@@ -86,7 +95,6 @@ class Terminal {
   async initializeFilesystem() {
     await this.fileSystemDB.initializeWithScaffolding(this.env.USER);
   }
-
 
   initialize() {
     let terminalInput;
@@ -139,6 +147,62 @@ class Terminal {
 
   async handleCommand(input) {
     const command = input.value.trim();
+
+    // Handle heredoc mode
+    if (this.heredocMode) {
+      if (command === this.heredocDelimiter) {
+        // End of heredoc - show the delimiter and execute the command
+        this.addHeredocLineToOutput(command);
+        await this.executeHeredocCommand();
+        input.value = '';
+        return;
+      } else {
+        // Add line to heredoc content
+        this.heredocContent.push(command);
+        this.addHeredocLineToOutput(command);
+        input.value = '';
+        this.printHeredocPrompt();
+        return;
+      }
+    }
+
+    // Check for heredoc start (e.g., "node << EOF" or "js << END")
+    const heredocMatch = command.match(/^(.+?)\s*<<\s*(\w+)$/);
+    if (heredocMatch) {
+      this.heredocCommand = heredocMatch[1].trim();
+      this.heredocDelimiter = heredocMatch[2];
+      this.heredocMode = true;
+      this.heredocContent = [];
+
+      // Check if this is a recalled heredoc from history
+      if (this.historyIndex >= 0 && this.historyIndex < this.commandHistory.length) {
+        const fullHistoryCommand = this.commandHistory[this.historyIndex];
+        if (fullHistoryCommand.includes('\n')) {
+          // This is a recalled heredoc - populate the content
+          const lines = fullHistoryCommand.split('\n');
+          // Skip first line (heredoc start) and last line (delimiter)
+          this.heredocContent = lines.slice(1, -1);
+
+          this.addCommandToOutput(command);
+
+          // Show all the heredoc content lines
+          for (const line of this.heredocContent) {
+            this.addHeredocLineToOutput(line);
+          }
+
+          // Show the delimiter and execute immediately
+          this.addHeredocLineToOutput(this.heredocDelimiter);
+          await this.executeHeredocCommand();
+          input.value = '';
+          return;
+        }
+      }
+
+      this.addCommandToOutput(command);
+      input.value = '';
+      this.printHeredocPrompt();
+      return;
+    }
 
     // Add command to history
     if (command && command !== this.commandHistory[this.commandHistory.length - 1]) {
@@ -469,6 +533,81 @@ class Terminal {
       return { stdout: this.helpCommand(), stderr: '' };
     }
 
+    // Handle path-based command execution (e.g., /bin/top, ./script.js)
+    if (cmdName.includes('/')) {
+      try {
+        const filePath = this.resolvePath(cmdName);
+        const file = await this.getFileSystemItem(filePath);
+
+        if (file && file.type === 'file') {
+          // Extract the actual command name from the path
+          const actualCmd = cmdName.split('/').pop().toLowerCase();
+
+          // Check if it's an executable file in /bin/
+          if (filePath.startsWith('/bin/')) {
+            const commandHandler = await window.commandRegistry.get(actualCmd);
+            if (commandHandler) {
+              try {
+                const terminalContext = this;
+                terminalContext.stdin = stdin;
+                terminalContext.hasStdin = stdin.length > 0;
+                terminalContext.redirections = cmd.redirections;
+
+                const result = commandHandler(terminalContext, cmd.args);
+                const output = result instanceof Promise ? await result : result;
+
+                // Clean up temporary properties
+                delete terminalContext.stdin;
+                delete terminalContext.hasStdin;
+                delete terminalContext.redirections;
+
+                return {
+                  stdout: output || '',
+                  stderr: ''
+                };
+              } catch (error) {
+                return {
+                  stdout: '',
+                  stderr: `Error executing ${filePath}: ${error.message}`
+                };
+              }
+            }
+          }
+
+          // Handle script files (e.g., ./script.js, /path/to/script.sh)
+          if (actualCmd.endsWith('.js') || actualCmd.endsWith('.sh') || file.executable) {
+            if (actualCmd.endsWith('.js')) {
+              // Execute JavaScript files
+              return await this.executeJavaScriptFile(filePath, file.content, cmd.args);
+            } else {
+              // For shell scripts and other executables, show content for now
+              return {
+                stdout: `Executing ${filePath}:\n${file.content || 'File is empty'}`,
+                stderr: ''
+              };
+            }
+          }
+
+          // File exists but is not executable
+          return {
+            stdout: '',
+            stderr: `bash: ${filePath}: Permission denied`
+          };
+        } else {
+          // File doesn't exist
+          return {
+            stdout: '',
+            stderr: `bash: ${cmdName}: No such file or directory`
+          };
+        }
+      } catch (error) {
+        return {
+          stdout: '',
+          stderr: `bash: ${cmdName}: ${error.message}`
+        };
+      }
+    }
+
     // Try to get command from registry (now async)
     const commandHandler = await window.commandRegistry.get(cmdName);
     if (commandHandler) {
@@ -505,6 +644,162 @@ class Terminal {
       stdout: '',
       stderr: `bash: ${cmdName}: command not found\nTry 'help' for available commands or 'sudo apt install ${cmdName}' to pretend to install it! 😄`
     };
+  }
+
+  async executeJavaScriptFile(filePath, content, args = []) {
+    try {
+      // Create a safe execution context
+      let output = '';
+      let errorOutput = '';
+
+      // Override console.log to capture output
+      const originalConsole = console.log;
+      const originalError = console.error;
+      const originalWarn = console.warn;
+
+      console.log = (...args) => {
+        output += args.join(' ') + '\n';
+      };
+
+      console.error = (...args) => {
+        errorOutput += args.join(' ') + '\n';
+      };
+
+      console.warn = (...args) => {
+        errorOutput += args.join(' ') + '\n';
+      };
+
+      // Create a context with some useful variables
+      const scriptContext = {
+        __filename: filePath,
+        __dirname: filePath.substring(0, filePath.lastIndexOf('/')),
+        process: {
+          argv: ['node', filePath, ...args],
+          env: this.env,
+          cwd: () => this.currentDirectory,
+          exit: (code = 0) => {
+            throw new Error(`Process exited with code ${code}`);
+          }
+        },
+        require: (module) => {
+          // Basic require simulation for common modules
+          if (module === 'fs') {
+            return {
+              readFileSync: () => {
+                throw new Error('fs.readFileSync not available in web terminal');
+              },
+              writeFileSync: () => {
+                throw new Error('fs.writeFileSync not available in web terminal');
+              }
+            };
+          }
+          throw new Error(`Module '${module}' not found`);
+        },
+        console: {
+          log: console.log,
+          error: console.error,
+          warn: console.warn
+        }
+      };
+
+      try {
+        // Execute the JavaScript code
+        const func = new Function(...Object.keys(scriptContext), content);
+        await func(...Object.values(scriptContext));
+      } catch (execError) {
+        errorOutput += `Error: ${execError.message}\n`;
+      }
+
+      // Restore original console
+      console.log = originalConsole;
+      console.error = originalError;
+      console.warn = originalWarn;
+
+      return {
+        stdout: output.trim(),
+        stderr: errorOutput.trim()
+      };
+    } catch (error) {
+      return {
+        stdout: '',
+        stderr: `Error executing ${filePath}: ${error.message}`
+      };
+    }
+  }
+
+  async executeHeredocCommand() {
+    try {
+      const content = this.heredocContent.join('\n');
+      const command = this.heredocCommand.toLowerCase();
+
+      // Build complete heredoc command for history
+      const completeHeredoc = `${this.heredocCommand} << ${this.heredocDelimiter}\n${content}\n${this.heredocDelimiter}`;
+
+      // Add complete heredoc to command history
+      if (
+        completeHeredoc &&
+        completeHeredoc !== this.commandHistory[this.commandHistory.length - 1]
+      ) {
+        this.commandHistory.push(completeHeredoc);
+      }
+
+      // Reset heredoc state
+      this.heredocMode = false;
+      const originalCommand = this.heredocCommand;
+      const originalDelimiter = this.heredocDelimiter;
+      this.heredocCommand = null;
+      this.heredocDelimiter = null;
+      this.heredocContent = [];
+
+      // Handle different heredoc commands
+      if (command === 'js' || command === 'node' || command === 'javascript') {
+        // Execute JavaScript heredoc
+        const result = await this.executeJavaScriptContent(content);
+        if (result.stdout) {
+          this.addOutput(result.stdout);
+        }
+        if (result.stderr) {
+          this.addOutput(result.stderr);
+        }
+      } else if (command === 'cat') {
+        // Just output the content (like cat << EOF)
+        this.addOutput(content);
+      } else if (command === 'echo') {
+        // Echo the content
+        this.addOutput(content);
+      } else {
+        // Try to execute as a regular command with the content as stdin
+        const result = await this.executeSingleCommand(
+          { name: command, args: [], redirections: {} },
+          content
+        );
+        if (result.stdout) {
+          this.addOutput(result.stdout);
+        }
+        if (result.stderr) {
+          this.addOutput(result.stderr);
+        }
+      }
+    } catch (error) {
+      this.addOutput(`Error executing heredoc: ${error.message}`);
+    }
+
+    // Show new prompt
+    this.printPrompt();
+  }
+
+  async executeJavaScriptContent(content) {
+    // Reuse the existing JavaScript execution logic
+    return await this.executeJavaScriptFile('<heredoc>', content, []);
+  }
+
+  printHeredocPrompt() {
+    if (this.windowId) return; // Only print prompt in main terminal mode
+
+    const promptText = document.getElementById('prompt-text');
+    promptText.innerHTML = `> `;
+    const terminalInput = document.getElementById('terminal-input');
+    terminalInput.focus();
   }
 
   async redirectToFile(filename, content, append = false) {
@@ -638,7 +933,6 @@ class Terminal {
     }
   }
 
-
   getShortPath() {
     if (this.currentDirectory === this.env.HOME) {
       return '~';
@@ -702,7 +996,16 @@ class Terminal {
       }
     }
 
-    input.value = this.commandHistory[this.historyIndex] || '';
+    const historyCommand = this.commandHistory[this.historyIndex] || '';
+
+    // Check if this is a multi-line heredoc command
+    if (historyCommand.includes('\n')) {
+      // For heredocs, only show the first line (the heredoc start command)
+      const lines = historyCommand.split('\n');
+      input.value = lines[0];
+    } else {
+      input.value = historyCommand;
+    }
   }
 
   async handleTabCompletion(input) {
@@ -718,8 +1021,30 @@ class Terminal {
 
     // Command completion (first word)
     if (parts.length === 1) {
+      let matches = [];
+
+      // If the input starts with a path, handle path-based completion
+      if (lastPart.includes('/')) {
+        await this.handlePathCompletion(input, parts, lastPart);
+        return;
+      }
+
+      // Get regular command names
       const commands = window.commandRegistry.getCommandNames();
-      const matches = commands.filter((cmd) => cmd.startsWith(lastPart));
+      matches = commands.filter((cmd) => cmd.startsWith(lastPart));
+
+      // Also add /bin/ versions of commands if user is typing /bin/
+      if (lastPart.startsWith('/bin/')) {
+        const binPrefix = lastPart.substring(5); // Remove '/bin/'
+        const binMatches = commands
+          .filter((cmd) => cmd.startsWith(binPrefix))
+          .map((cmd) => `/bin/${cmd}`);
+        matches = matches.concat(binMatches);
+      } else if (lastPart === '/bin' || lastPart === '/bin/') {
+        // Show all /bin/ commands
+        const binCommands = commands.map((cmd) => `/bin/${cmd}`);
+        matches = matches.concat(binCommands);
+      }
 
       if (matches.length === 1) {
         input.value = matches[0] + ' ';
@@ -912,9 +1237,20 @@ class Terminal {
         }
         break;
 
-      case 'c': // Ctrl+C: Interrupt (clear current line)
+      case 'c': // Ctrl+C: Send SIGINT signal
         input.value = '';
         this.addOutput('^C');
+
+        // Exit heredoc mode if active
+        if (this.heredocMode) {
+          this.heredocMode = false;
+          this.heredocCommand = null;
+          this.heredocDelimiter = null;
+          this.heredocContent = [];
+          this.printPrompt();
+        } else {
+          this.sendSignal('SIGINT');
+        }
         break;
 
       case 'd': // Ctrl+D: EOF (exit if line is empty)
@@ -923,18 +1259,8 @@ class Terminal {
         }
         break;
 
-      case 'r': // Ctrl+R: Reverse search
-        const searchTerm = prompt('Enter search term:');
-        if (searchTerm) {
-          const foundCommand = [...this.commandHistory]
-            .reverse()
-            .find((cmd) => cmd.includes(searchTerm));
-          if (foundCommand) {
-            input.value = foundCommand;
-          } else {
-            this.addOutput(`No matching command found for: ${searchTerm}`);
-          }
-        }
+      case 'r': // Ctrl+R: Reverse search (interactive)
+        this.startReverseSearch(input);
         break;
 
       case 't': // Ctrl+T: Transpose characters
@@ -966,17 +1292,41 @@ class Terminal {
   processAnsiSequences(text) {
     // ANSI color codes mapping
     const ansiColors = {
-      '30': 'black', '31': 'red', '32': 'green', '33': 'yellow',
-      '34': 'blue', '35': 'magenta', '36': 'cyan', '37': 'white',
-      '90': 'gray', '91': 'lightred', '92': 'lightgreen', '93': 'lightyellow',
-      '94': 'lightblue', '95': 'lightmagenta', '96': 'lightcyan', '97': 'lightwhite'
+      30: 'black',
+      31: 'red',
+      32: 'green',
+      33: 'yellow',
+      34: 'blue',
+      35: 'magenta',
+      36: 'cyan',
+      37: 'white',
+      90: 'gray',
+      91: 'lightred',
+      92: 'lightgreen',
+      93: 'lightyellow',
+      94: 'lightblue',
+      95: 'lightmagenta',
+      96: 'lightcyan',
+      97: 'lightwhite'
     };
 
     const ansiBgColors = {
-      '40': 'black', '41': 'red', '42': 'green', '43': 'yellow',
-      '44': 'blue', '45': 'magenta', '46': 'cyan', '47': 'white',
-      '100': 'gray', '101': 'lightred', '102': 'lightgreen', '103': 'lightyellow',
-      '104': 'lightblue', '105': 'lightmagenta', '106': 'lightcyan', '107': 'lightwhite'
+      40: 'black',
+      41: 'red',
+      42: 'green',
+      43: 'yellow',
+      44: 'blue',
+      45: 'magenta',
+      46: 'cyan',
+      47: 'white',
+      100: 'gray',
+      101: 'lightred',
+      102: 'lightgreen',
+      103: 'lightyellow',
+      104: 'lightblue',
+      105: 'lightmagenta',
+      106: 'lightcyan',
+      107: 'lightwhite'
     };
 
     let result = text;
@@ -986,7 +1336,7 @@ class Terminal {
     result = result.replace(/\x1b\[2J/g, ''); // Clear entire screen
     result = result.replace(/\x1b\[H/g, ''); // Move cursor to home position
     result = result.replace(/\x1b\[1;1H/g, ''); // Move cursor to 1,1
-    
+
     // Handle cursor movement (simplified - just remove for now)
     result = result.replace(/\x1b\[\d+;\d+H/g, ''); // Move cursor to specific position
     result = result.replace(/\x1b\[\d+A/g, ''); // Move cursor up
@@ -998,8 +1348,8 @@ class Terminal {
     result = result.replace(/\x1b\[([0-9;]+)m/g, (match, codes) => {
       const codeList = codes.split(';');
       let html = '';
-      
-      codeList.forEach(code => {
+
+      codeList.forEach((code) => {
         switch (code) {
           case '0': // Reset
             if (currentStyles.length > 0) {
@@ -1025,7 +1375,7 @@ class Terminal {
             }
         }
       });
-      
+
       return html;
     });
 
@@ -1034,10 +1384,10 @@ class Terminal {
 
   addOutput(output, options = {}) {
     const { preserveAnsi = false, streaming = false } = options;
-    
+
     // Check if we're in a windowed mode or using main terminal
     const windowElement = this.windowId ? document.getElementById(`window-${this.windowId}`) : null;
-    
+
     if (windowElement) {
       // Windowed mode - use window-specific elements
       const terminalContent = windowElement.querySelector('.terminal-content');
@@ -1054,7 +1404,9 @@ class Terminal {
         // Process ANSI sequences
         const processedOutput = this.processAnsiSequences(output);
         const outputElement = document.createElement('div');
-        outputElement.className = streaming ? 'terminal-line streaming-output ansi-output' : 'terminal-line ansi-output';
+        outputElement.className = streaming
+          ? 'terminal-line streaming-output ansi-output'
+          : 'terminal-line ansi-output';
         outputElement.innerHTML = processedOutput;
         terminalContent.appendChild(outputElement);
       } else {
@@ -1070,17 +1422,17 @@ class Terminal {
     } else {
       // Main terminal mode - use terminal-output element
       const terminalOutput = document.getElementById('terminal-output');
-      
+
       if (!terminalOutput) {
         console.error('Terminal output element not found');
         return;
       }
-      
+
       if (streaming) {
         // For streaming content, clear previous content and add new
         terminalOutput.innerHTML = '';
       }
-      
+
       if (preserveAnsi) {
         // Process ANSI sequences for animations
         const processedOutput = this.processAnsiSequences(output);
@@ -1098,7 +1450,7 @@ class Terminal {
           terminalOutput.appendChild(outputElement);
         });
       }
-      
+
       terminalOutput.scrollTop = terminalOutput.scrollHeight;
     }
   }
@@ -1106,7 +1458,7 @@ class Terminal {
   addNewInputLine() {
     // Check if we're in windowed mode
     const windowElement = this.windowId ? document.getElementById(`window-${this.windowId}`) : null;
-    
+
     if (windowElement) {
       // Windowed mode
       const terminalContent = windowElement.querySelector('.terminal-content');
@@ -1132,7 +1484,7 @@ class Terminal {
   scrollToBottom() {
     // Check if we're in windowed mode
     const windowElement = this.windowId ? document.getElementById(`window-${this.windowId}`) : null;
-    
+
     if (windowElement) {
       // Windowed mode
       const terminalContent = windowElement.querySelector('.terminal-content');
@@ -1187,7 +1539,7 @@ class Terminal {
   /**
    * Terminal I/O API - Standard input/output interface for commands
    */
-  
+
   // Write output to terminal (replaces direct DOM manipulation)
   writeOutput(text, options = {}) {
     return this.addOutput(text, options);
@@ -1206,7 +1558,9 @@ class Terminal {
       const terminalContent = windowElement.querySelector('.terminal-content');
       terminalContent.innerHTML = `
         <div class="terminal-line">
-          <span class="terminal-prompt">${this.env.USER}@${this.env.HOSTNAME}:${this.getShortPath()}$</span> <input type="text" class="terminal-input" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Type a command...">
+          <span class="terminal-prompt">${this.env.USER}@${
+        this.env.HOSTNAME
+      }:${this.getShortPath()}$</span> <input type="text" class="terminal-input" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Type a command...">
         </div>
       `;
       this.initialize();
@@ -1222,7 +1576,7 @@ class Terminal {
   /**
    * Modal/Fullscreen API - For commands that need full-screen interfaces
    */
-  
+
   // Create a modal interface (for commands like less, vi)
   createModal(options = {}) {
     const {
@@ -1246,10 +1600,24 @@ class Terminal {
     document.body.appendChild(modal);
     modal.focus();
 
-    // Bind keyboard events if provided
-    if (onKeyDown) {
-      modal.addEventListener('keydown', onKeyDown);
-    }
+    // Enhanced keyboard event handler with automatic Ctrl+C support
+    const enhancedKeyHandler = (e) => {
+      // Handle Ctrl+C automatically for all modals (like a real terminal)
+      if (e.ctrlKey && e.key === 'c') {
+        e.preventDefault();
+        e.stopPropagation();
+        this.addOutput('^C');
+        this.sendSignal('SIGINT');
+        return;
+      }
+
+      // Call custom onKeyDown handler if provided
+      if (onKeyDown) {
+        onKeyDown(e);
+      }
+    };
+
+    modal.addEventListener('keydown', enhancedKeyHandler);
 
     // Return modal interface
     return {
@@ -1277,7 +1645,7 @@ class Terminal {
   /**
    * Display Control API - For commands that need display control
    */
-  
+
   // Disable terminal input (for modal commands)
   disableTerminalInput() {
     const terminalInput = document.getElementById('terminal-input');
@@ -1287,7 +1655,7 @@ class Terminal {
     }
     // Also disable any other terminal inputs in multi-line mode
     const allInputs = document.querySelectorAll('.terminal-input');
-    allInputs.forEach(input => {
+    allInputs.forEach((input) => {
       input.disabled = true;
       input.blur();
     });
@@ -1302,7 +1670,7 @@ class Terminal {
     }
     // Also re-enable any other terminal inputs
     const allInputs = document.querySelectorAll('.terminal-input');
-    allInputs.forEach(input => {
+    allInputs.forEach((input) => {
       input.disabled = false;
     });
     // Focus the most recent input
@@ -1315,7 +1683,7 @@ class Terminal {
   /**
    * Input API - For modal commands that need user input
    */
-  
+
   // Create an input prompt within a modal (replaces prompt())
   createInputPrompt(modal, options = {}) {
     const {
@@ -1381,14 +1749,14 @@ class Terminal {
     // Add overlay to modal
     modal.element.appendChild(inputOverlay);
     const input = inputOverlay.querySelector('.prompt-input');
-    
+
     // Focus the input with a slight delay to ensure it's rendered
     setTimeout(() => input.focus(), 10);
 
     // Handle input events
     const handleKeyDown = (e) => {
       e.stopPropagation(); // Prevent modal from handling this event
-      
+
       if (e.key === 'Enter') {
         const value = input.value;
         cleanup();
@@ -1417,7 +1785,9 @@ class Terminal {
     return {
       focus: () => input.focus(),
       getValue: () => input.value,
-      setValue: (value) => { input.value = value; },
+      setValue: (value) => {
+        input.value = value;
+      },
       close: cleanup
     };
   }
@@ -1425,7 +1795,7 @@ class Terminal {
   /**
    * Utility API - Helper methods for commands
    */
-  
+
   // HTML escape utility (safer than commands doing it themselves)
   escapeHtml(text) {
     const div = document.createElement('div');
@@ -1486,6 +1856,258 @@ class Terminal {
       this.env.HOSTNAME
     }:${this.getShortPath()}$</span> ${command}`;
     terminalOutput.appendChild(commandLine);
+  }
+
+  addHeredocLineToOutput(command) {
+    if (this.windowId) return; // Only add command to output in main terminal mode
+
+    const terminalOutput = document.getElementById('terminal-output');
+    const commandLine = document.createElement('div');
+    commandLine.className = 'terminal-line';
+    commandLine.innerHTML = `<span class="prompt">></span> ${command}`;
+    terminalOutput.appendChild(commandLine);
+  }
+
+  /**
+   * Interactive Reverse Search - Like bash Ctrl+R
+   */
+
+  startReverseSearch(input) {
+    // Save original input state
+    const originalValue = input.value;
+
+    // Find the prompt element - handle different terminal contexts
+    let promptElement = input.parentElement.querySelector('.terminal-prompt');
+    if (!promptElement) {
+      // Try main terminal prompt
+      promptElement = document.getElementById('prompt-text');
+    }
+    if (!promptElement) {
+      // Try generic prompt class
+      promptElement = input.parentElement.querySelector('.prompt');
+    }
+
+    if (!promptElement) {
+      console.error('Could not find prompt element for reverse search');
+      return;
+    }
+
+    const originalPrompt = promptElement.textContent;
+
+    // Set up reverse search state
+    let searchTerm = '';
+    let currentMatch = '';
+    let matchIndex = -1;
+
+    // Update prompt to show reverse search mode
+    const updatePrompt = () => {
+      if (currentMatch) {
+        promptElement.textContent = `(reverse-i-search)\`${searchTerm}': `;
+        input.value = currentMatch;
+      } else {
+        promptElement.textContent = `(reverse-i-search)\`${searchTerm}': `;
+        input.value = '';
+      }
+    };
+
+    // Search function
+    const performSearch = () => {
+      if (searchTerm === '') {
+        currentMatch = '';
+        matchIndex = -1;
+        updatePrompt();
+        return;
+      }
+
+      const matches = [...this.commandHistory]
+        .reverse()
+        .filter((cmd) => cmd.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      if (matches.length > 0) {
+        matchIndex = 0;
+        currentMatch = matches[0];
+      } else {
+        currentMatch = '';
+        matchIndex = -1;
+      }
+      updatePrompt();
+    };
+
+    // Exit reverse search
+    const exitSearch = (accept = false) => {
+      promptElement.textContent = originalPrompt;
+      if (accept && currentMatch) {
+        input.value = currentMatch;
+      } else {
+        input.value = originalValue;
+      }
+
+      // Remove event listeners
+      input.removeEventListener('keydown', reverseSearchHandler);
+      input.removeEventListener('input', inputHandler);
+    };
+
+    // Handle input changes - we need to track the search term manually
+    const inputHandler = (e) => {
+      // Prevent default input handling since we're managing the search term manually
+      e.preventDefault();
+    };
+
+    // Handle special keys during reverse search
+    const reverseSearchHandler = (e) => {
+      switch (e.key) {
+        case 'Enter':
+          e.preventDefault();
+          exitSearch(true);
+          // Trigger command execution
+          this.handleCommand(input);
+          break;
+
+        case 'Escape':
+          e.preventDefault();
+          exitSearch(false);
+          break;
+
+        case 'ArrowUp':
+        case 'ArrowDown':
+          e.preventDefault();
+          // Navigate through matches
+          if (searchTerm && currentMatch) {
+            const matches = [...this.commandHistory]
+              .reverse()
+              .filter((cmd) => cmd.toLowerCase().includes(searchTerm.toLowerCase()));
+
+            if (matches.length > 1) {
+              if (e.key === 'ArrowUp') {
+                matchIndex = (matchIndex + 1) % matches.length;
+              } else {
+                matchIndex = matchIndex > 0 ? matchIndex - 1 : matches.length - 1;
+              }
+              currentMatch = matches[matchIndex];
+              updatePrompt();
+            }
+          }
+          break;
+
+        case 'Backspace':
+          e.preventDefault();
+          if (searchTerm.length > 0) {
+            searchTerm = searchTerm.slice(0, -1);
+            performSearch();
+          }
+          break;
+
+        default:
+          if (e.ctrlKey && e.key === 'r') {
+            // Ctrl+R again - find next match
+            e.preventDefault();
+            if (searchTerm && currentMatch) {
+              const matches = [...this.commandHistory]
+                .reverse()
+                .filter((cmd) => cmd.toLowerCase().includes(searchTerm.toLowerCase()));
+
+              if (matches.length > 1) {
+                matchIndex = (matchIndex + 1) % matches.length;
+                currentMatch = matches[matchIndex];
+                updatePrompt();
+              }
+            }
+          } else if (e.ctrlKey && e.key === 'c') {
+            // Ctrl+C - cancel search
+            e.preventDefault();
+            exitSearch(false);
+          } else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            // Regular character input
+            e.preventDefault();
+            searchTerm += e.key;
+            performSearch();
+          }
+          break;
+      }
+    };
+
+    // Set up event listeners
+    input.addEventListener('keydown', reverseSearchHandler);
+    input.addEventListener('input', inputHandler);
+
+    // Initialize
+    input.value = '';
+    updatePrompt();
+  }
+
+  /**
+   * Signal System API - Unix-like signal handling for commands
+   */
+
+  // Register a signal handler (like signal() or sigaction() in Unix)
+  onSignal(signalName, handler) {
+    // Create a unique event listener for this terminal instance
+    const eventType = `terminal-signal-${signalName}-${this.windowId || 'main'}`;
+
+    // Store the handler and event type for cleanup
+    if (!this.signalHandlers[signalName]) {
+      this.signalHandlers[signalName] = [];
+    }
+
+    const eventHandler = (event) => {
+      try {
+        handler(event.detail.signalName, event.detail);
+      } catch (error) {
+        console.error(`Error in signal handler for ${signalName}:`, error);
+      }
+    };
+
+    this.signalHandlers[signalName].push({
+      handler: eventHandler,
+      eventType: eventType
+    });
+
+    window.addEventListener(eventType, eventHandler);
+  }
+
+  // Remove a signal handler
+  offSignal(signalName) {
+    if (this.signalHandlers[signalName]) {
+      // Remove all event listeners for this signal
+      this.signalHandlers[signalName].forEach(({ handler, eventType }) => {
+        window.removeEventListener(eventType, handler);
+      });
+      delete this.signalHandlers[signalName];
+    }
+  }
+
+  // Send a signal to the current process (like kill() in Unix)
+  sendSignal(signalName, data = {}) {
+    const eventType = `terminal-signal-${signalName}-${this.windowId || 'main'}`;
+
+    // Create and dispatch custom event
+    const signalEvent = new CustomEvent(eventType, {
+      detail: {
+        signalName: signalName,
+        timestamp: Date.now(),
+        terminalId: this.windowId || 'main',
+        ...data
+      }
+    });
+
+    // Dispatch asynchronously to avoid issues with handlers modifying the signal registry
+    setTimeout(() => {
+      window.dispatchEvent(signalEvent);
+    }, 0);
+  }
+
+  // Set the current running process (for signal targeting)
+  setCurrentProcess(processInfo) {
+    this.currentProcess = processInfo;
+  }
+
+  // Clear the current process
+  clearCurrentProcess() {
+    this.currentProcess = null;
+    // Clear all signal handlers when process ends
+    Object.keys(this.signalHandlers).forEach((signalName) => {
+      this.offSignal(signalName);
+    });
   }
 }
 
