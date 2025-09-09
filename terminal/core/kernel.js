@@ -4,7 +4,7 @@ class HeymingKernel {
     this.version = '0.1.0';
     this.bootTime = Date.now();
     this.isInitialized = false;
-    
+
     // Core subsystems
     this.processManager = null;
     this.memoryManager = null;
@@ -14,12 +14,12 @@ class HeymingKernel {
     this.ipcManager = null;
     this.networkManager = null;
     this.schedulerManager = null;
-    
+
     // System state
     this.systemCalls = new Map();
     this.interruptHandlers = new Map();
     this.kernelLog = [];
-    
+
     // Event system for kernel-level events
     this.eventListeners = new Map();
   }
@@ -42,17 +42,17 @@ class HeymingKernel {
       await this.initializeDeviceManager();
       await this.initializeNetworkManager();
       await this.initializeSchedulerManager();
-      
+
       // Register core system calls
       this.registerSystemCalls();
-      
+
       // Register interrupt handlers
       this.registerInterruptHandlers();
-      
+
       this.isInitialized = true;
       this.log('Kernel initialization complete');
       this.emit('kernel:ready');
-      
+
       return this;
     } catch (error) {
       this.log('Kernel initialization failed: ' + error.message, 'error');
@@ -93,7 +93,7 @@ class HeymingKernel {
     }
     this.processManager = new window.ProcessManager(this);
     await this.processManager.initialize();
-    this.log('Process Manager initialized');
+    this.log('Process Manager initialized with Web Worker isolation');
   }
 
   async initializeIPCManager() {
@@ -147,7 +147,7 @@ class HeymingKernel {
     if (!handler) {
       throw new Error(`Unknown system call: ${name}`);
     }
-    
+
     try {
       return await handler.call(this, ...args);
     } catch (error) {
@@ -158,14 +158,25 @@ class HeymingKernel {
 
   // Register core system calls
   registerSystemCalls() {
-    // Process management
-    this.registerSystemCall('fork', this.processManager.fork.bind(this.processManager));
-    this.registerSystemCall('exec', this.processManager.exec.bind(this.processManager));
-    this.registerSystemCall('exit', this.processManager.exit.bind(this.processManager));
-    this.registerSystemCall('wait', this.processManager.wait.bind(this.processManager));
-    this.registerSystemCall('kill', this.processManager.kill.bind(this.processManager));
-    this.registerSystemCall('getpid', this.processManager.getpid.bind(this.processManager));
-    this.registerSystemCall('getppid', this.processManager.getppid.bind(this.processManager));
+    // Process management - using our actual ProcessManager methods
+    this.registerSystemCall(
+      'createProcess',
+      this.processManager.createProcess.bind(this.processManager)
+    );
+    this.registerSystemCall(
+      'executeCommand',
+      this.processManager.executeCommand.bind(this.processManager)
+    );
+    this.registerSystemCall(
+      'terminateProcess',
+      this.processManager.terminateProcess.bind(this.processManager)
+    );
+    this.registerSystemCall('sendSignal', this.processManager.sendSignal.bind(this.processManager));
+    this.registerSystemCall(
+      'getAllProcesses',
+      this.processManager.getAllProcesses.bind(this.processManager)
+    );
+    this.registerSystemCall('getProcess', this.processManager.getProcess.bind(this.processManager));
 
     // File system
     this.registerSystemCall('open', this.fileSystemManager.open.bind(this.fileSystemManager));
@@ -178,23 +189,29 @@ class HeymingKernel {
     this.registerSystemCall('rmdir', this.fileSystemManager.rmdir.bind(this.fileSystemManager));
     this.registerSystemCall('unlink', this.fileSystemManager.unlink.bind(this.fileSystemManager));
 
-    // Memory management
-    this.registerSystemCall('mmap', this.memoryManager.mmap.bind(this.memoryManager));
-    this.registerSystemCall('munmap', this.memoryManager.munmap.bind(this.memoryManager));
-    this.registerSystemCall('brk', this.memoryManager.brk.bind(this.memoryManager));
+    // Memory management - register only if methods exist
+    if (this.memoryManager.allocate) {
+      this.registerSystemCall('allocate', this.memoryManager.allocate.bind(this.memoryManager));
+    }
+    if (this.memoryManager.deallocate) {
+      this.registerSystemCall('deallocate', this.memoryManager.deallocate.bind(this.memoryManager));
+    }
 
-    // IPC
-    this.registerSystemCall('pipe', this.ipcManager.createPipe.bind(this.ipcManager));
-    this.registerSystemCall('msgget', this.ipcManager.createMessageQueue.bind(this.ipcManager));
-    this.registerSystemCall('msgsnd', this.ipcManager.sendMessage.bind(this.ipcManager));
-    this.registerSystemCall('msgrcv', this.ipcManager.receiveMessage.bind(this.ipcManager));
+    // IPC - register only if methods exist
+    if (this.ipcManager.createChannel) {
+      this.registerSystemCall('createChannel', this.ipcManager.createChannel.bind(this.ipcManager));
+    }
+    if (this.ipcManager.sendMessage) {
+      this.registerSystemCall('sendMessage', this.ipcManager.sendMessage.bind(this.ipcManager));
+    }
 
-    // Network
-    this.registerSystemCall('socket', this.networkManager.createSocket.bind(this.networkManager));
-    this.registerSystemCall('bind', this.networkManager.bind.bind(this.networkManager));
-    this.registerSystemCall('listen', this.networkManager.listen.bind(this.networkManager));
-    this.registerSystemCall('accept', this.networkManager.accept.bind(this.networkManager));
-    this.registerSystemCall('connect', this.networkManager.connect.bind(this.networkManager));
+    // Network - register only if methods exist
+    if (this.networkManager.createConnection) {
+      this.registerSystemCall(
+        'createConnection',
+        this.networkManager.createConnection.bind(this.networkManager)
+      );
+    }
   }
 
   // Interrupt handling
@@ -209,7 +226,7 @@ class HeymingKernel {
   interrupt(type, data = null) {
     const handlers = this.interruptHandlers.get(type);
     if (handlers) {
-      handlers.forEach(handler => {
+      handlers.forEach((handler) => {
         try {
           handler.call(this, data);
         } catch (error) {
@@ -249,7 +266,7 @@ class HeymingKernel {
   emit(event, data = null) {
     const listeners = this.eventListeners.get(event);
     if (listeners) {
-      listeners.forEach(callback => {
+      listeners.forEach((callback) => {
         try {
           callback(data);
         } catch (error) {
@@ -268,14 +285,14 @@ class HeymingKernel {
       message,
       uptime: Date.now() - this.bootTime
     };
-    
+
     this.kernelLog.push(logEntry);
-    
+
     // Keep log size manageable
     if (this.kernelLog.length > 1000) {
       this.kernelLog = this.kernelLog.slice(-500);
     }
-    
+
     // Also log to console in development
     if (typeof console !== 'undefined') {
       const logMethod = console[level] || console.log;
@@ -299,15 +316,15 @@ class HeymingKernel {
   // Shutdown the kernel
   async shutdown() {
     this.log('Initiating kernel shutdown');
-    
+
     if (this.processManager) {
       await this.processManager.terminateAllProcesses();
     }
-    
+
     if (this.fileSystemManager) {
       await this.fileSystemManager.sync();
     }
-    
+
     this.emit('kernel:shutdown');
     this.log('Kernel shutdown complete');
   }

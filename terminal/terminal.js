@@ -75,7 +75,19 @@ class Terminal {
     if (!this.os || !this.os.kernel) {
       throw new Error('OS kernel not available - system cannot function without OS layer');
     }
-    return await this.os.kernel.syscall(name, ...args);
+
+    // Ensure this terminal's process is set as current for permission checks
+    const originalCurrentProcess = this.os.kernel.processManager.currentProcess;
+    if (this.process) {
+      this.os.kernel.processManager.setCurrentProcess(this.process);
+    }
+
+    try {
+      return await this.os.kernel.syscall(name, ...args);
+    } finally {
+      // Restore original current process
+      this.os.kernel.processManager.setCurrentProcess(originalCurrentProcess);
+    }
   }
 
   // Get current process info

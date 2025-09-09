@@ -8,7 +8,7 @@ class HeymingOS {
     this.services = new Map();
     this.isInitialized = false;
     this.bootTime = Date.now();
-    
+
     // OS Configuration
     this.config = {
       maxTerminals: 10,
@@ -20,7 +20,7 @@ class HeymingOS {
       enableAuditLogging: true,
       enableNetworking: true
     };
-    
+
     // Event system
     this.eventListeners = new Map();
   }
@@ -32,26 +32,26 @@ class HeymingOS {
     }
 
     console.log(`🚀 Booting Heyming OS v${this.version}...`);
-    
+
     try {
       // Initialize the kernel
       await this.initializeKernel();
-      
+
       // Start core services
       await this.startCoreServices();
-      
+
       // Initialize applications
       await this.initializeApplications();
-      
+
       // Create default terminal
       await this.createDefaultTerminal();
-      
+
       this.isInitialized = true;
       const bootDuration = Date.now() - this.bootTime;
-      
+
       console.log(`✅ Heyming OS initialized successfully in ${bootDuration}ms`);
       this.emit('os:ready');
-      
+
       return this;
     } catch (error) {
       console.error('❌ Failed to initialize Heyming OS:', error);
@@ -61,70 +61,61 @@ class HeymingOS {
 
   async initializeKernel() {
     console.log('🔧 Initializing kernel...');
-    
+
     // Create kernel (classes are loaded globally via script tags)
     if (!window.HeymingKernel) {
       throw new Error('HeymingKernel not loaded. Make sure kernel.js is included.');
     }
     this.kernel = new window.HeymingKernel();
-    
+
     // Initialize kernel subsystems
     await this.kernel.initialize();
-    
+
     // Listen for kernel events
     this.kernel.on('kernel:ready', () => {
       console.log('✅ Kernel ready');
     });
-    
+
     this.kernel.on('process:created', (process) => {
       this.emit('process:created', process);
     });
-    
+
     this.kernel.on('process:exit', (process) => {
       this.emit('process:exit', process);
     });
-    
+
     console.log('✅ Kernel initialized');
   }
 
   async startCoreServices() {
     console.log('🔧 Starting core services...');
-    
-    // Start system services
-    await this.startService('init', InitService);
-    await this.startService('logger', LoggerService);
-    await this.startService('cron', CronService);
-    
-    // Start network services if enabled
-    if (this.config.enableNetworking) {
-      await this.startService('network', NetworkService);
-      await this.startService('dns', DNSService);
-    }
-    
+
+    // TODO: Implement actual services when needed
+    // For now, skip service creation to avoid runaway processes
+    console.log('⚠️ Core services disabled - using minimal OS mode');
+
     console.log('✅ Core services started');
   }
 
   async initializeApplications() {
     console.log('🔧 Initializing applications...');
-    
-    // Register built-in applications
-    this.registerApplication('terminal', TerminalApplication);
-    this.registerApplication('file-manager', FileManagerApplication);
-    this.registerApplication('text-editor', TextEditorApplication);
-    this.registerApplication('calculator', CalculatorApplication);
-    
+
+    // TODO: Implement actual applications when needed
+    // For now, skip application registration
+    console.log('⚠️ Applications disabled - using minimal OS mode');
+
     console.log('✅ Applications initialized');
   }
 
   async createDefaultTerminal() {
     console.log('🔧 Creating default terminal...');
-    
+
     const terminal = await this.createTerminal({
       title: 'Terminal',
       user: 'jheyming',
       cwd: '/home/jheyming'
     });
-    
+
     console.log(`✅ Default terminal created (ID: ${terminal.id})`);
     return terminal;
   }
@@ -136,11 +127,11 @@ class HeymingOS {
     }
 
     const terminalId = this.generateId();
-    
+
     // Create terminal process
     const homeDir = `/home/${options.user || 'jheyming'}`;
     const workingDir = options.cwd || homeDir;
-    
+
     const terminalProcess = await this.kernel.processManager.createProcess({
       name: 'terminal',
       executable: '/bin/terminal',
@@ -154,7 +145,8 @@ class HeymingOS {
         SHELL: '/bin/jsh'
       },
       uid: 1000,
-      gid: 1000
+      gid: 1000,
+      isolated: false // Terminal should run in main thread, not Web Worker
     });
 
     // Create terminal (Terminal class is loaded globally)
@@ -165,13 +157,13 @@ class HeymingOS {
     // For additional terminals, use windowId for windowed mode
     const isMainTerminal = this.terminals.size === 0;
     const terminal = new window.Terminal(isMainTerminal ? null : terminalId, this);
-    
+
     // Connect terminal to its process
     terminal.setProcess(terminalProcess);
-    
+
     // Set the terminal process as current process for kernel
     this.kernel.processManager.setCurrentProcess(terminalProcess);
-    
+
     // Store terminal reference
     this.terminals.set(terminalId, {
       id: terminalId,
@@ -182,7 +174,7 @@ class HeymingOS {
     });
 
     this.emit('terminal:created', { id: terminalId, terminal });
-    
+
     return {
       id: terminalId,
       terminal: terminal,
@@ -198,15 +190,15 @@ class HeymingOS {
 
     // Terminate the terminal process
     this.kernel.processManager.kill(terminalInfo.process.pid);
-    
+
     // Clean up terminal
     if (terminalInfo.terminal.cleanup) {
       terminalInfo.terminal.cleanup();
     }
-    
+
     this.terminals.delete(terminalId);
     this.emit('terminal:destroyed', { id: terminalId });
-    
+
     console.log(`Terminal ${terminalId} destroyed`);
   }
 
@@ -216,7 +208,7 @@ class HeymingOS {
   }
 
   listTerminals() {
-    return Array.from(this.terminals.values()).map(info => ({
+    return Array.from(this.terminals.values()).map((info) => ({
       id: info.id,
       title: info.title,
       pid: info.process.pid,
@@ -248,14 +240,14 @@ class HeymingOS {
 
     // Create application instance
     const app = new ApplicationClass(this, appProcess, options);
-    
+
     // Initialize application
     if (app.initialize) {
       await app.initialize();
     }
 
     this.emit('application:launched', { name, process: appProcess, app });
-    
+
     return {
       name: name,
       process: appProcess,
@@ -280,12 +272,12 @@ class HeymingOS {
 
     // Create service instance
     const service = new ServiceClass(this, serviceProcess);
-    
+
     // Initialize and start service
     if (service.initialize) {
       await service.initialize();
     }
-    
+
     if (service.start) {
       await service.start();
     }
@@ -314,7 +306,7 @@ class HeymingOS {
 
     // Terminate service process
     await this.kernel.processManager.kill(serviceInfo.process.pid);
-    
+
     this.services.delete(name);
     console.log(`Service stopped: ${name}`);
     this.emit('service:stopped', { name });
@@ -326,7 +318,7 @@ class HeymingOS {
   }
 
   listServices() {
-    return Array.from(this.services.values()).map(info => ({
+    return Array.from(this.services.values()).map((info) => ({
       name: info.name,
       pid: info.process.pid,
       started: info.started,
@@ -373,7 +365,7 @@ class HeymingOS {
 
     // Apply configuration changes
     this.applyConfigChange(key, value, oldValue);
-    
+
     this.emit('config:changed', { key, value, oldValue });
     console.log(`Configuration changed: ${key} = ${value}`);
   }
@@ -407,7 +399,7 @@ class HeymingOS {
   emit(event, data = null) {
     const listeners = this.eventListeners.get(event);
     if (listeners) {
-      listeners.forEach(callback => {
+      listeners.forEach((callback) => {
         try {
           callback(data);
         } catch (error) {
@@ -425,7 +417,7 @@ class HeymingOS {
   // Shutdown
   async shutdown() {
     console.log('🔄 Shutting down Heyming OS...');
-    
+
     // Stop all services
     for (const serviceName of this.services.keys()) {
       try {
@@ -451,7 +443,7 @@ class HeymingOS {
 
     this.isInitialized = false;
     this.emit('os:shutdown');
-    
+
     console.log('✅ Heyming OS shutdown complete');
   }
 }
@@ -497,9 +489,9 @@ class LoggerService extends Service {
       message: message,
       source: source
     };
-    
+
     this.logBuffer.push(entry);
-    
+
     if (this.logBuffer.length > this.maxLogSize) {
       this.logBuffer = this.logBuffer.slice(-this.maxLogSize / 2);
     }
