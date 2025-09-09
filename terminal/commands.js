@@ -5,80 +5,81 @@ class CommandRegistry {
     this.loadPromises = [];
     this.loadedScripts = new Set(); // Track loaded scripts to avoid duplicates
     this.loadingPromises = new Map(); // Track in-progress loads to avoid race conditions
-    
+
     // Command mapping - maps command names to their file locations
     this.commandMap = {
       // System commands
-      'whoami': 'commands/system/whoami.js',
-      'date': 'commands/system/date.js',
-      'clear': 'commands/system/clear.js',
-      'version': 'commands/system/version.js',
-      'env': 'commands/system/env.js',
-      'export': 'commands/system/export.js',
-      'unset': 'commands/system/unset.js',
-      'hostname': 'commands/system/hostname.js',
-      'history': 'commands/system/history.js',
-      'alias': 'commands/system/alias.js',
-      'unalias': 'commands/system/unalias.js',
-      'which': 'commands/system/which.js',
-      'ps': 'commands/system/ps.js',
-      'uptime': 'commands/system/uptime.js',
-      'reset': 'commands/system/reset.js',
-      'clearfs': 'commands/system/clearfs.js',
-      'cmdcount': 'commands/system/cmdcount.js',
-      'genbin': 'commands/system/genbin.js',
-      'neofetch': 'commands/system/neofetch.js',
-      'ping': 'commands/system/ping.js',
-      'curl': 'commands/system/curl.js',
-      'vi': 'commands/system/vi.js',
-      'less': 'commands/system/less.js',
+      whoami: 'commands/system/whoami.js',
+      date: 'commands/system/date.js',
+      clear: 'commands/system/clear.js',
+      version: 'commands/system/version.js',
+      env: 'commands/system/env.js',
+      export: 'commands/system/export.js',
+      unset: 'commands/system/unset.js',
+      hostname: 'commands/system/hostname.js',
+      history: 'commands/system/history.js',
+      alias: 'commands/system/alias.js',
+      unalias: 'commands/system/unalias.js',
+      which: 'commands/system/which.js',
+      ps: 'commands/system/ps.js',
+      uptime: 'commands/system/uptime.js',
+      reset: 'commands/system/reset.js',
+      clearfs: 'commands/system/clearfs.js',
+      cmdcount: 'commands/system/cmdcount.js',
+      genbin: 'commands/system/genbin.js',
+      neofetch: 'commands/system/neofetch.js',
+      ping: 'commands/system/ping.js',
+      curl: 'commands/system/curl.js',
+      vi: 'commands/system/vi.js',
+      less: 'commands/system/less.js',
       'proxy-stats': 'commands/system/proxy-stats.js',
-      'top': 'commands/system/top.js',
-      'kill': 'commands/system/kill.js',
-      'debug': 'commands/system/debug.js',
-      'osinfo': 'commands/system/osinfo.js',
-      'uname': 'commands/system/uname.js',
-      'fsck': 'commands/system/fsck.js',
-      'exit': 'commands/system/exit.js',
-      'launch': 'commands/system/launch.js',
-      
+      top: 'commands/system/top.js',
+      kill: 'commands/system/kill.js',
+      debug: 'commands/system/debug.js',
+      osinfo: 'commands/system/osinfo.js',
+      uname: 'commands/system/uname.js',
+      fsck: 'commands/system/fsck.js',
+      exit: 'commands/system/exit.js',
+      launch: 'commands/system/launch.js',
+      'heyming-desktop': 'commands/system/heyming-desktop.js',
+
       // Filesystem commands
-      'ls': 'commands/filesystem/ls.js',
-      'pwd': 'commands/filesystem/pwd.js',
-      'cd': 'commands/filesystem/cd.js',
-      'cat': 'commands/filesystem/cat.js',
-      'hexdump': 'commands/filesystem/hexdump.js',
-      'mkdir': 'commands/filesystem/mkdir.js',
-      'touch': 'commands/filesystem/touch.js',
-      'rm': 'commands/filesystem/rm.js',
-      'cp': 'commands/filesystem/cp.js',
-      'mv': 'commands/filesystem/mv.js',
-      'grep': 'commands/filesystem/grep.js',
-      'find': 'commands/filesystem/find.js',
-      'echo': 'commands/filesystem/echo.js',
-      'df': 'commands/filesystem/df.js',
-      'head': 'commands/filesystem/head.js',
-      'tail': 'commands/filesystem/tail.js',
-      'wc': 'commands/filesystem/wc.js',
-      'sort': 'commands/filesystem/sort.js',
-      'uniq': 'commands/filesystem/uniq.js',
-      
+      ls: 'commands/filesystem/ls.js',
+      pwd: 'commands/filesystem/pwd.js',
+      cd: 'commands/filesystem/cd.js',
+      cat: 'commands/filesystem/cat.js',
+      hexdump: 'commands/filesystem/hexdump.js',
+      mkdir: 'commands/filesystem/mkdir.js',
+      touch: 'commands/filesystem/touch.js',
+      rm: 'commands/filesystem/rm.js',
+      cp: 'commands/filesystem/cp.js',
+      mv: 'commands/filesystem/mv.js',
+      grep: 'commands/filesystem/grep.js',
+      find: 'commands/filesystem/find.js',
+      echo: 'commands/filesystem/echo.js',
+      df: 'commands/filesystem/df.js',
+      head: 'commands/filesystem/head.js',
+      tail: 'commands/filesystem/tail.js',
+      wc: 'commands/filesystem/wc.js',
+      sort: 'commands/filesystem/sort.js',
+      uniq: 'commands/filesystem/uniq.js',
+
       // Fun commands
-      'npm': 'commands/fun/npm.js',
-      'sudo': 'commands/fun/sudo.js',
-      'hack': 'commands/fun/hack.js',
-      'matrix': 'commands/fun/matrix.js',
-      'sl': 'commands/fun/sl.js',
-      'cowsay': 'commands/fun/cowsay.js',
-      'fortune': 'commands/fun/fortune.js',
-      'rick': 'commands/fun/rick.js',
-      'coffee': 'commands/fun/coffee.js',
-      'pizza': 'commands/fun/pizza.js',
-      'joke': 'commands/fun/joke.js',
-      
+      npm: 'commands/fun/npm.js',
+      sudo: 'commands/fun/sudo.js',
+      hack: 'commands/fun/hack.js',
+      matrix: 'commands/fun/matrix.js',
+      sl: 'commands/fun/sl.js',
+      cowsay: 'commands/fun/cowsay.js',
+      fortune: 'commands/fun/fortune.js',
+      rick: 'commands/fun/rick.js',
+      coffee: 'commands/fun/coffee.js',
+      pizza: 'commands/fun/pizza.js',
+      joke: 'commands/fun/joke.js',
+
       // Speech commands
-      'say': 'commands/speech/say.js',
-      'hollywood': 'commands/speech/hollywood.js'
+      say: 'commands/speech/say.js',
+      hollywood: 'commands/speech/hollywood.js'
     };
   }
 
@@ -94,13 +95,13 @@ class CommandRegistry {
   // Get a command handler - now with dynamic loading
   async get(name) {
     const lowerName = name.toLowerCase();
-    
+
     // If command is already loaded, return it
     const command = this.commands.get(lowerName);
     if (command) {
       return command.handler;
     }
-    
+
     // If command has a mapping, try to load it
     const scriptPath = this.commandMap[lowerName];
     if (scriptPath) {
@@ -114,7 +115,7 @@ class CommandRegistry {
         return null;
       }
     }
-    
+
     return null;
   }
 
@@ -149,10 +150,10 @@ class CommandRegistry {
   // Get all available commands (including unloaded ones with basic info)
   getAllCommands() {
     const commands = this.getCommands();
-    const commandSet = new Set(commands.map(cmd => cmd.name));
-    
+    const commandSet = new Set(commands.map((cmd) => cmd.name));
+
     // Add unloaded commands with basic info
-    Object.keys(this.commandMap).forEach(name => {
+    Object.keys(this.commandMap).forEach((name) => {
       if (!commandSet.has(name)) {
         const category = this.getCategoryFromPath(this.commandMap[name]);
         commands.push({
@@ -162,7 +163,7 @@ class CommandRegistry {
         });
       }
     });
-    
+
     return commands;
   }
 
@@ -208,16 +209,16 @@ class CommandRegistry {
     if (this.loadedScripts.has(scriptPath)) {
       return;
     }
-    
+
     // Check if already loading (avoid race conditions)
     if (this.loadingPromises.has(scriptPath)) {
       return await this.loadingPromises.get(scriptPath);
     }
-    
+
     // Start loading
     const loadPromise = this.loadScript(scriptPath);
     this.loadingPromises.set(scriptPath, loadPromise);
-    
+
     try {
       await loadPromise;
       this.loadedScripts.add(scriptPath);
