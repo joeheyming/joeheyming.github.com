@@ -42,6 +42,7 @@ class CommandRegistry {
       exit: 'commands/system/exit.js',
       launch: 'commands/system/launch.js',
       'heyming-desktop': 'commands/system/heyming-desktop.js',
+      spawn: 'commands/system/spawn.js',
 
       // Filesystem commands
       ls: 'commands/filesystem/ls.js',
