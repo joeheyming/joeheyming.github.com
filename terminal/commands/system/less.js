@@ -82,8 +82,12 @@
     const modalContent = `
       <div class="less-viewer">
         <div class="less-header">
-          <span class="less-filename">${filename ? filename : '(stdin)'}${renderHtml ? ' [HTML]' : ''}</span>
-          <span class="less-position">lines 1-${Math.min(linesPerPage, lines.length)} of ${lines.length}</span>
+          <span class="less-filename">${filename ? filename : '(stdin)'}${
+      renderHtml ? ' [HTML]' : ''
+    }</span>
+          <span class="less-position">lines 1-${Math.min(linesPerPage, lines.length)} of ${
+      lines.length
+    }</span>
         </div>
         <div class="less-content" id="less-content"></div>
         <div class="less-footer">
@@ -117,34 +121,37 @@
       const start = currentLine;
       const end = Math.min(start + linesPerPage, lines.length);
       const displayLines = lines.slice(start, end);
-      
+
       if (renderHtml) {
         // For HTML content, render as HTML
         contentDiv.innerHTML = displayLines.join('\n');
       } else {
         // For text content, escape HTML and handle search highlighting
-        let displayContent = displayLines.map(line => terminal.escapeHtml(line)).join('\n');
-        
+        let displayContent = displayLines.map((line) => terminal.escapeHtml(line)).join('\n');
+
         // Highlight search results
         if (searchTerm && searchResults.length > 0) {
           const escapedSearchTerm = terminal.escapeHtml(searchTerm);
           const highlightedTerm = `<span class="less-highlight">${escapedSearchTerm}</span>`;
-          displayContent = displayContent.replace(new RegExp(escapedSearchTerm, 'gi'), highlightedTerm);
+          displayContent = displayContent.replace(
+            new RegExp(escapedSearchTerm, 'gi'),
+            highlightedTerm
+          );
         }
-        
+
         contentDiv.innerHTML = displayContent;
       }
-      
+
       positionSpan.textContent = `lines ${start + 1}-${end} of ${lines.length}`;
     }
 
     function performSearch(term) {
       if (!term) return;
-      
+
       searchTerm = term;
       lastSearchTerm = term;
       searchResults = [];
-      
+
       // Find all matches
       lines.forEach((line, lineIndex) => {
         let index = 0;
@@ -153,12 +160,12 @@
           index++;
         }
       });
-      
+
       if (searchResults.length === 0) {
         helpSpan.textContent = `Pattern not found: ${term}`;
         return;
       }
-      
+
       // Find first match from current position
       let found = false;
       for (let i = 0; i < searchResults.length; i++) {
@@ -170,7 +177,7 @@
           break;
         }
       }
-      
+
       if (!found && searchResults.length > 0) {
         // Wrap to beginning
         const result = searchResults[0];
@@ -180,13 +187,13 @@
       } else {
         helpSpan.textContent = `Found: ${currentSearchIndex + 1}/${searchResults.length}`;
       }
-      
+
       updateDisplay();
     }
 
     function nextSearch() {
       if (searchResults.length === 0) return;
-      
+
       currentSearchIndex = (currentSearchIndex + 1) % searchResults.length;
       const result = searchResults[currentSearchIndex];
       currentLine = Math.max(0, result.line - Math.floor(linesPerPage / 2));
@@ -196,8 +203,9 @@
 
     function prevSearch() {
       if (searchResults.length === 0) return;
-      
-      currentSearchIndex = currentSearchIndex <= 0 ? searchResults.length - 1 : currentSearchIndex - 1;
+
+      currentSearchIndex =
+        currentSearchIndex <= 0 ? searchResults.length - 1 : currentSearchIndex - 1;
       const result = searchResults[currentSearchIndex];
       currentLine = Math.max(0, result.line - Math.floor(linesPerPage / 2));
       helpSpan.textContent = `Found: ${currentSearchIndex + 1}/${searchResults.length}`;
@@ -228,7 +236,7 @@ Press any key to return to document...`;
 
       contentDiv.innerHTML = terminal.escapeHtml(helpContent);
       positionSpan.textContent = 'Help';
-      
+
       // Wait for any key to return
       const helpHandler = (e) => {
         modal.element.removeEventListener('keydown', helpHandler);
@@ -244,7 +252,7 @@ Press any key to return to document...`;
     // Event handlers - this is the key function that handles all keyboard input
     function handleKeyDown(e) {
       const searchInput = modal.element.querySelector('#less-search-input');
-      
+
       if (searchDiv.style.display !== 'none') {
         // In search mode
         if (e.key === 'Enter') {
@@ -267,9 +275,9 @@ Press any key to return to document...`;
         }
         return; // Let other keys work normally in search input
       }
-      
+
       e.preventDefault();
-      
+
       switch (e.key) {
         case 'j':
         case 'ArrowDown':
@@ -342,25 +350,27 @@ Press any key to return to document...`;
 
     // Initial display
     updateDisplay();
-    
+
     // Ensure modal has focus initially
     setTimeout(() => modal.focus(), 10);
-    
+
     return ''; // Return empty string to avoid double output
   }
 
-  registerCommand('less', async (terminal, args) => {
-    let filename = '';
-    let renderHtml = false;
-    let content = '';
+  registerCommand(
+    'less',
+    async (terminal, args) => {
+      let filename = '';
+      let renderHtml = false;
+      let content = '';
 
-    // Parse arguments
-    for (let i = 0; i < args.length; i++) {
-      const arg = args[i];
-      if (arg === '--html') {
-        renderHtml = true;
-      } else if (arg === '--help' || arg === '-h') {
-        return `less - view file contents with paging and search
+      // Parse arguments
+      for (let i = 0; i < args.length; i++) {
+        const arg = args[i];
+        if (arg === '--html') {
+          renderHtml = true;
+        } else if (arg === '--help' || arg === '-h') {
+          return `less - view file contents with paging and search
 
 Usage: less [options] [file]
 
@@ -382,37 +392,40 @@ Navigation:
   q         Quit
 
 If no file is specified, reads from stdin (piped input).`;
-      } else if (!filename) {
-        filename = arg;
-      }
-    }
-
-    try {
-      if (filename) {
-        // Read from file
-        const filePath = terminal.resolvePath(filename);
-        const file = await terminal.getFileSystemItem(filePath);
-        
-        if (!file) {
-          return `less: ${filename}: No such file or directory`;
+        } else if (!filename) {
+          filename = arg;
         }
-        
-        if (file.type !== 'file') {
-          return `less: ${filename}: Is a directory`;
-        }
-        
-        content = file.content || '';
-      } else if (terminal.hasStdin) {
-        // Read from stdin (piped input)
-        content = terminal.stdin;
-        filename = '(stdin)';
-      } else {
-        return 'less: missing filename (try "less --help")';
       }
 
-      return showLessViewer(terminal, content, filename, renderHtml);
-    } catch (error) {
-      return `less: ${filename}: ${error.message}`;
-    }
-  }, 'view file contents with paging and search', 'System');
+      try {
+        if (filename) {
+          // Read from file
+          const filePath = terminal.resolvePath(filename);
+          const file = await terminal.getFileSystemItem(filePath);
+
+          if (!file) {
+            return `less: ${filename}: No such file or directory`;
+          }
+
+          if (file.type !== 'file') {
+            return `less: ${filename}: Is a directory`;
+          }
+
+          content = file.content || '';
+        } else if (terminal.hasStdin) {
+          // Read from stdin (piped input)
+          content = terminal.stdin;
+          filename = '(stdin)';
+        } else {
+          return 'less: missing filename (try "less --help")';
+        }
+
+        return showLessViewer(terminal, content, filename, renderHtml);
+      } catch (error) {
+        return `less: ${filename}: ${error.message}`;
+      }
+    },
+    'view file contents with paging and search',
+    'System'
+  );
 })();
