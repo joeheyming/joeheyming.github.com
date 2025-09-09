@@ -307,8 +307,23 @@
         case 'q!':
           closeEditor();
           break;
+        case '0':
+          cursorRow = 0;
+          cursorCol = 0;
+          setStatus('Top of file');
+          updateDisplay();
+          break;
         default:
-          setStatus(`Unknown command: ${cmd}`);
+          // Check if it's a line number
+          const lineNum = parseInt(command);
+          if (!isNaN(lineNum) && lineNum > 0) {
+            cursorRow = Math.min(lineNum - 1, lines.length - 1);
+            cursorCol = 0;
+            setStatus(`Line ${cursorRow + 1}`);
+            updateDisplay();
+          } else {
+            setStatus(`Unknown command: ${cmd}`);
+          }
       }
     }
 
@@ -517,7 +532,7 @@
             // Create in-terminal command input
             terminal.createInputPrompt(modal, {
               prompt: ':',
-              placeholder: 'Enter command (w, q, wq, q!)',
+              placeholder: 'Enter command (w, q, wq, q!, 0, <line#>)',
               onEnter: (value) => {
                 if (value.trim()) {
                   handleCommand(value.trim());
@@ -648,6 +663,8 @@ File Commands:
   :q                - Quit (if no changes)
   :wq               - Save and quit
   :q!               - Quit without saving
+  :0                - Go to first line
+  :<number>         - Go to specific line number
 
 Insert Mode:
   Esc               - Return to normal mode
