@@ -11,6 +11,8 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 /* Main layout container */
@@ -23,6 +25,8 @@ body {
   padding: 20px;
   overflow: hidden;
   align-items: stretch;
+  max-width: 100vw;
+  box-sizing: border-box;
 }
 
 /* Game area - takes most of the space */
@@ -36,6 +40,9 @@ body {
   padding: 20px 0;
   overflow: auto;
   min-width: 0; /* Allow flex item to shrink below content size */
+  max-width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .header-section {
@@ -72,6 +79,10 @@ body {
   justify-content: center;
   min-height: 500px;
   flex-grow: 1;
+  max-width: 100vw;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 .mobile-device .controls-sidebar {
@@ -81,23 +92,26 @@ body {
 .mobile-controls {
   display: none;
   position: fixed;
-  bottom: 0;
+  bottom: 10px;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: 9999;
   background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.8));
-  padding: 10px;
-  padding-bottom: calc(10px + env(safe-area-inset-bottom));
-  justify-content: space-between;
-  align-items: end;
-  height: 140px;
+  padding: 8px;
+  flex-direction: column;
   box-sizing: border-box;
+  max-width: 100vw;
+  overflow: visible;
+  pointer-events: none;
+  /* Ensure controls stay above everything */
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 /* CSS Variables */
 :root {
-  --mobile-control-button-size: 70px;
-  --mobile-control-button-size-small: 35px;
+  --mobile-control-button-size: 45px;
+  --mobile-control-button-size-small: 25px;
 }
 
 /* Use smaller buttons when device is rotated horizontally (landscape mode) */
@@ -116,21 +130,115 @@ body {
     font-size: 14px; /* Smaller font for action buttons too */
   }
 
+  .enter-btn {
+    font-size: 8px; /* Even smaller for landscape */
+  }
+
+  .escape-btn {
+    font-size: 7px; /* Even smaller for landscape */
+  }
+
   .mobile-controls {
-    height: 100px; /* Reduced height for smaller buttons */
-    padding: 8px; /* Less padding */
+    height: 80px; /* Reduced height for smaller buttons but accommodate 4 buttons */
+    padding: 4px; /* Less padding */
+    bottom: 5px; /* Move up slightly in landscape */
   }
 
   .mobile-device .game-area {
-    padding-bottom: 110px; /* Less padding since controls are smaller in landscape */
+    padding-bottom: 0px; /* Remove padding to prevent overflow */
+    padding-top: 5px;
+    position: relative;
+    z-index: 1;
+    max-height: calc(100vh - 110px);
+    height: calc(100vh - 110px);
+    overflow: hidden;
   }
 
   .mobile-device #game-container {
-    min-height: calc(100vh - 110px); /* Adjust container height for landscape */
+    min-height: calc(100vh - 115px); /* Adjust container height for landscape */
+    max-height: calc(100vh - 115px);
+    width: 100%;
+    max-width: 100vw;
+    overflow: hidden;
   }
 
-  .action-buttons {
-    gap: 2px; /* Tighter spacing between action buttons */
+  .mobile-device .main-container {
+    padding: 5px;
+  }
+
+  .action-buttons-horizontal {
+    gap: 4px; /* Tighter spacing between action buttons in landscape */
+  }
+}
+
+/* Extra compact layout for very narrow screens (Samsung Galaxy, etc.) */
+@media (max-width: 380px) {
+  :root {
+    --mobile-control-button-size: 42px;
+  }
+
+  .control-btn {
+    font-size: 11px;
+    margin: 0px;
+    border-radius: 4px;
+  }
+
+  .action-btn {
+    font-size: 9px;
+  }
+
+  .enter-btn {
+    font-size: 6px;
+  }
+
+  .escape-btn {
+    font-size: 5px;
+  }
+
+  .mobile-controls {
+    padding: 2px;
+    padding-bottom: calc(2px + env(safe-area-inset-bottom));
+    height: 90px;
+    bottom: 5px;
+  }
+
+  .mobile-device .game-area {
+    padding-bottom: 0px; /* Remove padding to prevent overflow */
+    position: relative;
+    z-index: 1;
+    max-height: calc(100vh - 115px);
+    height: calc(100vh - 115px);
+    overflow: hidden;
+  }
+
+  .mobile-device #game-container {
+    min-height: calc(100vh - 120px); /* Account for controls + padding */
+    max-height: calc(100vh - 120px);
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  .action-buttons-horizontal {
+    gap: 2px;
+  }
+
+  .movement-pad {
+    gap: 0px;
+  }
+
+  .arrow-pad {
+    gap: 0px;
+  }
+
+  .movement-row {
+    gap: 0px;
+    margin-top: 0px;
+  }
+
+  .arrow-row {
+    gap: 0px;
+    margin-top: 0px;
   }
 }
 
@@ -138,13 +246,39 @@ body {
   display: flex;
 }
 
+/* Mobile controls will show when mobile-device class is applied */
+
+/* New horizontal layout for mobile controls */
+.mobile-controls-top {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  padding-bottom: 5px;
+}
+
+.action-buttons-horizontal {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+}
+
+.mobile-controls-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  flex: 1;
+  padding: 0 10px;
+}
+
 /* Base button styles */
 .control-btn {
   background: linear-gradient(145deg, #4a4a4a, #2a2a2a);
   border: 2px solid #666;
-  border-radius: 8px;
+  border-radius: 6px;
   color: #fff;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
@@ -154,10 +288,13 @@ body {
   transition: all 0.1s ease;
   width: var(--mobile-control-button-size);
   height: var(--mobile-control-button-size);
-  margin: 2px;
+  margin: 1px;
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: auto;
+  position: relative;
+  z-index: 10000;
 }
 
 .control-btn:active {
@@ -166,8 +303,8 @@ body {
   transform: translateY(2px);
 }
 
-/* Movement pad (WASD) */
-.mobile-controls-left {
+/* Movement pad (WASD) - now in bottom row */
+.mobile-controls-bottom .mobile-controls-left {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -182,8 +319,8 @@ body {
 
 .movement-row {
   display: flex;
-  gap: 2px;
-  margin-top: 2px;
+  gap: 1px;
+  margin-top: 1px;
 }
 
 .movement-btn {
@@ -195,8 +332,8 @@ body {
   background: linear-gradient(145deg, #2d5233, #4a7c59);
 }
 
-/* Arrow pad */
-.mobile-controls-center {
+/* Arrow pad - now on right side of bottom row */
+.mobile-controls-bottom .mobile-controls-right {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -211,8 +348,8 @@ body {
 
 .arrow-row {
   display: flex;
-  gap: 2px;
-  margin-top: 2px;
+  gap: 1px;
+  margin-top: 1px;
 }
 
 .arrow-btn {
@@ -224,39 +361,71 @@ body {
   background: linear-gradient(145deg, #523333, #7c4a4a);
 }
 
-/* Action buttons */
-.mobile-controls-right {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.action-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+/* Action buttons - now horizontal in top row */
+/* Old vertical action buttons styles removed - now using .action-buttons-horizontal */
 
 .action-btn {
   background: linear-gradient(145deg, #4a4a7c, #333352);
   border-color: #5a5a8a;
-  font-size: 18px;
+  font-size: 12px;
 }
 
 .action-btn:active {
   background: linear-gradient(145deg, #333352, #4a4a7c);
 }
 
+/* Special styling for Enter and Escape buttons */
+.enter-btn {
+  background: linear-gradient(145deg, #4a7c4a, #335233);
+  border-color: #5a8a5a;
+  font-size: 8px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.enter-btn:active {
+  background: linear-gradient(145deg, #335233, #4a7c4a);
+}
+
+.escape-btn {
+  background: linear-gradient(145deg, #7c4a4a, #523333);
+  border-color: #8a5a5a;
+  font-size: 7px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.escape-btn:active {
+  background: linear-gradient(145deg, #523333, #7c4a4a);
+}
+
 /* Mobile layout adjustments */
 .mobile-device .game-area {
-  padding-bottom: 150px; /* Make room for controls */
+  padding-bottom: 0px; /* Remove padding to prevent overflow */
+  padding-top: 10px;
+  position: relative;
+  z-index: 1;
+  max-height: calc(100vh - 120px);
+  height: calc(100vh - 120px);
+  overflow: hidden;
 }
 
 .mobile-device #game-container {
   display: flex;
   justify-content: center;
   flex-direction: column;
-  min-height: calc(100vh - 150px);
+  min-height: calc(100vh - 130px); /* Account for mobile controls + padding */
+  max-height: calc(100vh - 130px);
+  width: 100%;
+  max-width: 100vw;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.mobile-device .main-container {
+  padding: 10px;
+  gap: 10px;
 }
 
 /* Controls sidebar */
@@ -339,19 +508,23 @@ body {
 @media (max-width: 600px) {
   .main-container {
     flex-direction: column;
-    padding: 10px;
-    gap: 15px;
+    padding: 5px;
+    gap: 10px;
     height: auto;
     overflow: visible;
+    max-width: 100vw;
   }
 
   .game-area {
     max-width: 100%;
     order: 1;
     height: auto;
-    min-height: 60vh;
-    padding: 10px 0;
-    overflow: visible;
+    min-height: 40vh;
+    max-height: calc(100vh - 140px);
+    padding: 5px 0;
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
   }
 
   .controls-sidebar {
@@ -361,34 +534,45 @@ body {
 
   .controls-card {
     position: static;
-    padding: 16px;
+    padding: 12px;
+    margin: 0;
   }
 
   .controls-list {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 6px;
   }
 
   .header-section h1 {
-    font-size: 2em;
+    font-size: 1.8em;
   }
 
   .control-item {
-    padding: 8px 10px;
+    padding: 6px 8px;
   }
 
   .key {
-    font-size: 0.8em;
-    min-width: 70px;
+    font-size: 0.75em;
+    min-width: 60px;
   }
 
   .action {
-    font-size: 0.8em;
+    font-size: 0.75em;
   }
 
   #game-container {
-    min-height: 400px;
+    min-height: 300px;
+    max-height: calc(100vh - 140px);
+    width: 100%;
+    max-width: 100vw;
+    overflow: hidden;
+  }
+
+  .start-prompt {
+    height: min(400px, 60vh);
+    width: min(400px, 95vw);
+    font-size: clamp(16px, 5vw, 20px);
   }
 }
 
@@ -397,20 +581,22 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 640px;
-  width: 640px;
+  height: min(640px, 70vh);
+  width: min(640px, 90vw);
+  max-width: 640px;
   margin: 0 auto;
   background: #1a1a1a;
   border: 2px solid #333;
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  font-size: 24px;
+  font-size: clamp(18px, 4vw, 24px);
   font-weight: bold;
   color: #ff6666;
   text-shadow: 0 0 10px rgba(255, 102, 102, 0.5);
   cursor: pointer;
   transition: all 0.3s ease;
   user-select: none;
+  aspect-ratio: 1;
 }
 
 .start-prompt:hover {

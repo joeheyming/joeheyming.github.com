@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
     <!-- Global site tag (gtag.js) - Google Analytics -->
@@ -22,7 +22,10 @@
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
     <meta name="theme-color" content="#dc2626" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <meta
       name="keywords"
       content="DOOM, browser DOOM, WebAssembly DOOM, retro gaming, classic FPS, id Software, online gaming, JavaScript games, web games, mobile DOOM"
@@ -146,99 +149,117 @@
 
     <!-- Mobile Controls -->
     <div class="mobile-controls">
-      <!-- Left side: Movement controls -->
-      <div class="mobile-controls-left">
-        <!-- Movement pad -->
-        <div class="movement-pad">
-          <button class="control-btn movement-btn" data-key="w" data-code="KeyW" data-keycode="87">
-            ↑
-          </button>
-          <div class="movement-row">
-            <button
-              class="control-btn movement-btn"
-              data-key="a"
-              data-code="KeyA"
-              data-keycode="65"
-            >
-              ←
-            </button>
-            <button
-              class="control-btn movement-btn"
-              data-key="s"
-              data-code="KeyS"
-              data-keycode="83"
-            >
-              ↓
-            </button>
-            <button
-              class="control-btn movement-btn"
-              data-key="d"
-              data-code="KeyD"
-              data-keycode="68"
-            >
-              →
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Center: Arrow keys -->
-      <div class="mobile-controls-center">
-        <div class="arrow-pad">
-          <button
-            class="control-btn arrow-btn"
-            data-key="ArrowUp"
-            data-code="ArrowUp"
-            data-keycode="38"
-          >
-            ▲
-          </button>
-          <div class="arrow-row">
-            <button
-              class="control-btn arrow-btn"
-              data-key="ArrowLeft"
-              data-code="ArrowLeft"
-              data-keycode="37"
-            >
-              ◄
-            </button>
-            <button
-              class="control-btn arrow-btn"
-              data-key="ArrowDown"
-              data-code="ArrowDown"
-              data-keycode="40"
-            >
-              ▼
-            </button>
-            <button
-              class="control-btn arrow-btn"
-              data-key="ArrowRight"
-              data-code="ArrowRight"
-              data-keycode="39"
-            >
-              ►
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right side: Action buttons -->
-      <div class="mobile-controls-right">
-        <div class="action-buttons">
-          <button class="control-btn action-btn" data-key="q" data-code="KeyQ" data-keycode="81">
-            🔫
-          </button>
+      <!-- Top row: Action buttons (horizontal) -->
+      <div class="mobile-controls-top">
+        <div class="action-buttons-horizontal">
           <button class="control-btn action-btn" data-key="e" data-code="KeyE" data-keycode="69">
             🚪
           </button>
           <button
-            class="control-btn action-btn"
+            class="control-btn action-btn enter-btn"
             data-key="Enter"
             data-code="Enter"
             data-keycode="13"
+            title="Enter - Select menu item"
           >
-            ⏎
+            ENTER
           </button>
+          <button
+            class="control-btn action-btn escape-btn"
+            data-key="Escape"
+            data-code="Escape"
+            data-keycode="27"
+            title="Escape - Menu"
+          >
+            MENU
+          </button>
+          <button class="control-btn action-btn" data-key="q" data-code="KeyQ" data-keycode="81">
+            🔫
+          </button>
+        </div>
+      </div>
+
+      <!-- Bottom row: Movement and Arrow controls -->
+      <div class="mobile-controls-bottom">
+        <!-- Left side: Movement controls -->
+        <div class="mobile-controls-left">
+          <!-- Movement pad -->
+          <div class="movement-pad">
+            <button
+              class="control-btn movement-btn"
+              data-key="w"
+              data-code="KeyW"
+              data-keycode="87"
+            >
+              ↑
+            </button>
+            <div class="movement-row">
+              <button
+                class="control-btn movement-btn"
+                data-key="a"
+                data-code="KeyA"
+                data-keycode="65"
+              >
+                ←
+              </button>
+              <button
+                class="control-btn movement-btn"
+                data-key="s"
+                data-code="KeyS"
+                data-keycode="83"
+              >
+                ↓
+              </button>
+              <button
+                class="control-btn movement-btn"
+                data-key="d"
+                data-code="KeyD"
+                data-keycode="68"
+              >
+                →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right side: Arrow keys -->
+        <div class="mobile-controls-right">
+          <div class="arrow-pad">
+            <button
+              class="control-btn arrow-btn"
+              data-key="ArrowUp"
+              data-code="ArrowUp"
+              data-keycode="38"
+            >
+              ▲
+            </button>
+            <div class="arrow-row">
+              <button
+                class="control-btn arrow-btn"
+                data-key="ArrowLeft"
+                data-code="ArrowLeft"
+                data-keycode="37"
+              >
+                ◄
+              </button>
+              <button
+                class="control-btn arrow-btn"
+                data-key="ArrowDown"
+                data-code="ArrowDown"
+                data-keycode="40"
+              >
+                ▼
+              </button>
+              <button
+                class="control-btn arrow-btn"
+                data-key="ArrowRight"
+                data-code="ArrowRight"
+                data-keycode="39"
+              >
+                ►
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -249,13 +270,12 @@
     <!-- Load our game modules -->
     <script src="src/index.js"></script>
 
-    <script type="application/javascript">
+    <script>
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
         navigator.userAgent
       );
 
       if (isMobile) {
-        // Mobile optimization: Add mobile-specific styles or warnings if needed
         document.body.classList.add('mobile-device');
       }
     </script>

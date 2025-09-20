@@ -15,7 +15,7 @@
       if (commands.length === 0) {
         return 'type: usage: type [-a] name [name ...]';
       }
-
+s
       const results = [];
 
       for (const cmdName of commands) {

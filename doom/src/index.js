@@ -614,10 +614,10 @@ const main = async () => {
           isDragging = true;
         }
 
-        // Handle vertical movement (forward/backward)
-        if (Math.abs(deltaY) > 20) {
-          if (deltaY < -30) {
-            // Dragging up
+        // Handle vertical movement (forward/backward) - Extra sensitive for faster response
+        if (Math.abs(deltaY) > 10) {
+          if (deltaY < -15) {
+            // Dragging up - extra reduced threshold for faster response
             if (!isWPressed) {
               // Release S if it was pressed, but keep left/right
               if (isSPressed) {
@@ -627,8 +627,8 @@ const main = async () => {
               sendTouchKeyEvent('keydown', 'w', 'KeyW', 87);
               isWPressed = true;
             }
-          } else if (deltaY > 30) {
-            // Dragging down
+          } else if (deltaY > 15) {
+            // Dragging down - extra reduced threshold for faster response
             if (!isSPressed) {
               // Release W if it was pressed, but keep left/right
               if (isWPressed) {
@@ -641,10 +641,10 @@ const main = async () => {
           }
         }
 
-        // Handle horizontal movement (left/right turn)
-        if (Math.abs(deltaX) > 20) {
-          if (deltaX < -30) {
-            // Dragging left
+        // Handle horizontal movement (left/right turn) - Extra sensitive for fastest turning
+        if (Math.abs(deltaX) > 5) {
+          if (deltaX < -8) {
+            // Dragging left - extra reduced threshold for fastest response
             if (!isLeftPressed) {
               // Release Right if it was pressed, but keep W/S
               if (isRightPressed) {
@@ -654,8 +654,8 @@ const main = async () => {
               sendTouchKeyEvent('keydown', 'ArrowLeft', 'ArrowLeft', 37);
               isLeftPressed = true;
             }
-          } else if (deltaX > 30) {
-            // Dragging right
+          } else if (deltaX > 8) {
+            // Dragging right - extra reduced threshold for fastest response
             if (!isRightPressed) {
               // Release Left if it was pressed, but keep W/S
               if (isLeftPressed) {
