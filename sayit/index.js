@@ -23,37 +23,20 @@ var currentPenSize = 15; // 75% thickness for better OCR
 var currentTool = 'pen'; // 'pen' or 'eraser'
 var autoSaveTimeout;
 
-function initializeTesseract() {
-  worker = Tesseract.createWorker();
-  var OEM = Tesseract.OEM;
-  var PSM = Tesseract.PSM;
+async function initializeTesseract() {
+  try {
+    worker = await Tesseract.createWorker('eng');
 
-  worker
-    .load()
-    .then(function () {
-      return worker.loadLanguage('eng');
-    })
-    .then(function () {
-      return worker.initialize('eng');
-    })
-    .then(function () {
-      return worker.setParameters({
-        init_oem: OEM.TESSERACT_ONLY,
-        tessedit_pageseg_mode: '6',
-        tessedit_char_whitelist: '',
-        tessjs_create_box: '0',
-        tessjs_create_hocr: '1',
-        tessjs_create_osd: '0',
-        tessjs_create_tsv: '1',
-        tessjs_create_unlv: '0'
-      });
-    })
-    .then(function () {
-      console.log('Tesseract initialized successfully');
-    })
-    .catch(function (error) {
-      console.log('Tesseract initialization error:', error);
+    // Set parameters for better OCR performance
+    await worker.setParameters({
+      tessedit_pageseg_mode: '6', // Assume a single uniform block of text
+      tessedit_char_whitelist: '' // Allow all characters
     });
+
+    console.log('Tesseract initialized successfully');
+  } catch (error) {
+    console.log('Tesseract initialization error:', error);
+  }
 }
 
 function showResults() {
@@ -246,39 +229,36 @@ function hidePlayButton() {
   resetPlayButton();
 }
 
-function recognize(imageSource, autoPlay) {
+async function recognize(imageSource, autoPlay) {
   showLoading();
   hidePlayButton(); // Hide play button while processing
 
-  worker
-    .recognize(imageSource, 'eng')
-    .then(function (result) {
-      hideLoading();
-      var extractedText = result.data.text.trim();
+  try {
+    const result = await worker.recognize(imageSource);
+    hideLoading();
+    var extractedText = result.data.text.trim();
 
-      if (extractedText) {
-        // Clean up the text a bit
-        var cleanText = extractedText.replace(/[()|/\\]/g, '');
-        parsedContent.textContent = cleanText;
-        showPlayButton(); // Show play button when text is available
+    if (extractedText) {
+      // Clean up the text a bit
+      var cleanText = extractedText.replace(/[()|/\\]/g, '');
+      parsedContent.textContent = cleanText;
+      showPlayButton(); // Show play button when text is available
 
-        // Auto-play if requested (for canvas drawings)
-        if (autoPlay) {
-          speakText(cleanText);
-        }
-      } else {
-        parsedContent.textContent =
-          'No text could be extracted from this image. Please try with a clearer image containing readable text.';
-        hidePlayButton();
+      // Auto-play if requested (for canvas drawings)
+      if (autoPlay) {
+        speakText(cleanText);
       }
-    })
-    .catch(function (error) {
-      hideLoading();
-      console.error('OCR Error:', error);
+    } else {
       parsedContent.textContent =
-        'Error processing image. Please try again with a different image.';
+        'No text could be extracted from this image. Please try with a clearer image containing readable text.';
       hidePlayButton();
-    });
+    }
+  } catch (error) {
+    hideLoading();
+    console.error('OCR Error:', error);
+    parsedContent.textContent = 'Error processing image. Please try again with a different image.';
+    hidePlayButton();
+  }
 }
 
 // Mode switching functions

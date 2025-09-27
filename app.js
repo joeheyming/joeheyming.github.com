@@ -224,6 +224,23 @@ let appRegistry = [
     icon: '🕹️',
     path: './nes/',
     category: 'game'
+  },
+  {
+    id: 'vibe-coding',
+    name: 'Vibe Coding 🤖',
+    shortName: 'Vibe Coding',
+    description: "The art of building websites that don't suck",
+    detailedDescription:
+      'Stop building shitty websites. Learn vibe coding - the art of creating fast, beautiful, accessible sites without the bullshit.',
+    icon: '🤖',
+    path: './vibe-coding/',
+    category: 'utility',
+    gradient: 'from-purple-500/20 to-indigo-500/20',
+    border: 'border-purple-500/30 hover:border-purple-400/50',
+    taskbarGradient: 'from-purple-500 to-indigo-500',
+    taskbarText: 'text-white',
+    defaultWidth: 800,
+    defaultHeight: 600
   }
 ];
 
