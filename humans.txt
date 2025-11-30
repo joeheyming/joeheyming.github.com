@@ -1,0 +1,10 @@
+/* TEAM */
+Developer: Joe Heyming
+Site: https://joeheyming.github.io
+Twitter: @joeheyming
+Location: Campbell, California, USA
+
+/* THANKS */
+UCSB - For the Computer Science education
+
+

@@ -1,0 +1,108 @@
+{
+  "name": "Joe Heyming - Digital Portfolio",
+  "short_name": "Joe Heyming",
+  "description": "Principal UI Software Engineer at Roblox, patent holder, and creator of amazing web experiences",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#8b5cf6",
+  "theme_color": "#8b5cf6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦄</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["portfolio", "developer", "games"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "scope": "/",
+  "shortcuts": [
+    {
+      "name": "StepMania",
+      "short_name": "StepMania",
+      "description": "Rhythm game in your browser",
+      "url": "/stepmania/"
+    },
+    {
+      "name": "DOOM",
+      "short_name": "DOOM",
+      "description": "Play DOOM in your browser",
+      "url": "/doom/"
+    },
+    {
+      "name": "Terminal",
+      "short_name": "Terminal",
+      "description": "Web-based terminal",
+      "url": "/terminal/"
+    },
+    {
+      "name": "Calculator",
+      "short_name": "Calc",
+      "description": "Web calculator",
+      "url": "/calculator/"
+    },
+    {
+      "name": "Everything is Awesome",
+      "short_name": "Awesome",
+      "description": "Everything is Awesome player",
+      "url": "/awesome/"
+    },
+    {
+      "name": "Bad Apple",
+      "short_name": "Bad Apple",
+      "description": "Bad Apple ASCII animation",
+      "url": "/badapple/"
+    },
+    {
+      "name": "Notepad",
+      "short_name": "Notepad",
+      "description": "Web-based notepad",
+      "url": "/notepad/"
+    },
+    {
+      "name": "Operation SHADOWBOX",
+      "short_name": "SHADOWBOX",
+      "description": "Operation SHADOWBOX",
+      "url": "/shadowbox/"
+    },
+    {
+      "name": "NES Emulator",
+      "short_name": "NES",
+      "description": "Play NES games in your browser",
+      "url": "/nes/"
+    },
+    {
+      "name": "Wordle Finder",
+      "short_name": "Wordle",
+      "description": "Find Wordle solutions",
+      "url": "/wordle-finder/"
+    },
+    {
+      "name": "JoeTube",
+      "short_name": "JoeTube",
+      "description": "YouTube link extractor",
+      "url": "/youtube/"
+    },
+    {
+      "name": "Say It OCR",
+      "short_name": "Say It",
+      "description": "OCR text recognition tool",
+      "url": "/sayit/"
+    },
+    {
+      "name": "Bad Apple",
+      "short_name": "Bad Apple",
+      "description": "Bad Apple ASCII animation",
+      "url": "/badapple/"
+    },
+    {
+      "name": "Everything is Awesome",
+      "short_name": "Awesome",
+      "description": "Everything is Awesome player",
+      "url": "/awesome/"
+    }
+  ]
+}
