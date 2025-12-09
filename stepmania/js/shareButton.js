@@ -92,6 +92,8 @@ class ShareButtonElement extends HTMLElement {
 
   bindEvents() {
     this.shadowRoot.getElementById('share-btn').addEventListener('click', () => {
+      // Track analytics event
+      window.trackEvent('share_button_click', 'StepMania', 'Share Button');
       this.shareCurrentURL();
     });
   }

@@ -1036,6 +1036,18 @@ class MainPageController {
     // Hide the loading overlay
     this.hideMainLoading();
 
+    // Track analytics event for song start
+    if (this.currentSong) {
+      const songName = this.currentSong.title || 'Unknown Song';
+      const difficulty =
+        this.currentSong.charts && this.currentSong.charts[this.currentDifficulty]
+          ? `${this.currentSong.charts[this.currentDifficulty].difficulty} (${
+              this.currentSong.charts[this.currentDifficulty].rating
+            })`
+          : 'Unknown';
+      window.trackEvent('song_start', 'StepMania', `${songName} - ${difficulty}`);
+    }
+
     // Start the audio
     const audioEl = document.getElementById('audio_with_controls');
     if (audioEl) {

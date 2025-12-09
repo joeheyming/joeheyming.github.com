@@ -14,6 +14,9 @@ window.onload = function () {
 
   // Initialize error tracking
   initErrorTracking();
+
+  // Initialize data-event click tracking
+  initDataEventTracking();
 };
 
 // Error tracking functionality
@@ -76,31 +79,15 @@ window.trackError = function (errorData) {
     // Send error as a custom event to Google Analytics
     gtag('event', 'exception', {
       description: errorData.message || 'Unknown error',
-      fatal: false,
-      custom_map: {
-        error_type: errorData.type || 'manual_error',
-        error_stack: (errorData.stack || '').substring(0, 500), // Limit stack trace length
-        error_filename: errorData.filename || '',
-        error_line: errorData.line || '',
-        error_column: errorData.column || '',
-        error_url: errorData.url || window.location.href,
-        error_timestamp: errorData.timestamp || new Date().toISOString(),
-        error_user_agent: errorData.userAgent || navigator.userAgent,
-        error_resource: errorData.resource || '',
-        error_tag_name: errorData.tagName || ''
-      }
+      fatal: false
     });
 
     // Also send as a custom event for easier filtering in GA
     gtag('event', 'error_occurred', {
       event_category: 'Error',
       event_label: errorData.type || 'manual_error',
-      value: 1,
-      custom_parameters: {
-        error_message: (errorData.message || '').substring(0, 100),
-        error_page: window.location.pathname,
-        error_timestamp: errorData.timestamp || new Date().toISOString()
-      }
+      description: errorData.message || 'Unknown error',
+      value: 1
     });
 
     // Log to console for development
@@ -136,3 +123,56 @@ window.trackPerformance = function () {
 window.addEventListener('load', function () {
   setTimeout(trackPerformance, 1000); // Wait a bit for everything to settle
 });
+
+// Helper function to track events (can be called from anywhere, including web components)
+window.trackEvent = function (eventName, eventCategory, eventLabel, eventValue) {
+  if (typeof gtag === 'undefined') {
+    if (location.hostname === 'localhost') {
+      console.log('GA Event tracked (localhost):', eventName, {
+        event_category: eventCategory,
+        event_label: eventLabel,
+        value: eventValue
+      });
+    }
+    return;
+  }
+
+  const eventParams = {
+    event_category: eventCategory || 'Interaction',
+    event_label: eventLabel || eventName
+  };
+
+  if (eventValue !== undefined && !isNaN(eventValue)) {
+    eventParams.value = eventValue;
+  }
+
+  gtag('event', eventName, eventParams);
+
+  // Log to console for development
+  if (location.hostname === 'localhost') {
+    console.log('GA Event tracked:', eventName, eventParams);
+  }
+};
+
+// Data-event click tracking functionality
+function initDataEventTracking() {
+  // Listen for clicks on elements with data-event attribute
+  document.addEventListener(
+    'click',
+    function (event) {
+      // Find the nearest element with data-event attribute (including the clicked element itself)
+      const target = event.target.closest('[data-event]');
+
+      if (target) {
+        const dataEvent = target.getAttribute('data-event');
+        const dataEventCategory = target.getAttribute('data-event-category') || 'Interaction';
+        const dataEventLabel = target.getAttribute('data-event-label') || dataEvent;
+        const valueAttr = target.getAttribute('data-event-value');
+        const dataEventValue = valueAttr ? parseFloat(valueAttr) : undefined;
+
+        window.trackEvent(dataEvent, dataEventCategory, dataEventLabel, dataEventValue);
+      }
+    },
+    true
+  ); // Use capture phase to catch events early
+}

@@ -410,11 +410,15 @@ class ZeniusBrowserElement extends HTMLElement {
   bindEvents() {
     // Open browser
     this.shadowRoot.getElementById('open-zenius-browser').addEventListener('click', () => {
+      // Track analytics event
+      window.trackEvent('song_browser_open', 'StepMania', 'Song Browser Open');
       this.showBrowser();
     });
 
     // Close browser
     this.shadowRoot.getElementById('close-zenius-browser').addEventListener('click', () => {
+      // Track analytics event
+      window.trackEvent('song_browser_close', 'StepMania', 'Song Browser Close');
       this.hideBrowser();
     });
 
@@ -660,6 +664,11 @@ class ZeniusBrowserElement extends HTMLElement {
         </div>
       `;
 
+      // Track analytics event when simfile is clicked
+      linkEl.addEventListener('click', () => {
+        window.trackEvent('song_browser_song_select', 'StepMania', item.name);
+      });
+
       return linkEl;
     } else {
       // Regular div for directory items
@@ -676,6 +685,9 @@ class ZeniusBrowserElement extends HTMLElement {
 
       itemEl.addEventListener('click', () => {
         if (item.type === 'directory') {
+          // Track analytics event
+          window.trackEvent('song_browser_category_click', 'StepMania', item.name);
+
           // Show loading state directly on the clicked item
           itemEl.classList.add('loading');
           itemEl.innerHTML = `

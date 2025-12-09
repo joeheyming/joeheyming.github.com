@@ -218,28 +218,25 @@ class StepButton extends HTMLElement {
   setupEventListeners() {
     const button = this.shadowRoot.querySelector('.button');
     const buttonId = this.getAttribute('id') || 'button0';
+    const direction = this.getAttribute('direction') || 'up';
 
-    // Click event
-    button.addEventListener('click', () => {
+    const handleClick = () => {
       this.dispatchEvent(
         new CustomEvent('stepButtonClick', {
-          detail: { buttonId, direction: this.getAttribute('direction') },
+          detail: { buttonId, direction },
           bubbles: true,
           composed: true
         })
       );
-    });
+    };
+
+    // Click event
+    button.addEventListener('click', handleClick);
 
     // Touch events for mobile
     button.addEventListener('touchstart', (e) => {
       e.preventDefault();
-      this.dispatchEvent(
-        new CustomEvent('stepButtonClick', {
-          detail: { buttonId, direction: this.getAttribute('direction') },
-          bubbles: true,
-          composed: true
-        })
-      );
+      handleClick();
     });
   }
 

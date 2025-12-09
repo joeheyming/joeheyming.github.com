@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8" />
@@ -135,7 +135,15 @@
     </div>
 
     <!-- Score Toggle Button for Mobile -->
-    <button class="score-toggle" id="scoreToggle">📊 Score</button>
+    <button
+      class="score-toggle"
+      id="scoreToggle"
+      data-event="score_toggle"
+      data-event-category="StepMania"
+      data-event-label="Score Toggle"
+    >
+      📊 Score
+    </button>
 
     <!-- Main Game Container - Fixed Layout -->
     <div
@@ -154,13 +162,26 @@
         <!-- Song Library Browser, Share Button, and Difficulty Selector Row -->
         <div class="w-full flex flex-row items-center justify-center gap-2 pr-3 md:pr-6 mb-2">
           <!-- Song Library Browser Web Component -->
-          <zenius-browser></zenius-browser>
+          <zenius-browser
+            data-event="song_browser_open"
+            data-event-category="StepMania"
+            data-event-label="Song Browser"
+          ></zenius-browser>
 
           <!-- Share Button -->
-          <share-button></share-button>
+          <share-button
+            data-event="share_button_click"
+            data-event-category="StepMania"
+            data-event-label="Share Button"
+          ></share-button>
 
           <!-- Main Difficulty Selector -->
-          <difficulty-selector id="main-difficulty-selector"></difficulty-selector>
+          <difficulty-selector
+            id="main-difficulty-selector"
+            data-event="difficulty_change"
+            data-event-category="StepMania"
+            data-event-label="Difficulty Selector"
+          ></difficulty-selector>
 
           <!-- Gamepad Status Indicator -->
           <div
@@ -179,8 +200,7 @@
           id="sm-micro"
           class="relative bg-black/50 rounded-2xl md:rounded-3xl p-3 md:p-6 shadow-2xl border border-purple-500/30 overflow-hidden touch-manipulation flex-shrink-0"
           style="
-            background-image:
-              linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+            background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
               url(songs/Lost/background.png);
             background-size: cover;
             background-position: center;
@@ -432,6 +452,9 @@
         <button
           id="main-loading-retry-btn"
           class="hidden mt-4 px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors duration-200"
+          data-event="loading_retry"
+          data-event-category="StepMania"
+          data-event-label="Retry Loading"
         >
           Retry
         </button>
@@ -442,6 +465,9 @@
           <button
             id="main-loading-back-btn"
             class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
+            data-event="loading_back"
+            data-event-category="StepMania"
+            data-event-label="Back from Loading"
           >
             Back
           </button>
@@ -469,18 +495,27 @@
           <button
             id="share-score-btn"
             class="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
+            data-event="game_over_share_score"
+            data-event-category="StepMania"
+            data-event-label="Share Score"
           >
             📊 Share Score
           </button>
           <button
             id="restart-song-btn"
             class="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200"
+            data-event="game_over_restart"
+            data-event-category="StepMania"
+            data-event-label="Play Again"
           >
             🔄 Play Again
           </button>
           <button
             id="close-game-over-btn"
             class="w-full px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
+            data-event="game_over_close"
+            data-event-category="StepMania"
+            data-event-label="Close Game Over"
           >
             ✕ Close
           </button>
