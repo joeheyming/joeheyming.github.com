@@ -352,6 +352,9 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log('Video play failed:', error);
       });
     }
+
+    // Track analytics event
+    window.trackEvent('audio_play', 'StepMania', 'Audio Play');
   });
 
   audio.addEventListener('pause', function () {
@@ -359,6 +362,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (videoElement && backgroundVideo) {
       videoElement.pause();
     }
+
+    // Track analytics event
+    window.trackEvent('audio_pause', 'StepMania', 'Audio Pause');
   });
 
   audio.addEventListener('play', function () {
@@ -413,6 +419,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     // spacebar toggle play/pause
     if (keyCode == 32) {
+      // Track analytics event
+      window.trackEvent(
+        'spacebar_toggle',
+        'StepMania',
+        audio.paused ? 'Play (Spacebar)' : 'Pause (Spacebar)'
+      );
       if (audio.paused) {
         audio.play().catch((error) => {
           console.log('Audio play failed:', error);
@@ -1248,6 +1260,12 @@ window.actualPoints = actualPoints;
 function showGameOverModal() {
   // Update score display
   updateGameOverScore();
+
+  // Track analytics event for song completion
+  const percentElement = document.getElementById('percent-score');
+  const percentage = percentElement ? percentElement.textContent.trim() : '0.00%';
+  const totalNotes = tapNoteScores.reduce((sum, count) => sum + count, 0);
+  window.trackEvent('song_complete', 'StepMania', `Song Complete - ${percentage}`, totalNotes);
 
   // Show modal
   const gameOverMessage = document.getElementById('game-over-message');
