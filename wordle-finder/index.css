@@ -178,6 +178,10 @@ body {
   width: 100%;
 }
 
+body {
+  background: white;
+}
+
 main {
   width: calc(100vw - 20px);
   margin-left: auto;
@@ -187,6 +191,12 @@ main {
   main {
     width: 450px;
   }
+}
+
+/* Player mode needs more width for graph + word display */
+#player {
+  width: calc(100vw - 40px);
+  max-width: 550px;
 }
 
 body {

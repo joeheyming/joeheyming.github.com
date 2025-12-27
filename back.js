@@ -85,9 +85,9 @@ function createSiteNav() {
     return null;
   }
 
-  // Don't add nav to homepage (it has its own navigation)
+  // Don't add nav to homepage (it has its own navigation) or terminal (full-screen experience)
   const currentPath = window.location.pathname.replace(/.*\.html$/, '');
-  if (currentPath === '/' || currentPath === '') return null;
+  if (currentPath === '/' || currentPath === '' || currentPath.startsWith('/terminal')) return null;
 
   // Filter out current page from nav
   const navPages = SITE_PAGES.filter((page) => {

@@ -20,21 +20,25 @@ function renderFrequencyScoreTab(stats) {
 }
 
 function renderEntropyScore(filtered, stats) {
-  var joinedProbScores = stats.entropyScore
-    .map(function (score, i) {
-      return score[0] + ':&nbsp;' + score[1];
+  var patternScore = stats.patternEntropyScore || [];
+
+  // Format: [word, entropy bits, expected remaining, unique patterns]
+  // Use compact format: "word: X.XX" to fit in columns
+  var joinedProbScores = patternScore
+    .map(function (score) {
+      return score[0] + ':&nbsp;' + parseFloat(score[1]).toFixed(2);
     })
     .join('\r\n');
+
   var probabilityScoreContent = [
-    '<h3>Top Words by Probability Score</h3>',
-    '<p>A weight is generated for each letter in a word.<br />',
-    'The probability of the letter is multiplied by the likelihood the letter will eliminate words in the set of possible words.<br />',
-    "Each word adds up their letter weights.  Double letters don't add to the weight</p>",
+    '<h3>Best Guesses by Information Entropy</h3>',
+    '<p>Higher score = more information gained per guess (in bits).</p>',
     '<pre class="score">',
     joinedProbScores,
     '</pre>'
   ].join('');
-  var probabilityData = stats.entropyScore.length > 0 ? probabilityScoreContent : emptyMatch;
+
+  var probabilityData = patternScore.length > 0 ? probabilityScoreContent : emptyMatch;
   updateTabContent('tabpanel-probs', probabilityData);
 }
 

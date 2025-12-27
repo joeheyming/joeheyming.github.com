@@ -117,6 +117,7 @@
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
     <script async src="tabs.js"></script>
+    <script src="wordFrequency.js"></script>
     <script async src="filter.js"></script>
     <script async src="scorer.js"></script>
     <script async src="playWords.js"></script>
@@ -341,41 +342,79 @@
       </div>
 
       <div class="content" id="player" style="display: none">
-        <div class="form-row" id="wordChooseSubmit">
-          <button id="chooseWord" class="btn-primary btn-bordered">Choose</button>
-        </div>
-        <div id="playWordsResults"></div>
         <div class="form-row" id="step1">
           <div>
             <div>
               <input type="radio" id="auto-play" name="playMode" value="auto-play" checked />
-              <label for="wotd">Auto-play</label>
+              <label for="auto-play">Auto-play one game</label>
             </div>
             <div>
               <input type="radio" id="randomPlayWord" name="playMode" value="randomPlayWord" />
               <label for="randomPlayWord">Start with random answer</label>
             </div>
+            <div>
+              <input type="radio" id="benchmark" name="playMode" value="benchmark" />
+              <label for="benchmark">🧪 Benchmark all 2309 words</label>
+            </div>
           </div>
         </div>
-        <div class="form-row" id="sortSelector">
-          <label class="form-label">Sort by</label>
-          <div class="form-input fixed-input-control">
-            <select id="sortSelectorSelect">
-              <option value="frequency-score">Frequency Score</option>
-              <option value="entropy-score">Entropy Score v1</option>
-              <option value="spot-entropy-score">Entropy Score v2</option>
-              <option value="combined-entropy-score">Entropy Score v3</option>
-              <option value="alphabet">Alphabetically</option>
+        <div class="form-row" id="benchmarkOptions" style="display: none">
+          <label class="form-label">Starting word</label>
+          <div class="form-input">
+            <input
+              type="text"
+              id="benchmarkStartWord"
+              maxlength="5"
+              placeholder="e.g. slate"
+              class="wordle-style"
+              style="width: 100px; background-color: #4f46e5"
+            />
+          </div>
+        </div>
+
+        <!-- Controls row: button + selectors inline -->
+        <div
+          id="playerControls"
+          style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0"
+        >
+          <button id="chooseWord" class="btn-primary btn-bordered">Start</button>
+          <button
+            id="pauseBtn"
+            class="btn-txt btn-bordered"
+            onclick="togglePause()"
+            style="display: none"
+          >
+            ⏸ Pause
+          </button>
+          <button
+            id="clearStats"
+            class="btn-txt btn-bordered"
+            onclick="resetPlayer(true); stopAutoPlay()"
+            title="Clear stats graph"
+          >
+            Clear
+          </button>
+          <div id="sortSelector" style="display: none">
+            <label style="margin-right: 5px">Sort:</label>
+            <select id="sortSelectorSelect" style="width: auto; height: 44px">
+              <option value="pattern-entropy">Entropy</option>
+              <option value="frequency-score">Frequency</option>
+              <option value="alphabet">A-Z</option>
             </select>
           </div>
-        </div>
-        <div class="form-row" id="wordSelector">
-          <label class="form-label">Choose a word</label>
-          <div class="form-input fixed-input-control">
-            <select id="playWords"></select>
+          <div id="wordSelector" style="display: none">
+            <label style="margin-right: 5px">Word:</label>
+            <select id="playWords" style="width: 110px; height: 44px"></select>
           </div>
         </div>
-        <div class="form-row" id="wordDisplay"></div>
+
+        <!-- Results and word display side by side -->
+        <div
+          style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; width: 550px"
+        >
+          <div id="playWordsResults" style="min-width: 200px"></div>
+          <div id="wordDisplay" style="flex: 1; min-width: 200px"></div>
+        </div>
 
         <div id="playWordsWin">
           <h2>
@@ -394,7 +433,7 @@
           class="btn-txt btn-bordered"
           id="probability-stats"
         >
-          Weighted
+          Best Guess
         </button>
         <button
           aria-selected="false"
