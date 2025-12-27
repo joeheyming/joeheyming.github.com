@@ -1,0 +1,529 @@
+/* Minesweeper - Retro-Modern Hybrid */
+
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Inter:wght@500;600&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Classic Windows palette with modern twist */
+  --bg: #1a1a2e;
+  --surface: #c0c0c0;
+  --surface-dark: #a0a0a0;
+  --surface-light: #dfdfdf;
+  --highlight: #ffffff;
+  --shadow: #808080;
+  --shadow-dark: #404040;
+
+  --text: #000000;
+  --text-light: #ffffff;
+
+  --accent: #000080;
+  --danger: #ff0000;
+  --success: #008000;
+
+  /* LCD colors */
+  --lcd-bg: #300000;
+  --lcd-glow: #ff0000;
+
+  /* Number colors - classic */
+  --n1: #0000ff;
+  --n2: #008000;
+  --n3: #ff0000;
+  --n4: #000080;
+  --n5: #800000;
+  --n6: #008080;
+  --n7: #000000;
+  --n8: #808080;
+}
+
+html,
+body {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+body {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  background: var(--bg);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.03) 2px,
+    rgba(255, 255, 255, 0.03) 4px
+  );
+  font-family: 'Inter', -apple-system, sans-serif;
+  padding: 12px;
+}
+
+.game-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  width: fit-content;
+  min-width: min(100%, 320px);
+  max-height: 100%;
+  margin: 0 auto;
+}
+
+/* Header */
+.game-header {
+  text-align: center;
+}
+
+.game-header h1 {
+  font-family: 'VT323', monospace;
+  font-size: 3rem;
+  font-weight: 400;
+  color: var(--text-light);
+  letter-spacing: 0.05em;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Difficulty Controls */
+.controls {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.difficulty-selector {
+  display: flex;
+  gap: 2px;
+  background: var(--surface);
+  padding: 4px;
+  border: 2px solid;
+  border-color: var(--shadow-dark) var(--highlight) var(--highlight) var(--shadow-dark);
+}
+
+.diff-btn {
+  padding: 12px 28px;
+  font-family: 'VT323', monospace;
+  font-size: 1.75rem;
+  background: var(--surface);
+  border: 2px solid;
+  border-color: var(--highlight) var(--shadow-dark) var(--shadow-dark) var(--highlight);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.diff-btn:hover {
+  background: var(--surface-light);
+}
+
+.diff-btn:active {
+  border-color: var(--shadow-dark) var(--highlight) var(--highlight) var(--shadow-dark);
+}
+
+.diff-btn.active {
+  background: var(--accent);
+  color: var(--text-light);
+  border-color: var(--shadow-dark) var(--highlight) var(--highlight) var(--shadow-dark);
+}
+
+/* Game Container */
+.game-container {
+  background: var(--surface);
+  border: 3px solid;
+  border-color: var(--highlight) var(--shadow-dark) var(--shadow-dark) var(--highlight);
+  padding: 8px;
+}
+
+/* Status Bar */
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px;
+  background: var(--surface);
+  border: 2px solid;
+  border-color: var(--shadow-dark) var(--highlight) var(--highlight) var(--shadow-dark);
+  margin-bottom: 8px;
+}
+
+/* LCD Counters */
+.counter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--lcd-bg);
+  padding: 4px 8px;
+  border: 2px solid;
+  border-color: var(--shadow-dark) var(--highlight) var(--highlight) var(--shadow-dark);
+}
+
+.counter-label {
+  font-size: 1.75rem;
+}
+
+.counter-value {
+  font-family: 'VT323', monospace;
+  font-size: 3.5rem;
+  color: var(--lcd-glow);
+  text-shadow: 0 0 10px var(--lcd-glow);
+  letter-spacing: 0.1em;
+  line-height: 1;
+}
+
+.timer-counter .counter-value {
+  color: #00ff00;
+  text-shadow: 0 0 10px #00ff00;
+}
+
+/* Face Button */
+.face-btn {
+  width: 72px;
+  height: 72px;
+  font-size: 2.75rem;
+  border: 3px solid;
+  border-color: var(--highlight) var(--shadow-dark) var(--shadow-dark) var(--highlight);
+  background: var(--surface);
+  cursor: pointer;
+  transition: all 0.05s;
+}
+
+.face-btn:hover {
+  background: var(--surface-light);
+}
+
+.face-btn:active {
+  border-color: var(--shadow-dark) var(--highlight) var(--highlight) var(--shadow-dark);
+}
+
+/* Game Board */
+.game-board {
+  display: grid;
+  gap: 0;
+  background: var(--surface);
+  border: 3px solid;
+  border-color: var(--shadow-dark) var(--highlight) var(--highlight) var(--shadow-dark);
+  padding: 2px;
+}
+
+/* Cells - dynamically sized to fit screen */
+.cell {
+  width: var(--cell-size, 54px);
+  height: var(--cell-size, 54px);
+  background: var(--surface);
+  border: var(--cell-border, 3px) solid;
+  border-color: var(--highlight) var(--shadow-dark) var(--shadow-dark) var(--highlight);
+  font-family: 'Arial Black', 'Helvetica Bold', Arial, sans-serif;
+  font-size: calc(var(--cell-size, 54px) * 0.5);
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition: none;
+}
+
+.cell:hover:not(.revealed) {
+  background: var(--surface-light);
+}
+
+.cell:active:not(.revealed):not(.flagged) {
+  border-color: var(--shadow) var(--shadow) var(--shadow) var(--shadow);
+  border-width: 1px;
+  background: var(--surface-dark);
+}
+
+.cell.revealed {
+  border: 1px solid var(--shadow);
+  background: var(--surface-dark);
+  cursor: default;
+}
+
+.cell.flagged {
+  background: var(--surface);
+}
+
+.cell.mine-exploded {
+  background: var(--danger);
+}
+
+.cell.mine-wrong {
+  background: var(--surface-dark);
+}
+
+/* Number colors - classic minesweeper */
+.cell.num-1 {
+  color: var(--n1);
+}
+.cell.num-2 {
+  color: var(--n2);
+}
+.cell.num-3 {
+  color: var(--n3);
+}
+.cell.num-4 {
+  color: var(--n4);
+}
+.cell.num-5 {
+  color: var(--n5);
+}
+.cell.num-6 {
+  color: var(--n6);
+}
+.cell.num-7 {
+  color: var(--n7);
+}
+.cell.num-8 {
+  color: var(--n8);
+}
+
+/* Help Text */
+.help-text {
+  display: flex;
+  gap: 16px;
+  font-family: 'VT323', monospace;
+  font-size: 1.5rem;
+  color: var(--surface-light);
+}
+
+.help-text kbd {
+  background: var(--surface);
+  color: var(--text);
+  padding: 2px 8px;
+  border: 2px solid;
+  border-color: var(--highlight) var(--shadow-dark) var(--shadow-dark) var(--highlight);
+  font-family: 'VT323', monospace;
+}
+
+/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--surface);
+  border: 3px solid;
+  border-color: var(--highlight) var(--shadow-dark) var(--shadow-dark) var(--highlight);
+  max-width: 400px;
+  width: 90%;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  background: var(--accent);
+  color: var(--text-light);
+}
+
+.modal-header h2 {
+  font-family: 'VT323', monospace;
+  font-size: 1.5rem;
+  font-weight: 400;
+}
+
+.modal-close {
+  width: 24px;
+  height: 24px;
+  background: var(--surface);
+  border: 2px solid;
+  border-color: var(--highlight) var(--shadow-dark) var(--shadow-dark) var(--highlight);
+  font-size: 1rem;
+  color: var(--text);
+  cursor: pointer;
+  font-family: 'VT323', monospace;
+}
+
+.modal-close:hover {
+  background: var(--surface-light);
+}
+
+.modal-close:active {
+  border-color: var(--shadow-dark) var(--highlight) var(--highlight) var(--shadow-dark);
+}
+
+.modal-body {
+  padding: 16px;
+}
+
+/* Form */
+.form-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.form-row label {
+  width: 60px;
+  font-family: 'VT323', monospace;
+  font-size: 1.25rem;
+  text-align: right;
+}
+
+.form-row input[type='number'] {
+  flex: 1;
+  padding: 6px 10px;
+  font-family: 'VT323', monospace;
+  font-size: 1.25rem;
+  border: 2px solid;
+  border-color: var(--shadow-dark) var(--highlight) var(--highlight) var(--shadow-dark);
+  background: white;
+}
+
+.form-row input:focus {
+  outline: none;
+}
+
+.form-hint {
+  font-family: 'VT323', monospace;
+  font-size: 1rem;
+  color: var(--shadow);
+  min-width: 50px;
+}
+
+.form-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 2px solid var(--shadow);
+}
+
+.btn-ok,
+.btn-cancel {
+  padding: 8px 24px;
+  font-family: 'VT323', monospace;
+  font-size: 1.25rem;
+  background: var(--surface);
+  border: 2px solid;
+  border-color: var(--highlight) var(--shadow-dark) var(--shadow-dark) var(--highlight);
+  cursor: pointer;
+}
+
+.btn-ok:hover,
+.btn-cancel:hover {
+  background: var(--surface-light);
+}
+
+.btn-ok:active,
+.btn-cancel:active {
+  border-color: var(--shadow-dark) var(--highlight) var(--highlight) var(--shadow-dark);
+}
+
+/* Animations */
+.game-wrapper.won .game-container {
+  animation: celebrate 0.5s ease;
+}
+
+@keyframes celebrate {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.01);
+  }
+}
+
+.game-wrapper.game-over .game-container {
+  animation: shake 0.3s ease;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 900px) {
+  .counter-value {
+    font-size: 2.5rem;
+  }
+
+  .face-btn {
+    width: 60px;
+    height: 60px;
+    font-size: 2.25rem;
+  }
+}
+
+@media (max-width: 600px) {
+  body {
+    padding: 8px;
+  }
+
+  .game-wrapper {
+    gap: 8px;
+  }
+
+  .game-container {
+    padding: 6px;
+  }
+
+  .status-bar {
+    padding: 4px;
+    margin-bottom: 6px;
+  }
+
+  .difficulty-selector {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 2px;
+  }
+
+  .diff-btn {
+    padding: 8px 12px;
+    font-size: 1.1rem;
+  }
+
+  .help-text {
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+    font-size: 1rem;
+  }
+
+  .game-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .counter-value {
+    font-size: 1.75rem;
+  }
+
+  .counter {
+    padding: 4px 8px;
+    min-width: 70px;
+  }
+
+  .face-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 1.5rem;
+  }
+}

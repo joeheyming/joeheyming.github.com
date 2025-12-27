@@ -1,0 +1,7 @@
+{
+  "name": "minesweeper",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Minesweeper game built with JavaScript",
+  "private": true
+}

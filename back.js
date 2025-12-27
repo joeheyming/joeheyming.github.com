@@ -115,6 +115,7 @@ function createSiteNav() {
 
   nav.innerHTML = `
     <div style="
+      display: none;
       position: fixed;
       bottom: 0;
       left: 0;

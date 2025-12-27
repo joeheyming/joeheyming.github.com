@@ -232,6 +232,23 @@ let appRegistry = [
     category: 'utility'
   },
   {
+    id: 'minesweeper',
+    name: 'Minesweeper 💣',
+    shortName: 'Minesweeper',
+    description: 'Classic puzzle game',
+    detailedDescription:
+      'Clear the minefield without detonating any mines - the original Windows classic!',
+    icon: '💣',
+    path: './minesweeper/',
+    category: 'game',
+    gradient: 'from-gray-500/20 to-slate-600/20',
+    border: 'border-gray-500/30 hover:border-gray-400/50',
+    taskbarGradient: 'from-gray-500 to-slate-600',
+    taskbarText: 'text-white',
+    defaultWidth: 400,
+    defaultHeight: 500
+  },
+  {
     id: 'nes',
     name: 'NES',
     shortName: 'NES',

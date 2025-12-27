@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Minesweeper 💣 - Joe Heyming</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💣</text></svg>"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="../back.js"></script>
+
+    <!-- SEO Meta Tags -->
+    <meta
+      name="description"
+      content="Classic Minesweeper game - clear the minefield without detonating any bombs!"
+    />
+    <meta property="og:title" content="Minesweeper 💣 - Joe Heyming" />
+    <meta property="og:description" content="Classic Minesweeper game" />
+    <meta property="og:type" content="website" />
+  </head>
+  <body>
+    <div class="game-wrapper">
+      <header class="game-header">
+        <h1>💣 Minesweeper</h1>
+      </header>
+
+      <div class="controls">
+        <div class="difficulty-selector">
+          <button class="diff-btn active" data-difficulty="beginner">Beginner</button>
+          <button class="diff-btn" data-difficulty="intermediate">Intermediate</button>
+          <button class="diff-btn" data-difficulty="expert">Expert</button>
+          <button class="diff-btn" data-difficulty="custom">Custom</button>
+        </div>
+      </div>
+
+      <div class="game-container">
+        <div class="status-bar">
+          <div class="counter mines-counter">
+            <span class="counter-label">💣</span>
+            <span class="counter-value" id="mines-display">010</span>
+          </div>
+          <button class="face-btn" id="face-btn" onclick="game.newGame()">🙂</button>
+          <div class="counter timer-counter">
+            <span class="counter-label">⏱️</span>
+            <span class="counter-value" id="timer-display">000</span>
+          </div>
+        </div>
+
+        <div class="game-board" id="game-board"></div>
+      </div>
+
+      <div class="help-text">
+        <span>Left click to reveal</span>
+        <span>•</span>
+        <span>Right click to flag</span>
+        <span>•</span>
+        <span>
+          Press
+          <kbd>F2</kbd>
+          for new game
+        </span>
+      </div>
+    </div>
+
+    <!-- Custom Game Modal -->
+    <div class="modal" id="custom-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Custom Game</h2>
+          <button class="modal-close" onclick="game.closeModal('custom-modal')">×</button>
+        </div>
+        <div class="modal-body">
+          <form id="custom-form" onsubmit="return game.submitCustom(event)">
+            <div class="form-row">
+              <label for="custom-rows">Height</label>
+              <input type="number" id="custom-rows" min="5" max="30" value="9" required />
+              <span class="form-hint">5-30</span>
+            </div>
+            <div class="form-row">
+              <label for="custom-cols">Width</label>
+              <input type="number" id="custom-cols" min="5" max="50" value="9" required />
+              <span class="form-hint">5-50</span>
+            </div>
+            <div class="form-row">
+              <label for="custom-mines">Mines</label>
+              <input type="number" id="custom-mines" min="1" value="10" required />
+              <span class="form-hint" id="mines-hint">1-72</span>
+            </div>
+            <div class="form-buttons">
+              <button type="button" class="btn-cancel" onclick="game.closeModal('custom-modal')">
+                Cancel
+              </button>
+              <button type="submit" class="btn-ok">Start Game</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="minesweeper.js"></script>
+  </body>
+</html>
