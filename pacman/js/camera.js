@@ -22,11 +22,8 @@ export class CameraController {
     // Calculate level center
     this.levelCenter = new THREE.Vector3((levelWidth * scale) / 2, (levelHeight * scale) / 2, 0);
 
-    // Calculate optimal distance to see entire map
-    // Need to fit the larger dimension in view with some margin
-    const maxDimension = Math.max(levelWidth, levelHeight) * scale;
-    const fovRad = (this.camera.fov * Math.PI) / 180;
-    this.optimalDistance = maxDimension / (2 * Math.tan(fovRad / 2)) + 50;
+    // Calculate optimal distance - will be recalculated on resize
+    this.updateOptimalDistance();
 
     // Smooth camera movement
     this.lerpFactor = 0.1;
@@ -44,15 +41,47 @@ export class CameraController {
     this.camera.lookAt(this.targetLookAt);
   }
 
+  /**
+   * Calculate optimal camera distance to fit entire map in view
+   * Accounts for screen aspect ratio - on portrait screens, width is limiting factor
+   */
+  updateOptimalDistance() {
+    const aspect = this.camera.aspect || window.innerWidth / window.innerHeight;
+    const fovRad = (this.camera.fov * Math.PI) / 180;
+
+    // Calculate the dimensions we need to fit
+    const levelWidthUnits = this.levelWidth * this.scale;
+    const levelHeightUnits = this.levelHeight * this.scale;
+
+    // Account for viewing angle - the tilted view means we see the map at an angle
+    const angleRad = (CAMERA.VIEWING_ANGLE * Math.PI) / 180;
+    const effectiveHeight = levelHeightUnits * Math.cos(angleRad);
+
+    // Calculate distance needed to fit height (vertical FOV)
+    const distanceForHeight = effectiveHeight / (2 * Math.tan(fovRad / 2));
+
+    // Calculate distance needed to fit width (using horizontal FOV derived from vertical + aspect)
+    // Horizontal FOV = 2 * atan(aspect * tan(vFOV/2))
+    const hFovRad = 2 * Math.atan(aspect * Math.tan(fovRad / 2));
+    const distanceForWidth = levelWidthUnits / (2 * Math.tan(hFovRad / 2));
+
+    // Use the larger distance to ensure entire map fits, plus margin
+    this.optimalDistance = Math.max(distanceForHeight, distanceForWidth) + 50;
+  }
+
   setLevelDimensions(width, height, scale) {
     this.levelWidth = width;
     this.levelHeight = height;
     this.scale = scale;
     this.levelCenter.set((width * scale) / 2, (height * scale) / 2, 0);
+    this.updateOptimalDistance();
+  }
 
-    const maxDimension = Math.max(width, height) * scale;
-    const fovRad = (this.camera.fov * Math.PI) / 180;
-    this.optimalDistance = maxDimension / (2 * Math.tan(fovRad / 2)) + 50;
+  /**
+   * Called when window resizes to recalculate optimal camera distance
+   */
+  onResize() {
+    this.updateOptimalDistance();
   }
 
   setMode(mode) {

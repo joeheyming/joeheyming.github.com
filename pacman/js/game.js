@@ -44,10 +44,19 @@ class Game {
     const savedCameraMode = localStorage.getItem('pacman-camera-mode');
     const parsedSavedMode = savedCameraMode !== null ? parseInt(savedCameraMode, 10) : null;
     // Validate saved mode is 0, 1, or 2
-    const validSavedMode =
+    let validSavedMode =
       parsedSavedMode !== null && parsedSavedMode >= 0 && parsedSavedMode <= 2
         ? parsedSavedMode
         : null;
+
+    // Skip FPS mode (2) on mobile - it requires mouse look
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
+    if (isMobile && validSavedMode === 2) {
+      validSavedMode = 0; // Default to Bird's Eye on mobile
+    }
+
     this.startCameraMode = this.parseCameraMode(startCameraParam) ?? validSavedMode;
 
     console.log(
@@ -361,6 +370,16 @@ class Game {
     document.getElementById('next-level-btn')?.addEventListener('click', () => {
       this.nextLevel();
     });
+
+    // Camera toggle (tappable on mobile)
+    const cameraToggle = document.getElementById('camera-toggle');
+    if (cameraToggle) {
+      cameraToggle.addEventListener('click', () => {
+        if (this.controls) {
+          this.controls.cycleCamera();
+        }
+      });
+    }
 
     // Click to skip intro music
     this.introScreen.addEventListener('click', () => {
@@ -717,6 +736,11 @@ class Game {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+
+    // Update camera controller for new aspect ratio
+    if (this.cameraController) {
+      this.cameraController.onResize();
+    }
   }
 
   update() {

@@ -94,10 +94,21 @@ button:hover {
 @media (max-width: 768px) {
   #hud {
     padding: 8px;
+    padding-left: 8px;
+    flex-direction: column;
+    gap: 8px;
   }
 
   #hud .text-2xl {
     font-size: 1rem;
+  }
+
+  #hud .text-sm {
+    font-size: 0.7rem;
+  }
+
+  #hud .text-xs {
+    font-size: 0.6rem;
   }
 
   #controls-help {
@@ -105,7 +116,68 @@ button:hover {
   }
 
   #start-screen h1 {
+    font-size: 1.5rem;
+    padding: 0 16px;
+    text-align: center;
+  }
+
+  #start-screen button {
+    padding: 12px 24px;
+    font-size: 1rem;
+  }
+
+  /* Smaller lives icons on mobile */
+  #lives span {
+    font-size: 1.2rem !important;
+  }
+
+  /* Make camera mode display more compact */
+  #camera-mode {
+    display: block;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Adjust minimap size for mobile */
+  #minimap {
+    width: 100px !important;
+    height: 100px !important;
+  }
+
+  /* Game over/win screens */
+  #game-over-screen h2,
+  #win-screen h2 {
     font-size: 2rem;
+  }
+
+  #game-over-screen p,
+  #win-screen p {
+    font-size: 1.2rem;
+  }
+}
+
+/* Very small screens (iPhone SE, etc) */
+@media (max-width: 375px) {
+  #hud .text-2xl {
+    font-size: 0.875rem;
+  }
+
+  #start-screen h1 {
+    font-size: 1.25rem;
+  }
+
+  .touch-dpad {
+    grid-template-columns: 50px 50px 50px !important;
+    grid-template-rows: 50px 50px 50px !important;
+  }
+
+  .touch-btn,
+  .touch-action-btn {
+    width: 50px !important;
+    height: 50px !important;
+    font-size: 20px !important;
   }
 }
 
