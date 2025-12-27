@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link
+      rel="icon"
+      id="site-favicon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👻</text></svg>"
+    />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+    <title>👻 3D Pacman - Classic Arcade Game | Joe Heyming</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta
+      name="description"
+      content="Play 3D Pacman in your browser! A Three.js recreation of the classic arcade game with multiple camera modes, ghost AI, and power pills. Originally a UCSB Computer Science project."
+    />
+
+    <!-- Enhanced SEO Meta Tags -->
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="theme-color" content="#1a1a2e" />
+    <meta
+      name="keywords"
+      content="pacman, 3d pacman, three.js game, webgl game, arcade game, browser game, javascript game, ghost ai, maze game"
+    />
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - 3D Pacman" />
+    <meta property="og:title" content="👻 3D Pacman - Classic Arcade Game" />
+    <meta
+      property="og:description"
+      content="Play 3D Pacman in your browser! A Three.js recreation with multiple camera modes and intelligent ghost AI."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/pacman/" />
+    <meta property="og:image" content="https://joeheyming.github.io/pacman/pacman-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="3D Pacman Game" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="👻 3D Pacman - Classic Arcade Game" />
+    <meta
+      name="twitter:description"
+      content="Play 3D Pacman in your browser! A Three.js recreation with multiple camera modes and ghost AI."
+    />
+    <meta name="twitter:image" content="https://joeheyming.github.io/pacman/pacman-preview.png" />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://joeheyming.github.io/pacman/" />
+
+    <!-- Three.js -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+        }
+      }
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "3D Pacman",
+        "applicationCategory": "Game",
+        "operatingSystem": "Web Browser",
+        "description": "A Three.js recreation of the classic Pacman arcade game with 3D graphics, multiple camera modes, and intelligent ghost AI. Originally a UCSB Computer Science project.",
+        "url": "https://joeheyming.github.io/pacman/",
+        "author": {
+          "@type": "Person",
+          "name": "Joe Heyming",
+          "url": "https://joeheyming.github.io/"
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "gamePlatform": "Web Browser",
+        "genre": "Arcade",
+        "inLanguage": "en"
+      }
+    </script>
+  </head>
+  <body class="bg-gray-900 min-h-screen overflow-hidden">
+    <!-- Game Container -->
+    <div id="game-container" class="relative w-full h-screen">
+      <!-- Three.js Canvas will be inserted here -->
+
+      <!-- HUD Overlay -->
+      <div
+        id="hud"
+        class="absolute top-0 left-0 right-0 p-4 pl-16 flex justify-between items-start pointer-events-none z-10"
+      >
+        <div class="flex items-center gap-6">
+          <div class="text-left">
+            <div class="text-yellow-400 font-mono text-2xl font-bold">
+              SCORE:
+              <span id="score">0</span>
+            </div>
+            <div class="text-white font-mono text-sm mt-1">
+              HIGH:
+              <span id="high-score">0</span>
+            </div>
+          </div>
+          <!-- Lives Display (next to score) -->
+          <div>
+            <span class="text-white text-sm mr-1">Lives:</span>
+            <div id="lives" class="flex gap-1 items-center">
+              <span class="text-yellow-400 text-2xl">🟡</span>
+              <span class="text-yellow-400 text-2xl">🟡</span>
+              <span class="text-yellow-400 text-2xl">🟡</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-start gap-4">
+          <!-- Minimap (visible in FPS mode) -->
+          <div id="fps-hud" class="hidden">
+            <div class="relative">
+              <canvas
+                id="minimap"
+                width="150"
+                height="150"
+                class="rounded-full border-2 border-yellow-500/50 bg-black/70"
+              ></canvas>
+              <div
+                class="absolute -top-3 left-1/2 -translate-x-1/2 text-yellow-400 text-xs font-bold"
+              >
+                N
+              </div>
+              <div
+                class="absolute -bottom-3 left-1/2 -translate-x-1/2 text-yellow-400 text-xs font-bold"
+              >
+                S
+              </div>
+              <div
+                class="absolute top-1/2 -left-3 -translate-y-1/2 text-yellow-400 text-xs font-bold"
+              >
+                W
+              </div>
+              <div
+                class="absolute top-1/2 -right-3 -translate-y-1/2 text-yellow-400 text-xs font-bold"
+              >
+                E
+              </div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-cyan-400 font-mono text-sm">
+              Camera:
+              <span id="camera-mode">Bird's Eye</span>
+            </div>
+            <div class="text-gray-400 font-mono text-xs mt-1">Press [C] to change</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls Help -->
+      <div
+        id="controls-help"
+        class="absolute bottom-4 right-4 text-gray-500 font-mono text-xs text-right z-10"
+      >
+        <div>Arrow Keys: Move</div>
+        <div>C: Camera Mode</div>
+        <div>P: Pause</div>
+        <div>R: Restart</div>
+      </div>
+
+      <!-- FPS Mouth Overlay (visible in first person mode) -->
+      <div id="fps-mouth-overlay" class="absolute inset-0 pointer-events-none z-5 hidden">
+        <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <!-- Top jaw -->
+          <path id="top-jaw" d="M 0,0 L 100,0 L 100,15 Q 50,25 0,15 Z" fill="#FFD700" />
+          <!-- Bottom jaw -->
+          <path id="bottom-jaw" d="M 0,100 L 100,100 L 100,85 Q 50,75 0,85 Z" fill="#FFD700" />
+        </svg>
+      </div>
+
+      <!-- Game State Overlays -->
+      <div
+        id="start-screen"
+        class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-20"
+      >
+        <h1 class="text-6xl font-bold text-yellow-400 mb-4 animate-pulse">👻 3D PACMAN 👻</h1>
+        <button
+          id="start-btn"
+          class="px-8 py-4 bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-xl rounded-lg transition-all duration-300 hover:scale-110"
+        >
+          START GAME
+        </button>
+        <div class="mt-8 text-gray-500 text-sm">Use Arrow Keys to move • C to change camera</div>
+      </div>
+
+      <div
+        id="intro-screen"
+        class="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-20 hidden cursor-pointer"
+      >
+        <div id="intro-countdown" class="text-6xl font-bold text-yellow-400 animate-pulse">
+          READY!
+        </div>
+        <div class="mt-8 text-gray-400 text-sm animate-pulse">Click to skip</div>
+      </div>
+
+      <div
+        id="pause-screen"
+        class="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-20 hidden cursor-pointer"
+      >
+        <h2 class="text-4xl font-bold text-white mb-4">PAUSED</h2>
+        <p class="text-gray-400">Click or press ESC to resume</p>
+      </div>
+
+      <div
+        id="game-over-screen"
+        class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-20 hidden"
+      >
+        <h2 class="text-5xl font-bold text-red-500 mb-4">GAME OVER</h2>
+        <p class="text-2xl text-white mb-2">
+          Score:
+          <span id="final-score">0</span>
+        </p>
+        <button
+          id="restart-btn"
+          class="mt-6 px-6 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-lg transition-all duration-300 hover:scale-105"
+        >
+          PLAY AGAIN
+        </button>
+      </div>
+
+      <div
+        id="win-screen"
+        class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-20 hidden"
+      >
+        <h2 class="text-5xl font-bold text-green-400 mb-4">🎉 YOU WIN! 🎉</h2>
+        <p class="text-2xl text-white mb-2">
+          Score:
+          <span id="win-score">0</span>
+        </p>
+        <button
+          id="next-level-btn"
+          class="mt-6 px-6 py-3 bg-green-500 hover:bg-green-400 text-black font-bold rounded-lg transition-all duration-300 hover:scale-105"
+        >
+          NEXT LEVEL
+        </button>
+      </div>
+    </div>
+
+    <!-- Game Scripts -->
+    <script type="module" src="js/game.js"></script>
+  </body>
+</html>

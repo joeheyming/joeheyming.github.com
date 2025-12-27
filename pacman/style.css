@@ -1,0 +1,175 @@
+/* 3D Pacman Game Styles */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  overflow: hidden;
+}
+
+#game-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+#game-container canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* HUD Styles */
+#hud {
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+#score,
+#high-score {
+  text-shadow: 0 0 10px currentColor;
+}
+
+/* Retro glow effect for text */
+.glow-text {
+  text-shadow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 20px currentColor;
+}
+
+/* Overlay animations */
+#start-screen h1 {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    text-shadow: 0 0 10px #fbbf24, 0 0 20px #fbbf24, 0 0 30px #fbbf24;
+  }
+  50% {
+    text-shadow: 0 0 20px #fbbf24, 0 0 40px #fbbf24, 0 0 60px #fbbf24;
+  }
+}
+
+/* Button styles */
+button {
+  cursor: pointer;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4);
+}
+
+button:hover {
+  box-shadow: 0 6px 25px rgba(251, 191, 36, 0.6);
+}
+
+/* Lives display */
+#lives span {
+  filter: drop-shadow(0 0 5px #fbbf24);
+}
+
+/* Control hints */
+#controls-help {
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+/* Screen transitions */
+.screen-overlay {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.screen-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  #hud {
+    padding: 8px;
+  }
+
+  #hud .text-2xl {
+    font-size: 1rem;
+  }
+
+  #controls-help {
+    display: none;
+  }
+
+  #start-screen h1 {
+    font-size: 2rem;
+  }
+}
+
+/* Loading indicator */
+.loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 1.5rem;
+}
+
+.loading::after {
+  content: '';
+  animation: loading-dots 1.5s infinite;
+}
+
+@keyframes loading-dots {
+  0% {
+    content: '.';
+  }
+  33% {
+    content: '..';
+  }
+  66% {
+    content: '...';
+  }
+}
+
+/* Ghost scared animation */
+@keyframes ghost-scared {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.ghost-scared {
+  animation: ghost-scared 0.3s ease-in-out infinite;
+}
+
+/* Dot collection effect */
+@keyframes dot-collect {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Power pill pulsing */
+@keyframes power-pill-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+}
