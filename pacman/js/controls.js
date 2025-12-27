@@ -283,7 +283,16 @@ export class Controls {
 
   cycleCamera() {
     if (this.game.cameraController) {
-      const newMode = this.game.cameraController.cycleMode();
+      let newMode = this.game.cameraController.cycleMode();
+
+      // Skip FPS mode on mobile (mode 2) - it requires mouse look which doesn't work on touch
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
+      if (isMobile && newMode === 2) {
+        newMode = this.game.cameraController.cycleMode(); // Skip to mode 0
+      }
+
       this.game.updateCameraModeDisplay();
 
       // Save camera mode to localStorage
@@ -367,7 +376,9 @@ export class Controls {
         }
         @media (max-width: 768px), (pointer: coarse) {
           #touch-controls {
-            display: block;
+            display: flex;
+            align-items: flex-end;
+            gap: 20px;
           }
           #controls-help {
             display: none !important;
@@ -402,6 +413,44 @@ export class Controls {
         .touch-center { grid-column: 2; grid-row: 2; background: transparent; border: none; }
         .touch-right { grid-column: 3; grid-row: 2; }
         .touch-down { grid-column: 2; grid-row: 3; }
+        
+        .touch-action-buttons {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .touch-action-btn {
+          width: 60px;
+          height: 60px;
+          background: rgba(0, 200, 255, 0.25);
+          border: 2px solid rgba(0, 200, 255, 0.6);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: bold;
+          color: #00c8ff;
+          user-select: none;
+          -webkit-user-select: none;
+          touch-action: manipulation;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .touch-action-btn:active {
+          background: rgba(0, 200, 255, 0.5);
+        }
+        .touch-camera-btn {
+          font-size: 20px;
+        }
+        .touch-pause-btn {
+          background: rgba(255, 200, 0, 0.25);
+          border-color: rgba(255, 200, 0, 0.6);
+          color: #ffc800;
+        }
+        .touch-pause-btn:active {
+          background: rgba(255, 200, 0, 0.5);
+        }
       </style>
       <div class="touch-dpad">
         <button class="touch-btn touch-up" data-dir="up">▲</button>
@@ -410,10 +459,14 @@ export class Controls {
         <button class="touch-btn touch-right" data-dir="right">▶</button>
         <button class="touch-btn touch-down" data-dir="down">▼</button>
       </div>
+      <div class="touch-action-buttons">
+        <button class="touch-action-btn touch-camera-btn" id="touch-camera">📷</button>
+        <button class="touch-action-btn touch-pause-btn" id="touch-pause">⏸</button>
+      </div>
     `;
     document.body.appendChild(touchOverlay);
 
-    // Bind touch events
+    // Bind touch events for D-pad
     const buttons = touchOverlay.querySelectorAll('.touch-btn[data-dir]');
     buttons.forEach((btn) => {
       const dir = btn.dataset.dir;
@@ -436,6 +489,24 @@ export class Controls {
         this.updateDirection();
       });
     });
+
+    // Camera toggle button
+    const cameraBtn = document.getElementById('touch-camera');
+    if (cameraBtn) {
+      cameraBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        this.cycleCamera();
+      });
+    }
+
+    // Pause button
+    const pauseBtn = document.getElementById('touch-pause');
+    if (pauseBtn) {
+      pauseBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        this.game.togglePause();
+      });
+    }
   }
 
   // Reset all keys

@@ -77,6 +77,14 @@ function createSiteNav() {
   // if inside iframe, do nothing
   if (window.self !== window.top) return null;
 
+  // Hide footer on mobile devices
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+  if (isMobile) {
+    return null;
+  }
+
   // Don't add nav to homepage (it has its own navigation)
   const currentPath = window.location.pathname.replace(/.*\.html$/, '');
   if (currentPath === '/' || currentPath === '') return null;

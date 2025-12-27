@@ -105,7 +105,7 @@
       <!-- HUD Overlay -->
       <div
         id="hud"
-        class="absolute top-0 left-0 right-0 p-4 pl-16 flex justify-between items-start pointer-events-none z-10"
+        class="absolute top-0 left-0 right-0 p-4 sm:pl-16 flex flex-wrap justify-between items-start pointer-events-none z-10"
       >
         <div class="flex items-center gap-6">
           <div class="text-left">
@@ -161,11 +161,17 @@
             </div>
           </div>
           <div class="text-right">
-            <div class="text-cyan-400 font-mono text-sm">
+            <div
+              id="camera-toggle"
+              class="text-cyan-400 font-mono text-sm cursor-pointer pointer-events-auto active:opacity-70"
+            >
               Camera:
               <span id="camera-mode">Bird's Eye</span>
             </div>
-            <div class="text-gray-400 font-mono text-xs mt-1">Press [C] to change</div>
+            <div class="text-gray-400 font-mono text-xs mt-1 hidden sm:block">
+              Press [C] to change
+            </div>
+            <div class="text-gray-400 font-mono text-xs mt-1 sm:hidden">Tap to change</div>
           </div>
         </div>
       </div>
