@@ -60,6 +60,22 @@ let appRegistry = [
     defaultHeight: 400
   },
   {
+    id: 'pacman',
+    name: 'Pac-Man 👻',
+    shortName: 'Pac-Man',
+    description: 'Classic arcade game',
+    detailedDescription: 'The classic arcade game - eat pellets, avoid ghosts!',
+    icon: '👻',
+    path: './pacman/',
+    category: 'game',
+    gradient: 'from-yellow-400/20 to-yellow-600/20',
+    border: 'border-yellow-500/30 hover:border-yellow-400/50',
+    taskbarGradient: 'from-yellow-400 to-yellow-600',
+    taskbarText: 'text-black',
+    defaultWidth: 900,
+    defaultHeight: 700
+  },
+  {
     id: 'pbs',
     name: 'Pirate Broadcast System 🏴‍☠️',
     shortName: 'Pirates',
