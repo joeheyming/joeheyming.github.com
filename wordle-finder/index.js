@@ -2,6 +2,13 @@
  * This file was intentionally vanilla js because I wanted a challenge
  */
 
+// Safe gtag wrapper - won't crash if analytics is blocked
+function safeGtag() {
+  if (typeof gtag === 'function') {
+    gtag.apply(null, arguments);
+  }
+}
+
 // current answer of hte day
 var currentAnswer;
 // Days since the first wordle.  Useful index for the answers
@@ -31,7 +38,7 @@ randomWordButton.onclick = function () {
     word = wordList[item];
   } while (!isIsogram(word));
   randomWord.textContent = word;
-  gtag('event', 'generate_random_word', {
+  safeGtag('event', 'generate_random_word', {
     event_category: 'user action'
   });
 };
@@ -61,7 +68,7 @@ function guess(event) {
 
   results.removeAttribute('hidden');
 
-  gtag('event', 'submit', {
+  safeGtag('event', 'submit', {
     event_category: 'user action'
   });
 
@@ -87,7 +94,7 @@ function resetScorer() {
 
 reset.onclick = function () {
   resetScorer();
-  gtag('event', 'reset', {
+  safeGtag('event', 'reset', {
     event_category: 'user action'
   });
 };
@@ -103,7 +110,7 @@ function fetchWords() {
 
 function helpClick() {
   dialog.style.display = '';
-  gtag('event', 'help_click', {
+  safeGtag('event', 'help_click', {
     event_category: 'user action'
   });
 }
