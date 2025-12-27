@@ -1,0 +1,7 @@
+{
+  "name": "pacman-3d",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "3D Pacman game built with Three.js",
+  "private": true
+}

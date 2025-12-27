@@ -1,0 +1,24 @@
+<width> <length>
+
+<number of levels>
+
+<scale>
+
+<number of pacmen> <number of ghosts>
+
+<pacman starting position x> <pacman starting position y> <pacman starting position level>
+
+<number of tiles in ghost home>
+<primary ghost home tile x position><..y..><..level..>
+...
+<optional ghost home tile x position><..y..><..level..>
+
+<number of power pills>
+<location of power pill 1>
+...
+<location of power pill n>
+
+<location of first teleport tile>
+<location of second teleport tile>
+
+<world layout>
