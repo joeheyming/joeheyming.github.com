@@ -70,27 +70,9 @@ function initErrorTracking() {
 // Function to manually track errors
 window.trackError = function (errorData) {
   try {
-    // Ensure we have gtag available
-    if (typeof gtag === 'undefined') {
-      console.warn('Google Analytics not available for error tracking');
-      return;
-    }
-
-    // Send error as a custom event to Google Analytics
-    gtag('event', 'exception', {
-      description: errorData.message || 'Unknown error',
-      fatal: false
-    });
-
-    // Also send as a custom event for easier filtering in GA
-    gtag('event', 'error_occurred', {
-      event_category: 'Error',
-      event_label: errorData.type || 'manual_error',
-      description: errorData.message || 'Unknown error',
-      value: 1
-    });
-
-    // Log to console for development
+    const errorType = errorData.type || 'unknown';
+    const errorMessage = errorData.message || 'Unknown error';
+    window.trackEvent('error', 'Error', `${errorType}: ${errorMessage}`);
     console.error('Error tracked:', errorData);
   } catch (trackingError) {
     console.error('Failed to track error:', trackingError);
@@ -100,20 +82,11 @@ window.trackError = function (errorData) {
 // Function to track performance issues
 window.trackPerformance = function () {
   try {
-    if (typeof gtag === 'undefined' || !window.performance) return;
+    if (!window.performance) return;
 
     const perfData = window.performance.timing;
     const loadTime = perfData.loadEventEnd - perfData.navigationStart;
-    const domReadyTime = perfData.domContentLoadedEventEnd - perfData.navigationStart;
-
-    gtag('event', 'performance_metrics', {
-      event_category: 'Performance',
-      custom_parameters: {
-        load_time: loadTime,
-        dom_ready_time: domReadyTime,
-        page_url: window.location.href
-      }
-    });
+    window.trackEvent('page_load', 'Performance', window.location.pathname, loadTime);
   } catch (error) {
     console.error('Failed to track performance:', error);
   }

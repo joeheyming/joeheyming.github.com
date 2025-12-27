@@ -1039,26 +1039,7 @@ class MainPageController {
     // Track analytics event for song play
     if (this.currentSong) {
       const songTitle = this.currentSong.data?.title || 'Unknown Song';
-      const songArtist = this.currentSong.data?.artist || 'Unknown Artist';
-      const parsedData = this.parsedSongs[this.currentSong.key];
-      const chart = parsedData?.charts?.[this.currentDifficulty];
-      const difficulty = chart ? `${chart.difficulty} (${chart.rating})` : 'Unknown';
-      const isZenius = this.currentSong.key.startsWith('zenius_');
-
-      // Track song play event - this will show up in GA under Events
-      // You can filter by event_label to see top songs or filter by date for recent plays
       window.trackEvent('song_play', 'StepMania', songTitle);
-
-      // Also track with more details for deeper analysis
-      if (typeof gtag !== 'undefined') {
-        gtag('event', 'song_play_detailed', {
-          event_category: 'StepMania',
-          song_title: songTitle,
-          song_artist: songArtist,
-          difficulty: difficulty,
-          source: isZenius ? 'zenius' : 'local'
-        });
-      }
     }
 
     // Start the audio

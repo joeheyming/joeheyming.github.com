@@ -417,8 +417,6 @@ class ZeniusBrowserElement extends HTMLElement {
 
     // Close browser
     this.shadowRoot.getElementById('close-zenius-browser').addEventListener('click', () => {
-      // Track analytics event
-      window.trackEvent('song_browser_close', 'StepMania', 'Song Browser Close');
       this.hideBrowser();
     });
 
