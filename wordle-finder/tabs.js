@@ -20,10 +20,7 @@ function changeTabs(target) {
   panel.removeAttribute('hidden');
   panel.parentNode.scrollTop = 0;
   var tabName = panel.getAttribute('aria-labelledby');
-  gtag('event', 'changeTab', {
-    event_category: 'user_action',
-    event_label: tabName
-  });
+  window.trackEvent('tab_change', 'Wordle', tabName);
 }
 
 function updateTabContent(tabId, html) {
