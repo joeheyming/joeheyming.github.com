@@ -97,6 +97,48 @@ window.addEventListener('load', function () {
   setTimeout(trackPerformance, 1000); // Wait a bit for everything to settle
 });
 
+// Track arrivals from shared URLs (someone clicked a shared link)
+function trackSharedLinkArrival() {
+  // Only track on stepmania page
+  if (!window.location.pathname.includes('/stepmania')) {
+    return;
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const song = searchParams.get('song');
+  const zenius = searchParams.get('zenius');
+  const difficulty = searchParams.get('difficulty');
+  const referrer = document.referrer;
+
+  if (zenius) {
+    // Arrived via shared Zenius URL
+    window.trackEvent(
+      'shared_link_arrival',
+      'StepMania',
+      `zenius: ${zenius} (difficulty: ${difficulty || 0})`
+    );
+    console.log('Tracked shared link arrival (zenius):', zenius, 'referrer:', referrer);
+  } else if (song) {
+    // Arrived via shared song URL
+    window.trackEvent(
+      'shared_link_arrival',
+      'StepMania',
+      `song: ${song} (difficulty: ${difficulty || 0})`
+    );
+    console.log('Tracked shared link arrival (song):', song, 'referrer:', referrer);
+  }
+
+  // Also track the referrer if present
+  if (referrer && (song || zenius)) {
+    window.trackEvent('shared_link_referrer', 'StepMania', referrer);
+  }
+}
+
+// Run on page load
+window.addEventListener('load', function () {
+  setTimeout(trackSharedLinkArrival, 100);
+});
+
 // Helper function to track events (can be called from anywhere, including web components)
 window.trackEvent = function (eventName, eventCategory, eventLabel, eventValue) {
   if (typeof gtag === 'undefined') {
