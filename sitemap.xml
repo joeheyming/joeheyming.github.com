@@ -37,6 +37,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://joeheyming.github.io/minesweeper/</loc>
+    <lastmod>2025-12-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://joeheyming.github.io/nes/</loc>
     <lastmod>2025-12-26</lastmod>
     <changefreq>monthly</changefreq>
@@ -115,4 +121,3 @@
     <priority>0.8</priority>
   </url>
 </urlset>
-
