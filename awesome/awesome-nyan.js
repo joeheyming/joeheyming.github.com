@@ -42,24 +42,20 @@ var nyanNamespace = (function () {
     // 🎲 Roll for Nyan!
     if (Math.random() > chance) return null;
 
-    var size = options.size || (config.sizes && config.sizes.nyan) || '200px';
-    var sizeNum = parseInt(size, 10) || 200;
+    // Size from CSS variable or option override
+    var sizeNum = options.size ? parseInt(options.size, 10) : 100;
 
     var nyan = document.createElement('img');
     nyan.src = options.src || namespace.getRandomNyan();
     nyan.alt = 'Nyan Cat!';
     nyan.className = 'nyan-cat';
-    nyan.style.position = 'fixed';
-    nyan.style.maxWidth = size;
-    nyan.style.maxHeight = size;
+    // Dynamic position only (size comes from CSS)
     nyan.style.left = Math.random() * (window.innerWidth - sizeNum) + 'px';
     nyan.style.top = Math.random() * (window.innerHeight - sizeNum) + 'px';
-    nyan.style.zIndex = (config.zIndex && config.zIndex.nyan) || '9998';
-    nyan.style.pointerEvents = 'none';
-    nyan.style.filter =
-      (config.effects && config.effects.nyanGlow) || 'drop-shadow(0 0 20px rgba(255,0,255,0.8))';
-    nyan.style.transition = 'opacity 0.5s ease-out, transform 5s linear';
-    nyan.style.opacity = '0';
+    if (options.size) {
+      nyan.style.maxWidth = options.size;
+      nyan.style.maxHeight = options.size;
+    }
     document.body.appendChild(nyan);
 
     // 🎬 Fade in the Nyan!
@@ -118,14 +114,14 @@ var nyanNamespace = (function () {
     var nyan = document.createElement('img');
     nyan.src = namespace.getRandomNyan();
     nyan.alt = 'Nyan Cat Parade!';
-    nyan.style.position = 'fixed';
+    nyan.className = 'nyan-cat';
+    // Dynamic styles for parade
     nyan.style.maxWidth = '150px';
     nyan.style.maxHeight = '150px';
     nyan.style.left = '-200px';
     nyan.style.top = Math.random() * (window.innerHeight - 150) + 'px';
-    nyan.style.zIndex = '9998';
-    nyan.style.pointerEvents = 'none';
     nyan.style.transition = 'left 8s linear';
+    nyan.style.opacity = '1';
     document.body.appendChild(nyan);
 
     // 🚀 Start the parade!

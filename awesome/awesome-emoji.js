@@ -52,13 +52,11 @@ var emojiNamespace = (function () {
     var emoji = document.createElement('div');
     emoji.textContent = options.emoji || namespace.getRandomEmoji();
     emoji.className = 'flying-emoji';
-    emoji.style.position = 'absolute';
+    // Dynamic position only (size comes from CSS)
     emoji.style.left = (options.x || Math.random() * window.innerWidth) + 'px';
     emoji.style.top = (options.y || Math.random() * window.innerHeight) + 'px';
-    emoji.style.fontSize = options.size || (config.sizes && config.sizes.emoji) || '2em';
-    emoji.style.zIndex = (config.zIndex && config.zIndex.emoji) || '9997';
-    emoji.style.pointerEvents = 'none';
     emoji.style.transition = 'transform ' + duration / 1000 + 's ease-out';
+    if (options.size) emoji.style.fontSize = options.size;
     document.body.appendChild(emoji);
 
     // 🚀 Launch emoji into the awesome atmosphere!

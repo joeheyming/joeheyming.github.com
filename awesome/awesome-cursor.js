@@ -29,19 +29,14 @@ var cursorNamespace = (function () {
 
     var size = 10 + Math.random() * 10;
 
-    particle.style.cssText = [
-      'position: fixed',
-      'width: ' + size + 'px',
-      'height: ' + size + 'px',
-      'background: hsl(' + hueValue + ', 100%, 50%)',
-      'border-radius: 50%',
-      'left: ' + (x - size / 2) + 'px',
-      'top: ' + (y - size / 2) + 'px',
-      'pointer-events: none',
-      'z-index: ' + ((config.zIndex && config.zIndex.cursor) || '9995'),
-      'box-shadow: 0 0 ' + size / 2 + 'px hsl(' + hueValue + ', 100%, 50%)',
-      'opacity: 1'
-    ].join(';');
+    // Dynamic styles only (z-index comes from CSS)
+    particle.style.width = size + 'px';
+    particle.style.height = size + 'px';
+    particle.style.background = 'hsl(' + hueValue + ', 100%, 50%)';
+    particle.style.left = x - size / 2 + 'px';
+    particle.style.top = y - size / 2 + 'px';
+    particle.style.boxShadow = '0 0 ' + size / 2 + 'px hsl(' + hueValue + ', 100%, 50%)';
+    particle.style.opacity = '1';
 
     document.body.appendChild(particle);
 

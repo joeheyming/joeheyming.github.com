@@ -48,18 +48,15 @@ var confettiNamespace = (function () {
     var rotationSpeed = (Math.random() - 0.5) * 720;
     var shape = Math.random() > 0.5 ? '50%' : '0';
 
-    piece.style.cssText = [
-      'position: fixed',
-      'width: ' + size + 'px',
-      'height: ' + size + 'px',
-      'background: ' + color,
-      'left: ' + x + 'px',
-      'top: ' + y + 'px',
-      'border-radius: ' + shape,
-      'transform: rotate(' + rotation + 'deg)',
-      'pointer-events: none',
-      'z-index: ' + ((config.zIndex && config.zIndex.confetti) || '9999')
-    ].join(';');
+    piece.className = 'awesome-confetti';
+    // Dynamic styles only (z-index comes from CSS)
+    piece.style.width = size + 'px';
+    piece.style.height = size + 'px';
+    piece.style.background = color;
+    piece.style.left = x + 'px';
+    piece.style.top = y + 'px';
+    piece.style.borderRadius = shape;
+    piece.style.transform = 'rotate(' + rotation + 'deg)';
 
     document.body.appendChild(piece);
 
@@ -152,19 +149,28 @@ var confettiNamespace = (function () {
     var text = document.createElement('div');
     text.className = 'awesome-milestone';
     text.innerHTML = '🎉 ' + label + ' OF AWESOME! 🎉';
+
+    // Check if mobile viewport
+    var isMobile = window.innerWidth <= 480;
+    var fontSize = isMobile ? 'clamp(1.2em, 6vw, 2em)' : '3em';
+
     text.style.cssText = [
       'position: fixed',
       'top: 50%',
       'left: 50%',
       'transform: translate(-50%, -50%) scale(0)',
-      'font-size: 3em',
+      'font-size: ' + fontSize,
       'font-weight: bold',
       'color: #fff',
       'text-shadow: 0 0 20px #ff00ff, 0 0 40px #00ffff, 2px 2px 0 #000',
       'font-family: "Comic Sans MS", cursive, sans-serif',
       'z-index: 99999',
       'pointer-events: none',
-      'white-space: nowrap'
+      'text-align: center',
+      'width: 90%',
+      'max-width: 600px',
+      'box-sizing: border-box',
+      'padding: 0 10px'
     ].join(';');
     document.body.appendChild(text);
 

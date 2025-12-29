@@ -1,29 +1,18 @@
 // ⚙️ AWESOME CONFIG ⚙️
-// Centralized configuration for all awesome modules
-// Style, timing, and display settings only - APIs live in their modules!
+// Behavioral configuration for all awesome modules
+// Visual styles (sizes, effects, z-index) are in awesome.css as CSS custom properties
 
 /**
  * @fileoverview Global configuration for Awesome app
  * Each module owns its own data (URLs, registries, etc.)
- * This file just has shared settings
+ * This file has timing, duration, and keyboard settings
+ *
+ * Visual configuration lives in awesome.css:
+ *   --awesome-emoji-size, --awesome-parrot-size, etc.
+ *   --z-confetti, --z-parrot, etc.
  */
 
 window.awesomeConfig = {
-  // ═══════════════════════════════════════════════════════════════════
-  // 📐 Z-Index Layers
-  // ═══════════════════════════════════════════════════════════════════
-  zIndex: {
-    emoji: '9998',
-    animals: '9996',
-    parrot: '9997',
-    nyan: '9997',
-    confetti: '9999',
-    cursor: '9995',
-    fireworks: '9994',
-    disco: '9990',
-    lyrics: '99999' // Always on top
-  },
-
   // ═══════════════════════════════════════════════════════════════════
   // ⏱️ Timing (milliseconds)
   // ═══════════════════════════════════════════════════════════════════
@@ -35,7 +24,7 @@ window.awesomeConfig = {
   },
 
   // ═══════════════════════════════════════════════════════════════════
-  // 📏 Durations (how long things stay on screen)
+  // 📏 Durations (how long things stay on screen, in ms)
   // ═══════════════════════════════════════════════════════════════════
   durations: {
     emoji: 1500,
@@ -43,25 +32,6 @@ window.awesomeConfig = {
     catFact: 5000,
     parrot: 5000,
     nyan: 3000
-  },
-
-  // ═══════════════════════════════════════════════════════════════════
-  // 📐 Sizes
-  // ═══════════════════════════════════════════════════════════════════
-  sizes: {
-    emoji: '2em',
-    animal: '150px',
-    parrot: '80px',
-    nyan: '100px'
-  },
-
-  // ═══════════════════════════════════════════════════════════════════
-  // 🎨 Visual Effects
-  // ═══════════════════════════════════════════════════════════════════
-  effects: {
-    animalShadow: '0 4px 15px rgba(0,0,0,0.3)',
-    parrotShadow: '0 0 20px rgba(255,255,255,0.5)',
-    nyanGlow: '0 0 30px rgba(255,105,180,0.8)'
   },
 
   // ═══════════════════════════════════════════════════════════════════
