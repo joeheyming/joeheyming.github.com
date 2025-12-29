@@ -90,14 +90,12 @@ var cursorNamespace = (function () {
   }
 
   /**
-   * Handle mouse movement
-   * @param {MouseEvent} e - Mouse event
+   * Handle pointer movement (mouse or touch)
+   * @param {number} x - X position
+   * @param {number} y - Y position
    */
-  function onMouseMove(e) {
+  function handleMove(x, y) {
     if (!isEnabled) return;
-
-    var x = e.clientX;
-    var y = e.clientY;
 
     // Calculate distance moved
     var dx = x - lastX;
@@ -123,16 +121,50 @@ var cursorNamespace = (function () {
   }
 
   /**
-   * Enable rainbow cursor
+   * Handle mouse movement
+   * @param {MouseEvent} e - Mouse event
+   */
+  function onMouseMove(e) {
+    handleMove(e.clientX, e.clientY);
+  }
+
+  /**
+   * Handle touch start - initialize position
+   * @param {TouchEvent} e - Touch event
+   */
+  function onTouchStart(e) {
+    if (!isEnabled || !e.touches.length) return;
+    lastX = e.touches[0].clientX;
+    lastY = e.touches[0].clientY;
+  }
+
+  /**
+   * Handle touch movement
+   * @param {TouchEvent} e - Touch event
+   */
+  function onTouchMove(e) {
+    if (!isEnabled || !e.touches.length) return;
+    handleMove(e.touches[0].clientX, e.touches[0].clientY);
+  }
+
+  /**
+   * Enable rainbow cursor (works with mouse and touch)
    */
   namespace.enable = function () {
     if (isEnabled) return;
 
     isEnabled = true;
+
+    // Mouse events
     document.addEventListener('mousemove', onMouseMove);
+
+    // Touch events for mobile
+    document.addEventListener('touchstart', onTouchStart, { passive: true });
+    document.addEventListener('touchmove', onTouchMove, { passive: true });
+
     animate();
 
-    // Add sparkle cursor
+    // Add sparkle cursor (desktop only)
     document.body.style.cursor = 'crosshair';
   };
 
@@ -143,7 +175,13 @@ var cursorNamespace = (function () {
     if (!isEnabled) return;
 
     isEnabled = false;
+
+    // Remove mouse events
     document.removeEventListener('mousemove', onMouseMove);
+
+    // Remove touch events
+    document.removeEventListener('touchstart', onTouchStart);
+    document.removeEventListener('touchmove', onTouchMove);
 
     if (animationId) {
       cancelAnimationFrame(animationId);
