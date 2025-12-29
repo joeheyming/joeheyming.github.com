@@ -1023,8 +1023,18 @@ function drawNoteField() {
 
     // Calculate scroll speed based on current BPM
     var currentScrollSpeed = scrollSpeed * (currentBPM / bpm);
+
+    // For hold notes, check if any part of the hold is still on screen
+    var noteEndBeat = beat;
+    if (noteProps.Type === 2 && noteProps.Duration) {
+      noteEndBeat = beat + noteProps.Duration / 48; // End of hold in beats
+    }
+    var beatUntilNoteEnd = noteEndBeat - musicBeat;
+
+    // Note is on screen if head hasn't scrolled too far past, OR if it's a hold with tail still visible
     var onScreen =
-      beatUntilNote < 6.2 / currentScrollSpeed && beatUntilNote > -0.6 / currentScrollSpeed;
+      beatUntilNote < 6.2 / currentScrollSpeed &&
+      (beatUntilNote > -0.6 / currentScrollSpeed || beatUntilNoteEnd > -0.1 / currentScrollSpeed);
     var needUpdateOnScreen = note.lastOnScreen == null || onScreen != note.lastOnScreen;
 
     if (onScreen) {
