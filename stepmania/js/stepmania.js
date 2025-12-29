@@ -1,265 +1,739 @@
-var scrollSpeed = 2;
-var noteData = steps.noteData;
-var bpm = song.bpm;
-var bpmChanges = song.bpmChanges || [];
-var beatsPerSec = bpm / 60;
-var addToMusicPositionSeconds = song.addToMusicPosition;
+// StepMania Game Engine - ES Module
+// Main game rendering and input handling
 
-// Background change support
-var bgChanges = [];
-var currentBackground = null;
-var backgroundVideo = null;
+import { Sprite } from './sprite.js';
+import { Actor } from './Actor.js';
+import { CanvasManager } from './canvasManager.js';
+import gameState from './gameState.js';
+import { ARROW_WIDTH, TARGETS_Y } from './config.js';
+import { TAP_NOTE_POINTS, ScorePanel } from './score-panel.js';
+import { LoadingOverlay } from './loading-overlay.js';
+import { getBPMAtBeat, secondsToBeats, getMusicBeat } from './timing.js';
+import { GameOverModal } from './game-over-modal.js';
+import {
+  drawMine,
+  drawHoldBody,
+  calculateNoteFrameIndex,
+  isNoteOnScreen,
+  calculateNoteY
+} from './noteRenderer.js';
+import Judgment from './judgment.js';
 
-// Make these globally accessible for dynamic loading
-window.noteData = noteData;
-window.bpm = bpm;
-window.bpmChanges = bpmChanges;
-window.bgChanges = bgChanges;
+/**
+ * Timing windows for note judgments (in seconds)
+ * How close to the target beat you need to hit for each judgment
+ */
+const TIMING = {
+  /** Perfect timing window - 50ms */
+  PERFECT: 0.05,
+  /** Great timing window - 100ms */
+  GREAT: 0.1,
+  /** Good timing window - 150ms */
+  GOOD: 0.15,
+  /** Bad timing window - 250ms */
+  BAD: 0.25,
+  /** Miss threshold - 300ms */
+  MISS: 0.3
+};
 
-var currentTime = 0;
+/** Array of timing windows for iteration */
+const TIMING_WINDOWS = [TIMING.PERFECT, TIMING.GREAT, TIMING.GOOD, TIMING.BAD, TIMING.MISS];
 
-// Function to get the current BPM at a given beat
-function getBPMAtBeat(beat) {
-  if (bpmChanges.length === 0) {
-    return bpm;
-  }
+/** Target frames per second */
+const TARGET_FPS = 90;
 
-  // Find the last BPM change that occurs at or before the given beat
-  let currentBPM = bpm;
-  for (let i = 0; i < bpmChanges.length; i++) {
-    if (bpmChanges[i].beat <= beat) {
-      currentBPM = bpmChanges[i].bpm;
-    } else {
-      break;
-    }
-  }
+// ============================================================================
+// LOCAL STATE (rendering-specific, not shared)
+// ============================================================================
 
-  return currentBPM;
-}
+/** Current background video element */
+let backgroundVideo = null;
 
-// Function to convert seconds to beats with BPM changes
-function secondsToBeats(seconds) {
-  if (bpmChanges.length === 0) {
-    return seconds * beatsPerSec;
-  }
+/** Current playback time */
+let currentTime = 0;
 
-  let currentTime = 0;
-  let currentBeat = 0;
-  let currentBPM = bpm;
+// ============================================================================
+// CANVAS/RENDERING SETUP
+// ============================================================================
 
-  for (let i = 0; i < bpmChanges.length; i++) {
-    const bpmChange = bpmChanges[i];
-    const nextTime = currentTime + ((bpmChange.beat - currentBeat) / currentBPM) * 60;
+const audio = document.getElementById('audio_with_controls');
 
-    if (seconds <= nextTime) {
-      // The target time is within this BPM segment
-      return currentBeat + (seconds - currentTime) * (currentBPM / 60);
-    }
+// Frame timing
+let lastDate = new Date();
+let uptimeSeconds = 0;
+let framesInCurrentSecond = 0;
 
-    // Move to the next BPM segment
-    currentTime = nextTime;
-    currentBeat = bpmChange.beat;
-    currentBPM = bpmChange.bpm;
-  }
-
-  // If we get here, the time is beyond all BPM changes
-  return currentBeat + (seconds - currentTime) * (currentBPM / 60);
-}
-
-function getMusicBeat(musicSec) {
-  return secondsToBeats(musicSec + addToMusicPositionSeconds);
-}
-
-var audio = document.getElementById('audio_with_controls');
-
-// Apply width constraint: canvas can't be wider than 4 times the arrow width plus padding
-var smMicro = document.getElementById('sm-micro');
-var containerWidth = smMicro ? smMicro.offsetWidth : 800; // fallback width
-var arrowWidth = 64; // Width of each StepMania arrow
-var padding = 64; // Add padding around the arrows
-var maxCanvasWidth = arrowWidth * 4 + padding; // Maximum width: 4 times arrow width plus padding
-var CANVAS_WIDTH = Math.min(containerWidth, maxCanvasWidth);
-var CANVAS_HEIGHT = smMicro ? smMicro.offsetHeight : 150; // Reduced from 150 to give more space for judgment messages
-var targetFps = 90;
-var lastDate = new Date();
-var uptimeSeconds = 0;
-var framesInCurrentSecond = 0;
-
-// Calculate responsive column positions
-function calculateColInfos(width) {
-  var colWidth = width / 5; // 5 columns with spacing
-  return [
-    { x: colWidth * 1, y: 32, rotation: 90 },
-    { x: colWidth * 2, y: 32, rotation: 0 },
-    { x: colWidth * 3, y: 32, rotation: 180 },
-    { x: colWidth * 4, y: 32, rotation: -90 }
-  ];
-}
-
-var colInfos = calculateColInfos(CANVAS_WIDTH);
-
-var targetsY = 32;
+// Column info will be set after canvas initialization
+let colInfos = [];
 
 // Hold note tracking
-var activeHolds = {}; // Track which columns are being held
-var heldKeys = {}; // Track which keys are currently pressed
+/** @type {Object<number, Object>} */
+const activeHolds = {};
+/** @type {Object<string, boolean>} */
+const heldKeys = {};
 
-function merge(o1, o2) {
-  for (var attr in o2) {
-    o1[attr] = o2[attr];
-  }
-}
+// Image directory
+const imgDir = '/stepmania/img/';
 
-// Make globally accessible
-window.merge = merge;
-function deepCopy(o) {
-  var ret = {};
-  merge(ret, o);
-  return ret;
-}
+// ============================================================================
+// SCORING
+// ============================================================================
 
-var timingWindows = [0.05, 0.1, 0.15, 0.25, 0.3];
-var tapNotePoints = [3, 3, 2, 1, 0, -5];
-
-var tapNoteScores = [0, 0, 0, 0, 0, 0];
-var actualPoints = 0;
-var mineHits = 0;
-
+/**
+ * Handle a tap note score judgment
+ * @param {number} tapNoteScore - Score index (0=perfect, 1=great, etc.)
+ */
 function handleTapNoteScore(tapNoteScore) {
-  tapNoteScores[tapNoteScore]++;
-  var id = tapNoteScore;
-  var scoreElement = document.getElementById('w' + id);
-  if (scoreElement) scoreElement.textContent = tapNoteScores[tapNoteScore];
+  // Update gameState scores
+  gameState.incrementScore(tapNoteScore);
+  gameState.addPoints(TAP_NOTE_POINTS[tapNoteScore]);
 
-  var possiblePoints = 3 * noteData.length;
-  actualPoints += tapNotePoints[tapNoteScore];
-  var percent = Math.max(0, (actualPoints / possiblePoints) * 100);
-  var percentElement = document.getElementById('percent-score');
-  if (percentElement) percentElement.textContent = percent.toFixed(2) + '%';
+  // Update score panel component
+  const scores = gameState.getTapNoteScores();
+  const noteData = gameState.getNoteData();
+  ScorePanel.update(tapNoteScore, scores, gameState.getActualPoints(), noteData.length);
 
-  if (tapNoteScore == 5) {
-    judgment
-      .stop()
-      .set({ frameIndex: tapNoteScore, scaleX: 1, scaleY: 1, y: 160, alpha: 1 })
-      .animate({ y: 210 }, 0.5)
-      .animate({ alpha: 0 }, 0);
-  } else {
-    judgment
-      .stop()
-      .set({ frameIndex: tapNoteScore })
-      .animate({ scaleX: 1.4, scaleY: 1.4, alpha: 1 }, 0)
-      .animate({ scaleX: 1, scaleY: 1 }, 0.1)
-      .animate({ scaleX: 1, scaleY: 1 }, 0.5)
-      .animate({ alpha: 0 }, 0.2);
-  }
+  // Show judgment via Judgment module
+  Judgment.showTapNote(tapNoteScore);
 }
 
-targets = [];
-colInfos.forEach(function (colInfo) {
-  targets.push(
-    Actor(imgDir + 'down-target.png', { frameWidth: 64, frameHeight: 64, numFrames: 3 }, colInfo)
-  );
-});
+let targets = [];
+let explosions = [];
 
-explosions = [];
-colInfos.forEach(function (colInfo) {
-  var target = Actor(
-    imgDir + 'down-explosion.png',
-    { frameWidth: 64, frameHeight: 64, numFrames: 1 },
-    colInfo
-  );
-  explosions.push(target);
-  target.set({ alpha: 0 });
-});
+/**
+ * Initialize actors after canvas is ready
+ */
+function initializeActors() {
+  colInfos = CanvasManager.getColumnInfos();
 
-var judgment = Actor(
-  imgDir + 'judgment.png',
-  { frameWidth: 168, frameHeight: 28, numFrames: 6 },
-  { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 }
-);
-judgment.set({ alpha: 0 });
+  targets = [];
+  colInfos.forEach(function (colInfo) {
+    targets.push(
+      new Actor(
+        imgDir + 'down-target.png',
+        { frameWidth: 64, frameHeight: 64, numFrames: 3 },
+        colInfo
+      )
+    );
+  });
 
-// Create a mine judgment text system
-var mineJudgment = {
-  text: '',
-  alpha: 0,
-  y: 0,
-  scale: 1,
-  show: function (text) {
-    this.text = text;
-    this.alpha = 1;
-    this.y = 160;
-    this.scale = 1.4;
-  },
-  update: function (deltaSeconds) {
-    if (this.alpha > 0) {
-      this.y += 50 * deltaSeconds; // Move up
-      this.scale = Math.max(1, this.scale - 0.4 * deltaSeconds); // Shrink
-      this.alpha = Math.max(0, this.alpha - 0.5 * deltaSeconds); // Fade out
-    }
-  },
-  draw: function () {
-    if (this.alpha > 0 && canvas) {
-      canvas.save();
-      canvas.globalAlpha = this.alpha;
-      canvas.fillStyle = '#ff4444'; // Red color for mine warnings
-      canvas.font = 'bold 24px Arial';
-      canvas.textAlign = 'center';
-      canvas.textBaseline = 'middle';
+  explosions = [];
+  colInfos.forEach(function (colInfo) {
+    const explosion = new Actor(
+      imgDir + 'down-explosion.png',
+      { frameWidth: 64, frameHeight: 64, numFrames: 1 },
+      colInfo
+    );
+    explosions.push(explosion);
+    explosion.set({ alpha: 0 });
+  });
 
-      // Add text shadow for better visibility
-      canvas.shadowColor = 'black';
-      canvas.shadowBlur = 4;
-      canvas.shadowOffsetX = 2;
-      canvas.shadowOffsetY = 2;
+  // Update judgment position
+  Judgment.updatePosition();
+}
 
-      canvas.scale(this.scale, this.scale);
-      canvas.fillText(this.text, CANVAS_WIDTH / 2 / this.scale, this.y / this.scale);
-      canvas.restore();
-    }
-  }
-};
-var noteSprite = Sprite(imgDir + 'down-note.png', {
+const noteSprite = Sprite(imgDir + 'down-note.png', {
   frameWidth: 64,
   frameHeight: 64,
   numFrames: 16
 });
 
 function getBrowserAlertText() {
-  // Modern browser detection without jQuery
-  var userAgent = navigator.userAgent;
-  var isFirefox = userAgent.indexOf('Firefox') !== -1;
-  var firefoxVersion = userAgent.match(/Firefox\/(\d+)/);
+  const userAgent = navigator.userAgent;
+  const isFirefox = userAgent.indexOf('Firefox') !== -1;
+  const firefoxVersion = userAgent.match(/Firefox\/(\d+)/);
 
   if (isFirefox && firefoxVersion && parseInt(firefoxVersion[1]) < 20) {
     return 'Your version of Firefox is known to have incorrect audio sync. More info...';
   }
-  var supportsAudio = !!document.createElement('audio').canPlayType;
+  const supportsAudio = !!document.createElement('audio').canPlayType;
   if (!supportsAudio) {
     return "Your browser doesn't support the HTML5 audio tag. More info...";
   }
   return '';
 }
 
-var text = getBrowserAlertText();
+const text = getBrowserAlertText();
 if (text) {
-  var alertMessage = document.getElementById('alert-message');
-  var logo = document.getElementById('logo');
-  var alert = document.getElementById('alert');
+  const alertMessage = document.getElementById('alert-message');
+  const logo = document.getElementById('logo');
+  const alert = document.getElementById('alert');
 
   if (alertMessage) alertMessage.textContent = text;
-  if (logo) logo.style.display = 'none';
-  if (alert) alert.style.display = 'block';
+  if (logo) logo.classList.add('hidden');
+  if (alert) alert.classList.remove('hidden');
 } else {
-  var logo = document.getElementById('logo');
-  var alert = document.getElementById('alert');
+  const logo = document.getElementById('logo');
+  const alert = document.getElementById('alert');
 
-  if (logo) logo.style.display = 'block';
-  if (alert) alert.style.display = 'none';
+  if (logo) logo.classList.remove('hidden');
+  if (alert) alert.classList.add('hidden');
 }
 
+// Canvas is managed by CanvasManager
+
+/**
+ * Process player input for a column
+ * @param {number} col - Column index (0=left, 1=down, 2=up, 3=right)
+ */
+function step(col) {
+  const offset = gameState.getMusicOffset();
+  const songSeconds = audio.currentTime + offset;
+  const songBeats = secondsToBeats(songSeconds);
+  const noteData = gameState.getNoteData();
+
+  let hit = false;
+  let mineHit = false;
+  let tapNoteScore = 0;
+
+  noteData.forEach(function (note) {
+    const noteBeat = note[0];
+    const noteCol = note[1];
+    const noteProps = note[2];
+    const diff = Math.abs(noteBeat - songBeats);
+
+    if ('tapNoteScore' in noteProps) return;
+    if (noteCol != col) return;
+    if (diff >= TIMING_WINDOWS[TIMING_WINDOWS.length - 1]) return;
+
+    if (noteProps.Type === 'M') {
+      noteProps.tapNoteScore = 5;
+      mineHit = true;
+      gameState.incrementMineHits();
+
+      // Deduct points for mine hit
+      const currentPoints = gameState.getActualPoints();
+      gameState.setActualPoints(Math.max(0, currentPoints - 10));
+      ScorePanel.updatePercent(gameState.getActualPoints(), noteData.length);
+
+      return;
+    }
+
+    if (noteProps.Type === 2 && noteProps.Duration) {
+      for (let j = 0; j < TIMING_WINDOWS.length; j++) {
+        if (diff <= TIMING_WINDOWS[j]) {
+          noteProps.tapNoteScore = j;
+          tapNoteScore = j;
+          activeHolds[col] = {
+            note: note,
+            startBeat: noteBeat,
+            endBeat: noteBeat + noteProps.Duration / 48,
+            startTime: songSeconds,
+            hitScore: j,
+            wasDropped: false,
+            lastCheckTime: songSeconds
+          };
+          break;
+        }
+      }
+    } else {
+      for (let j = 0; j < TIMING_WINDOWS.length; j++) {
+        if (diff <= TIMING_WINDOWS[j]) {
+          noteProps.tapNoteScore = j;
+          tapNoteScore = j;
+          break;
+        }
+      }
+    }
+
+    hit = true;
+  });
+
+  if (mineHit) {
+    const explosion = explosions[col];
+    explosion
+      .stop()
+      .set({ scaleX: 1, scaleY: 1, alpha: 1 })
+      .animate({ scaleX: 1.5, scaleY: 1.5 }, 0.2)
+      .animate({ alpha: 0 }, 0.3);
+
+    Judgment.showMineHit();
+  } else if (hit) {
+    handleTapNoteScore(tapNoteScore);
+
+    const explosion = explosions[col];
+    explosion
+      .stop()
+      .set({ scaleX: 1, scaleY: 1, alpha: 1 })
+      .animate({ scaleX: 1.1, scaleY: 1.1 }, 0.1)
+      .animate({ alpha: 0 }, 0.1);
+  } else {
+    const target = targets[col];
+    target.stop().set({ scaleX: 0.5, scaleY: 0.5 }).animate({ scaleX: 1, scaleY: 1 }, 0.2);
+
+    const songBeatsLocal = secondsToBeats(songSeconds);
+    let mineNearby = false;
+    noteData.forEach(function (note) {
+      const noteBeat = note[0];
+      const noteCol = note[1];
+      const noteProps = note[2];
+
+      if (noteProps.Type === 'M' && noteCol === col) {
+        const diff = Math.abs(noteBeat - songBeatsLocal);
+        if (diff < 1.0 && diff > 0.1) {
+          mineNearby = true;
+        }
+      }
+    });
+
+    if (mineNearby) {
+      Judgment.showMineWarning();
+    }
+  }
+}
+
+// Function to add visual feedback to buttons
+function addButtonFeedback(buttonId) {
+  const button = document.getElementById(buttonId);
+  if (button && button.addPressedFeedback) {
+    button.addPressedFeedback();
+  }
+}
+
+// Functions exported at end of file
+
+/**
+ * Handle release of a hold note
+ * @param {number} col - Column index
+ */
+function releaseHold(col) {
+  if (activeHolds[col]) {
+    const hold = activeHolds[col];
+    const offset = gameState.getMusicOffset();
+    const songSeconds = audio.currentTime + offset;
+    const songBeats = secondsToBeats(songSeconds);
+    const holdEndBeat = hold.endBeat;
+
+    if (songBeats < holdEndBeat - 0.1) {
+      hold.wasDropped = true;
+      hold.dropTime = songSeconds;
+
+      const finalScore = Math.max(hold.hitScore, 4);
+
+      gameState.incrementScore(finalScore);
+      gameState.addPoints(TAP_NOTE_POINTS[0] - finalScore);
+
+      const scores = gameState.getTapNoteScores();
+      const noteData = gameState.getNoteData();
+      ScorePanel.update(finalScore, scores, gameState.getActualPoints(), noteData.length);
+
+      showJudgment('Hold Dropped!', finalScore);
+
+      hold.note[2].holdCompleted = true;
+      delete activeHolds[col];
+    }
+  }
+}
+
+function showJudgment(judgmentText, scoreIndex) {
+  Judgment.showHold(judgmentText, scoreIndex);
+}
+
+/**
+ * Update active hold notes (called each frame)
+ */
+function updateHolds() {
+  const offset = gameState.getMusicOffset();
+  const songSeconds = audio.currentTime + offset;
+  const songBeats = secondsToBeats(songSeconds);
+  const noteData = gameState.getNoteData();
+
+  for (const col in activeHolds) {
+    const hold = activeHolds[col];
+    let keyHeld = false;
+
+    const colKeys = getKeysForColumn(parseInt(col));
+    for (let i = 0; i < colKeys.length; i++) {
+      if (heldKeys[colKeys[i]]) {
+        keyHeld = true;
+        break;
+      }
+    }
+
+    if (!keyHeld && !hold.wasDropped) {
+      hold.wasDropped = true;
+      hold.dropTime = songSeconds;
+    }
+
+    if (keyHeld) {
+      hold.lastCheckTime = songSeconds;
+    }
+
+    if (songBeats >= hold.endBeat) {
+      let finalScore;
+
+      if (hold.wasDropped) {
+        finalScore = Math.max(hold.hitScore, 4);
+      } else {
+        finalScore = hold.hitScore;
+      }
+
+      gameState.incrementScore(finalScore);
+      gameState.addPoints(TAP_NOTE_POINTS[0] - finalScore);
+
+      const scores = gameState.getTapNoteScores();
+      ScorePanel.update(finalScore, scores, gameState.getActualPoints(), noteData.length);
+
+      let judgmentText = ['Perfect!', 'Great!', 'Good', 'OK', 'Almost', 'Miss'][finalScore];
+      if (hold.wasDropped) {
+        judgmentText = 'Hold Broken!';
+      }
+      showJudgment(judgmentText, finalScore);
+
+      hold.note[2].holdCompleted = true;
+      delete activeHolds[col];
+    } else if (songBeats > hold.endBeat + TIMING_WINDOWS[TIMING_WINDOWS.length - 1]) {
+      const missScore = TIMING_WINDOWS.length - 1;
+      gameState.incrementScore(missScore);
+      gameState.addPoints(TAP_NOTE_POINTS[0] - missScore);
+
+      const scores = gameState.getTapNoteScores();
+      ScorePanel.update(missScore, scores, gameState.getActualPoints(), noteData.length);
+
+      showJudgment('Miss', missScore);
+
+      hold.note[2].holdCompleted = true;
+      delete activeHolds[col];
+    }
+  }
+}
+
+function getKeysForColumn(col) {
+  switch (col) {
+    case 0:
+      return [65, 37];
+    case 1:
+      return [83, 40];
+    case 2:
+      return [87, 38];
+    case 3:
+      return [68, 39];
+    default:
+      return [];
+  }
+}
+
+let lastSeenCurrentTime = 0;
+
+/**
+ * Main update loop - called each frame
+ * @param {number} deltaSeconds - Time since last frame
+ */
+function update(deltaSeconds) {
+  if (lastSeenCurrentTime != audio.currentTime) {
+    lastSeenCurrentTime = audio.currentTime;
+    currentTime = lastSeenCurrentTime;
+  } else {
+    if (audio.paused == false) currentTime += deltaSeconds;
+  }
+
+  updateBackgroundChanges();
+
+  if (typeof updateHolds === 'function') {
+    updateHolds();
+  }
+
+  targets.forEach(function (target) {
+    target.update(deltaSeconds);
+  });
+  explosions.forEach(function (target) {
+    target.update(deltaSeconds);
+  });
+  Judgment.update(deltaSeconds);
+
+  // Auto-miss notes that have passed
+  const missIfOlderThanSeconds = currentTime - TIMING_WINDOWS[TIMING_WINDOWS.length - 1];
+  const missIfOlderThanBeat = getMusicBeat(missIfOlderThanSeconds);
+  const noteData = gameState.getNoteData();
+
+  noteData.forEach(function (note) {
+    const noteBeat = note[0];
+    const noteProps = note[2];
+    if (noteBeat < missIfOlderThanBeat) {
+      if (!('tapNoteScore' in noteProps)) {
+        if (noteProps.Type === 'M') {
+          noteProps.tapNoteScore = 5;
+        } else {
+          noteProps.tapNoteScore = 5;
+          handleTapNoteScore(5);
+        }
+      }
+    }
+  });
+}
+
+/**
+ * Check and apply background changes based on current beat
+ */
+function updateBackgroundChanges() {
+  const bgChanges = gameState.getBgChanges();
+  if (!bgChanges || bgChanges.length === 0) return;
+
+  const musicBeat = getMusicBeat(currentTime);
+
+  for (let i = 0; i < bgChanges.length; i++) {
+    const bgChange = bgChanges[i];
+    if (bgChange.beat <= musicBeat && !bgChange.triggered) {
+      bgChange.triggered = true;
+      applyBackgroundChange(bgChange);
+    }
+  }
+}
+
+function applyBackgroundChange(bgChange) {
+  const gameArea = document.getElementById('sm-micro');
+  const videoElement = document.getElementById('background-video');
+
+  if (bgChange.isNoBackground) {
+    gameArea.style.backgroundImage = 'none';
+    if (videoElement) {
+      videoElement.style.opacity = '0';
+      videoElement.pause();
+    }
+    backgroundVideo = null;
+  } else if (bgChange.isVideo) {
+    if (videoElement) {
+      let videoUrl = bgChange.file;
+      if (!videoUrl.startsWith('http')) {
+        const currentSongData = gameState.getCurrentSongData();
+        if (currentSongData && currentSongData.url) {
+          const baseUrl = currentSongData.url.substring(
+            0,
+            currentSongData.url.lastIndexOf('/') + 1
+          );
+          videoUrl = baseUrl + bgChange.file;
+        }
+      }
+
+      gameArea.style.backgroundImage = 'none';
+
+      videoElement.src = videoUrl;
+      videoElement.style.opacity = '1';
+
+      videoElement.addEventListener(
+        'error',
+        function () {
+          videoElement.style.opacity = '0';
+          backgroundVideo = null;
+          const currentSongData = gameState.getCurrentSongData();
+          if (currentSongData && currentSongData.background) {
+            gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${currentSongData.background})`;
+          }
+        },
+        { once: true }
+      );
+
+      videoElement.play().catch(function () {
+        videoElement.style.opacity = '0';
+        backgroundVideo = null;
+        const currentSongData = gameState.getCurrentSongData();
+        if (currentSongData && currentSongData.background) {
+          gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${currentSongData.background})`;
+        }
+      });
+      backgroundVideo = videoUrl;
+    }
+  } else {
+    let imageUrl = bgChange.file;
+    if (!imageUrl.startsWith('http')) {
+      const currentSongData = gameState.getCurrentSongData();
+      if (currentSongData && currentSongData.url) {
+        const baseUrl = currentSongData.url.substring(0, currentSongData.url.lastIndexOf('/') + 1);
+        imageUrl = baseUrl + bgChange.file;
+      }
+    }
+
+    gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${imageUrl})`;
+    if (videoElement) {
+      videoElement.style.opacity = '0';
+      videoElement.pause();
+    }
+    backgroundVideo = null;
+  }
+}
+
+function draw() {
+  if (!CanvasManager.ctx) return;
+
+  CanvasManager.clear();
+
+  targets.forEach(function (target) {
+    target.draw();
+  });
+  explosions.forEach(function (target) {
+    target.draw();
+  });
+
+  drawNoteField();
+
+  Judgment.draw();
+}
+
+/**
+ * Draw the note field with all notes
+ */
+function drawNoteField() {
+  const musicBeat = getMusicBeat(currentTime);
+  const currentBPM = getBPMAtBeat(musicBeat);
+  const baseBpm = gameState.getBpm();
+  const scrollSpeed = gameState.getScrollSpeed();
+  const noteData = gameState.getNoteData();
+  const arrowSize = ARROW_WIDTH;
+
+  // Update target lighting based on beat
+  const distFromNearestBeat = Math.abs(musicBeat - Math.round(musicBeat));
+  const lit = distFromNearestBeat < 0.1;
+  targets.forEach((target) => {
+    target.props.frameIndex = lit ? 0 : 1;
+  });
+
+  // Draw each note
+  for (let i = 0; i < noteData.length; i++) {
+    const note = noteData[i];
+    const beat = note[0];
+    const col = note[1];
+    const noteProps = note[2];
+    const colInfo = colInfos[col];
+    const beatUntilNote = beat - musicBeat;
+    const currentScrollSpeed = scrollSpeed * (currentBPM / baseBpm);
+
+    // Calculate note end beat for holds
+    let noteEndBeat = beat;
+    if (noteProps.Type === 2 && noteProps.Duration) {
+      noteEndBeat = beat + noteProps.Duration / 48;
+    }
+    const beatUntilNoteEnd = noteEndBeat - musicBeat;
+
+    // Skip if off screen
+    if (!isNoteOnScreen(beatUntilNote, beatUntilNoteEnd, currentScrollSpeed)) {
+      continue;
+    }
+
+    const y = calculateNoteY(beatUntilNote, arrowSize, currentScrollSpeed);
+    const frameIndex = calculateNoteFrameIndex(musicBeat, beat);
+
+    // Determine alpha (hide if already hit)
+    let alpha = 1;
+    if ('tapNoteScore' in noteProps && noteProps.tapNoteScore < 5) {
+      alpha = 0;
+    }
+
+    // Draw based on note type
+    if (noteProps.Type === 'M') {
+      // Mine
+      drawMine(colInfo.x, y, currentTime, beatUntilNote, alpha);
+    } else if (noteProps.Type === 2 && noteProps.Duration) {
+      // Hold note
+      drawHoldNote(
+        note,
+        col,
+        colInfo,
+        y,
+        musicBeat,
+        arrowSize,
+        currentScrollSpeed,
+        frameIndex,
+        alpha
+      );
+    } else {
+      // Regular tap note
+      noteSprite.draw(CanvasManager.ctx, frameIndex, colInfo.x, y, 1, 1, colInfo.rotation, alpha);
+    }
+  }
+}
+
+/**
+ * Draw a hold note (body and head)
+ */
+function drawHoldNote(note, col, colInfo, y, musicBeat, arrowSize, scrollSpeed, frameIndex, alpha) {
+  const noteProps = note[2];
+  const holdDurationBeats = noteProps.Duration / 48;
+
+  const isActiveHold = activeHolds[col] && activeHolds[col].note === note;
+  const wasDropped = isActiveHold && activeHolds[col].wasDropped;
+
+  // Calculate hold head position
+  let holdHeadY = y;
+  if (isActiveHold && !wasDropped) {
+    holdHeadY = TARGETS_Y;
+  }
+
+  // Calculate hold end position
+  let holdEndY = holdHeadY + holdDurationBeats * arrowSize * scrollSpeed;
+  if (isActiveHold && !wasDropped) {
+    const remainingBeats = activeHolds[col].endBeat - musicBeat;
+    holdEndY = TARGETS_Y + remainingBeats * arrowSize * scrollSpeed;
+  }
+
+  // Check visibility
+  const holdVisible =
+    holdHeadY < CanvasManager.height + 50 && holdEndY > -50 && !noteProps.holdCompleted;
+
+  if (holdVisible) {
+    drawHoldBody(colInfo.x, holdHeadY, holdEndY, {
+      isActive: isActiveHold,
+      wasDropped,
+      currentTime
+    });
+  }
+
+  // Draw hold head (the arrow) if not active
+  if (!isActiveHold && !noteProps.holdCompleted) {
+    noteSprite.draw(CanvasManager.ctx, frameIndex, colInfo.x, y, 1, 1, colInfo.rotation, alpha);
+  }
+}
+
+// ============================================================================
+// GAME RESET
+// ============================================================================
+
+/**
+ * Reset game state for a new song or restart
+ */
+function resetGame() {
+  // Reset scores in gameState (single source of truth)
+  gameState.resetScores();
+
+  // Clear local hold tracking
+  for (const col in activeHolds) {
+    delete activeHolds[col];
+  }
+  for (const key in heldKeys) {
+    delete heldKeys[key];
+  }
+
+  // Update score panel component
+  ScorePanel.reset();
+
+  // Reset background change triggers
+  gameState.resetBgChanges();
+  const bgChanges = gameState.getBgChanges();
+  if (bgChanges) {
+    bgChanges.forEach(function (bgChange) {
+      bgChange.triggered = false;
+    });
+  }
+
+  backgroundVideo = null;
+  const videoElement = document.getElementById('background-video');
+  if (videoElement) {
+    videoElement.style.opacity = '0';
+    videoElement.pause();
+  }
+
+  currentTime = 0;
+  lastSeenCurrentTime = 0;
+  const audioEl = document.getElementById('audio_with_controls');
+  if (audioEl) {
+    audioEl.currentTime = 0;
+    audioEl.pause();
+  }
+
+  Judgment.reset();
+}
+
+// Initialize canvas when DOM is ready
 document.addEventListener('DOMContentLoaded', function () {
-  // Mobile detection and CSS class addition
   function isMobile() {
     return window.innerWidth <= 768 || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   }
@@ -268,48 +742,25 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.classList.add('mobile');
   }
 
-  // Handle window resize to add/remove mobile class and update canvas
   window.addEventListener('resize', function () {
     if (isMobile()) {
       document.body.classList.add('mobile');
     } else {
       document.body.classList.remove('mobile');
     }
-    // Reinitialize canvas with new dimensions
-    setTimeout(initializeCanvas, 100); // Slight delay to ensure CSS updates
+    setTimeout(initializeCanvas, 100);
   });
 
-  // Initialize canvas with proper dimensions
   function initializeCanvas() {
-    var containerWidth = document.getElementById('sm-micro').offsetWidth;
-    var arrowWidth = 64; // Width of each StepMania arrow
-    var padding = 64; // Add padding around the arrows
-    var maxCanvasWidth = arrowWidth * 4 + padding; // Maximum width: 4 times arrow width plus padding
+    // Initialize or resize canvas via CanvasManager
+    CanvasManager.init('sm-micro');
 
-    // Constrain canvas width to not exceed 4x arrow width plus padding
-    CANVAS_WIDTH = Math.min(containerWidth, maxCanvasWidth);
-    CANVAS_HEIGHT = document.getElementById('sm-micro').offsetHeight - 50; // Reduced from 100 to give more space for judgment messages
-    colInfos = calculateColInfos(CANVAS_WIDTH);
-
-    // Update judgment positioning
-    judgment.set({ x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 });
-
-    if (canvasElement) {
-      canvasElement.remove();
-    }
-
-    canvasElement = document.createElement('canvas');
-    canvasElement.id = 'sm-micro-canvas';
-    canvasElement.width = CANVAS_WIDTH;
-    canvasElement.height = CANVAS_HEIGHT;
-    document.getElementById('sm-micro').prepend(canvasElement);
-    canvas = canvasElement.getContext('2d');
+    // Initialize/reinitialize actors with new dimensions
+    initializeActors();
   }
 
-  // Initialize canvas
   initializeCanvas();
 
-  // Score toggle functionality for mobile
   document.getElementById('scoreToggle').addEventListener('click', function () {
     const scorePanel = document.querySelector('.score-panel');
     if (scorePanel) {
@@ -319,58 +770,37 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // Handle web component button events
   document.addEventListener('stepButtonClick', function (event) {
     const buttonId = event.detail.buttonId;
     const buttonNumber = buttonId.replace('button', '');
     step(parseInt(buttonNumber));
 
-    // Add visual feedback to the web component
     const stepButton = event.target;
     if (stepButton && stepButton.addPressedFeedback) {
       stepButton.addPressedFeedback();
     }
   });
 
-  // Function to add visual feedback to buttons (for keyboard)
-  function addButtonFeedback(buttonId) {
-    var button = document.getElementById(buttonId);
-    if (button && button.addPressedFeedback) {
-      button.addPressedFeedback();
-    }
-  }
-
-  // Expose functions globally for gamepad integration
-  window.step = step;
-  window.addButtonFeedback = addButtonFeedback;
-
-  // Sync video with audio playback
   audio.addEventListener('play', function () {
-    var videoElement = document.getElementById('background-video');
+    const videoElement = document.getElementById('background-video');
     if (videoElement && backgroundVideo) {
-      videoElement.play().catch(function (error) {
-        console.log('Video play failed:', error);
-      });
+      videoElement.play().catch(function () {});
     }
   });
 
   audio.addEventListener('pause', function () {
-    var videoElement = document.getElementById('background-video');
+    const videoElement = document.getElementById('background-video');
     if (videoElement && backgroundVideo) {
       videoElement.pause();
     }
   });
 
   audio.addEventListener('play', function () {
-    // Hide the loading overlay when audio starts playing
-    const loadingOverlay = document.getElementById('main-loading-overlay');
-    if (loadingOverlay && !loadingOverlay.classList.contains('hidden')) {
-      loadingOverlay.classList.add('hidden');
-    }
+    // Hide loading overlay when audio starts playing
+    LoadingOverlay.hide();
   });
 
   document.addEventListener('keydown', function (event) {
-    // Don't handle game controls when user is typing in an input field
     if (
       event.target.tagName === 'INPUT' ||
       event.target.tagName === 'TEXTAREA' ||
@@ -381,29 +811,28 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    var keyCode = event.which;
+    const keyCode = event.which;
 
-    var col;
+    let col;
     switch (keyCode) {
-      case 65 /*a*/:
+      case 65:
       case 37:
         col = 0;
         break;
-      case 87 /*w*/:
+      case 87:
       case 38:
         col = 2;
         break;
-      case 68 /*d*/:
+      case 68:
       case 39:
         col = 3;
         break;
-      case 83 /*s*/:
+      case 83:
       case 40:
         col = 1;
         break;
     }
     if (undefined != col) {
-      // Only trigger step if key wasn't already held (prevent key repeat)
       if (!heldKeys[keyCode]) {
         step(col);
         addButtonFeedback(col);
@@ -411,12 +840,9 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       event.preventDefault();
     }
-    // spacebar toggle play/pause
     if (keyCode == 32) {
       if (audio.paused) {
-        audio.play().catch((error) => {
-          console.log('Audio play failed:', error);
-        });
+        audio.play().catch(() => {});
       } else {
         audio.pause();
       }
@@ -425,7 +851,6 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   document.addEventListener('keyup', function (event) {
-    // Don't handle game controls when user is typing in an input field
     if (
       event.target.tagName === 'INPUT' ||
       event.target.tagName === 'TEXTAREA' ||
@@ -436,23 +861,23 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    var keyCode = event.which;
-    var col;
+    const keyCode = event.which;
+    let col;
 
     switch (keyCode) {
-      case 65 /*a*/:
+      case 65:
       case 37:
         col = 0;
         break;
-      case 87 /*w*/:
+      case 87:
       case 38:
         col = 2;
         break;
-      case 68 /*d*/:
+      case 68:
       case 39:
         col = 3;
         break;
-      case 83 /*s*/:
+      case 83:
       case 40:
         col = 1;
         break;
@@ -466,1059 +891,55 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   audio.addEventListener('ended', function () {
-    showGameOverModal();
+    GameOverModal.show({
+      onRestart: function () {
+        resetGame();
+        audio.currentTime = 0;
+        audio.play();
+      },
+      onClose: function () {
+        resetGame();
+      }
+    });
   });
 
-  function step(col) {
-    // timestamp the input as early as possible
-    var songSeconds = audio.currentTime;
-    songSeconds += addToMusicPositionSeconds;
-
-    var songBeats = secondsToBeats(songSeconds);
-
-    var hit = false;
-    var mineHit = false;
-    var tapNoteScore = 0;
-    noteData.forEach(function (note) {
-      var noteBeat = note[0];
-      var noteCol = note[1];
-      var noteProps = note[2];
-      var diff = Math.abs(noteBeat - songBeats);
-
-      if ('tapNoteScore' in noteProps) return;
-
-      if (noteCol != col) return;
-
-      if (diff >= timingWindows[timingWindows.length - 1]) return;
-
-      // Check if this is a mine
-      if (noteProps.Type === 'M') {
-        // Mine hit - mark as hit and trigger penalty
-        noteProps.tapNoteScore = 5; // Mark as hit (miss score)
-        mineHit = true;
-        mineHits++;
-
-        // Apply mine penalty (reduce score)
-        actualPoints = Math.max(0, actualPoints - 10); // Subtract 10 points
-        var possiblePoints = 3 * noteData.length;
-        var percent = Math.max(0, (actualPoints / possiblePoints) * 100);
-        var percentElement = document.getElementById('percent-score');
-        if (percentElement) percentElement.textContent = percent.toFixed(2) + '%';
-
-        return;
-      }
-
-      // Handle hold notes
-      if (noteProps.Type === 2 && noteProps.Duration) {
-        // This is a hold note
-        for (var j = 0; j < timingWindows.length; j++) {
-          if (diff <= timingWindows[j]) {
-            noteProps.tapNoteScore = j;
-            tapNoteScore = j;
-            // Start tracking this hold
-            activeHolds[col] = {
-              note: note,
-              startBeat: noteBeat,
-              endBeat: noteBeat + noteProps.Duration / 48,
-              startTime: songSeconds,
-              hitScore: j,
-              wasDropped: false, // Track if hold was dropped at any point
-              lastCheckTime: songSeconds // Track continuous holding
-            };
-            break;
-          }
-        }
-      } else {
-        // Regular note hit
-        for (var j = 0; j < timingWindows.length; j++) {
-          if (diff <= timingWindows[j]) {
-            noteProps.tapNoteScore = j;
-            tapNoteScore = j;
-            break;
-          }
-        }
-      }
-
-      hit = true;
-    });
-
-    if (mineHit) {
-      // Show mine explosion effect
-      var explosion = explosions[col];
-      explosion
-        .stop()
-        .set({ scaleX: 1, scaleY: 1, alpha: 1 })
-        .animate({ scaleX: 1.5, scaleY: 1.5 }, 0.2) // Bigger explosion for mines
-        .animate({ alpha: 0 }, 0.3);
-
-      // Show mine hit judgment with appropriate text
-      var mineMessages = [
-        '💥 BOOM!',
-        '💣 MINE!',
-        '⚠️ DANGER!',
-        "🚫 DON'T STEP!",
-        '💥 EXPLOSION!',
-        '💣 AVOID!',
-        '💥 KABOOM!',
-        '💣 OUCH!',
-        '⚠️ WATCH OUT!',
-        '🚫 NO STEP!',
-        '💥 BLAST!',
-        '💣 HURT!'
-      ];
-      var randomMessage = mineMessages[Math.floor(Math.random() * mineMessages.length)];
-      mineJudgment.show(randomMessage);
-    } else if (hit) {
-      handleTapNoteScore(tapNoteScore);
-
-      var explosion = explosions[col];
-      explosion
-        .stop()
-        .set({ scaleX: 1, scaleY: 1, alpha: 1 })
-        .animate({ scaleX: 1.1, scaleY: 1.1 }, 0.1)
-        .animate({ alpha: 0 }, 0.1);
-    } else {
-      var target = targets[col];
-      target.stop().set({ scaleX: 0.5, scaleY: 0.5 }).animate({ scaleX: 1, scaleY: 1 }, 0.2);
-
-      // Check if there's a mine nearby and show warning
-      var songBeats = secondsToBeats(songSeconds);
-      var mineNearby = false;
-      noteData.forEach(function (note) {
-        var noteBeat = note[0];
-        var noteCol = note[1];
-        var noteProps = note[2];
-
-        if (noteProps.Type === 'M' && noteCol === col) {
-          var diff = Math.abs(noteBeat - songBeats);
-          if (diff < 1.0 && diff > 0.1) {
-            // Mine is within 1 beat but not hit
-            mineNearby = true;
-          }
-        }
-      });
-
-      if (mineNearby) {
-        mineJudgment.show('⚠️ MINE NEARBY!');
-      }
-    }
-  }
-
-  // Expose functions globally for gamepad integration
-  window.step = step;
-  window.addButtonFeedback = addButtonFeedback;
   console.log('🎮 StepMania functions exposed globally for gamepad integration');
 });
 
-// Hold note functions (moved outside event listener for global access)
-function releaseHold(col) {
-  if (activeHolds[col]) {
-    var hold = activeHolds[col];
-    var audio = document.getElementById('audio_with_controls');
-    var songSeconds = audio.currentTime + addToMusicPositionSeconds;
-    var songBeats = secondsToBeats(songSeconds);
-    var holdEndBeat = hold.endBeat;
-
-    // If released before the hold should end, mark as dropped
-    if (songBeats < holdEndBeat - 0.1) {
-      // Small tolerance for timing
-      hold.wasDropped = true;
-      hold.dropTime = songSeconds;
-
-      // Immediate penalty for early release
-      var finalScore = Math.max(hold.hitScore, 4); // At least "Almost" or worse
-
-      tapNoteScores[finalScore]++;
-      actualPoints += 3 - finalScore;
-
-      var scoreElement = document.getElementById('w' + finalScore);
-      if (scoreElement) scoreElement.textContent = tapNoteScores[finalScore];
-
-      var possiblePoints = 3 * noteData.length;
-      var percent = (actualPoints / possiblePoints) * 100;
-      var percentElement = document.getElementById('percent-score');
-      if (percentElement) percentElement.textContent = percent.toFixed(2) + '%';
-
-      showJudgment('Hold Dropped!', finalScore);
-
-      // Mark the note as completed so it disappears
-      hold.note[2].holdCompleted = true;
-      delete activeHolds[col];
-    }
-    // If released at the right time, let updateHolds handle the scoring
-    // (this allows for proper timing-based scoring at the end)
-  }
-}
-
-// Show judgment function for hold notes
-function showJudgment(judgmentText, scoreIndex) {
-  // Use the existing judgment system
-  if (scoreIndex >= 0 && scoreIndex < 6) {
-    if (scoreIndex == 5) {
-      judgment
-        .stop()
-        .set({ frameIndex: scoreIndex, scaleX: 1, scaleY: 1, y: 160, alpha: 1 })
-        .animate({ y: 210 }, 0.5)
-        .animate({ alpha: 0 }, 0);
-    } else {
-      judgment
-        .stop()
-        .set({ frameIndex: scoreIndex })
-        .animate({ scaleX: 1.4, scaleY: 1.4, alpha: 1 }, 0)
-        .animate({ scaleX: 1, scaleY: 1 }, 0.1)
-        .animate({ scaleX: 1, scaleY: 1 }, 0.5)
-        .animate({ alpha: 0 }, 0.2);
-    }
-  }
-
-  // For special hold judgments, use the mine judgment system
-  if (judgmentText === 'Hold Dropped!' || judgmentText === 'Hold Broken!') {
-    mineJudgment.show(judgmentText);
-  }
-}
-
-// Check active holds during gameplay
-function updateHolds() {
-  var audio = document.getElementById('audio_with_controls');
-  var songSeconds = audio.currentTime + addToMusicPositionSeconds;
-  var songBeats = secondsToBeats(songSeconds);
-
-  // Check if any holds should be dropped (key not held or hold ended)
-  for (var col in activeHolds) {
-    var hold = activeHolds[col];
-    var keyHeld = false;
-
-    // Check if any key for this column is still held
-    var colKeys = getKeysForColumn(parseInt(col));
-    for (var i = 0; i < colKeys.length; i++) {
-      if (heldKeys[colKeys[i]]) {
-        keyHeld = true;
-        break;
-      }
-    }
-
-    // If key is not held, mark as dropped
-    if (!keyHeld && !hold.wasDropped) {
-      hold.wasDropped = true;
-      hold.dropTime = songSeconds;
-    }
-
-    // Update last check time if key is held
-    if (keyHeld) {
-      hold.lastCheckTime = songSeconds;
-    }
-
-    // Check if hold has ended naturally (reached end beat)
-    if (songBeats >= hold.endBeat) {
-      // Hold completed - score based on whether it was dropped
-      var finalScore;
-
-      if (hold.wasDropped) {
-        // Hold was dropped at some point - penalize
-        finalScore = Math.max(hold.hitScore, 4); // At least "Almost" or worse
-      } else {
-        // Hold was maintained throughout - use initial hit score
-        finalScore = hold.hitScore;
-      }
-
-      tapNoteScores[finalScore]++;
-      actualPoints += 3 - finalScore;
-
-      var scoreElement = document.getElementById('w' + finalScore);
-      if (scoreElement) scoreElement.textContent = tapNoteScores[finalScore];
-
-      var possiblePoints = 3 * noteData.length;
-      var percent = (actualPoints / possiblePoints) * 100;
-      var percentElement = document.getElementById('percent-score');
-      if (percentElement) percentElement.textContent = percent.toFixed(2) + '%';
-
-      var judgmentText = ['Perfect!', 'Great!', 'Good', 'OK', 'Almost', 'Miss'][finalScore];
-      if (hold.wasDropped) {
-        judgmentText = 'Hold Broken!';
-      }
-      showJudgment(judgmentText, finalScore);
-
-      // Mark the note as completed so it disappears
-      hold.note[2].holdCompleted = true;
-      delete activeHolds[col];
-    }
-    // Check if hold was missed entirely (went too far past end)
-    else if (songBeats > hold.endBeat + timingWindows[timingWindows.length - 1]) {
-      // Hold missed completely
-      var missScore = timingWindows.length - 1; // Miss
-      tapNoteScores[missScore]++;
-      actualPoints += 3 - missScore;
-
-      var scoreElement = document.getElementById('w' + missScore);
-      if (scoreElement) scoreElement.textContent = tapNoteScores[missScore];
-
-      var possiblePoints = 3 * noteData.length;
-      var percent = (actualPoints / possiblePoints) * 100;
-      var percentElement = document.getElementById('percent-score');
-      if (percentElement) percentElement.textContent = percent.toFixed(2) + '%';
-
-      showJudgment('Miss', missScore);
-
-      // Mark the note as completed so it disappears
-      hold.note[2].holdCompleted = true;
-      delete activeHolds[col];
-    }
-  }
-}
-
-function getKeysForColumn(col) {
-  switch (col) {
-    case 0:
-      return [65, 37]; // A, Left Arrow
-    case 1:
-      return [83, 40]; // S, Down Arrow
-    case 2:
-      return [87, 38]; // W, Up Arrow
-    case 3:
-      return [68, 39]; // D, Right Arrow
-    default:
-      return [];
-  }
-}
-
-var canvasElement;
-var canvas;
+// ============================================================================
+// MAIN GAME LOOP
+// ============================================================================
 
 setInterval(function () {
-  var thisDate = new Date();
-  var deltaSeconds = (thisDate.getTime() - lastDate.getTime()) / 1000;
+  const thisDate = new Date();
+  const deltaSeconds = (thisDate.getTime() - lastDate.getTime()) / 1000;
   update(deltaSeconds);
   draw();
   lastDate = thisDate;
   framesInCurrentSecond++;
-  var oldSec = Math.floor(uptimeSeconds);
-  var newSec = Math.floor(uptimeSeconds + deltaSeconds);
+  const oldSec = Math.floor(uptimeSeconds);
+  const newSec = Math.floor(uptimeSeconds + deltaSeconds);
   if (oldSec != newSec) {
-    var fps = framesInCurrentSecond / (newSec - oldSec);
-    var fpsElement = document.getElementById('FPS');
+    const fps = framesInCurrentSecond / (newSec - oldSec);
+    const fpsElement = document.getElementById('FPS');
     if (fpsElement) fpsElement.textContent = fps;
     framesInCurrentSecond = 0;
   }
   uptimeSeconds += deltaSeconds;
-}, 1000 / targetFps);
+}, 1000 / TARGET_FPS);
 
-var lastSeenCurrentTime = 0;
-function update(deltaSeconds) {
-  // currentTime is choppy in Firefox.
-  if (lastSeenCurrentTime != audio.currentTime) {
-    lastSeenCurrentTime = audio.currentTime;
-    currentTime = lastSeenCurrentTime;
-  } else {
-    if (audio.paused == false) currentTime += deltaSeconds;
-  }
+// ============================================================================
+// EXPORTS
+// ============================================================================
 
-  // Handle background changes
-  updateBackgroundChanges();
+// Export functions for other modules
+export { step, addButtonFeedback, resetGame };
 
-  // Update hold notes
-  if (typeof updateHolds === 'function') {
-    updateHolds();
-  } else {
-    console.warn('updateHolds function not defined - this may be a caching issue');
-  }
-
-  targets.forEach(function (target) {
-    target.update(deltaSeconds);
-  });
-  explosions.forEach(function (target) {
-    target.update(deltaSeconds);
-  });
-  judgment.update(deltaSeconds);
-  mineJudgment.update(deltaSeconds);
-
-  var missIfOlderThanSeconds = currentTime - timingWindows[timingWindows.length - 1];
-  var missIfOlderThanBeat = getMusicBeat(missIfOlderThanSeconds);
-
-  numMisses = 0;
-  noteData.forEach(function (note) {
-    var noteBeat = note[0];
-    var noteProps = note[2];
-    if (noteBeat < missIfOlderThanBeat) {
-      if (!('tapNoteScore' in noteProps)) {
-        // Check if this is a mine - mines don't count as misses when they pass by
-        if (noteProps.Type === 'M') {
-          noteProps.tapNoteScore = 5; // Mark as passed (but don't count as miss)
-        } else {
-          numMisses++;
-          noteProps.tapNoteScore = 5;
-          handleTapNoteScore(5);
-        }
-      }
-    }
-  });
+// Export getters for score data (read from gameState)
+export function getScores() {
+  return gameState.getTapNoteScores();
 }
 
-function updateBackgroundChanges() {
-  if (!bgChanges || bgChanges.length === 0) return;
-
-  var musicBeat = getMusicBeat(currentTime);
-
-  // Find the next background change that should be triggered
-  for (var i = 0; i < bgChanges.length; i++) {
-    var bgChange = bgChanges[i];
-    if (bgChange.beat <= musicBeat && !bgChange.triggered) {
-      bgChange.triggered = true;
-      console.log('Triggering background change at beat', bgChange.beat, ':', bgChange.file);
-      console.log('Current music beat:', musicBeat, 'Current time:', currentTime);
-      applyBackgroundChange(bgChange);
-    }
-  }
-}
-
-function applyBackgroundChange(bgChange) {
-  var gameArea = document.getElementById('sm-micro');
-  var videoElement = document.getElementById('background-video');
-
-  console.log('Applying background change:', bgChange);
-
-  if (bgChange.isNoBackground) {
-    // Remove background
-    console.log('Removing background');
-    gameArea.style.backgroundImage = 'none';
-    if (videoElement) {
-      videoElement.style.opacity = '0';
-      videoElement.pause();
-    }
-    currentBackground = null;
-    backgroundVideo = null;
-  } else if (bgChange.isVideo) {
-    // Handle video background
-    console.log('Setting video background:', bgChange.file);
-    if (videoElement) {
-      // Construct full URL for video file
-      var videoUrl = bgChange.file;
-      if (!videoUrl.startsWith('http')) {
-        // If it's a relative path, construct the full URL using the OGG file's base URL
-        if (window.mainPageController && window.mainPageController.currentSong) {
-          var currentSongData = window.mainPageController.currentSong.data;
-          if (currentSongData.url) {
-            // Extract the base URL from the OGG URL and append the video filename
-            var baseUrl = currentSongData.url.substring(
-              0,
-              currentSongData.url.lastIndexOf('/') + 1
-            );
-            videoUrl = baseUrl + bgChange.file;
-            console.log('Constructed video URL:', videoUrl);
-          }
-        }
-      }
-
-      // Remove the static background image so video shows through
-      gameArea.style.backgroundImage = 'none';
-
-      videoElement.src = videoUrl;
-      videoElement.style.opacity = '1';
-
-      console.log('Starting video at beat:', bgChange.beat, 'current time:', currentTime);
-
-      // Handle video loading errors
-      videoElement.addEventListener(
-        'error',
-        function () {
-          console.log('Video failed to load:', videoUrl);
-          videoElement.style.opacity = '0';
-          backgroundVideo = null;
-          // Restore static background image
-          if (window.mainPageController && window.mainPageController.currentSong) {
-            var currentSongData = window.mainPageController.currentSong.data;
-            if (currentSongData.background) {
-              gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${currentSongData.background})`;
-            }
-          }
-        },
-        { once: true }
-      );
-
-      videoElement.play().catch(function (error) {
-        console.log('Video autoplay failed:', error);
-        // Hide the video element if it fails to load
-        videoElement.style.opacity = '0';
-        backgroundVideo = null;
-        // Restore static background image
-        if (window.mainPageController && window.mainPageController.currentSong) {
-          var currentSongData = window.mainPageController.currentSong.data;
-          if (currentSongData.background) {
-            gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${currentSongData.background})`;
-          }
-        }
-      });
-      backgroundVideo = videoUrl;
-    }
-    // Keep the static background as fallback
-    currentBackground = bgChange.file;
-  } else {
-    // Handle static image background
-    console.log('Setting image background:', bgChange.file);
-    var imageUrl = bgChange.file;
-    if (!imageUrl.startsWith('http')) {
-      // If it's a relative path, construct the full URL using the OGG file's base URL
-      if (window.mainPageController && window.mainPageController.currentSong) {
-        var currentSongData = window.mainPageController.currentSong.data;
-        if (currentSongData.url) {
-          var baseUrl = currentSongData.url.substring(0, currentSongData.url.lastIndexOf('/') + 1);
-          imageUrl = baseUrl + bgChange.file;
-          console.log('Constructed image URL:', imageUrl);
-        }
-      }
-    }
-
-    gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${imageUrl})`;
-    if (videoElement) {
-      videoElement.style.opacity = '0';
-      videoElement.pause();
-    }
-    currentBackground = imageUrl;
-    backgroundVideo = null;
-  }
-}
-
-function draw() {
-  if (!canvas) return; // Don't draw if canvas isn't ready
-
-  canvas.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-  targets.forEach(function (target) {
-    target.draw();
-  });
-  explosions.forEach(function (target) {
-    target.draw();
-  });
-
-  drawNoteField();
-
-  judgment.draw();
-  mineJudgment.draw();
-}
-
-function drawNoteField() {
-  var musicBeat = getMusicBeat(currentTime);
-  var currentBPM = getBPMAtBeat(musicBeat);
-  var currentBeatsPerSec = currentBPM / 60;
-
-  var arrowSize = 64;
-  var arrowSpacing = arrowSize * scrollSpeed;
-  var distFromNearestBeat = Math.abs(musicBeat - Math.round(musicBeat));
-  var lit = distFromNearestBeat < 0.1;
-  targets.forEach(function (target) {
-    target.props.frameIndex = lit ? 0 : 1;
-  });
-  var animateOverBeats = 4;
-  var musicBeatRemainder = musicBeat % animateOverBeats;
-  var percentThroughAnimation = musicBeatRemainder / animateOverBeats;
-  var numNoteFrames = 16;
-  var noteFrameIndex = percentThroughAnimation * numNoteFrames;
-
-  for (var i = 0; i < noteData.length; i++) {
-    var note = noteData[i];
-    var beat = note[0];
-    var col = note[1];
-    var noteProps = note[2];
-    var colInfo = colInfos[col];
-    var beatUntilNote = beat - musicBeat;
-
-    // Calculate scroll speed based on current BPM
-    var currentScrollSpeed = scrollSpeed * (currentBPM / bpm);
-
-    // For hold notes, check if any part of the hold is still on screen
-    var noteEndBeat = beat;
-    if (noteProps.Type === 2 && noteProps.Duration) {
-      noteEndBeat = beat + noteProps.Duration / 48; // End of hold in beats
-    }
-    var beatUntilNoteEnd = noteEndBeat - musicBeat;
-
-    // Note is on screen if head hasn't scrolled too far past, OR if it's a hold with tail still visible
-    var onScreen =
-      beatUntilNote < 6.2 / currentScrollSpeed &&
-      (beatUntilNote > -0.6 / currentScrollSpeed || beatUntilNoteEnd > -0.1 / currentScrollSpeed);
-    var needUpdateOnScreen = note.lastOnScreen == null || onScreen != note.lastOnScreen;
-
-    if (onScreen) {
-      var beatFraction = beat - Math.floor(beat);
-      var frameOffset = beatFraction * numNoteFrames;
-      var thisNoteFrameIndex = Math.round(noteFrameIndex + frameOffset) % numNoteFrames;
-      var y = targetsY + beatUntilNote * arrowSize * currentScrollSpeed;
-      var alpha = 1;
-      if ('tapNoteScore' in noteProps) {
-        // All note heads (including hold note heads) disappear when hit
-        if (noteProps.tapNoteScore < 5) alpha = 0;
-      }
-
-      // Check if this is a mine
-      if (noteProps.Type === 'M') {
-        // Draw mine as a pulsing red circle
-        var minePulse = Math.sin(currentTime * 8) * 0.3 + 0.7; // Pulsing effect
-        var mineSize = arrowSize * 0.6; // Smaller than arrows to match target size
-        var rotation = currentTime * 2; // Rotating effect
-
-        canvas.save();
-        canvas.globalAlpha = alpha * minePulse;
-
-        // Draw outer glow
-        var gradient = canvas.createRadialGradient(colInfo.x, y, 0, colInfo.x, y, mineSize * 0.8);
-        gradient.addColorStop(0, 'rgba(255, 0, 0, 0.8)');
-        gradient.addColorStop(0.5, 'rgba(255, 0, 0, 0.4)');
-        gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
-        canvas.fillStyle = gradient;
-        canvas.beginPath();
-        canvas.arc(colInfo.x, y, mineSize * 0.8, 0, Math.PI * 2);
-        canvas.fill();
-
-        // Draw main circle
-        canvas.fillStyle = '#ff0000';
-        canvas.beginPath();
-        canvas.arc(colInfo.x, y, mineSize * 0.6, 0, Math.PI * 2);
-        canvas.fill();
-
-        // Draw inner highlight
-        canvas.fillStyle = '#ff6666';
-        canvas.beginPath();
-        canvas.arc(colInfo.x, y, mineSize * 0.4, 0, Math.PI * 2);
-        canvas.fill();
-
-        // Draw rotating border
-        canvas.strokeStyle = '#ffffff';
-        canvas.lineWidth = 3;
-        canvas.beginPath();
-        canvas.arc(colInfo.x, y, mineSize * 0.5, rotation, rotation + Math.PI * 1.5);
-        canvas.stroke();
-
-        // Draw danger zone indicator when mine is close to target
-        if (beatUntilNote < 2.0 && beatUntilNote > 0.5) {
-          var dangerPulse = Math.sin(currentTime * 12) * 0.5 + 0.5;
-          canvas.strokeStyle = 'rgba(255, 255, 0, ' + dangerPulse + ')';
-          canvas.lineWidth = 2;
-          canvas.setLineDash([5, 5]);
-          canvas.beginPath();
-          canvas.arc(colInfo.x, y, mineSize * 0.9, 0, Math.PI * 2);
-          canvas.stroke();
-          canvas.setLineDash([]);
-        }
-
-        // Draw danger symbol (exclamation mark)
-        canvas.fillStyle = '#ffffff';
-        canvas.font = 'bold ' + mineSize * 0.3 + 'px Arial';
-        canvas.textAlign = 'center';
-        canvas.textBaseline = 'middle';
-        canvas.fillText('!', colInfo.x, y);
-
-        canvas.restore();
-      } else if (noteProps.Type === 2 && noteProps.Duration) {
-        // Draw hold note with body and tail
-        var holdDurationBeats = noteProps.Duration / 48; // Convert ticks back to beats
-
-        // Check if this hold is currently active and if it was dropped
-        var isActiveHold = activeHolds[col] && activeHolds[col].note === note;
-        var wasDropped = isActiveHold && activeHolds[col].wasDropped;
-
-        // KEY FIX: Lock hold head to receptor when hold is active and not dropped
-        // This is how DDR/StepMania handles holds - the body stays visible
-        // connected to the receptor while being held, shrinking from bottom up
-        var holdHeadY = y;
-        if (isActiveHold && !wasDropped) {
-          holdHeadY = targetsY; // Lock to receptor position
-        }
-
-        var holdEndY = holdHeadY + holdDurationBeats * arrowSize * currentScrollSpeed;
-        // If hold is active, recalculate end position based on remaining duration
-        if (isActiveHold && !wasDropped) {
-          var remainingBeats = activeHolds[col].endBeat - musicBeat;
-          holdEndY = targetsY + remainingBeats * arrowSize * currentScrollSpeed;
-        }
-
-        // Only draw if any part of the hold is visible
-        var holdVisible = holdHeadY < CANVAS_HEIGHT + 50 && holdEndY > -50;
-
-        // Skip drawing completed holds
-        if (noteProps.holdCompleted) {
-          holdVisible = false;
-        }
-
-        if (holdVisible) {
-          // Determine hold body visibility
-          var holdBodyAlpha = 0.9;
-
-          // If dropped, dim the hold
-          if (wasDropped) {
-            holdBodyAlpha = 0.5;
-          }
-
-          // Draw hold body (connecting line)
-          canvas.save();
-          canvas.globalAlpha = holdBodyAlpha;
-
-          // Create gradient for hold body
-          var bodyHeight = Math.max(0, holdEndY - holdHeadY);
-          var holdGradient = canvas.createLinearGradient(colInfo.x, holdHeadY, colInfo.x, holdEndY);
-          if (wasDropped) {
-            // Red gradient for dropped holds
-            holdGradient.addColorStop(0, '#ff4444'); // Light red at start
-            holdGradient.addColorStop(0.5, '#cc0000'); // Dark red in middle
-            holdGradient.addColorStop(1, '#880000'); // Very dark red at end
-          } else if (isActiveHold) {
-            // Bright pulsing gradient for active holds
-            var pulse = Math.sin(currentTime * 8) * 0.2 + 0.8;
-            holdGradient.addColorStop(0, `rgba(0, 255, 100, ${pulse})`); // Bright green at receptor
-            holdGradient.addColorStop(0.5, '#ffff00'); // Yellow in middle
-            holdGradient.addColorStop(1, '#ff8800'); // Orange at end
-          } else {
-            // Normal gradient for upcoming holds
-            holdGradient.addColorStop(0, '#00ff00'); // Green at start
-            holdGradient.addColorStop(0.5, '#ffff00'); // Yellow in middle
-            holdGradient.addColorStop(1, '#ff0000'); // Red at end
-          }
-
-          canvas.fillStyle = holdGradient;
-          canvas.fillRect(colInfo.x - 8, holdHeadY, 16, bodyHeight);
-
-          // Draw hold body border
-          canvas.strokeStyle = isActiveHold ? '#ffffff' : '#cccccc';
-          canvas.lineWidth = isActiveHold ? 3 : 2;
-          canvas.strokeRect(colInfo.x - 8, holdHeadY, 16, bodyHeight);
-
-          canvas.restore();
-
-          // Draw hold tail (end cap) if visible
-          if (holdEndY > -50 && holdEndY < CANVAS_HEIGHT + 50) {
-            canvas.save();
-            canvas.globalAlpha = wasDropped ? 0.5 : 0.9;
-            canvas.fillStyle = wasDropped ? '#cc0000' : '#ff0000';
-            canvas.fillRect(colInfo.x - 16, holdEndY - 6, 32, 12);
-            canvas.strokeStyle = '#ffffff';
-            canvas.lineWidth = 2;
-            canvas.strokeRect(colInfo.x - 16, holdEndY - 6, 32, 12);
-            canvas.restore();
-          }
-        }
-
-        // Draw hold start note (head) - only show if not yet hit
-        if (!isActiveHold && !noteProps.holdCompleted) {
-          noteSprite.draw(canvas, thisNoteFrameIndex, colInfo.x, y, 1, 1, colInfo.rotation, alpha);
-        }
-      } else {
-        // Draw regular note
-        noteSprite.draw(canvas, thisNoteFrameIndex, colInfo.x, y, 1, 1, colInfo.rotation, alpha);
-      }
-    }
-  }
-}
-
-// Reset function for dynamic song loading
-function resetGame() {
-  // Reset score data
-  tapNoteScores = [0, 0, 0, 0, 0, 0];
-  actualPoints = 0;
-  mineHits = 0;
-
-  // Reset hold note tracking
-  activeHolds = {};
-  heldKeys = {};
-
-  // Update score display
-  for (var i = 0; i < tapNoteScores.length; i++) {
-    var scoreElement = document.getElementById('w' + i);
-    if (scoreElement) scoreElement.textContent = tapNoteScores[i];
-  }
-  var percentElement = document.getElementById('percent-score');
-  if (percentElement) percentElement.textContent = '0.00%';
-
-  // Update global variables from window
-  if (window.steps && window.steps.noteData) {
-    noteData = window.steps.noteData;
-  }
-  if (window.song) {
-    bpm = window.song.bpm;
-    bpmChanges = window.song.bpmChanges || [];
-    beatsPerSec = bpm / 60;
-    addToMusicPositionSeconds = window.song.addToMusicPosition;
-  }
-  if (window.bgChanges) {
-    bgChanges = window.bgChanges;
-    // Reset triggered flags
-    bgChanges.forEach(function (bgChange) {
-      bgChange.triggered = false;
-    });
-  }
-
-  // Reset background
-  currentBackground = null;
-  backgroundVideo = null;
-  var videoElement = document.getElementById('background-video');
-  if (videoElement) {
-    videoElement.style.opacity = '0';
-    videoElement.pause();
-  }
-
-  // Reset audio
-  currentTime = 0;
-  lastSeenCurrentTime = 0;
-  var audioEl = document.getElementById('audio_with_controls');
-  if (audioEl) {
-    audioEl.currentTime = 0;
-    audioEl.pause();
-  }
-
-  // Reset mine judgment
-  mineJudgment.alpha = 0;
-
-  console.log('Game reset - Notes:', noteData.length, 'BPM:', bpm);
-}
-
-// Make reset function globally accessible
-window.resetGame = resetGame;
-
-// Make score variables globally accessible for sharing
-window.tapNoteScores = tapNoteScores;
-window.actualPoints = actualPoints;
-
-// Game Over Modal Functions
-function showGameOverModal() {
-  // Update score display
-  updateGameOverScore();
-
-  // Track analytics event for song completion
-  const percentElement = document.getElementById('percent-score');
-  const percentage = percentElement ? percentElement.textContent.trim() : '0.00%';
-  const totalNotes = tapNoteScores.reduce((sum, count) => sum + count, 0);
-  window.trackEvent('song_complete', 'StepMania', `Song Complete - ${percentage}`, totalNotes);
-
-  // Show modal
-  const gameOverMessage = document.getElementById('game-over-message');
-  gameOverMessage.classList.remove('hidden');
-  gameOverMessage.classList.add('animate-fade-in');
-
-  // Bind button events
-  bindGameOverEvents();
-}
-
-function updateGameOverScore() {
-  // Get percentage from game display
-  const percentElement = document.getElementById('percent-score');
-  const percentage = percentElement ? percentElement.textContent.trim() : '0.00%';
-
-  // Calculate totals
-  const totalNotes = tapNoteScores.reduce((sum, count) => sum + count, 0);
-
-  // Calculate grade based on StepMania/DDR system
-  const grade = calculateGrade(tapNoteScores, totalNotes);
-
-  // Update modal elements
-  document.getElementById('final-grade').textContent = grade.letter;
-  document.getElementById('final-grade').style.color = grade.color;
-  document.getElementById('final-percentage').textContent = percentage;
-  document.getElementById('final-notes').textContent = `${totalNotes} notes`;
-  document.getElementById('final-points').textContent = `${actualPoints} points`;
-}
-
-function bindGameOverEvents() {
-  // Remove existing listeners to prevent duplicates
-  const shareBtn = document.getElementById('share-score-btn');
-  const restartBtn = document.getElementById('restart-song-btn');
-  const closeBtn = document.getElementById('close-game-over-btn');
-
-  // Clone buttons to remove all event listeners
-  const newShareBtn = shareBtn.cloneNode(true);
-  const newRestartBtn = restartBtn.cloneNode(true);
-  const newCloseBtn = closeBtn.cloneNode(true);
-
-  shareBtn.parentNode.replaceChild(newShareBtn, shareBtn);
-  restartBtn.parentNode.replaceChild(newRestartBtn, restartBtn);
-  closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
-
-  // Add new event listeners
-  newShareBtn.addEventListener('click', shareGameScore);
-  newRestartBtn.addEventListener('click', restartCurrentSong);
-  newCloseBtn.addEventListener('click', closeGameOverModal);
-}
-
-function shareGameScore() {
-  const scoreData = getScoreData();
-  const songInfo = getCurrentSongInfo();
-  const message = createScoreMessage(scoreData, songInfo);
-
-  // Copy to clipboard
-  copyToClipboard(message)
-    .then(() => {
-      // Show success feedback
-      const shareBtn = document.getElementById('share-score-btn');
-      const originalText = shareBtn.textContent;
-      shareBtn.textContent = '✓ Copied!';
-      shareBtn.style.backgroundColor = '#10b981';
-
-      setTimeout(() => {
-        shareBtn.textContent = originalText;
-        shareBtn.style.backgroundColor = '';
-      }, 2000);
-    })
-    .catch(() => {
-      // Show error feedback
-      const shareBtn = document.getElementById('share-score-btn');
-      const originalText = shareBtn.textContent;
-      shareBtn.textContent = '✗ Failed';
-      shareBtn.style.backgroundColor = '#ef4444';
-
-      setTimeout(() => {
-        shareBtn.textContent = originalText;
-        shareBtn.style.backgroundColor = '';
-      }, 2000);
-    });
-}
-
-function restartCurrentSong() {
-  closeGameOverModal();
-
-  // Reset the game
-  resetGame();
-
-  // Restart audio
-  audio.currentTime = 0;
-  audio.play();
-}
-
-function closeGameOverModal() {
-  const gameOverMessage = document.getElementById('game-over-message');
-  gameOverMessage.classList.add('hidden');
-  gameOverMessage.classList.remove('animate-fade-in');
-
-  // Reset the game state when closing the modal
-  resetGame();
-}
-
-function calculateGrade(tapNoteScores, totalNotes) {
-  // StepMania/DDR grading system based on Dance Points (DP)
-  // Point values: Perfect = 2, Great = 1, Good = 0.5, Bad = 0, Miss = 0
-  const [perfect, great, good, bad, miss, ng] = tapNoteScores;
-
-  // Calculate Dance Points (DP) - using StepMania's system
-  const earnedDP = perfect * 2 + great * 1 + good * 0.5 + bad * 0 + miss * 0;
-  const maxDP = totalNotes * 2; // Maximum possible DP (all perfects)
-
-  // Calculate DP percentage
-  const dpPercentage = maxDP > 0 ? (earnedDP / maxDP) * 100 : 0;
-
-  // Determine grade based on DP percentage (StepMania system)
-  let letter, color;
-
-  if (dpPercentage === 100 && perfect === totalNotes) {
-    // AAAA (All Perfect/Marvelous)
-    letter = 'AAAA';
-    color = '#FFD700'; // Gold
-  } else if (dpPercentage === 100) {
-    // AAA (All Perfect + Great)
-    letter = 'AAA';
-    color = '#FFD700'; // Gold
-  } else if (dpPercentage >= 90) {
-    // AA
-    letter = 'AA';
-    color = '#C0C0C0'; // Silver
-  } else if (dpPercentage >= 80) {
-    // A
-    letter = 'A';
-    color = '#10B981'; // Green
-  } else if (dpPercentage >= 70) {
-    // B
-    letter = 'B';
-    color = '#3B82F6'; // Blue
-  } else if (dpPercentage >= 60) {
-    // C
-    letter = 'C';
-    color = '#F59E0B'; // Yellow/Orange
-  } else if (dpPercentage >= 50) {
-    // D
-    letter = 'D';
-    color = '#EF4444'; // Red
-  } else {
-    // F (Fail)
-    letter = 'F';
-    color = '#7F1D1D'; // Dark Red
-  }
-
-  return {
-    letter,
-    color,
-    dpPercentage: dpPercentage.toFixed(2)
-  };
-}
-
-function getScoreData() {
-  const percentElement = document.getElementById('percent-score');
-  const percentage = percentElement ? percentElement.textContent.trim() : '0.00%';
-  const totalNotes = tapNoteScores.reduce((sum, count) => sum + count, 0);
-
-  return {
-    tapNoteScores,
-    actualPoints,
-    totalNotes,
-    percentage
-  };
-}
-
-function getCurrentSongInfo() {
-  const searchParams = new URLSearchParams(window.location.search);
-  const song = searchParams.get('song');
-
-  let songTitle = song || 'Unknown Song';
-  let difficultyName = 'Unknown';
-  let difficultyRating = '';
-
-  if (window.mainPageController && window.mainPageController.currentSong) {
-    songTitle = window.mainPageController.currentSong.data.title || songTitle;
-
-    const currentSongKey = window.mainPageController.currentSong.key;
-    const parsedData = window.mainPageController.parsedSongs[currentSongKey];
-
-    if (parsedData && parsedData.charts && window.mainPageController.currentDifficulty !== null) {
-      const chart = parsedData.charts[window.mainPageController.currentDifficulty];
-      if (chart) {
-        difficultyName = chart.difficulty || difficultyName;
-        difficultyRating = chart.rating ? ` (${chart.rating})` : '';
-      }
-    }
-  }
-
-  return {
-    title: songTitle,
-    difficulty: difficultyName,
-    difficultyRating
-  };
-}
-
-function createScoreMessage(scoreData, songInfo) {
-  const [perfect, great, good, bad, miss] = scoreData.tapNoteScores;
-
-  // Calculate grade for the message
-  const grade = calculateGrade(scoreData.tapNoteScores, scoreData.totalNotes);
-
-  const message = `I just played "${songInfo.title}" on StepMania with ${songInfo.difficulty}${songInfo.difficultyRating} difficulty!
-
-Grade: ${grade.letter} | Score: ${scoreData.percentage}
-Notes: ${scoreData.totalNotes} total, ${scoreData.actualPoints} points
-
-Perfect: ${perfect} | Great: ${great} | Good: ${good} | Bad: ${bad} | Miss: ${miss}
-
-${window.location.href}`;
-
-  return message;
-}
-
-async function copyToClipboard(text) {
-  if (navigator.clipboard && window.isSecureContext) {
-    await navigator.clipboard.writeText(text);
-  } else {
-    // Fallback for older browsers
-    const input = document.createElement('input');
-    input.value = text;
-    document.body.appendChild(input);
-    input.select();
-    const success = document.execCommand('copy', true, text);
-    document.body.removeChild(input);
-
-    if (!success) {
-      throw new Error('Failed to copy text');
-    }
-  }
+export function getPoints() {
+  return gameState.getActualPoints();
 }

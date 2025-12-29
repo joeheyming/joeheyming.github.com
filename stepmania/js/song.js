@@ -1,7 +1,8 @@
-var song = {
+// Song configuration - ES Module
+export const song = {
   bpm: 148,
   addToMusicPosition: -0.03
 };
 
-// Make globally accessible
-window.song = song;
+// Default export for convenience
+export default song;

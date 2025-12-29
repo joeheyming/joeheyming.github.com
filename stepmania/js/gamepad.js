@@ -1,87 +1,79 @@
-// Gamepad integration for StepMania
+// Gamepad integration for StepMania - ES Module
 // Supports dance pads, PS2 controllers, and other gamepads
+import { step, addButtonFeedback } from './stepmania.js';
 
-class GamepadManager {
+export class GamepadManager {
   constructor() {
     this.gamepads = [];
     this.isEnabled = false;
     this.buttonMapping = {
       // Standard dance pad mapping (most common)
       dancePad: {
-        left: 15, // D-pad left
-        right: 13, // D-pad right
-        up: 12, // D-pad up
-        down: 14, // D-pad down
-        // Alternative mappings for different pads
-        leftAlt: 0, // A button
-        rightAlt: 1, // B button
-        upAlt: 2, // X button
-        downAlt: 3 // Y button
+        left: 15,
+        right: 13,
+        up: 12,
+        down: 14,
+        leftAlt: 0,
+        rightAlt: 1,
+        upAlt: 2,
+        downAlt: 3
       },
       // PS2 controller mapping
       ps2: {
-        left: 15, // D-pad left
-        right: 13, // D-pad right
-        up: 12, // D-pad up
-        down: 14, // D-pad down
-        // Face buttons as alternatives
-        leftAlt: 0, // Square
-        rightAlt: 1, // Cross
-        upAlt: 2, // Circle
-        downAlt: 3 // Triangle
+        left: 15,
+        right: 13,
+        up: 12,
+        down: 14,
+        leftAlt: 0,
+        rightAlt: 1,
+        upAlt: 2,
+        downAlt: 3
       },
       // USB GamePad 0e8f:3013 specific mapping
       usbGamePad: {
-        // Your specific step pad mapping
-        up: 12, // Up panel
-        right: 13, // Right panel
-        down: 14, // Down panel
-        left: 15, // Left panel
-        // Alternative mappings (keeping for compatibility)
-        leftAlt: 0, // Button 0
-        rightAlt: 1, // Button 1
-        upAlt: 2, // Button 2
-        downAlt: 3, // Button 3
-        // D-pad alternatives
-        leftAlt2: 15, // D-pad left
-        rightAlt2: 13, // D-pad right
-        upAlt2: 12, // D-pad up
-        downAlt2: 14 // D-pad down
+        up: 12,
+        right: 13,
+        down: 14,
+        left: 15,
+        leftAlt: 0,
+        rightAlt: 1,
+        upAlt: 2,
+        downAlt: 3,
+        leftAlt2: 15,
+        rightAlt2: 13,
+        upAlt2: 12,
+        downAlt2: 14
       }
     };
 
     this.currentMapping = 'dancePad';
-    this.deadzone = 0.5; // Minimum threshold for analog stick input
+    this.deadzone = 0.5;
     this.pollingInterval = null;
 
-    // Cooldown system to prevent rapid-fire when buttons are held
-    this.lastTriggerTime = {}; // Track last trigger time for each direction
-    this.triggerCooldown = 100; // Minimum milliseconds between triggers for the same direction
+    this.lastTriggerTime = {};
+    this.triggerCooldown = 100;
+    this.debugMode = false;
 
     this.init();
   }
 
   init() {
-    // Check if Gamepad API is supported
     if (!navigator.getGamepads) {
       console.warn('Gamepad API not supported in this browser');
       return;
     }
 
-    // Listen for gamepad connections
     window.addEventListener('gamepadconnected', (e) => {
       console.log('Gamepad connected:', e.gamepad);
       this.addGamepad(e.gamepad);
       this.startPolling();
     });
 
-    // Listen for gamepad disconnections
     window.addEventListener('gamepaddisconnected', (e) => {
       console.log('Gamepad disconnected:', e.gamepad);
       this.removeGamepad(e.gamepad.index);
     });
 
-    // Check for already connected gamepads
     this.checkExistingGamepads();
   }
 
@@ -89,7 +81,6 @@ class GamepadManager {
     const gamepads = navigator.getGamepads();
     for (let i = 0; i < gamepads.length; i++) {
       if (gamepads[i]) {
-        console.log('Found existing gamepad:', gamepads[i]);
         this.addGamepad(gamepads[i]);
       }
     }
@@ -100,17 +91,13 @@ class GamepadManager {
   }
 
   addGamepad(gamepad) {
-    // Add button state tracking
     gamepad.buttonStates = new Array(gamepad.buttons.length).fill(false);
     gamepad.lastButtonStates = new Array(gamepad.buttons.length).fill(false);
 
     this.gamepads.push(gamepad);
     this.isEnabled = true;
 
-    // Try to auto-detect the type of controller
     this.autoDetectController(gamepad);
-
-    console.log(`Gamepad ${gamepad.index} added. Total gamepads: ${this.gamepads.length}`);
   }
 
   removeGamepad(index) {
@@ -120,28 +107,19 @@ class GamepadManager {
     if (!this.isEnabled) {
       this.stopPolling();
     }
-
-    console.log(`Gamepad ${index} removed. Total gamepads: ${this.gamepads.length}`);
   }
 
   autoDetectController(gamepad) {
-    // Try to detect dance pad vs regular controller
     const name = gamepad.id.toLowerCase();
 
     if (name.includes('dance') || name.includes('pad') || name.includes('step')) {
       this.currentMapping = 'dancePad';
-      console.log('Auto-detected dance pad');
     } else if (name.includes('ps2') || name.includes('playstation')) {
       this.currentMapping = 'ps2';
-      console.log('Auto-detected PS2 controller');
     } else if (name.includes('0e8f') && name.includes('3013')) {
-      // Specific detection for USB GamePad 0e8f:3013
       this.currentMapping = 'usbGamePad';
-      console.log('Auto-detected USB GamePad 0e8f:3013');
     } else {
-      // Default to dance pad mapping
       this.currentMapping = 'dancePad';
-      console.log('Using default dance pad mapping');
     }
   }
 
@@ -150,16 +128,13 @@ class GamepadManager {
 
     this.pollingInterval = setInterval(() => {
       this.pollGamepads();
-    }, 16); // ~60fps polling
-
-    console.log('Started gamepad polling');
+    }, 16);
   }
 
   stopPolling() {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
-      console.log('Stopped gamepad polling');
     }
   }
 
@@ -172,19 +147,12 @@ class GamepadManager {
       const currentGamepad = gamepads[gamepad.index];
       if (!currentGamepad) return;
 
-      // Update button states
       currentGamepad.buttons.forEach((button, index) => {
-        const wasPressed = gamepad.lastButtonStates[index];
-        const isPressed = button.pressed;
-
         gamepad.lastButtonStates[index] = gamepad.buttonStates[index];
         gamepad.buttonStates[index] = button.pressed;
       });
 
-      // Check for button presses (rising edge)
       this.checkButtonPresses(gamepad);
-
-      // Check for analog stick input
       this.checkAnalogInput(gamepad);
     });
   }
@@ -192,7 +160,6 @@ class GamepadManager {
   checkButtonPresses(gamepad) {
     const mapping = this.buttonMapping[this.currentMapping];
 
-    // Check each direction
     const directions = [
       {
         name: 'left',
@@ -214,27 +181,18 @@ class GamepadManager {
       }
     ];
 
-    // Track which directions are currently pressed
-    const currentlyPressed = new Set();
     const newlyPressed = new Set();
 
     directions.forEach((direction) => {
       const wasPressed = direction.buttons.some((btnIndex) => gamepad.lastButtonStates[btnIndex]);
       const isPressed = direction.buttons.some((btnIndex) => gamepad.buttonStates[btnIndex]);
 
-      if (isPressed) {
-        currentlyPressed.add(direction.name);
-
-        // If this direction wasn't pressed before, it's newly pressed
-        if (!wasPressed) {
-          newlyPressed.add(direction.name);
-        }
+      if (isPressed && !wasPressed) {
+        newlyPressed.add(direction.name);
       }
     });
 
-    // Handle all newly pressed directions (supports simultaneous presses)
     if (newlyPressed.size > 0) {
-      // Trigger each newly pressed direction
       newlyPressed.forEach((direction) => {
         this.handleDirectionPress(direction);
       });
@@ -242,25 +200,19 @@ class GamepadManager {
   }
 
   checkAnalogInput(gamepad) {
-    // Check left analog stick (axes 0 and 1)
     const leftX = gamepad.axes[0] || 0;
     const leftY = gamepad.axes[1] || 0;
 
-    // Check right analog stick (axes 2 and 3)
     const rightX = gamepad.axes[2] || 0;
     const rightY = gamepad.axes[3] || 0;
 
-    // Use whichever stick has more input
     const useLeftStick = Math.abs(leftX) > Math.abs(rightX) || Math.abs(leftY) > Math.abs(rightY);
     const x = useLeftStick ? leftX : rightX;
     const y = useLeftStick ? leftY : rightY;
 
-    // Track which directions are triggered by analog input
     const analogDirections = new Set();
 
-    // Check if input exceeds deadzone
     if (Math.abs(x) > this.deadzone || Math.abs(y) > this.deadzone) {
-      // Support diagonal input (both X and Y can trigger simultaneously)
       if (Math.abs(x) > this.deadzone) {
         if (x < -this.deadzone) {
           analogDirections.add('left');
@@ -277,7 +229,6 @@ class GamepadManager {
         }
       }
 
-      // Trigger all detected directions
       if (analogDirections.size > 0) {
         analogDirections.forEach((direction) => {
           this.handleDirectionPress(direction);
@@ -287,51 +238,37 @@ class GamepadManager {
   }
 
   handleDirectionPress(direction) {
-    // Check cooldown to prevent rapid-fire
     const now = Date.now();
     const lastTrigger = this.lastTriggerTime[direction] || 0;
 
     if (now - lastTrigger < this.triggerCooldown) {
-      return; // Still in cooldown period
+      return;
     }
 
-    // Update last trigger time
     this.lastTriggerTime[direction] = now;
 
-    // Map direction to StepMania column
     let column;
     switch (direction) {
       case 'left':
-        column = 0; // Left arrow
+        column = 0;
         break;
       case 'up':
-        column = 2; // Up arrow
+        column = 2;
         break;
       case 'right':
-        column = 3; // Right arrow
+        column = 3;
         break;
       case 'down':
-        column = 1; // Down arrow
+        column = 1;
         break;
     }
 
     if (column !== undefined) {
-      // Trigger the step function if it exists globally
-      if (typeof window.step === 'function') {
-        window.step(column);
-      } else {
-        console.warn('🎮 window.step function not found!');
-      }
+      // Call step and addButtonFeedback directly
+      step(column);
+      addButtonFeedback(column);
 
-      // Add visual feedback
-      if (typeof window.addButtonFeedback === 'function') {
-        window.addButtonFeedback(column);
-      } else {
-        console.warn('🎮 window.addButtonFeedback function not found!');
-      }
-
-      // Show visual feedback in UI if debug mode is enabled
-      if (window.gamepadDebugMode) {
+      if (this.debugMode) {
         this.showDebugFeedback(direction, column);
       }
     }
@@ -354,36 +291,21 @@ class GamepadManager {
   }
 
   showDebugFeedback(direction, column) {
-    // Create or update debug element
     let debugEl = document.getElementById('gamepad-debug');
     if (!debugEl) {
       debugEl = document.createElement('div');
       debugEl.id = 'gamepad-debug';
-      debugEl.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: rgba(0,0,0,0.8);
-        color: #10b981;
-        padding: 10px;
-        border-radius: 5px;
-        font-family: monospace;
-        font-size: 12px;
-        z-index: 1000;
-        pointer-events: none;
-      `;
+      debugEl.className = 'gamepad-debug';
       document.body.appendChild(debugEl);
     }
 
     debugEl.textContent = `🎮 ${direction.toUpperCase()} (${column})`;
 
-    // Clear after 1 second
     setTimeout(() => {
       if (debugEl) debugEl.textContent = '';
     }, 1000);
   }
 
-  // Public methods for external control
   enable() {
     this.isEnabled = true;
     if (this.gamepads.length > 0) {
@@ -420,18 +342,16 @@ class GamepadManager {
     };
   }
 
-  // Debug utilities
   enableDebugMode() {
-    window.gamepadDebugMode = true;
+    this.debugMode = true;
     console.log('🎮 Gamepad debug mode enabled');
   }
 
   disableDebugMode() {
-    window.gamepadDebugMode = false;
+    this.debugMode = false;
     console.log('🎮 Gamepad debug mode disabled');
   }
 
-  // Get detailed gamepad info for troubleshooting
   getDetailedInfo() {
     if (this.gamepads.length === 0) {
       return 'No gamepads connected';
@@ -460,7 +380,6 @@ class GamepadManager {
     };
   }
 
-  // Test all buttons and show their current state
   testAllButtons() {
     if (this.gamepads.length === 0) {
       console.log('No gamepads connected for testing');
@@ -490,30 +409,29 @@ class GamepadManager {
     });
   }
 
-  // Test function to manually trigger directions (for debugging)
   testDirection(direction) {
     this.handleDirectionPress(direction);
   }
 
-  // Test function to trigger multiple directions simultaneously
   testMultipleDirections(directions) {
     directions.forEach((direction) => {
       this.handleDirectionPress(direction);
     });
   }
 
-  // Test cooldown system
   testCooldown() {
     this.testDirection('left');
-    setTimeout(() => this.testDirection('left'), 50); // Should be blocked
-    setTimeout(() => this.testDirection('left'), 150); // Should work
+    setTimeout(() => this.testDirection('left'), 50);
+    setTimeout(() => this.testDirection('left'), 150);
   }
 }
 
-// Create global instance
-window.gamepadManager = new GamepadManager();
+// Create instance and export
+const gamepadManager = new GamepadManager();
 
-// Export for module systems
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = GamepadManager;
-}
+// Keep window reference for index.html status indicator (can be removed once index.html is updated)
+window.gamepadManager = gamepadManager;
+
+// Export both the class and instance
+export { gamepadManager };
+export default GamepadManager;

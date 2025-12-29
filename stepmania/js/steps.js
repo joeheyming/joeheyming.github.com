@@ -1,4 +1,5 @@
-var steps = {
+// Steps/Note data - ES Module
+export const steps = {
   noteData: [
     [18.5, 0, {}],
     [25.0, 0, {}],
@@ -475,5 +476,5 @@ var steps = {
   ]
 };
 
-// Make globally accessible
-window.steps = steps;
+// Default export for convenience
+export default steps;

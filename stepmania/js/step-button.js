@@ -1,5 +1,7 @@
-// StepMania Button Web Component
-class StepButton extends HTMLElement {
+// StepMania Button Web Component - ES Module
+import { adoptSharedStyles } from './sharedStyles.js';
+
+export class StepButton extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -8,6 +10,7 @@ class StepButton extends HTMLElement {
   connectedCallback() {
     this.render();
     this.setupEventListeners();
+    adoptSharedStyles(this.shadowRoot);
   }
 
   static get observedAttributes() {
@@ -60,106 +63,13 @@ class StepButton extends HTMLElement {
     const arrowSymbol = this.getArrowSymbol(direction);
 
     this.shadowRoot.innerHTML = `
-      <style>
-        :host {
-          display: block;
-        }
-        
-        .button {
-          width: 60px;
-          height: 60px;
-          background: linear-gradient(135deg, var(--bg-from) 0%, var(--bg-to) 50%, var(--bg-from) 100%);
-          border: 3px solid var(--border-color);
-          border-radius: 12px;
-          box-shadow: 
-            0 4px 6px -1px rgba(0, 0, 0, 0.1),
-            inset 0 1px 0 rgba(255, 255, 255, 0.3),
-            inset 0 -1px 0 rgba(0, 0, 0, 0.2);
-          cursor: pointer;
-          user-select: none;
-          position: relative;
-          transition: all 0.15s ease;
-          transform: translateZ(0);
-        }
-
-        .button:hover {
-          box-shadow: 
-            0 20px 25px -5px var(--hover-shadow),
-            inset 0 1px 0 rgba(255, 255, 255, 0.4),
-            inset 0 -1px 0 rgba(0, 0, 0, 0.3);
-          border-color: var(--hover-border);
-          background: linear-gradient(135deg, var(--hover-from) 0%, var(--hover-to) 50%, var(--hover-from) 100%);
-          transform: scale(1.1);
-        }
-
-        .button:active {
-          transform: scale(0.9);
-          box-shadow: 
-            inset 0 4px 8px rgba(0, 0, 0, 0.3),
-            inset 0 1px 0 rgba(255, 255, 255, 0.2);
-          background: linear-gradient(135deg, var(--active-from) 0%, var(--active-to) 50%, var(--active-from) 100%);
-        }
-
-        .button-pressed {
-          transform: scale(0.85) !important;
-          box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.3) !important;
-          filter: brightness(0.8) !important;
-        }
-
-        .inner-glow {
-          position: absolute;
-          inset: 4px;
-          background: linear-gradient(to bottom right, var(--inner-from), var(--inner-to));
-          border-radius: 6px;
-          opacity: 0.6;
-        }
-
-        .arrow {
-          position: absolute;
-          inset: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .arrow-image {
-          width: 40px;
-          height: 40px;
-          background-image: url('img/down-target.png');
-          background-size: 120px 40px; /* 3 frames * 40px each */
-          background-repeat: no-repeat;
-          background-position: 0 0; /* Show first frame */
-          transition: transform 0.15s ease;
-        }
-
-        @media (min-width: 768px) {
-          .button {
-            width: 64px;
-            height: 64px;
-          }
-          
-          .arrow-image {
-            width: 48px;
-            height: 48px;
-            background-size: 144px 48px; /* 3 frames * 48px each */
-          }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .button {
-            transition: none;
-          }
-        }
-      </style>
-
-      <div class="button" id="${buttonId}">
+      <div class="step-button" id="${buttonId}">
         <div class="inner-glow"></div>
         <div class="arrow">${arrowSymbol}</div>
       </div>
     `;
 
-    // Set CSS custom properties
-    const button = this.shadowRoot.querySelector('.button');
+    const button = this.shadowRoot.querySelector('.step-button');
     button.style.setProperty('--bg-from', this.getComputedValue(colors.bg.split(' ')[0]));
     button.style.setProperty('--bg-to', this.getComputedValue(colors.bg.split(' ')[1]));
     button.style.setProperty('--border-color', this.getComputedValue(colors.border));
@@ -174,7 +84,6 @@ class StepButton extends HTMLElement {
   }
 
   getArrowSymbol(direction) {
-    // Use the existing down button image and rotate it for different directions
     const rotations = {
       up: 'rotate(180deg)',
       down: 'rotate(0deg)',
@@ -185,9 +94,7 @@ class StepButton extends HTMLElement {
   }
 
   getComputedValue(tailwindClass) {
-    // Convert Tailwind classes to CSS values - Metallic Dance Pad Colors
     const colorMap = {
-      // Metallic Blue (Up/Down arrows) - Shiny metallic blue gradient
       'from-cyan-300': '#00bcd4',
       'to-blue-400': '#1976d2',
       'border-black': '#000000',
@@ -200,7 +107,6 @@ class StepButton extends HTMLElement {
       'from-cyan-100': '#b2ebf2',
       'to-blue-200': '#90caf9',
 
-      // Metallic Red/Pink (Left/Right arrows) - Shiny metallic red gradient
       'from-pink-300': '#e91e63',
       'to-red-400': '#d32f2f',
       'hover:shadow-pink-300/80': 'rgba(233, 30, 99, 0.8)',
@@ -216,7 +122,7 @@ class StepButton extends HTMLElement {
   }
 
   setupEventListeners() {
-    const button = this.shadowRoot.querySelector('.button');
+    const button = this.shadowRoot.querySelector('.step-button');
     const buttonId = this.getAttribute('id') || 'button0';
     const direction = this.getAttribute('direction') || 'up';
 
@@ -230,19 +136,16 @@ class StepButton extends HTMLElement {
       );
     };
 
-    // Click event
     button.addEventListener('click', handleClick);
 
-    // Touch events for mobile
     button.addEventListener('touchstart', (e) => {
       e.preventDefault();
       handleClick();
     });
   }
 
-  // Method to add pressed feedback
   addPressedFeedback() {
-    const button = this.shadowRoot.querySelector('.button');
+    const button = this.shadowRoot.querySelector('.step-button');
     button.classList.add('button-pressed');
     setTimeout(() => {
       button.classList.remove('button-pressed');
@@ -252,3 +155,6 @@ class StepButton extends HTMLElement {
 
 // Register the web component
 customElements.define('step-button', StepButton);
+
+// Export
+export default StepButton;

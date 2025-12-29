@@ -1,16 +1,72 @@
-// Simfile Parser for .sm files
-class SimfileParser {
+// Simfile Parser - ES Module
+// Parses StepMania .sm simfile format
+
+/**
+ * @typedef {Object} BPMChange
+ * @property {number} beat - Beat number where change occurs
+ * @property {number} bpm - New BPM value
+ */
+
+/**
+ * @typedef {Object} BGChange
+ * @property {number} beat - Beat number where change occurs
+ * @property {string} file - Background filename
+ * @property {string} effect - Effect type
+ * @property {number} x - X offset
+ * @property {number} y - Y offset
+ * @property {boolean} isVideo - Whether this is a video file
+ * @property {boolean} isNoBackground - Whether this removes background
+ */
+
+/**
+ * @typedef {Object} Chart
+ * @property {string} type - Chart type (e.g., 'dance-single')
+ * @property {string} description - Chart description
+ * @property {string} difficulty - Difficulty name (Beginner, Easy, Medium, Hard, Challenge)
+ * @property {number} rating - Numeric difficulty rating
+ * @property {string} radarValues - Radar values string
+ * @property {Array<Array>} noteData - Array of [beat, column, properties]
+ */
+
+/**
+ * @typedef {Object} ParsedSimfile
+ * @property {string} title - Song title
+ * @property {string} artist - Song artist
+ * @property {number} bpm - Display BPM
+ * @property {number} offset - Music offset in seconds
+ * @property {Chart[]} charts - Available charts
+ * @property {BGChange[]} bgChanges - Background changes
+ * @property {BPMChange[]} bpmChanges - BPM changes
+ * @property {Object} metadata - Raw metadata tags
+ */
+
+/**
+ * Parser for StepMania .sm simfile format
+ */
+export class SimfileParser {
   constructor() {
     this.reset();
   }
 
+  /**
+   * Reset parser state
+   */
   reset() {
+    /** @type {Object<string, string>} */
     this.metadata = {};
+    /** @type {Chart[]} */
     this.charts = [];
+    /** @type {BPMChange[]} */
     this.bpmChanges = [];
+    /** @type {BGChange[]} */
     this.bgChanges = [];
   }
 
+  /**
+   * Parse a simfile string into structured data
+   * @param {string} simfileContent - Raw simfile content
+   * @returns {ParsedSimfile} Parsed simfile data
+   */
   parse(simfileContent) {
     this.reset();
 
@@ -45,6 +101,10 @@ class SimfileParser {
     };
   }
 
+  /**
+   * Parse metadata tags from simfile content
+   * @param {string} content - Cleaned simfile content
+   */
   parseMetadata(content) {
     // Match #TAG:VALUE; patterns
     const metadataRegex = /#([A-Z]+):([^;]+);/g;
@@ -57,6 +117,10 @@ class SimfileParser {
     }
   }
 
+  /**
+   * Parse BPM changes from simfile content
+   * @param {string} content - Cleaned simfile content
+   */
   parseBPMs(content) {
     const bpmMatch = content.match(/#BPMS:([^;]+);/);
     if (bpmMatch) {
@@ -73,6 +137,10 @@ class SimfileParser {
     this.bpmChanges.sort((a, b) => a.beat - b.beat);
   }
 
+  /**
+   * Parse background changes from simfile content
+   * @param {string} content - Cleaned simfile content
+   */
   parseBGChanges(content) {
     const bgMatch = content.match(/#BGCHANGES:([^;]+);/);
     if (bgMatch) {
@@ -114,6 +182,10 @@ class SimfileParser {
     this.bgChanges.sort((a, b) => a.beat - b.beat);
   }
 
+  /**
+   * Parse chart (NOTES) blocks from simfile content
+   * @param {string} content - Cleaned simfile content
+   */
   parseCharts(content) {
     // Find all #NOTES blocks
     const notesRegex =
@@ -144,6 +216,11 @@ class SimfileParser {
     }
   }
 
+  /**
+   * Parse step data into note array
+   * @param {string} stepData - Raw step data string
+   * @returns {Array<Array>} Array of [beat, column, properties] tuples
+   */
   parseStepData(stepData) {
     const notes = [];
 
@@ -181,7 +258,8 @@ class SimfileParser {
             switch (noteType) {
               case '1': // Tap note
                 break;
-              case '2': // Hold start
+              case '2': {
+                // Hold start
                 noteProps.Type = 2;
                 noteProps.SubType = 0;
                 // Try to find hold end
@@ -197,6 +275,7 @@ class SimfileParser {
                   noteProps.Duration = Math.round((holdEnd - lineBeat) * 48); // Convert to ticks
                 }
                 break;
+              }
               case '3': // Hold end (handled by hold start)
                 continue;
               case '4': // Roll start
@@ -221,6 +300,16 @@ class SimfileParser {
     return notes;
   }
 
+  /**
+   * Find the end beat of a hold note
+   * @param {string[]} measures - All measures in the chart
+   * @param {string} currentMeasure - Current measure being processed
+   * @param {number} startLineIndex - Line index within measure
+   * @param {number} linesPerMeasure - Number of lines in current measure
+   * @param {number} column - Column index (0-3)
+   * @param {number} measureStartBeat - Beat at start of current measure
+   * @returns {number} Beat where hold ends
+   */
   findHoldEnd(measures, currentMeasure, startLineIndex, linesPerMeasure, column, measureStartBeat) {
     const allLines = [];
     let beatOffset = 0;
@@ -264,6 +353,10 @@ class SimfileParser {
     return startBeat;
   }
 
+  /**
+   * Get the display BPM for the song
+   * @returns {number} Display BPM value
+   */
   getDisplayBPM() {
     if (this.metadata.DISPLAYBPM) {
       const bpm = parseFloat(this.metadata.DISPLAYBPM);
@@ -278,6 +371,10 @@ class SimfileParser {
     return 120; // Default
   }
 
+  /**
+   * Parse the music offset from metadata
+   * @returns {number} Offset in seconds
+   */
   parseOffset() {
     if (this.metadata.OFFSET) {
       return parseFloat(this.metadata.OFFSET);
@@ -285,7 +382,11 @@ class SimfileParser {
     return 0;
   }
 
-  // Helper method to convert beat to seconds with BPM changes
+  /**
+   * Convert a beat number to seconds, accounting for BPM changes
+   * @param {number} beat - Beat number to convert
+   * @returns {number} Time in seconds
+   */
   beatToSeconds(beat) {
     let seconds = 0;
     let currentBeat = 0;
@@ -312,5 +413,5 @@ class SimfileParser {
   }
 }
 
-// Make globally accessible
-window.SimfileParser = SimfileParser;
+// Default export
+export default SimfileParser;
