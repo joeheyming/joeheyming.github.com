@@ -1,5 +1,9 @@
+/* 🤘 AWESOME STYLES 🤘 */
+
 html,
 body {
+  margin: 0;
+  padding: 0;
 }
 
 #start {
@@ -15,48 +19,27 @@ div#awesome_parent {
   width: 100%;
   transition: background-color 2s ease;
 }
+
 div#awesome_div {
   transition: color 2s ease;
   text-align: center;
   display: table-cell;
   font-size: 80px;
   vertical-align: middle;
+  position: relative;
+  z-index: 99999;
 }
 
-.spin {
-  transition: transform 2s ease-in-out;
-  transform: rotate(360deg);
+/* 🎵 Audio player styling */
+audio {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
 }
 
-.opacity {
-  transition: opacity 2s ease-in-out;
-  opacity: 0;
-}
-
-.slide {
-  transition: transform 2s ease-in-out;
-  transform: translateX(100px);
-}
-
-.scale {
-  transition: transform 2s ease-in-out;
-  transform: scale(1.5);
-}
-
-.fade {
-  transition: opacity 2s ease-in-out;
-  opacity: 0.5;
-}
-
-.rotate {
-  transition: transform 2s ease-in-out;
-  transform: rotate(180deg);
-}
-
-.bounce {
-  animation: bounce 2s infinite;
-}
-
+/* 🏀 Bounce animation for elements that need it */
 @keyframes bounce {
   0%,
   20%,
@@ -73,7 +56,6 @@ div#awesome_div {
   }
 }
 
-.flip {
-  transition: transform 2s ease-in-out;
-  transform: rotateY(180deg);
+.bounce {
+  animation: bounce 2s infinite;
 }
