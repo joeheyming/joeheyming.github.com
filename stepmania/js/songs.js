@@ -1,27 +1,25 @@
+// Songs data - ES Module
+
 // Helper function to proxy simfile URLs through AllOrigins
-function proxySimfile(url) {
+export function proxySimfile(url) {
   if (url && url.includes('.sm') && (url.startsWith('http://') || url.startsWith('https://'))) {
     return `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
   }
   return url;
 }
 
-let songs = {
+export const songs = {
   Lost: {
-    url: 'songs/Lost/Lost.mp3',
-    background: 'songs/Lost/background.png',
+    url: '/stepmania/songs/Lost/Lost.mp3',
+    background: '/stepmania/songs/Lost/background.png',
     title: 'Lost',
     artist: 'Unknown',
     bpm: 120
   }
 };
 
-// Make globally accessible
-window.songs = songs;
-window.proxySimfile = proxySimfile;
-
 // Debug function to show which simfiles are being proxied
-window.showProxiedSimfiles = function () {
+export function showProxiedSimfiles() {
   console.log('Simfile proxy status:');
   Object.entries(songs).forEach(([songName, song]) => {
     if (song.simfile) {
@@ -31,10 +29,10 @@ window.showProxiedSimfiles = function () {
       console.log(`${songName}: ⚪ NO SIMFILE`);
     }
   });
-};
+}
 
 // Debug function to fetch and check simfile content
-window.debugSimfileContent = async function (songName) {
+export async function debugSimfileContent(songName) {
   const song = songs[songName];
   if (!song || !song.simfile) {
     console.log(`No simfile for ${songName}`);
@@ -65,4 +63,7 @@ window.debugSimfileContent = async function (songName) {
   } catch (error) {
     console.error(`Error fetching simfile for ${songName}:`, error);
   }
-};
+}
+
+// Default export
+export default songs;

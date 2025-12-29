@@ -1,85 +1,91 @@
-(function () {
-  function LoaderProxy() {
-    return {
-      draw: function () {}, // noop function
-      fill: function () {}, // noop function
-      frame: function () {}, // noop function
-      update: function () {}, // noop function
-      width: null,
-      height: null
-    };
-  }
+// Sprite module - ES Module
 
-  function Sprite(image, options) {
-    if (!options) options = {};
-    var sourceX = options.sourceX || 0;
-    var sourceY = options.sourceY || 0;
-    var width = options.width || image.width;
-    var height = options.height || image.height;
-    var frameWidth = options.frameWidth || width;
-    var frameHeight = options.frameHeight || height;
-    var numFrames = options.numFrames || 1;
+function LoaderProxy() {
+  return {
+    draw: function () {}, // noop function
+    fill: function () {}, // noop function
+    frame: function () {}, // noop function
+    update: function () {}, // noop function
+    width: null,
+    height: null
+  };
+}
 
-    return {
-      draw: function (canvas, frameIndex, x, y, scaleX, scaleY, rotationDegrees, alpha) {
-        canvas.save();
-        canvas.translate(Math.round(x), Math.round(y));
-        if (rotationDegrees != 0) canvas.rotate((rotationDegrees * 3.14159265358) / 180);
-        if ((scaleX != 0) | (scaleY != 0)) canvas.scale(scaleX, scaleY);
-        canvas.globalAlpha = alpha;
-        canvas.drawImage(
-          image,
-          sourceX + frameIndex * frameWidth,
-          sourceY,
-          frameWidth,
-          frameHeight,
-          -frameWidth / 2,
-          -frameHeight / 2,
-          frameWidth,
-          frameHeight
-        );
-        canvas.restore();
-      },
+function createSprite(image, options) {
+  if (!options) options = {};
+  const sourceX = options.sourceX || 0;
+  const sourceY = options.sourceY || 0;
+  const width = options.width || image.width;
+  const height = options.height || image.height;
+  const frameWidth = options.frameWidth || width;
+  const frameHeight = options.frameHeight || height;
 
-      fill: function (canvas, x, y, width, height, repeat) {
-        repeat = repeat || 'repeat';
-        var pattern = canvas.createPattern(image, repeat);
-        canvas.fillColor(pattern);
-        canvas.fillRect(x, y, width, height);
-      },
+  return {
+    draw: function (canvas, frameIndex, x, y, scaleX, scaleY, rotationDegrees, alpha) {
+      canvas.save();
+      canvas.translate(Math.round(x), Math.round(y));
+      if (rotationDegrees != 0) canvas.rotate((rotationDegrees * 3.14159265358) / 180);
+      if ((scaleX != 0) | (scaleY != 0)) canvas.scale(scaleX, scaleY);
+      canvas.globalAlpha = alpha;
+      canvas.drawImage(
+        image,
+        sourceX + frameIndex * frameWidth,
+        sourceY,
+        frameWidth,
+        frameHeight,
+        -frameWidth / 2,
+        -frameHeight / 2,
+        frameWidth,
+        frameHeight
+      );
+      canvas.restore();
+    },
 
-      width: width,
-      height: height
-    };
-  }
+    fill: function (canvas, x, y, width, height, repeat) {
+      repeat = repeat || 'repeat';
+      const pattern = canvas.createPattern(image, repeat);
+      canvas.fillColor(pattern);
+      canvas.fillRect(x, y, width, height);
+    },
 
-  Sprite.load = function (url, options) {
-    var img = new Image();
-    var proxy = LoaderProxy();
+    width: width,
+    height: height
+  };
+}
 
-    img.onload = function () {
-      var sprite = Sprite(this, options);
+// Load a sprite from URL
+export function loadSprite(url, options) {
+  const img = new Image();
+  const proxy = LoaderProxy();
 
-      // Extend proxy with sprite properties
-      for (var key in sprite) {
-        if (sprite.hasOwnProperty(key)) {
-          proxy[key] = sprite[key];
-        }
+  img.onload = function () {
+    const sprite = createSprite(this, options);
+
+    // Extend proxy with sprite properties
+    for (const key in sprite) {
+      if (Object.hasOwn(sprite, key)) {
+        proxy[key] = sprite[key];
       }
+    }
 
-      if (options && options.loadedCallback) {
-        options.loadedCallback(proxy);
-      }
-    };
-
-    img.src = url;
-
-    return proxy;
+    if (options && options.loadedCallback) {
+      options.loadedCallback(proxy);
+    }
   };
 
-  window.Sprite = function (url, options) {
-    return Sprite.load(url, options);
-  };
-  window.Sprite.EMPTY = LoaderProxy();
-  window.Sprite.load = Sprite.load;
-})();
+  img.src = url;
+
+  return proxy;
+}
+
+// Main Sprite function - load from URL
+export function Sprite(url, options) {
+  return loadSprite(url, options);
+}
+
+// Empty sprite placeholder
+Sprite.EMPTY = LoaderProxy();
+Sprite.load = loadSprite;
+
+// Default export
+export default Sprite;

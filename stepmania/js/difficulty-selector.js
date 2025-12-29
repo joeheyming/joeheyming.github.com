@@ -1,5 +1,32 @@
-// Difficulty Selector Web Component
+// Difficulty Selector Web Component - ES Module
+import { adoptSharedStyles } from './sharedStyles.js';
+import { createComponentProxy } from './componentProxy.js';
+
+/**
+ * Get difficulty from URL as a number (or null)
+ * @returns {number|null}
+ */
+export function getDifficultyFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  const difficulty = params.get('difficulty');
+  return difficulty !== null ? parseInt(difficulty) : null;
+}
+
 class DifficultySelectorElement extends HTMLElement {
+  /** @type {DifficultySelectorElement|null} */
+  static _instance = null;
+
+  /**
+   * Get the singleton instance of the difficulty selector
+   * @returns {DifficultySelectorElement|null}
+   */
+  static get() {
+    if (!DifficultySelectorElement._instance) {
+      DifficultySelectorElement._instance = document.getElementById('main-difficulty-selector');
+    }
+    return DifficultySelectorElement._instance;
+  }
+
   constructor() {
     super();
     this.selectedDifficulty = null;
@@ -11,70 +38,11 @@ class DifficultySelectorElement extends HTMLElement {
   connectedCallback() {
     this.render();
     this.bindEvents();
+    adoptSharedStyles(this.shadowRoot);
   }
 
   render() {
     this.shadowRoot.innerHTML = `
-      <style>
-        :host {
-          display: inline-flex;
-          align-items: center;
-        }
-        
-        .difficulty-selector.hidden {
-          display: none;
-        }
-        
-        .difficulty-select {
-          display: flex;
-          padding: 0.5rem 1.5rem;
-          font-size: 14px;
-          font-weight: bold;
-          color: white;
-          background: linear-gradient(to right, #3b82f6, #2563eb);
-          border: 2px solid rgba(139, 92, 246, 0.3);
-          border-radius: 0.75rem;
-          cursor: pointer;
-          transition: all 0.2s;
-          outline: none;
-          height: 2.5rem;
-          align-items: center;
-          justify-content: center;
-          width: auto;
-          min-width: fit-content;
-        }
-        
-        /* Mobile optimizations */
-        @media (max-width: 768px) {
-          .difficulty-select {
-            padding: 0.25rem 0.75rem;
-            font-size: 12px;
-            height: 2rem;
-          }
-        }
-        
-        .difficulty-select:hover {
-          background: linear-gradient(to right, #2563eb, #1d4ed8);
-          border-color: rgba(139, 92, 246, 0.6);
-          transform: scale(1.02);
-        }
-        
-        .difficulty-select:focus {
-          border-color: rgba(0, 245, 255, 0.6);
-          box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.2);
-        }
-        
-        .difficulty-select option {
-          background: #1f2937;
-          color: white;
-          padding: 0.5rem;
-        }
-        
-        .difficulty-select option:hover {
-          background: #374151;
-        }
-      </style>
-      
       <span class="difficulty-selector" id="difficulty-selector">
         <select class="difficulty-select" id="difficulty-select">
           <option value="">Difficulty</option>
@@ -107,6 +75,21 @@ class DifficultySelectorElement extends HTMLElement {
     } else {
       this.hide();
     }
+  }
+
+  /**
+   * Sync difficulty selection from URL parameter
+   * @returns {number|null} The selected difficulty index, or null if not synced
+   */
+  syncFromURL() {
+    const difficultyIndex = getDifficultyFromURL();
+    if (difficultyIndex === null) return null;
+
+    if (difficultyIndex >= 0 && difficultyIndex < this.charts.length) {
+      this.selectDifficultyByIndex(difficultyIndex);
+      return difficultyIndex;
+    }
+    return null;
   }
 
   setOnChange(callback) {
@@ -189,7 +172,13 @@ class DifficultySelectorElement extends HTMLElement {
     // Track analytics event
     if (this.charts[chartIndex]) {
       const chart = this.charts[chartIndex];
-      window.trackEvent('difficulty_change', 'StepMania', `${chart.difficulty} (${chart.rating})`);
+      if (typeof window.trackEvent === 'function') {
+        window.trackEvent(
+          'difficulty_change',
+          'StepMania',
+          `${chart.difficulty} (${chart.rating})`
+        );
+      }
     }
 
     // Call the onChange callback if provided
@@ -202,5 +191,7 @@ class DifficultySelectorElement extends HTMLElement {
 // Register the web component
 customElements.define('difficulty-selector', DifficultySelectorElement);
 
-// Make globally accessible for backward compatibility
-window.DifficultySelector = DifficultySelectorElement;
+// Create proxy for singleton access
+export const DifficultySelector = createComponentProxy(DifficultySelectorElement);
+
+export default DifficultySelector;

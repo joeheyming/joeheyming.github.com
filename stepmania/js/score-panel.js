@@ -1,0 +1,378 @@
+// Score Panel Web Component - ES Module
+// Encapsulates the score display UI and scoring utilities
+
+import { adoptSharedStyles } from './sharedStyles.js';
+import { createComponentProxy } from './componentProxy.js';
+
+// ============================================================================
+// SCORING CONSTANTS
+// ============================================================================
+
+/**
+ * Points awarded for each judgment type
+ */
+export const SCORING = {
+  /** Points for perfect hit */
+  PERFECT: 3,
+  /** Points for great hit */
+  GREAT: 3,
+  /** Points for good hit */
+  GOOD: 2,
+  /** Points for bad hit */
+  BAD: 1,
+  /** Points for miss */
+  MISS: 0,
+  /** Points deducted for hitting a mine */
+  MINE_HIT: -5
+};
+
+/** Array of point values for iteration (matches TIMING_WINDOWS order + mine) */
+export const TAP_NOTE_POINTS = [
+  SCORING.PERFECT,
+  SCORING.GREAT,
+  SCORING.GOOD,
+  SCORING.BAD,
+  SCORING.MISS,
+  SCORING.MINE_HIT
+];
+
+// ============================================================================
+// SCORING UTILITIES (pure functions)
+// ============================================================================
+
+/**
+ * Grade thresholds and colors for dance point percentage
+ */
+export const GRADE_THRESHOLDS = [
+  { minPercent: 100, perfectsRequired: true, letter: 'AAAA', color: '#FFD700' },
+  { minPercent: 100, perfectsRequired: false, letter: 'AAA', color: '#FFD700' },
+  { minPercent: 93, letter: 'AA', color: '#C0C0C0' },
+  { minPercent: 80, letter: 'A', color: '#10B981' },
+  { minPercent: 70, letter: 'B', color: '#3B82F6' },
+  { minPercent: 60, letter: 'C', color: '#F59E0B' },
+  { minPercent: 50, letter: 'D', color: '#EF4444' },
+  { minPercent: 0, letter: 'F', color: '#7F1D1D' }
+];
+
+/**
+ * Calculate dance points from tap note scores
+ * @param {number[]} tapNoteScores - Array of [perfect, great, good, bad, miss, mine]
+ * @returns {{earned: number, max: number, percentage: number}}
+ */
+export function calculateDancePoints(tapNoteScores) {
+  const [perfect, great, good, bad, miss] = tapNoteScores;
+  const totalNotes = tapNoteScores.reduce((sum, count) => sum + count, 0);
+
+  const earned = perfect * 2 + great * 1 + good * 0.5 + bad * 0 + miss * 0;
+  const max = totalNotes * 2;
+  const percentage = max > 0 ? (earned / max) * 100 : 0;
+
+  return { earned, max, percentage };
+}
+
+/**
+ * Calculate the grade based on tap note scores
+ * @param {number[]} tapNoteScores - Array of [perfect, great, good, bad, miss, mine]
+ * @param {number} totalNotes - Total number of notes
+ * @returns {{letter: string, color: string, dpPercentage: string}}
+ */
+export function calculateGrade(tapNoteScores, totalNotes) {
+  const [perfect] = tapNoteScores;
+  const { percentage } = calculateDancePoints(tapNoteScores);
+
+  // Check for AAAA (all perfects)
+  if (percentage === 100 && perfect === totalNotes) {
+    return { letter: 'AAAA', color: '#FFD700', dpPercentage: '100.00' };
+  }
+
+  // Check for AAA (100% but not all perfects)
+  if (percentage === 100) {
+    return { letter: 'AAA', color: '#FFD700', dpPercentage: '100.00' };
+  }
+
+  // Find matching grade threshold
+  for (const threshold of GRADE_THRESHOLDS) {
+    if (threshold.perfectsRequired) continue; // Skip AAAA, already handled
+    if (percentage >= threshold.minPercent) {
+      return {
+        letter: threshold.letter,
+        color: threshold.color,
+        dpPercentage: percentage.toFixed(2)
+      };
+    }
+  }
+
+  // Fallback to F
+  return { letter: 'F', color: '#7F1D1D', dpPercentage: percentage.toFixed(2) };
+}
+
+/**
+ * Calculate score percentage from points
+ * @param {number} actualPoints - Points earned
+ * @param {number} noteCount - Total number of notes
+ * @returns {number} Percentage (0-100)
+ */
+export function calculateScorePercentage(actualPoints, noteCount) {
+  const maxPoints = TAP_NOTE_POINTS[0] * noteCount;
+  if (maxPoints === 0) return 0;
+  return Math.max(0, (actualPoints / maxPoints) * 100);
+}
+
+/**
+ * Format a percentage for display
+ * @param {number} percentage - The percentage value
+ * @returns {string} Formatted percentage string (e.g., "95.50%")
+ */
+export function formatPercentage(percentage) {
+  return percentage.toFixed(2) + '%';
+}
+
+/**
+ * Create a shareable score message
+ * @param {Object} scoreData - Score data object
+ * @param {Object} songInfo - Song info object
+ * @returns {string} Formatted score message
+ */
+export function createScoreMessage(scoreData, songInfo) {
+  const [perfect, great, good, bad, miss] = scoreData.tapNoteScores;
+  const grade = calculateGrade(scoreData.tapNoteScores, scoreData.totalNotes);
+
+  return `I just played "${songInfo.title}" on StepMania with ${songInfo.difficulty}${
+    songInfo.difficultyRating
+  } difficulty!
+
+Grade: ${grade.letter} | Score: ${scoreData.percentage}
+Notes: ${scoreData.totalNotes} total, ${scoreData.actualPoints} points
+
+Perfect: ${perfect} | Great: ${great} | Good: ${good} | Bad: ${bad} | Miss: ${miss}
+
+${typeof window !== 'undefined' ? window.location.href : ''}`;
+}
+
+// ============================================================================
+// SCORE PANEL WEB COMPONENT
+// ============================================================================
+
+/**
+ * Score labels and their corresponding colors
+ */
+const SCORE_LABELS = [
+  { name: 'Marvelous', color: 'rgb(216, 180, 254)' }, // purple-300
+  { name: 'Perfect', color: 'rgb(147, 197, 253)' }, // blue-300
+  { name: 'Great', color: 'rgb(134, 239, 172)' }, // green-300
+  { name: 'Good', color: 'rgb(253, 224, 71)' }, // yellow-300
+  { name: 'Boo', color: 'rgb(253, 186, 116)' }, // orange-300
+  { name: 'Miss', color: 'rgb(252, 165, 165)' } // red-300
+];
+
+class ScorePanelElement extends HTMLElement {
+  /** @type {ScorePanelElement|null} */
+  static _instance = null;
+
+  /**
+   * Get the singleton instance of the score panel
+   * @returns {ScorePanelElement|null}
+   */
+  static get() {
+    if (!ScorePanelElement._instance) {
+      ScorePanelElement._instance = document.getElementById('score-panel');
+    }
+    return ScorePanelElement._instance;
+  }
+
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+
+    // Internal state
+    this._scores = [0, 0, 0, 0, 0, 0];
+    this._percentage = '0.00%';
+    this._noteCount = 0;
+    this._actualPoints = 0;
+  }
+
+  connectedCallback() {
+    this.render();
+    adoptSharedStyles(this.shadowRoot);
+  }
+
+  /**
+   * Render the score panel UI
+   */
+  render() {
+    this.shadowRoot.innerHTML = `
+      <style>
+        :host {
+          display: block;
+        }
+        .score-container {
+          background: linear-gradient(to right, rgba(168, 85, 247, 0.2), rgba(59, 130, 246, 0.2));
+          border-radius: 0.75rem;
+          padding: 1rem;
+          backdrop-filter: blur(12px);
+          border: 1px solid rgba(192, 132, 252, 0.3);
+        }
+        .percent-score {
+          font-size: 1.875rem;
+          font-weight: 700;
+          text-align: center;
+          background: linear-gradient(to right, #00d4ff, #a855f7);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          margin-bottom: 1rem;
+        }
+        .score-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+        .score-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.5rem 0.75rem;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 0.5rem;
+        }
+        .score-label {
+          font-weight: 600;
+        }
+        .score-value {
+          color: white;
+          font-weight: 700;
+        }
+        .score-row.updated {
+          animation: flash 0.3s ease-out;
+        }
+        @keyframes flash {
+          0% { background: rgba(255, 255, 255, 0.3); }
+          100% { background: rgba(255, 255, 255, 0.1); }
+        }
+      </style>
+      
+      <div class="score-container">
+        <div class="percent-score" id="percent">${this._percentage}</div>
+        <div class="score-list">
+          ${SCORE_LABELS.map(
+            (label, i) => `
+            <div class="score-row" id="row-${i}">
+              <span class="score-label" style="color: ${label.color}">${label.name}</span>
+              <span class="score-value" id="score-${i}">${this._scores[i]}</span>
+            </div>
+          `
+          ).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Update a specific score and refresh the percentage
+   * @param {number} scoreIndex - The score index (0-5) that changed
+   * @param {number[]} scores - Full array of current scores
+   * @param {number} actualPoints - Current total points
+   * @param {number} noteCount - Total number of notes
+   */
+  update(scoreIndex, scores, actualPoints, noteCount) {
+    this._scores = [...scores];
+    this._actualPoints = actualPoints;
+    this._noteCount = noteCount;
+
+    // Calculate percentage using shared utility
+    this._percentage = formatPercentage(calculateScorePercentage(actualPoints, noteCount));
+
+    // Update the specific score element
+    const scoreEl = this.shadowRoot.getElementById(`score-${scoreIndex}`);
+    if (scoreEl) {
+      scoreEl.textContent = scores[scoreIndex];
+
+      // Add flash animation
+      const row = this.shadowRoot.getElementById(`row-${scoreIndex}`);
+      if (row) {
+        row.classList.remove('updated');
+        void row.offsetWidth; // Trigger reflow
+        row.classList.add('updated');
+      }
+    }
+
+    // Update percentage
+    const percentEl = this.shadowRoot.getElementById('percent');
+    if (percentEl) {
+      percentEl.textContent = this._percentage;
+    }
+  }
+
+  /**
+   * Update just the percentage display (e.g., for mine hits)
+   * @param {number} actualPoints - Current total points
+   * @param {number} noteCount - Total number of notes
+   */
+  updatePercent(actualPoints, noteCount) {
+    this._actualPoints = actualPoints;
+    this._noteCount = noteCount;
+
+    // Calculate percentage using shared utility
+    this._percentage = formatPercentage(calculateScorePercentage(actualPoints, noteCount));
+
+    const percentEl = this.shadowRoot.getElementById('percent');
+    if (percentEl) {
+      percentEl.textContent = this._percentage;
+    }
+  }
+
+  /**
+   * Reset all scores to zero
+   */
+  reset() {
+    this._scores = [0, 0, 0, 0, 0, 0];
+    this._percentage = '0.00%';
+    this._actualPoints = 0;
+
+    // Update all score elements
+    for (let i = 0; i < 6; i++) {
+      const scoreEl = this.shadowRoot.getElementById(`score-${i}`);
+      if (scoreEl) {
+        scoreEl.textContent = '0';
+      }
+    }
+
+    // Update percentage
+    const percentEl = this.shadowRoot.getElementById('percent');
+    if (percentEl) {
+      percentEl.textContent = '0.00%';
+    }
+  }
+
+  /**
+   * Get the current scores array
+   * @returns {number[]}
+   */
+  get scores() {
+    return [...this._scores];
+  }
+
+  /**
+   * Get the current percentage string
+   * @returns {string}
+   */
+  get percentage() {
+    return this._percentage;
+  }
+
+  /**
+   * Get the total notes counted
+   * @returns {number}
+   */
+  get totalNotes() {
+    return this._scores.reduce((sum, count) => sum + count, 0);
+  }
+}
+
+// Register the web component
+customElements.define('score-panel', ScorePanelElement);
+
+// Create proxy for singleton access: ScorePanel.update(...) instead of ScorePanel.get()?.update(...)
+export const ScorePanel = createComponentProxy(ScorePanelElement);
+
+export default ScorePanel;
