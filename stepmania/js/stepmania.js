@@ -1100,22 +1100,41 @@ function drawNoteField() {
       } else if (noteProps.Type === 2 && noteProps.Duration) {
         // Draw hold note with body and tail
         var holdDurationBeats = noteProps.Duration / 48; // Convert ticks back to beats
-        var holdEndY = y + holdDurationBeats * arrowSize * currentScrollSpeed;
+
+        // Check if this hold is currently active and if it was dropped
+        var isActiveHold = activeHolds[col] && activeHolds[col].note === note;
+        var wasDropped = isActiveHold && activeHolds[col].wasDropped;
+
+        // KEY FIX: Lock hold head to receptor when hold is active and not dropped
+        // This is how DDR/StepMania handles holds - the body stays visible
+        // connected to the receptor while being held, shrinking from bottom up
+        var holdHeadY = y;
+        if (isActiveHold && !wasDropped) {
+          holdHeadY = targetsY; // Lock to receptor position
+        }
+
+        var holdEndY = holdHeadY + holdDurationBeats * arrowSize * currentScrollSpeed;
+        // If hold is active, recalculate end position based on remaining duration
+        if (isActiveHold && !wasDropped) {
+          var remainingBeats = activeHolds[col].endBeat - musicBeat;
+          holdEndY = targetsY + remainingBeats * arrowSize * currentScrollSpeed;
+        }
 
         // Only draw if any part of the hold is visible
-        var holdVisible = y < CANVAS_HEIGHT + 50 && holdEndY > -50;
+        var holdVisible = holdHeadY < CANVAS_HEIGHT + 50 && holdEndY > -50;
+
+        // Skip drawing completed holds
+        if (noteProps.holdCompleted) {
+          holdVisible = false;
+        }
 
         if (holdVisible) {
-          // Check if this hold is currently active and if it was dropped
-          var isActiveHold = activeHolds[col] && activeHolds[col].note === note;
-          var wasDropped = isActiveHold && activeHolds[col].wasDropped;
-
           // Determine hold body visibility
-          var holdBodyAlpha = alpha * 0.7;
+          var holdBodyAlpha = 0.9;
 
-          // If note head is hit (alpha = 0) but hold is active, keep hold body visible
-          if (alpha === 0 && isActiveHold) {
-            holdBodyAlpha = 0.8; // Make hold body visible even when note head is hidden
+          // If dropped, dim the hold
+          if (wasDropped) {
+            holdBodyAlpha = 0.5;
           }
 
           // Draw hold body (connecting line)
@@ -1123,40 +1142,40 @@ function drawNoteField() {
           canvas.globalAlpha = holdBodyAlpha;
 
           // Create gradient for hold body
-          var gradient = canvas.createLinearGradient(colInfo.x, y, colInfo.x, holdEndY);
+          var bodyHeight = Math.max(0, holdEndY - holdHeadY);
+          var holdGradient = canvas.createLinearGradient(colInfo.x, holdHeadY, colInfo.x, holdEndY);
           if (wasDropped) {
             // Red gradient for dropped holds
-            gradient.addColorStop(0, '#ff4444'); // Light red at start
-            gradient.addColorStop(0.5, '#cc0000'); // Dark red in middle
-            gradient.addColorStop(1, '#880000'); // Very dark red at end
+            holdGradient.addColorStop(0, '#ff4444'); // Light red at start
+            holdGradient.addColorStop(0.5, '#cc0000'); // Dark red in middle
+            holdGradient.addColorStop(1, '#880000'); // Very dark red at end
+          } else if (isActiveHold) {
+            // Bright pulsing gradient for active holds
+            var pulse = Math.sin(currentTime * 8) * 0.2 + 0.8;
+            holdGradient.addColorStop(0, `rgba(0, 255, 100, ${pulse})`); // Bright green at receptor
+            holdGradient.addColorStop(0.5, '#ffff00'); // Yellow in middle
+            holdGradient.addColorStop(1, '#ff8800'); // Orange at end
           } else {
-            // Normal gradient for active/good holds
-            gradient.addColorStop(0, '#00ff00'); // Green at start
-            gradient.addColorStop(0.5, '#ffff00'); // Yellow in middle
-            gradient.addColorStop(1, '#ff0000'); // Red at end
+            // Normal gradient for upcoming holds
+            holdGradient.addColorStop(0, '#00ff00'); // Green at start
+            holdGradient.addColorStop(0.5, '#ffff00'); // Yellow in middle
+            holdGradient.addColorStop(1, '#ff0000'); // Red at end
           }
 
-          canvas.fillStyle = gradient;
-          canvas.fillRect(colInfo.x - 8, y, 16, holdEndY - y);
+          canvas.fillStyle = holdGradient;
+          canvas.fillRect(colInfo.x - 8, holdHeadY, 16, bodyHeight);
 
           // Draw hold body border
-          canvas.strokeStyle = '#ffffff';
-          canvas.lineWidth = 2;
-          canvas.strokeRect(colInfo.x - 8, y, 16, holdEndY - y);
+          canvas.strokeStyle = isActiveHold ? '#ffffff' : '#cccccc';
+          canvas.lineWidth = isActiveHold ? 3 : 2;
+          canvas.strokeRect(colInfo.x - 8, holdHeadY, 16, bodyHeight);
 
           canvas.restore();
 
           // Draw hold tail (end cap) if visible
           if (holdEndY > -50 && holdEndY < CANVAS_HEIGHT + 50) {
             canvas.save();
-
-            // Use same visibility logic as hold body
-            var holdTailAlpha = alpha;
-            if (alpha === 0 && isActiveHold) {
-              holdTailAlpha = 0.9; // Make hold tail visible even when note head is hidden
-            }
-
-            canvas.globalAlpha = holdTailAlpha;
+            canvas.globalAlpha = wasDropped ? 0.5 : 0.9;
             canvas.fillStyle = wasDropped ? '#cc0000' : '#ff0000';
             canvas.fillRect(colInfo.x - 16, holdEndY - 6, 32, 12);
             canvas.strokeStyle = '#ffffff';
@@ -1166,8 +1185,10 @@ function drawNoteField() {
           }
         }
 
-        // Draw hold start note (head) - this will disappear when hit due to alpha logic
-        noteSprite.draw(canvas, thisNoteFrameIndex, colInfo.x, y, 1, 1, colInfo.rotation, alpha);
+        // Draw hold start note (head) - only show if not yet hit
+        if (!isActiveHold && !noteProps.holdCompleted) {
+          noteSprite.draw(canvas, thisNoteFrameIndex, colInfo.x, y, 1, 1, colInfo.rotation, alpha);
+        }
       } else {
         // Draw regular note
         noteSprite.draw(canvas, thisNoteFrameIndex, colInfo.x, y, 1, 1, colInfo.rotation, alpha);
