@@ -337,6 +337,113 @@ export const CanvasManager = {
         offsetY: judgment.shadowOffset
       }
     });
+  },
+
+  /**
+   * Draw health bar at the bottom of the screen
+   * @param {number} health - Health value (0-100)
+   */
+  drawHealthBar(health) {
+    if (!this.ctx) return;
+
+    const barWidth = this.width - 20;
+    const barHeight = 8;
+    const x = 10;
+    const y = this.height - 16;
+    const cornerRadius = 4;
+
+    // Background (dark)
+    this.ctx.save();
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    this.ctx.beginPath();
+    this.ctx.roundRect(x, y, barWidth, barHeight, cornerRadius);
+    this.ctx.fill();
+
+    // Health fill
+    const healthPercent = Math.max(0, Math.min(100, health)) / 100;
+    const fillWidth = barWidth * healthPercent;
+
+    if (fillWidth > 0) {
+      // Color gradient based on health level
+      let color;
+      if (health > 60) {
+        color = '#22c55e'; // Green
+      } else if (health > 30) {
+        color = '#eab308'; // Yellow
+      } else {
+        color = '#ef4444'; // Red
+      }
+
+      // Add pulsing effect when health is low
+      if (health <= 20) {
+        const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7;
+        this.ctx.globalAlpha = pulse;
+      }
+
+      this.ctx.fillStyle = color;
+      this.ctx.beginPath();
+      this.ctx.roundRect(x, y, fillWidth, barHeight, cornerRadius);
+      this.ctx.fill();
+    }
+
+    // Border
+    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    this.ctx.lineWidth = 1;
+    this.ctx.beginPath();
+    this.ctx.roundRect(x, y, barWidth, barHeight, cornerRadius);
+    this.ctx.stroke();
+
+    this.ctx.restore();
+  },
+
+  /**
+   * Draw autoplay indicator
+   */
+  drawAutoplayIndicator() {
+    if (!this.ctx) return;
+
+    this.drawText('🤖 AUTOPLAY', this.width / 2, 28, {
+      font: 'bold 12px Arial',
+      fill: '#60a5fa',
+      shadow: {
+        color: 'rgba(0, 0, 0, 0.8)',
+        blur: 2,
+        offsetX: 1,
+        offsetY: 1
+      }
+    });
+  },
+
+  /**
+   * Draw game over overlay
+   */
+  drawGameOver() {
+    if (!this.ctx) return;
+
+    // Darken the screen
+    this.ctx.save();
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    this.ctx.fillRect(0, 0, this.width, this.height);
+
+    // Draw "FAILED" text
+    this.drawText('FAILED', this.width / 2, this.height / 2 - 20, {
+      font: 'bold 48px Arial',
+      fill: '#ef4444',
+      shadow: {
+        color: 'rgba(0, 0, 0, 0.8)',
+        blur: 4,
+        offsetX: 2,
+        offsetY: 2
+      }
+    });
+
+    this.drawText('Health Depleted', this.width / 2, this.height / 2 + 20, {
+      font: '16px Arial',
+      fill: '#ffffff',
+      alpha: 0.8
+    });
+
+    this.ctx.restore();
   }
 };
 

@@ -137,6 +137,12 @@ class GameOverModalElement extends HTMLElement {
     // Toggle visibility via CSS class (styles in screen.css)
     this.classList.toggle('visible', this._visible);
 
+    const title = this._failed ? '💔 Song Failed!' : '🎵 Song Complete!';
+    const titleColor = this._failed ? 'color: #ef4444;' : '';
+    const failedBadge = this._failed
+      ? '<div class="failed-badge" style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 999px; font-size: 12px; margin-bottom: 8px;">Health Depleted</div>'
+      : '';
+
     // Host animation styles; content styles from components.css via adoptSharedStyles
     this.shadowRoot.innerHTML = `
       <style>
@@ -147,7 +153,8 @@ class GameOverModalElement extends HTMLElement {
         }
       </style>
       <div class="game-over-content">
-        <h2>🎵 Song Complete!</h2>
+        <h2 style="${titleColor}">${title}</h2>
+        ${failedBadge}
 
         <div class="score-box">
           <div class="grade" style="color: ${this._grade.color}">${this._grade.letter}</div>
@@ -227,10 +234,12 @@ class GameOverModalElement extends HTMLElement {
    * @param {Object} options - Options object
    * @param {Function} options.onRestart - Callback when restart is clicked
    * @param {Function} options.onClose - Callback when modal is closed
+   * @param {boolean} options.failed - Whether the player failed (health depleted)
    */
   show(options = {}) {
     this._onRestart = options.onRestart || null;
     this._onClose = options.onClose || null;
+    this._failed = options.failed || false;
 
     // Update score data
     const { scores, totalNotes, percentage } = getScoreDataInternal();
@@ -241,7 +250,8 @@ class GameOverModalElement extends HTMLElement {
 
     // Track analytics event
     if (typeof window.trackEvent === 'function') {
-      window.trackEvent('song_complete', 'StepMania', `Song Complete - ${percentage}`, totalNotes);
+      const status = this._failed ? 'Failed' : 'Complete';
+      window.trackEvent('song_complete', 'StepMania', `Song ${status} - ${percentage}`, totalNotes);
     }
 
     this._visible = true;

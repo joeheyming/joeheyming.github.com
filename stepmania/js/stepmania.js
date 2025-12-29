@@ -88,6 +88,9 @@ function handleTapNoteScore(tapNoteScore) {
   gameState.incrementScore(tapNoteScore);
   gameState.addPoints(TAP_NOTE_POINTS[tapNoteScore]);
 
+  // Apply health change based on judgment
+  gameState.applyHealthChange(tapNoteScore);
+
   // Update score panel component
   const scores = gameState.getTapNoteScores();
   const noteData = gameState.getNoteData();
@@ -206,14 +209,19 @@ function step(col) {
       gameState.setActualPoints(Math.max(0, currentPoints - 10));
       ScorePanel.updatePercent(gameState.getActualPoints(), noteData.length);
 
+      // Damage health for hitting a mine
+      gameState.applyDamage(15);
+
       return;
     }
 
     if (noteProps.Type === 2 && noteProps.Duration) {
+      // Hold note - don't score yet, just start tracking
+      // Will be scored when completed or dropped in updateHolds()
       for (let j = 0; j < TIMING_WINDOWS.length; j++) {
         if (diff <= TIMING_WINDOWS[j]) {
           noteProps.tapNoteScore = j;
-          tapNoteScore = j;
+          // Don't set tapNoteScore here - hold notes are scored on completion
           activeHolds[col] = {
             note: note,
             startBeat: noteBeat,
@@ -223,6 +231,7 @@ function step(col) {
             wasDropped: false,
             lastCheckTime: songSeconds
           };
+          hit = false; // Don't trigger handleTapNoteScore for hold heads
           break;
         }
       }
@@ -311,7 +320,10 @@ function releaseHold(col) {
       const finalScore = Math.max(hold.hitScore, 4);
 
       gameState.incrementScore(finalScore);
-      gameState.addPoints(TAP_NOTE_POINTS[0] - finalScore);
+      gameState.addPoints(TAP_NOTE_POINTS[finalScore]);
+
+      // Apply health change for dropped hold
+      gameState.applyHealthChange(finalScore);
 
       const scores = gameState.getTapNoteScores();
       const noteData = gameState.getNoteData();
@@ -342,11 +354,16 @@ function updateHolds() {
     const hold = activeHolds[col];
     let keyHeld = false;
 
-    const colKeys = getKeysForColumn(parseInt(col));
-    for (let i = 0; i < colKeys.length; i++) {
-      if (heldKeys[colKeys[i]]) {
-        keyHeld = true;
-        break;
+    // In autoplay mode, holds are always held
+    if (hold.isAutoplay) {
+      keyHeld = true;
+    } else {
+      const colKeys = getKeysForColumn(parseInt(col));
+      for (let i = 0; i < colKeys.length; i++) {
+        if (heldKeys[colKeys[i]]) {
+          keyHeld = true;
+          break;
+        }
       }
     }
 
@@ -369,7 +386,10 @@ function updateHolds() {
       }
 
       gameState.incrementScore(finalScore);
-      gameState.addPoints(TAP_NOTE_POINTS[0] - finalScore);
+      gameState.addPoints(TAP_NOTE_POINTS[finalScore]);
+
+      // Apply health change for hold completion
+      gameState.applyHealthChange(finalScore);
 
       const scores = gameState.getTapNoteScores();
       ScorePanel.update(finalScore, scores, gameState.getActualPoints(), noteData.length);
@@ -385,7 +405,10 @@ function updateHolds() {
     } else if (songBeats > hold.endBeat + TIMING_WINDOWS[TIMING_WINDOWS.length - 1]) {
       const missScore = TIMING_WINDOWS.length - 1;
       gameState.incrementScore(missScore);
-      gameState.addPoints(TAP_NOTE_POINTS[0] - missScore);
+      gameState.addPoints(TAP_NOTE_POINTS[missScore]);
+
+      // Apply health change for missed hold
+      gameState.applyHealthChange(missScore);
 
       const scores = gameState.getTapNoteScores();
       ScorePanel.update(missScore, scores, gameState.getActualPoints(), noteData.length);
@@ -429,6 +452,11 @@ function update(deltaSeconds) {
 
   updateBackgroundChanges();
 
+  // Process autoplay if enabled
+  if (gameState.isAutoplay()) {
+    processAutoplay();
+  }
+
   if (typeof updateHolds === 'function') {
     updateHolds();
   }
@@ -441,25 +469,94 @@ function update(deltaSeconds) {
   });
   Judgment.update(deltaSeconds);
 
-  // Auto-miss notes that have passed
-  const missIfOlderThanSeconds = currentTime - TIMING_WINDOWS[TIMING_WINDOWS.length - 1];
-  const missIfOlderThanBeat = getMusicBeat(missIfOlderThanSeconds);
+  // Auto-miss notes that have passed (skip in autoplay mode)
+  if (!gameState.isAutoplay()) {
+    const missIfOlderThanSeconds = currentTime - TIMING_WINDOWS[TIMING_WINDOWS.length - 1];
+    const missIfOlderThanBeat = getMusicBeat(missIfOlderThanSeconds);
+    const noteData = gameState.getNoteData();
+
+    noteData.forEach(function (note) {
+      const noteBeat = note[0];
+      const noteProps = note[2];
+      if (noteBeat < missIfOlderThanBeat) {
+        if (!('tapNoteScore' in noteProps)) {
+          if (noteProps.Type === 'M') {
+            noteProps.tapNoteScore = 5;
+          } else {
+            noteProps.tapNoteScore = 5;
+            handleTapNoteScore(5);
+          }
+        }
+      }
+    });
+  }
+}
+
+/**
+ * Process autoplay - auto-hit notes at perfect timing
+ */
+function processAutoplay() {
+  const offset = gameState.getMusicOffset();
+  const songSeconds = audio.currentTime + offset;
+  const songBeats = secondsToBeats(songSeconds);
   const noteData = gameState.getNoteData();
 
   noteData.forEach(function (note) {
     const noteBeat = note[0];
+    const noteCol = note[1];
     const noteProps = note[2];
-    if (noteBeat < missIfOlderThanBeat) {
-      if (!('tapNoteScore' in noteProps)) {
-        if (noteProps.Type === 'M') {
-          noteProps.tapNoteScore = 5;
-        } else {
-          noteProps.tapNoteScore = 5;
-          handleTapNoteScore(5);
-        }
+
+    // Skip already judged notes
+    if ('tapNoteScore' in noteProps) return;
+
+    // Skip mines in autoplay (don't hit them!)
+    if (noteProps.Type === 'M') return;
+
+    // Check if note is within autoplay hit window (slightly before perfect timing)
+    const diff = songBeats - noteBeat;
+    if (diff >= -0.02 && diff <= 0.05) {
+      // Auto-hit with perfect timing
+      noteProps.tapNoteScore = 0; // Perfect
+
+      // Handle hold notes - start tracking but don't score yet
+      if (noteProps.Type === 2 && noteProps.Duration) {
+        activeHolds[noteCol] = {
+          note: note,
+          startBeat: noteBeat,
+          endBeat: noteBeat + noteProps.Duration / 48,
+          startTime: songSeconds,
+          hitScore: 0,
+          wasDropped: false,
+          lastCheckTime: songSeconds,
+          isAutoplay: true
+        };
+        // Hold notes are scored when they complete in updateHolds()
+      } else {
+        // Only score tap notes immediately
+        handleTapNoteScore(0);
+      }
+
+      // Visual feedback
+      const explosion = explosions[noteCol];
+      if (explosion) {
+        explosion
+          .stop()
+          .set({ scaleX: 1, scaleY: 1, alpha: 1 })
+          .animate({ scaleX: 1.1, scaleY: 1.1 }, 0.1)
+          .animate({ alpha: 0 }, 0.1);
       }
     }
   });
+
+  // Auto-hold for hold notes in autoplay
+  for (const col in activeHolds) {
+    const hold = activeHolds[col];
+    if (hold.isAutoplay) {
+      // Simulate key being held
+      hold.lastCheckTime = songSeconds;
+      hold.wasDropped = false;
+    }
+  }
 }
 
 /**
@@ -567,6 +664,14 @@ function draw() {
   drawNoteField();
 
   Judgment.draw();
+
+  // Draw health bar
+  CanvasManager.drawHealthBar(gameState.getHealth());
+
+  // Draw autoplay indicator if enabled
+  if (gameState.isAutoplay()) {
+    CanvasManager.drawAutoplayIndicator();
+  }
 }
 
 /**
@@ -892,6 +997,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   audio.addEventListener('ended', function () {
     GameOverModal.show({
+      failed: gameState.hasFailed(),
       onRestart: function () {
         resetGame();
         audio.currentTime = 0;

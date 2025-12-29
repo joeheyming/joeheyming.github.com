@@ -10,6 +10,32 @@ const DEFAULT_SONG = {
 /** Default scroll speed multiplier */
 const DEFAULT_SCROLL_SPEED = 2;
 
+// ============================================================================
+// HEALTH CONSTANTS
+// ============================================================================
+
+/** Initial health percentage */
+const INITIAL_HEALTH = 50;
+
+/** Maximum health */
+const MAX_HEALTH = 100;
+
+/** Minimum health (game over when reached) */
+const MIN_HEALTH = 0;
+
+/**
+ * Health change for each judgment (positive = gain, negative = lose)
+ * Index: 0=perfect, 1=great, 2=good, 3=bad, 4=almost, 5=miss
+ */
+const JUDGMENT_HEALTH = [
+  2.0, // Perfect: +2.0
+  1.5, // Great: +1.5
+  0.5, // Good: +0.5
+  -2.5, // Bad: -2.5
+  -6.0, // Almost: -6.0
+  -10.0 // Miss: -10.0
+];
+
 /**
  * @typedef {Object} GameError
  * @property {Error} error - The error object
@@ -58,6 +84,13 @@ class GameState {
     // Error handling
     this.lastError = null;
     this._errorListeners = [];
+
+    // Health system
+    this.health = INITIAL_HEALTH;
+    this.failed = false;
+
+    // Autoplay mode
+    this.autoplay = false;
   }
 
   // ==========================================================================
@@ -326,6 +359,92 @@ class GameState {
   }
 
   // ==========================================================================
+  // HEALTH SYSTEM
+  // ==========================================================================
+
+  /**
+   * Get current health
+   * @returns {number} Health value (0-100)
+   */
+  getHealth() {
+    return this.health;
+  }
+
+  /**
+   * Apply health change based on judgment
+   * @param {number} judgmentIndex - Judgment index (0=perfect, 5=miss)
+   */
+  applyHealthChange(judgmentIndex) {
+    if (this.failed) return;
+
+    const healthChange = JUDGMENT_HEALTH[judgmentIndex] || 0;
+    this.health = Math.max(MIN_HEALTH, Math.min(MAX_HEALTH, this.health + healthChange));
+
+    if (this.health <= MIN_HEALTH) {
+      this.failed = true;
+    }
+  }
+
+  /**
+   * Apply direct health damage (e.g., for mine hits)
+   * @param {number} damage - Amount of health to lose (positive number)
+   */
+  applyDamage(damage) {
+    if (this.failed) return;
+
+    this.health = Math.max(MIN_HEALTH, this.health - damage);
+
+    if (this.health <= MIN_HEALTH) {
+      this.failed = true;
+    }
+  }
+
+  /**
+   * Check if player has failed (health depleted)
+   * @returns {boolean}
+   */
+  hasFailed() {
+    return this.failed;
+  }
+
+  /**
+   * Reset health to initial value
+   */
+  resetHealth() {
+    this.health = INITIAL_HEALTH;
+    this.failed = false;
+  }
+
+  // ==========================================================================
+  // AUTOPLAY MODE
+  // ==========================================================================
+
+  /**
+   * Check if autoplay is enabled
+   * @returns {boolean}
+   */
+  isAutoplay() {
+    return this.autoplay;
+  }
+
+  /**
+   * Set autoplay mode
+   * @param {boolean} enabled
+   */
+  setAutoplay(enabled) {
+    this.autoplay = enabled;
+  }
+
+  /**
+   * Toggle autoplay mode
+   * @returns {boolean} New autoplay state
+   */
+  toggleAutoplay() {
+    this.autoplay = !this.autoplay;
+    return this.autoplay;
+  }
+
+  // ==========================================================================
   // SCROLL SPEED
   // ==========================================================================
 
@@ -442,6 +561,9 @@ class GameState {
     this.actualPoints = 0;
     this.mineHits = 0;
     this.lastError = null;
+    this.health = INITIAL_HEALTH;
+    this.failed = false;
+    // Note: autoplay is NOT reset here - it persists across songs
   }
 
   /**
@@ -451,6 +573,8 @@ class GameState {
     this.tapNoteScores = [0, 0, 0, 0, 0, 0];
     this.actualPoints = 0;
     this.mineHits = 0;
+    this.health = INITIAL_HEALTH;
+    this.failed = false;
   }
 
   /**
@@ -490,7 +614,10 @@ class GameState {
       scrollSpeed: this.scrollSpeed,
       currentSongKey: this.currentSongKey,
       currentDifficulty: this.currentDifficulty,
-      lastError: this.lastError
+      lastError: this.lastError,
+      health: this.health,
+      failed: this.failed,
+      autoplay: this.autoplay
     };
   }
 }
