@@ -1,6 +1,15 @@
 // Internet Archive NES ROM Collection
 // Fetches ROMs directly from https://archive.org/download/nes-collection
 
+// Helper to fetch ROMs through proxy with appropriate settings
+async function fetchRom(url) {
+  return window.proxyService.fetchBinaryWithProxy(url, {
+    headers: { Accept: 'application/octet-stream,*/*' },
+    timeout: 30000,
+    maxRetries: 3
+  });
+}
+
 class InternetArchiveRoms {
   constructor() {
     this.baseUrl = 'https://archive.org/download/nes-collection';
@@ -57,6 +66,16 @@ class InternetArchiveRoms {
       }
 
       const html = await response.text();
+
+      // Check if Internet Archive is temporarily offline
+      if (
+        html.includes('Temporarily Offline') ||
+        html.includes('Internet Archive services are temporarily offline') ||
+        html.includes('The Wayback Machine is temporarily offline')
+      ) {
+        throw new Error('Internet Archive is temporarily offline. Please try again later.');
+      }
+
       const roms = this.parseRomList(html);
 
       // Cache results
@@ -176,7 +195,7 @@ class InternetArchiveRoms {
       console.log(`Download URL: ${rom.downloadUrl}`);
 
       // Download ROM using proxy
-      const romData = await window.proxyService.fetchRom(rom.downloadUrl);
+      const romData = await fetchRom(rom.downloadUrl);
       console.log(`✅ Downloaded ROM: ${romData.byteLength} bytes`);
 
       // Decompress if necessary

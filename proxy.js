@@ -1,16 +1,19 @@
 // Universal Proxy Service Module - supports both simfiles and ROM files
 class ProxyService {
   constructor() {
+    // Proxy services ordered roughly by reliability (as of 2024-2025)
+    // Note: Free proxies can become unreliable - check/update periodically
     this.proxyOptions = [
-      'https://cors-anywhere.herokuapp.com/',
-      'https://api.codetabs.com/v1/proxy?quest=',
-      'https://corsproxy.io/?',
-      'https://cors.bridged.cc/',
-      'https://api.allorigins.win/raw?url='
+      'https://api.allorigins.win/raw?url=', // Generally reliable
+      'https://corsproxy.io/?', // Usually works
+      'https://api.codetabs.com/v1/proxy?quest=', // Rate limited but works
+      'https://proxy.cors.sh/', // Newer option
+      'https://thingproxy.freeboard.io/fetch/', // Alternative
+      'https://cors-anywhere.herokuapp.com/' // Requires activation at cors-anywhere.herokuapp.com/corsdemo
     ];
     this.cache = new Map();
-    this.timeoutMs = 10000; // 10 second timeout
-    this.maxRetries = 2;
+    this.timeoutMs = 15000; // 15 second timeout (some proxies are slow)
+    this.maxRetries = 3; // More retries for better success rate
 
     // Proxy scoring system
     this.proxyScores = new Map();
@@ -23,29 +26,6 @@ class ProxyService {
       this.proxyAttempts.set(proxy, 0);
       this.proxySuccesses.set(proxy, 0);
     });
-  }
-
-  // Helper function to proxy simfile URLs through AllOrigins
-  proxySimfile(url) {
-    if (url && url.includes('.sm') && (url.startsWith('http://') || url.startsWith('https://'))) {
-      return `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-    }
-    return url;
-  }
-
-  // Helper function to proxy ROM URLs through AllOrigins
-  proxyRom(url) {
-    if (
-      url &&
-      (url.includes('.nes') ||
-        url.includes('.zip') ||
-        url.includes('.7z') ||
-        url.includes('.gz')) &&
-      (url.startsWith('http://') || url.startsWith('https://'))
-    ) {
-      return `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-    }
-    return url;
   }
 
   // Update proxy score based on success/failure
@@ -84,17 +64,6 @@ class ProxyService {
       .map((item) => item.proxy);
   }
 
-  // Shuffle array to randomize proxy selection (but keep best ones more likely to be first)
-  shuffleArray(array) {
-    const shuffled = [...array];
-    // Use weighted shuffle - better proxies are more likely to be near the front
-    for (let i = 0; i < shuffled.length - 1; i++) {
-      const j = i + Math.floor(Math.random() * (shuffled.length - i));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  }
-
   // Create a timeout promise
   createTimeoutPromise(timeoutMs) {
     return new Promise((_, reject) => {
@@ -102,6 +71,50 @@ class ProxyService {
         reject(new Error(`Request timed out after ${timeoutMs}ms`));
       }, timeoutMs);
     });
+  }
+
+  // Sites known to block CORS - skip direct fetch for these
+  knownCorsBlockedDomains = ['zenius-i-vanisher.com', 'simfileshare.com'];
+
+  // Check if URL is from a known CORS-blocked domain
+  isKnownCorsBlocked(url) {
+    try {
+      const urlObj = new URL(url);
+      return this.knownCorsBlockedDomains.some((domain) => urlObj.hostname.includes(domain));
+    } catch {
+      return false;
+    }
+  }
+
+  // Try direct fetch first (in case server allows CORS)
+  async tryDirectFetch(url, options = {}) {
+    // Skip direct fetch for known CORS-blocked sites
+    if (this.isKnownCorsBlocked(url)) {
+      console.log(`Skipping direct fetch for known CORS-blocked site: ${url}`);
+      return null;
+    }
+
+    try {
+      const timeoutMs = options.timeout || 3000; // Short timeout for direct attempt
+      const fetchPromise = fetch(url, {
+        method: 'GET',
+        headers: {
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          ...options.headers
+        },
+        mode: 'cors'
+      });
+
+      const response = await Promise.race([fetchPromise, this.createTimeoutPromise(timeoutMs)]);
+      if (response.ok) {
+        console.log('Direct fetch succeeded (no proxy needed)');
+        return await response.text();
+      }
+    } catch (error) {
+      // Expected - most sites block CORS, continue to proxies
+      console.log(`Direct fetch blocked (expected): ${error.message}`);
+    }
+    return null;
   }
 
   // Fetch content through multiple proxy options with fallback, timeout, and retries
@@ -113,21 +126,29 @@ class ProxyService {
       return this.cache.get(cacheKey);
     }
 
+    // Try direct fetch first (skip proxy if server allows CORS)
+    if (!options.skipDirect) {
+      const directResult = await this.tryDirectFetch(url, options);
+      if (directResult) {
+        this.cache.set(cacheKey, directResult);
+        return directResult;
+      }
+    }
+
     const timeoutMs = options.timeout || this.timeoutMs;
     const maxRetries = options.maxRetries || this.maxRetries;
     let lastError = null;
 
     // Get proxies ordered by performance score
     const orderedProxies = this.getOrderedProxies();
-
-    // Shuffle proxies but keep best ones more likely to be first
-    const shuffledProxies = this.shuffleArray(orderedProxies);
+    console.log(`Trying ${orderedProxies.length} proxies for: ${url.substring(0, 80)}...`);
 
     for (let retry = 0; retry <= maxRetries; retry++) {
-      for (const proxy of shuffledProxies) {
+      for (const proxy of orderedProxies) {
         try {
           const proxyUrl = proxy + encodeURIComponent(url);
           const startTime = Date.now();
+          console.log(`Trying proxy: ${proxy.substring(0, 30)}...`);
 
           // Create a race between the fetch and timeout
           const fetchPromise = fetch(proxyUrl, {
@@ -135,10 +156,8 @@ class ProxyService {
             headers: {
               Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
               'Accept-Language': 'en-US,en;q=0.5',
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
               ...options.headers
-            },
-            ...options
+            }
           });
 
           const response = await Promise.race([fetchPromise, this.createTimeoutPromise(timeoutMs)]);
@@ -184,6 +203,38 @@ class ProxyService {
     );
   }
 
+  // Try direct binary fetch first (in case server allows CORS)
+  async tryDirectBinaryFetch(url, options = {}) {
+    // Skip direct fetch for known CORS-blocked sites
+    if (this.isKnownCorsBlocked(url)) {
+      console.log(`Skipping direct binary fetch for known CORS-blocked site`);
+      return null;
+    }
+
+    try {
+      const timeoutMs = options.timeout || 3000;
+      const fetchPromise = fetch(url, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/octet-stream,*/*',
+          ...options.headers
+        },
+        mode: 'cors'
+      });
+
+      const response = await Promise.race([fetchPromise, this.createTimeoutPromise(timeoutMs)]);
+      if (response.ok) {
+        console.log('Direct binary fetch succeeded (no proxy needed)');
+        const arrayBuffer = await response.arrayBuffer();
+        return new Uint8Array(arrayBuffer);
+      }
+    } catch (error) {
+      // Expected - most sites block CORS
+      console.log(`Direct binary fetch blocked (expected): ${error.message}`);
+    }
+    return null;
+  }
+
   // Fetch content as binary (for ROMs)
   async fetchBinaryWithProxy(url, options = {}) {
     const cacheKey = `binary-${url}-${JSON.stringify(options)}`;
@@ -193,18 +244,24 @@ class ProxyService {
       return this.cache.get(cacheKey);
     }
 
+    // Try direct fetch first
+    if (!options.skipDirect) {
+      const directResult = await this.tryDirectBinaryFetch(url, options);
+      if (directResult) {
+        this.cache.set(cacheKey, directResult);
+        return directResult;
+      }
+    }
+
     const timeoutMs = options.timeout || this.timeoutMs;
     const maxRetries = options.maxRetries || this.maxRetries;
     let lastError = null;
 
-    // Get proxies ordered by performance score
+    // Get proxies ordered by performance score (best first)
     const orderedProxies = this.getOrderedProxies();
 
-    // Shuffle proxies but keep best ones more likely to be first
-    const shuffledProxies = this.shuffleArray(orderedProxies);
-
     for (let retry = 0; retry <= maxRetries; retry++) {
-      for (const proxy of shuffledProxies) {
+      for (const proxy of orderedProxies) {
         try {
           const proxyUrl = proxy + encodeURIComponent(url);
           const startTime = Date.now();
@@ -215,10 +272,8 @@ class ProxyService {
             headers: {
               Accept: 'application/octet-stream,*/*',
               'Accept-Language': 'en-US,en;q=0.5',
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
               ...options.headers
-            },
-            ...options
+            }
           });
 
           const response = await Promise.race([fetchPromise, this.createTimeoutPromise(timeoutMs)]);
@@ -263,30 +318,6 @@ class ProxyService {
         lastError?.message || 'Unknown error'
       }`
     );
-  }
-
-  // Fetch simfile content specifically
-  async fetchSimfile(url) {
-    const options = {
-      headers: {
-        Accept: 'text/plain,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-      },
-      timeout: 15000, // Longer timeout for simfiles
-      maxRetries: 3 // More retries for simfiles
-    };
-    return this.fetchWithProxy(url, options);
-  }
-
-  // Fetch ROM content specifically
-  async fetchRom(url) {
-    const options = {
-      headers: {
-        Accept: 'application/octet-stream,*/*'
-      },
-      timeout: 30000, // Longer timeout for ROMs (they can be large)
-      maxRetries: 3 // More retries for ROMs
-    };
-    return this.fetchBinaryWithProxy(url, options);
   }
 
   // Set timeout for all requests
@@ -351,9 +382,8 @@ class ProxyService {
 const proxyService = new ProxyService();
 
 // Make globally accessible
+// Main API: window.proxyService.fetchWithProxy(url, options), .fetchBinaryWithProxy(url, options)
 window.proxyService = proxyService;
-window.proxySimfile = proxyService.proxySimfile.bind(proxyService);
-window.proxyRom = proxyService.proxyRom.bind(proxyService);
 
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
