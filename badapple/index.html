@@ -14,7 +14,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta charset="utf-8" />
     <title>🍎 Bad Apple!! - ASCII Art Animation | Joe Heyming</title>
-    
+
     <!-- Enhanced SEO Meta Tags -->
     <meta
       name="description"
@@ -28,7 +28,7 @@
       name="keywords"
       content="Bad Apple, ASCII art, animation, Touhou, music video, text art, retro animation, monospace art"
     />
-    
+
     <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Bad Apple ASCII" />
@@ -38,12 +38,15 @@
       content="Experience the legendary Bad Apple!! music video recreated in pure ASCII art animation with synchronized audio. A masterpiece of text-based art!"
     />
     <meta property="og:url" content="https://joeheyming.github.io/badapple/" />
-    <meta property="og:image" content="https://joeheyming.github.io/badapple/badapple-preview.png" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/badapple/badapple-preview.png"
+    />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Bad Apple ASCII art animation frame" />
     <meta property="og:locale" content="en_US" />
-    
+
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
@@ -53,12 +56,16 @@
       name="twitter:description"
       content="Experience the legendary Bad Apple!! music video recreated in pure ASCII art animation with synchronized audio."
     />
-    <meta name="twitter:image" content="https://joeheyming.github.io/badapple/badapple-preview.png" />
-    
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/badapple/badapple-preview.png"
+    />
+
     <!-- Canonical URL -->
     <link rel="canonical" href="https://joeheyming.github.io/badapple/" />
-    
+
     <script src="../back.js"></script>
+    <script src="/share.js"></script>
     <style>
       body {
         font-family: monospace;
@@ -138,6 +145,7 @@
     <div id="controls">
       <button id="playBtn" onclick="togglePlayPause()">▶ Play</button>
       <button onclick="reset()">⏹ Reset</button>
+      <share-button label="📤 Share" theme="dark"></share-button>
     </div>
 
     <audio id="audio" controls>
@@ -315,6 +323,21 @@
             break;
         }
       });
+
+      // Configure share button with context
+      const shareBtn = document.querySelector('share-button');
+      if (shareBtn) {
+        shareBtn.textGenerator = function () {
+          const currentTime = audio.currentTime;
+          if (currentTime > 0) {
+            const mins = Math.floor(currentTime / 60);
+            const secs = Math.floor(currentTime % 60);
+            const timeStr = mins + ':' + secs.toString().padStart(2, '0');
+            return "I'm watching Bad Apple!! in ASCII art at " + timeStr + '! 🍎';
+          }
+          return 'Check out Bad Apple!! recreated in pure ASCII art! 🍎';
+        };
+      }
     </script>
   </body>
 </html>

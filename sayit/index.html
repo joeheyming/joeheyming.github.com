@@ -62,6 +62,7 @@
     <link rel="stylesheet" href="index.css" />
     <script src="index.js" defer></script>
     <script src="/back.js"></script>
+    <script src="/share.js"></script>
   </head>
 
   <body>
@@ -73,6 +74,7 @@
       <div class="mode-selector">
         <button id="canvasMode" class="mode-button active">✏️ Write something!</button>
         <button id="uploadMode" class="mode-button">📁 Upload Image</button>
+        <share-button label="📤 Share" theme="gradient"></share-button>
       </div>
     </div>
 
@@ -168,5 +170,23 @@
         </button>
       </div>
     </div>
+
+    <script>
+      // Configure share button with context
+      document.addEventListener('DOMContentLoaded', function () {
+        const shareBtn = document.querySelector('share-button');
+        if (shareBtn) {
+          shareBtn.textGenerator = function () {
+            const parsed = document.getElementById('parsedContent');
+            if (parsed && parsed.textContent && parsed.textContent !== 'Processing...') {
+              const text = parsed.textContent.trim();
+              const preview = text.length > 30 ? text.substring(0, 30) + '...' : text;
+              return 'I just extracted text from an image using OCR: "' + preview + '" 🗣️';
+            }
+            return 'Check out Say It - extract text from images using OCR and have it read aloud! 🗣️';
+          };
+        }
+      });
+    </script>
   </body>
 </html>

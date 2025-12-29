@@ -106,6 +106,18 @@ function init() {
   tromboneAudio.addEventListener('ended', () => {
     stopTrombone();
   });
+
+  // Configure share button with custom text generator
+  const shareBtn = document.getElementById('share-sadness-btn');
+  if (shareBtn) {
+    shareBtn.textGenerator = () => {
+      const sadnessValue = parseInt(sadnessSlider.value);
+      const currentScenario = scenarioText.textContent;
+      return `I just expressed ${
+        sadnessLevels[sadnessValue - 1]
+      } sadness about: "${currentScenario}" on the Sad Trombone Symphony! 🎺💔 Total sadness count: ${sadCount}`;
+    };
+  }
 }
 
 function expressSadness() {
@@ -199,32 +211,6 @@ function randomScenario() {
   setTimeout(() => {
     scenarioText.parentElement.classList.remove('fade-in');
   }, 500);
-}
-
-function shareExperience() {
-  const sadnessValue = parseInt(sadnessSlider.value);
-  const currentScenario = scenarioText.textContent;
-  const text = `I just expressed ${
-    sadnessLevels[sadnessValue - 1]
-  } sadness about: "${currentScenario}" on the Sad Trombone Symphony! 🎺💔 Total sadness count: ${sadCount}`;
-
-  if (navigator.share) {
-    navigator.share({
-      title: 'Sad Trombone Symphony',
-      text: text,
-      url: window.location.href
-    });
-  } else {
-    // Fallback to clipboard
-    navigator.clipboard
-      .writeText(text + ' ' + window.location.href)
-      .then(() => {
-        alert('Shared text copied to clipboard!');
-      })
-      .catch(() => {
-        alert('Share text: ' + text);
-      });
-  }
 }
 
 function createParticles() {

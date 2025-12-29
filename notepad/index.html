@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -54,6 +54,7 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
+    <script src="/share.js"></script>
     <link
       rel="icon"
       id="site-favicon"
@@ -96,11 +97,36 @@
     </script>
   </head>
   <body>
+    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 100">
+      <share-button label="📤 Share" theme="light"></share-button>
+    </div>
     <div class="notepad-content">
       <div id="editor">
         <p>Start typing your notes here...</p>
       </div>
     </div>
     <script src="notepad.js"></script>
+    <script>
+      // Configure share button with notepad context
+      document.addEventListener('DOMContentLoaded', function () {
+        const shareBtn = document.querySelector('share-button');
+        if (shareBtn) {
+          shareBtn.textGenerator = function () {
+            const editor = document.querySelector('.ql-editor');
+            if (editor) {
+              const text = editor.textContent || '';
+              const wordCount = text
+                .trim()
+                .split(/\s+/)
+                .filter((w) => w).length;
+              if (wordCount > 5) {
+                return "I've written " + wordCount + ' words in this online Notepad! 📝';
+              }
+            }
+            return 'Check out this free online rich text editor! 📝';
+          };
+        }
+      });
+    </script>
   </body>
 </html>

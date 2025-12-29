@@ -12,6 +12,7 @@
 
     <script src="/analytics.js"></script>
     <script src="/back.js"></script>
+    <script src="/share.js"></script>
     <title>👻 3D Pacman - Classic Arcade Game | Joe Heyming</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta charset="utf-8" />
@@ -176,6 +177,11 @@
         </div>
       </div>
 
+      <!-- Share Button -->
+      <div class="absolute bottom-4 left-4 z-10">
+        <share-button label="📤 Share" theme="dark"></share-button>
+      </div>
+
       <!-- Controls Help -->
       <div
         id="controls-help"
@@ -267,5 +273,21 @@
 
     <!-- Game Scripts -->
     <script type="module" src="js/game.js"></script>
+    <script>
+      // Configure share button with game context
+      document.addEventListener('DOMContentLoaded', function () {
+        const shareBtn = document.querySelector('share-button');
+        if (shareBtn) {
+          shareBtn.textGenerator = function () {
+            const scoreEl = document.getElementById('score');
+            const score = scoreEl ? parseInt(scoreEl.textContent) : 0;
+            if (score > 0) {
+              return 'I scored ' + score + ' points in 3D Pacman! 👻 Can you beat my score?';
+            }
+            return 'Check out this amazing 3D Pacman game in the browser! 👻';
+          };
+        }
+      });
+    </script>
   </body>
 </html>

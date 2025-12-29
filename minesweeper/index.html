@@ -10,6 +10,7 @@
     />
     <link rel="stylesheet" href="style.css" />
     <script src="../back.js"></script>
+    <script src="/share.js"></script>
 
     <!-- SEO Meta Tags -->
     <meta
@@ -61,6 +62,8 @@
           <kbd>F2</kbd>
           for new game
         </span>
+        <span>•</span>
+        <share-button label="📤 Share" theme="light"></share-button>
       </div>
     </div>
 
@@ -100,5 +103,27 @@
     </div>
 
     <script type="module" src="minesweeper.js"></script>
+    <script>
+      // Configure share button with game context
+      document.addEventListener('DOMContentLoaded', function () {
+        const shareBtn = document.querySelector('share-button');
+        if (shareBtn) {
+          shareBtn.textGenerator = function () {
+            const timerEl = document.getElementById('timer-display');
+            const minesEl = document.getElementById('mines-display');
+            const faceEl = document.getElementById('face-btn');
+
+            if (faceEl && faceEl.textContent === '😎') {
+              const time = timerEl ? timerEl.textContent : '???';
+              return 'I won Minesweeper in ' + time + ' seconds! 💣🎉 Can you beat my time?';
+            }
+            if (faceEl && faceEl.textContent === '😵') {
+              return 'I just lost at Minesweeper... 💣💀 Try not to explode like I did!';
+            }
+            return 'Play Minesweeper in your browser! 💣';
+          };
+        }
+      });
+    </script>
   </body>
 </html>

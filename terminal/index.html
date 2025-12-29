@@ -5,6 +5,7 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
+    <script src="/share.js"></script>
 
     <link
       rel="icon"
@@ -105,6 +106,9 @@
     </script>
   </head>
   <body>
+    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 100">
+      <share-button label="📤 Share" theme="retro"></share-button>
+    </div>
     <div id="terminal-container">
       <div id="terminal-output"></div>
       <div id="current-prompt-line">
@@ -164,6 +168,22 @@
               </div>
             `;
           }
+        }
+
+        // Configure share button with terminal context
+        const shareBtn = document.querySelector('share-button');
+        if (shareBtn) {
+          shareBtn.textGenerator = function () {
+            if (window.heymingOS && window.heymingOS.filesystem) {
+              try {
+                const cwd = window.heymingOS.filesystem.getCurrentDirectory();
+                if (cwd && cwd !== '/') {
+                  return "I'm exploring " + cwd + ' in the Heyming OS Web Terminal! 🖥️';
+                }
+              } catch (e) {}
+            }
+            return 'Check out this interactive Web Terminal with a full file system! 🖥️';
+          };
         }
       });
     </script>

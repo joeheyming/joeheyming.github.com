@@ -14,7 +14,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>🎥 JoeTube - YouTube Video Carousel | Joe Heyming</title>
-    
+
     <!-- Enhanced SEO Meta Tags -->
     <meta
       name="description"
@@ -28,7 +28,7 @@
       name="keywords"
       content="JoeTube, YouTube carousel, video gallery, Joe Heyming videos, interactive video player, YouTube collection"
     />
-    
+
     <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - JoeTube" />
@@ -43,7 +43,7 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="JoeTube video carousel interface" />
     <meta property="og:locale" content="en_US" />
-    
+
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
@@ -54,7 +54,7 @@
       content="Explore Joe Heyming's YouTube video collection in a beautiful carousel interface with JoeTube magic!"
     />
     <meta name="twitter:image" content="https://joeheyming.github.io/youtube/joetube-preview.png" />
-    
+
     <!-- Canonical URL -->
     <link rel="canonical" href="https://joeheyming.github.io/youtube/" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -62,6 +62,7 @@
     <link rel="stylesheet" href="index.css" />
     <script src="index.js"></script>
     <script src="/back.js"></script>
+    <script src="/share.js"></script>
   </head>
   <body
     class="min-h-screen"
@@ -113,6 +114,7 @@
 
           <!-- Video Controls -->
           <div class="flex justify-center space-x-3 mb-4">
+            <share-button label="📤 Share" theme="glass"></share-button>
             <a
               id="youtube-link-main"
               class="nav-button joe-tube-button px-3 py-2 rounded font-bold text-xs hover:scale-105 transition-transform"
@@ -230,5 +232,26 @@
         </div>
       </div>
     </template>
+
+    <script>
+      // Configure share button with video context
+      document.addEventListener('DOMContentLoaded', function () {
+        const shareBtn = document.querySelector('share-button');
+        if (shareBtn) {
+          shareBtn.textGenerator = function () {
+            const slides = document.querySelectorAll('.carousel-slide');
+            const currentIndex = window.currentSlide || 0;
+            const slide = slides[currentIndex];
+            if (slide) {
+              const title = slide.getAttribute('data-video-title');
+              if (title) {
+                return 'Check out "' + title + '" on JoeTube! 🎬';
+              }
+            }
+            return 'Check out JoeTube - a fun YouTube video carousel! 🎬';
+          };
+        }
+      });
+    </script>
   </body>
 </html>
