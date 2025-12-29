@@ -1039,31 +1039,30 @@ class MainPageController {
   startPlaying() {
     // Get the currently selected difficulty from the ready difficulty selector
     const difficultySelect = document.getElementById('ready-difficulty-select');
+
+    // Update currentDifficulty from the dropdown
     if (difficultySelect) {
       const selectedIndex = parseInt(difficultySelect.value);
-      if (!isNaN(selectedIndex) && selectedIndex !== this.currentDifficulty) {
+      if (!isNaN(selectedIndex)) {
         this.currentDifficulty = selectedIndex;
+      }
+    }
 
-        // Update just the note data for the selected difficulty
-        if (this.currentSong && this.parsedSongs[this.currentSong.key]) {
-          const parsedData = this.parsedSongs[this.currentSong.key];
-          const selectedChart = parsedData.charts[this.currentDifficulty];
+    // ALWAYS ensure the note data matches the selected difficulty
+    // This fixes the bug where changing difficulty in the selector didn't update the actual notes
+    if (this.currentSong && this.parsedSongs[this.currentSong.key]) {
+      const parsedData = this.parsedSongs[this.currentSong.key];
+      const selectedChart = parsedData.charts[this.currentDifficulty];
 
-          if (selectedChart) {
-            // Update global steps data with new difficulty
-            window.steps = {
-              noteData: selectedChart.noteData
-            };
+      if (selectedChart) {
+        // Update global steps data with the selected chart
+        window.steps = {
+          noteData: selectedChart.noteData
+        };
 
-            // Update stepmania.js variables
-            if (window.noteData !== undefined) {
-              window.noteData = selectedChart.noteData;
-            }
-
-            console.log(
-              `Switched to difficulty: ${selectedChart.difficulty} (${selectedChart.rating}) - ${selectedChart.noteData.length} notes`
-            );
-          }
+        // Reset the game to sync the local noteData variable with the new difficulty
+        if (window.resetGame) {
+          window.resetGame();
         }
       }
     }
