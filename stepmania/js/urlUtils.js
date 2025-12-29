@@ -3,14 +3,15 @@
 
 /**
  * Get all URL parameters as an object
- * @returns {{song: string|null, difficulty: string|null, zenius: string|null}}
+ * @returns {{song: string|null, difficulty: string|null, zenius: string|null, autoplay: boolean}}
  */
 export function getURLParams() {
   const params = new URLSearchParams(window.location.search);
   return {
     song: params.get('song'),
     difficulty: params.get('difficulty'),
-    zenius: params.get('zenius')
+    zenius: params.get('zenius'),
+    autoplay: params.get('autoplay') !== 'false' && params.get('autoplay') !== null
   };
 }
 

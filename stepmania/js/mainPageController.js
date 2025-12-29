@@ -83,7 +83,12 @@ export class MainPageController {
   }
 
   async initByURL() {
-    const { song, difficulty, zenius: zeniusUrl } = getURLParams();
+    const { song, difficulty, zenius: zeniusUrl, autoplay } = getURLParams();
+
+    // Set autoplay mode from URL param
+    if (autoplay) {
+      gameState.setAutoplay(true);
+    }
 
     if (zeniusUrl) {
       return await this.loadFromZeniusURL(zeniusUrl, difficulty);
