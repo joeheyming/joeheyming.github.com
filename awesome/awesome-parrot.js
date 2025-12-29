@@ -229,25 +229,20 @@ var partyParrotNamespace = (function () {
     // 🎲 Roll for parrot!
     if (Math.random() > chance) return null;
 
-    var size = options.size || (config.sizes && config.sizes.parrot) || '80px';
-    var sizeNum = parseInt(size, 10) || 80;
+    // Size from CSS variable or option override
+    var sizeNum = options.size ? parseInt(options.size, 10) : 80;
 
     var parrot = document.createElement('img');
     parrot.src = namespace.getRandomParrot();
     parrot.alt = 'Party Parrot!';
     parrot.className = 'party-parrot';
-    parrot.style.position = 'fixed';
-    parrot.style.width = size;
-    parrot.style.height = size;
+    // Dynamic position only (size comes from CSS)
     parrot.style.left = Math.random() * (window.innerWidth - sizeNum) + 'px';
     parrot.style.top = Math.random() * (window.innerHeight - sizeNum) + 'px';
-    parrot.style.zIndex = (config.zIndex && config.zIndex.parrot) || '9999';
-    parrot.style.pointerEvents = 'none';
-    parrot.style.filter =
-      (config.effects && config.effects.parrotGlow) ||
-      'drop-shadow(0 0 10px rgba(255,255,255,0.8))';
-    parrot.style.transition = 'opacity 0.5s ease-out, transform 3s ease-in-out';
-    parrot.style.opacity = '0';
+    if (options.size) {
+      parrot.style.width = options.size;
+      parrot.style.height = options.size;
+    }
     document.body.appendChild(parrot);
 
     // 🎬 Fade in the parrot!

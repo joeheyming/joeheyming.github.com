@@ -126,23 +126,16 @@ var animalsNamespace = (function () {
    * @returns {HTMLElement} The image element
    */
   function showImage(imageUrl) {
-    var size = (config.sizes && config.sizes.animal) || '150px';
-    var sizeNum = parseInt(size, 10) || 150;
+    // Size from CSS variable (default 150px)
+    var sizeNum = 150;
 
     var img = document.createElement('img');
     img.src = imageUrl;
     img.alt = 'Random Animal';
     img.className = 'random-animal';
-    img.style.position = 'fixed';
-    img.style.maxWidth = size;
+    // Dynamic position only (size/shadow come from CSS)
     img.style.top = Math.random() * (window.innerHeight - sizeNum) + 'px';
     img.style.left = Math.random() * (window.innerWidth - sizeNum) + 'px';
-    img.style.zIndex = (config.zIndex && config.zIndex.animals) || '9996';
-    img.style.borderRadius = '10px';
-    img.style.boxShadow =
-      (config.effects && config.effects.animalShadow) || '0 4px 15px rgba(0,0,0,0.3)';
-    img.style.opacity = '0';
-    img.style.pointerEvents = 'none';
     document.body.appendChild(img);
 
     // Fade in
@@ -181,20 +174,9 @@ var animalsNamespace = (function () {
     var factDiv = document.createElement('div');
     factDiv.textContent = emoji + ' ' + text;
     factDiv.className = 'animal-fact';
-    factDiv.style.position = 'fixed';
-    factDiv.style.maxWidth = '300px';
-    factDiv.style.padding = '15px';
-    factDiv.style.background = 'rgba(0,0,0,0.8)';
-    factDiv.style.color = '#fff';
-    factDiv.style.borderRadius = '10px';
-    factDiv.style.fontSize = '14px';
-    factDiv.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)';
+    // Dynamic position only (styles come from CSS)
     factDiv.style.left = Math.random() * (window.innerWidth - 300) + 'px';
     factDiv.style.top = Math.random() * (window.innerHeight - 100) + 'px';
-    factDiv.style.zIndex = (config.zIndex && config.zIndex.animals) || '9996';
-    factDiv.style.transition = 'opacity 0.5s ease-out';
-    factDiv.style.opacity = '0';
-    factDiv.style.pointerEvents = 'none';
     document.body.appendChild(factDiv);
 
     setTimeout(function () {

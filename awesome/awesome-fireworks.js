@@ -58,18 +58,14 @@ var fireworksNamespace = (function () {
     var gravity = 0.1;
     var friction = 0.98;
 
-    particle.style.cssText = [
-      'position: fixed',
-      'width: ' + size + 'px',
-      'height: ' + size + 'px',
-      'background: ' + color,
-      'border-radius: 50%',
-      'left: ' + x + 'px',
-      'top: ' + y + 'px',
-      'pointer-events: none',
-      'z-index: ' + ((config.zIndex && config.zIndex.fireworks) || '9994'),
-      'box-shadow: 0 0 6px ' + color + ', 0 0 12px ' + color
-    ].join(';');
+    particle.className = 'awesome-firework-particle';
+    // Dynamic styles only (z-index comes from CSS)
+    particle.style.width = size + 'px';
+    particle.style.height = size + 'px';
+    particle.style.background = color;
+    particle.style.left = x + 'px';
+    particle.style.top = y + 'px';
+    particle.style.boxShadow = '0 0 6px ' + color + ', 0 0 12px ' + color;
 
     document.body.appendChild(particle);
 
@@ -120,36 +116,20 @@ var fireworksNamespace = (function () {
     var targetY = 100 + Math.random() * (window.innerHeight * 0.4);
     var speed = 8 + Math.random() * 4;
 
-    rocket.style.cssText = [
-      'position: fixed',
-      'width: 4px',
-      'height: 12px',
-      'background: linear-gradient(to top, #ff6600, #ffcc00, #fff)',
-      'border-radius: 2px',
-      'left: ' + x + 'px',
-      'top: ' + y + 'px',
-      'pointer-events: none',
-      'z-index: ' + ((config.zIndex && config.zIndex.fireworks) || '9994'),
-      'box-shadow: 0 0 10px #ff6600'
-    ].join(';');
+    rocket.className = 'awesome-firework-rocket';
+    // Dynamic position only (z-index comes from CSS)
+    rocket.style.left = x + 'px';
+    rocket.style.top = y + 'px';
 
     document.body.appendChild(rocket);
 
     var trailInterval = setInterval(function () {
       // Create trail particle
       var trail = document.createElement('div');
-      trail.style.cssText = [
-        'position: fixed',
-        'width: 3px',
-        'height: 3px',
-        'background: #ff9900',
-        'border-radius: 50%',
-        'left: ' + (x + Math.random() * 4 - 2) + 'px',
-        'top: ' + y + 'px',
-        'pointer-events: none',
-        'z-index: 9993',
-        'opacity: 0.8'
-      ].join(';');
+      trail.className = 'awesome-firework-trail';
+      // Dynamic styles only
+      trail.style.left = x + Math.random() * 4 - 2 + 'px';
+      trail.style.top = y + 'px';
       document.body.appendChild(trail);
 
       // Fade out trail

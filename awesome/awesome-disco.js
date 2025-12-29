@@ -37,57 +37,17 @@ var discoNamespace = (function () {
   function createDiscoBall() {
     var container = document.createElement('div');
     container.className = 'awesome-disco-container';
-    container.style.cssText = [
-      'position: fixed',
-      'top: 30px',
-      'left: 52%',
-      'transform: translateX(-50%)',
-      'z-index: ' + ((config.zIndex && config.zIndex.disco) || '9990'),
-      'pointer-events: none',
-      'display: flex',
-      'flex-direction: column',
-      'align-items: center'
-    ].join(';');
+    // z-index comes from CSS
 
     // String/chain
     var chain = document.createElement('div');
-    chain.style.cssText = [
-      'width: 2px',
-      'height: 20px',
-      'background: linear-gradient(to bottom, #444, #888)',
-      'box-shadow: 0 0 3px rgba(0,0,0,0.5)'
-    ].join(';');
+    chain.className = 'awesome-disco-chain';
 
     // The disco ball GIF
     var ball = document.createElement('img');
     ball.src = discoBallGif;
     ball.alt = 'Disco Ball';
     ball.className = 'awesome-disco-ball';
-    ball.style.cssText = [
-      'width: 80px',
-      'height: 80px',
-      'object-fit: contain',
-      'filter: drop-shadow(0 5px 15px rgba(255,255,255,0.5))',
-      'animation: disco-swing 2s ease-in-out infinite'
-    ].join(';');
-
-    // Add swing animation if not exists
-    if (!document.getElementById('disco-styles')) {
-      var style = document.createElement('style');
-      style.id = 'disco-styles';
-      style.textContent = [
-        '@keyframes disco-swing {',
-        '  0%, 100% { transform: rotate(-3deg); }',
-        '  50% { transform: rotate(3deg); }',
-        '}',
-        '@keyframes disco-ray-sweep {',
-        '  0% { opacity: 0.1; }',
-        '  50% { opacity: 0.3; }',
-        '  100% { opacity: 0.1; }',
-        '}'
-      ].join('\n');
-      document.head.appendChild(style);
-    }
 
     container.appendChild(chain);
     container.appendChild(ball);
@@ -101,16 +61,7 @@ var discoNamespace = (function () {
   function createLightRays() {
     var container = document.createElement('div');
     container.className = 'awesome-disco-lights';
-    container.style.cssText = [
-      'position: fixed',
-      'top: 100px',
-      'left: 50%',
-      'width: 0',
-      'height: 0',
-      'z-index: ' + ((config.zIndex && config.zIndex.disco) - 1 || '9989'),
-      'pointer-events: none',
-      'transform: translateX(-50%)'
-    ].join(';');
+    // z-index comes from CSS
 
     // Create light rays
     var numRays = 12;
@@ -122,19 +73,9 @@ var discoNamespace = (function () {
       ray.className = 'awesome-disco-ray';
       ray.dataset.baseAngle = angle;
       ray.dataset.speed = (0.3 + Math.random() * 0.4).toString(); // Varied speeds
-      ray.style.cssText = [
-        'position: absolute',
-        'width: 0',
-        'height: 0',
-        'border-left: 30px solid transparent',
-        'border-right: 30px solid transparent',
-        'border-top: ' + Math.max(window.innerHeight, window.innerWidth) + 'px solid ' + color,
-        'opacity: 0.1',
-        'transform-origin: top center',
-        'transform: rotate(' + angle + 'deg)',
-        'filter: blur(8px)',
-        'mix-blend-mode: screen'
-      ].join(';');
+      // Dynamic styles only (size and color vary)
+      ray.style.borderTop = Math.max(window.innerHeight, window.innerWidth) + 'px solid ' + color;
+      ray.style.transform = 'rotate(' + angle + 'deg)';
 
       container.appendChild(ray);
     }
