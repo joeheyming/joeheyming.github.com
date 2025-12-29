@@ -1,11 +1,5 @@
 // Helper function to proxy simfile URLs through AllOrigins
 function proxySimfile(url) {
-  // Use the global proxy service if available, otherwise fallback
-  if (window.proxyService) {
-    return window.proxyService.proxySimfile(url);
-  }
-
-  // Fallback implementation
   if (url && url.includes('.sm') && (url.startsWith('http://') || url.startsWith('https://'))) {
     return `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
   }

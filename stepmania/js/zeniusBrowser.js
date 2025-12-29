@@ -22,6 +22,23 @@ class ZeniusBrowserElement extends HTMLElement {
           width: auto;
         }
         
+        :host(.modal-open) {
+          position: fixed;
+          inset: 0;
+          z-index: 100;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+        }
+        
+        :host(.modal-open) .zenius-browser-container {
+          display: none;
+        }
+        
+        :host(.modal-open) .modal {
+          pointer-events: auto;
+        }
+        
         .zenius-browser-container {
           display: flex;
           justify-content: space-between;
@@ -67,7 +84,7 @@ class ZeniusBrowserElement extends HTMLElement {
           inset: 0;
           background: rgba(0, 0, 0, 0.8);
           backdrop-filter: blur(8px);
-          z-index: 50;
+          z-index: 100; /* Above the loading overlay (z-70) */
           display: flex;
           align-items: center;
           justify-content: center;
@@ -442,10 +459,12 @@ class ZeniusBrowserElement extends HTMLElement {
   }
 
   showBrowser() {
+    this.classList.add('modal-open'); // Elevate host element z-index
     this.shadowRoot.getElementById('zenius-browser-modal').classList.add('show');
   }
 
   hideBrowser() {
+    this.classList.remove('modal-open'); // Reset host element
     this.shadowRoot.getElementById('zenius-browser-modal').classList.remove('show');
   }
 

@@ -461,9 +461,12 @@
           Retry
         </button>
 
-        <!-- Ready to play buttons container -->
-        <div id="ready-buttons-container" class="hidden mt-4 flex flex-col items-center gap-3">
-          <!-- Back to Browser button -->
+        <!-- Ready to play buttons container - vertical on mobile, horizontal on desktop -->
+        <div
+          id="ready-buttons-container"
+          class="hidden mt-4 flex flex-col sm:flex-row justify-center items-center gap-3"
+        >
+          <!-- Back button -->
           <button
             id="main-loading-back-btn"
             class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
@@ -471,7 +474,7 @@
             data-event-category="StepMania"
             data-event-label="Back from Loading"
           >
-            Back
+            ← Back
           </button>
         </div>
       </div>

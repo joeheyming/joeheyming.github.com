@@ -1,3 +1,12 @@
+// Helper to fetch ROMs through proxy with appropriate settings
+async function fetchRom(url) {
+  return window.proxyService.fetchBinaryWithProxy(url, {
+    headers: { Accept: 'application/octet-stream,*/*' },
+    timeout: 30000,
+    maxRetries: 3
+  });
+}
+
 // ROM Browser Web Component for NES Emulator
 class RomBrowserElement extends HTMLElement {
   constructor() {
@@ -380,7 +389,7 @@ class RomBrowserElement extends HTMLElement {
         console.log(`Download URL: ${rom.downloadUrl}`);
 
         // Download raw ROM data using proxy
-        const rawRomData = await window.proxyService.fetchRom(rom.downloadUrl);
+        const rawRomData = await fetchRom(rom.downloadUrl);
         console.log(`✅ Downloaded ROM: ${rawRomData.byteLength || rawRomData.length} bytes`);
 
         console.log('Raw ROM data received:', {

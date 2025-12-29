@@ -1,3 +1,14 @@
+// Helper to fetch simfiles through proxy with appropriate settings
+async function fetchSimfile(url) {
+  return window.proxyService.fetchWithProxy(url, {
+    headers: {
+      Accept: 'text/plain,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+    },
+    timeout: 15000,
+    maxRetries: 3
+  });
+}
+
 // Main Page Controller
 class MainPageController {
   constructor() {
@@ -347,7 +358,7 @@ class MainPageController {
 
       // Download the simfile through proxy service
       const simfileDirectUrl = 'https://zenius-i-vanisher.com' + simfileMatch[1];
-      const simfileText = await window.proxyService.fetchSimfile(simfileDirectUrl);
+      const simfileText = await fetchSimfile(simfileDirectUrl);
 
       return {
         title,
@@ -915,6 +926,30 @@ class MainPageController {
         }
       } else {
         playBtn.classList.remove('hidden');
+      }
+
+      // Create or show song browser button
+      let browserBtn = document.getElementById('main-loading-browser-btn');
+      if (!browserBtn) {
+        browserBtn = document.createElement('button');
+        browserBtn.id = 'main-loading-browser-btn';
+        browserBtn.className =
+          'px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200';
+        browserBtn.textContent = '📚 Song Browser';
+        browserBtn.addEventListener('click', () => {
+          // Open the zenius-browser modal
+          const zeniusBrowser = document.querySelector('zenius-browser');
+          if (zeniusBrowser && zeniusBrowser.showBrowser) {
+            zeniusBrowser.showBrowser();
+          }
+        });
+
+        // Insert after Back button
+        if (readyButtonsContainer && backBtn) {
+          readyButtonsContainer.appendChild(browserBtn);
+        }
+      } else {
+        browserBtn.classList.remove('hidden');
       }
 
       // Create or show difficulty selector under the play button
