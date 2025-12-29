@@ -116,6 +116,7 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
+    <script src="/share.js"></script>
     <script async src="tabs.js"></script>
     <script src="wordFrequency.js"></script>
     <script async src="filter.js"></script>
@@ -200,6 +201,7 @@
       <h1>
         Joe's Wordle Helper
         <button id="helpIcon" class="info">i</button>
+        <share-button label="📤 Share" theme="gradient" style="margin-left: 10px"></share-button>
       </h1>
     </header>
     <hr />
@@ -560,5 +562,30 @@
         </p>
       </div>
     </footer>
+
+    <script>
+      // Configure share button with game context
+      document.addEventListener('DOMContentLoaded', function () {
+        const shareBtn = document.querySelector('share-button');
+        if (shareBtn) {
+          shareBtn.textGenerator = function () {
+            // Get current filter state
+            const corrects = ['first', 'second', 'third', 'fourth', 'fifth']
+              .map((id) => document.getElementById(id)?.value || '')
+              .join('');
+            const excludes = document.getElementById('excludeLetters')?.value || '';
+            const matchCount = document.getElementById('match-count')?.textContent || '';
+
+            if (corrects || excludes) {
+              let context = "I'm solving Wordle";
+              if (corrects) context += ' with letters: ' + corrects.toUpperCase();
+              if (matchCount) context += ' - ' + matchCount;
+              return context + ' 🔍';
+            }
+            return "Check out Joe's Wordle Helper - it helps you solve Wordle! 🔍";
+          };
+        }
+      });
+    </script>
   </body>
 </html>

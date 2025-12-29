@@ -66,6 +66,7 @@
     <link rel="canonical" href="https://joeheyming.github.io/sayhello/" />
 
     <script src="/back.js"></script>
+    <script src="/share.js"></script>
     <style>
       body {
         background: white;
@@ -125,6 +126,9 @@
   </head>
 
   <body>
+    <div style="position: fixed; top: 20px; right: 20px; z-index: 100">
+      <share-button label="📤 Share" theme="light"></share-button>
+    </div>
     <h1>
       <span class="header-icon">🗣️</span>
       Say: Hello World!
@@ -203,6 +207,19 @@
             window.helloForm.dispatchEvent(new Event('submit'));
           }
         };
+
+        // Configure share button with context
+        var shareBtn = document.querySelector('share-button');
+        if (shareBtn) {
+          shareBtn.textGenerator = function () {
+            var text = window.utterance.value.trim();
+            if (text) {
+              var preview = text.length > 50 ? text.substring(0, 50) + '...' : text;
+              return 'I just made my browser say: "' + preview + '" using Say Hello! 🗣️';
+            }
+            return 'Check out Say Hello - a text-to-speech tool! 🗣️';
+          };
+        }
       };
     </script>
   </body>

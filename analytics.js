@@ -99,39 +99,31 @@ window.addEventListener('load', function () {
 
 // Track arrivals from shared URLs (someone clicked a shared link)
 function trackSharedLinkArrival() {
-  // Only track on stepmania page
-  if (!window.location.pathname.includes('/stepmania')) {
-    return;
-  }
-
   const searchParams = new URLSearchParams(window.location.search);
-  const song = searchParams.get('song');
-  const zenius = searchParams.get('zenius');
-  const difficulty = searchParams.get('difficulty');
+  const isSharedLink = searchParams.get('shared') === '1';
   const referrer = document.referrer;
+  const pageName = getPageName();
 
-  if (zenius) {
-    // Arrived via shared Zenius URL
-    window.trackEvent(
-      'shared_link_arrival',
-      'StepMania',
-      `zenius: ${zenius} (difficulty: ${difficulty || 0})`
-    );
-    console.log('Tracked shared link arrival (zenius):', zenius, 'referrer:', referrer);
-  } else if (song) {
-    // Arrived via shared song URL
-    window.trackEvent(
-      'shared_link_arrival',
-      'StepMania',
-      `song: ${song} (difficulty: ${difficulty || 0})`
-    );
-    console.log('Tracked shared link arrival (song):', song, 'referrer:', referrer);
-  }
+  // Track generic shared link arrivals (from share button)
+  if (isSharedLink) {
+    window.trackEvent('shared_link_arrival', pageName, window.location.pathname);
+    console.log('Tracked shared link arrival:', pageName, 'referrer:', referrer);
 
-  // Also track the referrer if present
-  if (referrer && (song || zenius)) {
-    window.trackEvent('shared_link_referrer', 'StepMania', referrer);
+    // Track referrer if present
+    if (referrer) {
+      window.trackEvent('shared_link_referrer', pageName, referrer);
+    }
   }
+}
+
+// Helper to get page name from path
+function getPageName() {
+  const path = window.location.pathname;
+  const segments = path.split('/').filter((s) => s);
+  if (segments.length === 0) return 'Home';
+  // Capitalize first letter
+  const name = segments[segments.length - 1];
+  return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
 // Run on page load

@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <link
@@ -66,6 +66,7 @@
     <link rel="canonical" href="https://joeheyming.github.io/calculator/" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="calculator.js"></script>
+    <script src="/share.js"></script>
     <link rel="stylesheet" href="style.css" />
 
     <!-- Structured Data (JSON-LD) -->
@@ -101,6 +102,9 @@
     </script>
   </head>
   <body class="min-h-screen overflow-x-hidden">
+    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 100">
+      <share-button label="📤 Share" theme="gradient"></share-button>
+    </div>
     <div class="calculator-content">
       <div class="calculator-display" id="calc-display">0</div>
       <div class="calculator-buttons">
