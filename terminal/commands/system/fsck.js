@@ -40,9 +40,26 @@ Examples:
 
         try {
           // Clear the filesystem database
-          if (typeof window !== 'undefined' && window.FilesystemDB) {
-            await window.FilesystemDB.clear();
+          if (typeof window !== 'undefined' && window.FileSystemDB) {
+            const fs = await window.FileSystemDB.getInstance();
+            await fs.clearDatabase();
             output += '✅ Filesystem database cleared\n';
+
+            // Reinitialize to recreate scaffold
+            fs.isInitialized = false;
+            await fs.initialize();
+            output += '✅ Filesystem scaffold recreated\n';
+
+            // Emit create event so desktop and other components refresh
+            const cfg = window.parent?.HeymingOS?.Config || {
+              HOME: '/home/jheyming',
+              DESKTOP: '/home/jheyming/Desktop'
+            };
+            window.FileSystemDB.emit('create', cfg.DESKTOP, {
+              type: 'directory',
+              parentPath: cfg.HOME
+            });
+            output += '✅ Notified OS components of filesystem reset\n';
           }
 
           // Clear localStorage filesystem data

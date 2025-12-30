@@ -17,6 +17,11 @@ class ShareButtonElement extends HTMLElement {
   }
 
   connectedCallback() {
+    // Don't render if we're in an iframe
+    if (window.self !== window.top) {
+      this.style.display = 'none';
+      return;
+    }
     this.render();
     this.bindEvents();
   }

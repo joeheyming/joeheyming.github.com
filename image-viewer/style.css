@@ -1,0 +1,227 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #1a1a1a;
+  color: #fff;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#viewer-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Toolbar */
+#toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(to bottom, #2d2d2d, #1a1a1a);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 4px;
+}
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+#toolbar button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+#toolbar button:hover:not(:disabled) {
+  background: rgba(100, 200, 255, 0.3);
+  border-color: #64c8ff;
+}
+
+#toolbar button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+#toolbar button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+#toolbar button.active {
+  background: rgba(100, 200, 255, 0.4);
+  border-color: #64c8ff;
+}
+
+#zoom-level {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  min-width: 50px;
+  text-align: center;
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+}
+
+#image-info {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+
+/* Drop zone */
+#drop-zone {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  border: 3px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  margin: 20px;
+  transition: all 0.3s ease;
+}
+
+#drop-zone.active {
+  display: flex;
+}
+
+#drop-zone.drag-over {
+  border-color: #64c8ff;
+  background: rgba(100, 200, 255, 0.1);
+}
+
+.drop-content {
+  text-align: center;
+  padding: 40px;
+}
+
+.drop-content .icon {
+  font-size: 80px;
+  display: block;
+  margin-bottom: 20px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.drop-content h2 {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, #64c8ff, #a0e0ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.drop-content p {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.drop-content .formats {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Image wrapper */
+#image-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #0d0d0d;
+  position: relative;
+  cursor: grab;
+}
+
+#image-wrapper.hidden {
+  display: none;
+}
+
+#image-wrapper.dragging {
+  cursor: grabbing;
+}
+
+#image-wrapper.zoom-fit {
+  cursor: default;
+}
+
+#image-container {
+  position: relative;
+  transform-origin: center center;
+  transition: transform 0.1s ease-out;
+}
+
+#image {
+  display: block;
+  max-width: none;
+  max-height: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  image-rendering: auto;
+}
+
+/* Checkerboard background for transparent images */
+#image-wrapper.show-transparency #image-container {
+  background-image: linear-gradient(45deg, #2a2a2a 25%, transparent 25%),
+    linear-gradient(-45deg, #2a2a2a 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #2a2a2a 75%),
+    linear-gradient(-45deg, transparent 75%, #2a2a2a 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+}
+
+/* Loading state */
+#image-wrapper.loading::after {
+  content: '⏳ Loading...';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.8);
+  z-index: 10;
+}
+
+/* Smooth zoom animation */
+#image-container.animating {
+  transition: transform 0.2s ease-out;
+}

@@ -1,7 +1,17 @@
 // Rich Text Notepad Application with Quill
+
+// Debug logging helper
+function debug(...args) {
+  if (window.parent?.HeymingOS?.Config?.DEBUG) {
+    console.log('[Notepad]', ...args);
+  }
+}
+
 class RichNotepad {
   constructor() {
     this.quill = null;
+    this.currentFilePath = null;
+    this.currentFileName = null;
     this.init();
   }
 
@@ -44,6 +54,183 @@ class RichNotepad {
 
     // Setup keyboard shortcuts
     this.setupKeyboardShortcuts();
+
+    // Listen for file open messages from parent (OS)
+    this.setupMessageListener();
+  }
+
+  setupMessageListener() {
+    window.addEventListener('message', (e) => {
+      const data = e.data;
+      if (data.type === 'openFile') {
+        this.loadFileContent(data.content, data.fileName, data.path);
+      } else if (data.type === 'fileSaved') {
+        // Update current file info after Save As
+        this.currentFilePath = data.path;
+        this.currentFileName = data.fileName;
+        document.title = `📝 ${data.fileName} - Notepad`;
+
+        this.showNotification(`💾 Saved: ${data.fileName}`, 'success');
+      }
+    });
+  }
+
+  loadFileContent(content, fileName, path) {
+    this.currentFilePath = path;
+    this.currentFileName = fileName;
+
+    // Update document title
+    if (fileName) {
+      document.title = `📝 ${fileName} - Notepad`;
+    }
+
+    // Determine how to load based on file extension
+    const ext = (fileName || '').split('.').pop().toLowerCase();
+
+    if (ext === 'md' || ext === 'markdown') {
+      // Convert markdown to HTML
+      const htmlContent = this.markdownToHtml(content);
+      this.quill.root.innerHTML = htmlContent;
+    } else if (ext === 'html') {
+      this.quill.root.innerHTML = content;
+    } else {
+      // Plain text - preserve line breaks
+      const lines = (content || '').split('\n');
+      const htmlContent = lines
+        .map((line) => (line ? `<p>${this.escapeHtml(line)}</p>` : '<p><br></p>'))
+        .join('');
+      this.quill.root.innerHTML = htmlContent;
+    }
+
+    // Show feedback
+    this.showOpenFeedback(fileName);
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  showOpenFeedback(fileName) {
+    this.showNotification(`📂 Opened: ${fileName}`, 'success');
+  }
+
+  showNotification(message, type = 'info') {
+    const colors = {
+      info: 'linear-gradient(135deg, #3182ce, #2563eb)',
+      success: 'linear-gradient(135deg, #10b981, #059669)',
+      error: 'linear-gradient(135deg, #ef4444, #dc2626)'
+    };
+
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 60px;
+      right: 20px;
+      background: ${colors[type] || colors.info};
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 10000;
+      animation: slideIn 0.3s ease;
+    `;
+    notification.textContent = message;
+
+    // Add animation keyframes if not already added
+    if (!document.getElementById('notepad-animations')) {
+      const style = document.createElement('style');
+      style.id = 'notepad-animations';
+      style.textContent = `
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.style.animation = 'slideIn 0.3s ease reverse';
+      setTimeout(() => notification.remove(), 300);
+    }, 2000);
+  }
+
+  saveToFilesystem() {
+    if (!this.currentFilePath) {
+      this.showNotification('❌ No file path set. Use File Manager to open a file first.', 'error');
+      return;
+    }
+
+    // Check if we're inside the OS
+    const isInOS = window.self !== window.top;
+    if (!isInOS) {
+      this.showNotification('❌ Save to filesystem only works inside Heyming OS', 'error');
+      return;
+    }
+
+    // Get content as plain text
+    const content = this.quill.getText();
+
+    // Send save request to parent OS
+    window.parent.postMessage(
+      {
+        type: 'iframe-message',
+        message: {
+          type: 'saveFile',
+          path: this.currentFilePath,
+          content: content,
+          fileName: this.currentFileName
+        }
+      },
+      '*'
+    );
+
+    this.showNotification(`💾 Saved: ${this.currentFileName}`, 'success');
+  }
+
+  saveAs() {
+    // Check if we're inside the OS
+    const isInOS = window.self !== window.top;
+    if (!isInOS) {
+      this.showNotification('❌ Save As only works inside Heyming OS', 'error');
+      return;
+    }
+
+    // Get content as plain text
+    const content = this.quill.getText();
+
+    // Suggest a filename based on current file or content
+    let suggestedName = this.currentFileName || 'untitled.txt';
+    if (!this.currentFileName) {
+      // Try to derive name from first line of content
+      const firstLine = content.split('\n')[0].trim();
+      if (firstLine && firstLine.length < 30) {
+        suggestedName =
+          firstLine
+            .replace(/[^a-zA-Z0-9\s-]/g, '')
+            .trim()
+            .replace(/\s+/g, '-') + '.txt';
+      }
+    }
+
+    // Send Save As request to parent OS
+    window.parent.postMessage(
+      {
+        type: 'iframe-message',
+        message: {
+          type: 'saveAs',
+          content: content,
+          suggestedName: suggestedName
+        }
+      },
+      '*'
+    );
   }
 
   setupAutoSave() {
@@ -61,7 +248,7 @@ class RichNotepad {
         const content = JSON.parse(savedContent);
         this.quill.setContents(content);
       } catch (e) {
-        console.log('Could not load saved content');
+        debug('Could not load saved content');
       }
     }
   }
@@ -78,23 +265,49 @@ class RichNotepad {
     copyButton.addEventListener('click', () => this.copyContent());
     toolbarContainer.appendChild(copyButton);
 
-    // Export button
-    const exportButton = document.createElement('button');
-    exportButton.innerHTML = '💾';
-    exportButton.title = 'Export notes to file';
-    exportButton.type = 'button';
-    exportButton.className = 'ql-export-button';
-    exportButton.addEventListener('click', () => this.exportNotes());
-    toolbarContainer.appendChild(exportButton);
+    const isInOS = window.self !== window.top;
 
-    // Import button
-    const importButton = document.createElement('button');
-    importButton.innerHTML = '📁';
-    importButton.title = 'Import notes from file';
-    importButton.type = 'button';
-    importButton.className = 'ql-import-button';
-    importButton.addEventListener('click', () => this.importNotes());
-    toolbarContainer.appendChild(importButton);
+    if (isInOS) {
+      // OS Mode: Show Save and Save As buttons
+
+      // Save button (Ctrl+S) - quick save to current file or Save As if no file
+      const saveButton = document.createElement('button');
+      saveButton.innerHTML = '💾';
+      saveButton.title = 'Save (Ctrl+S)';
+      saveButton.type = 'button';
+      saveButton.className = 'ql-save-button';
+      saveButton.addEventListener('click', () => this.quickSave());
+      toolbarContainer.appendChild(saveButton);
+
+      // Save As button
+      const saveAsButton = document.createElement('button');
+      saveAsButton.innerHTML = '📂';
+      saveAsButton.title = 'Save As...';
+      saveAsButton.type = 'button';
+      saveAsButton.className = 'ql-save-as-button';
+      saveAsButton.addEventListener('click', () => this.saveAs());
+      toolbarContainer.appendChild(saveAsButton);
+    } else {
+      // Standalone Mode: Show export/import buttons
+
+      // Export button
+      const exportButton = document.createElement('button');
+      exportButton.innerHTML = '💾';
+      exportButton.title = 'Export notes to file';
+      exportButton.type = 'button';
+      exportButton.className = 'ql-export-button';
+      exportButton.addEventListener('click', () => this.exportNotes());
+      toolbarContainer.appendChild(exportButton);
+
+      // Import button
+      const importButton = document.createElement('button');
+      importButton.innerHTML = '📁';
+      importButton.title = 'Import notes from file';
+      importButton.type = 'button';
+      importButton.className = 'ql-import-button';
+      importButton.addEventListener('click', () => this.importNotes());
+      toolbarContainer.appendChild(importButton);
+    }
 
     // Hidden file input for import
     const fileInput = document.createElement('input');
@@ -278,8 +491,8 @@ class RichNotepad {
         content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
         // Debug: log the first 200 characters to see what we're working with
-        console.log('File content preview:', content.substring(0, 200));
-        console.log('File has newlines:', content.includes('\n'));
+        debug('File content preview:', content.substring(0, 200));
+        debug('File has newlines:', content.includes('\n'));
 
         if (file.name.endsWith('.md') || file.name.endsWith('.markdown')) {
           const htmlContent = this.markdownToHtml(content);
@@ -308,20 +521,20 @@ class RichNotepad {
 
   markdownToHtml(markdown) {
     // Simple Markdown to HTML converter
-    console.log('Input markdown:', markdown.substring(0, 200));
-    console.log('Has newlines:', markdown.includes('\n'));
-    console.log('Number of lines:', markdown.split('\n').length);
+    debug('Input markdown:', markdown.substring(0, 200));
+    debug('Has newlines:', markdown.includes('\n'));
+    debug('Number of lines:', markdown.split('\n').length);
 
     let html = markdown;
 
     // If the content appears to be all on one line, try to add some structure
     if (!html.includes('\n') && html.length > 100) {
-      console.log('Detected single line content, trying to split...');
+      debug('Detected single line content, trying to split...');
       // This might be a file that lost its line breaks
       // Try to split on common patterns and add line breaks
       html = html.replace(/([.!?])\s+([A-Z])/g, '$1\n\n$2'); // Sentence breaks
       html = html.replace(/([a-z])([A-Z][a-z])/g, '$1\n$2'); // CamelCase breaks
-      console.log('After splitting:', html.substring(0, 200));
+      debug('After splitting:', html.substring(0, 200));
     }
 
     // Code blocks first (to protect them from other processing)
@@ -350,7 +563,7 @@ class RichNotepad {
     html = html.replace(/^- (.*)$/gim, '<li>$1</li>');
     html = html.replace(/(<li>.*<\/li>(?:\n<li>.*<\/li>)*)/gim, '<ul>$1</ul>');
 
-    console.log('After markdown processing:', html.substring(0, 200));
+    debug('After markdown processing:', html.substring(0, 200));
 
     // Handle paragraph creation more carefully
     if (html.includes('\n')) {
@@ -361,18 +574,18 @@ class RichNotepad {
         // We have proper paragraph breaks
         html = doubleParagraphs
           .map((para) => {
-            para = para.trim();
-            if (!para) return '';
+            const trimmed = para.trim();
+            if (!trimmed) return '';
 
             // Don't wrap headers, lists, blockquotes, or code blocks in paragraphs
-            if (para.match(/^<(h[123]|ul|ol|li|blockquote|pre)/)) {
-              return para;
+            if (trimmed.match(/^<(h[123]|ul|ol|li|blockquote|pre)/)) {
+              return trimmed;
             }
 
             // Convert single newlines within paragraphs to <br>
-            para = para.replace(/\n/g, '<br>');
+            const content = trimmed.replace(/\n/g, '<br>');
 
-            return `<p>${para}</p>`;
+            return `<p>${content}</p>`;
           })
           .filter((p) => p)
           .join('\n');
@@ -381,15 +594,15 @@ class RichNotepad {
         const lines = html.split('\n').filter((line) => line.trim());
         html = lines
           .map((line) => {
-            line = line.trim();
-            if (!line) return '';
+            const trimmed = line.trim();
+            if (!trimmed) return '';
 
             // Don't wrap headers, lists, blockquotes, or code blocks in paragraphs
-            if (line.match(/^<(h[123]|ul|ol|li|blockquote|pre)/)) {
-              return line;
+            if (trimmed.match(/^<(h[123]|ul|ol|li|blockquote|pre)/)) {
+              return trimmed;
             }
 
-            return `<p>${line}</p>`;
+            return `<p>${trimmed}</p>`;
           })
           .filter((p) => p)
           .join('');
@@ -402,16 +615,6 @@ class RichNotepad {
     }
 
     return html;
-  }
-
-  setupSaveShortcut() {
-    // Override Ctrl+S (or Cmd+S on Mac) to export notes
-    document.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault(); // Prevent browser's save dialog
-        this.exportNotes(); // Call our export function instead
-      }
-    });
   }
 
   showExportFeedback() {
@@ -439,15 +642,33 @@ class RichNotepad {
   }
 
   setupKeyboardShortcuts() {
-    // Handle Ctrl+S (Windows/Linux) or Cmd+S (Mac) to export notes
+    const isInOS = window.self !== window.top;
+
+    // Handle Ctrl+S (Windows/Linux) or Cmd+S (Mac)
     document.addEventListener('keydown', (e) => {
-      // Check for Ctrl+S (Windows/Linux) or Cmd+S (Mac)
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault(); // Prevent browser's default save dialog
-        this.exportNotes();
+        if (isInOS) {
+          this.quickSave();
+        } else {
+          this.exportNotes();
+        }
         return false;
       }
     });
+  }
+
+  /**
+   * Quick save - saves to current file or shows Save As if no file open
+   */
+  quickSave() {
+    if (this.currentFilePath) {
+      // Save to current file
+      this.saveToFilesystem();
+    } else {
+      // No file open, show Save As
+      this.saveAs();
+    }
   }
 }
 

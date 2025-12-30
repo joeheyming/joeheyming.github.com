@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>File Manager - Heyming OS</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div id="file-manager">
+      <!-- Toolbar -->
+      <div id="toolbar">
+        <button id="btn-back" title="Go Back">←</button>
+        <button id="btn-forward" title="Go Forward">→</button>
+        <button id="btn-up" title="Go Up">↑</button>
+        <button id="btn-home" title="Home">🏠</button>
+        <button id="btn-refresh" title="Refresh">🔄</button>
+        <div id="path-bar">
+          <span id="current-path">/</span>
+        </div>
+        <button id="btn-new-folder" title="New Folder">📁+</button>
+        <button id="btn-new-file" title="New File">📄+</button>
+        <button id="btn-view-toggle" title="Toggle View">≡</button>
+      </div>
+
+      <!-- Sidebar (populated by JS from config) -->
+      <div id="sidebar">
+        <div class="sidebar-section" id="quick-access-section">
+          <h3>Quick Access</h3>
+          <!-- Generated dynamically -->
+        </div>
+        <div class="sidebar-section">
+          <h3>System</h3>
+          <div class="sidebar-item" data-path="/">/</div>
+          <div class="sidebar-item" data-path="/bin">📦 /bin</div>
+          <div class="sidebar-item" data-path="/etc">⚙️ /etc</div>
+          <div class="sidebar-item" data-path="/tmp">🗑️ /tmp</div>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div id="content">
+        <div id="file-list" class="grid-view"></div>
+        <div id="empty-state" class="hidden">
+          <span class="empty-icon">📂</span>
+          <p>This folder is empty</p>
+        </div>
+      </div>
+
+      <!-- Status Bar -->
+      <div id="status-bar">
+        <span id="item-count">0 items</span>
+        <span id="selected-info"></span>
+      </div>
+
+      <!-- Context Menu -->
+      <div id="context-menu" class="hidden">
+        <div class="menu-item" data-action="open">📂 Open</div>
+        <div class="menu-item" data-action="rename">✏️ Rename</div>
+        <div class="menu-item" data-action="delete">🗑️ Delete</div>
+        <div class="menu-divider"></div>
+        <div class="menu-item" data-action="copy">📋 Copy</div>
+        <div class="menu-item" data-action="cut">✂️ Cut</div>
+        <div class="menu-item" data-action="paste">📥 Paste</div>
+        <div class="menu-divider"></div>
+        <div class="menu-item" data-action="properties">ℹ️ Properties</div>
+      </div>
+
+      <!-- Rename/New Dialog -->
+      <div id="dialog-overlay" class="hidden">
+        <div id="dialog">
+          <h3 id="dialog-title">New Folder</h3>
+          <input type="text" id="dialog-input" placeholder="Enter name..." />
+          <div id="dialog-buttons">
+            <button id="dialog-cancel">Cancel</button>
+            <button id="dialog-confirm">Create</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- File Preview -->
+      <div id="preview-overlay" class="hidden">
+        <div id="preview">
+          <div id="preview-header">
+            <span id="preview-title">File Preview</span>
+            <button id="preview-close">×</button>
+          </div>
+          <div id="preview-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Load shared OS filesystem -->
+    <script src="../os/filesystem-db.js"></script>
+    <script src="filemanager.js"></script>
+  </body>
+</html>

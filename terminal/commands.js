@@ -42,6 +42,7 @@ class CommandRegistry {
       fsck: 'commands/system/fsck.js',
       exit: 'commands/system/exit.js',
       launch: 'commands/system/launch.js',
+      open: 'commands/system/open.js',
       'heyming-desktop': 'commands/system/heyming-desktop.js',
       spawn: 'commands/system/spawn.js',
       node: 'commands/system/node.js',

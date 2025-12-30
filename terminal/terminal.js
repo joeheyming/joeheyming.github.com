@@ -23,9 +23,9 @@ class Terminal {
 
     // Initialize environment variables
     this.env = {
-      USER: 'jheyming',
-      HOME: '/home/jheyming',
-      PWD: '/home/jheyming',
+      USER: window.parent?.HeymingOS?.Config?.USER || 'jheyming',
+      HOME: window.parent?.HeymingOS?.Config?.HOME || '/home/jheyming',
+      PWD: window.parent?.HeymingOS?.Config?.HOME || '/home/jheyming',
       SHELL: '/bin/jsh',
       TERM: 'heyming-terminal',
       PATH: '/bin:/usr/bin:/usr/local/bin',
@@ -130,6 +130,21 @@ class Terminal {
 
     terminalInput.focus();
     this.bindInputEvents(terminalInput);
+
+    // Click anywhere in terminal to focus input
+    const terminalContainer = document.getElementById('terminal-container');
+    if (terminalContainer) {
+      terminalContainer.addEventListener('click', (e) => {
+        // Don't steal focus if user is selecting text
+        if (window.getSelection().toString()) return;
+        // Don't interfere with other interactive elements
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+        // Focus the current active input
+        const activeInput =
+          terminalContainer.querySelector('.terminal-input:last-of-type') || terminalInput;
+        if (activeInput) activeInput.focus();
+      });
+    }
 
     // Save command history on window unload
     window.addEventListener('beforeunload', () => {

@@ -13,9 +13,9 @@
 
       // Reset environment to defaults (keep core system vars)
       const coreVars = {
-        USER: 'jheyming',
-        HOME: '/home/jheyming',
-        PWD: '/home/jheyming',
+        USER: window.parent?.HeymingOS?.Config?.USER || 'jheyming',
+        HOME: window.parent?.HeymingOS?.Config?.HOME || '/home/jheyming',
+        PWD: window.parent?.HeymingOS?.Config?.HOME || '/home/jheyming',
         SHELL: '/bin/jsh',
         TERM: 'heyming-terminal',
         PATH: '/bin:/usr/bin:/usr/local/bin',

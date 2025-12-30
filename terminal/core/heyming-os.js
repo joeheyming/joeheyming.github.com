@@ -110,10 +110,11 @@ class HeymingOS {
   async createDefaultTerminal() {
     console.log('🔧 Creating default terminal...');
 
+    const cfg = window.parent?.HeymingOS?.Config || { USER: 'jheyming', HOME: '/home/jheyming' };
     const terminal = await this.createTerminal({
       title: 'Terminal',
-      user: 'jheyming',
-      cwd: '/home/jheyming'
+      user: cfg.USER,
+      cwd: cfg.HOME
     });
 
     console.log(`✅ Default terminal created (ID: ${terminal.id})`);
@@ -129,7 +130,8 @@ class HeymingOS {
     const terminalId = this.generateId();
 
     // Create terminal process
-    const homeDir = `/home/${options.user || 'jheyming'}`;
+    const defaultUser = window.parent?.HeymingOS?.Config?.USER || 'jheyming';
+    const homeDir = `/home/${options.user || defaultUser}`;
     const workingDir = options.cwd || homeDir;
 
     const terminalProcess = await this.kernel.processManager.createProcess({
@@ -138,7 +140,7 @@ class HeymingOS {
       args: [],
       cwd: workingDir,
       env: {
-        USER: options.user || 'jheyming',
+        USER: options.user || defaultUser,
         HOME: homeDir,
         PWD: workingDir,
         TERM: 'heyming-terminal',
