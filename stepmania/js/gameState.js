@@ -11,6 +11,36 @@ const DEFAULT_SONG = {
 const DEFAULT_SCROLL_SPEED = 2;
 
 // ============================================================================
+// COMBO CONSTANTS
+// ============================================================================
+
+/** Combo thresholds for multiplier increases */
+const COMBO_MULTIPLIER_THRESHOLDS = [10, 20, 30];
+
+/** Maximum combo multiplier */
+const MAX_MULTIPLIER = 4;
+
+/** Base points per judgment (for score calculation) */
+const JUDGMENT_BASE_POINTS = [
+  100, // Perfect: 100 points
+  80, // Great: 80 points
+  50, // Good: 50 points
+  25, // Bad: 25 points
+  0, // Almost: 0 points
+  0 // Miss: 0 points
+];
+
+/** Whether each judgment maintains combo */
+const JUDGMENT_MAINTAINS_COMBO = [
+  true, // Perfect: maintains
+  true, // Great: maintains
+  true, // Good: maintains
+  false, // Bad: breaks
+  false, // Almost: breaks
+  false // Miss: breaks
+];
+
+// ============================================================================
 // HEALTH CONSTANTS
 // ============================================================================
 
@@ -67,8 +97,13 @@ class GameState {
 
     // Score tracking
     this.tapNoteScores = [0, 0, 0, 0, 0, 0];
-    this.actualPoints = 0;
+    this.actualPoints = 0; // For percentage calculation
     this.mineHits = 0;
+
+    // Combo and gamified score
+    this.combo = 0;
+    this.maxCombo = 0;
+    this.score = 0; // Gamified score with combo multipliers
 
     // Scroll speed
     this.scrollSpeed = DEFAULT_SCROLL_SPEED;
@@ -359,6 +394,83 @@ class GameState {
   }
 
   // ==========================================================================
+  // COMBO SYSTEM
+  // ==========================================================================
+
+  /**
+   * Get current combo
+   * @returns {number}
+   */
+  getCombo() {
+    return this.combo;
+  }
+
+  /**
+   * Get max combo achieved
+   * @returns {number}
+   */
+  getMaxCombo() {
+    return this.maxCombo;
+  }
+
+  /**
+   * Get gamified score (with combo multipliers)
+   * @returns {number}
+   */
+  getScore() {
+    return this.score;
+  }
+
+  /**
+   * Get current combo multiplier
+   * @returns {number} Multiplier (1-4)
+   */
+  getComboMultiplier() {
+    if (this.combo >= COMBO_MULTIPLIER_THRESHOLDS[2]) return MAX_MULTIPLIER;
+    if (this.combo >= COMBO_MULTIPLIER_THRESHOLDS[1]) return 3;
+    if (this.combo >= COMBO_MULTIPLIER_THRESHOLDS[0]) return 2;
+    return 1;
+  }
+
+  /**
+   * Apply a judgment - updates combo and score
+   * @param {number} judgmentIndex - Judgment index (0=perfect, 5=miss)
+   * @returns {{combo: number, multiplier: number, pointsEarned: number}}
+   */
+  applyJudgment(judgmentIndex) {
+    const maintainsCombo = JUDGMENT_MAINTAINS_COMBO[judgmentIndex];
+    const basePoints = JUDGMENT_BASE_POINTS[judgmentIndex];
+
+    // Get multiplier before updating combo
+    const multiplier = this.getComboMultiplier();
+
+    // Update combo
+    if (maintainsCombo) {
+      this.combo++;
+      this.maxCombo = Math.max(this.maxCombo, this.combo);
+    } else {
+      this.combo = 0;
+    }
+
+    // Calculate and add score with multiplier
+    const pointsEarned = basePoints * multiplier;
+    this.score += pointsEarned;
+
+    return {
+      combo: this.combo,
+      multiplier,
+      pointsEarned
+    };
+  }
+
+  /**
+   * Break combo (e.g., for mine hits)
+   */
+  breakCombo() {
+    this.combo = 0;
+  }
+
+  // ==========================================================================
   // HEALTH SYSTEM
   // ==========================================================================
 
@@ -563,6 +675,9 @@ class GameState {
     this.lastError = null;
     this.health = INITIAL_HEALTH;
     this.failed = false;
+    this.combo = 0;
+    this.maxCombo = 0;
+    this.score = 0;
     // Note: autoplay is NOT reset here - it persists across songs
   }
 
@@ -575,6 +690,9 @@ class GameState {
     this.mineHits = 0;
     this.health = INITIAL_HEALTH;
     this.failed = false;
+    this.combo = 0;
+    this.maxCombo = 0;
+    this.score = 0;
   }
 
   /**
@@ -617,7 +735,10 @@ class GameState {
       lastError: this.lastError,
       health: this.health,
       failed: this.failed,
-      autoplay: this.autoplay
+      autoplay: this.autoplay,
+      combo: this.combo,
+      maxCombo: this.maxCombo,
+      score: this.score
     };
   }
 }

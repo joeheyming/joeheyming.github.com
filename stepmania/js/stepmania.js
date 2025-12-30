@@ -88,13 +88,21 @@ function handleTapNoteScore(tapNoteScore) {
   gameState.incrementScore(tapNoteScore);
   gameState.addPoints(TAP_NOTE_POINTS[tapNoteScore]);
 
+  // Apply judgment for combo and gamified score
+  const { combo, multiplier } = gameState.applyJudgment(tapNoteScore);
+
   // Apply health change based on judgment
   gameState.applyHealthChange(tapNoteScore);
 
   // Update score panel component
   const scores = gameState.getTapNoteScores();
   const noteData = gameState.getNoteData();
-  ScorePanel.update(tapNoteScore, scores, gameState.getActualPoints(), noteData.length);
+  ScorePanel.update(tapNoteScore, scores, gameState.getActualPoints(), noteData.length, {
+    combo,
+    multiplier,
+    score: gameState.getScore(),
+    maxCombo: gameState.getMaxCombo()
+  });
 
   // Show judgment via Judgment module
   Judgment.showTapNote(tapNoteScore);
@@ -207,7 +215,15 @@ function step(col) {
       // Deduct points for mine hit
       const currentPoints = gameState.getActualPoints();
       gameState.setActualPoints(Math.max(0, currentPoints - 10));
-      ScorePanel.updatePercent(gameState.getActualPoints(), noteData.length);
+
+      // Break combo for hitting a mine
+      gameState.breakCombo();
+
+      ScorePanel.updatePercent(gameState.getActualPoints(), noteData.length, {
+        combo: 0,
+        score: gameState.getScore(),
+        maxCombo: gameState.getMaxCombo()
+      });
 
       // Damage health for hitting a mine
       gameState.applyDamage(15);
@@ -322,12 +338,20 @@ function releaseHold(col) {
       gameState.incrementScore(finalScore);
       gameState.addPoints(TAP_NOTE_POINTS[finalScore]);
 
+      // Apply judgment for combo and gamified score
+      const { combo, multiplier } = gameState.applyJudgment(finalScore);
+
       // Apply health change for dropped hold
       gameState.applyHealthChange(finalScore);
 
       const scores = gameState.getTapNoteScores();
       const noteData = gameState.getNoteData();
-      ScorePanel.update(finalScore, scores, gameState.getActualPoints(), noteData.length);
+      ScorePanel.update(finalScore, scores, gameState.getActualPoints(), noteData.length, {
+        combo,
+        multiplier,
+        score: gameState.getScore(),
+        maxCombo: gameState.getMaxCombo()
+      });
 
       showJudgment('Hold Dropped!', finalScore);
 
@@ -388,11 +412,19 @@ function updateHolds() {
       gameState.incrementScore(finalScore);
       gameState.addPoints(TAP_NOTE_POINTS[finalScore]);
 
+      // Apply judgment for combo and gamified score
+      const { combo, multiplier } = gameState.applyJudgment(finalScore);
+
       // Apply health change for hold completion
       gameState.applyHealthChange(finalScore);
 
       const scores = gameState.getTapNoteScores();
-      ScorePanel.update(finalScore, scores, gameState.getActualPoints(), noteData.length);
+      ScorePanel.update(finalScore, scores, gameState.getActualPoints(), noteData.length, {
+        combo,
+        multiplier,
+        score: gameState.getScore(),
+        maxCombo: gameState.getMaxCombo()
+      });
 
       let judgmentText = ['Perfect!', 'Great!', 'Good', 'OK', 'Almost', 'Miss'][finalScore];
       if (hold.wasDropped) {
@@ -407,11 +439,19 @@ function updateHolds() {
       gameState.incrementScore(missScore);
       gameState.addPoints(TAP_NOTE_POINTS[missScore]);
 
+      // Apply judgment for combo and gamified score
+      const { combo, multiplier } = gameState.applyJudgment(missScore);
+
       // Apply health change for missed hold
       gameState.applyHealthChange(missScore);
 
       const scores = gameState.getTapNoteScores();
-      ScorePanel.update(missScore, scores, gameState.getActualPoints(), noteData.length);
+      ScorePanel.update(missScore, scores, gameState.getActualPoints(), noteData.length, {
+        combo,
+        multiplier,
+        score: gameState.getScore(),
+        maxCombo: gameState.getMaxCombo()
+      });
 
       showJudgment('Miss', missScore);
 
@@ -672,6 +712,9 @@ function draw() {
   if (gameState.isAutoplay()) {
     CanvasManager.drawAutoplayIndicator();
   }
+
+  // Draw combo counter
+  CanvasManager.drawCombo(gameState.getCombo(), gameState.getComboMultiplier());
 }
 
 /**

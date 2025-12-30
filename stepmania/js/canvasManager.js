@@ -414,6 +414,125 @@ export const CanvasManager = {
     });
   },
 
+  // Combo animation state
+  _lastCombo: 0,
+  _comboIncreaseTime: 0,
+
+  /**
+   * Get color based on combo tier
+   * @param {number} combo
+   * @returns {string}
+   */
+  _getComboColor(combo) {
+    if (combo >= 100) return '#ff00ff'; // Magenta - legendary
+    if (combo >= 50) return '#ffd700'; // Gold - amazing
+    if (combo >= 30) return '#00ffff'; // Cyan - great
+    if (combo >= 20) return '#00ff88'; // Green - good
+    if (combo >= 10) return '#88aaff'; // Blue - building
+    return '#aaaaaa'; // Gray - starting
+  },
+
+  /**
+   * Draw combo counter on screen
+   * @param {number} combo - Current combo count
+   * @param {number} multiplier - Current multiplier (1-4)
+   */
+  drawCombo(combo, multiplier) {
+    if (!this.ctx || combo < 4) return; // Only show after 4+ combo
+
+    const now = performance.now();
+
+    // Track combo increases for animation
+    if (combo > this._lastCombo && this._lastCombo > 0) {
+      this._comboIncreaseTime = now;
+    }
+    this._lastCombo = combo;
+
+    const centerX = this.width / 2;
+    const comboY = this.height * 0.65;
+
+    // Pop animation on combo increase
+    const timeSinceIncrease = now - this._comboIncreaseTime;
+    let scale = 1;
+    if (timeSinceIncrease < 150) {
+      const progress = timeSinceIncrease / 150;
+      scale = 1 + 0.25 * (1 - progress); // Pop from 1.25x to 1x
+    }
+
+    // Get color based on combo tier
+    const color = this._getComboColor(combo);
+
+    // Font size based on combo
+    const baseSize = combo >= 100 ? 44 : combo >= 50 ? 40 : 36;
+    const fontSize = Math.round(baseSize * scale);
+
+    this.ctx.save();
+
+    // Glow effect for high combos
+    if (combo >= 20) {
+      this.ctx.shadowColor = color;
+      this.ctx.shadowBlur = 15 + (combo >= 50 ? 10 : 0);
+    }
+
+    // Draw combo number
+    this.drawText(combo.toString(), centerX, comboY, {
+      font: `bold ${fontSize}px "Segoe UI", Arial`,
+      fill: color,
+      shadow: {
+        color: 'rgba(0, 0, 0, 0.8)',
+        blur: 4,
+        offsetX: 2,
+        offsetY: 2
+      }
+    });
+
+    this.ctx.restore();
+
+    // Draw "COMBO" label below
+    this.drawText('COMBO', centerX, comboY + 24, {
+      font: 'bold 12px "Segoe UI", Arial',
+      fill: color,
+      alpha: 0.9,
+      shadow: {
+        color: 'rgba(0, 0, 0, 0.6)',
+        blur: 2,
+        offsetX: 1,
+        offsetY: 1
+      }
+    });
+
+    // Show multiplier badge when > 1x
+    if (multiplier > 1) {
+      const badgeX = centerX + (combo >= 100 ? 55 : combo >= 10 ? 45 : 35);
+      this.drawText(`${multiplier}x`, badgeX, comboY - 12, {
+        font: 'bold 14px "Segoe UI", Arial',
+        fill: color,
+        shadow: {
+          color: 'rgba(0, 0, 0, 0.8)',
+          blur: 2,
+          offsetX: 1,
+          offsetY: 1
+        }
+      });
+    }
+
+    // Milestone indicator at 50, 100, 150...
+    if (combo % 50 === 0 && timeSinceIncrease < 500) {
+      const milestoneAlpha = 1 - timeSinceIncrease / 500;
+      this.drawText('★ MILESTONE ★', centerX, comboY - 35, {
+        font: 'bold 16px "Segoe UI", Arial',
+        fill: '#ffd700',
+        alpha: milestoneAlpha,
+        shadow: {
+          color: 'rgba(0, 0, 0, 0.8)',
+          blur: 4,
+          offsetX: 1,
+          offsetY: 1
+        }
+      });
+    }
+  },
+
   /**
    * Draw game over overlay
    */
