@@ -1,5 +1,10 @@
 // assuming google analytics is already loaded
 // onload
+// Normalize page path by removing index.html
+function normalizePagePath(path) {
+  return path.replace(/\/index\.html$/, '/');
+}
+
 window.onload = function () {
   if (location.hostname === 'localhost') {
     window.gtag = function () {};
@@ -10,7 +15,11 @@ window.onload = function () {
     dataLayer.push(arguments);
   };
   gtag('js', new Date());
-  gtag('config', 'G-Q62Q3E20Y0');
+
+  // Configure GA with normalized page path to consolidate /page/ and /page/index.html
+  gtag('config', 'G-Q62Q3E20Y0', {
+    page_path: normalizePagePath(window.location.pathname)
+  });
 
   // Initialize error tracking
   initErrorTracking();
@@ -86,7 +95,12 @@ window.trackPerformance = function () {
 
     const perfData = window.performance.timing;
     const loadTime = perfData.loadEventEnd - perfData.navigationStart;
-    window.trackEvent('page_load', 'Performance', window.location.pathname, loadTime);
+    window.trackEvent(
+      'page_load',
+      'Performance',
+      normalizePagePath(window.location.pathname),
+      loadTime
+    );
   } catch (error) {
     console.error('Failed to track performance:', error);
   }
@@ -106,7 +120,7 @@ function trackSharedLinkArrival() {
 
   // Track generic shared link arrivals (from share button)
   if (isSharedLink) {
-    window.trackEvent('shared_link_arrival', pageName, window.location.pathname);
+    window.trackEvent('shared_link_arrival', pageName, normalizePagePath(window.location.pathname));
     console.log('Tracked shared link arrival:', pageName, 'referrer:', referrer);
 
     // Track referrer if present
