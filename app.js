@@ -15,7 +15,8 @@ let appRegistry = [
     gradient: 'from-yellow-500/20 to-orange-500/20',
     border: 'border-yellow-500/30 hover:border-yellow-400/50',
     taskbarGradient: 'from-yellow-400 to-orange-500',
-    taskbarText: 'text-black'
+    taskbarText: 'text-black',
+    desktopIcon: true
   },
   {
     id: 'doom',
@@ -27,7 +28,8 @@ let appRegistry = [
     path: './doom/',
     category: 'game',
     defaultWidth: 1024,
-    defaultHeight: 768
+    defaultHeight: 768,
+    desktopIcon: true
   },
   {
     id: 'farm',
@@ -41,7 +43,8 @@ let appRegistry = [
     gradient: 'from-green-500/20 to-emerald-500/20',
     border: 'border-green-500/30 hover:border-green-400/50',
     taskbarGradient: 'from-green-400 to-emerald-500',
-    taskbarText: 'text-white'
+    taskbarText: 'text-white',
+    desktopIcon: true
   },
   {
     id: 'notepad',
@@ -51,13 +54,24 @@ let appRegistry = [
     detailedDescription: 'A simple text editor for taking notes',
     icon: '📝',
     path: './notepad/',
-    category: 'productivity',
+    category: 'utility',
     gradient: 'from-blue-500/20 to-indigo-500/20',
     border: 'border-blue-500/30 hover:border-blue-400/50',
     taskbarGradient: 'from-blue-400 to-indigo-500',
     taskbarText: 'text-white',
     defaultWidth: 600,
-    defaultHeight: 400
+    defaultHeight: 400,
+    system: true,
+    desktopIcon: true,
+    desktopPosition: { x: 30, y: 230 },
+    // MIME types this app can handle
+    handles: [
+      'text/*',
+      'application/json',
+      'application/javascript',
+      'application/xml',
+      'application/x-sh'
+    ]
   },
   {
     id: 'pacman',
@@ -161,7 +175,8 @@ let appRegistry = [
     gradient: 'from-teal-500/20 to-cyan-500/20',
     border: 'border-teal-500/30 hover:border-teal-400/50',
     taskbarGradient: 'from-teal-500 to-cyan-500',
-    taskbarText: 'text-white'
+    taskbarText: 'text-white',
+    desktopIcon: true
   },
   {
     id: 'youtube',
@@ -213,13 +228,16 @@ let appRegistry = [
     shortName: 'Terminal',
     description: 'Command line interface',
     detailedDescription: 'Interactive command line terminal',
-    icon: '🖥️',
+    icon: '💻',
     path: './terminal/',
     category: 'utility',
     gradient: 'from-gray-500/20 to-gray-700/20',
     border: 'border-gray-500/30 hover:border-gray-400/50',
     taskbarGradient: 'from-gray-500 to-gray-700',
-    taskbarText: 'text-white'
+    taskbarText: 'text-white',
+    system: true,
+    desktopIcon: true,
+    desktopPosition: { x: 30, y: 30 }
   },
   {
     id: 'calculator',
@@ -227,9 +245,12 @@ let appRegistry = [
     shortName: 'Calculator',
     description: 'Calculator',
     detailedDescription: 'Calculator',
-    icon: '🧮',
+    icon: '🔢',
     path: './calculator/',
-    category: 'utility'
+    category: 'utility',
+    system: true,
+    desktopIcon: true,
+    desktopPosition: { x: 30, y: 130 }
   },
   {
     id: 'minesweeper',
@@ -274,6 +295,62 @@ let appRegistry = [
     taskbarText: 'text-white',
     defaultWidth: 800,
     defaultHeight: 600
+  },
+  {
+    id: 'filemanager',
+    name: 'File Manager 📂',
+    shortName: 'Files',
+    description: 'Browse your filesystem',
+    detailedDescription: 'File manager with shared IndexedDB filesystem',
+    icon: '📂',
+    path: './filemanager/',
+    category: 'utility',
+    gradient: 'from-amber-500/20 to-yellow-500/20',
+    border: 'border-amber-500/30 hover:border-amber-400/50',
+    taskbarGradient: 'from-amber-500 to-yellow-500',
+    taskbarText: 'text-black',
+    defaultWidth: 900,
+    defaultHeight: 600,
+    desktopIcon: true,
+    system: true
+  },
+  {
+    id: 'media-player',
+    name: 'Media Player 🎵',
+    shortName: 'Media',
+    description: 'Play video and audio files',
+    detailedDescription: 'HTML5 media player for video (MP4, WebM) and audio (MP3, WAV, OGG)',
+    icon: '🎵',
+    path: './media-player/',
+    category: 'utility',
+    gradient: 'from-rose-500/20 to-pink-500/20',
+    border: 'border-rose-500/30 hover:border-rose-400/50',
+    taskbarGradient: 'from-rose-500 to-pink-500',
+    taskbarText: 'text-white',
+    defaultWidth: 800,
+    defaultHeight: 500,
+    system: true,
+    // MIME types this app can handle
+    handles: ['video/*', 'audio/*', 'application/x-youtube']
+  },
+  {
+    id: 'image-viewer',
+    name: 'Image Viewer 🖼️',
+    shortName: 'Images',
+    description: 'View image files',
+    detailedDescription: 'Image viewer with zoom, pan, and rotate for PNG, JPG, GIF, WebP, SVG',
+    icon: '🖼️',
+    path: './image-viewer/',
+    category: 'utility',
+    gradient: 'from-cyan-500/20 to-blue-500/20',
+    border: 'border-cyan-500/30 hover:border-cyan-400/50',
+    taskbarGradient: 'from-cyan-500 to-blue-500',
+    taskbarText: 'text-white',
+    defaultWidth: 800,
+    defaultHeight: 600,
+    system: true,
+    // MIME types this app can handle
+    handles: ['image/*']
   }
 ];
 
@@ -493,6 +570,54 @@ const AppModule = {
         gradient: app.gradient,
         border: app.border
       }));
+  },
+
+  // Get system apps (pinned to start menu, context menu, etc.)
+  getSystemApps: () => {
+    return AppModule.getAllApps().filter((app) => app.system === true);
+  },
+
+  // Get apps with desktop icons
+  getDesktopApps: () => {
+    return AppModule.getAllApps().filter((app) => app.desktopIcon === true);
+  },
+
+  // Get non-system apps (for launcher categories)
+  getNonSystemApps: () => {
+    return AppModule.getAllApps().filter((app) => app.system !== true);
+  },
+
+  /**
+   * Get the app that handles a given MIME type
+   * Apps register their supported types via the 'handles' array
+   * Supports wildcards like 'image/*' and 'text/*'
+   * @param {string} mimeType - The MIME type to find a handler for
+   * @returns {{ appId: string, appName: string } | null} App info or null if no handler
+   */
+  getAppForMimeType: (mimeType) => {
+    if (!mimeType) return null;
+
+    const [type, subtype] = mimeType.split('/');
+
+    for (const app of appRegistry) {
+      if (!app.handles) continue;
+
+      for (const pattern of app.handles) {
+        // Exact match
+        if (pattern === mimeType) {
+          return { appId: app.id, appName: app.name };
+        }
+        // Wildcard match (e.g., 'image/*' matches 'image/png')
+        if (pattern.endsWith('/*')) {
+          const patternType = pattern.slice(0, -2);
+          if (type === patternType) {
+            return { appId: app.id, appName: app.name };
+          }
+        }
+      }
+    }
+
+    return null;
   }
 };
 

@@ -1,10 +1,237 @@
 // IndexedDB-based Filesystem for Heyming Terminal
+// Works both as ES module (import) and as regular script (window.FileSystemDB)
 class FileSystemDB {
+  /**
+   * Debug logging - only logs when DEBUG flag is set
+   */
+  static _debug(...args) {
+    const debug = window.HeymingOS?.Config?.DEBUG || window.parent?.HeymingOS?.Config?.DEBUG;
+    if (debug) {
+      console.log('[FileSystemDB]', ...args);
+    }
+  }
+
+  /**
+   * Get the shared listeners object from the top window
+   * This ensures all iframes share the same event bus
+   */
+  static _getListeners() {
+    // Use window.top to share listeners across all iframes
+    const topWindow = window.top || window;
+    if (!topWindow._fileSystemListeners) {
+      topWindow._fileSystemListeners = {
+        create: [],
+        delete: [],
+        move: [],
+        copy: [],
+        change: [] // Catch-all for any change
+      };
+    }
+    return topWindow._fileSystemListeners;
+  }
+
+  /**
+   * Subscribe to filesystem events
+   * @param {string} event - Event type: 'create', 'delete', 'move', 'copy', 'change'
+   * @param {Function} callback - Callback function(path, details)
+   * @returns {Function} Unsubscribe function
+   */
+  static on(event, callback) {
+    const listeners = FileSystemDB._getListeners();
+    if (!listeners[event]) {
+      listeners[event] = [];
+    }
+    listeners[event].push(callback);
+
+    // Return unsubscribe function
+    return () => {
+      const index = listeners[event].indexOf(callback);
+      if (index > -1) {
+        listeners[event].splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * Emit a filesystem event
+   * @param {string} event - Event type
+   * @param {string} path - Path that changed
+   * @param {Object} details - Additional details about the change
+   */
+  static emit(event, path, details = {}) {
+    const listeners = FileSystemDB._getListeners();
+
+    // Emit specific event
+    if (listeners[event]) {
+      listeners[event].forEach((cb) => {
+        try {
+          cb(path, { event, ...details });
+        } catch (e) {
+          console.error('Filesystem event handler error:', e);
+        }
+      });
+    }
+
+    // Always emit 'change' for any event
+    if (event !== 'change' && listeners.change) {
+      listeners.change.forEach((cb) => {
+        try {
+          cb(path, { event, ...details });
+        } catch (e) {
+          console.error('Filesystem event handler error:', e);
+        }
+      });
+    }
+  }
+  // MIME type mappings
+  static MIME_TYPES = {
+    // Text
+    txt: 'text/plain',
+    md: 'text/markdown',
+    markdown: 'text/markdown',
+    html: 'text/html',
+    htm: 'text/html',
+    css: 'text/css',
+    csv: 'text/csv',
+    xml: 'text/xml',
+
+    // Code/Scripts
+    js: 'text/javascript',
+    mjs: 'text/javascript',
+    ts: 'text/typescript',
+    json: 'application/json',
+    py: 'text/x-python',
+    sh: 'text/x-shellscript',
+    bash: 'text/x-shellscript',
+    zsh: 'text/x-shellscript',
+    rb: 'text/x-ruby',
+    php: 'text/x-php',
+    java: 'text/x-java',
+    c: 'text/x-c',
+    cpp: 'text/x-c++',
+    h: 'text/x-c',
+    go: 'text/x-go',
+    rs: 'text/x-rust',
+    sql: 'text/x-sql',
+    yaml: 'text/yaml',
+    yml: 'text/yaml',
+    toml: 'text/x-toml',
+    ini: 'text/x-ini',
+    conf: 'text/plain',
+    log: 'text/plain',
+
+    // Images
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    svg: 'image/svg+xml',
+    webp: 'image/webp',
+    ico: 'image/x-icon',
+    bmp: 'image/bmp',
+
+    // Audio
+    mp3: 'audio/mpeg',
+    wav: 'audio/wav',
+    ogg: 'audio/ogg',
+    flac: 'audio/flac',
+    m4a: 'audio/mp4',
+
+    // Video
+    mp4: 'video/mp4',
+    webm: 'video/webm',
+    mov: 'video/quicktime',
+    avi: 'video/x-msvideo',
+    mkv: 'video/x-matroska',
+
+    // YouTube link
+    ytlink: 'application/x-youtube',
+
+    // Documents
+    pdf: 'application/pdf',
+    doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ppt: 'application/vnd.ms-powerpoint',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+
+    // Archives
+    zip: 'application/zip',
+    tar: 'application/x-tar',
+    gz: 'application/gzip',
+    '7z': 'application/x-7z-compressed',
+    rar: 'application/x-rar-compressed',
+
+    // Fonts
+    ttf: 'font/ttf',
+    otf: 'font/otf',
+    woff: 'font/woff',
+    woff2: 'font/woff2',
+
+    // Other
+    bin: 'application/octet-stream',
+    exe: 'application/x-executable'
+  };
+
   constructor() {
     this.dbName = 'HeymingTerminalFS';
     this.dbVersion = 1;
     this.db = null;
     this.isInitialized = false;
+  }
+
+  /**
+   * Get or create a shared singleton instance
+   * This ensures all components use the same FileSystemDB instance
+   * @returns {Promise<FileSystemDB>} Initialized FileSystemDB instance
+   */
+  static async getInstance() {
+    // Store singleton in window.top to share across iframes
+    const topWindow = window.top || window;
+
+    if (!topWindow._fileSystemDBInstance) {
+      topWindow._fileSystemDBInstance = new FileSystemDB();
+      await topWindow._fileSystemDBInstance.initialize();
+    }
+
+    return topWindow._fileSystemDBInstance;
+  }
+
+  /**
+   * Get MIME type from filename or extension
+   * @param {string} filename - Filename or path
+   * @returns {string} MIME type
+   */
+  static getMimeType(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    return FileSystemDB.MIME_TYPES[ext] || 'application/octet-stream';
+  }
+
+  /**
+   * Check if a MIME type is text-based (editable in notepad)
+   * @param {string} mimeType - MIME type to check
+   * @returns {boolean}
+   */
+  static isTextMimeType(mimeType) {
+    if (!mimeType) return false;
+    return (
+      mimeType.startsWith('text/') ||
+      mimeType === 'application/json' ||
+      mimeType === 'application/xml' ||
+      mimeType === 'application/javascript'
+    );
+  }
+
+  /**
+   * Get MIME type for a file item
+   * @param {Object} item - File item from filesystem
+   * @returns {string} MIME type
+   */
+  getMimeTypeForItem(item) {
+    if (item.mimeType) return item.mimeType;
+    if (item.type === 'directory') return 'inode/directory';
+    return FileSystemDB.getMimeType(item.path);
   }
 
   // Initialize the database
@@ -22,7 +249,7 @@ class FileSystemDB {
       request.onsuccess = () => {
         this.db = request.result;
         this.isInitialized = true;
-        console.log('IndexedDB filesystem initialized');
+        FileSystemDB._debug('IndexedDB filesystem initialized');
         resolve();
       };
 
@@ -44,8 +271,9 @@ class FileSystemDB {
   }
 
   // Create default filesystem structure
-  async createScaffolding(username = 'jheyming') {
-    const homeDir = `/home/${username}`;
+  async createScaffolding(username = null) {
+    const user = username || window.HeymingOS?.Config?.USER || 'jheyming';
+    const homeDir = `/home/${user}`;
     const defaultStructure = [
       // Root directory
       { path: '/', type: 'directory', parentPath: null, created: new Date(), modified: new Date() },
@@ -107,6 +335,26 @@ class FileSystemDB {
         created: new Date(),
         modified: new Date()
       },
+      {
+        path: `${homeDir}/Videos/Never Gonna Give You Up.ytlink`,
+        type: 'file',
+        parentPath: `${homeDir}/Videos`,
+        content: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        mimeType: 'application/x-youtube',
+        created: new Date(),
+        modified: new Date(),
+        size: 43
+      },
+      {
+        path: `${homeDir}/Videos/Keyboard Cat.ytlink`,
+        type: 'file',
+        parentPath: `${homeDir}/Videos`,
+        content: 'https://www.youtube.com/watch?v=J---aiyznGQ',
+        mimeType: 'application/x-youtube',
+        created: new Date(),
+        modified: new Date(),
+        size: 43
+      },
 
       // System directories
       {
@@ -160,10 +408,10 @@ class FileSystemDB {
         size: 0
       },
       {
-        path: `${homeDir}/Pictures/selfie.jpg`,
+        path: `${homeDir}/Pictures/tiger.svg`,
         type: 'file',
         parentPath: `${homeDir}/Pictures`,
-        content: '📸 A totally real selfie file\n[This would be binary data in a real filesystem]',
+        content: 'https://upload.wikimedia.org/wikipedia/commons/f/fd/Ghostscript_Tiger.svg',
         created: new Date(),
         modified: new Date(),
         size: 0
@@ -191,7 +439,7 @@ class FileSystemDB {
         path: '/etc/passwd',
         type: 'file',
         parentPath: '/etc',
-        content: `${username}:x:1000:1000:Joe Heyming:${homeDir}:/bin/jsh\nroot:x:0:0:Root:/root:/bin/bash`,
+        content: `${user}:x:1000:1000:Joe Heyming:${homeDir}:/bin/jsh\nroot:x:0:0:Root:/root:/bin/bash`,
         created: new Date(),
         modified: new Date(),
         size: 0
@@ -228,7 +476,7 @@ class FileSystemDB {
 
     // Set metadata to indicate scaffolding is complete
     await this.setMetadata('scaffolding_created', true);
-    console.log('Filesystem scaffolding created');
+    FileSystemDB._debug('Filesystem scaffolding created');
   }
 
   // Check if scaffolding exists
@@ -298,7 +546,7 @@ class FileSystemDB {
   // Read directory contents (OS-compatible interface)
   async readdir(path) {
     const entries = await this.listDirectory(path);
-    return entries.map(entry => ({
+    return entries.map((entry) => ({
       name: this.getFileName(entry.path),
       type: entry.type,
       size: entry.size || 0,
@@ -309,7 +557,7 @@ class FileSystemDB {
 
   // Stat file/directory (OS-compatible interface - alias for getItem)
   async stat(path) {
-    return await this.getItem(path);
+    return this.getItem(path);
   }
 
   // Open file (OS-compatible interface)
@@ -328,8 +576,8 @@ class FileSystemDB {
   }
 
   // Make directory (OS-compatible interface - alias for createDirectory)
-  async mkdir(path, mode = 0o755) {
-    return await this.createDirectory(path);
+  async mkdir(path, _mode = 0o755) {
+    return this.createDirectory(path);
   }
 
   // Remove directory (OS-compatible interface)
@@ -341,7 +589,7 @@ class FileSystemDB {
     if (item.type !== 'directory') {
       throw new Error(`Not a directory: ${path}`);
     }
-    return await this.deleteItem(path);
+    return this.deleteItem(path);
   }
 
   // Remove file (OS-compatible interface)
@@ -353,7 +601,7 @@ class FileSystemDB {
     if (item.type !== 'file') {
       throw new Error(`Not a file: ${path}`);
     }
-    return await this.deleteItem(path);
+    return this.deleteItem(path);
   }
 
   // Create file
@@ -377,6 +625,7 @@ class FileSystemDB {
       type: 'file',
       parentPath,
       content,
+      mimeType: FileSystemDB.getMimeType(path),
       size: new Blob([content]).size,
       created: existing ? existing.created : new Date(),
       modified: new Date()
@@ -387,7 +636,10 @@ class FileSystemDB {
       const store = transaction.objectStore('files');
       const request = store.put(file);
 
-      request.onsuccess = () => resolve(file);
+      request.onsuccess = () => {
+        FileSystemDB.emit('create', path, { type: 'file', parentPath });
+        resolve(file);
+      };
       request.onerror = () => reject(request.error);
     });
   }
@@ -423,7 +675,10 @@ class FileSystemDB {
       const store = transaction.objectStore('files');
       const request = store.put(directory);
 
-      request.onsuccess = () => resolve(directory);
+      request.onsuccess = () => {
+        FileSystemDB.emit('create', path, { type: 'directory', parentPath });
+        resolve(directory);
+      };
       request.onerror = () => reject(request.error);
     });
   }
@@ -436,6 +691,9 @@ class FileSystemDB {
     if (!item) {
       throw new Error(`No such file or directory: ${path}`);
     }
+
+    const itemType = item.type;
+    const parentPath = item.parentPath;
 
     if (item.type === 'directory') {
       const contents = await this.listDirectory(path);
@@ -454,7 +712,10 @@ class FileSystemDB {
       const store = transaction.objectStore('files');
       const request = store.delete(path);
 
-      request.onsuccess = () => resolve();
+      request.onsuccess = () => {
+        FileSystemDB.emit('delete', path, { type: itemType, parentPath });
+        resolve();
+      };
       request.onerror = () => reject(request.error);
     });
   }
@@ -529,7 +790,15 @@ class FileSystemDB {
       const putRequest = store.put(updatedItem);
       putRequest.onsuccess = () => {
         const deleteRequest = store.delete(oldPath);
-        deleteRequest.onsuccess = () => resolve(updatedItem);
+        deleteRequest.onsuccess = () => {
+          FileSystemDB.emit('move', newPath, {
+            type: item.type,
+            oldPath,
+            oldParentPath: item.parentPath,
+            newParentPath
+          });
+          resolve(updatedItem);
+        };
         deleteRequest.onerror = () => reject(deleteRequest.error);
       };
       putRequest.onerror = () => reject(putRequest.error);
@@ -558,7 +827,13 @@ class FileSystemDB {
     }
 
     if (source.type === 'file') {
-      return await this.createFile(destPath, source.content, false);
+      const result = await this.createFile(destPath, source.content, false);
+      FileSystemDB.emit('copy', destPath, {
+        type: 'file',
+        sourcePath,
+        parentPath: destParentPath
+      });
+      return result;
     } else if (source.type === 'directory') {
       if (!recursive) {
         throw new Error(`Cannot copy directory without recursive flag: ${sourcePath}`);
@@ -575,7 +850,12 @@ class FileSystemDB {
         await this.copyItem(child.path, newChildPath, true);
       }
 
-      return await this.getItem(destPath);
+      FileSystemDB.emit('copy', destPath, {
+        type: 'directory',
+        sourcePath,
+        parentPath: destParentPath
+      });
+      return this.getItem(destPath);
     }
   }
 
@@ -610,35 +890,70 @@ class FileSystemDB {
     return parts[parts.length - 1] || '';
   }
 
+  // Generate a unique path by appending (1), (2), etc. if path exists
+  async getUniquePath(basePath) {
+    // Check if path already exists
+    const existing = await this.getItem(basePath);
+    if (!existing) {
+      return basePath;
+    }
+
+    const parentPath = this.getParentPath(basePath);
+    const fileName = this.getFileName(basePath);
+
+    // Split filename into name and extension
+    const lastDot = fileName.lastIndexOf('.');
+    let name, ext;
+    if (lastDot > 0) {
+      name = fileName.substring(0, lastDot);
+      ext = fileName.substring(lastDot); // includes the dot
+    } else {
+      name = fileName;
+      ext = '';
+    }
+
+    // Try incrementing numbers until we find a unique name
+    let counter = 1;
+    let newPath;
+    do {
+      const newName = `${name} (${counter})${ext}`;
+      newPath = parentPath ? `${parentPath}/${newName}` : `/${newName}`;
+      counter++;
+    } while (await this.getItem(newPath));
+
+    return newPath;
+  }
+
   joinPath(parent, child) {
     if (parent === '/') return `/${child}`;
     return `${parent}/${child}`;
   }
 
   // Initialize filesystem with scaffolding if needed
-  async initializeWithScaffolding(username = 'jheyming') {
+  async initializeWithScaffolding(username = null) {
+    const user = username || window.HeymingOS?.Config?.USER || 'jheyming';
     await this.initialize();
 
     const hasScaffolding = await this.hasScaffolding();
-    console.log(`Filesystem scaffolding check: ${hasScaffolding}`);
-    
+    FileSystemDB._debug(`Filesystem scaffolding check: ${hasScaffolding}`);
+
     if (!hasScaffolding) {
-      console.log('No filesystem found, creating scaffolding...');
-      await this.createScaffolding(username);
+      FileSystemDB._debug('No filesystem found, creating scaffolding...');
+      await this.createScaffolding(user);
       // Generate /bin files for all registered commands
       await this.generateBinFiles();
-      console.log('Filesystem scaffolding created successfully');
+      FileSystemDB._debug('Filesystem scaffolding created successfully');
     } else {
-      console.log('Existing filesystem found');
+      FileSystemDB._debug('Existing filesystem found');
       // Check if critical directories exist
-      const homeExists = await this.getItem(`/home/${username}`);
-      console.log(`Home directory exists: ${!!homeExists}`);
-      
+      const homeExists = await this.getItem(`/home/${user}`);
+      FileSystemDB._debug(`Home directory exists: ${!!homeExists}`);
+
       if (!homeExists) {
-        console.log('Home directory missing, recreating scaffolding...');
-        await this.createScaffolding(username);
+        FileSystemDB._debug('Home directory missing, recreating scaffolding...');
+        await this.createScaffolding(user);
       }
-      
+
       // Always regenerate /bin files to keep them up to date
       await this.generateBinFiles();
     }
@@ -672,15 +987,15 @@ class FileSystemDB {
   // Generate /bin files for all registered commands
   async generateBinFiles() {
     if (!window.commandRegistry) {
-      console.log('Command registry not available, skipping /bin file generation');
+      FileSystemDB._debug('Command registry not available, skipping /bin file generation');
       return;
     }
 
-    console.log('Generating /bin files for registered commands...');
+    FileSystemDB._debug('Generating /bin files for registered commands...');
 
     // Get all registered commands
     const commands = window.commandRegistry.getCommands();
-    console.log(
+    FileSystemDB._debug(
       `Found ${commands.length} registered commands:`,
       commands.map((c) => c.name)
     );
@@ -701,16 +1016,6 @@ class FileSystemDB {
       );
 
       // Create or update the /bin file
-      const fileItem = {
-        path: binPath,
-        type: 'file',
-        parentPath: '/bin',
-        content: content,
-        created: new Date(),
-        modified: new Date(),
-        size: content.length
-      };
-
       try {
         await this.createFile(binPath, content, true); // overwrite = true
       } catch (error) {
@@ -718,7 +1023,7 @@ class FileSystemDB {
       }
     }
 
-    console.log(`Generated ${commands.length} /bin files`);
+    FileSystemDB._debug(`Generated ${commands.length} /bin files`);
   }
 
   // Generate the content for a command's /bin file
@@ -761,11 +1066,11 @@ module.exports = ${commandName};`;
     const metadataStore = transaction.objectStore('metadata');
 
     return new Promise((resolve, reject) => {
-      const clearFiles = filesStore.clear();
-      const clearMetadata = metadataStore.clear();
+      filesStore.clear();
+      metadataStore.clear();
 
       transaction.oncomplete = () => {
-        console.log('Database cleared successfully');
+        FileSystemDB._debug('Database cleared successfully');
         resolve();
       };
 
@@ -777,5 +1082,5 @@ module.exports = ${commandName};`;
   }
 }
 
-// Export for use in other modules
+// Export for use in other modules (and iframe access)
 window.FileSystemDB = FileSystemDB;

@@ -93,7 +93,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="app.js"></script>
     <script src="index.js"></script>
-    <script src="os.js"></script>
+    <!-- Heyming OS -->
+    <!-- FileSystemDB loaded as regular script (shared with iframes) -->
+    <script src="os/filesystem-db.js"></script>
+    <!-- OS modules (ES Module entry point) -->
+    <script type="module" src="os/index.js"></script>
     <link rel="stylesheet" href="index.css" />
     <link rel="stylesheet" href="os.css" />
 
@@ -439,6 +443,12 @@
 
           <!-- Running Apps Area -->
           <div id="running-apps" class="flex space-x-1 flex-1"></div>
+
+          <!-- Clock -->
+          <div
+            id="taskbar-clock"
+            class="text-white text-sm font-mono px-3 cursor-default select-none"
+          ></div>
 
           <!-- System Info -->
           <div id="system-info" class="text-green-400 text-sm font-mono">Heyming OS v1.0</div>

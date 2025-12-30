@@ -7,7 +7,7 @@ class SecurityManager {
     this.capabilities = new Map();
     this.securityPolicies = new Map();
     this.auditLog = [];
-    
+
     // Security levels
     this.SECURITY_LEVELS = {
       NONE: 0,
@@ -16,9 +16,9 @@ class SecurityManager {
       HIGH: 3,
       PARANOID: 4
     };
-    
+
     this.currentSecurityLevel = this.SECURITY_LEVELS.MEDIUM;
-    
+
     // Capabilities (Linux-style)
     this.CAPABILITIES = {
       CAP_CHOWN: 0,
@@ -58,14 +58,14 @@ class SecurityManager {
 
   async initialize() {
     this.kernel.log('Security Manager initializing');
-    
+
     // Create default users and groups
     await this.createDefaultUsers();
     await this.createDefaultGroups();
-    
+
     // Initialize security policies
     this.initializeSecurityPolicies();
-    
+
     // Set up audit logging
     this.setupAuditLogging();
   }
@@ -86,16 +86,15 @@ class SecurityManager {
     });
 
     // Default user
+    const defaultUser = window.parent?.HeymingOS?.Config?.USER || 'jheyming';
+    const defaultHome = window.parent?.HeymingOS?.Config?.HOME || '/home/jheyming';
     this.users.set(1000, {
       uid: 1000,
-      username: 'jheyming',
+      username: defaultUser,
       gid: 1000,
-      home: '/home/jheyming',
+      home: defaultHome,
       shell: '/bin/jsh',
-      capabilities: new Set([
-        this.CAPABILITIES.CAP_DAC_READ_SEARCH,
-        this.CAPABILITIES.CAP_FOWNER
-      ]),
+      capabilities: new Set([this.CAPABILITIES.CAP_DAC_READ_SEARCH, this.CAPABILITIES.CAP_FOWNER]),
       passwordHash: null,
       locked: false,
       lastLogin: null,
@@ -120,6 +119,8 @@ class SecurityManager {
   }
 
   async createDefaultGroups() {
+    const defaultUser = window.parent?.HeymingOS?.Config?.USER || 'jheyming';
+
     // Root group
     this.groups.set(0, {
       gid: 0,
@@ -130,7 +131,7 @@ class SecurityManager {
     // User group
     this.groups.set(1000, {
       gid: 1000,
-      groupname: 'jheyming',
+      groupname: defaultUser,
       members: new Set([1000])
     });
 
@@ -228,8 +229,8 @@ class SecurityManager {
 
   // Authentication
   async authenticate(username, password) {
-    const user = Array.from(this.users.values()).find(u => u.username === username);
-    
+    const user = Array.from(this.users.values()).find((u) => u.username === username);
+
     if (!user) {
       this.auditLog.push({
         timestamp: Date.now(),
@@ -257,7 +258,7 @@ class SecurityManager {
     if (!password && !user.passwordHash) {
       user.lastLogin = Date.now();
       user.loginAttempts = 0;
-      
+
       this.auditLog.push({
         timestamp: Date.now(),
         event: 'login_success',
@@ -265,7 +266,7 @@ class SecurityManager {
         uid: user.uid,
         success: true
       });
-      
+
       return user;
     }
 
@@ -273,7 +274,7 @@ class SecurityManager {
     if (user.passwordHash && this.verifyPassword(password, user.passwordHash)) {
       user.lastLogin = Date.now();
       user.loginAttempts = 0;
-      
+
       this.auditLog.push({
         timestamp: Date.now(),
         event: 'login_success',
@@ -281,7 +282,7 @@ class SecurityManager {
         uid: user.uid,
         success: true
       });
-      
+
       return user;
     }
 
@@ -341,7 +342,7 @@ class SecurityManager {
 
   checkFilePermission(path, operation, process) {
     const policy = this.securityPolicies.get('file_access');
-    
+
     // Check if path is restricted
     for (const restrictedPath of policy.restrictedPaths) {
       if (path.startsWith(restrictedPath) && process.uid !== 0) {
@@ -370,7 +371,7 @@ class SecurityManager {
   checkProcessKillPermission(targetPid, process) {
     const policy = this.securityPolicies.get('process');
     const targetProcess = this.kernel.processManager.getProcess(targetPid);
-    
+
     if (!targetProcess) {
       return false;
     }
@@ -387,7 +388,7 @@ class SecurityManager {
 
   checkNetworkBindPermission(port, process) {
     const policy = this.securityPolicies.get('network');
-    
+
     // Privileged ports (< 1024) require CAP_NET_BIND_SERVICE
     if (port < 1024 && policy.requireCapabilityForPrivilegedPorts) {
       const user = this.users.get(process.uid);
@@ -406,7 +407,7 @@ class SecurityManager {
   checkResourceLimit(resource, amount, process) {
     const policy = this.securityPolicies.get('resource');
     const user = this.users.get(process.uid);
-    
+
     if (!user || process.uid === 0) {
       return true; // Root has no limits
     }
@@ -421,8 +422,9 @@ class SecurityManager {
       case 'cpu_time':
         return amount <= policy.maxCpuTime;
       case 'processes':
-        const userProcesses = this.kernel.processManager.getAllProcesses()
-          .filter(p => p.uid === process.uid).length;
+        const userProcesses = this.kernel.processManager
+          .getAllProcesses()
+          .filter((p) => p.uid === process.uid).length;
         return userProcesses < policy.maxProcessesPerUser;
       default:
         return true;
@@ -478,7 +480,7 @@ class SecurityManager {
     };
 
     this.users.set(uid, user);
-    
+
     this.auditLog.push({
       timestamp: Date.now(),
       event: 'user_created',
@@ -501,7 +503,7 @@ class SecurityManager {
     }
 
     this.users.delete(uid);
-    
+
     this.auditLog.push({
       timestamp: Date.now(),
       event: 'user_deleted',
@@ -550,10 +552,10 @@ class SecurityManager {
     }
 
     this.currentSecurityLevel = level;
-    
+
     // Adjust policies based on security level
     this.adjustPoliciesForSecurityLevel(level);
-    
+
     this.auditLog.push({
       timestamp: Date.now(),
       event: 'security_level_changed',
@@ -573,21 +575,21 @@ class SecurityManager {
         processPolicy.allowFork = true;
         processPolicy.allowExec = true;
         break;
-        
+
       case this.SECURITY_LEVELS.LOW:
         filePolicy.enforcePermissions = true;
         processPolicy.allowFork = true;
         processPolicy.allowExec = true;
         resourcePolicy.maxProcessesPerUser = 200;
         break;
-        
+
       case this.SECURITY_LEVELS.MEDIUM:
         filePolicy.enforcePermissions = true;
         processPolicy.allowFork = true;
         processPolicy.allowExec = true;
         resourcePolicy.maxProcessesPerUser = 100;
         break;
-        
+
       case this.SECURITY_LEVELS.HIGH:
         filePolicy.enforcePermissions = true;
         filePolicy.allowSetuid = false;
@@ -595,7 +597,7 @@ class SecurityManager {
         processPolicy.allowExec = true;
         resourcePolicy.maxProcessesPerUser = 50;
         break;
-        
+
       case this.SECURITY_LEVELS.PARANOID:
         filePolicy.enforcePermissions = true;
         filePolicy.allowSetuid = false;
@@ -621,11 +623,11 @@ class SecurityManager {
   }
 
   getUserByName(username) {
-    return Array.from(this.users.values()).find(u => u.username === username);
+    return Array.from(this.users.values()).find((u) => u.username === username);
   }
 
   getGroupByName(groupname) {
-    return Array.from(this.groups.values()).find(g => g.groupname === groupname);
+    return Array.from(this.groups.values()).find((g) => g.groupname === groupname);
   }
 
   getAuditLog(limit = 100) {
@@ -639,10 +641,9 @@ class SecurityManager {
       userCount: this.users.size,
       groupCount: this.groups.size,
       auditLogSize: this.auditLog.length,
-      lockedUsers: Array.from(this.users.values()).filter(u => u.locked).length,
-      recentFailedLogins: this.auditLog.filter(entry => 
-        entry.event === 'login_failure' && 
-        Date.now() - entry.timestamp < 3600000 // Last hour
+      lockedUsers: Array.from(this.users.values()).filter((u) => u.locked).length,
+      recentFailedLogins: this.auditLog.filter(
+        (entry) => entry.event === 'login_failure' && Date.now() - entry.timestamp < 3600000 // Last hour
       ).length
     };
   }

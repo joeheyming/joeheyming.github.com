@@ -1,0 +1,364 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+  color: #fff;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#player-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Toolbar */
+#toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(to bottom, #2d2d44, #1a1a2e);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 4px;
+}
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+#toolbar button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+#toolbar button:hover:not(:disabled) {
+  background: rgba(233, 69, 96, 0.3);
+  border-color: #e94560;
+}
+
+#toolbar button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+#toolbar button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+#toolbar button.active {
+  background: rgba(233, 69, 96, 0.4);
+  border-color: #e94560;
+}
+
+#playback-speed {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+#playback-speed:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+#playback-speed option {
+  background: #1a1a2e;
+  color: #fff;
+}
+
+#time-display {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  padding: 0 8px;
+}
+
+/* Drop zone */
+#drop-zone {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  border: 3px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  margin: 20px;
+  transition: all 0.3s ease;
+}
+
+#drop-zone.active {
+  display: flex;
+}
+
+#drop-zone.drag-over {
+  border-color: #e94560;
+  background: rgba(233, 69, 96, 0.1);
+}
+
+.drop-content {
+  text-align: center;
+  padding: 40px;
+}
+
+.drop-content .icon {
+  font-size: 80px;
+  display: block;
+  margin-bottom: 20px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.drop-content h2 {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, #e94560, #ff6b6b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.drop-content p {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.drop-content .formats {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Media wrapper */
+#media-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  min-height: 0;
+  position: relative;
+}
+
+#media-wrapper.hidden {
+  display: none;
+}
+
+#media {
+  flex: 1;
+  width: 100%;
+  object-fit: contain;
+  background: #000;
+  min-height: 0;
+}
+
+/* Show native controls at bottom when playing audio */
+#media-wrapper.audio-mode #media {
+  position: absolute;
+  bottom: 40px;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 54px;
+  background: transparent;
+}
+
+/* YouTube container */
+#youtube-container {
+  flex: 1;
+  width: 100%;
+  display: none;
+  background: #000;
+}
+
+#youtube-container.visible {
+  display: flex;
+}
+
+#youtube-player {
+  width: 100%;
+  height: 100%;
+}
+
+/* Hide native video when showing YouTube */
+#media-wrapper.youtube-mode #media {
+  display: none;
+}
+
+#media-info {
+  height: 32px;
+  background: linear-gradient(to right, #1a1a2e, #16213e);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+#media-name {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Audio visualization */
+#audio-visual {
+  flex: 1;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 50%, #16213e 100%);
+  padding: 40px;
+  padding-bottom: 80px; /* Space for native controls */
+}
+
+#audio-visual.visible {
+  display: flex;
+}
+
+.album-art {
+  font-size: 120px;
+  margin-bottom: 30px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.audio-info {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+#audio-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+#audio-artist {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Visualizer bars */
+.visualizer {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  height: 60px;
+}
+
+.visualizer .bar {
+  width: 8px;
+  background: linear-gradient(to top, #e94560, #ff6b6b);
+  border-radius: 4px;
+  animation: visualize 0.5s ease-in-out infinite alternate;
+}
+
+.visualizer .bar:nth-child(1) {
+  animation-delay: 0s;
+  height: 20px;
+}
+.visualizer .bar:nth-child(2) {
+  animation-delay: 0.1s;
+  height: 35px;
+}
+.visualizer .bar:nth-child(3) {
+  animation-delay: 0.2s;
+  height: 45px;
+}
+.visualizer .bar:nth-child(4) {
+  animation-delay: 0.3s;
+  height: 30px;
+}
+.visualizer .bar:nth-child(5) {
+  animation-delay: 0.15s;
+  height: 50px;
+}
+.visualizer .bar:nth-child(6) {
+  animation-delay: 0.25s;
+  height: 25px;
+}
+.visualizer .bar:nth-child(7) {
+  animation-delay: 0.05s;
+  height: 40px;
+}
+.visualizer .bar:nth-child(8) {
+  animation-delay: 0.35s;
+  height: 30px;
+}
+
+@keyframes visualize {
+  to {
+    height: 60px;
+  }
+}
+
+/* Pause the visualizer when not playing */
+#media-wrapper:not(.playing) .visualizer .bar {
+  animation-play-state: paused;
+}
+
+/* Loading state */
+#media-wrapper.loading::after {
+  content: '⏳ Loading...';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.8);
+  z-index: 10;
+}

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Viewer - Heyming OS</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="viewer-container">
+      <!-- Toolbar -->
+      <div id="toolbar">
+        <div class="toolbar-group">
+          <button id="btn-open" title="Open Image (Ctrl+O)">📂 Open</button>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+          <button id="btn-zoom-out" title="Zoom Out (-)" disabled>➖</button>
+          <span id="zoom-level">100%</span>
+          <button id="btn-zoom-in" title="Zoom In (+)" disabled>➕</button>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+          <button id="btn-fit" title="Fit to Window (F)" disabled>⊡ Fit</button>
+          <button id="btn-actual" title="Actual Size (1)" disabled>1:1</button>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+          <button id="btn-rotate-left" title="Rotate Left (L)" disabled>↶</button>
+          <button id="btn-rotate-right" title="Rotate Right (R)" disabled>↷</button>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+          <button id="btn-fullscreen" title="Fullscreen (Enter)" disabled>⛶</button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <div class="toolbar-group">
+          <span id="image-info">No image</span>
+        </div>
+      </div>
+
+      <!-- Drop Zone -->
+      <div id="drop-zone" class="active">
+        <div class="drop-content">
+          <span class="icon">🖼️</span>
+          <h2>Image Viewer</h2>
+          <p>
+            Drop an image here or click
+            <strong>Open</strong>
+          </p>
+          <p class="formats">Supports: PNG, JPG, GIF, WebP, SVG, BMP</p>
+        </div>
+      </div>
+
+      <!-- Image Area -->
+      <div id="image-wrapper" class="hidden">
+        <div id="image-container">
+          <img id="image" draggable="false" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden file input -->
+    <input type="file" id="file-input" accept="image/*" style="display: none" />
+
+    <script src="image-viewer.js"></script>
+  </body>
+</html>

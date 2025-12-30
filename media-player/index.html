@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Media Player - Heyming OS</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="player-container">
+      <!-- Toolbar -->
+      <div id="toolbar">
+        <div class="toolbar-group">
+          <button id="btn-open" title="Open File (Ctrl+O)">📂 Open</button>
+          <button id="btn-close" title="Close Media" disabled>✖️ Close</button>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+          <button id="btn-skip-back" title="Skip Back 10s (←)" disabled>⏪</button>
+          <button id="btn-play-pause" title="Play/Pause (Space)" disabled>▶️</button>
+          <button id="btn-skip-forward" title="Skip Forward 10s (→)" disabled>⏩</button>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+          <button id="btn-loop" title="Loop (L)" disabled>🔁</button>
+          <select id="playback-speed" title="Playback Speed" disabled>
+            <option value="0.25">0.25x</option>
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+          </select>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+          <button id="btn-pip" title="Picture-in-Picture (P)" disabled>📺</button>
+          <button id="btn-fullscreen" title="Fullscreen (F)" disabled>⛶</button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <div class="toolbar-group">
+          <span id="time-display">--:-- / --:--</span>
+        </div>
+      </div>
+
+      <!-- Drop Zone -->
+      <div id="drop-zone" class="active">
+        <div class="drop-content">
+          <span class="icon">🎵</span>
+          <h2>Media Player</h2>
+          <p>
+            Drop a media file here or click
+            <strong>Open</strong>
+          </p>
+          <p class="formats">Video: MP4, WebM, YouTube &nbsp;|&nbsp; Audio: MP3, WAV, OGG, M4A</p>
+        </div>
+      </div>
+
+      <!-- Media Area -->
+      <div id="media-wrapper" class="hidden">
+        <!-- Video element (also used for audio) -->
+        <video id="media" controls>Your browser does not support the media tag.</video>
+
+        <!-- YouTube embed (shown when playing YouTube links) -->
+        <div id="youtube-container" class="hidden">
+          <iframe
+            id="youtube-player"
+            width="100%"
+            height="100%"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen
+          ></iframe>
+        </div>
+
+        <!-- Audio visualization (shown when playing audio) -->
+        <div id="audio-visual" class="hidden">
+          <div class="album-art">🎵</div>
+          <div class="audio-info">
+            <div id="audio-title">Unknown Track</div>
+            <div id="audio-artist">Unknown Artist</div>
+          </div>
+          <div class="visualizer">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+          </div>
+        </div>
+
+        <div id="media-info">
+          <span id="media-name"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden file input for opening files -->
+    <input type="file" id="file-input" accept="video/*,audio/*" style="display: none" />
+
+    <script src="id3-parser.js"></script>
+    <script src="media-player.js"></script>
+  </body>
+</html>
