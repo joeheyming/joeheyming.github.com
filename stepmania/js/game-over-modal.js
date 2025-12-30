@@ -55,7 +55,9 @@ export function getScoreData() {
     tapNoteScores: scores,
     actualPoints: gameState.getActualPoints(),
     totalNotes,
-    percentage
+    percentage,
+    score: gameState.getScore(),
+    maxCombo: gameState.getMaxCombo()
   };
 }
 
@@ -151,6 +153,26 @@ class GameOverModalElement extends HTMLElement {
           from { opacity: 0; }
           to { opacity: 1; }
         }
+        .stats-row {
+          display: flex;
+          justify-content: center;
+          gap: 1rem;
+          margin-top: 0.5rem;
+        }
+        .stat-item {
+          text-align: center;
+        }
+        .stat-label {
+          font-size: 0.75rem;
+          color: rgba(255, 255, 255, 0.6);
+          text-transform: uppercase;
+        }
+        .stat-value {
+          font-size: 1.25rem;
+          font-weight: bold;
+        }
+        .stat-value.score { color: #60a5fa; }
+        .stat-value.combo { color: #fbbf24; }
       </style>
       <div class="game-over-content">
         <h2 style="${titleColor}">${title}</h2>
@@ -159,8 +181,17 @@ class GameOverModalElement extends HTMLElement {
         <div class="score-box">
           <div class="grade" style="color: ${this._grade.color}">${this._grade.letter}</div>
           <div class="percentage">${this._percentage}</div>
+          <div class="stats-row">
+            <div class="stat-item">
+              <div class="stat-label">Score</div>
+              <div class="stat-value score">${(this._score || 0).toLocaleString()}</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Max Combo</div>
+              <div class="stat-value combo">${this._maxCombo || 0}</div>
+            </div>
+          </div>
           <div class="notes">${this._totalNotes} notes</div>
-          <div class="points">${this._totalPoints} points</div>
         </div>
 
         <div class="buttons">
@@ -247,6 +278,8 @@ class GameOverModalElement extends HTMLElement {
     this._percentage = percentage;
     this._totalNotes = totalNotes;
     this._totalPoints = gameState.getActualPoints();
+    this._score = gameState.getScore();
+    this._maxCombo = gameState.getMaxCombo();
 
     // Track analytics event
     if (typeof window.trackEvent === 'function') {

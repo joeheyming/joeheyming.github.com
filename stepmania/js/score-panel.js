@@ -137,12 +137,15 @@ export function createScoreMessage(scoreData, songInfo) {
   const [perfect, great, good, bad, miss] = scoreData.tapNoteScores;
   const grade = calculateGrade(scoreData.tapNoteScores, scoreData.totalNotes);
 
+  const score = scoreData.score ? scoreData.score.toLocaleString() : '0';
+  const maxCombo = scoreData.maxCombo || 0;
+
   return `I just played "${songInfo.title}" on StepMania with ${songInfo.difficulty}${
     songInfo.difficultyRating
   } difficulty!
 
-Grade: ${grade.letter} | Score: ${scoreData.percentage}
-Notes: ${scoreData.totalNotes} total, ${scoreData.actualPoints} points
+Grade: ${grade.letter} | Accuracy: ${scoreData.percentage}
+Score: ${score} | Max Combo: ${maxCombo}
 
 Perfect: ${perfect} | Great: ${great} | Good: ${good} | Bad: ${bad} | Miss: ${miss}
 
@@ -189,6 +192,12 @@ class ScorePanelElement extends HTMLElement {
     this._percentage = '0.00%';
     this._noteCount = 0;
     this._actualPoints = 0;
+
+    // Combo state
+    this._combo = 0;
+    this._maxCombo = 0;
+    this._multiplier = 1;
+    this._score = 0;
   }
 
   connectedCallback() {
@@ -212,6 +221,38 @@ class ScorePanelElement extends HTMLElement {
           backdrop-filter: blur(12px);
           border: 1px solid rgba(192, 132, 252, 0.3);
         }
+        .stats-row {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 0.75rem;
+          gap: 0.5rem;
+        }
+        .stat-box {
+          flex: 1;
+          text-align: center;
+          padding: 0.5rem;
+          background: rgba(0, 0, 0, 0.3);
+          border-radius: 0.5rem;
+        }
+        .stat-label {
+          font-size: 0.625rem;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.6);
+          margin-bottom: 0.25rem;
+        }
+        .stat-value {
+          font-weight: 700;
+          font-size: 1rem;
+        }
+        .stat-value.combo {
+          color: #fbbf24;
+        }
+        .stat-value.multiplier {
+          color: #34d399;
+        }
+        .stat-value.score {
+          color: #60a5fa;
+        }
         .percent-score {
           font-size: 1.875rem;
           font-weight: 700;
@@ -220,7 +261,7 @@ class ScorePanelElement extends HTMLElement {
           -webkit-background-clip: text;
           background-clip: text;
           color: transparent;
-          margin-bottom: 1rem;
+          margin-bottom: 0.75rem;
         }
         .score-list {
           display: flex;
@@ -253,6 +294,22 @@ class ScorePanelElement extends HTMLElement {
       
       <div class="score-container">
         <div class="percent-score" id="percent">${this._percentage}</div>
+        
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-label">Combo</div>
+            <div class="stat-value combo" id="combo">${this._combo}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Multi</div>
+            <div class="stat-value multiplier" id="multiplier">${this._multiplier}x</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Score</div>
+            <div class="stat-value score" id="gamified-score">${this._score.toLocaleString()}</div>
+          </div>
+        </div>
+        
         <div class="score-list">
           ${SCORE_LABELS.map(
             (label, i) => `
@@ -273,11 +330,18 @@ class ScorePanelElement extends HTMLElement {
    * @param {number[]} scores - Full array of current scores
    * @param {number} actualPoints - Current total points
    * @param {number} noteCount - Total number of notes
+   * @param {Object} comboData - Optional combo data { combo, multiplier, score, maxCombo }
    */
-  update(scoreIndex, scores, actualPoints, noteCount) {
+  update(scoreIndex, scores, actualPoints, noteCount, comboData = {}) {
     this._scores = [...scores];
     this._actualPoints = actualPoints;
     this._noteCount = noteCount;
+
+    // Update combo data if provided
+    if (comboData.combo !== undefined) this._combo = comboData.combo;
+    if (comboData.multiplier !== undefined) this._multiplier = comboData.multiplier;
+    if (comboData.score !== undefined) this._score = comboData.score;
+    if (comboData.maxCombo !== undefined) this._maxCombo = comboData.maxCombo;
 
     // Calculate percentage using shared utility
     this._percentage = formatPercentage(calculateScorePercentage(actualPoints, noteCount));
@@ -301,16 +365,46 @@ class ScorePanelElement extends HTMLElement {
     if (percentEl) {
       percentEl.textContent = this._percentage;
     }
+
+    // Update combo display
+    this._updateComboDisplay();
+  }
+
+  /**
+   * Update combo-related display elements
+   * @private
+   */
+  _updateComboDisplay() {
+    const comboEl = this.shadowRoot.getElementById('combo');
+    if (comboEl) {
+      comboEl.textContent = this._combo;
+    }
+
+    const multiplierEl = this.shadowRoot.getElementById('multiplier');
+    if (multiplierEl) {
+      multiplierEl.textContent = `${this._multiplier}x`;
+    }
+
+    const scoreEl = this.shadowRoot.getElementById('gamified-score');
+    if (scoreEl) {
+      scoreEl.textContent = this._score.toLocaleString();
+    }
   }
 
   /**
    * Update just the percentage display (e.g., for mine hits)
    * @param {number} actualPoints - Current total points
    * @param {number} noteCount - Total number of notes
+   * @param {Object} comboData - Optional combo data { combo, score, maxCombo }
    */
-  updatePercent(actualPoints, noteCount) {
+  updatePercent(actualPoints, noteCount, comboData = {}) {
     this._actualPoints = actualPoints;
     this._noteCount = noteCount;
+
+    // Update combo data if provided
+    if (comboData.combo !== undefined) this._combo = comboData.combo;
+    if (comboData.score !== undefined) this._score = comboData.score;
+    if (comboData.maxCombo !== undefined) this._maxCombo = comboData.maxCombo;
 
     // Calculate percentage using shared utility
     this._percentage = formatPercentage(calculateScorePercentage(actualPoints, noteCount));
@@ -319,6 +413,9 @@ class ScorePanelElement extends HTMLElement {
     if (percentEl) {
       percentEl.textContent = this._percentage;
     }
+
+    // Update combo display
+    this._updateComboDisplay();
   }
 
   /**
@@ -328,6 +425,10 @@ class ScorePanelElement extends HTMLElement {
     this._scores = [0, 0, 0, 0, 0, 0];
     this._percentage = '0.00%';
     this._actualPoints = 0;
+    this._combo = 0;
+    this._maxCombo = 0;
+    this._multiplier = 1;
+    this._score = 0;
 
     // Update all score elements
     for (let i = 0; i < 6; i++) {
@@ -342,6 +443,9 @@ class ScorePanelElement extends HTMLElement {
     if (percentEl) {
       percentEl.textContent = '0.00%';
     }
+
+    // Update combo display
+    this._updateComboDisplay();
   }
 
   /**
