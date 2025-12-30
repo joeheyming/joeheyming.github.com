@@ -299,6 +299,140 @@ const appCategories = {
   }
 };
 
+// Shared App Filter utility
+const AppFilter = {
+  /**
+   * Create a filterable app list manager
+   * @param {Object} config - Configuration object
+   * @param {HTMLElement} config.container - Container element for app items
+   * @param {HTMLElement} config.filterInput - Filter input element
+   * @param {HTMLElement} config.noResultsEl - "No results" message element (optional)
+   * @param {HTMLElement} config.clearButton - Clear filter button (optional)
+   * @param {Function} config.getSearchText - Function to extract search text from an element
+   * @param {Function} config.onFilter - Callback after filtering (optional)
+   * @returns {Object} - Filter controller with methods
+   */
+  create(config) {
+    const { container, filterInput, noResultsEl, clearButton, getSearchText, onFilter } = config;
+
+    const controller = {
+      filter(searchTerm) {
+        const term = (searchTerm || '').toLowerCase().trim();
+        const items = container.querySelectorAll('[data-filterable="true"]');
+        let visibleCount = 0;
+
+        items.forEach((item) => {
+          const searchText = getSearchText ? getSearchText(item) : item.textContent.toLowerCase();
+          const matches = !term || searchText.includes(term);
+
+          if (matches) {
+            item.style.display = '';
+            visibleCount++;
+          } else {
+            item.style.display = 'none';
+          }
+        });
+
+        // Handle no results message
+        if (noResultsEl) {
+          noResultsEl.classList.toggle('hidden', visibleCount > 0 || !term);
+        }
+
+        // Handle clear button visibility
+        if (clearButton) {
+          clearButton.classList.toggle('hidden', !term);
+        }
+
+        // Call optional callback
+        if (onFilter) {
+          onFilter({ visibleCount, searchTerm: term });
+        }
+
+        return visibleCount;
+      },
+
+      clear() {
+        if (filterInput) {
+          filterInput.value = '';
+        }
+        this.filter('');
+        if (filterInput) {
+          filterInput.focus();
+        }
+      },
+
+      reset() {
+        if (filterInput) {
+          filterInput.value = '';
+        }
+        this.filter('');
+      },
+
+      getFirstVisible() {
+        return container.querySelector('[data-filterable="true"]:not([style*="display: none"])');
+      },
+
+      // Bind standard keyboard shortcuts
+      bindKeyboardShortcuts(options = {}) {
+        const { onEscape, onEnter } = options;
+
+        if (filterInput) {
+          filterInput.addEventListener('keydown', (e) => {
+            // Ignore bare Meta key press (used for OS-level shortcuts like opening start menu)
+            // But allow Meta+key combos like Cmd+A (select all), Cmd+C (copy), etc.
+            if (e.key === 'Meta') {
+              e.stopPropagation();
+              return;
+            }
+
+            if (e.key === 'Escape') {
+              if (filterInput.value) {
+                e.stopPropagation();
+                this.clear();
+              } else if (onEscape) {
+                onEscape();
+              }
+            } else if (e.key === 'Enter') {
+              const first = this.getFirstVisible();
+              if (first) {
+                if (onEnter) {
+                  onEnter(first);
+                } else {
+                  first.click();
+                }
+              }
+            } else if (e.key === 'ArrowDown') {
+              e.preventDefault();
+              const first = this.getFirstVisible();
+              if (first) {
+                first.focus();
+              }
+            }
+          });
+
+          // Bind input event
+          filterInput.addEventListener('input', (e) => {
+            this.filter(e.target.value);
+          });
+        }
+
+        // Bind clear button
+        if (clearButton) {
+          clearButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.clear();
+          });
+        }
+      }
+    };
+
+    return controller;
+  }
+};
+
+// Expose globally
+window.AppFilter = AppFilter;
+
 // App module namespace
 const AppModule = {
   // Get all apps

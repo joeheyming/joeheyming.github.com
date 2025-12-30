@@ -7,6 +7,7 @@ class HeymingOS {
     this.activeWindow = null;
     this.launcherVisible = false;
     this.potentialActiveWindow = null;
+    this.launcherFilter = null; // Shared filter controller
 
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
@@ -22,6 +23,50 @@ class HeymingOS {
     this.loadAppsFromRegistry();
     this.handleViewportChanges();
     this.listenToIframeMessages();
+    this.initLauncherFilter();
+  }
+
+  initLauncherFilter() {
+    const filterInput = document.getElementById('launcher-filter');
+    const container = document.getElementById('launcher-apps-container');
+    const noResultsEl = document.getElementById('launcher-no-results');
+
+    if (filterInput && container && window.AppFilter) {
+      // Create shared filter controller
+      this.launcherFilter = AppFilter.create({
+        container: container,
+        filterInput: filterInput,
+        noResultsEl: noResultsEl,
+        getSearchText: (el) => el.getAttribute('data-search') || el.textContent.toLowerCase(),
+        onFilter: ({ searchTerm }) => {
+          // Hide/show category headers and separator based on filter
+          const separator = container.querySelector('.launcher-separator');
+          const categoryHeaders = container.querySelectorAll('.launcher-category-header');
+
+          if (searchTerm) {
+            // When filtering, hide headers and separator
+            if (separator) separator.style.display = 'none';
+            categoryHeaders.forEach((h) => (h.style.display = 'none'));
+          } else {
+            // When not filtering, show everything
+            if (separator) separator.style.display = '';
+            categoryHeaders.forEach((h) => (h.style.display = ''));
+          }
+        }
+      });
+
+      // Bind keyboard shortcuts
+      this.launcherFilter.bindKeyboardShortcuts({
+        onEscape: () => this.hideLauncher(),
+        onEnter: (firstVisible) => {
+          const appId = firstVisible.getAttribute('data-app');
+          if (appId) {
+            this.launchApp(appId);
+            this.hideLauncher();
+          }
+        }
+      });
+    }
   }
 
   loadAppsFromRegistry() {
@@ -230,6 +275,14 @@ class HeymingOS {
       menu.classList.add('show');
       this.launcherVisible = true;
 
+      // Clear and focus the filter input
+      if (this.launcherFilter) {
+        this.launcherFilter.reset();
+        const filterInput = document.getElementById('launcher-filter');
+        // Focus after a brief delay to ensure the menu is visible
+        setTimeout(() => filterInput?.focus(), 100);
+      }
+
       // Add staggered animation to app items
       this.animateAppItems();
     }
@@ -249,6 +302,10 @@ class HeymingOS {
           menu.classList.add('hidden');
           menu.classList.remove('hide');
           this.resetAppItemsAnimation();
+          // Reset filter display after menu is hidden
+          if (this.launcherFilter) {
+            this.launcherFilter.reset();
+          }
         }
       }, 300);
     }
@@ -324,17 +381,17 @@ class HeymingOS {
     const launcherMenu = document.getElementById('app-launcher-menu');
     if (!launcherMenu || !this.availableApps) return;
 
-    const appsContainer = launcherMenu.querySelector('.space-y-2');
+    const appsContainer = document.getElementById('launcher-apps-container');
     if (!appsContainer) return;
 
-    // Clear existing apps (except system apps)
+    // Clear existing apps
     appsContainer.innerHTML = '';
 
     // Add system apps first
     const systemApps = [
-      { id: 'terminal', name: '💻 Terminal' },
-      { id: 'calculator', name: '🔢 Calculator' },
-      { id: 'notepad', name: '📝 Notepad' }
+      { id: 'terminal', name: 'Terminal', icon: '💻', searchText: 'terminal system console' },
+      { id: 'calculator', name: 'Calculator', icon: '🔢', searchText: 'calculator math' },
+      { id: 'notepad', name: 'Notepad', icon: '📝', searchText: 'notepad text editor' }
     ];
 
     systemApps.forEach((sysApp) => {
@@ -342,18 +399,24 @@ class HeymingOS {
       button.className =
         'app-item w-full text-left px-3 py-2 text-white hover:bg-gray-700 rounded transition-colors duration-200';
       button.setAttribute('data-app', sysApp.id);
-      button.textContent = sysApp.name;
+      button.setAttribute('data-filterable', 'true');
+      button.setAttribute('data-search', sysApp.searchText);
+      button.innerHTML = `${sysApp.icon} ${sysApp.name}`;
       appsContainer.appendChild(button);
     });
 
     // Add separator
     const separator = document.createElement('div');
-    separator.className = 'border-t border-gray-600 my-2';
+    separator.className = 'border-t border-gray-600 my-2 launcher-separator';
     appsContainer.appendChild(separator);
 
-    // Group apps by category
+    // System app IDs to exclude from registry (already added above)
+    const systemAppIds = ['terminal', 'calculator', 'notepad'];
+
+    // Group apps by category (excluding system apps)
     const categories = {};
     this.availableApps.forEach((app) => {
+      if (systemAppIds.includes(app.id)) return; // Skip system apps
       if (!categories[app.category]) {
         categories[app.category] = [];
       }
@@ -374,7 +437,8 @@ class HeymingOS {
       // Add category header
       const categoryHeader = document.createElement('div');
       categoryHeader.className =
-        'text-gray-400 text-xs font-bold uppercase tracking-wide px-3 py-1 mt-3 mb-1';
+        'text-gray-400 text-xs font-bold uppercase tracking-wide px-3 py-1 mt-3 mb-1 launcher-category-header';
+      categoryHeader.setAttribute('data-category', category);
       categoryHeader.textContent = this.getCategoryName(category);
       appsContainer.appendChild(categoryHeader);
 
@@ -384,6 +448,12 @@ class HeymingOS {
         button.className =
           'app-item w-full text-left px-3 py-2 text-white hover:bg-gray-700 rounded transition-colors duration-200';
         button.setAttribute('data-app', app.id);
+        button.setAttribute('data-category', category);
+        button.setAttribute('data-filterable', 'true');
+        button.setAttribute(
+          'data-search',
+          `${app.shortName} ${app.name} ${app.category} ${app.icon}`.toLowerCase()
+        );
         button.innerHTML = `${app.icon} ${app.shortName}`;
         appsContainer.appendChild(button);
       });
