@@ -111,11 +111,16 @@ function generateHamburgerMenuItems() {
   // Clear existing content
   menuContainer.innerHTML = '';
 
-  // Generate menu items
+  // Generate menu items with data-filterable attribute
   menuItems.forEach((app) => {
     const menuItem = document.createElement('a');
     menuItem.href = app.path;
     menuItem.className = `hamburger-app-link flex items-center space-x-3 p-3 rounded-lg bg-gradient-to-r ${app.gradient} border ${app.border} transition-all duration-200 group`;
+    menuItem.setAttribute('data-filterable', 'true');
+    menuItem.setAttribute(
+      'data-search',
+      `${app.name} ${app.description} ${app.icon}`.toLowerCase()
+    );
 
     menuItem.innerHTML = `
       <span class="text-2xl">${app.icon}</span>
@@ -138,8 +143,26 @@ function initHamburgerMenu() {
   const hamburgerToggle = document.getElementById('hamburger-toggle');
   const hamburgerPanel = document.getElementById('hamburger-panel');
   const menuClose = document.getElementById('menu-close');
+  const filterInput = document.getElementById('hamburger-filter');
+  const filterClear = document.getElementById('filter-clear');
+  const noResults = document.getElementById('no-results');
+  const menuContainer = document.getElementById('hamburger-app-links');
 
   let isMenuOpen = false;
+
+  // Create shared filter controller
+  const filterController = AppFilter.create({
+    container: menuContainer,
+    filterInput: filterInput,
+    noResultsEl: noResults,
+    clearButton: filterClear,
+    getSearchText: (el) => el.getAttribute('data-search') || el.textContent.toLowerCase()
+  });
+
+  // Bind keyboard shortcuts
+  filterController.bindKeyboardShortcuts({
+    onEscape: () => closeMenu()
+  });
 
   function toggleMenu() {
     isMenuOpen = !isMenuOpen;
@@ -148,6 +171,14 @@ function initHamburgerMenu() {
       // Open menu
       hamburgerToggle.classList.add('active');
       hamburgerPanel.classList.add('show');
+
+      // Clear filter and focus input
+      filterController.reset();
+
+      // Focus the filter input after a short delay for the animation
+      setTimeout(() => {
+        filterInput.focus();
+      }, 300);
 
       // Add staggered animation to links
       const links = hamburgerPanel.querySelectorAll('.hamburger-app-link');
@@ -160,6 +191,9 @@ function initHamburgerMenu() {
       // Close menu
       hamburgerToggle.classList.remove('active');
       hamburgerPanel.classList.remove('show');
+
+      // Clear filter
+      filterController.reset();
 
       // Reset link opacity
       const links = hamburgerPanel.querySelectorAll('.hamburger-app-link');
