@@ -214,6 +214,9 @@ export class SimfileParser {
         });
       }
     }
+
+    // Sort charts by rating (easiest first) so index 0 is always the easiest
+    this.charts.sort((a, b) => a.rating - b.rating);
   }
 
   /**

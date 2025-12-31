@@ -138,10 +138,14 @@ export class StepButton extends HTMLElement {
 
     button.addEventListener('click', handleClick);
 
-    button.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      handleClick();
-    });
+    button.addEventListener(
+      'touchstart',
+      (e) => {
+        e.preventDefault();
+        handleClick();
+      },
+      { passive: false }
+    );
   }
 
   addPressedFeedback() {

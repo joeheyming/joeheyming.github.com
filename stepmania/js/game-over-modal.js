@@ -4,6 +4,7 @@
 import { adoptSharedStyles } from './sharedStyles.js';
 import { createComponentProxy } from './componentProxy.js';
 import gameState from './gameState.js';
+import { songManager } from './songManager.js';
 import { calculateGrade, createScoreMessage, ScorePanel } from './score-panel.js';
 import { getURLParam } from './urlUtils.js';
 
@@ -72,14 +73,12 @@ export function getCurrentSongInfo() {
   let difficultyName = 'Unknown';
   let difficultyRating = '';
 
-  const currentSongData = gameState.getCurrentSongData();
+  const currentSongData = songManager.getCurrentSongData();
   if (currentSongData) {
     songTitle = currentSongData.title || songTitle;
 
-    const currentSongKey = gameState.getCurrentSongKey();
-    const parsedData = gameState.getParsedSong(currentSongKey);
-
-    const currentDifficulty = gameState.getCurrentDifficulty();
+    const parsedData = songManager.getCurrentParsedData();
+    const currentDifficulty = songManager.getCurrentDifficulty();
     if (parsedData && parsedData.charts && currentDifficulty !== null) {
       const chart = parsedData.charts[currentDifficulty];
       if (chart) {

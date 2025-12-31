@@ -1,14 +1,15 @@
 // Universal Proxy Service Module - supports both simfiles and ROM files
 class ProxyService {
   constructor() {
-    // Proxy services ordered roughly by reliability (as of 2024-2025)
+    // Proxy services ordered roughly by reliability (as of late 2024-2025)
     // Note: Free proxies can become unreliable - check/update periodically
     this.proxyOptions = [
-      'https://api.allorigins.win/raw?url=', // Generally reliable
-      'https://corsproxy.io/?', // Usually works
+      'https://corsproxy.io/?', // Most reliable as of 2025
       'https://api.codetabs.com/v1/proxy?quest=', // Rate limited but works
-      'https://proxy.cors.sh/', // Newer option
+      'https://proxy.cors.sh/', // Works for many sites
+      'https://api.allorigins.win/raw?url=', // Can be unreliable, sometimes returns 500
       'https://thingproxy.freeboard.io/fetch/', // Alternative
+      'https://corsproxy.org/?', // Alternative to corsproxy.io
       'https://cors-anywhere.herokuapp.com/' // Requires activation at cors-anywhere.herokuapp.com/corsdemo
     ];
     this.cache = new Map();

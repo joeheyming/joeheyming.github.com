@@ -1,6 +1,6 @@
 // Gamepad integration for StepMania - ES Module
 // Supports dance pads, PS2 controllers, and other gamepads
-import { step, addButtonFeedback } from './stepmania.js';
+import { inputManager } from './inputManager.js';
 
 export class GamepadManager {
   constructor() {
@@ -264,9 +264,8 @@ export class GamepadManager {
     }
 
     if (column !== undefined) {
-      // Call step and addButtonFeedback directly
-      step(column);
-      addButtonFeedback(column);
+      // Trigger step via InputManager (handles step + visual feedback)
+      inputManager.triggerStep(column);
 
       if (this.debugMode) {
         this.showDebugFeedback(direction, column);

@@ -6,6 +6,9 @@ class ZeniusBrowserElement extends HTMLElement {
   /** @type {ZeniusBrowserElement|null} */
   static _instance = null;
 
+  /** @type {Map<string, {hasVideo: boolean, difficulties: Array}>} */
+  static simfileMetadataCache = new Map();
+
   /**
    * Get the singleton instance of the zenius browser
    * @returns {ZeniusBrowserElement|null}
@@ -17,12 +20,32 @@ class ZeniusBrowserElement extends HTMLElement {
     return ZeniusBrowserElement._instance;
   }
 
+  /**
+   * Update metadata cache for a simfile (called when a song is loaded)
+   * @param {string} simfileId - The simfile ID
+   * @param {Object} metadata - Metadata object with hasVideo, difficulties, etc.
+   */
+  static updateSimfileMetadata(simfileId, metadata) {
+    ZeniusBrowserElement.simfileMetadataCache.set(simfileId, metadata);
+  }
+
+  /**
+   * Get cached metadata for a simfile
+   * @param {string} simfileId - The simfile ID
+   * @returns {Object|null}
+   */
+  static getSimfileMetadata(simfileId) {
+    return ZeniusBrowserElement.simfileMetadataCache.get(simfileId) || null;
+  }
+
   constructor() {
     super();
     this.currentPath = '';
     this.breadcrumbs = [];
     this.currentCategoryName = '';
     this.cache = new Map();
+    this.lastBrowsedCategoryId = null;
+    this.lastBrowsedCategoryName = null;
     this.attachShadow({ mode: 'open' });
   }
 
@@ -133,6 +156,12 @@ class ZeniusBrowserElement extends HTMLElement {
   showBrowser() {
     this.classList.add('modal-open');
     this.shadowRoot.getElementById('zenius-browser-modal').classList.add('show');
+
+    // If we have a remembered category and we're at home, navigate to it
+    if (this.lastBrowsedCategoryId && this.currentPath === '') {
+      this.currentCategoryName = this.lastBrowsedCategoryName || 'Category';
+      this.navigateToPath(`categoryid=${this.lastBrowsedCategoryId}`);
+    }
   }
 
   hideBrowser() {
@@ -173,7 +202,24 @@ class ZeniusBrowserElement extends HTMLElement {
     const count = currentContent ? currentContent.items.length : 0;
 
     itemCountEl.textContent = `${count} items`;
-    currentPathEl.textContent = this.currentPath || 'Home';
+
+    // Show link to Zenius page when viewing a category
+    if (this.currentPath.startsWith('categoryid=')) {
+      const zeniusUrl = this.getCurrentUrl();
+      const linkText = this.currentCategoryName || 'View on Zenius';
+      // Create link element safely to avoid XSS from scraped category names
+      const link = document.createElement('a');
+      link.href = zeniusUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.className = 'zenius-link';
+      link.title = 'Open on Zenius-I-Vanisher';
+      link.textContent = `🔗 ${linkText}`;
+      currentPathEl.innerHTML = '';
+      currentPathEl.appendChild(link);
+    } else {
+      currentPathEl.textContent = this.currentPath || 'Home';
+    }
   }
 
   getCurrentUrl() {
@@ -273,6 +319,11 @@ class ZeniusBrowserElement extends HTMLElement {
       const simfileLinks = doc.querySelectorAll('a[href*="viewsimfile.php"]');
       if (simfileLinks.length > 0) {
         content.type = 'simfiles';
+
+        // Try to detect difficulty column headers from the table
+        const difficultyNames = ['Beginner', 'Basic', 'Difficult', 'Expert', 'Challenge'];
+        const difficultyShort = ['B', 'L', 'S', 'H', 'C'];
+
         simfileLinks.forEach((link) => {
           const href = link.getAttribute('href');
           const text = link.textContent.trim();
@@ -281,12 +332,87 @@ class ZeniusBrowserElement extends HTMLElement {
             const simfileId = urlParams.get('simfileid');
 
             if (simfileId) {
+              // Try to get additional info from the parent row
+              const row = link.closest('tr');
+              let hasVideo = false;
+              let difficulties = [];
+
+              if (row) {
+                const rowHtml = row.innerHTML;
+                // Check for video indicators:
+                // 1. [V] span with title="Vid Exist" (Zenius uses this)
+                // 2. .avi file mentioned in row
+                hasVideo =
+                  rowHtml.includes('Vid Exist') ||
+                  rowHtml.includes('[V]') ||
+                  rowHtml.toLowerCase().includes('.avi');
+
+                // Extract numeric difficulty ratings from table cells
+                const cells = row.querySelectorAll('td');
+                let diffIndex = 0;
+
+                cells.forEach((cell) => {
+                  const cellText = cell.textContent.trim();
+                  // Check if cell contains a difficulty number (1-20)
+                  const numMatch = cellText.match(/^(\d{1,2})$/);
+                  if (numMatch) {
+                    const rating = parseInt(numMatch[1]);
+                    if (rating >= 1 && rating <= 20) {
+                      // Try to determine difficulty type from cell class, title, or position
+                      let diffName = difficultyNames[diffIndex % 5] || 'Unknown';
+                      let diffShort = difficultyShort[diffIndex % 5] || '?';
+
+                      // Check cell title attribute for difficulty name
+                      const title = cell.getAttribute('title') || '';
+                      for (let i = 0; i < difficultyNames.length; i++) {
+                        if (title.toLowerCase().includes(difficultyNames[i].toLowerCase())) {
+                          diffName = difficultyNames[i];
+                          diffShort = difficultyShort[i];
+                          break;
+                        }
+                      }
+
+                      // Check for difficulty icon images
+                      const img = cell.querySelector('img');
+                      if (img) {
+                        const src = img.getAttribute('src') || '';
+                        if (src.includes('beginner')) {
+                          diffName = 'Beginner';
+                          diffShort = 'B';
+                        } else if (src.includes('light') || src.includes('basic')) {
+                          diffName = 'Basic';
+                          diffShort = 'L';
+                        } else if (src.includes('standard') || src.includes('difficult')) {
+                          diffName = 'Difficult';
+                          diffShort = 'S';
+                        } else if (src.includes('heavy') || src.includes('expert')) {
+                          diffName = 'Expert';
+                          diffShort = 'H';
+                        } else if (src.includes('challenge') || src.includes('oni')) {
+                          diffName = 'Challenge';
+                          diffShort = 'C';
+                        }
+                      }
+
+                      difficulties.push({
+                        rating: rating,
+                        name: diffName,
+                        short: diffShort
+                      });
+                      diffIndex++;
+                    }
+                  }
+                });
+              }
+
               content.items.push({
                 type: 'simfile',
                 name: text,
                 url: href,
-                icon: '🎵',
-                simfileId: simfileId
+                icon: hasVideo ? '🎬' : '🎵',
+                simfileId: simfileId,
+                hasVideo: hasVideo,
+                difficulties: difficulties
               });
             }
           }
@@ -301,7 +427,9 @@ class ZeniusBrowserElement extends HTMLElement {
     const gridEl = this.shadowRoot.getElementById('content-grid');
     gridEl.innerHTML = '';
 
-    if (content.items.length === 0) {
+    // Defensive check for missing or empty content
+    const items = content?.items || [];
+    if (items.length === 0) {
       gridEl.innerHTML = `
         <div class="empty-state">
           <div class="empty-state-icon">📂</div>
@@ -312,7 +440,12 @@ class ZeniusBrowserElement extends HTMLElement {
       return;
     }
 
-    content.items.forEach((item) => {
+    // Sort items alphabetically by name
+    const sortedItems = [...items].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    );
+
+    sortedItems.forEach((item) => {
       const itemEl = this.createContentItem(item, path);
       gridEl.appendChild(itemEl);
     });
@@ -329,17 +462,50 @@ class ZeniusBrowserElement extends HTMLElement {
       linkEl.href = `${window.location.origin}${window.location.pathname}?zenius=${fullZeniusUrl}`;
       linkEl.className = 'content-item';
 
+      // Check cached metadata for this simfile (set when song was loaded)
+      const cachedMeta = ZeniusBrowserElement.getSimfileMetadata(item.simfileId);
+
+      // Use cached data if available, otherwise use what we parsed from the category page
+      const hasVideo = cachedMeta?.hasVideo || item.hasVideo;
+      const difficulties =
+        cachedMeta?.difficulties && cachedMeta.difficulties.length > 0
+          ? cachedMeta.difficulties
+          : item.difficulties;
+      const icon = hasVideo ? '🎬' : '🎵';
+
+      // Build badges for video and difficulties
+      let badges = '';
+      if (hasVideo) {
+        badges += '<span class="badge badge-video" title="Has Video">🎬 Video</span>';
+      }
+      if (difficulties && difficulties.length > 0) {
+        const diffBadges = difficulties
+          .map((d) => {
+            const shortCode = d.short ? d.short.toLowerCase() : 'u';
+            const tooltip = d.name ? `${d.name} (${d.rating})` : `Level ${d.rating}`;
+            return `<span class="badge badge-diff badge-diff-${shortCode}" title="${tooltip}">${d.rating}</span>`;
+          })
+          .join('');
+        badges += diffBadges;
+      }
+
       linkEl.innerHTML = `
-        <div class="content-icon">${item.icon}</div>
+        <div class="content-icon">${icon}</div>
         <div class="content-info">
           <h3>${item.name}</h3>
-          <p>Simfile</p>
+          <div class="simfile-badges">${badges}</div>
         </div>
+        <a href="${fullZeniusUrl}" target="_blank" rel="noopener noreferrer" class="simfile-external-link" title="View on Zenius-I-Vanisher" onclick="event.stopPropagation();">🔗</a>
       `;
 
       linkEl.addEventListener('click', () => {
         if (typeof window.trackEvent === 'function') {
           window.trackEvent('song_browser_song_select', 'StepMania', item.name);
+        }
+        // Remember the current category so we can preselect it when reopening
+        if (this.currentPath.startsWith('categoryid=')) {
+          this.lastBrowsedCategoryId = this.currentPath.replace('categoryid=', '');
+          this.lastBrowsedCategoryName = this.currentCategoryName;
         }
       });
 
@@ -388,14 +554,33 @@ class ZeniusBrowserElement extends HTMLElement {
       return;
     }
 
+    // When in category view, only search within the current category's simfiles
+    const inCategoryView = this.currentPath.startsWith('categoryid=');
+    const currentUrl = this.getCurrentUrl();
+
     const searchResults = [];
-    this.cache.forEach((content, url) => {
-      content.items.forEach((item) => {
-        if (item.name.toLowerCase().includes(query.toLowerCase())) {
-          searchResults.push({ ...item, sourceUrl: url });
+
+    if (inCategoryView) {
+      // Only search within current category
+      const currentContent = this.cache.get(currentUrl);
+      const items = currentContent?.items || [];
+      items.forEach((item) => {
+        const matchesSearch = item.name.toLowerCase().includes(query.toLowerCase());
+        if (item.type === 'simfile' && matchesSearch) {
+          searchResults.push({ ...item, sourceUrl: currentUrl });
         }
       });
-    });
+    } else {
+      // Search all cached content
+      this.cache.forEach((content, url) => {
+        const items = content?.items || [];
+        items.forEach((item) => {
+          if (item.name.toLowerCase().includes(query.toLowerCase())) {
+            searchResults.push({ ...item, sourceUrl: url });
+          }
+        });
+      });
+    }
 
     this.displaySearchResults(searchResults);
   }
@@ -415,7 +600,12 @@ class ZeniusBrowserElement extends HTMLElement {
       return;
     }
 
-    results.forEach((item) => {
+    // Sort results alphabetically by name
+    const sortedResults = [...results].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    );
+
+    sortedResults.forEach((item) => {
       const itemEl = this.createContentItem(item, '');
       gridEl.appendChild(itemEl);
     });
