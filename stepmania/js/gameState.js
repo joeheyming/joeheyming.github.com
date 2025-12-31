@@ -1,5 +1,6 @@
 // Game State Module - ES Module
-// Single source of truth for StepMania game state
+// Manages gameplay state: scores, combos, health, active song config (BPM, notes)
+// Note: Song metadata (what song is loaded) is managed by songManager
 
 /** Default song configuration */
 const DEFAULT_SONG = {
@@ -108,13 +109,8 @@ class GameState {
     // Scroll speed
     this.scrollSpeed = DEFAULT_SCROLL_SPEED;
 
-    // Current song info (set by mainPageController)
-    this.currentSongData = null;
-    this.currentSongKey = null;
-    this.currentDifficulty = null;
-
-    // Parsed songs cache
-    this.parsedSongs = {};
+    // Note: Song metadata (currentSongKey, currentDifficulty, parsedSongs)
+    // is managed by songManager - import it directly when needed
 
     // Error handling
     this.lastError = null;
@@ -577,84 +573,6 @@ class GameState {
   }
 
   // ==========================================================================
-  // CURRENT SONG INFO
-  // ==========================================================================
-
-  /**
-   * Get current song data
-   * @returns {Object|null}
-   */
-  getCurrentSongData() {
-    return this.currentSongData;
-  }
-
-  /**
-   * Set current song data
-   * @param {Object} data
-   */
-  setCurrentSongData(data) {
-    this.currentSongData = data;
-  }
-
-  /**
-   * Get current song key
-   * @returns {string|null}
-   */
-  getCurrentSongKey() {
-    return this.currentSongKey;
-  }
-
-  /**
-   * Set current song key
-   * @param {string} key
-   */
-  setCurrentSongKey(key) {
-    this.currentSongKey = key;
-  }
-
-  /**
-   * Get current difficulty index
-   * @returns {number|null}
-   */
-  getCurrentDifficulty() {
-    return this.currentDifficulty;
-  }
-
-  /**
-   * Set current difficulty
-   * @param {number} difficulty
-   */
-  setCurrentDifficulty(difficulty) {
-    this.currentDifficulty = difficulty;
-  }
-
-  /**
-   * Get all parsed songs
-   * @returns {Object<string, Object>}
-   */
-  getParsedSongs() {
-    return this.parsedSongs;
-  }
-
-  /**
-   * Set a parsed song
-   * @param {string} key - Song key
-   * @param {Object} data - Parsed song data
-   */
-  setParsedSong(key, data) {
-    this.parsedSongs[key] = data;
-  }
-
-  /**
-   * Get a parsed song by key
-   * @param {string} key
-   * @returns {Object|undefined}
-   */
-  getParsedSong(key) {
-    return this.parsedSongs[key];
-  }
-
-  // ==========================================================================
   // STATE MANAGEMENT
   // ==========================================================================
 
@@ -718,7 +636,8 @@ class GameState {
   }
 
   /**
-   * Get a snapshot of all game state (useful for debugging)
+   * Get a snapshot of gameplay state (useful for debugging)
+   * Note: For song metadata, use songManager directly
    * @returns {Object}
    */
   getStateSnapshot() {
@@ -730,8 +649,6 @@ class GameState {
       points: this.actualPoints,
       mineHits: this.mineHits,
       scrollSpeed: this.scrollSpeed,
-      currentSongKey: this.currentSongKey,
-      currentDifficulty: this.currentDifficulty,
       lastError: this.lastError,
       health: this.health,
       failed: this.failed,

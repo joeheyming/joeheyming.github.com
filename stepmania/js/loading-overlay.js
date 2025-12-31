@@ -41,6 +41,11 @@ class LoadingOverlayElement extends HTMLElement {
     this._charts = [];
     this._currentDifficulty = 0;
 
+    // Video state
+    this._hasVideo = false;
+    this._videoStatus = null;
+    this._videoProgress = 0;
+
     // Callbacks
     this._onPlay = null;
     this._onBrowse = null;
@@ -212,6 +217,37 @@ class LoadingOverlayElement extends HTMLElement {
           box-shadow: 0 0 0 2px #a855f7;
           border-color: transparent;
         }
+        .video-status {
+          margin-top: 1rem;
+          padding: 0.5rem 1rem;
+          border-radius: 0.5rem;
+          font-size: 0.875rem;
+          display: inline-block;
+        }
+        .video-status.hidden {
+          display: none;
+        }
+        .video-pending {
+          background: rgba(107, 114, 128, 0.3);
+          color: #9ca3af;
+        }
+        .video-loading {
+          background: rgba(59, 130, 246, 0.3);
+          color: #93c5fd;
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+        .video-ready {
+          background: rgba(34, 197, 94, 0.3);
+          color: #86efac;
+        }
+        .video-failed {
+          background: rgba(239, 68, 68, 0.2);
+          color: #fca5a5;
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
       </style>
 
       <div class="overlay ${isHidden ? 'hidden' : ''}" id="overlay">
@@ -229,6 +265,13 @@ class LoadingOverlayElement extends HTMLElement {
           <!-- Progress Bar -->
           <div class="progress-container ${!isLoading ? 'hidden' : ''}" id="progress-container">
             <div class="progress-bar" id="progress-bar" style="width: ${this._progress}%"></div>
+          </div>
+          
+          <!-- Loading Cancel Button -->
+          <div class="buttons ${
+            !isLoading ? 'hidden' : ''
+          }" id="loading-buttons" style="margin-top: 1rem;">
+            <button class="btn-browse" id="loading-browse-btn">📚 Choose Different Song</button>
           </div>
           
           <!-- Error Buttons -->
@@ -255,6 +298,13 @@ class LoadingOverlayElement extends HTMLElement {
               ${difficultyOptions}
             </select>
           </div>
+          
+          <!-- Video Status -->
+          <div id="video-status" class="video-status ${
+            this._hasVideo ? 'video-pending' : 'hidden'
+          }">
+            ${this._hasVideo ? '🎬 Preparing video...' : ''}
+          </div>
         </div>
       </div>
     `;
@@ -269,6 +319,7 @@ class LoadingOverlayElement extends HTMLElement {
     const retryBtn = this.shadowRoot.getElementById('retry-btn');
     const backBtn = this.shadowRoot.getElementById('back-btn');
     const readyBackBtn = this.shadowRoot.getElementById('ready-back-btn');
+    const loadingBrowseBtn = this.shadowRoot.getElementById('loading-browse-btn');
     const difficultySelect = this.shadowRoot.getElementById('difficulty-select');
 
     if (playBtn) {
@@ -298,6 +349,19 @@ class LoadingOverlayElement extends HTMLElement {
     if (readyBackBtn) {
       readyBackBtn.addEventListener('click', () => {
         if (this._onBack) this._onBack();
+      });
+    }
+
+    // Loading state browse button - opens song browser
+    if (loadingBrowseBtn) {
+      loadingBrowseBtn.addEventListener('click', () => {
+        this.hide();
+        const zeniusBrowser = document.querySelector('zenius-browser');
+        if (zeniusBrowser && typeof zeniusBrowser.showBrowser === 'function') {
+          zeniusBrowser.showBrowser();
+        }
+        // Clear URL params to prevent reloading the same song
+        window.history.pushState({}, '', window.location.pathname);
       });
     }
 
@@ -349,11 +413,32 @@ class LoadingOverlayElement extends HTMLElement {
    * Show error state
    * @param {string} title - Error title
    * @param {string} message - Error message
+   * @param {Object} options - Optional callbacks
+   * @param {Function} options.onRetry - Retry callback
+   * @param {Function} options.onBack - Back callback
    */
-  showError(title, message) {
+  showError(title, message, options = {}) {
     this._state = STATES.ERROR;
     this._title = title;
     this._status = message;
+
+    // Set callbacks with defaults
+    this._onRetry = options.onRetry || (() => window.location.reload());
+    this._onBack =
+      options.onBack ||
+      (() => {
+        // Default: open the zenius browser dialog
+        const zeniusBrowser = document.querySelector('zenius-browser');
+        if (zeniusBrowser && typeof zeniusBrowser.showBrowser === 'function') {
+          this.hide();
+          zeniusBrowser.showBrowser();
+        } else {
+          // Fallback: just hide and go to base URL
+          this.hide();
+          window.history.pushState({}, '', window.location.pathname);
+        }
+      });
+
     this.render();
     this.bindEvents();
   }
@@ -375,7 +460,8 @@ class LoadingOverlayElement extends HTMLElement {
       onBack,
       onDifficultyChange,
       charts = [],
-      currentDifficulty = 0
+      currentDifficulty = 0,
+      hasVideo = false
     } = options;
 
     this._state = STATES.READY;
@@ -387,9 +473,54 @@ class LoadingOverlayElement extends HTMLElement {
     this._onBrowse = onBrowse;
     this._onBack = onBack;
     this._onDifficultyChange = onDifficultyChange;
+    this._hasVideo = hasVideo;
+    this._videoStatus = hasVideo ? 'pending' : null; // pending, loading, ready, failed, unavailable
+    this._videoProgress = 0;
 
     this.render();
     this.bindEvents();
+  }
+
+  /**
+   * Update video loading status
+   * @param {string} status - 'loading', 'ready', 'failed', 'unavailable'
+   * @param {number} progress - Progress percentage (0-100) for loading status
+   */
+  updateVideoStatus(status, progress = 0) {
+    this._videoStatus = status;
+    this._videoProgress = progress;
+
+    // Update the video status element if it exists
+    const videoStatusEl = this.shadowRoot?.getElementById('video-status');
+    if (videoStatusEl) {
+      let statusText = '';
+      let statusClass = '';
+
+      switch (status) {
+        case 'loading':
+          statusText = `🎬 Converting video... ${progress}%`;
+          statusClass = 'video-loading';
+          break;
+        case 'ready':
+          statusText = '🎬 Video ready!';
+          statusClass = 'video-ready';
+          break;
+        case 'failed':
+          statusText = '🎬 Video unavailable (using background)';
+          statusClass = 'video-failed';
+          break;
+        case 'unavailable':
+          statusText = '🎬 Video conversion not supported';
+          statusClass = 'video-failed';
+          break;
+        default:
+          statusText = '🎬 Preparing video...';
+          statusClass = 'video-pending';
+      }
+
+      videoStatusEl.textContent = statusText;
+      videoStatusEl.className = `video-status ${statusClass}`;
+    }
   }
 
   /**

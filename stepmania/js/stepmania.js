@@ -5,6 +5,7 @@ import { Sprite } from './sprite.js';
 import { Actor } from './Actor.js';
 import { CanvasManager } from './canvasManager.js';
 import gameState from './gameState.js';
+import { songManager } from './songManager.js';
 import { ARROW_WIDTH, TARGETS_Y } from './config.js';
 import { TAP_NOTE_POINTS, ScorePanel } from './score-panel.js';
 import { LoadingOverlay } from './loading-overlay.js';
@@ -18,6 +19,9 @@ import {
   calculateNoteY
 } from './noteRenderer.js';
 import Judgment from './judgment.js';
+import { videoManager } from './videoManager.js';
+import { audioManager } from './audioManager.js';
+import { inputManager } from './inputManager.js';
 
 /**
  * Timing windows for note judgments (in seconds)
@@ -46,17 +50,12 @@ const TARGET_FPS = 90;
 // LOCAL STATE (rendering-specific, not shared)
 // ============================================================================
 
-/** Current background video element */
-let backgroundVideo = null;
-
 /** Current playback time */
 let currentTime = 0;
 
 // ============================================================================
 // CANVAS/RENDERING SETUP
 // ============================================================================
-
-const audio = document.getElementById('audio_with_controls');
 
 // Frame timing
 let lastDate = new Date();
@@ -69,8 +68,6 @@ let colInfos = [];
 // Hold note tracking
 /** @type {Object<number, Object>} */
 const activeHolds = {};
-/** @type {Object<string, boolean>} */
-const heldKeys = {};
 
 // Image directory
 const imgDir = '/stepmania/img/';
@@ -189,7 +186,7 @@ if (text) {
  */
 function step(col) {
   const offset = gameState.getMusicOffset();
-  const songSeconds = audio.currentTime + offset;
+  const songSeconds = audioManager.currentTime + offset;
   const songBeats = secondsToBeats(songSeconds);
   const noteData = gameState.getNoteData();
 
@@ -325,7 +322,7 @@ function releaseHold(col) {
   if (activeHolds[col]) {
     const hold = activeHolds[col];
     const offset = gameState.getMusicOffset();
-    const songSeconds = audio.currentTime + offset;
+    const songSeconds = audioManager.currentTime + offset;
     const songBeats = secondsToBeats(songSeconds);
     const holdEndBeat = hold.endBeat;
 
@@ -370,7 +367,7 @@ function showJudgment(judgmentText, scoreIndex) {
  */
 function updateHolds() {
   const offset = gameState.getMusicOffset();
-  const songSeconds = audio.currentTime + offset;
+  const songSeconds = audioManager.currentTime + offset;
   const songBeats = secondsToBeats(songSeconds);
   const noteData = gameState.getNoteData();
 
@@ -382,13 +379,8 @@ function updateHolds() {
     if (hold.isAutoplay) {
       keyHeld = true;
     } else {
-      const colKeys = getKeysForColumn(parseInt(col));
-      for (let i = 0; i < colKeys.length; i++) {
-        if (heldKeys[colKeys[i]]) {
-          keyHeld = true;
-          break;
-        }
-      }
+      // Check if column is held via InputManager (handles keyboard, gamepad, touch)
+      keyHeld = inputManager.isColumnHeld(parseInt(col));
     }
 
     if (!keyHeld && !hold.wasDropped) {
@@ -461,21 +453,6 @@ function updateHolds() {
   }
 }
 
-function getKeysForColumn(col) {
-  switch (col) {
-    case 0:
-      return [65, 37];
-    case 1:
-      return [83, 40];
-    case 2:
-      return [87, 38];
-    case 3:
-      return [68, 39];
-    default:
-      return [];
-  }
-}
-
 let lastSeenCurrentTime = 0;
 
 /**
@@ -483,11 +460,11 @@ let lastSeenCurrentTime = 0;
  * @param {number} deltaSeconds - Time since last frame
  */
 function update(deltaSeconds) {
-  if (lastSeenCurrentTime != audio.currentTime) {
-    lastSeenCurrentTime = audio.currentTime;
+  if (lastSeenCurrentTime != audioManager.currentTime) {
+    lastSeenCurrentTime = audioManager.currentTime;
     currentTime = lastSeenCurrentTime;
   } else {
-    if (audio.paused == false) currentTime += deltaSeconds;
+    if (!audioManager.paused) currentTime += deltaSeconds;
   }
 
   updateBackgroundChanges();
@@ -537,7 +514,7 @@ function update(deltaSeconds) {
  */
 function processAutoplay() {
   const offset = gameState.getMusicOffset();
-  const songSeconds = audio.currentTime + offset;
+  const songSeconds = audioManager.currentTime + offset;
   const songBeats = secondsToBeats(songSeconds);
   const noteData = gameState.getNoteData();
 
@@ -600,6 +577,27 @@ function processAutoplay() {
 }
 
 /**
+ * Initialize managers (called once on startup)
+ */
+function initManagers() {
+  // Initialize AudioManager first (VideoManager depends on it)
+  audioManager.init();
+
+  // Initialize VideoManager (subscribes to AudioManager events)
+  videoManager.init();
+
+  // Initialize InputManager and wire up game callbacks
+  inputManager.init();
+  inputManager.onStep((col) => {
+    step(col);
+    addButtonFeedback(col);
+  });
+  inputManager.onRelease((col) => {
+    releaseHold(col);
+  });
+}
+
+/**
  * Check and apply background changes based on current beat
  */
 function updateBackgroundChanges() {
@@ -617,63 +615,28 @@ function updateBackgroundChanges() {
   }
 }
 
-function applyBackgroundChange(bgChange) {
+async function applyBackgroundChange(bgChange) {
   const gameArea = document.getElementById('sm-micro');
-  const videoElement = document.getElementById('background-video');
 
   if (bgChange.isNoBackground) {
     gameArea.style.backgroundImage = 'none';
-    if (videoElement) {
-      videoElement.style.opacity = '0';
-      videoElement.pause();
-    }
-    backgroundVideo = null;
+    videoManager.stop();
   } else if (bgChange.isVideo) {
-    if (videoElement) {
-      let videoUrl = bgChange.file;
-      if (!videoUrl.startsWith('http')) {
-        const currentSongData = gameState.getCurrentSongData();
-        if (currentSongData && currentSongData.url) {
-          const baseUrl = currentSongData.url.substring(
-            0,
-            currentSongData.url.lastIndexOf('/') + 1
-          );
-          videoUrl = baseUrl + bgChange.file;
-        }
+    let videoUrl = bgChange.file;
+    if (!videoUrl.startsWith('http')) {
+      const currentSongData = songManager.getCurrentSongData();
+      if (currentSongData && currentSongData.url) {
+        const baseUrl = currentSongData.url.substring(0, currentSongData.url.lastIndexOf('/') + 1);
+        videoUrl = baseUrl + bgChange.file;
       }
-
-      gameArea.style.backgroundImage = 'none';
-
-      videoElement.src = videoUrl;
-      videoElement.style.opacity = '1';
-
-      videoElement.addEventListener(
-        'error',
-        function () {
-          videoElement.style.opacity = '0';
-          backgroundVideo = null;
-          const currentSongData = gameState.getCurrentSongData();
-          if (currentSongData && currentSongData.background) {
-            gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${currentSongData.background})`;
-          }
-        },
-        { once: true }
-      );
-
-      videoElement.play().catch(function () {
-        videoElement.style.opacity = '0';
-        backgroundVideo = null;
-        const currentSongData = gameState.getCurrentSongData();
-        if (currentSongData && currentSongData.background) {
-          gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${currentSongData.background})`;
-        }
-      });
-      backgroundVideo = videoUrl;
     }
+
+    // VideoManager handles AVI conversion internally
+    videoManager.play(videoUrl);
   } else {
     let imageUrl = bgChange.file;
     if (!imageUrl.startsWith('http')) {
-      const currentSongData = gameState.getCurrentSongData();
+      const currentSongData = songManager.getCurrentSongData();
       if (currentSongData && currentSongData.url) {
         const baseUrl = currentSongData.url.substring(0, currentSongData.url.lastIndexOf('/') + 1);
         imageUrl = baseUrl + bgChange.file;
@@ -681,11 +644,7 @@ function applyBackgroundChange(bgChange) {
     }
 
     gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${imageUrl})`;
-    if (videoElement) {
-      videoElement.style.opacity = '0';
-      videoElement.pause();
-    }
-    backgroundVideo = null;
+    videoManager.stop();
   }
 }
 
@@ -846,9 +805,8 @@ function resetGame() {
   for (const col in activeHolds) {
     delete activeHolds[col];
   }
-  for (const key in heldKeys) {
-    delete heldKeys[key];
-  }
+  // Reset input state
+  inputManager.resetHeldKeys();
 
   // Update score panel component
   ScorePanel.reset();
@@ -862,20 +820,11 @@ function resetGame() {
     });
   }
 
-  backgroundVideo = null;
-  const videoElement = document.getElementById('background-video');
-  if (videoElement) {
-    videoElement.style.opacity = '0';
-    videoElement.pause();
-  }
+  videoManager.reset();
 
   currentTime = 0;
   lastSeenCurrentTime = 0;
-  const audioEl = document.getElementById('audio_with_controls');
-  if (audioEl) {
-    audioEl.currentTime = 0;
-    audioEl.pause();
-  }
+  audioManager.reset();
 
   Judgment.reset();
 }
@@ -918,141 +867,27 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  document.addEventListener('stepButtonClick', function (event) {
-    const buttonId = event.detail.buttonId;
-    const buttonNumber = buttonId.replace('button', '');
-    step(parseInt(buttonNumber));
+  // Initialize all managers (Audio, Video, Input)
+  initManagers();
 
-    const stepButton = event.target;
-    if (stepButton && stepButton.addPressedFeedback) {
-      stepButton.addPressedFeedback();
-    }
-  });
-
-  audio.addEventListener('play', function () {
-    const videoElement = document.getElementById('background-video');
-    if (videoElement && backgroundVideo) {
-      videoElement.play().catch(function () {});
-    }
-  });
-
-  audio.addEventListener('pause', function () {
-    const videoElement = document.getElementById('background-video');
-    if (videoElement && backgroundVideo) {
-      videoElement.pause();
-    }
-  });
-
-  audio.addEventListener('play', function () {
-    // Hide loading overlay when audio starts playing
+  // Hide loading overlay when audio starts playing
+  audioManager.onPlay(() => {
     LoadingOverlay.hide();
   });
 
-  document.addEventListener('keydown', function (event) {
-    if (
-      event.target.tagName === 'INPUT' ||
-      event.target.tagName === 'TEXTAREA' ||
-      event.target.contentEditable === 'true' ||
-      event.target.isContentEditable ||
-      event.target.nodeName === 'ZENIUS-BROWSER'
-    ) {
-      return;
-    }
-
-    const keyCode = event.which;
-
-    let col;
-    switch (keyCode) {
-      case 65:
-      case 37:
-        col = 0;
-        break;
-      case 87:
-      case 38:
-        col = 2;
-        break;
-      case 68:
-      case 39:
-        col = 3;
-        break;
-      case 83:
-      case 40:
-        col = 1;
-        break;
-    }
-    if (undefined != col) {
-      if (!heldKeys[keyCode]) {
-        step(col);
-        addButtonFeedback(col);
-        heldKeys[keyCode] = true;
-      }
-      event.preventDefault();
-    }
-    if (keyCode == 32) {
-      if (audio.paused) {
-        audio.play().catch(() => {});
-      } else {
-        audio.pause();
-      }
-      event.preventDefault();
-    }
-  });
-
-  document.addEventListener('keyup', function (event) {
-    if (
-      event.target.tagName === 'INPUT' ||
-      event.target.tagName === 'TEXTAREA' ||
-      event.target.contentEditable === 'true' ||
-      event.target.isContentEditable ||
-      event.target.nodeName === 'ZENIUS-BROWSER'
-    ) {
-      return;
-    }
-
-    const keyCode = event.which;
-    let col;
-
-    switch (keyCode) {
-      case 65:
-      case 37:
-        col = 0;
-        break;
-      case 87:
-      case 38:
-        col = 2;
-        break;
-      case 68:
-      case 39:
-        col = 3;
-        break;
-      case 83:
-      case 40:
-        col = 1;
-        break;
-    }
-
-    if (undefined != col) {
-      heldKeys[keyCode] = false;
-      releaseHold(col);
-      event.preventDefault();
-    }
-  });
-
-  audio.addEventListener('ended', function () {
+  audioManager.onEnded(() => {
     GameOverModal.show({
       failed: gameState.hasFailed(),
       onRestart: function () {
         resetGame();
-        audio.currentTime = 0;
-        audio.play();
+        audioManager.seek(0);
+        audioManager.play();
       },
       onClose: function () {
         resetGame();
       }
     });
   });
-
-  console.log('🎮 StepMania functions exposed globally for gamepad integration');
 });
 
 // ============================================================================

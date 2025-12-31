@@ -9,12 +9,22 @@ import {
   extractSimfileId,
   fetchZeniusSimfile,
   parseZeniusSimfile,
-  loadLocalSimfile
+  loadLocalSimfile,
+  fetchZeniusAudioFromZip
 } from './songLoader.js';
+
+// Audio loading constants
+const AUDIO_PROXY_TIMEOUT = 10000; // 10 seconds - fail fast if blocked
+const AUDIO_PROXY_MAX_RETRIES = 1;
+// Minimum bytes to consider audio valid - proxy errors often return small HTML error pages
+const MIN_VALID_AUDIO_SIZE = 1000;
 import { DifficultySelector } from './difficulty-selector.js';
 import { ZeniusBrowser } from './zenius-browser.js';
 import { getURLParams, updateURLParams, clearURLParams } from './urlUtils.js';
 import { LoadingOverlay } from './loading-overlay.js';
+import { videoConverter } from './videoConverter.js';
+import { audioManager } from './audioManager.js';
+import { songManager } from './songManager.js';
 
 /**
  * Main Page Controller
@@ -22,19 +32,13 @@ import { LoadingOverlay } from './loading-overlay.js';
  */
 export class MainPageController {
   constructor() {
-    /** @type {Object|null} */
-    this.currentSong = null;
-    /** @type {number|null} */
-    this.currentDifficulty = null;
-    /** @type {Object<string, Object>} */
-    this.parsedSongs = {};
-    /** @type {string|null} */
+    /** @type {string|null} Last Zenius URL loaded (for retry purposes) */
     this.lastZeniusUrl = null;
-    /** @type {number|null} */
+    /** @type {number|null} Last difficulty selected */
     this.lastDifficulty = null;
-    /** @type {string|null} */
+    /** @type {string|null} Last song key */
     this.lastSongKey = null;
-    /** @type {boolean} */
+    /** @type {boolean} Flag to prevent onChange loops during programmatic updates */
     this.isUpdatingDifficulty = false;
     this.init();
   }
@@ -144,6 +148,12 @@ export class MainPageController {
   }
 
   async loadFromZeniusURL(zeniusUrl, difficulty) {
+    // Prevent concurrent loads
+    if (this._isLoadingFromZenius) {
+      return false;
+    }
+    this._isLoadingFromZenius = true;
+
     this.lastZeniusUrl = zeniusUrl;
     this.lastDifficulty = difficulty;
 
@@ -163,16 +173,35 @@ export class MainPageController {
 
       const { songKey, songData, parsedData } = parseZeniusSimfile(simfileData, simfileId);
 
-      this.parsedSongs[songKey] = parsedData;
-      gameState.setParsedSong(songKey, parsedData);
+      songManager.cacheParsedData(songKey, parsedData);
+
+      // Cache simfile metadata for the browser (video, difficulties)
+      const difficultyMeta = parsedData.charts.map((chart) => ({
+        rating: chart.rating || 0,
+        name: chart.difficulty || 'Unknown',
+        short: this.getDifficultyShortCode(chart.difficulty)
+      }));
+      ZeniusBrowser.updateSimfileMetadata(simfileId, {
+        hasVideo: !!simfileData.aviUrl,
+        difficulties: difficultyMeta
+      });
+
+      // Set the category in the browser so it can preselect when reopened
+      if (simfileData.categoryId) {
+        const zeniusBrowser = document.querySelector('zenius-browser');
+        if (zeniusBrowser) {
+          zeniusBrowser.lastBrowsedCategoryId = simfileData.categoryId;
+          zeniusBrowser.lastBrowsedCategoryName = simfileData.categoryName;
+        }
+      }
 
       LoadingOverlay.updateProgress('Setting up song...', 70);
 
       this.setCurrentSong(songKey, songData);
       this.setCurrentDifficulty(difficulty || 0);
 
-      DifficultySelector.setCharts(parsedData.charts);
-      DifficultySelector.syncFromURL();
+      // Note: setCurrentDifficulty already calls DifficultySelector.setCharts and selectDifficultyByIndex
+      // Don't call them again here as it would reset the selection
 
       updateURLParams({ zenius: zeniusUrl, difficulty: difficulty || 0 });
 
@@ -189,6 +218,8 @@ export class MainPageController {
         'Network error - try again or return to browser'
       );
       return false;
+    } finally {
+      this._isLoadingFromZenius = false;
     }
   }
 
@@ -197,9 +228,8 @@ export class MainPageController {
     const songData = songs[defaultSong];
 
     if (songData) {
-      const audioEl = document.getElementById('audio_with_controls');
-      audioEl.innerHTML = `<source src="${songData.url}" type="audio/mpeg" />`;
-      audioEl.load();
+      // Load audio via AudioManager (fire and forget for default song)
+      audioManager.loadUrl(songData.url, 'audio/mpeg').catch(() => {});
 
       const gameArea = document.getElementById('sm-micro');
       gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${songData.background})`;
@@ -244,8 +274,7 @@ export class MainPageController {
           bpmChanges: []
         };
 
-        this.parsedSongs[defaultSong] = parsedData;
-        gameState.setParsedSong(defaultSong, parsedData);
+        songManager.cacheParsedData(defaultSong, parsedData);
 
         // Update difficulty selector with the default chart
         DifficultySelector.setCharts(parsedData.charts);
@@ -254,10 +283,7 @@ export class MainPageController {
   }
 
   setCurrentSong(songKey, songData) {
-    this.currentSong = { key: songKey, data: songData };
-    // Update gameState for cross-module access
-    gameState.setCurrentSongKey(songKey);
-    gameState.setCurrentSongData(songData);
+    songManager.setCurrentSong(songKey, songData);
   }
 
   setCurrentDifficulty(difficulty) {
@@ -265,29 +291,28 @@ export class MainPageController {
       difficulty = 0;
     }
 
-    this.currentDifficulty = difficulty;
-    // Update gameState for cross-module access
-    gameState.setCurrentDifficulty(difficulty);
+    songManager.setCurrentDifficulty(difficulty);
 
-    if (this.currentSong && this.parsedSongs[this.currentSong.key]) {
-      DifficultySelector.setCharts(this.parsedSongs[this.currentSong.key].charts);
-      DifficultySelector.selectDifficultyByIndex(difficulty);
+    const currentSong = songManager.getCurrentSong();
+    const parsedData = songManager.getCurrentParsedData();
+    if (currentSong && parsedData) {
+      // Prevent the onChange callback from triggering startSelectedSong
+      // during programmatic difficulty changes
+      this.isUpdatingDifficulty = true;
+      try {
+        DifficultySelector.setCharts(parsedData.charts);
+        DifficultySelector.selectDifficultyByIndex(difficulty);
+      } finally {
+        this.isUpdatingDifficulty = false;
+      }
     }
-  }
-
-  handleSimfileData(songKey, parsedData) {
-    this.parsedSongs[songKey] = parsedData;
-    gameState.setParsedSong(songKey, parsedData);
-
-    DifficultySelector.setCharts(parsedData.charts);
-    DifficultySelector.syncFromURL();
   }
 
   async loadSimfile(simfileUrl) {
     const parsedData = await loadLocalSimfile(simfileUrl);
+    const currentSongKey = songManager.getCurrentSongKey();
 
-    this.parsedSongs[this.currentSong.key] = parsedData;
-    gameState.setParsedSong(this.currentSong.key, parsedData);
+    songManager.cacheParsedData(currentSongKey, parsedData);
 
     DifficultySelector.setCharts(parsedData.charts);
     DifficultySelector.syncFromURL();
@@ -298,7 +323,7 @@ export class MainPageController {
       return;
     }
 
-    this.currentDifficulty = index;
+    songManager.setCurrentDifficulty(index);
     this.updateURLWithDifficulty(index);
 
     this.startSelectedSong();
@@ -306,10 +331,11 @@ export class MainPageController {
 
   updateURLWithDifficulty(difficulty) {
     const params = { difficulty };
+    const currentSong = songManager.getCurrentSong();
 
-    if (this.currentSong) {
-      if (!this.currentSong.key.startsWith('zenius_')) {
-        params.song = this.currentSong.data.title;
+    if (currentSong) {
+      if (!currentSong.key.startsWith('zenius_')) {
+        params.song = currentSong.data.title;
       }
       // For zenius songs, the zenius param is already in URL
     }
@@ -336,34 +362,54 @@ export class MainPageController {
   }
 
   async startSelectedSong(loadingAlreadyShown = false, useMainLoading = false) {
-    if (!this.currentSong) {
+    const currentSong = songManager.getCurrentSong();
+    if (!currentSong) {
       return;
     }
 
-    if (this.currentDifficulty === null) {
-      this.currentDifficulty = 0;
+    // Prevent concurrent loads - if already loading, skip this call
+    if (this._isLoadingSong) {
+      return;
+    }
+    this._isLoadingSong = true;
+
+    let currentDifficulty = songManager.getCurrentDifficulty();
+    if (currentDifficulty === null) {
+      currentDifficulty = 0;
+      songManager.setCurrentDifficulty(0);
     }
 
-    const parsedData = this.parsedSongs[this.currentSong.key];
+    const parsedData = songManager.getCurrentParsedData();
     if (!parsedData) {
-      console.error(`Parsed data not found for song key: ${this.currentSong.key}`);
+      console.error(`Parsed data not found for song key: ${currentSong.key}`);
+      this._isLoadingSong = false;
       return;
     }
 
-    const selectedChart = parsedData.charts[this.currentDifficulty];
+    let selectedChart = parsedData.charts[currentDifficulty];
     if (!selectedChart) {
-      console.error(`Chart not found for difficulty: ${this.currentDifficulty}`);
-      return;
+      // Fall back to first available chart if requested difficulty doesn't exist
+      if (parsedData.charts.length > 0) {
+        console.warn(
+          `Chart not found for difficulty ${currentDifficulty}, falling back to first chart`
+        );
+        selectedChart = parsedData.charts[0];
+        songManager.setCurrentDifficulty(0);
+      } else {
+        console.error('No charts available in this simfile');
+        LoadingOverlay.showError(
+          'No Charts Available',
+          'This simfile has no playable charts. Try a different song.'
+        );
+        this._isLoadingSong = false;
+        return;
+      }
     }
 
     try {
       if (!loadingAlreadyShown) {
         if (useMainLoading) {
-          LoadingOverlay.showLoading(
-            this.currentSong.data.title,
-            'Loading audio and charts...',
-            10
-          );
+          LoadingOverlay.showLoading(currentSong.data.title, 'Loading audio and charts...', 10);
         }
       }
 
@@ -385,6 +431,8 @@ export class MainPageController {
         LoadingOverlay.hide();
       }
       console.error('Error starting song:', error);
+    } finally {
+      this._isLoadingSong = false;
     }
   }
 
@@ -404,7 +452,10 @@ export class MainPageController {
       noteData: chart.noteData
     });
 
-    gameState.setBgChanges(parsedData.bgChanges || []);
+    // Set up background changes (injects Zenius video URL if available)
+    const bgChanges = songManager.prepareBgChanges(parsedData.bgChanges || []);
+
+    gameState.setBgChanges(bgChanges);
     gameState.setNoteData(chart.noteData);
     gameState.setBpm(parsedData.bpm);
     gameState.setBpmChanges(parsedData.bpmChanges || []);
@@ -414,20 +465,81 @@ export class MainPageController {
       LoadingOverlay.updateProgress('Loading audio file...', audioProgress);
     }
 
-    const audioEl = document.getElementById('audio_with_controls');
-    audioEl.innerHTML = `<source src="${this.currentSong.data.url}" type="audio/mpeg" />`;
-    audioEl.load();
+    const currentSongData = songManager.getCurrentSongData();
+    const currentSongKey = songManager.getCurrentSongKey();
+    let audioUrl = currentSongData.url;
+    const mimeType = audioUrl.endsWith('.ogg') ? 'audio/ogg' : 'audio/mpeg';
 
-    await new Promise((resolve) => {
-      audioEl.addEventListener(
-        'canplay',
-        () => {
-          this.showReadyToPlayMessage();
-          resolve();
-        },
-        { once: true }
-      );
-    });
+    // Proxy audio files from zenius-i-vanisher.com to avoid 403/404 errors
+    if (audioUrl.includes('zenius-i-vanisher.com')) {
+      // AudioManager handles blob URL cleanup automatically in loadBlob()
+      let audioLoaded = false;
+
+      // Try direct proxy download first (with short timeout - many files are blocked)
+      try {
+        if (useMainLoading) {
+          LoadingOverlay.updateProgress('Downloading audio file...', audioProgress + 5);
+        }
+        const audioData = await window.proxyService.fetchBinaryWithProxy(audioUrl, {
+          headers: {
+            Referer: 'https://zenius-i-vanisher.com/',
+            Origin: 'https://zenius-i-vanisher.com'
+          },
+          timeout: AUDIO_PROXY_TIMEOUT,
+          maxRetries: AUDIO_PROXY_MAX_RETRIES
+        });
+
+        // Check if we got actual audio data (not an error page)
+        if (audioData && audioData.length > MIN_VALID_AUDIO_SIZE) {
+          await audioManager.loadArrayBuffer(audioData, mimeType);
+          audioLoaded = true;
+        }
+      } catch (error) {
+        // Direct download failed, will try ZIP fallback
+      }
+
+      // Fallback: Download ZIP and extract audio
+      if (!audioLoaded && currentSongKey.startsWith('zenius_')) {
+        const simfileId = currentSongKey.replace('zenius_', '');
+        try {
+          if (useMainLoading) {
+            LoadingOverlay.updateProgress(
+              'Downloading song pack (fallback)...',
+              audioProgress + 10
+            );
+          }
+          const zipResult = await fetchZeniusAudioFromZip(simfileId);
+          if (zipResult) {
+            await audioManager.loadBlob(zipResult.audioBlob, zipResult.audioType);
+            audioLoaded = true;
+          }
+        } catch (zipError) {
+          // ZIP fallback also failed
+        }
+      }
+
+      if (!audioLoaded) {
+        LoadingOverlay.showError(
+          'Audio Not Available',
+          'Could not download the audio file for this song. The file may have been removed.'
+        );
+        return;
+      }
+    } else {
+      // Load non-proxied audio directly
+      try {
+        await audioManager.loadUrl(audioUrl, mimeType);
+      } catch (error) {
+        console.error('Audio failed to load:', error);
+        LoadingOverlay.showError(
+          'Audio Load Failed',
+          'The audio file could not be played. Try a different song.'
+        );
+        throw error;
+      }
+    }
+
+    this.showReadyToPlayMessage();
 
     const visualProgress = startProgress + 40;
     if (useMainLoading) {
@@ -435,7 +547,7 @@ export class MainPageController {
     }
 
     const gameArea = document.getElementById('sm-micro');
-    gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${this.currentSong.data.background})`;
+    gameArea.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${currentSongData.background})`;
 
     const chartProgress = startProgress + 50;
     if (useMainLoading) {
@@ -499,10 +611,12 @@ export class MainPageController {
   }
 
   showReadyToPlayMessage() {
-    const charts =
-      this.currentSong && this.parsedSongs[this.currentSong.key]
-        ? this.parsedSongs[this.currentSong.key].charts
-        : [];
+    const parsedData = songManager.getCurrentParsedData();
+    const charts = parsedData?.charts || [];
+
+    // Check if we have a video to pre-load
+    const videoUrl = songManager.getCurrentSongData()?.video;
+    const hasVideo = videoUrl && videoConverter?.isAviFile(videoUrl);
 
     LoadingOverlay.showReadyToPlay({
       onPlay: () => this.startPlaying(),
@@ -514,13 +628,55 @@ export class MainPageController {
       },
       onDifficultyChange: (selectedIndex) => {
         if (!this.isUpdatingDifficulty) {
-          this.currentDifficulty = selectedIndex;
+          songManager.setCurrentDifficulty(selectedIndex);
           this.updateURLWithDifficulty(selectedIndex);
         }
       },
       charts,
-      currentDifficulty: this.currentDifficulty
+      currentDifficulty: songManager.getCurrentDifficulty(),
+      hasVideo: hasVideo
     });
+
+    // Pre-load video conversion in background if we have an AVI
+    if (hasVideo && videoConverter) {
+      this.preloadVideo(videoUrl);
+    }
+  }
+
+  /**
+   * Pre-load and convert video in background
+   * @param {string} videoUrl - URL of the video to convert
+   */
+  async preloadVideo(videoUrl) {
+    // Prevent duplicate preload calls
+    if (this._preloadingVideo === videoUrl || this._preloadedVideo === videoUrl) {
+      return;
+    }
+
+    if (!videoConverter.needsConversion(videoUrl)) {
+      LoadingOverlay.updateVideoStatus('unavailable');
+      return;
+    }
+
+    this._preloadingVideo = videoUrl;
+    LoadingOverlay.updateVideoStatus('loading', 0);
+
+    try {
+      const convertedUrl = await videoConverter.getPlayableUrl(videoUrl, (progress) => {
+        LoadingOverlay.updateVideoStatus('loading', progress);
+      });
+
+      if (convertedUrl !== videoUrl) {
+        LoadingOverlay.updateVideoStatus('ready');
+        this._preloadedVideo = videoUrl;
+      } else {
+        LoadingOverlay.updateVideoStatus('failed');
+      }
+    } catch (error) {
+      LoadingOverlay.updateVideoStatus('failed');
+    } finally {
+      this._preloadingVideo = null;
+    }
   }
 
   startPlaying() {
@@ -529,13 +685,16 @@ export class MainPageController {
     if (difficultySelect) {
       const selectedIndex = parseInt(difficultySelect.value);
       if (!isNaN(selectedIndex)) {
-        this.currentDifficulty = selectedIndex;
+        songManager.setCurrentDifficulty(selectedIndex);
       }
     }
 
-    if (this.currentSong && this.parsedSongs[this.currentSong.key]) {
-      const parsedData = this.parsedSongs[this.currentSong.key];
-      const selectedChart = parsedData.charts[this.currentDifficulty];
+    const currentSong = songManager.getCurrentSong();
+    const parsedData = songManager.getCurrentParsedData();
+    const currentDifficulty = songManager.getCurrentDifficulty();
+
+    if (currentSong && parsedData) {
+      const selectedChart = parsedData.charts[currentDifficulty];
 
       if (selectedChart) {
         gameState.setSteps({
@@ -549,17 +708,36 @@ export class MainPageController {
 
     LoadingOverlay.hide();
 
-    if (this.currentSong) {
-      const songTitle = this.currentSong.data?.title || 'Unknown Song';
+    if (currentSong) {
+      const songTitle = currentSong.data?.title || 'Unknown Song';
       if (typeof window.trackEvent === 'function') {
         window.trackEvent('song_play', 'StepMania', songTitle);
       }
     }
 
-    const audioEl = document.getElementById('audio_with_controls');
-    if (audioEl) {
-      audioEl.play();
-    }
+    audioManager.play();
+  }
+
+  /**
+   * Convert difficulty name to short code
+   * @param {string} difficulty - Difficulty name (e.g., "Beginner", "Basic", etc.)
+   * @returns {string} Short code (B, L, S, H, C)
+   */
+  getDifficultyShortCode(difficulty) {
+    const diffMap = {
+      beginner: 'B',
+      basic: 'L',
+      light: 'L',
+      difficult: 'S',
+      standard: 'S',
+      another: 'S',
+      expert: 'H',
+      heavy: 'H',
+      challenge: 'C',
+      edit: 'E'
+    };
+    const lowerDiff = (difficulty || '').toLowerCase();
+    return diffMap[lowerDiff] || 'U';
   }
 }
 

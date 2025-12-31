@@ -227,6 +227,14 @@
               Your browser does not support the video tag.
             </video>
           </div>
+          <!-- Video Conversion Status Indicator -->
+          <div
+            id="video-conversion-status"
+            class="hidden absolute top-2 right-2 px-3 py-1.5 rounded-lg text-sm font-medium z-10 transition-all duration-300"
+            style="background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px)"
+          >
+            <span id="video-status-text">🎬 Converting video...</span>
+          </div>
           <!-- Alert Messages -->
           <div id="alert" class="hidden fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
             <div class="bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg">
@@ -347,9 +355,19 @@
         </div>
       </div>
     </div>
+    <!-- Service worker for Cross-Origin Isolation (enables SharedArrayBuffer for FFmpeg.wasm) -->
+    <script src="/coi-serviceworker.js"></script>
+
     <!-- Non-module scripts that need to be loaded first (global utilities) -->
     <script src="../proxy.js"></script>
     <script src="/share.js"></script>
+    <!-- JSZip for extracting song packs from stepmaniaonline.net -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+      integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
 
     <!-- ES Module entry point - imports all other modules -->
     <script type="module" src="./js/main.js"></script>

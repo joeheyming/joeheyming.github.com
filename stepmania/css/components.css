@@ -422,6 +422,25 @@ a.content-item {
   font-size: 0.875rem;
 }
 
+.zenius-link {
+  color: #93c5fd;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.zenius-link:hover {
+  background: rgba(59, 130, 246, 0.2);
+  color: white;
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
 .content-item.loading {
   background: rgba(0, 0, 0, 0.5);
   border-color: rgba(59, 130, 246, 0.6);
@@ -612,4 +631,106 @@ step-button {
 }
 .game-over-content .close-btn:hover {
   background: #374151;
+}
+
+/* ==========================================
+   SIMFILE BADGES (Video & Difficulty)
+   ========================================== */
+
+.simfile-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.badge-video {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: white;
+  border: 1px solid rgba(168, 85, 247, 0.5);
+}
+
+/* Difficulty badges with DDR-inspired colors */
+.badge-diff {
+  min-width: 1.5rem;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  cursor: help;
+  padding: 0.15rem 0.35rem;
+}
+
+/* Beginner - Light blue */
+.badge-diff-b {
+  background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+  color: white;
+}
+
+/* Basic/Light - Orange */
+.badge-diff-l {
+  background: linear-gradient(135deg, #f97316, #fb923c);
+  color: white;
+}
+
+/* Standard/Difficult - Red */
+.badge-diff-s {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  color: white;
+}
+
+/* Heavy/Expert - Green */
+.badge-diff-h {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  color: white;
+}
+
+/* Challenge - Purple */
+.badge-diff-c {
+  background: linear-gradient(135deg, #9333ea, #a855f7);
+  color: white;
+}
+
+/* Unknown difficulty - Gray */
+.badge-diff-u {
+  background: linear-gradient(135deg, #6b7280, #9ca3af);
+  color: white;
+}
+
+/* Edit difficulty - Teal */
+.badge-diff-e {
+  background: linear-gradient(135deg, #0d9488, #14b8a6);
+  color: white;
+}
+
+/* External link icon on simfile items */
+.simfile-external-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1rem;
+  text-decoration: none;
+  border-radius: 0.375rem;
+  background: rgba(255, 255, 255, 0.1);
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.simfile-external-link:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
 }
