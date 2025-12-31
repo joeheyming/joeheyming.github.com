@@ -5,15 +5,15 @@ class MemoryManager {
     this.totalMemory = 512 * 1024 * 1024; // 512MB virtual memory
     this.pageSize = 4096; // 4KB pages
     this.totalPages = this.totalMemory / this.pageSize;
-    
+
     // Memory allocation tracking
     this.allocatedPages = new Map(); // pid -> Set of page numbers
     this.freePages = new Set();
     this.processMemory = new Map(); // pid -> memory info
-    
+
     // Memory mapping
     this.memoryMappings = new Map(); // address -> mapping info
-    
+
     // Initialize free pages
     for (let i = 0; i < this.totalPages; i++) {
       this.freePages.add(i);
@@ -22,20 +22,24 @@ class MemoryManager {
 
   async initialize() {
     this.kernel.log('Memory Manager initializing');
-    
+
     // Reserve kernel memory (first 16MB)
     const kernelPages = (16 * 1024 * 1024) / this.pageSize;
     for (let i = 0; i < kernelPages; i++) {
       this.freePages.delete(i);
     }
-    
-    this.kernel.log(`Memory initialized: ${this.totalMemory / (1024 * 1024)}MB total, ${kernelPages} pages reserved for kernel`);
+
+    this.kernel.log(
+      `Memory initialized: ${
+        this.totalMemory / (1024 * 1024)
+      }MB total, ${kernelPages} pages reserved for kernel`
+    );
   }
 
   // Allocate memory for a process
   allocateMemory(pid, size, type = 'heap') {
     const pagesNeeded = Math.ceil(size / this.pageSize);
-    
+
     if (pagesNeeded > this.freePages.size) {
       throw new Error('Out of memory');
     }
@@ -49,7 +53,7 @@ class MemoryManager {
     // Allocate pages
     const allocatedPages = new Set();
     const freePageArray = Array.from(this.freePages);
-    
+
     for (let i = 0; i < pagesNeeded; i++) {
       const pageNum = freePageArray[i];
       allocatedPages.add(pageNum);
@@ -60,7 +64,7 @@ class MemoryManager {
     if (!this.allocatedPages.has(pid)) {
       this.allocatedPages.set(pid, new Set());
     }
-    
+
     for (const pageNum of allocatedPages) {
       this.allocatedPages.get(pid).add(pageNum);
     }
@@ -80,9 +84,9 @@ class MemoryManager {
 
     // Calculate virtual address
     const baseAddress = Math.min(...allocatedPages) * this.pageSize;
-    
+
     this.kernel.log(`Allocated ${size} bytes (${pagesNeeded} pages) for PID ${pid}, type: ${type}`);
-    
+
     return {
       address: baseAddress,
       size: size,
@@ -100,7 +104,7 @@ class MemoryManager {
 
     const startPage = Math.floor(address / this.pageSize);
     const pagesNeeded = Math.ceil(size / this.pageSize);
-    
+
     // Free the pages
     for (let i = 0; i < pagesNeeded; i++) {
       const pageNum = startPage + i;
@@ -134,7 +138,7 @@ class MemoryManager {
 
     const pid = currentProcess.pid;
     const pagesNeeded = Math.ceil(length / this.pageSize);
-    
+
     // Check if we have enough free pages
     if (pagesNeeded > this.freePages.size) {
       throw new Error('Cannot map memory: insufficient free pages');
@@ -142,7 +146,7 @@ class MemoryManager {
 
     // Allocate pages for mapping
     const allocation = this.allocateMemory(pid, length, 'mapping');
-    
+
     // Create mapping info
     const mapping = {
       address: allocation.address,
@@ -156,15 +160,17 @@ class MemoryManager {
     };
 
     this.memoryMappings.set(allocation.address, mapping);
-    
+
     // Add to process memory info
     const memInfo = this.processMemory.get(pid);
     if (memInfo) {
       memInfo.mappings.set(allocation.address, mapping);
     }
 
-    this.kernel.log(`Memory mapped: PID ${pid}, address 0x${allocation.address.toString(16)}, length ${length}`);
-    
+    this.kernel.log(
+      `Memory mapped: PID ${pid}, address 0x${allocation.address.toString(16)}, length ${length}`
+    );
+
     return allocation.address;
   }
 
@@ -182,17 +188,17 @@ class MemoryManager {
 
     // Free the memory
     this.freeMemory(mapping.pid, address, length);
-    
+
     // Remove mapping
     this.memoryMappings.delete(address);
-    
+
     const memInfo = this.processMemory.get(mapping.pid);
     if (memInfo) {
       memInfo.mappings.delete(address);
     }
 
     this.kernel.log(`Memory unmapped: PID ${mapping.pid}, address 0x${address.toString(16)}`);
-    
+
     return 0;
   }
 
@@ -205,7 +211,7 @@ class MemoryManager {
 
     const pid = currentProcess.pid;
     const memInfo = this.processMemory.get(pid);
-    
+
     if (!memInfo) {
       // Initialize process memory
       this.processMemory.set(pid, {
@@ -220,7 +226,7 @@ class MemoryManager {
     }
 
     const currentHeapEnd = memInfo.heapEnd || memInfo.heapStart || address;
-    
+
     if (address > currentHeapEnd) {
       // Expand heap
       const expansion = address - currentHeapEnd;
@@ -261,7 +267,7 @@ class MemoryManager {
     }
 
     this.processMemory.delete(pid);
-    
+
     this.kernel.log(`Memory cleaned up for terminated process ${pid}`);
   }
 
@@ -270,7 +276,7 @@ class MemoryManager {
     const usedPages = this.totalPages - this.freePages.size;
     const usedMemory = usedPages * this.pageSize;
     const freeMemory = this.freePages.size * this.pageSize;
-    
+
     return {
       total: this.totalMemory,
       used: usedMemory,
@@ -324,12 +330,17 @@ class MemoryManager {
   isMemoryPressure() {
     const stats = this.getUsageStats();
     const usagePercent = (stats.used / stats.total) * 100;
-    
+
     return {
       pressure: usagePercent > 80,
-      level: usagePercent > 95 ? 'critical' : 
-             usagePercent > 90 ? 'high' : 
-             usagePercent > 80 ? 'medium' : 'low',
+      level:
+        usagePercent > 95
+          ? 'critical'
+          : usagePercent > 90
+          ? 'high'
+          : usagePercent > 80
+          ? 'medium'
+          : 'low',
       usagePercent: usagePercent,
       availableMemory: stats.free
     };
@@ -338,7 +349,7 @@ class MemoryManager {
   // Garbage collection (simplified)
   garbageCollect() {
     let freedPages = 0;
-    
+
     // Clean up any orphaned pages
     for (const pid of this.allocatedPages.keys()) {
       const process = this.kernel.processManager.getProcess(pid);
@@ -369,9 +380,9 @@ class MemoryManager {
     // For our simulation, we'll just report current fragmentation
     const stats = this.getUsageStats();
     const fragmentation = this.calculateFragmentation();
-    
+
     this.kernel.log(`Memory defragmentation: ${fragmentation.toFixed(2)}% fragmented`);
-    
+
     return {
       fragmentationPercent: fragmentation,
       compactedPages: 0, // Would be non-zero in real implementation
@@ -383,13 +394,13 @@ class MemoryManager {
     // Simple fragmentation calculation based on free page distribution
     const freePageArray = Array.from(this.freePages).sort((a, b) => a - b);
     let fragments = 0;
-    
+
     for (let i = 1; i < freePageArray.length; i++) {
-      if (freePageArray[i] !== freePageArray[i-1] + 1) {
+      if (freePageArray[i] !== freePageArray[i - 1] + 1) {
         fragments++;
       }
     }
-    
+
     return freePageArray.length > 0 ? (fragments / freePageArray.length) * 100 : 0;
   }
 }

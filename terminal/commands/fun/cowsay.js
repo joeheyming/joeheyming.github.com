@@ -2,13 +2,15 @@
 (function () {
   'use strict';
 
-  registerCommand('cowsay', (terminal, args) => {
-    const message = args.join(' ') || 'Moo!';
-    const messageLength = message.length;
-    const topBorder = ' ' + '_'.repeat(messageLength + 2);
-    const bottomBorder = ' ' + '-'.repeat(messageLength + 2);
+  registerCommand(
+    'cowsay',
+    (terminal, args) => {
+      const message = args.join(' ') || 'Moo!';
+      const messageLength = message.length;
+      const topBorder = ' ' + '_'.repeat(messageLength + 2);
+      const bottomBorder = ' ' + '-'.repeat(messageLength + 2);
 
-    return `${topBorder}
+      return `${topBorder}
 < ${message} >
 ${bottomBorder}
         \\   ^__^
@@ -16,5 +18,8 @@ ${bottomBorder}
             (__)\\       )\\/\\
                 ||----w |
                 ||     ||`;
-  }, 'make a cow say something', 'Fun Stuff');
+    },
+    'make a cow say something',
+    'Fun Stuff'
+  );
 })();

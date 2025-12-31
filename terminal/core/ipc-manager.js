@@ -20,7 +20,7 @@ class IPCManager {
     const pipeId = this.nextPipeId++;
     const pipe = new Pipe(pipeId);
     this.pipes.set(pipeId, pipe);
-    
+
     // Return read and write file descriptors
     const readFD = this.kernel.processManager.currentProcess.allocateFD({
       type: 'pipe_read',
@@ -28,7 +28,7 @@ class IPCManager {
       readable: true,
       writable: false
     });
-    
+
     const writeFD = this.kernel.processManager.currentProcess.allocateFD({
       type: 'pipe_write',
       pipeId: pipeId,
@@ -45,7 +45,7 @@ class IPCManager {
     const queueId = this.nextQueueId++;
     const queue = new MessageQueue(queueId, key);
     this.messageQueues.set(queueId, queue);
-    
+
     this.kernel.log(`Message queue created: ID ${queueId}`);
     return queueId;
   }
@@ -76,10 +76,10 @@ class IPCManager {
 
     queue.enqueue(msg);
     this.kernel.log(`Message sent to queue ${queueId} from PID ${currentProcess.pid}`);
-    
+
     // Notify waiting processes
     this.notifyQueueWaiters(queueId);
-    
+
     return 0;
   }
 
@@ -107,7 +107,8 @@ class IPCManager {
     }
 
     // No message available
-    if (flags & 0x800) { // IPC_NOWAIT
+    if (flags & 0x800) {
+      // IPC_NOWAIT
       throw new Error('No message available');
     }
 
@@ -122,7 +123,7 @@ class IPCManager {
   createSharedMemory(key, size, permissions = 0o666) {
     const segment = new SharedMemorySegment(key, size, permissions);
     this.sharedMemory.set(key, segment);
-    
+
     this.kernel.log(`Shared memory created: Key ${key}, Size ${size}`);
     return segment;
   }
@@ -161,7 +162,7 @@ class IPCManager {
     const socketId = this.nextSocketId++;
     const socket = new Socket(socketId, domain, type, protocol);
     this.sockets.set(socketId, socket);
-    
+
     const currentProcess = this.kernel.processManager.currentProcess;
     if (currentProcess) {
       const fd = currentProcess.allocateFD({
@@ -170,11 +171,11 @@ class IPCManager {
         readable: true,
         writable: true
       });
-      
+
       this.kernel.log(`Socket created: ID ${socketId}, FD ${fd}`);
       return fd;
     }
-    
+
     throw new Error('No current process for socket creation');
   }
 
@@ -325,16 +326,12 @@ class MessageQueue {
 
   canRead(uid, gid) {
     // Simplified permission check
-    return (this.permissions & 0o044) !== 0 || 
-           uid === this.owner.uid || 
-           uid === 0;
+    return (this.permissions & 0o044) !== 0 || uid === this.owner.uid || uid === 0;
   }
 
   canWrite(uid, gid) {
     // Simplified permission check
-    return (this.permissions & 0o022) !== 0 || 
-           uid === this.owner.uid || 
-           uid === 0;
+    return (this.permissions & 0o022) !== 0 || uid === this.owner.uid || uid === 0;
   }
 
   enqueue(message) {
@@ -351,19 +348,19 @@ class MessageQueue {
       return this.messages.shift();
     } else if (messageType > 0) {
       // Get first message of specific type
-      const index = this.messages.findIndex(msg => msg.type === messageType);
+      const index = this.messages.findIndex((msg) => msg.type === messageType);
       if (index >= 0) {
         return this.messages.splice(index, 1)[0];
       }
     } else {
       // Get first message with type <= |messageType|
       const maxType = Math.abs(messageType);
-      const index = this.messages.findIndex(msg => msg.type <= maxType);
+      const index = this.messages.findIndex((msg) => msg.type <= maxType);
       if (index >= 0) {
         return this.messages.splice(index, 1)[0];
       }
     }
-    
+
     return null;
   }
 
@@ -372,23 +369,23 @@ class MessageQueue {
   }
 
   removeWaiters(pid) {
-    this.waiters = this.waiters.filter(waiter => waiter.pid !== pid);
+    this.waiters = this.waiters.filter((waiter) => waiter.pid !== pid);
   }
 
   notifyWaiters() {
     const notified = [];
-    
+
     for (let i = this.waiters.length - 1; i >= 0; i--) {
       const waiter = this.waiters[i];
       const message = this.dequeue(waiter.messageType);
-      
+
       if (message) {
         waiter.resolve(message);
         this.waiters.splice(i, 1);
         notified.push(waiter.pid);
       }
     }
-    
+
     return notified;
   }
 }

@@ -2,8 +2,10 @@
 (function () {
   'use strict';
 
-  registerCommand('pizza', (terminal, args) => {
-    return `🍕 Pizza ordering system initialized...
+  registerCommand(
+    'pizza',
+    (terminal, args) => {
+      return `🍕 Pizza ordering system initialized...
 
 📞 Calling Pizza Palace...
 🛵 Delivery ETA: 30 minutes (or it's free!)
@@ -13,5 +15,8 @@
 Toppings: Pepperoni, cheese, and a sprinkle of binary code.
 
 ⚠️  Warning: Virtual pizza provides no actual nutrition.`;
-  }, 'order pizza', 'Fun Stuff');
+    },
+    'order pizza',
+    'Fun Stuff'
+  );
 })();

@@ -17,82 +17,78 @@ along with WebNES.  If not, see <http://www.gnu.org/licenses/>.
 
 this.Test = this.Test || {};
 
-(function(){
-	"use strict";
-	
-	var clamp = function( low, high, val ) {
-		if ( val < low ) return low;
-		if ( val > high ) return high;
-		return val;
-	};
-	
-	var createSineWaveNode = function( context, inverse ) {
-	
-		// Create a ScriptProcessorNode with a bufferSize of 4096 and a single output channel
-		var audioNode = context.createScriptProcessor(4096, 0, 1);
+(function () {
+  'use strict';
 
-		var volume = .2;
+  var clamp = function (low, high, val) {
+    if (val < low) return low;
+    if (val > high) return high;
+    return val;
+  };
 
-		// The frequncy of the sine wave tone
-		var frequency = 220;
+  var createSineWaveNode = function (context, inverse) {
+    // Create a ScriptProcessorNode with a bufferSize of 4096 and a single output channel
+    var audioNode = context.createScriptProcessor(4096, 0, 1);
 
-		// Give the node a function to process audio events
-		audioNode.onaudioprocess = function(audioProcessingEvent) {
+    var volume = 0.2;
 
-			// The output buffer contains the samples that will be modified and played
-			var outputBuffer = audioProcessingEvent.outputBuffer;
+    // The frequncy of the sine wave tone
+    var frequency = 220;
 
-			// Loop through the output channels (in this case there is only one)
-			for (var channel = 0; channel < outputBuffer.numberOfChannels; channel++) {
-				var outData = outputBuffer.getChannelData(channel);
+    // Give the node a function to process audio events
+    audioNode.onaudioprocess = function (audioProcessingEvent) {
+      // The output buffer contains the samples that will be modified and played
+      var outputBuffer = audioProcessingEvent.outputBuffer;
 
-				// Loop through the 4096 samples
-				for (var sample = 0; sample < outputBuffer.length; sample++) {
+      // Loop through the output channels (in this case there is only one)
+      for (var channel = 0; channel < outputBuffer.numberOfChannels; channel++) {
+        var outData = outputBuffer.getChannelData(channel);
 
-					// The time at which the sample will play
-					var sampleTime = context.currentTime + outputBuffer.duration * sample / outputBuffer.length;
+        // Loop through the 4096 samples
+        for (var sample = 0; sample < outputBuffer.length; sample++) {
+          // The time at which the sample will play
+          var sampleTime =
+            context.currentTime + (outputBuffer.duration * sample) / outputBuffer.length;
 
-					// Set the data in the output buffer for each sample
-					var sampleVal = clamp( -1.0, 1.0, volume * Math.sin(sampleTime * frequency * Math.PI * 2) );
-					if ( inverse ) {
-						sampleVal = -sampleVal;
-					}
-					outData[sample] = sampleVal;
-				}
-			}
-		}
+          // Set the data in the output buffer for each sample
+          var sampleVal = clamp(-1.0, 1.0, volume * Math.sin(sampleTime * frequency * Math.PI * 2));
+          if (inverse) {
+            sampleVal = -sampleVal;
+          }
+          outData[sample] = sampleVal;
+        }
+      }
+    };
 
-		return audioNode;
-	};
-	
-	var createMixerNode = function( context ) {
-		var compressor = context.createDynamicsCompressor();
-		return compressor;
-	};
-	
-	var createGainNode = function( context ) {
-		var g = context.createGain();
-		return g;
-	};
-	
-	var audioStart = function() {
-		var context = new AudioContext();
-		var sineWaveNode = createSineWaveNode( context );
-		var sineWaveNode2 = createSineWaveNode( context, true );
-		var mixerNode = createGainNode( context );
-		
-		sineWaveNode.connect( mixerNode );
-		sineWaveNode2.connect( mixerNode );
-		
-		// Connect the node to the context to start playing the sound
-		mixerNode.connect(context.destination); // Connect to speakers
-	};
-	
-	Test.audioStart = audioStart;
+    return audioNode;
+  };
 
-}());
+  var createMixerNode = function (context) {
+    var compressor = context.createDynamicsCompressor();
+    return compressor;
+  };
 
+  var createGainNode = function (context) {
+    var g = context.createGain();
+    return g;
+  };
 
-window.onload = function() {
-	Test.audioStart();
+  var audioStart = function () {
+    var context = new AudioContext();
+    var sineWaveNode = createSineWaveNode(context);
+    var sineWaveNode2 = createSineWaveNode(context, true);
+    var mixerNode = createGainNode(context);
+
+    sineWaveNode.connect(mixerNode);
+    sineWaveNode2.connect(mixerNode);
+
+    // Connect the node to the context to start playing the sound
+    mixerNode.connect(context.destination); // Connect to speakers
+  };
+
+  Test.audioStart = audioStart;
+})();
+
+window.onload = function () {
+  Test.audioStart();
 };

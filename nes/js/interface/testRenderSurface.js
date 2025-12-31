@@ -17,56 +17,41 @@ along with WebNES.  If not, see <http://www.gnu.org/licenses/>.
 
 this.Test = this.Test || {};
 
-(function(){
-	"use strict";
-	
-		
-	var TestRenderSurface = function( canvasParent ) {
+(function () {
+  'use strict';
 
-		this._buffer = new Uint32Array( SCREEN_WIDTH * SCREEN_HEIGHT );
-	};
-	
-	
-	TestRenderSurface.prototype.writeToBuffer = function( bufferIndex, insertIndex, colour ) {
+  var TestRenderSurface = function (canvasParent) {
+    this._buffer = new Uint32Array(SCREEN_WIDTH * SCREEN_HEIGHT);
+  };
 
-		this._buffer[ insertIndex ] = 0xFF000000 | colour;
-	};
-	
-	
-	TestRenderSurface.prototype.clearBuffers = function( backgroundColour ) {
+  TestRenderSurface.prototype.writeToBuffer = function (bufferIndex, insertIndex, colour) {
+    this._buffer[insertIndex] = 0xff000000 | colour;
+  };
 
-		for ( var i=0; i<this._buffer.length; ++i ) {
-			this._buffer[i] = 0xFF000000 | backgroundColour;
-		}
-	};
-		
-	
-	TestRenderSurface.prototype.render = function( mainboard ) {
+  TestRenderSurface.prototype.clearBuffers = function (backgroundColour) {
+    for (var i = 0; i < this._buffer.length; ++i) {
+      this._buffer[i] = 0xff000000 | backgroundColour;
+    }
+  };
 
-	};
-	
-	
-	TestRenderSurface.prototype.getRenderBufferHash = function() {
-	
-		// Simple hash function for render buffer comparison
-		var data = this._buffer;
-		var hash = 0;
-		for (var i = 0; i < data.length; i++) {
-			hash = ((hash << 5) - hash + data[i]) & 0xffffffff;
-		}
-		// Convert to hex string and pad to match expected format
-		var hashStr = Math.abs(hash).toString(16);
-		while (hashStr.length < 8) {
-			hashStr = '0' + hashStr;
-		}
-		return hashStr.toUpperCase();
-	};
-	
-	
-	TestRenderSurface.prototype.screenshot = function() {
-	};
-	
-	
-	Test.TestRenderSurface = TestRenderSurface;
-	
-}());
+  TestRenderSurface.prototype.render = function (mainboard) {};
+
+  TestRenderSurface.prototype.getRenderBufferHash = function () {
+    // Simple hash function for render buffer comparison
+    var data = this._buffer;
+    var hash = 0;
+    for (var i = 0; i < data.length; i++) {
+      hash = ((hash << 5) - hash + data[i]) & 0xffffffff;
+    }
+    // Convert to hex string and pad to match expected format
+    var hashStr = Math.abs(hash).toString(16);
+    while (hashStr.length < 8) {
+      hashStr = '0' + hashStr;
+    }
+    return hashStr.toUpperCase();
+  };
+
+  TestRenderSurface.prototype.screenshot = function () {};
+
+  Test.TestRenderSurface = TestRenderSurface;
+})();

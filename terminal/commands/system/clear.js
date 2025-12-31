@@ -2,8 +2,13 @@
 (function () {
   'use strict';
 
-  registerCommand('clear', (terminal, _args) => {
-    terminal.clearScreen();
-    return '';
-  }, 'clear terminal', 'System');
+  registerCommand(
+    'clear',
+    (terminal, _args) => {
+      terminal.clearScreen();
+      return '';
+    },
+    'clear terminal',
+    'System'
+  );
 })();

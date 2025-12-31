@@ -404,7 +404,9 @@ PerformanceMonitor.prototype.quickFixAudio = function () {
       var newTargetFPS = Math.max(30, Math.floor(avgFPS) + 2);
       this.setTargetFPS(newTargetFPS);
       console.log(
-        `🔧 Quick Fix: Reduced target FPS from 60 to ${newTargetFPS} based on actual performance (${avgFPS.toFixed(1)} FPS)`
+        `🔧 Quick Fix: Reduced target FPS from 60 to ${newTargetFPS} based on actual performance (${avgFPS.toFixed(
+          1
+        )} FPS)`
       );
       alert(
         `Audio Quick Fix Applied!\nTarget FPS reduced to ${newTargetFPS} to match your device's performance.\nAudio should now be smoother.`
@@ -414,7 +416,9 @@ PerformanceMonitor.prototype.quickFixAudio = function () {
         `🔧 Quick Fix: Performance looks good (${avgFPS.toFixed(1)} FPS), no adjustment needed`
       );
       alert(
-        `Performance looks good!\nYour device is running at ${avgFPS.toFixed(1)} FPS.\nIf audio is still choppy, try reducing buffer size or closing other applications.`
+        `Performance looks good!\nYour device is running at ${avgFPS.toFixed(
+          1
+        )} FPS.\nIf audio is still choppy, try reducing buffer size or closing other applications.`
       );
     }
   } else {
