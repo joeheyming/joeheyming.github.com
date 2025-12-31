@@ -18,7 +18,7 @@ along with WebNES.  If not, see <http://www.gnu.org/licenses/>.
 this.Nes = this.Nes || {};
 
 (function () {
-  "use strict";
+  'use strict';
 
   /**
    * Native ZIP file reader implementation
@@ -37,7 +37,7 @@ this.Nes = this.Nes || {};
     // Find End of Central Directory Record (EOCD)
     var eocdOffset = this._findEOCD(view);
     if (eocdOffset === -1) {
-      throw new Error("Invalid ZIP file: End of Central Directory not found");
+      throw new Error('Invalid ZIP file: End of Central Directory not found');
     }
 
     // Read EOCD
@@ -62,11 +62,7 @@ this.Nes = this.Nes || {};
     return -1;
   };
 
-  NativeZipReader.prototype._parseCentralDirectory = function (
-    view,
-    offset,
-    entryCount
-  ) {
+  NativeZipReader.prototype._parseCentralDirectory = function (view, offset, entryCount) {
     var currentOffset = offset;
 
     for (var i = 0; i < entryCount; i++) {
@@ -78,10 +74,7 @@ this.Nes = this.Nes || {};
     }
   };
 
-  NativeZipReader.prototype._parseCentralDirectoryEntry = function (
-    view,
-    offset
-  ) {
+  NativeZipReader.prototype._parseCentralDirectoryEntry = function (view, offset) {
     // Central Directory Entry signature: 0x02014b50
     if (view.getUint32(offset, true) !== 0x02014b50) {
       return null;
@@ -96,14 +89,13 @@ this.Nes = this.Nes || {};
     var localHeaderOffset = view.getUint32(offset + 42, true);
 
     // Read filename
-    var fileName = "";
+    var fileName = '';
     var fileNameOffset = offset + 46;
     for (var i = 0; i < fileNameLength; i++) {
       fileName += String.fromCharCode(view.getUint8(fileNameOffset + i));
     }
 
-    var nextOffset =
-      offset + 46 + fileNameLength + extraFieldLength + commentLength;
+    var nextOffset = offset + 46 + fileNameLength + extraFieldLength + commentLength;
 
     return {
       name: fileName,
@@ -111,7 +103,7 @@ this.Nes = this.Nes || {};
       compressedSize: compressedSize,
       uncompressedSize: uncompressedSize,
       localHeaderOffset: localHeaderOffset,
-      nextOffset: nextOffset,
+      nextOffset: nextOffset
     };
   };
 
@@ -121,7 +113,7 @@ this.Nes = this.Nes || {};
 
     // Local File Header signature: 0x04034b50
     if (view.getUint32(offset, true) !== 0x04034b50) {
-      throw new Error("Invalid local file header");
+      throw new Error('Invalid local file header');
     }
 
     var fileNameLength = view.getUint16(offset + 26, true);
@@ -141,24 +133,19 @@ this.Nes = this.Nes || {};
       // DEFLATE compression
       return this._inflateData(compressedData, entry.uncompressedSize);
     } else {
-      throw new Error(
-        "Unsupported compression method: " + entry.compressionMethod
-      );
+      throw new Error('Unsupported compression method: ' + entry.compressionMethod);
     }
   };
 
-  NativeZipReader.prototype._inflateData = function (
-    compressedData,
-    uncompressedSize
-  ) {
+  NativeZipReader.prototype._inflateData = function (compressedData, uncompressedSize) {
     // Fallback: Use pako library if available for synchronous decompression
-    if (typeof pako !== "undefined") {
+    if (typeof pako !== 'undefined') {
       return pako.inflateRaw(compressedData);
     }
 
     // For now, we'll focus on uncompressed files and suggest using pako for compressed ones
     throw new Error(
-      "DEFLATE decompression requires pako library. Please use uncompressed ZIP files or include pako library for compressed files."
+      'DEFLATE decompression requires pako library. Please use uncompressed ZIP files or include pako library for compressed files.'
     );
   };
 
@@ -172,7 +159,7 @@ this.Nes = this.Nes || {};
 
       if (namePattern instanceof RegExp) {
         matches = namePattern.test(file.name);
-      } else if (typeof namePattern === "string") {
+      } else if (typeof namePattern === 'string') {
         matches = file.name === namePattern;
       }
 
@@ -183,7 +170,7 @@ this.Nes = this.Nes || {};
             return function () {
               return this._extractFile(entry);
             }.bind(this);
-          }.bind(this)(file),
+          }.bind(this)(file)
         };
         results.push(fileEntry);
       }

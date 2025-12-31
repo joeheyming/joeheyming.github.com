@@ -2,7 +2,12 @@
 (function () {
   'use strict';
 
-  registerCommand('whoami', (terminal, args) => {
-    return terminal.env.USER;
-  }, 'display current username', 'System');
+  registerCommand(
+    'whoami',
+    (terminal, args) => {
+      return terminal.env.USER;
+    },
+    'display current username',
+    'System'
+  );
 })();

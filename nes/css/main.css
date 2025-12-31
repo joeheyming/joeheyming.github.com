@@ -168,9 +168,7 @@ html {
 /* Action button specific styling */
 #a-btn:active,
 #b-btn:active {
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.4),
-    inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* SELECT/START button specific styling */

@@ -17,7 +17,7 @@ along with WebNES.  If not, see <http://www.gnu.org/licenses/>.
 
 this.Nes = this.Nes || {};
 
-("use strict");
+('use strict');
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -143,16 +143,12 @@ mapper4.prototype.syncBanks = function (doPrg, doChr) {
 mapper4.prototype._lookInDbForMMC6 = function () {
   if (this.mainboard.cart && this.mainboard.cart._dbData) {
     var db = this.mainboard.cart._dbData;
-    if (
-      db["cartridge"] &&
-      db["cartridge"][0]["board"] &&
-      db["cartridge"][0]["board"][0]
-    ) {
-      var board = db["cartridge"][0]["board"][0];
-      if (board["chip"] && board["chip"][0]) {
-        var chip = board["chip"][0];
-        if (chip["$"] && chip["$"]["type"]) {
-          return chip["$"]["type"] === "MMC6B";
+    if (db['cartridge'] && db['cartridge'][0]['board'] && db['cartridge'][0]['board'][0]) {
+      var board = db['cartridge'][0]['board'][0];
+      if (board['chip'] && board['chip'][0]) {
+        var chip = board['chip'][0];
+        if (chip['$'] && chip['$']['type']) {
+          return chip['$']['type'] === 'MMC6B';
         }
       }
     }
@@ -163,17 +159,15 @@ mapper4.prototype._lookInDbForMMC6 = function () {
 mapper4.prototype.reset = function () {
   // Clean up any existing IRQ event
   if (this.mainboard && this.mainboard.synchroniser) {
-    this.mainboard.synchroniser._removeEvent("mmc3 irq");
+    this.mainboard.synchroniser._removeEvent('mmc3 irq');
   }
 
   this.prgRamDisableWrite = false;
   this.chipEnable = this.interruptsEnabled = true;
   this._interruptInProgress = false;
 
-  this._A12LowerLimit =
-    COLOUR_ENCODING_VBLANK_SCANLINES * MASTER_CYCLES_PER_SCANLINE;
-  this._A12UpperLimit =
-    (COLOUR_ENCODING_FRAME_SCANLINES - 1) * MASTER_CYCLES_PER_SCANLINE;
+  this._A12LowerLimit = COLOUR_ENCODING_VBLANK_SCANLINES * MASTER_CYCLES_PER_SCANLINE;
+  this._A12UpperLimit = (COLOUR_ENCODING_FRAME_SCANLINES - 1) * MASTER_CYCLES_PER_SCANLINE;
 
   this.lastA12Raise = 0;
 
@@ -201,13 +195,9 @@ mapper4.prototype.reset = function () {
   }
 
   var that = this;
-  this._irqEventId = this.mainboard.synchroniser.addEvent(
-    "mmc3 irq",
-    -1,
-    function () {
-      that._eventIrq();
-    }
-  );
+  this._irqEventId = this.mainboard.synchroniser.addEvent('mmc3 irq', -1, function () {
+    that._eventIrq();
+  });
 
   this.syncBanks(true, true);
   this.mainboard.ppu.changeMirroringMethod(this.mirroringMethod);
@@ -243,8 +233,7 @@ mapper4.prototype.write8PrgRom = function (offset, data) {
     case 0xa000:
       if ((offset & 0x1) === 0) {
         // even
-        var mirroringMethod =
-          (data & 0x1) > 0 ? PPU_MIRRORING_HORIZONTAL : PPU_MIRRORING_VERTICAL;
+        var mirroringMethod = (data & 0x1) > 0 ? PPU_MIRRORING_HORIZONTAL : PPU_MIRRORING_VERTICAL;
         if (mirroringMethod !== this.mainboard.ppu.getMirroringMethod()) {
           this.mainboard.synchroniser.synchronise();
           this.mainboard.ppu.changeMirroringMethod(mirroringMethod);
@@ -338,10 +327,7 @@ mapper4.prototype.decrementIrqCounter = function (tickCount) {
 mapper4.prototype.ppuA12Latch = function () {
   this.mainboard.synchroniser.synchronise();
   var cpuMtc = this.mainboard.synchroniser.getCpuMTC();
-  if (
-    this.lastA12Raise > 0 &&
-    cpuMtc - this.lastA12Raise <= 16 * MASTER_CYCLES_PER_PPU
-  ) {
+  if (this.lastA12Raise > 0 && cpuMtc - this.lastA12Raise <= 16 * MASTER_CYCLES_PER_PPU) {
     return; // Required for Bill & Ted to work: Ignore A12 raises that are too close together
   }
   this.decrementIrqCounter(cpuMtc);
@@ -380,8 +366,7 @@ mapper4.prototype.calculateNextA12Raise = function (cpuMTC) {
   if (startMtc <= cpuMTC) startMtc += MASTER_CYCLES_PER_SCANLINE; // if we have already passed the irq event, move onto next scanline
   if (this._A12UpperLimit <= startMtc) return -1;
 
-  if (startMtc < this._A12LowerLimit)
-    startMtc = this._A12LowerLimit + scanlineEvent;
+  if (startMtc < this._A12LowerLimit) startMtc = this._A12LowerLimit + scanlineEvent;
 
   return startMtc;
 };
@@ -417,10 +402,7 @@ mapper4.prototype.updateIRQTime = function (cpuTime, doSync) {
   this.mainboard.synchroniser.changeEventTime(this._irqEventId, newEvent);
 };
 
-mapper4.prototype.spriteScreenEnabledUpdate = function (
-  spriteAddress,
-  screenAddress
-) {
+mapper4.prototype.spriteScreenEnabledUpdate = function (spriteAddress, screenAddress) {
   this.mSpriteAddress = spriteAddress;
   this.mScreenAddress = screenAddress;
   this.updateIRQTime(this.mainboard.synchroniser.getCpuMTC(), true);

@@ -57,22 +57,54 @@ body {
   line-height: 1.2;
 }
 
-.ansi-output span[style*="color: black"] { color: #000000 !important; }
-.ansi-output span[style*="color: red"] { color: #ff0000 !important; }
-.ansi-output span[style*="color: green"] { color: #00ff00 !important; }
-.ansi-output span[style*="color: yellow"] { color: #ffff00 !important; }
-.ansi-output span[style*="color: blue"] { color: #0000ff !important; }
-.ansi-output span[style*="color: magenta"] { color: #ff00ff !important; }
-.ansi-output span[style*="color: cyan"] { color: #00ffff !important; }
-.ansi-output span[style*="color: white"] { color: #ffffff !important; }
-.ansi-output span[style*="color: gray"] { color: #808080 !important; }
-.ansi-output span[style*="color: lightred"] { color: #ff8080 !important; }
-.ansi-output span[style*="color: lightgreen"] { color: #80ff80 !important; }
-.ansi-output span[style*="color: lightyellow"] { color: #ffff80 !important; }
-.ansi-output span[style*="color: lightblue"] { color: #8080ff !important; }
-.ansi-output span[style*="color: lightmagenta"] { color: #ff80ff !important; }
-.ansi-output span[style*="color: lightcyan"] { color: #80ffff !important; }
-.ansi-output span[style*="color: lightwhite"] { color: #ffffff !important; }
+.ansi-output span[style*='color: black'] {
+  color: #000000 !important;
+}
+.ansi-output span[style*='color: red'] {
+  color: #ff0000 !important;
+}
+.ansi-output span[style*='color: green'] {
+  color: #00ff00 !important;
+}
+.ansi-output span[style*='color: yellow'] {
+  color: #ffff00 !important;
+}
+.ansi-output span[style*='color: blue'] {
+  color: #0000ff !important;
+}
+.ansi-output span[style*='color: magenta'] {
+  color: #ff00ff !important;
+}
+.ansi-output span[style*='color: cyan'] {
+  color: #00ffff !important;
+}
+.ansi-output span[style*='color: white'] {
+  color: #ffffff !important;
+}
+.ansi-output span[style*='color: gray'] {
+  color: #808080 !important;
+}
+.ansi-output span[style*='color: lightred'] {
+  color: #ff8080 !important;
+}
+.ansi-output span[style*='color: lightgreen'] {
+  color: #80ff80 !important;
+}
+.ansi-output span[style*='color: lightyellow'] {
+  color: #ffff80 !important;
+}
+.ansi-output span[style*='color: lightblue'] {
+  color: #8080ff !important;
+}
+.ansi-output span[style*='color: lightmagenta'] {
+  color: #ff80ff !important;
+}
+.ansi-output span[style*='color: lightcyan'] {
+  color: #80ffff !important;
+}
+.ansi-output span[style*='color: lightwhite'] {
+  color: #ffffff !important;
+}
 
 /* Animation support */
 .streaming-output {

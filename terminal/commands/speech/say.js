@@ -53,21 +53,26 @@ say --help - Show this help message`;
   // Initialize voices when module loads
   initializeVoices();
 
-  registerCommand('say', (terminal, args) => {
-    if (args.includes('--list')) {
-      return listVoices();
-    }
-    if (args.includes('--help')) {
-      return showSayHelp();
-    }
-    const voiceIndex = args.indexOf('--voice');
-    let voiceName = 'Google US English'; // Default voice
-    if (voiceIndex !== -1 && args[voiceIndex + 1]) {
-      voiceName = args[voiceIndex + 1];
-      args.splice(voiceIndex, 2); // Remove --voice and its value
-    }
-    const text = args.join(' ');
-    say(text, voiceName);
-    return `🔊 Speaking: "${text}"`;
-  }, 'speak text aloud', 'Speech & Media');
+  registerCommand(
+    'say',
+    (terminal, args) => {
+      if (args.includes('--list')) {
+        return listVoices();
+      }
+      if (args.includes('--help')) {
+        return showSayHelp();
+      }
+      const voiceIndex = args.indexOf('--voice');
+      let voiceName = 'Google US English'; // Default voice
+      if (voiceIndex !== -1 && args[voiceIndex + 1]) {
+        voiceName = args[voiceIndex + 1];
+        args.splice(voiceIndex, 2); // Remove --voice and its value
+      }
+      const text = args.join(' ');
+      say(text, voiceName);
+      return `🔊 Speaking: "${text}"`;
+    },
+    'speak text aloud',
+    'Speech & Media'
+  );
 })();

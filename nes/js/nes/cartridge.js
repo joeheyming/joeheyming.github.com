@@ -17,13 +17,13 @@ along with WebNES.  If not, see <http://www.gnu.org/licenses/>.
 
 this.Nes = this.Nes || {};
 
-("use strict");
+('use strict');
 
 var cartridge = function (mainboard) {
   this.mainboard = mainboard;
   this.memoryMapper = null;
-  this._sha1 = "";
-  this._name = "";
+  this._sha1 = '';
+  this._name = '';
   this._dbData = null;
   this._colourEncodingType = g_DefaultColourEncoding;
   this._sramEnabled = false;
@@ -33,30 +33,22 @@ var cartridge = function (mainboard) {
 cartridge.prototype.areGameGenieCodesAvailable = function () {
   return !!(
     this._dbData &&
-    this._dbData["gameGenieCodes"] &&
-    this._dbData["gameGenieCodes"].length > 0
+    this._dbData['gameGenieCodes'] &&
+    this._dbData['gameGenieCodes'].length > 0
   );
 };
 
-cartridge.prototype.loadRom = function (
-  name,
-  rawBinaryString,
-  completeCallback
-) {
+cartridge.prototype.loadRom = function (name, rawBinaryString, completeCallback) {
   var that = this;
 
   try {
-    Nes.decompressIfNecessary(
-      name,
-      rawBinaryString,
-      function (err, binaryString) {
-        if (err) {
-          completeCallback(err);
-        } else {
-          that._loadData(name, binaryString, completeCallback);
-        }
+    Nes.decompressIfNecessary(name, rawBinaryString, function (err, binaryString) {
+      if (err) {
+        completeCallback(err);
+      } else {
+        that._loadData(name, binaryString, completeCallback);
       }
-    );
+    });
   } catch (err) {
     completeCallback(err);
   }
@@ -78,17 +70,17 @@ var getHighestFrequencyElement = function (map) {
 
 cartridge.prototype._getMapperFromDatabase = function (mapperIdFromInes) {
   var mapperIdFrequency = {};
-  if (this._dbData && this._dbData["cartridge"]) {
+  if (this._dbData && this._dbData['cartridge']) {
     var foundInesMapper = false;
-    this._dbData["cartridge"].forEach(function (cart) {
-      if (cart["board"]) {
-        cart["board"].forEach(function (board) {
-          if (board["$"]["mapper"] === mapperIdFromInes) {
+    this._dbData['cartridge'].forEach(function (cart) {
+      if (cart['board']) {
+        cart['board'].forEach(function (board) {
+          if (board['$']['mapper'] === mapperIdFromInes) {
             // Mapper ID in iNes file has been found in database - use that
             foundInesMapper = true;
           } else {
-            mapperIdFrequency[board["$"]["mapper"]] =
-              mapperIdFrequency[board["$"]["mapper"]] + 1 || 1;
+            mapperIdFrequency[board['$']['mapper']] =
+              mapperIdFrequency[board['$']['mapper']] + 1 || 1;
           }
         });
       }
@@ -110,9 +102,9 @@ cartridge.prototype._getMapperFromDatabase = function (mapperIdFromInes) {
 
 cartridge.prototype._workOutColourEncodingFromFilename = function (filename) {
   if (filename.match(/[\[\(][E][\]\)]/i)) {
-    return "PAL";
+    return 'PAL';
   } else if (filename.match(/[\[\(][JU][\]\)]/i)) {
-    return "NTSC";
+    return 'NTSC';
   } else {
     return g_DefaultColourEncoding;
   }
@@ -125,17 +117,17 @@ cartridge.prototype._determineColourEncodingType = function (filename) {
   };
 
   var systemFrequency = {};
-  if (this._dbData && this._dbData["cartridge"]) {
-    this._dbData["cartridge"].forEach(function (cart) {
-      if (cart["$"]["system"]) {
-        var lower = cart["$"]["system"].toLowerCase();
+  if (this._dbData && this._dbData['cartridge']) {
+    this._dbData['cartridge'].forEach(function (cart) {
+      if (cart['$']['system']) {
+        var lower = cart['$']['system'].toLowerCase();
 
-        if (stringStartsWith(lower, "nes-pal")) {
-          systemFrequency["PAL"] = systemFrequency["PAL"] || 0;
-          systemFrequency["PAL"]++;
+        if (stringStartsWith(lower, 'nes-pal')) {
+          systemFrequency['PAL'] = systemFrequency['PAL'] || 0;
+          systemFrequency['PAL']++;
         } else {
-          systemFrequency["NTSC"] = systemFrequency["NTSC"] || 0;
-          systemFrequency["NTSC"]++;
+          systemFrequency['NTSC'] = systemFrequency['NTSC'] || 0;
+          systemFrequency['NTSC']++;
         }
       }
     });
@@ -166,11 +158,7 @@ var create32IntArray = function (array, length) {
   return a;
 };
 
-cartridge.prototype._loadData = function (
-  name,
-  binaryString,
-  completeCallback
-) {
+cartridge.prototype._loadData = function (name, binaryString, completeCallback) {
   var that = this;
   try {
     this._name = name;
@@ -180,7 +168,7 @@ cartridge.prototype._loadData = function (
 
     for (var i = 0; i < correctHeader.length; ++i) {
       if (correctHeader[i] !== binaryString[stringIndex++])
-        throw new Error("Invalid NES header for file!");
+        throw new Error('Invalid NES header for file!');
     }
 
     var prgPageCount = binaryString[stringIndex++];
@@ -214,7 +202,7 @@ cartridge.prototype._loadData = function (
     Nes.calculateSha1(binaryString, stringIndex)
       .then(function (sha1) {
         self._sha1 = sha1;
-        console.log("SHA1: " + self._sha1);
+        console.log('SHA1: ' + self._sha1);
 
         Nes.dbLookup(self._sha1, function (err, data) {
           if (err) {
@@ -225,39 +213,32 @@ cartridge.prototype._loadData = function (
             that._dbData = data;
 
             if (that._dbData) {
-              that._name = that._dbData["$"]["name"];
-              console.log("Game found in database: " + that._name);
+              that._name = that._dbData['$']['name'];
+              console.log('Game found in database: ' + that._name);
             } else {
-              console.log("Game not found in database");
+              console.log('Game not found in database');
             }
 
             var mapperFromDb = that._getMapperFromDatabase(mapperId);
 
             if (mapperFromDb !== null && mapperFromDb !== mapperId) {
               console.log(
-                "Game has different mapper in database [" +
+                'Game has different mapper in database [' +
                   mapperFromDb +
-                  "] from the iNes file [" +
+                  '] from the iNes file [' +
                   mapperId +
-                  "]. Using value from database..."
+                  ']. Using value from database...'
               );
               mapperId = mapperFromDb;
             }
 
-            that.memoryMapper = Nes.createMapper(
-              mapperId,
-              that.mainboard,
-              mirroringMethod
-            );
+            that.memoryMapper = Nes.createMapper(mapperId, that.mainboard, mirroringMethod);
 
             // read in program code
             var prg8kChunkCount = prgPageCount * 2; // read in 8k chunks, prgPageCount is 16k chunks
             var prgSize = 0x2000 * prg8kChunkCount;
             that.memoryMapper.setPrgData(
-              create32IntArray(
-                binaryString.subarray(stringIndex, stringIndex + prgSize),
-                prgSize
-              ),
+              create32IntArray(binaryString.subarray(stringIndex, stringIndex + prgSize), prgSize),
               prg8kChunkCount
             );
             stringIndex += prgSize;
@@ -266,10 +247,7 @@ cartridge.prototype._loadData = function (
             var chr1kChunkCount = chrPageCount * 8; // 1kb per pattern table, chrPageCount is the 8kb count
             var chrSize = 0x400 * chr1kChunkCount;
             that.memoryMapper.setChrData(
-              create32IntArray(
-                binaryString.subarray(stringIndex, stringIndex + chrSize),
-                chrSize
-              ),
+              create32IntArray(binaryString.subarray(stringIndex, stringIndex + chrSize), chrSize),
               chr1kChunkCount
             );
             stringIndex += chrSize;
@@ -283,15 +261,15 @@ cartridge.prototype._loadData = function (
                 name +
                 "' loaded. Mapper " +
                 mapperId +
-                ", " +
+                ', ' +
                 Nes.mirroringMethodToString(mirroringMethod) +
-                " mirroring, " +
+                ' mirroring, ' +
                 prgKb +
-                "kb PRG, " +
+                'kb PRG, ' +
                 chr1kChunkCount +
-                "kb CHR"
+                'kb CHR'
             );
-            console.log("Encoding: " + that._colourEncodingType);
+            console.log('Encoding: ' + that._colourEncodingType);
 
             // Load SRAM if available
             that.loadSram();
@@ -303,7 +281,7 @@ cartridge.prototype._loadData = function (
         });
       })
       .catch(function (err) {
-        console.error("SHA1 calculation failed:", err);
+        console.error('SHA1 calculation failed:', err);
         completeCallback(err);
       });
   } catch (err) {
@@ -316,7 +294,7 @@ cartridge.prototype.reset = function () {
 };
 
 cartridge.prototype.getSramKey = function () {
-  return "sram:" + this._sha1;
+  return 'sram:' + this._sha1;
 };
 
 cartridge.prototype.saveSram = function () {
@@ -325,7 +303,7 @@ cartridge.prototype.saveSram = function () {
     if (Gui.saveToLocalStorage) {
       Gui.saveToLocalStorage(this.getSramKey(), sramData);
       this._lastSramSave = Date.now();
-      console.log("SRAM saved for " + this._name);
+      console.log('SRAM saved for ' + this._name);
     }
   }
 };
@@ -333,9 +311,9 @@ cartridge.prototype.saveSram = function () {
 cartridge.prototype.loadSram = function () {
   if (this._sramEnabled && this.memoryMapper && Gui.loadFromLocalStorage) {
     var sramData = Gui.loadFromLocalStorage(this.getSramKey());
-    if (sramData && typeof sramData === "string") {
+    if (sramData && typeof sramData === 'string') {
       this.memoryMapper.sram = Nes.stringToUintArray(sramData);
-      console.log("SRAM loaded for " + this._name);
+      console.log('SRAM loaded for ' + this._name);
     }
   }
 };

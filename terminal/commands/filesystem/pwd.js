@@ -2,7 +2,12 @@
 (function () {
   'use strict';
 
-  registerCommand('pwd', (terminal, args) => {
-    return terminal.currentDirectory;
-  }, 'print working directory', 'File System');
+  registerCommand(
+    'pwd',
+    (terminal, args) => {
+      return terminal.currentDirectory;
+    },
+    'print working directory',
+    'File System'
+  );
 })();
