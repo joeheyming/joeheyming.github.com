@@ -245,6 +245,53 @@
               ></a>
             </div>
           </div>
+
+          <!-- Fullscreen Toggle Button (shows on hover) -->
+          <button
+            id="fullscreen-toggle"
+            class="fullscreen-toggle-btn"
+            title="Toggle Fullscreen (F)"
+            data-event="fullscreen_toggle"
+            data-event-category="StepMania"
+            data-event-label="Fullscreen Toggle"
+          >
+            <span class="fullscreen-icon">⛶</span>
+            <span class="exit-fullscreen-icon" style="display: none">✕</span>
+          </button>
+
+          <!-- Fullscreen Score Overlay (only visible in fullscreen) -->
+          <div id="fullscreen-score" class="fullscreen-only-controls fullscreen-score-overlay">
+            <div class="fs-score-percent" id="fs-score-percent">0.00%</div>
+            <div class="fs-score-stats">
+              <div class="fs-stat">
+                <span class="fs-stat-label">Combo</span>
+                <span class="fs-stat-value" id="fs-combo">0</span>
+              </div>
+              <div class="fs-stat">
+                <span class="fs-stat-label">Score</span>
+                <span class="fs-stat-value" id="fs-score">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fullscreen Exit Button (top left, only visible in fullscreen) -->
+          <button
+            id="fullscreen-exit-btn"
+            class="fullscreen-exit-button"
+            title="Exit Fullscreen (ESC or F)"
+          >
+            ✕
+          </button>
+
+          <!-- Fullscreen Step Buttons (only visible in fullscreen) -->
+          <div id="fullscreen-controls" class="fullscreen-only-controls">
+            <div class="fullscreen-step-buttons">
+              <step-button direction="left" color="red" id="fs-button0"></step-button>
+              <step-button direction="down" color="blue" id="fs-button1"></step-button>
+              <step-button direction="up" color="green" id="fs-button2"></step-button>
+              <step-button direction="right" color="yellow" id="fs-button3"></step-button>
+            </div>
+          </div>
         </div>
 
         <!-- Step Buttons Container - Below Canvas -->
@@ -340,15 +387,20 @@
             </div>
           </div>
 
-          <!-- Spacebar Hint -->
+          <!-- Keyboard Hints -->
           <div
-            class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl p-3 backdrop-blur-lg border border-purple-400/30 performance-compact hidden lg:block"
+            class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl p-3 backdrop-blur-lg border border-purple-400/30 performance-compact show-lg-only"
           >
-            <div class="text-center text-sm text-gray-300">
+            <div class="text-center text-sm text-gray-300 space-y-1">
               <p>
                 Press
                 <span class="text-white font-semibold">Space</span>
                 to play/pause
+              </p>
+              <p>
+                Press
+                <span class="text-white font-semibold">F</span>
+                for fullscreen
               </p>
             </div>
           </div>
@@ -388,6 +440,196 @@
 
       // Initial check
       setTimeout(updateGamepadStatus, 2000);
+
+      // Fullscreen toggle functionality - targets the game canvas container
+      function toggleFullscreen() {
+        const gameContainer = document.getElementById('sm-micro');
+
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+          // Enter fullscreen on the game container
+          if (gameContainer.requestFullscreen) {
+            gameContainer.requestFullscreen();
+          } else if (gameContainer.webkitRequestFullscreen) {
+            gameContainer.webkitRequestFullscreen();
+          }
+        } else {
+          // Exit fullscreen
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+          }
+        }
+      }
+
+      // Bind fullscreen button clicks
+      document.addEventListener('DOMContentLoaded', () => {
+        const fullscreenBtn = document.getElementById('fullscreen-toggle');
+        if (fullscreenBtn) {
+          fullscreenBtn.addEventListener('click', toggleFullscreen);
+        }
+
+        // Fullscreen exit button
+        const exitBtn = document.getElementById('fullscreen-exit-btn');
+        if (exitBtn) {
+          exitBtn.addEventListener('click', toggleFullscreen);
+        }
+
+        // Sync fullscreen step buttons with main step buttons
+        const fsButtons = ['fs-button0', 'fs-button1', 'fs-button2', 'fs-button3'];
+        const mainButtons = ['button0', 'button1', 'button2', 'button3'];
+
+        fsButtons.forEach((fsId, index) => {
+          const fsBtn = document.getElementById(fsId);
+          const mainBtn = document.getElementById(mainButtons[index]);
+
+          if (fsBtn && mainBtn) {
+            // Forward events from fullscreen buttons to main buttons
+            ['pointerdown', 'pointerup', 'pointercancel', 'touchstart', 'touchend'].forEach(
+              (eventType) => {
+                fsBtn.addEventListener(eventType, (e) => {
+                  // Dispatch the same event to the main button
+                  const newEvent = new Event(eventType, { bubbles: true });
+                  mainBtn.dispatchEvent(newEvent);
+                });
+              }
+            );
+          }
+        });
+      });
+
+      // Keyboard shortcut for fullscreen (F key)
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'f' || e.key === 'F') {
+          // Don't trigger if typing in an input field
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            return;
+          }
+          e.preventDefault();
+          toggleFullscreen();
+        }
+      });
+
+      // Fullscreen score sync
+      let fullscreenScoreSyncInterval = null;
+
+      function startFullscreenScoreSync() {
+        if (fullscreenScoreSyncInterval) return;
+
+        fullscreenScoreSyncInterval = setInterval(() => {
+          // Get values from main score panel (using the score-panel web component with shadow DOM)
+          const scorePanel = document.getElementById('score-panel');
+          if (scorePanel && scorePanel.shadowRoot) {
+            const percentEl = scorePanel.shadowRoot.getElementById('percent');
+            const comboEl = scorePanel.shadowRoot.getElementById('combo');
+            const scoreEl = scorePanel.shadowRoot.getElementById('gamified-score');
+
+            // Update fullscreen score display
+            const fsPercent = document.getElementById('fs-score-percent');
+            const fsCombo = document.getElementById('fs-combo');
+            const fsScore = document.getElementById('fs-score');
+
+            if (fsPercent && percentEl) {
+              fsPercent.textContent = percentEl.textContent || '0.00%';
+            }
+            if (fsCombo && comboEl) {
+              fsCombo.textContent = comboEl.textContent || '0';
+            }
+            if (fsScore && scoreEl) {
+              fsScore.textContent = scoreEl.textContent || '0';
+            }
+          }
+        }, 100);
+      }
+
+      function stopFullscreenScoreSync() {
+        if (fullscreenScoreSyncInterval) {
+          clearInterval(fullscreenScoreSyncInterval);
+          fullscreenScoreSyncInterval = null;
+        }
+      }
+
+      // Handle fullscreen change to resize canvas
+      document.addEventListener('fullscreenchange', handleFullscreenChange);
+      document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+      function handleFullscreenChange() {
+        const gameContainer = document.getElementById('sm-micro');
+        const isFullscreen =
+          document.fullscreenElement === gameContainer ||
+          document.webkitFullscreenElement === gameContainer;
+
+        // Update button icon state
+        const btn = document.getElementById('fullscreen-toggle');
+        if (btn) {
+          const enterIcon = btn.querySelector('.fullscreen-icon');
+          const exitIcon = btn.querySelector('.exit-fullscreen-icon');
+          if (enterIcon && exitIcon) {
+            enterIcon.style.display = isFullscreen ? 'none' : 'inline';
+            exitIcon.style.display = isFullscreen ? 'inline' : 'none';
+          }
+        }
+
+        // Toggle fullscreen controls, score, and exit button visibility
+        const fsControls = document.getElementById('fullscreen-controls');
+        const fsScore = document.getElementById('fullscreen-score');
+        const fsExitBtn = document.getElementById('fullscreen-exit-btn');
+
+        if (fsControls) {
+          fsControls.classList.toggle('visible', isFullscreen);
+        }
+
+        if (fsExitBtn) {
+          fsExitBtn.classList.toggle('visible', isFullscreen);
+        }
+
+        if (fsScore) {
+          fsScore.classList.toggle('visible', isFullscreen);
+          if (isFullscreen) {
+            startFullscreenScoreSync();
+          } else {
+            stopFullscreenScoreSync();
+          }
+        }
+
+        // Give the browser a moment to adjust layout, then resize the canvas
+        setTimeout(() => {
+          if (window.CanvasManager) {
+            if (isFullscreen) {
+              // In fullscreen, make canvas fill the screen while maintaining aspect ratio
+              const screenWidth = window.innerWidth;
+              const screenHeight = window.innerHeight;
+
+              // Calculate canvas size to fill screen while maintaining playable area
+              const aspectRatio = 4 / 5; // width to height ratio for game
+              let canvasWidth, canvasHeight;
+
+              if (screenWidth / screenHeight > aspectRatio) {
+                // Screen is wider than needed, constrain by height
+                canvasHeight = screenHeight;
+                canvasWidth = Math.min(screenHeight * aspectRatio, screenWidth * 0.6);
+              } else {
+                // Screen is taller than needed, constrain by width
+                canvasWidth = screenWidth * 0.6;
+                canvasHeight = canvasWidth / aspectRatio;
+              }
+
+              // Update canvas dimensions
+              if (window.CanvasManager.element) {
+                window.CanvasManager.width = Math.floor(canvasWidth);
+                window.CanvasManager.height = Math.floor(canvasHeight);
+                window.CanvasManager.element.width = window.CanvasManager.width;
+                window.CanvasManager.element.height = window.CanvasManager.height;
+              }
+            } else {
+              // Exiting fullscreen, restore normal size
+              window.CanvasManager.resize('sm-micro');
+            }
+          }
+          // Dispatch resize event to trigger any other resize handlers
+          window.dispatchEvent(new Event('resize'));
+        }, 100);
+      }
     </script>
     <!-- Main page loading overlay for URL initialization -->
     <loading-overlay id="loading-overlay"></loading-overlay>
