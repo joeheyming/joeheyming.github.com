@@ -888,6 +888,9 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   });
+
+  // Expose CanvasManager globally for fullscreen resize handling
+  window.CanvasManager = CanvasManager;
 });
 
 // ============================================================================
