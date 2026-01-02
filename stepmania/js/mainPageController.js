@@ -99,6 +99,10 @@ export class MainPageController {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
         return;
       }
+      // no meta or ctrl key
+      if (e.ctrlKey || e.metaKey) {
+        return;
+      }
       if (e.key === 'r' || e.key === 'R') {
         e.preventDefault();
         this.restartSong();
@@ -208,11 +212,7 @@ export class MainPageController {
 
       // Set the category in the browser so it can preselect when reopened
       if (simfileData.categoryId) {
-        const zeniusBrowser = document.querySelector('zenius-browser');
-        if (zeniusBrowser) {
-          zeniusBrowser.lastBrowsedCategoryId = simfileData.categoryId;
-          zeniusBrowser.lastBrowsedCategoryName = simfileData.categoryName;
-        }
+        ZeniusBrowser.rememberCategory(simfileData.categoryId, simfileData.categoryName);
       }
 
       LoadingOverlay.updateProgress('Setting up song...', 70);
