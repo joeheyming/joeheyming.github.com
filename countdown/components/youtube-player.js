@@ -181,7 +181,7 @@ class YouTubePlayer extends HTMLElement {
 YouTubePlayer.VIDEOS = {
   CELEBRATION: '3GwjfUFyY6M', // Kool & The Gang - Celebration
   FINAL_COUNTDOWN: '9jK-NcRmVcw', // Europe - The Final Countdown
-  AULD_LANG_SYNE: '5mCWIsmSFN8', // Traditional Auld Lang Syne
+  AULD_LANG_SYNE: 'lvJRmdN9iyU', // Traditional Auld Lang Syne
   HAPPY_NEW_YEAR: 'oUfnfIhsGss', // ABBA - Happy New Year
   FIREWORK: 'QGJuMBdaqIw', // Katy Perry - Firework
   PARTY_ROCK: 'KQ6zr6kCPj8', // LMFAO - Party Rock Anthem
@@ -201,7 +201,7 @@ YouTubePlayer.VIDEO_START_TIMES = {
   UPTOWN_FUNK: 5, // Small intro
   HAPPY: 5,
   FINAL_COUNTDOWN: 13,
-  AULD_LANG_SYNE: 14
+  AULD_LANG_SYNE: 13
 };
 
 // Video metadata for UI display
