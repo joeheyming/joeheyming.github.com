@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link
+      rel="icon"
+      id="site-favicon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⏳</text></svg>"
+    />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+    <title>⏳ Countdown Timer - Count Down to Special Moments | Joe Heyming</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta
+      name="description"
+      content="Beautiful countdown timer to your special moments. Count down to New Year's, Christmas, birthdays, and more. Built by Joe Heyming."
+    />
+
+    <!-- Enhanced SEO Meta Tags -->
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta
+      name="keywords"
+      content="countdown timer, countdown clock, new years countdown, christmas countdown, event countdown, date countdown, timer"
+    />
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Countdown Timer" />
+    <meta property="og:title" content="⏳ Countdown Timer - Count Down to Special Moments" />
+    <meta
+      property="og:description"
+      content="Beautiful countdown timer to your special moments. Count down to New Year's, Christmas, birthdays, and any custom date."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/countdown/" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="⏳ Countdown Timer - Count Down to Special Moments" />
+    <meta
+      name="twitter:description"
+      content="Beautiful countdown timer with preset events and custom date support. Perfect for counting down to any special moment."
+    />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://joeheyming.github.io/countdown/" />
+
+    <!-- Import Map for ES Modules -->
+    <script type="importmap">
+      {
+        "imports": {
+          "dayjs": "https://esm.sh/dayjs@1.11.10",
+          "dayjs/plugin/duration": "https://esm.sh/dayjs@1.11.10/plugin/duration",
+          "dayjs/plugin/relativeTime": "https://esm.sh/dayjs@1.11.10/plugin/relativeTime",
+          "n2words": "https://esm.sh/n2words@1.21.0"
+        }
+      }
+    </script>
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Outfit:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="/share.js"></script>
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Countdown Timer",
+        "applicationCategory": "UtilityApplication",
+        "operatingSystem": "Web Browser",
+        "description": "Beautiful countdown timer to your special moments. Count down to New Year's, Christmas, birthdays, and any custom date with a stunning visual display.",
+        "url": "https://joeheyming.github.io/countdown/",
+        "author": {
+          "@type": "Person",
+          "name": "Joe Heyming",
+          "url": "https://joeheyming.github.io/"
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "featureList": [
+          "Real-time countdown display",
+          "Preset holiday countdowns",
+          "Custom date support",
+          "Beautiful animations",
+          "Mobile-friendly design",
+          "No installation required"
+        ],
+        "keywords": "countdown, timer, clock, new year, christmas, event countdown",
+        "inLanguage": "en"
+      }
+    </script>
+  </head>
+  <body>
+    <div class="stars" id="stars"></div>
+    <div class="shooting-stars" id="shootingStars"></div>
+
+    <!-- Language Selector -->
+    <div class="locale-selector-wrapper">
+      <locale-selector></locale-selector>
+    </div>
+
+    <div class="container">
+      <header class="header">
+        <h1 class="title">
+          Countdown
+          <span class="subtitle">— every second counts</span>
+        </h1>
+      </header>
+
+      <div class="event-selector">
+        <div class="event-selector-row">
+          <event-autocomplete
+            id="eventAutocomplete"
+            placeholder="Search events..."
+          ></event-autocomplete>
+          <button class="toggle-custom-btn" id="toggleCustomBtn" title="Create custom event">
+            <span class="toggle-icon">+</span>
+            <span class="toggle-text">Custom</span>
+          </button>
+        </div>
+        <!-- Custom Event Form (hidden by default) -->
+        <div class="custom-event-form" id="customEventForm" style="display: none">
+          <div class="custom-form-row">
+            <button class="emoji-btn" id="emojiBtn" title="Pick emoji">📅</button>
+            <div class="emoji-picker" id="emojiPicker" style="display: none">
+              <div class="emoji-grid" id="emojiGrid"></div>
+            </div>
+            <input
+              type="text"
+              id="customEventName"
+              class="custom-name-input"
+              placeholder="Event name..."
+              maxlength="50"
+            />
+            <input type="datetime-local" id="customDate" class="date-input" />
+            <button class="custom-btn" id="setCustomBtn">Create</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="countdown-display" id="countdownDisplay">
+        <button class="fullscreen-btn" id="fullscreenBtn" title="Toggle fullscreen">
+          <span class="fullscreen-icon">⛶</span>
+        </button>
+        <div class="event-name-row">
+          <h2 class="event-name" id="eventName">New Year's Day</h2>
+          <div class="year-selector" id="yearSelector">
+            <button class="year-btn year-down" id="yearDown" title="Previous year">−</button>
+            <input type="number" id="yearInput" class="year-input" max="2100" />
+            <button class="year-btn year-up" id="yearUp" title="Next year">+</button>
+          </div>
+        </div>
+
+        <!-- Display Mode Selector -->
+        <div class="display-mode-row">
+          <span class="display-mode-label">Display:</span>
+          <display-mode-selector id="displayModeSelector" value="standard"></display-mode-selector>
+        </div>
+
+        <!-- Timer Display Components (dynamically inserted) -->
+        <div class="timer-display-container" id="timerDisplayContainer"></div>
+
+        <div class="progress-container">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <p class="target-date" id="targetDate"></p>
+      </div>
+
+      <celebration-overlay id="celebration"></celebration-overlay>
+
+      <!-- Music Player Section -->
+      <div class="music-section" id="musicSection" style="display: none">
+        <youtube-player id="countdownPlayer" bordered></youtube-player>
+        <button class="stop-music-btn" id="stopMusicBtn">✕ Stop</button>
+      </div>
+
+      <!-- Celebration Video Selector -->
+      <div class="celebration-video-section">
+        <celebration-video-selector id="celebrationVideoSelector"></celebration-video-selector>
+      </div>
+
+      <div class="action-section">
+        <button class="final-countdown-btn" id="finalCountdownBtn">🎸 Make It Epic!</button>
+        <button class="celebrate-btn" id="celebrateNowBtn">🎉 Celebrate Now!</button>
+        <share-button label="📤 Share Countdown" theme="glass"></share-button>
+      </div>
+    </div>
+
+    <script type="module" src="countdown.js"></script>
+  </body>
+</html>
