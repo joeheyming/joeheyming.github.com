@@ -76,12 +76,33 @@ class ZeniusBrowserElement extends HTMLElement {
           
           <div class="modal-body">
             <div class="search-container">
-              <input 
-                type="text" 
-                class="search-input" 
-                id="search-input" 
-                placeholder="Search for simfile collections, users, or categories..."
-              >
+              <div class="search-tabs">
+                <button class="search-tab active" id="zenius-search-tab" data-mode="zenius">Search</button>
+                <button class="search-tab" id="local-search-tab" data-mode="local">Category</button>
+              </div>
+              <div class="search-fields hidden" id="local-search-fields">
+                <input 
+                  type="text" 
+                  class="search-input" 
+                  id="search-input" 
+                  placeholder="Search cached categories and songs..."
+                >
+              </div>
+              <div class="search-fields" id="zenius-search-fields">
+                <input 
+                  type="text" 
+                  class="search-input" 
+                  id="zenius-song-title" 
+                  placeholder="Song title..."
+                >
+                <input 
+                  type="text" 
+                  class="search-input" 
+                  id="zenius-song-artist" 
+                  placeholder="Artist (optional)..."
+                >
+                <button class="search-btn" id="zenius-search-btn">🔍 Search</button>
+              </div>
             </div>
             
             <div class="stats" id="stats">
@@ -139,9 +160,38 @@ class ZeniusBrowserElement extends HTMLElement {
       }
     });
 
-    // Search functionality
-    this.shadowRoot.getElementById('search-input').addEventListener('input', (e) => {
+    // Search functionality - local search
+    const searchInput = this.shadowRoot.getElementById('search-input');
+    searchInput.addEventListener('input', (e) => {
       this.handleSearch(e.target.value);
+    });
+    // Stop keyboard events from bubbling to prevent triggering game hotkeys (like 'f' for fullscreen)
+    searchInput.addEventListener('keydown', (e) => e.stopPropagation());
+
+    // Search tabs
+    this.shadowRoot.querySelectorAll('.search-tab').forEach((tab) => {
+      tab.addEventListener('click', (e) => {
+        const mode = e.target.dataset.mode;
+        this.setSearchMode(mode);
+      });
+    });
+
+    // Zenius search button
+    this.shadowRoot.getElementById('zenius-search-btn').addEventListener('click', () => {
+      this.searchZenius();
+    });
+
+    // Zenius search inputs - stop propagation and handle Enter
+    const zeniusTitleInput = this.shadowRoot.getElementById('zenius-song-title');
+    const zeniusArtistInput = this.shadowRoot.getElementById('zenius-song-artist');
+
+    zeniusTitleInput.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') this.searchZenius();
+    });
+    zeniusArtistInput.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') this.searchZenius();
     });
 
     // Breadcrumb navigation
@@ -489,10 +539,20 @@ class ZeniusBrowserElement extends HTMLElement {
         badges += diffBadges;
       }
 
+      // Build subtitle with artist and category (for search results)
+      let subtitle = '';
+      if (item.artist || item.category) {
+        const parts = [];
+        if (item.artist) parts.push(`🎤 ${item.artist}`);
+        if (item.category) parts.push(`📁 ${item.category}`);
+        subtitle = `<p class="simfile-subtitle">${parts.join(' • ')}</p>`;
+      }
+
       linkEl.innerHTML = `
         <div class="content-icon">${icon}</div>
         <div class="content-info">
           <h3>${item.name}</h3>
+          ${subtitle}
           <div class="simfile-badges">${badges}</div>
         </div>
         <a href="${fullZeniusUrl}" target="_blank" rel="noopener noreferrer" class="simfile-external-link" title="View on Zenius-I-Vanisher" onclick="event.stopPropagation();">🔗</a>
@@ -583,6 +643,152 @@ class ZeniusBrowserElement extends HTMLElement {
     }
 
     this.displaySearchResults(searchResults);
+  }
+
+  setSearchMode(mode) {
+    const localTab = this.shadowRoot.getElementById('local-search-tab');
+    const zeniusTab = this.shadowRoot.getElementById('zenius-search-tab');
+    const localFields = this.shadowRoot.getElementById('local-search-fields');
+    const zeniusFields = this.shadowRoot.getElementById('zenius-search-fields');
+
+    if (mode === 'zenius') {
+      localTab.classList.remove('active');
+      zeniusTab.classList.add('active');
+      localFields.classList.add('hidden');
+      zeniusFields.classList.remove('hidden');
+    } else {
+      zeniusTab.classList.remove('active');
+      localTab.classList.add('active');
+      zeniusFields.classList.add('hidden');
+      localFields.classList.remove('hidden');
+    }
+  }
+
+  async searchZenius() {
+    const songTitle = this.shadowRoot.getElementById('zenius-song-title').value.trim();
+    const songArtist = this.shadowRoot.getElementById('zenius-song-artist').value.trim();
+
+    if (!songTitle && !songArtist) {
+      this.showError('Please enter a song title or artist to search.');
+      return;
+    }
+
+    this.showLoading('Searching Zenius-I-Vanisher...');
+
+    try {
+      // Build form data for POST request (Zenius AJAX endpoint)
+      const formData = new URLSearchParams();
+      formData.append('songtitle', songTitle);
+      formData.append('songartist', songArtist);
+
+      const url = 'https://zenius-i-vanisher.com/v5.2/simfiles_search_ajax.php';
+
+      // Use proxy POST
+      const html = await window.proxyService.postWithProxy(url, formData.toString());
+
+      // Parse search results
+      const results = this.parseZeniusSearchResults(html);
+
+      if (results.length === 0) {
+        this.showError(
+          `No results found for "${songTitle || songArtist}". Try different search terms.`
+        );
+      } else {
+        this.displaySearchResults(results);
+        this.shadowRoot.getElementById('item-count').textContent = `${results.length} results`;
+        this.shadowRoot.getElementById('current-path').textContent = `Search: "${
+          songTitle || songArtist
+        }"`;
+      }
+
+      // Track analytics
+      if (typeof window.trackEvent === 'function') {
+        window.trackEvent('zenius_search', 'StepMania', `${songTitle} | ${songArtist}`);
+      }
+    } catch (error) {
+      console.error('Zenius search failed:', error);
+      this.showError(
+        `Search failed: ${error.message}. The Zenius search may not be available through proxies.`,
+        () => {
+          this.searchZenius();
+        }
+      );
+    } finally {
+      this.hideLoading();
+    }
+  }
+
+  parseZeniusSearchResults(html) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const results = [];
+
+    // Zenius AJAX search results are in tables
+    // Columns: Name (0), SP difficulties (1), DP difficulties (2), Category (3)
+    // The link title attribute contains "Song Name / Artist"
+    const simfileLinks = doc.querySelectorAll('a[href*="viewsimfile.php"]');
+
+    simfileLinks.forEach((link) => {
+      const href = link.getAttribute('href');
+      const text = link.textContent.trim();
+      const title = link.getAttribute('title') || '';
+
+      // Skip download links and file size text
+      if (href && text && !text.includes('Download') && !text.includes('MB') && text.length > 0) {
+        const urlParams = new URLSearchParams(href.split('?')[1] || '');
+        const simfileId = urlParams.get('simfileid');
+
+        if (simfileId) {
+          // Extract artist from title attribute (format: "Song Name / Artist")
+          let artist = '';
+          if (title && title.includes(' / ')) {
+            const parts = title.split(' / ');
+            if (parts.length >= 2) {
+              artist = parts.slice(1).join(' / '); // Handle artists with " / " in name
+            }
+          }
+
+          // Get data from the parent row
+          const row = link.closest('tr');
+          let category = '';
+          let spDifficulties = '';
+          let dpDifficulties = '';
+
+          if (row) {
+            const cells = row.querySelectorAll('td');
+            // Columns: Name (0), SP (1), DP (2), Category (3)
+            if (cells.length >= 2) {
+              spDifficulties = cells[1]?.textContent?.trim() || '';
+            }
+            if (cells.length >= 3) {
+              dpDifficulties = cells[2]?.textContent?.trim() || '';
+            }
+            if (cells.length >= 4) {
+              const categoryLink = cells[3]?.querySelector('a[href*="viewsimfilecategory"]');
+              if (categoryLink) {
+                category = categoryLink.textContent.trim();
+              }
+            }
+          }
+
+          results.push({
+            type: 'simfile',
+            name: text,
+            artist: artist,
+            category: category,
+            spDifficulties: spDifficulties,
+            dpDifficulties: dpDifficulties,
+            url: href,
+            icon: '🎵',
+            simfileId: simfileId,
+            hasVideo: false,
+            difficulties: []
+          });
+        }
+      }
+    });
+
+    return results;
   }
 
   displaySearchResults(results) {

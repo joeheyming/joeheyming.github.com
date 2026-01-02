@@ -84,6 +84,26 @@ export class MainPageController {
         this.handleBackToBrowser();
       });
     }
+
+    // Bind restart button
+    const restartBtn = document.getElementById('restart-btn');
+    if (restartBtn) {
+      restartBtn.addEventListener('click', () => {
+        this.restartSong();
+      });
+    }
+
+    // Keyboard shortcut for restart (R key)
+    document.addEventListener('keydown', (e) => {
+      // Don't trigger if typing in an input field
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+      if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        this.restartSong();
+      }
+    });
   }
 
   async initByURL() {
@@ -318,7 +338,7 @@ export class MainPageController {
     DifficultySelector.syncFromURL();
   }
 
-  onDifficultySelected(index) {
+  async onDifficultySelected(index) {
     if (this.isUpdatingDifficulty) {
       return;
     }
@@ -326,7 +346,10 @@ export class MainPageController {
     songManager.setCurrentDifficulty(index);
     this.updateURLWithDifficulty(index);
 
-    this.startSelectedSong();
+    await this.startSelectedSong();
+
+    // Reset the game and restart playback after loading the new difficulty
+    this.restartSong();
   }
 
   updateURLWithDifficulty(difficulty) {
@@ -738,6 +761,15 @@ export class MainPageController {
     };
     const lowerDiff = (difficulty || '').toLowerCase();
     return diffMap[lowerDiff] || 'U';
+  }
+
+  /**
+   * Restart the current song from the beginning
+   */
+  restartSong() {
+    resetGame();
+    audioManager.seek(0);
+    audioManager.play();
   }
 }
 
