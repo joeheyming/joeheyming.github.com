@@ -58,6 +58,15 @@
 
     <!-- Canonical URL -->
     <link rel="canonical" href="https://joeheyming.github.io/awesome/" />
+
+    <!-- Fonts for enhanced UI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bangers&family=Fredoka:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+
     <link rel="stylesheet" href="awesome.css" type="text/css" charset="UTF-8" />
     <script src="awesome-config.js"></script>
     <script src="awesome-animations.js"></script>
@@ -66,6 +75,7 @@
     <script src="awesome-emoji.js"></script>
     <script src="awesome-animals.js"></script>
     <script src="awesome-spawn.js"></script>
+    <script src="awesome-aww.js"></script>
     <script src="awesome-confetti.js"></script>
     <script src="awesome-cursor.js"></script>
     <script src="awesome-fireworks.js"></script>
@@ -115,12 +125,160 @@
       </div>
       <share-button label="🤘 Share" theme="gradient"></share-button>
     </div>
-    <div id="start" class="flex items-center justify-center min-h-screen bg-gray-800">
-      <button
-        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-full shadow-lg transform transition-transform duration-300 hover:scale-105"
-      >
-        Click to start awesome!
-      </button>
+    <!-- Info Button (always visible) -->
+    <button id="info-btn" class="info-btn" title="About this experience">ℹ️</button>
+
+    <!-- Enhanced Start Screen -->
+    <div id="start" class="start-screen">
+      <div class="start-content">
+        <h1 class="start-title">🤘 Everything is Awesome! 🤘</h1>
+        <p class="start-subtitle">An interactive music experience</p>
+
+        <div class="start-credits">
+          <p class="credit-line">
+            🎵
+            <strong>"Everything is Awesome"</strong>
+          </p>
+          <p class="credit-artist">Tegan and Sara ft. The Lonely Island</p>
+          <p class="credit-source">From The LEGO Movie Soundtrack</p>
+        </div>
+
+        <button id="start-btn" class="start-button">
+          <span class="play-icon">▶</span>
+          Click to Start the Awesome!
+        </button>
+
+        <div class="start-hints">
+          <p>
+            🎊 Expect: flying emojis, party parrots, nyan cats, fireworks, disco lights, r/aww
+            cuties, and random animal facts!
+          </p>
+          <p class="keyboard-hint">
+            ⌨️ Space/Enter to play/pause • C to toggle colors • Esc to reset
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info Modal -->
+    <div id="info-modal" class="info-modal hidden">
+      <div class="info-modal-content">
+        <button id="info-close" class="info-close">✕</button>
+
+        <h2 class="info-title">🤘 Everything is Awesome!</h2>
+
+        <section class="info-section">
+          <h3>🎵 Song Credits</h3>
+          <p><strong>"Everything is Awesome"</strong></p>
+          <p>
+            Performed by
+            <strong>Tegan and Sara</strong>
+            featuring
+            <strong>The Lonely Island</strong>
+          </p>
+          <p>
+            From
+            <em>The LEGO Movie</em>
+            (2014) Soundtrack
+          </p>
+          <p class="info-small">
+            Written by Shawn Patterson, Joshua Bartholomew, Lisa Harriton, Akiva Schaffer, Jorma
+            Taccone, Andy Samberg
+          </p>
+        </section>
+
+        <section class="info-section">
+          <h3>🎧 Listen & Support the Artists</h3>
+          <div class="stream-links">
+            <a
+              href="https://open.spotify.com/track/5fX4nupkZxqpJzJpGSvWkP"
+              target="_blank"
+              rel="noopener"
+              class="stream-link spotify"
+            >
+              <span>Spotify</span>
+            </a>
+            <a
+              href="https://music.apple.com/album/everything-is-awesome-feat-the-lonely-island/791013899?i=791014030"
+              target="_blank"
+              rel="noopener"
+              class="stream-link apple"
+            >
+              <span>Apple Music</span>
+            </a>
+            <a
+              href="https://www.youtube.com/watch?v=StTqXEQ2l-Y"
+              target="_blank"
+              rel="noopener"
+              class="stream-link youtube"
+            >
+              <span>YouTube</span>
+            </a>
+            <a
+              href="https://www.amazon.com/dp/B00I3LMY8O"
+              target="_blank"
+              rel="noopener"
+              class="stream-link amazon"
+            >
+              <span>Amazon</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="info-section">
+          <h3>🎬 About This Experience</h3>
+          <p>
+            This is an interactive celebration of the iconic LEGO Movie anthem. While the music
+            plays, enjoy:
+          </p>
+          <ul class="feature-list">
+            <li>🌈 Synchronized lyrics with color-changing backgrounds</li>
+            <li>🦜 Party parrots and nyan cats flying across the screen</li>
+            <li>🐱🐕 Random cat & dog photos with fun animal facts</li>
+            <li>🥰 Adorable images from Reddit's r/aww community</li>
+            <li>🎆 Fireworks and confetti celebrations</li>
+            <li>🪩 Disco ball with sweeping lights</li>
+            <li>✨ Rainbow cursor trails</li>
+          </ul>
+        </section>
+
+        <section class="info-section">
+          <h3>⌨️ Keyboard Shortcuts</h3>
+          <div class="shortcuts-grid">
+            <div class="shortcut">
+              <kbd>Space</kbd>
+              /
+              <kbd>Enter</kbd>
+              <span>Play / Pause</span>
+            </div>
+            <div class="shortcut">
+              <kbd>C</kbd>
+              <span>Toggle color changes</span>
+            </div>
+            <div class="shortcut">
+              <kbd>Esc</kbd>
+              <span>Reset to beginning</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="info-section">
+          <h3>👋 Get in Touch</h3>
+          <p>
+            Created by
+            <strong>Joe Heyming</strong>
+          </p>
+          <div class="contact-links">
+            <a href="https://joeheyming.github.io/" target="_blank" rel="noopener">🏠 Main Site</a>
+            <a href="https://github.com/joeheyming" target="_blank" rel="noopener">🐙 GitHub</a>
+            <a href="https://twitter.com/joeheyming" target="_blank" rel="noopener">🐦 Twitter</a>
+          </div>
+        </section>
+
+        <p class="info-disclaimer">
+          This is a fan-made tribute. All music rights belong to their respective owners.
+        </p>
+      </div>
     </div>
     <script id="awesome_script">
       document.addEventListener('DOMContentLoaded', function () {
@@ -136,6 +294,62 @@
             }
             return '🤘 Check out this awesome experience! Everything is awesome! 🎉';
           };
+        }
+
+        // Info modal handling
+        var infoBtn = document.getElementById('info-btn');
+        var infoModal = document.getElementById('info-modal');
+        var infoClose = document.getElementById('info-close');
+
+        function openInfo(e) {
+          e.stopPropagation();
+          infoModal.classList.remove('hidden');
+          // Pause if playing
+          if (!awesome.audio.paused) {
+            awesome.pause();
+          }
+        }
+
+        function closeInfo(e) {
+          if (e) e.stopPropagation();
+          infoModal.classList.add('hidden');
+        }
+
+        infoBtn.addEventListener('click', openInfo);
+        infoClose.addEventListener('click', closeInfo);
+
+        // Close modal on backdrop click
+        infoModal.addEventListener('click', function (e) {
+          if (e.target === infoModal) {
+            closeInfo();
+          }
+        });
+
+        // Close modal on Escape
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && !infoModal.classList.contains('hidden')) {
+            closeInfo();
+            e.stopPropagation();
+          }
+        });
+
+        // Prevent clicks inside modal content from closing
+        document.querySelector('.info-modal-content').addEventListener('click', function (e) {
+          e.stopPropagation();
+        });
+
+        // New start button handler
+        var startBtn = document.getElementById('start-btn');
+        if (startBtn) {
+          startBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var startEl = document.getElementById('start');
+            if (startEl) {
+              startEl.style.display = 'none';
+            }
+            awesome.container.style.display = 'table';
+            awesome.play();
+          });
         }
       });
     </script>
