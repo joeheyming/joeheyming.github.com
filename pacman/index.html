@@ -18,7 +18,7 @@
     <meta charset="utf-8" />
     <meta
       name="description"
-      content="Play 3D Pacman in your browser! A Three.js recreation of the classic arcade game with multiple camera modes, ghost AI, and power pills. Originally a UCSB Computer Science project."
+      content="Play 3D Pacman in your browser! A Three.js recreation of the classic arcade game with multiple camera modes, ghost AI, and power pills. Free, no ads. Originally a UCSB Computer Science project."
     />
 
     <!-- Enhanced SEO Meta Tags -->
@@ -28,7 +28,7 @@
     <meta name="theme-color" content="#1a1a2e" />
     <meta
       name="keywords"
-      content="pacman, 3d pacman, three.js game, webgl game, arcade game, browser game, javascript game, ghost ai, maze game"
+      content="pacman, 3d pacman, three.js game, webgl game, arcade game, browser game, javascript game, ghost ai, maze game, ad-free, no ads, free game"
     />
 
     <!-- Open Graph Meta Tags -->
@@ -37,7 +37,7 @@
     <meta property="og:title" content="👻 3D Pacman - Classic Arcade Game" />
     <meta
       property="og:description"
-      content="Play 3D Pacman in your browser! A Three.js recreation with multiple camera modes and intelligent ghost AI."
+      content="Play 3D Pacman in your browser! A Three.js recreation with multiple camera modes and intelligent ghost AI. Free, no ads."
     />
     <meta property="og:url" content="https://joeheyming.github.io/pacman/" />
     <meta property="og:image" content="https://joeheyming.github.io/pacman/pacman-preview.png" />
@@ -53,7 +53,7 @@
     <meta name="twitter:title" content="👻 3D Pacman - Classic Arcade Game" />
     <meta
       name="twitter:description"
-      content="Play 3D Pacman in your browser! A Three.js recreation with multiple camera modes and ghost AI."
+      content="Play 3D Pacman in your browser! A Three.js recreation with multiple camera modes and ghost AI. Free, no ads."
     />
     <meta name="twitter:image" content="https://joeheyming.github.io/pacman/pacman-preview.png" />
 
@@ -76,25 +76,45 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "VideoGame",
-        "name": "3D Pacman",
-        "applicationCategory": "Game",
-        "operatingSystem": "Web Browser",
-        "description": "A Three.js recreation of the classic Pacman arcade game with 3D graphics, multiple camera modes, and intelligent ghost AI. Originally a UCSB Computer Science project.",
-        "url": "https://joeheyming.github.io/pacman/",
-        "author": {
-          "@type": "Person",
-          "name": "Joe Heyming",
-          "url": "https://joeheyming.github.io/"
-        },
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "gamePlatform": "Web Browser",
-        "genre": "Arcade",
-        "inLanguage": "en"
+        "@graph": [
+          {
+            "@type": "VideoGame",
+            "name": "3D Pacman",
+            "applicationCategory": "Game",
+            "operatingSystem": "Web Browser",
+            "description": "A Three.js recreation of the classic Pacman arcade game with 3D graphics, multiple camera modes, and intelligent ghost AI. Originally a UCSB Computer Science project.",
+            "url": "https://joeheyming.github.io/pacman/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "gamePlatform": "Web Browser",
+            "genre": "Arcade",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "3D Pacman"
+              }
+            ]
+          }
+        ]
       }
     </script>
   </head>

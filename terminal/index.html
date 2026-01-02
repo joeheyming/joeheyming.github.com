@@ -75,33 +75,53 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Web Terminal",
-        "applicationCategory": "UtilityApplication",
-        "operatingSystem": "Web Browser",
-        "description": "Interactive web-based terminal emulator with file system simulation, command execution, and authentic retro styling. Experience the power of the command line in your browser.",
-        "url": "https://joeheyming.github.io/terminal/",
-        "author": {
-          "@type": "Person",
-          "name": "Joe Heyming",
-          "url": "https://joeheyming.github.io/"
-        },
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "featureList": [
-          "Interactive command line interface",
-          "File system simulation",
-          "Multiple built-in commands",
-          "Retro terminal styling",
-          "Command history",
-          "Tab completion"
-        ],
-        "screenshot": "https://joeheyming.github.io/terminal/terminal-preview.png",
-        "keywords": "terminal, command line, CLI, web terminal, shell emulator",
-        "inLanguage": "en"
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Web Terminal",
+            "applicationCategory": "UtilityApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Interactive web-based terminal emulator with file system simulation, command execution, and authentic retro styling. Experience the power of the command line in your browser.",
+            "url": "https://joeheyming.github.io/terminal/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "featureList": [
+              "Interactive command line interface",
+              "File system simulation",
+              "Multiple built-in commands",
+              "Retro terminal styling",
+              "Command history",
+              "Tab completion"
+            ],
+            "screenshot": "https://joeheyming.github.io/terminal/terminal-preview.png",
+            "keywords": "terminal, command line, CLI, web terminal, shell emulator",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Web Terminal"
+              }
+            ]
+          }
+        ]
       }
     </script>
   </head>

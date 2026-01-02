@@ -17,7 +17,7 @@
     <meta charset="utf-8" />
     <meta
       name="description"
-      content="Free online calculator with a clean, modern interface. Perform basic arithmetic operations including addition, subtraction, multiplication, and division. Built by Joe Heyming."
+      content="Free online calculator with a clean, modern interface. Perform basic arithmetic operations including addition, subtraction, multiplication, and division. No ads. Built by Joe Heyming."
     />
 
     <!-- Enhanced SEO Meta Tags -->
@@ -27,7 +27,7 @@
     <meta name="theme-color" content="#6366f1" />
     <meta
       name="keywords"
-      content="calculator, online calculator, math calculator, arithmetic, addition, subtraction, multiplication, division, web calculator, free calculator"
+      content="calculator, online calculator, math calculator, arithmetic, addition, subtraction, multiplication, division, web calculator, free calculator, ad-free, no ads"
     />
 
     <!-- Open Graph Meta Tags -->
@@ -36,7 +36,7 @@
     <meta property="og:title" content="🧮 Calculator - Online Calculator Tool" />
     <meta
       property="og:description"
-      content="Free online calculator with a clean, modern interface. Perform basic arithmetic operations with ease. No downloads required - works in any browser."
+      content="Free online calculator with a clean, modern interface. Perform basic arithmetic operations with ease. No downloads required, no ads - works in any browser."
     />
     <meta property="og:url" content="https://joeheyming.github.io/calculator/" />
     <meta
@@ -55,7 +55,7 @@
     <meta name="twitter:title" content="🧮 Calculator - Online Calculator Tool" />
     <meta
       name="twitter:description"
-      content="Free online calculator with a clean, modern interface. Perfect for quick calculations and basic arithmetic operations."
+      content="Free online calculator with a clean, modern interface. Perfect for quick calculations and basic arithmetic operations. No ads."
     />
     <meta
       name="twitter:image"
@@ -73,31 +73,51 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Online Calculator",
-        "applicationCategory": "UtilityApplication",
-        "operatingSystem": "Web Browser",
-        "description": "Free online calculator for basic arithmetic operations. Clean, modern interface with support for addition, subtraction, multiplication, and division.",
-        "url": "https://joeheyming.github.io/calculator/",
-        "author": {
-          "@type": "Person",
-          "name": "Joe Heyming",
-          "url": "https://joeheyming.github.io/"
-        },
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "featureList": [
-          "Basic arithmetic operations",
-          "Clean, modern interface",
-          "Keyboard support",
-          "Mobile-friendly design",
-          "No installation required"
-        ],
-        "keywords": "calculator, arithmetic, math, addition, subtraction, multiplication, division",
-        "inLanguage": "en"
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Online Calculator",
+            "applicationCategory": "UtilityApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Free online calculator for basic arithmetic operations. Clean, modern interface with support for addition, subtraction, multiplication, and division.",
+            "url": "https://joeheyming.github.io/calculator/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "featureList": [
+              "Basic arithmetic operations",
+              "Clean, modern interface",
+              "Keyboard support",
+              "Mobile-friendly design",
+              "No installation required"
+            ],
+            "keywords": "calculator, arithmetic, math, addition, subtraction, multiplication, division",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Calculator"
+              }
+            ]
+          }
+        ]
       }
     </script>
   </head>

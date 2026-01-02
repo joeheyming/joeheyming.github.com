@@ -66,33 +66,48 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Online Notepad",
-        "applicationCategory": "UtilityApplication",
-        "operatingSystem": "Web Browser",
-        "description": "Free online rich text editor and notepad for creating, editing, and formatting documents. Features a clean interface, rich text formatting, and auto-save functionality.",
-        "url": "https://joeheyming.github.io/notepad/",
-        "author": {
-          "@type": "Person",
-          "name": "Joe Heyming",
-          "url": "https://joeheyming.github.io/"
-        },
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "featureList": [
-          "Rich text formatting",
-          "Auto-save functionality",
-          "Clean, modern interface",
-          "Document creation and editing",
-          "Text styling options",
-          "No registration required"
-        ],
-        "screenshot": "https://joeheyming.github.io/notepad/notepad-preview.png",
-        "keywords": "notepad, text editor, rich text editor, document editor, writing tool",
-        "inLanguage": "en"
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Online Notepad",
+            "applicationCategory": "UtilityApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Free online rich text editor and notepad for creating, editing, and formatting documents. Features a clean interface, rich text formatting, and auto-save functionality.",
+            "url": "https://joeheyming.github.io/notepad/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "featureList": [
+              "Rich text formatting",
+              "Auto-save functionality",
+              "Clean, modern interface",
+              "Document creation and editing",
+              "Text styling options",
+              "No registration required"
+            ],
+            "screenshot": "https://joeheyming.github.io/notepad/notepad-preview.png",
+            "keywords": "notepad, text editor, rich text editor, document editor, writing tool",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Notepad"
+              }
+            ]
+          }
+        ]
       }
     </script>
   </head>

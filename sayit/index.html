@@ -19,7 +19,7 @@
     <!-- Enhanced SEO Meta Tags -->
     <meta
       name="description"
-      content="Extract text from images using OCR and have it read aloud! Draw text on canvas or upload images for automatic text recognition and speech synthesis."
+      content="Extract text from images using OCR and have it read aloud! Draw text on canvas or upload images for automatic text recognition and speech synthesis. Free, no ads."
     />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
@@ -27,7 +27,7 @@
     <meta name="theme-color" content="#059669" />
     <meta
       name="keywords"
-      content="OCR, text recognition, text to speech, image to text, handwriting recognition, speech synthesis, accessibility tool"
+      content="OCR, text recognition, text to speech, image to text, handwriting recognition, speech synthesis, accessibility tool, ad-free, no ads"
     />
 
     <!-- Open Graph Meta Tags -->
@@ -36,7 +36,7 @@
     <meta property="og:title" content="🗣️ Say It - OCR Text-to-Speech Tool" />
     <meta
       property="og:description"
-      content="Extract text from images using OCR and have it read aloud! Draw text or upload images for automatic text recognition and speech synthesis."
+      content="Extract text from images using OCR and have it read aloud! Draw text or upload images for automatic text recognition and speech synthesis. Free, no ads."
     />
     <meta property="og:url" content="https://joeheyming.github.io/sayit/" />
     <meta property="og:image" content="https://joeheyming.github.io/sayit/sayit-preview.png" />
@@ -52,12 +52,59 @@
     <meta name="twitter:title" content="🗣️ Say It - OCR Text-to-Speech Tool" />
     <meta
       name="twitter:description"
-      content="Extract text from images using OCR and have it read aloud! Perfect accessibility tool for text recognition and speech synthesis."
+      content="Extract text from images using OCR and have it read aloud! Perfect accessibility tool for text recognition and speech synthesis. Free, no ads."
     />
     <meta name="twitter:image" content="https://joeheyming.github.io/sayit/sayit-preview.png" />
 
     <!-- Canonical URL -->
     <link rel="canonical" href="https://joeheyming.github.io/sayit/" />
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Say It - OCR Text-to-Speech",
+            "applicationCategory": "UtilityApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Extract text from images using OCR and have it read aloud. Draw text on canvas or upload images for automatic text recognition and speech synthesis.",
+            "url": "https://joeheyming.github.io/sayit/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "screenshot": "https://joeheyming.github.io/sayit/sayit-preview.png",
+            "keywords": "OCR, text recognition, text to speech, image to text, accessibility",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Say It"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
     <script src="https://unpkg.com/tesseract.js@6.0.1/dist/tesseract.min.js"></script>
     <link rel="stylesheet" href="index.css" />
     <script src="index.js" defer></script>

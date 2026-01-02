@@ -16,7 +16,7 @@
     <!-- Enhanced SEO Meta Tags -->
     <meta
       name="description"
-      content="Play the classic DOOM game directly in your browser! WebAssembly-powered DOOM emulator with full gameplay, mobile controls, and authentic retro gaming experience."
+      content="Play the classic DOOM game directly in your browser! WebAssembly-powered DOOM emulator with full gameplay, mobile controls, and authentic retro gaming experience. Free, no ads."
     />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
@@ -28,7 +28,7 @@
     />
     <meta
       name="keywords"
-      content="DOOM, browser DOOM, WebAssembly DOOM, retro gaming, classic FPS, id Software, online gaming, JavaScript games, web games, mobile DOOM"
+      content="DOOM, browser DOOM, WebAssembly DOOM, retro gaming, classic FPS, id Software, online gaming, JavaScript games, web games, mobile DOOM, ad-free, no ads, free game"
     />
 
     <!-- Open Graph Meta Tags -->
@@ -37,7 +37,7 @@
     <meta property="og:title" content="💀 Browser DOOM - Play Classic DOOM Online" />
     <meta
       property="og:description"
-      content="Experience the legendary DOOM game in your browser! WebAssembly-powered classic FPS with authentic gameplay, mobile controls, and no downloads required."
+      content="Experience the legendary DOOM game in your browser! WebAssembly-powered classic FPS with authentic gameplay, mobile controls. Free, no ads, no downloads required."
     />
     <meta property="og:url" content="https://joeheyming.github.io/doom/" />
     <meta property="og:image" content="https://joeheyming.github.io/doom/doom-preview.png" />
@@ -53,7 +53,7 @@
     <meta name="twitter:title" content="💀 Browser DOOM - Play Classic DOOM Online" />
     <meta
       name="twitter:description"
-      content="Experience the legendary DOOM game in your browser! WebAssembly-powered classic FPS with authentic gameplay and mobile controls."
+      content="Experience the legendary DOOM game in your browser! WebAssembly-powered classic FPS with authentic gameplay and mobile controls. Free, no ads."
     />
     <meta name="twitter:image" content="https://joeheyming.github.io/doom/doom-preview.png" />
 
@@ -68,35 +68,55 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": ["SoftwareApplication", "VideoGame"],
-        "name": "Browser DOOM",
-        "applicationCategory": "GameApplication",
-        "operatingSystem": "Web Browser",
-        "description": "Play the classic DOOM first-person shooter directly in your browser. WebAssembly-powered emulation of the legendary id Software game with authentic gameplay and mobile controls.",
-        "url": "https://joeheyming.github.io/doom/",
-        "author": {
-          "@type": "Person",
-          "name": "Joe Heyming",
-          "url": "https://joeheyming.github.io/"
-        },
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "featureList": [
-          "WebAssembly DOOM emulation",
-          "Full classic DOOM gameplay",
-          "Mobile touch controls",
-          "Keyboard and mouse support",
-          "Authentic retro gaming experience",
-          "No downloads required"
-        ],
-        "genre": "First-Person Shooter",
-        "gamePlatform": "Web Browser",
-        "screenshot": "https://joeheyming.github.io/doom/doom-preview.png",
-        "keywords": "DOOM, FPS, retro gaming, WebAssembly, browser game",
-        "inLanguage": "en"
+        "@graph": [
+          {
+            "@type": ["SoftwareApplication", "VideoGame"],
+            "name": "Browser DOOM",
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Play the classic DOOM first-person shooter directly in your browser. WebAssembly-powered emulation of the legendary id Software game with authentic gameplay and mobile controls.",
+            "url": "https://joeheyming.github.io/doom/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "featureList": [
+              "WebAssembly DOOM emulation",
+              "Full classic DOOM gameplay",
+              "Mobile touch controls",
+              "Keyboard and mouse support",
+              "Authentic retro gaming experience",
+              "No downloads required"
+            ],
+            "genre": "First-Person Shooter",
+            "gamePlatform": "Web Browser",
+            "screenshot": "https://joeheyming.github.io/doom/doom-preview.png",
+            "keywords": "DOOM, FPS, retro gaming, WebAssembly, browser game",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Browser DOOM"
+              }
+            ]
+          }
+        ]
       }
     </script>
   </head>

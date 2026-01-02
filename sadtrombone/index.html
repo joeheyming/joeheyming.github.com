@@ -17,13 +17,16 @@
     <meta property="title" content="Sad Trombone Symphony" />
     <meta
       property="og:description"
-      content="The ultimate interactive sad trombone experience! Express your disappointment in style."
+      content="The ultimate interactive sad trombone experience! Express your disappointment in style. Free, no ads."
     />
     <meta
       name="description"
-      content="The ultimate interactive sad trombone experience! Express your disappointment in style."
+      content="The ultimate interactive sad trombone experience! Express your disappointment in style. Free, no ads."
     />
-    <meta property="keywords" content="sad, trombone, engineering, developer, confetti" />
+    <meta
+      property="keywords"
+      content="sad, trombone, engineering, developer, confetti, ad-free, no ads"
+    />
     <meta
       property="og:audio:secure_url"
       content="https://joeheyming.github.io/sadtrombone/trombone.ogg"
@@ -31,6 +34,8 @@
     <meta property="og:audio" content="https://joeheyming.github.io/sadtrombone/trombone.ogg" />
     <meta property="og:audio:type" content="audio/ogg" />
     <meta property="og:url" content="https://joeheyming.github.io/sadtrombone/" />
+    <meta property="og:site_name" content="Joe Heyming" />
+    <meta property="og:locale" content="en_US" />
 
     <!-- Enhanced SEO Meta Tags -->
     <meta name="author" content="Joe Heyming" />
@@ -45,7 +50,7 @@
     <meta name="twitter:title" content="🎺 Sad Trombone Symphony 🎺" />
     <meta
       name="twitter:description"
-      content="The ultimate interactive sad trombone experience! Express your disappointment in style with sound effects and animations."
+      content="The ultimate interactive sad trombone experience! Express your disappointment in style with sound effects and animations. Free, no ads."
     />
     <meta
       name="twitter:image"
@@ -63,34 +68,54 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": ["SoftwareApplication", "VideoGame"],
-        "name": "Sad Trombone Symphony",
-        "applicationCategory": "EntertainmentApplication",
-        "operatingSystem": "Web Browser",
-        "description": "The ultimate interactive sad trombone experience! Express your disappointment in spectacular fashion with sound effects, animations, and customizable sadness levels.",
-        "url": "https://joeheyming.github.io/sadtrombone/",
-        "author": {
-          "@type": "Person",
-          "name": "Joe Heyming",
-          "url": "https://joeheyming.github.io/"
-        },
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "featureList": [
-          "Interactive sad trombone sound",
-          "Customizable sadness intensity",
-          "Animated visual effects",
-          "Disappointment scenarios",
-          "Statistics tracking",
-          "Social sharing"
-        ],
-        "genre": "Interactive Entertainment",
-        "screenshot": "https://joeheyming.github.io/sadtrombone/sadtrombone-preview.png",
-        "keywords": "sad trombone, disappointment, sound effect, interactive, entertainment",
-        "inLanguage": "en"
+        "@graph": [
+          {
+            "@type": ["SoftwareApplication", "VideoGame"],
+            "name": "Sad Trombone Symphony",
+            "applicationCategory": "EntertainmentApplication",
+            "operatingSystem": "Web Browser",
+            "description": "The ultimate interactive sad trombone experience! Express your disappointment in spectacular fashion with sound effects, animations, and customizable sadness levels.",
+            "url": "https://joeheyming.github.io/sadtrombone/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "featureList": [
+              "Interactive sad trombone sound",
+              "Customizable sadness intensity",
+              "Animated visual effects",
+              "Disappointment scenarios",
+              "Statistics tracking",
+              "Social sharing"
+            ],
+            "genre": "Interactive Entertainment",
+            "screenshot": "https://joeheyming.github.io/sadtrombone/sadtrombone-preview.png",
+            "keywords": "sad trombone, disappointment, sound effect, interactive, entertainment",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Sad Trombone"
+              }
+            ]
+          }
+        ]
       }
     </script>
   </head>

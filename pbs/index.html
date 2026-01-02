@@ -28,6 +28,7 @@
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming" />
     <meta property="og:title" content="🏴‍☠️ Pirate Broadcast Service" />
     <meta
       property="og:description"
@@ -35,9 +36,52 @@
     />
     <meta property="og:url" content="https://joeheyming.github.io/pbs/" />
     <meta property="og:image" content="https://joeheyming.github.io/pbs/pbs-preview.png" />
+    <meta property="og:locale" content="en_US" />
 
     <!-- Canonical URL -->
     <link rel="canonical" href="https://joeheyming.github.io/pbs/" />
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "name": "Pirate Broadcast Service",
+            "applicationCategory": "EntertainmentApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Interactive pirate soundboard. Click anywhere to hear authentic pirate phrases and sound effects. Arrrr!",
+            "url": "https://joeheyming.github.io/pbs/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "screenshot": "https://joeheyming.github.io/pbs/pbs-preview.png",
+            "keywords": "pirate sounds, pirate phrases, soundboard, talk like a pirate",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Pirate Broadcast Service"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
     <style>
       body {
         font-family: 'Comic Sans MS', 'Comic Sans', cursive;
