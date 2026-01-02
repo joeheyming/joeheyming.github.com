@@ -38,6 +38,19 @@ class ZeniusBrowserElement extends HTMLElement {
     return ZeniusBrowserElement.simfileMetadataCache.get(simfileId) || null;
   }
 
+  /**
+   * Remember a category so the browser can navigate to it when reopened
+   * @param {string} categoryId - The category ID
+   * @param {string} categoryName - The category name
+   */
+  static rememberCategory(categoryId, categoryName) {
+    const instance = ZeniusBrowserElement.get();
+    if (instance && categoryId) {
+      instance.lastBrowsedCategoryId = categoryId;
+      instance.lastBrowsedCategoryName = categoryName || 'Category';
+    }
+  }
+
   constructor() {
     super();
     this.currentPath = '';
@@ -69,9 +82,6 @@ class ZeniusBrowserElement extends HTMLElement {
         <div class="modal-content">
           <div class="modal-header">
             <h2 class="modal-title">Song Library Browser</h2>
-            <div class="breadcrumb" id="breadcrumb">
-              <span class="breadcrumb-item" data-path="">🏠 Home</span>
-            </div>
           </div>
           
           <div class="modal-body">
@@ -81,6 +91,9 @@ class ZeniusBrowserElement extends HTMLElement {
                 <button class="search-tab" id="local-search-tab" data-mode="local">Category</button>
               </div>
               <div class="search-fields hidden" id="local-search-fields">
+                <div class="breadcrumb" id="breadcrumb">
+                  <span class="breadcrumb-item" data-path="">🏠 Home</span>
+                </div>
                 <input 
                   type="text" 
                   class="search-input" 
@@ -220,11 +233,16 @@ class ZeniusBrowserElement extends HTMLElement {
   }
 
   async loadInitialContent() {
-    await this.navigateToPath('');
+    // Load home content without switching tabs (keep Search as default)
+    await this.navigateToPath('', false);
   }
 
-  async navigateToPath(path) {
+  async navigateToPath(path, switchToCategory = true) {
     this.currentPath = path;
+    // When navigating to categories/home, ensure Category tab is active to show breadcrumbs
+    if (switchToCategory) {
+      this.setSearchMode('local');
+    }
     this.updateBreadcrumbs();
     this.updateStats();
     await this.loadContent(path);
@@ -564,8 +582,13 @@ class ZeniusBrowserElement extends HTMLElement {
         }
         // Remember the current category so we can preselect it when reopening
         if (this.currentPath.startsWith('categoryid=')) {
+          // From category browse view
           this.lastBrowsedCategoryId = this.currentPath.replace('categoryid=', '');
           this.lastBrowsedCategoryName = this.currentCategoryName;
+        } else if (item.categoryId) {
+          // From search results - use the category info from the item
+          this.lastBrowsedCategoryId = item.categoryId;
+          this.lastBrowsedCategoryName = item.category || 'Category';
         }
       });
 
@@ -754,6 +777,8 @@ class ZeniusBrowserElement extends HTMLElement {
           let spDifficulties = '';
           let dpDifficulties = '';
 
+          let categoryId = '';
+
           if (row) {
             const cells = row.querySelectorAll('td');
             // Columns: Name (0), SP (1), DP (2), Category (3)
@@ -767,6 +792,10 @@ class ZeniusBrowserElement extends HTMLElement {
               const categoryLink = cells[3]?.querySelector('a[href*="viewsimfilecategory"]');
               if (categoryLink) {
                 category = categoryLink.textContent.trim();
+                // Extract category ID from the href
+                const categoryHref = categoryLink.getAttribute('href') || '';
+                const categoryParams = new URLSearchParams(categoryHref.split('?')[1] || '');
+                categoryId = categoryParams.get('categoryid') || '';
               }
             }
           }
@@ -776,6 +805,7 @@ class ZeniusBrowserElement extends HTMLElement {
             name: text,
             artist: artist,
             category: category,
+            categoryId: categoryId,
             spDifficulties: spDifficulties,
             dpDifficulties: dpDifficulties,
             url: href,
