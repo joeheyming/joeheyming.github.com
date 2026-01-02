@@ -15,9 +15,10 @@ var spawnNamespace = (function () {
   // 🎯 Content Type Weights - Only thing to configure here!
   // ═══════════════════════════════════════════════════════════════════
   var spawnWeights = {
-    parrot: 30, // 30% party parrots
-    nyan: 20, // 20% nyan cats
-    animal: 50 // 50% animals (auto-distributed among all types)
+    parrot: 25, // 25% party parrots
+    nyan: 15, // 15% nyan cats
+    animal: 35, // 35% animals (auto-distributed among all types)
+    aww: 25 // 25% r/aww reddit posts
   };
 
   // ═══════════════════════════════════════════════════════════════════
@@ -75,6 +76,12 @@ var spawnNamespace = (function () {
           animalsNamespace.random();
         }
         break;
+
+      case 'aww':
+        if (typeof awwNamespace !== 'undefined') {
+          awwNamespace.spawn();
+        }
+        break;
     }
   };
 
@@ -99,6 +106,12 @@ var spawnNamespace = (function () {
       case 'emoji':
         if (typeof emojiNamespace !== 'undefined') {
           emojiNamespace.spawn();
+        }
+        break;
+
+      case 'aww':
+        if (typeof awwNamespace !== 'undefined') {
+          awwNamespace.spawn();
         }
         break;
 
@@ -147,6 +160,11 @@ var spawnNamespace = (function () {
         animalsNamespace.random();
       }
     }
+    if (typeof awwNamespace !== 'undefined') {
+      for (var i = 0; i < 3; i++) {
+        awwNamespace.spawn();
+      }
+    }
   };
 
   // ═══════════════════════════════════════════════════════════════════
@@ -169,7 +187,7 @@ var spawnNamespace = (function () {
    * @returns {Array<string>} Available types
    */
   namespace.types = function () {
-    var types = ['parrot', 'nyan', 'emoji'];
+    var types = ['parrot', 'nyan', 'emoji', 'aww'];
 
     // Add all animal types from registry
     if (typeof animalsNamespace !== 'undefined' && typeof animalsNamespace.types === 'function') {
@@ -191,6 +209,9 @@ var spawnNamespace = (function () {
   };
   namespace.emoji = function () {
     namespace.spawn('emoji');
+  };
+  namespace.aww = function () {
+    namespace.spawn('aww');
   };
 
   return namespace;
