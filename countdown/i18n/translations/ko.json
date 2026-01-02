@@ -146,6 +146,8 @@
   "displayModes": {
     "analog": "아날로그",
     "analogDesc": "원형 진행 링",
+    "balldrop": "볼 드롭",
+    "balldropDesc": "NYC 타임스퀘어 스타일",
     "bar": "막대 차트",
     "barDesc": "애니메이션 진행 막대",
     "binary": "이진법",

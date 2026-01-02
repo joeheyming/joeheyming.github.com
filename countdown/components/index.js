@@ -17,6 +17,7 @@ export { default as BinaryDisplay } from './binary-display.js';
 export { default as TotalDisplay } from './total-display.js';
 export { default as FlipDisplay } from './flip-display.js';
 export { default as AnalogDisplay } from './analog-display.js';
+export { default as BallDropDisplay } from './balldrop-display.js';
 export { default as WordsDisplay } from './words-display.js';
 export { default as RomanDisplay } from './roman-display.js';
 export { default as BarDisplay } from './bar-display.js';

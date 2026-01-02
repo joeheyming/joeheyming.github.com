@@ -146,6 +146,8 @@
   "displayModes": {
     "analog": "模拟",
     "analogDesc": "圆形进度环",
+    "balldrop": "水晶球降落",
+    "balldropDesc": "纽约时代广场风格",
     "bar": "条形图",
     "barDesc": "动画进度条",
     "binary": "二进制",

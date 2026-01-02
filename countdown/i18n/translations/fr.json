@@ -146,6 +146,8 @@
   "displayModes": {
     "analog": "Analogique",
     "analogDesc": "Anneaux de progression circulaires",
+    "balldrop": "Chute de la Boule",
+    "balldropDesc": "Style Times Square NYC",
     "bar": "Graphique à Barres",
     "barDesc": "Barres de progression animées",
     "binary": "Binaire",

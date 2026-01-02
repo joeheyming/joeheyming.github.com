@@ -142,6 +142,7 @@ const VALID_DISPLAY_MODES = [
 
   'words',
   'roman',
+  'balldrop',
   'bar',
   'hourglass',
   'slot',
@@ -895,6 +896,11 @@ function updateCountdown() {
 
 // Show celebration
 function showCelebration() {
+  // Exit fullscreen if active so celebration overlay is visible
+  if (countdownDisplay?.classList.contains('fullscreen')) {
+    toggleFullscreen();
+  }
+
   // Set dynamic message based on event
   if (currentEvent && currentEvent.id !== 'custom') {
     celebrationEl.message = `🎉 ${currentEvent.name}! 🎉`;
