@@ -185,6 +185,24 @@ class DisplayModeSelector extends HTMLElement {
           border-radius: 10px;
           border: 2px solid #1e293b;
         }
+
+        @media (max-width: 400px) {
+          .selector-button {
+            min-width: 160px;
+            padding: 8px 12px;
+            gap: 8px;
+          }
+          .mode-icon {
+            font-size: 1rem;
+            width: 24px;
+          }
+          .mode-name {
+            font-size: 0.8rem;
+          }
+          .mode-description {
+            display: none;
+          }
+        }
       </style>
 
       <button class="selector-button" id="selectorBtn" aria-haspopup="listbox" aria-expanded="false">
