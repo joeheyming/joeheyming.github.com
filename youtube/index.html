@@ -57,6 +57,48 @@
 
     <!-- Canonical URL -->
     <link rel="canonical" href="https://joeheyming.github.io/youtube/" />
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "name": "JoeTube",
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Browse and watch Joe Heyming's YouTube video collection in a beautiful carousel interface. Shuffle, discover, and enjoy videos.",
+            "url": "https://joeheyming.github.io/youtube/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "screenshot": "https://joeheyming.github.io/youtube/joetube-preview.png",
+            "keywords": "YouTube, video carousel, video gallery, Joe Heyming",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "JoeTube"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="links.js"></script>
     <link rel="stylesheet" href="index.css" />

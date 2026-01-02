@@ -15,11 +15,75 @@
     <!-- SEO Meta Tags -->
     <meta
       name="description"
-      content="Classic Minesweeper game - clear the minefield without detonating any bombs!"
+      content="Classic Minesweeper game - clear the minefield without detonating any bombs! Free, no ads."
     />
-    <meta property="og:title" content="Minesweeper 💣 - Joe Heyming" />
-    <meta property="og:description" content="Classic Minesweeper game" />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta
+      name="keywords"
+      content="minesweeper, puzzle game, mine sweeper, classic game, browser game, free game, no ads"
+    />
+
+    <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming" />
+    <meta property="og:title" content="Minesweeper 💣 - Joe Heyming" />
+    <meta
+      property="og:description"
+      content="Classic Minesweeper game - clear the minefield without detonating any bombs! Free, no ads."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/minesweeper/" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://joeheyming.github.io/minesweeper/" />
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "VideoGame",
+            "name": "Minesweeper",
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Classic Minesweeper puzzle game. Clear the minefield without detonating any bombs! Multiple difficulty levels from beginner to expert.",
+            "url": "https://joeheyming.github.io/minesweeper/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "gamePlatform": "Web Browser",
+            "genre": "Puzzle",
+            "keywords": "minesweeper, puzzle, classic game, browser game",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Minesweeper"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div class="game-wrapper">
