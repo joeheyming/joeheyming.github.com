@@ -27,16 +27,16 @@ class BinaryDisplay extends BaseCountdownDisplay {
           border-radius: 12px;
           border: 2px solid #333;
           box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
-          width: fit-content;
-          max-width: 95vw;
-          overflow-x: auto;
+          width: 100%;
+          max-width: 600px;
         }
 
         .led-row {
           display: flex;
           gap: 3px;
-          flex-wrap: nowrap;
+          flex-wrap: wrap;
           justify-content: center;
+          max-width: 100%;
         }
 
         .led {
@@ -116,7 +116,7 @@ class BinaryDisplay extends BaseCountdownDisplay {
           font-weight: 600;
         }
 
-        @media (max-width: 400px) {
+        @media (max-width: 500px) {
           .led {
             width: 10px;
             height: 10px;
@@ -126,6 +126,33 @@ class BinaryDisplay extends BaseCountdownDisplay {
           }
           .binary-container {
             padding: 16px;
+          }
+          .led-row {
+            gap: 2px;
+          }
+        }
+
+        @media (max-width: 400px) {
+          .led {
+            width: 8px;
+            height: 8px;
+          }
+          .led:nth-child(8n) {
+            margin-right: 3px;
+          }
+          .led-row {
+            gap: 1px;
+          }
+          .binary-container {
+            padding: 12px;
+          }
+          .binary-string {
+            font-size: 0.6rem;
+            max-width: 300px;
+          }
+          .time-breakdown {
+            gap: 8px;
+            font-size: 0.7rem;
           }
         }
       </style>

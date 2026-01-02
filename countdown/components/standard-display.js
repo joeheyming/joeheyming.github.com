@@ -15,14 +15,13 @@ class StandardDisplay extends BaseCountdownDisplay {
   render() {
     this.shadowRoot.innerHTML = `
       <style>
-        ${combineStyles(hostStyles(120), hiddenClass, fullscreenStyles, mobileGridStyles)}
+        ${combineStyles(hostStyles(120), hiddenClass, fullscreenStyles)}
 
         .countdown-grid {
           display: flex;
           justify-content: center;
           align-items: flex-start;
           gap: 8px;
-          flex-wrap: nowrap;
         }
 
         .time-unit {
@@ -92,6 +91,9 @@ class StandardDisplay extends BaseCountdownDisplay {
           0%, 100% { opacity: 0.6; }
           50% { opacity: 0.2; }
         }
+
+        /* Mobile styles - must come AFTER base styles */
+        ${mobileGridStyles}
       </style>
 
       <div class="countdown-grid">
