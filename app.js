@@ -253,6 +253,22 @@ let appRegistry = [
     desktopPosition: { x: 30, y: 130 }
   },
   {
+    id: 'countdown',
+    name: 'Countdown ⏱️',
+    shortName: 'Countdown',
+    description: 'Event countdown timer',
+    detailedDescription: 'Countdown timer for upcoming events with multiple display modes',
+    icon: '⏱️',
+    path: './countdown/',
+    category: 'utility',
+    gradient: 'from-amber-500/20 to-orange-500/20',
+    border: 'border-amber-500/30 hover:border-amber-400/50',
+    taskbarGradient: 'from-amber-500 to-orange-500',
+    taskbarText: 'text-black',
+    defaultWidth: 900,
+    defaultHeight: 700
+  },
+  {
     id: 'minesweeper',
     name: 'Minesweeper 💣',
     shortName: 'Minesweeper',
