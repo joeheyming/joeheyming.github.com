@@ -611,6 +611,23 @@ class GameState {
     this.combo = 0;
     this.maxCombo = 0;
     this.score = 0;
+
+    // Reset note judgments so they can be hit again
+    this.resetNoteJudgments();
+  }
+
+  /**
+   * Reset note judgments (clear tapNoteScore from all notes)
+   */
+  resetNoteJudgments() {
+    if (this.steps && this.steps.noteData) {
+      this.steps.noteData.forEach((note) => {
+        const noteProps = note[2];
+        if (noteProps) {
+          delete noteProps.tapNoteScore;
+        }
+      });
+    }
   }
 
   /**

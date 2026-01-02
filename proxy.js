@@ -236,6 +236,67 @@ class ProxyService {
     return null;
   }
 
+  // Fetch content via POST through proxy
+  async postWithProxy(url, body, options = {}) {
+    const timeoutMs = options.timeout || this.timeoutMs;
+    const maxRetries = options.maxRetries || this.maxRetries;
+    let lastError = null;
+
+    // POST-capable proxies (not all support POST)
+    const postCapableProxies = [
+      'https://corsproxy.io/?', // Supports POST
+      'https://proxy.cors.sh/' // May support POST
+    ];
+
+    console.log(`Trying POST request to: ${url.substring(0, 80)}...`);
+
+    for (let retry = 0; retry <= maxRetries; retry++) {
+      for (const proxy of postCapableProxies) {
+        try {
+          const proxyUrl = proxy + encodeURIComponent(url);
+          const startTime = Date.now();
+          console.log(`Trying POST via proxy: ${proxy.substring(0, 30)}...`);
+
+          const fetchPromise = fetch(proxyUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+              ...options.headers
+            },
+            body: body
+          });
+
+          const response = await Promise.race([fetchPromise, this.createTimeoutPromise(timeoutMs)]);
+          const responseTime = Date.now() - startTime;
+
+          if (response.ok) {
+            const content = await response.text();
+            console.log(`POST via ${proxy} succeeded in ${responseTime}ms`);
+            return content;
+          } else {
+            console.warn(`POST proxy ${proxy} returned status ${response.status}`);
+          }
+        } catch (error) {
+          lastError = error;
+          console.warn(`POST proxy ${proxy} failed (attempt ${retry + 1}):`, error.message);
+          continue;
+        }
+      }
+
+      if (retry < maxRetries) {
+        console.log(`All POST proxies failed, retrying... (${retry + 1}/${maxRetries})`);
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (retry + 1)));
+      }
+    }
+
+    throw new Error(
+      `All POST proxies failed after ${maxRetries + 1} attempts: ${
+        lastError?.message || 'Unknown error'
+      }`
+    );
+  }
+
   // Fetch content as binary (for ROMs)
   async fetchBinaryWithProxy(url, options = {}) {
     const cacheKey = `binary-${url}-${JSON.stringify(options)}`;
