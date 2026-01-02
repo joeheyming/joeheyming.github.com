@@ -146,6 +146,8 @@
   "displayModes": {
     "analog": "Analógico",
     "analogDesc": "Anéis de progresso circulares",
+    "balldrop": "Queda da Bola",
+    "balldropDesc": "Estilo Times Square NYC",
     "bar": "Gráfico de Barras",
     "barDesc": "Barras de progresso animadas",
     "binary": "Binário",

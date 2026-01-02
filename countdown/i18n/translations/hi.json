@@ -146,6 +146,8 @@
   "displayModes": {
     "analog": "एनालॉग",
     "analogDesc": "गोलाकार प्रगति रिंग",
+    "balldrop": "बॉल ड्रॉप",
+    "balldropDesc": "NYC टाइम्स स्क्वायर शैली",
     "bar": "बार चार्ट",
     "barDesc": "एनिमेटेड प्रगति बार",
     "binary": "बाइनरी",

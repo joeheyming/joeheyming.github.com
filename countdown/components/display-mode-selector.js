@@ -8,6 +8,7 @@ import { onClickOutside, dropdownStyles, chevronStyles } from './shared-styles.j
 // Display mode definitions with icons
 const DISPLAY_MODE_DEFS = [
   { id: 'analog', icon: '⏰' },
+  { id: 'balldrop', icon: '🎊' },
   { id: 'bar', icon: '📊' },
   { id: 'binary', icon: '01' },
   { id: 'decimal', icon: '🔢' },

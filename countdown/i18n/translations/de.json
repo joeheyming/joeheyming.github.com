@@ -146,6 +146,8 @@
   "displayModes": {
     "analog": "Analog",
     "analogDesc": "Kreisförmige Fortschrittsringe",
+    "balldrop": "Kugelsturz",
+    "balldropDesc": "NYC Times Square Stil",
     "bar": "Balkendiagramm",
     "barDesc": "Animierte Fortschrittsbalken",
     "binary": "Binär",

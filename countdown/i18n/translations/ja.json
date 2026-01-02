@@ -146,6 +146,8 @@
   "displayModes": {
     "analog": "アナログ",
     "analogDesc": "円形プログレスリング",
+    "balldrop": "ボールドロップ",
+    "balldropDesc": "NYCタイムズスクエア風",
     "bar": "バーチャート",
     "barDesc": "アニメーション進捗バー",
     "binary": "バイナリ",

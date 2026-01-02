@@ -146,6 +146,8 @@
   "displayModes": {
     "analog": "تناظري",
     "analogDesc": "حلقات تقدم دائرية",
+    "balldrop": "سقوط الكرة",
+    "balldropDesc": "نمط تايمز سكوير نيويورك",
     "bar": "رسم بياني شريطي",
     "barDesc": "أشرطة تقدم متحركة",
     "binary": "ثنائي",

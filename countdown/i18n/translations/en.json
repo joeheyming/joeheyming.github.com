@@ -146,6 +146,8 @@
   "displayModes": {
     "analog": "Analog",
     "analogDesc": "Circular progress rings",
+    "balldrop": "Ball Drop",
+    "balldropDesc": "NYC Times Square style",
     "bar": "Bar Chart",
     "barDesc": "Animated progress bars",
     "binary": "Binary",
