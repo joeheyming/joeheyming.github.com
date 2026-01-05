@@ -10,6 +10,9 @@ import './mainPageController.js';
 // Input handlers (depend on stepmania.js exports)
 import './gamepad.js';
 
+// UI handlers
+import './fullscreen.js';
+
 // Custom elements
 import './step-button.js';
 import './score-panel.js';

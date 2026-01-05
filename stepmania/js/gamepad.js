@@ -428,9 +428,41 @@ export class GamepadManager {
 // Create instance and export
 const gamepadManager = new GamepadManager();
 
-// Keep window reference for index.html status indicator (can be removed once index.html is updated)
+// Keep window reference for backwards compatibility
 window.gamepadManager = gamepadManager;
 
+/**
+ * Update the gamepad status indicator in the UI
+ */
+function updateGamepadStatus() {
+  const statusElement = document.getElementById('gamepad-status');
+  if (!statusElement) return;
+
+  if (gamepadManager.getStatus().connectedGamepads > 0) {
+    statusElement.classList.remove('hidden');
+  } else {
+    statusElement.classList.add('hidden');
+  }
+}
+
+/**
+ * Initialize gamepad status indicator updates
+ */
+function initGamepadStatusIndicator() {
+  // Check gamepad status periodically
+  setInterval(updateGamepadStatus, 1000);
+
+  // Initial check after a short delay to allow page to load
+  setTimeout(updateGamepadStatus, 2000);
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initGamepadStatusIndicator);
+} else {
+  initGamepadStatusIndicator();
+}
+
 // Export both the class and instance
-export { gamepadManager };
+export { gamepadManager, updateGamepadStatus };
 export default GamepadManager;
