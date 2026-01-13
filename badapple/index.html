@@ -177,6 +177,131 @@
         margin-top: 20px;
         font-size: 12px;
       }
+
+      /* Playback Controls */
+      #playback-controls {
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 15px;
+        background: #1a1a1a;
+        border-radius: 8px;
+        border: 1px solid #333;
+      }
+
+      #progress-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
+      #time-display {
+        font-size: 12px;
+        color: #aaa;
+        min-width: 90px;
+        text-align: center;
+      }
+
+      #progress-bar {
+        flex: 1;
+        height: 8px;
+        background: #333;
+        border-radius: 4px;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+      }
+
+      #progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #ff6b6b, #ee5a5a);
+        border-radius: 4px;
+        width: 0%;
+        transition: width 0.1s linear;
+      }
+
+      #progress-bar:hover #progress-fill {
+        background: linear-gradient(90deg, #ff8585, #ff6b6b);
+      }
+
+      #secondary-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      #skip-controls {
+        display: flex;
+        gap: 5px;
+      }
+
+      #skip-controls button {
+        padding: 8px 12px;
+        font-size: 14px;
+      }
+
+      #speed-controls {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      #speed-controls label {
+        font-size: 12px;
+        color: #aaa;
+      }
+
+      #speed-controls button {
+        padding: 5px 10px;
+        font-size: 12px;
+        min-width: 45px;
+      }
+
+      #speed-controls button.active {
+        background: #ee5a5a;
+        border-color: #ff6b6b;
+      }
+
+      #volume-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      #volume-controls label {
+        font-size: 14px;
+      }
+
+      #volume-slider {
+        width: 80px;
+        height: 6px;
+        -webkit-appearance: none;
+        appearance: none;
+        background: #333;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+
+      #volume-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        background: #ee5a5a;
+        border-radius: 50%;
+        cursor: pointer;
+      }
+
+      #volume-slider::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        background: #ee5a5a;
+        border-radius: 50%;
+        cursor: pointer;
+        border: none;
+      }
     </style>
   </head>
   <body>
@@ -193,6 +318,40 @@
       your browser doesn't support &lt;audio&gt;...
     </audio>
 
+    <div id="playback-controls">
+      <div id="progress-container">
+        <span id="time-display">0:00 / 0:00</span>
+        <div id="progress-bar" onclick="seek(event)">
+          <div id="progress-fill"></div>
+        </div>
+      </div>
+      <div id="secondary-controls">
+        <div id="skip-controls">
+          <button onclick="skip(-10)" title="Back 10s">⏪ 10s</button>
+          <button onclick="skip(10)" title="Forward 10s">10s ⏩</button>
+        </div>
+        <div id="speed-controls">
+          <label>Speed:</label>
+          <button onclick="setSpeed(0.5)">0.5x</button>
+          <button onclick="setSpeed(1)" class="active">1x</button>
+          <button onclick="setSpeed(1.5)">1.5x</button>
+          <button onclick="setSpeed(2)">2x</button>
+        </div>
+        <div id="volume-controls">
+          <label>🔊</label>
+          <input
+            type="range"
+            id="volume-slider"
+            min="0"
+            max="1"
+            step="0.1"
+            value="1"
+            oninput="setVolume(this.value)"
+          />
+        </div>
+      </div>
+    </div>
+
     <div id="frame-display" />
 
     <hr />
@@ -201,13 +360,18 @@
       const audio = document.getElementById('audio');
       const frameDisplay = document.getElementById('frame-display');
       const playBtn = document.getElementById('playBtn');
+      const progressFill = document.getElementById('progress-fill');
+      const progressBar = document.getElementById('progress-bar');
+      const timeDisplay = document.getElementById('time-display');
 
       const FRAME_RATE = 30; // frames per second - silky smooth animation
       const TOTAL_FRAMES = 6572; // Total frames at 30 FPS (3:39 video duration)
+      const DURATION = TOTAL_FRAMES / FRAME_RATE; // ~219 seconds
       let frames = {}; // Cache for loaded frames
       let isPlaying = false;
       let lastFrameNum = 0;
       let animationId = null;
+      let currentSpeed = 1;
 
       // Load frame data from existing HTML files
       async function loadFrame(frameNum) {
@@ -331,13 +495,67 @@
         pause();
         audio.currentTime = 0;
         lastFrameNum = 0;
+        updateProgress();
+      }
+
+      // Playback control functions
+      function updateProgress() {
+        const current = audio.currentTime;
+        const duration = audio.duration || DURATION;
+        const percent = (current / duration) * 100;
+        progressFill.style.width = percent + '%';
+        timeDisplay.textContent = formatTime(current) + ' / ' + formatTime(duration);
+      }
+
+      function seek(event) {
+        const rect = progressBar.getBoundingClientRect();
+        const percent = (event.clientX - rect.left) / rect.width;
+        const newTime = percent * (audio.duration || DURATION);
+        audio.currentTime = Math.max(0, Math.min(newTime, audio.duration || DURATION));
+        lastFrameNum = 0; // Reset to force frame update
+        updateProgress();
+        // If playing, preload frames around the new position
+        if (isPlaying) {
+          const newFrame = Math.floor(newTime * FRAME_RATE) + 1;
+          preloadFrames(newFrame, 30);
+        }
+      }
+
+      function skip(seconds) {
+        const newTime = audio.currentTime + seconds;
+        audio.currentTime = Math.max(0, Math.min(newTime, audio.duration || DURATION));
+        lastFrameNum = 0;
+        updateProgress();
+        if (isPlaying) {
+          const newFrame = Math.floor(audio.currentTime * FRAME_RATE) + 1;
+          preloadFrames(newFrame, 30);
+        }
+      }
+
+      function setSpeed(speed) {
+        currentSpeed = speed;
+        audio.playbackRate = speed;
+        // Update button states
+        document.querySelectorAll('#speed-controls button').forEach((btn) => {
+          btn.classList.remove('active');
+          if (btn.textContent === speed + 'x') {
+            btn.classList.add('active');
+          }
+        });
+      }
+
+      function setVolume(value) {
+        audio.volume = value;
       }
 
       // Event listeners (requestAnimationFrame handles the main sync loop now)
 
+      audio.addEventListener('timeupdate', updateProgress);
+
       audio.addEventListener('ended', () => {
         isPlaying = false;
         playBtn.textContent = '▶ Play';
+        updateProgress();
       });
 
       audio.addEventListener('pause', () => {
@@ -366,6 +584,24 @@
             e.preventDefault();
             reset();
             break;
+          case 'ArrowLeft':
+            e.preventDefault();
+            skip(-10);
+            break;
+          case 'ArrowRight':
+            e.preventDefault();
+            skip(10);
+            break;
+          case 'ArrowUp':
+            e.preventDefault();
+            audio.volume = Math.min(1, audio.volume + 0.1);
+            document.getElementById('volume-slider').value = audio.volume;
+            break;
+          case 'ArrowDown':
+            e.preventDefault();
+            audio.volume = Math.max(0, audio.volume - 0.1);
+            document.getElementById('volume-slider').value = audio.volume;
+            break;
         }
       });
 
@@ -383,6 +619,10 @@
           return 'Check out Bad Apple!! recreated in pure ASCII art! 🍎';
         };
       }
+
+      // Initialize time display
+      audio.addEventListener('loadedmetadata', updateProgress);
+      updateProgress();
     </script>
   </body>
 </html>
