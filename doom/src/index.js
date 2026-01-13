@@ -242,7 +242,6 @@ const main = async () => {
 
   // Pointer lock state management
   let isPointerLocked = false;
-  let lastWASMCallTime = 0;
 
   // Enhanced mouse handling with pointer lock support
   canvas.addEventListener('click', async () => {
@@ -277,20 +276,12 @@ const main = async () => {
 
   // High-frequency mouse movement handler
   document.addEventListener('mousemove', (e) => {
-    // Only process if pointer is locked - much lower threshold for higher sensitivity
+    // Only process if pointer is locked
+    // Threshold of 0.5 filters out micro-movements while keeping responsiveness
     if (!isPointerLocked || Math.abs(e.movementX) < 0.5) return;
 
-    const now = Date.now();
-    lastWASMCallTime = now;
-
-    // Fire more frequently with amplified movement
-    performCanvasKeyboard(e.movementX * 2); // 2x amplification for faster turning
-
-    // Less frequent throttle messages
-    if (now - lastWASMCallTime > 2000) {
-      consoleLog('⚠️ Using keyboard fallback - WASM mouse function not available');
-      lastWASMCallTime = now;
-    }
+    // Fire keyboard events with amplified movement for faster turning
+    performCanvasKeyboard(e.movementX * 2); // 2x amplification
   });
 
   // Mouse button handlers for FPS-style controls
@@ -493,10 +484,12 @@ const main = async () => {
 
   // Touch drag controls for W/S/Left/Right movement (works on all devices)
   let touchDragStart = null;
+  let lastTouchPosition = null; // For relative camera movement
   let isWPressed = false;
   let isSPressed = false;
   let isLeftPressed = false;
   let isRightPressed = false;
+  let turnKeyTimeout = null; // For releasing turn keys after swipe stops
 
   // Tap detection for Q (shoot) and E (action)
   let tapStartTime = null;
@@ -505,7 +498,7 @@ const main = async () => {
   let isDragging = false;
   const TAP_MAX_DURATION = 300; // Maximum duration for a tap in ms
   const TAP_MAX_DISTANCE = 10; // Maximum distance moved for a tap in pixels
-  const DOUBLE_TAP_DELAY = 400; // Maximum delay between taps for double tap
+  const DOUBLE_TAP_DELAY = 250; // Maximum delay between taps for double tap (reduced for snappier gameplay)
 
   // Use existing sendKeyEvent function or create a local version
   const sendTouchKeyEvent = (type, key, code, keyCode) => {
@@ -544,7 +537,7 @@ const main = async () => {
     sendTouchKeyEvent('keydown', 'q', 'KeyQ', 81);
     setTimeout(() => {
       sendTouchKeyEvent('keyup', 'q', 'KeyQ', 81);
-    }, 100); // Brief key press
+    }, 150); // Key press duration - long enough to register reliably
   };
 
   const handleDoubleTap = () => {
@@ -552,7 +545,7 @@ const main = async () => {
     sendTouchKeyEvent('keydown', 'e', 'KeyE', 69);
     setTimeout(() => {
       sendTouchKeyEvent('keyup', 'e', 'KeyE', 69);
-    }, 100); // Brief key press
+    }, 150); // Key press duration - long enough to register reliably
   };
 
   const processTap = () => {
@@ -586,6 +579,10 @@ const main = async () => {
           x: touch.clientX,
           y: touch.clientY
         };
+        lastTouchPosition = {
+          x: touch.clientX,
+          y: touch.clientY
+        };
 
         // Initialize tap detection
         tapStartTime = Date.now();
@@ -593,6 +590,12 @@ const main = async () => {
 
         // Release any previously held keys when starting a new drag
         releaseMovementKeys();
+
+        // Clear any pending turn key release
+        if (turnKeyTimeout) {
+          clearTimeout(turnKeyTimeout);
+          turnKeyTimeout = null;
+        }
       }
     },
     { passive: false }
@@ -601,25 +604,32 @@ const main = async () => {
   document.addEventListener(
     'touchmove',
     (e) => {
-      if (touchDragStart && e.touches.length === 1) {
+      if (touchDragStart && lastTouchPosition && e.touches.length === 1) {
         e.preventDefault(); // Prevent scrolling
 
         const currentTouch = e.touches[0];
-        const deltaX = currentTouch.clientX - touchDragStart.x;
-        const deltaY = currentTouch.clientY - touchDragStart.y;
 
-        // Check if movement exceeds tap threshold
-        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        // Absolute delta from start (for forward/backward movement)
+        const absoluteDeltaY = currentTouch.clientY - touchDragStart.y;
+
+        // Relative delta from last position (for camera turning - like mouse movement)
+        const relativeDeltaX = currentTouch.clientX - lastTouchPosition.x;
+
+        // Check if movement exceeds tap threshold (using absolute distance)
+        const absoluteDeltaX = currentTouch.clientX - touchDragStart.x;
+        const distance = Math.sqrt(
+          absoluteDeltaX * absoluteDeltaX + absoluteDeltaY * absoluteDeltaY
+        );
         if (!isDragging && distance > TAP_MAX_DISTANCE) {
           isDragging = true;
         }
 
-        // Handle vertical movement (forward/backward) - Extra sensitive for faster response
-        if (Math.abs(deltaY) > 10) {
-          if (deltaY < -15) {
-            // Dragging up - extra reduced threshold for faster response
+        // Handle vertical movement (forward/backward) - Uses ABSOLUTE position (virtual joystick style)
+        // This feels natural: drag up from start = forward, drag down from start = backward
+        if (Math.abs(absoluteDeltaY) > 10) {
+          if (absoluteDeltaY < -15) {
+            // Dragging up from start = forward
             if (!isWPressed) {
-              // Release S if it was pressed, but keep left/right
               if (isSPressed) {
                 sendTouchKeyEvent('keyup', 's', 'KeyS', 83);
                 isSPressed = false;
@@ -627,10 +637,9 @@ const main = async () => {
               sendTouchKeyEvent('keydown', 'w', 'KeyW', 87);
               isWPressed = true;
             }
-          } else if (deltaY > 15) {
-            // Dragging down - extra reduced threshold for faster response
+          } else if (absoluteDeltaY > 15) {
+            // Dragging down from start = backward
             if (!isSPressed) {
-              // Release W if it was pressed, but keep left/right
               if (isWPressed) {
                 sendTouchKeyEvent('keyup', 'w', 'KeyW', 87);
                 isWPressed = false;
@@ -639,34 +648,73 @@ const main = async () => {
               isSPressed = true;
             }
           }
+        } else {
+          // Return to neutral zone - release W/S
+          if (isWPressed) {
+            sendTouchKeyEvent('keyup', 'w', 'KeyW', 87);
+            isWPressed = false;
+          }
+          if (isSPressed) {
+            sendTouchKeyEvent('keyup', 's', 'KeyS', 83);
+            isSPressed = false;
+          }
         }
 
-        // Handle horizontal movement (left/right turn) - Extra sensitive for fastest turning
-        if (Math.abs(deltaX) > 5) {
-          if (deltaX < -8) {
-            // Dragging left - extra reduced threshold for fastest response
+        // Handle horizontal movement (camera turn) - Uses RELATIVE movement (mouse-like)
+        // This enables continuous turning by swiping repeatedly
+        const TURN_THRESHOLD = 3; // Minimum pixels of movement to trigger turn
+
+        if (Math.abs(relativeDeltaX) > TURN_THRESHOLD) {
+          // Clear any pending turn release
+          if (turnKeyTimeout) {
+            clearTimeout(turnKeyTimeout);
+            turnKeyTimeout = null;
+          }
+
+          if (relativeDeltaX < 0) {
+            // Swiping left = turn left
+            if (isRightPressed) {
+              sendTouchKeyEvent('keyup', 'ArrowRight', 'ArrowRight', 39);
+              isRightPressed = false;
+            }
             if (!isLeftPressed) {
-              // Release Right if it was pressed, but keep W/S
-              if (isRightPressed) {
-                sendTouchKeyEvent('keyup', 'ArrowRight', 'ArrowRight', 39);
-                isRightPressed = false;
-              }
               sendTouchKeyEvent('keydown', 'ArrowLeft', 'ArrowLeft', 37);
               isLeftPressed = true;
             }
-          } else if (deltaX > 8) {
-            // Dragging right - extra reduced threshold for fastest response
+          } else {
+            // Swiping right = turn right
+            if (isLeftPressed) {
+              sendTouchKeyEvent('keyup', 'ArrowLeft', 'ArrowLeft', 37);
+              isLeftPressed = false;
+            }
             if (!isRightPressed) {
-              // Release Left if it was pressed, but keep W/S
-              if (isLeftPressed) {
-                sendTouchKeyEvent('keyup', 'ArrowLeft', 'ArrowLeft', 37);
-                isLeftPressed = false;
-              }
               sendTouchKeyEvent('keydown', 'ArrowRight', 'ArrowRight', 39);
               isRightPressed = true;
             }
           }
+
+          // Auto-release turn keys after brief delay (simulates key tap for each swipe segment)
+          // This allows multiple quick swipes to accumulate turning
+          const turnIntensity = Math.abs(relativeDeltaX);
+          const keyDuration = Math.min(turnIntensity * 5, 100); // 15-100ms based on swipe speed
+
+          turnKeyTimeout = setTimeout(() => {
+            if (isLeftPressed) {
+              sendTouchKeyEvent('keyup', 'ArrowLeft', 'ArrowLeft', 37);
+              isLeftPressed = false;
+            }
+            if (isRightPressed) {
+              sendTouchKeyEvent('keyup', 'ArrowRight', 'ArrowRight', 39);
+              isRightPressed = false;
+            }
+          }, keyDuration);
         }
+
+        // Update last position for next relative calculation
+        lastTouchPosition = {
+          x: currentTouch.clientX,
+          y: currentTouch.clientY
+        };
       }
     },
     { passive: false }
@@ -683,9 +731,16 @@ const main = async () => {
           processTap();
         }
 
+        // Clear any pending turn key release
+        if (turnKeyTimeout) {
+          clearTimeout(turnKeyTimeout);
+          turnKeyTimeout = null;
+        }
+
         // Release all movement keys when touch ends
         releaseMovementKeys();
         touchDragStart = null;
+        lastTouchPosition = null;
         tapStartTime = null;
         isDragging = false;
       }
@@ -696,9 +751,16 @@ const main = async () => {
   document.addEventListener(
     'touchcancel',
     (e) => {
+      // Clear any pending turn key release
+      if (turnKeyTimeout) {
+        clearTimeout(turnKeyTimeout);
+        turnKeyTimeout = null;
+      }
+
       // Release all movement keys when touch is cancelled
       releaseMovementKeys();
       touchDragStart = null;
+      lastTouchPosition = null;
       tapStartTime = null;
       isDragging = false;
 
@@ -721,9 +783,9 @@ const main = async () => {
   consoleLog('- Double tap anywhere: Use/Action (E key)');
   consoleLog('- Works on entire page, not just game area');
 
-  // State tracking for continuous key events
+  // State tracking for continuous key events (desktop mouse)
   let currentTurnDirection = null;
-  let turnKeyTimeout = null;
+  let mouseTurnKeyTimeout = null;
 
   function performCanvasKeyboard(movementX) {
     const isLeft = movementX < 0;
@@ -731,9 +793,9 @@ const main = async () => {
     const newDirection = isLeft ? 'left' : 'right';
 
     // Clear any existing timeout
-    if (turnKeyTimeout) {
-      clearTimeout(turnKeyTimeout);
-      turnKeyTimeout = null;
+    if (mouseTurnKeyTimeout) {
+      clearTimeout(mouseTurnKeyTimeout);
+      mouseTurnKeyTimeout = null;
     }
 
     // If direction changed, send keyup for previous direction
@@ -768,7 +830,7 @@ const main = async () => {
     const intensity = Math.abs(movementX);
     const keyDuration = Math.max(20, Math.min(intensity * 3, 80)); // 20-80ms range
 
-    turnKeyTimeout = setTimeout(() => {
+    mouseTurnKeyTimeout = setTimeout(() => {
       canvas.dispatchEvent(
         new KeyboardEvent('keyup', {
           key: keyCode,
