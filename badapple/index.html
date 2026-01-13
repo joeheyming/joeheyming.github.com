@@ -202,11 +202,12 @@
       const frameDisplay = document.getElementById('frame-display');
       const playBtn = document.getElementById('playBtn');
 
-      const FRAME_RATE = 15; // frames per second - high-quality smooth animation
-      const TOTAL_FRAMES = 4862; // Total frames at 15 FPS (5:24 video duration)
+      const FRAME_RATE = 30; // frames per second - silky smooth animation
+      const TOTAL_FRAMES = 6572; // Total frames at 30 FPS (3:39 video duration)
       let frames = {}; // Cache for loaded frames
       let isPlaying = false;
       let lastFrameNum = 0;
+      let animationId = null;
 
       // Load frame data from existing HTML files
       async function loadFrame(frameNum) {
@@ -231,8 +232,8 @@
         }
       }
 
-      // Preload nearby frames for smoother playback - more aggressive for higher FPS
-      async function preloadFrames(centerFrame, radius = 15) {
+      // Preload nearby frames for smoother playback at 30 FPS
+      async function preloadFrames(centerFrame, radius = 30) {
         const promises = [];
         for (
           let i = Math.max(1, centerFrame - radius);
@@ -265,13 +266,18 @@
             if (frameContent && isPlaying) {
               frameDisplay.textContent = frameContent;
 
-              // Preload upcoming frames more frequently for higher FPS
-              if (currentFrame % 30 === 0) {
-                // Every 30th frame (every 2 seconds at 15 FPS)
-                preloadFrames(currentFrame + 60); // Preload next 4 seconds
+              // Preload upcoming frames
+              if (currentFrame % 60 === 0) {
+                // Every 60th frame (every 2 seconds at 30 FPS)
+                preloadFrames(currentFrame + 120); // Preload next 4 seconds
               }
             }
           });
+        }
+
+        // Continue the animation loop using requestAnimationFrame for smooth sync
+        if (isPlaying) {
+          animationId = requestAnimationFrame(updateFrame);
         }
       }
 
@@ -293,8 +299,8 @@
         try {
           playBtn.disabled = true;
 
-          // Preload first few frames for higher FPS
-          await preloadFrames(1, 30); // Preload first 2 seconds
+          // Preload first few frames for 30 FPS
+          await preloadFrames(1, 60); // Preload first 2 seconds at 30 FPS
 
           isPlaying = true;
           await audio.play();
@@ -315,6 +321,10 @@
         isPlaying = false;
         audio.pause();
         playBtn.textContent = '▶ Play';
+        if (animationId) {
+          cancelAnimationFrame(animationId);
+          animationId = null;
+        }
       }
 
       function reset() {
@@ -323,12 +333,7 @@
         lastFrameNum = 0;
       }
 
-      // Event listeners
-      audio.addEventListener('timeupdate', () => {
-        if (isPlaying) {
-          updateFrame();
-        }
-      });
+      // Event listeners (requestAnimationFrame handles the main sync loop now)
 
       audio.addEventListener('ended', () => {
         isPlaying = false;
