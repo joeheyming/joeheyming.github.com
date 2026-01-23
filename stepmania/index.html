@@ -197,16 +197,25 @@
             data-event-label="Share Button"
           ></share-button>
 
+          <!-- Feedback Button -->
+          <feedback-button
+            label="💬 Feedback"
+            theme="gradient"
+            max-length="500"
+            placeholder="Share your thoughts, report bugs, or suggest improvements..."
+          ></feedback-button>
+
           <!-- Restart Button -->
           <button
             id="restart-btn"
-            class="px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white shadow-lg hover:shadow-green-500/25"
+            class="restart-btn px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white shadow-lg hover:shadow-green-500/25"
             title="Restart Song (R)"
             data-event="restart_song"
             data-event-category="StepMania"
             data-event-label="Restart Button"
           >
-            🔄 Restart
+            <span class="restart-icon-only">🔄</span>
+            <span class="restart-text-label">Restart</span>
           </button>
 
           <!-- Main Difficulty Selector -->
@@ -445,6 +454,7 @@
     <!-- Non-module scripts that need to be loaded first (global utilities) -->
     <script src="../proxy.js"></script>
     <script src="/share.js"></script>
+    <script src="/feedback.js"></script>
     <!-- JSZip for extracting song packs from stepmaniaonline.net -->
     <script
       src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"

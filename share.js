@@ -115,6 +115,25 @@ class ShareButtonElement extends HTMLElement {
     return this.getAttribute('label') || '📤 Share';
   }
 
+  extractIcon(label) {
+    // Extract emoji/icon from label (first character or emoji)
+    const emojiMatch = label.match(
+      /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u
+    );
+    return emojiMatch ? emojiMatch[0] : label.charAt(0);
+  }
+
+  extractText(label) {
+    // Extract text part after emoji
+    const emojiMatch = label.match(
+      /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u
+    );
+    if (emojiMatch) {
+      return label.replace(emojiMatch[0], '').trim();
+    }
+    return label;
+  }
+
   getThemeStyles() {
     const themes = {
       gradient: `
@@ -170,6 +189,30 @@ class ShareButtonElement extends HTMLElement {
           height: auto;
           min-height: 2.5rem;
           white-space: nowrap;
+          position: relative;
+        }
+        
+        .share-btn .icon-only {
+          display: none;
+        }
+        
+        /* Mobile optimizations - icon only */
+        @media (max-width: 640px) {
+          .share-btn {
+            padding: 0.5rem !important;
+            min-width: 2.5rem !important;
+            min-height: 2.5rem !important;
+            justify-content: center !important;
+          }
+          
+          .share-btn .text-label {
+            display: none !important;
+          }
+          
+          .share-btn .icon-only {
+            display: inline-block !important;
+            font-size: 1.25rem !important;
+          }
         }
         
         /* Mobile optimizations */
@@ -250,7 +293,8 @@ class ShareButtonElement extends HTMLElement {
       </style>
       
       <button class="share-btn" id="share-btn" aria-label="Share this page">
-        ${this.label}
+        <span class="icon-only">${this.extractIcon(this.label)}</span>
+        <span class="text-label">${this.extractText(this.label)}</span>
       </button>
       
       <div class="tooltip" id="tooltip"></div>

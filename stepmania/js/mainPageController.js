@@ -52,7 +52,162 @@ export class MainPageController {
     // Only load default song if no URL parameters were found
     if (!hasURLParams) {
       this.loadDefaultSong();
+
+      // Auto-open browser for first-time visitors to improve discovery
+      this.checkAndShowBrowserPrompt();
     }
+  }
+
+  /**
+   * Check if user is first-time visitor and show browser prompt
+   */
+  checkAndShowBrowserPrompt() {
+    const STORAGE_KEY = 'stepmania_browser_seen';
+    const hasSeenBrowser = localStorage.getItem(STORAGE_KEY);
+
+    // If user hasn't seen the browser before, show a prompt
+    if (!hasSeenBrowser) {
+      // Wait a bit for the page to settle, then show prompt
+      setTimeout(() => {
+        this.showBrowserWelcomePrompt();
+      }, 500);
+    }
+  }
+
+  /**
+   * Show a welcome prompt encouraging users to browse songs
+   */
+  showBrowserWelcomePrompt() {
+    // Check if browser is already open
+    const zeniusBrowser = document.querySelector('zenius-browser');
+    if (zeniusBrowser && zeniusBrowser.classList.contains('modal-open')) {
+      return; // Already open
+    }
+
+    // Create a welcome prompt overlay
+    const promptOverlay = document.createElement('div');
+    promptOverlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      animation: fadeIn 0.3s ease-out;
+    `;
+
+    promptOverlay.innerHTML = `
+      <style>
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from { transform: translateY(20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .browser-prompt {
+          background: #1f2937;
+          border: 2px solid #8b5cf6;
+          border-radius: 0.75rem;
+          padding: 2rem;
+          max-width: 90%;
+          width: 500px;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+          animation: slideUp 0.3s ease-out;
+          text-align: center;
+        }
+        .browser-prompt h3 {
+          color: white;
+          font-size: 1.5rem;
+          margin: 0 0 1rem 0;
+        }
+        .browser-prompt p {
+          color: #d1d5db;
+          margin: 0 0 1.5rem 0;
+          line-height: 1.6;
+        }
+        .browser-prompt-buttons {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+        }
+        .browser-prompt-btn {
+          padding: 0.75rem 1.5rem;
+          border-radius: 0.5rem;
+          border: none;
+          font-weight: 600;
+          cursor: pointer;
+          font-size: 1rem;
+          transition: all 0.2s;
+        }
+        .browser-prompt-btn-primary {
+          background: #8b5cf6;
+          color: white;
+        }
+        .browser-prompt-btn-primary:hover {
+          background: #7c3aed;
+        }
+        .browser-prompt-btn-secondary {
+          background: #4b5563;
+          color: white;
+        }
+        .browser-prompt-btn-secondary:hover {
+          background: #374151;
+        }
+      </style>
+      <div class="browser-prompt">
+        <h3>🎵 Welcome to StepMania!</h3>
+        <p>
+          Browse thousands of songs from Zenius-I-Vanisher! 
+          Click the "Songs" button to explore and find your favorite tracks.
+        </p>
+        <div class="browser-prompt-buttons">
+          <button class="browser-prompt-btn browser-prompt-btn-primary" id="open-browser-now">
+            🎵 Browse Songs
+          </button>
+          <button class="browser-prompt-btn browser-prompt-btn-secondary" id="dismiss-prompt">
+            Maybe Later
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(promptOverlay);
+
+    const openBtn = promptOverlay.querySelector('#open-browser-now');
+    const dismissBtn = promptOverlay.querySelector('#dismiss-prompt');
+
+    const closePrompt = () => {
+      promptOverlay.remove();
+      localStorage.setItem('stepmania_browser_seen', 'true');
+    };
+
+    openBtn.addEventListener('click', () => {
+      closePrompt();
+      // Track analytics
+      if (typeof window.trackEvent === 'function') {
+        window.trackEvent('song_browser_open', 'StepMania', 'Welcome Prompt');
+      }
+      // Open the browser
+      const zeniusBrowser = document.querySelector('zenius-browser');
+      if (zeniusBrowser && typeof zeniusBrowser.showBrowser === 'function') {
+        zeniusBrowser.showBrowser();
+      }
+    });
+
+    dismissBtn.addEventListener('click', closePrompt);
+
+    // Close on outside click
+    promptOverlay.addEventListener('click', (e) => {
+      if (e.target === promptOverlay) {
+        closePrompt();
+      }
+    });
   }
 
   bindEvents() {
@@ -586,13 +741,31 @@ export class MainPageController {
   }
 
   async handleRetry() {
+    // Track retry attempt
+    if (typeof window.trackEvent === 'function') {
+      window.trackEvent('loading_retry', 'StepMania', 'Manual Retry');
+    }
+
+    // Increment retry count for exponential backoff
+    if (!this.retryCount) {
+      this.retryCount = 0;
+    }
+    this.retryCount++;
+
+    // Exponential backoff: wait before retrying (1s, 2s, 4s, etc.)
+    const backoffDelay = Math.min(1000 * Math.pow(2, this.retryCount - 1), 8000);
+    if (this.retryCount > 1) {
+      LoadingOverlay.updateProgress(`Retrying in ${backoffDelay / 1000}s...`, 5);
+      await new Promise((resolve) => setTimeout(resolve, backoffDelay));
+    }
+
     if (this.lastZeniusUrl) {
       await this.loadFromZeniusURL(this.lastZeniusUrl, this.lastDifficulty);
     } else if (this.lastSongKey) {
       const songData = songs[this.lastSongKey];
       if (songData) {
         try {
-          LoadingOverlay.showLoading(songData.title, 'Retrying...', 5);
+          LoadingOverlay.showLoading(songData.title, `Retrying... (Attempt ${this.retryCount})`, 5);
           this.setCurrentSong(this.lastSongKey, songData);
           this.setCurrentDifficulty(this.lastDifficulty);
 
@@ -606,18 +779,59 @@ export class MainPageController {
           LoadingOverlay.updateProgress('Starting song...', 40);
           document.getElementById('sub-title').textContent = songData.title;
           await this.startSelectedSong(true, true);
+
+          // Reset retry count on success
+          this.retryCount = 0;
         } catch (error) {
-          LoadingOverlay.hide();
           console.error('Error retrying song:', error);
-          LoadingOverlay.showError(
-            'Failed to retry song',
-            'Retry failed - try again or return to browser'
-          );
+
+          // Track error with context
+          if (typeof window.trackError === 'function') {
+            window.trackError({
+              type: 'loading_error',
+              message: error.message || 'Failed to retry song',
+              context: `Retry attempt ${this.retryCount}`,
+              recoverable: true,
+              stack: error.stack
+            });
+          }
+
+          // Show helpful error message with retry count
+          const maxRetries = 3;
+          if (this.retryCount >= maxRetries) {
+            LoadingOverlay.showError(
+              'Failed to load song',
+              `After ${this.retryCount} attempts, the song couldn't be loaded. This may be due to network issues or the song may no longer be available.`,
+              {
+                onRetry: () => {
+                  this.retryCount = 0; // Reset for manual retry
+                  this.handleRetry();
+                },
+                onBack: () => {
+                  this.retryCount = 0;
+                  this.handleBackToBrowser();
+                }
+              }
+            );
+          } else {
+            LoadingOverlay.showError(
+              'Failed to retry song',
+              `Attempt ${this.retryCount} failed. The game will retry automatically, or you can return to the browser to select a different song.`,
+              {
+                onRetry: () => this.handleRetry(),
+                onBack: () => {
+                  this.retryCount = 0;
+                  this.handleBackToBrowser();
+                }
+              }
+            );
+          }
         }
       }
     } else {
       LoadingOverlay.hide();
       this.loadDefaultSong();
+      this.retryCount = 0;
     }
   }
 

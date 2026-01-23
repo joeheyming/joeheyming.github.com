@@ -195,7 +195,7 @@ class GameOverModalElement extends HTMLElement {
 
         <div class="buttons">
           <button class="share-btn" data-event="game_over_share_score" data-event-category="StepMania" data-event-label="Share Score">
-            📊 Share Score
+            🎉 Share Your Score!
           </button>
           <button class="restart-btn" data-event="game_over_restart" data-event-category="StepMania" data-event-label="Play Again">
             🔄 Play Again
@@ -221,26 +221,69 @@ class GameOverModalElement extends HTMLElement {
     closeBtn?.addEventListener('click', () => this.hide());
   }
 
-  _shareScore() {
+  async _shareScore() {
     const scoreData = getScoreData();
     const songInfo = getCurrentSongInfo();
     const message = createScoreMessage(scoreData, songInfo);
     const shareBtn = this.shadowRoot.querySelector('.share-btn');
 
-    copyToClipboard(message)
-      .then(() => {
-        if (!shareBtn) return;
+    // Track share attempt
+    if (typeof window.trackEvent === 'function') {
+      window.trackEvent('game_over_share_score', 'StepMania', `Share Score - ${songInfo.title}`);
+    }
+
+    // Try Web Share API first (mobile-friendly and more prominent)
+    if (navigator.share && window.isSecureContext) {
+      try {
+        const shareData = {
+          title: `StepMania Score: ${songInfo.title}`,
+          text: message,
+          url: window.location.href
+        };
+
+        await navigator.share(shareData);
+
+        // Success feedback
+        if (shareBtn) {
+          const originalText = shareBtn.textContent;
+          shareBtn.textContent = '✓ Shared!';
+          shareBtn.style.backgroundColor = '#10b981';
+          setTimeout(() => {
+            shareBtn.textContent = originalText;
+            shareBtn.style.backgroundColor = '';
+          }, 2000);
+        }
+        return;
+      } catch (err) {
+        // User cancelled or share failed, fall through to clipboard
+        if (err.name === 'AbortError') {
+          return; // User cancelled, don't show error
+        }
+        // Continue to clipboard fallback
+      }
+    }
+
+    // Fallback to clipboard
+    try {
+      await copyToClipboard(message);
+
+      if (shareBtn) {
         const originalText = shareBtn.textContent;
         shareBtn.textContent = '✓ Copied!';
         shareBtn.style.backgroundColor = '#10b981';
+
+        // Show a more prominent success message
+        this._showShareSuccess(message);
 
         setTimeout(() => {
           shareBtn.textContent = originalText;
           shareBtn.style.backgroundColor = '';
         }, 2000);
-      })
-      .catch(() => {
-        if (!shareBtn) return;
+      }
+    } catch (err) {
+      console.error('Failed to share score:', err);
+
+      if (shareBtn) {
         const originalText = shareBtn.textContent;
         shareBtn.textContent = '✗ Failed';
         shareBtn.style.backgroundColor = '#ef4444';
@@ -249,7 +292,65 @@ class GameOverModalElement extends HTMLElement {
           shareBtn.textContent = originalText;
           shareBtn.style.backgroundColor = '';
         }, 2000);
-      });
+      }
+    }
+  }
+
+  _showShareSuccess(message) {
+    // Create a temporary success message overlay
+    const successOverlay = document.createElement('div');
+    successOverlay.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #1f2937;
+      border: 2px solid #10b981;
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      max-width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      z-index: 10000;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    `;
+
+    successOverlay.innerHTML = `
+      <div style="text-align: center; color: white;">
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">✓</div>
+        <h3 style="margin: 0 0 1rem 0; color: #10b981;">Score Copied!</h3>
+        <p style="margin: 0 0 1rem 0; color: #d1d5db; font-size: 0.875rem;">
+          Your score has been copied to clipboard. Paste it anywhere to share!
+        </p>
+        <div style="background: #374151; padding: 1rem; border-radius: 0.25rem; margin-bottom: 1rem; text-align: left; font-family: monospace; font-size: 0.75rem; color: #d1d5db; white-space: pre-wrap; word-break: break-word;">
+          ${message.substring(0, 200)}${message.length > 200 ? '...' : ''}
+        </div>
+        <button id="close-share-success" style="
+          background: #2563eb;
+          color: white;
+          border: none;
+          padding: 0.5rem 1.5rem;
+          border-radius: 0.25rem;
+          cursor: pointer;
+          font-weight: 600;
+        ">Got it!</button>
+      </div>
+    `;
+
+    document.body.appendChild(successOverlay);
+
+    const closeBtn = successOverlay.querySelector('#close-share-success');
+    const closeOverlay = () => {
+      successOverlay.remove();
+    };
+
+    closeBtn.addEventListener('click', closeOverlay);
+    successOverlay.addEventListener('click', (e) => {
+      if (e.target === successOverlay) closeOverlay();
+    });
+
+    // Auto-close after 5 seconds
+    setTimeout(closeOverlay, 5000);
   }
 
   _restart() {

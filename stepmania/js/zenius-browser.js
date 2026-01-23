@@ -75,7 +75,10 @@ class ZeniusBrowserElement extends HTMLElement {
         .modal { opacity: 0; visibility: hidden; }
       </style>
       <div class="zenius-browser-container">
-        <button class="zenius-browser-btn" id="open-zenius-browser">Songs</button>
+        <button class="zenius-browser-btn" id="open-zenius-browser">
+          <span class="icon-only">🎵</span>
+          <span class="text-label">Songs</span>
+        </button>
       </div>
       
       <div class="modal" id="zenius-browser-modal">

@@ -76,13 +76,43 @@ function initErrorTracking() {
   );
 }
 
-// Function to manually track errors
+// Function to manually track errors with enhanced context
 window.trackError = function (errorData) {
   try {
     const errorType = errorData.type || 'unknown';
     const errorMessage = errorData.message || 'Unknown error';
-    window.trackEvent('error', 'Error', `${errorType}: ${errorMessage}`);
-    console.error('Error tracked:', errorData);
+    const context = errorData.context || '';
+    const recoverable = errorData.recoverable !== false;
+
+    // Enhanced error tracking with context
+    const errorLabel = context
+      ? `${errorType}: ${errorMessage} [${context}]`
+      : `${errorType}: ${errorMessage}`;
+
+    window.trackEvent('error_occurred', 'Error', errorLabel);
+
+    // Track exception separately for better categorization
+    if (errorData.stack) {
+      window.trackEvent('exception', 'Error', `${errorType} - ${errorMessage.substring(0, 100)}`);
+    }
+
+    // Log additional context for debugging
+    console.error('Error tracked:', {
+      type: errorType,
+      message: errorMessage,
+      context: context,
+      recoverable: recoverable,
+      stack: errorData.stack,
+      url: errorData.url || window.location.href,
+      timestamp: errorData.timestamp || new Date().toISOString()
+    });
+
+    // Log recoverable errors as warnings (applications can handle display themselves)
+    if (recoverable) {
+      console.warn(
+        `[Recoverable Error] ${errorMessage}. The application will attempt to continue.`
+      );
+    }
   } catch (trackingError) {
     console.error('Failed to track error:', trackingError);
   }

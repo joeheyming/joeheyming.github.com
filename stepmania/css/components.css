@@ -112,6 +112,11 @@ zenius-browser.modal-open .modal {
   line-height: 1.2;
   margin: 0;
   white-space: nowrap;
+  position: relative;
+}
+
+.zenius-browser-btn .icon-only {
+  display: none;
 }
 
 @media (max-width: 768px) {
@@ -119,6 +124,24 @@ zenius-browser.modal-open .modal {
     padding: 0.25rem 0.75rem;
     font-size: 12px;
     height: 2rem;
+  }
+}
+
+/* Mobile icon-only mode */
+@media (max-width: 640px) {
+  .zenius-browser-btn {
+    padding: 0.5rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+  }
+  
+  .zenius-browser-btn .text-label {
+    display: none;
+  }
+  
+  .zenius-browser-btn .icon-only {
+    display: inline-block;
+    font-size: 1.25rem;
   }
 }
 
@@ -690,9 +713,15 @@ step-button {
 
 .game-over-content .share-btn {
   background: #2563eb;
+  font-size: 1.125rem;
+  font-weight: 700;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
 }
 .game-over-content .share-btn:hover {
   background: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.4);
 }
 
 .game-over-content .restart-btn {
