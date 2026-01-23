@@ -80,6 +80,7 @@ function loadVideoIframeWithAutoplay(index) {
   iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0&showinfo=0&autoplay=1&mute=0`;
   iframe.title = `YouTube video player ${index + 1}`;
   iframe.frameBorder = '0';
+  iframe.setAttribute('credentialless', ''); // Allow YouTube to work with COEP enabled
   iframe.allow =
     'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
   iframe.allowFullscreen = true;
@@ -125,6 +126,7 @@ function preloadVideoIframe(index) {
   iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0&showinfo=0&autoplay=0&mute=0`;
   iframe.title = `YouTube video player ${index + 1}`;
   iframe.frameBorder = '0';
+  iframe.setAttribute('credentialless', ''); // Allow YouTube to work with COEP enabled
   iframe.allow =
     'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
   iframe.allowFullscreen = true;

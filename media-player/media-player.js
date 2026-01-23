@@ -189,8 +189,21 @@ class MediaPlayer {
 
   setupMediaEvents() {
     this.media.addEventListener('error', () => {
-      console.error('Media error:', this.media.error);
-      this.showError('Failed to load media');
+      const error = this.media.error;
+      let errorMessage = 'Failed to load media';
+      if (error) {
+        console.error('Media error details:', {
+          code: error.code,
+          message: error.message,
+          crossOriginIsolated: self.crossOriginIsolated,
+          src: this.media.src?.substring(0, 100)
+        });
+        // MEDIA_ERR_SRC_NOT_SUPPORTED = 4
+        if (error.code === 4) {
+          errorMessage = 'Media format not supported or blocked by browser policy';
+        }
+      }
+      this.showError(errorMessage);
     });
 
     this.media.addEventListener('loadedmetadata', () => {
@@ -538,6 +551,7 @@ class MediaPlayer {
     this.audioVisual.classList.remove('visible');
 
     // Set the YouTube embed URL with autoplay
+    // The credentialless attribute on the iframe allows YouTube to work with COEP
     this.youtubePlayer.src = `https://www.youtube.com/embed/${videoId}?rel=0&showinfo=0&autoplay=1&mute=0`;
 
     // Update display
@@ -572,6 +586,9 @@ class MediaPlayer {
     this.audioVisual.classList.remove('visible');
     this.youtubeContainer.classList.remove('visible');
     this.youtubePlayer.src = '';
+    // Remove any error overlays if present
+    const errorOverlay = this.mediaWrapper.querySelector('.youtube-coep-error');
+    if (errorOverlay) errorOverlay.remove();
     this.dropZone.classList.add('active');
     this.currentFile = null;
     this.isAudio = false;

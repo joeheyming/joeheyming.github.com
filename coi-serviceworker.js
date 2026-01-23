@@ -7,23 +7,15 @@ if (typeof window === 'undefined') {
   self.addEventListener('install', () => self.skipWaiting());
   self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 
-  // Paths that should NOT get COEP headers (need YouTube embeds)
-  const excludedPaths = ['/countdown/', '/media-player/', '/youtube/'];
-
+  // All paths now get COEP headers (credentialless mode)
+  // YouTube iframes within pages use credentialless attribute to work with COEP
+  // Regular videos (MP4, WebM, etc.) work fine with COEP via blob/data URLs
   self.addEventListener('fetch', function (event) {
     const request = event.request;
     const url = new URL(request.url);
 
-    // Only handle same-origin requests to avoid issues with CDN resources
+    // Only handle same-origin navigation requests
     if (request.mode === 'navigate') {
-      // Check if this path should be excluded from COEP
-      const shouldExclude = excludedPaths.some((path) => url.pathname.startsWith(path));
-
-      if (shouldExclude) {
-        // Don't modify headers for excluded paths
-        return;
-      }
-
       event.respondWith(
         fetch(request)
           .then((response) => {

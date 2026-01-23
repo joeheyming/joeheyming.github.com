@@ -136,6 +136,7 @@ class YouTubePlayer extends HTMLElement {
     iframe.slot = 'iframe';
     iframe.src = embedUrl;
     iframe.title = 'YouTube Video Player';
+    iframe.setAttribute('credentialless', ''); // Allow YouTube to work with COEP enabled
     iframe.allow = permissions;
     iframe.allowFullscreen = true;
     iframe.style.cssText = 'width: 100%; height: 100%; border: none;';
