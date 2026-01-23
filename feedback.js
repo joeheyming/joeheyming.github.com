@@ -200,13 +200,18 @@ class FeedbackButtonElement extends HTMLElement {
           padding: 1.5rem;
           max-width: 90%;
           width: 500px;
+          min-width: 400px;
           max-height: 90vh;
           overflow-y: auto;
+          overflow-x: hidden;
           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
           border: 2px solid #8b5cf6;
           transform: scale(0.9) translateY(20px);
           transition: transform 0.3s ease;
           position: relative;
+          display: flex;
+          flex-direction: column;
+          box-sizing: border-box;
         }
 
         .modal-overlay.show .modal-content {
@@ -337,6 +342,9 @@ class FeedbackButtonElement extends HTMLElement {
           font-family: inherit;
           resize: vertical;
           margin-bottom: 0.5rem;
+          box-sizing: border-box;
+          max-width: 100%;
+          min-width: 0;
         }
 
         .feedback-textarea:focus {
@@ -356,6 +364,8 @@ class FeedbackButtonElement extends HTMLElement {
           display: flex;
           flex-direction: column;
           width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
         }
 
         .char-count.warning {
@@ -370,6 +380,9 @@ class FeedbackButtonElement extends HTMLElement {
           display: flex;
           gap: 1rem;
           justify-content: flex-end;
+          width: 100%;
+          box-sizing: border-box;
+          min-width: 0;
         }
 
         .modal-btn {
