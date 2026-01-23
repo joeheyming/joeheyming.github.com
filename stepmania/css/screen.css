@@ -246,6 +246,35 @@ body:not(.mobile) .score-toggle {
   }
 }
 
+/* Restart button mobile icon-only mode */
+.restart-btn .restart-icon-only {
+  display: none !important;
+}
+
+.restart-btn .restart-text-label {
+  display: inline !important;
+}
+
+@media (max-width: 640px) {
+  .restart-btn {
+    padding: 0.5rem !important;
+    min-width: 2.5rem !important;
+    min-height: 2.5rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  .restart-btn .restart-text-label {
+    display: none !important;
+  }
+  
+  .restart-btn .restart-icon-only {
+    display: inline-block !important;
+    font-size: 1.25rem !important;
+  }
+}
+
 /* Extra small screen optimizations */
 @media (max-width: 480px) {
   #sm-micro {
