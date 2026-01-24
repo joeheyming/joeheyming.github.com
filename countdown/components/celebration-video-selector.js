@@ -88,7 +88,7 @@ class CelebrationVideoSelector extends HTMLElement {
 
   _getVideoOptions() {
     const metadata = YouTubePlayer.VIDEO_METADATA;
-    return Object.keys(metadata).map(key => ({
+    return Object.keys(metadata).map((key) => ({
       key,
       videoId: YouTubePlayer.VIDEOS[key],
       ...metadata[key]
@@ -96,19 +96,21 @@ class CelebrationVideoSelector extends HTMLElement {
   }
 
   _dispatchChange() {
-    this.dispatchEvent(new CustomEvent('video-change', {
-      detail: {
-        videoId: this.value,
-        key: this._selectedKey,
-        isCustom: this._selectedKey === 'CUSTOM'
-      },
-      bubbles: true
-    }));
+    this.dispatchEvent(
+      new CustomEvent('video-change', {
+        detail: {
+          videoId: this.value,
+          key: this._selectedKey,
+          isCustom: this._selectedKey === 'CUSTOM'
+        },
+        bubbles: true
+      })
+    );
   }
 
   render() {
     const options = this._getVideoOptions();
-    const currentOption = options.find(o => o.key === this._selectedKey) || options[0];
+    const currentOption = options.find((o) => o.key === this._selectedKey) || options[0];
     const isCustom = this._selectedKey === 'CUSTOM';
 
     this.shadowRoot.innerHTML = `
@@ -400,13 +402,17 @@ class CelebrationVideoSelector extends HTMLElement {
           </div>
           <span class="chevron" id="chevron">▼</span>
         </button>
-        <button class="custom-btn ${isCustom ? 'active' : ''}" id="customBtn" title="Use custom YouTube video">
+        <button class="custom-btn ${
+          isCustom ? 'active' : ''
+        }" id="customBtn" title="Use custom YouTube video">
           🔗
         </button>
       </div>
 
       <div class="dropdown" id="dropdown" role="listbox">
-        ${options.map(opt => `
+        ${options
+          .map(
+            (opt) => `
           <div class="dropdown-item ${opt.key === this._selectedKey ? 'selected' : ''}"
                data-key="${opt.key}"
                role="option"
@@ -417,7 +423,9 @@ class CelebrationVideoSelector extends HTMLElement {
               <div class="video-artist">${opt.artist}</div>
             </div>
           </div>
-        `).join('')}
+        `
+          )
+          .join('')}
       </div>
 
       <div class="custom-input-container" id="customInputContainer">
@@ -565,7 +573,7 @@ class CelebrationVideoSelector extends HTMLElement {
     if (!this._ready) return;
 
     const options = this._getVideoOptions();
-    const currentOption = options.find(o => o.key === this._selectedKey) || options[0];
+    const currentOption = options.find((o) => o.key === this._selectedKey) || options[0];
     const isCustom = this._selectedKey === 'CUSTOM';
 
     const btn = this.shadowRoot.getElementById('selectorBtn');
@@ -587,7 +595,7 @@ class CelebrationVideoSelector extends HTMLElement {
 
     // Update selected state in dropdown
     const items = this.shadowRoot.querySelectorAll('.dropdown-item');
-    items.forEach(item => {
+    items.forEach((item) => {
       const isSelected = item.dataset.key === this._selectedKey;
       item.classList.toggle('selected', isSelected);
       item.setAttribute('aria-selected', isSelected);
@@ -597,4 +605,3 @@ class CelebrationVideoSelector extends HTMLElement {
 
 customElements.define('celebration-video-selector', CelebrationVideoSelector);
 export default CelebrationVideoSelector;
-
