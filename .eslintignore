@@ -1,3 +1,9 @@
 node_modules
 *min.js
 speakGenerator.js
+
+# Ignore directories with massive amounts of files
+nes/js/db/
+badapple/frame/
+pacman/Executable/
+pacman/Source/
