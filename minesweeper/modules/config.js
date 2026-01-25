@@ -29,6 +29,7 @@ export function getMaxMines(rows, cols) {
 
 export const CELL_SIZE = 54; // Base size, will be scaled dynamically
 export const MIN_CELL_SIZE = 36; // Minimum for touch targets on mobile
+export const MIN_CELL_SIZE_EXPERT = 24; // Smaller minimum for expert mode to fit screen
 export const MAX_CELL_SIZE = 60;
 
 export const FACES = {

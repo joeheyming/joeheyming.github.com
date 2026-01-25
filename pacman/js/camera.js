@@ -174,7 +174,8 @@ export class CameraController {
    */
   updateFirstPerson(pacmanPosition, pacmanFacing) {
     // Camera at Pacman's eye level (slightly above center)
-    const eyeHeight = this.scale * 0.5;
+    // Increased height to avoid seeing Pac-Man's mouth geometry
+    const eyeHeight = this.scale * 0.7;
     this.targetPosition.set(pacmanPosition.x, pacmanPosition.y, pacmanPosition.z + eyeHeight);
 
     // Look in the direction Pacman is facing (controlled by mouse)

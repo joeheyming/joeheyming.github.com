@@ -168,6 +168,11 @@ function initHamburgerMenu() {
     isMenuOpen = !isMenuOpen;
 
     if (isMenuOpen) {
+      // Track menu open
+      if (window.trackEvent) {
+        window.trackEvent('hamburger_menu_open', 'Navigation', 'Main Menu');
+      }
+
       // Open menu
       hamburgerToggle.classList.add('active');
       hamburgerPanel.classList.add('show');
@@ -188,6 +193,11 @@ function initHamburgerMenu() {
         }, index * 50);
       });
     } else {
+      // Track menu close
+      if (window.trackEvent) {
+        window.trackEvent('hamburger_menu_close', 'Navigation', 'Main Menu');
+      }
+
       // Close menu
       hamburgerToggle.classList.remove('active');
       hamburgerPanel.classList.remove('show');
@@ -215,6 +225,17 @@ function initHamburgerMenu() {
 
     appLinks.forEach((link) => {
       link.addEventListener('click', (e) => {
+        // Track the click
+        const projectName = link.querySelector('.text-green-400').textContent.trim();
+        const projectUrl = link.getAttribute('href');
+
+        if (window.trackEvent) {
+          window.trackEvent('hamburger_menu_click', 'Navigation', projectName);
+        }
+        if (window.trackProjectOpen) {
+          window.trackProjectOpen(projectName);
+        }
+
         // Add click animation
         link.style.transform = 'scale(0.95)';
         setTimeout(() => {
@@ -285,6 +306,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize hamburger menu
   initHamburgerMenu();
+
+  // Setup "View All Projects" button to open hamburger menu
+  const viewAllBtn = document.getElementById('view-all-projects-btn');
+  if (viewAllBtn) {
+    viewAllBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent the click from bubbling to document
+      const hamburgerToggle = document.getElementById('hamburger-toggle');
+      if (hamburgerToggle) {
+        hamburgerToggle.click();
+      }
+    });
+  }
 
   // Check for #os hash and auto-launch OS
   checkHashAndLaunchOS();

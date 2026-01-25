@@ -272,6 +272,7 @@ html {
   bottom: auto;
   display: block;
   width: 20%;
+  margin-top: 80px;
   height: 50%;
   padding: 1rem;
   background: rgba(212, 212, 216, 0.95);

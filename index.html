@@ -304,6 +304,133 @@
         </div>
       </div>
 
+      <!-- Featured Projects -->
+      <div
+        class="bg-gradient-to-r from-purple-600 to-indigo-700 text-white rounded-3xl p-6 sm:p-10 mb-12 shadow-xl"
+      >
+        <h2 class="text-3xl sm:text-4xl font-bold text-center mb-4">
+          🎮 Try My Interactive Projects
+        </h2>
+        <p class="text-center text-white/90 mb-8 text-lg">
+          Games, tools, and experiments built with JavaScript
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <a
+            href="/doom/"
+            data-event="featured_project_click"
+            data-event-category="Engagement"
+            data-event-label="Doom"
+            class="group bg-gradient-to-br from-red-600 to-orange-700 rounded-2xl p-6 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 block"
+          >
+            <div class="text-5xl mb-3">💀</div>
+            <h3 class="text-2xl font-bold mb-2 group-hover:scale-105 transition-transform">
+              Play Doom
+            </h3>
+            <p class="text-sm text-white/90">
+              Classic FPS in your browser. WebAssembly magic with music & sound.
+            </p>
+            <div class="mt-4 text-xs text-white/70">🕹️ Game • ⭐ Popular</div>
+          </a>
+
+          <a
+            href="/pacman/"
+            data-event="featured_project_click"
+            data-event-category="Engagement"
+            data-event-label="Pac-Man"
+            class="group bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-2xl p-6 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 block"
+          >
+            <div class="text-5xl mb-3">👻</div>
+            <h3 class="text-2xl font-bold mb-2 group-hover:scale-105 transition-transform text-gray-900">
+              Pac-Man
+            </h3>
+            <p class="text-sm text-gray-900/90">
+              Classic arcade game. Eat pellets, avoid ghosts, chase high scores!
+            </p>
+            <div class="mt-4 text-xs text-gray-900/70">🕹️ Game • 🎮 Retro</div>
+          </a>
+
+          <a
+            href="/minesweeper/"
+            data-event="featured_project_click"
+            data-event-category="Engagement"
+            data-event-label="Minesweeper"
+            class="group bg-gradient-to-br from-gray-600 to-gray-700 rounded-2xl p-6 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 block"
+          >
+            <div class="text-5xl mb-3">💣</div>
+            <h3 class="text-2xl font-bold mb-2 group-hover:scale-105 transition-transform">
+              Minesweeper
+            </h3>
+            <p class="text-sm text-white/90">
+              Clear the minefield! The original Windows classic with modern UI.
+            </p>
+            <div class="mt-4 text-xs text-white/70">🧩 Puzzle • 🧠 Strategy</div>
+          </a>
+
+          <a
+            href="/awesome/"
+            data-event="featured_project_click"
+            data-event-category="Engagement"
+            data-event-label="Everything is Awesome"
+            class="group bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl p-6 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 block"
+          >
+            <div class="text-5xl mb-3">🎉</div>
+            <h3 class="text-2xl font-bold mb-2 group-hover:scale-105 transition-transform text-gray-900">
+              Everything is Awesome
+            </h3>
+            <p class="text-sm text-gray-900/90">
+              Pure joy in digital form. Music, animations, and good vibes!
+            </p>
+            <div class="mt-4 text-xs text-gray-900/70">🎪 Fun • 🎵 Music</div>
+          </a>
+
+          <a
+            href="/terminal/"
+            data-event="featured_project_click"
+            data-event-category="Engagement"
+            data-event-label="Terminal"
+            class="group bg-gradient-to-br from-green-600 to-emerald-700 rounded-2xl p-6 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 block"
+          >
+            <div class="text-5xl mb-3">💻</div>
+            <h3 class="text-2xl font-bold mb-2 group-hover:scale-105 transition-transform">
+              Terminal
+            </h3>
+            <p class="text-sm text-white/90">
+              Interactive command line with filesystem. Type 'help' to explore!
+            </p>
+            <div class="mt-4 text-xs text-white/70">🛠️ Utility • 💾 Interactive</div>
+          </a>
+
+          <a
+            href="/countdown/"
+            data-event="featured_project_click"
+            data-event-category="Engagement"
+            data-event-label="Countdown"
+            class="group bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 block"
+          >
+            <div class="text-5xl mb-3">⏱️</div>
+            <h3 class="text-2xl font-bold mb-2 group-hover:scale-105 transition-transform">
+              Countdown Timer
+            </h3>
+            <p class="text-sm text-white/90">
+              Track events with style. Multiple display modes & animations.
+            </p>
+            <div class="mt-4 text-xs text-white/70">🛠️ Utility • ⏰ Time</div>
+          </a>
+        </div>
+        <div class="text-center mt-8">
+          <button
+            id="view-all-projects-btn"
+            data-event="view_all_projects"
+            data-event-category="Engagement"
+            data-event-label="From Featured Section"
+            class="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-8 py-4 rounded-full text-lg font-bold transition-all duration-300 hover:scale-105 inline-flex items-center gap-2"
+          >
+            <span>🚀 View All Projects</span>
+            <span class="text-sm opacity-75">(20+ apps!)</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Fun Facts -->
       <div
         class="bg-gradient-to-r from-cyan-400 to-blue-500 text-white rounded-3xl p-6 sm:p-10 mb-12 shadow-xl"
