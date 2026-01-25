@@ -112,10 +112,21 @@
     </script>
 
     <script src="/back.js"></script>
+    <script src="/feedback.js"></script>
     <script src="/share.js"></script>
     <style>
       body {
         background: white;
+      }
+      .content-wrapper {
+        margin-left: 120px;
+        padding: 20px;
+      }
+      @media (max-width: 640px) {
+        .content-wrapper {
+          margin-left: 20px;
+          padding: 10px;
+        }
       }
       #helloForm {
         display: flex;
@@ -175,40 +186,42 @@
     <div style="position: fixed; top: 20px; right: 20px; z-index: 100">
       <share-button label="📤 Share" theme="light"></share-button>
     </div>
-    <h1>
-      <span class="header-icon">🗣️</span>
-      Say: Hello World!
-      <span id="speakingIndicator" class="speaking-indicator">🔊</span>
-    </h1>
-    <p>This page allows you to input arbitrary text and it will be spoken.</p>
-    <p class="learn-more">
-      📚
-      <a
-        href="https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesisUtterance"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Learn more about Speech Synthesis on MDN
-      </a>
-    </p>
-    <div id="audio"></div>
-    <form id="helloForm">
-      <label for="voiceSelector">Choose Voice:</label>
-      <select id="voiceSelector">
-        <option value="">Default Voice</option>
-      </select>
+    <div class="content-wrapper">
+      <h1>
+        <span class="header-icon">🗣️</span>
+        Say: Hello World!
+        <span id="speakingIndicator" class="speaking-indicator">🔊</span>
+      </h1>
+      <p>This page allows you to input arbitrary text and it will be spoken.</p>
+      <p class="learn-more">
+        📚
+        <a
+          href="https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesisUtterance"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Learn more about Speech Synthesis on MDN
+        </a>
+      </p>
+      <div id="audio"></div>
+      <form id="helloForm">
+        <label for="voiceSelector">Choose Voice:</label>
+        <select id="voiceSelector">
+          <option value="">Default Voice</option>
+        </select>
 
-      <label for="utterance">Text to Speak:</label>
-      <textarea
-        id="utterance"
-        rows="10"
-        style="resize: both"
-        placeholder="Enter text to be spoken... (Cmd/Ctrl + Enter to submit)"
-      ></textarea>
+        <label for="utterance">Text to Speak:</label>
+        <textarea
+          id="utterance"
+          rows="10"
+          style="resize: both"
+          placeholder="Enter text to be spoken... (Cmd/Ctrl + Enter to submit)"
+        ></textarea>
 
-      <button>Submit</button>
-      <input type="submit" style="display: none" />
-    </form>
+        <button>Submit</button>
+        <input type="submit" style="display: none" />
+      </form>
+    </div>
     <script>
       window.onload = function () {
         var voiceLookup = {};

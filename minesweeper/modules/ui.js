@@ -3,7 +3,14 @@
  * Handles all DOM rendering and updates
  */
 
-import { CELL_SIZE, MIN_CELL_SIZE, MAX_CELL_SIZE, FACES, SYMBOLS } from './config.js';
+import {
+  CELL_SIZE,
+  MIN_CELL_SIZE,
+  MIN_CELL_SIZE_EXPERT,
+  MAX_CELL_SIZE,
+  FACES,
+  SYMBOLS
+} from './config.js';
 
 export class UI {
   constructor(elements) {
@@ -69,8 +76,13 @@ export class UI {
     // Use smaller of width/height to fit screen, but respect MIN for touch targets
     const idealSize = Math.min(maxCellWidth, maxCellHeight);
 
+    // For large boards (like expert: 16x30), use a smaller minimum to fit on screen
+    // Expert mode has 30 columns, so allow smaller cells
+    const isLargeBoard = cols >= 20 || rows >= 16;
+    const minSize = isLargeBoard ? MIN_CELL_SIZE_EXPERT : MIN_CELL_SIZE;
+
     // If ideal size is too small, use MIN and allow scrolling
-    const fittedSize = Math.max(MIN_CELL_SIZE, Math.min(MAX_CELL_SIZE, idealSize));
+    const fittedSize = Math.max(minSize, Math.min(MAX_CELL_SIZE, idealSize));
 
     return fittedSize;
   }

@@ -227,3 +227,103 @@ function initDataEventTracking() {
     true
   ); // Use capture phase to catch events early
 }
+
+// Engagement Time Tracking
+// Track how long users spend on each page and send periodic engagement pings
+(function initEngagementTracking() {
+  let pageStartTime = Date.now();
+  let lastPingTime = Date.now();
+  let isPageVisible = !document.hidden;
+  let totalEngagedTime = 0;
+
+  const PAGE_NAME = getPageName();
+  const PING_INTERVAL = 30000; // Send engagement ping every 30 seconds
+  const MIN_ENGAGEMENT_TIME = 10000; // Min 10 seconds before tracking
+
+  // Track visibility changes
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      // User switched away - record time
+      const engagedDuration = Date.now() - lastPingTime;
+      totalEngagedTime += engagedDuration;
+      isPageVisible = false;
+    } else {
+      // User came back
+      isPageVisible = true;
+      lastPingTime = Date.now();
+    }
+  });
+
+  // Send periodic engagement pings while user is active
+  const engagementInterval = setInterval(function () {
+    if (isPageVisible) {
+      const currentTime = Date.now();
+      const engagedDuration = currentTime - lastPingTime;
+      totalEngagedTime += engagedDuration;
+
+      // Send engagement ping
+      window.trackEvent(
+        'engagement_ping',
+        'Engagement',
+        PAGE_NAME,
+        Math.round(totalEngagedTime / 1000)
+      );
+
+      lastPingTime = currentTime;
+    }
+  }, PING_INTERVAL);
+
+  // Track total time on page when user leaves
+  window.addEventListener('beforeunload', function () {
+    const totalTime = Date.now() - pageStartTime;
+    const finalEngagedTime = isPageVisible
+      ? totalEngagedTime + (Date.now() - lastPingTime)
+      : totalEngagedTime;
+
+    // Only track if user spent meaningful time
+    if (finalEngagedTime >= MIN_ENGAGEMENT_TIME) {
+      window.trackEvent('page_exit', 'Engagement', PAGE_NAME, Math.round(finalEngagedTime / 1000));
+
+      // Track as conversion if user was engaged for 30+ seconds
+      if (finalEngagedTime >= 30000) {
+        window.trackConversion('engaged_session', 1);
+      }
+    }
+  });
+
+  // Track pagehide event for better mobile support
+  window.addEventListener('pagehide', function () {
+    const finalEngagedTime = isPageVisible
+      ? totalEngagedTime + (Date.now() - lastPingTime)
+      : totalEngagedTime;
+
+    if (finalEngagedTime >= MIN_ENGAGEMENT_TIME) {
+      window.trackEvent('page_hide', 'Engagement', PAGE_NAME, Math.round(finalEngagedTime / 1000));
+    }
+  });
+})();
+
+// Conversion Tracking
+// Track conversion events for key user actions
+window.trackConversion = function (conversionType, value) {
+  if (typeof gtag === 'undefined') {
+    if (location.hostname === 'localhost') {
+      console.log('Conversion tracked (localhost):', conversionType, value);
+    }
+    return;
+  }
+
+  gtag('event', 'conversion', {
+    event_category: 'Conversion',
+    event_label: conversionType,
+    value: value || 1
+  });
+
+  console.log('Conversion tracked:', conversionType, value);
+};
+
+// Track when users open/interact with projects
+window.trackProjectOpen = function (projectName) {
+  window.trackEvent('project_open', 'Projects', projectName);
+  window.trackConversion('project_opened', 1);
+};

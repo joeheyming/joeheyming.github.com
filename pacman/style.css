@@ -29,9 +29,37 @@ body {
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
+#hud > div:first-child {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 2px solid rgba(251, 191, 36, 0.3);
+}
+
+/* Strong text shadow for yellow score text */
 #score,
 #high-score {
-  text-shadow: 0 0 10px currentColor;
+  text-shadow: 
+    2px 2px 0 #000,
+    -2px -2px 0 #000,
+    2px -2px 0 #000,
+    -2px 2px 0 #000,
+    0 0 10px #000,
+    0 0 20px rgba(251, 191, 36, 0.5);
+}
+
+/* Improve readability of camera mode text */
+#camera-mode {
+  text-shadow: 
+    1px 1px 0 #000,
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    0 0 8px #000;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 4px 8px;
+  border-radius: 6px;
 }
 
 /* Retro glow effect for text */

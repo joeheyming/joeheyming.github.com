@@ -8,7 +8,7 @@ let appRegistry = [
     name: 'Everything is Awesome 🎉',
     shortName: 'Awesome',
     description: 'Pure joy in digital form',
-    detailedDescription: 'Something totally awesome',
+    detailedDescription: 'Pure joy with music, animations, and good vibes!',
     icon: '🎉',
     path: './awesome/',
     category: 'entertainment',
@@ -16,20 +16,22 @@ let appRegistry = [
     border: 'border-yellow-500/30 hover:border-yellow-400/50',
     taskbarGradient: 'from-yellow-400 to-orange-500',
     taskbarText: 'text-black',
-    desktopIcon: true
+    desktopIcon: true,
+    tags: ['fun', 'music', 'popular', 'interactive']
   },
   {
     id: 'doom',
     name: 'Doom 💀',
     shortName: 'Doom',
     description: 'Classic first-person shooter',
-    detailedDescription: 'Classic first-person shooter',
+    detailedDescription: 'Classic FPS with WebAssembly. Full gameplay, music & sound.',
     icon: '💀',
     path: './doom/',
     category: 'game',
     defaultWidth: 1024,
     defaultHeight: 768,
-    desktopIcon: true
+    desktopIcon: true,
+    tags: ['fps', 'retro', 'popular', 'wasm']
   },
   {
     id: 'farm',
@@ -78,7 +80,7 @@ let appRegistry = [
     name: 'Pac-Man 👻',
     shortName: 'Pac-Man',
     description: 'Classic arcade game',
-    detailedDescription: 'The classic arcade game - eat pellets, avoid ghosts!',
+    detailedDescription: 'Classic 3D arcade game - eat pellets, avoid ghosts, chase high scores!',
     icon: '👻',
     path: './pacman/',
     category: 'game',
@@ -87,7 +89,8 @@ let appRegistry = [
     taskbarGradient: 'from-yellow-400 to-yellow-600',
     taskbarText: 'text-black',
     defaultWidth: 900,
-    defaultHeight: 700
+    defaultHeight: 700,
+    tags: ['arcade', 'retro', 'popular', '3d']
   },
   {
     id: 'pbs',
@@ -227,7 +230,7 @@ let appRegistry = [
     name: 'Terminal',
     shortName: 'Terminal',
     description: 'Command line interface',
-    detailedDescription: 'Interactive command line terminal',
+    detailedDescription: 'Interactive command line with filesystem. Type "help" to explore!',
     icon: '💻',
     path: './terminal/',
     category: 'utility',
@@ -237,7 +240,8 @@ let appRegistry = [
     taskbarText: 'text-white',
     system: true,
     desktopIcon: true,
-    desktopPosition: { x: 30, y: 30 }
+    desktopPosition: { x: 30, y: 30 },
+    tags: ['utility', 'cli', 'filesystem', 'interactive']
   },
   {
     id: 'calculator',
@@ -257,7 +261,7 @@ let appRegistry = [
     name: 'Countdown ⏱️',
     shortName: 'Countdown',
     description: 'Event countdown timer',
-    detailedDescription: 'Countdown timer for upcoming events with multiple display modes',
+    detailedDescription: 'Track events with style. Multiple display modes & animations.',
     icon: '⏱️',
     path: './countdown/',
     category: 'utility',
@@ -266,7 +270,27 @@ let appRegistry = [
     taskbarGradient: 'from-amber-500 to-orange-500',
     taskbarText: 'text-black',
     defaultWidth: 900,
-    defaultHeight: 700
+    defaultHeight: 700,
+    tags: ['utility', 'time', 'events', 'timer']
+  },
+  {
+    id: 'programming-advice',
+    name: 'Programming Advice 🧠',
+    shortName: 'Advice',
+    description: 'Random programming wisdom',
+    detailedDescription:
+      'Random programming advice generator inspired by Grug Brain Developer and experienced engineers. Learn about managing complexity, testing strategies, and career growth.',
+    icon: '🧠',
+    path: './programming-advice/',
+    category: 'utility',
+    gradient: 'from-purple-500/20 to-indigo-500/20',
+    border: 'border-purple-500/30 hover:border-purple-400/50',
+    taskbarGradient: 'from-purple-500 to-indigo-500',
+    taskbarText: 'text-white',
+    defaultWidth: 900,
+    defaultHeight: 700,
+    tags: ['utility', 'learning', 'advice', 'development'],
+    desktopIcon: true
   },
   {
     id: 'minesweeper',
@@ -274,7 +298,7 @@ let appRegistry = [
     shortName: 'Minesweeper',
     description: 'Classic puzzle game',
     detailedDescription:
-      'Clear the minefield without detonating any mines - the original Windows classic!',
+      'Clear the minefield without detonating mines - Windows classic with modern UI!',
     icon: '💣',
     path: './minesweeper/',
     category: 'game',
@@ -283,7 +307,8 @@ let appRegistry = [
     taskbarGradient: 'from-gray-500 to-slate-600',
     taskbarText: 'text-white',
     defaultWidth: 400,
-    defaultHeight: 500
+    defaultHeight: 500,
+    tags: ['puzzle', 'strategy', 'retro', 'classic']
   },
   {
     id: 'nes',
