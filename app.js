@@ -275,12 +275,12 @@ let appRegistry = [
   },
   {
     id: 'programming-advice',
-    name: 'Programming Advice 🧠',
-    shortName: 'Advice',
-    description: 'Random programming wisdom',
+    name: 'Programming Wisdom 💡',
+    shortName: 'Wisdom',
+    description: 'Click anywhere for instant wisdom',
     detailedDescription:
-      'Random programming advice generator inspired by Grug Brain Developer and experienced engineers. Learn about managing complexity, testing strategies, and career growth.',
-    icon: '🧠',
+      '230+ pieces of programming wisdom from legendary developers like Linus Torvalds, Rich Hickey, Uncle Bob, and more. Simple one-click interface. Every quote properly attributed with source links.',
+    icon: '💡',
     path: './programming-advice/',
     category: 'utility',
     gradient: 'from-purple-500/20 to-indigo-500/20',
@@ -289,7 +289,7 @@ let appRegistry = [
     taskbarText: 'text-white',
     defaultWidth: 900,
     defaultHeight: 700,
-    tags: ['utility', 'learning', 'advice', 'development'],
+    tags: ['wisdom', 'learning', 'advice', 'quotes', 'developers'],
     desktopIcon: true
   },
   {
