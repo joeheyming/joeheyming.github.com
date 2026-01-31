@@ -1,8 +1,21 @@
 // assuming google analytics is already loaded
 // onload
-// Normalize page path by removing index.html
+// Normalize page path by removing index.html and ensuring trailing slashes for directories
 function normalizePagePath(path) {
-  return path.replace(/\/index\.html$/, '/');
+  // Remove index.html
+  let normalized = path.replace(/\/index\.html$/, '/');
+
+  // Ensure trailing slash for directory paths (but not root)
+  // If path doesn't end with a slash and isn't root, and doesn't have a file extension, add trailing slash
+  if (normalized !== '/' && !normalized.endsWith('/')) {
+    // Check if it looks like a directory (no file extension)
+    const hasExtension = /\.\w+$/.test(normalized.split('/').pop());
+    if (!hasExtension) {
+      normalized += '/';
+    }
+  }
+
+  return normalized;
 }
 
 window.onload = function () {
