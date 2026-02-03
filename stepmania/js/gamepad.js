@@ -43,6 +43,13 @@ export class GamepadManager {
         rightAlt2: 13,
         upAlt2: 12,
         downAlt2: 14
+      },
+      // USB GamePad 0079:0011 specific mapping
+      usbGamePad2: {
+        left: 0,
+        right: 2,
+        up: 3,
+        down: 1
       }
     };
 
@@ -158,12 +165,14 @@ export class GamepadManager {
   autoDetectController(gamepad) {
     const name = gamepad.id.toLowerCase();
 
-    if (name.includes('dance') || name.includes('pad') || name.includes('step')) {
+    if (name.includes('dance') || name.includes('step')) {
       this.currentMapping = 'dancePad';
     } else if (name.includes('ps2') || name.includes('playstation')) {
       this.currentMapping = 'ps2';
     } else if (name.includes('0e8f') && name.includes('3013')) {
       this.currentMapping = 'usbGamePad';
+    } else if (name.includes('0079') && name.includes('0011')) {
+      this.currentMapping = 'usbGamePad2';
     } else {
       this.currentMapping = 'dancePad';
     }
