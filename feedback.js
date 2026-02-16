@@ -101,6 +101,16 @@ class FeedbackButtonElement extends HTMLElement {
         :host {
           display: inline-block;
         }
+        /* When used as programmatic-only (e.g. from related-projects), hide trigger so only openModal() is used */
+        :host([hide-trigger]) {
+          position: fixed;
+          width: 0;
+          height: 0;
+          overflow: visible;
+        }
+        :host([hide-trigger]) .feedback-btn {
+          display: none !important;
+        }
         
         .feedback-btn {
           ${this.getThemeStyles()}
@@ -588,13 +598,9 @@ class FeedbackButtonElement extends HTMLElement {
     // Track analytics event
     if (typeof window.trackEvent === 'function') {
       const pageName = this.getPageName();
+      const truncatedFeedback = feedback.substring(0, 500);
       // Track the feedback submission with character count
-      window.trackEvent(
-        'feedback_submitted',
-        pageName,
-        `Feedback (${feedback.length} chars)`,
-        feedback.length
-      );
+      window.trackEvent('feedback_submitted', pageName, truncatedFeedback);
     }
 
     // Show success message

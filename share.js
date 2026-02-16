@@ -211,6 +211,9 @@
              data-event-label="${currentProject}">
             View all projects →
           </a>
+          <button class="share-btn-mini" id="share-url-btn-mini" title="Copy link to clipboard">
+            🔗 Share
+          </button>
           <button class="feedback-btn-mini" id="feedback-btn-mini" title="Send Feedback">
             💬 Feedback
           </button>
@@ -266,6 +269,36 @@
       e.stopPropagation();
     });
 
+    // Share button: copy current URL to clipboard
+    const shareBtn = container.querySelector('#share-url-btn-mini');
+    if (shareBtn) {
+      shareBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const url = window.location.href;
+        navigator.clipboard
+          .writeText(url)
+          .then(() => {
+            const origText = shareBtn.innerHTML;
+            shareBtn.innerHTML = '✓ Copied!';
+            shareBtn.disabled = true;
+            setTimeout(() => {
+              shareBtn.innerHTML = origText;
+              shareBtn.disabled = false;
+            }, 1500);
+          })
+          .catch(() => {
+            shareBtn.innerHTML = 'Copy failed';
+            setTimeout(() => {
+              shareBtn.innerHTML = '🔗 Share';
+            }, 2000);
+          });
+        if (window.trackEvent) {
+          window.trackEvent('share_url_click', 'Engagement', currentProject);
+        }
+      });
+    }
+
     // Feedback button functionality
     const feedbackBtn = container.querySelector('#feedback-btn-mini');
     if (feedbackBtn) {
@@ -278,28 +311,29 @@
           window.trackEvent('feedback_opened_from_related', 'Engagement', currentProject);
         }
 
-        // Check if feedback.js is loaded
+        // Close the related-projects panel first so it doesn’t cover the modal
+        panel.classList.remove('open');
+
+        // Prefer existing feedback-button on the page; call openModal() directly
+        const existingFeedback = document.querySelector('feedback-button');
+        if (existingFeedback && typeof existingFeedback.openModal === 'function') {
+          existingFeedback.openModal();
+          return;
+        }
+
+        // Fallback: create an instance with trigger hidden (so modal can paint). Do not use display:none on host or the modal won’t show.
         if (typeof window.FeedbackButton !== 'undefined') {
-          // Create a temporary feedback button and trigger it
           const tempFeedback = document.createElement('feedback-button');
           tempFeedback.setAttribute('label', '💬 Feedback');
           tempFeedback.setAttribute('theme', 'gradient');
-          tempFeedback.style.display = 'none';
+          tempFeedback.setAttribute('hide-trigger', '');
           document.body.appendChild(tempFeedback);
-
-          // Wait for component to initialize, then trigger it
-          setTimeout(() => {
-            const btn = tempFeedback.shadowRoot?.getElementById('feedback-btn');
-            if (btn) {
-              btn.click();
-              // Clean up after modal is closed
-              setTimeout(() => {
-                document.body.removeChild(tempFeedback);
-              }, 1000);
+          requestAnimationFrame(() => {
+            if (typeof tempFeedback.openModal === 'function') {
+              tempFeedback.openModal();
             }
-          }, 100);
+          });
         } else {
-          // Fallback: redirect to contact or show alert
           alert('Feedback feature is loading. Please try again in a moment.');
         }
       });
@@ -490,6 +524,7 @@
       transform: translateX(2px);
     }
 
+    .share-btn-mini,
     .feedback-btn-mini {
       display: inline-block;
       font-size: 13px;
@@ -504,9 +539,15 @@
       text-align: center;
     }
 
+    .share-btn-mini:hover:not(:disabled),
     .feedback-btn-mini:hover {
       background: rgba(139, 92, 246, 0.1);
       border-color: rgba(139, 92, 246, 0.5);
+    }
+
+    .share-btn-mini:disabled {
+      cursor: default;
+      opacity: 0.9;
     }
 
     /* Mobile responsive */
