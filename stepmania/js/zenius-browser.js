@@ -341,7 +341,7 @@ class ZeniusBrowserElement extends HTMLElement {
 
     try {
       // Use the global proxy service
-      const html = await window.proxyService.fetchWithProxy(url);
+      const html = await window.proxyService.fetchWithProxy(url, { skipDirect: true });
       const content = this.parseZeniusContent(html);
       this.cache.set(url, content);
       return content;
@@ -702,15 +702,13 @@ class ZeniusBrowserElement extends HTMLElement {
     this.showLoading('Searching Zenius-I-Vanisher...');
 
     try {
-      // Build form data for POST request (Zenius AJAX endpoint)
-      const formData = new URLSearchParams();
-      formData.append('songtitle', songTitle);
-      formData.append('songartist', songArtist);
+      // Zenius search accepts GET with query params; use GET so we can use the same working proxies as viewsimfile
+      const params = new URLSearchParams();
+      params.set('songtitle', songTitle);
+      params.set('songartist', songArtist);
+      const url = `https://zenius-i-vanisher.com/v5.2/simfiles_search_ajax.php?${params.toString()}`;
 
-      const url = 'https://zenius-i-vanisher.com/v5.2/simfiles_search_ajax.php';
-
-      // Use proxy POST
-      const html = await window.proxyService.postWithProxy(url, formData.toString());
+      const html = await window.proxyService.fetchWithProxy(url, { skipDirect: true });
 
       // Parse search results
       const results = this.parseZeniusSearchResults(html);

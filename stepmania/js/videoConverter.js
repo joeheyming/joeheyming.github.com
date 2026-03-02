@@ -205,8 +205,14 @@ class VideoConverter {
       // Fetch the AVI file through proxy if needed
       let videoData;
       if (videoUrl.includes('zenius-i-vanisher.com')) {
-        // Use proxy for cross-origin videos
-        const arrayBuffer = await window.proxyService.fetchBinaryWithProxy(videoUrl);
+        const arrayBuffer = await window.proxyService.fetchBinaryWithProxy(videoUrl, {
+          skipDirect: true,
+          deferProxies: ['https://corsproxy.io/'],
+          headers: {
+            Referer: 'https://zenius-i-vanisher.com/',
+            Origin: 'https://zenius-i-vanisher.com'
+          }
+        });
         videoData = new Uint8Array(arrayBuffer);
       } else {
         videoData = await this.fetchFile(videoUrl);

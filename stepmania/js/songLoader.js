@@ -16,6 +16,7 @@ const ZIP_MAX_RETRIES = 2;
  */
 async function fetchSimfile(url) {
   return window.proxyService.fetchWithProxy(url, {
+    skipDirect: true, // origin blocks CORS
     headers: {
       Accept: 'text/plain,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
     },
@@ -47,7 +48,7 @@ export function extractSimfileId(zeniusUrl) {
 export async function fetchZeniusSimfile(simfileId) {
   const zeniusPageUrl = 'https://zenius-i-vanisher.com/v5.2/viewsimfile.php?simfileid=' + simfileId;
 
-  const html = await window.proxyService.fetchWithProxy(zeniusPageUrl);
+  const html = await window.proxyService.fetchWithProxy(zeniusPageUrl, { skipDirect: true });
 
   // Try to match file links with descriptive text first, then fall back to any match
   let simfileMatch = html.match(/href="([^"]*\.sm)"[^>]*>.*?SM.*?<\/a>/);
@@ -171,6 +172,8 @@ export async function fetchZeniusAudioFromZip(simfileId) {
   try {
     // Download ZIP through proxy
     const zipData = await window.proxyService.fetchBinaryWithProxy(zipUrl, {
+      skipDirect: true,
+      deferProxies: ['https://corsproxy.io/'],
       timeout: ZIP_DOWNLOAD_TIMEOUT,
       maxRetries: ZIP_MAX_RETRIES
     });
