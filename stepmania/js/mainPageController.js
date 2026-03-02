@@ -659,6 +659,8 @@ export class MainPageController {
           LoadingOverlay.updateProgress('Downloading audio file...', audioProgress + 5);
         }
         const audioData = await window.proxyService.fetchBinaryWithProxy(audioUrl, {
+          skipDirect: true,
+          deferProxies: ['https://corsproxy.io/'],
           headers: {
             Referer: 'https://zenius-i-vanisher.com/',
             Origin: 'https://zenius-i-vanisher.com'

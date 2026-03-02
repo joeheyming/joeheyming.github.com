@@ -1,4 +1,8 @@
-// Universal Proxy Service Module - supports both simfiles and ROM files
+// Universal Proxy Service Module - supports both simfiles and ROM files.
+// Agnostic of target origin; callers pass options for behavior:
+//   options.skipDirect: true — skip direct fetch (use when origin blocks CORS).
+//   options.deferProxies: string[] — try these proxy URL prefixes last (e.g. ['https://corsproxy.io/']).
+//   options.timeout, options.maxRetries, options.headers — passed through.
 class ProxyService {
   constructor() {
     // Proxy services ordered roughly by reliability (as of late 2024-2025)
@@ -6,15 +10,17 @@ class ProxyService {
     this.proxyOptions = [
       'https://corsproxy.io/?', // Most reliable as of 2025
       'https://api.codetabs.com/v1/proxy?quest=', // Rate limited but works
-      'https://proxy.cors.sh/', // Works for many sites
-      'https://api.allorigins.win/raw?url=', // Can be unreliable, sometimes returns 500
-      'https://thingproxy.freeboard.io/fetch/', // Alternative
-      'https://corsproxy.org/?', // Alternative to corsproxy.io
-      'https://cors-anywhere.herokuapp.com/' // Requires activation at cors-anywhere.herokuapp.com/corsdemo
+      'https://api.allorigins.win/raw?url=', // Can be unreliable; run test:proxy to verify
+      'https://proxy.corsfix.com/?url=' // Same format as allorigins; 400 if using ? only
     ];
     this.cache = new Map();
     this.timeoutMs = 15000; // 15 second timeout (some proxies are slow)
+    this.binaryTimeoutMs = 25000; // Longer for video/audio
     this.maxRetries = 3; // More retries for better success rate
+
+    // Circuit breaker: skip a proxy for this long after it fails (avoids hammering a down proxy)
+    this.proxyCooldownMs = 30000; // 30 seconds
+    this.proxyLastFailure = new Map();
 
     // Proxy scoring system
     this.proxyScores = new Map();
@@ -52,9 +58,10 @@ class ProxyService {
     }
   }
 
-  // Get proxies ordered by score (best first)
-  getOrderedProxies() {
-    return this.proxyOptions
+  // Get proxies ordered by score (best first).
+  // options.deferProxies: string[] — URL prefixes to try last (e.g. ['https://corsproxy.io/']).
+  getOrderedProxies(options = {}) {
+    const byScore = this.proxyOptions
       .map((proxy) => ({
         proxy,
         score: this.proxyScores.get(proxy) || 1.0,
@@ -63,6 +70,20 @@ class ProxyService {
       }))
       .sort((a, b) => b.score - a.score)
       .map((item) => item.proxy);
+    const defer = options.deferProxies;
+    if (!Array.isArray(defer) || defer.length === 0) return byScore;
+    const deferred = byScore.filter((p) => defer.some((prefix) => p.startsWith(prefix)));
+    const rest = byScore.filter((p) => !defer.some((prefix) => p.startsWith(prefix)));
+    return deferred.length && rest.length ? [...rest, ...deferred] : byScore;
+  }
+
+  // Encode URL for proxy query: decode once first so we never double-encode (e.g. %20 -> %2520).
+  encodeUrlForProxy(url) {
+    try {
+      return encodeURIComponent(decodeURIComponent(url));
+    } catch {
+      return encodeURIComponent(url);
+    }
   }
 
   // Create a timeout promise
@@ -74,27 +95,8 @@ class ProxyService {
     });
   }
 
-  // Sites known to block CORS - skip direct fetch for these
-  knownCorsBlockedDomains = ['zenius-i-vanisher.com', 'simfileshare.com'];
-
-  // Check if URL is from a known CORS-blocked domain
-  isKnownCorsBlocked(url) {
-    try {
-      const urlObj = new URL(url);
-      return this.knownCorsBlockedDomains.some((domain) => urlObj.hostname.includes(domain));
-    } catch {
-      return false;
-    }
-  }
-
-  // Try direct fetch first (in case server allows CORS)
+  // Try direct fetch first (in case server allows CORS). Caller passes skipDirect: true to skip.
   async tryDirectFetch(url, options = {}) {
-    // Skip direct fetch for known CORS-blocked sites
-    if (this.isKnownCorsBlocked(url)) {
-      console.log(`Skipping direct fetch for known CORS-blocked site: ${url}`);
-      return null;
-    }
-
     try {
       const timeoutMs = options.timeout || 3000; // Short timeout for direct attempt
       const fetchPromise = fetch(url, {
@@ -140,14 +142,17 @@ class ProxyService {
     const maxRetries = options.maxRetries || this.maxRetries;
     let lastError = null;
 
-    // Get proxies ordered by performance score
-    const orderedProxies = this.getOrderedProxies();
+    const orderedProxies = this.getOrderedProxies(options);
     console.log(`Trying ${orderedProxies.length} proxies for: ${url.substring(0, 80)}...`);
 
     for (let retry = 0; retry <= maxRetries; retry++) {
       for (const proxy of orderedProxies) {
+        // Circuit breaker: skip proxy briefly after a failure to try others first
+        const lastFail = this.proxyLastFailure.get(proxy);
+        if (lastFail && Date.now() - lastFail < this.proxyCooldownMs) continue;
+
         try {
-          const proxyUrl = proxy + encodeURIComponent(url);
+          const proxyUrl = proxy + this.encodeUrlForProxy(url);
           const startTime = Date.now();
           console.log(`Trying proxy: ${proxy.substring(0, 30)}...`);
 
@@ -180,11 +185,13 @@ class ProxyService {
           } else {
             console.warn(`Proxy ${proxy} returned status ${response.status}`);
             this.updateProxyScore(proxy, false);
+            this.proxyLastFailure.set(proxy, Date.now());
           }
         } catch (error) {
           lastError = error;
           console.warn(`Proxy ${proxy} failed (attempt ${retry + 1}):`, error.message);
           this.updateProxyScore(proxy, false);
+          this.proxyLastFailure.set(proxy, Date.now());
           continue;
         }
       }
@@ -204,14 +211,8 @@ class ProxyService {
     );
   }
 
-  // Try direct binary fetch first (in case server allows CORS)
+  // Try direct binary fetch first (in case server allows CORS). Caller passes skipDirect: true to skip.
   async tryDirectBinaryFetch(url, options = {}) {
-    // Skip direct fetch for known CORS-blocked sites
-    if (this.isKnownCorsBlocked(url)) {
-      console.log(`Skipping direct binary fetch for known CORS-blocked site`);
-      return null;
-    }
-
     try {
       const timeoutMs = options.timeout || 3000;
       const fetchPromise = fetch(url, {
@@ -253,7 +254,7 @@ class ProxyService {
     for (let retry = 0; retry <= maxRetries; retry++) {
       for (const proxy of postCapableProxies) {
         try {
-          const proxyUrl = proxy + encodeURIComponent(url);
+          const proxyUrl = proxy + this.encodeUrlForProxy(url);
           const startTime = Date.now();
           console.log(`Trying POST via proxy: ${proxy.substring(0, 30)}...`);
 
@@ -315,20 +316,21 @@ class ProxyService {
       }
     }
 
-    const timeoutMs = options.timeout || this.timeoutMs;
+    const timeoutMs = options.timeout || this.binaryTimeoutMs;
     const maxRetries = options.maxRetries || this.maxRetries;
     let lastError = null;
 
-    // Get proxies ordered by performance score (best first)
-    const orderedProxies = this.getOrderedProxies();
+    const orderedProxies = this.getOrderedProxies(options);
 
     for (let retry = 0; retry <= maxRetries; retry++) {
       for (const proxy of orderedProxies) {
+        const lastFail = this.proxyLastFailure.get(proxy);
+        if (lastFail && Date.now() - lastFail < this.proxyCooldownMs) continue;
+
         try {
-          const proxyUrl = proxy + encodeURIComponent(url);
+          const proxyUrl = proxy + this.encodeUrlForProxy(url);
           const startTime = Date.now();
 
-          // Create a race between the fetch and timeout
           const fetchPromise = fetch(proxyUrl, {
             method: 'GET',
             headers: {
@@ -346,7 +348,6 @@ class ProxyService {
             const uint8Array = new Uint8Array(arrayBuffer);
             this.cache.set(cacheKey, uint8Array);
 
-            // Update score for successful proxy
             this.updateProxyScore(proxy, true, responseTime);
             console.log(
               `Proxy ${proxy} succeeded in ${responseTime}ms (score: ${this.proxyScores
@@ -358,11 +359,13 @@ class ProxyService {
           } else {
             console.warn(`Proxy ${proxy} returned status ${response.status}`);
             this.updateProxyScore(proxy, false);
+            this.proxyLastFailure.set(proxy, Date.now());
           }
         } catch (error) {
           lastError = error;
           console.warn(`Proxy ${proxy} failed (attempt ${retry + 1}):`, error.message);
           this.updateProxyScore(proxy, false);
+          this.proxyLastFailure.set(proxy, Date.now());
           continue;
         }
       }
