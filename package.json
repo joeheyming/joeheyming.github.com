@@ -1,6 +1,8 @@
 {
   "scripts": {
+    "lint": "eslint app.js generate-previews.js share.js google-db todo",
     "lint:fix": "eslint --fix .",
+    "format:check": "prettier --check app.js generate-previews.js share.js google-db todo",
     "format:fix": "prettier --write ."
   },
   "Private": true,
@@ -10,6 +12,7 @@
   "devDependencies": {
     "eslint": "^8.20.0",
     "eslint-config-prettier": "^8.5.0",
-    "eslint-plugin-prettier": "^4.2.1"
+    "eslint-plugin-prettier": "^4.2.1",
+    "prettier": "^2.8.8"
   }
 }
