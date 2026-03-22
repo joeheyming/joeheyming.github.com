@@ -66,7 +66,11 @@
     },
     notepad: {
       category: 'utility',
-      related: ['terminal', 'filemanager', 'calculator']
+      related: ['terminal', 'todo', 'filemanager', 'calculator']
+    },
+    todo: {
+      category: 'utility',
+      related: ['notepad', 'terminal', 'wordle-finder']
     },
     calculator: {
       category: 'utility',
@@ -78,7 +82,7 @@
     },
     'wordle-finder': {
       category: 'utility',
-      related: ['minesweeper', 'terminal', 'calculator']
+      related: ['minesweeper', 'terminal', 'calculator', 'todo']
     },
     'programming-advice': {
       category: 'utility',
@@ -132,6 +136,7 @@
     sadtrombone: { name: 'Sad Trombone', icon: '🎺', description: 'Oops moment' },
     terminal: { name: 'Terminal', icon: '💻', description: 'Command line' },
     notepad: { name: 'Notepad', icon: '📝', description: 'Text editor' },
+    todo: { name: 'Todo', icon: '✅', description: 'Sheets-backed tasks' },
     calculator: { name: 'Calculator', icon: '🔢', description: 'Do math' },
     countdown: { name: 'Countdown', icon: '⏱️', description: 'Event timer' },
     'wordle-finder': { name: 'Wordle Finder', icon: '🔤', description: 'Word solver' },
