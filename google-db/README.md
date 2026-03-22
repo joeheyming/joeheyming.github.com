@@ -6,11 +6,11 @@ This folder has **no UI** and **no app config**. Apps (e.g. [`../todo/`](../todo
 
 ## Files
 
-| File | Purpose |
-|------|---------|
-| `google-auth.js` | GIS token client; OAuth scope **`drive.file`** (not full Sheets). Token in `localStorage`: `google-db.oauthAccessToken` / `google-db.oauthExpiresAt` |
-| `sheets-api.js` | Spreadsheet metadata, tab list/rename/create/**delete**, `getValues` / `appendRow` / `putValues`, data row delete, `tryFetchSpreadsheetMeta` |
-| `drive-picker.js` | Load Picker + `openSpreadsheetPicker` so the user grants access to one spreadsheet |
+| File              | Purpose                                                                                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `google-auth.js`  | GIS token client; OAuth scope **`drive.file`** (not full Sheets). Token in `localStorage`: `google-db.oauthAccessToken` / `google-db.oauthExpiresAt` |
+| `sheets-api.js`   | Spreadsheet metadata, tab list/rename/create/**delete**, `getValues` / `appendRow` / `putValues`, data row delete, `tryFetchSpreadsheetMeta`         |
+| `drive-picker.js` | Load Picker + `openSpreadsheetPicker` so the user grants access to one spreadsheet                                                                   |
 
 ## Requirements
 

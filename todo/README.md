@@ -16,7 +16,7 @@ Vanilla ES modules: a small **todo** demo that uses shared Google helpers in [`.
 
 On each tab you use (default name **`Sheet1`**, or set `sheetName` in config for first visit), use either:
 
-1. **Header row** (flexible casing/spacing): row **1** is `id`, `title`, optional `done`, `createdAt` — data from row **2**, or  
+1. **Header row** (flexible casing/spacing): row **1** is `id`, `title`, optional `done`, `createdAt` — data from row **2**, or
 2. **No header**: row **1** is already data with a **UUID** in column **A** (same shape the app appends: id, title, done, createdAt).
 
 New todos append `id` (UUID), `title`, `done` (`FALSE`), and `createdAt` (ISO timestamp).
@@ -85,10 +85,10 @@ Commit `config.js` with at least `clientId` set for the live site to work. Empty
 
 ## Files
 
-| File | Purpose |
-|------|---------|
-| `index.html` | [Tailwind Play CDN](https://tailwindcss.com/docs/installation/play-cdn) + fonts + GIS / `app.js` |
-| `app.js` | Todo UI (Tailwind class strings for dialogs & list rows) |
-| `todo-sheets.js` | Todo row layout + `createGoogleSheetClient`; re-exports tab helpers from `../google-db/sheets-api.js` |
-| `config.js` | `clientId`, `spreadsheetId`, `sheetName` |
-| [`../google-db/`](../google-db/) | Shared `google-auth.js` + `sheets-api.js` (no app config) |
+| File                             | Purpose                                                                                               |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `index.html`                     | [Tailwind Play CDN](https://tailwindcss.com/docs/installation/play-cdn) + fonts + GIS / `app.js`      |
+| `app.js`                         | Todo UI (Tailwind class strings for dialogs & list rows)                                              |
+| `todo-sheets.js`                 | Todo row layout + `createGoogleSheetClient`; re-exports tab helpers from `../google-db/sheets-api.js` |
+| `config.js`                      | `clientId`, `spreadsheetId`, `sheetName`                                                              |
+| [`../google-db/`](../google-db/) | Shared `google-auth.js` + `sheets-api.js` (no app config)                                             |
