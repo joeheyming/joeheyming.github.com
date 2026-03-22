@@ -11,7 +11,25 @@ export class OAuthUserCancelledError extends Error {
   constructor(message = 'Sign-in was cancelled.') {
     super(message);
     this.name = 'OAuthUserCancelledError';
+    /** Stable marker when `instanceof` breaks (e.g. some devtools / proxies). */
+    this.code = 'OAUTH_USER_CANCELLED';
   }
+}
+
+/** @param {unknown} e */
+export function isOAuthUserCancelledError(e) {
+  if (e instanceof OAuthUserCancelledError) {
+    return true;
+  }
+  if (
+    e &&
+    typeof e === 'object' &&
+    'code' in e &&
+    /** @type {{ code?: unknown }} */ (e).code === 'OAUTH_USER_CANCELLED'
+  ) {
+    return true;
+  }
+  return e instanceof Error && e.name === 'OAuthUserCancelledError';
 }
 
 const LS_ACCESS = 'google-db.oauthAccessToken';

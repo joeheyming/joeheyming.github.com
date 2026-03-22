@@ -1,6 +1,6 @@
 import {
   initGoogleAuth,
-  OAuthUserCancelledError,
+  isOAuthUserCancelledError,
   requestAccessToken,
   getCachedAccessToken,
   clearAccessToken
@@ -468,10 +468,18 @@ function main() {
     }
     await waitForGoogle();
     initGoogleAuth(clientId);
-    await getAccessToken();
-    const token = getCachedAccessToken();
+    let token = getCachedAccessToken();
     if (!token) {
-      throw new Error('No access token');
+      if (silent) {
+        setConnectedUi(false);
+        setStatus(statusEl, '');
+        return;
+      }
+      await getAccessToken();
+      token = getCachedAccessToken();
+      if (!token) {
+        throw new Error('No access token');
+      }
     }
     await ensureSpreadsheetAccess(token, { silent: opts.silent });
     const tabName = await populateTabSelect(
@@ -507,6 +515,12 @@ function main() {
     try {
       await connectToSheet(null, { silent: true });
     } catch (e) {
+      if (isOAuthUserCancelledError(e)) {
+        client = null;
+        setConnectedUi(false);
+        setStatus(statusEl, '');
+        return;
+      }
       console.log('[todo] Auto-connect failed', e);
       client = null;
       setConnectedUi(false);
@@ -620,7 +634,7 @@ function main() {
       console.log('[todo] Sign-in finished; connecting…');
       await connectToSheet(getEffectiveSheetName());
     } catch (e) {
-      if (e instanceof OAuthUserCancelledError) {
+      if (isOAuthUserCancelledError(e)) {
         setStatus(statusEl, '');
         return;
       }
