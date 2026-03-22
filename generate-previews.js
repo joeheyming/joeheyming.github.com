@@ -49,6 +49,11 @@ const PAGES = [
     title: 'Notepad'
   },
   {
+    url: `${BASE_URL}/todo/`,
+    output: 'todo/todo-preview.png',
+    title: 'Todo'
+  },
+  {
     url: `${BASE_URL}/sadtrombone/`,
     output: 'sadtrombone/sadtrombone-preview.png',
     title: 'Sad Trombone'

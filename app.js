@@ -244,6 +244,25 @@ let appRegistry = [
     tags: ['utility', 'cli', 'filesystem', 'interactive']
   },
   {
+    id: 'todo',
+    name: 'Todo ✅',
+    shortName: 'Todo',
+    description: 'Google Sheets task lists',
+    detailedDescription:
+      'Sign in with Google and manage todos in your spreadsheet—multiple lists (tabs), rename, add, and remove tasks.',
+    icon: '✅',
+    path: './todo/',
+    category: 'utility',
+    gradient: 'from-violet-500/20 to-fuchsia-500/20',
+    border: 'border-violet-500/30 hover:border-fuchsia-400/50',
+    taskbarGradient: 'from-violet-500 to-fuchsia-600',
+    taskbarText: 'text-white',
+    defaultWidth: 440,
+    defaultHeight: 720,
+    desktopIcon: true,
+    tags: ['productivity', 'google', 'sheets', 'tasks']
+  },
+  {
     id: 'calculator',
     name: 'Calculator',
     shortName: 'Calculator',
