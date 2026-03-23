@@ -36,6 +36,8 @@
 
     <!-- Enhanced SEO Meta Tags -->
     <meta name="author" content="Joe Heyming" />
+    <!-- Aligns with OAuth consent “App name” (use “Joe Heyming” in Google Cloud, not the GCP project id). -->
+    <meta name="application-name" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
     <meta name="theme-color" content="#8b5cf6" />
@@ -140,6 +142,35 @@
   <body
     class="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 overflow-x-hidden"
   >
+    <!--
+      OAuth / crawler visibility: plain HTML + inline styles so a link to the privacy policy exists
+      even if Tailwind CDN is slow or blocked. Use the same app name here as on the OAuth consent screen.
+    -->
+    <nav
+      style="
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+        text-align: center;
+        background: rgba(0, 0, 0, 0.35);
+        color: #fff;
+        font-family: system-ui, -apple-system, sans-serif;
+      "
+      aria-label="Site identity and policies"
+    >
+      <strong>Joe Heyming</strong>
+      <span style="color: rgba(255, 255, 255, 0.45); margin: 0 0.5rem">·</span>
+      <a
+        href="https://joeheyming.github.io/privacy-policy.html"
+        style="color: #bfdbfe; text-decoration: underline"
+        >Privacy Policy</a
+      >
+      <span style="color: rgba(255, 255, 255, 0.45); margin: 0 0.5rem">·</span>
+      <a
+        href="https://joeheyming.github.io/terms-of-service.html"
+        style="color: #bfdbfe; text-decoration: underline"
+        >Terms of Service</a
+      >
+    </nav>
     <!-- Hamburger Menu -->
     <div id="hamburger-menu" class="fixed top-4 right-4 sm:top-6 sm:right-6 z-[100]">
       <!-- Hamburger Icon -->
@@ -513,13 +544,13 @@
       </div>
       <nav class="mb-6 text-sm" aria-label="Legal">
         <a
-          href="/privacy-policy.html"
+          href="https://joeheyming.github.io/privacy-policy.html"
           class="text-white/90 underline underline-offset-2 hover:text-white"
           >Privacy Policy</a
         >
         <span class="text-white/50 mx-2" aria-hidden="true">·</span>
         <a
-          href="/terms-of-service.html"
+          href="https://joeheyming.github.io/terms-of-service.html"
           class="text-white/90 underline underline-offset-2 hover:text-white"
           >Terms of Service</a
         >
