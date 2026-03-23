@@ -20,6 +20,26 @@ export function getStoredSpreadsheetId() {
   }
 }
 
+/**
+ * Resolves when `https://accounts.google.com/gsi/client` has exposed the OAuth2 token client
+ * (`google.accounts.oauth2`). Call before `initGoogleAuth()` if GIS is loaded with `defer`.
+ * @returns {Promise<void>}
+ */
+export function waitForGoogle() {
+  return new Promise((resolve) => {
+    if (globalThis.google?.accounts?.oauth2) {
+      resolve();
+      return;
+    }
+    const id = setInterval(() => {
+      if (globalThis.google?.accounts?.oauth2) {
+        clearInterval(id);
+        resolve();
+      }
+    }, 30);
+  });
+}
+
 /** Closed popup or denied consent — not an application error. */
 export class OAuthUserCancelledError extends Error {
   constructor(message = 'Sign-in was cancelled.') {

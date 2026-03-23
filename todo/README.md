@@ -73,10 +73,10 @@ Commit [`site-config.js`](../google-db/site-config.js) with **`clientId`** set.
 
 ## Files
 
-| File                             | Purpose                                                                                               |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `index.html`                     | [Tailwind Play CDN](https://tailwindcss.com/docs/installation/play-cdn) + fonts + GIS / `app.js`      |
-| `app.js`                         | Todo UI; spreadsheet id + `todo-app-` tab logic                                                       |
-| `todo-sheets.js`                 | Todo row layout + `createGoogleSheetClient`; re-exports Sheets helpers                                |
-| (shared) [`../google-db/site-config.js`](../google-db/site-config.js) | `clientId`, `SITE_SPREADSHEET_DOCUMENT_TITLE`                                          |
-| [`../google-db/`](../google-db/) | `google-auth.js`, `site-database.js`, `sheets-api.js`                                                  |
+| File                                                                  | Purpose                                                                                          |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `index.html`                                                          | [Tailwind Play CDN](https://tailwindcss.com/docs/installation/play-cdn) + fonts + GIS / `app.js` |
+| `app.js`                                                              | Todo UI; spreadsheet id + `todo-app-` tab logic                                                  |
+| `todo-sheets.js`                                                      | Todo row layout + `createGoogleSheetClient`; re-exports Sheets helpers                           |
+| (shared) [`../google-db/site-config.js`](../google-db/site-config.js) | `clientId`, `SITE_SPREADSHEET_DOCUMENT_TITLE`                                                    |
+| [`../google-db/`](../google-db/)                                      | `google-auth.js`, `site-database.js`, `sheets-api.js`                                            |
