@@ -1,10 +1,24 @@
 /** Google Identity Services — OAuth access token (browser, no backend). */
 
+import { clientId as siteClientId } from './site-config.js';
+
 /**
- * Per-file access: only spreadsheets the user opens via this app (e.g. Google Picker).
+ * Per-file access: spreadsheets the user creates or opens through this app.
  * Does not grant access to all Sheets in the account (unlike `.../auth/spreadsheets`).
  */
 export const OAUTH_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+
+/** Site-wide personal spreadsheet file id (shared by apps on the same origin). */
+export const LS_SPREADSHEET_ID = 'google-db.spreadsheetId';
+
+/** @returns {string} Trimmed workbook id from `localStorage`, or `''` if missing/unreadable. */
+export function getStoredSpreadsheetId() {
+  try {
+    return (localStorage.getItem(LS_SPREADSHEET_ID) || '').trim();
+  } catch {
+    return '';
+  }
+}
 
 /** Closed popup or denied consent — not an application error. */
 export class OAuthUserCancelledError extends Error {
@@ -78,6 +92,7 @@ function readValidPersistedAccessToken() {
     const expiresAt = Number(expRaw);
     if (!Number.isFinite(expiresAt) || Date.now() >= expiresAt - EXPIRY_SKEW_MS) {
       clearPersistedAccessToken();
+      accessToken = null;
       return null;
     }
     return t;
@@ -98,7 +113,12 @@ function persistAccessToken(token, expiresInSec) {
   }
 }
 
-export function initGoogleAuth(clientId) {
+/** Call after GIS script is loaded. Uses `clientId` from `site-config.js`. */
+export function initGoogleAuth() {
+  const clientId = (siteClientId || '').trim();
+  if (!clientId) {
+    throw new Error('Set clientId in google-db/site-config.js.');
+  }
   if (!globalThis.google?.accounts?.oauth2) {
     throw new Error('Google GIS script not loaded yet');
   }
@@ -181,6 +201,11 @@ export function getCachedAccessToken() {
   if (fromLs) {
     accessToken = fromLs;
     return fromLs;
+  }
+  // OAuth callback sets `accessToken` before persist; if localStorage fails (private mode,
+  // quota, SecurityError), the next call here used to wipe memory and break sign-in.
+  if (typeof accessToken === 'string' && accessToken.length > 0) {
+    return accessToken;
   }
   accessToken = null;
   return null;

@@ -1,5 +1,7 @@
 /** Google Sheets API v4 — generic REST helpers (fetch + Bearer token). */
 
+import { SITE_SPREADSHEET_DOCUMENT_TITLE } from './site-config.js';
+
 const API = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 export async function fetchSpreadsheetMeta(spreadsheetId, accessToken) {
@@ -31,6 +33,48 @@ export async function tryFetchSpreadsheetMeta(spreadsheetId, accessToken) {
     return { ok: true };
   }
   return { ok: false, status: res.status, text };
+}
+
+/**
+ * A1 range with a quoted sheet title (required when the name contains hyphens, spaces, etc.).
+ * @param {string} sheetTitle
+ * @param {string} rangeSuffix e.g. `A:D` or `A1:D1`
+ */
+export function a1Range(sheetTitle, rangeSuffix) {
+  const escaped = String(sheetTitle).replace(/'/g, "''");
+  return `'${escaped}'!${rangeSuffix}`;
+}
+
+/**
+ * Create a new spreadsheet (works with OAuth scope `drive.file`).
+ * Uses `SITE_SPREADSHEET_DOCUMENT_TITLE` from `site-config.js` unless `documentTitle` is passed.
+ * @param {string} accessToken
+ * @param {{ documentTitle?: string, sheetTitles?: string[] }} [opts] — pass `sheetTitles` for initial tabs (e.g. your app’s first table).
+ * @returns {Promise<{ spreadsheetId: string }>}
+ */
+export async function createSpreadsheet(accessToken, opts = {}) {
+  const { documentTitle = SITE_SPREADSHEET_DOCUMENT_TITLE, sheetTitles = ['Sheet1'] } = opts;
+  const body = {
+    properties: { title: documentTitle },
+    sheets: sheetTitles.map((title) => ({ properties: { title } }))
+  };
+  const res = await fetch(API, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+  const data = await res.json();
+  const spreadsheetId = data.spreadsheetId;
+  if (!spreadsheetId || typeof spreadsheetId !== 'string') {
+    throw new Error('Could not read spreadsheetId from create response');
+  }
+  return { spreadsheetId };
 }
 
 export async function getSheetIdByTitle(spreadsheetId, title, accessToken) {
@@ -225,4 +269,60 @@ export async function deleteSheetRow(spreadsheetId, sheetId, rowIndex1Based, acc
     throw new Error(await res.text());
   }
   return res.json();
+}
+
+const DRIVE_FILES = 'https://www.googleapis.com/drive/v3/files';
+
+/** @param {string} s */
+function driveQueryLiteral(s) {
+  return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+/**
+ * Lists spreadsheets visible with OAuth scope `drive.file` (files the user opened or created with this app).
+ * Results are ordered by `modifiedTime` descending when possible.
+ *
+ * @param {string} accessToken
+ * @param {{ exactName?: string }} [opts] — if `exactName` is set, only files with that exact Drive title match
+ * @returns {Promise<{ id: string, name: string }[]>}
+ */
+export async function listAccessibleSpreadsheets(accessToken, opts = {}) {
+  const { exactName } = opts;
+  let q = "mimeType='application/vnd.google-apps.spreadsheet' and trashed=false";
+  if (exactName != null && String(exactName).trim() !== '') {
+    q += ` and name='${driveQueryLiteral(String(exactName).trim())}'`;
+  }
+  const out = [];
+  let pageToken = '';
+  for (;;) {
+    const params = new URLSearchParams({
+      q,
+      spaces: 'drive',
+      fields: 'nextPageToken, files(id, name)',
+      pageSize: '100',
+      orderBy: 'modifiedTime desc'
+    });
+    if (pageToken) {
+      params.set('pageToken', pageToken);
+    }
+    const url = `${DRIVE_FILES}?${params}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!res.ok) {
+      throw new Error(await res.text());
+    }
+    const data = await res.json();
+    const files = Array.isArray(data.files) ? data.files : [];
+    for (const f of files) {
+      if (f?.id && f?.name) {
+        out.push({ id: String(f.id), name: String(f.name) });
+      }
+    }
+    pageToken = typeof data.nextPageToken === 'string' ? data.nextPageToken : '';
+    if (!pageToken) {
+      break;
+    }
+  }
+  return out;
 }
