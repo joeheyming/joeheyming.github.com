@@ -6,10 +6,16 @@ export function injectDialogs() {
   const tplRename = document.getElementById('tpl-rename-dialog');
   const tplAddList = document.getElementById('tpl-add-list-dialog');
   const tplRemoveList = document.getElementById('tpl-remove-list-dialog');
-  if (!tplRename?.content || !tplAddList?.content || !tplRemoveList?.content) {
-    throw new Error(
-      'Missing dialog templates (tpl-rename-dialog, tpl-add-list-dialog, tpl-remove-list-dialog).'
-    );
+  const tplShareList = document.getElementById('tpl-share-list-dialog');
+  const tplOpenShared = document.getElementById('tpl-open-shared-dialog');
+  if (
+    !tplRename?.content ||
+    !tplAddList?.content ||
+    !tplRemoveList?.content ||
+    !tplShareList?.content ||
+    !tplOpenShared?.content
+  ) {
+    throw new Error('Missing dialog templates in index.html.');
   }
 
   const renameDialog = /** @type {HTMLDialogElement} */ (
@@ -21,7 +27,19 @@ export function injectDialogs() {
   const removeListDialog = /** @type {HTMLDialogElement} */ (
     tplRemoveList.content.firstElementChild.cloneNode(true)
   );
-  document.body.append(renameDialog, addListDialog, removeListDialog);
+  const shareListDialog = /** @type {HTMLDialogElement} */ (
+    tplShareList.content.firstElementChild.cloneNode(true)
+  );
+  const openSharedDialog = /** @type {HTMLDialogElement} */ (
+    tplOpenShared.content.firstElementChild.cloneNode(true)
+  );
+  document.body.append(
+    renameDialog,
+    addListDialog,
+    removeListDialog,
+    shareListDialog,
+    openSharedDialog
+  );
 
   return {
     renameDialog,
@@ -42,11 +60,23 @@ export function injectDialogs() {
     ),
     listAddBtnCancel: addListDialog.querySelector('[data-add-list="cancel"]'),
     removeListDialog,
-    removeListNameEl: /** @type {HTMLElement} */ (
-      removeListDialog.querySelector('#remove-list-name')
+    removeListDetailEl: /** @type {HTMLParagraphElement} */ (
+      removeListDialog.querySelector('#remove-list-detail')
     ),
     removeListBtnOk: removeListDialog.querySelector('[data-remove-list="ok"]'),
-    removeListBtnCancel: removeListDialog.querySelector('[data-remove-list="cancel"]')
+    removeListBtnCancel: removeListDialog.querySelector('[data-remove-list="cancel"]'),
+    shareListDialog,
+    shareEmailsInput: /** @type {HTMLTextAreaElement} */ (
+      shareListDialog.querySelector('#share-list-emails-input')
+    ),
+    shareListBtnOk: shareListDialog.querySelector('[data-share-list="ok"]'),
+    shareListBtnCancel: shareListDialog.querySelector('[data-share-list="cancel"]'),
+    openSharedDialog,
+    openSharedInput: /** @type {HTMLInputElement} */ (
+      openSharedDialog.querySelector('#open-shared-input')
+    ),
+    openSharedBtnOk: openSharedDialog.querySelector('[data-open-shared="ok"]'),
+    openSharedBtnCancel: openSharedDialog.querySelector('[data-open-shared="cancel"]')
   };
 }
 

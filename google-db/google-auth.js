@@ -5,6 +5,8 @@ import { clientId as siteClientId } from './site-config.js';
 /**
  * Per-file access: spreadsheets the user creates or opens through this app.
  * Does not grant access to all Sheets in the account (unlike `.../auth/spreadsheets`).
+ * Also used to add Drive collaborators (`permissions.create`) on files this app created.
+ * Enable the Google **Drive API** in the same Cloud project as Sheets.
  */
 export const OAUTH_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 
