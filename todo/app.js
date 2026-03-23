@@ -3,18 +3,11 @@ import {
   isOAuthUserCancelledError,
   requestAccessToken,
   getCachedAccessToken,
+  getStoredSpreadsheetId,
   clearAccessToken
 } from '../google-db/google-auth.js';
-import {
-  createGoogleSheetClient,
-  createSheetTab,
-  deleteSheetTab,
-  listSheetTabs,
-  renameSheetTab
-} from './todo-sheets.js';
-import { tryFetchSpreadsheetMeta } from '../google-db/sheets-api.js';
-import { loadPickerApi, openSpreadsheetPicker } from '../google-db/drive-picker.js';
-import { clientId, spreadsheetId, sheetName, pickerApiKey } from './config.js';
+import { openSiteDatabase } from '../google-db/site-database.js';
+import { createGoogleSheetClient, isTodoDoneValue } from './todo-sheets.js';
 
 /** Todo row emoji controls (match list toolbar styling). */
 const TW_BTN_EMOJI =
@@ -22,7 +15,43 @@ const TW_BTN_EMOJI =
 const TW_BTN_EMOJI_DANGER =
   'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-lg shadow-sm transition hover:border-rose-400 hover:bg-rose-50 dark:border-zinc-600 dark:bg-zinc-800 dark:hover:border-rose-500 dark:hover:bg-rose-950/40';
 
+const TODO_TAB_PREFIX = 'todo-app-';
+const DEFAULT_LIST_DISPLAY_NAME = 'Tasks';
+const DEFAULT_FULL_SHEET_TITLE = `${TODO_TAB_PREFIX}${DEFAULT_LIST_DISPLAY_NAME}`;
+
 const LS_SHEET_NAME = 'todo.sheetName';
+
+const MAX_LIST_DISPLAY_LEN = 100 - TODO_TAB_PREFIX.length;
+
+const INVALID_LIST_NAME_CHARS = new Set(['[', ']', '\\', '/', '?', ':', '*']);
+
+function sanitizeListDisplayName(raw) {
+  const trimmed = raw.trim();
+  let out = '';
+  for (let i = 0; i < trimmed.length && out.length < MAX_LIST_DISPLAY_LEN; i++) {
+    const c = trimmed[i];
+    if (!INVALID_LIST_NAME_CHARS.has(c)) {
+      out += c;
+    }
+  }
+  return out;
+}
+
+function fullTitleFromUserListName(userInput) {
+  const d = sanitizeListDisplayName(userInput);
+  if (!d) {
+    throw new Error('List name is invalid or empty.');
+  }
+  return TODO_TAB_PREFIX + d;
+}
+
+function displayNameFromFullTitle(full) {
+  if (!full.startsWith(TODO_TAB_PREFIX)) {
+    return full;
+  }
+  const rest = full.slice(TODO_TAB_PREFIX.length);
+  return rest || full;
+}
 
 function loadStoredTabName() {
   try {
@@ -32,9 +61,9 @@ function loadStoredTabName() {
   }
 }
 
-function saveStoredTabName(name) {
+function saveStoredTabName(fullTitle) {
   try {
-    localStorage.setItem(LS_SHEET_NAME, name || 'Sheet1');
+    localStorage.setItem(LS_SHEET_NAME, fullTitle || DEFAULT_FULL_SHEET_TITLE);
   } catch {
     /* quota / private mode */
   }
@@ -42,14 +71,10 @@ function saveStoredTabName(name) {
 
 function getEffectiveSheetName() {
   const fromLs = loadStoredTabName().trim();
-  if (fromLs) {
+  if (fromLs && fromLs.startsWith(TODO_TAB_PREFIX)) {
     return fromLs;
   }
-  return sheetName || 'Sheet1';
-}
-
-function getConfigSpreadsheetId() {
-  return spreadsheetId.trim();
+  return DEFAULT_FULL_SHEET_TITLE;
 }
 
 function waitForGoogle() {
@@ -158,6 +183,11 @@ function main() {
   wireBackdropClose(removeListDialog);
 
   const statusEl = document.getElementById('status');
+  const todoAppRoot = document.getElementById('todo-app-root');
+  const appLoadingEl = document.getElementById('app-loading');
+  const appLoadingMessageEl = document.getElementById('app-loading-message');
+  const signedOutEmpty = document.getElementById('signed-out-empty');
+  const authCard = document.getElementById('auth-card');
   const btnSignin = document.getElementById('btn-signin');
   const btnSignout = document.getElementById('btn-signout');
   const sheetTabSelect = document.getElementById('sheet-tab-select');
@@ -169,8 +199,12 @@ function main() {
   const btnAdd = document.getElementById('btn-add');
   const todoList = document.getElementById('todo-list');
   const todoEmpty = document.getElementById('todo-empty');
+  const signedOutTitleEl = document.getElementById('signed-out-empty-title');
+  const signedOutBodyEl = document.getElementById('signed-out-empty-body');
 
   let client = null;
+  /** @type {import('../google-db/site-database.js').SiteDatabase | null} */
+  let siteDb = null;
   let tabSelectSilence = false;
   /** @type {string | null} id of the row in inline edit mode */
   let editingTodoId = null;
@@ -188,62 +222,71 @@ function main() {
     return t;
   }
 
+  function setAppLoadingMessage(text) {
+    if (appLoadingMessageEl && typeof text === 'string') {
+      appLoadingMessageEl.textContent = text;
+    }
+  }
+
   /**
-   * OAuth uses `drive.file`: the token only allows Sheets/Drive files the user opens via this app.
-   * First time (or new browser), we open the Picker so they grant access to the configured file only.
-   * @param {string} token
-   * @param {{ silent?: boolean }} [opts]
+   * Full-width loading state while Google APIs run (avoids looking “signed out”).
+   * @param {boolean} loading
+   * @param {string} [message] — defaults to “Connecting to Google…”
    */
-  async function ensureSpreadsheetAccess(token, opts = {}) {
-    const { silent = false } = opts;
-    const sid = getConfigSpreadsheetId();
-    if (!sid) {
+  function setAppLoading(loading, message) {
+    if (!appLoadingEl) {
       return;
     }
-    let check = await tryFetchSpreadsheetMeta(sid, token);
-    if (check.ok) {
-      return;
+    if (loading) {
+      const text =
+        typeof message === 'string' && message.trim() !== ''
+          ? message.trim()
+          : 'Connecting to Google…';
+      setAppLoadingMessage(text);
+      appLoadingEl.hidden = false;
+      todoAppRoot?.setAttribute('aria-busy', 'true');
+      if (signedOutEmpty) {
+        signedOutEmpty.hidden = true;
+      }
+      todoPanel.hidden = true;
+      if (authCard) {
+        authCard.hidden = true;
+      }
+    } else {
+      appLoadingEl.hidden = true;
+      todoAppRoot?.setAttribute('aria-busy', 'false');
     }
-    if (silent) {
-      throw new Error(
-        'Sign in with Google, then select this app’s spreadsheet when the file picker opens (one-time per browser).'
+  }
+
+  function refreshSignedOutEmptyCopy() {
+    const hasWorkbook = getStoredSpreadsheetId().length > 0;
+    if (signedOutTitleEl) {
+      signedOutTitleEl.textContent = hasWorkbook ? 'Sign in to reconnect' : 'You’re signed out';
+    }
+    if (signedOutBodyEl) {
+      signedOutBodyEl.textContent = hasWorkbook
+        ? 'This browser has a saved spreadsheet link. Sign in with Google to open it and load your lists.'
+        : 'Sign in with Google to open your spreadsheet and load your lists.';
+    }
+    if (signedOutEmpty) {
+      signedOutEmpty.setAttribute(
+        'aria-label',
+        hasWorkbook ? 'Reconnect to spreadsheet' : 'Signed out'
       );
     }
-    const key = (pickerApiKey || '').trim();
-    if (!key) {
-      throw new Error(
-        'Set pickerApiKey in config.js (Google Cloud → Credentials → API key; restrict HTTP referrers). Enable the Google Drive API for this project.'
-      );
-    }
-    setStatus(statusEl, 'Select your todo spreadsheet in Google…');
-    await loadPickerApi();
-    const picked = await openSpreadsheetPicker({
-      developerKey: key,
-      accessToken: token,
-      title: 'Choose the spreadsheet for this app'
-    });
-    if (!picked) {
-      throw new Error('No spreadsheet selected.');
-    }
-    if (picked.trim() !== sid.trim()) {
-      throw new Error(
-        'Wrong file selected. Pick the spreadsheet whose ID matches spreadsheetId in config.js.'
-      );
-    }
-    check = await tryFetchSpreadsheetMeta(sid, token);
-    if (!check.ok) {
-      throw new Error(
-        check.text ||
-          'Could not open that spreadsheet after selection. Try again, or confirm Sheets API + Drive API are enabled.'
-      );
-    }
-    setStatus(statusEl, '');
   }
 
   function setConnectedUi(connected) {
+    if (!connected) {
+      refreshSignedOutEmptyCopy();
+    }
+    if (signedOutEmpty) {
+      signedOutEmpty.hidden = connected;
+    }
     todoPanel.hidden = !connected;
-    btnSignin.hidden = connected;
-    btnSignout.hidden = !connected;
+    if (authCard) {
+      authCard.hidden = !connected;
+    }
   }
 
   async function refreshTodos() {
@@ -348,6 +391,37 @@ function main() {
         editWrap.appendChild(btnUpdate);
         li.appendChild(editWrap);
       } else {
+        const done = isTodoDoneValue(todo.done);
+
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.checked = done;
+        chk.className =
+          'mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded border-zinc-300 text-violet-600 focus:ring-violet-400 dark:border-zinc-500 dark:bg-zinc-900 dark:text-violet-500';
+        chk.setAttribute('aria-label', done ? 'Mark as not done' : 'Mark as done');
+        chk.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+        chk.addEventListener('change', async () => {
+          if (!client) {
+            chk.checked = done;
+            return;
+          }
+          const next = chk.checked;
+          chk.disabled = true;
+          try {
+            setStatus(statusEl, next ? 'Marking done…' : 'Marking active…');
+            await client.setTodoDone(todo.id, next);
+            setStatus(statusEl, '');
+            await refreshTodos();
+          } catch (e) {
+            chk.checked = done;
+            setStatus(statusEl, e instanceof Error ? e.message : String(e), true);
+          } finally {
+            chk.disabled = false;
+          }
+        });
+
         const displayTitle = (todo.title || '').trim() || '—';
         const line = document.createElement('div');
         line.className =
@@ -367,10 +441,15 @@ function main() {
         line.appendChild(dateEl);
         line.appendChild(document.createTextNode(' '));
         line.appendChild(contentEl);
-        if (todo.done === 'TRUE' || todo.done === 'true') {
+        if (done) {
           line.classList.add('line-through', 'opacity-65');
         }
-        li.appendChild(line);
+
+        const rowMain = document.createElement('div');
+        rowMain.className = 'flex min-w-0 flex-1 items-start gap-3';
+        rowMain.appendChild(chk);
+        rowMain.appendChild(line);
+        li.appendChild(rowMain);
 
         const editBtn = document.createElement('button');
         editBtn.type = 'button';
@@ -426,18 +505,22 @@ function main() {
    * @param {string | undefined} preferredTitle
    */
   async function populateTabSelect(preferredTitle) {
-    const sid = getConfigSpreadsheetId();
-    if (!sid) {
+    if (!siteDb) {
       return preferredTitle || getEffectiveSheetName();
     }
-    const t = await getAccessToken();
-    const tabs = await listSheetTabs(sid, t);
+    let tabs = await siteDb.listTables();
+    let todoTabs = tabs.filter((tab) => tab.title.startsWith(TODO_TAB_PREFIX));
+    if (todoTabs.length === 0) {
+      await siteDb.createTable(DEFAULT_FULL_SHEET_TITLE);
+      tabs = await siteDb.listTables();
+      todoTabs = tabs.filter((tab) => tab.title.startsWith(TODO_TAB_PREFIX));
+    }
     tabSelectSilence = true;
     sheetTabSelect.replaceChildren();
-    for (const tab of tabs) {
+    for (const tab of todoTabs) {
       const opt = document.createElement('option');
       opt.value = tab.title;
-      opt.textContent = tab.title;
+      opt.textContent = displayNameFromFullTitle(tab.title);
       opt.dataset.sheetId = String(tab.sheetId);
       sheetTabSelect.appendChild(opt);
     }
@@ -452,77 +535,134 @@ function main() {
   }
 
   /**
+   * If `localStorage` has no workbook id, Drive may still list a file created earlier with this app (`drive.file`).
+   * @param {{ id: string, name: string }[]} candidates
+   * @returns {Promise<'create' | string>}
+   */
+  async function resolveUncachedWorkbook(candidates) {
+    const title = candidates[0]?.name ?? 'spreadsheet';
+    if (candidates.length === 1) {
+      const ok = globalThis.confirm(
+        `Found an existing “${title}” from this site in your Google account.\n\nReconnect to it instead of creating a new spreadsheet?`
+      );
+      return ok ? candidates[0].id : 'create';
+    }
+    const ok = globalThis.confirm(
+      `Found ${candidates.length} spreadsheets named “${title}”.\n\nOK = use the most recently updated one. Cancel = create a new spreadsheet.`
+    );
+    return ok ? candidates[0].id : 'create';
+  }
+
+  /**
    * @param {string | null | undefined} preferredTab
-   * @param {{ silent?: boolean }} [opts]
+   * @param {{ silent?: boolean, showLoadingUi?: boolean }} [opts]
    */
   async function connectToSheet(preferredTab, opts = {}) {
-    const { silent = false } = opts;
-    const sid = getConfigSpreadsheetId();
-    if (!clientId) {
-      setStatus(statusEl, 'Set clientId in config.js.', true);
-      throw new Error('No clientId');
+    const { silent = false, showLoadingUi = false } = opts;
+    if (showLoadingUi) {
+      setStatus(statusEl, '');
+      setAppLoading(true, 'Connecting to Google…');
     }
-    if (!sid) {
-      setStatus(statusEl, 'Set spreadsheetId in config.js.', true);
-      throw new Error('No spreadsheet');
-    }
-    await waitForGoogle();
-    initGoogleAuth(clientId);
-    let token = getCachedAccessToken();
-    if (!token) {
-      if (silent) {
+    try {
+      await waitForGoogle();
+      initGoogleAuth();
+      let token = getCachedAccessToken();
+      if (!token) {
+        if (silent) {
+          const storedWorkbookId = getStoredSpreadsheetId();
+          if (storedWorkbookId) {
+            try {
+              await requestAccessToken({ prompt: '' });
+              token = getCachedAccessToken();
+            } catch (e) {
+              if (!isOAuthUserCancelledError(e)) {
+                console.log('[todo] Silent token refresh failed', e);
+              }
+            }
+          }
+          if (!token) {
+            setConnectedUi(false);
+            setStatus(statusEl, '');
+            return;
+          }
+        } else {
+          await getAccessToken();
+          token = getCachedAccessToken();
+          if (!token) {
+            throw new Error('No access token');
+          }
+        }
+      }
+
+      siteDb = null;
+
+      const opened = await openSiteDatabase({
+        getAccessToken,
+        initialTables: [DEFAULT_FULL_SHEET_TITLE],
+        silent,
+        onWillCreateWorkbook: () => {
+          setStatus(statusEl, 'Setting up your data…');
+          if (showLoadingUi) {
+            setAppLoadingMessage('Setting up your spreadsheet…');
+          }
+        },
+        resolveUncachedWorkbook: silent ? undefined : resolveUncachedWorkbook
+      });
+      if (opened === null) {
         setConnectedUi(false);
         setStatus(statusEl, '');
         return;
       }
-      await getAccessToken();
-      token = getCachedAccessToken();
-      if (!token) {
-        throw new Error('No access token');
+      const { db, created } = opened;
+      siteDb = db;
+      if (created) {
+        await db.writeRange(DEFAULT_FULL_SHEET_TITLE, 'A1:D1', [
+          ['id', 'title', 'done', 'createdAt']
+        ]);
+      }
+      setStatus(statusEl, '');
+
+      const tabName = await populateTabSelect(
+        preferredTab != null && preferredTab !== '' ? String(preferredTab) : getEffectiveSheetName()
+      );
+      client = createGoogleSheetClient({
+        db,
+        sheetName: tabName
+      });
+      saveStoredTabName(tabName);
+      await refreshTodos();
+      if (showLoadingUi) {
+        setAppLoading(false);
+      }
+      setConnectedUi(true);
+      setStatus(statusEl, '');
+      console.log('[todo] Connected', {
+        workbookId: db.workbookId,
+        sheetName: tabName,
+        todoRows: todoList.querySelectorAll('li').length,
+        silent
+      });
+    } finally {
+      if (showLoadingUi) {
+        setAppLoading(false);
       }
     }
-    await ensureSpreadsheetAccess(token, { silent: opts.silent });
-    const tabName = await populateTabSelect(
-      preferredTab != null && preferredTab !== '' ? String(preferredTab) : getEffectiveSheetName()
-    );
-    client = createGoogleSheetClient({
-      spreadsheetId: sid,
-      sheetName: tabName,
-      getAccessToken
-    });
-    saveStoredTabName(tabName);
-    await refreshTodos();
-    setConnectedUi(true);
-    setStatus(statusEl, '');
-    console.log('[todo] Connected', {
-      spreadsheetId: sid,
-      sheetName: tabName,
-      todoRows: todoList.querySelectorAll('li').length,
-      silent
-    });
   }
 
   async function tryAutoConnect() {
-    if (!clientId) {
-      setStatus(statusEl, 'Set clientId in config.js.', true);
-      return;
-    }
-    if (!getConfigSpreadsheetId()) {
-      setStatus(statusEl, 'Set spreadsheetId in config.js.');
-      return;
-    }
-    setStatus(statusEl, 'Loading…');
     try {
-      await connectToSheet(null, { silent: true });
+      await connectToSheet(null, { silent: true, showLoadingUi: true });
     } catch (e) {
       if (isOAuthUserCancelledError(e)) {
         client = null;
+        siteDb = null;
         setConnectedUi(false);
         setStatus(statusEl, '');
         return;
       }
       console.log('[todo] Auto-connect failed', e);
       client = null;
+      siteDb = null;
       setConnectedUi(false);
       const msg = e instanceof Error ? e.message : String(e);
       setStatus(
@@ -538,17 +678,15 @@ function main() {
       return;
     }
     const name = sheetTabSelect.value;
-    const sid = getConfigSpreadsheetId();
-    if (!name || !sid) {
+    if (!name || !siteDb) {
       return;
     }
     setStatus(statusEl, 'Loading…');
     try {
       saveStoredTabName(name);
       client = createGoogleSheetClient({
-        spreadsheetId: sid,
-        sheetName: name,
-        getAccessToken
+        db: siteDb,
+        sheetName: name
       });
       await refreshTodos();
       setStatus(statusEl, '');
@@ -559,7 +697,7 @@ function main() {
   });
 
   btnOpenRename.addEventListener('click', () => {
-    renameInput.value = sheetTabSelect.value;
+    renameInput.value = displayNameFromFullTitle(sheetTabSelect.value);
     renameDialog.showModal();
     renameInput.focus();
     renameInput.select();
@@ -577,12 +715,12 @@ function main() {
   });
 
   renameBtnOk.addEventListener('click', async () => {
-    const newTitle = renameInput.value.trim();
-    const sid = getConfigSpreadsheetId();
+    const newDisplay = sanitizeListDisplayName(renameInput.value);
     const opt = sheetTabSelect.selectedOptions[0];
-    if (!newTitle || !opt || !sid) {
+    if (!newDisplay || !opt || !siteDb) {
       return;
     }
+    const newFull = TODO_TAB_PREFIX + newDisplay;
     const sheetIdNum = Number(opt.dataset.sheetId);
     if (!Number.isFinite(sheetIdNum)) {
       return;
@@ -591,16 +729,14 @@ function main() {
     renameBtnCancel.disabled = true;
     try {
       setStatus(statusEl, 'Renaming…');
-      const t = await getAccessToken();
-      await renameSheetTab(sid, sheetIdNum, newTitle, t);
-      opt.value = newTitle;
-      opt.textContent = newTitle;
-      sheetTabSelect.value = newTitle;
-      saveStoredTabName(newTitle);
+      await siteDb.renameTable(sheetIdNum, newFull);
+      opt.value = newFull;
+      opt.textContent = displayNameFromFullTitle(newFull);
+      sheetTabSelect.value = newFull;
+      saveStoredTabName(newFull);
       client = createGoogleSheetClient({
-        spreadsheetId: sid,
-        sheetName: newTitle,
-        getAccessToken
+        db: siteDb,
+        sheetName: newFull
       });
       await refreshTodos();
       setStatus(statusEl, '');
@@ -617,28 +753,23 @@ function main() {
   btnSignin.addEventListener('click', async () => {
     console.log('[todo] Click: Sign in with Google');
     try {
-      if (!clientId) {
-        setStatus(statusEl, 'Set clientId in config.js.', true);
-        return;
-      }
-      if (!getConfigSpreadsheetId()) {
-        setStatus(statusEl, 'Set spreadsheetId in config.js.', true);
-        return;
-      }
       await waitForGoogle();
-      initGoogleAuth(clientId);
+      initGoogleAuth();
       setStatus(statusEl, 'Sign in…');
       console.log('[todo] Waiting for Google (complete the popup if shown).');
       await requestAccessToken({ prompt: 'consent' });
-      setStatus(statusEl, 'Signed in.');
+      setStatus(statusEl, '');
       console.log('[todo] Sign-in finished; connecting…');
-      await connectToSheet(getEffectiveSheetName());
+      await connectToSheet(getEffectiveSheetName(), { showLoadingUi: true });
     } catch (e) {
       if (isOAuthUserCancelledError(e)) {
         setStatus(statusEl, '');
         return;
       }
       console.error('[todo] Sign-in failed', e);
+      client = null;
+      siteDb = null;
+      setConnectedUi(false);
       setStatus(statusEl, e instanceof Error ? e.message : String(e), true);
     }
   });
@@ -646,8 +777,9 @@ function main() {
   btnSignout.addEventListener('click', () => {
     clearAccessToken();
     client = null;
+    siteDb = null;
     setConnectedUi(false);
-    setStatus(statusEl, 'Signed out');
+    setStatus(statusEl, '');
   });
 
   btnOpenAddList.addEventListener('click', () => {
@@ -669,9 +801,14 @@ function main() {
   });
 
   listAddBtnOk.addEventListener('click', async () => {
-    const name = listNameInput.value.trim();
-    const sid = getConfigSpreadsheetId();
-    if (!name || !sid) {
+    let fullTitle;
+    try {
+      fullTitle = fullTitleFromUserListName(listNameInput.value);
+    } catch {
+      addListDialog.close();
+      return;
+    }
+    if (!siteDb) {
       addListDialog.close();
       return;
     }
@@ -679,15 +816,13 @@ function main() {
     listAddBtnCancel.disabled = true;
     try {
       setStatus(statusEl, 'Creating list…');
-      const t = await getAccessToken();
-      await createSheetTab(sid, name, t);
-      await populateTabSelect(name);
-      sheetTabSelect.value = name;
-      saveStoredTabName(name);
+      await siteDb.createTable(fullTitle);
+      await populateTabSelect(fullTitle);
+      sheetTabSelect.value = fullTitle;
+      saveStoredTabName(fullTitle);
       client = createGoogleSheetClient({
-        spreadsheetId: sid,
-        sheetName: name,
-        getAccessToken
+        db: siteDb,
+        sheetName: fullTitle
       });
       await refreshTodos();
       setStatus(statusEl, '');
@@ -710,7 +845,7 @@ function main() {
       );
       return;
     }
-    removeListNameEl.textContent = `“${sheetTabSelect.value}”`;
+    removeListNameEl.textContent = `“${displayNameFromFullTitle(sheetTabSelect.value)}”`;
     removeListDialog.showModal();
   });
 
@@ -719,9 +854,8 @@ function main() {
   });
 
   removeListBtnOk.addEventListener('click', async () => {
-    const sid = getConfigSpreadsheetId();
     const opt = sheetTabSelect.selectedOptions[0];
-    if (!opt || !sid) {
+    if (!opt || !siteDb) {
       removeListDialog.close();
       return;
     }
@@ -734,15 +868,13 @@ function main() {
     removeListBtnCancel.disabled = true;
     try {
       setStatus(statusEl, 'Removing list…');
-      const t = await getAccessToken();
-      await deleteSheetTab(sid, sheetIdNum, t);
+      await siteDb.deleteTable(sheetIdNum);
       await populateTabSelect(undefined);
       const nextTab = sheetTabSelect.value;
       saveStoredTabName(nextTab);
       client = createGoogleSheetClient({
-        spreadsheetId: sid,
-        sheetName: nextTab,
-        getAccessToken
+        db: siteDb,
+        sheetName: nextTab
       });
       await refreshTodos();
       setStatus(statusEl, '');
@@ -777,6 +909,7 @@ function main() {
     }
   });
 
+  refreshSignedOutEmptyCopy();
   void tryAutoConnect();
 }
 

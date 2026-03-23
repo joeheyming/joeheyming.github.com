@@ -1,23 +1,12 @@
 /**
- * Todo rows backed by Google Sheets (uses `../google-db/sheets-api.js`).
- * Re-exports tab helpers for the UI layer.
+ * Todo rows backed by a {@link ../google-db/site-database.js} workbook table.
  */
 
-export {
-  createSheetTab,
-  deleteSheetTab,
-  listSheetTabs,
-  renameSheetTab
-} from '../google-db/sheets-api.js';
+import { a1ColumnLetter } from '../google-db/sheets-api.js';
 
-import {
-  appendRow,
-  a1ColumnLetter,
-  deleteSheetRow,
-  getSheetIdByTitle,
-  getValues,
-  putValues
-} from '../google-db/sheets-api.js';
+/**
+ * @typedef {import('../google-db/site-database.js').SiteDatabase} SiteDatabase
+ */
 
 /**
  * Normalize a header cell for matching: trim, lowercase, collapse spaces, drop underscores.
@@ -92,15 +81,45 @@ function resolveTodoColumnLayout(rows) {
 }
 
 /**
- * @param {string} spreadsheetId
+ * @param {SiteDatabase} db
  * @param {string} sheetName
  * @param {string} id
  * @param {string} newTitle
- * @param {string} accessToken
  */
-async function updateTodoTitleById(spreadsheetId, sheetName, id, newTitle, accessToken) {
-  const range = `${sheetName}!A:D`;
-  const rows = await getValues(spreadsheetId, range, accessToken);
+/**
+ * @param {unknown} doneVal
+ * @returns {boolean}
+ */
+export function isTodoDoneValue(doneVal) {
+  const s = String(doneVal ?? '')
+    .trim()
+    .toUpperCase();
+  return s === 'TRUE' || s === '1' || s === 'YES';
+}
+
+async function updateTodoDoneById(db, sheetName, id, done) {
+  const rows = await db.readRange(sheetName, 'A:D');
+  if (!rows.length) {
+    throw new Error('Sheet has no rows');
+  }
+  const { idI, doneI, firstDataRow } = resolveTodoColumnLayout(rows);
+  if (doneI === -1) {
+    throw new Error('No done column found');
+  }
+  const cell = done ? 'TRUE' : 'FALSE';
+  for (let i = firstDataRow; i < rows.length; i++) {
+    if (String(rows[i][idI] ?? '').trim() === id) {
+      const sheetRow = i + 1;
+      const col = a1ColumnLetter(doneI);
+      await db.writeRange(sheetName, `${col}${sheetRow}`, [[cell]]);
+      return;
+    }
+  }
+  throw new Error('Todo not found');
+}
+
+async function updateTodoTitleById(db, sheetName, id, newTitle) {
+  const rows = await db.readRange(sheetName, 'A:D');
   if (!rows.length) {
     throw new Error('Sheet has no rows');
   }
@@ -112,8 +131,7 @@ async function updateTodoTitleById(spreadsheetId, sheetName, id, newTitle, acces
     if (String(rows[i][idI] ?? '').trim() === id) {
       const sheetRow = i + 1;
       const col = a1ColumnLetter(titleI);
-      const cellRange = `${sheetName}!${col}${sheetRow}`;
-      await putValues(spreadsheetId, cellRange, [[newTitle]], accessToken);
+      await db.writeRange(sheetName, `${col}${sheetRow}`, [[newTitle]]);
       return;
     }
   }
@@ -121,45 +139,36 @@ async function updateTodoTitleById(spreadsheetId, sheetName, id, newTitle, acces
 }
 
 /**
- * @param {string} spreadsheetId
+ * @param {SiteDatabase} db
  * @param {string} sheetName
  * @param {string} id
- * @param {string} accessToken
  */
-async function deleteRowById(spreadsheetId, sheetName, id, accessToken) {
-  const range = `${sheetName}!A:D`;
-  const rows = await getValues(spreadsheetId, range, accessToken);
+async function deleteRowById(db, sheetName, id) {
+  const rows = await db.readRange(sheetName, 'A:D');
   if (!rows.length) {
     return;
   }
   const { idI: idCol, firstDataRow } = resolveTodoColumnLayout(rows);
-  const sheetId = await getSheetIdByTitle(spreadsheetId, sheetName, accessToken);
   for (let i = firstDataRow; i < rows.length; i++) {
     if (String(rows[i][idCol] ?? '').trim() === id) {
-      await deleteSheetRow(spreadsheetId, sheetId, i + 1, accessToken);
+      await db.deleteTableDataRow(sheetName, i + 1);
       return;
     }
   }
 }
 
 /**
- * @param {{ spreadsheetId: string, sheetName: string, getAccessToken: () => Promise<string> }} opts
+ * @param {{ db: SiteDatabase, sheetName: string }} opts
  */
 export function createGoogleSheetClient(opts) {
-  const { spreadsheetId, sheetName, getAccessToken } = opts;
-
-  async function token() {
-    return getAccessToken();
-  }
+  const { db, sheetName } = opts;
 
   return {
     sheetName,
 
     /** @returns {Promise<{ id: string, title: string, done: string, createdAt: string }[]>} */
     async listTodos() {
-      const t = await token();
-      const range = `${sheetName}!A:D`;
-      const rows = await getValues(spreadsheetId, range, t);
+      const rows = await db.readRange(sheetName, 'A:D');
       if (!rows.length) {
         return [];
       }
@@ -179,21 +188,23 @@ export function createGoogleSheetClient(opts) {
 
     /** @param {string} title */
     async addTodo(title) {
-      const t = await token();
       const row = [crypto.randomUUID(), title, 'FALSE', new Date().toISOString()];
-      await appendRow(spreadsheetId, `${sheetName}!A:D`, row, t);
+      await db.appendTableRow(sheetName, 'A:D', row);
     },
 
     /** @param {string} id */
     async removeTodo(id) {
-      const t = await token();
-      await deleteRowById(spreadsheetId, sheetName, id, t);
+      await deleteRowById(db, sheetName, id);
     },
 
     /** @param {string} id @param {string} title */
     async updateTodoTitle(id, title) {
-      const t = await token();
-      await updateTodoTitleById(spreadsheetId, sheetName, id, title, t);
+      await updateTodoTitleById(db, sheetName, id, title);
+    },
+
+    /** @param {string} id @param {boolean} done */
+    async setTodoDone(id, done) {
+      await updateTodoDoneById(db, sheetName, id, done);
     }
   };
 }

@@ -85,11 +85,24 @@
         }
       };
     </script>
+    <style>
+      /* HTML [hidden] loses to Tailwind utilities like `flex` on the same node — force collapse. */
+      #signed-out-empty[hidden],
+      #app-loading[hidden] {
+        display: none !important;
+      }
+      /* Never show sign-out footer while signed-out or loading is visible */
+      #todo-app-root:has(#signed-out-empty:not([hidden])) #auth-card,
+      #todo-app-root:has(#app-loading:not([hidden])) #auth-card {
+        display: none !important;
+      }
+    </style>
   </head>
   <body
     class="min-h-full bg-gradient-to-br from-violet-100/90 via-zinc-50 to-fuchsia-50/70 font-sans text-zinc-900 antialiased dark:from-zinc-950 dark:via-zinc-900 dark:to-violet-950/40 dark:text-zinc-100"
   >
     <div
+      id="todo-app-root"
       class="mx-auto flex min-h-dvh max-w-xl flex-col px-4 pt-6 sm:px-6 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]"
     >
       <header class="mb-6 flex flex-nowrap items-center justify-between gap-3">
@@ -105,7 +118,68 @@
         ></div>
       </header>
 
-      <div class="min-h-0 flex-1">
+      <div class="min-h-0 flex flex-1 flex-col">
+        <div
+          id="app-loading"
+          class="flex min-h-[min(52vh,28rem)] flex-1 flex-col items-center justify-center px-1 py-6 sm:py-10"
+          role="status"
+          aria-live="polite"
+          hidden
+        >
+          <div
+            class="w-full max-w-md rounded-2xl border border-zinc-200/90 bg-white/90 p-8 text-center shadow-xl shadow-zinc-200/40 backdrop-blur-md dark:border-zinc-700/90 dark:bg-zinc-900/90 dark:shadow-black/30"
+          >
+            <div
+              class="mx-auto mb-4 h-11 w-11 animate-spin rounded-full border-2 border-zinc-200 border-t-violet-600 dark:border-zinc-600 dark:border-t-violet-400"
+              aria-hidden="true"
+            ></div>
+            <p
+              id="app-loading-message"
+              class="text-sm font-medium text-zinc-700 dark:text-zinc-200"
+            >
+              Connecting to Google…
+            </p>
+            <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+              Talking to Google APIs; you’re still signed in if you have a session.
+            </p>
+          </div>
+        </div>
+        <div
+          id="signed-out-empty"
+          class="flex min-h-[min(52vh,28rem)] flex-1 flex-col items-center justify-center px-1 py-6 sm:py-10"
+          role="region"
+          aria-label="Signed out"
+        >
+          <div
+            class="w-full max-w-md rounded-2xl border border-violet-200/80 bg-white/90 p-8 text-center shadow-xl shadow-violet-200/30 backdrop-blur-md dark:border-violet-800/50 dark:bg-zinc-900/90 dark:shadow-black/40"
+          >
+            <p
+              class="mb-3 text-4xl leading-none"
+              aria-hidden="true"
+            >
+              🔓
+            </p>
+            <h2
+              id="signed-out-empty-title"
+              class="text-lg font-semibold text-zinc-900 dark:text-zinc-50 sm:text-xl"
+            >
+              You’re signed out
+            </h2>
+            <p
+              id="signed-out-empty-body"
+              class="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400"
+            >
+              Sign in with Google to open your spreadsheet and load your lists.
+            </p>
+            <button
+              type="button"
+              id="btn-signin"
+              class="mt-6 w-full rounded-full border border-violet-300 bg-violet-50 px-5 py-3 text-sm font-semibold text-violet-900 shadow-sm transition hover:border-violet-400 hover:bg-violet-100 dark:border-violet-700 dark:bg-violet-950/80 dark:text-violet-100 dark:hover:border-violet-500 dark:hover:bg-violet-900/60 sm:w-auto sm:px-8"
+            >
+              Sign in with Google
+            </button>
+          </div>
+        </div>
         <div
           id="todo-panel"
           class="mb-4 rounded-2xl border border-zinc-200/90 bg-white/85 p-4 shadow-xl shadow-zinc-200/40 backdrop-blur-md dark:border-zinc-700/90 dark:bg-zinc-900/85 dark:shadow-black/30"
@@ -188,25 +262,16 @@
 
       <footer
         id="auth-card"
+        hidden
         class="mt-auto flex flex-wrap items-center justify-start gap-3 rounded-2xl border border-zinc-200/90 bg-white/85 p-4 shadow-xl shadow-zinc-200/40 backdrop-blur-md dark:border-zinc-700/90 dark:bg-zinc-900/85 dark:shadow-black/30"
       >
-        <div class="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            id="btn-signout"
-            class="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 shadow-sm transition hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
-            hidden
-          >
-            Sign out
-          </button>
-          <button
-            type="button"
-            id="btn-signin"
-            class="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 shadow-sm transition hover:border-violet-400 hover:bg-violet-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-violet-500 dark:hover:bg-zinc-700"
-          >
-            Sign in with Google
-          </button>
-        </div>
+        <button
+          type="button"
+          id="btn-signout"
+          class="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 shadow-sm transition hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+        >
+          Sign out
+        </button>
       </footer>
     </div>
 
@@ -338,7 +403,6 @@
     </template>
 
     <script src="/share.js"></script>
-    <script src="https://apis.google.com/js/api.js" defer></script>
     <script src="https://accounts.google.com/gsi/client" defer></script>
     <script type="module" src="./app.js"></script>
   </body>

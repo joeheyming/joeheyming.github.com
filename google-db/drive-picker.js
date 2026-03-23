@@ -27,7 +27,7 @@ export function loadPickerApi() {
 }
 
 /**
- * Opens a spreadsheet-only picker. User must select the file that matches your configured ID.
+ * Opens a spreadsheet-only picker so the user grants `drive.file` access to one file.
  *
  * @param {{ developerKey: string, accessToken: string, title?: string }} opts
  * @returns {Promise<string | null>} Drive file id, or `null` if cancelled
