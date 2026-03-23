@@ -6,19 +6,95 @@ import {
   getStoredSpreadsheetId,
   waitForGoogle
 } from '../google-db/google-auth.js';
-import { openSiteDatabase } from '../google-db/site-database.js';
+import { openSiteDatabase, SiteDatabase } from '../google-db/site-database.js';
 import { createGoogleSheetClient } from './todo-sheets.js';
 import {
   DEFAULT_FULL_SHEET_TITLE,
   TODO_TAB_PREFIX,
   displayNameFromFullTitle,
   getEffectiveSheetName,
-  saveStoredTabName
+  getEffectiveListSpreadsheetId,
+  loadStoredListSpreadsheetId,
+  openedListValue,
+  saveStoredListSpreadsheetId,
+  saveStoredTabName,
+  sheetTitleFromListValue
 } from './todo-constants.js';
+import { readExternalListEntries } from './todo-manifest.js';
+import { loadOpenedSharedEntries } from './todo-opened-shared.js';
 import { setStatus } from './todo-ui.js';
 
 /**
- * If `localStorage` has no workbook id, Drive may still list a file created earlier with this app (`drive.file`).
+ * @param {HTMLOptionElement} opt
+ * @param {string} mainWorkbookId
+ * @returns {string}
+ */
+function optionWorkbookId(opt, mainWorkbookId) {
+  const d = (opt.dataset.spreadsheetId || '').trim();
+  return d || mainWorkbookId;
+}
+
+/**
+ * @param {HTMLSelectElement} sheetTabSelect
+ * @param {string} wantValue
+ * @param {string} mainWorkbookId
+ */
+function selectMatchingOption(sheetTabSelect, wantValue, mainWorkbookId) {
+  const want = wantValue.trim();
+  const wantWbRaw = loadStoredListSpreadsheetId();
+  const opts = [...sheetTabSelect.options];
+
+  if (wantWbRaw) {
+    const wantWbResolved = wantWbRaw;
+    const found = opts.find(
+      (o) =>
+        o.value === want &&
+        optionWorkbookId(/** @type {HTMLOptionElement} */ (o), mainWorkbookId) === wantWbResolved
+    );
+    if (found) {
+      sheetTabSelect.value = found.value;
+      return;
+    }
+  }
+
+  const sameValue = opts.filter((o) => o.value === want);
+  if (sameValue.length === 1) {
+    sheetTabSelect.value = sameValue[0].value;
+    return;
+  }
+
+  if (want.startsWith('opened:')) {
+    const found = opts.find((o) => o.value === want);
+    if (found) {
+      sheetTabSelect.value = found.value;
+      return;
+    }
+  }
+
+  if (opts[0]) {
+    sheetTabSelect.value = opts[0].value;
+  }
+}
+
+/**
+ * @param {{
+ *   siteDb: import('../google-db/site-database.js').SiteDatabase,
+ *   listValue: string,
+ *   getAccessToken: () => Promise<string>
+ * }} opts
+ * @returns {ReturnType<typeof createGoogleSheetClient>}
+ */
+export function createListClient(opts) {
+  const { siteDb, listValue, getAccessToken } = opts;
+  const mainId = siteDb.workbookId;
+  const sheetTitle = sheetTitleFromListValue(listValue);
+  const wid = getEffectiveListSpreadsheetId(mainId);
+  const listDb = wid === mainId ? siteDb : new SiteDatabase(wid, getAccessToken);
+  return createGoogleSheetClient({ db: listDb, sheetName: sheetTitle });
+}
+
+/**
+ * If `localStorage` has no workbook id, Drive may still list a file created with this app (`drive.file`).
  * @param {{ id: string, name: string }[]} candidates
  * @returns {Promise<'create' | string>}
  */
@@ -84,6 +160,7 @@ export function createWorkbookConnection(deps) {
     if (!state.siteDb) {
       return preferredTitle || getEffectiveSheetName();
     }
+    const mainId = state.siteDb.workbookId;
     let tabs = await state.siteDb.listTables();
     let todoTabs = tabs.filter((tab) => tab.title.startsWith(TODO_TAB_PREFIX));
     if (todoTabs.length === 0) {
@@ -91,23 +168,69 @@ export function createWorkbookConnection(deps) {
       tabs = await state.siteDb.listTables();
       todoTabs = tabs.filter((tab) => tab.title.startsWith(TODO_TAB_PREFIX));
     }
+
+    const external = await readExternalListEntries(state.siteDb);
+    const mainTitles = new Set(todoTabs.map((t) => t.title));
+    const opened = loadOpenedSharedEntries();
+
     state.tabSelectSilence = true;
     sheetTabSelect.replaceChildren();
+
     for (const tab of todoTabs) {
       const opt = document.createElement('option');
       opt.value = tab.title;
       opt.textContent = displayNameFromFullTitle(tab.title);
       opt.dataset.sheetId = String(tab.sheetId);
+      opt.dataset.listOrigin = 'main';
+      opt.dataset.spreadsheetId = '';
       sheetTabSelect.appendChild(opt);
     }
-    const want = (preferredTitle || '').trim() || getEffectiveSheetName();
-    let chosen = want;
-    if (![...sheetTabSelect.options].some((o) => o.value === want)) {
-      chosen = sheetTabSelect.options[0]?.value || want;
+
+    for (const ex of external) {
+      if (mainTitles.has(ex.fullTabTitle)) {
+        continue;
+      }
+      const opt = document.createElement('option');
+      opt.value = ex.fullTabTitle;
+      opt.textContent = displayNameFromFullTitle(ex.fullTabTitle);
+      opt.dataset.listOrigin = 'manifest';
+      opt.dataset.spreadsheetId = ex.spreadsheetId;
+      opt.dataset.sheetTitle = ex.sheetTitle;
+      opt.dataset.sheetId = '';
+      sheetTabSelect.appendChild(opt);
     }
-    sheetTabSelect.value = chosen;
+
+    for (const o of opened) {
+      const opt = document.createElement('option');
+      opt.value = openedListValue(o.spreadsheetId, o.sheetTitle);
+      opt.textContent = `${displayNameFromFullTitle(o.sheetTitle)} (shared)`;
+      opt.dataset.listOrigin = 'opened';
+      opt.dataset.spreadsheetId = o.spreadsheetId;
+      opt.dataset.sheetTitle = o.sheetTitle;
+      opt.dataset.sheetId = '';
+      sheetTabSelect.appendChild(opt);
+    }
+
+    const want = (preferredTitle || '').trim() || getEffectiveSheetName();
+    selectMatchingOption(sheetTabSelect, want, mainId);
+
+    const chosen = sheetTabSelect.value;
     state.tabSelectSilence = false;
     return chosen;
+  }
+
+  function applySelectionToClient(listValue) {
+    if (!state.siteDb) {
+      return;
+    }
+    const opt = sheetTabSelect.selectedOptions[0];
+    saveStoredListSpreadsheetId((opt?.dataset.spreadsheetId || '').trim());
+    state.client = createListClient({
+      siteDb: state.siteDb,
+      listValue,
+      getAccessToken
+    });
+    saveStoredTabName(listValue);
   }
 
   /**
@@ -153,7 +276,7 @@ export function createWorkbookConnection(deps) {
 
       state.siteDb = null;
 
-      const opened = await openSiteDatabase({
+      const openResult = await openSiteDatabase({
         getAccessToken,
         initialTables: [DEFAULT_FULL_SHEET_TITLE],
         silent,
@@ -165,12 +288,12 @@ export function createWorkbookConnection(deps) {
         },
         resolveUncachedWorkbook: silent ? undefined : resolveUncachedWorkbook
       });
-      if (opened === null) {
+      if (openResult === null) {
         setConnectedUi(false);
         setStatus(statusEl, '');
         return;
       }
-      const { db, created } = opened;
+      const { db, created } = openResult;
       state.siteDb = db;
       if (created) {
         await db.writeRange(DEFAULT_FULL_SHEET_TITLE, 'A1:D1', [
@@ -179,23 +302,22 @@ export function createWorkbookConnection(deps) {
       }
       setStatus(statusEl, '');
 
-      const tabName = await populateTabSelect(
+      const listValue = await populateTabSelect(
         preferredTab != null && preferredTab !== '' ? String(preferredTab) : getEffectiveSheetName()
       );
-      state.client = createGoogleSheetClient({
-        db,
-        sheetName: tabName
-      });
-      saveStoredTabName(tabName);
+      applySelectionToClient(listValue);
       await getRefreshTodos()();
       if (showLoadingUi) {
         setAppLoading(false);
       }
       setConnectedUi(true);
       setStatus(statusEl, '');
+      const opt = sheetTabSelect.selectedOptions[0];
       console.log('[todo] Connected', {
         workbookId: db.workbookId,
-        sheetName: tabName,
+        listValue,
+        listSpreadsheetId: (opt?.dataset.spreadsheetId || '').trim() || db.workbookId,
+        sheetTitle: sheetTitleFromListValue(listValue),
         todoRows: todoList.querySelectorAll('li').length,
         silent
       });
@@ -230,5 +352,11 @@ export function createWorkbookConnection(deps) {
     }
   }
 
-  return { connectToSheet, tryAutoConnect, populateTabSelect, getAccessToken };
+  return {
+    connectToSheet,
+    tryAutoConnect,
+    populateTabSelect,
+    getAccessToken,
+    applySelectionToClient
+  };
 }

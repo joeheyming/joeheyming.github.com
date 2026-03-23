@@ -16,6 +16,8 @@ export const IDS = {
   btnOpenAddList: 'btn-open-add-list',
   btnRemoveList: 'btn-remove-list',
   btnOpenRename: 'btn-open-rename',
+  btnOpenShareList: 'btn-open-share-list',
+  btnOpenAddShared: 'btn-open-add-shared',
   newTitle: 'new-title',
   btnAdd: 'btn-add',
   todoList: 'todo-list',
@@ -96,6 +98,16 @@ export function getBtnRemoveList() {
 /** @returns {HTMLElement | null} */
 export function getBtnOpenRename() {
   return document.getElementById(IDS.btnOpenRename);
+}
+
+/** @returns {HTMLElement | null} */
+export function getBtnOpenShareList() {
+  return document.getElementById(IDS.btnOpenShareList);
+}
+
+/** @returns {HTMLElement | null} */
+export function getBtnOpenAddShared() {
+  return document.getElementById(IDS.btnOpenAddShared);
 }
 
 /** @returns {HTMLInputElement | null} */
