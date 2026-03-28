@@ -93,6 +93,23 @@ let appRegistry = [
     tags: ['arcade', 'retro', 'popular', '3d']
   },
   {
+    id: 'periodic-speller',
+    name: 'Periodic Speller ⚛️',
+    shortName: 'Periodic',
+    description: 'Spell words with element symbols',
+    detailedDescription: 'Spell words using periodic table element symbols. Export as PNG.',
+    icon: '⚛️',
+    path: './periodic-speller/',
+    category: 'utility',
+    gradient: 'from-cyan-500/20 to-blue-500/20',
+    border: 'border-cyan-500/30 hover:border-cyan-400/50',
+    taskbarGradient: 'from-cyan-500 to-blue-500',
+    taskbarText: 'text-white',
+    defaultWidth: 800,
+    defaultHeight: 600,
+    tags: ['science', 'chemistry', 'fun', 'export']
+  },
+  {
     id: 'pbs',
     name: 'Pirate Broadcast System 🏴‍☠️',
     shortName: 'Pirates',
