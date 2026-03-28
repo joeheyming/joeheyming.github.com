@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -36,10 +36,7 @@
     <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Periodic Table Speller" />
-    <meta
-      property="og:title"
-      content="Periodic Table Speller - Spell Words with Element Symbols"
-    />
+    <meta property="og:title" content="Periodic Table Speller - Spell Words with Element Symbols" />
     <meta
       property="og:description"
       content="Spell words using periodic table element symbols. Type any word and see it broken into element tiles. Export as PNG. Free, no ads."
@@ -120,7 +117,7 @@
       }
     </script>
 
-    <script defer src="index.js"></script>
+    <script type="module" src="index.js"></script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this application.</noscript>
@@ -153,23 +150,97 @@
       </div>
       <div id="tiles" class="tiles"></div>
       <div class="export-row" id="exportRow" hidden>
+        <div class="theme-picker-wrap">
+          <button id="themeBtn" class="export-btn" title="Change tile theme">🎨 Theme</button>
+          <div id="themePopover" class="theme-popover" hidden></div>
+        </div>
         <label class="export-option">
           <input type="checkbox" id="transparentBg" />
-          Transparent background
+          Transparent
         </label>
         <button id="exportBtn" class="export-btn" title="Download as PNG">Save as PNG</button>
+        <button id="shareLinkBtn" class="export-btn" title="Copy shareable link">
+          🔗 Copy Link
+        </button>
+      </div>
+      <div id="customElList" class="custom-el-list" hidden>
+        <div class="custom-el-list-header">
+          <span>Custom Elements</span>
+          <button
+            id="clearAllCustom"
+            class="custom-el-clear-all"
+            title="Remove all custom elements"
+          >
+            Clear All
+          </button>
+        </div>
+        <div id="customElItems"></div>
       </div>
       <details class="how-it-works">
         <summary>How it works</summary>
         <p>
           Each letter or pair of letters is matched against the 118 element symbols from the
-          periodic table. The algorithm tries two-letter symbols first (like <strong>He</strong>,
-          <strong>Li</strong>, <strong>Ac</strong>) then falls back to single-letter ones
-          (<strong>B</strong>, <strong>C</strong>, <strong>N</strong>, etc.). If a full
-          decomposition can't be found, it shows which letters couldn't be matched.
+          periodic table. The algorithm tries two-letter symbols first (like
+          <strong>He</strong>
+          ,
+          <strong>Li</strong>
+          ,
+          <strong>Ac</strong>
+          ) then falls back to single-letter ones (
+          <strong>B</strong>
+          ,
+          <strong>C</strong>
+          ,
+          <strong>N</strong>
+          , etc.). If a full decomposition can't be found, unmatched letters appear as clickable
+          gray tiles &mdash; click one to create a custom fake element for that symbol.
         </p>
       </details>
     </main>
+
+    <div id="customElementModal" class="modal-overlay" hidden>
+      <div class="modal-content custom-el-dialog">
+        <div class="modal-header">
+          <h2>Create Custom Element</h2>
+          <button
+            class="modal-close"
+            onclick="document.getElementById('customElementModal').hidden=true"
+            title="Close"
+          >
+            ✕
+          </button>
+        </div>
+        <p class="custom-el-hint">
+          No element matches "
+          <span id="customElSymbolPreview"></span>
+          ". Create a fake one so it renders as a tile.
+        </p>
+        <form id="customElForm" autocomplete="off">
+          <div class="custom-el-field">
+            <label for="customElSymbol">Symbol</label>
+            <input type="text" id="customElSymbol" maxlength="2" readonly />
+          </div>
+          <div class="custom-el-field">
+            <label for="customElName">Name</label>
+            <input type="text" id="customElName" placeholder="e.g. Joium" maxlength="20" required />
+          </div>
+          <div class="custom-el-field">
+            <label for="customElNumber">Number</label>
+            <input type="number" id="customElNumber" placeholder="119" required />
+          </div>
+          <div class="custom-el-actions">
+            <button type="submit" class="export-btn custom-el-save">Create Element</button>
+            <button
+              type="button"
+              class="export-btn"
+              onclick="document.getElementById('customElementModal').hidden=true"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <div id="tableModal" class="modal-overlay" hidden>
       <div class="modal-content">
@@ -189,11 +260,7 @@
           shareBtn.textGenerator = function () {
             var text = document.getElementById('wordInput').value.trim();
             if (text) {
-              return (
-                'I spelled "' +
-                text +
-                '" with periodic table elements! Try it yourself: ⚛️'
-              );
+              return 'I spelled "' + text + '" with periodic table elements! Try it yourself: ⚛️';
             }
             return 'Spell words using periodic table element symbols! ⚛️';
           };
