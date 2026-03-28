@@ -119,6 +119,10 @@
     shadowbox: {
       category: 'utility',
       related: ['badapple', 'image-viewer', 'terminal']
+    },
+    'periodic-speller': {
+      category: 'utility',
+      related: ['wordle-finder', 'calculator', 'countdown']
     }
   };
 
@@ -148,7 +152,8 @@
     'vibe-coding': { name: 'Vibe Coding', icon: '🤖', description: 'Web dev tips' },
     sayhello: { name: 'Say Hello', icon: '👋', description: 'Text-to-speech' },
     sayit: { name: 'Say It', icon: '🗣️', description: 'Advanced TTS' },
-    shadowbox: { name: 'Shadowbox', icon: '🕵️', description: 'Surveillance mode' }
+    shadowbox: { name: 'Shadowbox', icon: '🕵️', description: 'Surveillance mode' },
+    'periodic-speller': { name: 'Periodic Speller', icon: '⚛️', description: 'Spell with elements' }
   };
 
   // Get current project from URL

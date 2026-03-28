@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="icon"
+      id="site-favicon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚛️</text></svg>"
+    />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <title>Periodic Table Speller - Spell Words with Element Symbols | Joe Heyming</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta
+      name="description"
+      content="Spell words using periodic table element symbols. Type any word and see it broken into element tiles like a chemistry nerd. Free, no ads."
+    />
+    <meta
+      name="keywords"
+      content="periodic table, element speller, chemistry, element symbols, periodic table word game, spell with elements, science tool, ad-free, no ads"
+    />
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Periodic Table Speller" />
+    <meta
+      property="og:title"
+      content="Periodic Table Speller - Spell Words with Element Symbols"
+    />
+    <meta
+      property="og:description"
+      content="Spell words using periodic table element symbols. Type any word and see it broken into element tiles. Export as PNG. Free, no ads."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/periodic-speller/" />
+    <meta property="og:locale" content="en_US" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/periodic-speller/periodic-speller-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta
+      name="twitter:title"
+      content="Periodic Table Speller - Spell Words with Element Symbols"
+    />
+    <meta
+      name="twitter:description"
+      content="Spell words using periodic table element symbols. Type any word and see it broken into element tiles. Export as PNG. Free, no ads."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/periodic-speller/periodic-speller-preview.png"
+    />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://joeheyming.github.io/periodic-speller/" />
+
+    <!-- iOS optimizations -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Periodic Speller" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <link href="index.css" rel="stylesheet" />
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "BrowserApplication",
+            "applicationCategory": "BrowserApplication",
+            "inLanguage": "en",
+            "name": "Periodic Table Speller",
+            "url": "https://joeheyming.github.io/periodic-speller/",
+            "description": "Spell words using periodic table element symbols. Type any word and see it broken into element tiles.",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "keywords": "periodic table, element speller, chemistry, spell with elements"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Periodic Table Speller"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <script defer src="index.js"></script>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this application.</noscript>
+    <header>
+      <h1>
+        Periodic Table Speller
+        <share-button label="📤 Share" theme="gradient" style="margin-left: 10px"></share-button>
+      </h1>
+      <p class="subtitle">Type a word and spell it with element symbols</p>
+    </header>
+    <main>
+      <div class="input-area">
+        <div class="input-wrap">
+          <textarea
+            id="wordInput"
+            rows="2"
+            placeholder="e.g. bacon, genius, copper...&#10;Use newlines for multiple rows"
+            autocomplete="off"
+            autofocus
+          ></textarea>
+          <button id="clearBtn" title="Clear">✕</button>
+        </div>
+        <button id="tableBtn" title="Periodic Table Reference">⚛</button>
+      </div>
+      <div id="result" class="result"></div>
+      <div id="noMatch" class="no-match" hidden>
+        <span class="no-match-icon">🧪</span>
+        <p>Can't spell that with element symbols!</p>
+        <p class="no-match-hint">Unmatched letters shown in gray below.</p>
+      </div>
+      <div id="tiles" class="tiles"></div>
+      <div class="export-row" id="exportRow" hidden>
+        <label class="export-option">
+          <input type="checkbox" id="transparentBg" />
+          Transparent background
+        </label>
+        <button id="exportBtn" class="export-btn" title="Download as PNG">Save as PNG</button>
+      </div>
+      <details class="how-it-works">
+        <summary>How it works</summary>
+        <p>
+          Each letter or pair of letters is matched against the 118 element symbols from the
+          periodic table. The algorithm tries two-letter symbols first (like <strong>He</strong>,
+          <strong>Li</strong>, <strong>Ac</strong>) then falls back to single-letter ones
+          (<strong>B</strong>, <strong>C</strong>, <strong>N</strong>, etc.). If a full
+          decomposition can't be found, it shows which letters couldn't be matched.
+        </p>
+      </details>
+    </main>
+
+    <div id="tableModal" class="modal-overlay" hidden>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Periodic Table of Elements</h2>
+          <button id="closeModal" class="modal-close" title="Close">✕</button>
+        </div>
+        <div class="modal-legend" id="modalLegend"></div>
+        <div class="periodic-grid" id="periodicGrid"></div>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        var shareBtn = document.querySelector('share-button');
+        if (shareBtn) {
+          shareBtn.textGenerator = function () {
+            var text = document.getElementById('wordInput').value.trim();
+            if (text) {
+              return (
+                'I spelled "' +
+                text +
+                '" with periodic table elements! Try it yourself: ⚛️'
+              );
+            }
+            return 'Spell words using periodic table element symbols! ⚛️';
+          };
+        }
+      });
+    </script>
+  </body>
+</html>

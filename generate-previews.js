@@ -107,6 +107,11 @@ const PAGES = [
     url: `${BASE_URL}/rantbox/`,
     output: 'rantbox/rantbox-preview.png',
     title: 'Rantbox - The Angriest Page'
+  },
+  {
+    url: `${BASE_URL}/periodic-speller/`,
+    output: 'periodic-speller/periodic-speller-preview.png',
+    title: 'Periodic Table Speller'
   }
 ];
 
