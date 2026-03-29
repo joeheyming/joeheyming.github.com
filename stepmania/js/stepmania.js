@@ -253,12 +253,11 @@ function step(col) {
         if (diff <= TIMING_WINDOWS[j]) {
           noteProps.tapNoteScore = j;
           tapNoteScore = j;
+          hit = true;
           break;
         }
       }
     }
-
-    hit = true;
   });
 
   if (mineHit) {
