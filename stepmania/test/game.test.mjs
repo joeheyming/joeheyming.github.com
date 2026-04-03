@@ -454,3 +454,160 @@ describe('Freeze arrow scoring (regression)', () => {
     assert.equal(result.hit, false, 'hold head on col 0 should not score as tap');
   });
 });
+
+// ==========================================================================
+// Scroll mode state management
+// ==========================================================================
+
+describe('Scroll mode state', () => {
+  beforeEach(() => gameState.resetState());
+
+  it('defaults to xmod with speed 2', () => {
+    assert.equal(gameState.getScrollMode(), 'xmod');
+    assert.equal(gameState.getScrollSpeed(), 2);
+  });
+
+  it('defaults scrollBPM to 300', () => {
+    assert.equal(gameState.getScrollBPM(), 300);
+  });
+
+  it('toggles between xmod and cmod', () => {
+    assert.equal(gameState.toggleScrollMode(), 'cmod');
+    assert.equal(gameState.getScrollMode(), 'cmod');
+    assert.equal(gameState.toggleScrollMode(), 'xmod');
+    assert.equal(gameState.getScrollMode(), 'xmod');
+  });
+
+  it('rejects invalid scroll modes', () => {
+    gameState.setScrollMode('invalid');
+    assert.equal(gameState.getScrollMode(), 'xmod');
+  });
+
+  it('clamps scrollBPM to 100-1000', () => {
+    gameState.setScrollBPM(50);
+    assert.equal(gameState.getScrollBPM(), 100);
+    gameState.setScrollBPM(2000);
+    assert.equal(gameState.getScrollBPM(), 1000);
+    gameState.setScrollBPM(400);
+    assert.equal(gameState.getScrollBPM(), 400);
+  });
+
+  it('returns correct speed label for xmod', () => {
+    gameState.setScrollSpeed(3);
+    assert.equal(gameState.getScrollSpeedLabel(), 'x3.0');
+  });
+
+  it('returns correct speed label for cmod', () => {
+    gameState.setScrollMode('cmod');
+    gameState.setScrollBPM(450);
+    assert.equal(gameState.getScrollSpeedLabel(), 'C450');
+  });
+
+  it('persists scroll settings across resetScores', () => {
+    gameState.setScrollMode('cmod');
+    gameState.setScrollBPM(500);
+    gameState.setScrollSpeed(4);
+    gameState.resetScores();
+    assert.equal(gameState.getScrollMode(), 'cmod');
+    assert.equal(gameState.getScrollBPM(), 500);
+    assert.equal(gameState.getScrollSpeed(), 4);
+  });
+
+  it('includes scroll state in snapshot', () => {
+    gameState.setScrollMode('cmod');
+    gameState.setScrollBPM(350);
+    const snap = gameState.getStateSnapshot();
+    assert.equal(snap.scrollMode, 'cmod');
+    assert.equal(snap.scrollBPM, 350);
+  });
+});
+
+// ==========================================================================
+// CMod Y positioning
+// ==========================================================================
+
+describe('CMod note positioning', () => {
+  const ARROW_SIZE = 64;
+  const TARGETS_Y = 32;
+
+  beforeEach(() => {
+    gameState.resetState();
+  });
+
+  function xmodY(beatUntilNote, scrollSpeed, currentBPM, baseBPM) {
+    const effectiveSpeed = scrollSpeed * (currentBPM / baseBPM);
+    return TARGETS_Y + beatUntilNote * ARROW_SIZE * effectiveSpeed;
+  }
+
+  function cmodY(noteBeat, musicBeat, scrollBPM) {
+    const noteSeconds = beatsToSeconds(noteBeat);
+    const musicSeconds = beatsToSeconds(musicBeat);
+    const secondsUntil = noteSeconds - musicSeconds;
+    const pxPerSec = (scrollBPM / 60) * ARROW_SIZE;
+    return TARGETS_Y + secondsUntil * pxPerSec;
+  }
+
+  describe('constant BPM', () => {
+    beforeEach(() => {
+      gameState.setSong({ bpm: 120, bpmChanges: [] });
+    });
+
+    it('note at receptor has Y = TARGETS_Y', () => {
+      assert.equal(cmodY(4, 4, 300), TARGETS_Y);
+      assert.equal(xmodY(0, 2, 120, 120), TARGETS_Y);
+    });
+
+    it('future note is below receptor (positive Y offset)', () => {
+      const y = cmodY(8, 4, 300);
+      assert.ok(y > TARGETS_Y, `y=${y} should be > ${TARGETS_Y}`);
+    });
+
+    it('past note is above receptor (negative Y offset)', () => {
+      const y = cmodY(2, 4, 300);
+      assert.ok(y < TARGETS_Y, `y=${y} should be < ${TARGETS_Y}`);
+    });
+
+    it('CMod spacing is proportional to time, not beats', () => {
+      // At 120 BPM, 1 beat = 0.5 seconds
+      // C300: pxPerSec = (300/60) * 64 = 320
+      // 2 beats ahead = 1 second = 320px offset
+      const y = cmodY(6, 4, 300);
+      const expected = TARGETS_Y + 1.0 * 320;
+      assert.ok(Math.abs(y - expected) < 0.01, `y=${y} expected=${expected}`);
+    });
+  });
+
+  describe('with BPM change', () => {
+    beforeEach(() => {
+      gameState.setSong({
+        bpm: 120,
+        bpmChanges: [
+          { beat: 0, bpm: 120 },
+          { beat: 8, bpm: 240 }
+        ]
+      });
+    });
+
+    it('XMod changes effective speed with BPM', () => {
+      const yBefore = xmodY(2, 2, 120, 120);
+      const yAfter = xmodY(2, 2, 240, 120);
+      assert.ok(yAfter > yBefore, 'higher BPM should produce larger Y offset in XMod');
+      assert.ok(Math.abs(yAfter - yBefore * 2 + TARGETS_Y) < 0.01, 'double BPM = double offset');
+    });
+
+    it('CMod gives equal spacing for equal time intervals across BPM change', () => {
+      // Beat 4 to beat 8: at 120 BPM = 2 seconds
+      // Beat 8 to beat 12: at 240 BPM = 1 second
+      // In CMod, 2 seconds of future notes should be twice as far as 1 second
+      const musicBeat = 4;
+      const yBeat8 = cmodY(8, musicBeat, 300);
+      const yBeat12 = cmodY(12, musicBeat, 300);
+
+      const offset8 = yBeat8 - TARGETS_Y; // 2 seconds at 120 BPM
+      const offset12 = yBeat12 - TARGETS_Y; // 2s + 1s = 3 seconds total
+
+      // offset12 should be 1.5x offset8 (3 seconds vs 2 seconds)
+      assert.ok(Math.abs(offset12 / offset8 - 1.5) < 0.01, `ratio=${offset12 / offset8} expected=1.5`);
+    });
+  });
+});
