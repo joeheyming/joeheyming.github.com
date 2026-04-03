@@ -8,8 +8,14 @@ const DEFAULT_SONG = {
   OFFSET: -0.03
 };
 
-/** Default scroll speed multiplier */
+/** Default scroll speed multiplier (XMod) */
 const DEFAULT_SCROLL_SPEED = 2;
+
+/** Default CMod scroll BPM */
+const DEFAULT_SCROLL_BPM = 300;
+
+/** Valid scroll modes */
+const SCROLL_MODES = ['xmod', 'cmod'];
 
 // ============================================================================
 // COMBO CONSTANTS
@@ -108,6 +114,8 @@ class GameState {
 
     // Scroll speed
     this.scrollSpeed = DEFAULT_SCROLL_SPEED;
+    this.scrollMode = 'xmod';
+    this.scrollBPM = DEFAULT_SCROLL_BPM;
 
     // Note: Song metadata (currentSongKey, currentDifficulty, parsedSongs)
     // is managed by songManager - import it directly when needed
@@ -572,6 +580,60 @@ class GameState {
     this.scrollSpeed = speed;
   }
 
+  /**
+   * Get scroll mode ('xmod' or 'cmod')
+   * @returns {string}
+   */
+  getScrollMode() {
+    return this.scrollMode;
+  }
+
+  /**
+   * Set scroll mode
+   * @param {string} mode - 'xmod' or 'cmod'
+   */
+  setScrollMode(mode) {
+    if (SCROLL_MODES.includes(mode)) {
+      this.scrollMode = mode;
+    }
+  }
+
+  /**
+   * Toggle between xmod and cmod
+   * @returns {string} New scroll mode
+   */
+  toggleScrollMode() {
+    this.scrollMode = this.scrollMode === 'xmod' ? 'cmod' : 'xmod';
+    return this.scrollMode;
+  }
+
+  /**
+   * Get CMod scroll BPM
+   * @returns {number}
+   */
+  getScrollBPM() {
+    return this.scrollBPM;
+  }
+
+  /**
+   * Set CMod scroll BPM
+   * @param {number} bpm
+   */
+  setScrollBPM(bpm) {
+    this.scrollBPM = Math.max(100, Math.min(1000, bpm));
+  }
+
+  /**
+   * Get display string for current scroll speed setting
+   * @returns {string} e.g. "x2.0" or "C300"
+   */
+  getScrollSpeedLabel() {
+    if (this.scrollMode === 'cmod') {
+      return 'C' + this.scrollBPM;
+    }
+    return 'x' + this.scrollSpeed.toFixed(1);
+  }
+
   // ==========================================================================
   // STATE MANAGEMENT
   // ==========================================================================
@@ -666,6 +728,8 @@ class GameState {
       points: this.actualPoints,
       mineHits: this.mineHits,
       scrollSpeed: this.scrollSpeed,
+      scrollMode: this.scrollMode,
+      scrollBPM: this.scrollBPM,
       lastError: this.lastError,
       health: this.health,
       failed: this.failed,

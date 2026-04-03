@@ -9,7 +9,7 @@ import { songManager } from './songManager.js';
 import { ARROW_WIDTH, TARGETS_Y } from './config.js';
 import { TAP_NOTE_POINTS, ScorePanel } from './score-panel.js';
 import { LoadingOverlay } from './loading-overlay.js';
-import { getBPMAtBeat, secondsToBeats, getMusicBeat } from './timing.js';
+import { getBPMAtBeat, secondsToBeats, beatsToSeconds, getMusicBeat } from './timing.js';
 import { GameOverModal } from './game-over-modal.js';
 import {
   drawMine,
@@ -52,6 +52,10 @@ const TARGET_FPS = 90;
 
 /** Current playback time */
 let currentTime = 0;
+
+/** Speed overlay display timer (seconds remaining to show) */
+let speedOverlayTimer = 0;
+const SPEED_OVERLAY_DURATION = 1.5;
 
 // ============================================================================
 // CANVAS/RENDERING SETUP
@@ -594,6 +598,20 @@ function initManagers() {
   inputManager.onRelease((col) => {
     releaseHold(col);
   });
+  inputManager.onSpeedChange((direction) => {
+    if (gameState.getScrollMode() === 'cmod') {
+      const newBPM = gameState.getScrollBPM() + direction * 25;
+      gameState.setScrollBPM(newBPM);
+    } else {
+      const newSpeed = Math.max(0.5, Math.min(8, gameState.getScrollSpeed() + direction * 0.25));
+      gameState.setScrollSpeed(newSpeed);
+    }
+    showSpeedOverlay();
+  });
+  inputManager.onScrollModeChange(() => {
+    gameState.toggleScrollMode();
+    showSpeedOverlay();
+  });
 }
 
 /**
@@ -647,6 +665,34 @@ async function applyBackgroundChange(bgChange) {
   }
 }
 
+function showSpeedOverlay() {
+  speedOverlayTimer = SPEED_OVERLAY_DURATION;
+}
+
+function drawSpeedOverlay(deltaSeconds) {
+  if (speedOverlayTimer <= 0) return;
+  speedOverlayTimer -= deltaSeconds;
+
+  const ctx = CanvasManager.ctx;
+  const alpha = Math.min(1, speedOverlayTimer / 0.3);
+  const label = gameState.getScrollSpeedLabel();
+  const canvasWidth = CanvasManager.width;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.font = 'bold 24px monospace';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'top';
+
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  const textWidth = ctx.measureText(label).width;
+  ctx.fillRect(canvasWidth - textWidth - 20, 6, textWidth + 14, 30);
+
+  ctx.fillStyle = gameState.getScrollMode() === 'cmod' ? '#4fc3f7' : '#fff';
+  ctx.fillText(label, canvasWidth - 10, 10);
+  ctx.restore();
+}
+
 function draw() {
   if (!CanvasManager.ctx) return;
 
@@ -673,6 +719,11 @@ function draw() {
 
   // Draw combo counter
   CanvasManager.drawCombo(gameState.getCombo(), gameState.getComboMultiplier());
+
+  // Draw speed overlay (fades out after speed change)
+  const now = new Date();
+  const frameDelta = (now - lastDate) / 1000;
+  drawSpeedOverlay(frameDelta);
 }
 
 /**
@@ -683,8 +734,16 @@ function drawNoteField() {
   const currentBPM = getBPMAtBeat(musicBeat);
   const baseBpm = gameState.getBpm();
   const scrollSpeed = gameState.getScrollSpeed();
+  const scrollMode = gameState.getScrollMode();
   const noteData = gameState.getNoteData();
   const arrowSize = ARROW_WIDTH;
+  const isCmod = scrollMode === 'cmod';
+
+  let musicSeconds, cmodPxPerSec;
+  if (isCmod) {
+    musicSeconds = beatsToSeconds(musicBeat);
+    cmodPxPerSec = (gameState.getScrollBPM() / 60) * arrowSize;
+  }
 
   // Update target lighting based on beat
   const distFromNearestBeat = Math.abs(musicBeat - Math.round(musicBeat));
@@ -692,6 +751,8 @@ function drawNoteField() {
   targets.forEach((target) => {
     target.props.frameIndex = lit ? 0 : 1;
   });
+
+  const canvasHeight = CanvasManager.height;
 
   // Draw each note
   for (let i = 0; i < noteData.length; i++) {
@@ -701,7 +762,6 @@ function drawNoteField() {
     const noteProps = note[2];
     const colInfo = colInfos[col];
     const beatUntilNote = beat - musicBeat;
-    const currentScrollSpeed = scrollSpeed * (currentBPM / baseBpm);
 
     // Calculate note end beat for holds
     let noteEndBeat = beat;
@@ -710,12 +770,28 @@ function drawNoteField() {
     }
     const beatUntilNoteEnd = noteEndBeat - musicBeat;
 
-    // Skip if off screen
-    if (!isNoteOnScreen(beatUntilNote, beatUntilNoteEnd, currentScrollSpeed)) {
-      continue;
+    let y, currentScrollSpeed, cmodInfo;
+
+    if (isCmod) {
+      const secondsUntilNote = beatsToSeconds(beat) - musicSeconds;
+      y = TARGETS_Y + secondsUntilNote * cmodPxPerSec;
+
+      // Pixel-based culling for CMod
+      let noteEndY = y;
+      if (noteEndBeat !== beat) {
+        noteEndY = TARGETS_Y + (beatsToSeconds(noteEndBeat) - musicSeconds) * cmodPxPerSec;
+      }
+      if (y > canvasHeight + 100 || noteEndY < -100) continue;
+
+      currentScrollSpeed = 0;
+      cmodInfo = { musicSeconds, pxPerSec: cmodPxPerSec };
+    } else {
+      currentScrollSpeed = scrollSpeed * (currentBPM / baseBpm);
+      if (!isNoteOnScreen(beatUntilNote, beatUntilNoteEnd, currentScrollSpeed)) continue;
+      y = calculateNoteY(beatUntilNote, arrowSize, currentScrollSpeed);
+      cmodInfo = null;
     }
 
-    const y = calculateNoteY(beatUntilNote, arrowSize, currentScrollSpeed);
     const frameIndex = calculateNoteFrameIndex(musicBeat, beat);
 
     // Determine alpha (hide if already hit)
@@ -739,7 +815,8 @@ function drawNoteField() {
         arrowSize,
         currentScrollSpeed,
         frameIndex,
-        alpha
+        alpha,
+        cmodInfo
       );
     } else {
       // Regular tap note
@@ -751,7 +828,18 @@ function drawNoteField() {
 /**
  * Draw a hold note (body and head)
  */
-function drawHoldNote(note, col, colInfo, y, musicBeat, arrowSize, scrollSpeed, frameIndex, alpha) {
+function drawHoldNote(
+  note,
+  col,
+  colInfo,
+  y,
+  musicBeat,
+  arrowSize,
+  scrollSpeed,
+  frameIndex,
+  alpha,
+  cmodInfo
+) {
   const noteProps = note[2];
   const holdDurationBeats = noteProps.Duration / 48;
 
@@ -765,10 +853,21 @@ function drawHoldNote(note, col, colInfo, y, musicBeat, arrowSize, scrollSpeed, 
   }
 
   // Calculate hold end position
-  let holdEndY = holdHeadY + holdDurationBeats * arrowSize * scrollSpeed;
-  if (isActiveHold && !wasDropped) {
-    const remainingBeats = activeHolds[col].endBeat - musicBeat;
-    holdEndY = TARGETS_Y + remainingBeats * arrowSize * scrollSpeed;
+  let holdEndY;
+  if (cmodInfo) {
+    const noteEndBeat = note[0] + holdDurationBeats;
+    const endSecondsUntil = beatsToSeconds(noteEndBeat) - cmodInfo.musicSeconds;
+    holdEndY = TARGETS_Y + endSecondsUntil * cmodInfo.pxPerSec;
+    if (isActiveHold && !wasDropped) {
+      const remainingSeconds = beatsToSeconds(activeHolds[col].endBeat) - cmodInfo.musicSeconds;
+      holdEndY = TARGETS_Y + remainingSeconds * cmodInfo.pxPerSec;
+    }
+  } else {
+    holdEndY = holdHeadY + holdDurationBeats * arrowSize * scrollSpeed;
+    if (isActiveHold && !wasDropped) {
+      const remainingBeats = activeHolds[col].endBeat - musicBeat;
+      holdEndY = TARGETS_Y + remainingBeats * arrowSize * scrollSpeed;
+    }
   }
 
   // Check visibility

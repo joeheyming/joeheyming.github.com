@@ -41,7 +41,10 @@ const DEFAULT_KEY_BINDINGS = {
  * Special action key bindings
  */
 const ACTION_KEYS = {
-  TOGGLE_PLAY: 32 // Space
+  TOGGLE_PLAY: 32, // Space
+  SPEED_DOWN: 219, // [
+  SPEED_UP: 221, // ]
+  TOGGLE_SCROLL_MODE: 192 // ` (backtick)
 };
 
 class InputManager {
@@ -64,7 +67,9 @@ class InputManager {
     this._callbacks = {
       step: [],
       release: [],
-      togglePlay: []
+      togglePlay: [],
+      speedChange: [],
+      scrollModeChange: []
     };
 
     /** Bound event handlers for cleanup */
@@ -238,6 +243,32 @@ class InputManager {
     };
   }
 
+  /**
+   * Subscribe to speed change events
+   * @param {Function} callback - Called with (direction) where direction is 1 (faster) or -1 (slower)
+   * @returns {Function} Unsubscribe function
+   */
+  onSpeedChange(callback) {
+    this._callbacks.speedChange.push(callback);
+    return () => {
+      const index = this._callbacks.speedChange.indexOf(callback);
+      if (index > -1) this._callbacks.speedChange.splice(index, 1);
+    };
+  }
+
+  /**
+   * Subscribe to scroll mode toggle events
+   * @param {Function} callback - Called when scroll mode should toggle
+   * @returns {Function} Unsubscribe function
+   */
+  onScrollModeChange(callback) {
+    this._callbacks.scrollModeChange.push(callback);
+    return () => {
+      const index = this._callbacks.scrollModeChange.indexOf(callback);
+      if (index > -1) this._callbacks.scrollModeChange.splice(index, 1);
+    };
+  }
+
   // ===========================================================================
   // INTERNAL EVENT HANDLERS
   // ===========================================================================
@@ -282,6 +313,15 @@ class InputManager {
     // Check for action keys
     if (keyCode === ACTION_KEYS.TOGGLE_PLAY) {
       this._emitTogglePlay();
+      event.preventDefault();
+    } else if (keyCode === ACTION_KEYS.SPEED_UP) {
+      this._emitSpeedChange(1);
+      event.preventDefault();
+    } else if (keyCode === ACTION_KEYS.SPEED_DOWN) {
+      this._emitSpeedChange(-1);
+      event.preventDefault();
+    } else if (keyCode === ACTION_KEYS.TOGGLE_SCROLL_MODE) {
+      this._emitScrollModeChange();
       event.preventDefault();
     }
   }
@@ -380,6 +420,26 @@ class InputManager {
         }
       });
     }
+  }
+
+  _emitSpeedChange(direction) {
+    this._callbacks.speedChange.forEach((callback) => {
+      try {
+        callback(direction);
+      } catch (e) {
+        console.error('Error in speedChange callback:', e);
+      }
+    });
+  }
+
+  _emitScrollModeChange() {
+    this._callbacks.scrollModeChange.forEach((callback) => {
+      try {
+        callback();
+      } catch (e) {
+        console.error('Error in scrollModeChange callback:', e);
+      }
+    });
   }
 }
 
