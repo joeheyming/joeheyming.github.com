@@ -426,21 +426,35 @@
             </div>
           </div>
 
-          <!-- Keyboard Hints -->
+          <!-- Keyboard Shortcuts -->
           <div
-            class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl p-3 backdrop-blur-lg border border-purple-400/30 performance-compact show-lg-only"
+            class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl p-3 backdrop-blur-lg border border-purple-400/30 performance-compact"
           >
-            <div class="text-center text-sm text-gray-300 space-y-1">
-              <p>
-                Press
+            <div
+              class="flex items-center justify-center gap-2 cursor-pointer select-none"
+              onclick="this.parentElement.querySelector('.shortcut-details').classList.toggle('hidden')"
+            >
+              <span class="text-gray-300 text-sm font-medium">Keyboard Shortcuts</span>
+              <span class="text-purple-300 text-xs">▼</span>
+            </div>
+            <div class="shortcut-details hidden mt-2 text-sm text-gray-300 space-y-1">
+              <div class="flex justify-between">
+                <span>Play / Pause</span>
                 <span class="text-white font-semibold">Space</span>
-                to play/pause
-              </p>
-              <p>
-                Press
+              </div>
+              <div class="flex justify-between">
+                <span>Fullscreen</span>
                 <span class="text-white font-semibold">F</span>
-                for fullscreen
-              </p>
+              </div>
+              <div class="border-t border-purple-500/30 my-1"></div>
+              <div class="flex justify-between">
+                <span>Speed −/+</span>
+                <kbd class="text-cyan-300 font-semibold">[ ]</kbd>
+              </div>
+              <div class="flex justify-between">
+                <span>XMod / CMod</span>
+                <kbd class="text-cyan-300 font-semibold">`</kbd>
+              </div>
             </div>
           </div>
         </div>
