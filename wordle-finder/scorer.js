@@ -19,11 +19,30 @@ function renderFrequencyScoreTab(stats) {
   updateTabContent('tabpanel-score', frequencyScore.length > 0 ? scoreContent : emptyMatch);
 }
 
+var strategyLabels = {
+  'pure-entropy': {
+    title: 'Best Guesses by Pure Entropy',
+    desc: 'Higher = more information per guess (bits). No popularity bias.'
+  },
+  'entropy-popularity': {
+    title: 'Best Guesses by Entropy + Popularity',
+    desc: 'Entropy with a 15% boost for common words.'
+  },
+  frequency: {
+    title: 'Best Guesses by Letter Frequency',
+    desc: 'Scored by how common each letter is in the remaining words.'
+  },
+  'hard-mode': {
+    title: 'Best Guesses (Hard Mode)',
+    desc: 'Entropy-based, but only guesses from remaining matches.'
+  }
+};
+
 function renderEntropyScore(filtered, stats) {
   var patternScore = stats.patternEntropyScore || [];
+  var strategy = typeof getStrategy === 'function' ? getStrategy() : 'pure-entropy';
+  var label = strategyLabels[strategy] || strategyLabels['pure-entropy'];
 
-  // Format: [word, entropy bits, expected remaining, unique patterns]
-  // Use compact format: "word: X.XX" to fit in columns
   var joinedProbScores = patternScore
     .map(function (score) {
       return score[0] + ':&nbsp;' + parseFloat(score[1]).toFixed(2);
@@ -31,8 +50,8 @@ function renderEntropyScore(filtered, stats) {
     .join('\r\n');
 
   var probabilityScoreContent = [
-    '<h3>Best Guesses by Information Entropy</h3>',
-    '<p>Higher score = more information gained per guess (in bits).</p>',
+    '<h3>' + label.title + '</h3>',
+    '<p>' + label.desc + '</p>',
     '<pre class="score">',
     joinedProbScores,
     '</pre>'

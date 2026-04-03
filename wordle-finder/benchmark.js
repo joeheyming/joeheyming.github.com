@@ -150,6 +150,8 @@ for (const arg of args) {
     sampleSize = parseInt(arg.split('=')[1], 10);
   } else if (arg.startsWith('--trace=')) {
     traceWord = arg.split('=')[1];
+  } else if (arg.startsWith('--strategy=')) {
+    global.window._solverStrategy = arg.split('=')[1];
   } else if (arg.length === 5 && /^[a-z]+$/.test(arg)) {
     startingWord = arg;
   }
