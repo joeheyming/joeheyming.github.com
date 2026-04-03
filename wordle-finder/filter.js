@@ -383,21 +383,57 @@ function addPatternEntropyScore(filtered, stats, options) {
   var matched = filtered.matched;
   options = options || {};
 
-  // Skip if too few words (entropy calculation trivial)
-  if (matched.length <= 1) {
-    stats.patternEntropyScore = matched.map(function (word) {
-      return [word, 0, matched.length, 1];
+  // Use wordleAnswers ∩ matched as the true solution space when available.
+  // Real Wordle answers only come from wordleAnswers, so computing entropy
+  // against the full 14k word list wastes information.
+  var solutions = matched;
+  var hasWordleAnswers =
+    typeof window !== 'undefined' && window.wordleAnswers && window.wordleAnswers.size > 0;
+  if (hasWordleAnswers) {
+    var answersSet = window.wordleAnswers;
+    solutions = matched.filter(function (w) {
+      return answersSet.has(w);
     });
-    stats.bestGuess = matched[0] || null;
+    if (solutions.length === 0) solutions = matched;
+  }
+
+  // Skip if too few words (entropy calculation trivial)
+  if (solutions.length <= 1) {
+    var trivialWords = solutions.length > 0 ? solutions : matched;
+    stats.patternEntropyScore = trivialWords.map(function (word) {
+      return [word, 0, trivialWords.length, 1];
+    });
+    stats.bestGuess = trivialWords[0] || null;
     return;
   }
 
-  // For performance, limit calculation when word list is very large
   var maxWordsToScore = options.maxWordsToScore || 300;
-  var wordsToScore = matched;
+  var wordsToScore;
 
-  // If too many words, sample strategically from top frequency candidates
-  if (matched.length > maxWordsToScore) {
+  if (solutions.length <= 20 && hasWordleAnswers) {
+    // When few solutions remain, score ALL wordleAnswers as candidates.
+    // Out-of-set words often discriminate better between similar remaining words
+    // (e.g., guessing "psalm" to distinguish light/might/night/sight/tight).
+    var allAnswers = Array.from(window.wordleAnswers);
+    var solutionSet = new Set(solutions);
+    wordsToScore = allAnswers;
+    // Ensure current solutions are included (they might not be wordleAnswers in edge cases)
+    solutions.forEach(function (w) {
+      if (!window.wordleAnswers.has(w)) allAnswers.push(w);
+    });
+  } else if (hasWordleAnswers && solutions.length <= maxWordsToScore) {
+    // Medium pool: score all solutions + top wordleAnswers for diversity
+    var seen = new Set(solutions);
+    wordsToScore = solutions.slice();
+    var answersArr = Array.from(window.wordleAnswers);
+    for (var ai = 0; ai < answersArr.length && wordsToScore.length < maxWordsToScore; ai++) {
+      if (!seen.has(answersArr[ai])) {
+        wordsToScore.push(answersArr[ai]);
+        seen.add(answersArr[ai]);
+      }
+    }
+  } else if (matched.length > maxWordsToScore) {
+    // Large pool: use top candidates by frequency score
     if (stats.frequencyScore && stats.frequencyScore.length > 0) {
       wordsToScore = stats.frequencyScore.slice(0, maxWordsToScore).map(function (item) {
         return item[0];
@@ -405,13 +441,15 @@ function addPatternEntropyScore(filtered, stats, options) {
     } else {
       wordsToScore = matched.slice(0, maxWordsToScore);
     }
+  } else {
+    wordsToScore = matched;
   }
 
-  // OPTIMIZATION: Precompute char codes for all solution words
-  var solutionCodesList = precomputeCodes(matched);
+  // Precompute char codes for the SOLUTION space (not full matched)
+  var solutionCodesList = precomputeCodes(solutions);
 
-  // OPTIMIZATION: Create Set for O(1) solution membership check
-  var matchedSet = new Set(matched);
+  // O(1) check: is this word a possible solution?
+  var matchedSet = new Set(solutions);
 
   // OPTIMIZATION: Reusable Int32Array for pattern counts (243 possible patterns)
   var patternCounts = new Int32Array(243);
