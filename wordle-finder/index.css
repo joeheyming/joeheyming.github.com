@@ -199,6 +199,23 @@ main {
   max-width: 550px;
 }
 
+#playResultsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+#playResultsContainer > #playWordsResults {
+  min-width: 200px;
+}
+
+#playResultsContainer > #wordDisplay {
+  flex: 1;
+  min-width: 200px;
+}
+
 body {
   font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
   touch-action: manipulation;
@@ -213,6 +230,10 @@ body {
   /* Support system font scaling for accessibility */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+}
+
+header {
+  padding-top: 50px;
 }
 
 h1 {
@@ -472,4 +493,52 @@ select {
 
 footer {
   display: none;
+}
+
+@media screen and (max-width: 479px) {
+  .form-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  label.form-input,
+  .form-label {
+    min-width: unset;
+    margin-bottom: 4px;
+  }
+
+  .form-input.form-grid {
+    width: 100%;
+  }
+
+  .corrects input,
+  .maybecorrects input {
+    width: auto;
+    min-width: unset;
+  }
+
+  .form-controls {
+    width: 100%;
+  }
+
+  .block-input-control,
+  .fixed-input-control {
+    width: 100%;
+  }
+
+  input.incorrect,
+  input.correct {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  #playResultsContainer {
+    flex-direction: column;
+  }
+
+  #playResultsContainer > #playWordsResults,
+  #playResultsContainer > #wordDisplay {
+    min-width: unset;
+    width: 100%;
+  }
 }
