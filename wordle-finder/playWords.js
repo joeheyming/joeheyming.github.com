@@ -427,16 +427,18 @@ function simulateGame(answer, startingWord) {
     var answerLetters = answer.split('');
     var guessLetters = guess.split('');
     var used = [false, false, false, false, false];
+    var isGreenThisGuess = [false, false, false, false, false];
 
     for (var i = 0; i < 5; i++) {
       if (guessLetters[i] === answerLetters[i]) {
         spots[i] = guessLetters[i];
         used[i] = true;
+        isGreenThisGuess[i] = true;
       }
     }
 
     for (var ii = 0; ii < 5; ii++) {
-      if (spots[ii]) continue;
+      if (isGreenThisGuess[ii]) continue;
       var letter = guessLetters[ii];
       var foundYellow = false;
       for (var jj = 0; jj < 5; jj++) {
@@ -455,7 +457,11 @@ function simulateGame(answer, startingWord) {
             break;
           }
         }
-        if (!appearsElsewhere) excluded.push(letter);
+        if (!appearsElsewhere) {
+          excluded.push(letter);
+        } else {
+          notSpots[ii].push(letter);
+        }
       }
     }
   }
