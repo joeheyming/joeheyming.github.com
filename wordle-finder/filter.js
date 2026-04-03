@@ -226,6 +226,20 @@ function calculateEntropyFast(guessCodes, solutionCodesList, patternCounts) {
   };
 }
 
+/**
+ * Read the active strategy from the UI dropdown, falling back to 'pure-entropy'.
+ * Strategies: 'pure-entropy', 'entropy-popularity', 'frequency', 'hard-mode'
+ */
+function getStrategy() {
+  if (typeof window !== 'undefined' && window.strategySelect) {
+    return window.strategySelect.value || 'pure-entropy';
+  }
+  if (typeof window !== 'undefined' && window._solverStrategy) {
+    return window._solverStrategy;
+  }
+  return 'pure-entropy';
+}
+
 // ============================================================
 // Original Filter Functions
 // ============================================================
@@ -382,13 +396,25 @@ function addMaxStats(stats) {
 function addPatternEntropyScore(filtered, stats, options) {
   var matched = filtered.matched;
   options = options || {};
+  var strategy = options.strategy || getStrategy();
 
-  // Use wordleAnswers ∩ matched as the true solution space when available.
-  // Real Wordle answers only come from wordleAnswers, so computing entropy
-  // against the full 14k word list wastes information.
-  var solutions = matched;
+  // 'frequency' strategy skips entropy entirely — use frequencyScore from getStats
+  if (strategy === 'frequency') {
+    stats.patternEntropyScore = (stats.frequencyScore || []).slice(0, 300).map(function (item) {
+      var isKnown = typeof isWordleAnswer === 'function' ? isWordleAnswer(item[0]) : false;
+      var displayWord = isKnown ? item[0] + '★' : item[0];
+      return [displayWord, item[1], 0, 0];
+    });
+    stats.bestGuess =
+      stats.frequencyScore && stats.frequencyScore.length > 0 ? stats.frequencyScore[0][0] : null;
+    return;
+  }
+
   var hasWordleAnswers =
     typeof window !== 'undefined' && window.wordleAnswers && window.wordleAnswers.size > 0;
+
+  // Determine solution space: use wordleAnswers ∩ matched when available
+  var solutions = matched;
   if (hasWordleAnswers) {
     var answersSet = window.wordleAnswers;
     solutions = matched.filter(function (w) {
@@ -397,7 +423,6 @@ function addPatternEntropyScore(filtered, stats, options) {
     if (solutions.length === 0) solutions = matched;
   }
 
-  // Skip if too few words (entropy calculation trivial)
   if (solutions.length <= 1) {
     var trivialWords = solutions.length > 0 ? solutions : matched;
     stats.patternEntropyScore = trivialWords.map(function (word) {
@@ -409,31 +434,29 @@ function addPatternEntropyScore(filtered, stats, options) {
 
   var maxWordsToScore = options.maxWordsToScore || 300;
   var wordsToScore;
+  var isHardMode = strategy === 'hard-mode';
 
-  if (solutions.length <= 20 && hasWordleAnswers) {
-    // When few solutions remain, score ALL wordleAnswers as candidates.
-    // Out-of-set words often discriminate better between similar remaining words
-    // (e.g., guessing "psalm" to distinguish light/might/night/sight/tight).
-    var allAnswers = Array.from(window.wordleAnswers);
-    var solutionSet = new Set(solutions);
-    wordsToScore = allAnswers;
-    // Ensure current solutions are included (they might not be wordleAnswers in edge cases)
-    solutions.forEach(function (w) {
-      if (!window.wordleAnswers.has(w)) allAnswers.push(w);
-    });
-  } else if (hasWordleAnswers && solutions.length <= maxWordsToScore) {
-    // Medium pool: score all solutions + top wordleAnswers for diversity
-    var seen = new Set(solutions);
-    wordsToScore = solutions.slice();
-    var answersArr = Array.from(window.wordleAnswers);
-    for (var ai = 0; ai < answersArr.length && wordsToScore.length < maxWordsToScore; ai++) {
-      if (!seen.has(answersArr[ai])) {
-        wordsToScore.push(answersArr[ai]);
-        seen.add(answersArr[ai]);
+  if (isHardMode) {
+    // Hard mode: only guess from remaining matches (no out-of-set words)
+    if (matched.length > maxWordsToScore) {
+      if (stats.frequencyScore && stats.frequencyScore.length > 0) {
+        wordsToScore = stats.frequencyScore.slice(0, maxWordsToScore).map(function (item) {
+          return item[0];
+        });
+      } else {
+        wordsToScore = matched.slice(0, maxWordsToScore);
       }
+    } else {
+      wordsToScore = matched;
     }
+  } else if (hasWordleAnswers && solutions.length <= maxWordsToScore) {
+    // Small/medium pool: score ALL wordleAnswers for out-of-set discrimination
+    wordsToScore = Array.from(window.wordleAnswers);
+    solutions.forEach(function (w) {
+      if (!window.wordleAnswers.has(w)) wordsToScore.push(w);
+    });
   } else if (matched.length > maxWordsToScore) {
-    // Large pool: use top candidates by frequency score
+    // Large pool (first guess): top candidates by frequency score
     if (stats.frequencyScore && stats.frequencyScore.length > 0) {
       wordsToScore = stats.frequencyScore.slice(0, maxWordsToScore).map(function (item) {
         return item[0];
@@ -445,31 +468,24 @@ function addPatternEntropyScore(filtered, stats, options) {
     wordsToScore = matched;
   }
 
-  // Precompute char codes for the SOLUTION space (not full matched)
   var solutionCodesList = precomputeCodes(solutions);
-
-  // O(1) check: is this word a possible solution?
   var matchedSet = new Set(solutions);
-
-  // OPTIMIZATION: Reusable Int32Array for pattern counts (243 possible patterns)
   var patternCounts = new Int32Array(243);
+
+  var popularityWeight = strategy === 'entropy-popularity' ? 0.15 : 0;
 
   var entropyResults = new Array(wordsToScore.length);
 
-  // Calculate entropy and combined score for each candidate
   for (var i = 0; i < wordsToScore.length; i++) {
     var guess = wordsToScore[i];
     var guessCodes = wordToCodes(guess);
 
     var result = calculateEntropyFast(guessCodes, solutionCodesList, patternCounts);
 
-    // Calculate popularity score using sigmoid (0-1, higher = more common)
     var popularityScore = getPopularityScore(guess);
     var isKnownAnswer = typeof isWordleAnswer === 'function' ? isWordleAnswer(guess) : false;
 
-    // Combined score blends entropy with popularity
-    // Popular words get up to 15% boost to their entropy score
-    var combinedScore = getCombinedScore(result.entropy, popularityScore, 0.15);
+    var combinedScore = getCombinedScore(result.entropy, popularityScore, popularityWeight);
 
     entropyResults[i] = {
       word: guess,
@@ -483,18 +499,13 @@ function addPatternEntropyScore(filtered, stats, options) {
     };
   }
 
-  // Sort by COMBINED score (entropy + popularity boost)
-  // This naturally bubbles up common words without harsh cutoffs
   entropyResults.sort(function (a, b) {
-    // Primary: higher combined score is better
     var scoreDiff = b.combinedScore - a.combinedScore;
     if (scoreDiff !== 0) return scoreDiff;
 
-    // Tiebreaker: prefer words that are valid solutions
     if (a.isValidSolution !== b.isValidSolution) {
       return a.isValidSolution ? -1 : 1;
     }
-    // Tiebreaker: fewer expected remaining words
     return a.expectedRemaining - b.expectedRemaining;
   });
 
