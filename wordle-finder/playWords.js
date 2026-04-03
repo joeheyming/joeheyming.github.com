@@ -116,7 +116,6 @@ function autoPlay() {
   }
 
   isPaused = false;
-  updatePauseButton();
   var results = [];
   var answerCount = 0;
 
@@ -150,6 +149,8 @@ function autoPlay() {
       }
     }
   }, 250);
+
+  updatePauseButton();
 }
 
 function togglePause() {
@@ -241,12 +242,14 @@ function updateStatsGraph() {
     }
   ];
 
+  var graphWidth = Math.min(320, playWordsResults.clientWidth || 320);
+
   Plotly.newPlot(
     playWordsResults,
     data,
     {
       showlegend: false,
-      width: 320,
+      width: graphWidth,
       height: 200,
       title: {
         text: 'Games: ' + totalGames,
