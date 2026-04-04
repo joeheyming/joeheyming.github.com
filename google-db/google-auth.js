@@ -135,8 +135,14 @@ function persistAccessToken(token, expiresInSec) {
   }
 }
 
-/** Call after GIS script is loaded. Uses `clientId` from `site-config.js`. */
-export function initGoogleAuth() {
+/**
+ * Call after GIS script is loaded. Uses `clientId` from `site-config.js`.
+ * @param {{ force?: boolean }} [opts] Pass `force: false` to reuse a cached
+ *   token client. Defaults to `true` — always recreates the client to avoid
+ *   stale GIS callbacks after long idle periods or bfcache restoration.
+ */
+export function initGoogleAuth(opts = {}) {
+  const { force = true } = opts;
   const clientId = (siteClientId || '').trim();
   if (!clientId) {
     throw new Error('Set clientId in google-db/site-config.js.');
@@ -144,7 +150,7 @@ export function initGoogleAuth() {
   if (!globalThis.google?.accounts?.oauth2) {
     throw new Error('Google GIS script not loaded yet');
   }
-  if (initedClientId === clientId && tokenClient) {
+  if (!force && initedClientId === clientId && tokenClient) {
     return;
   }
   clearPending();
