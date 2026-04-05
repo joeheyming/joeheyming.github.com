@@ -15,7 +15,7 @@
 
       // Redirect to desktop
       try {
-        window.location.href = '/#os';
+        window.location.href = '/os/';
         return `🖥️ Launching Heyming Desktop Environment...`;
       } catch (error) {
         return `❌ Failed to launch Heyming Desktop: ${error.message}`;
