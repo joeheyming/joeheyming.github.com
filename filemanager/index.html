@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1a1828" />
     <title>File Manager - Heyming OS</title>
     <link rel="stylesheet" href="style.css" />
     <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
@@ -10,18 +11,28 @@
   <body>
     <div id="file-manager">
       <!-- Toolbar -->
-      <div id="toolbar">
-        <button id="btn-back" title="Go Back">←</button>
-        <button id="btn-forward" title="Go Forward">→</button>
-        <button id="btn-up" title="Go Up">↑</button>
-        <button id="btn-home" title="Home">🏠</button>
-        <button id="btn-refresh" title="Refresh">🔄</button>
-        <div id="path-bar">
+      <div id="toolbar" role="toolbar" aria-label="File manager">
+        <button type="button" id="btn-back" title="Go Back" aria-label="Back">←</button>
+        <button type="button" id="btn-forward" title="Go Forward" aria-label="Forward">→</button>
+        <button type="button" id="btn-up" title="Go Up" aria-label="Parent folder">↑</button>
+        <button type="button" id="btn-home" title="Home" aria-label="Home folder">🏠</button>
+        <button type="button" id="btn-refresh" title="Refresh" aria-label="Refresh">🔄</button>
+        <nav id="path-bar" aria-label="Path breadcrumb">
           <span id="current-path">/</span>
-        </div>
-        <button id="btn-new-folder" title="New Folder">📁+</button>
-        <button id="btn-new-file" title="New File">📄+</button>
-        <button id="btn-view-toggle" title="Toggle View">≡</button>
+        </nav>
+        <button type="button" id="btn-new-folder" title="New Folder" aria-label="New folder">
+          📁+
+        </button>
+        <button type="button" id="btn-new-file" title="New File" aria-label="New file">📄+</button>
+        <button
+          type="button"
+          id="btn-view-toggle"
+          title="Switch to list view"
+          aria-label="Grid view"
+          aria-pressed="false"
+        >
+          ≡
+        </button>
       </div>
 
       <!-- Sidebar (populated by JS from config) -->
@@ -42,51 +53,75 @@
       <!-- Main Content -->
       <div id="content">
         <div id="file-list" class="grid-view"></div>
-        <div id="empty-state" class="hidden">
-          <span class="empty-icon">📂</span>
-          <p>This folder is empty</p>
+        <div id="empty-state" class="hidden" role="status" aria-live="polite">
+          <div class="empty-state-inner">
+            <span class="empty-icon" aria-hidden="true">📂</span>
+            <h2 class="empty-title">This folder is empty</h2>
+            <p class="empty-hint">
+              Create a file or folder with
+              <strong>📄+</strong>
+              or
+              <strong>📁+</strong>
+              , or paste from the clipboard (
+              <kbd>Ctrl</kbd>
+              +
+              <kbd>V</kbd>
+              ).
+            </p>
+          </div>
         </div>
       </div>
 
       <!-- Status Bar -->
-      <div id="status-bar">
-        <span id="item-count">0 items</span>
-        <span id="selected-info"></span>
+      <div id="status-bar" role="status" aria-live="polite" aria-label="Current folder summary">
+        <span id="item-count" class="status-item-count">0 items</span>
+        <span id="selected-info" class="status-selected-info" aria-hidden="true"></span>
       </div>
 
       <!-- Context Menu -->
-      <div id="context-menu" class="hidden">
-        <div class="menu-item" data-action="open">📂 Open</div>
-        <div class="menu-item" data-action="rename">✏️ Rename</div>
-        <div class="menu-item" data-action="delete">🗑️ Delete</div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" data-action="copy">📋 Copy</div>
-        <div class="menu-item" data-action="cut">✂️ Cut</div>
-        <div class="menu-item" data-action="paste">📥 Paste</div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" data-action="properties">ℹ️ Properties</div>
+      <div id="context-menu" class="hidden" role="menu" aria-label="File list" aria-hidden="true">
+        <div class="menu-item" role="menuitem" tabindex="-1" data-action="open">📂 Open</div>
+        <div id="file-open-with-dynamic"></div>
+        <div class="menu-item" role="menuitem" tabindex="-1" data-action="copy-path">
+          📎 Copy path
+        </div>
+        <div class="menu-item" role="menuitem" tabindex="-1" data-action="rename">✏️ Rename</div>
+        <div class="menu-item" role="menuitem" tabindex="-1" data-action="delete">🗑️ Delete</div>
+        <div class="menu-divider" role="separator"></div>
+        <div class="menu-item" role="menuitem" tabindex="-1" data-action="copy">📋 Copy</div>
+        <div class="menu-item" role="menuitem" tabindex="-1" data-action="cut">✂️ Cut</div>
+        <div class="menu-item" role="menuitem" tabindex="-1" data-action="paste">📥 Paste</div>
+        <div class="menu-divider" role="separator"></div>
+        <div class="menu-item" role="menuitem" tabindex="-1" data-action="properties">
+          ℹ️ Properties
+        </div>
       </div>
 
       <!-- Rename/New Dialog -->
-      <div id="dialog-overlay" class="hidden">
-        <div id="dialog">
+      <div id="dialog-overlay" class="hidden" aria-hidden="true">
+        <div id="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
           <h3 id="dialog-title">New Folder</h3>
-          <input type="text" id="dialog-input" placeholder="Enter name..." />
+          <input
+            type="text"
+            id="dialog-input"
+            placeholder="Enter name..."
+            aria-labelledby="dialog-title"
+          />
           <div id="dialog-buttons">
-            <button id="dialog-cancel">Cancel</button>
-            <button id="dialog-confirm">Create</button>
+            <button type="button" id="dialog-cancel">Cancel</button>
+            <button type="button" id="dialog-confirm">Create</button>
           </div>
         </div>
       </div>
 
       <!-- File Preview -->
-      <div id="preview-overlay" class="hidden">
-        <div id="preview">
+      <div id="preview-overlay" class="hidden" aria-hidden="true">
+        <div id="preview" role="dialog" aria-modal="true" aria-labelledby="preview-title">
           <div id="preview-header">
             <span id="preview-title">File Preview</span>
-            <button id="preview-close">×</button>
+            <button type="button" id="preview-close" aria-label="Close preview">×</button>
           </div>
-          <div id="preview-content"></div>
+          <div id="preview-content" role="region" aria-label="File contents" tabindex="-1"></div>
         </div>
       </div>
     </div>

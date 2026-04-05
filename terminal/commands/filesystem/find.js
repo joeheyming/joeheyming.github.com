@@ -26,24 +26,34 @@
     'find',
     async (terminal, args) => {
       if (args.length === 0) {
-        return 'find: missing file name';
+        return { stderr: 'find: missing operand', exitCode: 1 };
       }
 
       const pattern = args[0];
-      const startPath = args[1] || terminal.currentDirectory;
-      const fullStartPath = terminal.resolvePath(startPath);
+      const startPathArg = args[1];
+      const startPathForResolve = startPathArg === undefined ? '.' : startPathArg;
+      const fullStartPath = terminal.resolvePath(startPathForResolve);
+      const displayPath = startPathArg === undefined ? '.' : startPathArg;
+
+      const rootItem = await terminal.getFileSystemItem(fullStartPath);
+      if (!rootItem) {
+        return {
+          stderr: `find: '${displayPath}': No such file or directory`,
+          exitCode: 1
+        };
+      }
 
       try {
         const results = [];
         await searchRecursively(terminal, fullStartPath, pattern, results);
 
         if (results.length === 0) {
-          return `find: no files matching '${pattern}' found`;
+          return { stdout: '', stderr: '', exitCode: 0 };
         }
 
-        return results.join('\n');
+        return { stdout: results.join('\n'), stderr: '', exitCode: 0 };
       } catch (error) {
-        return `find: ${error.message}`;
+        return { stderr: `find: ${error.message}`, exitCode: 1 };
       }
     },
     'find files by name pattern',

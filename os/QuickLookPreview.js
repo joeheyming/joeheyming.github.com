@@ -7,6 +7,8 @@ export class QuickLookPreview {
   constructor(container, options = {}) {
     this.container = container;
     this.overlay = null;
+    /** @type {Element | null} */
+    this._priorFocus = null;
     this.onOpenFile = options.onOpenFile || (() => {});
   }
 
@@ -24,21 +26,29 @@ export class QuickLookPreview {
     const mimeType = item.mimeType || 'application/octet-stream';
     const content = item.content || '';
 
+    this._priorFocus = document.activeElement;
+
     // Create overlay (using DOM methods to prevent XSS)
     this.overlay = document.createElement('div');
     this.overlay.className = 'quick-look-overlay';
 
     const container = document.createElement('div');
     container.className = 'quick-look-container';
+    container.setAttribute('role', 'dialog');
+    container.setAttribute('aria-modal', 'true');
+    container.setAttribute('aria-labelledby', 'quick-look-title');
 
     // Header
     const header = document.createElement('div');
     header.className = 'quick-look-header';
     const titleSpan = document.createElement('span');
+    titleSpan.id = 'quick-look-title';
     titleSpan.className = 'quick-look-title';
     titleSpan.textContent = fileName; // Safe - no innerHTML
     const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
     closeBtn.className = 'quick-look-close';
+    closeBtn.setAttribute('aria-label', 'Close Quick Look');
     closeBtn.textContent = '✕';
     header.appendChild(titleSpan);
     header.appendChild(closeBtn);
@@ -46,6 +56,8 @@ export class QuickLookPreview {
     // Content
     const contentEl = document.createElement('div');
     contentEl.className = 'quick-look-content';
+    contentEl.setAttribute('role', 'region');
+    contentEl.setAttribute('aria-label', 'Preview');
 
     // Footer
     const footer = document.createElement('div');
@@ -53,10 +65,23 @@ export class QuickLookPreview {
     const infoSpan = document.createElement('span');
     infoSpan.className = 'quick-look-info';
     infoSpan.textContent = mimeType; // Safe - no innerHTML
+    const hint = document.createElement('span');
+    hint.className = 'quick-look-hint';
+    hint.appendChild(document.createTextNode('Press '));
+    const kbdEsc = document.createElement('kbd');
+    kbdEsc.className = 'launcher-kbd';
+    kbdEsc.textContent = 'Esc';
+    hint.appendChild(kbdEsc);
+    hint.appendChild(document.createTextNode(' to close'));
+    const footerLeft = document.createElement('div');
+    footerLeft.className = 'quick-look-footer-left';
+    footerLeft.appendChild(infoSpan);
+    footerLeft.appendChild(hint);
     const openBtn = document.createElement('button');
+    openBtn.type = 'button';
     openBtn.className = 'quick-look-open';
     openBtn.textContent = 'Open with App';
-    footer.appendChild(infoSpan);
+    footer.appendChild(footerLeft);
     footer.appendChild(openBtn);
 
     container.appendChild(header);
@@ -81,9 +106,10 @@ export class QuickLookPreview {
 
     this.container.appendChild(this.overlay);
 
-    // Animate in
+    // Animate in + move focus into dialog (restore on close)
     requestAnimationFrame(() => {
       this.overlay.classList.add('show');
+      closeBtn.focus();
     });
   }
 
@@ -93,13 +119,21 @@ export class QuickLookPreview {
   close() {
     if (!this.overlay) return;
 
-    this.overlay.classList.remove('show');
+    const prior = this._priorFocus;
+    this._priorFocus = null;
     const overlay = this.overlay;
     this.overlay = null;
 
-    setTimeout(() => {
-      overlay.remove();
-    }, 200);
+    overlay.classList.remove('show');
+    overlay.remove();
+
+    if (prior && typeof prior.focus === 'function' && document.documentElement.contains(prior)) {
+      try {
+        prior.focus();
+      } catch {
+        /* detached or non-focusable */
+      }
+    }
   }
 
   /**

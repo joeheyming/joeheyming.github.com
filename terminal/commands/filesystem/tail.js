@@ -2,43 +2,72 @@
 (function () {
   'use strict';
 
+  function linesFromText(text) {
+    if (text === '') {
+      return [];
+    }
+    return String(text).split('\n');
+  }
+
   registerCommand(
     'tail',
     async (terminal, args) => {
-      let lines = 10; // default
-      let input = '';
-      let files = [];
+      const parsed = ShellUtils.parseLinesFilterArgv(args, 'tail', 10);
+      if (!parsed.ok) {
+        return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
+      }
+      if (parsed.help) {
+        return { stdout: ShellUtils.TAIL_HELP, stderr: '', exitCode: 0 };
+      }
 
-      // Parse arguments
-      for (let i = 0; i < args.length; i++) {
-        if (args[i] === '-n' && i + 1 < args.length) {
-          lines = parseInt(args[i + 1]);
-          i++; // skip next arg
-        } else if (args[i].startsWith('-') && /^\-\d+$/.test(args[i])) {
-          lines = parseInt(args[i].substring(1));
+      const { lines, operands } = parsed;
+      const stdinText = terminal.hasStdin && terminal.stdin != null ? String(terminal.stdin) : '';
+
+      if (operands.length === 0) {
+        if (!terminal.hasStdin || terminal.stdin == null) {
+          return { stdout: '', stderr: 'tail: missing operand\n', exitCode: 1 };
+        }
+        const inputLines = linesFromText(stdinText);
+        const out = lines === 0 ? '' : inputLines.slice(-lines).join('\n');
+        return { stdout: out, stderr: '', exitCode: 0 };
+      }
+
+      const sections = [];
+      const stderrLines = [];
+      const showHeaders = operands.length > 1;
+
+      for (const op of operands) {
+        let label = op;
+        let content = '';
+        if (op === '-') {
+          label = 'standard input';
+          content = stdinText;
         } else {
-          files.push(args[i]);
+          const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op, 'tail');
+          if (!res.ok) {
+            stderrLines.push(res.stderr);
+            continue;
+          }
+          const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+          content = d.isBinary ? '' : d.text;
+        }
+        const inputLines = linesFromText(content);
+        const slice = lines === 0 ? '' : inputLines.slice(-lines).join('\n');
+        if (showHeaders) {
+          sections.push(`==> ${label} <==\n${slice}`);
+        } else {
+          sections.push(slice);
         }
       }
 
-      // Get input
-      if (terminal.hasStdin && terminal.stdin) {
-        input = terminal.stdin;
-      } else if (files.length > 0) {
-        const filePath = terminal.resolvePath(files[0]);
-        const file = await terminal.getFileSystemItem(filePath);
-        if (!file || file.type !== 'file') {
-          return `tail: cannot open '${files[0]}' for reading: No such file or directory`;
-        }
-        input = file.content || '';
-      } else {
-        return 'tail: no input provided';
-      }
-
-      const inputLines = input.split('\n');
-      return inputLines.slice(-lines).join('\n');
+      const stdout = sections.join('\n');
+      const stderr = stderrLines.length
+        ? stderrLines.join('\n') + (stderrLines.length ? '\n' : '')
+        : '';
+      const exitCode = stderrLines.length > 0 ? 1 : 0;
+      return { stdout, stderr, exitCode };
     },
-    'output last lines of files or input (-n NUM or -NUM for line count)',
+    'output last lines of files or stdin (-n NUM, -NUM, multiple FILEs, --)',
     'File System'
   );
 })();

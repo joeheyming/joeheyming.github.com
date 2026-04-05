@@ -60,6 +60,11 @@ body {
   cursor: not-allowed;
 }
 
+#toolbar button:focus-visible {
+  outline: 2px solid #63b3ed;
+  outline-offset: 2px;
+}
+
 #path-bar {
   flex: 1;
   background: #1a1a2e;
@@ -85,6 +90,15 @@ body {
 .breadcrumb-segment:hover {
   background: rgba(100, 150, 255, 0.2);
   color: #a0c0ff;
+}
+
+.breadcrumb-segment:focus {
+  outline: none;
+}
+
+.breadcrumb-segment:focus-visible {
+  outline: 2px solid #63b3ed;
+  outline-offset: 2px;
 }
 
 .breadcrumb-segment.active {
@@ -254,13 +268,83 @@ body {
 #file-list.list-view {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
+}
+
+/* Column header (list view only) */
+.file-list-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 6px 12px 8px;
+  gap: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7a8f;
+  border-bottom: 1px solid rgba(61, 61, 92, 0.95);
+  background: linear-gradient(180deg, rgba(20, 24, 36, 0.98) 0%, rgba(26, 26, 46, 0.72) 100%);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.file-list-header-icon-spacer {
+  font-size: 24px;
+  line-height: 1;
+  width: 1.25em;
+  flex-shrink: 0;
+  visibility: hidden;
+  user-select: none;
+}
+
+.file-list-header-label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.file-list-header-meta {
+  display: flex;
+  gap: 24px;
+  justify-content: flex-end;
+  color: #6b7a8f;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.file-list-header-meta span:first-child {
+  min-width: 4.5rem;
+  text-align: right;
+}
+
+.file-list-header-meta span:last-child {
+  min-width: 6.5rem;
+  text-align: right;
 }
 
 #file-list.list-view .file-item {
   flex-direction: row;
   padding: 8px 12px;
   gap: 12px;
+  min-height: 36px;
+  border-bottom: 1px solid rgba(45, 45, 68, 0.55);
+}
+
+#file-list.list-view .file-item:nth-child(odd of .file-item) {
+  background: rgba(255, 255, 255, 0.028);
+}
+
+#file-list.list-view .file-item:hover {
+  background: rgba(136, 192, 208, 0.12);
+}
+
+#file-list.list-view .file-item.selected {
+  background: rgba(136, 192, 208, 0.25);
 }
 
 #file-list.list-view .file-icon {
@@ -271,34 +355,173 @@ body {
 #file-list.list-view .file-name {
   text-align: left;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #file-list.list-view .file-meta {
   display: flex;
   gap: 24px;
-  color: #888;
+  justify-content: flex-end;
+  align-items: center;
+  color: #9aa6b8;
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  flex-shrink: 0;
 }
 
-/* Empty State */
+#file-list.list-view .file-meta span:first-child {
+  min-width: 4.5rem;
+  text-align: right;
+}
+
+#file-list.list-view .file-meta span:last-child {
+  min-width: 6.5rem;
+  text-align: right;
+}
+
+#file-list.list-view .file-item:focus-visible {
+  outline: 2px solid #88c0d0;
+  outline-offset: -2px;
+}
+
+/* Grid view: breathe the selection ring off the tile edge (list view uses inset focus-visible above). */
+#file-list.grid-view .file-item.selected {
+  outline-offset: 2px;
+}
+
+@media (prefers-contrast: more) {
+  #file-list.grid-view .file-item.selected {
+    outline-width: 3px;
+    outline-color: #b0e8f4;
+  }
+}
+
+/* Empty State (root directory — no ".." row) */
 #empty-state {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  color: #666;
+  color: #8b95a8;
+  max-width: 420px;
+  width: calc(100% - 48px);
+  pointer-events: none;
+}
+
+#empty-state .empty-state-inner {
+  pointer-events: auto;
+  padding: 28px 24px;
+  border-radius: 12px;
+  border: 1px solid #3d3d5c;
+  background: linear-gradient(160deg, rgba(45, 45, 68, 0.72) 0%, rgba(26, 26, 46, 0.5) 100%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
 }
 
 #empty-state .empty-icon {
-  font-size: 64px;
+  font-size: 56px;
   display: block;
-  margin-bottom: 16px;
-  opacity: 0.5;
+  margin: 0 auto 14px;
+  line-height: 1;
+  opacity: 0.88;
+  filter: saturate(1.05);
+}
+
+#empty-state .empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e8eaef;
+  margin: 0 0 10px;
+  letter-spacing: 0.02em;
+}
+
+#empty-state .empty-hint {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #8b95a8;
+}
+
+#empty-state .empty-hint strong {
+  color: #a8b4c8;
+  font-weight: 600;
+}
+
+#empty-state kbd,
+.empty-folder-hint kbd {
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  border-radius: 4px;
+  background: #1a1a2e;
+  border: 1px solid #4d4d6c;
+  color: #c8d0e0;
 }
 
 #empty-state.hidden {
   display: none;
+}
+
+/* Non-root empty folder: only ".." — inline hint below parent row */
+.empty-folder-hint {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: 4px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  border: 1px dashed rgba(136, 192, 208, 0.38);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+#file-list.list-view .empty-folder-hint {
+  flex-direction: row;
+  width: 100%;
+}
+
+.empty-folder-hint-icon {
+  font-size: 36px;
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.empty-folder-hint-title {
+  font-weight: 600;
+  color: #c8d0e0;
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+
+.empty-folder-hint-sub {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #7a8899;
+}
+
+.empty-folder-hint-sub strong {
+  color: #9aa6b8;
+  font-weight: 600;
+}
+
+/* listDirectory / FS errors */
+.file-list-error {
+  padding: 18px 20px;
+  border-radius: 8px;
+  background: rgba(120, 40, 40, 0.2);
+  border: 1px solid rgba(255, 120, 96, 0.4);
+  color: #f5a898;
+  font-size: 14px;
+  line-height: 1.45;
+  max-width: 100%;
+  word-break: break-word;
 }
 
 /* Status Bar */
@@ -307,11 +530,42 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  min-height: 28px;
   padding: 0 12px;
   background: #252538;
   border-top: 1px solid #3d3d5c;
   font-size: 12px;
-  color: #888;
+  line-height: 1.35;
+  color: #9aa3b8;
+  font-variant-numeric: tabular-nums;
+}
+
+#status-bar .status-item-count {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#status-bar .status-selected-info {
+  flex: 0 1 auto;
+  color: #c8d0dc;
+  font-weight: 500;
+  text-align: right;
+}
+
+#status-bar .status-selected-info:empty {
+  display: none;
+}
+
+@media (prefers-contrast: more) {
+  #status-bar {
+    color: #c5ccd8;
+    border-top-color: #5a5a78;
+  }
+
+  #status-bar .status-selected-info {
+    color: #e8ecf2;
+  }
 }
 
 /* Context Menu */
@@ -342,6 +596,12 @@ body {
 
 .menu-item:hover {
   background: rgba(136, 192, 208, 0.2);
+}
+
+.menu-item:focus-visible {
+  outline: 2px solid #88c0d0;
+  outline-offset: -2px;
+  background: rgba(136, 192, 208, 0.22);
 }
 
 .menu-divider {
@@ -398,6 +658,12 @@ body {
   border-color: #88c0d0;
 }
 
+#dialog input:focus-visible {
+  outline: 2px solid rgba(136, 192, 208, 0.85);
+  outline-offset: 2px;
+  border-color: #88c0d0;
+}
+
 #dialog-buttons {
   display: flex;
   justify-content: flex-end;
@@ -431,6 +697,11 @@ body {
   background: #9dd0e0;
 }
 
+#dialog-buttons button:focus-visible {
+  outline: 2px solid rgba(136, 192, 208, 0.9);
+  outline-offset: 2px;
+}
+
 /* Preview Overlay */
 #preview-overlay {
   position: fixed;
@@ -456,6 +727,7 @@ body {
   width: 80%;
   max-width: 800px;
   max-height: 80%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -489,14 +761,49 @@ body {
   color: #e0e0e0;
 }
 
+#preview-close:focus-visible {
+  outline: 2px solid rgba(136, 192, 208, 0.85);
+  outline-offset: 2px;
+  border-radius: 4px;
+  color: #e0e0e0;
+}
+
 #preview-content {
   padding: 16px;
   overflow: auto;
-  flex: 1;
-  font-family: 'Consolas', 'Monaco', monospace;
+  flex: 1 1 auto;
+  min-height: 0;
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', 'Monaco', monospace;
   font-size: 13px;
+  line-height: 1.5;
   white-space: pre-wrap;
-  color: #a0a0a0;
+  word-break: break-word;
+  font-variant-ligatures: none;
+  scrollbar-width: thin;
+  scrollbar-color: #4d4d6c #1a1a2e;
+}
+
+#preview-content.preview-file-text {
+  color: #dce2ea;
+}
+
+#preview-content.preview-placeholder {
+  color: #9aa6b8;
+  font-style: italic;
+}
+
+@media (prefers-contrast: more) {
+  #preview {
+    border-color: #7a8aa0;
+  }
+
+  #preview-content.preview-file-text {
+    color: #f2f5f8;
+  }
+
+  #preview-content.preview-placeholder {
+    color: #c5ced9;
+  }
 }
 
 /* Scrollbar */

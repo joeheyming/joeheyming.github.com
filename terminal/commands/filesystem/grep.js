@@ -1,82 +1,102 @@
-// grep command - search for pattern in files or piped input
+// grep command — search for a literal substring (GNU-style argv, multi-file, - for stdin)
 (function () {
   'use strict';
 
   registerCommand(
     'grep',
     async (terminal, args) => {
-      if (args.length === 0) {
-        return 'grep: missing pattern';
+      const parsed = ShellUtils.parseGrepArgv(args);
+      if (!parsed.ok) {
+        return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
+      }
+      if (parsed.help) {
+        return { stdout: ShellUtils.GREP_HELP, stderr: '', exitCode: 0 };
       }
 
-      const pattern = args[0];
-      const flags = args.filter((arg) => arg.startsWith('-'));
-      const files = args.filter((arg) => !arg.startsWith('-')).slice(1);
+      const { caseInsensitive, lineNumbers, invertMatch, noFilename, pattern, fileOperands } =
+        parsed;
 
-      const caseInsensitive = flags.includes('-i');
-      const showLineNumbers = flags.includes('-n');
-      const invertMatch = flags.includes('-v');
+      const stdinAvailable =
+        terminal.stdinSupplied === true || (terminal.hasStdin && terminal.stdin != null);
+      const stdinText = stdinAvailable
+        ? terminal.stdin != null
+          ? String(terminal.stdin)
+          : ''
+        : '';
 
-      let searchText = '';
-      let searchFiles = [];
+      /** @type {{ name: string, content: string }[]} */
+      const searchFiles = [];
+      const stderrLines = [];
 
-      // Check if we have piped input
-      if (terminal.hasStdin && terminal.stdin) {
-        searchText = terminal.stdin;
-      } else if (files.length > 0) {
-        // Search in specified files
-        for (const filename of files) {
-          const filePath = terminal.resolvePath(filename);
-          const file = await terminal.getFileSystemItem(filePath);
-          if (file && file.type === 'file') {
-            searchFiles.push({ name: filename, content: file.content || '' });
-          }
+      if (fileOperands.length === 0) {
+        if (!stdinAvailable) {
+          return {
+            stdout: '',
+            stderr: 'grep: no input (use a pipe or specify file operands)\n',
+            exitCode: 2
+          };
         }
+        searchFiles.push({ name: '(standard input)', content: stdinText });
       } else {
-        return 'grep: no input provided (use pipes or specify files)';
+        for (const op of fileOperands) {
+          if (op === '-') {
+            if (!stdinAvailable) {
+              stderrLines.push('grep: -: No such file or directory');
+              continue;
+            }
+            searchFiles.push({ name: '(standard input)', content: stdinText });
+            continue;
+          }
+          const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op, 'grep');
+          if (!res.ok) {
+            stderrLines.push(res.stderr.trimEnd());
+            continue;
+          }
+          const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+          searchFiles.push({ name: op, content: d.isBinary ? '' : d.text });
+        }
       }
 
+      const showPrefix = !noFilename && searchFiles.length > 1;
       const results = [];
 
-      if (searchText) {
-        // Search in piped input
-        const lines = searchText.split('\n');
+      function lineMatches(line) {
+        const searchLine = caseInsensitive ? line.toLowerCase() : line;
+        const p = caseInsensitive ? pattern.toLowerCase() : pattern;
+        const matches = searchLine.includes(p);
+        return (matches && !invertMatch) || (!matches && invertMatch);
+      }
+
+      for (const file of searchFiles) {
+        const lines = file.content.split('\n');
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
-          const searchLine = caseInsensitive ? line.toLowerCase() : line;
-          const searchPattern = caseInsensitive ? pattern.toLowerCase() : pattern;
-
-          const matches = searchLine.includes(searchPattern);
-          if ((matches && !invertMatch) || (!matches && invertMatch)) {
-            if (showLineNumbers) {
-              results.push(`${i + 1}:${line}`);
-            } else {
-              results.push(line);
-            }
+          if (!lineMatches(line)) {
+            continue;
           }
-        }
-      } else {
-        // Search in files
-        for (const file of searchFiles) {
-          const lines = file.content.split('\n');
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            const searchLine = caseInsensitive ? line.toLowerCase() : line;
-            const searchPattern = caseInsensitive ? pattern.toLowerCase() : pattern;
-
-            const matches = searchLine.includes(searchPattern);
-            if ((matches && !invertMatch) || (!matches && invertMatch)) {
-              const prefix = searchFiles.length > 1 ? `${file.name}:` : '';
-              const lineNum = showLineNumbers ? `${i + 1}:` : '';
-              results.push(`${prefix}${lineNum}${line}`);
-            }
-          }
+          const prefix = showPrefix ? `${file.name}:` : '';
+          const lineNum = lineNumbers ? `${i + 1}:` : '';
+          results.push(`${prefix}${lineNum}${line}`);
         }
       }
 
-      return results.length > 0 ? results.join('\n') : '';
+      const stdout = results.length > 0 ? results.join('\n') : '';
+      let exitCode;
+      if (stderrLines.length > 0) {
+        exitCode = 2;
+      } else if (results.length === 0) {
+        exitCode = 1;
+      } else {
+        exitCode = 0;
+      }
+
+      return {
+        stdout,
+        stderr: stderrLines.length > 0 ? stderrLines.join('\n') + '\n' : '',
+        exitCode
+      };
     },
-    'search for pattern in files or piped input (-i case insensitive, -n line numbers, -v invert)',
+    'search for literal PATTERN in FILEs or stdin (-i -n -v -h, --, - for stdin)',
     'File System'
   );
 })();

@@ -7,21 +7,23 @@
   registerCommand(
     'launch',
     async (terminal, args) => {
-      // Check if we're running inside the OS (iframe context)
       const isInOS = window.self !== window.top;
 
       if (!isInOS) {
-        return `❌ Launch command is only available when running inside Heyming OS.
-💡 To access the OS and use launch functionality:
+        return {
+          stdout: '',
+          stderr: `launch: Heyming OS is required for this command
+To use launch:
    1. Use the 'heyming-desktop' command to launch the desktop environment
    2. Click the "🚀 Launch OS" button on the main page
    3. Or visit ${window.location.origin}/os/
-   4. Then open Terminal from the OS and use the launch command`;
+   4. Then open Terminal from the OS and use the launch command`,
+          exitCode: 1
+        };
       }
 
-      // Check if app name was provided
       if (args.length === 0) {
-        return `Usage: launch [app-name | file-path]
+        const usageBody = `Usage: launch [app-name | file-path]
 
 Available applications:
 ${getAvailableApps()
@@ -35,25 +37,25 @@ Examples:
   launch ~/Music/song.mp3    # Open audio in Media Player
   launch ~/readme.txt        # Open text file in Notepad
 
-💡 Tip: You can also launch apps by clicking desktop icons or using the Apps launcher (🚀)`;
+Tip: You can also launch apps from desktop icons or the Apps launcher (🚀)`;
+        return {
+          stdout: usageBody,
+          stderr: 'launch: missing operand',
+          exitCode: 1
+        };
       }
 
       const target = args[0];
 
-      // Check if it looks like a file path
       if (target.includes('/') || target.includes('.')) {
         return await openFile(terminal, target);
       }
 
-      // Otherwise treat as app name
       const appName = target.toLowerCase();
-
-      // Get available apps
       const availableApps = getAvailableApps();
       const app = availableApps.find((a) => a.id.toLowerCase() === appName);
 
       if (!app) {
-        // Maybe it's a file without path - check current directory
         const possibleFile = await checkIfFile(terminal, target);
         if (possibleFile) {
           return await openFile(terminal, possibleFile);
@@ -66,20 +68,19 @@ Examples:
           )
           .slice(0, 3);
 
-        let output = `❌ Application or file "${appName}" not found.
+        let output = `Application or file "${appName}" not found.
 
 Available applications:
 ${availableApps.map((app) => `  ${app.id.padEnd(15)} - ${app.description}`).join('\n')}`;
 
         if (suggestions.length > 0) {
-          output += `\n\n💡 Did you mean one of these?
+          output += `\n\nDid you mean one of these?
 ${suggestions.map((s) => `  ${s.id}`).join('\n')}`;
         }
 
-        return output;
+        return { stdout: output, stderr: '', exitCode: 1 };
       }
 
-      // Send launch message to parent OS
       try {
         window.parent.postMessage(
           {
@@ -92,32 +93,33 @@ ${suggestions.map((s) => `  ${s.id}`).join('\n')}`;
           '*'
         );
 
-        return `🚀 Launching ${app.name}...`;
+        return { stdout: `🚀 Launching ${app.name}...`, stderr: '', exitCode: 0 };
       } catch (error) {
-        return `❌ Failed to launch ${app.name}: ${error.message}`;
+        return {
+          stdout: '',
+          stderr: `launch: ${app.name}: ${error.message}`,
+          exitCode: 1
+        };
       }
     },
     'Launch applications or open files from the terminal',
     'Apps'
   );
 
-  // Get config from parent OS
   function getConfig() {
     return window.parent?.HeymingOS?.Config || { HOME: '/home/jheyming', USER: 'jheyming' };
   }
 
-  // Get app for MIME type from app registry
   function getAppForMimeType(mimeType) {
     return window.parent?.AppModule?.getAppForMimeType?.(mimeType) || null;
   }
 
-  // Check if a name could be a file in the current directory
   async function checkIfFile(terminal, name) {
     try {
       const fs = await window.FileSystemDB.getInstance();
       const cfg = getConfig();
-      const cwd = terminal.currentPath || cfg.HOME;
-      const fullPath = `${cwd}/${name}`;
+      const cwd = terminal.currentDirectory || cfg.HOME;
+      const fullPath = ShellUtils.resolveVirtualPath(name, cwd);
       const item = await fs.getItem(fullPath);
       if (item && item.type === 'file') {
         return fullPath;
@@ -128,45 +130,48 @@ ${suggestions.map((s) => `  ${s.id}`).join('\n')}`;
     return null;
   }
 
-  // Open a file with the appropriate application
   async function openFile(terminal, filePath) {
     try {
       const fs = await window.FileSystemDB.getInstance();
       const cfg = getConfig();
 
-      // Resolve path (handle ~, relative paths)
-      let resolvedPath = filePath;
+      let logical = filePath;
       if (filePath.startsWith('~/')) {
-        resolvedPath = cfg.HOME + filePath.slice(1);
-      } else if (!filePath.startsWith('/')) {
-        const cwd = terminal.currentPath || cfg.HOME;
-        resolvedPath = `${cwd}/${filePath}`;
+        logical = cfg.HOME + filePath.slice(1);
       }
+      const cwd = terminal.currentDirectory || cfg.HOME;
+      const resolvedPath = ShellUtils.resolveVirtualPath(logical, cwd);
 
-      // Normalize path (remove .. and .)
-      resolvedPath = normalizePath(resolvedPath);
-
-      // Get file from filesystem
       const item = await fs.getItem(resolvedPath);
 
       if (!item) {
-        return `❌ File not found: ${filePath}`;
+        return {
+          stdout: '',
+          stderr: `launch: ${filePath}: No such file or directory`,
+          exitCode: 1
+        };
       }
 
       if (item.type === 'directory') {
-        return `❌ "${filePath}" is a directory. Use 'cd' to navigate to it.`;
+        return {
+          stdout: '',
+          stderr: `launch: ${filePath}: Is a directory`,
+          exitCode: 1
+        };
       }
 
-      // Get MIME type and determine app using centralized utility
-      const mimeType = window.FileSystemDB.getMimeType(resolvedPath);
+      const mimeType = window.FileSystemDB.mimeTypeForOpen(item);
       const fileName = resolvedPath.split('/').pop();
       const appInfo = getAppForMimeType(mimeType);
 
       if (!appInfo) {
-        return `❌ No application available to open: ${fileName} (${mimeType})`;
+        return {
+          stdout: '',
+          stderr: `launch: no application to open ${fileName} (${mimeType})`,
+          exitCode: 1
+        };
       }
 
-      // Send open file message to OS
       window.parent.postMessage(
         {
           type: 'iframe-message',
@@ -181,35 +186,27 @@ ${suggestions.map((s) => `  ${s.id}`).join('\n')}`;
         '*'
       );
 
-      return `📂 Opening ${fileName} with ${appInfo.appName}...`;
+      return {
+        stdout: `📂 Opening ${fileName} with ${appInfo.appName}...`,
+        stderr: '',
+        exitCode: 0
+      };
     } catch (error) {
-      return `❌ Failed to open file: ${error.message}`;
+      return {
+        stdout: '',
+        stderr: `launch: ${error.message}`,
+        exitCode: 1
+      };
     }
   }
 
-  // Normalize a path (resolve . and ..)
-  function normalizePath(path) {
-    const parts = path.split('/').filter((p) => p && p !== '.');
-    const result = [];
-    for (const part of parts) {
-      if (part === '..') {
-        result.pop();
-      } else {
-        result.push(part);
-      }
-    }
-    return '/' + result.join('/');
-  }
-
-  // Helper function to get available apps
   function getAvailableApps() {
-    // Try to get apps from the parent window's app registry
     try {
       if (window.parent && window.parent.AppModule) {
         return window.parent.AppModule.getAllApps();
       }
     } catch (error) {
-      // Fallback to a basic list if we can't access parent
+      // Fallback
     }
     return [];
   }

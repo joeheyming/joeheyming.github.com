@@ -3,6 +3,30 @@
 //   options.skipDirect: true — skip direct fetch (use when origin blocks CORS).
 //   options.deferProxies: string[] — try these proxy URL prefixes last (e.g. ['https://corsproxy.io/']).
 //   options.timeout, options.maxRetries, options.headers — passed through.
+//   options.signal — optional AbortSignal (e.g. jsh Ctrl+C); merged with timeout for each fetch.
+
+/** @param {number} timeoutMs @param {AbortSignal|undefined|null} userSignal */
+function mergeFetchAbortSignal(timeoutMs, userSignal) {
+  const t = AbortSignal.timeout(timeoutMs);
+  if (!userSignal) {
+    return t;
+  }
+  if (typeof AbortSignal.any === 'function') {
+    return AbortSignal.any([t, userSignal]);
+  }
+  const c = new AbortController();
+  const bust = () => {
+    try {
+      c.abort();
+    } catch (_) {
+      /* ignore */
+    }
+  };
+  t.addEventListener('abort', bust);
+  userSignal.addEventListener('abort', bust);
+  return c.signal;
+}
+
 class ProxyService {
   constructor() {
     // Proxy services ordered roughly by reliability (as of late 2024-2025)
@@ -99,21 +123,24 @@ class ProxyService {
   async tryDirectFetch(url, options = {}) {
     try {
       const timeoutMs = options.timeout || 3000; // Short timeout for direct attempt
-      const fetchPromise = fetch(url, {
+      const signal = mergeFetchAbortSignal(timeoutMs, options.signal);
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           ...options.headers
         },
-        mode: 'cors'
+        mode: 'cors',
+        signal
       });
-
-      const response = await Promise.race([fetchPromise, this.createTimeoutPromise(timeoutMs)]);
       if (response.ok) {
         console.log('Direct fetch succeeded (no proxy needed)');
         return await response.text();
       }
     } catch (error) {
+      if (error && error.name === 'AbortError') {
+        throw error;
+      }
       // Expected - most sites block CORS, continue to proxies
       console.log(`Direct fetch blocked (expected): ${error.message}`);
     }
@@ -122,10 +149,11 @@ class ProxyService {
 
   // Fetch content through multiple proxy options with fallback, timeout, and retries
   async fetchWithProxy(url, options = {}) {
-    const cacheKey = `${url}-${JSON.stringify(options)}`;
+    const { signal: userAbort, ...optionsForKey } = options;
+    const cacheKey = `${url}-${JSON.stringify(optionsForKey)}`;
 
-    // Check cache first
-    if (this.cache.has(cacheKey)) {
+    // Check cache first (skip cache when caller may cancel — signal is not part of key)
+    if (!userAbort && this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey);
     }
 
@@ -146,6 +174,9 @@ class ProxyService {
     console.log(`Trying ${orderedProxies.length} proxies for: ${url.substring(0, 80)}...`);
 
     for (let retry = 0; retry <= maxRetries; retry++) {
+      if (userAbort && userAbort.aborted) {
+        throw new DOMException('The operation was aborted.', 'AbortError');
+      }
       for (const proxy of orderedProxies) {
         // Circuit breaker: skip proxy briefly after a failure to try others first
         const lastFail = this.proxyLastFailure.get(proxy);
@@ -156,17 +187,16 @@ class ProxyService {
           const startTime = Date.now();
           console.log(`Trying proxy: ${proxy.substring(0, 30)}...`);
 
-          // Create a race between the fetch and timeout
-          const fetchPromise = fetch(proxyUrl, {
+          const signal = mergeFetchAbortSignal(timeoutMs, userAbort);
+          const response = await fetch(proxyUrl, {
             method: 'GET',
             headers: {
               Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
               'Accept-Language': 'en-US,en;q=0.5',
               ...options.headers
-            }
+            },
+            signal
           });
-
-          const response = await Promise.race([fetchPromise, this.createTimeoutPromise(timeoutMs)]);
           const responseTime = Date.now() - startTime;
 
           if (response.ok) {
@@ -188,6 +218,9 @@ class ProxyService {
             this.proxyLastFailure.set(proxy, Date.now());
           }
         } catch (error) {
+          if (error && error.name === 'AbortError') {
+            throw error;
+          }
           lastError = error;
           console.warn(`Proxy ${proxy} failed (attempt ${retry + 1}):`, error.message);
           this.updateProxyScore(proxy, false);
@@ -198,6 +231,9 @@ class ProxyService {
 
       // If we get here, all proxies failed for this retry
       if (retry < maxRetries) {
+        if (userAbort && userAbort.aborted) {
+          throw new DOMException('The operation was aborted.', 'AbortError');
+        }
         console.log(`All proxies failed, retrying... (${retry + 1}/${maxRetries})`);
         // Wait a bit before retrying
         await new Promise((resolve) => setTimeout(resolve, 1000 * (retry + 1)));

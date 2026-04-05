@@ -26,7 +26,7 @@
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#001400" />
     <meta
       name="keywords"
       content="terminal, command line, web terminal, CLI, bash, shell, file system, interactive terminal, browser terminal, retro computing"
@@ -127,27 +127,79 @@
     </script>
   </head>
   <body>
-    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 100">
+    <div id="terminal-share-dock">
       <share-button label="📤 Share" theme="retro"></share-button>
     </div>
-    <div id="terminal-container">
-      <div id="terminal-output"></div>
-      <div id="current-prompt-line">
-        <span id="prompt-text"></span>
-        <input
-          type="text"
-          id="terminal-input"
-          autofocus
-          autocapitalize="none"
-          autocorrect="off"
-          spellcheck="false"
-          placeholder="Type a command..."
-        />
+    <main id="terminal-container" aria-label="jsh terminal">
+      <a class="terminal-skip-link" href="#terminal-input">Skip to command line</a>
+      <!-- Scroll output + prompt together so the input sits under the last line (classic terminal). -->
+      <div id="terminal-scroll" class="terminal-scroll" aria-label="Terminal session">
+        <div id="terminal-output" role="region" aria-label="Command output"></div>
+        <div id="current-prompt-line" role="group" aria-label="Current prompt">
+          <span id="prompt-text"></span>
+          <input
+            type="text"
+            id="terminal-input"
+            aria-labelledby="prompt-text"
+            autofocus
+            autocapitalize="none"
+            autocorrect="off"
+            spellcheck="false"
+            placeholder="Type a command..."
+          />
+        </div>
       </div>
-    </div>
+      <button
+        type="button"
+        id="terminal-scroll-latest"
+        class="terminal-scroll-latest"
+        hidden
+        aria-label="Jump to latest output"
+      >
+        ↓ Latest
+      </button>
+      <div
+        id="terminal-session-hints"
+        class="terminal-session-hints"
+        role="region"
+        aria-label="Keyboard shortcuts"
+      >
+        <div class="terminal-session-hints-inner">
+          <span class="terminal-hint-group">
+            <kbd>↑</kbd>
+            <kbd>↓</kbd>
+            <span class="terminal-hint-label">history</span>
+          </span>
+          <span class="terminal-hint-sep" aria-hidden="true">·</span>
+          <span class="terminal-hint-group">
+            <kbd>Tab</kbd>
+            <span class="terminal-hint-label">complete</span>
+          </span>
+          <span class="terminal-hint-sep" aria-hidden="true">·</span>
+          <span class="terminal-hint-group">
+            <kbd>Ctrl</kbd>
+            <span class="terminal-hint-plus" aria-hidden="true">+</span>
+            <kbd>C</kbd>
+            <span class="terminal-hint-label">interrupt</span>
+          </span>
+        </div>
+      </div>
+    </main>
+    <script>
+      if (window.parent !== window) {
+        document.documentElement.classList.add('terminal-embed-os');
+        const tc = document.getElementById('terminal-container');
+        const ts = document.getElementById('terminal-scroll');
+        if (tc) tc.setAttribute('aria-label', 'jsh terminal (Heyming OS window)');
+        if (ts) ts.setAttribute('aria-label', 'Terminal session in this window');
+      }
+    </script>
     <script src="/proxy.js"></script>
 
     <!-- Core OS Components -->
+    <script src="lib/shell-utils.js"></script>
+    <script src="lib/jsh-git-http.js"></script>
+    <script src="lib/jsh-git-fs.js"></script>
     <script src="core/memory-manager.js"></script>
     <script src="core/security-manager.js"></script>
     <script src="core/filesystem-manager.js"></script>
@@ -182,11 +234,11 @@
           const terminalOutput = document.getElementById('terminal-output');
           if (terminalOutput) {
             terminalOutput.innerHTML = `
-              <div style="color: red; font-weight: bold;">
-                ❌ System Initialization Failed<br/>
-                💥 Cannot start terminal without OS layer<br/>
-                🔧 Check browser console for details<br/>
-                🔄 Please refresh the page to retry
+              <div class="terminal-init-error" role="alert">
+                <strong class="terminal-init-error-title">System initialization failed</strong>
+                <p class="terminal-init-error-line">Cannot start the terminal without the OS layer.</p>
+                <p class="terminal-init-error-line">Check the browser console for details.</p>
+                <p class="terminal-init-error-line terminal-init-error-hint">Refresh the page to retry.</p>
               </div>
             `;
           }

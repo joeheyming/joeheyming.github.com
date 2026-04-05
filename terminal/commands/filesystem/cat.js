@@ -1,28 +1,56 @@
-// cat command - display file contents
+// cat command — concatenate files to stdout (GNU-style multi-file, - for stdin, --, symlink follow)
 (function () {
   'use strict';
 
   registerCommand(
     'cat',
     async (terminal, args) => {
-      if (args.length === 0) {
-        return 'cat: missing file operand';
+      const parsed = ShellUtils.parseCatArgv(args);
+      if (!parsed.ok) {
+        return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
+      }
+      if (parsed.help) {
+        return { stdout: ShellUtils.CAT_HELP, stderr: '', exitCode: 0 };
       }
 
-      const filePath = terminal.resolvePath(args[0]);
-      const item = await terminal.getFileSystemItem(filePath);
+      const { operands } = parsed;
+      const stdinAvailable =
+        terminal.stdinSupplied === true || (terminal.hasStdin && terminal.stdin != null);
+      const stdinText = stdinAvailable
+        ? terminal.stdin != null
+          ? String(terminal.stdin)
+          : ''
+        : '';
 
-      if (!item) {
-        return `cat: ${args[0]}: No such file or directory`;
+      if (operands.length === 0) {
+        if (!stdinAvailable) {
+          return { stdout: '', stderr: 'cat: missing operand\n', exitCode: 1 };
+        }
+        return { stdout: stdinText, stderr: '', exitCode: 0 };
       }
 
-      if (item.type !== 'file') {
-        return `cat: ${args[0]}: Is a directory`;
+      const chunks = [];
+      const stderrLines = [];
+      for (const op of operands) {
+        if (op === '-') {
+          chunks.push(stdinText);
+          continue;
+        }
+        const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op, 'cat');
+        if (!res.ok) {
+          stderrLines.push(res.stderr.trimEnd());
+          continue;
+        }
+        const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+        chunks.push(d.isBinary ? '[binary file]\n' : d.text);
       }
 
-      return item.content || '[binary file]';
+      const stdout = chunks.join('');
+      const stderr = stderrLines.length ? stderrLines.join('\n') + '\n' : '';
+      const exitCode = stderrLines.length > 0 ? 1 : 0;
+      return { stdout, stderr, exitCode };
     },
-    'display file contents',
+    'concatenate files to standard output (multiple FILEs, - for stdin, --)',
     'File System'
   );
 })();

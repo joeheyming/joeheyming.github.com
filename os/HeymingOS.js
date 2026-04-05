@@ -23,6 +23,8 @@ export class HeymingOS {
     this.isVisible = false;
     this.C = Constants;
     this.fileSystemDB = null;
+    /** @type {HTMLElement | null} */
+    this._shutdownDialogPriorFocus = null;
 
     // Initialize subsystems
     this.windowManager = new WindowManager();
@@ -30,7 +32,12 @@ export class HeymingOS {
     this.launcher = new Launcher((appId) => this.launchApp(appId));
     this.desktop = new Desktop(
       (appId) => this.launchApp(appId),
-      (file) => this.openDesktopFile(file)
+      (file) => {
+        void this.openDesktopFile(file).catch((err) => {
+          console.error('[HeymingOS] openDesktopFile failed', err);
+          this.notifications?.error?.(`Could not open file: ${err?.message || err}`);
+        });
+      }
     );
     this.notifications = new NotificationService();
     this.clock = new Clock();
@@ -82,9 +89,9 @@ export class HeymingOS {
 
     // Listen for all filesystem events
     const handleFilesystemEvent = (eventType, path, details) => {
-      // Check if the change affects the desktop
+      // Check if the change affects the desktop (segment-aware; see FileSystemDB.pathIsDescendantOrSelf)
       const affectsDesktop =
-        path.startsWith(desktopPath) ||
+        FileSystemDB.pathIsDescendantOrSelf(path, desktopPath) ||
         details.parentPath === desktopPath ||
         details.oldParentPath === desktopPath ||
         details.newParentPath === desktopPath;
@@ -227,6 +234,25 @@ export class HeymingOS {
     shutdownDialog?.addEventListener('click', (e) => {
       if (e.target === shutdownDialog) this._hideShutdownDialog();
     });
+
+    shutdownDialog?.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab' || !this._isShutdownDialogVisible()) return;
+      const buttons = shutdownDialog.querySelectorAll('button:not([disabled])');
+      const list = Array.from(buttons);
+      if (list.length < 2) return;
+      const first = list[0];
+      const last = list[list.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey) {
+        if (active === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
   }
 
   _setupLauncher() {
@@ -255,19 +281,31 @@ export class HeymingOS {
   _setupGlobalKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        const launcherExpanded =
+          document.getElementById('app-launcher')?.getAttribute('aria-expanded') === 'true';
+        const launcherMenu = document.getElementById('app-launcher-menu');
+        // While the close animation runs, isVisible() is already false and aria-expanded is false,
+        // but the menu is still on-screen without .hidden — avoid falling through to OS hide().
+        const launcherMenuOnScreen = launcherMenu && !launcherMenu.classList.contains('hidden');
         if (this._isShutdownDialogVisible()) {
           e.preventDefault();
           this._hideShutdownDialog();
-        } else if (this.launcher.isVisible()) {
+        } else if (this.launcher.isVisible() || launcherExpanded || launcherMenuOnScreen) {
           this.launcher.hide();
+          e.preventDefault();
+        } else if (this.contextMenu?.visible) {
+          this.contextMenu.hide();
+          e.preventDefault();
         } else if (this.isVisible) {
           this.hide();
         }
       }
 
       if (this._isShutdownDialogVisible() && e.key === 'Enter') {
-        e.preventDefault();
-        this._confirmShutdown();
+        if (document.activeElement?.id === 'shutdown-confirm') {
+          e.preventDefault();
+          this._confirmShutdown();
+        }
       }
     });
   }
@@ -290,23 +328,37 @@ export class HeymingOS {
 
   _showShutdownDialog() {
     const dialog = document.getElementById('shutdown-dialog');
-    if (dialog) {
-      dialog.classList.remove('hidden');
-      setTimeout(() => {
-        dialog.style.animation = 'fadeIn 0.2s ease-out';
-      }, 10);
-    }
+    if (!dialog) return;
+    const ae = document.activeElement;
+    this._shutdownDialogPriorFocus = ae instanceof HTMLElement ? ae : null;
+    dialog.classList.remove('hidden');
+    dialog.setAttribute('aria-hidden', 'false');
+    setTimeout(() => {
+      dialog.style.animation = 'fadeIn 0.2s ease-out';
+    }, 10);
+    requestAnimationFrame(() => {
+      document.getElementById('shutdown-cancel')?.focus();
+    });
   }
 
   _hideShutdownDialog() {
     const dialog = document.getElementById('shutdown-dialog');
-    if (dialog) {
-      dialog.style.animation = 'fadeOut 0.2s ease-in';
-      setTimeout(() => {
-        dialog.classList.add('hidden');
-        dialog.style.animation = '';
-      }, 200);
-    }
+    if (!dialog) return;
+    dialog.setAttribute('aria-hidden', 'true');
+    dialog.style.animation = 'fadeOut 0.2s ease-in';
+    setTimeout(() => {
+      dialog.classList.add('hidden');
+      dialog.style.animation = '';
+      const prior = this._shutdownDialogPriorFocus;
+      this._shutdownDialogPriorFocus = null;
+      if (prior && typeof prior.focus === 'function') {
+        try {
+          prior.focus();
+        } catch (_) {
+          /* ignore cross-document focus */
+        }
+      }
+    }, 200);
   }
 
   _confirmShutdown() {
@@ -368,7 +420,10 @@ export class HeymingOS {
           this.showSaveAsDialog(msg.content, msg.suggestedName, msg.sourceWindow, e.source);
         } else if (msg?.type === IframeActions.OPEN_DESKTOP_FILE) {
           // Open a file using OS routing (from File Manager, etc.)
-          this.openDesktopFile(msg.file);
+          void this.openDesktopFile(msg.file).catch((err) => {
+            console.error('[HeymingOS] openDesktopFile (iframe) failed', err);
+            this.notifications?.error?.(`Could not open file: ${err?.message || err}`);
+          });
         } else if (msg?.type === IframeActions.FILESYSTEM_CHANGED) {
           // Refresh desktop when files change in File Manager
           this.desktop.refresh();
@@ -397,17 +452,33 @@ export class HeymingOS {
   /**
    * Open a file from the desktop
    */
-  openDesktopFile(file) {
-    const mimeType = FileSystemDB
-      ? FileSystemDB.getMimeType(file.path)
-      : 'application/octet-stream';
+  async openDesktopFile(file) {
+    if (!file?.path) return;
+
     const fileName = this.fileSystemDB?.getFileName(file.path) || file.path.split('/').pop();
 
-    // Route based on MIME type using app registry
+    let item = file;
+    if (this.fileSystemDB) {
+      try {
+        const full = await this.fileSystemDB.getItem(file.path);
+        if (full && full.type === 'file') {
+          item = full;
+          if (file.mimeType && !item.mimeType) {
+            item = { ...item, mimeType: file.mimeType };
+          }
+        }
+      } catch (e) {
+        debug('openDesktopFile: getItem failed', e);
+      }
+    }
+
+    const mimeType = FileSystemDB ? FileSystemDB.mimeTypeForOpen(item) : 'application/octet-stream';
+
     const appInfo = window.AppModule.getAppForMimeType(mimeType);
 
     if (appInfo) {
-      this.openFileWithApp(appInfo.appId, file.path, file.content, fileName);
+      const content = FileSystemDB ? FileSystemDB.getContentForApp(item) : file.content ?? '';
+      this.openFileWithApp(appInfo.appId, file.path, content, fileName);
     } else {
       this.notifications.info(`Cannot open: ${fileName} (${mimeType})`);
     }
@@ -454,11 +525,12 @@ export class HeymingOS {
         // Send the file to the requesting app
         if (sourceWindow) {
           const fileName = this.fileSystemDB?.getFileName(item.path) || item.path.split('/').pop();
+          const content = FileSystemDB ? FileSystemDB.getContentForApp(item) : item.content ?? '';
           sourceWindow.postMessage(
             {
               type: MessageTypes.OPEN_FILE,
               path: item.path,
-              content: item.content,
+              content,
               fileName: fileName
             },
             '*'

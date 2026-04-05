@@ -6,7 +6,7 @@
 // Debug logging helper
 function debug(...args) {
   if (window.parent?.HeymingOS?.Config?.DEBUG) {
-    debug('[MediaPlayer]', ...args);
+    console.debug('[MediaPlayer]', ...args);
   }
 }
 
@@ -45,8 +45,36 @@ class MediaPlayer {
     this.isInOS = window.parent !== window;
     this.isAudio = false;
     this.isYouTube = false;
+    /** @type {string|null} */
+    this._mediaBlobUrl = null;
 
     this.init();
+  }
+
+  _revokeMediaBlobUrl() {
+    if (this._mediaBlobUrl) {
+      URL.revokeObjectURL(this._mediaBlobUrl);
+      this._mediaBlobUrl = null;
+    }
+  }
+
+  mimeFromMediaFileName(fileName) {
+    const ext = fileName?.split('.').pop()?.toLowerCase();
+    const map = {
+      mp3: 'audio/mpeg',
+      wav: 'audio/wav',
+      ogg: 'audio/ogg',
+      m4a: 'audio/mp4',
+      aac: 'audio/aac',
+      flac: 'audio/flac',
+      wma: 'audio/x-ms-wma',
+      webm: 'video/webm',
+      mp4: 'video/mp4',
+      ogv: 'video/ogg',
+      mov: 'video/quicktime',
+      mkv: 'video/x-matroska'
+    };
+    return map[ext || ''] || 'application/octet-stream';
   }
 
   init() {
@@ -386,6 +414,7 @@ class MediaPlayer {
 
   loadMedia(content, fileName, path) {
     this.currentFile = { path, fileName };
+    this._revokeMediaBlobUrl();
 
     debug('loadMedia called:', {
       fileName,
@@ -394,8 +423,20 @@ class MediaPlayer {
       contentPreview: typeof content === 'string' ? content.substring(0, 100) : '[non-string]'
     });
 
-    if (!content) {
+    if (content == null || content === '') {
       this.showError('No media content received');
+      return;
+    }
+
+    // Virtual FS binary files (contentBytes → postMessage as ArrayBuffer)
+    if (content instanceof ArrayBuffer || ArrayBuffer.isView(content)) {
+      const mime = this.mimeFromMediaFileName(fileName);
+      this.isAudio = this.detectMediaType(fileName, mime);
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      this._mediaBlobUrl = url;
+      debug('Playing binary media from blob URL', mime);
+      this.playMedia(url, fileName);
       return;
     }
 
@@ -579,6 +620,7 @@ class MediaPlayer {
   }
 
   reset() {
+    this._revokeMediaBlobUrl();
     this.media.pause();
     this.media.src = '';
     this.mediaWrapper.classList.add('hidden');

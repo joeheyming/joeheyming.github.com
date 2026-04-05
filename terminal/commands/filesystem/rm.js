@@ -2,55 +2,108 @@
 (function () {
   'use strict';
 
+  /**
+   * @param {Error} error
+   * @param {string} targetArg — user operand (not resolved path)
+   * @returns {{ stderr: string, exitCode: number }}
+   */
+  function rmStderrFromDeleteError(error, targetArg) {
+    const msg = error && error.message ? String(error.message) : String(error);
+    if (msg.startsWith('No such file or directory:')) {
+      return {
+        stderr: `rm: cannot remove '${targetArg}': No such file or directory`,
+        exitCode: 1
+      };
+    }
+    if (msg.startsWith('Directory not empty:')) {
+      return {
+        stderr: `rm: cannot remove '${targetArg}': Directory not empty`,
+        exitCode: 1
+      };
+    }
+    return { stderr: `rm: cannot remove '${targetArg}': ${msg}`, exitCode: 1 };
+  }
+
   registerCommand(
     'rm',
     async (terminal, args) => {
-      if (args.length === 0) {
-        return 'rm: missing operand';
+      const parsed = ShellUtils.parseRmArgv(args);
+      if (!parsed.ok) {
+        return { stderr: parsed.stderr, exitCode: parsed.exitCode };
+      }
+      if (parsed.help) {
+        return { stdout: `${ShellUtils.RM_HELP}\n`, stderr: '', exitCode: 0 };
       }
 
-      // Safety check for dangerous commands
-      if (args.includes('-rf') && (args.includes('/') || args.includes('*'))) {
-        return `🚨 WHOA THERE! 🚨
+      const { recursive, force, operands } = parsed;
+
+      if (operands.length === 0) {
+        return {
+          stderr: "rm: missing operand\nTry 'rm --help' for more information.\n",
+          exitCode: 1
+        };
+      }
+
+      if (recursive && force && (operands.includes('/') || operands.some((o) => o.includes('*')))) {
+        return {
+          stderr: `🚨 WHOA THERE! 🚨
 rm -rf / is dangerous! Good thing this filesystem has safety checks!
 
 💡 Fun fact: This command would delete everything on a real system.
 🛡️  Always be careful with rm -rf in real life!
-☕ Maybe have some coffee first: try 'coffee'`;
+☕ Maybe have some coffee first: try 'coffee'`,
+          exitCode: 1
+        };
       }
 
-      const recursive = args.includes('-r') || args.includes('-rf') || args.includes('--recursive');
-      const force = args.includes('-f') || args.includes('-rf') || args.includes('--force');
+      let hadError = false;
+      const stderrLines = [];
 
-      // Get the file/directory to remove (last non-flag argument)
-      const target = args.filter((arg) => !arg.startsWith('-')).pop();
-      if (!target) {
-        return 'rm: missing operand';
-      }
+      for (const target of operands) {
+        const targetPath = terminal.resolvePath(target);
 
-      const targetPath = terminal.resolvePath(target);
+        try {
+          const item = await terminal.getFileSystemItem(targetPath);
 
-      try {
-        const item = await terminal.getFileSystemItem(targetPath);
-        if (!item && !force) {
-          return `rm: cannot remove '${target}': No such file or directory`;
-        }
+          if (!item) {
+            if (!force) {
+              const { stderr } = rmStderrFromDeleteError(
+                new Error(`No such file or directory: ${targetPath}`),
+                target
+              );
+              stderrLines.push(stderr);
+              hadError = true;
+            }
+            continue;
+          }
 
-        if (item) {
+          if (item.type === 'directory' && !recursive) {
+            stderrLines.push(`rm: cannot remove '${target}': Is a directory`);
+            hadError = true;
+            continue;
+          }
+
           await terminal.fileSystemDB.deleteItem(targetPath, recursive);
-          const type = item.type === 'directory' ? 'directory' : 'file';
-          return `🗑️  Removed ${type}: ${target}`;
+        } catch (error) {
+          if (force && String(error.message || error).startsWith('No such file or directory:')) {
+            continue;
+          }
+          const { stderr } = rmStderrFromDeleteError(error, target);
+          stderrLines.push(stderr);
+          hadError = true;
         }
-
-        return '';
-      } catch (error) {
-        if (force) {
-          return ''; // Force flag suppresses errors
-        }
-        return `rm: cannot remove '${target}': ${error.message}`;
       }
+
+      if (hadError) {
+        return {
+          stdout: '',
+          stderr: stderrLines.join('\n'),
+          exitCode: 1
+        };
+      }
+      return { stdout: '', stderr: '', exitCode: 0 };
     },
-    'remove files and directories (-r for recursive, -f for force)',
+    'remove files and directories (GNU-style flags; see rm --help)',
     'File System'
   );
 })();

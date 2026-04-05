@@ -1,29 +1,30 @@
-// echo command - display text
+// echo command — GNU-style argv, -n / -e / -E, jsh $VAR expansion on joined operands
 (function () {
   'use strict';
 
   registerCommand(
     'echo',
     async (terminal, args) => {
-      if (args.length === 0) {
-        return '\n'; // Even empty echo should have newline
+      const parsed = ShellUtils.parseEchoArgv(args);
+      if (!parsed.ok) {
+        return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
+      }
+      if (parsed.help) {
+        return { stdout: ShellUtils.ECHO_HELP, stderr: '', exitCode: 0 };
+      }
+      if (parsed.version) {
+        return { stdout: ShellUtils.ECHO_VERSION_LINE, stderr: '', exitCode: 0 };
       }
 
-      const flags = args.filter((arg) => arg.startsWith('-'));
-      const textArgs = args.filter((arg) => !arg.startsWith('-'));
-
-      // -n flag suppresses the trailing newline
-      const suppressNewline = flags.includes('-n');
-
-      const text = textArgs.join(' ');
-      // Expand environment variables
-      const expandedText = terminal.expandVariables(text);
-      const result = suppressNewline ? expandedText : expandedText + '\n';
-
-      // Return text with newline unless -n flag is used
-      return result;
+      const joined = parsed.operands.join(' ');
+      let text = terminal.expandVariables(joined);
+      if (parsed.escapes) {
+        text = ShellUtils.echoApplyBackslashEscapes(text);
+      }
+      const out = parsed.noNewline ? text : text + '\n';
+      return { stdout: out, stderr: '', exitCode: 0 };
     },
-    'display text (-n to suppress newline, supports $VAR expansion)',
+    'print strings (-n, -e/-E, --; GNU-style leading options; $VAR expansion)',
     'File System'
   );
 })();

@@ -8,6 +8,14 @@ function debug(...args) {
   }
 }
 
+function escapeHtmlAttr(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+function escapeHtmlText(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+}
+
 class FileManager {
   constructor() {
     this.fs = null;
@@ -17,6 +25,11 @@ class FileManager {
     this.historyIndex = 0;
     this.selectedItems = new Set();
     this.isListView = false;
+    this._onContextMenuKeydown = this._onContextMenuKeydown.bind(this);
+    /** @type {HTMLElement | null} */
+    this._focusBeforeDialog = null;
+    /** @type {HTMLElement | null} */
+    this._focusBeforePreview = null;
 
     this.init();
   }
@@ -63,7 +76,7 @@ class FileManager {
         const changedPath = e.data.path;
         const details = e.data.details || {};
         const affectsCurrentDir =
-          changedPath.startsWith(this.currentPath) ||
+          FileSystemDB.pathIsDescendantOrSelf(changedPath, this.currentPath) ||
           details.parentPath === this.currentPath ||
           details.oldParentPath === this.currentPath ||
           details.newParentPath === this.currentPath;
@@ -89,6 +102,7 @@ class FileManager {
       .getElementById('btn-new-file')
       .addEventListener('click', () => this.showNewFileDialog());
     document.getElementById('btn-view-toggle').addEventListener('click', () => this.toggleView());
+    this._syncViewToggleAria();
 
     // Sidebar navigation
     document.querySelectorAll('.sidebar-item').forEach((item) => {
@@ -120,18 +134,25 @@ class FileManager {
     // Context menu
     document.getElementById('file-list').addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      this.showContextMenu(e);
+      void this.showContextMenu(e);
     });
 
     document.addEventListener('click', () => this.hideContextMenu());
 
-    document.querySelectorAll('#context-menu .menu-item').forEach((item) => {
-      item.addEventListener('click', () => {
-        const action = item.dataset.action;
+    document.getElementById('context-menu').addEventListener('click', (e) => {
+      const el = e.target.closest('.menu-item');
+      if (!el) return;
+      e.stopPropagation();
+      const action = el.dataset.action;
+      if (action === 'open-with') {
+        void this.handleOpenWith(el.dataset.app);
+      } else {
         this.handleContextAction(action);
-        this.hideContextMenu();
-      });
+      }
+      this.hideContextMenu();
     });
+
+    document.addEventListener('keydown', this._onContextMenuKeydown, true);
 
     // Dialog
     document.getElementById('dialog-cancel').addEventListener('click', () => this.hideDialog());
@@ -139,6 +160,9 @@ class FileManager {
     document.getElementById('dialog-input').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') this.confirmDialog();
       if (e.key === 'Escape') this.hideDialog();
+    });
+    document.getElementById('dialog-overlay').addEventListener('click', (e) => {
+      if (e.target.id === 'dialog-overlay') this.hideDialog();
     });
 
     // Preview
@@ -152,35 +176,57 @@ class FileManager {
       // Skip if typing in an input
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-      if (e.key === 'Delete' && this.selectedItems.size > 0) {
+      const ctxMenuOpen = this._contextMenuIsOpen();
+
+      if (e.key === 'Delete' && this.selectedItems.size > 0 && !ctxMenuOpen) {
         this.deleteSelected();
       }
-      if (e.key === 'F2' && this.selectedItems.size === 1) {
+      if (e.key === 'F2' && this.selectedItems.size === 1 && !ctxMenuOpen) {
         this.renameSelected();
       }
       if (e.key === 'Escape') {
+        const dialogEl = document.getElementById('dialog-overlay');
+        if (dialogEl && !dialogEl.classList.contains('hidden')) {
+          e.preventDefault();
+          this.hideDialog();
+          return;
+        }
+        const previewEl = document.getElementById('preview-overlay');
+        if (previewEl && !previewEl.classList.contains('hidden')) {
+          e.preventDefault();
+          this.hidePreview();
+          return;
+        }
+        if (ctxMenuOpen) {
+          e.preventDefault();
+          this.hideContextMenu();
+          return;
+        }
         this.selectedItems.clear();
         this.renderFiles();
       }
-      if (e.key === 'Enter' && this.selectedItems.size === 1) {
+      if (e.key === 'Enter' && this.selectedItems.size === 1 && !ctxMenuOpen) {
         e.preventDefault();
         const path = [...this.selectedItems][0];
         this.openItem(path);
       }
-      if (e.key === ' ' && this.selectedItems.size === 1) {
+      if (e.key === ' ' && this.selectedItems.size === 1 && !ctxMenuOpen) {
         e.preventDefault();
         const path = [...this.selectedItems][0];
         this.previewFile(path);
       }
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        if (ctxMenuOpen) return;
         e.preventDefault();
-        this.navigateWithArrows(e.key, e.shiftKey);
+        void this.navigateWithArrows(e.key, e.shiftKey);
       }
       if (e.key === 'Backspace') {
+        if (ctxMenuOpen) return;
         e.preventDefault();
         this.goUp();
       }
       if (e.ctrlKey || e.metaKey) {
+        if (ctxMenuOpen) return;
         if (e.key === 'c') this.copySelected();
         if (e.key === 'x') this.cutSelected();
         if (e.key === 'v') this.paste();
@@ -446,6 +492,26 @@ class FileManager {
     }
   }
 
+  /** Copy selected virtual paths to the system clipboard (same strings as jsh / FileSystemDB). */
+  async copySelectedPathsToClipboard() {
+    if (this.selectedItems.size === 0) return;
+    const paths = [...this.selectedItems].sort();
+    const text = paths.join('\n');
+    try {
+      if (!navigator.clipboard?.writeText) {
+        this._notify('Clipboard not available', 'error');
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      const label =
+        paths.length === 1 ? `Copied path: ${paths[0]}` : `Copied ${paths.length} paths`;
+      this._notify(label);
+    } catch (err) {
+      console.error('copySelectedPathsToClipboard', err);
+      this._notify(`Could not copy path: ${err?.message || err}`, 'error');
+    }
+  }
+
   async navigateTo(path) {
     try {
       const item = await this.fs.getItem(path);
@@ -501,6 +567,10 @@ class FileManager {
         // Build file list HTML
         let html = '';
 
+        if (this.isListView) {
+          html += this._renderListHeader();
+        }
+
         // Add ".." parent directory entry
         if (showParent) {
           html += this._renderParentItem(parentPath);
@@ -508,12 +578,19 @@ class FileManager {
 
         // Add regular items
         html += items.map((item) => this.renderFileItem(item)).join('');
+
+        if (items.length === 0 && showParent) {
+          html += this._renderEmptyFolderHint();
+        }
+
         fileList.innerHTML = html;
 
         // Bind click and drag events
         fileList.querySelectorAll('.file-item').forEach((el) => {
           const path = el.dataset.path;
           const isParentItem = el.classList.contains('parent-item');
+
+          el.tabIndex = -1;
 
           // Make items draggable (except parent ".." item)
           if (!isParentItem) {
@@ -642,17 +719,48 @@ class FileManager {
         });
       }
 
-      this.updateStatusBar(items.length);
+      this.updateStatusBar(items.length, showParent);
     } catch (error) {
       console.error('Render error:', error);
-      fileList.innerHTML = '<div class="error">Error loading files</div>';
+      emptyState.classList.add('hidden');
+      fileList.innerHTML = `<div class="file-list-error" role="alert">Could not load this folder. ${this.escapeHtml(
+        String(error?.message || error)
+      )}</div>`;
+      this.updateStatusBar(0, false);
     }
   }
 
+  _renderListHeader() {
+    return `
+      <div class="file-list-header" aria-hidden="true">
+        <span class="file-icon file-list-header-icon-spacer" aria-hidden="true"> </span>
+        <span class="file-name file-list-header-label">Name</span>
+        <div class="file-meta file-list-header-meta">
+          <span>Size</span>
+          <span>Modified</span>
+        </div>
+      </div>
+    `;
+  }
+
+  _renderEmptyFolderHint() {
+    return `
+      <div class="empty-folder-hint" role="status" aria-live="polite">
+        <span class="empty-folder-hint-icon" aria-hidden="true">📭</span>
+        <div class="empty-folder-hint-text">
+          <p class="empty-folder-hint-title">No files or folders here</p>
+          <p class="empty-folder-hint-sub">Use <strong>📄+</strong> or <strong>📁+</strong> to add something, or press <kbd>Backspace</kbd> to go up.</p>
+        </div>
+      </div>
+    `;
+  }
+
   _renderParentItem(parentPath) {
+    const isSelected = this.selectedItems.has(parentPath);
+    const sel = isSelected ? ' selected' : '';
     if (this.isListView) {
       return `
-        <div class="file-item parent-item" data-path="${parentPath}" data-type="directory">
+        <div class="file-item parent-item${sel}" data-path="${parentPath}" data-type="directory">
           <span class="file-icon">📂</span>
           <span class="file-name">..</span>
           <div class="file-meta">
@@ -664,7 +772,7 @@ class FileManager {
     }
 
     return `
-      <div class="file-item parent-item" data-path="${parentPath}" data-type="directory">
+      <div class="file-item parent-item${sel}" data-path="${parentPath}" data-type="directory">
         <span class="file-icon">📂</span>
         <span class="file-name">..</span>
       </div>
@@ -738,37 +846,80 @@ class FileManager {
     fileList.classList.toggle('list-view', this.isListView);
     fileList.classList.toggle('grid-view', !this.isListView);
     this.renderFiles();
+    this._syncViewToggleAria();
   }
 
+  /** Theme E: toolbar view toggle — aria-pressed + labels for list vs grid. */
+  _syncViewToggleAria() {
+    const btn = document.getElementById('btn-view-toggle');
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', this.isListView ? 'true' : 'false');
+    if (this.isListView) {
+      btn.setAttribute('aria-label', 'List view');
+      btn.title = 'Switch to grid view';
+    } else {
+      btn.setAttribute('aria-label', 'Grid view');
+      btn.title = 'Switch to list view';
+    }
+  }
+
+  /** Theme E: breadcrumb nav — aria-current, aria-hidden separators, keyboard on parent segments. */
   updatePathBar() {
     const pathBar = document.getElementById('current-path');
     if (!pathBar) return;
 
-    // Split path into segments
     const segments = this.currentPath.split('/').filter(Boolean);
+    const atRoot = segments.length === 0;
+    const sep = '<span class="breadcrumb-separator" aria-hidden="true">›</span>';
 
-    // Build breadcrumb HTML
-    let html = '<span class="breadcrumb-segment" data-path="/">🏠</span>';
+    const chunks = [];
+    const pathAttr = (p) => this.escapeHtml(p);
+
+    if (atRoot) {
+      chunks.push(
+        '<span class="breadcrumb-segment active" data-path="/" aria-current="page" tabindex="-1" aria-label="Home">🏠</span>'
+      );
+    } else {
+      chunks.push(
+        '<span class="breadcrumb-segment" data-path="/" role="button" tabindex="0" aria-label="Go to folder root">🏠</span>'
+      );
+    }
+
     let currentPath = '';
-
     segments.forEach((segment, index) => {
       currentPath += '/' + segment;
       const isLast = index === segments.length - 1;
-      const activeClass = isLast ? ' active' : '';
-
-      html += '<span class="breadcrumb-separator">›</span>';
-      html += `<span class="breadcrumb-segment${activeClass}" data-path="${currentPath}">`;
-      html += `${this.escapeHtml(segment)}</span>`;
+      const segEsc = this.escapeHtml(segment);
+      const pAttr = pathAttr(currentPath);
+      chunks.push(sep);
+      if (isLast) {
+        chunks.push(
+          `<span class="breadcrumb-segment active" data-path="${pAttr}" aria-current="page" tabindex="-1">${segEsc}</span>`
+        );
+      } else {
+        chunks.push(
+          `<span class="breadcrumb-segment" data-path="${pAttr}" role="button" tabindex="0" aria-label="${this.escapeHtml(
+            `Open folder ${currentPath}`
+          )}">${segEsc}</span>`
+        );
+      }
     });
 
-    pathBar.innerHTML = html;
+    pathBar.innerHTML = chunks.join('');
 
-    // Add click handlers
     pathBar.querySelectorAll('.breadcrumb-segment').forEach((seg) => {
-      seg.addEventListener('click', () => {
+      if (seg.getAttribute('aria-current') === 'page') return;
+      const go = () => {
         const path = seg.dataset.path;
-        if (path !== this.currentPath) {
-          this.navigateTo(path);
+        if (path && path !== this.currentPath) {
+          void this.navigateTo(path);
+        }
+      };
+      seg.addEventListener('click', go);
+      seg.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          go();
         }
       });
     });
@@ -786,15 +937,24 @@ class FileManager {
     document.getElementById('btn-up').disabled = this.currentPath === '/';
   }
 
-  updateStatusBar(count) {
-    document.getElementById('item-count').textContent = `${count} item${count !== 1 ? 's' : ''}`;
+  updateStatusBar(itemCount, showParent) {
+    const visible = itemCount + (showParent ? 1 : 0);
+    document.getElementById('item-count').textContent = `${visible} item${
+      visible !== 1 ? 's' : ''
+    }`;
 
     const selectedCount = this.selectedItems.size;
-    document.getElementById('selected-info').textContent =
-      selectedCount > 0 ? `${selectedCount} selected` : '';
+    const selectedEl = document.getElementById('selected-info');
+    if (selectedCount > 0) {
+      selectedEl.textContent = `${selectedCount} selected`;
+      selectedEl.setAttribute('aria-hidden', 'false');
+    } else {
+      selectedEl.textContent = '';
+      selectedEl.setAttribute('aria-hidden', 'true');
+    }
   }
 
-  showContextMenu(e) {
+  async showContextMenu(e) {
     const menu = document.getElementById('context-menu');
 
     // Check if right-clicked on a file item
@@ -808,8 +968,11 @@ class FileManager {
     menu.style.left = e.clientX + 'px';
     menu.style.top = e.clientY + 'px';
     menu.classList.remove('hidden');
+    menu.setAttribute('aria-hidden', 'false');
 
-    // Adjust if menu goes off screen
+    await this._populateOpenWithMenu();
+
+    // Adjust if menu goes off screen (after dynamic "Open with" rows)
     const rect = menu.getBoundingClientRect();
     if (rect.right > window.innerWidth) {
       menu.style.left = e.clientX - rect.width + 'px';
@@ -817,10 +980,162 @@ class FileManager {
     if (rect.bottom > window.innerHeight) {
       menu.style.top = e.clientY - rect.height + 'px';
     }
+
+    this._focusFirstContextMenuItem(menu);
+  }
+
+  _contextMenuIsOpen() {
+    const menu = document.getElementById('context-menu');
+    return Boolean(menu && !menu.classList.contains('hidden'));
+  }
+
+  _contextMenuItems(menuEl) {
+    return Array.from(menuEl.querySelectorAll('[role="menuitem"]'));
+  }
+
+  _focusFirstContextMenuItem(menuEl) {
+    const items = this._contextMenuItems(menuEl);
+    if (!items.length) return;
+    items[0].focus();
+  }
+
+  _focusContextMenuItemAt(menuEl, index) {
+    const items = this._contextMenuItems(menuEl);
+    if (!items.length) return;
+    const i = ((index % items.length) + items.length) % items.length;
+    items[i].focus();
+  }
+
+  _onContextMenuKeydown(e) {
+    if (!this._contextMenuIsOpen()) return;
+    const menu = document.getElementById('context-menu');
+    if (!menu) return;
+    if (!menu.contains(document.activeElement)) {
+      this._focusFirstContextMenuItem(menu);
+      return;
+    }
+
+    const items = this._contextMenuItems(menu);
+    if (!items.length) return;
+    let idx = items.indexOf(document.activeElement);
+    if (idx < 0) idx = 0;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        this._focusContextMenuItemAt(menu, idx + 1);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        this._focusContextMenuItemAt(menu, idx - 1);
+        break;
+      case 'Home':
+        e.preventDefault();
+        this._focusContextMenuItemAt(menu, 0);
+        break;
+      case 'End':
+        e.preventDefault();
+        this._focusContextMenuItemAt(menu, items.length - 1);
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        document.activeElement?.click();
+        break;
+      case 'Tab':
+        this.hideContextMenu();
+        break;
+      default:
+        break;
+    }
+  }
+
+  /**
+   * Same MIME → app rows as desktop file context menu (os/ContextMenu.js):
+   * FileSystemDB.mimeTypeForOpen, AppModule.getAppsForMimeType, Notepad when not a handler.
+   */
+  async _populateOpenWithMenu() {
+    const container = document.getElementById('file-open-with-dynamic');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (this.selectedItems.size !== 1) return;
+
+    const path = [...this.selectedItems][0];
+    let item;
+    try {
+      item = await this.fs.getItem(path);
+    } catch {
+      return;
+    }
+    if (!item || item.type !== 'file') return;
+
+    const F = window.FileSystemDB;
+    const mime = F ? F.mimeTypeForOpen(item) : 'application/octet-stream';
+    const AppMod = window.parent?.AppModule;
+    const apps = AppMod?.getAppsForMimeType?.(mime) || [];
+    const seen = new Set(apps.map((a) => a.appId));
+    const lines = [];
+
+    for (const app of apps) {
+      const id = escapeHtmlAttr(app.appId);
+      const icon = escapeHtmlText(app.icon || '');
+      const name = escapeHtmlText(app.shortName || '');
+      lines.push(
+        `<div class="menu-item" role="menuitem" tabindex="-1" data-action="open-with" data-app="${id}">${icon} Open with ${name}</div>`
+      );
+    }
+
+    if (!seen.has('notepad')) {
+      lines.push(
+        '<div class="menu-item" role="menuitem" tabindex="-1" data-action="open-with" data-app="notepad">📝 Open with Notepad</div>'
+      );
+    }
+
+    container.innerHTML = lines.join('');
   }
 
   hideContextMenu() {
-    document.getElementById('context-menu').classList.add('hidden');
+    const menu = document.getElementById('context-menu');
+    if (menu) {
+      menu.classList.add('hidden');
+      menu.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  async handleOpenWith(appId) {
+    if (!appId || this.selectedItems.size !== 1) return;
+
+    const path = [...this.selectedItems][0];
+    let item;
+    try {
+      item = await this.fs.getItem(path);
+    } catch {
+      return;
+    }
+    if (!item || item.type !== 'file') return;
+
+    const F = window.FileSystemDB;
+    const content = F ? F.getContentForApp(item) : item.content ?? '';
+    const fileName = this.fs.getFileName(path);
+
+    if (window.self !== window.top) {
+      window.parent.postMessage(
+        {
+          type: 'iframe-message',
+          message: {
+            type: 'openFile',
+            app: appId,
+            path: item.path,
+            content,
+            fileName
+          }
+        },
+        '*'
+      );
+    } else {
+      debug('Open with requires Heyming OS parent');
+    }
   }
 
   async handleContextAction(action) {
@@ -835,6 +1150,9 @@ class FileManager {
             this.previewFile(item);
           }
         }
+        break;
+      case 'copy-path':
+        await this.copySelectedPathsToClipboard();
         break;
       case 'rename':
         this.renameSelected();
@@ -857,13 +1175,32 @@ class FileManager {
     }
   }
 
+  _openDialogOverlay() {
+    const overlay = document.getElementById('dialog-overlay');
+    this._focusBeforeDialog =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    overlay.classList.remove('hidden');
+    overlay.setAttribute('aria-hidden', 'false');
+  }
+
+  _restoreDialogFocus() {
+    if (this._focusBeforeDialog && typeof this._focusBeforeDialog.focus === 'function') {
+      try {
+        this._focusBeforeDialog.focus();
+      } catch {
+        /* ignore */
+      }
+    }
+    this._focusBeforeDialog = null;
+  }
+
   showNewFolderDialog() {
     this.dialogMode = 'new-folder';
     document.getElementById('dialog-title').textContent = 'New Folder';
     document.getElementById('dialog-input').value = '';
     document.getElementById('dialog-input').placeholder = 'Folder name...';
     document.getElementById('dialog-confirm').textContent = 'Create';
-    document.getElementById('dialog-overlay').classList.remove('hidden');
+    this._openDialogOverlay();
     document.getElementById('dialog-input').focus();
   }
 
@@ -873,7 +1210,7 @@ class FileManager {
     document.getElementById('dialog-input').value = '';
     document.getElementById('dialog-input').placeholder = 'File name...';
     document.getElementById('dialog-confirm').textContent = 'Create';
-    document.getElementById('dialog-overlay').classList.remove('hidden');
+    this._openDialogOverlay();
     document.getElementById('dialog-input').focus();
   }
 
@@ -889,15 +1226,18 @@ class FileManager {
     document.getElementById('dialog-input').value = name;
     document.getElementById('dialog-input').placeholder = 'New name...';
     document.getElementById('dialog-confirm').textContent = 'Rename';
-    document.getElementById('dialog-overlay').classList.remove('hidden');
+    this._openDialogOverlay();
     document.getElementById('dialog-input').focus();
     document.getElementById('dialog-input').select();
   }
 
   hideDialog() {
-    document.getElementById('dialog-overlay').classList.add('hidden');
+    const overlay = document.getElementById('dialog-overlay');
+    overlay.classList.add('hidden');
+    overlay.setAttribute('aria-hidden', 'true');
     this.dialogMode = null;
     this.dialogTarget = null;
+    this._restoreDialogFocus();
   }
 
   async confirmDialog() {
@@ -998,7 +1338,7 @@ class FileManager {
     }
   }
 
-  navigateWithArrows(key, shiftKey) {
+  async navigateWithArrows(key, shiftKey) {
     const fileItems = Array.from(document.querySelectorAll('.file-item'));
     if (fileItems.length === 0) return;
 
@@ -1015,8 +1355,10 @@ class FileManager {
       if (firstPath) {
         this.selectedItems.clear();
         this.selectedItems.add(firstPath);
-        this.renderFiles();
-        fileItems[0]?.scrollIntoView({ block: 'nearest' });
+        await this.renderFiles();
+        const firstEl = document.querySelector(`[data-path="${CSS.escape(firstPath)}"]`);
+        firstEl?.scrollIntoView({ block: 'nearest' });
+        firstEl?.focus({ preventScroll: true });
       }
       return;
     }
@@ -1074,8 +1416,10 @@ class FileManager {
       this.selectedItems.add(nextPath);
     }
 
-    this.renderFiles();
-    fileItems[nextIndex]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    await this.renderFiles();
+    const nextEl = document.querySelector(`[data-path="${CSS.escape(nextPath)}"]`);
+    nextEl?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    nextEl?.focus({ preventScroll: true });
   }
 
   async previewFile(item) {
@@ -1090,8 +1434,8 @@ class FileManager {
     } else {
       // Show preview in file manager (standalone mode)
       document.getElementById('preview-title').textContent = name;
-      document.getElementById('preview-content').textContent = item.content || '(empty file)';
-      document.getElementById('preview-overlay').classList.remove('hidden');
+      FileManager._setPreviewBodyText(FileManager._previewText(item));
+      this._openPreviewOverlay();
     }
   }
 
@@ -1116,9 +1460,44 @@ class FileManager {
       console.error('Failed to open file via OS:', error);
       // Fallback to preview
       document.getElementById('preview-title').textContent = this.fs.getFileName(item.path);
-      document.getElementById('preview-content').textContent = item.content || '(empty file)';
-      document.getElementById('preview-overlay').classList.remove('hidden');
+      FileManager._setPreviewBodyText(FileManager._previewText(item));
+      this._openPreviewOverlay();
     }
+  }
+
+  _openPreviewOverlay() {
+    const overlay = document.getElementById('preview-overlay');
+    this._focusBeforePreview =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    overlay.classList.remove('hidden');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.getElementById('preview-close').focus();
+  }
+
+  /** @param {string} text */
+  static _setPreviewBodyText(text) {
+    const el = document.getElementById('preview-content');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.remove('preview-placeholder', 'preview-file-text');
+    if (text === '(binary file)' || text === '(empty file)') {
+      el.classList.add('preview-placeholder');
+    } else {
+      el.classList.add('preview-file-text');
+    }
+  }
+
+  /** @param {{ type?: string, content?: string, contentBytes?: unknown, size?: number }} item */
+  static _previewText(item) {
+    const t = FileSystemDB.getUtf8TextForDisplay(item);
+    if (t !== '') {
+      return t;
+    }
+    const sz = item.size || 0;
+    if (item.type === 'file' && sz > 0) {
+      return '(binary file)';
+    }
+    return '(empty file)';
   }
 
   /**
@@ -1139,7 +1518,17 @@ class FileManager {
   }
 
   hidePreview() {
-    document.getElementById('preview-overlay').classList.add('hidden');
+    const overlay = document.getElementById('preview-overlay');
+    overlay.classList.add('hidden');
+    overlay.setAttribute('aria-hidden', 'true');
+    if (this._focusBeforePreview && typeof this._focusBeforePreview.focus === 'function') {
+      try {
+        this._focusBeforePreview.focus();
+      } catch {
+        /* ignore */
+      }
+    }
+    this._focusBeforePreview = null;
   }
 
   async showProperties() {

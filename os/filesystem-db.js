@@ -83,6 +83,27 @@ class FileSystemDB {
       });
     }
   }
+
+  /**
+   * True if `path` is exactly `dir` or a strict descendant (path segment boundary).
+   * Avoids substring bugs from `path.startsWith(dir)` when sibling names share a prefix
+   * (e.g. `/home/username/a` must not match `/home/user`).
+   * @param {string} path
+   * @param {string} dir
+   */
+  static pathIsDescendantOrSelf(path, dir) {
+    if (path == null || dir == null) return false;
+    const strip = (p) => {
+      if (p === '/' || p === '') return p;
+      return p.length > 1 && p.endsWith('/') ? p.slice(0, -1) : p;
+    };
+    const p = strip(path);
+    const d = strip(dir);
+    if (p === d) return true;
+    if (d === '/') return typeof p === 'string' && p.startsWith('/');
+    return p.startsWith(d + '/');
+  }
+
   // MIME type mappings
   static MIME_TYPES = {
     // Text
@@ -209,6 +230,90 @@ class FileSystemDB {
   }
 
   /**
+   * MIME type for routing opens to apps (Notepad, image viewer, …).
+   * Prefer a stored `mimeType` when it is specific; `application/octet-stream` (and common
+   * misspellings) is ignored so the path extension can supply `audio/*`, `image/*`, etc.
+   * @param {string|{ path?: string, mimeType?: string }} itemOrPath - Virtual path or file item
+   * @returns {string}
+   */
+  static mimeTypeForOpen(itemOrPath) {
+    if (!itemOrPath) return 'application/octet-stream';
+    const pathStr = typeof itemOrPath === 'string' ? itemOrPath : itemOrPath.path || '';
+    const fromPath = pathStr ? FileSystemDB.getMimeType(pathStr) : 'application/octet-stream';
+
+    if (typeof itemOrPath === 'object' && itemOrPath.mimeType != null) {
+      const stored = String(itemOrPath.mimeType).trim();
+      if (!stored) return fromPath;
+      // Binary uploads used to force application/octet-stream in createFile — ignore that so
+      // .mp3 / .gif / … still route to media-player / image-viewer via extension.
+      const genericBinary =
+        stored === 'application/octet-stream' || /^application\/octe[ct]+-stream$/i.test(stored);
+      if (!genericBinary) return stored;
+    }
+
+    return fromPath || 'application/octet-stream';
+  }
+
+  /**
+   * Payload for postMessage to apps: string from `content`, or a copy of `contentBytes`
+   * (binary files store bytes in IndexedDB with an empty string `content`).
+   * For `ArrayBufferView` values, copies only `byteOffset`…`byteOffset+byteLength` so shared
+   * backing buffers do not leak extra bytes to apps (`.buffer` on a view is often wider).
+   * @param {{ type?: string, content?: string, contentBytes?: ArrayBuffer|ArrayBufferView }} item
+   * @returns {string|ArrayBuffer}
+   */
+  static getContentForApp(item) {
+    if (!item || item.type !== 'file') return '';
+    if (item.contentBytes != null) {
+      const raw = item.contentBytes;
+      if (raw instanceof ArrayBuffer) {
+        return raw.slice(0);
+      }
+      if (ArrayBuffer.isView(raw)) {
+        return raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength);
+      }
+    }
+    return item.content == null ? '' : String(item.content);
+  }
+
+  /**
+   * UTF-8 string for text previews and editors. Uses non-empty `content`, else decodes `contentBytes`.
+   * Returns '' for empty files or likely binary (NUL within the first 8 KiB).
+   *
+   * @param {{ type?: string, content?: string, contentBytes?: ArrayBuffer|ArrayBufferView }} item
+   * @returns {string}
+   */
+  static getUtf8TextForDisplay(item) {
+    if (!item || item.type !== 'file') {
+      return '';
+    }
+    if (item.content != null && item.content !== '') {
+      return String(item.content);
+    }
+    const raw = item.contentBytes;
+    if (raw == null) {
+      return '';
+    }
+    let u8;
+    if (raw instanceof ArrayBuffer) {
+      u8 = new Uint8Array(raw);
+    } else if (ArrayBuffer.isView(raw)) {
+      u8 = new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
+    } else {
+      return '';
+    }
+    if (u8.byteLength === 0) {
+      return '';
+    }
+    const maxSample = 8192;
+    const sample = u8.byteLength > maxSample ? u8.subarray(0, maxSample) : u8;
+    if (sample.indexOf(0) !== -1) {
+      return '';
+    }
+    return new TextDecoder('utf-8', { fatal: false }).decode(u8);
+  }
+
+  /**
    * Check if a MIME type is text-based (editable in notepad)
    * @param {string} mimeType - MIME type to check
    * @returns {boolean}
@@ -229,9 +334,8 @@ class FileSystemDB {
    * @returns {string} MIME type
    */
   getMimeTypeForItem(item) {
-    if (item.mimeType) return item.mimeType;
     if (item.type === 'directory') return 'inode/directory';
-    return FileSystemDB.getMimeType(item.path);
+    return FileSystemDB.mimeTypeForOpen(item);
   }
 
   // Initialize the database
@@ -598,38 +702,105 @@ class FileSystemDB {
     if (!item) {
       throw new Error(`No such file: ${path}`);
     }
-    if (item.type !== 'file') {
+    if (item.type !== 'file' && item.type !== 'symlink') {
       throw new Error(`Not a file: ${path}`);
     }
     return this.deleteItem(path);
   }
 
-  // Create file
+  // Create symbolic link (target stored as metadata)
+  async createSymlink(target, path) {
+    if (!this.isInitialized) await this.initialize();
+
+    const existing = await this.getItem(path);
+    if (existing) {
+      const e = new Error(`File already exists: ${path}`);
+      e.code = 'EEXIST';
+      throw e;
+    }
+
+    const parentPath = this.getParentPath(path);
+    const parent = await this.getItem(parentPath);
+    if (!parent || parent.type !== 'directory') {
+      const e = new Error(`Parent directory does not exist: ${parentPath}`);
+      e.code = 'ENOENT';
+      throw e;
+    }
+
+    const link = {
+      path,
+      type: 'symlink',
+      parentPath,
+      target: String(target),
+      created: new Date(),
+      modified: new Date()
+    };
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['files'], 'readwrite');
+      const store = transaction.objectStore('files');
+      const request = store.put(link);
+
+      request.onsuccess = () => {
+        FileSystemDB.emit('create', path, { type: 'symlink', parentPath });
+        resolve(link);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  // Create file (string, Uint8Array, or ArrayBuffer — binary for e.g. git packfiles)
   async createFile(path, content = '', overwrite = false) {
     if (!this.isInitialized) await this.initialize();
 
     // Check if file already exists
     const existing = await this.getItem(path);
     if (existing && !overwrite) {
-      throw new Error(`File already exists: ${path}`);
+      const e = new Error(`File already exists: ${path}`);
+      e.code = 'EEXIST';
+      throw e;
     }
 
     const parentPath = this.getParentPath(path);
     const parent = await this.getItem(parentPath);
     if (!parent || parent.type !== 'directory') {
-      throw new Error(`Parent directory does not exist: ${parentPath}`);
+      const e = new Error(`Parent directory does not exist: ${parentPath}`);
+      e.code = 'ENOENT';
+      throw e;
+    }
+
+    let textContent = '';
+    /** @type {ArrayBuffer|undefined} */
+    let contentBytes;
+    let size;
+    // Keep extension-based type for binary files so desktop open routes to image/audio apps.
+    const mimeType = FileSystemDB.getMimeType(path);
+
+    if (content instanceof Uint8Array) {
+      const u8 = content;
+      contentBytes = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength);
+      size = u8.byteLength;
+    } else if (content instanceof ArrayBuffer) {
+      contentBytes = content;
+      size = content.byteLength;
+    } else {
+      textContent = content == null ? '' : String(content);
+      size = new Blob([textContent]).size;
     }
 
     const file = {
       path,
       type: 'file',
       parentPath,
-      content,
-      mimeType: FileSystemDB.getMimeType(path),
-      size: new Blob([content]).size,
+      content: textContent,
+      mimeType,
+      size,
       created: existing ? existing.created : new Date(),
       modified: new Date()
     };
+    if (contentBytes) {
+      file.contentBytes = contentBytes;
+    }
 
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction(['files'], 'readwrite');
@@ -651,14 +822,18 @@ class FileSystemDB {
     // Check if directory already exists
     const existing = await this.getItem(path);
     if (existing) {
-      throw new Error(`Directory already exists: ${path}`);
+      const e = new Error(`Directory already exists: ${path}`);
+      e.code = 'EEXIST';
+      throw e;
     }
 
     const parentPath = this.getParentPath(path);
     if (parentPath !== null) {
       const parent = await this.getItem(parentPath);
       if (!parent || parent.type !== 'directory') {
-        throw new Error(`Parent directory does not exist: ${parentPath}`);
+        const e = new Error(`Parent directory does not exist: ${parentPath}`);
+        e.code = 'ENOENT';
+        throw e;
       }
     }
 
@@ -827,7 +1002,9 @@ class FileSystemDB {
     }
 
     if (source.type === 'file') {
-      const result = await this.createFile(destPath, source.content, false);
+      const payload =
+        source.contentBytes != null ? new Uint8Array(source.contentBytes) : source.content || '';
+      const result = await this.createFile(destPath, payload, false);
       FileSystemDB.emit('copy', destPath, {
         type: 'file',
         sourcePath,

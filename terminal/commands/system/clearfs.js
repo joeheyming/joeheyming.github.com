@@ -66,7 +66,7 @@ Alternatively, use 'fsck --reset' for a more comprehensive filesystem reset.`;
 
         // Reset current directory
         if (terminal.currentDirectory) {
-          terminal.currentDirectory = '/';
+          terminal.updatePWD('/');
           output += '✅ Reset current directory to /\n';
         }
 

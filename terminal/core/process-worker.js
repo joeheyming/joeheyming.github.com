@@ -238,12 +238,13 @@ class ProcessWorker {
       case 'SIGCONT':
         this.state = 'RUNNING';
         break;
-      default:
+      default: {
         // Check for custom signal handlers
         const handler = this.signalHandlers.get(signal);
         if (handler) {
           handler(signal);
         }
+      }
     }
   }
 

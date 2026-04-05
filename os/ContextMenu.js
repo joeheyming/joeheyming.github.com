@@ -4,12 +4,23 @@
  */
 
 export class ContextMenu {
+  /** @param {unknown} s */
+  static _escapeHtmlAttr(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+
+  /** @param {unknown} s */
+  static _escapeHtmlText(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  }
+
   constructor(heymingOS) {
     this.os = heymingOS;
     this.menu = null;
     this.fileMenu = null;
     this.visible = false;
     this.currentFile = null; // Track which file is being right-clicked
+    this._onMenuKeydown = this._onMenuKeydown.bind(this);
   }
 
   /**
@@ -19,6 +30,7 @@ export class ContextMenu {
     this._createMenuElement();
     this._createFileMenuElement();
     this._bindEvents();
+    document.addEventListener('keydown', this._onMenuKeydown, true);
   }
 
   /**
@@ -46,14 +58,48 @@ export class ContextMenu {
     this.currentFile = file;
 
     // Update menu to show filename
-    const header = this.fileMenu.querySelector('.context-menu-header');
+    const header = this.fileMenu.querySelector('#file-context-header');
     if (header) {
       const name = this.os.fileSystemDB?.getFileName(file.path) || file.path.split('/').pop();
       header.textContent = name.length > 20 ? name.substring(0, 18) + '...' : name;
     }
 
+    this._populateOpenWithMenu(file);
+
     this._positionAndShow(this.fileMenu, x, y);
     this.visible = true;
+  }
+
+  /**
+   * MIME-based "Open with …" rows (same routing as openDesktopFile) plus Notepad fallback when
+   * notepad is not already a registered handler (force-open as text).
+   */
+  _populateOpenWithMenu(file) {
+    const container = this.fileMenu.querySelector('#file-open-with-dynamic');
+    if (!container) return;
+
+    const F = window.FileSystemDB;
+    const mime = F ? F.mimeTypeForOpen(file) : 'application/octet-stream';
+    const apps = window.AppModule?.getAppsForMimeType?.(mime) || [];
+    const seen = new Set(apps.map((a) => a.appId));
+    const lines = [];
+
+    for (const app of apps) {
+      const id = ContextMenu._escapeHtmlAttr(app.appId);
+      const icon = ContextMenu._escapeHtmlText(app.icon || '');
+      const name = ContextMenu._escapeHtmlText(app.shortName || '');
+      lines.push(
+        `<div class="context-menu-item" role="menuitem" tabindex="-1" data-action="file-open-with" data-app="${id}">${icon} Open with ${name}</div>`
+      );
+    }
+
+    if (!seen.has('notepad')) {
+      lines.push(
+        `<div class="context-menu-item" role="menuitem" tabindex="-1" data-action="file-open-with" data-app="notepad">📝 Open with Notepad</div>`
+      );
+    }
+
+    container.innerHTML = lines.join('');
   }
 
   /**
@@ -69,33 +115,117 @@ export class ContextMenu {
     if (this.menu) {
       this.menu.classList.remove('show');
       this.menu.classList.add('hidden');
+      this.menu.setAttribute('aria-hidden', 'true');
     }
     if (this.fileMenu) {
       this.fileMenu.classList.remove('show');
       this.fileMenu.classList.add('hidden');
+      this.fileMenu.setAttribute('aria-hidden', 'true');
     }
   }
 
   _positionAndShow(menuEl, x, y) {
     if (!menuEl) return;
 
-    const menuWidth = 200;
-    const menuHeight = menuEl.offsetHeight || 200;
+    const margin = 8;
+    const taskbarPad = 48;
 
-    let posX = x;
-    let posY = y;
-
-    if (x + menuWidth > window.innerWidth) {
-      posX = window.innerWidth - menuWidth - 10;
-    }
-    if (y + menuHeight > window.innerHeight - 48) {
-      posY = y - menuHeight;
-    }
-
-    menuEl.style.left = posX + 'px';
-    menuEl.style.top = posY + 'px';
+    menuEl.style.left = `${Math.max(margin, x)}px`;
+    menuEl.style.top = `${Math.max(margin, y)}px`;
     menuEl.classList.remove('hidden');
     menuEl.classList.add('show');
+    menuEl.setAttribute('aria-hidden', 'false');
+    this._focusFirstMenuItem(menuEl);
+
+    requestAnimationFrame(() => {
+      const rect = menuEl.getBoundingClientRect();
+      let dx = 0;
+      let dy = 0;
+      if (rect.right > window.innerWidth - margin) {
+        dx -= rect.right - (window.innerWidth - margin);
+      }
+      if (rect.bottom > window.innerHeight - taskbarPad) {
+        dy -= rect.bottom - (window.innerHeight - taskbarPad);
+      }
+      if (rect.left + dx < margin) {
+        dx = margin - rect.left;
+      }
+      if (rect.top + dy < margin) {
+        dy = margin - rect.top;
+      }
+      if (dx !== 0 || dy !== 0) {
+        const curLeft = parseFloat(menuEl.style.left) || 0;
+        const curTop = parseFloat(menuEl.style.top) || 0;
+        menuEl.style.left = `${curLeft + dx}px`;
+        menuEl.style.top = `${curTop + dy}px`;
+      }
+    });
+  }
+
+  _menuItems(menuEl) {
+    return Array.from(menuEl.querySelectorAll('[role="menuitem"]')).filter(
+      (el) => !el.classList.contains('disabled')
+    );
+  }
+
+  _focusFirstMenuItem(menuEl) {
+    const items = this._menuItems(menuEl);
+    if (!items.length) return;
+    items[0].focus();
+  }
+
+  _focusMenuItemAt(menuEl, index) {
+    const items = this._menuItems(menuEl);
+    if (!items.length) return;
+    const i = ((index % items.length) + items.length) % items.length;
+    items[i].focus();
+  }
+
+  _openMenuEl() {
+    if (this.menu?.classList.contains('show')) return this.menu;
+    if (this.fileMenu?.classList.contains('show')) return this.fileMenu;
+    return null;
+  }
+
+  _onMenuKeydown(e) {
+    if (!this.visible) return;
+    const open = this._openMenuEl();
+    if (!open) return;
+    if (!open.contains(document.activeElement)) return;
+
+    const items = this._menuItems(open);
+    if (!items.length) return;
+    let idx = items.indexOf(document.activeElement);
+    if (idx < 0) idx = 0;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        this._focusMenuItemAt(open, idx + 1);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        this._focusMenuItemAt(open, idx - 1);
+        break;
+      case 'Home':
+        e.preventDefault();
+        this._focusMenuItemAt(open, 0);
+        break;
+      case 'End':
+        e.preventDefault();
+        this._focusMenuItemAt(open, items.length - 1);
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        document.activeElement?.click();
+        break;
+      case 'Tab':
+        this.hide();
+        break;
+      default:
+        break;
+    }
   }
 
   // ========== Private Methods ==========
@@ -104,34 +234,37 @@ export class ContextMenu {
     this.menu = document.createElement('div');
     this.menu.id = 'desktop-context-menu';
     this.menu.className = 'context-menu hidden';
+    this.menu.setAttribute('role', 'menu');
+    this.menu.setAttribute('aria-label', 'Desktop');
+    this.menu.setAttribute('aria-hidden', 'true');
 
     // Build system apps section from registry
     const systemApps = window.AppModule?.getSystemApps() || [];
     const systemAppsHtml = systemApps
       .map(
         (app) =>
-          `<div class="context-menu-item" data-action="launch" data-app="${app.id}">${app.icon} Open ${app.shortName}</div>`
+          `<div class="context-menu-item" role="menuitem" tabindex="-1" data-action="launch" data-app="${app.id}">${app.icon} Open ${app.shortName}</div>`
       )
       .join('');
 
     this.menu.innerHTML = `
-      <div class="context-menu-item" data-action="refresh">
+      <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="refresh">
         🔄 Refresh Desktop
       </div>
-      <div class="context-menu-item" data-action="arrange">
+      <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="arrange">
         📐 Arrange Icons
       </div>
-      <div class="context-menu-item paste-item" data-action="paste">
+      <div class="context-menu-item paste-item" role="menuitem" tabindex="-1" data-action="paste">
         📋 Paste
       </div>
-      <div class="context-menu-divider"></div>
+      <div class="context-menu-divider" role="separator"></div>
       ${systemAppsHtml}
-      <div class="context-menu-divider"></div>
-      <div class="context-menu-item" data-action="bring-windows">
+      <div class="context-menu-divider" role="separator"></div>
+      <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="bring-windows">
         🪟 Bring All Windows to View
       </div>
-      <div class="context-menu-divider"></div>
-      <div class="context-menu-item" data-action="about">
+      <div class="context-menu-divider" role="separator"></div>
+      <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="about">
         🦄 About Heyming OS
       </div>
     `;
@@ -143,28 +276,32 @@ export class ContextMenu {
     this.fileMenu = document.createElement('div');
     this.fileMenu.id = 'file-context-menu';
     this.fileMenu.className = 'context-menu hidden';
+    this.fileMenu.setAttribute('role', 'menu');
+    this.fileMenu.setAttribute('aria-labelledby', 'file-context-header');
+    this.fileMenu.setAttribute('aria-hidden', 'true');
 
     this.fileMenu.innerHTML = `
-      <div class="context-menu-header">filename.txt</div>
-      <div class="context-menu-divider"></div>
-      <div class="context-menu-item" data-action="file-open">
+      <div id="file-context-header" class="context-menu-header" role="presentation">filename.txt</div>
+      <div class="context-menu-divider" role="separator"></div>
+      <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="file-open">
         📂 Open
       </div>
-      <div class="context-menu-item" data-action="file-open-notepad">
-        📝 Open with Notepad
-      </div>
-      <div class="context-menu-item" data-action="file-download">
+      <div id="file-open-with-dynamic"></div>
+      <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="file-download">
         📥 Download
       </div>
-      <div class="context-menu-divider"></div>
-      <div class="context-menu-item" data-action="file-copy">
+      <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="file-copy-path">
+        📎 Copy path
+      </div>
+      <div class="context-menu-divider" role="separator"></div>
+      <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="file-copy">
         📋 Copy
       </div>
-      <div class="context-menu-item" data-action="file-cut">
+      <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="file-cut">
         ✂️ Cut
       </div>
-      <div class="context-menu-divider"></div>
-      <div class="context-menu-item" data-action="file-delete">
+      <div class="context-menu-divider" role="separator"></div>
+      <div class="context-menu-item" role="menuitem" tabindex="-1" data-action="file-delete">
         🗑️ Delete
       </div>
     `;
@@ -222,15 +359,8 @@ export class ContextMenu {
       if (!item) return;
 
       const action = item.dataset.action;
-      this._handleFileAction(action);
+      this._handleFileAction(action, item);
       this.hide();
-    });
-
-    // Hide on escape
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this.visible) {
-        this.hide();
-      }
     });
   }
 
@@ -274,7 +404,7 @@ export class ContextMenu {
     }
   }
 
-  async _handleFileAction(action) {
+  async _handleFileAction(action, clickedEl) {
     if (!this.currentFile) return;
 
     const file = this.currentFile;
@@ -282,17 +412,41 @@ export class ContextMenu {
 
     switch (action) {
       case 'file-open':
-        // Use MIME type to determine how to open
-        this.os.openDesktopFile(file);
+        // Use MIME type to determine how to open (async; errors surfaced via HeymingOS handler)
+        try {
+          await this.os.openDesktopFile(file);
+        } catch (err) {
+          console.error('[ContextMenu] openDesktopFile', err);
+          this.os.notifications?.error?.(`Could not open file: ${err?.message || err}`);
+        }
         break;
 
-      case 'file-open-notepad':
-        // Force open in Notepad regardless of MIME type
-        this.os.openFileWithApp('notepad', file.path, file.content, fileName);
+      case 'file-open-with': {
+        const appId = clickedEl?.dataset?.app;
+        if (!appId) break;
+        let item = file;
+        try {
+          if (this.os.fileSystemDB && file.path) {
+            const full = await this.os.fileSystemDB.getItem(file.path);
+            if (full && full.type === 'file') {
+              item = full;
+            }
+          }
+        } catch (_) {
+          /* use shallow desktop icon payload */
+        }
+        const F = window.FileSystemDB;
+        const content = F ? F.getContentForApp(item) : item.content ?? '';
+        this.os.openFileWithApp(appId, file.path, content, fileName);
         break;
+      }
 
       case 'file-download':
-        this._downloadFile(file);
+        await this._downloadFile(file);
+        break;
+
+      case 'file-copy-path':
+        await this._copyVirtualPathToClipboard(file.path);
         break;
 
       case 'file-copy':
@@ -309,14 +463,26 @@ export class ContextMenu {
     }
   }
 
-  _downloadFile(file) {
+  async _downloadFile(file) {
     const fileName = this.os.fileSystemDB?.getFileName(file.path) || file.path.split('/').pop();
-    const content = file.content || '';
-    const mimeType = file.mimeType || 'text/plain';
+    let item = file;
+    try {
+      if (this.os.fileSystemDB && file.path) {
+        const full = await this.os.fileSystemDB.getItem(file.path);
+        if (full && full.type === 'file') {
+          item = full;
+        }
+      }
+    } catch (_) {
+      /* use shallow desktop icon payload */
+    }
+
+    const F = window.FileSystemDB;
+    const content = F ? F.getContentForApp(item) : item.content ?? '';
+    const mimeType = item.mimeType || 'text/plain';
 
     try {
       if (typeof content === 'string' && content.startsWith('data:')) {
-        // Content is a data URL (binary file) - convert asynchronously
         fetch(content)
           .then((res) => res.blob())
           .then((b) => this._triggerDownload(b, fileName, mimeType));
@@ -362,6 +528,24 @@ export class ContextMenu {
     } catch (error) {
       console.error('Failed to delete file:', error);
       this.os.notifications.system(`Failed to delete: ${fileName}`);
+    }
+  }
+
+  /**
+   * Copy the virtual FS path to the system clipboard (same path strings as jsh / FileSystemDB keys).
+   */
+  async _copyVirtualPathToClipboard(path) {
+    if (!path) return;
+    try {
+      if (!navigator.clipboard?.writeText) {
+        this.os.notifications?.error?.('Clipboard not available');
+        return;
+      }
+      await navigator.clipboard.writeText(path);
+      this.os.notifications.system(`Copied path: ${path}`);
+    } catch (error) {
+      console.error('[ContextMenu] copy path', error);
+      this.os.notifications?.error?.(`Could not copy path: ${error?.message || error}`);
     }
   }
 

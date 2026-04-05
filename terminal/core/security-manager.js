@@ -421,11 +421,12 @@ class SecurityManager {
         return amount <= policy.maxOpenFiles;
       case 'cpu_time':
         return amount <= policy.maxCpuTime;
-      case 'processes':
+      case 'processes': {
         const userProcesses = this.kernel.processManager
           .getAllProcesses()
           .filter((p) => p.uid === process.uid).length;
         return userProcesses < policy.maxProcessesPerUser;
+      }
       default:
         return true;
     }

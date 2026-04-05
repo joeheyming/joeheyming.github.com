@@ -91,6 +91,7 @@ export class WindowManager {
     const windowElement = document.createElement('div');
     windowElement.className = 'os-window active' + (isMobile ? ' mobile-view' : '');
     windowElement.id = `window-${windowId}`;
+    windowElement.setAttribute('aria-label', title);
     windowElement.style.width = finalWidth + 'px';
     windowElement.style.height = finalHeight + 'px';
     windowElement.style.left = left + 'px';
@@ -101,9 +102,9 @@ export class WindowManager {
         <span class="app-icon">${this.getAppIcon(title)}</span>
         <span class="os-window-title">${title}</span>
         <div class="os-window-controls">
-          <button class="os-window-control minimize" data-action="minimize" data-window-id="${windowId}">−</button>
-          <button class="os-window-control maximize" data-action="maximize" data-window-id="${windowId}">□</button>
-          <button class="os-window-control close" data-action="close" data-window-id="${windowId}">×</button>
+          <button type="button" class="os-window-control minimize" data-action="minimize" data-window-id="${windowId}" aria-label="Minimize window">−</button>
+          <button type="button" class="os-window-control maximize" data-action="maximize" data-window-id="${windowId}" aria-label="Maximize or restore window">□</button>
+          <button type="button" class="os-window-control close" data-action="close" data-window-id="${windowId}" aria-label="Close window">×</button>
         </div>
       </div>
       <div class="os-window-content">
@@ -113,6 +114,11 @@ export class WindowManager {
     `;
 
     windowsContainer.appendChild(windowElement);
+
+    const titleSpan = windowElement.querySelector('.os-window-title');
+    if (titleSpan) {
+      titleSpan.title = title;
+    }
 
     const win = {
       id: windowId,
@@ -537,18 +543,21 @@ export class WindowManager {
   }
 
   _makeDraggable(handle, windowElement, windowId) {
-    let initialLeft, initialTop, initialX, initialY;
+    let initialLeft, initialTop, startPointerX, startPointerY;
 
     this.Input.addDragListeners(handle, {
       onStart: (e, pointer) => {
         const win = this.getWindow(windowId);
         if (win && win.maximized) return;
 
+        this.makeWindowActive(windowId);
+
         initialLeft = windowElement.offsetLeft;
         initialTop = windowElement.offsetTop;
-        initialX = pointer.clientX - initialLeft;
-        initialY = pointer.clientY - initialTop;
+        startPointerX = pointer.clientX;
+        startPointerY = pointer.clientY;
 
+        windowElement.style.transform = '';
         windowElement.classList.add('dragging');
         e.preventDefault();
       },
@@ -557,8 +566,11 @@ export class WindowManager {
         const win = this.getWindow(windowId);
         if (win && win.maximized) return;
 
-        let currentX = pointer.clientX - initialX;
-        let currentY = pointer.clientY - initialY;
+        const deltaX = pointer.clientX - startPointerX;
+        const deltaY = pointer.clientY - startPointerY;
+
+        let currentX = initialLeft + deltaX;
+        let currentY = initialTop + deltaY;
 
         // Only constraint: keep at least 50px visible so user can drag it back
         const minVisible = 50;
@@ -568,23 +580,11 @@ export class WindowManager {
         currentY = Math.max(-windowElement.offsetHeight + minVisible, currentY);
         currentY = Math.min(window.innerHeight - minVisible, currentY);
 
-        const deltaX = currentX - initialLeft;
-        const deltaY = currentY - initialTop;
-        windowElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+        windowElement.style.left = currentX + 'px';
+        windowElement.style.top = currentY + 'px';
       },
 
       onEnd: () => {
-        const transform = windowElement.style.transform;
-        if (transform && transform !== 'none') {
-          const match = transform.match(/translate\((-?\d+(?:\.\d+)?)px, (-?\d+(?:\.\d+)?)px\)/);
-          if (match) {
-            const deltaX = parseFloat(match[1]);
-            const deltaY = parseFloat(match[2]);
-            windowElement.style.left = initialLeft + deltaX + 'px';
-            windowElement.style.top = initialTop + deltaY + 'px';
-          }
-          windowElement.style.transform = '';
-        }
         windowElement.classList.remove('dragging');
       }
     });
@@ -602,6 +602,7 @@ export class WindowManager {
           if (win && win.maximized) return;
 
           e.stopPropagation();
+          this.makeWindowActive(windowId);
           windowElement.classList.add('dragging');
 
           startX = pointer.clientX;

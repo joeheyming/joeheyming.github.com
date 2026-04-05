@@ -28,6 +28,7 @@ class CommandRegistry {
       clearfs: 'commands/system/clearfs.js',
       cmdcount: 'commands/system/cmdcount.js',
       genbin: 'commands/system/genbin.js',
+      git: 'commands/system/git.js',
       neofetch: 'commands/system/neofetch.js',
       ping: 'commands/system/ping.js',
       curl: 'commands/system/curl.js',
@@ -42,31 +43,62 @@ class CommandRegistry {
       fsck: 'commands/system/fsck.js',
       exit: 'commands/system/exit.js',
       launch: 'commands/system/launch.js',
+      man: 'commands/system/man.js',
       open: 'commands/system/open.js',
       'heyming-desktop': 'commands/system/heyming-desktop.js',
       spawn: 'commands/system/spawn.js',
       node: 'commands/system/node.js',
+      true: 'commands/system/true-false.js',
+      false: 'commands/system/true-false.js',
+      ':': 'commands/system/true-false.js',
+      test: 'commands/system/test.js',
+      '[': 'commands/system/test.js',
+      seq: 'commands/system/seq.js',
+      sleep: 'commands/system/sleep.js',
+      xargs: 'commands/system/xargs.js',
+      printf: 'commands/system/printf.js',
 
       // Filesystem commands
       ls: 'commands/filesystem/ls.js',
       pwd: 'commands/filesystem/pwd.js',
       cd: 'commands/filesystem/cd.js',
+      basename: 'commands/filesystem/basename.js',
       cat: 'commands/filesystem/cat.js',
       hexdump: 'commands/filesystem/hexdump.js',
       mkdir: 'commands/filesystem/mkdir.js',
+      chmod: 'commands/filesystem/chmod.js',
       touch: 'commands/filesystem/touch.js',
       rm: 'commands/filesystem/rm.js',
+      rmdir: 'commands/filesystem/rmdir.js',
+      unlink: 'commands/filesystem/unlink.js',
       cp: 'commands/filesystem/cp.js',
       mv: 'commands/filesystem/mv.js',
       grep: 'commands/filesystem/grep.js',
       find: 'commands/filesystem/find.js',
       echo: 'commands/filesystem/echo.js',
       df: 'commands/filesystem/df.js',
+      dirname: 'commands/filesystem/dirname.js',
       head: 'commands/filesystem/head.js',
       tail: 'commands/filesystem/tail.js',
       wc: 'commands/filesystem/wc.js',
       sort: 'commands/filesystem/sort.js',
       uniq: 'commands/filesystem/uniq.js',
+      tee: 'commands/filesystem/tee.js',
+      stat: 'commands/filesystem/stat.js',
+      readlink: 'commands/filesystem/readlink.js',
+      ln: 'commands/filesystem/ln.js',
+      cut: 'commands/filesystem/cut.js',
+      tr: 'commands/filesystem/tr.js',
+      sed: 'commands/filesystem/sed.js',
+      awk: 'commands/filesystem/awk.js',
+      nl: 'commands/filesystem/nl.js',
+      paste: 'commands/filesystem/paste.js',
+      join: 'commands/filesystem/join.js',
+      expand: 'commands/filesystem/expand.js',
+      fold: 'commands/filesystem/fold.js',
+      fmt: 'commands/filesystem/fmt.js',
+      split: 'commands/filesystem/split.js',
+      csplit: 'commands/filesystem/csplit.js',
 
       // Fun commands
       npm: 'commands/fun/npm.js',
@@ -132,7 +164,10 @@ class CommandRegistry {
   // Check if a command exists (either loaded or loadable)
   has(name) {
     const lowerName = name.toLowerCase();
-    return this.commands.has(lowerName) || this.commandMap.hasOwnProperty(lowerName);
+    return (
+      this.commands.has(lowerName) ||
+      Object.prototype.hasOwnProperty.call(this.commandMap, lowerName)
+    );
   }
 
   // Get all command names for tab completion (includes unloaded commands)

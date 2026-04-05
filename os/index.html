@@ -31,10 +31,7 @@
       content="A browser-based desktop environment with apps, filesystem, and window management."
     />
     <meta property="og:url" content="https://joeheyming.github.io/os/" />
-    <meta
-      property="og:image"
-      content="https://joeheyming.github.io/os/os-preview.png"
-    />
+    <meta property="og:image" content="https://joeheyming.github.io/os/os-preview.png" />
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="app.js"></script>
@@ -45,17 +42,35 @@
     <link rel="stylesheet" href="os.css" />
 
     <style>
-      html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+      }
     </style>
   </head>
   <body class="h-full bg-gray-900">
     <!-- Heyming OS (visible by default on dedicated page) -->
     <div id="heyming-os" class="fixed inset-0 bg-gray-900 z-[200]">
+      <!-- Absolute path: <base href="../"> makes fragment-only #hash resolve to site root, not this page -->
+      <a class="os-skip-link" href="/os/index.html#os-desktop">Skip to desktop</a>
       <!-- Desktop Background -->
       <div
         id="os-desktop"
+        role="main"
+        aria-label="Desktop"
+        tabindex="-1"
         class="w-full h-full bg-gradient-to-br from-blue-900 to-purple-900 relative overflow-hidden"
       >
+        <div
+          id="os-notification-region"
+          class="os-notification-region"
+          aria-live="polite"
+          aria-relevant="additions"
+          aria-label="Notifications"
+        ></div>
         <!-- Taskbar -->
         <div
           id="os-taskbar"
@@ -63,29 +78,47 @@
         >
           <!-- Application Launcher -->
           <button
+            type="button"
             id="app-launcher"
-            class="h-8 px-3 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded transition-colors duration-200 mr-2"
+            class="h-8 px-3 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded transition-colors duration-200 mr-2 shrink-0"
+            aria-haspopup="dialog"
+            aria-controls="app-launcher-menu"
+            aria-expanded="false"
+            aria-label="Open application launcher"
           >
             🚀 Apps
           </button>
 
           <!-- Running Apps Area -->
-          <div id="running-apps" class="flex space-x-1 flex-1"></div>
-
-          <!-- Clock -->
           <div
-            id="taskbar-clock"
-            class="text-white text-sm font-mono px-3 cursor-default select-none"
+            id="running-apps"
+            class="flex space-x-1 flex-1 min-w-0 overflow-x-auto taskbar-running-apps"
+            role="toolbar"
+            aria-label="Open windows"
           ></div>
 
+          <!-- Clock (click or Enter/Space toggles seconds; see Clock.js) -->
+          <time
+            id="taskbar-clock"
+            class="text-white text-sm font-mono px-3 cursor-pointer select-none"
+            role="button"
+            tabindex="0"
+            aria-pressed="false"
+            aria-label="Clock, show or hide seconds"
+          ></time>
+
           <!-- System Info -->
-          <div id="system-info" class="text-green-400 text-sm font-mono">Heyming OS v1.0</div>
+          <div id="system-info" class="text-green-400 text-sm font-mono" role="status">
+            Heyming OS v1.0
+          </div>
 
           <!-- Shutdown Button -->
           <button
+            type="button"
             id="os-close"
-            class="ml-2 h-8 px-3 bg-gray-700 hover:bg-red-600 text-white text-sm rounded transition-colors duration-200 shutdown-btn"
+            class="ml-2 h-8 px-3 bg-gray-700 hover:bg-red-600 text-white text-sm rounded transition-colors duration-200 shutdown-btn shrink-0"
             title="Shutdown Heyming OS"
+            aria-label="Shut down Heyming OS"
           >
             ⏻
           </button>
@@ -94,28 +127,54 @@
         <!-- App Launcher Menu -->
         <div
           id="app-launcher-menu"
-          class="absolute bottom-12 left-2 w-64 bg-gray-800 border border-gray-600 rounded-t-lg shadow-2xl hidden"
+          class="absolute bottom-12 left-2 w-72 bg-gray-800 border border-gray-600 rounded-t-lg shadow-2xl hidden overflow-hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="launcher-title"
         >
-          <div class="p-4">
-            <h3 class="text-white font-bold mb-3">Applications</h3>
+          <div class="launcher-header flex-shrink-0 px-4 pt-4 pb-2">
+            <h3 id="launcher-title" class="text-white font-bold mb-3">Applications</h3>
             <!-- Filter Input -->
-            <div class="relative mb-3">
+            <div class="relative mb-1">
               <input
                 type="text"
                 id="launcher-filter"
                 placeholder="Search apps..."
-                class="w-full px-3 py-2 pl-8 bg-gray-700 text-white rounded border border-gray-600 focus:outline-none focus:border-blue-500 text-sm"
+                autocomplete="off"
+                class="w-full px-3 py-2 pl-8 bg-gray-700 text-white rounded border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               />
               <span
-                class="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"
+                class="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm pointer-events-none"
+                aria-hidden="true"
               >
                 🔍
               </span>
             </div>
+          </div>
+          <div
+            id="launcher-apps-scroll"
+            class="launcher-apps-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pb-2"
+          >
             <div id="launcher-apps-container" class="space-y-2"></div>
             <div id="launcher-no-results" class="hidden text-gray-400 text-sm text-center py-4">
               No matching apps
             </div>
+          </div>
+          <div
+            class="launcher-footer flex-shrink-0 border-t border-gray-600 px-4 py-2 text-[11px] text-gray-400 leading-snug"
+            role="note"
+          >
+            <span>
+              <kbd class="launcher-kbd">Esc</kbd>
+              close
+            </span>
+            <span class="text-gray-600 mx-1.5" aria-hidden="true">·</span>
+            <span>
+              <kbd class="launcher-kbd">Enter</kbd>
+              open first match
+            </span>
+            <span class="text-gray-600 mx-1.5" aria-hidden="true">·</span>
+            <span class="text-gray-500">Meta toggles menu</span>
           </div>
         </div>
 
@@ -126,25 +185,34 @@
         <div
           id="shutdown-dialog"
           class="fixed inset-0 bg-black bg-opacity-50 hidden z-[300] flex items-center justify-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="shutdown-dialog-title"
+          aria-describedby="shutdown-dialog-desc"
+          aria-hidden="true"
         >
           <div
-            class="bg-gray-800 border border-gray-600 rounded-lg p-6 max-w-sm w-full mx-4 shadow-2xl"
+            class="shutdown-dialog-panel bg-gray-800 border border-gray-600 rounded-lg p-6 max-w-sm w-full mx-4 shadow-2xl"
           >
             <div class="flex items-center mb-4">
-              <div class="text-3xl mr-3">⏻</div>
-              <h3 class="text-white text-lg font-semibold">Shutdown Heyming OS</h3>
+              <div class="text-3xl mr-3" aria-hidden="true">⏻</div>
+              <h3 id="shutdown-dialog-title" class="text-white text-lg font-semibold">
+                Shutdown Heyming OS
+              </h3>
             </div>
-            <p class="text-gray-300 mb-6">
+            <p id="shutdown-dialog-desc" class="text-gray-300 mb-6">
               Are you sure you want to shut down the operating system?
             </p>
             <div class="flex space-x-3 justify-end">
               <button
+                type="button"
                 id="shutdown-cancel"
                 class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors duration-200"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 id="shutdown-confirm"
                 class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded transition-colors duration-200"
               >
