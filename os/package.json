@@ -1,0 +1,8 @@
+{
+  "name": "heyming-os",
+  "version": "1.0.0",
+  "description": "Browser-based desktop environment with window management, app launcher, and virtual filesystem",
+  "private": true,
+  "main": "index.js",
+  "type": "module"
+}

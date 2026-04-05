@@ -8,8 +8,11 @@
   if (window.backButtonInitialized) return;
   window.backButtonInitialized = true;
 
-  // Don't show on the home page
-  if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+  // Don't show on the home page or inside the OS (iframe)
+  if (window.location.pathname === '/os/' || window.location.pathname === '/os/index.html') {
+    return;
+  }
+  if (window.self !== window.top) {
     return;
   }
 

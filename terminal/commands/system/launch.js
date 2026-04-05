@@ -15,7 +15,7 @@
 💡 To access the OS and use launch functionality:
    1. Use the 'heyming-desktop' command to launch the desktop environment
    2. Click the "🚀 Launch OS" button on the main page
-   3. Or visit ${window.location.origin}/#os
+   3. Or visit ${window.location.origin}/os/
    4. Then open Terminal from the OS and use the launch command`;
       }
 

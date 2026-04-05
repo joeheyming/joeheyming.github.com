@@ -1,0 +1,7 @@
+{
+  "name": "heyming-terminal",
+  "version": "1.0.0",
+  "description": "Browser-based shell emulator with simulated kernel, virtual filesystem, and 80+ commands",
+  "private": true,
+  "main": "terminal.js"
+}

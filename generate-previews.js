@@ -104,14 +104,14 @@ const PAGES = [
     title: 'Operation SHADOWBOX'
   },
   {
-    url: `${BASE_URL}/rantbox/`,
-    output: 'rantbox/rantbox-preview.png',
-    title: 'Rantbox - The Angriest Page'
-  },
-  {
     url: `${BASE_URL}/periodic-speller/`,
     output: 'periodic-speller/periodic-speller-preview.png',
     title: 'Periodic Table Speller'
+  },
+  {
+    url: `${BASE_URL}/os/`,
+    output: 'os/os-preview.png',
+    title: 'Heyming OS'
   }
 ];
 

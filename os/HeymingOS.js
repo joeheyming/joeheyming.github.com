@@ -150,7 +150,6 @@ export class HeymingOS {
         this.notifications.system('Welcome to Heyming OS v1.0! 🚀');
       }, 500);
     }
-    location.hash = '#os';
   }
 
   hide() {
@@ -167,7 +166,7 @@ export class HeymingOS {
         this.taskbar.clear();
       }, this.C.ANIMATION_DURATION);
     }
-    location.hash = '';
+    window.location.href = '/';
   }
 
   toggle() {
