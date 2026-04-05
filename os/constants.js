@@ -47,13 +47,13 @@ export const MessageTypes = {
  * Format: { type: 'iframe-message', action: IframeActions.*, ...payload }
  */
 export const IframeActions = {
-  // Open a file with the appropriate app
+  // Open a file with a specific app (e.g. File Manager "Open with …", desktop context menu)
   OPEN_FILE: 'openFile',
-  // Payload: { path: string, mimeType?: string }
+  // Payload: { app: string, path: string, content: string|ArrayBuffer, fileName: string }
 
   // Open a file using OS routing (let OS decide which app)
   OPEN_DESKTOP_FILE: 'openDesktopFile',
-  // Payload: { file: { path: string, content: string|ArrayBuffer } }
+  // Payload: { file: { path: string, content?: string|ArrayBuffer, mimeType?: string } }
 
   // Save file to filesystem
   SAVE: 'save',

@@ -1,52 +1,105 @@
-// wc command - count lines, words, and characters
+// wc command — count lines, words, bytes (GNU-style multi-file, - for stdin, --)
 (function () {
   'use strict';
+
+  function countText(text) {
+    const lines = (String(text).match(/\n/g) || []).length;
+    const words = (String(text).match(/\S+/g) || []).length;
+    const bytes = new TextEncoder().encode(String(text)).length;
+    return { lines, words, bytes };
+  }
+
+  function formatRow(showAll, showLines, showWords, showBytes, counts, name) {
+    const sl = showAll || showLines;
+    const sw = showAll || showWords;
+    const sb = showAll || showBytes;
+    const parts = [];
+    if (sl) parts.push(counts.lines);
+    if (sw) parts.push(counts.words);
+    if (sb) parts.push(counts.bytes);
+    const nums = parts.map((n) => String(n).padStart(8));
+    const line = nums.join('');
+    return name !== undefined && name !== null ? `${line} ${name}` : line;
+  }
 
   registerCommand(
     'wc',
     async (terminal, args) => {
-      let input = '';
-      let files = [];
-      const flags = args.filter((arg) => arg.startsWith('-'));
+      const parsed = ShellUtils.parseWcArgv(args);
+      if (!parsed.ok) {
+        return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
+      }
+      if (parsed.help) {
+        return { stdout: ShellUtils.WC_HELP, stderr: '', exitCode: 0 };
+      }
 
-      // Parse file arguments
-      files = args.filter((arg) => !arg.startsWith('-'));
+      const { showLines, showWords, showBytes, showAll, operands } = parsed;
+      const stdinText = terminal.hasStdin && terminal.stdin != null ? String(terminal.stdin) : '';
 
-      // Get input
-      if (terminal.hasStdin && terminal.stdin) {
-        input = terminal.stdin;
-      } else if (files.length > 0) {
-        const filePath = terminal.resolvePath(files[0]);
-        const file = await terminal.getFileSystemItem(filePath);
-        if (!file || file.type !== 'file') {
-          return `wc: ${files[0]}: No such file or directory`;
+      if (operands.length === 0) {
+        if (!terminal.hasStdin || terminal.stdin == null) {
+          return { stdout: '', stderr: 'wc: missing operand\n', exitCode: 1 };
         }
-        input = file.content || '';
-      } else {
-        return 'wc: no input provided';
+        const c = countText(stdinText);
+        const row = formatRow(showAll, showLines, showWords, showBytes, c, undefined);
+        return { stdout: row + '\n', stderr: '', exitCode: 0 };
       }
 
-      const lines = input.split('\n').length;
-      const words = input.trim() ? input.trim().split(/\s+/).length : 0;
-      const chars = input.length;
+      const stderrLines = [];
+      const rows = [];
+      let sumL = 0;
+      let sumW = 0;
+      let sumB = 0;
 
-      const showLines = flags.includes('-l');
-      const showWords = flags.includes('-w');
-      const showChars = flags.includes('-c');
-      const showAll = !showLines && !showWords && !showChars;
-
-      let result = '';
-      if (showAll || showLines) result += lines.toString().padStart(8);
-      if (showAll || showWords) result += words.toString().padStart(8);
-      if (showAll || showChars) result += chars.toString().padStart(8);
-
-      if (files.length > 0) {
-        result += ` ${files[0]}`;
+      for (const op of operands) {
+        let text = '';
+        let label = op;
+        if (op === '-') {
+          label = '-';
+          text = stdinText;
+        } else {
+          const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op, 'wc');
+          if (!res.ok) {
+            stderrLines.push(res.stderr.trimEnd());
+            continue;
+          }
+          const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+          text = d.isBinary ? '' : d.text;
+        }
+        const c = countText(text);
+        sumL += c.lines;
+        sumW += c.words;
+        sumB += c.bytes;
+        rows.push(formatRow(showAll, showLines, showWords, showBytes, c, label));
       }
 
-      return result.trim();
+      if (rows.length === 0) {
+        const stderr = stderrLines.length ? stderrLines.join('\n') + '\n' : '';
+        return { stdout: '', stderr, exitCode: 1 };
+      }
+
+      let out = rows.join('\n') + '\n';
+      if (operands.length > 1 && rows.length > 1) {
+        const total = formatRow(
+          showAll,
+          showLines,
+          showWords,
+          showBytes,
+          {
+            lines: sumL,
+            words: sumW,
+            bytes: sumB
+          },
+          'total'
+        );
+        out += total + '\n';
+      }
+
+      const stderr = stderrLines.length ? stderrLines.join('\n') + '\n' : '';
+      const exitCode = stderrLines.length > 0 ? 1 : 0;
+      return { stdout: out, stderr, exitCode };
     },
-    'count lines, words, and characters (-l lines, -w words, -c chars)',
+    'count lines, words, bytes (-l -w -c, multiple FILEs, - for stdin, --)',
     'File System'
   );
 })();

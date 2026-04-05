@@ -2,30 +2,63 @@
 (function () {
   'use strict';
 
+  /**
+   * @param {Error} error
+   * @param {string} arg — user operand
+   * @returns {{ stderr: string, exitCode: number }}
+   */
+  function touchStderrFromError(error, arg) {
+    const msg = error && error.message ? String(error.message) : String(error);
+    if (msg.startsWith('Parent directory does not exist:')) {
+      return {
+        stderr: `touch: cannot touch '${arg}': No such file or directory`,
+        exitCode: 1
+      };
+    }
+    if (msg.startsWith('File already exists:')) {
+      return { stderr: `touch: cannot touch '${arg}': File exists`, exitCode: 1 };
+    }
+    return { stderr: `touch: cannot touch '${arg}': ${msg}`, exitCode: 1 };
+  }
+
   registerCommand(
     'touch',
     async (terminal, args) => {
-      if (args.length === 0) {
-        return 'touch: missing file operand';
+      const parsed = ShellUtils.parseTouchArgv(args);
+      if (!parsed.ok) {
+        return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
+      }
+      if (parsed.help) {
+        return { stdout: ShellUtils.TOUCH_HELP, stderr: '', exitCode: 0 };
       }
 
-      const filePath = terminal.resolvePath(args[0]);
+      const { noCreate, operands } = parsed;
+      let hadError = false;
+      const stderrLines = [];
 
-      try {
-        // Check if file already exists
-        const existing = await terminal.getFileSystemItem(filePath);
-        if (existing) {
-          // Update modification time
-          await terminal.fileSystemDB.createFile(filePath, existing.content || '', true);
-          return `📄 File touched: ${args[0]}`;
-        } else {
-          // Create new empty file
-          await terminal.fileSystemDB.createFile(filePath, '');
-          return `📄 File created: ${args[0]}`;
+      for (const name of operands) {
+        const filePath = terminal.resolvePath(name);
+        try {
+          const existing = await terminal.getFileSystemItem(filePath);
+          if (!existing) {
+            if (noCreate) {
+              continue;
+            }
+            await terminal.fileSystemDB.createFile(filePath, '');
+          } else {
+            await terminal.fileSystemDB.createFile(filePath, existing.content || '', true);
+          }
+        } catch (error) {
+          const { stderr } = touchStderrFromError(error, name);
+          stderrLines.push(stderr);
+          hadError = true;
         }
-      } catch (error) {
-        return `touch: cannot touch '${args[0]}': ${error.message}`;
       }
+
+      if (hadError) {
+        return { stdout: '', stderr: stderrLines.join('\n'), exitCode: 1 };
+      }
+      return { stdout: '', stderr: '', exitCode: 0 };
     },
     'create empty file or update timestamp',
     'File System'

@@ -160,6 +160,8 @@ class HeymingOS {
     const isMainTerminal = this.terminals.size === 0;
     const terminal = new window.Terminal(isMainTerminal ? null : terminalId, this);
 
+    await terminal.whenFilesystemReady();
+
     // Connect terminal to its process
     terminal.setProcess(terminalProcess);
 

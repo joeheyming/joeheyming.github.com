@@ -248,9 +248,18 @@
     }
   }
 
+  /** @returns {{ stdout: string, stderr: string, exitCode: number }} */
+  function nodeResult(stdout, stderr, exitCode) {
+    return {
+      stdout: stdout != null ? String(stdout) : '',
+      stderr: stderr != null ? String(stderr) : '',
+      exitCode: exitCode !== undefined && exitCode !== null ? exitCode : 0
+    };
+  }
+
   async function nodeCommand(terminal, args) {
     if (args.length === 0) {
-      return 'Usage: node <filename.js> [arguments...]';
+      return nodeResult('', 'Usage: node <filename.js> [arguments...]', 1);
     }
 
     const filename = args[0];
@@ -259,24 +268,27 @@
     // Resolve the file path
     const filePath = terminal.resolvePath(filename);
 
+    let output = '';
+    let errorOutput = '';
+
     try {
       // Check if file exists
       const fileItem = await terminal.getFileSystemItem(filePath);
       if (!fileItem) {
-        return `node: can't open file '${filename}': No such file or directory`;
+        return nodeResult('', `node: can't open file '${filename}': No such file or directory`, 1);
       }
 
       if (fileItem.type !== 'file') {
-        return `node: '${filename}' is a directory`;
+        return nodeResult('', `node: '${filename}' is a directory`, 1);
       }
 
       if (!filePath.endsWith('.js')) {
-        return `node: '${filename}' is not a JavaScript file`;
+        return nodeResult('', `node: '${filename}' is not a JavaScript file`, 1);
       }
 
       let content = fileItem.content;
       if (!content) {
-        return `node: '${filename}' is empty`;
+        return nodeResult('', `node: '${filename}' is empty`, 1);
       }
 
       // Transform ES6 import statements to use require
@@ -288,8 +300,8 @@
       // Debug output removed
 
       // Capture console output
-      let output = '';
-      let errorOutput = '';
+      output = '';
+      errorOutput = '';
 
       // Override console to capture output
       const originalConsole = console.log;
@@ -369,18 +381,16 @@
         console.warn = originalWarn;
       }
 
-      let result = '';
-      if (output) {
-        result += output.trim();
-      }
-      if (errorOutput) {
-        if (result) result += '\n';
-        result += errorOutput.trim();
-      }
-
-      return result;
+      return nodeResult(output, errorOutput, 0);
     } catch (error) {
-      return `node: ${error.message}`;
+      const exitMatch = /^Process exited with code (.+)$/.exec(error.message);
+      if (exitMatch) {
+        const n = Math.trunc(Number(exitMatch[1]));
+        const code = Number.isFinite(n) ? ((n % 256) + 256) % 256 : 0;
+        // output / errorOutput are still set from the inner try before process.exit threw
+        return nodeResult(output, errorOutput, code);
+      }
+      return nodeResult('', `node: ${error.message}`, 1);
     }
   }
 

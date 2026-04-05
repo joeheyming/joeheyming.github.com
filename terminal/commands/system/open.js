@@ -6,12 +6,15 @@
   registerCommand(
     'open',
     async (terminal, args) => {
-      // Just delegate to launch command
-      const launchCmd = window.commandRegistry.get('launch');
+      const launchCmd = await window.commandRegistry.get('launch');
       if (launchCmd) {
         return await launchCmd(terminal, args);
       }
-      return '❌ launch command not available';
+      return {
+        stdout: '',
+        stderr: 'open: launch command not available',
+        exitCode: 1
+      };
     },
     'Open files or apps (alias for launch)',
     'System'

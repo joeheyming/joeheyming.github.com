@@ -4,6 +4,10 @@ A browser-based shell emulator ("jsh") with a simulated OS kernel, process manag
 
 Live at [joeheyming.github.io/terminal/](https://joeheyming.github.io/terminal/)
 
+## jsh vs bash / coreutils
+
+jsh is **not** bash. For a short, user-facing statement of what the shell **claims** versus common **bash** and **GNU coreutils** behavior (and honest gaps), see **[`JSH-SPEC.md`](JSH-SPEC.md)**. The living gap list lives in [`../unix-fidelity-plan.md`](../unix-fidelity-plan.md).
+
 ## Architecture
 
 ```
@@ -51,6 +55,11 @@ terminal/
 ├── index.html              — page shell, script loading order, boot sequence
 ├── terminal.js             — Terminal class (input, parsing, execution, UI)
 ├── commands.js             — CommandRegistry, commandMap, lazy loading
+├── lib/
+│   └── shell-utils.js      — shared exit / $VAR / $? helpers (browser + Node tests)
+├── test/
+│   ├── shell-utils.test.js       — jsh helpers (`npm test`)
+│   └── filesystem-db-static.test.js — FileSystemDB UTF-8 / getContentForApp (Node + fake `window`)
 ├── style.css               — terminal layout and styling
 ├── core/
 │   ├── heyming-os.js       — boot orchestration, terminal lifecycle
@@ -102,6 +111,16 @@ terminal/
 ```javascript
 mycommand: { path: 'commands/fun/mycommand.js', category: 'Fun' }
 ```
+
+## Testing
+
+From this directory:
+
+```bash
+npm test
+```
+
+Runs Node’s built-in test runner on pure shell helpers in [`lib/shell-utils.js`](lib/shell-utils.js). Extend `test/` when you add more testable, non-DOM logic.
 
 ## Dependencies
 

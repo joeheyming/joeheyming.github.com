@@ -6,29 +6,43 @@
     'hexdump',
     async (terminal, args) => {
       if (args.length === 0) {
-        return 'hexdump: missing file operand';
+        return { stderr: 'hexdump: missing operand', exitCode: 1 };
       }
 
-      const filePath = terminal.resolvePath(args[0]);
+      const displayPath = args[0];
+      const filePath = terminal.resolvePath(displayPath);
       const item = await terminal.getFileSystemItem(filePath);
 
       if (!item) {
-        return `hexdump: ${args[0]}: No such file or directory`;
+        return {
+          stderr: `hexdump: ${displayPath}: No such file or directory`,
+          exitCode: 1
+        };
       }
 
       if (item.type !== 'file') {
-        return `hexdump: ${args[0]}: Is a directory`;
+        return {
+          stderr: `hexdump: ${displayPath}: Is a directory`,
+          exitCode: 1
+        };
       }
 
-      const content = item.content || '';
-      let result = `File: ${args[0]} (${content.length} bytes)\n`;
+      const d = ShellUtils.fileItemUtf8ForDisplay(item);
+      const content = d.isBinary ? '' : d.text;
+      const byteLen =
+        item.contentBytes instanceof ArrayBuffer
+          ? item.contentBytes.byteLength
+          : ArrayBuffer.isView(item.contentBytes)
+          ? item.contentBytes.byteLength
+          : content.length;
+      let result = `File: ${displayPath} (${byteLen} bytes${d.isBinary ? ', binary' : ''})\n`;
       result += `Raw content: "${content}"\n`;
       result += `Escaped: ${JSON.stringify(content)}\n`;
       result += `Char codes: [${Array.from(content)
         .map((c) => c.charCodeAt(0))
         .join(', ')}]`;
 
-      return result;
+      return { stdout: result, stderr: '', exitCode: 0 };
     },
     'debug file contents showing raw bytes and escape sequences',
     'File System'

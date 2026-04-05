@@ -665,6 +665,50 @@ const AppModule = {
   },
 
   /**
+   * All apps that handle a MIME type (registry order; each app at most once).
+   * @param {string} mimeType
+   * @returns {Array<{ appId: string, appName: string, shortName: string, icon: string }>}
+   */
+  getAppsForMimeType: (mimeType) => {
+    if (!mimeType) return [];
+
+    const [type] = mimeType.split('/');
+    const seen = new Set();
+    const out = [];
+
+    for (const app of appRegistry) {
+      if (!app.handles) continue;
+
+      let matched = false;
+      for (const pattern of app.handles) {
+        if (pattern === mimeType) {
+          matched = true;
+          break;
+        }
+        if (pattern.endsWith('/*')) {
+          const patternType = pattern.slice(0, -2);
+          if (type === patternType) {
+            matched = true;
+            break;
+          }
+        }
+      }
+
+      if (matched && !seen.has(app.id)) {
+        seen.add(app.id);
+        out.push({
+          appId: app.id,
+          appName: app.name,
+          shortName: app.shortName || app.name,
+          icon: app.icon || '📦'
+        });
+      }
+    }
+
+    return out;
+  },
+
+  /**
    * Get the app that handles a given MIME type
    * Apps register their supported types via the 'handles' array
    * Supports wildcards like 'image/*' and 'text/*'
@@ -672,29 +716,9 @@ const AppModule = {
    * @returns {{ appId: string, appName: string } | null} App info or null if no handler
    */
   getAppForMimeType: (mimeType) => {
-    if (!mimeType) return null;
-
-    const [type, subtype] = mimeType.split('/');
-
-    for (const app of appRegistry) {
-      if (!app.handles) continue;
-
-      for (const pattern of app.handles) {
-        // Exact match
-        if (pattern === mimeType) {
-          return { appId: app.id, appName: app.name };
-        }
-        // Wildcard match (e.g., 'image/*' matches 'image/png')
-        if (pattern.endsWith('/*')) {
-          const patternType = pattern.slice(0, -2);
-          if (type === patternType) {
-            return { appId: app.id, appName: app.name };
-          }
-        }
-      }
-    }
-
-    return null;
+    const apps = AppModule.getAppsForMimeType(mimeType);
+    if (!apps.length) return null;
+    return { appId: apps[0].appId, appName: apps[0].appName };
   }
 };
 

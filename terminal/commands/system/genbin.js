@@ -81,9 +81,11 @@ Examples:
             return { bytes: Math.floor(Math.random() * 500000) + 100000, desc: 'medium' };
           case 'large':
             return { bytes: Math.floor(Math.random() * 5000000) + 1000000, desc: 'large' };
-          default: // random
+          default: {
+            // random
             const sizes = ['small', 'medium', 'large'];
             return getSizeInfo(sizes[Math.floor(Math.random() * sizes.length)]);
+          }
         }
       };
 

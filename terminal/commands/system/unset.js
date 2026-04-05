@@ -5,33 +5,56 @@
   registerCommand(
     'unset',
     (terminal, args) => {
-      if (args.length === 0) {
-        return 'unset: usage: unset [-v] [name ...]';
+      let i = 0;
+      while (i < args.length) {
+        const a = args[i];
+        if (a === '-v' || a === '-f' || a === '-n') {
+          i++;
+          continue;
+        }
+        if (a === '--') {
+          i++;
+          break;
+        }
+        if (a.startsWith('-')) {
+          const char = a.length > 1 ? a[1] : '?';
+          return {
+            stdout: '',
+            stderr: `unset: invalid option -- '${char}'\nunset: usage: unset [-v] [name ...]`,
+            exitCode: 2
+          };
+        }
+        break;
+      }
+      const names = args.slice(i);
+
+      if (names.length === 0) {
+        return { stdout: '', stderr: '', exitCode: 0 };
       }
 
-      const results = [];
-      for (const varName of args) {
+      const stderrLines = [];
+      const protectedVars = ['USER', 'HOME', 'SHELL', 'TERM', 'HOSTNAME'];
+
+      for (const varName of names) {
         if (!varName.match(/^[A-Za-z_][A-Za-z0-9_]*$/)) {
-          results.push(`unset: '${varName}': not a valid identifier`);
+          stderrLines.push(`unset: '${varName}': not a valid identifier`);
           continue;
         }
 
-        const currentValue = terminal.getEnv(varName);
-        if (currentValue !== undefined) {
-          // Don't allow unsetting critical system variables
-          const protectedVars = ['USER', 'HOME', 'SHELL', 'TERM', 'HOSTNAME'];
-          if (protectedVars.includes(varName)) {
-            results.push(`unset: ${varName}: cannot unset system variable`);
-          } else {
-            terminal.setEnv(varName, undefined);
-            results.push(`unset ${varName}`);
-          }
-        } else {
-          results.push(`unset: ${varName}: not set`);
+        if (protectedVars.includes(varName)) {
+          stderrLines.push(`unset: ${varName}: cannot unset system variable`);
+          continue;
         }
+
+        terminal.setEnv(varName, undefined);
       }
 
-      return results.join('\n');
+      const stderr = stderrLines.join('\n');
+      return {
+        stdout: '',
+        stderr,
+        exitCode: stderrLines.length > 0 ? 1 : 0
+      };
     },
     'remove environment variables',
     'System'

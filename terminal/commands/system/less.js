@@ -2,87 +2,162 @@
 (function () {
   'use strict';
 
+  function dirnameVirtual(p) {
+    if (p == null || p === '' || p === '/') {
+      return '/';
+    }
+    const i = p.lastIndexOf('/');
+    if (i <= 0) {
+      return '/';
+    }
+    return p.slice(0, i) || '/';
+  }
+
+  /**
+   * Follow symlink chain to a readable file (GNU less reads through symlinks).
+   * @returns {Promise<{ ok: true, file: object } | { ok: false, stderr: string, exitCode: number }>}
+   */
+  async function resolveLessFile(terminal, operand) {
+    let fullPath = terminal.resolvePath(operand);
+    const visited = new Set();
+    for (let depth = 0; depth < 32; depth++) {
+      if (visited.has(fullPath)) {
+        return {
+          ok: false,
+          stderr: `less: ${operand}: Too many levels of symbolic links`,
+          exitCode: 1
+        };
+      }
+      visited.add(fullPath);
+      const file = await terminal.getFileSystemItem(fullPath);
+      if (!file) {
+        return {
+          ok: false,
+          stderr: `less: ${operand}: No such file or directory`,
+          exitCode: 1
+        };
+      }
+      if (file.type === 'symlink') {
+        const raw = file.target;
+        if (raw == null || String(raw).trim() === '') {
+          return { ok: false, stderr: `less: ${operand}: Invalid argument`, exitCode: 1 };
+        }
+        const parent = dirnameVirtual(fullPath);
+        fullPath = ShellUtils.resolveVirtualPath(String(raw).trim(), parent);
+        continue;
+      }
+      if (file.type !== 'file') {
+        return {
+          ok: false,
+          stderr: `less: ${operand}: Is a directory`,
+          exitCode: 1
+        };
+      }
+      return { ok: true, file };
+    }
+    return {
+      ok: false,
+      stderr: `less: ${operand}: Too many levels of symbolic links`,
+      exitCode: 1
+    };
+  }
+
   // Less viewer implementation using terminal API
-  function showLessViewer(terminal, content, filename, renderHtml = false) {
+  function showLessViewer(
+    terminal,
+    content,
+    filename,
+    renderHtml = false,
+    lineNumbers = false,
+    chopLongLines = false,
+    startSpec = null,
+    ignoreCaseSearch = false,
+    startupPattern = null,
+    longPrompt = false,
+    rawControlChars = false,
+    quitAtEofMode = 'none'
+  ) {
     const lines = content.split('\n');
-    let currentLine = 0;
-    const linesPerPage = 20;
+    const lineNumWidth = Math.max(6, String(lines.length).length);
+    const linesPerPage = ShellUtils.LESS_LINES_PER_PAGE;
+    let currentLine = ShellUtils.lessInitialScrollLine(lines.length, linesPerPage, startSpec);
+
     let searchTerm = '';
     let searchResults = [];
     let currentSearchIndex = -1;
     let lastSearchTerm = ''; // Remember last search for repeat searches
+    let viewingHelp = false;
+    /** GNU **-e**: second forward at EOF quits; reset when scrolling up. */
+    let eofQuitPrimed = false;
+    /** GNU-style digit prefix before a movement key (e.g. `12j`, `5z`). */
+    let scrollPrefixDigits = '';
 
-    // Add CSS styles using terminal API
-    const style = terminal.addStyles(`
-      .less-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.9);
-        z-index: 1000;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-      .less-viewer {
-        width: 90%;
-        height: 80%;
-        background: #000;
-        color: #0f0;
-        font-family: 'Courier New', monospace;
-        border: 1px solid #333;
-        display: flex;
-        flex-direction: column;
-      }
-      .less-header {
-        background: #333;
-        padding: 5px 10px;
-        display: flex;
-        justify-content: space-between;
-        font-size: 12px;
-      }
-      .less-content {
-        flex: 1;
-        padding: 10px;
-        overflow: hidden;
-        white-space: pre-wrap;
-        font-family: 'Courier New', monospace;
-        line-height: 1.2;
-      }
-      .less-footer {
-        background: #333;
-        padding: 5px 10px;
-        font-size: 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .less-search {
-        display: flex;
-        align-items: center;
-      }
-      .less-search input {
-        background: #000;
-        color: #0f0;
-        border: 1px solid #333;
-        padding: 2px 5px;
-        margin-left: 5px;
-        font-family: 'Courier New', monospace;
-        font-size: 12px;
-      }
-      .less-highlight {
-        background: #ff0;
-        color: #000;
-      }
-    `);
+    function isAtLastPage() {
+      if (lines.length === 0) return true;
+      return currentLine >= Math.max(0, lines.length - linesPerPage);
+    }
 
-    // Create modal content
+    function consumeRepeatCount(defaultLines) {
+      const n = ShellUtils.lessRepeatCountFromPrefix(defaultLines, scrollPrefixDigits);
+      scrollPrefixDigits = '';
+      return n;
+    }
+
+    function scrollPrefixClear() {
+      scrollPrefixDigits = '';
+    }
+
+    function moveForwardByLines(n) {
+      if (n <= 0) return;
+      if (quitAtEofMode !== 'none' && isAtLastPage()) {
+        if (quitAtEofMode === 'first') {
+          closeViewer();
+          return;
+        }
+        if (eofQuitPrimed) {
+          closeViewer();
+          return;
+        }
+        eofQuitPrimed = true;
+        return;
+      }
+      if (quitAtEofMode === 'second') eofQuitPrimed = false;
+      const maxStart = lines.length > 0 ? Math.max(0, lines.length - linesPerPage) : 0;
+      currentLine = Math.min(maxStart, currentLine + n);
+      updateDisplay();
+    }
+
+    function moveBackwardByLines(n) {
+      if (n <= 0) return;
+      if (quitAtEofMode === 'second') eofQuitPrimed = false;
+      currentLine = Math.max(0, currentLine - n);
+      updateDisplay();
+    }
+
+    const lessDefaultFooterHtml = (() => {
+      let base =
+        chopLongLines && !renderHtml
+          ? 'Press <kbd>h</kbd> for help · <kbd>q</kbd> quit · <kbd>/</kbd> search · <kbd>←</kbd> <kbd>→</kbd> horizontal scroll'
+          : 'Press <kbd>h</kbd> for help · <kbd>q</kbd> quit · <kbd>/</kbd> search';
+      if (ignoreCaseSearch && !renderHtml) {
+        base += ' <span class="less-footer-note">(ignore case)</span>';
+      }
+      if (rawControlChars && !renderHtml) {
+        base += ' <span class="less-footer-note">(ANSI colors)</span>';
+      }
+      if (quitAtEofMode === 'first') {
+        base += ' <span class="less-footer-note">(-E: forward at EOF quits)</span>';
+      } else if (quitAtEofMode === 'second') {
+        base += ' <span class="less-footer-note">(-e: forward twice at EOF to quit)</span>';
+      }
+      return base;
+    })();
+
+    // Create modal content (styles: terminal/style.css .less-modal)
     const modalContent = `
-      <div class="less-viewer">
+      <div class="less-viewer" role="dialog" aria-modal="true" aria-labelledby="less-filename-label">
         <div class="less-header">
-          <span class="less-filename">${filename ? filename : '(stdin)'}${
+          <span class="less-filename" id="less-filename-label">${filename ? filename : '(stdin)'}${
       renderHtml ? ' [HTML]' : ''
     }</span>
           <span class="less-position">lines 1-${Math.min(linesPerPage, lines.length)} of ${
@@ -91,7 +166,7 @@
         </div>
         <div class="less-content" id="less-content"></div>
         <div class="less-footer">
-          <span class="less-help">Press 'h' for help, 'q' to quit, '/' to search</span>
+          <span class="less-help">${lessDefaultFooterHtml}</span>
           <span class="less-search" id="less-search" style="display: none;">
             <span>Search: </span>
             <input type="text" id="less-search-input" />
@@ -104,18 +179,53 @@
     const modal = terminal.createModal({
       className: 'less-modal',
       content: modalContent,
-      onKeyDown: handleKeyDown,
-      onClose: () => {
-        // Clean up styles when modal closes
-        document.head.removeChild(style);
-      }
+      onKeyDown: handleKeyDown
     });
 
     const contentDiv = modal.element.querySelector('#less-content');
+    if (chopLongLines && !renderHtml) {
+      contentDiv.classList.add('less-content-chop');
+    }
     const positionSpan = modal.element.querySelector('.less-position');
     const helpSpan = modal.element.querySelector('.less-help');
     const searchDiv = modal.element.querySelector('#less-search');
     const searchInput = modal.element.querySelector('#less-search-input');
+
+    /**
+     * GNU-style -p / --pattern: first line containing literal substring; same rules as / search.
+     */
+    function applyStartupPattern(term) {
+      if (!term || renderHtml) return;
+
+      searchTerm = term;
+      lastSearchTerm = term;
+      searchResults = [];
+
+      lines.forEach((line, lineIndex) => {
+        let index = 0;
+        const plain = rawControlChars ? ShellUtils.lessStripAnsi(line) : line;
+        const hay = ignoreCaseSearch ? plain.toLowerCase() : plain;
+        const needle = ignoreCaseSearch ? term.toLowerCase() : term;
+        while ((index = hay.indexOf(needle, index)) !== -1) {
+          searchResults.push({ line: lineIndex, col: index });
+          index++;
+        }
+      });
+
+      if (searchResults.length === 0) {
+        helpSpan.textContent = `Pattern not found: ${term}`;
+        return;
+      }
+
+      const result = searchResults[0];
+      currentLine = Math.max(0, result.line - Math.floor(linesPerPage / 2));
+      currentSearchIndex = 0;
+      helpSpan.textContent = ShellUtils.formatLessSearchMatchFooter(
+        result,
+        0,
+        searchResults.length
+      );
+    }
 
     function updateDisplay() {
       const start = currentLine;
@@ -126,15 +236,33 @@
         // For HTML content, render as HTML
         contentDiv.innerHTML = displayLines.join('\n');
       } else {
-        // For text content, escape HTML and handle search highlighting
-        let displayContent = displayLines.map((line) => terminal.escapeHtml(line)).join('\n');
+        // For text content: optional ANSI (-R), escape HTML, search highlighting
+        let displayContent = displayLines
+          .map((line, j) => {
+            const globalIdx = start + j;
+            let escaped;
+            if (rawControlChars && !searchTerm) {
+              escaped = ShellUtils.lessAnsiToHtml(line);
+            } else if (rawControlChars && searchTerm) {
+              escaped = terminal.escapeHtml(ShellUtils.lessStripAnsi(line));
+            } else {
+              escaped = terminal.escapeHtml(line);
+            }
+            if (lineNumbers) {
+              const num = String(globalIdx + 1).padStart(lineNumWidth);
+              escaped = `${num}  ${escaped}`;
+            }
+            return escaped;
+          })
+          .join('\n');
 
-        // Highlight search results
+        // Highlight search results (case-sensitive unless -i / --ignore-case)
         if (searchTerm && searchResults.length > 0) {
           const escapedSearchTerm = terminal.escapeHtml(searchTerm);
           const highlightedTerm = `<span class="less-highlight">${escapedSearchTerm}</span>`;
+          const flags = ignoreCaseSearch ? 'gi' : 'g';
           displayContent = displayContent.replace(
-            new RegExp(escapedSearchTerm, 'gi'),
+            new RegExp(escapedSearchTerm, flags),
             highlightedTerm
           );
         }
@@ -142,7 +270,12 @@
         contentDiv.innerHTML = displayContent;
       }
 
-      positionSpan.textContent = `lines ${start + 1}-${end} of ${lines.length}`;
+      let posText = `lines ${start + 1}-${end} of ${lines.length}`;
+      if (longPrompt && lines.length > 0) {
+        const pct = Math.min(100, Math.round(((start + 1) / lines.length) * 100));
+        posText += ` (${pct}%)`;
+      }
+      positionSpan.textContent = posText;
     }
 
     function performSearch(term) {
@@ -152,10 +285,13 @@
       lastSearchTerm = term;
       searchResults = [];
 
-      // Find all matches
+      // Find all matches (GNU less: case-sensitive unless -i)
       lines.forEach((line, lineIndex) => {
         let index = 0;
-        while ((index = line.toLowerCase().indexOf(term.toLowerCase(), index)) !== -1) {
+        const plain = rawControlChars ? ShellUtils.lessStripAnsi(line) : line;
+        const hay = ignoreCaseSearch ? plain.toLowerCase() : plain;
+        const needle = ignoreCaseSearch ? term.toLowerCase() : term;
+        while ((index = hay.indexOf(needle, index)) !== -1) {
           searchResults.push({ line: lineIndex, col: index });
           index++;
         }
@@ -183,32 +319,51 @@
         const result = searchResults[0];
         currentLine = Math.max(0, result.line - Math.floor(linesPerPage / 2));
         currentSearchIndex = 0;
-        helpSpan.textContent = 'Search wrapped to beginning';
+        helpSpan.textContent = ShellUtils.formatLessSearchMatchFooter(
+          result,
+          0,
+          searchResults.length,
+          'Search wrapped'
+        );
       } else {
-        helpSpan.textContent = `Found: ${currentSearchIndex + 1}/${searchResults.length}`;
+        helpSpan.textContent = ShellUtils.formatLessSearchMatchFooter(
+          searchResults[currentSearchIndex],
+          currentSearchIndex,
+          searchResults.length
+        );
       }
 
       updateDisplay();
     }
 
-    function nextSearch() {
+    /** GNU-style: digit prefix before **n** / **N** repeats that many match steps (wraps). */
+    function advanceSearchForward(times) {
       if (searchResults.length === 0) return;
-
-      currentSearchIndex = (currentSearchIndex + 1) % searchResults.length;
+      const len = searchResults.length;
+      const t = Math.max(1, times);
+      currentSearchIndex = (currentSearchIndex + t) % len;
       const result = searchResults[currentSearchIndex];
       currentLine = Math.max(0, result.line - Math.floor(linesPerPage / 2));
-      helpSpan.textContent = `Found: ${currentSearchIndex + 1}/${searchResults.length}`;
+      helpSpan.textContent = ShellUtils.formatLessSearchMatchFooter(
+        result,
+        currentSearchIndex,
+        len
+      );
       updateDisplay();
     }
 
-    function prevSearch() {
+    function advanceSearchBackward(times) {
       if (searchResults.length === 0) return;
-
-      currentSearchIndex =
-        currentSearchIndex <= 0 ? searchResults.length - 1 : currentSearchIndex - 1;
+      const len = searchResults.length;
+      const t = Math.max(1, times);
+      currentSearchIndex = (((currentSearchIndex - t) % len) + len) % len;
       const result = searchResults[currentSearchIndex];
       currentLine = Math.max(0, result.line - Math.floor(linesPerPage / 2));
-      helpSpan.textContent = `Found: ${currentSearchIndex + 1}/${searchResults.length}`;
+      helpSpan.textContent = ShellUtils.formatLessSearchMatchFooter(
+        result,
+        currentSearchIndex,
+        len
+      );
       updateDisplay();
     }
 
@@ -216,33 +371,50 @@
       const helpContent = `Less Help:
 
 Navigation:
-  j, ↓, Enter    - Move down one line
-  k, ↑           - Move up one line
-  f, Space, PgDn - Move down one page
-  b, PgUp        - Move up one page
-  g, Home        - Go to beginning
-  G, End         - Go to end
+  j, e, ↓, Enter - Move down one line (GNU: e/j); type digits first for repeat (e.g. 12j)
+  k, y, ↑        - Move up one line (GNU: y/k); digits + k/y for N lines
+  f, z, Z, Space, PgDn - Move down N lines (default one window); e.g. 5z or 5f
+  d, ^D          - Move down half a page (GNU); digits change line count
+  b, w, W, PgUp  - Move up N lines (default one window)
+  u, ^U          - Move up half a page (GNU); digits change line count
+  g, Home        - Go to beginning; 5g / 5Home go to line 5 (1-based, GNU-style)
+  G, End         - Go to end; 5G / 5End go to line 5
 
 Search:
   /              - Search forward
-  n              - Next search result
-  N              - Previous search result
+  n              - Next search result (digits first repeat: e.g. 3n = third next match)
+  N              - Previous search result (digits first repeat: e.g. 2N)
+  Status line: Found: i/total at line L, col C (1-based). "Search wrapped" when search wraps.
+  (Startup less -i or --ignore-case for case-insensitive search; default is case-sensitive.)
 
 Other:
   h              - Show this help
   q              - Quit
 
+Run less -N or --LINE-NUMBERS to show line numbers (also for -F stdout).
+Run less -S or --chop-long-lines to avoid wrapping long lines (← → scroll in viewer).
+Run less -m, -M, or --long-prompt for a percent in the status line (GNU-style long prompt; jsh).
+Startup +N / +G (e.g. less +100 file) sets the initial scroll position (jsh; not for -F stdout).
+Startup -p / --pattern=PATTERN jumps to the first line containing PATTERN (literal substring; use less -i for case-insensitive).
+Run less -R or --RAW-CONTROL-CHARS to interpret ANSI color/style (SGR) in file text; search strips ANSI for matching.
+Run less -E or --QUIT-AT-EOF to quit on the first forward key at end-of-file; -e / --quit-at-eof quits on the second.
+Run less -x N, -# N, or --tabs=N for tab-stop width (GNU-style; default 8).
+
 Press any key to return to document...`;
 
+      viewingHelp = true;
       contentDiv.innerHTML = terminal.escapeHtml(helpContent);
       positionSpan.textContent = 'Help';
+    }
 
-      // Wait for any key to return
-      const helpHandler = (e) => {
-        modal.element.removeEventListener('keydown', helpHandler);
-        updateDisplay();
-      };
-      modal.element.addEventListener('keydown', helpHandler);
+    function moveForwardHalfPage() {
+      const h = consumeRepeatCount(ShellUtils.lessHalfPageLineCount(linesPerPage));
+      moveForwardByLines(h);
+    }
+
+    function moveBackwardHalfPage() {
+      const h = consumeRepeatCount(ShellUtils.lessHalfPageLineCount(linesPerPage));
+      moveBackwardByLines(h);
     }
 
     function closeViewer() {
@@ -251,8 +423,6 @@ Press any key to return to document...`;
 
     // Event handlers - this is the key function that handles all keyboard input
     function handleKeyDown(e) {
-      const searchInput = modal.element.querySelector('#less-search-input');
-
       if (searchDiv.style.display !== 'none') {
         // In search mode
         if (e.key === 'Enter') {
@@ -276,76 +446,167 @@ Press any key to return to document...`;
         return; // Let other keys work normally in search input
       }
 
+      // Help is shown: first key dismisses (do not run navigation/quit — listener order would make 'q' exit)
+      if (viewingHelp) {
+        viewingHelp = false;
+        scrollPrefixClear();
+        updateDisplay();
+        e.preventDefault();
+        return;
+      }
+
+      if (chopLongLines && !renderHtml && searchDiv.style.display === 'none') {
+        if (e.key === 'ArrowLeft') {
+          contentDiv.scrollLeft = Math.max(0, contentDiv.scrollLeft - 40);
+          e.preventDefault();
+          return;
+        }
+        if (e.key === 'ArrowRight') {
+          contentDiv.scrollLeft += 40;
+          e.preventDefault();
+          return;
+        }
+      }
+
+      if (
+        e.key.length === 1 &&
+        e.key >= '0' &&
+        e.key <= '9' &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey
+      ) {
+        e.preventDefault();
+        if (scrollPrefixDigits.length < 12) scrollPrefixDigits += e.key;
+        return;
+      }
+
       e.preventDefault();
 
       switch (e.key) {
         case 'j':
+        case 'e':
         case 'ArrowDown':
-        case 'Enter':
-          if (currentLine + linesPerPage < lines.length) {
-            currentLine++;
-            updateDisplay();
-          }
+        case 'Enter': {
+          const n = consumeRepeatCount(1);
+          moveForwardByLines(n);
           break;
+        }
         case 'k':
-        case 'ArrowUp':
-          if (currentLine > 0) {
-            currentLine--;
-            updateDisplay();
-          }
+        case 'y':
+        case 'ArrowUp': {
+          const n = consumeRepeatCount(1);
+          moveBackwardByLines(n);
           break;
+        }
         case 'f':
+        case 'z':
+        case 'Z':
         case ' ':
-        case 'PageDown':
-          currentLine = Math.min(lines.length - linesPerPage, currentLine + linesPerPage);
-          updateDisplay();
+        case 'PageDown': {
+          const n = consumeRepeatCount(linesPerPage);
+          moveForwardByLines(n);
+          break;
+        }
+        case 'd':
+          moveForwardHalfPage();
+          break;
+        case 'u':
+          moveBackwardHalfPage();
           break;
         case 'b':
-        case 'PageUp':
-          currentLine = Math.max(0, currentLine - linesPerPage);
-          updateDisplay();
+        case 'w':
+        case 'W':
+        case 'PageUp': {
+          const n = consumeRepeatCount(linesPerPage);
+          moveBackwardByLines(n);
           break;
+        }
         case 'g':
-        case 'Home':
-          currentLine = 0;
+        case 'Home': {
+          const prefix = scrollPrefixDigits;
+          scrollPrefixDigits = '';
+          if (quitAtEofMode === 'second') eofQuitPrimed = false;
+          const target = ShellUtils.lessTargetLineOneBasedFromPrefix(prefix);
+          if (target == null) {
+            currentLine = 0;
+          } else {
+            currentLine = ShellUtils.lessScrollLineForTargetLineOneBased(
+              lines.length,
+              linesPerPage,
+              target
+            );
+          }
           updateDisplay();
           break;
+        }
         case 'G':
-        case 'End':
-          currentLine = Math.max(0, lines.length - linesPerPage);
+        case 'End': {
+          const prefixG = scrollPrefixDigits;
+          scrollPrefixDigits = '';
+          if (quitAtEofMode === 'second') eofQuitPrimed = false;
+          const targetG = ShellUtils.lessTargetLineOneBasedFromPrefix(prefixG);
+          if (targetG == null) {
+            currentLine = Math.max(0, lines.length - linesPerPage);
+          } else {
+            currentLine = ShellUtils.lessScrollLineForTargetLineOneBased(
+              lines.length,
+              linesPerPage,
+              targetG
+            );
+          }
           updateDisplay();
           break;
+        }
         case '/':
+          scrollPrefixClear();
           searchDiv.style.display = 'flex';
           searchInput.value = '';
           // Use setTimeout to ensure the input is visible before focusing
           setTimeout(() => searchInput.focus(), 10);
           break;
-        case 'n':
+        case 'n': {
+          const nTimes = consumeRepeatCount(1);
           if (lastSearchTerm) {
             if (searchResults.length === 0) {
               performSearch(lastSearchTerm);
             } else {
-              nextSearch();
+              advanceSearchForward(nTimes);
             }
+          } else {
+            scrollPrefixClear();
           }
           break;
-        case 'N':
+        }
+        case 'N': {
+          const nTimes = consumeRepeatCount(1);
           if (lastSearchTerm) {
             if (searchResults.length === 0) {
               performSearch(lastSearchTerm);
             } else {
-              prevSearch();
+              advanceSearchBackward(nTimes);
             }
+          } else {
+            scrollPrefixClear();
           }
           break;
+        }
         case 'h':
+          scrollPrefixClear();
           showHelp();
           break;
         case 'q':
+          scrollPrefixClear();
           closeViewer();
           break;
+        default:
+          scrollPrefixClear();
+          break;
       }
+    }
+
+    if (startupPattern && !renderHtml) {
+      applyStartupPattern(startupPattern);
     }
 
     // Initial display
@@ -360,69 +621,95 @@ Press any key to return to document...`;
   registerCommand(
     'less',
     async (terminal, args) => {
-      let filename = '';
-      let renderHtml = false;
-      let content = '';
-
-      // Parse arguments
-      for (let i = 0; i < args.length; i++) {
-        const arg = args[i];
-        if (arg === '--html') {
-          renderHtml = true;
-        } else if (arg === '--help' || arg === '-h') {
-          return `less - view file contents with paging and search
-
-Usage: less [options] [file]
-
-Options:
-  --html    Render content as HTML
-  --help    Show this help message
-
-Navigation:
-  j/↓       Move down one line
-  k/↑       Move up one line  
-  f/Space   Move down one page
-  b/PgUp    Move up one page
-  g/Home    Go to beginning
-  G/End     Go to end
-  /         Search forward
-  n         Next search result
-  N         Previous search result
-  h         Show help
-  q         Quit
-
-If no file is specified, reads from stdin (piped input).`;
-        } else if (!filename) {
-          filename = arg;
-        }
+      const parsed = ShellUtils.parseLessArgv(args);
+      if (!parsed.ok) {
+        return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
+      }
+      if (parsed.help) {
+        return {
+          stdout: ShellUtils.LESS_HELP,
+          stderr: '',
+          exitCode: 0
+        };
+      }
+      if (parsed.version) {
+        return {
+          stdout: ShellUtils.LESS_VERSION_LINE,
+          stderr: '',
+          exitCode: 0
+        };
       }
 
+      const operand = parsed.operands[0];
+      let filename = '';
+      let content = '';
+
       try {
-        if (filename) {
-          // Read from file
-          const filePath = terminal.resolvePath(filename);
-          const file = await terminal.getFileSystemItem(filePath);
-
-          if (!file) {
-            return `less: ${filename}: No such file or directory`;
+        if (operand != null && operand !== '-') {
+          filename = operand;
+          const resolved = await resolveLessFile(terminal, operand);
+          if (!resolved.ok) {
+            return {
+              stdout: '',
+              stderr: resolved.stderr,
+              exitCode: resolved.exitCode
+            };
           }
-
-          if (file.type !== 'file') {
-            return `less: ${filename}: Is a directory`;
-          }
-
-          content = file.content || '';
-        } else if (terminal.hasStdin) {
-          // Read from stdin (piped input)
+          const d = ShellUtils.fileItemUtf8ForDisplay(resolved.file);
+          content = d.isBinary ? '[binary file]\n' : d.text;
+        } else if (operand === '-') {
+          content = terminal.stdin;
+          filename = '(stdin)';
+        } else if (terminal.stdinSupplied || terminal.hasStdin) {
           content = terminal.stdin;
           filename = '(stdin)';
         } else {
-          return 'less: missing filename (try "less --help")';
+          return {
+            stdout: '',
+            stderr: 'less: missing operand (try "less --help")',
+            exitCode: 1
+          };
         }
 
-        return showLessViewer(terminal, content, filename, renderHtml);
+        if (parsed.squeezeBlankLines && !parsed.html) {
+          content = ShellUtils.lessSqueezeBlankLines(content);
+        }
+
+        if (!parsed.html) {
+          content = ShellUtils.lessExpandTabsInText(content, parsed.tabStops);
+        }
+
+        if (
+          parsed.quitIfOneScreen &&
+          !parsed.html &&
+          !parsed.pattern &&
+          ShellUtils.lessContentFitsOneScreen(content)
+        ) {
+          const out = parsed.lineNumbers ? ShellUtils.lessFormatWithLineNumbers(content) : content;
+          return { stdout: out, stderr: '', exitCode: 0 };
+        }
+
+        return showLessViewer(
+          terminal,
+          content,
+          filename,
+          parsed.html,
+          parsed.lineNumbers && !parsed.html,
+          parsed.chopLongLines && !parsed.html,
+          parsed.startSpec,
+          parsed.ignoreCase,
+          parsed.pattern || null,
+          parsed.longPrompt && !parsed.html,
+          parsed.rawControlChars && !parsed.html,
+          parsed.quitAtEofMode
+        );
       } catch (error) {
-        return `less: ${filename}: ${error.message}`;
+        const label = filename || '(unknown)';
+        return {
+          stdout: '',
+          stderr: `less: ${label}: ${error.message}`,
+          exitCode: 1
+        };
       }
     },
     'view file contents with paging and search',

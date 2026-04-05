@@ -211,21 +211,15 @@ class ProcessManager {
       currentDirectory: process.cwd,
       stdin,
       hasStdin: stdin.length > 0,
+      stdinSupplied: stdin.length > 0,
       syscall: (name, ...args) => this.kernel.syscall(name, ...args),
       // Add other necessary terminal methods
-      resolvePath: (path) => {
-        if (path.startsWith('/')) return path;
-        return process.cwd === '/' ? `/${path}` : `${process.cwd}/${path}`;
-      }
+      resolvePath: (path) => ShellUtils.resolveVirtualPath(path, process.cwd)
     };
 
     const output = await commandHandler(mockTerminal, args);
-
-    return {
-      stdout: output || '',
-      stderr: '',
-      exitCode: 0
-    };
+    const n = ShellUtils.normalizeHandlerResult(output);
+    return ShellUtils.normalizeCommandResult(n.stdout, n.stderr, n.exitCode);
   }
 
   // Send signal to process

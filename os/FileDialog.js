@@ -7,6 +7,16 @@ import { Config } from './config.js';
 import { Icons } from './Icons.js';
 
 export class FileDialog {
+  /** @param {unknown} s */
+  static _escapeHtmlAttr(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+
+  /** @param {unknown} s */
+  static _escapeHtmlText(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  }
+
   constructor(heymingOS) {
     this.os = heymingOS;
     this.fs = null;
@@ -86,7 +96,12 @@ export class FileDialog {
     // Generate sidebar items from config
     const quickAccess = this.cfg.getQuickAccess().slice(0, 4); // Home, Desktop, Documents, Downloads
     const sidebarHtml = quickAccess
-      .map((item) => `<div class="sidebar-item" data-path="${item.path}">${item.name}</div>`)
+      .map(
+        (item) =>
+          `<div class="sidebar-item" data-path="${FileDialog._escapeHtmlAttr(
+            item.path
+          )}">${FileDialog._escapeHtmlText(item.name)}</div>`
+      )
       .join('\n          ');
 
     const overlay = document.createElement('div');
@@ -230,10 +245,15 @@ export class FileDialog {
         .map((item) => {
           const name = this.fs.getFileName(item.path);
           const icon = item.type === 'directory' ? '📁' : this._getFileIcon(name);
+          const pathA = FileDialog._escapeHtmlAttr(item.path);
+          const typeA = FileDialog._escapeHtmlAttr(item.type);
+          const nameA = FileDialog._escapeHtmlAttr(name);
+          const nameT = FileDialog._escapeHtmlText(name);
+          const iconT = FileDialog._escapeHtmlText(icon);
           return `
-            <div class="file-dialog-item" data-path="${item.path}" data-type="${item.type}" data-name="${name}">
-              <span class="icon">${icon}</span>
-              <span class="name">${name}</span>
+            <div class="file-dialog-item" data-path="${pathA}" data-type="${typeA}" data-name="${nameA}">
+              <span class="icon">${iconT}</span>
+              <span class="name">${nameT}</span>
             </div>
           `;
         })
@@ -245,7 +265,9 @@ export class FileDialog {
         item.addEventListener('dblclick', () => this._handleItemDblClick(item));
       });
     } catch (error) {
-      list.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+      list.innerHTML = `<div class="error">Error: ${FileDialog._escapeHtmlText(
+        error?.message || error
+      )}</div>`;
     }
   }
 

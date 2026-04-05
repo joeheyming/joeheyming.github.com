@@ -17,15 +17,22 @@ export class Clock {
     this.element = document.getElementById('taskbar-clock');
     if (!this.element) return;
 
-    // Toggle seconds on click
-    this.element.addEventListener('click', () => {
-      this.showSeconds = !this.showSeconds;
-      this.update();
+    this.element.addEventListener('click', () => this.toggleSeconds());
+    this.element.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.toggleSeconds();
+      }
     });
 
     // Update immediately and then every second
     this.update();
     this.intervalId = setInterval(() => this.update(), 1000);
+  }
+
+  toggleSeconds() {
+    this.showSeconds = !this.showSeconds;
+    this.update();
   }
 
   /**
@@ -47,6 +54,8 @@ export class Clock {
 
     const timeStr = now.toLocaleTimeString(undefined, options);
     this.element.textContent = timeStr;
+    this.element.dateTime = now.toISOString();
+    this.element.setAttribute('aria-pressed', this.showSeconds ? 'true' : 'false');
     this.element.title = now.toLocaleDateString(undefined, {
       weekday: 'long',
       year: 'numeric',

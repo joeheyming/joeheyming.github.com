@@ -15,6 +15,7 @@ export class Launcher {
 
     // DOM elements - populated in init()
     this.menu = null;
+    this.launcherButton = null;
     this.container = null;
     this.filterInput = null;
     this.noResultsEl = null;
@@ -25,9 +26,12 @@ export class Launcher {
    */
   init() {
     this.menu = document.getElementById('app-launcher-menu');
+    this.launcherButton = document.getElementById('app-launcher');
     this.container = document.getElementById('launcher-apps-container');
     this.filterInput = document.getElementById('launcher-filter');
     this.noResultsEl = document.getElementById('launcher-no-results');
+
+    this.menu?.setAttribute('aria-hidden', 'true');
 
     this._waitForAppModule();
     this._initFilter();
@@ -52,7 +56,9 @@ export class Launcher {
 
     this.menu.classList.remove('hidden', 'hide');
     this.menu.classList.add('show');
+    this.menu.setAttribute('aria-hidden', 'false');
     this.visible = true;
+    this.launcherButton?.setAttribute('aria-expanded', 'true');
 
     // Clear and focus filter
     if (this.filter) {
@@ -71,7 +77,9 @@ export class Launcher {
 
     this.menu.classList.remove('show');
     this.menu.classList.add('hide');
+    this.menu.setAttribute('aria-hidden', 'true');
     this.visible = false;
+    this.launcherButton?.setAttribute('aria-expanded', 'false');
 
     setTimeout(() => {
       if (!this.visible) {

@@ -46,8 +46,32 @@ class ImageViewer {
     this.naturalWidth = 0;
     this.naturalHeight = 0;
     this.isInOS = window.parent !== window;
+    /** @type {string|null} blob: URL from virtual FS binary payload */
+    this._imageBlobUrl = null;
 
     this.init();
+  }
+
+  _revokeImageBlobUrl() {
+    if (this._imageBlobUrl) {
+      URL.revokeObjectURL(this._imageBlobUrl);
+      this._imageBlobUrl = null;
+    }
+  }
+
+  mimeFromFileName(fileName) {
+    const ext = fileName?.split('.').pop()?.toLowerCase();
+    const map = {
+      png: 'image/png',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      svg: 'image/svg+xml',
+      bmp: 'image/bmp',
+      ico: 'image/x-icon'
+    };
+    return map[ext || ''] || 'application/octet-stream';
   }
 
   init() {
@@ -415,13 +439,21 @@ class ImageViewer {
     this.imageWrapper.classList.remove('hidden');
     this.imageWrapper.classList.add('loading');
 
+    this._revokeImageBlobUrl();
+
     // Check for transparency (PNG, GIF, WebP, SVG)
     const hasTransparency = /\.(png|gif|webp|svg)$/i.test(fileName);
     this.imageWrapper.classList.toggle('show-transparency', hasTransparency);
 
     // Determine image source
-    let imageSrc = content;
-    if (typeof content === 'string') {
+    let imageSrc;
+    if (content instanceof ArrayBuffer || ArrayBuffer.isView(content)) {
+      const mime = this.mimeFromFileName(fileName);
+      const blob = new Blob([content], { type: mime });
+      imageSrc = URL.createObjectURL(blob);
+      this._imageBlobUrl = imageSrc;
+    } else if (typeof content === 'string') {
+      imageSrc = content;
       if (
         content.startsWith('data:') ||
         content.startsWith('blob:') ||
@@ -436,6 +468,8 @@ class ImageViewer {
         // Assume raw image data - shouldn't happen often but handle gracefully
         imageSrc = content;
       }
+    } else {
+      imageSrc = content;
     }
 
     this.image.onload = () => {
@@ -481,6 +515,7 @@ class ImageViewer {
   }
 
   reset() {
+    this._revokeImageBlobUrl();
     this.image.src = '';
     this.image.style.width = '';
     this.image.style.height = '';

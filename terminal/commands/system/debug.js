@@ -248,9 +248,10 @@ Examples:
       case 'disable':
         localStorage.setItem('debug_enabled', 'false');
         return '❌ Console debugging disabled';
-      case 'status':
+      case 'status': {
         const enabled = localStorage.getItem('debug_enabled') === 'true';
         return `Console debugging is ${enabled ? '✅ enabled' : '❌ disabled'}`;
+      }
       default:
         return `Usage: debug console [enable|disable|status]`;
     }

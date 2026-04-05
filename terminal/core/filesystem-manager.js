@@ -45,8 +45,7 @@ class FileSystemManager {
     if (!window.FileSystemDB) {
       throw new Error('FileSystemDB not loaded. Make sure filesystem-db.js is included.');
     }
-    this.fileSystemDB = new window.FileSystemDB();
-    await this.fileSystemDB.initialize();
+    this.fileSystemDB = await window.FileSystemDB.getInstance();
 
     // Create default mount points
     await this.setupMountPoints();
@@ -118,31 +117,11 @@ class FileSystemManager {
     return { mount, relativePath, absolutePath: path };
   }
 
-  // Normalize path (resolve .., ., etc.)
+  // Normalize path (resolve .., ., etc.) — same semantics as Terminal.resolvePath / FileSystemDB keys
   normalizePath(path) {
-    if (!path.startsWith('/')) {
-      // Relative path - prepend current working directory
-      const currentProcess = this.kernel.processManager.currentProcess;
-      const cwd = currentProcess ? currentProcess.cwd : '/';
-      path = cwd + '/' + path;
-    }
-
-    const parts = path.split('/').filter((part) => part !== '');
-    const normalized = [];
-
-    for (const part of parts) {
-      if (part === '.') {
-        continue;
-      } else if (part === '..') {
-        if (normalized.length > 0) {
-          normalized.pop();
-        }
-      } else {
-        normalized.push(part);
-      }
-    }
-
-    return '/' + normalized.join('/');
+    const currentProcess = this.kernel.processManager.currentProcess;
+    const cwd = currentProcess ? currentProcess.cwd : '/';
+    return ShellUtils.resolveVirtualPath(path, cwd);
   }
 
   // Open a file

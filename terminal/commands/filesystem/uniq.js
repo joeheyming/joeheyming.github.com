@@ -1,66 +1,135 @@
-// uniq command - report or omit repeated lines
+// uniq — report or omit repeated lines (GNU-style subset)
 (function () {
   'use strict';
+
+  /** @param {string} text */
+  function splitLinesPreservingBlanks(text) {
+    const t = String(text);
+    if (t === '') return [];
+    const lines = t.split('\n');
+    if (t.endsWith('\n')) {
+      lines.pop();
+    }
+    return lines;
+  }
+
+  /**
+   * @param {string[]} lines
+   * @param {{ count: boolean, repeatedOnly: boolean, uniqueOnly: boolean }} opts
+   */
+  function uniqLines(lines, opts) {
+    let { count, repeatedOnly, uniqueOnly } = opts;
+    if (repeatedOnly && uniqueOnly) {
+      uniqueOnly = false;
+    }
+
+    const groups = [];
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      let j = i + 1;
+      while (j < lines.length && lines[j] === line) j++;
+      groups.push({ line, cnt: j - i });
+      i = j;
+    }
+
+    const out = [];
+    for (const g of groups) {
+      if (repeatedOnly && g.cnt < 2) continue;
+      if (uniqueOnly && g.cnt !== 1) continue;
+      if (count) {
+        out.push(`${String(g.cnt).padStart(7)} ${g.line}`);
+      } else {
+        out.push(g.line);
+      }
+    }
+    return out;
+  }
+
+  /**
+   * @param {Error} error
+   * @param {string} arg
+   */
+  function uniqStderrFromError(error, arg) {
+    const msg = error && error.message ? String(error.message) : String(error);
+    if (msg.startsWith('Parent directory does not exist:')) {
+      return {
+        stderr: `uniq: ${arg}: No such file or directory`,
+        exitCode: 1
+      };
+    }
+    return { stderr: `uniq: ${arg}: ${msg}`, exitCode: 1 };
+  }
 
   registerCommand(
     'uniq',
     async (terminal, args) => {
+      const parsed = ShellUtils.parseUniqArgv(args);
+      if (!parsed.ok) {
+        return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
+      }
+      if (parsed.help) {
+        return { stdout: ShellUtils.UNIQ_HELP.trim() + '\n', stderr: '', exitCode: 0 };
+      }
+
+      const { count, repeatedOnly, uniqueOnly, operands } = parsed;
+
       let input = '';
-      let files = [];
-      const flags = args.filter((arg) => arg.startsWith('-'));
+      let inputEndsWithNewline = true;
 
-      const countDuplicates = flags.includes('-c');
+      const op0 = operands[0];
+      const op1 = operands[1];
 
-      // Parse file arguments
-      files = args.filter((arg) => !arg.startsWith('-'));
-
-      // Get input
-      if (terminal.hasStdin && terminal.stdin) {
-        input = terminal.stdin;
-      } else if (files.length > 0) {
-        const filePath = terminal.resolvePath(files[0]);
-        const file = await terminal.getFileSystemItem(filePath);
-        if (!file || file.type !== 'file') {
-          return `uniq: cannot read: ${files[0]}: No such file or directory`;
+      if (operands.length === 0) {
+        if (terminal.stdinSupplied !== true && !(terminal.hasStdin && terminal.stdin != null)) {
+          return { stdout: '', stderr: 'uniq: missing operand\n', exitCode: 1 };
         }
-        input = file.content || '';
+        input = terminal.stdin != null ? String(terminal.stdin) : '';
+        inputEndsWithNewline = input === '' || input.endsWith('\n');
+      } else if (op0 === '-') {
+        if (terminal.stdinSupplied !== true && !(terminal.hasStdin && terminal.stdin != null)) {
+          return { stdout: '', stderr: 'uniq: missing operand\n', exitCode: 1 };
+        }
+        input = terminal.stdin != null ? String(terminal.stdin) : '';
+        inputEndsWithNewline = input === '' || input.endsWith('\n');
       } else {
-        return 'uniq: no input provided';
-      }
-
-      const lines = input.split('\n');
-      const result = [];
-      let currentLine = '';
-      let count = 0;
-
-      for (const line of lines) {
-        if (line === currentLine) {
-          count++;
-        } else {
-          if (currentLine !== '') {
-            if (countDuplicates) {
-              result.push(`${count.toString().padStart(7)} ${currentLine}`);
-            } else {
-              result.push(currentLine);
-            }
-          }
-          currentLine = line;
-          count = 1;
+        const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op0, 'uniq');
+        if (!res.ok) {
+          return { stdout: '', stderr: res.stderr.trimEnd() + '\n', exitCode: 1 };
         }
+        const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+        input = d.isBinary ? '' : d.text;
+        inputEndsWithNewline = input === '' || input.endsWith('\n');
       }
 
-      // Add the last line
-      if (currentLine !== '') {
-        if (countDuplicates) {
-          result.push(`${count.toString().padStart(7)} ${currentLine}`);
-        } else {
-          result.push(currentLine);
+      const lines = splitLinesPreservingBlanks(input);
+      const outLines = uniqLines(lines, { count, repeatedOnly, uniqueOnly });
+      let textOut = outLines.join('\n');
+      if (outLines.length > 0 && inputEndsWithNewline) {
+        textOut += '\n';
+      }
+
+      if (op1 !== undefined) {
+        const outPath = terminal.resolvePath(op1);
+        const existing = await terminal.getFileSystemItem(outPath);
+        if (existing && existing.type === 'directory') {
+          return { stdout: '', stderr: `uniq: ${op1}: Is a directory\n`, exitCode: 1 };
         }
+        if (existing && existing.type === 'symlink') {
+          return { stdout: '', stderr: `uniq: ${op1}: Is a symbolic link\n`, exitCode: 1 };
+        }
+        try {
+          await terminal.fileSystemDB.createFile(outPath, textOut, true);
+        } catch (error) {
+          const { stderr, exitCode } = uniqStderrFromError(error, op1);
+          return { stdout: '', stderr: stderr + '\n', exitCode };
+        }
+        return { stdout: '', stderr: '', exitCode: 0 };
       }
 
-      return result.join('\n');
+      return { stdout: textOut, stderr: '', exitCode: 0 };
     },
-    'report or omit repeated lines (-c show counts)',
+    'report or omit repeated lines (-c -d -u; INPUT [OUTPUT]; symlink input; --help)',
     'File System'
   );
 })();

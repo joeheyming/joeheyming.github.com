@@ -3,7 +3,9 @@
     "lint": "eslint app.js generate-previews.js share.js google-db todo",
     "lint:fix": "eslint --fix .",
     "format:check": "prettier --check app.js generate-previews.js share.js google-db todo",
-    "format:fix": "prettier --write ."
+    "format:fix": "prettier --write .",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "Private": true,
   "dependencies": {
@@ -11,6 +13,8 @@
     "playwright": "^1.55.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "http-server": "^14.1.1",
     "eslint": "^8.20.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier": "^4.2.1",

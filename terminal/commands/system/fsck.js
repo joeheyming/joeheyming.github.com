@@ -78,7 +78,7 @@ Examples:
 
           // Reset current directory
           if (terminal.currentDirectory) {
-            terminal.currentDirectory = '/';
+            terminal.updatePWD('/');
             output += '✅ Reset current directory to /\n';
           }
 

@@ -59,6 +59,32 @@ class RichNotepad {
     this.setupMessageListener();
   }
 
+  /**
+   * OS may send string (legacy `content`) or ArrayBuffer from FileSystemDB.getContentForApp (git/binary files).
+   */
+  normalizeOpenFileContent(content) {
+    if (content == null) {
+      return '';
+    }
+    if (typeof content === 'string') {
+      return content;
+    }
+    if (content instanceof ArrayBuffer) {
+      if (content.byteLength === 0) {
+        return '';
+      }
+      return new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(content));
+    }
+    if (ArrayBuffer.isView(content)) {
+      const u8 = new Uint8Array(content.buffer, content.byteOffset, content.byteLength);
+      if (u8.byteLength === 0) {
+        return '';
+      }
+      return new TextDecoder('utf-8', { fatal: false }).decode(u8);
+    }
+    return String(content);
+  }
+
   setupMessageListener() {
     window.addEventListener('message', (e) => {
       const data = e.data;
@@ -84,18 +110,20 @@ class RichNotepad {
       document.title = `📝 ${fileName} - Notepad`;
     }
 
+    const text = this.normalizeOpenFileContent(content);
+
     // Determine how to load based on file extension
     const ext = (fileName || '').split('.').pop().toLowerCase();
 
     if (ext === 'md' || ext === 'markdown') {
       // Convert markdown to HTML
-      const htmlContent = this.markdownToHtml(content);
+      const htmlContent = this.markdownToHtml(text);
       this.quill.root.innerHTML = htmlContent;
     } else if (ext === 'html') {
-      this.quill.root.innerHTML = content;
+      this.quill.root.innerHTML = text;
     } else {
       // Plain text - preserve line breaks
-      const lines = (content || '').split('\n');
+      const lines = text.split('\n');
       const htmlContent = lines
         .map((line) => (line ? `<p>${this.escapeHtml(line)}</p>` : '<p><br></p>'))
         .join('');

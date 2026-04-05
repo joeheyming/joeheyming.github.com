@@ -1,29 +1,65 @@
-// which command - locate a command
+// which command — locate a command (see ShellUtils.parseWhichArgv)
 (function () {
   'use strict';
 
   registerCommand(
     'which',
     (terminal, args) => {
-      if (args.length === 0) {
-        return 'which: usage: which command';
+      const parsed = ShellUtils.parseWhichArgv(args);
+      if (!parsed.ok) {
+        return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
+      }
+      if (parsed.help) {
+        return { stdout: ShellUtils.WHICH_HELP, stderr: '', exitCode: 0 };
       }
 
-      const cmdName = args[0];
+      const pathDisplay =
+        terminal.env && terminal.env.PATH != null && terminal.env.PATH !== ''
+          ? terminal.env.PATH
+          : '(none)';
 
-      // Check if it's an alias
-      if (terminal.aliases[cmdName]) {
-        return `${cmdName}: aliased to ${terminal.aliases[cmdName]}`;
+      const stdoutLines = [];
+      const stderrLines = [];
+      const aliases = terminal.aliases || {};
+
+      for (const cmdName of parsed.names) {
+        const hasAlias = Object.prototype.hasOwnProperty.call(aliases, cmdName);
+        const hasReg =
+          typeof window !== 'undefined' &&
+          window.commandRegistry &&
+          typeof window.commandRegistry.has === 'function' &&
+          window.commandRegistry.has(cmdName);
+
+        const lines = [];
+        if (hasAlias) {
+          lines.push(`${cmdName}: aliased to ${aliases[cmdName]}`);
+        }
+        if (hasReg) {
+          lines.push(`/bin/${cmdName}`);
+        }
+
+        if (!parsed.showAll) {
+          if (hasAlias) {
+            stdoutLines.push(lines[0]);
+          } else if (hasReg) {
+            stdoutLines.push(lines[lines.length - 1]);
+          } else {
+            stderrLines.push(`which: no ${cmdName} in (${pathDisplay})`);
+          }
+        } else if (hasAlias || hasReg) {
+          stdoutLines.push(...lines);
+        } else {
+          stderrLines.push(`which: no ${cmdName} in (${pathDisplay})`);
+        }
       }
 
-      // Check if it's a built-in command
-      if (window.commandRegistry.has(cmdName)) {
-        return `/bin/${cmdName}`;
-      }
-
-      return `which: no ${cmdName} in (${terminal.env.PATH})`;
+      return {
+        stdout: stdoutLines.join('\n'),
+        stderr: stderrLines.join('\n'),
+        exitCode: stderrLines.length > 0 ? 1 : 0
+      };
     },
-    'locate a command',
+    'locate a command (-a, --help, --)',
     'System'
   );
 })();

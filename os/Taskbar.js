@@ -23,8 +23,11 @@ export class Taskbar {
     if (!this.container) return;
 
     const button = document.createElement('button');
+    button.type = 'button';
     button.className = 'taskbar-app active';
-    button.setAttribute('data-window-id', windowId);
+    button.setAttribute('data-window-id', String(windowId));
+    button.setAttribute('aria-pressed', 'true');
+    button.setAttribute('aria-label', title);
     button.innerHTML = `${this.windowManager.getAppIcon(title)} ${title}`;
 
     button.addEventListener('click', () => {
@@ -64,12 +67,22 @@ export class Taskbar {
 
     const buttons = this.container.querySelectorAll('.taskbar-app');
     buttons.forEach((button) => {
-      const windowId = parseInt(button.getAttribute('data-window-id'));
+      const windowId = parseInt(button.getAttribute('data-window-id'), 10);
       const win = this.windowManager.getWindow(windowId);
+      const title = win?.title || button.textContent?.trim() || 'Window';
 
       button.classList.remove('active');
-      if (win && this.windowManager.activeWindow?.id === windowId && !win.minimized) {
+      const active = Boolean(
+        win && this.windowManager.activeWindow?.id === windowId && !win.minimized
+      );
+      if (active) {
         button.classList.add('active');
+      }
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      if (win?.minimized) {
+        button.setAttribute('aria-label', `${title} (minimized)`);
+      } else {
+        button.setAttribute('aria-label', title);
       }
     });
   }

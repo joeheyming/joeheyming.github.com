@@ -1,84 +1,69 @@
-// type command - display information about command type
+// type command — bash-like command description (no source dump; see ShellUtils.parseTypeArgv)
 (function () {
   'use strict';
 
+  /** @param {{ aliases?: Record<string, string> }} terminal */
+  function describeCommand(terminal, cmdName, showAll) {
+    const lines = [];
+    const aliases = terminal.aliases || {};
+    const hasAlias = Object.prototype.hasOwnProperty.call(aliases, cmdName);
+    const hasReg =
+      typeof window !== 'undefined' &&
+      window.commandRegistry &&
+      typeof window.commandRegistry.has === 'function' &&
+      window.commandRegistry.has(cmdName);
+
+    if (hasAlias) {
+      const body = ShellUtils.escapeTypeAliasBody(aliases[cmdName]);
+      lines.push(`${cmdName} is aliased to \`${body}\``);
+    }
+    if (hasReg) {
+      lines.push(`${cmdName} is /bin/${cmdName}`);
+    }
+
+    if (!showAll) {
+      if (hasAlias) {
+        return { lines: [lines[0]], found: true };
+      }
+      if (hasReg) {
+        return { lines: [lines[lines.length - 1]], found: true };
+      }
+      return { lines: [], found: false };
+    }
+
+    return { lines, found: lines.length > 0 };
+  }
+
   registerCommand(
     'type',
-    async (terminal, args) => {
-      if (args.length === 0) {
-        return 'type: usage: type [-a] name [name ...]';
+    (terminal, args) => {
+      const parsed = ShellUtils.parseTypeArgv(args);
+      if (!parsed.ok) {
+        return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
+      }
+      if (parsed.help) {
+        return { stdout: ShellUtils.TYPE_HELP, stderr: '', exitCode: 0 };
       }
 
-      const showAll = args.includes('-a');
-      const commands = args.filter((arg) => !arg.startsWith('-'));
+      const stdoutLines = [];
+      const stderrLines = [];
 
-      if (commands.length === 0) {
-        return 'type: usage: type [-a] name [name ...]';
-      }
-      s;
-      const results = [];
-
-      for (const cmdName of commands) {
-        const cmdResults = [];
-
-        // Check if it's an alias first
-        if (terminal.aliases[cmdName]) {
-          cmdResults.push(`${cmdName} is aliased to \`${terminal.aliases[cmdName]}\``);
-          if (!showAll) {
-            results.push(cmdResults[0]);
-            continue;
-          }
-        }
-
-        // Check if it's a built-in command
-        if (window.commandRegistry.has(cmdName)) {
-          // Try to get the command source code
-          try {
-            await window.commandRegistry.get(cmdName);
-            const scriptPath = window.commandRegistry.commandMap[cmdName];
-
-            if (scriptPath) {
-              // Fetch and display the source code
-              try {
-                const response = await fetch(scriptPath);
-                if (response.ok) {
-                  const sourceCode = await response.text();
-                  cmdResults.push(`${cmdName} is a shell builtin:\n\n${sourceCode}`);
-                } else {
-                  cmdResults.push(`${cmdName} is a shell builtin (source not available)`);
-                }
-              } catch (fetchError) {
-                cmdResults.push(`${cmdName} is a shell builtin (source not available)`);
-              }
-            } else {
-              cmdResults.push(`${cmdName} is a shell builtin (source not available)`);
-            }
-          } catch (error) {
-            cmdResults.push(`${cmdName} is a shell builtin (source not available)`);
-          }
-
-          if (!showAll && cmdResults.length > 0) {
-            results.push(cmdResults[cmdResults.length - 1]);
-            continue;
-          }
-        }
-
-        // If we haven't found anything
-        if (cmdResults.length === 0) {
-          cmdResults.push(`type: ${cmdName}: not found`);
-        }
-
-        // Add all results for this command
-        if (showAll && cmdResults.length > 1) {
-          results.push(...cmdResults);
+      for (const cmdName of parsed.names) {
+        const { lines, found } = describeCommand(terminal, cmdName, parsed.showAll);
+        if (!found) {
+          stderrLines.push(`type: ${cmdName}: not found`);
         } else {
-          results.push(cmdResults[0]);
+          stdoutLines.push(...lines);
         }
       }
 
-      return results.join('\n');
+      return {
+        stdout: stdoutLines.join('\n'),
+        stderr: stderrLines.join('\n'),
+        exitCode: stderrLines.length > 0 ? 1 : 0
+      };
     },
-    'display information about command type (-a to show all locations)',
+    'display how a name would be interpreted as a command (-a, --help, --)',
     'System'
   );
 })();

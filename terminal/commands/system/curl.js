@@ -2,31 +2,7 @@
 (function () {
   'use strict';
 
-  registerCommand(
-    'curl',
-    async (terminal, args) => {
-      if (args.length === 0) {
-        return "curl: try 'curl --help' for more information";
-      }
-
-      // Parse arguments
-      let url = '';
-      let method = 'GET';
-      let headers = {};
-      let data = null;
-      let showHeaders = false;
-      let silent = false;
-      let followRedirects = true;
-      let maxRedirects = 5;
-      let timeout = 30000;
-      let verbose = false;
-      let useProxy = true; // Default to using proxy
-
-      for (let i = 0; i < args.length; i++) {
-        const arg = args[i];
-
-        if (arg === '--help' || arg === '-h') {
-          return `curl - transfer data from or to a server
+  const CURL_USAGE = `curl - transfer data from or to a server
 
 Usage: curl [options] <url>
 
@@ -48,6 +24,42 @@ Examples:
   curl --no-proxy https://example.com                          # Direct connection
   curl -X POST -H "Content-Type: application/json" -d '{"key":"value"}' https://httpbin.org/post
   curl -i -v https://httpbin.org/json                          # Include headers with verbose output`;
+
+  registerCommand(
+    'curl',
+    async (terminal, args) => {
+      if (args.length === 0) {
+        return {
+          stdout: '',
+          stderr: "curl: try 'curl --help' for more information",
+          exitCode: 2
+        };
+      }
+
+      /** @type {string[]} */
+      const stderrLines = [];
+      const logErr = (line) => {
+        stderrLines.push(line);
+      };
+
+      // Parse arguments
+      let url = '';
+      let method = 'GET';
+      const headers = {};
+      let data = null;
+      let showHeaders = false;
+      let silent = false;
+      let followRedirects = true;
+      let maxRedirects = 5;
+      let timeout = 30000;
+      let verbose = false;
+      let useProxy = true; // Default to using proxy
+
+      for (let i = 0; i < args.length; i++) {
+        const arg = args[i];
+
+        if (arg === '--help' || arg === '-h') {
+          return { stdout: CURL_USAGE, stderr: '', exitCode: 0 };
         }
 
         if (arg === '-X' || arg === '--request') {
@@ -70,9 +82,9 @@ Examples:
         } else if (arg === '-v' || arg === '--verbose') {
           verbose = true;
         } else if (arg === '--max-redirs') {
-          maxRedirects = parseInt(args[++i]) || 5;
+          maxRedirects = parseInt(args[++i], 10) || 5;
         } else if (arg === '--connect-timeout') {
-          timeout = (parseInt(args[++i]) || 30) * 1000;
+          timeout = (parseInt(args[++i], 10) || 30) * 1000;
         } else if (arg === '--no-proxy') {
           useProxy = false;
         } else if (!arg.startsWith('-')) {
@@ -81,26 +93,23 @@ Examples:
       }
 
       if (!url) {
-        return 'curl: no URL specified!';
+        return { stdout: '', stderr: 'curl: no URL specified!', exitCode: 2 };
       }
 
       // Handle different URL types
       if (url.startsWith('/')) {
-        // Absolute path - treat as local file or relative to current domain
         const currentDomain = window.location.origin;
         url = `${currentDomain}${url}`;
       } else if (url.startsWith('./') || (!url.includes('://') && !url.includes('.'))) {
-        // Relative path or simple name - treat as relative to current domain
         const currentDomain = window.location.origin;
-        const currentPath = window.location.pathname.replace(/\/[^\/]*$/, '/');
+        const currentPath = window.location.pathname.replace(/\/[^/]*$/, '/');
         url = `${currentDomain}${currentPath}${url.replace('./', '')}`;
       } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        // Domain name without protocol
         url = `https://${url}`;
       }
 
-      // Build status messages but don't output them yet (for redirection compatibility)
-      let statusMessages = [];
+      /** @type {string[]} */
+      const statusMessages = [];
 
       if (!silent) {
         statusMessages.push(`* Trying ${url}...`);
@@ -108,6 +117,7 @@ Examples:
 
       try {
         const startTime = performance.now();
+        /** @type {string} */
         let responseText;
         let responseTime;
 
@@ -116,10 +126,10 @@ Examples:
           if (!silent) statusMessages.push('* Using smart CORS proxy service...');
 
           if (verbose) {
-            terminal.addOutput(`> ${method} ${new URL(url).pathname} HTTP/1.1`);
-            terminal.addOutput(`> Host: ${new URL(url).host}`);
+            logErr(`> ${method} ${new URL(url).pathname} HTTP/1.1`);
+            logErr(`> Host: ${new URL(url).host}`);
             Object.entries(headers).forEach(([key, value]) => {
-              terminal.addOutput(`> ${key}: ${value}`);
+              logErr(`> ${key}: ${value}`);
             });
           }
 
@@ -127,7 +137,8 @@ Examples:
             const proxyOptions = {
               headers,
               timeout: timeout,
-              maxRetries: 2
+              maxRetries: 2,
+              signal: terminal.runAbortSignal
             };
 
             responseText = await window.proxyService.fetchWithProxy(url, proxyOptions);
@@ -140,12 +151,11 @@ Examples:
             }
 
             if (verbose || showHeaders) {
-              terminal.addOutput(`< HTTP/1.1 200 OK (via proxy)`);
-              terminal.addOutput(`< content-type: text/plain`);
-              terminal.addOutput(`< `);
+              logErr('< HTTP/1.1 200 OK (via proxy)');
+              logErr('< content-type: text/plain');
+              logErr('< ');
             }
 
-            // Try to parse as JSON if it looks like JSON
             try {
               if (responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) {
                 const json = JSON.parse(responseText);
@@ -155,16 +165,18 @@ Examples:
               // Keep as plain text if not valid JSON
             }
           } catch (proxyError) {
+            if (terminal.isAbortLikeError(proxyError)) {
+              throw proxyError;
+            }
             if (!silent) {
               statusMessages.push(`* Proxy failed: ${proxyError.message}`);
               statusMessages.push('* Falling back to direct connection...');
             }
 
-            // Fall back to direct fetch
             const fetchOptions = {
               method,
               headers,
-              signal: AbortSignal.timeout(timeout)
+              signal: ShellUtils.combinedFetchSignal(timeout, terminal.runAbortSignal)
             };
 
             const response = await fetch(url, fetchOptions);
@@ -177,11 +189,11 @@ Examples:
             }
 
             if (verbose || showHeaders) {
-              terminal.addOutput(`< HTTP/1.1 ${response.status} ${response.statusText}`);
+              logErr(`< HTTP/1.1 ${response.status} ${response.statusText}`);
               response.headers.forEach((value, key) => {
-                terminal.addOutput(`< ${key}: ${value}`);
+                logErr(`< ${key}: ${value}`);
               });
-              terminal.addOutput(`< `);
+              logErr('< ');
             }
 
             const contentType = response.headers.get('content-type') || '';
@@ -197,28 +209,26 @@ Examples:
             }
 
             if (!silent && !response.ok) {
-              terminal.addOutput(`curl: (${response.status}) HTTP error`);
+              logErr(`curl: (${response.status}) HTTP error`);
             }
           }
         } else {
-          // Use regular fetch for non-GET requests or when proxy disabled
           if (useProxy && method !== 'GET') {
-            if (!silent)
+            if (!silent) {
               statusMessages.push(
                 '* Note: Proxy only supported for GET requests, using direct connection'
               );
+            }
           } else if (!useProxy) {
             if (!silent) statusMessages.push('* Using direct connection (proxy disabled)');
           }
 
-          // Setup fetch options
           const fetchOptions = {
             method,
             headers,
-            signal: AbortSignal.timeout(timeout)
+            signal: ShellUtils.combinedFetchSignal(timeout, terminal.runAbortSignal)
           };
 
-          // Add body for POST/PUT/PATCH requests
           if (data && ['POST', 'PUT', 'PATCH'].includes(method)) {
             fetchOptions.body = data;
             if (!headers['Content-Type']) {
@@ -227,14 +237,14 @@ Examples:
           }
 
           if (verbose) {
-            terminal.addOutput(`> ${method} ${new URL(url).pathname} HTTP/1.1`);
-            terminal.addOutput(`> Host: ${new URL(url).host}`);
+            logErr(`> ${method} ${new URL(url).pathname} HTTP/1.1`);
+            logErr(`> Host: ${new URL(url).host}`);
             Object.entries(headers).forEach(([key, value]) => {
-              terminal.addOutput(`> ${key}: ${value}`);
+              logErr(`> ${key}: ${value}`);
             });
             if (data) {
-              terminal.addOutput(`> `);
-              terminal.addOutput(`${data}`);
+              logErr('> ');
+              logErr(`${data}`);
             }
           }
 
@@ -248,14 +258,13 @@ Examples:
           }
 
           if (verbose || showHeaders) {
-            terminal.addOutput(`< HTTP/1.1 ${response.status} ${response.statusText}`);
+            logErr(`< HTTP/1.1 ${response.status} ${response.statusText}`);
             response.headers.forEach((value, key) => {
-              terminal.addOutput(`< ${key}: ${value}`);
+              logErr(`< ${key}: ${value}`);
             });
-            terminal.addOutput(`< `);
+            logErr('< ');
           }
 
-          // Get response body
           const contentType = response.headers.get('content-type') || '';
           try {
             if (contentType.includes('application/json')) {
@@ -269,38 +278,56 @@ Examples:
           }
 
           if (!silent && !response.ok) {
-            terminal.addOutput(`curl: (${response.status}) HTTP error`);
+            logErr(`curl: (${response.status}) HTTP error`);
           }
         }
 
-        // Only show status messages if output is not being redirected
-        // In a real shell, these would go to stderr and not be captured by > redirection
         const isRedirected = terminal.redirections && terminal.redirections.stdout;
         if (!silent && statusMessages.length > 0) {
           if (!isRedirected) {
-            statusMessages.forEach((msg) => terminal.addOutput(msg));
+            statusMessages.forEach((msg) => logErr(msg));
           }
         }
 
-        // If redirected, return full response; if not redirected, truncate for display
+        let out = responseText != null ? String(responseText) : '';
         if (isRedirected) {
-          // Full response goes to file
-          return responseText;
-        } else {
-          // Truncate for terminal display only
-          if (responseText.length > 10000) {
-            responseText = responseText.substring(0, 10000) + '\n... (response truncated)';
-          }
-          return responseText;
+          return {
+            stdout: out,
+            stderr: stderrLines.join('\n'),
+            exitCode: 0
+          };
         }
+        if (out.length > 10000) {
+          out = out.substring(0, 10000) + '\n... (response truncated)';
+        }
+        return {
+          stdout: out,
+          stderr: stderrLines.join('\n'),
+          exitCode: 0
+        };
       } catch (error) {
-        if (error.name === 'TimeoutError') {
-          return `curl: (28) Connection timed out after ${timeout / 1000} seconds`;
-        } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
-          return `curl: (6) Could not resolve host: ${new URL(url).host}`;
-        } else {
-          return `curl: (7) Failed to connect: ${error.message}`;
+        if (terminal.isAbortLikeError(error)) {
+          throw error;
         }
+        if (error.name === 'TimeoutError') {
+          return {
+            stdout: '',
+            stderr: `curl: (28) Connection timed out after ${timeout / 1000} seconds`,
+            exitCode: 28
+          };
+        }
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+          return {
+            stdout: '',
+            stderr: `curl: (6) Could not resolve host: ${new URL(url).host}`,
+            exitCode: 6
+          };
+        }
+        return {
+          stdout: '',
+          stderr: `curl: (7) Failed to connect: ${error.message}`,
+          exitCode: 7
+        };
       }
     },
     'transfer data from or to a server (curl [options] <url>)',

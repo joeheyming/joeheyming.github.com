@@ -1,13 +1,11 @@
-// top command - display running processes (interactive)
+// top command - display running processes (interactive; simulated metrics)
 (function () {
   'use strict';
 
   function generateTopOutput(terminal) {
     try {
-      // Get processes from OS kernel if available
       const processes = terminal.os?.kernel?.processManager?.getAllProcesses() || [];
 
-      // Generate system info
       const uptime = Math.floor(Date.now() / 1000 - (window.startTime || Date.now() / 1000));
       const hours = Math.floor(uptime / 3600);
       const minutes = Math.floor((uptime % 3600) / 60);
@@ -21,11 +19,9 @@
         2
       )}, ${(Math.random() * 2).toFixed(2)}\n\n`;
 
-      // Header
       output += `  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND\n`;
 
       if (processes.length === 0) {
-        // Fallback to simulated processes
         const fakeProcesses = [
           {
             pid: 1,
@@ -77,7 +73,6 @@
             .padStart(4)} ${proc.time.padStart(9)} ${proc.command}\n`;
         });
       } else {
-        // Real processes from OS
         processes.forEach((proc) => {
           const cpu = (Math.random() * 5).toFixed(1);
           const mem = (Math.random() * 10).toFixed(1);
@@ -100,101 +95,93 @@
         });
       }
 
-      output += `\n🔄 Refreshing every 3 seconds... Press 'q' to quit, 'r' to refresh now`;
-
-      return output;
+      return { ok: true, text: output };
     } catch (error) {
-      return `top: error accessing process information: ${error.message}`;
+      return { ok: false, message: `top: error accessing process information: ${error.message}` };
     }
   }
 
   registerCommand(
     'top',
     (terminal, args) => {
-      // Set current process info
+      if (args.includes('-h') || args.includes('--help')) {
+        return {
+          stdout:
+            'Usage: top\n\nInteractive process view (simulated CPU/memory; browser — not procfs).\n',
+          stderr: '',
+          exitCode: 0
+        };
+      }
+
+      const firstFrame = generateTopOutput(terminal);
+      if (!firstFrame.ok) {
+        return {
+          stdout: '',
+          stderr: `${firstFrame.message}\n`,
+          exitCode: 1
+        };
+      }
+
+      function topModalHtml(terminalInstance, bodyText) {
+        const safe = terminalInstance.escapeHtml(bodyText);
+        return `<div class="top-modal-inner" role="dialog" aria-modal="true" aria-labelledby="top-modal-title" aria-describedby="top-modal-subtitle" tabindex="-1">
+          <header class="top-modal-header">
+            <div class="top-modal-title" id="top-modal-title">top — process monitor</div>
+            <div class="top-modal-subtitle" id="top-modal-subtitle">jsh · simulated CPU / memory · not procfs</div>
+          </header>
+          <div class="top-content" role="region" aria-label="Simulated process list">
+            <pre class="top-output">${safe}</pre>
+          </div>
+          <p class="top-modal-refresh-hint" aria-live="polite">Auto-refresh every 3 seconds</p>
+          <footer class="top-modal-footer" aria-label="Keyboard shortcuts">
+            <kbd>q</kbd> quit
+            <span class="top-modal-footer-sep" aria-hidden="true">·</span>
+            <kbd>Esc</kbd> quit
+            <span class="top-modal-footer-sep" aria-hidden="true">·</span>
+            <kbd>r</kbd> refresh
+            <span class="top-modal-footer-sep" aria-hidden="true">·</span>
+            <kbd>Ctrl+C</kbd> interrupt
+          </footer>
+        </div>`;
+      }
+
       terminal.setCurrentProcess({
         name: 'top',
         pid: Math.floor(Math.random() * 10000),
         command: 'top'
       });
 
-      // Create interactive top modal
       const modal = terminal.createModal({
         className: 'top-modal',
         title: 'top - Process Monitor',
-        content: `<div class="top-content">
-          <pre class="top-output">${generateTopOutput(terminal)}</pre>
-        </div>`,
+        content: topModalHtml(terminal, firstFrame.text),
+        focusSelector: '[role="dialog"]',
         onKeyDown: (e) => {
-          // Ctrl+C handled automatically by modal system
           if (e.key === 'q' || e.key === 'Q' || e.key === 'Escape') {
             modal.close();
-            // Don't call clearCurrentProcess() here - modal.close() handles it
           } else if (e.key === 'r' || e.key === 'R') {
-            // Refresh immediately
-            const newOutput = generateTopOutput(terminal);
-            modal.update(`<div class="top-content">
-              <pre class="top-output">${newOutput}</pre>
-            </div>`);
+            const frame = generateTopOutput(terminal);
+            const body = frame.ok ? frame.text : frame.message;
+            modal.update(topModalHtml(terminal, body));
           }
         }
       });
 
-      // Add CSS for top modal
-      const topStyles = `
-        .top-modal {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          height: 100vh;
-          background: #000;
-          color: #0f0;
-          font-family: 'Courier New', monospace;
-          font-size: 12px;
-          z-index: 1000;
-          overflow: hidden;
-          display: flex;
-          flex-direction: column;
-        }
-        .top-content {
-          flex: 1;
-          overflow: auto;
-          padding: 10px;
-        }
-        .top-output {
-          margin: 0;
-          white-space: pre;
-          font-family: 'Courier New', monospace;
-          font-size: 12px;
-          line-height: 1.2;
-        }
-      `;
-
-      terminal.addStyles(topStyles);
-
-      // Auto-refresh every 3 seconds
       const refreshInterval = setInterval(() => {
         if (modal.element.parentNode) {
-          const newOutput = generateTopOutput(terminal);
-          modal.update(`<div class="top-content">
-            <pre class="top-output">${newOutput}</pre>
-          </div>`);
+          const frame = generateTopOutput(terminal);
+          const body = frame.ok ? frame.text : frame.message;
+          modal.update(topModalHtml(terminal, body));
         } else {
-          // Modal was closed, stop refreshing
           clearInterval(refreshInterval);
         }
       }, 3000);
 
-      // Register signal handler for SIGINT (Ctrl+C)
       terminal.onSignal('SIGINT', () => {
-        // Clean up top process
         clearInterval(refreshInterval);
         modal.close();
-        // Don't call clearCurrentProcess() here - let modal.close() handle it
       });
 
-      // Clean up interval when modal closes
       const originalClose = modal.close;
       modal.close = () => {
         clearInterval(refreshInterval);
@@ -202,7 +189,7 @@
         originalClose();
       };
 
-      return ''; // Don't return output since we're using modal
+      return { stdout: '', stderr: '', exitCode: 0 };
     },
     'display running processes (interactive)',
     'System'

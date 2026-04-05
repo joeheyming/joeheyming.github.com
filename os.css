@@ -1,5 +1,54 @@
 /* Heyming OS Styles */
 
+/* Theme E: skip link — keyboard users jump past chrome to the desktop surface */
+.os-skip-link {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.os-skip-link:focus {
+  position: fixed;
+  left: 12px;
+  top: 12px;
+  z-index: 5000;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 8px 12px;
+  overflow: visible;
+  clip: auto;
+  white-space: nowrap;
+  border-radius: 4px;
+  border: 1px solid rgba(147, 197, 253, 0.55);
+  background: rgba(15, 23, 42, 0.97);
+  color: #e2e8f0;
+  font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+  font-size: 13px;
+  text-decoration: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+}
+
+.os-skip-link:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.65);
+  outline-offset: 2px;
+}
+
+#os-desktop:focus {
+  outline: none;
+}
+
+#os-desktop:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.75);
+  outline-offset: -2px;
+}
+
 /* OS Window Styling */
 .os-window {
   position: absolute;
@@ -11,6 +60,7 @@
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   z-index: 100;
+  pointer-events: auto; /* #os-windows uses pointer-events: none so clicks reach desktop icons */
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -116,9 +166,27 @@
   background: rgba(59, 130, 246, 0.2);
 }
 
+.os-window:not(.active) {
+  border-color: #4b5563;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.os-window:not(.active) .os-window-titlebar {
+  background: linear-gradient(to bottom, #3d4756, #252a36);
+}
+
+.os-window:not(.active) .os-window-title {
+  color: #94a3b8;
+}
+
+.os-window:not(.active) .os-window-titlebar:hover {
+  background: linear-gradient(to bottom, #454f5f, #2a303c);
+}
+
 .os-window.active {
   /* z-index is set dynamically by WindowManager */
   border-color: #3182ce;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(49, 130, 206, 0.22);
 }
 
 .os-window.minimized {
@@ -144,6 +212,7 @@
 /* Window Title Bar */
 .os-window-titlebar {
   height: 32px;
+  min-width: 0;
   background: linear-gradient(to bottom, #4a5568, #2d3748);
   border-bottom: 1px solid #1a202c;
   display: flex;
@@ -153,12 +222,13 @@
   user-select: none;
 }
 
-.os-window-titlebar:hover {
+.os-window.active .os-window-titlebar:hover {
   background: linear-gradient(to bottom, #3182ce, #2b6cb0);
 }
 
 .os-window-title {
   flex: 1;
+  min-width: 0;
   color: #e2e8f0;
   font-size: 12px;
   font-weight: 500;
@@ -170,6 +240,7 @@
 
 .os-window-controls {
   display: flex;
+  flex-shrink: 0;
   gap: 4px;
 }
 
@@ -204,6 +275,11 @@
 .os-window-control:hover {
   transform: scale(1.1);
   opacity: 0.8;
+}
+
+.os-window-control:focus-visible {
+  outline: 2px solid #63b3ed;
+  outline-offset: 2px;
 }
 
 /* Window Content */
@@ -268,6 +344,7 @@
   gap: 6px;
   transition: all 0.2s ease;
   max-width: 200px;
+  flex-shrink: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -282,8 +359,46 @@
   border-color: #63b3ed;
 }
 
-/* Application Icons */
+.taskbar-app:focus-visible {
+  outline: 2px solid #63b3ed;
+  outline-offset: 2px;
+}
+
+#app-launcher:focus-visible,
+#os-close:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+/* Many windows: horizontal scroll instead of squashing buttons */
+#running-apps.taskbar-running-apps {
+  min-width: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #4a5568 #1f2937;
+  -webkit-overflow-scrolling: touch;
+}
+
+#running-apps.taskbar-running-apps::-webkit-scrollbar {
+  height: 6px;
+}
+
+#running-apps.taskbar-running-apps::-webkit-scrollbar-track {
+  background: #1f2937;
+  border-radius: 3px;
+}
+
+#running-apps.taskbar-running-apps::-webkit-scrollbar-thumb {
+  background: #4a5568;
+  border-radius: 3px;
+}
+
+#running-apps.taskbar-running-apps::-webkit-scrollbar-thumb:hover {
+  background: #2b6cb0;
+}
+
+/* Application Icons (window title bar) */
 .app-icon {
+  flex-shrink: 0;
   font-size: 16px;
   display: inline-block;
 }
@@ -354,6 +469,17 @@
 .desktop-icon.file-icon.selected .label {
   background: rgba(0, 123, 255, 0.9);
   color: white;
+}
+
+/* Theme E: keyboard focus rings for desktop icons (tab / arrow navigation) */
+.desktop-icon:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.desktop-icon.file-icon.selected:focus-visible {
+  outline-color: #e0f2fe;
 }
 
 /* Desktop drag selection box */
@@ -440,6 +566,12 @@
   background: rgba(255, 80, 80, 0.8);
 }
 
+.quick-look-close:focus-visible,
+.quick-look-open:focus-visible {
+  outline: 2px solid rgba(90, 160, 255, 0.95);
+  outline-offset: 2px;
+}
+
 .quick-look-content {
   flex: 1;
   overflow: auto;
@@ -512,9 +644,22 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   padding: 12px 16px;
   background: linear-gradient(to top, #2d2d44, #1a1a2e);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.quick-look-footer-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.quick-look-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .quick-look-info {
@@ -542,6 +687,29 @@
 
 .quick-look-open:active {
   transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quick-look-overlay {
+    transition: none;
+  }
+
+  .quick-look-container {
+    transition: none;
+    transform: none;
+  }
+
+  .quick-look-overlay.show .quick-look-container {
+    transform: none;
+  }
+
+  .quick-look-open {
+    transition: none;
+  }
+
+  .quick-look-open:hover {
+    transform: none;
+  }
 }
 
 /* Application Content Styles */
@@ -789,17 +957,22 @@
   transform: rotate(-45deg);
 }
 
-/* Iframe Content Styling */
+/* Iframe content — shell matches window body (Theme E: avoids bright white flash before app paints) */
 .iframe-content {
   position: relative;
   width: 100%;
   height: calc(100% - 20px); /* Leave space for drag handle */
-  z-index: 15; /* Higher than desktop icons */
+  z-index: 15; /* Higher than desktop icons and resize handles */
+  background: #1a202c;
+  overflow: hidden;
+  pointer-events: auto;
 }
 
 .iframe-content iframe {
   position: relative;
   z-index: 16;
+  background: #1a202c;
+  pointer-events: auto;
 }
 
 /* Scrollbar Styling */
@@ -874,21 +1047,49 @@
   margin: 4px 0;
 }
 
-/* System Notifications */
-.notification {
+/* System Notifications — stacked tray (multiple toasts don’t obscure each other) */
+.os-notification-region {
   position: absolute;
   top: 20px;
   right: 20px;
+  left: auto;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  max-width: min(320px, calc(100vw - 40px));
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.os-notification-region .notification {
+  position: relative;
+  top: auto;
+  right: auto;
+  pointer-events: auto;
+  flex-shrink: 0;
+}
+
+.notification {
   background: #2d3748;
   border: 1px solid #4a5568;
   border-radius: 8px;
-  padding: 16px;
+  padding: 12px 16px;
   color: #e2e8f0;
   font-size: 12px;
+  line-height: 1.35;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
   max-width: 300px;
   animation: slideInRight 0.3s ease-out;
+}
+
+/* Legacy: if toasts mount directly on #os-desktop (no #os-notification-region), keep corner anchoring */
+#os-desktop > .notification {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 3000;
 }
 
 @keyframes slideInRight {
@@ -909,6 +1110,40 @@
   position: absolute;
   transform-origin: bottom left;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  flex-direction: column;
+  max-height: min(60vh, calc(100vh - 100px));
+  overflow: hidden;
+}
+
+/*
+ * Tailwind's .hidden is display:none on a class selector; this ID rule sets display:flex,
+ * so the menu stayed visible whenever "hidden" was present. Collapse for real when closed.
+ */
+#app-launcher-menu.hidden {
+  display: none !important;
+  pointer-events: none;
+}
+
+/*
+ * Stacking context above desktop icons; pointer-events none so the full-bleed layer does not
+ * steal clicks from icons (windows opt back in via .os-window { pointer-events: auto }).
+ */
+#os-windows {
+  z-index: 200;
+  isolation: isolate;
+  pointer-events: none;
+}
+
+/* Stay above #os-windows when a window is dragged over the taskbar strip */
+#os-taskbar {
+  z-index: 250;
+}
+
+#taskbar-clock:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Fancy App Launcher Animations */
@@ -971,22 +1206,6 @@
   background: linear-gradient(145deg, rgba(55, 65, 81, 0.95), rgba(31, 41, 55, 0.95));
 }
 
-/* Iframe App Content */
-.iframe-content {
-  background: #ffffff;
-  overflow: hidden;
-  position: relative;
-  z-index: 15; /* Higher than desktop icons and resize handles */
-  pointer-events: auto;
-}
-
-.iframe-content iframe {
-  background: #ffffff;
-  pointer-events: auto;
-  position: relative;
-  z-index: 16;
-}
-
 /* Loading indicator for iframes */
 .iframe-loading {
   display: flex;
@@ -1023,29 +1242,45 @@
   border-bottom: 1px solid #374151;
 }
 
-/* Enhanced launcher menu */
-#app-launcher-menu {
-  max-height: calc(100vh - 100px);
-  overflow-y: auto;
+/* Inner list scrolls; header + footer stay visible (outer #app-launcher-menu is flex column). */
+.launcher-apps-scroll {
   scrollbar-width: thin;
   scrollbar-color: #4a5568 #2d3748;
 }
 
-#app-launcher-menu::-webkit-scrollbar {
+.launcher-apps-scroll::-webkit-scrollbar {
   width: 8px;
 }
 
-#app-launcher-menu::-webkit-scrollbar-track {
+.launcher-apps-scroll::-webkit-scrollbar-track {
   background: #2d3748;
 }
 
-#app-launcher-menu::-webkit-scrollbar-thumb {
+.launcher-apps-scroll::-webkit-scrollbar-thumb {
   background: #4a5568;
   border-radius: 4px;
 }
 
-#app-launcher-menu::-webkit-scrollbar-thumb:hover {
+.launcher-apps-scroll::-webkit-scrollbar-thumb:hover {
   background: #2b6cb0;
+}
+
+.launcher-kbd {
+  display: inline-block;
+  padding: 0.12em 0.45em;
+  font-size: 0.92em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  color: #e5e7eb;
+  background: #111827;
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+.app-item:focus-visible {
+  outline: 2px solid #63b3ed;
+  outline-offset: 1px;
 }
 
 /* Context Menu */
@@ -1086,6 +1321,12 @@
 
 .context-menu-item:hover:not(.disabled) {
   background: rgba(66, 153, 225, 0.3);
+}
+
+.context-menu-item:focus-visible {
+  outline: 2px solid #63b3ed;
+  outline-offset: -2px;
+  background: rgba(66, 153, 225, 0.25);
 }
 
 .context-menu-item.disabled {
@@ -1136,7 +1377,7 @@
 
 /* Drop zone active state */
 #os-desktop.drop-active {
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: rgba(59, 130, 246, 0.12);
 }
 
 #os-desktop.drop-active::after {
@@ -1145,15 +1386,20 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 2rem;
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(59, 130, 246, 0.3);
-  padding: 2rem 4rem;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  background: linear-gradient(160deg, rgba(59, 130, 246, 0.42), rgba(37, 99, 235, 0.32));
+  padding: 1.75rem 3rem;
   border-radius: 1rem;
-  border: 3px dashed rgba(59, 130, 246, 0.6);
+  border: 3px dashed rgba(147, 197, 253, 0.85);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
   pointer-events: none;
   z-index: 9999;
-  animation: pulse-drop 1s ease-in-out infinite;
+  animation: pulse-drop 1.2s ease-in-out infinite;
 }
 
 @keyframes pulse-drop {
@@ -1164,7 +1410,13 @@
   }
   50% {
     transform: translate(-50%, -50%) scale(1.02);
-    opacity: 0.8;
+    opacity: 0.88;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #os-desktop.drop-active::after {
+    animation: none;
   }
 }
 
@@ -1223,6 +1475,11 @@
 #shutdown-dialog .bg-gray-800 {
   animation: slideUp 0.3s ease-out;
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+}
+
+#shutdown-dialog button:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.95);
+  outline-offset: 2px;
 }
 
 @keyframes slideUp {

@@ -50,6 +50,7 @@ export class Desktop {
     this._setupDropZone();
     this._setupKeyboardShortcuts();
     this._setupSelectionHandling();
+    this._setupDesktopIconFocusSync();
     this._setupDragSelection();
     this._waitForAppModule();
 
@@ -229,6 +230,16 @@ export class Desktop {
     icon.appendChild(iconEl);
     icon.appendChild(labelEl);
 
+    icon.tabIndex = 0;
+    icon.setAttribute('role', 'button');
+    icon.setAttribute('aria-label', `Open ${iconData.name}`);
+    icon.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.onLaunchApp(iconData.app);
+      }
+    });
+
     this.Input.addDoubleTapHandler(icon, () => {
       this.onLaunchApp(iconData.app);
     });
@@ -262,6 +273,21 @@ export class Desktop {
 
     icon.appendChild(iconEl);
     icon.appendChild(labelEl);
+
+    icon.tabIndex = 0;
+    icon.setAttribute('role', 'button');
+    icon.setAttribute('aria-label', `${iconData.name}, file — Enter to open, Space for Quick Look`);
+    icon.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this._selectFile(iconData.file.path, icon, null);
+        void this._openSelected();
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        this._selectFile(iconData.file.path, icon, null);
+        void this._showQuickLook();
+      }
+    });
 
     // Make file draggable to real OS
     icon.addEventListener('dragstart', async (e) => {
@@ -380,6 +406,20 @@ export class Desktop {
     });
   }
 
+  /** Theme E: when Tab moves focus onto an icon, sync file selection with keyboard users. */
+  _setupDesktopIconFocusSync() {
+    this.desktop.addEventListener('focusin', (e) => {
+      const icon = e.target?.closest?.('.desktop-icon');
+      if (!icon || !this.desktop.contains(icon)) return;
+      if (icon.classList.contains('file-icon')) {
+        const path = icon.dataset.path;
+        if (path) this._selectFile(path, icon, null);
+      } else {
+        this._clearSelection();
+      }
+    });
+  }
+
   _setupKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
       // Only handle shortcuts when desktop is focused (no input element)
@@ -416,8 +456,10 @@ export class Desktop {
         e.preventDefault();
         this._showQuickLook();
       } else if (e.key === 'Escape') {
-        // Close Quick Look if open
+        // Close Quick Look if open (stop Escape from reaching HeymingOS global hide())
         if (this.quickLook?.isOpen()) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
           this.quickLook.close();
         }
       } else if (e.key === 'Enter' && hasSingleSelection) {
@@ -425,6 +467,10 @@ export class Desktop {
         e.preventDefault();
         this._openSelected();
       } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        const ae = document.activeElement;
+        if (ae?.closest?.('.desktop-icon:not(.file-icon)')) {
+          return;
+        }
         // Arrow key navigation
         e.preventDefault();
         this._navigateWithArrows(e.key, e.shiftKey);
@@ -586,6 +632,7 @@ export class Desktop {
         this.selectedFiles.add(path);
         firstIcon.classList.add('selected');
         this.lastSelectedFile = path;
+        firstIcon.focus();
       }
       return;
     }
@@ -610,6 +657,7 @@ export class Desktop {
 
     // Scroll icon into view if needed
     nextIcon.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    nextIcon.focus();
   }
 
   _findNextIcon(currentIcon, direction) {
@@ -769,29 +817,45 @@ export class Desktop {
   // ========== Drop Zone ==========
 
   _setupDropZone() {
-    // Prevent default drag behaviors
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach((eventName) => {
-      this.desktop.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      });
+    // Theme E: drop overlay — use relatedTarget on dragleave so moving the pointer over
+    // child icons does not clear .drop-active (avoids flicker vs dragleave on every child enter).
+    this.desktop.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.desktop.classList.add('drop-active');
     });
 
-    // Visual feedback
-    ['dragenter', 'dragover'].forEach((eventName) => {
-      this.desktop.addEventListener(eventName, () => {
-        this.desktop.classList.add('drop-active');
-      });
+    this.desktop.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const next = e.relatedTarget;
+      if (next && this.desktop.contains(next)) {
+        return;
+      }
+      this.desktop.classList.remove('drop-active');
     });
 
-    ['dragleave', 'drop'].forEach((eventName) => {
-      this.desktop.addEventListener(eventName, () => {
-        this.desktop.classList.remove('drop-active');
-      });
+    this.desktop.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const dt = e.dataTransfer;
+      if (!dt) return;
+      const types = dt.types ? Array.from(dt.types) : [];
+      const internal = types.includes('application/x-heyming-file');
+      const files = types.includes('Files');
+      if (internal) {
+        dt.dropEffect = 'move';
+      } else if (files) {
+        dt.dropEffect = 'copy';
+      }
     });
 
-    // Handle dropped files
-    this.desktop.addEventListener('drop', (e) => this._handleDrop(e));
+    this.desktop.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.desktop.classList.remove('drop-active');
+      this._handleDrop(e);
+    });
   }
 
   async _handleDrop(e) {

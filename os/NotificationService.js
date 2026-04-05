@@ -15,7 +15,8 @@ export class NotificationService {
    * Initialize the notification service (call after DOM ready)
    */
   init() {
-    this.container = document.getElementById('os-desktop');
+    this.container =
+      document.getElementById('os-notification-region') || document.getElementById('os-desktop');
   }
 
   /**
@@ -26,7 +27,8 @@ export class NotificationService {
   show(message, type = 'info') {
     // Lazy init if not already done
     if (!this.container) {
-      this.container = document.getElementById('os-desktop');
+      this.container =
+        document.getElementById('os-notification-region') || document.getElementById('os-desktop');
     }
     if (!this.container) {
       console.warn('NotificationService: os-desktop element not found');
@@ -34,7 +36,8 @@ export class NotificationService {
     }
 
     const notification = document.createElement('div');
-    notification.className = 'notification';
+    notification.className = `notification notification-${type}`;
+    notification.setAttribute('role', 'status');
 
     const color = this.C.NOTIFICATION_COLORS[type] || this.C.NOTIFICATION_COLORS.info;
     notification.style.borderLeft = `4px solid ${color}`;
