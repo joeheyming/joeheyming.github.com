@@ -18,10 +18,15 @@ function normalizePagePath(path) {
   return normalized;
 }
 
+function isLocalDevHost() {
+  const h = location.hostname;
+  return h === 'localhost' || h === '127.0.0.1';
+}
+
 window.onload = function () {
-  if (location.hostname === 'localhost') {
+  if (isLocalDevHost()) {
     window.gtag = function () {};
-    window.trackError = function () {}; // No-op for localhost
+    window.trackError = function () {}; // No-op for local dev
     return;
   }
   window.gtag = function () {
@@ -191,7 +196,7 @@ window.addEventListener('load', function () {
 // Helper function to track events (can be called from anywhere, including web components)
 window.trackEvent = function (eventName, eventCategory, eventLabel, eventValue) {
   if (typeof gtag === 'undefined') {
-    if (location.hostname === 'localhost') {
+    if (isLocalDevHost()) {
       console.log('GA Event tracked (localhost):', eventName, {
         event_category: eventCategory,
         event_label: eventLabel,
@@ -213,7 +218,7 @@ window.trackEvent = function (eventName, eventCategory, eventLabel, eventValue) 
   gtag('event', eventName, eventParams);
 
   // Log to console for development
-  if (location.hostname === 'localhost') {
+  if (isLocalDevHost()) {
     console.log('GA Event tracked:', eventName, eventParams);
   }
 };
@@ -320,7 +325,7 @@ function initDataEventTracking() {
 // Track conversion events for key user actions
 window.trackConversion = function (conversionType, value) {
   if (typeof gtag === 'undefined') {
-    if (location.hostname === 'localhost') {
+    if (isLocalDevHost()) {
       console.log('Conversion tracked (localhost):', conversionType, value);
     }
     return;
