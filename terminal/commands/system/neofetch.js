@@ -160,9 +160,8 @@ Description:
         `${colors.bright}${colors.white}Shell${colors.reset}: hsh (Heyming Shell)`
       ];
 
-      // Add username and hostname
-      const username = 'user';
-      const hostname = 'heyming-os';
+      const username = terminal.env.USER || 'user';
+      const hostname = terminal.env.HOSTNAME || 'heyming-os';
 
       output += `${colors.bright}${colors.green}${username}${colors.white}@${colors.blue}${hostname}${colors.reset}\n`;
       output += `${colors.white}${'─'.repeat(username.length + hostname.length + 1)}${

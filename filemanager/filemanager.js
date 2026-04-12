@@ -19,7 +19,9 @@ function escapeHtmlText(s) {
 class FileManager {
   constructor() {
     this.fs = null;
-    this.cfg = window.parent?.HeymingOS?.Config || { HOME: '/home/jheyming', USER: 'jheyming' };
+    const _su = () => { try { return localStorage.getItem('heymingOS_username'); } catch { return null; } };
+    const _u = _su() || 'user';
+    this.cfg = window.parent?.HeymingOS?.Config || { HOME: `/home/${_u}`, USER: _u };
     this.currentPath = this.cfg.HOME;
     this.history = [this.currentPath];
     this.historyIndex = 0;

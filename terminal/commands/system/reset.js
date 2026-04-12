@@ -48,14 +48,30 @@
 
       terminal.aliases = {};
 
+      const _su = () => {
+        try {
+          return localStorage.getItem('heymingOS_username');
+        } catch {
+          return null;
+        }
+      };
+      const _sh = () => {
+        try {
+          return localStorage.getItem('heymingOS_hostname');
+        } catch {
+          return null;
+        }
+      };
+      const _u = window.parent?.HeymingOS?.Config?.USER || _su() || 'user';
+      const _h = window.parent?.HeymingOS?.Config?.HOME || `/home/${_u}`;
       const coreVars = {
-        USER: window.parent?.HeymingOS?.Config?.USER || 'jheyming',
-        HOME: window.parent?.HeymingOS?.Config?.HOME || '/home/jheyming',
-        PWD: window.parent?.HeymingOS?.Config?.HOME || '/home/jheyming',
+        USER: _u,
+        HOME: _h,
+        PWD: _h,
         SHELL: '/bin/jsh',
         TERM: 'heyming-terminal',
         PATH: '/bin:/usr/bin:/usr/local/bin',
-        HOSTNAME: 'heyming-os',
+        HOSTNAME: window.parent?.HeymingOS?.Config?.HOSTNAME || _sh() || 'heyming-os',
         LANG: 'en_US.UTF-8',
         EDITOR: 'nano',
         PAGER: 'less'

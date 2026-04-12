@@ -484,7 +484,11 @@
             throw new Error(`${err.message || err}${hint}`);
           }
           clearTimeout(headerTimeoutId);
-          console.log('[jsh-git-http] fetch headers received in', ((Date.now() - fetchStartMs) / 1000).toFixed(1) + 's', 'status=' + res.status);
+          console.log(
+            '[jsh-git-http] fetch headers received in',
+            ((Date.now() - fetchStartMs) / 1000).toFixed(1) + 's',
+            'status=' + res.status
+          );
 
           let body;
           if (
@@ -498,7 +502,12 @@
             body = await responseToGitBody(res);
           }
 
-          console.log('[jsh-git-http] fetch COMPLETE in', ((Date.now() - fetchStartMs) / 1000).toFixed(1) + 's', upper, targetUrl.slice(0, 80));
+          console.log(
+            '[jsh-git-http] fetch COMPLETE in',
+            ((Date.now() - fetchStartMs) / 1000).toFixed(1) + 's',
+            upper,
+            targetUrl.slice(0, 80)
+          );
           return {
             url: res.url,
             method: upper,
@@ -536,7 +545,10 @@
                 body: singleChunk(bytes)
               };
             } catch (proxyErr) {
-              console.warn('[jsh-git-http] proxy fetch failed, falling through to direct fetch:', proxyErr.message || proxyErr);
+              console.warn(
+                '[jsh-git-http] proxy fetch failed, falling through to direct fetch:',
+                proxyErr.message || proxyErr
+              );
             }
           }
         }

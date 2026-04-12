@@ -251,7 +251,20 @@ class FileSystemDB {
       if (!genericBinary) return stored;
     }
 
-    return fromPath || 'application/octet-stream';
+    let result = fromPath || 'application/octet-stream';
+
+    // Extensionless files with string content are very likely plain text (e.g. /etc/passwd,
+    // Makefile, LICENSE, Dockerfile). Sniff content to upgrade from octet-stream to text/plain.
+    if (result === 'application/octet-stream' && typeof itemOrPath === 'object') {
+      const hasTextContent =
+        typeof itemOrPath.content === 'string' && itemOrPath.content.length > 0;
+      const hasBinaryContent = itemOrPath.contentBytes != null;
+      if (hasTextContent && !hasBinaryContent) {
+        result = 'text/plain';
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -376,8 +389,17 @@ class FileSystemDB {
 
   // Create default filesystem structure
   async createScaffolding(username = null) {
-    const user = username || window.HeymingOS?.Config?.USER || 'jheyming';
+    const _ls = (key) => {
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    };
+    const user = username || window.HeymingOS?.Config?.USER || _ls('heymingOS_username') || 'user';
+    const host = window.HeymingOS?.Config?.HOSTNAME || _ls('heymingOS_hostname') || 'heyming-os';
     const homeDir = `/home/${user}`;
+    const daysSinceEpoch = Math.floor(Date.now() / 86400000);
     const defaultStructure = [
       // Root directory
       { path: '/', type: 'directory', parentPath: null, created: new Date(), modified: new Date() },
@@ -543,7 +565,46 @@ class FileSystemDB {
         path: '/etc/passwd',
         type: 'file',
         parentPath: '/etc',
-        content: `${user}:x:1000:1000:Joe Heyming:${homeDir}:/bin/jsh\nroot:x:0:0:Root:/root:/bin/bash`,
+        content:
+          'root:x:0:0:root:/root:/bin/jsh\n' +
+          'daemon:x:1:1:daemon:/:/bin/false\n' +
+          'nobody:x:65534:65534:nobody:/nonexistent:/bin/false\n' +
+          `${user}:x:1000:1000:${user}:${homeDir}:/bin/jsh\n`,
+        created: new Date(),
+        modified: new Date(),
+        size: 0
+      },
+      {
+        path: '/etc/shadow',
+        type: 'file',
+        parentPath: '/etc',
+        content:
+          `root:*:${daysSinceEpoch}:0:99999:7:::\n` +
+          `daemon:*:${daysSinceEpoch}:0:99999:7:::\n` +
+          `nobody:*:${daysSinceEpoch}:0:99999:7:::\n` +
+          `${user}:*:${daysSinceEpoch}:0:99999:7:::\n`,
+        created: new Date(),
+        modified: new Date(),
+        size: 0
+      },
+      {
+        path: '/etc/group',
+        type: 'file',
+        parentPath: '/etc',
+        content:
+          'root:x:0:root\n' +
+          `${user}:x:1000:${user}\n` +
+          `users:x:100:${user}\n` +
+          `sudo:x:27:${user}\n`,
+        created: new Date(),
+        modified: new Date(),
+        size: 0
+      },
+      {
+        path: '/etc/hostname',
+        type: 'file',
+        parentPath: '/etc',
+        content: host + '\n',
         created: new Date(),
         modified: new Date(),
         size: 0
@@ -552,7 +613,7 @@ class FileSystemDB {
         path: '/etc/hosts',
         type: 'file',
         parentPath: '/etc',
-        content: '127.0.0.1 localhost\n::1 localhost\n127.0.0.1 heyming-os',
+        content: `127.0.0.1 localhost\n::1 localhost\n127.0.0.1 ${host}\n`,
         created: new Date(),
         modified: new Date(),
         size: 0
@@ -1108,7 +1169,14 @@ class FileSystemDB {
 
   // Initialize filesystem with scaffolding if needed
   async initializeWithScaffolding(username = null) {
-    const user = username || window.HeymingOS?.Config?.USER || 'jheyming';
+    const _su = () => {
+      try {
+        return localStorage.getItem('heymingOS_username');
+      } catch {
+        return null;
+      }
+    };
+    const user = username || window.HeymingOS?.Config?.USER || _su() || 'user';
     await this.initialize();
 
     const hasScaffolding = await this.hasScaffolding();

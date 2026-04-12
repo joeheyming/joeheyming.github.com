@@ -168,7 +168,7 @@ export class QuickLookPreview {
       contentEl.classList.add('audio-preview');
     } else if (mimeType === 'text/html') {
       const iframe = document.createElement('iframe');
-      iframe.sandbox = 'allow-scripts';
+      iframe.sandbox = 'allow-scripts allow-same-origin';
       let html;
       if (content instanceof ArrayBuffer || ArrayBuffer.isView(content)) {
         html = new TextDecoder().decode(content);

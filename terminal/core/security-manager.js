@@ -85,9 +85,15 @@ class SecurityManager {
       loginAttempts: 0
     });
 
-    // Default user
-    const defaultUser = window.parent?.HeymingOS?.Config?.USER || 'jheyming';
-    const defaultHome = window.parent?.HeymingOS?.Config?.HOME || '/home/jheyming';
+    const _su = () => {
+      try {
+        return localStorage.getItem('heymingOS_username');
+      } catch {
+        return null;
+      }
+    };
+    const defaultUser = window.parent?.HeymingOS?.Config?.USER || _su() || 'user';
+    const defaultHome = window.parent?.HeymingOS?.Config?.HOME || `/home/${defaultUser}`;
     this.users.set(1000, {
       uid: 1000,
       username: defaultUser,
@@ -119,7 +125,14 @@ class SecurityManager {
   }
 
   async createDefaultGroups() {
-    const defaultUser = window.parent?.HeymingOS?.Config?.USER || 'jheyming';
+    const _su = () => {
+      try {
+        return localStorage.getItem('heymingOS_username');
+      } catch {
+        return null;
+      }
+    };
+    const defaultUser = window.parent?.HeymingOS?.Config?.USER || _su() || 'user';
 
     // Root group
     this.groups.set(0, {
@@ -644,9 +657,114 @@ class SecurityManager {
       auditLogSize: this.auditLog.length,
       lockedUsers: Array.from(this.users.values()).filter((u) => u.locked).length,
       recentFailedLogins: this.auditLog.filter(
-        (entry) => entry.event === 'login_failure' && Date.now() - entry.timestamp < 3600000 // Last hour
+        (entry) => entry.event === 'login_failure' && Date.now() - entry.timestamp < 3600000
       ).length
     };
+  }
+
+  // ========== Extended user/group management ==========
+
+  modifyUser(uid, changes) {
+    const user = this.users.get(uid);
+    if (!user) throw new Error(`User ID ${uid} not found`);
+    if (changes.username !== undefined) user.username = changes.username;
+    if (changes.gid !== undefined) user.gid = changes.gid;
+    if (changes.home !== undefined) user.home = changes.home;
+    if (changes.shell !== undefined) user.shell = changes.shell;
+    if (changes.locked !== undefined) user.locked = changes.locked;
+    if (changes.passwordHash !== undefined) user.passwordHash = changes.passwordHash;
+    this.auditLog.push({
+      timestamp: Date.now(),
+      event: 'user_modified',
+      uid,
+      changes: Object.keys(changes),
+      success: true
+    });
+    return user;
+  }
+
+  deleteGroup(gid) {
+    const group = this.groups.get(gid);
+    if (!group) throw new Error(`Group ID ${gid} not found`);
+    if (gid === 0) throw new Error('Cannot delete root group');
+    const primaryUsers = Array.from(this.users.values()).filter((u) => u.gid === gid);
+    if (primaryUsers.length > 0) {
+      throw new Error(
+        `Cannot delete group '${group.groupname}': primary group of user(s) ${primaryUsers
+          .map((u) => u.username)
+          .join(', ')}`
+      );
+    }
+    this.groups.delete(gid);
+    this.auditLog.push({
+      timestamp: Date.now(),
+      event: 'group_deleted',
+      gid,
+      groupname: group.groupname,
+      success: true
+    });
+  }
+
+  getNextUid() {
+    let uid = 1001;
+    while (this.users.has(uid)) uid++;
+    return uid;
+  }
+
+  getNextGid() {
+    let gid = 1001;
+    while (this.groups.has(gid)) gid++;
+    return gid;
+  }
+
+  getAllUsers() {
+    return Array.from(this.users.values());
+  }
+
+  getAllGroups() {
+    return Array.from(this.groups.values());
+  }
+
+  getGroupsForUser(uid) {
+    return Array.from(this.groups.values()).filter((g) => g.members.has(uid));
+  }
+
+  async syncEtcFiles(fileSystemDB) {
+    if (!fileSystemDB) return;
+    const hostname =
+      (() => {
+        try {
+          return localStorage.getItem('heymingOS_hostname');
+        } catch {
+          return null;
+        }
+      })() || 'heyming-os';
+
+    const passwdLines = this.getAllUsers()
+      .sort((a, b) => a.uid - b.uid)
+      .map((u) => `${u.username}:x:${u.uid}:${u.gid}:${u.username}:${u.home}:${u.shell}`);
+    await fileSystemDB.createFile('/etc/passwd', passwdLines.join('\n') + '\n', true);
+
+    const daysSinceEpoch = Math.floor(Date.now() / 86400000);
+    const shadowLines = this.getAllUsers()
+      .sort((a, b) => a.uid - b.uid)
+      .map((u) => {
+        const hash = u.locked ? '!' : u.passwordHash || '*';
+        return `${u.username}:${hash}:${daysSinceEpoch}:0:99999:7:::`;
+      });
+    await fileSystemDB.createFile('/etc/shadow', shadowLines.join('\n') + '\n', true);
+
+    const groupLines = this.getAllGroups()
+      .sort((a, b) => a.gid - b.gid)
+      .map((g) => {
+        const memberNames = Array.from(g.members)
+          .map((uid) => this.users.get(uid)?.username)
+          .filter(Boolean);
+        return `${g.groupname}:x:${g.gid}:${memberNames.join(',')}`;
+      });
+    await fileSystemDB.createFile('/etc/group', groupLines.join('\n') + '\n', true);
+
+    await fileSystemDB.createFile('/etc/hostname', hostname + '\n', true);
   }
 }
 

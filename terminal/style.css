@@ -1415,3 +1415,17 @@ html.terminal-embed-os #current-prompt-line {
     color: #000000 !important;
   }
 }
+
+/* First-run setup wizard */
+.setup-wizard {
+  color: #6ec6ff;
+  font-family: inherit;
+  line-height: 1.5;
+  margin: 0;
+  white-space: pre;
+}
+
+.setup-error {
+  color: #ff6b6b;
+  padding: 2px 0;
+}
