@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Surf - Heyming OS</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="surf-container">
+      <!-- Toolbar -->
+      <div id="toolbar">
+        <div class="toolbar-group">
+          <button id="btn-open" title="Open HTML File (Ctrl+O)">📂 Open</button>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+          <button id="btn-source" title="View Source (Ctrl+U)">🔍 Source</button>
+        </div>
+        <div class="toolbar-group">
+          <button id="btn-new-tab" title="Open in New Tab" disabled>↗ New Tab</button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <div class="toolbar-group">
+          <span id="file-info">No file</span>
+        </div>
+      </div>
+
+      <!-- Landing zone -->
+      <div id="landing" class="active">
+        <div class="landing-content">
+          <span class="icon">🌊</span>
+          <h2>Surf</h2>
+          <p>Open an HTML file to render it</p>
+        </div>
+      </div>
+
+      <!-- Rendered HTML view -->
+      <iframe
+        id="html-frame"
+        class="hidden"
+        sandbox="allow-scripts"
+        title="HTML preview"
+      ></iframe>
+
+      <!-- Source view -->
+      <div id="source-view" class="hidden">
+        <pre id="source-code"></pre>
+      </div>
+    </div>
+
+    <script src="surf.js"></script>
+  </body>
+</html>

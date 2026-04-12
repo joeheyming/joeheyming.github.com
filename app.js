@@ -76,6 +76,24 @@ let appRegistry = [
     ]
   },
   {
+    id: 'surf',
+    name: 'Surf 🌊',
+    shortName: 'Surf',
+    description: 'Minimal HTML viewer',
+    detailedDescription: 'Renders HTML files in a sandboxed preview, inspired by suckless surf',
+    icon: '🌊',
+    path: './surf/',
+    category: 'utility',
+    gradient: 'from-teal-500/20 to-cyan-500/20',
+    border: 'border-teal-500/30 hover:border-teal-400/50',
+    taskbarGradient: 'from-teal-400 to-cyan-500',
+    taskbarText: 'text-white',
+    defaultWidth: 900,
+    defaultHeight: 600,
+    system: true,
+    handles: ['text/html']
+  },
+  {
     id: 'pacman',
     name: 'Pac-Man 👻',
     shortName: 'Pac-Man',
@@ -665,7 +683,7 @@ const AppModule = {
   },
 
   /**
-   * All apps that handle a MIME type (registry order; each app at most once).
+   * All apps that handle a MIME type, with exact matches listed before wildcard matches.
    * @param {string} mimeType
    * @returns {Array<{ appId: string, appName: string, shortName: string, icon: string }>}
    */
@@ -674,38 +692,43 @@ const AppModule = {
 
     const [type] = mimeType.split('/');
     const seen = new Set();
-    const out = [];
+    const exact = [];
+    const wildcard = [];
 
     for (const app of appRegistry) {
       if (!app.handles) continue;
 
-      let matched = false;
+      let matchType = null;
       for (const pattern of app.handles) {
         if (pattern === mimeType) {
-          matched = true;
+          matchType = 'exact';
           break;
         }
-        if (pattern.endsWith('/*')) {
+        if (!matchType && pattern.endsWith('/*')) {
           const patternType = pattern.slice(0, -2);
           if (type === patternType) {
-            matched = true;
-            break;
+            matchType = 'wildcard';
           }
         }
       }
 
-      if (matched && !seen.has(app.id)) {
+      if (matchType && !seen.has(app.id)) {
         seen.add(app.id);
-        out.push({
+        const entry = {
           appId: app.id,
           appName: app.name,
           shortName: app.shortName || app.name,
           icon: app.icon || '📦'
-        });
+        };
+        if (matchType === 'exact') {
+          exact.push(entry);
+        } else {
+          wildcard.push(entry);
+        }
       }
     }
 
-    return out;
+    return [...exact, ...wildcard];
   },
 
   /**

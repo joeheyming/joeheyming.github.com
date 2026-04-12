@@ -162,19 +162,20 @@ See also: curl (HTTP), proxy-stats (proxy health).`;
   }
 
   function jshGitTrace(...args) {
+    console.log('[jsh-git]', ...args);
     const fn = window.jshGitTrace;
     if (typeof fn === 'function') {
       fn(...args);
     }
   }
 
-  /** Remove partial .git after a failed clone (matches isomorphic-git clone cleanup). */
+  /** Remove partial clone directory after a failed clone. */
   async function cleanupPartialGitDir(fsClient, dest) {
-    const gitdir = `${dest}/.git`;
     try {
-      await fsClient.promises.rm(gitdir, { recursive: true, maxRetries: 10 });
-    } catch (_) {
-      /* ignore */
+      console.warn('[jsh-git] cleaning up partial clone dir:', dest);
+      await fsClient.promises.rm(dest, { recursive: true, maxRetries: 10 });
+    } catch (cleanupErr) {
+      console.warn('[jsh-git] cleanup failed (non-fatal):', dest, cleanupErr);
     }
   }
 
@@ -187,7 +188,8 @@ See also: curl (HTTP), proxy-stats (proxy health).`;
     let names;
     try {
       names = await fsClient.promises.readdir(packDir);
-    } catch (_) {
+    } catch (readdirErr) {
+      console.warn('[jsh-git] readdir failed for pack dir:', packDir, readdirErr);
       names = [];
     }
     const packs = names.filter((n) => n.endsWith('.pack'));
@@ -238,14 +240,151 @@ See also: curl (HTTP), proxy-stats (proxy health).`;
     }
   }
 
+  const CHECKOUT_BATCH_SIZE = 500;
+  const CHECKOUT_BATCH_THRESHOLD = 500;
+
+  function newGitCache() {
+    return typeof window.createBoundedGitCache === 'function' ? window.createBoundedGitCache() : {};
+  }
+
+  function releaseGitCache(cache) {
+    if (typeof window.clearGitCache === 'function') {
+      window.clearGitCache(cache);
+    }
+  }
+
+  function formatBytes(n) {
+    if (n >= 1048576) return `${(n / 1048576).toFixed(1)} MiB`;
+    if (n >= 1024) return `${(n / 1024).toFixed(0)} KiB`;
+    return `${n} B`;
+  }
+
+  /**
+   * Live progress line that updates in-place inside the terminal DOM.
+   * Call update(text) to rewrite the line; finish() to finalize it.
+   */
+  function createProgressWriter(terminal) {
+    const outputEl = terminal.windowId
+      ? document.getElementById(`window-${terminal.windowId}`)?.querySelector('.terminal-content')
+      : document.getElementById('terminal-output');
+    if (!outputEl) return null;
+    const el = document.createElement('div');
+    el.className = 'terminal-output git-progress';
+    el.textContent = '';
+    outputEl.appendChild(el);
+    const scroll = () => {
+      const s = document.getElementById('terminal-scroll');
+      if (s) {
+        s.scrollTop = s.scrollHeight;
+      } else {
+        outputEl.scrollTop = outputEl.scrollHeight;
+      }
+    };
+    let lastUpdate = 0;
+    return {
+      update(text) {
+        const now = Date.now();
+        if (now - lastUpdate < 80) return;
+        lastUpdate = now;
+        el.textContent = text;
+        scroll();
+      },
+      finish(text) {
+        if (text != null) el.textContent = text;
+        scroll();
+      }
+    };
+  }
+
+  /**
+   * Checkout files in batches to cap peak memory. A single bounded cache is
+   * shared across all batches so the pack index stays warm in memory (the cache
+   * auto-evicts at 50 MB, preventing OOM). Batching still limits the number of
+   * blobs expanded per round, keeping the JS heap from spiking.
+   */
+  async function batchedCheckout(git, fsClient, dest, branch, allFiles, progress) {
+    const total = allFiles.length;
+    const cache = newGitCache();
+    try {
+      if (total <= CHECKOUT_BATCH_THRESHOLD) {
+        console.log('[jsh-git] checkout: small repo (' + total + ' files), single checkout');
+        if (progress) progress.update(`Checking out files: ${total} files`);
+        await git.checkout({ fs: fsClient, dir: dest, ref: branch, remote: 'origin', cache });
+        if (progress) progress.finish(`Checking out files: ${total}/${total}, done.`);
+        return;
+      }
+      const numBatches = Math.ceil(total / CHECKOUT_BATCH_SIZE);
+      console.log(
+        '[jsh-git] batched checkout:',
+        total,
+        'files in',
+        numBatches,
+        'batches of',
+        CHECKOUT_BATCH_SIZE
+      );
+      jshGitTrace('batched checkout', { files: total, batchSize: CHECKOUT_BATCH_SIZE });
+      const checkoutStart = Date.now();
+      for (let i = 0; i < total; i += CHECKOUT_BATCH_SIZE) {
+        const batch = allFiles.slice(i, i + CHECKOUT_BATCH_SIZE);
+        const done = Math.min(i + batch.length, total);
+        const pct = Math.round((done / total) * 100);
+        const batchNum = Math.floor(i / CHECKOUT_BATCH_SIZE) + 1;
+        const elapsed = Math.round((Date.now() - checkoutStart) / 1000);
+        const suffix = elapsed > 2 ? ` (${elapsed}s)` : '';
+        if (progress) progress.update(`Checking out files: ${pct}% (${done}/${total})${suffix}`);
+        try {
+          await git.checkout({
+            fs: fsClient,
+            dir: dest,
+            ref: branch,
+            remote: 'origin',
+            filepaths: batch,
+            force: true,
+            cache
+          });
+        } catch (batchErr) {
+          console.error(
+            '[jsh-git] checkout batch',
+            batchNum + '/' + numBatches,
+            'FAILED at files',
+            i,
+            '-',
+            done,
+            batchErr
+          );
+          throw batchErr;
+        }
+        console.log(
+          '[jsh-git] checkout batch',
+          batchNum + '/' + numBatches,
+          'done (' + done + '/' + total + ')'
+        );
+      }
+      const totalElapsed = ((Date.now() - checkoutStart) / 1000).toFixed(1);
+      if (progress)
+        progress.finish(`Checking out files: 100% (${total}/${total}), done. (${totalElapsed}s)`);
+    } catch (err) {
+      console.error('[jsh-git] batchedCheckout FAILED', err);
+      throw err;
+    } finally {
+      releaseGitCache(cache);
+    }
+  }
+
   /**
    * Single-branch clone without git.clone: explicit remoteRef + verify pack, then checkout.
+   * Memory strategy: bounded caches + clear between phases + batched checkout.
    */
-  async function cloneSingleBranch(git, fsClient, http, opts) {
+  async function cloneSingleBranch(git, fsClient, http, opts, terminal) {
     const { dest, url, corsProxy, branch, depth, noCheckout } = opts;
-    const fetchCache = new Map();
+    console.log('[jsh-git] cloneSingleBranch START', { dest, url, branch, depth, noCheckout });
+    const cloneStart = Date.now();
+    const fetchProgress = terminal ? createProgressWriter(terminal) : null;
+    let fetchCache = newGitCache();
     try {
+      console.log('[jsh-git] phase: git.init');
       await git.init({ fs: fsClient, dir: dest, defaultBranch: branch });
+      console.log('[jsh-git] phase: git.addRemote');
       await git.addRemote({ fs: fsClient, dir: dest, remote: 'origin', url });
       if (corsProxy) {
         await git.setConfig({
@@ -266,13 +405,71 @@ See also: curl (HTTP), proxy-stats (proxy health).`;
         remoteRef: `refs/heads/${branch}`,
         singleBranch: true,
         tags: true,
-        cache: fetchCache
+        cache: fetchCache,
+        onProgress(evt) {
+          if (!fetchProgress) return;
+          const { phase, loaded, total } = evt;
+          if (total) {
+            const pct = Math.round((loaded / total) * 100);
+            fetchProgress.update(`${phase}: ${pct}% (${loaded}/${total})`);
+          } else {
+            fetchProgress.update(`${phase}: ${loaded}`);
+          }
+        },
+        onMessage(msg) {
+          if (!fetchProgress) return;
+          const line = String(msg).replace(/[\r\n]+$/, '');
+          if (line) fetchProgress.update(`remote: ${line}`);
+        }
       };
       if (depth != null) {
         fetchOpts.depth = depth;
       }
       jshGitTrace('clone fetch start', { dest, url, branch, depth: depth ?? null });
-      const fetchResult = await git.fetch(fetchOpts);
+      if (fetchProgress) fetchProgress.update('Fetching objects...');
+
+      // Heartbeat keeps the user informed while the pack downloads (onProgress
+      // only fires during client-side indexPack, not during the HTTP transfer).
+      let lastProgressAt = Date.now();
+      const fetchStart = lastProgressAt;
+      const origOnProgress = fetchOpts.onProgress;
+      const origOnMessage = fetchOpts.onMessage;
+      fetchOpts.onProgress = (evt) => {
+        lastProgressAt = Date.now();
+        if (origOnProgress) origOnProgress(evt);
+      };
+      fetchOpts.onMessage = (msg) => {
+        lastProgressAt = Date.now();
+        if (origOnMessage) origOnMessage(msg);
+      };
+      const heartbeat = fetchProgress
+        ? setInterval(() => {
+            const silent = Date.now() - lastProgressAt;
+            if (silent > 1500) {
+              const elapsed = Math.round((Date.now() - fetchStart) / 1000);
+              fetchProgress.update(`Receiving objects... ${elapsed}s elapsed (downloading pack)`);
+            }
+          }, 1000)
+        : null;
+
+      let fetchResult;
+      console.log('[jsh-git] phase: git.fetch START');
+      try {
+        fetchResult = await git.fetch(fetchOpts);
+      } catch (fetchErr) {
+        console.error(
+          '[jsh-git] git.fetch FAILED after',
+          ((Date.now() - cloneStart) / 1000).toFixed(1) + 's',
+          fetchErr
+        );
+        throw fetchErr;
+      } finally {
+        if (heartbeat) clearInterval(heartbeat);
+      }
+      console.log(
+        '[jsh-git] phase: git.fetch DONE in',
+        ((Date.now() - cloneStart) / 1000).toFixed(1) + 's'
+      );
       jshGitTrace('clone fetch done', {
         fetchHead: fetchResult.fetchHead,
         defaultBranch: fetchResult.defaultBranch
@@ -280,11 +477,20 @@ See also: curl (HTTP), proxy-stats (proxy health).`;
       if (fetchResult.fetchHead == null) {
         throw new Error('remote repository is empty (no refs)');
       }
+      const fetchElapsed = ((Date.now() - cloneStart) / 1000).toFixed(1);
+      if (fetchProgress) fetchProgress.finish(`Receiving objects: 100%, done. (${fetchElapsed}s)`);
 
-      const objectCache = new Map();
+      releaseGitCache(fetchCache);
+      fetchCache = null;
+
+      console.log('[jsh-git] phase: ensureFetchHeadReadable START');
+      const verifyProgress = terminal ? createProgressWriter(terminal) : null;
+      if (verifyProgress) verifyProgress.update('Resolving deltas...');
+      let verifyCache = newGitCache();
       try {
-        await ensureFetchHeadReadable(git, fsClient, dest, fetchResult.fetchHead, objectCache);
+        await ensureFetchHeadReadable(git, fsClient, dest, fetchResult.fetchHead, verifyCache);
       } catch (readErr) {
+        console.error('[jsh-git] ensureFetchHeadReadable FAILED', readErr);
         const hint = readErr && readErr.message ? readErr.message : String(readErr);
         throw new Error(
           `object ${fetchResult.fetchHead.slice(
@@ -292,8 +498,18 @@ See also: curl (HTTP), proxy-stats (proxy health).`;
             7
           )} not readable after fetch/reindex (${hint}). Pack may be corrupt; check network or CORS proxy.`
         );
+      } finally {
+        releaseGitCache(verifyCache);
+        verifyCache = null;
       }
+      if (verifyProgress) verifyProgress.finish('Resolving deltas: done.');
+      console.log(
+        '[jsh-git] phase: ensureFetchHeadReadable DONE in',
+        ((Date.now() - cloneStart) / 1000).toFixed(1) + 's'
+      );
 
+      console.log('[jsh-git] phase: writeRef HEAD + branch');
+      if (terminal) terminal.addOutput(`Updating references...`);
       await git.writeRef({
         fs: fsClient,
         dir: dest,
@@ -311,15 +527,43 @@ See also: curl (HTTP), proxy-stats (proxy health).`;
       });
 
       if (!noCheckout) {
-        await git.checkout({
-          fs: fsClient,
-          dir: dest,
-          ref: branch,
-          remote: 'origin',
-          cache: objectCache
-        });
+        console.log('[jsh-git] phase: listFiles START');
+        const checkoutProgress = terminal ? createProgressWriter(terminal) : null;
+        if (checkoutProgress) checkoutProgress.update('Enumerating files for checkout...');
+        let listCache = newGitCache();
+        let allFiles;
+        try {
+          allFiles = await git.listFiles({
+            fs: fsClient,
+            dir: dest,
+            ref: branch,
+            cache: listCache
+          });
+        } catch (listErr) {
+          console.error('[jsh-git] listFiles FAILED', listErr);
+          throw listErr;
+        } finally {
+          releaseGitCache(listCache);
+          listCache = null;
+        }
+        console.log('[jsh-git] phase: listFiles DONE, count:', allFiles.length);
+        console.log('[jsh-git] phase: batchedCheckout START');
+        await batchedCheckout(git, fsClient, dest, branch, allFiles, checkoutProgress);
+        console.log(
+          '[jsh-git] phase: batchedCheckout DONE in',
+          ((Date.now() - cloneStart) / 1000).toFixed(1) + 's'
+        );
       }
+      console.log(
+        '[jsh-git] cloneSingleBranch COMPLETE in',
+        ((Date.now() - cloneStart) / 1000).toFixed(1) + 's'
+      );
     } catch (e) {
+      console.error(
+        '[jsh-git] cloneSingleBranch FAILED after',
+        ((Date.now() - cloneStart) / 1000).toFixed(1) + 's',
+        e
+      );
       await cleanupPartialGitDir(fsClient, dest);
       throw e;
     }
@@ -473,8 +717,17 @@ See also: curl (HTTP), proxy-stats (proxy health).`;
                 dest = terminal.resolvePath('repo');
               }
             }
+            terminal.addOutput(`Cloning into '${dest}'...`);
+            console.log(
+              '[jsh-git] clone: url=' + url,
+              'dest=' + dest,
+              'depth=' + depth,
+              'noCheckout=' + noCheckout,
+              'allBranches=' + allBranches
+            );
             let defaultBranchName = '';
             if (allBranches) {
+              console.log('[jsh-git] clone: using allBranches path (git.clone)');
               const cloneOpts = {
                 fs,
                 http,
@@ -498,20 +751,26 @@ See also: curl (HTTP), proxy-stats (proxy health).`;
                 );
               }
               defaultBranchName = branch;
-              await cloneSingleBranch(git, fs, http, {
-                dest,
-                url,
-                corsProxy,
-                branch,
-                depth,
-                noCheckout
-              });
+              await cloneSingleBranch(
+                git,
+                fs,
+                http,
+                {
+                  dest,
+                  url,
+                  corsProxy,
+                  branch,
+                  depth,
+                  noCheckout
+                },
+                terminal
+              );
             }
             const doneMsg = noCheckout
-              ? `Cloning into '${dest}'...\nDone (objects only, no working tree).\nRun: cd '${dest}' && git checkout ${
+              ? `Done (objects only, no working tree).\nRun: cd '${dest}' && git checkout ${
                   allBranches ? '<branch>' : defaultBranchName
-                }\n`
-              : `Cloning into '${dest}'...\nDone.\n`;
+                }`
+              : 'Done.';
             return { stdout: doneMsg, stderr: '', exitCode: 0 };
           }
 
@@ -621,14 +880,35 @@ See also: curl (HTTP), proxy-stats (proxy health).`;
           case 'fetch': {
             const dir = terminal.currentDirectory;
             const remote = rest[0] || 'origin';
-            await git.fetch({ fs, http, dir, remote, corsProxy });
-            return { stdout: `Fetched from ${remote}\n`, stderr: '', exitCode: 0 };
+            const fetchProg = createProgressWriter(terminal);
+            const fetchProgCb = fetchProg
+              ? (evt) => {
+                  const { phase, loaded, total } = evt;
+                  const pct = total
+                    ? `${Math.round((loaded / total) * 100)}% (${loaded}/${total})`
+                    : `${loaded}`;
+                  fetchProg.update(`${phase}: ${pct}`);
+                }
+              : undefined;
+            await git.fetch({ fs, http, dir, remote, corsProxy, onProgress: fetchProgCb });
+            if (fetchProg) fetchProg.finish(`Fetched from ${remote}`);
+            return { stdout: '', stderr: '', exitCode: 0 };
           }
 
           case 'pull': {
             const dir = terminal.currentDirectory;
             const remote = rest[0] || 'origin';
             const branch = rest[1] || (await git.currentBranch({ fs, dir }));
+            const pullProg = createProgressWriter(terminal);
+            const pullProgCb = pullProg
+              ? (evt) => {
+                  const { phase, loaded, total } = evt;
+                  const pct = total
+                    ? `${Math.round((loaded / total) * 100)}% (${loaded}/${total})`
+                    : `${loaded}`;
+                  pullProg.update(`${phase}: ${pct}`);
+                }
+              : undefined;
             await git.pull({
               fs,
               http,
@@ -637,9 +917,11 @@ See also: curl (HTTP), proxy-stats (proxy health).`;
               ref: branch,
               remoteRef: branch,
               corsProxy,
-              author: gitAuthor(terminal)
+              author: gitAuthor(terminal),
+              onProgress: pullProgCb
             });
-            return { stdout: `Pulled ${remote} ${branch}\n`, stderr: '', exitCode: 0 };
+            if (pullProg) pullProg.finish(`Pulled ${remote} ${branch}`);
+            return { stdout: '', stderr: '', exitCode: 0 };
           }
 
           case 'push': {
@@ -690,8 +972,10 @@ See also: curl (HTTP), proxy-stats (proxy health).`;
         }
       } catch (e) {
         if (typeof terminal.isAbortLikeError === 'function' && terminal.isAbortLikeError(e)) {
+          console.warn('[jsh-git] command aborted (Ctrl+C or signal):', sub, e);
           throw e;
         }
+        console.error('[jsh-git] command "' + sub + '" FAILED:', e);
         const msg = e && e.message ? e.message : String(e);
         return { stdout: '', stderr: `git: ${sub} failed: ${msg}\n`, exitCode: 1 };
       }
