@@ -12,15 +12,7 @@
   'use strict';
 
   function jshGitTrace(...args) {
-    let on = false;
-    try {
-      on = window.JSH_GIT_DEBUG === true || localStorage.getItem('jsh_git_debug') === '1';
-    } catch (_) {
-      on = window.JSH_GIT_DEBUG === true;
-    }
-    if (on) {
-      console.debug('[jsh-git]', ...args);
-    }
+    console.log('[jsh-git-http]', ...args);
   }
   window.jshGitTrace = jshGitTrace;
 
@@ -450,10 +442,23 @@
         const runFetch = async () => {
           jshGitTrace('fetch', upper, { url: targetUrl, forwardProxy: forward });
           const userSig = getUserAbortSignal ? getUserAbortSignal() : null;
+
+          // Timeout only guards until response headers arrive. Once the server
+          // starts sending the pack body, we cancel the timer so large downloads
+          // aren't killed. User abort (Ctrl+C) still works throughout.
+          const headerTimeoutCtrl = new AbortController();
+          const headerTimeoutId = setTimeout(() => headerTimeoutCtrl.abort(), 600000);
+          const signals = [headerTimeoutCtrl.signal];
+          if (userSig) signals.push(userSig);
+          const fetchSignal =
+            typeof AbortSignal.any === 'function'
+              ? AbortSignal.any(signals)
+              : headerTimeoutCtrl.signal;
+
           const init = {
             method: upper,
             headers: { ...headers },
-            signal: ShellUtils.combinedFetchSignal(180000, userSig),
+            signal: fetchSignal,
             mode: 'cors'
           };
           if (collected && collected.byteLength) {
@@ -465,30 +470,35 @@
           });
 
           let res;
+          const fetchStartMs = Date.now();
           try {
+            console.log('[jsh-git-http] fetch START', upper, targetUrl.slice(0, 120));
             res = await fetch(targetUrl, init);
           } catch (err) {
+            clearTimeout(headerTimeoutId);
+            console.error('[jsh-git-http] fetch FAILED', upper, targetUrl.slice(0, 120), err);
             const hint =
               err.name === 'TypeError' && !forward
                 ? ' (set JSH_GIT_CORS_PROXY or use default cors proxy — see git --help)'
                 : '';
             throw new Error(`${err.message || err}${hint}`);
           }
+          clearTimeout(headerTimeoutId);
+          console.log('[jsh-git-http] fetch headers received in', ((Date.now() - fetchStartMs) / 1000).toFixed(1) + 's', 'status=' + res.status);
 
-          // upload-pack: stream side-band responses chunk-by-chunk to avoid res.arrayBuffer()
-          // duplicating ~90MB+ in RAM (common OOM). Raw PACK-at-0 proxy bodies are buffered inside
-          // streamUploadPackResponse. receive-pack stays on responseToGitBody.
           let body;
           if (
             upper === 'POST' &&
             res.body &&
             urlPathnameIncludesGitUploadPack(res.url || targetUrl)
           ) {
+            console.log('[jsh-git-http] streaming upload-pack response body...');
             body = streamUploadPackResponse(res);
           } else {
             body = await responseToGitBody(res);
           }
 
+          console.log('[jsh-git-http] fetch COMPLETE in', ((Date.now() - fetchStartMs) / 1000).toFixed(1) + 's', upper, targetUrl.slice(0, 80));
           return {
             url: res.url,
             method: upper,
@@ -525,8 +535,8 @@
                 },
                 body: singleChunk(bytes)
               };
-            } catch (_) {
-              /* fall through to direct fetch */
+            } catch (proxyErr) {
+              console.warn('[jsh-git-http] proxy fetch failed, falling through to direct fetch:', proxyErr.message || proxyErr);
             }
           }
         }

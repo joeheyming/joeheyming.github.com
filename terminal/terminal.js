@@ -802,8 +802,8 @@ class Terminal {
           if (filePath.startsWith('/bin/')) {
             const commandHandler = await window.commandRegistry.get(actualCmd);
             if (commandHandler) {
+              const terminalContext = this;
               try {
-                const terminalContext = this;
                 terminalContext.stdin = stdin;
                 terminalContext.hasStdin = stdin.length > 0;
                 terminalContext.stdinSupplied = stdinSupplied;
@@ -826,6 +826,7 @@ class Terminal {
                 delete terminalContext.stdinSupplied;
                 delete terminalContext.redirections;
                 if (this.isAbortLikeError(error)) throw error;
+                console.error('[terminal] command error (' + filePath + '):', error);
                 return this.commandResult('', `Error executing ${filePath}: ${error.message}`, 1);
               }
             }
@@ -860,6 +861,7 @@ class Terminal {
           return this.commandResult('', `bash: ${cmdName}: No such file or directory`, 127);
         }
       } catch (error) {
+        console.error('[terminal] file execution error (' + cmdName + '):', error);
         return this.commandResult('', `bash: ${cmdName}: ${error.message}`, 1);
       }
     }
@@ -867,14 +869,12 @@ class Terminal {
     // Try to get command from registry (now async)
     const commandHandler = await window.commandRegistry.get(cmdName);
     if (commandHandler) {
+      const terminalContext = this;
       try {
-        // Create a modified terminal context for piped commands
-        // For commands that modify terminal state (like cd), use the original terminal
-        const terminalContext = this;
         terminalContext.stdin = stdin;
         terminalContext.hasStdin = stdin.length > 0;
         terminalContext.stdinSupplied = stdinSupplied;
-        terminalContext.redirections = cmd.redirections; // Pass redirection info
+        terminalContext.redirections = cmd.redirections;
 
         const result = commandHandler(terminalContext, cmd.args);
         const output = result instanceof Promise ? await result : result;
@@ -893,6 +893,7 @@ class Terminal {
         delete terminalContext.stdinSupplied;
         delete terminalContext.redirections;
         if (this.isAbortLikeError(error)) throw error;
+        console.error('[terminal] command error (' + cmdName + '):', error);
         return this.commandResult('', `Error executing ${cmdName}: ${error.message}`, 1);
       }
     }

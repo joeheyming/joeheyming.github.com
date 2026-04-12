@@ -166,6 +166,19 @@ export class QuickLookPreview {
       audio.autoplay = true;
       contentEl.appendChild(audio);
       contentEl.classList.add('audio-preview');
+    } else if (mimeType === 'text/html') {
+      const iframe = document.createElement('iframe');
+      iframe.sandbox = 'allow-scripts';
+      let html;
+      if (content instanceof ArrayBuffer || ArrayBuffer.isView(content)) {
+        html = new TextDecoder().decode(content);
+      } else {
+        html = typeof content === 'string' ? content : String(content);
+      }
+      iframe.srcdoc = html;
+      iframe.title = fileName;
+      iframe.style.cssText = 'width:100%;height:100%;border:none;background:#fff;';
+      contentEl.appendChild(iframe);
     } else if (this._isTextMimeType(mimeType)) {
       const pre = document.createElement('pre');
       const textContent = typeof content === 'string' ? content : String(content);
