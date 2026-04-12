@@ -9,7 +9,16 @@
  */
 
 // Core utilities (no dependencies)
-import { Config, debug, getConfig } from './config.js';
+import {
+  Config,
+  debug,
+  getConfig,
+  isFirstRun,
+  saveUsername,
+  getSavedUsername,
+  saveHostname,
+  getSavedHostname
+} from './config.js';
 import { Constants, MessageTypes, IframeActions } from './constants.js';
 import { Icons } from './Icons.js';
 import { InputHandler } from './InputHandler.js';

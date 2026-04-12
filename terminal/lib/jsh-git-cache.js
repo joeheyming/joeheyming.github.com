@@ -65,9 +65,8 @@
    * @returns {object} — pass this as the `cache` parameter to isomorphic-git
    */
   function createBoundedGitCache(maxBytes) {
-    const limit = (maxBytes != null && Number.isFinite(maxBytes) && maxBytes > 0)
-      ? maxBytes
-      : DEFAULT_MAX_BYTES;
+    const limit =
+      maxBytes != null && Number.isFinite(maxBytes) && maxBytes > 0 ? maxBytes : DEFAULT_MAX_BYTES;
 
     const target = {};
     let totalSize = 0;
@@ -77,7 +76,11 @@
       if (totalSize <= budget) return;
       for (const [key, size] of tracked) {
         if (totalSize <= budget) break;
-        try { delete target[key]; } catch (_) { /* noop */ }
+        try {
+          delete target[key];
+        } catch (_) {
+          /* noop */
+        }
         totalSize -= size;
         tracked.delete(key);
       }
@@ -121,11 +124,19 @@
       cache.clear();
     }
     for (const sym of Object.getOwnPropertySymbols(cache)) {
-      try { delete cache[sym]; } catch (_) { /* noop */ }
+      try {
+        delete cache[sym];
+      } catch (_) {
+        /* noop */
+      }
     }
     for (const key of Object.keys(cache)) {
       if (key.startsWith('__boundedCache')) continue;
-      try { delete cache[key]; } catch (_) { /* noop */ }
+      try {
+        delete cache[key];
+      } catch (_) {
+        /* noop */
+      }
     }
   }
 

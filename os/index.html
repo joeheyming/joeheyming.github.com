@@ -52,6 +52,120 @@
     </style>
   </head>
   <body class="h-full bg-gray-900">
+    <!-- First-run setup wizard (GNOME/Ubuntu-style) -->
+    <div id="os-setup-wizard" class="fixed inset-0 z-[500] hidden">
+      <div class="os-setup-bg"></div>
+      <div
+        class="os-setup-container"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="os-setup-title"
+      >
+        <div class="os-setup-card">
+          <!-- Step 1: Welcome -->
+          <div id="os-setup-step-welcome" class="os-setup-step">
+            <div class="os-setup-icon">👋</div>
+            <h1 id="os-setup-title" class="os-setup-heading">Welcome to Heyming OS</h1>
+            <p class="os-setup-subtitle">
+              Let's get your system set up. This will only take a moment.
+            </p>
+            <button type="button" id="os-setup-start" class="os-setup-btn os-setup-btn-primary">
+              Let's Go
+            </button>
+          </div>
+
+          <!-- Step 2: Username + Hostname -->
+          <div id="os-setup-step-user" class="os-setup-step hidden">
+            <div class="os-setup-icon">👤</div>
+            <h2 class="os-setup-heading">Set Up Your System</h2>
+            <p class="os-setup-subtitle">Choose a username and a name for this computer.</p>
+            <div class="os-setup-field">
+              <label for="os-setup-username" class="os-setup-label">Username</label>
+              <input
+                type="text"
+                id="os-setup-username"
+                class="os-setup-input"
+                placeholder="e.g. alice"
+                autocomplete="off"
+                autocapitalize="none"
+                autocorrect="off"
+                spellcheck="false"
+              />
+              <p id="os-setup-username-hint" class="os-setup-hint">
+                Lowercase letters, numbers, dots, dashes, and underscores.
+              </p>
+              <p id="os-setup-username-error" class="os-setup-error hidden"></p>
+            </div>
+            <div class="os-setup-field">
+              <label for="os-setup-hostname" class="os-setup-label">Computer Name</label>
+              <input
+                type="text"
+                id="os-setup-hostname"
+                class="os-setup-input"
+                placeholder="e.g. my-laptop"
+                autocomplete="off"
+                autocapitalize="none"
+                autocorrect="off"
+                spellcheck="false"
+              />
+              <p id="os-setup-hostname-hint" class="os-setup-hint">
+                Lowercase letters, numbers, and dashes.
+              </p>
+              <p id="os-setup-hostname-error" class="os-setup-error hidden"></p>
+            </div>
+            <div class="os-setup-preview hidden" id="os-setup-preview">
+              <div class="os-setup-preview-row">
+                <span class="os-setup-preview-label">Prompt</span>
+                <span class="os-setup-preview-value" id="os-setup-preview-prompt"></span>
+              </div>
+              <div class="os-setup-preview-row">
+                <span class="os-setup-preview-label">Home directory</span>
+                <span class="os-setup-preview-value" id="os-setup-preview-home"></span>
+              </div>
+              <div class="os-setup-preview-row">
+                <span class="os-setup-preview-label">Shell</span>
+                <span class="os-setup-preview-value">/bin/jsh</span>
+              </div>
+            </div>
+            <div class="os-setup-actions">
+              <button type="button" id="os-setup-back" class="os-setup-btn os-setup-btn-secondary">
+                Back
+              </button>
+              <button
+                type="button"
+                id="os-setup-confirm"
+                class="os-setup-btn os-setup-btn-primary"
+                disabled
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 3: Done -->
+          <div id="os-setup-step-done" class="os-setup-step hidden">
+            <div class="os-setup-icon">🎉</div>
+            <h2 class="os-setup-heading">All Set!</h2>
+            <p class="os-setup-subtitle" id="os-setup-done-msg">
+              Welcome,
+              <strong id="os-setup-done-user"></strong>
+              . Your system is ready.
+            </p>
+            <button type="button" id="os-setup-finish" class="os-setup-btn os-setup-btn-primary">
+              Start Using Heyming OS
+            </button>
+          </div>
+
+          <!-- Progress dots -->
+          <div class="os-setup-dots" aria-hidden="true">
+            <span class="os-setup-dot active" id="os-setup-dot-0"></span>
+            <span class="os-setup-dot" id="os-setup-dot-1"></span>
+            <span class="os-setup-dot" id="os-setup-dot-2"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Heyming OS (visible by default on dedicated page) -->
     <div id="heyming-os" class="fixed inset-0 bg-gray-900 z-[200]">
       <!-- Absolute path: <base href="../"> makes fragment-only #hash resolve to site root, not this page -->

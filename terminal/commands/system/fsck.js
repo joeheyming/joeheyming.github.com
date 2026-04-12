@@ -51,9 +51,17 @@ Examples:
             output += '✅ Filesystem scaffold recreated\n';
 
             // Emit create event so desktop and other components refresh
+            const _su = () => {
+              try {
+                return localStorage.getItem('heymingOS_username');
+              } catch {
+                return null;
+              }
+            };
+            const _u = _su() || 'user';
             const cfg = window.parent?.HeymingOS?.Config || {
-              HOME: '/home/jheyming',
-              DESKTOP: '/home/jheyming/Desktop'
+              HOME: `/home/${_u}`,
+              DESKTOP: `/home/${_u}/Desktop`
             };
             window.FileSystemDB.emit('create', cfg.DESKTOP, {
               type: 'directory',

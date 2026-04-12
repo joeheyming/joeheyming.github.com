@@ -58,6 +58,17 @@ class CommandRegistry {
       xargs: 'commands/system/xargs.js',
       printf: 'commands/system/printf.js',
 
+      // User and group management
+      useradd: 'commands/system/useradd.js',
+      userdel: 'commands/system/userdel.js',
+      usermod: 'commands/system/usermod.js',
+      groupadd: 'commands/system/groupadd.js',
+      groupdel: 'commands/system/groupdel.js',
+      passwd: 'commands/system/passwd.js',
+      id: 'commands/system/id.js',
+      groups: 'commands/system/groups.js',
+      su: 'commands/system/su.js',
+
       // Filesystem commands
       ls: 'commands/filesystem/ls.js',
       pwd: 'commands/filesystem/pwd.js',

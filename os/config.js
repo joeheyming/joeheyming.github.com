@@ -3,9 +3,52 @@
  * Central location for all configurable values
  */
 
+const USERNAME_KEY = 'heymingOS_username';
+const HOSTNAME_KEY = 'heymingOS_hostname';
+
+export function getSavedUsername() {
+  try {
+    return localStorage.getItem(USERNAME_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function saveUsername(name) {
+  try {
+    localStorage.setItem(USERNAME_KEY, name);
+  } catch {
+    // storage unavailable
+  }
+}
+
+export function getSavedHostname() {
+  try {
+    return localStorage.getItem(HOSTNAME_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function saveHostname(name) {
+  try {
+    localStorage.setItem(HOSTNAME_KEY, name);
+  } catch {
+    // storage unavailable
+  }
+}
+
+export function isFirstRun() {
+  return !getSavedUsername();
+}
+
 export const Config = {
-  // User configuration
-  USER: 'jheyming',
+  get USER() {
+    return getSavedUsername() || 'user';
+  },
+  get HOSTNAME() {
+    return getSavedHostname() || 'heyming-os';
+  },
 
   // Computed paths (derived from USER)
   get HOME() {

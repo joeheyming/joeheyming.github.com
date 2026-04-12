@@ -1,4 +1,29 @@
 // Enhanced Terminal for Heyming OS - Modular Version
+function _savedUser() {
+  try {
+    return localStorage.getItem('heymingOS_username');
+  } catch {
+    return null;
+  }
+}
+function _savedHostname() {
+  try {
+    return localStorage.getItem('heymingOS_hostname');
+  } catch {
+    return null;
+  }
+}
+function _defaultUser() {
+  return window.parent?.HeymingOS?.Config?.USER || _savedUser() || 'user';
+}
+function _defaultHome() {
+  const u = _defaultUser();
+  return window.parent?.HeymingOS?.Config?.HOME || `/home/${u}`;
+}
+function _defaultHostname() {
+  return window.parent?.HeymingOS?.Config?.HOSTNAME || _savedHostname() || 'heyming-os';
+}
+
 class Terminal {
   constructor(windowId = null, osInstance = null) {
     this.windowId = windowId;
@@ -33,13 +58,13 @@ class Terminal {
 
     // Initialize environment variables
     this.env = {
-      USER: window.parent?.HeymingOS?.Config?.USER || 'jheyming',
-      HOME: window.parent?.HeymingOS?.Config?.HOME || '/home/jheyming',
-      PWD: window.parent?.HeymingOS?.Config?.HOME || '/home/jheyming',
+      USER: _defaultUser(),
+      HOME: _defaultHome(),
+      PWD: _defaultHome(),
       SHELL: '/bin/jsh',
       TERM: 'heyming-terminal',
       PATH: '/bin:/usr/bin:/usr/local/bin',
-      HOSTNAME: 'heyming-os',
+      HOSTNAME: _defaultHostname(),
       LANG: 'en_US.UTF-8',
       EDITOR: 'nano',
       PAGER: 'less'
@@ -199,8 +224,12 @@ class Terminal {
       // Windowed mode - use window-specific selectors
       terminalInput = windowElement.querySelector('.terminal-input');
     } else {
-      // Main terminal - only print welcome if not already shown
+      // Main terminal — check for first-run setup (standalone only, not OS embed)
       terminalInput = document.getElementById('terminal-input');
+      if (this._needsFirstRunSetup()) {
+        this._showFirstRunSetup();
+        return;
+      }
       const terminalOutput = document.getElementById('terminal-output');
       if (!terminalOutput || !terminalOutput.textContent.includes('Welcome to jsh')) {
         this.printWelcome();
@@ -215,19 +244,7 @@ class Terminal {
     this.bindInputEvents(terminalInput);
 
     // Click anywhere in terminal to focus input
-    const terminalContainer = document.getElementById('terminal-container');
-    if (terminalContainer) {
-      terminalContainer.addEventListener('click', (e) => {
-        // Don't steal focus if user is selecting text
-        if (window.getSelection().toString()) return;
-        // Don't interfere with other interactive elements
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-        // Focus the current active input
-        const activeInput =
-          terminalContainer.querySelector('.terminal-input:last-of-type') || terminalInput;
-        if (activeInput) activeInput.focus();
-      });
-    }
+    this._bindTerminalClickToFocus(terminalInput);
 
     this._bindScrollLatestAffordance();
 
@@ -235,6 +252,183 @@ class Terminal {
     window.addEventListener('beforeunload', () => {
       this.saveCommandHistory();
     });
+  }
+
+  _needsFirstRunSetup() {
+    if (this.windowId) return false;
+    if (document.documentElement.classList.contains('terminal-embed-os')) return false;
+    try {
+      return !localStorage.getItem('heymingOS_username');
+    } catch {
+      return false;
+    }
+  }
+
+  _showFirstRunSetup() {
+    const terminalOutput = document.getElementById('terminal-output');
+    const terminalInput = document.getElementById('terminal-input');
+    const promptText = document.getElementById('prompt-text');
+    if (!terminalOutput || !terminalInput) return;
+
+    const addPre = (lines) => {
+      const pre = document.createElement('pre');
+      pre.className = 'setup-wizard';
+      pre.textContent = lines.join('\n');
+      terminalOutput.appendChild(pre);
+    };
+
+    const echoPrompt = (label, value) => {
+      const el = document.createElement('div');
+      el.innerHTML = `<span class="prompt">  ${label}</span>${value}`;
+      terminalOutput.appendChild(el);
+    };
+
+    const showError = (msg) => {
+      const err = document.createElement('div');
+      err.className = 'setup-error';
+      err.textContent = `  ⚠  ${msg}`;
+      terminalOutput.appendChild(err);
+    };
+
+    const askInput = (label, placeholder, validate) => {
+      return new Promise((resolve) => {
+        promptText.textContent = `  ${label}`;
+        terminalInput.placeholder = placeholder;
+        terminalInput.value = '';
+        terminalInput.disabled = false;
+        terminalInput.focus();
+        const handler = (e) => {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          const result = validate(terminalInput.value);
+          if (result.error) {
+            showError(result.error);
+            terminalInput.value = '';
+            return;
+          }
+          terminalInput.removeEventListener('keydown', handler);
+          terminalInput.disabled = true;
+          echoPrompt(label, result.value);
+          resolve(result.value);
+        };
+        terminalInput.addEventListener('keydown', handler);
+      });
+    };
+
+    const finishSetup = () => {
+      terminalOutput.innerHTML = '';
+      terminalInput.disabled = false;
+      terminalInput.placeholder = 'Type a command...';
+      this.printWelcome();
+      this.printPrompt();
+      this.syncStandaloneDocumentTitle();
+      terminalInput.focus();
+      this.bindInputEvents(terminalInput);
+      this._bindTerminalClickToFocus(terminalInput);
+      this._bindScrollLatestAffordance();
+      window.addEventListener('beforeunload', () => {
+        this.saveCommandHistory();
+      });
+    };
+
+    const run = async () => {
+      addPre([
+        '',
+        '  ┌──────────────────────────────────────────────────────────────┐',
+        '  │                                                              │',
+        '  │             Heyming OS — First Time Setup                    │',
+        '  │                                                              │',
+        "  │   Detected first boot. Let's configure your system.         │",
+        '  │                                                              │',
+        '  └──────────────────────────────────────────────────────────────┘',
+        '',
+        '  [  1 / 3  ]  User Account',
+        ''
+      ]);
+
+      const username = await askInput('Enter your username: ', 'e.g. alice', (raw) => {
+        const v = raw
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9._-]/g, '');
+        if (!v) return { error: 'Username must contain at least one character (a-z, 0-9, . _ -)' };
+        return { value: v };
+      });
+
+      addPre(['', '  [  2 / 3  ]  Computer Name', '']);
+
+      const hostname = await askInput('Enter hostname: ', 'e.g. my-laptop', (raw) => {
+        const v = raw
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9-]/g, '');
+        if (!v) return { error: 'Hostname must contain at least one character (a-z, 0-9, -)' };
+        return { value: v };
+      });
+
+      addPre([
+        '',
+        '  [  3 / 3  ]  Confirm',
+        '',
+        `  Username:   ${username}`,
+        `  Hostname:   ${hostname}`,
+        `  Home:       /home/${username}`,
+        `  Shell:      /bin/jsh`,
+        ''
+      ]);
+
+      const answer = await askInput('Is this correct? [Y/n]: ', '', (raw) => {
+        return { value: raw.trim().toLowerCase() || 'y' };
+      });
+
+      if (answer === 'n' || answer === 'no') {
+        terminalOutput.innerHTML = '';
+        run();
+        return;
+      }
+
+      this._applyFirstRunSettings(username, hostname);
+
+      addPre([
+        '',
+        '  ✓  User account created.',
+        `  ✓  Home directory /home/${username} initialized.`,
+        `  ✓  Hostname set to ${hostname}.`,
+        '  ✓  System configuration saved.',
+        '',
+        '  Setup complete. Booting jsh...',
+        ''
+      ]);
+
+      await new Promise((r) => setTimeout(r, 600));
+      finishSetup();
+    };
+
+    run();
+  }
+
+  _applyFirstRunSettings(username, hostname) {
+    try {
+      localStorage.setItem('heymingOS_username', username);
+      localStorage.setItem('heymingOS_hostname', hostname);
+    } catch {
+      // storage unavailable
+    }
+    this.env.USER = username;
+    this.env.HOME = `/home/${username}`;
+    this.env.PWD = `/home/${username}`;
+    this.env.HOSTNAME = hostname;
+    this.currentDirectory = this.env.HOME;
+    if (this.process) {
+      this.process.env.USER = username;
+      this.process.env.HOME = this.env.HOME;
+      this.process.env.PWD = this.env.PWD;
+      this.process.env.HOSTNAME = hostname;
+      this.process.cwd = this.env.HOME;
+    }
+    if (this.fileSystemDB) {
+      this.fileSystemDB.initializeWithScaffolding(username).catch(() => {});
+    }
   }
 
   bindInputEvents(input) {
@@ -1177,7 +1371,7 @@ class Terminal {
       return ShellUtils.resolveVirtualPath(path, this.currentDirectory);
     }
     let p = String(path);
-    const homeRaw = this.env.HOME || '/home/jheyming';
+    const homeRaw = this.env.HOME || _defaultHome();
     const home = homeRaw.startsWith('/') ? homeRaw.replace(/\/+$/, '') || '/' : homeRaw;
     if (p === '~') {
       p = home;
@@ -1378,7 +1572,7 @@ class Terminal {
 
   async handlePathCompletion(input, parts, lastPart) {
     const home = ShellUtils.resolveVirtualPath(
-      String(this.env.HOME || '/home/jheyming').replace(/\/+$/, '') || '/',
+      String(this.env.HOME || _defaultHome()).replace(/\/+$/, '') || '/',
       '/'
     );
     const usesTilde = lastPart === '~' || lastPart.startsWith('~/');
@@ -1861,6 +2055,20 @@ class Terminal {
   /**
    * Theme G: floating "Jump to latest" when the transcript is scrolled away from the bottom (standalone).
    */
+  _bindTerminalClickToFocus(fallbackInput) {
+    const container = this.windowId
+      ? document.getElementById(`window-${this.windowId}`)
+      : document.getElementById('terminal-container');
+    if (!container) return;
+    container.addEventListener('click', (e) => {
+      if (window.getSelection().toString()) return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+      if (e.target.closest('.terminal-modal, .top-modal, .less-modal, .vi-editor-modal')) return;
+      const activeInput = container.querySelector('.terminal-input:last-of-type') || fallbackInput;
+      if (activeInput && !activeInput.disabled) activeInput.focus();
+    });
+  }
+
   _bindScrollLatestAffordance() {
     if (this.windowId) return;
     const btn = document.getElementById('terminal-scroll-latest');

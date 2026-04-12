@@ -71,8 +71,10 @@ See also: curl (HTTP), proxy-stats (proxy health).`;
 
   function gitAuthor(terminal) {
     return {
-      name: terminal.env.GIT_AUTHOR_NAME || terminal.env.USER || 'jheyming',
-      email: terminal.env.GIT_AUTHOR_EMAIL || 'jheyming@heyming-os.local'
+      name: terminal.env.GIT_AUTHOR_NAME || terminal.env.USER || 'user',
+      email:
+        terminal.env.GIT_AUTHOR_EMAIL ||
+        `${terminal.env.USER || 'user'}@${terminal.env.HOSTNAME || 'heyming-os'}.local`
     };
   }
 
@@ -240,8 +242,8 @@ See also: curl (HTTP), proxy-stats (proxy health).`;
     }
   }
 
-  const CHECKOUT_BATCH_SIZE = 500;
-  const CHECKOUT_BATCH_THRESHOLD = 500;
+  const CHECKOUT_BATCH_SIZE = 100;
+  const CHECKOUT_BATCH_THRESHOLD = 100;
 
   function newGitCache() {
     return typeof window.createBoundedGitCache === 'function' ? window.createBoundedGitCache() : {};
@@ -297,78 +299,84 @@ See also: curl (HTTP), proxy-stats (proxy health).`;
   }
 
   /**
-   * Checkout files in batches to cap peak memory. A single bounded cache is
-   * shared across all batches so the pack index stays warm in memory (the cache
-   * auto-evicts at 50 MB, preventing OOM). Batching still limits the number of
-   * blobs expanded per round, keeping the JS heap from spiking.
+   * Checkout files in batches to cap peak memory. Each batch gets a fresh
+   * bounded cache that is released afterwards, and a short setTimeout yield
+   * between batches gives the browser GC a chance to collect decompressed
+   * blobs before the next batch starts.
    */
   async function batchedCheckout(git, fsClient, dest, branch, allFiles, progress) {
     const total = allFiles.length;
-    const cache = newGitCache();
-    try {
-      if (total <= CHECKOUT_BATCH_THRESHOLD) {
-        console.log('[jsh-git] checkout: small repo (' + total + ' files), single checkout');
-        if (progress) progress.update(`Checking out files: ${total} files`);
+    if (total <= CHECKOUT_BATCH_THRESHOLD) {
+      console.log('[jsh-git] checkout: small repo (' + total + ' files), single checkout');
+      if (progress) progress.update(`Checking out files: ${total} files`);
+      const cache = newGitCache();
+      try {
         await git.checkout({ fs: fsClient, dir: dest, ref: branch, remote: 'origin', cache });
-        if (progress) progress.finish(`Checking out files: ${total}/${total}, done.`);
-        return;
+      } catch (err) {
+        console.error('[jsh-git] checkout (single) FAILED', err);
+        throw err;
+      } finally {
+        releaseGitCache(cache);
       }
-      const numBatches = Math.ceil(total / CHECKOUT_BATCH_SIZE);
-      console.log(
-        '[jsh-git] batched checkout:',
-        total,
-        'files in',
-        numBatches,
-        'batches of',
-        CHECKOUT_BATCH_SIZE
-      );
-      jshGitTrace('batched checkout', { files: total, batchSize: CHECKOUT_BATCH_SIZE });
-      const checkoutStart = Date.now();
-      for (let i = 0; i < total; i += CHECKOUT_BATCH_SIZE) {
-        const batch = allFiles.slice(i, i + CHECKOUT_BATCH_SIZE);
-        const done = Math.min(i + batch.length, total);
-        const pct = Math.round((done / total) * 100);
-        const batchNum = Math.floor(i / CHECKOUT_BATCH_SIZE) + 1;
-        const elapsed = Math.round((Date.now() - checkoutStart) / 1000);
-        const suffix = elapsed > 2 ? ` (${elapsed}s)` : '';
-        if (progress) progress.update(`Checking out files: ${pct}% (${done}/${total})${suffix}`);
-        try {
-          await git.checkout({
-            fs: fsClient,
-            dir: dest,
-            ref: branch,
-            remote: 'origin',
-            filepaths: batch,
-            force: true,
-            cache
-          });
-        } catch (batchErr) {
-          console.error(
-            '[jsh-git] checkout batch',
-            batchNum + '/' + numBatches,
-            'FAILED at files',
-            i,
-            '-',
-            done,
-            batchErr
-          );
-          throw batchErr;
-        }
-        console.log(
+      if (progress) progress.finish(`Checking out files: ${total}/${total}, done.`);
+      return;
+    }
+    const numBatches = Math.ceil(total / CHECKOUT_BATCH_SIZE);
+    console.log(
+      '[jsh-git] batched checkout:',
+      total,
+      'files in',
+      numBatches,
+      'batches of',
+      CHECKOUT_BATCH_SIZE
+    );
+    jshGitTrace('batched checkout', { files: total, batchSize: CHECKOUT_BATCH_SIZE });
+    const checkoutStart = Date.now();
+    for (let i = 0; i < total; i += CHECKOUT_BATCH_SIZE) {
+      const batch = allFiles.slice(i, i + CHECKOUT_BATCH_SIZE);
+      const done = Math.min(i + batch.length, total);
+      const pct = Math.round((done / total) * 100);
+      const batchNum = Math.floor(i / CHECKOUT_BATCH_SIZE) + 1;
+      const elapsed = Math.round((Date.now() - checkoutStart) / 1000);
+      const suffix = elapsed > 2 ? ` (${elapsed}s)` : '';
+      if (progress) progress.update(`Checking out files: ${pct}% (${done}/${total})${suffix}`);
+      const cache = newGitCache();
+      try {
+        await git.checkout({
+          fs: fsClient,
+          dir: dest,
+          ref: branch,
+          remote: 'origin',
+          filepaths: batch,
+          force: true,
+          cache
+        });
+      } catch (batchErr) {
+        console.error(
           '[jsh-git] checkout batch',
           batchNum + '/' + numBatches,
-          'done (' + done + '/' + total + ')'
+          'FAILED at files',
+          i,
+          '-',
+          done,
+          batchErr
         );
+        throw batchErr;
+      } finally {
+        releaseGitCache(cache);
       }
-      const totalElapsed = ((Date.now() - checkoutStart) / 1000).toFixed(1);
-      if (progress)
-        progress.finish(`Checking out files: 100% (${total}/${total}), done. (${totalElapsed}s)`);
-    } catch (err) {
-      console.error('[jsh-git] batchedCheckout FAILED', err);
-      throw err;
-    } finally {
-      releaseGitCache(cache);
+      console.log(
+        '[jsh-git] checkout batch',
+        batchNum + '/' + numBatches,
+        'done (' + done + '/' + total + ')'
+      );
+      // Yield to the event loop so the browser GC can reclaim decompressed
+      // blobs and IndexedDB transaction buffers before the next batch.
+      await new Promise((r) => setTimeout(r, 0));
     }
+    const totalElapsed = ((Date.now() - checkoutStart) / 1000).toFixed(1);
+    if (progress)
+      progress.finish(`Checking out files: 100% (${total}/${total}), done. (${totalElapsed}s)`);
   }
 
   /**
@@ -547,6 +555,8 @@ See also: curl (HTTP), proxy-stats (proxy health).`;
           listCache = null;
         }
         console.log('[jsh-git] phase: listFiles DONE, count:', allFiles.length);
+        // Yield so GC can reclaim fetch/verify/listFiles memory before checkout.
+        await new Promise((r) => setTimeout(r, 0));
         console.log('[jsh-git] phase: batchedCheckout START');
         await batchedCheckout(git, fsClient, dest, branch, allFiles, checkoutProgress);
         console.log(

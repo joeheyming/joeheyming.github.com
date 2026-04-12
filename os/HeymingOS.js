@@ -3,7 +3,7 @@
  * Thin coordinator that wires up all subsystems
  */
 
-import { Config, debug } from './config.js';
+import { Config, debug, isFirstRun, saveUsername, saveHostname } from './config.js';
 import { Constants, MessageTypes, IframeActions } from './constants.js';
 import { InputHandler } from './InputHandler.js';
 import { WindowManager } from './WindowManager.js';
@@ -141,6 +141,14 @@ export class HeymingOS {
   // ========== Public API ==========
 
   show() {
+    if (isFirstRun()) {
+      this._showSetupWizard();
+      return;
+    }
+    this._showDesktop();
+  }
+
+  _showDesktop() {
     const osElement = document.getElementById('heyming-os');
     if (osElement) {
       osElement.classList.remove('hidden');
@@ -154,9 +162,133 @@ export class HeymingOS {
       }, 100);
 
       setTimeout(() => {
-        this.notifications.system('Welcome to Heyming OS v1.0! 🚀');
+        this.notifications.system(`Welcome to Heyming OS v1.0, ${Config.USER}!`);
       }, 500);
     }
+  }
+
+  _showSetupWizard() {
+    const wizard = document.getElementById('os-setup-wizard');
+    if (!wizard) {
+      this._showDesktop();
+      return;
+    }
+    wizard.classList.remove('hidden');
+
+    const stepWelcome = document.getElementById('os-setup-step-welcome');
+    const stepUser = document.getElementById('os-setup-step-user');
+    const stepDone = document.getElementById('os-setup-step-done');
+    const startBtn = document.getElementById('os-setup-start');
+    const backBtn = document.getElementById('os-setup-back');
+    const confirmBtn = document.getElementById('os-setup-confirm');
+    const finishBtn = document.getElementById('os-setup-finish');
+    const usernameInput = document.getElementById('os-setup-username');
+    const hostnameInput = document.getElementById('os-setup-hostname');
+    const preview = document.getElementById('os-setup-preview');
+    const previewHome = document.getElementById('os-setup-preview-home');
+    const previewPrompt = document.getElementById('os-setup-preview-prompt');
+    const usernameError = document.getElementById('os-setup-username-error');
+    const usernameHint = document.getElementById('os-setup-username-hint');
+    const hostnameError = document.getElementById('os-setup-hostname-error');
+    const hostnameHint = document.getElementById('os-setup-hostname-hint');
+    const doneUser = document.getElementById('os-setup-done-user');
+    const dots = [0, 1, 2].map((i) => document.getElementById(`os-setup-dot-${i}`));
+
+    const setStep = (idx) => {
+      [stepWelcome, stepUser, stepDone].forEach((s, i) => {
+        s.classList.toggle('hidden', i !== idx);
+      });
+      dots.forEach((d, i) => {
+        d.classList.toggle('active', i === idx);
+        d.classList.toggle('completed', i < idx);
+      });
+    };
+
+    const validateField = (input, errorEl, hintEl, regex, errorMsg) => {
+      const raw = input.value.trim().toLowerCase();
+      const clean = raw.replace(regex, '');
+      if (raw && raw !== clean) {
+        errorEl.textContent = errorMsg;
+        errorEl.classList.remove('hidden');
+        hintEl.classList.add('hidden');
+      } else {
+        errorEl.classList.add('hidden');
+        hintEl.classList.remove('hidden');
+      }
+      return clean;
+    };
+
+    const validate = () => {
+      const user = validateField(
+        usernameInput,
+        usernameError,
+        usernameHint,
+        /[^a-z0-9._-]/g,
+        'Only lowercase a-z, 0-9, dots, dashes, and underscores.'
+      );
+      const host = validateField(
+        hostnameInput,
+        hostnameError,
+        hostnameHint,
+        /[^a-z0-9-]/g,
+        'Only lowercase a-z, 0-9, and dashes.'
+      );
+      if (user && host) {
+        preview.classList.remove('hidden');
+        previewHome.textContent = `/home/${user}`;
+        previewPrompt.textContent = `${user}@${host}:~$`;
+      } else if (user) {
+        preview.classList.remove('hidden');
+        previewHome.textContent = `/home/${user}`;
+        previewPrompt.textContent = `${user}@...:~$`;
+      } else {
+        preview.classList.add('hidden');
+      }
+      confirmBtn.disabled = !user || !host;
+      return { user, host };
+    };
+
+    startBtn.addEventListener('click', () => {
+      setStep(1);
+      usernameInput.focus();
+    });
+
+    backBtn.addEventListener('click', () => {
+      setStep(0);
+    });
+
+    usernameInput.addEventListener('input', validate);
+    hostnameInput.addEventListener('input', validate);
+    const onEnter = (e) => {
+      if (e.key === 'Enter' && !confirmBtn.disabled) confirmBtn.click();
+    };
+    usernameInput.addEventListener('keydown', onEnter);
+    hostnameInput.addEventListener('keydown', onEnter);
+
+    confirmBtn.addEventListener('click', () => {
+      const { user, host } = validate();
+      if (!user || !host) return;
+
+      saveUsername(user);
+      saveHostname(host);
+
+      doneUser.textContent = user;
+      setStep(2);
+
+      if (this.fileSystemDB) {
+        this.fileSystemDB.initializeWithScaffolding(user).catch(() => {});
+      }
+    });
+
+    finishBtn.addEventListener('click', () => {
+      wizard.style.animation = 'fadeOut 0.4s ease-in forwards';
+      setTimeout(() => {
+        wizard.classList.add('hidden');
+        wizard.style.animation = '';
+        this._showDesktop();
+        this.desktop.refresh();
+      }, 400);
+    });
   }
 
   hide() {
@@ -480,8 +612,77 @@ export class HeymingOS {
       const content = FileSystemDB ? FileSystemDB.getContentForApp(item) : file.content ?? '';
       this.openFileWithApp(appInfo.appId, file.path, content, fileName);
     } else {
-      this.notifications.info(`Cannot open: ${fileName} (${mimeType})`);
+      this._showOpenWithDialog(item, file, fileName, mimeType);
     }
+  }
+
+  _showOpenWithDialog(item, file, fileName, mimeType) {
+    const allApps = window.AppModule?.getAllApps?.() || [];
+    const openableApps = allApps.filter((a) => a.handles && a.handles.length > 0);
+
+    if (openableApps.length === 0) {
+      this.notifications.info(`Cannot open: ${fileName} (${mimeType})`);
+      return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'open-with-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', `Open ${fileName} with`);
+
+    const panel = document.createElement('div');
+    panel.className = 'open-with-panel';
+
+    const header = document.createElement('div');
+    header.className = 'open-with-header';
+    header.innerHTML =
+      `<div class="open-with-file-icon">📄</div>` +
+      `<div class="open-with-header-text">` +
+      `<h3 class="open-with-title">Open "${fileName}"</h3>` +
+      `<p class="open-with-subtitle">No default app for this file type (${mimeType}).<br>Choose an application:</p>` +
+      `</div>`;
+    panel.appendChild(header);
+
+    const list = document.createElement('div');
+    list.className = 'open-with-list';
+
+    for (const app of openableApps) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'open-with-app-btn';
+      btn.innerHTML =
+        `<span class="open-with-app-icon">${app.icon || '📦'}</span>` +
+        `<span class="open-with-app-name">${app.name}</span>`;
+      btn.addEventListener('click', () => {
+        overlay.remove();
+        const content = FileSystemDB ? FileSystemDB.getContentForApp(item) : file.content ?? '';
+        this.openFileWithApp(app.id, file.path, content, fileName);
+      });
+      list.appendChild(btn);
+    }
+    panel.appendChild(list);
+
+    const footer = document.createElement('div');
+    footer.className = 'open-with-footer';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'open-with-cancel-btn';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', () => overlay.remove());
+    footer.appendChild(cancelBtn);
+    panel.appendChild(footer);
+
+    overlay.appendChild(panel);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+    overlay.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') overlay.remove();
+    });
+
+    document.getElementById('heyming-os').appendChild(overlay);
+    cancelBtn.focus();
   }
 
   /**

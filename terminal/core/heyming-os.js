@@ -1,4 +1,12 @@
 // Heyming OS - Main Operating System Class
+function _savedUser() {
+  try {
+    return localStorage.getItem('heymingOS_username');
+  } catch {
+    return null;
+  }
+}
+
 class HeymingOS {
   constructor() {
     this.version = '1.0.0';
@@ -110,7 +118,8 @@ class HeymingOS {
   async createDefaultTerminal() {
     console.log('🔧 Creating default terminal...');
 
-    const cfg = window.parent?.HeymingOS?.Config || { USER: 'jheyming', HOME: '/home/jheyming' };
+    const _u = window.parent?.HeymingOS?.Config?.USER || _savedUser() || 'user';
+    const cfg = window.parent?.HeymingOS?.Config || { USER: _u, HOME: `/home/${_u}` };
     const terminal = await this.createTerminal({
       title: 'Terminal',
       user: cfg.USER,
@@ -130,7 +139,7 @@ class HeymingOS {
     const terminalId = this.generateId();
 
     // Create terminal process
-    const defaultUser = window.parent?.HeymingOS?.Config?.USER || 'jheyming';
+    const defaultUser = window.parent?.HeymingOS?.Config?.USER || _savedUser() || 'user';
     const homeDir = `/home/${options.user || defaultUser}`;
     const workingDir = options.cwd || homeDir;
 

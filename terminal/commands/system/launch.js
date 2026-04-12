@@ -107,7 +107,15 @@ ${suggestions.map((s) => `  ${s.id}`).join('\n')}`;
   );
 
   function getConfig() {
-    return window.parent?.HeymingOS?.Config || { HOME: '/home/jheyming', USER: 'jheyming' };
+    const _su = () => {
+      try {
+        return localStorage.getItem('heymingOS_username');
+      } catch {
+        return null;
+      }
+    };
+    const _u = _su() || 'user';
+    return window.parent?.HeymingOS?.Config || { HOME: `/home/${_u}`, USER: _u };
   }
 
   function getAppForMimeType(mimeType) {
