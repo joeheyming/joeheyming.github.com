@@ -1,5 +1,3 @@
-'use strict';
-
 const TYPE_HELP = `Usage: type [-a] [--help] [--] name [name ...]
 Display how each NAME would be interpreted as a command.
 
@@ -187,7 +185,7 @@ function parseAliasArgv(args) {
   return { ok: true, printReusable, operands };
 }
 
-const BuiltinsLib = {
+export const BuiltinsLib = {
   TYPE_HELP,
   typeOptionError,
   parseTypeArgv,
@@ -198,9 +196,3 @@ const BuiltinsLib = {
   aliasOptionError,
   parseAliasArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).BuiltinsLib = BuiltinsLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = BuiltinsLib;
-}

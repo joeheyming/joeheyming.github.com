@@ -1,5 +1,3 @@
-'use strict';
-
 const SPLIT_VERSION_LINE = 'split (jsh Heyming Terminal) 1.0\n';
 
 const SPLIT_HELP = `Usage: split [OPTION]... [INPUT [PREFIX]]
@@ -598,7 +596,7 @@ function parseSplitArgv(args) {
   };
 }
 
-const SplitLib = {
+export const SplitLib = {
   SPLIT_VERSION_LINE,
   SPLIT_HELP,
   splitOptionError,
@@ -611,5 +609,3 @@ const SplitLib = {
   parseSplitByteSize,
   parseSplitArgv
 };
-if (typeof globalThis !== 'undefined') { /** @type {*} */ (globalThis).SplitLib = SplitLib; }
-if (typeof module !== 'undefined' && module.exports) { module.exports = SplitLib; }

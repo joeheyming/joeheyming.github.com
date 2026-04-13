@@ -1,5 +1,3 @@
-'use strict';
-
 /** GNU **fold** default wrap width (columns or bytes). */
 const FOLD_DEFAULT_WIDTH = 80;
 
@@ -312,7 +310,7 @@ function parseFoldArgv(args) {
   return { ok: true, width, bytesMode, breakAtSpaces, operands };
 }
 
-const FoldLib = {
+export const FoldLib = {
   FOLD_HELP,
   FOLD_VERSION_LINE,
   FOLD_DEFAULT_WIDTH,
@@ -322,9 +320,3 @@ const FoldLib = {
   foldFoldLineBytes,
   foldOptionError
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).FoldLib = FoldLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = FoldLib;
-}

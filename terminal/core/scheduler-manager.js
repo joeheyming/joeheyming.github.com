@@ -1,5 +1,5 @@
 // Scheduler Manager for Heyming OS
-class SchedulerManager {
+export class SchedulerManager {
   constructor(kernel) {
     this.kernel = kernel;
     this.readyQueue = [];
@@ -482,11 +482,4 @@ class SchedulerManager {
       this.schedule();
     }
   }
-}
-
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { SchedulerManager };
-} else if (typeof window !== 'undefined') {
-  window.SchedulerManager = SchedulerManager;
 }

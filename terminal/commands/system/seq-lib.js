@@ -1,5 +1,3 @@
-'use strict';
-
 const SEQ_HELP = `Usage: seq [OPTION]... LAST
   or:  seq [OPTION]... FIRST LAST
   or:  seq [OPTION]... FIRST INCREMENT LAST
@@ -219,7 +217,7 @@ function parseSeqArgv(args) {
   return { ok: true, first, incr, last, separator, equalWidth };
 }
 
-const SeqLib = {
+export const SeqLib = {
   SEQ_HELP,
   SEQ_VERSION_LINE,
   SEQ_MAX_VALUES,
@@ -229,9 +227,3 @@ const SeqLib = {
   formatSeqOutput,
   parseSeqArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).SeqLib = SeqLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = SeqLib;
-}

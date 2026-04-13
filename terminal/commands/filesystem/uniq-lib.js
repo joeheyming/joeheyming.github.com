@@ -1,14 +1,6 @@
-'use strict';
+import { LinesLib } from './lines-lib.js';
 
-/** @type {typeof LinesLib} */
-const _lines =
-  typeof LinesLib !== 'undefined'
-    ? LinesLib
-    : typeof require === 'function'
-    ? // @ts-ignore Node require in tests
-      require('./lines-lib.js')
-    : /** @type {*} */ ({});
-const linesCommandOptionError = _lines.linesCommandOptionError;
+const { linesCommandOptionError } = LinesLib;
 
 const UNIQ_HELP = `Usage: uniq [OPTION]... [INPUT [OUTPUT]]
 Filter adjacent matching lines from INPUT (or standard input), writing to OUTPUT
@@ -107,13 +99,7 @@ function parseUniqArgv(args) {
   return { ok: true, count, repeatedOnly, uniqueOnly, operands };
 }
 
-const UniqLib = {
+export const UniqLib = {
   UNIQ_HELP,
   parseUniqArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).UniqLib = UniqLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = UniqLib;
-}

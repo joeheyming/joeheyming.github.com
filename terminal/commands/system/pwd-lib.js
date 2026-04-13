@@ -1,5 +1,3 @@
-'use strict';
-
 const PWD_HELP = `Usage: pwd [OPTION]...
 Print the full filename of the current working directory.
 
@@ -86,14 +84,8 @@ function parsePwdArgv(args) {
   return { ok: true, physical };
 }
 
-const PwdLib = {
+export const PwdLib = {
   PWD_HELP,
   pwdOptionError,
   parsePwdArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).PwdLib = PwdLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = PwdLib;
-}

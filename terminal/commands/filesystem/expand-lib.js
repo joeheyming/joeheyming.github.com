@@ -1,13 +1,6 @@
-'use strict';
+import { LessLib } from '../system/less-lib.js';
 
-/** @type {typeof LessLib} */
-const _less =
-  typeof LessLib !== 'undefined'
-    ? LessLib
-    : typeof require === 'function'
-    ? // @ts-ignore Node-style require in dual browser/Node tests
-      require('../system/less-lib.js')
-    : /** @type {*} */ ({});
+const _less = LessLib;
 
 const EXPAND_VERSION_LINE = 'expand (jsh Heyming Terminal) 1.0\n';
 
@@ -547,7 +540,7 @@ function parseExpandArgv(args) {
   return { ok: true, tabSpec, initialOnly, operands };
 }
 
-const ExpandLib = {
+export const ExpandLib = {
   EXPAND_HELP,
   EXPAND_VERSION_LINE,
   parseExpandArgv,
@@ -556,9 +549,3 @@ const ExpandLib = {
   expandExpandText,
   expandOptionError
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).ExpandLib = ExpandLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = ExpandLib;
-}

@@ -1,5 +1,3 @@
-'use strict';
-
 const PASTE_HELP = `Usage: paste [OPTION]... [FILE]...
 Merge lines of files; write to standard output.
 
@@ -238,7 +236,7 @@ function parsePasteArgv(args) {
   return { ok: true, delimiterList, serial, nullTerminated, operands };
 }
 
-const PasteLib = {
+export const PasteLib = {
   PASTE_HELP,
   pasteOptionError,
   pasteSplitLines,
@@ -247,5 +245,3 @@ const PasteLib = {
   pasteFormatOutputLines,
   parsePasteArgv
 };
-if (typeof globalThis !== 'undefined') { /** @type {*} */ (globalThis).PasteLib = PasteLib; }
-if (typeof module !== 'undefined' && module.exports) { module.exports = PasteLib; }

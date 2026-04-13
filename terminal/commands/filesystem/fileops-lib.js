@@ -1,5 +1,3 @@
-'use strict';
-
 const CP_HELP = `Usage: cp [OPTION]... SOURCE DEST
 Copy SOURCE to DEST.
 
@@ -411,7 +409,7 @@ function parseUnlinkArgv(args) {
   return { ok: true, operands };
 }
 
-const FileopsLib = {
+export const FileopsLib = {
   CP_HELP,
   cpOptionError,
   parseCpArgv,
@@ -428,9 +426,3 @@ const FileopsLib = {
   unlinkOptionError,
   parseUnlinkArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).FileopsLib = FileopsLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = FileopsLib;
-}

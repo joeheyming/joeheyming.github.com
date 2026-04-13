@@ -1,90 +1,11 @@
 // Command Registry and Loader for Heyming Terminal
-class CommandRegistry {
+export class CommandRegistry {
   constructor() {
     this.commands = new Map();
     this.loadPromises = [];
-    this.loadedScripts = new Set(); // Track loaded scripts to avoid duplicates
-    this.loadingPromises = new Map(); // Track in-progress loads to avoid race conditions
+    this.loadedScripts = new Set();
+    this.loadingPromises = new Map();
 
-    // Script dependency map -- keys are script paths relative to /terminal/,
-    // values are arrays of scripts that must be loaded first.
-    // Covers both lib-to-lib transitive deps and command-handler-to-lib deps.
-    this.scriptDeps = {
-      // Lib -> lib (transitive)
-      'commands/filesystem/expand-lib.js': ['commands/system/less-lib.js'],
-      'commands/filesystem/fmt-lib.js': ['commands/system/less-lib.js'],
-      'commands/filesystem/sort-lib.js': ['commands/filesystem/lines-lib.js'],
-      'commands/filesystem/uniq-lib.js': ['commands/filesystem/lines-lib.js'],
-      'commands/filesystem/wc-lib.js': ['commands/filesystem/lines-lib.js'],
-
-      // Filesystem command handlers -> libs
-      'commands/filesystem/awk.js': ['commands/filesystem/awk-lib.js'],
-      'commands/filesystem/basename.js': ['commands/filesystem/basename-lib.js'],
-      'commands/filesystem/cat.js': ['commands/filesystem/cat-lib.js'],
-      'commands/filesystem/chmod.js': ['commands/filesystem/chmod-lib.js'],
-      'commands/filesystem/cp.js': ['commands/filesystem/fileops-lib.js'],
-      'commands/filesystem/csplit.js': [
-        'commands/filesystem/csplit-lib.js',
-        'commands/filesystem/split-lib.js'
-      ],
-      'commands/filesystem/cut.js': ['commands/filesystem/cut-lib.js'],
-      'commands/filesystem/dirname.js': ['commands/filesystem/basename-lib.js'],
-      'commands/filesystem/echo.js': ['commands/filesystem/echo-lib.js'],
-      'commands/filesystem/expand.js': ['commands/filesystem/expand-lib.js'],
-      'commands/filesystem/fmt.js': ['commands/filesystem/fmt-lib.js'],
-      'commands/filesystem/fold.js': ['commands/filesystem/fold-lib.js'],
-      'commands/filesystem/grep.js': ['commands/filesystem/grep-lib.js'],
-      'commands/filesystem/head.js': ['commands/filesystem/lines-lib.js'],
-      'commands/filesystem/join.js': [
-        'commands/filesystem/join-lib.js',
-        'commands/filesystem/paste-lib.js'
-      ],
-      'commands/filesystem/ln.js': ['commands/filesystem/ln-lib.js'],
-      'commands/filesystem/ls.js': ['commands/filesystem/ls-lib.js'],
-      'commands/filesystem/mkdir.js': ['commands/filesystem/mkdir-lib.js'],
-      'commands/filesystem/mv.js': ['commands/filesystem/fileops-lib.js'],
-      'commands/filesystem/nl.js': ['commands/filesystem/nl-lib.js'],
-      'commands/filesystem/paste.js': ['commands/filesystem/paste-lib.js'],
-      'commands/filesystem/readlink.js': ['commands/filesystem/readlink-lib.js'],
-      'commands/filesystem/rm.js': ['commands/filesystem/fileops-lib.js'],
-      'commands/filesystem/rmdir.js': ['commands/filesystem/fileops-lib.js'],
-      'commands/filesystem/sed.js': ['commands/filesystem/sed-lib.js'],
-      'commands/filesystem/sort.js': ['commands/filesystem/sort-lib.js'],
-      'commands/filesystem/split.js': ['commands/filesystem/split-lib.js'],
-      'commands/filesystem/stat.js': ['commands/filesystem/stat-lib.js'],
-      'commands/filesystem/tail.js': ['commands/filesystem/lines-lib.js'],
-      'commands/filesystem/tee.js': ['commands/filesystem/tee-lib.js'],
-      'commands/filesystem/touch.js': ['commands/filesystem/touch-lib.js'],
-      'commands/filesystem/tr.js': ['commands/filesystem/tr-lib.js'],
-      'commands/filesystem/uniq.js': ['commands/filesystem/uniq-lib.js'],
-      'commands/filesystem/unlink.js': ['commands/filesystem/fileops-lib.js'],
-      'commands/filesystem/wc.js': ['commands/filesystem/wc-lib.js'],
-      'commands/filesystem/printf.js': ['commands/filesystem/printf-lib.js'],
-
-      // System command handlers -> libs
-      'commands/system/alias.js': ['commands/system/builtins-lib.js'],
-      'commands/system/date.js': ['commands/system/date-lib.js'],
-      'commands/system/env.js': ['commands/system/env-lib.js'],
-      'commands/system/git.js': [
-        'lib/jsh-git-http.js',
-        'lib/jsh-git-fs.js',
-        'lib/jsh-git-cache.js'
-      ],
-      'commands/system/less.js': ['commands/system/less-lib.js'],
-      'commands/system/node.js': ['lib/node-helpers.js'],
-      'commands/system/npm.js': ['lib/npm-helpers.js'],
-      'commands/system/npx.js': ['lib/node-helpers.js', 'lib/npm-helpers.js'],
-      'commands/system/printf.js': ['commands/filesystem/printf-lib.js'],
-      'commands/system/seq.js': ['commands/system/seq-lib.js'],
-      'commands/system/sleep.js': ['commands/system/sleep-lib.js'],
-      'commands/system/test.js': ['commands/system/test-lib.js'],
-      'commands/system/true-false.js': ['commands/system/test-lib.js'],
-      'commands/system/type.js': ['commands/system/builtins-lib.js'],
-      'commands/system/which.js': ['commands/system/builtins-lib.js'],
-      'commands/system/xargs.js': ['commands/system/xargs-lib.js']
-    };
-
-    // Command mapping - maps command names to their file locations
     this.commandMap = {
       // System commands
       whoami: 'commands/system/whoami.js',
@@ -209,7 +130,6 @@ class CommandRegistry {
     };
   }
 
-  // Register a command with its handler
   register(name, handler, description = '', category = 'Other') {
     this.commands.set(name.toLowerCase(), {
       handler,
@@ -218,22 +138,18 @@ class CommandRegistry {
     });
   }
 
-  // Get a command handler - now with dynamic loading
   async get(name) {
     const lowerName = name.toLowerCase();
 
-    // If command is already loaded, return it
     const command = this.commands.get(lowerName);
     if (command) {
       return command.handler;
     }
 
-    // If command has a mapping, try to load it
     const scriptPath = this.commandMap[lowerName];
     if (scriptPath) {
       try {
         await this.loadCommandScript(scriptPath);
-        // Try to get the command again after loading
         const loadedCommand = this.commands.get(lowerName);
         return loadedCommand ? loadedCommand.handler : null;
       } catch (error) {
@@ -245,13 +161,11 @@ class CommandRegistry {
     return null;
   }
 
-  // Synchronous get for commands that are already loaded
   getSync(name) {
     const command = this.commands.get(name.toLowerCase());
     return command ? command.handler : null;
   }
 
-  // Check if a command exists (either loaded or loadable)
   has(name) {
     const lowerName = name.toLowerCase();
     return (
@@ -260,14 +174,12 @@ class CommandRegistry {
     );
   }
 
-  // Get all command names for tab completion (includes unloaded commands)
   getCommandNames() {
     const loadedCommands = Array.from(this.commands.keys());
     const mappedCommands = Object.keys(this.commandMap);
     return [...new Set([...loadedCommands, ...mappedCommands])];
   }
 
-  // Get command descriptions for help (only loaded commands)
   getCommands() {
     return Array.from(this.commands.entries()).map(([name, cmd]) => ({
       name,
@@ -276,12 +188,10 @@ class CommandRegistry {
     }));
   }
 
-  // Get all available commands (including unloaded ones with basic info)
   getAllCommands() {
     const commands = this.getCommands();
     const commandSet = new Set(commands.map((cmd) => cmd.name));
 
-    // Add unloaded commands with basic info
     Object.keys(this.commandMap).forEach((name) => {
       if (!commandSet.has(name)) {
         const category = this.getCategoryFromPath(this.commandMap[name]);
@@ -296,7 +206,6 @@ class CommandRegistry {
     return commands;
   }
 
-  // Get category from file path
   getCategoryFromPath(path) {
     if (path.includes('/system/')) return 'System';
     if (path.includes('/filesystem/')) return 'File System';
@@ -305,7 +214,6 @@ class CommandRegistry {
     return 'Other';
   }
 
-  // Get commands grouped by category
   getCommandsByCategory() {
     const commands = this.getAllCommands();
     const categories = {};
@@ -317,7 +225,6 @@ class CommandRegistry {
       categories[cmd.category].push(cmd);
     });
 
-    // Sort commands within each category
     Object.keys(categories).forEach((category) => {
       categories[category].sort((a, b) => a.name.localeCompare(b.name));
     });
@@ -325,26 +232,17 @@ class CommandRegistry {
     return categories;
   }
 
-  // Load command modules (legacy method for backward compatibility)
   async loadCommands() {
-    // This method is now mostly for initialization
-    // Individual commands will be loaded on-demand
     console.log('Command registry initialized with dynamic loading');
   }
 
-  // Load a script and all of its transitive dependencies first.
-  async ensureLoaded(scriptPath) {
+  async loadCommandScript(scriptPath) {
     if (this.loadedScripts.has(scriptPath)) return;
     if (this.loadingPromises.has(scriptPath)) {
       return this.loadingPromises.get(scriptPath);
     }
 
-    const promise = (async () => {
-      const deps = this.scriptDeps[scriptPath] || [];
-      await Promise.all(deps.map((dep) => this.ensureLoaded(dep)));
-      await this.loadScript(scriptPath);
-    })();
-
+    const promise = this.loadScript(scriptPath);
     this.loadingPromises.set(scriptPath, promise);
     try {
       await promise;
@@ -354,37 +252,29 @@ class CommandRegistry {
     }
   }
 
-  // Load a specific command script (and its lib dependencies).
-  async loadCommandScript(scriptPath) {
-    await this.ensureLoaded(scriptPath);
+  async loadScript(src) {
+    const mod = await import('./' + src);
+    if (mod.default) {
+      const defs = Array.isArray(mod.default) ? mod.default : [mod.default];
+      for (const def of defs) {
+        if (def && def.name && def.handler) {
+          this.register(def.name, def.handler, def.description || '', def.category || 'Other');
+        }
+      }
+    }
   }
 
-  // Dynamically load a script
-  loadScript(src) {
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = src;
-      script.onload = resolve;
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
-  }
-
-  // Allow modules to register async initialization
   addLoadPromise(promise) {
     this.loadPromises.push(promise);
   }
 }
 
-// Global command registry
-window.commandRegistry = new CommandRegistry();
+export const commandRegistry = new CommandRegistry();
 
-// Helper function for commands to register themselves
-window.registerCommand = (name, handler, description, category) => {
-  window.commandRegistry.register(name, handler, description, category);
-};
+export function registerCommand(name, handler, description, category) {
+  commandRegistry.register(name, handler, description, category);
+}
 
-// Helper function for commands to register async initialization
-window.addCommandLoadPromise = (promise) => {
-  window.commandRegistry.addLoadPromise(promise);
-};
+export function addCommandLoadPromise(promise) {
+  commandRegistry.addLoadPromise(promise);
+}

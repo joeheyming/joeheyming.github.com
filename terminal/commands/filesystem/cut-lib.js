@@ -1,5 +1,3 @@
-'use strict';
-
 const CUT_HELP = `Usage: cut OPTION... [FILE]...
 Print selected parts of lines from each FILE to standard output.
 
@@ -357,15 +355,9 @@ function parseCutArgv(args) {
   };
 }
 
-const CutLib = {
+export const CutLib = {
   CUT_HELP,
   cutOptionError,
   parseCutListString,
   parseCutArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).CutLib = CutLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = CutLib;
-}

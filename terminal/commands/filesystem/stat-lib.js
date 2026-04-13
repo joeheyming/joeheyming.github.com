@@ -1,5 +1,3 @@
-'use strict';
-
 const STAT_HELP = `Usage: stat [OPTION]... FILE...
 Display file status (GNU-like summary; jsh VFS).
 
@@ -79,14 +77,8 @@ function parseStatArgv(args) {
   return { ok: true, dereference, operands };
 }
 
-const StatLib = {
+export const StatLib = {
   STAT_HELP,
   statOptionError,
   parseStatArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).StatLib = StatLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = StatLib;
-}

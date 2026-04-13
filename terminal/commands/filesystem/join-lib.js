@@ -1,5 +1,3 @@
-'use strict';
-
 const JOIN_HELP = `Usage: join [OPTION]... FILE1 FILE2
 For each pair of input lines with identical join fields, write a line to standard output.
 
@@ -388,7 +386,7 @@ function parseJoinArgv(args) {
   };
 }
 
-const JoinLib = {
+export const JoinLib = {
   JOIN_HELP,
   joinOptionError,
   joinSplitFields,
@@ -398,5 +396,3 @@ const JoinLib = {
   joinMergeRecords,
   parseJoinArgv
 };
-if (typeof globalThis !== 'undefined') { /** @type {*} */ (globalThis).JoinLib = JoinLib; }
-if (typeof module !== 'undefined' && module.exports) { module.exports = JoinLib; }

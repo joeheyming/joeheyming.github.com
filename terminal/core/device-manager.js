@@ -1,5 +1,5 @@
 // Device Manager for Heyming OS
-class DeviceManager {
+export class DeviceManager {
   constructor(kernel) {
     this.kernel = kernel;
     this.devices = new Map();
@@ -607,7 +607,7 @@ class VirtualEthernetDevice extends Device {
 }
 
 // Network Manager placeholder
-class NetworkManager {
+export class NetworkManager {
   constructor(kernel) {
     this.kernel = kernel;
   }
@@ -631,12 +631,4 @@ class NetworkManager {
   connect() {
     return 0;
   }
-}
-
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { DeviceManager, NetworkManager };
-} else if (typeof window !== 'undefined') {
-  window.DeviceManager = DeviceManager;
-  window.NetworkManager = NetworkManager;
 }

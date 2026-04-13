@@ -1,5 +1,3 @@
-'use strict';
-
 const GREP_HELP = `Usage: grep [OPTION]... PATTERN [FILE]...
 Search for PATTERN in each FILE or standard input.
 
@@ -126,14 +124,8 @@ function parseGrepArgv(args) {
   return { ok: false, stderr: 'grep: missing operand\n', exitCode: 2 };
 }
 
-const GrepLib = {
+export const GrepLib = {
   GREP_HELP,
   grepOptionError,
   parseGrepArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).GrepLib = GrepLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = GrepLib;
-}

@@ -1,5 +1,3 @@
-'use strict';
-
 const TR_HELP = `Usage: tr [OPTION]... SET1 [SET2]
 Translate, squeeze, or delete characters from standard input, writing to standard output.
 
@@ -403,7 +401,7 @@ function parseTrArgv(args) {
   return { ok: true, complement, delete: false, squeeze: false, squeezeOnly: false, operands };
 }
 
-const TrLib = {
+export const TrLib = {
   TR_HELP,
   trOptionError,
   readTrBackslash,
@@ -415,5 +413,3 @@ const TrLib = {
   runTr,
   parseTrArgv
 };
-if (typeof globalThis !== 'undefined') { /** @type {*} */ (globalThis).TrLib = TrLib; }
-if (typeof module !== 'undefined' && module.exports) { module.exports = TrLib; }

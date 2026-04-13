@@ -1,5 +1,3 @@
-'use strict';
-
 const HEAD_HELP = `Usage: head [OPTION]... [FILE]...
 Print the first 10 lines of each FILE to standard output.
 
@@ -146,15 +144,9 @@ function parseLinesFilterArgv(args, cmdName, defaultLines) {
   return { ok: true, lines, operands };
 }
 
-const LinesLib = {
+export const LinesLib = {
   HEAD_HELP,
   TAIL_HELP,
   linesCommandOptionError,
   parseLinesFilterArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).LinesLib = LinesLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = LinesLib;
-}

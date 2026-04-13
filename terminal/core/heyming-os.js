@@ -1,4 +1,7 @@
 // Heyming OS - Main Operating System Class
+import { HeymingKernel } from './kernel.js';
+import { Terminal } from '../terminal.js';
+
 function _savedUser() {
   try {
     return localStorage.getItem('heymingOS_username');
@@ -7,7 +10,7 @@ function _savedUser() {
   }
 }
 
-class HeymingOS {
+export class HeymingOS {
   constructor() {
     this.version = '1.0.0';
     this.kernel = null;
@@ -70,11 +73,7 @@ class HeymingOS {
   async initializeKernel() {
     console.log('🔧 Initializing kernel...');
 
-    // Create kernel (classes are loaded globally via script tags)
-    if (!window.HeymingKernel) {
-      throw new Error('HeymingKernel not loaded. Make sure kernel.js is included.');
-    }
-    this.kernel = new window.HeymingKernel();
+    this.kernel = new HeymingKernel();
 
     // Initialize kernel subsystems
     await this.kernel.initialize();
@@ -160,14 +159,10 @@ class HeymingOS {
       isolated: false // Terminal should run in main thread, not Web Worker
     });
 
-    // Create terminal (Terminal class is loaded globally)
-    if (!window.Terminal) {
-      throw new Error('Terminal class not loaded. Make sure terminal.js is included.');
-    }
     // For the main terminal, don't use windowId (use existing DOM elements)
     // For additional terminals, use windowId for windowed mode
     const isMainTerminal = this.terminals.size === 0;
-    const terminal = new window.Terminal(isMainTerminal ? null : terminalId, this);
+    const terminal = new Terminal(isMainTerminal ? null : terminalId, this);
 
     await terminal.whenFilesystemReady();
 
@@ -619,13 +614,4 @@ class CalculatorApplication extends Application {
   async initialize() {
     // Calculator logic
   }
-}
-
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { HeymingOS };
-} else if (typeof window !== 'undefined') {
-  // Terminal boot assigns the OS class; the desktop app uses a richer `window.HeymingOS` namespace from `os/`.
-  // @ts-expect-error Runtime shape differs between terminal bootstrap and desktop shell.
-  window.HeymingOS = HeymingOS;
 }

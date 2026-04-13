@@ -1,5 +1,3 @@
-'use strict';
-
 const DATE_HELP = `Usage: date [OPTION]...
 
 Display the current time in the given FORMAT, or the default format.
@@ -165,16 +163,10 @@ function parseDateArgv(args) {
   return { ok: true, utc, iso };
 }
 
-const DateLib = {
+export const DateLib = {
   DATE_HELP,
   DATE_VERSION_LINE,
   dateOptionError,
   formatDateOutput,
   parseDateArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).DateLib = DateLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = DateLib;
-}

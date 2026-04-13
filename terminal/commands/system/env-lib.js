@@ -1,5 +1,3 @@
-'use strict';
-
 const ENV_HELP = `Usage: env [OPTION]... [-] [NAME=VALUE]...
 Print the environment. NAME=VALUE merges into the displayed environment.
 
@@ -132,13 +130,7 @@ function parseEnvArgv(args) {
   return { ok: true, ignore, unset, rest: argsArr.slice(i) };
 }
 
-const EnvLib = {
+export const EnvLib = {
   ENV_HELP,
   parseEnvArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).EnvLib = EnvLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = EnvLib;
-}

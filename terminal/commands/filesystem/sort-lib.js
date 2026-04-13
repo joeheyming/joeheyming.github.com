@@ -1,14 +1,6 @@
-'use strict';
+import { LinesLib } from './lines-lib.js';
 
-/** @type {typeof LinesLib} */
-const _lines =
-  typeof LinesLib !== 'undefined'
-    ? LinesLib
-    : typeof require === 'function'
-    ? // @ts-ignore Node require in tests
-      require('./lines-lib.js')
-    : /** @type {*} */ ({});
-const linesCommandOptionError = _lines.linesCommandOptionError;
+const { linesCommandOptionError } = LinesLib;
 
 const SORT_HELP = `Usage: sort [OPTION]... [FILE]...
 Write sorted concatenation of all FILE(s) to standard output.
@@ -93,13 +85,7 @@ function parseSortArgv(args) {
   return { ok: true, reverse, numeric, unique, operands };
 }
 
-const SortLib = {
+export const SortLib = {
   SORT_HELP,
   parseSortArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).SortLib = SortLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = SortLib;
-}

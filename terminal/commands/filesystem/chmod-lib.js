@@ -1,5 +1,3 @@
-'use strict';
-
 const CHMOD_HELP = `Usage: chmod [OPTION]... MODE FILE...
   or:  chmod [OPTION]... OCTAL-MODE FILE...
 
@@ -79,13 +77,7 @@ function parseChmodArgv(args) {
   return { ok: true, flags, mode, files };
 }
 
-const ChmodLib = {
+export const ChmodLib = {
   CHMOD_HELP,
   parseChmodArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).ChmodLib = ChmodLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = ChmodLib;
-}

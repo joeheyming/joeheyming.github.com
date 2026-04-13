@@ -1,7 +1,6 @@
-'use strict';
-
-const test = require('node:test');
-const assert = require('node:assert/strict');
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { ShellCore } from '../lib/shell-core.js';
 const {
   splitShellList,
   normalizeCommandResult,
@@ -10,7 +9,7 @@ const {
   expandVariablesInString,
   mergeRedirectDupStderrTokens,
   normalizeExitByte
-} = require('../lib/shell-core.js');
+} = ShellCore;
 
 // ---------------------------------------------------------------------------
 // coerceShellString – lock down every branch before the split moves it
@@ -279,24 +278,26 @@ test('mergeRedirectDupStderrTokens: merges 2> &1 → 2>&1', () => {
 });
 
 test('mergeRedirectDupStderrTokens: preserves other tokens', () => {
-  assert.deepEqual(
-    mergeRedirectDupStderrTokens(['echo', 'hello', '>', 'out.txt']),
-    ['echo', 'hello', '>', 'out.txt']
-  );
+  assert.deepEqual(mergeRedirectDupStderrTokens(['echo', 'hello', '>', 'out.txt']), [
+    'echo',
+    'hello',
+    '>',
+    'out.txt'
+  ]);
 });
 
 test('mergeRedirectDupStderrTokens: 2> without &1 stays separate', () => {
-  assert.deepEqual(
-    mergeRedirectDupStderrTokens(['2>', 'err.txt']),
-    ['2>', 'err.txt']
-  );
+  assert.deepEqual(mergeRedirectDupStderrTokens(['2>', 'err.txt']), ['2>', 'err.txt']);
 });
 
 test('mergeRedirectDupStderrTokens: multiple 2>&1 in one line', () => {
-  assert.deepEqual(
-    mergeRedirectDupStderrTokens(['cmd', '2>', '&1', '|', 'cmd2', '2>', '&1']),
-    ['cmd', '2>&1', '|', 'cmd2', '2>&1']
-  );
+  assert.deepEqual(mergeRedirectDupStderrTokens(['cmd', '2>', '&1', '|', 'cmd2', '2>', '&1']), [
+    'cmd',
+    '2>&1',
+    '|',
+    'cmd2',
+    '2>&1'
+  ]);
 });
 
 // ---------------------------------------------------------------------------
@@ -328,10 +329,7 @@ test('expandVariablesInString: undefined var → empty string', () => {
 });
 
 test('expandVariablesInString: multiple vars in one string', () => {
-  assert.equal(
-    expandVariablesInString('$A and $B', { A: 'x', B: 'y' }, 0),
-    'x and y'
-  );
+  assert.equal(expandVariablesInString('$A and $B', { A: 'x', B: 'y' }, 0), 'x and y');
 });
 
 test('expandVariablesInString: $? default when lastExitCode is null', () => {

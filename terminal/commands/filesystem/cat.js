@@ -1,56 +1,53 @@
 // cat command — concatenate files to stdout (GNU-style multi-file, - for stdin, --, symlink follow)
-(function () {
-  'use strict';
+import { CatLib } from './cat-lib.js';
+import { VfsUtils } from '../../lib/vfs-utils.js';
 
-  registerCommand(
-    'cat',
-    async (terminal, args) => {
-      const parsed = CatLib.parseCatArgv(args);
-      if (parsed.ok === false) {
-        return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
-      }
-      if (parsed.help) {
-        return { stdout: CatLib.CAT_HELP, stderr: '', exitCode: 0 };
-      }
+async function catHandler(terminal, args) {
+  const parsed = CatLib.parseCatArgv(args);
+  if (parsed.ok === false) {
+    return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
+  }
+  if (parsed.help) {
+    return { stdout: CatLib.CAT_HELP, stderr: '', exitCode: 0 };
+  }
 
-      const { operands } = parsed;
-      const stdinAvailable =
-        terminal.stdinSupplied === true || (terminal.hasStdin && terminal.stdin != null);
-      const stdinText = stdinAvailable
-        ? terminal.stdin != null
-          ? String(terminal.stdin)
-          : ''
-        : '';
+  const { operands } = parsed;
+  const stdinAvailable =
+    terminal.stdinSupplied === true || (terminal.hasStdin && terminal.stdin != null);
+  const stdinText = stdinAvailable ? (terminal.stdin != null ? String(terminal.stdin) : '') : '';
 
-      if (operands.length === 0) {
-        if (!stdinAvailable) {
-          return { stdout: '', stderr: 'cat: missing operand\n', exitCode: 1 };
-        }
-        return { stdout: stdinText, stderr: '', exitCode: 0 };
-      }
+  if (operands.length === 0) {
+    if (!stdinAvailable) {
+      return { stdout: '', stderr: 'cat: missing operand\n', exitCode: 1 };
+    }
+    return { stdout: stdinText, stderr: '', exitCode: 0 };
+  }
 
-      const chunks = [];
-      const stderrLines = [];
-      for (const op of operands) {
-        if (op === '-') {
-          chunks.push(stdinText);
-          continue;
-        }
-        const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, op, 'cat');
-        if (res.ok === false) {
-          stderrLines.push(res.stderr.trimEnd());
-          continue;
-        }
-        const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
-        chunks.push(d.isBinary ? '[binary file]\n' : d.text);
-      }
+  const chunks = [];
+  const stderrLines = [];
+  for (const op of operands) {
+    if (op === '-') {
+      chunks.push(stdinText);
+      continue;
+    }
+    const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, op, 'cat');
+    if (res.ok === false) {
+      stderrLines.push(res.stderr.trimEnd());
+      continue;
+    }
+    const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
+    chunks.push(d.isBinary ? '[binary file]\n' : d.text);
+  }
 
-      const stdout = chunks.join('');
-      const stderr = stderrLines.length ? stderrLines.join('\n') + '\n' : '';
-      const exitCode = stderrLines.length > 0 ? 1 : 0;
-      return { stdout, stderr, exitCode };
-    },
-    'concatenate files to standard output (multiple FILEs, - for stdin, --)',
-    'File System'
-  );
-})();
+  const stdout = chunks.join('');
+  const stderr = stderrLines.length ? stderrLines.join('\n') + '\n' : '';
+  const exitCode = stderrLines.length > 0 ? 1 : 0;
+  return { stdout, stderr, exitCode };
+}
+
+export default {
+  name: 'cat',
+  handler: catHandler,
+  description: 'concatenate files to standard output (multiple FILEs, - for stdin, --)',
+  category: 'File System'
+};

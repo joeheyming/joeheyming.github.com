@@ -1,5 +1,5 @@
 // Memory Manager for Heyming OS
-class MemoryManager {
+export class MemoryManager {
   constructor(kernel) {
     this.kernel = kernel;
     this.totalMemory = 512 * 1024 * 1024; // 512MB virtual memory
@@ -403,11 +403,4 @@ class MemoryManager {
 
     return freePageArray.length > 0 ? (fragments / freePageArray.length) * 100 : 0;
   }
-}
-
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { MemoryManager };
-} else if (typeof window !== 'undefined') {
-  window.MemoryManager = MemoryManager;
 }

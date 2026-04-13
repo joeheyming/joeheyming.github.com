@@ -1,7 +1,6 @@
-'use strict';
-
-const test = require('node:test');
-const assert = require('node:assert/strict');
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { ShellCore } from '../lib/shell-core.js';
 const {
   resolveVirtualPath,
   coerceShellString,
@@ -13,32 +12,63 @@ const {
   normalizeHandlerResult,
   normalizeExitByte,
   expandVariablesInString,
-  combinedFetchSignal
-} = require('../lib/shell-core.js');
+  combinedFetchSignal,
+  parseExitStatus,
+  parseHelpArgs,
+  parseKillArgv,
+  formatDeclareXLine,
+  escapeBashDoubleQuotedContent,
+  escapeTypeAliasBody
+} = ShellCore;
 
+import { VfsUtils } from '../lib/vfs-utils.js';
 const {
   fileItemUtf8ForDisplay,
   filterDirectoryEntriesForTabCompletion,
   sortDirectoryEntriesByName,
   vfsReadlinkCanonical,
   vfsFollowSymlinksToFile
-} = require('../lib/vfs-utils.js');
+} = VfsUtils;
 
-const SedLib = require('../commands/filesystem/sed-lib.js');
-const AwkLib = require('../commands/filesystem/awk-lib.js');
-const PrintfLib = require('../commands/filesystem/printf-lib.js');
-const FmtLib = require('../commands/filesystem/fmt-lib.js');
-const SplitLib = require('../commands/filesystem/split-lib.js');
-const CsplitLib = require('../commands/filesystem/csplit-lib.js');
-const ExpandLib = require('../commands/filesystem/expand-lib.js');
-const FoldLib = require('../commands/filesystem/fold-lib.js');
-const TrLib = require('../commands/filesystem/tr-lib.js');
-const CutLib = require('../commands/filesystem/cut-lib.js');
-const XargsLib = require('../commands/system/xargs-lib.js');
-const LessLib = require('../commands/system/less-lib.js');
-const NlLib = require('../commands/filesystem/nl-lib.js');
-const PasteLib = require('../commands/filesystem/paste-lib.js');
-const JoinLib = require('../commands/filesystem/join-lib.js');
+import { SedLib } from '../commands/filesystem/sed-lib.js';
+import { AwkLib } from '../commands/filesystem/awk-lib.js';
+import { PrintfLib } from '../commands/filesystem/printf-lib.js';
+import { FmtLib } from '../commands/filesystem/fmt-lib.js';
+import { SplitLib } from '../commands/filesystem/split-lib.js';
+import { CsplitLib } from '../commands/filesystem/csplit-lib.js';
+import { ExpandLib } from '../commands/filesystem/expand-lib.js';
+import { FoldLib } from '../commands/filesystem/fold-lib.js';
+import { TrLib } from '../commands/filesystem/tr-lib.js';
+import { CutLib } from '../commands/filesystem/cut-lib.js';
+import { XargsLib } from '../commands/system/xargs-lib.js';
+import { LessLib } from '../commands/system/less-lib.js';
+import { NlLib } from '../commands/filesystem/nl-lib.js';
+import { PasteLib } from '../commands/filesystem/paste-lib.js';
+import { JoinLib } from '../commands/filesystem/join-lib.js';
+import { FileopsLib } from '../commands/filesystem/fileops-lib.js';
+import { TeeLib } from '../commands/filesystem/tee-lib.js';
+import { CatLib } from '../commands/filesystem/cat-lib.js';
+import { EchoLib } from '../commands/filesystem/echo-lib.js';
+import { GrepLib } from '../commands/filesystem/grep-lib.js';
+import { EnvLib } from '../commands/system/env-lib.js';
+import { LsLib } from '../commands/filesystem/ls-lib.js';
+import { MkdirLib } from '../commands/filesystem/mkdir-lib.js';
+import { ChmodLib } from '../commands/filesystem/chmod-lib.js';
+import { StatLib } from '../commands/filesystem/stat-lib.js';
+import { BuiltinsLib } from '../commands/system/builtins-lib.js';
+import { PwdLib } from '../commands/system/pwd-lib.js';
+import { DateLib } from '../commands/system/date-lib.js';
+import { SeqLib } from '../commands/system/seq-lib.js';
+import { SleepLib } from '../commands/system/sleep-lib.js';
+import { LinesLib } from '../commands/filesystem/lines-lib.js';
+import { WcLib } from '../commands/filesystem/wc-lib.js';
+import { SortLib } from '../commands/filesystem/sort-lib.js';
+import { UniqLib } from '../commands/filesystem/uniq-lib.js';
+import { ReadlinkLib } from '../commands/filesystem/readlink-lib.js';
+import { LnLib } from '../commands/filesystem/ln-lib.js';
+import { TouchLib } from '../commands/filesystem/touch-lib.js';
+import { TestLib } from '../commands/system/test-lib.js';
+import { BasenameLib } from '../commands/filesystem/basename-lib.js';
 
 const {
   parseLessArgv,
@@ -60,11 +90,7 @@ const {
   LESS_LINES_PER_PAGE
 } = LessLib;
 
-const {
-  parseNlArgv,
-  formatNlNumberedText,
-  nlFormatNumberField
-} = NlLib;
+const { parseNlArgv, formatNlNumberedText, nlFormatNumberField } = NlLib;
 
 const {
   parsePasteArgv,
@@ -84,16 +110,6 @@ const {
 } = JoinLib;
 
 const {
-  parseExitStatus,
-  parseHelpArgs,
-  parseKillArgv,
-  formatDeclareXLine,
-  escapeBashDoubleQuotedContent,
-  escapeTypeAliasBody
-} = require('../lib/shell-core.js');
-
-const FileopsLib = require('../commands/filesystem/fileops-lib.js');
-const {
   parseCpArgv,
   parseMvArgv,
   parseRmArgv,
@@ -104,73 +120,50 @@ const {
   UNLINK_HELP
 } = FileopsLib;
 
-const TeeLib = require('../commands/filesystem/tee-lib.js');
 const { parseTeeArgv } = TeeLib;
 
-const CatLib = require('../commands/filesystem/cat-lib.js');
 const { parseCatArgv } = CatLib;
 
-const EchoLib = require('../commands/filesystem/echo-lib.js');
 const { parseEchoArgv, echoApplyBackslashEscapes, ECHO_VERSION_LINE } = EchoLib;
 
-const GrepLib = require('../commands/filesystem/grep-lib.js');
 const { parseGrepArgv, GREP_HELP, grepOptionError } = GrepLib;
 
-const EnvLib = require('../commands/system/env-lib.js');
 const { ENV_HELP, parseEnvArgv } = EnvLib;
 
-const LsLib = require('../commands/filesystem/ls-lib.js');
 const { parseLsDisplayFlags } = LsLib;
 
-const MkdirLib = require('../commands/filesystem/mkdir-lib.js');
 const { parseMkdirArgv } = MkdirLib;
 
-const ChmodLib = require('../commands/filesystem/chmod-lib.js');
 const { parseChmodArgv } = ChmodLib;
 
-const StatLib = require('../commands/filesystem/stat-lib.js');
 const { parseStatArgv } = StatLib;
 
-const BuiltinsLib = require('../commands/system/builtins-lib.js');
 const { parseTypeArgv, parseWhichArgv, parseAliasArgv } = BuiltinsLib;
 
-const PwdLib = require('../commands/system/pwd-lib.js');
 const { parsePwdArgv } = PwdLib;
 
-const DateLib = require('../commands/system/date-lib.js');
 const { parseDateArgv, formatDateOutput } = DateLib;
 
-const SeqLib = require('../commands/system/seq-lib.js');
 const { parseSeqArgv, genSeqSequence, formatSeqOutput } = SeqLib;
 
-const SleepLib = require('../commands/system/sleep-lib.js');
 const { parseSleepArgv } = SleepLib;
 
-const LinesLib = require('../commands/filesystem/lines-lib.js');
 const { parseLinesFilterArgv } = LinesLib;
 
-const WcLib = require('../commands/filesystem/wc-lib.js');
 const { parseWcArgv } = WcLib;
 
-const SortLib = require('../commands/filesystem/sort-lib.js');
 const { parseSortArgv } = SortLib;
 
-const UniqLib = require('../commands/filesystem/uniq-lib.js');
 const { parseUniqArgv } = UniqLib;
 
-const ReadlinkLib = require('../commands/filesystem/readlink-lib.js');
 const { parseReadlinkArgv } = ReadlinkLib;
 
-const LnLib = require('../commands/filesystem/ln-lib.js');
 const { parseLnArgv, symlinkBasenameForLn } = LnLib;
 
-const TouchLib = require('../commands/filesystem/touch-lib.js');
 const { parseTouchArgv } = TouchLib;
 
-const TestLib = require('../commands/system/test-lib.js');
 const { parseTestArgv, parseTrueFalseArgv } = TestLib;
 
-const BasenameLib = require('../commands/filesystem/basename-lib.js');
 const {
   parseBasenameArgv,
   basenameCompute,
@@ -180,17 +173,9 @@ const {
   DIRNAME_VERSION_LINE
 } = BasenameLib;
 
-const {
-  parseCutArgv,
-  parseCutListString
-} = CutLib;
+const { parseCutArgv, parseCutListString } = CutLib;
 
-const {
-  parseTrArgv,
-  expandTrSetString,
-  runTr,
-  TR_HELP
-} = TrLib;
+const { parseTrArgv, expandTrSetString, runTr, TR_HELP } = TrLib;
 
 const {
   parseXargsArgv,
@@ -227,13 +212,8 @@ const {
   EXPAND_VERSION_LINE
 } = ExpandLib;
 
-const {
-  parseFoldArgv,
-  foldFoldText,
-  foldFoldLineChars,
-  FOLD_VERSION_LINE,
-  FOLD_DEFAULT_WIDTH
-} = FoldLib;
+const { parseFoldArgv, foldFoldText, foldFoldLineChars, FOLD_VERSION_LINE, FOLD_DEFAULT_WIDTH } =
+  FoldLib;
 
 const {
   parseSedArgv,

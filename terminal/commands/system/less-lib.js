@@ -1,5 +1,3 @@
-'use strict';
-
 /** Matches the pager page size in `less` (browser modal). */
 const LESS_LINES_PER_PAGE = 20;
 
@@ -737,14 +735,26 @@ function parseLessArgv(args) {
   };
 }
 
-const LessLib = {
-  LESS_LINES_PER_PAGE, LESS_DEFAULT_TAB_STOPS, LESS_HELP, LESS_VERSION_LINE,
-  lessContentFitsOneScreen, lessFormatWithLineNumbers, lessSqueezeBlankLines,
-  lessExpandTabsInLine, lessExpandTabsInText, lessInitialScrollLine,
-  lessScrollLineForTargetLineOneBased, lessTargetLineOneBasedFromPrefix,
-  lessHalfPageLineCount, lessRepeatCountFromPrefix, formatLessSearchMatchFooter,
-  lessStripAnsi, lessAnsiToHtml, parseLessArgv, lessOptionError,
-  lessEscapeHtmlChunk, parseLessPlusStart
+export const LessLib = {
+  LESS_LINES_PER_PAGE,
+  LESS_DEFAULT_TAB_STOPS,
+  LESS_HELP,
+  LESS_VERSION_LINE,
+  lessContentFitsOneScreen,
+  lessFormatWithLineNumbers,
+  lessSqueezeBlankLines,
+  lessExpandTabsInLine,
+  lessExpandTabsInText,
+  lessInitialScrollLine,
+  lessScrollLineForTargetLineOneBased,
+  lessTargetLineOneBasedFromPrefix,
+  lessHalfPageLineCount,
+  lessRepeatCountFromPrefix,
+  formatLessSearchMatchFooter,
+  lessStripAnsi,
+  lessAnsiToHtml,
+  parseLessArgv,
+  lessOptionError,
+  lessEscapeHtmlChunk,
+  parseLessPlusStart
 };
-if (typeof globalThis !== 'undefined') { /** @type {*} */ (globalThis).LessLib = LessLib; }
-if (typeof module !== 'undefined' && module.exports) { module.exports = LessLib; }

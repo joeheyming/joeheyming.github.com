@@ -1,5 +1,3 @@
-'use strict';
-
 const BASENAME_HELP = `Usage: basename NAME [SUFFIX]
   or:  basename OPTION... NAME...
 
@@ -292,7 +290,7 @@ function parseDirnameArgv(args) {
   return { ok: true, names: operands, zero };
 }
 
-const BasenameLib = {
+export const BasenameLib = {
   BASENAME_HELP,
   BASENAME_VERSION_LINE,
   basenameCompute,
@@ -302,9 +300,3 @@ const BasenameLib = {
   dirnameCompute,
   parseDirnameArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).BasenameLib = BasenameLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = BasenameLib;
-}

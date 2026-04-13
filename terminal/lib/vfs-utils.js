@@ -1,25 +1,11 @@
-'use strict';
-
 /**
  * Virtual filesystem helpers — symlink resolution, file content decoding,
  * directory sorting/filtering. Used by commands that need to traverse the VFS.
- *
- * Depends on ShellCore.resolveVirtualPath being available (browser global or
- * require('shell-core') in Node tests).
  */
 
-/** @type {typeof ShellCore.resolveVirtualPath} */
-const _resolveVirtualPath =
-  typeof ShellCore !== 'undefined'
-    ? ShellCore.resolveVirtualPath
-    : typeof require === 'function'
-    ? // @ts-ignore Node require in test runner
-      require('./shell-core').resolveVirtualPath
-    : /** @type {*} */ (
-        function () {
-          throw new Error('VfsUtils: ShellCore.resolveVirtualPath is not available');
-        }
-      );
+import { ShellCore } from './shell-core.js';
+
+const _resolveVirtualPath = ShellCore.resolveVirtualPath;
 
 function dirnameVirtualPath(p) {
   if (p == null || p === '' || p === '/') return '/';
@@ -187,7 +173,7 @@ function filterDirectoryEntriesForTabCompletion(entries, searchPattern) {
 // Exports
 // ---------------------------------------------------------------------------
 
-const VfsUtils = {
+export const VfsUtils = {
   dirnameVirtualPath,
   vfsFollowSymlinksToFile,
   vfsFollowSymlinksToDir,
@@ -197,11 +183,3 @@ const VfsUtils = {
   sortDirectoryEntriesByName,
   filterDirectoryEntriesForTabCompletion
 };
-
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).VfsUtils = VfsUtils;
-}
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = VfsUtils;
-}

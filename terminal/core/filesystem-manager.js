@@ -1,5 +1,7 @@
 // File System Manager for Heyming OS
-class FileSystemManager {
+import { ShellCore } from '../lib/shell-core.js';
+
+export class FileSystemManager {
   constructor(kernel) {
     this.kernel = kernel;
     this.fileSystemDB = null;
@@ -665,11 +667,4 @@ class RandomDevice {
   async write(buffer, offset, length) {
     return length;
   }
-}
-
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { FileSystemManager };
-} else if (typeof window !== 'undefined') {
-  window.FileSystemManager = FileSystemManager;
 }

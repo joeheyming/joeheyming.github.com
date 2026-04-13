@@ -1,5 +1,3 @@
-'use strict';
-
 const PRINTF_HELP = `Usage: printf FORMAT [ARGUMENT]...
   or:  printf OPTION
 
@@ -349,7 +347,11 @@ function runPrintfFormat(format, argv) {
           continue;
         }
         if (argIdx >= args.length) {
-          return { ok: /** @type {false} */ (false), stderr: 'printf: missing argument for format\n', exitCode: 1 };
+          return {
+            ok: /** @type {false} */ (false),
+            stderr: 'printf: missing argument for format\n',
+            exitCode: 1
+          };
         }
         const raw = args[argIdx++];
         const applied = printfApplySpec(spec, raw);
@@ -431,12 +433,10 @@ function parsePrintfArgv(args) {
   return { ok: true, format, operands };
 }
 
-const PrintfLib = {
+export const PrintfLib = {
   PRINTF_HELP,
   PRINTF_VERSION_LINE,
   parsePrintfArgv,
   printfOptionError,
   runPrintfFormat
 };
-if (typeof globalThis !== 'undefined') { /** @type {*} */ (globalThis).PrintfLib = PrintfLib; }
-if (typeof module !== 'undefined' && module.exports) { module.exports = PrintfLib; }
