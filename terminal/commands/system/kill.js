@@ -12,7 +12,7 @@
   registerCommand(
     'kill',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseKillArgv(args);
+      const parsed = ShellCore.parseKillArgv(args);
       if (parsed.kind === 'usage' || parsed.kind === 'error') {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }

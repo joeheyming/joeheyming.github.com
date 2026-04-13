@@ -55,7 +55,7 @@
       if (parsed.ok === false) {
         return { stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
-      if (parsed.help) {
+      if ('help' in parsed && parsed.help) {
         return {
           stdout: 'Usage: df [-h] [--human-readable]\n',
           stderr: '',

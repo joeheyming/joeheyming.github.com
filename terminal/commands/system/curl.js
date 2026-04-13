@@ -138,10 +138,15 @@ Examples:
               headers,
               timeout: timeout,
               maxRetries: 2,
-              signal: terminal.runAbortSignal
+              signal: terminal.runAbortSignal ?? undefined
             };
 
-            responseText = await window.proxyService.fetchWithProxy(url, proxyOptions);
+            responseText = await window.proxyService.fetchWithProxy(
+              url,
+              /** @type {RequestInit & { timeout?: number; maxRetries?: number }} */ (
+                /** @type {unknown} */ (proxyOptions)
+              )
+            );
             const endTime = performance.now();
             responseTime = (endTime - startTime).toFixed(0);
 
@@ -176,10 +181,13 @@ Examples:
             const fetchOptions = {
               method,
               headers,
-              signal: ShellUtils.combinedFetchSignal(timeout, terminal.runAbortSignal)
+              signal: ShellCore.combinedFetchSignal(timeout, terminal.runAbortSignal ?? undefined)
             };
 
-            const response = await fetch(url, fetchOptions);
+            const response = await fetch(
+              url,
+              /** @type {RequestInit} */ (/** @type {unknown} */ (fetchOptions))
+            );
             const endTime = performance.now();
             responseTime = (endTime - startTime).toFixed(0);
 
@@ -226,7 +234,7 @@ Examples:
           const fetchOptions = {
             method,
             headers,
-            signal: ShellUtils.combinedFetchSignal(timeout, terminal.runAbortSignal)
+            signal: ShellCore.combinedFetchSignal(timeout, terminal.runAbortSignal ?? undefined)
           };
 
           if (data && ['POST', 'PUT', 'PATCH'].includes(method)) {
@@ -248,7 +256,10 @@ Examples:
             }
           }
 
-          const response = await fetch(url, fetchOptions);
+          const response = await fetch(
+            url,
+            /** @type {RequestInit} */ (/** @type {unknown} */ (fetchOptions))
+          );
           const endTime = performance.now();
           responseTime = (endTime - startTime).toFixed(0);
 
@@ -282,7 +293,12 @@ Examples:
           }
         }
 
-        const isRedirected = terminal.redirections && terminal.redirections.stdout;
+        const reds = terminal.redirections;
+        const isRedirected =
+          !!reds &&
+          typeof reds === 'object' &&
+          !Array.isArray(reds) &&
+          !!(/** @type {{ stdout?: string }} */ (reds).stdout);
         if (!silent && statusMessages.length > 0) {
           if (!isRedirected) {
             statusMessages.forEach((msg) => logErr(msg));

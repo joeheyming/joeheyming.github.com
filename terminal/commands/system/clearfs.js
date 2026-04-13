@@ -39,10 +39,10 @@ Alternatively, use 'fsck --reset' for a more comprehensive filesystem reset.`;
       let clearedCount = 0;
 
       try {
-        // Clear FilesystemDB if available
-        if (typeof window !== 'undefined' && window.FilesystemDB) {
-          await window.FilesystemDB.clear();
-          output += '✅ Cleared FilesystemDB\n';
+        // Clear FilesystemDB if available (instance API on Terminal / OS)
+        if (terminal.fileSystemDB && typeof terminal.fileSystemDB.clearDatabase === 'function') {
+          await terminal.fileSystemDB.clearDatabase();
+          output += '✅ Cleared FileSystemDB\n';
           clearedCount++;
         }
 

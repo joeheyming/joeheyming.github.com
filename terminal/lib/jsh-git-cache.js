@@ -61,8 +61,8 @@
    * Create a cache object compatible with isomorphic-git that evicts the
    * oldest Symbol-keyed entries when total estimated size exceeds maxBytes.
    *
-   * @param {number} [maxBytes] — budget in bytes (default 50 MB)
-   * @returns {object} — pass this as the `cache` parameter to isomorphic-git
+   * @param {number} [maxBytes] - budget in bytes (default 50 MB)
+   * @returns {object} - pass this as the `cache` parameter to isomorphic-git
    */
   function createBoundedGitCache(maxBytes) {
     const limit =

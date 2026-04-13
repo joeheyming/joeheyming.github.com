@@ -5,21 +5,21 @@
   registerCommand(
     'basename',
     (terminal, args) => {
-      const parsed = ShellUtils.parseBasenameArgv(args);
-      if (!parsed.ok) {
+      const parsed = BasenameLib.parseBasenameArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.BASENAME_HELP, stderr: '', exitCode: 0 };
+        return { stdout: BasenameLib.BASENAME_HELP, stderr: '', exitCode: 0 };
       }
       if (parsed.version) {
-        return { stdout: ShellUtils.BASENAME_VERSION_LINE, stderr: '', exitCode: 0 };
+        return { stdout: BasenameLib.BASENAME_VERSION_LINE, stderr: '', exitCode: 0 };
       }
 
       const lines = [];
       for (const path of parsed.names) {
         const logical = terminal.resolvePath(path);
-        lines.push(ShellUtils.basenameCompute(logical, parsed.suffix));
+        lines.push(BasenameLib.basenameCompute(logical, parsed.suffix));
       }
       if (parsed.zero) {
         return {

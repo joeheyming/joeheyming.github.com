@@ -27,7 +27,7 @@
               .getElementById(`window-${terminal.windowId}`)
               ?.querySelector('.terminal-input');
           const promptEl = document.getElementById('prompt-text');
-          if (!input) return resolve(null);
+          if (!(input instanceof HTMLInputElement)) return resolve(null);
 
           const origType = input.type;
           if (promptEl) promptEl.textContent = `Password for ${targetName}: `;

@@ -32,12 +32,12 @@
   registerCommand(
     'mv',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseMvArgv(args);
-      if (!parsed.ok) {
+      const parsed = FileopsLib.parseMvArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.MV_HELP, stderr: '', exitCode: 0 };
+        return { stdout: FileopsLib.MV_HELP, stderr: '', exitCode: 0 };
       }
 
       const { operands } = parsed;

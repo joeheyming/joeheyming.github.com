@@ -20,8 +20,18 @@ class ProcessManager {
       ZOMBIE: 'zombie'
     };
 
-    // Signal types
+    // Signal names (strings match process-worker.js handleSignal switch cases)
     this.SIGNALS = {
+      SIGTERM: 'SIGTERM',
+      SIGKILL: 'SIGKILL',
+      SIGINT: 'SIGINT',
+      SIGSTOP: 'SIGSTOP',
+      SIGCONT: 'SIGCONT',
+      SIGCHLD: 'SIGCHLD'
+    };
+
+    // Numeric signal values for exit-code arithmetic (128 + signum)
+    this.SIGNAL_NUMBERS = {
       SIGTERM: 15,
       SIGKILL: 9,
       SIGINT: 2,
@@ -41,6 +51,32 @@ class ProcessManager {
     // Message handling
     this.pendingMessages = new Map();
     this.messageId = 0;
+
+    // POSIX errno constants
+    this.ERRNO = {
+      EPERM: 1,
+      ENOENT: 2,
+      ESRCH: 3,
+      EINTR: 4,
+      EIO: 5,
+      ENOEXEC: 8,
+      EBADF: 9,
+      ECHILD: 10,
+      EAGAIN: 11,
+      ENOMEM: 12,
+      EACCES: 13,
+      EEXIST: 17,
+      ENOTDIR: 20,
+      EISDIR: 21,
+      EINVAL: 22,
+      EMFILE: 24,
+      ENOSPC: 28,
+      EROFS: 30,
+      EPIPE: 32,
+      ENOSYS: 38,
+      ENOTEMPTY: 39,
+      ELOOP: 40
+    };
   }
 
   async initialize() {
@@ -121,7 +157,69 @@ class ProcessManager {
       }`
     );
 
+    // Set up standard file descriptors (0=stdin, 1=stdout, 2=stderr)
+    processInfo.fileDescriptors.set(0, { type: 'stdin', buffer: '' });
+    processInfo.fileDescriptors.set(1, { type: 'stdout', buffer: '' });
+    processInfo.fileDescriptors.set(2, { type: 'stderr', buffer: '' });
+    processInfo._nextFD = 3;
+
     return processInfo;
+  }
+
+  /**
+   * Allocate the next available file descriptor for a process.
+   * @param {number} pid
+   * @param {object} entry - FD entry describing the resource
+   * @returns {number} the allocated fd
+   */
+  allocateFD(pid, entry) {
+    const proc = typeof pid === 'number' ? this.processes.get(pid) : pid;
+    if (!proc) {
+      const err = new Error('No such process');
+      err.code = 'ESRCH';
+      throw err;
+    }
+    const fd = proc._nextFD || 3;
+    proc.fileDescriptors.set(fd, entry);
+    proc._nextFD = fd + 1;
+    return fd;
+  }
+
+  /**
+   * Allocate a specific fd number (for dup2).
+   * Closes the existing fd if occupied.
+   * @param {number} pid
+   * @param {number} fd
+   * @param {object} entry
+   */
+  allocateSpecificFD(pid, fd, entry) {
+    const proc = typeof pid === 'number' ? this.processes.get(pid) : pid;
+    if (!proc) {
+      const err = new Error('No such process');
+      err.code = 'ESRCH';
+      throw err;
+    }
+    proc.fileDescriptors.set(fd, entry);
+    if (fd >= (proc._nextFD || 3)) {
+      proc._nextFD = fd + 1;
+    }
+  }
+
+  // POSIX process identity helpers
+  getpid() {
+    return this.currentProcess ? this.currentProcess.pid : 0;
+  }
+
+  getppid() {
+    return this.currentProcess ? this.currentProcess.parentPID : 0;
+  }
+
+  getuid() {
+    return this.currentProcess ? this.currentProcess.uid : 0;
+  }
+
+  getgid() {
+    return this.currentProcess ? this.currentProcess.gid : 0;
   }
 
   async createWorker(processInfo) {
@@ -214,12 +312,12 @@ class ProcessManager {
       stdinSupplied: stdin.length > 0,
       syscall: (name, ...args) => this.kernel.syscall(name, ...args),
       // Add other necessary terminal methods
-      resolvePath: (path) => ShellUtils.resolveVirtualPath(path, process.cwd)
+      resolvePath: (path) => ShellCore.resolveVirtualPath(path, process.cwd)
     };
 
     const output = await commandHandler(mockTerminal, args);
-    const n = ShellUtils.normalizeHandlerResult(output);
-    return ShellUtils.normalizeCommandResult(n.stdout, n.stderr, n.exitCode);
+    const n = ShellCore.normalizeHandlerResult(output);
+    return ShellCore.normalizeCommandResult(n.stdout, n.stderr, n.exitCode);
   }
 
   // Send signal to process
@@ -316,6 +414,21 @@ class ProcessManager {
     setTimeout(() => {
       this.processes.delete(pid);
     }, 1000);
+  }
+
+  /** Kernel interrupt hook (reserved; may clear workers or reap zombies). */
+  handleProcessExit(processData) {
+    void processData;
+  }
+
+  getProcessCount() {
+    return this.processes.size;
+  }
+
+  async terminateAllProcesses() {
+    for (const pid of Array.from(this.processes.keys())) {
+      await this.terminateProcess(pid, 1);
+    }
   }
 
   // Handle messages from Web Workers

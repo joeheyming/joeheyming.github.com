@@ -25,12 +25,12 @@
   registerCommand(
     'wc',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseWcArgv(args);
-      if (!parsed.ok) {
+      const parsed = WcLib.parseWcArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.WC_HELP, stderr: '', exitCode: 0 };
+        return { stdout: WcLib.WC_HELP, stderr: '', exitCode: 0 };
       }
 
       const { showLines, showWords, showBytes, showAll, operands } = parsed;
@@ -58,12 +58,12 @@
           label = '-';
           text = stdinText;
         } else {
-          const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op, 'wc');
-          if (!res.ok) {
+          const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, op, 'wc');
+          if (res.ok === false) {
             stderrLines.push(res.stderr.trimEnd());
             continue;
           }
-          const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+          const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
           text = d.isBinary ? '' : d.text;
         }
         const c = countText(text);

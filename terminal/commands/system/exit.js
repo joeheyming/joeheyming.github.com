@@ -12,11 +12,11 @@ status of the last command ($? before exit).
   registerCommand(
     'exit',
     (terminal, args) => {
-      const parsed = ShellUtils.parseExitStatus(args, terminal.lastExitCode);
+      const parsed = ShellCore.parseExitStatus(args, terminal.lastExitCode);
       if (parsed.ok && parsed.help) {
         return { stdout: `${USAGE}\n`, stderr: '', exitCode: 0 };
       }
-      if (!parsed.ok) {
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       return { stdout: '', stderr: '', exitCode: parsed.status };

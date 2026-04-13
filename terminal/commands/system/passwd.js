@@ -23,7 +23,7 @@
           document.getElementById('terminal-input') ||
           document.getElementById(`window-${terminal.windowId}`)?.querySelector('.terminal-input');
         const promptEl = document.getElementById('prompt-text');
-        if (!output || !input) return resolve('passwd: terminal not available');
+        if (!output || !(input instanceof HTMLInputElement)) return resolve('passwd: terminal not available');
 
         const origType = input.type;
         const origPlaceholder = input.placeholder;

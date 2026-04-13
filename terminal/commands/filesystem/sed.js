@@ -5,27 +5,27 @@
   registerCommand(
     'sed',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseSedArgv(args);
-      if (!parsed.ok) {
+      const parsed = SedLib.parseSedArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.SED_HELP, stderr: '', exitCode: 0 };
+        return { stdout: SedLib.SED_HELP, stderr: '', exitCode: 0 };
       }
 
       /** @type {Array<{ kind: 'delete', address?: null | { type: 'single', n: number } | { type: 'single', last: true } | { type: 'range', start: number, end: number | 'last' } | { type: 'pattern', pattern: string } | { type: 'patternRange', start: string, end: string } } | { kind: 'substitute', pattern: string, replacement: string, global: boolean, printFlag: boolean, ignoreCase: boolean }>} */
       const specs = [];
       for (const sc of parsed.scripts) {
-        const pieces = ShellUtils.splitSedScriptIntoCommands(sc);
-        if (!pieces.ok) {
+        const pieces = SedLib.splitSedScriptIntoCommands(sc);
+        if (pieces.ok === false) {
           return { stdout: '', stderr: pieces.stderr, exitCode: 2 };
         }
         for (const fragment of pieces.commands) {
-          const p = ShellUtils.parseSedScript(fragment);
-          if (!p.ok) {
+          const p = SedLib.parseSedScript(fragment);
+          if (p.ok === false) {
             return { stdout: '', stderr: p.stderr, exitCode: 2 };
           }
-          specs.push(p);
+          specs.push(/** @type {(typeof specs)[number]} */ (p));
         }
       }
 
@@ -49,7 +49,7 @@
             exitCode: 2
           };
         }
-        chunks.push(ShellUtils.sedProcessContent(stdinText, specs, parsed.quiet));
+        chunks.push(SedLib.sedProcessContent(stdinText, specs, parsed.quiet));
       } else {
         for (const op of operands) {
           if (op === '-') {
@@ -57,17 +57,17 @@
               stderrLines.push('sed: -: No such file or directory');
               continue;
             }
-            chunks.push(ShellUtils.sedProcessContent(stdinText, specs, parsed.quiet));
+            chunks.push(SedLib.sedProcessContent(stdinText, specs, parsed.quiet));
             continue;
           }
-          const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op, 'sed');
-          if (!res.ok) {
+          const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, op, 'sed');
+          if (res.ok === false) {
             stderrLines.push(res.stderr.trimEnd());
             continue;
           }
-          const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+          const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
           const text = d.isBinary ? '' : d.text;
-          chunks.push(ShellUtils.sedProcessContent(text, specs, parsed.quiet));
+          chunks.push(SedLib.sedProcessContent(text, specs, parsed.quiet));
         }
       }
 

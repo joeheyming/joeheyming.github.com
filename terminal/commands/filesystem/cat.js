@@ -5,12 +5,12 @@
   registerCommand(
     'cat',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseCatArgv(args);
-      if (!parsed.ok) {
+      const parsed = CatLib.parseCatArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.CAT_HELP, stderr: '', exitCode: 0 };
+        return { stdout: CatLib.CAT_HELP, stderr: '', exitCode: 0 };
       }
 
       const { operands } = parsed;
@@ -36,12 +36,12 @@
           chunks.push(stdinText);
           continue;
         }
-        const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op, 'cat');
-        if (!res.ok) {
+        const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, op, 'cat');
+        if (res.ok === false) {
           stderrLines.push(res.stderr.trimEnd());
           continue;
         }
-        const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+        const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
         chunks.push(d.isBinary ? '[binary file]\n' : d.text);
       }
 

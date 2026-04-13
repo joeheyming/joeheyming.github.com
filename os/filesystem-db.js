@@ -33,7 +33,7 @@ class FileSystemDB {
   /**
    * Subscribe to filesystem events
    * @param {string} event - Event type: 'create', 'delete', 'move', 'copy', 'change'
-   * @param {Function} callback - Callback function(path, details)
+   * @param {(path: string, details?: FileSystemEventDetails) => void} callback - Callback function(path, details)
    * @returns {Function} Unsubscribe function
    */
   static on(event, callback) {
@@ -233,7 +233,7 @@ class FileSystemDB {
    * MIME type for routing opens to apps (Notepad, image viewer, …).
    * Prefer a stored `mimeType` when it is specific; `application/octet-stream` (and common
    * misspellings) is ignored so the path extension can supply `audio/*`, `image/*`, etc.
-   * @param {string|{ path?: string, mimeType?: string }} itemOrPath - Virtual path or file item
+   * @param {string|{ path?: string, mimeType?: string, content?: string, contentBytes?: unknown }} itemOrPath - Virtual path or file item
    * @returns {string}
    */
   static mimeTypeForOpen(itemOrPath) {
@@ -283,7 +283,8 @@ class FileSystemDB {
         return raw.slice(0);
       }
       if (ArrayBuffer.isView(raw)) {
-        return raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength);
+        const buf = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength);
+        return /** @type {ArrayBuffer} */ (buf);
       }
     }
     return item.content == null ? '' : String(item.content);
@@ -371,7 +372,7 @@ class FileSystemDB {
       };
 
       request.onupgradeneeded = (event) => {
-        const db = event.target.result;
+        const db = /** @type {IDBOpenDBRequest} */ (event.target).result;
 
         // Create object stores
         if (!db.objectStoreNames.contains('files')) {
@@ -811,6 +812,11 @@ class FileSystemDB {
   }
 
   // Create file (string, Uint8Array, or ArrayBuffer — binary for e.g. git packfiles)
+  /**
+   * @param {string} path
+   * @param {string|Uint8Array|ArrayBuffer|null|undefined} [content='']
+   * @param {boolean} [overwrite=false]
+   */
   async createFile(path, content = '', overwrite = false) {
     if (!this.isInitialized) await this.initialize();
 
@@ -839,7 +845,8 @@ class FileSystemDB {
 
     if (content instanceof Uint8Array) {
       const u8 = content;
-      contentBytes = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength);
+      const sliced = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength);
+      contentBytes = /** @type {ArrayBuffer} */ (sliced);
       size = u8.byteLength;
     } else if (content instanceof ArrayBuffer) {
       contentBytes = content;

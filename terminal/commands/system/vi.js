@@ -880,7 +880,7 @@ Insert Mode:
           };
         }
         if (file && file.type === 'file') {
-          const d = ShellUtils.fileItemUtf8ForDisplay(file);
+          const d = VfsUtils.fileItemUtf8ForDisplay(file);
           content = d.isBinary ? '' : d.text;
         }
 

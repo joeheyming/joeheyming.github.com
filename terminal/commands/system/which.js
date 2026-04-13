@@ -1,16 +1,16 @@
-// which command — locate a command (see ShellUtils.parseWhichArgv)
+// which command — locate a command (see BuiltinsLib.parseWhichArgv)
 (function () {
   'use strict';
 
   registerCommand(
     'which',
     (terminal, args) => {
-      const parsed = ShellUtils.parseWhichArgv(args);
-      if (!parsed.ok) {
+      const parsed = BuiltinsLib.parseWhichArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.WHICH_HELP, stderr: '', exitCode: 0 };
+        return { stdout: BuiltinsLib.WHICH_HELP, stderr: '', exitCode: 0 };
       }
 
       const pathDisplay =

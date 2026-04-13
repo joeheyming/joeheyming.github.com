@@ -5,21 +5,21 @@
   registerCommand(
     'dirname',
     (terminal, args) => {
-      const parsed = ShellUtils.parseDirnameArgv(args);
-      if (!parsed.ok) {
+      const parsed = BasenameLib.parseDirnameArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.DIRNAME_HELP, stderr: '', exitCode: 0 };
+        return { stdout: BasenameLib.DIRNAME_HELP, stderr: '', exitCode: 0 };
       }
       if (parsed.version) {
-        return { stdout: ShellUtils.DIRNAME_VERSION_LINE, stderr: '', exitCode: 0 };
+        return { stdout: BasenameLib.DIRNAME_VERSION_LINE, stderr: '', exitCode: 0 };
       }
 
       const lines = [];
       for (const path of parsed.names) {
         const logical = terminal.resolvePath(path);
-        lines.push(ShellUtils.dirnameCompute(logical));
+        lines.push(BasenameLib.dirnameCompute(logical));
       }
       if (parsed.zero) {
         return {

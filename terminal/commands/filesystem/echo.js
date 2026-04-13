@@ -5,21 +5,21 @@
   registerCommand(
     'echo',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseEchoArgv(args);
-      if (!parsed.ok) {
+      const parsed = EchoLib.parseEchoArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.ECHO_HELP, stderr: '', exitCode: 0 };
+        return { stdout: EchoLib.ECHO_HELP, stderr: '', exitCode: 0 };
       }
       if (parsed.version) {
-        return { stdout: ShellUtils.ECHO_VERSION_LINE, stderr: '', exitCode: 0 };
+        return { stdout: EchoLib.ECHO_VERSION_LINE, stderr: '', exitCode: 0 };
       }
 
       const joined = parsed.operands.join(' ');
       let text = terminal.expandVariables(joined);
       if (parsed.escapes) {
-        text = ShellUtils.echoApplyBackslashEscapes(text);
+        text = EchoLib.echoApplyBackslashEscapes(text);
       }
       const out = parsed.noNewline ? text : text + '\n';
       return { stdout: out, stderr: '', exitCode: 0 };

@@ -5,12 +5,12 @@
   registerCommand(
     'join',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseJoinArgv(args);
-      if (!parsed.ok) {
+      const parsed = JoinLib.parseJoinArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.JOIN_HELP, stderr: '', exitCode: 0 };
+        return { stdout: JoinLib.JOIN_HELP, stderr: '', exitCode: 0 };
       }
 
       const { joinField1, joinField2, delimChar, a1, a2, v1, v2, emptyStr } = parsed;
@@ -58,11 +58,11 @@
           }
           return { text: stdinText };
         }
-        const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op, 'join');
-        if (!res.ok) {
+        const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, op, 'join');
+        if (res.ok === false) {
           return { err: res.stderr.trimEnd() + '\n' };
         }
-        const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+        const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
         const text = d.isBinary ? '[binary file]' : d.text;
         return { text };
       }
@@ -76,13 +76,13 @@
         return { stdout: '', stderr: t2.err, exitCode: 1 };
       }
 
-      const lines1 = ShellUtils.pasteSplitLines(t1.text, false);
-      const lines2 = ShellUtils.pasteSplitLines(t2.text, false);
+      const lines1 = PasteLib.pasteSplitLines(t1.text, false);
+      const lines2 = PasteLib.pasteSplitLines(t2.text, false);
 
-      const rec1 = ShellUtils.joinBuildRecords(lines1, joinField1, delimChar);
-      const rec2 = ShellUtils.joinBuildRecords(lines2, joinField2, delimChar);
+      const rec1 = JoinLib.joinBuildRecords(lines1, joinField1, delimChar);
+      const rec2 = JoinLib.joinBuildRecords(lines2, joinField2, delimChar);
 
-      const outLines = ShellUtils.joinMergeRecords(rec1, rec2, {
+      const outLines = JoinLib.joinMergeRecords(rec1, rec2, {
         joinField1,
         joinField2,
         delimChar,

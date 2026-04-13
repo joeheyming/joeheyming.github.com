@@ -27,7 +27,7 @@
         };
       }
 
-      const d = ShellUtils.fileItemUtf8ForDisplay(item);
+      const d = VfsUtils.fileItemUtf8ForDisplay(item);
       const content = d.isBinary ? '' : d.text;
       const byteLen =
         item.contentBytes instanceof ArrayBuffer

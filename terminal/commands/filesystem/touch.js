@@ -24,12 +24,12 @@
   registerCommand(
     'touch',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseTouchArgv(args);
-      if (!parsed.ok) {
+      const parsed = TouchLib.parseTouchArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.TOUCH_HELP, stderr: '', exitCode: 0 };
+        return { stdout: TouchLib.TOUCH_HELP, stderr: '', exitCode: 0 };
       }
 
       const { noCreate, operands } = parsed;

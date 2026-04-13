@@ -5,15 +5,15 @@
   registerCommand(
     'fold',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseFoldArgv(args);
-      if (!parsed.ok) {
+      const parsed = FoldLib.parseFoldArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.FOLD_HELP, stderr: '', exitCode: 0 };
+        return { stdout: FoldLib.FOLD_HELP, stderr: '', exitCode: 0 };
       }
       if (parsed.version) {
-        return { stdout: ShellUtils.FOLD_VERSION_LINE, stderr: '', exitCode: 0 };
+        return { stdout: FoldLib.FOLD_VERSION_LINE, stderr: '', exitCode: 0 };
       }
 
       const { operands, width, bytesMode, breakAtSpaces } = parsed;
@@ -30,7 +30,7 @@
           return { stdout: '', stderr: 'fold: missing operand\n', exitCode: 1 };
         }
         return {
-          stdout: ShellUtils.foldFoldText(stdinText, width, bytesMode, breakAtSpaces),
+          stdout: FoldLib.foldFoldText(stdinText, width, bytesMode, breakAtSpaces),
           stderr: '',
           exitCode: 0
         };
@@ -40,17 +40,17 @@
       const stderrLines = [];
       for (const op of operands) {
         if (op === '-') {
-          chunks.push(ShellUtils.foldFoldText(stdinText, width, bytesMode, breakAtSpaces));
+          chunks.push(FoldLib.foldFoldText(stdinText, width, bytesMode, breakAtSpaces));
           continue;
         }
-        const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op, 'fold');
-        if (!res.ok) {
+        const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, op, 'fold');
+        if (res.ok === false) {
           stderrLines.push(res.stderr.trimEnd());
           continue;
         }
-        const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+        const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
         const text = d.isBinary ? '[binary file]\n' : d.text;
-        chunks.push(ShellUtils.foldFoldText(text, width, bytesMode, breakAtSpaces));
+        chunks.push(FoldLib.foldFoldText(text, width, bytesMode, breakAtSpaces));
       }
 
       const stdout = chunks.join('');

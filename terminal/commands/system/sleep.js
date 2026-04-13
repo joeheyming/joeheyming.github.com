@@ -45,15 +45,15 @@
   registerCommand(
     'sleep',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseSleepArgv(args);
-      if (!parsed.ok) {
+      const parsed = SleepLib.parseSleepArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.SLEEP_HELP, stderr: '', exitCode: 0 };
+        return { stdout: SleepLib.SLEEP_HELP, stderr: '', exitCode: 0 };
       }
       if (parsed.version) {
-        return { stdout: ShellUtils.SLEEP_VERSION_LINE, stderr: '', exitCode: 0 };
+        return { stdout: SleepLib.SLEEP_VERSION_LINE, stderr: '', exitCode: 0 };
       }
       const totalMs = parsed.totalSeconds * 1000;
       await sleepMsChunked(totalMs, terminal.runAbortSignal);

@@ -127,7 +127,7 @@ ${suggestions.map((s) => `  ${s.id}`).join('\n')}`;
       const fs = await window.FileSystemDB.getInstance();
       const cfg = getConfig();
       const cwd = terminal.currentDirectory || cfg.HOME;
-      const fullPath = ShellUtils.resolveVirtualPath(name, cwd);
+      const fullPath = ShellCore.resolveVirtualPath(name, cwd);
       const item = await fs.getItem(fullPath);
       if (item && item.type === 'file') {
         return fullPath;
@@ -148,7 +148,7 @@ ${suggestions.map((s) => `  ${s.id}`).join('\n')}`;
         logical = cfg.HOME + filePath.slice(1);
       }
       const cwd = terminal.currentDirectory || cfg.HOME;
-      const resolvedPath = ShellUtils.resolveVirtualPath(logical, cwd);
+      const resolvedPath = ShellCore.resolveVirtualPath(logical, cwd);
 
       const item = await fs.getItem(resolvedPath);
 

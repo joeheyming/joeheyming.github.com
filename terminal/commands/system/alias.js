@@ -17,12 +17,12 @@
   registerCommand(
     'alias',
     (terminal, args) => {
-      const parsed = ShellUtils.parseAliasArgv(args);
-      if (!parsed.ok) {
+      const parsed = BuiltinsLib.parseAliasArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.ALIAS_HELP, stderr: '', exitCode: 0 };
+        return { stdout: BuiltinsLib.ALIAS_HELP, stderr: '', exitCode: 0 };
       }
 
       const aliases = terminal.aliases || (terminal.aliases = {});

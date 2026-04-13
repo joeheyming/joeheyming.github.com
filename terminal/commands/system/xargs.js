@@ -5,12 +5,12 @@
   registerCommand(
     'xargs',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseXargsArgv(args);
-      if (!parsed.ok) {
+      const parsed = XargsLib.parseXargsArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.XARGS_HELP.trim() + '\n', stderr: '', exitCode: 0 };
+        return { stdout: XargsLib.XARGS_HELP.trim() + '\n', stderr: '', exitCode: 0 };
       }
 
       const stdinAvailable =
@@ -45,16 +45,16 @@
 
       if (replaceStr != null) {
         const records = nullDelim
-          ? ShellUtils.xargsSplitNullRecords(stdinText)
-          : ShellUtils.xargsSplitLines(stdinText);
+          ? XargsLib.xargsSplitNullRecords(stdinText)
+          : XargsLib.xargsSplitLines(stdinText);
         for (const rec of records) {
-          const subst = ShellUtils.xargsSubstituteInArgs(initialArgs, replaceStr, rec);
+          const subst = XargsLib.xargsSubstituteInArgs(initialArgs, replaceStr, rec);
           invocations.push([cmdName, ...subst]);
         }
       } else {
         const words = nullDelim
-          ? ShellUtils.xargsSplitNullRecords(stdinText)
-          : ShellUtils.xargsSplitWhitespaceWords(stdinText);
+          ? XargsLib.xargsSplitNullRecords(stdinText)
+          : XargsLib.xargsSplitWhitespaceWords(stdinText);
         if (words.length === 0) {
           if (maxArgs == null) {
             invocations.push([cmdName, ...initialArgs]);
@@ -83,7 +83,7 @@
         const name = argv[0];
         const rest = argv.slice(1);
         if (verbose) {
-          stderr += ShellUtils.xargsFormatVerboseCommandLine(name, rest) + '\n';
+          stderr += XargsLib.xargsFormatVerboseCommandLine(name, rest) + '\n';
         }
         const prevExit = terminal.lastExitCode;
         let res;
@@ -96,9 +96,9 @@
         if (code !== 0) {
           anyFail = true;
         }
-        stdout += ShellUtils.coerceShellString(res.stdout);
+        stdout += ShellCore.coerceShellString(res.stdout);
         if (res.stderr) {
-          stderr += ShellUtils.coerceShellString(res.stderr);
+          stderr += ShellCore.coerceShellString(res.stderr);
         }
       }
 

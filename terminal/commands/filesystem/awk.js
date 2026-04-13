@@ -5,16 +5,16 @@
   registerCommand(
     'awk',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseAwkArgv(args);
-      if (!parsed.ok) {
+      const parsed = AwkLib.parseAwkArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.AWK_HELP, stderr: '', exitCode: 0 };
+        return { stdout: AwkLib.AWK_HELP, stderr: '', exitCode: 0 };
       }
 
-      const pp = ShellUtils.parseAwkFullProgram(parsed.program);
-      if (!pp.ok) {
+      const pp = AwkLib.parseAwkFullProgram(parsed.program);
+      if (pp.ok === false) {
         return { stdout: '', stderr: pp.stderr, exitCode: 2 };
       }
 
@@ -32,28 +32,28 @@
       let nr = 1;
       const sharedAwkArrays = Object.create(null);
       /** @type {{ $0: string, fields: string[], NR: number, NF: number, fieldSeparator?: string, RSTART?: number, RLENGTH?: number, awkArrays?: Record<string, Record<string, string>> }} */
-      let endCtx = ShellUtils.awkBeginCtx(parsed.fieldSeparator, sharedAwkArrays);
+      let endCtx = AwkLib.awkBeginCtx(parsed.fieldSeparator, sharedAwkArrays);
 
       if (pp.beginExprs) {
-        const br = ShellUtils.awkRunPrintOnce(
+        const br = AwkLib.awkRunPrintOnce(
           pp.beginExprs,
-          ShellUtils.awkBeginCtx(parsed.fieldSeparator, sharedAwkArrays)
+          AwkLib.awkBeginCtx(parsed.fieldSeparator, sharedAwkArrays)
         );
-        if (!br.ok) {
+        if (br.ok === false) {
           return { stdout: '', stderr: br.stderr, exitCode: 2 };
         }
         chunks.push(br.stdout);
       }
 
       const runOnText = (text) => {
-        const r = ShellUtils.awkRunPrintProgram(
+        const r = AwkLib.awkRunPrintProgram(
           text,
           pp.mainExprs,
           parsed.fieldSeparator,
           nr,
           sharedAwkArrays
         );
-        if (!r.ok) {
+        if (r.ok === false) {
           return r;
         }
         chunks.push(r.stdout);
@@ -61,7 +61,7 @@
         if (r.lastReadCtx !== null) {
           endCtx = r.lastReadCtx;
         }
-        return { ok: true };
+        return { ok: /** @type {true} */ (true) };
       };
 
       const needStdinForMain = pp.mainExprs !== null;
@@ -75,7 +75,7 @@
           };
         }
         const r = runOnText(stdinText);
-        if (!r.ok) {
+        if (r.ok === false) {
           return { stdout: '', stderr: r.stderr, exitCode: 2 };
         }
       } else {
@@ -86,28 +86,28 @@
               continue;
             }
             const r = runOnText(stdinText);
-            if (!r.ok) {
+            if (r.ok === false) {
               return { stdout: '', stderr: r.stderr, exitCode: 2 };
             }
             continue;
           }
-          const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op, 'awk');
-          if (!res.ok) {
+          const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, op, 'awk');
+          if (res.ok === false) {
             stderrLines.push(res.stderr.trimEnd());
             continue;
           }
-          const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+          const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
           const text = d.isBinary ? '' : d.text;
           const r = runOnText(text);
-          if (!r.ok) {
+          if (r.ok === false) {
             return { stdout: '', stderr: r.stderr, exitCode: 2 };
           }
         }
       }
 
       if (pp.endExprs) {
-        const er = ShellUtils.awkRunPrintOnce(pp.endExprs, endCtx);
-        if (!er.ok) {
+        const er = AwkLib.awkRunPrintOnce(pp.endExprs, endCtx);
+        if (er.ok === false) {
           return { stdout: '', stderr: er.stderr, exitCode: 2 };
         }
         chunks.push(er.stdout);

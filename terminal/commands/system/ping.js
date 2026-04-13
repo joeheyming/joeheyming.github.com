@@ -149,7 +149,7 @@
               }
               response = await fetch(url, {
                 method: 'HEAD',
-                signal: ShellUtils.combinedFetchSignal(5000, userSig),
+                signal: ShellCore.combinedFetchSignal(5000, userSig),
                 mode: 'no-cors'
               });
               const endTime = performance.now();
@@ -168,7 +168,7 @@
           } else {
             response = await fetch(url, {
               method: 'HEAD',
-              signal: ShellUtils.combinedFetchSignal(5000, userSig),
+              signal: ShellCore.combinedFetchSignal(5000, userSig),
               mode: 'no-cors'
             });
             const endTime = performance.now();
@@ -218,7 +218,7 @@
                 } else {
                   const response2 = await fetch(httpUrl, {
                     method: 'HEAD',
-                    signal: ShellUtils.combinedFetchSignal(5000, userSig),
+                    signal: ShellCore.combinedFetchSignal(5000, userSig),
                     mode: 'no-cors'
                   });
                   const endTime2 = performance.now();

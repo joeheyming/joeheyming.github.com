@@ -62,12 +62,12 @@
   registerCommand(
     'rmdir',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseRmdirArgv(args);
-      if (!parsed.ok) {
+      const parsed = FileopsLib.parseRmdirArgv(args);
+      if (parsed.ok === false) {
         return { stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: `${ShellUtils.RMDIR_HELP}\n`, stderr: '', exitCode: 0 };
+        return { stdout: `${FileopsLib.RMDIR_HELP}\n`, stderr: '', exitCode: 0 };
       }
 
       const { parents, operands } = parsed;

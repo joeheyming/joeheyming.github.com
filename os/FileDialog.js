@@ -26,6 +26,7 @@ export class FileDialog {
     this.callback = null;
     this.fileContent = null;
     this.suggestedName = '';
+    /** @type {string[]|null} */
     this.fileTypes = null; // Filter for file types
     this.visible = false;
   }
@@ -41,11 +42,7 @@ export class FileDialog {
 
   /**
    * Show Save As dialog
-   * @param {Object} options - Dialog options
-   * @param {string} options.content - File content to save
-   * @param {string} options.suggestedName - Suggested filename
-   * @param {string} options.currentPath - Starting directory
-   * @param {Function} options.onSave - Callback when file is saved (path, filename)
+   * @param {Partial<{ content: string; suggestedName: string; currentPath: string; onSave: Function; fileTypes: string[] }>} [options]
    */
   showSaveAs(options = {}) {
     this.mode = 'save';
@@ -57,17 +54,15 @@ export class FileDialog {
 
     this._updateDialogTitle('Save As');
     this._updateConfirmButton('Save');
-    document.getElementById('file-dialog-filename').value = this.suggestedName;
+    /** @type {HTMLInputElement} */ (document.getElementById('file-dialog-filename')).value =
+      this.suggestedName;
 
     this._show();
   }
 
   /**
    * Show Open dialog
-   * @param {Object} options - Dialog options
-   * @param {string} options.currentPath - Starting directory
-   * @param {Array} options.fileTypes - Allowed file types (e.g., ['txt', 'md'])
-   * @param {Function} options.onOpen - Callback when file is opened (item)
+   * @param {Partial<{ currentPath: string; fileTypes: string[]; onOpen: Function }>} [options]
    */
   showOpen(options = {}) {
     this.mode = 'open';
@@ -77,7 +72,7 @@ export class FileDialog {
 
     this._updateDialogTitle('Open File');
     this._updateConfirmButton('Open');
-    document.getElementById('file-dialog-filename').value = '';
+    /** @type {HTMLInputElement} */ (document.getElementById('file-dialog-filename')).value = '';
 
     this._show();
   }
@@ -148,7 +143,7 @@ export class FileDialog {
 
     // Overlay click to close
     document.getElementById('file-dialog-overlay').addEventListener('click', (e) => {
-      if (e.target.id === 'file-dialog-overlay') this.hide();
+      if (/** @type {Element} */ (e.target).id === 'file-dialog-overlay') this.hide();
     });
 
     // Confirm button
@@ -165,15 +160,18 @@ export class FileDialog {
     // Sidebar
     document.querySelectorAll('#file-dialog-overlay .sidebar-item').forEach((item) => {
       item.addEventListener('click', () => {
-        this._navigateTo(item.dataset.path);
+        this._navigateTo(/** @type {HTMLElement} */ (item).dataset.path || '');
       });
     });
 
     // Filename input - Enter to confirm
-    document.getElementById('file-dialog-filename').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') this._handleConfirm();
-      if (e.key === 'Escape') this.hide();
-    });
+    /** @type {HTMLInputElement} */ (document.getElementById('file-dialog-filename')).addEventListener(
+      'keydown',
+      (e) => {
+        if (e.key === 'Enter') this._handleConfirm();
+        if (e.key === 'Escape') this.hide();
+      }
+    );
   }
 
   async _show() {
@@ -186,7 +184,7 @@ export class FileDialog {
     // Focus filename input for save mode
     if (this.mode === 'save') {
       setTimeout(() => {
-        const input = document.getElementById('file-dialog-filename');
+        const input = /** @type {HTMLInputElement} */ (document.getElementById('file-dialog-filename'));
         input.focus();
         input.select();
       }, 100);
@@ -278,7 +276,8 @@ export class FileDialog {
 
     // If it's a file, set the filename
     if (item.dataset.type === 'file') {
-      document.getElementById('file-dialog-filename').value = item.dataset.name;
+      /** @type {HTMLInputElement} */ (document.getElementById('file-dialog-filename')).value =
+        /** @type {HTMLElement} */ (item).dataset.name || '';
     }
   }
 
@@ -291,7 +290,9 @@ export class FileDialog {
   }
 
   async _handleConfirm() {
-    const filename = document.getElementById('file-dialog-filename').value.trim();
+    const filename = /** @type {HTMLInputElement} */ (
+      document.getElementById('file-dialog-filename')
+    ).value.trim();
 
     if (this.mode === 'save') {
       if (!filename) {
@@ -314,7 +315,9 @@ export class FileDialog {
         this.os.notifications.error(`Failed to save: ${error.message}`);
       }
     } else if (this.mode === 'open') {
-      const selected = document.querySelector('.file-dialog-item.selected');
+      const selected = /** @type {HTMLElement|null} */ (
+        document.querySelector('.file-dialog-item.selected')
+      );
       if (!selected || selected.dataset.type === 'directory') {
         this.os.notifications.error('Please select a file');
         return;
@@ -347,7 +350,10 @@ export class FileDialog {
 
   _updateSidebar() {
     document.querySelectorAll('#file-dialog-overlay .sidebar-item').forEach((item) => {
-      item.classList.toggle('active', item.dataset.path === this.currentPath);
+      /** @type {HTMLElement} */ (item).classList.toggle(
+        'active',
+        /** @type {HTMLElement} */ (item).dataset.path === this.currentPath
+      );
     });
   }
 

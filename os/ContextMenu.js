@@ -218,7 +218,7 @@ export class ContextMenu {
       case 'Enter':
       case ' ':
         e.preventDefault();
-        document.activeElement?.click();
+        /** @type {HTMLElement|null} */ (document.activeElement)?.click();
         break;
       case 'Tab':
         this.hide();
@@ -314,8 +314,9 @@ export class ContextMenu {
 
     // Show on right-click
     desktop.addEventListener('contextmenu', (e) => {
+      const target = /** @type {Element} */ (e.target);
       // Check if right-clicking on a file icon
-      const fileIcon = e.target.closest('.file-icon');
+      const fileIcon = /** @type {HTMLElement|null} */ (target.closest('.file-icon'));
       if (fileIcon) {
         e.preventDefault();
         const path = fileIcon.dataset.path;
@@ -327,8 +328,8 @@ export class ContextMenu {
       }
 
       // Only show desktop menu if clicking on desktop, not on windows/app icons
-      if (e.target === desktop || e.target.closest('#os-desktop') === desktop) {
-        if (!e.target.closest('.os-window') && !e.target.closest('.desktop-icon')) {
+      if (target === desktop || target.closest('#os-desktop') === desktop) {
+        if (!target.closest('.os-window') && !target.closest('.desktop-icon')) {
           e.preventDefault();
           this.show(e.clientX, e.clientY);
         }
@@ -344,7 +345,9 @@ export class ContextMenu {
 
     // Handle desktop menu item clicks
     this.menu.addEventListener('click', (e) => {
-      const item = e.target.closest('.context-menu-item');
+      const item = /** @type {HTMLElement|null} */ (
+        /** @type {Element} */ (e.target).closest('.context-menu-item')
+      );
       if (!item) return;
 
       const action = item.dataset.action;
@@ -355,7 +358,9 @@ export class ContextMenu {
 
     // Handle file menu item clicks
     this.fileMenu.addEventListener('click', (e) => {
-      const item = e.target.closest('.context-menu-item');
+      const item = /** @type {HTMLElement|null} */ (
+        /** @type {Element} */ (e.target).closest('.context-menu-item')
+      );
       if (!item) return;
 
       const action = item.dataset.action;
@@ -485,12 +490,12 @@ export class ContextMenu {
       if (typeof content === 'string' && content.startsWith('data:')) {
         fetch(content)
           .then((res) => res.blob())
-          .then((b) => this._triggerDownload(b, fileName, mimeType));
+          .then((b) => this._triggerDownload(b, fileName));
         return;
       }
 
       const blob = new Blob([content], { type: mimeType });
-      this._triggerDownload(blob, fileName, mimeType);
+      this._triggerDownload(blob, fileName);
     } catch (error) {
       console.error('Download failed:', error);
       this.os.notifications.error(`Download failed: ${fileName}`);

@@ -26,7 +26,7 @@
       if (!Object.prototype.hasOwnProperty.call(envVars, key)) {
         continue;
       }
-      lines.push(ShellUtils.formatDeclareXLine(key, envVars[key]));
+      lines.push(ShellCore.formatDeclareXLine(key, envVars[key]));
     }
     return { stdout: lines.join('\n'), stderr: '', exitCode: 0 };
   }

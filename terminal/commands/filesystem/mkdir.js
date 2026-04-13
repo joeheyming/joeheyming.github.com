@@ -29,7 +29,7 @@
    * @param {object} terminal
    * @param {string} userArg — operand as typed (for error messages)
    * @param {string} absPath — resolved absolute path
-   * @returns {{ ok: true } | { ok: false, stderr: string, exitCode: number }}
+   * @returns {Promise<{ ok: true } | { ok: false, stderr: string, exitCode: number }>}
    */
   async function mkdirParents(terminal, userArg, absPath) {
     const fs = terminal.fileSystemDB;
@@ -64,8 +64,8 @@
   registerCommand(
     'mkdir',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseMkdirArgv(args);
-      if (!parsed.ok) {
+      const parsed = MkdirLib.parseMkdirArgv(args);
+      if (parsed.ok === false) {
         return { stderr: parsed.stderr, exitCode: 1 };
       }
       const { parents, operands } = parsed;
@@ -80,7 +80,7 @@
         const dirPath = terminal.resolvePath(name);
         if (parents) {
           const r = await mkdirParents(terminal, name, dirPath);
-          if (!r.ok) {
+          if (r.ok === false) {
             stderrLines.push(r.stderr);
             hadError = true;
           }
