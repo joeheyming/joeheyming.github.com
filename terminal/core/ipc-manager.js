@@ -15,25 +15,21 @@ class IPCManager {
     this.kernel.log('IPC Manager initializing');
   }
 
-  // Create a pipe for process communication
+  // Create a pipe for process communication (POSIX pipe())
   createPipe() {
     const pipeId = this.nextPipeId++;
     const pipe = new Pipe(pipeId);
     this.pipes.set(pipeId, pipe);
 
-    // Return read and write file descriptors
-    const readFD = this.kernel.processManager.currentProcess.allocateFD({
+    const proc = this.kernel.processManager.currentProcess;
+    const readFD = this.kernel.processManager.allocateFD(proc, {
       type: 'pipe_read',
-      pipeId: pipeId,
-      readable: true,
-      writable: false
+      pipeId: pipeId
     });
 
-    const writeFD = this.kernel.processManager.currentProcess.allocateFD({
+    const writeFD = this.kernel.processManager.allocateFD(proc, {
       type: 'pipe_write',
-      pipeId: pipeId,
-      readable: false,
-      writable: true
+      pipeId: pipeId
     });
 
     this.kernel.log(`Pipe created: ID ${pipeId}, Read FD ${readFD}, Write FD ${writeFD}`);
@@ -165,7 +161,7 @@ class IPCManager {
 
     const currentProcess = this.kernel.processManager.currentProcess;
     if (currentProcess) {
-      const fd = currentProcess.allocateFD({
+      const fd = this.kernel.processManager.allocateFD(currentProcess, {
         type: 'socket',
         socketId: socketId,
         readable: true,

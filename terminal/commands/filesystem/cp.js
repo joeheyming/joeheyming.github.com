@@ -38,12 +38,12 @@
   registerCommand(
     'cp',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseCpArgv(args);
-      if (!parsed.ok) {
+      const parsed = FileopsLib.parseCpArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.CP_HELP, stderr: '', exitCode: 0 };
+        return { stdout: FileopsLib.CP_HELP, stderr: '', exitCode: 0 };
       }
 
       const { recursive, operands } = parsed;

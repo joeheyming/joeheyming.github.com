@@ -46,7 +46,7 @@
         return { ok: false };
       }
       const parent = dirnameVirtual(fullPath);
-      fullPath = ShellUtils.resolveVirtualPath(String(raw).trim(), parent);
+      fullPath = ShellCore.resolveVirtualPath(String(raw).trim(), parent);
     }
     return { ok: false };
   }
@@ -95,7 +95,7 @@
     }
     if (args[0] === '!') {
       const inner = await evalExpr(terminal, args.slice(1), progName);
-      if (!inner.ok) {
+      if (inner.ok === false) {
         return inner;
       }
       return { ok: true, value: !inner.value };
@@ -151,19 +151,19 @@
       exprArgs = exprArgs.slice(0, -1);
     }
 
-    const parsed = ShellUtils.parseTestArgv(exprArgs);
-    if (!parsed.ok) {
+    const parsed = TestLib.parseTestArgv(exprArgs);
+    if (parsed.ok === false) {
       return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
     }
     if (parsed.help) {
-      return { stdout: ShellUtils.TEST_HELP, stderr: '', exitCode: 0 };
+      return { stdout: TestLib.TEST_HELP, stderr: '', exitCode: 0 };
     }
     if (parsed.version) {
-      return { stdout: ShellUtils.TEST_VERSION_LINE, stderr: '', exitCode: 0 };
+      return { stdout: TestLib.TEST_VERSION_LINE, stderr: '', exitCode: 0 };
     }
 
     const ev = await evalExpr(terminal, exprArgs, progName);
-    if (!ev.ok) {
+    if (ev.ok === false) {
       return { stdout: '', stderr: ev.stderr, exitCode: ev.exitCode };
     }
     return { stdout: '', stderr: '', exitCode: ev.value ? 0 : 1 };

@@ -5,15 +5,16 @@
   registerCommand(
     'chmod',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseChmodArgv(args);
-      if (!parsed.ok) {
+      const parsed = ChmodLib.parseChmodArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: 1 };
       }
-      if (parsed.help) {
-        return { stdout: ShellUtils.CHMOD_HELP, stderr: '', exitCode: 0 };
+      if ('help' in parsed && parsed.help) {
+        return { stdout: ChmodLib.CHMOD_HELP, stderr: '', exitCode: 0 };
       }
       const stderrLines = [];
-      for (const f of parsed.files) {
+      const files = 'files' in parsed ? parsed.files : [];
+      for (const f of files) {
         const p = terminal.resolvePath(f);
         const item = await terminal.fileSystemDB.getItem(p);
         if (!item) {

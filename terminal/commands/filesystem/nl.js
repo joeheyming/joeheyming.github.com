@@ -5,12 +5,12 @@
   registerCommand(
     'nl',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseNlArgv(args);
-      if (!parsed.ok) {
+      const parsed = NlLib.parseNlArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.NL_HELP, stderr: '', exitCode: 0 };
+        return { stdout: NlLib.NL_HELP, stderr: '', exitCode: 0 };
       }
 
       const { bodyNumbering, numberFormat, numberWidth, separator, operands } = parsed;
@@ -28,7 +28,7 @@
         if (!stdinAvailable) {
           return { stdout: '', stderr: 'nl: missing operand\n', exitCode: 1 };
         }
-        const out = ShellUtils.formatNlNumberedText(stdinText, nlOpts);
+        const out = NlLib.formatNlNumberedText(stdinText, nlOpts);
         return { stdout: out, stderr: '', exitCode: 0 };
       }
 
@@ -43,15 +43,15 @@
           label = '-';
           text = stdinText;
         } else {
-          const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op, 'nl');
-          if (!res.ok) {
+          const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, op, 'nl');
+          if (res.ok === false) {
             stderrLines.push(res.stderr.trimEnd());
             continue;
           }
-          const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+          const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
           text = d.isBinary ? '[binary file]' : d.text;
         }
-        const block = ShellUtils.formatNlNumberedText(text, nlOpts);
+        const block = NlLib.formatNlNumberedText(text, nlOpts);
         if (multi) {
           chunks.push(`==> ${label} <==\n${block}`);
         } else {

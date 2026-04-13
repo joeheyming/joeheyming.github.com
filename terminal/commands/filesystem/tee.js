@@ -21,12 +21,12 @@
   registerCommand(
     'tee',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseTeeArgv(args);
-      if (!parsed.ok) {
+      const parsed = TeeLib.parseTeeArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.TEE_HELP.trim() + '\n', stderr: '', exitCode: 0 };
+        return { stdout: TeeLib.TEE_HELP.trim() + '\n', stderr: '', exitCode: 0 };
       }
 
       if (terminal.stdinSupplied !== true) {
@@ -59,7 +59,7 @@
           if (append) {
             const prev =
               existing && existing.type === 'file'
-                ? ShellUtils.fileItemUtf8ForDisplay(existing).text
+                ? VfsUtils.fileItemUtf8ForDisplay(existing).text
                 : '';
             await terminal.fileSystemDB.createFile(filePath, prev + input, true);
           } else {

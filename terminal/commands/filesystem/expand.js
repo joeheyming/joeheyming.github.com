@@ -5,15 +5,15 @@
   registerCommand(
     'expand',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseExpandArgv(args);
-      if (!parsed.ok) {
+      const parsed = ExpandLib.parseExpandArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.EXPAND_HELP, stderr: '', exitCode: 0 };
+        return { stdout: ExpandLib.EXPAND_HELP, stderr: '', exitCode: 0 };
       }
       if (parsed.version) {
-        return { stdout: ShellUtils.EXPAND_VERSION_LINE, stderr: '', exitCode: 0 };
+        return { stdout: ExpandLib.EXPAND_VERSION_LINE, stderr: '', exitCode: 0 };
       }
 
       const { operands, tabSpec, initialOnly } = parsed;
@@ -30,7 +30,7 @@
           return { stdout: '', stderr: 'expand: missing operand\n', exitCode: 1 };
         }
         return {
-          stdout: ShellUtils.expandExpandText(stdinText, tabSpec, initialOnly),
+          stdout: ExpandLib.expandExpandText(stdinText, tabSpec, initialOnly),
           stderr: '',
           exitCode: 0
         };
@@ -40,17 +40,17 @@
       const stderrLines = [];
       for (const op of operands) {
         if (op === '-') {
-          chunks.push(ShellUtils.expandExpandText(stdinText, tabSpec, initialOnly));
+          chunks.push(ExpandLib.expandExpandText(stdinText, tabSpec, initialOnly));
           continue;
         }
-        const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op, 'expand');
-        if (!res.ok) {
+        const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, op, 'expand');
+        if (res.ok === false) {
           stderrLines.push(res.stderr.trimEnd());
           continue;
         }
-        const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+        const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
         const text = d.isBinary ? '[binary file]\n' : d.text;
-        chunks.push(ShellUtils.expandExpandText(text, tabSpec, initialOnly));
+        chunks.push(ExpandLib.expandExpandText(text, tabSpec, initialOnly));
       }
 
       const stdout = chunks.join('');

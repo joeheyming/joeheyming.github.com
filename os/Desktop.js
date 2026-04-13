@@ -400,7 +400,8 @@ export class Desktop {
     // Click on desktop clears selection
     this.desktop.addEventListener('click', (e) => {
       // Only clear if clicking on desktop itself, not on icons
-      if (e.target === this.desktop || e.target.id === 'os-desktop') {
+      const t = /** @type {Element} */ (e.target);
+      if (t === this.desktop || t.id === 'os-desktop') {
         this._clearSelection();
       }
     });
@@ -409,7 +410,9 @@ export class Desktop {
   /** Theme E: when Tab moves focus onto an icon, sync file selection with keyboard users. */
   _setupDesktopIconFocusSync() {
     this.desktop.addEventListener('focusin', (e) => {
-      const icon = e.target?.closest?.('.desktop-icon');
+      const icon = /** @type {HTMLElement|null} */ (
+        /** @type {Element} */ (e.target).closest?.('.desktop-icon')
+      );
       if (!icon || !this.desktop.contains(icon)) return;
       if (icon.classList.contains('file-icon')) {
         const path = icon.dataset.path;
@@ -422,10 +425,11 @@ export class Desktop {
 
   _setupKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
+      const tgt = /** @type {Element} */ (e.target);
       // Only handle shortcuts when desktop is focused (no input element)
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA') return;
       // Skip if within an iframe
-      if (e.target.closest('iframe')) return;
+      if (tgt.closest('iframe')) return;
 
       const isMeta = e.metaKey || e.ctrlKey;
       const hasSelection = this.selectedFiles.size > 0;
@@ -507,7 +511,7 @@ export class Desktop {
   _selectRange(fromPath, toPath) {
     // Get all file icons in order
     const icons = Array.from(this.desktop.querySelectorAll('.file-icon'));
-    const paths = icons.map((el) => el.dataset.path);
+    const paths = icons.map((el) => /** @type {HTMLElement} */ (el).dataset.path);
 
     const fromIndex = paths.indexOf(fromPath);
     const toIndex = paths.indexOf(toPath);
@@ -733,11 +737,9 @@ export class Desktop {
     // Mouse down - start drag selection
     this.desktop.addEventListener('mousedown', (e) => {
       // Only start if clicking directly on desktop (not on icons or windows)
-      if (e.target !== this.desktop && e.target.id !== 'os-desktop') return;
+      const t = /** @type {Element} */ (e.target);
+      if (t !== this.desktop && t.id !== 'os-desktop') return;
       if (e.button !== 0) return; // Left click only
-
-      // Don't start if right-clicking (context menu)
-      if (e.button === 2) return;
 
       this.isDragSelecting = true;
       this.dragSelectStart = { x: e.clientX, y: e.clientY };
@@ -829,7 +831,7 @@ export class Desktop {
       e.preventDefault();
       e.stopPropagation();
       const next = e.relatedTarget;
-      if (next && this.desktop.contains(next)) {
+      if (next instanceof Node && this.desktop.contains(next)) {
         return;
       }
       this.desktop.classList.remove('drop-active');

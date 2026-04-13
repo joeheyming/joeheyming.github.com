@@ -27,12 +27,12 @@
   registerCommand(
     'rm',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseRmArgv(args);
-      if (!parsed.ok) {
+      const parsed = FileopsLib.parseRmArgv(args);
+      if (parsed.ok === false) {
         return { stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: `${ShellUtils.RM_HELP}\n`, stderr: '', exitCode: 0 };
+        return { stdout: `${FileopsLib.RM_HELP}\n`, stderr: '', exitCode: 0 };
       }
 
       const { recursive, force, operands } = parsed;

@@ -12,14 +12,35 @@ const {
   normalizeCommandResult,
   normalizeHandlerResult,
   normalizeExitByte,
-  parseExitStatus,
-  parseHelpArgs,
-  parseKillArgv,
-  parseTeeArgv,
-  parseCatArgv,
-  parseEchoArgv,
-  echoApplyBackslashEscapes,
-  ECHO_VERSION_LINE,
+  expandVariablesInString,
+  combinedFetchSignal
+} = require('../lib/shell-core.js');
+
+const {
+  fileItemUtf8ForDisplay,
+  filterDirectoryEntriesForTabCompletion,
+  sortDirectoryEntriesByName,
+  vfsReadlinkCanonical,
+  vfsFollowSymlinksToFile
+} = require('../lib/vfs-utils.js');
+
+const SedLib = require('../commands/filesystem/sed-lib.js');
+const AwkLib = require('../commands/filesystem/awk-lib.js');
+const PrintfLib = require('../commands/filesystem/printf-lib.js');
+const FmtLib = require('../commands/filesystem/fmt-lib.js');
+const SplitLib = require('../commands/filesystem/split-lib.js');
+const CsplitLib = require('../commands/filesystem/csplit-lib.js');
+const ExpandLib = require('../commands/filesystem/expand-lib.js');
+const FoldLib = require('../commands/filesystem/fold-lib.js');
+const TrLib = require('../commands/filesystem/tr-lib.js');
+const CutLib = require('../commands/filesystem/cut-lib.js');
+const XargsLib = require('../commands/system/xargs-lib.js');
+const LessLib = require('../commands/system/less-lib.js');
+const NlLib = require('../commands/filesystem/nl-lib.js');
+const PasteLib = require('../commands/filesystem/paste-lib.js');
+const JoinLib = require('../commands/filesystem/join-lib.js');
+
+const {
   parseLessArgv,
   lessContentFitsOneScreen,
   lessFormatWithLineNumbers,
@@ -36,7 +57,43 @@ const {
   lessStripAnsi,
   lessAnsiToHtml,
   LESS_VERSION_LINE,
-  LESS_LINES_PER_PAGE,
+  LESS_LINES_PER_PAGE
+} = LessLib;
+
+const {
+  parseNlArgv,
+  formatNlNumberedText,
+  nlFormatNumberField
+} = NlLib;
+
+const {
+  parsePasteArgv,
+  pasteSplitLines,
+  pasteJoinParallelRows,
+  pasteJoinSerialRows,
+  pasteFormatOutputLines
+} = PasteLib;
+
+const {
+  parseJoinArgv,
+  joinSplitFields,
+  joinBuildRecords,
+  joinMergeRecords,
+  joinEmitMatchedLine,
+  JOIN_HELP
+} = JoinLib;
+
+const {
+  parseExitStatus,
+  parseHelpArgs,
+  parseKillArgv,
+  formatDeclareXLine,
+  escapeBashDoubleQuotedContent,
+  escapeTypeAliasBody
+} = require('../lib/shell-core.js');
+
+const FileopsLib = require('../commands/filesystem/fileops-lib.js');
+const {
   parseCpArgv,
   parseMvArgv,
   parseRmArgv,
@@ -44,107 +101,141 @@ const {
   parseRmdirArgv,
   RMDIR_HELP,
   parseUnlinkArgv,
-  UNLINK_HELP,
-  ENV_HELP,
-  parseEnvArgv,
-  expandVariablesInString,
-  fileItemUtf8ForDisplay,
-  combinedFetchSignal,
-  filterDirectoryEntriesForTabCompletion,
-  parseLsDisplayFlags,
-  sortDirectoryEntriesByName,
-  formatDeclareXLine,
-  escapeBashDoubleQuotedContent,
-  parseMkdirArgv,
-  parseChmodArgv,
-  parseStatArgv,
-  parseTypeArgv,
-  parseWhichArgv,
-  parseAliasArgv,
-  escapeTypeAliasBody,
-  parseLinesFilterArgv,
-  parseWcArgv,
-  parseNlArgv,
-  formatNlNumberedText,
-  nlFormatNumberField,
-  parsePasteArgv,
-  pasteSplitLines,
-  pasteJoinParallelRows,
-  pasteJoinSerialRows,
-  pasteFormatOutputLines,
-  parseJoinArgv,
-  joinSplitFields,
-  joinBuildRecords,
-  joinMergeRecords,
-  joinEmitMatchedLine,
-  JOIN_HELP,
-  parseExpandArgv,
-  parseExpandTabStopsArg,
-  expandExpandLine,
-  expandExpandText,
-  EXPAND_VERSION_LINE,
-  parseFoldArgv,
-  foldFoldText,
-  foldFoldLineChars,
-  FOLD_VERSION_LINE,
-  FOLD_DEFAULT_WIDTH,
-  parseFmtArgv,
-  fmtFmtText,
-  fmtFmtDefaultGoal,
-  parseFmtGoalValue,
-  fmtPrefixMatchLine,
-  fmtLeadingSpaceCount,
-  fmtWrapWordsCrown,
-  FMT_DEFAULT_WIDTH,
-  FMT_FMT_GOAL_NUMERATOR,
-  FMT_FMT_GOAL_DENOMINATOR,
-  FMT_VERSION_LINE,
+  UNLINK_HELP
+} = FileopsLib;
+
+const TeeLib = require('../commands/filesystem/tee-lib.js');
+const { parseTeeArgv } = TeeLib;
+
+const CatLib = require('../commands/filesystem/cat-lib.js');
+const { parseCatArgv } = CatLib;
+
+const EchoLib = require('../commands/filesystem/echo-lib.js');
+const { parseEchoArgv, echoApplyBackslashEscapes, ECHO_VERSION_LINE } = EchoLib;
+
+const GrepLib = require('../commands/filesystem/grep-lib.js');
+const { parseGrepArgv, GREP_HELP, grepOptionError } = GrepLib;
+
+const EnvLib = require('../commands/system/env-lib.js');
+const { ENV_HELP, parseEnvArgv } = EnvLib;
+
+const LsLib = require('../commands/filesystem/ls-lib.js');
+const { parseLsDisplayFlags } = LsLib;
+
+const MkdirLib = require('../commands/filesystem/mkdir-lib.js');
+const { parseMkdirArgv } = MkdirLib;
+
+const ChmodLib = require('../commands/filesystem/chmod-lib.js');
+const { parseChmodArgv } = ChmodLib;
+
+const StatLib = require('../commands/filesystem/stat-lib.js');
+const { parseStatArgv } = StatLib;
+
+const BuiltinsLib = require('../commands/system/builtins-lib.js');
+const { parseTypeArgv, parseWhichArgv, parseAliasArgv } = BuiltinsLib;
+
+const PwdLib = require('../commands/system/pwd-lib.js');
+const { parsePwdArgv } = PwdLib;
+
+const DateLib = require('../commands/system/date-lib.js');
+const { parseDateArgv, formatDateOutput } = DateLib;
+
+const SeqLib = require('../commands/system/seq-lib.js');
+const { parseSeqArgv, genSeqSequence, formatSeqOutput } = SeqLib;
+
+const SleepLib = require('../commands/system/sleep-lib.js');
+const { parseSleepArgv } = SleepLib;
+
+const LinesLib = require('../commands/filesystem/lines-lib.js');
+const { parseLinesFilterArgv } = LinesLib;
+
+const WcLib = require('../commands/filesystem/wc-lib.js');
+const { parseWcArgv } = WcLib;
+
+const SortLib = require('../commands/filesystem/sort-lib.js');
+const { parseSortArgv } = SortLib;
+
+const UniqLib = require('../commands/filesystem/uniq-lib.js');
+const { parseUniqArgv } = UniqLib;
+
+const ReadlinkLib = require('../commands/filesystem/readlink-lib.js');
+const { parseReadlinkArgv } = ReadlinkLib;
+
+const LnLib = require('../commands/filesystem/ln-lib.js');
+const { parseLnArgv, symlinkBasenameForLn } = LnLib;
+
+const TouchLib = require('../commands/filesystem/touch-lib.js');
+const { parseTouchArgv } = TouchLib;
+
+const TestLib = require('../commands/system/test-lib.js');
+const { parseTestArgv, parseTrueFalseArgv } = TestLib;
+
+const BasenameLib = require('../commands/filesystem/basename-lib.js');
+const {
+  parseBasenameArgv,
+  basenameCompute,
+  BASENAME_VERSION_LINE,
+  parseDirnameArgv,
+  dirnameCompute,
+  DIRNAME_VERSION_LINE
+} = BasenameLib;
+
+const {
+  parseCutArgv,
+  parseCutListString
+} = CutLib;
+
+const {
+  parseTrArgv,
+  expandTrSetString,
+  runTr,
+  TR_HELP
+} = TrLib;
+
+const {
+  parseXargsArgv,
+  xargsSplitWhitespaceWords,
+  xargsSplitLines,
+  xargsSplitNullRecords,
+  xargsSubstituteInArgs,
+  xargsFormatVerboseCommandLine
+} = XargsLib;
+
+const {
   parseSplitArgv,
   parseSplitByteSize,
   splitLinesWithSeparators,
   splitLinesBytes,
   splitGenerateSuffix,
   splitAlphabeticSuffix,
-  SPLIT_VERSION_LINE,
+  SPLIT_VERSION_LINE
+} = SplitLib;
+
+const {
   parseCsplitArgv,
   expandCsplitPatternTokens,
   csplitComputeTextPieces,
   csplitFormatStdoutSizes,
-  CSPLIT_VERSION_LINE,
-  parseSortArgv,
-  parseCutArgv,
-  parseCutListString,
-  parseUniqArgv,
-  parseReadlinkArgv,
-  parseLnArgv,
-  parseTouchArgv,
-  parseTrueFalseArgv,
-  parseTestArgv,
-  parseGrepArgv,
-  GREP_HELP,
-  grepOptionError,
-  symlinkBasenameForLn,
-  parsePwdArgv,
-  parseDateArgv,
-  formatDateOutput,
-  parseSeqArgv,
-  genSeqSequence,
-  formatSeqOutput,
-  parseSleepArgv,
-  parsePrintfArgv,
-  runPrintfFormat,
-  vfsReadlinkCanonical,
-  vfsFollowSymlinksToFile,
-  parseBasenameArgv,
-  basenameCompute,
-  BASENAME_VERSION_LINE,
-  parseDirnameArgv,
-  dirnameCompute,
-  DIRNAME_VERSION_LINE,
-  parseTrArgv,
-  expandTrSetString,
-  runTr,
-  TR_HELP,
+  CSPLIT_VERSION_LINE
+} = CsplitLib;
+
+const {
+  parseExpandArgv,
+  parseExpandTabStopsArg,
+  expandExpandLine,
+  expandExpandText,
+  EXPAND_VERSION_LINE
+} = ExpandLib;
+
+const {
+  parseFoldArgv,
+  foldFoldText,
+  foldFoldLineChars,
+  FOLD_VERSION_LINE,
+  FOLD_DEFAULT_WIDTH
+} = FoldLib;
+
+const {
   parseSedArgv,
   parseSedSubstituteScript,
   parseSedScript,
@@ -156,7 +247,10 @@ const {
   sedLineMatchesDeleteAddress,
   sedApplySubstituteLine,
   sedProcessContent,
-  splitSedScriptIntoCommands,
+  splitSedScriptIntoCommands
+} = SedLib;
+
+const {
   parseAwkArgv,
   parseAwkFullProgram,
   parseAwkPrintProgram,
@@ -179,14 +273,24 @@ const {
   awkParseSlashDelimitedRegex,
   awkExpandRegexReplacement,
   awkRegexGsubAll,
-  awkRegexSubFirst,
-  parseXargsArgv,
-  xargsSplitWhitespaceWords,
-  xargsSplitLines,
-  xargsSplitNullRecords,
-  xargsSubstituteInArgs,
-  xargsFormatVerboseCommandLine
-} = require('../lib/shell-utils.js');
+  awkRegexSubFirst
+} = AwkLib;
+
+const {
+  parseFmtArgv,
+  fmtFmtText,
+  fmtFmtDefaultGoal,
+  parseFmtGoalValue,
+  fmtPrefixMatchLine,
+  fmtLeadingSpaceCount,
+  fmtWrapWordsCrown,
+  FMT_DEFAULT_WIDTH,
+  FMT_FMT_GOAL_NUMERATOR,
+  FMT_FMT_GOAL_DENOMINATOR,
+  FMT_VERSION_LINE
+} = FmtLib;
+
+const { parsePrintfArgv, runPrintfFormat } = PrintfLib;
 
 test('combinedFetchSignal: user abort aborts merged signal', () => {
   const ac = new AbortController();
@@ -263,12 +367,12 @@ test('normalizeCommandResult: infers 1 when stderr set and code omitted', () => 
 });
 
 test('normalizeCommandResult: explicit 127 overrides stderr inference', () => {
-  const r = normalizeCommandResult('', 'bash: x: command not found', 127);
+  const r = normalizeCommandResult('', 'jsh: x: command not found', 127);
   assert.equal(r.exitCode, 127);
 });
 
 test('normalizeCommandResult: 126 permission denied', () => {
-  const r = normalizeCommandResult('', 'bash: /bin/foo: Permission denied', 126);
+  const r = normalizeCommandResult('', 'jsh: /bin/foo: Permission denied', 126);
   assert.equal(r.exitCode, 126);
 });
 

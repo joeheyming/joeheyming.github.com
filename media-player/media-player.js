@@ -45,8 +45,11 @@ class MediaPlayer {
     this.isInOS = window.parent !== window;
     this.isAudio = false;
     this.isYouTube = false;
+    this._isResetting = false;
     /** @type {string|null} */
     this._mediaBlobUrl = null;
+    /** @type {ReturnType<typeof setTimeout>|null} */
+    this._errorTimeout = null;
 
     this.init();
   }
@@ -217,6 +220,8 @@ class MediaPlayer {
 
   setupMediaEvents() {
     this.media.addEventListener('error', () => {
+      if (this._isResetting) return;
+
       const error = this.media.error;
       let errorMessage = 'Failed to load media';
       if (error) {
@@ -226,7 +231,6 @@ class MediaPlayer {
           crossOriginIsolated: self.crossOriginIsolated,
           src: this.media.src?.substring(0, 100)
         });
-        // MEDIA_ERR_SRC_NOT_SUPPORTED = 4
         if (error.code === 4) {
           errorMessage = 'Media format not supported or blocked by browser policy';
         }
@@ -413,6 +417,10 @@ class MediaPlayer {
   }
 
   loadMedia(content, fileName, path) {
+    if (this._errorTimeout) {
+      clearTimeout(this._errorTimeout);
+      this._errorTimeout = null;
+    }
     this.currentFile = { path, fileName };
     this._revokeMediaBlobUrl();
 
@@ -422,6 +430,11 @@ class MediaPlayer {
       contentType: typeof content,
       contentPreview: typeof content === 'string' ? content.substring(0, 100) : '[non-string]'
     });
+
+    this.dropZone.classList.remove('active');
+    this.mediaWrapper.classList.remove('hidden');
+    this.mediaWrapper.classList.add('loading');
+    this.mediaName.textContent = fileName || 'Loading...';
 
     if (content == null || content === '') {
       this.showError('No media content received');
@@ -613,24 +626,47 @@ class MediaPlayer {
   }
 
   showError(message) {
+    this.dropZone.classList.remove('active');
+    this.mediaWrapper.classList.remove('hidden', 'loading');
+    this.mediaWrapper.classList.add('error');
+
+    let overlay = this.mediaWrapper.querySelector('.media-error-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'media-error-overlay';
+      this.mediaWrapper.appendChild(overlay);
+    }
+    overlay.textContent = `⚠️ ${message}`;
+
     this.mediaName.textContent = `⚠️ ${message}`;
-    setTimeout(() => {
+    if (this._errorTimeout) clearTimeout(this._errorTimeout);
+    this._errorTimeout = setTimeout(() => {
+      this._errorTimeout = null;
+      this.mediaWrapper.classList.remove('error');
       this.reset();
-    }, 3000);
+    }, 4000);
   }
 
   reset() {
     this._revokeMediaBlobUrl();
     this.media.pause();
-    this.media.src = '';
+
+    this._isResetting = true;
+    this.media.removeAttribute('src');
+    this.media.load();
+    requestAnimationFrame(() => {
+      this._isResetting = false;
+    });
+
     this.mediaWrapper.classList.add('hidden');
-    this.mediaWrapper.classList.remove('audio-mode', 'playing', 'youtube-mode');
+    this.mediaWrapper.classList.remove('audio-mode', 'playing', 'youtube-mode', 'loading', 'error');
     this.audioVisual.classList.remove('visible');
     this.youtubeContainer.classList.remove('visible');
     this.youtubePlayer.src = '';
-    // Remove any error overlays if present
-    const errorOverlay = this.mediaWrapper.querySelector('.youtube-coep-error');
+    const errorOverlay = this.mediaWrapper.querySelector('.media-error-overlay');
     if (errorOverlay) errorOverlay.remove();
+    const coepOverlay = this.mediaWrapper.querySelector('.youtube-coep-error');
+    if (coepOverlay) coepOverlay.remove();
     this.dropZone.classList.add('active');
     this.currentFile = null;
     this.isAudio = false;

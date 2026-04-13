@@ -5,12 +5,12 @@
   registerCommand(
     'paste',
     async (terminal, args) => {
-      const parsed = ShellUtils.parsePasteArgv(args);
-      if (!parsed.ok) {
+      const parsed = PasteLib.parsePasteArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.PASTE_HELP, stderr: '', exitCode: 0 };
+        return { stdout: PasteLib.PASTE_HELP, stderr: '', exitCode: 0 };
       }
 
       const { delimiterList, serial, nullTerminated, operands } = parsed;
@@ -24,27 +24,27 @@
 
       async function linesForOperand(op) {
         if (op === '-') {
-          return { lines: ShellUtils.pasteSplitLines(stdinText, nullTerminated) };
+          return { lines: PasteLib.pasteSplitLines(stdinText, nullTerminated) };
         }
-        const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op, 'paste');
-        if (!res.ok) {
+        const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, op, 'paste');
+        if (res.ok === false) {
           return { err: res.stderr.trimEnd() };
         }
-        const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+        const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
         const text = d.isBinary ? '[binary file]' : d.text;
-        return { lines: ShellUtils.pasteSplitLines(text, nullTerminated) };
+        return { lines: PasteLib.pasteSplitLines(text, nullTerminated) };
       }
 
       if (operands.length === 0) {
         if (!stdinAvailable) {
           return { stdout: '', stderr: 'paste: missing operand\n', exitCode: 1 };
         }
-        const lines = ShellUtils.pasteSplitLines(stdinText, nullTerminated);
+        const lines = PasteLib.pasteSplitLines(stdinText, nullTerminated);
         const outLines = serial
-          ? ShellUtils.pasteJoinSerialRows([lines], delimiterList)
-          : ShellUtils.pasteJoinParallelRows([lines], delimiterList);
+          ? PasteLib.pasteJoinSerialRows([lines], delimiterList)
+          : PasteLib.pasteJoinParallelRows([lines], delimiterList);
         return {
-          stdout: ShellUtils.pasteFormatOutputLines(outLines, nullTerminated),
+          stdout: PasteLib.pasteFormatOutputLines(outLines, nullTerminated),
           stderr: '',
           exitCode: 0
         };
@@ -72,12 +72,12 @@
 
       let outLines;
       if (serial) {
-        outLines = ShellUtils.pasteJoinSerialRows(columnData, delimiterList);
+        outLines = PasteLib.pasteJoinSerialRows(columnData, delimiterList);
       } else {
-        outLines = ShellUtils.pasteJoinParallelRows(columnData, delimiterList);
+        outLines = PasteLib.pasteJoinParallelRows(columnData, delimiterList);
       }
 
-      const stdout = ShellUtils.pasteFormatOutputLines(outLines, nullTerminated);
+      const stdout = PasteLib.pasteFormatOutputLines(outLines, nullTerminated);
       return { stdout, stderr: '', exitCode: 0 };
     },
     'merge lines of files (-d -s -z, - for stdin, --)',

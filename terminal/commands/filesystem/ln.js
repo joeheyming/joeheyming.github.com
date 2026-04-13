@@ -27,14 +27,14 @@
   registerCommand(
     'ln',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseLnArgv(args);
-      if (!parsed.ok) {
+      const parsed = LnLib.parseLnArgv(args);
+      if (parsed.ok === false) {
         return { stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
-      if (parsed.help) {
-        return { stdout: ShellUtils.LN_HELP, stderr: '', exitCode: 0 };
+      if ('help' in parsed && parsed.help) {
+        return { stdout: LnLib.LN_HELP, stderr: '', exitCode: 0 };
       }
-      if (!parsed.symbolic) {
+      if ('symbolic' in parsed && parsed.symbolic === false) {
         if (parsed.operands.length === 0) {
           return {
             stderr: "ln: missing file operand\nTry 'ln --help' for more information.\n",
@@ -48,8 +48,11 @@
         };
       }
 
+      if (!('symbolic' in parsed) || parsed.symbolic !== true) {
+        return { stderr: 'ln: internal parse error\n', exitCode: 2 };
+      }
       const { force, target, linkName } = parsed;
-      const linkNameArg = linkName === null ? ShellUtils.symlinkBasenameForLn(target) : linkName;
+      const linkNameArg = linkName === null ? LnLib.symlinkBasenameForLn(target) : linkName;
       const absLink = terminal.resolvePath(linkNameArg);
       const fs = terminal.fileSystemDB;
 

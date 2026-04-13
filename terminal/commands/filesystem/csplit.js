@@ -35,15 +35,15 @@
   registerCommand(
     'csplit',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseCsplitArgv(args);
-      if (!parsed.ok) {
+      const parsed = CsplitLib.parseCsplitArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.CSPLIT_HELP, stderr: '', exitCode: 0 };
+        return { stdout: CsplitLib.CSPLIT_HELP, stderr: '', exitCode: 0 };
       }
       if (parsed.version) {
-        return { stdout: ShellUtils.CSPLIT_VERSION_LINE, stderr: '', exitCode: 0 };
+        return { stdout: CsplitLib.CSPLIT_VERSION_LINE, stderr: '', exitCode: 0 };
       }
 
       const { prefix, digits, silent, keepFiles, elideEmpty, operands } = parsed;
@@ -61,8 +61,8 @@
 
       const fileOperand = operands[0];
       const patternTokens = operands.slice(1);
-      const exp = ShellUtils.expandCsplitPatternTokens(patternTokens);
-      if (!exp.ok) {
+      const exp = CsplitLib.expandCsplitPatternTokens(patternTokens);
+      if (exp.ok === false) {
         return { stdout: '', stderr: exp.stderr, exitCode: exp.exitCode };
       }
       const atoms = exp.atoms;
@@ -95,11 +95,11 @@
         inputBytes = new TextEncoder().encode(inputText);
         isBinary = false;
       } else {
-        const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, fileOperand, 'csplit');
-        if (!res.ok) {
+        const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, fileOperand, 'csplit');
+        if (res.ok === false) {
           return { stdout: '', stderr: res.stderr.trimEnd() + '\n', exitCode: 1 };
         }
-        const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+        const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
         const fb = fileToBytes(res.file);
         inputBytes = fb.bytes;
         isBinary = d.isBinary || fb.isBinary;
@@ -108,8 +108,9 @@
         }
       }
 
+      /** @type {{ suffixMode: 'digit' | 'alpha' | 'hex', suffixWidth: number }} */
       const suffixCfg = { suffixMode: 'digit', suffixWidth: digits };
-      const maxIdx = ShellUtils.splitMaxSuffixIndex(suffixCfg);
+      const maxIdx = SplitLib.splitMaxSuffixIndex(suffixCfg);
 
       /** @type {string[]} */
       let piecesText;
@@ -119,17 +120,17 @@
       let sizes;
 
       if (isBinary) {
-        const lineParts = ShellUtils.splitLinesBytes(inputBytes);
-        const comp = ShellUtils.csplitComputeBinaryPieces(lineParts, atoms);
-        if (!comp.ok) {
+        const lineParts = SplitLib.splitLinesBytes(inputBytes);
+        const comp = CsplitLib.csplitComputeBinaryPieces(lineParts, atoms);
+        if (comp.ok === false) {
           return { stdout: '', stderr: comp.stderr, exitCode: comp.exitCode };
         }
         piecesBin = comp.pieces;
         sizes = comp.sizes;
       } else {
-        const lines = ShellUtils.splitLinesWithSeparators(inputText);
-        const comp = ShellUtils.csplitComputeTextPieces(lines, atoms);
-        if (!comp.ok) {
+        const lines = SplitLib.splitLinesWithSeparators(inputText);
+        const comp = CsplitLib.csplitComputeTextPieces(lines, atoms);
+        if (comp.ok === false) {
           return { stdout: '', stderr: comp.stderr, exitCode: comp.exitCode };
         }
         piecesText = comp.pieces;
@@ -140,7 +141,7 @@
       const createdNames = [];
 
       async function writeOne(index, content) {
-        const suf = ShellUtils.splitGenerateSuffix(index, suffixCfg);
+        const suf = SplitLib.splitGenerateSuffix(index, suffixCfg);
         if (suf == null) {
           return {
             ok: false,
@@ -196,7 +197,7 @@
         }
         const content = isBinary ? piecesBin[p] : piecesText[p];
         const w = await writeOne(outIdx, content);
-        if (!w.ok) {
+        if (w.ok === false) {
           if (!keepFiles) {
             await removeCreated();
           }
@@ -206,7 +207,7 @@
         outIdx++;
       }
 
-      const stdout = ShellUtils.csplitFormatStdoutSizes(outSizes, silent);
+      const stdout = CsplitLib.csplitFormatStdoutSizes(outSizes, silent);
       return { stdout, stderr: '', exitCode: 0 };
     },
     'split a file by line patterns (GNU-style PREFIX00, stdin, --)',

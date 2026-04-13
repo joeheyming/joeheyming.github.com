@@ -76,7 +76,7 @@ const OS = {
 // 1. Iframe access (apps access window.parent.HeymingOS)
 // 2. Console debugging
 // 3. Legacy compatibility
-window.HeymingOS = OS;
+window.HeymingOS = /** @type {HeymingOSNamespace} */ (OS);
 window.FileSystemDB = FileSystemDB;
 
 // Create and expose the singleton instance

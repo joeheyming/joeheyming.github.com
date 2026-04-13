@@ -114,7 +114,7 @@
       }
 
       const firstFrame = generateTopOutput(terminal);
-      if (!firstFrame.ok) {
+      if (firstFrame.ok === false) {
         return {
           stdout: '',
           stderr: `${firstFrame.message}\n`,

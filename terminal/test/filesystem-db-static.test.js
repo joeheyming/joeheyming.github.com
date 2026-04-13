@@ -70,12 +70,12 @@ test('getContentForApp: Uint8Array subview copies exact byte range (not whole ba
   assert.deepEqual(Array.from(new Uint8Array(out)), [0xaa, 0xbb, 0xcc, 0xdd]);
 });
 
-const ShellUtils = require('../lib/shell-utils.js');
+const VfsUtils = require('../lib/vfs-utils.js');
 
-test('getUtf8TextForDisplay stays aligned with ShellUtils.fileItemUtf8ForDisplay', () => {
+test('getUtf8TextForDisplay stays aligned with VfsUtils.fileItemUtf8ForDisplay', () => {
   const item = { type: 'file', content: '', contentBytes: new TextEncoder().encode('a\nb') };
   const fsText = FileSystemDB.getUtf8TextForDisplay(item);
-  const { text, isBinary } = ShellUtils.fileItemUtf8ForDisplay(item);
+  const { text, isBinary } = VfsUtils.fileItemUtf8ForDisplay(item);
   assert.equal(fsText, text);
   assert.equal(isBinary, false);
 });

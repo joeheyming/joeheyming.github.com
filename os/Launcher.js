@@ -27,8 +27,8 @@ export class Launcher {
   init() {
     this.menu = document.getElementById('app-launcher-menu');
     this.launcherButton = document.getElementById('app-launcher');
-    this.container = document.getElementById('launcher-apps-container');
-    this.filterInput = document.getElementById('launcher-filter');
+    this.container = /** @type {HTMLElement|null} */ (document.getElementById('launcher-apps-container'));
+    this.filterInput = /** @type {HTMLInputElement|null} */ (document.getElementById('launcher-filter'));
     this.noResultsEl = document.getElementById('launcher-no-results');
 
     this.menu?.setAttribute('aria-hidden', 'true');
@@ -114,21 +114,25 @@ export class Launcher {
   _initFilter() {
     if (!this.filterInput || !this.container || !window.AppFilter) return;
 
-    this.filter = AppFilter.create({
+    this.filter = window.AppFilter.create({
       container: this.container,
       filterInput: this.filterInput,
       noResultsEl: this.noResultsEl,
       getSearchText: (el) => el.getAttribute('data-search') || el.textContent.toLowerCase(),
       onFilter: ({ searchTerm }) => {
-        const separator = this.container.querySelector('.launcher-separator');
+        const separator = /** @type {HTMLElement|null} */ (this.container.querySelector('.launcher-separator'));
         const categoryHeaders = this.container.querySelectorAll('.launcher-category-header');
 
         if (searchTerm) {
           if (separator) separator.style.display = 'none';
-          categoryHeaders.forEach((h) => (h.style.display = 'none'));
+          categoryHeaders.forEach((h) => {
+            /** @type {HTMLElement} */ (h).style.display = 'none';
+          });
         } else {
           if (separator) separator.style.display = '';
-          categoryHeaders.forEach((h) => (h.style.display = ''));
+          categoryHeaders.forEach((h) => {
+            /** @type {HTMLElement} */ (h).style.display = '';
+          });
         }
       }
     });
@@ -229,9 +233,9 @@ export class Launcher {
     if (!this.menu) return;
     const items = this.menu.querySelectorAll('.app-item');
     items.forEach((item, index) => {
-      item.style.setProperty('--item-index', index.toString());
+      /** @type {HTMLElement} */ (item).style.setProperty('--item-index', index.toString());
       item.classList.remove('animated');
-      void item.offsetWidth;
+      void /** @type {HTMLElement} */ (item).offsetWidth;
       item.classList.add('animated');
     });
   }
@@ -241,7 +245,7 @@ export class Launcher {
     const items = this.menu.querySelectorAll('.app-item');
     items.forEach((item) => {
       item.classList.remove('animated');
-      item.style.removeProperty('--item-index');
+      /** @type {HTMLElement} */ (item).style.removeProperty('--item-index');
     });
   }
 }

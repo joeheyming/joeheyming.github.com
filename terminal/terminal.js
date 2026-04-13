@@ -56,9 +56,19 @@ class Terminal {
     this._runAbortController = null;
     this._interruptCaptureHandler = null;
 
+    /** @type {string} Set by the pipeline runner before a command is invoked with piped stdin. */
+    this.stdin = '';
+    /** @type {boolean} True when stdin data was piped into this command. */
+    this.hasStdin = false;
+    /** @type {boolean} True when stdin was explicitly supplied (pipe or heredoc). */
+    this.stdinSupplied = false;
+    /** @type {Array<{type: string, fd?: number, target?: string, mode?: string}>} Active redirections for the current command. */
+    this.redirections = [];
+
     // Initialize environment variables
     this.env = {
       USER: _defaultUser(),
+      LOGNAME: _defaultUser(),
       HOME: _defaultHome(),
       PWD: _defaultHome(),
       SHELL: '/bin/jsh',
@@ -67,7 +77,8 @@ class Terminal {
       HOSTNAME: _defaultHostname(),
       LANG: 'en_US.UTF-8',
       EDITOR: 'nano',
-      PAGER: 'less'
+      PAGER: 'less',
+      SHLVL: '1'
     };
 
     this.currentDirectory = this.env.HOME;
@@ -101,12 +112,12 @@ class Terminal {
       const el = document.getElementById(`window-${this.windowId}`);
       if (el) {
         el.querySelectorAll('.terminal-input').forEach((inp) => {
-          inp.disabled = disabled;
+          if (inp instanceof HTMLInputElement) inp.disabled = disabled;
         });
       }
     } else {
       const inp = document.getElementById('terminal-input');
-      if (inp) inp.disabled = disabled;
+      if (inp instanceof HTMLInputElement) inp.disabled = disabled;
     }
   }
 
@@ -237,7 +248,7 @@ class Terminal {
       }
     }
 
-    if (!terminalInput) return;
+    if (!(terminalInput instanceof HTMLInputElement)) return;
 
     this.syncStandaloneDocumentTitle();
     terminalInput.focus();
@@ -268,7 +279,7 @@ class Terminal {
     const terminalOutput = document.getElementById('terminal-output');
     const terminalInput = document.getElementById('terminal-input');
     const promptText = document.getElementById('prompt-text');
-    if (!terminalOutput || !terminalInput) return;
+    if (!terminalOutput || !(terminalInput instanceof HTMLInputElement) || !promptText) return;
 
     const addPre = (lines) => {
       const pre = document.createElement('pre');
@@ -510,9 +521,34 @@ class Terminal {
       return;
     }
 
-    // Add command to history
-    if (command && command !== this.commandHistory[this.commandHistory.length - 1]) {
-      this.commandHistory.push(command);
+    // Expand history references (!! / !n / !string) before adding to history,
+    // so the expanded form is stored rather than the raw "!!" token.
+    let expanded = command;
+    try {
+      expanded = this.expandHistory(command);
+    } catch (e) {
+      // History expansion error (e.g. event not found) — show error and bail
+      this.addCommandToOutput(command);
+      input.value = '';
+      this.historyIndex = -1;
+      this.lastExitCode = 1;
+      this.addOutput(e.message, { outputClass: 'stderr' });
+      if (!this.windowId) {
+        this.printPrompt();
+      } else {
+        this.addNewInputLine();
+        this.scrollToBottom();
+      }
+      return;
+    }
+
+    if (expanded !== command) {
+      this.addOutput(expanded);
+    }
+
+    // Add expanded command to history
+    if (expanded && expanded !== this.commandHistory[this.commandHistory.length - 1]) {
+      this.commandHistory.push(expanded);
     }
     this.historyIndex = -1;
 
@@ -521,11 +557,11 @@ class Terminal {
       const commandLineEl = this.addCommandToOutput(command);
       input.value = '';
 
-      const useBlock = command.trim() !== '';
+      const useBlock = expanded.trim() !== '';
       if (useBlock) this.beginBlockingCommandRun();
       try {
         try {
-          const output = await this.processCommand(command);
+          const output = await this.processCommand(expanded);
           if (output) {
             this.addOutput(output);
           }
@@ -542,7 +578,7 @@ class Terminal {
         if (useBlock) this.endBlockingCommandRun();
       }
 
-      if (command.trim() !== '') {
+      if (expanded.trim() !== '') {
         this.annotateCommandLineWithExit(commandLineEl, this.lastExitCode);
       }
 
@@ -564,11 +600,11 @@ class Terminal {
         this.addOutput(`${this.env.USER}@${this.env.HOSTNAME}:${this.getShortPath()}$ ${command}`);
       }
 
-      const useBlock = command.trim() !== '';
+      const useBlock = expanded.trim() !== '';
       if (useBlock) this.beginBlockingCommandRun();
       try {
         try {
-          const output = await this.processCommand(command);
+          const output = await this.processCommand(expanded);
           if (output) {
             this.addOutput(output);
           }
@@ -585,7 +621,7 @@ class Terminal {
         if (useBlock) this.endBlockingCommandRun();
       }
 
-      if (command.trim() !== '' && currentLine) {
+      if (expanded.trim() !== '' && currentLine) {
         this.annotateCommandLineWithExit(currentLine, this.lastExitCode);
       }
 
@@ -621,8 +657,8 @@ class Terminal {
     }
 
     // Parse command lists (`&&` / `||` / `;`), then pipes + redirections per segment
-    const split = ShellUtils.splitShellList(expandedCommand);
-    if (!split.ok) {
+    const split = ShellCore.splitShellList(expandedCommand);
+    if (split.ok === false) {
       this.lastExitCode = 2;
       this.addOutput(split.error, { outputClass: 'stderr' });
       return '';
@@ -727,7 +763,7 @@ class Terminal {
   }
 
   parseSegment(segment) {
-    const tokens = ShellUtils.mergeRedirectDupStderrTokens(this.tokenize(segment));
+    const tokens = ShellCore.mergeRedirectDupStderrTokens(this.tokenize(segment));
     const cmd = {
       name: '',
       args: [],
@@ -747,10 +783,10 @@ class Terminal {
       if (token === '>') {
         if (i + 1 < tokens.length) {
           const raw = tokens[i + 1];
-          if (ShellUtils.isEmptyRedirectTarget(raw)) {
+          if (ShellCore.isEmptyRedirectTarget(raw)) {
             throw new Error('Syntax error: empty redirect target');
           }
-          cmd.redirections.stdout = ShellUtils.normalizeRedirectFilename(raw);
+          cmd.redirections.stdout = ShellCore.normalizeRedirectFilename(raw);
           cmd.redirections.append = false;
           i += 2;
         } else {
@@ -759,10 +795,10 @@ class Terminal {
       } else if (token === '>>') {
         if (i + 1 < tokens.length) {
           const raw = tokens[i + 1];
-          if (ShellUtils.isEmptyRedirectTarget(raw)) {
+          if (ShellCore.isEmptyRedirectTarget(raw)) {
             throw new Error('Syntax error: empty redirect target');
           }
-          cmd.redirections.stdout = ShellUtils.normalizeRedirectFilename(raw);
+          cmd.redirections.stdout = ShellCore.normalizeRedirectFilename(raw);
           cmd.redirections.append = true;
           i += 2;
         } else {
@@ -771,10 +807,10 @@ class Terminal {
       } else if (token === '2>') {
         if (i + 1 < tokens.length) {
           const raw = tokens[i + 1];
-          if (ShellUtils.isEmptyRedirectTarget(raw)) {
+          if (ShellCore.isEmptyRedirectTarget(raw)) {
             throw new Error('Syntax error: empty redirect target');
           }
-          cmd.redirections.stderr = ShellUtils.normalizeRedirectFilename(raw);
+          cmd.redirections.stderr = ShellCore.normalizeRedirectFilename(raw);
           i += 2;
         } else {
           throw new Error('Syntax error: expected filename after 2>');
@@ -785,10 +821,10 @@ class Terminal {
       } else if (token === '<') {
         if (i + 1 < tokens.length) {
           const raw = tokens[i + 1];
-          if (ShellUtils.isEmptyRedirectTarget(raw)) {
+          if (ShellCore.isEmptyRedirectTarget(raw)) {
             throw new Error('Syntax error: empty redirect target');
           }
-          cmd.redirections.stdin = ShellUtils.normalizeRedirectFilename(raw);
+          cmd.redirections.stdin = ShellCore.normalizeRedirectFilename(raw);
           i += 2;
         } else {
           throw new Error('Syntax error: expected filename after <');
@@ -872,16 +908,19 @@ class Terminal {
       const isLastCommand = i === commandChain.length - 1;
 
       try {
-        // Handle stdin redirection
+        // Handle stdin redirection (follow symlinks to regular files)
         if (cmd.redirections.stdin) {
-          const filePath = this.resolvePath(cmd.redirections.stdin);
-          const file = await this.getFileSystemItem(filePath);
-          if (!file || file.type !== 'file') {
+          const resolved = await VfsUtils.vfsFollowSymlinksToFile(
+            this,
+            cmd.redirections.stdin,
+            cmd.name || 'jsh'
+          );
+          if (resolved.ok === false) {
             throw new Error(
               `cannot read from '${cmd.redirections.stdin}': No such file or directory`
             );
           }
-          input = ShellUtils.fileItemUtf8ForDisplay(file).text;
+          input = VfsUtils.fileItemUtf8ForDisplay(resolved.file).text;
         }
 
         // Execute the command
@@ -889,8 +928,8 @@ class Terminal {
         chainLastExit = result.exitCode ?? 0;
 
         const mergeErr = cmd.redirections.stderrToStdout;
-        const out = ShellUtils.coerceShellString(result.stdout);
-        const err = ShellUtils.coerceShellString(result.stderr);
+        const out = ShellCore.coerceShellString(result.stdout);
+        const err = ShellCore.coerceShellString(result.stderr);
         const combined =
           mergeErr && (out || err) ? (out && err ? `${out}\n${err}` : `${out}${err}`) : out;
 
@@ -954,10 +993,10 @@ class Terminal {
   }
 
   /**
-   * Normalized command result for pipelines and `$?` (see lib/shell-utils.js + tests).
+   * Normalized command result for pipelines and `$?` (see lib/shell-core.js + tests).
    */
   commandResult(stdout = '', stderr = '', exitCode) {
-    return ShellUtils.normalizeCommandResult(stdout, stderr, exitCode);
+    return ShellCore.normalizeCommandResult(stdout, stderr, exitCode);
   }
 
   async executeSingleCommand(cmd, stdin = '', options = {}) {
@@ -986,10 +1025,15 @@ class Terminal {
     if (cmdName.includes('/')) {
       try {
         const filePath = this.resolvePath(cmdName);
-        const file = await this.getFileSystemItem(filePath);
+        let file = await this.getFileSystemItem(filePath);
+
+        // Follow symlink chains so /path/to/symlink resolves to the target
+        if (file && file.type === 'symlink') {
+          const resolved = await VfsUtils.vfsFollowSymlinksToAny(this, filePath);
+          file = resolved.ok ? resolved.item : null;
+        }
 
         if (file && file.type === 'file') {
-          // Extract the actual command name from the path
           const actualCmd = cmdName.split('/').pop().toLowerCase();
 
           // Check if it's an executable file in /bin/
@@ -1012,7 +1056,7 @@ class Terminal {
                 delete terminalContext.stdinSupplied;
                 delete terminalContext.redirections;
 
-                const n = ShellUtils.normalizeHandlerResult(output);
+                const n = ShellCore.normalizeHandlerResult(output);
                 return this.commandResult(n.stdout, n.stderr, n.exitCode);
               } catch (error) {
                 delete terminalContext.stdin;
@@ -1029,10 +1073,12 @@ class Terminal {
           // Handle script files (e.g., ./script.js, /path/to/script.sh)
           if (actualCmd.endsWith('.js') || actualCmd.endsWith('.sh') || file.executable) {
             if (actualCmd.endsWith('.js')) {
-              // Execute JavaScript files using the node command
-              const nodeCommand = await this.commandRegistry.get('node');
+              const nodeCommand = await window.commandRegistry.get('node');
               if (nodeCommand) {
-                return this.commandResult(await nodeCommand(this, [filePath, ...cmd.args]), '', 0);
+                const result = nodeCommand(this, [filePath, ...cmd.args]);
+                const output = result instanceof Promise ? await result : result;
+                const n = ShellCore.normalizeHandlerResult(output);
+                return this.commandResult(n.stdout, n.stderr, n.exitCode);
               } else {
                 return this.commandResult(
                   '',
@@ -1042,21 +1088,21 @@ class Terminal {
               }
             } else {
               // For shell scripts and other executables, show content for now
-              const { text, isBinary } = ShellUtils.fileItemUtf8ForDisplay(file);
+              const { text, isBinary } = VfsUtils.fileItemUtf8ForDisplay(file);
               const body = isBinary ? '[binary file]' : text || 'File is empty';
               return this.commandResult(`Executing ${filePath}:\n${body}`, '', 0);
             }
           }
 
           // File exists but is not executable
-          return this.commandResult('', `bash: ${filePath}: Permission denied`, 126);
+          return this.commandResult('', `jsh: ${filePath}: Permission denied`, 126);
         } else {
           // File doesn't exist
-          return this.commandResult('', `bash: ${cmdName}: No such file or directory`, 127);
+          return this.commandResult('', `jsh: ${cmdName}: No such file or directory`, 127);
         }
       } catch (error) {
         console.error('[terminal] file execution error (' + cmdName + '):', error);
-        return this.commandResult('', `bash: ${cmdName}: ${error.message}`, 1);
+        return this.commandResult('', `jsh: ${cmdName}: ${error.message}`, 1);
       }
     }
 
@@ -1079,7 +1125,7 @@ class Terminal {
         delete terminalContext.stdinSupplied;
         delete terminalContext.redirections;
 
-        const n = ShellUtils.normalizeHandlerResult(output);
+        const n = ShellCore.normalizeHandlerResult(output);
         return this.commandResult(n.stdout, n.stderr, n.exitCode);
       } catch (error) {
         delete terminalContext.stdin;
@@ -1094,7 +1140,7 @@ class Terminal {
 
     return this.commandResult(
       '',
-      `bash: ${cmdName}: command not found\nTry 'help' for available commands or 'sudo apt install ${cmdName}' to pretend to install it! 😄`,
+      `jsh: ${cmdName}: command not found\nTry 'help' for available commands or 'sudo apt install ${cmdName}' to pretend to install it! 😄`,
       127
     );
   }
@@ -1233,7 +1279,7 @@ class Terminal {
         const existingContent =
           existingFile && existingFile.type === 'file'
             ? (() => {
-                const d = ShellUtils.fileItemUtf8ForDisplay(existingFile);
+                const d = VfsUtils.fileItemUtf8ForDisplay(existingFile);
                 return d.isBinary ? '' : d.text;
               })()
             : '';
@@ -1254,12 +1300,12 @@ class Terminal {
    * @returns {{ stdout: string, stderr: string, exitCode: number }}
    */
   helpCommand(args = []) {
-    const parsed = ShellUtils.parseHelpArgs(args);
-    if (!parsed.ok) {
+    const parsed = ShellCore.parseHelpArgs(args);
+    if (parsed.ok === false) {
       return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
     }
     if (parsed.sawHelpFlag) {
-      return { stdout: ShellUtils.HELP_USAGE.trim() + '\n', stderr: '', exitCode: 0 };
+      return { stdout: ShellCore.HELP_USAGE.trim() + '\n', stderr: '', exitCode: 0 };
     }
     const rest = parsed.rest;
     if (rest.length === 1) {
@@ -1285,7 +1331,7 @@ class Terminal {
   lookupHelpTopicLine(topic) {
     const key = topic.toLowerCase();
     if (key === 'help') {
-      return `${ShellUtils.HELP_USAGE.trim()}\n\n  (builtin) List all commands or describe one command by name.`;
+      return `${ShellCore.HELP_USAGE.trim()}\n\n  (builtin) List all commands or describe one command by name.`;
     }
     const all = window.commandRegistry.getAllCommands();
     const found = all.find((c) => c.name.toLowerCase() === key);
@@ -1368,7 +1414,7 @@ class Terminal {
   // Helper methods
   resolvePath(path) {
     if (path == null || path === '') {
-      return ShellUtils.resolveVirtualPath(path, this.currentDirectory);
+      return ShellCore.resolveVirtualPath(path, this.currentDirectory);
     }
     let p = String(path);
     const homeRaw = this.env.HOME || _defaultHome();
@@ -1378,7 +1424,7 @@ class Terminal {
     } else if (p.startsWith('~/')) {
       p = `${home}/${p.slice(2)}`;
     }
-    return ShellUtils.resolveVirtualPath(p, this.currentDirectory);
+    return ShellCore.resolveVirtualPath(p, this.currentDirectory);
   }
 
   async getFileSystemItem(path) {
@@ -1425,8 +1471,96 @@ class Terminal {
     document.title = `jsh — ${display}`;
   }
 
-  // Update PWD environment variable when directory changes
+  // ---------------------------------------------------------------------------
+  // ProcessContext interface — these getters/methods let Terminal satisfy the
+  // ProcessContext type so commands can be written against the interface while
+  // still receiving the full Terminal during migration.
+  // ---------------------------------------------------------------------------
+
+  /** @returns {number} */
+  get pid() {
+    return this.process ? this.process.pid : 0;
+  }
+  /** @returns {number} */
+  get ppid() {
+    return this.process ? this.process.parentPID : 0;
+  }
+  /** @returns {number} */
+  get uid() {
+    return this.process ? this.process.uid : 1000;
+  }
+  /** @returns {number} */
+  get gid() {
+    return this.process ? this.process.gid : 1000;
+  }
+  /** @returns {string} */
+  get cwd() {
+    return this.currentDirectory;
+  }
+  /** @returns {AbortSignal|null} */
+  get abortSignal() {
+    return this.runAbortSignal;
+  }
+
+  /** @param {string} path */
+  async readFile(path) {
+    const resolved = this.resolvePath(path);
+    const item = await this.getFileSystemItem(resolved);
+    if (!item || item.type !== 'file') return null;
+    const d = VfsUtils.fileItemUtf8ForDisplay(item);
+    return d.isBinary ? null : d.text;
+  }
+
+  /** @param {string} path @param {string} content */
+  async writeFile(path, content) {
+    const resolved = this.resolvePath(path);
+    await this.fileSystemDB.createFile(resolved, content, true);
+  }
+
+  /** @param {string} path @returns {Promise<DirEntry[]>} */
+  async readdir(path) {
+    const resolved = this.resolvePath(path);
+    return this.listDirectoryContents(resolved);
+  }
+
+  /** @param {string} path */
+  async mkdir(path) {
+    const resolved = this.resolvePath(path);
+    await this.syscall('mkdir', resolved);
+  }
+
+  /** @param {string} path */
+  async unlink(path) {
+    const resolved = this.resolvePath(path);
+    await this.syscall('unlink', resolved);
+  }
+
+  /** @param {string} path @returns {Promise<FileSystemEntry|null>} */
+  async getItem(path) {
+    return this.getFileSystemItem(path);
+  }
+
+  /** @param {string} src @param {string} dest @param {boolean} [recursive] */
+  async copyItem(src, dest, recursive) {
+    const resolvedSrc = this.resolvePath(src);
+    const resolvedDest = this.resolvePath(dest);
+    await this.fileSystemDB.copyItem(resolvedSrc, resolvedDest, recursive);
+  }
+
+  /** @param {string} path */
+  async removeItem(path) {
+    const resolved = this.resolvePath(path);
+    const item = await this.getFileSystemItem(resolved);
+    if (!item) return;
+    if (item.type === 'directory') {
+      await this.fileSystemDB.deleteItem(resolved, true);
+    } else {
+      await this.fileSystemDB.deleteItem(resolved, false);
+    }
+  }
+
   updatePWD(newDirectory) {
+    this.env.OLDPWD = this.currentDirectory;
     this.currentDirectory = newDirectory;
     this.env.PWD = newDirectory;
     this.syncStandaloneDocumentTitle();
@@ -1434,7 +1568,7 @@ class Terminal {
 
   // Expand environment variables in a string
   expandVariables(str) {
-    return ShellUtils.expandVariablesInString(str, this.env, this.lastExitCode);
+    return ShellCore.expandVariablesInString(str, this.env, this.lastExitCode);
   }
 
   // Set environment variable
@@ -1571,7 +1705,7 @@ class Terminal {
   }
 
   async handlePathCompletion(input, parts, lastPart) {
-    const home = ShellUtils.resolveVirtualPath(
+    const home = ShellCore.resolveVirtualPath(
       String(this.env.HOME || _defaultHome()).replace(/\/+$/, '') || '/',
       '/'
     );
@@ -1580,7 +1714,7 @@ class Terminal {
     if (lastPart === '~') {
       work = home;
     } else if (lastPart.startsWith('~/')) {
-      work = ShellUtils.resolveVirtualPath(`${home}/${lastPart.slice(2)}`, '/');
+      work = ShellCore.resolveVirtualPath(`${home}/${lastPart.slice(2)}`, '/');
     } else {
       work = lastPart;
     }
@@ -1609,7 +1743,7 @@ class Terminal {
       searchPattern = work.substring(lastSlash + 1);
     }
 
-    searchDir = ShellUtils.resolveVirtualPath(searchDir, '/');
+    searchDir = ShellCore.resolveVirtualPath(searchDir, '/');
 
     let displayBase = '';
     if (usesTilde) {
@@ -1629,7 +1763,7 @@ class Terminal {
     // Get directory contents
     try {
       const entries = await this.listDirectoryContents(searchDir);
-      const matches = ShellUtils.filterDirectoryEntriesForTabCompletion(entries, searchPattern).map(
+      const matches = VfsUtils.filterDirectoryEntriesForTabCompletion(entries, searchPattern).map(
         (entry) => {
           const isDir = entry.type === 'directory';
           return {
@@ -1765,7 +1899,8 @@ class Terminal {
 
       case 'd': // Ctrl+D: EOF (exit if line is empty)
         if (value.length === 0) {
-          this.addOutput('exit');
+          input.value = 'exit';
+          this.handleCommand(input);
         }
         break;
 
@@ -1902,7 +2037,7 @@ class Terminal {
       block = false,
       welcomeAriaSummary = ''
     } = options;
-    const text = ShellUtils.coerceShellString(output);
+    const text = ShellCore.coerceShellString(output);
 
     // Check if we're in a windowed mode or using main terminal
     const windowElement = this.windowId ? document.getElementById(`window-${this.windowId}`) : null;
@@ -2019,12 +2154,12 @@ class Terminal {
       terminalContent.appendChild(newLine);
 
       const newInput = newLine.querySelector('.terminal-input');
-      newInput.focus();
+      if (newInput instanceof HTMLInputElement) newInput.focus();
       this.bindInputEvents(newInput);
     } else {
       // Main terminal mode - the input is already there, just focus it
       const terminalInput = document.getElementById('terminal-input');
-      if (terminalInput) {
+      if (terminalInput instanceof HTMLInputElement) {
         terminalInput.focus();
       }
     }
@@ -2062,10 +2197,13 @@ class Terminal {
     if (!container) return;
     container.addEventListener('click', (e) => {
       if (window.getSelection().toString()) return;
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-      if (e.target.closest('.terminal-modal, .top-modal, .less-modal, .vi-editor-modal')) return;
+      const tgt = e.target;
+      if (tgt instanceof HTMLElement) {
+        if (tgt.tagName === 'INPUT' || tgt.tagName === 'BUTTON') return;
+        if (tgt.closest('.terminal-modal, .top-modal, .less-modal, .vi-editor-modal')) return;
+      }
       const activeInput = container.querySelector('.terminal-input:last-of-type') || fallbackInput;
-      if (activeInput && !activeInput.disabled) activeInput.focus();
+      if (activeInput instanceof HTMLInputElement && !activeInput.disabled) activeInput.focus();
     });
   }
 
@@ -2260,33 +2398,35 @@ class Terminal {
   // Disable terminal input (for modal commands)
   disableTerminalInput() {
     const terminalInput = document.getElementById('terminal-input');
-    if (terminalInput) {
+    if (terminalInput instanceof HTMLInputElement) {
       terminalInput.disabled = true;
       terminalInput.blur();
     }
     // Also disable any other terminal inputs in multi-line mode
     const allInputs = document.querySelectorAll('.terminal-input');
     allInputs.forEach((input) => {
-      input.disabled = true;
-      input.blur();
+      if (input instanceof HTMLInputElement) {
+        input.disabled = true;
+        input.blur();
+      }
     });
   }
 
   // Re-enable terminal input
   enableTerminalInput() {
     const terminalInput = document.getElementById('terminal-input');
-    if (terminalInput) {
+    if (terminalInput instanceof HTMLInputElement) {
       terminalInput.disabled = false;
       terminalInput.focus();
     }
     // Also re-enable any other terminal inputs
     const allInputs = document.querySelectorAll('.terminal-input');
     allInputs.forEach((input) => {
-      input.disabled = false;
+      if (input instanceof HTMLInputElement) input.disabled = false;
     });
     // Focus the most recent input
     const lastInput = document.querySelector('.terminal-input:last-of-type');
-    if (lastInput) {
+    if (lastInput instanceof HTMLInputElement) {
       lastInput.focus();
     }
   }
@@ -2360,6 +2500,9 @@ class Terminal {
     // Add overlay to modal
     modal.element.appendChild(inputOverlay);
     const input = inputOverlay.querySelector('.prompt-input');
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error('createInputPrompt: .prompt-input not found');
+    }
 
     // Focus the input with a slight delay to ensure it's rendered
     setTimeout(() => input.focus(), 10);
@@ -2427,7 +2570,8 @@ class Terminal {
 
   /**
    * Block output: plain div, or welcome region + aria-hidden ASCII art when `welcomeAriaSummary` is set.
-   * @param {boolean} opts.withTerminalLine — windowed terminal lines use `.terminal-line`.
+   * @param {object} [opts]
+   * @param {boolean} [opts.withTerminalLine] - windowed terminal lines use `.terminal-line`.
    */
   _createBlockOutputElement(text, outputClass, welcomeAriaSummary, opts = {}) {
     const { withTerminalLine = false } = opts;

@@ -5,15 +5,15 @@
   registerCommand(
     'env',
     (terminal, args) => {
-      const parsed = ShellUtils.parseEnvArgv(args);
+      const parsed = EnvLib.parseEnvArgv(args);
       if (parsed.ok && parsed.help) {
         return {
-          stdout: ShellUtils.ENV_HELP,
+          stdout: EnvLib.ENV_HELP,
           stderr: '',
           exitCode: 0
         };
       }
-      if (!parsed.ok) {
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
 

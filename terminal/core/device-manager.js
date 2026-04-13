@@ -344,10 +344,22 @@ class Device {
     this.description = '';
   }
 
+  /**
+   * @param {Uint8Array} buffer
+   * @param {number} offset
+   * @param {number} length
+   * @returns {Promise<number>}
+   */
   async read(buffer, offset, length) {
     throw new Error('Read operation not supported');
   }
 
+  /**
+   * @param {Uint8Array} buffer
+   * @param {number} offset
+   * @param {number} length
+   * @returns {Promise<number>}
+   */
   async write(buffer, offset, length) {
     throw new Error('Write operation not supported');
   }
@@ -422,7 +434,16 @@ class FullDevice extends Device {
     return length;
   }
 
+  /**
+   * @param {Uint8Array} buffer
+   * @param {number} offset
+   * @param {number} length
+   * @returns {Promise<number>}
+   */
   async write(buffer, offset, length) {
+    void buffer;
+    void offset;
+    void length;
     throw new Error('ENOSPC: No space left on device');
   }
 }

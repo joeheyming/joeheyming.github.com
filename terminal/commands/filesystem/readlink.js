@@ -5,19 +5,19 @@
   registerCommand(
     'readlink',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseReadlinkArgv(args);
-      if (!parsed.ok) {
+      const parsed = ReadlinkLib.parseReadlinkArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.READLINK_HELP, stderr: '', exitCode: 0 };
+        return { stdout: ReadlinkLib.READLINK_HELP, stderr: '', exitCode: 0 };
       }
 
       const { noNewline, canonMode, operand } = parsed;
 
       if (canonMode !== 'none') {
-        const res = await ShellUtils.vfsReadlinkCanonical(terminal, operand, canonMode);
-        if (!res.ok) {
+        const res = await VfsUtils.vfsReadlinkCanonical(terminal, operand, canonMode);
+        if (res.ok === false) {
           return { stdout: '', stderr: res.stderr + '\n', exitCode: 1 };
         }
         return {

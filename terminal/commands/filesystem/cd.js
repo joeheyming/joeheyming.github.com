@@ -14,7 +14,18 @@
         return { stdout: '', stderr: 'cd: too many arguments', exitCode: 1 };
       }
 
-      const targetDir = terminal.expandVariables(args[0]);
+      let targetDir = terminal.expandVariables(args[0]);
+      let stdoutMsg = '';
+
+      // cd - : swap to OLDPWD (bash behavior: print the new directory)
+      if (targetDir === '-') {
+        if (!terminal.env.OLDPWD) {
+          return { stdout: '', stderr: 'cd: OLDPWD not set', exitCode: 1 };
+        }
+        targetDir = terminal.env.OLDPWD;
+        stdoutMsg = targetDir;
+      }
+
       const newPath = terminal.resolvePath(targetDir);
       const item = await terminal.getFileSystemItem(newPath);
 
@@ -26,6 +37,16 @@
         };
       }
 
+      // Follow symlink chains to a directory
+      if (item.type === 'symlink') {
+        const resolved = await VfsUtils.vfsFollowSymlinksToDir(terminal, targetDir, 'cd');
+        if (resolved.ok === false) {
+          return { stdout: '', stderr: resolved.stderr, exitCode: 1 };
+        }
+        terminal.updatePWD(resolved.resolvedPath);
+        return { stdout: stdoutMsg, stderr: '', exitCode: 0 };
+      }
+
       if (item.type !== 'directory') {
         return {
           stdout: '',
@@ -35,7 +56,7 @@
       }
 
       terminal.updatePWD(newPath);
-      return { stdout: '', stderr: '', exitCode: 0 };
+      return { stdout: stdoutMsg, stderr: '', exitCode: 0 };
     },
     'change directory',
     'File System'

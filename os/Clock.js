@@ -42,6 +42,7 @@ export class Clock {
     if (!this.element) return;
 
     const now = new Date();
+    /** @type {Intl.DateTimeFormatOptions} */
     const options = {
       hour: 'numeric',
       minute: '2-digit',
@@ -54,7 +55,7 @@ export class Clock {
 
     const timeStr = now.toLocaleTimeString(undefined, options);
     this.element.textContent = timeStr;
-    this.element.dateTime = now.toISOString();
+    /** @type {HTMLTimeElement} */ (this.element).dateTime = now.toISOString();
     this.element.setAttribute('aria-pressed', this.showSeconds ? 'true' : 'false');
     this.element.title = now.toLocaleDateString(undefined, {
       weekday: 'long',

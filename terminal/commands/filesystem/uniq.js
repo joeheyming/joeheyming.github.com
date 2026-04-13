@@ -64,12 +64,12 @@
   registerCommand(
     'uniq',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseUniqArgv(args);
-      if (!parsed.ok) {
+      const parsed = UniqLib.parseUniqArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.UNIQ_HELP.trim() + '\n', stderr: '', exitCode: 0 };
+        return { stdout: UniqLib.UNIQ_HELP.trim() + '\n', stderr: '', exitCode: 0 };
       }
 
       const { count, repeatedOnly, uniqueOnly, operands } = parsed;
@@ -93,11 +93,11 @@
         input = terminal.stdin != null ? String(terminal.stdin) : '';
         inputEndsWithNewline = input === '' || input.endsWith('\n');
       } else {
-        const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op0, 'uniq');
-        if (!res.ok) {
+        const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, op0, 'uniq');
+        if (res.ok === false) {
           return { stdout: '', stderr: res.stderr.trimEnd() + '\n', exitCode: 1 };
         }
-        const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+        const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
         input = d.isBinary ? '' : d.text;
         inputEndsWithNewline = input === '' || input.endsWith('\n');
       }

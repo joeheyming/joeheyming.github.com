@@ -117,7 +117,7 @@ export class WindowManager {
 
     const titleSpan = windowElement.querySelector('.os-window-title');
     if (titleSpan) {
-      titleSpan.title = title;
+      /** @type {HTMLElement} */ (titleSpan).title = title;
     }
 
     const win = {

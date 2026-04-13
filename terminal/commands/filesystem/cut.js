@@ -7,8 +7,8 @@
   function cutLineBytes(line, listStr, complement) {
     const enc = new TextEncoder().encode(line);
     const len = enc.length;
-    const parsed = ShellUtils.parseCutListString(listStr);
-    if (!parsed.ok) {
+    const parsed = CutLib.parseCutListString(listStr);
+    if (parsed.ok === false) {
       return { ok: false, stderr: parsed.stderr };
     }
     const parts = parsed.parts;
@@ -45,8 +45,8 @@
   function cutLineChars(line, listStr, complement) {
     const chars = Array.from(line);
     const len = chars.length;
-    const parsed = ShellUtils.parseCutListString(listStr);
-    if (!parsed.ok) {
+    const parsed = CutLib.parseCutListString(listStr);
+    if (parsed.ok === false) {
       return { ok: false, stderr: parsed.stderr };
     }
     const parts = parsed.parts;
@@ -81,8 +81,8 @@
   }
 
   function cutLineFields(line, listStr, delim, suppress, complement, outDelim) {
-    const parsed = ShellUtils.parseCutListString(listStr);
-    if (!parsed.ok) {
+    const parsed = CutLib.parseCutListString(listStr);
+    if (parsed.ok === false) {
       return { ok: false, stderr: parsed.stderr };
     }
     const parts = parsed.parts;
@@ -141,7 +141,7 @@
       } else {
         r = cutLineFields(line, listStr, delim, suppress, complement, outDelim);
       }
-      if (!r.ok) {
+      if (r.ok === false) {
         return { ok: false, stderr: r.stderr };
       }
       outLines.push(r.text);
@@ -156,12 +156,12 @@
   registerCommand(
     'cut',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseCutArgv(args);
-      if (!parsed.ok) {
+      const parsed = CutLib.parseCutArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.CUT_HELP, stderr: '', exitCode: 0 };
+        return { stdout: CutLib.CUT_HELP, stderr: '', exitCode: 0 };
       }
 
       const {
@@ -195,7 +195,7 @@
           complement,
           outputDelimiter
         );
-        if (!r.ok) {
+        if (r.ok === false) {
           return { stdout: '', stderr: r.stderr, exitCode: 1 };
         }
         return { stdout: r.text, stderr: '', exitCode: 0 };
@@ -212,12 +212,12 @@
           label = 'standard input';
           content = stdinText;
         } else {
-          const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op, 'cut');
-          if (!res.ok) {
+          const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, op, 'cut');
+          if (res.ok === false) {
             stderrLines.push(res.stderr.trimEnd());
             continue;
           }
-          const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+          const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
           content = d.isBinary ? '' : d.text;
         }
         const r = cutTextContent(
@@ -229,7 +229,7 @@
           complement,
           outputDelimiter
         );
-        if (!r.ok) {
+        if (r.ok === false) {
           stderrLines.push(r.stderr.trimEnd());
           continue;
         }

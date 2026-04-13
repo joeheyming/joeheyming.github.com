@@ -1,4 +1,4 @@
-// type command — bash-like command description (no source dump; see ShellUtils.parseTypeArgv)
+// type command — bash-like command description (no source dump; see BuiltinsLib.parseTypeArgv)
 (function () {
   'use strict';
 
@@ -14,7 +14,7 @@
       window.commandRegistry.has(cmdName);
 
     if (hasAlias) {
-      const body = ShellUtils.escapeTypeAliasBody(aliases[cmdName]);
+      const body = ShellCore.escapeTypeAliasBody(aliases[cmdName]);
       lines.push(`${cmdName} is aliased to \`${body}\``);
     }
     if (hasReg) {
@@ -37,12 +37,12 @@
   registerCommand(
     'type',
     (terminal, args) => {
-      const parsed = ShellUtils.parseTypeArgv(args);
-      if (!parsed.ok) {
+      const parsed = BuiltinsLib.parseTypeArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.TYPE_HELP, stderr: '', exitCode: 0 };
+        return { stdout: BuiltinsLib.TYPE_HELP, stderr: '', exitCode: 0 };
       }
 
       const stdoutLines = [];

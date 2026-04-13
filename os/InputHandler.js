@@ -60,15 +60,16 @@ export const InputHandler = {
    * @returns {{clientX: number, clientY: number}}
    */
   getPointerCoordinates(e) {
-    if (e.touches && e.touches.length > 0) {
+    const ev = /** @type {MouseEvent|TouchEvent} */ (e);
+    if ('touches' in ev && ev.touches.length > 0) {
       return {
-        clientX: e.touches[0].clientX,
-        clientY: e.touches[0].clientY
+        clientX: ev.touches[0].clientX,
+        clientY: ev.touches[0].clientY
       };
     }
     return {
-      clientX: e.clientX,
-      clientY: e.clientY
+      clientX: /** @type {MouseEvent} */ (ev).clientX,
+      clientY: /** @type {MouseEvent} */ (ev).clientY
     };
   },
 

@@ -5,15 +5,15 @@
   registerCommand(
     'fmt',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseFmtArgv(args);
-      if (!parsed.ok) {
+      const parsed = FmtLib.parseFmtArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.FMT_HELP, stderr: '', exitCode: 0 };
+        return { stdout: FmtLib.FMT_HELP, stderr: '', exitCode: 0 };
       }
       if (parsed.version) {
-        return { stdout: ShellUtils.FMT_VERSION_LINE, stderr: '', exitCode: 0 };
+        return { stdout: FmtLib.FMT_VERSION_LINE, stderr: '', exitCode: 0 };
       }
 
       const {
@@ -39,7 +39,7 @@
           return { stdout: '', stderr: 'fmt: missing operand\n', exitCode: 1 };
         }
         return {
-          stdout: ShellUtils.fmtFmtText(
+          stdout: FmtLib.fmtFmtText(
             stdinText,
             width,
             splitOnly,
@@ -59,7 +59,7 @@
       for (const op of operands) {
         if (op === '-') {
           chunks.push(
-            ShellUtils.fmtFmtText(
+            FmtLib.fmtFmtText(
               stdinText,
               width,
               splitOnly,
@@ -72,15 +72,15 @@
           );
           continue;
         }
-        const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op, 'fmt');
-        if (!res.ok) {
+        const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, op, 'fmt');
+        if (res.ok === false) {
           stderrLines.push(res.stderr.trimEnd());
           continue;
         }
-        const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+        const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
         const text = d.isBinary ? '[binary file]\n' : d.text;
         chunks.push(
-          ShellUtils.fmtFmtText(
+          FmtLib.fmtFmtText(
             text,
             width,
             splitOnly,

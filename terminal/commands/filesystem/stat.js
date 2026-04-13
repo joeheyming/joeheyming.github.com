@@ -147,7 +147,7 @@
         return { ok: false, stderr: `stat: cannot stat '${operand}': Invalid argument\n` };
       }
       const parent = dirnameVirtual(fullPath);
-      fullPath = ShellUtils.resolveVirtualPath(String(raw).trim(), parent);
+      fullPath = ShellCore.resolveVirtualPath(String(raw).trim(), parent);
     }
     return {
       ok: false,
@@ -158,12 +158,12 @@
   registerCommand(
     'stat',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseStatArgv(args);
-      if (!parsed.ok) {
+      const parsed = StatLib.parseStatArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.STAT_HELP, stderr: '', exitCode: 0 };
+        return { stdout: StatLib.STAT_HELP, stderr: '', exitCode: 0 };
       }
       const { dereference, operands } = parsed;
       const out = [];

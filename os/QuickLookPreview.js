@@ -7,7 +7,7 @@ export class QuickLookPreview {
   constructor(container, options = {}) {
     this.container = container;
     this.overlay = null;
-    /** @type {Element | null} */
+    /** @type {HTMLElement | null} */
     this._priorFocus = null;
     this.onOpenFile = options.onOpenFile || (() => {});
   }
@@ -26,7 +26,7 @@ export class QuickLookPreview {
     const mimeType = item.mimeType || 'application/octet-stream';
     const content = item.content || '';
 
-    this._priorFocus = document.activeElement;
+    this._priorFocus = /** @type {HTMLElement|null} */ (document.activeElement);
 
     // Create overlay (using DOM methods to prevent XSS)
     this.overlay = document.createElement('div');

@@ -414,7 +414,7 @@
   }
 
   /**
-   * @param {{ corsProxyBase?: string }} [opts] — must match git’s corsProxy so POST/GET aren’t double-proxied
+   * @param {{ corsProxyBase?: string, getAbortSignal?: () => AbortSignal | null | undefined }} [opts] - must match git's corsProxy so POST/GET are not double-proxied
    * @returns {{ request: (req: object) => Promise<object> }}
    */
   window.createJshGitHttp = function createJshGitHttp(opts) {
@@ -473,7 +473,7 @@
           const fetchStartMs = Date.now();
           try {
             console.log('[jsh-git-http] fetch START', upper, targetUrl.slice(0, 120));
-            res = await fetch(targetUrl, init);
+            res = await fetch(targetUrl, /** @type {RequestInit} */ (init));
           } catch (err) {
             clearTimeout(headerTimeoutId);
             console.error('[jsh-git-http] fetch FAILED', upper, targetUrl.slice(0, 120), err);

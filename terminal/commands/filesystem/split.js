@@ -35,15 +35,15 @@
   registerCommand(
     'split',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseSplitArgv(args);
-      if (!parsed.ok) {
+      const parsed = SplitLib.parseSplitArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.SPLIT_HELP, stderr: '', exitCode: 0 };
+        return { stdout: SplitLib.SPLIT_HELP, stderr: '', exitCode: 0 };
       }
       if (parsed.version) {
-        return { stdout: ShellUtils.SPLIT_VERSION_LINE, stderr: '', exitCode: 0 };
+        return { stdout: SplitLib.SPLIT_VERSION_LINE, stderr: '', exitCode: 0 };
       }
 
       const {
@@ -90,11 +90,11 @@
         inputBytes = new TextEncoder().encode(inputText);
         isBinary = false;
       } else {
-        const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, inputOperand, 'split');
-        if (!res.ok) {
+        const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, inputOperand, 'split');
+        if (res.ok === false) {
           return { stdout: '', stderr: res.stderr.trimEnd() + '\n', exitCode: 1 };
         }
-        const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+        const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
         const fb = fileToBytes(res.file);
         inputBytes = fb.bytes;
         isBinary = d.isBinary || fb.isBinary;
@@ -104,7 +104,7 @@
       }
 
       async function writeOne(index, content) {
-        const suf = ShellUtils.splitGenerateSuffix(index, suffixCfg);
+        const suf = SplitLib.splitGenerateSuffix(index, suffixCfg);
         if (suf == null) {
           return {
             ok: false,
@@ -132,7 +132,7 @@
         const u8 = inputBytes;
         if (u8.length === 0) {
           const w = await writeOne(0, new Uint8Array(0));
-          if (!w.ok) {
+          if (w.ok === false) {
             return { stdout: '', stderr: w.stderr, exitCode: w.exitCode };
           }
           return { stdout: '', stderr: '', exitCode: 0 };
@@ -141,7 +141,7 @@
         for (let offset = 0; offset < u8.length; offset += chunkSize) {
           const chunk = u8.subarray(offset, Math.min(offset + chunkSize, u8.length));
           const w = await writeOne(idx, chunk);
-          if (!w.ok) {
+          if (w.ok === false) {
             return { stdout: '', stderr: w.stderr, exitCode: w.exitCode };
           }
           idx++;
@@ -152,15 +152,15 @@
       /** @type {(string|Uint8Array)[]} */
       let lineParts;
       if (isBinary) {
-        lineParts = ShellUtils.splitLinesBytes(inputBytes);
+        lineParts = SplitLib.splitLinesBytes(inputBytes);
       } else {
-        lineParts = ShellUtils.splitLinesWithSeparators(inputText);
+        lineParts = SplitLib.splitLinesWithSeparators(inputText);
       }
 
       if (lineParts.length === 0) {
         const empty = isBinary ? new Uint8Array(0) : '';
         const w = await writeOne(0, empty);
-        if (!w.ok) {
+        if (w.ok === false) {
           return { stdout: '', stderr: w.stderr, exitCode: w.exitCode };
         }
         return { stdout: '', stderr: '', exitCode: 0 };
@@ -175,7 +175,7 @@
           const buf = new Uint8Array(total);
           let o = 0;
           for (const l of slice) {
-            buf.set(l, o);
+            buf.set(/** @type {Uint8Array} */ (l), o);
             o += l.length;
           }
           content = buf;
@@ -183,7 +183,7 @@
           content = slice.join('');
         }
         const w = await writeOne(idx, content);
-        if (!w.ok) {
+        if (w.ok === false) {
           return { stdout: '', stderr: w.stderr, exitCode: w.exitCode };
         }
         idx++;

@@ -43,7 +43,7 @@
           return { ok: false, stderr: `less: ${operand}: Invalid argument`, exitCode: 1 };
         }
         const parent = dirnameVirtual(fullPath);
-        fullPath = ShellUtils.resolveVirtualPath(String(raw).trim(), parent);
+        fullPath = ShellCore.resolveVirtualPath(String(raw).trim(), parent);
         continue;
       }
       if (file.type !== 'file') {
@@ -79,8 +79,8 @@
   ) {
     const lines = content.split('\n');
     const lineNumWidth = Math.max(6, String(lines.length).length);
-    const linesPerPage = ShellUtils.LESS_LINES_PER_PAGE;
-    let currentLine = ShellUtils.lessInitialScrollLine(lines.length, linesPerPage, startSpec);
+    const linesPerPage = LessLib.LESS_LINES_PER_PAGE;
+    let currentLine = LessLib.lessInitialScrollLine(lines.length, linesPerPage, startSpec);
 
     let searchTerm = '';
     let searchResults = [];
@@ -98,7 +98,7 @@
     }
 
     function consumeRepeatCount(defaultLines) {
-      const n = ShellUtils.lessRepeatCountFromPrefix(defaultLines, scrollPrefixDigits);
+      const n = LessLib.lessRepeatCountFromPrefix(defaultLines, scrollPrefixDigits);
       scrollPrefixDigits = '';
       return n;
     }
@@ -203,7 +203,7 @@
 
       lines.forEach((line, lineIndex) => {
         let index = 0;
-        const plain = rawControlChars ? ShellUtils.lessStripAnsi(line) : line;
+        const plain = rawControlChars ? LessLib.lessStripAnsi(line) : line;
         const hay = ignoreCaseSearch ? plain.toLowerCase() : plain;
         const needle = ignoreCaseSearch ? term.toLowerCase() : term;
         while ((index = hay.indexOf(needle, index)) !== -1) {
@@ -220,7 +220,7 @@
       const result = searchResults[0];
       currentLine = Math.max(0, result.line - Math.floor(linesPerPage / 2));
       currentSearchIndex = 0;
-      helpSpan.textContent = ShellUtils.formatLessSearchMatchFooter(
+      helpSpan.textContent = LessLib.formatLessSearchMatchFooter(
         result,
         0,
         searchResults.length
@@ -242,9 +242,9 @@
             const globalIdx = start + j;
             let escaped;
             if (rawControlChars && !searchTerm) {
-              escaped = ShellUtils.lessAnsiToHtml(line);
+              escaped = LessLib.lessAnsiToHtml(line);
             } else if (rawControlChars && searchTerm) {
-              escaped = terminal.escapeHtml(ShellUtils.lessStripAnsi(line));
+              escaped = terminal.escapeHtml(LessLib.lessStripAnsi(line));
             } else {
               escaped = terminal.escapeHtml(line);
             }
@@ -288,7 +288,7 @@
       // Find all matches (GNU less: case-sensitive unless -i)
       lines.forEach((line, lineIndex) => {
         let index = 0;
-        const plain = rawControlChars ? ShellUtils.lessStripAnsi(line) : line;
+        const plain = rawControlChars ? LessLib.lessStripAnsi(line) : line;
         const hay = ignoreCaseSearch ? plain.toLowerCase() : plain;
         const needle = ignoreCaseSearch ? term.toLowerCase() : term;
         while ((index = hay.indexOf(needle, index)) !== -1) {
@@ -319,14 +319,14 @@
         const result = searchResults[0];
         currentLine = Math.max(0, result.line - Math.floor(linesPerPage / 2));
         currentSearchIndex = 0;
-        helpSpan.textContent = ShellUtils.formatLessSearchMatchFooter(
+        helpSpan.textContent = LessLib.formatLessSearchMatchFooter(
           result,
           0,
           searchResults.length,
           'Search wrapped'
         );
       } else {
-        helpSpan.textContent = ShellUtils.formatLessSearchMatchFooter(
+        helpSpan.textContent = LessLib.formatLessSearchMatchFooter(
           searchResults[currentSearchIndex],
           currentSearchIndex,
           searchResults.length
@@ -344,7 +344,7 @@
       currentSearchIndex = (currentSearchIndex + t) % len;
       const result = searchResults[currentSearchIndex];
       currentLine = Math.max(0, result.line - Math.floor(linesPerPage / 2));
-      helpSpan.textContent = ShellUtils.formatLessSearchMatchFooter(
+      helpSpan.textContent = LessLib.formatLessSearchMatchFooter(
         result,
         currentSearchIndex,
         len
@@ -359,7 +359,7 @@
       currentSearchIndex = (((currentSearchIndex - t) % len) + len) % len;
       const result = searchResults[currentSearchIndex];
       currentLine = Math.max(0, result.line - Math.floor(linesPerPage / 2));
-      helpSpan.textContent = ShellUtils.formatLessSearchMatchFooter(
+      helpSpan.textContent = LessLib.formatLessSearchMatchFooter(
         result,
         currentSearchIndex,
         len
@@ -408,12 +408,12 @@ Press any key to return to document...`;
     }
 
     function moveForwardHalfPage() {
-      const h = consumeRepeatCount(ShellUtils.lessHalfPageLineCount(linesPerPage));
+      const h = consumeRepeatCount(LessLib.lessHalfPageLineCount(linesPerPage));
       moveForwardByLines(h);
     }
 
     function moveBackwardHalfPage() {
-      const h = consumeRepeatCount(ShellUtils.lessHalfPageLineCount(linesPerPage));
+      const h = consumeRepeatCount(LessLib.lessHalfPageLineCount(linesPerPage));
       moveBackwardByLines(h);
     }
 
@@ -527,11 +527,11 @@ Press any key to return to document...`;
           const prefix = scrollPrefixDigits;
           scrollPrefixDigits = '';
           if (quitAtEofMode === 'second') eofQuitPrimed = false;
-          const target = ShellUtils.lessTargetLineOneBasedFromPrefix(prefix);
+          const target = LessLib.lessTargetLineOneBasedFromPrefix(prefix);
           if (target == null) {
             currentLine = 0;
           } else {
-            currentLine = ShellUtils.lessScrollLineForTargetLineOneBased(
+            currentLine = LessLib.lessScrollLineForTargetLineOneBased(
               lines.length,
               linesPerPage,
               target
@@ -545,11 +545,11 @@ Press any key to return to document...`;
           const prefixG = scrollPrefixDigits;
           scrollPrefixDigits = '';
           if (quitAtEofMode === 'second') eofQuitPrimed = false;
-          const targetG = ShellUtils.lessTargetLineOneBasedFromPrefix(prefixG);
+          const targetG = LessLib.lessTargetLineOneBasedFromPrefix(prefixG);
           if (targetG == null) {
             currentLine = Math.max(0, lines.length - linesPerPage);
           } else {
-            currentLine = ShellUtils.lessScrollLineForTargetLineOneBased(
+            currentLine = LessLib.lessScrollLineForTargetLineOneBased(
               lines.length,
               linesPerPage,
               targetG
@@ -621,20 +621,20 @@ Press any key to return to document...`;
   registerCommand(
     'less',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseLessArgv(args);
-      if (!parsed.ok) {
+      const parsed = LessLib.parseLessArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
         return {
-          stdout: ShellUtils.LESS_HELP,
+          stdout: LessLib.LESS_HELP,
           stderr: '',
           exitCode: 0
         };
       }
       if (parsed.version) {
         return {
-          stdout: ShellUtils.LESS_VERSION_LINE,
+          stdout: LessLib.LESS_VERSION_LINE,
           stderr: '',
           exitCode: 0
         };
@@ -648,14 +648,14 @@ Press any key to return to document...`;
         if (operand != null && operand !== '-') {
           filename = operand;
           const resolved = await resolveLessFile(terminal, operand);
-          if (!resolved.ok) {
+          if (resolved.ok === false) {
             return {
               stdout: '',
               stderr: resolved.stderr,
               exitCode: resolved.exitCode
             };
           }
-          const d = ShellUtils.fileItemUtf8ForDisplay(resolved.file);
+          const d = VfsUtils.fileItemUtf8ForDisplay(resolved.file);
           content = d.isBinary ? '[binary file]\n' : d.text;
         } else if (operand === '-') {
           content = terminal.stdin;
@@ -672,20 +672,20 @@ Press any key to return to document...`;
         }
 
         if (parsed.squeezeBlankLines && !parsed.html) {
-          content = ShellUtils.lessSqueezeBlankLines(content);
+          content = LessLib.lessSqueezeBlankLines(content);
         }
 
         if (!parsed.html) {
-          content = ShellUtils.lessExpandTabsInText(content, parsed.tabStops);
+          content = LessLib.lessExpandTabsInText(content, parsed.tabStops);
         }
 
         if (
           parsed.quitIfOneScreen &&
           !parsed.html &&
           !parsed.pattern &&
-          ShellUtils.lessContentFitsOneScreen(content)
+          LessLib.lessContentFitsOneScreen(content)
         ) {
-          const out = parsed.lineNumbers ? ShellUtils.lessFormatWithLineNumbers(content) : content;
+          const out = parsed.lineNumbers ? LessLib.lessFormatWithLineNumbers(content) : content;
           return { stdout: out, stderr: '', exitCode: 0 };
         }
 

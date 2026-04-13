@@ -101,8 +101,13 @@ class FileSystemManager {
 
     for (const mountPoint of this.mountPoints.keys()) {
       if (path.startsWith(mountPoint) && mountPoint.length > bestLength) {
-        bestMatch = mountPoint;
-        bestLength = mountPoint.length;
+        // Ensure match is on a path boundary, not a substring
+        // (e.g. /proc must not match /process, /dev must not match /device)
+        const nextChar = path[mountPoint.length];
+        if (mountPoint === '/' || nextChar === undefined || nextChar === '/') {
+          bestMatch = mountPoint;
+          bestLength = mountPoint.length;
+        }
       }
     }
 
@@ -121,7 +126,7 @@ class FileSystemManager {
   normalizePath(path) {
     const currentProcess = this.kernel.processManager.currentProcess;
     const cwd = currentProcess ? currentProcess.cwd : '/';
-    return ShellUtils.resolveVirtualPath(path, cwd);
+    return ShellCore.resolveVirtualPath(path, cwd);
   }
 
   // Open a file

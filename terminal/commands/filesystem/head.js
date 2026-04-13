@@ -12,12 +12,12 @@
   registerCommand(
     'head',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseLinesFilterArgv(args, 'head', 10);
-      if (!parsed.ok) {
+      const parsed = LinesLib.parseLinesFilterArgv(args, 'head', 10);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.HEAD_HELP, stderr: '', exitCode: 0 };
+        return { stdout: LinesLib.HEAD_HELP, stderr: '', exitCode: 0 };
       }
 
       const { lines, operands } = parsed;
@@ -42,12 +42,12 @@
           label = 'standard input';
           content = stdinText;
         } else {
-          const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op, 'head');
-          if (!res.ok) {
+          const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, op, 'head');
+          if (res.ok === false) {
             stderrLines.push(res.stderr);
             continue;
           }
-          const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+          const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
           content = d.isBinary ? '' : d.text;
         }
         const slice = linesFromText(content).slice(0, lines).join('\n');

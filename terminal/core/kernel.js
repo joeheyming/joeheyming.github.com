@@ -156,29 +156,9 @@ class HeymingKernel {
     }
   }
 
-  // Register core system calls
+  // Register core system calls — POSIX-aligned naming
   registerSystemCalls() {
-    // Process management - using our actual ProcessManager methods
-    this.registerSystemCall(
-      'createProcess',
-      this.processManager.createProcess.bind(this.processManager)
-    );
-    this.registerSystemCall(
-      'executeCommand',
-      this.processManager.executeCommand.bind(this.processManager)
-    );
-    this.registerSystemCall(
-      'terminateProcess',
-      this.processManager.terminateProcess.bind(this.processManager)
-    );
-    this.registerSystemCall('sendSignal', this.processManager.sendSignal.bind(this.processManager));
-    this.registerSystemCall(
-      'getAllProcesses',
-      this.processManager.getAllProcesses.bind(this.processManager)
-    );
-    this.registerSystemCall('getProcess', this.processManager.getProcess.bind(this.processManager));
-
-    // File system
+    // File system (already implemented in FileSystemManager)
     this.registerSystemCall('open', this.fileSystemManager.open.bind(this.fileSystemManager));
     this.registerSystemCall('close', this.fileSystemManager.close.bind(this.fileSystemManager));
     this.registerSystemCall('read', this.fileSystemManager.read.bind(this.fileSystemManager));
@@ -188,30 +168,158 @@ class HeymingKernel {
     this.registerSystemCall('mkdir', this.fileSystemManager.mkdir.bind(this.fileSystemManager));
     this.registerSystemCall('rmdir', this.fileSystemManager.rmdir.bind(this.fileSystemManager));
     this.registerSystemCall('unlink', this.fileSystemManager.unlink.bind(this.fileSystemManager));
+    this.registerSystemCall('sendSignal', this.processManager.sendSignal.bind(this.processManager));
 
-    // Memory management - register only if methods exist
-    if (this.memoryManager.allocate) {
-      this.registerSystemCall('allocate', this.memoryManager.allocate.bind(this.memoryManager));
-    }
-    if (this.memoryManager.deallocate) {
-      this.registerSystemCall('deallocate', this.memoryManager.deallocate.bind(this.memoryManager));
-    }
+    // POSIX file metadata (stubs for unimplemented ones)
+    this.registerSystemCall('lstat', this.fileSystemManager.stat.bind(this.fileSystemManager));
+    this.registerSystemCall('fstat', async (fd) => {
+      const file = this.fileSystemManager.openFiles.get(fd);
+      if (!file) throw this._enosys('fstat');
+      return this.fileSystemManager.stat(file.path);
+    });
+    this.registerSystemCall('access', async (path, mode) => {
+      try {
+        await this.fileSystemManager.stat(path);
+        return 0;
+      } catch (_) {
+        const err = new Error(`No such file or directory: ${path}`);
+        err.code = 'ENOENT';
+        throw err;
+      }
+    });
+    this.registerSystemCall('chmod', async () => 0);
+    this.registerSystemCall('chown', async () => 0);
 
-    // IPC - register only if methods exist
-    if (this.ipcManager.createChannel) {
-      this.registerSystemCall('createChannel', this.ipcManager.createChannel.bind(this.ipcManager));
+    // POSIX file manipulation
+    this.registerSystemCall('rename', async (oldpath, newpath) => {
+      const fsdb = this.fileSystemManager.fileSystemDB;
+      if (!fsdb) throw this._enosys('rename');
+      const item = await fsdb.getItem(oldpath);
+      if (!item) {
+        const err = new Error(`No such file or directory: ${oldpath}`);
+        err.code = 'ENOENT';
+        throw err;
+      }
+      await fsdb.moveItem(oldpath, newpath);
+      return 0;
+    });
+    this.registerSystemCall('link', async () => { throw this._enosys('link'); });
+    this.registerSystemCall('symlink', async (target, linkpath) => {
+      const fsdb = this.fileSystemManager.fileSystemDB;
+      if (!fsdb) throw this._enosys('symlink');
+      await fsdb.createSymlink(linkpath, target);
+      return 0;
+    });
+    this.registerSystemCall('readlink', async (path) => {
+      const fsdb = this.fileSystemManager.fileSystemDB;
+      if (!fsdb) throw this._enosys('readlink');
+      const item = await fsdb.getItem(path);
+      if (!item || item.type !== 'symlink') {
+        const err = new Error(`Not a symlink: ${path}`);
+        err.code = 'EINVAL';
+        throw err;
+      }
+      return item.target || item.linkTarget || '';
+    });
+    this.registerSystemCall('lseek', async () => { throw this._enosys('lseek'); });
+    this.registerSystemCall('fcntl', async () => { throw this._enosys('fcntl'); });
+
+    // POSIX fd duplication
+    this.registerSystemCall('dup', (oldfd) => {
+      const file = this.fileSystemManager.openFiles.get(oldfd);
+      if (!file) {
+        const err = new Error(`Bad file descriptor: ${oldfd}`);
+        err.code = 'EBADF';
+        throw err;
+      }
+      const proc = this.processManager.currentProcess;
+      return this.processManager.allocateFD(proc, { ...file });
+    });
+    this.registerSystemCall('dup2', (oldfd, newfd) => {
+      const file = this.fileSystemManager.openFiles.get(oldfd);
+      if (!file) {
+        const err = new Error(`Bad file descriptor: ${oldfd}`);
+        err.code = 'EBADF';
+        throw err;
+      }
+      const proc = this.processManager.currentProcess;
+      this.processManager.allocateSpecificFD(proc, newfd, { ...file });
+      return newfd;
+    });
+
+    // IPC
+    if (this.ipcManager.createPipe) {
+      this.registerSystemCall('pipe', this.ipcManager.createPipe.bind(this.ipcManager));
     }
     if (this.ipcManager.sendMessage) {
       this.registerSystemCall('sendMessage', this.ipcManager.sendMessage.bind(this.ipcManager));
     }
 
-    // Network - register only if methods exist
-    if (this.networkManager.createConnection) {
-      this.registerSystemCall(
-        'createConnection',
-        this.networkManager.createConnection.bind(this.networkManager)
-      );
+    // Process identity
+    this.registerSystemCall('getpid', this.processManager.getpid.bind(this.processManager));
+    this.registerSystemCall('getppid', this.processManager.getppid.bind(this.processManager));
+    this.registerSystemCall('getuid', this.processManager.getuid.bind(this.processManager));
+    this.registerSystemCall('getgid', this.processManager.getgid.bind(this.processManager));
+
+    // Process control stubs
+    this.registerSystemCall('fork', async () => { throw this._enosys('fork'); });
+    this.registerSystemCall('execve', async () => { throw this._enosys('execve'); });
+    this.registerSystemCall('waitpid', async () => { throw this._enosys('waitpid'); });
+    this.registerSystemCall('_exit', (status) => {
+      if (this.processManager.currentProcess) {
+        this.processManager.terminateProcess(this.processManager.currentProcess.pid, status);
+      }
+    });
+    this.registerSystemCall('kill', this.processManager.sendSignal.bind(this.processManager));
+    this.registerSystemCall('setuid', async () => 0);
+    this.registerSystemCall('setgid', async () => 0);
+
+    // Higher-level convenience syscalls (libc-style)
+    this.registerSystemCall('readFileContents', async (path) => {
+      const fsdb = this.fileSystemManager.fileSystemDB;
+      if (!fsdb) throw this._enosys('readFileContents');
+      const item = await fsdb.getItem(path);
+      if (!item || item.type !== 'file') return null;
+      if (item.content != null) return String(item.content);
+      return '';
+    });
+    this.registerSystemCall('writeFileContents', async (path, data) => {
+      const fsdb = this.fileSystemManager.fileSystemDB;
+      if (!fsdb) throw this._enosys('writeFileContents');
+      await fsdb.createFile(path, data, true);
+    });
+    this.registerSystemCall('copyFile', async (src, dest) => {
+      const fsdb = this.fileSystemManager.fileSystemDB;
+      if (!fsdb) throw this._enosys('copyFile');
+      await fsdb.copyItem(src, dest);
+    });
+
+    // Memory management - register only if methods exist
+    if (this.memoryManager.allocateMemory) {
+      this.registerSystemCall('allocate', this.memoryManager.allocateMemory.bind(this.memoryManager));
     }
+    if (this.memoryManager.freeMemory) {
+      this.registerSystemCall('deallocate', this.memoryManager.freeMemory.bind(this.memoryManager));
+    }
+
+    // Legacy aliases (backward compat during migration)
+    this.registerSystemCall('createProcess', this.processManager.createProcess.bind(this.processManager));
+    this.registerSystemCall('executeCommand', this.processManager.executeCommand.bind(this.processManager));
+    this.registerSystemCall('terminateProcess', this.processManager.terminateProcess.bind(this.processManager));
+    this.registerSystemCall('getAllProcesses', this.processManager.getAllProcesses.bind(this.processManager));
+    this.registerSystemCall('getProcess', this.processManager.getProcess.bind(this.processManager));
+
+    // Network - register only if methods exist
+    if (this.networkManager.createSocket) {
+      this.registerSystemCall('createSocket', this.networkManager.createSocket.bind(this.networkManager));
+    }
+  }
+
+  /** Create an ENOSYS error for unimplemented syscalls */
+  _enosys(name) {
+    const err = new Error(`${name}: Function not implemented`);
+    err.code = 'ENOSYS';
+    return err;
   }
 
   // Interrupt handling

@@ -5,17 +5,17 @@
   registerCommand(
     'date',
     (terminal, args) => {
-      const parsed = ShellUtils.parseDateArgv(args);
-      if (!parsed.ok) {
+      const parsed = DateLib.parseDateArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.DATE_HELP, stderr: '', exitCode: 0 };
+        return { stdout: DateLib.DATE_HELP, stderr: '', exitCode: 0 };
       }
       if (parsed.version) {
-        return { stdout: ShellUtils.DATE_VERSION_LINE, stderr: '', exitCode: 0 };
+        return { stdout: DateLib.DATE_VERSION_LINE, stderr: '', exitCode: 0 };
       }
-      const line = ShellUtils.formatDateOutput(new Date(), {
+      const line = DateLib.formatDateOutput(new Date(), {
         utc: parsed.utc,
         iso: parsed.iso
       });

@@ -5,16 +5,32 @@
   registerCommand(
     'ls',
     async (terminal, args) => {
-      const { showDetails, showAll } = ShellUtils.parseLsDisplayFlags(args);
+      const parsed = LsLib.parseLsDisplayFlags(args);
+      if (parsed.error) {
+        return { stdout: '', stderr: parsed.error.stderr, exitCode: parsed.error.exitCode };
+      }
+      if (parsed.help) {
+        return { stdout: LsLib.LS_HELP, stderr: '', exitCode: 0 };
+      }
+      const { showDetails, showAll } = parsed;
 
       // Filter out flags to find the target directory
-      const nonFlagArgs = args.filter((arg) => !arg.startsWith('-'));
+      let pastDashDash = false;
+      const nonFlagArgs = args.filter((arg) => {
+        if (pastDashDash) return true;
+        if (arg === '--') {
+          pastDashDash = true;
+          return false;
+        }
+        return !arg.startsWith('-');
+      });
       const targetDir = nonFlagArgs[0] || terminal.currentDirectory;
       const fullPath = terminal.resolvePath(targetDir);
 
       try {
-        // Use system call in OS mode, fallback to legacy
-        const stats = await terminal.syscall('stat', fullPath);
+        let stats = /** @type {{ type?: string, size?: number, modified?: number } | null} */ (
+          await terminal.syscall('stat', fullPath)
+        );
 
         if (!stats) {
           return {
@@ -23,7 +39,19 @@
           };
         }
 
-        // If it's a file, show the file itself
+        // Follow symlink operands to the target (GNU ls default without -d)
+        if (stats.type === 'symlink') {
+          const resolved = await VfsUtils.vfsFollowSymlinksToAny(terminal, fullPath);
+          if (resolved.ok === true) {
+            stats = /** @type {typeof stats} */ (resolved.item);
+          } else {
+            return {
+              stderr: `ls: cannot access '${targetDir}': Too many levels of symbolic links`,
+              exitCode: 1
+            };
+          }
+        }
+
         if (stats.type === 'file') {
           if (showDetails) {
             const size = stats.size || 0;
@@ -48,7 +76,7 @@
         // If it's a directory, list its contents
         if (stats.type === 'directory') {
           const raw = await terminal.listDirectoryContents(fullPath);
-          let entries = ShellUtils.sortDirectoryEntriesByName(raw);
+          let entries = VfsUtils.sortDirectoryEntriesByName(raw);
           if (!showAll) {
             entries = entries.filter((e) => !String(e.name).startsWith('.'));
           }
@@ -61,15 +89,19 @@
             return {
               stdout: entries
                 .map((entry) => {
-                  const type = entry.type === 'directory' ? 'd' : '-';
+                  const typeChar =
+                    entry.type === 'directory' ? 'd' : entry.type === 'symlink' ? 'l' : '-';
                   const size = entry.size || 0;
                   const modified = entry.modified
                     ? new Date(entry.modified).toLocaleDateString()
                     : 'unknown';
-                  const icon = entry.type === 'directory' ? '📁' : '📄';
-                  return `${type}rwxr-xr-x 1 user user ${size
+                  const icon =
+                    entry.type === 'directory' ? '📁' : entry.type === 'symlink' ? '🔗' : '📄';
+                  const suffix =
+                    entry.type === 'symlink' && entry.target ? ` -> ${entry.target}` : '';
+                  return `${typeChar}rwxr-xr-x 1 user user ${size
                     .toString()
-                    .padStart(8)} ${modified} ${icon} ${entry.name}`;
+                    .padStart(8)} ${modified} ${icon} ${entry.name}${suffix}`;
                 })
                 .join('\n'),
               stderr: '',
@@ -81,6 +113,9 @@
               .map((entry) => {
                 if (entry.type === 'directory') {
                   return `📁 ${entry.name}`;
+                }
+                if (entry.type === 'symlink') {
+                  return `🔗 ${entry.name}`;
                 }
                 return `📄 ${entry.name}`;
               })

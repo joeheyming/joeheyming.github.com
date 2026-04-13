@@ -93,6 +93,7 @@
     if (typeof Uint8Array !== 'undefined' && data instanceof Uint8Array) {
       return data;
     }
+    // @ts-ignore Buffer is Node-only; browser builds skip this branch
     if (typeof Buffer !== 'undefined' && Buffer.isBuffer && Buffer.isBuffer(data)) {
       return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
     }
@@ -165,7 +166,9 @@
         if (opts && opts.encoding === 'utf8') {
           return new TextDecoder().decode(u8);
         }
+        // @ts-ignore Buffer is Node-only
         if (typeof Buffer !== 'undefined' && Buffer.from) {
+          // @ts-ignore Buffer is Node-only
           return Buffer.from(u8);
         }
         return u8;

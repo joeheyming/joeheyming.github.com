@@ -5,12 +5,12 @@
   registerCommand(
     'tr',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseTrArgv(args);
-      if (!parsed.ok) {
+      const parsed = TrLib.parseTrArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.TR_HELP.trim() + '\n', stderr: '', exitCode: 0 };
+        return { stdout: TrLib.TR_HELP.trim() + '\n', stderr: '', exitCode: 0 };
       }
 
       const stdinAvailable =
@@ -25,10 +25,10 @@
 
       const stdinText = terminal.stdin != null ? String(terminal.stdin) : '';
       const operands = parsed.operands;
-      const set1 = ShellUtils.expandTrSetString(operands[0]);
-      const set2 = operands.length > 1 ? ShellUtils.expandTrSetString(operands[1]) : [];
+      const set1 = TrLib.expandTrSetString(operands[0]);
+      const set2 = operands.length > 1 ? TrLib.expandTrSetString(operands[1]) : [];
 
-      const out = ShellUtils.runTr(stdinText, {
+      const out = TrLib.runTr(stdinText, {
         complement: parsed.complement,
         delete: parsed.delete,
         squeeze: parsed.squeeze,

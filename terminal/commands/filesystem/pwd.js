@@ -5,12 +5,12 @@
   registerCommand(
     'pwd',
     async (terminal, args) => {
-      const parsed = ShellUtils.parsePwdArgv(args);
-      if (!parsed.ok) {
+      const parsed = PwdLib.parsePwdArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.PWD_HELP.trim() + '\n', stderr: '', exitCode: 0 };
+        return { stdout: PwdLib.PWD_HELP.trim() + '\n', stderr: '', exitCode: 0 };
       }
 
       const cwd = terminal.currentDirectory;
@@ -26,8 +26,8 @@
         return { stdout: cwd, stderr: '', exitCode: 0 };
       }
 
-      const res = await ShellUtils.vfsReadlinkCanonical(terminal, cwd, 'e', 'pwd');
-      if (!res.ok) {
+      const res = await VfsUtils.vfsReadlinkCanonical(terminal, cwd, 'e', 'pwd');
+      if (res.ok === false) {
         return { stdout: '', stderr: `${res.stderr}\n`, exitCode: 1 };
       }
       return { stdout: res.path, stderr: '', exitCode: 0 };

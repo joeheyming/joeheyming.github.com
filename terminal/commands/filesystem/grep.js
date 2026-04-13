@@ -5,12 +5,12 @@
   registerCommand(
     'grep',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseGrepArgv(args);
-      if (!parsed.ok) {
+      const parsed = GrepLib.parseGrepArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.GREP_HELP, stderr: '', exitCode: 0 };
+        return { stdout: GrepLib.GREP_HELP, stderr: '', exitCode: 0 };
       }
 
       const { caseInsensitive, lineNumbers, invertMatch, noFilename, pattern, fileOperands } =
@@ -47,12 +47,12 @@
             searchFiles.push({ name: '(standard input)', content: stdinText });
             continue;
           }
-          const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op, 'grep');
-          if (!res.ok) {
+          const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, op, 'grep');
+          if (res.ok === false) {
             stderrLines.push(res.stderr.trimEnd());
             continue;
           }
-          const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+          const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
           searchFiles.push({ name: op, content: d.isBinary ? '' : d.text });
         }
       }

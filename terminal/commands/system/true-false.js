@@ -6,12 +6,12 @@
     'Heyming OS jsh 2.0.0 — in-browser userland (virtual FS, simulated kernel). Does not report host OS version.\n';
 
   function runTrueFalse(_terminal, args, progName) {
-    const parsed = ShellUtils.parseTrueFalseArgv(args, progName);
-    if (!parsed.ok) {
+    const parsed = TestLib.parseTrueFalseArgv(args, progName);
+    if (parsed.ok === false) {
       return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
     }
     if (parsed.help) {
-      const help = progName === 'true' ? ShellUtils.TRUE_HELP : ShellUtils.FALSE_HELP;
+      const help = progName === 'true' ? TestLib.TRUE_HELP : TestLib.FALSE_HELP;
       return { stdout: `${help}\n`, stderr: '', exitCode: 0 };
     }
     if (parsed.version) {

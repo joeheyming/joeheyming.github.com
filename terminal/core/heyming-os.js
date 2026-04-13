@@ -202,7 +202,7 @@ class HeymingOS {
     }
 
     // Terminate the terminal process
-    this.kernel.processManager.kill(terminalInfo.process.pid);
+    this.kernel.processManager.terminateProcess(terminalInfo.process.pid);
 
     // Clean up terminal
     if (terminalInfo.terminal.cleanup) {
@@ -318,7 +318,7 @@ class HeymingOS {
     }
 
     // Terminate service process
-    await this.kernel.processManager.kill(serviceInfo.process.pid);
+    await this.kernel.processManager.terminateProcess(serviceInfo.process.pid);
 
     this.services.delete(name);
     console.log(`Service stopped: ${name}`);
@@ -625,5 +625,7 @@ class CalculatorApplication extends Application {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { HeymingOS };
 } else if (typeof window !== 'undefined') {
+  // Terminal boot assigns the OS class; the desktop app uses a richer `window.HeymingOS` namespace from `os/`.
+  // @ts-expect-error Runtime shape differs between terminal bootstrap and desktop shell.
   window.HeymingOS = HeymingOS;
 }

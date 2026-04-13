@@ -234,8 +234,8 @@ Description:
 
   // Helper functions
   function normalizeSpawnExitByte(n) {
-    if (typeof ShellUtils !== 'undefined' && ShellUtils.normalizeExitByte) {
-      return ShellUtils.normalizeExitByte(n);
+    if (typeof ShellCore !== 'undefined' && ShellCore.normalizeExitByte) {
+      return ShellCore.normalizeExitByte(n);
     }
     if (n == null || !Number.isFinite(Number(n))) {
       return 0;

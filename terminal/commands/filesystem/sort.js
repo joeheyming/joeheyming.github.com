@@ -44,12 +44,12 @@
   registerCommand(
     'sort',
     async (terminal, args) => {
-      const parsed = ShellUtils.parseSortArgv(args);
-      if (!parsed.ok) {
+      const parsed = SortLib.parseSortArgv(args);
+      if (parsed.ok === false) {
         return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
       }
       if (parsed.help) {
-        return { stdout: ShellUtils.SORT_HELP, stderr: '', exitCode: 0 };
+        return { stdout: SortLib.SORT_HELP, stderr: '', exitCode: 0 };
       }
 
       const { reverse, numeric, unique, operands } = parsed;
@@ -72,12 +72,12 @@
           parts.push(stdinText);
           continue;
         }
-        const res = await ShellUtils.vfsFollowSymlinksToFile(terminal, op, 'sort');
-        if (!res.ok) {
+        const res = await VfsUtils.vfsFollowSymlinksToFile(terminal, op, 'sort');
+        if (res.ok === false) {
           stderrLines.push(res.stderr.trimEnd());
           continue;
         }
-        const d = ShellUtils.fileItemUtf8ForDisplay(res.file);
+        const d = VfsUtils.fileItemUtf8ForDisplay(res.file);
         parts.push(d.isBinary ? '' : d.text);
       }
 

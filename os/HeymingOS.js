@@ -129,7 +129,7 @@ export class HeymingOS {
               path,
               details
             },
-            '*'
+            { targetOrigin: '*' }
           );
         } catch (e) {
           // Ignore cross-origin errors
@@ -180,10 +180,10 @@ export class HeymingOS {
     const stepDone = document.getElementById('os-setup-step-done');
     const startBtn = document.getElementById('os-setup-start');
     const backBtn = document.getElementById('os-setup-back');
-    const confirmBtn = document.getElementById('os-setup-confirm');
+    const confirmBtn = /** @type {HTMLButtonElement|null} */ (document.getElementById('os-setup-confirm'));
     const finishBtn = document.getElementById('os-setup-finish');
-    const usernameInput = document.getElementById('os-setup-username');
-    const hostnameInput = document.getElementById('os-setup-hostname');
+    const usernameInput = /** @type {HTMLInputElement|null} */ (document.getElementById('os-setup-username'));
+    const hostnameInput = /** @type {HTMLInputElement|null} */ (document.getElementById('os-setup-hostname'));
     const preview = document.getElementById('os-setup-preview');
     const previewHome = document.getElementById('os-setup-preview-home');
     const previewPrompt = document.getElementById('os-setup-preview-prompt');
@@ -372,9 +372,9 @@ export class HeymingOS {
       const buttons = shutdownDialog.querySelectorAll('button:not([disabled])');
       const list = Array.from(buttons);
       if (list.length < 2) return;
-      const first = list[0];
-      const last = list[list.length - 1];
-      const active = document.activeElement;
+      const first = /** @type {HTMLElement} */ (list[0]);
+      const last = /** @type {HTMLElement} */ (list[list.length - 1]);
+      const active = /** @type {Element|null} */ (document.activeElement);
       if (e.shiftKey) {
         if (active === first) {
           e.preventDefault();
@@ -397,7 +397,8 @@ export class HeymingOS {
     document.addEventListener('click', (e) => {
       const launcher = document.getElementById('app-launcher');
       const menu = document.getElementById('app-launcher-menu');
-      if (this.launcher.isVisible() && !launcher?.contains(e.target) && !menu?.contains(e.target)) {
+      const tgt = /** @type {Node} */ (e.target);
+      if (this.launcher.isVisible() && !launcher?.contains(tgt) && !menu?.contains(tgt)) {
         this.launcher.hide();
       }
     });
@@ -569,7 +570,7 @@ export class HeymingOS {
                 content: this.pendingFileOpen.content,
                 fileName: this.pendingFileOpen.fileName
               },
-              '*'
+              { targetOrigin: '*' }
             );
             this.pendingFileOpen = null;
           }
