@@ -16,6 +16,13 @@
     return;
   }
 
+  // Propagate data-back-size from the <script> tag to <html> for CSS selectors
+  const selfScript = document.currentScript;
+  const backSize = selfScript && selfScript.getAttribute('data-back-size');
+  if (backSize) {
+    document.documentElement.setAttribute('data-back-size', backSize);
+  }
+
   // Create the back button
   const backButton = document.createElement('a');
   backButton.href = '/';
@@ -77,6 +84,26 @@
       letter-spacing: 0.5px;
     }
 
+    /* Compact mode — pages opt in with <script src="/back.js" data-back-size="compact"> */
+    html[data-back-size="compact"] .back-to-portfolio {
+      top: 10px;
+      left: 10px;
+      padding: 6px 12px;
+      font-size: 11px;
+      border-radius: 8px;
+      opacity: 0.55;
+      box-shadow: 0 2px 6px rgba(139, 92, 246, 0.2);
+    }
+
+    html[data-back-size="compact"] .back-to-portfolio:hover {
+      opacity: 1;
+      box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);
+    }
+
+    html[data-back-size="compact"] .back-arrow {
+      font-size: 13px;
+    }
+
     /* Mobile responsive */
     @media (max-width: 640px) {
       .back-to-portfolio {
@@ -88,6 +115,13 @@
 
       .back-arrow {
         font-size: 16px;
+      }
+
+      html[data-back-size="compact"] .back-to-portfolio {
+        top: 8px;
+        left: 8px;
+        padding: 5px 10px;
+        font-size: 10px;
       }
     }
 
