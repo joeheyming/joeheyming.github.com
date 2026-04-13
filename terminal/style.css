@@ -12,7 +12,7 @@ body {
   min-height: 100%;
   background: #000;
   color: #fff;
-  font-family: 'Courier New', Courier, ui-monospace, monospace;
+  font-family: 'Hack', 'Courier New', Courier, ui-monospace, monospace;
   overflow: hidden;
 }
 
@@ -361,15 +361,14 @@ html.terminal-embed-os #current-prompt-line {
   font-size: 14px;
   line-height: 1.45;
   caret-color: #0f0;
+  caret-shape: block;
   flex: 1 1 auto;
   min-width: 0;
   margin-left: 0;
 }
 
 #terminal-input:focus-visible {
-  outline: 2px solid rgba(0, 255, 80, 0.55);
-  outline-offset: 2px;
-  border-radius: 2px;
+  outline: none;
 }
 
 #terminal-input::placeholder {
@@ -383,7 +382,7 @@ html.terminal-embed-os #current-prompt-line {
 
 /* ANSI Color Support */
 .ansi-output {
-  font-family: 'Courier New', monospace;
+  font-family: 'Hack', 'Courier New', monospace;
   white-space: pre-wrap;
   line-height: 1.2;
 }
@@ -508,7 +507,7 @@ html.terminal-embed-os #current-prompt-line {
   margin: 0;
   padding: 0;
   font: inherit;
-  font-family: 'Courier New', Courier, ui-monospace, monospace;
+  font-family: 'Hack', 'Courier New', Courier, ui-monospace, monospace;
   white-space: pre-wrap;
   color: inherit;
 }
@@ -535,7 +534,7 @@ html.terminal-embed-os #current-prompt-line {
 
 /* Theme G — tabular process list (ps): single block, monospace columns */
 .terminal-output.tabular {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-family: 'Hack', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   font-variant-ligatures: none;
   color: #dff8e4;
   border-left: 2px solid rgba(0, 255, 136, 0.35);
@@ -547,7 +546,7 @@ html.terminal-embed-os #current-prompt-line {
 
 /* Theme G — man(1) pages: monospace troff-like block, warm accent (distinct from ps) */
 .terminal-output.man-page {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-family: 'Hack', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   font-variant-ligatures: none;
   font-size: 13px;
   line-height: 1.35;
@@ -561,7 +560,7 @@ html.terminal-embed-os #current-prompt-line {
 
 /* Theme G — debug(1) diagnostics: monospace panel, cool accent (distinct from ps / man) */
 .terminal-output.debug-dump {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-family: 'Hack', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   font-variant-ligatures: none;
   font-size: 13px;
   line-height: 1.35;
@@ -575,7 +574,7 @@ html.terminal-embed-os #current-prompt-line {
 
 /* Theme G — hexdump: monospace byte view, amber accent (distinct from tabular / man / debug) */
 .terminal-output.hex-dump {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-family: 'Hack', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   font-variant-ligatures: none;
   font-size: 13px;
   line-height: 1.35;
@@ -589,7 +588,7 @@ html.terminal-embed-os #current-prompt-line {
 
 /* Theme G — ping: HTTP probe transcript, teal accent (distinct from ps / man / debug / hexdump) */
 .terminal-output.ping-log {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-family: 'Hack', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   font-variant-ligatures: none;
   font-size: 13px;
   line-height: 1.35;
@@ -659,7 +658,7 @@ html.terminal-embed-os #current-prompt-line {
   overflow: hidden;
   background: #000;
   color: #0f0;
-  font-family: ui-monospace, 'Courier New', Courier, monospace;
+  font-family: 'Hack', ui-monospace, 'Courier New', Courier, monospace;
   font-size: 13px;
   line-height: 1.35;
 }
@@ -803,7 +802,7 @@ html.terminal-embed-os #current-prompt-line {
   padding: 12px;
   background: rgba(0, 0, 0, 0.88);
   color: #c8ffc8;
-  font-family: ui-monospace, 'Courier New', Courier, monospace;
+  font-family: 'Hack', ui-monospace, 'Courier New', Courier, monospace;
   font-size: 13px;
   line-height: 1.35;
 }
