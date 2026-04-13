@@ -1,5 +1,13 @@
 // Heyming OS Kernel - Core Operating System Layer
-class HeymingKernel {
+import { MemoryManager } from './memory-manager.js';
+import { FileSystemManager } from './filesystem-manager.js';
+import { SecurityManager } from './security-manager.js';
+import { ProcessManager } from './process-manager.js';
+import { IPCManager } from './ipc-manager.js';
+import { DeviceManager, NetworkManager } from './device-manager.js';
+import { SchedulerManager } from './scheduler-manager.js';
+
+export class HeymingKernel {
   constructor() {
     this.version = '0.1.0';
     this.bootTime = Date.now();
@@ -61,73 +69,49 @@ class HeymingKernel {
   }
 
   async initializeMemoryManager() {
-    if (!window.MemoryManager) {
-      throw new Error('MemoryManager not loaded');
-    }
-    this.memoryManager = new window.MemoryManager(this);
+    this.memoryManager = new MemoryManager(this);
     await this.memoryManager.initialize();
     this.log('Memory Manager initialized');
   }
 
   async initializeFileSystemManager() {
-    if (!window.FileSystemManager) {
-      throw new Error('FileSystemManager not loaded');
-    }
-    this.fileSystemManager = new window.FileSystemManager(this);
+    this.fileSystemManager = new FileSystemManager(this);
     await this.fileSystemManager.initialize();
     this.log('File System Manager initialized');
   }
 
   async initializeSecurityManager() {
-    if (!window.SecurityManager) {
-      throw new Error('SecurityManager not loaded');
-    }
-    this.securityManager = new window.SecurityManager(this);
+    this.securityManager = new SecurityManager(this);
     await this.securityManager.initialize();
     this.log('Security Manager initialized');
   }
 
   async initializeProcessManager() {
-    if (!window.ProcessManager) {
-      throw new Error('ProcessManager not loaded');
-    }
-    this.processManager = new window.ProcessManager(this);
+    this.processManager = new ProcessManager(this);
     await this.processManager.initialize();
     this.log('Process Manager initialized with Web Worker isolation');
   }
 
   async initializeIPCManager() {
-    if (!window.IPCManager) {
-      throw new Error('IPCManager not loaded');
-    }
-    this.ipcManager = new window.IPCManager(this);
+    this.ipcManager = new IPCManager(this);
     await this.ipcManager.initialize();
     this.log('IPC Manager initialized');
   }
 
   async initializeDeviceManager() {
-    if (!window.DeviceManager) {
-      throw new Error('DeviceManager not loaded');
-    }
-    this.deviceManager = new window.DeviceManager(this);
+    this.deviceManager = new DeviceManager(this);
     await this.deviceManager.initialize();
     this.log('Device Manager initialized');
   }
 
   async initializeNetworkManager() {
-    if (!window.NetworkManager) {
-      throw new Error('NetworkManager not loaded');
-    }
-    this.networkManager = new window.NetworkManager(this);
+    this.networkManager = new NetworkManager(this);
     await this.networkManager.initialize();
     this.log('Network Manager initialized');
   }
 
   async initializeSchedulerManager() {
-    if (!window.SchedulerManager) {
-      throw new Error('SchedulerManager not loaded');
-    }
-    this.schedulerManager = new window.SchedulerManager(this);
+    this.schedulerManager = new SchedulerManager(this);
     await this.schedulerManager.initialize();
     this.log('Scheduler Manager initialized');
   }
@@ -203,7 +187,9 @@ class HeymingKernel {
       await fsdb.moveItem(oldpath, newpath);
       return 0;
     });
-    this.registerSystemCall('link', async () => { throw this._enosys('link'); });
+    this.registerSystemCall('link', async () => {
+      throw this._enosys('link');
+    });
     this.registerSystemCall('symlink', async (target, linkpath) => {
       const fsdb = this.fileSystemManager.fileSystemDB;
       if (!fsdb) throw this._enosys('symlink');
@@ -221,8 +207,12 @@ class HeymingKernel {
       }
       return item.target || item.linkTarget || '';
     });
-    this.registerSystemCall('lseek', async () => { throw this._enosys('lseek'); });
-    this.registerSystemCall('fcntl', async () => { throw this._enosys('fcntl'); });
+    this.registerSystemCall('lseek', async () => {
+      throw this._enosys('lseek');
+    });
+    this.registerSystemCall('fcntl', async () => {
+      throw this._enosys('fcntl');
+    });
 
     // POSIX fd duplication
     this.registerSystemCall('dup', (oldfd) => {
@@ -262,9 +252,15 @@ class HeymingKernel {
     this.registerSystemCall('getgid', this.processManager.getgid.bind(this.processManager));
 
     // Process control stubs
-    this.registerSystemCall('fork', async () => { throw this._enosys('fork'); });
-    this.registerSystemCall('execve', async () => { throw this._enosys('execve'); });
-    this.registerSystemCall('waitpid', async () => { throw this._enosys('waitpid'); });
+    this.registerSystemCall('fork', async () => {
+      throw this._enosys('fork');
+    });
+    this.registerSystemCall('execve', async () => {
+      throw this._enosys('execve');
+    });
+    this.registerSystemCall('waitpid', async () => {
+      throw this._enosys('waitpid');
+    });
     this.registerSystemCall('_exit', (status) => {
       if (this.processManager.currentProcess) {
         this.processManager.terminateProcess(this.processManager.currentProcess.pid, status);
@@ -296,22 +292,40 @@ class HeymingKernel {
 
     // Memory management - register only if methods exist
     if (this.memoryManager.allocateMemory) {
-      this.registerSystemCall('allocate', this.memoryManager.allocateMemory.bind(this.memoryManager));
+      this.registerSystemCall(
+        'allocate',
+        this.memoryManager.allocateMemory.bind(this.memoryManager)
+      );
     }
     if (this.memoryManager.freeMemory) {
       this.registerSystemCall('deallocate', this.memoryManager.freeMemory.bind(this.memoryManager));
     }
 
     // Legacy aliases (backward compat during migration)
-    this.registerSystemCall('createProcess', this.processManager.createProcess.bind(this.processManager));
-    this.registerSystemCall('executeCommand', this.processManager.executeCommand.bind(this.processManager));
-    this.registerSystemCall('terminateProcess', this.processManager.terminateProcess.bind(this.processManager));
-    this.registerSystemCall('getAllProcesses', this.processManager.getAllProcesses.bind(this.processManager));
+    this.registerSystemCall(
+      'createProcess',
+      this.processManager.createProcess.bind(this.processManager)
+    );
+    this.registerSystemCall(
+      'executeCommand',
+      this.processManager.executeCommand.bind(this.processManager)
+    );
+    this.registerSystemCall(
+      'terminateProcess',
+      this.processManager.terminateProcess.bind(this.processManager)
+    );
+    this.registerSystemCall(
+      'getAllProcesses',
+      this.processManager.getAllProcesses.bind(this.processManager)
+    );
     this.registerSystemCall('getProcess', this.processManager.getProcess.bind(this.processManager));
 
     // Network - register only if methods exist
     if (this.networkManager.createSocket) {
-      this.registerSystemCall('createSocket', this.networkManager.createSocket.bind(this.networkManager));
+      this.registerSystemCall(
+        'createSocket',
+        this.networkManager.createSocket.bind(this.networkManager)
+      );
     }
   }
 
@@ -436,11 +450,4 @@ class HeymingKernel {
     this.emit('kernel:shutdown');
     this.log('Kernel shutdown complete');
   }
-}
-
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { HeymingKernel };
-} else if (typeof window !== 'undefined') {
-  window.HeymingKernel = HeymingKernel;
 }

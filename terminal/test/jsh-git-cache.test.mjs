@@ -1,22 +1,10 @@
-'use strict';
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
 
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const path = require('path');
-
-const cachePath = path.join(__dirname, '../lib/jsh-git-cache.js');
-
-function loadCache() {
-  delete require.cache[require.resolve(cachePath)];
-  global.window = global;
-  require(cachePath);
-  return {
-    createBoundedGitCache: global.createBoundedGitCache,
-    clearGitCache: global.clearGitCache
-  };
-}
-
-const { createBoundedGitCache, clearGitCache } = loadCache();
+global.window = global;
+const cacheHref = new URL('../lib/jsh-git-cache.js', import.meta.url).href;
+await import(`${cacheHref}?v=${Date.now()}`);
+const { createBoundedGitCache, clearGitCache } = global;
 
 // ---------------------------------------------------------------------------
 // createBoundedGitCache — basics

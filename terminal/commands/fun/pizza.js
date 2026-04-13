@@ -1,11 +1,7 @@
 // pizza command - order pizza
-(function () {
-  'use strict';
 
-  registerCommand(
-    'pizza',
-    (terminal, args) => {
-      return `🍕 Pizza ordering system initialized...
+function pizzaHandler(terminal, args) {
+  return `🍕 Pizza ordering system initialized...
 
 📞 Calling Pizza Palace...
 🛵 Delivery ETA: 30 minutes (or it's free!)
@@ -15,8 +11,11 @@
 Toppings: Pepperoni, cheese, and a sprinkle of binary code.
 
 ⚠️  Warning: Virtual pizza provides no actual nutrition.`;
-    },
-    'order pizza',
-    'Fun Stuff'
-  );
-})();
+}
+
+export default {
+  name: 'pizza',
+  handler: pizzaHandler,
+  description: 'order pizza',
+  category: 'Fun Stuff'
+};

@@ -1,5 +1,3 @@
-'use strict';
-
 const LN_HELP = `Usage: ln [OPTION]... [-T] TARGET LINK_NAME
   or:    ln [OPTION]... TARGET
 Create links. jsh supports symbolic links only (GNU-style subset).
@@ -127,15 +125,9 @@ function parseLnArgv(args) {
   };
 }
 
-const LnLib = {
+export const LnLib = {
   LN_HELP,
   lnOptionError,
   symlinkBasenameForLn,
   parseLnArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).LnLib = LnLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = LnLib;
-}

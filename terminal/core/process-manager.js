@@ -1,5 +1,8 @@
 // Process Manager - Uses Web Workers for actual process isolation
-class ProcessManager {
+import { commandRegistry } from '../commands.js';
+import { ShellCore } from '../lib/shell-core.js';
+
+export class ProcessManager {
   constructor(kernel) {
     this.kernel = kernel;
     this.processes = new Map();
@@ -298,7 +301,7 @@ class ProcessManager {
     // For non-isolated processes, use the existing command system
     // This is a fallback for system processes that need main thread access
 
-    const commandHandler = await window.commandRegistry.get(command);
+    const commandHandler = await commandRegistry.get(command);
     if (!commandHandler) {
       throw new Error(`Command not found: ${command}`);
     }
@@ -481,7 +484,7 @@ class ProcessManager {
   async handleCommandLoad(pid, data, id) {
     try {
       // Load command from the command registry
-      const commandHandler = await window.commandRegistry.get(data.command);
+      const commandHandler = await commandRegistry.get(data.command);
       if (!commandHandler) {
         throw new Error(`Command not found: ${data.command}`);
       }
@@ -648,6 +651,3 @@ class ProcessManager {
     this.pendingMessages.clear();
   }
 }
-
-// Export for use in kernel
-window.ProcessManager = ProcessManager;

@@ -1,5 +1,3 @@
-'use strict';
-
 const READLINK_HELP = `Usage: readlink [OPTION]... FILE
 Print value of a symbolic link or canonical file name.
 
@@ -116,14 +114,8 @@ function parseReadlinkArgv(args) {
   return { ok: true, noNewline, canonMode, operand: operands[0] };
 }
 
-const ReadlinkLib = {
+export const ReadlinkLib = {
   READLINK_HELP,
   readlinkOptionError,
   parseReadlinkArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).ReadlinkLib = ReadlinkLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = ReadlinkLib;
-}

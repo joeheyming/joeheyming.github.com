@@ -1,5 +1,3 @@
-'use strict';
-
 const AWK_HELP = `Usage: awk [POSIX or GNU-style options]... 'program' [FILE]...
 Pattern scanning and processing language (jsh subset).
 
@@ -1516,7 +1514,7 @@ function awkRunPrintProgram(text, exprs, fieldSeparator, nrStart, awkArraysStore
   return { ok: true, stdout, nextNr: nr, lastReadCtx };
 }
 
-const AwkLib = {
+export const AwkLib = {
   AWK_HELP,
   awkOptionError,
   parseAwkArgv,
@@ -1543,5 +1541,3 @@ const AwkLib = {
   awkRegexGsubAll,
   awkRegexSubFirst
 };
-if (typeof globalThis !== 'undefined') { /** @type {*} */ (globalThis).AwkLib = AwkLib; }
-if (typeof module !== 'undefined' && module.exports) { module.exports = AwkLib; }

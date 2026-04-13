@@ -1,7 +1,6 @@
-'use strict';
-
-const test = require('node:test');
-const assert = require('node:assert/strict');
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { NodeHelpers } from '../lib/node-helpers.js';
 const {
   transformImportStatements,
   transformExportStatements,
@@ -13,7 +12,7 @@ const {
   createUrlModule,
   nodeResult,
   resolveImportPath
-} = require('../lib/node-helpers');
+} = NodeHelpers;
 
 // ---------------------------------------------------------------------------
 // transformImportStatements

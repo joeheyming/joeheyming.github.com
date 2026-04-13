@@ -1,4 +1,8 @@
 // Enhanced Terminal for Heyming OS - Modular Version
+import { commandRegistry } from './commands.js';
+import { ShellCore } from './lib/shell-core.js';
+import { VfsUtils } from './lib/vfs-utils.js';
+
 function _savedUser() {
   try {
     return localStorage.getItem('heymingOS_username');
@@ -24,7 +28,7 @@ function _defaultHostname() {
   return window.parent?.HeymingOS?.Config?.HOSTNAME || _savedHostname() || 'heyming-os';
 }
 
-class Terminal {
+export class Terminal {
   constructor(windowId = null, osInstance = null) {
     this.windowId = windowId;
     this.os = osInstance;
@@ -216,9 +220,7 @@ class Terminal {
   }
 
   async loadCommands() {
-    if (window.commandRegistry) {
-      await window.commandRegistry.loadCommands();
-    }
+    await commandRegistry.loadCommands();
   }
 
   async initializeFilesystem() {
@@ -1038,7 +1040,7 @@ class Terminal {
 
           // Check if it's an executable file in /bin/
           if (filePath.startsWith('/bin/')) {
-            const commandHandler = await window.commandRegistry.get(actualCmd);
+            const commandHandler = await commandRegistry.get(actualCmd);
             if (commandHandler) {
               const terminalContext = this;
               try {
@@ -1073,7 +1075,7 @@ class Terminal {
           // Handle script files (e.g., ./script.js, /path/to/script.sh)
           if (actualCmd.endsWith('.js') || actualCmd.endsWith('.sh') || file.executable) {
             if (actualCmd.endsWith('.js')) {
-              const nodeCommand = await window.commandRegistry.get('node');
+              const nodeCommand = await commandRegistry.get('node');
               if (nodeCommand) {
                 const result = nodeCommand(this, [filePath, ...cmd.args]);
                 const output = result instanceof Promise ? await result : result;
@@ -1107,7 +1109,7 @@ class Terminal {
     }
 
     // Try to get command from registry (now async)
-    const commandHandler = await window.commandRegistry.get(cmdName);
+    const commandHandler = await commandRegistry.get(cmdName);
     if (commandHandler) {
       const terminalContext = this;
       try {
@@ -1333,7 +1335,7 @@ class Terminal {
     if (key === 'help') {
       return `${ShellCore.HELP_USAGE.trim()}\n\n  (builtin) List all commands or describe one command by name.`;
     }
-    const all = window.commandRegistry.getAllCommands();
+    const all = commandRegistry.getAllCommands();
     const found = all.find((c) => c.name.toLowerCase() === key);
     if (!found) {
       return null;
@@ -1342,7 +1344,7 @@ class Terminal {
   }
 
   buildFullHelpCatalog() {
-    const commandsByCategory = window.commandRegistry.getCommandsByCategory();
+    const commandsByCategory = commandRegistry.getCommandsByCategory();
 
     // Define category emojis and preferred order
     const categoryEmojis = {
@@ -1641,7 +1643,7 @@ class Terminal {
       }
 
       // Get regular command names
-      const commands = window.commandRegistry.getCommandNames();
+      const commands = commandRegistry.getCommandNames();
       matches = commands.filter((cmd) => cmd.startsWith(lastPart));
 
       // Also add /bin/ versions of commands if user is typing /bin/
@@ -1874,7 +1876,7 @@ class Terminal {
 
       case 'l': {
         // Ctrl+L: Clear screen
-        const clearHandler = window.commandRegistry.getSync('clear');
+        const clearHandler = commandRegistry.getSync('clear');
         if (clearHandler) {
           clearHandler(this, []);
         }
@@ -2950,9 +2952,3 @@ class Terminal {
     });
   }
 }
-
-// Export for use in os.js
-window.Terminal = Terminal;
-
-// Terminal is now always initialized by the OS layer
-// No standalone initialization needed

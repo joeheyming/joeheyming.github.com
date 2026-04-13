@@ -1,5 +1,3 @@
-'use strict';
-
 const SED_HELP = `Usage: sed [OPTION]... SCRIPT [FILE]...
   or:  sed [OPTION]... -e SCRIPT ... [FILE]...
 
@@ -1462,7 +1460,7 @@ function sedProcessContent(content, specs, quiet) {
   return outParts.join('');
 }
 
-const SedLib = {
+export const SedLib = {
   SED_HELP,
   sedOptionError,
   parseSedArgv,
@@ -1478,9 +1476,3 @@ const SedLib = {
   sedProcessContent,
   splitSedScriptIntoCommands
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).SedLib = SedLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = SedLib;
-}

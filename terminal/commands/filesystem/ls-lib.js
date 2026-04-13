@@ -1,5 +1,3 @@
-'use strict';
-
 /** Short help text for `ls -h` / `--help`. */
 const LS_HELP = `Usage: ls [OPTION]... [FILE]...
 List directory contents.  -l long format  -a all (include dotfiles)`;
@@ -62,13 +60,7 @@ function parseLsDisplayFlags(args) {
   return { showDetails, showAll };
 }
 
-const LsLib = {
+export const LsLib = {
   LS_HELP,
   parseLsDisplayFlags
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).LsLib = LsLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = LsLib;
-}

@@ -1,17 +1,13 @@
 // clearfs command - clear filesystem data
-(function () {
-  'use strict';
 
-  registerCommand(
-    'clearfs',
-    async (terminal, args) => {
-      const flags = {
-        force: args.includes('-f') || args.includes('--force'),
-        help: args.includes('-h') || args.includes('--help')
-      };
+async function clearfsHandler(terminal, args) {
+  const flags = {
+    force: args.includes('-f') || args.includes('--force'),
+    help: args.includes('-h') || args.includes('--help')
+  };
 
-      if (flags.help) {
-        return `clearfs - clear filesystem data
+  if (flags.help) {
+    return `clearfs - clear filesystem data
 
 Usage: clearfs [options]
 
@@ -26,67 +22,70 @@ Description:
 Examples:
   clearfs         Clear filesystem (with confirmation)
   clearfs -f      Force clear without confirmation`;
-      }
+  }
 
-      if (!flags.force) {
-        return `⚠️  WARNING: This will permanently delete ALL filesystem data!
+  if (!flags.force) {
+    return `⚠️  WARNING: This will permanently delete ALL filesystem data!
         
 Use 'clearfs -f' to force the operation.
 Alternatively, use 'fsck --reset' for a more comprehensive filesystem reset.`;
+  }
+
+  let output = 'Clearing filesystem data...\n\n';
+  let clearedCount = 0;
+
+  try {
+    // Clear FilesystemDB if available (instance API on Terminal / OS)
+    if (terminal.fileSystemDB && typeof terminal.fileSystemDB.clearDatabase === 'function') {
+      await terminal.fileSystemDB.clearDatabase();
+      output += '✅ Cleared FileSystemDB\n';
+      clearedCount++;
+    }
+
+    // Clear localStorage filesystem entries
+    const fsKeys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (
+        key &&
+        (key.startsWith('fs_') || key.startsWith('filesystem_') || key.startsWith('file_'))
+      ) {
+        fsKeys.push(key);
       }
+    }
 
-      let output = 'Clearing filesystem data...\n\n';
-      let clearedCount = 0;
+    fsKeys.forEach((key) => localStorage.removeItem(key));
+    if (fsKeys.length > 0) {
+      output += `✅ Cleared ${fsKeys.length} localStorage entries\n`;
+      clearedCount += fsKeys.length;
+    }
 
-      try {
-        // Clear FilesystemDB if available (instance API on Terminal / OS)
-        if (terminal.fileSystemDB && typeof terminal.fileSystemDB.clearDatabase === 'function') {
-          await terminal.fileSystemDB.clearDatabase();
-          output += '✅ Cleared FileSystemDB\n';
-          clearedCount++;
-        }
+    // Reset current directory
+    if (terminal.currentDirectory) {
+      terminal.updatePWD('/');
+      output += '✅ Reset current directory to /\n';
+    }
 
-        // Clear localStorage filesystem entries
-        const fsKeys = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (
-            key &&
-            (key.startsWith('fs_') || key.startsWith('filesystem_') || key.startsWith('file_'))
-          ) {
-            fsKeys.push(key);
-          }
-        }
+    // Clear any cached file data
+    if (typeof window !== 'undefined' && window.fileCache) {
+      window.fileCache.clear();
+      output += '✅ Cleared file cache\n';
+      clearedCount++;
+    }
 
-        fsKeys.forEach((key) => localStorage.removeItem(key));
-        if (fsKeys.length > 0) {
-          output += `✅ Cleared ${fsKeys.length} localStorage entries\n`;
-          clearedCount += fsKeys.length;
-        }
+    output += `\n🧹 Filesystem cleared successfully!\n`;
+    output += `📊 Total items cleared: ${clearedCount}\n`;
+    output += `💡 Refresh the page to ensure all changes take effect\n`;
+  } catch (error) {
+    output += `❌ Error clearing filesystem: ${error.message}\n`;
+  }
 
-        // Reset current directory
-        if (terminal.currentDirectory) {
-          terminal.updatePWD('/');
-          output += '✅ Reset current directory to /\n';
-        }
+  return output;
+}
 
-        // Clear any cached file data
-        if (typeof window !== 'undefined' && window.fileCache) {
-          window.fileCache.clear();
-          output += '✅ Cleared file cache\n';
-          clearedCount++;
-        }
-
-        output += `\n🧹 Filesystem cleared successfully!\n`;
-        output += `📊 Total items cleared: ${clearedCount}\n`;
-        output += `💡 Refresh the page to ensure all changes take effect\n`;
-      } catch (error) {
-        output += `❌ Error clearing filesystem: ${error.message}\n`;
-      }
-
-      return output;
-    },
-    'clear filesystem data',
-    'System'
-  );
-})();
+export default {
+  name: 'clearfs',
+  handler: clearfsHandler,
+  description: 'clear filesystem data',
+  category: 'System'
+};

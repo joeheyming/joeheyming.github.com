@@ -1,5 +1,5 @@
 // Inter-Process Communication Manager for Heyming OS
-class IPCManager {
+export class IPCManager {
   constructor(kernel) {
     this.kernel = kernel;
     this.pipes = new Map();
@@ -246,7 +246,7 @@ class IPCManager {
 }
 
 // Pipe implementation
-class Pipe {
+export class Pipe {
   constructor(id) {
     this.id = id;
     this.buffer = [];
@@ -308,7 +308,7 @@ class Pipe {
 }
 
 // Message Queue implementation
-class MessageQueue {
+export class MessageQueue {
   constructor(id, key) {
     this.id = id;
     this.key = key;
@@ -387,7 +387,7 @@ class MessageQueue {
 }
 
 // Shared Memory Segment implementation
-class SharedMemorySegment {
+export class SharedMemorySegment {
   constructor(key, size, permissions) {
     this.key = key;
     this.size = size;
@@ -420,7 +420,7 @@ class SharedMemorySegment {
 }
 
 // Socket implementation (basic)
-class Socket {
+export class Socket {
   constructor(id, domain, type, protocol) {
     this.id = id;
     this.domain = domain;
@@ -462,11 +462,4 @@ class Socket {
   receive(size = 4096) {
     return this.buffer.shift() || null;
   }
-}
-
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { IPCManager };
-} else if (typeof window !== 'undefined') {
-  window.IPCManager = IPCManager;
 }

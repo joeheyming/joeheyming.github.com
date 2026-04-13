@@ -1,5 +1,3 @@
-'use strict';
-
 const XARGS_HELP = `Usage: xargs [OPTION]... [COMMAND [INITIAL-ARGS]...]
 Build and execute COMMAND lines from standard input.
 
@@ -292,7 +290,7 @@ function parseXargsArgv(args) {
   };
 }
 
-const XargsLib = {
+export const XargsLib = {
   XARGS_HELP,
   xargsOptionError,
   xargsSplitWhitespaceWords,
@@ -302,5 +300,3 @@ const XargsLib = {
   xargsFormatVerboseCommandLine,
   parseXargsArgv
 };
-if (typeof globalThis !== 'undefined') { /** @type {*} */ (globalThis).XargsLib = XargsLib; }
-if (typeof module !== 'undefined' && module.exports) { module.exports = XargsLib; }

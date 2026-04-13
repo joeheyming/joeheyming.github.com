@@ -1,8 +1,5 @@
-'use strict';
-
 /**
  * Pure helpers for the browser-based Node.js runtime.
- * Loaded in the browser before node.js command as global NodeHelpers.
  */
 
 function transformImportStatements(content) {
@@ -246,7 +243,7 @@ function resolveImportPath(importPath, currentFilePath, resolvePath) {
   }
 }
 
-var NodeHelpers = {
+export var NodeHelpers = {
   transformImportStatements,
   transformExportStatements,
   hasJsExtension,
@@ -258,12 +255,3 @@ var NodeHelpers = {
   nodeResult,
   resolveImportPath
 };
-
-if (typeof globalThis !== 'undefined') {
-  // @ts-ignore GlobalThis augmentation lives in `types/globals.d.ts` (browser + Node tests).
-  globalThis.NodeHelpers = NodeHelpers;
-}
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = NodeHelpers;
-}

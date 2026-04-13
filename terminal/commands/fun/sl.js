@@ -1,11 +1,7 @@
 // sl command - steam locomotive (typo of ls)
-(function () {
-  'use strict';
 
-  registerCommand(
-    'sl',
-    (terminal, args) => {
-      return `🚂 Choo choo! Did you mean 'ls'?
+function slHandler(terminal, args) {
+  return `🚂 Choo choo! Did you mean 'ls'?
     
         ====        ________                ___________
     _D _|  |_______/        \\__I_I_____===__|_________|
@@ -19,8 +15,11 @@
     \\_/      \\O=====O=====O=====O_/      \\_/               \\_/   \\_/    \\_/   \\_/
 
 🎵 This train is bound for glory, this train! (The 'sl' easter egg lives on!)`;
-    },
-    'steam locomotive (typo of ls)',
-    'Fun Stuff'
-  );
-})();
+}
+
+export default {
+  name: 'sl',
+  handler: slHandler,
+  description: 'steam locomotive (typo of ls)',
+  category: 'Fun Stuff'
+};

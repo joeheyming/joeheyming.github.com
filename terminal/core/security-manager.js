@@ -1,5 +1,5 @@
 // Security Manager for Heyming OS
-class SecurityManager {
+export class SecurityManager {
   constructor(kernel) {
     this.kernel = kernel;
     this.users = new Map();
@@ -766,11 +766,4 @@ class SecurityManager {
 
     await fileSystemDB.createFile('/etc/hostname', hostname + '\n', true);
   }
-}
-
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { SecurityManager };
-} else if (typeof window !== 'undefined') {
-  window.SecurityManager = SecurityManager;
 }

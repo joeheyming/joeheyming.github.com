@@ -1,11 +1,9 @@
-'use strict';
-
 /**
  * Shell core infrastructure — the minimal set of pure functions that the
  * shell itself (terminal.js) and the pipeline runner depend on.
  *
- * Loaded as a global before terminal.js. Commands should NOT import from
- * here directly — use the ProcessContext convenience methods instead.
+ * Consumed via ES module imports. Commands should NOT import from here
+ * directly — use the ProcessContext convenience methods instead.
  */
 
 // ---------------------------------------------------------------------------
@@ -457,7 +455,7 @@ function combinedFetchSignal(timeoutMs, userSignal) {
 // Exports
 // ---------------------------------------------------------------------------
 
-const ShellCore = {
+export const ShellCore = {
   // POSIX exit codes
   EXIT_SUCCESS,
   EXIT_FAILURE,
@@ -488,11 +486,3 @@ const ShellCore = {
   expandVariablesInString,
   combinedFetchSignal
 };
-
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).ShellCore = ShellCore;
-}
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = ShellCore;
-}

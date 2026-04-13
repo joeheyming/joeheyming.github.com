@@ -1,13 +1,6 @@
-'use strict';
+import { LessLib } from '../system/less-lib.js';
 
-/** @type {typeof LessLib} */
-const LessLibForFmt =
-  typeof LessLib !== 'undefined'
-    ? LessLib
-    : typeof require === 'function'
-    ? require('../system/less-lib.js')
-    : /** @type {*} */ ({});
-const { lessExpandTabsInText, LESS_DEFAULT_TAB_STOPS } = LessLibForFmt;
+const { lessExpandTabsInText, LESS_DEFAULT_TAB_STOPS } = LessLib;
 
 /** GNU **fmt** default width (columns). */
 const FMT_DEFAULT_WIDTH = 75;
@@ -1022,7 +1015,7 @@ function parseFmtArgv(args) {
   };
 }
 
-const FmtLib = {
+export const FmtLib = {
   FMT_HELP,
   FMT_VERSION_LINE,
   FMT_DEFAULT_WIDTH,
@@ -1038,9 +1031,3 @@ const FmtLib = {
   fmtWrapWordsCrown,
   fmtOptionError
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).FmtLib = FmtLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = FmtLib;
-}

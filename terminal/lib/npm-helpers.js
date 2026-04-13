@@ -1,5 +1,5 @@
 // Shared helpers for npm and npx commands — CDN fetching, VFS writes, process shim.
-'use strict';
+import { NodeHelpers } from './node-helpers.js';
 
 // Ensure globalThis.process exists before any esm.sh imports.
 // Modules like get-stdin capture process.stdin at import time.
@@ -103,9 +103,7 @@ function stripLeadingSlashes(p) {
  * @returns {boolean}
  */
 function hasJsExtension(p) {
-  return typeof NodeHelpers !== 'undefined'
-    ? NodeHelpers.hasJsExtension(p)
-    : /\.(js|mjs|cjs|json)$/.test(p);
+  return NodeHelpers.hasJsExtension(p);
 }
 
 async function fetchPackageJson(name, version) {
@@ -253,7 +251,7 @@ async function fetchPackageFiles(db, pkgName, pkgVersion, entryFile, pkgDir, vis
   }
 }
 
-var NpmHelpers = {
+export var NpmHelpers = {
   CDN_BASE,
   UNPKG_BASE,
   GLOBAL_MODULES,
@@ -271,11 +269,3 @@ var NpmHelpers = {
   vfsHasFile,
   fetchPackageFiles
 };
-
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).NpmHelpers = NpmHelpers;
-}
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = NpmHelpers;
-}

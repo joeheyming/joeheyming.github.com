@@ -1,16 +1,12 @@
 // cowsay command - make a cow say something
-(function () {
-  'use strict';
 
-  registerCommand(
-    'cowsay',
-    (terminal, args) => {
-      const message = args.join(' ') || 'Moo!';
-      const messageLength = message.length;
-      const topBorder = ' ' + '_'.repeat(messageLength + 2);
-      const bottomBorder = ' ' + '-'.repeat(messageLength + 2);
+function cowsayHandler(terminal, args) {
+  const message = args.join(' ') || 'Moo!';
+  const messageLength = message.length;
+  const topBorder = ' ' + '_'.repeat(messageLength + 2);
+  const bottomBorder = ' ' + '-'.repeat(messageLength + 2);
 
-      return `${topBorder}
+  return `${topBorder}
 < ${message} >
 ${bottomBorder}
         \\   ^__^
@@ -18,8 +14,11 @@ ${bottomBorder}
             (__)\\       )\\/\\
                 ||----w |
                 ||     ||`;
-    },
-    'make a cow say something',
-    'Fun Stuff'
-  );
-})();
+}
+
+export default {
+  name: 'cowsay',
+  handler: cowsayHandler,
+  description: 'make a cow say something',
+  category: 'Fun Stuff'
+};

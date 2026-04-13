@@ -1,5 +1,3 @@
-'use strict';
-
 const NL_HELP = `Usage: nl [OPTION]... [FILE]...
 Write FILE(s) to standard output with line numbers; with no FILE, or when FILE is -, read stdin.
 
@@ -354,7 +352,7 @@ function formatNlNumberedText(text, opts) {
   return out.join('\n') + '\n';
 }
 
-const NlLib = {
+export const NlLib = {
   NL_HELP,
   nlOptionError,
   nlParseBodyNumberingStyle,
@@ -363,9 +361,3 @@ const NlLib = {
   nlFormatNumberField,
   formatNlNumberedText
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).NlLib = NlLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = NlLib;
-}

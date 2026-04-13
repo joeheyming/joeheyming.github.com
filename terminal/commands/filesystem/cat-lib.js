@@ -1,5 +1,3 @@
-'use strict';
-
 const CAT_HELP = `Usage: cat [OPTION]... [FILE]...
 Concatenate FILE(s) to standard output.
 
@@ -57,14 +55,8 @@ function parseCatArgv(args) {
   return { ok: true, operands };
 }
 
-const CatLib = {
+export const CatLib = {
   CAT_HELP,
   catOptionError,
   parseCatArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).CatLib = CatLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = CatLib;
-}

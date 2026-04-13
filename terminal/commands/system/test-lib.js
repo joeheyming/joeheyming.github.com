@@ -1,5 +1,3 @@
-'use strict';
-
 const TEST_HELP = `Usage: test [OPTION]
        test [EXPRESSION]
        [ EXPRESSION]
@@ -133,7 +131,7 @@ function parseTrueFalseArgv(args, progName) {
   return { ok: true };
 }
 
-const TestLib = {
+export const TestLib = {
   TEST_HELP,
   TEST_VERSION_LINE,
   parseTestArgv,
@@ -141,9 +139,3 @@ const TestLib = {
   FALSE_HELP,
   parseTrueFalseArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).TestLib = TestLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = TestLib;
-}

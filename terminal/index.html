@@ -196,71 +196,9 @@
     </script>
     <script src="/proxy.js"></script>
 
-    <!-- Core OS Components -->
-    <script src="lib/shell-core.js"></script>
-    <script src="lib/vfs-utils.js"></script>
-
-    <!-- Command libs (*-lib.js, node-helpers, jsh-git-*) loaded on demand by CommandRegistry -->
-    <script src="core/memory-manager.js"></script>
-    <script src="core/security-manager.js"></script>
-    <script src="core/filesystem-manager.js"></script>
-    <script src="core/ipc-manager.js"></script>
-    <script src="core/process-manager.js"></script>
-    <script src="core/device-manager.js"></script>
-    <script src="core/scheduler-manager.js"></script>
-    <script src="core/kernel.js"></script>
-    <script src="core/heyming-os.js"></script>
-
-    <!-- OS Filesystem (shared with File Manager) -->
+    <!-- OS Filesystem (shared with File Manager — stays classic for iframe compat) -->
     <script src="../os/filesystem-db.js"></script>
-    <!-- Terminal Components -->
-    <script src="commands.js"></script>
-    <script src="terminal.js"></script>
-
-    <!-- Initialize OS -->
-    <script>
-      // Initialize Heyming OS when page loads
-      window.addEventListener('DOMContentLoaded', async () => {
-        try {
-          // Create and initialize the OS
-          window.heymingOS = new HeymingOS();
-          await window.heymingOS.initialize();
-
-          console.log('🎉 Heyming OS is ready!');
-        } catch (error) {
-          console.error('❌ Failed to initialize Heyming OS:', error);
-          console.error('💥 Cannot run without OS layer. Please check console for errors.');
-
-          // Show error message in the terminal area
-          const terminalOutput = document.getElementById('terminal-output');
-          if (terminalOutput) {
-            terminalOutput.innerHTML = `
-              <div class="terminal-init-error" role="alert">
-                <strong class="terminal-init-error-title">System initialization failed</strong>
-                <p class="terminal-init-error-line">Cannot start the terminal without the OS layer.</p>
-                <p class="terminal-init-error-line">Check the browser console for details.</p>
-                <p class="terminal-init-error-line terminal-init-error-hint">Refresh the page to retry.</p>
-              </div>
-            `;
-          }
-        }
-
-        // Configure share button with terminal context
-        const shareBtn = document.querySelector('share-button');
-        if (shareBtn) {
-          shareBtn.textGenerator = function () {
-            if (window.heymingOS && window.heymingOS.filesystem) {
-              try {
-                const cwd = window.heymingOS.filesystem.getCurrentDirectory();
-                if (cwd && cwd !== '/') {
-                  return "I'm exploring " + cwd + ' in the Heyming OS Web Terminal! 🖥️';
-                }
-              } catch (e) {}
-            }
-            return 'Check out this interactive Web Terminal with a full file system! 🖥️';
-          };
-        }
-      });
-    </script>
+    <!-- Single module entry point: imports core stack, registry, terminal, then boots OS -->
+    <script type="module" src="main.js"></script>
   </body>
 </html>

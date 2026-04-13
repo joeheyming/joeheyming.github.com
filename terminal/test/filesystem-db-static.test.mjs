@@ -1,23 +1,15 @@
-'use strict';
-
 /**
- * FileSystemDB attaches to window. In Node, set global.window = global before require.
+ * FileSystemDB attaches to window. In Node, set global.window = global before import.
  */
 
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const path = require('path');
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { VfsUtils } from '../lib/vfs-utils.js';
 
-const fsDbPath = path.join(__dirname, '../../os/filesystem-db.js');
-
-function loadFileSystemDB() {
-  delete require.cache[require.resolve(fsDbPath)];
-  global.window = global;
-  require(fsDbPath);
-  return global.FileSystemDB;
-}
-
-const FileSystemDB = loadFileSystemDB();
+global.window = global;
+const fsDbHref = new URL('../../os/filesystem-db.js', import.meta.url).href;
+await import(`${fsDbHref}?v=${Date.now()}`);
+const FileSystemDB = global.FileSystemDB;
 
 test('getUtf8TextForDisplay: non-empty content wins', () => {
   const buf = new TextEncoder().encode('bytes');
@@ -69,8 +61,6 @@ test('getContentForApp: Uint8Array subview copies exact byte range (not whole ba
   assert.equal(out.byteLength, 4);
   assert.deepEqual(Array.from(new Uint8Array(out)), [0xaa, 0xbb, 0xcc, 0xdd]);
 });
-
-const VfsUtils = require('../lib/vfs-utils.js');
 
 test('getUtf8TextForDisplay stays aligned with VfsUtils.fileItemUtf8ForDisplay', () => {
   const item = { type: 'file', content: '', contentBytes: new TextEncoder().encode('a\nb') };

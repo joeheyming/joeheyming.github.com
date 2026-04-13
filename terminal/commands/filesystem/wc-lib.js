@@ -1,14 +1,6 @@
-'use strict';
+import { LinesLib } from './lines-lib.js';
 
-/** @type {typeof LinesLib} */
-const _lines =
-  typeof LinesLib !== 'undefined'
-    ? LinesLib
-    : typeof require === 'function'
-    ? // @ts-ignore Node require in tests
-      require('./lines-lib.js')
-    : /** @type {*} */ ({});
-const linesCommandOptionError = _lines.linesCommandOptionError;
+const { linesCommandOptionError } = LinesLib;
 
 const WC_HELP = `Usage: wc [OPTION]... [FILE]...
 Print newline, word, and byte counts for each FILE, and a total line if more than one FILE is given.
@@ -98,13 +90,7 @@ function parseWcArgv(args) {
   return { ok: true, showLines, showWords, showBytes, showAll, operands };
 }
 
-const WcLib = {
+export const WcLib = {
   WC_HELP,
   parseWcArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).WcLib = WcLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = WcLib;
-}

@@ -1,43 +1,68 @@
-'use strict';
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { SedLib } from '../commands/filesystem/sed-lib.js';
+import { AwkLib } from '../commands/filesystem/awk-lib.js';
+import { LessLib } from '../commands/system/less-lib.js';
+import { PrintfLib } from '../commands/filesystem/printf-lib.js';
+import { CutLib } from '../commands/filesystem/cut-lib.js';
+import { TrLib } from '../commands/filesystem/tr-lib.js';
+import { XargsLib } from '../commands/system/xargs-lib.js';
+import { NlLib } from '../commands/filesystem/nl-lib.js';
+import { PasteLib } from '../commands/filesystem/paste-lib.js';
+import { JoinLib } from '../commands/filesystem/join-lib.js';
+import { CatLib } from '../commands/filesystem/cat-lib.js';
+import { EchoLib } from '../commands/filesystem/echo-lib.js';
+import { GrepLib } from '../commands/filesystem/grep-lib.js';
+import { LsLib } from '../commands/filesystem/ls-lib.js';
+import { WcLib } from '../commands/filesystem/wc-lib.js';
+import { FileopsLib } from '../commands/filesystem/fileops-lib.js';
+import { SortLib } from '../commands/filesystem/sort-lib.js';
+import { UniqLib } from '../commands/filesystem/uniq-lib.js';
+import { TeeLib } from '../commands/filesystem/tee-lib.js';
+import { MkdirLib } from '../commands/filesystem/mkdir-lib.js';
+import { ChmodLib } from '../commands/filesystem/chmod-lib.js';
+import { StatLib } from '../commands/filesystem/stat-lib.js';
+import { PwdLib } from '../commands/system/pwd-lib.js';
+import { DateLib } from '../commands/system/date-lib.js';
+import { SeqLib } from '../commands/system/seq-lib.js';
+import { SleepLib } from '../commands/system/sleep-lib.js';
+import { BasenameLib } from '../commands/filesystem/basename-lib.js';
+import { ReadlinkLib } from '../commands/filesystem/readlink-lib.js';
+import { LnLib } from '../commands/filesystem/ln-lib.js';
+import { TouchLib } from '../commands/filesystem/touch-lib.js';
+import { TestLib } from '../commands/system/test-lib.js';
 
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { parseSedArgv } = require('../commands/filesystem/sed-lib.js');
-const { parseAwkArgv } = require('../commands/filesystem/awk-lib.js');
-const { parseLessArgv } = require('../commands/system/less-lib.js');
-const { parsePrintfArgv } = require('../commands/filesystem/printf-lib.js');
-const { parseCutArgv } = require('../commands/filesystem/cut-lib.js');
-const { parseTrArgv } = require('../commands/filesystem/tr-lib.js');
-const { parseXargsArgv } = require('../commands/system/xargs-lib.js');
-const { parseNlArgv } = require('../commands/filesystem/nl-lib.js');
-const { parsePasteArgv } = require('../commands/filesystem/paste-lib.js');
-const { parseJoinArgv } = require('../commands/filesystem/join-lib.js');
-
-const { parseCatArgv } = require('../commands/filesystem/cat-lib.js');
-const { parseEchoArgv } = require('../commands/filesystem/echo-lib.js');
-const { parseGrepArgv } = require('../commands/filesystem/grep-lib.js');
-const { parseLsDisplayFlags } = require('../commands/filesystem/ls-lib.js');
-const { parseWcArgv } = require('../commands/filesystem/wc-lib.js');
-const {
-  parseCpArgv,
-  parseMvArgv,
-  parseRmArgv
-} = require('../commands/filesystem/fileops-lib.js');
-const { parseSortArgv } = require('../commands/filesystem/sort-lib.js');
-const { parseUniqArgv } = require('../commands/filesystem/uniq-lib.js');
-const { parseTeeArgv } = require('../commands/filesystem/tee-lib.js');
-const { parseMkdirArgv } = require('../commands/filesystem/mkdir-lib.js');
-const { parseChmodArgv } = require('../commands/filesystem/chmod-lib.js');
-const { parseStatArgv } = require('../commands/filesystem/stat-lib.js');
-const { parsePwdArgv } = require('../commands/system/pwd-lib.js');
-const { parseDateArgv } = require('../commands/system/date-lib.js');
-const { parseSeqArgv } = require('../commands/system/seq-lib.js');
-const { parseSleepArgv } = require('../commands/system/sleep-lib.js');
-const { parseBasenameArgv, parseDirnameArgv } = require('../commands/filesystem/basename-lib.js');
-const { parseReadlinkArgv } = require('../commands/filesystem/readlink-lib.js');
-const { parseLnArgv } = require('../commands/filesystem/ln-lib.js');
-const { parseTouchArgv } = require('../commands/filesystem/touch-lib.js');
-const { parseTrueFalseArgv, parseTestArgv } = require('../commands/system/test-lib.js');
+const { parseSedArgv } = SedLib;
+const { parseAwkArgv } = AwkLib;
+const { parseLessArgv } = LessLib;
+const { parsePrintfArgv } = PrintfLib;
+const { parseCutArgv } = CutLib;
+const { parseTrArgv } = TrLib;
+const { parseXargsArgv } = XargsLib;
+const { parseNlArgv } = NlLib;
+const { parsePasteArgv } = PasteLib;
+const { parseJoinArgv } = JoinLib;
+const { parseCatArgv } = CatLib;
+const { parseEchoArgv } = EchoLib;
+const { parseGrepArgv } = GrepLib;
+const { parseLsDisplayFlags } = LsLib;
+const { parseWcArgv } = WcLib;
+const { parseCpArgv, parseMvArgv, parseRmArgv } = FileopsLib;
+const { parseSortArgv } = SortLib;
+const { parseUniqArgv } = UniqLib;
+const { parseTeeArgv } = TeeLib;
+const { parseMkdirArgv } = MkdirLib;
+const { parseChmodArgv } = ChmodLib;
+const { parseStatArgv } = StatLib;
+const { parsePwdArgv } = PwdLib;
+const { parseDateArgv } = DateLib;
+const { parseSeqArgv } = SeqLib;
+const { parseSleepArgv } = SleepLib;
+const { parseBasenameArgv, parseDirnameArgv } = BasenameLib;
+const { parseReadlinkArgv } = ReadlinkLib;
+const { parseLnArgv } = LnLib;
+const { parseTouchArgv } = TouchLib;
+const { parseTrueFalseArgv, parseTestArgv } = TestLib;
 
 // ---------------------------------------------------------------------------
 // Characterization tests: lock down current exit code behavior for each parser

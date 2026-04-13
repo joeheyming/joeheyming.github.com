@@ -1,5 +1,3 @@
-'use strict';
-
 const SLEEP_HELP = `Usage: sleep NUMBER[SUFFIX]...
   or:  sleep OPTION
 
@@ -117,16 +115,10 @@ function parseSleepArgv(args) {
   return { ok: true, totalSeconds: totalSec };
 }
 
-const SleepLib = {
+export const SleepLib = {
   SLEEP_HELP,
   SLEEP_VERSION_LINE,
   sleepOptionError,
   parseSleepIntervalToken,
   parseSleepArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).SleepLib = SleepLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = SleepLib;
-}

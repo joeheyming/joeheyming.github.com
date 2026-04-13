@@ -1,5 +1,3 @@
-'use strict';
-
 const ECHO_HELP = `Usage: echo [SHORT-OPTION]... [STRING]...
   or:  echo LONG-OPTION
 Echo the STRING(s) to standard output.
@@ -233,7 +231,7 @@ function echoApplyBackslashEscapes(str) {
   return out;
 }
 
-const EchoLib = {
+export const EchoLib = {
   ECHO_HELP,
   ECHO_VERSION_LINE,
   echoOptionError,
@@ -241,9 +239,3 @@ const EchoLib = {
   parseEchoArgv,
   echoApplyBackslashEscapes
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).EchoLib = EchoLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = EchoLib;
-}

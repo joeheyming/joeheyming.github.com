@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * Parse `mkdir` argv: `-p` / `--parents` and operands (after `--`).
  * @param {string[]} args
@@ -47,12 +45,6 @@ function parseMkdirArgv(args) {
   return { ok: true, parents, operands };
 }
 
-const MkdirLib = {
+export const MkdirLib = {
   parseMkdirArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).MkdirLib = MkdirLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = MkdirLib;
-}

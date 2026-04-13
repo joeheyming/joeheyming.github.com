@@ -1,5 +1,3 @@
-'use strict';
-
 const CSPLIT_VERSION_LINE = 'csplit (jsh Heyming Terminal) 1.0\n';
 
 const CSPLIT_HELP = `Usage: csplit [OPTION]... FILE PATTERN...
@@ -544,7 +542,7 @@ function parseCsplitArgv(args) {
   };
 }
 
-const CsplitLib = {
+export const CsplitLib = {
   CSPLIT_VERSION_LINE,
   CSPLIT_HELP,
   csplitOptionError,
@@ -554,5 +552,3 @@ const CsplitLib = {
   csplitFormatStdoutSizes,
   parseCsplitArgv
 };
-if (typeof globalThis !== 'undefined') { /** @type {*} */ (globalThis).CsplitLib = CsplitLib; }
-if (typeof module !== 'undefined' && module.exports) { module.exports = CsplitLib; }

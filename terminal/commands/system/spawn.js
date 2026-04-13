@@ -1,31 +1,93 @@
 // spawn command - create isolated processes with Web Workers
-(function () {
-  'use strict';
 
-  registerCommand(
-    'spawn',
-    async (terminal, args) => {
-      if (!terminal.os?.kernel?.processManager) {
-        return {
-          stdout: '',
-          stderr: 'spawn: process manager not available\n',
-          exitCode: 1
-        };
-      }
+import { ShellCore } from '../../lib/shell-core.js';
 
-      const flags = {
-        help: args.includes('-h') || args.includes('--help'),
-        isolated: !args.includes('--no-isolation'),
-        memory: getArgValue(args, '--memory') || '16M',
-        cpu: getArgValue(args, '--cpu-time') || '5s',
-        list: args.includes('-l') || args.includes('--list'),
-        kill: getArgValue(args, '--kill'),
-        info: getArgValue(args, '--info')
-      };
+function normalizeSpawnExitByte(n) {
+  return ShellCore.normalizeExitByte(n);
+}
 
-      if (flags.help) {
-        return {
-          stdout: `spawn - create and manage isolated processes
+function getArgValue(args, flag) {
+  const index = args.indexOf(flag);
+  return index !== -1 && index + 1 < args.length ? args[index + 1] : null;
+}
+
+function parseMemorySize(sizeStr) {
+  const match = sizeStr.match(/^(\d+)([KMGT]?)$/i);
+  if (!match) return 16 * 1024 * 1024; // Default 16MB
+
+  const size = parseInt(match[1]);
+  const unit = match[2].toUpperCase();
+
+  switch (unit) {
+    case 'K':
+      return size * 1024;
+    case 'M':
+      return size * 1024 * 1024;
+    case 'G':
+      return size * 1024 * 1024 * 1024;
+    case 'T':
+      return size * 1024 * 1024 * 1024 * 1024;
+    default:
+      return size;
+  }
+}
+
+function parseTimeLimit(timeStr) {
+  const match = timeStr.match(/^(\d+)([smh]?)$/i);
+  if (!match) return 5000; // Default 5 seconds
+
+  const time = parseInt(match[1]);
+  const unit = match[2].toLowerCase();
+
+  switch (unit) {
+    case 's':
+      return time * 1000;
+    case 'm':
+      return time * 60 * 1000;
+    case 'h':
+      return time * 60 * 60 * 1000;
+    default:
+      return time; // Assume milliseconds
+  }
+}
+
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function formatTime(ms) {
+  if (ms < 1000) return ms + 'ms';
+  if (ms < 60000) return (ms / 1000).toFixed(1) + 's';
+  if (ms < 3600000) return (ms / 60000).toFixed(1) + 'm';
+  return (ms / 3600000).toFixed(1) + 'h';
+}
+
+async function spawnHandler(terminal, args) {
+  if (!terminal.os?.kernel?.processManager) {
+    return {
+      stdout: '',
+      stderr: 'spawn: process manager not available\n',
+      exitCode: 1
+    };
+  }
+
+  const flags = {
+    help: args.includes('-h') || args.includes('--help'),
+    isolated: !args.includes('--no-isolation'),
+    memory: getArgValue(args, '--memory') || '16M',
+    cpu: getArgValue(args, '--cpu-time') || '5s',
+    list: args.includes('-l') || args.includes('--list'),
+    kill: getArgValue(args, '--kill'),
+    info: getArgValue(args, '--info')
+  };
+
+  if (flags.help) {
+    return {
+      stdout: `spawn - create and manage isolated processes
 
 Usage: spawn [options] [command] [args...]
 
@@ -48,259 +110,190 @@ Examples:
 Description:
   Creates new processes with proper isolation using Web Workers.
   Each isolated process runs in its own thread with resource limits.`,
-          stderr: '',
-          exitCode: 0
-        };
-      }
+      stderr: '',
+      exitCode: 0
+    };
+  }
 
-      const processManager = terminal.os.kernel.processManager;
+  const processManager = terminal.os.kernel.processManager;
 
-      // List processes
-      if (flags.list) {
-        const processes = processManager.getAllProcesses();
-        if (processes.length === 0) {
-          return { stdout: 'No processes running', stderr: '', exitCode: 0 };
-        }
+  // List processes
+  if (flags.list) {
+    const processes = processManager.getAllProcesses();
+    if (processes.length === 0) {
+      return { stdout: 'No processes running', stderr: '', exitCode: 0 };
+    }
 
-        let output = '  PID  PPID USER     STAT  ISOLATED MEMORY    CPU     COMMAND\n';
-        processes.forEach((proc) => {
-          const memUsage = formatBytes(proc.memoryUsage || 0);
-          const cpuTime = formatTime(proc.cpuTime || 0);
-          const isolated = proc.isolated ? 'YES' : 'NO';
+    let output = '  PID  PPID USER     STAT  ISOLATED MEMORY    CPU     COMMAND\n';
+    processes.forEach((proc) => {
+      const memUsage = formatBytes(proc.memoryUsage || 0);
+      const cpuTime = formatTime(proc.cpuTime || 0);
+      const isolated = proc.isolated ? 'YES' : 'NO';
 
-          output += `${proc.pid.toString().padStart(5)} `;
-          output += `${proc.parentPID.toString().padStart(5)} `;
-          output += `${(proc.uid || 'user').toString().padEnd(8)} `;
-          output += `${proc.state.padEnd(5)} `;
-          output += `${isolated.padEnd(8)} `;
-          output += `${memUsage.padEnd(9)} `;
-          output += `${cpuTime.padEnd(7)} `;
-          output += `${proc.name}\n`;
-        });
-        return { stdout: output, stderr: '', exitCode: 0 };
-      }
+      output += `${proc.pid.toString().padStart(5)} `;
+      output += `${proc.parentPID.toString().padStart(5)} `;
+      output += `${(proc.uid || 'user').toString().padEnd(8)} `;
+      output += `${proc.state.padEnd(5)} `;
+      output += `${isolated.padEnd(8)} `;
+      output += `${memUsage.padEnd(9)} `;
+      output += `${cpuTime.padEnd(7)} `;
+      output += `${proc.name}\n`;
+    });
+    return { stdout: output, stderr: '', exitCode: 0 };
+  }
 
-      // Show process info
-      if (flags.info) {
-        const pid = parseInt(flags.info, 10);
-        if (!Number.isFinite(pid) || String(flags.info).trim() === '' || pid < 0) {
-          return {
-            stdout: '',
-            stderr: `spawn: invalid process id: '${flags.info}'\n`,
-            exitCode: 1
-          };
-        }
-        const process = processManager.getProcess(pid);
+  // Show process info
+  if (flags.info) {
+    const pid = parseInt(flags.info, 10);
+    if (!Number.isFinite(pid) || String(flags.info).trim() === '' || pid < 0) {
+      return {
+        stdout: '',
+        stderr: `spawn: invalid process id: '${flags.info}'\n`,
+        exitCode: 1
+      };
+    }
+    const process = processManager.getProcess(pid);
 
-        if (!process) {
-          return {
-            stdout: '',
-            stderr: `spawn: (${pid}) - No such process\n`,
-            exitCode: 1
-          };
-        }
+    if (!process) {
+      return {
+        stdout: '',
+        stderr: `spawn: (${pid}) - No such process\n`,
+        exitCode: 1
+      };
+    }
 
-        let output = `Process Information (PID ${pid}):\n`;
-        output += `  Name: ${process.name}\n`;
-        output += `  State: ${process.state}\n`;
-        output += `  Parent PID: ${process.parentPID}\n`;
-        output += `  User ID: ${process.uid}\n`;
-        output += `  Group ID: ${process.gid}\n`;
-        output += `  Isolated: ${process.isolated ? 'Yes' : 'No'}\n`;
-        output += `  Start Time: ${new Date(process.startTime).toLocaleString()}\n`;
-        output += `  CPU Time: ${formatTime(process.cpuTime || 0)}\n`;
-        output += `  Memory Usage: ${formatBytes(process.memoryUsage || 0)}\n`;
-        output += `  Memory Limit: ${formatBytes(process.limits?.memory || 0)}\n`;
-        output += `  CPU Time Limit: ${formatTime(process.limits?.cpuTime || 0)}\n`;
-        output += `  Working Directory: ${process.cwd}\n`;
-        output += `  Children: ${Array.from(process.children || []).join(', ') || 'None'}\n`;
+    let output = `Process Information (PID ${pid}):\n`;
+    output += `  Name: ${process.name}\n`;
+    output += `  State: ${process.state}\n`;
+    output += `  Parent PID: ${process.parentPID}\n`;
+    output += `  User ID: ${process.uid}\n`;
+    output += `  Group ID: ${process.gid}\n`;
+    output += `  Isolated: ${process.isolated ? 'Yes' : 'No'}\n`;
+    output += `  Start Time: ${new Date(process.startTime).toLocaleString()}\n`;
+    output += `  CPU Time: ${formatTime(process.cpuTime || 0)}\n`;
+    output += `  Memory Usage: ${formatBytes(process.memoryUsage || 0)}\n`;
+    output += `  Memory Limit: ${formatBytes(process.limits?.memory || 0)}\n`;
+    output += `  CPU Time Limit: ${formatTime(process.limits?.cpuTime || 0)}\n`;
+    output += `  Working Directory: ${process.cwd}\n`;
+    output += `  Children: ${Array.from(process.children || []).join(', ') || 'None'}\n`;
 
-        // Get real-time resource usage if isolated
-        let errOut = '';
-        if (process.isolated && process.state !== 'TERMINATED') {
-          try {
-            const resourceUsage = await processManager.getProcessResourceUsage(pid);
-            output += `\nReal-time Resource Usage:\n`;
-            output += `  Memory Used: ${formatBytes(resourceUsage.memoryUsed)}\n`;
-            output += `  CPU Time Used: ${formatTime(resourceUsage.cpuTimeUsed)}\n`;
-          } catch (error) {
-            errOut = `spawn: could not get real-time resource usage: ${error.message}\n`;
-          }
-        }
-
-        return { stdout: output, stderr: errOut, exitCode: 0 };
-      }
-
-      // Kill process
-      if (flags.kill) {
-        const pid = parseInt(flags.kill, 10);
-        if (!Number.isFinite(pid) || String(flags.kill).trim() === '' || pid < 0) {
-          return {
-            stdout: '',
-            stderr: `spawn: invalid process id: '${flags.kill}'\n`,
-            exitCode: 1
-          };
-        }
-        try {
-          await processManager.sendSignal(pid, processManager.SIGNALS.SIGTERM);
-          return { stdout: `Sent SIGTERM to process ${pid}`, stderr: '', exitCode: 0 };
-        } catch (error) {
-          return {
-            stdout: '',
-            stderr: `spawn: (${pid}) - ${error.message}\n`,
-            exitCode: 1
-          };
-        }
-      }
-
-      // Create new process
-      if (args.length === 0 || args.every((arg) => arg.startsWith('-'))) {
-        return {
-          stdout: '',
-          stderr: 'spawn: missing command (try "spawn --help")\n',
-          exitCode: 1
-        };
-      }
-
-      // Parse command and arguments
-      const commandArgs = args.filter((arg) => !arg.startsWith('-'));
-      const command = commandArgs[0];
-      const commandArguments = commandArgs.slice(1);
-
-      // Parse resource limits
-      const memoryLimit = parseMemorySize(flags.memory);
-      const cpuTimeLimit = parseTimeLimit(flags.cpu);
-
+    // Get real-time resource usage if isolated
+    let errOut = '';
+    if (process.isolated && process.state !== 'TERMINATED') {
       try {
-        // Create the process
-        const process = await processManager.createProcess({
-          name: command,
-          executable: `/bin/${command}`,
-          args: commandArguments,
-          parentPID: terminal.process?.pid || 1,
-          uid: terminal.env.USER || 'user',
-          gid: terminal.env.USER || 'user',
-          env: terminal.env,
-          cwd: terminal.currentDirectory,
-          isolated: flags.isolated,
-          limits: {
-            memory: memoryLimit,
-            cpuTime: cpuTimeLimit
-          }
-        });
-
-        let stdout = `Process created: ${process.name} (PID ${process.pid})\n`;
-        stdout += `Isolation: ${process.isolated ? 'Enabled' : 'Disabled'}\n`;
-        stdout += `Memory limit: ${formatBytes(memoryLimit)}\n`;
-        stdout += `CPU time limit: ${formatTime(cpuTimeLimit)}\n`;
-
-        // Execute the command in the process
-        let stderr = '';
-        let exitCode = 0;
-        try {
-          stdout += `\nExecuting command...\n`;
-          const result = await processManager.executeCommand(
-            process.pid,
-            command,
-            commandArguments,
-            terminal.stdin || ''
-          );
-
-          if (result.stdout) {
-            stdout += result.stdout.endsWith('\n') ? result.stdout : `${result.stdout}\n`;
-          }
-          if (result.stderr) {
-            stderr += result.stderr.endsWith('\n') ? result.stderr : `${result.stderr}\n`;
-          }
-          exitCode = normalizeSpawnExitByte(result.exitCode);
-          stdout += `Process exited with code: ${exitCode}\n`;
-        } catch (execError) {
-          stderr += `spawn: execution failed: ${execError.message}\n`;
-          exitCode = 1;
-        }
-
-        return { stdout, stderr, exitCode };
+        const resourceUsage = await processManager.getProcessResourceUsage(pid);
+        output += `\nReal-time Resource Usage:\n`;
+        output += `  Memory Used: ${formatBytes(resourceUsage.memoryUsed)}\n`;
+        output += `  CPU Time Used: ${formatTime(resourceUsage.cpuTimeUsed)}\n`;
       } catch (error) {
-        return {
-          stdout: '',
-          stderr: `spawn: failed to create process: ${error.message}\n`,
-          exitCode: 1
-        };
+        errOut = `spawn: could not get real-time resource usage: ${error.message}\n`;
       }
-    },
-    'create and manage isolated processes with Web Workers',
-    'System'
-  );
+    }
 
-  // Helper functions
-  function normalizeSpawnExitByte(n) {
-    if (typeof ShellCore !== 'undefined' && ShellCore.normalizeExitByte) {
-      return ShellCore.normalizeExitByte(n);
-    }
-    if (n == null || !Number.isFinite(Number(n))) {
-      return 0;
-    }
-    const t = Math.trunc(Number(n));
-    return ((t % 256) + 256) % 256;
+    return { stdout: output, stderr: errOut, exitCode: 0 };
   }
 
-  function getArgValue(args, flag) {
-    const index = args.indexOf(flag);
-    return index !== -1 && index + 1 < args.length ? args[index + 1] : null;
-  }
-
-  function parseMemorySize(sizeStr) {
-    const match = sizeStr.match(/^(\d+)([KMGT]?)$/i);
-    if (!match) return 16 * 1024 * 1024; // Default 16MB
-
-    const size = parseInt(match[1]);
-    const unit = match[2].toUpperCase();
-
-    switch (unit) {
-      case 'K':
-        return size * 1024;
-      case 'M':
-        return size * 1024 * 1024;
-      case 'G':
-        return size * 1024 * 1024 * 1024;
-      case 'T':
-        return size * 1024 * 1024 * 1024 * 1024;
-      default:
-        return size;
+  // Kill process
+  if (flags.kill) {
+    const pid = parseInt(flags.kill, 10);
+    if (!Number.isFinite(pid) || String(flags.kill).trim() === '' || pid < 0) {
+      return {
+        stdout: '',
+        stderr: `spawn: invalid process id: '${flags.kill}'\n`,
+        exitCode: 1
+      };
+    }
+    try {
+      await processManager.sendSignal(pid, processManager.SIGNALS.SIGTERM);
+      return { stdout: `Sent SIGTERM to process ${pid}`, stderr: '', exitCode: 0 };
+    } catch (error) {
+      return {
+        stdout: '',
+        stderr: `spawn: (${pid}) - ${error.message}\n`,
+        exitCode: 1
+      };
     }
   }
 
-  function parseTimeLimit(timeStr) {
-    const match = timeStr.match(/^(\d+)([smh]?)$/i);
-    if (!match) return 5000; // Default 5 seconds
+  // Create new process
+  if (args.length === 0 || args.every((arg) => arg.startsWith('-'))) {
+    return {
+      stdout: '',
+      stderr: 'spawn: missing command (try "spawn --help")\n',
+      exitCode: 1
+    };
+  }
 
-    const time = parseInt(match[1]);
-    const unit = match[2].toLowerCase();
+  // Parse command and arguments
+  const commandArgs = args.filter((arg) => !arg.startsWith('-'));
+  const command = commandArgs[0];
+  const commandArguments = commandArgs.slice(1);
 
-    switch (unit) {
-      case 's':
-        return time * 1000;
-      case 'm':
-        return time * 60 * 1000;
-      case 'h':
-        return time * 60 * 60 * 1000;
-      default:
-        return time; // Assume milliseconds
+  // Parse resource limits
+  const memoryLimit = parseMemorySize(flags.memory);
+  const cpuTimeLimit = parseTimeLimit(flags.cpu);
+
+  try {
+    // Create the process
+    const process = await processManager.createProcess({
+      name: command,
+      executable: `/bin/${command}`,
+      args: commandArguments,
+      parentPID: terminal.process?.pid || 1,
+      uid: terminal.env.USER || 'user',
+      gid: terminal.env.USER || 'user',
+      env: terminal.env,
+      cwd: terminal.currentDirectory,
+      isolated: flags.isolated,
+      limits: {
+        memory: memoryLimit,
+        cpuTime: cpuTimeLimit
+      }
+    });
+
+    let stdout = `Process created: ${process.name} (PID ${process.pid})\n`;
+    stdout += `Isolation: ${process.isolated ? 'Enabled' : 'Disabled'}\n`;
+    stdout += `Memory limit: ${formatBytes(memoryLimit)}\n`;
+    stdout += `CPU time limit: ${formatTime(cpuTimeLimit)}\n`;
+
+    // Execute the command in the process
+    let stderr = '';
+    let exitCode = 0;
+    try {
+      stdout += `\nExecuting command...\n`;
+      const result = await processManager.executeCommand(
+        process.pid,
+        command,
+        commandArguments,
+        terminal.stdin || ''
+      );
+
+      if (result.stdout) {
+        stdout += result.stdout.endsWith('\n') ? result.stdout : `${result.stdout}\n`;
+      }
+      if (result.stderr) {
+        stderr += result.stderr.endsWith('\n') ? result.stderr : `${result.stderr}\n`;
+      }
+      exitCode = normalizeSpawnExitByte(result.exitCode);
+      stdout += `Process exited with code: ${exitCode}\n`;
+    } catch (execError) {
+      stderr += `spawn: execution failed: ${execError.message}\n`;
+      exitCode = 1;
     }
-  }
 
-  function formatBytes(bytes) {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    return { stdout, stderr, exitCode };
+  } catch (error) {
+    return {
+      stdout: '',
+      stderr: `spawn: failed to create process: ${error.message}\n`,
+      exitCode: 1
+    };
   }
+}
 
-  function formatTime(ms) {
-    if (ms < 1000) return ms + 'ms';
-    if (ms < 60000) return (ms / 1000).toFixed(1) + 's';
-    if (ms < 3600000) return (ms / 60000).toFixed(1) + 'm';
-    return (ms / 3600000).toFixed(1) + 'h';
-  }
-})();
+export default {
+  name: 'spawn',
+  handler: spawnHandler,
+  description: 'create and manage isolated processes with Web Workers',
+  category: 'System'
+};

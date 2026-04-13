@@ -1,5 +1,3 @@
-'use strict';
-
 const TEE_HELP = `Usage: tee [OPTION]... [FILE]...
 Copy standard input to each FILE, and also to standard output.
 
@@ -64,14 +62,8 @@ function parseTeeArgv(args) {
   return { ok: true, append, files };
 }
 
-const TeeLib = {
+export const TeeLib = {
   TEE_HELP,
   teeOptionError,
   parseTeeArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).TeeLib = TeeLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = TeeLib;
-}

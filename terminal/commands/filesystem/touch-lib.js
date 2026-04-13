@@ -1,5 +1,3 @@
-'use strict';
-
 const TOUCH_HELP = `Usage: touch [OPTION]... FILE...
 Update the access and modification times of each FILE to the current time.
 
@@ -83,14 +81,8 @@ function parseTouchArgv(args) {
   return { ok: true, noCreate, operands };
 }
 
-const TouchLib = {
+export const TouchLib = {
   TOUCH_HELP,
   touchOptionError,
   parseTouchArgv
 };
-if (typeof globalThis !== 'undefined') {
-  /** @type {*} */ (globalThis).TouchLib = TouchLib;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = TouchLib;
-}

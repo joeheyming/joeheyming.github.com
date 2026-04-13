@@ -1,13 +1,12 @@
 // whoami command - display username
-(function () {
-  'use strict';
 
-  registerCommand(
-    'whoami',
-    (terminal, args) => {
-      return terminal.env.USER;
-    },
-    'display current username',
-    'System'
-  );
-})();
+function whoamiHandler(terminal, args) {
+  return terminal.env.USER;
+}
+
+export default {
+  name: 'whoami',
+  handler: whoamiHandler,
+  description: 'display current username',
+  category: 'System'
+};
