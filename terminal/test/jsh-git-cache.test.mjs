@@ -1,10 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-
-global.window = global;
-const cacheHref = new URL('../lib/jsh-git-cache.js', import.meta.url).href;
-await import(`${cacheHref}?v=${Date.now()}`);
-const { createBoundedGitCache, clearGitCache } = global;
+import { createBoundedGitCache, clearGitCache } from '../lib/jsh-git-cache.js';
 
 // ---------------------------------------------------------------------------
 // createBoundedGitCache — basics

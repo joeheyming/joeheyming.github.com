@@ -1,4 +1,7 @@
 // git — real repos via isomorphic-git + IndexedDB; network GETs use proxy.js (like curl), POST is direct fetch (CORS).
+import { createJshGitFs } from '../../lib/jsh-git-fs.js';
+import { createJshGitHttp } from '../../lib/jsh-git-http.js';
+import { createBoundedGitCache, clearGitCache } from '../../lib/jsh-git-cache.js';
 
 const ISO_GIT_URL = 'https://esm.sh/isomorphic-git@1.25.10?bundle';
 
@@ -244,13 +247,11 @@ const CHECKOUT_BATCH_SIZE = 100;
 const CHECKOUT_BATCH_THRESHOLD = 100;
 
 function newGitCache() {
-  return typeof window.createBoundedGitCache === 'function' ? window.createBoundedGitCache() : {};
+  return createBoundedGitCache();
 }
 
 function releaseGitCache(cache) {
-  if (typeof window.clearGitCache === 'function') {
-    window.clearGitCache(cache);
-  }
+  clearGitCache(cache);
 }
 
 function formatBytes(n) {
@@ -632,15 +633,6 @@ async function gitHandler(terminal, args) {
     return { stdout: 'Logged out (git credentials cleared).\n', stderr: '', exitCode: 0 };
   }
 
-  if (
-    typeof window.createJshGitFs !== 'function' ||
-    typeof window.createJshGitHttp !== 'function'
-  ) {
-    return errResult(
-      'internal: jsh-git-fs.js and jsh-git-http.js must be loaded before git (see terminal/index.html).'
-    );
-  }
-
   let git;
   try {
     git = await loadIsoGit();
@@ -651,8 +643,8 @@ async function gitHandler(terminal, args) {
   }
 
   const corsProxy = resolveCorsProxy(terminal);
-  const fs = window.createJshGitFs(terminal);
-  const http = window.createJshGitHttp({
+  const fs = createJshGitFs(terminal);
+  const http = createJshGitHttp({
     corsProxyBase: corsProxy,
     getAbortSignal: () => terminal.runAbortSignal
   });

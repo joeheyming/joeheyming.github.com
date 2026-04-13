@@ -68,15 +68,11 @@ interface Window {
   >;
   _fileSystemDBInstance: FileSystemDB;
 
-  // Git integration globals (terminal/lib/jsh-git-*.js)
+  // Git integration globals (runtime-only config / debug hooks, not module exports)
   __jshIsoGit: unknown;
-  createBoundedGitCache: () => unknown;
-  createJshGitFs: (...args: unknown[]) => unknown;
-  createJshGitHttp: (...args: unknown[]) => unknown;
-  clearGitCache: (cache?: unknown) => void;
   fileCache: Map<string, unknown>;
-  /** Debug flag or trace function (see `jsh-git-http.js` / `git.js`). */
-  jshGitTrace: boolean | ((...args: unknown[]) => void);
+  /** Optional debug trace hook (see `git.js`). */
+  jshGitTrace: ((...args: unknown[]) => void) | undefined;
   JSH_GIT_CORS_PROXY: string;
   JSH_GIT_MAX_PACK_BYTES: number;
   JSH_GIT_TOKEN: string;
