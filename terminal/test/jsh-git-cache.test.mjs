@@ -215,3 +215,50 @@ test('deleting a non-existent key does not corrupt size', () => {
   delete cache.nonexistent;
   assert.equal(cache.__boundedCacheSize, before);
 });
+
+// ---------------------------------------------------------------------------
+// Promise / pack-index heuristic size estimation
+// ---------------------------------------------------------------------------
+
+const PROMISE_PACK_ESTIMATE = 8 * 1024 * 1024;
+
+test('Promise-valued entry uses flat 8 MiB estimate', () => {
+  const cache = createBoundedGitCache();
+  cache.pack = Promise.resolve(new Uint8Array(1));
+  assert.ok(
+    cache.__boundedCacheSize >= PROMISE_PACK_ESTIMATE,
+    `expected >= ${PROMISE_PACK_ESTIMATE}, got ${cache.__boundedCacheSize}`
+  );
+});
+
+test('object with { pack: Promise, offsets: Map } gets heuristic size', () => {
+  const cache = createBoundedGitCache();
+  const offsets = new Map();
+  for (let i = 0; i < 100; i++) offsets.set(`sha_${i}`, i * 100);
+  cache.idx = { pack: Promise.resolve(), offsets };
+  // heuristic: offsets.size * 800 + Promise estimate + per-key overhead
+  assert.ok(
+    cache.__boundedCacheSize >= 100 * 800 + PROMISE_PACK_ESTIMATE,
+    `expected size to include offsets heuristic + promise estimate, got ${cache.__boundedCacheSize}`
+  );
+});
+
+test('overwriting Promise-valued key reclaims old estimate', () => {
+  const cache = createBoundedGitCache();
+  cache.p = Promise.resolve(new Uint8Array(1));
+  const s1 = cache.__boundedCacheSize;
+  assert.ok(s1 >= PROMISE_PACK_ESTIMATE);
+  cache.p = new Uint8Array(16);
+  const s2 = cache.__boundedCacheSize;
+  assert.ok(s2 < s1, `replacing Promise with small buffer should shrink: ${s2} < ${s1}`);
+  assert.ok(s2 >= 16);
+});
+
+test('empty offsets Map still counts pack Promise estimate', () => {
+  const cache = createBoundedGitCache();
+  cache.idx = { pack: Promise.resolve(), offsets: new Map() };
+  assert.ok(
+    cache.__boundedCacheSize >= PROMISE_PACK_ESTIMATE,
+    `even with empty offsets, Promise estimate should apply`
+  );
+});

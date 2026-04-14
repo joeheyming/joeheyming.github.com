@@ -218,4 +218,25 @@ test.describe('jsh shell behavior (characterization)', () => {
     const out = await getLastStdout(page);
     expect(out).toBe('banana');
   });
+
+  // --- Terminal polish (commit 1d9f48d) ---
+
+  test('terminal input has no focus outline', async ({ page }) => {
+    const input = page.locator('#terminal-input');
+    await input.focus();
+    const outline = await input.evaluate((el) => getComputedStyle(el).outlineStyle);
+    expect(outline).toBe('none');
+  });
+
+  test('terminal uses Hack font family', async ({ page }) => {
+    const fontFamily = await page.locator('#terminal-input').evaluate(
+      (el) => getComputedStyle(el).fontFamily
+    );
+    expect(fontFamily.toLowerCase()).toContain('hack');
+  });
+
+  test('Hack font CDN link is in <head>', async ({ page }) => {
+    const hackLink = page.locator('head link[href*="hack"]');
+    await expect(hackLink).toHaveCount(1);
+  });
 });

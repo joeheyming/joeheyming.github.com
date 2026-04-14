@@ -127,3 +127,125 @@ test('mimeTypeForOpen: typo octect-stream defers to extension', () => {
     'audio/mpeg'
   );
 });
+
+// ---------------------------------------------------------------------------
+// pathIsDescendantOrSelf — extended edge cases
+// ---------------------------------------------------------------------------
+
+test('pathIsDescendantOrSelf: root is descendant of itself', () => {
+  assert.equal(FileSystemDB.pathIsDescendantOrSelf('/', '/'), true);
+});
+
+test('pathIsDescendantOrSelf: null/undefined inputs return false', () => {
+  assert.equal(FileSystemDB.pathIsDescendantOrSelf(null, '/'), false);
+  assert.equal(FileSystemDB.pathIsDescendantOrSelf('/a', null), false);
+  assert.equal(FileSystemDB.pathIsDescendantOrSelf(undefined, '/x'), false);
+});
+
+test('pathIsDescendantOrSelf: deeply nested path', () => {
+  assert.equal(FileSystemDB.pathIsDescendantOrSelf('/a/b/c/d/e', '/a/b'), true);
+  assert.equal(FileSystemDB.pathIsDescendantOrSelf('/a/b/c', '/a/b/c/d'), false);
+});
+
+test('pathIsDescendantOrSelf: trailing slash on dir', () => {
+  assert.equal(FileSystemDB.pathIsDescendantOrSelf('/home/user/file', '/home/user/'), true);
+});
+
+// ---------------------------------------------------------------------------
+// getMimeType — extended
+// ---------------------------------------------------------------------------
+
+test('getMimeType: common extensions', () => {
+  assert.equal(FileSystemDB.getMimeType('page.html'), 'text/html');
+  assert.equal(FileSystemDB.getMimeType('style.css'), 'text/css');
+  assert.equal(FileSystemDB.getMimeType('app.js'), 'text/javascript');
+  assert.equal(FileSystemDB.getMimeType('data.json'), 'application/json');
+  assert.equal(FileSystemDB.getMimeType('photo.jpg'), 'image/jpeg');
+  assert.equal(FileSystemDB.getMimeType('photo.png'), 'image/png');
+});
+
+test('getMimeType: unknown extension returns octet-stream', () => {
+  assert.equal(FileSystemDB.getMimeType('archive.xyz'), 'application/octet-stream');
+});
+
+test('getMimeType: no extension returns octet-stream', () => {
+  assert.equal(FileSystemDB.getMimeType('Makefile'), 'application/octet-stream');
+});
+
+test('getMimeType: dotfile', () => {
+  assert.equal(FileSystemDB.getMimeType('.gitignore'), 'application/octet-stream');
+});
+
+test('getMimeType: case-insensitive (lowercased internally)', () => {
+  assert.equal(FileSystemDB.getMimeType('README.MD'), 'text/markdown');
+});
+
+// ---------------------------------------------------------------------------
+// isTextMimeType
+// ---------------------------------------------------------------------------
+
+test('isTextMimeType: text/* types', () => {
+  assert.equal(FileSystemDB.isTextMimeType('text/plain'), true);
+  assert.equal(FileSystemDB.isTextMimeType('text/html'), true);
+  assert.equal(FileSystemDB.isTextMimeType('text/css'), true);
+});
+
+test('isTextMimeType: application/json and friends', () => {
+  assert.equal(FileSystemDB.isTextMimeType('application/json'), true);
+  assert.equal(FileSystemDB.isTextMimeType('application/xml'), true);
+  assert.equal(FileSystemDB.isTextMimeType('application/javascript'), true);
+});
+
+test('isTextMimeType: binary types return false', () => {
+  assert.equal(FileSystemDB.isTextMimeType('image/png'), false);
+  assert.equal(FileSystemDB.isTextMimeType('application/octet-stream'), false);
+  assert.equal(FileSystemDB.isTextMimeType('audio/mpeg'), false);
+});
+
+test('isTextMimeType: null/undefined/empty return false', () => {
+  assert.equal(FileSystemDB.isTextMimeType(null), false);
+  assert.equal(FileSystemDB.isTextMimeType(undefined), false);
+  assert.equal(FileSystemDB.isTextMimeType(''), false);
+});
+
+// ---------------------------------------------------------------------------
+// getParentPath / getFileName / joinPath — instance methods on a prototype stub
+// ---------------------------------------------------------------------------
+
+const fsdbInstance = Object.create(FileSystemDB.prototype);
+
+test('getParentPath: root returns null', () => {
+  assert.equal(fsdbInstance.getParentPath('/'), null);
+});
+
+test('getParentPath: top-level child', () => {
+  assert.equal(fsdbInstance.getParentPath('/home'), '/');
+});
+
+test('getParentPath: nested path', () => {
+  assert.equal(fsdbInstance.getParentPath('/home/user/docs'), '/home/user');
+});
+
+test('getParentPath: double slashes cleaned', () => {
+  assert.equal(fsdbInstance.getParentPath('//home//user//file'), '/home/user');
+});
+
+test('getFileName: root returns empty', () => {
+  assert.equal(fsdbInstance.getFileName('/'), '');
+});
+
+test('getFileName: simple', () => {
+  assert.equal(fsdbInstance.getFileName('/home/user'), 'user');
+});
+
+test('getFileName: deep path', () => {
+  assert.equal(fsdbInstance.getFileName('/a/b/c/d.txt'), 'd.txt');
+});
+
+test('joinPath: root parent', () => {
+  assert.equal(fsdbInstance.joinPath('/', 'home'), '/home');
+});
+
+test('joinPath: non-root parent', () => {
+  assert.equal(fsdbInstance.joinPath('/home', 'user'), '/home/user');
+});
