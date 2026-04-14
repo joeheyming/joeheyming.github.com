@@ -510,35 +510,61 @@ class MouseDevice extends Device {
   }
 }
 
-// Virtual Disk Device
+// Virtual Disk Device — sparse block storage (allocates only written blocks)
 class VirtualDiskDevice extends Device {
   constructor(name, deviceManager) {
     super(name, 'block', deviceManager);
     this.description = 'Virtual disk device';
     this.blockSize = 512;
-    this.totalBlocks = 1024 * 1024; // 512MB
-    this.storage = new ArrayBuffer(this.totalBlocks * this.blockSize);
+    this.totalBlocks = 1024 * 1024; // 512MB addressable
+    this.storage = new Map();
+  }
+
+  _blockKey(offset) {
+    return Math.floor(offset / this.blockSize);
   }
 
   async read(buffer, offset, length) {
-    const view = new Uint8Array(this.storage);
-    const bytesToRead = Math.min(length, view.length - offset);
+    const capacity = this.totalBlocks * this.blockSize;
+    const bytesToRead = Math.min(length, capacity - offset);
+    if (bytesToRead <= 0) return 0;
 
-    if (bytesToRead > 0) {
-      buffer.set(view.subarray(offset, offset + bytesToRead), 0);
+    let pos = 0;
+    while (pos < bytesToRead) {
+      const blockNum = this._blockKey(offset + pos);
+      const blockOffset = (offset + pos) % this.blockSize;
+      const chunkLen = Math.min(this.blockSize - blockOffset, bytesToRead - pos);
+
+      const block = this.storage.get(blockNum);
+      if (block) {
+        buffer.set(block.subarray(blockOffset, blockOffset + chunkLen), pos);
+      } else {
+        buffer.fill(0, pos, pos + chunkLen);
+      }
+      pos += chunkLen;
     }
-
     return bytesToRead;
   }
 
   async write(buffer, offset, length) {
-    const view = new Uint8Array(this.storage);
-    const bytesToWrite = Math.min(length, view.length - offset);
+    const capacity = this.totalBlocks * this.blockSize;
+    const bytesToWrite = Math.min(length, capacity - offset);
+    if (bytesToWrite <= 0) return 0;
 
-    if (bytesToWrite > 0) {
-      view.set(buffer.subarray(0, bytesToWrite), offset);
+    let pos = 0;
+    while (pos < bytesToWrite) {
+      const blockNum = this._blockKey(offset + pos);
+      const blockOffset = (offset + pos) % this.blockSize;
+      const chunkLen = Math.min(this.blockSize - blockOffset, bytesToWrite - pos);
+
+      let block = this.storage.get(blockNum);
+      if (!block) {
+        block = new Uint8Array(this.blockSize);
+        this.storage.set(blockNum, block);
+      }
+      block.set(buffer.subarray(pos, pos + chunkLen), blockOffset);
+      pos += chunkLen;
     }
-
     return bytesToWrite;
   }
 }

@@ -110,19 +110,34 @@ function asBinaryPayload(data) {
 export function createJshGitFs(terminal) {
   const fsdb = terminal.fileSystemDB;
 
+  // Directories confirmed to exist during this session — avoids redundant IDB
+  // lookups when isomorphic-git writes hundreds of files under the same tree.
+  const knownDirs = new Set(['/']);
+
+  /** @type {ReturnType<typeof fsdb.beginBatchWrite> | null} */
+  let batchWriter = null;
+
+  const createDir = typeof fsdb.createDirectoryFast === 'function'
+    ? (path, parent) => fsdb.createDirectoryFast(path, parent)
+    : (path) => fsdb.createDirectory(path);
+
   async function mkdirp(absPath) {
+    if (knownDirs.has(absPath)) return;
     const parts = absPath.split('/').filter(Boolean);
     let cur = '';
     for (const p of parts) {
+      const parent = cur || '/';
       cur = cur ? `${cur}/${p}` : `/${p}`;
+      if (knownDirs.has(cur)) continue;
       const ex = await fsdb.getItem(cur);
       if (!ex) {
-        await fsdb.createDirectory(cur);
+        await createDir(cur, parent);
       } else if (ex.type !== 'directory') {
         const e = new Error('ENOTDIR');
         e.code = 'ENOTDIR';
         throw e;
       }
+      knownDirs.add(cur);
     }
   }
 
@@ -178,16 +193,14 @@ export function createJshGitFs(terminal) {
       if (parentPath) {
         await mkdirp(parentPath);
       }
-      const bin = asBinaryPayload(data);
-      if (bin) {
-        await fsdb.createFile(path, bin, true);
-        return;
+      const content = asBinaryPayload(data)
+        || (typeof data === 'string' && (!opts || !opts.encoding || opts.encoding === 'utf8') ? data : String(data));
+
+      if (batchWriter) {
+        await batchWriter.putFile(path, content, parentPath);
+      } else {
+        await fsdb.createFileFast(path, content, parentPath);
       }
-      if (typeof data === 'string' && (!opts || !opts.encoding || opts.encoding === 'utf8')) {
-        await fsdb.createFile(path, data, true);
-        return;
-      }
-      await fsdb.createFile(path, String(data), true);
     },
 
     async mkdir(path, options) {
@@ -282,5 +295,18 @@ export function createJshGitFs(terminal) {
     }
   };
 
-  return { promises };
+  return {
+    promises,
+    enableBatchWrites() {
+      if (typeof fsdb.beginBatchWrite === 'function') {
+        batchWriter = fsdb.beginBatchWrite();
+      }
+    },
+    async flushBatchWrites() {
+      if (batchWriter) {
+        await batchWriter.flush();
+        batchWriter = null;
+      }
+    }
+  };
 }

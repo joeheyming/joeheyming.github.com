@@ -298,28 +298,34 @@ function createProgressWriter(terminal) {
 }
 
 /**
- * Checkout files in batches to cap peak memory. Each batch gets a fresh
- * bounded cache that is released afterwards, and a short setTimeout yield
- * between batches gives the browser GC a chance to collect decompressed
- * blobs before the next batch starts.
+ * Checkout files in batches to cap peak memory.  The caller provides a shared
+ * cache that already holds the pack from fetch — avoiding redundant 90 MiB IDB
+ * reads.  Between batches we yield with a generous setTimeout so Chrome's
+ * LevelDB backend can compact and V8 can GC intermediate buffers.
+ * @param {object} cache - shared cache (already loaded by fetch/verify phases)
  */
-async function batchedCheckout(git, fsClient, dest, branch, allFiles, progress) {
+async function batchedCheckout(git, fsClient, dest, branch, allFiles, progress, cache) {
   const total = allFiles.length;
+  // Batch IDB writes disabled for now — isolating crash cause. When safe,
+  // re-enable by setting useBatch = typeof fsClient.enableBatchWrites === 'function';
+  const useBatch = false;
+
   if (total <= CHECKOUT_BATCH_THRESHOLD) {
     console.log('[jsh-git] checkout: small repo (' + total + ' files), single checkout');
     if (progress) progress.update(`Checking out files: ${total} files`);
-    const cache = newGitCache();
+    if (useBatch) fsClient.enableBatchWrites();
     try {
       await git.checkout({ fs: fsClient, dir: dest, ref: branch, remote: 'origin', cache });
     } catch (err) {
       console.error('[jsh-git] checkout (single) FAILED', err);
       throw err;
     } finally {
-      releaseGitCache(cache);
+      if (useBatch) await fsClient.flushBatchWrites();
     }
     if (progress) progress.finish(`Checking out files: ${total}/${total}, done.`);
     return;
   }
+
   const numBatches = Math.ceil(total / CHECKOUT_BATCH_SIZE);
   console.log(
     '[jsh-git] batched checkout:',
@@ -339,7 +345,7 @@ async function batchedCheckout(git, fsClient, dest, branch, allFiles, progress) 
     const elapsed = Math.round((Date.now() - checkoutStart) / 1000);
     const suffix = elapsed > 2 ? ` (${elapsed}s)` : '';
     if (progress) progress.update(`Checking out files: ${pct}% (${done}/${total})${suffix}`);
-    const cache = newGitCache();
+    if (useBatch) fsClient.enableBatchWrites();
     try {
       await git.checkout({
         fs: fsClient,
@@ -362,16 +368,16 @@ async function batchedCheckout(git, fsClient, dest, branch, allFiles, progress) 
       );
       throw batchErr;
     } finally {
-      releaseGitCache(cache);
+      if (useBatch) await fsClient.flushBatchWrites();
     }
     console.log(
       '[jsh-git] checkout batch',
       batchNum + '/' + numBatches,
       'done (' + done + '/' + total + ')'
     );
-    // Yield to the event loop so the browser GC can reclaim decompressed
-    // blobs and IndexedDB transaction buffers before the next batch.
-    await new Promise((r) => setTimeout(r, 0));
+    // Yield so Chrome's IDB/LevelDB backend can compact and V8 can
+    // collect intermediate inflate buffers before the next batch.
+    await new Promise((r) => setTimeout(r, 50));
   }
   const totalElapsed = ((Date.now() - checkoutStart) / 1000).toFixed(1);
   if (progress)
@@ -380,14 +386,19 @@ async function batchedCheckout(git, fsClient, dest, branch, allFiles, progress) 
 
 /**
  * Single-branch clone without git.clone: explicit remoteRef + verify pack, then checkout.
- * Memory strategy: bounded caches + clear between phases + batched checkout.
+ *
+ * ONE cache is shared across every phase (fetch → verify → listFiles → checkout)
+ * so the ~90 MiB pack is loaded from IndexedDB exactly once.  Previously each
+ * phase created its own cache, re-reading 90 MiB per phase — 4× redundant I/O
+ * that triggered Chrome renderer OOM crashes (Error code 5) when V8's GC didn't
+ * reclaim previous copies fast enough.
  */
 async function cloneSingleBranch(git, fsClient, http, opts, terminal) {
   const { dest, url, corsProxy, branch, depth, noCheckout } = opts;
   console.log('[jsh-git] cloneSingleBranch START', { dest, url, branch, depth, noCheckout });
   const cloneStart = Date.now();
   const fetchProgress = terminal ? createProgressWriter(terminal) : null;
-  let fetchCache = newGitCache();
+  const cloneCache = newGitCache();
   try {
     console.log('[jsh-git] phase: git.init');
     await git.init({ fs: fsClient, dir: dest, defaultBranch: branch });
@@ -412,7 +423,7 @@ async function cloneSingleBranch(git, fsClient, http, opts, terminal) {
       remoteRef: `refs/heads/${branch}`,
       singleBranch: true,
       tags: true,
-      cache: fetchCache,
+      cache: cloneCache,
       onProgress(evt) {
         if (!fetchProgress) return;
         const { phase, loaded, total } = evt;
@@ -487,15 +498,11 @@ async function cloneSingleBranch(git, fsClient, http, opts, terminal) {
     const fetchElapsed = ((Date.now() - cloneStart) / 1000).toFixed(1);
     if (fetchProgress) fetchProgress.finish(`Receiving objects: 100%, done. (${fetchElapsed}s)`);
 
-    releaseGitCache(fetchCache);
-    fetchCache = null;
-
     console.log('[jsh-git] phase: ensureFetchHeadReadable START');
     const verifyProgress = terminal ? createProgressWriter(terminal) : null;
     if (verifyProgress) verifyProgress.update('Resolving deltas...');
-    let verifyCache = newGitCache();
     try {
-      await ensureFetchHeadReadable(git, fsClient, dest, fetchResult.fetchHead, verifyCache);
+      await ensureFetchHeadReadable(git, fsClient, dest, fetchResult.fetchHead, cloneCache);
     } catch (readErr) {
       console.error('[jsh-git] ensureFetchHeadReadable FAILED', readErr);
       const hint = readErr && readErr.message ? readErr.message : String(readErr);
@@ -505,9 +512,6 @@ async function cloneSingleBranch(git, fsClient, http, opts, terminal) {
           7
         )} not readable after fetch/reindex (${hint}). Pack may be corrupt; check network or CORS proxy.`
       );
-    } finally {
-      releaseGitCache(verifyCache);
-      verifyCache = null;
     }
     if (verifyProgress) verifyProgress.finish('Resolving deltas: done.');
     console.log(
@@ -537,31 +541,29 @@ async function cloneSingleBranch(git, fsClient, http, opts, terminal) {
       console.log('[jsh-git] phase: listFiles START');
       const checkoutProgress = terminal ? createProgressWriter(terminal) : null;
       if (checkoutProgress) checkoutProgress.update('Enumerating files for checkout...');
-      let listCache = newGitCache();
       let allFiles;
       try {
         allFiles = await git.listFiles({
           fs: fsClient,
           dir: dest,
           ref: branch,
-          cache: listCache
+          cache: cloneCache
         });
       } catch (listErr) {
         console.error('[jsh-git] listFiles FAILED', listErr);
         throw listErr;
-      } finally {
-        releaseGitCache(listCache);
-        listCache = null;
       }
       console.log('[jsh-git] phase: listFiles DONE, count:', allFiles.length);
-      // Yield so GC can reclaim fetch/verify/listFiles memory before checkout.
-      await new Promise((r) => setTimeout(r, 0));
       console.log('[jsh-git] phase: batchedCheckout START');
-      await batchedCheckout(git, fsClient, dest, branch, allFiles, checkoutProgress);
+      await batchedCheckout(git, fsClient, dest, branch, allFiles, checkoutProgress, cloneCache);
       console.log(
         '[jsh-git] phase: batchedCheckout DONE in',
         ((Date.now() - cloneStart) / 1000).toFixed(1) + 's'
       );
+    }
+    // Notify file manager / desktop once after all files are written
+    if (typeof window !== 'undefined' && window.FileSystemDB) {
+      window.FileSystemDB.emit('change', dest, { type: 'batch', event: 'clone' });
     }
     console.log(
       '[jsh-git] cloneSingleBranch COMPLETE in',
@@ -575,6 +577,8 @@ async function cloneSingleBranch(git, fsClient, http, opts, terminal) {
     );
     await cleanupPartialGitDir(fsClient, dest);
     throw e;
+  } finally {
+    releaseGitCache(cloneCache);
   }
 }
 
@@ -715,6 +719,21 @@ async function gitHandler(terminal, args) {
             dest = terminal.resolvePath('repo');
           }
         }
+        // Real git: "fatal: destination path '...' already exists and is not an empty directory"
+        try {
+          const destStat = await fs.promises.stat(dest);
+          if (destStat && destStat.type === 'directory') {
+            const destEntries = await fs.promises.readdir(dest);
+            if (destEntries && destEntries.length > 0) {
+              return errResult(
+                `fatal: destination path '${dest}' already exists and is not an empty directory`
+              );
+            }
+          }
+        } catch (_) {
+          /* dest doesn't exist — good, proceed */
+        }
+
         terminal.addOutput(`Cloning into '${dest}'...`);
         console.log(
           '[jsh-git] clone: url=' + url,

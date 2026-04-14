@@ -41,7 +41,7 @@ async function rmHandler(terminal, args) {
     };
   }
 
-  if (recursive && force && (operands.includes('/') || operands.some((o) => o.includes('*')))) {
+  if (recursive && force && operands.includes('/')) {
     return {
       stderr: `🚨 WHOA THERE! 🚨
 rm -rf / is dangerous! Good thing this filesystem has safety checks!
