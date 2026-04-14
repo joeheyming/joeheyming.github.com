@@ -11,6 +11,12 @@ const DEFAULT_MAX_BYTES = 50 * 1024 * 1024; // 50 MB
  * Recursively estimate the retained byte size of a value.
  * Counts Uint8Array/ArrayBuffer payloads, string chars, and recurses into
  * plain objects, Maps, and Arrays.  Stops at depth 6 to avoid cycles.
+ *
+ * isomorphic-git stores pack data as `{ pack: Promise<Uint8Array> }`.
+ * Promises are opaque at measurement time, so we conservatively charge a
+ * flat cost per pack entry based on the companion metadata (offsets Map size
+ * is a good proxy for pack size). A resolved Promise is unwrapped if its
+ * internal state is accessible.
  */
 function estimateBytes(val, depth) {
   if (val == null || depth > 6) return 0;
@@ -19,6 +25,12 @@ function estimateBytes(val, depth) {
   if (typeof val === 'string') return val.length * 2;
   if (typeof val === 'number' || typeof val === 'boolean') return 8;
   if (typeof val === 'function') return 64;
+  if (val instanceof Promise) {
+    // Can't peek into a pending Promise synchronously, but isomorphic-git
+    // pack entries are commonly 10-100 MiB. Charge a flat minimum so the
+    // bounded cache doesn't ignore them entirely.
+    return PROMISE_PACK_ESTIMATE;
+  }
   if (val instanceof Map) {
     let s = 0;
     for (const [k, v] of val) {
@@ -42,6 +54,11 @@ function estimateBytes(val, depth) {
   }
   if (typeof val === 'object') {
     let s = 0;
+    // If this looks like an isomorphic-git pack index (has .pack + .offsets),
+    // estimate .pack size from the offsets map count (each object ≈ 200-2000 bytes).
+    if (val.pack instanceof Promise && val.offsets instanceof Map) {
+      s += val.offsets.size * 800;
+    }
     const keys = Object.keys(val);
     for (let i = 0; i < keys.length; i++) {
       s += estimateBytes(val[keys[i]], depth + 1);
@@ -54,6 +71,8 @@ function estimateBytes(val, depth) {
   }
   return 0;
 }
+
+const PROMISE_PACK_ESTIMATE = 8 * 1024 * 1024;
 
 /**
  * Create a cache object compatible with isomorphic-git that evicts the

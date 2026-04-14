@@ -883,6 +883,122 @@ class FileSystemDB {
     });
   }
 
+  /**
+   * Fast file create/overwrite — skips existence and parent-directory checks.
+   * Callers (e.g. jsh-git-fs) must ensure the parent directory already exists.
+   * @param {string} path
+   * @param {string|Uint8Array|ArrayBuffer} content
+   * @param {string|null} [parentPath] - pre-computed parent (avoids re-parsing)
+   */
+  async createFileFast(path, content, parentPath) {
+    if (!this.isInitialized) await this.initialize();
+    const pp = parentPath != null ? parentPath : this.getParentPath(path);
+
+    let textContent = '';
+    /** @type {ArrayBuffer|undefined} */
+    let contentBytes;
+    let size;
+    const mimeType = FileSystemDB.getMimeType(path);
+
+    if (content instanceof Uint8Array) {
+      const u8 = content;
+      contentBytes = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength);
+      size = u8.byteLength;
+    } else if (content instanceof ArrayBuffer) {
+      contentBytes = content;
+      size = content.byteLength;
+    } else {
+      textContent = content == null ? '' : String(content);
+      size = textContent.length;
+    }
+
+    const file = {
+      path,
+      type: 'file',
+      parentPath: pp,
+      content: textContent,
+      mimeType,
+      size,
+      created: new Date(),
+      modified: new Date()
+    };
+    if (contentBytes) {
+      file.contentBytes = contentBytes;
+    }
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['files'], 'readwrite');
+      const store = transaction.objectStore('files');
+      const request = store.put(file);
+      request.onsuccess = () => resolve(file);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /**
+   * Begin a batch write session. Returns a writer that queues puts into a
+   * single readwrite transaction, flushing every `batchSize` items or on
+   * explicit `flush()`. Much faster than one-transaction-per-file during
+   * git clone checkout.
+   * @param {{ batchSize?: number }} [opts]
+   */
+  beginBatchWrite(opts) {
+    const batchSize = (opts && opts.batchSize) || 200;
+    /** @type {Array<{path: string, type: string, parentPath: string|null, content?: string, contentBytes?: ArrayBuffer, mimeType?: string, size?: number, created: Date, modified: Date}>} */
+    let pending = [];
+    const self = this;
+
+    async function flush() {
+      if (pending.length === 0) return;
+      const batch = pending;
+      pending = [];
+      const tx = self.db.transaction(['files'], 'readwrite');
+      const store = tx.objectStore('files');
+      for (const item of batch) {
+        store.put(item);
+      }
+      await new Promise((resolve, reject) => {
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+      // Single coalesced change event instead of one per file
+      if (batch.length > 0) {
+        FileSystemDB.emit('change', batch[0].parentPath || '/', {
+          type: 'batch',
+          count: batch.length
+        });
+      }
+    }
+
+    return {
+      /** @param {string} path @param {string|Uint8Array|ArrayBuffer} content @param {string|null} [parentPath] */
+      async putFile(path, content, parentPath) {
+        const pp = parentPath != null ? parentPath : self.getParentPath(path);
+        let textContent = '';
+        /** @type {ArrayBuffer|undefined} */
+        let contentBytes;
+        let size;
+        const mimeType = FileSystemDB.getMimeType(path);
+        if (content instanceof Uint8Array) {
+          contentBytes = content.buffer.slice(content.byteOffset, content.byteOffset + content.byteLength);
+          size = content.byteLength;
+        } else if (content instanceof ArrayBuffer) {
+          contentBytes = content;
+          size = content.byteLength;
+        } else {
+          textContent = content == null ? '' : String(content);
+          size = textContent.length;
+        }
+        const file = { path, type: 'file', parentPath: pp, content: textContent, mimeType, size, created: new Date(), modified: new Date() };
+        if (contentBytes) file.contentBytes = contentBytes;
+        pending.push(file);
+        if (pending.length >= batchSize) await flush();
+      },
+      flush,
+      get pendingCount() { return pending.length; }
+    };
+  }
+
   // Create directory
   async createDirectory(path) {
     if (!this.isInitialized) await this.initialize();
@@ -922,6 +1038,29 @@ class FileSystemDB {
         FileSystemDB.emit('create', path, { type: 'directory', parentPath });
         resolve(directory);
       };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /**
+   * Fast directory create — skips existence and parent checks.
+   * Used by mkdirp after it has already verified the path.
+   */
+  async createDirectoryFast(path, parentPath) {
+    if (!this.isInitialized) await this.initialize();
+    const pp = parentPath != null ? parentPath : this.getParentPath(path);
+    const directory = {
+      path,
+      type: 'directory',
+      parentPath: pp,
+      created: new Date(),
+      modified: new Date()
+    };
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['files'], 'readwrite');
+      const store = transaction.objectStore('files');
+      const request = store.put(directory);
+      request.onsuccess = () => resolve(directory);
       request.onerror = () => reject(request.error);
     });
   }

@@ -445,6 +445,8 @@ export class Terminal {
   }
 
   bindInputEvents(input) {
+    if (input._jshBound) return;
+    input._jshBound = true;
     input.addEventListener('keydown', async (e) => {
       if (e.key === 'Enter') {
         await this.handleCommand(input);
@@ -1017,6 +1019,9 @@ export class Terminal {
       cmd.args = expandedArgs.slice(1);
     }
 
+    // Expand glob patterns (* and ?) in arguments
+    cmd.args = await this.expandGlobs(cmd.args);
+
     // Special case for help command
     if (cmdName === 'help') {
       const h = this.helpCommand(cmd.args);
@@ -1523,6 +1528,71 @@ export class Terminal {
   async readdir(path) {
     const resolved = this.resolvePath(path);
     return this.listDirectoryContents(resolved);
+  }
+
+  /**
+   * Convert a simple glob pattern (supports * and ?) into a RegExp.
+   * Only the filename portion is matched — directory separators are not
+   * crossed by *.
+   * @param {string} pattern
+   * @returns {RegExp}
+   */
+  _globPatternToRegex(pattern) {
+    let re = '';
+    for (const ch of pattern) {
+      if (ch === '*') re += '[^/]*';
+      else if (ch === '?') re += '[^/]';
+      else re += ch.replace(/[\\^$.|+()[\]{}]/g, '\\$&');
+    }
+    return new RegExp(`^${re}$`);
+  }
+
+  /**
+   * Expand a single token that may contain glob metacharacters (* or ?).
+   * Returns an array of matching paths, or the original token if nothing matched.
+   * @param {string} token
+   * @returns {Promise<string[]>}
+   */
+  async _expandGlobToken(token) {
+    if (!token.includes('*') && !token.includes('?')) return [token];
+
+    const lastSlash = token.lastIndexOf('/');
+    let dirPart, pattern;
+    if (lastSlash === -1) {
+      dirPart = '.';
+      pattern = token;
+    } else {
+      dirPart = token.substring(0, lastSlash) || '/';
+      pattern = token.substring(lastSlash + 1);
+    }
+
+    const resolvedDir = this.resolvePath(dirPart);
+    const entries = await this.listDirectoryContents(resolvedDir);
+    if (!entries || entries.length === 0) return [token];
+
+    const re = this._globPatternToRegex(pattern);
+    const prefix = lastSlash === -1 ? '' : token.substring(0, lastSlash + 1);
+
+    const matched = entries
+      .filter((e) => re.test(e.name))
+      .map((e) => prefix + e.name)
+      .sort();
+
+    return matched.length > 0 ? matched : [token];
+  }
+
+  /**
+   * Expand glob patterns in a command's argument list.
+   * @param {string[]} args
+   * @returns {Promise<string[]>}
+   */
+  async expandGlobs(args) {
+    const expanded = [];
+    for (const arg of args) {
+      const results = await this._expandGlobToken(arg);
+      expanded.push(...results);
+    }
+    return expanded;
   }
 
   /** @param {string} path */
