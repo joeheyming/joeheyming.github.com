@@ -1003,3 +1003,12 @@ export default {
     'distributed version control (isomorphic-git + IndexedDB; GET via proxy when available)',
   category: 'System'
 };
+
+export const _testExports = {
+  formatBytes,
+  takeFlagValue,
+  errResult,
+  resolveCorsProxy,
+  resolveGitCredential,
+  gitAuthor
+};
