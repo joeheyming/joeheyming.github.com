@@ -8,6 +8,240 @@ import {
   toggleFavorite
 } from './zeniusLibraryStorage.js';
 
+const ZENIUS_V52 = 'https://zenius-i-vanisher.com/v5.2/';
+
+/**
+ * Links under the "Menu" heading on the simfiles home page (simfiles.php).
+ * @param {Document} doc
+ * @returns {Array<{ label: string, href: string }>}
+ */
+function extractSimfilesMenuLinks(doc) {
+  const headings = doc.querySelectorAll('h2');
+  /** @type {Element|null} */
+  let menuH = null;
+  for (const h of headings) {
+    const t = h.textContent.replace(/\s+/g, ' ').trim();
+    if (t.match(/^Menu\b/i)) {
+      menuH = h;
+      break;
+    }
+  }
+  if (!menuH) {
+    return [];
+  }
+
+  const out = [];
+  const seen = new Set();
+  const FLAG_FOLLOW = Node.DOCUMENT_POSITION_FOLLOWING;
+
+  const tryAddAnchor = (a) => {
+    if (!(a instanceof HTMLAnchorElement)) {
+      return;
+    }
+    const href = a.getAttribute('href');
+    if (!href || href.startsWith('#') || href.toLowerCase().startsWith('javascript:')) {
+      return;
+    }
+    const label = a.textContent.replace(/\s+/g, ' ').trim();
+    if (!label) {
+      return;
+    }
+    let abs;
+    try {
+      abs = new URL(href, ZENIUS_V52);
+    } catch {
+      return;
+    }
+    if (!abs.hostname.includes('zenius-i-vanisher.com')) {
+      return;
+    }
+    if (seen.has(abs.href)) {
+      return;
+    }
+    seen.add(abs.href);
+    out.push({ label, href: abs.href });
+  };
+
+  let el = menuH.nextElementSibling;
+  while (el) {
+    if (el.tagName === 'H2' || el.tagName === 'H1') {
+      break;
+    }
+    const anchors =
+      el.tagName === 'A' && el.getAttribute('href') ? [el] : el.querySelectorAll('a[href]');
+    for (const a of anchors) {
+      tryAddAnchor(/** @type {Element} */ (a));
+    }
+    el = el.nextElementSibling;
+  }
+
+  // Table layout: links often sit in the same cell as the “Menu” heading
+  if (out.length === 0 && menuH.parentElement) {
+    for (const a of menuH.parentElement.querySelectorAll('a[href]')) {
+      if (menuH.compareDocumentPosition(a) & FLAG_FOLLOW) {
+        tryAddAnchor(/** @type {Element} */ (a));
+      }
+    }
+  }
+
+  return out;
+}
+
+/** @param {Document} doc */
+function extractSimfilesCategoryLinksFromPage(doc) {
+  const out = [];
+  const seen = new Set();
+  for (const a of doc.querySelectorAll('a[href*="simfiles.php?category="]')) {
+    if (!(a instanceof HTMLAnchorElement)) {
+      continue;
+    }
+    const href = a.getAttribute('href');
+    if (!href) {
+      continue;
+    }
+    let abs;
+    try {
+      abs = new URL(href, ZENIUS_V52);
+    } catch {
+      continue;
+    }
+    if (!abs.hostname.includes('zenius-i-vanisher.com')) {
+      continue;
+    }
+    const cat = abs.searchParams.get('category') || '';
+    if (!cat || cat === 'simfiles' || cat === 'help') {
+      continue;
+    }
+    if (seen.has(abs.href)) {
+      continue;
+    }
+    const label = a.textContent.replace(/\s+/g, ' ').trim() || cat;
+    seen.add(abs.href);
+    out.push({ label, href: abs.href });
+  }
+  return out;
+}
+
+/**
+ * @param {Array<{ label: string, href: string }>} menuFirst
+ * @param {Array<{ label: string, href: string }>} fromAnchors
+ * @returns {Array<{ label: string, href: string }>}
+ */
+function mergeMenuAndCategoryLinkLabels(menuFirst, fromAnchors) {
+  const byHref = new Map();
+  for (const x of fromAnchors) {
+    byHref.set(x.href, { label: x.label, href: x.href });
+  }
+  for (const x of menuFirst) {
+    const prev = byHref.get(x.href);
+    if (!prev || (x.label && x.label.length > (prev.label || '').length)) {
+      byHref.set(x.href, { label: x.label, href: x.href });
+    }
+  }
+  return Array.from(byHref.values());
+}
+
+/** @param {string} label */
+function isSpotlightListLabel(label) {
+  const t = label.replace(/\s+/g, ' ').toLowerCase();
+  if (t.length < 6) {
+    return false;
+  }
+  if (t === 'help' || /^\s*help(\s+|$)/.test(t)) {
+    return false;
+  }
+  if (
+    (t.includes('view simfile') && !t.includes('latest') && !t.includes('top')) ||
+    t === 'view simfiles'
+  ) {
+    return false;
+  }
+  const hasLatest = t.includes('latest');
+  const hasTop = /\btop\b/.test(t);
+  const hasOfficial = t.includes('official');
+  const hasUser = /\buser\b/.test(t);
+  return (hasLatest || hasTop) && (hasOfficial || hasUser);
+}
+
+/**
+ * @param {string} label
+ * @returns {number}
+ */
+function spotlightRankForSort(label) {
+  const t = label.toLowerCase();
+  if (t.includes('latest') && t.includes('official')) {
+    return 0;
+  }
+  if (t.includes('latest') && t.includes('user')) {
+    return 1;
+  }
+  if (t.includes('top') && t.includes('official')) {
+    return 2;
+  }
+  if (t.includes('top') && t.includes('user')) {
+    return 3;
+  }
+  return 10;
+}
+
+/**
+ * @param {string} href
+ * @returns {number}
+ */
+function spotlightRankFromHref(href) {
+  const u = href.toLowerCase();
+  const m = u.match(/[?&]category=([^&]+)/);
+  const c = m ? m[1] : '';
+  if (c.includes('latest') && c.includes('official')) {
+    return 0;
+  }
+  if (c.includes('latest') && c.includes('user')) {
+    return 1;
+  }
+  if (c.includes('top') && c.includes('official')) {
+    return 2;
+  }
+  if (c.includes('top') && c.includes('user')) {
+    return 3;
+  }
+  return 10;
+}
+
+/**
+ * @param {Array<{ label: string, href: string }>} links
+ */
+function selectSpotlightSourceLinks(links) {
+  const picked = links.filter((l) => isSpotlightListLabel(l.label));
+  picked.sort((a, b) => {
+    const d = spotlightRankForSort(a.label) - spotlightRankForSort(b.label);
+    if (d !== 0) {
+      return d;
+    }
+    return a.label.localeCompare(b.label, undefined, { sensitivity: 'base' });
+  });
+  const byRank = new Map();
+  for (const p of picked) {
+    const r = spotlightRankForSort(p.label);
+    if (r < 4 && r >= 0 && !byRank.has(r)) {
+      byRank.set(r, p);
+    }
+  }
+  let inOrder = [0, 1, 2, 3].map((r) => byRank.get(r)).filter(Boolean);
+  if (inOrder.length < 3) {
+    const byH = new Map();
+    for (const p of links) {
+      const r = spotlightRankFromHref(p.href);
+      if (r < 4 && r >= 0 && !byH.has(r)) {
+        byH.set(r, p);
+      }
+    }
+    inOrder = [0, 1, 2, 3].map((r) => byH.get(r)).filter(Boolean);
+  }
+  return inOrder;
+}
+
+const SPOTLIGHT_TOP_N = 10;
+
 class ZeniusBrowserElement extends HTMLElement {
   /** @type {ZeniusBrowserElement|null} */
   static _instance = null;
@@ -77,6 +311,10 @@ class ZeniusBrowserElement extends HTMLElement {
     this._lastSimfileListForSort = [];
     this._lastListPath = '';
     this._searchReqId = 0;
+    /** @type {AbortController|null} */
+    this._spotlightAbort = null;
+    /** @type {Array<{ label: string, href: string }>|null} */
+    this._lastSpotlightSourceLinks = null;
     this.attachShadow({ mode: 'open' });
   }
 
@@ -142,16 +380,6 @@ class ZeniusBrowserElement extends HTMLElement {
               </div>
             </div>
             
-            <div class="zenius-secondary-row" id="zenius-secondary-row">
-              <div class="zenius-recent-block" id="zenius-recent-block">
-                <span class="zenius-recent-label">Recent</span>
-                <div class="zenius-recent-chips" id="zenius-recent-chips" role="list"></div>
-              </div>
-              <button type="button" class="zenius-saved-btn" id="zenius-saved-btn" title="Songs you starred">
-                Saved
-              </button>
-            </div>
-            
             <div class="list-toolbar hidden" id="list-toolbar" aria-label="List options">
               <label class="list-toolbar-label" for="zenius-sort-select">Sort</label>
               <select class="zenius-sort-select" id="zenius-sort-select" title="Sort current list">
@@ -168,6 +396,21 @@ class ZeniusBrowserElement extends HTMLElement {
             
             <div class="content-grid" id="content-grid">
               <!-- Content will be populated here -->
+            </div>
+            
+            <div class="zenius-spotlight" id="zenius-spotlight" hidden>
+              <p class="zenius-spotlight-hint" id="zenius-spotlight-hint" hidden>Loading lists…</p>
+              <div id="zenius-spotlight-sections" class="zenius-spotlight-sections"></div>
+            </div>
+            
+            <div class="zenius-secondary-row" id="zenius-secondary-row">
+              <div class="zenius-recent-block" id="zenius-recent-block">
+                <span class="zenius-recent-label">Recent</span>
+                <div class="zenius-recent-chips" id="zenius-recent-chips" role="list"></div>
+              </div>
+              <button type="button" class="zenius-saved-btn" id="zenius-saved-btn" title="Songs you starred">
+                Saved
+              </button>
             </div>
             
             <div class="loading-indicator" id="loading-indicator">
@@ -303,7 +546,9 @@ class ZeniusBrowserElement extends HTMLElement {
     const modal = this.shadowRoot.getElementById('zenius-browser-modal');
     modal.addEventListener('keydown', this._onModalKeydownBound);
 
-    this.shadowRoot.getElementById('content-grid').addEventListener('keydown', this._onGridKeydownBound);
+    this.shadowRoot
+      .getElementById('content-grid')
+      .addEventListener('keydown', this._onGridKeydownBound);
 
     // Breadcrumb navigation
     this.shadowRoot.getElementById('breadcrumb').addEventListener('click', (e) => {
@@ -320,10 +565,14 @@ class ZeniusBrowserElement extends HTMLElement {
     this.shadowRoot.getElementById('zenius-browser-modal').classList.add('show');
     this.renderRecentChips();
 
-    // If we have a remembered category and we're at home, navigate to it
+    // If we have a remembered category and we're at home, load it but keep Search tab active
     if (this.lastBrowsedCategoryId && this.currentPath === '') {
       this.currentCategoryName = this.lastBrowsedCategoryName || 'Category';
-      this.navigateToPath(`categoryid=${this.lastBrowsedCategoryId}`);
+      void this.navigateToPath(`categoryid=${this.lastBrowsedCategoryId}`, false);
+    }
+    this.setSearchMode('zenius');
+    if (this._lastSpotlightSourceLinks && this._lastSpotlightSourceLinks.length > 0) {
+      void this.startSimfileSpotlight(this._lastSpotlightSourceLinks);
     }
 
     requestAnimationFrame(() => {
@@ -332,6 +581,10 @@ class ZeniusBrowserElement extends HTMLElement {
   }
 
   hideBrowser() {
+    if (this._spotlightAbort) {
+      this._spotlightAbort.abort();
+      this._spotlightAbort = null;
+    }
     if (this._searchAbortController) {
       this._searchAbortController.abort();
       this._searchAbortController = null;
@@ -462,16 +715,126 @@ class ZeniusBrowserElement extends HTMLElement {
     }
   }
 
+  /**
+   * @param {Document} doc
+   * @param {{ type: string, items: Array<Record<string, unknown>> }} content
+   */
+  appendSimfileTableItemsToContent(doc, content) {
+    const simfileLinks = doc.querySelectorAll('a[href*="viewsimfile.php"]');
+    if (simfileLinks.length === 0) {
+      return;
+    }
+    content.type = 'simfiles';
+
+    const difficultyNames = ['Beginner', 'Basic', 'Difficult', 'Expert', 'Challenge'];
+    const difficultyShort = ['B', 'L', 'S', 'H', 'C'];
+
+    simfileLinks.forEach((link) => {
+      const href = link.getAttribute('href');
+      const text = link.textContent.trim();
+      if (href && text && !text.includes('Download') && !text.includes('MB')) {
+        const urlParams = new URLSearchParams(href.split('?')[1] || '');
+        const simfileId = urlParams.get('simfileid');
+
+        if (simfileId) {
+          const row = link.closest('tr');
+          let hasVideo = false;
+          let difficulties = [];
+
+          if (row) {
+            const rowHtml = row.innerHTML;
+            hasVideo =
+              rowHtml.includes('Vid Exist') ||
+              rowHtml.includes('[V]') ||
+              rowHtml.toLowerCase().includes('.avi');
+
+            const cells = row.querySelectorAll('td');
+            let diffIndex = 0;
+
+            cells.forEach((cell) => {
+              const cellText = cell.textContent.trim();
+              const numMatch = cellText.match(/^(\d{1,2})$/);
+              if (numMatch) {
+                const rating = parseInt(numMatch[1]);
+                if (rating >= 1 && rating <= 20) {
+                  let diffName = difficultyNames[diffIndex % 5] || 'Unknown';
+                  let diffShort = difficultyShort[diffIndex % 5] || '?';
+
+                  const title = cell.getAttribute('title') || '';
+                  for (let i = 0; i < difficultyNames.length; i++) {
+                    if (title.toLowerCase().includes(difficultyNames[i].toLowerCase())) {
+                      diffName = difficultyNames[i];
+                      diffShort = difficultyShort[i];
+                      break;
+                    }
+                  }
+
+                  const img = cell.querySelector('img');
+                  if (img) {
+                    const src = img.getAttribute('src') || '';
+                    if (src.includes('beginner')) {
+                      diffName = 'Beginner';
+                      diffShort = 'B';
+                    } else if (src.includes('light') || src.includes('basic')) {
+                      diffName = 'Basic';
+                      diffShort = 'L';
+                    } else if (src.includes('standard') || src.includes('difficult')) {
+                      diffName = 'Difficult';
+                      diffShort = 'S';
+                    } else if (src.includes('heavy') || src.includes('expert')) {
+                      diffName = 'Expert';
+                      diffShort = 'H';
+                    } else if (src.includes('challenge') || src.includes('oni')) {
+                      diffName = 'Challenge';
+                      diffShort = 'C';
+                    }
+                  }
+
+                  difficulties.push({
+                    rating: rating,
+                    name: diffName,
+                    short: diffShort
+                  });
+                  diffIndex++;
+                }
+              }
+            });
+          }
+
+          content.items.push({
+            type: 'simfile',
+            name: text,
+            url: href,
+            icon: hasVideo ? '🎬' : '🎵',
+            simfileId: simfileId,
+            hasVideo: hasVideo,
+            difficulties: difficulties
+          });
+        }
+      }
+    });
+  }
+
   parseZeniusContent(html) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 
     const content = {
       type: 'unknown',
-      items: []
+      items: [],
+      /** @type {Array<{ label: string, href: string }>|undefined} */
+      menuLinks: undefined,
+      /** @type {Array<{ label: string, href: string }>|undefined} */
+      spotlightSourceLinks: undefined
     };
 
     if (this.currentPath === '') {
+      content.menuLinks = extractSimfilesMenuLinks(doc);
+      const merged = mergeMenuAndCategoryLinkLabels(
+        content.menuLinks,
+        extractSimfilesCategoryLinksFromPage(doc)
+      );
+      content.spotlightSourceLinks = selectSpotlightSourceLinks(merged);
       const options = doc.querySelectorAll('option');
       options.forEach((option) => {
         const value = option.getAttribute('value');
@@ -497,115 +860,131 @@ class ZeniusBrowserElement extends HTMLElement {
       if (content.items.length > 0) {
         content.type = 'directories';
       }
-    } else if (this.currentPath.startsWith('categoryid=')) {
-      const simfileLinks = doc.querySelectorAll('a[href*="viewsimfile.php"]');
-      if (simfileLinks.length > 0) {
-        content.type = 'simfiles';
-
-        // Try to detect difficulty column headers from the table
-        const difficultyNames = ['Beginner', 'Basic', 'Difficult', 'Expert', 'Challenge'];
-        const difficultyShort = ['B', 'L', 'S', 'H', 'C'];
-
-        simfileLinks.forEach((link) => {
-          const href = link.getAttribute('href');
-          const text = link.textContent.trim();
-          if (href && text && !text.includes('Download') && !text.includes('MB')) {
-            const urlParams = new URLSearchParams(href.split('?')[1] || '');
-            const simfileId = urlParams.get('simfileid');
-
-            if (simfileId) {
-              // Try to get additional info from the parent row
-              const row = link.closest('tr');
-              let hasVideo = false;
-              let difficulties = [];
-
-              if (row) {
-                const rowHtml = row.innerHTML;
-                // Check for video indicators:
-                // 1. [V] span with title="Vid Exist" (Zenius uses this)
-                // 2. .avi file mentioned in row
-                hasVideo =
-                  rowHtml.includes('Vid Exist') ||
-                  rowHtml.includes('[V]') ||
-                  rowHtml.toLowerCase().includes('.avi');
-
-                // Extract numeric difficulty ratings from table cells
-                const cells = row.querySelectorAll('td');
-                let diffIndex = 0;
-
-                cells.forEach((cell) => {
-                  const cellText = cell.textContent.trim();
-                  // Check if cell contains a difficulty number (1-20)
-                  const numMatch = cellText.match(/^(\d{1,2})$/);
-                  if (numMatch) {
-                    const rating = parseInt(numMatch[1]);
-                    if (rating >= 1 && rating <= 20) {
-                      // Try to determine difficulty type from cell class, title, or position
-                      let diffName = difficultyNames[diffIndex % 5] || 'Unknown';
-                      let diffShort = difficultyShort[diffIndex % 5] || '?';
-
-                      // Check cell title attribute for difficulty name
-                      const title = cell.getAttribute('title') || '';
-                      for (let i = 0; i < difficultyNames.length; i++) {
-                        if (title.toLowerCase().includes(difficultyNames[i].toLowerCase())) {
-                          diffName = difficultyNames[i];
-                          diffShort = difficultyShort[i];
-                          break;
-                        }
-                      }
-
-                      // Check for difficulty icon images
-                      const img = cell.querySelector('img');
-                      if (img) {
-                        const src = img.getAttribute('src') || '';
-                        if (src.includes('beginner')) {
-                          diffName = 'Beginner';
-                          diffShort = 'B';
-                        } else if (src.includes('light') || src.includes('basic')) {
-                          diffName = 'Basic';
-                          diffShort = 'L';
-                        } else if (src.includes('standard') || src.includes('difficult')) {
-                          diffName = 'Difficult';
-                          diffShort = 'S';
-                        } else if (src.includes('heavy') || src.includes('expert')) {
-                          diffName = 'Expert';
-                          diffShort = 'H';
-                        } else if (src.includes('challenge') || src.includes('oni')) {
-                          diffName = 'Challenge';
-                          diffShort = 'C';
-                        }
-                      }
-
-                      difficulties.push({
-                        rating: rating,
-                        name: diffName,
-                        short: diffShort
-                      });
-                      diffIndex++;
-                    }
-                  }
-                });
-              }
-
-              content.items.push({
-                type: 'simfile',
-                name: text,
-                url: href,
-                icon: hasVideo ? '🎬' : '🎵',
-                simfileId: simfileId,
-                hasVideo: hasVideo,
-                difficulties: difficulties
-              });
-            }
-          }
-        });
-      }
+    } else {
+      this.appendSimfileTableItemsToContent(doc, content);
     }
 
     return content;
   }
 
+  /**
+   * @param {string} listUrl
+   * @param {number} limit
+   * @param {AbortSignal} [signal]
+   * @returns {Promise<Array<Record<string, unknown>>>}
+   */
+  async fetchTopSimfilesFromListUrl(listUrl, limit, signal) {
+    const html = await window.proxyService.fetchWithProxy(listUrl, { skipDirect: true, signal });
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const content = { type: 'unknown', items: [] };
+    this.appendSimfileTableItemsToContent(doc, content);
+    return content.items.slice(0, limit);
+  }
+
+  /**
+   * Fetches the four live lists in parallel and renders up to 10 simfiles per section.
+   * @param {Array<{ label: string, href: string }>} sourceLinks
+   */
+  async startSimfileSpotlight(sourceLinks) {
+    const wrap = this.shadowRoot.getElementById('zenius-spotlight');
+    const sections = this.shadowRoot.getElementById('zenius-spotlight-sections');
+    const hint = this.shadowRoot.getElementById('zenius-spotlight-hint');
+    if (!wrap || !sections) {
+      return;
+    }
+    this._spotlightAbort?.abort();
+    this._spotlightAbort = new AbortController();
+    const { signal } = this._spotlightAbort;
+
+    const toLoad = sourceLinks;
+    if (!toLoad || toLoad.length === 0) {
+      wrap.hidden = true;
+      return;
+    }
+
+    wrap.hidden = false;
+    sections.innerHTML = '';
+    if (hint) {
+      hint.hidden = false;
+      hint.textContent = 'Loading latest & top lists…';
+    }
+    try {
+      const results = await Promise.all(
+        toLoad.map(async ({ href, label }) => {
+          const items = await this.fetchTopSimfilesFromListUrl(href, SPOTLIGHT_TOP_N, signal);
+          return { href, label, items };
+        })
+      );
+      if (signal.aborted) {
+        return;
+      }
+      if (hint) {
+        hint.hidden = true;
+      }
+      for (const { href, label, items } of results) {
+        const sec = document.createElement('section');
+        sec.className = 'zenius-spotlight-section';
+        const h = document.createElement('h3');
+        h.className = 'zenius-spotlight-title';
+        const link = document.createElement('a');
+        link.href = href;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.className = 'zenius-spotlight-title-link';
+        link.textContent = label;
+        h.appendChild(link);
+        sec.appendChild(h);
+        if (items.length === 0) {
+          const p = document.createElement('p');
+          p.className = 'zenius-spotlight-empty';
+          p.textContent = 'No rows parsed for this list.';
+          sec.appendChild(p);
+        } else {
+          const grid = document.createElement('div');
+          grid.className = 'zenius-spotlight-grid';
+          for (const item of items) {
+            if (item && item.type === 'simfile') {
+              grid.appendChild(
+                this.createContentItem(/** @type {Record<string, unknown>} */ (item), 'spotlight')
+              );
+            }
+          }
+          sec.appendChild(grid);
+        }
+        sections.appendChild(sec);
+        if (typeof window.trackEvent === 'function') {
+          window.trackEvent('zenius_spotlight_list', 'StepMania', label);
+        }
+      }
+    } catch (e) {
+      if (e && /** @type {Error} */ (e).name === 'AbortError') {
+        return;
+      }
+      console.error('Simfile spotlight load failed', e);
+      if (hint) {
+        hint.hidden = false;
+        hint.textContent = 'Some Zenius lists could not load. Try again later.';
+      }
+    }
+  }
+
   displayContent(content, path) {
+    if (
+      path === '' &&
+      content &&
+      content.spotlightSourceLinks &&
+      content.spotlightSourceLinks.length > 0
+    ) {
+      this._lastSpotlightSourceLinks = content.spotlightSourceLinks;
+      void this.startSimfileSpotlight(this._lastSpotlightSourceLinks);
+    } else if (path === '') {
+      const s = this.shadowRoot.getElementById('zenius-spotlight');
+      if (s) {
+        s.hidden = true;
+      }
+    }
+
     const gridEl = this.shadowRoot.getElementById('content-grid');
     gridEl.innerHTML = '';
 
@@ -620,6 +999,7 @@ class ZeniusBrowserElement extends HTMLElement {
           <p>This directory appears to be empty or the content couldn't be parsed.</p>
         </div>
       `;
+      this.updateStats();
       return;
     }
 
@@ -711,14 +1091,19 @@ class ZeniusBrowserElement extends HTMLElement {
         </div>
       `;
 
-      const ext = document.createElement('a');
-      ext.href = fullZeniusUrl;
-      ext.target = '_blank';
-      ext.rel = 'noopener noreferrer';
-      ext.className = 'simfile-external-link';
-      ext.title = 'View on Zenius-I-Vanisher';
-      ext.textContent = '🔗';
-      ext.addEventListener('click', (e) => e.stopPropagation());
+      const showZeniusLink = currentPath !== 'spotlight';
+      let ext = null;
+      if (showZeniusLink) {
+        const extEl = document.createElement('a');
+        extEl.href = fullZeniusUrl;
+        extEl.target = '_blank';
+        extEl.rel = 'noopener noreferrer';
+        extEl.className = 'simfile-external-link';
+        extEl.title = 'View on Zenius-I-Vanisher';
+        extEl.textContent = '🔗';
+        extEl.addEventListener('click', (e) => e.stopPropagation());
+        ext = extEl;
+      }
 
       mainLink.addEventListener('click', () => {
         if (typeof window.trackEvent === 'function') {
@@ -754,7 +1139,9 @@ class ZeniusBrowserElement extends HTMLElement {
         this.updateSavedButtonLabel();
       });
       card.appendChild(mainLink);
-      card.appendChild(ext);
+      if (ext) {
+        card.appendChild(ext);
+      }
       card.appendChild(favBtn);
 
       return card;
@@ -802,7 +1189,7 @@ class ZeniusBrowserElement extends HTMLElement {
       return;
     }
 
-    // When in category view, only search within the current category's simfiles
+    // When in category or Zenius simfiles menu list, only search within the current list
     const inCategoryView = this.currentPath.startsWith('categoryid=');
     const currentUrl = this.getCurrentUrl();
 
@@ -831,6 +1218,16 @@ class ZeniusBrowserElement extends HTMLElement {
     }
 
     this.displaySearchResults(searchResults, this.currentPath);
+  }
+
+  /**
+   * @param {boolean} visible
+   */
+  setZeniusSpotlightUiVisible(visible) {
+    const el = this.shadowRoot.getElementById('zenius-spotlight');
+    if (el) {
+      el.hidden = !visible;
+    }
   }
 
   setSearchMode(mode) {
@@ -875,6 +1272,7 @@ class ZeniusBrowserElement extends HTMLElement {
     this._searchReqId += 1;
     const reqId = this._searchReqId;
     this._favoritesViewActive = false;
+    this.setZeniusSpotlightUiVisible(false);
     this.showLoading('Searching…');
 
     try {
@@ -893,7 +1291,9 @@ class ZeniusBrowserElement extends HTMLElement {
 
       if (results.length === 0) {
         this.showSearchEmpty(
-          `No results for “${songTitle || songArtist}”. Try other spellings or use the Category tab.`
+          `No results for “${
+            songTitle || songArtist
+          }”. Try other spellings or use the Category tab.`
         );
         this.shadowRoot.getElementById('item-count').textContent = '0 results';
         this.shadowRoot.getElementById('current-path').textContent = 'Search (no matches)';
@@ -913,8 +1313,11 @@ class ZeniusBrowserElement extends HTMLElement {
         return;
       }
       console.error('Zenius search failed:', error);
+      this.setZeniusSpotlightUiVisible(false);
       this.showError(
-        `Search failed: ${error.message || 'Network error'}. The Zenius search may be unavailable through proxies. Try again shortly.`,
+        `Search failed: ${
+          error.message || 'Network error'
+        }. The Zenius search may be unavailable through proxies. Try again shortly.`,
         () => {
           this.runZeniusSearch();
         }
@@ -1018,6 +1421,7 @@ class ZeniusBrowserElement extends HTMLElement {
     gridEl.innerHTML = '';
 
     if (results.length === 0) {
+      this.setZeniusSpotlightUiVisible(false);
       this.shadowRoot.getElementById('list-toolbar').classList.add('hidden');
       gridEl.innerHTML = `
         <div class="empty-state">
@@ -1027,6 +1431,9 @@ class ZeniusBrowserElement extends HTMLElement {
         </div>
       `;
       this.initGridRovingTabIndex();
+      requestAnimationFrame(() => {
+        gridEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      });
       return;
     }
 
@@ -1037,6 +1444,10 @@ class ZeniusBrowserElement extends HTMLElement {
       gridEl.appendChild(itemEl);
     });
     this.initGridRovingTabIndex();
+    this.setZeniusSpotlightUiVisible(false);
+    requestAnimationFrame(() => {
+      gridEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
   }
 
   showLoading(text) {
@@ -1084,6 +1495,7 @@ class ZeniusBrowserElement extends HTMLElement {
   }
 
   showSearchEmpty(message) {
+    this.setZeniusSpotlightUiVisible(false);
     this._lastSimfileListForSort = [];
     this.shadowRoot.getElementById('list-toolbar').classList.add('hidden');
     const gridEl = this.shadowRoot.getElementById('content-grid');
@@ -1097,10 +1509,14 @@ class ZeniusBrowserElement extends HTMLElement {
     const p = gridEl.querySelector('.search-empty-msg');
     if (p) p.textContent = message;
     this.initGridRovingTabIndex();
+    requestAnimationFrame(() => {
+      gridEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
   }
 
   displayFavoritesList() {
     this._favoritesViewActive = true;
+    this.setZeniusSpotlightUiVisible(false);
     this.setSearchMode('zenius');
     const favs = getFavorites();
     this._lastSimfileListForSort = favs.map((f) => ({
@@ -1144,11 +1560,12 @@ class ZeniusBrowserElement extends HTMLElement {
     if (!this._lastSimfileListForSort.length) {
       return;
     }
-    const itemPath = this._favoritesViewActive
-      ? ''
-      : this._lastListPath === 'search' || this._lastListPath === 'favorites'
-        ? ''
-        : this._lastListPath;
+    let itemPath = this._lastListPath;
+    if (this._favoritesViewActive) {
+      itemPath = '';
+    } else if (this._lastListPath === 'search' || this._lastListPath === 'favorites') {
+      itemPath = '';
+    }
     const gridEl = this.shadowRoot.getElementById('content-grid');
     const sorted = this.applySortToSimfiles(this._lastSimfileListForSort.map((i) => ({ ...i })));
     gridEl.innerHTML = '';
