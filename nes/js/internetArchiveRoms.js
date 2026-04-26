@@ -35,37 +35,18 @@ class InternetArchiveRoms {
 
       console.log('Fetching ROM list from Internet Archive...');
 
-      // Check proxy service
-      if (
-        !window.proxyService ||
-        !window.proxyService.proxyOptions ||
-        window.proxyService.proxyOptions.length === 0
-      ) {
+      if (!window.proxyService) {
         throw new Error('Proxy service not available');
       }
 
-      // Try proxies until one works
-      let response = null;
-      for (const proxyUrl of window.proxyService.proxyOptions) {
-        try {
-          const fetchUrl = `${proxyUrl}${encodeURIComponent(this.baseUrl)}`;
-          console.log(`Trying proxy: ${proxyUrl}`);
-
-          response = await fetch(fetchUrl);
-          if (response.ok) {
-            console.log(`✅ Proxy ${proxyUrl} succeeded`);
-            break;
-          }
-        } catch (error) {
-          console.log(`❌ Proxy ${proxyUrl} failed:`, error.message);
+      const html = await window.proxyService.fetchWithProxy(this.baseUrl, {
+        skipDirect: true,
+        timeout: 30000,
+        maxRetries: 3,
+        headers: {
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
         }
-      }
-
-      if (!response || !response.ok) {
-        throw new Error('All proxies failed');
-      }
-
-      const html = await response.text();
+      });
 
       // Check if Internet Archive is temporarily offline
       if (
