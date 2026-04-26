@@ -27,6 +27,7 @@ import {
 } from './songProxyTransport.js';
 import { scheduleFirstVisitBrowserPrompt } from './browserWelcomePrompt.js';
 import { logVideoError, logVideoLoad } from './videoLoadLogging.js';
+import { recordRecentPlay } from './zeniusLibraryStorage.js';
 
 /**
  * Main Page Controller
@@ -570,6 +571,15 @@ export class MainPageController {
         );
         throw error;
       }
+    }
+
+    if (currentSongKey.startsWith('zenius_') && this.lastZeniusUrl) {
+      const simfileId = currentSongKey.replace('zenius_', '');
+      recordRecentPlay({
+        zeniusUrl: this.lastZeniusUrl,
+        title: currentSongData.title,
+        simfileId
+      });
     }
 
     this.showReadyToPlayMessage();

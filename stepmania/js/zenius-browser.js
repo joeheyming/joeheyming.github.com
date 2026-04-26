@@ -1,6 +1,12 @@
 // Zenius Browser Web Component - ES Module
 import { adoptSharedStyles } from './sharedStyles.js';
 import { createComponentProxy } from './componentProxy.js';
+import {
+  getRecentSongs,
+  getFavorites,
+  isFavoriteSimfileId,
+  toggleFavorite
+} from './zeniusLibraryStorage.js';
 
 class ZeniusBrowserElement extends HTMLElement {
   /** @type {ZeniusBrowserElement|null} */
@@ -59,6 +65,18 @@ class ZeniusBrowserElement extends HTMLElement {
     this.cache = new Map();
     this.lastBrowsedCategoryId = null;
     this.lastBrowsedCategoryName = null;
+    /** @type {AbortController|null} */
+    this._searchAbortController = null;
+    this._searchDebounceTimer = null;
+    this._localFilterDebounceTimer = null;
+    /** @type {HTMLElement|null} */
+    this._previouslyFocused = null;
+    this._favoritesViewActive = false;
+    this._onModalKeydownBound = (e) => this.handleModalKeydown(e);
+    this._onGridKeydownBound = (e) => this.handleGridKeydown(e);
+    this._lastSimfileListForSort = [];
+    this._lastListPath = '';
+    this._searchReqId = 0;
     this.attachShadow({ mode: 'open' });
   }
 
@@ -97,11 +115,14 @@ class ZeniusBrowserElement extends HTMLElement {
                 <div class="breadcrumb" id="breadcrumb">
                   <span class="breadcrumb-item" data-path="">🏠 Home</span>
                 </div>
+                <p class="category-filter-hint" id="category-filter-hint">
+                  Filter applies only to <strong>pages you have already opened</strong> this session. Use Search for the full site index.
+                </p>
                 <input 
                   type="text" 
                   class="search-input" 
                   id="search-input" 
-                  placeholder="Search cached categories and songs..."
+                  placeholder="Filter loaded songs and folders in cache…"
                 >
               </div>
               <div class="search-fields" id="zenius-search-fields">
@@ -119,6 +140,25 @@ class ZeniusBrowserElement extends HTMLElement {
                 >
                 <button class="search-btn" id="zenius-search-btn">🔍 Search</button>
               </div>
+            </div>
+            
+            <div class="zenius-secondary-row" id="zenius-secondary-row">
+              <div class="zenius-recent-block" id="zenius-recent-block">
+                <span class="zenius-recent-label">Recent</span>
+                <div class="zenius-recent-chips" id="zenius-recent-chips" role="list"></div>
+              </div>
+              <button type="button" class="zenius-saved-btn" id="zenius-saved-btn" title="Songs you starred">
+                Saved
+              </button>
+            </div>
+            
+            <div class="list-toolbar hidden" id="list-toolbar" aria-label="List options">
+              <label class="list-toolbar-label" for="zenius-sort-select">Sort</label>
+              <select class="zenius-sort-select" id="zenius-sort-select" title="Sort current list">
+                <option value="name-asc">A–Z</option>
+                <option value="name-desc">Z–A</option>
+                <option value="video-first">Video first</option>
+              </select>
             </div>
             
             <div class="stats" id="stats">
@@ -151,6 +191,7 @@ class ZeniusBrowserElement extends HTMLElement {
 
   init() {
     this.bindEvents();
+    this.renderRecentChips();
     this.loadInitialContent();
   }
 
@@ -176,10 +217,17 @@ class ZeniusBrowserElement extends HTMLElement {
       }
     });
 
-    // Search functionality - local search
+    // Search functionality - local search (cached pages only) — debounced
     const searchInput = this.shadowRoot.getElementById('search-input');
     searchInput.addEventListener('input', (e) => {
-      this.handleSearch(e.target.value);
+      if (this._localFilterDebounceTimer) {
+        clearTimeout(this._localFilterDebounceTimer);
+      }
+      const q = e.target.value;
+      this._localFilterDebounceTimer = setTimeout(() => {
+        this._localFilterDebounceTimer = null;
+        this.handleSearch(q);
+      }, 300);
     });
     // Stop keyboard events from bubbling to prevent triggering game hotkeys (like 'f' for fullscreen)
     searchInput.addEventListener('keydown', (e) => e.stopPropagation());
@@ -194,21 +242,68 @@ class ZeniusBrowserElement extends HTMLElement {
 
     // Zenius search button
     this.shadowRoot.getElementById('zenius-search-btn').addEventListener('click', () => {
-      this.searchZenius();
+      if (this._searchDebounceTimer) {
+        clearTimeout(this._searchDebounceTimer);
+        this._searchDebounceTimer = null;
+      }
+      this.runZeniusSearch();
     });
 
     // Zenius search inputs - stop propagation and handle Enter
     const zeniusTitleInput = this.shadowRoot.getElementById('zenius-song-title');
     const zeniusArtistInput = this.shadowRoot.getElementById('zenius-song-artist');
 
+    const debounceZeniusSearch = () => {
+      if (this._searchDebounceTimer) {
+        clearTimeout(this._searchDebounceTimer);
+      }
+      this._searchDebounceTimer = setTimeout(() => {
+        this._searchDebounceTimer = null;
+        const t = this.shadowRoot.getElementById('zenius-song-title').value.trim();
+        const a = this.shadowRoot.getElementById('zenius-song-artist').value.trim();
+        if (!t && !a) {
+          return;
+        }
+        this.runZeniusSearch();
+      }, 450);
+    };
+
+    zeniusTitleInput.addEventListener('input', () => debounceZeniusSearch());
+    zeniusArtistInput.addEventListener('input', () => debounceZeniusSearch());
+
     zeniusTitleInput.addEventListener('keydown', (e) => {
       e.stopPropagation();
-      if (e.key === 'Enter') this.searchZenius();
+      if (e.key === 'Enter') {
+        if (this._searchDebounceTimer) {
+          clearTimeout(this._searchDebounceTimer);
+          this._searchDebounceTimer = null;
+        }
+        this.runZeniusSearch();
+      }
     });
     zeniusArtistInput.addEventListener('keydown', (e) => {
       e.stopPropagation();
-      if (e.key === 'Enter') this.searchZenius();
+      if (e.key === 'Enter') {
+        if (this._searchDebounceTimer) {
+          clearTimeout(this._searchDebounceTimer);
+          this._searchDebounceTimer = null;
+        }
+        this.runZeniusSearch();
+      }
     });
+
+    this.shadowRoot.getElementById('zenius-sort-select').addEventListener('change', () => {
+      this.reapplyCurrentListSort();
+    });
+
+    this.shadowRoot.getElementById('zenius-saved-btn').addEventListener('click', () => {
+      this.displayFavoritesList();
+    });
+
+    const modal = this.shadowRoot.getElementById('zenius-browser-modal');
+    modal.addEventListener('keydown', this._onModalKeydownBound);
+
+    this.shadowRoot.getElementById('content-grid').addEventListener('keydown', this._onGridKeydownBound);
 
     // Breadcrumb navigation
     this.shadowRoot.getElementById('breadcrumb').addEventListener('click', (e) => {
@@ -220,19 +315,34 @@ class ZeniusBrowserElement extends HTMLElement {
   }
 
   showBrowser() {
+    this._previouslyFocused = /** @type {HTMLElement|null} */ (document.activeElement);
     this.classList.add('modal-open');
     this.shadowRoot.getElementById('zenius-browser-modal').classList.add('show');
+    this.renderRecentChips();
 
     // If we have a remembered category and we're at home, navigate to it
     if (this.lastBrowsedCategoryId && this.currentPath === '') {
       this.currentCategoryName = this.lastBrowsedCategoryName || 'Category';
       this.navigateToPath(`categoryid=${this.lastBrowsedCategoryId}`);
     }
+
+    requestAnimationFrame(() => {
+      this.moveFocusIntoModal();
+    });
   }
 
   hideBrowser() {
+    if (this._searchAbortController) {
+      this._searchAbortController.abort();
+      this._searchAbortController = null;
+    }
     this.classList.remove('modal-open');
     this.shadowRoot.getElementById('zenius-browser-modal').classList.remove('show');
+    this.hideLoading();
+    if (this._previouslyFocused && typeof this._previouslyFocused.focus === 'function') {
+      this._previouslyFocused.focus();
+    }
+    this._previouslyFocused = null;
   }
 
   async loadInitialContent() {
@@ -241,6 +351,7 @@ class ZeniusBrowserElement extends HTMLElement {
   }
 
   async navigateToPath(path, switchToCategory = true) {
+    this._favoritesViewActive = false;
     this.currentPath = path;
     // When navigating to categories/home, ensure Category tab is active to show breadcrumbs
     if (switchToCategory) {
@@ -501,6 +612,7 @@ class ZeniusBrowserElement extends HTMLElement {
     // Defensive check for missing or empty content
     const items = content?.items || [];
     if (items.length === 0) {
+      this.shadowRoot.getElementById('list-toolbar').classList.add('hidden');
       gridEl.innerHTML = `
         <div class="empty-state">
           <div class="empty-state-icon">📂</div>
@@ -511,27 +623,45 @@ class ZeniusBrowserElement extends HTMLElement {
       return;
     }
 
-    // Sort items alphabetically by name
-    const sortedItems = [...items].sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-    );
+    const onlySimfiles = items.every((i) => i.type === 'simfile');
+    const onlyDirs = items.every((i) => i.type === 'directory');
+    if (onlySimfiles) {
+      this._lastSimfileListForSort = items.map((i) => ({ ...i }));
+      this._lastListPath = path;
+      this.shadowRoot.getElementById('list-toolbar').classList.remove('hidden');
+      const sorted = this.applySortToSimfiles(this._lastSimfileListForSort);
+      sorted.forEach((item) => {
+        gridEl.appendChild(this.createContentItem(item, path));
+      });
+    } else {
+      this._lastSimfileListForSort = [];
+      this._lastListPath = path;
+      this.shadowRoot.getElementById('list-toolbar').classList.add('hidden');
+      const sortedItems = [...items].sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+      );
+      sortedItems.forEach((item) => {
+        gridEl.appendChild(this.createContentItem(item, path));
+      });
+    }
 
-    sortedItems.forEach((item) => {
-      const itemEl = this.createContentItem(item, path);
-      gridEl.appendChild(itemEl);
-    });
-
+    if (!onlyDirs) {
+      this.initGridRovingTabIndex();
+    }
     this.updateStats();
   }
 
   createContentItem(item, currentPath) {
     if (item.type === 'simfile') {
-      const linkEl = document.createElement('a');
       const fullZeniusUrl = item.url.startsWith('http')
         ? item.url
         : `https://zenius-i-vanisher.com/v5.2/${item.url}`;
-      linkEl.href = `${window.location.origin}${window.location.pathname}?zenius=${fullZeniusUrl}`;
-      linkEl.className = 'content-item';
+      const qs = new URLSearchParams();
+      qs.set('zenius', fullZeniusUrl);
+      const gameUrl = `${window.location.origin}${window.location.pathname}?${qs.toString()}`;
+
+      const card = document.createElement('div');
+      card.className = 'content-item simfile-card';
 
       // Check cached metadata for this simfile (set when song was loaded)
       const cachedMeta = ZeniusBrowserElement.getSimfileMetadata(item.simfileId);
@@ -569,33 +699,65 @@ class ZeniusBrowserElement extends HTMLElement {
         subtitle = `<p class="simfile-subtitle">${parts.join(' • ')}</p>`;
       }
 
-      linkEl.innerHTML = `
+      const mainLink = document.createElement('a');
+      mainLink.href = gameUrl;
+      mainLink.className = 'content-item-body';
+      mainLink.innerHTML = `
         <div class="content-icon">${icon}</div>
         <div class="content-info">
           <h3>${item.name}</h3>
           ${subtitle}
           <div class="simfile-badges">${badges}</div>
         </div>
-        <a href="${fullZeniusUrl}" target="_blank" rel="noopener noreferrer" class="simfile-external-link" title="View on Zenius-I-Vanisher" onclick="event.stopPropagation();">🔗</a>
       `;
 
-      linkEl.addEventListener('click', () => {
+      const ext = document.createElement('a');
+      ext.href = fullZeniusUrl;
+      ext.target = '_blank';
+      ext.rel = 'noopener noreferrer';
+      ext.className = 'simfile-external-link';
+      ext.title = 'View on Zenius-I-Vanisher';
+      ext.textContent = '🔗';
+      ext.addEventListener('click', (e) => e.stopPropagation());
+
+      mainLink.addEventListener('click', () => {
         if (typeof window.trackEvent === 'function') {
           window.trackEvent('song_browser_song_select', 'StepMania', item.name);
         }
-        // Remember the current category so we can preselect it when reopening
         if (this.currentPath.startsWith('categoryid=')) {
-          // From category browse view
           this.lastBrowsedCategoryId = this.currentPath.replace('categoryid=', '');
           this.lastBrowsedCategoryName = this.currentCategoryName;
         } else if (item.categoryId) {
-          // From search results - use the category info from the item
           this.lastBrowsedCategoryId = item.categoryId;
           this.lastBrowsedCategoryName = item.category || 'Category';
         }
       });
 
-      return linkEl;
+      const favorited = isFavoriteSimfileId(item.simfileId);
+      const favBtn = document.createElement('button');
+      favBtn.type = 'button';
+      favBtn.className = 'fav-btn';
+      favBtn.setAttribute('aria-label', favorited ? 'Remove from saved' : 'Save song');
+      favBtn.setAttribute('aria-pressed', favorited ? 'true' : 'false');
+      favBtn.textContent = favorited ? '★' : '☆';
+      favBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const nowOn = toggleFavorite({
+          simfileId: item.simfileId,
+          zeniusUrl: fullZeniusUrl,
+          title: item.name
+        });
+        favBtn.setAttribute('aria-pressed', nowOn ? 'true' : 'false');
+        favBtn.setAttribute('aria-label', nowOn ? 'Remove from saved' : 'Save song');
+        favBtn.textContent = nowOn ? '★' : '☆';
+        this.updateSavedButtonLabel();
+      });
+      card.appendChild(mainLink);
+      card.appendChild(ext);
+      card.appendChild(favBtn);
+
+      return card;
     } else {
       const itemEl = document.createElement('div');
       itemEl.className = 'content-item';
@@ -668,7 +830,7 @@ class ZeniusBrowserElement extends HTMLElement {
       });
     }
 
-    this.displaySearchResults(searchResults);
+    this.displaySearchResults(searchResults, this.currentPath);
   }
 
   setSearchMode(mode) {
@@ -688,9 +850,14 @@ class ZeniusBrowserElement extends HTMLElement {
       zeniusFields.classList.add('hidden');
       localFields.classList.remove('hidden');
     }
+
+    if (mode === 'local' && this._favoritesViewActive) {
+      this._favoritesViewActive = false;
+      void this.loadContent(this.currentPath);
+    }
   }
 
-  async searchZenius() {
+  async runZeniusSearch() {
     const songTitle = this.shadowRoot.getElementById('zenius-song-title').value.trim();
     const songArtist = this.shadowRoot.getElementById('zenius-song-artist').value.trim();
 
@@ -699,46 +866,63 @@ class ZeniusBrowserElement extends HTMLElement {
       return;
     }
 
-    this.showLoading('Searching Zenius-I-Vanisher...');
+    if (this._searchAbortController) {
+      this._searchAbortController.abort();
+    }
+    this._searchAbortController = new AbortController();
+    const { signal } = this._searchAbortController;
+
+    this._searchReqId += 1;
+    const reqId = this._searchReqId;
+    this._favoritesViewActive = false;
+    this.showLoading('Searching…');
 
     try {
-      // Zenius search accepts GET with query params; use GET so we can use the same working proxies as viewsimfile
       const params = new URLSearchParams();
       params.set('songtitle', songTitle);
       params.set('songartist', songArtist);
       const url = `https://zenius-i-vanisher.com/v5.2/simfiles_search_ajax.php?${params.toString()}`;
 
-      const html = await window.proxyService.fetchWithProxy(url, { skipDirect: true });
+      const html = await window.proxyService.fetchWithProxy(url, { skipDirect: true, signal });
 
-      // Parse search results
+      if (reqId !== this._searchReqId) {
+        return;
+      }
+
       const results = this.parseZeniusSearchResults(html);
 
       if (results.length === 0) {
-        this.showError(
-          `No results found for "${songTitle || songArtist}". Try different search terms.`
+        this.showSearchEmpty(
+          `No results for “${songTitle || songArtist}”. Try other spellings or use the Category tab.`
         );
+        this.shadowRoot.getElementById('item-count').textContent = '0 results';
+        this.shadowRoot.getElementById('current-path').textContent = 'Search (no matches)';
       } else {
         this.displaySearchResults(results);
         this.shadowRoot.getElementById('item-count').textContent = `${results.length} results`;
-        this.shadowRoot.getElementById('current-path').textContent = `Search: "${
+        this.shadowRoot.getElementById('current-path').textContent = `Search: “${
           songTitle || songArtist
-        }"`;
+        }”`;
       }
 
-      // Track analytics
       if (typeof window.trackEvent === 'function') {
         window.trackEvent('zenius_search', 'StepMania', `${songTitle} | ${songArtist}`);
       }
     } catch (error) {
+      if (error && error.name === 'AbortError') {
+        return;
+      }
       console.error('Zenius search failed:', error);
       this.showError(
-        `Search failed: ${error.message}. The Zenius search may not be available through proxies.`,
+        `Search failed: ${error.message || 'Network error'}. The Zenius search may be unavailable through proxies. Try again shortly.`,
         () => {
-          this.searchZenius();
+          this.runZeniusSearch();
         }
       );
     } finally {
-      this.hideLoading();
+      if (reqId === this._searchReqId) {
+        this.hideLoading();
+      }
     }
   }
 
@@ -822,11 +1006,19 @@ class ZeniusBrowserElement extends HTMLElement {
     return results;
   }
 
-  displaySearchResults(results) {
+  /**
+   * @param {unknown[]} results
+   * @param {string} [itemPath] - `currentPath` when filtering a category, else `''` for site search
+   */
+  displaySearchResults(results, itemPath = '') {
+    this._favoritesViewActive = false;
+    this._lastSimfileListForSort = results.map((r) => ({ ...r }));
+    this._lastListPath = itemPath && itemPath.length > 0 ? itemPath : 'search';
     const gridEl = this.shadowRoot.getElementById('content-grid');
     gridEl.innerHTML = '';
 
     if (results.length === 0) {
+      this.shadowRoot.getElementById('list-toolbar').classList.add('hidden');
       gridEl.innerHTML = `
         <div class="empty-state">
           <div class="empty-state-icon">🔍</div>
@@ -834,18 +1026,17 @@ class ZeniusBrowserElement extends HTMLElement {
           <p>Try adjusting your search terms.</p>
         </div>
       `;
+      this.initGridRovingTabIndex();
       return;
     }
 
-    // Sort results alphabetically by name
-    const sortedResults = [...results].sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-    );
-
+    this.shadowRoot.getElementById('list-toolbar').classList.remove('hidden');
+    const sortedResults = this.applySortToSimfiles(this._lastSimfileListForSort);
     sortedResults.forEach((item) => {
-      const itemEl = this.createContentItem(item, '');
+      const itemEl = this.createContentItem(item, itemPath);
       gridEl.appendChild(itemEl);
     });
+    this.initGridRovingTabIndex();
   }
 
   showLoading(text) {
@@ -889,6 +1080,266 @@ class ZeniusBrowserElement extends HTMLElement {
       if (retryBtn) {
         retryBtn.addEventListener('click', retryCallback);
       }
+    }
+  }
+
+  showSearchEmpty(message) {
+    this._lastSimfileListForSort = [];
+    this.shadowRoot.getElementById('list-toolbar').classList.add('hidden');
+    const gridEl = this.shadowRoot.getElementById('content-grid');
+    gridEl.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">🔍</div>
+        <h3>No results</h3>
+        <p class="search-empty-msg"></p>
+      </div>
+    `;
+    const p = gridEl.querySelector('.search-empty-msg');
+    if (p) p.textContent = message;
+    this.initGridRovingTabIndex();
+  }
+
+  displayFavoritesList() {
+    this._favoritesViewActive = true;
+    this.setSearchMode('zenius');
+    const favs = getFavorites();
+    this._lastSimfileListForSort = favs.map((f) => ({
+      type: 'simfile',
+      name: f.title,
+      url: f.zeniusUrl,
+      icon: '🎵',
+      simfileId: f.simfileId,
+      hasVideo: false,
+      difficulties: []
+    }));
+    this._lastListPath = 'favorites';
+    this.shadowRoot.getElementById('item-count').textContent = `${favs.length} items`;
+    this.shadowRoot.getElementById('current-path').textContent = 'Saved';
+    this.shadowRoot.getElementById('content-grid').innerHTML = '';
+    this.shadowRoot.getElementById('breadcrumb').innerHTML =
+      '<span class="breadcrumb-item" data-path="">🏠 Home</span>';
+
+    if (favs.length === 0) {
+      this.shadowRoot.getElementById('list-toolbar').classList.add('hidden');
+      this.shadowRoot.getElementById('content-grid').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">⭐</div>
+          <h3>No saved songs</h3>
+          <p>Click the star on a song to add it to Saved. It stays on this device only.</p>
+        </div>
+      `;
+      this.initGridRovingTabIndex();
+      return;
+    }
+
+    this.shadowRoot.getElementById('list-toolbar').classList.remove('hidden');
+    const gridEl = this.shadowRoot.getElementById('content-grid');
+    this.applySortToSimfiles(this._lastSimfileListForSort).forEach((item) => {
+      gridEl.appendChild(this.createContentItem(item, ''));
+    });
+    this.initGridRovingTabIndex();
+  }
+
+  reapplyCurrentListSort() {
+    if (!this._lastSimfileListForSort.length) {
+      return;
+    }
+    const itemPath = this._favoritesViewActive
+      ? ''
+      : this._lastListPath === 'search' || this._lastListPath === 'favorites'
+        ? ''
+        : this._lastListPath;
+    const gridEl = this.shadowRoot.getElementById('content-grid');
+    const sorted = this.applySortToSimfiles(this._lastSimfileListForSort.map((i) => ({ ...i })));
+    gridEl.innerHTML = '';
+    sorted.forEach((item) => {
+      gridEl.appendChild(this.createContentItem(item, itemPath));
+    });
+    this.initGridRovingTabIndex();
+  }
+
+  getSortMode() {
+    const el = this.shadowRoot.getElementById('zenius-sort-select');
+    return el ? el.value : 'name-asc';
+  }
+
+  /**
+   * @param {Array<Record<string, unknown> & { name: string }>} items
+   */
+  applySortToSimfiles(items) {
+    const mode = this.getSortMode();
+    const out = items.map((i) => ({ ...i }));
+    if (mode === 'name-asc') {
+      out.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    } else if (mode === 'name-desc') {
+      out.sort((a, b) => b.name.localeCompare(a.name, undefined, { sensitivity: 'base' }));
+    } else if (mode === 'video-first') {
+      out.sort((a, b) => {
+        const va = this.simfileHasVideoFromItem(a) ? 1 : 0;
+        const vb = this.simfileHasVideoFromItem(b) ? 1 : 0;
+        if (vb !== va) return vb - va;
+        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+      });
+    }
+    return out;
+  }
+
+  /**
+   * @param {Record<string, unknown>} item
+   */
+  simfileHasVideoFromItem(item) {
+    const id = /** @type {string|undefined} */ (item.simfileId);
+    if (id) {
+      const meta = ZeniusBrowserElement.getSimfileMetadata(id);
+      if (meta && meta.hasVideo) return true;
+    }
+    return !!item.hasVideo;
+  }
+
+  initGridRovingTabIndex() {
+    const grid = this.shadowRoot.getElementById('content-grid');
+    const items = /** @type {HTMLElement[]} */ (Array.from(grid.querySelectorAll('.content-item')));
+    items.forEach((el, i) => {
+      el.setAttribute('tabindex', i === 0 ? '0' : '-1');
+    });
+  }
+
+  /**
+   * @param {KeyboardEvent} e
+   */
+  handleGridKeydown(e) {
+    const t = e.target;
+    if (!(t instanceof HTMLElement) || !t.classList.contains('content-item')) {
+      return;
+    }
+    const navKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter'];
+    if (!navKeys.includes(e.key)) {
+      return;
+    }
+    const grid = this.shadowRoot.getElementById('content-grid');
+    const items = /** @type {HTMLElement[]} */ (Array.from(grid.querySelectorAll('.content-item')));
+    if (items.length === 0) {
+      return;
+    }
+    const i = items.indexOf(t);
+    if (i < 0) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.key === 'Enter') {
+      const play = t.querySelector('a.content-item-body');
+      if (play) {
+        play.click();
+      } else {
+        t.click();
+      }
+      return;
+    }
+    let next = i;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      next = Math.min(i + 1, items.length - 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      next = Math.max(i - 1, 0);
+    } else if (e.key === 'Home') {
+      next = 0;
+    } else if (e.key === 'End') {
+      next = items.length - 1;
+    }
+    items.forEach((el, j) => el.setAttribute('tabindex', j === next ? '0' : '-1'));
+    items[next].focus();
+  }
+
+  /**
+   * @param {KeyboardEvent} e
+   */
+  handleModalKeydown(e) {
+    const modal = this.shadowRoot.getElementById('zenius-browser-modal');
+    if (!modal.classList.contains('show')) {
+      return;
+    }
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      e.preventDefault();
+      this.hideBrowser();
+      return;
+    }
+    if (e.key !== 'Tab') {
+      return;
+    }
+    const focusables = this.getModalFocusableElements();
+    if (focusables.length === 0) {
+      return;
+    }
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const active = this.shadowRoot.activeElement;
+    if (e.shiftKey) {
+      if (active === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else if (active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
+  getModalFocusableElements() {
+    const modal = this.shadowRoot.getElementById('zenius-browser-modal');
+    const sel =
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    return Array.from(modal.querySelectorAll(sel)).filter(
+      (el) =>
+        el instanceof HTMLElement &&
+        el.offsetWidth > 0 &&
+        el.offsetHeight > 0 &&
+        getComputedStyle(el).visibility !== 'hidden'
+    );
+  }
+
+  moveFocusIntoModal() {
+    const t = this.shadowRoot.getElementById('close-zenius-browser');
+    if (t) {
+      t.focus();
+    }
+  }
+
+  renderRecentChips() {
+    const wrap = this.shadowRoot.getElementById('zenius-recent-chips');
+    const block = this.shadowRoot.getElementById('zenius-recent-block');
+    if (!wrap || !block) {
+      return;
+    }
+    const recent = getRecentSongs();
+    wrap.innerHTML = '';
+    if (recent.length === 0) {
+      block.classList.add('empty');
+    } else {
+      block.classList.remove('empty');
+      for (const r of recent) {
+        const a = document.createElement('a');
+        a.className = 'zenius-recent-chip';
+        const qs = new URLSearchParams();
+        qs.set('zenius', r.zeniusUrl);
+        a.href = `${window.location.origin}${window.location.pathname}?${qs.toString()}`;
+        a.textContent = r.title;
+        a.setAttribute('role', 'listitem');
+        a.title = r.title;
+        a.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+        });
+        wrap.appendChild(a);
+      }
+    }
+    this.updateSavedButtonLabel();
+  }
+
+  updateSavedButtonLabel() {
+    const n = getFavorites().length;
+    const btn = this.shadowRoot.getElementById('zenius-saved-btn');
+    if (btn) {
+      btn.textContent = n > 0 ? `Saved (${n})` : 'Saved';
     }
   }
 }
