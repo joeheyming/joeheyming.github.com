@@ -9,12 +9,13 @@ import {
   loadLocalSimfile,
   fetchZeniusAudioFromZip
 } from './songLoader.js';
-
-// Audio loading constants
-const AUDIO_PROXY_TIMEOUT = 10000; // 10 seconds - fail fast if blocked
-const AUDIO_PROXY_MAX_RETRIES = 1;
-// Minimum bytes to consider audio valid - proxy errors often return small HTML error pages
-const MIN_VALID_AUDIO_SIZE = 1000;
+import {
+  AUDIO_PROXY_TIMEOUT,
+  AUDIO_PROXY_MAX_RETRIES,
+  MIN_VALID_AUDIO_SIZE,
+  binaryPayloadByteLength,
+  createDefaultSongProxyTransport
+} from './songProxyTransport.js';
 
 class SongManager {
   constructor() {
@@ -22,6 +23,9 @@ class SongManager {
       return SongManager.instance;
     }
     SongManager.instance = this;
+
+    /** @type {import('./songProxyTransport.js').SongProxyTransport | null} Override for tests or alternate backends */
+    this._proxyTransport = null;
 
     /** Current song info */
     this._currentSong = null; // { key: string, data: object }
@@ -64,6 +68,22 @@ class SongManager {
    */
   getCurrentSongKey() {
     return this._currentSong?.key || null;
+  }
+
+  /**
+   * Replace default Zenius proxy transport (e.g. tests). Pass null to restore default.
+   * @param {import('./songProxyTransport.js').SongProxyTransport | null} transport
+   */
+  setProxyTransport(transport) {
+    this._proxyTransport = transport;
+  }
+
+  /**
+   * Active proxy transport (custom or default from window.proxyService).
+   * @returns {import('./songProxyTransport.js').SongProxyTransport}
+   */
+  getProxyTransport() {
+    return this._proxyTransport ?? createDefaultSongProxyTransport();
   }
 
   /**
@@ -193,7 +213,7 @@ class SongManager {
       }
 
       onProgress?.('Fetching simfile data...', 15);
-      const simfileData = await fetchZeniusSimfile(simfileId);
+      const simfileData = await fetchZeniusSimfile(simfileId, this.getProxyTransport());
 
       onProgress?.('Parsing simfile charts...', 50);
       const { songKey, songData, parsedData } = parseZeniusSimfile(simfileData, simfileId);
@@ -290,7 +310,7 @@ class SongManager {
     try {
       onProgress?.('Downloading audio file...', 35);
 
-      const audioData = await window.proxyService.fetchBinaryWithProxy(audioUrl, {
+      const audioData = await this.getProxyTransport().fetchBinary(audioUrl, {
         skipDirect: true,
         deferProxies: ['https://corsproxy.io/'],
         headers: {
@@ -302,7 +322,7 @@ class SongManager {
       });
 
       // Check if we got actual audio data (not an error page)
-      if (audioData && audioData.byteLength > MIN_VALID_AUDIO_SIZE) {
+      if (audioData && binaryPayloadByteLength(audioData) > MIN_VALID_AUDIO_SIZE) {
         await audioManager.loadArrayBuffer(audioData, mimeType);
         audioLoaded = true;
       }
@@ -317,7 +337,7 @@ class SongManager {
       try {
         onProgress?.('Downloading song pack (fallback)...', 45);
 
-        const zipResult = await fetchZeniusAudioFromZip(simfileId);
+        const zipResult = await fetchZeniusAudioFromZip(simfileId, this.getProxyTransport());
         if (zipResult) {
           await audioManager.loadBlob(zipResult.audioBlob, zipResult.audioType);
           audioLoaded = true;

@@ -2,20 +2,25 @@
 // Handles loading songs from Zenius-I-Vanisher and local simfiles
 
 import { SimfileParser } from './simfileParser.js';
+import {
+  createDefaultSongProxyTransport,
+  ZIP_DOWNLOAD_TIMEOUT,
+  ZIP_MAX_RETRIES
+} from './songProxyTransport.js';
 
 /** Network/loading settings */
 const FETCH_TIMEOUT = 15000;
 const MAX_RETRIES = 3;
-const ZIP_DOWNLOAD_TIMEOUT = 60000; // ZIP files can be large, allow more time
-const ZIP_MAX_RETRIES = 2;
 
 /**
  * Helper to fetch simfiles through proxy with appropriate settings
  * @param {string} url - URL to fetch
+ * @param {import('./songProxyTransport.js').SongProxyTransport} [transport]
  * @returns {Promise<string>} Fetched content
  */
-async function fetchSimfile(url) {
-  return window.proxyService.fetchWithProxy(url, {
+async function fetchSimfile(url, transport) {
+  const t = transport ?? createDefaultSongProxyTransport();
+  return t.fetchText(url, {
     skipDirect: true, // origin blocks CORS
     headers: {
       Accept: 'text/plain,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
@@ -43,12 +48,14 @@ export function extractSimfileId(zeniusUrl) {
 /**
  * Fetch and parse simfile data from Zenius-I-Vanisher
  * @param {string} simfileId - The simfile ID to fetch
+ * @param {import('./songProxyTransport.js').SongProxyTransport} [transport]
  * @returns {Promise<Object>} Parsed simfile data
  */
-export async function fetchZeniusSimfile(simfileId) {
+export async function fetchZeniusSimfile(simfileId, transport) {
+  const t = transport ?? createDefaultSongProxyTransport();
   const zeniusPageUrl = 'https://zenius-i-vanisher.com/v5.2/viewsimfile.php?simfileid=' + simfileId;
 
-  const html = await window.proxyService.fetchWithProxy(zeniusPageUrl, { skipDirect: true });
+  const html = await t.fetchText(zeniusPageUrl, { skipDirect: true });
 
   // Try to match file links with descriptive text first, then fall back to any match
   let simfileMatch = html.match(/href="([^"]*\.sm)"[^>]*>.*?SM.*?<\/a>/);
@@ -107,7 +114,7 @@ export async function fetchZeniusSimfile(simfileId) {
 
   // Fetch the actual simfile content
   const simfileDirectUrl = 'https://zenius-i-vanisher.com' + simfileMatch[1];
-  const simfileText = await fetchSimfile(simfileDirectUrl);
+  const simfileText = await fetchSimfile(simfileDirectUrl, t);
 
   return {
     title,
@@ -164,14 +171,16 @@ export async function loadLocalSimfile(simfileUrl) {
 /**
  * Download simfile ZIP and extract audio as fallback when direct audio download fails
  * @param {string} simfileId - The simfile ID
+ * @param {import('./songProxyTransport.js').SongProxyTransport} [transport]
  * @returns {Promise<{audioBlob: Blob, audioType: string}|null>} Audio blob and type, or null if failed
  */
-export async function fetchZeniusAudioFromZip(simfileId) {
+export async function fetchZeniusAudioFromZip(simfileId, transport) {
+  const t = transport ?? createDefaultSongProxyTransport();
   const zipUrl = `https://zenius-i-vanisher.com/v5.2/download.php?type=ddrsimfile&simfileid=${simfileId}`;
 
   try {
     // Download ZIP through proxy
-    const zipData = await window.proxyService.fetchBinaryWithProxy(zipUrl, {
+    const zipData = await t.fetchBinary(zipUrl, {
       skipDirect: true,
       deferProxies: ['https://corsproxy.io/'],
       timeout: ZIP_DOWNLOAD_TIMEOUT,

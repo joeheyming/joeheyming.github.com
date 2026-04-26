@@ -1,8 +1,10 @@
 {
   "scripts": {
-    "lint": "eslint app.js generate-previews.js share.js google-db todo",
+    "test": "node --test tests/**/*.test.mjs",
+    "sync:manifest": "node scripts/sync-portfolio-metadata.mjs",
+    "lint": "eslint app.js mime-handlers.js generate-previews.js share.js google-db todo",
     "lint:fix": "eslint --fix .",
-    "format:check": "prettier --check app.js generate-previews.js share.js google-db todo",
+    "format:check": "prettier --check app.js mime-handlers.js generate-previews.js share.js google-db todo",
     "format:fix": "prettier --write .",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

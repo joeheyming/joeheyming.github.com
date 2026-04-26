@@ -13,148 +13,37 @@
     return;
   }
 
-  // Project relationships - categorized by type
-  const projectRelationships = {
-    // Games
-    doom: {
-      category: 'game',
-      related: ['pacman', 'nes', 'minesweeper', 'stepmania']
-    },
-    pacman: {
-      category: 'game',
-      related: ['doom', 'nes', 'minesweeper', 'farm']
-    },
-    nes: {
-      category: 'game',
-      related: ['doom', 'pacman', 'stepmania']
-    },
-    minesweeper: {
-      category: 'game',
-      related: ['pacman', 'doom', 'wordle-finder']
-    },
-    stepmania: {
-      category: 'game',
-      related: ['awesome', 'doom', 'nes']
-    },
-    farm: {
-      category: 'game',
-      related: ['awesome', 'pacman', 'doom']
-    },
-
-    // Entertainment
-    awesome: {
-      category: 'entertainment',
-      related: ['badapple', 'stepmania', 'farm', 'pbs']
-    },
-    badapple: {
-      category: 'entertainment',
-      related: ['awesome', 'shadowbox', 'pbs']
-    },
-    pbs: {
-      category: 'entertainment',
-      related: ['awesome', 'sadtrombone', 'sayhello']
-    },
-    sadtrombone: {
-      category: 'entertainment',
-      related: ['pbs', 'awesome', 'sayhello']
-    },
-
-    // Utilities
-    terminal: {
-      category: 'utility',
-      related: ['notepad', 'filemanager', 'calculator', 'countdown']
-    },
-    notepad: {
-      category: 'utility',
-      related: ['terminal', 'todo', 'filemanager', 'calculator']
-    },
-    todo: {
-      category: 'utility',
-      related: ['notepad', 'terminal', 'wordle-finder']
-    },
-    calculator: {
-      category: 'utility',
-      related: ['terminal', 'notepad', 'countdown']
-    },
-    countdown: {
-      category: 'utility',
-      related: ['calculator', 'terminal', 'wordle-finder']
-    },
-    'wordle-finder': {
-      category: 'utility',
-      related: ['minesweeper', 'terminal', 'calculator', 'todo']
-    },
-    'programming-advice': {
-      category: 'utility',
-      related: ['terminal', 'notepad', 'wordle-finder']
-    },
-    filemanager: {
-      category: 'utility',
-      related: ['terminal', 'notepad', 'image-viewer', 'media-player']
-    },
-    'media-player': {
-      category: 'utility',
-      related: ['filemanager', 'youtube', 'awesome']
-    },
-    'image-viewer': {
-      category: 'utility',
-      related: ['filemanager', 'shadowbox', 'badapple']
-    },
-    youtube: {
-      category: 'utility',
-      related: ['media-player', 'vibe-coding', 'awesome']
-    },
-    'vibe-coding': {
-      category: 'utility',
-      related: ['youtube', 'terminal', 'notepad']
-    },
-    sayhello: {
-      category: 'utility',
-      related: ['sayit', 'pbs', 'sadtrombone']
-    },
-    sayit: {
-      category: 'utility',
-      related: ['sayhello', 'pbs', 'awesome']
-    },
-    shadowbox: {
-      category: 'utility',
-      related: ['badapple', 'image-viewer', 'terminal']
-    },
-    'periodic-speller': {
-      category: 'utility',
-      related: ['wordle-finder', 'calculator', 'countdown']
+  function loadAppsRegistryForShareSync() {
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', '/apps-registry.json', false);
+      xhr.send(null);
+      const ok = xhr.status === 200 || xhr.status === 304 || xhr.status === 0;
+      if (!ok) return [];
+      const data = JSON.parse(xhr.responseText);
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      console.warn('[share.js] Could not load apps-registry.json', e);
+      return [];
     }
-  };
+  }
 
-  // Project metadata
-  const projectMetadata = {
-    doom: { name: 'Doom', icon: '💀', description: 'Classic FPS' },
-    pacman: { name: 'Pac-Man', icon: '👻', description: 'Arcade classic' },
-    minesweeper: { name: 'Minesweeper', icon: '💣', description: 'Puzzle game' },
-    nes: { name: 'NES Emulator', icon: '🕹️', description: 'Play NES games' },
-    stepmania: { name: 'Stepmania', icon: '💃', description: 'Rhythm game' },
-    farm: { name: 'Farm Adventures', icon: '🚜', description: 'Digital farming' },
-    awesome: { name: 'Everything is Awesome', icon: '🎉', description: 'Pure joy' },
-    badapple: { name: 'Bad Apple', icon: '🍎', description: 'Classic video' },
-    pbs: { name: 'Pirate Broadcast', icon: '🏴‍☠️', description: 'Arrr!' },
-    sadtrombone: { name: 'Sad Trombone', icon: '🎺', description: 'Oops moment' },
-    terminal: { name: 'Terminal', icon: '💻', description: 'Command line' },
-    notepad: { name: 'Notepad', icon: '📝', description: 'Text editor' },
-    todo: { name: 'Todo', icon: '✅', description: 'Sheets-backed tasks' },
-    calculator: { name: 'Calculator', icon: '🔢', description: 'Do math' },
-    countdown: { name: 'Countdown', icon: '⏱️', description: 'Event timer' },
-    'wordle-finder': { name: 'Wordle Finder', icon: '🔤', description: 'Word solver' },
-    'programming-advice': { name: 'Programming Advice', icon: '🧠', description: 'Dev wisdom' },
-    filemanager: { name: 'File Manager', icon: '📂', description: 'Browse files' },
-    'media-player': { name: 'Media Player', icon: '🎵', description: 'Play media' },
-    'image-viewer': { name: 'Image Viewer', icon: '🖼️', description: 'View images' },
-    youtube: { name: 'JoeTube', icon: '🎥', description: 'Watch videos' },
-    'vibe-coding': { name: 'Vibe Coding', icon: '🤖', description: 'Web dev tips' },
-    sayhello: { name: 'Say Hello', icon: '👋', description: 'Text-to-speech' },
-    sayit: { name: 'Say It', icon: '🗣️', description: 'Advanced TTS' },
-    shadowbox: { name: 'Shadowbox', icon: '🕵️', description: 'Surveillance mode' },
-    'periodic-speller': { name: 'Periodic Speller', icon: '⚛️', description: 'Spell with elements' }
-  };
+  const registryApps = loadAppsRegistryForShareSync();
+  const projectRelationships = {};
+  const projectMetadata = {};
+  for (const app of registryApps) {
+    projectMetadata[app.id] = {
+      name: app.shortName || app.name,
+      icon: app.icon || '📦',
+      description: app.description || ''
+    };
+    if (app.related && app.related.length) {
+      projectRelationships[app.id] = {
+        category: app.shareCategory || app.category || 'utility',
+        related: app.related
+      };
+    }
+  }
 
   // Get current project from URL
   function getCurrentProject() {

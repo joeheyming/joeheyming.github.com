@@ -80,7 +80,11 @@ export class ContextMenu {
 
     const F = window.FileSystemDB;
     const mime = F ? F.mimeTypeForOpen(file) : 'application/octet-stream';
-    const apps = window.AppModule?.getAppsForMimeType?.(mime) || [];
+    const registry = window.AppModule?.getAllApps?.() || [];
+    const apps =
+      window.MimeHandlers?.getAppsForMimeType?.(mime, registry) ||
+      window.AppModule?.getAppsForMimeType?.(mime) ||
+      [];
     const seen = new Set(apps.map((a) => a.appId));
     const lines = [];
 

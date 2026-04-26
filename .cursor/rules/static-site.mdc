@@ -1,0 +1,28 @@
+---
+description: This repo is a static site only—no runtime web server
+alwaysApply: true
+---
+
+# Static site (no web server)
+
+This repository is deployed as **static files** (GitHub Pages at `joeheyming.github.io`). There is **no application web server** in production and no plans to add one.
+
+## Do
+
+- Assume all pages, games, and tools run **entirely in the browser** (HTML, CSS, client JS, WASM, service workers).
+- Use **client-side** APIs, `fetch`, `localStorage`, service workers, and static assets only.
+- Treat **optional dev-time** tools (e.g. `node` for tests, lint, one-off scripts under `scripts/`) as **not** part of the deployed site.
+- For anything that would normally need a “backend” or same-origin API: the pattern here is to call **external services** (public APIs, CORS-friendly endpoints, or **third-party proxies** from the client). The static site has **no** first-party server; any “API” is **outbound to something outside this repo** (e.g. shared proxy/CORS layers you do not run on GitHub Pages).
+
+## Do not
+
+- Propose or add a **runtime** Node/Express/Fastify server, serverless API routes as the primary architecture, or “add a small backend” for features that can live in static + client JS.
+- Assume `POST` to same-origin APIs, sessions on the host, or server-side rendering for the public site.
+- Suggest production features that **require** secrets on a server you control (unless clearly out of scope for this repo).
+
+## Cross-origin and hosting
+
+- **COOP/COEP** and CORS are browser and static-hosting constraints; the live site is not backed by a custom origin server for app logic.
+- If you need a proxy, reverse proxy, or “API” for third-party data: that lives **off-site**; this repo only holds the **client** that talks to it (e.g. `window.proxyService` style calls), not a deployable server here.
+
+When unsure, default to: **if it cannot be done with static files and browser JS, it does not fit this repo’s deployment model.**

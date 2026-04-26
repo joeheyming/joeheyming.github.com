@@ -7,7 +7,9 @@ import { CanvasManager } from './canvasManager.js';
 import gameState from './gameState.js';
 import { songManager } from './songManager.js';
 import { ARROW_WIDTH, TARGETS_Y } from './config.js';
-import { TAP_NOTE_POINTS, ScorePanel } from './score-panel.js';
+import { TAP_NOTE_POINTS, TIMING_WINDOWS, MISS_TIMING_INDEX } from './judgmentPolicy.js';
+import { adjudicateColumnPress } from './columnPressAdjudication.js';
+import { ScorePanel } from './score-panel.js';
 import { LoadingOverlay } from './loading-overlay.js';
 import { getBPMAtBeat, secondsToBeats, beatsToSeconds, getMusicBeat } from './timing.js';
 import { GameOverModal } from './game-over-modal.js';
@@ -22,26 +24,6 @@ import Judgment from './judgment.js';
 import { videoManager } from './videoManager.js';
 import { audioManager } from './audioManager.js';
 import { inputManager } from './inputManager.js';
-
-/**
- * Timing windows for note judgments (in seconds)
- * How close to the target beat you need to hit for each judgment
- */
-const TIMING = {
-  /** Perfect timing window - 50ms */
-  PERFECT: 0.05,
-  /** Great timing window - 100ms */
-  GREAT: 0.1,
-  /** Good timing window - 150ms */
-  GOOD: 0.15,
-  /** Bad timing window - 250ms */
-  BAD: 0.25,
-  /** Miss threshold - 300ms */
-  MISS: 0.3
-};
-
-/** Array of timing windows for iteration */
-const TIMING_WINDOWS = [TIMING.PERFECT, TIMING.GREAT, TIMING.GOOD, TIMING.BAD, TIMING.MISS];
 
 /** Target frames per second */
 const TARGET_FPS = 90;
@@ -165,23 +147,6 @@ function getBrowserAlertText() {
   return '';
 }
 
-const text = getBrowserAlertText();
-if (text) {
-  const alertMessage = document.getElementById('alert-message');
-  const logo = document.getElementById('logo');
-  const alert = document.getElementById('alert');
-
-  if (alertMessage) alertMessage.textContent = text;
-  if (logo) logo.classList.add('hidden');
-  if (alert) alert.classList.remove('hidden');
-} else {
-  const logo = document.getElementById('logo');
-  const alert = document.getElementById('alert');
-
-  if (logo) logo.classList.remove('hidden');
-  if (alert) alert.classList.add('hidden');
-}
-
 // Canvas is managed by CanvasManager
 
 /**
@@ -194,77 +159,32 @@ function step(col) {
   const songBeats = secondsToBeats(songSeconds);
   const noteData = gameState.getNoteData();
 
-  let hit = false;
-  let mineHit = false;
-  let tapNoteScore = 0;
+  const { mineHitCount, hit, tapNoteScore } = adjudicateColumnPress(
+    songBeats,
+    col,
+    noteData,
+    activeHolds,
+    songSeconds
+  );
 
-  noteData.forEach(function (note) {
-    const noteBeat = note[0];
-    const noteCol = note[1];
-    const noteProps = note[2];
-    const diff = Math.abs(noteBeat - songBeats);
+  for (let m = 0; m < mineHitCount; m++) {
+    gameState.incrementMineHits();
 
-    if ('tapNoteScore' in noteProps) return;
-    if (noteCol != col) return;
-    if (diff >= TIMING_WINDOWS[TIMING_WINDOWS.length - 1]) return;
+    const currentPoints = gameState.getActualPoints();
+    gameState.setActualPoints(Math.max(0, currentPoints - 10));
 
-    if (noteProps.Type === 'M') {
-      noteProps.tapNoteScore = 5;
-      mineHit = true;
-      gameState.incrementMineHits();
+    gameState.breakCombo();
 
-      // Deduct points for mine hit
-      const currentPoints = gameState.getActualPoints();
-      gameState.setActualPoints(Math.max(0, currentPoints - 10));
+    ScorePanel.updatePercent(gameState.getActualPoints(), noteData.length, {
+      combo: 0,
+      score: gameState.getScore(),
+      maxCombo: gameState.getMaxCombo()
+    });
 
-      // Break combo for hitting a mine
-      gameState.breakCombo();
+    gameState.applyDamage(15);
+  }
 
-      ScorePanel.updatePercent(gameState.getActualPoints(), noteData.length, {
-        combo: 0,
-        score: gameState.getScore(),
-        maxCombo: gameState.getMaxCombo()
-      });
-
-      // Damage health for hitting a mine
-      gameState.applyDamage(15);
-
-      return;
-    }
-
-    if (noteProps.Type === 2 && noteProps.Duration) {
-      // Hold note - don't score yet, just start tracking
-      // Will be scored when completed or dropped in updateHolds()
-      for (let j = 0; j < TIMING_WINDOWS.length; j++) {
-        if (diff <= TIMING_WINDOWS[j]) {
-          noteProps.tapNoteScore = j;
-          // Don't set tapNoteScore here - hold notes are scored on completion
-          activeHolds[col] = {
-            note: note,
-            startBeat: noteBeat,
-            endBeat: noteBeat + noteProps.Duration / 48,
-            startTime: songSeconds,
-            hitScore: j,
-            wasDropped: false,
-            lastCheckTime: songSeconds
-          };
-          hit = false; // Don't trigger handleTapNoteScore for hold heads
-          break;
-        }
-      }
-    } else {
-      for (let j = 0; j < TIMING_WINDOWS.length; j++) {
-        if (diff <= TIMING_WINDOWS[j]) {
-          noteProps.tapNoteScore = j;
-          tapNoteScore = j;
-          hit = true;
-          break;
-        }
-      }
-    }
-  });
-
-  if (mineHit) {
+  if (mineHitCount > 0) {
     const explosion = explosions[col];
     explosion
       .stop()
@@ -429,8 +349,8 @@ function updateHolds() {
 
       hold.note[2].holdCompleted = true;
       delete activeHolds[col];
-    } else if (songBeats > hold.endBeat + TIMING_WINDOWS[TIMING_WINDOWS.length - 1]) {
-      const missScore = TIMING_WINDOWS.length - 1;
+    } else if (songBeats > hold.endBeat + TIMING_WINDOWS[MISS_TIMING_INDEX]) {
+      const missScore = MISS_TIMING_INDEX;
       gameState.incrementScore(missScore);
       gameState.addPoints(TAP_NOTE_POINTS[missScore]);
 
@@ -491,7 +411,7 @@ function update(deltaSeconds) {
 
   // Auto-miss notes that have passed (skip in autoplay mode)
   if (!gameState.isAutoplay()) {
-    const missIfOlderThanSeconds = currentTime - TIMING_WINDOWS[TIMING_WINDOWS.length - 1];
+    const missIfOlderThanSeconds = currentTime - TIMING_WINDOWS[MISS_TIMING_INDEX];
     const missIfOlderThanBeat = getMusicBeat(missIfOlderThanSeconds);
     const noteData = gameState.getNoteData();
 
@@ -927,8 +847,38 @@ function resetGame() {
   Judgment.reset();
 }
 
-// Initialize canvas when DOM is ready
-document.addEventListener('DOMContentLoaded', function () {
+// ============================================================================
+// BOOT (explicit entry from main.js — after mainPageController import for exports)
+// ============================================================================
+
+let stepmaniaDomInitDone = false;
+let stepmaniaStartRequested = false;
+
+function applyBrowserCapabilityAlert() {
+  const text = getBrowserAlertText();
+  if (text) {
+    const alertMessage = document.getElementById('alert-message');
+    const logo = document.getElementById('logo');
+    const alert = document.getElementById('alert');
+
+    if (alertMessage) alertMessage.textContent = text;
+    if (logo) logo.classList.add('hidden');
+    if (alert) alert.classList.remove('hidden');
+  } else {
+    const logo = document.getElementById('logo');
+    const alert = document.getElementById('alert');
+
+    if (logo) logo.classList.remove('hidden');
+    if (alert) alert.classList.add('hidden');
+  }
+}
+
+function initStepmaniaDomAndLoop() {
+  if (stepmaniaDomInitDone) return;
+  stepmaniaDomInitDone = true;
+
+  applyBrowserCapabilityAlert();
+
   function isMobile() {
     return window.innerWidth <= 768 || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   }
@@ -947,28 +897,26 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   function initializeCanvas() {
-    // Initialize or resize canvas via CanvasManager
     CanvasManager.init('sm-micro');
-
-    // Initialize/reinitialize actors with new dimensions
     initializeActors();
   }
 
   initializeCanvas();
 
-  document.getElementById('scoreToggle').addEventListener('click', function () {
-    const scorePanel = document.querySelector('.score-panel');
-    if (scorePanel) {
-      scorePanel.classList.toggle('show');
-      const isVisible = scorePanel.classList.contains('show');
-      this.textContent = isVisible ? '✕ Close' : '📊 Score';
-    }
-  });
+  const scoreToggle = document.getElementById('scoreToggle');
+  if (scoreToggle) {
+    scoreToggle.addEventListener('click', function () {
+      const scorePanel = document.querySelector('.score-panel');
+      if (scorePanel) {
+        scorePanel.classList.toggle('show');
+        const isVisible = scorePanel.classList.contains('show');
+        this.textContent = isVisible ? '✕ Close' : '📊 Score';
+      }
+    });
+  }
 
-  // Initialize all managers (Audio, Video, Input)
   initManagers();
 
-  // Hide loading overlay when audio starts playing
   audioManager.onPlay(() => {
     LoadingOverlay.hide();
   });
@@ -987,31 +935,42 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // Expose CanvasManager globally for fullscreen resize handling
   window.CanvasManager = CanvasManager;
-});
 
-// ============================================================================
-// MAIN GAME LOOP
-// ============================================================================
+  setInterval(function () {
+    const thisDate = new Date();
+    const deltaSeconds = (thisDate.getTime() - lastDate.getTime()) / 1000;
+    update(deltaSeconds);
+    draw();
+    lastDate = thisDate;
+    framesInCurrentSecond++;
+    const oldSec = Math.floor(uptimeSeconds);
+    const newSec = Math.floor(uptimeSeconds + deltaSeconds);
+    if (oldSec != newSec) {
+      const fps = framesInCurrentSecond / (newSec - oldSec);
+      const fpsElement = document.getElementById('FPS');
+      if (fpsElement) fpsElement.textContent = fps;
+      framesInCurrentSecond = 0;
+    }
+    uptimeSeconds += deltaSeconds;
+  }, 1000 / TARGET_FPS);
+}
 
-setInterval(function () {
-  const thisDate = new Date();
-  const deltaSeconds = (thisDate.getTime() - lastDate.getTime()) / 1000;
-  update(deltaSeconds);
-  draw();
-  lastDate = thisDate;
-  framesInCurrentSecond++;
-  const oldSec = Math.floor(uptimeSeconds);
-  const newSec = Math.floor(uptimeSeconds + deltaSeconds);
-  if (oldSec != newSec) {
-    const fps = framesInCurrentSecond / (newSec - oldSec);
-    const fpsElement = document.getElementById('FPS');
-    if (fpsElement) fpsElement.textContent = fps;
-    framesInCurrentSecond = 0;
+/**
+ * Start canvas, input/audio managers, and the render loop.
+ * Call once from main.js after modules that stepmania depends on (e.g. mainPageController for same-document order).
+ * Safe if DOM is still loading.
+ */
+export function startStepmania() {
+  if (stepmaniaStartRequested) return;
+  stepmaniaStartRequested = true;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initStepmaniaDomAndLoop, { once: true });
+  } else {
+    initStepmaniaDomAndLoop();
   }
-  uptimeSeconds += deltaSeconds;
-}, 1000 / TARGET_FPS);
+}
 
 // ============================================================================
 // EXPORTS

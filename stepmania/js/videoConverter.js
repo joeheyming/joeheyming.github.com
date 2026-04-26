@@ -1,6 +1,8 @@
 // Video Converter Module - Uses FFmpeg.wasm to convert AVI to browser-playable formats
 // This allows playing AVI background videos from simfiles
 
+import { logVideoError, logVideoLoad } from './videoLoadLogging.js';
+
 class VideoConverter {
   constructor() {
     this.ffmpeg = null;
@@ -9,10 +11,13 @@ class VideoConverter {
     this.conversionCache = new Map();
     this.pendingConversions = new Map(); // Track in-progress conversions to avoid duplicates
     this.progressCallbacks = new Map(); // Track progress callbacks for each conversion
+    /** FFmpeg 0.11 allows only one `run` at a time — serialize all jobs */
+    this._ffmpegRunQueue = Promise.resolve();
   }
 
   /**
-   * Check if SharedArrayBuffer is available (required for FFmpeg.wasm)
+   * ffmpeg.wasm requires SharedArrayBuffer. Browsers only expose it in cross-origin isolated documents
+   * (e.g. joeheyming.github.io with coi-serviceworker). Plain http://localhost static servers are usually not isolated.
    * @returns {boolean}
    */
   isSupported() {
@@ -111,7 +116,7 @@ class VideoConverter {
       // All CDNs failed
       throw loadError || new Error('All FFmpeg CDNs failed');
     } catch (error) {
-      console.error('Failed to load FFmpeg.wasm:', error);
+      logVideoError('ffmpeg.loadFailed', error, { corePathsTried: 'see videoConverter' });
       this.loaded = false;
       return false;
     } finally {
@@ -160,21 +165,18 @@ class VideoConverter {
       return this.pendingConversions.get(normalizedUrl);
     }
 
-    // Ensure FFmpeg is loaded
-    if (!(await this.loadFFmpeg())) {
-      throw new Error('FFmpeg.wasm failed to load');
-    }
-
-    // Initialize progress callbacks array for this conversion
+    // Register in-flight work BEFORE any await so preload + Gameplay do not start two runs.
     this.progressCallbacks.set(normalizedUrl, onProgress ? [onProgress] : []);
-
-    // Create a promise for this conversion and store it (use normalized URL as key)
-    const conversionPromise = this._doConversion(videoUrl, normalizedUrl);
+    const conversionPromise = (async () => {
+      if (!(await this.loadFFmpeg())) {
+        throw new Error('FFmpeg.wasm failed to load');
+      }
+      return this._doConversion(videoUrl, normalizedUrl);
+    })();
     this.pendingConversions.set(normalizedUrl, conversionPromise);
 
     try {
-      const result = await conversionPromise;
-      return result;
+      return await conversionPromise;
     } finally {
       this.pendingConversions.delete(normalizedUrl);
       this.progressCallbacks.delete(normalizedUrl);
@@ -182,12 +184,24 @@ class VideoConverter {
   }
 
   /**
-   * Internal conversion method
+   * Run one FFmpeg job. Serialized via _ffmpegRunQueue (wasm allows one command at a time).
+   * @param {string} videoUrl
+   * @param {string} cacheKey
+   * @returns {Promise<string>}
+   */
+  async _doConversion(videoUrl, cacheKey) {
+    const next = this._ffmpegRunQueue.then(() => this._doConversionUnlocked(videoUrl, cacheKey));
+    this._ffmpegRunQueue = next.catch(() => {});
+    return next;
+  }
+
+  /**
+   * Fetch + transcode. Must not run concurrently with another _doConversionUnlocked.
    * @param {string} videoUrl - Original video URL (for fetching)
    * @param {string} cacheKey - Normalized URL (for caching)
    * @private
    */
-  async _doConversion(videoUrl, cacheKey) {
+  async _doConversionUnlocked(videoUrl, cacheKey) {
     try {
       // Set up progress handler that calls all registered callbacks
       this.ffmpeg.setProgress(({ ratio }) => {
@@ -273,6 +287,10 @@ class VideoConverter {
 
       return blobUrl;
     } catch (error) {
+      logVideoError('converter.doConversion', error, {
+        videoUrl,
+        cacheKey
+      });
       // Clean up input file if it exists
       try {
         this.ffmpeg.FS('unlink', 'input.avi');
@@ -291,12 +309,23 @@ class VideoConverter {
    */
   async getPlayableUrl(videoUrl, onProgress = null) {
     if (!this.needsConversion(videoUrl)) {
+      if (this.isAviFile(videoUrl)) {
+        logVideoLoad('getPlayableUrl.aviNoConversion', {
+          videoUrl,
+          sharedArrayBufferAvailable: this.isSupported(),
+          reason: 'AVI but needsConversion is false (no SharedArrayBuffer / cross-origin isolated)'
+        });
+      }
       return videoUrl;
     }
 
     try {
       return await this.convertToMP4(videoUrl, onProgress);
     } catch (error) {
+      logVideoError('getPlayableUrl.convertFailed', error, {
+        videoUrl,
+        note: 'returning original URL; caller will fall back to static background'
+      });
       // Return original URL - caller will detect this and use background image
       return videoUrl;
     }

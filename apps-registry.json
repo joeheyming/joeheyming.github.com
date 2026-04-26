@@ -1,0 +1,773 @@
+[
+  {
+    "id": "awesome",
+    "name": "Everything is Awesome 🎉",
+    "shortName": "Awesome",
+    "description": "Pure joy in digital form",
+    "detailedDescription": "Pure joy with music, animations, and good vibes!",
+    "icon": "🎉",
+    "path": "./awesome/",
+    "category": "entertainment",
+    "gradient": "from-yellow-500/20 to-orange-500/20",
+    "border": "border-yellow-500/30 hover:border-yellow-400/50",
+    "taskbarGradient": "from-yellow-400 to-orange-500",
+    "taskbarText": "text-black",
+    "desktopIcon": true,
+    "tags": [
+      "fun",
+      "music",
+      "popular",
+      "interactive"
+    ],
+    "related": [
+      "badapple",
+      "stepmania",
+      "farm",
+      "pbs"
+    ],
+    "shareCategory": "entertainment",
+    "pwaShortcut": {
+      "name": "Everything is Awesome",
+      "short_name": "Awesome",
+      "description": "Everything is Awesome player"
+    },
+    "featured": {
+      "order": 4,
+      "headline": "Everything is Awesome",
+      "blurb": "Pure joy in digital form. Music, animations, and good vibes!",
+      "tagsLine": "🎪 Fun • 🎵 Music",
+      "preset": "awesome",
+      "analyticsLabel": "Everything is Awesome"
+    }
+  },
+  {
+    "id": "doom",
+    "name": "Doom 💀",
+    "shortName": "Doom",
+    "description": "Classic first-person shooter",
+    "detailedDescription": "Classic FPS with WebAssembly. Full gameplay, music & sound.",
+    "icon": "💀",
+    "path": "./doom/",
+    "category": "game",
+    "defaultWidth": 1024,
+    "defaultHeight": 768,
+    "desktopIcon": true,
+    "tags": [
+      "fps",
+      "retro",
+      "popular",
+      "wasm"
+    ],
+    "related": [
+      "pacman",
+      "nes",
+      "minesweeper",
+      "stepmania"
+    ],
+    "shareCategory": "game",
+    "pwaShortcut": {
+      "name": "DOOM",
+      "short_name": "DOOM",
+      "description": "Play DOOM in your browser"
+    },
+    "featured": {
+      "order": 1,
+      "headline": "Play Doom",
+      "blurb": "Classic FPS in your browser. WebAssembly magic with music & sound.",
+      "tagsLine": "🕹️ Game • ⭐ Popular",
+      "preset": "doom",
+      "analyticsLabel": "Doom"
+    }
+  },
+  {
+    "id": "farm",
+    "name": "Farm Adventures 🚜",
+    "shortName": "Farm",
+    "description": "Digital agriculture adventures",
+    "detailedDescription": "Digital farming experience",
+    "icon": "🚜",
+    "path": "./farm/",
+    "category": "game",
+    "gradient": "from-green-500/20 to-emerald-500/20",
+    "border": "border-green-500/30 hover:border-green-400/50",
+    "taskbarGradient": "from-green-400 to-emerald-500",
+    "taskbarText": "text-white",
+    "desktopIcon": true,
+    "related": [
+      "awesome",
+      "pacman",
+      "doom"
+    ],
+    "shareCategory": "game"
+  },
+  {
+    "id": "notepad",
+    "name": "Notepad 📝",
+    "shortName": "Notepad",
+    "description": "Simple text editor",
+    "detailedDescription": "A simple text editor for taking notes",
+    "icon": "📝",
+    "path": "./notepad/",
+    "category": "utility",
+    "gradient": "from-blue-500/20 to-indigo-500/20",
+    "border": "border-blue-500/30 hover:border-blue-400/50",
+    "taskbarGradient": "from-blue-400 to-indigo-500",
+    "taskbarText": "text-white",
+    "defaultWidth": 600,
+    "defaultHeight": 400,
+    "system": true,
+    "desktopIcon": true,
+    "desktopPosition": {
+      "x": 30,
+      "y": 230
+    },
+    "handles": [
+      "text/*",
+      "application/json",
+      "application/javascript",
+      "application/xml",
+      "application/x-sh"
+    ],
+    "related": [
+      "terminal",
+      "todo",
+      "filemanager",
+      "calculator"
+    ],
+    "shareCategory": "utility",
+    "pwaShortcut": {
+      "name": "Notepad",
+      "short_name": "Notepad",
+      "description": "Web-based notepad"
+    }
+  },
+  {
+    "id": "surf",
+    "name": "Surf 🌊",
+    "shortName": "Surf",
+    "description": "Minimal HTML viewer",
+    "detailedDescription": "Renders HTML files in a sandboxed preview, inspired by suckless surf",
+    "icon": "🌊",
+    "path": "./surf/",
+    "category": "utility",
+    "gradient": "from-teal-500/20 to-cyan-500/20",
+    "border": "border-teal-500/30 hover:border-teal-400/50",
+    "taskbarGradient": "from-teal-400 to-cyan-500",
+    "taskbarText": "text-white",
+    "defaultWidth": 900,
+    "defaultHeight": 600,
+    "system": true,
+    "handles": [
+      "text/html"
+    ]
+  },
+  {
+    "id": "pacman",
+    "name": "Pac-Man 👻",
+    "shortName": "Pac-Man",
+    "description": "Classic arcade game",
+    "detailedDescription": "Classic 3D arcade game - eat pellets, avoid ghosts, chase high scores!",
+    "icon": "👻",
+    "path": "./pacman/",
+    "category": "game",
+    "gradient": "from-yellow-400/20 to-yellow-600/20",
+    "border": "border-yellow-500/30 hover:border-yellow-400/50",
+    "taskbarGradient": "from-yellow-400 to-yellow-600",
+    "taskbarText": "text-black",
+    "defaultWidth": 900,
+    "defaultHeight": 700,
+    "tags": [
+      "arcade",
+      "retro",
+      "popular",
+      "3d"
+    ],
+    "related": [
+      "doom",
+      "nes",
+      "minesweeper",
+      "farm"
+    ],
+    "shareCategory": "game",
+    "featured": {
+      "order": 2,
+      "headline": "Pac-Man",
+      "blurb": "Classic arcade game. Eat pellets, avoid ghosts, chase high scores!",
+      "tagsLine": "🕹️ Game • 🎮 Retro",
+      "preset": "pacman",
+      "analyticsLabel": "Pac-Man"
+    }
+  },
+  {
+    "id": "periodic-speller",
+    "name": "Periodic Speller ⚛️",
+    "shortName": "Periodic",
+    "description": "Spell words with element symbols",
+    "detailedDescription": "Spell words using periodic table element symbols. Export as PNG.",
+    "icon": "⚛️",
+    "path": "./periodic-speller/",
+    "category": "utility",
+    "gradient": "from-cyan-500/20 to-blue-500/20",
+    "border": "border-cyan-500/30 hover:border-cyan-400/50",
+    "taskbarGradient": "from-cyan-500 to-blue-500",
+    "taskbarText": "text-white",
+    "defaultWidth": 800,
+    "defaultHeight": 600,
+    "tags": [
+      "science",
+      "chemistry",
+      "fun",
+      "export"
+    ],
+    "related": [
+      "wordle-finder",
+      "calculator",
+      "countdown"
+    ],
+    "shareCategory": "utility"
+  },
+  {
+    "id": "pbs",
+    "name": "Pirate Broadcast System 🏴‍☠️",
+    "shortName": "Pirates",
+    "description": "Ahoy! Interactive pirate fun",
+    "detailedDescription": "Arrr! Pirate broadcast system",
+    "icon": "🏴‍☠️",
+    "path": "./pbs/",
+    "category": "entertainment",
+    "gradient": "from-red-500/20 to-pink-500/20",
+    "border": "border-red-500/30 hover:border-red-400/50",
+    "taskbarGradient": "from-red-500 to-pink-500",
+    "taskbarText": "text-white",
+    "related": [
+      "awesome",
+      "sadtrombone",
+      "sayhello"
+    ],
+    "shareCategory": "entertainment"
+  },
+  {
+    "id": "sadtrombone",
+    "name": "Sad Trombone 🎺",
+    "shortName": "Sad Trombone",
+    "description": "For those \"oops\" moments",
+    "detailedDescription": "For those disappointing moments",
+    "icon": "🎺",
+    "path": "./sadtrombone/",
+    "category": "utility",
+    "gradient": "from-amber-500/20 to-yellow-500/20",
+    "border": "border-amber-500/30 hover:border-amber-400/50",
+    "taskbarGradient": "from-amber-400 to-yellow-500",
+    "taskbarText": "text-black",
+    "related": [
+      "pbs",
+      "awesome",
+      "sayhello"
+    ],
+    "shareCategory": "entertainment"
+  },
+  {
+    "id": "sayhello",
+    "name": "Say Hello 👋",
+    "shortName": "Say Hello",
+    "description": "Speech synthesis magic",
+    "detailedDescription": "Text-to-speech greetings",
+    "icon": "👋",
+    "path": "./sayhello/",
+    "category": "utility",
+    "gradient": "from-purple-500/20 to-indigo-500/20",
+    "border": "border-purple-500/30 hover:border-purple-400/50",
+    "taskbarGradient": "from-purple-500 to-indigo-500",
+    "taskbarText": "text-white",
+    "related": [
+      "sayit",
+      "pbs",
+      "sadtrombone"
+    ],
+    "shareCategory": "utility"
+  },
+  {
+    "id": "sayit",
+    "name": "Say It 🗣️",
+    "shortName": "Say It",
+    "description": "Text-to-speech experiments",
+    "detailedDescription": "Advanced text-to-speech",
+    "icon": "🗣️",
+    "path": "./sayit/",
+    "category": "utility",
+    "gradient": "from-indigo-500/20 to-blue-600/20",
+    "border": "border-indigo-500/30 hover:border-indigo-400/50",
+    "taskbarGradient": "from-indigo-500 to-blue-600",
+    "taskbarText": "text-white",
+    "related": [
+      "sayhello",
+      "pbs",
+      "awesome"
+    ],
+    "shareCategory": "utility",
+    "pwaShortcut": {
+      "name": "Say It OCR",
+      "short_name": "Say It",
+      "description": "OCR text recognition tool"
+    }
+  },
+  {
+    "id": "stepmania",
+    "name": "Stepmania 💃",
+    "shortName": "Stepmania",
+    "description": "Rhythm game excellence",
+    "detailedDescription": "Rhythm game experience",
+    "icon": "💃",
+    "path": "./stepmania/",
+    "category": "game",
+    "defaultWidth": 1000,
+    "defaultHeight": 700,
+    "gradient": "from-pink-500/20 to-rose-500/20",
+    "border": "border-pink-500/30 hover:border-pink-400/50",
+    "taskbarGradient": "from-pink-500 to-rose-500",
+    "taskbarText": "text-white",
+    "related": [
+      "awesome",
+      "doom",
+      "nes"
+    ],
+    "shareCategory": "game",
+    "pwaShortcut": {
+      "name": "StepMania",
+      "short_name": "StepMania",
+      "description": "Rhythm game in your browser"
+    }
+  },
+  {
+    "id": "wordle-finder",
+    "name": "Wordle Finder 🔤",
+    "shortName": "Wordle",
+    "description": "Word puzzle solving tools",
+    "detailedDescription": "Wordle puzzle solver",
+    "icon": "🔤",
+    "path": "./wordle-finder/",
+    "category": "utility",
+    "defaultWidth": 800,
+    "defaultHeight": 600,
+    "gradient": "from-teal-500/20 to-cyan-500/20",
+    "border": "border-teal-500/30 hover:border-teal-400/50",
+    "taskbarGradient": "from-teal-500 to-cyan-500",
+    "taskbarText": "text-white",
+    "desktopIcon": true,
+    "related": [
+      "minesweeper",
+      "terminal",
+      "calculator",
+      "todo"
+    ],
+    "shareCategory": "utility",
+    "pwaShortcut": {
+      "name": "Wordle Finder",
+      "short_name": "Wordle",
+      "description": "Find Wordle solutions"
+    }
+  },
+  {
+    "id": "youtube",
+    "name": "JoeTube 🎥",
+    "shortName": "JoeTube",
+    "description": "Joe's digital adventures & coding magic",
+    "detailedDescription": "Watch JoeTube",
+    "icon": "🎥",
+    "path": "./youtube/",
+    "category": "utility",
+    "gradient": "from-red-500/20 to-red-600/20",
+    "border": "border-red-500/30 hover:border-red-400/50",
+    "taskbarGradient": "from-red-500 to-red-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 540,
+    "defaultHeight": 780,
+    "related": [
+      "media-player",
+      "vibe-coding",
+      "awesome"
+    ],
+    "shareCategory": "utility",
+    "pwaShortcut": {
+      "name": "JoeTube",
+      "short_name": "JoeTube",
+      "description": "YouTube link extractor"
+    }
+  },
+  {
+    "id": "shadowbox",
+    "name": "Shadowbox 🕵️",
+    "shortName": "Shadowbox",
+    "description": "Classified surveillance mode",
+    "detailedDescription": "Classified surveillance mode",
+    "icon": "🕵️",
+    "path": "./shadowbox/",
+    "category": "utility",
+    "gradient": "from-gray-600/20 to-gray-700/20",
+    "border": "border-gray-500/30 hover:border-gray-400/50",
+    "taskbarGradient": "from-gray-600 to-gray-700",
+    "taskbarText": "text-white",
+    "related": [
+      "badapple",
+      "image-viewer",
+      "terminal"
+    ],
+    "shareCategory": "utility",
+    "pwaShortcut": {
+      "name": "Operation SHADOWBOX",
+      "short_name": "SHADOWBOX",
+      "description": "Operation SHADOWBOX"
+    }
+  },
+  {
+    "id": "badapple",
+    "name": "Bad Apple",
+    "shortName": "Bad Apple",
+    "description": "Bad Apple",
+    "detailedDescription": "Bad Apple",
+    "icon": "🍎",
+    "path": "./badapple/",
+    "category": "entertainment",
+    "gradient": "from-red-500/20 to-pink-500/20",
+    "border": "border-red-500/30 hover:border-red-400/50",
+    "taskbarGradient": "from-red-500 to-pink-500",
+    "taskbarText": "text-white",
+    "related": [
+      "awesome",
+      "shadowbox",
+      "pbs"
+    ],
+    "shareCategory": "entertainment",
+    "pwaShortcut": {
+      "name": "Bad Apple",
+      "short_name": "Bad Apple",
+      "description": "Bad Apple ASCII animation"
+    }
+  },
+  {
+    "id": "terminal",
+    "name": "Terminal",
+    "shortName": "Terminal",
+    "description": "Command line interface",
+    "detailedDescription": "Interactive command line with filesystem. Type \"help\" to explore!",
+    "icon": "💻",
+    "path": "./terminal/",
+    "category": "utility",
+    "gradient": "from-gray-500/20 to-gray-700/20",
+    "border": "border-gray-500/30 hover:border-gray-400/50",
+    "taskbarGradient": "from-gray-500 to-gray-700",
+    "taskbarText": "text-white",
+    "system": true,
+    "desktopIcon": true,
+    "desktopPosition": {
+      "x": 30,
+      "y": 30
+    },
+    "tags": [
+      "utility",
+      "cli",
+      "filesystem",
+      "interactive"
+    ],
+    "related": [
+      "notepad",
+      "filemanager",
+      "calculator",
+      "countdown"
+    ],
+    "shareCategory": "utility",
+    "pwaShortcut": {
+      "name": "Terminal",
+      "short_name": "Terminal",
+      "description": "Web-based terminal"
+    },
+    "featured": {
+      "order": 5,
+      "headline": "Terminal",
+      "blurb": "Interactive command line with filesystem. Type 'help' to explore!",
+      "tagsLine": "🛠️ Utility • 💾 Interactive",
+      "preset": "terminal",
+      "analyticsLabel": "Terminal"
+    }
+  },
+  {
+    "id": "todo",
+    "name": "Todo ✅",
+    "shortName": "Todo",
+    "description": "Google Sheets task lists",
+    "detailedDescription": "Sign in with Google and manage todos in your spreadsheet—multiple lists (tabs), rename, add, and remove tasks.",
+    "icon": "✅",
+    "path": "./todo/",
+    "category": "utility",
+    "gradient": "from-violet-500/20 to-fuchsia-500/20",
+    "border": "border-violet-500/30 hover:border-fuchsia-400/50",
+    "taskbarGradient": "from-violet-500 to-fuchsia-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 440,
+    "defaultHeight": 720,
+    "desktopIcon": true,
+    "tags": [
+      "productivity",
+      "google",
+      "sheets",
+      "tasks"
+    ],
+    "related": [
+      "notepad",
+      "terminal",
+      "wordle-finder"
+    ],
+    "shareCategory": "utility"
+  },
+  {
+    "id": "calculator",
+    "name": "Calculator",
+    "shortName": "Calculator",
+    "description": "Calculator",
+    "detailedDescription": "Calculator",
+    "icon": "🔢",
+    "path": "./calculator/",
+    "category": "utility",
+    "system": true,
+    "desktopIcon": true,
+    "desktopPosition": {
+      "x": 30,
+      "y": 130
+    },
+    "related": [
+      "terminal",
+      "notepad",
+      "countdown"
+    ],
+    "shareCategory": "utility",
+    "pwaShortcut": {
+      "name": "Calculator",
+      "short_name": "Calc",
+      "description": "Web calculator"
+    }
+  },
+  {
+    "id": "countdown",
+    "name": "Countdown ⏱️",
+    "shortName": "Countdown",
+    "description": "Event countdown timer",
+    "detailedDescription": "Track events with style. Multiple display modes & animations.",
+    "icon": "⏱️",
+    "path": "./countdown/",
+    "category": "utility",
+    "gradient": "from-amber-500/20 to-orange-500/20",
+    "border": "border-amber-500/30 hover:border-amber-400/50",
+    "taskbarGradient": "from-amber-500 to-orange-500",
+    "taskbarText": "text-black",
+    "defaultWidth": 900,
+    "defaultHeight": 700,
+    "tags": [
+      "utility",
+      "time",
+      "events",
+      "timer"
+    ],
+    "related": [
+      "calculator",
+      "terminal",
+      "wordle-finder"
+    ],
+    "shareCategory": "utility",
+    "featured": {
+      "order": 6,
+      "headline": "Countdown Timer",
+      "blurb": "Track events with style. Multiple display modes & animations.",
+      "tagsLine": "🛠️ Utility • ⏰ Time",
+      "preset": "countdown",
+      "analyticsLabel": "Countdown"
+    }
+  },
+  {
+    "id": "programming-advice",
+    "name": "Programming Wisdom 💡",
+    "shortName": "Wisdom",
+    "description": "Click anywhere for instant wisdom",
+    "detailedDescription": "230+ pieces of programming wisdom from legendary developers like Linus Torvalds, Rich Hickey, Uncle Bob, and more. Simple one-click interface. Every quote properly attributed with source links.",
+    "icon": "💡",
+    "path": "./programming-advice/",
+    "category": "utility",
+    "gradient": "from-purple-500/20 to-indigo-500/20",
+    "border": "border-purple-500/30 hover:border-purple-400/50",
+    "taskbarGradient": "from-purple-500 to-indigo-500",
+    "taskbarText": "text-white",
+    "defaultWidth": 900,
+    "defaultHeight": 700,
+    "tags": [
+      "wisdom",
+      "learning",
+      "advice",
+      "quotes",
+      "developers"
+    ],
+    "desktopIcon": true,
+    "related": [
+      "terminal",
+      "notepad",
+      "wordle-finder"
+    ],
+    "shareCategory": "utility"
+  },
+  {
+    "id": "minesweeper",
+    "name": "Minesweeper 💣",
+    "shortName": "Minesweeper",
+    "description": "Classic puzzle game",
+    "detailedDescription": "Clear the minefield without detonating mines - Windows classic with modern UI!",
+    "icon": "💣",
+    "path": "./minesweeper/",
+    "category": "game",
+    "gradient": "from-gray-500/20 to-slate-600/20",
+    "border": "border-gray-500/30 hover:border-gray-400/50",
+    "taskbarGradient": "from-gray-500 to-slate-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 400,
+    "defaultHeight": 500,
+    "tags": [
+      "puzzle",
+      "strategy",
+      "retro",
+      "classic"
+    ],
+    "related": [
+      "pacman",
+      "doom",
+      "wordle-finder"
+    ],
+    "shareCategory": "game",
+    "featured": {
+      "order": 3,
+      "headline": "Minesweeper",
+      "blurb": "Clear the minefield! The original Windows classic with modern UI.",
+      "tagsLine": "🧩 Puzzle • 🧠 Strategy",
+      "preset": "minesweeper",
+      "analyticsLabel": "Minesweeper"
+    }
+  },
+  {
+    "id": "nes",
+    "name": "NES",
+    "shortName": "NES",
+    "description": "NES emulator",
+    "detailedDescription": "NES emulator",
+    "icon": "🕹️",
+    "path": "./nes/",
+    "category": "game",
+    "related": [
+      "doom",
+      "pacman",
+      "stepmania"
+    ],
+    "shareCategory": "game",
+    "pwaShortcut": {
+      "name": "NES Emulator",
+      "short_name": "NES",
+      "description": "Play NES games in your browser"
+    }
+  },
+  {
+    "id": "vibe-coding",
+    "name": "Vibe Coding 🤖",
+    "shortName": "Vibe Coding",
+    "description": "The art of building websites that don't suck",
+    "detailedDescription": "Stop building shitty websites. Learn vibe coding - the art of creating fast, beautiful, accessible sites without the bullshit.",
+    "icon": "🤖",
+    "path": "./vibe-coding/",
+    "category": "utility",
+    "gradient": "from-purple-500/20 to-indigo-500/20",
+    "border": "border-purple-500/30 hover:border-purple-400/50",
+    "taskbarGradient": "from-purple-500 to-indigo-500",
+    "taskbarText": "text-white",
+    "defaultWidth": 800,
+    "defaultHeight": 600,
+    "related": [
+      "youtube",
+      "terminal",
+      "notepad"
+    ],
+    "shareCategory": "utility"
+  },
+  {
+    "id": "filemanager",
+    "name": "File Manager 📂",
+    "shortName": "Files",
+    "description": "Browse your filesystem",
+    "detailedDescription": "File manager with shared IndexedDB filesystem",
+    "icon": "📂",
+    "path": "./filemanager/",
+    "category": "utility",
+    "gradient": "from-amber-500/20 to-yellow-500/20",
+    "border": "border-amber-500/30 hover:border-amber-400/50",
+    "taskbarGradient": "from-amber-500 to-yellow-500",
+    "taskbarText": "text-black",
+    "defaultWidth": 900,
+    "defaultHeight": 600,
+    "desktopIcon": true,
+    "system": true,
+    "related": [
+      "terminal",
+      "notepad",
+      "image-viewer",
+      "media-player"
+    ],
+    "shareCategory": "utility"
+  },
+  {
+    "id": "media-player",
+    "name": "Media Player 🎵",
+    "shortName": "Media",
+    "description": "Play video and audio files",
+    "detailedDescription": "HTML5 media player for video (MP4, WebM) and audio (MP3, WAV, OGG)",
+    "icon": "🎵",
+    "path": "./media-player/",
+    "category": "utility",
+    "gradient": "from-rose-500/20 to-pink-500/20",
+    "border": "border-rose-500/30 hover:border-rose-400/50",
+    "taskbarGradient": "from-rose-500 to-pink-500",
+    "taskbarText": "text-white",
+    "defaultWidth": 800,
+    "defaultHeight": 500,
+    "system": true,
+    "handles": [
+      "video/*",
+      "audio/*",
+      "application/x-youtube"
+    ],
+    "related": [
+      "filemanager",
+      "youtube",
+      "awesome"
+    ],
+    "shareCategory": "utility"
+  },
+  {
+    "id": "image-viewer",
+    "name": "Image Viewer 🖼️",
+    "shortName": "Images",
+    "description": "View image files",
+    "detailedDescription": "Image viewer with zoom, pan, and rotate for PNG, JPG, GIF, WebP, SVG",
+    "icon": "🖼️",
+    "path": "./image-viewer/",
+    "category": "utility",
+    "gradient": "from-cyan-500/20 to-blue-500/20",
+    "border": "border-cyan-500/30 hover:border-cyan-400/50",
+    "taskbarGradient": "from-cyan-500 to-blue-500",
+    "taskbarText": "text-white",
+    "defaultWidth": 800,
+    "defaultHeight": 600,
+    "system": true,
+    "handles": [
+      "image/*"
+    ],
+    "related": [
+      "filemanager",
+      "shadowbox",
+      "badapple"
+    ],
+    "shareCategory": "utility"
+  }
+]

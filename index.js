@@ -1,3 +1,62 @@
+/** @typedef {{ order?: number; headline?: string; blurb?: string; tagsLine?: string; preset?: string; analyticsLabel?: string }} FeaturedConfig */
+
+const FEATURED_CARD_BASE =
+  'group rounded-2xl p-6 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 block';
+const FEATURED_PRESETS = {
+  doom: { gradient: 'bg-gradient-to-br from-red-600 to-orange-700', tone: 'light' },
+  pacman: { gradient: 'bg-gradient-to-br from-yellow-500 to-yellow-600', tone: 'dark' },
+  minesweeper: { gradient: 'bg-gradient-to-br from-gray-600 to-gray-700', tone: 'light' },
+  awesome: { gradient: 'bg-gradient-to-br from-yellow-400 to-orange-500', tone: 'dark' },
+  terminal: { gradient: 'bg-gradient-to-br from-green-600 to-emerald-700', tone: 'light' },
+  countdown: { gradient: 'bg-gradient-to-br from-amber-500 to-orange-600', tone: 'light' }
+};
+
+function featuredHrefFromPath(path) {
+  const cleaned = path.replace(/^\.\//, '').replace(/\/$/, '');
+  return '/' + cleaned + '/';
+}
+
+function renderFeaturedProjects() {
+  const grid = document.getElementById('featured-projects-grid');
+  if (!grid || typeof AppModule === 'undefined') return;
+
+  const featured = AppModule.getAllApps()
+    .filter((app) => app.featured)
+    .sort((a, b) => (a.featured.order || 0) - (b.featured.order || 0));
+
+  grid.innerHTML = '';
+
+  featured.forEach((app) => {
+    /** @type {FeaturedConfig} */
+    const f = app.featured;
+    const presetKey = f.preset && FEATURED_PRESETS[f.preset] ? f.preset : 'doom';
+    const preset = FEATURED_PRESETS[presetKey];
+    const tone = preset.tone;
+    const titleClass =
+      tone === 'dark'
+        ? 'text-2xl font-bold mb-2 group-hover:scale-105 transition-transform text-gray-900'
+        : 'text-2xl font-bold mb-2 group-hover:scale-105 transition-transform';
+    const bodyClass = tone === 'dark' ? 'text-sm text-gray-900/90' : 'text-sm text-white/90';
+    const footerClass = tone === 'dark' ? 'mt-4 text-xs text-gray-900/70' : 'mt-4 text-xs text-white/70';
+
+    const link = document.createElement('a');
+    link.href = featuredHrefFromPath(app.path);
+    link.setAttribute('data-event', 'featured_project_click');
+    link.setAttribute('data-event-category', 'Engagement');
+    link.setAttribute('data-event-label', f.analyticsLabel || app.shortName || app.name);
+    link.className = `${FEATURED_CARD_BASE} ${preset.gradient}`;
+
+    link.innerHTML = `
+      <div class="text-5xl mb-3">${app.icon || ''}</div>
+      <h3 class="${titleClass}">${f.headline || app.name}</h3>
+      <p class="${bodyClass}">${f.blurb || app.detailedDescription || ''}</p>
+      <div class="${footerClass}">${f.tagsLine || ''}</div>
+    `;
+
+    grid.appendChild(link);
+  });
+}
+
 tailwind.config = {
   theme: {
     extend: {
@@ -281,6 +340,8 @@ function initHamburgerMenu() {
 document.addEventListener('DOMContentLoaded', () => {
   // Calculate experience on page load
   calculateYearsExperience();
+
+  renderFeaturedProjects();
 
   // Initialize hamburger menu
   initHamburgerMenu();

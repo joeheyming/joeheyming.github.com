@@ -52,7 +52,7 @@ export class Desktop {
     this._setupSelectionHandling();
     this._setupDesktopIconFocusSync();
     this._setupDragSelection();
-    this._waitForAppModule();
+    this._ensureAppModuleAndRenderIcons();
 
     // Initialize Quick Look preview component
     this.quickLook = new QuickLookPreview(this.desktop, {
@@ -69,24 +69,18 @@ export class Desktop {
 
   // ========== Private Methods ==========
 
-  _waitForAppModule(attempts = 0) {
-    const MAX_ATTEMPTS = 20;
-    const RETRY_DELAY = 100;
-
-    if (window.AppModule) {
-      try {
-        this._createDesktopIcons();
-        this._loadDesktopFiles();
-      } catch (error) {
-        console.error('[Desktop] Failed to initialize icons:', error);
-      }
+  _ensureAppModuleAndRenderIcons() {
+    if (typeof window.AppModule === 'undefined' || !window.__heymingAppRegistryReady) {
+      console.error(
+        '[Desktop] AppModule not ready — ensure mime-handlers.js and app.js load before the OS module.'
+      );
       return;
     }
-
-    if (attempts < MAX_ATTEMPTS) {
-      setTimeout(() => this._waitForAppModule(attempts + 1), RETRY_DELAY);
-    } else {
-      console.error('[Desktop] AppModule never loaded after', MAX_ATTEMPTS * RETRY_DELAY, 'ms');
+    try {
+      this._createDesktopIcons();
+      this._loadDesktopFiles();
+    } catch (error) {
+      console.error('[Desktop] Failed to initialize icons:', error);
     }
   }
 

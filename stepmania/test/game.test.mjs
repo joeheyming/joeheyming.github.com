@@ -3,12 +3,8 @@ import assert from 'node:assert/strict';
 import gameState from '../js/gameState.js';
 import { SimfileParser } from '../js/simfileParser.js';
 import { secondsToBeats, beatsToSeconds, getBPMAtBeat } from '../js/timing.js';
-
-// Mirror of TAP_NOTE_POINTS from score-panel.js (avoids DOM dependency)
-const TAP_NOTE_POINTS = [3, 3, 2, 1, 0, -5];
-
-// Mirror of TIMING_WINDOWS from stepmania.js
-const TIMING_WINDOWS = [0.05, 0.1, 0.15, 0.25, 0.3];
+import { TAP_NOTE_POINTS } from '../js/judgmentPolicy.js';
+import { adjudicateColumnPress } from '../js/columnPressAdjudication.js';
 
 // ==========================================================================
 // GameState
@@ -366,53 +362,16 @@ M000
 // ==========================================================================
 
 describe('Freeze arrow scoring (regression)', () => {
-  /**
-   * Simulates the core step() logic for a single column press.
-   * This mirrors stepmania.js step() to verify hold notes don't
-   * trigger handleTapNoteScore.
-   */
+  /** Uses production adjudicateColumnPress (same module as stepmania.js step()). */
   function simulateStep(noteData, col, songBeats) {
-    let hit = false;
-    let tapNoteScore = 0;
     const activeHolds = {};
-
-    noteData.forEach(function (note) {
-      const noteBeat = note[0];
-      const noteCol = note[1];
-      const noteProps = note[2];
-      const diff = Math.abs(noteBeat - songBeats);
-
-      if ('tapNoteScore' in noteProps) return;
-      if (noteCol !== col) return;
-      if (diff >= TIMING_WINDOWS[TIMING_WINDOWS.length - 1]) return;
-
-      if (noteProps.Type === 2 && noteProps.Duration) {
-        for (let j = 0; j < TIMING_WINDOWS.length; j++) {
-          if (diff <= TIMING_WINDOWS[j]) {
-            noteProps.tapNoteScore = j;
-            activeHolds[col] = {
-              note,
-              startBeat: noteBeat,
-              endBeat: noteBeat + noteProps.Duration / 48,
-              hitScore: j,
-              wasDropped: false
-            };
-            hit = false;
-            break;
-          }
-        }
-      } else {
-        for (let j = 0; j < TIMING_WINDOWS.length; j++) {
-          if (diff <= TIMING_WINDOWS[j]) {
-            noteProps.tapNoteScore = j;
-            tapNoteScore = j;
-            hit = true;
-            break;
-          }
-        }
-      }
-    });
-
+    const { hit, tapNoteScore } = adjudicateColumnPress(
+      songBeats,
+      col,
+      noteData,
+      activeHolds,
+      0
+    );
     return { hit, tapNoteScore, activeHolds };
   }
 

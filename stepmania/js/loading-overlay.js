@@ -3,6 +3,8 @@
 
 import { adoptSharedStyles } from './sharedStyles.js';
 import { createComponentProxy } from './componentProxy.js';
+import { logVideoLoad } from './videoLoadLogging.js';
+import { videoContextStatusMessage } from './videoContextCopy.js';
 
 /**
  * Loading Overlay States
@@ -222,7 +224,10 @@ class LoadingOverlayElement extends HTMLElement {
           padding: 0.5rem 1rem;
           border-radius: 0.5rem;
           font-size: 0.875rem;
-          display: inline-block;
+          display: block;
+          max-width: 100%;
+          line-height: 1.45;
+          text-align: left;
         }
         .video-status.hidden {
           display: none;
@@ -490,36 +495,49 @@ class LoadingOverlayElement extends HTMLElement {
     this._videoStatus = status;
     this._videoProgress = progress;
 
+    let statusText = '';
+    let statusClass = '';
+
+    switch (status) {
+      case 'loading':
+        statusText = `🎬 Converting video... ${progress}%`;
+        statusClass = 'video-loading';
+        break;
+      case 'ready':
+        statusText = '🎬 Video ready!';
+        statusClass = 'video-ready';
+        break;
+      case 'failed':
+        statusText = '🎬 Video unavailable (using background)';
+        statusClass = 'video-failed';
+        break;
+      case 'unavailable':
+        statusText = videoContextStatusMessage('preloadOverlay');
+        statusClass = 'video-failed';
+        break;
+      default:
+        statusText = '🎬 Preparing video...';
+        statusClass = 'video-pending';
+    }
+
+    // Source-of-truth log: always runs when the overlay line changes (avoids missing callers / log level).
+    logVideoLoad('overlay.updateVideoStatus', {
+      status,
+      progress,
+      statusText,
+      hasShadowRoot: !!this.shadowRoot
+    });
+
     // Update the video status element if it exists
     const videoStatusEl = this.shadowRoot?.getElementById('video-status');
     if (videoStatusEl) {
-      let statusText = '';
-      let statusClass = '';
-
-      switch (status) {
-        case 'loading':
-          statusText = `🎬 Converting video... ${progress}%`;
-          statusClass = 'video-loading';
-          break;
-        case 'ready':
-          statusText = '🎬 Video ready!';
-          statusClass = 'video-ready';
-          break;
-        case 'failed':
-          statusText = '🎬 Video unavailable (using background)';
-          statusClass = 'video-failed';
-          break;
-        case 'unavailable':
-          statusText = '🎬 Video conversion not supported';
-          statusClass = 'video-failed';
-          break;
-        default:
-          statusText = '🎬 Preparing video...';
-          statusClass = 'video-pending';
-      }
-
       videoStatusEl.textContent = statusText;
       videoStatusEl.className = `video-status ${statusClass}`;
+    } else if (status) {
+      logVideoLoad('overlay.updateVideoStatus.noElement', {
+        status,
+        note: 'video-status not in shadow DOM yet (message may be stale until next render)'
+      });
     }
   }
 

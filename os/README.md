@@ -16,6 +16,8 @@ HeymingOS (orchestrator)
 ├── Clock             — taskbar clock (click to toggle seconds)
 ├── ContextMenu       — right-click menus for desktop and files
 ├── FileDialog        — OS-level Open / Save As dialogs
+├── SetupWizardController — first-run username/hostname wizard (DOM in index.html)
+├── IframeMessageBridge — window.postMessage listener for iframe actions (constants.js protocol)
 ├── FileOperationService — copy/cut/paste/delete via ClipboardService
 └── FileSystemDB      — IndexedDB virtual filesystem (singleton on window.top)
 ```
@@ -24,7 +26,7 @@ Apps are separate pages loaded in **iframes**. The shell communicates with them 
 
 ### How apps are launched
 
-1. `app.js` (at the site root) defines an app registry exposed as `window.AppModule`
+1. `apps-registry.json` (site root) holds the app list; `app.js` loads it synchronously and exposes `window.AppModule` (with `mime-handlers.js` for MIME routing)
 2. `HeymingOS.launchApp(appId)` looks up the app and calls `WindowManager.createIframeWindow(app)`
 3. The window manager creates a draggable/resizable window with an iframe pointing to the app's path
 4. A taskbar button is created for the new window
@@ -39,7 +41,9 @@ The virtual filesystem uses IndexedDB (`HeymingTerminalFS` database) with two ob
 |------|-------------|
 | `index.html` | Standalone OS page with GA tracking, desktop shell DOM |
 | `index.js` | ES module entry point; assembles namespace, creates singleton |
-| `HeymingOS.js` | Main orchestrator; wires subsystems, iframe RPC, filesystem subscriptions |
+| `HeymingOS.js` | Main orchestrator; wires subsystems, filesystem subscriptions |
+| `SetupWizardController.js` | First-run setup wizard behaviour |
+| `IframeMessageBridge.js` | Iframe `postMessage` routing into HeymingOS |
 | `WindowManager.js` | Window chrome, iframe apps, drag/resize, z-order, viewport fitting |
 | `Taskbar.js` | Running-app buttons in the taskbar |
 | `Launcher.js` | App launcher menu with search filtering |

@@ -1074,8 +1074,13 @@ class FileManager {
 
     const F = window.FileSystemDB;
     const mime = F ? F.mimeTypeForOpen(item) : 'application/octet-stream';
-    const AppMod = window.parent?.AppModule;
-    const apps = AppMod?.getAppsForMimeType?.(mime) || [];
+    const rootWin = window.top || window;
+    const AppMod = rootWin.AppModule || window.AppModule;
+    const registry = AppMod?.getAllApps?.() || [];
+    const apps =
+      rootWin.MimeHandlers?.getAppsForMimeType?.(mime, registry) ||
+      AppMod?.getAppsForMimeType?.(mime) ||
+      [];
     const seen = new Set(apps.map((a) => a.appId));
     const lines = [];
 

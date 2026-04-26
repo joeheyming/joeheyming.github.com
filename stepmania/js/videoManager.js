@@ -4,6 +4,8 @@
 import { videoConverter } from './videoConverter.js';
 import { songManager } from './songManager.js';
 import { audioManager } from './audioManager.js';
+import { logVideoError, logVideoLoad } from './videoLoadLogging.js';
+import { videoContextStatusMessage } from './videoContextCopy.js';
 
 class VideoManager {
   constructor() {
@@ -202,12 +204,31 @@ class VideoManager {
    */
   async play(videoUrl, isAvi = false) {
     if (!this.videoElement || !this.gameArea) {
+      logVideoLoad('play.aborted', { reason: 'VideoManager not initialized' });
       console.warn('VideoManager not initialized');
       return false;
     }
 
+    const isAviPath = isAvi || videoConverter.isAviFile(videoUrl);
+    logVideoLoad('play.start', {
+      videoUrl,
+      isAviParam: isAvi,
+      isAviFile: videoConverter.isAviFile(videoUrl),
+      isAviPath,
+      needsConversion: videoConverter.needsConversion(videoUrl),
+      sharedArrayBuffer: typeof SharedArrayBuffer !== 'undefined',
+      crossOriginIsolated: typeof window !== 'undefined' && window.crossOriginIsolated === true,
+      songKey: songManager.getCurrentSongKey?.() ?? null,
+      difficultyIndex: songManager.getCurrentDifficulty?.() ?? null,
+      loadingUrlBefore: this.loadingUrl
+    });
+
     // Prevent duplicate loads of the same URL
     if (this.loadingUrl === videoUrl) {
+      logVideoLoad('play.skipDuplicate', {
+        videoUrl,
+        note: 'Same URL already loading; early return (can race with preload or bg change)'
+      });
       return true; // Already loading this URL
     }
 
@@ -219,10 +240,14 @@ class VideoManager {
     this.loadingUrl = videoUrl;
 
     // Handle AVI conversion
-    if (isAvi || videoConverter.isAviFile(videoUrl)) {
+    if (isAviPath) {
       if (!videoConverter.needsConversion(videoUrl)) {
-        // Can't convert - SharedArrayBuffer not available
-        this.showStatus('🎬 Video not supported', 'failed');
+        logVideoLoad('play.notSupported', {
+          videoUrl,
+          reason: 'AVI path but conversion unavailable',
+          isSupported: videoConverter.isSupported()
+        });
+        this.showStatus(videoContextStatusMessage('ingameStatus'), 'failed');
         setTimeout(() => this.hideStatus(), 3000);
         this._fallbackToBackground();
         this.loadingUrl = null;
@@ -238,11 +263,19 @@ class VideoManager {
 
         // Check if we're still supposed to load this video
         if (this.loadingUrl !== videoUrl) {
+          logVideoLoad('play.superseded', {
+            requestedUrl: videoUrl,
+            currentLoadingUrl: this.loadingUrl,
+            note: 'Another play() or reset happened while converting'
+          });
           return false; // Another video load was requested
         }
 
         if (convertedUrl === videoUrl) {
-          // Conversion failed, returned original URL
+          logVideoLoad('play.conversionYieldedOriginal', {
+            videoUrl,
+            note: 'getPlayableUrl returned same URL; conversion failed or not needed'
+          });
           this.showStatus('🎬 Video unavailable', 'failed');
           setTimeout(() => this.hideStatus(), 3000);
           this._fallbackToBackground();
@@ -250,10 +283,12 @@ class VideoManager {
           return false;
         }
 
+        logVideoLoad('play.conversionOk', { originalUrl: videoUrl, convertedUrlPrefix: 'blob:' });
         this.showStatus('🎬 Video ready!', 'ready');
         setTimeout(() => this.hideStatus(), 2000);
         videoUrl = convertedUrl;
       } catch (error) {
+        logVideoError('play.conversionThrew', error, { videoUrl });
         this.showStatus('🎬 Video unavailable', 'failed');
         setTimeout(() => this.hideStatus(), 3000);
         this._fallbackToBackground();
@@ -274,6 +309,13 @@ class VideoManager {
   _loadAndPlay(videoUrl) {
     return new Promise((resolve) => {
       const originalLoadingUrl = this.loadingUrl;
+      const isBlob = typeof videoUrl === 'string' && videoUrl.startsWith('blob:');
+
+      logVideoLoad('loadAndPlay.start', {
+        videoUrl: isBlob ? 'blob:…' : videoUrl,
+        isBlob,
+        originalLoadingUrl
+      });
 
       this.gameArea.style.backgroundImage = 'none';
 
@@ -287,6 +329,11 @@ class VideoManager {
 
         // Check if this is still the video we want
         if (this.loadingUrl !== originalLoadingUrl) {
+          logVideoLoad('loadAndPlay.aborted', {
+            reason: 'loadingUrl changed before canplay',
+            expected: originalLoadingUrl,
+            current: this.loadingUrl
+          });
           resolve(false);
           return;
         }
@@ -301,6 +348,10 @@ class VideoManager {
 
         // Only auto-play if audio is playing
         if (audioManager.paused) {
+          logVideoLoad('loadAndPlay.bufferedWhileAudioPaused', {
+            videoUrl: isBlob ? 'blob:…' : videoUrl,
+            isBlob
+          });
           this.currentVideoUrl = videoUrl;
           this.loadingUrl = null;
           resolve(true);
@@ -310,6 +361,10 @@ class VideoManager {
         this.videoElement
           .play()
           .then(() => {
+            logVideoLoad('loadAndPlay.playing', {
+              videoUrl: isBlob ? 'blob:…' : videoUrl,
+              isBlob
+            });
             this.currentVideoUrl = videoUrl;
             this.loadingUrl = null;
             this._startPeriodicSync();
@@ -317,7 +372,10 @@ class VideoManager {
           })
           .catch((err) => {
             if (err.name !== 'AbortError') {
-              console.error('Video play() failed:', err);
+              logVideoError('loadAndPlay.playRejected', err, {
+                videoUrl: isBlob ? 'blob:…' : videoUrl,
+                isBlob
+              });
             }
             this.videoElement.style.opacity = '0';
             this.currentVideoUrl = null;
@@ -329,7 +387,23 @@ class VideoManager {
 
       const onError = (e) => {
         cleanup();
-        console.error('Video element error:', e);
+        const v = this.videoElement;
+        const me = v.error;
+        const codeNames = {
+          1: 'MEDIA_ERR_ABORTED',
+          2: 'MEDIA_ERR_NETWORK',
+          3: 'MEDIA_ERR_DECODE',
+          4: 'MEDIA_ERR_SRC_NOT_SUPPORTED'
+        };
+        logVideoLoad('loadAndPlay.elementError', {
+          eventType: e.type,
+          networkState: v.networkState,
+          readyState: v.readyState,
+          src: (v.currentSrc || v.src || '').slice(0, 200),
+          mediaErrorCode: me ? me.code : null,
+          mediaErrorCodeName: me ? codeNames[me.code] || String(me.code) : null,
+          mediaErrorMessage: me ? me.message : null
+        });
         this.videoElement.style.opacity = '0';
         this.currentVideoUrl = null;
         this.loadingUrl = null;
