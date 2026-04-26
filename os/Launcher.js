@@ -33,7 +33,7 @@ export class Launcher {
 
     this.menu?.setAttribute('aria-hidden', 'true');
 
-    this._waitForAppModule();
+    this._ensureAppModuleAndPopulate();
     this._initFilter();
   }
 
@@ -102,9 +102,11 @@ export class Launcher {
 
   // ========== Private Methods ==========
 
-  _waitForAppModule() {
-    if (typeof window.AppModule === 'undefined') {
-      setTimeout(() => this._waitForAppModule(), 100);
+  _ensureAppModuleAndPopulate() {
+    if (typeof window.AppModule === 'undefined' || !window.__heymingAppRegistryReady) {
+      console.error(
+        '[Launcher] AppModule not ready — ensure mime-handlers.js and app.js load before the OS module.'
+      );
       return;
     }
     this.availableApps = window.AppModule.getAllApps();

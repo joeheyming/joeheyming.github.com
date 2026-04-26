@@ -60,11 +60,15 @@ export class WindowManager {
    * @param {number} height - Window height
    * @returns {Object} Window object
    */
+  /**
+   * @param {{ titleBarIcon?: string; appId?: string } | null} [windowChromeOptions] — optional title bar icon (avoids title-string registry lookups for iframe apps).
+   */
   createWindow(
     title,
     content,
     width = this.C.DEFAULT_WINDOW_WIDTH,
-    height = this.C.DEFAULT_WINDOW_HEIGHT
+    height = this.C.DEFAULT_WINDOW_HEIGHT,
+    windowChromeOptions = null
   ) {
     const windowId = this.nextWindowId++;
     const windowsContainer = document.getElementById('os-windows');
@@ -99,7 +103,7 @@ export class WindowManager {
 
     windowElement.innerHTML = `
       <div class="os-window-titlebar" data-window-id="${windowId}">
-        <span class="app-icon">${this.getAppIcon(title)}</span>
+        <span class="app-icon">${windowChromeOptions?.titleBarIcon ?? this.getAppIcon(title)}</span>
         <span class="os-window-title">${title}</span>
         <div class="os-window-controls">
           <button type="button" class="os-window-control minimize" data-action="minimize" data-window-id="${windowId}" aria-label="Minimize window">−</button>
@@ -161,7 +165,8 @@ export class WindowManager {
       app.name,
       content,
       cappedDimensions.width,
-      cappedDimensions.height
+      cappedDimensions.height,
+      { titleBarIcon: app.icon || '📦', appId: app.id }
     );
     win.appId = app.id;
     return win;
@@ -171,21 +176,10 @@ export class WindowManager {
    * Get app icon for title bar
    */
   getAppIcon(title) {
-    const systemIcons = {
-      Terminal: '💻',
-      Calculator: '🔢',
-      Notepad: '📝'
-    };
-
-    if (systemIcons[title]) {
-      return systemIcons[title];
-    }
-
-    // Check registry apps
     if (window.AppModule) {
       const apps = window.AppModule.getAllApps();
       const app = apps.find((a) => a.name === title);
-      if (app) {
+      if (app?.icon) {
         return app.icon;
       }
     }

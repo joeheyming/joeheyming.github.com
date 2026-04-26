@@ -14,14 +14,66 @@ var dropZone,
 var canvasModeBtn, uploadModeBtn, canvasContainer, uploadContainer;
 
 // Canvas drawing elements
-var drawingCanvas, canvasCtx, clearCanvasBtn, penSizeSlider, readDrawingBtn, canvasStatus;
+var drawingCanvas,
+  canvasCtx,
+  eraserHoverOverlay,
+  eraserOverlayCtx,
+  clearCanvasBtn,
+  penSizeSlider,
+  readDrawingBtn,
+  canvasStatus;
 var penToolBtn, eraserToolBtn;
+var undoCanvasBtn, redoCanvasBtn;
 
 // Drawing state
 var isDrawing = false;
 var currentPenSize = 15; // 75% thickness for better OCR
 var currentTool = 'pen'; // 'pen' or 'eraser'
 var autoSaveTimeout;
+
+// Undo/redo: one full-canvas snapshot per completed stroke (pointer up / touch end)
+var canvasHistoryStates = [];
+var canvasHistoryIndex = 0;
+var MAX_CANVAS_HISTORY = 25;
+
+// Eraser: hover highlights connected ink (flood fill); click removes that blob to white
+var eraserHoverRaf = 0;
+var eraserHoverPendingEvent = null;
+var eraserHoverCell = -1;
+var eraserOverlayImageData = null;
+var INK_LUMA_SUM_MAX = 735;
+
+var sayitAppMessageEl = null;
+var sayitAppMessageTimer = null;
+
+/** Eraser touch: avoid deleting on a stale lift after a long pause away from the canvas. */
+var eraserTouchStartX = 0;
+var eraserTouchStartY = 0;
+var eraserTouchMaxDistSq = 0;
+var lastEraserTouchMoveAt = 0;
+
+function showAppMessage(message, isError) {
+  if (!sayitAppMessageEl) {
+    sayitAppMessageEl = document.getElementById('sayitAppMessage');
+  }
+  if (!sayitAppMessageEl) return;
+  if (sayitAppMessageTimer) {
+    clearTimeout(sayitAppMessageTimer);
+    sayitAppMessageTimer = null;
+  }
+  sayitAppMessageEl.textContent = message;
+  sayitAppMessageEl.classList.remove('hidden');
+  if (isError) {
+    sayitAppMessageEl.classList.add('sayit-app-message--error');
+  } else {
+    sayitAppMessageEl.classList.remove('sayit-app-message--error');
+  }
+  sayitAppMessageTimer = setTimeout(function () {
+    sayitAppMessageEl.classList.add('hidden');
+    sayitAppMessageEl.textContent = '';
+    sayitAppMessageTimer = null;
+  }, 6500);
+}
 
 async function initializeTesseract() {
   try {
@@ -145,7 +197,7 @@ function handleFiles(files) {
 
     // Check if it's an image file
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file (JPG, PNG, GIF, BMP)');
+      showAppMessage('Please select an image file (JPG, PNG, GIF, BMP).', true);
       return;
     }
 
@@ -186,7 +238,12 @@ function setupPlayButton() {
 
 function speakText(text) {
   if (!window.speechSynthesis) {
-    alert('Speech synthesis not supported in your browser');
+    showAppMessage('Speech synthesis is not supported in this browser.', true);
+    return;
+  }
+
+  var trimmed = (text || '').trim();
+  if (!trimmed) {
     return;
   }
 
@@ -195,19 +252,37 @@ function speakText(text) {
   playIcon.textContent = '⏸️';
   playText.textContent = 'Stop';
 
-  var utterance = new SpeechSynthesisUtterance(text);
+  var utterance = new SpeechSynthesisUtterance(trimmed);
   utterance.rate = 0.8; // Slightly slower for clarity
 
   utterance.onend = function () {
     resetPlayButton();
   };
 
-  utterance.onerror = function () {
+  utterance.onerror = function (ev) {
     resetPlayButton();
-    console.error('Speech synthesis error');
+    var code = ev && ev.error ? ev.error : '';
+    // Expected when we replace or stop speech (e.g. new OCR run calls cancel, or user hits Stop).
+    if (code === 'canceled' || code === 'interrupted') {
+      return;
+    }
+    if (code) {
+      console.warn('Speech synthesis:', code);
+    } else {
+      console.warn('Speech synthesis error', ev);
+    }
   };
 
-  window.speechSynthesis.speak(utterance);
+  // Cancel any prior utterance; defer speak so the browser can finish teardown (avoids flaky errors in Chrome).
+  window.speechSynthesis.cancel();
+  try {
+    window.speechSynthesis.getVoices();
+  } catch (e) {
+    /* ignore */
+  }
+  setTimeout(function () {
+    window.speechSynthesis.speak(utterance);
+  }, 0);
 }
 
 function resetPlayButton() {
@@ -283,7 +358,11 @@ function setupModeButtons() {
 
 // Canvas drawing functions
 function setupCanvas() {
-  canvasCtx = drawingCanvas.getContext('2d');
+  // Undo/redo snapshots use getImageData often; this avoids the perf warning and opts into a faster readback path.
+  canvasCtx = drawingCanvas.getContext('2d', { willReadFrequently: true });
+  if (!canvasCtx) {
+    canvasCtx = drawingCanvas.getContext('2d');
+  }
 
   // Set up high DPI support
   setupHighDPICanvas();
@@ -300,6 +379,217 @@ function setupCanvas() {
 
   // Ensure pen tool is selected by default
   selectPenTool();
+
+  initCanvasHistoryFromCurrent();
+
+  setupEraserHoverOverlay();
+}
+
+function setupEraserHoverOverlay() {
+  if (!drawingCanvas || !eraserHoverOverlay) return;
+  eraserHoverOverlay.width = drawingCanvas.width;
+  eraserHoverOverlay.height = drawingCanvas.height;
+  eraserOverlayCtx = eraserHoverOverlay.getContext('2d', { alpha: true });
+  eraserOverlayCtx.clearRect(0, 0, eraserHoverOverlay.width, eraserHoverOverlay.height);
+  eraserOverlayImageData = null;
+}
+
+function isInkPixelAt(data, p) {
+  return data[p] + data[p + 1] + data[p + 2] < INK_LUMA_SUM_MAX;
+}
+
+/** 4-connected ink blob from seed; returns Uint8Array mask (1 = ink) or null if seed not ink. */
+function floodFillInkMask(imageData, startX, startY) {
+  var w = imageData.width;
+  var h = imageData.height;
+  var data = imageData.data;
+  var ix = Math.floor(startX);
+  var iy = Math.floor(startY);
+  if (ix < 0 || iy < 0 || ix >= w || iy >= h) return null;
+  var si = iy * w + ix;
+  var sp = si * 4;
+  if (!isInkPixelAt(data, sp)) return null;
+
+  var mask = new Uint8Array(w * h);
+  var visited = new Uint8Array(w * h);
+  var qx = new Int32Array(w * h);
+  var qy = new Int32Array(w * h);
+  var qt = 1;
+  var qh = 0;
+  qx[0] = ix;
+  qy[0] = iy;
+  visited[si] = 1;
+
+  function tryEnqueue(nx, ny) {
+    if (nx < 0 || ny < 0 || nx >= w || ny >= h) return;
+    var nidx = ny * w + nx;
+    if (visited[nidx]) return;
+    var np = nidx * 4;
+    if (!isInkPixelAt(data, np)) return;
+    visited[nidx] = 1;
+    qx[qt] = nx;
+    qy[qt] = ny;
+    qt++;
+  }
+
+  while (qh < qt) {
+    var x = qx[qh];
+    var y = qy[qh];
+    qh++;
+    var idx = y * w + x;
+    mask[idx] = 1;
+    tryEnqueue(x - 1, y);
+    tryEnqueue(x + 1, y);
+    tryEnqueue(x, y - 1);
+    tryEnqueue(x, y + 1);
+  }
+
+  return mask;
+}
+
+function applyWhiteFromMask(imageData, mask) {
+  var d = imageData.data;
+  for (var i = 0; i < mask.length; i++) {
+    if (!mask[i]) continue;
+    var p = i * 4;
+    d[p] = 255;
+    d[p + 1] = 255;
+    d[p + 2] = 255;
+    d[p + 3] = 255;
+  }
+}
+
+function drawMaskOnOverlay(mask, w, h) {
+  if (!eraserOverlayCtx || !mask) return;
+  if (
+    !eraserOverlayImageData ||
+    eraserOverlayImageData.width !== w ||
+    eraserOverlayImageData.height !== h
+  ) {
+    eraserOverlayImageData = eraserOverlayCtx.createImageData(w, h);
+  }
+  var od = eraserOverlayImageData.data;
+  for (var i = 0, p = 0; i < mask.length; i++, p += 4) {
+    if (mask[i]) {
+      od[p] = 33;
+      od[p + 1] = 150;
+      od[p + 2] = 243;
+      od[p + 3] = 115;
+    } else {
+      od[p] = 0;
+      od[p + 1] = 0;
+      od[p + 2] = 0;
+      od[p + 3] = 0;
+    }
+  }
+  eraserOverlayCtx.putImageData(eraserOverlayImageData, 0, 0);
+}
+
+function clearEraserHover() {
+  eraserHoverCell = -1;
+  eraserHoverPendingEvent = null;
+  if (eraserHoverRaf) {
+    cancelAnimationFrame(eraserHoverRaf);
+    eraserHoverRaf = 0;
+  }
+  if (eraserOverlayCtx && eraserHoverOverlay) {
+    eraserOverlayCtx.clearRect(0, 0, eraserHoverOverlay.width, eraserHoverOverlay.height);
+  }
+}
+
+function updateEraserHoverPreview(e) {
+  if (!eraserOverlayCtx || !drawingCanvas || currentTool !== 'eraser') return;
+  var w = drawingCanvas.width;
+  var h = drawingCanvas.height;
+  var c = getCanvasCoordinates(e);
+  var ix = Math.floor(c.x);
+  var iy = Math.floor(c.y);
+  eraserHoverCell = iy * w + ix;
+
+  var imageData = canvasCtx.getImageData(0, 0, w, h);
+  var mask = floodFillInkMask(imageData, c.x, c.y);
+  eraserOverlayCtx.clearRect(0, 0, w, h);
+  if (!mask) return;
+  drawMaskOnOverlay(mask, w, h);
+}
+
+function scheduleEraserHoverUpdate(e) {
+  if (currentTool !== 'eraser') return;
+  eraserHoverPendingEvent = e;
+  if (eraserHoverRaf) return;
+  eraserHoverRaf = requestAnimationFrame(function () {
+    eraserHoverRaf = 0;
+    if (currentTool !== 'eraser') return;
+    var ev = eraserHoverPendingEvent;
+    eraserHoverPendingEvent = null;
+    if (ev) updateEraserHoverPreview(ev);
+  });
+}
+
+function eraserApplyAtPointer(e) {
+  if (!canvasCtx || !drawingCanvas) return;
+  var w = drawingCanvas.width;
+  var h = drawingCanvas.height;
+  var c = getCanvasCoordinates(e);
+  var imageData = canvasCtx.getImageData(0, 0, w, h);
+  var mask = floodFillInkMask(imageData, c.x, c.y);
+  if (!mask) {
+    clearEraserHover();
+    return;
+  }
+  applyWhiteFromMask(imageData, mask);
+  canvasCtx.putImageData(imageData, 0, 0);
+  clearEraserHover();
+  pushCanvasHistoryAfterStroke();
+}
+
+function snapshotCanvasImageData() {
+  return canvasCtx.getImageData(0, 0, drawingCanvas.width, drawingCanvas.height);
+}
+
+function restoreCanvasFromImageData(imageData) {
+  canvasCtx.putImageData(imageData, 0, 0);
+}
+
+function initCanvasHistoryFromCurrent() {
+  canvasHistoryStates = [snapshotCanvasImageData()];
+  canvasHistoryIndex = 0;
+  updateUndoRedoButtons();
+}
+
+function pushCanvasHistoryAfterStroke() {
+  var snap = snapshotCanvasImageData();
+  canvasHistoryStates = canvasHistoryStates.slice(0, canvasHistoryIndex + 1);
+  canvasHistoryStates.push(snap);
+  canvasHistoryIndex = canvasHistoryStates.length - 1;
+  while (canvasHistoryStates.length > MAX_CANVAS_HISTORY) {
+    canvasHistoryStates.shift();
+    canvasHistoryIndex--;
+  }
+  updateUndoRedoButtons();
+  autoSaveCanvas();
+}
+
+function undoCanvas() {
+  if (canvasHistoryIndex <= 0) return;
+  canvasHistoryIndex--;
+  restoreCanvasFromImageData(canvasHistoryStates[canvasHistoryIndex]);
+  updateUndoRedoButtons();
+  autoSaveCanvas();
+}
+
+function redoCanvas() {
+  if (canvasHistoryIndex >= canvasHistoryStates.length - 1) return;
+  canvasHistoryIndex++;
+  restoreCanvasFromImageData(canvasHistoryStates[canvasHistoryIndex]);
+  updateUndoRedoButtons();
+  autoSaveCanvas();
+}
+
+function updateUndoRedoButtons() {
+  if (!undoCanvasBtn || !redoCanvasBtn) return;
+  undoCanvasBtn.disabled = canvasHistoryIndex <= 0;
+  redoCanvasBtn.disabled = canvasHistoryIndex >= canvasHistoryStates.length - 1;
 }
 
 function setupHighDPICanvas() {
@@ -315,33 +605,31 @@ function setupHighDPICanvas() {
 }
 
 function startDrawing(e) {
-  isDrawing = true;
-  // Hide status message when user starts drawing
   canvasStatus.classList.add('hidden');
 
-  // Debug: Log coordinate info for troubleshooting
-  var coords = getCanvasCoordinates(e);
-  console.log('Drawing started at:', coords.x, coords.y, 'Event type:', e.type);
+  if (currentTool === 'eraser') {
+    eraserApplyAtPointer(e);
+    return;
+  }
 
+  isDrawing = true;
   draw(e);
 }
 
 function draw(e) {
+  if (currentTool === 'eraser') {
+    scheduleEraserHoverUpdate(e);
+    return;
+  }
+
   if (!isDrawing) return;
 
-  // Get accurate coordinates for both mouse and touch events
   var coords = getCanvasCoordinates(e);
   var x = coords.x;
   var y = coords.y;
 
   canvasCtx.lineWidth = currentPenSize;
-
-  // Set composite operation based on current tool
-  if (currentTool === 'eraser') {
-    canvasCtx.globalCompositeOperation = 'destination-out';
-  } else {
-    canvasCtx.globalCompositeOperation = 'source-over';
-  }
+  canvasCtx.globalCompositeOperation = 'source-over';
 
   canvasCtx.lineTo(x, y);
   canvasCtx.stroke();
@@ -353,10 +641,12 @@ function getCanvasCoordinates(e) {
   var rect = drawingCanvas.getBoundingClientRect();
   var clientX, clientY;
 
-  // Handle both mouse and touch events
   if (e.touches && e.touches.length > 0) {
     clientX = e.touches[0].clientX;
     clientY = e.touches[0].clientY;
+  } else if (e.changedTouches && e.changedTouches.length > 0) {
+    clientX = e.changedTouches[0].clientX;
+    clientY = e.changedTouches[0].clientY;
   } else {
     clientX = e.clientX;
     clientY = e.clientY;
@@ -390,11 +680,19 @@ function stopDrawing() {
   isDrawing = false;
   canvasCtx.beginPath();
 
-  // Auto-save canvas after drawing stroke
-  autoSaveCanvas();
+  pushCanvasHistoryAfterStroke();
+}
+
+function handleCanvasMouseOut() {
+  if (currentTool === 'eraser') {
+    clearEraserHover();
+    return;
+  }
+  stopDrawing();
 }
 
 function clearCanvas() {
+  clearEraserHover();
   canvasCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
   canvasCtx.fillStyle = 'white';
   canvasCtx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
@@ -408,17 +706,24 @@ function clearCanvas() {
 
   // Reset to pen tool
   selectPenTool();
+
+  // Push blank canvas onto history so Clear is undoable (like any other edit)
+  pushCanvasHistoryAfterStroke();
 }
 
 function updatePenSize() {
   currentPenSize = penSizeSlider.value;
+  penSizeSlider.setAttribute('aria-valuenow', String(currentPenSize));
 }
 
 // Tool switching functions
 function selectPenTool() {
+  clearEraserHover();
   currentTool = 'pen';
   penToolBtn.classList.add('active');
   eraserToolBtn.classList.remove('active');
+  penToolBtn.setAttribute('aria-pressed', 'true');
+  eraserToolBtn.setAttribute('aria-pressed', 'false');
   drawingCanvas.classList.remove('eraser-mode');
 
   // Reset canvas context for drawing
@@ -426,13 +731,43 @@ function selectPenTool() {
 }
 
 function selectEraserTool() {
+  clearEraserHover();
   currentTool = 'eraser';
   penToolBtn.classList.remove('active');
   eraserToolBtn.classList.add('active');
+  penToolBtn.setAttribute('aria-pressed', 'false');
+  eraserToolBtn.setAttribute('aria-pressed', 'true');
   drawingCanvas.classList.add('eraser-mode');
 
-  // Set canvas context for erasing
-  canvasCtx.globalCompositeOperation = 'destination-out';
+  canvasCtx.globalCompositeOperation = 'source-over';
+}
+
+/** True when focus is in a control where Ctrl+Enter should not run OCR (typing, selects, etc.). */
+function isLikelyTextEditingTarget(el) {
+  if (!el || typeof el !== 'object') return false;
+  if (el.isContentEditable) return true;
+  var tag = el.tagName;
+  if (!tag) return false;
+  tag = tag.toUpperCase();
+  if (tag === 'TEXTAREA' || tag === 'SELECT') return true;
+  if (tag === 'INPUT') {
+    var type = (el.type || 'text').toLowerCase();
+    if (
+      type === 'range' ||
+      type === 'button' ||
+      type === 'submit' ||
+      type === 'reset' ||
+      type === 'checkbox' ||
+      type === 'radio' ||
+      type === 'color' ||
+      type === 'file' ||
+      type === 'hidden'
+    ) {
+      return false;
+    }
+    return true;
+  }
+  return false;
 }
 
 function setupToolButtons() {
@@ -441,14 +776,19 @@ function setupToolButtons() {
 
   // Add keyboard shortcuts
   document.addEventListener('keydown', function (e) {
-    // Only work in canvas mode and when not typing in inputs
-    if (
-      canvasContainer.classList.contains('hidden') ||
-      e.target.tagName === 'INPUT' ||
-      e.target.tagName === 'TEXTAREA'
-    ) {
+    if (canvasContainer.classList.contains('hidden')) return;
+
+    // Read & say: Ctrl+Enter or ⌘+Enter (still works when focus is on pen size slider or a button)
+    var mod = e.ctrlKey || e.metaKey;
+    if (mod && e.key === 'Enter') {
+      if (isLikelyTextEditingTarget(e.target)) return;
+      e.preventDefault();
+      readCanvasDrawing();
       return;
     }
+
+    // Pen, eraser, undo, redo: skip when typing in text fields (range slider excluded here)
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
     if (e.key === 'p' || e.key === 'P') {
       e.preventDefault();
@@ -456,6 +796,18 @@ function setupToolButtons() {
     } else if (e.key === 'e' || e.key === 'E') {
       e.preventDefault();
       selectEraserTool();
+    }
+
+    if (mod && (e.key === 'z' || e.key === 'Z')) {
+      e.preventDefault();
+      if (e.shiftKey) {
+        redoCanvas();
+      } else {
+        undoCanvas();
+      }
+    } else if (mod && (e.key === 'y' || e.key === 'Y')) {
+      e.preventDefault();
+      redoCanvas();
     }
   });
 }
@@ -465,14 +817,23 @@ function setupCanvasEvents() {
   drawingCanvas.addEventListener('mousedown', startDrawing);
   drawingCanvas.addEventListener('mousemove', draw);
   drawingCanvas.addEventListener('mouseup', stopDrawing);
-  drawingCanvas.addEventListener('mouseout', stopDrawing);
+  drawingCanvas.addEventListener('mouseout', handleCanvasMouseOut);
 
   // Touch events for mobile - enhanced for better mobile experience
   drawingCanvas.addEventListener(
     'touchstart',
     function (e) {
-      e.preventDefault(); // Prevent scrolling
-      startDrawing(e); // Pass the touch event directly
+      e.preventDefault();
+      if (currentTool === 'eraser') {
+        var c0 = getCanvasCoordinates(e);
+        eraserTouchStartX = c0.x;
+        eraserTouchStartY = c0.y;
+        eraserTouchMaxDistSq = 0;
+        lastEraserTouchMoveAt = Date.now();
+        scheduleEraserHoverUpdate(e);
+        return;
+      }
+      startDrawing(e);
     },
     { passive: false }
   );
@@ -480,8 +841,18 @@ function setupCanvasEvents() {
   drawingCanvas.addEventListener(
     'touchmove',
     function (e) {
-      e.preventDefault(); // Prevent scrolling while drawing
-      draw(e); // Pass the touch event directly
+      e.preventDefault();
+      if (currentTool === 'eraser') {
+        var c1 = getCanvasCoordinates(e);
+        var dx = c1.x - eraserTouchStartX;
+        var dy = c1.y - eraserTouchStartY;
+        var d2 = dx * dx + dy * dy;
+        if (d2 > eraserTouchMaxDistSq) {
+          eraserTouchMaxDistSq = d2;
+        }
+        lastEraserTouchMoveAt = Date.now();
+      }
+      draw(e);
     },
     { passive: false }
   );
@@ -490,17 +861,31 @@ function setupCanvasEvents() {
     'touchend',
     function (e) {
       e.preventDefault();
-      stopDrawing(); // No event needed for stop
+      if (currentTool === 'eraser') {
+        var idleMs = Date.now() - lastEraserTouchMoveAt;
+        var tapLike = eraserTouchMaxDistSq < 26 * 26;
+        var recentMove = idleMs < 550;
+        if (!tapLike && !recentMove) {
+          clearEraserHover();
+          return;
+        }
+        eraserApplyAtPointer(e);
+        return;
+      }
+      stopDrawing();
     },
     { passive: false }
   );
 
-  // Prevent touch scrolling on the canvas area
   drawingCanvas.addEventListener(
     'touchcancel',
     function (e) {
       e.preventDefault();
-      stopDrawing(); // No event needed for stop
+      if (currentTool === 'eraser') {
+        clearEraserHover();
+      } else {
+        stopDrawing();
+      }
     },
     { passive: false }
   );
@@ -509,6 +894,8 @@ function setupCanvasEvents() {
   clearCanvasBtn.addEventListener('click', clearCanvas);
   penSizeSlider.addEventListener('input', updatePenSize);
   readDrawingBtn.addEventListener('click', readCanvasDrawing);
+  undoCanvasBtn.addEventListener('click', undoCanvas);
+  redoCanvasBtn.addEventListener('click', redoCanvas);
 }
 
 function readCanvasDrawing() {
@@ -549,6 +936,10 @@ function loadCanvasFromStorage() {
         // Draw the saved image
         canvasCtx.drawImage(img, 0, 0);
         console.log('Canvas restored from localStorage');
+
+        initCanvasHistoryFromCurrent();
+        clearEraserHover();
+        setupEraserHoverOverlay();
 
         // Show status message
         showCanvasRestoreStatus();
@@ -608,12 +999,15 @@ window.onload = function () {
 
   // Get canvas elements
   drawingCanvas = document.getElementById('drawingCanvas');
+  eraserHoverOverlay = document.getElementById('eraserHoverOverlay');
   clearCanvasBtn = document.getElementById('clearCanvas');
   penSizeSlider = document.getElementById('penSize');
   readDrawingBtn = document.getElementById('readDrawing');
   canvasStatus = document.getElementById('canvasStatus');
   penToolBtn = document.getElementById('penTool');
   eraserToolBtn = document.getElementById('eraserTool');
+  undoCanvasBtn = document.getElementById('undoCanvas');
+  redoCanvasBtn = document.getElementById('redoCanvas');
 
   // Initialize Tesseract worker
   initializeTesseract();

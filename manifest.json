@@ -15,16 +15,20 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["portfolio", "developer", "games"],
+  "categories": [
+    "portfolio",
+    "developer",
+    "games"
+  ],
   "lang": "en-US",
   "dir": "ltr",
   "scope": "/",
   "shortcuts": [
     {
-      "name": "StepMania",
-      "short_name": "StepMania",
-      "description": "Rhythm game in your browser",
-      "url": "/stepmania/"
+      "name": "Everything is Awesome",
+      "short_name": "Awesome",
+      "description": "Everything is Awesome player",
+      "url": "/awesome/"
     },
     {
       "name": "DOOM",
@@ -33,46 +37,22 @@
       "url": "/doom/"
     },
     {
-      "name": "Terminal",
-      "short_name": "Terminal",
-      "description": "Web-based terminal",
-      "url": "/terminal/"
-    },
-    {
-      "name": "Calculator",
-      "short_name": "Calc",
-      "description": "Web calculator",
-      "url": "/calculator/"
-    },
-    {
-      "name": "Everything is Awesome",
-      "short_name": "Awesome",
-      "description": "Everything is Awesome player",
-      "url": "/awesome/"
-    },
-    {
-      "name": "Bad Apple",
-      "short_name": "Bad Apple",
-      "description": "Bad Apple ASCII animation",
-      "url": "/badapple/"
-    },
-    {
       "name": "Notepad",
       "short_name": "Notepad",
       "description": "Web-based notepad",
       "url": "/notepad/"
     },
     {
-      "name": "Operation SHADOWBOX",
-      "short_name": "SHADOWBOX",
-      "description": "Operation SHADOWBOX",
-      "url": "/shadowbox/"
+      "name": "Say It OCR",
+      "short_name": "Say It",
+      "description": "OCR text recognition tool",
+      "url": "/sayit/"
     },
     {
-      "name": "NES Emulator",
-      "short_name": "NES",
-      "description": "Play NES games in your browser",
-      "url": "/nes/"
+      "name": "StepMania",
+      "short_name": "StepMania",
+      "description": "Rhythm game in your browser",
+      "url": "/stepmania/"
     },
     {
       "name": "Wordle Finder",
@@ -87,10 +67,10 @@
       "url": "/youtube/"
     },
     {
-      "name": "Say It OCR",
-      "short_name": "Say It",
-      "description": "OCR text recognition tool",
-      "url": "/sayit/"
+      "name": "Operation SHADOWBOX",
+      "short_name": "SHADOWBOX",
+      "description": "Operation SHADOWBOX",
+      "url": "/shadowbox/"
     },
     {
       "name": "Bad Apple",
@@ -99,10 +79,22 @@
       "url": "/badapple/"
     },
     {
-      "name": "Everything is Awesome",
-      "short_name": "Awesome",
-      "description": "Everything is Awesome player",
-      "url": "/awesome/"
+      "name": "Terminal",
+      "short_name": "Terminal",
+      "description": "Web-based terminal",
+      "url": "/terminal/"
+    },
+    {
+      "name": "Calculator",
+      "short_name": "Calc",
+      "description": "Web calculator",
+      "url": "/calculator/"
+    },
+    {
+      "name": "NES Emulator",
+      "short_name": "NES",
+      "description": "Play NES games in your browser",
+      "url": "/nes/"
     }
   ]
 }

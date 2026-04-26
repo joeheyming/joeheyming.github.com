@@ -3,38 +3,9 @@
 
 import { adoptSharedStyles } from './sharedStyles.js';
 import { createComponentProxy } from './componentProxy.js';
+import { SCORING, TAP_NOTE_POINTS } from './judgmentPolicy.js';
 
-// ============================================================================
-// SCORING CONSTANTS
-// ============================================================================
-
-/**
- * Points awarded for each judgment type
- */
-export const SCORING = {
-  /** Points for perfect hit */
-  PERFECT: 3,
-  /** Points for great hit */
-  GREAT: 3,
-  /** Points for good hit */
-  GOOD: 2,
-  /** Points for bad hit */
-  BAD: 1,
-  /** Points for miss */
-  MISS: 0,
-  /** Points deducted for hitting a mine */
-  MINE_HIT: -5
-};
-
-/** Array of point values for iteration (matches TIMING_WINDOWS order + mine) */
-export const TAP_NOTE_POINTS = [
-  SCORING.PERFECT,
-  SCORING.GREAT,
-  SCORING.GOOD,
-  SCORING.BAD,
-  SCORING.MISS,
-  SCORING.MINE_HIT
-];
+export { SCORING, TAP_NOTE_POINTS };
 
 // ============================================================================
 // SCORING UTILITIES (pure functions)

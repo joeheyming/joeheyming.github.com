@@ -10,6 +10,11 @@ function debug(...args) {
   }
 }
 
+/** Heyming OS expects `{ type: 'iframe-message', message }` (see os/IframeMessageBridge.js). */
+function postOsIframeMessage(message) {
+  window.parent.postMessage({ type: 'iframe-message', message }, '*');
+}
+
 class ImageViewer {
   constructor() {
     // Elements
@@ -84,7 +89,7 @@ class ImageViewer {
     // Request pending file from OS
     setTimeout(() => {
       if (!this.currentFile && this.isInOS) {
-        window.parent.postMessage({ type: 'requestPendingFile', app: 'image-viewer' }, '*');
+        postOsIframeMessage({ type: 'requestPendingFile', app: 'image-viewer' });
       }
     }, 200);
   }
@@ -247,15 +252,11 @@ class ImageViewer {
 
   openFileDialog() {
     if (this.isInOS) {
-      window.parent.postMessage(
-        {
-          type: 'openFileDialog',
-          app: 'image-viewer',
-          fileTypes: ['image/*'],
-          title: 'Open Image'
-        },
-        '*'
-      );
+      postOsIframeMessage({
+        type: 'openFileDialog',
+        fileTypes: ['image/*'],
+        title: 'Open Image'
+      });
     } else {
       this.fileInput.click();
     }

@@ -2,7 +2,7 @@
 // Loads all modules in the correct order
 
 // Core game engine (no dependencies on other app modules)
-import './stepmania.js';
+import { startStepmania } from './stepmania.js';
 
 // Page controller (depends on stepmania.js exports)
 import './mainPageController.js';
@@ -18,3 +18,6 @@ import './step-button.js';
 import './score-panel.js';
 import './loading-overlay.js';
 import './game-over-modal.js';
+
+// Boot engine after custom elements and controller module are registered (DOM may still be loading).
+startStepmania();

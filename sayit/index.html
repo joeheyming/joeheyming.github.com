@@ -14,7 +14,7 @@
     <meta charset="utf-8" />
     <base href="./" />
     <title>🗣️ Say It - OCR Text-to-Speech Tool | Joe Heyming</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <!-- Enhanced SEO Meta Tags -->
     <meta
@@ -114,14 +114,29 @@
   </head>
 
   <body>
+    <div id="sayitAppMessage" class="sayit-app-message hidden" role="status" aria-live="polite"></div>
     <div class="header">
       <h1>Say it</h1>
       <p>A tool that extracts text from images using OCR and reads it aloud</p>
 
       <!-- Mode Switching -->
       <div class="mode-selector">
-        <button id="canvasMode" class="mode-button active">✏️ Write something!</button>
-        <button id="uploadMode" class="mode-button">📁 Upload Image</button>
+        <button
+          id="canvasMode"
+          type="button"
+          class="mode-button active has-tip"
+          data-tip="Draw on the canvas. Shortcuts in this mode: P pen, E eraser, Ctrl+Z undo, redo, Ctrl+Enter read aloud."
+        >
+          ✏️ Write something!
+        </button>
+        <button
+          id="uploadMode"
+          type="button"
+          class="mode-button has-tip"
+          data-tip="Upload an image for OCR instead of drawing on the canvas."
+        >
+          📁 Upload Image
+        </button>
         <share-button label="📤 Share" theme="gradient"></share-button>
       </div>
     </div>
@@ -132,31 +147,137 @@
         <h3>✏️ Write something!</h3>
         <p>
           Use your mouse or finger to draw text on the canvas below. The brush size is set to an
-          optimal thickness for better text recognition. Tap between pen and eraser tools to switch
-          modes. On desktop, you can also use keyboard shortcuts (P for pen, E for eraser). When
-          you're done, tap "Read & Say My Drawing" to automatically extract and speak the text
+          optimal thickness for better text recognition. On phones, the first text scan may take a
+          few seconds. With the eraser, move the pointer over ink: a blue glow shows the connected
+          stroke or letter that would be removed. Click (or lift your finger on touch) to delete that
+          whole piece in one go. Tap between pen and eraser tools to
+          switch modes. On desktop, you can also use keyboard shortcuts (P for pen, E for eraser; undo with
+          Ctrl+Z or ⌘Z, redo with Ctrl+Shift+Z, Ctrl+Y, or ⌘⇧Z). When you're done, use the "Read & Say
+          My Drawing" button or press Ctrl+Enter or ⌘+Enter to recognize the drawing and hear the text
           aloud.
         </p>
       </div>
 
       <div class="canvas-controls">
-        <div class="tool-group">
-          <button id="penTool" class="tool-button active">✏️ Pen</button>
-          <button id="eraserTool" class="tool-button">🧽 Eraser</button>
+        <div class="tool-group" role="group" aria-label="Drawing tools">
+          <button
+            id="penTool"
+            type="button"
+            class="tool-button active has-tip"
+            aria-pressed="true"
+            aria-keyshortcuts="P"
+            aria-label="Pen. Keyboard shortcut: P."
+            data-tip="Pen — press P in write mode (not while typing in a text field) to switch to pen."
+          >
+            ✏️ Pen
+          </button>
+          <button
+            id="eraserTool"
+            type="button"
+            class="tool-button has-tip"
+            aria-pressed="false"
+            aria-keyshortcuts="E"
+            aria-label="Eraser. Hover over ink to highlight a connected letter or stroke, then click to remove it. Shortcut: E."
+            data-tip="Eraser — hover ink to preview what will erase (blue glow). Click to remove that whole connected blob. Touch: lift finger to erase. Press E to select."
+          >
+            🧽 Eraser
+          </button>
         </div>
-        <button id="clearCanvas" class="control-button">🗑️ Clear</button>
-        <label class="pen-size-label">
-          Size:
-          <input type="range" id="penSize" min="2" max="20" value="15" class="pen-size-slider" />
+        <div class="history-group" role="group" aria-label="Undo and redo drawing strokes">
+          <span
+            class="has-tip"
+            data-tip="Undo last completed stroke — Ctrl+Z or ⌘Z (Windows/Linux: Ctrl+Z, Mac: Command+Z)."
+          >
+            <button
+              id="undoCanvas"
+              type="button"
+              class="history-button"
+              disabled
+              aria-keyshortcuts="Control+Z Meta+Z"
+              aria-label="Undo last drawing stroke"
+            >
+              ↩ Undo
+            </button>
+          </span>
+          <span
+            class="has-tip"
+            data-tip="Redo a stroke you undid — Ctrl+Shift+Z, Ctrl+Y, or ⌘⇧Z (Mac: Command+Shift+Z)."
+          >
+            <button
+              id="redoCanvas"
+              type="button"
+              class="history-button"
+              disabled
+              aria-keyshortcuts="Control+Shift+Z Control+Y Meta+Shift+Z"
+              aria-label="Redo drawing stroke"
+            >
+              ↪ Redo
+            </button>
+          </span>
+        </div>
+        <button
+          id="clearCanvas"
+          type="button"
+          class="control-button has-tip"
+          aria-label="Clear drawing canvas to white. Can be undone with Undo."
+          data-tip="Clear the whole canvas to white. You can undo with Undo (Ctrl+Z or ⌘Z). For a single stroke only, use Undo without clearing."
+        >
+          🗑️ Clear
+        </button>
+        <label
+          class="pen-size-label has-tip"
+          data-tip="Brush thickness. Drag to change. P, E, undo, redo, and Ctrl+Enter (⌘+Enter) still work while this slider is focused."
+        >
+          <span class="pen-size-label-text">Brush size</span>
+          <input
+            type="range"
+            id="penSize"
+            min="2"
+            max="20"
+            value="15"
+            class="pen-size-slider"
+            aria-valuemin="2"
+            aria-valuemax="20"
+            aria-valuenow="15"
+            aria-label="Brush stroke thickness for drawing"
+          />
         </label>
         <div id="canvasStatus" class="canvas-status hidden">
           💾 Drawing restored from previous session
         </div>
-        <button id="readDrawing" class="read-button">📖🔊 Read & Say My Drawing</button>
+        <button
+          id="readDrawing"
+          type="button"
+          class="read-button has-tip"
+          aria-keyshortcuts="Control+Enter Meta+Enter"
+          data-tip="Recognize handwriting (OCR) and speak the text — same as Ctrl+Enter or ⌘+Enter."
+          aria-label="Read and say my drawing. Runs text recognition and speaks the result. Keyboard shortcut: Control and Enter, or Command and Enter."
+        >
+          📖🔊 Read & Say My Drawing
+        </button>
       </div>
 
-      <div class="canvas-wrapper">
-        <canvas id="drawingCanvas" width="800" height="400" style="touch-action: none"></canvas>
+      <div
+        class="canvas-wrapper has-tip"
+        data-tip="Drawing area. Eraser: hover ink for blue preview, click to remove that connected piece. Keys: P pen · E eraser · Ctrl+Z undo · redo · Ctrl+Enter read and speak."
+      >
+        <div class="canvas-stack">
+          <canvas
+            id="drawingCanvas"
+            width="800"
+            height="400"
+            style="touch-action: none"
+            tabindex="0"
+            aria-label="Drawing surface for handwriting. Use pen or eraser from the toolbar, or P and E keys. When finished, use Read and Say My Drawing or press Control and Enter."
+          ></canvas>
+          <canvas
+            id="eraserHoverOverlay"
+            width="800"
+            height="400"
+            class="eraser-hover-overlay"
+            aria-hidden="true"
+          ></canvas>
+        </div>
       </div>
     </div>
 
@@ -204,16 +325,22 @@
 
     <img id="loading" src="loading.gif" class="hidden" />
 
-    <div class="results" id="results" style="display: none">
+    <div
+      class="results"
+      id="results"
+      style="display: none"
+      role="region"
+      aria-label="Text recognition results"
+    >
       <div class="result-panel">
         <h3>📸 Your Image</h3>
-        <img id="imgPreview" alt="Image preview" />
+        <img id="imgPreview" alt="Image used for text recognition" />
       </div>
       <div class="result-panel">
         <h3>📝 Extracted Text</h3>
-        <div id="parsedContent">Processing...</div>
-        <button id="playButton" class="play-button hidden">
-          <span id="playIcon">🔊</span>
+        <div id="parsedContent" role="status" aria-live="polite" aria-atomic="true">Processing...</div>
+        <button id="playButton" type="button" class="play-button hidden" aria-label="Play extracted text with speech">
+          <span id="playIcon" aria-hidden="true">🔊</span>
           <span id="playText">Play Text</span>
         </button>
       </div>

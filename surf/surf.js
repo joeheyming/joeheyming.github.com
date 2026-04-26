@@ -9,6 +9,10 @@ function debug(...args) {
   }
 }
 
+function postOsIframeMessage(message) {
+  window.parent.postMessage({ type: 'iframe-message', message }, '*');
+}
+
 class Surf {
   constructor() {
     this.frame = document.getElementById('html-frame');
@@ -55,22 +59,18 @@ class Surf {
 
     setTimeout(() => {
       if (!this.currentFile && this.isInOS) {
-        window.parent.postMessage({ type: 'requestPendingFile', app: 'surf' }, '*');
+        postOsIframeMessage({ type: 'requestPendingFile', app: 'surf' });
       }
     }, 200);
   }
 
   openFileDialog() {
     if (this.isInOS) {
-      window.parent.postMessage(
-        {
-          type: 'openFileDialog',
-          app: 'surf',
-          fileTypes: ['text/html'],
-          title: 'Open HTML File'
-        },
-        '*'
-      );
+      postOsIframeMessage({
+        type: 'openFileDialog',
+        fileTypes: ['text/html'],
+        title: 'Open HTML File'
+      });
     }
   }
 

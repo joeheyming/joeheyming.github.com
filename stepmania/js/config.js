@@ -1,7 +1,7 @@
 // StepMania Configuration - ES Module
 // Centralized constants to eliminate magic numbers
 
-// Note: SCORING and TAP_NOTE_POINTS have been moved to score-panel.js
+// Note: SCORING and TAP_NOTE_POINTS live in judgmentPolicy.js (re-exported from score-panel.js)
 
 /** Arrow/note width in pixels (shared across rendering modules) */
 export const ARROW_WIDTH = 64;

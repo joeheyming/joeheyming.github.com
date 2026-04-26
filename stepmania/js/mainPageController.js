@@ -12,12 +12,6 @@ import {
   loadLocalSimfile,
   fetchZeniusAudioFromZip
 } from './songLoader.js';
-
-// Audio loading constants
-const AUDIO_PROXY_TIMEOUT = 10000; // 10 seconds - fail fast if blocked
-const AUDIO_PROXY_MAX_RETRIES = 1;
-// Minimum bytes to consider audio valid - proxy errors often return small HTML error pages
-const MIN_VALID_AUDIO_SIZE = 1000;
 import { DifficultySelector } from './difficulty-selector.js';
 import { ZeniusBrowser } from './zenius-browser.js';
 import { getURLParams, updateURLParams, clearURLParams } from './urlUtils.js';
@@ -25,6 +19,14 @@ import { LoadingOverlay } from './loading-overlay.js';
 import { videoConverter } from './videoConverter.js';
 import { audioManager } from './audioManager.js';
 import { songManager } from './songManager.js';
+import {
+  AUDIO_PROXY_TIMEOUT,
+  AUDIO_PROXY_MAX_RETRIES,
+  MIN_VALID_AUDIO_SIZE,
+  binaryPayloadByteLength
+} from './songProxyTransport.js';
+import { scheduleFirstVisitBrowserPrompt } from './browserWelcomePrompt.js';
+import { logVideoError, logVideoLoad } from './videoLoadLogging.js';
 
 /**
  * Main Page Controller
@@ -54,160 +56,8 @@ export class MainPageController {
       this.loadDefaultSong();
 
       // Auto-open browser for first-time visitors to improve discovery
-      this.checkAndShowBrowserPrompt();
+      scheduleFirstVisitBrowserPrompt();
     }
-  }
-
-  /**
-   * Check if user is first-time visitor and show browser prompt
-   */
-  checkAndShowBrowserPrompt() {
-    const STORAGE_KEY = 'stepmania_browser_seen';
-    const hasSeenBrowser = localStorage.getItem(STORAGE_KEY);
-
-    // If user hasn't seen the browser before, show a prompt
-    if (!hasSeenBrowser) {
-      // Wait a bit for the page to settle, then show prompt
-      setTimeout(() => {
-        this.showBrowserWelcomePrompt();
-      }, 500);
-    }
-  }
-
-  /**
-   * Show a welcome prompt encouraging users to browse songs
-   */
-  showBrowserWelcomePrompt() {
-    // Check if browser is already open
-    const zeniusBrowser = document.querySelector('zenius-browser');
-    if (zeniusBrowser && zeniusBrowser.classList.contains('modal-open')) {
-      return; // Already open
-    }
-
-    // Create a welcome prompt overlay
-    const promptOverlay = document.createElement('div');
-    promptOverlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      animation: fadeIn 0.3s ease-out;
-    `;
-
-    promptOverlay.innerHTML = `
-      <style>
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes slideUp {
-          from { transform: translateY(20px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-        .browser-prompt {
-          background: #1f2937;
-          border: 2px solid #8b5cf6;
-          border-radius: 0.75rem;
-          padding: 2rem;
-          max-width: 90%;
-          width: 500px;
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-          animation: slideUp 0.3s ease-out;
-          text-align: center;
-        }
-        .browser-prompt h3 {
-          color: white;
-          font-size: 1.5rem;
-          margin: 0 0 1rem 0;
-        }
-        .browser-prompt p {
-          color: #d1d5db;
-          margin: 0 0 1.5rem 0;
-          line-height: 1.6;
-        }
-        .browser-prompt-buttons {
-          display: flex;
-          gap: 1rem;
-          justify-content: center;
-        }
-        .browser-prompt-btn {
-          padding: 0.75rem 1.5rem;
-          border-radius: 0.5rem;
-          border: none;
-          font-weight: 600;
-          cursor: pointer;
-          font-size: 1rem;
-          transition: all 0.2s;
-        }
-        .browser-prompt-btn-primary {
-          background: #8b5cf6;
-          color: white;
-        }
-        .browser-prompt-btn-primary:hover {
-          background: #7c3aed;
-        }
-        .browser-prompt-btn-secondary {
-          background: #4b5563;
-          color: white;
-        }
-        .browser-prompt-btn-secondary:hover {
-          background: #374151;
-        }
-      </style>
-      <div class="browser-prompt">
-        <h3>🎵 Welcome to StepMania!</h3>
-        <p>
-          Browse thousands of songs from Zenius-I-Vanisher! 
-          Click the "Songs" button to explore and find your favorite tracks.
-        </p>
-        <div class="browser-prompt-buttons">
-          <button class="browser-prompt-btn browser-prompt-btn-primary" id="open-browser-now">
-            🎵 Browse Songs
-          </button>
-          <button class="browser-prompt-btn browser-prompt-btn-secondary" id="dismiss-prompt">
-            Maybe Later
-          </button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(promptOverlay);
-
-    const openBtn = promptOverlay.querySelector('#open-browser-now');
-    const dismissBtn = promptOverlay.querySelector('#dismiss-prompt');
-
-    const closePrompt = () => {
-      promptOverlay.remove();
-      localStorage.setItem('stepmania_browser_seen', 'true');
-    };
-
-    openBtn.addEventListener('click', () => {
-      closePrompt();
-      // Track analytics
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent('song_browser_open', 'StepMania', 'Welcome Prompt');
-      }
-      // Open the browser
-      const zeniusBrowser = document.querySelector('zenius-browser');
-      if (zeniusBrowser && typeof zeniusBrowser.showBrowser === 'function') {
-        zeniusBrowser.showBrowser();
-      }
-    });
-
-    dismissBtn.addEventListener('click', closePrompt);
-
-    // Close on outside click
-    promptOverlay.addEventListener('click', (e) => {
-      if (e.target === promptOverlay) {
-        closePrompt();
-      }
-    });
   }
 
   bindEvents() {
@@ -346,7 +196,7 @@ export class MainPageController {
 
       LoadingOverlay.updateProgress('Fetching simfile data...', 15);
 
-      const simfileData = await fetchZeniusSimfile(simfileId);
+      const simfileData = await fetchZeniusSimfile(simfileId, songManager.getProxyTransport());
 
       LoadingOverlay.updateProgress('Parsing simfile charts...', 50);
 
@@ -658,7 +508,7 @@ export class MainPageController {
         if (useMainLoading) {
           LoadingOverlay.updateProgress('Downloading audio file...', audioProgress + 5);
         }
-        const audioData = await window.proxyService.fetchBinaryWithProxy(audioUrl, {
+        const audioData = await songManager.getProxyTransport().fetchBinary(audioUrl, {
           skipDirect: true,
           deferProxies: ['https://corsproxy.io/'],
           headers: {
@@ -670,7 +520,7 @@ export class MainPageController {
         });
 
         // Check if we got actual audio data (not an error page)
-        if (audioData && audioData.length > MIN_VALID_AUDIO_SIZE) {
+        if (audioData && binaryPayloadByteLength(audioData) > MIN_VALID_AUDIO_SIZE) {
           await audioManager.loadArrayBuffer(audioData, mimeType);
           audioLoaded = true;
         }
@@ -688,7 +538,10 @@ export class MainPageController {
               audioProgress + 10
             );
           }
-          const zipResult = await fetchZeniusAudioFromZip(simfileId);
+          const zipResult = await fetchZeniusAudioFromZip(
+            simfileId,
+            songManager.getProxyTransport()
+          );
           if (zipResult) {
             await audioManager.loadBlob(zipResult.audioBlob, zipResult.audioType);
             audioLoaded = true;
@@ -889,13 +742,32 @@ export class MainPageController {
   async preloadVideo(videoUrl) {
     // Prevent duplicate preload calls
     if (this._preloadingVideo === videoUrl || this._preloadedVideo === videoUrl) {
+      logVideoLoad('preload.skip', {
+        videoUrl,
+        preloading: this._preloadingVideo === videoUrl,
+        alreadyPreloaded: this._preloadedVideo === videoUrl
+      });
       return;
     }
 
     if (!videoConverter.needsConversion(videoUrl)) {
+      logVideoLoad('preload.unavailable', {
+        videoUrl,
+        needsConversion: false,
+        isAvi: videoConverter.isAviFile(videoUrl),
+        sharedArrayBuffer: typeof SharedArrayBuffer !== 'undefined',
+        crossOriginIsolated:
+          typeof globalThis !== 'undefined' ? globalThis.crossOriginIsolated : undefined,
+        hint: 'FFmpeg needs SharedArrayBuffer; plain localhost is usually not cross-origin isolated. Open https://joeheyming.github.io/stepmania/ to match production; coi-serviceworker often cannot fix a bare static :8000 server.'
+      });
       LoadingOverlay.updateVideoStatus('unavailable');
       return;
     }
+
+    logVideoLoad('preload.start', {
+      videoUrl,
+      songKey: songManager.getCurrentSongKey?.() ?? null
+    });
 
     this._preloadingVideo = videoUrl;
     LoadingOverlay.updateVideoStatus('loading', 0);
@@ -906,12 +778,18 @@ export class MainPageController {
       });
 
       if (convertedUrl !== videoUrl) {
+        logVideoLoad('preload.success', { videoUrl, hasBlob: convertedUrl.startsWith('blob:') });
         LoadingOverlay.updateVideoStatus('ready');
         this._preloadedVideo = videoUrl;
       } else {
+        logVideoLoad('preload.failedSameUrl', {
+          videoUrl,
+          note: 'getPlayableUrl returned original; conversion may have failed silently'
+        });
         LoadingOverlay.updateVideoStatus('failed');
       }
     } catch (error) {
+      logVideoError('preload.error', error, { videoUrl });
       LoadingOverlay.updateVideoStatus('failed');
     } finally {
       this._preloadingVideo = null;

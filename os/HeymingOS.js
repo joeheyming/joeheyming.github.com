@@ -3,8 +3,10 @@
  * Thin coordinator that wires up all subsystems
  */
 
-import { Config, debug, isFirstRun, saveUsername, saveHostname } from './config.js';
-import { Constants, MessageTypes, IframeActions } from './constants.js';
+import { Config, debug, isFirstRun } from './config.js';
+import { Constants, MessageTypes } from './constants.js';
+import { SetupWizardController } from './SetupWizardController.js';
+import { bindIframeMessageListener } from './IframeMessageBridge.js';
 import { InputHandler } from './InputHandler.js';
 import { WindowManager } from './WindowManager.js';
 import { Taskbar } from './Taskbar.js';
@@ -43,6 +45,7 @@ export class HeymingOS {
     this.clock = new Clock();
     this.contextMenu = new ContextMenu(this);
     this.fileDialog = new FileDialog(this);
+    this.setupWizard = new SetupWizardController(this);
 
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
@@ -78,7 +81,7 @@ export class HeymingOS {
 
     this._bindEvents();
     this._handleViewportChanges();
-    this._listenToIframeMessages();
+    this._unbindIframeMessages = bindIframeMessageListener(this);
   }
 
   /**
@@ -142,7 +145,7 @@ export class HeymingOS {
 
   show() {
     if (isFirstRun()) {
-      this._showSetupWizard();
+      this.setupWizard.show();
       return;
     }
     this._showDesktop();
@@ -165,130 +168,6 @@ export class HeymingOS {
         this.notifications.system(`Welcome to Heyming OS v1.0, ${Config.USER}!`);
       }, 500);
     }
-  }
-
-  _showSetupWizard() {
-    const wizard = document.getElementById('os-setup-wizard');
-    if (!wizard) {
-      this._showDesktop();
-      return;
-    }
-    wizard.classList.remove('hidden');
-
-    const stepWelcome = document.getElementById('os-setup-step-welcome');
-    const stepUser = document.getElementById('os-setup-step-user');
-    const stepDone = document.getElementById('os-setup-step-done');
-    const startBtn = document.getElementById('os-setup-start');
-    const backBtn = document.getElementById('os-setup-back');
-    const confirmBtn = /** @type {HTMLButtonElement|null} */ (document.getElementById('os-setup-confirm'));
-    const finishBtn = document.getElementById('os-setup-finish');
-    const usernameInput = /** @type {HTMLInputElement|null} */ (document.getElementById('os-setup-username'));
-    const hostnameInput = /** @type {HTMLInputElement|null} */ (document.getElementById('os-setup-hostname'));
-    const preview = document.getElementById('os-setup-preview');
-    const previewHome = document.getElementById('os-setup-preview-home');
-    const previewPrompt = document.getElementById('os-setup-preview-prompt');
-    const usernameError = document.getElementById('os-setup-username-error');
-    const usernameHint = document.getElementById('os-setup-username-hint');
-    const hostnameError = document.getElementById('os-setup-hostname-error');
-    const hostnameHint = document.getElementById('os-setup-hostname-hint');
-    const doneUser = document.getElementById('os-setup-done-user');
-    const dots = [0, 1, 2].map((i) => document.getElementById(`os-setup-dot-${i}`));
-
-    const setStep = (idx) => {
-      [stepWelcome, stepUser, stepDone].forEach((s, i) => {
-        s.classList.toggle('hidden', i !== idx);
-      });
-      dots.forEach((d, i) => {
-        d.classList.toggle('active', i === idx);
-        d.classList.toggle('completed', i < idx);
-      });
-    };
-
-    const validateField = (input, errorEl, hintEl, regex, errorMsg) => {
-      const raw = input.value.trim().toLowerCase();
-      const clean = raw.replace(regex, '');
-      if (raw && raw !== clean) {
-        errorEl.textContent = errorMsg;
-        errorEl.classList.remove('hidden');
-        hintEl.classList.add('hidden');
-      } else {
-        errorEl.classList.add('hidden');
-        hintEl.classList.remove('hidden');
-      }
-      return clean;
-    };
-
-    const validate = () => {
-      const user = validateField(
-        usernameInput,
-        usernameError,
-        usernameHint,
-        /[^a-z0-9._-]/g,
-        'Only lowercase a-z, 0-9, dots, dashes, and underscores.'
-      );
-      const host = validateField(
-        hostnameInput,
-        hostnameError,
-        hostnameHint,
-        /[^a-z0-9-]/g,
-        'Only lowercase a-z, 0-9, and dashes.'
-      );
-      if (user && host) {
-        preview.classList.remove('hidden');
-        previewHome.textContent = `/home/${user}`;
-        previewPrompt.textContent = `${user}@${host}:~$`;
-      } else if (user) {
-        preview.classList.remove('hidden');
-        previewHome.textContent = `/home/${user}`;
-        previewPrompt.textContent = `${user}@...:~$`;
-      } else {
-        preview.classList.add('hidden');
-      }
-      confirmBtn.disabled = !user || !host;
-      return { user, host };
-    };
-
-    startBtn.addEventListener('click', () => {
-      setStep(1);
-      usernameInput.focus();
-    });
-
-    backBtn.addEventListener('click', () => {
-      setStep(0);
-    });
-
-    usernameInput.addEventListener('input', validate);
-    hostnameInput.addEventListener('input', validate);
-    const onEnter = (e) => {
-      if (e.key === 'Enter' && !confirmBtn.disabled) confirmBtn.click();
-    };
-    usernameInput.addEventListener('keydown', onEnter);
-    hostnameInput.addEventListener('keydown', onEnter);
-
-    confirmBtn.addEventListener('click', () => {
-      const { user, host } = validate();
-      if (!user || !host) return;
-
-      saveUsername(user);
-      saveHostname(host);
-
-      doneUser.textContent = user;
-      setStep(2);
-
-      if (this.fileSystemDB) {
-        this.fileSystemDB.initializeWithScaffolding(user).catch(() => {});
-      }
-    });
-
-    finishBtn.addEventListener('click', () => {
-      wizard.style.animation = 'fadeOut 0.4s ease-in forwards';
-      setTimeout(() => {
-        wizard.classList.add('hidden');
-        wizard.style.animation = '';
-        this._showDesktop();
-        this.desktop.refresh();
-      }, 400);
-    });
   }
 
   hide() {
@@ -535,50 +414,6 @@ export class HeymingOS {
       setTimeout(() => {
         this.windowManager.adjustWindowsToViewport(true);
       }, 300);
-    });
-  }
-
-  _listenToIframeMessages() {
-    window.addEventListener('message', (e) => {
-      const data = e.data;
-      if (data.type === MessageTypes.IFRAME_MESSAGE) {
-        const msg = data.message;
-        if (msg?.type === IframeActions.LAUNCH) {
-          this.launchApp(msg.app);
-        } else if (msg?.type === IframeActions.OPEN_FILE) {
-          this.openFileWithApp(msg.app, msg.path, msg.content, msg.fileName);
-        } else if (msg?.type === IframeActions.SAVE) {
-          this.saveFileToFilesystem(msg.path, msg.content, msg.fileName);
-        } else if (msg?.type === IframeActions.SAVE_AS) {
-          this.showSaveAsDialog(msg.content, msg.suggestedName, msg.sourceWindow, e.source);
-        } else if (msg?.type === IframeActions.OPEN_DESKTOP_FILE) {
-          // Open a file using OS routing (from File Manager, etc.)
-          void this.openDesktopFile(msg.file).catch((err) => {
-            console.error('[HeymingOS] openDesktopFile (iframe) failed', err);
-            this.notifications?.error?.(`Could not open file: ${err?.message || err}`);
-          });
-        } else if (msg?.type === IframeActions.FILESYSTEM_CHANGED) {
-          // Refresh desktop when files change in File Manager
-          this.desktop.refresh();
-        } else if (msg?.type === MessageTypes.REQUEST_PENDING_FILE) {
-          // App is requesting any pending file to open
-          if (this.pendingFileOpen && this.pendingFileOpen.app === msg.app) {
-            e.source.postMessage(
-              {
-                type: MessageTypes.OPEN_FILE,
-                path: this.pendingFileOpen.path,
-                content: this.pendingFileOpen.content,
-                fileName: this.pendingFileOpen.fileName
-              },
-              { targetOrigin: '*' }
-            );
-            this.pendingFileOpen = null;
-          }
-        } else if (msg?.type === MessageTypes.OPEN_FILE_DIALOG) {
-          // App is requesting to open a file
-          this.showOpenFileDialog(msg.fileTypes, msg.title, e.source);
-        }
-      }
     });
   }
 

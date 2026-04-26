@@ -10,6 +10,11 @@ function debug(...args) {
   }
 }
 
+/** Heyming OS expects `{ type: 'iframe-message', message }` (see os/IframeMessageBridge.js). */
+function postOsIframeMessage(message) {
+  window.parent.postMessage({ type: 'iframe-message', message }, '*');
+}
+
 class MediaPlayer {
   constructor() {
     // Media elements
@@ -90,7 +95,7 @@ class MediaPlayer {
     // Request pending file from OS (in case message was missed)
     setTimeout(() => {
       if (!this.currentFile && window.parent !== window) {
-        window.parent.postMessage({ type: 'requestPendingFile', app: 'media-player' }, '*');
+        postOsIframeMessage({ type: 'requestPendingFile', app: 'media-player' });
       }
     }, 200);
   }
@@ -286,16 +291,11 @@ class MediaPlayer {
 
   openFileDialog() {
     if (this.isInOS) {
-      // Request file browser from OS
-      window.parent.postMessage(
-        {
-          type: 'openFileDialog',
-          app: 'media-player',
-          fileTypes: ['video/*', 'audio/*', 'application/x-youtube'],
-          title: 'Open Media'
-        },
-        '*'
-      );
+      postOsIframeMessage({
+        type: 'openFileDialog',
+        fileTypes: ['video/*', 'audio/*', 'application/x-youtube'],
+        title: 'Open Media'
+      });
     } else {
       // Use native file picker in standalone mode
       this.fileInput.click();
