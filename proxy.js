@@ -5,6 +5,8 @@
 //   options.timeout, options.maxRetries, options.headers — passed through.
 //   options.signal — optional AbortSignal (e.g. jsh Ctrl+C); merged with timeout for each fetch.
 
+const PROXY_HEALTH_STORAGE_KEY = 'heyming.proxyService.v1';
+
 /** @param {number} timeoutMs @param {AbortSignal|undefined|null} userSignal */
 function mergeFetchAbortSignal(timeoutMs, userSignal) {
   const t = AbortSignal.timeout(timeoutMs);
@@ -38,6 +40,9 @@ class ProxyService {
       'https://proxy.corsfix.com/?url=' // Same format as allorigins; 400 if using ? only
     ];
     this.cache = new Map();
+    /** @type {number | null} */
+    this._persistHealthTimer = null;
+    this.maxCacheEntries = 80;
     this.timeoutMs = 15000; // 15 second timeout (some proxies are slow)
     this.binaryTimeoutMs = 25000; // Longer for video/audio
     this.maxRetries = 3; // More retries for better success rate
@@ -57,6 +62,79 @@ class ProxyService {
       this.proxyAttempts.set(proxy, 0);
       this.proxySuccesses.set(proxy, 0);
     });
+
+    this._loadPersistedProxyHealth();
+  }
+
+  _cacheSet(key, value) {
+    this.cache.set(key, value);
+    while (this.cache.size > this.maxCacheEntries) {
+      const first = this.cache.keys().next();
+      if (first.done) break;
+      this.cache.delete(first.value);
+    }
+  }
+
+  _loadPersistedProxyHealth() {
+    if (typeof localStorage === 'undefined') {
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(PROXY_HEALTH_STORAGE_KEY);
+      if (!raw) {
+        return;
+      }
+      const data = JSON.parse(raw);
+      const proxies = data && data.proxies;
+      if (!proxies || typeof proxies !== 'object') {
+        return;
+      }
+      for (const proxy of this.proxyOptions) {
+        const row = proxies[proxy];
+        if (!row || typeof row !== 'object') {
+          continue;
+        }
+        if (typeof row.score === 'number' && !Number.isNaN(row.score)) {
+          this.proxyScores.set(proxy, Math.min(2.0, Math.max(0.1, row.score)));
+        }
+        if (typeof row.attempts === 'number' && row.attempts >= 0) {
+          this.proxyAttempts.set(proxy, row.attempts);
+        }
+        if (typeof row.successes === 'number' && row.successes >= 0) {
+          this.proxySuccesses.set(proxy, row.successes);
+        }
+      }
+    } catch {
+      /* ignore corrupt or private mode */
+    }
+  }
+
+  _schedulePersistProxyHealth() {
+    if (typeof localStorage === 'undefined') {
+      return;
+    }
+    if (this._persistHealthTimer != null) {
+      clearTimeout(this._persistHealthTimer);
+    }
+    this._persistHealthTimer = setTimeout(() => {
+      this._persistHealthTimer = null;
+      try {
+        const proxies = {};
+        for (const proxy of this.proxyOptions) {
+          proxies[proxy] = {
+            score: this.proxyScores.get(proxy) ?? 1.0,
+            attempts: this.proxyAttempts.get(proxy) ?? 0,
+            successes: this.proxySuccesses.get(proxy) ?? 0
+          };
+        }
+        localStorage.setItem(
+          PROXY_HEALTH_STORAGE_KEY,
+          JSON.stringify({ v: 1, savedAt: Date.now(), proxies })
+        );
+      } catch {
+        /* quota, private mode */
+      }
+    }, 400);
   }
 
   // Update proxy score based on success/failure
@@ -80,6 +158,7 @@ class ProxyService {
       // Penalize score for failure
       this.proxyScores.set(proxy, Math.max(0.1, currentScore - 0.2));
     }
+    this._schedulePersistProxyHealth();
   }
 
   // Get proxies ordered by score (best first).
@@ -110,15 +189,6 @@ class ProxyService {
     }
   }
 
-  // Create a timeout promise
-  createTimeoutPromise(timeoutMs) {
-    return new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(new Error(`Request timed out after ${timeoutMs}ms`));
-      }, timeoutMs);
-    });
-  }
-
   // Try direct fetch first (in case server allows CORS). Caller passes skipDirect: true to skip.
   async tryDirectFetch(url, options = {}) {
     try {
@@ -142,7 +212,7 @@ class ProxyService {
         throw error;
       }
       // Expected - most sites block CORS, continue to proxies
-      console.log(`Direct fetch blocked (expected): ${error.message}`);
+      console.log(`Direct fetch blocked (expected): ${error && error.message}`);
     }
     return null;
   }
@@ -161,7 +231,7 @@ class ProxyService {
     if (!options.skipDirect) {
       const directResult = await this.tryDirectFetch(url, options);
       if (directResult) {
-        this.cache.set(cacheKey, directResult);
+        this._cacheSet(cacheKey, directResult);
         return directResult;
       }
     }
@@ -201,7 +271,7 @@ class ProxyService {
 
           if (response.ok) {
             const content = await response.text();
-            this.cache.set(cacheKey, content);
+            this._cacheSet(cacheKey, content);
 
             // Update score for successful proxy
             this.updateProxyScore(proxy, true, responseTime);
@@ -251,30 +321,34 @@ class ProxyService {
   async tryDirectBinaryFetch(url, options = {}) {
     try {
       const timeoutMs = options.timeout || 3000;
-      const fetchPromise = fetch(url, {
+      const signal = mergeFetchAbortSignal(timeoutMs, options.signal);
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           Accept: 'application/octet-stream,*/*',
           ...options.headers
         },
-        mode: 'cors'
+        mode: 'cors',
+        signal
       });
-
-      const response = await Promise.race([fetchPromise, this.createTimeoutPromise(timeoutMs)]);
       if (response.ok) {
         console.log('Direct binary fetch succeeded (no proxy needed)');
         const arrayBuffer = await response.arrayBuffer();
         return new Uint8Array(arrayBuffer);
       }
     } catch (error) {
+      if (error && error.name === 'AbortError') {
+        throw error;
+      }
       // Expected - most sites block CORS
-      console.log(`Direct binary fetch blocked (expected): ${error.message}`);
+      console.log(`Direct binary fetch blocked (expected): ${error && error.message}`);
     }
     return null;
   }
 
   // Fetch content via POST through proxy
   async postWithProxy(url, body, options = {}) {
+    const userAbort = options.signal;
     const timeoutMs = options.timeout || this.timeoutMs;
     const maxRetries = options.maxRetries || this.maxRetries;
     let lastError = null;
@@ -288,23 +362,26 @@ class ProxyService {
     console.log(`Trying POST request to: ${url.substring(0, 80)}...`);
 
     for (let retry = 0; retry <= maxRetries; retry++) {
+      if (userAbort && userAbort.aborted) {
+        throw new DOMException('The operation was aborted.', 'AbortError');
+      }
       for (const proxy of postCapableProxies) {
         try {
           const proxyUrl = proxy + this.encodeUrlForProxy(url);
           const startTime = Date.now();
           console.log(`Trying POST via proxy: ${proxy.substring(0, 30)}...`);
 
-          const fetchPromise = fetch(proxyUrl, {
+          const signal = mergeFetchAbortSignal(timeoutMs, userAbort);
+          const response = await fetch(proxyUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/x-www-form-urlencoded',
               Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
               ...options.headers
             },
-            body: body
+            body: body,
+            signal
           });
-
-          const response = await Promise.race([fetchPromise, this.createTimeoutPromise(timeoutMs)]);
           const responseTime = Date.now() - startTime;
 
           if (response.ok) {
@@ -315,13 +392,22 @@ class ProxyService {
             console.warn(`POST proxy ${proxy} returned status ${response.status}`);
           }
         } catch (error) {
+          if (error && error.name === 'AbortError') {
+            throw error;
+          }
           lastError = error;
-          console.warn(`POST proxy ${proxy} failed (attempt ${retry + 1}):`, error.message);
+          console.warn(
+            `POST proxy ${proxy} failed (attempt ${retry + 1}):`,
+            error && error.message
+          );
           continue;
         }
       }
 
       if (retry < maxRetries) {
+        if (userAbort && userAbort.aborted) {
+          throw new DOMException('The operation was aborted.', 'AbortError');
+        }
         console.log(`All POST proxies failed, retrying... (${retry + 1}/${maxRetries})`);
         await new Promise((resolve) => setTimeout(resolve, 1000 * (retry + 1)));
       }
@@ -336,18 +422,17 @@ class ProxyService {
 
   // Fetch content as binary (for ROMs)
   async fetchBinaryWithProxy(url, options = {}) {
-    const cacheKey = `binary-${url}-${JSON.stringify(options)}`;
+    const { signal: userAbort, ...optionsForKey } = options;
+    const cacheKey = `binary-${url}-${JSON.stringify(optionsForKey)}`;
 
-    // Check cache first
-    if (this.cache.has(cacheKey)) {
+    if (!userAbort && this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey);
     }
 
-    // Try direct fetch first
     if (!options.skipDirect) {
       const directResult = await this.tryDirectBinaryFetch(url, options);
       if (directResult) {
-        this.cache.set(cacheKey, directResult);
+        this._cacheSet(cacheKey, directResult);
         return directResult;
       }
     }
@@ -359,6 +444,9 @@ class ProxyService {
     const orderedProxies = this.getOrderedProxies(options);
 
     for (let retry = 0; retry <= maxRetries; retry++) {
+      if (userAbort && userAbort.aborted) {
+        throw new DOMException('The operation was aborted.', 'AbortError');
+      }
       for (const proxy of orderedProxies) {
         const lastFail = this.proxyLastFailure.get(proxy);
         if (lastFail && Date.now() - lastFail < this.proxyCooldownMs) continue;
@@ -367,22 +455,22 @@ class ProxyService {
           const proxyUrl = proxy + this.encodeUrlForProxy(url);
           const startTime = Date.now();
 
-          const fetchPromise = fetch(proxyUrl, {
+          const signal = mergeFetchAbortSignal(timeoutMs, userAbort);
+          const response = await fetch(proxyUrl, {
             method: 'GET',
             headers: {
               Accept: 'application/octet-stream,*/*',
               'Accept-Language': 'en-US,en;q=0.5',
               ...options.headers
-            }
+            },
+            signal
           });
-
-          const response = await Promise.race([fetchPromise, this.createTimeoutPromise(timeoutMs)]);
           const responseTime = Date.now() - startTime;
 
           if (response.ok) {
             const arrayBuffer = await response.arrayBuffer();
             const uint8Array = new Uint8Array(arrayBuffer);
-            this.cache.set(cacheKey, uint8Array);
+            this._cacheSet(cacheKey, uint8Array);
 
             this.updateProxyScore(proxy, true, responseTime);
             console.log(
@@ -398,18 +486,22 @@ class ProxyService {
             this.proxyLastFailure.set(proxy, Date.now());
           }
         } catch (error) {
+          if (error && error.name === 'AbortError') {
+            throw error;
+          }
           lastError = error;
-          console.warn(`Proxy ${proxy} failed (attempt ${retry + 1}):`, error.message);
+          console.warn(`Proxy ${proxy} failed (attempt ${retry + 1}):`, error && error.message);
           this.updateProxyScore(proxy, false);
           this.proxyLastFailure.set(proxy, Date.now());
           continue;
         }
       }
 
-      // If we get here, all proxies failed for this retry
       if (retry < maxRetries) {
+        if (userAbort && userAbort.aborted) {
+          throw new DOMException('The operation was aborted.', 'AbortError');
+        }
         console.log(`All proxies failed, retrying... (${retry + 1}/${maxRetries})`);
-        // Wait a bit before retrying
         await new Promise((resolve) => setTimeout(resolve, 1000 * (retry + 1)));
       }
     }
@@ -475,6 +567,13 @@ class ProxyService {
       this.proxyAttempts.set(proxy, 0);
       this.proxySuccesses.set(proxy, 0);
     });
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.removeItem(PROXY_HEALTH_STORAGE_KEY);
+      } catch {
+        /* ignore */
+      }
+    }
     console.log('Proxy scores reset to default values');
   }
 }
