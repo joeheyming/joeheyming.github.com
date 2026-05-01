@@ -106,7 +106,9 @@ class EventAutocomplete extends HTMLElement {
   }
 
   getDaysAway(date) {
-    const days = Math.ceil(dayjs(date).diff(dayjs(), 'day', true));
+    const d = dayjs(date);
+    if (!d.isValid()) return '';
+    const days = Math.ceil(d.diff(dayjs(), 'day', true));
     if (days === 0) return this.str('today');
     if (days === 1) return this.str('tomorrow');
     return `${days} ${this.str('days')}`;
@@ -337,11 +339,14 @@ class EventAutocomplete extends HTMLElement {
 
       events.forEach((event) => {
         const isCustom = event.category === 'custom';
-        const formattedDate = new Intl.DateTimeFormat(localeService.locale, {
-          month: 'long',
-          day: 'numeric',
-          year: 'numeric'
-        }).format(new Date(event.date));
+        const eventDateObj = new Date(event.date);
+        const formattedDate = Number.isFinite(eventDateObj.getTime())
+          ? new Intl.DateTimeFormat(localeService.locale, {
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric'
+            }).format(eventDateObj)
+          : '';
         html += `
           <div class="item${globalIndex === this.highlightedIndex ? ' highlighted' : ''}${
           this.selectedEvent?.id === event.id ? ' selected' : ''

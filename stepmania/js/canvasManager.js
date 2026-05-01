@@ -57,7 +57,61 @@ export const CanvasManager = {
     // Get 2D context
     this.ctx = this.element.getContext('2d');
 
+    // Ensure roundRect is available (polyfill for older browsers)
+    this._ensureRoundRect(this.ctx);
+
     return this.ctx;
+  },
+
+  /**
+   * Polyfill CanvasRenderingContext2D.roundRect for browsers that don't support it
+   * (e.g. older Safari/iOS, older Chromium).
+   * @param {CanvasRenderingContext2D} ctx
+   * @private
+   */
+  _ensureRoundRect(ctx) {
+    if (!ctx || typeof ctx.roundRect === 'function') return;
+    const proto = Object.getPrototypeOf(ctx);
+    if (!proto || typeof proto.roundRect === 'function') return;
+
+    proto.roundRect = function (x, y, w, h, radii) {
+      let tl, tr, br, bl;
+      if (typeof radii === 'number') {
+        tl = tr = br = bl = radii;
+      } else if (Array.isArray(radii)) {
+        if (radii.length === 1) tl = tr = br = bl = radii[0];
+        else if (radii.length === 2) {
+          tl = br = radii[0];
+          tr = bl = radii[1];
+        } else if (radii.length === 3) {
+          tl = radii[0];
+          tr = bl = radii[1];
+          br = radii[2];
+        } else {
+          [tl, tr, br, bl] = radii;
+        }
+      } else {
+        tl = tr = br = bl = 0;
+      }
+
+      // Clamp radii so they don't exceed half of width/height
+      const maxR = Math.min(Math.abs(w), Math.abs(h)) / 2;
+      tl = Math.min(tl, maxR);
+      tr = Math.min(tr, maxR);
+      br = Math.min(br, maxR);
+      bl = Math.min(bl, maxR);
+
+      this.moveTo(x + tl, y);
+      this.lineTo(x + w - tr, y);
+      this.quadraticCurveTo(x + w, y, x + w, y + tr);
+      this.lineTo(x + w, y + h - br);
+      this.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+      this.lineTo(x + bl, y + h);
+      this.quadraticCurveTo(x, y + h, x, y + h - bl);
+      this.lineTo(x, y + tl);
+      this.quadraticCurveTo(x, y, x + tl, y);
+      this.closePath();
+    };
   },
 
   /**

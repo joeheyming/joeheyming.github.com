@@ -1738,5 +1738,11 @@ export function getAllEvents() {
     ...e,
     category: 'custom'
   }));
-  return [...presets, ...custom];
+  // Drop any event with a missing or unparseable date so downstream
+  // formatters (Intl.DateTimeFormat, etc.) can't throw "Invalid time value".
+  return [...presets, ...custom].filter((e) => {
+    if (!e || !e.date) return false;
+    const t = new Date(e.date).getTime();
+    return Number.isFinite(t);
+  });
 }
