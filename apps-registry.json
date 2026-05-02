@@ -80,6 +80,35 @@
     }
   },
   {
+    "id": "legend-of-doom",
+    "name": "Legend of DOOM 🗡️",
+    "shortName": "Legend of DOOM",
+    "description": "Zelda reimagined in DOOM — playable in-browser",
+    "detailedDescription": "The Legend of DOOM, a GZDoom total conversion, running natively in your browser via UZDoom-WASM. Freedoom + the mod are bundled here — click Launch to play.",
+    "icon": "🗡️",
+    "path": "./legend-of-doom/",
+    "category": "game",
+    "gradient": "from-emerald-500/20 to-amber-500/20",
+    "border": "border-emerald-500/30 hover:border-amber-400/50",
+    "taskbarGradient": "from-emerald-500 to-amber-500",
+    "taskbarText": "text-white",
+    "defaultWidth": 960,
+    "defaultHeight": 720,
+    "tags": [
+      "doom",
+      "mod",
+      "zelda",
+      "wasm",
+      "browser"
+    ],
+    "related": [
+      "doom",
+      "nes",
+      "pacman"
+    ],
+    "shareCategory": "game"
+  },
+  {
     "id": "farm",
     "name": "Farm Adventures 🚜",
     "shortName": "Farm",

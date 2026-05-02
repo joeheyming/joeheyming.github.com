@@ -173,6 +173,36 @@
             </div>
           </div>
         </div>
+
+        <!-- Cross-promo: nudge DOOM players toward the Legend of DOOM mod.
+             Sits below the controls card; inherits sidebar width. Hidden on
+             mobile along with the rest of .controls-sidebar (LoD is desktop
+             only anyway — it gates on pointer:coarse / mobile UA). -->
+        <a
+          class="controls-card"
+          href="/legend-of-doom/"
+          style="
+            display: block;
+            margin-top: 20px;
+            text-decoration: none;
+            color: inherit;
+            border: 1px solid #2c4b36;
+            background: linear-gradient(145deg, #17261c, #0f1a12);
+            transition: border-color 150ms, transform 150ms;
+          "
+          onmouseover="this.style.borderColor='#4fa861'; this.style.transform='translateY(-2px)';"
+          onmouseout="this.style.borderColor='#2c4b36'; this.style.transform='translateY(0)';"
+        >
+          <h2 style="color: #4fa861">🗡️ Like DOOM?</h2>
+          <p style="margin: 0; font-size: 0.95em; line-height: 1.5; color: #c8d0c5">
+            Try <strong style="color: #e8f2e6">Legend of DOOM</strong> — Zelda
+            reimagined as a GZDoom total conversion, running right here in your
+            browser.
+          </p>
+          <p style="margin: 12px 0 0 0; font-size: 0.9em; color: #4fa861; font-weight: 600">
+            Play now →
+          </p>
+        </a>
       </aside>
     </div>
 
