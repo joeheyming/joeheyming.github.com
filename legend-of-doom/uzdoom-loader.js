@@ -842,6 +842,61 @@
       if (window.self !== window.top) {
         userArgs.push('+i_pauseinbackground', '0');
       }
+      // [SITE] Input rebind via a config lump.
+      //
+      // Two universal changes + one mobile-only change:
+      //
+      //  * `bind ctrl +attack` (always) — modern GZDoom ships the
+      //    WASD keymap (defbinds.txt) by default, which has NO
+      //    keyboard +attack binding at all (mouse1 is the only one).
+      //    On mobile the on-screen FIRE button and the tap-to-fire
+      //    gesture both dispatch a synthetic Ctrl key event; without
+      //    an explicit bind they'd do nothing. On desktop this just
+      //    restores the classic Doom keyboard bind, which is
+      //    harmless.
+      //
+      //  * `bind leftarrow/rightarrow +left/+right` (always) —
+      //    defbinds.txt doesn't bind arrow keys to turning either.
+      //    The swipe-to-turn logic sends arrow key events on mobile;
+      //    keeping these binds on desktop just gives keyboard users
+      //    the arrow-keys-turn behavior they expect.
+      //
+      //  * `unbind mouse1` (MOBILE ONLY) — Emscripten's SDL2 port
+      //    has touch→mouse synthesis enabled by default: every
+      //    SDL_FINGERDOWN produces a synthesized SDL_MOUSEBUTTONDOWN
+      //    inside the WASM. Doom binds mouse1 to +attack by default,
+      //    so every swipe-to-turn would fire the weapon. The
+      //    synthesis happens WASM-internal (we can't block it from
+      //    the DOM), and SDL's single on/off switch for touch→mouse
+      //    emulation would also kill the mousemotion signal GZDoom
+      //    uses for mouselook. So on mobile we disarm the effect by
+      //    removing the bind; on desktop we keep mouse1=+attack
+      //    (left-click fires) since there's no touch→mouse
+      //    synthesis to worry about.
+      //
+      // Mobile detection: touch-input.js adds `body.mobile` during
+      // its DOMContentLoaded init, well before the engine launches,
+      // so reading the class here gives the same answer the rest of
+      // the page uses.
+      //
+      // Why a cfg file instead of `+bind`/`+unbind` on argv:
+      // GZDoom's +cmd argv parser treats any subsequent
+      // `+`-prefixed token as the start of a new console command,
+      // so `+bind ctrl +attack` gets split as `bind ctrl` + a
+      // standalone `+attack` (held forever). `-exec` runs a config
+      // file through the normal console parser where quoting and
+      // chaining work cleanly.
+      try {
+        var cfg =
+          'bind ctrl "+attack"\n' + 'bind leftarrow "+left"\n' + 'bind rightarrow "+right"\n';
+        if (document.body.classList.contains('mobile')) {
+          cfg = 'unbind mouse1\n' + cfg;
+        }
+        FS.writeFile('/lod-input-binds.cfg', cfg);
+        userArgs.push('-exec', '/lod-input-binds.cfg');
+      } catch (e) {
+        console.warn('[uzdoom-loader] could not write input binds cfg:', e);
+      }
       Module.arguments = userArgs;
       console.log('[uzdoom-loader] launching with argv:', userArgs);
       setStatus('Booting engine…');

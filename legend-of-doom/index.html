@@ -58,6 +58,27 @@
     <script defer src="lifecycle.js"></script>
     <script defer src="coi.js"></script>
     <script defer src="touch-input.js"></script>
+    <!-- Phone → desktop console relay. Opt-in via ?phonelog=1.
+         Only runs during remote-phone debugging against the local dev
+         server; in production the script tag is never injected so
+         there's zero cost. ?phonelog=1 also serves as the umbrella
+         debug flag — lifecycle.js, touch-input.js, etc. treat it as
+         "turn on all diagnostic channels" so the mobile debug URL
+         doesn't need to stack ?weaponlog=1&bootlog=1&... -->
+    <script>
+      (function () {
+        try {
+          if (new URLSearchParams(location.search).get('phonelog') === '1') {
+            var s = document.createElement('script');
+            s.src = '/scripts/phone-console.js';
+            s.async = false;
+            document.currentScript.parentNode.insertBefore(s, document.currentScript);
+          }
+        } catch (_e) {
+          /* noop */
+        }
+      })();
+    </script>
 
     <!-- uzdoom-loader.js expects a specific DOM layout and specific IDs
          (iwadPicker, modPicker, sfPicker, launchBtn, status, canvas,
@@ -358,6 +379,16 @@
         border: 0;
         padding: 0;
       }
+      /* Vertically center the lone Launch button in the visible area.
+         The overlay is `justify-content: flex-start` globally so the
+         brand header sits at the top in manual mode; in clean mode
+         we let the hero grow to fill the remaining height and center
+         the button within it. */
+      .clean .hero {
+        flex: 1;
+        margin-top: 0;
+        justify-content: center;
+      }
 
       .hero {
         display: flex;
@@ -505,6 +536,18 @@
       #fsBtn.hidden {
         display: none;
       }
+      /* Mobile hides the fullscreen toggle entirely. Real browser
+         fullscreen on Android / iOS canvases either eats the on-screen
+         D-pad and action buttons (the fullscreen element only renders
+         itself and its descendants, and #touch-ui is a sibling of
+         #canvas), or fails outright because iOS Safari's <canvas>
+         fullscreen API is heavily restricted. Either way, the button
+         is a footgun on touch devices — hide it with !important so it
+         survives the loader's `classList.remove('hidden')` call on
+         engine reveal. Desktop users still get the toggle. */
+      body.mobile #fsBtn {
+        display: none !important;
+      }
 
       #exited .outcome {
         font-size: 14px;
@@ -644,37 +687,37 @@
 
       /* Movement pad bottom-left. Safe-area insets keep it clear of
          the home indicator / notch when the device is in landscape.
-         D-pad buttons bumped to 72×72 (matching the FIRE button) so
-         they're comfortably thumb-sized on a phone; container grown
-         to 220×220 so the center offset (74px) keeps a tiny gap
-         between up/down and left/right. */
+         D-pad buttons bumped to 88×88 so they're easy thumb targets;
+         container grown to 256×256 so the center offset ((256-88)/2 =
+         84px) keeps an 80px gap between up/down and left/right for
+         the thumb to swipe through without grazing buttons. */
       #touch-move {
         position: absolute;
         left: calc(14px + env(safe-area-inset-left, 0px));
         bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-        width: 220px;
-        height: 220px;
+        width: 256px;
+        height: 256px;
       }
       #touch-move .touch-btn {
         position: absolute;
-        width: 72px;
-        height: 72px;
-        font-size: 22px;
+        width: 88px;
+        height: 88px;
+        font-size: 26px;
       }
       #touch-move .up {
         top: 0;
-        left: 74px;
+        left: 84px;
       }
       #touch-move .down {
         bottom: 0;
-        left: 74px;
+        left: 84px;
       }
       #touch-move .left {
-        top: 74px;
+        top: 84px;
         left: 0;
       }
       #touch-move .right {
-        top: 74px;
+        top: 84px;
         right: 0;
       }
 
@@ -701,35 +744,35 @@
       }
 
       /* Shrink the pads on short landscape screens (iPhone SE etc.)
-         so both pads + FIRE fit above Safari's bottom chrome. Button
-         size is kept a hair below the default (60 vs 72) so the full
-         d-pad still fits inside a 184px container with room for a
-         2px gap at the center axis: (184 - 60) / 2 = 62. */
+         so both pads + FIRE fit above Safari's bottom chrome. Scaled
+         down from the default 88/256 to 72/220 — still chunky, but
+         the full d-pad + FIRE column fits a 360-tall viewport with
+         room to spare: (220 - 72) / 2 = 74 center offset. */
       @media (max-height: 420px) {
         #touch-move {
-          width: 184px;
-          height: 184px;
+          width: 220px;
+          height: 220px;
         }
         #touch-move .up {
           top: 0;
-          left: 62px;
+          left: 74px;
         }
         #touch-move .down {
           bottom: 0;
-          left: 62px;
+          left: 74px;
         }
         #touch-move .left {
-          top: 62px;
+          top: 74px;
           left: 0;
         }
         #touch-move .right {
-          top: 62px;
+          top: 74px;
           right: 0;
         }
         #touch-move .touch-btn {
-          width: 60px;
-          height: 60px;
-          font-size: 20px;
+          width: 72px;
+          height: 72px;
+          font-size: 22px;
         }
         .touch-btn.action {
           width: 48px;

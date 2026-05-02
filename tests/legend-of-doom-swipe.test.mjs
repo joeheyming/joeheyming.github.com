@@ -207,11 +207,18 @@ describe('BINDINGS table contract', () => {
     }
   });
 
-  it('the FIRE binding is the only alsoMouse binding', () => {
+  it('no binding carries alsoMouse (mouse1 is unbound server-side)', () => {
+    // We used to dispatch a synthetic mousedown for FIRE so Doom's
+    // default mouse1=+attack fired. Now the engine argv unbinds
+    // mouse1 at startup (to stop SDL2's touch→mouse synthesis from
+    // triggering +attack on every mobile swipe), and FIRE lives on
+    // the Ctrl key only. No binding should carry the old `alsoMouse`
+    // escape hatch — if one reappears it almost certainly means
+    // someone brought the sword-fires-on-swipe bug back.
     const alsoMouse = Object.entries(bindings)
       .filter(([, b]) => b.alsoMouse)
       .map(([name]) => name);
-    assert.deepEqual(alsoMouse, ['fire']);
+    assert.deepEqual(alsoMouse, []);
   });
 
   it('USE is bound to KeyE (not Space)', () => {
