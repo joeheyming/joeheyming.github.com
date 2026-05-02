@@ -60,7 +60,7 @@ if (typeof window === 'undefined') {
           return new Response(response.body, {
             status: response.status,
             statusText: response.statusText,
-            headers: newHeaders,
+            headers: newHeaders
           });
         })
         .catch((err) => {
@@ -119,6 +119,9 @@ if (typeof window === 'undefined') {
             ' reload(s). ' +
             'SharedArrayBuffer will be unavailable on this page.'
         );
+        // Clear the counter so a manual reload starts fresh instead of
+        // being trapped in the "give up" branch forever.
+        sessionStorage.removeItem(attemptsKey);
         return;
       }
       sessionStorage.setItem(attemptsKey, String(attempt + 1));
@@ -161,12 +164,29 @@ if (typeof window === 'undefined') {
       .register(scriptPath)
       .then(function (registration) {
         console.log('COI Service Worker registered:', registration.scope);
+
+        // Hard reload (Cmd+Shift+R / Ctrl+Shift+R) bypasses the SW for
+        // the navigation, so the document has no COOP/COEP and
+        // crossOriginIsolated is false even though the SW is registered
+        // and active from a previous session. Waiting for 'controller-
+        // change' is pointless in that state: the SW won't go through a
+        // new install/activate cycle, so clients.claim() won't fire
+        // again and the event will never come — we'd just burn 5 s of
+        // the COI guard's budget on nothing. Detect the case (active SW,
+        // we're uncontrolled, we're not isolated) and reload immediately.
+        if (
+          registration.active &&
+          !navigator.serviceWorker.controller &&
+          !window.crossOriginIsolated
+        ) {
+          scheduleReload('hard-reload-bypass');
+          return null;
+        }
+
         return waitForController(5000);
       })
       .then(function (reason) {
-        // At this point either the SW is the controller (good) or we hit
-        // the 5s timeout (will still try to reload — sometimes it works
-        // anyway, and the MAX_ATTEMPTS ceiling bounds the damage).
+        if (reason === null) return; // scheduleReload already fired
         if (!window.crossOriginIsolated) {
           scheduleReload(reason);
         } else {

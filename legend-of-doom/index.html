@@ -277,18 +277,22 @@
          picker flow is the UI. */
       body:not(.clean) #cleanHero { display: none !important; }
 
-      /* Clean mode — default. Hides the full picker UI and shows only
-         the hero + prominent launch button. The picker DOM stays in the
-         tree because uzdoom-loader.js queries those IDs; we just don't
+      /* Clean mode — default. Hides the full picker UI plus the hero's
+         chatty tagline/fineprint so only the brand header + Launch
+         button remain visible. The picker DOM stays in the tree
+         because uzdoom-loader.js queries those IDs; we just don't
          paint any of it. Status line + progress bar remain visible so
-         asset download has feedback. Add ?manual=1 to the URL to reveal
-         the full picker instead. */
+         asset download has feedback. Add ?manual=1 to the URL to
+         reveal the full picker instead. */
       .clean .intro,
       .clean .warn-banner,
       .clean .instructions.manual-only,
       .clean .panel .section-title,
       .clean .panel .picker,
-      .clean .panel .btn-row {
+      .clean .panel .btn-row,
+      .clean .brand h1 .sub,
+      .clean .hero .tagline,
+      .clean .hero .fineprint {
         display: none !important;
       }
       .clean .panel {
@@ -915,6 +919,16 @@
             tag.async = false;
             tag.onload = function () {
               log('scripts', src + ' loaded in ' + (performance.now() - t0).toFixed(0) + 'ms');
+              // The auto-launch script below clicks the loader's buttons
+              // to skip the picker. That has to wait until the loader IIFE
+              // has actually executed and wired its handlers — on a cold
+              // fetch, DOMContentLoaded fires before the dynamically-
+              // injected loader script has finished, so the auto-launch
+              // would click a button with no handler yet. Set a flag when
+              // uzdoom-loader.js has run, so priming can gate on it.
+              if (src === 'uzdoom-loader.js') {
+                window.__UZDOOM_LOADER_READY__ = true;
+              }
             };
             tag.onerror = function (e) {
               warn('scripts', src + ' FAILED to load: ' + (e && e.message ? e.message : '(no msg)'));
@@ -1038,47 +1052,82 @@
             return buf;
           });
 
+        // Click button, wait for DOM side-effect to appear. Retry up to
+        // maxAttempts times. Returns true if side-effect appeared, false
+        // on timeout. Self-correcting against the cold-load race: if
+        // uzdoom-loader.js hasn't wired its click handler yet, the click
+        // is a no-op and we retry. Once the loader IIFE runs and attaches
+        // the handler, the next click lands and the side-effect appears.
+        async function clickUntilEffect(el, effectPred, label, maxAttempts) {
+          maxAttempts = maxAttempts || 50; // 50 * 150ms = 7.5 s
+          for (var i = 0; i < maxAttempts; i++) {
+            el.click();
+            // Give the handler a tick to run + any async work to start.
+            await new Promise(function (r) { setTimeout(r, 150); });
+            if (effectPred()) {
+              if (i > 0) log(label + ' took effect after ' + (i + 1) + ' clicks');
+              return true;
+            }
+          }
+          return false;
+        }
+
         async function primeLoader() {
           try {
-            // Wait for the loader's DOM to be wired. The launch button
-            // exists in the HTML source but only becomes usable after
-            // uzdoom-loader.js attaches its click handler inside the
-            // loader IIFE. Presence of #useFreedoomBtn with an attached
-            // listener isn't observable, so we settle for "button
-            // element exists" + a rAF to let the loader finish its
-            // synchronous setup.
+            // Wait for the loader's DOM targets to exist. Upstream DOM is
+            // in the static HTML so this resolves immediately; the real
+            // race is whether the click handlers have been attached yet.
             await waitFor(function () {
               return document.getElementById('useFreedoomBtn') &&
                      document.getElementById('launchBtn') &&
                      document.querySelector('#modPicker input[type=file]');
-            }, 'loader UI');
+            }, 'loader DOM');
             await new Promise(function (r) { requestAnimationFrame(r); });
 
             var freedoomBtn = document.getElementById('useFreedoomBtn');
             var launchBtn = document.getElementById('launchBtn');
             var modInput = document.querySelector('#modPicker input[type=file]');
+            var iwadPicker = document.getElementById('iwadPicker');
 
+            // Retry the freedoom click until the loader actually wires
+            // up. On a cold first visit, uzdoom-loader.js is still
+            // downloading when DOMContentLoaded fires and the first click
+            // hits a button with no handler attached. We retry until the
+            // click causes #iwadPicker.classList.add('filled') — the
+            // observable side-effect of the loader's freedoom click
+            // handler running.
             log('priming IWAD (Freedoom)');
-            freedoomBtn.click();
+            var iwadOk = await clickUntilEffect(
+              freedoomBtn,
+              function () { return iwadPicker.classList.contains('filled'); },
+              'freedoom click'
+            );
+            if (!iwadOk) throw new Error('freedoom click never took effect (loader not wired?)');
 
             setCleanStatus('Preparing mod…');
             var buf = await modBytesPromise;
             var file = new File([buf], MOD_NAME, { type: 'application/octet-stream' });
-            var dt = new DataTransfer();
-            dt.items.add(file);
-            modInput.files = dt.files;
-            modInput.dispatchEvent(new Event('change', { bubbles: true }));
-            log('priming mod (LegendOfDoom-1.1.0.pk3)');
 
-            // The loader's mod-picker handler awaits readFile() before
-            // pushing into its internal state.mods array. state is a
-            // closure-local var we can't observe, so we wait for the
-            // mod chip to render — that happens synchronously after the
-            // async FileReader settles.
-            await waitFor(function () {
-              var chips = document.getElementById('modChips');
-              return chips && chips.children.length > 0;
-            }, 'mod chip render');
+            // Dispatching a synthetic change event also races with the
+            // loader wiring. Mirror the same retry pattern as the
+            // freedoom click — re-populate and re-dispatch until the
+            // mod chip renders.
+            log('priming mod (LegendOfDoom-1.1.0.pk3)');
+            var modChips = document.getElementById('modChips');
+            var modOk = false;
+            for (var i = 0; i < 50; i++) {
+              var dt = new DataTransfer();
+              dt.items.add(file);
+              modInput.files = dt.files;
+              modInput.dispatchEvent(new Event('change', { bubbles: true }));
+              await new Promise(function (r) { setTimeout(r, 150); });
+              if (modChips && modChips.children.length > 0) {
+                if (i > 0) log('mod change took effect after ' + (i + 1) + ' dispatches');
+                modOk = true;
+                break;
+              }
+            }
+            if (!modOk) throw new Error('mod change event never took effect');
 
             await waitFor(function () { return !launchBtn.disabled; }, 'launch enabled');
 
