@@ -1,9 +1,12 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover"
+    />
 
     <title>Legend of DOOM — Play in your browser | Joe Heyming</title>
     <meta name="theme-color" content="#1b3b2a" />
@@ -35,23 +38,26 @@
          visit. Load this FIRST, before any engine scripts. -->
     <script src="/coi-serviceworker.js"></script>
 
-    <!-- Hard gate on the engine. If crossOriginIsolated is false we MUST
-         NOT let uzdoom.js start — it spawns pthread workers and transfers
-         a SharedArrayBuffer, and that postMessage throws DataCloneError
-         the moment the worker pool inits, leaving a half-booted engine
-         behind. Record a flag so the engine <script> tags at the bottom
-         of the page can decide whether to load themselves. -->
-    <script>
-      window.__COI_READY__ = !!window.crossOriginIsolated;
-    </script>
-
     <!-- Site chrome: analytics + back button + feedback widget. These
          load their own DOM asynchronously so they don't fight the
          uzdoom loader for IDs. -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
-    <script src="/back.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
     <script src="/feedback.js"></script>
+
+    <!-- Engine subsystems. Deferred so they run after HTML parse but
+         before DOMContentLoaded, in document order:
+           lifecycle.js   — single source of truth for boot phase.
+                            Must load first; everything else depends
+                            on window.LoDLifecycle.
+           coi.js         — cross-origin isolation readiness + error
+                            surface. Pushes into lifecycle on failure.
+           touch-input.js — mobile on-screen gamepad. No-op on desktop.
+                            Subscribes to lifecycle to show/hide overlay. -->
+    <script defer src="lifecycle.js"></script>
+    <script defer src="coi.js"></script>
+    <script defer src="touch-input.js"></script>
 
     <!-- uzdoom-loader.js expects a specific DOM layout and specific IDs
          (iwadPicker, modPicker, sfPicker, launchBtn, status, canvas,
@@ -73,8 +79,11 @@
         --warn: #db4;
         --gold: #d9c77a;
       }
-      * { box-sizing: border-box; }
-      body, html {
+      * {
+        box-sizing: border-box;
+      }
+      body,
+      html {
         margin: 0;
         padding: 0;
         height: 100%;
@@ -98,7 +107,9 @@
         background: var(--bg);
         overflow-y: auto;
       }
-      .overlay.hidden { display: none !important; }
+      .overlay.hidden {
+        display: none !important;
+      }
 
       .brand {
         display: flex;
@@ -106,7 +117,9 @@
         gap: 10px;
         margin-top: 4px;
       }
-      .brand .sword { font-size: 20px; }
+      .brand .sword {
+        font-size: 20px;
+      }
       .brand h1 {
         margin: 0;
         font-size: 22px;
@@ -143,7 +156,9 @@
         line-height: 1.5;
         text-align: left;
       }
-      .warn-banner strong { color: var(--gold); }
+      .warn-banner strong {
+        color: var(--gold);
+      }
 
       .instructions {
         max-width: 560px;
@@ -157,9 +172,16 @@
         line-height: 1.7;
         text-align: left;
       }
-      .instructions b { color: var(--text); }
-      .instructions ol { margin: 6px 0 0; padding-left: 22px; }
-      .instructions a { color: var(--accent); }
+      .instructions b {
+        color: var(--text);
+      }
+      .instructions ol {
+        margin: 6px 0 0;
+        padding-left: 22px;
+      }
+      .instructions a {
+        color: var(--accent);
+      }
 
       .panel {
         width: 100%;
@@ -203,7 +225,8 @@
         text-align: left;
         background: var(--panel2);
       }
-      .picker.drag, .picker:hover {
+      .picker.drag,
+      .picker:hover {
         border-color: var(--border-hot);
         background: #1d1d22;
       }
@@ -211,11 +234,24 @@
         border-style: solid;
         border-color: var(--accent-dim);
       }
-      .picker .title { font-size: 12px; color: var(--text); }
-      .picker .desc { font-size: 11px; color: var(--dim); }
-      .picker input[type='file'] { display: none; }
+      .picker .title {
+        font-size: 12px;
+        color: var(--text);
+      }
+      .picker .desc {
+        font-size: 11px;
+        color: var(--dim);
+      }
+      .picker input[type='file'] {
+        display: none;
+      }
 
-      .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+      }
       .chip {
         display: inline-flex;
         align-items: center;
@@ -234,7 +270,10 @@
         text-overflow: ellipsis;
         max-width: 320px;
       }
-      .chip .size { color: var(--dim); font-size: 10px; }
+      .chip .size {
+        color: var(--dim);
+        font-size: 10px;
+      }
       .chip button {
         all: unset;
         cursor: pointer;
@@ -243,7 +282,9 @@
         font-size: 12px;
         line-height: 1;
       }
-      .chip button:hover { color: var(--accent); }
+      .chip button:hover {
+        color: var(--accent);
+      }
 
       .btn {
         padding: 9px 14px;
@@ -256,26 +297,43 @@
         font-size: 12px;
         transition: border-color 120ms, background 120ms;
       }
-      .btn:hover { background: #222; border-color: var(--border-hot); }
-      .btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+      .btn:hover {
+        background: #222;
+        border-color: var(--border-hot);
+      }
+      .btn[disabled] {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
       .btn.primary {
         background: var(--accent-dim);
         border-color: var(--accent);
         color: #fff;
       }
-      .btn.primary:hover { background: var(--accent); }
+      .btn.primary:hover {
+        background: var(--accent);
+      }
       .btn.primary[disabled] {
         background: #333;
         border-color: #444;
         color: #777;
       }
-      .btn.ghost { background: transparent; }
-      .btn-row { display: flex; gap: 8px; }
-      .btn-row > .btn { flex: 1; }
+      .btn.ghost {
+        background: transparent;
+      }
+      .btn-row {
+        display: flex;
+        gap: 8px;
+      }
+      .btn-row > .btn {
+        flex: 1;
+      }
 
       /* Manual mode (body without .clean): hide the hero; the full
          picker flow is the UI. */
-      body:not(.clean) #cleanHero { display: none !important; }
+      body:not(.clean) #cleanHero {
+        display: none !important;
+      }
 
       /* Clean mode — default. Hides the full picker UI plus the hero's
          chatty tagline/fineprint so only the brand header + Launch
@@ -354,7 +412,9 @@
         font-size: 10px;
         line-height: 1.5;
       }
-      .hero .fineprint a { color: var(--accent); }
+      .hero .fineprint a {
+        color: var(--accent);
+      }
 
       .status-line {
         font-size: 11px;
@@ -391,15 +451,33 @@
         text-align: left;
         line-height: 1.6;
       }
-      #assetList.show { display: block; }
-      #assetList .done { color: var(--ok); }
-      #assetList .fail { color: var(--warn); }
-      #assetList .pending { color: var(--dim); }
+      #assetList.show {
+        display: block;
+      }
+      #assetList .done {
+        color: var(--ok);
+      }
+      #assetList .fail {
+        color: var(--warn);
+      }
+      #assetList .pending {
+        color: var(--dim);
+      }
 
       #canvas {
         display: block;
+        /* 100vh on mobile Chrome is the *large* viewport height: it
+           assumes the address bar will collapse, so the canvas extends
+           below what's actually visible and the bottom row of the HUD
+           (hearts/rupees/item status) gets clipped off-screen. Using
+           small-viewport units (svh/svw) matches the currently visible
+           area instead. The 100vh line stays above as a fallback for
+           browsers that don't support svh yet — the cascade picks
+           whichever unit resolved last. */
         width: 100vw;
         height: 100vh;
+        width: 100svw;
+        height: 100svh;
         background: #000;
         outline: 0;
       }
@@ -420,12 +498,24 @@
         opacity: 0.35;
         transition: opacity 0.2s;
       }
-      #fsBtn:hover { opacity: 1; background: rgba(30, 30, 36, 0.9); }
-      #fsBtn.hidden { display: none; }
+      #fsBtn:hover {
+        opacity: 1;
+        background: rgba(30, 30, 36, 0.9);
+      }
+      #fsBtn.hidden {
+        display: none;
+      }
 
-      #exited .outcome { font-size: 14px; color: var(--text); }
-      #exited .outcome.ok { color: var(--ok); }
-      #exited .outcome.err { color: var(--warn); }
+      #exited .outcome {
+        font-size: 14px;
+        color: var(--text);
+      }
+      #exited .outcome.ok {
+        color: var(--ok);
+      }
+      #exited .outcome.err {
+        color: var(--warn);
+      }
       #exited .detail {
         font-size: 11px;
         color: var(--dim);
@@ -447,7 +537,9 @@
         background: rgba(0, 0, 0, 0.7);
         z-index: 20;
       }
-      .modal.hidden { display: none; }
+      .modal.hidden {
+        display: none;
+      }
       .modal .body {
         background: var(--panel);
         border: 1px solid var(--border);
@@ -458,7 +550,11 @@
         flex-direction: column;
         gap: 14px;
       }
-      .modal h3 { margin: 0; font-size: 14px; color: var(--text); }
+      .modal h3 {
+        margin: 0;
+        font-size: 14px;
+        color: var(--text);
+      }
       .modal p {
         margin: 0;
         font-size: 12px;
@@ -474,7 +570,9 @@
          Layout: two anchored pads at the bottom (movement on the left,
          turn on the right) + a row of action buttons along the top.
          All buttons are translucent so the game frame shows through. */
-      #touch-ui { display: none; }
+      #touch-ui {
+        display: none;
+      }
       body.mobile #touch-ui {
         display: block;
         position: fixed;
@@ -494,7 +592,9 @@
         -webkit-user-select: none;
         touch-action: none;
       }
-      body.mobile #touch-ui.hidden { display: none !important; }
+      body.mobile #touch-ui.hidden {
+        display: none !important;
+      }
 
       .touch-btn {
         pointer-events: auto;
@@ -543,21 +643,40 @@
       }
 
       /* Movement pad bottom-left. Safe-area insets keep it clear of
-         the home indicator / notch when the device is in landscape. */
+         the home indicator / notch when the device is in landscape.
+         D-pad buttons bumped to 72×72 (matching the FIRE button) so
+         they're comfortably thumb-sized on a phone; container grown
+         to 220×220 so the center offset (74px) keeps a tiny gap
+         between up/down and left/right. */
       #touch-move {
         position: absolute;
         left: calc(14px + env(safe-area-inset-left, 0px));
         bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-        width: 196px;
-        height: 196px;
+        width: 220px;
+        height: 220px;
       }
       #touch-move .touch-btn {
         position: absolute;
+        width: 72px;
+        height: 72px;
+        font-size: 22px;
       }
-      #touch-move .up    { top: 0;   left: 66px; }
-      #touch-move .down  { bottom: 0; left: 66px; }
-      #touch-move .left  { top: 66px; left: 0; }
-      #touch-move .right { top: 66px; right: 0; }
+      #touch-move .up {
+        top: 0;
+        left: 74px;
+      }
+      #touch-move .down {
+        bottom: 0;
+        left: 74px;
+      }
+      #touch-move .left {
+        top: 74px;
+        left: 0;
+      }
+      #touch-move .right {
+        top: 74px;
+        right: 0;
+      }
 
       /* Action buttons bottom-right (right-thumb zone). MENU/OK on
          the upper row, USE/FIRE on the lower row with FIRE largest and
@@ -582,27 +701,67 @@
       }
 
       /* Shrink the pads on short landscape screens (iPhone SE etc.)
-         so both pads + FIRE fit above Safari's bottom chrome. */
+         so both pads + FIRE fit above Safari's bottom chrome. Button
+         size is kept a hair below the default (60 vs 72) so the full
+         d-pad still fits inside a 184px container with room for a
+         2px gap at the center axis: (184 - 60) / 2 = 62. */
       @media (max-height: 420px) {
-        #touch-move { width: 156px; height: 156px; }
-        #touch-move .up    { top: 0;  left: 52px; }
-        #touch-move .down  { bottom: 0; left: 52px; }
-        #touch-move .left  { top: 52px; left: 0; }
-        #touch-move .right { top: 52px; right: 0; }
-        #touch-move .touch-btn { width: 52px; height: 52px; font-size: 18px; }
-        .touch-btn.action { width: 48px; height: 48px; font-size: 12px; }
-        .touch-btn.action.fire { width: 60px; height: 60px; font-size: 18px; }
+        #touch-move {
+          width: 184px;
+          height: 184px;
+        }
+        #touch-move .up {
+          top: 0;
+          left: 62px;
+        }
+        #touch-move .down {
+          bottom: 0;
+          left: 62px;
+        }
+        #touch-move .left {
+          top: 62px;
+          left: 0;
+        }
+        #touch-move .right {
+          top: 62px;
+          right: 0;
+        }
+        #touch-move .touch-btn {
+          width: 60px;
+          height: 60px;
+          font-size: 20px;
+        }
+        .touch-btn.action {
+          width: 48px;
+          height: 48px;
+          font-size: 12px;
+        }
+        .touch-btn.action.fire {
+          width: 60px;
+          height: 60px;
+          font-size: 18px;
+        }
       }
 
       /* Mobile: make the picker/hero use less vertical space so the
          Launch button is reachable above the fold on phones. */
-      body.mobile .overlay { padding-top: 16px; padding-bottom: 16px; }
-      body.mobile .brand h1 { font-size: 18px; }
-      body.mobile #cleanLaunchBtn { font-size: 14px; padding: 14px 24px; }
+      body.mobile .overlay {
+        padding-top: 16px;
+        padding-bottom: 16px;
+      }
+      body.mobile .brand h1 {
+        font-size: 18px;
+      }
+      body.mobile #cleanLaunchBtn {
+        font-size: 14px;
+        padding: 14px 24px;
+      }
 
       /* Landscape-lock hint for portrait: don't block, just nudge.
          The engine still runs but controls are cramped in portrait. */
-      #landscape-hint { display: none; }
+      #landscape-hint {
+        display: none;
+      }
       body.mobile.portrait #landscape-hint {
         display: flex;
         position: fixed;
@@ -661,28 +820,49 @@
          KeyboardEvents on #canvas, which SDL2/Emscripten picks up
          the same way it does real keystrokes. -->
     <div id="touch-ui" class="hidden" aria-hidden="true">
-      <!-- Movement pad (WASD). -->
+      <!-- Movement pad (WASD). The `data-action` attribute on each
+           button indexes into the BINDINGS table in touch-input.js,
+           which decides what KeyboardEvent to synthesize. Changing a
+           binding is a one-line edit in that table. -->
       <div id="touch-move" aria-label="Movement">
-        <button class="touch-btn up"    type="button" data-key="w" data-code="KeyW" data-keycode="87" aria-label="Forward">▲</button>
-        <button class="touch-btn left"  type="button" data-key="a" data-code="KeyA" data-keycode="65" aria-label="Strafe left">◀</button>
-        <button class="touch-btn right" type="button" data-key="d" data-code="KeyD" data-keycode="68" aria-label="Strafe right">▶</button>
-        <button class="touch-btn down"  type="button" data-key="s" data-code="KeyS" data-keycode="83" aria-label="Back">▼</button>
+        <button class="touch-btn up" type="button" data-action="forward" aria-label="Forward">
+          ▲
+        </button>
+        <button class="touch-btn left" type="button" data-action="strafeL" aria-label="Strafe left">
+          ◀
+        </button>
+        <button
+          class="touch-btn right"
+          type="button"
+          data-action="strafeR"
+          aria-label="Strafe right"
+        >
+          ▶
+        </button>
+        <button class="touch-btn down" type="button" data-action="back" aria-label="Back">▼</button>
       </div>
 
-      <!-- Action buttons. Fire=Ctrl (primary attack), Use=E (open
-           doors / press switches / pick up items — NOT Space, which
-           in GZDoom-family engines is +jump by default), Menu=Esc,
-           Confirm=Enter. Turning is handled by horizontal swipe on
-           the open canvas area (see armTouchPads below), matching
-           /doom/'s pattern. -->
+      <!-- Action buttons. Fire = Ctrl + mouse1 fallback (Doom binds
+           both to +attack). Use = E, not Space — Space is +jump in
+           modern GZDoom. Turning is handled by horizontal swipe on
+           the open canvas area (see touch-input.js), matching /doom/'s
+           pattern. -->
       <div id="touch-actions">
         <div class="row">
-          <button class="touch-btn action" type="button" data-key="Escape" data-code="Escape" data-keycode="27" aria-label="Menu">MENU</button>
-          <button class="touch-btn action" type="button" data-key="Enter"  data-code="Enter"  data-keycode="13" aria-label="Confirm">OK</button>
+          <button class="touch-btn action" type="button" data-action="menu" aria-label="Menu">
+            MENU
+          </button>
+          <button class="touch-btn action" type="button" data-action="confirm" aria-label="Confirm">
+            OK
+          </button>
         </div>
         <div class="row">
-          <button class="touch-btn action use"  type="button" data-key="e"       data-code="KeyE"       data-keycode="69" aria-label="Use">USE</button>
-          <button class="touch-btn action fire" type="button" data-key="Control" data-code="ControlLeft" data-keycode="17" aria-label="Fire">🔫</button>
+          <button class="touch-btn action use" type="button" data-action="use" aria-label="Use">
+            USE
+          </button>
+          <button class="touch-btn action fire" type="button" data-action="fire" aria-label="Fire">
+            🔫
+          </button>
         </div>
       </div>
     </div>
@@ -707,32 +887,36 @@
           style="color: var(--accent)"
           target="_blank"
           rel="noopener"
-          >UZDoom</a
         >
+          UZDoom
+        </a>
         engine (GZDoom family) compiled to WebAssembly via the
         <a
           href="https://github.com/abootnet/uzdoom-wasm"
           style="color: var(--accent)"
           target="_blank"
           rel="noopener"
-          >uzdoom-wasm</a
         >
-        port. Everything stays local — files are stored in your browser via
-        IndexedDB and never leave this machine.
+          uzdoom-wasm
+        </a>
+        port. Everything stays local — files are stored in your browser via IndexedDB and never
+        leave this machine.
       </p>
 
       <div class="warn-banner">
-        <strong>⚠ Experimental tech demo.</strong> Expect long load times on
-        first visit (~60 MB download + pthread spin-up). Saves persist in
-        IndexedDB; use <em>Reset saved data</em> below to clear them. For a
-        smoother native experience, install
+        <strong>⚠ Experimental tech demo.</strong>
+        Expect long load times on first visit (~60 MB download + pthread spin-up). Saves persist in
+        IndexedDB; use
+        <em>Reset saved data</em>
+        below to clear them. For a smoother native experience, install
         <a
           href="https://zdoom.org/downloads"
           target="_blank"
           rel="noopener"
           style="color: var(--accent)"
-          >GZDoom</a
         >
+          GZDoom
+        </a>
         and run the mod locally.
       </div>
 
@@ -744,14 +928,16 @@
       <div class="hero" id="cleanHero">
         <p class="tagline">
           <span class="what">The original Legend of DOOM mod, running in your browser.</span>
-          Freedoom 2 + Legend of DOOM are bundled here — nothing to install.
-          Click Launch when ready.
+          Freedoom 2 + Legend of DOOM are bundled here — nothing to install. Click Launch when
+          ready.
         </p>
         <button id="cleanLaunchBtn" disabled>Preparing…</button>
         <p class="fineprint">
-          Experimental. ~60 MB first-load download. Saves persist in this
-          browser via IndexedDB.<br />
-          Add <code>?manual=1</code> to the URL to pick your own IWAD / mods.
+          Experimental. ~60 MB first-load download. Saves persist in this browser via IndexedDB.
+          <br />
+          Add
+          <code>?manual=1</code>
+          to the URL to pick your own IWAD / mods.
         </p>
       </div>
 
@@ -760,19 +946,31 @@
       <div class="instructions manual-only" id="autoInstructions">
         <b>Manual mode.</b>
         <ol style="margin: 6px 0 0 18px; padding: 0">
-          <li>Click <b>Use bundled Freedoom</b> for the IWAD.</li>
           <li>
-            Upload <code>LegendOfDoom-1.1.0.pk3</code> (or any other pk3) into
-            <b>Mods</b>.
+            Click
+            <b>Use bundled Freedoom</b>
+            for the IWAD.
           </li>
-          <li>Hit <b>Launch</b>.</li>
+          <li>
+            Upload
+            <code>LegendOfDoom-1.1.0.pk3</code>
+            (or any other pk3) into
+            <b>Mods</b>
+            .
+          </li>
+          <li>
+            Hit
+            <b>Launch</b>
+            .
+          </li>
         </ol>
       </div>
 
       <!-- Upstream loader DOM. uzdoom-loader.js queries these IDs. -->
       <div class="panel">
         <div class="section-title">
-          Game files <span class="hint">click a tile or drop files</span>
+          Game files
+          <span class="hint">click a tile or drop files</span>
         </div>
 
         <label class="picker" id="iwadPicker">
@@ -783,9 +981,7 @@
 
         <label class="picker" id="modPicker">
           <span class="title">Mods / PK3s (optional)</span>
-          <span class="desc" id="modDesc"
-            >No mods selected. Multi-select supported.</span
-          >
+          <span class="desc" id="modDesc">No mods selected. Multi-select supported.</span>
           <input
             type="file"
             multiple
@@ -827,9 +1023,12 @@
       </div>
 
       <p class="intro" style="font-size: 10px">
-        UZDoom is GPL v3. Legend of DOOM © DeTwelveGames. This page ships
-        Freedoom (BSD-style) and the UZDoom WASM engine; the mod pk3 is
-        never bundled, you upload it yourself per the steps above.
+        UZDoom is GPL v3. Legend of DOOM © DeTwelveGames. This page ships Freedoom (BSD-style), the
+        UZDoom WASM engine, and — for the default one-click experience —
+        <code>LegendOfDoom-1.1.0.pk3</code>
+        as an asset fetched at launch. Reload with
+        <code>?manual=1</code>
+        to upload your own copy instead.
       </p>
     </div>
 
@@ -837,14 +1036,18 @@
     <div class="hidden overlay" id="exited">
       <div class="brand">
         <span class="sword">🗡️</span>
-        <h1>Legend of DOOM<span class="sub">SESSION ENDED</span></h1>
+        <h1>
+          Legend of DOOM
+          <span class="sub">SESSION ENDED</span>
+        </h1>
       </div>
       <div class="panel" style="gap: 14px">
         <div class="outcome ok" id="exitOutcome">Thanks for playing.</div>
         <div class="detail">
-          Save games and configuration have been synced to IndexedDB. Use the
-          button below to start a new session, or head back
-          <a href="/" style="color: var(--accent)">home</a>.
+          Save games and configuration have been synced to IndexedDB. Use the button below to start
+          a new session, or head back
+          <a href="/" style="color: var(--accent)">home</a>
+          .
         </div>
         <div class="reason" id="exitReason"></div>
         <div class="btn-row">
@@ -853,20 +1056,22 @@
       </div>
     </div>
 
-    <button class="hidden" id="fsBtn" title="Toggle fullscreen (F11 also works)">
-      Fullscreen
-    </button>
+    <button class="hidden" id="fsBtn" title="Toggle fullscreen (F11 also works)">Fullscreen</button>
 
-    <canvas class="hidden" id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+    <canvas
+      class="hidden"
+      id="canvas"
+      tabindex="-1"
+      oncontextmenu="event.preventDefault()"
+    ></canvas>
 
     <!-- Reset confirmation modal. -->
     <div class="hidden modal" id="resetModal">
       <div class="body">
         <h3>Reset all saved data?</h3>
         <p>
-          This will delete every save game, configuration file, uploaded WAD,
-          and uploaded PK3 stored in this browser. Bundled Freedoom and engine
-          assets are not affected.
+          This will delete every save game, configuration file, uploaded WAD, and uploaded PK3
+          stored in this browser. Bundled Freedoom and engine assets are not affected.
         </p>
         <p style="color: var(--warn)">This cannot be undone.</p>
         <div class="btn-row">
@@ -876,542 +1081,91 @@
       </div>
     </div>
 
-    <!-- Mobile / touch detection. Adds `body.mobile` for touch-specific
-         CSS and wires the on-screen gamepad to synthetic KeyboardEvents
-         on #canvas (SDL2/Emscripten reads these the same way it reads
-         real keypresses). Also tracks portrait/landscape so the rotate
-         hint can show without forcing the engine offline. -->
+    <!-- Emscripten module stub. uzdoom.js attaches to window.Module; the
+         stub here has to be in place BEFORE uzdoom.js runs, so the loader
+         can override Module.onRuntimeInitialized, Module.setStatus, etc.
+         from its own IIFE. Prefer small & boring over heavy observability
+         here — the lifecycle module (LoDLifecycle, loaded by lifecycle.js
+         above) is where boot telemetry now lives.  -->
     <script>
       (function () {
-        // Detect "true mobile" — i.e. a device whose primary input is a
-        // coarse pointer (touchscreen), not a laptop that merely has a
-        // touchscreen in addition to a trackpad/mouse. `pointer: coarse`
-        // matches only when the primary pointing device is coarse;
-        // `(any-pointer: fine)` guards against false positives on
-        // MacBooks / Windows Surface-class laptops that report
-        // maxTouchPoints>0 but have a fine pointer available. The UA
-        // regex is the final backstop for ancient browsers that don't
-        // implement pointer media queries.
-        var coarseOnly =
-          window.matchMedia &&
-          window.matchMedia('(pointer: coarse)').matches &&
-          !window.matchMedia('(any-pointer: fine)').matches;
-        var isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-          navigator.userAgent
-        );
-        var isMobile = coarseOnly || isMobileUA;
-        if (!isMobile) return;
-        document.body.classList.add('mobile');
-
-        function syncOrientation() {
-          var portrait = window.innerHeight > window.innerWidth;
-          document.body.classList.toggle('portrait', portrait);
+        function log(tag, msg) {
+          console.log('[uzdoom ' + tag + ']', msg);
         }
-        syncOrientation();
-        window.addEventListener('resize', syncOrientation);
-        window.addEventListener('orientationchange', syncOrientation);
-
-        document.addEventListener('DOMContentLoaded', function () {
-          var dismissBtn = document.getElementById('landscapeDismiss');
-          if (dismissBtn) {
-            dismissBtn.addEventListener('click', function () {
-              var hint = document.getElementById('landscape-hint');
-              if (hint) hint.style.display = 'none';
-            });
-          }
-        });
-
-        // Disable long-press magnifier / text selection on iOS.
-        document.addEventListener('gesturestart', function (e) {
-          e.preventDefault();
-        });
-
-        // Wait for the canvas to appear, then arm the touch pads. The
-        // canvas element exists from page load but only receives keyboard
-        // events once Emscripten attaches its SDL2 listeners during
-        // engine boot; dispatching before that is harmless (no-op).
-        function armTouchPads() {
-          var canvas = document.getElementById('canvas');
-          var touchUi = document.getElementById('touch-ui');
-          if (!canvas || !touchUi) {
-            setTimeout(armTouchPads, 120);
-            return;
-          }
-
-          // iOS Safari in landscape reports a layout viewport that
-          // extends UNDER its translucent bottom chrome. `100svh` only
-          // partially fixes this (Safari measures svh optimistically).
-          // visualViewport gives the exact pixel bounds of what the
-          // user can actually see, so pin #touch-ui to it. This is
-          // what keeps the bottom-right action buttons from sliding
-          // off the bottom of the screen on iPhone landscape.
-          if (window.visualViewport) {
-            var vv = window.visualViewport;
-            var syncVV = function () {
-              touchUi.style.top = vv.offsetTop + 'px';
-              touchUi.style.left = vv.offsetLeft + 'px';
-              touchUi.style.width = vv.width + 'px';
-              touchUi.style.height = vv.height + 'px';
-            };
-            syncVV();
-            vv.addEventListener('resize', syncVV);
-            vv.addEventListener('scroll', syncVV);
-            // Orientation change on iOS sometimes fires a resize BEFORE
-            // the layout viewport settles; a second sync on the next
-            // frame catches the final dimensions.
-            window.addEventListener('orientationchange', function () {
-              requestAnimationFrame(syncVV);
-              setTimeout(syncVV, 250);
-            });
-          }
-
-          function sendKey(type, key, code, keyCode) {
-            var init = {
-              key: key,
-              code: code,
-              keyCode: keyCode,
-              which: keyCode,
-              bubbles: true,
-              cancelable: true
-            };
-            canvas.dispatchEvent(new KeyboardEvent(type, init));
-            // Some SDL2 builds only register on window; fire there too
-            // so the engine picks the event up regardless of where it
-            // listens.
-            window.dispatchEvent(new KeyboardEvent(type, init));
-          }
-
-          // Doom's +attack is bound to BOTH `ctrl` and `mouse1` by
-          // default. Synthetic modifier-only KeyboardEvents (Control
-          // by itself) don't reliably reach SDL2 through the WASM
-          // pthread keyboard bridge, so for the FIRE button we ALSO
-          // dispatch a left-button mousedown/mouseup on the canvas.
-          // The events are tagged with __fromTouchUI so the
-          // swallowMouse handler below lets them through instead of
-          // squashing them as touch-synthesized clicks.
-          function sendMouse(type, button) {
-            var rect = canvas.getBoundingClientRect();
-            var ev = new MouseEvent(type, {
-              button: button,
-              buttons: type === 'mousedown' ? 1 : 0,
-              clientX: rect.left + rect.width / 2,
-              clientY: rect.top + rect.height / 2,
-              bubbles: true,
-              cancelable: true,
-              view: window
-            });
-            ev.__fromTouchUI = true;
-            canvas.dispatchEvent(ev);
-          }
-
-          // Track which buttons are held so we can release them on
-          // touchcancel / pointerout / page blur. Without this, sliding
-          // a finger off a button would leave the key "stuck" down and
-          // the player would keep walking forward after letting go.
-          var held = new Map();
-
-          function pressBtn(btn) {
-            if (held.has(btn)) return;
-            var key = btn.dataset.key;
-            var code = btn.dataset.code;
-            var keyCode = parseInt(btn.dataset.keycode, 10) || 0;
-            held.set(btn, { key: key, code: code, keyCode: keyCode });
-            btn.classList.add('active');
-            sendKey('keydown', key, code, keyCode);
-            // FIRE button also dispatches a left-click so Doom's
-            // default mouse1=+attack binding triggers even if the
-            // synthetic Ctrl keypress was filtered out.
-            if (btn.classList.contains('fire')) sendMouse('mousedown', 0);
-          }
-          function releaseBtn(btn) {
-            var h = held.get(btn);
-            if (!h) return;
-            held.delete(btn);
-            btn.classList.remove('active');
-            sendKey('keyup', h.key, h.code, h.keyCode);
-            if (btn.classList.contains('fire')) sendMouse('mouseup', 0);
-          }
-          function releaseAll() {
-            held.forEach(function (_h, btn) { releaseBtn(btn); });
-            // Also drop any latched turn key from the swipe handler so
-            // the player doesn't keep spinning after a tab switch.
-            if (typeof clearTurn === 'function') clearTurn();
-          }
-
-          var buttons = touchUi.querySelectorAll('.touch-btn');
-          buttons.forEach(function (btn) {
-            // Prevent the browser from synthesizing a mouse click and
-            // stealing focus from the canvas.
-            btn.addEventListener('touchstart', function (e) {
-              e.preventDefault();
-              pressBtn(btn);
-            }, { passive: false });
-            btn.addEventListener('touchend', function (e) {
-              e.preventDefault();
-              releaseBtn(btn);
-            }, { passive: false });
-            btn.addEventListener('touchcancel', function (e) {
-              e.preventDefault();
-              releaseBtn(btn);
-            }, { passive: false });
-            // Fallback for trackpads / styluses that fire pointer events
-            // instead of touch events.
-            btn.addEventListener('pointerdown', function (e) {
-              if (e.pointerType === 'mouse') return;
-              pressBtn(btn);
-            });
-            btn.addEventListener('pointerup', function () { releaseBtn(btn); });
-            btn.addEventListener('pointercancel', function () { releaseBtn(btn); });
-            btn.addEventListener('pointerleave', function () { releaseBtn(btn); });
-            // Block context menus on long-press.
-            btn.addEventListener('contextmenu', function (e) { e.preventDefault(); });
-          });
-
-          // Releasing keys when the tab goes away / user switches apps
-          // avoids the "stuck forward" problem described above.
-          window.addEventListener('blur', releaseAll);
-          document.addEventListener('visibilitychange', function () {
-            if (document.hidden) releaseAll();
-          });
-
-          // Suppress pointer lock on mobile. uzdoom-loader.js installs a
-          // canvas click handler that calls canvas.requestPointerLock();
-          // on iOS/Android that either does nothing or pops a permission
-          // prompt — either way it's a distraction. Stub it out so the
-          // engine's click handler becomes a harmless no-op. We still
-          // support real tap-to-focus because SDL2 keyboard callbacks
-          // don't depend on pointer lock.
-          try {
-            canvas.requestPointerLock = function () {};
-            Object.defineProperty(canvas, 'requestPointerLock', {
-              value: function () {},
-              writable: true,
-              configurable: true
-            });
-          } catch (_e) {
-            // Some browsers refuse the redefine; ignore and let the
-            // engine call the no-op assigned on the first line.
-          }
-
-          // Swipe-to-turn. Mirrors /doom/'s pattern: horizontal drag on
-          // the canvas dispatches ArrowLeft/ArrowRight, auto-released
-          // after a short delay so repeated flicks accumulate turning
-          // just like real mouse movement. Buttons in #touch-ui capture
-          // their own touches (pointer-events:auto), so this only fires
-          // in the open canvas area — users can still tap the Fire /
-          // Use / dpad without accidentally turning.
-          var turnState = {
-            lastX: 0,
-            dir: null,                 // 'left' | 'right' | null
-            releaseTimer: null,
-            active: false
-          };
-          var TURN_THRESHOLD = 3;      // px per move event to register
-          var TURN_HOLD_MAX = 100;     // ms, longest single-flick hold
-
-          function clearTurn() {
-            if (turnState.releaseTimer) {
-              clearTimeout(turnState.releaseTimer);
-              turnState.releaseTimer = null;
-            }
-            if (turnState.dir === 'left') {
-              sendKey('keyup', 'ArrowLeft', 'ArrowLeft', 37);
-            } else if (turnState.dir === 'right') {
-              sendKey('keyup', 'ArrowRight', 'ArrowRight', 39);
-            }
-            turnState.dir = null;
-          }
-
-          function onSwipeStart(e) {
-            if (!e.touches || e.touches.length !== 1) return;
-            // Block the browser from synthesizing mousedown / mouseup /
-            // click events from this touch. Without this, SDL2 sees the
-            // synthetic click and the engine treats it as a fire button
-            // press, so every swipe-to-turn would also blast a round.
-            // Buttons in #touch-ui have their own stopPropagation paths,
-            // so this only applies to open-canvas drags.
-            if (e.cancelable) e.preventDefault();
-            turnState.active = true;
-            turnState.lastX = e.touches[0].clientX;
-          }
-          function onSwipeMove(e) {
-            if (!turnState.active || !e.touches || e.touches.length !== 1) return;
-            var x = e.touches[0].clientX;
-            var dx = x - turnState.lastX;
-            if (Math.abs(dx) < TURN_THRESHOLD) return;
-            // Prevent the browser from treating the drag as a scroll
-            // gesture (otherwise the page rubber-bands on iOS).
-            e.preventDefault();
-
-            var wantDir = dx < 0 ? 'left' : 'right';
-            if (turnState.dir !== wantDir) {
-              // Switch direction: release the opposite key first so the
-              // engine doesn't see both arrows held simultaneously.
-              if (turnState.dir === 'left') {
-                sendKey('keyup', 'ArrowLeft', 'ArrowLeft', 37);
-              } else if (turnState.dir === 'right') {
-                sendKey('keyup', 'ArrowRight', 'ArrowRight', 39);
-              }
-              if (wantDir === 'left') {
-                sendKey('keydown', 'ArrowLeft', 'ArrowLeft', 37);
-              } else {
-                sendKey('keydown', 'ArrowRight', 'ArrowRight', 39);
-              }
-              turnState.dir = wantDir;
-            }
-
-            // Auto-release after a short hold proportional to flick
-            // speed. Each subsequent move resets the timer, so holding
-            // a slow drag keeps the key down; a quick flick releases
-            // after ~100 ms and the next flick re-presses it.
-            if (turnState.releaseTimer) clearTimeout(turnState.releaseTimer);
-            var hold = Math.min(Math.abs(dx) * 5, TURN_HOLD_MAX);
-            if (hold < 15) hold = 15;
-            turnState.releaseTimer = setTimeout(clearTurn, hold);
-
-            turnState.lastX = x;
-          }
-          function onSwipeEnd() {
-            turnState.active = false;
-            // Small delay so a fast flick that ends mid-key still
-            // produces some turn before releasing.
-            if (turnState.releaseTimer) clearTimeout(turnState.releaseTimer);
-            turnState.releaseTimer = setTimeout(clearTurn, 60);
-          }
-          canvas.addEventListener('touchstart', onSwipeStart, { passive: false });
-          canvas.addEventListener('touchmove',  onSwipeMove,  { passive: false });
-          canvas.addEventListener('touchend',   onSwipeEnd,   { passive: true });
-          canvas.addEventListener('touchcancel', onSwipeEnd,  { passive: true });
-
-          // Belt-and-suspenders: even with touchstart preventDefault,
-          // some engines register both 'click' and 'mousedown' handlers
-          // directly. Swallow those on mobile so a post-touch synthesized
-          // click can't reach the engine's fire logic.
-          function swallowMouse(e) {
-            // Let our own programmatic mouse dispatches through — they
-            // carry the __fromTouchUI marker set by sendMouse(). Real
-            // touch-synthesized clicks from the browser don't have it,
-            // so they still get squashed and don't leak into the
-            // engine's mouse1=+attack binding while the user is trying
-            // to swipe-turn.
-            if (e.__fromTouchUI) return;
-            // stopImmediatePropagation also blocks other listeners on
-            // the same element, which matters because uzdoom.js may
-            // register its own 'mousedown' handler on the canvas.
-            e.stopImmediatePropagation();
-            e.preventDefault();
-          }
-          canvas.addEventListener('mousedown', swallowMouse, true);
-          canvas.addEventListener('mouseup',   swallowMouse, true);
-          canvas.addEventListener('click',     swallowMouse, true);
-
-          // Show the pads once the boot overlay is gone (i.e. after
-          // bootEngine hides #boot). MutationObserver is the least
-          // invasive hook: upstream uzdoom-loader.js toggles
-          // `#boot.hidden`, and we react to that.
-          var boot = document.getElementById('boot');
-          function maybeReveal() {
-            if (boot && boot.classList.contains('hidden')) {
-              touchUi.classList.remove('hidden');
-              touchUi.setAttribute('aria-hidden', 'false');
-            }
-          }
-          if (boot) {
-            new MutationObserver(maybeReveal).observe(boot, {
-              attributes: true,
-              attributeFilter: ['class']
-            });
-          }
-          maybeReveal();
-        }
-        armTouchPads();
-      })();
-    </script>
-
-    <!-- COI pre-boot guard. uzdoom spins pthread workers and transfers a
-         SharedArrayBuffer to them during instantiation. If crossOriginIsolated
-         is false, that postMessage throws DataCloneError and the engine hangs
-         on "Launching engine…" forever. Give it up to ~6s for the service
-         worker to kick in (it reloads the page up to 3 times on its own),
-         and surface a clear error in the picker panel if it never arrives. -->
-    <script>
-      (function () {
-        if (window.crossOriginIsolated) return;
-        var launchBtn = null;
-        var deadline = Date.now() + 6000;
-        function updateStatus() {
-          if (window.crossOriginIsolated) return;
-          var remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
-          var st = document.getElementById('status');
-          if (st) {
-            st.textContent =
-              'Waiting for cross-origin isolation (' + remaining + 's)…';
-          }
-          if (Date.now() < deadline) {
-            setTimeout(updateStatus, 1000);
-          } else {
-            if (st) st.textContent = '';
-            showCoiError();
-          }
-        }
-        function showCoiError() {
-          if (window.crossOriginIsolated) return;
-          if (!launchBtn) launchBtn = document.getElementById('launchBtn');
-          if (launchBtn) {
-            launchBtn.disabled = true;
-            launchBtn.title = 'Cross-origin isolation unavailable in this browser';
-          }
-          var panel = document.querySelector('#boot .panel');
-          if (panel && !document.getElementById('coi-error')) {
-            var div = document.createElement('div');
-            div.id = 'coi-error';
-            div.style.cssText =
-              'padding:12px 14px;background:rgba(248,113,113,0.08);' +
-              'border:1px solid rgba(248,113,113,0.45);border-radius:4px;' +
-              'color:#f87171;font-size:11px;line-height:1.5;text-align:left;';
-            div.innerHTML =
-              '<strong>Cross-origin isolation failed.</strong> The service worker ' +
-              "couldn't take control of this page, so SharedArrayBuffer is " +
-              'unavailable and the engine cannot start its pthread workers. ' +
-              '<br /><br />Try: 1) open DevTools → Application → Service Workers → ' +
-              'Unregister, then reload. 2) Or visit this page in an incognito ' +
-              'window. 3) Or install ' +
-              '<a href="https://zdoom.org/downloads" target="_blank" rel="noopener" ' +
-              'style="color:#f87171">GZDoom</a> locally and run the mod natively.';
-            panel.insertBefore(div, panel.firstChild);
-          }
-        }
-        // Kick off status polling once the DOM is parsed enough for #status.
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', updateStatus, { once: true });
-        } else {
-          updateStatus();
-        }
-      })();
-    </script>
-
-    <!-- Emscripten module stub: uzdoom.js attaches to window.Module. We
-         keep the upstream print/printErr wiring so loader logs and
-         engine stdout both land in console.log with a [uzdoom] prefix.
-         
-         We also add heavy boot-phase logging — the upstream loader only
-         calls setStatus at major transitions and it can be hard to tell
-         whether a stall is in asset fetch, wasm compile, IDBFS mount,
-         or the engine's main() itself. Each hook is timestamped relative
-         to page load so the console reads like a flight recorder. -->
-    <script>
-      (function () {
-        var T0 = performance.now();
-        var depsCount = 0;
-        var maxDepsCount = 0;
-        function ts() {
-          return '+' + ((performance.now() - T0) / 1000).toFixed(2) + 's';
-        }
-        function log(tag, msg) { console.log('[boot ' + ts() + ' ' + tag + ']', msg); }
-        function warn(tag, msg) { console.warn('[boot ' + ts() + ' ' + tag + ']', msg); }
-
-        // Instrument the status line so we see every transition in the
-        // console, not just whatever happens to be showing when the user
-        // pastes a screenshot.
-        var statusHistory = [];
-        window.__BOOT_STATUS_HISTORY__ = statusHistory;
-
         var Module = {
           canvas: document.getElementById('canvas'),
           arguments: [],
-          preRun: [function () { log('preRun', 'fired'); }],
-          postRun: [function () { log('postRun', 'fired'); }],
-          onRuntimeInitialized: function () {
-            log('runtime', 'onRuntimeInitialized fired (WASM instantiated)');
+          print: function (t) {
+            console.log('[uzdoom]', t);
           },
-          onAbort: function (reason) {
-            warn('onAbort', reason);
+          printErr: function (t) {
+            console.warn('[uzdoom]', t);
           },
-          print: function (t) { console.log('[uzdoom]', t); },
-          printErr: function (t) { console.warn('[uzdoom]', t); },
           setStatus: function (t) {
             var el = document.getElementById('status');
             if (el) el.textContent = t || '';
-            if (t) {
-              statusHistory.push(ts() + ' ' + t);
-              log('status', t);
-            }
           },
           monitorRunDependencies: function (n) {
-            depsCount = n;
-            if (n > maxDepsCount) maxDepsCount = n;
-            log('deps', 'pending=' + n + ' (peak=' + maxDepsCount + ')');
+            // Loader's setStatus writes the human text; we only forward
+            // the dependency count to the status line here.
             Module.setStatus(n ? 'Loading engine… (' + n + ' deps)' : 'Engine ready.');
           },
           locateFile: function (path, prefix) {
-            log('locateFile', path + ' (prefix=' + prefix + ')');
             return prefix + path;
           },
+          onAbort: function (reason) {
+            console.warn('[uzdoom onAbort]', reason);
+            // Terminal: surface via lifecycle so the hero button / touch
+            // UI / exit panel all see the same signal.
+            if (window.LoDLifecycle) {
+              window.LoDLifecycle.markError('wasm-abort', { reason: String(reason) });
+            }
+          }
         };
         window.Module = Module;
         log('module', 'stub installed, COI=' + !!window.crossOriginIsolated);
 
-        // Every 2s after boot, dump the state of anything that might be
-        // stuck: run-dependency count and the raw id list if Emscripten
-        // exposes it, pthread pool size and loaded-worker count, whether
-        // the WASM module has finished instantiating, and the calledRun
-        // flag the loader waits on. Having this means we can diagnose a
-        // hang just from the console log without re-running.
-        setInterval(function () {
-          try {
-            var M = window.Module || {};
-            var pt = (M.PThread) || {};
-            var state = {
-              deps: depsCount,
-              peak: maxDepsCount,
-              remainingIds: (M.runDependencyTracking && Object.keys(M.runDependencyTracking)) || '(not exposed)',
-              calledRun: !!M.calledRun,
-              hasWasm: !!M.asm || !!M.wasmExports,
-              pthreadPoolSize: (M.pthreadPoolSize != null ? M.pthreadPoolSize : '(unset)'),
-              ptUnusedWorkers: (pt.unusedWorkers && pt.unusedWorkers.length) || 0,
-              ptRunningWorkers: (pt.runningWorkers && pt.runningWorkers.length) || 0,
-              ptPthreads: pt.pthreads ? Object.keys(pt.pthreads).length : 0,
-            };
-            log('probe', JSON.stringify(state));
-            // If nothing interesting changes for 20s, stop spamming.
-            if (M.calledRun && depsCount === 0) {
-              log('probe', 'engine is running, stopping probe');
-              // Self-terminate by clearing the interval handle on Module.
-              if (Module.__probeTimer) clearInterval(Module.__probeTimer);
-            }
-          } catch (e) {
-            warn('probe', 'error: ' + e.message);
-          }
-        }, 2000);
+        // Alt+D: dump the lifecycle phase history to an alert so users
+        // on a phone can capture it in a screenshot without needing
+        // devtools. Replaces the old __BOOT_STATUS_HISTORY__ array.
+        document.addEventListener('keydown', function (e) {
+          if (!e.altKey || e.key !== 'd') return;
+          var h = (window.LoDLifecycle && window.LoDLifecycle.history()) || [];
+          var fmt = h
+            .map(function (e) {
+              var d = '';
+              if (e.detail) {
+                try {
+                  d = ' ' + JSON.stringify(e.detail);
+                } catch (_e) {}
+              }
+              return '+' + e.t.toFixed(0) + 'ms  ' + (e.from || '<init>') + ' → ' + e.phase + d;
+            })
+            .join('\n');
+          alert('Lifecycle history:\n\n' + (fmt || '(empty)'));
+        });
       })();
     </script>
 
-    <!-- Engine scripts. Only load them if COI is confirmed — otherwise
-         the coi-serviceworker's auto-reload will get us a fresh page in
-         a moment, and it's better to wait for that than to boot the
-         engine into a guaranteed SharedArrayBuffer crash. On the second
-         pass after reload, crossOriginIsolated is true and these load.
-         
-         Ordering matters: uzdoom-loader.js attaches to window.Module BEFORE
-         uzdoom.js runs (the loader overrides Module.onRuntimeInitialized
-         among other things). Upstream loads the first two scripts
-         synchronously in the HTML source so that happens naturally.
-         Dynamically-created scripts default to async=true (execute as soon
-         as they finish downloading, in arbitrary order), so we set
-         async=false explicitly on every script to preserve source order. -->
+    <!-- Engine script injection. Gated on cross-origin isolation via
+         LoDCOI.whenReady() — no polling loops, no triple-duplicated
+         flag checks. If COI never arrives, the promise rejects and we
+         bail silently; coi.js has already put up the error card and
+         flipped the lifecycle to error{coi}.
+
+         Waits for DOMContentLoaded before reading `window.LoDCOI`:
+         coi.js is loaded via `<script defer>`, which executes after the
+         HTML parser finishes but before DCL. Reading LoDCOI during
+         parse would see `undefined` and fall through to the
+         crossOriginIsolated check, bypassing coi.js's error card. -->
     <script>
       (function () {
-        var T0 = window.__BOOT_T0__ || performance.now();
-        function ts() { return '+' + ((performance.now() - T0) / 1000).toFixed(2) + 's'; }
-        function log(tag, msg) { console.log('[boot ' + ts() + ' ' + tag + ']', msg); }
-        function warn(tag, msg) { console.warn('[boot ' + ts() + ' ' + tag + ']', msg); }
-
         function loadEngineInOrder() {
-          log('scripts', 'injecting engine scripts in order');
-          // createElement-injected scripts default to async=true; we need
-          // the loader to run BEFORE the engine, so explicitly disable
-          // async and rely on the browser's in-order execution guarantee
-          // for parser-inserted-style appendChild sequences.
+          // createElement-injected scripts default to async=true, which
+          // would execute uzdoom-melt.js / uzdoom-loader.js / uzdoom.js
+          // in download order. The loader must run BEFORE the engine so
+          // it can intercept Module.onRuntimeInitialized; pin async=false
+          // to preserve insertion order.
           var srcs = ['uzdoom-melt.js', 'uzdoom-loader.js', 'uzdoom.js'];
           srcs.forEach(function (src) {
             var t0 = performance.now();
@@ -1419,236 +1173,134 @@
             tag.src = src;
             tag.async = false;
             tag.onload = function () {
-              log('scripts', src + ' loaded in ' + (performance.now() - t0).toFixed(0) + 'ms');
-              // The auto-launch script below clicks the loader's buttons
-              // to skip the picker. That has to wait until the loader IIFE
-              // has actually executed and wired its handlers — on a cold
-              // fetch, DOMContentLoaded fires before the dynamically-
-              // injected loader script has finished, so the auto-launch
-              // would click a button with no handler yet. Set a flag when
-              // uzdoom-loader.js has run, so priming can gate on it.
-              if (src === 'uzdoom-loader.js') {
-                window.__UZDOOM_LOADER_READY__ = true;
-              }
+              console.log(
+                '[uzdoom scripts] ' +
+                  src +
+                  ' loaded in ' +
+                  (performance.now() - t0).toFixed(0) +
+                  'ms'
+              );
             };
             tag.onerror = function (e) {
-              warn('scripts', src + ' FAILED to load: ' + (e && e.message ? e.message : '(no msg)'));
+              console.warn('[uzdoom scripts] ' + src + ' failed:', (e && e.message) || '(no msg)');
             };
             document.body.appendChild(tag);
           });
         }
-        if (window.__COI_READY__ || window.crossOriginIsolated) {
-          log('coi', 'ready, loading engine immediately');
-          loadEngineInOrder();
-        } else {
-          log('coi', 'not ready yet, waiting for service worker reload');
-          // The COI service worker will reload us when isolation is ready.
-          // Also do a belt-and-suspenders poll — if we somehow become
-          // isolated without a reload (cached SW claims the client mid
-          // script), load the engine then.
-          var tries = 0;
-          var timer = setInterval(function () {
-            tries++;
-            if (window.crossOriginIsolated) {
-              clearInterval(timer);
-              log('coi', 'became ready mid-load after ' + tries + ' polls');
-              loadEngineInOrder();
-            } else if (tries > 80) {
-              // 80 * 100ms = 8s. Beyond this the COI guard above will
-              // have shown the error banner; stop spinning.
-              clearInterval(timer);
-              warn('coi', 'never became ready after 8s');
-            }
-          }, 100);
+        function gate() {
+          if (window.LoDCOI) {
+            window.LoDCOI.whenReady().then(loadEngineInOrder, function () {
+              console.warn('[uzdoom scripts] COI never arrived; engine not loaded');
+            });
+          } else if (window.crossOriginIsolated) {
+            loadEngineInOrder();
+          } else {
+            console.warn('[uzdoom scripts] LoDCOI missing and not isolated; engine not loaded');
+          }
         }
-
-        // Emergency on-screen debug panel: expose the boot log via Alt+D
-        // so the user doesn't need to open devtools. Pressing the key
-        // dumps window.__BOOT_STATUS_HISTORY__ + last N console lines.
-        document.addEventListener('keydown', function (e) {
-          if (!e.altKey || e.key !== 'd') return;
-          var hist = window.__BOOT_STATUS_HISTORY__ || [];
-          alert('Boot status history:\n\n' + hist.join('\n'));
-        });
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', gate, { once: true });
+        } else {
+          gate();
+        }
       })();
     </script>
 
-    <!-- Clean-mode launch wiring. The hero shows a single big Launch
-         button; while the user reads the page, we silently prime the
-         loader's picker state (Freedoom as IWAD + bundled LoD pk3 as
-         mod) by driving the same DOM events a human click/drop would.
-         Once priming completes, the hero button enables. Clicking it
-         forwards to the loader's real launchBtn, which triggers the
-         normal asset-download + engine-boot flow. Keeping the final
-         step behind a user gesture also lets the browser unlock
-         AudioContext and full-screen APIs — both of which the engine
-         wants on startup.
-         
-         The loader's state object is a closure-local var with no public
-         API, so we drive the DOM the same way a user would: click
-         #useFreedoomBtn to set the IWAD, synthesize a DataTransfer +
-         'change' on the mod picker's input to register the pk3.
-         
-         Escape hatch: ?manual=1 in the URL skips priming and shows the
-         full picker UI via a body class flipped at the top of <body>. -->
+    <!-- Clean-mode auto-priming. Fetches the bundled LoD pk3 and calls
+         UZDoomLoader.primeWith() — no DOM scraping, no click theater,
+         no synthetic DataTransfer on file inputs. The lifecycle emits
+         a `primed` transition when priming lands; the hero button
+         subscribes to that transition to enable itself.
+
+         ?manual=1 in the URL bypasses this entirely and shows the full
+         picker UI (body.clean is not applied, see the top-of-body
+         script). -->
     <script>
       (function () {
         var params = new URLSearchParams(window.location.search);
-        var isManual = params.get('manual') === '1';
+        if (params.get('manual') === '1') return;
 
-        var T0 = performance.now();
-        var MOD_URL = 'LegendOfDoom-1.1.0.pk3';
+        // ?v=ogg: cache-buster. The bytes at LegendOfDoom-1.1.0.pk3 were
+        // swapped in-place from MP3 music to Ogg Vorbis (the UZDoom WASM
+        // build can't decode MP3). Phone browsers that fetched the pk3
+        // earlier today (when the dev server still cached pk3s for an
+        // hour) still hold the MP3 version locally; a query-string bump
+        // forces a fresh fetch without renaming the file on disk.
+        var MOD_URL = 'LegendOfDoom-1.1.0.pk3?v=ogg';
         var MOD_NAME = 'LegendOfDoom-1.1.0.pk3';
 
-        function ts() { return '+' + ((performance.now() - T0) / 1000).toFixed(2) + 's'; }
-        function log(msg) { console.log('[auto-launch ' + ts() + ']', msg); }
-        function warn(msg) { console.warn('[auto-launch ' + ts() + ']', msg); }
-
-        if (isManual) {
-          log('manual mode (?manual=1) — not priming loader');
-          return;
-        }
-
-        function setCleanStatus(text, opts) {
+        // Subscribe the hero button to lifecycle: enable on `primed`,
+        // disable+relabel on `launching` / `error`. Single place where
+        // button state reacts to engine state.
+        function wireHeroButton() {
           var btn = document.getElementById('cleanLaunchBtn');
           if (!btn) return;
-          btn.textContent = text;
-          if (opts && opts.enable) btn.disabled = false;
-          if (opts && opts.error) {
-            btn.disabled = true;
-            btn.style.background = '#3a1a1a';
-            btn.style.borderColor = '#8a3a3a';
-            btn.style.color = '#f87171';
-            btn.style.cursor = 'not-allowed';
-          }
-        }
-
-        // Wait for an element matching a predicate; resolves when found
-        // or rejects on timeout. Uses rAF + polling because the loader
-        // attaches event listeners and enables buttons from its own
-        // async init path, not via a single DOMContentLoaded moment.
-        function waitFor(pred, label, timeoutMs) {
-          return new Promise(function (resolve, reject) {
-            var deadline = Date.now() + (timeoutMs || 15000);
-            (function tick() {
-              var v = pred();
-              if (v) return resolve(v);
-              if (Date.now() > deadline) {
-                return reject(new Error('timeout waiting for ' + label));
+          if (window.LoDLifecycle) {
+            window.LoDLifecycle.subscribe(function (state) {
+              if (state.phase === 'primed') {
+                btn.textContent = 'Launch Legend of DOOM';
+                btn.disabled = false;
+              } else if (state.phase === 'launching') {
+                btn.textContent = 'Loading…';
+                btn.disabled = true;
+              } else if (state.phase === 'error') {
+                var reason = (state.detail && state.detail.reason) || 'unknown';
+                btn.textContent =
+                  reason === 'coi' ? 'Cross-origin isolation failed' : 'Failed: ' + reason;
+                btn.disabled = true;
               }
-              setTimeout(tick, 50);
-            })();
-          });
-        }
-
-        // Kick off the pk3 fetch in parallel with engine boot so the
-        // bytes are ready by the time the Launch button lights up.
-        var modBytesPromise = fetch(MOD_URL)
-          .then(function (r) {
-            if (!r.ok) throw new Error('HTTP ' + r.status + ' for ' + MOD_URL);
-            return r.arrayBuffer();
-          })
-          .then(function (buf) {
-            log('fetched ' + MOD_NAME + ' (' + buf.byteLength + ' bytes)');
-            return buf;
-          });
-
-        // Click button, wait for DOM side-effect to appear. Retry up to
-        // maxAttempts times. Returns true if side-effect appeared, false
-        // on timeout. Self-correcting against the cold-load race: if
-        // uzdoom-loader.js hasn't wired its click handler yet, the click
-        // is a no-op and we retry. Once the loader IIFE runs and attaches
-        // the handler, the next click lands and the side-effect appears.
-        async function clickUntilEffect(el, effectPred, label, maxAttempts) {
-          maxAttempts = maxAttempts || 50; // 50 * 150ms = 7.5 s
-          for (var i = 0; i < maxAttempts; i++) {
-            el.click();
-            // Give the handler a tick to run + any async work to start.
-            await new Promise(function (r) { setTimeout(r, 150); });
-            if (effectPred()) {
-              if (i > 0) log(label + ' took effect after ' + (i + 1) + ' clicks');
-              return true;
-            }
-          }
-          return false;
-        }
-
-        async function primeLoader() {
-          try {
-            // Wait for the loader's DOM targets to exist. Upstream DOM is
-            // in the static HTML so this resolves immediately; the real
-            // race is whether the click handlers have been attached yet.
-            await waitFor(function () {
-              return document.getElementById('useFreedoomBtn') &&
-                     document.getElementById('launchBtn') &&
-                     document.querySelector('#modPicker input[type=file]');
-            }, 'loader DOM');
-            await new Promise(function (r) { requestAnimationFrame(r); });
-
-            var freedoomBtn = document.getElementById('useFreedoomBtn');
-            var launchBtn = document.getElementById('launchBtn');
-            var modInput = document.querySelector('#modPicker input[type=file]');
-            var iwadPicker = document.getElementById('iwadPicker');
-
-            // Retry the freedoom click until the loader actually wires
-            // up. On a cold first visit, uzdoom-loader.js is still
-            // downloading when DOMContentLoaded fires and the first click
-            // hits a button with no handler attached. We retry until the
-            // click causes #iwadPicker.classList.add('filled') — the
-            // observable side-effect of the loader's freedoom click
-            // handler running.
-            log('priming IWAD (Freedoom)');
-            var iwadOk = await clickUntilEffect(
-              freedoomBtn,
-              function () { return iwadPicker.classList.contains('filled'); },
-              'freedoom click'
-            );
-            if (!iwadOk) throw new Error('freedoom click never took effect (loader not wired?)');
-
-            setCleanStatus('Preparing mod…');
-            var buf = await modBytesPromise;
-            var file = new File([buf], MOD_NAME, { type: 'application/octet-stream' });
-
-            // Dispatching a synthetic change event also races with the
-            // loader wiring. Mirror the same retry pattern as the
-            // freedoom click — re-populate and re-dispatch until the
-            // mod chip renders.
-            log('priming mod (LegendOfDoom-1.1.0.pk3)');
-            var modChips = document.getElementById('modChips');
-            var modOk = false;
-            for (var i = 0; i < 50; i++) {
-              var dt = new DataTransfer();
-              dt.items.add(file);
-              modInput.files = dt.files;
-              modInput.dispatchEvent(new Event('change', { bubbles: true }));
-              await new Promise(function (r) { setTimeout(r, 150); });
-              if (modChips && modChips.children.length > 0) {
-                if (i > 0) log('mod change took effect after ' + (i + 1) + ' dispatches');
-                modOk = true;
-                break;
-              }
-            }
-            if (!modOk) throw new Error('mod change event never took effect');
-
-            await waitFor(function () { return !launchBtn.disabled; }, 'launch enabled');
-
-            // Wire the hero button to the real launch button. We don't
-            // auto-click on purpose — gating on a user gesture lets the
-            // browser unlock AudioContext and fullscreen APIs, and gives
-            // the user a chance to bail before the 60 MB data download.
-            var clean = document.getElementById('cleanLaunchBtn');
-            setCleanStatus('Launch Legend of DOOM', { enable: true });
-            log('ready for user click');
-            clean.addEventListener('click', function once() {
-              clean.removeEventListener('click', once);
-              clean.disabled = true;
-              clean.textContent = 'Loading…';
-              log('user clicked Launch');
-              launchBtn.click();
             });
+          }
+          // User gesture handler — required so the browser unlocks
+          // AudioContext and fullscreen APIs. Forwards to
+          // UZDoomLoader.launch() which is the same thing the Launch
+          // button in manual mode does.
+          btn.addEventListener('click', function () {
+            if (window.LoDLifecycle && window.LoDLifecycle.get() !== 'primed') return;
+            if (window.UZDoomLoader) window.UZDoomLoader.launch();
+          });
+        }
+
+        async function prime() {
+          try {
+            // Wait for the loader to publish UZDoomLoader. The engine
+            // scripts are injected once COI lands, then the loader's
+            // IIFE runs and exports the API. Poll at 50 ms — cheap,
+            // bounded, and the upstream loader takes ~50 ms on warm
+            // cache / ~500 ms cold.
+            var deadline = Date.now() + 30000;
+            while (!window.UZDoomLoader) {
+              if (Date.now() > deadline) throw new Error('UZDoomLoader never appeared');
+              await new Promise(function (r) {
+                setTimeout(r, 50);
+              });
+            }
+
+            // Fetch the bundled pk3. Done in parallel with the loader
+            // appearing above — by the time both resolve, priming
+            // is basically one function call.
+            var buf = await fetch(MOD_URL).then(function (r) {
+              if (!r.ok) throw new Error('HTTP ' + r.status + ' for ' + MOD_URL);
+              return r.arrayBuffer();
+            });
+
+            await window.UZDoomLoader.primeWith({
+              iwad: { name: 'freedoom1.wad (bundled)', data: null, bundled: 'freedoom1.wad' },
+              mods: [{ name: MOD_NAME, data: new Uint8Array(buf) }]
+            });
+            console.log('[auto-launch] primed Freedoom + ' + MOD_NAME);
           } catch (e) {
-            warn('priming failed: ' + e.message);
-            setCleanStatus('Failed: ' + e.message, { error: true });
+            console.warn('[auto-launch] priming failed:', e);
+            // If lifecycle is already in a terminal error state (COI
+            // failure, wasm-abort) coi.js or the loader has already
+            // surfaced its own diagnostic card — don't stack ours on
+            // top. markError is a no-op in terminal states anyway, but
+            // we also skip the autoInstructions reveal.
+            var alreadyTerminal = window.LoDLifecycle && window.LoDLifecycle.isTerminal();
+            if (!alreadyTerminal && window.LoDLifecycle) {
+              window.LoDLifecycle.markError('autoprime', { message: String(e.message || e) });
+            }
+            if (alreadyTerminal) return;
             var inst = document.getElementById('autoInstructions');
             if (inst) {
               inst.classList.remove('manual-only');
@@ -1656,7 +1308,7 @@
                 '<b>⚠ Auto-setup failed.</b>' +
                 '<p style="margin:6px 0 0 0">' +
                 'Could not prepare Legend of DOOM automatically (' +
-                e.message +
+                String(e.message || e) +
                 '). Reload with <code>?manual=1</code> to pick files by hand.</p>';
               inst.style.display = 'block';
             }
@@ -1664,9 +1316,17 @@
         }
 
         if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', primeLoader, { once: true });
+          document.addEventListener(
+            'DOMContentLoaded',
+            function () {
+              wireHeroButton();
+              prime();
+            },
+            { once: true }
+          );
         } else {
-          primeLoader();
+          wireHeroButton();
+          prime();
         }
       })();
     </script>
