@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover" />
 
     <title>Legend of DOOM — Play in your browser | Joe Heyming</title>
     <meta name="theme-color" content="#1b3b2a" />
@@ -466,36 +466,172 @@
         line-height: 1.5;
       }
 
-      /* Mobile gate: desktop-only. Back button preserved so user can leave. */
-      #mobile-gate { display: none; }
-      body.mobile #mobile-gate {
+      /* Mobile touch controls. Layered over the canvas after the engine
+         starts; synthetic KeyboardEvents are dispatched on #canvas to
+         drive the SDL2/Emscripten input path. Hidden on desktop and
+         while still on the boot overlay.
+         
+         Layout: two anchored pads at the bottom (movement on the left,
+         turn on the right) + a row of action buttons along the top.
+         All buttons are translucent so the game frame shows through. */
+      #touch-ui { display: none; }
+      body.mobile #touch-ui {
         display: block;
         position: fixed;
-        inset: 0;
-        padding: 48px 24px;
-        text-align: center;
-        background: var(--bg);
-        z-index: 30;
+        /* Use small-viewport units so bottom:Npx actually sits above
+           iOS Safari's landscape chrome, rather than under it. On
+           browsers that don't support svh/svw, the fallback `inset: 0`
+           applies via the shorthand-before-override pattern. */
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 100vh;
+        width: 100svw;
+        height: 100svh;
+        z-index: 5;
+        pointer-events: none; /* children re-enable pointer events */
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: none;
       }
-      body.mobile #boot { display: none !important; }
-      #mobile-gate .card {
+      body.mobile #touch-ui.hidden { display: none !important; }
+
+      .touch-btn {
+        pointer-events: auto;
+        /* IMPORTANT: no `position: absolute` here. The WASD buttons
+           inside #touch-move get their absolute positioning via the
+           more specific `#touch-move .touch-btn` rule below. Action
+           buttons inside #touch-actions rely on normal flex flow;
+           forcing absolute there collapses the row layout and all four
+           buttons stack on top of each other at (0,0) relative to the
+           zero-sized #touch-actions container. */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(20, 20, 24, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: #fff;
+        font-size: 20px;
+        font-family: inherit;
+        border-radius: 50%;
+        width: 64px;
+        height: 64px;
+        padding: 0;
+        flex: 0 0 auto;
+        -webkit-tap-highlight-color: transparent;
+        transition: background 80ms, transform 80ms;
+      }
+      .touch-btn.active,
+      .touch-btn:active {
+        background: rgba(79, 168, 97, 0.7);
+        transform: scale(0.94);
+      }
+      .touch-btn.action {
+        width: 56px;
+        height: 56px;
+        font-size: 14px;
+        letter-spacing: 1px;
+      }
+      .touch-btn.action.fire {
+        background: rgba(200, 40, 40, 0.6);
+        width: 72px;
+        height: 72px;
+        font-size: 22px;
+      }
+      .touch-btn.action.use {
+        background: rgba(79, 168, 97, 0.55);
+      }
+
+      /* Movement pad bottom-left. Safe-area insets keep it clear of
+         the home indicator / notch when the device is in landscape. */
+      #touch-move {
+        position: absolute;
+        left: calc(14px + env(safe-area-inset-left, 0px));
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+        width: 196px;
+        height: 196px;
+      }
+      #touch-move .touch-btn {
+        position: absolute;
+      }
+      #touch-move .up    { top: 0;   left: 66px; }
+      #touch-move .down  { bottom: 0; left: 66px; }
+      #touch-move .left  { top: 66px; left: 0; }
+      #touch-move .right { top: 66px; right: 0; }
+
+      /* Action buttons bottom-right (right-thumb zone). MENU/OK on
+         the upper row, USE/FIRE on the lower row with FIRE largest and
+         nearest the thumb. Safe-area insets prevent the Dynamic Island
+         / home indicator from clipping them in landscape. */
+      #touch-actions {
+        position: absolute;
+        right: calc(14px + env(safe-area-inset-right, 0px));
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-end;
+        /* Hard-cap the column width so a super-narrow landscape phone
+           can't push FIRE off the right edge via flex overflow. */
+        max-width: 160px;
+      }
+      #touch-actions .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      /* Shrink the pads on short landscape screens (iPhone SE etc.)
+         so both pads + FIRE fit above Safari's bottom chrome. */
+      @media (max-height: 420px) {
+        #touch-move { width: 156px; height: 156px; }
+        #touch-move .up    { top: 0;  left: 52px; }
+        #touch-move .down  { bottom: 0; left: 52px; }
+        #touch-move .left  { top: 52px; left: 0; }
+        #touch-move .right { top: 52px; right: 0; }
+        #touch-move .touch-btn { width: 52px; height: 52px; font-size: 18px; }
+        .touch-btn.action { width: 48px; height: 48px; font-size: 12px; }
+        .touch-btn.action.fire { width: 60px; height: 60px; font-size: 18px; }
+      }
+
+      /* Mobile: make the picker/hero use less vertical space so the
+         Launch button is reachable above the fold on phones. */
+      body.mobile .overlay { padding-top: 16px; padding-bottom: 16px; }
+      body.mobile .brand h1 { font-size: 18px; }
+      body.mobile #cleanLaunchBtn { font-size: 14px; padding: 14px 24px; }
+
+      /* Landscape-lock hint for portrait: don't block, just nudge.
+         The engine still runs but controls are cramped in portrait. */
+      #landscape-hint { display: none; }
+      body.mobile.portrait #landscape-hint {
+        display: flex;
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        background: rgba(0, 0, 0, 0.85);
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        text-align: center;
+        color: var(--text);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      #landscape-hint .box {
         background: var(--panel);
         border: 1px solid var(--border);
         border-radius: 4px;
-        padding: 28px 22px;
-        max-width: 460px;
-        margin: 40px auto;
+        padding: 20px;
+        max-width: 320px;
       }
-      #mobile-gate h2 { margin: 0 0 10px; color: var(--gold); font-size: 16px; }
-      #mobile-gate p { margin: 0 0 16px; color: var(--dim); font-size: 13px; line-height: 1.5; }
-      #mobile-gate a {
-        display: inline-block;
-        padding: 10px 18px;
+      #landscape-hint button {
+        margin-top: 12px;
+        padding: 8px 16px;
         background: var(--accent-dim);
-        color: #fff;
         border: 1px solid var(--accent);
         border-radius: 3px;
-        text-decoration: none;
+        color: #fff;
+        font-family: inherit;
         font-size: 12px;
       }
     </style>
@@ -511,17 +647,43 @@
       }
     </script>
 
-    <!-- Mobile rejection. UZDoom needs a keyboard+mouse and pthread-grade
-         CPU to be playable; on mobile it would just melt a battery. -->
-    <div id="mobile-gate">
-      <div class="card">
-        <h2>🗡️ Desktop only</h2>
-        <p>
-          This experimental runner compiles a full GZDoom-family engine to
-          WebAssembly. It needs a desktop keyboard, mouse, and enough RAM/CPU
-          to keep pthread workers happy. Phones and tablets can't drive it.
-        </p>
-        <a href="/">← Back home</a>
+    <!-- Landscape-orientation nudge for phones. The engine runs in
+         portrait too, but the touch pads are laid out for landscape. -->
+    <div id="landscape-hint" aria-hidden="true">
+      <div class="box">
+        <div>🔄 Rotate your device to landscape for the best experience.</div>
+        <button type="button" id="landscapeDismiss">Play anyway</button>
+      </div>
+    </div>
+
+    <!-- Touch overlay. Hidden until the engine is running; see
+         activateTouchUI() below. Buttons dispatch synthetic
+         KeyboardEvents on #canvas, which SDL2/Emscripten picks up
+         the same way it does real keystrokes. -->
+    <div id="touch-ui" class="hidden" aria-hidden="true">
+      <!-- Movement pad (WASD). -->
+      <div id="touch-move" aria-label="Movement">
+        <button class="touch-btn up"    type="button" data-key="w" data-code="KeyW" data-keycode="87" aria-label="Forward">▲</button>
+        <button class="touch-btn left"  type="button" data-key="a" data-code="KeyA" data-keycode="65" aria-label="Strafe left">◀</button>
+        <button class="touch-btn right" type="button" data-key="d" data-code="KeyD" data-keycode="68" aria-label="Strafe right">▶</button>
+        <button class="touch-btn down"  type="button" data-key="s" data-code="KeyS" data-keycode="83" aria-label="Back">▼</button>
+      </div>
+
+      <!-- Action buttons. Fire=Ctrl (primary attack), Use=E (open
+           doors / press switches / pick up items — NOT Space, which
+           in GZDoom-family engines is +jump by default), Menu=Esc,
+           Confirm=Enter. Turning is handled by horizontal swipe on
+           the open canvas area (see armTouchPads below), matching
+           /doom/'s pattern. -->
+      <div id="touch-actions">
+        <div class="row">
+          <button class="touch-btn action" type="button" data-key="Escape" data-code="Escape" data-keycode="27" aria-label="Menu">MENU</button>
+          <button class="touch-btn action" type="button" data-key="Enter"  data-code="Enter"  data-keycode="13" aria-label="Confirm">OK</button>
+        </div>
+        <div class="row">
+          <button class="touch-btn action use"  type="button" data-key="e"       data-code="KeyE"       data-keycode="69" aria-label="Use">USE</button>
+          <button class="touch-btn action fire" type="button" data-key="Control" data-code="ControlLeft" data-keycode="17" aria-label="Fire">🔫</button>
+        </div>
       </div>
     </div>
 
@@ -714,16 +876,355 @@
       </div>
     </div>
 
-    <!-- Mobile / touch detection. Hide the runner; show the mobile gate.
-         Runs before any engine code starts downloading. -->
+    <!-- Mobile / touch detection. Adds `body.mobile` for touch-specific
+         CSS and wires the on-screen gamepad to synthetic KeyboardEvents
+         on #canvas (SDL2/Emscripten reads these the same way it reads
+         real keypresses). Also tracks portrait/landscape so the rotate
+         hint can show without forcing the engine offline. -->
     <script>
       (function () {
-        var isTouch =
-          window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+        // Detect "true mobile" — i.e. a device whose primary input is a
+        // coarse pointer (touchscreen), not a laptop that merely has a
+        // touchscreen in addition to a trackpad/mouse. `pointer: coarse`
+        // matches only when the primary pointing device is coarse;
+        // `(any-pointer: fine)` guards against false positives on
+        // MacBooks / Windows Surface-class laptops that report
+        // maxTouchPoints>0 but have a fine pointer available. The UA
+        // regex is the final backstop for ancient browsers that don't
+        // implement pointer media queries.
+        var coarseOnly =
+          window.matchMedia &&
+          window.matchMedia('(pointer: coarse)').matches &&
+          !window.matchMedia('(any-pointer: fine)').matches;
         var isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
           navigator.userAgent
         );
-        if (isTouch || isMobileUA) document.body.classList.add('mobile');
+        var isMobile = coarseOnly || isMobileUA;
+        if (!isMobile) return;
+        document.body.classList.add('mobile');
+
+        function syncOrientation() {
+          var portrait = window.innerHeight > window.innerWidth;
+          document.body.classList.toggle('portrait', portrait);
+        }
+        syncOrientation();
+        window.addEventListener('resize', syncOrientation);
+        window.addEventListener('orientationchange', syncOrientation);
+
+        document.addEventListener('DOMContentLoaded', function () {
+          var dismissBtn = document.getElementById('landscapeDismiss');
+          if (dismissBtn) {
+            dismissBtn.addEventListener('click', function () {
+              var hint = document.getElementById('landscape-hint');
+              if (hint) hint.style.display = 'none';
+            });
+          }
+        });
+
+        // Disable long-press magnifier / text selection on iOS.
+        document.addEventListener('gesturestart', function (e) {
+          e.preventDefault();
+        });
+
+        // Wait for the canvas to appear, then arm the touch pads. The
+        // canvas element exists from page load but only receives keyboard
+        // events once Emscripten attaches its SDL2 listeners during
+        // engine boot; dispatching before that is harmless (no-op).
+        function armTouchPads() {
+          var canvas = document.getElementById('canvas');
+          var touchUi = document.getElementById('touch-ui');
+          if (!canvas || !touchUi) {
+            setTimeout(armTouchPads, 120);
+            return;
+          }
+
+          // iOS Safari in landscape reports a layout viewport that
+          // extends UNDER its translucent bottom chrome. `100svh` only
+          // partially fixes this (Safari measures svh optimistically).
+          // visualViewport gives the exact pixel bounds of what the
+          // user can actually see, so pin #touch-ui to it. This is
+          // what keeps the bottom-right action buttons from sliding
+          // off the bottom of the screen on iPhone landscape.
+          if (window.visualViewport) {
+            var vv = window.visualViewport;
+            var syncVV = function () {
+              touchUi.style.top = vv.offsetTop + 'px';
+              touchUi.style.left = vv.offsetLeft + 'px';
+              touchUi.style.width = vv.width + 'px';
+              touchUi.style.height = vv.height + 'px';
+            };
+            syncVV();
+            vv.addEventListener('resize', syncVV);
+            vv.addEventListener('scroll', syncVV);
+            // Orientation change on iOS sometimes fires a resize BEFORE
+            // the layout viewport settles; a second sync on the next
+            // frame catches the final dimensions.
+            window.addEventListener('orientationchange', function () {
+              requestAnimationFrame(syncVV);
+              setTimeout(syncVV, 250);
+            });
+          }
+
+          function sendKey(type, key, code, keyCode) {
+            var init = {
+              key: key,
+              code: code,
+              keyCode: keyCode,
+              which: keyCode,
+              bubbles: true,
+              cancelable: true
+            };
+            canvas.dispatchEvent(new KeyboardEvent(type, init));
+            // Some SDL2 builds only register on window; fire there too
+            // so the engine picks the event up regardless of where it
+            // listens.
+            window.dispatchEvent(new KeyboardEvent(type, init));
+          }
+
+          // Doom's +attack is bound to BOTH `ctrl` and `mouse1` by
+          // default. Synthetic modifier-only KeyboardEvents (Control
+          // by itself) don't reliably reach SDL2 through the WASM
+          // pthread keyboard bridge, so for the FIRE button we ALSO
+          // dispatch a left-button mousedown/mouseup on the canvas.
+          // The events are tagged with __fromTouchUI so the
+          // swallowMouse handler below lets them through instead of
+          // squashing them as touch-synthesized clicks.
+          function sendMouse(type, button) {
+            var rect = canvas.getBoundingClientRect();
+            var ev = new MouseEvent(type, {
+              button: button,
+              buttons: type === 'mousedown' ? 1 : 0,
+              clientX: rect.left + rect.width / 2,
+              clientY: rect.top + rect.height / 2,
+              bubbles: true,
+              cancelable: true,
+              view: window
+            });
+            ev.__fromTouchUI = true;
+            canvas.dispatchEvent(ev);
+          }
+
+          // Track which buttons are held so we can release them on
+          // touchcancel / pointerout / page blur. Without this, sliding
+          // a finger off a button would leave the key "stuck" down and
+          // the player would keep walking forward after letting go.
+          var held = new Map();
+
+          function pressBtn(btn) {
+            if (held.has(btn)) return;
+            var key = btn.dataset.key;
+            var code = btn.dataset.code;
+            var keyCode = parseInt(btn.dataset.keycode, 10) || 0;
+            held.set(btn, { key: key, code: code, keyCode: keyCode });
+            btn.classList.add('active');
+            sendKey('keydown', key, code, keyCode);
+            // FIRE button also dispatches a left-click so Doom's
+            // default mouse1=+attack binding triggers even if the
+            // synthetic Ctrl keypress was filtered out.
+            if (btn.classList.contains('fire')) sendMouse('mousedown', 0);
+          }
+          function releaseBtn(btn) {
+            var h = held.get(btn);
+            if (!h) return;
+            held.delete(btn);
+            btn.classList.remove('active');
+            sendKey('keyup', h.key, h.code, h.keyCode);
+            if (btn.classList.contains('fire')) sendMouse('mouseup', 0);
+          }
+          function releaseAll() {
+            held.forEach(function (_h, btn) { releaseBtn(btn); });
+            // Also drop any latched turn key from the swipe handler so
+            // the player doesn't keep spinning after a tab switch.
+            if (typeof clearTurn === 'function') clearTurn();
+          }
+
+          var buttons = touchUi.querySelectorAll('.touch-btn');
+          buttons.forEach(function (btn) {
+            // Prevent the browser from synthesizing a mouse click and
+            // stealing focus from the canvas.
+            btn.addEventListener('touchstart', function (e) {
+              e.preventDefault();
+              pressBtn(btn);
+            }, { passive: false });
+            btn.addEventListener('touchend', function (e) {
+              e.preventDefault();
+              releaseBtn(btn);
+            }, { passive: false });
+            btn.addEventListener('touchcancel', function (e) {
+              e.preventDefault();
+              releaseBtn(btn);
+            }, { passive: false });
+            // Fallback for trackpads / styluses that fire pointer events
+            // instead of touch events.
+            btn.addEventListener('pointerdown', function (e) {
+              if (e.pointerType === 'mouse') return;
+              pressBtn(btn);
+            });
+            btn.addEventListener('pointerup', function () { releaseBtn(btn); });
+            btn.addEventListener('pointercancel', function () { releaseBtn(btn); });
+            btn.addEventListener('pointerleave', function () { releaseBtn(btn); });
+            // Block context menus on long-press.
+            btn.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+          });
+
+          // Releasing keys when the tab goes away / user switches apps
+          // avoids the "stuck forward" problem described above.
+          window.addEventListener('blur', releaseAll);
+          document.addEventListener('visibilitychange', function () {
+            if (document.hidden) releaseAll();
+          });
+
+          // Suppress pointer lock on mobile. uzdoom-loader.js installs a
+          // canvas click handler that calls canvas.requestPointerLock();
+          // on iOS/Android that either does nothing or pops a permission
+          // prompt — either way it's a distraction. Stub it out so the
+          // engine's click handler becomes a harmless no-op. We still
+          // support real tap-to-focus because SDL2 keyboard callbacks
+          // don't depend on pointer lock.
+          try {
+            canvas.requestPointerLock = function () {};
+            Object.defineProperty(canvas, 'requestPointerLock', {
+              value: function () {},
+              writable: true,
+              configurable: true
+            });
+          } catch (_e) {
+            // Some browsers refuse the redefine; ignore and let the
+            // engine call the no-op assigned on the first line.
+          }
+
+          // Swipe-to-turn. Mirrors /doom/'s pattern: horizontal drag on
+          // the canvas dispatches ArrowLeft/ArrowRight, auto-released
+          // after a short delay so repeated flicks accumulate turning
+          // just like real mouse movement. Buttons in #touch-ui capture
+          // their own touches (pointer-events:auto), so this only fires
+          // in the open canvas area — users can still tap the Fire /
+          // Use / dpad without accidentally turning.
+          var turnState = {
+            lastX: 0,
+            dir: null,                 // 'left' | 'right' | null
+            releaseTimer: null,
+            active: false
+          };
+          var TURN_THRESHOLD = 3;      // px per move event to register
+          var TURN_HOLD_MAX = 100;     // ms, longest single-flick hold
+
+          function clearTurn() {
+            if (turnState.releaseTimer) {
+              clearTimeout(turnState.releaseTimer);
+              turnState.releaseTimer = null;
+            }
+            if (turnState.dir === 'left') {
+              sendKey('keyup', 'ArrowLeft', 'ArrowLeft', 37);
+            } else if (turnState.dir === 'right') {
+              sendKey('keyup', 'ArrowRight', 'ArrowRight', 39);
+            }
+            turnState.dir = null;
+          }
+
+          function onSwipeStart(e) {
+            if (!e.touches || e.touches.length !== 1) return;
+            // Block the browser from synthesizing mousedown / mouseup /
+            // click events from this touch. Without this, SDL2 sees the
+            // synthetic click and the engine treats it as a fire button
+            // press, so every swipe-to-turn would also blast a round.
+            // Buttons in #touch-ui have their own stopPropagation paths,
+            // so this only applies to open-canvas drags.
+            if (e.cancelable) e.preventDefault();
+            turnState.active = true;
+            turnState.lastX = e.touches[0].clientX;
+          }
+          function onSwipeMove(e) {
+            if (!turnState.active || !e.touches || e.touches.length !== 1) return;
+            var x = e.touches[0].clientX;
+            var dx = x - turnState.lastX;
+            if (Math.abs(dx) < TURN_THRESHOLD) return;
+            // Prevent the browser from treating the drag as a scroll
+            // gesture (otherwise the page rubber-bands on iOS).
+            e.preventDefault();
+
+            var wantDir = dx < 0 ? 'left' : 'right';
+            if (turnState.dir !== wantDir) {
+              // Switch direction: release the opposite key first so the
+              // engine doesn't see both arrows held simultaneously.
+              if (turnState.dir === 'left') {
+                sendKey('keyup', 'ArrowLeft', 'ArrowLeft', 37);
+              } else if (turnState.dir === 'right') {
+                sendKey('keyup', 'ArrowRight', 'ArrowRight', 39);
+              }
+              if (wantDir === 'left') {
+                sendKey('keydown', 'ArrowLeft', 'ArrowLeft', 37);
+              } else {
+                sendKey('keydown', 'ArrowRight', 'ArrowRight', 39);
+              }
+              turnState.dir = wantDir;
+            }
+
+            // Auto-release after a short hold proportional to flick
+            // speed. Each subsequent move resets the timer, so holding
+            // a slow drag keeps the key down; a quick flick releases
+            // after ~100 ms and the next flick re-presses it.
+            if (turnState.releaseTimer) clearTimeout(turnState.releaseTimer);
+            var hold = Math.min(Math.abs(dx) * 5, TURN_HOLD_MAX);
+            if (hold < 15) hold = 15;
+            turnState.releaseTimer = setTimeout(clearTurn, hold);
+
+            turnState.lastX = x;
+          }
+          function onSwipeEnd() {
+            turnState.active = false;
+            // Small delay so a fast flick that ends mid-key still
+            // produces some turn before releasing.
+            if (turnState.releaseTimer) clearTimeout(turnState.releaseTimer);
+            turnState.releaseTimer = setTimeout(clearTurn, 60);
+          }
+          canvas.addEventListener('touchstart', onSwipeStart, { passive: false });
+          canvas.addEventListener('touchmove',  onSwipeMove,  { passive: false });
+          canvas.addEventListener('touchend',   onSwipeEnd,   { passive: true });
+          canvas.addEventListener('touchcancel', onSwipeEnd,  { passive: true });
+
+          // Belt-and-suspenders: even with touchstart preventDefault,
+          // some engines register both 'click' and 'mousedown' handlers
+          // directly. Swallow those on mobile so a post-touch synthesized
+          // click can't reach the engine's fire logic.
+          function swallowMouse(e) {
+            // Let our own programmatic mouse dispatches through — they
+            // carry the __fromTouchUI marker set by sendMouse(). Real
+            // touch-synthesized clicks from the browser don't have it,
+            // so they still get squashed and don't leak into the
+            // engine's mouse1=+attack binding while the user is trying
+            // to swipe-turn.
+            if (e.__fromTouchUI) return;
+            // stopImmediatePropagation also blocks other listeners on
+            // the same element, which matters because uzdoom.js may
+            // register its own 'mousedown' handler on the canvas.
+            e.stopImmediatePropagation();
+            e.preventDefault();
+          }
+          canvas.addEventListener('mousedown', swallowMouse, true);
+          canvas.addEventListener('mouseup',   swallowMouse, true);
+          canvas.addEventListener('click',     swallowMouse, true);
+
+          // Show the pads once the boot overlay is gone (i.e. after
+          // bootEngine hides #boot). MutationObserver is the least
+          // invasive hook: upstream uzdoom-loader.js toggles
+          // `#boot.hidden`, and we react to that.
+          var boot = document.getElementById('boot');
+          function maybeReveal() {
+            if (boot && boot.classList.contains('hidden')) {
+              touchUi.classList.remove('hidden');
+              touchUi.setAttribute('aria-hidden', 'false');
+            }
+          }
+          if (boot) {
+            new MutationObserver(maybeReveal).observe(boot, {
+              attributes: true,
+              attributeFilter: ['class']
+            });
+          }
+          maybeReveal();
+        }
+        armTouchPads();
       })();
     </script>
 
