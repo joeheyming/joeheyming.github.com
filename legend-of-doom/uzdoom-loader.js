@@ -1,10 +1,30 @@
 // UZDoom web loader: IWAD/mod/soundfont management, launch, clean exit.
 //
+// This file started as a port of abootnet/uzdoom-wasm's upstream loader
+// and has since grown site-specific logic. Everything is marked below
+// with either:
+//
+//   [UPSTREAM] — functionally identical (or near-identical) to the
+//                public upstream loader. Patches here are candidates
+//                for upstream PRs.
+//   [SITE]     — Legend-of-DOOM / joeheyming.github.com specific.
+//                Changes here never go upstream.
+//
+// When rebasing on a new upstream snapshot, search for the [SITE]
+// markers; everything in between is ours to preserve.
+//
 // The Emscripten module (uzdoom.js + uzdoom.wasm) is the native game engine
 // compiled to WebAssembly. This script handles everything around it:
 // picking files, plumbing them into IDBFS, driving the launch, surfacing
 // progress, and catching the engine's exit so the UI can show a proper
 // "session ended" panel instead of leaving a frozen canvas.
+//
+// [SITE] Lifecycle integration: every transition between phases is
+// reported to `window.LoDLifecycle` (see lifecycle.js). The closure
+// `state` below no longer carries `launched` / `exited` flags — those
+// live on the lifecycle. This removes the "four flags agreeing on one
+// concept" problem that previously required reading three files to
+// answer "is the engine playing right now?"
 //
 // IndexedDB layout (via Emscripten's IDBFS):
 //   /wads                         — user IWADs and PK3s (selected at boot)
@@ -15,7 +35,29 @@
 (function () {
   'use strict';
 
-  // ---- WebAudio NaN guard (must run before Emscripten OpenAL inits) ------
+  // [SITE] Lifecycle shim. If lifecycle.js didn't load (script order bug,
+  // CSP block, whatever), fall back to a no-op object so the loader still
+  // boots in "standalone" mode. Catches the developer-error case without
+  // leaving the whole runner broken.
+  var LC = window.LoDLifecycle || {
+    get: function () {
+      return 'loading';
+    },
+    isRunning: function () {
+      return false;
+    },
+    markPrimed: function () {},
+    markLaunching: function () {},
+    markPlaying: function () {},
+    markExited: function () {},
+    markError: function () {},
+    unprime: function () {},
+    subscribe: function () {
+      return function () {};
+    }
+  };
+
+  // ---- [SITE] WebAudio NaN guard (must run before Emscripten OpenAL) ----
   //
   // Emscripten's OpenAL → WebAudio port occasionally passes non-finite
   // values (NaN / ±Infinity) to AudioParam setters. The proximate cause
@@ -39,9 +81,11 @@
       const origSet = desc.set;
       Object.defineProperty(proto, 'value', {
         get: desc.get,
-        set(v) { origSet.call(this, Number.isFinite(v) ? v : 0); },
+        set(v) {
+          origSet.call(this, Number.isFinite(v) ? v : 0);
+        },
         configurable: true,
-        enumerable: desc.enumerable,
+        enumerable: desc.enumerable
       });
     }
 
@@ -51,11 +95,7 @@
     // negative values too, so clamping NaN -> 0 would still throw. If
     // that path ever fires we'll see it in logs and handle with the
     // correct positive-minimum fallback.
-    const methods = [
-      'setValueAtTime',
-      'linearRampToValueAtTime',
-      'setTargetAtTime',
-    ];
+    const methods = ['setValueAtTime', 'linearRampToValueAtTime', 'setTargetAtTime'];
     for (const m of methods) {
       if (typeof proto[m] !== 'function') continue;
       const orig = proto[m];
@@ -68,7 +108,7 @@
   const IDB_WAD_MOUNT = '/wads';
   const IDB_CFG_MOUNT = '/home/web_user/.config';
 
-  // ---- URL launcher args -------------------------------------------------
+  // ---- [UPSTREAM] URL launcher args --------------------------------------
   //
   // Query-param driven auto-launch. Lets external links / terminal commands
   // boot straight into a specific IWAD + level + skill without touching the
@@ -92,18 +132,23 @@
   // Whitelist model: unknown params are ignored; values failing regex are
   // silently dropped. Never interpolate raw user strings into argv.
 
-  const BUNDLED_IWADS = new Set([
-    'freedoom1.wad',
-    'freedoom2.wad',
-  ]);
+  const BUNDLED_IWADS = new Set(['freedoom1.wad', 'freedoom2.wad']);
 
   // Argless cheat console commands. Anything taking arguments (summon,
   // give, changemap) is excluded — those expand the surface into free-form
   // strings and risk exposing things the player couldn't otherwise do.
   const SAFE_CHEATS = new Set([
-    'god', 'iddqd', 'buddha', 'noclip', 'idclip',
-    'notarget', 'fly', 'idfa', 'idkfa',
-    'resurrect', 'kill',
+    'god',
+    'iddqd',
+    'buddha',
+    'noclip',
+    'idclip',
+    'notarget',
+    'fly',
+    'idfa',
+    'idkfa',
+    'resurrect',
+    'kill'
   ]);
 
   // .ipk3 is a PK3 structured as an IWAD (Selaco, Hedon, Supplice). Treated
@@ -112,10 +157,10 @@
   // URL validators.
   const RE_FILENAME_WAD = /^[a-z0-9_.-]+\.(wad|ipk3)$/i;
   const RE_FILENAME_MOD = /^[a-z0-9_.-]+\.(pk3|ipk3|pk7|wad|zip|deh|bex)$/i;
-  const RE_WARP         = /^\d{1,2}(?:,\d{1,2})?$/;
-  const RE_SKILL        = /^[1-5]$/;
-  const RE_MAP          = /^[A-Za-z0-9_]{2,8}$/;
-  const RE_CHEAT_LIST   = /^[a-z0-9_,]{1,80}$/i;
+  const RE_WARP = /^\d{1,2}(?:,\d{1,2})?$/;
+  const RE_SKILL = /^[1-5]$/;
+  const RE_MAP = /^[A-Za-z0-9_]{2,8}$/;
+  const RE_CHEAT_LIST = /^[a-z0-9_,]{1,80}$/i;
 
   function parseLauncherArgs() {
     const params = new URLSearchParams(window.location.search);
@@ -148,8 +193,8 @@
     if (map && RE_MAP.test(map)) out.argv.push('+map', map);
 
     if (params.get('nomonsters') === '1') out.argv.push('-nomonsters');
-    if (params.get('fast')       === '1') out.argv.push('-fast');
-    if (params.get('respawn')    === '1') out.argv.push('-respawn');
+    if (params.get('fast') === '1') out.argv.push('-fast');
+    if (params.get('respawn') === '1') out.argv.push('-respawn');
 
     const cheat = params.get('cheat');
     if (cheat && RE_CHEAT_LIST.test(cheat)) {
@@ -162,7 +207,7 @@
 
   const launcherArgs = parseLauncherArgs();
 
-  // ---- Side-loaded IWADs -------------------------------------------------
+  // ---- [SITE] Side-loaded IWADs ------------------------------------------
   //
   // IWADs that live at a known path on the server but are NOT shipped in
   // the repo or the Docker image. Intended for runtime-mounted volumes
@@ -175,24 +220,32 @@
   // on the host at the expected volume path. Names are lowercased for
   // case-insensitive matching against URL params.
   const SIDELOADED_IWADS = {
-    'doom.wad':  '/private/doom.wad',
-    'doom2.wad': '/private/doom2.wad',
+    'doom.wad': '/private/doom.wad',
+    'doom2.wad': '/private/doom2.wad'
   };
 
+  // [UPSTREAM] Asset closure. `launched` / `exited` / `ready` USED to live
+  // here; they've moved to LoDLifecycle and are accessed via LC above.
+  // Keeping the shape minimal makes it obvious that this struct is ONLY
+  // the data we're about to write into IDBFS, not any form of session
+  // state.
   const state = {
-    iwad: null,       // { name, data, bundled? }
-    mods: [],         // [{ name, data }]
-    soundfont: null,  // { name, data }
-    ready: false,
-    launched: false,
-    exited: false,
+    iwad: null, // { name, data, bundled? } | { name, persisted: true }
+    mods: [], // [{ name, data }] | [{ name, persisted: true }]
+    soundfont: null // { name, data }
   };
 
   // ---- DOM helpers -------------------------------------------------------
 
-  function $(id) { return document.getElementById(id); }
-  function setStatus(msg) { Module.setStatus(msg); }
-  function setStatusRight(msg) { $('statusRight').textContent = msg || ''; }
+  function $(id) {
+    return document.getElementById(id);
+  }
+  function setStatus(msg) {
+    Module.setStatus(msg);
+  }
+  function setStatusRight(msg) {
+    $('statusRight').textContent = msg || '';
+  }
   function formatBytes(n) {
     if (n >= 1048576) return (n / 1048576).toFixed(1) + ' MB';
     if (n >= 1024) return (n / 1024).toFixed(1) + ' KB';
@@ -234,13 +287,15 @@
 
     ['dragenter', 'dragover'].forEach((evt) => {
       picker.addEventListener(evt, (e) => {
-        e.preventDefault(); e.stopPropagation();
+        e.preventDefault();
+        e.stopPropagation();
         picker.classList.add('drag');
       });
     });
     ['dragleave', 'dragend', 'drop'].forEach((evt) => {
       picker.addEventListener(evt, (e) => {
-        e.preventDefault(); e.stopPropagation();
+        e.preventDefault();
+        e.stopPropagation();
         picker.classList.remove('drag');
       });
     });
@@ -253,7 +308,13 @@
 
   // Global drag-drop guard so an accidental miss doesn't navigate away.
   ['dragover', 'drop'].forEach((evt) => {
-    window.addEventListener(evt, (e) => { e.preventDefault(); }, false);
+    window.addEventListener(
+      evt,
+      (e) => {
+        e.preventDefault();
+      },
+      false
+    );
   });
 
   // ---- Picker wiring -----------------------------------------------------
@@ -263,6 +324,7 @@
     $('iwadDesc').textContent = `${state.iwad.name} — ${formatBytes(state.iwad.data.length)}`;
     $('iwadPicker').classList.add('filled');
     $('launchBtn').disabled = false;
+    LC.markPrimed({ iwad: state.iwad.name });
   });
 
   wirePicker('modPicker', async (files) => {
@@ -272,7 +334,9 @@
 
   wirePicker('sfPicker', async (files) => {
     state.soundfont = await readFile(files[0]);
-    $('sfDesc').textContent = `${state.soundfont.name} — ${formatBytes(state.soundfont.data.length)}`;
+    $('sfDesc').textContent = `${state.soundfont.name} — ${formatBytes(
+      state.soundfont.data.length
+    )}`;
     $('sfPicker').classList.add('filled');
   });
 
@@ -291,17 +355,25 @@
       const chip = document.createElement('span');
       chip.className = 'chip';
       const name = document.createElement('span');
-      name.className = 'name'; name.textContent = m.name; name.title = m.name;
+      name.className = 'name';
+      name.textContent = m.name;
+      name.title = m.name;
       const size = document.createElement('span');
-      size.className = 'size'; size.textContent = formatBytes(m.data.length);
+      size.className = 'size';
+      size.textContent = formatBytes(m.data.length);
       const btn = document.createElement('button');
-      btn.type = 'button'; btn.textContent = '×'; btn.title = 'Remove';
+      btn.type = 'button';
+      btn.textContent = '×';
+      btn.title = 'Remove';
       btn.addEventListener('click', (e) => {
-        e.preventDefault(); e.stopPropagation();
+        e.preventDefault();
+        e.stopPropagation();
         state.mods.splice(idx, 1);
         renderModChips();
       });
-      chip.appendChild(name); chip.appendChild(size); chip.appendChild(btn);
+      chip.appendChild(name);
+      chip.appendChild(size);
+      chip.appendChild(btn);
       chips.appendChild(chip);
     });
   }
@@ -315,11 +387,18 @@
     $('iwadPicker').classList.add('filled');
     $('launchBtn').disabled = false;
     setStatus('Ready to launch with Freedoom.');
+    LC.markPrimed({ iwad: 'freedoom1.wad' });
   });
 
   $('launchBtn').addEventListener('click', async () => {
-    if (state.launched) return;
-    state.launched = true;
+    // [SITE] Lifecycle is the sole re-entry guard. Old code kept a
+    // `state.launched` flag; now anything except `primed` means "don't
+    // launch again." Covers the usual double-click, plus edge cases
+    // where the user somehow reaches this handler during `error` or
+    // `exited` (the lifecycle's terminal-state rule swallows the mark
+    // silently if we get it wrong).
+    if (LC.get() !== 'primed') return;
+    LC.markLaunching();
     $('launchBtn').disabled = true;
     setStatus('Launching engine…');
 
@@ -354,9 +433,10 @@
   //
   // The initial `FS.syncfs(true, ...)` PULL in bootEngine is not routed
   // through here — it runs exactly once, before any write could fire (the
-  // periodic interval has a `state.launched` guard that the pull clears).
+  // periodic interval's LC.isRunning() guard doesn't admit it until
+  // launchBtn has flipped the lifecycle to `launching`).
   let _syncInFlight = null;
-  let _syncQueued   = null;
+  let _syncQueued = null;
 
   function syncSavesToIDB() {
     if (typeof FS === 'undefined') return Promise.resolve();
@@ -410,7 +490,15 @@
   function showExitPanel(code, reason) {
     if (exitPanelShown) return;
     exitPanelShown = true;
-    state.exited = true;
+    // [SITE] Mark the lifecycle as `exited` (or `error` if the reason
+    // indicates abort). Terminal phase — any late `markPlaying` from a
+    // post-exit melt callback will be silently swallowed by the
+    // lifecycle's own terminal-state guard.
+    if (code !== 0 && reason && reason !== 'quit' && reason !== 'restart') {
+      LC.markError('wasm-abort', { code: code, reason: reason });
+    } else {
+      LC.markExited(code, reason);
+    }
 
     $('canvas').classList.add('hidden');
     $('fsBtn').classList.add('hidden');
@@ -457,22 +545,36 @@
     // Best-effort sync on the way out so the engine's final state makes
     // it to IndexedDB. Goes through the serializer so it queues behind any
     // in-flight onEngineExit write rather than racing it.
-    syncSavesToIDB().then(() => location.reload(), () => location.reload());
+    syncSavesToIDB().then(
+      () => location.reload(),
+      () => location.reload()
+    );
     setTimeout(() => location.reload(), 500); // safety timeout
   });
 
   // ---- FS mounting + user file writes ------------------------------------
 
   function mountFilesystems() {
-    try { FS.mkdir(IDB_WAD_MOUNT); } catch (e) {}
-    try { FS.mkdir(IDB_CFG_MOUNT); } catch (e) {}
-    try { FS.mkdir(IDB_CFG_MOUNT + '/uzdoom'); } catch (e) {}
+    try {
+      FS.mkdir(IDB_WAD_MOUNT);
+    } catch (e) {}
+    try {
+      FS.mkdir(IDB_CFG_MOUNT);
+    } catch (e) {}
+    try {
+      FS.mkdir(IDB_CFG_MOUNT + '/uzdoom');
+    } catch (e) {}
     FS.mount(IDBFS, {}, IDB_WAD_MOUNT);
     FS.mount(IDBFS, {}, IDB_CFG_MOUNT);
   }
 
   function fsExists(path) {
-    try { FS.stat(path); return true; } catch (e) { return false; }
+    try {
+      FS.stat(path);
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   function writeUserFiles() {
@@ -484,8 +586,12 @@
       // synced into IDBFS. No in-memory bytes to write — just reference it.
       const p = IDB_WAD_MOUNT + '/' + state.iwad.name;
       if (!fsExists(p)) {
-        throw new Error('IWAD "' + state.iwad.name + '" is not in storage yet. ' +
-                        'Upload it once through the picker, then reuse this URL.');
+        throw new Error(
+          'IWAD "' +
+            state.iwad.name +
+            '" is not in storage yet. ' +
+            'Upload it once through the picker, then reuse this URL.'
+        );
       }
       args.push('-iwad', p);
     } else if (state.iwad) {
@@ -511,7 +617,9 @@
     // ZMusic stub probes /soundfonts/uzdoom.sf2 first, then /soundfont.sf2,
     // so writing to the first path wins.
     if (state.soundfont) {
-      try { FS.mkdirTree('/soundfonts'); } catch (e) {}
+      try {
+        FS.mkdirTree('/soundfonts');
+      } catch (e) {}
       FS.writeFile('/soundfonts/uzdoom.sf2', state.soundfont.data);
     }
     // Launcher query-string args land LAST so they override any defaults
@@ -527,18 +635,26 @@
   // game_support.pk3, brightmaps, lights, default soundfont, etc.). They
   // total a few tens of MB on a cold load, so showing per-asset progress
   // matters — without it, users on slow links think the page is hung.
+  //
+  // [SITE] The CORE_ASSETS list itself is upstream-shaped but the paths
+  // below are relative — they resolve against wherever this loader is
+  // served from (in our case `/legend-of-doom/`). A fork hosting from a
+  // different directory layout would adjust the URLs here.
 
   const CORE_ASSETS = [
-    { url: 'uzdoom.pk3',              fs: '/uzdoom.pk3' },
+    { url: 'uzdoom.pk3', fs: '/uzdoom.pk3' },
     // game_support.pk3 provides IWADINFO. Without it, the IWAD detector
     // can't match filenames and fails with "Cannot find IWAD".
-    { url: 'game_support.pk3',        fs: '/game_support.pk3' },
-    { url: 'brightmaps.pk3',          fs: '/brightmaps.pk3' },
-    { url: 'lights.pk3',              fs: '/lights.pk3' },
+    { url: 'game_support.pk3', fs: '/game_support.pk3' },
+    { url: 'brightmaps.pk3', fs: '/brightmaps.pk3' },
+    { url: 'lights.pk3', fs: '/lights.pk3' },
     { url: 'game_widescreen_gfx.pk3', fs: '/game_widescreen_gfx.pk3' },
-    { url: 'soundfonts/uzdoom.sf2',   fs: '/soundfonts/uzdoom.sf2' },
-    { url: 'fm_banks/GENMIDI.GS.wopl',                         fs: '/fm_banks/GENMIDI.GS.wopl' },
-    { url: 'fm_banks/gs-by-papiezak-and-sneakernets.wopn',     fs: '/fm_banks/gs-by-papiezak-and-sneakernets.wopn' },
+    { url: 'soundfonts/uzdoom.sf2', fs: '/soundfonts/uzdoom.sf2' },
+    { url: 'fm_banks/GENMIDI.GS.wopl', fs: '/fm_banks/GENMIDI.GS.wopl' },
+    {
+      url: 'fm_banks/gs-by-papiezak-and-sneakernets.wopn',
+      fs: '/fm_banks/gs-by-papiezak-and-sneakernets.wopn'
+    }
   ];
 
   function renderAssetList(assets) {
@@ -559,9 +675,7 @@
     const el = list.querySelector(`[data-url="${CSS.escape(url)}"]`);
     if (!el) return;
     el.className = state;
-    const prefix = state === 'done' ? '✓  '
-                 : state === 'fail' ? '✗  '
-                 : '·  ';
+    const prefix = state === 'done' ? '✓  ' : state === 'fail' ? '✗  ' : '·  ';
     el.textContent = prefix + url + (bytesText ? '   ' + bytesText : '');
   }
 
@@ -589,7 +703,10 @@
     }
     const out = new Uint8Array(received);
     let off = 0;
-    for (const c of chunks) { out.set(c, off); off += c.length; }
+    for (const c of chunks) {
+      out.set(c, off);
+      off += c.length;
+    }
     return out;
   }
 
@@ -605,16 +722,24 @@
       setStatusRight(`${i + 1}/${CORE_ASSETS.length}`);
       try {
         const buf = await fetchWithProgress(a.url, (recv, total) => {
-          const pct = total > 0 ? (recv / total * 100) : 0;
-          markAsset(a.url, 'pending',
-            total > 0 ? `${formatBytes(recv)} / ${formatBytes(total)} (${pct.toFixed(0)}%)`
-                      : formatBytes(recv));
+          const pct = total > 0 ? (recv / total) * 100 : 0;
+          markAsset(
+            a.url,
+            'pending',
+            total > 0
+              ? `${formatBytes(recv)} / ${formatBytes(total)} (${pct.toFixed(0)}%)`
+              : formatBytes(recv)
+          );
           // Approximate overall progress: per-asset % divided across the list.
           const overall = ((i + (total > 0 ? recv / total : 0)) / CORE_ASSETS.length) * 100;
           bar.style.width = overall.toFixed(1) + '%';
         });
         const dir = a.fs.substring(0, a.fs.lastIndexOf('/'));
-        if (dir) { try { FS.mkdirTree(dir); } catch (e) {} }
+        if (dir) {
+          try {
+            FS.mkdirTree(dir);
+          } catch (e) {}
+        }
         FS.writeFile(a.fs, buf);
         totalBytes += buf.length;
         markAsset(a.url, 'done', formatBytes(buf.length));
@@ -644,7 +769,10 @@
       const buf = await fetchWithProgress(rel, (recv, total) => {
         setStatusRight(
           total > 0
-            ? `${state.iwad.name}: ${formatBytes(recv)} / ${formatBytes(total)} (${(recv / total * 100).toFixed(0)}%)`
+            ? `${state.iwad.name}: ${formatBytes(recv)} / ${formatBytes(total)} (${(
+                (recv / total) *
+                100
+              ).toFixed(0)}%)`
             : `${state.iwad.name}: ${formatBytes(recv)}`
         );
       });
@@ -663,8 +791,11 @@
     setStatus('Syncing saves from IndexedDB…');
     FS.syncfs(true, async (err) => {
       if (err) console.warn('syncfs pull:', err);
-      try { await fetchCoreAssets(); }
-      catch (e) { console.error('core asset fetch failed', e); }
+      try {
+        await fetchCoreAssets();
+      } catch (e) {
+        console.error('core asset fetch failed', e);
+      }
 
       // Fetch any URL-referenced IWAD that's side-loaded on the server
       // but not yet cached in IDBFS (first-run path).
@@ -679,14 +810,19 @@
         // without reloading.
         console.error('[uzdoom-loader] file preparation failed:', e);
         setStatus(String(e.message || e));
-        state.launched = false;
+        // [SITE] Roll the lifecycle back to `loading` so the hero button
+        // and overlay subscribers reflect the re-armed picker. Use
+        // unprime() — a dedicated escape hatch rather than a direct
+        // markPrimed because we specifically don't have a valid primed
+        // descriptor to assert here.
+        LC.unprime();
         state.iwad = null;
         state.mods = [];
         $('iwadPicker').classList.remove('filled');
         $('launchBtn').disabled = true;
         return;
       }
-      // Two engine defaults need overriding for the web port.
+      // [SITE] Two engine defaults need overriding for the web port.
       //
       // +vid_fullscreen 0 — ALWAYS. The engine's default (1) makes it call
       // Element.requestFullscreen() on its first focused frame, putting the
@@ -710,14 +846,16 @@
       console.log('[uzdoom-loader] launching with argv:', userArgs);
       setStatus('Booting engine…');
 
-      // Notify the host page that we're about to start the engine. The
-      // parent uses this as a melt-transition timing signal — no more
-      // 13s empirical wait.
+      // [SITE] Notify the host page that we're about to start the engine.
+      // The parent (when we're iframed) uses this as a melt-transition
+      // timing signal — no more 13s empirical wait.
       try {
         if (window.self !== window.top) {
           window.parent.postMessage({ type: 'uzdoom:launched' }, '*');
         }
-      } catch (e) { /* not embedded, or security-restricted */ }
+      } catch (e) {
+        /* not embedded, or security-restricted */
+      }
 
       // Reveal sequence — the fun part.
       //
@@ -754,11 +892,19 @@
       // (which fires pre-callMain): listeners that want the
       // "engine is actually on screen" moment use this one.
       const announceReveal = () => {
+        // [SITE] Lifecycle transitions to `playing` here — this is the
+        // earliest moment at which the engine is confirmed on screen
+        // (either via the melt completing or the straight cut having
+        // happened). Touch UI + other playback-gated subscribers come
+        // online now.
+        LC.markPlaying();
         try {
           if (window.self !== window.top) {
             window.parent.postMessage({ type: 'uzdoom:revealed' }, '*');
           }
-        } catch (e) { /* cross-origin restricted or not framed */ }
+        } catch (e) {
+          /* cross-origin restricted or not framed */
+        }
       };
       const revealCut = () => {
         $('boot').classList.add('hidden');
@@ -788,14 +934,20 @@
         return;
       }
 
-      if (!wantMelt) { revealCut(); return; }
+      if (!wantMelt) {
+        revealCut();
+        return;
+      }
 
       // Await snapshot, then hand off to the melt. Wrapped in an IIFE
       // so we don't force bootEngine's outer function to be async all
       // the way up the chain (keeps the callMain catch above simple).
       (async () => {
         const snap = await snapshotPromise;
-        if (!snap) { revealCut(); return; }
+        if (!snap) {
+          revealCut();
+          return;
+        }
 
         // Wait a few rAFs for the engine's first draw to land on the
         // canvas. Without this the melt reveals black pixels while the
@@ -809,9 +961,9 @@
         // is no longer hiding the canvas, but the melt overlay hasn't
         // been installed yet). Ordering the wait first keeps the boot
         // panel hiding the canvas right up until the overlay appears.
-        await new Promise((r) => requestAnimationFrame(
-          () => requestAnimationFrame(
-            () => requestAnimationFrame(r))));
+        await new Promise((r) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))
+        );
 
         // Install the overlay FIRST — runOn attaches the overlay canvas
         // above everything (z-index 2147483647) and synchronously paints
@@ -836,18 +988,18 @@
   // Each one is fire-and-forget; IndexedDB writes are idempotent.
 
   setInterval(() => {
-    if (!state.launched || state.exited) return;
+    if (!LC.isRunning()) return;
     syncSavesToIDB();
   }, 30000);
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'hidden') return;
-    if (!state.launched || state.exited) return;
+    if (!LC.isRunning()) return;
     syncSavesToIDB();
   });
 
   window.addEventListener('beforeunload', () => {
-    if (!state.launched || state.exited) return;
+    if (!LC.isRunning()) return;
     syncSavesToIDB();
   });
 
@@ -904,7 +1056,7 @@
       // These aren't user data per se, but clearing them ensures a fully
       // fresh boot on next reload.
       try {
-        const all = await indexedDB.databases ? indexedDB.databases() : [];
+        const all = (await indexedDB.databases) ? indexedDB.databases() : [];
         for (const d of all) {
           if (d.name && (d.name.startsWith('/wads') || d.name.startsWith('/home'))) {
             await new Promise((resolve) => {
@@ -913,7 +1065,9 @@
             });
           }
         }
-      } catch (e) { /* indexedDB.databases() not supported in all browsers */ }
+      } catch (e) {
+        /* indexedDB.databases() not supported in all browsers */
+      }
 
       $('resetModal').classList.add('hidden');
       setStatus('Data wiped. Reloading…');
@@ -939,12 +1093,12 @@
   // until a menu-triggered resize resynced.
 
   $('canvas').addEventListener('click', () => {
-    if (!state.launched || state.exited) return;
+    if (!LC.isRunning()) return;
     if (document.pointerLockElement === $('canvas')) return;
     if ($('canvas').requestPointerLock) $('canvas').requestPointerLock();
   });
 
-  // ---- Main-thread stall monitor ----------------------------------------
+  // ---- [SITE] Main-thread stall monitor ---------------------------------
   //
   // Schedules itself every 50 ms via setTimeout and logs whenever the
   // actual interval exceeds 150 ms — i.e. the main thread was blocked >
@@ -966,14 +1120,23 @@
         stallCount++;
         worstInWindow = Math.max(worstInWindow, delta);
         if (stallCount <= 20 || stallCount % 20 === 0) {
-          console.warn('[stall-mon] main-thread blocked for ' + delta.toFixed(0) +
-                       ' ms (stall #' + stallCount + ')');
+          console.warn(
+            '[stall-mon] main-thread blocked for ' +
+              delta.toFixed(0) +
+              ' ms (stall #' +
+              stallCount +
+              ')'
+          );
         }
       }
       if (now - windowStart >= 5000) {
         if (worstInWindow > 0) {
-          console.log('[stall-mon] last 5s — worst stall ' +
-                      worstInWindow.toFixed(0) + ' ms, total stalls observed: ' + stallCount);
+          console.log(
+            '[stall-mon] last 5s — worst stall ' +
+              worstInWindow.toFixed(0) +
+              ' ms, total stalls observed: ' +
+              stallCount
+          );
         }
         worstInWindow = 0;
         windowStart = now;
@@ -983,7 +1146,90 @@
     setTimeout(tick, 50);
   })();
 
-  // ---- Auto-launch from URL ----------------------------------------------
+  // ---- [SITE] Public API -------------------------------------------------
+  //
+  // Exposed on `window.UZDoomLoader` for page-level code (the clean-mode
+  // priming flow in index.html, tests, external embedders) to feed
+  // assets into the loader without touching the picker DOM.
+  //
+  // Shape of descriptor:
+  //   {
+  //     iwad:      REQUIRED. One of:
+  //                  { bundled: 'freedoom1.wad' | 'freedoom2.wad', name }
+  //                    — built into the Emscripten preload bundle. No
+  //                      bytes needed.
+  //                  { name: 'doom.wad', data: Uint8Array }
+  //                    — user-provided bytes, about to be written to
+  //                      /wads/<name> at launch time.
+  //                  { name: 'doom.wad', persisted: true }
+  //                    — asset is already in IDBFS from a prior
+  //                      session. Used by ?iwad=… URL auto-launch.
+  //     mods:      optional [{ name, data } | { name, persisted: true }]
+  //     soundfont: optional { name, data }
+  //   }
+  //
+  // Resolves once the loader's internal state is primed and the lifecycle
+  // has transitioned to `primed`. Callers who want auto-launch can then
+  // call `UZDoomLoader.launch()` or simulate a click on #launchBtn.
+  //
+  // Deliberately not accepting raw File/FileList — that's the picker's
+  // job. If you have File objects, pass them through the picker UI (or
+  // read them to Uint8Array first).
+  window.UZDoomLoader = {
+    primeWith: function (descriptor) {
+      if (!descriptor || !descriptor.iwad) {
+        return Promise.reject(new Error('primeWith requires { iwad }'));
+      }
+      state.iwad = descriptor.iwad;
+      state.mods = Array.isArray(descriptor.mods) ? descriptor.mods.slice() : [];
+      state.soundfont = descriptor.soundfont || null;
+
+      // Populate the picker UI so the visible state matches — makes the
+      // "manual mode" and "auto-prime mode" converge on the same DOM.
+      if (state.iwad.bundled) {
+        $('iwadDesc').textContent = state.iwad.name + ' (bundled)';
+      } else if (state.iwad.data) {
+        $('iwadDesc').textContent = state.iwad.name + ' — ' + formatBytes(state.iwad.data.length);
+      } else if (state.iwad.persisted) {
+        $('iwadDesc').textContent = state.iwad.name + ' (persisted)';
+      }
+      $('iwadPicker').classList.add('filled');
+
+      renderModChips();
+
+      if (state.soundfont && state.soundfont.data) {
+        $('sfDesc').textContent =
+          state.soundfont.name + ' — ' + formatBytes(state.soundfont.data.length);
+        $('sfPicker').classList.add('filled');
+      }
+
+      $('launchBtn').disabled = false;
+      LC.markPrimed({
+        iwad: state.iwad.name,
+        mods: state.mods.map(function (m) {
+          return m.name;
+        })
+      });
+      return Promise.resolve();
+    },
+    launch: function () {
+      // Equivalent to clicking the Launch button. Callers that primed
+      // programmatically use this to trigger the boot without needing
+      // to reach into the DOM. Guarded by the lifecycle so double-calls
+      // or pre-primed calls are no-ops.
+      if (LC.get() !== 'primed') return false;
+      $('launchBtn').click();
+      return true;
+    },
+    isPrimed: function () {
+      return LC.get() === 'primed';
+    },
+    state: function () {
+      return LC.get();
+    } // thin pass-through for callers
+  };
+
+  // ---- [UPSTREAM] Auto-launch from URL -----------------------------------
   //
   // A valid `?iwad=…` in the query string skips the picker UI and drops
   // straight into the boot flow. Terminal shortcuts / external pages can
@@ -995,24 +1241,26 @@
   // If the iwad isn't bundled and hasn't been uploaded yet, writeUserFiles
   // throws and bootEngine's catch restores the picker with an error
   // message — so a stale link recovers gracefully.
+  //
+  // Routed through primeWith + launch for parity with the picker path.
+  // Before the refactor this was a third parallel entry point that
+  // duplicated the priming sequence inline; now there's one code path
+  // and one lifecycle transition.
   if (launcherArgs.iwad) {
     const iwadLower = launcherArgs.iwad.toLowerCase();
-    if (BUNDLED_IWADS.has(iwadLower)) {
-      state.iwad = { name: iwadLower, data: null, bundled: iwadLower };
-    } else {
-      state.iwad = { name: launcherArgs.iwad, persisted: true };
-    }
-    for (const f of launcherArgs.files) {
-      state.mods.push({ name: f, persisted: true });
-    }
-    state.launched = true;
+    var urlIwad = BUNDLED_IWADS.has(iwadLower)
+      ? { name: iwadLower, data: null, bundled: iwadLower }
+      : { name: launcherArgs.iwad, persisted: true };
+    var urlMods = launcherArgs.files.map(function (f) {
+      return { name: f, persisted: true };
+    });
     console.log('[launcher] auto-launch from URL:', launcherArgs);
     setStatus('Auto-launching from URL…');
-    if (Module && Module.calledRun) {
-      bootEngine();
-    } else {
-      Module.onRuntimeInitialized = bootEngine;
-    }
+    window.UZDoomLoader.primeWith({ iwad: urlIwad, mods: urlMods }).then(function () {
+      // Mimic the user-click path: let the launchBtn handler do the
+      // lifecycle transition + bootEngine wiring. Avoids duplicating
+      // the `Module.onRuntimeInitialized` logic.
+      window.UZDoomLoader.launch();
+    });
   }
-
 })();
