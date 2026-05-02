@@ -82,7 +82,7 @@ const loadDoom = async (canvas, consoleLog) => {
         FS.writeFile(doomFile.url, new Uint8Array(doomFile.data));
       }
     ],
-    arguments: `-iwad ${doomFile.filename} -mouse 1 -novert 0 -mousesens 5`,
+    arguments: ['-iwad', doomFile.filename, '-mouse', '1', '-novert', '0', '-mousesens', '5'],
     canvas: canvas
   });
 

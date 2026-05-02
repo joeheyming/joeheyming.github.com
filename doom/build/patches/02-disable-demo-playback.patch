@@ -1,0 +1,45 @@
+--- a/src/doom/d_main.c	2026-05-01 14:13:03
++++ b/src/doom/d_main.c	2026-05-01 15:41:19
+@@ -683,7 +683,11 @@
+ 	  S_StartMusic (mus_intro);
+ 	break;
+       case 1:
+-	G_DeferedPlayDemo(DEH_String("demo1"));
++	// demo playback disabled in console-doom to keep the game on the title
++	// page until the player presses a key.  Re-show TITLEPIC instead.
++	pagetic = TICRATE * 11;
++	gamestate = GS_DEMOSCREEN;
++	pagename = DEH_String("TITLEPIC");
+ 	break;
+       case 2:
+ 	pagetic = 200;
+@@ -691,7 +695,9 @@
+ 	pagename = DEH_String("CREDIT");
+ 	break;
+       case 3:
+-	G_DeferedPlayDemo(DEH_String("demo2"));
++	pagetic = TICRATE * 11;
++	gamestate = GS_DEMOSCREEN;
++	pagename = DEH_String("TITLEPIC");
+ 	break;
+       case 4:
+ 	gamestate = GS_DEMOSCREEN;
+@@ -712,11 +718,15 @@
+ 	}
+ 	break;
+       case 5:
+-	G_DeferedPlayDemo(DEH_String("demo3"));
++	pagetic = TICRATE * 11;
++	gamestate = GS_DEMOSCREEN;
++	pagename = DEH_String("TITLEPIC");
+ 	break;
+-        // THE DEFINITIVE DOOM Special Edition demo
++	// THE DEFINITIVE DOOM Special Edition demo (disabled)
+       case 6:
+-	G_DeferedPlayDemo(DEH_String("demo4"));
++	pagetic = TICRATE * 11;
++	gamestate = GS_DEMOSCREEN;
++	pagename = DEH_String("TITLEPIC");
+ 	break;
+     }
+ 
