@@ -68,12 +68,17 @@
   var T0 = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
   var logEnabled = false;
 
-  // Opt-in boot log: either via query string (?bootlog=1 or ?coi-debug=1)
-  // or by calling LoDLifecycle.enableLog() from the devtools console.
+  // Opt-in boot log: either via query string (?bootlog=1, ?coi-debug=1,
+  // or ?phonelog=1) or by calling LoDLifecycle.enableLog() from the
+  // devtools console. phonelog=1 is treated as the umbrella "everything
+  // on" flag for remote-phone debugging so the URL stays short.
   try {
     var qs =
       typeof URLSearchParams !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-    if (qs && (qs.get('bootlog') === '1' || qs.get('coi-debug') === '1')) {
+    if (
+      qs &&
+      (qs.get('bootlog') === '1' || qs.get('coi-debug') === '1' || qs.get('phonelog') === '1')
+    ) {
       logEnabled = true;
     }
   } catch (e) {

@@ -4,9 +4,7 @@
 // index.html and gives it a real shape. Three concerns separated:
 //
 //   1. BINDINGS — a pure-data table mapping logical actions to
-//      KeyboardEvent init fields (plus an `alsoMouse` flag for FIRE,
-//      which also needs a synthetic mousedown so Doom's default
-//      mouse1=+attack binding fires).
+//      KeyboardEvent init fields.
 //
 //      Changing a key now means editing one row, not hunting through
 //      an IIFE. When USE was wrongly bound to Space (+jump in modern
@@ -39,16 +37,19 @@
   // --- Bindings table (data, not code) ------------------------------------
   //
   // Each entry is a logical action (a key in the BINDINGS object) paired
-  // with the fields needed to synthesize a browser KeyboardEvent. `alsoMouse`
-  // triggers a synthetic left-button mousedown/mouseup on the canvas — used
-  // by FIRE because Doom binds +attack to both Ctrl and mouse1, and
-  // synthetic modifier-only KeyboardEvents don't reliably reach SDL2
-  // through the WASM pthread bridge.
+  // with the fields needed to synthesize a browser KeyboardEvent.
   //
   // Reasoning for specific choices:
-  //   fire  — data-key 'Control' + KeyE mouse1 fallback. GZDoom default.
-  //   use   — KeyE, not Space. In modern GZDoom, Space = +jump. This is
-  //           the single most common landmine when mapping Doom keys.
+  //   fire  — Ctrl key, GZDoom default for +attack. We used to also
+  //           dispatch a synthetic mousedown here because Doom binds
+  //           +attack to both ctrl and mouse1, and belt-and-suspenders
+  //           seemed safe. It's not safe anymore: the engine now
+  //           ships with `+unbind mouse1` on startup argv (see
+  //           uzdoom-loader.js) to stop SDL2's touch→mouse emulation
+  //           from firing the weapon on every swipe. So keep FIRE as
+  //           a keyboard-only action; the mouse1 channel is dead.
+  //   use   — KeyE, not Space. In modern GZDoom, Space = +jump. This
+  //           is the single most common landmine when mapping Doom keys.
   //   turn* — Arrow keys. Actual turning (not strafing). `,` and `.` are
   //           the +turnleft/+turnright aliases in Doom history but the
   //           default menu binds them to Arrows.
@@ -68,7 +69,7 @@
     use: { key: 'e', code: 'KeyE', keyCode: 69 },
     menu: { key: 'Escape', code: 'Escape', keyCode: 27 },
     confirm: { key: 'Enter', code: 'Enter', keyCode: 13 },
-    fire: { key: 'Control', code: 'ControlLeft', keyCode: 17, alsoMouse: true }
+    fire: { key: 'Control', code: 'ControlLeft', keyCode: 17 }
   };
 
   // --- SwipeController: pure state machine --------------------------------
@@ -269,24 +270,6 @@
       window.dispatchEvent(new KeyboardEvent(type, init));
     }
 
-    // Programmatic mouse dispatch for FIRE. The event is tagged with
-    // __fromTouchUI so swallowMouse (below) lets it through instead of
-    // squashing it as a touch-synthesized click.
-    function sendMouse(type) {
-      var rect = canvas.getBoundingClientRect();
-      var ev = new MouseEvent(type, {
-        button: 0,
-        buttons: type === 'mousedown' ? 1 : 0,
-        clientX: rect.left + rect.width / 2,
-        clientY: rect.top + rect.height / 2,
-        bubbles: true,
-        cancelable: true,
-        view: window
-      });
-      ev.__fromTouchUI = true;
-      canvas.dispatchEvent(ev);
-    }
-
     // --- Button wiring ---
     //
     // Maps a button element's data-action attribute to a BINDINGS entry.
@@ -303,7 +286,6 @@
       held.set(btn, b);
       btn.classList.add('active');
       sendKey('keydown', b);
-      if (b.alsoMouse) sendMouse('mousedown');
     }
     function releaseBtn(btn) {
       var b = held.get(btn);
@@ -311,7 +293,6 @@
       held.delete(btn);
       btn.classList.remove('active');
       sendKey('keyup', b);
-      if (b.alsoMouse) sendMouse('mouseup');
     }
     function releaseAllButtons() {
       held.forEach(function (_b, btn) {
@@ -373,15 +354,66 @@
       }
     });
 
+    // --- Canvas touch handling: swipe-to-turn + tap-to-attack ---
+    //
+    // Tracks ONE primary canvas touch by identifier. Using
+    // `e.touches.length` as a guard breaks on multi-touch scenarios
+    // like "hold forward, tap to attack": the forward d-pad button
+    // counts as an active touch on the document, so `e.touches.length`
+    // is 2 and the canvas handler would bail. Indexing by
+    // `e.changedTouches[].identifier` instead gives us per-finger
+    // state that survives any other fingers the user has down.
+    //
+    // Tap detection: a touch that stays within TAP_MAX_DIST px and
+    // releases within TAP_MAX_MS fires the FIRE binding on release.
+    // A touch that moves past the distance clears the tap state so
+    // the same gesture becomes a pure swipe-to-turn.
+    //
+    // Only ONE canvas touch is tracked as "primary" at a time. Extra
+    // fingers on the canvas (a two-finger swipe, for example) are
+    // ignored; they still flow to SDL2 via the default path, which
+    // is fine — SDL's mousedown is unbound and its mousemotion is
+    // what we want for mouselook anyway.
+    var TAP_MAX_MS = 250;
+    var TAP_MAX_DIST = 12;
+    var TAP_HOLD_MS = 60; // synthetic keydown → keyup gap
+
+    var primaryTouchId = null;
+    var primaryTap = null; // { x, y, at } or null once drag threshold exceeded
+
+    function tapFire() {
+      var b = BINDINGS.fire;
+      if (!b) return;
+      sendKey('keydown', b);
+      setTimeout(function () {
+        sendKey('keyup', b);
+      }, TAP_HOLD_MS);
+    }
+
+    function findChangedPrimary(e) {
+      if (!e.changedTouches) return null;
+      for (var i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === primaryTouchId) {
+          return e.changedTouches[i];
+        }
+      }
+      return null;
+    }
+
     canvas.addEventListener(
       'touchstart',
       function (e) {
-        if (!e.touches || e.touches.length !== 1) return;
+        if (!e.changedTouches || e.changedTouches.length === 0) return;
         // Block the browser from synthesizing mousedown/click from this
         // touch — otherwise every swipe-to-turn would also fire the weapon
-        // (Doom's mouse1=+attack would trigger on the synthesized click).
+        // (Doom's mouse1=+attack would trigger on the synthesized click,
+        // even though we now unbind mouse1 at startup).
         if (e.cancelable) e.preventDefault();
-        swipe.start(e.touches[0].clientX);
+        if (primaryTouchId !== null) return; // already tracking one
+        var t = e.changedTouches[0];
+        primaryTouchId = t.identifier;
+        primaryTap = { x: t.clientX, y: t.clientY, at: Date.now() };
+        swipe.start(t.clientX);
       },
       { passive: false }
     );
@@ -389,8 +421,17 @@
     canvas.addEventListener(
       'touchmove',
       function (e) {
-        if (!e.touches || e.touches.length !== 1) return;
-        var emitted = swipe.move(e.touches[0].clientX);
+        var t = findChangedPrimary(e);
+        if (!t) return;
+        if (primaryTap) {
+          var dx = t.clientX - primaryTap.x;
+          var dy = t.clientY - primaryTap.y;
+          if (dx * dx + dy * dy > TAP_MAX_DIST * TAP_MAX_DIST) {
+            // Touch turned into a drag — cancel the tap-to-fire.
+            primaryTap = null;
+          }
+        }
+        var emitted = swipe.move(t.clientX);
         if (emitted) e.preventDefault();
       },
       { passive: false }
@@ -398,14 +439,26 @@
 
     canvas.addEventListener(
       'touchend',
-      function () {
+      function (e) {
+        var t = findChangedPrimary(e);
+        if (!t) return;
+        if (primaryTap) {
+          var dt = Date.now() - primaryTap.at;
+          if (dt <= TAP_MAX_MS) tapFire();
+        }
+        primaryTap = null;
+        primaryTouchId = null;
         swipe.end();
       },
       { passive: true }
     );
     canvas.addEventListener(
       'touchcancel',
-      function () {
+      function (e) {
+        var t = findChangedPrimary(e);
+        if (!t) return;
+        primaryTap = null;
+        primaryTouchId = null;
         swipe.end();
       },
       { passive: true }
@@ -416,8 +469,11 @@
     // Defensive belt-and-suspenders: even with touchstart preventDefault,
     // Android Chrome can still emit mouse events in edge cases. This
     // capture-phase swallow blocks them before the engine's own
-    // mousedown listener sees them. Programmatic dispatches from
-    // sendMouse() carry __fromTouchUI and are let through.
+    // mousedown listener sees them. We no longer programmatically
+    // dispatch mouse events ourselves (mouse1 is unbound at startup
+    // via argv, so there's nothing to emit), so the `__fromTouchUI`
+    // escape hatch is gone — every mouse event reaching here is
+    // either a real browser event we want to drop, or nothing.
 
     function swallowMouse(e) {
       if (e.__fromTouchUI) return;
