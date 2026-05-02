@@ -1,0 +1,15 @@
+diff --git a/src/i_webmusic.c b/src/i_webmusic.c
+index 76b0b8c..222acd9 100644
+--- a/src/i_webmusic.c
++++ b/src/i_webmusic.c
+@@ -1061,7 +1061,9 @@ static void *I_WEB_RegisterSong(void *data, int len)
+         EM_ASM_({
+             var filename = Module.UTF8ToString($0);
+             window.doom_music_filename = filename;
+-            fetch(filename).then(function(res){ return res.arrayBuffer(); }).then(function(audio){
++            var isDev = location.hostname === "localhost" || location.hostname === "127.0.0.1";
++            var fileUrl = isDev ? filename : "https://console-doom.netlify.app" + filename;
++            fetch(fileUrl).then(function(res){ return res.arrayBuffer(); }).then(function(audio){
+                 var context = SDL2.audioContext;
+                 var path = "";
+                 filename.split("/").slice(1, -1).forEach(function(dir){

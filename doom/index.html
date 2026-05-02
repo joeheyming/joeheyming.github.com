@@ -293,6 +293,11 @@
       </div>
     </div>
 
+    <!-- Harden AudioContext.decodeAudioData before the WASM bundle runs so
+         decode failures route to the MIDI fallback instead of leaking as
+         unhandled promise rejections. Must load before doom.js. -->
+    <script src="src/audio-guard.js"></script>
+
     <!-- Load DOOM WebAssembly module first -->
     <script src="src/doom.js"></script>
 
