@@ -1,0 +1,1124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
+
+    <title>Legend of DOOM — Play in your browser | Joe Heyming</title>
+    <meta name="theme-color" content="#1b3b2a" />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta
+      name="description"
+      content="Play the Legend of DOOM mod in your browser — a GZDoom total conversion reimagining the original NES Legend of Zelda in first-person, compiled to WebAssembly via UZDoom-WASM. No install required."
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Legend of DOOM — Play in your browser" />
+    <meta
+      property="og:description"
+      content="A GZDoom total conversion recreating Hyrule in first-person, running entirely in the browser via UZDoom-WASM. Click Launch to play."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/legend-of-doom/" />
+    <link rel="canonical" href="https://joeheyming.github.io/legend-of-doom/" />
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗡️</text></svg>"
+    />
+
+    <!-- Cross-Origin Isolation bootstrap. uzdoom uses pthreads via
+         SharedArrayBuffer, which requires crossOriginIsolated===true.
+         GitHub Pages does not send COOP/COEP natively so the service
+         worker injects them on navigation and auto-reloads on first
+         visit. Load this FIRST, before any engine scripts. -->
+    <script src="/coi-serviceworker.js"></script>
+
+    <!-- Hard gate on the engine. If crossOriginIsolated is false we MUST
+         NOT let uzdoom.js start — it spawns pthread workers and transfers
+         a SharedArrayBuffer, and that postMessage throws DataCloneError
+         the moment the worker pool inits, leaving a half-booted engine
+         behind. Record a flag so the engine <script> tags at the bottom
+         of the page can decide whether to load themselves. -->
+    <script>
+      window.__COI_READY__ = !!window.crossOriginIsolated;
+    </script>
+
+    <!-- Site chrome: analytics + back button + feedback widget. These
+         load their own DOM asynchronously so they don't fight the
+         uzdoom loader for IDs. -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+    <script src="/feedback.js"></script>
+
+    <!-- uzdoom-loader.js expects a specific DOM layout and specific IDs
+         (iwadPicker, modPicker, sfPicker, launchBtn, status, canvas,
+         etc.). We preserve the upstream layout exactly; site branding
+         is layered ONLY in the boot overlay before launch. -->
+    <style>
+      :root {
+        --bg: #0b0b0c;
+        --panel: #131316;
+        --panel2: #1a1a1e;
+        --border: #2a2a30;
+        --border-hot: #4a4a55;
+        --text: #dcdcdc;
+        --dim: #8a8a92;
+        /* Legend-of-DOOM accent: Zelda green instead of upstream red. */
+        --accent: #4fa861;
+        --accent-dim: #2a5b37;
+        --ok: #6c6;
+        --warn: #db4;
+        --gold: #d9c77a;
+      }
+      * { box-sizing: border-box; }
+      body, html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        overflow: hidden;
+      }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 14px;
+        padding: 24px 20px 48px;
+        text-align: center;
+        z-index: 10;
+        background: var(--bg);
+        overflow-y: auto;
+      }
+      .overlay.hidden { display: none !important; }
+
+      .brand {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin-top: 4px;
+      }
+      .brand .sword { font-size: 20px; }
+      .brand h1 {
+        margin: 0;
+        font-size: 22px;
+        letter-spacing: 2px;
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .brand h1 .sub {
+        display: block;
+        font-size: 10px;
+        letter-spacing: 2px;
+        color: var(--dim);
+        margin-top: 4px;
+        font-weight: 400;
+      }
+
+      .intro {
+        max-width: 560px;
+        margin: 0;
+        color: var(--dim);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .warn-banner {
+        max-width: 560px;
+        width: 100%;
+        padding: 10px 14px;
+        background: rgba(219, 180, 68, 0.08);
+        border: 1px solid rgba(219, 180, 68, 0.4);
+        border-radius: 4px;
+        font-size: 11px;
+        color: var(--warn);
+        line-height: 1.5;
+        text-align: left;
+      }
+      .warn-banner strong { color: var(--gold); }
+
+      .instructions {
+        max-width: 560px;
+        width: 100%;
+        padding: 12px 14px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font-size: 12px;
+        color: var(--dim);
+        line-height: 1.7;
+        text-align: left;
+      }
+      .instructions b { color: var(--text); }
+      .instructions ol { margin: 6px 0 0; padding-left: 22px; }
+      .instructions a { color: var(--accent); }
+
+      .panel {
+        width: 100%;
+        max-width: 560px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .section-title {
+        font-size: 10px;
+        color: var(--dim);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 6px;
+        margin-bottom: 2px;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .section-title .hint {
+        text-transform: none;
+        letter-spacing: 0;
+        font-size: 10px;
+        color: #555;
+      }
+
+      .picker {
+        border: 1px dashed var(--border);
+        border-radius: 3px;
+        padding: 14px 12px;
+        cursor: pointer;
+        transition: border-color 120ms, background 120ms;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        text-align: left;
+        background: var(--panel2);
+      }
+      .picker.drag, .picker:hover {
+        border-color: var(--border-hot);
+        background: #1d1d22;
+      }
+      .picker.filled {
+        border-style: solid;
+        border-color: var(--accent-dim);
+      }
+      .picker .title { font-size: 12px; color: var(--text); }
+      .picker .desc { font-size: 11px; color: var(--dim); }
+      .picker input[type='file'] { display: none; }
+
+      .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #222228;
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 4px 6px 4px 8px;
+        font-size: 11px;
+        color: var(--text);
+        max-width: 100%;
+      }
+      .chip .name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 320px;
+      }
+      .chip .size { color: var(--dim); font-size: 10px; }
+      .chip button {
+        all: unset;
+        cursor: pointer;
+        color: var(--dim);
+        padding: 0 4px;
+        font-size: 12px;
+        line-height: 1;
+      }
+      .chip button:hover { color: var(--accent); }
+
+      .btn {
+        padding: 9px 14px;
+        background: var(--panel2);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 12px;
+        transition: border-color 120ms, background 120ms;
+      }
+      .btn:hover { background: #222; border-color: var(--border-hot); }
+      .btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+      .btn.primary {
+        background: var(--accent-dim);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .btn.primary:hover { background: var(--accent); }
+      .btn.primary[disabled] {
+        background: #333;
+        border-color: #444;
+        color: #777;
+      }
+      .btn.ghost { background: transparent; }
+      .btn-row { display: flex; gap: 8px; }
+      .btn-row > .btn { flex: 1; }
+
+      /* Manual mode (body without .clean): hide the hero; the full
+         picker flow is the UI. */
+      body:not(.clean) #cleanHero { display: none !important; }
+
+      /* Clean mode — default. Hides the full picker UI and shows only
+         the hero + prominent launch button. The picker DOM stays in the
+         tree because uzdoom-loader.js queries those IDs; we just don't
+         paint any of it. Status line + progress bar remain visible so
+         asset download has feedback. Add ?manual=1 to the URL to reveal
+         the full picker instead. */
+      .clean .intro,
+      .clean .warn-banner,
+      .clean .instructions.manual-only,
+      .clean .panel .section-title,
+      .clean .panel .picker,
+      .clean .panel .btn-row {
+        display: none !important;
+      }
+      .clean .panel {
+        background: transparent;
+        border: 0;
+        padding: 0;
+      }
+
+      .hero {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        margin-top: 40px;
+        max-width: 560px;
+        width: 100%;
+      }
+      .hero .tagline {
+        margin: 0;
+        color: var(--dim);
+        font-size: 12px;
+        line-height: 1.6;
+        max-width: 460px;
+      }
+      .hero .tagline .what {
+        display: block;
+        color: var(--text);
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+      #cleanLaunchBtn {
+        padding: 16px 36px;
+        background: var(--accent-dim);
+        border: 1px solid var(--accent);
+        border-radius: 4px;
+        color: #fff;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 16px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        transition: background 120ms, transform 120ms;
+        min-width: 240px;
+      }
+      #cleanLaunchBtn:hover:not([disabled]) {
+        background: var(--accent);
+        transform: translateY(-1px);
+      }
+      #cleanLaunchBtn[disabled] {
+        background: #2a2a2e;
+        border-color: #3a3a3e;
+        color: #6a6a72;
+        cursor: wait;
+      }
+      .hero .fineprint {
+        margin: 0;
+        color: var(--dim);
+        font-size: 10px;
+        line-height: 1.5;
+      }
+      .hero .fineprint a { color: var(--accent); }
+
+      .status-line {
+        font-size: 11px;
+        color: var(--dim);
+        min-height: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+      .progress {
+        width: 100%;
+        height: 4px;
+        background: #111;
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .progress > .bar {
+        height: 100%;
+        width: 0%;
+        background: var(--accent);
+        transition: width 120ms linear;
+      }
+      #assetList {
+        font-size: 10px;
+        color: var(--dim);
+        max-height: 140px;
+        overflow-y: auto;
+        background: var(--panel2);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 8px;
+        display: none;
+        text-align: left;
+        line-height: 1.6;
+      }
+      #assetList.show { display: block; }
+      #assetList .done { color: var(--ok); }
+      #assetList .fail { color: var(--warn); }
+      #assetList .pending { color: var(--dim); }
+
+      #canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        background: #000;
+        outline: 0;
+      }
+
+      #fsBtn {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        z-index: 5;
+        background: rgba(20, 20, 24, 0.6);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 6px 10px;
+        font-size: 11px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-family: inherit;
+        opacity: 0.35;
+        transition: opacity 0.2s;
+      }
+      #fsBtn:hover { opacity: 1; background: rgba(30, 30, 36, 0.9); }
+      #fsBtn.hidden { display: none; }
+
+      #exited .outcome { font-size: 14px; color: var(--text); }
+      #exited .outcome.ok { color: var(--ok); }
+      #exited .outcome.err { color: var(--warn); }
+      #exited .detail {
+        font-size: 11px;
+        color: var(--dim);
+        max-width: 500px;
+        line-height: 1.6;
+      }
+      #exited .reason {
+        font-size: 11px;
+        color: var(--dim);
+        font-family: inherit;
+      }
+
+      .modal {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 20;
+      }
+      .modal.hidden { display: none; }
+      .modal .body {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 20px;
+        max-width: 400px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .modal h3 { margin: 0; font-size: 14px; color: var(--text); }
+      .modal p {
+        margin: 0;
+        font-size: 12px;
+        color: var(--dim);
+        line-height: 1.5;
+      }
+
+      /* Mobile gate: desktop-only. Back button preserved so user can leave. */
+      #mobile-gate { display: none; }
+      body.mobile #mobile-gate {
+        display: block;
+        position: fixed;
+        inset: 0;
+        padding: 48px 24px;
+        text-align: center;
+        background: var(--bg);
+        z-index: 30;
+      }
+      body.mobile #boot { display: none !important; }
+      #mobile-gate .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 28px 22px;
+        max-width: 460px;
+        margin: 40px auto;
+      }
+      #mobile-gate h2 { margin: 0 0 10px; color: var(--gold); font-size: 16px; }
+      #mobile-gate p { margin: 0 0 16px; color: var(--dim); font-size: 13px; line-height: 1.5; }
+      #mobile-gate a {
+        display: inline-block;
+        padding: 10px 18px;
+        background: var(--accent-dim);
+        color: #fff;
+        border: 1px solid var(--accent);
+        border-radius: 3px;
+        text-decoration: none;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Mode switch: clean (default, hero + single Launch button) vs
+         manual (full picker UI). Flip this as early as possible to avoid
+         any flash of the manual-mode layout before CSS hides it. -->
+    <script>
+      if (new URLSearchParams(window.location.search).get('manual') !== '1') {
+        document.body.classList.add('clean');
+      }
+    </script>
+
+    <!-- Mobile rejection. UZDoom needs a keyboard+mouse and pthread-grade
+         CPU to be playable; on mobile it would just melt a battery. -->
+    <div id="mobile-gate">
+      <div class="card">
+        <h2>🗡️ Desktop only</h2>
+        <p>
+          This experimental runner compiles a full GZDoom-family engine to
+          WebAssembly. It needs a desktop keyboard, mouse, and enough RAM/CPU
+          to keep pthread workers happy. Phones and tablets can't drive it.
+        </p>
+        <a href="/">← Back home</a>
+      </div>
+    </div>
+
+    <!-- Boot / picker overlay. Upstream's DOM, preserved verbatim except
+         for the branding header and the LoD-specific instruction card
+         inserted above the panel. uzdoom-loader.js drives everything
+         inside .panel via ID lookups; do not rename or restructure it. -->
+    <div class="overlay" id="boot">
+      <div class="brand">
+        <span class="sword">🗡️</span>
+        <h1>
+          Legend of DOOM
+          <span class="sub">POWERED BY UZDOOM-WASM</span>
+        </h1>
+      </div>
+
+      <p class="intro">
+        The full
+        <a
+          href="https://github.com/UZDoom/UZDoom"
+          style="color: var(--accent)"
+          target="_blank"
+          rel="noopener"
+          >UZDoom</a
+        >
+        engine (GZDoom family) compiled to WebAssembly via the
+        <a
+          href="https://github.com/abootnet/uzdoom-wasm"
+          style="color: var(--accent)"
+          target="_blank"
+          rel="noopener"
+          >uzdoom-wasm</a
+        >
+        port. Everything stays local — files are stored in your browser via
+        IndexedDB and never leave this machine.
+      </p>
+
+      <div class="warn-banner">
+        <strong>⚠ Experimental tech demo.</strong> Expect long load times on
+        first visit (~60 MB download + pthread spin-up). Saves persist in
+        IndexedDB; use <em>Reset saved data</em> below to clear them. For a
+        smoother native experience, install
+        <a
+          href="https://zdoom.org/downloads"
+          target="_blank"
+          rel="noopener"
+          style="color: var(--accent)"
+          >GZDoom</a
+        >
+        and run the mod locally.
+      </div>
+
+      <!-- Hero: the ONLY visible UI in clean (default) mode. Big Launch
+           button + short tagline. The auto-launch script primes the
+           hidden picker UI with Freedoom + the bundled mod pk3 while
+           this button sits disabled, then enables it. User click flows
+           through to the loader's real launchBtn. -->
+      <div class="hero" id="cleanHero">
+        <p class="tagline">
+          <span class="what">The original Legend of DOOM mod, running in your browser.</span>
+          Freedoom 2 + Legend of DOOM are bundled here — nothing to install.
+          Click Launch when ready.
+        </p>
+        <button id="cleanLaunchBtn" disabled>Preparing…</button>
+        <p class="fineprint">
+          Experimental. ~60 MB first-load download. Saves persist in this
+          browser via IndexedDB.<br />
+          Add <code>?manual=1</code> to the URL to pick your own IWAD / mods.
+        </p>
+      </div>
+
+      <!-- Manual-mode instructions. Hidden in clean mode via CSS; revealed
+           when the URL contains ?manual=1. -->
+      <div class="instructions manual-only" id="autoInstructions">
+        <b>Manual mode.</b>
+        <ol style="margin: 6px 0 0 18px; padding: 0">
+          <li>Click <b>Use bundled Freedoom</b> for the IWAD.</li>
+          <li>
+            Upload <code>LegendOfDoom-1.1.0.pk3</code> (or any other pk3) into
+            <b>Mods</b>.
+          </li>
+          <li>Hit <b>Launch</b>.</li>
+        </ol>
+      </div>
+
+      <!-- Upstream loader DOM. uzdoom-loader.js queries these IDs. -->
+      <div class="panel">
+        <div class="section-title">
+          Game files <span class="hint">click a tile or drop files</span>
+        </div>
+
+        <label class="picker" id="iwadPicker">
+          <span class="title">IWAD (required) — or use bundled Freedoom</span>
+          <span class="desc" id="iwadDesc">No IWAD selected.</span>
+          <input type="file" accept=".wad,.WAD,.pk3,.PK3,.ipk3,.IPK3" />
+        </label>
+
+        <label class="picker" id="modPicker">
+          <span class="title">Mods / PK3s (optional)</span>
+          <span class="desc" id="modDesc"
+            >No mods selected. Multi-select supported.</span
+          >
+          <input
+            type="file"
+            multiple
+            accept=".wad,.WAD,.pk3,.PK3,.ipk3,.IPK3,.pk7,.PK7,.deh,.DEH,.bex,.BEX"
+          />
+          <div class="chips" id="modChips"></div>
+        </label>
+
+        <label class="picker" id="sfPicker">
+          <span class="title">SoundFont .sf2 (optional — MIDI music)</span>
+          <span class="desc" id="sfDesc">Using bundled SoundFont.</span>
+          <input type="file" accept=".sf2,.SF2" />
+        </label>
+
+        <div class="btn-row">
+          <button class="btn" id="useFreedoomBtn">Use bundled Freedoom</button>
+          <button class="btn primary" id="launchBtn" disabled>Launch</button>
+        </div>
+
+        <div class="status-line">
+          <span id="status">Idle.</span>
+          <span id="statusRight"></span>
+        </div>
+        <div class="progress" id="progress" style="display: none">
+          <div class="bar"></div>
+        </div>
+        <div id="assetList"></div>
+
+        <div class="section-title" style="margin-top: 4px">Data &amp; settings</div>
+        <div class="btn-row">
+          <button
+            class="btn ghost"
+            id="resetBtn"
+            title="Wipe saved games, configs, and uploaded WADs from this browser"
+          >
+            Reset saved data
+          </button>
+        </div>
+      </div>
+
+      <p class="intro" style="font-size: 10px">
+        UZDoom is GPL v3. Legend of DOOM © DeTwelveGames. This page ships
+        Freedoom (BSD-style) and the UZDoom WASM engine; the mod pk3 is
+        never bundled, you upload it yourself per the steps above.
+      </p>
+    </div>
+
+    <!-- Session-ended overlay. Upstream structure. -->
+    <div class="hidden overlay" id="exited">
+      <div class="brand">
+        <span class="sword">🗡️</span>
+        <h1>Legend of DOOM<span class="sub">SESSION ENDED</span></h1>
+      </div>
+      <div class="panel" style="gap: 14px">
+        <div class="outcome ok" id="exitOutcome">Thanks for playing.</div>
+        <div class="detail">
+          Save games and configuration have been synced to IndexedDB. Use the
+          button below to start a new session, or head back
+          <a href="/" style="color: var(--accent)">home</a>.
+        </div>
+        <div class="reason" id="exitReason"></div>
+        <div class="btn-row">
+          <button class="btn primary" id="relaunchBtn">Relaunch</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="hidden" id="fsBtn" title="Toggle fullscreen (F11 also works)">
+      Fullscreen
+    </button>
+
+    <canvas class="hidden" id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+
+    <!-- Reset confirmation modal. -->
+    <div class="hidden modal" id="resetModal">
+      <div class="body">
+        <h3>Reset all saved data?</h3>
+        <p>
+          This will delete every save game, configuration file, uploaded WAD,
+          and uploaded PK3 stored in this browser. Bundled Freedoom and engine
+          assets are not affected.
+        </p>
+        <p style="color: var(--warn)">This cannot be undone.</p>
+        <div class="btn-row">
+          <button class="btn" id="resetCancelBtn">Cancel</button>
+          <button class="btn primary" id="resetConfirmBtn">Delete everything</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile / touch detection. Hide the runner; show the mobile gate.
+         Runs before any engine code starts downloading. -->
+    <script>
+      (function () {
+        var isTouch =
+          window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+        var isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        );
+        if (isTouch || isMobileUA) document.body.classList.add('mobile');
+      })();
+    </script>
+
+    <!-- COI pre-boot guard. uzdoom spins pthread workers and transfers a
+         SharedArrayBuffer to them during instantiation. If crossOriginIsolated
+         is false, that postMessage throws DataCloneError and the engine hangs
+         on "Launching engine…" forever. Give it up to ~6s for the service
+         worker to kick in (it reloads the page up to 3 times on its own),
+         and surface a clear error in the picker panel if it never arrives. -->
+    <script>
+      (function () {
+        if (window.crossOriginIsolated) return;
+        var launchBtn = null;
+        var deadline = Date.now() + 6000;
+        function updateStatus() {
+          if (window.crossOriginIsolated) return;
+          var remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+          var st = document.getElementById('status');
+          if (st) {
+            st.textContent =
+              'Waiting for cross-origin isolation (' + remaining + 's)…';
+          }
+          if (Date.now() < deadline) {
+            setTimeout(updateStatus, 1000);
+          } else {
+            if (st) st.textContent = '';
+            showCoiError();
+          }
+        }
+        function showCoiError() {
+          if (window.crossOriginIsolated) return;
+          if (!launchBtn) launchBtn = document.getElementById('launchBtn');
+          if (launchBtn) {
+            launchBtn.disabled = true;
+            launchBtn.title = 'Cross-origin isolation unavailable in this browser';
+          }
+          var panel = document.querySelector('#boot .panel');
+          if (panel && !document.getElementById('coi-error')) {
+            var div = document.createElement('div');
+            div.id = 'coi-error';
+            div.style.cssText =
+              'padding:12px 14px;background:rgba(248,113,113,0.08);' +
+              'border:1px solid rgba(248,113,113,0.45);border-radius:4px;' +
+              'color:#f87171;font-size:11px;line-height:1.5;text-align:left;';
+            div.innerHTML =
+              '<strong>Cross-origin isolation failed.</strong> The service worker ' +
+              "couldn't take control of this page, so SharedArrayBuffer is " +
+              'unavailable and the engine cannot start its pthread workers. ' +
+              '<br /><br />Try: 1) open DevTools → Application → Service Workers → ' +
+              'Unregister, then reload. 2) Or visit this page in an incognito ' +
+              'window. 3) Or install ' +
+              '<a href="https://zdoom.org/downloads" target="_blank" rel="noopener" ' +
+              'style="color:#f87171">GZDoom</a> locally and run the mod natively.';
+            panel.insertBefore(div, panel.firstChild);
+          }
+        }
+        // Kick off status polling once the DOM is parsed enough for #status.
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', updateStatus, { once: true });
+        } else {
+          updateStatus();
+        }
+      })();
+    </script>
+
+    <!-- Emscripten module stub: uzdoom.js attaches to window.Module. We
+         keep the upstream print/printErr wiring so loader logs and
+         engine stdout both land in console.log with a [uzdoom] prefix.
+         
+         We also add heavy boot-phase logging — the upstream loader only
+         calls setStatus at major transitions and it can be hard to tell
+         whether a stall is in asset fetch, wasm compile, IDBFS mount,
+         or the engine's main() itself. Each hook is timestamped relative
+         to page load so the console reads like a flight recorder. -->
+    <script>
+      (function () {
+        var T0 = performance.now();
+        var depsCount = 0;
+        var maxDepsCount = 0;
+        function ts() {
+          return '+' + ((performance.now() - T0) / 1000).toFixed(2) + 's';
+        }
+        function log(tag, msg) { console.log('[boot ' + ts() + ' ' + tag + ']', msg); }
+        function warn(tag, msg) { console.warn('[boot ' + ts() + ' ' + tag + ']', msg); }
+
+        // Instrument the status line so we see every transition in the
+        // console, not just whatever happens to be showing when the user
+        // pastes a screenshot.
+        var statusHistory = [];
+        window.__BOOT_STATUS_HISTORY__ = statusHistory;
+
+        var Module = {
+          canvas: document.getElementById('canvas'),
+          arguments: [],
+          preRun: [function () { log('preRun', 'fired'); }],
+          postRun: [function () { log('postRun', 'fired'); }],
+          onRuntimeInitialized: function () {
+            log('runtime', 'onRuntimeInitialized fired (WASM instantiated)');
+          },
+          onAbort: function (reason) {
+            warn('onAbort', reason);
+          },
+          print: function (t) { console.log('[uzdoom]', t); },
+          printErr: function (t) { console.warn('[uzdoom]', t); },
+          setStatus: function (t) {
+            var el = document.getElementById('status');
+            if (el) el.textContent = t || '';
+            if (t) {
+              statusHistory.push(ts() + ' ' + t);
+              log('status', t);
+            }
+          },
+          monitorRunDependencies: function (n) {
+            depsCount = n;
+            if (n > maxDepsCount) maxDepsCount = n;
+            log('deps', 'pending=' + n + ' (peak=' + maxDepsCount + ')');
+            Module.setStatus(n ? 'Loading engine… (' + n + ' deps)' : 'Engine ready.');
+          },
+          locateFile: function (path, prefix) {
+            log('locateFile', path + ' (prefix=' + prefix + ')');
+            return prefix + path;
+          },
+        };
+        window.Module = Module;
+        log('module', 'stub installed, COI=' + !!window.crossOriginIsolated);
+
+        // Every 2s after boot, dump the state of anything that might be
+        // stuck: run-dependency count and the raw id list if Emscripten
+        // exposes it, pthread pool size and loaded-worker count, whether
+        // the WASM module has finished instantiating, and the calledRun
+        // flag the loader waits on. Having this means we can diagnose a
+        // hang just from the console log without re-running.
+        setInterval(function () {
+          try {
+            var M = window.Module || {};
+            var pt = (M.PThread) || {};
+            var state = {
+              deps: depsCount,
+              peak: maxDepsCount,
+              remainingIds: (M.runDependencyTracking && Object.keys(M.runDependencyTracking)) || '(not exposed)',
+              calledRun: !!M.calledRun,
+              hasWasm: !!M.asm || !!M.wasmExports,
+              pthreadPoolSize: (M.pthreadPoolSize != null ? M.pthreadPoolSize : '(unset)'),
+              ptUnusedWorkers: (pt.unusedWorkers && pt.unusedWorkers.length) || 0,
+              ptRunningWorkers: (pt.runningWorkers && pt.runningWorkers.length) || 0,
+              ptPthreads: pt.pthreads ? Object.keys(pt.pthreads).length : 0,
+            };
+            log('probe', JSON.stringify(state));
+            // If nothing interesting changes for 20s, stop spamming.
+            if (M.calledRun && depsCount === 0) {
+              log('probe', 'engine is running, stopping probe');
+              // Self-terminate by clearing the interval handle on Module.
+              if (Module.__probeTimer) clearInterval(Module.__probeTimer);
+            }
+          } catch (e) {
+            warn('probe', 'error: ' + e.message);
+          }
+        }, 2000);
+      })();
+    </script>
+
+    <!-- Engine scripts. Only load them if COI is confirmed — otherwise
+         the coi-serviceworker's auto-reload will get us a fresh page in
+         a moment, and it's better to wait for that than to boot the
+         engine into a guaranteed SharedArrayBuffer crash. On the second
+         pass after reload, crossOriginIsolated is true and these load.
+         
+         Ordering matters: uzdoom-loader.js attaches to window.Module BEFORE
+         uzdoom.js runs (the loader overrides Module.onRuntimeInitialized
+         among other things). Upstream loads the first two scripts
+         synchronously in the HTML source so that happens naturally.
+         Dynamically-created scripts default to async=true (execute as soon
+         as they finish downloading, in arbitrary order), so we set
+         async=false explicitly on every script to preserve source order. -->
+    <script>
+      (function () {
+        var T0 = window.__BOOT_T0__ || performance.now();
+        function ts() { return '+' + ((performance.now() - T0) / 1000).toFixed(2) + 's'; }
+        function log(tag, msg) { console.log('[boot ' + ts() + ' ' + tag + ']', msg); }
+        function warn(tag, msg) { console.warn('[boot ' + ts() + ' ' + tag + ']', msg); }
+
+        function loadEngineInOrder() {
+          log('scripts', 'injecting engine scripts in order');
+          // createElement-injected scripts default to async=true; we need
+          // the loader to run BEFORE the engine, so explicitly disable
+          // async and rely on the browser's in-order execution guarantee
+          // for parser-inserted-style appendChild sequences.
+          var srcs = ['uzdoom-melt.js', 'uzdoom-loader.js', 'uzdoom.js'];
+          srcs.forEach(function (src) {
+            var t0 = performance.now();
+            var tag = document.createElement('script');
+            tag.src = src;
+            tag.async = false;
+            tag.onload = function () {
+              log('scripts', src + ' loaded in ' + (performance.now() - t0).toFixed(0) + 'ms');
+            };
+            tag.onerror = function (e) {
+              warn('scripts', src + ' FAILED to load: ' + (e && e.message ? e.message : '(no msg)'));
+            };
+            document.body.appendChild(tag);
+          });
+        }
+        if (window.__COI_READY__ || window.crossOriginIsolated) {
+          log('coi', 'ready, loading engine immediately');
+          loadEngineInOrder();
+        } else {
+          log('coi', 'not ready yet, waiting for service worker reload');
+          // The COI service worker will reload us when isolation is ready.
+          // Also do a belt-and-suspenders poll — if we somehow become
+          // isolated without a reload (cached SW claims the client mid
+          // script), load the engine then.
+          var tries = 0;
+          var timer = setInterval(function () {
+            tries++;
+            if (window.crossOriginIsolated) {
+              clearInterval(timer);
+              log('coi', 'became ready mid-load after ' + tries + ' polls');
+              loadEngineInOrder();
+            } else if (tries > 80) {
+              // 80 * 100ms = 8s. Beyond this the COI guard above will
+              // have shown the error banner; stop spinning.
+              clearInterval(timer);
+              warn('coi', 'never became ready after 8s');
+            }
+          }, 100);
+        }
+
+        // Emergency on-screen debug panel: expose the boot log via Alt+D
+        // so the user doesn't need to open devtools. Pressing the key
+        // dumps window.__BOOT_STATUS_HISTORY__ + last N console lines.
+        document.addEventListener('keydown', function (e) {
+          if (!e.altKey || e.key !== 'd') return;
+          var hist = window.__BOOT_STATUS_HISTORY__ || [];
+          alert('Boot status history:\n\n' + hist.join('\n'));
+        });
+      })();
+    </script>
+
+    <!-- Clean-mode launch wiring. The hero shows a single big Launch
+         button; while the user reads the page, we silently prime the
+         loader's picker state (Freedoom as IWAD + bundled LoD pk3 as
+         mod) by driving the same DOM events a human click/drop would.
+         Once priming completes, the hero button enables. Clicking it
+         forwards to the loader's real launchBtn, which triggers the
+         normal asset-download + engine-boot flow. Keeping the final
+         step behind a user gesture also lets the browser unlock
+         AudioContext and full-screen APIs — both of which the engine
+         wants on startup.
+         
+         The loader's state object is a closure-local var with no public
+         API, so we drive the DOM the same way a user would: click
+         #useFreedoomBtn to set the IWAD, synthesize a DataTransfer +
+         'change' on the mod picker's input to register the pk3.
+         
+         Escape hatch: ?manual=1 in the URL skips priming and shows the
+         full picker UI via a body class flipped at the top of <body>. -->
+    <script>
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var isManual = params.get('manual') === '1';
+
+        var T0 = performance.now();
+        var MOD_URL = 'LegendOfDoom-1.1.0.pk3';
+        var MOD_NAME = 'LegendOfDoom-1.1.0.pk3';
+
+        function ts() { return '+' + ((performance.now() - T0) / 1000).toFixed(2) + 's'; }
+        function log(msg) { console.log('[auto-launch ' + ts() + ']', msg); }
+        function warn(msg) { console.warn('[auto-launch ' + ts() + ']', msg); }
+
+        if (isManual) {
+          log('manual mode (?manual=1) — not priming loader');
+          return;
+        }
+
+        function setCleanStatus(text, opts) {
+          var btn = document.getElementById('cleanLaunchBtn');
+          if (!btn) return;
+          btn.textContent = text;
+          if (opts && opts.enable) btn.disabled = false;
+          if (opts && opts.error) {
+            btn.disabled = true;
+            btn.style.background = '#3a1a1a';
+            btn.style.borderColor = '#8a3a3a';
+            btn.style.color = '#f87171';
+            btn.style.cursor = 'not-allowed';
+          }
+        }
+
+        // Wait for an element matching a predicate; resolves when found
+        // or rejects on timeout. Uses rAF + polling because the loader
+        // attaches event listeners and enables buttons from its own
+        // async init path, not via a single DOMContentLoaded moment.
+        function waitFor(pred, label, timeoutMs) {
+          return new Promise(function (resolve, reject) {
+            var deadline = Date.now() + (timeoutMs || 15000);
+            (function tick() {
+              var v = pred();
+              if (v) return resolve(v);
+              if (Date.now() > deadline) {
+                return reject(new Error('timeout waiting for ' + label));
+              }
+              setTimeout(tick, 50);
+            })();
+          });
+        }
+
+        // Kick off the pk3 fetch in parallel with engine boot so the
+        // bytes are ready by the time the Launch button lights up.
+        var modBytesPromise = fetch(MOD_URL)
+          .then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status + ' for ' + MOD_URL);
+            return r.arrayBuffer();
+          })
+          .then(function (buf) {
+            log('fetched ' + MOD_NAME + ' (' + buf.byteLength + ' bytes)');
+            return buf;
+          });
+
+        async function primeLoader() {
+          try {
+            // Wait for the loader's DOM to be wired. The launch button
+            // exists in the HTML source but only becomes usable after
+            // uzdoom-loader.js attaches its click handler inside the
+            // loader IIFE. Presence of #useFreedoomBtn with an attached
+            // listener isn't observable, so we settle for "button
+            // element exists" + a rAF to let the loader finish its
+            // synchronous setup.
+            await waitFor(function () {
+              return document.getElementById('useFreedoomBtn') &&
+                     document.getElementById('launchBtn') &&
+                     document.querySelector('#modPicker input[type=file]');
+            }, 'loader UI');
+            await new Promise(function (r) { requestAnimationFrame(r); });
+
+            var freedoomBtn = document.getElementById('useFreedoomBtn');
+            var launchBtn = document.getElementById('launchBtn');
+            var modInput = document.querySelector('#modPicker input[type=file]');
+
+            log('priming IWAD (Freedoom)');
+            freedoomBtn.click();
+
+            setCleanStatus('Preparing mod…');
+            var buf = await modBytesPromise;
+            var file = new File([buf], MOD_NAME, { type: 'application/octet-stream' });
+            var dt = new DataTransfer();
+            dt.items.add(file);
+            modInput.files = dt.files;
+            modInput.dispatchEvent(new Event('change', { bubbles: true }));
+            log('priming mod (LegendOfDoom-1.1.0.pk3)');
+
+            // The loader's mod-picker handler awaits readFile() before
+            // pushing into its internal state.mods array. state is a
+            // closure-local var we can't observe, so we wait for the
+            // mod chip to render — that happens synchronously after the
+            // async FileReader settles.
+            await waitFor(function () {
+              var chips = document.getElementById('modChips');
+              return chips && chips.children.length > 0;
+            }, 'mod chip render');
+
+            await waitFor(function () { return !launchBtn.disabled; }, 'launch enabled');
+
+            // Wire the hero button to the real launch button. We don't
+            // auto-click on purpose — gating on a user gesture lets the
+            // browser unlock AudioContext and fullscreen APIs, and gives
+            // the user a chance to bail before the 60 MB data download.
+            var clean = document.getElementById('cleanLaunchBtn');
+            setCleanStatus('Launch Legend of DOOM', { enable: true });
+            log('ready for user click');
+            clean.addEventListener('click', function once() {
+              clean.removeEventListener('click', once);
+              clean.disabled = true;
+              clean.textContent = 'Loading…';
+              log('user clicked Launch');
+              launchBtn.click();
+            });
+          } catch (e) {
+            warn('priming failed: ' + e.message);
+            setCleanStatus('Failed: ' + e.message, { error: true });
+            var inst = document.getElementById('autoInstructions');
+            if (inst) {
+              inst.classList.remove('manual-only');
+              inst.innerHTML =
+                '<b>⚠ Auto-setup failed.</b>' +
+                '<p style="margin:6px 0 0 0">' +
+                'Could not prepare Legend of DOOM automatically (' +
+                e.message +
+                '). Reload with <code>?manual=1</code> to pick files by hand.</p>';
+              inst.style.display = 'block';
+            }
+          }
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', primeLoader, { once: true });
+        } else {
+          primeLoader();
+        }
+      })();
+    </script>
+  </body>
+</html>
