@@ -17,14 +17,76 @@
       content="Play the Legend of DOOM mod in your browser — a GZDoom total conversion reimagining the original NES Legend of Zelda in first-person, compiled to WebAssembly via UZDoom-WASM. No install required."
     />
 
+    <meta
+      name="keywords"
+      content="Legend of DOOM, Legend of Zelda, Zelda DOOM mod, Hyrule DOOM, GZDoom browser, UZDoom-WASM, play DOOM in browser, Doom mod, WebAssembly DOOM, Freedoom, retro games, first-person Zelda"
+    />
+
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="joeheyming.github.io" />
     <meta property="og:title" content="Legend of DOOM — Play in your browser" />
     <meta
       property="og:description"
       content="A GZDoom total conversion recreating Hyrule in first-person, running entirely in the browser via UZDoom-WASM. Click Launch to play."
     />
     <meta property="og:url" content="https://joeheyming.github.io/legend-of-doom/" />
+    <meta property="og:image" content="https://joeheyming.github.io/legend-of-doom/og-image.png" />
+    <meta
+      property="og:image:secure_url"
+      content="https://joeheyming.github.io/legend-of-doom/og-image.png"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="918" />
+    <meta property="og:image:height" content="416" />
+    <meta
+      property="og:image:alt"
+      content="Legend of DOOM title screen: The Legend of Zelda story scroll with the DOOM logo crest and Link cursor in the menu."
+    />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Legend of DOOM — Play in your browser" />
+    <meta
+      name="twitter:description"
+      content="Hyrule rebuilt in first-person as a GZDoom total conversion, playable in the browser via UZDoom-WASM. No install."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/legend-of-doom/og-image.png"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="Legend of DOOM title screen combining The Legend of Zelda intro crawl with the DOOM logo."
+    />
+
     <link rel="canonical" href="https://joeheyming.github.io/legend-of-doom/" />
+
+    <!-- JSON-LD: tells search engines this page is a playable browser
+         game so it can surface in richer result cards. `url` matches
+         the canonical link above; `image` reuses the OG image. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "Legend of DOOM",
+        "description": "A GZDoom total conversion that reimagines the original NES Legend of Zelda in first-person, compiled to WebAssembly via UZDoom-WASM and playable in the browser.",
+        "url": "https://joeheyming.github.io/legend-of-doom/",
+        "image": "https://joeheyming.github.io/legend-of-doom/og-image.png",
+        "author": {
+          "@type": "Person",
+          "name": "Joe Heyming"
+        },
+        "applicationCategory": "Game",
+        "operatingSystem": "Web Browser",
+        "gamePlatform": ["Web Browser", "HTML5", "WebAssembly"],
+        "genre": ["First-person shooter", "Adventure"],
+        "playMode": "SinglePlayer",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
 
     <link
       rel="icon"
