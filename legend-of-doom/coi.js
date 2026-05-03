@@ -53,11 +53,50 @@
     for (var i = 0; i < w.length; i++) w[i].reject(err);
   }
 
+  function effectiveBudget() {
+    return detectInAppBrowser() ? IN_APP_BUDGET_MS : BUDGET_MS;
+  }
+
   function renderCountdown() {
     var st = document.getElementById('status');
     if (!st) return;
-    var remaining = Math.max(0, Math.ceil((BUDGET_MS - elapsed()) / 1000));
+    var remaining = Math.max(0, Math.ceil((effectiveBudget() - elapsed()) / 1000));
     st.textContent = 'Waiting for cross-origin isolation (' + remaining + 's)…';
+  }
+
+  // In-app webview detection. These browsers live inside Messenger,
+  // Instagram, Facebook, TikTok, Twitter/X, LinkedIn, etc. They
+  // routinely disable or sandbox service workers, and even when the
+  // SW API "exists" they frequently reject COOP/COEP headers so
+  // `crossOriginIsolated` never becomes true. Unregistering the SW
+  // doesn't help (the next registration hits the same wall). The
+  // only reliable fix is to leave the in-app browser entirely, so we
+  // detect this up front and steer the user at the OS's real browser.
+  function detectInAppBrowser() {
+    var ua = (navigator.userAgent || '') + ' ' + (navigator.vendor || '');
+    // Facebook family (FB main app, Messenger, Instagram). Matches
+    // both iOS (FBAN/MessengerForiOS, FBAN/FBIOS, Instagram) and
+    // Android (FB_IAB/MESSENGER, Instagram) UA strings.
+    if (/\bFBAN\b|\bFBAV\b|\bFB_IAB\b|\bFBDV\b|\bFBSN\b/i.test(ua)) return 'facebook';
+    if (/Instagram/i.test(ua)) return 'instagram';
+    // TikTok
+    if (/\bBytedanceWebview\b|musical_ly|\bTTWebView\b|\bBytedanceIJK\b/i.test(ua)) return 'tiktok';
+    // Twitter/X
+    if (/Twitter for (iPhone|iPad|Android)/i.test(ua)) return 'twitter';
+    // LinkedIn
+    if (/\bLinkedInApp\b/i.test(ua)) return 'linkedin';
+    // Snapchat
+    if (/\bSnapchat\b/i.test(ua)) return 'snapchat';
+    // Line messenger
+    if (/\bLine\//i.test(ua)) return 'line';
+    // Generic WKWebView on iOS: Safari UA but no Safari token (apps
+    // embedding webviews without declaring themselves). This is a
+    // weaker signal so we only return it if we're clearly on iOS.
+    var isIOS = /iPhone|iPad|iPod/i.test(ua);
+    if (isIOS && /AppleWebKit/i.test(ua) && !/Safari/i.test(ua) && !/CriOS|FxiOS/i.test(ua)) {
+      return 'ios-webview';
+    }
+    return null;
   }
 
   // Classify why COI couldn't come up. The fix is different per cause,
@@ -66,83 +105,139 @@
   // workers were never allowed to register in the first place.
   //
   // Returns one of:
+  //   'in-app'    — page is loaded inside a social-app webview
+  //                 (Messenger, Instagram, Twitter, etc.). These
+  //                 environments disable / sandbox service workers,
+  //                 so COOP/COEP can't be injected and COI is
+  //                 unreachable. Fix: open in the system browser.
   //   'insecure'  — page is served over an insecure, non-localhost
-  //                 origin. Service workers require a secure context
-  //                 (HTTPS or http://localhost). A LAN IP like
-  //                 192.168.1.5:8000 on a phone hits this path. Nothing
-  //                 the user can do from inside the page: they need
-  //                 HTTPS, a tunnel, or a browser flag.
+  //                 origin. Service workers require a secure context.
   //   'no-sw'     — secure context, but the browser has no
   //                 serviceWorker API at all (old / privacy mode / WebView
-  //                 with SW disabled). Also unrecoverable from here.
+  //                 with SW disabled).
   //   'sw-stuck'  — service worker is available but didn't take control
-  //                 within the budget. This IS recoverable: unregister
-  //                 the old SW and reload. We can do that with a button.
+  //                 within the budget. Recoverable: unregister + reload.
+  //
+  // Note: in-app detection runs FIRST, even before the insecure /
+  // no-sw checks. A Messenger webview on Android might happen to have
+  // the serviceWorker API present and report a secure context, but
+  // its COI path will still fail silently, and the right advice is
+  // still "open in Chrome" rather than "unregister the SW."
   function classifyCoiFailure() {
+    var inApp = detectInAppBrowser();
+    if (inApp) return 'in-app';
     if (window.isSecureContext === false) return 'insecure';
     if (!('serviceWorker' in navigator)) return 'no-sw';
     return 'sw-stuck';
   }
 
   function buildErrorBody(cause) {
-    // Returns { html, showUnregisterBtn }. `html` is injected as innerHTML
-    // so it needs to be trusted (it is — all strings below are literal).
-    if (cause === 'insecure') {
-      var origin = (window.location && window.location.origin) || '(unknown origin)';
+    // Returns { html, showUnregisterBtn, showOpenExternalBtn }. `html`
+    // is injected as innerHTML so it needs to be trusted (it is — all
+    // strings below are literals, and the origin values come from
+    // window.location which we trust at least as much as our own
+    // script).
+    if (cause === 'in-app') {
       return {
         showUnregisterBtn: false,
+        showOpenExternalBtn: true,
         html:
-          '<strong>Cross-origin isolation requires HTTPS.</strong> ' +
-          'This page is served from <code>' +
-          origin +
-          '</code>, which is not a secure context. Service workers only ' +
-          'register on HTTPS or <code>http://localhost</code> — and without ' +
-          'the service worker, SharedArrayBuffer is unavailable and the ' +
-          'engine cannot start its pthread workers.' +
-          '<br /><br /><b>Fixes:</b>' +
-          '<br />• Open this page over HTTPS (deploy it, or use a tunnel ' +
-          'like <code>cloudflared tunnel --url http://localhost:PORT</code>).' +
-          '<br />• On Chrome for Android, visit ' +
-          '<code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code>, ' +
-          'add <code>' +
-          origin +
-          '</code>, set to Enabled, relaunch.' +
-          '<br />• Install ' +
+          "<strong>This app's built-in browser can't run the game.</strong>" +
+          '<br /><br />Tap <b>⋯</b> (or <b>⋮</b>) and pick <b>Open in Browser</b>, ' +
+          'or use the button below.'
+      };
+    }
+    if (cause === 'insecure') {
+      return {
+        showUnregisterBtn: false,
+        showOpenExternalBtn: false,
+        html:
+          '<strong>HTTPS required.</strong>' +
+          "<br /><br />This page isn't on a secure origin, so the engine " +
+          "can't load. Open the HTTPS version of the link, or install " +
           '<a href="https://zdoom.org/downloads" target="_blank" rel="noopener" ' +
-          'style="color:#f87171">GZDoom</a> locally and run the mod natively.'
+          'style="color:#f87171">GZDoom</a> and run the mod natively.'
       };
     }
     if (cause === 'no-sw') {
       return {
         showUnregisterBtn: false,
+        showOpenExternalBtn: false,
         html:
-          '<strong>Service workers unavailable in this browser.</strong> ' +
-          'The engine needs a service worker to inject cross-origin isolation ' +
-          'headers, but this browser has disabled or removed service worker ' +
-          'support (common in private/incognito on some browsers, or in ' +
-          'embedded WebViews).' +
-          '<br /><br />Try a regular tab in Chrome, Firefox, or Safari, or ' +
-          'install ' +
-          '<a href="https://zdoom.org/downloads" target="_blank" rel="noopener" ' +
-          'style="color:#f87171">GZDoom</a> to run the mod natively.'
+          "<strong>This browser doesn't support the game.</strong>" +
+          '<br /><br />Try a regular tab in Chrome, Firefox, or Safari — or ' +
+          'install <a href="https://zdoom.org/downloads" target="_blank" ' +
+          'rel="noopener" style="color:#f87171">GZDoom</a> to play natively.'
       };
     }
-    // sw-stuck: secure context, SW API present, just didn't claim the
-    // page in time. Usually a stale registration from a previous
-    // deploy — unregistering and reloading fixes it.
+    // sw-stuck: service worker got wedged. Tap the button to reset.
     return {
       showUnregisterBtn: true,
+      showOpenExternalBtn: false,
       html:
-        '<strong>Cross-origin isolation failed.</strong> The service worker ' +
-        "couldn't take control of this page in time, so SharedArrayBuffer " +
-        'is unavailable and the engine cannot start its pthread workers.' +
-        '<br /><br />This usually means a stale service worker is in the ' +
-        'way. The button below unregisters it and reloads the page — ' +
-        'that should fix it on the next load.' +
-        "<br /><br />If reloading doesn't help, install " +
+        "<strong>Couldn't start the game.</strong>" +
+        '<br /><br />A stale service worker is in the way. Tap below to reset ' +
+        "and reload. If that doesn't help, install " +
         '<a href="https://zdoom.org/downloads" target="_blank" rel="noopener" ' +
-        'style="color:#f87171">GZDoom</a> locally and run the mod natively.'
+        'style="color:#f87171">GZDoom</a> locally.'
     };
+  }
+
+  // "Open in external browser" button. Tries platform-specific URL
+  // schemes to hop from the in-app webview to the real browser:
+  //
+  //   iOS   → `x-safari-https://…` launches Safari from most apps.
+  //           Some webviews (Instagram, Messenger in strict mode)
+  //           intercept and refuse — those users fall back to the
+  //           written instruction above (tap ⋯ → Open in Safari).
+  //   Android → `intent://…#Intent;scheme=https;…;end` launches
+  //           Chrome (or whatever the user's default browser is).
+  //           Android webviews generally honor the intent URL.
+  //
+  // We attempt window.open first (required on iOS for apps that
+  // allow it), then fall back to location.href. The copy-to-clipboard
+  // action gives users a fourth option — paste into any browser.
+  function wireOpenExternalBtn(btn) {
+    btn.addEventListener('click', function () {
+      var url = window.location.href;
+      var ua = navigator.userAgent || '';
+      var isIOS = /iPhone|iPad|iPod/i.test(ua);
+      var isAndroid = /Android/i.test(ua);
+      try {
+        if (isIOS) {
+          // Strip scheme then reattach with x-safari-https. Safari
+          // registers for this URL scheme on iOS 14+.
+          var httpsUrl = url.replace(/^https?:\/\//, '');
+          var safariUrl = 'x-safari-https://' + httpsUrl;
+          window.location.href = safariUrl;
+          // Fall back to plain window.open after a beat if the
+          // scheme wasn't honored (the app may silently swallow it).
+          setTimeout(function () {
+            window.open(url, '_blank');
+          }, 400);
+        } else if (isAndroid) {
+          var intentUrl =
+            'intent://' +
+            url.replace(/^https?:\/\//, '') +
+            '#Intent;scheme=https;action=android.intent.action.VIEW;' +
+            'category=android.intent.category.BROWSABLE;end';
+          window.location.href = intentUrl;
+          setTimeout(function () {
+            window.open(url, '_blank');
+          }, 400);
+        } else {
+          window.open(url, '_blank');
+        }
+      } catch (_e) {
+        // Final fallback: copy URL + notify.
+        try {
+          navigator.clipboard.writeText(url);
+          btn.textContent = 'URL copied — paste into Chrome/Safari';
+        } catch (_e2) {
+          btn.textContent = "Couldn't open — long-press the address bar to copy";
+        }
+      }
+    });
   }
 
   function wireUnregisterBtn(btn) {
@@ -240,12 +335,13 @@
       }
       return;
     }
-    if (elapsed() >= BUDGET_MS) {
+    var budget = effectiveBudget();
+    if (elapsed() >= budget) {
       _failed = true;
       showCoiError();
       rejectAll(new Error('COI timeout'));
       if (window.LoDLifecycle) {
-        window.LoDLifecycle.markError('coi', { budgetMs: BUDGET_MS });
+        window.LoDLifecycle.markError('coi', { budgetMs: budget });
       }
       return;
     }
