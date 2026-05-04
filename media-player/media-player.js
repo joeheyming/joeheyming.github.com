@@ -474,7 +474,11 @@ class MediaPlayer {
       this.playMedia(content, fileName);
     } else if (
       typeof content === 'string' &&
-      (content.startsWith('blob:') || content.startsWith('http'))
+      (content.startsWith('blob:') ||
+        content.startsWith('http') ||
+        content.startsWith('/') ||
+        content.startsWith('./') ||
+        content.startsWith('../'))
     ) {
       // Double-check this isn't a YouTube URL that was missed
       if (content.includes('youtube.com') || content.includes('youtu.be')) {
@@ -485,6 +489,9 @@ class MediaPlayer {
           return;
         }
       }
+      // Absolute paths (`/os/assets/foo.mp3`) and relative paths are resolved against
+      // the iframe's document URL by the underlying <audio>/<video> element. Use the
+      // same-origin absolute-path form to point at static assets bundled in the repo.
       debug('Playing URL media');
       this.playMedia(content, fileName);
     } else if (content instanceof Blob) {
@@ -492,8 +499,15 @@ class MediaPlayer {
       const url = URL.createObjectURL(content);
       this.playMedia(url, fileName);
     } else {
-      console.error('Unsupported content type:', typeof content, content?.substring?.(0, 50));
-      this.showError('Unsupported media format');
+      console.error('Unsupported content type:', typeof content, content?.substring?.(0, 200));
+      if (typeof content === 'string') {
+        this.showError(
+          `"${fileName}" is a text file, not playable media. ` +
+            `Set its content to a media URL, data URL, or YouTube link.`
+        );
+      } else {
+        this.showError('Unsupported media format');
+      }
     }
   }
 

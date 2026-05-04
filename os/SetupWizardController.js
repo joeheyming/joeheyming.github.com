@@ -22,10 +22,16 @@ export class SetupWizardController {
     const stepDone = document.getElementById('os-setup-step-done');
     const startBtn = document.getElementById('os-setup-start');
     const backBtn = document.getElementById('os-setup-back');
-    const confirmBtn = /** @type {HTMLButtonElement|null} */ (document.getElementById('os-setup-confirm'));
+    const confirmBtn = /** @type {HTMLButtonElement|null} */ (
+      document.getElementById('os-setup-confirm')
+    );
     const finishBtn = document.getElementById('os-setup-finish');
-    const usernameInput = /** @type {HTMLInputElement|null} */ (document.getElementById('os-setup-username'));
-    const hostnameInput = /** @type {HTMLInputElement|null} */ (document.getElementById('os-setup-hostname'));
+    const usernameInput = /** @type {HTMLInputElement|null} */ (
+      document.getElementById('os-setup-username')
+    );
+    const hostnameInput = /** @type {HTMLInputElement|null} */ (
+      document.getElementById('os-setup-hostname')
+    );
     const preview = document.getElementById('os-setup-preview');
     const previewHome = document.getElementById('os-setup-preview-home');
     const previewPrompt = document.getElementById('os-setup-preview-prompt');
@@ -115,9 +121,15 @@ export class SetupWizardController {
       return { user, host };
     };
 
+    if (!usernameInput.value) usernameInput.value = 'joe';
+    if (!hostnameInput.value) hostnameInput.value = 'heyming-os';
+    validate();
+    setTimeout(() => startBtn.focus(), 0);
+
     startBtn.addEventListener('click', () => {
       setStep(1);
       usernameInput.focus();
+      usernameInput.select();
     });
 
     backBtn.addEventListener('click', () => {
