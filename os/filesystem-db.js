@@ -547,8 +547,8 @@ class FileSystemDB {
         path: `${homeDir}/Music/never_gonna_give_you_up.mp3`,
         type: 'file',
         parentPath: `${homeDir}/Music`,
-        content:
-          '🎵 Rick Astley - Never Gonna Give You Up\n[This would be audio data in a real filesystem]',
+        content: '/os/assets/never_gonna_give_you_up.mp3',
+        mimeType: 'audio/mpeg',
         created: new Date(),
         modified: new Date(),
         size: 0
