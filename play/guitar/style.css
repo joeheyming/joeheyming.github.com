@@ -1,0 +1,434 @@
+.guitar-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 16px 24px;
+  align-items: center;
+  justify-content: center;
+}
+
+.fretboard {
+  /* Shared knobs so the string rows and the inlay overlay stay aligned
+   * even when the open-string label cell shrinks on mobile. */
+  --label-col-width: 60px;
+  --fretboard-pad-top: 18px;
+  --fretboard-pad-right: 12px;
+  --fretboard-pad-bottom: 22px;
+  --fretboard-pad-left: 12px;
+
+  width: min(100%, 1100px);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(180, 83, 9, 0.18), transparent 50%),
+    linear-gradient(180deg, #3f1d0e, #2a1006);
+  border: 1px solid #2a1006;
+  border-radius: 12px;
+  padding: var(--fretboard-pad-top) var(--fretboard-pad-right) var(--fretboard-pad-bottom)
+    var(--fretboard-pad-left);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 24px 40px -20px rgba(0, 0, 0, 0.6);
+  user-select: none;
+  -webkit-user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.fretboard-string {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--label-col-width) repeat(12, 1fr);
+  align-items: center;
+  height: clamp(34px, 5vw, 46px);
+  z-index: 1; /* keep cells above the inlay overlay */
+}
+
+/* Open-string label cell on the left */
+.fret-cell.open {
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.35), transparent),
+    linear-gradient(180deg, #5b2810, #381606);
+  border-right: 4px solid #d4d4d8;
+  font-weight: 700;
+  color: #fef3c7;
+}
+
+.fret-cell {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: rgba(254, 243, 199, 0.7);
+  border-right: 1px solid rgba(212, 212, 216, 0.4);
+  transition: background 100ms ease;
+  /* Capture the gesture as soon as the touch lands on a fret — without this
+   * a vertical drag along a string is hijacked into a page scroll instead
+   * of strumming notes. The fretboard's outer padding keeps the page
+   * scrollable when touched between cells. */
+  touch-action: none;
+}
+
+.fret-cell:last-child {
+  border-right: none;
+}
+
+/* Subtle highlight on hover */
+.fret-cell:hover {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fef3c7;
+}
+
+.fret-cell.active {
+  background: linear-gradient(90deg, rgba(244, 114, 182, 0.45), rgba(129, 140, 248, 0.45));
+  color: #fff;
+  animation: fret-pulse 280ms ease-out;
+}
+
+/* Persistent chord-shape highlight — left in place after a strum so the
+ * player can study the shape and try plucking it manually. Cleared when
+ * another chord is selected or the explicit "clear" control is hit. */
+.fret-cell.in-chord {
+  background: rgba(168, 85, 247, 0.18);
+  color: #fef3c7;
+  outline: 1.5px solid rgba(168, 85, 247, 0.7);
+  outline-offset: -3px;
+}
+
+/* Root note of the chord gets a stronger tint so the player can spot the
+ * tonal centre of the shape immediately. */
+.fret-cell.in-chord-root {
+  background: rgba(244, 114, 182, 0.32);
+  outline-color: rgba(244, 114, 182, 0.9);
+}
+
+/* Active flash on top of in-chord wins the colour battle — the strum
+ * pulse should still read clearly while the shape is held. */
+.fret-cell.active.in-chord {
+  background: linear-gradient(90deg, rgba(244, 114, 182, 0.6), rgba(129, 140, 248, 0.6));
+}
+
+/* Open-string indicator (small "O") shown above the open-string label cell
+ * when that string is part of the current chord and played open. */
+.fret-cell.in-chord.open::before,
+.fret-cell.in-chord-root.open::before {
+  content: '○';
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 10px;
+  color: rgba(254, 243, 199, 0.85);
+}
+
+/* Muted strings — when a chord requires this string to be skipped/muted,
+ * mark the open-string cell with an X. Applied to .fret-cell.open. */
+.fret-cell.muted::before {
+  content: '×';
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 12px;
+  color: rgba(248, 113, 113, 0.85);
+  font-weight: 700;
+}
+
+@keyframes fret-pulse {
+  0% {
+    box-shadow: inset 0 0 0 0 rgba(244, 114, 182, 0.7);
+  }
+  50% {
+    box-shadow: inset 0 0 0 18px rgba(244, 114, 182, 0);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 rgba(244, 114, 182, 0);
+  }
+}
+
+.fret-cell .note {
+  pointer-events: none;
+  font-weight: 600;
+}
+
+.fretboard.hide-notes .fret-cell .note {
+  opacity: 0;
+}
+
+/* Each string is a thin horizontal line drawn on top of the cell row. */
+.fretboard-string::after {
+  content: '';
+  position: absolute;
+  left: var(--label-col-width); /* skip past the open-string label cell */
+  right: 0;
+  top: 50%;
+  height: var(--string-thickness, 2px);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.65),
+    rgba(255, 255, 255, 0.25) 40%,
+    rgba(0, 0, 0, 0.4)
+  );
+  border-radius: 2px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+
+/* ---------- Fret inlays ----------
+ *
+ * On a real guitar the position-marker dots sit in the wood between the
+ * strings, not on top of any string. We replicate that with an overlay
+ * layer that grids the same 12 fret columns the strings use, sized to the
+ * inner padding box of the fretboard so its `align-items: center` lands
+ * vertically between the two middle strings (3rd ↔ 4th). Pointer-events:
+ * none keeps the dots out of the way of clicks.
+ */
+.fretboard-inlays {
+  position: absolute;
+  top: var(--fretboard-pad-top);
+  bottom: var(--fretboard-pad-bottom);
+  left: calc(var(--fretboard-pad-left) + var(--label-col-width));
+  right: var(--fretboard-pad-right);
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  /* One row that spans the full height of the strings area, so single-dot
+   * inlays can be centred via `align-items: center` and the double-dot
+   * inlay can stretch to position ::before / ::after at percentages.
+   * Plain `1fr` resolves to `minmax(auto, 1fr)` and collapses to content
+   * height when no item has intrinsic size; `100%` forces full height. */
+  grid-template-rows: 100%;
+  align-items: center;
+  justify-items: center;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.inlay {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(254, 243, 199, 0.85), rgba(180, 110, 40, 0.55));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Double-dot inlay (12th fret traditionally) — two stacked dots offset
+ * symmetrically from centre so they sit between strings 1↔2 (high) and
+ * 5↔6 (low) without overlapping the middle strings' note labels. The
+ * explicit height (rather than `align-self: stretch`) forces the item to
+ * span the row, since `1fr`/`100%` rows don't always stretch grid items
+ * with intrinsic content size. */
+.inlay.double {
+  align-self: center;
+  justify-self: center;
+  background: transparent;
+  box-shadow: none;
+  width: 11px;
+  height: 100%;
+  position: relative;
+}
+
+.inlay.double::before,
+.inlay.double::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle at 35% 35%, rgba(254, 243, 199, 0.85), rgba(180, 110, 40, 0.55));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.inlay.double::before {
+  top: 18%;
+}
+
+.inlay.double::after {
+  bottom: 18%;
+}
+
+/* ---------- Chord builder ----------
+ *
+ * Three pickable rows: Root × Quality × Voicing. Voicing is populated
+ * dynamically based on what's in the chord library for the chosen
+ * Root + Quality combo, then clicking a voicing strums and parks the
+ * shape on the fretboard.
+ */
+.chord-builder {
+  width: min(100%, 1100px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.chord-builder-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.chord-builder-label {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  color: var(--fg-dim);
+  width: 64px;
+  flex: 0 0 64px;
+  text-align: right;
+}
+
+.chord-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1 1 auto;
+}
+
+.chord-options button {
+  background: linear-gradient(160deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.85));
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  min-width: 40px;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    transform 80ms ease;
+}
+
+.chord-options button:hover {
+  border-color: var(--accent);
+}
+
+.chord-options button:active {
+  transform: translateY(1px);
+}
+
+.chord-options button.selected {
+  background: linear-gradient(160deg, rgba(168, 85, 247, 0.45), rgba(129, 140, 248, 0.4));
+  border-color: rgba(168, 85, 247, 0.85);
+  color: #fff;
+  box-shadow: 0 6px 16px -10px rgba(168, 85, 247, 0.7);
+}
+
+.chord-options button[disabled] {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.chord-options-empty {
+  font-size: 12px;
+  color: var(--fg-dim);
+  font-style: italic;
+}
+
+.chord-builder-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.chord-builder-actions button {
+  background: linear-gradient(160deg, rgba(99, 102, 241, 0.85), rgba(168, 85, 247, 0.75));
+  color: #fff;
+  border: 1px solid rgba(168, 85, 247, 0.85);
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.chord-builder-actions .chord-clear {
+  background: transparent;
+  color: var(--fg-dim);
+  border: 1px solid var(--border);
+}
+
+.chord-current {
+  font-size: 13px;
+  color: var(--fg-dim);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.chord-current strong {
+  color: var(--fg);
+  font-size: 16px;
+  letter-spacing: 0;
+  margin-right: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fret-cell {
+    transition: none !important;
+  }
+  .fret-cell.active {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .fretboard {
+    --label-col-width: 40px;
+  }
+  .fretboard-string {
+    height: 36px;
+  }
+  .fret-cell {
+    font-size: 10px;
+  }
+  .fret-cell .note {
+    font-size: 10px;
+  }
+  .inlay,
+  .inlay.double::before,
+  .inlay.double::after {
+    width: 9px;
+    height: 9px;
+  }
+
+  .chord-builder {
+    padding: 10px;
+  }
+  .chord-builder-row {
+    gap: 8px;
+  }
+  .chord-builder-label {
+    width: 48px;
+    flex-basis: 48px;
+    font-size: 10px;
+  }
+  .chord-options button {
+    padding: 6px 10px;
+    font-size: 12px;
+    min-width: 36px;
+  }
+  .chord-builder-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+}

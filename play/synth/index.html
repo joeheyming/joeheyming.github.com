@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>🎛️ Synth - Subtractive Synth in Your Browser | Joe Heyming</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="A free browser subtractive synth. Tweak filter, envelope, and detune in real time."
+    />
+    <meta name="theme-color" content="#0f172a" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="🎛️ Synth - Subtractive Synth" />
+    <link rel="canonical" href="https://joeheyming.github.io/play/synth/" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="instrument-body">
+    <header class="instrument-header">
+      <div class="instrument-page-title">
+        <span aria-hidden="true">🎛️</span>
+        <h1>Synth</h1>
+      </div>
+      <div class="header-status">
+        <div class="now-playing" id="now-playing" aria-live="polite">—</div>
+        <div class="midi-status" id="midi-status" hidden>
+          <span class="midi-dot" aria-hidden="true"></span>
+          <span class="midi-label">MIDI</span>
+        </div>
+      </div>
+      <a class="instruments-link" href="../" aria-label="Back to instruments">
+        <span class="instruments-link-icon" aria-hidden="true">🎵</span>
+        <span class="instruments-link-text">Instruments</span>
+      </a>
+    </header>
+
+    <section class="instrument-controls" aria-label="Synth controls">
+      <div class="control">
+        <label for="volume">Volume</label>
+        <input id="volume" type="range" min="0" max="100" value="60" />
+      </div>
+
+      <div class="control">
+        <label for="waveform">Wave</label>
+        <select id="waveform">
+          <option value="sawtooth" selected>Saw</option>
+          <option value="square">Square</option>
+          <option value="triangle">Triangle</option>
+          <option value="sine">Sine</option>
+        </select>
+      </div>
+
+      <div class="control octave-control">
+        <label>Octave</label>
+        <div class="octave-buttons">
+          <button id="octave-down" type="button" aria-label="Octave down">−</button>
+          <span id="octave-display" class="octave-display" aria-live="polite">C4</span>
+          <button id="octave-up" type="button" aria-label="Octave up">+</button>
+        </div>
+      </div>
+
+      <div class="control">
+        <label for="range">Range</label>
+        <select id="range">
+          <option value="2" selected>2 oct</option>
+          <option value="3">3 oct</option>
+          <option value="4">4 oct</option>
+        </select>
+      </div>
+
+      <div class="control toggle-control">
+        <label for="sustain">Sustain</label>
+        <input id="sustain" type="checkbox" />
+        <span class="hint">(space)</span>
+      </div>
+    </section>
+
+    <section class="synth-stage">
+      <section class="synth-knobs" aria-label="Sound design">
+        <div class="knob-group">
+          <h3>Filter</h3>
+          <div class="knob-row">
+            <div class="knob">
+              <label for="cutoff">Cutoff</label>
+              <input id="cutoff" type="range" min="100" max="12000" step="10" value="4000" />
+              <span class="knob-value" id="cutoff-val">4000</span>
+            </div>
+            <div class="knob">
+              <label for="resonance">Resonance</label>
+              <input id="resonance" type="range" min="0.1" max="20" step="0.1" value="1" />
+              <span class="knob-value" id="resonance-val">1.0</span>
+            </div>
+          </div>
+        </div>
+        <div class="knob-group">
+          <h3>Envelope</h3>
+          <div class="knob-row">
+            <div class="knob">
+              <label for="attack">Attack</label>
+              <input id="attack" type="range" min="0" max="2" step="0.01" value="0.02" />
+              <span class="knob-value" id="attack-val">0.02s</span>
+            </div>
+            <div class="knob">
+              <label for="release">Release</label>
+              <input id="release" type="range" min="0.05" max="3" step="0.01" value="0.4" />
+              <span class="knob-value" id="release-val">0.40s</span>
+            </div>
+          </div>
+        </div>
+        <div class="knob-group">
+          <h3>Voice</h3>
+          <div class="knob-row">
+            <div class="knob">
+              <label for="detune">Detune</label>
+              <input id="detune" type="range" min="0" max="40" step="0.5" value="6" />
+              <span class="knob-value" id="detune-val">6¢</span>
+            </div>
+            <div class="knob">
+              <label for="vibrato">Vibrato</label>
+              <input id="vibrato" type="range" min="0" max="40" step="0.5" value="0" />
+              <span class="knob-value" id="vibrato-val">0¢</span>
+            </div>
+          </div>
+        </div>
+        <div class="knob-group preset-group">
+          <h3>Presets</h3>
+          <div class="preset-buttons">
+            <button data-preset="lead" type="button">Lead</button>
+            <button data-preset="bass" type="button">Bass</button>
+            <button data-preset="pad" type="button">Pad</button>
+            <button data-preset="pluck" type="button">Pluck</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="piano-stage" aria-label="Synth keyboard">
+        <div class="piano-keyboard" id="piano-keyboard"></div>
+      </section>
+    </section>
+
+    <section class="instrument-help">
+      <h2>How to play</h2>
+      <ul>
+        <li>Computer keyboard: lower whites <code>Z X C V B N M</code>, upper <code>Q W E R T Y U</code>.</li>
+        <li><strong>← / →</strong> shift the octave.</li>
+        <li>Pick a <strong>preset</strong> to load a starting point, then turn the knobs to taste.</li>
+        <li>High <strong>resonance</strong> + low <strong>cutoff</strong> = squelchy acid bass.</li>
+        <li>Long <strong>attack + release</strong> + saw wave = lush pad.</li>
+      </ul>
+    </section>
+
+    <script type="module" src="synth.js"></script>
+  </body>
+</html>

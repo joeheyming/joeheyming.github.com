@@ -1,0 +1,667 @@
+:root {
+  --bg-0: #0b1020;
+  --bg-1: #0f172a;
+  --bg-2: #1e293b;
+  --fg: #e2e8f0;
+  --fg-dim: #94a3b8;
+  --accent: #818cf8;
+  --accent-2: #f472b6;
+  --accent-3: #34d399;
+  --border: rgba(148, 163, 184, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(129, 140, 248, 0.18), transparent 60%),
+    radial-gradient(1000px 600px at 110% 20%, rgba(244, 114, 182, 0.14), transparent 60%),
+    var(--bg-0);
+  color: var(--fg);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  min-height: 100vh;
+}
+
+.play-header {
+  text-align: center;
+  padding: 56px 24px 24px;
+}
+
+.play-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.play-title h1 {
+  margin: 0;
+  font-size: clamp(36px, 6vw, 56px);
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.play-emoji {
+  font-size: clamp(36px, 6vw, 56px);
+  filter: drop-shadow(0 4px 16px rgba(129, 140, 248, 0.5));
+}
+
+.play-subtitle {
+  margin: 12px auto 0;
+  max-width: 560px;
+  color: var(--fg-dim);
+  font-size: 17px;
+}
+
+.instrument-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+  max-width: 1100px;
+  margin: 24px auto 40px;
+  padding: 0 24px;
+}
+
+.instrument-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 24px 22px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.7));
+  border: 1px solid var(--border);
+  text-decoration: none;
+  color: var(--fg);
+  backdrop-filter: blur(8px);
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 200ms ease;
+}
+
+.instrument-card.available:hover,
+.instrument-card.available:focus-visible {
+  transform: translateY(-3px);
+  border-color: rgba(129, 140, 248, 0.6);
+  box-shadow: 0 18px 40px -20px rgba(129, 140, 248, 0.6);
+  outline: none;
+}
+
+.instrument-card.coming-soon {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.instrument-icon {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.instrument-name {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.instrument-blurb {
+  color: var(--fg-dim);
+  font-size: 14px;
+  line-height: 1.45;
+  flex: 1;
+}
+
+.instrument-status {
+  align-self: flex-start;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(52, 211, 153, 0.14);
+  color: var(--accent-3);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.instrument-card.coming-soon .instrument-status {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--fg-dim);
+  border-color: rgba(148, 163, 184, 0.25);
+}
+
+.play-footer {
+  text-align: center;
+  padding: 24px;
+  color: var(--fg-dim);
+}
+
+.play-footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.play-footer a:hover {
+  text-decoration: underline;
+}
+
+/* =========================================================================
+ * Shared instrument-page chrome
+ * Header, instruments-link pill, controls, MIDI status, etc.
+ * Used by /play/piano/, /play/accordion/, /play/synth/, /play/drums/, /play/guitar/
+ * ========================================================================= */
+
+.instrument-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding-bottom: 24px;
+}
+
+.instrument-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 18px 24px 8px;
+  /* Leave room for the global Back button (top-left) and our Instruments
+   * pill (top-right). */
+  padding-left: 160px;
+  padding-right: 160px;
+  position: relative;
+}
+
+.instrument-page-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.instrument-page-title h1 {
+  margin: 0;
+  font-size: clamp(22px, 3.5vw, 30px);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.instruments-link {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 999998;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.95), rgba(244, 114, 182, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 14px rgba(129, 140, 248, 0.35);
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    filter 200ms ease;
+}
+
+.instruments-link:hover,
+.instruments-link:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(244, 114, 182, 0.45);
+  outline: none;
+  filter: brightness(1.05);
+}
+
+.instruments-link-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.header-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 60px;
+}
+
+.now-playing {
+  color: var(--fg-dim);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  text-align: left;
+  font-size: 14px;
+}
+
+.now-playing.active {
+  color: var(--accent);
+}
+
+.midi-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  color: var(--accent-3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.midi-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-3);
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.6);
+  animation: midi-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes midi-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Generic controls bar used on all instrument pages */
+.instrument-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 22px;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px 18px;
+  color: var(--fg-dim);
+}
+
+.control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+/* The HTML `hidden` attribute should always win — without this, the
+ * `display: inline-flex` above overrides the user-agent `display: none`
+ * when JS sets `el.hidden = true`. */
+.control[hidden] {
+  display: none;
+}
+
+.control label {
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--fg-dim);
+}
+
+.control input[type='range'] {
+  accent-color: var(--accent);
+  width: 120px;
+}
+
+.control select {
+  background: rgba(30, 41, 59, 0.85);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 13px;
+}
+
+.octave-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.octave-buttons button {
+  background: rgba(30, 41, 59, 0.85);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+
+.octave-buttons button:hover {
+  border-color: var(--accent);
+}
+
+.octave-display {
+  min-width: 28px;
+  text-align: center;
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.toggle-control input[type='checkbox'] {
+  accent-color: var(--accent);
+  transform: scale(1.15);
+}
+
+/* Multi-toggle "Show" group: e.g. on the piano page lets the user
+ * independently flip pitch labels and QWERTY-key labels. */
+.show-options {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.show-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  color: var(--fg);
+}
+
+.show-option input[type='checkbox'] {
+  accent-color: var(--accent);
+  transform: scale(1.05);
+  cursor: pointer;
+}
+
+.hint {
+  color: var(--fg-dim);
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* Help section under the keyboard / instrument */
+.instrument-help {
+  max-width: 720px;
+  margin: 8px auto 0;
+  padding: 16px 24px;
+  color: var(--fg-dim);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.instrument-help h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fg);
+  margin: 0 0 8px;
+}
+
+.instrument-help ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.instrument-help code {
+  background: rgba(148, 163, 184, 0.12);
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 12px;
+  color: var(--fg);
+}
+
+@media (max-width: 640px) {
+  .instrument-header {
+    padding-left: 110px;
+    padding-right: 100px;
+    gap: 10px;
+  }
+  .instruments-link {
+    top: 12px;
+    right: 12px;
+    padding: 8px 12px;
+    font-size: 12px;
+    border-radius: 10px;
+  }
+  .instruments-link-text {
+    display: none;
+  }
+  .instruments-link-icon {
+    font-size: 18px;
+  }
+  .now-playing {
+    font-size: 12px;
+    min-width: 50px;
+  }
+}
+
+/* Hide the "How to play" panel on phone-sized viewports — covers both
+ * portrait phones (narrow width) and landscape phones (short height),
+ * where vertical space is at a premium. */
+@media (max-width: 720px), (max-height: 540px) {
+  .instrument-help {
+    display: none;
+  }
+}
+
+/* =========================================================================
+ * Shared piano-keyboard styles
+ * Used by /play/piano/, /play/accordion/, /play/synth/
+ * ========================================================================= */
+
+.piano-keyboard {
+  position: relative;
+  width: min(100%, 1100px);
+  height: clamp(180px, 32vh, 280px);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.4), rgba(0, 0, 0, 0.4)),
+    linear-gradient(180deg, #1e293b, #0f172a);
+  border: 1px solid var(--border);
+  padding: 14px 14px 16px;
+  box-shadow:
+    0 24px 40px -20px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.piano-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+}
+
+.piano-key {
+  position: absolute;
+  top: 14px;
+  bottom: 16px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition:
+    transform 60ms ease,
+    background 80ms ease,
+    box-shadow 100ms ease;
+}
+
+.piano-key:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  z-index: 3;
+}
+
+.piano-key.white {
+  background: linear-gradient(180deg, #fafafa, #e5e7eb);
+  border-radius: 0 0 8px 8px;
+  border: 1px solid #cbd5e1;
+  border-top: none;
+  color: #475569;
+  box-shadow:
+    inset 0 -6px 0 rgba(0, 0, 0, 0.06),
+    0 2px 0 rgba(0, 0, 0, 0.18);
+  z-index: 1;
+}
+
+.piano-key.white.active {
+  background: linear-gradient(180deg, #c7d2fe, #a5b4fc);
+  color: #1e1b4b;
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 -2px 0 rgba(0, 0, 0, 0.18),
+    0 1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.piano-key.black {
+  background: linear-gradient(180deg, #1f2937, #0b1020);
+  border-radius: 0 0 6px 6px;
+  border: 1px solid #000;
+  color: #cbd5e1;
+  height: 62%;
+  top: 14px;
+  bottom: auto;
+  box-shadow:
+    inset 0 -4px 0 rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 4px 6px rgba(0, 0, 0, 0.4);
+  z-index: 2;
+}
+
+.piano-key.black.active {
+  background: linear-gradient(180deg, #4338ca, #1e1b4b);
+  color: #c7d2fe;
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 -2px 0 rgba(255, 255, 255, 0.05),
+    0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.piano-key .key-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.piano-key .key-label .note {
+  font-size: 11px;
+  opacity: 0.85;
+  font-weight: 600;
+}
+
+/* C keys keep the octave number ("C4") — useful as an at-a-glance anchor.
+ * Other white keys just show the pitch letter. */
+.piano-key.is-c .key-label .note {
+  font-weight: 700;
+  opacity: 0.95;
+}
+
+/* Two independent visibility toggles, driven by classes on the keyboard:
+ *   `.hide-notes` — hides the pitch-letter labels.
+ *   `.show-kbd`  — shows the QWERTY shortcut letters (off by default
+ *                  because most players want their keys to read as music,
+ *                  not as Z X C V). */
+.piano-key .key-label .kbd {
+  display: none;
+}
+
+.piano-keyboard.show-kbd .piano-key .key-label .kbd {
+  display: inline;
+}
+
+.piano-keyboard.hide-notes .piano-key .key-label .note {
+  display: none;
+}
+
+.piano-key.black .key-label {
+  color: #cbd5e1;
+}
+
+/* Legacy compound toggle — some pages may still wire up `hide-labels` to
+ * mean "hide everything". Keep it working as a strict superset. */
+.piano-keyboard.hide-labels .piano-key .key-label .kbd,
+.piano-keyboard.hide-labels .piano-key .key-label .note {
+  display: none;
+}
+
+/* Subtle accent stripe on QWERTY-mapped keys, only visible when the
+ * keyboard-shortcut overlay is enabled. Otherwise the keys read as pure
+ * sheet-music. */
+.piano-keyboard.show-kbd .piano-key.white.qwerty-mapped::after {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 4px;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.piano-keyboard.show-kbd .piano-key.black.qwerty-mapped::after {
+  content: '';
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  bottom: 5px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent-2);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .piano-key,
+  .instrument-card,
+  .midi-dot {
+    transition: none !important;
+    animation: none !important;
+  }
+  .piano-key.active {
+    transform: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .piano-keyboard {
+    height: 36vh;
+  }
+}
+
