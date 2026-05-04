@@ -611,7 +611,10 @@
 
 .chromatic-col {
   display: flex;
-  flex-direction: column-reverse; /* low pitches at the bottom */
+  /* Column reads top-to-bottom matching the horizontal layout's
+   * left-to-right note order (i.e. the start of each row's pattern at
+   * the top). DOM order is c=0..cols-1, so plain `column` matches. */
+  flex-direction: column;
   gap: var(--btn-gap);
   padding-top: calc(var(--col-offset, 0) * var(--col-step));
   height: max-content;

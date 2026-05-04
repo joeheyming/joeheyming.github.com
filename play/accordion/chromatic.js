@@ -154,11 +154,46 @@ function isAccidental(midi) {
   return pc === 1 || pc === 3 || pc === 6 || pc === 8 || pc === 10;
 }
 
-function midiForCell(rowIdx, colIdx, layout, system) {
+export function midiForCell(rowIdx, colIdx, layout, system) {
   const useB = system === 'B' && layout.rowOffsetsB;
   const startMidi = useB ? layout.startMidiB : layout.startMidi;
   const rowOffsets = useB ? layout.rowOffsetsB : layout.rowOffsets;
   return startMidi + rowOffsets[rowIdx] + 3 * colIdx;
+}
+
+/**
+ * Visual half-button offset of a DOM row in the honeycomb stagger.
+ * Even DOM rows (0, 2, 4) are shifted right by 0.5; odd rows sit flush.
+ * Same formula as the inline `offsetFor()` used by `renderChromatic`.
+ */
+export function rowVisualOffset(rowIdx) {
+  return ((rowIdx + 1) % 2) * 0.5;
+}
+
+/**
+ * Whether two buttons at (r1, c1) and (r2, c2) are visual neighbours in
+ * the honeycomb grid — i.e. close enough that a player can drag from
+ * one to the other in a single motion.
+ *
+ * Same row → adjacent columns.
+ * Adjacent row → the half-button stagger means each button has TWO
+ * neighbours in the row above and TWO in the row below.
+ */
+export function areNeighbors(r1, c1, r2, c2) {
+  if (r1 === r2) return Math.abs(c1 - c2) === 1;
+  if (Math.abs(r1 - r2) !== 1) return false;
+  const o1 = rowVisualOffset(r1);
+  const o2 = rowVisualOffset(r2);
+  if (o1 > o2) {
+    // r1 is shifted right relative to r2 → r1's neighbours in r2 are c1 and c1+1.
+    return c2 === c1 || c2 === c1 + 1;
+  }
+  if (o1 < o2) {
+    // r1 sits flush, r2 shifted right → r1's neighbours in r2 are c1-1 and c1.
+    return c2 === c1 - 1 || c2 === c1;
+  }
+  // Same offset (shouldn't happen with alternating stagger, but be safe):
+  return c1 === c2;
 }
 
 /**
@@ -243,7 +278,9 @@ export function renderChromatic(rootEl, opts) {
       }
     } else {
       // Vertical: `rows` columns left-to-right, `cols` buttons stacked
-      // bottom-to-top (low pitches at the bottom feels natural).
+      // top-to-bottom — the column reads in the same order as a
+      // horizontal row reads left-to-right, so each column starts with
+      // the lowest note of its row pattern at the top.
       for (let r = 0; r < rows; r++) {
         const col = document.createElement('div');
         col.className = `chromatic-col chromatic-col-${r}`;
