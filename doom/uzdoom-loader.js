@@ -638,8 +638,8 @@
   //
   // [SITE] The CORE_ASSETS list itself is upstream-shaped but the paths
   // below are relative — they resolve against wherever this loader is
-  // served from (in our case `/legend-of-doom/`). A fork hosting from a
-  // different directory layout would adjust the URLs here.
+  // served from (in our case `/doom/`). A fork hosting from a different
+  // directory layout would adjust the URLs here.
 
   const CORE_ASSETS = [
     { url: 'uzdoom.pk3', fs: '/uzdoom.pk3' },
@@ -844,7 +844,7 @@
       }
       // [SITE] Input rebind via a config lump.
       //
-      // Two universal changes + one mobile-only change:
+      // Three universal changes + one mobile-only change:
       //
       //  * `bind ctrl +attack` (always) — modern GZDoom ships the
       //    WASD keymap (defbinds.txt) by default, which has NO
@@ -860,6 +860,18 @@
       //    The swipe-to-turn logic sends arrow key events on mobile;
       //    keeping these binds on desktop just gives keyboard users
       //    the arrow-keys-turn behavior they expect.
+      //
+      //  * `bind space +jump` (always) — the Doom binding profile in
+      //    defbinds.txt has Space → +use and `/` → +jump. Legend of
+      //    DOOM's KEYCONF rebinds Space → +jump (which is why pressing
+      //    Space on desktop jumps in that flavor), but Vanilla DOOM /
+      //    Freedoom keep the defaults. The mobile JUMP button
+      //    dispatches synthetic Space, so without this rebind the
+      //    button "does nothing" in Vanilla/Freedoom (it actually
+      //    triggers +use, which is invisible most of the time). Use
+      //    is also wired to the E key (touch-input.js binding), so
+      //    rebinding Space costs us nothing there. On desktop, this
+      //    matches the LoD behavior across all three flavors.
       //
       //  * `unbind mouse1` (MOBILE ONLY) — Emscripten's SDL2 port
       //    has touch→mouse synthesis enabled by default: every
@@ -888,7 +900,10 @@
       // chaining work cleanly.
       try {
         var cfg =
-          'bind ctrl "+attack"\n' + 'bind leftarrow "+left"\n' + 'bind rightarrow "+right"\n';
+          'bind ctrl "+attack"\n' +
+          'bind leftarrow "+left"\n' +
+          'bind rightarrow "+right"\n' +
+          'bind space "+jump"\n';
         if (document.body.classList.contains('mobile')) {
           cfg = 'unbind mouse1\n' + cfg;
         }

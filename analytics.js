@@ -20,7 +20,7 @@ function normalizePagePath(path) {
 
 function isLocalDevHost() {
   const h = location.hostname;
-  return h === 'localhost' || h === '127.0.0.1';
+  return h === 'localhost' || h === '127.0.0.1' || h.match('192.168.d+.d+');
 }
 
 window.onload = function () {

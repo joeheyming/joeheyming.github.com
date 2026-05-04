@@ -1,347 +1,1073 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
-    <script src="/analytics.js"></script>
-    <script src="/back.js"></script>
-    <script src="/feedback.js"></script>
-    <script src="/share.js"></script>
-    <link
-      rel="icon"
-      id="site-favicon"
-      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💀</text></svg>"
-    />
-
-    <meta charset="UTF-8" />
-    <title>💀 Browser DOOM - Play Classic DOOM Online | Joe Heyming</title>
-
-    <!-- Enhanced SEO Meta Tags -->
-    <meta
-      name="description"
-      content="Play the classic DOOM game directly in your browser! WebAssembly-powered DOOM emulator with full gameplay, mobile controls, and authentic retro gaming experience. Free, no ads."
-    />
-    <meta name="author" content="Joe Heyming" />
-    <meta name="robots" content="index, follow" />
-    <meta name="language" content="English" />
-    <meta name="theme-color" content="#dc2626" />
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
-    <meta
-      name="keywords"
-      content="DOOM, browser DOOM, WebAssembly DOOM, retro gaming, classic FPS, id Software, online gaming, JavaScript games, web games, mobile DOOM, ad-free, no ads, free game"
+      content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover"
     />
 
-    <!-- Open Graph Meta Tags -->
+    <title>DOOM — Play in your browser | Joe Heyming</title>
+    <meta name="theme-color" content="#1b1b1c" />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta
+      name="description"
+      content="Play DOOM in your browser — pick a flavor: Vanilla DOOM (Freedoom Phase 1) or Legend of DOOM (a Zelda-themed GZDoom total conversion). Powered by UZDoom-WASM. No install required."
+    />
+
+    <meta
+      name="keywords"
+      content="DOOM, Freedoom, Legend of DOOM, Zelda DOOM mod, GZDoom browser, UZDoom-WASM, play DOOM in browser, WebAssembly DOOM, retro games, FPS"
+    />
+
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Joe Heyming - Browser DOOM" />
-    <meta property="og:title" content="💀 Browser DOOM - Play Classic DOOM Online" />
+    <meta property="og:site_name" content="joeheyming.github.io" />
+    <meta property="og:title" content="DOOM — Play in your browser" />
     <meta
       property="og:description"
-      content="Experience the legendary DOOM game in your browser! WebAssembly-powered classic FPS with authentic gameplay, mobile controls. Free, no ads, no downloads required."
+      content="Pick a flavor — Vanilla DOOM or Legend of DOOM — and play instantly in your browser via UZDoom-WASM. No install."
     />
     <meta property="og:url" content="https://joeheyming.github.io/doom/" />
     <meta property="og:image" content="https://joeheyming.github.io/doom/doom-preview.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="DOOM game running in browser" />
-    <meta property="og:locale" content="en_US" />
+    <meta
+      property="og:image:secure_url"
+      content="https://joeheyming.github.io/doom/doom-preview.png"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta
+      property="og:image:alt"
+      content="DOOM title screen with the iconic logo."
+    />
 
-    <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@joeheyming" />
-    <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="💀 Browser DOOM - Play Classic DOOM Online" />
+    <meta name="twitter:title" content="DOOM — Play in your browser" />
     <meta
       name="twitter:description"
-      content="Experience the legendary DOOM game in your browser! WebAssembly-powered classic FPS with authentic gameplay and mobile controls. Free, no ads."
+      content="Vanilla DOOM or Legend of DOOM, playable in the browser via UZDoom-WASM. No install."
     />
-    <meta name="twitter:image" content="https://joeheyming.github.io/doom/doom-preview.png" />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/doom/doom-preview.png"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="DOOM title screen with the iconic logo."
+    />
 
-    <!-- Canonical URL -->
     <link rel="canonical" href="https://joeheyming.github.io/doom/" />
 
-    <link rel="stylesheet" href="index.css" />
-    <script src="/back.js"></script>
-    <script src="/share.js"></script>
-
-    <!-- Structured Data (JSON-LD) -->
+    <!-- JSON-LD: tells search engines this page is a playable browser
+         game so it can surface in richer result cards. -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@graph": [
-          {
-            "@type": ["SoftwareApplication", "VideoGame"],
-            "name": "Browser DOOM",
-            "applicationCategory": "GameApplication",
-            "operatingSystem": "Web Browser",
-            "description": "Play the classic DOOM first-person shooter directly in your browser. WebAssembly-powered emulation of the legendary id Software game with authentic gameplay and mobile controls.",
-            "url": "https://joeheyming.github.io/doom/",
-            "author": {
-              "@type": "Person",
-              "name": "Joe Heyming",
-              "url": "https://joeheyming.github.io/"
-            },
-            "offers": {
-              "@type": "Offer",
-              "price": "0",
-              "priceCurrency": "USD"
-            },
-            "featureList": [
-              "WebAssembly DOOM emulation",
-              "Full classic DOOM gameplay",
-              "Mobile touch controls",
-              "Keyboard and mouse support",
-              "Authentic retro gaming experience",
-              "No downloads required"
-            ],
-            "genre": "First-Person Shooter",
-            "gamePlatform": "Web Browser",
-            "screenshot": "https://joeheyming.github.io/doom/doom-preview.png",
-            "keywords": "DOOM, FPS, retro gaming, WebAssembly, browser game",
-            "inLanguage": "en"
-          },
-          {
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Joe Heyming",
-                "item": "https://joeheyming.github.io/"
-              },
-              {
-                "@type": "ListItem",
-                "position": 2,
-                "name": "Browser DOOM"
-              }
-            ]
-          }
-        ]
+        "@type": "VideoGame",
+        "name": "DOOM (browser)",
+        "description": "DOOM running natively in the browser via UZDoom-WASM. Pick between Vanilla DOOM (Freedoom) and Legend of DOOM (Zelda total conversion).",
+        "url": "https://joeheyming.github.io/doom/",
+        "image": "https://joeheyming.github.io/doom/doom-preview.png",
+        "author": {
+          "@type": "Person",
+          "name": "Joe Heyming"
+        },
+        "applicationCategory": "Game",
+        "operatingSystem": "Web Browser",
+        "gamePlatform": ["Web Browser", "HTML5", "WebAssembly"],
+        "genre": ["First-person shooter"],
+        "playMode": "SinglePlayer",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
       }
     </script>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💀</text></svg>"
+    />
+
+    <!-- Cross-Origin Isolation bootstrap. uzdoom uses pthreads via
+         SharedArrayBuffer, which requires crossOriginIsolated===true.
+         GitHub Pages does not send COOP/COEP natively so the service
+         worker injects them on navigation and auto-reloads on first
+         visit. Load this FIRST, before any engine scripts. -->
+    <script src="/coi-serviceworker.js"></script>
+
+    <!-- Site chrome: analytics + back button + feedback widget. -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
+    <script src="/feedback.js"></script>
+
+    <!-- Engine subsystems. Deferred so they run after HTML parse but
+         before DOMContentLoaded, in document order. -->
+    <script defer src="lifecycle.js"></script>
+    <script defer src="coi.js"></script>
+    <script defer src="touch-input.js"></script>
+    <!-- Phone → desktop console relay. Opt-in via ?phonelog=1. -->
+    <script>
+      (function () {
+        try {
+          if (new URLSearchParams(location.search).get('phonelog') === '1') {
+            var s = document.createElement('script');
+            s.src = '/scripts/phone-console.js';
+            s.async = false;
+            document.currentScript.parentNode.insertBefore(s, document.currentScript);
+          }
+        } catch (_e) {
+          /* noop */
+        }
+      })();
+    </script>
+
+    <!-- uzdoom-loader.js expects a specific DOM layout and specific IDs
+         (iwadPicker, modPicker, sfPicker, launchBtn, status, canvas,
+         etc.). We preserve the upstream layout exactly; site branding
+         is layered ONLY in the boot overlay before launch. -->
+    <link rel="stylesheet" href="index.css" />
   </head>
+
   <body>
-    <div class="main-container">
-      <!-- Game Area -->
-      <div class="game-area">
-        <div id="game-container">
-          <!-- DOOM game will be inserted here -->
-          <div class="start-prompt">Click to start</div>
-        </div>
+    <!-- Three-way mode switch driven by URL params:
+           ?manual=1     → no body class (full picker UI)
+           ?flavor=NAME  → body.clean (hero + auto-prime, single Launch button)
+           (default)     → body.picker-mode (three-card flavor picker)
+         Set as early as possible so CSS doesn't flash the wrong layout.
+         Also tags body.flavor-classic / body.flavor-freedoom /
+         body.flavor-legend for accent color theming when a flavor is
+         locked in. -->
+    <script>
+      (function () {
+        var p = new URLSearchParams(window.location.search);
+        var manual = p.get('manual') === '1';
+        var flavor = p.get('flavor');
+        var validFlavors = { classic: 1, freedoom: 1, legend: 1 };
+        if (manual) {
+          // No class — leave the manual picker visible.
+        } else if (flavor && validFlavors[flavor]) {
+          document.body.classList.add('clean');
+          document.body.classList.add('flavor-' + flavor);
+        } else {
+          document.body.classList.add('picker-mode');
+        }
+      })();
+    </script>
+
+    <!-- Landscape-orientation nudge for phones. -->
+    <div id="landscape-hint" aria-hidden="true">
+      <div class="box">
+        <div>🔄 Rotate your device to landscape for the best experience.</div>
+        <button type="button" id="landscapeDismiss">Play anyway</button>
       </div>
-
-      <!-- Share Button -->
-      <div style="position: fixed; bottom: 20px; left: 20px; z-index: 100">
-        <share-button label="📤 Share" theme="dark"></share-button>
-      </div>
-
-      <!-- Controls Sidebar -->
-      <aside class="controls-sidebar">
-        <div class="controls-card">
-          <h2>Controls</h2>
-          <div class="controls-list">
-            <div class="control-item">
-              <span class="key">Arrow Keys</span>
-              <span class="action">Move (ASDW) and turn (Arrow Left/Right)</span>
-            </div>
-            <div class="control-item">
-              <span class="key">Q</span>
-              <span class="action">Fire weapon</span>
-            </div>
-            <div class="control-item">
-              <span class="key">E</span>
-              <span class="action">Open doors / Use switches</span>
-            </div>
-            <div class="control-item">
-              <span class="key">Alt</span>
-              <span class="action">Run / Strafe</span>
-            </div>
-            <div class="control-item">
-              <span class="key">Escape</span>
-              <span class="action">Menu</span>
-            </div>
-            <div class="control-item">
-              <span class="key">Enter</span>
-              <span class="action">Select menu item</span>
-            </div>
-            <div class="control-item">
-              <span class="key">Numbers</span>
-              <span class="action">Switch weapons</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Cross-promo: nudge DOOM players toward the Legend of DOOM mod.
-             Sits below the controls card; inherits sidebar width. Hidden on
-             mobile along with the rest of .controls-sidebar (LoD is desktop
-             only anyway — it gates on pointer:coarse / mobile UA). -->
-        <a
-          class="controls-card"
-          href="/legend-of-doom/"
-          style="
-            display: block;
-            margin-top: 20px;
-            text-decoration: none;
-            color: inherit;
-            border: 1px solid #2c4b36;
-            background: linear-gradient(145deg, #17261c, #0f1a12);
-            transition: border-color 150ms, transform 150ms;
-          "
-          onmouseover="this.style.borderColor='#4fa861'; this.style.transform='translateY(-2px)';"
-          onmouseout="this.style.borderColor='#2c4b36'; this.style.transform='translateY(0)';"
-        >
-          <h2 style="color: #4fa861">🗡️ Like DOOM?</h2>
-          <p style="margin: 0; font-size: 0.95em; line-height: 1.5; color: #c8d0c5">
-            Try <strong style="color: #e8f2e6">Legend of DOOM</strong> — Zelda
-            reimagined as a GZDoom total conversion, running right here in your
-            browser.
-          </p>
-          <p style="margin: 12px 0 0 0; font-size: 0.9em; color: #4fa861; font-weight: 600">
-            Play now →
-          </p>
-        </a>
-      </aside>
     </div>
 
-    <!-- Mobile Controls -->
-    <div class="mobile-controls">
-      <!-- Top row: Action buttons (horizontal) -->
-      <div class="mobile-controls-top">
-        <div class="action-buttons-horizontal">
-          <button class="control-btn action-btn" data-key="e" data-code="KeyE" data-keycode="69">
-            🚪
-          </button>
-          <button
-            class="control-btn action-btn enter-btn"
-            data-key="Enter"
-            data-code="Enter"
-            data-keycode="13"
-            title="Enter - Select menu item"
-          >
-            ENTER
-          </button>
-          <button
-            class="control-btn action-btn escape-btn"
-            data-key="Escape"
-            data-code="Escape"
-            data-keycode="27"
-            title="Escape - Menu"
-          >
+    <!-- Touch overlay. Hidden until the engine is running. -->
+    <div id="touch-ui" class="hidden" aria-hidden="true">
+      <div id="touch-move" aria-label="Movement">
+        <button class="touch-btn up" type="button" data-action="forward" aria-label="Forward">
+          ▲
+        </button>
+        <button class="touch-btn left" type="button" data-action="strafeL" aria-label="Strafe left">
+          ◀
+        </button>
+        <button
+          class="touch-btn right"
+          type="button"
+          data-action="strafeR"
+          aria-label="Strafe right"
+        >
+          ▶
+        </button>
+        <button class="touch-btn down" type="button" data-action="back" aria-label="Back">▼</button>
+      </div>
+
+      <div id="touch-actions">
+        <div class="row">
+          <button class="touch-btn action" type="button" data-action="menu" aria-label="Menu">
             MENU
           </button>
-          <button class="control-btn action-btn" data-key="q" data-code="KeyQ" data-keycode="81">
+          <button class="touch-btn action" type="button" data-action="confirm" aria-label="Confirm">
+            OK
+          </button>
+        </div>
+        <div class="row">
+          <button class="touch-btn action jump" type="button" data-action="jump" aria-label="Jump">
+            JUMP
+          </button>
+          <button class="touch-btn action use" type="button" data-action="use" aria-label="Use">
+            USE
+          </button>
+          <button class="touch-btn action fire" type="button" data-action="fire" aria-label="Fire">
             🔫
           </button>
         </div>
       </div>
+    </div>
 
-      <!-- Bottom row: Movement and Arrow controls -->
-      <div class="mobile-controls-bottom">
-        <!-- Left side: Movement controls -->
-        <div class="mobile-controls-left">
-          <!-- Movement pad -->
-          <div class="movement-pad">
-            <button
-              class="control-btn movement-btn"
-              data-key="w"
-              data-code="KeyW"
-              data-keycode="87"
-            >
-              ↑
-            </button>
-            <div class="movement-row">
-              <button
-                class="control-btn movement-btn"
-                data-key="a"
-                data-code="KeyA"
-                data-keycode="65"
-              >
-                ←
-              </button>
-              <button
-                class="control-btn movement-btn"
-                data-key="s"
-                data-code="KeyS"
-                data-keycode="83"
-              >
-                ↓
-              </button>
-              <button
-                class="control-btn movement-btn"
-                data-key="d"
-                data-code="KeyD"
-                data-keycode="68"
-              >
-                →
-              </button>
-            </div>
-          </div>
+    <!-- Boot / picker overlay. Upstream's DOM, preserved verbatim except
+         for the branding header, the flavor picker section, and the hero
+         tagline. uzdoom-loader.js drives everything inside .panel via
+         ID lookups; do not rename or restructure it. -->
+    <div class="overlay" id="boot">
+      <div class="brand">
+        <span class="sword" id="brandEmoji">💀</span>
+        <h1 id="brandTitle">
+          DOOM
+          <span class="sub">POWERED BY UZDOOM-WASM</span>
+        </h1>
+      </div>
+
+      <p class="intro">
+        The full
+        <a
+          href="https://github.com/UZDoom/UZDoom"
+          style="color: var(--accent)"
+          target="_blank"
+          rel="noopener"
+        >
+          UZDoom
+        </a>
+        engine (GZDoom family) compiled to WebAssembly via the
+        <a
+          href="https://github.com/abootnet/uzdoom-wasm"
+          style="color: var(--accent)"
+          target="_blank"
+          rel="noopener"
+        >
+          uzdoom-wasm
+        </a>
+        port. Everything stays local — files are stored in your browser via IndexedDB and never
+        leave this machine.
+      </p>
+
+      <div class="warn-banner">
+        <strong>⚠ Experimental tech demo.</strong>
+        Expect long load times on first visit (~60 MB download + pthread spin-up). Saves persist in
+        IndexedDB; use
+        <em>Reset saved data</em>
+        below to clear them. For a smoother native experience, install
+        <a
+          href="https://zdoom.org/downloads"
+          target="_blank"
+          rel="noopener"
+          style="color: var(--accent)"
+        >
+          GZDoom
+        </a>
+        and run locally.
+      </div>
+
+      <!-- Flavor picker (default landing). Each card is the user gesture
+           that triggers prime + launch — no separate "Launch" button is
+           shown in this mode, so the click both unlocks AudioContext
+           and starts the boot. Cards stay disabled until UZDoomLoader
+           publishes (engine scripts loaded, COI ok). -->
+      <section id="flavorPicker" aria-label="Pick a flavor of DOOM">
+        <button
+          type="button"
+          class="flavor-card"
+          data-flavor="classic"
+          disabled
+          aria-label="Launch Classic DOOM"
+        >
+          <span class="name">Classic DOOM</span>
+          <span class="desc">
+            The original 1993 id Software DOOM shareware IWAD (~4 MB), fetched from CDN on first
+            launch. Knee-Deep in the Dead, the way it shipped.
+          </span>
+          <span class="cta" data-default-cta="Preparing engine">Preparing engine</span>
+        </button>
+        <button
+          type="button"
+          class="flavor-card"
+          data-flavor="freedoom"
+          disabled
+          aria-label="Launch Freedoom"
+        >
+          <span class="name">Freedoom</span>
+          <span class="desc">
+            Freedoom Phase 1 — the open-source DOOM-compatible game (BSD-style). Bundled in the
+            engine, no extra download.
+          </span>
+          <span class="cta" data-default-cta="Preparing engine">Preparing engine</span>
+        </button>
+        <button
+          type="button"
+          class="flavor-card"
+          data-flavor="legend"
+          disabled
+          aria-label="Launch Legend of DOOM"
+        >
+          <span class="name">🗡️ Legend of DOOM</span>
+          <span class="desc">
+            Zelda total conversion running on Freedoom Phase 1 + the Legend of DOOM mod PK3 (~8 MB
+            extra download).
+          </span>
+          <span class="cta" data-default-cta="Preparing engine">Preparing engine</span>
+        </button>
+      </section>
+
+      <!-- Inline flavor dropdown for the picker page. Mirrors the in-game
+           #flavorSwitcher widget so users have one consistent way to
+           change flavors and reach Manual mode. The 3 flavor items are
+           redundant with the cards above (intentional: gives a compact
+           alternative); the Manual item is the only way into custom-files
+           UI without typing `?manual=1` into the URL. -->
+      <div id="flavorPickerSwitcher" class="flavor-switcher inline">
+        <button
+          type="button"
+          class="flavor-switch-btn"
+          data-role="toggle"
+          aria-haspopup="menu"
+          aria-expanded="false"
+        >
+          🎮 More options…
+        </button>
+        <div class="flavor-switch-menu hidden" data-role="menu" role="menu">
+          <button type="button" role="menuitem" data-switch="classic">
+            <span class="dot" style="background: #c8392e"></span>
+            Classic DOOM
+          </button>
+          <button type="button" role="menuitem" data-switch="freedoom">
+            <span class="dot" style="background: #d9883a"></span>
+            Freedoom
+          </button>
+          <button type="button" role="menuitem" data-switch="legend">
+            <span class="dot" style="background: #4fa861"></span>
+            Legend of DOOM
+          </button>
+          <div class="flavor-switch-sep" role="separator"></div>
+          <button type="button" role="menuitem" data-switch="manual">
+            <span class="dot" style="background: #888"></span>
+            Manual mode (custom IWAD / mods)…
+          </button>
+        </div>
+      </div>
+
+      <!-- Hero (used in ?flavor=... auto-launch mode only). The auto-prime
+           script enables the button when the lifecycle reports `primed`,
+           and the click forwards to UZDoomLoader.launch(). -->
+      <div class="hero" id="cleanHero">
+        <p class="tagline">
+          <span class="what" id="heroTagline">DOOM, running in your browser.</span>
+          Click Launch when ready.
+        </p>
+        <button id="cleanLaunchBtn" disabled>Preparing…</button>
+        <p class="fineprint">
+          Experimental. ~60 MB first-load download. Saves persist in this browser via IndexedDB.
+        </p>
+      </div>
+
+      <!-- Manual-mode instructions. Hidden in clean/picker mode via CSS;
+           revealed when the URL contains ?manual=1. -->
+      <div class="instructions manual-only" id="autoInstructions">
+        <b>Manual mode.</b>
+        <ol style="margin: 6px 0 0 18px; padding: 0">
+          <li>
+            Click
+            <b>Use bundled Freedoom</b>
+            for the IWAD.
+          </li>
+          <li>
+            (Optional) Upload
+            <code>LegendOfDoom-1.1.0.pk3</code>
+            (or any other pk3) into
+            <b>Mods</b>
+            .
+          </li>
+          <li>
+            Hit
+            <b>Launch</b>
+            .
+          </li>
+        </ol>
+      </div>
+
+      <!-- Upstream loader DOM. uzdoom-loader.js queries these IDs. -->
+      <div class="panel">
+        <div class="section-title">
+          Game files
+          <span class="hint">click a tile or drop files</span>
         </div>
 
-        <!-- Right side: Arrow keys -->
-        <div class="mobile-controls-right">
-          <div class="arrow-pad">
-            <button
-              class="control-btn arrow-btn"
-              data-key="ArrowUp"
-              data-code="ArrowUp"
-              data-keycode="38"
-            >
-              ▲
-            </button>
-            <div class="arrow-row">
-              <button
-                class="control-btn arrow-btn"
-                data-key="ArrowLeft"
-                data-code="ArrowLeft"
-                data-keycode="37"
-              >
-                ◄
-              </button>
-              <button
-                class="control-btn arrow-btn"
-                data-key="ArrowDown"
-                data-code="ArrowDown"
-                data-keycode="40"
-              >
-                ▼
-              </button>
-              <button
-                class="control-btn arrow-btn"
-                data-key="ArrowRight"
-                data-code="ArrowRight"
-                data-keycode="39"
-              >
-                ►
-              </button>
-            </div>
-          </div>
+        <label class="picker" id="iwadPicker">
+          <span class="title">IWAD (required) — or use bundled Freedoom</span>
+          <span class="desc" id="iwadDesc">No IWAD selected.</span>
+          <input type="file" accept=".wad,.WAD,.pk3,.PK3,.ipk3,.IPK3" />
+        </label>
+
+        <label class="picker" id="modPicker">
+          <span class="title">Mods / PK3s (optional)</span>
+          <span class="desc" id="modDesc">No mods selected. Multi-select supported.</span>
+          <input
+            type="file"
+            multiple
+            accept=".wad,.WAD,.pk3,.PK3,.ipk3,.IPK3,.pk7,.PK7,.deh,.DEH,.bex,.BEX"
+          />
+          <div class="chips" id="modChips"></div>
+        </label>
+
+        <label class="picker" id="sfPicker">
+          <span class="title">SoundFont .sf2 (optional — MIDI music)</span>
+          <span class="desc" id="sfDesc">Using bundled SoundFont.</span>
+          <input type="file" accept=".sf2,.SF2" />
+        </label>
+
+        <div class="btn-row">
+          <button class="btn" id="useFreedoomBtn">Use bundled Freedoom</button>
+          <button class="btn primary" id="launchBtn" disabled>Launch</button>
+        </div>
+
+        <div class="status-line">
+          <span id="status">Idle.</span>
+          <span id="statusRight"></span>
+        </div>
+        <div class="progress" id="progress" style="display: none">
+          <div class="bar"></div>
+        </div>
+        <div id="assetList"></div>
+
+        <div class="section-title" style="margin-top: 4px">Data &amp; settings</div>
+        <div class="btn-row">
+          <button
+            class="btn ghost"
+            id="resetBtn"
+            title="Wipe saved games, configs, and uploaded WADs from this browser"
+          >
+            Reset saved data
+          </button>
+        </div>
+      </div>
+
+      <p class="intro" style="font-size: 10px">
+        UZDoom is GPL v3. This page ships Freedoom (BSD-style), the UZDoom WASM engine, and — for
+        the Legend of DOOM flavor —
+        <code>LegendOfDoom-1.1.0.pk3</code>
+        (© DeTwelveGames) as an asset fetched at launch. Reload with
+        <code>?manual=1</code>
+        to upload your own copy instead.
+      </p>
+    </div>
+
+    <!-- Session-ended overlay. Upstream structure. -->
+    <div class="hidden overlay" id="exited">
+      <div class="brand">
+        <span class="sword">💀</span>
+        <h1>
+          DOOM
+          <span class="sub">SESSION ENDED</span>
+        </h1>
+      </div>
+      <div class="panel" style="gap: 14px">
+        <div class="outcome ok" id="exitOutcome">Thanks for playing.</div>
+        <div class="detail">
+          Save games and configuration have been synced to IndexedDB. Use the button below to start
+          a new session, or head back
+          <a href="/" style="color: var(--accent)">home</a>
+          .
+        </div>
+        <div class="reason" id="exitReason"></div>
+        <div class="btn-row">
+          <button class="btn primary" id="relaunchBtn">Relaunch</button>
         </div>
       </div>
     </div>
 
-    <!-- Harden AudioContext.decodeAudioData before the WASM bundle runs so
-         decode failures route to the MIDI fallback instead of leaking as
-         unhandled promise rejections. Must load before doom.js. -->
-    <script src="src/audio-guard.js"></script>
+    <button class="hidden" id="fsBtn" title="Toggle fullscreen (F11 also works)">Fullscreen</button>
 
-    <!-- Load DOOM WebAssembly module first -->
-    <script src="src/doom.js"></script>
+    <!-- In-game flavor switcher. Hidden until lifecycle reaches `playing`
+         (flavor controller toggles `.hidden`). Click the button to open
+         the menu; pick a flavor to reload the page with ?flavor=NAME and
+         re-launch the engine. Saves persist in IDBFS so a switch is
+         non-destructive. -->
+    <div class="hidden flavor-switcher floating" id="flavorSwitcher">
+      <button
+        id="flavorSwitchBtn"
+        class="flavor-switch-btn"
+        type="button"
+        title="Switch DOOM flavor"
+        data-role="toggle"
+        aria-haspopup="menu"
+      >
+        🎮 Flavor
+      </button>
+      <div
+        class="flavor-switch-menu hidden"
+        id="flavorSwitchMenu"
+        data-role="menu"
+        role="menu"
+      >
+        <button type="button" role="menuitem" data-switch="classic">
+          <span class="dot" style="background: #c8392e"></span>
+          Classic DOOM
+        </button>
+        <button type="button" role="menuitem" data-switch="freedoom">
+          <span class="dot" style="background: #d9883a"></span>
+          Freedoom
+        </button>
+        <button type="button" role="menuitem" data-switch="legend">
+          <span class="dot" style="background: #4fa861"></span>
+          Legend of DOOM
+        </button>
+        <div class="flavor-switch-sep" role="separator"></div>
+        <button type="button" role="menuitem" data-switch="manual">
+          <span class="dot" style="background: #888"></span>
+          Manual mode (custom IWAD / mods)…
+        </button>
+      </div>
+    </div>
 
-    <!-- Load our game modules -->
-    <script src="src/index.js"></script>
+    <canvas
+      class="hidden"
+      id="canvas"
+      tabindex="-1"
+      oncontextmenu="event.preventDefault()"
+    ></canvas>
 
+    <!-- Reset confirmation modal. -->
+    <div class="hidden modal" id="resetModal">
+      <div class="body">
+        <h3>Reset all saved data?</h3>
+        <p>
+          This will delete every save game, configuration file, uploaded WAD, and uploaded PK3
+          stored in this browser. Bundled Freedoom and engine assets are not affected.
+        </p>
+        <p style="color: var(--warn)">This cannot be undone.</p>
+        <div class="btn-row">
+          <button class="btn" id="resetCancelBtn">Cancel</button>
+          <button class="btn primary" id="resetConfirmBtn">Delete everything</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Emscripten module stub. uzdoom.js attaches to window.Module; the
+         stub here has to be in place BEFORE uzdoom.js runs, so the loader
+         can override Module.onRuntimeInitialized, Module.setStatus, etc.
+         from its own IIFE. -->
     <script>
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent
-      );
+      (function () {
+        function log(tag, msg) {
+          console.log('[uzdoom ' + tag + ']', msg);
+        }
+        var Module = {
+          canvas: document.getElementById('canvas'),
+          arguments: [],
+          print: function (t) {
+            console.log('[uzdoom]', t);
+          },
+          printErr: function (t) {
+            console.warn('[uzdoom]', t);
+          },
+          setStatus: function (t) {
+            var el = document.getElementById('status');
+            if (el) el.textContent = t || '';
+          },
+          monitorRunDependencies: function (n) {
+            Module.setStatus(n ? 'Loading engine… (' + n + ' deps)' : 'Engine ready.');
+          },
+          locateFile: function (path, prefix) {
+            return prefix + path;
+          },
+          onAbort: function (reason) {
+            console.warn('[uzdoom onAbort]', reason);
+            if (window.LoDLifecycle) {
+              window.LoDLifecycle.markError('wasm-abort', { reason: String(reason) });
+            }
+          }
+        };
+        window.Module = Module;
+        log('module', 'stub installed, COI=' + !!window.crossOriginIsolated);
 
-      if (isMobile) {
-        document.body.classList.add('mobile-device');
-      }
+        // Alt+D: dump lifecycle phase history to alert (mobile diagnostic).
+        document.addEventListener('keydown', function (e) {
+          if (!e.altKey || e.key !== 'd') return;
+          var h = (window.LoDLifecycle && window.LoDLifecycle.history()) || [];
+          var fmt = h
+            .map(function (e) {
+              var d = '';
+              if (e.detail) {
+                try {
+                  d = ' ' + JSON.stringify(e.detail);
+                } catch (_e) {}
+              }
+              return '+' + e.t.toFixed(0) + 'ms  ' + (e.from || '<init>') + ' → ' + e.phase + d;
+            })
+            .join('\n');
+          alert('Lifecycle history:\n\n' + (fmt || '(empty)'));
+        });
+      })();
+    </script>
+
+    <!-- Engine script injection. Gated on cross-origin isolation via
+         LoDCOI.whenReady(). If COI never arrives, the promise rejects
+         and we bail; coi.js has already put up the error card and
+         flipped the lifecycle to error{coi}. -->
+    <script>
+      (function () {
+        function loadEngineInOrder() {
+          var srcs = ['uzdoom-melt.js', 'uzdoom-loader.js', 'uzdoom.js'];
+          srcs.forEach(function (src) {
+            var t0 = performance.now();
+            var tag = document.createElement('script');
+            tag.src = src;
+            tag.async = false;
+            tag.onload = function () {
+              console.log(
+                '[uzdoom scripts] ' +
+                  src +
+                  ' loaded in ' +
+                  (performance.now() - t0).toFixed(0) +
+                  'ms'
+              );
+            };
+            tag.onerror = function (e) {
+              console.warn('[uzdoom scripts] ' + src + ' failed:', (e && e.message) || '(no msg)');
+            };
+            document.body.appendChild(tag);
+          });
+        }
+        function gate() {
+          if (window.LoDCOI) {
+            window.LoDCOI.whenReady().then(loadEngineInOrder, function () {
+              console.warn('[uzdoom scripts] COI never arrived; engine not loaded');
+            });
+          } else if (window.crossOriginIsolated) {
+            loadEngineInOrder();
+          } else {
+            console.warn('[uzdoom scripts] LoDCOI missing and not isolated; engine not loaded');
+          }
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', gate, { once: true });
+        } else {
+          gate();
+        }
+      })();
+    </script>
+
+    <!-- Flavor controller. URL modes:
+           ?manual=1        → bail; full uzdoom-loader picker UI takes over.
+           ?flavor=classic  → auto-prime original DOOM (doom.wad fetched
+                              from CDN); hero button launches.
+           ?flavor=freedoom → auto-prime bundled Freedoom; hero button
+                              launches.
+           ?flavor=legend   → auto-prime Freedoom + LoD pk3; hero button
+                              launches.
+           (default)        → flavor picker is the user gesture; click a
+                              card to prime + launch the chosen flavor.
+
+         The picker click is itself the user gesture for the chosen flavor,
+         which means AudioContext / fullscreen unlock the same way they
+         would on a single hero-button click. The hero is unused in picker
+         mode and stays hidden via body.picker-mode CSS. -->
+    <script>
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('manual') === '1') return;
+
+        // Classic DOOM IWAD — the 1993 id Software shareware doom.wad.
+        // Hosted on Netlify (was the asset URL the previous chocolate-
+        // doom build fetched from). uz-doom plays MIDI directly via
+        // its bundled SoundFont, so unlike the chocolate-doom port we
+        // don't need separate OGG music files alongside it.
+        var CLASSIC_WAD_URL = 'https://console-doom.netlify.app/data/doom.wad';
+        var CLASSIC_WAD_NAME = 'doom.wad';
+
+        // ?v=ogg cache-buster on the LoD pk3 — see legend-of-doom
+        // history. The bytes at LegendOfDoom-1.1.0.pk3 were swapped
+        // in-place from MP3 to Ogg Vorbis (UZDoom WASM can't decode
+        // MP3); old caches still hold the MP3 version. Bump the query
+        // string forces a fresh fetch without renaming the file on disk.
+        var FLAVORS = {
+          classic: {
+            title: 'Classic DOOM',
+            tagline: 'The original 1993 DOOM, running in your browser.',
+            launchLabel: 'Launch Classic DOOM',
+            iwadUrl: CLASSIC_WAD_URL,
+            iwadName: CLASSIC_WAD_NAME,
+            modUrl: null,
+            modName: null
+          },
+          freedoom: {
+            title: 'Freedoom',
+            tagline: 'Freedoom Phase 1 (open-source DOOM clone), running in your browser.',
+            launchLabel: 'Launch Freedoom',
+            iwadUrl: null,
+            iwadName: null,
+            modUrl: null,
+            modName: null
+          },
+          legend: {
+            title: 'Legend of DOOM',
+            tagline: 'The Legend of DOOM mod, running in your browser.',
+            launchLabel: 'Launch Legend of DOOM',
+            iwadUrl: null,
+            iwadName: null,
+            modUrl: 'LegendOfDoom-1.1.0.pk3?v=ogg',
+            modName: 'LegendOfDoom-1.1.0.pk3'
+          }
+        };
+
+        // Wait for window.UZDoomLoader to publish (loader IIFE runs
+        // after engine scripts inject post-COI). Bounded poll, ~50ms.
+        async function waitForLoader() {
+          var deadline = Date.now() + 30000;
+          while (!window.UZDoomLoader) {
+            if (Date.now() > deadline) throw new Error('UZDoomLoader never appeared');
+            await new Promise(function (r) {
+              setTimeout(r, 50);
+            });
+          }
+          return window.UZDoomLoader;
+        }
+
+        // Resolve the IWAD descriptor for primeWith. Either fetch a
+        // remote .wad (Classic DOOM) and hand the loader the bytes, or
+        // hand it the bundled Freedoom reference (no fetch needed).
+        async function resolveIwad(cfg) {
+          if (cfg.iwadUrl) {
+            var res = await fetch(cfg.iwadUrl);
+            if (!res.ok) throw new Error('HTTP ' + res.status + ' for ' + cfg.iwadUrl);
+            var buf = await res.arrayBuffer();
+            return { name: cfg.iwadName, data: new Uint8Array(buf) };
+          }
+          return { name: 'freedoom1.wad (bundled)', data: null, bundled: 'freedoom1.wad' };
+        }
+
+        async function primeFlavor(flavor) {
+          var cfg = FLAVORS[flavor];
+          if (!cfg) throw new Error('unknown flavor: ' + flavor);
+          var loader = await waitForLoader();
+
+          // Fetch IWAD + mod in parallel where possible. Classic DOOM's
+          // ~12 MB doom.wad and Legend of DOOM's ~8 MB pk3 are both
+          // network-bound; running them concurrently halves cold-start
+          // wait when both are needed (not currently used in any single
+          // flavor, but the plumbing supports future "Classic + mod"
+          // combos without restructuring).
+          var iwadPromise = resolveIwad(cfg);
+          var modPromise = cfg.modUrl
+            ? fetch(cfg.modUrl).then(function (r) {
+                if (!r.ok) throw new Error('HTTP ' + r.status + ' for ' + cfg.modUrl);
+                return r.arrayBuffer().then(function (b) {
+                  return { name: cfg.modName, data: new Uint8Array(b) };
+                });
+              })
+            : Promise.resolve(null);
+
+          var iwad = await iwadPromise;
+          var mod = await modPromise;
+          var mods = mod ? [mod] : [];
+
+          await loader.primeWith({ iwad: iwad, mods: mods });
+          console.log('[flavor] primed ' + flavor);
+        }
+
+        function applyFlavorBranding(flavor) {
+          var cfg = FLAVORS[flavor];
+          if (!cfg) return;
+          document.title = cfg.title + ' — Play in your browser';
+          var emoji = document.getElementById('brandEmoji');
+          var title = document.getElementById('brandTitle');
+          var tagline = document.getElementById('heroTagline');
+          if (flavor === 'legend') {
+            if (emoji) emoji.textContent = '🗡️';
+            if (title) title.firstChild.textContent = 'Legend of DOOM';
+          } else if (flavor === 'classic') {
+            if (emoji) emoji.textContent = '💀';
+            if (title) title.firstChild.textContent = 'Classic DOOM';
+          } else if (flavor === 'freedoom') {
+            if (emoji) emoji.textContent = '👹';
+            if (title) title.firstChild.textContent = 'Freedoom';
+          }
+          if (tagline) tagline.textContent = cfg.tagline;
+        }
+
+        // Hero button (clean / ?flavor=... mode): subscribe to lifecycle,
+        // click forwards to UZDoomLoader.launch().
+        function wireHeroButton(flavor) {
+          var btn = document.getElementById('cleanLaunchBtn');
+          if (!btn) return;
+          var cfg = FLAVORS[flavor];
+          if (window.LoDLifecycle) {
+            window.LoDLifecycle.subscribe(function (state) {
+              if (state.phase === 'primed') {
+                btn.textContent = (cfg && cfg.launchLabel) || 'Launch';
+                btn.disabled = false;
+              } else if (state.phase === 'launching') {
+                btn.textContent = 'Loading…';
+                btn.disabled = true;
+              } else if (state.phase === 'error') {
+                var reason = (state.detail && state.detail.reason) || 'unknown';
+                btn.textContent =
+                  reason === 'coi' ? 'Cross-origin isolation failed' : 'Failed: ' + reason;
+                btn.disabled = true;
+              }
+            });
+          }
+          btn.addEventListener('click', function () {
+            if (window.LoDLifecycle && window.LoDLifecycle.get() !== 'primed') return;
+            if (window.UZDoomLoader) window.UZDoomLoader.launch();
+          });
+        }
+
+        // Picker mode: each flavor card is the user gesture. Click ⇒
+        // disable both cards, prime that flavor, then launch.
+        function wireFlavorPicker() {
+          var picker = document.getElementById('flavorPicker');
+          if (!picker) return;
+
+          var cards = picker.querySelectorAll('.flavor-card');
+
+          function setEnabled(enabled, message) {
+            cards.forEach(function (c) {
+              c.disabled = !enabled;
+              var cta = c.querySelector('.cta');
+              if (cta) cta.textContent = message || cta.dataset.defaultCta || '';
+            });
+          }
+          setEnabled(false, 'Preparing engine');
+
+          // Surface terminal lifecycle errors (COI failure, wasm-abort)
+          // on the cards themselves so the user isn't left clicking a
+          // dead UI.
+          if (window.LoDLifecycle) {
+            window.LoDLifecycle.subscribe(function (state) {
+              if (state.phase === 'error') {
+                var reason = (state.detail && state.detail.reason) || 'unknown';
+                setEnabled(
+                  false,
+                  reason === 'coi' ? 'COI failed' : 'Engine error: ' + reason
+                );
+              }
+            });
+          }
+
+          // Wait for UZDoomLoader to publish (loader IIFE runs after
+          // engine scripts inject post-COI). Once it's there, the
+          // picker is clickable. Lifecycle phase stays in `loading`
+          // until primeWith lands, so we can't subscribe for this
+          // signal — direct poll instead.
+          (function waitForLoader() {
+            var deadline = Date.now() + 30000;
+            function tick() {
+              if (window.UZDoomLoader) {
+                cards.forEach(function (c) {
+                  if (c.classList.contains('loading')) return;
+                  if (window.LoDLifecycle && window.LoDLifecycle.isTerminal()) return;
+                  c.disabled = false;
+                  var cta = c.querySelector('.cta');
+                  if (cta) cta.textContent = 'Click to play';
+                });
+                return;
+              }
+              if (Date.now() > deadline) return;
+              setTimeout(tick, 50);
+            }
+            tick();
+          })();
+
+          cards.forEach(function (card) {
+            card.addEventListener('click', async function () {
+              if (card.disabled) return;
+              var flavor = card.dataset.flavor;
+              cards.forEach(function (c) {
+                c.disabled = true;
+              });
+              card.classList.add('loading');
+              var cta = card.querySelector('.cta');
+              if (cta) cta.textContent = 'Loading';
+              try {
+                applyFlavorBranding(flavor);
+                document.body.classList.add('flavor-' + flavor);
+                await primeFlavor(flavor);
+                if (window.UZDoomLoader) window.UZDoomLoader.launch();
+              } catch (e) {
+                console.warn('[flavor picker] failed:', e);
+                if (window.LoDLifecycle && !window.LoDLifecycle.isTerminal()) {
+                  window.LoDLifecycle.markError('flavor-prime', {
+                    message: String(e.message || e)
+                  });
+                }
+                card.classList.remove('loading');
+                if (cta) cta.textContent = 'Failed — reload to retry';
+              }
+            });
+          });
+        }
+
+        // Auto-launch path (?flavor=NAME): prime in the background, hero
+        // button enables on `primed`, user clicks it to launch.
+        async function autoLaunch(flavor) {
+          applyFlavorBranding(flavor);
+          wireHeroButton(flavor);
+          try {
+            await primeFlavor(flavor);
+          } catch (e) {
+            console.warn('[flavor auto-launch] priming failed:', e);
+            var alreadyTerminal = window.LoDLifecycle && window.LoDLifecycle.isTerminal();
+            if (!alreadyTerminal && window.LoDLifecycle) {
+              window.LoDLifecycle.markError('autoprime', { message: String(e.message || e) });
+            }
+            if (alreadyTerminal) return;
+            var inst = document.getElementById('autoInstructions');
+            if (inst) {
+              inst.classList.remove('manual-only');
+              inst.innerHTML =
+                '<b>⚠ Auto-setup failed.</b>' +
+                '<p style="margin:6px 0 0 0">' +
+                'Could not prepare ' +
+                FLAVORS[flavor].title +
+                ' automatically (' +
+                String(e.message || e) +
+                '). Reload with <code>?manual=1</code> to pick files by hand.</p>';
+              inst.style.display = 'block';
+            }
+          }
+        }
+
+        // Flavor switcher — generic. Wires any root element that follows
+        // the (.flavor-switcher > [data-role=toggle], [data-role=menu])
+        // shape. Used twice on the page:
+        //
+        //   1. The inline #flavorPickerSwitcher dropdown on the picker
+        //      page, replacing the old "Use custom IWAD / mods…" link.
+        //      Always visible while the user is on the picker.
+        //
+        //   2. The floating #flavorSwitcher in the top-right corner
+        //      while the engine is running. Hidden until lifecycle hits
+        //      `playing`; opts.revealOnPlaying = true.
+        //
+        // Both menus carry identical items: 3 flavors + a "Manual mode"
+        // option that navigates to ?manual=1. We don't try to hot-swap
+        // inside the running engine — uz-doom doesn't expose a clean
+        // "swap IWAD/PK3" call and the wasm runtime would have to be
+        // torn down anyway. Saves persist via IDBFS, so a full reload
+        // is non-destructive.
+        function wireFlavorSwitcher(rootOrId, opts) {
+          opts = opts || {};
+          var root = typeof rootOrId === 'string' ? document.getElementById(rootOrId) : rootOrId;
+          if (!root) return;
+          var btn = root.querySelector('[data-role="toggle"]');
+          var menu = root.querySelector('[data-role="menu"]');
+          if (!btn || !menu) return;
+
+          // Identify the currently active flavor from the body class
+          // (set by the early mode-switch script for ?flavor=... URLs;
+          // set by wireFlavorPicker on card click).
+          function activeFlavor() {
+            var cls = document.body.className.match(/\bflavor-(\w+)\b/);
+            return cls ? cls[1] : null;
+          }
+          function isManualMode() {
+            return params.get('manual') === '1';
+          }
+
+          function paintActive() {
+            var active = activeFlavor();
+            var manual = isManualMode();
+            menu.querySelectorAll('button[data-switch]').forEach(function (b) {
+              var s = b.dataset.switch;
+              var match = s === 'manual' ? manual : s === active;
+              if (match) {
+                b.dataset.active = 'true';
+                b.disabled = true;
+              } else {
+                delete b.dataset.active;
+                b.disabled = false;
+              }
+            });
+          }
+
+          function openMenu() {
+            paintActive();
+            menu.classList.remove('hidden');
+            root.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+          }
+          function closeMenu() {
+            menu.classList.add('hidden');
+            root.classList.remove('open');
+            btn.setAttribute('aria-expanded', 'false');
+          }
+
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (menu.classList.contains('hidden')) openMenu();
+            else closeMenu();
+          });
+
+          menu.addEventListener('click', function (e) {
+            var t = e.target.closest('button[data-switch]');
+            if (!t || t.disabled) return;
+            var f = t.dataset.switch;
+            // Reload the page with the chosen mode. Pure URL change +
+            // reload is the simplest way to reuse the auto-launch /
+            // manual paths without stitching together a partial engine
+            // teardown.
+            if (f === 'manual') {
+              window.location.search = 'manual=1';
+              return;
+            }
+            if (!FLAVORS[f]) return;
+            window.location.search = 'flavor=' + encodeURIComponent(f);
+          });
+
+          // Click-outside to dismiss. Capture phase so engine canvas
+          // clicks (which may swallow propagation) still close the menu.
+          document.addEventListener(
+            'click',
+            function (e) {
+              if (menu.classList.contains('hidden')) return;
+              if (root.contains(e.target)) return;
+              closeMenu();
+            },
+            true
+          );
+          document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !menu.classList.contains('hidden')) closeMenu();
+          });
+
+          // Reveal on `playing`. Used by the floating in-game variant;
+          // the inline picker variant is always visible (no `.hidden`
+          // class on it to begin with).
+          if (opts.revealOnPlaying && window.LoDLifecycle) {
+            window.LoDLifecycle.subscribe(function (state) {
+              if (state.phase === 'playing') {
+                root.classList.remove('hidden');
+              } else if (state.phase === 'exited' || state.phase === 'error') {
+                root.classList.add('hidden');
+                closeMenu();
+              }
+            });
+          }
+        }
+
+        function start() {
+          // Floating in-game switcher: hidden until lifecycle = playing.
+          wireFlavorSwitcher('flavorSwitcher', { revealOnPlaying: true });
+          // Inline switcher on the picker page (replaces the old
+          // "Use custom IWAD / mods…" link). Hidden in non-picker modes
+          // via body.clean / body:not(.picker-mode) CSS.
+          wireFlavorSwitcher('flavorPickerSwitcher');
+          var flavor = params.get('flavor');
+          if (flavor && FLAVORS[flavor]) {
+            autoLaunch(flavor);
+          } else {
+            wireFlavorPicker();
+          }
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', start, { once: true });
+        } else {
+          start();
+        }
+      })();
     </script>
   </body>
 </html>
