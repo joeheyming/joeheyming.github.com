@@ -80,6 +80,30 @@
     }
   },
   {
+    "id": "doom-mods",
+    "name": "Browse Doom mods 🛒",
+    "shortName": "Doom Mods",
+    "description": "Pick any Doom mod from moddb.com",
+    "detailedDescription": "Browse, search, and launch Doom mods scraped live from moddb.com. Side-loads doom.wad/doom2.wad as needed; falls back to bundled Freedoom.",
+    "icon": "🛒",
+    "path": "./doom/?manual=browse",
+    "category": "game",
+    "defaultWidth": 1024,
+    "defaultHeight": 768,
+    "tags": [
+      "fps",
+      "retro",
+      "wasm",
+      "mods"
+    ],
+    "related": [
+      "doom",
+      "nes",
+      "stepmania"
+    ],
+    "shareCategory": "game"
+  },
+  {
     "id": "farm",
     "name": "Farm Adventures 🚜",
     "shortName": "Farm",

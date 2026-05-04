@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>🎹 Piano - Play in Your Browser | Joe Heyming</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎹</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="A free browser piano. Play with your mouse, finger, or computer keyboard. Adjustable octave, volume, and tone."
+    />
+    <meta name="theme-color" content="#0f172a" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="🎹 Piano - Play in Your Browser" />
+    <meta
+      property="og:description"
+      content="A free browser piano. Play with your mouse, finger, or computer keyboard."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/play/piano/" />
+    <link rel="canonical" href="https://joeheyming.github.io/play/piano/" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js"></script>
+
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body class="instrument-body">
+    <header class="instrument-header">
+      <div class="instrument-page-title">
+        <span aria-hidden="true">🎹</span>
+        <h1>Piano</h1>
+      </div>
+      <div class="header-status">
+        <div class="now-playing" id="now-playing" aria-live="polite">—</div>
+        <div class="midi-status" id="midi-status" hidden>
+          <span class="midi-dot" aria-hidden="true"></span>
+          <span class="midi-label">MIDI</span>
+        </div>
+      </div>
+      <a class="instruments-link" href="../" aria-label="Back to instruments">
+        <span class="instruments-link-icon" aria-hidden="true">🎵</span>
+        <span class="instruments-link-text">Instruments</span>
+      </a>
+    </header>
+
+    <section class="instrument-controls" aria-label="Piano controls">
+      <div class="control">
+        <label for="volume">Volume</label>
+        <input id="volume" type="range" min="0" max="100" value="65" />
+      </div>
+
+      <div class="control">
+        <label for="waveform">Tone</label>
+        <select id="waveform">
+          <option value="acoustic_grand_piano" selected>Acoustic piano</option>
+          <option value="electric_piano_1">Electric piano</option>
+          <option value="triangle">Soft (triangle)</option>
+          <option value="sine">Pure (sine)</option>
+          <option value="square">Retro (square)</option>
+          <option value="sawtooth">Bright (saw)</option>
+        </select>
+        <span class="hint" id="tone-status" aria-live="polite"></span>
+      </div>
+
+      <!-- Standard MIDI-controller / acoustic piano sizes. Each pins
+           note range and white-key count to a real instrument: 25-key
+           starts at C3 (M-Audio Keystation Mini), 88-key spans the full
+           A0–C8 of an acoustic grand. -->
+      <div class="control">
+        <label for="layout">Layout</label>
+        <select id="layout">
+          <option value="25">25 keys (C3–C5)</option>
+          <option value="37">37 keys (C3–C6)</option>
+          <option value="49" selected>49 keys (C2–C6)</option>
+          <option value="61">61 keys (C2–C7)</option>
+          <option value="76">76 keys (E1–G7)</option>
+          <option value="88">88 keys (A0–C8)</option>
+        </select>
+      </div>
+
+      <div class="control toggle-control">
+        <label for="sustain">Sustain</label>
+        <input id="sustain" type="checkbox" />
+        <span class="hint">(hold space)</span>
+      </div>
+
+      <div class="control show-control" role="group" aria-label="Show on keys">
+        <label id="show-label">Show</label>
+        <div class="show-options" aria-labelledby="show-label">
+          <label class="show-option">
+            <input id="show-notes" type="checkbox" checked />
+            <span>Notes</span>
+          </label>
+          <label class="show-option">
+            <input id="show-kbd" type="checkbox" />
+            <span>Keys</span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section class="piano-stage" aria-label="Piano keyboard">
+      <div class="piano-keyboard" id="piano-keyboard"></div>
+    </section>
+
+    <section class="instrument-help">
+      <h2>How to play</h2>
+      <ul>
+        <li><strong>Click</strong> or <strong>tap</strong> any key.</li>
+        <li>
+          Computer keyboard plays <strong>2½ octaves at once</strong>:
+          lower whites <code>Z X C V B N M</code> /
+          lower blacks <code>S D&nbsp;&nbsp; G H J</code>,
+          upper whites <code>Q W E R T Y U</code> /
+          upper blacks <code>2 3&nbsp;&nbsp; 5 6 7</code>,
+          plus high notes <code>I 9 O 0 P</code>.
+        </li>
+        <li><strong>← / →</strong> (or <code>[ ]</code>) shift the octave.</li>
+        <li>
+          <strong>Tab</strong> through the keys, then <strong>Enter</strong> to play the focused
+          note.
+        </li>
+        <li>Hold <strong>Space</strong> for sustain.</li>
+        <li>Plug in a <strong>MIDI keyboard</strong> and it just works (Chrome/Edge).</li>
+      </ul>
+    </section>
+
+    <script type="module" src="piano.js"></script>
+  </body>
+</html>

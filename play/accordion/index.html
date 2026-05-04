@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>🪗 Accordion - Play in Your Browser | Joe Heyming</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪗</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="A free browser accordion. Play reedy keyboard sounds with a breathing bellows animation."
+    />
+    <meta name="theme-color" content="#0f172a" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="🪗 Accordion - Play in Your Browser" />
+    <link rel="canonical" href="https://joeheyming.github.io/play/accordion/" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js"></script>
+
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="instrument-body">
+    <header class="instrument-header">
+      <div class="instrument-page-title">
+        <span aria-hidden="true">🪗</span>
+        <h1>Accordion</h1>
+      </div>
+      <div class="header-status">
+        <div class="now-playing" id="now-playing" aria-live="polite">—</div>
+        <div class="midi-status" id="midi-status" hidden>
+          <span class="midi-dot" aria-hidden="true"></span>
+          <span class="midi-label">MIDI</span>
+        </div>
+      </div>
+      <a class="instruments-link" href="../" aria-label="Back to instruments">
+        <span class="instruments-link-icon" aria-hidden="true">🎵</span>
+        <span class="instruments-link-text">Instruments</span>
+      </a>
+    </header>
+
+    <section class="instrument-controls" aria-label="Accordion controls">
+      <div class="control">
+        <label for="view">View</label>
+        <select id="view">
+          <optgroup label="Left hand — Stradella bass">
+            <option value="stradella-standard-h" selected>Standard (horizontal)</option>
+            <option value="stradella-standard-v">Standard (vertical)</option>
+            <option value="stradella-eastern-h">Eastern 5-row (horizontal)</option>
+            <option value="stradella-eastern-v">Eastern 5-row (vertical)</option>
+            <option value="stradella-freebass-h">Free bass (horizontal)</option>
+            <option value="stradella-freebass-v">Free bass (vertical)</option>
+          </optgroup>
+          <optgroup label="Right hand">
+            <option value="piano">Piano keyboard</option>
+            <option value="chromatic-B-h">Chromatic B-system (horizontal)</option>
+            <option value="chromatic-B-v">Chromatic B-system (vertical)</option>
+            <option value="chromatic-C-h">Chromatic C-system (horizontal)</option>
+            <option value="chromatic-C-v">Chromatic C-system (vertical)</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div class="control">
+        <label for="volume">Volume</label>
+        <input id="volume" type="range" min="0" max="100" value="65" />
+      </div>
+
+      <div class="control">
+        <label for="tone">Reed</label>
+        <select id="tone">
+          <option value="accordion" selected>Accordion</option>
+          <option value="tango_accordion">Tango accordion</option>
+          <option value="reed_organ">Reed organ</option>
+          <option value="harmonica">Harmonica</option>
+        </select>
+        <span class="hint" id="tone-status" aria-live="polite"></span>
+      </div>
+
+      <!-- Standard MIDI-controller / piano keyboard sizes. Each layout
+           pins a specific note range and white-key count to match real
+           instruments and devices. -->
+      <div class="control" data-only-for="piano">
+        <label for="piano-layout">Layout</label>
+        <select id="piano-layout">
+          <option value="25" selected>25 keys (C3–C5)</option>
+          <option value="37">37 keys (C3–C6)</option>
+          <option value="49">49 keys (C2–C6)</option>
+          <option value="61">61 keys (C2–C7)</option>
+        </select>
+      </div>
+
+      <!-- Standard piano-accordion bass-button counts: 12 (Hohner Mignon)
+           up through 120 (full pro). Each entry maps to a fixed column
+           window into the 20-col Stradella matrix. -->
+      <div class="control" data-only-for="stradella">
+        <label for="bass-size">Bass</label>
+        <select id="bass-size">
+          <option value="12">12 bass</option>
+          <option value="24">24 bass</option>
+          <option value="48">48 bass</option>
+          <option value="72">72 bass</option>
+          <option value="96">96 bass</option>
+          <option value="120" selected>120 bass</option>
+        </select>
+      </div>
+
+      <!-- Standard chromatic-button-accordion right-hand sizes. 3-row
+           is the basic chromatic system; 4-row adds a duplicate of row
+           1 (helper); 5-row duplicates rows 1 and 2 (modern pro / bayan).
+           Button counts are real model sizes (Hohner Bravo, Morino,
+           Bugari, etc). -->
+      <div class="control" data-only-for="chromatic">
+        <label for="chromatic-buttons">Buttons</label>
+        <select id="chromatic-buttons">
+          <option value="42">42-button (3 rows)</option>
+          <option value="52">52-button (4 rows)</option>
+          <option value="64" selected>64-button (4 rows)</option>
+          <option value="72">72-button (4 rows)</option>
+          <option value="96">96-button (4 rows)</option>
+          <option value="100">100-button (5 rows)</option>
+          <option value="120">120-button (5 rows)</option>
+        </select>
+      </div>
+
+      <div class="control show-control" role="group" aria-label="Show on keys" data-only-for="piano">
+        <label id="show-label">Show</label>
+        <div class="show-options" aria-labelledby="show-label">
+          <label class="show-option">
+            <input id="show-notes" type="checkbox" checked />
+            <span>Notes</span>
+          </label>
+          <label class="show-option">
+            <input id="show-kbd" type="checkbox" />
+            <span>Keys</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Bellows mode: phone-as-bellows. Gates the master output by the
+           magnitude of DeviceMotion acceleration, so notes only sound
+           while you're physically swinging the phone — exactly like a
+           real accordion's air supply. JS hides this control on devices
+           without motion sensors. -->
+      <div class="control bellows-control" id="bellows-control" hidden>
+        <label class="show-option">
+          <input id="bellows-mode" type="checkbox" />
+          <span>Bellows</span>
+        </label>
+        <span
+          class="bellows-meter"
+          id="bellows-meter"
+          aria-hidden="true"
+          title="Bellows pressure"
+        >
+          <span class="bellows-meter-fill"></span>
+        </span>
+      </div>
+    </section>
+
+    <section class="accordion-stage" aria-label="Accordion">
+      <!-- Register stops live just above the keyboard, like the row of stop
+           buttons mounted on the body of a real piano accordion. The set
+           shown depends on which hand the active View belongs to: the
+           treble (right) side gets the full L/M/H matrix; the Stradella
+           (left) side gets the simpler tenor/master toggle. -->
+      <div class="register-strip" aria-label="Register stops">
+        <div class="register-strip-meta">
+          <span class="register-strip-label" id="register-label">Register</span>
+          <span class="register-strip-hand" id="register-hand">Right hand</span>
+        </div>
+        <div
+          class="register-options"
+          id="register-options"
+          role="radiogroup"
+          aria-labelledby="register-label"
+        >
+          <!-- Populated by JS — accordion stop buttons. -->
+        </div>
+      </div>
+      <div class="accordion-view" id="accordion-view"></div>
+    </section>
+
+    <section class="instrument-help">
+      <h2>How to play</h2>
+      <ul>
+        <li>
+          The <strong>View</strong> menu picks one face of the instrument at
+          a time — pick a Stradella variant for left-hand practice, or a
+          right-hand layout (piano / chromatic B / chromatic C) for melody.
+          Each one comes in a <em>horizontal</em> and a <em>vertical</em>
+          flavour.
+        </li>
+        <li>
+          <strong>Stradella</strong> columns run around the circle of fifths
+          with home markers every major 3rd —
+          <em>C&nbsp;/&nbsp;E&nbsp;/&nbsp;G♯&nbsp;(A♭)</em> — same spacing
+          as a real 120-bass instrument. <em>Eastern 5-row</em> drops the
+          diminished-7 row; <em>Free bass</em> swaps the chord rows for
+          three octaves of single chromatic notes (Russian bayan style).
+        </li>
+        <li>
+          <strong>Chromatic</strong> rows ascend by minor 3rds with adjacent
+          rows offset a semitone — diagonals trace a chromatic scale.
+          <em>B-system</em> is standard on the bayan; <em>C-system</em> is
+          the Western chromatic mirror.
+        </li>
+        <li>
+          The <strong>Register</strong> switches engage different reed
+          banks, just like a real accordion. The <em>right hand</em>
+          (treble) side offers the full set: <em>L</em> = low (octave
+          down), <em>M</em> = middle (written pitch), <em>H</em> = high
+          (octave up), plus combos like <em>LM</em>, <em>MH</em>, and
+          <em>LMH</em> ("Master") for fuller sounds. The <em>left hand</em>
+          (Stradella) side has its own simpler pair: <em>Tenor</em> for a
+          single tonal reed, or <em>Master</em> for all bass reeds layered
+          together (loud and full). The strip swaps automatically when you
+          switch views, and each hand remembers its last setting.
+        </li>
+        <li>
+          On the <strong>Piano</strong> view, the computer keyboard plays
+          (<code>Z X C V B N M</code> / <code>Q W E R T Y U</code>) and
+          <strong>← / →</strong> shifts the octave. A real accordion keeps
+          a note ringing only while you press it, so there's no sustain —
+          just hold the key. WebMIDI works on every view.
+        </li>
+        <li class="bellows-help" hidden>
+          <strong>Bellows mode</strong> (phones only): when on, notes only
+          sound while you're moving your phone — swing it left and right
+          like a real bellows. Hold a button still and the room goes
+          silent; rock the phone to "pump" air through it. Bigger swings
+          push more volume.
+        </li>
+      </ul>
+    </section>
+
+    <script type="module" src="accordion.js"></script>
+  </body>
+</html>

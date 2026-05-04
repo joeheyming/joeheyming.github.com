@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🎵 Play - Make Music in Your Browser | Joe Heyming</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎹</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="Free, ad-free browser music studio. Pick an instrument and start playing — piano, accordion, drums, guitar, and synth, all in your browser."
+    />
+    <meta name="theme-color" content="#0f172a" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="🎵 Play - Make Music in Your Browser" />
+    <meta
+      property="og:description"
+      content="Pick an instrument and play it right in your browser. No downloads, no ads."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/play/" />
+    <link rel="canonical" href="https://joeheyming.github.io/play/" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="play-header">
+      <div class="play-title">
+        <span class="play-emoji" aria-hidden="true">🎵</span>
+        <h1>Play</h1>
+      </div>
+      <p class="play-subtitle">Pick an instrument and make some noise.</p>
+    </header>
+
+    <main class="instrument-grid">
+      <a class="instrument-card available" href="./piano/" data-instrument="piano">
+        <div class="instrument-icon" aria-hidden="true">🎹</div>
+        <div class="instrument-name">Piano</div>
+        <div class="instrument-blurb">
+          Acoustic grand and electric pianos, plus retro waveform tones.
+        </div>
+        <div class="instrument-status">Play now</div>
+      </a>
+
+      <a class="instrument-card available" href="./accordion/" data-instrument="accordion">
+        <div class="instrument-icon" aria-hidden="true">🪗</div>
+        <div class="instrument-name">Accordion</div>
+        <div class="instrument-blurb">
+          Reedy keyboard with a breathing-bellows animation. Bonus instrument!
+        </div>
+        <div class="instrument-status">Play now</div>
+      </a>
+
+      <a class="instrument-card available" href="./drums/" data-instrument="drums">
+        <div class="instrument-icon" aria-hidden="true">🥁</div>
+        <div class="instrument-name">Drums</div>
+        <div class="instrument-blurb">
+          Twelve-pad kit with kick, snare, hats, toms, and cymbals.
+        </div>
+        <div class="instrument-status">Play now</div>
+      </a>
+
+      <a class="instrument-card available" href="./guitar/" data-instrument="guitar">
+        <div class="instrument-icon" aria-hidden="true">🎸</div>
+        <div class="instrument-name">Guitar</div>
+        <div class="instrument-blurb">
+          Click frets on a six-string fretboard or strum chords.
+        </div>
+        <div class="instrument-status">Play now</div>
+      </a>
+
+      <a class="instrument-card available" href="./synth/" data-instrument="synth">
+        <div class="instrument-icon" aria-hidden="true">🎛️</div>
+        <div class="instrument-name">Synth</div>
+        <div class="instrument-blurb">
+          Subtractive synth with filter envelope, detune, and vibrato.
+        </div>
+        <div class="instrument-status">Play now</div>
+      </a>
+    </main>
+
+    <footer class="play-footer">
+      <a href="/">← Back home</a>
+    </footer>
+  </body>
+</html>
