@@ -50,6 +50,8 @@
   //           a keyboard-only action; the mouse1 channel is dead.
   //   use   — KeyE, not Space. In modern GZDoom, Space = +jump. This
   //           is the single most common landmine when mapping Doom keys.
+  //   jump  — Space, the GZDoom default for +jump. Mobile users have no
+  //           keyboard, so we expose it as a dedicated touch button.
   //   turn* — Arrow keys. Actual turning (not strafing). `,` and `.` are
   //           the +turnleft/+turnright aliases in Doom history but the
   //           default menu binds them to Arrows.
@@ -67,6 +69,7 @@
     turnL: { key: 'ArrowLeft', code: 'ArrowLeft', keyCode: 37 },
     turnR: { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39 },
     use: { key: 'e', code: 'KeyE', keyCode: 69 },
+    jump: { key: ' ', code: 'Space', keyCode: 32 },
     menu: { key: 'Escape', code: 'Escape', keyCode: 27 },
     confirm: { key: 'Enter', code: 'Enter', keyCode: 13 },
     fire: { key: 'Control', code: 'ControlLeft', keyCode: 17 }

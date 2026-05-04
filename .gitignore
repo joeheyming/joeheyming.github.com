@@ -11,5 +11,5 @@ node_modules
 */Thumbs.db
 
 # Source clone for uzdoom-wasm (if we ever need to rebuild locally).
-/legend-of-doom/uzdoom-src/
+/doom/uzdoom-src/
 

@@ -12,8 +12,14 @@ const FEATURED_PRESETS = {
 };
 
 function featuredHrefFromPath(path) {
-  const cleaned = path.replace(/^\.\//, '').replace(/\/$/, '');
-  return '/' + cleaned + '/';
+  // Split off the query string / fragment first so trailing-slash
+  // normalization doesn't accidentally append `/` after `?...` —
+  // e.g. './doom/?flavor=classic' must become '/doom/?flavor=classic'
+  // (the slash belongs after the directory, not after the value).
+  const m = path.match(/^([^?#]*)(.*)$/);
+  const base = (m ? m[1] : path).replace(/^\.\//, '').replace(/\/$/, '');
+  const suffix = m ? m[2] : '';
+  return '/' + base + '/' + suffix;
 }
 
 function renderFeaturedProjects() {

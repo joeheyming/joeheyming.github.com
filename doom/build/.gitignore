@@ -1,3 +1,0 @@
-# Local scratch worktree for rebuilding the Doom WASM bundle.
-# Recreated from $WASM_DOOM_SRC on every `npm run build:doom`.
-work/

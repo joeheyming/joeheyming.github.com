@@ -8,8 +8,7 @@
     "format:fix": "prettier --write .",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "typecheck": "tsc --noEmit",
-    "build:doom": "bash doom/build/build.sh"
+    "typecheck": "tsc --noEmit"
   },
   "Private": true,
   "dependencies": {
