@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>🎸 Guitar - Play in Your Browser | Joe Heyming</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎸</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="A free browser guitar with a clickable fretboard. Pluck individual notes or strum chords."
+    />
+    <meta name="theme-color" content="#0f172a" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="🎸 Guitar - Play in Your Browser" />
+    <link rel="canonical" href="https://joeheyming.github.io/play/guitar/" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js"></script>
+
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="instrument-body">
+    <header class="instrument-header">
+      <div class="instrument-page-title">
+        <span aria-hidden="true">🎸</span>
+        <h1>Guitar</h1>
+      </div>
+      <div class="header-status">
+        <div class="now-playing" id="now-playing" aria-live="polite">—</div>
+        <div class="midi-status" id="midi-status" hidden>
+          <span class="midi-dot" aria-hidden="true"></span>
+          <span class="midi-label">MIDI</span>
+        </div>
+      </div>
+      <a class="instruments-link" href="../" aria-label="Back to instruments">
+        <span class="instruments-link-icon" aria-hidden="true">🎵</span>
+        <span class="instruments-link-text">Instruments</span>
+      </a>
+    </header>
+
+    <section class="instrument-controls" aria-label="Guitar controls">
+      <div class="control">
+        <label for="volume">Volume</label>
+        <input id="volume" type="range" min="0" max="100" value="65" />
+      </div>
+
+      <div class="control">
+        <label for="tone">Sound</label>
+        <select id="tone">
+          <option value="acoustic_guitar_steel" selected>Acoustic steel</option>
+          <option value="acoustic_guitar_nylon">Classical nylon</option>
+          <option value="electric_guitar_clean">Electric clean</option>
+          <option value="electric_guitar_jazz">Electric jazz</option>
+          <option value="overdriven_guitar">Overdriven</option>
+        </select>
+        <span class="hint" id="tone-status" aria-live="polite"></span>
+      </div>
+
+      <div class="control toggle-control">
+        <label for="show-notes">Show notes</label>
+        <input id="show-notes" type="checkbox" checked />
+      </div>
+    </section>
+
+    <section class="guitar-stage">
+      <div class="fretboard" id="fretboard" role="application" aria-label="Guitar fretboard">
+        <!-- Populated by JS -->
+      </div>
+
+      <div class="chord-builder" aria-label="Chord builder">
+        <div class="chord-builder-row">
+          <div class="chord-builder-label" id="root-label">Root</div>
+          <div class="chord-options" id="root-options" role="radiogroup" aria-labelledby="root-label">
+            <!-- 12 root buttons, populated by JS -->
+          </div>
+        </div>
+
+        <div class="chord-builder-row">
+          <div class="chord-builder-label" id="quality-label">Quality</div>
+          <div
+            class="chord-options"
+            id="quality-options"
+            role="radiogroup"
+            aria-labelledby="quality-label"
+          >
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <div class="chord-builder-row">
+          <div class="chord-builder-label" id="voicing-label">Shape</div>
+          <div
+            class="chord-options"
+            id="voicing-options"
+            role="radiogroup"
+            aria-labelledby="voicing-label"
+          >
+            <!-- Populated dynamically -->
+          </div>
+          <div class="chord-builder-actions">
+            <span class="chord-current" id="chord-current" aria-live="polite"></span>
+            <button id="strum-button" type="button" aria-label="Strum the selected chord">
+              ▶ Strum
+            </button>
+            <button class="chord-clear" id="clear-shape" type="button" aria-label="Clear chord shape">
+              Clear
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="instrument-help">
+      <h2>How to play</h2>
+      <ul>
+        <li><strong>Click or drag</strong> across frets to pluck individual notes.</li>
+        <li>
+          Use the <strong>chord builder</strong> to pick a Root, Quality, and Shape (open / barre /
+          higher voicings). Press <strong>Strum</strong> to hear it; the shape stays highlighted
+          on the fretboard so you can study it and play the same notes one at a time. Pink ring
+          marks the <strong>root</strong>; ◯ = open string; × = muted string.
+        </li>
+        <li>The dots at frets 3, 5, 7, 9 and the double-dot at 12 are the standard guitar inlays.</li>
+        <li>Strings (low to high): <code>E A D G B E</code>. The thicker strings are toward the bottom.</li>
+      </ul>
+    </section>
+
+    <script type="module" src="guitar.js"></script>
+  </body>
+</html>

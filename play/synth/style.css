@@ -1,0 +1,114 @@
+.synth-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+  padding: 0 12px;
+}
+
+.synth-knobs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  width: min(100%, 1100px);
+  margin: 0 auto;
+}
+
+.knob-group {
+  background: linear-gradient(160deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.7));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  backdrop-filter: blur(6px);
+}
+
+.knob-group h3 {
+  margin: 0 0 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+}
+
+.knob-row {
+  display: flex;
+  gap: 14px;
+  align-items: stretch;
+  justify-content: space-around;
+}
+
+.knob {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 70px;
+  gap: 4px;
+}
+
+.knob label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-dim);
+}
+
+.knob input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent-2);
+}
+
+.knob-value {
+  font-size: 11px;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  opacity: 0.85;
+}
+
+.preset-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.preset-buttons button {
+  background: rgba(30, 41, 59, 0.85);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    transform 80ms ease;
+}
+
+.preset-buttons button:hover {
+  border-color: var(--accent);
+  background: rgba(30, 41, 59, 1);
+}
+
+.preset-buttons button:active {
+  transform: translateY(1px);
+}
+
+.preset-buttons button.is-active {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.25), rgba(244, 114, 182, 0.25));
+}
+
+@media (max-width: 640px) {
+  .synth-knobs {
+    grid-template-columns: 1fr 1fr;
+  }
+  .knob-group.preset-group {
+    grid-column: 1 / -1;
+  }
+}

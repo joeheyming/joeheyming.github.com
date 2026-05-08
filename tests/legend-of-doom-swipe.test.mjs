@@ -16,7 +16,7 @@ import { dirname, join } from 'node:path';
 import { JSDOM } from 'jsdom';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const TOUCH_JS = readFileSync(join(__dirname, '..', 'legend-of-doom', 'touch-input.js'), 'utf8');
+const TOUCH_JS = readFileSync(join(__dirname, '..', 'doom', 'touch-input.js'), 'utf8');
 
 // One jsdom window shared across tests — cheaper than rebuilding per
 // test, and the module\'s exported surface is pure and doesn\'t carry
@@ -26,7 +26,7 @@ let bindings;
 before(() => {
   const dom = new JSDOM('<!doctype html><html><body></body></html>', {
     runScripts: 'outside-only',
-    url: 'http://localhost/legend-of-doom/'
+    url: 'http://localhost/doom/?flavor=legend'
   });
   dom.window.eval(TOUCH_JS);
   factory = dom.window.LoDTouchInput.createSwipeController;
@@ -226,6 +226,15 @@ describe('BINDINGS table contract', () => {
     // landmine. Space is +jump; USE should be KeyE.
     assert.equal(bindings.use.code, 'KeyE');
     assert.equal(bindings.use.keyCode, 69);
+  });
+
+  it('JUMP is bound to Space (matches desktop +jump default)', () => {
+    // The mobile JUMP button is the touch-friendly mirror of pressing
+    // Space on desktop. If this drifts, the on-screen button stops
+    // jumping, which is the whole reason it exists.
+    assert.ok(bindings.jump, 'jump binding exists');
+    assert.equal(bindings.jump.code, 'Space');
+    assert.equal(bindings.jump.keyCode, 32);
   });
 
   it('turn bindings exist for both directions (used by SwipeController)', () => {

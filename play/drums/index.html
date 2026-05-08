@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>🥁 Drums - Play in Your Browser | Joe Heyming</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥁</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="A free browser drum kit. Twelve pads with kick, snare, hi-hats, toms, and cymbals."
+    />
+    <meta name="theme-color" content="#0f172a" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="🥁 Drums - Play in Your Browser" />
+    <link rel="canonical" href="https://joeheyming.github.io/play/drums/" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="instrument-body">
+    <header class="instrument-header">
+      <div class="instrument-page-title">
+        <span aria-hidden="true">🥁</span>
+        <h1>Drums</h1>
+      </div>
+      <div class="header-status">
+        <div class="now-playing" id="now-playing" aria-live="polite">—</div>
+        <div class="midi-status" id="midi-status" hidden>
+          <span class="midi-dot" aria-hidden="true"></span>
+          <span class="midi-label">MIDI</span>
+        </div>
+      </div>
+      <a class="instruments-link" href="../" aria-label="Back to instruments">
+        <span class="instruments-link-icon" aria-hidden="true">🎵</span>
+        <span class="instruments-link-text">Instruments</span>
+      </a>
+    </header>
+
+    <section class="instrument-controls" aria-label="Drum controls">
+      <div class="control">
+        <label for="volume">Volume</label>
+        <input id="volume" type="range" min="0" max="100" value="70" />
+      </div>
+
+      <div class="control">
+        <label for="kit">Kit</label>
+        <select id="kit">
+          <option value="acoustic" selected>Acoustic</option>
+          <option value="electronic">Electronic</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="drums-stage">
+      <div class="drum-pads" id="drum-pads">
+        <!-- Pads populated by JS so the keyboard layout matches the 4x3 grid -->
+      </div>
+    </section>
+
+    <section class="instrument-help">
+      <h2>How to play</h2>
+      <ul>
+        <li>
+          <strong>Click</strong>, <strong>tap</strong>, or use the
+          <strong>computer keyboard</strong> — each pad shows its key.
+        </li>
+        <li>The 4×3 layout matches the Q W E R / A S D F / Z X C V rows.</li>
+        <li>
+          Switch between an <strong>acoustic</strong> kit and a snappier
+          <strong>electronic</strong> kit.
+        </li>
+      </ul>
+    </section>
+
+    <script type="module" src="drums.js"></script>
+  </body>
+</html>

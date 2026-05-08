@@ -45,7 +45,7 @@
     "name": "Doom 💀",
     "shortName": "Doom",
     "description": "Classic first-person shooter",
-    "detailedDescription": "Classic FPS with WebAssembly. Full gameplay, music & sound.",
+    "detailedDescription": "Classic FPS with WebAssembly. Pick Classic DOOM, Freedoom, or Legend of DOOM at launch.",
     "icon": "💀",
     "path": "./doom/",
     "category": "game",
@@ -80,31 +80,26 @@
     }
   },
   {
-    "id": "legend-of-doom",
-    "name": "Legend of DOOM 🗡️",
-    "shortName": "Legend of DOOM",
-    "description": "Zelda reimagined in DOOM — playable in-browser",
-    "detailedDescription": "The Legend of DOOM, a GZDoom total conversion, running natively in your browser via UZDoom-WASM. Freedoom + the mod are bundled here — click Launch to play.",
-    "icon": "🗡️",
-    "path": "./legend-of-doom/",
+    "id": "doom-mods",
+    "name": "Browse Doom mods 🛒",
+    "shortName": "Doom Mods",
+    "description": "Pick any Doom mod from moddb.com",
+    "detailedDescription": "Browse, search, and launch Doom mods scraped live from moddb.com. Side-loads doom.wad/doom2.wad as needed; falls back to bundled Freedoom.",
+    "icon": "🛒",
+    "path": "./doom/?manual=browse",
     "category": "game",
-    "gradient": "from-emerald-500/20 to-amber-500/20",
-    "border": "border-emerald-500/30 hover:border-amber-400/50",
-    "taskbarGradient": "from-emerald-500 to-amber-500",
-    "taskbarText": "text-white",
-    "defaultWidth": 960,
-    "defaultHeight": 720,
+    "defaultWidth": 1024,
+    "defaultHeight": 768,
     "tags": [
-      "doom",
-      "mod",
-      "zelda",
+      "fps",
+      "retro",
       "wasm",
-      "browser"
+      "mods"
     ],
     "related": [
       "doom",
       "nes",
-      "pacman"
+      "stepmania"
     ],
     "shareCategory": "game"
   },

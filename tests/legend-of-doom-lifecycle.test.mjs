@@ -1,4 +1,4 @@
-// Unit tests for legend-of-doom/lifecycle.js.
+// Unit tests for doom/lifecycle.js (Legend-of-DOOM-derived lifecycle).
 //
 // The module is an IIFE that assigns `window.LoDLifecycle`, so we run it
 // inside a fresh jsdom window per test. freshLifecycle() returns that
@@ -22,12 +22,12 @@ import { dirname, join } from 'node:path';
 import { JSDOM } from 'jsdom';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const LIFECYCLE_JS = readFileSync(join(__dirname, '..', 'legend-of-doom', 'lifecycle.js'), 'utf8');
+const LIFECYCLE_JS = readFileSync(join(__dirname, '..', 'doom', 'lifecycle.js'), 'utf8');
 
 function freshLifecycle() {
   const dom = new JSDOM('<!doctype html><html><body></body></html>', {
     runScripts: 'outside-only',
-    url: 'http://localhost/legend-of-doom/'
+    url: 'http://localhost/doom/?flavor=legend'
   });
   dom.window.eval(LIFECYCLE_JS);
   return { lc: dom.window.LoDLifecycle, win: dom.window };
