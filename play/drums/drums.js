@@ -1,12 +1,24 @@
 /**
- * Synthesized drum kit. Pure Web Audio — no samples, no network.
+ * Hybrid drum kit. Two flavours of voice:
  *
- * Each voice is a one-shot composition of oscillators + filtered noise,
- * tuned to roughly approximate the canonical drum sound. Two timbral
- * variants ("acoustic" softer, "electronic" punchier) are selectable.
+ *   - **Sampled kits** (`linndrum`, `tr-808`): one-shot OGGs streamed from
+ *     the public-domain `smpldsnds/drum-machines` catalog through proxy.js
+ *     and decoded once into AudioBuffers. Played as a fresh
+ *     AudioBufferSourceNode per hit for unlimited polyphony.
+ *   - **Synth kits** (`acoustic`, `electronic`): pure Web Audio — oscillators
+ *     plus filtered noise — same code as before. Always available, no
+ *     network needed.
+ *
+ * If the network or the decode fails for any pad, we silently fall back to
+ * the synth voice for that pad on the same hit, so the kit never plays
+ * silence. The looper records pad ids (not audio), so it survives a kit
+ * change mid-loop.
  */
 import { getCtx, getMaster, resumeIfSuspended, setMasterVolume } from '../shared/audio.js';
+import { SampleKit } from '../shared/samples.js';
 import { makePrefs } from '../shared/prefs.js';
+import { LoopTrack } from '../shared/loop-track.js';
+import { createLoopTrackController } from '../shared/loop-track-ui.js';
 
 const Prefs = makePrefs('play.drums.prefs.v1');
 
@@ -14,33 +26,150 @@ const Prefs = makePrefs('play.drums.prefs.v1');
  * Pad layout. Three rows of four, mapped to the QWERTY top/home/bottom rows
  * so it doubles as a 4x3 keyboard pad.
  *
- *   Q W E R   crash open-hat hat ride
- *   A S D F   snare clap stick tambo
- *   Z X C V   kick low-tom mid-tom cowbell
+ * Hand-split is intentional: left two columns are the "left hand" of a real
+ * kit (snare, kick, toms — the rhythmic backbone), right two columns are
+ * the "right hand" (hi-hats, cymbals, percussion accents). On a phone in
+ * landscape this maps cleanly to left-thumb / right-thumb territory, and
+ * snare (Q) sits directly above kick (A) so one thumb can flick between
+ * the two essentials of any beat.
+ *
+ *   Q W E R   snare    clap     closed-hat tambourine? — see below
+ *   A S D F   kick     stick    ride       crash
+ *   Z X C V   low-tom  mid-tom  tambourine cowbell
  */
 const PAD_LAYOUT = [
-  { id: 'crash', name: 'Crash', emoji: '💥', key: 'q', accent: '#fbbf24' },
-  { id: 'open-hat', name: 'Open Hat', emoji: '〽️', key: 'w', accent: '#fbbf24' },
+  // Row 1 — Q W E R
+  { id: 'snare', name: 'Snare', emoji: '🥁', key: 'q', accent: '#f472b6' },
+  { id: 'clap', name: 'Clap', emoji: '👏', key: 'w', accent: '#f472b6' },
   { id: 'closed-hat', name: 'Closed Hat', emoji: '🎩', key: 'e', accent: '#fbbf24' },
-  { id: 'ride', name: 'Ride', emoji: '🛎️', key: 'r', accent: '#fbbf24' },
-  { id: 'snare', name: 'Snare', emoji: '🥁', key: 'a', accent: '#f472b6' },
-  { id: 'clap', name: 'Clap', emoji: '👏', key: 's', accent: '#f472b6' },
-  { id: 'stick', name: 'Stick', emoji: '🪵', key: 'd', accent: '#f472b6' },
-  { id: 'tambourine', name: 'Tambourine', emoji: '✨', key: 'f', accent: '#f472b6' },
-  { id: 'kick', name: 'Kick', emoji: '🦶', key: 'z', accent: '#818cf8' },
-  { id: 'low-tom', name: 'Low Tom', emoji: '🛢️', key: 'x', accent: '#818cf8' },
-  { id: 'mid-tom', name: 'Mid Tom', emoji: '🛢️', key: 'c', accent: '#818cf8' },
+  { id: 'open-hat', name: 'Open Hat', emoji: '〽️', key: 'r', accent: '#fbbf24' },
+  // Row 2 — A S D F
+  { id: 'kick', name: 'Kick', emoji: '🦶', key: 'a', accent: '#818cf8' },
+  { id: 'stick', name: 'Stick', emoji: '🪵', key: 's', accent: '#f472b6' },
+  { id: 'ride', name: 'Ride', emoji: '🛎️', key: 'd', accent: '#fbbf24' },
+  { id: 'crash', name: 'Crash', emoji: '💥', key: 'f', accent: '#fbbf24' },
+  // Row 3 — Z X C V
+  { id: 'low-tom', name: 'Low Tom', emoji: '🛢️', key: 'z', accent: '#818cf8' },
+  { id: 'mid-tom', name: 'Mid Tom', emoji: '🛢️', key: 'x', accent: '#818cf8' },
+  { id: 'tambourine', name: 'Tambourine', emoji: '✨', key: 'c', accent: '#34d399' },
   { id: 'cowbell', name: 'Cowbell', emoji: '🐄', key: 'v', accent: '#34d399' }
 ];
 
+/**
+ * Sampled-kit catalogs. Each entry maps a pad id to one or more candidate
+ * audio URLs (the loader tries them in order until one decodes). Sources
+ * are the smpldsnds/drum-machines repo on raw.githubusercontent.com which
+ * mirrors well-circulated public-domain drum-machine samples; CORS is
+ * permissive there so the proxy step usually short-circuits to a direct
+ * fetch (proxy.js falls back automatically if it doesn't).
+ *
+ * Pads are mapped to the closest equivalent voice on each machine. Some
+ * substitutions are deliberate: TR-808 has no acoustic tambourine, so we
+ * use its `maraca` shake — the timbre is close enough on a 4x3 pad layout
+ * that it reads as "shaker accent" rather than "wrong sample".
+ */
+const SAMPLE_DRUMS_BASE = 'https://raw.githubusercontent.com/smpldsnds/drum-machines/main';
+
+const SAMPLED_KIT_CATALOGS = {
+  linndrum: {
+    snare: [`${SAMPLE_DRUMS_BASE}/LM-2/snare-m.ogg`],
+    clap: [`${SAMPLE_DRUMS_BASE}/LM-2/clap.ogg`],
+    'closed-hat': [`${SAMPLE_DRUMS_BASE}/LM-2/hhclosed.ogg`],
+    'open-hat': [`${SAMPLE_DRUMS_BASE}/LM-2/hhopen.ogg`],
+    kick: [`${SAMPLE_DRUMS_BASE}/LM-2/kick.ogg`],
+    stick: [`${SAMPLE_DRUMS_BASE}/LM-2/stick-m.ogg`],
+    ride: [`${SAMPLE_DRUMS_BASE}/LM-2/ride.ogg`],
+    crash: [`${SAMPLE_DRUMS_BASE}/LM-2/crash.ogg`],
+    'low-tom': [`${SAMPLE_DRUMS_BASE}/LM-2/tom-l.ogg`],
+    'mid-tom': [`${SAMPLE_DRUMS_BASE}/LM-2/tom-m.ogg`],
+    tambourine: [`${SAMPLE_DRUMS_BASE}/LM-2/tambourine.ogg`],
+    cowbell: [`${SAMPLE_DRUMS_BASE}/LM-2/cowbell.ogg`]
+  },
+  'tr-808': {
+    snare: [`${SAMPLE_DRUMS_BASE}/TR-808/snare/sd5050.ogg`],
+    clap: [`${SAMPLE_DRUMS_BASE}/TR-808/clap/cp.ogg`],
+    'closed-hat': [`${SAMPLE_DRUMS_BASE}/TR-808/hihat-close/ch.ogg`],
+    'open-hat': [`${SAMPLE_DRUMS_BASE}/TR-808/hihat-open/oh50.ogg`],
+    kick: [`${SAMPLE_DRUMS_BASE}/TR-808/kick/bd5050.ogg`],
+    stick: [`${SAMPLE_DRUMS_BASE}/TR-808/rimshot/rs.ogg`],
+    ride: [`${SAMPLE_DRUMS_BASE}/TR-808/cymbal/cy7510.ogg`],
+    crash: [`${SAMPLE_DRUMS_BASE}/TR-808/cymbal/cy0050.ogg`],
+    'low-tom': [`${SAMPLE_DRUMS_BASE}/TR-808/tom-low/lt50.ogg`],
+    'mid-tom': [`${SAMPLE_DRUMS_BASE}/TR-808/mid-tom/mt50.ogg`],
+    tambourine: [`${SAMPLE_DRUMS_BASE}/TR-808/maraca/ma.ogg`],
+    cowbell: [`${SAMPLE_DRUMS_BASE}/TR-808/cowbell/cb.ogg`]
+  }
+};
+
+// Per-pad gain trim so sampled hits sit at roughly the same loudness as the
+// synth voices. Mostly small attenuations: cymbals and open hats are long
+// and dominate a mix without a -6 dB shave.
+const SAMPLE_KIT_GAINS = {
+  snare: 0.95,
+  clap: 0.85,
+  'closed-hat': 0.6,
+  'open-hat': 0.5,
+  kick: 1.0,
+  stick: 0.85,
+  ride: 0.55,
+  crash: 0.5,
+  'low-tom': 0.95,
+  'mid-tom': 0.95,
+  tambourine: 0.7,
+  cowbell: 0.8
+};
+
+const SAMPLED_KITS = new Set(Object.keys(SAMPLED_KIT_CATALOGS));
+
 class DrumKit {
   constructor() {
-    this.kit = 'acoustic';
+    this.kit = 'linndrum';
     this._noiseBuffer = null;
+    // Lazy-loaded SampleKit per sampled-kit name. Loading is kicked off on
+    // the first selection; subsequent hits get an instant cache lookup.
+    this._sampleKits = new Map(); // name -> SampleKit
+    this._sampleKitStatus = new Map(); // name -> 'idle' | 'loading' | 'ready' | 'error'
+    this.onStatusChange = () => {};
   }
 
   setKit(name) {
     this.kit = name;
+    if (SAMPLED_KITS.has(name)) this._ensureSampleKit(name);
+  }
+
+  isSampledKit(name = this.kit) {
+    return SAMPLED_KITS.has(name);
+  }
+
+  sampleKitStatus(name = this.kit) {
+    return this._sampleKitStatus.get(name) || 'idle';
+  }
+
+  /**
+   * Begin loading a sampled kit. Idempotent — repeat calls join the same
+   * promise. The synth fallback is always available while loading, so this
+   * is purely a "warm the cache" call from the page.
+   */
+  _ensureSampleKit(name) {
+    if (this._sampleKits.has(name)) return this._sampleKits.get(name);
+    const catalog = SAMPLED_KIT_CATALOGS[name];
+    if (!catalog) return null;
+    const kit = new SampleKit(catalog);
+    this._sampleKits.set(name, kit);
+    this._sampleKitStatus.set(name, 'loading');
+    this.onStatusChange(name, 'loading');
+    kit
+      .preload()
+      .then(() => {
+        const next = kit.buffers.size > 0 ? 'ready' : 'error';
+        this._sampleKitStatus.set(name, next);
+        this.onStatusChange(name, next);
+      })
+      .catch(() => {
+        this._sampleKitStatus.set(name, 'error');
+        this.onStatusChange(name, 'error');
+      });
+    return kit;
   }
 
   // Reusable white-noise buffer (1s, mono). Cheaper than recreating.
@@ -66,7 +195,19 @@ class DrumKit {
     if (ctx.state === 'suspended') resumeIfSuspended();
     const master = getMaster();
     const now = ctx.currentTime;
-    const electric = this.kit === 'electronic';
+
+    // Sampled kits: try the buffer first; fall through to the synth voice
+    // if this specific pad hasn't loaded yet (or permanently failed).
+    if (SAMPLED_KITS.has(this.kit)) {
+      const kit = this._sampleKits.get(this.kit);
+      if (kit && kit.has(name)) {
+        kit.play(name, { gain: SAMPLE_KIT_GAINS[name] ?? 0.9 });
+        return;
+      }
+      // Fall through to a synth voice that approximates this pad.
+    }
+
+    const electric = this.kit === 'electronic' || this.kit === 'tr-808';
 
     switch (name) {
       case 'kick':
@@ -340,6 +481,7 @@ const padsContainer = document.getElementById('drum-pads');
 const nowPlaying = document.getElementById('now-playing');
 const volumeEl = document.getElementById('volume');
 const kitEl = document.getElementById('kit');
+const kitStatusEl = document.getElementById('kit-status');
 
 const prefs = Prefs.load();
 if (typeof prefs.volume === 'number') volumeEl.value = String(prefs.volume);
@@ -349,8 +491,28 @@ if (typeof prefs.kit === 'string') {
 }
 
 const kit = new DrumKit();
-kit.setKit(kitEl.value);
 setMasterVolume(Number(volumeEl.value) / 100);
+
+const updateKitStatus = () => {
+  if (!kitStatusEl) return;
+  if (!kit.isSampledKit()) {
+    kitStatusEl.textContent = '';
+    return;
+  }
+  const status = kit.sampleKitStatus();
+  if (status === 'loading') kitStatusEl.textContent = 'loading…';
+  else if (status === 'error') kitStatusEl.textContent = 'offline · synth fallback';
+  else kitStatusEl.textContent = '';
+};
+
+kit.onStatusChange = (name) => {
+  if (name === kit.kit) updateKitStatus();
+};
+kit.setKit(kitEl.value);
+updateKitStatus();
+
+// LoopTrack instance — plays back via `playPad` (sound + visuals, no recording).
+const looper = new LoopTrack({ onPlay: (id) => playPad(id) });
 
 // Build pads
 const padEls = new Map(); // id -> element
@@ -390,10 +552,16 @@ const flashPad = (id) => {
   setTimeout(() => el.classList.remove('active'), 110);
 };
 
-const triggerPad = (id) => {
+// Plays a pad with sound + visuals only (no looper recording).
+const playPad = (id) => {
   kit.hit(id);
   flashPad(id);
   announcePad(id);
+};
+
+const triggerPad = (id) => {
+  playPad(id);
+  looper.noteHit(id);
 };
 
 // Pointer input — trigger on press, and again whenever the pointer drags
@@ -456,7 +624,44 @@ volumeEl.addEventListener('input', () => {
 
 kitEl.addEventListener('change', () => {
   kit.setKit(kitEl.value);
+  updateKitStatus();
   Prefs.save({ volume: Number(volumeEl.value), kit: kitEl.value });
 });
 
 window.addEventListener('focus', () => resumeIfSuspended());
+
+// ---------- Looper UI ----------
+
+const recBtn = document.getElementById('loop-record');
+const playBtn = document.getElementById('loop-play');
+const clearBtn = document.getElementById('loop-clear');
+
+createLoopTrackController(looper, {
+  recBtn,
+  playBtn,
+  clearBtn,
+  statusEl: document.getElementById('loop-status'),
+  barEl: document.getElementById('loop-bar'),
+  barFillEl: document.getElementById('loop-bar-fill'),
+  playLabelEl: playBtn.querySelector('.loop-btn-label'),
+  playIconEl: playBtn.querySelector('.loop-btn-icon'),
+  onUserAction: () => resumeIfSuspended(),
+});
+
+// Keyboard shortcuts: Space = Rec, P = Play/Stop. Skip when typing in inputs.
+document.addEventListener('keydown', (event) => {
+  if (event.repeat) return;
+  const target = event.target;
+  if (target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
+    return;
+  }
+  if (event.code === 'Space') {
+    looper.toggleRecord();
+    event.preventDefault();
+    return;
+  }
+  if (event.key === 'p' || event.key === 'P') {
+    looper.togglePlay();
+    event.preventDefault();
+  }
+});

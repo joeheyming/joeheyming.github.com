@@ -16,37 +16,73 @@
   --fretboard-pad-right: 12px;
   --fretboard-pad-bottom: 22px;
   --fretboard-pad-left: 12px;
+  /* Minimum width per fret column. When (fret-count × this) exceeds the
+   * available width, the .fretboard scrolls horizontally instead of
+   * shrinking the cells into unreadable slivers. */
+  --fret-min-cell: 52px;
+  --fret-count: 19;
 
   width: min(100%, 1100px);
-  display: flex;
-  flex-direction: column;
-  gap: 0;
   background:
     radial-gradient(circle at 30% 30%, rgba(180, 83, 9, 0.18), transparent 50%),
     linear-gradient(180deg, #3f1d0e, #2a1006);
   border: 1px solid #2a1006;
   border-radius: 12px;
-  padding: var(--fretboard-pad-top) var(--fretboard-pad-right) var(--fretboard-pad-bottom)
-    var(--fretboard-pad-left);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 24px 40px -20px rgba(0, 0, 0, 0.6);
   user-select: none;
   -webkit-user-select: none;
+  /* The fretboard itself is the horizontal scroll container — when the
+   * inner grid's min-width exceeds the visible width, swiping the neck
+   * scrolls through the upper register. `overflow-y: hidden` keeps a
+   * stray vertical scrollbar from appearing. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* Smooth wheel/touch scrolling and a less jarring scroll snap on
+   * inertial swipes. */
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Inner wrapper that owns the layout (and the absolute-positioning
+ * containing block for the inlay overlay). Its `min-width` is what
+ * makes the outer .fretboard scroll horizontally on narrow viewports;
+ * on wide screens the strings stretch via the `1fr` columns to fill
+ * the available width. */
+.fretboard-grid {
   position: relative;
-  overflow: hidden;
+  padding: var(--fretboard-pad-top) var(--fretboard-pad-right) var(--fretboard-pad-bottom)
+    var(--fretboard-pad-left);
+  /* `1fr` columns inside the strings stretch to fill any extra space
+   * past min-width on desktop, so the neck looks the same as before
+   * on a 1100px viewport. */
+  min-width: calc(
+    var(--label-col-width) + var(--fret-min-cell) * var(--fret-count) + var(--fretboard-pad-left) +
+      var(--fretboard-pad-right)
+  );
 }
 
 .fretboard-string {
   position: relative;
   display: grid;
-  grid-template-columns: var(--label-col-width) repeat(12, 1fr);
+  /* Two-part track: the open-string label, then N fret columns sized
+   * `minmax(<min>, 1fr)`. The minmax floor keeps cells tappable; the
+   * 1fr ceiling stretches them on wide screens. */
+  grid-template-columns:
+    var(--label-col-width)
+    repeat(var(--fret-count), minmax(var(--fret-min-cell), 1fr));
   align-items: center;
   height: clamp(34px, 5vw, 46px);
   z-index: 1; /* keep cells above the inlay overlay */
 }
 
-/* Open-string label cell on the left */
+/* Open-string label cell on the left.
+ * `position: sticky; left: 0` pins the label (E A D G B E) in place
+ * during horizontal scroll on mobile so the player can always see
+ * which string they're on while plucking the upper register. The
+ * z-index keeps it above the metallic string line + neighbouring fret
+ * cells as they scroll under it. */
 .fret-cell.open {
   background:
     linear-gradient(90deg, rgba(0, 0, 0, 0.35), transparent),
@@ -54,6 +90,9 @@
   border-right: 4px solid #d4d4d8;
   font-weight: 700;
   color: #fef3c7;
+  position: sticky;
+  left: 0;
+  z-index: 2;
 }
 
 .fret-cell {
@@ -68,11 +107,14 @@
   color: rgba(254, 243, 199, 0.7);
   border-right: 1px solid rgba(212, 212, 216, 0.4);
   transition: background 100ms ease;
-  /* Capture the gesture as soon as the touch lands on a fret — without this
-   * a vertical drag along a string is hijacked into a page scroll instead
-   * of strumming notes. The fretboard's outer padding keeps the page
-   * scrollable when touched between cells. */
-  touch-action: none;
+  /* `pan-x` lets the browser handle horizontal swipes natively — the
+   * fretboard's `overflow-x: auto` then gets momentum / inertia for
+   * free, instead of being driven choppily from JS. Vertical drags
+   * stay with us so a string-to-string slide still strums.
+   * `touch-action: none` (the previous value) blocked native scroll
+   * entirely and forced JS-driven scrollLeft, which felt jerky on
+   * a long neck. */
+  touch-action: pan-x;
 }
 
 .fret-cell:last-child {
@@ -189,13 +231,19 @@
  * none keeps the dots out of the way of clicks.
  */
 .fretboard-inlays {
+  /* Positioned relative to .fretboard-grid (the new inner wrapper) so
+   * the overlay extends the full scrollable neck width and stays
+   * aligned with the string fret cells under it. */
   position: absolute;
   top: var(--fretboard-pad-top);
   bottom: var(--fretboard-pad-bottom);
   left: calc(var(--fretboard-pad-left) + var(--label-col-width));
   right: var(--fretboard-pad-right);
   display: grid;
-  grid-template-columns: repeat(12, 1fr);
+  /* Mirror the strings' fret-column sizing exactly so dots line up with
+   * the cells they mark, regardless of whether we're stretched to fill
+   * a desktop viewport or scrolling at the cell-min-width on mobile. */
+  grid-template-columns: repeat(var(--fret-count), minmax(var(--fret-min-cell), 1fr));
   /* One row that spans the full height of the strings area, so single-dot
    * inlays can be centred via `align-items: center` and the double-dot
    * inlay can stretch to position ::before / ::after at percentages.

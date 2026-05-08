@@ -148,6 +148,10 @@ body {
   text-align: center;
   padding: 24px;
   color: var(--fg-dim);
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
 }
 
 .play-footer a {
@@ -254,6 +258,12 @@ body {
 
 .now-playing.active {
   color: var(--accent);
+}
+
+/* Defensive: the HTML `hidden` attribute should always win over the
+ * `display: inline-flex` we set on the visible state. */
+.midi-status[hidden] {
+  display: none;
 }
 
 .midi-status {
@@ -459,12 +469,191 @@ body {
   }
 }
 
+/* Very narrow phones (≤ ~iPhone SE / iPhone 12 portrait) — the title was
+ * getting squeezed because the header reserved 110+100px for the back
+ * pill and Instruments icon. Both are smaller at this size, so we can
+ * recover that space. */
+@media (max-width: 480px) {
+  .instrument-header {
+    padding: 14px 76px 6px 84px;
+    gap: 8px;
+  }
+  .instrument-page-title h1 {
+    font-size: clamp(20px, 5vw, 26px);
+  }
+  .now-playing {
+    font-size: 11px;
+    min-width: 0;
+  }
+}
+
+/* Phone-sized viewports: compact chrome so the instrument owns ~80% of
+ * the viewport (the "80/20" rule — controls are tools, not the focus).
+ *
+ * The default desktop controls bar is generous: 13px body, uppercase
+ * 11px labels with letter-spacing, 120px range sliders, free-growing
+ * selects. On a 390px portrait phone that wraps to 6 rows, eating
+ * ~30% of the viewport. On a 720x400 landscape phone the same rules
+ * push the controls offscreen entirely.
+ *
+ * The unified mobile rule below trims:
+ *   - header (icon-only Instruments pill, smaller title)
+ *   - controls bar (smaller padding, gap, font, range width)
+ *   - selects (max-width so a long option label can't widen the
+ *     control past pairing-width — the dropdown itself still
+ *     auto-sizes natively when opened)
+ *   - hints (desktop-only "(hold space)" etc.)
+ *
+ * Both axes get this treatment — portrait benefits from the smaller
+ * controls (fewer wrapping rows) and landscape benefits from the
+ * smaller header (more vertical real-estate for the playing area).
+ */
+@media (max-width: 720px), (max-height: 540px) {
+  .instrument-header {
+    padding-top: 8px;
+    padding-bottom: 4px;
+    /* Reserved horizontal space matches the icon-only pills. */
+    padding-left: 56px;
+    padding-right: 56px;
+    gap: 8px;
+  }
+  .instrument-page-title h1 {
+    font-size: clamp(18px, 4vw, 22px);
+  }
+  .instruments-link {
+    top: 6px;
+    right: 6px;
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  .instruments-link-text {
+    display: none;
+  }
+  .instruments-link-icon {
+    font-size: 16px;
+  }
+  .instrument-controls {
+    gap: 4px 12px;
+    padding: 4px 10px 6px;
+    font-size: 12px;
+  }
+  .control {
+    font-size: 12px;
+    gap: 6px;
+  }
+  .control label {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+  }
+  .control input[type='range'] {
+    width: 90px;
+  }
+  .control select {
+    padding: 3px 6px;
+    font-size: 12px;
+    /* Cap select width so a long option label can't push the control
+     * past the pairing threshold. The native dropdown still expands
+     * when opened. */
+    max-width: 140px;
+    text-overflow: ellipsis;
+  }
+  .octave-buttons button {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+  }
+  .octave-display {
+    min-width: 24px;
+  }
+  .show-options {
+    gap: 8px;
+  }
+  /* The "(hold space)" / "(loading…)" inline hints are noise on a
+   * cramped phone — the sustain checkbox and tone status still convey
+   * state without them. */
+  .control .hint {
+    display: none;
+  }
+}
+
+/* Landscape phones: vertical space is at a premium (a 720x360 device
+ * only has ~360px to work with). Tighten the header and controls
+ * vertical padding even further so the playing area still owns ~80%
+ * of the viewport. */
+@media (max-height: 480px) {
+  .instrument-header {
+    padding-top: 4px;
+    padding-bottom: 2px;
+  }
+  .instrument-controls {
+    padding: 2px 10px 4px;
+    gap: 2px 10px;
+  }
+}
+
+/* Touch devices: hide hints that only make sense with a physical
+ * keyboard (e.g. "(hold space)" next to the Sustain checkbox). The
+ * `.is-touch` class is added by JS on pages that detect touch input. */
+.is-touch .hint-desktop {
+  display: none;
+}
+
 /* Hide the "How to play" panel on phone-sized viewports — covers both
  * portrait phones (narrow width) and landscape phones (short height),
  * where vertical space is at a premium. */
 @media (max-width: 720px), (max-height: 540px) {
   .instrument-help {
     display: none;
+  }
+}
+
+/* ---------- Phone-sized viewports: lock the page chrome ---------------------
+ *
+ * Same pattern as a sticky-header table: title + controls stay pinned at
+ * the top of the visible viewport, and the playing area below is its own
+ * scroll container that fills the leftover height. Without this, tall
+ * layouts (portrait stradella/chromatic, dense piano + octave control,
+ * 19-fret guitar in landscape) push the controls off the top of the
+ * screen — switching view / register / volume requires scrolling all the
+ * way back up, which is the QoL fix the user asked for.
+ *
+ * Convention: every instrument page has exactly one stage section that
+ * holds the playing area (`.piano-stage`, `.guitar-stage`,
+ * `.accordion-stage`, `.drums-stage`, `.harp-stage`, `.synth-stage`,
+ * `.metronome-stage`, `.hang-stage`, `.mallet-stage`). The
+ * instrument's own stylesheet already declares `flex: 1` on these —
+ * we just add `min-height: 0; overflow: auto` here so they scroll
+ * within the bounded body height.
+ *
+ * Selector specificity is intentionally kept at one class (0,1,0) so
+ * per-instrument mobile overrides at the same specificity win via
+ * cascade order (e.g. accordion sets `overflow: hidden` on the stage
+ * because the register strip should stay pinned and the inner
+ * `.accordion-view` does the actual scrolling).
+ *
+ * `100dvh` (dynamic viewport height) tracks iOS Safari's collapsing URL
+ * bar — using `100vh` alone leaves the bottom of the playing area cut
+ * off when the URL bar is visible. The plain `100vh` line above it is a
+ * fallback for older browsers that don't support `dvh`. */
+@media (max-width: 720px), (max-height: 540px) {
+  .instrument-body {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  .accordion-stage,
+  .piano-stage,
+  .guitar-stage,
+  .drums-stage,
+  .harp-stage,
+  .synth-stage,
+  .metronome-stage,
+  .hang-stage,
+  .mallet-stage {
+    min-height: 0;
+    overflow: auto;
   }
 }
 
@@ -489,7 +678,12 @@ body {
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
-  touch-action: none;
+  /* Let the browser handle horizontal panning natively (with momentum)
+   * when the keyboard is wider than its scroll container — see the
+   * tap-deferral helper in `play/shared/scroll-gesture.js` for why we
+   * want native scroll instead of JS-driven scrollLeft updates. Vertical
+   * touch is reserved for our own drag-to-play (glissando). */
+  touch-action: pan-x;
 }
 
 .piano-stage {
@@ -659,9 +853,68 @@ body {
   }
 }
 
-@media (max-width: 640px) {
+/* ---------- Shared piano-keyboard mobile rules ---------------------------
+ *
+ * The piano-keyboard component shows up on three pages (piano, synth,
+ * accordion) — keep its mobile sizing / scroll behavior here so all three
+ * benefit equally. Page-specific sizing (e.g. piano page's octave control
+ * affecting the chrome height) lives in the page's own stylesheet.
+ *
+ * Strategy on phones:
+ *   1. Enforce a thumb-friendly per-key minimum (`--min-key-width`). JS
+ *      exposes `--white-key-count` on the keyboard element so we compute
+ *      the keyboard's intrinsic width and let the parent stage scroll
+ *      horizontally when it overflows.
+ *   2. The keyboard fills its parent stage's height. The shared
+ *      body-locked layout above bounds the stage to viewport-minus-chrome,
+ *      so the keyboard naturally fits without vh-based math (which
+ *      doesn't work on the synth page where `.synth-knobs` takes a
+ *      variable amount of space above the keyboard).
+ *   3. Pin the stage's content to the start when it overflows — centering
+ *      inside an overflowing container strands the leftmost keys
+ *      (`scrollLeft` can't go negative).
+ *   4. Right-edge gradient affordance hints "more keys this way". */
+@media (max-width: 720px), (max-height: 540px) {
+  .piano-stage {
+    /* Edge-to-edge so the swipe-to-scroll affordance reaches the screen
+     * edges. */
+    padding: 0 8px;
+    /* Narrow the body-locked rule's `overflow: auto` to X-only — the
+     * keyboard fills the parent vertically (rule #2 below), so Y
+     * overflow shouldn't appear. */
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    justify-content: flex-start;
+    /* Right-edge fade — visible whenever the keyboard overflows. */
+    background: linear-gradient(
+      to right,
+      rgba(15, 23, 42, 0) 0%,
+      rgba(15, 23, 42, 0) calc(100% - 24px),
+      rgba(15, 23, 42, 0.5) 100%
+    );
+    background-attachment: local;
+  }
+
   .piano-keyboard {
-    height: 36vh;
+    /* 34px sits comfortably above an adult fingertip width (Apple HIG
+     * suggests 44pt for icon targets, but piano keys can be a touch
+     * narrower since fingers naturally find the key edges). The `+ 28px`
+     * accounts for the keyboard's own 14px-each-side padding so the
+     * per-key width really lands at `--min-key-width`. */
+    --min-key-width: 34px;
+    min-width: max(100%, calc(var(--white-key-count, 29) * var(--min-key-width) + 28px));
+    max-width: none;
+    /* Fill the parent stage (which is bounded by the body-locked
+     * layout) — but cap the height so portrait phones don't end up with
+     * 600px-tall white keys that look like javelins. 320px keeps the
+     * key proportions piano-like (white keys ~5x taller than wide at
+     * the 34px min-width) while leaving generous tap targets.
+     * Landscape phone stages are shorter than 320px, so the cap is a
+     * no-op there — the keyboard naturally fills the smaller stage. */
+    height: 100%;
+    max-height: 320px;
   }
 }
 

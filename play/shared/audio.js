@@ -30,10 +30,6 @@ export function isC(midi) {
 
 let ctx = null;
 let master = null;
-// Optional gain stage between the master and the destination. We only
-// allocate / wire it when something explicitly asks (e.g. accordion bellows
-// mode), so the default chain stays exactly `master -> destination`.
-let bellows = null;
 let masterVolume = 0.65;
 
 export function getCtx() {
@@ -64,51 +60,14 @@ export function setMasterVolume(v) {
 }
 
 /**
- * Lazily insert a "bellows" gain node between the master gain and the
- * destination. Idempotent: subsequent calls just return the existing node.
- * The default value is 1 (transparent pass-through), so simply allocating
- * it has no audible effect — the caller drives `setBellowsPressure(p)`
- * to gate the output.
- */
-export function getBellowsGain() {
-  getCtx();
-  if (bellows) return bellows;
-  bellows = ctx.createGain();
-  bellows.gain.value = 1;
-  // Re-route master through the bellows node.
-  master.disconnect();
-  master.connect(bellows);
-  bellows.connect(ctx.destination);
-  return bellows;
-}
-
-/**
- * Set the bellows-gain target. Smoothly ramps with a short time constant
- * so per-frame motion updates don't crackle. `p` is clamped 0..1.
- */
-export function setBellowsPressure(p) {
-  if (!bellows) return;
-  const v = Math.max(0, Math.min(1, p));
-  const now = ctx.currentTime;
-  bellows.gain.cancelScheduledValues(now);
-  bellows.gain.setTargetAtTime(v, now, 0.02);
-}
-
-/**
- * Park the bellows gain back at unity (transparent). Use this when
- * disabling bellows mode so the rest of the chain is unaffected.
- */
-export function disableBellowsGate() {
-  if (!bellows) return;
-  const now = ctx.currentTime;
-  bellows.gain.cancelScheduledValues(now);
-  bellows.gain.setTargetAtTime(1, now, 0.04);
-}
-
-/**
  * Cached soundfont loader. Returns a Promise that resolves to the
  * soundfont-player instrument object (with `.play(noteName)` etc.) or null
  * if the library isn't available / the load fails.
+ *
+ * The instrument's default destination is the shared master gain. Callers
+ * that want to route into a custom gain stage (e.g. the accordion's
+ * BreathBus) pass a `destination` per-note via SampleVoice — soundfont-
+ * player accepts a `destination` option on each `instrument.play()` call.
  */
 const instrumentCache = new Map();
 
@@ -120,7 +79,7 @@ export function loadInstrument(name) {
     return p;
   }
   const promise = window.Soundfont.instrument(getCtx(), name, {
-    destination: getMaster(),
+    destination: getMaster()
   }).catch((err) => {
     console.warn('Soundfont load failed for', name, err);
     instrumentCache.delete(name);
@@ -139,12 +98,20 @@ export function loadInstrument(name) {
  * the accordion passes `{ loop: true }` so held notes sustain forever
  * (the MusyngKite samples are only a few seconds long, but soundfont-
  * player loops them seamlessly via the embedded sample loop points).
+ *
+ * Pass `{ destination }` (an AudioNode) to route the voice into a custom
+ * gain stage instead of the master output — used by accordion to send
+ * voices through its BreathBus. Defaults to the shared master gain.
  */
 export class SampleVoice {
   constructor(instrumentName, playOptions = {}) {
     this.instrumentName = instrumentName;
     this.instrument = null;
-    this.playOptions = playOptions;
+    // Pull `destination` out of playOptions so it isn't forwarded twice
+    // when we explicitly pass it on every play() call.
+    const { destination = null, ...rest } = playOptions;
+    this.destination = destination;
+    this.playOptions = rest;
     this.playing = new Map(); // midi -> player node
   }
 
@@ -168,7 +135,11 @@ export class SampleVoice {
         /* ignore */
       }
     }
-    const node = this.instrument.play(midiToName(midi), undefined, this.playOptions);
+    const playOptions = this.destination
+      ? { ...this.playOptions, destination: this.destination }
+      : this.playOptions;
+
+    const node = this.instrument.play(midiToName(midi), undefined, playOptions);
 
     // When looping, trim the loop region to skip the sample's natural
     // attack and release. Without this we'd loop the entire 3s buffer,

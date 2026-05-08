@@ -1,0 +1,272 @@
+/* =========================================================================
+ * Steel drum / handpan — circular tongue layout. The bowl is a big metallic
+ * disc; one ding sits in the centre and 8 tongues radiate around it. Each
+ * tongue is positioned absolutely from the bowl centre using --angle (set
+ * inline by JS) so the layout scales fluidly with the bowl size.
+ * ========================================================================= */
+
+.hang-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px 24px;
+  width: 100%;
+}
+
+.hang-bowl {
+  position: relative;
+  width: min(94vw, 78vh, 720px);
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  /* Brushed-metal dome look: a bright apex, a darker rim, and a subtle
+   * cyan/gold tint that reads as oxidised steel. */
+  background:
+    radial-gradient(
+      circle at 36% 30%,
+      rgba(255, 255, 255, 0.18),
+      rgba(255, 255, 255, 0) 35%
+    ),
+    radial-gradient(
+      circle at 50% 55%,
+      rgba(255, 230, 180, 0.06),
+      rgba(255, 230, 180, 0) 50%
+    ),
+    radial-gradient(circle at 50% 50%, #5d6b78 0%, #2c333d 55%, #141a22 100%);
+  box-shadow:
+    0 30px 60px -25px rgba(0, 0, 0, 0.7),
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.18),
+    inset 0 -8px 24px rgba(0, 0, 0, 0.55);
+  /* Touch-action none so taps don't scroll the page on phones. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  /* Pin tongues to the centre using transforms below. */
+  isolation: isolate;
+}
+
+/* Decorative concentric rings — etched into the metal like real handpan
+ * shoulder lines. Pure CSS, no extra DOM. */
+.hang-bowl::before,
+.hang-bowl::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.hang-bowl::before {
+  inset: 4%;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.45);
+}
+.hang-bowl::after {
+  inset: 18%;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Generic tongue (visible petal). The actual hit zone wraps this in
+ * `.hang-tongue` which is positioned at the rim. */
+.hang-tongue {
+  position: absolute;
+  /* JS sets --cx and --cy (% of the bowl) plus --angle (deg, clockwise
+   * from 12 o'clock). Using top/left percentages — rather than CSS
+   * `translateY(percent)` — is the only way to express "move N% of the
+   * parent" in a transform, since translateY's percentage is relative
+   * to the element's own size and would collapse the rim. The
+   * transform then re-centres the tongue on its anchor point and
+   * rotates it so the long axis stays tangential to the rim (giving
+   * the classic handpan petal layout). */
+  left: var(--cx, 50%);
+  top: var(--cy, 50%);
+  width: 24%;
+  aspect-ratio: 1.5 / 1;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transform: translate(-50%, -50%) rotate(var(--angle, 0deg));
+  transform-origin: center;
+  /* Mobile-friendly: 24% of 320 ≈ 77px, comfortably above the 44px
+   * minimum even on iPhone-SE-class widths. */
+}
+
+/* The petal surface itself — an oval well in the dome. We layer a couple of
+ * radial gradients so it looks like the tongue is recessed into the steel. */
+.hang-tongue-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 60% 60% 60% 60% / 75% 75% 75% 75%;
+  background:
+    radial-gradient(
+      ellipse 80% 40% at 50% 25%,
+      rgba(255, 255, 255, 0.18),
+      rgba(255, 255, 255, 0) 70%
+    ),
+    radial-gradient(ellipse at 50% 50%, #4d5862, #1f262e 80%);
+  box-shadow:
+    inset 0 2px 6px rgba(255, 255, 255, 0.18),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  transition: filter 120ms ease, transform 120ms ease;
+}
+
+/* Centre disc — the "ding". Larger and round, a different gradient so it
+ * reads as the focal note. The default --cx/--cy at 50% pin it to the
+ * bowl centre and we drop the rotate so the ding always reads upright. */
+.hang-tongue.hang-ding {
+  width: 28%;
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%);
+}
+
+.hang-tongue.hang-ding .hang-tongue-face {
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 40% 32%,
+      rgba(255, 255, 255, 0.28),
+      rgba(255, 255, 255, 0) 55%
+    ),
+    radial-gradient(circle at 50% 52%, #6c7986, #2a323d 75%, #141a22 100%);
+  box-shadow:
+    inset 0 3px 10px rgba(255, 255, 255, 0.22),
+    inset 0 -6px 14px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+/* The tonic colouring (root pitch) gives a warm gold tint to the centre
+ * ding plus any tongue that lands on the root. */
+.hang-tongue.hang-root .hang-tongue-face::after {
+  content: '';
+  position: absolute;
+  inset: 6%;
+  border-radius: inherit;
+  background: radial-gradient(
+    ellipse at 50% 40%,
+    rgba(251, 191, 36, 0.16),
+    rgba(251, 191, 36, 0) 70%
+  );
+  pointer-events: none;
+}
+
+/* Pluck/strike feedback. The .struck class is added briefly on tap; we
+ * scale the petal slightly and brighten it, then let it relax. */
+.hang-tongue.struck .hang-tongue-face {
+  filter: brightness(1.55) saturate(1.1);
+  transform: scale(0.95);
+  animation: hang-struck 480ms ease-out;
+}
+
+@keyframes hang-struck {
+  0% {
+    filter: brightness(2) saturate(1.2);
+    transform: scale(0.92);
+  }
+  35% {
+    filter: brightness(1.45) saturate(1.1);
+    transform: scale(1.02);
+  }
+  100% {
+    filter: brightness(1) saturate(1);
+    transform: scale(1);
+  }
+}
+
+/* A radial ripple ring that emanates from the tongue when struck. This is
+ * the visible "ringing" of the metal. */
+.hang-tongue.struck::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+  animation: hang-ripple 600ms ease-out forwards;
+}
+
+@keyframes hang-ripple {
+  0% {
+    transform: scale(0.96);
+    opacity: 0.7;
+    border-color: rgba(255, 255, 255, 0.55);
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+    border-color: rgba(255, 255, 255, 0);
+  }
+}
+
+.hang-tongue-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Counter-rotate the label so it stays upright even though the tongue is
+   * rotated radially. JS sets --label-rotate per element. */
+  transform: rotate(var(--label-rotate, 0deg));
+  font-size: clamp(11px, 1.6vw, 16px);
+  font-weight: 700;
+  color: rgba(226, 232, 240, 0.55);
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.hang-tongue.hang-root .hang-tongue-label,
+.hang-tongue.hang-ding .hang-tongue-label {
+  color: rgba(251, 191, 36, 0.95);
+}
+
+.hang-tongue.hang-ding .hang-tongue-label {
+  font-size: clamp(13px, 2vw, 20px);
+}
+
+.hang-bowl.hide-labels .hang-tongue-label {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hang-tongue.struck .hang-tongue-face,
+  .hang-tongue.struck::after {
+    animation: none;
+    transform: none;
+  }
+  .hang-tongue.struck .hang-tongue-face {
+    filter: brightness(1.4);
+  }
+}
+
+/* Mobile: keep the bowl reasonable on phones. */
+@media (max-width: 640px) {
+  .hang-stage {
+    padding: 4px 8px 16px;
+  }
+  .hang-bowl {
+    width: min(96vw, 70vh);
+  }
+}
+
+.control-toggle .toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg);
+}
+
+.control-toggle .toggle-label input[type='checkbox'] {
+  accent-color: var(--accent);
+  transform: scale(1.15);
+  cursor: pointer;
+}

@@ -1,0 +1,322 @@
+/* =========================================================================
+ * Mallet keyboard — overrides the shared `.piano-keyboard` styles to render
+ * keys as flat rounded bars in two rows: naturals along the bottom and
+ * accidentals along the top, with a frame strip between them. Wood vs.
+ * metal palettes are driven by the per-tone modifier class on the
+ * keyboard root (e.g. `.tone-xylophone`).
+ *
+ * The shared shared `Keyboard` class (`play/shared/keyboard.js`) already
+ * handles input, drag-to-play, scroll gestures, and accessibility — we
+ * only override the visuals here.
+ * ========================================================================= */
+
+.mallet-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px 24px;
+  width: 100%;
+}
+
+.mallet-frame {
+  position: relative;
+  width: min(100%, 1100px);
+  padding: 22px 18px 28px;
+  border-radius: 22px;
+  background:
+    radial-gradient(800px 200px at 50% 0%, rgba(129, 140, 248, 0.06), transparent 70%),
+    linear-gradient(180deg, #2a2418, #1a140a 60%, #0f0a04);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 28px 50px -22px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 220, 180, 0.05);
+}
+
+/* The two horizontal "rails" you see on a real xylophone — the wooden (or
+ * metal) bars are suspended over these rails. Pure decoration but anchors
+ * the bars visually so they read as a real instrument. */
+.mallet-frame::before,
+.mallet-frame::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #5a4626, #2c1f10 60%, #1a1208);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 220, 180, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  z-index: 0;
+}
+.mallet-frame::before {
+  top: 18%;
+}
+.mallet-frame::after {
+  bottom: 14%;
+}
+
+/* The keyboard itself — drop the dark slab background that pianos use,
+ * since our `.mallet-frame` provides the chrome. */
+.mallet-keyboard {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  height: clamp(220px, 38vh, 320px);
+}
+
+/* ---------- Bars ----------
+ * Override .piano-key positioning so naturals and accidentals occupy two
+ * physically separate rows instead of overlapping. Naturals fill the
+ * bottom 50% of the keyboard; accidentals fill the top 38%. The 12% gap
+ * in between is where the frame's mid-rail peeks through. */
+.mallet-keyboard .piano-key.white {
+  /* Natural bars — bottom row */
+  top: 52%;
+  bottom: 6%;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 4px 8px -2px rgba(0, 0, 0, 0.55),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 -2px 6px rgba(0, 0, 0, 0.35) inset;
+}
+
+.mallet-keyboard .piano-key.black {
+  /* Accidental bars — top row, no overlap with naturals */
+  top: 6%;
+  height: 38%;
+  bottom: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.7);
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 4px 8px -2px rgba(0, 0, 0, 0.6),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 -2px 6px rgba(0, 0, 0, 0.4) inset;
+}
+
+/* Slight inset between adjacent bars so they don't merge into a single
+ * coloured strip when the layout is dense. */
+.mallet-keyboard .piano-key.white {
+  margin-left: 2px;
+  margin-right: 2px;
+}
+
+/* Active state — when struck, dip slightly + brighten. The "press"
+ * direction is downward like a marimba dampening, but it's mostly there
+ * to give immediate finger feedback. */
+.mallet-keyboard .piano-key.active {
+  transform: translateY(2px) scale(0.985);
+  filter: brightness(1.4) saturate(1.1);
+}
+
+/* ---------- Wood palette: xylophone (bright) ---------- */
+.mallet-keyboard.tone-xylophone .piano-key.white,
+.mallet-keyboard.tone-xylophone .piano-key.black {
+  background: linear-gradient(
+    180deg,
+    #f6c989 0%,
+    #d99c4f 35%,
+    #a96a26 75%,
+    #7a4513 100%
+  );
+  color: rgba(60, 30, 8, 0.7);
+}
+
+/* ---------- Wood palette: marimba (warm rosewood) ---------- */
+.mallet-keyboard.tone-marimba .piano-key.white,
+.mallet-keyboard.tone-marimba .piano-key.black {
+  background: linear-gradient(
+    180deg,
+    #b8825a 0%,
+    #8a4f2d 40%,
+    #5a2d18 80%,
+    #3a1c0e 100%
+  );
+  color: rgba(255, 230, 200, 0.55);
+}
+
+/* ---------- Metal palette: vibraphone (silver/cool) ---------- */
+.mallet-keyboard.tone-vibraphone .piano-key.white,
+.mallet-keyboard.tone-vibraphone .piano-key.black {
+  background: linear-gradient(
+    180deg,
+    #f8fafc 0%,
+    #cbd5e1 30%,
+    #94a3b8 70%,
+    #475569 100%
+  );
+  color: rgba(15, 23, 42, 0.6);
+}
+
+/* ---------- Metal palette: glockenspiel (bright gold) ---------- */
+.mallet-keyboard.tone-glockenspiel .piano-key.white,
+.mallet-keyboard.tone-glockenspiel .piano-key.black {
+  background: linear-gradient(
+    180deg,
+    #fef3c7 0%,
+    #fbbf24 35%,
+    #d97706 75%,
+    #92400e 100%
+  );
+  color: rgba(60, 30, 0, 0.7);
+}
+
+/* ---------- C-bar accent ---------- */
+/* Mark each octave's C with a thin coloured stripe so players can orient
+ * themselves at a glance. Same idea as marking C on a piano with a small
+ * dot — without it, dense layouts blur into a single sea of bars. */
+.mallet-keyboard .piano-key.white.is-c::before {
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 6px;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* ---------- Labels ----------
+ * Re-use the piano label slot but shift typography to suit a darker bar
+ * background. The shared `.piano-keyboard.hide-notes` toggle still works
+ * because we don't override that selector. */
+.mallet-keyboard .piano-key .key-label .note {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.9;
+  letter-spacing: 0.04em;
+}
+
+.mallet-keyboard .piano-key .key-label {
+  /* Move labels up onto the bars rather than tucking them at the very
+   * bottom edge — the bars are short, so a low label collides with the
+   * frame rail. */
+  padding-bottom: 4px;
+}
+
+.mallet-keyboard .piano-key.is-c .key-label .note {
+  color: var(--accent);
+  opacity: 1;
+}
+
+/* The shared piano rules pin accidental (black-key) labels to a fixed
+ * light grey for piano contrast. Mallets use per-tone palettes where
+ * naturals and accidentals share the same wood / metal colour, so the
+ * label colour should fall through from the bar itself instead. */
+.mallet-keyboard .piano-key.black .key-label {
+  color: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mallet-keyboard .piano-key.active {
+    transform: none !important;
+    filter: brightness(1.35);
+  }
+}
+
+@media (max-width: 640px) {
+  .mallet-frame {
+    padding: 14px 10px 18px;
+  }
+  .mallet-keyboard {
+    height: clamp(200px, 42vh, 280px);
+  }
+  .mallet-keyboard .piano-key .key-label .note {
+    font-size: 9px;
+  }
+}
+
+/* ---------- Mobile horizontal scroll ---------------------------------------
+ *
+ * Same strategy as the shared piano-keyboard mobile rules in `../style.css`:
+ *
+ *   1. Enforce a thumb-friendly minimum bar width via `--min-key-width`,
+ *      and let the keyboard's `min-width` swell with `--white-key-count`
+ *      (set on the element by `Keyboard.render()`) so it overflows when
+ *      the chosen layout has more bars than fit on the screen.
+ *   2. The whole frame chrome (rails included) grows with the keyboard
+ *      and scrolls as one unit, like sliding a real xylophone across a
+ *      table. We let `width: max-content` size the frame to the bars.
+ *   3. `.mallet-stage` becomes the horizontal scroll container.
+ *      Edge-to-edge padding so the swipe affordance reaches the screen
+ *      bezel. Right-edge fade hints at off-screen bars.
+ *   4. Pin scroll to the start so the leftmost bar isn't stranded —
+ *      `scrollLeft` can't go negative.
+ *
+ * Mallet bars want a *bigger* minimum than piano keys (38 vs 34) because
+ * their two-row layout reads more like discrete percussion targets than
+ * piano's continuous keyboard. */
+@media (max-width: 720px), (max-height: 540px) {
+  .mallet-stage {
+    padding: 0 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    /* Pin scroll to the start so the leftmost bar isn't stranded —
+     * centering inside an overflowing flex container leaves
+     * `scrollLeft` unable to reach the first key. */
+    justify-content: flex-start;
+    background: linear-gradient(
+      to right,
+      rgba(15, 23, 42, 0) 0%,
+      rgba(15, 23, 42, 0) calc(100% - 24px),
+      rgba(15, 23, 42, 0.5) 100%
+    );
+    background-attachment: local;
+  }
+
+  .mallet-frame {
+    /* Grow the frame chrome (and its rails) to fit the keyboard's
+     * intrinsic width so the whole instrument scrolls as one unit. */
+    width: max-content;
+    max-width: none;
+  }
+
+  .mallet-keyboard {
+    --min-key-width: 38px;
+    min-width: max(100%, calc(var(--white-key-count, 22) * var(--min-key-width) + 28px));
+    max-width: none;
+    /* The shared `.piano-keyboard` rule sets `touch-action: pan-x` so the
+     * browser handles horizontal panning natively — drag-to-play and the
+     * native swipe-to-scroll cooperate via the tap-deferral helper in
+     * `play/shared/scroll-gesture.js`. The keyboard's height is set by
+     * the `@media (max-width: 640px)` clamp above; we deliberately do
+     * NOT use `height: 100%` here because the frame has no fixed
+     * height in this scroll layout (it wraps the keyboard).
+     */
+  }
+}
+
+/* Toggle / vibrato control share the harp/steel-drum styling. */
+.control-toggle .toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg);
+}
+
+.control-toggle .toggle-label input[type='checkbox'] {
+  accent-color: var(--accent);
+  transform: scale(1.15);
+  cursor: pointer;
+}
+
+/* The vibrato control is hidden via the `hidden` HTML attribute when the
+ * tone isn't vibraphone. Defensive override so the .control flex layout
+ * doesn't fight it. */
+.vibrato-control[hidden] {
+  display: none !important;
+}

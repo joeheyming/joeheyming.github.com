@@ -1,0 +1,238 @@
+/* =========================================================================
+ * Harp page-specific styles. Vertical strings between a stylized neck (top)
+ * and soundboard (bottom). String hit-zones span the full vertical column;
+ * the visible string is a thin gradient line in the centre of each column.
+ * ========================================================================= */
+
+.harp-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px 24px;
+  width: 100%;
+}
+
+.harp-frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 960px);
+  height: clamp(320px, 56vh, 520px);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.4), rgba(0, 0, 0, 0.35)),
+    linear-gradient(180deg, #1e293b, #0f172a);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 24px 40px -20px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.harp-neck,
+.harp-soundboard {
+  flex: 0 0 auto;
+  height: 22px;
+  background: linear-gradient(180deg, #4a3520, #2a1d10 60%, #4a3520);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+  position: relative;
+  z-index: 2;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 220, 180, 0.18),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.45);
+}
+
+.harp-neck {
+  background: linear-gradient(180deg, #c89868, #6b4824 70%, #4a3520);
+  border-radius: 18px 18px 4px 4px;
+  border-top: 1px solid rgba(255, 220, 180, 0.25);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.5);
+}
+
+.harp-soundboard {
+  background: linear-gradient(180deg, #4a3520, #2a1d10 40%, #1a1208);
+  border-radius: 4px 4px 18px 18px;
+  border-top: 2px solid rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(255, 220, 180, 0.1);
+  height: 28px;
+}
+
+.harp-strings {
+  flex: 1;
+  position: relative;
+  display: grid;
+  /* JS sets --strings to the count; columns split the area evenly. */
+  grid-template-columns: repeat(var(--strings, 15), 1fr);
+  /* Touch-action none so swipes don't scroll the page on phones. */
+  touch-action: none;
+  background:
+    radial-gradient(800px 200px at 50% 50%, rgba(129, 140, 248, 0.08), transparent 70%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0));
+}
+
+.harp-string {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  cursor: pointer;
+  /* Each string's hit zone is the full column; the visual is just the
+   * centred line. CSS variable --string-color is set per string from JS
+   * (red for root, blue for the perfect-fourth/F-equivalent).
+   *
+   * --deflect:  set live by JS while the pointer drags on this string;
+   *             pulls the visible line sideways under the finger.
+   * --from:     captured at release time so the snap-back wobble starts
+   *             from wherever the string was being held. */
+  --string-color: rgba(220, 220, 230, 0.9);
+  --deflect: 0px;
+  --from: 0px;
+}
+
+/* The visible string line. Thin gradient line, slightly thicker on touch
+ * targets so it reads as plucked steel/nylon. The transform is updated
+ * live (no transition) while the user is dragging; on release the
+ * .plucked class kicks in a keyframe animation that wobbles back. */
+.harp-string::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  margin-left: -1px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.05),
+    var(--string-color) 8%,
+    var(--string-color) 92%,
+    rgba(255, 255, 255, 0.05)
+  );
+  border-radius: 1px;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.05);
+  transform: translateX(var(--deflect));
+  pointer-events: none;
+  will-change: transform, filter;
+}
+
+.harp-string.root::before {
+  width: 3px;
+  margin-left: -1.5px;
+}
+
+/* Plucked: snap-back wobble from the held position to centre, plus a
+ * brightness/blur flash that reads as a standing wave. The wobble
+ * over-shoots and decays, mimicking how a plucked harp string oscillates
+ * with diminishing amplitude. The starting offset comes from --from,
+ * which JS sets to whatever --deflect was at release time. */
+.harp-string.plucked::before {
+  animation: harp-release 0.55s ease-out;
+}
+
+@keyframes harp-release {
+  0% {
+    transform: translateX(var(--from));
+    filter: brightness(1.7) blur(0);
+  }
+  18% {
+    transform: translateX(calc(var(--from) * -0.45));
+    filter: brightness(2.1) blur(1.4px);
+  }
+  40% {
+    transform: translateX(calc(var(--from) * 0.22));
+    filter: brightness(1.5) blur(0.7px);
+  }
+  62% {
+    transform: translateX(calc(var(--from) * -0.1));
+    filter: brightness(1.25) blur(0.3px);
+  }
+  82% {
+    transform: translateX(calc(var(--from) * 0.04));
+    filter: brightness(1.1) blur(0.1px);
+  }
+  100% {
+    transform: translateX(0);
+    filter: brightness(1) blur(0);
+  }
+}
+
+.harp-string-label {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: rgba(226, 232, 240, 0.5);
+  font-weight: 700;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.harp-string.root .harp-string-label {
+  color: rgba(248, 113, 113, 0.95);
+}
+
+.harp-strings.hide-labels .harp-string-label {
+  display: none;
+}
+
+/* Touch-target padding: each string is at least 28px wide for hit-testing
+ * via grid columns. On dense layouts (chromatic, 3 octaves) the columns
+ * shrink, so we widen the visible glow on press for feedback. */
+.harp-string.plucked {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(129, 140, 248, 0.18),
+    transparent 60%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .harp-string.plucked::before {
+    animation: none !important;
+    filter: brightness(1.4);
+    transform: translateX(0);
+  }
+  .harp-string::before {
+    transform: translateX(0) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .harp-frame {
+    height: clamp(280px, 60vh, 460px);
+  }
+  .harp-string-label {
+    font-size: 9px;
+    top: 2px;
+  }
+  .harp-neck {
+    height: 16px;
+  }
+  .harp-soundboard {
+    height: 20px;
+  }
+}
+
+/* The toggle-label class is shared with metronome's accent toggle. */
+.control-toggle .toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg);
+}
+
+.control-toggle .toggle-label input[type='checkbox'] {
+  accent-color: var(--accent);
+  transform: scale(1.15);
+  cursor: pointer;
+}

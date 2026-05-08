@@ -50,10 +50,12 @@
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
-    <script src="/back.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
+    <script src="/proxy.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js"></script>
 
     <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body class="instrument-body">
     <header class="instrument-header">
@@ -83,8 +85,9 @@
       <div class="control">
         <label for="waveform">Tone</label>
         <select id="waveform">
-          <option value="acoustic_grand_piano" selected>Acoustic piano</option>
-          <option value="electric_piano_1">Electric piano</option>
+          <option value="grand_piano_samples" selected>Grand piano (samples)</option>
+          <option value="acoustic_grand_piano">Acoustic piano (soundfont)</option>
+          <option value="electric_piano_1">Electric piano (soundfont)</option>
           <option value="triangle">Soft (triangle)</option>
           <option value="sine">Pure (sine)</option>
           <option value="square">Retro (square)</option>
@@ -109,10 +112,24 @@
         </select>
       </div>
 
+      <!-- Octave shift: jumps the visible window of the chosen layout up
+           or down by 12 semitones. Useful on touch devices that lack the
+           [/] / arrow keyboard shortcuts, and lets users pick a small
+           layout (large tap targets) without losing access to high/low
+           notes. -->
+      <div class="control octave-control">
+        <label>Octave</label>
+        <div class="octave-buttons">
+          <button id="octave-down" type="button" aria-label="Octave down">−</button>
+          <span id="octave-display" class="octave-display" aria-live="polite">C2</span>
+          <button id="octave-up" type="button" aria-label="Octave up">+</button>
+        </div>
+      </div>
+
       <div class="control toggle-control">
         <label for="sustain">Sustain</label>
         <input id="sustain" type="checkbox" />
-        <span class="hint">(hold space)</span>
+        <span class="hint hint-desktop">(hold space)</span>
       </div>
 
       <div class="control show-control" role="group" aria-label="Show on keys">

@@ -6,13 +6,12 @@
 import {
   midiToName,
   getCtx,
+  getMaster,
   resumeIfSuspended,
   setMasterVolume,
-  SampleVoice,
-  getBellowsGain,
-  setBellowsPressure,
-  disableBellowsGate
+  SampleVoice
 } from '../shared/audio.js';
+import { MultiSampler } from '../shared/samples.js';
 import { Keyboard } from '../shared/keyboard.js';
 import { setupMidi } from '../shared/midi.js';
 import { makePrefs } from '../shared/prefs.js';
@@ -20,6 +19,76 @@ import { attachKeyboardInput } from '../shared/input.js';
 import { renderStradella } from './stradella.js';
 import { renderChromatic } from './chromatic.js';
 import { Bellows, isBellowsAvailable, isBellowsPermissionRequired } from '../shared/bellows.js';
+import { tap as hapticTap } from '../shared/haptics.js';
+import { createBreathBus } from './breath-bus.js';
+
+/**
+ * Tone identifier for the FreePats Button Accordion HN sample pack
+ * (CC0 public domain). The pack records 16 single-reed notes spanning
+ * B3-G6 — i.e. only the right-hand treble register. MultiSampler picks
+ * the closest anchor and detunes via playbackRate.
+ *
+ * Because the lowest recorded sample is B3 (MIDI 59), every note below
+ * B3 would have to be produced by slowing that sample down. By G2
+ * (Stradella bass) that's a 16-semitone pitch drop, ~40% playback
+ * speed — formants and breath transients drag with the pitch and the
+ * note stops sounding like a reed at all. Nothing in the pack is
+ * actually "deep" — there is no bass-reed recording in it.
+ *
+ * Architecture: this is exactly how a real piano accordion is built.
+ * Left-hand bass and chord buttons trigger a physically separate set
+ * of bass reeds; the right-hand treble keys trigger treble reeds. So
+ * we mirror that: the **right hand** (piano keyboard, chromatic
+ * buttons, MIDI input) plays the FreePats sample pack as `voice`, and
+ * the **left hand** (Stradella bass + chord rows) plays the Tango
+ * accordion soundfont as `bassVoice`. The soundfont has natively-
+ * mapped low notes, so no large pitch-stretch is ever needed and a
+ * chord triad's three notes share a single timbre.
+ */
+const BUTTON_ACCORDION_TONE = 'button_accordion_samples';
+// Soundfont used for the left-hand voice when the FreePats sample
+// tone is selected, AND as the hard-failure fallback for the whole
+// voice when not a single FreePats anchor decodes (network/proxy
+// outage). Tango accordion is drier and punchier than the generic
+// "accordion" soundfont — closer to a real button-accordion bass reed
+// — and has natively-recorded notes across the bass and chord ranges.
+const BUTTON_ACCORDION_LEFT_HAND_TONE = 'tango_accordion';
+const FREEPATS_ACCORDION_BASE =
+  'https://raw.githubusercontent.com/freepats/button-accordion-HN/main';
+const BUTTON_ACCORDION_ANCHORS = [
+  'B3',
+  'D4',
+  'F#4',
+  'G4',
+  'A4',
+  'C5',
+  'D5',
+  'E5',
+  'F#5',
+  'G5',
+  'A5',
+  'B5',
+  'C6',
+  'D6',
+  'E6',
+  'G6'
+];
+
+/**
+ * Build the `{ noteName: [url] }` shape MultiSampler.fromNotes wants.
+ * FreePats files are named `Button Accordion HN <Note>.flac` (with a
+ * literal `#` for sharps); encodeURIComponent turns the space into
+ * `%20` and the `#` into `%23` so githubusercontent.com serves the
+ * file instead of a fragment-truncated 404.
+ */
+function buildButtonAccordionAnchors() {
+  const out = {};
+  for (const note of BUTTON_ACCORDION_ANCHORS) {
+    const file = `Button Accordion HN ${note}.flac`;
+    out[note] = [`${FREEPATS_ACCORDION_BASE}/${encodeURIComponent(file)}`];
+  }
+  return out;
+}
 
 const Prefs = makePrefs('play.accordion.prefs.v1');
 
@@ -39,29 +108,90 @@ const Prefs = makePrefs('play.accordion.prefs.v1');
  * with shift 0 → both physical 72) don't cut each other off prematurely.
  */
 class AccordionSynth {
-  constructor() {
+  constructor({ destination = null } = {}) {
+    // AudioNode that all voices created in setTone() route into. Default
+    // (null) means voices route to the shared master gain. The accordion
+    // page passes its BreathBus.input here so the bellows pressure can
+    // gate the whole accordion graph without rewiring the global master.
+    this.destination = destination;
     this.toneName = '';
+    // Right-hand voice: piano view, chromatic buttons, MIDI input, and
+    // anything else that doesn't pass `side: 'left'` to noteOn(). In
+    // FreePats sample mode this is the FreePats sampler.
     this.voice = null;
+    // Left-hand voice: Stradella bass and chord buttons. Only populated
+    // in FreePats sample mode (where it's a tango_accordion soundfont,
+    // because the FreePats pack has no recorded bass-reed samples). For
+    // any other tone — including the post-failure fallback — there is
+    // no separate left-hand voice and both sides play `this.voice`.
+    this.bassVoice = null;
     this.activeCount = 0;
-    this.refCount = new Map(); // physical midi -> active holders
+    // Refcounts are kept per voice because the same physical MIDI value
+    // can be held by both sides simultaneously (e.g. right hand plays
+    // G3 while a left-hand C-major chord also produces G3) and they
+    // need to noteOff independently.
+    this.mainRefCount = new Map(); // physical midi -> holders on `voice`
+    this.bassRefCount = new Map(); // physical midi -> holders on `bassVoice`
     this.shifts = [0]; // active reed banks: octave offsets in semitones
     this.onActiveChange = () => {};
+    // Set when a sample-based tone failed to load any anchors and we
+    // silently swapped in a soundfont so the user still hears reeds.
+    // Surfaced in the UI as a "samples failed, using soundfont" hint.
+    this.fallbackFromSamples = false;
   }
 
   setTone(name) {
     if (this.toneName === name && this.voice) return;
     if (this.voice) this.voice.allOff();
-    this.refCount.clear();
+    if (this.bassVoice) this.bassVoice.allOff();
+    this.mainRefCount.clear();
+    this.bassRefCount.clear();
     this.activeCount = 0;
     this.onActiveChange(this.activeCount);
     this.toneName = name;
-    // `loop: true` keeps the soundfont sample sustaining for as long as
-    // the key is held — accordion notes ring as long as there's air, not
-    // for the few-second length of a single sample. This is doubly
+    this.fallbackFromSamples = false;
+    this.bassVoice = null;
+    // `loop: true` keeps the sample sustaining for as long as the key
+    // is held — accordion notes ring as long as there's air, not for
+    // the few-second length of a single sample. This is doubly
     // important for bellows mode, where the player may pump-and-hold
     // long after the sample would have naturally faded out.
-    this.voice = new SampleVoice(name, { loop: true });
-    this.voice.load();
+    const dest = this.destination;
+    if (name === BUTTON_ACCORDION_TONE) {
+      const sampler = MultiSampler.fromNotes(buildButtonAccordionAnchors(), {
+        loop: true,
+        destination: dest
+      });
+      this.voice = sampler;
+      sampler.preload().then(() => {
+        // If `preload()` returned but no anchors decoded (network or
+        // proxy failure across the board), drop down to the soundfont
+        // accordion so the user isn't stuck with silence. Both sides
+        // then share the soundfont.
+        if (this.voice === sampler && !sampler.isReady()) {
+          this.fallbackFromSamples = true;
+          const fallback = new SampleVoice(BUTTON_ACCORDION_LEFT_HAND_TONE, {
+            loop: true,
+            destination: dest
+          });
+          this.voice = fallback;
+          this.bassVoice = null;
+          fallback.load();
+        }
+      });
+      // Left-hand voice: a real soundfont with natively-mapped bass
+      // reeds. The Stradella's onPress passes `side: 'left'` so this
+      // is what plays for bass row, counter-bass, and chord triads.
+      const bass = new SampleVoice(BUTTON_ACCORDION_LEFT_HAND_TONE, {
+        loop: true,
+        destination: dest
+      });
+      this.bassVoice = bass;
+      bass.load();
+    } else {
+      this.voice = new SampleVoice(name, { loop: true, destination: dest });
+      this.voice.load();
+    }
   }
 
   setRegister(shifts) {
@@ -74,39 +204,58 @@ class AccordionSynth {
   }
 
   isReady() {
+    // When both voices are configured (FreePats sample mode) we require
+    // BOTH to be ready: the soundfont bass voice typically loads almost
+    // instantly from cache while the FreePats FLACs stream over the
+    // network, and we don't want the "loading samples…" status to
+    // disappear while the right hand is still silent.
+    if (this.bassVoice) {
+      return !!(this.voice?.isReady() && this.bassVoice.isReady());
+    }
     return !!this.voice?.isReady();
   }
 
-  noteOn(midi) {
+  // Returns the voice + refcount map for a given side. Falls back to
+  // the main voice if a left-hand voice isn't configured (the case for
+  // every non-samples tone).
+  _routeFor(side) {
+    if (side === 'left' && this.bassVoice) {
+      return { voice: this.bassVoice, refCount: this.bassRefCount };
+    }
+    return { voice: this.voice, refCount: this.mainRefCount };
+  }
+
+  noteOn(midi, { side = 'right' } = {}) {
     getCtx();
     resumeIfSuspended();
-    if (!this.voice) return;
-    if (!this.voice.isReady()) return;
+    const { voice, refCount } = this._routeFor(side);
+    if (!voice?.isReady()) return;
     for (const shift of this.shifts) {
       const m = midi + shift;
       if (m < 0 || m > 127) continue;
-      const next = (this.refCount.get(m) || 0) + 1;
-      this.refCount.set(m, next);
+      const next = (refCount.get(m) || 0) + 1;
+      refCount.set(m, next);
       // (re)trigger the sample whenever a fresh holder presses, so repeated
       // taps still feel responsive.
-      this.voice.noteOn(m);
+      voice.noteOn(m);
       this.activeCount += 1;
     }
     this.onActiveChange(this.activeCount);
   }
 
-  noteOff(midi) {
-    if (!this.voice) return;
+  noteOff(midi, { side = 'right' } = {}) {
+    const { voice, refCount } = this._routeFor(side);
+    if (!voice) return;
     for (const shift of this.shifts) {
       const m = midi + shift;
       if (m < 0 || m > 127) continue;
-      const cur = this.refCount.get(m) || 0;
+      const cur = refCount.get(m) || 0;
       if (cur === 0) continue;
       if (cur === 1) {
-        this.refCount.delete(m);
-        this.voice.noteOff(m);
+        refCount.delete(m);
+        voice.noteOff(m);
       } else {
-        this.refCount.set(m, cur - 1);
+        refCount.set(m, cur - 1);
       }
       this.activeCount = Math.max(0, this.activeCount - 1);
     }
@@ -115,7 +264,9 @@ class AccordionSynth {
 
   allOff() {
     this.voice?.allOff();
-    this.refCount.clear();
+    this.bassVoice?.allOff();
+    this.mainRefCount.clear();
+    this.bassRefCount.clear();
     this.activeCount = 0;
     this.onActiveChange(this.activeCount);
   }
@@ -168,6 +319,11 @@ const bassSizeEl = document.getElementById('bass-size');
 const chromaticButtonsEl = document.getElementById('chromatic-buttons');
 const viewEl = document.getElementById('view');
 const registerOptionsEl = document.getElementById('register-options');
+const registerToggleEl = document.getElementById('register-toggle');
+const registerStripEl = document.querySelector('.register-strip');
+const accordionStageEl = document.querySelector('.accordion-stage');
+const accordionViewEl = document.getElementById('accordion-view');
+const instrumentControlsEl = document.querySelector('.instrument-controls');
 const handLabelEl = document.getElementById('register-hand');
 const toneStatus = document.getElementById('tone-status');
 const midiStatusEl = document.getElementById('midi-status');
@@ -227,7 +383,11 @@ if (typeof prefs.showKbd === 'boolean' && showKbdEl) {
   showKbdEl.checked = prefs.showKbd;
 }
 
-const synth = new AccordionSynth();
+// Construct the BreathBus eagerly so every voice routes through it from
+// the start. The bus is transparent (gain=1) until bellows mode is
+// activated, at which point bellows.onPressure drives setPressure.
+const breathBus = createBreathBus({ ctx: getCtx(), master: getMaster() });
+const synth = new AccordionSynth({ destination: breathBus.input });
 setMasterVolume(Number(volumeEl.value) / 100);
 
 /**
@@ -325,7 +485,7 @@ const persist = () => {
  */
 const bellows = new Bellows();
 bellows.onPressure = (p) => {
-  setBellowsPressure(p);
+  breathBus.setPressure(p);
   if (bellowsMeterEl) bellowsMeterEl.style.setProperty('--bellows-pressure', String(p));
 };
 
@@ -333,25 +493,41 @@ const setBellowsActive = (on) => {
   if (!bellowsControlEl) return;
   bellowsControlEl.classList.toggle('is-active', on);
   if (on) {
-    getBellowsGain();
-    setBellowsPressure(0);
+    breathBus.setPressure(0);
     bellows.start();
   } else {
     bellows.stop();
-    disableBellowsGate();
+    breathBus.disable();
     if (bellowsMeterEl) bellowsMeterEl.style.setProperty('--bellows-pressure', '0');
   }
 };
 
-// Show the control whenever the browser exposes `DeviceMotionEvent`. We
-// deliberately *don't* gate on `(hover: none) and (pointer: coarse)` here
-// because too many real cases lie:
-//   - iPadOS Safari requests desktop UA and reports `(hover: hover)`,
-//   - some Android skins misreport hover capability,
-//   - phones connected to an external mouse for testing flip too.
-// Worst case on a true desktop, the toggle is visible but silent (no
-// motion events ever fire), which is harmless and reversible.
-if (bellowsControlEl && isBellowsAvailable()) {
+// Bellows mode only makes sense on a device you can physically swing —
+// i.e. a phone (or tablet). On a desktop the `DeviceMotionEvent` API is
+// usually present but never fires, so the toggle would be visible but
+// silent. We layer four signals because no single one is reliable:
+//   - coarse, non-hover pointer: the standard touch-device media
+//     query. True on most Android and iOS Safari out of the box, but
+//     lies on some Android skins, on Chrome's "desktop mode", and
+//     when a stylus or external mouse is paired.
+//   - iOS motion-permission API (`requestPermission`): iOS-only, and
+//     still present even when iPadOS Safari requests the desktop UA.
+//   - `maxTouchPoints > 0`: a phone or tablet has at least one touch
+//     point. (Touchscreen laptops also match — acceptable false
+//     positive.)
+//   - UA sniff for `Android | iPhone | iPad | iPod | Mobile`: the
+//     last-resort fallback for the Android skins that misreport hover
+//     *and* maxTouchPoints in some configurations.
+// Any one match → eligible. Worst case on a touchscreen laptop the
+// toggle appears but produces no motion — harmless and reversible.
+const isMobileBellowsDevice = () => {
+  if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) return true;
+  if (isBellowsPermissionRequired()) return true;
+  if ((navigator.maxTouchPoints || 0) > 0) return true;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+};
+
+if (bellowsControlEl && isBellowsAvailable() && isMobileBellowsDevice()) {
   bellowsControlEl.hidden = false;
   if (bellowsHelpEl) bellowsHelpEl.hidden = false;
   // Restore previous state — but only auto-enable if no permission prompt
@@ -439,6 +615,41 @@ const renderRegisterOptions = () => {
 
     registerOptionsEl.appendChild(btn);
   });
+  syncRegisterToggle();
+};
+
+/**
+ * Mirror the active register's silver stop and label onto the compact
+ * toggle pill. The pill is only visible when CSS collapses the strip
+ * (short viewports / landscape phones), but we keep its content in
+ * sync at all times so it's correct the moment it appears.
+ */
+const syncRegisterToggle = () => {
+  if (!registerToggleEl) return;
+  const set = registersForHand(currentHand);
+  const activeId = currentHand === 'left' ? activeLeftRegisterId : activeRightRegisterId;
+  const reg = set.find((r) => r.id === activeId) || set[0];
+  if (!reg) return;
+  const stopEl = registerToggleEl.querySelector('.register-toggle-stop');
+  const nameEl = registerToggleEl.querySelector('.register-toggle-name');
+  if (stopEl) {
+    stopEl.innerHTML = '';
+    reg.shifts.forEach((shift) => {
+      const pos = SHIFT_TO_POS[shift];
+      if (!pos) return;
+      const dot = document.createElement('span');
+      dot.className = `register-dot ${pos}`;
+      stopEl.appendChild(dot);
+    });
+  }
+  if (nameEl) nameEl.textContent = reg.label;
+  registerToggleEl.title = `${reg.label} — ${reg.name}`;
+};
+
+const setRegisterStripOpen = (open) => {
+  if (!registerStripEl || !registerToggleEl) return;
+  registerStripEl.dataset.collapsedOpen = open ? 'true' : 'false';
+  registerToggleEl.setAttribute('aria-expanded', String(Boolean(open)));
 };
 
 /**
@@ -464,20 +675,96 @@ if (registerOptionsEl) {
     const set = registersForHand(currentHand);
     if (!set.some((r) => r.id === id)) return;
     const currentId = currentHand === 'left' ? activeLeftRegisterId : activeRightRegisterId;
+    // Always close the collapsed popover after a tap, even if the
+    // active register didn't change — the user has made their pick.
+    setRegisterStripOpen(false);
     if (id === currentId) return;
     if (currentHand === 'left') activeLeftRegisterId = id;
     else activeRightRegisterId = id;
+    hapticTap();
     applyActiveHandRegister();
     persist();
   });
 }
+
+if (registerToggleEl) {
+  registerToggleEl.addEventListener('click', () => {
+    if (!registerStripEl) return;
+    const isOpen = registerStripEl.dataset.collapsedOpen === 'true';
+    setRegisterStripOpen(!isOpen);
+  });
+  // Tap outside the strip closes the popover. Pointerdown rather than
+  // click so the popover is gone before the user's tap can land on
+  // a button beneath it.
+  document.addEventListener('pointerdown', (event) => {
+    if (!registerStripEl) return;
+    if (registerStripEl.dataset.collapsedOpen !== 'true') return;
+    if (registerStripEl.contains(event.target)) return;
+    setRegisterStripOpen(false);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    if (!registerStripEl) return;
+    if (registerStripEl.dataset.collapsedOpen !== 'true') return;
+    setRegisterStripOpen(false);
+    registerToggleEl.focus();
+  });
+}
+
+/* The register strip lives in two different DOM locations depending
+ * on viewport: above the keyboard inside `.accordion-stage` on
+ * desktop (where it has space to render the full row of stops), or
+ * inline with the other chrome controls inside `.instrument-controls`
+ * on mobile (where it collapses to a single "current register" pill
+ * and a tap-popover, keeping the keyboard's vertical real-estate
+ * intact). Physically moving the element rather than rendering twin
+ * copies keeps state, accessibility, and event handlers in one place. */
+const mobileRegisterMq = window.matchMedia('(max-width: 720px), (max-height: 540px)');
+
+const placeRegisterStrip = () => {
+  if (!registerStripEl) return;
+  const targetParent =
+    mobileRegisterMq.matches && instrumentControlsEl ? instrumentControlsEl : accordionStageEl;
+  if (!targetParent) return;
+  if (registerStripEl.parentElement !== targetParent) {
+    setRegisterStripOpen(false);
+    if (targetParent === instrumentControlsEl) {
+      instrumentControlsEl.appendChild(registerStripEl);
+    } else if (accordionViewEl) {
+      accordionStageEl.insertBefore(registerStripEl, accordionViewEl);
+    } else {
+      accordionStageEl.appendChild(registerStripEl);
+    }
+  }
+  // Mark as placed so the CSS hide-until-placed guard releases.
+  registerStripEl.dataset.placed = 'true';
+};
+
+if (typeof mobileRegisterMq.addEventListener === 'function') {
+  mobileRegisterMq.addEventListener('change', placeRegisterStrip);
+} else if (typeof mobileRegisterMq.addListener === 'function') {
+  // Safari < 14 fallback.
+  mobileRegisterMq.addListener(placeRegisterStrip);
+}
+placeRegisterStrip();
 
 renderRegisterOptions();
 applyActiveHandRegister();
 
 const updateToneStatus = () => {
   if (!toneStatus) return;
-  toneStatus.textContent = synth.isReady() ? '' : 'loading…';
+  if (!synth.isReady()) {
+    // Loading FLAC samples over the proxy can take a few seconds on
+    // the first visit; soundfonts are usually in CDN cache and pop in
+    // almost instantly. Differentiating the message helps users
+    // understand why one tone takes longer to come up.
+    toneStatus.textContent =
+      synth.toneName === BUTTON_ACCORDION_TONE ? 'loading samples…' : 'loading…';
+  } else if (synth.fallbackFromSamples) {
+    toneStatus.textContent = 'samples failed, using soundfont';
+  } else {
+    toneStatus.textContent = '';
+  }
 };
 
 const switchTone = (name) => {
@@ -587,8 +874,25 @@ setupMidi({
 });
 
 // ---------- Stradella + Chromatic components ----------
+//
+// The Stradella is the LEFT (bass) side of the accordion, and the
+// chromatic button board is the RIGHT (treble) side. We tell the synth
+// which side a press came from so it can route bass and chord notes
+// to the dedicated bass-reed voice when the FreePats sample tone is
+// active. For every other tone the side hint is ignored and both
+// hands play the same voice.
 
-const synthHandlers = {
+const leftHandHandlers = {
+  onPress: (notes) => {
+    for (const m of notes) synth.noteOn(m, { side: 'left' });
+  },
+  onRelease: (notes) => {
+    for (const m of notes) synth.noteOff(m, { side: 'left' });
+  },
+  onActivity: announceNote
+};
+
+const rightHandHandlers = {
   onPress: (notes) => {
     for (const m of notes) synth.noteOn(m);
   },
@@ -602,14 +906,14 @@ const stradella = renderStradella(stradellaHostEl, {
   initialLayout: 'standard',
   orientation: 'horizontal',
   size: bassSizeEl ? bassSizeEl.value : '120',
-  ...synthHandlers
+  ...leftHandHandlers
 });
 
 const chromatic = renderChromatic(chromaticHostEl, {
   orientation: 'horizontal',
   system: 'B',
   layout: chromaticButtonsEl ? chromaticButtonsEl.value : 64,
-  ...synthHandlers
+  ...rightHandHandlers
 });
 
 // ---------- View switching ----------

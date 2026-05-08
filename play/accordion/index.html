@@ -50,7 +50,8 @@
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
-    <script src="/back.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
+    <script src="/proxy.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js"></script>
 
     <link rel="stylesheet" href="../style.css" />
@@ -105,10 +106,11 @@
       <div class="control">
         <label for="tone">Reed</label>
         <select id="tone">
-          <option value="accordion" selected>Accordion</option>
-          <option value="tango_accordion">Tango accordion</option>
-          <option value="reed_organ">Reed organ</option>
-          <option value="harmonica">Harmonica</option>
+          <option value="button_accordion_samples" selected>Button accordion (samples)</option>
+          <option value="accordion">Accordion (soundfont)</option>
+          <option value="tango_accordion">Tango accordion (soundfont)</option>
+          <option value="reed_organ">Reed organ (soundfont)</option>
+          <option value="harmonica">Harmonica (soundfont)</option>
         </select>
         <span class="hint" id="tone-status" aria-live="polite"></span>
       </div>
@@ -205,6 +207,23 @@
           <span class="register-strip-label" id="register-label">Register</span>
           <span class="register-strip-hand" id="register-hand">Right hand</span>
         </div>
+        <!-- Compact "current register" pill, only visible when the strip
+             collapses (short viewports / landscape phones). Tap to open
+             the popover that holds the full set of stops. The pill mirrors
+             the active register's silver stop so the player can see which
+             reeds are engaged at a glance, even when collapsed. -->
+        <button
+          type="button"
+          class="register-toggle"
+          id="register-toggle"
+          aria-expanded="false"
+          aria-controls="register-options"
+          aria-label="Choose register"
+        >
+          <span class="register-stop register-toggle-stop" aria-hidden="true"></span>
+          <span class="register-toggle-name"></span>
+          <span class="register-toggle-chevron" aria-hidden="true">▾</span>
+        </button>
         <div
           class="register-options"
           id="register-options"

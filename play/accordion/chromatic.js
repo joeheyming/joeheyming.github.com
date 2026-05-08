@@ -29,6 +29,9 @@
  *                     by the player.
  */
 
+import { createPointerSurface } from '../shared/pointer-surface.js';
+import { tap as hapticTap } from '../shared/haptics.js';
+
 const SHARP_NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
 
 /**
@@ -213,8 +216,6 @@ export function renderChromatic(rootEl, opts) {
   let system = opts.system || 'B';
   let layoutId = opts.layout && CHROMATIC_LAYOUTS[opts.layout] ? opts.layout : DEFAULT_LAYOUT;
 
-  const activeButtons = new Map();
-
   const createButton = (rowIdx, colIdx) => {
     const midi = midiForCell(rowIdx, colIdx, CHROMATIC_LAYOUTS[layoutId], system);
     const btn = document.createElement('button');
@@ -300,6 +301,7 @@ export function renderChromatic(rootEl, opts) {
     if (!btn || btn._pressed) return;
     btn._pressed = true;
     btn.classList.add('active');
+    hapticTap();
     onPress(btn._notes);
     if (btn._notes.length) onActivity(btn._notes[0]);
   };
@@ -311,36 +313,16 @@ export function renderChromatic(rootEl, opts) {
     onRelease(btn._notes);
   };
 
-  // Drag-to-play: keep the pointerId tracked while it's held; the active
-  // button follows the cursor, including off-and-back-on transitions.
-  rootEl.addEventListener('pointerdown', (event) => {
-    const btn = event.target.closest('.chromatic-button');
-    if (!btn) return;
-    rootEl.setPointerCapture?.(event.pointerId);
-    activeButtons.set(event.pointerId, btn);
-    press(btn);
-    event.preventDefault();
+  // PointerSurface owns the per-pointer tracking, drag-cross detection,
+  // and tap-vs-pan-x deferral on touch (`touch-action: pan-x` on the
+  // CBA buttons). Same shape as the Stradella half above.
+  const surface = createPointerSurface(rootEl, {
+    targetSelector: '.chromatic-button',
+    deferScrollOnTouch: true,
+    onEnter: (btn) => press(btn),
+    onLeave: (btn) => release(btn),
+    onRelease: (btn) => release(btn)
   });
-
-  rootEl.addEventListener('pointermove', (event) => {
-    if (!activeButtons.has(event.pointerId)) return;
-    const target = document.elementFromPoint(event.clientX, event.clientY);
-    const btn = target && target.closest && target.closest('.chromatic-button');
-    const prev = activeButtons.get(event.pointerId);
-    if (btn === prev) return;
-    if (prev) release(prev);
-    if (btn) press(btn);
-    activeButtons.set(event.pointerId, btn || null);
-  });
-
-  const endPointer = (event) => {
-    if (!activeButtons.has(event.pointerId)) return;
-    const btn = activeButtons.get(event.pointerId);
-    activeButtons.delete(event.pointerId);
-    if (btn) release(btn);
-  };
-  rootEl.addEventListener('pointerup', endPointer);
-  rootEl.addEventListener('pointercancel', endPointer);
 
   build();
 
@@ -348,16 +330,14 @@ export function renderChromatic(rootEl, opts) {
     setOrientation(o) {
       if (o !== 'horizontal' && o !== 'vertical') return;
       if (o === orientation) return;
-      for (const btn of activeButtons.values()) release(btn);
-      activeButtons.clear();
+      surface.releaseAll();
       orientation = o;
       build();
     },
     setSystem(s) {
       if (s !== 'B' && s !== 'C') return;
       if (s === system) return;
-      for (const btn of activeButtons.values()) release(btn);
-      activeButtons.clear();
+      surface.releaseAll();
       system = s;
       build();
     },
@@ -365,14 +345,12 @@ export function renderChromatic(rootEl, opts) {
       const key = typeof id === 'number' ? id : Number(id);
       if (!CHROMATIC_LAYOUTS[key]) return;
       if (key === layoutId) return;
-      for (const btn of activeButtons.values()) release(btn);
-      activeButtons.clear();
+      surface.releaseAll();
       layoutId = key;
       build();
     },
     clearActive() {
-      for (const btn of activeButtons.values()) release(btn);
-      activeButtons.clear();
+      surface.releaseAll();
       rootEl.querySelectorAll('.chromatic-button.active').forEach((el) => {
         el.classList.remove('active');
         el._pressed = false;

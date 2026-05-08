@@ -1,3 +1,6 @@
+import { createPointerSurface } from '../shared/pointer-surface.js';
+import { tap as hapticTap } from '../shared/haptics.js';
+
 /**
  * Stradella bass system — the left-hand button system on a piano accordion.
  *
@@ -234,7 +237,6 @@ export function renderStradella(rootEl, opts) {
   let currentLayout = opts.initialLayout || 'standard';
   let currentOrientation = opts.orientation || 'horizontal';
   let currentSize = opts.size && STRADELLA_SIZES[opts.size] ? opts.size : '120';
-  const activeButtons = new Map(); // pointerId -> btn
 
   const build = () => {
     rootEl.innerHTML = '';
@@ -301,6 +303,7 @@ export function renderStradella(rootEl, opts) {
     if (!btn || btn._pressed) return;
     btn._pressed = true;
     btn.classList.add('active');
+    hapticTap();
     onPress(btn._notes);
     if (btn._notes.length) onActivity(btn._notes[0]);
   };
@@ -312,37 +315,16 @@ export function renderStradella(rootEl, opts) {
     onRelease(btn._notes);
   };
 
-  // Drag-to-play: pointerId stays tracked from pointerdown to pointerup,
-  // even if the cursor wanders off the buttons. Map value can be `null` for
-  // "held but currently off-button".
-  rootEl.addEventListener('pointerdown', (event) => {
-    const btn = event.target.closest('.stradella-button');
-    if (!btn) return;
-    rootEl.setPointerCapture?.(event.pointerId);
-    activeButtons.set(event.pointerId, btn);
-    press(btn);
-    event.preventDefault();
+  // PointerSurface handles per-pointer tracking, drag-cross detection,
+  // and tap-vs-pan-x deferral on touch (`touch-action: pan-x` on
+  // `.stradella-button`). We just supply the press/release semantics.
+  const surface = createPointerSurface(rootEl, {
+    targetSelector: '.stradella-button',
+    deferScrollOnTouch: true,
+    onEnter: (btn) => press(btn),
+    onLeave: (btn) => release(btn),
+    onRelease: (btn) => release(btn)
   });
-
-  rootEl.addEventListener('pointermove', (event) => {
-    if (!activeButtons.has(event.pointerId)) return;
-    const target = document.elementFromPoint(event.clientX, event.clientY);
-    const btn = target && target.closest && target.closest('.stradella-button');
-    const prev = activeButtons.get(event.pointerId);
-    if (btn === prev) return;
-    if (prev) release(prev);
-    if (btn) press(btn);
-    activeButtons.set(event.pointerId, btn || null);
-  });
-
-  const endPointer = (event) => {
-    if (!activeButtons.has(event.pointerId)) return;
-    const btn = activeButtons.get(event.pointerId);
-    activeButtons.delete(event.pointerId);
-    if (btn) release(btn);
-  };
-  rootEl.addEventListener('pointerup', endPointer);
-  rootEl.addEventListener('pointercancel', endPointer);
 
   build();
 
@@ -350,30 +332,26 @@ export function renderStradella(rootEl, opts) {
     setLayout(layoutId) {
       if (!STRADELLA_LAYOUTS[layoutId]) return;
       // Release everything before redrawing.
-      for (const btn of activeButtons.values()) release(btn);
-      activeButtons.clear();
+      surface.releaseAll();
       currentLayout = layoutId;
       build();
     },
     setOrientation(orientation) {
       if (orientation !== 'horizontal' && orientation !== 'vertical') return;
       if (orientation === currentOrientation) return;
-      for (const btn of activeButtons.values()) release(btn);
-      activeButtons.clear();
+      surface.releaseAll();
       currentOrientation = orientation;
       build();
     },
     setSize(sizeId) {
       if (!STRADELLA_SIZES[sizeId]) return;
       if (sizeId === currentSize) return;
-      for (const btn of activeButtons.values()) release(btn);
-      activeButtons.clear();
+      surface.releaseAll();
       currentSize = sizeId;
       build();
     },
     clearActive() {
-      for (const btn of activeButtons.values()) release(btn);
-      activeButtons.clear();
+      surface.releaseAll();
       rootEl.querySelectorAll('.stradella-button.active').forEach((el) => {
         el.classList.remove('active');
         el._pressed = false;

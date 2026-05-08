@@ -109,6 +109,30 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://joeheyming.github.io/play/metronome/</loc>
+    <lastmod>2026-05-08T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/play/harp/</loc>
+    <lastmod>2026-05-08T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/play/steeldrum/</loc>
+    <lastmod>2026-05-08T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/play/mallets/</loc>
+    <lastmod>2026-05-08T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://joeheyming.github.io/sadtrombone/</loc>
     <lastmod>2026-01-31T00:00:00+00:00</lastmod>
     <changefreq>monthly</changefreq>

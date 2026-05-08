@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>🥁 Steel drum - Play in Your Browser | Joe Heyming</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥁</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="A free browser steel drum / handpan. Tap the tongues to ring out exotic scales. Pure Web Audio synthesis, multi-touch friendly."
+    />
+    <meta name="theme-color" content="#0f172a" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Play" />
+    <meta property="og:title" content="🥁 Steel drum - Play in Your Browser" />
+    <meta
+      property="og:description"
+      content="Tap the tongues of a browser handpan. Pure Web Audio, multi-touch."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/play/steeldrum/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/play/steeldrum/steeldrum-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Browser steel drum / handpan" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="🥁 Steel drum - Play in Your Browser" />
+    <meta
+      name="twitter:description"
+      content="Tap the tongues of a browser handpan. Pure Web Audio, multi-touch."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/play/steeldrum/steeldrum-preview.png"
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/play/steeldrum/" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
+
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="instrument-body">
+    <header class="instrument-header">
+      <div class="instrument-page-title">
+        <span aria-hidden="true">🥁</span>
+        <h1>Steel drum</h1>
+      </div>
+      <div class="header-status">
+        <div class="now-playing" id="now-playing" aria-live="polite">—</div>
+      </div>
+      <a class="instruments-link" href="../" aria-label="Back to instruments">
+        <span class="instruments-link-icon" aria-hidden="true">🎵</span>
+        <span class="instruments-link-text">Instruments</span>
+      </a>
+    </header>
+
+    <section class="instrument-controls" aria-label="Steel drum controls">
+      <div class="control">
+        <label for="volume">Volume</label>
+        <input id="volume" type="range" min="0" max="100" value="60" />
+      </div>
+
+      <div class="control">
+        <label for="scale">Scale</label>
+        <select id="scale">
+          <option value="kurd" selected>Kurd (minor)</option>
+          <option value="celtic-minor">Celtic minor</option>
+          <option value="akebono">Akebono</option>
+          <option value="integral">Integral</option>
+          <option value="pygmy">Pygmy</option>
+          <option value="major-pentatonic">Major pentatonic</option>
+          <option value="hijaz">Hijaz</option>
+        </select>
+      </div>
+
+      <div class="control">
+        <label for="root">Root</label>
+        <select id="root">
+          <option value="0">C</option>
+          <option value="1">C♯</option>
+          <option value="2" selected>D</option>
+          <option value="3">D♯</option>
+          <option value="4">E</option>
+          <option value="5">F</option>
+          <option value="6">F♯</option>
+          <option value="7">G</option>
+          <option value="8">G♯</option>
+          <option value="9">A</option>
+          <option value="10">A♯</option>
+          <option value="11">B</option>
+        </select>
+      </div>
+
+      <div class="control control-toggle">
+        <label class="toggle-label">
+          <input type="checkbox" id="show-labels" checked />
+          <span>Labels</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="hang-stage">
+      <div class="hang-bowl" id="hang-bowl" role="group" aria-label="Steel drum tongues">
+        <!-- Populated by JS: 1 ding + 8 tongues. -->
+      </div>
+    </section>
+
+    <section class="instrument-help">
+      <h2>How to play</h2>
+      <ul>
+        <li>
+          <strong>Tap</strong> a tongue to ring it. The big disc in the middle
+          is the <strong>ding</strong> (the root, an octave below).
+        </li>
+        <li>
+          Multi-touch friendly — use both hands. Drag from one tongue to
+          another to retrigger them, just like rolling fingers on a real
+          handpan.
+        </li>
+        <li>
+          Try <strong>Kurd</strong> for a moody minor sound, <strong>Akebono</strong>
+          for a Japanese pentatonic flavour, or <strong>Hijaz</strong> for a
+          Middle-Eastern feel.
+        </li>
+      </ul>
+    </section>
+
+    <script type="module" src="steeldrum.js"></script>
+  </body>
+</html>

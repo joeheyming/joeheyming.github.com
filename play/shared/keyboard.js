@@ -5,6 +5,7 @@
  * object that must implement `noteOn(midi)`, `noteOff(midi)`, `allOff()`.
  */
 import { isBlackKey, isC, midiToName } from './audio.js';
+import { createPointerSurface } from './pointer-surface.js';
 
 /**
  * Two-row "piano-roll" keyboard layout (FL Studio / many online pianos).
@@ -54,11 +55,22 @@ export class Keyboard {
     this.whiteKeyCount = opts.whiteKeyCount;
     this.synth = opts.synth;
     this.onActivity = opts.onActivity || (() => {});
+    // Opt-in: render a pitch label on accidental keys too. Default off
+    // because piano-style layouts squeeze the black keys above the
+    // whites — there's no room for a label without crowding. Pages that
+    // present accidentals as a separate row of full-size bars (e.g. the
+    // mallets page's xylophone-style two-row layout) flip this on so
+    // every bar reads as a discrete pitched target.
+    this.labelAccidentals = opts.labelAccidentals === true;
 
     this.keyEls = new Map();
-    this.activePointers = new Map();
     this._sustain = false;
     this._heldBySustain = new Set();
+    // Track which pointers are currently held, for sustain-aware release.
+    // The PointerSurface owns the target tracking; this set just tells us
+    // whether a pointer is "live" so onRelease can decide noteOff vs hold.
+    this._activePointers = new Set();
+    this._tapDelayMs = opts.tapDelayMs ?? 80;
 
     this.render();
     this.attachPointerHandlers();
@@ -79,6 +91,12 @@ export class Keyboard {
   render() {
     this.root.innerHTML = '';
     this.keyEls.clear();
+
+    // Expose the white-key count as a CSS variable so stylesheets can
+    // size the keyboard relative to it (e.g. enforcing a minimum
+    // tap-target width by giving the keyboard `min-width: calc(var(--white-key-count) * 26px)`
+    // and letting the stage scroll horizontally on phones).
+    this.root.style.setProperty('--white-key-count', String(this.whiteKeyCount));
 
     const midis = [];
     let cursor = this.startMidi;
@@ -138,13 +156,18 @@ export class Keyboard {
     const label = document.createElement('span');
     label.className = 'key-label';
 
-    // Render the note name on every white key. CSS decides whether to show
-    // it: by default only C is shown (with full octave), but on mobile we
-    // show all white keys with just the pitch letter.
-    if (!black) {
+    // Render the note name on every natural — and, when `labelAccidentals`
+    // is on, on each accidental too. CSS decides whether to show the
+    // text: by default only C carries the full octave anchor ("C4"),
+    // every other natural is just its pitch letter ("D", "E"…), and an
+    // accidental (when labelled at all) reads as "C#", "D#", etc.
+    if (!black || this.labelAccidentals) {
       const noteSpan = document.createElement('span');
       noteSpan.className = 'note';
       // Full "C4" on C keys, just the letter ("D", "E", …) on the rest.
+      // Accidentals use the same trim — the octave already lives on the
+      // adjacent C, so duplicating it on every sharp would clutter the
+      // row.
       noteSpan.textContent = isC(midi) ? noteName : noteName.replace(/\d+$/, '');
       label.appendChild(noteSpan);
     }
@@ -176,62 +199,38 @@ export class Keyboard {
   }
 
   attachPointerHandlers() {
-    const startFromEvent = (event) => {
-      const target = event.target.closest('.piano-key');
-      if (!target) return null;
-      return Number(target.dataset.midi);
-    };
-
-    // Drag-to-play: as long as a pointer is held down (anywhere), we keep
-    // tracking it. The active note follows whichever key the pointer is
-    // over — including dragging off the keyboard and back on. The map can
-    // store `null` for "currently held but off-key".
-    this.root.addEventListener('pointerdown', (event) => {
-      const midi = startFromEvent(event);
-      if (midi == null) return;
-      this.root.setPointerCapture?.(event.pointerId);
-      this.activePointers.set(event.pointerId, midi);
-      this.pressVisual(midi, true);
-      this.synth.noteOn(midi);
-      this.onActivity(midi);
-      event.preventDefault();
-    });
-
-    this.root.addEventListener('pointermove', (event) => {
-      if (!this.activePointers.has(event.pointerId)) return;
-      const target = document.elementFromPoint(event.clientX, event.clientY);
-      const keyEl = target && target.closest && target.closest('.piano-key');
-      const newMidi = keyEl ? Number(keyEl.dataset.midi) : null;
-      const prevMidi = this.activePointers.get(event.pointerId);
-      if (newMidi === prevMidi) return;
-      if (prevMidi != null) {
-        this.pressVisual(prevMidi, false);
-        this.synth.noteOff(prevMidi);
+    // PointerSurface owns the pointerdown/move/up/cancel wiring, the
+    // scroll-gesture deferral (tap-vs-pan-x on touch), and per-pointer
+    // target tracking. We adapt its three callbacks to the keyboard's
+    // sustain-on-press semantics:
+    //   - onEnter  → noteOn (initial press OR drag-cross to a new key)
+    //   - onLeave  → noteOff (drag-cross away mid-press)
+    //   - onRelease → noteOff unless sustain is held
+    this.surface = createPointerSurface(this.root, {
+      targetSelector: '.piano-key',
+      deferScrollOnTouch: true,
+      tapDelayMs: this._tapDelayMs,
+      onEnter: (target, ptrId) => {
+        this._activePointers.add(ptrId);
+        const midi = Number(target.dataset.midi);
+        this.pressVisual(midi, true);
+        this.synth.noteOn(midi);
+        this.onActivity(midi);
+      },
+      onLeave: (target) => {
+        const midi = Number(target.dataset.midi);
+        this.pressVisual(midi, false);
+        this.synth.noteOff(midi);
+      },
+      onRelease: (target, ptrId) => {
+        this._activePointers.delete(ptrId);
+        if (!target) return;
+        const midi = Number(target.dataset.midi);
+        this.pressVisual(midi, false);
+        if (!this._sustain) this.synth.noteOff(midi);
+        else this._heldBySustain.add(midi);
       }
-      if (newMidi != null) {
-        this.pressVisual(newMidi, true);
-        this.synth.noteOn(newMidi);
-        this.onActivity(newMidi);
-      }
-      // Keep the pointer tracked even when off-key, so a subsequent drag
-      // back over a key re-engages.
-      this.activePointers.set(event.pointerId, newMidi);
     });
-
-    const endPointer = (event) => {
-      if (!this.activePointers.has(event.pointerId)) return;
-      const midi = this.activePointers.get(event.pointerId);
-      this.activePointers.delete(event.pointerId);
-      if (midi == null) return;
-      this.pressVisual(midi, false);
-      if (!this._sustain) this.synth.noteOff(midi);
-      else this._heldBySustain.add(midi);
-    };
-    this.root.addEventListener('pointerup', endPointer);
-    this.root.addEventListener('pointercancel', endPointer);
-    // Note: no `pointerleave` handler. Pointer capture means we keep
-    // getting events even when the cursor leaves the element bounds, and
-    // a leave handler would short-circuit drag-off-and-back-on behavior.
   }
 
   pressVisual(midi, on) {

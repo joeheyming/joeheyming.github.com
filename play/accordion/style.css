@@ -69,11 +69,15 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 5px 6px 5px;
+  /* Tighter vertical packing — these buttons sit between the chrome
+   * row and the keyboard and were taking ~62px of vertical real
+   * estate (5+38+4+12+5). Trimmed gap and padding bring the chip
+   * closer to ~48px without losing the silver-stop look. */
+  gap: 2px;
+  padding: 3px 6px;
   background: linear-gradient(180deg, #2a2a2a 0%, #0d0d0d 100%);
   border: 1px solid #000;
-  border-radius: 12px;
+  border-radius: 10px;
   color: rgba(255, 255, 255, 0.6);
   cursor: pointer;
   font-family: inherit;
@@ -105,8 +109,8 @@
  * black button. Engraved with a vertical spine via ::before. */
 .register-stop {
   position: relative;
-  width: 22px;
-  height: 38px;
+  width: 18px;
+  height: 28px;
   background: linear-gradient(180deg, #f3f4f6 0%, #c4c4c4 50%, #9a9a9a 100%);
   border: 1px solid #6b6b6b;
   border-radius: 3px;
@@ -128,8 +132,8 @@
 /* The dots are only rendered when their reed is active — appended by JS. */
 .register-dot {
   position: absolute;
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   background: radial-gradient(circle at 30% 30%, #2a2a2a, #000 70%);
   border-radius: 50%;
   left: 50%;
@@ -160,21 +164,203 @@
   line-height: 1;
 }
 
+/* Compact "current register" pill — only visible when the strip
+ * collapses (short viewports). On desktop and portrait phones the
+ * full strip of stops is what the player sees; the toggle hides
+ * itself out of the way. */
+.register-toggle {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 3px 6px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #0d0d0d 100%);
+  border: 1px solid #000;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -2px 4px rgba(0, 0, 0, 0.6),
+    0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.register-toggle:active {
+  transform: translateY(1px);
+}
+
+.register-toggle-stop {
+  /* Mirror of the active register's silver plate — JS clones the dot
+   * pattern of whichever stop is currently engaged. */
+  width: 14px;
+  height: 22px;
+}
+
+.register-toggle-name {
+  line-height: 1;
+}
+
+.register-toggle-chevron {
+  font-size: 8px;
+  opacity: 0.7;
+  line-height: 1;
+  transition: transform 120ms ease;
+}
+
+.register-toggle[aria-expanded='true'] .register-toggle-chevron {
+  transform: rotate(180deg);
+}
+
 @media (max-width: 720px) {
+  .register-strip {
+    /* Tighter than desktop because every vertical pixel here pushes
+     * the keyboard further down on a phone. */
+    gap: 6px;
+    padding: 2px 6px;
+    margin: 0 auto 2px;
+  }
   .register-button {
-    padding: 4px 5px 4px;
-    border-radius: 10px;
+    padding: 2px 5px 3px;
+    border-radius: 8px;
   }
   .register-stop {
-    width: 18px;
-    height: 30px;
+    width: 14px;
+    height: 22px;
   }
   .register-dot {
-    width: 5px;
-    height: 5px;
+    width: 4px;
+    height: 4px;
   }
   .register-label {
     font-size: 8px;
+  }
+}
+
+/* JS moves the strip between `.accordion-stage` (desktop) and
+ * `.instrument-controls` (mobile). Until it's placed we keep it
+ * invisible so a mobile visitor doesn't briefly see the desktop
+ * full-stop strip flash above the keyboard before being relocated
+ * up into the chrome row. */
+.register-strip:not([data-placed]) {
+  visibility: hidden;
+}
+
+/* ---------- Collapsed register strip (mobile) ----------
+ *
+ * On phones (portrait or landscape) we collapse the register strip
+ * into a single "current register" pill that sits inline with the
+ * other chrome controls; the JS moves the element into the chrome
+ * row at this breakpoint. Tapping the pill opens a popover anchored
+ * to it that holds the full set of stops.
+ */
+@media (max-width: 720px), (max-height: 540px) {
+  .register-strip {
+    /* Anchor the popover to the strip and let the pill take its
+     * natural width — no big horizontal gap, no wrap. */
+    position: relative;
+    gap: 6px;
+    padding: 0;
+    margin: 0;
+    flex-wrap: nowrap;
+  }
+  /* When the strip lives inline with the chrome controls (mobile)
+   * we want the small "REGISTER" tag visible — every other item in
+   * that row has a label, and a bare silver-stop pill with no
+   * caption is harder to read at a glance. The desktop strip in
+   * .accordion-stage uses its own column-stacked meta block, so
+   * we only re-style when the strip is in .instrument-controls. */
+  .instrument-controls .register-strip-meta {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+  }
+  .instrument-controls .register-strip-label {
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--fg-dim);
+  }
+  .instrument-controls .register-strip-hand {
+    /* The active hand is implicit from the View dropdown — hide
+     * the sub-label inline so the chrome row stays tight. */
+    display: none;
+  }
+  /* If the strip ever ends up back in the stage on a mobile width
+   * (transient during JS placement, or no-JS), keep the meta hidden
+   * so the inline strip styling above doesn't leak through. */
+  .accordion-stage .register-strip-meta {
+    display: none;
+  }
+  .register-toggle {
+    display: inline-flex;
+  }
+  /* Inline strip becomes the popover panel: hidden by default, shown
+   * (anchored beneath the toggle) when the toggle is open. We keep
+   * the buttons rendered so the radiogroup state survives the toggle
+   * collapse, but hide them visually until the player asks. */
+  .register-options {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    flex-wrap: wrap;
+    gap: 6px;
+    /* Without an explicit sizing hint flexbox shrink-fits to the
+     * narrowest child, forcing every stop onto its own line — which
+     * with 6 right-hand registers blows past a 360-tall landscape
+     * viewport. `max-content` keeps the popover horizontal whenever
+     * it can; `max-width: 100vw - 16px` lets it wrap onto a second
+     * row on truly narrow phones rather than overflow off-screen. */
+    width: max-content;
+    max-width: calc(100vw - 16px);
+    padding: 6px 8px;
+    background: linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.7);
+  }
+  .register-strip[data-collapsed-open='true'] .register-options {
+    display: flex;
+  }
+  /* Restore the full per-button affordance inside the popover — these
+   * are now the primary tap targets, not crammed into a strip, so the
+   * label can come back. */
+  .register-button {
+    padding: 3px 6px;
+    border-radius: 8px;
+    gap: 2px;
+  }
+  .register-label {
+    display: inline;
+    font-size: 9px;
+  }
+}
+
+/* ---------- Landscape phone: REGISTER tightening ----------
+ *
+ * On landscape phones the chrome row is already two-deep (the four
+ * selects fill row 1; REGISTER often wraps to row 2 on its own and
+ * sits centered with a lot of empty whitespace either side). At this
+ * height we drop the inline "REGISTER" label so the pill alone is
+ * small enough to fit alongside the other controls on row 1, and
+ * kill the row-gap so any remaining wrap doesn't add a visible
+ * vertical band above the keyboard. The silver-stop pattern +
+ * active-register letter inside the pill still identifies it without
+ * the textual caption. */
+@media (max-height: 540px) {
+  .instrument-controls {
+    row-gap: 0;
+  }
+  .instrument-controls .register-strip-meta {
+    display: none;
+  }
+  .instrument-controls .register-strip {
+    gap: 0;
   }
 }
 
@@ -237,11 +423,67 @@
 .accordion-view[data-kind='chromatic'] {
   /* Both button systems can be wide; let them breathe horizontally. */
   justify-content: flex-start;
+  /* Narrow desktop viewports (720–1024px) can still drive `--btn-size`
+   * down to its 26px floor and produce a row wider than the container —
+   * particularly the diagonal bottom row of a 120-bass Stradella. The
+   * mobile breakpoint below already adds `overflow: auto` for touch
+   * devices, but desktop mouse users need an escape too. Allow the
+   * .accordion-view to scroll horizontally whenever its button system
+   * exceeds the container; the keyboard remains centred while it fits. */
+  overflow-x: auto;
 }
 
 .accordion-view[data-kind='stradella'] > *,
 .accordion-view[data-kind='chromatic'] > * {
   width: 100%;
+}
+
+/* ---------- Phone-sized viewports ----------
+ *
+ * Same strategy as the standalone piano page: enforce a minimum tap
+ * target for buttons / keys and let the host scroll horizontally when
+ * the layout is wider than the viewport. With `touch-action: pan-x` on
+ * the buttons themselves, the browser handles horizontal scroll
+ * natively (with momentum); the JS in stradella.js / chromatic.js /
+ * shared/keyboard.js just defers the press by ~80ms so a swipe that
+ * starts on a button doesn't accidentally fire it (see
+ * `play/shared/scroll-gesture.js`). */
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+  /* The shared rule in `play/style.css` makes `.accordion-stage` a
+   * flex:1 / overflow:auto playing area — but the register strip lives
+   * inside it (right above the buttons, like on a real instrument) and
+   * we want it pinned, not scrolling. Override: stage is a flex column
+   * with hidden overflow, register strip stays at natural height,
+   * `.accordion-view` underneath fills the rest and owns the scroll. */
+  .accordion-stage {
+    overflow: hidden;
+    padding: 4px 0 0;
+    gap: 4px;
+  }
+
+  .accordion-stage > .register-strip {
+    flex: 0 0 auto;
+  }
+
+  .accordion-view {
+    flex: 1 1 0;
+    min-height: 0;
+    /* Both axes — horizontal layouts (landscape stradella, wide piano)
+     * overflow X; vertical layouts (portrait stradella / chromatic)
+     * overflow Y. `auto` shows scrollbars only when actually needed. */
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Centering inside an overflowing container strands the left/top
+     * half (scrollLeft/scrollTop can't go negative). Pin to the start
+     * so scrolling reaches every column / row. The piano sub-view
+     * still re-applies horizontal centering via the piano-keyboard's
+     * own width constraint, so a layout that fits the viewport stays
+     * centered. */
+    justify-content: flex-start;
+    /* Edge-to-edge so the swipe-to-scroll affordance reaches the screen
+     * edges and there's no dead margin to grab. */
+    padding: 0;
+  }
 }
 
 /* ---------- Stradella bass (120-button, diagonal grid) ----------
@@ -264,7 +506,11 @@
    * overflows so we don't clip the left edge on small screens. */
   align-items: safe center;
   gap: 4px;
-  padding: 14px 12px;
+  /* Horizontal padding has to clear the 14px container radius so the
+   * diagonal bottom row's last button doesn't kiss the bottom-right curve.
+   * 18px gives ~4px of breathing past the radius even at the tightest
+   * 1280px desktop fit. */
+  padding: 14px 18px;
   background: linear-gradient(180deg, #0b1220, #1f2937);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -273,9 +519,10 @@
   -webkit-user-select: none;
   /* The container itself stays scrollable — touches that land in the empty
    * gaps between buttons (e.g. the diagonal stagger) should let the user
-   * scroll the page. The buttons get `touch-action: none` individually
-   * (see `.stradella-button` below) which captures gestures that start on
-   * a button and lets us drag-play across the row. */
+   * scroll the page. The buttons get `touch-action: pan-x` individually
+   * (see `.stradella-button` below) so a swipe that starts on a button
+   * still scrolls horizontally; vertical drags are reserved for our
+   * drag-play across rows. */
   touch-action: auto;
   /* Sizing knobs the row offset and button widths reference. The button
    * size auto-grows when there are fewer columns (e.g. 12- or 24-bass
@@ -283,7 +530,28 @@
    * it from going too tiny for touch on full 120-bass layouts and from
    * ballooning on huge desktops. */
   --btn-gap: 4px;
-  --auto-btn: calc((100vw - 144px) / max(var(--col-count, 20), 1) - var(--btn-gap));
+  /* Per-row diagonal stagger pushes successive rows right by `--row-offset *
+   * --col-step`. The widest (last) row therefore needs `col-count + max-row-
+   * offset` button-widths of horizontal space to fit, not just `col-count`.
+   * `--max-row-offset` is `(row-count − 1) × 0.5` for the layouts here
+   * (standard 6 → 2.5, eastern 5 → 2, free-bass 3 → 1). Without this term
+   * the bottom row's tail would clip past the container on a fully-laid-out
+   * 120-bass on a 1280px desktop. */
+  --max-row-offset: calc((max(var(--row-count, 6), 1) - 1) * 0.5);
+  /* Available width inside the keyboard's content area:
+   *   100vw − stage padding (24) − accordion-view padding (8)
+   *        − stradella-bass padding (36) − label column (88) = 100vw − 156
+   * BUT `.accordion-view` is capped at `max-width: 1280px`, so on wide
+   * monitors the actual content area never grows past `1280 − 8 − 36 − 88
+   * = 1148`. Without the `min(...)` cap the formula keeps growing past
+   * its real container, the clamp pins btn-size at the 56px maximum, and
+   * the diagonal bottom row overflows hundreds of pixels on a 1920px
+   * display. The cap pins the math to the real container above 1304px
+   * and is a no-op below it. */
+  --auto-btn: calc(
+    min(100vw - 156px, 1148px) / (max(var(--col-count, 20), 1) + var(--max-row-offset)) -
+      var(--btn-gap)
+  );
   --btn-size: clamp(26px, var(--auto-btn), 56px);
   --col-step: calc(var(--btn-size) + var(--btn-gap));
   overflow: visible;
@@ -295,6 +563,22 @@
   align-items: center;
   gap: var(--btn-gap);
   width: max-content; /* let the row grow to fit 20 staggered buttons */
+}
+
+/* Horizontal-mode equal-width trick: every row pads its right side by the
+ * *complement* of its own diagonal offset, so all rows render at the same
+ * total width as the bottom row. Combined with the container's `align-
+ * items: safe center`, this keeps every row's left edge aligned — the
+ * staircase comes purely from the per-row leading margin on the first
+ * button. Without this, shorter upper rows would each centre on their
+ * own midpoint and the diagonal would look bent.
+ *
+ * Scoped to horizontal orientation only: in vertical mode the row's
+ * width is fixed to `var(--btn-size)` (one button wide) and adding
+ * padding-right would, under the global `box-sizing: border-box`,
+ * eat into the content area and squash the buttons. */
+.stradella-bass:not([data-orientation='vertical']) .stradella-row {
+  padding-right: calc((var(--max-row-offset, 0) - var(--row-offset, 0)) * var(--col-step));
 }
 
 .stradella-row-label {
@@ -354,11 +638,19 @@
   color: #e2e8f0;
   border-radius: 999px;
   font-family: inherit;
-  font-weight: 600;
+  /* Heavier weight so chord glyphs (M / m / 7 / °) and the small note
+   * letters on counter-bass / bass stay legible on the 26px floor. */
+  font-weight: 700;
   cursor: pointer;
-  /* Capture the gesture as soon as the touch lands on a button — keeps us
-   * playing through a drag instead of being hijacked into a page scroll. */
-  touch-action: none;
+  /* `pan-x pan-y` lets the browser handle horizontal AND vertical
+   * panning natively (with momentum) on the `.accordion-view`
+   * scroll container. Whichever axis actually overflows is the one
+   * the browser uses for that gesture — landscape stradella overflows
+   * X, portrait stradella overflows Y, dense layouts can overflow
+   * both. The page chrome above stays pinned by the body-locked rule
+   * in `play/style.css`. We trade vertical drag-glissando across rows
+   * for native scroll in both axes (the user's QoL ask). */
+  touch-action: pan-x pan-y;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -387,7 +679,13 @@
 .stradella-button-free-low,
 .stradella-button-free-mid,
 .stradella-button-free-high {
-  font-size: 13px;
+  /* Note names ("A" / "C♯" / "B♭") scale with button size like the
+   * chord glyphs do. Slightly larger ratio (0.46 vs 0.42) because the
+   * letterforms have less vertical mass than 'M' / 'm' / '7' / '°' and
+   * benefit from a touch more presence. Two-character names (e.g. "C♯")
+   * still fit inside the circular chip at this ratio because letter
+   * advance is roughly 0.55–0.6 of font-size in the inherited UI font. */
+  font-size: calc(var(--btn-size) * 0.46);
   background: linear-gradient(180deg, #f8fafc, #cbd5e1);
   color: #0f172a;
   border-color: #475569;
@@ -450,14 +748,30 @@
 
 /* Phone-sized viewports (and any touch-only device, regardless of width)
  * get noticeably larger Stradella buttons so they're comfortable to press
- * with a fingertip rather than aimed at with a cursor. */
+ * with a fingertip rather than aimed at with a cursor.
+ *
+ * The min in `clamp()` (38px) is the tap-target floor — when a wide layout
+ * (e.g. 120-bass × 20 cols) would force buttons below it, the row instead
+ * grows past the viewport and the parent `.accordion-view` scrolls
+ * horizontally (its `overflow-x: auto` is set in the
+ * `@media (max-width: 720px)` block above). */
 @media (max-width: 720px), (hover: none) and (pointer: coarse) {
   .stradella-bass {
     padding: 10px 8px;
     /* Mobile auto-fit: same formula but with bigger floor/cap so picking
-     * a 12- or 24-bass layout fills the screen with chunky touch targets. */
-    --auto-btn: calc((100vw - 88px) / max(var(--col-count, 20), 1) - var(--btn-gap));
-    --btn-size: clamp(28px, var(--auto-btn), 64px);
+     * a 12- or 24-bass layout fills the screen with chunky touch targets.
+     * Same `+ max-row-offset` correction as desktop — when the floor
+     * (38px) clamps the size, `.accordion-view` scrolls horizontally
+     * either way; this just makes the keyboard fit on tablets / phones
+     * in landscape that *can* render 22.5 columns at the floor size.
+     * The 1192px cap mirrors the desktop cap for big landscape tablets:
+     *   1280 (av max-width) − 8 (av padding) − 16 (sb mobile padding)
+     *                       − 64 (mobile label) = 1192. */
+    --auto-btn: calc(
+      min(100vw - 88px, 1192px) / (max(var(--col-count, 20), 1) + var(--max-row-offset)) -
+        var(--btn-gap)
+    );
+    --btn-size: clamp(38px, var(--auto-btn), 64px);
     --btn-gap: 5px;
   }
   .stradella-button {
@@ -492,6 +806,17 @@
   justify-content: safe center;
   gap: 4px;
   overflow: visible;
+  /* `.accordion-view` is `display: flex; align-items: stretch` (default),
+   * so by default the keyboard gets stretched to the parent's cross-axis
+   * height — a fixed pixel box on mobile (where `.accordion-view` is
+   * `flex: 1 1 0`). The keyboard's content (20 staggered buttons per
+   * column, 6 columns) is much taller than that, so under the existing
+   * `overflow: visible` the buttons escape past the dark gradient
+   * background and float on the page background as the user scrolls.
+   * `align-self: start` opts out of the stretch and lets the keyboard
+   * size to its content; `.accordion-view`'s `overflow-y: auto` (mobile
+   * media block above) then provides the scroll container. */
+  align-self: flex-start;
   /* In vertical mode the row-count drives horizontal fit (each Stradella
    * "row" becomes a vertical column of buttons). Auto-fit on row-count
    * so a 12-bass (2 rows) gets huge buttons, while a 6-row standard
@@ -511,6 +836,14 @@
   .stradella-bass[data-orientation='vertical'] {
     margin-left: 24px;
     margin-right: 24px;
+    /* Page-level breathing room *below* the keyboard so the diagonal-
+     * deepest button (the last dim7 / dom7 in the staggered column,
+     * which sits 2.5 col-steps lower than the counter-bass column)
+     * clears the system nav bar / home indicator when the user scrolls
+     * all the way down. `env(safe-area-inset-bottom)` picks up the iOS
+     * home-indicator inset and the Android gesture-bar inset; the
+     * +72px is plain visual breathing on top. */
+    margin-bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
     --auto-btn: calc((100vw - 96px) / max(var(--row-count, 6), 1) - var(--btn-gap));
     /* Slightly lower floor than desktop so 6-row layouts can shrink
      * buttons enough to fit without blowing past the side gutters. */
@@ -593,6 +926,18 @@
   align-items: flex-start;
   justify-content: safe center;
   overflow: visible;
+  /* Same fix as `.stradella-bass[data-orientation='vertical']`:
+   * `.accordion-view` is `display: flex; align-items: stretch` (default),
+   * so by default the keyboard gets stretched to the parent's cross-axis
+   * height — a fixed pixel box on mobile (where `.accordion-view` is
+   * `flex: 1 1 0`). The keyboard's content (15+ buttons per column,
+   * 4–5 columns) is much taller than that, so under the existing
+   * `overflow: visible` the buttons escape past the dark gradient
+   * background as the user scrolls. `align-self: start` opts out of the
+   * stretch and lets the keyboard size to its content; `.accordion-view`'s
+   * `overflow-y: auto` (mobile media block) provides the scroll
+   * container. */
+  align-self: flex-start;
   /* In vertical mode the row-count drives horizontal fit (each chromatic
    * "row" becomes a vertical column). 3-row models get huge buttons,
    * 5-row stays comfortable. */
@@ -627,7 +972,7 @@
   font-family: inherit;
   font-weight: 600;
   cursor: pointer;
-  touch-action: none; /* see `.stradella-button` for rationale */
+  touch-action: pan-x pan-y; /* see `.stradella-button` for rationale */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -685,9 +1030,12 @@
 
 @media (max-width: 720px), (hover: none) and (pointer: coarse) {
   .chromatic-keyboard {
-    /* Mobile: same auto-fit math but with chunkier touch-friendly bounds. */
+    /* Mobile: same auto-fit math but with chunkier touch-friendly bounds.
+     * 40px floor matches the tap-target minimum; wider layouts (e.g.
+     * 16-col 5-row CBA) overflow `.accordion-view` and rely on the
+     * scroll-gesture heuristic in chromatic.js. */
     --auto-btn: calc((100vw - 24px) / max(var(--col-count, 16), 1) - var(--btn-gap));
-    --btn-size: clamp(34px, var(--auto-btn), 64px);
+    --btn-size: clamp(40px, var(--auto-btn), 64px);
     --btn-gap: 5px;
     padding: 10px 8px;
   }
@@ -700,6 +1048,13 @@
   .chromatic-keyboard[data-orientation='vertical'] {
     margin-left: 24px;
     margin-right: 24px;
+    /* Match the Stradella vertical-mobile margin so the deepest
+     * staggered button (last row in the bottom column) clears the
+     * system nav bar / home indicator when scrolled to the bottom.
+     * `env(safe-area-inset-bottom)` picks up the iOS home-indicator
+     * inset and Android gesture-bar inset; the +72px is plain visual
+     * breathing on top. */
+    margin-bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
     --auto-btn: calc((100vw - 96px) / max(var(--row-count, 4), 1) - var(--btn-gap));
     --btn-size: clamp(44px, var(--auto-btn), 88px);
   }
@@ -713,4 +1068,42 @@
 .chromatic-row-duplicate .chromatic-button,
 .chromatic-col-duplicate .chromatic-button {
   box-shadow: inset 0 0 0 1px rgba(196, 181, 253, 0.15);
+}
+
+/* ---------- Landscape phone: tighten keyboard against chrome ----------
+ *
+ * Sits below the mobile-touch keyboard rules so it can override their
+ * 10px vertical padding. On landscape phones every pixel of vertical
+ * real-estate counts. Three changes:
+ *   - Trim the keyboard container's vertical padding so the buttons
+ *     don't have a wide breathing band inside the rounded border.
+ *   - `align-self: start` on the horizontal keyboard so it takes its
+ *     natural content height instead of being stretched by
+ *     `.accordion-view`'s default `align-items: stretch`. Without
+ *     this the chromatic keyboard's `column-reverse` packing leaves
+ *     a visible dark band of empty container above the topmost row;
+ *     and the Stradella's diagonal staircase ends with the same
+ *     visual gap above row 0. The leftover stage space below the
+ *     keyboard is just the page background and reads as natural
+ *     breathing room.
+ *   - `justify-content: flex-start` on the stage so the keyboard
+ *     hugs the chrome instead of being centered vertically. On real
+ *     touch phones the mobile-touch override gives `.accordion-view`
+ *     `flex: 1 1 0`, which already fills the stage; this rule covers
+ *     the narrow-desktop landscape case where that override doesn't
+ *     fire but the cramped vertical space still benefits from
+ *     pinning content to the top. */
+@media (max-height: 540px) {
+  .accordion-stage {
+    justify-content: flex-start;
+  }
+  .chromatic-keyboard,
+  .stradella-bass {
+    padding-top: 4px;
+    padding-bottom: 6px;
+  }
+  .chromatic-keyboard[data-orientation='horizontal'],
+  .stradella-bass:not([data-orientation='vertical']) {
+    align-self: start;
+  }
 }

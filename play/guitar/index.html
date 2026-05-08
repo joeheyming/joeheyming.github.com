@@ -50,7 +50,8 @@
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
-    <script src="/back.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
+    <script src="/proxy.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js"></script>
 
     <link rel="stylesheet" href="../style.css" />
@@ -84,11 +85,13 @@
       <div class="control">
         <label for="tone">Sound</label>
         <select id="tone">
-          <option value="acoustic_guitar_steel" selected>Acoustic steel</option>
-          <option value="acoustic_guitar_nylon">Classical nylon</option>
-          <option value="electric_guitar_clean">Electric clean</option>
-          <option value="electric_guitar_jazz">Electric jazz</option>
-          <option value="overdriven_guitar">Overdriven</option>
+          <option value="acoustic_guitar_samples" selected>Acoustic (samples)</option>
+          <option value="electric_guitar_samples">Electric clean (samples)</option>
+          <option value="acoustic_guitar_steel">Acoustic steel (soundfont)</option>
+          <option value="acoustic_guitar_nylon">Classical nylon (soundfont)</option>
+          <option value="electric_guitar_clean">Electric clean (soundfont)</option>
+          <option value="electric_guitar_jazz">Electric jazz (soundfont)</option>
+          <option value="overdriven_guitar">Overdriven (soundfont)</option>
         </select>
         <span class="hint" id="tone-status" aria-live="polite"></span>
       </div>
@@ -152,12 +155,15 @@
       <ul>
         <li><strong>Click or drag</strong> across frets to pluck individual notes.</li>
         <li>
-          Use the <strong>chord builder</strong> to pick a Root, Quality, and Shape (open / barre /
-          higher voicings). Press <strong>Strum</strong> to hear it; the shape stays highlighted
-          on the fretboard so you can study it and play the same notes one at a time. Pink ring
-          marks the <strong>root</strong>; ◯ = open string; × = muted string.
+          Use the <strong>chord builder</strong> to set Quality (Major / m7 / sus4 / …) and Shape
+          (open / barre / higher voicings) — those just configure the chord on the fretboard
+          without playing. Tapping a <strong>Root</strong> button strums the configured chord, so
+          you can play a song by setting up a quality once and tapping different roots: C → F → G,
+          or set <em>m7</em> and tap C → A → D. Press <strong>Strum</strong> to replay the
+          current chord. Pink ring marks the <strong>root</strong>; ◯ = open string; × = muted
+          string.
         </li>
-        <li>The dots at frets 3, 5, 7, 9 and the double-dot at 12 are the standard guitar inlays.</li>
+        <li>The dots at frets 3, 5, 7, 9, 15 and 17 plus the double-dot at 12 are the standard guitar inlays. On narrow screens the neck scrolls horizontally — swipe past the 12th fret to reach the upper register.</li>
         <li>Strings (low to high): <code>E A D G B E</code>. The thicker strings are toward the bottom.</li>
       </ul>
     </section>

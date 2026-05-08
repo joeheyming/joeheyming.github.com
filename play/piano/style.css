@@ -1,0 +1,30 @@
+/* =========================================================================
+ * Piano page-specific styles.
+ *
+ * Most "make it usable on a phone" rules (min per-key width, horizontal
+ * scroll, fill-the-parent height, edge-fade affordance) live in the
+ * shared `play/style.css` so the synth and accordion piano views get
+ * them too. This file only holds piano-page-specific bits.
+ * ========================================================================= */
+
+/* Octave-shift control: visible on every viewport, but most useful on
+ * touch where there are no [/]/arrow shortcuts. Reuses the shared
+ * `.octave-buttons` styling from /play/style.css. */
+.octave-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.octave-control .octave-display {
+  min-width: 36px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.octave-control button[disabled] {
+  opacity: 0.3;
+  cursor: not-allowed;
+}

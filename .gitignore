@@ -6,6 +6,7 @@ node_modules
 /test-results/
 /playwright-report/
 /blob-report/
+/.playwright-cli/
 
 *.DS_Store
 */Thumbs.db

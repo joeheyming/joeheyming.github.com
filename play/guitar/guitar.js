@@ -1,11 +1,63 @@
 /**
  * Browser guitar: a clickable fretboard rendered as 6 string rows × 13 fret
- * columns (open + 12). Plucks notes through soundfont-player guitar samples,
- * with strum buttons that fire chord shapes top-to-bottom.
+ * columns (open + 12). Two playback engines:
+ *
+ *   - **Multi-sampler** (`*_guitar_samples`): real guitar plucks from the
+ *     `nbrosowsky/tonejs-instruments` catalog (CC-BY 3.0), streamed through
+ *     proxy.js and detuned via `playbackRate`. We currently use this for
+ *     **acoustic** (default) and a clean **electric** voice — the latter
+ *     is a true plucky single-coil tone, much shorter-sustain than the
+ *     soundfont overdriven option.
+ *   - **Soundfont** (the rest): the existing soundfont-player engine for
+ *     steel / nylon / electric jazz / overdriven tones.
  */
 import { midiToName, resumeIfSuspended, setMasterVolume, SampleVoice } from '../shared/audio.js';
+import { MultiSampler } from '../shared/samples.js';
 import { setupMidi } from '../shared/midi.js';
 import { makePrefs } from '../shared/prefs.js';
+import { createScrollGesture } from '../shared/scroll-gesture.js';
+
+const TONEJS_BASE =
+  'https://raw.githubusercontent.com/nbrosowsky/tonejs-instruments/master/samples';
+
+/**
+ * Catalogs of multi-sampled guitar tones. Each entry pins:
+ *   - `folder`: the tonejs-instruments folder name (under .../samples/)
+ *   - `anchors`: chosen note names spaced ~perfect-fourth-ish apart so
+ *     worst-case `playbackRate` detune from any played note is ≤3
+ *     semitones (avoids audible chipmunking).
+ *   - `ext`: file extension on the catalog. Tonejs publishes both .mp3
+ *     and .ogg; we pick mp3 for broadest compatibility.
+ *
+ * Filename note: tonejs uses `s` instead of `#` (e.g. `Ds3.mp3` = D♯3).
+ * `MultiSampler.fromNotes` accepts both spellings as keys.
+ */
+const MULTI_SAMPLE_CATALOGS = {
+  acoustic_guitar_samples: {
+    folder: 'guitar-acoustic',
+    anchors: ['E2', 'A2', 'D3', 'G3', 'C4', 'F4', 'As4', 'D5'],
+    ext: 'mp3'
+  },
+  electric_guitar_samples: {
+    // Clean Fender-style single-coil. Real recorded plucks decay quickly
+    // — much shorter sustain than the overdriven soundfont voice the
+    // user previously hit. 7 anchors at ~perfect-fifth steps spans the
+    // playable fretboard E2..E5 with ≤3 semitones worst-case detune.
+    folder: 'guitar-electric',
+    anchors: ['E2', 'A2', 'Ds3', 'A3', 'Ds4', 'A4', 'Ds5'],
+    ext: 'mp3'
+  }
+};
+
+function buildSampleCatalogAnchors(toneId) {
+  const cat = MULTI_SAMPLE_CATALOGS[toneId];
+  if (!cat) return null;
+  const map = {};
+  for (const note of cat.anchors) {
+    map[note] = `${TONEJS_BASE}/${cat.folder}/${note}.${cat.ext}`;
+  }
+  return map;
+}
 
 const Prefs = makePrefs('play.guitar.prefs.v1');
 
@@ -21,8 +73,12 @@ const STRING_TUNING = [
   { name: 'E', midi: 40, thickness: 3.0 } // 6 - low E
 ];
 
-const FRET_COUNT = 12;
-const SINGLE_DOT_FRETS = [3, 5, 7, 9];
+// 19 frets matches a typical steel-string acoustic — gives the player
+// access to barre voicings up the neck (previously capped at fret 12,
+// the only "double dot" inlay). Inlay positions follow the standard
+// guitar pattern: single dots at 3/5/7/9 then 15/17, double dot at 12.
+const FRET_COUNT = 19;
+const SINGLE_DOT_FRETS = [3, 5, 7, 9, 15, 17];
 const DOUBLE_DOT_FRETS = [12];
 
 /**
@@ -233,32 +289,92 @@ class Guitar {
   constructor() {
     this.toneName = '';
     this.voice = null;
+    // One MultiSampler per multi-sample tone, kept alive across switches
+    // so the second time a user picks Acoustic→Electric→Acoustic the
+    // buffers are still warm in memory (and the IndexedDB byte cache
+    // covers cold-start swaps too).
+    this.multiSamplers = new Map(); // toneId -> MultiSampler
+    this.multiSamplerStatuses = new Map(); // toneId -> 'idle'|'loading'|'ready'|'error'
+  }
+
+  isMultiSampleTone(name) {
+    return name in MULTI_SAMPLE_CATALOGS;
+  }
+
+  /** Active sampler for the current tone, or null. */
+  get multiSampler() {
+    return this.multiSamplers.get(this.toneName) || null;
+  }
+
+  get multiSamplerStatus() {
+    return this.multiSamplerStatuses.get(this.toneName) || 'idle';
   }
 
   async setTone(name) {
-    if (this.toneName === name && this.voice) return;
+    if (this.toneName === name) return;
     if (this.voice) this.voice.allOff();
+    // Stop voices on every cached sampler, not just the active one,
+    // so a held note on the prior tone doesn't keep ringing through
+    // the swap.
+    for (const ms of this.multiSamplers.values()) ms.allOff();
     this.toneName = name;
+    if (this.isMultiSampleTone(name)) {
+      this.voice = null;
+      await this.ensureMultiSamplerLoaded(name);
+      return;
+    }
     this.voice = new SampleVoice(name);
     await this.voice.load();
   }
 
+  async ensureMultiSamplerLoaded(toneId = this.toneName) {
+    const status = this.multiSamplerStatuses.get(toneId);
+    if (status === 'ready') return;
+    if (status === 'loading') return;
+    let sampler = this.multiSamplers.get(toneId);
+    if (!sampler) {
+      const anchors = buildSampleCatalogAnchors(toneId);
+      if (!anchors) {
+        this.multiSamplerStatuses.set(toneId, 'error');
+        return;
+      }
+      sampler = MultiSampler.fromNotes(anchors);
+      this.multiSamplers.set(toneId, sampler);
+    }
+    this.multiSamplerStatuses.set(toneId, 'loading');
+    try {
+      await sampler.preload();
+      this.multiSamplerStatuses.set(toneId, sampler.isReady() ? 'ready' : 'error');
+    } catch (_) {
+      this.multiSamplerStatuses.set(toneId, 'error');
+    }
+  }
+
   isReady() {
+    if (this.isMultiSampleTone(this.toneName)) {
+      return this.multiSamplerStatus === 'ready';
+    }
     return !!this.voice?.isReady();
   }
 
   pluck(midi) {
-    if (!this.voice || !this.voice.isReady()) return false;
     resumeIfSuspended();
-    // Each pluck is its own one-shot; release the previous one for that note
-    // so machine-gun strumming the same string doesn't blow up the mixer.
+    if (this.isMultiSampleTone(this.toneName)) {
+      const ms = this.multiSampler;
+      if (!ms || !ms.isReady()) return false;
+      // A guitar pluck is a one-shot: cut any prior voice on this note and
+      // re-trigger so rapid strumming on the same fret doesn't pile up.
+      ms.noteOff(midi, { release: 0.05 });
+      ms.noteOn(midi, { gain: 0.95, attack: 0.003 });
+      return true;
+    }
+    if (!this.voice || !this.voice.isReady()) return false;
     this.voice.noteOff(midi);
     this.voice.noteOn(midi);
     return true;
   }
 
   strum(notes, direction = 'down') {
-    if (!this.voice) return;
     const ordered = direction === 'down' ? [...notes] : [...notes].reverse();
     const stagger = 0.022; // seconds between adjacent strings
     let delay = 0;
@@ -303,6 +419,19 @@ const cellEls = new Map();
 function buildFretboard() {
   fretboardEl.innerHTML = '';
   fretboardEl.classList.toggle('hide-notes', !showNotesEl.checked);
+  // Expose the fret count to CSS so the grid columns and the neck
+  // min-width can scale with it (used by the horizontal-scroll layout
+  // on narrow screens).
+  fretboardEl.style.setProperty('--fret-count', String(FRET_COUNT));
+
+  // Inner wrapper: holds the inlay overlay + string rows and owns the
+  // `min-width` that drives horizontal scrolling. Putting both children
+  // in the same containing block keeps the absolutely-positioned inlay
+  // aligned with the string rows when the neck is wider than the
+  // viewport (mobile portrait).
+  const grid = document.createElement('div');
+  grid.className = 'fretboard-grid';
+  fretboardEl.appendChild(grid);
 
   // Inlay overlay sits *behind* the strings (z-index: 0) so the position
   // dots show through the fretboard wood without colliding with note
@@ -319,7 +448,7 @@ function buildFretboard() {
   };
   SINGLE_DOT_FRETS.forEach((f) => addInlay(f, false));
   DOUBLE_DOT_FRETS.forEach((f) => addInlay(f, true));
-  fretboardEl.appendChild(inlays);
+  grid.appendChild(inlays);
 
   STRING_TUNING.forEach((str, stringIdx) => {
     const row = document.createElement('div');
@@ -344,7 +473,7 @@ function buildFretboard() {
       cellEls.set(`${stringIdx}-${fret}`, cell);
     }
 
-    fretboardEl.appendChild(row);
+    grid.appendChild(row);
   });
 }
 
@@ -386,26 +515,53 @@ const pluckFromCell = (cell, pointerId) => {
   playFret(stringIdx, fret);
 };
 
+// Tap-deferral helper for touch input. The fretboard's `touch-action:
+// pan-x` (see style.css) lets the browser handle horizontal scroll
+// natively (with momentum). The util defers our pluck by ~80ms so a
+// horizontal swipe — which the browser commits to as a scroll within
+// the first ~10-20ms and then sends `pointercancel` to us — never
+// accidentally fires a note. Plucks are one-shot, so no `release`
+// callback is needed.
+const fretboardScrollGesture = createScrollGesture();
+
 fretboardEl.addEventListener('pointerdown', (event) => {
   const cell = event.target.closest('.fret-cell');
   if (!cell) return;
-  fretboardEl.setPointerCapture?.(event.pointerId);
-  pluckFromCell(cell, event.pointerId);
-  event.preventDefault();
+  try {
+    fretboardEl.setPointerCapture?.(event.pointerId);
+  } catch (_) {
+    /* ignore — synthetic events may have no registered pointer */
+  }
+  fretboardScrollGesture.start(event, {
+    play: () => pluckFromCell(cell, event.pointerId)
+  });
+  // Only preventDefault for non-touch — on touch it would block native
+  // horizontal scroll on the fretboard.
+  if (event.pointerType !== 'touch') event.preventDefault();
 });
 
 fretboardEl.addEventListener('pointermove', (event) => {
+  // If the deferred pluck hasn't fired yet, there's nothing to drag.
+  // Browser pointercancel arrives before pointermove for native-scroll
+  // commits, so any move we see here is intent-to-play.
   if (!lastCellByPointer.has(event.pointerId)) return;
   const target = document.elementFromPoint(event.clientX, event.clientY);
   const cell = target && target.closest && target.closest('.fret-cell');
   if (cell) pluckFromCell(cell, event.pointerId);
 });
 
-const endGuitarPointer = (event) => {
+fretboardEl.addEventListener('pointerup', (event) => {
+  // May fire the deferred pluck synchronously (the tap case).
+  fretboardScrollGesture.end(event.pointerId);
   lastCellByPointer.delete(event.pointerId);
-};
-fretboardEl.addEventListener('pointerup', endGuitarPointer);
-fretboardEl.addEventListener('pointercancel', endGuitarPointer);
+});
+fretboardEl.addEventListener('pointercancel', (event) => {
+  // Browser took over for native scroll. Cancel any pending pluck (or
+  // release if it already fired — though for one-shot plucks there's
+  // nothing to release; we still clear the map).
+  fretboardScrollGesture.cancel(event.pointerId);
+  lastCellByPointer.delete(event.pointerId);
+});
 
 // ---------- Chord builder ----------
 
@@ -588,11 +744,20 @@ const playSelectedVoicing = (autoStrum = true) => {
   refreshCurrentLabel(v.name);
 };
 
+// Root buttons are the "play" surface for song mode: tap a root to
+// strum the chord with whatever Quality + Shape is currently configured.
+// Quality and Shape just *adjust the chord* without playing — so the
+// player can preset "minor 7th, barre voicing" and then play C-m7 →
+// F-m7 → G-m7 by tapping roots, without an unwanted re-strum every
+// time they tweak the chord type.
 rootOptionsEl.addEventListener('click', (event) => {
   const btn = event.target.closest('button');
   if (!btn) return;
   builderState.rootPc = Number(btn.dataset.pc);
-  builderState.voicingIdx = 0;
+  // Don't snap the shape back to 0 here — the player likely wants the
+  // same fingering family (e.g. "Barre N") across roots while playing
+  // a song. renderVoicings() caps the index when the new list is
+  // shorter than the saved selection.
   renderRoots();
   renderVoicings();
   playSelectedVoicing();
@@ -605,7 +770,9 @@ qualityOptionsEl.addEventListener('click', (event) => {
   builderState.voicingIdx = 0;
   renderQualities();
   renderVoicings();
-  playSelectedVoicing();
+  // Paint the new shape on the fretboard but stay silent — the player
+  // is configuring, not playing yet.
+  playSelectedVoicing(false);
 });
 
 voicingOptionsEl.addEventListener('click', (event) => {
@@ -613,7 +780,9 @@ voicingOptionsEl.addEventListener('click', (event) => {
   if (!btn) return;
   builderState.voicingIdx = Number(btn.dataset.voicingIdx);
   renderVoicings();
-  playSelectedVoicing();
+  // Same reasoning as quality: showing a different shape is not
+  // playing it. The Strum button (or another root tap) triggers sound.
+  playSelectedVoicing(false);
 });
 
 strumButton?.addEventListener('click', () => playSelectedVoicing());
@@ -625,12 +794,16 @@ clearShapeButton?.addEventListener('click', () => {
 
 const updateToneStatus = () => {
   if (!toneStatus) return;
+  if (guitar.isMultiSampleTone(guitar.toneName) && guitar.multiSamplerStatus === 'error') {
+    toneStatus.textContent = 'offline · pick a soundfont tone';
+    return;
+  }
   toneStatus.textContent = guitar.isReady() ? '' : 'loading…';
 };
 
 const switchTone = (name) => {
   toneStatus.textContent = 'loading…';
-  guitar.setTone(name).then(updateToneStatus);
+  guitar.setTone(name).then(updateToneStatus).catch(updateToneStatus);
 };
 
 // Pre-warm on first user interaction.

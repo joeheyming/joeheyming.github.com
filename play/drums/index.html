@@ -50,10 +50,12 @@
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
-    <script src="/back.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
 
     <link rel="stylesheet" href="../style.css" />
     <link rel="stylesheet" href="style.css" />
+
+    <script src="/proxy.js"></script>
   </head>
   <body class="instrument-body">
     <header class="instrument-header">
@@ -63,10 +65,6 @@
       </div>
       <div class="header-status">
         <div class="now-playing" id="now-playing" aria-live="polite">—</div>
-        <div class="midi-status" id="midi-status" hidden>
-          <span class="midi-dot" aria-hidden="true"></span>
-          <span class="midi-label">MIDI</span>
-        </div>
       </div>
       <a class="instruments-link" href="../" aria-label="Back to instruments">
         <span class="instruments-link-icon" aria-hidden="true">🎵</span>
@@ -83,13 +81,54 @@
       <div class="control">
         <label for="kit">Kit</label>
         <select id="kit">
-          <option value="acoustic" selected>Acoustic</option>
-          <option value="electronic">Electronic</option>
+          <option value="linndrum" selected>LinnDrum (samples)</option>
+          <option value="tr-808">TR-808 (samples)</option>
+          <option value="acoustic">Acoustic (synth)</option>
+          <option value="electronic">Electronic (synth)</option>
         </select>
+        <span class="hint" id="kit-status" aria-live="polite"></span>
+      </div>
+
+      <div class="control control-loop" role="group" aria-label="Loop controls">
+        <label class="loop-label-text">Loop</label>
+        <button
+          id="loop-record"
+          class="loop-btn loop-record"
+          type="button"
+          aria-pressed="false"
+          title="Record (Space)"
+        >
+          <span class="loop-btn-dot" aria-hidden="true"></span>
+          <span class="loop-btn-label">Rec</span>
+        </button>
+        <button
+          id="loop-play"
+          class="loop-btn loop-play"
+          type="button"
+          aria-pressed="false"
+          title="Play / Stop (P)"
+          disabled
+        >
+          <span class="loop-btn-icon" aria-hidden="true">▶</span>
+          <span class="loop-btn-label">Play</span>
+        </button>
+        <button
+          id="loop-clear"
+          class="loop-btn loop-clear"
+          type="button"
+          title="Clear loop"
+          disabled
+        >
+          Clear
+        </button>
+        <span class="loop-status" id="loop-status" aria-live="polite"></span>
       </div>
     </section>
 
     <section class="drums-stage">
+      <div class="loop-bar" id="loop-bar" aria-hidden="true">
+        <div class="loop-bar-fill" id="loop-bar-fill"></div>
+      </div>
       <div class="drum-pads" id="drum-pads">
         <!-- Pads populated by JS so the keyboard layout matches the 4x3 grid -->
       </div>
@@ -102,10 +141,24 @@
           <strong>Click</strong>, <strong>tap</strong>, or use the
           <strong>computer keyboard</strong> — each pad shows its key.
         </li>
-        <li>The 4×3 layout matches the Q W E R / A S D F / Z X C V rows.</li>
         <li>
-          Switch between an <strong>acoustic</strong> kit and a snappier
-          <strong>electronic</strong> kit.
+          The 4×3 layout matches the Q W E R / A S D F / Z X C V rows. Left
+          half is the rhythm section (snare, kick, toms); right half is hats
+          and cymbals — same hand-split as a real kit, also great for thumbs
+          on a phone in landscape.
+        </li>
+        <li>
+          Switch between sampled <strong>LinnDrum</strong> /
+          <strong>TR-808</strong> kits (loaded on demand from a
+          public-domain catalog) and the always-available
+          <strong>synth</strong> kits.
+        </li>
+        <li>
+          Lay down a sick beat: hit <strong>Rec</strong> (or <code>Space</code>),
+          play your pattern, hit <strong>Rec</strong> again to lock the loop. It
+          plays back instantly. Hit <strong>Rec</strong> again while it's
+          playing to <strong>overdub</strong> more layers, or
+          <strong>Play</strong> (<code>P</code>) to stop and start.
         </li>
       </ul>
     </section>

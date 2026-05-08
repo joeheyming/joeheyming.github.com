@@ -125,6 +125,26 @@
       }
     }
 
+    /* Landscape phones — short heights collapse the button to icon-only
+     * so it doesn't overlap content rows below a compressed header. */
+    @media (max-height: 480px) {
+      .back-to-portfolio {
+        top: 8px;
+        left: 8px;
+        padding: 8px 10px;
+        font-size: 13px;
+        gap: 0;
+      }
+
+      .back-text {
+        display: none;
+      }
+
+      .back-arrow {
+        font-size: 16px;
+      }
+    }
+
     /* Print - hide button */
     @media print {
       .back-to-portfolio {

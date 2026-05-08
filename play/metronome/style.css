@@ -1,0 +1,376 @@
+/* =========================================================================
+ * Metronome page-specific styles. Pendulum, beat dots, tempo display.
+ * Uses the shared instrument-page chrome from /play/style.css for header,
+ * controls bar, and back-link styling.
+ * ========================================================================= */
+
+.metronome-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 18px;
+  padding: 8px 16px 24px;
+}
+
+/* ---- Tempo block (BPM number, slider, name) ---------------------------- */
+
+.metronome-tempo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 460px);
+}
+
+.tempo-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tempo-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: rgba(30, 41, 59, 0.85);
+  color: var(--fg);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    transform 100ms ease;
+}
+
+.tempo-btn:hover {
+  border-color: var(--accent);
+}
+
+.tempo-btn:active {
+  transform: scale(0.94);
+}
+
+.tempo-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.tempo-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 140px;
+}
+
+.tempo-display input[type='number'] {
+  width: 140px;
+  background: transparent;
+  border: none;
+  color: var(--fg);
+  font-size: clamp(56px, 12vw, 84px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  letter-spacing: -0.04em;
+  text-align: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  padding: 0;
+  /* Caret stays the gradient end colour — invisible against gradient text,
+   * so we explicitly tint it to keep the cursor visible while editing. */
+  caret-color: var(--accent);
+}
+
+.tempo-display input[type='number']:focus {
+  outline: none;
+}
+
+.tempo-display input[type='number']::-webkit-outer-spin-button,
+.tempo-display input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.tempo-display input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+.tempo-unit {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  margin-top: -8px;
+}
+
+#bpm-slider {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.tempo-name {
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  font-style: italic;
+  color: var(--fg-dim);
+  min-height: 18px;
+}
+
+/* ---- Pendulum --------------------------------------------------------- */
+
+.metronome-pendulum {
+  position: relative;
+  width: clamp(180px, 26vw, 240px);
+  height: clamp(160px, 22vw, 220px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.pendulum-arm {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  width: 4px;
+  height: clamp(140px, 20vw, 200px);
+  background: linear-gradient(180deg, var(--fg-dim), rgba(148, 163, 184, 0.4));
+  border-radius: 2px;
+  transform-origin: 50% 100%;
+  transform: translateX(-50%) rotate(0deg);
+  transition: none;
+}
+
+.pendulum-arm.tick-left {
+  /* The two transitions sweep the pendulum to one extreme then the other.
+   * `--swing` is set per-tick from JS to half the beat duration so it
+   * arrives in time for the next click. ease-in-out gives a natural arc. */
+  transform: translateX(-50%) rotate(-22deg);
+  transition: transform var(--swing, 600ms) cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+.pendulum-arm.tick-right {
+  transform: translateX(-50%) rotate(22deg);
+  transition: transform var(--swing, 600ms) cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+.pendulum-weight {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 22px;
+  height: 16px;
+  border-radius: 4px;
+  background: linear-gradient(160deg, var(--accent), var(--accent-2));
+  transform: translateX(-50%);
+  box-shadow:
+    0 4px 12px rgba(129, 140, 248, 0.35),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+}
+
+.pendulum-pivot {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bg-2);
+  border: 2px solid var(--accent);
+  transform: translateX(-50%);
+  z-index: 2;
+  box-shadow: 0 0 12px rgba(129, 140, 248, 0.45);
+}
+
+.pendulum-base {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: clamp(140px, 22vw, 200px);
+  height: 14px;
+  border-radius: 4px 4px 8px 8px;
+  background: linear-gradient(180deg, var(--bg-2), #0b1020);
+  border: 1px solid var(--border);
+  transform: translateX(-50%);
+}
+
+/* ---- Beat dots -------------------------------------------------------- */
+
+.beat-dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  min-height: 28px;
+  padding: 0 8px;
+}
+
+.beat-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.18);
+  border: 1px solid var(--border);
+  transition:
+    transform 80ms ease,
+    background 80ms ease,
+    border-color 80ms ease,
+    box-shadow 120ms ease;
+}
+
+.beat-dot.downbeat {
+  width: 22px;
+  height: 22px;
+  background: rgba(244, 114, 182, 0.18);
+  border-color: rgba(244, 114, 182, 0.45);
+}
+
+.beat-dot.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.25);
+  box-shadow: 0 0 14px rgba(129, 140, 248, 0.7);
+}
+
+.beat-dot.downbeat.active {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+  box-shadow: 0 0 16px rgba(244, 114, 182, 0.8);
+}
+
+/* ---- Buttons ---------------------------------------------------------- */
+
+.metronome-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.primary-btn,
+.secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    box-shadow 120ms ease,
+    transform 100ms ease;
+}
+
+.primary-btn {
+  min-width: 130px;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  box-shadow: 0 6px 18px -8px rgba(129, 140, 248, 0.7);
+}
+
+.primary-btn:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.primary-btn:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+
+.primary-btn[aria-pressed='true'] {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  box-shadow: 0 6px 18px -8px rgba(239, 68, 68, 0.7);
+}
+
+.secondary-btn {
+  background: rgba(30, 41, 59, 0.85);
+  color: var(--fg);
+}
+
+.secondary-btn:hover {
+  border-color: var(--accent);
+}
+
+.secondary-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.secondary-btn:active {
+  transform: scale(0.97);
+}
+
+.secondary-btn.tapping {
+  border-color: var(--accent-3);
+  background: rgba(52, 211, 153, 0.16);
+  color: #ecfdf5;
+}
+
+.btn-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.control-toggle {
+  gap: 6px;
+}
+
+.toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg);
+}
+
+.toggle-label input[type='checkbox'] {
+  accent-color: var(--accent);
+  transform: scale(1.15);
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pendulum-arm.tick-left,
+  .pendulum-arm.tick-right {
+    transition: none !important;
+  }
+  .beat-dot,
+  .tempo-btn,
+  .primary-btn,
+  .secondary-btn {
+    transition: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .tempo-display input[type='number'] {
+    width: 110px;
+  }
+  .tempo-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 22px;
+  }
+  .metronome-pendulum {
+    height: 160px;
+  }
+}

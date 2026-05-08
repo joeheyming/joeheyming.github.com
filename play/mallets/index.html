@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>🎶 Mallets - Xylophone, Marimba, Vibraphone, Glockenspiel | Joe Heyming</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎶</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="A free browser mallet keyboard. Play xylophone, marimba, vibraphone, and glockenspiel through one bar layout. Soundfont samples with a Web Audio synth fallback."
+    />
+    <meta name="theme-color" content="#0f172a" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Play" />
+    <meta property="og:title" content="🎶 Mallets - Browser Bar Keyboard" />
+    <meta
+      property="og:description"
+      content="One bar keyboard, four pitched-percussion voices: xylophone, marimba, vibraphone, glockenspiel."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/play/mallets/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/play/mallets/mallets-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Browser mallet keyboard" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="🎶 Mallets - Browser Bar Keyboard" />
+    <meta
+      name="twitter:description"
+      content="One bar keyboard, four pitched-percussion voices: xylophone, marimba, vibraphone, glockenspiel."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/play/mallets/mallets-preview.png"
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/play/mallets/" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
+    <script src="/proxy.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js"></script>
+
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="instrument-body">
+    <header class="instrument-header">
+      <div class="instrument-page-title">
+        <span aria-hidden="true">🎶</span>
+        <h1>Mallets</h1>
+      </div>
+      <div class="header-status">
+        <div class="now-playing" id="now-playing" aria-live="polite">—</div>
+        <div class="midi-status" id="midi-status" hidden>
+          <span class="midi-dot" aria-hidden="true"></span>
+          <span class="midi-label">MIDI</span>
+        </div>
+      </div>
+      <a class="instruments-link" href="../" aria-label="Back to instruments">
+        <span class="instruments-link-icon" aria-hidden="true">🎵</span>
+        <span class="instruments-link-text">Instruments</span>
+      </a>
+    </header>
+
+    <section class="instrument-controls" aria-label="Mallet controls">
+      <div class="control">
+        <label for="volume">Volume</label>
+        <input id="volume" type="range" min="0" max="100" value="65" />
+      </div>
+
+      <div class="control">
+        <label for="tone">Tone</label>
+        <select id="tone">
+          <option value="xylophone" selected>Xylophone</option>
+          <option value="marimba">Marimba</option>
+          <option value="vibraphone">Vibraphone</option>
+          <option value="glockenspiel">Glockenspiel</option>
+        </select>
+        <span class="hint" id="tone-status" aria-live="polite"></span>
+      </div>
+
+      <!-- Each layout pins a chromatic range. The default startMidi is set
+           per-tone in the JS so each instrument lands in its natural
+           register (e.g. glockenspiel → C5, marimba → C3). The Octave
+           shift below lets the user wander up or down. -->
+      <div class="control">
+        <label for="layout">Layout</label>
+        <select id="layout">
+          <option value="2">2 octaves</option>
+          <option value="3" selected>3 octaves</option>
+          <option value="4">4 octaves</option>
+        </select>
+      </div>
+
+      <div class="control octave-control">
+        <label>Octave</label>
+        <div class="octave-buttons">
+          <button id="octave-down" type="button" aria-label="Octave down">−</button>
+          <span id="octave-display" class="octave-display" aria-live="polite">C4</span>
+          <button id="octave-up" type="button" aria-label="Octave up">+</button>
+        </div>
+      </div>
+
+      <!-- Vibraphone-only: classic ~5.5 Hz tremolo from a real vibraphone's
+           rotating resonator discs. JS hides this row entirely when any
+           other tone is selected. -->
+      <div class="control control-toggle vibrato-control" id="vibrato-control" hidden>
+        <label class="toggle-label">
+          <input type="checkbox" id="vibrato" />
+          <span>Vibrato</span>
+        </label>
+      </div>
+
+      <div class="control control-toggle">
+        <label class="toggle-label">
+          <input type="checkbox" id="show-labels" checked />
+          <span>Labels</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="mallet-stage" aria-label="Mallet keyboard">
+      <div class="mallet-frame">
+        <div class="mallet-keyboard piano-keyboard" id="mallet-keyboard"></div>
+      </div>
+    </section>
+
+    <section class="instrument-help">
+      <h2>How to play</h2>
+      <ul>
+        <li>
+          <strong>Tap</strong> a bar to ring it. Drag across the bars to
+          glissando — bars layer naturally, just like real mallet hits.
+        </li>
+        <li>
+          Switch <strong>Tone</strong> to flip between xylophone (bright
+          wood), marimba (warm wood), vibraphone (sustained metal with
+          optional tremolo), and glockenspiel (high bells).
+        </li>
+        <li>
+          On desktop the QWERTY mapping from the piano works here too:
+          <kbd>Z</kbd>–<kbd>M</kbd> are the lower-octave naturals,
+          <kbd>S</kbd> <kbd>D</kbd> <kbd>G</kbd> <kbd>H</kbd> <kbd>J</kbd> are
+          the accidentals, and <kbd>[</kbd> / <kbd>]</kbd> shift the octave.
+        </li>
+      </ul>
+    </section>
+
+    <script type="module" src="mallets.js"></script>
+  </body>
+</html>

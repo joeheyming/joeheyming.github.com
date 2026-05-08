@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>🎵 Harp - Play in Your Browser | Joe Heyming</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="A free browser harp. Strum the strings with your finger or mouse. Pure Web Audio plucked-string synthesis."
+    />
+    <meta name="theme-color" content="#0f172a" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Play" />
+    <meta property="og:title" content="🎵 Harp - Play in Your Browser" />
+    <meta
+      property="og:description"
+      content="A free browser harp. Strum the strings with your finger or mouse."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/play/harp/" />
+    <meta property="og:image" content="https://joeheyming.github.io/play/harp/harp-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Browser harp" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="🎵 Harp - Play in Your Browser" />
+    <meta
+      name="twitter:description"
+      content="A free browser harp. Strum the strings with your finger or mouse."
+    />
+    <meta name="twitter:image" content="https://joeheyming.github.io/play/harp/harp-preview.png" />
+
+    <link rel="canonical" href="https://joeheyming.github.io/play/harp/" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
+
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="instrument-body">
+    <header class="instrument-header">
+      <div class="instrument-page-title">
+        <span aria-hidden="true">🎵</span>
+        <h1>Harp</h1>
+      </div>
+      <div class="header-status">
+        <div class="now-playing" id="now-playing" aria-live="polite">—</div>
+      </div>
+      <a class="instruments-link" href="../" aria-label="Back to instruments">
+        <span class="instruments-link-icon" aria-hidden="true">🎵</span>
+        <span class="instruments-link-text">Instruments</span>
+      </a>
+    </header>
+
+    <section class="instrument-controls" aria-label="Harp controls">
+      <div class="control">
+        <label for="volume">Volume</label>
+        <input id="volume" type="range" min="0" max="100" value="60" />
+      </div>
+
+      <div class="control">
+        <label for="scale">Scale</label>
+        <select id="scale">
+          <option value="major" selected>Major</option>
+          <option value="minor">Minor</option>
+          <option value="pentatonic-major">Pentatonic+</option>
+          <option value="pentatonic-minor">Pentatonic−</option>
+          <option value="blues">Blues</option>
+          <option value="whole-tone">Whole tone</option>
+          <option value="chromatic">Chromatic</option>
+        </select>
+      </div>
+
+      <div class="control">
+        <label for="root">Root</label>
+        <select id="root">
+          <option value="0" selected>C</option>
+          <option value="1">C♯</option>
+          <option value="2">D</option>
+          <option value="3">D♯</option>
+          <option value="4">E</option>
+          <option value="5">F</option>
+          <option value="6">F♯</option>
+          <option value="7">G</option>
+          <option value="8">G♯</option>
+          <option value="9">A</option>
+          <option value="10">A♯</option>
+          <option value="11">B</option>
+        </select>
+      </div>
+
+      <div class="control">
+        <label for="octaves">Octaves</label>
+        <select id="octaves">
+          <option value="2" selected>2</option>
+          <option value="3">3</option>
+        </select>
+      </div>
+
+      <div class="control control-toggle">
+        <label class="toggle-label">
+          <input type="checkbox" id="show-labels" checked />
+          <span>Labels</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="harp-stage">
+      <div class="harp-frame">
+        <div class="harp-neck" aria-hidden="true"></div>
+        <div class="harp-strings" id="harp-strings" role="group" aria-label="Harp strings">
+          <!-- Populated by JS -->
+        </div>
+        <div class="harp-soundboard" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <section class="instrument-help">
+      <h2>How to play</h2>
+      <ul>
+        <li>
+          <strong>Tap</strong> a string to pluck it, or <strong>swipe</strong>
+          across them to strum. Multi-touch works — use both hands.
+        </li>
+        <li>
+          Pick a <strong>scale</strong> and <strong>root</strong> to retune the
+          strings. Pentatonic scales sound consonant no matter how you strum.
+        </li>
+        <li>
+          The lowest <strong>red</strong> string of each octave is the root.
+          Strings ring out naturally — there's no damping.
+        </li>
+      </ul>
+    </section>
+
+    <script type="module" src="harp.js"></script>
+  </body>
+</html>
