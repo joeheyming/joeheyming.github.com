@@ -102,12 +102,25 @@
     <script src="/analytics.js"></script>
     <script src="/back.js" data-back-size="compact"></script>
     <script src="/feedback.js"></script>
+    <!-- Shared CORS proxy service. Used by the moddb browser to fetch
+         listings, mod pages, and binary downloads cross-origin. Safe to
+         load on every visit — does not run anything until called. -->
+    <script src="/proxy.js"></script>
 
     <!-- Engine subsystems. Deferred so they run after HTML parse but
          before DOMContentLoaded, in document order. -->
     <script defer src="lifecycle.js"></script>
     <script defer src="coi.js"></script>
     <script defer src="touch-input.js"></script>
+    <!-- moddb mod browser. The three files are independent of the WASM
+         engine (no COI dependency) and only invoke it via UZDoomLoader
+         after the user clicks "Fetch & launch". Order matters: archive +
+         iwad helpers must publish their globals before the browser
+         touches them. Deferred so they run after HTML parse and after
+         /proxy.js has installed window.proxyService. -->
+    <script defer src="moddb-archive.js"></script>
+    <script defer src="moddb-iwad.js"></script>
+    <script defer src="moddb-browser.js"></script>
     <!-- Phone → desktop console relay. Opt-in via ?phonelog=1. -->
     <script>
       (function () {
@@ -129,13 +142,20 @@
          etc.). We preserve the upstream layout exactly; site branding
          is layered ONLY in the boot overlay before launch. -->
     <link rel="stylesheet" href="index.css" />
+    <!-- moddb mod browser (loaded only via the inline switcher's "Browse
+         moddb" item or ?manual=browse). The browser itself doesn't pull
+         the engine — that still requires user action. -->
+    <link rel="stylesheet" href="moddb-browser.css" />
   </head>
 
   <body>
-    <!-- Three-way mode switch driven by URL params:
-           ?manual=1     → no body class (full picker UI)
-           ?flavor=NAME  → body.clean (hero + auto-prime, single Launch button)
-           (default)     → body.picker-mode (three-card flavor picker)
+    <!-- Mode switch driven by URL params:
+           ?manual=1        → no body class (full picker UI)
+           ?manual=browse   → no body class + auto-opens moddb browser
+                              (moddb-browser.js handles the auto-open;
+                              the boot overlay is hidden by body.moddb-open)
+           ?flavor=NAME     → body.clean (hero + auto-prime, single Launch)
+           (default)        → body.picker-mode (three-card flavor picker)
          Set as early as possible so CSS doesn't flash the wrong layout.
          Also tags body.flavor-classic / body.flavor-freedoom /
          body.flavor-legend for accent color theming when a flavor is
@@ -143,7 +163,8 @@
     <script>
       (function () {
         var p = new URLSearchParams(window.location.search);
-        var manual = p.get('manual') === '1';
+        var manualVal = p.get('manual');
+        var manual = manualVal === '1' || manualVal === 'browse';
         var flavor = p.get('flavor');
         var validFlavors = { classic: 1, freedoom: 1, legend: 1 };
         if (manual) {
@@ -341,6 +362,10 @@
             Legend of DOOM
           </button>
           <div class="flavor-switch-sep" role="separator"></div>
+          <button type="button" role="menuitem" data-switch="moddb">
+            <span class="dot" style="background: #d96aa6"></span>
+            🛒 Browse Doom mods on moddb…
+          </button>
           <button type="button" role="menuitem" data-switch="manual">
             <span class="dot" style="background: #888"></span>
             Manual mode (custom IWAD / mods)…
@@ -385,6 +410,17 @@
             .
           </li>
         </ol>
+        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border)">
+          Don't have a mod handy?
+          <button
+            type="button"
+            id="openModdbBrowserBtn"
+            class="btn"
+            style="margin-left: 6px"
+          >
+            🛒 Browse moddb
+          </button>
+        </div>
       </div>
 
       <!-- Upstream loader DOM. uzdoom-loader.js queries these IDs. -->
@@ -514,6 +550,10 @@
           Legend of DOOM
         </button>
         <div class="flavor-switch-sep" role="separator"></div>
+        <button type="button" role="menuitem" data-switch="moddb">
+          <span class="dot" style="background: #d96aa6"></span>
+          🛒 Browse Doom mods on moddb…
+        </button>
         <button type="button" role="menuitem" data-switch="manual">
           <span class="dot" style="background: #888"></span>
           Manual mode (custom IWAD / mods)…
@@ -966,13 +1006,20 @@
           function isManualMode() {
             return params.get('manual') === '1';
           }
+          function isModdbMode() {
+            return params.get('manual') === 'browse';
+          }
 
           function paintActive() {
             var active = activeFlavor();
             var manual = isManualMode();
+            var moddb = isModdbMode();
             menu.querySelectorAll('button[data-switch]').forEach(function (b) {
               var s = b.dataset.switch;
-              var match = s === 'manual' ? manual : s === active;
+              var match;
+              if (s === 'manual') match = manual;
+              else if (s === 'moddb') match = moddb;
+              else match = s === active;
               if (match) {
                 b.dataset.active = 'true';
                 b.disabled = true;
@@ -1011,6 +1058,10 @@
             // teardown.
             if (f === 'manual') {
               window.location.search = 'manual=1';
+              return;
+            }
+            if (f === 'moddb') {
+              window.location.search = 'manual=browse';
               return;
             }
             if (!FLAVORS[f]) return;

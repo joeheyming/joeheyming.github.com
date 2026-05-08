@@ -73,6 +73,42 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://joeheyming.github.io/play/</loc>
+    <lastmod>2026-05-08T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/play/piano/</loc>
+    <lastmod>2026-05-08T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/play/accordion/</loc>
+    <lastmod>2026-05-08T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/play/drums/</loc>
+    <lastmod>2026-05-08T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/play/guitar/</loc>
+    <lastmod>2026-05-08T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/play/synth/</loc>
+    <lastmod>2026-05-08T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://joeheyming.github.io/sadtrombone/</loc>
     <lastmod>2026-01-31T00:00:00+00:00</lastmod>
     <changefreq>monthly</changefreq>

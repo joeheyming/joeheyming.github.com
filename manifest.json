@@ -95,6 +95,12 @@
       "short_name": "NES",
       "description": "Play NES games in your browser",
       "url": "/nes/"
+    },
+    {
+      "name": "Play",
+      "short_name": "Play",
+      "description": "Make music in your browser",
+      "url": "/play/"
     }
   ]
 }

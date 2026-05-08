@@ -793,5 +793,178 @@
       "badapple"
     ],
     "shareCategory": "utility"
+  },
+  {
+    "id": "play",
+    "name": "Play 🎵",
+    "shortName": "Play",
+    "description": "Make music in your browser",
+    "detailedDescription": "Pick an instrument and play it right in your browser. Piano, accordion, drums, guitar, and synth — all free and ad-free.",
+    "icon": "🎵",
+    "path": "./play/",
+    "category": "entertainment",
+    "gradient": "from-indigo-500/20 to-purple-500/20",
+    "border": "border-indigo-500/30 hover:border-indigo-400/50",
+    "taskbarGradient": "from-indigo-500 to-purple-500",
+    "taskbarText": "text-white",
+    "defaultWidth": 900,
+    "defaultHeight": 700,
+    "desktopIcon": true,
+    "tags": [
+      "music",
+      "instruments",
+      "audio",
+      "fun"
+    ],
+    "related": [
+      "play-piano",
+      "play-drums",
+      "play-guitar",
+      "awesome"
+    ],
+    "shareCategory": "entertainment",
+    "pwaShortcut": {
+      "name": "Play",
+      "short_name": "Play",
+      "description": "Make music in your browser"
+    }
+  },
+  {
+    "id": "play-piano",
+    "name": "Piano 🎹",
+    "shortName": "Piano",
+    "description": "Play a piano in your browser",
+    "detailedDescription": "Acoustic grand and electric pianos, plus retro waveform tones. Mouse, touch, MIDI, or computer keyboard.",
+    "icon": "🎹",
+    "path": "./play/piano/",
+    "category": "entertainment",
+    "gradient": "from-slate-500/20 to-indigo-500/20",
+    "border": "border-slate-500/30 hover:border-slate-400/50",
+    "taskbarGradient": "from-slate-500 to-indigo-500",
+    "taskbarText": "text-white",
+    "defaultWidth": 900,
+    "defaultHeight": 600,
+    "tags": [
+      "music",
+      "piano",
+      "midi",
+      "audio"
+    ],
+    "related": [
+      "play",
+      "play-accordion",
+      "play-synth"
+    ],
+    "shareCategory": "entertainment"
+  },
+  {
+    "id": "play-accordion",
+    "name": "Accordion 🪗",
+    "shortName": "Accordion",
+    "description": "Play an accordion in your browser",
+    "detailedDescription": "Reedy keyboard with breathing-bellows animation. Stradella bass and chromatic right hand.",
+    "icon": "🪗",
+    "path": "./play/accordion/",
+    "category": "entertainment",
+    "gradient": "from-red-500/20 to-amber-500/20",
+    "border": "border-red-500/30 hover:border-red-400/50",
+    "taskbarGradient": "from-red-500 to-amber-500",
+    "taskbarText": "text-white",
+    "defaultWidth": 900,
+    "defaultHeight": 600,
+    "tags": [
+      "music",
+      "accordion",
+      "audio"
+    ],
+    "related": [
+      "play",
+      "play-piano",
+      "play-synth"
+    ],
+    "shareCategory": "entertainment"
+  },
+  {
+    "id": "play-drums",
+    "name": "Drums 🥁",
+    "shortName": "Drums",
+    "description": "Play a drum kit in your browser",
+    "detailedDescription": "Twelve-pad kit with kick, snare, hi-hats, toms, and cymbals. Click or use your computer keyboard.",
+    "icon": "🥁",
+    "path": "./play/drums/",
+    "category": "entertainment",
+    "gradient": "from-stone-500/20 to-slate-600/20",
+    "border": "border-stone-500/30 hover:border-stone-400/50",
+    "taskbarGradient": "from-stone-500 to-slate-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 900,
+    "defaultHeight": 600,
+    "tags": [
+      "music",
+      "drums",
+      "percussion",
+      "audio"
+    ],
+    "related": [
+      "play",
+      "play-guitar",
+      "play-synth"
+    ],
+    "shareCategory": "entertainment"
+  },
+  {
+    "id": "play-guitar",
+    "name": "Guitar 🎸",
+    "shortName": "Guitar",
+    "description": "Play a guitar in your browser",
+    "detailedDescription": "Click frets on a six-string fretboard or strum chords. Mouse, touch, or keyboard.",
+    "icon": "🎸",
+    "path": "./play/guitar/",
+    "category": "entertainment",
+    "gradient": "from-amber-500/20 to-orange-500/20",
+    "border": "border-amber-500/30 hover:border-amber-400/50",
+    "taskbarGradient": "from-amber-500 to-orange-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 900,
+    "defaultHeight": 600,
+    "tags": [
+      "music",
+      "guitar",
+      "audio"
+    ],
+    "related": [
+      "play",
+      "play-drums",
+      "play-piano"
+    ],
+    "shareCategory": "entertainment"
+  },
+  {
+    "id": "play-synth",
+    "name": "Synth 🎛️",
+    "shortName": "Synth",
+    "description": "Subtractive synth in your browser",
+    "detailedDescription": "Subtractive synth with filter envelope, detune, and vibrato. Tweak knobs in real time.",
+    "icon": "🎛️",
+    "path": "./play/synth/",
+    "category": "entertainment",
+    "gradient": "from-cyan-500/20 to-purple-500/20",
+    "border": "border-cyan-500/30 hover:border-cyan-400/50",
+    "taskbarGradient": "from-cyan-500 to-purple-500",
+    "taskbarText": "text-white",
+    "defaultWidth": 900,
+    "defaultHeight": 600,
+    "tags": [
+      "music",
+      "synth",
+      "audio",
+      "electronic"
+    ],
+    "related": [
+      "play",
+      "play-piano",
+      "play-drums"
+    ],
+    "shareCategory": "entertainment"
   }
 ]
