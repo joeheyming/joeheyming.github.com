@@ -160,7 +160,11 @@
 
 /* Touch markers — one per active pointer. Position is set live via
  * --tx / --ty (in px). Two flavours: primary (pitch+volume) and
- * vibrato (secondary fingers). */
+ * vibrato (secondary fingers).
+ *
+ * z-index bumped so they stay above the paint trail canvas (z=1) and
+ * the hand-skeleton overlay (z=2) — the cursor feedback is the most
+ * important "where am I touching" signal. */
 .theremin-touch {
   position: absolute;
   left: var(--tx, 0);
@@ -171,6 +175,7 @@
   margin-top: -48px;
   border-radius: 50%;
   pointer-events: none;
+  z-index: 3;
   background: radial-gradient(
     circle at 50% 50%,
     rgba(129, 140, 248, 0.55),
@@ -215,11 +220,12 @@
 
 /* Crosshair lines through the primary touch — a long horizontal pitch
  * axis and a long vertical volume axis so the player can read off the
- * note from the labels at the bottom. */
+ * note from the labels at the bottom. Stacks alongside touch markers. */
 .theremin-crosshair {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 3;
 }
 
 .theremin-crosshair-line {
@@ -411,5 +417,470 @@
   }
   .theremin-air-card-message {
     font-size: 12px;
+  }
+}
+
+/* ---------- Paint trail ---------- *
+ * Fingertip-driven rainbow trail canvas. Sits between the webcam
+ * video (z-index 0) and the hand-skeleton overlay (z-index 2) so
+ * the skeleton + touch markers (z-index 3) stay readable on top.
+ * pointer-events: none so it never steals input from the pad below.
+ */
+
+.theremin-paint {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ---- Paint toggle styled like the existing controls ---- *
+ * The other controls use <select>/<input range>; this one's a
+ * checkbox that we re-skin into a small pill toggle so it doesn't
+ * jar against the rest of the row.
+ */
+
+.control-paint .paint-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.control-paint .paint-toggle:hover {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(244, 114, 182, 0.45);
+}
+
+.control-paint .paint-toggle input {
+  /* Hide the native checkbox in favour of the swatch+label below. */
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.control-paint .paint-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: conic-gradient(
+    hsl(0, 92%, 65%),
+    hsl(60, 92%, 65%),
+    hsl(120, 92%, 65%),
+    hsl(180, 92%, 65%),
+    hsl(240, 92%, 65%),
+    hsl(300, 92%, 65%),
+    hsl(360, 92%, 65%)
+  );
+  box-shadow: 0 0 6px rgba(244, 114, 182, 0);
+  transition: box-shadow 160ms ease;
+  flex-shrink: 0;
+}
+
+.control-paint .paint-toggle input:checked ~ .paint-swatch {
+  box-shadow: 0 0 10px rgba(244, 114, 182, 0.7);
+}
+
+.control-paint .paint-toggle input:checked ~ .paint-label::after {
+  content: ' on';
+  color: rgba(244, 114, 182, 0.95);
+}
+
+.control-paint .paint-toggle:focus-within {
+  outline: 2px solid rgba(129, 140, 248, 0.6);
+  outline-offset: 2px;
+}
+
+/* ---------- Record control + preview modal ---------- *
+ * Record buttons live alongside the rest of the controls; the preview
+ * modal is a centred fixed overlay that appears once a recording
+ * finishes (auto-stop or user-stop).
+ */
+
+/* Mic toggle — small pill above the Rec buttons. Two visually
+ * distinct states so it's obvious at a glance whether voice will be
+ * captured in the next recording:
+ *
+ *   UNMUTED: green-tinted pill, bright mic emoji, text "Unmuted"
+ *   MUTED:   red-tinted pill, mic emoji with a red slash through it,
+ *            text "Muted"
+ *
+ * Native checkbox is hidden; the emoji + state-text + pill background
+ * are the affordance. Modifiers:
+ *
+ *   .is-blocked: appears after a denied mic permission. Adds a
+ *                "(blocked)" hint to the muted text so the user can
+ *                tell "I unticked it" from "the browser blocked me".
+ *   .is-locked:  set during an active recording so the toggle can't
+ *                be flipped mid-clip (where it would have no effect
+ *                anyway).
+ */
+
+.control-record .record-mic-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(244, 63, 94, 0.45);
+  background: rgba(127, 29, 29, 0.28);
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    opacity 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.control-record .record-mic-toggle:hover {
+  filter: brightness(1.1);
+}
+
+/* Live (checked) state — mic will be recorded. */
+.control-record .record-mic-toggle:has(input:checked) {
+  background: rgba(20, 83, 45, 0.32);
+  border-color: rgba(132, 204, 22, 0.55);
+  box-shadow: 0 0 0 1px rgba(132, 204, 22, 0.18);
+}
+
+.control-record .record-mic-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* Mic emoji + slash overlay. The ::after element draws a thin red
+ * line corner-to-corner over the icon when the toggle is off — the
+ * universal "no audio" symbol. We anchor it to the icon span (which
+ * is positioned relative) and rotate -30deg to roughly match how
+ * native iOS / Android mic-mute icons strike through the body. */
+.control-record .record-mic-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1em;
+  height: 1.1em;
+  font-size: 14px;
+  line-height: 1;
+  filter: grayscale(0.7) brightness(0.9);
+  transition: filter 160ms ease;
+}
+
+.control-record .record-mic-toggle:has(input:checked) .record-mic-icon {
+  filter: none;
+}
+
+.control-record .record-mic-icon::after {
+  content: '';
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: rgba(244, 63, 94, 0.95);
+  border-radius: 1px;
+  transform: rotate(-30deg);
+  box-shadow: 0 0 4px rgba(244, 63, 94, 0.55);
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+.control-record .record-mic-toggle:has(input:checked) .record-mic-icon::after {
+  opacity: 0;
+}
+
+/* Two text spans — only the one matching the current state is
+ * visible. Cleaner than swapping ::after content because the visible
+ * text stays in the DOM (better screen-reader experience: SR reads
+ * either "Unmuted, checkbox, checked" or "Muted, checkbox, not
+ * checked" depending on state). */
+.control-record .record-mic-text {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.control-record .record-mic-text-on {
+  display: none;
+  color: rgba(190, 242, 100, 0.98);
+}
+
+.control-record .record-mic-text-off {
+  display: inline;
+  color: rgba(252, 165, 165, 0.98);
+}
+
+.control-record .record-mic-toggle:has(input:checked) .record-mic-text-on {
+  display: inline;
+}
+
+.control-record .record-mic-toggle:has(input:checked) .record-mic-text-off {
+  display: none;
+}
+
+.control-record .record-mic-toggle:focus-within {
+  outline: 2px solid rgba(129, 140, 248, 0.6);
+  outline-offset: 2px;
+}
+
+/* Permission-denied: keep the muted styling but call out that it's
+ * not just "user turned it off" — the browser is blocking. */
+.control-record .record-mic-toggle.is-blocked .record-mic-text-off::after {
+  content: ' (blocked)';
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 4px;
+  color: rgba(244, 63, 94, 0.9);
+}
+
+.control-record .record-mic-toggle.is-locked {
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.control-record .record-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.record-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 120ms ease;
+  font-family: inherit;
+}
+
+.record-btn:hover,
+.record-btn:focus-visible {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(244, 114, 182, 0.45);
+  outline: none;
+}
+
+.record-btn:active {
+  transform: translateY(1px);
+}
+
+.record-btn.is-recording {
+  background: linear-gradient(135deg, rgba(244, 114, 182, 0.95), rgba(220, 38, 99, 0.95));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(244, 114, 182, 0.5);
+  /* Pulsing glow signals "we are actively recording right now". */
+  animation: theremin-record-pulse 1.2s ease-in-out infinite;
+}
+
+.record-btn.is-disabled,
+.record-btn[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(0.4);
+}
+
+@keyframes theremin-record-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(244, 114, 182, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(244, 114, 182, 0.85);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .record-btn.is-recording {
+    animation: none;
+  }
+}
+
+/* ---- Preview modal ---- */
+
+.theremin-record-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.theremin-record-modal[hidden] {
+  display: none;
+}
+
+.theremin-record-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.7);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+
+.theremin-record-modal-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 22px 24px 24px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #1e293b, #0b1224);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 32px 70px -20px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  width: min(460px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+}
+
+.theremin-record-modal-title {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+}
+
+.theremin-record-modal-message {
+  margin: 0;
+  color: var(--fg-dim);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.theremin-record-modal-video {
+  width: 100%;
+  border-radius: 12px;
+  background: #000;
+  /* Square aspect — matches the recording canvas. */
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+}
+
+.theremin-record-modal-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.theremin-record-btn {
+  flex: 1 1 100px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--fg);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    filter 160ms ease,
+    background 160ms ease;
+}
+
+.theremin-record-btn:hover,
+.theremin-record-btn:focus-visible {
+  outline: none;
+  background: rgba(30, 41, 59, 0.85);
+  transform: translateY(-1px);
+}
+
+.theremin-record-btn.primary {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.95), rgba(244, 114, 182, 0.95));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(129, 140, 248, 0.35);
+}
+
+.theremin-record-btn.primary:hover,
+.theremin-record-btn.primary:focus-visible {
+  filter: brightness(1.05);
+  box-shadow: 0 8px 18px rgba(244, 114, 182, 0.45);
+}
+
+.theremin-record-btn.ghost {
+  background: transparent;
+  border-color: rgba(148, 163, 184, 0.25);
+  color: var(--fg-dim);
+}
+
+.theremin-record-btn[hidden] {
+  display: none;
+}
+
+/* Inline status line below the action buttons. Used to surface
+ * "share unavailable here, downloading instead" / "share failed" so
+ * users actually understand why a click on Share might end up doing
+ * the same thing as a click on Download. */
+.theremin-record-modal-status {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--fg-dim);
+  text-align: center;
+  min-height: 1.4em;
+}
+
+.theremin-record-modal-status[hidden] {
+  display: none;
+}
+
+.theremin-record-modal-status.is-error {
+  color: rgba(244, 114, 182, 0.95);
+}
+
+@media (max-width: 640px) {
+  .theremin-record-modal-card {
+    padding: 18px 18px 20px;
+  }
+  .theremin-record-modal-actions {
+    flex-direction: column;
+  }
+  .theremin-record-btn {
+    flex: 1 1 auto;
   }
 }
