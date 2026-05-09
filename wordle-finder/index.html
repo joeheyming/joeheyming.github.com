@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" dir="ltr">
   <head>
     <base href="./" />
-    <title>Wordle Answer Finder — Free Solver, No Ads, Instant Filtering</title>
+    <title>Wordle Answer Finder — Best Next Guess for Today's Wordle</title>
 
     <!-- Preconnect to external resources for better performance -->
     <link rel="preconnect" href="https://code.jquery.com" />
@@ -20,20 +20,19 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="language" content="English" />
     <meta name="robots" content="index, follow" />
-    <meta property="og:email" content="joeheyming@gmail.com" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#4f46e5" />
     <meta
       name="description"
-      content="Free Wordle answer finder and solver. Filter by green, yellow, and gray letters, see today's possible 5-letter words ranked by entropy, and pick a smart starting word. No ads, no signup, works on mobile."
+      content="Wordle solver with entropy-ranked best next guess. Filter green/yellow/gray letters and crack today's Wordle in 2-3 tries. No ads, no signup, no install."
     />
     <meta
       name="og:description"
-      content="Have you got what it takes to win Wordle? There's only one way to find out. Give it a go today and don’t forget to share your grid with your friends. Use strategies to solve wordle. Filter out words based on known letters. Find the answer to today's wordle. Stuck on today’s Wordle answer? Use WordFinder’s helper tool to win at 2022’s most viral word game. Be the first to guess Wordle’s word of the day!"
+      content="Smart Wordle solver: filter by green/yellow/gray letters and see the best next guess ranked by entropy. Today's Wordle answer in 2-3 tries."
     />
     <meta
       property="og:description"
-      content="Have you got what it takes to win Wordle? There's only one way to find out. Give it a go today and don’t forget to share your grid with your friends. Use strategies to solve wordle. Filter out words based on known letters. Find the answer to today's wordle. Stuck on today’s Wordle answer? Use WordFinder’s helper tool to win at 2022’s most viral word game. Be the first to guess Wordle’s word of the day!"
+      content="Smart Wordle solver: filter by green/yellow/gray letters and see the best next guess ranked by entropy. Today's Wordle answer in 2-3 tries."
     />
 
     <meta name="google-site-verification" content="G4xgpb4nOfGShosuh1Tg0z-702kfJqP3tuqbhh_2YRE" />
@@ -48,20 +47,23 @@
     <meta property="og:image:width" content="359" />
     <meta
       name="keywords"
-      content="wordle, solver, finder, ignore, match, score, combo, combination, 5 letters, only these letters, answer, solve, exclude, answer, wordle solver, wordle answer, wordle cheat, ad-free, no ads, free"
+      content="wordle solver, wordle answer finder, wordle finder, wordle helper, wordle word finder, wordle cheat, today's wordle, best next guess, entropy, 5 letter word finder, wordle löser, wordle hilfe, wordle lösungen, wordle helper deutsch"
     />
-    <meta name="title" content="Wordle Answer Finder — Free Solver, No Ads" />
-    <meta name="og:title" content="Wordle Answer Finder — Free Solver, No Ads" />
-    <meta property="og:title" content="Wordle Answer Finder — Free Solver, No Ads" />
+    <meta name="title" content="Wordle Answer Finder — Best Next Guess for Today's Wordle" />
+    <meta name="og:title" content="Wordle Answer Finder — Best Next Guess for Today's Wordle" />
+    <meta property="og:title" content="Wordle Answer Finder — Best Next Guess for Today's Wordle" />
     <meta property="og:site_name" content="Joe Heyming" />
     <meta property="og:locale" content="en_US" />
 
     <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Wordle Answer Finder — Free Solver, No Ads" />
+    <meta
+      name="twitter:title"
+      content="Wordle Answer Finder — Best Next Guess for Today's Wordle"
+    />
     <meta
       name="twitter:description"
-      content="Free Wordle solver: filter by green/yellow/gray letters, see today's possible answers ranked by entropy, no ads, no signup. Works on mobile."
+      content="Smart Wordle solver: filter by green/yellow/gray letters and see the best next guess ranked by entropy. Today's Wordle in 2-3 tries."
     />
     <meta name="twitter:image" content="https://joeheyming.github.io/wordle-finder/thumbnail.png" />
 
@@ -97,8 +99,15 @@
             "learningResourceType": "Wordle solver",
             "inLanguage": "en",
             "name": "Wordle Answer Finder",
-            "alternateName": ["Wordle Solver", "Wordle Helper", "Word Finder for Wordle"],
-            "description": "Free Wordle answer finder and solver. Filter by green, yellow, and gray letters and rank possible 5-letter words by entropy.",
+            "alternateName": [
+              "Wordle Solver",
+              "Wordle Helper",
+              "Word Finder for Wordle",
+              "Wordle Cheat",
+              "Wordle Löser",
+              "Wordle Helper Deutsch"
+            ],
+            "description": "Wordle solver with entropy-ranked best next guess. Filter by green, yellow, and gray letters and crack today's Wordle in 2-3 tries.",
             "url": "https://joeheyming.github.io/wordle-finder/",
             "operatingSystem": "Web Browser",
             "browserRequirements": "Requires JavaScript",
@@ -107,7 +116,7 @@
               "price": "0",
               "priceCurrency": "USD"
             },
-            "keywords": "wordle solver, wordle answer finder, wordle helper, word finder, 5 letter words, wordle cheat"
+            "keywords": "wordle solver, wordle answer finder, wordle helper, today's wordle, best next guess, entropy, 5 letter word finder, wordle löser, wordle hilfe deutsch"
           },
           {
             "@type": "BreadcrumbList",
@@ -274,9 +283,76 @@
         <button id="helpIcon" class="info">i</button>
         <share-button label="📤 Share" theme="gradient" style="margin-left: 10px"></share-button>
       </h1>
+      <!-- Tiny date line: cheap "Today's Wordle" relevance signal for the
+           {today, today solver, today finder} query cluster (~80 imp/yr at
+           pos 30-70). Static fallback text so crawlers see it; JS upgrades
+           it to a real date for users. -->
+      <p
+        id="todays-wordle"
+        style="
+          margin: 4px 0 0;
+          text-align: center;
+          font-size: 0.85em;
+          color: #6b7280;
+          font-weight: normal;
+        "
+      >
+        Today's Wordle answer finder
+      </p>
+      <script>
+        (function () {
+          var el = document.getElementById('todays-wordle');
+          if (!el) return;
+          var d = new Date();
+          var fmt = d.toLocaleDateString(undefined, {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric'
+          });
+          el.textContent = "Today's Wordle — " + fmt;
+        })();
+      </script>
+      <!-- Hidden SEO copy. Stays in the DOM for crawlers; visible UI is
+           kept minimal. Captures: today's-Wordle framing, common
+           misspellings (wirdle/wodle/wordel/finger/fonder/...), and
+           non-English variants (German has the most untapped impressions
+           per Search Console; Spanish is a smaller but real cluster). -->
       <p class="seo-intro" hidden>
-        Free word finder for Wordle. Filter possible 5-letter answers by green, yellow, and gray
-        letters, get a smart starting word, and see matches ranked by entropy. No ads, no signup.
+        Wordle answer finder and Wordle solver for today's Wordle. Filter possible 5-letter answers
+        by green, yellow, and gray letters and see the best next guess ranked by information gain
+        (entropy). Use it as a Wordle helper, Wordle word finder, Wordle cheat, Wordle hint
+        generator, or 5-letter word finder &mdash; no ads, no signup, no install. Common queries
+        this page handles: wordle finder, wordle answer finder, wordle solver, wordle helper, wordle
+        cheat, today's wordle, wordle answer today, wordle of the day, best wordle starting word,
+        smart starting word, 5 letter word solver, 5 letter word finder, wordle solver entropy,
+        wordle hint, word answer finder. Common misspellings and typos: wordlefinder, worlde finder,
+        wirdle finder, wodle finder, wordel finder, woordle finder, wrdle finder, wordlle finder,
+        worde finder, wordle finger, wordle fonder, wordle findee, wordle findwr, wordle findsr,
+        wordle finer, wordle hepler, wordle sorver, wordle solvee, wordle solcer, wordle sovler,
+        wordle slover, wordle anwser finder, wordle answer finer, wordle awnser finder, worlde
+        solver, worldle solver, wordfinder for wordle, wordle.finder, wordle.solver, wordle helper
+        finder, wordle answer finders.
+      </p>
+      <p class="seo-intro" hidden lang="de">
+        Wordle-L&ouml;ser und Wordle-Hilfe f&uuml;r das heutige Wordle. Filtere m&ouml;gliche
+        5-Buchstaben-W&ouml;rter nach gr&uuml;nen, gelben und grauen Buchstaben und finde die
+        L&ouml;sung mit Entropie-Ranking. Wordle Helper Deutsch, Wordle L&ouml;sungen, Wordle
+        L&ouml;ser 6 Buchstaben, Wordle L&ouml;sung, Wordle Hilfe Deutsch, Wordle l&ouml;sen, German
+        Wordle helper, Wordle Wortfinder. Kostenlos, ohne Werbung, ohne Anmeldung.
+      </p>
+      <p class="seo-intro" hidden lang="es">
+        Buscador de respuestas para Wordle y Wordle solver gratis. Filtra palabras de 5 letras por
+        letras verdes, amarillas y grises, y encuentra la respuesta del Wordle de hoy con ranking
+        por entrop&iacute;a. Wordle solver en espa&ntilde;ol. Sin anuncios, sin registro.
+      </p>
+      <p class="seo-intro" hidden lang="fr">
+        Solveur Wordle et chercheur de r&eacute;ponse Wordle gratuit. Filtrez les mots de 5 lettres
+        par lettres vertes, jaunes et grises et trouvez la r&eacute;ponse du Wordle du jour,
+        class&eacute;e par entropie. Sans publicit&eacute;, sans inscription.
+      </p>
+      <p class="seo-intro" hidden lang="nl">
+        Gratis Wordle helper en Wordle oplosser voor de Wordle van vandaag. Filter mogelijke
+        5-letterwoorden op groene, gele en grijze letters. Wordle helper Nederlands.
       </p>
     </header>
     <hr />
