@@ -78,6 +78,25 @@ export function createPointerSurface(rootEl, opts = {}) {
     ? createScrollGesture({ tapDelayMs: opts.tapDelayMs ?? 80 })
     : null;
 
+  // Pointers whose press has *committed* — their `play()` (or direct
+  // `enter()` when there's no tap-vs-pan deferral) has already fired
+  // and the host has been told the note is on. While at least one
+  // pointer is in this state we suppress native scroll on touchmove
+  // (see `handleTouchMove`) so a held-then-dragged finger can scrub
+  // across targets without the browser hijacking the gesture for pan.
+  // Lazy swipes (released before `tapDelayMs`, or moved off before
+  // the timer fired) never enter this set and continue to scroll
+  // natively as before.
+  const committed = new Set();
+
+  const commit = (ptrId) => {
+    committed.add(ptrId);
+  };
+
+  const uncommit = (ptrId) => {
+    committed.delete(ptrId);
+  };
+
   const enter = (target, ptrId, event) => {
     active.set(ptrId, target);
     if (target) onEnter(target, ptrId, event);
@@ -90,6 +109,7 @@ export function createPointerSurface(rootEl, opts = {}) {
   };
 
   const releaseCurrent = (ptrId, event) => {
+    uncommit(ptrId);
     if (!active.has(ptrId)) return;
     const last = active.get(ptrId);
     active.delete(ptrId);
@@ -109,7 +129,10 @@ export function createPointerSurface(rootEl, opts = {}) {
       // is reused by the browser between handlers.
       const ptrId = event.pointerId;
       scrollGesture.start(event, {
-        play: () => enter(target, ptrId, event),
+        play: () => {
+          commit(ptrId);
+          enter(target, ptrId, event);
+        },
         release: () => {
           // The gesture committed to scroll *after* play already fired.
           // Treat it as a release with the last-entered target.
@@ -117,6 +140,12 @@ export function createPointerSurface(rootEl, opts = {}) {
         }
       });
     } else {
+      // No tap-vs-pan deferral: every press commits immediately.
+      // Pages that don't pass `deferScrollOnTouch` are typically the
+      // ones without a scrolling ancestor (drums, harp, steeldrum), so
+      // suppressing touchmove is a no-op there — but it costs us
+      // nothing to keep the bookkeeping consistent.
+      commit(event.pointerId);
       enter(target, event.pointerId, event);
     }
     if (preventDefaultOnDown && event.pointerType !== 'touch') event.preventDefault();
@@ -146,10 +175,41 @@ export function createPointerSurface(rootEl, opts = {}) {
     releaseCurrent(event.pointerId, event);
   };
 
+  // Native-scroll suppression for committed pointers.
+  //
+  // The host instruments use `touch-action: pan-x` (piano keyboard) or
+  // `pan-x pan-y` (Stradella / chromatic buttons) on the playable
+  // elements so a *lazy* swipe scrolls the keyboard natively with
+  // momentum — that's the QoL ask. The cost is that once a press has
+  // committed (held > tapDelayMs), the moment the player drags
+  // sideways to scrub across notes the browser interprets the same
+  // motion as a pan and fires `pointercancel`, which cuts the held
+  // note. The result on a phone: you can tap individual buttons fine,
+  // but you can't drag from C-bass over to G-bass — the gesture
+  // always gets hijacked into a scroll partway through.
+  //
+  // Fix: once any pointer is in committed state, preventDefault on
+  // every touchmove. The browser stops trying to scroll, no
+  // pointercancel arrives, and our pointermove keeps firing the
+  // host's drag-cross logic. Pointers that *haven't* committed (the
+  // press is still inside the tap-vs-pan window, or the user lifted
+  // before the timer fired) bypass this entirely — touchmove is left
+  // alone and the browser scrolls just like before.
+  //
+  // Listener has to be `passive: false` so we're allowed to
+  // preventDefault. This must be set up at addEventListener time and
+  // can't be flipped per-event, so we keep it always-on and gate the
+  // preventDefault on `committed.size`.
+  const handleTouchMove = (event) => {
+    if (committed.size === 0) return;
+    if (event.cancelable) event.preventDefault();
+  };
+
   rootEl.addEventListener('pointerdown', handleDown);
   rootEl.addEventListener('pointermove', handleMove);
   rootEl.addEventListener('pointerup', handleUp);
   rootEl.addEventListener('pointercancel', handleCancel);
+  rootEl.addEventListener('touchmove', handleTouchMove, { passive: false });
 
   return {
     /** Force-release every active pointer (e.g. when the host re-renders). */
@@ -168,6 +228,7 @@ export function createPointerSurface(rootEl, opts = {}) {
       rootEl.removeEventListener('pointermove', handleMove);
       rootEl.removeEventListener('pointerup', handleUp);
       rootEl.removeEventListener('pointercancel', handleCancel);
+      rootEl.removeEventListener('touchmove', handleTouchMove);
       // The scroll gesture has internal timers per pointerId; cancel them.
       if (scrollGesture) {
         for (const ptrId of Array.from(active.keys())) {
@@ -175,6 +236,7 @@ export function createPointerSurface(rootEl, opts = {}) {
         }
       }
       active.clear();
+      committed.clear();
     }
   };
 }

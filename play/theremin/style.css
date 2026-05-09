@@ -1,0 +1,415 @@
+/* =========================================================================
+ * Theremin / XY pad. One big rectangular surface, scale-line grid in the
+ * background, fingers leave glowing crosshair touch markers. The first
+ * finger drives pitch (X) + volume (Y); a second finger overlays vibrato
+ * (X = rate, Y = depth).
+ * ========================================================================= */
+
+.theremin-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px 24px;
+  width: 100%;
+}
+
+.theremin-pad {
+  position: relative;
+  width: min(100%, 1080px);
+  height: clamp(320px, 60vh, 580px);
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      120% 80% at 50% 100%,
+      rgba(244, 114, 182, 0.18),
+      transparent 60%
+    ),
+    radial-gradient(
+      120% 80% at 50% 0%,
+      rgba(129, 140, 248, 0.18),
+      transparent 60%
+    ),
+    linear-gradient(180deg, #1e293b, #0b1224);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 24px 40px -20px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 0 0 1px rgba(129, 140, 248, 0.08);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+/* SVG-style grid drawn in CSS: vertical lines = pitch divisions, horizontal
+ * lines = volume contours. The vertical lines are positioned by JS via CSS
+ * variables for the active scale; horizontal lines are fixed thirds. */
+.theremin-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.theremin-grid-line {
+  position: absolute;
+  background: rgba(148, 163, 184, 0.08);
+  pointer-events: none;
+}
+
+.theremin-grid-line.vertical {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.theremin-grid-line.vertical.is-c {
+  background: rgba(129, 140, 248, 0.32);
+  width: 1.5px;
+}
+
+.theremin-grid-line.vertical.is-root {
+  background: rgba(244, 114, 182, 0.4);
+  width: 1.5px;
+}
+
+.theremin-grid-line.horizontal {
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+/* Note labels along the bottom edge for each octave's C (or root). */
+.theremin-grid-label {
+  position: absolute;
+  bottom: 6px;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(226, 232, 240, 0.45);
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.theremin-grid-label.is-root {
+  color: rgba(244, 114, 182, 0.85);
+}
+
+.theremin-grid-label.is-edge-left {
+  transform: translateX(4px);
+}
+
+.theremin-grid-label.is-edge-right {
+  transform: translateX(-100%) translateX(-4px);
+}
+
+/* Volume gradient overlay — subtle vertical fade so it reads "louder up". */
+.theremin-pad::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(129, 140, 248, 0.12),
+    transparent 50%,
+    rgba(0, 0, 0, 0.18)
+  );
+  pointer-events: none;
+}
+
+.theremin-axis-label {
+  position: absolute;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: rgba(148, 163, 184, 0.55);
+  pointer-events: none;
+  text-transform: uppercase;
+}
+
+.theremin-axis-x {
+  bottom: 6px;
+  right: 12px;
+}
+
+.theremin-axis-y {
+  top: 12px;
+  left: 12px;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.theremin-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(226, 232, 240, 0.35);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-align: center;
+  pointer-events: none;
+  transition: opacity 240ms ease;
+}
+
+.theremin-pad.is-active .theremin-hint {
+  opacity: 0;
+}
+
+/* Touch markers — one per active pointer. Position is set live via
+ * --tx / --ty (in px). Two flavours: primary (pitch+volume) and
+ * vibrato (secondary fingers). */
+.theremin-touch {
+  position: absolute;
+  left: var(--tx, 0);
+  top: var(--ty, 0);
+  width: 96px;
+  height: 96px;
+  margin-left: -48px;
+  margin-top: -48px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(129, 140, 248, 0.55),
+    rgba(129, 140, 248, 0.08) 50%,
+    transparent 70%
+  );
+  filter: blur(0.5px);
+  will-change: left, top;
+}
+
+.theremin-touch::after {
+  /* Inner crisp dot. */
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  background: rgba(226, 232, 240, 0.95);
+  box-shadow:
+    0 0 0 3px rgba(129, 140, 248, 0.5),
+    0 0 18px rgba(129, 140, 248, 0.6);
+}
+
+.theremin-touch.vibrato {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(244, 114, 182, 0.55),
+    rgba(244, 114, 182, 0.08) 50%,
+    transparent 70%
+  );
+}
+
+.theremin-touch.vibrato::after {
+  background: rgba(252, 211, 230, 0.95);
+  box-shadow:
+    0 0 0 3px rgba(244, 114, 182, 0.55),
+    0 0 18px rgba(244, 114, 182, 0.6);
+}
+
+/* Crosshair lines through the primary touch — a long horizontal pitch
+ * axis and a long vertical volume axis so the player can read off the
+ * note from the labels at the bottom. */
+.theremin-crosshair {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.theremin-crosshair-line {
+  position: absolute;
+  background: rgba(129, 140, 248, 0.35);
+  pointer-events: none;
+}
+
+.theremin-crosshair-line.vertical {
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  left: var(--cx, -10px);
+  margin-left: -0.75px;
+  box-shadow: 0 0 12px rgba(129, 140, 248, 0.5);
+}
+
+.theremin-crosshair-line.horizontal {
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  top: var(--cy, -10px);
+  margin-top: -0.75px;
+  box-shadow: 0 0 12px rgba(129, 140, 248, 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theremin-touch {
+    filter: none;
+  }
+}
+
+/* ---------- Air mode ---------- *
+ * The same pad doubles as a camera-feed display with hand-landmark
+ * overlay. Switching modes flips a class on the pad: in touch mode the
+ * video and canvas are display:none, in air mode they fill the pad and
+ * the touch markers + crosshair are hidden. The grid overlay stays
+ * visible in both so the player can read off the note from the labels.
+ */
+
+.theremin-video,
+.theremin-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  pointer-events: none;
+}
+
+.theremin-video {
+  object-fit: cover;
+  /* Mirror so left-handed motion in the real world goes left in the
+   * frame — the natural "mirror" feel for selfie cameras. */
+  transform: scaleX(-1);
+  opacity: 0.45;
+  background: #000;
+}
+
+.theremin-overlay {
+  /* The canvas already paints its own background-transparent landmark
+   * skeleton; we just need it on top of the video. */
+  z-index: 2;
+}
+
+.theremin-pad.is-air-mode {
+  cursor: default;
+}
+
+.theremin-pad.is-air-mode .theremin-video,
+.theremin-pad.is-air-mode .theremin-overlay {
+  display: block;
+}
+
+.theremin-pad.is-air-mode .theremin-touch,
+.theremin-pad.is-air-mode .theremin-crosshair {
+  display: none;
+}
+
+.theremin-pad.is-air-mode .theremin-hint {
+  display: none;
+}
+
+/* Permission / status card centred over the pad while air mode is
+ * loading, awaiting permission, or recovering from an error. */
+.theremin-air-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 28px 32px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 24px 60px -20px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  max-width: min(90%, 380px);
+  text-align: center;
+  backdrop-filter: blur(8px);
+}
+
+.theremin-air-card[hidden] {
+  display: none;
+}
+
+.theremin-air-card-icon {
+  font-size: 36px;
+  line-height: 1;
+  filter: drop-shadow(0 4px 14px rgba(129, 140, 248, 0.5));
+}
+
+.theremin-air-card-title {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+}
+
+.theremin-air-card-message {
+  margin: 0;
+  color: var(--fg-dim);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.theremin-air-card-button {
+  margin-top: 4px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.95), rgba(244, 114, 182, 0.95));
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(129, 140, 248, 0.35);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    filter 160ms ease;
+}
+
+.theremin-air-card-button:hover,
+.theremin-air-card-button:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(244, 114, 182, 0.45);
+  outline: none;
+  filter: brightness(1.05);
+}
+
+.theremin-air-card-button[disabled] {
+  cursor: progress;
+  filter: grayscale(0.4);
+  transform: none;
+  box-shadow: none;
+}
+
+.theremin-air-card-button[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theremin-air-card-button {
+    transition: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .theremin-pad {
+    height: clamp(300px, 64vh, 520px);
+  }
+  .theremin-hint {
+    font-size: 12px;
+    padding: 0 24px;
+  }
+  .theremin-axis-label {
+    font-size: 9px;
+  }
+  .theremin-air-card {
+    padding: 22px 24px;
+    gap: 10px;
+  }
+  .theremin-air-card-message {
+    font-size: 12px;
+  }
+}

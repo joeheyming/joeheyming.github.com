@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>📻 Theremin - XY Pad in Your Browser | Joe Heyming</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📻</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="A free browser theremin / XY pad. Drag for pitch and volume, second finger adds vibrato. Multi-touch friendly."
+    />
+    <meta name="theme-color" content="#0f172a" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Play" />
+    <meta property="og:title" content="📻 Theremin - XY Pad in Your Browser" />
+    <meta
+      property="og:description"
+      content="A free browser theremin / XY pad. Drag for pitch and volume, second finger adds vibrato."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/play/theremin/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/play/theremin/theremin-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Browser theremin XY pad" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="📻 Theremin - XY Pad in Your Browser" />
+    <meta
+      name="twitter:description"
+      content="A free browser theremin / XY pad. Drag for pitch and volume, second finger adds vibrato."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/play/theremin/theremin-preview.png"
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/play/theremin/" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
+
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="instrument-body">
+    <header class="instrument-header">
+      <div class="instrument-page-title">
+        <span aria-hidden="true">📻</span>
+        <h1>Theremin</h1>
+      </div>
+      <div class="header-status">
+        <div class="now-playing" id="now-playing" aria-live="polite">—</div>
+      </div>
+      <a class="instruments-link" href="../" aria-label="Back to instruments">
+        <span class="instruments-link-icon" aria-hidden="true">🎵</span>
+        <span class="instruments-link-text">Instruments</span>
+      </a>
+    </header>
+
+    <section class="instrument-controls" aria-label="Theremin controls">
+      <div class="control">
+        <label for="mode">Mode</label>
+        <select id="mode">
+          <option value="touch" selected>Touch</option>
+          <option value="air">Air ✋</option>
+        </select>
+      </div>
+
+      <div class="control">
+        <label for="volume">Volume</label>
+        <input id="volume" type="range" min="0" max="100" value="55" />
+      </div>
+
+      <div class="control">
+        <label for="waveform">Wave</label>
+        <select id="waveform">
+          <option value="sine" selected>Sine</option>
+          <option value="triangle">Triangle</option>
+          <option value="sawtooth">Saw</option>
+          <option value="square">Square</option>
+        </select>
+      </div>
+
+      <div class="control">
+        <label for="scale">Scale</label>
+        <select id="scale">
+          <option value="continuous" selected>Continuous</option>
+          <option value="major">Major</option>
+          <option value="minor">Minor</option>
+          <option value="pentatonic-major">Pentatonic+</option>
+          <option value="pentatonic-minor">Pentatonic−</option>
+          <option value="blues">Blues</option>
+          <option value="chromatic">Chromatic</option>
+        </select>
+      </div>
+
+      <div class="control">
+        <label for="root">Root</label>
+        <select id="root">
+          <option value="0" selected>C</option>
+          <option value="1">C♯</option>
+          <option value="2">D</option>
+          <option value="3">D♯</option>
+          <option value="4">E</option>
+          <option value="5">F</option>
+          <option value="6">F♯</option>
+          <option value="7">G</option>
+          <option value="8">G♯</option>
+          <option value="9">A</option>
+          <option value="10">A♯</option>
+          <option value="11">B</option>
+        </select>
+      </div>
+
+      <div class="control">
+        <label for="range">Range</label>
+        <select id="range">
+          <option value="3">3 oct</option>
+          <option value="4" selected>4 oct</option>
+          <option value="5">5 oct</option>
+        </select>
+      </div>
+
+      <div class="control">
+        <label for="glide">Glide</label>
+        <input id="glide" type="range" min="0" max="200" value="40" />
+      </div>
+    </section>
+
+    <section class="theremin-stage">
+      <div class="theremin-pad" id="theremin-pad" role="application" aria-label="XY pad">
+        <video
+          id="theremin-video"
+          class="theremin-video"
+          playsinline
+          muted
+          autoplay
+          aria-hidden="true"
+        ></video>
+        <canvas id="theremin-overlay" class="theremin-overlay" aria-hidden="true"></canvas>
+        <div class="theremin-grid" id="theremin-grid" aria-hidden="true"></div>
+        <div class="theremin-axis-label theremin-axis-x" aria-hidden="true">PITCH →</div>
+        <div class="theremin-axis-label theremin-axis-y" aria-hidden="true">VOLUME ↑</div>
+        <div class="theremin-hint" id="theremin-hint" aria-hidden="true">
+          Drag anywhere · Second finger = vibrato
+        </div>
+        <div class="theremin-air-card" id="theremin-air-card" hidden>
+          <div class="theremin-air-card-icon" aria-hidden="true">✋</div>
+          <h2 class="theremin-air-card-title" id="theremin-air-card-title">Air mode</h2>
+          <p class="theremin-air-card-message" id="theremin-air-card-message">
+            Wave your hand in front of the camera to play. Hand position
+            sets pitch (left ↔ right) and volume (up ↔ down).
+          </p>
+          <button class="theremin-air-card-button" id="theremin-air-start" type="button">
+            Allow camera
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="instrument-help">
+      <h2>How to play</h2>
+      <ul>
+        <li>
+          <strong>Touch mode</strong> — drag on the pad: <strong>X</strong>
+          sets pitch (left = low, right = high), <strong>Y</strong> sets
+          volume (bottom = silent, top = loud). A
+          <strong>second finger</strong> adds vibrato (X = rate, Y = depth).
+        </li>
+        <li>
+          <strong>Air mode</strong> — wave your hand in front of the front
+          camera. Hand X = pitch, hand Y = volume. With two hands visible:
+          your <em>right</em> hand sets pitch (closer-to-camera = louder
+          like a real theremin antenna), your <em>left</em> hand adds
+          vibrato.
+        </li>
+        <li>
+          Pick a <strong>scale</strong> to snap pitches to a key — set it to
+          <em>Continuous</em> for true theremin glide.
+        </li>
+        <li>
+          <strong>Glide</strong> smooths big pitch jumps; turn it down for
+          snappy attacks, up for liquid swoops.
+        </li>
+      </ul>
+    </section>
+
+    <script type="module" src="theremin.js"></script>
+  </body>
+</html>
