@@ -16,12 +16,12 @@
     <script src="/back.js" data-back-size="compact"></script>
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>🖥️ Web Terminal - Interactive Command Line | Joe Heyming</title>
+    <title>Web Terminal — Interactive Command Line Emulator in Your Browser</title>
 
     <!-- Enhanced SEO Meta Tags -->
     <meta
       name="description"
-      content="Interactive web-based terminal emulator with file system, commands, and retro styling. Experience a fully functional command line interface in your browser."
+      content="Free web terminal &mdash; an interactive command line and terminal emulator in your browser. Sandboxed file system, scriptable commands, retro styling. An online alternative to Windows Terminal / iTerm with no install."
     />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
@@ -29,7 +29,7 @@
     <meta name="theme-color" content="#001400" />
     <meta
       name="keywords"
-      content="terminal, command line, web terminal, CLI, bash, shell, file system, interactive terminal, browser terminal, retro computing"
+      content="web terminal, terminal web, terminal website, web-based terminal, terminal emulator web, online terminal, browser terminal, command line, CLI, bash, shell, file system, interactive terminal, retro computing, windows terminal alternative"
     />
 
     <!-- Open Graph Meta Tags -->
@@ -104,7 +104,13 @@
               "Tab completion"
             ],
             "screenshot": "https://joeheyming.github.io/terminal/terminal-preview.png",
-            "keywords": "terminal, command line, CLI, web terminal, shell emulator",
+            "keywords": "web terminal, terminal web, online terminal, terminal emulator, browser terminal, CLI, shell emulator, windows terminal alternative",
+            "alternateName": [
+              "Web Terminal",
+              "Online Terminal",
+              "Browser Terminal",
+              "Terminal Emulator Web"
+            ],
             "inLanguage": "en"
           },
           {
@@ -201,5 +207,35 @@
     <script src="../os/filesystem-db.js"></script>
     <!-- Single module entry point: imports core stack, registry, terminal, then boots OS -->
     <script type="module" src="main.js"></script>
+
+    <!-- SEO content footer. Marked .seo-intro + hidden so it stays in the
+         DOM for crawlers but doesn't show on the page. -->
+    <footer class="seo-intro" hidden>
+      <h2>Web Terminal &mdash; Online Command Line in Your Browser</h2>
+      <p>
+        Free, browser-based terminal emulator with a sandboxed file system, command history, tab
+        completion, and retro styling. An online alternative to Windows Terminal, iTerm, or a
+        desktop bash shell &mdash; no install, no signup. Type
+        <code>help</code>
+        to see every command. Also known as: web terminal, terminal web, online terminal, terminal
+        website, web-based terminal emulator.
+      </p>
+      <nav aria-label="More tools and games">
+        <strong>More from Joe Heyming:</strong>
+        <a href="/notepad/">Notepad</a>
+        &middot;
+        <a href="/calculator/">Calculator</a>
+        &middot;
+        <a href="/wordle-finder/">Wordle Finder</a>
+        &middot;
+        <a href="/doom/">DOOM</a>
+        &middot;
+        <a href="/nes/">NES Emulator</a>
+        &middot;
+        <a href="/pacman/">3D Pac-Man</a>
+        &middot;
+        <a href="/about/">About Joe</a>
+      </nav>
+    </footer>
   </body>
 </html>

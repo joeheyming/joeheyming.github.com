@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Favicon - SVG for modern browsers, PNG fallbacks -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <title>About Joe Heyming — UI Engineer at Roblox</title>
+
+    <!-- SEO Meta Tags -->
+    <meta
+      name="description"
+      content="About Joe Heyming — UI Engineer at Roblox, UCSB Computer Science graduate, based in Campbell, CA. 18+ years of frontend, ML platforms, and trust &amp; safety work."
+    />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="application-name" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="theme-color" content="#8b5cf6" />
+    <meta
+      name="keywords"
+      content="Joe Heyming, UI Engineer, Roblox, Software Engineer, UCSB, Web Developer, JavaScript, React, Frontend, Trust &amp; Safety, Cloudera, Aruba Networks, Hewlett Packard"
+    />
+    <meta name="geo.region" content="US-CA" />
+    <meta name="geo.placename" content="Campbell, California" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="profile" />
+    <meta property="og:site_name" content="Joe Heyming" />
+    <meta property="og:title" content="About Joe Heyming — UI Engineer at Roblox" />
+    <meta
+      property="og:description"
+      content="UI Engineer at Roblox. UCSB CS. 18+ years building frontends, ML platforms, and trust &amp; safety tools."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/about/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/assets/joe-heyming-og-image.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Joe Heyming - UI Engineer" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="profile:first_name" content="Joe" />
+    <meta property="profile:last_name" content="Heyming" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="About Joe Heyming — UI Engineer at Roblox" />
+    <meta
+      name="twitter:description"
+      content="UI Engineer at Roblox. UCSB CS. 18+ years of frontend, ML platforms, and trust &amp; safety."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/assets/joe-heyming-og-image.jpeg"
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/about/" />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag('js', new Date());
+      gtag('config', 'G-Q62Q3E20Y0');
+    </script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/index.css" />
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Person",
+            "name": "Joe Heyming",
+            "jobTitle": "UI Engineer",
+            "worksFor": {
+              "@type": "Organization",
+              "name": "Roblox"
+            },
+            "alumniOf": {
+              "@type": "CollegeOrUniversity",
+              "name": "University of California, Santa Barbara",
+              "department": "Computer Science"
+            },
+            "url": "https://joeheyming.github.io/about/",
+            "mainEntityOfPage": "https://joeheyming.github.io/about/",
+            "sameAs": [
+              "https://www.linkedin.com/in/joeheyming/",
+              "https://github.com/joeheyming",
+              "https://twitter.com/joeheyming"
+            ],
+            "knowsAbout": [
+              "JavaScript",
+              "React",
+              "Frontend Development",
+              "UI Engineering",
+              "Trust & Safety",
+              "Machine Learning Platforms",
+              "Web Development"
+            ],
+            "description": "UI Engineer at Roblox, UCSB Computer Science graduate, based in Campbell, California. 18+ years of frontend, ML platforms, and trust & safety work.",
+            "image": "https://joeheyming.github.io/assets/joe-heyming-og-image.png",
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Campbell",
+              "addressRegion": "California",
+              "addressCountry": "US"
+            }
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "About"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <style>
+      .hero-bg {
+        position: relative;
+        overflow: hidden;
+      }
+      .hero-bg::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(45deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+        animation: spin 20s linear infinite;
+      }
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-12px);
+        }
+      }
+      .animate-float {
+        animation: float 6s ease-in-out infinite;
+      }
+    </style>
+  </head>
+  <body
+    class="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 overflow-x-hidden"
+  >
+    <nav
+      style="
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+        text-align: center;
+        background: rgba(0, 0, 0, 0.35);
+        color: #fff;
+        font-family: system-ui, -apple-system, sans-serif;
+      "
+      aria-label="Site identity and policies"
+    >
+      <a href="/" style="color: #fff; text-decoration: none">
+        <strong>Joe Heyming</strong>
+      </a>
+      <span style="color: rgba(255, 255, 255, 0.45); margin: 0 0.5rem">·</span>
+      <a href="/privacy-policy.html" style="color: #bfdbfe; text-decoration: underline">
+        Privacy Policy
+      </a>
+      <span style="color: rgba(255, 255, 255, 0.45); margin: 0 0.5rem">·</span>
+      <a href="/terms-of-service.html" style="color: #bfdbfe; text-decoration: underline">
+        Terms of Service
+      </a>
+    </nav>
+
+    <main id="main-content" class="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <!-- Hero -->
+      <div
+        class="hero-bg relative bg-white/95 backdrop-blur-sm rounded-3xl p-6 sm:p-12 lg:p-16 mb-12 shadow-2xl text-center overflow-hidden"
+      >
+        <div class="relative z-10">
+          <h1
+            class="text-4xl sm:text-5xl md:text-6xl font-bold mb-4 sm:mb-6 pb-2"
+            style="
+              background: linear-gradient(45deg, rgb(99 102 241), rgb(147 51 234));
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
+            "
+          >
+            🦄 Joe Heyming
+          </h1>
+          <p class="text-xl sm:text-2xl text-gray-600 mb-4">UI Engineer</p>
+          <p class="text-lg text-gray-700 max-w-2xl mx-auto">
+            Building user experiences at Roblox 🎮 &mdash; previously Cloudera, Aruba Networks, and
+            Hewlett Packard. UCSB Computer Science. Campbell, CA.
+          </p>
+          <p class="mt-6 text-base text-indigo-700">
+            <em>"Lots of hard work."</em>
+          </p>
+        </div>
+      </div>
+
+      <!-- Places I've Worked -->
+      <section class="bg-white/90 backdrop-blur-sm rounded-3xl p-6 sm:p-10 mb-12 shadow-xl">
+        <h2 class="text-3xl sm:text-4xl font-bold text-center mb-6 sm:mb-10 text-indigo-700">
+          Places I've Worked
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div
+            class="bg-gradient-to-r from-red-500 to-pink-500 text-white p-6 rounded-2xl transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl animate-float"
+          >
+            <h3 class="text-xl font-bold mb-2">🎮 Roblox</h3>
+            <p class="text-sm opacity-90">
+              UI Engineer
+              <br />
+              <span class="text-xs">Trust &amp; Safety Platform</span>
+            </p>
+          </div>
+          <div
+            class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 rounded-2xl transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl animate-float"
+            style="animation-delay: 0.2s"
+          >
+            <h3 class="text-xl font-bold mb-2">☁️ Cloudera</h3>
+            <p class="text-sm opacity-90">
+              Staff/Principal Engineer
+              <br />
+              <span class="text-xs">7+ years of ML &amp; Data platforms</span>
+            </p>
+          </div>
+          <div
+            class="bg-gradient-to-r from-green-500 to-teal-500 text-white p-6 rounded-2xl transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl animate-float"
+            style="animation-delay: 0.4s"
+          >
+            <h3 class="text-xl font-bold mb-2">📡 Aruba Networks</h3>
+            <p class="text-sm opacity-90">
+              Staff Software Engineer
+              <br />
+              <span class="text-xs">VisualRF &amp; "Take it to the cloud!"</span>
+            </p>
+          </div>
+          <div
+            class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-6 rounded-2xl transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl animate-float"
+            style="animation-delay: 0.6s"
+          >
+            <h3 class="text-xl font-bold mb-2">💻 Hewlett Packard</h3>
+            <p class="text-sm opacity-90">
+              Performance &amp; Scalability
+              <br />
+              <span class="text-xs">HPSA/Opsware optimization</span>
+            </p>
+          </div>
+        </div>
+        <div class="text-center space-y-2">
+          <p class="text-xl font-semibold text-indigo-600">
+            Been doing this for
+            <strong id="years-experience">18+ years</strong>
+          </p>
+          <p class="text-lg text-purple-600">UCSB CS · Campbell, CA</p>
+        </div>
+      </section>
+
+      <!-- Random Stuff -->
+      <section
+        class="bg-gradient-to-r from-cyan-400 to-blue-500 text-white rounded-3xl p-6 sm:p-10 mb-12 shadow-xl"
+      >
+        <h2 class="text-3xl sm:text-4xl font-bold text-center mb-6 sm:mb-10">Random Stuff</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div
+            class="bg-white/20 backdrop-blur-sm p-6 rounded-2xl hover:bg-white/30 transition-all"
+          >
+            <h3 class="text-xl font-bold mb-3">📺 I was in a commercial once</h3>
+            <p class="text-sm">Said "Why don't you take it to the cloud?" for Aruba Networks</p>
+          </div>
+          <div
+            class="bg-white/20 backdrop-blur-sm p-6 rounded-2xl hover:bg-white/30 transition-all"
+          >
+            <h3 class="text-xl font-bold mb-3">🎯 Got a patent</h3>
+            <p class="text-sm">
+              <a
+                href="https://www.freepatentsonline.com/y2015/0381434.html"
+                target="_blank"
+                rel="noopener"
+                class="underline hover:text-yellow-200"
+              >
+                WiFi heatmap visualization thing
+              </a>
+            </p>
+          </div>
+          <div
+            class="bg-white/20 backdrop-blur-sm p-6 rounded-2xl hover:bg-white/30 transition-all"
+          >
+            <h3 class="text-xl font-bold mb-3">🏕️ Was a Cubmaster</h3>
+            <p class="text-sm">
+              Pack 333, Campbell CA
+              <br />
+              2018-2020
+            </p>
+          </div>
+          <div
+            class="bg-white/20 backdrop-blur-sm p-6 rounded-2xl hover:bg-white/30 transition-all"
+          >
+            <h3 class="text-xl font-bold mb-3">🔧 Some open source</h3>
+            <p class="text-sm">
+              <a
+                href="https://github.com/joeheyming"
+                target="_blank"
+                rel="noopener"
+                class="underline hover:text-yellow-200"
+              >
+                Emacs stuff, Python tools
+              </a>
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Try the apps callout -->
+      <section
+        class="bg-white/90 backdrop-blur-sm rounded-3xl p-6 sm:p-10 mb-12 shadow-xl text-center"
+      >
+        <h2 class="text-2xl sm:text-3xl font-bold mb-4 text-indigo-700">
+          Want to see what I build?
+        </h2>
+        <p class="text-gray-700 mb-6 max-w-2xl mx-auto">
+          The home page is a living gallery of every game and tool I&rsquo;ve shipped &mdash; from
+          DOOM in your browser to a 3D Pac-Man, a Wordle solver, a NES emulator, an ASCII Bad Apple,
+          and a small in-browser operating system. All free, no signup, no ads.
+        </p>
+        <a
+          href="/"
+          class="inline-block bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold px-8 py-4 rounded-full shadow-lg hover:shadow-2xl hover:scale-105 transition-all"
+        >
+          🚀 Browse all projects
+        </a>
+      </section>
+    </main>
+
+    <footer id="main-footer" class="text-center py-12 text-white">
+      <p class="text-xl mb-6">Built with JavaScript and too much coffee ☕</p>
+      <div class="flex justify-center space-x-8 mb-6">
+        <a
+          href="https://www.linkedin.com/in/joeheyming/"
+          target="_blank"
+          rel="noopener"
+          class="text-white hover:scale-125 transition-transform duration-300 text-2xl"
+        >
+          🔗 LinkedIn
+        </a>
+        <a
+          href="https://github.com/joeheyming"
+          target="_blank"
+          rel="noopener"
+          class="text-white hover:scale-125 transition-transform duration-300 text-2xl"
+        >
+          🐙 GitHub
+        </a>
+        <a
+          href="https://twitter.com/joeheyming"
+          target="_blank"
+          rel="noopener"
+          class="text-white hover:scale-125 transition-transform duration-300 text-2xl"
+        >
+          🐦 Twitter
+        </a>
+      </div>
+      <nav class="mb-6 text-sm" aria-label="Legal">
+        <a
+          href="/privacy-policy.html"
+          class="text-white/90 underline underline-offset-2 hover:text-white"
+        >
+          Privacy Policy
+        </a>
+        <span class="text-white/50 mx-2" aria-hidden="true">·</span>
+        <a
+          href="/terms-of-service.html"
+          class="text-white/90 underline underline-offset-2 hover:text-white"
+        >
+          Terms of Service
+        </a>
+      </nav>
+      <p class="text-sm opacity-80">"Lots of hard work."</p>
+    </footer>
+
+    <script>
+      // Live experience counter — same logic as the old home page.
+      (function () {
+        var startYear = 2006;
+        var current = new Date().getFullYear();
+        var el = document.getElementById('years-experience');
+        if (el) el.textContent = current - startYear + '+ years';
+      })();
+    </script>
+  </body>
+</html>

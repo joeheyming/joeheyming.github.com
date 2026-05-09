@@ -20,12 +20,12 @@
     />
 
     <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
-    <title>🕹️ NES Emulator - Play Classic Nintendo Games Online | Joe Heyming</title>
+    <title>NES Emulator Online — Play Classic Nintendo Games in Browser</title>
 
     <!-- Enhanced SEO Meta Tags -->
     <meta
       name="description"
-      content="Play classic Nintendo Entertainment System (NES) games directly in your browser! Full-featured JavaScript NES emulator with save states, ROM browser, and mobile controls. Free, no ads. Relive retro gaming nostalgia."
+      content="Free NES emulator online — play classic Nintendo Entertainment System games directly in your browser. Full-featured JavaScript emulator with save states, ROM browser, and mobile controls. No ads, no install. Bring your own .nes ROM."
     />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
@@ -33,7 +33,7 @@
     <meta name="theme-color" content="#3b82f6" />
     <meta
       name="keywords"
-      content="NES emulator, Nintendo emulator, retro gaming, classic games, JavaScript emulator, browser games, ROM player, 8-bit games, vintage gaming, WebNES, online emulator, save states, ad-free, no ads, free"
+      content="NES emulator, NES emulator online, Nintendo emulator, online NES emulator, browser NES emulator, web NES emulator, play NES games online, classic Nintendo games, JavaScript emulator, 8-bit games, vintage gaming, save states, ad-free, no ads, free"
     />
 
     <!-- Open Graph Meta Tags -->
@@ -128,15 +128,21 @@
         "@graph": [
           {
             "@type": ["SoftwareApplication", "VideoGame"],
-            "name": "NES Emulator",
+            "name": "NES Emulator Online",
+            "alternateName": [
+              "Online NES Emulator",
+              "Browser NES Emulator",
+              "Web NES Emulator",
+              "Nintendo Entertainment System Emulator"
+            ],
             "applicationCategory": "GameApplication",
             "operatingSystem": "Web Browser",
-            "description": "Full-featured Nintendo Entertainment System (NES) emulator built in JavaScript. Play classic 8-bit games directly in your browser with save states, ROM browser, and mobile controls.",
+            "description": "Free NES emulator online. Play classic Nintendo Entertainment System games directly in your browser with save states, ROM browser, mobile controls, and gamepad support. No install, no ads.",
             "url": "https://joeheyming.github.io/nes/",
             "author": {
               "@type": "Person",
               "name": "Joe Heyming",
-              "url": "https://joeheyming.github.io/"
+              "url": "https://joeheyming.github.io/about/"
             },
             "offers": {
               "@type": "Offer",
@@ -144,15 +150,16 @@
               "priceCurrency": "USD"
             },
             "featureList": [
-              "JavaScript NES emulator",
+              "Play NES games online in your browser",
               "Save and load game states",
-              "ROM browser with game collection",
+              "ROM browser with public-domain game collection",
               "Mobile-friendly touch controls",
               "Keyboard and gamepad support",
-              "Full-screen gaming mode"
+              "Full-screen gaming mode",
+              "Bring your own .nes ROM file"
             ],
             "screenshot": "https://joeheyming.github.io/nes/images/nes-emulator-preview.png",
-            "keywords": "NES emulator, Nintendo emulator, retro gaming, JavaScript, browser games",
+            "keywords": "NES emulator online, online NES emulator, browser NES emulator, web NES emulator, Nintendo emulator, retro gaming",
             "inLanguage": "en"
           },
           {
@@ -1137,5 +1144,36 @@
         }
       })();
     </script>
+
+    <!-- SEO cross-link footer + intro copy. Marked .seo-intro + hidden so
+         it stays in the DOM for crawlers but doesn't show on the page. -->
+    <footer class="seo-intro" hidden>
+      <h2>NES Emulator Online &mdash; Play Classic Nintendo Games in Browser</h2>
+      <p>
+        Free, full-featured Nintendo Entertainment System emulator running in your browser. No
+        install, no ads. Bring your own
+        <code>.nes</code>
+        ROM via
+        <em>File &rarr; Open ROM</em>
+        , or browse the public-domain collection. Save states, gamepad support, and mobile touch
+        controls included.
+      </p>
+      <nav aria-label="More retro games">
+        <strong>More from Joe Heyming:</strong>
+        <a href="/doom/">DOOM in Browser</a>
+        &middot;
+        <a href="/pacman/">3D Pac-Man</a>
+        &middot;
+        <a href="/stepmania/">StepMania</a>
+        &middot;
+        <a href="/minesweeper/">Minesweeper</a>
+        &middot;
+        <a href="/terminal/">Web Terminal</a>
+        &middot;
+        <a href="/badapple/">Bad Apple ASCII</a>
+        &middot;
+        <a href="/about/">About Joe</a>
+      </nav>
+    </footer>
   </body>
 </html>

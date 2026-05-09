@@ -13,12 +13,12 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta charset="utf-8" />
-    <title>🍎 Bad Apple!! - ASCII Art Animation | Joe Heyming</title>
+    <title>Bad Apple!! ASCII Art Animation in Pure HTML — Synchronized Audio</title>
 
     <!-- Enhanced SEO Meta Tags -->
     <meta
       name="description"
-      content="Watch the legendary Bad Apple!! music video recreated in pure ASCII art animation. Experience this iconic Touhou video in text-based glory with synchronized audio."
+      content="Bad Apple!! ASCII art animation in pure HTML &mdash; the legendary Touhou music video, frame-by-frame in monospace text with synchronized audio. Free, no install. Download the ASCII frame data on GitHub."
     />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
@@ -26,7 +26,7 @@
     <meta name="theme-color" content="#000000" />
     <meta
       name="keywords"
-      content="Bad Apple, ASCII art, animation, Touhou, music video, text art, retro animation, monospace art"
+      content="Bad Apple, badapple, bad apple ascii, bad apple in html, bad apple website, bad apple text art, bad apple copy paste, ASCII art, ASCII animation, Touhou, music video, text art, retro animation, monospace art, ascii frames download"
     />
 
     <!-- Open Graph Meta Tags -->
@@ -71,16 +71,18 @@
         "@graph": [
           {
             "@type": "VideoObject",
-            "name": "Bad Apple!! - ASCII Art Animation",
-            "description": "The legendary Bad Apple!! music video recreated in pure ASCII art animation with synchronized audio.",
+            "name": "Bad Apple!! ASCII Art Animation in HTML",
+            "alternateName": ["Bad Apple ASCII", "Bad Apple in HTML", "Bad Apple Text Art"],
+            "description": "The legendary Bad Apple!! Touhou music video recreated in pure ASCII art animation, frame-by-frame in monospace text with synchronized audio.",
             "thumbnailUrl": "https://joeheyming.github.io/badapple/badapple-preview.png",
-            "uploadDate": "2024-01-01",
+            "uploadDate": "2024-09-01",
+            "duration": "PT3M40S",
             "contentUrl": "https://joeheyming.github.io/badapple/",
             "embedUrl": "https://joeheyming.github.io/badapple/",
             "author": {
               "@type": "Person",
               "name": "Joe Heyming",
-              "url": "https://joeheyming.github.io/"
+              "url": "https://joeheyming.github.io/about/"
             },
             "inLanguage": "en"
           },
@@ -625,5 +627,37 @@
       audio.addEventListener('loadedmetadata', updateProgress);
       updateProgress();
     </script>
+
+    <!-- SEO content footer. Marked .seo-intro + hidden so it stays in the
+         DOM for crawlers but doesn't show on the page. -->
+    <footer class="seo-intro" hidden>
+      <h2>Bad Apple!! ASCII Art Animation in Pure HTML</h2>
+      <p>
+        The legendary Bad Apple!! Touhou music video, recreated frame-by-frame in monospace ASCII
+        text with synchronized audio. Renders entirely in the browser &mdash; no plugins, no video
+        tag for the animation itself, just pre-computed text frames. Looking for the ASCII frame
+        data?
+        <a href="https://github.com/joeheyming">Browse the source on GitHub</a>
+        .
+      </p>
+      <nav aria-label="More from Joe Heyming">
+        <strong>More from Joe Heyming:</strong>
+        <a href="/awesome/">Everything is Awesome</a>
+        &middot;
+        <a href="/pbs/">Pirate Broadcast</a>
+        &middot;
+        <a href="/shadowbox/">Shadowbox</a>
+        &middot;
+        <a href="/doom/">DOOM</a>
+        &middot;
+        <a href="/nes/">NES Emulator</a>
+        &middot;
+        <a href="/stepmania/">StepMania</a>
+        &middot;
+        <a href="/terminal/">Web Terminal</a>
+        &middot;
+        <a href="/about/">About Joe</a>
+      </nav>
+    </footer>
   </body>
 </html>

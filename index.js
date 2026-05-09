@@ -11,6 +11,62 @@ const FEATURED_PRESETS = {
   countdown: { gradient: 'bg-gradient-to-br from-amber-500 to-orange-600', tone: 'light' }
 };
 
+// Apps that map to the highest-value search queries get an explicit "popular"
+// pin on the home page. Order matches the keyword-report priority: DOOM
+// first (~14k impressions/mo), then NES, Pac-Man, StepMania, Wordle, etc.
+const POPULAR_APP_IDS = [
+  'doom',
+  'nes',
+  'pacman',
+  'stepmania',
+  'wordle-finder',
+  'minesweeper',
+  'badapple',
+  'terminal'
+];
+
+// Section grouping for the full gallery. Order here is presentation order
+// on the home page. Each section pulls from the registry by category, with
+// special-case overrides for music (the /play/* family).
+const GALLERY_SECTIONS = [
+  {
+    id: 'games',
+    title: '🕹️ Games',
+    blurb: 'Browser games — no install, no signup, no ads.',
+    filter: (app) => app.category === 'game'
+  },
+  {
+    id: 'music',
+    title: '🎵 Make music',
+    blurb: 'Pick an instrument and play it right in your browser.',
+    filter: (app) => app.id === 'play' || /^play-/.test(app.id)
+  },
+  {
+    id: 'tools',
+    title: '🛠️ Tools',
+    blurb: 'Useful little utilities.',
+    filter: (app) => app.category === 'utility' && app.id !== 'play' && !/^play-/.test(app.id)
+  },
+  {
+    id: 'fun',
+    title: '🎉 Fun &amp; experiments',
+    blurb: 'Just-for-fun side projects.',
+    filter: (app) => app.category === 'entertainment' && app.id !== 'play' && !/^play-/.test(app.id)
+  }
+];
+
+const GALLERY_FALLBACK_GRADIENT = 'bg-gradient-to-br from-slate-700 to-slate-900';
+
+function tailwindGradientFromTokens(tokens) {
+  // Apps in the registry use Tailwind tokens like "from-yellow-500/20 to-orange-500/20"
+  // (designed for the OS chrome). On the home page gallery cards we want a
+  // bolder fill, so strip the /alpha suffixes if present and prepend
+  // "bg-gradient-to-br".
+  if (!tokens || typeof tokens !== 'string') return GALLERY_FALLBACK_GRADIENT;
+  const cleaned = tokens.replace(/\/\d+/g, '');
+  return 'bg-gradient-to-br ' + cleaned;
+}
+
 function featuredHrefFromPath(path) {
   // Split off the query string / fragment first so trailing-slash
   // normalization doesn't accidentally append `/` after `?...` —
@@ -26,40 +82,185 @@ function renderFeaturedProjects() {
   const grid = document.getElementById('featured-projects-grid');
   if (!grid || typeof AppModule === 'undefined') return;
 
-  const featured = AppModule.getAllApps()
-    .filter((app) => app.featured)
-    .sort((a, b) => (a.featured.order || 0) - (b.featured.order || 0));
+  const allApps = AppModule.getAllApps();
+  const popular = POPULAR_APP_IDS.map((id) => allApps.find((app) => app.id === id)).filter(Boolean);
 
   grid.innerHTML = '';
 
-  featured.forEach((app) => {
-    /** @type {FeaturedConfig} */
+  popular.forEach((app) => {
+    /** @type {FeaturedConfig | undefined} */
     const f = app.featured;
-    const presetKey = f.preset && FEATURED_PRESETS[f.preset] ? f.preset : 'doom';
-    const preset = FEATURED_PRESETS[presetKey];
+    const presetKey = f && f.preset && FEATURED_PRESETS[f.preset] ? f.preset : 'doom';
+    const preset = FEATURED_PRESETS[presetKey] || FEATURED_PRESETS.doom;
     const tone = preset.tone;
     const titleClass =
       tone === 'dark'
         ? 'text-2xl font-bold mb-2 group-hover:scale-105 transition-transform text-gray-900'
         : 'text-2xl font-bold mb-2 group-hover:scale-105 transition-transform';
     const bodyClass = tone === 'dark' ? 'text-sm text-gray-900/90' : 'text-sm text-white/90';
-    const footerClass = tone === 'dark' ? 'mt-4 text-xs text-gray-900/70' : 'mt-4 text-xs text-white/70';
+    const footerClass =
+      tone === 'dark' ? 'mt-4 text-xs text-gray-900/70' : 'mt-4 text-xs text-white/70';
 
     const link = document.createElement('a');
     link.href = featuredHrefFromPath(app.path);
     link.setAttribute('data-event', 'featured_project_click');
     link.setAttribute('data-event-category', 'Engagement');
-    link.setAttribute('data-event-label', f.analyticsLabel || app.shortName || app.name);
+    link.setAttribute('data-event-label', (f && f.analyticsLabel) || app.shortName || app.name);
     link.className = `${FEATURED_CARD_BASE} ${preset.gradient}`;
+
+    const headline = (f && f.headline) || app.name;
+    const blurb = (f && f.blurb) || app.detailedDescription || app.description || '';
+    const tagsLine = (f && f.tagsLine) || '';
 
     link.innerHTML = `
       <div class="text-5xl mb-3">${app.icon || ''}</div>
-      <h3 class="${titleClass}">${f.headline || app.name}</h3>
-      <p class="${bodyClass}">${f.blurb || app.detailedDescription || ''}</p>
-      <div class="${footerClass}">${f.tagsLine || ''}</div>
+      <h3 class="${titleClass}">${headline}</h3>
+      <p class="${bodyClass}">${blurb}</p>
+      <div class="${footerClass}">${tagsLine}</div>
     `;
 
     grid.appendChild(link);
+  });
+}
+
+function renderAppGallery() {
+  const root = document.getElementById('app-gallery');
+  if (!root || typeof AppModule === 'undefined') return;
+
+  const allApps = AppModule.getAllApps();
+
+  root.innerHTML = '';
+
+  GALLERY_SECTIONS.forEach((section) => {
+    const apps = allApps
+      .filter(section.filter)
+      .sort((a, b) => (a.shortName || a.name).localeCompare(b.shortName || b.name));
+
+    if (!apps.length) return;
+
+    const sectionEl = document.createElement('section');
+    sectionEl.className = 'gallery-section mb-10';
+    sectionEl.setAttribute('aria-labelledby', `gallery-${section.id}`);
+
+    const header = document.createElement('div');
+    header.className = 'mb-4';
+    header.innerHTML = `
+      <h2
+        id="gallery-${section.id}"
+        class="text-2xl sm:text-3xl font-bold text-white mb-1"
+      >${section.title}</h2>
+      <p class="text-white/80 text-sm">${section.blurb}</p>
+    `;
+    sectionEl.appendChild(header);
+
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3';
+
+    apps.forEach((app) => {
+      const card = document.createElement('a');
+      card.href = featuredHrefFromPath(app.path);
+      card.setAttribute('data-filterable', 'true');
+      // Wide search corpus so the filter input finds apps by long
+      // description, pwa shortcut name, related ids, and tags — not just
+      // the visible name. e.g. "stradella" finds the accordion, "ocr"
+      // finds Say It, "ascii" finds Bad Apple.
+      const pwa = app.pwaShortcut || {};
+      const searchText = [
+        app.id,
+        app.name,
+        app.shortName,
+        app.description,
+        app.detailedDescription,
+        (app.tags || []).join(' '),
+        (app.related || []).join(' '),
+        pwa.name,
+        pwa.short_name,
+        pwa.description
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      card.setAttribute('data-search', searchText);
+      card.setAttribute('data-event', 'gallery_app_click');
+      card.setAttribute('data-event-category', 'Engagement');
+      card.setAttribute('data-event-label', app.shortName || app.name);
+      card.className = `gallery-card group relative overflow-hidden rounded-xl p-4 text-white shadow-md hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 ${tailwindGradientFromTokens(
+        app.gradient
+      )}`;
+      const taskbarText = app.taskbarText === 'text-black' ? 'text-gray-900' : 'text-white';
+      card.classList.add(taskbarText);
+      card.innerHTML = `
+        <div class="text-3xl mb-2">${app.icon || '🔹'}</div>
+        <div class="font-bold text-sm sm:text-base leading-tight">
+          ${app.shortName || app.name}
+        </div>
+        <div class="text-xs opacity-80 mt-1 leading-snug">
+          ${app.description || ''}
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+
+    sectionEl.appendChild(grid);
+    root.appendChild(sectionEl);
+  });
+}
+
+function bindGalleryFilter() {
+  const input = document.getElementById('gallery-filter-input');
+  const root = document.getElementById('app-gallery');
+  const noResults = document.getElementById('gallery-no-results');
+  const clearBtn = document.getElementById('gallery-filter-clear');
+  if (!input || !root || typeof AppFilter === 'undefined') return;
+
+  const popularSection = document.getElementById('popular-section');
+
+  const ctrl = AppFilter.create({
+    container: root,
+    filterInput: input,
+    noResultsEl: noResults,
+    clearButton: clearBtn,
+    getSearchText: (el) => el.getAttribute('data-search') || el.textContent.toLowerCase(),
+    onFilter: ({ searchTerm }) => {
+      // Hide section headers whose grid is now empty so the page doesn't
+      // show a heading like "Games" with nothing under it. Each section
+      // is `.gallery-section`; a card is `.gallery-card`.
+      root.querySelectorAll('.gallery-section').forEach((sec) => {
+        const visible = Array.from(sec.querySelectorAll('.gallery-card')).some(
+          (card) => card.style.display !== 'none'
+        );
+        sec.style.display = visible ? '' : 'none';
+      });
+
+      // While the user is filtering, hide the "Popular projects" pin so
+      // the filter narrows the whole page. The popular grid is just a
+      // duplicate of cards that also appear in the gallery, so showing
+      // it during search is confusing.
+      if (popularSection) {
+        popularSection.style.display = searchTerm ? 'none' : '';
+      }
+    }
+  });
+  ctrl.bindKeyboardShortcuts({});
+
+  // Page-level shortcut: pressing "/" focuses the filter input (skipped
+  // when the user is already typing in another input/textarea or in
+  // contenteditable). Mirrors GitHub/GitLab's filter affordance.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+    const target = e.target;
+    const tag = target && target.tagName;
+    if (
+      tag === 'INPUT' ||
+      tag === 'TEXTAREA' ||
+      tag === 'SELECT' ||
+      (target && target.isContentEditable)
+    ) {
+      return;
+    }
+    e.preventDefault();
+    input.focus();
+    input.select();
   });
 }
 
@@ -90,83 +291,6 @@ tailwind.config = {
     }
   }
 };
-// Dynamic fun facts with calculated experience
-function getFunFacts() {
-  const startYear = 2006;
-  const currentYear = new Date().getFullYear();
-  const yearsExperience = currentYear - startYear;
-
-  return [
-    '🚀 Currently crafting Trust & Safety UI at Roblox',
-    "🎬 Aruba commercial star: 'Take it to the cloud!'",
-    '🎯 Patent inventor for wireless RF visualization',
-    '🏕️ Former Boy Scout Cubmaster in Campbell, CA',
-    '🔧 Open source contributor & emacs wizard',
-    '🎓 UCSB Computer Science graduate',
-    '☁️ 7+ years building ML platforms at Cloudera',
-    '🦄 Campbell, CA based unicorn engineer',
-    '💻 High bar for code quality advocate',
-    '🎮 Trust & Safety platform UI architect',
-    `🔮 Turning coffee into code for ${yearsExperience}+ years`
-  ];
-}
-
-const funFacts = getFunFacts();
-
-let currentFactIndex = 0;
-function changeFunFact() {
-  currentFactIndex = (currentFactIndex + 1) % funFacts.length;
-  document.querySelector('.fun-fact').textContent = funFacts[currentFactIndex];
-}
-
-// Easter egg functionality
-// Easter egg function - may be called from HTML
-function triggerEasterEgg() {
-  // Create floating unicorns and tech emojis
-  const emojis = ['🦄', '🚀', '⭐', '💫', '🌟', '✨', '🎉', '🎊', '💻', '🎮'];
-
-  for (let i = 0; i < 25; i++) {
-    setTimeout(() => {
-      const emoji = document.createElement('div');
-      emoji.className = 'fixed text-4xl pointer-events-none z-50 animate-bounce';
-      emoji.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-      emoji.style.left = Math.random() * window.innerWidth + 'px';
-      emoji.style.top = Math.random() * window.innerHeight + 'px';
-      emoji.style.animationDuration = Math.random() * 3 + 2 + 's';
-      document.body.appendChild(emoji);
-
-      setTimeout(() => {
-        emoji.remove();
-      }, 5000);
-    }, i * 100);
-  }
-
-  // Change page title temporarily
-  const originalTitle = document.title;
-  document.title = '🦄✨ UNICORN MAGIC ACTIVATED! ✨🦄';
-  setTimeout(() => {
-    document.title = originalTitle;
-  }, 3000);
-
-  // Animate the hero section
-  const hero = document.querySelector('.hero-bg');
-  hero.classList.add('animate-pulse');
-  setTimeout(() => {
-    hero.classList.remove('animate-pulse');
-  }, 3000);
-}
-
-// Auto-change fun facts every 6 seconds
-setInterval(changeFunFact, 6000);
-
-// Calculate years of experience dynamically
-function calculateYearsExperience() {
-  const startYear = 2006; // Started at Opsware in August 2006
-  const currentYear = new Date().getFullYear();
-  const yearsExperience = currentYear - startYear;
-
-  document.getElementById('years-experience').textContent = `${yearsExperience}+ years`;
-}
 
 // Hamburger Menu Functionality
 function generateHamburgerMenuItems() {
@@ -342,35 +466,14 @@ function initHamburgerMenu() {
   attachMenuLinkListeners();
 }
 
-// Add some sparkle animation to cards on load
+// Wire everything up once the DOM is ready. The home page is now an
+// apps gallery, so the only legacy bits we still need are the hamburger
+// menu (used as the universal launcher across the portfolio) and the
+// featured/popular grid.
 document.addEventListener('DOMContentLoaded', () => {
-  // Calculate experience on page load
-  calculateYearsExperience();
-
   renderFeaturedProjects();
+  renderAppGallery();
+  bindGalleryFilter();
 
-  // Initialize hamburger menu
   initHamburgerMenu();
-
-  // Setup "View All Projects" button to open hamburger menu
-  const viewAllBtn = document.getElementById('view-all-projects-btn');
-  if (viewAllBtn) {
-    viewAllBtn.addEventListener('click', (e) => {
-      e.stopPropagation(); // Prevent the click from bubbling to document
-      const hamburgerToggle = document.getElementById('hamburger-toggle');
-      if (hamburgerToggle) {
-        hamburgerToggle.click();
-      }
-    });
-  }
-
-  const cards = document.querySelectorAll('.group');
-  cards.forEach((card, index) => {
-    setTimeout(() => {
-      card.classList.add('animate-pulse');
-      setTimeout(() => {
-        card.classList.remove('animate-pulse');
-      }, 1000);
-    }, index * 200);
-  });
 });

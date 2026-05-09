@@ -8,18 +8,47 @@
       content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover"
     />
 
-    <title>DOOM — Play in your browser | Joe Heyming</title>
+    <title>Play DOOM Online — Free Browser Version, No Install (Unblocked)</title>
     <meta name="theme-color" content="#1b1b1c" />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta
       name="description"
-      content="Play DOOM in your browser — pick a flavor: Vanilla DOOM (Freedoom Phase 1) or Legend of DOOM (a Zelda-themed GZDoom total conversion). Powered by UZDoom-WASM. No install required."
+      content="Play DOOM online and unblocked in your browser — Classic DOOM (1993), Freedoom, or the Zelda-themed Legend of DOOM total conversion. Free, no install, no plugins. Works on school and work networks. Powered by UZDoom-WASM."
     />
 
     <meta
       name="keywords"
-      content="DOOM, Freedoom, Legend of DOOM, Zelda DOOM mod, GZDoom browser, UZDoom-WASM, play DOOM in browser, WebAssembly DOOM, retro games, FPS"
+      content="DOOM, play DOOM online, DOOM unblocked, DOOM browser, DOOM emulator, DOOM in browser, Freedoom, Legend of DOOM, Zelda DOOM mod, GZDoom browser, UZDoom-WASM, WebAssembly DOOM, retro games, FPS, doom 1993"
+    />
+
+    <!-- International keyword coverage. Real demand from Search Console:
+         doom网页版, doom在线, doom ブラウザ, doom navegador, doom emulador,
+         doom no navegador, doom im browser, doom en ligne. Lightweight
+         hidden meta until full hreflang landing pages exist. -->
+    <meta
+      name="description-zh"
+      content="在浏览器中免费玩DOOM网页版 — 经典DOOM（1993）、Freedoom 和 Legend of DOOM。无需安装，无插件。"
+    />
+    <meta
+      name="description-ja"
+      content="ブラウザでDOOMをプレイ — クラシックDOOM (1993)、Freedoom、Legend of DOOM。インストール不要。"
+    />
+    <meta
+      name="description-es"
+      content="Juega DOOM en el navegador — DOOM clásico (1993), Freedoom y Legend of DOOM. Gratis, sin instalación."
+    />
+    <meta
+      name="description-pt"
+      content="Jogue DOOM no navegador — DOOM clássico (1993), Freedoom e Legend of DOOM. Grátis, sem instalação."
+    />
+    <meta
+      name="description-de"
+      content="DOOM im Browser spielen — Classic DOOM (1993), Freedoom und Legend of DOOM. Kostenlos, keine Installation."
+    />
+    <meta
+      name="description-fr"
+      content="Jouez à DOOM en ligne dans votre navigateur — DOOM classique (1993), Freedoom et Legend of DOOM. Gratuit, sans installation."
     />
 
     <meta property="og:type" content="website" />
@@ -36,10 +65,7 @@
       content="https://joeheyming.github.io/doom/doom-preview.png"
     />
     <meta property="og:image:type" content="image/png" />
-    <meta
-      property="og:image:alt"
-      content="DOOM title screen with the iconic logo."
-    />
+    <meta property="og:image:alt" content="DOOM title screen with the iconic logo." />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="DOOM — Play in your browser" />
@@ -47,14 +73,8 @@
       name="twitter:description"
       content="Vanilla DOOM or Legend of DOOM, playable in the browser via UZDoom-WASM. No install."
     />
-    <meta
-      name="twitter:image"
-      content="https://joeheyming.github.io/doom/doom-preview.png"
-    />
-    <meta
-      name="twitter:image:alt"
-      content="DOOM title screen with the iconic logo."
-    />
+    <meta name="twitter:image" content="https://joeheyming.github.io/doom/doom-preview.png" />
+    <meta name="twitter:image:alt" content="DOOM title screen with the iconic logo." />
 
     <link rel="canonical" href="https://joeheyming.github.io/doom/" />
 
@@ -63,25 +83,52 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "VideoGame",
-        "name": "DOOM (browser)",
-        "description": "DOOM running natively in the browser via UZDoom-WASM. Pick between Vanilla DOOM (Freedoom) and Legend of DOOM (Zelda total conversion).",
-        "url": "https://joeheyming.github.io/doom/",
-        "image": "https://joeheyming.github.io/doom/doom-preview.png",
-        "author": {
-          "@type": "Person",
-          "name": "Joe Heyming"
-        },
-        "applicationCategory": "Game",
-        "operatingSystem": "Web Browser",
-        "gamePlatform": ["Web Browser", "HTML5", "WebAssembly"],
-        "genre": ["First-person shooter"],
-        "playMode": "SinglePlayer",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        }
+        "@graph": [
+          {
+            "@type": "VideoGame",
+            "name": "DOOM (browser)",
+            "alternateName": [
+              "DOOM Online",
+              "DOOM Unblocked",
+              "DOOM Emulator",
+              "DOOM Browser Edition"
+            ],
+            "description": "Play DOOM online in your browser, free and unblocked. Classic DOOM (1993), Freedoom, and the Legend of DOOM Zelda total conversion. No install, no plugins, runs on WebAssembly via UZDoom-WASM.",
+            "url": "https://joeheyming.github.io/doom/",
+            "image": "https://joeheyming.github.io/doom/doom-preview.png",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
+            "applicationCategory": "Game",
+            "operatingSystem": "Web Browser",
+            "gamePlatform": ["Web Browser", "HTML5", "WebAssembly"],
+            "genre": ["First-person shooter"],
+            "playMode": "SinglePlayer",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            }
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "DOOM"
+              }
+            ]
+          }
+        ]
       }
     </script>
 
@@ -241,6 +288,14 @@
           <span class="sub">POWERED BY UZDOOM-WASM</span>
         </h1>
       </div>
+
+      <!-- SEO intro: kept in DOM for crawlers but visually hidden. -->
+      <p class="seo-intro" hidden>
+        <strong>Play DOOM online for free in your browser.</strong>
+        No install, no plugins, no signup &mdash; works unblocked on school and work networks. Pick
+        Classic DOOM (1993), Freedoom Phase 1, or the Zelda-themed Legend of DOOM total conversion
+        below. Saves persist locally in IndexedDB.
+      </p>
 
       <p class="intro">
         The full
@@ -412,12 +467,7 @@
         </ol>
         <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border)">
           Don't have a mod handy?
-          <button
-            type="button"
-            id="openModdbBrowserBtn"
-            class="btn"
-            style="margin-left: 6px"
-          >
+          <button type="button" id="openModdbBrowserBtn" class="btn" style="margin-left: 6px">
             🛒 Browse moddb
           </button>
         </div>
@@ -487,6 +537,25 @@
         <code>?manual=1</code>
         to upload your own copy instead.
       </p>
+
+      <!-- Cross-link footer: kept in DOM for crawler PageRank flow, hidden
+           from users to keep the boot screen minimal. -->
+      <nav aria-label="More retro games" class="seo-intro" hidden>
+        <strong>More retro games:</strong>
+        <a href="/nes/">NES Emulator</a>
+        &middot;
+        <a href="/pacman/">3D Pac-Man</a>
+        &middot;
+        <a href="/stepmania/">StepMania</a>
+        &middot;
+        <a href="/minesweeper/">Minesweeper</a>
+        &middot;
+        <a href="/badapple/">Bad Apple ASCII</a>
+        &middot;
+        <a href="/terminal/">Web Terminal</a>
+        &middot;
+        <a href="/about/">About</a>
+      </nav>
     </div>
 
     <!-- Session-ended overlay. Upstream structure. -->
@@ -531,12 +600,7 @@
       >
         🎮 Flavor
       </button>
-      <div
-        class="flavor-switch-menu hidden"
-        id="flavorSwitchMenu"
-        data-role="menu"
-        role="menu"
-      >
+      <div class="flavor-switch-menu hidden" id="flavorSwitchMenu" data-role="menu" role="menu">
         <button type="button" role="menuitem" data-switch="classic">
           <span class="dot" style="background: #c8392e"></span>
           Classic DOOM
@@ -879,10 +943,7 @@
             window.LoDLifecycle.subscribe(function (state) {
               if (state.phase === 'error') {
                 var reason = (state.detail && state.detail.reason) || 'unknown';
-                setEnabled(
-                  false,
-                  reason === 'coi' ? 'COI failed' : 'Engine error: ' + reason
-                );
+                setEnabled(false, reason === 'coi' ? 'COI failed' : 'Engine error: ' + reason);
               }
             });
           }
