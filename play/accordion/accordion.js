@@ -327,6 +327,28 @@ const instrumentControlsEl = document.querySelector('.instrument-controls');
 const handLabelEl = document.getElementById('register-hand');
 const toneStatus = document.getElementById('tone-status');
 const midiStatusEl = document.getElementById('midi-status');
+const instrumentHelpEl = document.getElementById('instrument-help');
+
+// Collapse the "How to play" panel by default on touch-capable
+// devices (iPad Safari is the main offender — it's wider than the
+// 720px mobile breakpoint that hides the panel entirely on phones,
+// so the always-open desktop layout was eating most of the vertical
+// space above the keyboard). Desktop visitors keep the open-by-
+// default behaviour.
+//
+// Detection uses `(any-pointer: coarse)` rather than `(hover: none)`:
+// an iPad WITH a Magic Keyboard's trackpad still has a touchscreen
+// (so `any-pointer: coarse` is true) but the trackpad makes the
+// primary pointer fine and `hover: hover`, so the simpler hover
+// check would miss the most common iPad-with-keyboard setup the
+// player just hit. `maxTouchPoints > 0` is checked as a UA-side
+// fallback for browsers that report `any-pointer` poorly.
+const isTouch =
+  (window.matchMedia && window.matchMedia('(any-pointer: coarse)').matches) ||
+  (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
+if (instrumentHelpEl && isTouch) {
+  instrumentHelpEl.removeAttribute('open');
+}
 
 const prefs = Prefs.load();
 if (typeof prefs.volume === 'number') volumeEl.value = String(prefs.volume);

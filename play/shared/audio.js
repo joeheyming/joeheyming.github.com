@@ -64,28 +64,40 @@ export function setMasterVolume(v) {
  * soundfont-player instrument object (with `.play(noteName)` etc.) or null
  * if the library isn't available / the load fails.
  *
- * The instrument's default destination is the shared master gain. Callers
- * that want to route into a custom gain stage (e.g. the accordion's
- * BreathBus) pass a `destination` per-note via SampleVoice — soundfont-
- * player accepts a `destination` option on each `instrument.play()` call.
+ * The destination is wired at instrument-load time and **cannot** be
+ * overridden per-note — soundfont-player connects each note's gain node
+ * to a single fixed output and silently ignores the per-`play()`
+ * `destination` option. So callers that need a custom routing stage
+ * (e.g. the accordion's BreathBus) must pass `destination` here, and
+ * we cache one instrument instance per (name, destination) pair.
+ *
+ * Most callers leave `destination` unset and share the default
+ * shared-master cache; the accordion is the only consumer that needs
+ * its own instrument instance routed into the BreathBus gain node.
  */
-const instrumentCache = new Map();
+const instrumentCache = new Map(); // name -> Map<AudioNode, Promise<instrument>>
 
-export function loadInstrument(name) {
-  if (instrumentCache.has(name)) return instrumentCache.get(name);
+export function loadInstrument(name, destination = null) {
+  const dest = destination || getMaster();
+  let perDest = instrumentCache.get(name);
+  if (perDest && perDest.has(dest)) return perDest.get(dest);
+  if (!perDest) {
+    perDest = new Map();
+    instrumentCache.set(name, perDest);
+  }
   if (!window.Soundfont) {
     const p = Promise.resolve(null);
-    instrumentCache.set(name, p);
+    perDest.set(dest, p);
     return p;
   }
   const promise = window.Soundfont.instrument(getCtx(), name, {
-    destination: getMaster()
+    destination: dest
   }).catch((err) => {
     console.warn('Soundfont load failed for', name, err);
-    instrumentCache.delete(name);
+    perDest.delete(dest);
     return null;
   });
-  instrumentCache.set(name, promise);
+  perDest.set(dest, promise);
   return promise;
 }
 
@@ -102,13 +114,14 @@ export function loadInstrument(name) {
  * Pass `{ destination }` (an AudioNode) to route the voice into a custom
  * gain stage instead of the master output — used by accordion to send
  * voices through its BreathBus. Defaults to the shared master gain.
+ * Note: soundfont-player wires destination at *instrument-load* time and
+ * ignores any per-play `destination`, so we must load a dedicated
+ * instrument instance per destination (handled by `loadInstrument`).
  */
 export class SampleVoice {
   constructor(instrumentName, playOptions = {}) {
     this.instrumentName = instrumentName;
     this.instrument = null;
-    // Pull `destination` out of playOptions so it isn't forwarded twice
-    // when we explicitly pass it on every play() call.
     const { destination = null, ...rest } = playOptions;
     this.destination = destination;
     this.playOptions = rest;
@@ -117,7 +130,7 @@ export class SampleVoice {
 
   async load() {
     if (this.instrument) return this.instrument;
-    this.instrument = await loadInstrument(this.instrumentName);
+    this.instrument = await loadInstrument(this.instrumentName, this.destination);
     return this.instrument;
   }
 
@@ -135,11 +148,8 @@ export class SampleVoice {
         /* ignore */
       }
     }
-    const playOptions = this.destination
-      ? { ...this.playOptions, destination: this.destination }
-      : this.playOptions;
 
-    const node = this.instrument.play(midiToName(midi), undefined, playOptions);
+    const node = this.instrument.play(midiToName(midi), undefined, this.playOptions);
 
     // When looping, trim the loop region to skip the sample's natural
     // attack and release. Without this we'd loop the entire 3s buffer,

@@ -8,6 +8,83 @@
   padding: 4px 12px 0;
 }
 
+/* ---------- Suppress iOS Safari long-press callout ----------
+ *
+ * On an iPad/iPhone Safari, long-pressing on a button or any text
+ * inside the playing area surfaces the system text-selection menu
+ * ("Look Up" / "Translate" / "Find Selection" / "Search Web"). The
+ * containers below already set `-webkit-user-select: none` to stop
+ * text selection itself, but iOS Safari still shows the callout
+ * unless `-webkit-touch-callout: none` is set explicitly on the
+ * elements being long-pressed. We blanket the whole stage and the
+ * register strip so any descendant — buttons, row labels, the help
+ * summary above the keyboard — is callout-suppressed. */
+.accordion-stage,
+.accordion-stage *,
+.register-strip,
+.register-strip * {
+  -webkit-touch-callout: none;
+}
+
+/* ---------- Help panel as a collapsible disclosure ----------
+ *
+ * The accordion has a long "How to play" section (six bullets
+ * covering Stradella, Chromatic, registers, etc.). On desktop
+ * there's plenty of room for it under the keyboard, but on iPad
+ * Safari (which sits between the phone breakpoint and the desktop
+ * layout) the open panel was eating most of the vertical space
+ * and squeezing the keyboard above it. Wrapping it in `<details>`
+ * lets the player collapse it; JS in accordion.js closes it by
+ * default on touch-capable devices.
+ *
+ * Note: we deliberately do NOT add a base `details.instrument-help
+ * { display: block }` rule here — `<details>` is already block by
+ * default, and adding the rule would beat the shared mobile-hide
+ * rule in `play/style.css` (`.instrument-help { display: none }`)
+ * on specificity (0,1,1 vs 0,1,0). The summary styling below uses
+ * `details.instrument-help > summary` which still works because the
+ * summary inherits the parent's `display: none` and disappears too.
+ */
+details.instrument-help > summary {
+  cursor: pointer;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fg);
+  margin: 0 0 8px;
+  font-weight: 700;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* WebKit-only marker reset so the chevron we render via ::before is
+ * the only disclosure indicator. */
+details.instrument-help > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.instrument-help > summary::before {
+  content: '▸';
+  display: inline-block;
+  font-size: 10px;
+  color: var(--accent);
+  transition: transform 120ms ease;
+}
+
+details.instrument-help[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+details.instrument-help > summary:hover,
+details.instrument-help > summary:focus-visible {
+  color: var(--accent);
+  outline: none;
+}
+
 /* ---------- Register switches ----------
  *
  * Modelled on the physical "stop buttons" found above the keyboard on a

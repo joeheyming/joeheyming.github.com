@@ -236,8 +236,13 @@
       <div class="accordion-view" id="accordion-view"></div>
     </section>
 
-    <section class="instrument-help">
-      <h2>How to play</h2>
+    <!-- `<details>` so the help collapses on touch devices (iPad
+         portrait Safari, etc.) where the desktop "always-open" panel
+         was eating most of the vertical real estate above the
+         keyboard. JS closes it by default on `(hover: none)` devices
+         and leaves it open on desktop. -->
+    <details class="instrument-help" id="instrument-help" open>
+      <summary>How to play</summary>
       <ul>
         <li>
           The <strong>View</strong> menu picks one face of the instrument at
@@ -287,7 +292,7 @@
           push more volume.
         </li>
       </ul>
-    </section>
+    </details>
 
     <script type="module" src="accordion.js"></script>
   </body>
