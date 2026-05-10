@@ -126,6 +126,10 @@
             <option value="chromatic-C-h">Chromatic C-system (horizontal)</option>
             <option value="chromatic-C-v">Chromatic C-system (vertical)</option>
           </optgroup>
+          <optgroup label="Diatonic (bisonoric)">
+            <option value="diatonic-h">Diatonic melodeon (horizontal)</option>
+            <option value="diatonic-v">Diatonic melodeon (vertical)</option>
+          </optgroup>
         </select>
       </div>
 
@@ -219,6 +223,22 @@
           <option value="both">Flip both</option>
         </select>
       </div>
+
+      <!-- Diatonic accordion tunings. Each is a real 10-button-per-row
+           layout. The 1-row C is the Cajun / Hohner Pokerwork; D/G and
+           G/C are the standard British / French folk 2-row models;
+           B/C is the Irish trad layout where the rows are a semitone
+           apart so cross-row playing produces chromatic runs. -->
+      <div class="control" data-only-for="diatonic">
+        <label for="diatonic-tuning">Tuning</label>
+        <select id="diatonic-tuning">
+          <option value="C">C (1 row, Cajun)</option>
+          <option value="DG" selected>D/G (2 row)</option>
+          <option value="GC">G/C (2 row)</option>
+          <option value="BC">B/C (2 row, Irish)</option>
+        </select>
+      </div>
+
 
       <div class="control show-control" role="group" aria-label="Show on keys" data-only-for="piano">
         <label id="show-label">Show</label>
@@ -323,6 +343,20 @@
           rows offset a semitone — diagonals trace a chromatic scale.
           <em>B-system</em> is standard on the bayan; <em>C-system</em> is
           the Western chromatic mirror.
+        </li>
+        <li>
+          <strong>Diatonic</strong> (melodeon) is bisonoric: each
+          physical button on a real instrument plays a different note
+          on the <em>push</em> than on the <em>pull</em>. We split that
+          out into two keyboards side by side — the green
+          <em>PUSH</em> half on the left and the orange <em>PULL</em>
+          half on the right. Only one half can sound at a time, just
+          like a real bellows can only push or pull (try it: hold a
+          PUSH button and tap the PULL side — nothing plays until you
+          release). The <em>C</em> 1-row is the Cajun / Hohner
+          Pokerwork; <em>D/G</em> and <em>G/C</em> are the standard
+          British / French folk 2-rows; <em>B/C</em> is the Irish trad
+          layout where the rows are a semitone apart.
         </li>
         <li>
           The <strong>Register</strong> switches engage different reed

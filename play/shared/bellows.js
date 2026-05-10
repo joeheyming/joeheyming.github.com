@@ -83,9 +83,23 @@ export class Bellows {
     this._lastDomSign = 0;
     this._lastDomMag = 0;
     this._reversalUntil = 0;
+    // Current bellows direction, exposed as 'push' | 'pull' for callers
+    // that drive bisonoric instruments (diatonic accordion). Direction
+    // tracks the dominant-axis sign: positive sign = 'pull' (we treat
+    // an arbitrary axis-positive swing as draw-open), negative = 'push'.
+    // Players whose phone orientation makes this feel inverted can swap
+    // it via the on-screen direction toggle. Sign mapping is invariant
+    // so the same physical swing always reports the same direction.
+    this.direction = 'push';
     this.listening = false;
     this.onPressure = () => {};
     this.onReversal = () => {};
+    // Fired with 'push' | 'pull' whenever the dominant velocity axis
+    // changes sign with sufficient magnitude — i.e. a real bellows
+    // turnaround. Same gating as `onReversal`, called immediately
+    // after it. Callers use this to retrigger held diatonic notes at
+    // the new direction's MIDI.
+    this.onDirection = () => {};
     this._lastTs = 0;
     this._handler = (event) => this._onMotion(event);
   }
@@ -173,6 +187,12 @@ export class Bellows {
     ) {
       this._reversalUntil = now + this.reversalMs;
       this.onReversal();
+      // Direction flip: positive dominant-axis sign = 'pull', negative
+      // = 'push'. The mapping is arbitrary because the player's phone
+      // orientation determines which axis is dominant — the on-screen
+      // direction toggle lets them invert if it feels backwards.
+      this.direction = sign > 0 ? 'pull' : 'push';
+      this.onDirection(this.direction);
       // Reset peak tracker so the *next* reversal needs a fresh strong
       // stroke before triggering.
       this._lastDomMag = 0;

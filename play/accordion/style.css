@@ -510,6 +510,18 @@ details.instrument-help > summary:focus-visible {
   overflow-x: auto;
 }
 
+/* The diatonic keyboard is the narrowest of the three button systems
+ * (just 2 halves of N rows each, with a divider). On both desktop AND
+ * mobile we want it centered horizontally so the empty space on either
+ * side reads as deliberate breathing room, not a left-pinned widget.
+ * `safe center` falls back to flex-start if the content somehow
+ * overflows (multi-row tuning at very narrow viewport), keeping the
+ * left edge reachable for scroll. */
+.accordion-view[data-kind='diatonic'] {
+  justify-content: safe center;
+  overflow-x: auto;
+}
+
 .accordion-view[data-kind='stradella'] > *,
 .accordion-view[data-kind='chromatic'] > * {
   width: 100%;
@@ -1227,6 +1239,390 @@ details.instrument-help > summary:focus-visible {
 .chromatic-keyboard[data-flip='horizontal'] .chromatic-button-label,
 .chromatic-keyboard[data-flip='vertical'] .chromatic-button-label,
 .chromatic-keyboard[data-flip='both'] .chromatic-button-label {
+  display: inline-block;
+  transform: scale(var(--flip-x, 1), var(--flip-y, 1));
+}
+
+/* ---------- Diatonic (bisonoric) right-hand keyboard ----------
+ *
+ * Single-row or two-row melodeon. Real diatonic accordions are
+ * bisonoric — each physical button plays one note on the push (close
+ * the bellows) and a different one on the pull (open the bellows).
+ * We split that into two complete keyboards, side by side with a
+ * visible gap: the green PUSH half on the left and the orange PULL
+ * half on the right. Mutex is enforced by `diatonic.js` (active-side
+ * tracking); the `data-active-side` attribute below dims the
+ * inactive half whenever a press is alive on the other side, giving
+ * the player a strong visual cue that they've "committed" to a
+ * bellows direction.
+ *
+ * Vertical orientation flips the layout so the two halves stack
+ * (PUSH on top, PULL on bottom) rather than running side-by-side —
+ * portrait-friendly for phones held upright.
+ */
+.diatonic-keyboard {
+  display: flex;
+  /* Cardinal layout decision: the two halves' arrangement follows
+   * the orientation of the rows themselves so each half always has
+   * its "long axis" matched to the screen's long axis.
+   *   Horizontal orientation (rows run L→R) → halves stack T→B,
+   *     so PUSH sits on top of PULL with a horizontal divider.
+   *     One half is the full viewport width; buttons can be big.
+   *   Vertical orientation (rows become columns running T→B) →
+   *     halves sit side-by-side with a vertical divider, so PUSH is
+   *     on the left and PULL on the right. One half is the full
+   *     viewport height; on a phone the row-count drives width fit. */
+  align-items: stretch;
+  justify-content: safe center;
+  gap: 0;
+  padding: 12px 12px;
+  background: linear-gradient(180deg, #1e1b4b, #0b1220);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 24px -16px rgba(0, 0, 0, 0.7);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: auto;
+  --btn-gap: 6px;
+}
+
+/* Horizontal orientation: PUSH stacked on top of PULL. Each half
+ * holds the full row L→R, so the budget is driven by col-count of
+ * a SINGLE half (no doubling) — buttons get to be larger. The 1148
+ * px cap mirrors the chromatic / Stradella keyboards. */
+.diatonic-keyboard[data-orientation='horizontal'] {
+  flex-direction: column;
+  align-items: center;
+  --auto-btn: calc(
+    (min(100vw - 220px, 1148px) - 64px) / max(var(--col-count, 10), 1) - var(--btn-gap)
+  );
+  --btn-size: clamp(34px, var(--auto-btn), 64px);
+}
+
+/* Vertical orientation: PUSH on the left, PULL on the right. Each
+ * tuning row becomes a vertical column inside its half. The two
+ * halves sit side-by-side, so the horizontal-width budget is driven
+ * by row-count (how many columns per half) rather than col-count.
+ * We let buttons grow up to 84 px on single-row tunings so the
+ * keyboard doesn't look lost in the centre of a desktop viewport. */
+.diatonic-keyboard[data-orientation='vertical'] {
+  flex-direction: row;
+  --auto-btn: calc(
+    (min(100vw - 96px, 1148px)) / (2 * max(var(--row-count, 1), 1)) - var(--btn-gap)
+  );
+  --btn-size: clamp(34px, var(--auto-btn), 84px);
+}
+
+/* The two halves of the bisonoric keyboard. Tinted backgrounds and
+ * accent rings make the push / pull split immediately legible — green
+ * is "go on the close stroke", orange is "draw on the open stroke". */
+.diatonic-half {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  /* Inactive side fades to ~50% when the other side has any held button,
+   * driven by `data-active-side` on `.diatonic-keyboard`. */
+  transition: opacity 120ms ease, filter 120ms ease;
+}
+
+/* Rows-strip inside a half. Horizontal orientation = stacked column;
+ * vertical orientation = horizontal strip of column-rows (see below). */
+.diatonic-half-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--btn-gap, 6px);
+  align-items: flex-start;
+}
+
+.diatonic-keyboard[data-orientation='vertical'] .diatonic-half-rows {
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.diatonic-half-push {
+  background: linear-gradient(180deg, rgba(20, 83, 45, 0.55), rgba(5, 46, 22, 0.6));
+  box-shadow: inset 0 1px 0 rgba(187, 247, 208, 0.18), inset 0 0 0 1px rgba(34, 197, 94, 0.35);
+}
+
+.diatonic-half-pull {
+  background: linear-gradient(180deg, rgba(120, 53, 15, 0.55), rgba(67, 20, 7, 0.6));
+  box-shadow: inset 0 1px 0 rgba(254, 215, 170, 0.18), inset 0 0 0 1px rgba(251, 146, 60, 0.35);
+}
+
+.diatonic-keyboard[data-active-side='push'] .diatonic-half-pull,
+.diatonic-keyboard[data-active-side='pull'] .diatonic-half-push {
+  opacity: 0.42;
+  filter: saturate(0.5);
+}
+
+/* Bellows-direction hint from the phone: the matching half gets a
+ * subtle pulsing glow so the player knows the device picked up the
+ * swing. Independent of (and in addition to) the active-side dim. */
+.diatonic-keyboard[data-bellows-hint='push'] .diatonic-half-push,
+.diatonic-keyboard[data-bellows-hint='pull'] .diatonic-half-pull {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 0 18px -2px rgba(168, 85, 247, 0.55);
+}
+
+.diatonic-half-header {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 2px 8px 4px;
+  margin-bottom: 2px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.diatonic-half-push .diatonic-half-header {
+  color: #bbf7d0;
+}
+
+.diatonic-half-pull .diatonic-half-header {
+  color: #fed7aa;
+}
+
+.diatonic-half-header-arrow {
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* Visible divider between the two halves — a thin bar with generous
+ * breathing room either side, communicating "these are two distinct
+ * keyboards". The bar's axis matches the gap between halves: a
+ * vertical bar between the side-by-side halves of a vertical-oriented
+ * keyboard, a horizontal bar between the stacked halves of a
+ * horizontal-oriented keyboard. */
+.diatonic-side-divider {
+  flex: 0 0 auto;
+  align-self: stretch;
+}
+
+.diatonic-keyboard[data-orientation='vertical'] .diatonic-side-divider {
+  /* 32 px of breathing room either side of a 3 px highlight line so
+   * the gap between halves reads as obvious empty space and not just
+   * a thin border. */
+  width: 32px;
+  margin: 0 12px;
+  background:
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(168, 85, 247, 0.45) 12%,
+      rgba(168, 85, 247, 0.7) 50%,
+      rgba(168, 85, 247, 0.45) 88%,
+      transparent 100%
+    ) center/3px 100% no-repeat;
+}
+
+.diatonic-keyboard[data-orientation='horizontal'] .diatonic-side-divider {
+  height: 22px;
+  margin: 10px 0;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(168, 85, 247, 0.45) 12%,
+      rgba(168, 85, 247, 0.7) 50%,
+      rgba(168, 85, 247, 0.45) 88%,
+      transparent 100%
+    ) center/100% 3px no-repeat;
+}
+
+/* DOM: <row><label/><button>×10</row>. Horizontal rows put the label
+ * to the LEFT of the buttons (gutter-style); vertical "rows" become
+ * top-anchored columns with the label as a header. */
+.diatonic-row {
+  display: flex;
+  align-items: center;
+  gap: var(--btn-gap);
+  width: max-content;
+}
+
+/* Vertical orientation: each tuning row becomes a vertical strip of
+ * 10 buttons (col running top-to-bottom). The half's `.diatonic-
+ * half-rows` wrapper switches to flex-row above so multiple rows in
+ * a multi-tuning (D/G, B/C, etc) sit side-by-side as column-strips. */
+.diatonic-keyboard[data-orientation='vertical'] .diatonic-row {
+  flex-direction: column;
+  width: var(--btn-size);
+  height: max-content;
+  gap: var(--btn-gap);
+}
+
+.diatonic-row-label {
+  width: 56px;
+  flex: 0 0 56px;
+  margin-right: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.65);
+  letter-spacing: 0.04em;
+  text-align: right;
+  padding-right: 4px;
+  text-transform: uppercase;
+}
+
+.diatonic-keyboard[data-orientation='vertical'] .diatonic-row-label {
+  width: var(--btn-size);
+  flex: 0 0 auto;
+  margin: 0 0 4px;
+  padding: 0;
+  text-align: center;
+  font-size: 11px;
+}
+
+.diatonic-button {
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 999px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: pan-x pan-y;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--btn-size);
+  height: var(--btn-size);
+  flex: 0 0 var(--btn-size);
+  padding: 0;
+  font-size: calc(var(--btn-size) * 0.36);
+  line-height: 1;
+  transition: transform 80ms ease-out, background 80ms ease-out, box-shadow 80ms ease-out;
+}
+
+.diatonic-button:focus-visible {
+  outline: 2px solid #a78bfa;
+  outline-offset: 2px;
+}
+
+/* Side-tinted naturals / accidentals. Push side leans warm-pale
+ * green, pull side warm-pale orange. Naturals are the light variants
+ * (matching white piano keys), accidentals the dark variants (black
+ * keys) — same convention as the chromatic CBA. */
+.diatonic-button-push.is-natural {
+  background: linear-gradient(180deg, #ecfccb, #bbf7d0);
+  color: #14532d;
+  border: 1px solid rgba(34, 197, 94, 0.55);
+}
+
+.diatonic-button-push.is-accidental {
+  background: linear-gradient(180deg, #14532d, #052e16);
+  color: #bbf7d0;
+  border: 1px solid rgba(34, 197, 94, 0.45);
+}
+
+.diatonic-button-pull.is-natural {
+  background: linear-gradient(180deg, #fff7ed, #fed7aa);
+  color: #7c2d12;
+  border: 1px solid rgba(251, 146, 60, 0.6);
+}
+
+.diatonic-button-pull.is-accidental {
+  background: linear-gradient(180deg, #7c2d12, #431407);
+  color: #fed7aa;
+  border: 1px solid rgba(251, 146, 60, 0.45);
+}
+
+.diatonic-button.active {
+  transform: translateY(1px) scale(0.94);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+  filter: brightness(1.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .diatonic-button {
+    transition: none;
+  }
+}
+
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+  .diatonic-keyboard {
+    /* Mobile: tighter padding and a wider tap-target floor so each
+     * button hits the 36 px+ touch minimum. Per-orientation budgets
+     * below: horizontal uses a single half's col-count (halves are
+     * stacked), vertical uses 2× row-count (halves are side-by-side). */
+    --btn-gap: 4px;
+    padding: 8px 6px;
+  }
+  .diatonic-keyboard[data-orientation='horizontal'] {
+    --auto-btn: calc((100vw - 80px) / max(var(--col-count, 10), 1) - var(--btn-gap));
+    --btn-size: clamp(32px, var(--auto-btn), 56px);
+  }
+  .diatonic-half {
+    padding: 6px 6px;
+    gap: 4px;
+  }
+  .diatonic-keyboard[data-orientation='vertical'] .diatonic-side-divider {
+    /* Tighter on mobile but still ~24 px of total gap so the two
+     * halves clearly read as separate islands. */
+    width: 16px;
+    margin: 0 4px;
+  }
+  .diatonic-keyboard[data-orientation='horizontal'] .diatonic-side-divider {
+    height: 14px;
+    margin: 5px 0;
+  }
+  .diatonic-row-label {
+    width: 38px;
+    flex: 0 0 38px;
+    font-size: 9px;
+    letter-spacing: 0;
+  }
+  .diatonic-half-header {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    padding: 1px 4px 2px;
+  }
+}
+
+/* Mobile vertical: provide gutter / safe-area treatment like the
+ * Stradella + chromatic verticals do, so the deepest button isn't
+ * jammed against the system home indicator (the diatonic uses 10
+ * buttons per column, which on a portrait phone runs the full height
+ * of the playable area). */
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+  .diatonic-keyboard[data-orientation='vertical'] {
+    margin-bottom: calc(env(safe-area-inset-bottom, 0px) + 48px);
+    --auto-btn: calc((100vw - 56px) / (2 * max(var(--row-count, 1), 1)) - var(--btn-gap));
+    --btn-size: clamp(34px, var(--auto-btn), 64px);
+  }
+}
+
+/* ---------- Diatonic flip mode ----------
+ *
+ * Future-proof: `data-flip` is wired up in JS but we don't currently
+ * surface a "Mirror" select for the diatonic view (it has fewer use
+ * cases than Stradella / CBA). Same scheme as those would use, kept
+ * here so the JS API is symmetric. */
+.diatonic-keyboard[data-flip='horizontal'] {
+  --flip-x: -1;
+  --flip-y: 1;
+}
+.diatonic-keyboard[data-flip='vertical'] {
+  --flip-x: 1;
+  --flip-y: -1;
+}
+.diatonic-keyboard[data-flip='both'] {
+  --flip-x: -1;
+  --flip-y: -1;
+}
+.diatonic-keyboard[data-flip='horizontal'],
+.diatonic-keyboard[data-flip='vertical'],
+.diatonic-keyboard[data-flip='both'] {
+  transform: scale(var(--flip-x, 1), var(--flip-y, 1));
+}
+.diatonic-keyboard[data-flip='horizontal'] .diatonic-button-label,
+.diatonic-keyboard[data-flip='vertical'] .diatonic-button-label,
+.diatonic-keyboard[data-flip='both'] .diatonic-button-label {
   display: inline-block;
   transform: scale(var(--flip-x, 1), var(--flip-y, 1));
 }

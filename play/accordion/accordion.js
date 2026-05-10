@@ -18,6 +18,7 @@ import { makePrefs } from '../shared/prefs.js';
 import { attachKeyboardInput } from '../shared/input.js';
 import { renderStradella } from './stradella.js';
 import { renderChromatic } from './chromatic.js';
+import { renderDiatonic } from './diatonic.js';
 import { Bellows, isBellowsAvailable, isBellowsPermissionRequired } from '../shared/bellows.js';
 import { tap as hapticTap } from '../shared/haptics.js';
 import { createBreathBus } from './breath-bus.js';
@@ -319,6 +320,7 @@ const bassSizeEl = document.getElementById('bass-size');
 const bassFlipEl = document.getElementById('bass-flip');
 const chromaticButtonsEl = document.getElementById('chromatic-buttons');
 const chromaticFlipEl = document.getElementById('chromatic-flip');
+const diatonicTuningEl = document.getElementById('diatonic-tuning');
 const viewEl = document.getElementById('view');
 const registerOptionsEl = document.getElementById('register-options');
 const registerToggleEl = document.getElementById('register-toggle');
@@ -379,6 +381,10 @@ if (typeof prefs.chromaticButtons === 'string' && chromaticButtonsEl) {
 if (typeof prefs.chromaticFlip === 'string' && chromaticFlipEl) {
   const opt = Array.from(chromaticFlipEl.options).find((o) => o.value === prefs.chromaticFlip);
   if (opt) chromaticFlipEl.value = prefs.chromaticFlip;
+}
+if (typeof prefs.diatonicTuning === 'string' && diatonicTuningEl) {
+  const opt = Array.from(diatonicTuningEl.options).find((o) => o.value === prefs.diatonicTuning);
+  if (opt) diatonicTuningEl.value = prefs.diatonicTuning;
 }
 if (typeof prefs.view === 'string' && viewEl) {
   const opt = Array.from(viewEl.options).find((o) => o.value === prefs.view);
@@ -473,6 +479,11 @@ chromaticHostEl.className = 'chromatic-keyboard';
 chromaticHostEl.id = 'chromatic-keyboard';
 chromaticHostEl.setAttribute('aria-label', 'Chromatic right-hand buttons');
 
+const diatonicHostEl = document.createElement('div');
+diatonicHostEl.className = 'diatonic-keyboard';
+diatonicHostEl.id = 'diatonic-keyboard';
+diatonicHostEl.setAttribute('aria-label', 'Diatonic right-hand buttons');
+
 const accordion = new Keyboard(pianoHostEl, {
   startMidi,
   whiteKeyCount,
@@ -496,6 +507,7 @@ const persist = () => {
     bassFlip: bassFlipEl ? bassFlipEl.value : 'normal',
     chromaticButtons: chromaticButtonsEl ? chromaticButtonsEl.value : '64',
     chromaticFlip: chromaticFlipEl ? chromaticFlipEl.value : 'normal',
+    diatonicTuning: diatonicTuningEl ? diatonicTuningEl.value : 'DG',
     view: viewEl ? viewEl.value : 'stradella-standard-h',
     registerRight: activeRightRegisterId,
     registerLeft: activeLeftRegisterId,
@@ -521,6 +533,14 @@ const bellows = new Bellows();
 bellows.onPressure = (p) => {
   breathBus.setPressure(p);
   if (bellowsMeterEl) bellowsMeterEl.style.setProperty('--bellows-pressure', String(p));
+};
+// Bellows turnaround is a pure visual hint for the diatonic view —
+// since both push and pull keyboards are always rendered side-by-side,
+// the bellows direction doesn't gate which side can sound. We just
+// highlight the matching half so the player gets feedback that the
+// device is detecting their swing.
+bellows.onDirection = (dir) => {
+  if (diatonic) diatonic.setBellowsDirection(dir);
 };
 
 const setBellowsActive = (on) => {
@@ -588,6 +608,8 @@ if (bellowsToggleEl) {
       setBellowsActive(true);
     } else {
       setBellowsActive(false);
+      // Clear the visual bellows hint on the diatonic view.
+      if (diatonic) diatonic.setBellowsDirection(null);
     }
     persist();
   });
@@ -884,6 +906,13 @@ if (chromaticFlipEl) {
   });
 }
 
+if (diatonicTuningEl) {
+  diatonicTuningEl.addEventListener('change', () => {
+    diatonic.setTuning(diatonicTuningEl.value);
+    persist();
+  });
+}
+
 // Pre-warm the soundfont on first user interaction.
 const warm = () => {
   switchTone(toneEl.value);
@@ -966,6 +995,16 @@ const chromatic = renderChromatic(chromaticHostEl, {
   ...rightHandHandlers
 });
 
+// Two side-by-side keyboards (PUSH + PULL). The renderer enforces
+// mutex internally so only one half can sound at a time, mirroring a
+// real bellows. Bellows direction (when phone bellows mode is on) is
+// fed in as a pure visual hint via setBellowsDirection().
+const diatonic = renderDiatonic(diatonicHostEl, {
+  orientation: 'horizontal',
+  tuning: diatonicTuningEl ? diatonicTuningEl.value : 'DG',
+  ...rightHandHandlers
+});
+
 // ---------- View switching ----------
 //
 // One flat list of views — Stradella variants × orientation, Piano, and
@@ -1016,7 +1055,9 @@ const VIEWS = {
     system: 'C',
     orientation: 'horizontal'
   },
-  'chromatic-C-v': { kind: 'chromatic', system: 'C', orientation: 'vertical' }
+  'chromatic-C-v': { kind: 'chromatic', system: 'C', orientation: 'vertical' },
+  'diatonic-h': { kind: 'diatonic', orientation: 'horizontal' },
+  'diatonic-v': { kind: 'diatonic', orientation: 'vertical' }
 };
 
 /**
@@ -1044,6 +1085,7 @@ const setView = (viewId) => {
   // Drop visual state from whichever view we're leaving.
   stradella.clearActive();
   chromatic.clearActive();
+  diatonic.clearActive();
 
   // Tag the stage so CSS can size each layout differently.
   stageEl.dataset.view = viewId;
@@ -1080,6 +1122,10 @@ const setView = (viewId) => {
     chromatic.setOrientation(orientation);
     if (chromaticButtonsEl) chromatic.setLayout(chromaticButtonsEl.value);
     stageEl.appendChild(chromaticHostEl);
+  } else if (cfg.kind === 'diatonic') {
+    diatonic.setOrientation(orientation);
+    if (diatonicTuningEl) diatonic.setTuning(diatonicTuningEl.value);
+    stageEl.appendChild(diatonicHostEl);
   } else {
     stageEl.appendChild(pianoHostEl);
   }
@@ -1106,7 +1152,8 @@ const MOBILE_VIEW_LABELS = {
   'stradella-freebass-h': 'Free bass',
   piano: 'Piano keyboard',
   'chromatic-B-h': 'Chromatic B-system',
-  'chromatic-C-h': 'Chromatic C-system'
+  'chromatic-C-h': 'Chromatic C-system',
+  'diatonic-h': 'Diatonic melodeon'
 };
 
 const updateViewOptions = () => {
@@ -1158,4 +1205,5 @@ setView(viewEl ? viewEl.value : 'stradella-standard-h');
 window.addEventListener('blur', () => {
   stradella.clearActive();
   chromatic.clearActive();
+  diatonic.clearActive();
 });
