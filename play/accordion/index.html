@@ -143,6 +143,20 @@
         </select>
       </div>
 
+      <!-- Mirror the Stradella section for players who read the layout
+           from a different perspective (audience-facing vs. player-
+           facing, instrument turned around, etc.). The flip is pure
+           CSS — text glyphs stay upright via a counter-transform. -->
+      <div class="control" data-only-for="stradella">
+        <label for="bass-flip">Mirror</label>
+        <select id="bass-flip">
+          <option value="normal" selected>Normal</option>
+          <option value="horizontal">Flip horizontal</option>
+          <option value="vertical">Flip vertical</option>
+          <option value="both">Flip both</option>
+        </select>
+      </div>
+
       <!-- Standard chromatic-button-accordion right-hand sizes. 3-row
            is the basic chromatic system; 4-row adds a duplicate of row
            1 (helper); 5-row duplicates rows 1 and 2 (modern pro / bayan).

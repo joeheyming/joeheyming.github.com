@@ -316,6 +316,7 @@ const bellowsMeterEl = document.getElementById('bellows-meter');
 const bellowsHelpEl = document.querySelector('.bellows-help');
 const pianoLayoutEl = document.getElementById('piano-layout');
 const bassSizeEl = document.getElementById('bass-size');
+const bassFlipEl = document.getElementById('bass-flip');
 const chromaticButtonsEl = document.getElementById('chromatic-buttons');
 const viewEl = document.getElementById('view');
 const registerOptionsEl = document.getElementById('register-options');
@@ -363,6 +364,10 @@ if (typeof prefs.pianoLayout === 'string' && pianoLayoutEl) {
 if (typeof prefs.bassSize === 'string' && bassSizeEl) {
   const opt = Array.from(bassSizeEl.options).find((o) => o.value === prefs.bassSize);
   if (opt) bassSizeEl.value = prefs.bassSize;
+}
+if (typeof prefs.bassFlip === 'string' && bassFlipEl) {
+  const opt = Array.from(bassFlipEl.options).find((o) => o.value === prefs.bassFlip);
+  if (opt) bassFlipEl.value = prefs.bassFlip;
 }
 if (typeof prefs.chromaticButtons === 'string' && chromaticButtonsEl) {
   const opt = Array.from(chromaticButtonsEl.options).find(
@@ -483,6 +488,7 @@ const persist = () => {
     tone: toneEl.value,
     pianoLayout: pianoLayoutEl ? pianoLayoutEl.value : '25',
     bassSize: bassSizeEl ? bassSizeEl.value : '120',
+    bassFlip: bassFlipEl ? bassFlipEl.value : 'normal',
     chromaticButtons: chromaticButtonsEl ? chromaticButtonsEl.value : '64',
     view: viewEl ? viewEl.value : 'stradella-standard-h',
     registerRight: activeRightRegisterId,
@@ -851,6 +857,13 @@ if (bassSizeEl) {
   });
 }
 
+if (bassFlipEl) {
+  bassFlipEl.addEventListener('change', () => {
+    stradella.setFlip(bassFlipEl.value);
+    persist();
+  });
+}
+
 if (chromaticButtonsEl) {
   chromaticButtonsEl.addEventListener('change', () => {
     chromatic.setLayout(chromaticButtonsEl.value);
@@ -928,6 +941,7 @@ const stradella = renderStradella(stradellaHostEl, {
   initialLayout: 'standard',
   orientation: 'horizontal',
   size: bassSizeEl ? bassSizeEl.value : '120',
+  flip: bassFlipEl ? bassFlipEl.value : 'normal',
   ...leftHandHandlers
 });
 

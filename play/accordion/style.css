@@ -958,6 +958,55 @@ details.instrument-help > summary:focus-visible {
   margin-top: calc(var(--row-offset, 0) * var(--col-step));
 }
 
+/* ---------- Flip mode (mirror the bass section) ----------
+ *
+ * Some players read the layout from a different perspective than the
+ * default — audience-facing vs. player-facing, instrument turned
+ * around in the lap, or just personal preference. `data-flip` on the
+ * `.stradella-bass` host element mirrors the whole section via a CSS
+ * transform, while the per-button-text and per-row-label spans get a
+ * counter-flip so glyphs stay readable.
+ *
+ * The flip is driven by `--flip-x` / `--flip-y` CSS variables so the
+ * counter-transform on the inner spans can read the same value the
+ * parent applied — they always cancel out, regardless of which axis
+ * (or both) is mirrored.
+ *
+ * The container's transform composes naturally with the buttons' own
+ * `.active` transform (`translateY(1px) scale(0.94)`), so the press
+ * animation continues to work in every flip mode (the scale is
+ * symmetric; the 1px translate may invert direction but is visually
+ * imperceptible).
+ */
+.stradella-bass[data-flip='horizontal'] {
+  --flip-x: -1;
+  --flip-y: 1;
+}
+.stradella-bass[data-flip='vertical'] {
+  --flip-x: 1;
+  --flip-y: -1;
+}
+.stradella-bass[data-flip='both'] {
+  --flip-x: -1;
+  --flip-y: -1;
+}
+
+.stradella-bass[data-flip='horizontal'],
+.stradella-bass[data-flip='vertical'],
+.stradella-bass[data-flip='both'] {
+  transform: scale(var(--flip-x, 1), var(--flip-y, 1));
+}
+
+.stradella-bass[data-flip='horizontal'] .stradella-button-label,
+.stradella-bass[data-flip='horizontal'] .stradella-row-label-text,
+.stradella-bass[data-flip='vertical'] .stradella-button-label,
+.stradella-bass[data-flip='vertical'] .stradella-row-label-text,
+.stradella-bass[data-flip='both'] .stradella-button-label,
+.stradella-bass[data-flip='both'] .stradella-row-label-text {
+  display: inline-block;
+  transform: scale(var(--flip-x, 1), var(--flip-y, 1));
+}
+
 /* ---------- Chromatic right-hand button accordion ---------- */
 
 .chromatic-keyboard {

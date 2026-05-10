@@ -28,19 +28,22 @@ const FLAT_NAMES = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A'
 /**
  * Full 120-bass column layout: 20 columns × 6 rows = 120 buttons.
  *
- * Order: left → right is the **descending** circle of fifths (each step
- * right is a perfect 5th down / perfect 4th up). This puts sharp-side keys
- * on the left and flat-side on the right, matching how most players
- * visualize the grip on the bass side of the instrument.
+ * Order: left → right (horizontal) / top → bottom (vertical) is the
+ * **descending** circle of fifths (each step right/down is a perfect 5th
+ * down / perfect 4th up). This puts sharp-side keys at the top of the
+ * instrument (closest to the bellows) and flat-side keys at the bottom
+ * (resting on the player's knee), matching the standard 120-bass range
+ * shown in every Stradella chart and on most real instruments: from
+ * A♯ at the bellows-end down through C (the home column) to B♭♭ (= A)
+ * at the knee-end.
  *
- * Edge columns use theoretical accordion spellings (E♯, F♭, …) — those
+ * Edge columns use theoretical accordion spellings (A♯, B♭♭, …) — those
  * buttons exist on real 120-bass instruments for chord-progression
- * consistency, even though they're enharmonic duplicates of buttons in the
- * middle of the row.
+ * consistency, even though they're enharmonic duplicates of buttons
+ * elsewhere in the row (A♯ ≡ B♭, B♭♭ ≡ A).
  */
 const STRADELLA_COLS_20 = [
-  { name: 'E♯', pc: 5 }, // = F
-  { name: 'A♯', pc: 10 },
+  { name: 'A♯', pc: 10 }, // = B♭
   { name: 'D♯', pc: 3 },
   { name: 'G♯', pc: 8 },
   { name: 'C♯', pc: 1 },
@@ -58,7 +61,8 @@ const STRADELLA_COLS_20 = [
   { name: 'D♭', pc: 1 },
   { name: 'G♭', pc: 6 }, // = F♯
   { name: 'C♭', pc: 11 }, // = B
-  { name: 'F♭', pc: 4 } // = E
+  { name: 'F♭', pc: 4 }, // = E
+  { name: 'B♭♭', pc: 9 } // = A
 ];
 
 /**
@@ -107,6 +111,8 @@ const ROW_GLYPH = {
   dim7: '°'
 };
 
+const FLIP_MODES = new Set(['normal', 'horizontal', 'vertical', 'both']);
+
 export const STRADELLA_LAYOUTS = {
   standard: {
     label: 'Standard Stradella',
@@ -138,18 +144,18 @@ export const STRADELLA_SIZES = {
   12: {
     label: '12 bass',
     cols: 6,
-    colStart: 7,
+    colStart: 6,
     forceRows: ['bass', 'major']
   },
   24: {
     label: '24 bass',
     cols: 6,
-    colStart: 7,
+    colStart: 6,
     forceRows: ['counter-bass', 'bass', 'major', 'minor']
   },
-  48: { label: '48 bass', cols: 8, colStart: 6 },
-  72: { label: '72 bass', cols: 12, colStart: 4 },
-  96: { label: '96 bass', cols: 16, colStart: 2 },
+  48: { label: '48 bass', cols: 8, colStart: 5 },
+  72: { label: '72 bass', cols: 12, colStart: 3 },
+  96: { label: '96 bass', cols: 16, colStart: 1 },
   120: { label: '120 bass', cols: 20, colStart: 0 }
 };
 
@@ -237,12 +243,19 @@ export function renderStradella(rootEl, opts) {
   let currentLayout = opts.initialLayout || 'standard';
   let currentOrientation = opts.orientation || 'horizontal';
   let currentSize = opts.size && STRADELLA_SIZES[opts.size] ? opts.size : '120';
+  // `flip` mirrors the entire bass section in CSS so a player who reads
+  // the layout from a different perspective (audience-facing vs.
+  // player-facing, instrument turned around in the lap, etc.) can
+  // re-orient it without us having to re-author the data structure.
+  // Valid: 'normal' | 'horizontal' | 'vertical' | 'both'.
+  let currentFlip = FLIP_MODES.has(opts.flip) ? opts.flip : 'normal';
 
   const build = () => {
     rootEl.innerHTML = '';
     rootEl.dataset.layout = currentLayout;
     rootEl.dataset.orientation = currentOrientation;
     rootEl.dataset.size = currentSize;
+    rootEl.dataset.flip = currentFlip;
     const layout = STRADELLA_LAYOUTS[currentLayout];
     const size = STRADELLA_SIZES[currentSize];
     if (!layout || !size) return;
@@ -267,8 +280,13 @@ export function renderStradella(rootEl, opts) {
       const label = document.createElement('div');
       label.className = 'stradella-row-label';
       const longLabel = ROW_LABELS[rowType] || rowType;
-      label.textContent =
+      // Wrap text in a span so the flip-mode CSS can counter-transform
+      // just the text without disturbing the label's flex sizing.
+      const labelText = document.createElement('span');
+      labelText.className = 'stradella-row-label-text';
+      labelText.textContent =
         currentOrientation === 'vertical' ? ROW_LABELS_SHORT[rowType] || longLabel : longLabel;
+      label.appendChild(labelText);
       // Keep the long label discoverable on hover/screen-readers.
       label.title = longLabel;
       label.setAttribute('aria-label', longLabel);
@@ -285,7 +303,12 @@ export function renderStradella(rootEl, opts) {
         }
         btn.dataset.col = col.name;
         btn.dataset.row = rowType;
-        btn.textContent = buttonLabel(rowType, col);
+        // Text in a span so flip-mode can mirror the glyph back upright
+        // while leaving the button's own `.active` transform free.
+        const btnText = document.createElement('span');
+        btnText.className = 'stradella-button-label';
+        btnText.textContent = buttonLabel(rowType, col);
+        btn.appendChild(btnText);
         btn.setAttribute('aria-label', `${ROW_LABELS[rowType] || rowType} ${col.name}`);
 
         const notes = notesForButton(rowType, col.pc);
@@ -349,6 +372,16 @@ export function renderStradella(rootEl, opts) {
       surface.releaseAll();
       currentSize = sizeId;
       build();
+    },
+    setFlip(mode) {
+      if (!FLIP_MODES.has(mode)) return;
+      if (mode === currentFlip) return;
+      // No rebuild needed — the flip is pure CSS driven by the data
+      // attribute. We do release any in-flight presses so a user who
+      // flips mid-press doesn't get stranded "stuck" buttons.
+      surface.releaseAll();
+      currentFlip = mode;
+      rootEl.dataset.flip = currentFlip;
     },
     clearActive() {
       surface.releaseAll();
