@@ -207,6 +207,8 @@ export function areNeighbors(r1, c1, r2, c2) {
  *   - `setSystem(s)`        : 'B' | 'C'
  *   - `clearActive()`       : drop visual press state
  */
+const FLIP_MODES = new Set(['normal', 'horizontal', 'vertical', 'both']);
+
 export function renderChromatic(rootEl, opts) {
   const onPress = opts.onPress;
   const onRelease = opts.onRelease;
@@ -215,6 +217,12 @@ export function renderChromatic(rootEl, opts) {
   let orientation = opts.orientation || 'horizontal';
   let system = opts.system || 'B';
   let layoutId = opts.layout && CHROMATIC_LAYOUTS[opts.layout] ? opts.layout : DEFAULT_LAYOUT;
+  // Mirror mode for the right-hand surface. Same scheme as the
+  // Stradella side: the data attribute drives a CSS transform on the
+  // container, with a counter-transform on the per-button text span so
+  // glyphs stay readable. Valid: 'normal' | 'horizontal' | 'vertical'
+  // | 'both'.
+  let currentFlip = FLIP_MODES.has(opts.flip) ? opts.flip : 'normal';
 
   const createButton = (rowIdx, colIdx) => {
     const midi = midiForCell(rowIdx, colIdx, CHROMATIC_LAYOUTS[layoutId], system);
@@ -223,7 +231,13 @@ export function renderChromatic(rootEl, opts) {
     btn.className = `chromatic-button chromatic-button-row-${rowIdx}`;
     btn.classList.add(isAccidental(midi) ? 'is-accidental' : 'is-natural');
     if (isC(midi)) btn.classList.add('is-c');
-    btn.textContent = shortMidiName(midi);
+    // Text in a span so the flip-mode CSS can counter-transform just
+    // the glyph without disturbing the button's own `.active` press
+    // animation (which itself sets `transform`).
+    const labelEl = document.createElement('span');
+    labelEl.className = 'chromatic-button-label';
+    labelEl.textContent = shortMidiName(midi);
+    btn.appendChild(labelEl);
     btn.dataset.midi = String(midi);
     btn.setAttribute('aria-label', midiName(midi));
     btn._notes = [midi];
@@ -236,6 +250,7 @@ export function renderChromatic(rootEl, opts) {
     rootEl.dataset.orientation = orientation;
     rootEl.dataset.system = system;
     rootEl.dataset.layout = String(layoutId);
+    rootEl.dataset.flip = currentFlip;
 
     const { rows, cols } = CHROMATIC_LAYOUTS[layoutId];
     // Expose grid dimensions so the CSS can auto-fit button size to
@@ -348,6 +363,15 @@ export function renderChromatic(rootEl, opts) {
       surface.releaseAll();
       layoutId = key;
       build();
+    },
+    setFlip(mode) {
+      if (!FLIP_MODES.has(mode)) return;
+      if (mode === currentFlip) return;
+      // CSS-only — no rebuild. Release any in-flight presses so a
+      // user who flips mid-press doesn't get stranded buttons.
+      surface.releaseAll();
+      currentFlip = mode;
+      rootEl.dataset.flip = currentFlip;
     },
     clearActive() {
       surface.releaseAll();

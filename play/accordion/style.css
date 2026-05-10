@@ -1196,6 +1196,41 @@ details.instrument-help > summary:focus-visible {
   box-shadow: inset 0 0 0 1px rgba(196, 181, 253, 0.15);
 }
 
+/* ---------- Chromatic flip mode ----------
+ *
+ * Mirrors the right-hand button section for players who prefer to
+ * read the layout from a different perspective. Same scheme as the
+ * Stradella flip block above: container scales via CSS variables,
+ * and the per-button text span counter-scales so glyphs stay upright.
+ * The CBA `.active` press transform composes naturally with the
+ * container transform.
+ */
+.chromatic-keyboard[data-flip='horizontal'] {
+  --flip-x: -1;
+  --flip-y: 1;
+}
+.chromatic-keyboard[data-flip='vertical'] {
+  --flip-x: 1;
+  --flip-y: -1;
+}
+.chromatic-keyboard[data-flip='both'] {
+  --flip-x: -1;
+  --flip-y: -1;
+}
+
+.chromatic-keyboard[data-flip='horizontal'],
+.chromatic-keyboard[data-flip='vertical'],
+.chromatic-keyboard[data-flip='both'] {
+  transform: scale(var(--flip-x, 1), var(--flip-y, 1));
+}
+
+.chromatic-keyboard[data-flip='horizontal'] .chromatic-button-label,
+.chromatic-keyboard[data-flip='vertical'] .chromatic-button-label,
+.chromatic-keyboard[data-flip='both'] .chromatic-button-label {
+  display: inline-block;
+  transform: scale(var(--flip-x, 1), var(--flip-y, 1));
+}
+
 /* ---------- Landscape phone: tighten keyboard against chrome ----------
  *
  * Sits below the mobile-touch keyboard rules so it can override their

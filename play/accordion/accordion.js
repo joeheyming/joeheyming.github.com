@@ -318,6 +318,7 @@ const pianoLayoutEl = document.getElementById('piano-layout');
 const bassSizeEl = document.getElementById('bass-size');
 const bassFlipEl = document.getElementById('bass-flip');
 const chromaticButtonsEl = document.getElementById('chromatic-buttons');
+const chromaticFlipEl = document.getElementById('chromatic-flip');
 const viewEl = document.getElementById('view');
 const registerOptionsEl = document.getElementById('register-options');
 const registerToggleEl = document.getElementById('register-toggle');
@@ -374,6 +375,10 @@ if (typeof prefs.chromaticButtons === 'string' && chromaticButtonsEl) {
     (o) => o.value === prefs.chromaticButtons
   );
   if (opt) chromaticButtonsEl.value = prefs.chromaticButtons;
+}
+if (typeof prefs.chromaticFlip === 'string' && chromaticFlipEl) {
+  const opt = Array.from(chromaticFlipEl.options).find((o) => o.value === prefs.chromaticFlip);
+  if (opt) chromaticFlipEl.value = prefs.chromaticFlip;
 }
 if (typeof prefs.view === 'string' && viewEl) {
   const opt = Array.from(viewEl.options).find((o) => o.value === prefs.view);
@@ -490,6 +495,7 @@ const persist = () => {
     bassSize: bassSizeEl ? bassSizeEl.value : '120',
     bassFlip: bassFlipEl ? bassFlipEl.value : 'normal',
     chromaticButtons: chromaticButtonsEl ? chromaticButtonsEl.value : '64',
+    chromaticFlip: chromaticFlipEl ? chromaticFlipEl.value : 'normal',
     view: viewEl ? viewEl.value : 'stradella-standard-h',
     registerRight: activeRightRegisterId,
     registerLeft: activeLeftRegisterId,
@@ -871,6 +877,13 @@ if (chromaticButtonsEl) {
   });
 }
 
+if (chromaticFlipEl) {
+  chromaticFlipEl.addEventListener('change', () => {
+    chromatic.setFlip(chromaticFlipEl.value);
+    persist();
+  });
+}
+
 // Pre-warm the soundfont on first user interaction.
 const warm = () => {
   switchTone(toneEl.value);
@@ -949,6 +962,7 @@ const chromatic = renderChromatic(chromaticHostEl, {
   orientation: 'horizontal',
   system: 'B',
   layout: chromaticButtonsEl ? chromaticButtonsEl.value : 64,
+  flip: chromaticFlipEl ? chromaticFlipEl.value : 'normal',
   ...rightHandHandlers
 });
 

@@ -175,6 +175,20 @@
         </select>
       </div>
 
+      <!-- Mirror the chromatic right-hand section for players who read
+           the layout from a different perspective. Same mechanism as
+           the Stradella Mirror dropdown above; separate state because
+           the two surfaces are physically independent. -->
+      <div class="control" data-only-for="chromatic">
+        <label for="chromatic-flip">Mirror</label>
+        <select id="chromatic-flip">
+          <option value="normal" selected>Normal</option>
+          <option value="horizontal">Flip horizontal</option>
+          <option value="vertical">Flip vertical</option>
+          <option value="both">Flip both</option>
+        </select>
+      </div>
+
       <div class="control show-control" role="group" aria-label="Show on keys" data-only-for="piano">
         <label id="show-label">Show</label>
         <div class="show-options" aria-labelledby="show-label">
