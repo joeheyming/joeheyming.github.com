@@ -10,13 +10,34 @@ export class Controls {
   constructor(game) {
     this.game = game;
 
-    // Current input state
+    // Current keyboard input state
     this.keys = {
       up: false,
       down: false,
       left: false,
       right: false
     };
+    // Touch-driven directional keys (canvas joystick). Held in a
+    // separate slot so a finger lift doesn't clobber a keyboard arrow,
+    // and vice versa. Merged with `keys` in `updateDirection()`.
+    // Snapped to the dominant axis (4-way) — drives Top-Down's classic
+    // Pacman feel.
+    this._touchKeys = { up: false, down: false, left: false, right: false };
+    // Continuous-angle joystick vector in WORLD space (`x` east+/west−,
+    // `y` north+/south−). `null` when the joystick is idle or inside
+    // the dead zone. Used by Birds-Eye Follow so the player can walk
+    // in any of 360°.
+    this._joystickVec = null;
+    // Active pointer id for the canvas joystick (so multi-touch noise
+    // doesn't hijack the drive in Top-Down / Follow).
+    this._activePointerId = null;
+    // FPPOV uses a twin-stick scheme on mobile: left-half drag = walk
+    // joystick (free-floating, anchored at the first touch), right-half
+    // drag = look around (yaw + pitch from drag delta — mimics the
+    // desktop pointer-lock mouse-look). Tracked with independent
+    // pointer slots so two fingers can drive both at once.
+    this._fpsWalkPointer = null; // { pointerId, anchorX, anchorY }
+    this._fpsLookPointer = null; // { pointerId, lastX, lastY }
 
     // Current direction
     this.direction = DIRECTION.NONE;
@@ -267,31 +288,61 @@ export class Controls {
   }
 
   updateDirection() {
-    // Priority: most recently pressed or single key
-    if (this.keys.up && !this.keys.down) {
+    // Merge keyboard + touch joystick inputs. Touch keys are 4-way
+    // (dominant axis only), so the merged result is also 4-way — keeps
+    // Top-Down on the classic Pacman cardinal grid.
+    const up = this.keys.up || this._touchKeys.up;
+    const down = this.keys.down || this._touchKeys.down;
+    const left = this.keys.left || this._touchKeys.left;
+    const right = this.keys.right || this._touchKeys.right;
+
+    if (up && !down) {
       this.direction = DIRECTION.UP;
-    } else if (this.keys.down && !this.keys.up) {
+    } else if (down && !up) {
       this.direction = DIRECTION.DOWN;
-    } else if (this.keys.left && !this.keys.right) {
+    } else if (left && !right) {
       this.direction = DIRECTION.LEFT;
-    } else if (this.keys.right && !this.keys.left) {
+    } else if (right && !left) {
       this.direction = DIRECTION.RIGHT;
     } else {
       this.direction = DIRECTION.NONE;
     }
   }
 
+  /**
+   * Continuous-angle world-space movement vector. Returns a unit vector
+   * `{x, y}` (or `null` if no input). X = world east(+)/west(−),
+   * Y = world north(+)/south(−).
+   *
+   * Source of truth (in priority order):
+   *   1. The live joystick deflection (`_joystickVec`) — supplies any
+   *      angle in 360°. Used for Birds-Eye Follow.
+   *   2. Keyboard arrows — fall back to an 8-way unit vector composed
+   *      from the held keys (so W+D walks north-east).
+   *
+   * Top-Down doesn't call this; it reads the cardinal `direction` enum
+   * from `updateDirection`, which keeps the 4-way Pacman feel.
+   */
+  getMoveVector() {
+    if (this._joystickVec) return this._joystickVec;
+    let dx = 0;
+    let dy = 0;
+    if (this.keys.up) dy += 1;
+    if (this.keys.down) dy -= 1;
+    if (this.keys.left) dx -= 1;
+    if (this.keys.right) dx += 1;
+    if (dx === 0 && dy === 0) return null;
+    const m = Math.hypot(dx, dy);
+    return { x: dx / m, y: dy / m };
+  }
+
   cycleCamera() {
     if (this.game.cameraController) {
-      let newMode = this.game.cameraController.cycleMode();
-
-      // Skip FPS mode on mobile (mode 2) - it requires mouse look which doesn't work on touch
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent
-      );
-      if (isMobile && newMode === 2) {
-        newMode = this.game.cameraController.cycleMode(); // Skip to mode 0
-      }
+      const newMode = this.game.cameraController.cycleMode();
+      // FPPOV is now reachable on mobile too — the canvas pointer
+      // pipeline switches into a twin-stick scheme (left-half drag =
+      // walk, right-half drag = look) so phones don't need pointer
+      // lock to use first-person.
 
       this.game.updateCameraModeDisplay();
 
@@ -300,16 +351,15 @@ export class Controls {
 
       // Hide/show Pacman for first person view
       const isFirstPerson = newMode === 2; // FPPOV
-      const isFollowMode = newMode === 1; // BIRDSEYE_FOLLOW with mouse aim
 
       if (this.game.pacman) {
         this.game.pacman.setVisible(!isFirstPerson);
 
-        // Set key mode based on camera mode
-        // FPPOV and BIRDSEYE_FOLLOW use STRAFE mode (movement relative to facing)
-        // Other modes use PERP mode (classic Pacman - arrows = world directions)
-        const useStrafe = isFirstPerson || isFollowMode;
-        this.game.pacman.setKeyMode(useStrafe ? KEY_MODE.STRAFE : KEY_MODE.PERP);
+        // Only FPPOV uses STRAFE (movement relative to facing). Follow
+        // and Top-Down use PERP (world-aligned movement) so the
+        // tap/joystick vector keeps a stable meaning regardless of
+        // which way Pacman is currently aimed.
+        this.game.pacman.setKeyMode(isFirstPerson ? KEY_MODE.STRAFE : KEY_MODE.PERP);
 
         // When entering FPPOV, clamp pitch so we're not looking too far up or down
         if (isFirstPerson) {
@@ -361,7 +411,15 @@ export class Controls {
   }
 
   setupTouchControls() {
-    // Create touch overlay for mobile
+    // Mobile uses a single "tap-anywhere on the canvas" virtual
+    // joystick — no D-pad. The drive vector relative to the canvas
+    // centre powers BOTH the cardinal `_touchKeys` (4-way snap, used
+    // by Top-Down) AND the continuous-angle `_joystickVec` (any of
+    // 360°, used by Birds-Eye Follow). FPPOV ignores the canvas
+    // joystick — that mode wants pointer-locked mouse look instead.
+    //
+    // The View / Pause action buttons stay on a small column in the
+    // bottom-right so they don't fight with the canvas drive zone.
     const touchOverlay = document.createElement('div');
     touchOverlay.id = 'touch-controls';
     touchOverlay.innerHTML = `
@@ -369,51 +427,25 @@ export class Controls {
         #touch-controls {
           display: none;
           position: fixed;
-          bottom: 20px;
-          left: 50%;
-          transform: translateX(-50%);
+          /* bottom: 144px keeps the VIEW / PAUSE column entirely
+             above the global "related projects" widget (share.js
+             renders a ~48px bottom-right toggle around bottom:80px
+             on mobile); without this clearance they stack on the
+             same pixel. Right edge stays aligned with the toggle. */
+          bottom: 144px;
+          right: 12px;
           z-index: 100;
         }
         @media (max-width: 768px), (pointer: coarse) {
           #touch-controls {
             display: flex;
             align-items: flex-end;
-            gap: 20px;
+            gap: 12px;
           }
           #controls-help {
             display: none !important;
           }
         }
-        .touch-dpad {
-          display: grid;
-          grid-template-columns: 60px 60px 60px;
-          grid-template-rows: 60px 60px 60px;
-          gap: 4px;
-        }
-        .touch-btn {
-          width: 60px;
-          height: 60px;
-          background: rgba(255, 255, 255, 0.2);
-          border: 2px solid rgba(255, 255, 255, 0.4);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 24px;
-          color: white;
-          user-select: none;
-          -webkit-user-select: none;
-          touch-action: manipulation;
-        }
-        .touch-btn:active {
-          background: rgba(255, 255, 255, 0.4);
-        }
-        .touch-up { grid-column: 2; grid-row: 1; }
-        .touch-left { grid-column: 1; grid-row: 2; }
-        .touch-center { grid-column: 2; grid-row: 2; background: transparent; border: none; }
-        .touch-right { grid-column: 3; grid-row: 2; }
-        .touch-down { grid-column: 2; grid-row: 3; }
-        
         .touch-action-buttons {
           display: flex;
           flex-direction: column;
@@ -440,9 +472,6 @@ export class Controls {
         .touch-action-btn:active {
           background: rgba(0, 200, 255, 0.5);
         }
-        .touch-camera-btn {
-          font-size: 20px;
-        }
         .touch-pause-btn {
           background: rgba(255, 200, 0, 0.25);
           border-color: rgba(255, 200, 0, 0.6);
@@ -452,45 +481,14 @@ export class Controls {
           background: rgba(255, 200, 0, 0.5);
         }
       </style>
-      <div class="touch-dpad">
-        <button class="touch-btn touch-up" data-dir="up">▲</button>
-        <button class="touch-btn touch-left" data-dir="left">◀</button>
-        <button class="touch-btn touch-center"></button>
-        <button class="touch-btn touch-right" data-dir="right">▶</button>
-        <button class="touch-btn touch-down" data-dir="down">▼</button>
-      </div>
       <div class="touch-action-buttons">
-        <button class="touch-action-btn touch-camera-btn" id="touch-camera">📷</button>
-        <button class="touch-action-btn touch-pause-btn" id="touch-pause">⏸</button>
+        <button class="touch-action-btn touch-camera-btn" id="touch-camera" aria-label="Cycle view">VIEW</button>
+        <button class="touch-action-btn touch-pause-btn" id="touch-pause" aria-label="Pause">⏸</button>
       </div>
     `;
     document.body.appendChild(touchOverlay);
 
-    // Bind touch events for D-pad
-    const buttons = touchOverlay.querySelectorAll('.touch-btn[data-dir]');
-    buttons.forEach((btn) => {
-      const dir = btn.dataset.dir;
-
-      btn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        this.keys[dir] = true;
-        this.updateDirection();
-      });
-
-      btn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        this.keys[dir] = false;
-        this.updateDirection();
-      });
-
-      btn.addEventListener('touchcancel', (e) => {
-        e.preventDefault();
-        this.keys[dir] = false;
-        this.updateDirection();
-      });
-    });
-
-    // Camera toggle button
+    // View / camera-cycle button
     const cameraBtn = document.getElementById('touch-camera');
     if (cameraBtn) {
       cameraBtn.addEventListener('touchstart', (e) => {
@@ -507,6 +505,190 @@ export class Controls {
         this.game.togglePause();
       });
     }
+
+    // Bind the canvas-wide joystick once the renderer has a canvas.
+    this.setupCanvasJoystick();
+  }
+
+  /**
+   * Canvas-wide virtual joystick.
+   *
+   * Modes 0 (Top-Down) and 1 (Birds-Eye Follow):
+   *   The drive vector is the offset from the canvas centre to the
+   *   active pointer. Powers two outputs at once:
+   *     - `_touchKeys`     — 4-way snap (dominant axis), Top-Down's
+   *                           classic Pacman feel via `updateDirection`.
+   *     - `_joystickVec`   — continuous-angle world-space unit vector,
+   *                           Follow uses it (and aims Pacman's yaw
+   *                           at the tap, mouse-aim style).
+   *
+   * Mode 2 (FPPOV) on **touch only**:
+   *   Twin-stick. Left-half drag = walk joystick (free-floating,
+   *   anchored at first touch — `_touchKeys` feed STRAFE keymode so
+   *   "up" walks forward along facing). Right-half drag = look-around
+   *   (yaw + pitch deltas, same math as the desktop mouse-look).
+   *   Two fingers can drive both at once.
+   *
+   *   On desktop FPPOV the existing pointer-lock + `onMouseMove` path
+   *   stays in charge — twin-stick gates on `pointerType === 'touch'`.
+   */
+  setupCanvasJoystick() {
+    const canvas = this.game.renderer?.domElement;
+    if (!canvas) {
+      setTimeout(() => this.setupCanvasJoystick(), 100);
+      return;
+    }
+    canvas.style.touchAction = 'none';
+
+    const getMode = () => this.game.cameraController?.currentMode;
+
+    const updateJoystick = (dx, dy, dead = 18) => {
+      const r = Math.hypot(dx, dy);
+      if (r < dead) {
+        this._touchKeys.up = false;
+        this._touchKeys.down = false;
+        this._touchKeys.left = false;
+        this._touchKeys.right = false;
+        this._joystickVec = null;
+      } else {
+        // Continuous vector: flip Y because screen +Y is DOWN but
+        // world +Y / "up arrow" is north.
+        this._joystickVec = { x: dx / r, y: -dy / r };
+        // 4-way snap (dominant axis) — Top-Down's classic feel and
+        // also FPPOV's STRAFE keys (forward/back/strafe).
+        if (Math.abs(dx) > Math.abs(dy)) {
+          this._touchKeys.up = false;
+          this._touchKeys.down = false;
+          this._touchKeys.left = dx < 0;
+          this._touchKeys.right = dx > 0;
+        } else {
+          this._touchKeys.left = false;
+          this._touchKeys.right = false;
+          this._touchKeys.up = dy < 0;
+          this._touchKeys.down = dy > 0;
+        }
+      }
+      this.updateDirection();
+    };
+
+    const clearJoystick = () => {
+      this._touchKeys.up = false;
+      this._touchKeys.down = false;
+      this._touchKeys.left = false;
+      this._touchKeys.right = false;
+      this._joystickVec = null;
+      this.updateDirection();
+    };
+
+    // Mode 0 / 1 — centre-anchored joystick on a single primary pointer.
+    const driveFromPointer = (ev) => {
+      const rect = canvas.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = ev.clientX - cx;
+      const dy = ev.clientY - cy;
+      updateJoystick(dx, dy);
+      // In Birds-Eye Follow, ALSO aim Pacman toward the tap location
+      // (mouse-aim semantics, but driven by a finger).
+      if (getMode() === 1) {
+        this.handleMouseAim(ev);
+      }
+    };
+
+    // Mode 2 (FPPOV touch) — twin-stick.
+    const fpsLookSensitivity = 0.18; // ≈ MOUSE_SENSITIVITY * 0.6, tuned by feel.
+    const fpsWalkDeadZone = 28;
+    const handleFpsPointerDown = (ev) => {
+      const rect = canvas.getBoundingClientRect();
+      const onLeftHalf = ev.clientX - rect.left < rect.width / 2;
+      if (onLeftHalf) {
+        if (this._fpsWalkPointer) return;
+        this._fpsWalkPointer = {
+          pointerId: ev.pointerId,
+          anchorX: ev.clientX,
+          anchorY: ev.clientY
+        };
+        // Tap without drag shouldn't auto-walk — wait for the user to
+        // pull past the dead zone.
+        clearJoystick();
+      } else {
+        if (this._fpsLookPointer) return;
+        this._fpsLookPointer = {
+          pointerId: ev.pointerId,
+          lastX: ev.clientX,
+          lastY: ev.clientY
+        };
+      }
+    };
+    const handleFpsPointerMove = (ev) => {
+      if (this._fpsWalkPointer && ev.pointerId === this._fpsWalkPointer.pointerId) {
+        const dx = ev.clientX - this._fpsWalkPointer.anchorX;
+        const dy = ev.clientY - this._fpsWalkPointer.anchorY;
+        // FPPOV is on STRAFE keymode, so _touchKeys.up = walk forward
+        // along facing, .left = strafe left, etc. The free-floating
+        // joystick "follows the thumb" from its initial touch.
+        updateJoystick(dx, dy, fpsWalkDeadZone);
+      }
+      if (this._fpsLookPointer && ev.pointerId === this._fpsLookPointer.pointerId) {
+        const dx = ev.clientX - this._fpsLookPointer.lastX;
+        const dy = ev.clientY - this._fpsLookPointer.lastY;
+        // Same math as `onMouseMove`'s mouse-look so dragging right
+        // turns Pacman right and dragging up looks up.
+        if (this.game.pacman) {
+          this.game.pacman.addYaw(-dx * fpsLookSensitivity);
+          this.game.pacman.addPitch(-dy * fpsLookSensitivity);
+        }
+        this._fpsLookPointer.lastX = ev.clientX;
+        this._fpsLookPointer.lastY = ev.clientY;
+      }
+    };
+    const handleFpsPointerUp = (ev) => {
+      if (this._fpsWalkPointer && ev.pointerId === this._fpsWalkPointer.pointerId) {
+        this._fpsWalkPointer = null;
+        clearJoystick();
+      }
+      if (this._fpsLookPointer && ev.pointerId === this._fpsLookPointer.pointerId) {
+        this._fpsLookPointer = null;
+      }
+    };
+
+    canvas.addEventListener('pointerdown', (ev) => {
+      if (this.game.state !== GAME_STATES.PLAYING) return;
+      ev.preventDefault();
+      if (getMode() === 2) {
+        // Twin-stick is for touch only. Desktop FPPOV stays on the
+        // existing pointer-lock + `onMouseMove` path.
+        if (ev.pointerType === 'touch') handleFpsPointerDown(ev);
+        return;
+      }
+      // Modes 0 / 1 — centre-anchored joystick (single primary pointer).
+      if (this._activePointerId !== null) return;
+      this._activePointerId = ev.pointerId;
+      driveFromPointer(ev);
+    });
+
+    canvas.addEventListener('pointermove', (ev) => {
+      if (getMode() === 2) {
+        if (ev.pointerType === 'touch') handleFpsPointerMove(ev);
+        return;
+      }
+      if (this._activePointerId !== ev.pointerId) return;
+      ev.preventDefault();
+      driveFromPointer(ev);
+    });
+
+    const releasePointer = (ev) => {
+      if (getMode() === 2) {
+        if (ev.pointerType === 'touch') handleFpsPointerUp(ev);
+        return;
+      }
+      if (this._activePointerId !== ev.pointerId) return;
+      this._activePointerId = null;
+      clearJoystick();
+    };
+    canvas.addEventListener('pointerup', releasePointer);
+    canvas.addEventListener('pointercancel', releasePointer);
+    canvas.addEventListener('pointerleave', releasePointer);
   }
 
   // Reset all keys
@@ -517,6 +699,11 @@ export class Controls {
       left: false,
       right: false
     };
+    this._touchKeys = { up: false, down: false, left: false, right: false };
+    this._joystickVec = null;
+    this._activePointerId = null;
+    this._fpsWalkPointer = null;
+    this._fpsLookPointer = null;
     this.direction = DIRECTION.NONE;
   }
 }

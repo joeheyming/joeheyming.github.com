@@ -207,10 +207,10 @@
       "3d"
     ],
     "related": [
+      "pacman-infinite",
       "doom",
       "nes",
-      "minesweeper",
-      "farm"
+      "minesweeper"
     ],
     "shareCategory": "game",
     "featured": {
@@ -221,6 +221,36 @@
       "preset": "pacman",
       "analyticsLabel": "Pac-Man"
     }
+  },
+  {
+    "id": "pacman-infinite",
+    "name": "Pac-Infinite ♾️",
+    "shortName": "Pac-Infinite",
+    "description": "Endless procedural 3D Pac-Man",
+    "detailedDescription": "Endless 3D Pac-Man maze: procedurally-generated chunks with mountains, jumps, hunger, ghosts, fruits, and difficulty modes.",
+    "icon": "♾️",
+    "path": "./pacman-infinite/",
+    "category": "game",
+    "gradient": "from-yellow-400/20 to-pink-500/20",
+    "border": "border-pink-500/30 hover:border-pink-400/50",
+    "taskbarGradient": "from-yellow-400 to-pink-500",
+    "taskbarText": "text-black",
+    "defaultWidth": 900,
+    "defaultHeight": 700,
+    "tags": [
+      "arcade",
+      "retro",
+      "3d",
+      "endless",
+      "procedural"
+    ],
+    "related": [
+      "pacman",
+      "doom",
+      "nes",
+      "minesweeper"
+    ],
+    "shareCategory": "game"
   },
   {
     "id": "periodic-speller",

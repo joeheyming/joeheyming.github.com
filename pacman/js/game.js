@@ -146,13 +146,13 @@ class Game {
     if (this.startCameraMode !== null) {
       this.cameraController.setMode(this.startCameraMode);
       const isFirstPerson = this.startCameraMode === 2; // FPPOV
-      const isFollowMode = this.startCameraMode === 1; // BIRDSEYE_FOLLOW
       if (this.pacman) {
         this.pacman.setVisible(!isFirstPerson);
-        // Set key mode based on camera mode
-        // FPS and Follow use STRAFE mode (mouse aims, keys move)
-        const useStrafe = isFirstPerson || isFollowMode;
-        this.pacman.setKeyMode(useStrafe ? 1 : 2); // STRAFE : PERP
+        // Only FPPOV uses STRAFE (movement relative to facing). Follow
+        // now uses PERP (world-aligned movement) so the tap/joystick
+        // joystick vector has stable meaning regardless of which way
+        // Pacman is currently aimed.
+        this.pacman.setKeyMode(isFirstPerson ? 1 : 2); // STRAFE : PERP
       }
       // Show/hide FPS overlays
       const mouthOverlay = document.getElementById('fps-mouth-overlay');
@@ -203,6 +203,11 @@ class Game {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.container.insertBefore(this.renderer.domElement, this.container.firstChild);
+    // Disable native touch gestures on the WebGL canvas so pointer
+    // events can drive the in-game joystick / mouse-aim instead of
+    // scrolling / zooming the page. Mirrored in style.css for the
+    // browsers that ignore the JS hint.
+    this.renderer.domElement.style.touchAction = 'none';
 
     // Add lighting (matching original Game.cpp lines 43-61)
     this.setupLighting();
@@ -627,13 +632,12 @@ class Game {
 
       // Restore camera mode
       const isFirstPerson = this.priorCameraMode === 2;
-      const isFollowMode = this.priorCameraMode === 1;
       this.cameraController.setMode(this.priorCameraMode);
 
-      // Set key mode based on camera mode
-      // FPS and Follow use STRAFE mode (mouse aims, keys move)
-      const useStrafe = isFirstPerson || isFollowMode;
-      this.pacman.setKeyMode(useStrafe ? 1 : 2); // STRAFE : PERP
+      // Only FPPOV uses STRAFE; everything else (including Follow)
+      // stays on PERP so world-aligned input keeps working after the
+      // respawn intro.
+      this.pacman.setKeyMode(isFirstPerson ? 1 : 2); // STRAFE : PERP
 
       if (isFirstPerson) {
         this.pacman.setVisible(false);
@@ -769,16 +773,22 @@ class Game {
       }
     }
 
-    // Update Pacman
-    // In Follow mode, always move forward toward the mouse
-    let direction = this.controls.getDirection();
-    if (this.cameraController.currentMode === 1) {
-      // BIRDSEYE_FOLLOW - auto-move forward if no key pressed
-      if (direction === 'none') {
-        direction = 'up'; // 'up' means forward in STRAFE mode
-      }
-    }
-    this.pacman.update(this.deltaTime, direction);
+    // Update Pacman.
+    //
+    // Birds-Eye Follow used to force `direction = 'up'` when the
+    // player wasn't holding any key — relying on STRAFE keymode so
+    // "up" meant "walk along facing toward the mouse". With Follow
+    // now on PERP, that trick would mean "walk world +Y forever",
+    // which made every other tap direction snap back to north.
+    //
+    // Instead, Follow now reads a continuous-angle move vector
+    // (joystick deflection takes priority, falling back to compound
+    // keyboard input) so the player can walk in any of 360°. Top-Down
+    // and FPPOV still use the cardinal `direction` enum.
+    const direction = this.controls.getDirection();
+    const moveVec =
+      this.cameraController.currentMode === 1 ? this.controls.getMoveVector() : null;
+    this.pacman.update(this.deltaTime, direction, moveVec);
 
     // Update ghosts
     this.ghosts.forEach((ghost) => {

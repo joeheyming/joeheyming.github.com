@@ -5,7 +5,7 @@
  */
 
 import * as THREE from 'three';
-import { DIRECTION, KEY_MODE, GAMEPLAY } from './constants.js';
+import { DIRECTION, KEY_MODE, GAMEPLAY, TILE } from './constants.js';
 
 export class Pacman {
   constructor(startX, startY, scale, level) {
@@ -29,9 +29,34 @@ export class Pacman {
     this.pitch = 0; // degrees (looking straight ahead, positive = up, negative = down)
     this.keyMode = KEY_MODE.PERP; // Default to classic Pacman controls
 
+    // Phase 2a — terrain + jump state
+    this.tileHeight = 0; // integer height of the FLOOR tile we're on
+    this.smoothHeight = 0; // float, lerps toward tileHeight for visual smoothing
+    this.jumping = false;
+    this.jumpT = 0; // 0..1 progress through current jump arc
+    this.jumpCooldown = 0; // seconds remaining before another jump is allowed
+    this.invulnerable = false; // true mid-jump (sets up Phase 3 ghost interactions)
+    this.dead = false; // true while falling/respawning into the void
+    this.deathT = 0; // 0..1 progress through fall-into-void animation
+    // Classic Pac-Man "killed by ghost" animation: mouth opens wide,
+    // then the body spins and shrinks. This is a separate visual from
+    // the void fall; we keep the two state machines independent so they
+    // don't fight over the group transform.
+    this.dying = false;
+    this.dyingT = 0; // 0..1 progress through spin/shrink death animation
+
     // State
     this._chasing = false; // Power mode (true when power pill active)
     this.chaseTimer = 0;
+
+    // Phase 3 — power mode (separate from the legacy `_chasing` field, which
+    // is referenced only by the original /pacman/ port). When `powered`,
+    // touching a fleeing ghost eats it instead of costing a life.
+    this.powered = false;
+    this.powerTimer = 0;
+    // Cached "normal" emissive intensity so we can pulse during power mode
+    // and restore exactly when it ends.
+    this._normalEmissive = 0.2;
 
     // Animation
     this.mouthAngle = 0; // Current mouth opening (0-45 degrees)
@@ -176,6 +201,27 @@ export class Pacman {
   }
 
   update(deltaTime, direction, moveVec = null) {
+    // Phase 3: power-mode countdown. Game.js cross-checks pacman.powered
+    // when handling ghost collisions; we own the timer here so the chomp
+    // animation, lerps, and visual pulse all sit in one place.
+    if (this.powered) {
+      this.powerTimer -= deltaTime;
+      if (this.powerTimer <= 0) {
+        this.powerTimer = 0;
+        this.powered = false;
+        this.bodyMaterial.emissiveIntensity = this._normalEmissive;
+        this.bodyMaterial.color.setHex(0xffff00);
+        this.bodyMaterial.emissive.setHex(0xffff00);
+      } else {
+        // Visual feedback: cycle Pacman's body emissive between yellow
+        // and white for a "I'm dangerous" tell. Faster pulse near the
+        // end of the timer hints that it's about to expire.
+        const fast = this.powerTimer < 2 ? 12 : 6;
+        const phase = 0.5 + 0.5 * Math.sin(this.powerTimer * fast);
+        this.bodyMaterial.emissiveIntensity = 0.4 + 0.6 * phase;
+      }
+    }
+
     // Update mouth animation (from original animate())
     if (this.mouthAnimating) {
       if (this.mouthOpening) {
@@ -195,12 +241,197 @@ export class Pacman {
       this.animateMouth(this.mouthAngle);
     }
 
-    // Handle movement
+    // Classic ghost-kill animation: mouth opens wide, then the body
+    // spins and shrinks in place. Runs in parallel to the death state
+    // machine in Game (which respawns once dyingT reaches 1).
+    if (this.dying) {
+      this.dyingT = Math.min(1, this.dyingT + deltaTime / GAMEPLAY.PACMAN_DEATH_ANIM_DURATION);
+      const t = this.dyingT;
+      // Stay anchored at the spot Pacman was caught — copy position.
+      this.group.position.copy(this.position);
+      if (t < 0.4) {
+        // Phase 1: mouth opens wide (0 → 170°). No spinning yet.
+        this.setMouthAngle((t / 0.4) * 170);
+      } else {
+        // Phase 2: spin + shrink + flatten while mouth stays wide open.
+        const p = (t - 0.4) / 0.6;
+        this.setMouthAngle(170);
+        const s = Math.max(0.01, 1 - p);
+        this.group.scale.set(s, s, Math.max(0.01, s * s));
+        // Spin around the up axis (z) — accelerates as the body collapses.
+        this.group.rotation.z += deltaTime * (4 + p * 8);
+      }
+      return;
+    }
+
+    // While dead we run the void-fall animation but skip movement/input.
+    if (this.dead) {
+      this.deathT = Math.min(1, this.deathT + deltaTime / GAMEPLAY.PACMAN_RESPAWN_DELAY);
+      // Sink into the void: drop ~3 tiles below the surface we last stood on.
+      const sink = this.deathT * this.scale * 3;
+      this.position.z = this.smoothHeight * this.scale + this.scale / 2 - sink;
+      this.group.position.copy(this.position);
+      this.group.rotation.z = (this.yaw * Math.PI) / 180;
+      // Spin Pacman as he falls for cosmetic flair.
+      this.group.rotation.x = this.deathT * Math.PI * 2;
+      return;
+    }
+
+    // Jump bookkeeping.
+    if (this.jumping) {
+      this.jumpT += deltaTime / GAMEPLAY.PACMAN_JUMP_DURATION;
+      if (this.jumpT >= 1) {
+        this.jumpT = 0;
+        this.jumping = false;
+        this.invulnerable = false;
+        this.jumpCooldown = GAMEPLAY.PACMAN_JUMP_COOLDOWN;
+        // Resolve landing: snap to the tile beneath us, or die into void.
+        this._resolveLanding();
+      }
+    } else if (this.jumpCooldown > 0) {
+      this.jumpCooldown = Math.max(0, this.jumpCooldown - deltaTime);
+    }
+
+    // Handle movement (height- and jump-aware).
     this.handleMovement(deltaTime, direction, moveVec);
+
+    // Lerp visual height toward authoritative tileHeight for smooth ramps.
+    const targetSmooth = this.tileHeight;
+    if (Math.abs(this.smoothHeight - targetSmooth) > 0.001) {
+      const step = GAMEPLAY.PACMAN_STEP_LERP_SPEED * deltaTime;
+      if (this.smoothHeight < targetSmooth) {
+        this.smoothHeight = Math.min(targetSmooth, this.smoothHeight + step);
+      } else {
+        this.smoothHeight = Math.max(targetSmooth, this.smoothHeight - step);
+      }
+    } else {
+      this.smoothHeight = targetSmooth;
+    }
+
+    // Compose final z = surface height + half-radius offset + jump arc.
+    const jumpArc = this.jumping
+      ? Math.sin(Math.PI * this.jumpT) * GAMEPLAY.PACMAN_JUMP_HEIGHT * this.scale
+      : 0;
+    this.position.z = this.smoothHeight * this.scale + this.scale / 2 + jumpArc;
 
     // Update group position and rotation
     this.group.position.copy(this.position);
+    this.group.rotation.x = 0;
     this.group.rotation.z = (this.yaw * Math.PI) / 180;
+  }
+
+  /**
+   * Try to start a jump. Returns true if the jump began this frame.
+   * Conditions: not already jumping, not on cooldown, not dead.
+   */
+  tryJump() {
+    if (this.dead || this.jumping || this.jumpCooldown > 0) return false;
+    this.jumping = true;
+    this.jumpT = 0;
+    this.invulnerable = true;
+    return true;
+  }
+
+  /**
+   * Mark Pacman as dead — triggers fall animation. Game watches `dead` and
+   * runs the respawn timer.
+   */
+  die() {
+    if (this.dead) return;
+    this.dead = true;
+    this.deathT = 0;
+    this.jumping = false;
+    this.invulnerable = false;
+  }
+
+  /**
+   * Killed by a ghost — triggers the classic spin/shrink animation.
+   * Game watches `dying` to gate respawn timing. Ignored if already
+   * mid-death so a chained collision frame can't restart the animation.
+   */
+  dieByGhost() {
+    if (this.dying || this.dead) return;
+    this.dying = true;
+    this.dyingT = 0;
+    this.jumping = false;
+    this.invulnerable = false;
+  }
+
+  /**
+   * Restore Pacman to a fresh living state at the given grid position +
+   * tile height. Called by Game after the respawn timer fires.
+   */
+  respawnAt(gridX, gridY, height) {
+    this.dead = false;
+    this.deathT = 0;
+    this.dying = false;
+    this.dyingT = 0;
+    this.jumping = false;
+    this.jumpT = 0;
+    this.jumpCooldown = 0;
+    this.invulnerable = false;
+    this.tileHeight = height;
+    this.smoothHeight = height;
+    this.position.set(gridX * this.scale, gridY * this.scale, height * this.scale + this.scale / 2);
+    this.group.position.copy(this.position);
+    // Reset the spin/shrink/flatten transforms left over from the ghost
+    // death animation so Pacman doesn't respawn tiny + sideways.
+    this.group.scale.set(1, 1, 1);
+    this.group.rotation.x = 0;
+    this.group.rotation.z = (this.yaw * Math.PI) / 180;
+    this.setMouthAngle(0);
+    // Power mode does NOT survive respawn — getting caught (or falling
+    // in the void) ends the buff.
+    this.clearPowerMode();
+  }
+
+  /**
+   * Enter power mode for `durationS` seconds. Pacman's body emissive
+   * starts pulsing in update() and ghost collisions become "eat ghost"
+   * instead of "lose a life". Subsequent calls during an active power
+   * mode reset the timer to the new duration (eating a second pill
+   * mid-power refreshes the window).
+   */
+  enterPowerMode(durationS) {
+    this.powered = true;
+    this.powerTimer = durationS;
+  }
+
+  /** Force-end power mode (e.g., on respawn or game over). */
+  clearPowerMode() {
+    if (!this.powered && this.powerTimer === 0) return;
+    this.powered = false;
+    this.powerTimer = 0;
+    this.bodyMaterial.emissiveIntensity = this._normalEmissive;
+    this.bodyMaterial.color.setHex(0xffff00);
+    this.bodyMaterial.emissive.setHex(0xffff00);
+  }
+
+  /**
+   * Resolve the tile under Pacman after a jump arc completes.
+   *
+   * Lands cleanly if (a) the tile has a walkable surface (FLOOR or WALL)
+   * and (b) the surface is within reach of his pre-jump height (auto-step
+   * + jump apex). Otherwise he falls — VOID or overshooting too tall a
+   * tower are both fatal.
+   */
+  _resolveLanding() {
+    if (!this.level) return;
+    const gx = this.level.worldToGrid(this.position.x);
+    const gy = this.level.worldToGrid(this.position.y);
+    const surf = this.level.surfaceHeightAt(gx, gy);
+    if (Number.isNaN(surf)) {
+      // Landed on VOID.
+      this.die();
+      return;
+    }
+    const reach = 1 + GAMEPLAY.PACMAN_JUMP_HEIGHT; // auto-step (1) + jump (1)
+    if (surf - this.tileHeight > reach) {
+      // Tile is taller than our combined step+jump reach — bonk and fall.
+      this.die();
+      return;
+    }
+    this.tileHeight = surf;
   }
 
   handleMovement(deltaTime, direction, moveVec = null) {
@@ -219,9 +450,10 @@ export class Pacman {
     if (useVector) {
       this.position.x += moveVec.x * moveAmount;
       this.position.y += moveVec.y * moveAmount;
-      // Recover yaw from the world vector. yaw 0 = +Y (north),
-      // 90 = -X (west), 180 = -Y (south), 270 = +X (east).
-      // facing.x = -sin(yaw), facing.y = cos(yaw) → yaw = atan2(-vx, vy).
+      // facing.x = -sin(yaw), facing.y = cos(yaw) → invert to recover
+      // yaw from the world vector. atan2 returns radians in [-π, π]
+      // measured from +X — we need it measured from world +Y (north
+      // = yaw 0), with yaw increasing CCW on the screen (90° = west).
       let yawDeg = (Math.atan2(-moveVec.x, moveVec.y) * 180) / Math.PI;
       while (yawDeg < 0) yawDeg += 360;
       while (yawDeg >= 360) yawDeg -= 360;
@@ -254,20 +486,39 @@ export class Pacman {
     // Wall sliding collision detection
     // Try both axes first, then each axis separately to allow sliding along walls
     const collisionRadius = this.radius * 0.4;
+    // fromX/fromY power the "unstick" rescue in canMoveTo: if we're
+    // already partially clipping a cliff (post-landing edge case), we
+    // still want to be able to move AWAY from it.
+    const opts = {
+      currentHeight: this.tileHeight,
+      airborne: this.jumping,
+      fromX: oldPosition.x,
+      fromY: oldPosition.y
+    };
 
-    if (!this.level.canMoveTo(this.position.x, this.position.y, collisionRadius)) {
+    if (!this.level.canMoveTo(this.position.x, this.position.y, collisionRadius, opts)) {
       // Full movement blocked - try sliding along walls
       const newX = this.position.x;
       const newY = this.position.y;
 
       // Try moving only on X axis
       this.position.y = oldPosition.y;
-      const canMoveX = this.level.canMoveTo(this.position.x, this.position.y, collisionRadius);
+      const canMoveX = this.level.canMoveTo(
+        this.position.x,
+        this.position.y,
+        collisionRadius,
+        opts
+      );
 
       // Try moving only on Y axis
       this.position.x = oldPosition.x;
       this.position.y = newY;
-      const canMoveY = this.level.canMoveTo(this.position.x, this.position.y, collisionRadius);
+      const canMoveY = this.level.canMoveTo(
+        this.position.x,
+        this.position.y,
+        collisionRadius,
+        opts
+      );
 
       if (canMoveX && !canMoveY) {
         // Can only slide on X axis
@@ -291,6 +542,22 @@ export class Pacman {
       } else {
         // Neither works - fully blocked
         this.position.copy(oldPosition);
+      }
+    }
+
+    // Resolve the tile we landed in. While jumping, this is purely a height
+    // bookkeeping step — we don't kill on void mid-arc, only on landing
+    // (handled by _resolveLanding when jumpT completes).
+    if (!this.jumping) {
+      const gx = this.level.worldToGrid(this.position.x);
+      const gy = this.level.worldToGrid(this.position.y);
+      const tile = this.level.tileAt(gx, gy);
+      if (tile === TILE.VOID) {
+        // Walked off a cliff with no jump — fatal.
+        this.die();
+      } else {
+        // FLOOR or WALL — both are walkable surfaces in the new block model.
+        this.tileHeight = this.level.surfaceHeightAt(gx, gy);
       }
     }
 

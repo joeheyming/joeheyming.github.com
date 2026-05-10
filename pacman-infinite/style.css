@@ -6,28 +6,26 @@
   box-sizing: border-box;
 }
 
-html,
-body {
-  /* Stop mobile from intercepting drags as scroll / pull-to-refresh / nav
-     gestures. Without this, dragging on the canvas (especially in the
-     Birds-Eye Follow mode) makes the whole page move instead of aiming
-     Pacman. */
-  overscroll-behavior: none;
-}
-
 body {
   font-family: 'Press Start 2P', 'Courier New', monospace;
   background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
   overflow: hidden;
+  /* Stop iOS rubber-band overscroll and Android pull-to-refresh from
+     fighting with in-canvas drag controls in Birds-Eye Follow mode. */
+  overscroll-behavior: none;
+}
+
+html {
+  overscroll-behavior: none;
 }
 
 #game-container {
   position: relative;
   width: 100vw;
   height: 100vh;
-  /* Browser-level touch cancellation. Belt-and-braces with the JS
-     `canvas.style.touchAction = 'none'` and the pointerdown/move
-     `preventDefault` calls in controls.js. */
+  /* Defence in depth — JS also sets touchAction on the canvas, but this
+     ensures even an early touch (before the canvas exists) doesn't pan
+     the page on mobile. */
   touch-action: none;
 }
 
@@ -107,6 +105,127 @@ button {
 
 button:hover {
   box-shadow: 0 6px 25px rgba(251, 191, 36, 0.6);
+}
+
+/*
+ * Start menu — primary vs secondary action.
+ * Primary = the "obvious" thing to do (NEW GAME when fresh, big yellow).
+ * Secondary = the de-emphasised alternative (NEW GAME when CONTINUE is
+ * showing — slimmer, outlined, low-contrast so it doesn't compete with
+ * CONTINUE for the player's attention).
+ */
+.btn-primary {
+  background-color: #eab308;
+  color: #000;
+}
+.btn-primary:hover {
+  background-color: #facc15;
+}
+.btn-secondary {
+  background-color: transparent;
+  color: #9ca3af;
+  font-size: 0.95rem;
+  padding: 0.5rem 1.25rem;
+  border: 1px solid #4b5563;
+  box-shadow: none;
+}
+.btn-secondary:hover {
+  background-color: rgba(75, 85, 99, 0.3);
+  color: #d1d5db;
+  box-shadow: none;
+}
+
+/*
+ * Power-mode HUD bar (Phase 3).
+ * The fill colour transitions from pink → yellow → red as the timer
+ * runs down. JS sets `--power-frac` on #power-timer-bar each frame; the
+ * background colour is interpolated via CSS for free.
+ */
+#power-timer-bar {
+  background: linear-gradient(
+    90deg,
+    #ff80ff 0%,
+    #ffaa00 60%,
+    #ff3030 100%
+  );
+}
+
+/* Final-frame "about to expire" pulse on the power bar. */
+@keyframes power-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+#power-timer.expiring #power-timer-bar {
+  animation: power-pulse 0.3s ease-in-out infinite;
+}
+
+/*
+ * Hunger meter (Minecraft-style food bar).
+ * Default is a green→yellow gradient that becomes more red as the bar
+ * shrinks (the gradient is on the bar's full width, but as `width`
+ * decreases the visible portion is from the lush-green left). When
+ * food drops below FOOD_LOW_THRESHOLD the JS toggles `.low` on the
+ * meter and the bar pulses red as a "you are starving" warning.
+ */
+#food-bar {
+  background: linear-gradient(
+    90deg,
+    #ff5050 0%,
+    #ffaa00 30%,
+    #82e000 70%,
+    #50ff50 100%
+  );
+}
+@keyframes food-low-pulse {
+  0%, 100% { background: #ff3030; box-shadow: 0 0 6px #ff3030; }
+  50% { background: #ff7070; box-shadow: 0 0 10px #ff5050; }
+}
+#food-meter.low #food-bar {
+  animation: food-low-pulse 0.6s ease-in-out infinite;
+}
+
+/*
+ * Difficulty pills on the start menu.
+ * The .difficulty-active class is toggled via JS — it bumps the pill's
+ * background to a saturated tint so it reads as "selected" at a glance.
+ * Each colour stays scoped to the pill's family (cyan/yellow/red) so we
+ * keep the easy/normal/hard semantics colour-coded.
+ */
+.difficulty-btn.difficulty-active {
+  font-weight: 700;
+  transform: scale(1.05);
+  box-shadow: 0 0 0 2px currentColor inset;
+}
+.difficulty-btn[data-difficulty='easy'].difficulty-active {
+  background: rgba(34, 211, 238, 0.25);
+}
+.difficulty-btn[data-difficulty='normal'].difficulty-active {
+  background: rgba(250, 204, 21, 0.25);
+}
+.difficulty-btn[data-difficulty='hard'].difficulty-active {
+  background: rgba(248, 113, 113, 0.25);
+}
+
+/*
+ * Ghost-flee glow — a pulsing blue ring that JS toggles by adding the
+ * `.ghost-flee-glow` class to the renderer's parent during power mode.
+ * Cheap visual feedback that doesn't depend on per-ghost shader work.
+ */
+.ghost-flee-glow {
+  box-shadow: inset 0 0 60px rgba(48, 96, 255, 0.35);
+}
+
+/*
+ * GAME OVER screen (Phase 3) — same look-and-feel as the start screen
+ * (matching #pulse-glow + glow text), recoloured red so it reads as a
+ * fail-state rather than a menu.
+ */
+#game-over-screen h2 {
+  animation: pulse-glow-red 1.5s ease-in-out infinite;
+}
+@keyframes pulse-glow-red {
+  0%, 100% { text-shadow: 0 0 10px #ef4444, 0 0 20px #ef4444, 0 0 30px #ef4444; }
+  50%      { text-shadow: 0 0 20px #ef4444, 0 0 40px #ef4444, 0 0 60px #ef4444; }
 }
 
 /* Lives display */

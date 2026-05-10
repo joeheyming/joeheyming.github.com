@@ -186,14 +186,15 @@
             <div
               id="camera-toggle"
               class="text-cyan-400 font-mono text-sm cursor-pointer pointer-events-auto active:opacity-70"
+              aria-label="Cycle view"
             >
-              Camera:
+              👁 View:
               <span id="camera-mode">Bird's Eye</span>
             </div>
             <div class="text-gray-400 font-mono text-xs mt-1 hidden sm:block">
-              Press [C] to change
+              Press [C] to change view
             </div>
-            <div class="text-gray-400 font-mono text-xs mt-1 sm:hidden">Tap to change</div>
+            <div class="text-gray-400 font-mono text-xs mt-1 sm:hidden">Tap to change view</div>
           </div>
         </div>
       </div>
@@ -209,7 +210,7 @@
         class="absolute bottom-4 right-4 text-gray-500 font-mono text-xs text-right z-10"
       >
         <div>Arrow Keys: Move</div>
-        <div>C: Camera Mode</div>
+        <div>C: Change View</div>
         <div>P: Pause</div>
         <div>R: Restart</div>
       </div>
@@ -236,7 +237,12 @@
         >
           START GAME
         </button>
-        <div class="mt-8 text-gray-500 text-sm">Use Arrow Keys to move • C to change camera</div>
+        <div class="mt-8 text-gray-500 text-sm hidden sm:block">
+          Use Arrow Keys to move • C to change view
+        </div>
+        <div class="mt-8 text-gray-500 text-sm sm:hidden">
+          Drag to move • VIEW to change angle • In FPS, drag right side to look
+        </div>
       </div>
 
       <div

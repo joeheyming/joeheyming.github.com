@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link
+      rel="icon"
+      id="site-favicon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👻</text></svg>"
+    />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+
+    <script src="/analytics.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+    <title>Pac-Infinite — Endless 3D Pac-Man Maze (three.js)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta
+      name="description"
+      content="Pac-Infinite is an endless, procedurally generated 3D Pac-Man world. Walk forever in any direction across a chunk-streamed maze. A Three.js experiment built on top of Joe Heyming's 3D Pac-Man."
+    />
+
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="theme-color" content="#1a1a2e" />
+    <meta
+      name="keywords"
+      content="pacman, pac-man, infinite pacman, procedural pacman, 3d pacman, endless maze, three.js game, webgl game"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Pac-Infinite" />
+    <meta property="og:title" content="👻 Pac-Infinite — Endless 3D Pac-Man" />
+    <meta
+      property="og:description"
+      content="An endless, procedurally streamed 3D Pac-Man world. Walk in any direction forever."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/pacman-infinite/" />
+    <meta property="og:locale" content="en_US" />
+
+    <link rel="canonical" href="https://joeheyming.github.io/pacman-infinite/" />
+
+    <!-- Three.js -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+        }
+      }
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="bg-gray-900 min-h-screen overflow-hidden">
+    <div id="game-container" class="relative w-full h-screen">
+      <!--
+        HUD Overlay.
+        All gameplay-relevant readouts live in one column on the left:
+        score, high score, lives, food (hunger), power-mode timer, and
+        the camera mode toggle. The compact back button is in the
+        top-left corner; we add `pl-20 sm:pl-24` padding so the column
+        never overlaps it. Pos / chunk count were removed — those were
+        developer telemetry, not gameplay info.
+      -->
+      <div id="hud" class="absolute top-0 left-0 p-4 pl-20 sm:pl-24 pointer-events-none z-10">
+        <div class="text-left text-white font-mono space-y-1">
+          <div class="text-sm">
+            <span class="text-gray-400">Score:</span>
+            <span id="score" class="text-yellow-300 font-bold text-xl">0</span>
+          </div>
+          <div class="text-xs">
+            <span class="text-gray-400">High:</span>
+            <span id="high-score" class="text-pink-300 font-bold">0</span>
+          </div>
+          <div class="text-sm">
+            <span class="text-gray-400">Lives:</span>
+            <span id="lives" class="text-red-400 font-bold">&hearts;&hearts;&hearts;</span>
+          </div>
+
+          <!--
+            Food meter (Minecraft-style hunger). Always visible during
+            gameplay. JS sets the bar width each frame and toggles a
+            `low` class for a red-pulse warning when food is critical.
+          -->
+          <div id="food-meter" class="mt-2">
+            <div class="text-xs text-green-300 mb-1">HUNGER</div>
+            <div
+              class="w-32 h-2 bg-black/60 rounded overflow-hidden border border-green-400/50"
+            >
+              <div
+                id="food-bar"
+                class="h-full bg-green-400 transition-all duration-150"
+                style="width: 100%"
+              ></div>
+            </div>
+          </div>
+
+          <!-- Power-mode timer bar (Phase 3). Hidden when not powered. -->
+          <div id="power-timer" class="mt-2 hidden">
+            <div class="text-xs text-pink-300 mb-1">POWER</div>
+            <div
+              class="w-32 h-2 bg-black/60 rounded overflow-hidden border border-pink-400/50"
+            >
+              <div
+                id="power-timer-bar"
+                class="h-full bg-pink-400 transition-all duration-150"
+                style="width: 100%"
+              ></div>
+            </div>
+          </div>
+
+          <!-- View toggle (cycles overhead / follow / first-person).
+               Was labelled "Camera" but that read like "take a screenshot",
+               so it's now "View" with an eye icon. -->
+          <div
+            id="camera-toggle"
+            class="mt-3 text-cyan-400 text-xs cursor-pointer pointer-events-auto active:opacity-70"
+          >
+            <span aria-hidden="true">👁</span>
+            View:
+            <span id="camera-mode">Follow</span>
+          </div>
+          <div class="text-gray-500 text-xs hidden sm:block">[C] change view</div>
+        </div>
+      </div>
+
+      <!-- Share Button -->
+      <div class="absolute bottom-4 left-4 z-10">
+        <share-button label="📤 Share" theme="dark"></share-button>
+      </div>
+
+      <!-- Controls Help -->
+      <div
+        id="controls-help"
+        class="absolute bottom-4 right-4 text-gray-500 font-mono text-xs text-right z-10"
+      >
+        <div>Arrow Keys / WASD: Move</div>
+        <div>Space: Jump</div>
+        <div>C: Change View</div>
+        <div>P: Pause</div>
+      </div>
+
+      <!--
+        Respawn overlay. Shows the cause of death while Pacman is mid-
+        recovery so the player knows WHY they lost a life. Title and
+        flavour text are populated from JS based on `_deathCause`.
+        The text is anchored near the top of the screen and uses a
+        translucent banner instead of a full-screen dim, so the death
+        animation (spin/shrink for ghost kills, fade for void falls)
+        still plays clearly in the center underneath.
+      -->
+      <div
+        id="respawn-overlay"
+        class="absolute inset-x-0 top-16 sm:top-20 flex flex-col items-center z-30 hidden pointer-events-none"
+      >
+        <div class="bg-black/70 px-6 py-3 rounded-lg flex flex-col items-center">
+          <h2 id="respawn-title" class="text-2xl sm:text-3xl font-bold text-pink-400 mb-1">FELL INTO THE VOID</h2>
+          <p id="respawn-flavour" class="text-gray-300 font-mono text-xs sm:text-sm">Respawning…</p>
+        </div>
+      </div>
+
+      <!-- FPS Mouth Overlay (visible in first person mode) -->
+      <div id="fps-mouth-overlay" class="absolute inset-0 pointer-events-none z-5 hidden">
+        <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <path id="top-jaw" d="M 0,0 L 100,0 L 100,15 Q 50,25 0,15 Z" fill="#FFD700" />
+          <path id="bottom-jaw" d="M 0,100 L 100,100 L 100,85 Q 50,75 0,85 Z" fill="#FFD700" />
+        </svg>
+      </div>
+
+      <!-- Game State Overlays -->
+      <div
+        id="start-screen"
+        class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-20"
+      >
+        <h1 class="text-5xl sm:text-6xl font-bold text-yellow-400 mb-2 text-center px-4">
+          PAC-INFINITE
+        </h1>
+        <p class="text-gray-400 mb-6 text-center px-4">An endless 3D Pac-Man maze</p>
+
+        <!--
+          Difficulty selector. The currently-selected pill gets the
+          .difficulty-active class via JS; clicking another pill swaps
+          the selection (purely cosmetic until NEW GAME is pressed).
+          Hidden when CONTINUE is the implied action because difficulty
+          is locked to whatever the saved run started under.
+        -->
+        <div id="difficulty-row" class="flex flex-row flex-wrap items-center justify-center gap-2 mb-6 font-mono text-xs sm:text-sm px-2">
+          <span class="text-gray-400 mr-1">Difficulty:</span>
+          <button
+            class="difficulty-btn px-3 py-1 rounded border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10"
+            data-difficulty="easy"
+          >Easy</button>
+          <button
+            class="difficulty-btn px-3 py-1 rounded border border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/10"
+            data-difficulty="normal"
+          >Normal</button>
+          <button
+            class="difficulty-btn px-3 py-1 rounded border border-red-500/40 text-red-300 hover:bg-red-500/10"
+            data-difficulty="hard"
+          >Hard</button>
+        </div>
+
+        <!--
+          Two-button menu: CONTINUE shows up only when there's a saved
+          session; NEW GAME is always available. Game.js toggles
+          .btn-primary / .btn-secondary on NEW GAME so it visually
+          de-emphasises when CONTINUE is the obvious main action.
+        -->
+        <div class="flex flex-col items-center gap-3">
+          <button
+            id="continue-btn"
+            class="hidden px-8 py-4 bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-xl rounded-lg transition-all duration-300 hover:scale-110"
+          >
+            CONTINUE
+          </button>
+          <button
+            id="new-game-btn"
+            class="btn-primary px-8 py-4 font-bold text-xl rounded-lg transition-all duration-300 hover:scale-110"
+          >
+            NEW GAME
+          </button>
+        </div>
+        <div class="mt-8 text-gray-500 text-sm text-center px-4 hidden sm:block">
+          Arrows move • Space jumps • C view • P pause
+        </div>
+        <div class="mt-8 text-gray-500 text-sm text-center px-4 sm:hidden">
+          Drag to move • Double-tap or JUMP to hop • VIEW to change angle
+        </div>
+        <div class="mt-2 text-gray-600 text-xs text-center px-4 max-w-md">
+          Beware the void: walk off a tile with no floor and you'll respawn somewhere else.
+        </div>
+      </div>
+
+      <div
+        id="pause-screen"
+        class="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-20 hidden cursor-pointer"
+      >
+        <h2 class="text-4xl font-bold text-white mb-4">PAUSED</h2>
+        <p class="text-gray-400">Click or press ESC to resume</p>
+      </div>
+
+      <!--
+        GAME OVER overlay (Phase 3). Shown when Pacman runs out of lives.
+        Preserves the world state (eaten dots, position) but zeroes the
+        run's score; the high score on display reflects the new best if
+        the run beat it.
+      -->
+      <div
+        id="game-over-screen"
+        class="absolute inset-0 bg-black/85 flex flex-col items-center justify-center z-20 hidden"
+      >
+        <h2 class="text-5xl sm:text-6xl font-bold text-red-500 mb-2 text-center px-4">GAME OVER</h2>
+        <p id="game-over-cause" class="text-gray-300 font-mono mb-6 text-lg">Thanks for playing!</p>
+        <div class="text-center mb-8 font-mono">
+          <div class="text-yellow-300 text-2xl">
+            Score:
+            <span id="final-score">0</span>
+          </div>
+          <div class="text-pink-300 text-lg mt-1">
+            High Score:
+            <span id="final-high-score">0</span>
+          </div>
+        </div>
+        <button
+          id="back-to-menu-btn"
+          class="btn-primary px-8 py-4 font-bold text-xl rounded-lg transition-all duration-300 hover:scale-110"
+        >
+          BACK TO MENU
+        </button>
+      </div>
+    </div>
+
+    <!-- Game Scripts -->
+    <script type="module" src="js/game.js"></script>
+
+    <!-- SEO content footer -->
+    <footer class="seo-intro" hidden>
+      <h2>Pac-Infinite &mdash; Endless 3D Pac-Man</h2>
+      <p>
+        Pac-Infinite is a procedurally generated, infinite 3D Pac-Man world that streams chunks as
+        you walk. Built on top of Joe Heyming's 3D Pac-Man (Three.js / WebGL).
+      </p>
+      <nav aria-label="More retro games">
+        <strong>More from Joe Heyming:</strong>
+        <a href="/pacman/">3D Pac-Man</a>
+        &middot;
+        <a href="/doom/">DOOM</a>
+        &middot;
+        <a href="/nes/">NES Emulator</a>
+        &middot;
+        <a href="/stepmania/">StepMania</a>
+        &middot;
+        <a href="/minesweeper/">Minesweeper</a>
+        &middot;
+        <a href="/about/">About Joe</a>
+      </nav>
+    </footer>
+  </body>
+</html>
