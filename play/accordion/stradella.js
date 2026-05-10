@@ -155,6 +155,15 @@ export const STRADELLA_SIZES = {
   },
   48: { label: '48 bass', cols: 8, colStart: 5 },
   72: { label: '72 bass', cols: 12, colStart: 3 },
+  // 80-bass instruments physically lack the dim7 row — they trade that
+  // row for 4 extra bass columns versus the 72. Force the 5-row set
+  // (Eastern-style) regardless of which layout the user picked.
+  80: {
+    label: '80 bass',
+    cols: 16,
+    colStart: 1,
+    forceRows: ['counter-bass', 'bass', 'major', 'minor', 'dom7']
+  },
   96: { label: '96 bass', cols: 16, colStart: 1 },
   120: { label: '120 bass', cols: 20, colStart: 0 }
 };
