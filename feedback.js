@@ -1,7 +1,7 @@
 // Feedback button web component — opens the site feedback Google Form in a new tab.
 // Usage: <feedback-button label="💬 Feedback" theme="gradient"></feedback-button>
 
-const FEEDBACK_FORM_URL = 'https://forms.gle/yqS1KM8baXprCfPw9';
+const FEEDBACK_FORM_URL = 'https://forms.gle/28x3g3jziZxDcHDi8';
 
 class FeedbackButtonElement extends HTMLElement {
   static get observedAttributes() {
