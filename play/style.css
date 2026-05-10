@@ -444,6 +444,21 @@ body {
   color: var(--fg);
 }
 
+/* Inline links inside the How-to-play text (and its mobile popup
+   clone). Soft accent colour with a dotted underline so the links
+   feel like footnotes rather than CTAs — the help panel is a
+   reference, not a navigation hub. */
+.instrument-help a,
+.help-popup-body a {
+  color: var(--accent);
+  text-decoration: underline dotted rgba(129, 140, 248, 0.55);
+  text-underline-offset: 2px;
+}
+.instrument-help a:hover,
+.help-popup-body a:hover {
+  text-decoration-style: solid;
+}
+
 @media (max-width: 640px) {
   .instrument-header {
     padding-left: 110px;

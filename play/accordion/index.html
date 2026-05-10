@@ -170,9 +170,13 @@
       <div class="control" data-only-for="stradella">
         <label for="bass-size">Bass</label>
         <select id="bass-size">
+          <option value="8">8 bass</option>
           <option value="12">12 bass</option>
           <option value="24">24 bass</option>
+          <option value="32">32 bass</option>
+          <option value="40">40 bass</option>
           <option value="48">48 bass</option>
+          <option value="60">60 bass</option>
           <option value="72">72 bass</option>
           <option value="80">80 bass</option>
           <option value="96">96 bass</option>
@@ -333,32 +337,48 @@
           flavour.
         </li>
         <li>
-          <strong>Stradella</strong> columns run around the circle of fifths
-          with home markers every major 3rd —
-          <em>C&nbsp;/&nbsp;E&nbsp;/&nbsp;G♯&nbsp;(A♭)</em> — same spacing
-          as a real 120-bass instrument. <em>Eastern 5-row</em> drops the
-          diminished-7 row; <em>Free bass</em> swaps the chord rows for
-          three octaves of single chromatic notes (Russian bayan style).
+          <strong><a href="https://en.wikipedia.org/wiki/Stradella_bass_system" target="_blank" rel="noopener">Stradella</a></strong>
+          columns run around the
+          <a href="https://en.wikipedia.org/wiki/Circle_of_fifths" target="_blank" rel="noopener">circle of fifths</a>
+          with home markers every
+          <a href="https://en.wikipedia.org/wiki/Major_third" target="_blank" rel="noopener">major 3rd</a>
+          — <em>C&nbsp;/&nbsp;E&nbsp;/&nbsp;G♯&nbsp;(A♭)</em> — same
+          spacing as a real 120-bass instrument. <em>Eastern 5-row</em>
+          drops the
+          <a href="https://en.wikipedia.org/wiki/Diminished_seventh_chord" target="_blank" rel="noopener">diminished-7</a>
+          row;
+          <em><a href="https://en.wikipedia.org/wiki/Free-bass_system" target="_blank" rel="noopener">Free bass</a></em>
+          swaps the chord rows for three octaves of single chromatic
+          notes (Russian
+          <a href="https://en.wikipedia.org/wiki/Bayan_(accordion)" target="_blank" rel="noopener">bayan</a>
+          style). Sizes from <strong>8-bass</strong> children's models
+          up to the full <strong>120-bass</strong> are in the dropdown.
         </li>
         <li>
-          <strong>Chromatic</strong> rows ascend by minor 3rds with adjacent
-          rows offset a semitone — diagonals trace a chromatic scale.
-          <em>B-system</em> is standard on the bayan; <em>C-system</em> is
-          the Western chromatic mirror.
+          <strong><a href="https://en.wikipedia.org/wiki/Chromatic_button_accordion" target="_blank" rel="noopener">Chromatic</a></strong>
+          rows ascend by
+          <a href="https://en.wikipedia.org/wiki/Minor_third" target="_blank" rel="noopener">minor 3rds</a>
+          with adjacent rows offset a semitone — diagonals trace a
+          <a href="https://en.wikipedia.org/wiki/Chromatic_scale" target="_blank" rel="noopener">chromatic scale</a>.
+          <em>B-system</em> is standard on the bayan; <em>C-system</em>
+          is the Western chromatic mirror.
         </li>
         <li>
-          <strong>Diatonic</strong> (melodeon) is bisonoric: each
-          physical button on a real instrument plays a different note
-          on the <em>push</em> than on the <em>pull</em>. We split that
-          out into two keyboards side by side — the green
+          <strong><a href="https://en.wikipedia.org/wiki/Diatonic_button_accordion" target="_blank" rel="noopener">Diatonic</a></strong>
+          (melodeon) is
+          <a href="https://en.wikipedia.org/wiki/Bisonoric" target="_blank" rel="noopener">bisonoric</a>:
+          each physical button on a real instrument plays a different
+          note on the <em>push</em> than on the <em>pull</em>. We split
+          that out into two keyboards side by side — the green
           <em>PUSH</em> half on the left and the orange <em>PULL</em>
           half on the right. Only one half can sound at a time, just
           like a real bellows can only push or pull (try it: hold a
           PUSH button and tap the PULL side — nothing plays until you
-          release). The <em>C</em> 1-row is the Cajun / Hohner
-          Pokerwork; <em>D/G</em> and <em>G/C</em> are the standard
-          British / French folk 2-rows; <em>B/C</em> is the Irish trad
-          layout where the rows are a semitone apart.
+          release). The <em>C</em> 1-row is the
+          <a href="https://en.wikipedia.org/wiki/Cajun_accordion" target="_blank" rel="noopener">Cajun</a>
+          / Hohner Pokerwork; <em>D/G</em> and <em>G/C</em> are the
+          standard British / French folk 2-rows; <em>B/C</em> is the
+          Irish trad layout where the rows are a semitone apart.
         </li>
         <li>
           The <strong>Register</strong> switches engage different reed
@@ -377,7 +397,9 @@
           (<code>Z X C V B N M</code> / <code>Q W E R T Y U</code>) and
           <strong>← / →</strong> shifts the octave. A real accordion keeps
           a note ringing only while you press it, so there's no sustain —
-          just hold the key. WebMIDI works on every view.
+          just hold the key.
+          <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API" target="_blank" rel="noopener">WebMIDI</a>
+          works on every view.
         </li>
         <li class="bellows-help" hidden>
           <strong>Bellows mode</strong> (phones only): when on, notes only

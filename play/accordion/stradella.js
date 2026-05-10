@@ -141,6 +141,14 @@ export const STRADELLA_LAYOUTS = {
  * full 20-column matrix.
  */
 export const STRADELLA_SIZES = {
+  // Tiny vintage / child accordions. 4 columns of just bass + major
+  // chords, no minor, no 7th. Root range D–F (around C).
+  8: {
+    label: '8 bass',
+    cols: 4,
+    colStart: 8,
+    forceRows: ['bass', 'major']
+  },
   12: {
     label: '12 bass',
     cols: 6,
@@ -153,7 +161,31 @@ export const STRADELLA_SIZES = {
     colStart: 6,
     forceRows: ['counter-bass', 'bass', 'major', 'minor']
   },
+  // Child / beginner instrument. Same column window as the 40 below
+  // (E–E♭, 8 keys around the circle of fifths) but no counter-bass row
+  // — the player only has roots, not the major-3rd alternates.
+  32: {
+    label: '32 bass',
+    cols: 8,
+    colStart: 6,
+    forceRows: ['bass', 'major', 'minor', 'dom7']
+  },
+  // Folk / vintage 8-column instrument: 32-bass plus the counter-bass
+  // row. Same column window E–E♭.
+  40: {
+    label: '40 bass',
+    cols: 8,
+    colStart: 6,
+    forceRows: ['counter-bass', 'bass', 'major', 'minor', 'dom7']
+  },
   48: { label: '48 bass', cols: 8, colStart: 5 },
+  // Mid-tier folk model. 12 columns (F♯–D♭) but no dim7 row.
+  60: {
+    label: '60 bass',
+    cols: 12,
+    colStart: 4,
+    forceRows: ['counter-bass', 'bass', 'major', 'minor', 'dom7']
+  },
   72: { label: '72 bass', cols: 12, colStart: 3 },
   // 80-bass instruments physically lack the dim7 row — they trade that
   // row for 4 extra bass columns versus the 72. Force the 5-row set
