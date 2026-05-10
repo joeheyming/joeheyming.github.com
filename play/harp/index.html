@@ -50,6 +50,31 @@
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
+    <script>
+      // PWA standalone guard — runs synchronously before /back.js loads,
+      // so a stale cached back.js (Chrome WebAPK / HTTP cache) can't
+      // inject the cross-portfolio button. Sets back.js's init flag
+      // (its first line bails on it), tags <html> for CSS hooks, and
+      // inlines a hide rule that wins even over stale play/style.css.
+      // Self-contained on purpose: depends on no external asset.
+      (function () {
+        var m = window.matchMedia;
+        if (
+          (m && m('(display-mode: standalone)').matches) ||
+          (m && m('(display-mode: fullscreen)').matches) ||
+          (m && m('(display-mode: minimal-ui)').matches) ||
+          window.navigator.standalone === true ||
+          (document.referrer || '').indexOf('android-app://') === 0
+        ) {
+          window.backButtonInitialized = true;
+          document.documentElement.classList.add('pwa-standalone');
+          var s = document.createElement('style');
+          s.textContent =
+            '.back-to-portfolio,.play-footer a[href="/"]{display:none!important}';
+          document.head.appendChild(s);
+        }
+      })();
+    </script>
     <script src="/back.js" data-back-size="compact"></script>
 
     <link rel="stylesheet" href="../style.css" />
