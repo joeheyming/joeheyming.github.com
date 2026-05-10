@@ -79,6 +79,27 @@ interface Window {
 
   // Timing
   startTime: number;
+
+  // Analytics helpers defined in analytics.js (loaded as a classic
+  // <script> on every page; safe to assume present at runtime, but
+  // typed as optional so guards remain meaningful in strict-checked files).
+  trackEvent?: (
+    eventName: string,
+    eventCategory?: string,
+    eventLabel?: string,
+    eventValue?: number
+  ) => void;
+  trackProjectOpen?: (projectName: string) => void;
+  trackConversion?: (conversionType: string, value?: number) => void;
+  trackError?: (errorData: {
+    type?: string;
+    message?: string;
+    context?: string;
+    recoverable?: boolean;
+    stack?: string;
+    [k: string]: unknown;
+  }) => void;
+  trackPerformance?: () => void;
 }
 
 // ---------------------------------------------------------------------------

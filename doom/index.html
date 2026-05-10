@@ -782,6 +782,17 @@
         var params = new URLSearchParams(window.location.search);
         if (params.get('manual') === '1') return;
 
+        // GA helper for the DOOM flavor funnel. We want to know which
+        // flavor users pick (Classic / Freedoom / Legend), how often the
+        // engine actually boots vs bails during the multi-MB load, and
+        // which flavor + which entry path (picker click vs ?flavor=NAME
+        // auto-launch). analytics.js exposes window.trackEvent globally;
+        // it no-ops on localhost.
+        function trackDoomEvent(name, label, value) {
+          if (typeof window.trackEvent !== 'function') return;
+          window.trackEvent(name, 'DoomFlavor', label, value);
+        }
+
         // Classic DOOM IWAD — the 1993 id Software shareware doom.wad.
         // Hosted on Netlify (was the asset URL the previous chocolate-
         // doom build fetched from). uz-doom plays MIDI directly via
@@ -924,6 +935,7 @@
           }
           btn.addEventListener('click', function () {
             if (window.LoDLifecycle && window.LoDLifecycle.get() !== 'primed') return;
+            trackDoomEvent('doom_engine_launched', flavor + ':autolaunch');
             if (window.UZDoomLoader) window.UZDoomLoader.launch();
           });
         }
@@ -985,6 +997,8 @@
             card.addEventListener('click', async function () {
               if (card.disabled) return;
               var flavor = card.dataset.flavor;
+              var tStart = Date.now();
+              trackDoomEvent('doom_flavor_pick', flavor + ':picker');
               cards.forEach(function (c) {
                 c.disabled = true;
               });
@@ -996,8 +1010,19 @@
                 document.body.classList.add('flavor-' + flavor);
                 await primeFlavor(flavor);
                 if (window.UZDoomLoader) window.UZDoomLoader.launch();
+                // Value is seconds from click → launch — useful for spotting
+                // a CDN-slow flavor (e.g. classic.wad fetch from Netlify).
+                trackDoomEvent(
+                  'doom_engine_launched',
+                  flavor + ':picker',
+                  Math.round((Date.now() - tStart) / 1000)
+                );
               } catch (e) {
                 console.warn('[flavor picker] failed:', e);
+                trackDoomEvent(
+                  'doom_flavor_failed',
+                  flavor + ':picker: ' + String(e.message || e).slice(0, 80)
+                );
                 if (window.LoDLifecycle && !window.LoDLifecycle.isTerminal()) {
                   window.LoDLifecycle.markError('flavor-prime', {
                     message: String(e.message || e)
@@ -1013,12 +1038,17 @@
         // Auto-launch path (?flavor=NAME): prime in the background, hero
         // button enables on `primed`, user clicks it to launch.
         async function autoLaunch(flavor) {
+          trackDoomEvent('doom_flavor_pick', flavor + ':autolaunch');
           applyFlavorBranding(flavor);
           wireHeroButton(flavor);
           try {
             await primeFlavor(flavor);
           } catch (e) {
             console.warn('[flavor auto-launch] priming failed:', e);
+            trackDoomEvent(
+              'doom_flavor_failed',
+              flavor + ':autolaunch: ' + String(e.message || e).slice(0, 80)
+            );
             var alreadyTerminal = window.LoDLifecycle && window.LoDLifecycle.isTerminal();
             if (!alreadyTerminal && window.LoDLifecycle) {
               window.LoDLifecycle.markError('autoprime', { message: String(e.message || e) });
@@ -1122,6 +1152,11 @@
             var t = e.target.closest('button[data-switch]');
             if (!t || t.disabled) return;
             var f = t.dataset.switch;
+            // Track the in-app switch before the redirect — distinguishes
+            // "user changed flavor via the dropdown" from "user landed
+            // on a ?flavor= URL". GA4 uses sendBeacon so the event
+            // survives the navigation.
+            trackDoomEvent('doom_flavor_switch', f);
             // Reload the page with the chosen mode. Pure URL change +
             // reload is the simplest way to reuse the auto-launch /
             // manual paths without stitching together a partial engine

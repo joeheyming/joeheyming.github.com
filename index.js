@@ -183,7 +183,10 @@ function renderAppGallery() {
       card.setAttribute('data-search', searchText);
       card.setAttribute('data-event', 'gallery_app_click');
       card.setAttribute('data-event-category', 'Engagement');
-      card.setAttribute('data-event-label', app.shortName || app.name);
+      // Label format: "<app>:<section>" (e.g. "DOOM:games"). Lets the
+      // GA report tell us whether users discover apps by browsing Games
+      // vs Tools vs Music — and which section is dead weight.
+      card.setAttribute('data-event-label', `${app.shortName || app.name}:${section.id}`);
       card.className = `gallery-card group relative overflow-hidden rounded-xl p-4 text-white shadow-md hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 ${tailwindGradientFromTokens(
         app.gradient
       )}`;
@@ -242,6 +245,28 @@ function bindGalleryFilter() {
     }
   });
   ctrl.bindKeyboardShortcuts({});
+
+  // Search-driven discovery signal. The card itself already fires
+  // `gallery_app_click` via data-event; this secondary event tells us
+  // the user typed a query first. We capture the search term (truncated)
+  // and the chosen app so we can spot queries that surface useful apps.
+  root.addEventListener(
+    'click',
+    (e) => {
+      const card = e.target.closest('.gallery-card');
+      if (!card) return;
+      const term = (input.value || '').trim().toLowerCase();
+      if (!term) return;
+      const label =
+        card.getAttribute('data-event-label') ||
+        card.querySelector('.font-bold')?.textContent.trim() ||
+        '';
+      if (typeof window.trackEvent === 'function') {
+        window.trackEvent('gallery_search_click', 'Engagement', `${term.slice(0, 40)} → ${label}`);
+      }
+    },
+    true
+  );
 
   // Page-level shortcut: pressing "/" focuses the filter input (skipped
   // when the user is already typing in another input/textarea or in

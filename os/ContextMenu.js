@@ -401,7 +401,7 @@ export class ContextMenu {
         break;
       case 'launch':
         if (appId) {
-          this.os.launchApp(appId);
+          this.os.launchApp(appId, 'context_menu');
         }
         break;
       case 'bring-windows':
