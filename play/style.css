@@ -918,3 +918,28 @@ body {
   }
 }
 
+/* PWA standalone mode: when the user has installed Play as an app,
+ * hide cross-app navigation (the back-to-portfolio button injected
+ * by /back.js, and the "Back home" link in the gallery footer). The
+ * in-app instrument switcher (.instruments-link) stays visible —
+ * that's the router *inside* the music app, not a way out of it.
+ *
+ * Two-pronged detection:
+ *   1. The `@media (display-mode: standalone)` query — modern iOS
+ *      16.4+ and Android Chrome.
+ *   2. The `.pwa-standalone` class set by /back.js on <html> at load
+ *      time. Covers legacy iOS Safari (where `navigator.standalone`
+ *      is the only signal) and any browser that reports the display
+ *      mode unreliably. Belt and suspenders. */
+@media (display-mode: standalone) {
+  .back-to-portfolio,
+  .play-footer a[href='/'] {
+    display: none !important;
+  }
+}
+
+html.pwa-standalone .back-to-portfolio,
+html.pwa-standalone .play-footer a[href='/'] {
+  display: none !important;
+}
+

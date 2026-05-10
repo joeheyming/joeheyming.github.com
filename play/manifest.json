@@ -1,0 +1,42 @@
+{
+  "name": "Joe's Play — Browser Music Studio",
+  "short_name": "Play",
+  "description": "Free, ad-free browser instruments — piano, accordion, guitar, drums, synth, harp, mallets, theremin, and more.",
+  "start_url": "/play/",
+  "scope": "/play/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/play/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/play/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/play/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["music", "entertainment"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "shortcuts": [
+    { "name": "Piano", "short_name": "Piano", "url": "/play/piano/" },
+    { "name": "Accordion", "short_name": "Accordion", "url": "/play/accordion/" },
+    { "name": "Guitar", "short_name": "Guitar", "url": "/play/guitar/" },
+    { "name": "Drums", "short_name": "Drums", "url": "/play/drums/" },
+    { "name": "Synth", "short_name": "Synth", "url": "/play/synth/" },
+    { "name": "Metronome", "short_name": "Metronome", "url": "/play/metronome/" }
+  ]
+}

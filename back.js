@@ -16,6 +16,27 @@
     return;
   }
 
+  // Don't show inside an installed PWA — the back-to-portfolio link
+  // is cross-app navigation and would dump the user out of their
+  // standalone music app into Safari/Chrome. The in-app router (the
+  // "Instruments" link inside /play/) stays.
+  //
+  // Detection covers: modern iOS / Android Chrome (display-mode media
+  // query), legacy iOS Safari (`navigator.standalone`), and Android
+  // TWA / Trusted Web Activity. We also tag <html> with a `standalone`
+  // class so CSS can hide other in-page chrome (like the gallery
+  // footer's "Back home" link) without re-implementing this detection.
+  const isStandalone =
+    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+    (window.matchMedia && window.matchMedia('(display-mode: fullscreen)').matches) ||
+    (window.matchMedia && window.matchMedia('(display-mode: minimal-ui)').matches) ||
+    window.navigator.standalone === true ||
+    document.referrer.startsWith('android-app://');
+  if (isStandalone) {
+    document.documentElement.classList.add('pwa-standalone');
+    return;
+  }
+
   // Propagate data-back-size from the <script> tag to <html> for CSS selectors
   const selfScript = document.currentScript;
   const backSize = selfScript && selfScript.getAttribute('data-back-size');
