@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>🎯 Tuner - Tune Any String Instrument | Joe Heyming</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="A free chromatic browser tuner with cents-off needle, instrument presets (guitar, bass, ukulele, violin, mandolin, banjo, cello), tap-to-hear reference pitches, and Equal/Just/Pythagorean temperaments."
+    />
+    <meta name="theme-color" content="#0f172a" />
+
+    <link rel="manifest" href="/play/manifest.json" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/play/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Play" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Play" />
+    <meta property="og:title" content="🎯 Tuner - Tune Any String Instrument" />
+    <meta
+      property="og:description"
+      content="Browser tuner with instrument presets, cents-off needle, locked-target mode, temperaments, and reference pitches."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/play/tuner/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/play/tuner/tuner-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Browser tuner" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="🎯 Tuner - Tune Any String Instrument" />
+    <meta
+      name="twitter:description"
+      content="Browser tuner with instrument presets, cents-off needle, locked-target mode, temperaments, and reference pitches."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/play/tuner/tuner-preview.png"
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/play/tuner/" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script>
+      // PWA standalone guard — runs synchronously before /back.js loads,
+      // so a stale cached back.js (Chrome WebAPK / HTTP cache) can't
+      // inject the cross-portfolio button. Sets back.js's init flag
+      // (its first line bails on it), tags <html> for CSS hooks, and
+      // inlines a hide rule that wins even over stale play/style.css.
+      // Self-contained on purpose: depends on no external asset.
+      (function () {
+        var m = window.matchMedia;
+        if (
+          (m && m('(display-mode: standalone)').matches) ||
+          (m && m('(display-mode: fullscreen)').matches) ||
+          (m && m('(display-mode: minimal-ui)').matches) ||
+          window.navigator.standalone === true ||
+          (document.referrer || '').indexOf('android-app://') === 0
+        ) {
+          window.backButtonInitialized = true;
+          document.documentElement.classList.add('pwa-standalone');
+          var s = document.createElement('style');
+          s.textContent =
+            '.back-to-portfolio,.play-footer a[href="/"]{display:none!important}';
+          document.head.appendChild(s);
+        }
+      })();
+    </script>
+    <script src="/back.js" data-back-size="compact"></script>
+    <script src="/play/shared/help-popup.js" defer></script>
+
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="instrument-body">
+    <header class="instrument-header">
+      <div class="instrument-page-title">
+        <span aria-hidden="true">🎯</span>
+        <h1>Tuner</h1>
+      </div>
+      <div class="header-status">
+        <div class="now-playing" id="now-playing" aria-live="polite">—</div>
+      </div>
+      <a class="instruments-link" href="../" aria-label="Back to instruments">
+        <span class="instruments-link-icon" aria-hidden="true">🎵</span>
+        <span class="instruments-link-text">Instruments</span>
+      </a>
+    </header>
+
+    <section class="instrument-controls" aria-label="Tuner controls">
+      <div class="control">
+        <label for="instrument-select">Instrument</label>
+        <select id="instrument-select"></select>
+      </div>
+
+      <div class="control">
+        <label for="a4-ref">A4</label>
+        <input
+          id="a4-ref"
+          type="number"
+          min="415"
+          max="466"
+          step="1"
+          value="440"
+          inputmode="numeric"
+          aria-label="A4 reference frequency in Hz"
+        />
+        <span class="control-suffix">Hz</span>
+      </div>
+
+      <div class="control">
+        <label for="temperament-select">Tuning</label>
+        <select id="temperament-select"></select>
+      </div>
+
+      <div class="control">
+        <label for="naming-select">Names</label>
+        <select id="naming-select">
+          <option value="english">C D E</option>
+          <option value="solfege">Do Re Mi</option>
+          <option value="german">C D E (H)</option>
+        </select>
+      </div>
+
+      <div class="control">
+        <label for="volume">Volume</label>
+        <input id="volume" type="range" min="0" max="100" value="55" />
+      </div>
+    </section>
+
+    <section class="tuner-stage">
+      <div class="tuner-card" id="tuner-card" data-state="idle">
+        <!-- String tabs: rendered only when an instrument preset is
+             active. Each tab targets one open string; the trailing
+             AUTO pill switches back to "snap to nearest chromatic". -->
+        <div class="string-tabs" id="string-tabs" hidden>
+          <div class="string-tab-row" id="string-tab-row" role="radiogroup" aria-label="Lock to a string"></div>
+          <button id="auto-toggle" class="string-tab string-tab-auto" type="button" aria-pressed="true">
+            AUTO
+          </button>
+        </div>
+
+        <!-- Note carousel: 5 chromatic neighbours of the current note,
+             with the centre slot rendered large + gradient. JS rewrites
+             text content on each detection; CSS handles the visual
+             hierarchy and a brief fade when the centre note flips. -->
+        <div class="note-carousel" id="note-carousel" aria-hidden="true">
+          <span class="carousel-note carousel-note-far" data-slot="-2">—</span>
+          <span class="carousel-note carousel-note-near" data-slot="-1">—</span>
+          <span class="carousel-note carousel-note-active" data-slot="0">
+            <span class="carousel-note-name" id="carousel-note-name">—</span>
+            <sub class="carousel-note-octave" id="carousel-note-octave"></sub>
+          </span>
+          <span class="carousel-note carousel-note-near" data-slot="1">—</span>
+          <span class="carousel-note carousel-note-far" data-slot="2">—</span>
+        </div>
+
+        <!--
+          Wide-fan dial. Geometry uses an SVG viewBox where the pivot
+          sits at user coords (100, 200) with an arc band radius of 165.
+          The arc spans ±70° (140° total fan), pivoting from below the
+          visible area for a long, dramatic needle.
+
+          Container percentages from the math:
+            pivot_x = (100 - (-80)) / 360 = 50%
+            pivot_y = (200 - (-10)) / 220 = 95.45%   → bottom: 4.55%
+            arm length (pivot → outer arc top): (200 - 35) / 220 = 75%
+          Cents-to-angle: ±100¢ → ±70°, so each cent = 0.7°.
+        -->
+        <div class="tuner-dial" aria-hidden="true">
+          <svg
+            class="tuner-dial-svg"
+            viewBox="-80 -10 360 220"
+            preserveAspectRatio="xMidYMid meet"
+          >
+            <defs>
+              <radialGradient id="tuner-face-grad" cx="100" cy="200" r="170" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="rgba(15, 23, 42, 0)" />
+                <stop offset="0.7" stop-color="rgba(15, 23, 42, 0.55)" />
+                <stop offset="1" stop-color="rgba(11, 16, 32, 0.85)" />
+              </radialGradient>
+            </defs>
+
+            <!-- Dial face fan. -->
+            <path
+              d="M -55 144 A 165 165 0 0 1 255 144 L 100 200 Z"
+              fill="url(#tuner-face-grad)"
+              stroke="rgba(148, 163, 184, 0.18)"
+              stroke-width="0.8"
+            />
+
+            <!-- Color band: pink (flat) → green (in-tune ~±5¢ ≈ ±3.5°,
+                 widened to ±4° for visibility) → pink (sharp). -->
+            <g fill="none" stroke-linecap="round" stroke-width="6">
+              <path d="M -55.05 143.57 A 165 165 0 0 1 88.49 35.4" stroke="rgba(244, 114, 182, 0.55)" />
+              <path d="M 88.49 35.4 A 165 165 0 0 1 111.51 35.4" stroke="rgba(52, 211, 153, 0.85)" />
+              <path d="M 111.51 35.4 A 165 165 0 0 1 255.05 143.57" stroke="rgba(244, 114, 182, 0.55)" />
+            </g>
+
+            <!-- Major ticks at -100, -50, 0, +50, +100¢ (every 35°). -->
+            <g stroke="rgba(226, 232, 240, 0.85)" stroke-width="1.6" stroke-linecap="round">
+              <line x1="-48.47" y1="145.96" x2="-64.45" y2="140.15" />
+              <line x1="9.37" y1="70.57" x2="-0.38" y2="56.64" />
+              <line x1="100" y1="42" x2="100" y2="25" />
+              <line x1="190.63" y1="70.57" x2="200.38" y2="56.64" />
+              <line x1="248.47" y1="145.96" x2="264.45" y2="140.15" />
+            </g>
+
+            <!-- Minor ticks every 20¢ (every 14°). -->
+            <g stroke="rgba(148, 163, 184, 0.55)" stroke-width="1" stroke-linecap="round">
+              <line x1="-26.57" y1="119.47" x2="-37.43" y2="115.53" />
+              <line x1="-7.07" y1="89.07" x2="-19.04" y2="79.5" />
+              <line x1="33.93" y1="48.94" x2="25.83" y2="38.95" />
+              <line x1="60.55" y1="36.91" x2="56.13" y2="24.95" />
+              <line x1="139.45" y1="36.91" x2="143.87" y2="24.95" />
+              <line x1="166.07" y1="48.94" x2="174.17" y2="38.95" />
+              <line x1="207.07" y1="89.07" x2="219.04" y2="79.5" />
+              <line x1="226.57" y1="119.47" x2="237.43" y2="115.53" />
+            </g>
+
+            <!-- Scale labels in cents, just outside the band. -->
+            <g
+              fill="currentColor"
+              font-size="10"
+              font-family="ui-sans-serif, system-ui, -apple-system, sans-serif"
+              font-weight="600"
+              text-anchor="middle"
+              dominant-baseline="middle"
+            >
+              <text x="-72" y="138">−100</text>
+              <text x="-13" y="48">−50</text>
+              <text x="100" y="14">0¢</text>
+              <text x="213" y="48">+50</text>
+              <text x="272" y="138">+100</text>
+            </g>
+
+            <!-- Target frequency, centred above the dial. JS updates
+                 textContent every detection. -->
+            <text
+              id="dial-target"
+              x="100"
+              y="-2"
+              fill="rgba(226, 232, 240, 0.7)"
+              font-size="10"
+              font-family="ui-sans-serif, system-ui, -apple-system, sans-serif"
+              font-weight="600"
+              text-anchor="middle"
+              letter-spacing="0.18em"
+            >TARGET —</text>
+          </svg>
+
+          <div class="tuner-arm" id="tuner-arm"></div>
+          <div class="tuner-pivot"></div>
+        </div>
+
+        <div class="tuner-readout">
+          <div class="tuner-cents" id="tuner-cents">— ¢</div>
+          <div class="tuner-freq" id="tuner-freq">Tap Start to listen</div>
+          <div class="tuner-status-pill" id="tuner-status-pill" data-status="idle">Idle</div>
+        </div>
+      </div>
+
+      <div class="tuner-controls">
+        <button id="mic-toggle" class="primary-btn" type="button" aria-pressed="false">
+          <span class="btn-icon" aria-hidden="true">🎤</span>
+          <span class="btn-label">Start listening</span>
+        </button>
+      </div>
+
+      <div class="tuner-fallback" id="tuner-fallback" hidden>
+        <div class="fallback-title" id="fallback-title">Microphone</div>
+        <div class="fallback-message" id="fallback-message"></div>
+        <button id="fallback-retry" type="button" class="secondary-btn" hidden>Retry</button>
+      </div>
+
+      <details class="reference-section" id="reference-section">
+        <summary class="reference-summary">
+          <span class="reference-summary-label">Reference pitches</span>
+          <span class="reference-summary-hint">tap to hear by ear</span>
+        </summary>
+        <div class="reference-body">
+          <div class="reference-options">
+            <div class="octave-buttons" aria-label="Reference octave">
+              <button id="ref-oct-down" type="button" aria-label="Lower octave">−</button>
+              <span class="octave-display" id="ref-oct-display">4</span>
+              <button id="ref-oct-up" type="button" aria-label="Higher octave">+</button>
+            </div>
+            <label class="toggle-label">
+              <input type="checkbox" id="ref-clamp" />
+              <span>Clamp to speaker octave</span>
+            </label>
+          </div>
+          <div class="reference-grid" id="reference-grid" role="group" aria-label="Tap a note to hear it"></div>
+          <p class="reference-hint">
+            Tap a note to play a sustained sine. Tap again to stop. With
+            <em>Clamp</em> on, all references play in the C4–C6 range so
+            you can hear them on a phone speaker.
+          </p>
+        </div>
+      </details>
+    </section>
+
+    <section class="instrument-help">
+      <h2>How to use</h2>
+      <ul>
+        <li>
+          Pick your <strong>Instrument</strong> at the top — the string
+          row appears below the note carousel. Tap a string to
+          <strong>lock the target</strong>; tap <strong>AUTO</strong>
+          to snap to the nearest chromatic note instead.
+        </li>
+        <li>
+          Tap <strong>Start listening</strong> and allow microphone
+          access. Pluck a string and the dial shows how many cents
+          you're sharp (right) or flat (left). The needle goes green
+          inside ±5 ¢ — that's "in tune".
+        </li>
+        <li>
+          The note carousel above the dial shows the current note plus
+          its chromatic neighbours, so you can see which way the next
+          note lies even before the cents settles.
+        </li>
+        <li>
+          <strong>A4</strong> defaults to <code>440 Hz</code>. Drop it
+          to <code>415</code> for baroque pitch, or nudge to
+          <code>442</code> / <code>444</code> for orchestral.
+          <strong>Tuning</strong> swaps between Equal, Just (centred on
+          C), and Pythagorean — set this for a-cappella or early-music
+          sessions; leave on Equal otherwise.
+        </li>
+        <li>
+          No mic? Open the <strong>Reference pitches</strong> section
+          and tap any note to play a sustained sine you can ear-tune
+          against.
+        </li>
+      </ul>
+    </section>
+
+    <script type="module" src="tuner.js"></script>
+  </body>
+</html>

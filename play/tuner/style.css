@@ -1,0 +1,721 @@
+/* =========================================================================
+ * Tuner page — chromatic + instrument-preset tuner with locked-target
+ * mode, note carousel, wide-fan dial, temperament + tone-naming options,
+ * and a collapsible reference-pitch section.
+ *
+ * Layout (mobile-first portrait):
+ *   - shared instrument-controls bar carries the settings (instrument,
+ *     A4, temperament, naming, volume) and wraps freely on phones
+ *   - .tuner-card stacks: string tabs → note carousel → dial → readout
+ *   - .tuner-controls holds the big mic toggle
+ *   - .tuner-fallback shows permission/insecure-origin diagnostics
+ *   - .reference-section is a <details> that the user pops open by hand
+ *
+ * Visual identity stays in the indigo / pink / green palette that
+ * /play/style.css defines, so the page reads as "the tuner from this
+ * music studio" rather than a clone of any commercial tuner.
+ * ========================================================================= */
+
+.tuner-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px 24px;
+}
+
+/* ---- Settings bar additions ------------------------------------------ */
+
+.control input[type='number']#a4-ref {
+  width: 70px;
+  background: rgba(30, 41, 59, 0.85);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+.control input[type='number']#a4-ref:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.control-suffix {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  margin-left: -4px;
+}
+
+/* ---- Tuner card ------------------------------------------------------ */
+
+.tuner-card {
+  width: min(100%, 520px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  border-radius: 22px;
+  background: linear-gradient(160deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.7));
+  border: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.tuner-card[data-state='in-tune'] {
+  border-color: rgba(52, 211, 153, 0.55);
+  box-shadow: 0 0 24px -4px rgba(52, 211, 153, 0.45);
+}
+
+.tuner-card[data-state='listening'] {
+  border-color: rgba(129, 140, 248, 0.45);
+}
+
+/* ---- String tabs ----------------------------------------------------- */
+
+.string-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.string-tabs[hidden] {
+  display: none;
+}
+
+.string-tab-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.string-tab {
+  min-height: 36px;
+  min-width: 44px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(30, 41, 59, 0.85);
+  color: var(--fg);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  touch-action: manipulation;
+  transition: border-color 120ms ease, background 120ms ease,
+    color 120ms ease, transform 100ms ease;
+}
+
+.string-tab sub {
+  font-size: 0.65em;
+  font-weight: 600;
+  color: var(--fg-dim);
+  margin-left: 1px;
+}
+
+.string-tab:hover {
+  border-color: var(--accent);
+}
+
+.string-tab:active {
+  transform: scale(0.95);
+}
+
+.string-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.string-tab[aria-pressed='true'] {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 14px -6px rgba(129, 140, 248, 0.7);
+}
+
+.string-tab[aria-pressed='true'] sub {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.string-tab-auto {
+  margin-left: 6px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.string-tab-auto[aria-pressed='true'] {
+  background: linear-gradient(135deg, var(--accent-3), #86efac);
+  color: #042f2e;
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 14px -6px rgba(52, 211, 153, 0.7);
+}
+
+/* ---- Note carousel --------------------------------------------------- */
+
+.note-carousel {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: end;
+  gap: 4px;
+  padding: 4px 0 0;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  letter-spacing: -0.02em;
+}
+
+.carousel-note {
+  text-align: center;
+  color: var(--fg-dim);
+  line-height: 1;
+  transition: color 200ms ease, opacity 200ms ease, transform 200ms ease;
+  white-space: nowrap;
+}
+
+.carousel-note-far {
+  font-size: clamp(14px, 4vw, 20px);
+  opacity: 0.35;
+}
+
+.carousel-note-near {
+  font-size: clamp(20px, 6vw, 32px);
+  opacity: 0.6;
+}
+
+.carousel-note-active {
+  font-size: clamp(60px, 14vw, 96px);
+  font-weight: 800;
+  color: var(--fg);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+}
+
+.carousel-note-active sub {
+  font-size: 0.32em;
+  font-weight: 600;
+  vertical-align: baseline;
+  -webkit-text-fill-color: var(--fg-dim);
+  color: var(--fg-dim);
+  background: none;
+  letter-spacing: 0;
+}
+
+.tuner-card[data-state='in-tune'] .carousel-note-active {
+  background: linear-gradient(135deg, var(--accent-3), #86efac);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Brief flash when the centre note flips, so it's obvious the value
+ * changed even if the new note glyph happens to look similar. */
+.carousel-note-active.flash {
+  animation: carousel-flash 240ms ease-out;
+}
+
+@keyframes carousel-flash {
+  0% { transform: scale(1.06); filter: drop-shadow(0 0 12px rgba(244, 114, 182, 0.4)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0)); }
+}
+
+/* ---- Wide-fan dial --------------------------------------------------- */
+
+/*
+ * Geometry note (must stay in sync with the SVG `viewBox` in
+ * index.html: -80 -10 360 220):
+ *   pivot in container = (50%, 95.45%)  → bottom: 4.55%
+ *   arm length         = (200 - 35) / 220 = 75% of container height
+ *   cents-to-angle     = ±100¢ → ±70°  (each cent = 0.7°)
+ */
+
+.tuner-dial {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 360 / 220;
+  color: var(--fg-dim);
+}
+
+.tuner-dial-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.tuner-arm {
+  position: absolute;
+  left: 50%;
+  bottom: 4.55%;
+  width: 4px;
+  height: 75%;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--accent-2), var(--accent));
+  box-shadow:
+    0 0 10px rgba(129, 140, 248, 0.55),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.15);
+  transform-origin: 50% 100%;
+  --needle: 0;
+  /* Cents range is ±100, mapped to ±70° of arm rotation. */
+  transform: translateX(-50%) rotate(calc(var(--needle) * 70deg));
+  transition:
+    transform 80ms linear,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tuner-arm::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 10px solid var(--accent-2);
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 6px rgba(244, 114, 182, 0.6));
+}
+
+.tuner-card[data-state='listening'] .tuner-arm,
+.tuner-card[data-state='in-tune'] .tuner-arm {
+  opacity: 1;
+}
+
+.tuner-card[data-state='in-tune'] .tuner-arm {
+  background: linear-gradient(180deg, #86efac, var(--accent-3));
+  box-shadow:
+    0 0 14px rgba(52, 211, 153, 0.75),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.2);
+}
+
+.tuner-card[data-state='in-tune'] .tuner-arm::before {
+  border-bottom-color: var(--accent-3);
+  filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.8));
+}
+
+.tuner-pivot {
+  position: absolute;
+  left: 50%;
+  bottom: 4.55%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #f8fafc, var(--bg-2) 70%);
+  border: 2px solid var(--accent);
+  box-shadow:
+    0 0 10px rgba(129, 140, 248, 0.55),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.4);
+  transform: translate(-50%, 50%);
+  pointer-events: none;
+}
+
+.tuner-card[data-state='in-tune'] .tuner-pivot {
+  border-color: var(--accent-3);
+  box-shadow:
+    0 0 14px rgba(52, 211, 153, 0.75),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* ---- Readout row ----------------------------------------------------- */
+
+.tuner-readout {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.tuner-cents {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  color: var(--fg-dim);
+  font-weight: 700;
+  font-size: 16px;
+  text-align: left;
+}
+
+.tuner-card[data-state='in-tune'] .tuner-cents {
+  color: var(--accent-3);
+}
+
+.tuner-freq {
+  font-size: 13px;
+  color: var(--fg-dim);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  text-align: center;
+  white-space: nowrap;
+}
+
+.tuner-status-pill {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: rgba(148, 163, 184, 0.15);
+  border: 1px solid var(--border);
+  color: var(--fg-dim);
+}
+
+.tuner-status-pill[data-status='listening'] {
+  background: rgba(129, 140, 248, 0.15);
+  border-color: rgba(129, 140, 248, 0.4);
+  color: var(--accent);
+}
+
+.tuner-status-pill[data-status='in-tune'] {
+  background: rgba(52, 211, 153, 0.18);
+  border-color: rgba(52, 211, 153, 0.45);
+  color: var(--accent-3);
+}
+
+.tuner-status-pill[data-status='flat'],
+.tuner-status-pill[data-status='sharp'] {
+  background: rgba(244, 114, 182, 0.16);
+  border-color: rgba(244, 114, 182, 0.4);
+  color: var(--accent-2);
+}
+
+/* ---- Mic toggle button ---------------------------------------------- */
+
+.tuner-controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.primary-btn,
+.secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease,
+    box-shadow 120ms ease, transform 100ms ease;
+}
+
+.primary-btn {
+  min-width: 200px;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  box-shadow: 0 6px 18px -8px rgba(129, 140, 248, 0.7);
+}
+
+.primary-btn:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.primary-btn:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+
+.primary-btn[aria-pressed='true'] {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  box-shadow: 0 6px 18px -8px rgba(239, 68, 68, 0.7);
+}
+
+.secondary-btn {
+  background: rgba(30, 41, 59, 0.85);
+  color: var(--fg);
+}
+
+.secondary-btn:hover {
+  border-color: var(--accent);
+}
+
+.secondary-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* ---- Permission/error fallback card --------------------------------- */
+
+.tuner-fallback {
+  width: min(100%, 520px);
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: rgba(244, 114, 182, 0.08);
+  border: 1px solid rgba(244, 114, 182, 0.32);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tuner-fallback[hidden] {
+  display: none;
+}
+
+.fallback-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--accent-2);
+  letter-spacing: 0.02em;
+}
+
+.fallback-message {
+  font-size: 13px;
+  color: var(--fg);
+  line-height: 1.45;
+}
+
+.fallback-message a {
+  color: #a5b4fc;
+}
+
+#fallback-retry {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+/* ---- Reference pitches (collapsible <details>) ---------------------- */
+
+.reference-section {
+  width: min(100%, 520px);
+  padding: 0;
+  border-radius: 16px;
+  background: linear-gradient(160deg, rgba(30, 41, 59, 0.55), rgba(15, 23, 42, 0.55));
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.reference-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--fg);
+}
+
+.reference-summary::-webkit-details-marker {
+  display: none;
+}
+
+.reference-summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 6px;
+  color: var(--fg-dim);
+  transition: transform 200ms ease;
+}
+
+.reference-section[open] .reference-summary::before {
+  transform: rotate(90deg);
+}
+
+.reference-summary-label {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 12px;
+  color: var(--fg-dim);
+  flex: 1;
+}
+
+.reference-summary-hint {
+  font-size: 11px;
+  color: var(--fg-dim);
+  font-style: italic;
+}
+
+.reference-body {
+  padding: 4px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reference-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.reference-options .toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--fg-dim);
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+.reference-options .toggle-label input[type='checkbox'] {
+  accent-color: var(--accent);
+  transform: scale(1.1);
+}
+
+.reference-section[data-clamped='true'] .octave-buttons {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.reference-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.ref-btn {
+  min-height: 48px;
+  padding: 10px 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(30, 41, 59, 0.85);
+  color: var(--fg);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  touch-action: manipulation;
+  transition: border-color 120ms ease, background 120ms ease,
+    transform 100ms ease, box-shadow 120ms ease;
+}
+
+.ref-btn.is-sharp {
+  color: var(--fg-dim);
+  font-size: 13px;
+}
+
+.ref-btn:hover {
+  border-color: var(--accent);
+}
+
+.ref-btn:active {
+  transform: scale(0.96);
+}
+
+.ref-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ref-btn[aria-pressed='true'] {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  box-shadow: 0 6px 16px -8px rgba(129, 140, 248, 0.7);
+}
+
+.reference-hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--fg-dim);
+  text-align: center;
+}
+
+/* ---- Reduced motion -------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .tuner-arm,
+  .tuner-card,
+  .ref-btn,
+  .primary-btn,
+  .secondary-btn,
+  .carousel-note,
+  .string-tab,
+  .reference-summary::before {
+    transition: none !important;
+  }
+  .carousel-note-active.flash {
+    animation: none !important;
+  }
+}
+
+/* ---- Mobile: opt out of the shared 100dvh body clamp ----------------- *
+ * play/style.css clamps `.instrument-body` to `height: 100dvh; overflow:
+ * hidden` on phones so per-instrument stages (piano, guitar, drums, …)
+ * can scroll internally. The tuner is a normal scrolling page — when the
+ * <details> "Reference pitches" section is opened it grows past the
+ * viewport, and we want the page (not an inner stage) to scroll. */
+@media (max-width: 720px), (max-height: 540px) {
+  .instrument-body {
+    height: auto;
+    overflow: visible;
+    padding-bottom: 24px;
+  }
+}
+
+/* ---- Narrow phones --------------------------------------------------- */
+
+@media (max-width: 380px) {
+  .reference-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .ref-btn {
+    font-size: 15px;
+  }
+  .ref-btn.is-sharp {
+    font-size: 12px;
+  }
+  .string-tab {
+    min-width: 40px;
+    font-size: 13px;
+    padding: 4px 8px;
+  }
+  .tuner-readout {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    text-align: center;
+  }
+  .tuner-cents,
+  .tuner-status-pill {
+    text-align: center;
+    justify-self: center;
+  }
+}
