@@ -8,50 +8,50 @@
     <link
       rel="icon"
       id="site-favicon"
-      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎥</text></svg>"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📺</text></svg>"
     />
 
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>🎥 JoeTube - YouTube Video Carousel | Joe Heyming</title>
+    <title>📺 JoeTube — Retro TV Video Carousel | Joe Heyming</title>
 
     <!-- Enhanced SEO Meta Tags -->
     <meta
       name="description"
-      content="Explore Joe Heyming's YouTube video collection in a beautiful carousel interface. Browse, shuffle, and discover videos with an interactive JoeTube experience."
+      content="JoeTube — Joe Heyming's YouTube videos rendered as a retro CRT television. Turn the channel knob to browse, click to play."
     />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#8e44ad" />
+    <meta name="theme-color" content="#5a3818" />
     <meta
       name="keywords"
-      content="JoeTube, YouTube carousel, video gallery, Joe Heyming videos, interactive video player, YouTube collection"
+      content="JoeTube, YouTube carousel, retro TV, CRT, video gallery, Joe Heyming videos, vintage television"
     />
 
     <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - JoeTube" />
-    <meta property="og:title" content="🎥 JoeTube - YouTube Video Carousel" />
+    <meta property="og:title" content="📺 JoeTube — Retro TV Video Carousel" />
     <meta
       property="og:description"
-      content="Explore Joe Heyming's YouTube video collection in a beautiful carousel interface. Browse, shuffle, and discover videos with JoeTube magic!"
+      content="Joe Heyming's videos on a chunky retro CRT television. Turn the knob, watch the show."
     />
     <meta property="og:url" content="https://joeheyming.github.io/youtube/" />
     <meta property="og:image" content="https://joeheyming.github.io/youtube/joetube-preview.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="JoeTube video carousel interface" />
+    <meta property="og:image:alt" content="JoeTube CRT television video carousel" />
     <meta property="og:locale" content="en_US" />
 
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="🎥 JoeTube - YouTube Video Carousel" />
+    <meta name="twitter:title" content="📺 JoeTube — Retro TV Video Carousel" />
     <meta
       name="twitter:description"
-      content="Explore Joe Heyming's YouTube video collection in a beautiful carousel interface with JoeTube magic!"
+      content="Joe Heyming's videos on a chunky retro CRT television."
     />
     <meta name="twitter:image" content="https://joeheyming.github.io/youtube/joetube-preview.png" />
 
@@ -68,7 +68,7 @@
             "name": "JoeTube",
             "applicationCategory": "MultimediaApplication",
             "operatingSystem": "Web Browser",
-            "description": "Browse and watch Joe Heyming's YouTube video collection in a beautiful carousel interface. Shuffle, discover, and enjoy videos.",
+            "description": "Browse Joe Heyming's YouTube videos on a retro CRT television interface.",
             "url": "https://joeheyming.github.io/youtube/",
             "author": {
               "@type": "Person",
@@ -76,7 +76,7 @@
               "url": "https://joeheyming.github.io/"
             },
             "screenshot": "https://joeheyming.github.io/youtube/joetube-preview.png",
-            "keywords": "YouTube, video carousel, video gallery, Joe Heyming",
+            "keywords": "YouTube, retro TV, CRT, video carousel, Joe Heyming",
             "inLanguage": "en"
           },
           {
@@ -88,213 +88,134 @@
                 "name": "Joe Heyming",
                 "item": "https://joeheyming.github.io/"
               },
-              {
-                "@type": "ListItem",
-                "position": 2,
-                "name": "JoeTube"
-              }
+              { "@type": "ListItem", "position": 2, "name": "JoeTube" }
             ]
           }
         ]
       }
     </script>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="links.js"></script>
+    <!-- proxy.js must load BEFORE the module entry so window.proxyService is ready. -->
+    <script src="/proxy.js"></script>
     <link rel="stylesheet" href="index.css" />
-    <script src="index.js"></script>
+    <script type="module" src="./index.js"></script>
     <script src="/back.js"></script>
     <script src="/feedback.js"></script>
     <script src="/share.js"></script>
   </head>
-  <body
-    class="min-h-screen"
-    style="
-      background: linear-gradient(135deg, #2c3e50, #3498db, #8e44ad);
-      background-attachment: fixed;
-    "
-  >
-    <!-- App Container -->
-    <div class="max-w-full h-screen flex flex-col">
-      <!-- App Title -->
-      <div class="px-4 py-6 text-center">
-        <h1 class="text-4xl font-bold joe-tube-text">🎬 JoeTube 🎬</h1>
+  <body>
+    <div class="crt-room">
+      <!-- Brand strip above the TV -->
+      <div class="crt-brand">
+        <span class="pwr-dot" aria-hidden="true"></span>
+        <span>JoeTube · Channel J</span>
       </div>
 
-      <!-- Main Content Area -->
-      <div
-        class="flex-1 overflow-hidden flex flex-col"
-        style="
-          background: rgba(0, 0, 0, 0.3);
-          backdrop-filter: blur(10px);
-          border-radius: 15px;
-          margin: 10px;
-        "
-      >
-        <!-- Carousel Container -->
-        <div class="flex-1 p-4 min-h-0">
-          <div id="carousel-container" class="carousel-container max-h-full">
-            <div id="carousel-track" class="carousel-track">
-              <!-- Slides will be dynamically generated here -->
-            </div>
-          </div>
-        </div>
-
-        <!-- Navigation and Controls -->
-        <div class="px-4 py-3 border-t border-gray-600">
-          <!-- Navigation Buttons -->
-          <div class="flex items-center justify-between mb-4">
-            <button id="prev-btn" class="nav-button px-4 py-2 rounded font-bold">◀ PREV</button>
-
-            <div class="flex items-center space-x-2">
-              <button id="shuffle" class="nav-button px-4 py-2 rounded font-bold">
-                🔀 SHUFFLE
-              </button>
-            </div>
-
-            <button id="next-btn" class="nav-button px-4 py-2 rounded font-bold">NEXT ▶</button>
+      <!-- The TV itself -->
+      <section class="crt-tv" aria-label="JoeTube television">
+        <div class="crt-bezel">
+          <div class="crt-bezel-label">
+            <span>CRT-83 · Cathode Ray</span>
+            <span class="crt-channel-chip" id="crt-bezel-channel">CH 00</span>
           </div>
 
-          <!-- Video Controls -->
-          <div class="flex justify-center space-x-3 mb-4">
-            <share-button label="📤 Share" theme="glass"></share-button>
-            <a
-              id="youtube-link-main"
-              class="nav-button joe-tube-button px-3 py-2 rounded font-bold text-xs hover:scale-105 transition-transform"
-              target="_blank"
-            >
-              🚀 YOUTUBE
-            </a>
-            <button
-              id="copy-url-btn-main"
-              class="nav-button joe-tube-button px-3 py-2 rounded font-bold text-xs hover:scale-105 transition-transform"
-            >
-              🎭 COPY LINK
-            </button>
-            <button
-              id="copy-title-btn-main"
-              class="nav-button joe-tube-button px-3 py-2 rounded font-bold text-xs hover:scale-105 transition-transform"
-            >
-              🎨 COPY TITLE
-            </button>
-          </div>
-
-          <!-- Progress Indicators -->
-          <div class="flex justify-center space-x-2 mb-4">
-            <div id="progress-indicators" class="flex space-x-2">
-              <!-- Progress dots will be generated here -->
-            </div>
-          </div>
-
-          <!-- Current Video Info -->
-          <div class="terminal-green font-mono text-center">
-            <div id="current-video-info" class="text-sm">
-              🎬 Video
-              <span id="current-index">1</span>
-              of
-              <span id="total-videos">23</span>
-            </div>
-            <div class="text-xs joe-tube-subtitle mt-1">
-              🎮 Use arrow keys or click the colorful buttons | Press 'R' for random magic! 🎪
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- No Videos Message -->
-    <div id="no-videos" class="hidden fixed inset-0 flex items-center justify-center">
-      <div class="joe-tube-main p-8 rounded-lg max-w-md mx-auto">
-        <h3 class="text-xl font-bold mb-4 joe-tube-text text-center">
-          🎪 No Videos Found in JoeTube!
-        </h3>
-        <p class="mb-4 joe-tube-text text-center">Oops! The magic hat is empty! 🎩✨</p>
-        <p class="text-sm joe-tube-subtitle text-center">
-          Add YouTube URLs to the videoLinks array to fill the magic carousel! 🎠
-        </p>
-      </div>
-    </div>
-
-    <!-- HTML Templates -->
-    <template id="carousel-slide-template">
-      <div class="carousel-slide p-4">
-        <div class="h-full flex flex-col">
-          <!-- Video Info Header -->
-          <div class="joe-tube-text text-center mb-4">
-            <div class="text-lg font-bold video-title">
-              <!-- Title will be inserted here -->
-            </div>
-            <div class="text-xs joe-tube-subtitle mt-1">
-              🎬 ID:
-              <span class="video-id"></span>
-              | Video
-              <span class="video-number"></span>
-              | Status:
-              <span class="video-status">WAITING</span>
-              ✨
-            </div>
-          </div>
-
-          <!-- Video Container -->
-          <div class="video-container mb-4 flex-shrink-0">
-            <!-- Iframe will be loaded dynamically here -->
-            <div
-              class="flex items-center justify-center h-full border-2 border-dashed border-rainbow rounded-lg video-placeholder joe-tube-magic"
-            >
-              <div class="text-center joe-tube-text">
-                <div class="text-4xl mb-2">🎪</div>
-                <div class="text-sm">✨ Video Magic Awaits ✨</div>
-                <div class="text-xs joe-tube-subtitle mt-1">Click for the show!</div>
+          <!-- The CRT screen -->
+          <div class="crt-screen-wrap">
+            <div class="crt-screen">
+              <div id="carousel-container" class="carousel-container">
+                <div id="carousel-track" class="carousel-track">
+                  <!-- Slides injected at runtime by modules/carousel.js -->
+                </div>
               </div>
             </div>
+
+            <!-- Loading overlay: "TUNING…" with TV static -->
+            <div id="crt-static" class="crt-static" aria-hidden="true"></div>
+            <div id="crt-loading" class="crt-overlay" role="status" aria-live="polite">
+              <p class="crt-overlay-title">⟁ TUNING ⟁</p>
+              <p class="crt-overlay-message">Searching channel for signal…</p>
+            </div>
+
+            <!-- Error overlay: "NO SIGNAL" -->
+            <div id="crt-no-signal" class="crt-overlay hidden" role="alert">
+              <p class="crt-overlay-title">⚠ NO SIGNAL</p>
+              <p class="crt-overlay-message crt-no-signal-detail">
+                Channel J is off the air. Try again later.
+              </p>
+            </div>
+          </div>
+
+          <!-- Channel display + knob row -->
+          <div class="crt-controls-row">
+            <div class="crt-channel-display" aria-live="polite">
+              <span class="label">Channel</span>
+              <span class="value" id="crt-channel-value">00</span>
+              <span class="total" id="crt-channel-total">/ 00</span>
+            </div>
+
+            <button
+              id="crt-knob"
+              class="crt-knob"
+              type="button"
+              aria-label="Shuffle to a random channel"
+              title="Click to shuffle"
+            >
+              <span class="crt-knob-cap" aria-hidden="true"></span>
+            </button>
+
+            <div class="crt-side-buttons">
+              <button id="crt-ch-up" class="crt-btn" type="button" aria-label="Next channel">
+                <span class="crt-btn-glyph">▲</span>
+                CH+
+              </button>
+              <button id="crt-ch-down" class="crt-btn" type="button" aria-label="Previous channel">
+                <span class="crt-btn-glyph">▼</span>
+                CH-
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </template>
 
-    <template id="video-placeholder-template">
-      <div
-        class="flex items-center justify-center h-full border-2 border-dashed border-rainbow rounded-lg joe-tube-magic"
-      >
-        <div class="text-center joe-tube-text">
-          <div class="text-4xl mb-2">🎪</div>
-          <div class="text-sm">✨ Video Magic Awaits ✨</div>
-          <div class="text-xs joe-tube-subtitle mt-1">Click for the show!</div>
+        <!-- Front-panel button row -->
+        <div class="crt-panel">
+          <button id="crt-prev" class="crt-btn" type="button">
+            <span class="crt-btn-glyph">◀</span>
+            PREV
+          </button>
+          <button id="crt-shuffle" class="crt-btn is-accent" type="button">⇄ SHUFFLE</button>
+          <a id="crt-youtube-link" class="crt-btn" target="_blank" rel="noopener" href="#">
+            ⇪ YOUTUBE
+          </a>
+          <button id="crt-copy-link" class="crt-btn" type="button">⌘ COPY LINK</button>
+          <button id="crt-copy-title" class="crt-btn" type="button">✎ COPY TITLE</button>
+          <button id="crt-next" class="crt-btn" type="button" style="grid-column: 1 / -1">
+            NEXT
+            <span class="crt-btn-glyph">▶</span>
+          </button>
         </div>
-      </div>
-    </template>
+      </section>
 
-    <template id="video-unloaded-template">
-      <div
-        class="flex items-center justify-center h-full border-2 border-dashed border-rainbow rounded-lg joe-tube-magic"
-      >
-        <div class="text-center joe-tube-text">
-          <div class="text-4xl mb-2">🎭</div>
-          <div class="text-sm">Show Intermission</div>
-          <div class="text-xs joe-tube-subtitle mt-1">Navigate back for more magic!</div>
-        </div>
+      <!-- "NOW PLAYING" marquee under the TV -->
+      <div id="crt-marquee" class="crt-marquee" aria-live="polite">
+        <span class="crt-now-tag">
+          <span class="crt-rec-dot" aria-hidden="true"></span>
+          NOW PLAYING
+        </span>
+        <span id="crt-title" class="crt-title">—</span>
       </div>
-    </template>
 
-    <script>
-      // Configure share button with video context
-      document.addEventListener('DOMContentLoaded', function () {
-        const shareBtn = document.querySelector('share-button');
-        if (shareBtn) {
-          shareBtn.textGenerator = function () {
-            const slides = document.querySelectorAll('.carousel-slide');
-            const currentIndex = window.currentSlide || 0;
-            const slide = slides[currentIndex];
-            if (slide) {
-              const title = slide.getAttribute('data-video-title');
-              if (title) {
-                return 'Check out "' + title + '" on JoeTube! 🎬';
-              }
-            }
-            return 'Check out JoeTube - a fun YouTube video carousel! 🎬';
-          };
-        }
-      });
-    </script>
+      <div class="crt-help">
+        <kbd>◀</kbd>
+        <kbd>▶</kbd>
+        change channel ·
+        <kbd>R</kbd>
+        shuffle ·
+        <kbd>Enter</kbd>
+        play
+      </div>
+
+      <!-- Site-wide share button (custom element handled by /share.js) -->
+      <share-button label="📤 Share" theme="glass"></share-button>
+    </div>
   </body>
 </html>

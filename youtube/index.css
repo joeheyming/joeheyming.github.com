@@ -1,438 +1,899 @@
-/* JoeTube Zany Theme Styles */
-.joe-tube-bg {
-  background: linear-gradient(
-    45deg,
-    #ff6b6b,
-    #feca57,
-    #48dbfb,
-    #ff9ff3,
-    #54a0ff,
-    #5f27cd,
-    #1dd1a1,
-    #ffeaa7
-  );
-  background-size: 400% 400%;
-  animation: rainbow-dance 8s ease-in-out infinite;
+/* ============================================================================
+ * JoeTube — Retro CRT Television Theme
+ * ============================================================================
+ * Built around a chunky wood-grain TV cabinet with a curved cathode-ray screen,
+ * VHS-grade typography, scanlines and phosphor glow. Inspired by 70s-80s sets.
+ * ========================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap');
+
+:root {
+  --crt-wood: #5a3818;
+  --crt-wood-dark: #2c1908;
+  --crt-wood-light: #7a4f25;
+  --crt-wood-highlight: #c79253;
+  --crt-bezel: #2e2114;
+  --crt-bezel-edge: #110a05;
+  --crt-screen-off: #0a1a0a;
+  --crt-screen-on: #061206;
+  --crt-phosphor: #f5d573;     /* warm amber phosphor */
+  --crt-phosphor-glow: rgba(245, 213, 115, 0.55);
+  --crt-phosphor-dim: #b89238;
+  --crt-led-red: #ff3a2e;
+  --crt-led-red-glow: rgba(255, 58, 46, 0.7);
+  --crt-led-green: #7dff7d;
+  --crt-brass: #c9a96a;
+  --crt-brass-dark: #8b7142;
+  --crt-knob: #3a2b1a;
+  --crt-knob-edge: #1c130a;
+  --font-screen: 'VT323', 'Courier New', ui-monospace, monospace;
+  --font-label: 'Press Start 2P', 'VT323', monospace;
 }
 
-@keyframes rainbow-dance {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+/* ------------------------------------------------------------------------ */
+/* Room — wallpaper behind the TV                                            */
+/* ------------------------------------------------------------------------ */
+
+/* Border-box everywhere so percentage widths include padding + border.
+ * Without this the cabinet (`width: 100%` + padding + 2px border) overflows
+ * its parent by ~32px on phones, clipping the right edge of the TV. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-.joe-tube-header {
-  background: linear-gradient(135deg, #6c5ce7, #fd79a8, #fdcb6e);
-  border: 3px solid transparent;
-  background-clip: padding-box;
-  box-shadow: 0 0 20px rgba(255, 107, 107, 0.3), 0 0 40px rgba(116, 185, 255, 0.2),
-    inset 0 0 20px rgba(255, 255, 255, 0.1);
-  animation: header-glow 3s ease-in-out infinite alternate;
-  font-family: 'Comic Sans MS', cursive, Arial, sans-serif;
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-screen);
+  color: var(--crt-phosphor);
+  background:
+    radial-gradient(ellipse at 50% 30%, #2c1f15 0%, #1a120a 60%, #0b0703 100%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(120, 80, 40, 0.08) 0px,
+      rgba(120, 80, 40, 0.08) 2px,
+      transparent 2px,
+      transparent 90px
+    );
+  background-attachment: fixed;
+  overflow-x: hidden;
+}
+
+.crt-room {
+  min-height: 100vh;
+  padding: 24px 16px 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+/* Brand strip above the TV */
+.crt-brand {
+  font-family: var(--font-label);
+  font-size: 14px;
+  letter-spacing: 6px;
+  color: var(--crt-brass);
+  text-shadow: 0 0 8px rgba(201, 169, 106, 0.5);
+  text-transform: uppercase;
+  margin: 4px 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.crt-brand .pwr-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--crt-led-red);
+  box-shadow: 0 0 8px var(--crt-led-red-glow), inset 0 -2px 4px rgba(0, 0, 0, 0.4);
+  animation: pwr-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes pwr-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 10px var(--crt-led-red-glow), inset 0 -2px 4px rgba(0,0,0,0.4); }
+  50%      { opacity: 0.75; box-shadow: 0 0 4px var(--crt-led-red-glow), inset 0 -2px 4px rgba(0,0,0,0.4); }
+}
+
+/* ------------------------------------------------------------------------ */
+/* TV cabinet — wood-grain box that holds the screen + controls              */
+/* ------------------------------------------------------------------------ */
+
+.crt-tv {
   position: relative;
+  width: min(1100px, 100%);
+  padding: 36px 36px 28px;
+  border-radius: 28px;
+  background:
+    /* Wood-grain bands */
+    repeating-linear-gradient(
+      92deg,
+      var(--crt-wood) 0px,
+      var(--crt-wood) 6px,
+      var(--crt-wood-dark) 7px,
+      var(--crt-wood-light) 14px,
+      var(--crt-wood) 22px
+    ),
+    linear-gradient(180deg, var(--crt-wood-light) 0%, var(--crt-wood) 40%, var(--crt-wood-dark) 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 220, 170, 0.22),
+    inset 0 -6px 18px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 4px rgba(0, 0, 0, 0.25),
+    0 24px 40px rgba(0, 0, 0, 0.65),
+    0 4px 0 rgba(0, 0, 0, 0.5);
+  border: 2px solid var(--crt-wood-dark);
+}
+
+.crt-tv::before {
+  /* Subtle wood polish highlight */
+  content: '';
+  position: absolute;
+  inset: 6px 6px auto 6px;
+  height: 18%;
+  background: linear-gradient(180deg, rgba(255, 220, 170, 0.18), transparent);
+  border-radius: 22px 22px 0 0;
+  pointer-events: none;
+}
+
+.crt-tv::after {
+  /* Brass model-plate */
+  content: 'MODEL J-1985';
+  position: absolute;
+  bottom: 8px;
+  right: 22px;
+  font-family: var(--font-label);
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: var(--crt-brass);
+  opacity: 0.7;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+}
+
+/* ------------------------------------------------------------------------ */
+/* Bezel — the black plastic frame around the glass tube                     */
+/* ------------------------------------------------------------------------ */
+
+.crt-bezel {
+  position: relative;
+  padding: 26px 26px 20px;
+  border-radius: 22px;
+  background:
+    linear-gradient(160deg, var(--crt-bezel) 0%, var(--crt-bezel-edge) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -10px 30px rgba(0, 0, 0, 0.8),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Tape-label above the screen */
+.crt-bezel-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
+  font-family: var(--font-label);
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--crt-brass);
+  text-transform: uppercase;
+}
+
+/* The first child holds the model text; let it shrink + ellipsize on narrow
+ * screens so the channel chip stays put on the right. */
+.crt-bezel-label > :first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crt-bezel-label .crt-channel-chip {
+  flex: 0 0 auto;
+}
+
+.crt-bezel-label .crt-channel-chip {
+  background: linear-gradient(180deg, #0a0a0a, #1a1a1a);
+  color: var(--crt-phosphor);
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid #000;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 0 6px var(--crt-phosphor-glow);
+}
+
+/* ------------------------------------------------------------------------ */
+/* The CRT screen itself                                                     */
+/* ------------------------------------------------------------------------ */
+
+.crt-screen-wrap {
+  position: relative;
+  border-radius: 28px / 36px;
+  background: var(--crt-screen-off);
+  box-shadow:
+    inset 0 0 0 6px #000,
+    inset 0 0 0 9px #1c1c1c,
+    inset 0 0 60px rgba(0, 0, 0, 0.95),
+    0 0 60px rgba(245, 213, 115, 0.04);
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  /* Subtle pincushion-style curvature */
+  transform: perspective(1400px) rotateX(0.5deg);
+}
+
+.crt-screen {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 50%,
+      var(--crt-screen-on) 0%,
+      var(--crt-screen-on) 60%,
+      #000 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
 }
 
-@keyframes header-glow {
-  from {
-    box-shadow: 0 0 20px rgba(255, 107, 107, 0.3), 0 0 40px rgba(116, 185, 255, 0.2);
-  }
-  to {
-    box-shadow: 0 0 30px rgba(255, 107, 107, 0.5), 0 0 60px rgba(116, 185, 255, 0.4);
-  }
-}
-
-.joe-tube-text {
-  color: #ffffff;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 255, 255, 0.3);
-  font-family: 'Comic Sans MS', cursive, Arial, sans-serif;
-  font-weight: bold;
-}
-
-.joe-tube-subtitle {
-  color: #ffeaa7;
-  opacity: 0.9;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
-}
-
-.joe-tube-main {
-  background: linear-gradient(
-    135deg,
-    rgba(108, 92, 231, 0.95),
-    rgba(253, 121, 168, 0.95),
-    rgba(253, 203, 110, 0.95)
-  );
-  backdrop-filter: blur(15px);
-  border: 3px solid transparent;
-  background-clip: padding-box;
-  box-shadow: 0 0 30px rgba(108, 92, 231, 0.4), inset 0 0 30px rgba(255, 255, 255, 0.1);
-  animation: main-pulse 4s ease-in-out infinite;
-}
-
-@keyframes main-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.01);
-  }
-}
-
-.border-rainbow {
-  border: 3px solid;
-  border-image: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3) 1;
-  animation: border-dance 2s linear infinite;
-}
-
-@keyframes border-dance {
-  0% {
-    filter: hue-rotate(0deg);
-  }
-  100% {
-    filter: hue-rotate(360deg);
-  }
-}
-
-/* Carousel Styles */
+/* Carousel sits inside the screen */
 .carousel-container {
-  position: relative;
+  position: absolute;
+  inset: 0;
   overflow: hidden;
-  border-radius: 15px;
-  box-shadow: 0 0 40px rgba(255, 107, 107, 0.3);
 }
 
 .carousel-track {
   display: flex;
-  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  height: 100%;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 .carousel-slide {
-  min-width: 100%;
-  box-sizing: border-box;
-}
-
-.video-container {
+  flex: 0 0 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   position: relative;
-  width: 100%;
-  max-height: 50vh;
-  aspect-ratio: 16/9;
-  height: auto;
-  overflow: hidden;
-  border-radius: 15px;
 }
 
-.video-container iframe {
+.video-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.video-stage .video-thumb {
   width: 100%;
   height: 100%;
-  border-radius: 15px;
-  border: 4px solid transparent;
-  background: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3) padding-box,
-    linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3) border-box;
-  animation: video-glow 3s ease-in-out infinite alternate;
+  object-fit: cover;
+  filter: saturate(0.85) contrast(1.05) brightness(0.92);
+  transition: filter 0.3s ease;
 }
 
-@keyframes video-glow {
-  from {
-    box-shadow: 0 0 15px rgba(255, 107, 107, 0.2);
-  }
-  to {
-    box-shadow: 0 0 25px rgba(72, 219, 251, 0.3);
-  }
+.video-stage:hover .video-thumb {
+  filter: saturate(1) contrast(1.1) brightness(1);
 }
 
-.joe-tube-magic {
-  background: linear-gradient(
-    45deg,
-    rgba(255, 107, 107, 0.1),
-    rgba(254, 202, 87, 0.1),
-    rgba(72, 219, 251, 0.1),
-    rgba(255, 159, 243, 0.1)
-  );
-  background-size: 400% 400%;
-  animation: magic-shimmer 3s ease-in-out infinite;
-  position: relative;
-  overflow: hidden;
-}
-
-.joe-tube-magic::before {
-  content: '✨';
+.video-stage .play-overlay {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 20px;
-  animation: sparkle 2s ease-in-out infinite;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 100%);
+  transition: background 0.3s ease;
 }
 
-.joe-tube-magic::after {
-  content: '🎪';
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  font-size: 16px;
-  animation: bounce 2s ease-in-out infinite;
+.video-stage:hover .play-overlay {
+  background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 100%);
 }
 
-@keyframes magic-shimmer {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-@keyframes sparkle {
-  0%,
-  100% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.5) rotate(180deg);
-    opacity: 0.5;
-  }
-}
-
-@keyframes bounce {
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-/* Navigation Controls */
-.joe-tube-button {
-  background: linear-gradient(135deg, #6c5ce7, #fd79a8, #fdcb6e, #1dd1a1);
-  background-size: 300% 300%;
-  border: 3px solid #ffffff;
-  color: #ffffff;
-  transition: all 0.3s ease;
-  font-family: 'Comic Sans MS', cursive, Arial, sans-serif;
-  font-weight: bold;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  animation: button-pulse 2s ease-in-out infinite;
-  position: relative;
-  overflow: hidden;
-}
-
-.joe-tube-button::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transform: rotate(45deg);
-  transition: transform 0.6s;
-  transform: translateX(-100%);
-}
-
-.joe-tube-button:hover::before {
-  transform: translateX(100%);
-}
-
-.joe-tube-button:hover {
-  background-position: 100% 100%;
-  transform: scale(1.05) rotate(1deg);
-  box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3), 0 0 20px rgba(253, 121, 168, 0.2);
-  border-color: #ffeaa7;
-}
-
-.joe-tube-button:active {
-  transform: scale(0.95) rotate(-1deg);
-  animation: none;
-}
-
-@keyframes button-pulse {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-/* Progress indicators */
-.progress-dot {
-  width: 16px;
-  height: 16px;
-  border: 3px solid #ffffff;
-  background: linear-gradient(45deg, #ff6b6b, #feca57);
+.play-button {
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  animation: dot-dance 3s ease-in-out infinite;
+  background: rgba(245, 213, 115, 0.9);
+  color: #1a1208;
+  font-size: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid #1a1208;
+  box-shadow:
+    0 0 30px var(--crt-phosphor-glow),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease;
 }
 
-.progress-dot:nth-child(even) {
-  animation-delay: 0.5s;
+.video-stage:hover .play-button {
+  transform: scale(1.08);
 }
 
-.progress-dot.active {
-  background: linear-gradient(45deg, #1dd1a1, #48dbfb);
-  transform: scale(1.3);
-  box-shadow: 0 4px 20px rgba(29, 209, 161, 0.5), 0 0 30px rgba(72, 219, 251, 0.3);
-  border-color: #ffeaa7;
+.video-stage .video-iframe-host {
+  width: 100%;
+  height: 100%;
 }
 
-.progress-dot:hover {
-  transform: scale(1.4) rotate(180deg);
-  box-shadow: 0 4px 20px rgba(255, 107, 107, 0.4);
+.video-stage iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #000;
 }
 
-@keyframes dot-dance {
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-3px);
-  }
-}
-
-/* JoeTube Scrollbar */
-::-webkit-scrollbar {
-  width: 12px;
-  background: linear-gradient(45deg, #ff6b6b, #feca57);
-}
-
-::-webkit-scrollbar-track {
-  background: linear-gradient(45deg, #6c5ce7, #fd79a8);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(45deg, #1dd1a1, #48dbfb);
-  border-radius: 10px;
-  border: 2px solid #ffffff;
-  animation: thumb-glow 2s ease-in-out infinite alternate;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(45deg, #ff9ff3, #fdcb6e);
-  box-shadow: 0 0 15px rgba(255, 159, 243, 0.5);
-}
-
-@keyframes thumb-glow {
-  from {
-    box-shadow: 0 0 5px rgba(29, 209, 161, 0.3);
-  }
-  to {
-    box-shadow: 0 0 15px rgba(72, 219, 251, 0.6);
-  }
-}
-
-/* Blinking cursor effect */
-.joe-tube-cursor::after {
-  content: '🎪';
-  animation: circus-blink 1.5s infinite;
-  margin-left: 5px;
-}
-
-@keyframes circus-blink {
-  0%,
-  50% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  51%,
-  100% {
-    opacity: 0;
-    transform: scale(1.2);
-  }
-}
-
-/* Fun floating animations */
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-.joe-tube-text {
-  animation: text-rainbow 4s ease-in-out infinite;
-}
-
-@keyframes text-rainbow {
-  0%,
-  100% {
-    color: #ffffff;
-  }
-  50% {
-    color: #e0e0e0;
-  }
-}
-
-/* Mobile responsive tweaks */
-@media (max-width: 768px) {
-  .joe-tube-header {
-    padding: 8px 12px;
-  }
-
-  .joe-tube-button {
-    font-size: 12px;
-    padding: 8px 12px;
-  }
-
-  .progress-dot {
-    width: 12px;
-    height: 12px;
-  }
-
-  .video-container {
-    max-height: 40vh;
-  }
-}
-
-/* Special effects */
-.joe-tube-main {
-  position: relative;
-}
-
-.joe-tube-main::before {
+/* Scanline overlay (drawn on top of the screen) */
+.crt-screen-wrap::before {
   content: '';
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
-  animation: cosmic-spin 20s linear infinite;
+  inset: 0;
   pointer-events: none;
-  z-index: 1;
-}
-
-@keyframes cosmic-spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.carousel-slide {
-  position: relative;
   z-index: 2;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.18) 0px,
+    rgba(0, 0, 0, 0.18) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: multiply;
+}
+
+/* Vignette + phosphor sheen */
+.crt-screen-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.45) 100%),
+    radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.06), transparent 50%);
+  animation: crt-flicker 4.5s steps(60) infinite;
+}
+
+@keyframes crt-flicker {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.97; }
+  52%      { opacity: 1; }
+  53%      { opacity: 0.95; }
+  54%      { opacity: 1; }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Loading & no-signal overlays                                              */
+/* ------------------------------------------------------------------------ */
+
+.crt-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-family: var(--font-screen);
+  color: var(--crt-phosphor);
+  text-shadow: 0 0 8px var(--crt-phosphor-glow);
+  text-align: center;
+  padding: 24px;
+}
+
+.crt-overlay.hidden {
+  display: none;
+}
+
+.crt-overlay-title {
+  font-family: var(--font-label);
+  font-size: clamp(12px, 2.2vw, 18px);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.crt-overlay-message {
+  font-size: clamp(16px, 2.4vw, 24px);
+  max-width: 70ch;
+}
+
+/* TV-static animation */
+.crt-static {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background:
+    repeating-conic-gradient(
+      from 0deg,
+      rgba(255, 255, 255, 0.05) 0deg 1deg,
+      rgba(0, 0, 0, 0.05) 1deg 2deg
+    );
+  background-size: 4px 4px;
+  animation: crt-static 0.18s steps(2) infinite;
+  opacity: 0.45;
+  mix-blend-mode: screen;
+}
+
+.crt-static.hidden { display: none; }
+
+@keyframes crt-static {
+  0%   { background-position:    0px    0px; }
+  20%  { background-position:  -12px   18px; }
+  40%  { background-position:   18px  -22px; }
+  60%  { background-position:  -24px   24px; }
+  80%  { background-position:   30px   16px; }
+  100% { background-position:  -18px   -8px; }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Side rail — channel knob, power LED                                       */
+/* ------------------------------------------------------------------------ */
+
+.crt-controls-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.crt-channel-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #0a0a0a, #181818);
+  border: 1px solid #000;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.9);
+  font-family: var(--font-screen);
+  color: var(--crt-phosphor);
+  text-shadow: 0 0 6px var(--crt-phosphor-glow);
+  min-width: 120px;
+}
+
+.crt-channel-display .label {
+  font-family: var(--font-label);
+  font-size: 8px;
+  letter-spacing: 3px;
+  color: var(--crt-phosphor-dim);
+}
+
+.crt-channel-display .value {
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: 2px;
+}
+
+.crt-channel-display .total {
+  font-size: 12px;
+  color: var(--crt-phosphor-dim);
+}
+
+/* Chunky knob */
+.crt-knob {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, #5a4a32, var(--crt-knob) 40%, var(--crt-knob-edge) 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.7),
+    0 4px 6px rgba(0, 0, 0, 0.6),
+    0 0 0 3px var(--crt-bezel-edge);
+  cursor: pointer;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.crt-knob::before {
+  /* Pointer tick */
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 4px;
+  height: 18px;
+  background: var(--crt-brass);
+  border-radius: 2px;
+  transform: translateX(-50%);
+  box-shadow: 0 0 6px rgba(201, 169, 106, 0.7);
+}
+
+.crt-knob:hover {
+  filter: brightness(1.1);
+}
+
+.crt-knob:active {
+  transform: scale(0.96);
+}
+
+.crt-knob-cap {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #8a6b3f, #3a2a18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Channel up/down buttons stacked beside the knob */
+.crt-side-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-self: end;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Front-panel buttons (chunky 70s style)                                    */
+/* ------------------------------------------------------------------------ */
+
+.crt-panel {
+  margin-top: 18px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, #2a1c0e, #1a110a);
+  border: 1px solid #000;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 220, 170, 0.12),
+    inset 0 -4px 10px rgba(0, 0, 0, 0.7);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  align-items: stretch;
+}
+
+.crt-btn {
+  position: relative;
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #f4e0a8;
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7);
+  padding: 14px 8px;
+  background:
+    linear-gradient(180deg, #4d3920 0%, #2c1f10 100%);
+  border: 1px solid #000;
+  border-radius: 6px;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 220, 170, 0.18),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.6),
+    0 3px 0 #000;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+}
+
+.crt-btn:hover {
+  filter: brightness(1.15);
+}
+
+.crt-btn:active,
+.crt-btn.is-pressed {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.8),
+    inset 0 -1px 0 rgba(255, 220, 170, 0.05),
+    0 1px 0 #000;
+}
+
+.crt-btn.is-accent {
+  background: linear-gradient(180deg, #8a3a22 0%, #4a1a0e 100%);
+  color: #ffe6c8;
+}
+
+.crt-btn .crt-btn-glyph {
+  font-size: 14px;
+  margin-right: 4px;
+}
+
+/* Tiny CH up/down stack */
+.crt-side-buttons .crt-btn {
+  padding: 6px 10px;
+  font-size: 9px;
+  letter-spacing: 1px;
+  min-width: 70px;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Title marquee underneath the TV                                           */
+/* ------------------------------------------------------------------------ */
+
+.crt-marquee {
+  width: min(1100px, 100%);
+  margin-top: 8px;
+  background: linear-gradient(180deg, #0a0a0a, #181818);
+  border-radius: 10px;
+  border: 1px solid #000;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.7);
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.crt-marquee .crt-now-tag {
+  font-family: var(--font-label);
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--crt-led-red);
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: 0 0 8px var(--crt-led-red-glow);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.crt-marquee .crt-rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--crt-led-red);
+  box-shadow: 0 0 8px var(--crt-led-red-glow);
+  animation: pwr-pulse 1.8s ease-in-out infinite;
+}
+
+.crt-marquee .crt-title {
+  flex: 1;
+  font-family: var(--font-screen);
+  font-size: 22px;
+  color: var(--crt-phosphor);
+  text-shadow: 0 0 6px var(--crt-phosphor-glow);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* Flash message slides in over the marquee */
+.crt-marquee.is-flashing .crt-title {
+  color: var(--crt-led-green);
+  text-shadow: 0 0 8px rgba(125, 255, 125, 0.7);
+}
+
+/* ------------------------------------------------------------------------ */
+/* Help footer                                                               */
+/* ------------------------------------------------------------------------ */
+
+.crt-help {
+  font-family: var(--font-label);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--crt-brass-dark);
+  text-transform: uppercase;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.crt-help kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  margin: 0 2px;
+  background: #1a1208;
+  border: 1px solid var(--crt-brass-dark);
+  border-radius: 3px;
+  color: var(--crt-brass);
+  font-family: inherit;
+  font-size: 8px;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Responsive                                                                */
+/* ------------------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+  .crt-room {
+    /* Top padding clears the fixed `.back-to-portfolio` button (top: 20px,
+     * height: ~40px). Phones get an extra ~52px so the brand strip lands
+     * below the back button instead of behind it. */
+    padding: 64px 8px 60px;
+  }
+
+  .crt-tv {
+    padding: 16px 14px 14px;
+    border-radius: 18px;
+  }
+
+  .crt-bezel {
+    padding: 14px 12px 12px;
+    border-radius: 14px;
+    gap: 10px;
+  }
+
+  .crt-screen-wrap {
+    aspect-ratio: 4 / 3;
+  }
+
+  /* Three columns again so the CH± stack sits next to the knob instead of
+   * wrapping into its own row underneath. Cap the channel display so the
+   * row still fits at 320px. */
+  .crt-controls-row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 8px;
+  }
+
+  .crt-channel-display {
+    min-width: 0;
+    padding: 6px 10px;
+  }
+
+  .crt-channel-display .value { font-size: 22px; }
+
+  .crt-knob {
+    width: 56px;
+    height: 56px;
+  }
+
+  .crt-knob::before {
+    height: 14px;
+    top: 4px;
+  }
+
+  .crt-knob-cap {
+    width: 18px;
+    height: 18px;
+  }
+
+  .crt-panel {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .crt-btn {
+    padding: 10px 4px;
+    font-size: 9px;
+    letter-spacing: 1px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* The glyph margin steals room on narrow buttons; the flex gap from the
+   * row spacing is enough. */
+  .crt-btn .crt-btn-glyph { margin-right: 2px; font-size: 11px; }
+
+  /* CH±: keep them compact and one line each */
+  .crt-side-buttons {
+    gap: 6px;
+  }
+  .crt-side-buttons .crt-btn {
+    min-width: 0;
+    padding: 6px 6px;
+    font-size: 8px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .crt-marquee .crt-title { font-size: 16px; }
+  .crt-brand { font-size: 10px; letter-spacing: 4px; }
+  .crt-bezel-label { font-size: 8px; letter-spacing: 2px; }
+  .crt-bezel-label .crt-channel-chip { padding: 3px 6px; }
+}
+
+/* Short landscape viewports (phones rotated to landscape, foldables).
+ * The 16:10 screen alone is taller than the viewport at this height — shrink
+ * it, drop nice-to-have chrome, and squeeze the controls onto one row so the
+ * whole TV fits without scrolling. */
+@media (max-height: 520px) and (orientation: landscape) {
+  .crt-room {
+    padding: 8px 12px 16px;
+    gap: 6px;
+  }
+  .crt-brand { display: none; }
+  .crt-help { display: none; }
+  .crt-tv::after { display: none; }
+
+  .crt-tv { padding: 12px 18px 10px; border-radius: 16px; }
+  .crt-bezel { padding: 10px 14px 8px; gap: 8px; border-radius: 12px; }
+  .crt-bezel-label { font-size: 8px; letter-spacing: 2px; }
+
+  .crt-screen-wrap {
+    aspect-ratio: auto;
+    height: min(54vh, 260px);
+  }
+
+  .crt-controls-row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .crt-channel-display { padding: 4px 8px; }
+  .crt-channel-display .value { font-size: 18px; }
+  .crt-channel-display .label { font-size: 7px; }
+  .crt-channel-display .total { font-size: 10px; }
+
+  .crt-knob { width: 44px; height: 44px; }
+  .crt-knob::before { height: 10px; top: 3px; }
+  .crt-knob-cap { width: 12px; height: 12px; }
+
+  .crt-side-buttons { gap: 4px; }
+  .crt-side-buttons .crt-btn {
+    padding: 4px 6px;
+    font-size: 8px;
+    letter-spacing: 0.5px;
+  }
+
+  /* All 6 buttons on one row; defeat the NEXT inline grid-column override. */
+  .crt-panel {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    padding: 8px;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .crt-panel > #crt-next { grid-column: auto !important; }
+  .crt-btn {
+    padding: 8px 4px;
+    font-size: 8px;
+    letter-spacing: 0.5px;
+    min-width: 0;
+  }
+  .crt-btn .crt-btn-glyph { font-size: 10px; margin-right: 2px; }
+
+  .crt-marquee { padding: 8px 14px; margin-top: 4px; }
+  .crt-marquee .crt-title { font-size: 14px; }
+  .crt-marquee .crt-now-tag { font-size: 7px; letter-spacing: 2px; }
+}
+
+/* Tightest phones — iPhone SE, small Androids. Shrink panel to single column
+ * and abbreviate labels so nothing clips. */
+@media (max-width: 380px) {
+  .crt-tv { padding: 12px 10px 12px; }
+  .crt-bezel { padding: 12px 10px 10px; }
+
+  .crt-channel-display { padding: 5px 8px; }
+  .crt-channel-display .value { font-size: 20px; }
+
+  .crt-knob { width: 48px; height: 48px; }
+  .crt-knob::before { height: 11px; top: 3px; }
+  .crt-knob-cap { width: 14px; height: 14px; }
+
+  .crt-panel { gap: 6px; padding: 8px; }
+  .crt-btn { padding: 9px 3px; font-size: 8px; letter-spacing: 0.5px; }
+  .crt-btn .crt-btn-glyph { font-size: 10px; }
+
+  .crt-marquee { padding: 10px 12px; gap: 10px; }
+  .crt-marquee .crt-title { font-size: 14px; }
+  .crt-marquee .crt-now-tag { font-size: 8px; letter-spacing: 2px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pwr-pulse,
+  .crt-screen-wrap::after,
+  .crt-static {
+    animation: none;
+  }
+  .carousel-track {
+    transition: none;
+  }
 }
