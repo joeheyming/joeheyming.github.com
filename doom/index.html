@@ -177,21 +177,6 @@
     <script defer src="moddb-archive.js"></script>
     <script defer src="moddb-iwad.js"></script>
     <script defer src="moddb-browser.js"></script>
-    <!-- Phone → desktop console relay. Opt-in via ?phonelog=1. -->
-    <script>
-      (function () {
-        try {
-          if (new URLSearchParams(location.search).get('phonelog') === '1') {
-            var s = document.createElement('script');
-            s.src = '/scripts/phone-console.js';
-            s.async = false;
-            document.currentScript.parentNode.insertBefore(s, document.currentScript);
-          }
-        } catch (_e) {
-          /* noop */
-        }
-      })();
-    </script>
 
     <!-- uzdoom-loader.js expects a specific DOM layout and specific IDs
          (iwadPicker, modPicker, sfPicker, launchBtn, status, canvas,
