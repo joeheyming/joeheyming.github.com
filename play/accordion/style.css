@@ -227,6 +227,23 @@ details.instrument-help > summary:focus-visible {
   transform: translate(-50%, -50%);
 }
 
+/* Musette: two M reeds shown as a vertically-split pair just above /
+ * below centre. The visual convention (used on real Italian-style
+ * accordion stops) lets the player tell a "single M" stop apart from
+ * a "double M" stop at a glance. The cents-detuned reed sits below;
+ * the unison reed above. Both inside the M zone (40–60%) so they
+ * read as "still M, just two of them" rather than drifting toward
+ * the L or H positions. */
+.register-dot.m1 {
+  top: 41%;
+  transform: translate(-50%, -50%);
+}
+
+.register-dot.m2 {
+  top: 59%;
+  transform: translate(-50%, -50%);
+}
+
 .register-dot.l {
   top: 76%;
   transform: translate(-50%, -50%);
@@ -1084,11 +1101,26 @@ details.instrument-help > summary:focus-visible {
   --btn-size: clamp(48px, var(--auto-btn), 88px);
 }
 
+/* Honeycomb stagger via per-row leading padding. Rows with --row-offset 0.5
+ * push their first button half a column to the right; flush rows (offset 0)
+ * sit hard against the row's left edge.
+ *
+ * The complementary padding-right is critical: without it, staggered rows
+ * are wider than flush rows, and the keyboard's `align-items: safe center`
+ * re-centres each row independently — drifting the narrower rows inward
+ * and turning what should be a uniform half-button stagger into a 0.25 /
+ * 0.75 zigzag (visible as a "kink" in the F-G-A-B chromatic diagonal on
+ * B-system, and the mirror diagonal on C-system). Padding both sides so
+ * every row has the same total width = staggered rows + 0.5 col-step
+ * keeps the centred rows perfectly aligned and the stagger uniform.
+ *
+ * Same trick `.stradella-row` uses (see `padding-right` rule there). */
 .chromatic-row {
   display: flex;
   gap: var(--btn-gap);
   flex-wrap: nowrap;
   padding-left: calc(var(--row-offset, 0) * var(--col-step));
+  padding-right: calc((0.5 - var(--row-offset, 0)) * var(--col-step));
   width: max-content;
 }
 
@@ -1100,6 +1132,12 @@ details.instrument-help > summary:focus-visible {
   flex-direction: column;
   gap: var(--btn-gap);
   padding-top: calc(var(--col-offset, 0) * var(--col-step));
+  /* Same equal-total-height balancing as .chromatic-row above: without
+   * the trailing padding the staggered columns are taller than flush
+   * ones and `align-items: safe center` (in horizontal-axis terms,
+   * `align-items` on a flex-row of columns) drifts them inward,
+   * producing the same diagonal kink in vertical orientation. */
+  padding-bottom: calc((0.5 - var(--col-offset, 0)) * var(--col-step));
   height: max-content;
 }
 

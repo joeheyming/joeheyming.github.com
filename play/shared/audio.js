@@ -125,7 +125,13 @@ export class SampleVoice {
     const { destination = null, ...rest } = playOptions;
     this.destination = destination;
     this.playOptions = rest;
-    this.playing = new Map(); // midi -> player node
+    // Keyed by `${midi}|${detune}` so the same MIDI note can be played
+    // simultaneously at multiple cent-detunes (e.g. the accordion's
+    // musette stops, which stack a +0c M reed and a +8c M reed at the
+    // same logical midi to produce the characteristic beating). Without
+    // a compound key, the second noteOn on the same midi would stop
+    // the first (see the `prev` guard below).
+    this.playing = new Map(); // `${midi}|${detune}` -> player node
   }
 
   async load() {
@@ -138,9 +144,15 @@ export class SampleVoice {
     return !!this.instrument;
   }
 
-  noteOn(midi) {
+  /**
+   * Trigger one voice. `detune` is in cents (¢) — used by the accordion
+   * to synthesize a musette MM reed pair (one voice at +0¢, one at
+   * ~+8¢). Defaults to 0 so non-accordion callers keep working.
+   */
+  noteOn(midi, { detune = 0 } = {}) {
     if (!this.instrument) return false;
-    const prev = this.playing.get(midi);
+    const key = `${midi}|${detune}`;
+    const prev = this.playing.get(key);
     if (prev) {
       try {
         prev.stop();
@@ -150,6 +162,18 @@ export class SampleVoice {
     }
 
     const node = this.instrument.play(midiToName(midi), undefined, this.playOptions);
+
+    // Apply cent-level detune via the AudioBufferSourceNode's `detune`
+    // AudioParam. soundfont-player exposes the source on node.source.
+    // 0¢ is a no-op so the param stays at its default for the common
+    // case (every non-musette caller).
+    if (detune !== 0 && node && node.source && node.source.detune) {
+      try {
+        node.source.detune.value = detune;
+      } catch (_) {
+        /* older WebAudio without detune support — fail silently */
+      }
+    }
 
     // When looping, trim the loop region to skip the sample's natural
     // attack and release. Without this we'd loop the entire 3s buffer,
@@ -165,14 +189,15 @@ export class SampleVoice {
       }
     }
 
-    this.playing.set(midi, node);
+    this.playing.set(key, node);
     return true;
   }
 
-  noteOff(midi) {
-    const node = this.playing.get(midi);
+  noteOff(midi, { detune = 0 } = {}) {
+    const key = `${midi}|${detune}`;
+    const node = this.playing.get(key);
     if (!node) return;
-    this.playing.delete(midi);
+    this.playing.delete(key);
     try {
       node.stop();
     } catch (_) {
@@ -181,6 +206,14 @@ export class SampleVoice {
   }
 
   allOff() {
-    for (const midi of Array.from(this.playing.keys())) this.noteOff(midi);
+    for (const key of Array.from(this.playing.keys())) {
+      const node = this.playing.get(key);
+      this.playing.delete(key);
+      try {
+        node.stop();
+      } catch (_) {
+        /* ignore */
+      }
+    }
   }
 }

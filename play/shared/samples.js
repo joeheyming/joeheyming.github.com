@@ -304,19 +304,40 @@ export class MultiSampler {
     return best;
   }
 
-  noteOn(midi, { gain = 1, attack = 0.005, destination, loop } = {}) {
+  /**
+   * Trigger one voice. `detune` is in cents (¢) and is applied via the
+   * source's native `detune` AudioParam, on top of the playbackRate
+   * pitch-shift used to reach the target MIDI from the closest anchor.
+   * The accordion's musette stops use this to stack two M voices at
+   * different detunes on the same logical midi (e.g. +0¢ and +8¢) and
+   * get the characteristic beating without needing a separately-recorded
+   * MM sample pack. Defaults to 0 so non-accordion callers keep working.
+   */
+  noteOn(midi, { gain = 1, attack = 0.005, destination, loop, detune = 0 } = {}) {
     const anchor = this._closestAnchor(midi);
     if (anchor == null) return false;
     const buf = this.buffers.get(anchor);
     if (!buf) return false;
-    // Stop any prior voice on this midi so re-triggers don't pile up.
-    this.noteOff(midi, { release: 0.02 });
+    // Compound key so the same midi can sound at multiple detunes
+    // simultaneously (musette MM is the motivating case). Stop only the
+    // prior voice at this exact (midi, detune) so re-triggers don't
+    // pile up but a +0¢ noteOn doesn't kill an already-ringing +8¢
+    // voice on the same midi.
+    const key = `${midi}|${detune}`;
+    this.noteOff(midi, { release: 0.02, detune });
 
     const ctx = getCtx();
     const dest = destination || this.destination || getMaster();
     const src = ctx.createBufferSource();
     src.buffer = buf;
     src.playbackRate.value = midiToFreq(midi) / midiToFreq(anchor);
+    if (detune !== 0 && src.detune) {
+      try {
+        src.detune.value = detune;
+      } catch (_) {
+        /* older WebAudio without detune — fail silently */
+      }
+    }
 
     // Looped playback for sustained instruments. We loop the sustained
     // middle of the buffer (skipping the recorded attack and release) so
@@ -340,14 +361,15 @@ export class MultiSampler {
     src.connect(g);
     g.connect(dest);
     src.start(now);
-    this.activeNotes.set(midi, { src, gain: g });
+    this.activeNotes.set(key, { src, gain: g });
     return true;
   }
 
-  noteOff(midi, { release = 0.25 } = {}) {
-    const voice = this.activeNotes.get(midi);
+  noteOff(midi, { release = 0.25, detune = 0 } = {}) {
+    const key = `${midi}|${detune}`;
+    const voice = this.activeNotes.get(key);
     if (!voice) return;
-    this.activeNotes.delete(midi);
+    this.activeNotes.delete(key);
     const ctx = getCtx();
     const now = ctx.currentTime;
     const r = Math.max(0.01, release);
@@ -366,8 +388,14 @@ export class MultiSampler {
   }
 
   allOff() {
-    for (const midi of Array.from(this.activeNotes.keys())) {
-      this.noteOff(midi, { release: 0.05 });
+    // Iterate over a snapshot of keys; noteOff mutates activeNotes.
+    // Each key is `${midi}|${detune}` — parse out the components so
+    // noteOff finds the right entry (it re-keys internally).
+    for (const key of Array.from(this.activeNotes.keys())) {
+      const sep = key.indexOf('|');
+      const midi = sep >= 0 ? Number(key.slice(0, sep)) : Number(key);
+      const detune = sep >= 0 ? Number(key.slice(sep + 1)) : 0;
+      this.noteOff(midi, { release: 0.05, detune });
     }
   }
 }

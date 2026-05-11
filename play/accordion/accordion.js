@@ -100,13 +100,24 @@ const Prefs = makePrefs('play.accordion.prefs.v1');
  * and releasing one shouldn't cut the other.
  *
  * The synth also models a real accordion's **register switches** (couplers).
- * Each register is an array of octave shifts in semitones — for example
- * `[0]` plays only the middle reed, `[-12, 0, +12]` layers the low,
- * middle, and high reeds together (the "Master" register). When a logical
- * note comes in we trigger one physical voice per active shift, and
- * refcount on the *physical* MIDI value so that two logical notes whose
- * shifted pitches collide (e.g. logical-60 with shift +12 vs logical-72
- * with shift 0 → both physical 72) don't cut each other off prematurely.
+ * Each register is a list of *reeds* — `{ semis, cents }` pairs — describing
+ * which physical reed banks engage:
+ *
+ *   - `semis: -12 / 0 / +12` selects the L (bassoon) / M (clarinet) /
+ *     H (piccolo) reed bank.
+ *   - `cents: 0` is the on-pitch reed; non-zero cents lets us synthesize
+ *     the **musette** beating real accordions get from two physical M
+ *     reeds detuned a few cents apart. E.g. `[{semis:0,cents:0},
+ *     {semis:0,cents:+8}]` plays the standard "MM" 2-voice musette.
+ *
+ * For each note, we trigger one physical voice per active reed and
+ * refcount on `(physicalMidi, cents)` so that:
+ *   - two logical notes whose shifted pitches collide (logical-60 with
+ *     shift +12 vs logical-72 with shift 0 → both physical 72) don't
+ *     cut each other off prematurely;
+ *   - and a +0¢ M reed and a +8¢ M reed at the same physical midi each
+ *     keep their own refcount, since musically they're independent
+ *     voices that the player wants ringing simultaneously.
  */
 class AccordionSynth {
   constructor({ destination = null } = {}) {
@@ -130,10 +141,12 @@ class AccordionSynth {
     // Refcounts are kept per voice because the same physical MIDI value
     // can be held by both sides simultaneously (e.g. right hand plays
     // G3 while a left-hand C-major chord also produces G3) and they
-    // need to noteOff independently.
-    this.mainRefCount = new Map(); // physical midi -> holders on `voice`
-    this.bassRefCount = new Map(); // physical midi -> holders on `bassVoice`
-    this.shifts = [0]; // active reed banks: octave offsets in semitones
+    // need to noteOff independently. Keys are `${midi}|${cents}` so a
+    // pair of musette M reeds at the same midi but different cents are
+    // tracked as independent voices.
+    this.mainRefCount = new Map(); // `${midi}|${cents}` -> holders on `voice`
+    this.bassRefCount = new Map(); // `${midi}|${cents}` -> holders on `bassVoice`
+    this.reeds = [{ semis: 0, cents: 0 }]; // active reed banks
     this.onActiveChange = () => {};
     // Set when a sample-based tone failed to load any anchors and we
     // silently swapped in a soundfont so the user still hears reeds.
@@ -195,13 +208,37 @@ class AccordionSynth {
     }
   }
 
-  setRegister(shifts) {
-    const next = [...new Set(shifts)].sort((a, b) => a - b);
-    if (this.shifts.length === next.length && this.shifts.every((s, i) => s === next[i])) return;
+  /**
+   * `reeds` is a list of `{ semis, cents }` pairs (or bare numbers for
+   * backwards compat — old callers passing `[0, -12, 12]` still work,
+   * each entry treated as `{ semis: n, cents: 0 }`). Duplicates are
+   * dedup'd by full (semis, cents) identity, not just semis, so two
+   * detuned M reeds for musette stay separate.
+   */
+  setRegister(reeds) {
+    const normalized = reeds.map((r) =>
+      typeof r === 'number' ? { semis: r, cents: 0 } : { semis: r.semis | 0, cents: r.cents | 0 }
+    );
+    // Dedup by (semis, cents) identity and sort for stable comparison.
+    const seen = new Set();
+    const unique = [];
+    for (const r of normalized) {
+      const k = `${r.semis}|${r.cents}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      unique.push(r);
+    }
+    unique.sort((a, b) => a.semis - b.semis || a.cents - b.cents);
+    if (
+      this.reeds.length === unique.length &&
+      this.reeds.every((r, i) => r.semis === unique[i].semis && r.cents === unique[i].cents)
+    ) {
+      return;
+    }
     // Clean transition: drop any held notes so we don't have orphan voices
     // playing at old offsets when the user rejiggers the register mid-chord.
     this.allOff();
-    this.shifts = next;
+    this.reeds = unique;
   }
 
   isReady() {
@@ -231,14 +268,15 @@ class AccordionSynth {
     resumeIfSuspended();
     const { voice, refCount } = this._routeFor(side);
     if (!voice?.isReady()) return;
-    for (const shift of this.shifts) {
-      const m = midi + shift;
+    for (const reed of this.reeds) {
+      const m = midi + reed.semis;
       if (m < 0 || m > 127) continue;
-      const next = (refCount.get(m) || 0) + 1;
-      refCount.set(m, next);
+      const key = `${m}|${reed.cents}`;
+      const next = (refCount.get(key) || 0) + 1;
+      refCount.set(key, next);
       // (re)trigger the sample whenever a fresh holder presses, so repeated
       // taps still feel responsive.
-      voice.noteOn(m);
+      voice.noteOn(m, { detune: reed.cents });
       this.activeCount += 1;
     }
     this.onActiveChange(this.activeCount);
@@ -247,16 +285,17 @@ class AccordionSynth {
   noteOff(midi, { side = 'right' } = {}) {
     const { voice, refCount } = this._routeFor(side);
     if (!voice) return;
-    for (const shift of this.shifts) {
-      const m = midi + shift;
+    for (const reed of this.reeds) {
+      const m = midi + reed.semis;
       if (m < 0 || m > 127) continue;
-      const cur = refCount.get(m) || 0;
+      const key = `${m}|${reed.cents}`;
+      const cur = refCount.get(key) || 0;
       if (cur === 0) continue;
       if (cur === 1) {
-        refCount.delete(m);
-        voice.noteOff(m);
+        refCount.delete(key);
+        voice.noteOff(m, { detune: reed.cents });
       } else {
-        refCount.set(m, cur - 1);
+        refCount.set(key, cur - 1);
       }
       this.activeCount = Math.max(0, this.activeCount - 1);
     }
@@ -275,29 +314,139 @@ class AccordionSynth {
 
 /**
  * Register switch presets, modelled on a piano accordion's reed couplers.
- * Each entry has an `id`, a short text label (`L`/`M`/`H` etc.), a longer
- * reed-name, and a list of octave shifts in semitones representing which
- * reed banks are engaged.
+ * Each entry has an `id`, a short text label (`L`/`M`/`H`/`MM` etc.),
+ * a longer reed-name, and a `reeds` list — `{ semis, cents }` pairs
+ * describing which physical reed banks engage:
+ *
+ *   - `semis: -12` = L (bassoon, octave below concert)
+ *   - `semis:   0` = M (clarinet, concert pitch)
+ *   - `semis: +12` = H (piccolo, octave above)
+ *   - non-zero `cents` = a slightly-detuned reed, used for **musette**
+ *     beating. A real "MM" stop has two physical M reeds, one at concert
+ *     pitch and one a few cents sharp; we synthesize that by stacking
+ *     `{semis:0,cents:0}` and `{semis:0,cents:+8}`. Any register with
+ *     two-or-more M reeds is a tremolo / musette stop on a real
+ *     instrument; everything else (L, M, H, LM, LH, MH, LMH) is *pure*.
  *
  * Real instruments have *two* register sections — one above the right
  * (treble) keyboard for the melody side, and a much smaller one for the
- * left (Stradella bass) side. The treble side typically offers all
- * combinations of L/M/H reeds; the bass side commonly offers just two
- * settings: a single "tenor" reed for tonal lines, or a layered "master"
- * couple of all reeds for full dance-band volume. We model both.
+ * left (Stradella bass) side. The treble side typically offers the full
+ * 11-stop matrix below (every L/M/H combination, with and without
+ * musette); the bass side commonly offers just two settings, a single
+ * "tenor" reed for tonal lines or a layered "master" couple of all reeds
+ * for full dance-band volume. We model both.
+ *
+ * Caveat: the FreePats Button Accordion HN sample pack is itself
+ * recorded from a real *MM* (musette) instrument — the source already
+ * has the two-reed beating baked in. Stacking on top of that gives a
+ * fuller chorus than a real single-reed M would; the soundfont tones
+ * (accordion / tango_accordion / reed_organ / harmonica) have no such
+ * baked-in tremolo and will produce clean single-reed sounds for the
+ * pure stops below.
  */
+const MUSETTE_CENTS = 8;
+
 const RIGHT_REGISTERS = [
-  { id: 'L', label: 'L', name: 'Bassoon', shifts: [-12] },
-  { id: 'M', label: 'M', name: 'Clarinet', shifts: [0] },
-  { id: 'H', label: 'H', name: 'Piccolo', shifts: [12] },
-  { id: 'LM', label: 'LM', name: 'Bandoneon', shifts: [-12, 0] },
-  { id: 'MH', label: 'MH', name: 'Violin', shifts: [0, 12] },
-  { id: 'LMH', label: 'LMH', name: 'Master', shifts: [-12, 0, 12] }
+  // Pure (no tremolo): single reed per bank. Real instruments: L, M, H,
+  // and every 2-/3-bank combination that doesn't double up on M.
+  { id: 'L', label: 'L', name: 'Bassoon', reeds: [{ semis: -12, cents: 0 }] },
+  { id: 'M', label: 'M', name: 'Clarinet', reeds: [{ semis: 0, cents: 0 }] },
+  { id: 'H', label: 'H', name: 'Piccolo', reeds: [{ semis: 12, cents: 0 }] },
+  {
+    id: 'LM',
+    label: 'LM',
+    name: 'Bandoneon',
+    reeds: [
+      { semis: -12, cents: 0 },
+      { semis: 0, cents: 0 }
+    ]
+  },
+  {
+    id: 'LH',
+    label: 'LH',
+    name: 'Organ',
+    reeds: [
+      { semis: -12, cents: 0 },
+      { semis: 12, cents: 0 }
+    ]
+  },
+  {
+    id: 'MH',
+    label: 'MH',
+    name: 'Violin',
+    reeds: [
+      { semis: 0, cents: 0 },
+      { semis: 12, cents: 0 }
+    ]
+  },
+  {
+    id: 'LMH',
+    label: 'LMH',
+    name: 'Master',
+    reeds: [
+      { semis: -12, cents: 0 },
+      { semis: 0, cents: 0 },
+      { semis: 12, cents: 0 }
+    ]
+  },
+  // Musette (≥ 2 M reeds → tremolo). The detuned M reed is `+cents` so
+  // the on-pitch fundamental still aligns with the player's mental
+  // pitch; the second reed beats *above* it. Italian-style "wet" musette
+  // typically sits in the +8…+15¢ range; we use 8¢ as a moderate default.
+  {
+    id: 'MM',
+    label: 'MM',
+    name: 'Musette',
+    reeds: [
+      { semis: 0, cents: 0 },
+      { semis: 0, cents: MUSETTE_CENTS }
+    ]
+  },
+  {
+    id: 'LMM',
+    label: 'LMM',
+    name: 'Harmonium',
+    reeds: [
+      { semis: -12, cents: 0 },
+      { semis: 0, cents: 0 },
+      { semis: 0, cents: MUSETTE_CENTS }
+    ]
+  },
+  {
+    id: 'MMH',
+    label: 'MMH',
+    name: 'Musette+H',
+    reeds: [
+      { semis: 0, cents: 0 },
+      { semis: 0, cents: MUSETTE_CENTS },
+      { semis: 12, cents: 0 }
+    ]
+  },
+  {
+    id: 'LMMH',
+    label: 'LMMH',
+    name: 'Tutti',
+    reeds: [
+      { semis: -12, cents: 0 },
+      { semis: 0, cents: 0 },
+      { semis: 0, cents: MUSETTE_CENTS },
+      { semis: 12, cents: 0 }
+    ]
+  }
 ];
 
 const LEFT_REGISTERS = [
-  { id: 'tenor', label: 'M', name: 'Tenor (tonal)', shifts: [0] },
-  { id: 'master', label: 'LMH', name: 'Master (full)', shifts: [-12, 0, 12] }
+  { id: 'tenor', label: 'M', name: 'Tenor (tonal)', reeds: [{ semis: 0, cents: 0 }] },
+  {
+    id: 'master',
+    label: 'LMH',
+    name: 'Master (full)',
+    reeds: [
+      { semis: -12, cents: 0 },
+      { semis: 0, cents: 0 },
+      { semis: 12, cents: 0 }
+    ]
+  }
 ];
 
 const handForView = (cfg) => (cfg && cfg.kind === 'stradella' ? 'left' : 'right');
@@ -632,7 +781,46 @@ let currentHand = 'right';
  * the full L/M/H matrix; the left (Stradella) side gets the simpler
  * tenor / master toggle that's typical on real instruments.
  */
-const SHIFT_TO_POS = { 12: 'h', 0: 'm', '-12': 'l' };
+/**
+ * Lay out a register's reeds as dots on the silver stop plate. Returns
+ * the CSS class suffix for each reed:
+ *
+ *   - L / H reeds → single dot at `l` (bottom) / `h` (top)
+ *   - Single M (no musette pair) → single dot at `m` (centre)
+ *   - Musette MM (two M reeds at different detune) → two dots stacked
+ *     vertically just above and below centre (`m1` / `m2`), the visual
+ *     convention real Italian-style accordion stops use to distinguish
+ *     "single M" (`Clarinet`) from "double M" (`Musette`).
+ */
+const reedDotClasses = (reeds) => {
+  const classes = [];
+  const mReeds = reeds.filter((r) => r.semis === 0);
+  for (const r of reeds) {
+    if (r.semis === -12) classes.push('l');
+    else if (r.semis === 12) classes.push('h');
+    else if (r.semis === 0) {
+      // Two-or-more M reeds → split visually as m1 / m2 so the player
+      // can see at a glance that this is a musette stop, not a plain M.
+      // We allocate by index in the M-only list to stay stable across
+      // the m1/m2 positions regardless of cent-detune sign.
+      if (mReeds.length === 1) {
+        classes.push('m');
+      } else {
+        const idx = mReeds.indexOf(r);
+        classes.push(idx === 0 ? 'm1' : 'm2');
+      }
+    }
+  }
+  return classes;
+};
+
+const appendStopDots = (stopEl, reeds) => {
+  for (const cls of reedDotClasses(reeds)) {
+    const dot = document.createElement('span');
+    dot.className = `register-dot ${cls}`;
+    stopEl.appendChild(dot);
+  }
+};
 
 const renderRegisterOptions = () => {
   if (!registerOptionsEl) return;
@@ -653,15 +841,7 @@ const renderRegisterOptions = () => {
     const stop = document.createElement('span');
     stop.className = 'register-stop';
     stop.setAttribute('aria-hidden', 'true');
-    // Each shift -> dot at the matching position on the silver plate.
-    // Inactive positions get no dot (the spine line shows alone).
-    reg.shifts.forEach((shift) => {
-      const pos = SHIFT_TO_POS[shift];
-      if (!pos) return;
-      const dot = document.createElement('span');
-      dot.className = `register-dot ${pos}`;
-      stop.appendChild(dot);
-    });
+    appendStopDots(stop, reg.reeds);
     btn.appendChild(stop);
 
     const label = document.createElement('span');
@@ -690,13 +870,7 @@ const syncRegisterToggle = () => {
   const nameEl = registerToggleEl.querySelector('.register-toggle-name');
   if (stopEl) {
     stopEl.innerHTML = '';
-    reg.shifts.forEach((shift) => {
-      const pos = SHIFT_TO_POS[shift];
-      if (!pos) return;
-      const dot = document.createElement('span');
-      dot.className = `register-dot ${pos}`;
-      stopEl.appendChild(dot);
-    });
+    appendStopDots(stopEl, reg.reeds);
   }
   if (nameEl) nameEl.textContent = reg.label;
   registerToggleEl.title = `${reg.label} — ${reg.name}`;
@@ -719,7 +893,7 @@ const applyActiveHandRegister = () => {
   if (!reg) return;
   if (currentHand === 'left') activeLeftRegisterId = reg.id;
   else activeRightRegisterId = reg.id;
-  synth.setRegister(reg.shifts);
+  synth.setRegister(reg.reeds);
   renderRegisterOptions();
 };
 
