@@ -4,7 +4,7 @@
  * Based on original KeyBinder.cpp
  */
 
-import { DIRECTION, KEY_MODE, CONTROLS, GAME_STATES } from './constants.js';
+import { DIRECTION, KEY_MODE, CONTROLS, GAME_STATES, GAMEPLAY } from './constants.js';
 
 export class Controls {
   constructor(game) {
@@ -41,10 +41,22 @@ export class Controls {
     this._fpsWalkPointer = null; // { pointerId, anchorX, anchorY }
     this._fpsLookPointer = null; // { pointerId, lastX, lastY }
     // Last "tap" (short press, no drag) on the canvas. Used by the
-    // double-tap-to-jump gesture in Top-Down / Birds-Eye Follow.
+    // double-tap-to-sprint gesture in Top-Down / Birds-Eye Follow.
+    // Was double-tap-to-jump previously, but with a dedicated JUMP
+    // touch button that gesture became redundant — sprint is the more
+    // useful repurpose because it gives the player a way to "go
+    // faster" via a touch-only escape gesture.
     this._lastTapTime = 0;
     this._lastTapX = 0;
     this._lastTapY = 0;
+    // Tier 5 — double-tap-direction-to-sprint detector (keyboard).
+    // Tracks the most recent canonicalised movement key ('up', 'down',
+    // 'left', 'right') and its press time so the second hit of the
+    // same direction within SPRINT_DOUBLE_TAP_MS triggers
+    // game.trySprint(). Auto-repeat keydown events (event.repeat ===
+    // true) are ignored to avoid a held key spuriously dashing.
+    this._lastDirKey = null;
+    this._lastDirKeyTime = 0;
     // Pointerdown bookkeeping — duration + drag-distance let us tell a
     // tap apart from a drag at pointerup time.
     this._pointerDownTime = 0;
@@ -219,6 +231,47 @@ export class Controls {
       )
     ) {
       event.preventDefault();
+    }
+
+    // Canonicalise to a direction token for the sprint double-tap
+    // detector. Keys that aren't movement keys yield null and skip the
+    // sprint check below.
+    const dirToken = (() => {
+      switch (event.code) {
+        case 'ArrowUp':
+        case 'KeyW':
+          return 'up';
+        case 'ArrowDown':
+        case 'KeyS':
+          return 'down';
+        case 'ArrowLeft':
+        case 'KeyA':
+          return 'left';
+        case 'ArrowRight':
+        case 'KeyD':
+          return 'right';
+        default:
+          return null;
+      }
+    })();
+
+    // Tier 5 — double-tap-direction-to-sprint. Only counts deliberate
+    // re-presses (event.repeat === false) of the SAME direction key
+    // within SPRINT_DOUBLE_TAP_MS. Different directions or held-down
+    // auto-repeat are treated as fresh first-taps. Reset after a
+    // successful trigger so a third tap doesn't immediately re-fire.
+    if (dirToken && !event.repeat && this.game.state === GAME_STATES.PLAYING) {
+      const now = performance.now();
+      if (
+        this._lastDirKey === dirToken &&
+        now - this._lastDirKeyTime < GAMEPLAY.SPRINT_DOUBLE_TAP_MS
+      ) {
+        this.game.trySprint?.();
+        this._lastDirKey = null;
+      } else {
+        this._lastDirKey = dirToken;
+        this._lastDirKeyTime = now;
+      }
     }
 
     switch (event.code) {
@@ -419,13 +472,17 @@ export class Controls {
     // Double-tap detector. Only counts pointers that pressed and
     // released within DOUBLE_TAP_MS without moving more than
     // DOUBLE_TAP_SLOP px. On the second qualifying tap we trigger
-    // tryJump in non-FPPOV modes (FPPOV already has the JUMP button
-    // and uses the canvas for look-around, so tap-anywhere there
-    // would conflict).
+    // trySprint in non-FPPOV modes (FPPOV uses the canvas for
+    // look-around so a tap-anywhere gesture would fight the camera;
+    // FPPOV users dash via the dedicated DASH touch button instead).
+    // Was tryJump originally — rebound to sprint in Tier 5 because
+    // the touch UI has a dedicated JUMP button, so sprint is the
+    // more useful gesture-only repurpose. Top-Down / Birds-Eye Follow
+    // touch users can sprint via either this gesture or the DASH button.
     const DOUBLE_TAP_MS = 320;
     const DOUBLE_TAP_SLOP = 22;
     const TAP_MAX_DURATION_MS = 250;
-    const tryDoubleTapJump = (clientX, clientY, durationMs, maxDrag) => {
+    const tryDoubleTapSprint = (clientX, clientY, durationMs, maxDrag) => {
       if (durationMs > TAP_MAX_DURATION_MS) return;
       if (maxDrag > DOUBLE_TAP_SLOP) return;
       const now = performance.now();
@@ -436,7 +493,7 @@ export class Controls {
       if (dt < DOUBLE_TAP_MS && dist < DOUBLE_TAP_SLOP) {
         const m = getMode();
         if (m === 0 || m === 1) {
-          this.game.tryJump?.();
+          this.game.trySprint?.();
         }
         // Reset so a third tap doesn't compound into a chain.
         this._lastTapTime = 0;
@@ -628,7 +685,7 @@ export class Controls {
       // Double-tap-to-jump in modes 0 / 1. Compute on every release;
       // if it doesn't qualify the helper just records the tap for the
       // next press to compare against.
-      tryDoubleTapJump(ev.clientX, ev.clientY, duration, maxDrag);
+      tryDoubleTapSprint(ev.clientX, ev.clientY, duration, maxDrag);
       if (getMode() === 2) {
         if (ev.pointerType === 'touch') handleFpsPointerUp(ev);
         return;
@@ -798,9 +855,23 @@ export class Controls {
         .touch-jump-btn:active {
           background: rgba(255, 80, 200, 0.55);
         }
+        /* Sprint button — cyan to match the in-game DASH HUD readout
+           and the sprint glow on Pacman so the visual language is
+           consistent between the button, the HUD, and the player
+           feedback during a dash. */
+        .touch-sprint-btn {
+          background: rgba(34, 211, 238, 0.3);
+          border-color: rgba(34, 211, 238, 0.7);
+          color: #67e8f9;
+          font-size: 12px;
+        }
+        .touch-sprint-btn:active {
+          background: rgba(34, 211, 238, 0.55);
+        }
       </style>
       <div class="touch-action-buttons">
         <button class="touch-action-btn touch-jump-btn" id="touch-jump">JUMP</button>
+        <button class="touch-action-btn touch-sprint-btn" id="touch-sprint">DASH</button>
         <button class="touch-action-btn touch-camera-btn" id="touch-camera" aria-label="Cycle view">VIEW</button>
         <button class="touch-action-btn touch-pause-btn" id="touch-pause">⏸</button>
       </div>
@@ -831,6 +902,18 @@ export class Controls {
       jumpBtn.addEventListener('touchstart', (e) => {
         e.preventDefault();
         this.game.tryJump();
+      });
+    }
+
+    // Sprint / DASH button (Tier 5). Touch users can't double-tap a
+    // direction key, and double-tapping the canvas is suppressed in
+    // FPPOV (it's used for look-around there). A dedicated action
+    // button gives every touch user a reliable way to dash.
+    const sprintBtn = document.getElementById('touch-sprint');
+    if (sprintBtn) {
+      sprintBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        this.game.trySprint?.();
       });
     }
   }

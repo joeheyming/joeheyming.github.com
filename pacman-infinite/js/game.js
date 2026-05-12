@@ -140,6 +140,14 @@ class Game {
     // on my respawn tile" footgun).
     this._postRespawnGrace = 0;
 
+    // Tier 3 — arcade dot streak. Increments on every dot/pill/fruit
+    // pickup, resets to 0 when Pacman takes damage (ghost / starvation /
+    // void). Drives a per-pickup score multiplier on top of the
+    // distance multiplier — sustained survival without taking a hit
+    // becomes the highest-leverage scoring mode.
+    this._dotStreak = 0;
+    this._streakBest = 0;
+
     // Food meter (Minecraft-style hunger). Restored from save when
     // available so Continue picks up your starvation timer; defaults to
     // FOOD_START on a fresh run.
@@ -179,9 +187,36 @@ class Game {
     // Hunger HUD
     this.foodMeterElement = document.getElementById('food-meter');
     this.foodBarElement = document.getElementById('food-bar');
+    // Tier 3 — survival/runner HUD elements (FAR / MULT / STREAK).
+    this.farTilesElement = document.getElementById('far-tiles');
+    this.scoreMultElement = document.getElementById('score-mult');
+    this.dotStreakElement = document.getElementById('dot-streak');
+    // Tier 5 — DASH readout. Status text + charge bar. The bar is
+    // the primary feedback channel for FPPOV players, who can't see
+    // the cyan sprint glow on Pacman's body (they ARE Pacman); the
+    // text label backs it up across all camera modes.
+    this.dashStatusElement = document.getElementById('dash-status');
+    this.dashBarElement = document.getElementById('dash-bar');
+    // Tier 4 — on-screen ghost proximity overlay. The overlay div is a
+    // full-viewport pointer-events-none layer; per-ghost arrow markers
+    // are pooled inside `_ghostMarkerPool` (created on demand, hidden
+    // when not in use). Each frame, game-hud.js:_refreshGhostIndicators
+    // claims one marker per active threat, sets its --marker-x / -y /
+    // -rot CSS variables, and toggles the warn-watch / warn-danger /
+    // warn-imminent tier class. Markers reach into the ghost set via
+    // `world.getGhosts()` and use `this.camera` for projection, so
+    // both must exist before the layer is visible.
+    this.ghostIndicatorsLayer = document.getElementById('ghost-indicators');
+    /** @type {HTMLDivElement[]} */
+    this._ghostMarkerPool = [];
     this.gameOverScreen = document.getElementById('game-over-screen');
     this.finalScoreElement = document.getElementById('final-score');
     this.finalHighScoreElement = document.getElementById('final-high-score');
+    // Tier 3 — per-run best streak. Row stays hidden until the player
+    // actually built a streak so an instant-death run doesn't show
+    // "Best Streak: 0" as if it were a stat worth boasting about.
+    this.finalStreakRow = document.getElementById('final-streak-row');
+    this.finalStreakElement = document.getElementById('final-streak');
     this.backToMenuBtn = document.getElementById('back-to-menu-btn');
 
     this.init();
@@ -344,6 +379,14 @@ class Game {
     // Power-bar + food-bar update every frame so they visibly drain smoothly.
     this._refreshPowerHud();
     this._refreshFoodHud();
+    // On-screen ghost proximity arrows — runs every frame so the
+    // markers track ghost motion smoothly and tier escalation happens
+    // the moment a ghost crosses a radius threshold.
+    this._refreshGhostIndicators();
+    // DASH status updates every frame so the cooldown counts down
+    // smoothly (5-Hz throttled refresh would visibly stutter on a
+    // 3-second timer).
+    this._refreshDashHud();
 
     // Game Over: world keeps streaming visually but no gameplay updates.
     if (this.state === GAME_STATES.GAME_OVER) {
@@ -376,6 +419,16 @@ class Game {
       return;
     }
 
+    // Tier 3 — survival/runner identity. Push Pacman's distance from
+    // the world origin into the World BEFORE ghost AI / hunger / dot
+    // density read from it; those systems all consume `world.farPct`
+    // via the effective* helpers (Tier 3 design note in world.js).
+    if (this.world) {
+      const px = this.pacman.position.x / this.world.scale;
+      const py = this.pacman.position.y / this.world.scale;
+      this.world.updateFarProgress(Math.hypot(px, py));
+    }
+
     const direction = this.controls.getDirection();
     // Birds-Eye Follow uses a continuous-angle move vector (from the
     // joystick or from compound keyboard input) so the player can walk
@@ -393,13 +446,16 @@ class Game {
     this.pacman.update(this.deltaTime, direction, moveVec);
 
     // Drive ghost AI + power-pill pulse. Done after pacman.update so the
-    // ghost positions track this frame's pacman position.
+    // ghost positions track this frame's pacman position. Pacman's facing
+    // is forwarded so personality-driven ghosts (Pinky / Inky) can target
+    // tiles ahead of him.
     if (this.world.update) {
       this.world.update(this.deltaTime, this.pacman.position, {
         // Letting the world know power state means freshly-spawned
         // ghosts can start in FLEE while Pacman is still powered.
         powered: this.pacman.powered,
-        powerTimer: this.pacman.powerTimer
+        powerTimer: this.pacman.powerTimer,
+        pacmanFacing: this.pacman.getFacing()
       });
     }
 

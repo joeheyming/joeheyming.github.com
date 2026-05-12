@@ -14,15 +14,29 @@
 import * as THREE from 'three';
 import { GAMEPLAY } from './constants.js';
 
+// Fruit family (Tier 4). Each entry carries:
+//   - visual identity (colors, scale, twin flag)
+//   - scoreValue: base points awarded BEFORE the score multiplier
+//   - foodValue: hunger meter delta (negative for skull-fruit — eating it
+//     burns calories, which is the entire point of the high-risk pick)
+//   - weight: base spawn weight (relative; higher = more common)
+//   - minFarTiles: this fruit can ONLY spawn once Pacman has wandered
+//     this many tiles from origin. 0 means "always available". Used by
+//     world-level weighted picking in game-spawn.js to gate the rare,
+//     high-value fruits behind survival pressure.
 const FRUIT_TYPES = [
-  // cherry — twin red spheres on a brown stem
+  // cherry — twin red spheres on a brown stem; the everyday pickup
   {
     id: 'cherry',
     bodyColor: 0xff2030,
     stemColor: 0x6a3a1a,
     leafColor: 0x40c040,
     bodyScale: 0.5,
-    twin: true
+    twin: true,
+    scoreValue: 100,
+    foodValue: 30,
+    weight: 5,
+    minFarTiles: 0
   },
   // strawberry — single red sphere with a green leaf
   {
@@ -31,27 +45,111 @@ const FRUIT_TYPES = [
     stemColor: 0x6a3a1a,
     leafColor: 0x40c040,
     bodyScale: 0.55,
-    twin: false
+    twin: false,
+    scoreValue: 200,
+    foodValue: 35,
+    weight: 4,
+    minFarTiles: 0
   },
-  // orange — single orange sphere
+  // orange — single orange sphere; mid-tier reward.
+  // Was gated to 50 tiles which meant it almost never showed up in
+  // typical play; halved so a casual run starts seeing it within the
+  // first chunk or two.
   {
     id: 'orange',
     bodyColor: 0xff9020,
     stemColor: 0x6a3a1a,
     leafColor: 0x40c040,
     bodyScale: 0.55,
-    twin: false
+    twin: false,
+    scoreValue: 300,
+    foodValue: 40,
+    weight: 3,
+    minFarTiles: 25
   },
-  // apple — green sphere
+  // apple — green sphere; the staple long-game fuel source.
+  // Was 100 tiles → halved to 50 so the staple appears once you've
+  // explored a few chunks rather than waiting for a deep-run trip.
   {
     id: 'apple',
     bodyColor: 0x40d040,
     stemColor: 0x6a3a1a,
     leafColor: 0x60ff60,
     bodyScale: 0.55,
-    twin: false
+    twin: false,
+    scoreValue: 500,
+    foodValue: 50,
+    weight: 2,
+    minFarTiles: 50
+  },
+  // lemon — sour: big score, modest food. Visible as bright yellow.
+  // Was 200 tiles → 120 so a moderately committed run gets the variety.
+  {
+    id: 'lemon',
+    bodyColor: 0xfff040,
+    stemColor: 0x6a3a1a,
+    leafColor: 0x80c040,
+    bodyScale: 0.5,
+    twin: false,
+    scoreValue: 800,
+    foodValue: 25,
+    weight: 1.5,
+    minFarTiles: 120
+  },
+  // skull-fruit — purple, high-risk: massive score, NEGATIVE food.
+  // Was 300 tiles → 200 so a deep-but-not-record run can encounter
+  // the greed test. Still gated enough that it reads as a "deep
+  // wandering" reward rather than a beginner trap.
+  {
+    id: 'skullfruit',
+    bodyColor: 0x6020d0,
+    stemColor: 0x303040,
+    leafColor: 0xa080ff,
+    bodyScale: 0.6,
+    twin: false,
+    scoreValue: 2000,
+    foodValue: -30,
+    weight: 0.6,
+    minFarTiles: 200
   }
 ];
+
+/**
+ * Weighted random pick from FRUIT_TYPES based on Pacman's current
+ * distance-from-origin (in tile-units). Fruits whose minFarTiles is
+ * above the current distance are excluded entirely. Among the
+ * available types we also tilt the weights so the rarer / high-value
+ * fruits become MORE likely as you press farther — at the survival
+ * cap (FAR_CAP_TILES, ~600 tiles) the skull-fruit/lemon are roughly
+ * as likely as the basic cherry.
+ *
+ * @param {number} farTiles  current distance from origin
+ * @param {number} farCap    cap used by the world's farPct (for tilt math)
+ * @returns {{ typeIdx: number, type: object }}
+ */
+export function pickFruitTypeForDistance(farTiles, farCap = 600) {
+  const farPct = Math.max(0, Math.min(1, farTiles / farCap));
+  const candidates = [];
+  for (let i = 0; i < FRUIT_TYPES.length; i++) {
+    const t = FRUIT_TYPES[i];
+    if (farTiles < (t.minFarTiles ?? 0)) continue;
+    // Distance tilt: rarer fruits (lower base weight) gain more from
+    // farPct than common ones. (1/weight) × farPct flattens the
+    // distribution toward "all roughly equal" at full progression.
+    const tilted = t.weight + (1 / Math.max(0.1, t.weight)) * farPct * 4;
+    candidates.push({ idx: i, type: t, w: tilted });
+  }
+  if (candidates.length === 0) return { typeIdx: 0, type: FRUIT_TYPES[0] };
+  let total = 0;
+  for (const c of candidates) total += c.w;
+  let roll = Math.random() * total;
+  for (const c of candidates) {
+    roll -= c.w;
+    if (roll <= 0) return { typeIdx: c.idx, type: c.type };
+  }
+  const last = candidates[candidates.length - 1];
+  return { typeIdx: last.idx, type: last.type };
+}
 
 export class Fruit {
   /**
@@ -74,6 +172,12 @@ export class Fruit {
     this.typeIdx =
       typeIdx === undefined ? Math.floor(Math.random() * FRUIT_TYPES.length) : typeIdx % FRUIT_TYPES.length;
     this.type = FRUIT_TYPES[this.typeIdx];
+    // Surface per-type values on the instance so game-spawn.js can credit
+    // the right score / food without re-importing the FRUIT_TYPES table.
+    // Falls back to the previous defaults (SCORE_FRUIT / FOOD_PER_FRUIT)
+    // for legacy fruits constructed without the new fields.
+    this.scoreValue = this.type.scoreValue ?? GAMEPLAY.SCORE_FRUIT;
+    this.foodValue = this.type.foodValue ?? GAMEPLAY.FOOD_PER_FRUIT;
 
     // World-space anchor (centre of bob — visual mesh oscillates above this).
     this.position = new THREE.Vector3(
@@ -94,8 +198,13 @@ export class Fruit {
       color: this.type.bodyColor,
       roughness: 0.4,
       metalness: 0.1,
+      // Brighter base emissive (was 0.25) so a fruit reads from across
+      // a dim chunk — fruits are rare enough that the player should
+      // notice one as soon as it enters the camera frustum. The bob
+      // animation in update() pushes intensity even higher on the
+      // sine-wave high half.
       emissive: this.type.bodyColor,
-      emissiveIntensity: 0.25
+      emissiveIntensity: 0.55
     });
     const stemMat = new THREE.MeshStandardMaterial({
       color: this.type.stemColor,
@@ -179,6 +288,16 @@ export class Fruit {
     const bob = Math.sin(this.elapsed * 4) * this.scale * 0.08;
     this.group.position.set(this.position.x, this.position.y, this.position.z + bob);
     this.group.rotation.z = this.elapsed * 1.3;
+
+    // Continuous emissive twinkle so the fruit visibly draws attention
+    // even from across a chunk. ~1 Hz pulse, swings between 0.45 and
+    // 0.85 — never fully dim, so it stays "on the radar" the whole
+    // lifetime. The materials are per-fruit (not pooled) so this
+    // mutation is safe.
+    if (this.materials && this.materials[0]) {
+      const e = 0.45 + 0.4 * (0.5 + 0.5 * Math.sin(this.elapsed * 6));
+      this.materials[0].emissiveIntensity = e;
+    }
 
     // Last-second-pulse: blink scale slightly during the final 2 seconds
     // so the player sees the fruit is about to disappear.

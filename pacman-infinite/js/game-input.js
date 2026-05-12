@@ -1,4 +1,4 @@
-import { GAME_STATES } from './constants.js';
+import { GAME_STATES, GAMEPLAY } from './constants.js';
 
 export const gameInput = {
   setupEventListeners() {
@@ -88,11 +88,43 @@ export const gameInput = {
     else if (this.state === GAME_STATES.PAUSED) this.resumeGame();
   },
 
-  /** Called by Controls when Space (or the touch jump button) is pressed. */
+  /**
+   * Called by Controls when Space (or the touch jump button) is pressed.
+   *
+   * Tier 4 — jumps cost food. The check happens HERE rather than inside
+   * pacman.tryJump() so the Pacman model stays food-agnostic (it knows
+   * about cooldowns and air state, not about hunger). If the player
+   * doesn't have enough food, the jump is silently skipped — same UX
+   * as pressing jump while on cooldown. We deduct AFTER the underlying
+   * jump returns true so a failed jump (cooldown / mid-air) doesn't
+   * waste food.
+   */
   tryJump() {
     if (this.state !== GAME_STATES.PLAYING) return;
     if (!this.pacman) return;
-    this.pacman.tryJump();
+    const cost = GAMEPLAY.FOOD_PER_JUMP;
+    if (this.food < cost) return;
+    if (this.pacman.tryJump()) {
+      this._addFood(-cost);
+    }
+  },
+
+  /**
+   * Tier 5 — double-tap-to-dash. Called by Controls when the player
+   * double-taps a movement direction (keyboard) or the game canvas
+   * (touch). Mirrors the tryJump split: this layer enforces the
+   * gameplay-state + food-cost gates; pacman.trySprint() owns the
+   * timer + cooldown logic. Silently no-ops on cooldown / starvation
+   * so a missed-window double-tap doesn't waste food.
+   */
+  trySprint() {
+    if (this.state !== GAME_STATES.PLAYING) return;
+    if (!this.pacman) return;
+    const cost = GAMEPLAY.FOOD_PER_SPRINT;
+    if (this.food < cost) return;
+    if (this.pacman.trySprint()) {
+      this._addFood(-cost);
+    }
   },
 
   parseCameraMode(modeStr) {

@@ -90,7 +90,14 @@ export const gameState = {
    */
   _tickHunger(deltaTime) {
     if (this.food <= 0) return; // already starving — wait for the death state to clear
-    const drain = GAMEPLAY.FOOD_DRAIN_RATE * this._diff().hungerDrainMul;
+    // Effective drain folds the distance-from-origin penalty on top of
+    // the difficulty preset so far-from-spawn play actually starves
+    // faster (Tier 3 survival pressure). Falls back to the base preset
+    // mul if the world helper isn't available.
+    const drainMul = this.world?.effectiveHungerDrainMul
+      ? this.world.effectiveHungerDrainMul()
+      : this._diff().hungerDrainMul;
+    const drain = GAMEPLAY.FOOD_DRAIN_RATE * drainMul;
     this.food = Math.max(0, this.food - drain * deltaTime);
     if (this.food <= 0) {
       this._starve();
@@ -118,6 +125,37 @@ export const gameState = {
    */
   _diff() {
     return DIFFICULTY_PRESETS[this.difficulty] || DIFFICULTY_PRESETS[DIFFICULTY.NORMAL];
+  },
+
+  /**
+   * Tier 3 — central score-credit helper. Folds the distance-from-origin
+   * multiplier (1× → 5×) and the streak bonus (+0.1× per 10 dots, capped
+   * at +2×) onto every base point award before adding it to the run
+   * score. All score-bearing events (dot, power pill, fruit, ghost
+   * eaten) route through here so the bonuses apply uniformly.
+   *
+   *   final = base × distance_mul × streak_mul
+   *
+   * Returns the rounded amount actually credited so callers can show
+   * a floater / log it / etc.
+   */
+  _addScore(base) {
+    const distMul = this.world?.scoreMultiplier ? this.world.scoreMultiplier() : 1;
+    const streakMul = 1 + Math.min(2, Math.floor(this._dotStreak / 10) * 0.1);
+    const credited = Math.round(base * distMul * streakMul);
+    this.score += credited;
+    return credited;
+  },
+
+  /** Increment the dot-streak counter and update the per-run best. */
+  _bumpStreak() {
+    this._dotStreak++;
+    if (this._dotStreak > this._streakBest) this._streakBest = this._dotStreak;
+  },
+
+  /** Streak resets on any damage (ghost / starvation / void). */
+  _resetStreak() {
+    this._dotStreak = 0;
   },
 
   /**
@@ -167,6 +205,23 @@ export const gameState = {
     this.world.difficulty.ghostCountMul = preset.ghostCountMul;
     this.world.difficulty.ghostChaseRadiusMul = preset.ghostChaseRadiusMul;
     this.world.difficulty.dotKeepMul = preset.dotKeepMul;
+    // hungerDrainMul + fruitSpawnPeriodMul used to be read off the preset
+    // directly by the consumers; now mirrored onto world.difficulty so
+    // World.effectiveHungerDrainMul() can fold the distance penalty over
+    // the same source of truth.
+    this.world.difficulty.hungerDrainMul = preset.hungerDrainMul ?? 1.0;
+    this.world.difficulty.fruitSpawnPeriodMul = preset.fruitSpawnPeriodMul ?? 1.0;
+    // Tier 4 — per-dot food multiplier (Hard makes dots half as filling).
+    this.world.difficulty.foodPerDotMul = preset.foodPerDotMul ?? 1.0;
+    // Tier 1 additions — fall back to the existing constant defaults if
+    // an older preset object is missing the new keys (covers test fixtures
+    // and any future custom presets that haven't been upgraded yet).
+    this.world.difficulty.fleeSpeedMul =
+      preset.fleeSpeedMul ?? GAMEPLAY.GHOST_FLEE_SPEED_MULTIPLIER;
+    this.world.difficulty.jumpCooldownMul = preset.jumpCooldownMul ?? 1.0;
+    this.world.difficulty.ghostMinSpawnDistMul = preset.ghostMinSpawnDistMul ?? 1.0;
+    this.world.difficulty.powerModeDurationS =
+      preset.powerModeDurationS ?? GAMEPLAY.POWER_MODE_DURATION;
   },
 
   /** Sync the menu pill highlights with the current `this.difficulty`. */
@@ -197,6 +252,10 @@ export const gameState = {
     // Cost a life, mirroring the ghost-touch path. Power mode ends.
     this.lives = Math.max(0, this.lives - 1);
     this.pacman.clearPowerMode();
+    // Same streak-reset as _loseLife — falling into the void counts as
+    // damage too, otherwise edge-walking around streak loss would be
+    // strictly free.
+    this._resetStreak();
     this.audioManager.playLifeLost?.();
     // Refresh the HUD now so the heart count visibly updates as Pacman
     // is mid-fall — feels punchier than waiting until respawn.
@@ -244,6 +303,10 @@ export const gameState = {
     // Iconic death cue from the original game (assets/sounds/death.wav).
     this.audioManager.playDeath?.();
     this.pacman.clearPowerMode();
+    // Tier 3 — any damage breaks the dot streak. Big sting, intentional:
+    // the streak is supposed to be the headline scoring lever for clean
+    // runs, so dying makes you start over.
+    this._resetStreak();
     this.refreshHud();
     // Show the cause overlay for ALL deaths so the player always knows
     // why they died. The overlay's bg/60 + flex layout sits on top of
@@ -276,11 +339,27 @@ export const gameState = {
     if (this.finalHighScoreElement) {
       this.finalHighScoreElement.textContent = String(this.highScore);
     }
+    // Tier 3 — surface the per-run best streak so the player sees the
+    // number their streak scoring was chasing. Hide the row entirely
+    // when zero so an instant-death (never picked anything up) doesn't
+    // display a confusing 0.
+    if (this.finalStreakRow && this.finalStreakElement) {
+      if (this._streakBest > 0) {
+        this.finalStreakElement.textContent = String(this._streakBest);
+        this.finalStreakRow.classList.remove('hidden');
+      } else {
+        this.finalStreakRow.classList.add('hidden');
+      }
+    }
     // Persist the high-score and zero out the run's score. Eaten dots and
     // pacman pose are preserved so Continue picks up where the player
     // fell — only the run-specific stats reset.
     this.score = 0;
     this._powerChainCount = 0;
+    // Streak best is a per-run stat — reset alongside score so the next
+    // run starts fresh. Current streak (`_dotStreak`) is already zero
+    // here because _loseLife → _resetStreak ran on the final hit.
+    this._streakBest = 0;
     this._flushSave();
   },
 

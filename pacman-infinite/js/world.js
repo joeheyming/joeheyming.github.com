@@ -20,14 +20,42 @@
  */
 
 import * as THREE from 'three';
-import { TILE, GAMEPLAY } from './constants.js';
+import { TILE, GAMEPLAY, GHOST_STATE } from './constants.js';
 import { CHUNK_SIZE, CHUNK_TEMPLATES, generateChunk } from './templates.js';
 import { Chunk } from './chunk.js';
-import { Ghost } from './ghost.js';
+import { Ghost, PERSONALITY } from './ghost.js';
 import { mulberry32, hashCoords, randomSeed } from './prng.js';
 
 const DEFAULT_RENDER_RADIUS = 2; // chunks: 5x5 grid loaded around player
 const DEFAULT_UNLOAD_RADIUS = 3; // sweep boundary
+
+// How many of the closest ghosts get BFS terrain-aware pathing each
+// frame. The rest fall back to greedy nearest-neighbour selection. 3 is
+// enough to make the immediate threat ring feel smart without paying
+// BFS cost for ghosts the player can't even see yet.
+const BFS_NEAREST_GHOST_COUNT = 3;
+
+// Active spawn rebalancing: if fewer than this many ghosts sit within
+// chase radius of Pacman, the next spawn attempt uses a tightened
+// min-spawn-distance (× this multiplier) so the world doesn't get a
+// lull just because the previous chasers wandered off.
+const NEAR_GHOST_TARGET_FRACTION = 0.4; // 40% of cap should be "near"
+const NEAR_SPAWN_DIST_TIGHTEN = 0.5; // tightens minD when we're under target
+
+// Tier 3 — distance-from-origin survival pressure. The further Pacman
+// wanders from spawn, the deadlier the world becomes. `farPct` is a
+// 0..1 progress scalar (game.js updates it each frame); the *_BOOST
+// constants below define how much each system intensifies at full
+// progression. All clamped at FAR_CAP_TILES so the curve eventually
+// flattens — past that point the world is "fully hard" without going
+// into infinity-mode.
+const FAR_CAP_TILES = 600;
+const FAR_GHOST_SPEED_BOOST = 0.4; // ×1.4 ghost speed at the cap
+const FAR_GHOST_COUNT_BOOST = 0.6; // ×1.6 ghost cap at the cap
+const FAR_HUNGER_BOOST = 0.6; // ×1.6 hunger drain at the cap
+const FAR_DOT_DENSITY_PENALTY = 0.7; // dotKeep × max(0.3, 1 − 0.7·farPct)
+const FAR_SCORE_MULT_MAX = 5; // 5× at the cap
+const FAR_SCORE_MULT_MIN = 1;
 
 export class World {
   constructor(opts = {}) {
@@ -61,13 +89,27 @@ export class World {
       ghostSpeedMul: 1.0,
       ghostCountMul: 1.0,
       ghostChaseRadiusMul: 1.0,
-      dotKeepMul: 1.0
+      dotKeepMul: 1.0,
+      // Tier 1 difficulty mults — runtime-synced from DIFFICULTY_PRESETS so
+      // ghost.js / pacman.js can react without re-importing constants.
+      fleeSpeedMul: GAMEPLAY.GHOST_FLEE_SPEED_MULTIPLIER,
+      jumpCooldownMul: 1.0,
+      ghostMinSpawnDistMul: 1.0,
+      // Used by game-spawn.js when a power pill is eaten; cached here so
+      // both Pacman's enterPowerMode and World.scareAllGhosts can read it.
+      powerModeDurationS: GAMEPLAY.POWER_MODE_DURATION
     };
     this.scene = null;
     this.assets = null;
     this._lastPlayerChunk = null;
     // Animation clock for shared-asset effects (e.g., power pill pulse).
     this._animTime = 0;
+    // Tier 3 — survival/runner identity. Distance-from-origin progress
+    // scalar (0..1). Game.js writes this every frame from
+    // sqrt(pacman.x² + pacman.y²) clamped to FAR_CAP_TILES. Ghost AI,
+    // hunger, dot density, and the score multiplier all read it via the
+    // `effective*` helpers below.
+    this.farPct = 0;
 
     // Compat surface — keep field names that game.js / pacman.js expect.
     // Spawn at the centre of chunk (0, 0). All templates guarantee FLOOR at
@@ -114,13 +156,20 @@ export class World {
    * ghosts visible nearby (without being on top of Pacman).
    */
   _seedInitialGhosts(pacmanPos) {
-    const targetCap = Math.round(GAMEPLAY.GHOST_TARGET_COUNT * this.difficulty.ghostCountMul);
+    // farPct is 0 at boot so the effective cap == base, but read through
+    // the helper for symmetry with the runtime spawn loop.
+    const targetCap = Math.round(GAMEPLAY.GHOST_TARGET_COUNT * this.effectiveGhostCountMul());
     const target = Math.min(targetCap, 4);
+    // Walk colorIdx through 0..3 in order so the initial pool guarantees
+    // one of each personality whenever target ≥ 4 — important because
+    // Inky's flank target is meaningless without a Blinky reference.
+    let nextColorIdx = 0;
     for (let i = 0; i < target * 3; i++) {
       if (this.ghosts.size >= target) break;
       const spawn = this._pickGhostSpawnTile(pacmanPos);
       if (!spawn) continue;
-      const colorIdx = (hashCoords(this.seed ^ 0xa5a5a5a5, spawn.gx, spawn.gy) >>> 0) % 4;
+      const colorIdx = nextColorIdx % 4;
+      nextColorIdx++;
       const ghost = new Ghost({
         gridX: spawn.gx,
         gridY: spawn.gy,
@@ -132,6 +181,72 @@ export class World {
       this.ghosts.add(ghost);
     }
     this._ghostSpawnTimer = this._randomSpawnInterval();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Tier 3 — distance-from-origin survival multipliers
+  //
+  // The base preset values on `this.difficulty` are "what the player
+  // picked from the menu". The `effective*` helpers stack the
+  // distance-from-origin penalty on top, producing the values the
+  // runtime should actually use. Helpers (not direct field reads) keep
+  // the formula in one place — every call site that touches a base
+  // multiplier should call the matching helper instead.
+  // ---------------------------------------------------------------------------
+
+  effectiveGhostSpeedMul() {
+    return this.difficulty.ghostSpeedMul * (1 + FAR_GHOST_SPEED_BOOST * this.farPct);
+  }
+
+  effectiveGhostCountMul() {
+    return this.difficulty.ghostCountMul * (1 + FAR_GHOST_COUNT_BOOST * this.farPct);
+  }
+
+  effectiveHungerDrainMul() {
+    return this.difficulty.hungerDrainMul * (1 + FAR_HUNGER_BOOST * this.farPct);
+  }
+
+  effectiveDotKeepMul() {
+    return (
+      this.difficulty.dotKeepMul * Math.max(0.3, 1 - FAR_DOT_DENSITY_PENALTY * this.farPct)
+    );
+  }
+
+  /**
+   * Distance-scaled score multiplier (1× near origin → 5× at the cap).
+   * Used by game-spawn.js when crediting any score-bearing event so the
+   * "press deeper for richer rewards" loop stays consistent across all
+   * pickup types.
+   */
+  scoreMultiplier() {
+    return FAR_SCORE_MULT_MIN + (FAR_SCORE_MULT_MAX - FAR_SCORE_MULT_MIN) * this.farPct;
+  }
+
+  /**
+   * Convenience for HUD: how far Pacman is from spawn, in tile-units.
+   * Falls back to 0 if the world hasn't been ticked yet.
+   */
+  farTilesFromOrigin() {
+    return this.farPct * FAR_CAP_TILES;
+  }
+
+  /**
+   * Distance at which all `far*` penalties max out. Exposed for the HUD
+   * (so we can show "X / cap" tile progress) and for game.js (which
+   * computes farPct from Pacman's world position each frame).
+   */
+  getFarCapTiles() {
+    return FAR_CAP_TILES;
+  }
+
+  /**
+   * Update the survival-pressure progress scalar from Pacman's current
+   * distance from the world origin (in tile-units). Clamped to [0, 1]
+   * so callers don't have to.
+   */
+  updateFarProgress(distTiles) {
+    const cap = FAR_CAP_TILES;
+    this.farPct = Math.max(0, Math.min(1, distTiles / cap));
   }
 
   // ---------------------------------------------------------------------------
@@ -475,10 +590,31 @@ export class World {
     // spawning this attempt (cap reached, no valid tile), the next
     // attempt is also delayed so we don't churn.
     this._ghostSpawnTimer = this._randomSpawnInterval();
-    const cap = Math.round(GAMEPLAY.GHOST_TARGET_COUNT * this.difficulty.ghostCountMul);
+    // Distance-scaled population cap: the deeper Pacman wanders the more
+    // ghosts the world will keep alive around him. Capped by the
+    // effective helper (base × farPct boost).
+    const cap = Math.round(GAMEPLAY.GHOST_TARGET_COUNT * this.effectiveGhostCountMul());
     if (this.ghosts.size >= cap) return;
 
-    const spawn = this._pickGhostSpawnTile(pacmanPos);
+    // Active spawn rebalancing — count ghosts within chase radius. If we
+    // have fewer "near" ghosts than NEAR_GHOST_TARGET_FRACTION of the
+    // soft cap, this spawn attempt uses a tightened minimum spawn
+    // distance so the new ghost actually arrives near Pacman, not at
+    // the spawn-ring horizon. Keeps pressure constant even if a chase
+    // pack just despawned (fled / culled by distance).
+    const chaseR =
+      GAMEPLAY.GHOST_CHASE_RADIUS * this.scale * this.difficulty.ghostChaseRadiusMul;
+    const chaseR2 = chaseR * chaseR;
+    let nearCount = 0;
+    for (const g of this.ghosts) {
+      const dx = g.position.x - pacmanPos.x;
+      const dy = g.position.y - pacmanPos.y;
+      if (dx * dx + dy * dy <= chaseR2) nearCount++;
+    }
+    const nearTarget = Math.max(1, Math.round(cap * NEAR_GHOST_TARGET_FRACTION));
+    const tightenSpawn = nearCount < nearTarget;
+
+    const spawn = this._pickGhostSpawnTile(pacmanPos, { tighten: tightenSpawn });
     if (!spawn) return;
 
     // Colour: chunk-derived so a given tile in a given world reliably
@@ -521,10 +657,20 @@ export class World {
    * tick. Probabilistic, not exhaustive — spawning eventually happens
    * naturally as the player moves.
    */
-  _pickGhostSpawnTile(pacmanPos) {
+  _pickGhostSpawnTile(pacmanPos, opts = {}) {
     const chunkList = Array.from(this.chunks.values());
     if (chunkList.length === 0) return null;
-    const minD = GAMEPLAY.GHOST_MIN_SPAWN_DIST_TILES * this.scale;
+    // Difficulty-scaled minimum spawn distance: Hard pulls the floor in
+    // (5 tiles instead of 7) so ghosts can pop in around the corner;
+    // Easy pushes it out (9 tiles) so spawns always feel "elsewhere".
+    // When opts.tighten is true (active rebalancing — too few ghosts
+    // near the player), we further halve the minimum distance for *this
+    // attempt only* so the new ghost actually arrives in the chase ring.
+    const minDistTiles =
+      GAMEPLAY.GHOST_MIN_SPAWN_DIST_TILES *
+      (this.difficulty.ghostMinSpawnDistMul ?? 1.0) *
+      (opts.tighten ? NEAR_SPAWN_DIST_TIGHTEN : 1.0);
+    const minD = minDistTiles * this.scale;
     const maxD = GAMEPLAY.GHOST_MAX_SPAWN_DIST_TILES * this.scale;
     const minD2 = minD * minD;
     const maxD2 = maxD * maxD;
@@ -587,13 +733,15 @@ export class World {
     const template = useProcedural
       ? generateChunk(rng)
       : CHUNK_TEMPLATES[Math.floor(rng() * CHUNK_TEMPLATES.length)];
-    // Difficulty scales pellet density: easy = lots of dots, hard = sparse.
-    // Base 30% × multiplier, clamped to a sensible range so even Hard mode
-    // still has SOME dots off the cross corridor.
+    // Difficulty + distance both scale pellet density: easy/origin gets
+    // lots of dots, hard/far chunks are sparse. Base 30% × effective
+    // multiplier (which folds farPct into difficulty.dotKeepMul),
+    // clamped so even the worst case has SOME dots off the cross
+    // corridor.
     const baseKeep = 30;
     const dotKeepPercent = Math.max(
       5,
-      Math.min(80, Math.round(baseKeep * this.difficulty.dotKeepMul))
+      Math.min(80, Math.round(baseKeep * this.effectiveDotKeepMul()))
     );
     return new Chunk(cx, cy, template, this.scale, this.assets, { dotKeepPercent });
   }
@@ -662,9 +810,26 @@ export class World {
     }
     if (!pacmanPos) return;
 
+    // Build the per-frame ghost context exactly once. Ghosts read it to
+    // resolve personality targets (Pinky needs Pacman's facing, Inky
+    // needs Blinky's tile) and to decide whether to run BFS. Computing
+    // once-per-frame keeps the inner ghost loop cheap.
+    const ctxBase = {
+      pacmanGridX: this.worldToGrid(pacmanPos.x),
+      pacmanGridY: this.worldToGrid(pacmanPos.y),
+      pacmanFacing: powerInfo?.pacmanFacing ?? null,
+      ...this._findBlinkyReference()
+    };
+
+    // Tag the N closest ghosts with useBfs. They get terrain-aware
+    // pathing so they don't bonk into cliffs when chasing through hilly
+    // chunks. The rest fall back to greedy.
+    const bfsGhosts = this._pickClosestGhosts(pacmanPos, BFS_NEAREST_GHOST_COUNT);
+
     // Tick AI for every live ghost.
     for (const g of this.ghosts) {
-      g.update(dt, pacmanPos);
+      const useBfs = bfsGhosts.has(g);
+      g.update(dt, pacmanPos, { ...ctxBase, useBfs });
     }
 
     // Pool maintenance — order matters: dispose eaten first so they don't
@@ -673,6 +838,47 @@ export class World {
     this._disposeEatenGhosts();
     this._cullGhosts(pacmanPos);
     this._tickGhostSpawning(dt, pacmanPos, powerInfo);
+  }
+
+  /**
+   * Find the closest live red ghost to use as Inky's flank reference.
+   * Returns { blinkyGridX, blinkyGridY } or empty object if no Blinky.
+   */
+  _findBlinkyReference() {
+    let best = null;
+    let bestKey = Infinity;
+    for (const g of this.ghosts) {
+      if (g.personality !== PERSONALITY.BLINKY) continue;
+      if (g.state === GHOST_STATE.EATEN) continue;
+      // Lower gx+gy is arbitrary but deterministic — gives a stable pick
+      // when multiple Blinkys exist (rare, but possible with the spawn pool).
+      const key = g.gridX * 100000 + g.gridY;
+      if (key < bestKey) {
+        bestKey = key;
+        best = g;
+      }
+    }
+    if (!best) return {};
+    return { blinkyGridX: best.gridX, blinkyGridY: best.gridY };
+  }
+
+  /**
+   * Return a Set of the up-to-N ghosts closest to Pacman. Used to flag
+   * which ghosts get BFS pathing this frame (cheap subset, expensive
+   * brain). Squared-distance keeps the comparison branch-free.
+   */
+  _pickClosestGhosts(pacmanPos, n) {
+    if (n <= 0 || this.ghosts.size === 0) return new Set();
+    const arr = [];
+    for (const g of this.ghosts) {
+      const dx = g.position.x - pacmanPos.x;
+      const dy = g.position.y - pacmanPos.y;
+      arr.push({ g, d2: dx * dx + dy * dy });
+    }
+    arr.sort((a, b) => a.d2 - b.d2);
+    const out = new Set();
+    for (let i = 0; i < Math.min(n, arr.length); i++) out.add(arr[i].g);
+    return out;
   }
 
   /**

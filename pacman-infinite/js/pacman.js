@@ -54,9 +54,22 @@ export class Pacman {
     // touching a fleeing ghost eats it instead of costing a life.
     this.powered = false;
     this.powerTimer = 0;
+    this.powerStartDuration = 0; // cached duration used by the HUD bar denominator
     // Cached "normal" emissive intensity so we can pulse during power mode
     // and restore exactly when it ends.
     this._normalEmissive = 0.2;
+
+    // Tier 5 — sprint (double-tap to dash). Two timers run sequentially:
+    //   • sprintTimer  > 0  → ACTIVE: speed × SPRINT_SPEED_MUL, emissive
+    //                          pulses cyan. Counts down to 0.
+    //   • sprintCooldown > 0 → COOLDOWN: cannot start a new sprint until
+    //                          this hits 0. Counts down independently.
+    // The two never overlap: the cooldown only starts ticking once the
+    // active timer reaches 0. HUD bar uses sprintCooldown as the
+    // refill-progress denominator, so its starting value is cached.
+    this.sprintTimer = 0;
+    this.sprintCooldown = 0;
+    this._sprintCooldownStart = 0;
 
     // Animation
     this.mouthAngle = 0; // Current mouth opening (0-45 degrees)
@@ -220,6 +233,38 @@ export class Pacman {
         const phase = 0.5 + 0.5 * Math.sin(this.powerTimer * fast);
         this.bodyMaterial.emissiveIntensity = 0.4 + 0.6 * phase;
       }
+    } else if (this.sprintTimer > 0) {
+      // Sprint visual: punchy cyan-tinted emissive flicker so the
+      // burst reads as a discrete state, not just "I'm walking but
+      // faster". Skipped while powered because the power-mode pulse
+      // already owns the body material — the two would fight and
+      // degrade both reads.
+      const phase = 0.5 + 0.5 * Math.sin(this.sprintTimer * 24);
+      this.bodyMaterial.emissiveIntensity = 0.5 + 0.5 * phase;
+    } else if (
+      this.bodyMaterial.emissiveIntensity !== this._normalEmissive &&
+      !this.dead &&
+      !this.dying
+    ) {
+      // Restore baseline emissive after sprint ends so the body
+      // doesn't stay over-lit while idle. Power mode owns its own
+      // restoration above, so this only runs in the post-sprint
+      // window or after any other one-off emissive changes.
+      this.bodyMaterial.emissiveIntensity = this._normalEmissive;
+    }
+
+    // Tier 5 — sprint timer machine. The active phase counts down to 0,
+    // then the cooldown phase begins. `_sprintCooldownStart` snapshots
+    // the cooldown duration the moment the cooldown phase starts so the
+    // HUD bar can use it as a stable denominator for progress reporting.
+    if (this.sprintTimer > 0) {
+      this.sprintTimer = Math.max(0, this.sprintTimer - deltaTime);
+      if (this.sprintTimer === 0) {
+        this.sprintCooldown = GAMEPLAY.SPRINT_COOLDOWN_S;
+        this._sprintCooldownStart = GAMEPLAY.SPRINT_COOLDOWN_S;
+      }
+    } else if (this.sprintCooldown > 0) {
+      this.sprintCooldown = Math.max(0, this.sprintCooldown - deltaTime);
     }
 
     // Update mouth animation (from original animate())
@@ -284,7 +329,12 @@ export class Pacman {
         this.jumpT = 0;
         this.jumping = false;
         this.invulnerable = false;
-        this.jumpCooldown = GAMEPLAY.PACMAN_JUMP_COOLDOWN;
+        // Difficulty-scaled jump cooldown. Hard mode (2.4×) makes jumps
+        // a precious traversal resource instead of a free panic-evade.
+        // The world stores the multiplier on `difficulty`; level==world
+        // here for an infinite session.
+        const cooldownMul = this.level?.difficulty?.jumpCooldownMul ?? 1.0;
+        this.jumpCooldown = GAMEPLAY.PACMAN_JUMP_COOLDOWN * cooldownMul;
         // Resolve landing: snap to the tile beneath us, or die into void.
         this._resolveLanding();
       }
@@ -314,6 +364,19 @@ export class Pacman {
       : 0;
     this.position.z = this.smoothHeight * this.scale + this.scale / 2 + jumpArc;
 
+    // Dynamic ghost-pass-through window: invulnerable only while actually
+    // airborne by more than half a tile. Previously `invulnerable` was set
+    // true for the entire 0.4 s arc the moment a jump started, which let
+    // the player chain-jump as a free evade button (≈44 % of total time
+    // immune). Now the take-off and landing frames count as vulnerable so
+    // the jump becomes a real "leap over a ghost" timing window.
+    if (this.jumping) {
+      const airHeightTiles = Math.sin(Math.PI * this.jumpT) * GAMEPLAY.PACMAN_JUMP_HEIGHT;
+      this.invulnerable = airHeightTiles > 0.5;
+    } else {
+      this.invulnerable = false;
+    }
+
     // Update group position and rotation
     this.group.position.copy(this.position);
     this.group.rotation.x = 0;
@@ -323,12 +386,33 @@ export class Pacman {
   /**
    * Try to start a jump. Returns true if the jump began this frame.
    * Conditions: not already jumping, not on cooldown, not dead.
+   *
+   * `invulnerable` is NOT pre-set here anymore — update() drives it from
+   * the live arc height each frame so take-off and landing both count as
+   * vulnerable (the player has to time a jump OVER a ghost, not just
+   * mash-jump for a 0.4 s i-frame burst).
    */
   tryJump() {
     if (this.dead || this.jumping || this.jumpCooldown > 0) return false;
     this.jumping = true;
     this.jumpT = 0;
-    this.invulnerable = true;
+    return true;
+  }
+
+  /**
+   * Try to start a sprint. Returns true if sprint began this frame.
+   * Conditions: not dead/dying, not already sprinting, not in
+   * cooldown. Sprint and jump are independent budgets — sprinting
+   * mid-air or jumping mid-sprint is allowed and combines into a
+   * "leap" that covers more ground than either alone.
+   *
+   * Food cost (FOOD_PER_SPRINT) is deducted in game-input.js so the
+   * Pacman model stays food-agnostic, mirroring the tryJump split.
+   */
+  trySprint() {
+    if (this.dead || this.dying) return false;
+    if (this.sprintTimer > 0 || this.sprintCooldown > 0) return false;
+    this.sprintTimer = GAMEPLAY.SPRINT_DURATION_S;
     return true;
   }
 
@@ -383,6 +467,12 @@ export class Pacman {
     // Power mode does NOT survive respawn — getting caught (or falling
     // in the void) ends the buff.
     this.clearPowerMode();
+    // Likewise sprint state is per-life: a fresh respawn gets a fresh
+    // dash budget (no inherited cooldown), but also can't ride out
+    // the previous burst's speed window past death.
+    this.sprintTimer = 0;
+    this.sprintCooldown = 0;
+    this._sprintCooldownStart = 0;
   }
 
   /**
@@ -395,6 +485,10 @@ export class Pacman {
   enterPowerMode(durationS) {
     this.powered = true;
     this.powerTimer = durationS;
+    // Cache the start-of-window duration so the HUD bar fills correctly
+    // regardless of difficulty (Easy 10 s ≠ Normal 8 s ≠ Hard 5 s — the
+    // bar used to always divide by the GAMEPLAY constant).
+    this.powerStartDuration = durationS;
   }
 
   /** Force-end power mode (e.g., on respawn or game over). */
@@ -402,6 +496,7 @@ export class Pacman {
     if (!this.powered && this.powerTimer === 0) return;
     this.powered = false;
     this.powerTimer = 0;
+    this.powerStartDuration = 0;
     this.bodyMaterial.emissiveIntensity = this._normalEmissive;
     this.bodyMaterial.color.setHex(0xffff00);
     this.bodyMaterial.emissive.setHex(0xffff00);
@@ -445,7 +540,12 @@ export class Pacman {
 
     // Reuse temp vector instead of cloning
     const oldPosition = this._oldPosition.copy(this.position);
-    const moveAmount = this.moveSpeed * deltaTime;
+    // Sprint multiplies the per-frame movement budget. Applied at this
+    // single layer (rather than to `moveSpeed` itself) so the base spec
+    // stays untouched and so any future movement code reading
+    // `pacman.moveSpeed` still sees the canonical value.
+    const speedMul = this.sprintTimer > 0 ? GAMEPLAY.SPRINT_SPEED_MUL : 1;
+    const moveAmount = this.moveSpeed * speedMul * deltaTime;
 
     if (useVector) {
       this.position.x += moveVec.x * moveAmount;

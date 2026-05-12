@@ -63,6 +63,29 @@ export const DIFFICULTY = {
   HARD: 'hard'
 };
 
+// Each preset folds five families of multipliers/overrides:
+//   - hungerDrainMul        — speeds up / slows down the food-meter clock
+//   - ghostSpeedMul         — applied to GHOST_SPEED. On Hard this now sits
+//                             ABOVE Pacman's speed so a straight-line chase
+//                             actually catches him (was 1.15 → ~39 u/s vs
+//                             Pacman's 40; bumped to 1.25 → ~42.5).
+//   - ghostCountMul         — soft cap on the live ghost pool
+//   - ghostChaseRadiusMul   — how early ghosts notice Pacman
+//   - fruitSpawnPeriodMul   — wider/narrower fruit cadence
+//   - dotKeepMul            — how dense pellets are per chunk
+//   - powerModeDurationS    — *absolute* power-pill window (not a multiplier
+//                             — the game previously used the flat 8 s
+//                             constant which made power pills equally
+//                             generous on every difficulty)
+//   - fleeSpeedMul          — speed of fleeing ghosts during power mode.
+//                             Higher = harder to catch them, less of a
+//                             free combo on Hard.
+//   - jumpCooldownMul       — multiplies PACMAN_JUMP_COOLDOWN. Hard mode
+//                             rations jumps so the player can't spam the
+//                             "I'm invulnerable while airborne" loophole.
+//   - ghostMinSpawnDistMul  — multiplies GHOST_MIN_SPAWN_DIST_TILES so
+//                             Hard ghosts can pop in closer (more "around
+//                             the corner" surprises).
 export const DIFFICULTY_PRESETS = {
   easy: {
     label: 'Easy',
@@ -70,8 +93,13 @@ export const DIFFICULTY_PRESETS = {
     ghostSpeedMul: 0.85,
     ghostCountMul: 0.6,
     ghostChaseRadiusMul: 0.8,
-    fruitSpawnPeriodMul: 0.6, // shorter interval = more fruit
-    dotKeepMul: 1.6 // more pellets per chunk
+    fruitSpawnPeriodMul: 0.7, // shorter interval = more fruit
+    dotKeepMul: 1.6, // more pellets per chunk
+    powerModeDurationS: 10,
+    fleeSpeedMul: 0.5,
+    jumpCooldownMul: 0.8,
+    ghostMinSpawnDistMul: 1.3,
+    foodPerDotMul: 1.2 // more nourishment per dot — easy is forgiving
   },
   normal: {
     label: 'Normal',
@@ -80,16 +108,26 @@ export const DIFFICULTY_PRESETS = {
     ghostCountMul: 1.0,
     ghostChaseRadiusMul: 1.0,
     fruitSpawnPeriodMul: 1.0,
-    dotKeepMul: 1.0
+    dotKeepMul: 1.0,
+    powerModeDurationS: 8,
+    fleeSpeedMul: 0.6,
+    jumpCooldownMul: 1.0,
+    ghostMinSpawnDistMul: 1.0,
+    foodPerDotMul: 1.0
   },
   hard: {
     label: 'Hard',
     hungerDrainMul: 1.45,
-    ghostSpeedMul: 1.15,
+    ghostSpeedMul: 1.25, // above Pacman speed → straight-line chase catches him
     ghostCountMul: 1.4,
     ghostChaseRadiusMul: 1.25,
-    fruitSpawnPeriodMul: 1.6, // longer interval = less fruit
-    dotKeepMul: 0.5 // fewer pellets per chunk
+    fruitSpawnPeriodMul: 1.25, // longer interval = less fruit (was 1.6 — too punishing on top of base nerf)
+    dotKeepMul: 0.5, // fewer pellets per chunk
+    powerModeDurationS: 5,
+    fleeSpeedMul: 0.85,
+    jumpCooldownMul: 2.4,
+    ghostMinSpawnDistMul: 0.7,
+    foodPerDotMul: 0.5 // grazing your way to immortality is no longer viable
   }
 };
 
@@ -195,14 +233,20 @@ export const GAMEPLAY = {
   // Power mode (Phase 3)
   POWER_MODE_DURATION: 8, // seconds — Pacman is dangerous to flee ghosts during this window
 
-  // Fruits (Phase 3)
-  FRUIT_SPAWN_PERIOD_MIN: 18, // seconds — fastest interval before next fruit spawns
-  FRUIT_SPAWN_PERIOD_MAX: 45, // seconds — slowest interval; actual spawn time is uniform in [min, max]
-  FRUIT_LIFETIME: 15, // seconds before an unclaimed fruit despawns
-  FRUIT_SPAWN_MIN_DIST_TILES: 4, // never spawn directly under the player's feet
+  // Fruits — cadence retuned 2026-05 because players reported "I never
+  // see fruits". Old values were 18/45 s × difficulty mul, with 15 s
+  // lifetime, capped to one fruit at a time → on Hard you'd see a
+  // fruit roughly every 60–90 seconds, way too sparse to feel like a
+  // real reward loop. New values keep the upper-end pacing slow enough
+  // that fruit still feels special, but the *typical* gap is short
+  // enough that any 30-second play burst will hit one.
+  FRUIT_SPAWN_PERIOD_MIN: 8, // seconds — fastest interval before next fruit spawns
+  FRUIT_SPAWN_PERIOD_MAX: 20, // seconds — slowest interval; actual spawn time is uniform in [min, max]
+  FRUIT_LIFETIME: 25, // seconds before an unclaimed fruit despawns
+  FRUIT_SPAWN_MIN_DIST_TILES: 3, // never spawn directly under the player's feet
   FRUIT_SPAWN_MAX_DIST: 2, // chunks from Pacman to consider when picking a spawn site
   // Legacy alias for any external callers; the runtime uses MIN/MAX above.
-  FRUIT_SPAWN_PERIOD: 30,
+  FRUIT_SPAWN_PERIOD: 14,
 
   // Scoring (Phase 3)
   SCORE_DOT: 10,
@@ -233,9 +277,40 @@ export const GAMEPLAY = {
   FOOD_DRAIN_RATE: 1.8, // base; multiplied by DIFFICULTY_PRESETS[*].hungerDrainMul
   FOOD_PER_DOT: 1.5,
   FOOD_PER_POWER_PILL: 25,
+  // Tier 3 — eating a power pill ALSO costs you food on activation
+  // (-10), so net food gain is +15 instead of +25. Stops "stack pills
+  // for free score" loops without making the pill itself feel
+  // worthless. Negative value (subtracted from the +25 in game-spawn).
+  FOOD_POWER_PILL_COST: -10,
   FOOD_PER_FRUIT: 40,
   FOOD_GHOST_PENALTY: 15,
+  // Tier 4 — every jump now costs 2 food. Jump-spamming as a free
+  // panic-evade is the loophole this closes (the smaller arc i-frame
+  // window from Tier 1 already made jumps less spammable; the food
+  // cost finishes the job by tying jumps to your hunger budget).
+  FOOD_PER_JUMP: 2,
+  // Sprint costs more than a jump because it gives you ~1.5 s of
+  // ghost-outrunning speed. ~5 food = roughly half a dot streak's
+  // worth of resource so you can't spam it as a panic button. Tier 1.
+  FOOD_PER_SPRINT: 5,
   FOOD_LOW_THRESHOLD: 30, // below this, the food bar pulses red (warning)
+
+  // -------- Sprint (Tier 5: "double-tap to dash") -------------------------
+  // Pacman's base speed (40 u/s) sits a hair above Ghost speed (34 u/s)
+  // base. With distance + Hard mods, ghosts hit ~42 u/s — they catch up.
+  // Sprint at 1.6× = 64 u/s gives the player a clear escape margin
+  // (and a chance to CHASE a fleeing ghost during power mode), but
+  // only for SPRINT_DURATION_S, after which a SPRINT_COOLDOWN_S
+  // cooldown blocks re-entry. The food cost (FOOD_PER_SPRINT above)
+  // adds an economic limiter on top of the time-based one.
+  SPRINT_SPEED_MUL: 1.6,
+  SPRINT_DURATION_S: 1.5,
+  SPRINT_COOLDOWN_S: 3.0,
+  // Double-tap detection window (ms). Same key (e.g. ArrowUp twice)
+  // pressed within this many ms triggers a sprint. Long enough that a
+  // panicked player can hit it twice without sub-150ms reflexes,
+  // short enough that two intentional taps in a row don't trigger.
+  SPRINT_DOUBLE_TAP_MS: 280,
 
   // Collision
   COLLISION_RADIUS_MULTIPLIER: 1.5, // for dot collection

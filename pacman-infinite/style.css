@@ -136,6 +136,89 @@ button:hover {
 }
 
 /*
+ * DASH HUD readout (Tier 5). The text inside #dash-status flips
+ * between READY / DASH! / "1.4s" depending on phase; tier classes on
+ * #dash-status drive the colour + pulse:
+ *   • default (no class)   → cyan "READY"
+ *   • .dash-active         → bright white "DASH!" with fast scale pulse
+ *   • .dash-cooldown       → dim grey "Ns" countdown, no pulse
+ * The pulse is on the inline span (not the line) so the "Dash:" label
+ * doesn't bounce around with it.
+ */
+#dash-status {
+  display: inline-block;
+  transition: color 120ms ease-out;
+  transform-origin: 50% 50%;
+}
+#dash-status.dash-active {
+  color: #ffffff;
+  text-shadow: 0 0 6px #22d3ee, 0 0 12px #06b6d4;
+  animation: dash-active-pulse 0.3s ease-in-out infinite;
+}
+#dash-status.dash-cooldown {
+  color: #6b7280;
+}
+@keyframes dash-active-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.75;
+  }
+}
+
+/*
+ * DASH charge bar. Lives inline after the status text so the entire
+ * dash readout fits on a single HUD row alongside Far/Mult/Streak.
+ * The container is a fixed-width track; the inner #dash-bar element
+ * scales horizontally via `transform: scaleX(var(--dash-frac))` so
+ * the GPU compositor handles the per-frame width change without a
+ * relayout.
+ *
+ * Tier classes on the *bar* (not the status text) drive the colour:
+ *   • default (.dash-charge)  → cyan "ready" tint
+ *   • .dash-active            → hot white burst with cyan glow
+ *   • .dash-cooldown          → dim cyan refill
+ * scaleX(0) leaves an empty track; scaleX(1) fills it. Transform
+ * origin is the left edge so the bar drains/refills from the left.
+ */
+.dash-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dash-bar-container {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 6px;
+  background: rgba(75, 85, 99, 0.45);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.dash-bar {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #22d3ee, #67e8f9);
+  border-radius: 3px;
+  transform-origin: 0% 50%;
+  transform: scaleX(var(--dash-frac, 1));
+  transition: background-color 120ms ease-out;
+  will-change: transform;
+}
+.dash-bar.dash-active {
+  background: linear-gradient(90deg, #ffffff, #67e8f9);
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.85);
+}
+.dash-bar.dash-cooldown {
+  background: linear-gradient(90deg, #155e75, #22d3ee);
+  opacity: 0.7;
+}
+
+/*
  * Power-mode HUD bar (Phase 3).
  * The fill colour transitions from pink → yellow → red as the timer
  * runs down. JS sets `--power-frac` on #power-timer-bar each frame; the
@@ -213,6 +296,91 @@ button:hover {
  */
 .ghost-flee-glow {
   box-shadow: inset 0 0 60px rgba(48, 96, 255, 0.35);
+}
+
+/*
+ * On-screen ghost proximity markers. One element per nearby threat,
+ * pooled in #ghost-indicators (full-viewport overlay). Each marker is
+ * an arrow glyph rotated to point AT the ghost; positioning is via a
+ * single transform string (`translate(x,y) rotate(deg)`) per frame so
+ * the GPU can hand off the layout cheaply.
+ *
+ * Three tiers based on per-ghost world-tile distance to Pacman:
+ *   • warn-watch    —  8–12 tiles: yellow, no pulse
+ *   • warn-danger   —   5–8 tiles: orange, slow pulse
+ *   • warn-imminent —  ≤5 tiles (DANGER_WARNING_RADIUS): red, fast pulse
+ *
+ * Note: the pulse animates `scale` on the marker. The rotation that
+ * points at the ghost is set on the marker's own transform string and
+ * gets overwritten each frame, so we use a CSS variable + composite
+ * transform — `--marker-rot` carries the pointing angle, and the
+ * keyframe layers `scale()` on top of it via `transform`.
+ */
+.ghost-marker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+  /* `--marker-x/y` are pixel positions of the indicator's centre;
+     `--marker-rot` is the rotation that aims the arrow at the ghost.
+     Centre the box on the anchor point with the -50% offset. JS only
+     touches the variables, never `transform` directly, so the keyframe
+     animation can compose its scale on top.
+
+     A 4-corner black text-shadow wraps the glyph in a hard outline so
+     it stays legible against bright sky, dark walls, and dot fields
+     alike. The two larger glow shadows underneath that paint the
+     coloured halo for the tier. */
+  transform: translate(calc(var(--marker-x, 0px) - 50%), calc(var(--marker-y, 0px) - 50%))
+    rotate(var(--marker-rot, 0deg));
+  transform-origin: 50% 50%;
+  text-shadow:
+    -2px -2px 0 #000,
+    2px -2px 0 #000,
+    -2px 2px 0 #000,
+    2px 2px 0 #000,
+    0 0 10px currentColor,
+    0 0 18px currentColor;
+}
+.ghost-marker.warn-watch {
+  color: #fde047; /* yellow-300 */
+}
+.ghost-marker.warn-danger {
+  color: #fb923c; /* orange-400 */
+  animation: ghost-marker-pulse 0.8s ease-in-out infinite;
+}
+.ghost-marker.warn-imminent {
+  color: #f87171; /* red-400 */
+  font-size: 40px;
+  animation: ghost-marker-pulse 0.35s ease-in-out infinite;
+}
+/* Pulse keeps a high min-opacity (0.78) so the arrow is always
+   readable; the pulse is meant to draw the eye, not to flash on/off.
+   Each keyframe re-emits the full transform string because `transform`
+   is a single property — JS sets x/y/rot via custom properties and the
+   keyframe layers a `scale()` on top. */
+@keyframes ghost-marker-pulse {
+  0%,
+  100% {
+    transform: translate(calc(var(--marker-x, 0px) - 50%), calc(var(--marker-y, 0px) - 50%))
+      rotate(var(--marker-rot, 0deg)) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(calc(var(--marker-x, 0px) - 50%), calc(var(--marker-y, 0px) - 50%))
+      rotate(var(--marker-rot, 0deg)) scale(1.22);
+    opacity: 0.78;
+  }
 }
 
 /*

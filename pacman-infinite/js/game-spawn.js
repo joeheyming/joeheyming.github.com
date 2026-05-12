@@ -1,4 +1,4 @@
-import { Fruit } from './fruit.js';
+import { Fruit, pickFruitTypeForDistance } from './fruit.js';
 import { GHOST_STATE, GAMEPLAY, TILE } from './constants.js';
 import { CHUNK_SIZE } from './templates.js';
 import { eatenKey } from './save.js';
@@ -21,22 +21,36 @@ export const gameSpawn = {
         this._eatenDots.add(eatenKey(dot.cx, dot.cy, dot.lx, dot.ly));
 
         if (dot.isPowerPill) {
-          this.score += GAMEPLAY.SCORE_POWER_PILL;
-          this._addFood(GAMEPLAY.FOOD_PER_POWER_PILL);
+          this._addScore(GAMEPLAY.SCORE_POWER_PILL);
+          // Power pills ARE food (+25), but the activation now also costs
+          // a smaller chunk (-10) — netting +15 — so popping pills purely
+          // for ghost combos has a real hunger price. Closes the "stack
+          // pills for free score" loop from Tier 0.
+          this._addFood(GAMEPLAY.FOOD_PER_POWER_PILL + GAMEPLAY.FOOD_POWER_PILL_COST);
           this.audioManager.playPowerPill?.();
           this.pacman.startChomp();
+          this._bumpStreak();
+          // Difficulty-scaled power window: Easy 10 s, Normal 8 s, Hard 5 s.
+          // Falls back to the GAMEPLAY constant if the preset somehow lacks
+          // the new key (defensive — older saved difficulty values, etc.).
+          const powerS = this._diff().powerModeDurationS ?? GAMEPLAY.POWER_MODE_DURATION;
           // Enter power mode — refreshes the timer if already powered.
-          this.pacman.enterPowerMode(GAMEPLAY.POWER_MODE_DURATION);
+          this.pacman.enterPowerMode(powerS);
           // Reset the ghost-eat combo at the start of every power window
           // so a fresh pill always pays out 200 → 400 → 800 → 1600.
           this._powerChainCount = 0;
-          // Scare every live ghost.
-          this.world.scareAllGhosts(GAMEPLAY.POWER_MODE_DURATION);
+          // Scare every live ghost for the same window.
+          this.world.scareAllGhosts(powerS);
         } else {
-          this.score += GAMEPLAY.SCORE_DOT;
-          this._addFood(GAMEPLAY.FOOD_PER_DOT);
+          this._addScore(GAMEPLAY.SCORE_DOT);
+          // Tier 4 — per-dot food scales with difficulty (Easy ×1.2,
+          // Hard ×0.5). Living off pellets alone in Hard mode now
+          // requires you to eat more than one dot per drain-second.
+          const foodMul = this.world?.difficulty?.foodPerDotMul ?? 1.0;
+          this._addFood(GAMEPLAY.FOOD_PER_DOT * foodMul);
           this.audioManager.playChomp();
           this.pacman.startChomp();
+          this._bumpStreak();
         }
       }
     }
@@ -86,7 +100,10 @@ export const gameSpawn = {
 
   _eatGhost(ghost) {
     const points = GAMEPLAY.SCORE_GHOST_BASE * (1 << Math.min(this._powerChainCount, 3));
-    this.score += points;
+    // Ghost eats route through _addScore so they also pick up the
+    // distance-from-origin and streak multipliers (eating ghosts
+    // doesn't bump the streak, but doesn't break it either).
+    this._addScore(points);
     this._powerChainCount++;
     // "Ghost is gnarly food" — score reward, but a hunger penalty.
     // Routed through _addFood so a starving player chomping a ghost
@@ -129,11 +146,18 @@ export const gameSpawn = {
       const dXY2 = dx * dx + dy * dy;
       const r = this.world.scale * 0.7;
       if (dXY2 < r * r && Math.abs(dz) < this.world.scale * 1.2) {
-        this.score += GAMEPLAY.SCORE_FRUIT;
-        // Fruit is the strongest food source in the game (intentional —
-        // it's rare, time-limited, and the user wanted "fruit is better").
-        this._addFood(GAMEPLAY.FOOD_PER_FRUIT);
+        // Tier 4 — per-type score / food. Cherry pays 100 / +30 food,
+        // skull-fruit pays 2000 / -30 food, etc. The Fruit instance
+        // surfaces the values so we don't have to re-import the table.
+        this._addScore(this._activeFruit.scoreValue);
+        this._addFood(this._activeFruit.foodValue);
         this.audioManager.playFruitEaten?.();
+        // Fruit counts as a streak pickup (per the "any clean food"
+        // rule). Lets a player extend a long streak by chasing fruits
+        // when the dot supply gets thin in far chunks. Skull-fruit
+        // still bumps the streak — the food penalty is the cost,
+        // not the streak.
+        this._bumpStreak();
         this._despawnFruit();
         return;
       }
@@ -167,11 +191,19 @@ export const gameSpawn = {
     if (!this.world || !this.pacman) return;
     const spawn = this._pickFruitSpawnTile();
     if (!spawn) return;
+    // Tier 4 — distance-weighted fruit selection. Far Pacman = rarer,
+    // bigger-payoff fruits become possible (skull-fruit at 300+ tiles,
+    // lemon at 200+, apple at 100+). Below those thresholds only the
+    // common cherries / strawberries spawn.
+    const farTiles = this.world.farTilesFromOrigin?.() ?? 0;
+    const farCap = this.world.getFarCapTiles?.() ?? 600;
+    const pick = pickFruitTypeForDistance(farTiles, farCap);
     this._activeFruit = new Fruit({
       gridX: spawn.gx,
       gridY: spawn.gy,
       surfaceHeight: spawn.h,
-      scale: this.world.scale
+      scale: this.world.scale,
+      typeIdx: pick.typeIdx
     });
     this._activeFruit.addToScene(this.scene);
   },

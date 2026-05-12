@@ -82,6 +82,57 @@
           </div>
 
           <!--
+            Tier 3 survival HUD. Three lines that appear/refresh together:
+              • FAR — distance from world origin in tile-units (drives the
+                score multiplier + the survival pressure)
+              • MULT — current per-pickup score multiplier
+                (distance × streak combined)
+              • STREAK — consecutive pickups without taking damage; resets
+                on any death cause (ghost, starvation, void)
+            All three are populated from JS each refresh (game-hud.js).
+          -->
+          <div class="mt-2 text-xs space-y-0.5">
+            <div>
+              <span class="text-gray-400">Far:</span>
+              <span id="far-tiles" class="text-cyan-300 font-bold">0</span>
+            </div>
+            <div>
+              <span class="text-gray-400">Mult:</span>
+              <span id="score-mult" class="text-yellow-300 font-bold">×1.0</span>
+            </div>
+            <div>
+              <span class="text-gray-400">Streak:</span>
+              <span id="dot-streak" class="text-green-300 font-bold">0</span>
+            </div>
+            <!--
+              DASH readout (Tier 5). Combines a one-word status label
+              and a sprint-charge bar so the player sees BOTH the
+              current state and the continuous progress toward "ready
+              to dash again". Critical for FPPOV where you can't see
+              Pacman's cyan sprint glow on his body — the bar is the
+              only feedback channel.
+
+              JS (`game-hud.js:_refreshDashHud`) flips the text between
+              READY / DASH! / "Ns" and drives the bar fill via the
+              `--dash-frac` CSS variable:
+                • READY     → bar full (100%), cyan tint
+                • DASH!     → bar drains 100→0% as `sprintTimer`
+                  counts down (white-hot burst tint, fast pulse)
+                • cooldown  → bar fills 0→100% off the cached
+                  `_sprintCooldownStart` denominator (dim cyan tint)
+              The fraction always reads as "how charged is your dash"
+              — full = use it, empty = waiting.
+            -->
+            <div id="dash-line" class="dash-line">
+              <span class="text-gray-400">Dash:</span>
+              <span id="dash-status" class="text-cyan-300 font-bold">READY</span>
+              <div id="dash-bar-container" class="dash-bar-container">
+                <div id="dash-bar" class="dash-bar"></div>
+              </div>
+            </div>
+          </div>
+
+          <!--
             Food meter (Minecraft-style hunger). Always visible during
             gameplay. JS sets the bar width each frame and toggles a
             `low` class for a red-pulse warning when food is critical.
@@ -128,6 +179,25 @@
         </div>
       </div>
 
+      <!--
+        On-screen ghost proximity overlay. Full-viewport, no
+        pointer-events. JS (game-hud.js:_refreshGhostIndicators) walks
+        the live ghost set every frame, projects each non-fleeing ghost
+        within proximity into screen space, clamps the indicator to a
+        margin inset of the viewport, and rotates an arrow glyph to
+        point AT the threat. Off-screen ghosts get an arrow on the
+        nearest edge; on-screen ghosts get one near their projected
+        position so the player sees the threat marker even when it's
+        visible. Markers are pooled (created on demand, hidden when
+        not in use) to avoid GC churn. Hidden entirely during power
+        mode — you're the predator there.
+      -->
+      <div
+        id="ghost-indicators"
+        class="absolute inset-0 pointer-events-none z-10"
+        aria-hidden="true"
+      ></div>
+
       <!-- Share Button -->
       <div class="absolute bottom-4 left-4 z-10">
         <share-button label="📤 Share" theme="dark"></share-button>
@@ -140,6 +210,7 @@
       >
         <div>Arrow Keys / WASD: Move</div>
         <div>Space: Jump</div>
+        <div>Double-tap Direction: Dash</div>
         <div>C: Change View</div>
         <div>P: Pause</div>
       </div>
@@ -225,10 +296,10 @@
           </button>
         </div>
         <div class="mt-8 text-gray-500 text-sm text-center px-4 hidden sm:block">
-          Arrows move • Space jumps • C view • P pause
+          Arrows move • Space jumps • Double-tap dir to dash • C view • P pause
         </div>
         <div class="mt-8 text-gray-500 text-sm text-center px-4 sm:hidden">
-          Drag to move • Double-tap or JUMP to hop • VIEW to change angle
+          Drag to move • JUMP to hop • DASH to sprint • VIEW to change angle
         </div>
         <div class="mt-2 text-gray-600 text-xs text-center px-4 max-w-md">
           Beware the void: walk off a tile with no floor and you'll respawn somewhere else.
@@ -263,6 +334,17 @@
           <div class="text-pink-300 text-lg mt-1">
             High Score:
             <span id="final-high-score">0</span>
+          </div>
+          <!--
+            Tier 3 — per-run best streak. Tracked in Game._streakBest
+            from any pickup since the last death; surfaced here so the
+            player sees the headline number their streak scoring was
+            chasing. Hidden when zero so a player who died without a
+            single pickup doesn't see a confusing "Best Streak: 0".
+          -->
+          <div id="final-streak-row" class="text-green-300 text-lg mt-1 hidden">
+            Best Streak:
+            <span id="final-streak">0</span>
           </div>
         </div>
         <button

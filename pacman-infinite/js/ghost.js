@@ -10,10 +10,28 @@
  *
  * AI states:
  *   WANDER — random walk; switch to CHASE when Pacman within radius
- *   CHASE  — greedy walk toward Pacman; back to WANDER outside leave-radius
+ *   CHASE  — personality-driven walk toward a target tile that depends
+ *            on the ghost's colour (Tier 2, 2026-05). See PERSONALITY
+ *            constants and the _personalityTarget() helper.
  *   FLEE   — power mode active; greedy walk AWAY from Pacman, slowed
  *   EATEN  — Pacman ate this ghost while it was fleeing; brief delay then
  *            World disposes us
+ *
+ * Personalities (mirrors classic Pac-Man, but adapted for an open world):
+ *   BLINKY (red)   — direct chaser. Targets Pacman's exact tile.
+ *                    Cruise-Elroy gear-up: +10% speed when within 5 tiles.
+ *   PINKY  (pink)  — ambusher. Targets 4 tiles AHEAD of Pacman's facing.
+ *   INKY   (cyan)  — flanker. Pivots a target around Blinky to pincer
+ *                    Pacman from the opposite side.
+ *   CLYDE  (orange)— shy. Chases when far (>8 tiles), scatters when close.
+ *
+ * Pathing has two modes:
+ *   - Greedy (default for far ghosts): pick the neighbour that minimises
+ *     tile distance to the target. Cheap, sometimes gets stuck on cliffs.
+ *   - BFS (used when `useBfs` is true in update ctx, applied to the few
+ *     closest ghosts): a bounded BFS up to ~8 tiles finds the actual
+ *     reachable next step around terrain. Recomputed every ~0.4 s and
+ *     cached so we don't pay the cost every frame.
  *
  * Movement is grid-locked — each tile-arrival picks the next neighbor.
  * Movement obeys the same surface-height rules as Pacman (auto-step ±1,
@@ -29,9 +47,51 @@ import * as THREE from 'three';
 import { GAMEPLAY, GHOST_STATE } from './constants.js';
 
 // 4 colour variants. Order matches "rgb wheel" feel of the classic
-// ghosts (red, pink, cyan, orange) without the personality quirks of
-// Blinky/Inky/Pinky/Clyde.
+// ghosts (red, pink, cyan, orange) — and now also drives the
+// PERSONALITY_BY_COLOR_IDX dispatch table below so colour reads as
+// behaviour at a glance.
 const GHOST_COLORS = [0xff3030, 0xff80c0, 0x40e0ff, 0xffa040];
+
+export const PERSONALITY = {
+  BLINKY: 'blinky',
+  PINKY: 'pinky',
+  INKY: 'inky',
+  CLYDE: 'clyde'
+};
+
+// Index → personality table, in the same order as GHOST_COLORS so the
+// red ghost reliably plays Blinky etc.
+const PERSONALITY_BY_COLOR_IDX = [
+  PERSONALITY.BLINKY, // red    → direct chaser
+  PERSONALITY.PINKY, // pink   → ambusher
+  PERSONALITY.INKY, // cyan   → flanker
+  PERSONALITY.CLYDE // orange → shy
+];
+
+// Cruise-Elroy speed boost: applied to Blinky in CHASE state when within
+// CRUISE_ELROY_RADIUS tiles of Pacman. Kept modest (×1.10) so a single
+// red ghost in your face is genuinely scary without being unfightable.
+const CRUISE_ELROY_RADIUS_TILES = 5;
+const CRUISE_ELROY_SPEED_MUL = 1.1;
+
+// Pinky aims this many tiles AHEAD of Pacman's facing direction. Classic
+// game uses 4 tiles; the open-world version reads similarly here.
+const PINKY_AHEAD_TILES = 4;
+
+// Inky's pivot uses (Pacman + 2 tiles ahead) as the pivot point and
+// reflects Blinky's position through it for a flank target.
+const INKY_PIVOT_AHEAD_TILES = 2;
+
+// Clyde's "shy distance": within this many tiles of Pacman he breaks off
+// and wanders randomly instead of pursuing.
+const CLYDE_SHY_RADIUS_TILES = 8;
+
+// BFS pathing budget. ~200 nodes covers a Manhattan radius of ~10 tiles
+// with cheap memory. The cache TTL aligns with GHOST_TURN_PERIOD so the
+// path refreshes about as often as the ghost would normally re-decide.
+const BFS_MAX_NODES = 240;
+const BFS_MAX_RADIUS_TILES = 10;
+const BFS_CACHE_TTL_S = 0.4;
 const FLEE_COLOR = 0x2030c0; // deep blue
 const FLEE_BLINK_COLOR = 0xffffff; // near end of power mode, blink white
 const EYE_COLOR = 0xffffff;
@@ -59,6 +119,7 @@ export class Ghost {
     this.world = world;
     this.colorIdx = ((colorIdx % 4) + 4) % 4;
     this.color = GHOST_COLORS[this.colorIdx];
+    this.personality = PERSONALITY_BY_COLOR_IDX[this.colorIdx];
     // Ghost radius — fits within a tile and matches the visual heft of
     // the original game's ghosts.
     this.radius = scale * 0.35;
@@ -68,6 +129,13 @@ export class Ghost {
     this.shouldDespawn = false;
     this.despawnTimer = 0;
     this.fleeTimer = 0; // mirrors pacman's powerTimer for blink animation
+
+    // Cached BFS result so we don't rerun the search every tile-arrival
+    // for the same goal. World assigns useBfs=true to the ~3 closest
+    // ghosts; for those we BFS, for the rest we fall back to greedy.
+    /** @type {{gx: number, gy: number} | null} */
+    this._bfsCacheNext = null;
+    this._bfsCacheTTL = 0; // seconds remaining before recompute
 
     // Tile-locked logical position. We always know which tile the ghost
     // *is on* (grid coords) and which tile it's heading to (target). The
@@ -292,9 +360,21 @@ export class Ghost {
 
   // ---------------------------------------------------------------------------
   // Update — driven from World/Game once per frame
+  //
+  // ctx (optional, supplied by World):
+  //   pacmanGridX/pacmanGridY — Pacman's current tile (cheaper than asking
+  //                             world.worldToGrid every tick)
+  //   pacmanFacing            — THREE.Vector3, Pacman's normalised facing
+  //                             (used by Pinky / Inky for ahead-targeting)
+  //   blinkyGridX/blinkyGridY — closest live red ghost's tile, for Inky's
+  //                             pivot reference. Null when no Blinky exists.
+  //   useBfs                  — when true, this ghost runs BFS pathing
+  //                             against its personality target instead of
+  //                             greedy nearest-tile selection. World sets
+  //                             this on the closest ~3 ghosts.
   // ---------------------------------------------------------------------------
 
-  update(dt, pacmanPos) {
+  update(dt, pacmanPos, ctx) {
     // EATEN: hidden timer; flag for despawn when it expires. World's
     // _cullGhosts() picks us up next sweep.
     if (this.state === GHOST_STATE.EATEN) {
@@ -334,17 +414,48 @@ export class Ghost {
       }
     }
 
-    // Tile-step movement.
-    const arrived = this._stepTowardTarget(dt);
+    // Tick the BFS cache TTL even when not at a tile boundary so a stale
+    // path expires on time even if the ghost is mid-step.
+    if (this._bfsCacheTTL > 0) this._bfsCacheTTL = Math.max(0, this._bfsCacheTTL - dt);
+
+    // Tile-step movement (passes ctx so the speed calc + target picker
+    // can read Pacman's facing/position without re-fetching).
+    const arrived = this._stepTowardTarget(dt, pacmanPos);
     if (arrived) {
-      this._pickNextTarget(pacmanPos);
+      this._pickNextTarget(pacmanPos, ctx);
     }
   }
 
-  _stepTowardTarget(dt) {
-    const speedMul = this.world?.difficulty?.ghostSpeedMul ?? 1.0;
+  _stepTowardTarget(dt, pacmanPos) {
+    // Use the world's *effective* speed mul (base × distance-from-origin
+    // penalty) so chasing ghosts get faster the deeper Pacman wanders.
+    // Falls back to the base mul if the helper is missing (defensive
+    // for older world stubs / tests).
+    const speedMul = this.world?.effectiveGhostSpeedMul
+      ? this.world.effectiveGhostSpeedMul()
+      : this.world?.difficulty?.ghostSpeedMul ?? 1.0;
     let speed = GAMEPLAY.GHOST_SPEED * speedMul;
-    if (this.state === GHOST_STATE.FLEE) speed *= GAMEPLAY.GHOST_FLEE_SPEED_MULTIPLIER;
+    if (this.state === GHOST_STATE.FLEE) {
+      // Difficulty-scaled flee speed. Easy ghosts crawl when scared (0.5×)
+      // so the chain is easy to land; Hard ghosts only slow to 0.85× so
+      // a power pill no longer guarantees a four-ghost combo.
+      const fleeMul = this.world?.difficulty?.fleeSpeedMul ?? GAMEPLAY.GHOST_FLEE_SPEED_MULTIPLIER;
+      speed *= fleeMul;
+    } else if (
+      this.personality === PERSONALITY.BLINKY &&
+      this.state === GHOST_STATE.CHASE &&
+      pacmanPos
+    ) {
+      // Cruise Elroy: Blinky picks up speed inside CRUISE_ELROY_RADIUS.
+      // Read the current distance so it kicks in/out smoothly as he
+      // closes — no hysteresis needed because the boost is small (×1.10).
+      const dx = this.position.x - pacmanPos.x;
+      const dy = this.position.y - pacmanPos.y;
+      const elroyR = CRUISE_ELROY_RADIUS_TILES * this.scale;
+      if (dx * dx + dy * dy < elroyR * elroyR) {
+        speed *= CRUISE_ELROY_SPEED_MUL;
+      }
+    }
 
     const tx = this.targetGridX * this.scale;
     const ty = this.targetGridY * this.scale;
@@ -396,10 +507,22 @@ export class Ghost {
   }
 
   /**
-   * Choose the next adjacent tile to move into based on current state.
-   * Falls back to staying put if no neighbor is reachable.
+   * Choose the next adjacent tile to move into based on current state and
+   * personality.
+   *
+   * In CHASE we resolve a personality-specific *target tile* (Blinky
+   * targets Pacman directly, Pinky targets ahead of Pacman, Inky pivots
+   * around Blinky, Clyde scatters when close). Then we either:
+   *   - run a small BFS from our current tile to that target and return
+   *     the next step on the resulting path (when ctx.useBfs is true), or
+   *   - fall back to greedy nearest-neighbour selection toward the target.
+   *
+   * FLEE uses greedy distance-MAXimisation toward Pacman as before; the
+   * extra brainpower of BFS isn't worth it for runaway behaviour.
+   *
+   * WANDER picks a random non-reverse neighbour (unchanged).
    */
-  _pickNextTarget(pacmanPos) {
+  _pickNextTarget(pacmanPos, ctx) {
     const neighbors = this._reachableNeighbors();
     if (neighbors.length === 0) {
       this.targetGridX = this.gridX;
@@ -412,10 +535,27 @@ export class Ghost {
     if (candidates.length === 0) candidates = neighbors;
 
     let chosen;
-    if (this.state === GHOST_STATE.CHASE) {
-      chosen = this._pickGreedy(candidates, pacmanPos, +1);
-    } else if (this.state === GHOST_STATE.FLEE) {
+    if (this.state === GHOST_STATE.FLEE) {
+      // Greedy max-distance — runaway behaviour doesn't need BFS.
       chosen = this._pickGreedy(candidates, pacmanPos, -1);
+    } else if (this.state === GHOST_STATE.CHASE) {
+      const target = this._personalityTarget(pacmanPos, ctx);
+      if (target === null) {
+        // Personality opted out of chasing this tick (Clyde when close);
+        // fall back to a random non-reverse neighbour for the scatter.
+        chosen = candidates[Math.floor(Math.random() * candidates.length)];
+      } else {
+        // Try BFS first when the world tagged us as a "near" ghost. If BFS
+        // can't reach the target inside its budget we silently fall back
+        // to greedy distance — still better than standing still.
+        const bfsStep = ctx?.useBfs ? this._bfsNextStepToward(target.gx, target.gy) : null;
+        if (bfsStep) {
+          chosen = candidates.find((c) => c.gx === bfsStep.gx && c.gy === bfsStep.gy) ||
+            this._pickGreedyTowardTile(candidates, target);
+        } else {
+          chosen = this._pickGreedyTowardTile(candidates, target);
+        }
+      }
     } else {
       chosen = candidates[Math.floor(Math.random() * candidates.length)];
     }
@@ -423,6 +563,191 @@ export class Ghost {
     this.targetGridX = chosen.gx;
     this.targetGridY = chosen.gy;
     this.lastDir = chosen.dir;
+  }
+
+  /**
+   * Resolve the chase-target tile based on this ghost's personality.
+   * Returns null when the personality wants to break off (currently only
+   * Clyde when close to Pacman). Targets are *grid coordinates* — they
+   * may point at unreachable tiles (off in unloaded chunks, on top of a
+   * mountain, …). The pathing layer treats unreachable tiles as a
+   * direction hint and picks the best reachable neighbour anyway.
+   */
+  _personalityTarget(pacmanPos, ctx) {
+    const pacmanGx = ctx?.pacmanGridX ?? Math.round(pacmanPos.x / this.scale);
+    const pacmanGy = ctx?.pacmanGridY ?? Math.round(pacmanPos.y / this.scale);
+    const facing = ctx?.pacmanFacing;
+    // Quantise facing to the dominant cardinal so the "ahead" target sits
+    // on a grid tile. atan2 flip handles the case where facing is null
+    // (e.g. ghosts ticking before the first frame supplied a ctx).
+    const fx = facing ? Math.round(facing.x) : 0;
+    const fy = facing ? Math.round(facing.y) : -1;
+
+    switch (this.personality) {
+      case PERSONALITY.BLINKY:
+        return { gx: pacmanGx, gy: pacmanGy };
+      case PERSONALITY.PINKY:
+        return {
+          gx: pacmanGx + fx * PINKY_AHEAD_TILES,
+          gy: pacmanGy + fy * PINKY_AHEAD_TILES
+        };
+      case PERSONALITY.INKY: {
+        // Pivot point = 2 tiles ahead of Pacman. Reflect Blinky through
+        // the pivot to find the flank target. Without a Blinky reference
+        // (e.g. red ghost momentarily eaten) Inky degrades into Pinky-lite.
+        const pivotGx = pacmanGx + fx * INKY_PIVOT_AHEAD_TILES;
+        const pivotGy = pacmanGy + fy * INKY_PIVOT_AHEAD_TILES;
+        if (ctx?.blinkyGridX == null || ctx?.blinkyGridY == null) {
+          return { gx: pivotGx, gy: pivotGy };
+        }
+        const dx = pivotGx - ctx.blinkyGridX;
+        const dy = pivotGy - ctx.blinkyGridY;
+        return { gx: ctx.blinkyGridX + dx * 2, gy: ctx.blinkyGridY + dy * 2 };
+      }
+      case PERSONALITY.CLYDE: {
+        const dx = this.gridX - pacmanGx;
+        const dy = this.gridY - pacmanGy;
+        const distTiles2 = dx * dx + dy * dy;
+        if (distTiles2 > CLYDE_SHY_RADIUS_TILES * CLYDE_SHY_RADIUS_TILES) {
+          return { gx: pacmanGx, gy: pacmanGy };
+        }
+        return null; // close → scatter (random walk this tick)
+      }
+      default:
+        return { gx: pacmanGx, gy: pacmanGy };
+    }
+  }
+
+  /**
+   * Greedy candidate selector that minimises tile-distance to a *target
+   * tile* (not Pacman directly). Used for personality-driven chases —
+   * Pinky walks toward "4 tiles ahead of Pacman", Inky toward the pincer
+   * point, etc.
+   */
+  _pickGreedyTowardTile(candidates, target) {
+    let best = candidates[0];
+    let bestScore = this._tileDistSqToTile(best.gx, best.gy, target.gx, target.gy);
+    for (let i = 1; i < candidates.length; i++) {
+      const c = candidates[i];
+      const score = this._tileDistSqToTile(c.gx, c.gy, target.gx, target.gy);
+      if (score < bestScore) {
+        best = c;
+        bestScore = score;
+      }
+    }
+    return best;
+  }
+
+  _tileDistSqToTile(gx, gy, tx, ty) {
+    const dx = gx - tx;
+    const dy = gy - ty;
+    return dx * dx + dy * dy;
+  }
+
+  /**
+   * Bounded BFS from the ghost's current tile to (targetGx, targetGy).
+   * Returns the next *adjacent* tile on the discovered path, or null if
+   * the target couldn't be reached within BFS_MAX_RADIUS_TILES /
+   * BFS_MAX_NODES.
+   *
+   * Cached for BFS_CACHE_TTL_S so consecutive tile-arrivals against the
+   * same goal don't repeat the work. Cache invalidates as soon as the
+   * goal moves more than ~2 tiles (Pacman ran somewhere new).
+   */
+  _bfsNextStepToward(targetGx, targetGy) {
+    if (
+      this._bfsCacheTTL > 0 &&
+      this._bfsCacheNext &&
+      this._bfsCacheTargetGx === targetGx &&
+      this._bfsCacheTargetGy === targetGy
+    ) {
+      return this._bfsCacheNext;
+    }
+
+    const startGx = this.gridX;
+    const startGy = this.gridY;
+    if (startGx === targetGx && startGy === targetGy) return null;
+
+    const startKey = `${startGx},${startGy}`;
+    const visited = new Map(); // key → parent key (null for start)
+    visited.set(startKey, null);
+    const queue = [{ gx: startGx, gy: startGy }];
+
+    let endNode = null;
+    let nearest = { gx: startGx, gy: startGy, score: Infinity };
+
+    const dirs = [
+      [0, -1],
+      [0, 1],
+      [-1, 0],
+      [1, 0]
+    ];
+
+    while (queue.length > 0 && visited.size < BFS_MAX_NODES) {
+      const node = queue.shift();
+      // Track the closest-by-Manhattan node we've explored so we can fall
+      // back to "head in the right general direction" if BFS can't reach
+      // the goal (e.g. target is on top of a mountain).
+      const dxN = Math.abs(node.gx - targetGx);
+      const dyN = Math.abs(node.gy - targetGy);
+      const manhattan = dxN + dyN;
+      if (manhattan < nearest.score) nearest = { gx: node.gx, gy: node.gy, score: manhattan };
+      if (node.gx === targetGx && node.gy === targetGy) {
+        endNode = node;
+        break;
+      }
+      const radius = Math.abs(node.gx - startGx) + Math.abs(node.gy - startGy);
+      if (radius >= BFS_MAX_RADIUS_TILES) continue;
+      const here = this.world.surfaceHeightAt(node.gx, node.gy);
+      for (const [dx, dy] of dirs) {
+        const nx = node.gx + dx;
+        const ny = node.gy + dy;
+        const k = `${nx},${ny}`;
+        if (visited.has(k)) continue;
+        const surf = this.world.surfaceHeightAt(nx, ny);
+        if (Number.isNaN(surf) || !Number.isFinite(surf)) continue;
+        if (Math.abs(surf - here) > 1) continue;
+        visited.set(k, `${node.gx},${node.gy}`);
+        queue.push({ gx: nx, gy: ny });
+      }
+    }
+
+    // Reconstruct the next step. If we never reached the goal, walk back
+    // from the closest explored node so the ghost still makes meaningful
+    // progress toward the target instead of standing still.
+    let endKey;
+    if (endNode) {
+      endKey = `${endNode.gx},${endNode.gy}`;
+    } else if (nearest.gx !== startGx || nearest.gy !== startGy) {
+      endKey = `${nearest.gx},${nearest.gy}`;
+    } else {
+      this._bfsCacheNext = null;
+      this._bfsCacheTTL = BFS_CACHE_TTL_S;
+      this._bfsCacheTargetGx = targetGx;
+      this._bfsCacheTargetGy = targetGy;
+      return null;
+    }
+
+    let curKey = endKey;
+    let parentKey = visited.get(curKey);
+    while (parentKey && parentKey !== startKey) {
+      curKey = parentKey;
+      parentKey = visited.get(curKey);
+    }
+    if (!parentKey) {
+      // The "end" was the start tile itself — no step to take.
+      this._bfsCacheNext = null;
+      this._bfsCacheTTL = BFS_CACHE_TTL_S;
+      this._bfsCacheTargetGx = targetGx;
+      this._bfsCacheTargetGy = targetGy;
+      return null;
+    }
+    const [cgx, cgy] = curKey.split(',').map(Number);
+    this._bfsCacheNext = { gx: cgx, gy: cgy };
+    this._bfsCacheTTL = BFS_CACHE_TTL_S;
+    this._bfsCacheTargetGx = targetGx;
+    this._bfsCacheTargetGy = targetGy;
+    return this._bfsCacheNext;
   }
 
   /**
