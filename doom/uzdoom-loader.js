@@ -65,6 +65,44 @@ import { installUzdomLoaderEngine } from './uzdoom-loader-engine.js';
   }
 })();
 
+// Sibling guard for scheduled-source start()/stop(). The OpenAL fallback
+// path inside uzdoom.js (scheduleSourceAudio → scheduleContextAudio,
+// also driven by the setInterval pump set up in _alcCreateContext, plus
+// _alSourcePlay) occasionally calls `bufferSource.start(when, offset,
+// duration)` with a non-finite arg — observed on Legend of DOOM map
+// transitions and on the F32→S16 fallback music stream when the
+// AL_EXT_FLOAT32 extension is missing. Without this shim the throw
+// escapes back into the engine's main loop and the OpenAL source state
+// machine retries forever, which both spams the console with a
+// thousand-deep rAF stack and stalls the main thread for ~1s per frame.
+//
+// Note: it's *not* enough to patch AudioScheduledSourceNode.prototype
+// (the WebAudio base class). Per spec, AudioBufferSourceNode defines its
+// own start(when, offset, duration) directly on its own prototype — a
+// 3-arg overload that shadows the 1-arg base. So `bufferSrc.start(...)`
+// resolves to AudioBufferSourceNode.prototype.start, never the base.
+// We patch every concrete scheduled-source prototype the engine uses.
+(function guardScheduledSource() {
+  const sanitize = (a) => (a === undefined || Number.isFinite(a) ? a : 0);
+  const protos = [
+    typeof AudioScheduledSourceNode !== 'undefined' && AudioScheduledSourceNode.prototype,
+    typeof AudioBufferSourceNode !== 'undefined' && AudioBufferSourceNode.prototype,
+    typeof OscillatorNode !== 'undefined' && OscillatorNode.prototype,
+    typeof ConstantSourceNode !== 'undefined' && ConstantSourceNode.prototype
+  ].filter(Boolean);
+
+  for (const proto of protos) {
+    for (const m of ['start', 'stop']) {
+      if (!Object.prototype.hasOwnProperty.call(proto, m)) continue;
+      if (typeof proto[m] !== 'function') continue;
+      const orig = proto[m];
+      proto[m] = function (...args) {
+        return orig.apply(this, args.map(sanitize));
+      };
+    }
+  }
+})();
+
 const BUNDLED_IWADS = new Set(['freedoom1.wad', 'freedoom2.wad']);
 
 const SAFE_CHEATS = new Set([
