@@ -1,8 +1,8 @@
 // Unit tests for doom/lifecycle.js (Legend-of-DOOM-derived lifecycle).
 //
-// The module is an IIFE that assigns `window.LoDLifecycle`, so we run it
-// inside a fresh jsdom window per test. freshLifecycle() returns that
-// singleton plus the `window` so tests can poke at timers / history.
+// Each test loads a fresh copy of the module via dynamic import (unique
+// query string) so module-level state resets, after pointing global
+// `window` at an isolated JSDOM realm.
 //
 // Only the public surface (get / subscribe / mark* / history / etc.) is
 // asserted. Internal fields (TERMINAL table, subscriber list) are kept
@@ -16,42 +16,42 @@ import { describe, it } from 'node:test';
 // jsdom-realm prototypes; structural equality is what we actually care
 // about. Primitives still use `.equal` which is strict by default.
 import assert from 'node:assert';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { JSDOM } from 'jsdom';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const LIFECYCLE_JS = readFileSync(join(__dirname, '..', 'doom', 'lifecycle.js'), 'utf8');
+const LIFECYCLE_HREF = pathToFileURL(join(__dirname, '..', 'doom', 'lifecycle.js')).href;
 
-function freshLifecycle() {
+async function freshLifecycle() {
   const dom = new JSDOM('<!doctype html><html><body></body></html>', {
-    runScripts: 'outside-only',
     url: 'http://localhost/doom/?flavor=legend'
   });
-  dom.window.eval(LIFECYCLE_JS);
-  return { lc: dom.window.LoDLifecycle, win: dom.window };
+  const w = dom.window;
+  globalThis.window = w;
+  await import(LIFECYCLE_HREF + '?t=' + Date.now());
+  return { lc: w.LoDLifecycle, win: w };
 }
 
 describe('lifecycle: initial state', () => {
-  it('starts in `loading` phase', () => {
-    const { lc } = freshLifecycle();
+  it('starts in `loading` phase', async () => {
+    const { lc } = await freshLifecycle();
     assert.equal(lc.get(), 'loading');
     assert.equal(lc.detail(), null);
     assert.equal(lc.isTerminal(), false);
     assert.equal(lc.isRunning(), false);
   });
 
-  it('history contains the initial transition', () => {
-    const { lc } = freshLifecycle();
+  it('history contains the initial transition', async () => {
+    const { lc } = await freshLifecycle();
     const h = lc.history();
     assert.equal(h.length, 1);
     assert.equal(h[0].from, null);
     assert.equal(h[0].phase, 'loading');
   });
 
-  it("exposes a frozen PHASES list that can't be mutated", () => {
-    const { lc } = freshLifecycle();
+  it("exposes a frozen PHASES list that can't be mutated", async () => {
+    const { lc } = await freshLifecycle();
     assert.deepEqual(Array.from(lc.PHASES), [
       'loading',
       'primed',
@@ -72,8 +72,8 @@ describe('lifecycle: initial state', () => {
 });
 
 describe('lifecycle: valid transitions', () => {
-  it('loading → primed → launching → playing → exited', () => {
-    const { lc } = freshLifecycle();
+  it('loading → primed → launching → playing → exited', async () => {
+    const { lc } = await freshLifecycle();
     assert.equal(lc.markPrimed({ iwad: 'freedoom1.wad' }), true);
     assert.equal(lc.get(), 'primed');
     assert.deepEqual(lc.detail(), { iwad: 'freedoom1.wad' });
@@ -92,16 +92,16 @@ describe('lifecycle: valid transitions', () => {
     assert.equal(lc.isRunning(), false);
   });
 
-  it('loading → error is a terminal transition', () => {
-    const { lc } = freshLifecycle();
+  it('loading → error is a terminal transition', async () => {
+    const { lc } = await freshLifecycle();
     assert.equal(lc.markError('coi', { budgetMs: 8000 }), true);
     assert.equal(lc.get(), 'error');
     assert.equal(lc.isTerminal(), true);
     assert.deepEqual(lc.detail(), { reason: 'coi', detail: { budgetMs: 8000 } });
   });
 
-  it('same-phase set is an idempotent no-op', () => {
-    const { lc } = freshLifecycle();
+  it('same-phase set is an idempotent no-op', async () => {
+    const { lc } = await freshLifecycle();
     lc.markPrimed({ iwad: 'a' });
     assert.equal(lc.markPrimed({ iwad: 'b' }), false, 'same-phase re-entry returns false');
     // Detail is unchanged because the transition didn\'t apply.
@@ -110,8 +110,8 @@ describe('lifecycle: valid transitions', () => {
 });
 
 describe('lifecycle: terminal-state lockout', () => {
-  it('exited refuses further marks', () => {
-    const { lc } = freshLifecycle();
+  it('exited refuses further marks', async () => {
+    const { lc } = await freshLifecycle();
     lc.markPrimed();
     lc.markLaunching();
     lc.markPlaying();
@@ -122,8 +122,8 @@ describe('lifecycle: terminal-state lockout', () => {
     assert.equal(lc.get(), 'exited', 'phase is still exited');
   });
 
-  it('error refuses further marks', () => {
-    const { lc } = freshLifecycle();
+  it('error refuses further marks', async () => {
+    const { lc } = await freshLifecycle();
     lc.markError('coi');
 
     assert.equal(lc.markPrimed(), false);
@@ -135,24 +135,24 @@ describe('lifecycle: terminal-state lockout', () => {
 });
 
 describe('lifecycle: unprime escape hatch', () => {
-  it('unprimes from primed → loading', () => {
-    const { lc } = freshLifecycle();
+  it('unprimes from primed → loading', async () => {
+    const { lc } = await freshLifecycle();
     lc.markPrimed({ iwad: 'a' });
     assert.equal(lc.unprime(), true);
     assert.equal(lc.get(), 'loading');
     assert.equal(lc.detail(), null);
   });
 
-  it('unprimes from launching → loading', () => {
-    const { lc } = freshLifecycle();
+  it('unprimes from launching → loading', async () => {
+    const { lc } = await freshLifecycle();
     lc.markPrimed();
     lc.markLaunching();
     assert.equal(lc.unprime(), true);
     assert.equal(lc.get(), 'loading');
   });
 
-  it('refuses to unprime from playing', () => {
-    const { lc } = freshLifecycle();
+  it('refuses to unprime from playing', async () => {
+    const { lc } = await freshLifecycle();
     lc.markPrimed();
     lc.markLaunching();
     lc.markPlaying();
@@ -160,13 +160,13 @@ describe('lifecycle: unprime escape hatch', () => {
     assert.equal(lc.get(), 'playing');
   });
 
-  it('refuses to unprime from loading', () => {
-    const { lc } = freshLifecycle();
+  it('refuses to unprime from loading', async () => {
+    const { lc } = await freshLifecycle();
     assert.equal(lc.unprime(), false);
   });
 
-  it('refuses to unprime from terminal states', () => {
-    const { lc } = freshLifecycle();
+  it('refuses to unprime from terminal states', async () => {
+    const { lc } = await freshLifecycle();
     lc.markError('coi');
     assert.equal(lc.unprime(), false);
     assert.equal(lc.get(), 'error');
@@ -174,16 +174,16 @@ describe('lifecycle: unprime escape hatch', () => {
 });
 
 describe('lifecycle: subscribers', () => {
-  it('fires on subscribe with current state and null `from`', () => {
-    const { lc } = freshLifecycle();
+  it('fires on subscribe with current state and null `from`', async () => {
+    const { lc } = await freshLifecycle();
     const calls = [];
     lc.subscribe((state, from) => calls.push({ phase: state.phase, from }));
     assert.equal(calls.length, 1);
     assert.deepEqual(calls[0], { phase: 'loading', from: null });
   });
 
-  it('fires on every real transition', () => {
-    const { lc } = freshLifecycle();
+  it('fires on every real transition', async () => {
+    const { lc } = await freshLifecycle();
     const phases = [];
     lc.subscribe((state) => phases.push(state.phase));
     lc.markPrimed();
@@ -192,8 +192,8 @@ describe('lifecycle: subscribers', () => {
     assert.deepEqual(phases, ['loading', 'primed', 'launching', 'playing']);
   });
 
-  it('does NOT fire for idempotent same-phase set', () => {
-    const { lc } = freshLifecycle();
+  it('does NOT fire for idempotent same-phase set', async () => {
+    const { lc } = await freshLifecycle();
     const phases = [];
     lc.subscribe((state) => phases.push(state.phase));
     phases.length = 0; // drop the initial catch-up fire
@@ -202,8 +202,8 @@ describe('lifecycle: subscribers', () => {
     assert.deepEqual(phases, ['primed'], 'only one transition dispatched');
   });
 
-  it('unsubscribe stops further notifications', () => {
-    const { lc } = freshLifecycle();
+  it('unsubscribe stops further notifications', async () => {
+    const { lc } = await freshLifecycle();
     const phases = [];
     const unsub = lc.subscribe((state) => phases.push(state.phase));
     phases.length = 0;
@@ -212,8 +212,8 @@ describe('lifecycle: subscribers', () => {
     assert.deepEqual(phases, []);
   });
 
-  it('subscriber that throws does not break the chain', () => {
-    const { lc } = freshLifecycle();
+  it('subscriber that throws does not break the chain', async () => {
+    const { lc } = await freshLifecycle();
     const good = [];
     lc.subscribe(() => {
       throw new Error('boom');
@@ -225,8 +225,8 @@ describe('lifecycle: subscribers', () => {
     assert.deepEqual(good, ['primed']);
   });
 
-  it('subscribers added during dispatch do not fire for the current transition', () => {
-    const { lc } = freshLifecycle();
+  it('subscribers added during dispatch do not fire for the current transition', async () => {
+    const { lc } = await freshLifecycle();
     const lateCalls = [];
     lc.subscribe((state) => {
       if (state.phase === 'primed') {
@@ -244,8 +244,8 @@ describe('lifecycle: subscribers', () => {
 });
 
 describe('lifecycle: history', () => {
-  it('records every successful transition with monotonic timestamps', () => {
-    const { lc } = freshLifecycle();
+  it('records every successful transition with monotonic timestamps', async () => {
+    const { lc } = await freshLifecycle();
     lc.markPrimed();
     lc.markLaunching();
     lc.markPlaying();
@@ -260,16 +260,16 @@ describe('lifecycle: history', () => {
     );
   });
 
-  it('does NOT record idempotent no-ops', () => {
-    const { lc } = freshLifecycle();
+  it('does NOT record idempotent no-ops', async () => {
+    const { lc } = await freshLifecycle();
     lc.markPrimed();
     const before = lc.history().length;
     lc.markPrimed();
     assert.equal(lc.history().length, before);
   });
 
-  it('does NOT record rejected transitions from terminal state', () => {
-    const { lc } = freshLifecycle();
+  it('does NOT record rejected transitions from terminal state', async () => {
+    const { lc } = await freshLifecycle();
     lc.markError('coi');
     const before = lc.history().length;
     lc.markPlaying();
@@ -281,8 +281,8 @@ describe('lifecycle: invalid phase names', () => {
   // markX functions are the ONLY public way to transition, but confirm
   // they reject invalid phases cleanly via a test that would fail on a
   // future refactor that adds a public `set()` escape hatch.
-  it('only the documented markers exist on the public API', () => {
-    const { lc } = freshLifecycle();
+  it('only the documented markers exist on the public API', async () => {
+    const { lc } = await freshLifecycle();
     const markers = Object.keys(lc).filter((k) => k.startsWith('mark'));
     assert.deepEqual(markers.sort(), [
       'markError',

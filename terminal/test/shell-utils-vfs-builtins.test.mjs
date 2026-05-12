@@ -8,11 +8,7 @@ import { ChmodLib } from '../commands/filesystem/chmod-lib.js';
 import { StatLib } from '../commands/filesystem/stat-lib.js';
 import { BuiltinsLib } from '../commands/system/builtins-lib.js';
 
-const {
-  formatDeclareXLine,
-  escapeBashDoubleQuotedContent,
-  escapeTypeAliasBody
-} = ShellCore;
+const { formatDeclareXLine, escapeBashDoubleQuotedContent, escapeTypeAliasBody } = ShellCore;
 
 const {
   fileItemUtf8ForDisplay,
@@ -227,4 +223,3 @@ test('escapeTypeAliasBody: backslashes and backticks', () => {
   assert.equal(escapeTypeAliasBody('a`b'), 'a\\`b');
   assert.equal(escapeTypeAliasBody('a\\b'), 'a\\\\b');
 });
-

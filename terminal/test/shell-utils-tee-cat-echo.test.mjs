@@ -128,4 +128,3 @@ test('echoApplyBackslashEscapes: common sequences', () => {
 test('ECHO_VERSION_LINE is non-empty', () => {
   assert.match(ECHO_VERSION_LINE, /echo/);
 });
-

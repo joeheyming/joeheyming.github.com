@@ -1,5 +1,6 @@
 // File System Manager for Heyming OS
 import { ShellCore } from '../lib/shell-core.js';
+import { FileSystemDB } from '../../os/filesystem-db.js';
 
 export class FileSystemManager {
   constructor(kernel) {
@@ -44,10 +45,7 @@ export class FileSystemManager {
     this.kernel.log('File System Manager initializing');
 
     // Initialize the main file system
-    if (!window.FileSystemDB) {
-      throw new Error('FileSystemDB not loaded. Make sure filesystem-db.js is included.');
-    }
-    this.fileSystemDB = await window.FileSystemDB.getInstance();
+    this.fileSystemDB = await FileSystemDB.getInstance();
 
     // Create default mount points
     await this.setupMountPoints();

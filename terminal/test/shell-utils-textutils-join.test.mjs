@@ -290,4 +290,3 @@ test('joinSplitFields / joinBuildRecords / joinMergeRecords / joinEmitMatchedLin
   );
   assert.equal(line, '1:a:foo:b:bar');
 });
-

@@ -1,15 +1,13 @@
-// Unit tests for the HTML parsers in doom/moddb-browser.js.
+// Unit tests for the HTML parsers in doom/moddb-browser-parsers.js and
+// helpers from moddb-browser-net.js.
 //
 // We can't fetch live moddb pages from a test environment (no network,
 // CORS, brittle), so each test feeds a small constructed fixture HTML
 // snippet that follows the structure assumed by the SELECTORS table at
-// the top of moddb-browser.js. When moddb's DOM drifts and a real
+// the top of moddb-browser-parsers.js. When moddb's DOM drifts and a real
 // listing stops parsing, the fix is two-step:
 //   1. Update the relevant fixture below to match a captured page.
 //   2. Update the selector or parser branch to make the test pass.
-//
-// The browser script is an IIFE that publishes window.UZDoomModdb. We
-// load it once into a shared jsdom and pull parsers off the global.
 
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,26 +15,23 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { JSDOM } from 'jsdom';
+import { parsers } from '../doom/moddb-browser-parsers.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const MODDB_JS = readFileSync(join(__dirname, '..', 'doom', 'moddb-browser.js'), 'utf8');
 
-let parsers;
 let internal;
-before(() => {
+
+before(async () => {
   const dom = new JSDOM('<!doctype html><html><body></body></html>', {
-    runScripts: 'outside-only',
     url: 'https://www.moddb.com/mods'
   });
-  // The IIFE references DOMParser — exposed by jsdom on the window.
-  dom.window.eval(MODDB_JS);
-  const ns = dom.window.UZDoomModdb;
-  assert.ok(ns, 'moddb-browser.js did not publish window.UZDoomModdb');
-  parsers = ns.parsers;
-  internal = ns._internal;
+  const w = dom.window;
+  globalThis.window = w;
+  globalThis.DOMParser = w.DOMParser;
+  globalThis.localStorage = w.localStorage;
+  const net = await import('../doom/moddb-browser-net.js');
+  internal = net.internal;
 });
-
-// ---- Fixtures ----------------------------------------------------------
 
 const LISTING_HTML = `
 <!doctype html><html><body>

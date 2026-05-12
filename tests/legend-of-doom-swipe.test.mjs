@@ -10,27 +10,44 @@
 
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 import { JSDOM } from 'jsdom';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const TOUCH_JS = readFileSync(join(__dirname, '..', 'doom', 'touch-input.js'), 'utf8');
+const TOUCH_HREF = pathToFileURL(join(__dirname, '..', 'doom', 'touch-input.js')).href;
 
 // One jsdom window shared across tests — cheaper than rebuilding per
-// test, and the module\'s exported surface is pure and doesn\'t carry
+// test, and the module's exported surface is pure and doesn't carry
 // per-test state.
 let factory;
 let bindings;
-before(() => {
+before(async () => {
   const dom = new JSDOM('<!doctype html><html><body></body></html>', {
-    runScripts: 'outside-only',
     url: 'http://localhost/doom/?flavor=legend'
   });
-  dom.window.eval(TOUCH_JS);
-  factory = dom.window.LoDTouchInput.createSwipeController;
-  bindings = dom.window.LoDTouchInput.bindings;
+  const w = dom.window;
+  globalThis.window = w;
+  globalThis.document = w.document;
+  globalThis.matchMedia =
+    typeof w.matchMedia === 'function'
+      ? w.matchMedia.bind(w)
+      : function () {
+          return {
+            matches: false,
+            addEventListener: function () {},
+            removeEventListener: function () {}
+          };
+        };
+  Object.defineProperty(globalThis, 'navigator', {
+    value: w.navigator,
+    configurable: true,
+    writable: true,
+    enumerable: true
+  });
+  await import(TOUCH_HREF + '?t=shared-swipe-tests');
+  factory = w.LoDTouchInput.createSwipeController;
+  bindings = w.LoDTouchInput.bindings;
 });
 
 // Helper: build a controller whose onTurn pushes `{action,pressed}`

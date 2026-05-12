@@ -16,214 +16,185 @@
 // Emscripten's --preload-file, exposed at /freedoom1.wad, and selected by
 // passing { name, bundled: 'freedoom1.wad' }. No fetch needed.
 
-(function () {
-  'use strict';
+const DB_NAME = 'uzdoom-iwads';
+const DB_VERSION = 1;
+const STORE = 'iwads';
 
-  const DB_NAME = 'uzdoom-iwads';
-  const DB_VERSION = 1;
-  const STORE = 'iwads';
-
-  // doom.wad source: same Netlify-hosted shareware wad the existing
-  // flavor=classic path uses (CLASSIC_WAD_URL in doom/index.html).
-  // doom2.wad: hosted in the same place if the user has it. We default
-  // to the same console-doom origin and let it 404 gracefully if not.
-  const SOURCES = {
-    doom: {
-      name: 'doom.wad',
-      url: 'https://console-doom.netlify.app/data/doom.wad'
-    },
-    doom2: {
-      name: 'doom2.wad',
-      url: 'https://console-doom.netlify.app/data/doom2.wad'
-    }
-  };
-
-  function openDb() {
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, DB_VERSION);
-      req.onupgradeneeded = () => {
-        const db = req.result;
-        if (!db.objectStoreNames.contains(STORE)) {
-          db.createObjectStore(STORE);
-        }
-      };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
+const SOURCES = {
+  doom: {
+    name: 'doom.wad',
+    url: 'https://console-doom.netlify.app/data/doom.wad'
+  },
+  doom2: {
+    name: 'doom2.wad',
+    url: 'https://console-doom.netlify.app/data/doom2.wad'
   }
+};
 
-  async function dbGet(key) {
-    const db = await openDb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readonly');
-      const store = tx.objectStore(STORE);
-      const req = store.get(key);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  async function dbPut(key, value) {
-    const db = await openDb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readwrite');
-      const store = tx.objectStore(STORE);
-      const req = store.put(value, key);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  async function dbDelete(key) {
-    const db = await openDb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readwrite');
-      const store = tx.objectStore(STORE);
-      const req = store.delete(key);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  // In-memory cache so multiple resolve() calls in the same session don't
-  // hit IDB (or the network) more than once.
-  const memCache = new Map();
-
-  /**
-   * Resolve an IWAD descriptor for UZDoomLoader.primeWith.
-   *
-   * @param {'freedoom1'|'doom'|'doom2'} choice
-   * @param {(msg: string) => void} [onProgress]
-   * @returns {Promise<{ name: string, data: Uint8Array|null, bundled?: string }>}
-   */
-  async function resolve(choice, onProgress) {
-    const log = (msg) => onProgress && onProgress(msg);
-
-    if (choice === 'freedoom1' || choice === 'freedoom') {
-      // Bundled into the wasm preload bundle. UZDoomLoader recognizes
-      // `bundled` and skips the FS.writeFile step.
-      return { name: 'freedoom1.wad (bundled)', data: null, bundled: 'freedoom1.wad' };
-    }
-
-    const src = SOURCES[choice];
-    if (!src) throw new Error('unknown IWAD choice: ' + choice);
-
-    if (memCache.has(choice)) {
-      log('cached (memory)');
-      return memCache.get(choice);
-    }
-
-    // Try IndexedDB first.
-    try {
-      const cached = await dbGet(choice);
-      if (cached && cached.byteLength > 0) {
-        log('cached (IndexedDB, ' + formatBytes(cached.byteLength) + ')');
-        const data = cached instanceof Uint8Array ? cached : new Uint8Array(cached);
-        const desc = { name: src.name, data };
-        memCache.set(choice, desc);
-        return desc;
+function openDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(STORE)) {
+        db.createObjectStore(STORE);
       }
-    } catch (e) {
-      console.warn('[uzdoom-iwad] IDB read failed:', e);
-    }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
 
-    // Fetch via the proxy service. doom.wad is ~12 MB, doom2.wad ~14 MB —
-    // well below the proxy timeout for binary fetches.
-    if (!window.proxyService) throw new Error('proxyService unavailable');
-    log('fetching ' + src.name + '…');
+async function dbGet(key) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const store = tx.objectStore(STORE);
+    const req = store.get(key);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
 
-    let buf;
-    try {
-      // Try direct first — console-doom.netlify.app does send permissive
-      // CORS for these (the existing flavor=classic uses raw fetch).
-      buf = await directFetchBinary(src.url);
-    } catch (_e) {
-      buf = await window.proxyService.fetchBinaryWithProxy(src.url, {
-        skipDirect: true,
-        headers: { Accept: 'application/octet-stream,*/*' },
-        timeout: 60000,
-        maxRetries: 2
-      });
-    }
+async function dbPut(key, value) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const store = tx.objectStore(STORE);
+    const req = store.put(value, key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
 
-    if (!buf || buf.length === 0) {
-      throw new Error('Empty response fetching ' + src.name);
-    }
+async function dbDelete(key) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const store = tx.objectStore(STORE);
+    const req = store.delete(key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
 
-    // Persist for next time. Failure is non-fatal — we still have the bytes.
-    try {
-      await dbPut(choice, buf);
-      log('cached (' + formatBytes(buf.length) + ')');
-    } catch (e) {
-      console.warn('[uzdoom-iwad] IDB write failed:', e);
-    }
+const memCache = new Map();
 
-    const desc = { name: src.name, data: buf };
-    memCache.set(choice, desc);
-    return desc;
+async function resolve(choice, onProgress) {
+  const log = (msg) => onProgress && onProgress(msg);
+
+  if (choice === 'freedoom1' || choice === 'freedoom') {
+    return { name: 'freedoom1.wad (bundled)', data: null, bundled: 'freedoom1.wad' };
   }
 
-  async function directFetchBinary(url) {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 30000);
-    try {
-      const res = await fetch(url, { mode: 'cors', signal: ctrl.signal });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const ab = await res.arrayBuffer();
-      return new Uint8Array(ab);
-    } finally {
-      clearTimeout(t);
+  const src = SOURCES[choice];
+  if (!src) throw new Error('unknown IWAD choice: ' + choice);
+
+  if (memCache.has(choice)) {
+    log('cached (memory)');
+    return memCache.get(choice);
+  }
+
+  try {
+    const cached = await dbGet(choice);
+    if (cached && cached.byteLength > 0) {
+      log('cached (IndexedDB, ' + formatBytes(cached.byteLength) + ')');
+      const data = cached instanceof Uint8Array ? cached : new Uint8Array(cached);
+      const desc = { name: src.name, data };
+      memCache.set(choice, desc);
+      return desc;
     }
+  } catch (e) {
+    console.warn('[uzdoom-iwad] IDB read failed:', e);
   }
 
-  function formatBytes(n) {
-    if (n >= 1048576) return (n / 1048576).toFixed(1) + ' MB';
-    if (n >= 1024) return (n / 1024).toFixed(1) + ' KB';
-    return n + ' B';
+  if (!window.proxyService) throw new Error('proxyService unavailable');
+  log('fetching ' + src.name + '…');
+
+  let buf;
+  try {
+    buf = await directFetchBinary(src.url);
+  } catch (_e) {
+    buf = await window.proxyService.fetchBinaryWithProxy(src.url, {
+      skipDirect: true,
+      headers: { Accept: 'application/octet-stream,*/*' },
+      timeout: 60000,
+      maxRetries: 2
+    });
   }
 
-  /**
-   * Forget a cached IWAD (for "Reset saved data" parity).
-   */
-  async function forget(choice) {
-    memCache.delete(choice);
-    if (choice == null) {
-      for (const k of Object.keys(SOURCES)) {
-        try {
-          await dbDelete(k);
-        } catch (_) {}
-      }
-      return;
-    }
-    try {
-      await dbDelete(choice);
-    } catch (_) {}
+  if (!buf || buf.length === 0) {
+    throw new Error('Empty response fetching ' + src.name);
   }
 
-  /**
-   * Inspect what's cached without touching network.
-   */
-  async function status() {
-    const out = {};
+  try {
+    await dbPut(choice, buf);
+    log('cached (' + formatBytes(buf.length) + ')');
+  } catch (e) {
+    console.warn('[uzdoom-iwad] IDB write failed:', e);
+  }
+
+  const desc = { name: src.name, data: buf };
+  memCache.set(choice, desc);
+  return desc;
+}
+
+async function directFetchBinary(url) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 30000);
+  try {
+    const res = await fetch(url, { mode: 'cors', signal: ctrl.signal });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const ab = await res.arrayBuffer();
+    return new Uint8Array(ab);
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+function formatBytes(n) {
+  if (n >= 1048576) return (n / 1048576).toFixed(1) + ' MB';
+  if (n >= 1024) return (n / 1024).toFixed(1) + ' KB';
+  return n + ' B';
+}
+
+async function forget(choice) {
+  memCache.delete(choice);
+  if (choice == null) {
     for (const k of Object.keys(SOURCES)) {
       try {
-        const v = await dbGet(k);
-        out[k] = {
-          name: SOURCES[k].name,
-          cached: !!(v && v.byteLength > 0),
-          bytes: v ? v.byteLength : 0
-        };
-      } catch (_) {
-        out[k] = { name: SOURCES[k].name, cached: false, bytes: 0 };
-      }
+        await dbDelete(k);
+      } catch (_) {}
     }
-    return out;
+    return;
   }
+  try {
+    await dbDelete(choice);
+  } catch (_) {}
+}
 
-  window.UZDoomModdbIwad = {
-    resolve,
-    forget,
-    status,
-    SOURCES
-  };
-})();
+async function status() {
+  const out = {};
+  for (const k of Object.keys(SOURCES)) {
+    try {
+      const v = await dbGet(k);
+      out[k] = {
+        name: SOURCES[k].name,
+        cached: !!(v && v.byteLength > 0),
+        bytes: v ? v.byteLength : 0
+      };
+    } catch (_) {
+      out[k] = { name: SOURCES[k].name, cached: false, bytes: 0 };
+    }
+  }
+  return out;
+}
+
+export const UZDoomModdbIwad = {
+  resolve,
+  forget,
+  status,
+  SOURCES
+};
+
+window.UZDoomModdbIwad = UZDoomModdbIwad;

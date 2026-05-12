@@ -237,230 +237,229 @@ export const SPOTLIGHT_TOP_N = 10;
  * @param {{ type: string, items: Array<Record<string, unknown>> }} content
  */
 export function appendSimfileTableItemsToContent(doc, content) {
-const simfileLinks = doc.querySelectorAll('a[href*="viewsimfile.php"]');
-if (simfileLinks.length === 0) {
-  return;
-}
-content.type = 'simfiles';
+  const simfileLinks = doc.querySelectorAll('a[href*="viewsimfile.php"]');
+  if (simfileLinks.length === 0) {
+    return;
+  }
+  content.type = 'simfiles';
 
-const difficultyNames = ['Beginner', 'Basic', 'Difficult', 'Expert', 'Challenge'];
-const difficultyShort = ['B', 'L', 'S', 'H', 'C'];
+  const difficultyNames = ['Beginner', 'Basic', 'Difficult', 'Expert', 'Challenge'];
+  const difficultyShort = ['B', 'L', 'S', 'H', 'C'];
 
-simfileLinks.forEach((link) => {
-  const href = link.getAttribute('href');
-  const text = link.textContent.trim();
-  if (href && text && !text.includes('Download') && !text.includes('MB')) {
-    const urlParams = new URLSearchParams(href.split('?')[1] || '');
-    const simfileId = urlParams.get('simfileid');
+  simfileLinks.forEach((link) => {
+    const href = link.getAttribute('href');
+    const text = link.textContent.trim();
+    if (href && text && !text.includes('Download') && !text.includes('MB')) {
+      const urlParams = new URLSearchParams(href.split('?')[1] || '');
+      const simfileId = urlParams.get('simfileid');
 
-    if (simfileId) {
-      const row = link.closest('tr');
-      let hasVideo = false;
-      let difficulties = [];
+      if (simfileId) {
+        const row = link.closest('tr');
+        let hasVideo = false;
+        let difficulties = [];
 
-      if (row) {
-        const rowHtml = row.innerHTML;
-        hasVideo =
-          rowHtml.includes('Vid Exist') ||
-          rowHtml.includes('[V]') ||
-          rowHtml.toLowerCase().includes('.avi');
+        if (row) {
+          const rowHtml = row.innerHTML;
+          hasVideo =
+            rowHtml.includes('Vid Exist') ||
+            rowHtml.includes('[V]') ||
+            rowHtml.toLowerCase().includes('.avi');
 
-        const cells = row.querySelectorAll('td');
-        let diffIndex = 0;
+          const cells = row.querySelectorAll('td');
+          let diffIndex = 0;
 
-        cells.forEach((cell) => {
-          const cellText = cell.textContent.trim();
-          const numMatch = cellText.match(/^(\d{1,2})$/);
-          if (numMatch) {
-            const rating = parseInt(numMatch[1]);
-            if (rating >= 1 && rating <= 20) {
-              let diffName = difficultyNames[diffIndex % 5] || 'Unknown';
-              let diffShort = difficultyShort[diffIndex % 5] || '?';
+          cells.forEach((cell) => {
+            const cellText = cell.textContent.trim();
+            const numMatch = cellText.match(/^(\d{1,2})$/);
+            if (numMatch) {
+              const rating = parseInt(numMatch[1]);
+              if (rating >= 1 && rating <= 20) {
+                let diffName = difficultyNames[diffIndex % 5] || 'Unknown';
+                let diffShort = difficultyShort[diffIndex % 5] || '?';
 
-              const title = cell.getAttribute('title') || '';
-              for (let i = 0; i < difficultyNames.length; i++) {
-                if (title.toLowerCase().includes(difficultyNames[i].toLowerCase())) {
-                  diffName = difficultyNames[i];
-                  diffShort = difficultyShort[i];
-                  break;
+                const title = cell.getAttribute('title') || '';
+                for (let i = 0; i < difficultyNames.length; i++) {
+                  if (title.toLowerCase().includes(difficultyNames[i].toLowerCase())) {
+                    diffName = difficultyNames[i];
+                    diffShort = difficultyShort[i];
+                    break;
+                  }
                 }
-              }
 
-              const img = cell.querySelector('img');
-              if (img) {
-                const src = img.getAttribute('src') || '';
-                if (src.includes('beginner')) {
-                  diffName = 'Beginner';
-                  diffShort = 'B';
-                } else if (src.includes('light') || src.includes('basic')) {
-                  diffName = 'Basic';
-                  diffShort = 'L';
-                } else if (src.includes('standard') || src.includes('difficult')) {
-                  diffName = 'Difficult';
-                  diffShort = 'S';
-                } else if (src.includes('heavy') || src.includes('expert')) {
-                  diffName = 'Expert';
-                  diffShort = 'H';
-                } else if (src.includes('challenge') || src.includes('oni')) {
-                  diffName = 'Challenge';
-                  diffShort = 'C';
+                const img = cell.querySelector('img');
+                if (img) {
+                  const src = img.getAttribute('src') || '';
+                  if (src.includes('beginner')) {
+                    diffName = 'Beginner';
+                    diffShort = 'B';
+                  } else if (src.includes('light') || src.includes('basic')) {
+                    diffName = 'Basic';
+                    diffShort = 'L';
+                  } else if (src.includes('standard') || src.includes('difficult')) {
+                    diffName = 'Difficult';
+                    diffShort = 'S';
+                  } else if (src.includes('heavy') || src.includes('expert')) {
+                    diffName = 'Expert';
+                    diffShort = 'H';
+                  } else if (src.includes('challenge') || src.includes('oni')) {
+                    diffName = 'Challenge';
+                    diffShort = 'C';
+                  }
                 }
-              }
 
-              difficulties.push({
-                rating: rating,
-                name: diffName,
-                short: diffShort
-              });
-              diffIndex++;
+                difficulties.push({
+                  rating: rating,
+                  name: diffName,
+                  short: diffShort
+                });
+                diffIndex++;
+              }
             }
-          }
+          });
+        }
+
+        content.items.push({
+          type: 'simfile',
+          name: text,
+          url: href,
+          icon: hasVideo ? '🎬' : '🎵',
+          simfileId: simfileId,
+          hasVideo: hasVideo,
+          difficulties: difficulties
         });
       }
-
-      content.items.push({
-        type: 'simfile',
-        name: text,
-        url: href,
-        icon: hasVideo ? '🎬' : '🎵',
-        simfileId: simfileId,
-        hasVideo: hasVideo,
-        difficulties: difficulties
-      });
     }
-  }
-});
+  });
 }
 
 export function parseZeniusHtmlContent(html, currentPath) {
-const parser = new DOMParser();
-const doc = parser.parseFromString(html, 'text/html');
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
 
-const content = {
-  type: 'unknown',
-  items: [],
-  /** @type {Array<{ label: string, href: string }>|undefined} */
-  menuLinks: undefined,
-  /** @type {Array<{ label: string, href: string }>|undefined} */
-  spotlightSourceLinks: undefined
-};
+  const content = {
+    type: 'unknown',
+    items: [],
+    /** @type {Array<{ label: string, href: string }>|undefined} */
+    menuLinks: undefined,
+    /** @type {Array<{ label: string, href: string }>|undefined} */
+    spotlightSourceLinks: undefined
+  };
 
-if (currentPath === '') {
-  content.menuLinks = extractSimfilesMenuLinks(doc);
-  const merged = mergeMenuAndCategoryLinkLabels(
-    content.menuLinks,
-    extractSimfilesCategoryLinksFromPage(doc)
-  );
-  content.spotlightSourceLinks = selectSpotlightSourceLinks(merged);
-  const options = doc.querySelectorAll('option');
-  options.forEach((option) => {
-    const value = option.getAttribute('value');
-    const text = option.textContent.trim();
+  if (currentPath === '') {
+    content.menuLinks = extractSimfilesMenuLinks(doc);
+    const merged = mergeMenuAndCategoryLinkLabels(
+      content.menuLinks,
+      extractSimfilesCategoryLinksFromPage(doc)
+    );
+    content.spotlightSourceLinks = selectSpotlightSourceLinks(merged);
+    const options = doc.querySelectorAll('option');
+    options.forEach((option) => {
+      const value = option.getAttribute('value');
+      const text = option.textContent.trim();
 
-    if (
-      value &&
-      text &&
-      text.length > 0 &&
-      value !== 'simfiles' &&
-      text !== 'Select Simfile Category'
-    ) {
-      content.items.push({
-        type: 'directory',
-        name: text,
-        url: `viewsimfilecategory.php?categoryid=${value}`,
-        icon: '📁',
-        categoryId: value
-      });
+      if (
+        value &&
+        text &&
+        text.length > 0 &&
+        value !== 'simfiles' &&
+        text !== 'Select Simfile Category'
+      ) {
+        content.items.push({
+          type: 'directory',
+          name: text,
+          url: `viewsimfilecategory.php?categoryid=${value}`,
+          icon: '📁',
+          categoryId: value
+        });
+      }
+    });
+
+    if (content.items.length > 0) {
+      content.type = 'directories';
     }
-  });
-
-  if (content.items.length > 0) {
-    content.type = 'directories';
+  } else {
+    appendSimfileTableItemsToContent(doc, content);
   }
-} else {
-  appendSimfileTableItemsToContent(doc, content);
-}
 
-return content;
+  return content;
 }
 
 export function parseZeniusSearchResults(html) {
-const parser = new DOMParser();
-const doc = parser.parseFromString(html, 'text/html');
-const results = [];
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const results = [];
 
-// Zenius AJAX search results are in tables
-// Columns: Name (0), SP difficulties (1), DP difficulties (2), Category (3)
-// The link title attribute contains "Song Name / Artist"
-const simfileLinks = doc.querySelectorAll('a[href*="viewsimfile.php"]');
+  // Zenius AJAX search results are in tables
+  // Columns: Name (0), SP difficulties (1), DP difficulties (2), Category (3)
+  // The link title attribute contains "Song Name / Artist"
+  const simfileLinks = doc.querySelectorAll('a[href*="viewsimfile.php"]');
 
-simfileLinks.forEach((link) => {
-  const href = link.getAttribute('href');
-  const text = link.textContent.trim();
-  const title = link.getAttribute('title') || '';
+  simfileLinks.forEach((link) => {
+    const href = link.getAttribute('href');
+    const text = link.textContent.trim();
+    const title = link.getAttribute('title') || '';
 
-  // Skip download links and file size text
-  if (href && text && !text.includes('Download') && !text.includes('MB') && text.length > 0) {
-    const urlParams = new URLSearchParams(href.split('?')[1] || '');
-    const simfileId = urlParams.get('simfileid');
+    // Skip download links and file size text
+    if (href && text && !text.includes('Download') && !text.includes('MB') && text.length > 0) {
+      const urlParams = new URLSearchParams(href.split('?')[1] || '');
+      const simfileId = urlParams.get('simfileid');
 
-    if (simfileId) {
-      // Extract artist from title attribute (format: "Song Name / Artist")
-      let artist = '';
-      if (title && title.includes(' / ')) {
-        const parts = title.split(' / ');
-        if (parts.length >= 2) {
-          artist = parts.slice(1).join(' / '); // Handle artists with " / " in name
-        }
-      }
-
-      // Get data from the parent row
-      const row = link.closest('tr');
-      let category = '';
-      let spDifficulties = '';
-      let dpDifficulties = '';
-
-      let categoryId = '';
-
-      if (row) {
-        const cells = row.querySelectorAll('td');
-        // Columns: Name (0), SP (1), DP (2), Category (3)
-        if (cells.length >= 2) {
-          spDifficulties = cells[1]?.textContent?.trim() || '';
-        }
-        if (cells.length >= 3) {
-          dpDifficulties = cells[2]?.textContent?.trim() || '';
-        }
-        if (cells.length >= 4) {
-          const categoryLink = cells[3]?.querySelector('a[href*="viewsimfilecategory"]');
-          if (categoryLink) {
-            category = categoryLink.textContent.trim();
-            // Extract category ID from the href
-            const categoryHref = categoryLink.getAttribute('href') || '';
-            const categoryParams = new URLSearchParams(categoryHref.split('?')[1] || '');
-            categoryId = categoryParams.get('categoryid') || '';
+      if (simfileId) {
+        // Extract artist from title attribute (format: "Song Name / Artist")
+        let artist = '';
+        if (title && title.includes(' / ')) {
+          const parts = title.split(' / ');
+          if (parts.length >= 2) {
+            artist = parts.slice(1).join(' / '); // Handle artists with " / " in name
           }
         }
+
+        // Get data from the parent row
+        const row = link.closest('tr');
+        let category = '';
+        let spDifficulties = '';
+        let dpDifficulties = '';
+
+        let categoryId = '';
+
+        if (row) {
+          const cells = row.querySelectorAll('td');
+          // Columns: Name (0), SP (1), DP (2), Category (3)
+          if (cells.length >= 2) {
+            spDifficulties = cells[1]?.textContent?.trim() || '';
+          }
+          if (cells.length >= 3) {
+            dpDifficulties = cells[2]?.textContent?.trim() || '';
+          }
+          if (cells.length >= 4) {
+            const categoryLink = cells[3]?.querySelector('a[href*="viewsimfilecategory"]');
+            if (categoryLink) {
+              category = categoryLink.textContent.trim();
+              // Extract category ID from the href
+              const categoryHref = categoryLink.getAttribute('href') || '';
+              const categoryParams = new URLSearchParams(categoryHref.split('?')[1] || '');
+              categoryId = categoryParams.get('categoryid') || '';
+            }
+          }
+        }
+
+        results.push({
+          type: 'simfile',
+          name: text,
+          artist: artist,
+          category: category,
+          categoryId: categoryId,
+          spDifficulties: spDifficulties,
+          dpDifficulties: dpDifficulties,
+          url: href,
+          icon: '🎵',
+          simfileId: simfileId,
+          hasVideo: false,
+          difficulties: []
+        });
       }
-
-      results.push({
-        type: 'simfile',
-        name: text,
-        artist: artist,
-        category: category,
-        categoryId: categoryId,
-        spDifficulties: spDifficulties,
-        dpDifficulties: dpDifficulties,
-        url: href,
-        icon: '🎵',
-        simfileId: simfileId,
-        hasVideo: false,
-        difficulties: []
-      });
     }
-  }
-});
+  });
 
-return results;
+  return results;
 }
-

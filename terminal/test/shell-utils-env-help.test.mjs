@@ -112,4 +112,3 @@ test('parseHelpArgs: invalid option', () => {
   assert.equal(r.exitCode, 2);
   assert.ok(String(r.stderr).includes('invalid option'));
 });
-

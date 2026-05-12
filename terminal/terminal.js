@@ -7,7 +7,7 @@ import { TerminalCompletionMixin } from './terminal-completion.js';
 import { TerminalInputMixin } from './terminal-input.js';
 import { TerminalOutputMixin } from './terminal-output.js';
 import { TerminalSignalMixin } from './terminal-signals.js';
-
+import { FileSystemDB } from '../os/filesystem-db.js';
 
 export class Terminal {
   constructor(windowId = null, osInstance = null) {
@@ -205,7 +205,7 @@ export class Terminal {
   }
 
   async initializeFilesystem() {
-    this.fileSystemDB = await window.FileSystemDB.getInstance();
+    this.fileSystemDB = await FileSystemDB.getInstance();
     await this.fileSystemDB.initializeWithScaffolding(this.env.USER);
   }
 

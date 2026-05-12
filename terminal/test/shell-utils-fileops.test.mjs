@@ -142,4 +142,3 @@ test('parseUnlinkArgv: --, help, single operand, option errors', () => {
   assert.equal(badLong.ok, false);
   assert.match(String(badLong.stderr), /unrecognized option '--preserve'/);
 });
-

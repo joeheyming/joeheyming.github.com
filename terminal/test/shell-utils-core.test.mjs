@@ -265,4 +265,3 @@ test('parseKillArgv: invalid signal', () => {
   assert.equal(r.kind, 'error');
   assert.equal(r.exitCode, 1);
 });
-

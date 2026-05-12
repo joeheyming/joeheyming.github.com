@@ -371,4 +371,3 @@ test('lessStripAnsi / lessAnsiToHtml: SGR subset for less -R', () => {
   assert.ok(!html.includes('\x1b'));
   assert.match(lessAnsiToHtml('a<b>\x1b[32mg\x1b[0m'), /&lt;b&gt;/);
 });
-

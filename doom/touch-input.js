@@ -31,156 +31,158 @@
 // Depends on: lifecycle.js (subscribes to `playing` / post-playing).
 //             Degrades gracefully if missing — overlay just stays
 //             hidden because the subscription never fires.
-(function () {
-  'use strict';
 
-  // --- Bindings table (data, not code) ------------------------------------
-  //
-  // Each entry is a logical action (a key in the BINDINGS object) paired
-  // with the fields needed to synthesize a browser KeyboardEvent.
-  //
-  // Reasoning for specific choices:
-  //   fire  — Ctrl key, GZDoom default for +attack. We used to also
-  //           dispatch a synthetic mousedown here because Doom binds
-  //           +attack to both ctrl and mouse1, and belt-and-suspenders
-  //           seemed safe. It's not safe anymore: the engine now
-  //           ships with `+unbind mouse1` on startup argv (see
-  //           uzdoom-loader.js) to stop SDL2's touch→mouse emulation
-  //           from firing the weapon on every swipe. So keep FIRE as
-  //           a keyboard-only action; the mouse1 channel is dead.
-  //   use   — KeyE, not Space. In modern GZDoom, Space = +jump. This
-  //           is the single most common landmine when mapping Doom keys.
-  //   jump  — Space, the GZDoom default for +jump. Mobile users have no
-  //           keyboard, so we expose it as a dedicated touch button.
-  //   turn* — Arrow keys. Actual turning (not strafing). `,` and `.` are
-  //           the +turnleft/+turnright aliases in Doom history but the
-  //           default menu binds them to Arrows.
-  //
-  // Defined before the mobile early-return below so that unit tests on
-  // non-mobile runtimes (e.g. jsdom in node:test) can import the pure
-  // pieces from `window.LoDTouchInput` without having to mock
-  // `matchMedia` into a specific shape.
+import { LoDLifecycle } from './lifecycle.js';
 
-  var BINDINGS = {
-    forward: { key: 'w', code: 'KeyW', keyCode: 87 },
-    back: { key: 's', code: 'KeyS', keyCode: 83 },
-    strafeL: { key: 'a', code: 'KeyA', keyCode: 65 },
-    strafeR: { key: 'd', code: 'KeyD', keyCode: 68 },
-    turnL: { key: 'ArrowLeft', code: 'ArrowLeft', keyCode: 37 },
-    turnR: { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39 },
-    use: { key: 'e', code: 'KeyE', keyCode: 69 },
-    jump: { key: ' ', code: 'Space', keyCode: 32 },
-    menu: { key: 'Escape', code: 'Escape', keyCode: 27 },
-    confirm: { key: 'Enter', code: 'Enter', keyCode: 13 },
-    fire: { key: 'Control', code: 'ControlLeft', keyCode: 17 }
-  };
+// --- Bindings table (data, not code) ------------------------------------
+//
+// Each entry is a logical action (a key in the BINDINGS object) paired
+// with the fields needed to synthesize a browser KeyboardEvent.
+//
+// Reasoning for specific choices:
+//   fire  — Ctrl key, GZDoom default for +attack. We used to also
+//           dispatch a synthetic mousedown here because Doom binds
+//           +attack to both ctrl and mouse1, and belt-and-suspenders
+//           seemed safe. It's not safe anymore: the engine now
+//           ships with `+unbind mouse1` on startup argv (see
+//           uzdoom-loader.js) to stop SDL2's touch→mouse emulation
+//           from firing the weapon on every swipe. So keep FIRE as
+//           a keyboard-only action; the mouse1 channel is dead.
+//   use   — KeyE, not Space. In modern GZDoom, Space = +jump. This
+//           is the single most common landmine when mapping Doom keys.
+//   jump  — Space, the GZDoom default for +jump. Mobile users have no
+//           keyboard, so we expose it as a dedicated touch button.
+//   turn* — Arrow keys. Actual turning (not strafing). `,` and `.` are
+//           the +turnleft/+turnright aliases in Doom history but the
+//           default menu binds them to Arrows.
+//
+// Defined before the mobile early-return below so that unit tests on
+// non-mobile runtimes (e.g. jsdom in node:test) can import the pure
+// pieces from `window.LoDTouchInput` without having to mock
+// `matchMedia` into a specific shape.
 
-  // --- SwipeController: pure state machine --------------------------------
-  //
-  // Input: `onTurn(action, pressed)` callback where action is 'turnL'|'turnR'
-  // and pressed is true/false. Output: stream of onTurn calls.
-  //
-  // Behaviour: horizontal drag exceeding THRESHOLD px/event flips the turn
-  // key on; after HOLD_MAX_MS of no movement the key flips off. A direction
-  // switch during an active drag releases the opposite key before pressing
-  // the new one (so the engine never sees both arrows held). `end()` adds
-  // a short grace period so a fast final flick still produces a visible
-  // turn before releasing.
-  //
-  // Intentionally DOM-free — `wireOverlay` passes a callback that does
-  // the actual dispatch. Lets tests exercise direction switching, auto-
-  // release timing, and `end` semantics without a canvas.
+var BINDINGS = {
+  forward: { key: 'w', code: 'KeyW', keyCode: 87 },
+  back: { key: 's', code: 'KeyS', keyCode: 83 },
+  strafeL: { key: 'a', code: 'KeyA', keyCode: 65 },
+  strafeR: { key: 'd', code: 'KeyD', keyCode: 68 },
+  turnL: { key: 'ArrowLeft', code: 'ArrowLeft', keyCode: 37 },
+  turnR: { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39 },
+  use: { key: 'e', code: 'KeyE', keyCode: 69 },
+  jump: { key: ' ', code: 'Space', keyCode: 32 },
+  menu: { key: 'Escape', code: 'Escape', keyCode: 27 },
+  confirm: { key: 'Enter', code: 'Enter', keyCode: 13 },
+  fire: { key: 'Control', code: 'ControlLeft', keyCode: 17 }
+};
 
-  function createSwipeController(opts) {
-    var onTurn = opts.onTurn;
-    var THRESHOLD = opts.threshold != null ? opts.threshold : 3;
-    var HOLD_MAX_MS = opts.holdMaxMs != null ? opts.holdMaxMs : 100;
-    var HOLD_MIN_MS = 15;
-    var END_GRACE_MS = 60;
+// --- SwipeController: pure state machine --------------------------------
+//
+// Input: `onTurn(action, pressed)` callback where action is 'turnL'|'turnR'
+// and pressed is true/false. Output: stream of onTurn calls.
+//
+// Behaviour: horizontal drag exceeding THRESHOLD px/event flips the turn
+// key on; after HOLD_MAX_MS of no movement the key flips off. A direction
+// switch during an active drag releases the opposite key before pressing
+// the new one (so the engine never sees both arrows held). `end()` adds
+// a short grace period so a fast final flick still produces a visible
+// turn before releasing.
+//
+// Intentionally DOM-free — `wireOverlay` passes a callback that does
+// the actual dispatch. Lets tests exercise direction switching, auto-
+// release timing, and `end` semantics without a canvas.
 
-    var active = false;
-    var lastX = 0;
-    var dir = null; // 'turnL' | 'turnR' | null
-    var releaseTimer = null;
+function createSwipeController(opts) {
+  var onTurn = opts.onTurn;
+  var THRESHOLD = opts.threshold != null ? opts.threshold : 3;
+  var HOLD_MAX_MS = opts.holdMaxMs != null ? opts.holdMaxMs : 100;
+  var HOLD_MIN_MS = 15;
+  var END_GRACE_MS = 60;
 
-    function clearKeyNow() {
-      if (releaseTimer) {
-        clearTimeout(releaseTimer);
-        releaseTimer = null;
-      }
-      if (dir) {
-        onTurn(dir, false);
-        dir = null;
-      }
+  var active = false;
+  var lastX = 0;
+  var dir = null; // 'turnL' | 'turnR' | null
+  var releaseTimer = null;
+
+  function clearKeyNow() {
+    if (releaseTimer) {
+      clearTimeout(releaseTimer);
+      releaseTimer = null;
     }
+    if (dir) {
+      onTurn(dir, false);
+      dir = null;
+    }
+  }
 
-    return {
-      start: function (x) {
-        active = true;
-        lastX = x;
-      },
-      // Returns true if a command was emitted (caller can e.preventDefault
-      // to stop the browser from rubber-banding the page).
-      move: function (x) {
-        if (!active) return false;
-        var dx = x - lastX;
-        if (Math.abs(dx) < THRESHOLD) return false;
-        var want = dx < 0 ? 'turnL' : 'turnR';
-        if (dir !== want) {
-          if (dir) onTurn(dir, false);
-          onTurn(want, true);
-          dir = want;
-        }
-        if (releaseTimer) clearTimeout(releaseTimer);
-        var hold = Math.min(Math.abs(dx) * 5, HOLD_MAX_MS);
-        if (hold < HOLD_MIN_MS) hold = HOLD_MIN_MS;
-        releaseTimer = setTimeout(clearKeyNow, hold);
-        lastX = x;
-        return true;
-      },
-      end: function () {
-        active = false;
-        if (releaseTimer) clearTimeout(releaseTimer);
-        releaseTimer = setTimeout(clearKeyNow, END_GRACE_MS);
-      },
-      // Immediate release — used on blur / tab-hidden / lifecycle exit
-      // so the player doesn't keep spinning after leaving.
-      clear: clearKeyNow,
-      // Introspection for tests.
-      _dir: function () {
-        return dir;
-      },
-      _active: function () {
-        return active;
+  return {
+    start: function (x) {
+      active = true;
+      lastX = x;
+    },
+    // Returns true if a command was emitted (caller can e.preventDefault
+    // to stop the browser from rubber-banding the page).
+    move: function (x) {
+      if (!active) return false;
+      var dx = x - lastX;
+      if (Math.abs(dx) < THRESHOLD) return false;
+      var want = dx < 0 ? 'turnL' : 'turnR';
+      if (dir !== want) {
+        if (dir) onTurn(dir, false);
+        onTurn(want, true);
+        dir = want;
       }
-    };
-  }
-
-  // --- Public export (before the mobile gate) -----------------------------
-  //
-  // Exposed unconditionally so that unit tests in jsdom (which reports a
-  // `fine` pointer and thus fails the mobile check) can still reach
-  // createSwipeController / BINDINGS. No DOM wiring has run yet, so this
-  // is inert on desktop — desktop users get the exports and nothing else.
-  window.LoDTouchInput = {
-    createSwipeController: createSwipeController,
-    bindings: BINDINGS
+      if (releaseTimer) clearTimeout(releaseTimer);
+      var hold = Math.min(Math.abs(dx) * 5, HOLD_MAX_MS);
+      if (hold < HOLD_MIN_MS) hold = HOLD_MIN_MS;
+      releaseTimer = setTimeout(clearKeyNow, hold);
+      lastX = x;
+      return true;
+    },
+    end: function () {
+      active = false;
+      if (releaseTimer) clearTimeout(releaseTimer);
+      releaseTimer = setTimeout(clearKeyNow, END_GRACE_MS);
+    },
+    // Immediate release — used on blur / tab-hidden / lifecycle exit
+    // so the player doesn't keep spinning after leaving.
+    clear: clearKeyNow,
+    // Introspection for tests.
+    _dir: function () {
+      return dir;
+    },
+    _active: function () {
+      return active;
+    }
   };
+}
 
-  // --- Mobile detection ---------------------------------------------------
+// --- Public export (before the mobile gate) -----------------------------
+//
+// Exposed unconditionally so that unit tests in jsdom (which reports a
+// `fine` pointer and thus fails the mobile check) can still reach
+// createSwipeController / BINDINGS. No DOM wiring has run yet, so this
+// is inert on desktop — desktop users get the exports and nothing else.
+export const LoDTouchInput = {
+  createSwipeController: createSwipeController,
+  bindings: BINDINGS
+};
 
-  function isMobile() {
-    var coarseOnly =
-      window.matchMedia &&
-      window.matchMedia('(pointer: coarse)').matches &&
-      !window.matchMedia('(any-pointer: fine)').matches;
-    var isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent
-    );
-    return coarseOnly || isMobileUA;
-  }
+window.LoDTouchInput = LoDTouchInput;
 
-  if (!isMobile()) return;
+// --- Mobile detection ---------------------------------------------------
+
+function isMobile() {
+  var coarseOnly =
+    window.matchMedia &&
+    window.matchMedia('(pointer: coarse)').matches &&
+    !window.matchMedia('(any-pointer: fine)').matches;
+  var isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+  return coarseOnly || isMobileUA;
+}
+
+if (isMobile()) {
   document.body.classList.add('mobile');
 
   // --- Orientation tracking -----------------------------------------------
@@ -511,8 +513,8 @@
     // the old MutationObserver on #boot.classList, which was a proxy
     // for the same signal.
 
-    if (window.LoDLifecycle) {
-      window.LoDLifecycle.subscribe(function (state) {
+    if (LoDLifecycle) {
+      LoDLifecycle.subscribe(function (state) {
         if (state.phase === 'playing') {
           touchUi.classList.remove('hidden');
           touchUi.setAttribute('aria-hidden', 'false');
@@ -544,4 +546,4 @@
   }
 
   wireOverlay();
-})();
+}

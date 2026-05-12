@@ -165,18 +165,18 @@
 
     <!-- Engine subsystems. Deferred so they run after HTML parse but
          before DOMContentLoaded, in document order. -->
-    <script defer src="lifecycle.js"></script>
-    <script defer src="coi.js"></script>
-    <script defer src="touch-input.js"></script>
+    <script type="module" src="lifecycle.js"></script>
+    <script type="module" src="coi.js"></script>
+    <script type="module" src="touch-input.js"></script>
     <!-- moddb mod browser. The three files are independent of the WASM
          engine (no COI dependency) and only invoke it via UZDoomLoader
          after the user clicks "Fetch & launch". Order matters: archive +
          iwad helpers must publish their globals before the browser
          touches them. Deferred so they run after HTML parse and after
          /proxy.js has installed window.proxyService. -->
-    <script defer src="moddb-archive.js"></script>
-    <script defer src="moddb-iwad.js"></script>
-    <script defer src="moddb-browser.js"></script>
+    <script type="module" src="moddb-archive.js"></script>
+    <script type="module" src="moddb-iwad.js"></script>
+    <script type="module" src="moddb-browser.js"></script>
 
     <!-- uzdoom-loader.js expects a specific DOM layout and specific IDs
          (iwadPicker, modPicker, sfPicker, launchBtn, status, canvas,
@@ -707,26 +707,55 @@
     <script>
       (function () {
         function loadEngineInOrder() {
-          var srcs = ['uzdoom-melt.js', 'uzdoom-loader.js', 'uzdoom.js'];
-          srcs.forEach(function (src) {
-            var t0 = performance.now();
-            var tag = document.createElement('script');
-            tag.src = src;
-            tag.async = false;
-            tag.onload = function () {
+          var melt = document.createElement('script');
+          melt.src = 'uzdoom-melt.js';
+          melt.async = false;
+          var t0Melt = performance.now();
+          melt.onload = function () {
+            console.log(
+              '[uzdoom scripts] uzdoom-melt.js loaded in ' +
+                (performance.now() - t0Melt).toFixed(0) +
+                'ms'
+            );
+            var t0Loader = performance.now();
+            var loader = document.createElement('script');
+            loader.type = 'module';
+            loader.src = 'uzdoom-loader.js';
+            loader.async = false;
+            loader.onload = function () {
               console.log(
-                '[uzdoom scripts] ' +
-                  src +
-                  ' loaded in ' +
-                  (performance.now() - t0).toFixed(0) +
+                '[uzdoom scripts] uzdoom-loader.js loaded in ' +
+                  (performance.now() - t0Loader).toFixed(0) +
                   'ms'
               );
+              var t0Engine = performance.now();
+              var engine = document.createElement('script');
+              engine.src = 'uzdoom.js';
+              engine.async = false;
+              engine.onload = function () {
+                console.log(
+                  '[uzdoom scripts] uzdoom.js loaded in ' +
+                    (performance.now() - t0Engine).toFixed(0) +
+                    'ms'
+                );
+              };
+              engine.onerror = function (e) {
+                console.warn('[uzdoom scripts] uzdoom.js failed:', (e && e.message) || '(no msg)');
+              };
+              document.body.appendChild(engine);
             };
-            tag.onerror = function (e) {
-              console.warn('[uzdoom scripts] ' + src + ' failed:', (e && e.message) || '(no msg)');
+            loader.onerror = function (e) {
+              console.warn(
+                '[uzdoom scripts] uzdoom-loader.js failed:',
+                (e && e.message) || '(no msg)'
+              );
             };
-            document.body.appendChild(tag);
-          });
+            document.body.appendChild(loader);
+          };
+          melt.onerror = function (e) {
+            console.warn('[uzdoom scripts] uzdoom-melt.js failed:', (e && e.message) || '(no msg)');
+          };
+          document.body.appendChild(melt);
         }
         function gate() {
           if (window.LoDCOI) {

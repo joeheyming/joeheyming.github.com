@@ -26,10 +26,7 @@ import { DragService } from './DragService.js';
 import { ClipboardService } from './ClipboardService.js';
 import { FileOperationService } from './FileOperationService.js';
 import { QuickLookPreview } from './QuickLookPreview.js';
-
-// Filesystem is loaded as a regular script (for iframe compatibility)
-// Access via window.FileSystemDB
-const FileSystemDB = window.FileSystemDB;
+import { FileSystemDB } from './filesystem-db.js';
 
 // UI Components (depend on utilities)
 import { WindowManager } from './WindowManager.js';

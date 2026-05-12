@@ -107,14 +107,19 @@
 
     <script src="https://unpkg.com/tesseract.js@6.0.1/dist/tesseract.min.js"></script>
     <link rel="stylesheet" href="index.css" />
-    <script src="index.js" defer></script>
+    <script type="module" src="index.js"></script>
     <script src="/back.js"></script>
     <script src="/feedback.js"></script>
     <script src="/share.js"></script>
   </head>
 
   <body>
-    <div id="sayitAppMessage" class="sayit-app-message hidden" role="status" aria-live="polite"></div>
+    <div
+      id="sayitAppMessage"
+      class="sayit-app-message hidden"
+      role="status"
+      aria-live="polite"
+    ></div>
     <div class="header">
       <h1>Say it</h1>
       <p>A tool that extracts text from images using OCR and reads it aloud</p>
@@ -149,12 +154,11 @@
           Use your mouse or finger to draw text on the canvas below. The brush size is set to an
           optimal thickness for better text recognition. On phones, the first text scan may take a
           few seconds. With the eraser, move the pointer over ink: a blue glow shows the connected
-          stroke or letter that would be removed. Click (or lift your finger on touch) to delete that
-          whole piece in one go. Tap between pen and eraser tools to
-          switch modes. On desktop, you can also use keyboard shortcuts (P for pen, E for eraser; undo with
-          Ctrl+Z or ⌘Z, redo with Ctrl+Shift+Z, Ctrl+Y, or ⌘⇧Z). When you're done, use the "Read & Say
-          My Drawing" button or press Ctrl+Enter or ⌘+Enter to recognize the drawing and hear the text
-          aloud.
+          stroke or letter that would be removed. Click (or lift your finger on touch) to delete
+          that whole piece in one go. Tap between pen and eraser tools to switch modes. On desktop,
+          you can also use keyboard shortcuts (P for pen, E for eraser; undo with Ctrl+Z or ⌘Z, redo
+          with Ctrl+Shift+Z, Ctrl+Y, or ⌘⇧Z). When you're done, use the "Read & Say My Drawing"
+          button or press Ctrl+Enter or ⌘+Enter to recognize the drawing and hear the text aloud.
         </p>
       </div>
 
@@ -338,8 +342,15 @@
       </div>
       <div class="result-panel">
         <h3>📝 Extracted Text</h3>
-        <div id="parsedContent" role="status" aria-live="polite" aria-atomic="true">Processing...</div>
-        <button id="playButton" type="button" class="play-button hidden" aria-label="Play extracted text with speech">
+        <div id="parsedContent" role="status" aria-live="polite" aria-atomic="true">
+          Processing...
+        </div>
+        <button
+          id="playButton"
+          type="button"
+          class="play-button hidden"
+          aria-label="Play extracted text with speech"
+        >
           <span id="playIcon" aria-hidden="true">🔊</span>
           <span id="playText">Play Text</span>
         </button>

@@ -6,12 +6,8 @@ import { SortLib } from '../commands/filesystem/sort-lib.js';
 import { CutLib } from '../commands/filesystem/cut-lib.js';
 import { UniqLib } from '../commands/filesystem/uniq-lib.js';
 
-const {
-  pasteSplitLines,
-  pasteJoinParallelRows,
-  pasteJoinSerialRows,
-  pasteFormatOutputLines
-} = PasteLib;
+const { pasteSplitLines, pasteJoinParallelRows, pasteJoinSerialRows, pasteFormatOutputLines } =
+  PasteLib;
 
 const { formatNlNumberedText, nlFormatNumberField } = NlLib;
 

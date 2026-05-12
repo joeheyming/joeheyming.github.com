@@ -56,172 +56,143 @@
 // The lifecycle itself has zero dependencies — pure state, pure events.
 // Load this file FIRST, before coi.js and any engine scripts, so every
 // later subsystem finds a live singleton waiting.
-(function () {
-  'use strict';
 
-  var PHASES = ['loading', 'primed', 'launching', 'playing', 'exited', 'error'];
-  var TERMINAL = { exited: true, error: true };
+var PHASES = ['loading', 'primed', 'launching', 'playing', 'exited', 'error'];
+var TERMINAL = { exited: true, error: true };
 
-  var current = { phase: 'loading', detail: null };
-  var subscribers = [];
-  var history = []; // [{ phase, detail, t }]
-  var T0 = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
-  var logEnabled = false;
+var current = { phase: 'loading', detail: null };
+var subscribers = [];
+var history = []; // [{ phase, detail, t }]
+var T0 = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+var logEnabled = false;
 
-  // Opt-in boot log: either via query string (?bootlog=1, ?coi-debug=1,
-  // or ?phonelog=1) or by calling LoDLifecycle.enableLog() from the
-  // devtools console. phonelog=1 is treated as the umbrella "everything
-  // on" flag for remote-phone debugging so the URL stays short.
-  try {
-    var qs =
-      typeof URLSearchParams !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-    if (
-      qs &&
-      (qs.get('bootlog') === '1' || qs.get('coi-debug') === '1' || qs.get('phonelog') === '1')
-    ) {
-      logEnabled = true;
-    }
-  } catch (e) {
-    /* no-op */
+try {
+  var qs =
+    typeof URLSearchParams !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  if (
+    qs &&
+    (qs.get('bootlog') === '1' || qs.get('coi-debug') === '1' || qs.get('phonelog') === '1')
+  ) {
+    logEnabled = true;
   }
+} catch (e) {
+  /* no-op */
+}
 
-  function now() {
-    return (
-      (typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now()) - T0
-    );
-  }
+function now() {
+  return (
+    (typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now()) - T0
+  );
+}
 
-  function record(from, to, detail) {
-    var entry = { from: from, phase: to, detail: detail, t: now() };
-    history.push(entry);
-    if (logEnabled) {
-      var msg = '[lifecycle] ' + (from || '<init>') + ' → ' + to;
-      if (detail) {
-        try {
-          msg += ' ' + JSON.stringify(detail);
-        } catch (_e) {
-          msg += ' <unserializable detail>';
-        }
-      }
-      msg += ' (+' + entry.t.toFixed(0) + 'ms)';
-      console.log(msg);
-    }
-  }
-
-  function set(phase, detail) {
-    if (PHASES.indexOf(phase) === -1) {
-      console.warn('[lifecycle] invalid phase:', phase);
-      return false;
-    }
-    if (TERMINAL[current.phase]) {
-      // Terminal phases are sticky. An `exited` engine does not retransition
-      // to `launching` just because a stray handler fired; an `error` state
-      // swallows late success messages. Log for visibility.
-      if (logEnabled) {
-        console.warn('[lifecycle] ignored ' + current.phase + ' → ' + phase + ' (terminal)');
-      }
-      return false;
-    }
-    var from = current.phase;
-    if (from === phase) return false; // idempotent transition, no-op
-    current = { phase: phase, detail: detail || null };
-    record(from, phase, detail);
-    // Snapshot subscribers before firing — a subscriber that unsubscribes
-    // itself (or another) during its callback shouldn't skip siblings.
-    var snap = subscribers.slice();
-    for (var i = 0; i < snap.length; i++) {
+function record(from, to, detail) {
+  var entry = { from: from, phase: to, detail: detail, t: now() };
+  history.push(entry);
+  if (logEnabled) {
+    var msg = '[lifecycle] ' + (from || '<init>') + ' → ' + to;
+    if (detail) {
       try {
-        snap[i](current, from);
-      } catch (e) {
-        console.error('[lifecycle] subscriber threw:', e);
+        msg += ' ' + JSON.stringify(detail);
+      } catch (_e) {
+        msg += ' <unserializable detail>';
       }
     }
-    return true;
+    msg += ' (+' + entry.t.toFixed(0) + 'ms)';
+    console.log(msg);
   }
+}
 
-  function subscribe(fn) {
-    if (typeof fn !== 'function') return function () {};
-    subscribers.push(fn);
-    // Fire with current state immediately so late-arriving subscribers
-    // don't miss the transition they care about. `from` is null to signal
-    // "this is a catch-up, not a real transition."
+function set(phase, detail) {
+  if (PHASES.indexOf(phase) === -1) {
+    console.warn('[lifecycle] invalid phase:', phase);
+    return false;
+  }
+  if (TERMINAL[current.phase]) {
+    if (logEnabled) {
+      console.warn('[lifecycle] ignored ' + current.phase + ' → ' + phase + ' (terminal)');
+    }
+    return false;
+  }
+  var from = current.phase;
+  if (from === phase) return false;
+  current = { phase: phase, detail: detail || null };
+  record(from, phase, detail);
+  var snap = subscribers.slice();
+  for (var i = 0; i < snap.length; i++) {
     try {
-      fn(current, null);
+      snap[i](current, from);
     } catch (e) {
-      console.error('[lifecycle] subscriber threw on init:', e);
+      console.error('[lifecycle] subscriber threw:', e);
     }
-    return function unsubscribe() {
-      var idx = subscribers.indexOf(fn);
-      if (idx >= 0) subscribers.splice(idx, 1);
-    };
   }
+  return true;
+}
 
-  window.LoDLifecycle = {
-    // Frozen so a caller that treats it as a constant stays correct
-    // even if someone else does `LoDLifecycle.PHASES.push('zombie')`.
-    PHASES: Object.freeze(PHASES.slice()),
-    // Reads.
-    get: function () {
-      return current.phase;
-    },
-    detail: function () {
-      return current.detail;
-    },
-    history: function () {
-      return history.slice();
-    },
-    isTerminal: function () {
-      return !!TERMINAL[current.phase];
-    },
-    // Convenience predicate: "engine is actively running" — i.e. between
-    // the user hitting Launch and the engine exiting. Used by the loader's
-    // periodic save sync, visibility hooks, and canvas click handlers.
-    isRunning: function () {
-      return current.phase === 'launching' || current.phase === 'playing';
-    },
-
-    // Writes. Each corresponds to a transition with a specific owner
-    // documented above. Return true if the transition happened.
-    markPrimed: function (desc) {
-      return set('primed', desc || null);
-    },
-    markLaunching: function () {
-      return set('launching', null);
-    },
-    markPlaying: function () {
-      return set('playing', null);
-    },
-    markExited: function (code, reason) {
-      return set('exited', { code: code, reason: reason || null });
-    },
-    markError: function (reason, detail) {
-      return set('error', { reason: reason || 'unknown', detail: detail || null });
-    },
-
-    // Escape hatch: used by the exception path that needs to roll back
-    // to `loading` when priming or boot setup fails (writeUserFiles
-    // throws, assets can't fetch, etc.) and the user should re-arm the
-    // picker rather than see a terminal error. Permits unwinding from
-    // either `primed` or `launching` — both are "pre-playing" states
-    // where rollback is meaningful. `playing` and terminal states are
-    // left alone.
-    unprime: function () {
-      if (current.phase === 'primed' || current.phase === 'launching') {
-        return set('loading', null);
-      }
-      return false;
-    },
-
-    subscribe: subscribe,
-
-    // Debugging.
-    enableLog: function () {
-      logEnabled = true;
-    },
-    disableLog: function () {
-      logEnabled = false;
-    }
+function subscribe(fn) {
+  if (typeof fn !== 'function') return function () {};
+  subscribers.push(fn);
+  try {
+    fn(current, null);
+  } catch (e) {
+    console.error('[lifecycle] subscriber threw on init:', e);
+  }
+  return function unsubscribe() {
+    var idx = subscribers.indexOf(fn);
+    if (idx >= 0) subscribers.splice(idx, 1);
   };
+}
 
-  record(null, 'loading', null);
-})();
+export const LoDLifecycle = {
+  PHASES: Object.freeze(PHASES.slice()),
+  get: function () {
+    return current.phase;
+  },
+  detail: function () {
+    return current.detail;
+  },
+  history: function () {
+    return history.slice();
+  },
+  isTerminal: function () {
+    return !!TERMINAL[current.phase];
+  },
+  isRunning: function () {
+    return current.phase === 'launching' || current.phase === 'playing';
+  },
+
+  markPrimed: function (desc) {
+    return set('primed', desc || null);
+  },
+  markLaunching: function () {
+    return set('launching', null);
+  },
+  markPlaying: function () {
+    return set('playing', null);
+  },
+  markExited: function (code, reason) {
+    return set('exited', { code: code, reason: reason || null });
+  },
+  markError: function (reason, detail) {
+    return set('error', { reason: reason || 'unknown', detail: detail || null });
+  },
+
+  unprime: function () {
+    if (current.phase === 'primed' || current.phase === 'launching') {
+      return set('loading', null);
+    }
+    return false;
+  },
+
+  subscribe: subscribe,
+
+  enableLog: function () {
+    logEnabled = true;
+  },
+  disableLog: function () {
+    logEnabled = false;
+  }
+};
+
+window.LoDLifecycle = LoDLifecycle;
+
+record(null, 'loading', null);

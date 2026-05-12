@@ -169,4 +169,3 @@ test('foldFoldText / foldFoldLineChars: columns, -s, -b', () => {
   assert.equal(foldFoldLineChars('', 5, false), '');
   assert.equal(foldFoldText('café', 3, true, false), 'caf\né', 'UTF-8 bytes: café is 5 octets');
 });
-

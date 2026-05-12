@@ -16,9 +16,7 @@ import { NotificationService } from './NotificationService.js';
 import { Clock } from './Clock.js';
 import { ContextMenu } from './ContextMenu.js';
 import { FileDialog } from './FileDialog.js';
-
-// FileSystemDB is loaded as a regular script (for iframe compatibility)
-const FileSystemDB = window.FileSystemDB;
+import { FileSystemDB } from './filesystem-db.js';
 
 export class HeymingOS {
   constructor() {
