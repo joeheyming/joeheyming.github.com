@@ -82,9 +82,14 @@ if (!tonesPerInstrument.guitar && typeof prefs.tone === 'string') {
 }
 
 // Strum Bar palette per-instrument. Each entry is `{ rootPc: 0..11,
-// qualityId: 'maj'|'min'|'7'|… }`. Voicing isn't stored — pads always
-// strum the default voicing (`getChordVoicings()[0]`); the matrix
-// below stays the place to pick a non-default shape.
+// qualityId: 'maj'|'min'|'7'|…, voicingIdx: 0..N }`. Each entry
+// captures the SPECIFIC shape (e.g. C Open and C Barre 3 are
+// separate pads), so a player who likes both an open C in the
+// verse and a barred C-at-3 for the chorus can have both side by
+// side. The pad shows the chord name with the fret position as a
+// small superscript when the voicing is non-open (e.g. `C³`,
+// `C⁵`) — the superscript convention avoids confusion with chord
+// extensions like `C7` or `Cmaj7`.
 //
 // Capped at STRUM_BAR_MAX with LRU eviction so the row doesn't sprawl.
 const STRUM_BAR_MAX = 8;
@@ -95,7 +100,23 @@ const sanitizeBarEntry = (e) => {
   if (!Number.isInteger(rootPc) || rootPc < 0 || rootPc > 11) return null;
   if (typeof e.qualityId !== 'string') return null;
   if (!QUALITIES.some((q) => q.id === e.qualityId)) return null;
-  return { rootPc, qualityId: e.qualityId };
+  let voicingIdx = Number(e.voicingIdx);
+  // Older saved entries (pre-voicing-aware) won't have voicingIdx;
+  // default them to 0 so they continue to play the chord-library's
+  // first voicing (typically Open).
+  if (!Number.isInteger(voicingIdx) || voicingIdx < 0) voicingIdx = 0;
+  return { rootPc, qualityId: e.qualityId, voicingIdx };
+};
+
+// Extracts the player-facing fret position for a voicing — used as
+// the small superscript on each pad. We match the chord library's
+// own naming convention (`Barre 3`, `Pos 5`, …); open voicings
+// (`Open`, `Open+`, …) intentionally render with no superscript so
+// they read as "the chord with no neck position needed".
+const voicingPositionSuperscript = (voicing) => {
+  if (!voicing || typeof voicing.name !== 'string') return '';
+  const m = /^(?:Barre|Pos)\s*(\d+)/i.exec(voicing.name);
+  return m ? m[1] : '';
 };
 
 const strumBars =
@@ -572,8 +593,44 @@ const renderRadioGroup = (containerEl, items, selectedId, idKey, labelKey, dataA
   });
 };
 
-const renderRoots = () =>
-  renderRadioGroup(rootOptionsEl, ROOTS, builderState.rootPc, 'pc', 'name', 'pc');
+// Roots get rendered specially so the enharmonic-flat spelling can sit
+// next to the sharp on the same button (e.g. `C♯ / D♭`). We can't use
+// the generic `renderRadioGroup` here because that helper only knows
+// how to read a single text key per item.
+//
+// The visual hierarchy keeps the canonical sharp on top (slightly
+// larger) and the flat below as a smaller "also known as" hint.
+// That way tapping is still about a single pitch class — the row
+// just doesn't pretend flats don't exist. Naturals (C/D/E/F/G/A/B)
+// render as a single name with no second line.
+const renderRoots = () => {
+  rootOptionsEl.innerHTML = '';
+  ROOTS.forEach((r) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.dataset.pc = String(r.pc);
+    btn.classList.add('root-button');
+    if (r.flat) btn.classList.add('root-button-enharmonic');
+    btn.setAttribute('role', 'radio');
+    const isSelected = r.pc === builderState.rootPc;
+    btn.setAttribute('aria-checked', String(isSelected));
+    if (isSelected) btn.classList.add('selected');
+    const sharp = document.createElement('span');
+    sharp.className = 'root-button-sharp';
+    sharp.textContent = r.name;
+    btn.appendChild(sharp);
+    if (r.flat) {
+      const flat = document.createElement('span');
+      flat.className = 'root-button-flat';
+      flat.textContent = r.flat;
+      // Screen readers should announce "C-sharp or D-flat" rather than
+      // running them together as one token.
+      btn.setAttribute('aria-label', `${r.name} or ${r.flat}`);
+      btn.appendChild(flat);
+    }
+    rootOptionsEl.appendChild(btn);
+  });
+};
 const renderQualities = () =>
   renderRadioGroup(qualityOptionsEl, QUALITIES, builderState.qualityId, 'id', 'label', 'quality');
 
@@ -625,10 +682,10 @@ const playSelectedVoicing = (autoStrum = true) => {
     refreshCurrentLabel(v.name);
     return;
   }
-  // Auto-pin to the Strum Bar so the player can recall this chord with
-  // one tap later. Done BEFORE the strum so the pad exists and can
-  // flash in sync with the audio.
-  pinChordToBar(builderState.rootPc, builderState.qualityId);
+  // Auto-pin to the Strum Bar so the player can recall this chord
+  // (with this specific voicing) with one tap later. Done BEFORE
+  // the strum so the pad exists and can flash in sync with the audio.
+  pinChordToBar(builderState.rootPc, builderState.qualityId, builderState.voicingIdx);
 
   // frets is high-string-first → for a "down strum" we go low→high.
   // `midiAtCell` honours banjo's drone-string startFret (so its open
@@ -747,19 +804,35 @@ const renderStrumBar = () => {
     pad.className = 'strum-pad';
     pad.dataset.rootPc = String(entry.rootPc);
     pad.dataset.quality = entry.qualityId;
+    pad.dataset.voicingIdx = String(entry.voicingIdx);
     pad.dataset.idx = String(idx);
     const name = formatChordName(entry.rootPc, entry.qualityId);
-    pad.setAttribute('aria-label', `Play ${name}`);
-    pad.title = `Tap to strum ${name}`;
+    // Resolve the actual voicing object so we can label the pad with
+    // its fret position (e.g. "C³" for C Barre 3). Falls back to no
+    // superscript if the chord library no longer has that voicing
+    // index — the pad still plays SOMETHING (voicingIdx clamps to 0
+    // in `playSelectedVoicing`), it just won't claim a fret position.
+    const voicings = getChordVoicings(activeInstrument, entry.rootPc, entry.qualityId);
+    const voicing = voicings[entry.voicingIdx] || voicings[0];
+    const fret = voicingPositionSuperscript(voicing);
+    const fullName = fret ? `${name} (${voicing.name})` : name;
+    pad.setAttribute('aria-label', `Play ${fullName}`);
+    pad.title = `Tap to strum ${fullName}`;
     const label = document.createElement('span');
     label.className = 'strum-pad-name';
     label.textContent = name;
     pad.appendChild(label);
+    if (fret) {
+      const sup = document.createElement('sup');
+      sup.className = 'strum-pad-fret';
+      sup.textContent = fret;
+      pad.appendChild(sup);
+    }
     const remove = document.createElement('span');
     remove.className = 'strum-pad-remove';
     remove.setAttribute('role', 'button');
-    remove.setAttribute('aria-label', `Remove ${name}`);
-    remove.title = `Remove ${name} from the bar`;
+    remove.setAttribute('aria-label', `Remove ${fullName}`);
+    remove.title = `Remove ${fullName} from the bar`;
     remove.tabIndex = 0;
     remove.textContent = '×';
     pad.appendChild(remove);
@@ -767,32 +840,39 @@ const renderStrumBar = () => {
   });
 };
 
-// Pin a chord to the Strum Bar. If the chord is already on the bar,
-// don't reorder it — just flash the pad. We only LRU-promote on FIRST
-// add so a "Em A Em A" loop doesn't shuffle the pads' positions on
-// every tap (which is disorienting when you're trying to play in time).
+// Pin a chord+voicing to the Strum Bar. If THIS specific (chord,
+// voicing) is already pinned, don't reorder — just flash the pad.
+// We only LRU-promote on FIRST add so a "Em A Em A" loop doesn't
+// shuffle the pads on every tap (which is disorienting when you're
+// trying to play in time). C Open and C Barre 3 are two distinct
+// entries and pin independently.
 //
-// LRU eviction still kicks in when a NEW chord arrives and the bar is
-// at capacity — the oldest pad falls off the right end.
-const pinChordToBar = (rootPc, qualityId) => {
+// LRU eviction still kicks in when a NEW (chord, voicing) arrives
+// and the bar is at capacity — the oldest pad falls off the right
+// end.
+const pinChordToBar = (rootPc, qualityId, voicingIdx = 0) => {
   if (!activeInstrument.chords) return;
   const bar = getBarForActive();
-  const idx = bar.findIndex((e) => e.rootPc === rootPc && e.qualityId === qualityId);
+  const idx = bar.findIndex(
+    (e) => e.rootPc === rootPc && e.qualityId === qualityId && e.voicingIdx === voicingIdx
+  );
   if (idx >= 0) {
     // Already pinned — no reorder, just visual feedback.
-    flashPad(rootPc, qualityId);
+    flashPad(rootPc, qualityId, voicingIdx);
     return;
   }
-  bar.unshift({ rootPc, qualityId });
+  bar.unshift({ rootPc, qualityId, voicingIdx });
   if (bar.length > STRUM_BAR_MAX) bar.length = STRUM_BAR_MAX;
   savePrefs();
   renderStrumBar();
-  flashPad(rootPc, qualityId);
+  flashPad(rootPc, qualityId, voicingIdx);
 };
 
-const removeChordFromBar = (rootPc, qualityId) => {
+const removeChordFromBar = (rootPc, qualityId, voicingIdx = 0) => {
   const bar = getBarForActive();
-  const idx = bar.findIndex((e) => e.rootPc === rootPc && e.qualityId === qualityId);
+  const idx = bar.findIndex(
+    (e) => e.rootPc === rootPc && e.qualityId === qualityId && e.voicingIdx === voicingIdx
+  );
   if (idx < 0) return;
   bar.splice(idx, 1);
   savePrefs();
@@ -802,8 +882,8 @@ const removeChordFromBar = (rootPc, qualityId) => {
 // Brief flash on whichever pad just played, so the player gets visual
 // feedback that their tap registered (and matches the fretboard's
 // cell-flash convention).
-const flashPad = (rootPc, qualityId) => {
-  const sel = `.strum-pad[data-root-pc="${rootPc}"][data-quality="${qualityId}"]`;
+const flashPad = (rootPc, qualityId, voicingIdx = 0) => {
+  const sel = `.strum-pad[data-root-pc="${rootPc}"][data-quality="${qualityId}"][data-voicing-idx="${voicingIdx}"]`;
   const pad = strumPadsEl?.querySelector(sel);
   if (!pad) return;
   pad.classList.remove('playing');
@@ -814,14 +894,14 @@ const flashPad = (rootPc, qualityId) => {
 };
 
 // Set the matrix selection to a chord and strum it. Used by both pad
-// taps and the `+` name input. Resets voicing to 0 (the curated /
-// algorithmic default) so a pad always sounds the same shape; the
-// player can still pick a non-default voicing in the matrix below
-// after the pad strums.
-const playChordAtPad = (rootPc, qualityId) => {
+// taps and the `+` name input. The voicingIdx is restored from the
+// pad's stored value so re-tapping a pad always plays the SAME
+// shape the player originally pinned (e.g. tapping the `C³` pad
+// always plays the Barre 3 voicing, not the default Open).
+const playChordAtPad = (rootPc, qualityId, voicingIdx = 0) => {
   builderState.rootPc = rootPc;
   builderState.qualityId = qualityId;
-  builderState.voicingIdx = 0;
+  builderState.voicingIdx = voicingIdx;
   renderRoots();
   renderQualities();
   renderVoicings();
@@ -862,7 +942,7 @@ let justDragged = false; // briefly true after a drag so the trailing
 
 const findPadByChord = (chord) =>
   strumPadsEl?.querySelector(
-    `.strum-pad[data-root-pc="${chord.rootPc}"][data-quality="${chord.qualityId}"]`
+    `.strum-pad[data-root-pc="${chord.rootPc}"][data-quality="${chord.qualityId}"][data-voicing-idx="${chord.voicingIdx ?? 0}"]`
   );
 
 const startDrag = (event) => {
@@ -957,7 +1037,11 @@ const onStrumPointerDown = (event) => {
   dragState = {
     pointerId: event.pointerId,
     pointerType: event.pointerType,
-    chord: { rootPc: Number(pad.dataset.rootPc), qualityId: pad.dataset.quality },
+    chord: {
+      rootPc: Number(pad.dataset.rootPc),
+      qualityId: pad.dataset.quality,
+      voicingIdx: Number(pad.dataset.voicingIdx) || 0
+    },
     startX: event.clientX,
     startY: event.clientY,
     dragging: false,
@@ -1033,7 +1117,10 @@ const onStrumPointerMove = (event) => {
   if (!targetPad) return;
   const bar = getBarForActive();
   const sourceIdx = bar.findIndex(
-    (e) => e.rootPc === dragState.chord.rootPc && e.qualityId === dragState.chord.qualityId
+    (e) =>
+      e.rootPc === dragState.chord.rootPc &&
+      e.qualityId === dragState.chord.qualityId &&
+      e.voicingIdx === dragState.chord.voicingIdx
   );
   const targetIdx = Number(targetPad.dataset.idx);
   if (sourceIdx < 0 || Number.isNaN(targetIdx)) return;
@@ -1140,12 +1227,20 @@ strumPadsEl?.addEventListener('click', (event) => {
     event.stopPropagation();
     const pad = removeBtn.closest('.strum-pad');
     if (!pad) return;
-    removeChordFromBar(Number(pad.dataset.rootPc), pad.dataset.quality);
+    removeChordFromBar(
+      Number(pad.dataset.rootPc),
+      pad.dataset.quality,
+      Number(pad.dataset.voicingIdx) || 0
+    );
     return;
   }
   const pad = event.target.closest('.strum-pad');
   if (!pad) return;
-  playChordAtPad(Number(pad.dataset.rootPc), pad.dataset.quality);
+  playChordAtPad(
+    Number(pad.dataset.rootPc),
+    pad.dataset.quality,
+    Number(pad.dataset.voicingIdx) || 0
+  );
 });
 
 // ---------- "+" inline chord-name input + autocomplete ----------
@@ -1247,7 +1342,11 @@ const commitTypedChord = () => {
     return;
   }
   setStrumPopover(false);
-  playChordAtPad(target.rootPc, target.qualityId);
+  // Typed-name shortcut always lands on voicingIdx 0 (the default
+  // shape) — there's no UI to specify a voicing in the input box.
+  // The player can switch shapes via the matrix afterwards and
+  // their selection will pin a separate `Cⁿ` pad.
+  playChordAtPad(target.rootPc, target.qualityId, 0);
 };
 
 strumAddBtn?.addEventListener('click', () => {
@@ -1282,7 +1381,7 @@ strumSuggestionsEl?.addEventListener('click', (event) => {
   const li = event.target.closest('.strum-bar-suggestion');
   if (!li) return;
   setStrumPopover(false);
-  playChordAtPad(Number(li.dataset.rootPc), li.dataset.quality);
+  playChordAtPad(Number(li.dataset.rootPc), li.dataset.quality, 0);
 });
 
 // Click-outside-to-dismiss. Also covers the "tapped on the pads while

@@ -829,6 +829,28 @@ body.strum-dragging {
   pointer-events: none;
 }
 
+/* Fret-position superscript shown next to the chord name when the
+ * pad's voicing isn't open (e.g. `C³` for C Barre 3, `F⁵` for F Pos
+ * 5). The `<sup>` default vertical-align gets visually swallowed by
+ * the large bold chord name, so we explicitly nudge it up via
+ * `position: relative` + negative `top` to read like a real
+ * superscript. The superscript convention reads as a single token
+ * `C³` distinct from the chord-extension convention `C7`/`Cmaj7`. */
+.strum-pad-fret {
+  pointer-events: none;
+  display: inline-block;
+  position: relative;
+  top: -0.55em;
+  font-size: 0.55em;
+  font-weight: 800;
+  line-height: 1;
+  margin-left: 2px;
+  letter-spacing: 0;
+  color: rgba(254, 243, 199, 0.95);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  vertical-align: baseline;
+}
+
 .strum-pad-remove {
   position: absolute;
   top: -6px;
@@ -1102,6 +1124,34 @@ body.strum-dragging {
 .chord-options button[disabled] {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+/* Enharmonic root buttons (C♯/D♭, D♯/E♭, F♯/G♭, G♯/A♭, A♯/B♭).
+ * Stack the canonical sharp on top with the flat as a smaller
+ * "also-known-as" hint underneath, so the player sees flats are
+ * supported without making the button two characters wider than the
+ * naturals (which would push the row to wrap on narrow screens). */
+.root-button {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.05;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+.root-button .root-button-sharp {
+  font-size: inherit;
+}
+.root-button .root-button-flat {
+  font-size: 0.72em;
+  font-weight: 600;
+  opacity: 0.72;
+  margin-top: 1px;
+  letter-spacing: 0;
+}
+.root-button.selected .root-button-flat {
+  opacity: 0.92;
 }
 
 .chord-options-empty {

@@ -21,44 +21,76 @@
 
 import { CHORD_DATA } from './chord-data.js';
 
+// `name` is the canonical (sharp-spelled) display used in chord names
+// (e.g. "C♯maj7"), pad labels, and the fretboard root overlay. `flat`
+// is the enharmonic-equivalent flat spelling shown ALONGSIDE `name`
+// in the root-picker buttons (e.g. the C♯/D♭ button) so players see
+// at a glance that flats are supported and don't conclude the app
+// "forgot" them. Naturals (C, D, E, F, G, A, B) have no `flat`.
 export const ROOTS = [
   { name: 'C', pc: 0 },
-  { name: 'C♯', pc: 1 },
+  { name: 'C♯', flat: 'D♭', pc: 1 },
   { name: 'D', pc: 2 },
-  { name: 'D♯', pc: 3 },
+  { name: 'D♯', flat: 'E♭', pc: 3 },
   { name: 'E', pc: 4 },
   { name: 'F', pc: 5 },
-  { name: 'F♯', pc: 6 },
+  { name: 'F♯', flat: 'G♭', pc: 6 },
   { name: 'G', pc: 7 },
-  { name: 'G♯', pc: 8 },
+  { name: 'G♯', flat: 'A♭', pc: 8 },
   { name: 'A', pc: 9 },
-  { name: 'A♯', pc: 10 },
+  { name: 'A♯', flat: 'B♭', pc: 10 },
   { name: 'B', pc: 11 }
 ];
 
+// Quality order matters for the chord-builder UI: triads first
+// (maj/min/sus2/sus4/aug/dim), then sevenths (7 / maj7 / m7 / mMaj7
+// / dim7 / m7b5), then sixths (6 / m6). This keeps related families
+// grouped so the player can scan visually instead of hunting.
+//
+// `suffix` is the lead-sheet symbol appended to the root (e.g.
+// `Cm7b5`, `Edim7`) and `label` is the short button text.
 export const QUALITIES = [
   { id: 'maj', label: 'Major', suffix: '' },
   { id: 'min', label: 'Minor', suffix: 'm' },
+  { id: 'sus2', label: 'sus2', suffix: 'sus2' },
+  { id: 'sus4', label: 'sus4', suffix: 'sus4' },
+  { id: 'aug', label: 'aug', suffix: 'aug' },
+  { id: 'dim', label: 'dim', suffix: 'dim' },
   { id: '7', label: '7', suffix: '7' },
   { id: 'maj7', label: 'maj7', suffix: 'maj7' },
   { id: 'm7', label: 'm7', suffix: 'm7' },
-  { id: 'sus2', label: 'sus2', suffix: 'sus2' },
-  { id: 'sus4', label: 'sus4', suffix: 'sus4' }
+  { id: 'mMaj7', label: 'mMaj7', suffix: 'mMaj7' },
+  { id: 'dim7', label: 'dim7', suffix: 'dim7' },
+  { id: 'm7b5', label: 'm7♭5', suffix: 'm7♭5' },
+  { id: '6', label: '6', suffix: '6' },
+  { id: 'm6', label: 'm6', suffix: 'm6' }
 ];
 
 /**
  * Pitch-class intervals from the root for each chord quality. Used to
  * (a) figure out which fretted note is the root for highlighting, and
- * (b) potentially derive shapes algorithmically in the future.
+ * (b) feed the algorithmic chord-shape finder for instruments /
+ *     qualities not covered by the curated chord-data.js dataset.
+ *
+ * Adding a new quality here makes it playable on banjo / mandolin
+ * immediately (algorithmic finder) and on guitar / ukulele as soon as
+ * a voicing is available (or via the algorithmic fallback when not).
  */
 export const QUALITY_INTERVALS = {
   maj: [0, 4, 7],
   min: [0, 3, 7],
+  sus2: [0, 2, 7],
+  sus4: [0, 5, 7],
+  aug: [0, 4, 8],
+  dim: [0, 3, 6],
   7: [0, 4, 7, 10],
   maj7: [0, 4, 7, 11],
   m7: [0, 3, 7, 10],
-  sus2: [0, 2, 7],
-  sus4: [0, 5, 7]
+  mMaj7: [0, 3, 7, 11],
+  dim7: [0, 3, 6, 9],
+  m7b5: [0, 3, 6, 10],
+  6: [0, 4, 7, 9],
+  m6: [0, 3, 7, 9]
 };
 
 /**
@@ -394,9 +426,24 @@ export function detectBarre(frets, tuning, fingers) {
  */
 export function parseChordName(input) {
   if (!input || typeof input !== 'string') return null;
-  // Normalize Unicode accidentals + jazz delta to ASCII so the regex
-  // below only has to think about single-char accidentals.
-  const s = input.trim().replace(/♯/g, '#').replace(/♭/g, 'b').replace(/Δ7?/g, 'maj7');
+  // Normalize Unicode accidentals + lead-sheet symbols to ASCII so the
+  // quality-suffix table below only has to think about plain text:
+  //   Δ / Δ7  → maj7   (jazz "delta" = major seventh)
+  //   °       → dim    (degree sign = diminished triad)
+  //   °7      → dim7   (degree-seven = fully diminished seventh)
+  //   ø / Ø   → m7b5   (slashed-O = half-diminished seventh)
+  //   +       → aug    (plus = augmented triad)
+  // Order matters: replace `°7` and `Δ7` before `°` and `Δ`.
+  const s = input
+    .trim()
+    .replace(/♯/g, '#')
+    .replace(/♭/g, 'b')
+    .replace(/Δ7/g, 'maj7')
+    .replace(/Δ/g, 'maj7')
+    .replace(/°7/g, 'dim7')
+    .replace(/°/g, 'dim')
+    .replace(/[øØ]/g, 'm7b5')
+    .replace(/\+/g, 'aug');
   if (!s) return null;
   const m = /^([A-Ga-g])([#b])?(.*)$/.exec(s);
   if (!m) return null;
@@ -408,6 +455,9 @@ export function parseChordName(input) {
   else if (accidental === 'b') pc = (pc + 11) % 12;
 
   // Case-sensitive on m/M because Cm7 (minor 7th) ≠ CM7 (major 7th).
+  // Whitespace and parentheses inside the quality string are stripped
+  // so `m(maj7)` and `m maj7` both land on `mMaj7`.
+  const tail = rest.replace(/[\s()]/g, '');
   const qualityMap = {
     '': 'maj',
     M: 'maj',
@@ -421,11 +471,30 @@ export function parseChordName(input) {
     maj7: 'maj7',
     Maj7: 'maj7',
     M7: 'maj7',
+    mMaj7: 'mMaj7',
+    mmaj7: 'mMaj7',
+    minMaj7: 'mMaj7',
+    mM7: 'mMaj7',
     sus2: 'sus2',
     sus4: 'sus4',
-    sus: 'sus4'
+    sus: 'sus4',
+    aug: 'aug',
+    Aug: 'aug',
+    dim: 'dim',
+    Dim: 'dim',
+    dim7: 'dim7',
+    Dim7: 'dim7',
+    m7b5: 'm7b5',
+    'min7b5': 'm7b5',
+    halfdim: 'm7b5',
+    halfdim7: 'm7b5',
+    6: '6',
+    maj6: '6',
+    M6: '6',
+    m6: 'm6',
+    min6: 'm6'
   };
-  const qualityId = qualityMap[rest.trim()];
+  const qualityId = qualityMap[tail];
   if (!qualityId) return null;
   return { rootPc: pc, qualityId };
 }
