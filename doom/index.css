@@ -898,6 +898,17 @@ body.mobile #touch-ui.hidden {
 .touch-btn.action.jump {
   background: rgba(80, 130, 200, 0.55);
 }
+/* Sub-weapon / alt-fire (Castlevania dagger throw, etc.) — warmer
+   orange so it reads as "another attack" without competing with FIRE. */
+.touch-btn.action.alt {
+  background: rgba(200, 120, 40, 0.55);
+}
+/* Round-robin weapon cycle — neutral indigo so it reads as "switch",
+   distinct from the colored attack/movement buttons. */
+.touch-btn.action.wpn {
+  background: rgba(120, 100, 180, 0.55);
+  font-size: 22px;
+}
 
 #touch-move {
   position: absolute;

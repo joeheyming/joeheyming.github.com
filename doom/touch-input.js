@@ -72,7 +72,19 @@ var BINDINGS = {
   jump: { key: ' ', code: 'Space', keyCode: 32 },
   menu: { key: 'Escape', code: 'Escape', keyCode: 27 },
   confirm: { key: 'Enter', code: 'Enter', keyCode: 13 },
-  fire: { key: 'Control', code: 'ControlLeft', keyCode: 17 }
+  fire: { key: 'Control', code: 'ControlLeft', keyCode: 17 },
+  // Backslash → "+altattack". Throws the Castlevania sub-weapon
+  // (whip jumps to the held subweapon's altfire state) and triggers
+  // alt-fire on any future GZDoom mod that uses it. Held-action
+  // semantics match FIRE — keydown on touchstart, keyup on touchend.
+  alt: { key: '\\', code: 'Backslash', keyCode: 220 },
+  // Apostrophe → "weapnext". Single-tap cycles to the next weapon
+  // slot and wraps around at the end. Lets mobile players reach the
+  // boomerang/bow in Legend of Doom and beam upgrades in Metroid
+  // (which are weapons, not inventory items). The CCMD executes once
+  // per keydown — our pressBtn() sends exactly one keydown per tap,
+  // so no auto-repeat to worry about.
+  weapnext: { key: "'", code: 'Quote', keyCode: 222 }
 };
 
 // --- SwipeController: pure state machine --------------------------------

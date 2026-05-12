@@ -243,7 +243,15 @@ export function installUzdomLoaderEngine(ctx) {
           'bind ctrl "+attack"\n' +
           'bind leftarrow "+left"\n' +
           'bind rightarrow "+right"\n' +
-          'bind space "+jump"\n';
+          'bind space "+jump"\n' +
+          // Mobile-only touch buttons (ALT / WPN) dispatch synthetic
+          // KeyboardEvents on these otherwise-unused keys. Bound on
+          // desktop too so curious keyboard players get the same
+          // shortcuts — `\` throws the Castlevania sub-weapon and `'`
+          // cycles weapons, which is more discoverable than mouse2 +
+          // wheel for new visitors.
+          'bind backslash "+altattack"\n' +
+          'bind quote "weapnext"\n';
         if (document.body.classList.contains('mobile')) {
           cfg = 'unbind mouse1\n' + cfg;
         }
