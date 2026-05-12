@@ -1083,6 +1083,165 @@
           return window.UZDoomLoader;
         }
 
+        // Streaming fetch with byte-level progress callbacks. Used by
+        // both the IWAD and mod fetches so the user gets a real
+        // progress bar during the 73 MB Castlevania download (and
+        // every other multi-MB flavor). Falls back to non-streaming
+        // arrayBuffer() if the body isn't readable, which is unusual
+        // on modern browsers but worth handling so the page doesn't
+        // hard-fail on some exotic transport.
+        async function fetchWithProgress(url, onProgress) {
+          var res = await fetch(url);
+          if (!res.ok) throw new Error('HTTP ' + res.status + ' for ' + url);
+          var total = parseInt(res.headers.get('content-length') || '0', 10) || 0;
+          if (!res.body || typeof res.body.getReader !== 'function') {
+            if (onProgress) onProgress({ loaded: 0, total: total });
+            var buf = await res.arrayBuffer();
+            if (onProgress) onProgress({ loaded: buf.byteLength, total: buf.byteLength });
+            return new Uint8Array(buf);
+          }
+          var reader = res.body.getReader();
+          var chunks = [];
+          var loaded = 0;
+          while (true) {
+            var r = await reader.read();
+            if (r.done) break;
+            chunks.push(r.value);
+            loaded += r.value.byteLength;
+            if (onProgress) onProgress({ loaded: loaded, total: total });
+          }
+          var merged = new Uint8Array(loaded);
+          var off = 0;
+          for (var i = 0; i < chunks.length; i++) {
+            merged.set(chunks[i], off);
+            off += chunks[i].byteLength;
+          }
+          return merged;
+        }
+
+        function fmtMb(bytes) {
+          return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+        }
+
+        // Attach an inline progress block (status line + bar) to any
+        // host element and return an updater. Used by the flavor
+        // picker (host = clicked .flavor-card) and the autolaunch
+        // hero (host = #cleanHero). One helper so the two modes show
+        // identical loading UX.
+        //
+        // The returned `set(text, pct)`:
+        //   - text: human-readable status. If null, leaves text alone.
+        //   - pct : 0–100 numeric for a determinate bar, or null/NaN
+        //           for the slide animation (engine-boot phase has no
+        //           byte total, just textual status).
+        function attachLoadInfo(host) {
+          if (!host) return null;
+          var info = host.querySelector(':scope > .load-info');
+          if (!info) {
+            info = document.createElement('span');
+            info.className = 'load-info';
+            info.innerHTML =
+              '<span class="load-text">Starting…</span>' +
+              '<span class="load-bar indeterminate"><span class="load-bar-fill"></span></span>';
+            host.appendChild(info);
+          }
+          host.classList.add('has-load-info');
+          var textEl = info.querySelector('.load-text');
+          var barEl = info.querySelector('.load-bar');
+          var fillEl = info.querySelector('.load-bar-fill');
+
+          // Coalesce updates onto the next animation frame. A 73 MB
+          // streamed download can fire 1000+ progress callbacks per
+          // second; without rAF batching each one triggers a layout
+          // flush on .textContent / .style.width writes. With it,
+          // we do at most one DOM update per frame.
+          var pendingText = null;
+          var pendingPct;
+          var hasPendingPct = false;
+          var frameId = null;
+          function flush() {
+            frameId = null;
+            if (pendingText != null && textEl) textEl.textContent = pendingText;
+            if (hasPendingPct && barEl && fillEl) {
+              if (pendingPct == null || !isFinite(pendingPct)) {
+                barEl.classList.add('indeterminate');
+              } else {
+                barEl.classList.remove('indeterminate');
+                var clamped = Math.max(0, Math.min(100, pendingPct));
+                fillEl.style.width = clamped.toFixed(1) + '%';
+              }
+            }
+            pendingText = null;
+            pendingPct = undefined;
+            hasPendingPct = false;
+          }
+
+          return {
+            set: function (text, pct) {
+              if (text != null) pendingText = text;
+              if (arguments.length >= 2) {
+                pendingPct = pct;
+                hasPendingPct = true;
+              }
+              if (frameId == null) {
+                frameId =
+                  typeof requestAnimationFrame === 'function'
+                    ? requestAnimationFrame(flush)
+                    : setTimeout(flush, 16);
+              }
+            }
+          };
+        }
+
+        // Mirror engine-boot status into a load-info UI. Once the
+        // fetch phase is done the loader takes over and pushes textual
+        // status into #status / #statusRight ("Fetching brightmaps…",
+        // "Syncing saves from IndexedDB…", "Booting engine…"). Without
+        // mirroring, those updates would happen way down in the boot
+        // panel — out of view on mobile — and the loading card would
+        // sit on the last fetch message until the engine takes over
+        // the canvas. Returns a stop() so callers can detach early.
+        function mirrorEngineStatus(ui) {
+          if (!ui) return function () {};
+          var statusEl = document.getElementById('status');
+          var statusRightEl = document.getElementById('statusRight');
+          if (!statusEl) return function () {};
+          function refresh() {
+            var l = (statusEl.textContent || '').trim();
+            var r = (statusRightEl && statusRightEl.textContent) || '';
+            r = r.trim();
+            if (!l && !r) return;
+            ui.set(l + (r ? ' — ' + r : ''), null);
+          }
+          var mo = new MutationObserver(refresh);
+          mo.observe(statusEl, { childList: true, characterData: true, subtree: true });
+          if (statusRightEl) {
+            mo.observe(statusRightEl, {
+              childList: true,
+              characterData: true,
+              subtree: true
+            });
+          }
+          refresh();
+          var unsub = function () {};
+          if (window.UZDoomLifecycle) {
+            unsub = window.UZDoomLifecycle.subscribe(function (state) {
+              if (
+                state.phase === 'playing' ||
+                state.phase === 'error' ||
+                state.phase === 'exited'
+              ) {
+                mo.disconnect();
+                if (unsub) unsub();
+              }
+            });
+          }
+          return function stop() {
+            mo.disconnect();
+            if (unsub) unsub();
+          };
+        }
+
         // Resolve the IWAD descriptor for primeWith. Either fetch a
         // remote .wad (Classic DOOM) and hand the loader the bytes, or
         // hand it one of the bundled Freedoom references (no fetch
@@ -1092,35 +1251,53 @@
         // (e.g. Spram's Metroid Doom, Plutonia mapsets) require the
         // Doom 2 IWAD; Doom 1-family (e.g. Legend of Doom) need
         // freedoom1.
-        async function resolveIwad(cfg) {
+        async function resolveIwad(cfg, onProgress) {
           if (cfg.iwadUrl) {
-            var res = await fetch(cfg.iwadUrl);
-            if (!res.ok) throw new Error('HTTP ' + res.status + ' for ' + cfg.iwadUrl);
-            var buf = await res.arrayBuffer();
-            return { name: cfg.iwadName, data: new Uint8Array(buf) };
+            var data = await fetchWithProgress(cfg.iwadUrl, onProgress);
+            return { name: cfg.iwadName, data: data };
           }
           var bundled = cfg.bundledIwad || 'freedoom1.wad';
           return { name: bundled + ' (bundled)', data: null, bundled: bundled };
         }
 
-        async function primeFlavor(flavor) {
+        // primeFlavor's `onProgress` is the single channel the picker
+        // and autolaunch UIs subscribe to during the fetch phase.
+        // Receives { stage, loaded, total, label } where stage is
+        // 'iwad' | 'mod' | 'done' and loaded/total are combined bytes
+        // across both files (so a single bar tracks the whole prime).
+        async function primeFlavor(flavor, onProgress) {
           var cfg = FLAVORS[flavor];
           if (!cfg) throw new Error('unknown flavor: ' + flavor);
           var loader = await waitForLoader();
 
-          // Fetch IWAD + mod in parallel where possible. Classic DOOM's
-          // ~12 MB doom.wad and Legend of DOOM's ~8 MB pk3 are both
-          // network-bound; running them concurrently halves cold-start
-          // wait when both are needed (not currently used in any single
-          // flavor, but the plumbing supports future "Classic + mod"
-          // combos without restructuring).
-          var iwadPromise = resolveIwad(cfg);
+          // Combined-bytes progress across IWAD + (optional) mod.
+          // Fetches still run in parallel — the previous parallel
+          // structure was a real cold-start win and we keep it — but
+          // both callbacks accumulate into a single reported total so
+          // the UI shows one steady bar instead of jumping between
+          // two unrelated numbers.
+          var prog = { iwad: { loaded: 0, total: 0 }, mod: { loaded: 0, total: 0 } };
+          function report(stage) {
+            if (!onProgress) return;
+            var loaded = prog.iwad.loaded + prog.mod.loaded;
+            var total = prog.iwad.total + prog.mod.total;
+            var label =
+              stage === 'mod'
+                ? cfg.modName || 'mod'
+                : cfg.iwadName || cfg.bundledIwad || 'engine';
+            onProgress({ stage: stage, loaded: loaded, total: total, label: label });
+          }
+
+          var iwadPromise = resolveIwad(cfg, function (p) {
+            prog.iwad = p;
+            report('iwad');
+          });
           var modPromise = cfg.modUrl
-            ? fetch(cfg.modUrl).then(function (r) {
-                if (!r.ok) throw new Error('HTTP ' + r.status + ' for ' + cfg.modUrl);
-                return r.arrayBuffer().then(function (b) {
-                  return { name: cfg.modName, data: new Uint8Array(b) };
-                });
+            ? fetchWithProgress(cfg.modUrl, function (p) {
+                prog.mod = p;
+                report('mod');
+              }).then(function (data) {
+                return { name: cfg.modName, data: data };
               })
             : Promise.resolve(null);
 
@@ -1128,8 +1305,34 @@
           var mod = await modPromise;
           var mods = mod ? [mod] : [];
 
+          if (onProgress) {
+            onProgress({
+              stage: 'done',
+              loaded: prog.iwad.loaded + prog.mod.loaded,
+              total: prog.iwad.total + prog.mod.total,
+              label: 'Handoff to engine…'
+            });
+          }
+
           await loader.primeWith({ iwad: iwad, mods: mods });
           console.log('[flavor] primed ' + flavor);
+        }
+
+        // Translate a primeFlavor progress event into a status line
+        // string for the inline load-info UI. Single helper so picker
+        // and autolaunch read the same way.
+        function formatPrimeProgress(p) {
+          var prefix =
+            p.stage === 'mod'
+              ? 'Downloading ' + p.label
+              : p.stage === 'done'
+                ? 'Handoff to engine…'
+                : 'Downloading ' + p.label;
+          if (!p.total) {
+            return prefix + ' — ' + fmtMb(p.loaded);
+          }
+          var pct = Math.round((p.loaded / p.total) * 100);
+          return prefix + ' — ' + fmtMb(p.loaded) + ' / ' + fmtMb(p.total) + ' (' + pct + '%)';
         }
 
         function applyFlavorBranding(flavor) {
@@ -1167,6 +1370,9 @@
           var btn = document.getElementById('cleanLaunchBtn');
           if (!btn) return;
           var cfg = FLAVORS[flavor];
+          var hero = document.getElementById('cleanHero');
+          var ui = attachLoadInfo(hero);
+          var mirrorStarted = false;
           if (window.UZDoomLifecycle) {
             window.UZDoomLifecycle.subscribe(function (state) {
               if (state.phase === 'primed') {
@@ -1175,6 +1381,13 @@
               } else if (state.phase === 'launching') {
                 btn.textContent = 'Loading…';
                 btn.disabled = true;
+                // Engine boot has started — start mirroring #status
+                // into the hero UI so the user keeps seeing live
+                // progress all the way to first frame.
+                if (ui && !mirrorStarted) {
+                  mirrorStarted = true;
+                  mirrorEngineStatus(ui);
+                }
               } else if (state.phase === 'error') {
                 var reason = (state.detail && state.detail.reason) || 'unknown';
                 btn.textContent =
@@ -1188,6 +1401,7 @@
             trackDoomEvent('doom_engine_launched', flavor + ':autolaunch');
             if (window.UZDoomLoader) window.UZDoomLoader.launch();
           });
+          return ui;
         }
 
         // Picker mode: each flavor card is the user gesture. Click ⇒
@@ -1255,10 +1469,36 @@
               card.classList.add('loading');
               var cta = card.querySelector('.cta');
               if (cta) cta.textContent = 'Loading';
+
+              // Flip the boot overlay into loading-focus mode: hides
+              // the other (now-disabled) cards, the manual-mode
+              // instructions, and the warning banner so the clicked
+              // card becomes the visual focus and its inline progress
+              // is unmistakable.
+              document.body.classList.add('flavor-loading');
+
+              // Attach the inline progress UI to this card. The UI
+              // gets driven first by primeFlavor's byte-level fetch
+              // callbacks (real determinate bar across the ~73 MB
+              // Castlevania download), then by mirrorEngineStatus
+              // (indeterminate bar with live engine-boot text).
+              var ui = attachLoadInfo(card);
+              if (ui) ui.set('Preparing…', null);
+              var stopMirror = null;
+
               try {
                 applyFlavorBranding(flavor);
                 document.body.classList.add('flavor-' + flavor);
-                await primeFlavor(flavor);
+                await primeFlavor(flavor, function (p) {
+                  if (!ui) return;
+                  var pct = p.total ? (p.loaded / p.total) * 100 : null;
+                  ui.set(formatPrimeProgress(p), pct);
+                });
+                // Switch to engine-boot mirroring. The detach happens
+                // automatically when lifecycle reaches playing/error/
+                // exited, so we don't need to track this except to
+                // bail in the catch below.
+                if (ui) stopMirror = mirrorEngineStatus(ui);
                 if (window.UZDoomLoader) window.UZDoomLoader.launch();
                 // Value is seconds from click → launch — useful for spotting
                 // a CDN-slow flavor (e.g. classic.wad fetch from Netlify).
@@ -1278,7 +1518,10 @@
                     message: String(e.message || e)
                   });
                 }
+                if (stopMirror) stopMirror();
+                if (ui) ui.set('Failed: ' + String(e.message || e), 0);
                 card.classList.remove('loading');
+                document.body.classList.remove('flavor-loading');
                 if (cta) cta.textContent = 'Failed — reload to retry';
               }
             });
@@ -1290,11 +1533,18 @@
         async function autoLaunch(flavor) {
           trackDoomEvent('doom_flavor_pick', flavor + ':autolaunch');
           applyFlavorBranding(flavor);
-          wireHeroButton(flavor);
+          var ui = wireHeroButton(flavor);
+          if (ui) ui.set('Preparing…', null);
           try {
-            await primeFlavor(flavor);
+            await primeFlavor(flavor, function (p) {
+              if (!ui) return;
+              var pct = p.total ? (p.loaded / p.total) * 100 : null;
+              ui.set(formatPrimeProgress(p), pct);
+            });
+            if (ui) ui.set('Ready — click Launch.', 100);
           } catch (e) {
             console.warn('[flavor auto-launch] priming failed:', e);
+            if (ui) ui.set('Failed: ' + String(e.message || e), 0);
             trackDoomEvent(
               'doom_flavor_failed',
               flavor + ':autolaunch: ' + String(e.message || e).slice(0, 80)

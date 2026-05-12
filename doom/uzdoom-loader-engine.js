@@ -250,8 +250,17 @@ export function installUzdomLoaderEngine(ctx) {
           // shortcuts — `\` throws the Castlevania sub-weapon and `'`
           // cycles weapons, which is more discoverable than mouse2 +
           // wheel for new visitors.
-          'bind backslash "+altattack"\n' +
-          'bind quote "weapnext"\n';
+          //
+          // CRITICAL: GZDoom names ASCII printable keys by the literal
+          // character, not by a descriptive word. The engine's own
+          // commonbinds.txt has `\ +showscores` and uses `,`, `.`, `[`,
+          // `]`, `;`, `'` directly. So `bind backslash …` and `bind
+          // quote …` are silent no-ops — GZDoom doesn't recognize those
+          // tokens as key names and nothing gets bound. Use `\` and `'`.
+          // This overrides the default `\ +showscores`, which is fine
+          // for single-player.
+          'bind \\ "+altattack"\n' +
+          'bind \' "weapnext"\n';
         if (document.body.classList.contains('mobile')) {
           cfg = 'unbind mouse1\n' + cfg;
         }
