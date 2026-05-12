@@ -40,6 +40,18 @@ body.flavor-legend {
   --accent: #4fa861;
   --accent-dim: #2a5b37;
 }
+body.flavor-mario {
+  --accent: #2a73d8;
+  --accent-dim: #18467f;
+}
+body.flavor-metroid {
+  --accent: #c39e3a;
+  --accent-dim: #6e571c;
+}
+body.flavor-castlevania {
+  --accent: #7a3fb1;
+  --accent-dim: #3f1f5c;
+}
 * {
   box-sizing: border-box;
 }
@@ -397,21 +409,45 @@ body:not(.clean):not(.picker-mode) #flavorPicker {
   color: var(--accent);
 }
 
-/* Flavor picker. Three big cards stacked on mobile, side-by-side on
-   wider viewports. The card click is the user gesture target — both
-   selects the flavor AND triggers prime+launch (no second click). */
+/* Flavor picker. Five cards now (Classic / Freedoom / Legend / Mario /
+   Metroid) — three layout modes:
+     • Mobile (<640px): single column, dense typography. Vertical
+       phones have to scroll past 5 cards + intro + warn banner so
+       every line of vertical space matters.
+     • Tablet (640–1100px): 2-col wrap, 5th card spans full width
+       (intentional — drawing attention to the newest flavor).
+     • Desktop (>=1100px): 5-across row. Below 1100px, 5 cards each
+       get <190px which is too cramped for the uppercase title.
+   The card click is the user gesture target — both selects the
+   flavor AND triggers prime+launch (no second click). */
 #flavorPicker {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   width: 100%;
-  max-width: 960px;
-  margin-top: 24px;
+  max-width: 1100px;
+  margin-top: 18px;
 }
-@media (min-width: 880px) {
+@media (min-width: 640px) {
   #flavorPicker {
     flex-direction: row;
-    gap: 18px;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .flavor-card {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 240px;
+  }
+}
+@media (min-width: 1100px) {
+  #flavorPicker {
+    flex-wrap: nowrap;
+    gap: 14px;
+  }
+  .flavor-card {
+    flex: 1 1 0;
+    min-width: 0;
   }
 }
 .flavor-card {
@@ -420,7 +456,9 @@ body:not(.clean):not(.picker-mode) #flavorPicker {
   border: 1px solid var(--border);
   border-left: 4px solid var(--flavor-color, var(--accent));
   border-radius: 6px;
-  padding: 22px 22px 24px;
+  /* Mobile: tight padding so 5 cards don't dominate the boot screen.
+     Wider viewports: media query below scales it back up. */
+  padding: 12px 14px 14px;
   color: var(--text);
   font-family: inherit;
   text-align: left;
@@ -428,7 +466,13 @@ body:not(.clean):not(.picker-mode) #flavorPicker {
   transition: background 120ms, border-color 120ms, transform 120ms;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+}
+@media (min-width: 640px) {
+  .flavor-card {
+    padding: 18px 18px 20px;
+    gap: 8px;
+  }
 }
 .flavor-card[data-flavor='classic'] {
   --flavor-color: #c8392e;
@@ -438,6 +482,15 @@ body:not(.clean):not(.picker-mode) #flavorPicker {
 }
 .flavor-card[data-flavor='legend'] {
   --flavor-color: #4fa861;
+}
+.flavor-card[data-flavor='mario'] {
+  --flavor-color: #2a73d8;
+}
+.flavor-card[data-flavor='metroid'] {
+  --flavor-color: #c39e3a;
+}
+.flavor-card[data-flavor='castlevania'] {
+  --flavor-color: #7a3fb1;
 }
 .flavor-card:hover:not([disabled]):not(.loading) {
   background: var(--panel2);
@@ -451,24 +504,44 @@ body:not(.clean):not(.picker-mode) #flavorPicker {
   opacity: 0.6;
 }
 .flavor-card .name {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--flavor-color);
+  line-height: 1.2;
+}
+@media (min-width: 640px) {
+  .flavor-card .name {
+    font-size: 17px;
+    letter-spacing: 1.5px;
+  }
 }
 .flavor-card .desc {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--dim);
-  line-height: 1.5;
+  line-height: 1.4;
+}
+@media (min-width: 640px) {
+  .flavor-card .desc {
+    font-size: 12px;
+    line-height: 1.5;
+  }
 }
 .flavor-card .cta {
-  margin-top: 6px;
-  font-size: 11px;
-  letter-spacing: 2px;
+  margin-top: 2px;
+  font-size: 10px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   color: var(--text);
   opacity: 0.7;
+}
+@media (min-width: 640px) {
+  .flavor-card .cta {
+    margin-top: 6px;
+    font-size: 11px;
+    letter-spacing: 2px;
+  }
 }
 .flavor-card.loading .cta::after {
   content: ' …';

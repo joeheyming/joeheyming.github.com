@@ -45,7 +45,7 @@
     "name": "Doom 💀",
     "shortName": "Doom",
     "description": "Classic first-person shooter",
-    "detailedDescription": "Classic FPS with WebAssembly. Pick Classic DOOM, Freedoom, or Legend of DOOM at launch.",
+    "detailedDescription": "Classic FPS with WebAssembly. Pick Classic DOOM, Freedoom, Legend of DOOM, Mario DOOM, Metroid DOOM, or Castlevania: Simon's Destiny at launch.",
     "icon": "💀",
     "path": "./doom/",
     "category": "game",
@@ -73,7 +73,7 @@
     "featured": {
       "order": 1,
       "headline": "Play Doom",
-      "blurb": "Classic FPS in your browser. WebAssembly magic with music & sound.",
+      "blurb": "Classic FPS in your browser. Six flavors — Classic, Freedoom, Zelda, Mario, Metroid, Castlevania — WebAssembly magic with music & sound.",
       "tagsLine": "🕹️ Game • ⭐ Popular",
       "preset": "doom",
       "analyticsLabel": "Doom"
@@ -976,10 +976,10 @@
   },
   {
     "id": "play-guitar",
-    "name": "Guitar 🎸",
-    "shortName": "Guitar",
-    "description": "Play a guitar in your browser",
-    "detailedDescription": "Click frets on a six-string fretboard or strum chords. Mouse, touch, or keyboard.",
+    "name": "Strings 🎸",
+    "shortName": "Strings",
+    "description": "Browser fretboard for guitar, bass, ukulele, banjo, and mandolin",
+    "detailedDescription": "One fretboard, five instruments — Guitar, Bass, Ukulele, Banjo, and Mandolin. Click frets to pluck or use the chord builder to strum. Mouse, touch, or MIDI.",
     "icon": "🎸",
     "path": "./play/guitar/",
     "category": "entertainment",
@@ -992,6 +992,11 @@
     "tags": [
       "music",
       "guitar",
+      "bass",
+      "ukulele",
+      "banjo",
+      "mandolin",
+      "strings",
       "audio"
     ],
     "related": [
