@@ -166,6 +166,10 @@ function buildFretboard() {
     const slot = document.createElement('div');
     slot.className = isDouble ? 'inlay double' : 'inlay';
     slot.style.gridColumn = String(fret);
+    // Force every inlay into the single explicit row (the grid was
+    // creating a 0/11px implicit row 2 for the double inlay, which
+    // collapsed both 12th-fret dots to the bottom edge).
+    slot.style.gridRow = '1';
     inlays.appendChild(slot);
   };
   singleDots.forEach((f) => addInlay(f, false));
@@ -389,11 +393,16 @@ const setFingerBadge = (cell, label) => {
  * Render the root marker on top of the barre overlay (and on top of
  * any cell-level chord-tone disc). Same DOM-rect approach as the
  * barre — read the cell's bounding rect, position an overlay element
- * inside .fretboard-grid. Finger number, when present, sits as a
- * superscript next to the "R" label so the player still knows which
- * finger to use without losing the root identification.
+ * inside .fretboard-grid.
+ *
+ * The label is the actual ROOT NOTE NAME (e.g. "C", "F♯", "B♭") rather
+ * than a generic "R" — non-musicians found "R" confusing, and showing
+ * the note tells the player both "this is the root" (via the red
+ * colour) AND "you're playing a C", which doubles as a sanity check
+ * against the chord name. The fretting finger number sits as a small
+ * superscript so the player still knows which finger to use.
  */
-const drawRootOverlay = (rootCell, fingerNumber) => {
+const drawRootOverlay = (rootCell, fingerNumber, rootName) => {
   removeRootOverlay();
   if (!rootCell) return;
   const grid = fretboardEl.querySelector('.fretboard-grid');
@@ -412,13 +421,11 @@ const drawRootOverlay = (rootCell, fingerNumber) => {
   el.style.width = `${width}px`;
   el.style.height = `${height}px`;
   el.setAttribute('aria-hidden', 'true');
-  // Show "R" prominently. If the player would press this with a finger
-  // (fretted root), append the finger number as a small superscript
-  // so they still know which finger to use.
+  const label = rootName || 'R';
   if (fingerNumber && fingerNumber > 0) {
-    el.innerHTML = `<span class="chord-root-marker-label">R<small>${fingerNumber}</small></span>`;
+    el.innerHTML = `<span class="chord-root-marker-label">${label}<small>${fingerNumber}</small></span>`;
   } else {
-    el.innerHTML = '<span class="chord-root-marker-label">R</span>';
+    el.innerHTML = `<span class="chord-root-marker-label">${label}</span>`;
   }
   grid.appendChild(el);
   rootOverlayEl = el;
@@ -502,12 +509,18 @@ const paintChordShape = (frets, rootPc, providedFingers) => {
       const finger = fingers[bestRootStringIdx];
       const rootStartFret = activeInstrument.tuning[bestRootStringIdx].startFret || 0;
       const isOpenRoot = bestRootFret === rootStartFret;
+      // Display name for the root note ("C", "F♯", "B♭", …) — the
+      // ROOTS table already uses the prettier Unicode accidentals.
+      const rootName = ROOTS.find((r) => r.pc === rootPc)?.name || '';
       if (isOpenRoot) {
         // Open (or drone-open) root sits on a sticky / drone-start
-        // label cell — an absolutely-positioned overlay would slide
-        // off as the player scrolls the upper register, so we keep
-        // the small "R" pill anchored to the cell itself.
-        setFingerBadge(rootCell, 'R');
+        // label cell. The cell already shows the open-string letter
+        // (e.g. "E", "A") and now sports the red `.in-chord-root`
+        // tint, which is enough to tell the player "this is the root"
+        // — adding an extra "R" badge on top was the part that
+        // confused non-musicians.
+        const stale = rootCell.querySelector('.finger-badge');
+        if (stale) stale.remove();
       } else {
         // Remove any finger-number badge that may have been added when
         // the cell was first painted as `.in-chord` — the overlay
@@ -518,7 +531,7 @@ const paintChordShape = (frets, rootPc, providedFingers) => {
       // Order matters: barre first, then root on top, so the red
       // disc visibly punches through the amber bar.
       drawBarreOverlay(barre);
-      if (!isOpenRoot) drawRootOverlay(rootCell, finger);
+      if (!isOpenRoot) drawRootOverlay(rootCell, finger, rootName);
       return;
     }
   }
@@ -724,6 +737,10 @@ const renderStrumBar = () => {
   strumPadsEl.innerHTML = '';
   if (!activeInstrument.chords) return;
   const bar = getBarForActive();
+  // CSS `.has-pads` hides the verbose hint header once the bar isn't
+  // empty — saves ~25 px of vertical space on phones, where every
+  // pixel between fretboard and chord builder matters.
+  strumBarEl?.classList.toggle('has-pads', bar.length > 0);
   bar.forEach((entry, idx) => {
     const pad = document.createElement('button');
     pad.type = 'button';
@@ -813,17 +830,33 @@ const playChordAtPad = (rootPc, qualityId) => {
 
 // ---------- Tap-to-play vs. drag-to-reorder ----------
 //
-// Pointer-driven: pointerdown starts a "potential" tap; if the cursor
-// moves more than DRAG_THRESHOLD before pointerup, we promote it to a
-// drag (cancelling the tap-to-strum). On drop we persist the new order.
+// Pointer-driven, with two different gating strategies depending on
+// pointer type:
 //
-// A floating ghost clone follows the finger so the pad visibly tracks
-// the cursor, and the bar's data is reordered live as the ghost
-// crosses other pads. The original pad stays in place but is dimmed
-// (`drag-source` class) until drop.
+// - TOUCH: requires a long-press (LONG_PRESS_MS) to enter drag mode.
+//   Any finger movement before the timer fires hands the gesture
+//   back to the browser, which then handles native scrolling
+//   (horizontal in the strum-bar pads container, vertical in the
+//   chord-builder). This is the iOS home-screen / Photos-album
+//   pattern: hold to pick up, then drag.
+// - MOUSE / PEN: skips long-press. A horizontal-dominant drag of
+//   more than DRAG_THRESHOLD pixels promotes to a reorder; vertical
+//   drags abandon the drag-state. Desktop users scroll with the
+//   wheel / trackpad, so they don't need a "scroll-friendly" gate
+//   on the pad itself.
+//
+// Either way, on drop we persist the new order. A floating ghost
+// clone follows the cursor / finger; the original pad stays in
+// place but dimmed (`drag-source` class) until drop.
 
-const DRAG_THRESHOLD = 8; // px before a tap promotes to a drag
+const DRAG_THRESHOLD = 8; // px before a mouse/pen tap promotes to a drag
+const LONG_PRESS_MS = 400; // touch hold time before the pad becomes draggable
+// Movement tolerance during the long-press wait — natural finger
+// tremor is typically 3-6px, so anything under this counts as "still
+// holding" and won't cancel the timer.
+const LONG_PRESS_TOLERANCE = 12;
 let dragState = null;
+let longPressTimer = null;
 let justDragged = false; // briefly true after a drag so the trailing
 // `click` event doesn't accidentally re-strum the dropped chord.
 
@@ -865,33 +898,131 @@ const startDrag = (event) => {
   document.body.classList.add('strum-dragging');
 };
 
+const cancelLongPress = () => {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+};
+
+// Defensive cleanup — strips ALL drag-related state from the DOM,
+// regardless of whether `dragState` still tracks them. Called from
+// every "interaction ended" hook (pointerup, pointercancel,
+// touchend, touchcancel) and the watchdog below, because iOS Safari
+// occasionally drops one of those events on the floor — if we
+// gated on pointerId we'd leave a ghost stranded mid-screen.
+const removeAllGhosts = () => {
+  document.querySelectorAll('.strum-pad.drag-ghost').forEach((el) => el.remove());
+  document
+    .querySelectorAll('.strum-pad.drag-source')
+    .forEach((el) => el.classList.remove('drag-source'));
+  document
+    .querySelectorAll('.strum-pad.long-press-active')
+    .forEach((el) => el.classList.remove('long-press-active'));
+  document
+    .querySelectorAll('.strum-pad.long-press-pending')
+    .forEach((el) => el.classList.remove('long-press-pending'));
+  document.body.classList.remove('strum-dragging');
+};
+
+// Watchdog: if a drag is "in flight" but no pointermove has arrived
+// for a while, the OS probably swallowed our pointerup. Force the
+// drop and clean up. Refreshed every pointermove so a slow but live
+// drag never trips it.
+let dragWatchdogTimer = null;
+const DRAG_WATCHDOG_MS = 2500;
+const armDragWatchdog = () => {
+  if (dragWatchdogTimer) clearTimeout(dragWatchdogTimer);
+  dragWatchdogTimer = setTimeout(() => {
+    dragWatchdogTimer = null;
+    if (dragState && dragState.dragging) {
+      removeAllGhosts();
+      dragState = null;
+    }
+  }, DRAG_WATCHDOG_MS);
+};
+const disarmDragWatchdog = () => {
+  if (dragWatchdogTimer) {
+    clearTimeout(dragWatchdogTimer);
+    dragWatchdogTimer = null;
+  }
+};
+
 const onStrumPointerDown = (event) => {
   if (event.button !== undefined && event.button !== 0) return; // primary button only
   if (event.target.closest('.strum-pad-remove')) return; // X button uses click
   const pad = event.target.closest('.strum-pad');
   if (!pad) return;
+  const isTouch = event.pointerType === 'touch';
   dragState = {
     pointerId: event.pointerId,
+    pointerType: event.pointerType,
     chord: { rootPc: Number(pad.dataset.rootPc), qualityId: pad.dataset.quality },
     startX: event.clientX,
     startY: event.clientY,
     dragging: false,
+    // For mouse / pen we're already "armed" — any direction-passing
+    // drag past DRAG_THRESHOLD will start a reorder. Touch needs to
+    // win the long-press race first.
+    armed: !isTouch,
     ghostEl: null
   };
+  if (isTouch) {
+    cancelLongPress();
+    // Visual feedback during the wait so the player can SEE the
+    // long-press timer ticking — without this the pad just sits
+    // there for 400ms and feels unresponsive.
+    pad.classList.add('long-press-pending');
+    longPressTimer = setTimeout(() => {
+      longPressTimer = null;
+      if (!dragState) return;
+      dragState.armed = true;
+      const p = findPadByChord(dragState.chord);
+      p?.classList.remove('long-press-pending');
+      p?.classList.add('long-press-active');
+      // Haptic confirmation on supported devices ("you've picked it up").
+      if (navigator.vibrate) navigator.vibrate(15);
+      // Start the drag immediately at the long-press point so the ghost
+      // appears right under the finger — the player doesn't have to
+      // wiggle to make it materialise.
+      startDrag({ clientX: dragState.startX, clientY: dragState.startY });
+      armDragWatchdog();
+    }, LONG_PRESS_MS);
+  }
 };
 
 const onStrumPointerMove = (event) => {
   if (!dragState || event.pointerId !== dragState.pointerId) return;
   const dx = event.clientX - dragState.startX;
   const dy = event.clientY - dragState.startY;
+  // Touch: small finger movement during the long-press wait is
+  // tolerated (natural tremor is 3-6px); only abandon if the player
+  // moves further than LONG_PRESS_TOLERANCE, which we read as
+  // "they're trying to scroll".
+  if (!dragState.armed) {
+    if (Math.hypot(dx, dy) <= LONG_PRESS_TOLERANCE) return;
+    cancelLongPress();
+    const p = findPadByChord(dragState.chord);
+    p?.classList.remove('long-press-pending');
+    p?.classList.remove('long-press-active');
+    dragState = null;
+    return;
+  }
   if (!dragState.dragging) {
     if (Math.hypot(dx, dy) <= DRAG_THRESHOLD) return;
+    // Mouse / pen direction gate (touch already passed long-press above
+    // and starts the drag from inside the timer callback).
+    if (dragState.pointerType !== 'touch' && Math.abs(dx) <= Math.abs(dy)) {
+      dragState = null;
+      return;
+    }
     startDrag(event);
     if (!dragState.dragging) return;
   }
   // Move the ghost.
   dragState.ghostEl.style.left = `${event.clientX - dragState.ghostOffsetX}px`;
   dragState.ghostEl.style.top = `${event.clientY - dragState.ghostOffsetY}px`;
+  armDragWatchdog();
   // Look beneath the cursor for any pad that ISN'T the source. Use
   // elementsFromPoint so the ghost (which is on top) doesn't shadow
   // the result.
@@ -923,12 +1054,25 @@ const onStrumPointerMove = (event) => {
 };
 
 const endStrumDrag = (event) => {
-  if (!dragState) return;
-  if (event && event.pointerId !== dragState.pointerId) return;
-  if (dragState.dragging) {
-    findPadByChord(dragState.chord)?.classList.remove('drag-source');
-    dragState.ghostEl?.remove();
-    document.body.classList.remove('strum-dragging');
+  // Defensive: even with no live dragState, sweep any orphan ghosts
+  // — covers the rare iOS case where pointercancel fires for a
+  // pointerId we no longer track but the ghost element remained.
+  if (!dragState) {
+    if (document.querySelector('.strum-pad.drag-ghost')) removeAllGhosts();
+    return;
+  }
+  // Tolerate pointerId mismatches: on iOS the pointerId can change
+  // when our touchmove preventDefault confuses the gesture
+  // recognizer. We'd rather over-clean than leave a ghost stranded.
+  // Multi-touch with a SECOND finger pressing while we're mid-drag
+  // would also land here — pointerup for that other pointer should
+  // still trigger an end-of-drag, since the player has clearly
+  // finished interacting with the pad.
+  cancelLongPress();
+  disarmDragWatchdog();
+  const wasDragging = dragState.dragging;
+  removeAllGhosts();
+  if (wasDragging) {
     savePrefs();
     // Suppress the trailing `click` that fires on touch/mouse after
     // pointerup (otherwise the dropped pad would also strum).
@@ -947,6 +1091,43 @@ strumPadsEl?.addEventListener('pointerdown', onStrumPointerDown);
 document.addEventListener('pointermove', onStrumPointerMove);
 document.addEventListener('pointerup', endStrumDrag);
 document.addEventListener('pointercancel', endStrumDrag);
+// Touch fallbacks — when our touchmove preventDefault confuses
+// Safari's gesture recognizer it sometimes drops the matching
+// pointerup, and the ghost is left floating mid-screen. The native
+// touchend / touchcancel still fire reliably, so we hook them as a
+// belt-and-braces cleanup path. (endStrumDrag is idempotent.)
+document.addEventListener('touchend', endStrumDrag);
+document.addEventListener('touchcancel', endStrumDrag);
+// And one more safety net: if focus leaves the page (e.g. user
+// switches apps mid-drag, or the system shows a permission prompt),
+// force-cleanup any in-flight ghost.
+window.addEventListener('blur', () => endStrumDrag());
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) endStrumDrag();
+});
+
+// While a long-press drag is ACTIVE, swallow touchmove so the
+// browser doesn't simultaneously scroll the strum-bar pads
+// container (or chord-builder) as the player drags a pad. Pointer
+// events alone can't stop native scroll — touchmove with
+// `{ passive: false }` is the only way to do it on iOS Safari.
+// We deliberately do NOT preventDefault before the long-press
+// fires, so the player can still tap-drag to scroll like normal.
+document.addEventListener(
+  'touchmove',
+  (event) => {
+    if (dragState && dragState.dragging) event.preventDefault();
+  },
+  { passive: false }
+);
+
+// iOS Safari fires `contextmenu` on long-press touches, which kills
+// the pointer events mid-stream and prevents the long-press timer
+// from completing. Block it on the strum pads so our own long-press
+// reorder can land cleanly.
+strumPadsEl?.addEventListener('contextmenu', (event) => {
+  if (event.target.closest('.strum-pad')) event.preventDefault();
+});
 
 strumPadsEl?.addEventListener('click', (event) => {
   if (justDragged) {

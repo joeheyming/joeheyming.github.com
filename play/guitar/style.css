@@ -9,6 +9,14 @@
 }
 
 .fretboard {
+  /* `flex-shrink: 0` is critical — `.guitar-stage` is `flex: 1` so
+   * the column can be height-bounded by the viewport, and without
+   * this the fretboard would absorb all the shrink (the chord-builder
+   * has rigid text content that won't compress). Combined with our
+   * own `overflow-y: hidden`, that quietly clipped the lowest string
+   * (or two) on phones — the player sees an "E A D G B" guitar with
+   * no low-E. flex-shrink: 0 lets the page scroll instead. */
+  flex-shrink: 0;
   /* Shared knobs so the string rows and the inlay overlay stay aligned
    * even when the open-string label cell shrinks on mobile. */
   --label-col-width: 60px;
@@ -489,14 +497,21 @@
     0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* Double-dot inlay (12th fret traditionally) — two stacked dots offset
- * symmetrically from centre so they sit between strings 1↔2 (high) and
- * 5↔6 (low) without overlapping the middle strings' note labels. The
- * explicit height (rather than `align-self: stretch`) forces the item to
- * span the row, since `1fr`/`100%` rows don't always stretch grid items
- * with intrinsic content size. */
+/* Double-dot inlay (12th fret traditionally) — two stacked dots, one
+ * sitting roughly between strings 1↔2 (high) and the other between
+ * strings 5↔6 (low), without overlapping the middle strings' note
+ * labels. The container stretches the full inlay-overlay height
+ * (`align-self: stretch` — overriding the grid's `align-items: center`
+ * which would otherwise size it to its 0px intrinsic content) so
+ * percentage offsets on the ::before/::after pseudo-dots resolve
+ * relative to a meaningful height instead of collapsing to 0. */
 .inlay.double {
-  align-self: center;
+  /* `align-self: stretch` alone doesn't work here — the element has no
+   * in-flow content (the dots are positioned via ::before / ::after)
+   * so the grid row can't infer a height to stretch into. With JS
+   * forcing every inlay into row 1 (height: 100% of the container),
+   * `height: 100%` resolves correctly. */
+  align-self: stretch;
   justify-self: center;
   background: transparent;
   box-shadow: none;
@@ -520,12 +535,16 @@
     0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
+/* 25% in from each edge centres each dot on its respective string-pair
+ * gap on a six-string guitar (top dot lands between strings 2↔3, bottom
+ * between 4↔5 — a more visually central placement than the 18% offset
+ * we used to use, which felt cramped against the edges). */
 .inlay.double::before {
-  top: 18%;
+  top: 25%;
 }
 
 .inlay.double::after {
-  bottom: 18%;
+  bottom: 25%;
 }
 
 /* ---------- Chord builder ----------
@@ -591,6 +610,14 @@
   font-size: 11px;
 }
 
+/* The hint is only useful on the empty state — once the player has
+ * pinned even one pad the meaning of the row is obvious from the pads
+ * themselves. JS toggles `.has-pads` so the hint vanishes (and we
+ * reclaim ~20-30 px of vertical space, which matters a lot on phones). */
+.strum-bar.has-pads .strum-bar-hint {
+  display: none;
+}
+
 .strum-bar-title {
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -628,12 +655,23 @@
   align-items: stretch;
   gap: 8px;
   flex: 1 1 auto;
+  /* `min-width: 0` is the missing piece — without it, the flex item's
+   * default `min-width: auto` resolves to the intrinsic width of the
+   * pads inside (e.g. 8 pads × 64px + gaps = ~570px), which forces
+   * the container itself to widen rather than scroll. With min-width:
+   * 0 the container can shrink to its parent's width and the
+   * overflow-x kicks in on a long progression. */
+  min-width: 0;
   /* Horizontal scroll on overflow keeps a long progression usable on
    * narrow screens without wrapping pads onto a second line (which
-   * breaks the "play left-to-right" mental model). */
+   * breaks the "play left-to-right" mental model). `pan-x` plus
+   * native overflow-x: auto gives momentum scrolling on touch
+   * devices; pads themselves use `touch-action: pan-y` so the
+   * vertical/horizontal axes don't fight each other. */
   overflow-x: auto;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
   padding: 2px 0;
 }
 
@@ -669,17 +707,60 @@
     border-color 120ms ease,
     opacity 120ms ease;
   box-shadow: 0 4px 12px -8px rgba(168, 85, 247, 0.7);
-  /* `touch-action: none` so touch users can drag pads horizontally
-   * without the browser stealing the gesture for native scroll. The
-   * .strum-bar-pads container still scrolls via touch in the gaps
-   * between pads (and via mouse wheel on desktop). */
-  touch-action: none;
+  /* `touch-action: pan-x pan-y` lets the browser handle BOTH axes of
+   * native scroll (vertical for the chord-builder, horizontal for
+   * the strum-bar pads container) on touch devices. To preserve
+   * drag-to-reorder, the JS handler now requires a long-press
+   * (~400ms hold) before promoting a touch gesture to a drag — any
+   * finger movement before the timer fires hands the gesture back
+   * to the browser for scrolling. Mouse / pen skip the long-press
+   * (desktop users scroll with the wheel or trackpad, not by
+   * dragging on a pad) and instead use the horizontal-direction
+   * gate. */
+  touch-action: pan-x pan-y;
   user-select: none;
   -webkit-user-select: none;
+  /* Without this, iOS Safari pops up the text-selection callout
+   * (magnifier / "Copy" menu) on long-press, which kills our
+   * pointer events before the long-press timer can fire. */
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .strum-pad:active {
   cursor: grabbing;
+}
+
+/* Touch long-press in progress — the player just put a finger down
+ * and we're waiting out the long-press window before promoting to a
+ * drag. A subtle scale + animated outline confirms "I see your
+ * finger, keep holding". If the player moves before the timer
+ * fires, this class is removed and the gesture becomes a scroll. */
+.strum-pad.long-press-pending {
+  animation: strum-pad-press-pending 400ms ease-out forwards;
+}
+
+@keyframes strum-pad-press-pending {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px -8px rgba(168, 85, 247, 0.7);
+  }
+  100% {
+    transform: scale(1.04);
+    box-shadow: 0 0 0 3px rgba(254, 243, 199, 0.45),
+      0 10px 20px -6px rgba(168, 85, 247, 0.7);
+  }
+}
+
+/* Touch long-press is "armed" — the player has held a finger on the
+ * pad past the long-press threshold and is now in reorder mode. The
+ * scale + glow is the visual confirmation that says "I picked it up,
+ * now drag me". Any horizontal scroll attempt during this time will
+ * still work because we only set this once the long-press timer
+ * fires AFTER the user has held still. */
+.strum-pad.long-press-active {
+  transform: scale(1.06);
+  box-shadow: 0 14px 28px -6px rgba(168, 85, 247, 0.7);
 }
 
 /* The original pad stays in place but dims while a drag-clone of it
@@ -1033,7 +1114,19 @@ body.strum-dragging {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-left: auto;
+}
+
+/* Actions row: chord name on the left (eats free space via the
+ * margin-right: auto on .chord-current below), Strum + Clear pinned
+ * to the right. Always present at a fixed height so the matrix below
+ * the strum bar never shifts when the player flips between chords
+ * with different voicing counts. */
+.chord-builder-actions-row {
+  min-height: 40px;
+}
+
+.chord-builder-actions-row .chord-current {
+  margin-right: auto;
 }
 
 .chord-builder-actions button {
@@ -1077,24 +1170,108 @@ body.strum-dragging {
   }
 }
 
-@media (max-width: 640px) {
+/* Landscape phones (e.g. iPhone rotated to 844×390) — width is too
+ * wide for the `max-width: 640px` mobile rules below, but height is
+ * too short for the desktop `flex: 1` layout (which would crush the
+ * fretboard down to a few pixels). Treat them like phones for stage
+ * sizing so the body grows and the user can scroll, and shrink the
+ * fretboard so the squat viewport still has room for the controls
+ * underneath. */
+@media (orientation: landscape) and (max-height: 540px) {
+  /* Same "fixed header" layout as the portrait block — fretboard is
+   * pinned at the top of the stage, only `.chord-builder` scrolls. */
+  .guitar-stage {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 6px 16px 16px;
+    gap: 10px;
+    justify-content: flex-start;
+  }
   .fretboard {
-    --label-col-width: 40px;
+    flex: 0 0 auto;
+    --label-col-width: 36px;
+    --fretboard-pad-top: 12px;
+    --fretboard-pad-bottom: 14px;
+    --fret-min-cell: 44px;
+  }
+  .chord-builder {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    box-shadow: inset 0 6px 8px -6px rgba(0, 0, 0, 0.4);
   }
   .fretboard-string {
-    height: 36px;
+    height: 26px;
+  }
+  .fret-cell,
+  .fret-cell .note {
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 640px) {
+  /* "Fixed header" layout — fretboard stays glued to the top of the
+   * available stage, chord-builder is the ONLY scrollable region.
+   *
+   * The shared `/play/style.css` already gives us a viewport-bounded
+   * `.instrument-body` (100dvh, overflow hidden) and a flex-grow
+   * stage. Here we just push the scroll one level deeper: the stage
+   * stops being scrollable (overflow: hidden) and instead lays its
+   * children out as a column where the fretboard takes its natural
+   * height (flex: none) and the chord-builder consumes the rest
+   * with its own overflow-y. Result: chord shape always visible
+   * while the player thumbs through Root / Quality / Voicing /
+   * Strum Bar without losing sight of the fingering. */
+  .guitar-stage {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 6px 10px 16px;
+    gap: 10px;
+    justify-content: flex-start;
+  }
+  .fretboard {
+    flex: 0 0 auto;
+  }
+  .chord-builder {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    /* Subtle inset shadow at the top edge hints that the area below
+     * the fretboard scrolls — without this the seam between
+     * "fretboard area" and "scroll area" is invisible until the user
+     * actually scrolls. */
+    box-shadow: inset 0 6px 8px -6px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Mobile fretboard pass — about 20% smaller all round so the chord
+   * shape uses ~1/3 of the viewport instead of half, leaving the
+   * chord-builder controls (now in their own scroll container) more
+   * room to breathe. */
+  .fretboard {
+    --label-col-width: 32px;
+    --fretboard-pad-top: 14px;
+    --fretboard-pad-bottom: 18px;
+    --fret-min-cell: 42px;
+  }
+  .fretboard-string {
+    height: 28px;
   }
   .fret-cell {
-    font-size: 10px;
+    font-size: 9px;
   }
   .fret-cell .note {
-    font-size: 10px;
+    font-size: 9px;
+  }
+  .finger-badge {
+    font-size: 11px;
   }
   .inlay,
   .inlay.double::before,
   .inlay.double::after {
-    width: 9px;
-    height: 9px;
+    width: 8px;
+    height: 8px;
   }
 
   .chord-builder {

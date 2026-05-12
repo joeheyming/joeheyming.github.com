@@ -231,7 +231,7 @@
           </div>
         </div>
 
-        <div class="chord-builder-row">
+        <div class="chord-builder-row chord-builder-shape-row">
           <div class="chord-builder-label" id="voicing-label">Shape</div>
           <div
             class="chord-options"
@@ -241,8 +241,17 @@
           >
             <!-- Populated dynamically -->
           </div>
+        </div>
+
+        <!-- Strum / Clear actions live in their OWN row so they stay
+             at a fixed Y as the Shape row above them resizes (different
+             chords have different voicing counts; the old layout
+             wrapped Strum/Clear onto a second line whenever voicings
+             grew, which made the whole matrix grow and shrink while
+             the player was tapping pads). -->
+        <div class="chord-builder-row chord-builder-actions-row">
+          <span class="chord-current" id="chord-current" aria-live="polite"></span>
           <div class="chord-builder-actions">
-            <span class="chord-current" id="chord-current" aria-live="polite"></span>
             <button id="strum-button" type="button" aria-label="Strum the selected chord">
               ▶ Strum
             </button>
@@ -260,8 +269,8 @@
              method book. -->
         <div class="chord-legend" aria-label="Chord diagram legend">
           <span class="chord-legend-item">
-            <span class="chord-legend-icon legend-root">R</span>
-            <span class="chord-legend-text">Root</span>
+            <span class="chord-legend-icon legend-root">C</span>
+            <span class="chord-legend-text">Root <span class="chord-legend-hint">(note name)</span></span>
           </span>
           <span class="chord-legend-item">
             <span class="chord-legend-icon legend-finger">1</span>
@@ -320,9 +329,10 @@
           <strong>Reading a chord shape:</strong> see the legend row at the bottom of the chord
           builder. Finger numbers follow the universal string-instrument convention —
           <strong>1 = index, 2 = middle, 3 = ring, 4 = pinky</strong> — used in every guitar,
-          ukulele, banjo, and mandolin method book. The number on the
-          <span style="color: #ef4444; font-weight: 700">red root</span> disc (e.g. R₃) is the
-          finger that presses the bass-voice copy of the chord's root note.
+          ukulele, banjo, and mandolin method book. The
+          <span style="color: #ef4444; font-weight: 700">red disc</span> shows the chord's
+          root note name (e.g. <strong>C</strong> for a C major chord) with the fretting
+          finger number as a small superscript (e.g. C₃ = press the C with your ring finger).
         </li>
         <li>
           Strings (low to high): <code id="help-strings">E A D G B E</code>. The thicker strings
