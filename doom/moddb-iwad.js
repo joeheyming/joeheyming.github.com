@@ -164,13 +164,17 @@ async function forget(choice) {
     for (const k of Object.keys(SOURCES)) {
       try {
         await dbDelete(k);
-      } catch (_) {}
+      } catch (_) {
+        /* missing record is fine */
+      }
     }
     return;
   }
   try {
     await dbDelete(choice);
-  } catch (_) {}
+  } catch (_) {
+    /* missing record is fine */
+  }
 }
 
 async function status() {

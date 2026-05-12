@@ -122,7 +122,7 @@ export function installUzdomLoaderEngine(ctx) {
     const reader = resp.body.getReader();
     const chunks = [];
     let received = 0;
-    while (true) {
+    for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
       chunks.push(value);
@@ -165,7 +165,9 @@ export function installUzdomLoaderEngine(ctx) {
         if (dir) {
           try {
             FS.mkdirTree(dir);
-          } catch (e) {}
+          } catch (_e) {
+            /* already exists */
+          }
         }
         FS.writeFile(a.fs, buf);
         totalBytes += buf.length;

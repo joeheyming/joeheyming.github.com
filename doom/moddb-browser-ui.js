@@ -378,7 +378,9 @@ export function wireModdbBrowserEntryPoints(openFn) {
     try {
       const params = new URLSearchParams(window.location.search);
       if (params.get('manual') === 'browse') openFn();
-    } catch (_) {}
+    } catch (_) {
+      /* malformed query string is non-fatal */
+    }
     const btn = document.getElementById('openModdbBrowserBtn');
     if (btn) {
       btn.addEventListener('click', (e) => {

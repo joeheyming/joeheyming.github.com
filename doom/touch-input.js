@@ -187,10 +187,10 @@ if (isMobile()) {
 
   // --- Orientation tracking -----------------------------------------------
 
-  function syncOrientation() {
+  var syncOrientation = function () {
     var portrait = window.innerHeight > window.innerWidth;
     document.body.classList.toggle('portrait', portrait);
-  }
+  };
   syncOrientation();
   window.addEventListener('resize', syncOrientation);
   window.addEventListener('orientationchange', syncOrientation);
@@ -202,7 +202,7 @@ if (isMobile()) {
 
   // --- wireOverlay: DOM layer ---------------------------------------------
 
-  function wireOverlay() {
+  var wireOverlay = function wireOverlay() {
     var canvas = document.getElementById('canvas');
     var touchUi = document.getElementById('touch-ui');
     if (!canvas || !touchUi) {
@@ -543,7 +543,7 @@ if (isMobile()) {
         reveal();
       }
     }
-  }
+  };
 
   wireOverlay();
 }

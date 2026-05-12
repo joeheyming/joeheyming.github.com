@@ -147,11 +147,7 @@ test('_expandGlobToken: empty directory returns original', async () => {
 });
 
 test('_expandGlobToken: ? glob', async () => {
-  const stub = makeGlobStub([
-    { name: 'f1.c' },
-    { name: 'f2.c' },
-    { name: 'f10.c' }
-  ]);
+  const stub = makeGlobStub([{ name: 'f1.c' }, { name: 'f2.c' }, { name: 'f10.c' }]);
   const result = await stub._expandGlobToken('f?.c');
   assert.deepEqual(result, ['f1.c', 'f2.c']);
 });
@@ -161,11 +157,7 @@ test('_expandGlobToken: ? glob', async () => {
 // ---------------------------------------------------------------------------
 
 test('expandGlobs: mixes literal and glob args', async () => {
-  const stub = makeGlobStub([
-    { name: 'a.js' },
-    { name: 'b.js' },
-    { name: 'readme.md' }
-  ]);
+  const stub = makeGlobStub([{ name: 'a.js' }, { name: 'b.js' }, { name: 'readme.md' }]);
   const result = await stub.expandGlobs(['src', '*.js', '--flag']);
   assert.deepEqual(result, ['src', 'a.js', 'b.js', '--flag']);
 });

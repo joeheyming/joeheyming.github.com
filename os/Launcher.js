@@ -27,8 +27,12 @@ export class Launcher {
   init() {
     this.menu = document.getElementById('app-launcher-menu');
     this.launcherButton = document.getElementById('app-launcher');
-    this.container = /** @type {HTMLElement|null} */ (document.getElementById('launcher-apps-container'));
-    this.filterInput = /** @type {HTMLInputElement|null} */ (document.getElementById('launcher-filter'));
+    this.container = /** @type {HTMLElement|null} */ (
+      document.getElementById('launcher-apps-container')
+    );
+    this.filterInput = /** @type {HTMLInputElement|null} */ (
+      document.getElementById('launcher-filter')
+    );
     this.noResultsEl = document.getElementById('launcher-no-results');
 
     this.menu?.setAttribute('aria-hidden', 'true');
@@ -122,7 +126,9 @@ export class Launcher {
       noResultsEl: this.noResultsEl,
       getSearchText: (el) => el.getAttribute('data-search') || el.textContent.toLowerCase(),
       onFilter: ({ searchTerm }) => {
-        const separator = /** @type {HTMLElement|null} */ (this.container.querySelector('.launcher-separator'));
+        const separator = /** @type {HTMLElement|null} */ (
+          this.container.querySelector('.launcher-separator')
+        );
         const categoryHeaders = this.container.querySelectorAll('.launcher-category-header');
 
         if (searchTerm) {
@@ -237,7 +243,7 @@ export class Launcher {
     items.forEach((item, index) => {
       /** @type {HTMLElement} */ (item).style.setProperty('--item-index', index.toString());
       item.classList.remove('animated');
-      void /** @type {HTMLElement} */ (item).offsetWidth;
+      void (/** @type {HTMLElement} */ (item).offsetWidth);
       item.classList.add('animated');
     });
   }

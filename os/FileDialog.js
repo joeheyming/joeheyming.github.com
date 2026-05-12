@@ -165,13 +165,12 @@ export class FileDialog {
     });
 
     // Filename input - Enter to confirm
-    /** @type {HTMLInputElement} */ (document.getElementById('file-dialog-filename')).addEventListener(
-      'keydown',
-      (e) => {
-        if (e.key === 'Enter') this._handleConfirm();
-        if (e.key === 'Escape') this.hide();
-      }
-    );
+    /** @type {HTMLInputElement} */ (
+      document.getElementById('file-dialog-filename')
+    ).addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') this._handleConfirm();
+      if (e.key === 'Escape') this.hide();
+    });
   }
 
   async _show() {
@@ -184,7 +183,9 @@ export class FileDialog {
     // Focus filename input for save mode
     if (this.mode === 'save') {
       setTimeout(() => {
-        const input = /** @type {HTMLInputElement} */ (document.getElementById('file-dialog-filename'));
+        const input = /** @type {HTMLInputElement} */ (
+          document.getElementById('file-dialog-filename')
+        );
         input.focus();
         input.select();
       }, 100);

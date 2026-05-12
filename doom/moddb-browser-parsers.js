@@ -311,7 +311,10 @@ function parseDownloadsList(html, baseUrl) {
     const isPatch = /\bpatch\b|-patch-?/.test(tagText) && !isFull;
     const isDemo = /\bdemo\b|-demo-?/.test(tagText);
     const versionMatch = (title + ' ' + dlSlug).match(/v?(\d+(?:\.\d+){0,3})/i);
-    const ext = ((title + ' ' + rowText).match(/\b(zip|rar|7z|pk3|wad|pk7|ipk3)\b/i) || [, ''])[1];
+    const ext = ((title + ' ' + rowText).match(/\b(zip|rar|7z|pk3|wad|pk7|ipk3)\b/i) || [
+      undefined,
+      ''
+    ])[1];
 
     out.push({
       title,

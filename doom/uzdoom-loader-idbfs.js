@@ -39,13 +39,19 @@ function _doSyncWrite() {
 export function mountFilesystems() {
   try {
     FS.mkdir(IDB_WAD_MOUNT);
-  } catch (e) {}
+  } catch (_e) {
+    /* already exists */
+  }
   try {
     FS.mkdir(IDB_CFG_MOUNT);
-  } catch (e) {}
+  } catch (_e) {
+    /* already exists */
+  }
   try {
     FS.mkdir(IDB_CFG_MOUNT + '/uzdoom');
-  } catch (e) {}
+  } catch (_e) {
+    /* already exists */
+  }
   FS.mount(IDBFS, {}, IDB_WAD_MOUNT);
   FS.mount(IDBFS, {}, IDB_CFG_MOUNT);
 }
@@ -94,7 +100,9 @@ export function writeUserFiles(state, launcherArgs) {
   if (state.soundfont) {
     try {
       FS.mkdirTree('/soundfonts');
-    } catch (e) {}
+    } catch (_e) {
+      /* already exists */
+    }
     FS.writeFile('/soundfonts/uzdoom.sf2', state.soundfont.data);
   }
   args.push(...launcherArgs.argv);

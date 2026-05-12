@@ -27,7 +27,10 @@ test('read from unwritten block returns all zeros', async () => {
   buf.fill(0xff);
   const n = await dm.deviceRead(VDA, buf, 0, 64);
   assert.equal(n, 64);
-  assert.ok(buf.every((b) => b === 0), 'unwritten block should be zeros');
+  assert.ok(
+    buf.every((b) => b === 0),
+    'unwritten block should be zeros'
+  );
 });
 
 // ---------------------------------------------------------------------------
