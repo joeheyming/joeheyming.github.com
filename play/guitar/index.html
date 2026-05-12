@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>🎸 Guitar - Play in Your Browser | Joe Heyming</title>
+    <title>🎸 Strings - Play in Your Browser | Joe Heyming</title>
 
     <link
       rel="icon"
@@ -12,7 +12,7 @@
 
     <meta
       name="description"
-      content="A free browser guitar with a clickable fretboard. Pluck individual notes or strum chords."
+      content="A free browser fretboard for guitar, bass, ukulele, banjo, and mandolin. Pluck individual notes, strum chords, or learn shapes — all in your browser."
     />
     <meta name="theme-color" content="#0f172a" />
 
@@ -24,10 +24,10 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Play" />
-    <meta property="og:title" content="🎸 Guitar - Play in Your Browser" />
+    <meta property="og:title" content="🎸 Strings - Play in Your Browser" />
     <meta
       property="og:description"
-      content="A free browser guitar with a clickable fretboard. Pluck individual notes or strum chords."
+      content="A free browser fretboard for guitar, bass, ukulele, banjo, and mandolin. Pluck notes or strum chords."
     />
     <meta property="og:url" content="https://joeheyming.github.io/play/guitar/" />
     <meta
@@ -36,16 +36,16 @@
     />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Browser guitar" />
+    <meta property="og:image:alt" content="Browser strings" />
     <meta property="og:locale" content="en_US" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="🎸 Guitar - Play in Your Browser" />
+    <meta name="twitter:title" content="🎸 Strings - Play in Your Browser" />
     <meta
       name="twitter:description"
-      content="A free browser guitar with a clickable fretboard. Pluck individual notes or strum chords."
+      content="A free browser fretboard for guitar, bass, ukulele, banjo, and mandolin. Pluck notes or strum chords."
     />
     <meta
       name="twitter:image"
@@ -93,7 +93,7 @@
     <header class="instrument-header">
       <div class="instrument-page-title">
         <span aria-hidden="true">🎸</span>
-        <h1>Guitar</h1>
+        <h1>Strings</h1>
       </div>
       <div class="header-status">
         <div class="now-playing" id="now-playing" aria-live="polite">—</div>
@@ -108,7 +108,18 @@
       </a>
     </header>
 
-    <section class="instrument-controls" aria-label="Guitar controls">
+    <section class="instrument-controls" aria-label="Strings controls">
+      <div class="control">
+        <label for="instrument">Instrument</label>
+        <select id="instrument">
+          <option value="guitar" selected>🎸 Guitar</option>
+          <option value="bass">🎸 Bass</option>
+          <option value="ukulele">🎸 Ukulele</option>
+          <option value="banjo">🪕 Banjo</option>
+          <option value="mandolin">🎻 Mandolin</option>
+        </select>
+      </div>
+
       <div class="control">
         <label for="volume">Volume</label>
         <input id="volume" type="range" min="0" max="100" value="65" />
@@ -117,13 +128,7 @@
       <div class="control">
         <label for="tone">Sound</label>
         <select id="tone">
-          <option value="acoustic_guitar_samples" selected>Acoustic (samples)</option>
-          <option value="electric_guitar_samples">Electric clean (samples)</option>
-          <option value="acoustic_guitar_steel">Acoustic steel (soundfont)</option>
-          <option value="acoustic_guitar_nylon">Classical nylon (soundfont)</option>
-          <option value="electric_guitar_clean">Electric clean (soundfont)</option>
-          <option value="electric_guitar_jazz">Electric jazz (soundfont)</option>
-          <option value="overdriven_guitar">Overdriven (soundfont)</option>
+          <!-- Options are populated per-instrument by JS -->
         </select>
         <span class="hint" id="tone-status" aria-live="polite"></span>
       </div>
@@ -140,6 +145,73 @@
       </div>
 
       <div class="chord-builder" aria-label="Chord builder">
+        <!-- Strum Bar — the primary play surface. Each pad shows a
+             complete chord name (Em, A, Cmaj7…) and tapping it strums
+             that chord with one finger. Pads are auto-pinned every
+             time the player plays a chord (via the matrix below or the
+             "+" name input) and persist across sessions per-instrument.
+             Empty by default; the hint tells the player how to fill it. -->
+        <div class="strum-bar" id="strum-bar" aria-label="Strum bar">
+          <div class="strum-bar-header">
+            <span class="strum-bar-title">Chords</span>
+            <span class="strum-bar-hint" id="strum-bar-hint">
+              Tap a Root below or use <kbd>+</kbd> to add chords here.
+            </span>
+          </div>
+          <div class="strum-bar-row">
+            <div
+              class="strum-bar-pads"
+              id="strum-bar-pads"
+              role="toolbar"
+              aria-label="Saved chords"
+            >
+              <!-- Pads populated by JS. Each is:
+                   <button class="strum-pad" data-root-pc="…" data-quality="…">
+                     <span class="strum-pad-name">Em</span>
+                     <span class="strum-pad-remove" role="button">×</span>
+                   </button> -->
+            </div>
+            <button
+              class="strum-pad-add"
+              id="strum-bar-add"
+              type="button"
+              aria-label="Add a chord by name"
+              aria-expanded="false"
+              aria-controls="strum-bar-add-popover"
+              title="Add a chord by name (e.g. Em, Cmaj7)"
+            >
+              +
+            </button>
+          </div>
+          <div
+            class="strum-bar-add-popover"
+            id="strum-bar-add-popover"
+            role="dialog"
+            aria-label="Add chord by name"
+            hidden
+          >
+            <input
+              id="strum-bar-add-input"
+              type="text"
+              placeholder="Type a chord name…"
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              inputmode="text"
+              aria-label="Chord name"
+            />
+            <ul
+              class="strum-bar-suggestions"
+              id="strum-bar-suggestions"
+              role="listbox"
+              aria-label="Chord suggestions"
+            >
+              <!-- Populated by JS as the player types. -->
+            </ul>
+          </div>
+        </div>
+
         <div class="chord-builder-row">
           <div class="chord-builder-label" id="root-label">Root</div>
           <div class="chord-options" id="root-options" role="radiogroup" aria-labelledby="root-label">
@@ -179,6 +251,38 @@
             </button>
           </div>
         </div>
+
+        <!-- Reading-the-shape legend. Always visible while a chord
+             instrument is selected so the player doesn't have to scroll
+             down to the help section to remember what each marker means.
+             Finger numbers (1=index .. 4=pinky) are the standard
+             convention across every guitar / uke / banjo / mandolin
+             method book. -->
+        <div class="chord-legend" aria-label="Chord diagram legend">
+          <span class="chord-legend-item">
+            <span class="chord-legend-icon legend-root">R</span>
+            <span class="chord-legend-text">Root</span>
+          </span>
+          <span class="chord-legend-item">
+            <span class="chord-legend-icon legend-finger">1</span>
+            <span class="chord-legend-text">
+              Finger
+              <span class="chord-legend-hint">1=index, 2=middle, 3=ring, 4=pinky</span>
+            </span>
+          </span>
+          <span class="chord-legend-item">
+            <span class="chord-legend-icon legend-barre"></span>
+            <span class="chord-legend-text">Barre <span class="chord-legend-hint">(lay flat)</span></span>
+          </span>
+          <span class="chord-legend-item">
+            <span class="chord-legend-icon legend-open">○</span>
+            <span class="chord-legend-text">Open <span class="chord-legend-hint">(let ring)</span></span>
+          </span>
+          <span class="chord-legend-item">
+            <span class="chord-legend-icon legend-mute">×</span>
+            <span class="chord-legend-text">Mute <span class="chord-legend-hint">(don't strum)</span></span>
+          </span>
+        </div>
       </div>
     </section>
 
@@ -187,16 +291,44 @@
       <ul>
         <li><strong>Click or drag</strong> across frets to pluck individual notes.</li>
         <li>
-          Use the <strong>chord builder</strong> to set Quality (Major / m7 / sus4 / …) and Shape
-          (open / barre / higher voicings) — those just configure the chord on the fretboard
-          without playing. Tapping a <strong>Root</strong> button strums the configured chord, so
-          you can play a song by setting up a quality once and tapping different roots: C → F → G,
-          or set <em>m7</em> and tap C → A → D. Press <strong>Strum</strong> to replay the
-          current chord. Pink ring marks the <strong>root</strong>; ◯ = open string; × = muted
-          string.
+          Pick an <strong>Instrument</strong> at the top — Guitar, Bass, Ukulele, Banjo, or
+          Mandolin. Each one swaps the tuning, fret count, and sound list. Your last-used sound
+          is remembered per instrument.
         </li>
-        <li>The dots at frets 3, 5, 7, 9, 15 and 17 plus the double-dot at 12 are the standard guitar inlays. On narrow screens the neck scrolls horizontally — swipe past the 12th fret to reach the upper register.</li>
-        <li>Strings (low to high): <code>E A D G B E</code>. The thicker strings are toward the bottom.</li>
+        <li>
+          <strong>Strum Bar</strong> (Guitar / Ukulele / Banjo / Mandolin): the row of named
+          chord pads at the top of the chord builder is the fastest way to play a song. Every
+          chord you play (via the matrix below or the <kbd>+</kbd> input) gets pinned here, so
+          a progression like <code>Em → A → Em → A</code> is one tap per change once both
+          chords are on the bar. Pads persist across sessions per-instrument, capped at 8
+          (oldest falls off). Hover or tap-and-hold a pad to reveal the <kbd>×</kbd> remove
+          button.
+        </li>
+        <li>
+          <strong>Chord builder</strong> (Guitar / Ukulele / Banjo / Mandolin): set Quality
+          (Major / m7 / sus4 / …) and Shape — those just configure the chord without playing.
+          Tapping a <strong>Root</strong> button strums it (and pins it to the Strum Bar above
+          for one-tap recall later). Guitar and ukulele voicings (with textbook fingerings)
+          come from the open
+          <a href="https://github.com/tombatossals/chords-db" rel="noopener" target="_blank"
+            >chords-db</a
+          >
+          dataset; banjo and mandolin use an algorithmic finder that searches three position
+          windows (open / mid / high) for each chord.
+        </li>
+        <li>
+          <strong>Reading a chord shape:</strong> see the legend row at the bottom of the chord
+          builder. Finger numbers follow the universal string-instrument convention —
+          <strong>1 = index, 2 = middle, 3 = ring, 4 = pinky</strong> — used in every guitar,
+          ukulele, banjo, and mandolin method book. The number on the
+          <span style="color: #ef4444; font-weight: 700">red root</span> disc (e.g. R₃) is the
+          finger that presses the bass-voice copy of the chord's root note.
+        </li>
+        <li>
+          Strings (low to high): <code id="help-strings">E A D G B E</code>. The thicker strings
+          are toward the bottom. On narrow screens the neck scrolls horizontally — swipe past
+          the inlay dots to reach the upper register.
+        </li>
       </ul>
     </section>
 
