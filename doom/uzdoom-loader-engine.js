@@ -26,7 +26,7 @@ const CORE_ASSETS = [
 /**
  * @param {{
  *   $: (id: string) => HTMLElement | null,
- *   LC: import('./lifecycle.js').LoDLifecycle,
+ *   LC: import('./lifecycle.js').UZDoomLifecycle,
  *   state: { iwad: unknown, mods: unknown[], soundfont: unknown },
  *   launcherArgs: { argv: string[], nomelt?: boolean },
  *   SIDELOADED_IWADS: Record<string, string>,

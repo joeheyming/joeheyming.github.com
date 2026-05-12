@@ -7,8 +7,9 @@
 //   [UPSTREAM] — functionally identical (or near-identical) to the
 //                public upstream loader. Patches here are candidates
 //                for upstream PRs.
-//   [SITE]     — Legend-of-DOOM / joeheyming.github.com specific.
-//                Changes here never go upstream.
+//   [SITE]     — joeheyming.github.com fork patches (flavor picker,
+//                lifecycle wiring, IDBFS auto-save sync, touch overlay,
+//                etc.). Changes here never go upstream.
 //
 // When rebasing on a new upstream snapshot, search for the [SITE]
 // markers; everything in between is ours to preserve.
@@ -20,7 +21,7 @@
 // "session ended" panel instead of leaving a frozen canvas.
 //
 // [SITE] Lifecycle integration: every transition between phases is
-// reported to `window.LoDLifecycle` (see lifecycle.js). The closure
+// reported to `window.UZDoomLifecycle` (see lifecycle.js). The closure
 // `state` below no longer carries `launched` / `exited` flags — those
 // live on the lifecycle. This removes the "four flags agreeing on one
 // concept" problem that previously required reading three files to
@@ -33,7 +34,7 @@
 //                                    not mounted to IDBFS because the bundle
 //                                    ships a server-hosted default)
 
-import { LoDLifecycle as LC } from './lifecycle.js';
+import { UZDoomLifecycle as LC } from './lifecycle.js';
 import { syncSavesToIDB } from './uzdoom-loader-idbfs.js';
 import { installUzdomLoaderEngine } from './uzdoom-loader-engine.js';
 

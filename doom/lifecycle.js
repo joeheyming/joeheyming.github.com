@@ -1,4 +1,4 @@
-// Legend of DOOM — engine lifecycle.
+// UZDoom — engine lifecycle.
 //
 // Single source of truth for "what phase is the page in?" Replaces the
 // previous flag-soup (`state.launched`, `state.exited`, `state.ready`,
@@ -142,7 +142,7 @@ function subscribe(fn) {
   };
 }
 
-export const LoDLifecycle = {
+export const UZDoomLifecycle = {
   PHASES: Object.freeze(PHASES.slice()),
   get: function () {
     return current.phase;
@@ -193,6 +193,6 @@ export const LoDLifecycle = {
   }
 };
 
-window.LoDLifecycle = LoDLifecycle;
+window.UZDoomLifecycle = UZDoomLifecycle;
 
 record(null, 'loading', null);

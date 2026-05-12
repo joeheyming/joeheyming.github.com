@@ -672,8 +672,8 @@
           },
           onAbort: function (reason) {
             console.warn('[uzdoom onAbort]', reason);
-            if (window.LoDLifecycle) {
-              window.LoDLifecycle.markError('wasm-abort', { reason: String(reason) });
+            if (window.UZDoomLifecycle) {
+              window.UZDoomLifecycle.markError('wasm-abort', { reason: String(reason) });
             }
           }
         };
@@ -683,7 +683,7 @@
         // Alt+D: dump lifecycle phase history to alert (mobile diagnostic).
         document.addEventListener('keydown', function (e) {
           if (!e.altKey || e.key !== 'd') return;
-          var h = (window.LoDLifecycle && window.LoDLifecycle.history()) || [];
+          var h = (window.UZDoomLifecycle && window.UZDoomLifecycle.history()) || [];
           var fmt = h
             .map(function (e) {
               var d = '';
@@ -701,7 +701,7 @@
     </script>
 
     <!-- Engine script injection. Gated on cross-origin isolation via
-         LoDCOI.whenReady(). If COI never arrives, the promise rejects
+         UZDoomCOI.whenReady(). If COI never arrives, the promise rejects
          and we bail; coi.js has already put up the error card and
          flipped the lifecycle to error{coi}. -->
     <script>
@@ -758,14 +758,14 @@
           document.body.appendChild(melt);
         }
         function gate() {
-          if (window.LoDCOI) {
-            window.LoDCOI.whenReady().then(loadEngineInOrder, function () {
+          if (window.UZDoomCOI) {
+            window.UZDoomCOI.whenReady().then(loadEngineInOrder, function () {
               console.warn('[uzdoom scripts] COI never arrived; engine not loaded');
             });
           } else if (window.crossOriginIsolated) {
             loadEngineInOrder();
           } else {
-            console.warn('[uzdoom scripts] LoDCOI missing and not isolated; engine not loaded');
+            console.warn('[uzdoom scripts] UZDoomCOI missing and not isolated; engine not loaded');
           }
         }
         if (document.readyState === 'loading') {
@@ -931,8 +931,8 @@
           var btn = document.getElementById('cleanLaunchBtn');
           if (!btn) return;
           var cfg = FLAVORS[flavor];
-          if (window.LoDLifecycle) {
-            window.LoDLifecycle.subscribe(function (state) {
+          if (window.UZDoomLifecycle) {
+            window.UZDoomLifecycle.subscribe(function (state) {
               if (state.phase === 'primed') {
                 btn.textContent = (cfg && cfg.launchLabel) || 'Launch';
                 btn.disabled = false;
@@ -948,7 +948,7 @@
             });
           }
           btn.addEventListener('click', function () {
-            if (window.LoDLifecycle && window.LoDLifecycle.get() !== 'primed') return;
+            if (window.UZDoomLifecycle && window.UZDoomLifecycle.get() !== 'primed') return;
             trackDoomEvent('doom_engine_launched', flavor + ':autolaunch');
             if (window.UZDoomLoader) window.UZDoomLoader.launch();
           });
@@ -974,8 +974,8 @@
           // Surface terminal lifecycle errors (COI failure, wasm-abort)
           // on the cards themselves so the user isn't left clicking a
           // dead UI.
-          if (window.LoDLifecycle) {
-            window.LoDLifecycle.subscribe(function (state) {
+          if (window.UZDoomLifecycle) {
+            window.UZDoomLifecycle.subscribe(function (state) {
               if (state.phase === 'error') {
                 var reason = (state.detail && state.detail.reason) || 'unknown';
                 setEnabled(false, reason === 'coi' ? 'COI failed' : 'Engine error: ' + reason);
@@ -994,7 +994,7 @@
               if (window.UZDoomLoader) {
                 cards.forEach(function (c) {
                   if (c.classList.contains('loading')) return;
-                  if (window.LoDLifecycle && window.LoDLifecycle.isTerminal()) return;
+                  if (window.UZDoomLifecycle && window.UZDoomLifecycle.isTerminal()) return;
                   c.disabled = false;
                   var cta = c.querySelector('.cta');
                   if (cta) cta.textContent = 'Click to play';
@@ -1037,8 +1037,8 @@
                   'doom_flavor_failed',
                   flavor + ':picker: ' + String(e.message || e).slice(0, 80)
                 );
-                if (window.LoDLifecycle && !window.LoDLifecycle.isTerminal()) {
-                  window.LoDLifecycle.markError('flavor-prime', {
+                if (window.UZDoomLifecycle && !window.UZDoomLifecycle.isTerminal()) {
+                  window.UZDoomLifecycle.markError('flavor-prime', {
                     message: String(e.message || e)
                   });
                 }
@@ -1063,9 +1063,9 @@
               'doom_flavor_failed',
               flavor + ':autolaunch: ' + String(e.message || e).slice(0, 80)
             );
-            var alreadyTerminal = window.LoDLifecycle && window.LoDLifecycle.isTerminal();
-            if (!alreadyTerminal && window.LoDLifecycle) {
-              window.LoDLifecycle.markError('autoprime', { message: String(e.message || e) });
+            var alreadyTerminal = window.UZDoomLifecycle && window.UZDoomLifecycle.isTerminal();
+            if (!alreadyTerminal && window.UZDoomLifecycle) {
+              window.UZDoomLifecycle.markError('autoprime', { message: String(e.message || e) });
             }
             if (alreadyTerminal) return;
             var inst = document.getElementById('autoInstructions');
@@ -1205,8 +1205,8 @@
           // Reveal on `playing`. Used by the floating in-game variant;
           // the inline picker variant is always visible (no `.hidden`
           // class on it to begin with).
-          if (opts.revealOnPlaying && window.LoDLifecycle) {
-            window.LoDLifecycle.subscribe(function (state) {
+          if (opts.revealOnPlaying && window.UZDoomLifecycle) {
+            window.UZDoomLifecycle.subscribe(function (state) {
               if (state.phase === 'playing') {
                 root.classList.remove('hidden');
               } else if (state.phase === 'exited' || state.phase === 'error') {

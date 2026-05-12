@@ -46,8 +46,8 @@ before(async () => {
     enumerable: true
   });
   await import(TOUCH_HREF + '?t=shared-swipe-tests');
-  factory = w.LoDTouchInput.createSwipeController;
-  bindings = w.LoDTouchInput.bindings;
+  factory = w.UZDoomTouchInput.createSwipeController;
+  bindings = w.UZDoomTouchInput.bindings;
 });
 
 // Helper: build a controller whose onTurn pushes `{action,pressed}`

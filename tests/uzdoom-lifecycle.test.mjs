@@ -1,4 +1,4 @@
-// Unit tests for doom/lifecycle.js (Legend-of-DOOM-derived lifecycle).
+// Unit tests for doom/lifecycle.js (UZDoom engine lifecycle).
 //
 // Each test loads a fresh copy of the module via dynamic import (unique
 // query string) so module-level state resets, after pointing global
@@ -30,7 +30,7 @@ async function freshLifecycle() {
   const w = dom.window;
   globalThis.window = w;
   await import(LIFECYCLE_HREF + '?t=' + Date.now());
-  return { lc: w.LoDLifecycle, win: w };
+  return { lc: w.UZDoomLifecycle, win: w };
 }
 
 describe('lifecycle: initial state', () => {

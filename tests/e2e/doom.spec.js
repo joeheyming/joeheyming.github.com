@@ -3,11 +3,11 @@
 // End-to-end smoke for the unified DOOM runner at /doom/.
 //
 // What we ACTUALLY test:
-//   1. lifecycle.js loads and exposes `window.LoDLifecycle`
-//   2. touch-input.js loads and exposes `window.LoDTouchInput`
+//   1. lifecycle.js loads and exposes `window.UZDoomLifecycle`
+//   2. touch-input.js loads and exposes `window.UZDoomTouchInput`
 //   3. The default URL shows the three-card flavor picker (body.picker-mode)
-//   4. `?flavor=legend` auto-primes Freedoom + LoD pk3 and the hero
-//      reads "Launch Legend of DOOM"
+//   4. `?flavor=legend` auto-primes Freedoom + the Legend-of-DOOM pk3 and
+//      the hero reads "Launch Legend of DOOM"
 //   5. `?flavor=freedoom` auto-primes bundled Freedoom and the hero
 //      reads "Launch Freedoom"
 //   6. `?flavor=classic` sets the page title and body class (the actual
@@ -36,14 +36,14 @@ test.describe('DOOM page (unified)', () => {
     // Wait for deferred scripts to run. lifecycle.js is first in
     // document order so once it's on window, coi.js and touch-input.js
     // will be too (they're in the same <script defer> batch).
-    await page.waitForFunction(() => !!window.LoDLifecycle, null, { timeout: 10_000 });
+    await page.waitForFunction(() => !!window.UZDoomLifecycle, null, { timeout: 10_000 });
 
     const apis = await page.evaluate(() => ({
-      lifecycle: typeof window.LoDLifecycle,
-      coi: typeof window.LoDCOI,
-      touch: typeof window.LoDTouchInput,
-      phases: window.LoDLifecycle?.PHASES,
-      createSwipe: typeof window.LoDTouchInput?.createSwipeController
+      lifecycle: typeof window.UZDoomLifecycle,
+      coi: typeof window.UZDoomCOI,
+      touch: typeof window.UZDoomTouchInput,
+      phases: window.UZDoomLifecycle?.PHASES,
+      createSwipe: typeof window.UZDoomTouchInput?.createSwipeController
     }));
 
     expect(apis.lifecycle).toBe('object');
@@ -56,7 +56,7 @@ test.describe('DOOM page (unified)', () => {
   test('default URL shows flavor picker (body.picker-mode)', async ({ page }) => {
     await page.goto('/doom/');
 
-    await page.waitForFunction(() => !!window.LoDLifecycle, null, { timeout: 10_000 });
+    await page.waitForFunction(() => !!window.UZDoomLifecycle, null, { timeout: 10_000 });
 
     const bodyClass = await page.evaluate(() => document.body.className);
     expect(bodyClass).toContain('picker-mode');
@@ -86,7 +86,7 @@ test.describe('DOOM page (unified)', () => {
 
     // The primer fetches the LoD pk3 (~8 MB) and calls primeWith.
     await page.waitForFunction(
-      () => window.LoDLifecycle && window.LoDLifecycle.get() === 'primed',
+      () => window.UZDoomLifecycle && window.UZDoomLifecycle.get() === 'primed',
       null,
       { timeout: 30_000 }
     );
@@ -111,7 +111,7 @@ test.describe('DOOM page (unified)', () => {
     expect(bodyClass).toContain('flavor-freedoom');
 
     await page.waitForFunction(
-      () => window.LoDLifecycle && window.LoDLifecycle.get() === 'primed',
+      () => window.UZDoomLifecycle && window.UZDoomLifecycle.get() === 'primed',
       null,
       { timeout: 30_000 }
     );
@@ -142,7 +142,7 @@ test.describe('DOOM page (unified)', () => {
   test('manual mode (?manual=1) skips priming and shows the picker UI', async ({ page }) => {
     await page.goto('/doom/?manual=1');
 
-    await page.waitForFunction(() => !!window.LoDLifecycle, null, { timeout: 10_000 });
+    await page.waitForFunction(() => !!window.UZDoomLifecycle, null, { timeout: 10_000 });
     await page.waitForTimeout(1000);
 
     const bodyClass = await page.evaluate(() => document.body.className);
@@ -153,7 +153,7 @@ test.describe('DOOM page (unified)', () => {
     await expect(page.locator('#launchBtn')).toBeVisible();
     await expect(page.locator('#launchBtn')).toBeDisabled();
 
-    const phase = await page.evaluate(() => window.LoDLifecycle.get());
+    const phase = await page.evaluate(() => window.UZDoomLifecycle.get());
     expect(phase).toBe('loading');
 
     // Inline picker switcher is hidden in manual mode too — it only
@@ -173,13 +173,13 @@ test.describe('DOOM page (unified)', () => {
     // Force lifecycle to `playing` so we can assert the reveal logic
     // without depending on the wasm engine actually drawing a frame
     // (which needs COI service-worker dance and is slow on CI).
-    await page.waitForFunction(() => !!window.LoDLifecycle, null, { timeout: 10_000 });
+    await page.waitForFunction(() => !!window.UZDoomLifecycle, null, { timeout: 10_000 });
     await page.evaluate(() => {
       // Walk the lifecycle through valid transitions: loading → primed
       // → launching → playing. Skipping a state is rejected by the FSM.
-      window.LoDLifecycle.markPrimed({ iwad: 'test' });
-      window.LoDLifecycle.markLaunching();
-      window.LoDLifecycle.markPlaying();
+      window.UZDoomLifecycle.markPrimed({ iwad: 'test' });
+      window.UZDoomLifecycle.markLaunching();
+      window.UZDoomLifecycle.markPlaying();
       // Loader normally hides the boot overlay on its own playing-path;
       // we never actually launched the engine here, so do it manually
       // so the overlay doesn't intercept clicks on the switcher.
@@ -208,7 +208,7 @@ test.describe('DOOM page (unified)', () => {
   }) => {
     await page.goto('/doom/');
 
-    await page.waitForFunction(() => !!window.LoDLifecycle, null, { timeout: 10_000 });
+    await page.waitForFunction(() => !!window.UZDoomLifecycle, null, { timeout: 10_000 });
 
     // Inline switcher is visible on the picker page.
     const inline = page.locator('#flavorPickerSwitcher');
@@ -229,7 +229,7 @@ test.describe('DOOM page (unified)', () => {
     // over (no picker-mode body class, full picker visible).
     await menu.locator('button[data-switch="manual"]').click();
     await page.waitForURL(/manual=1/);
-    await page.waitForFunction(() => !!window.LoDLifecycle, null, { timeout: 10_000 });
+    await page.waitForFunction(() => !!window.UZDoomLifecycle, null, { timeout: 10_000 });
     const bodyClass = await page.evaluate(() => document.body.className);
     expect(bodyClass).not.toContain('picker-mode');
     expect(bodyClass).not.toContain('clean');

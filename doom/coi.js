@@ -1,4 +1,4 @@
-// Legend of DOOM — cross-origin isolation (COI) subsystem.
+// UZDoom — cross-origin isolation (COI) subsystem.
 //
 // UZDoom spins up pthread Web Workers and transfers a SharedArrayBuffer
 // into them during instantiation. That postMessage call throws
@@ -20,13 +20,13 @@
 //      waited before appending engine scripts.
 //
 // Unification: one 8-second budget, one error surface, one promise
-// (`LoDCOI.whenReady()`) that every caller can await. On failure we
+// (`UZDoomCOI.whenReady()`) that every caller can await. On failure we
 // transition the lifecycle to `error{coi}` so subscribers (the hero
 // button, touch overlay) can react in a single place.
 //
 // Depends on: lifecycle.js (optional — degrades gracefully if missing).
 
-import { LoDLifecycle } from './lifecycle.js';
+import { UZDoomLifecycle } from './lifecycle.js';
 
 var BUDGET_MS = 8000;
 var POLL_MS = 500;
@@ -263,7 +263,7 @@ function poll() {
     _failed = true;
     showCoiError();
     rejectAll(new Error('COI timeout'));
-    LoDLifecycle.markError('coi', { budgetMs: budget });
+    UZDoomLifecycle.markError('coi', { budgetMs: budget });
     return;
   }
   renderCountdown();
@@ -278,7 +278,7 @@ function whenReady() {
   });
 }
 
-export const LoDCOI = {
+export const UZDoomCOI = {
   ready: function () {
     return _ready;
   },
@@ -289,7 +289,7 @@ export const LoDCOI = {
   classifyFailure: classifyCoiFailure
 };
 
-window.LoDCOI = LoDCOI;
+window.UZDoomCOI = UZDoomCOI;
 
 if (!_ready) {
   if (document.readyState === 'loading') {

@@ -1,4 +1,4 @@
-// Legend of DOOM — mobile touch input layer.
+// UZDoom — mobile touch input layer.
 //
 // Takes the mobile IIFE that was previously ~350 lines inline in
 // index.html and gives it a real shape. Three concerns separated:
@@ -32,7 +32,7 @@
 //             Degrades gracefully if missing — overlay just stays
 //             hidden because the subscription never fires.
 
-import { LoDLifecycle } from './lifecycle.js';
+import { UZDoomLifecycle } from './lifecycle.js';
 
 // --- Bindings table (data, not code) ------------------------------------
 //
@@ -58,7 +58,7 @@ import { LoDLifecycle } from './lifecycle.js';
 //
 // Defined before the mobile early-return below so that unit tests on
 // non-mobile runtimes (e.g. jsdom in node:test) can import the pure
-// pieces from `window.LoDTouchInput` without having to mock
+// pieces from `window.UZDoomTouchInput` without having to mock
 // `matchMedia` into a specific shape.
 
 var BINDINGS = {
@@ -162,12 +162,12 @@ function createSwipeController(opts) {
 // `fine` pointer and thus fails the mobile check) can still reach
 // createSwipeController / BINDINGS. No DOM wiring has run yet, so this
 // is inert on desktop — desktop users get the exports and nothing else.
-export const LoDTouchInput = {
+export const UZDoomTouchInput = {
   createSwipeController: createSwipeController,
   bindings: BINDINGS
 };
 
-window.LoDTouchInput = LoDTouchInput;
+window.UZDoomTouchInput = UZDoomTouchInput;
 
 // --- Mobile detection ---------------------------------------------------
 
@@ -513,8 +513,8 @@ if (isMobile()) {
     // the old MutationObserver on #boot.classList, which was a proxy
     // for the same signal.
 
-    if (LoDLifecycle) {
-      LoDLifecycle.subscribe(function (state) {
+    if (UZDoomLifecycle) {
+      UZDoomLifecycle.subscribe(function (state) {
         if (state.phase === 'playing') {
           touchUi.classList.remove('hidden');
           touchUi.setAttribute('aria-hidden', 'false');
