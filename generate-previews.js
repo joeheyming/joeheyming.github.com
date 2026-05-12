@@ -39,6 +39,11 @@ const PAGES = [
     title: 'StepMania'
   },
   {
+    url: `${BASE_URL}/accordion-hero/`,
+    output: 'accordion-hero/accordion-hero-preview.png',
+    title: 'Accordion Hero'
+  },
+  {
     url: `${BASE_URL}/terminal/`,
     output: 'terminal/terminal-preview.png',
     title: 'Web Terminal'
@@ -112,6 +117,76 @@ const PAGES = [
     url: `${BASE_URL}/os/`,
     output: 'os/os-preview.png',
     title: 'Heyming OS'
+  },
+  {
+    url: `${BASE_URL}/model-viewer/`,
+    output: 'model-viewer/model-viewer-preview.png',
+    title: '3D Viewer'
+  },
+  {
+    url: `${BASE_URL}/play/`,
+    output: 'play/play-preview.png',
+    title: 'Play - Browser Music Studio'
+  },
+  {
+    url: `${BASE_URL}/play/piano/`,
+    output: 'play/piano/piano-preview.png',
+    title: 'Browser Piano'
+  },
+  {
+    url: `${BASE_URL}/play/accordion/`,
+    output: 'play/accordion/accordion-preview.png',
+    title: 'Browser Accordion'
+  },
+  {
+    url: `${BASE_URL}/play/drums/`,
+    output: 'play/drums/drums-preview.png',
+    title: 'Browser Drums'
+  },
+  {
+    url: `${BASE_URL}/play/guitar/`,
+    output: 'play/guitar/guitar-preview.png',
+    title: 'Browser Strings'
+  },
+  {
+    url: `${BASE_URL}/play/synth/`,
+    output: 'play/synth/synth-preview.png',
+    title: 'Browser Synth'
+  },
+  {
+    url: `${BASE_URL}/play/metronome/`,
+    output: 'play/metronome/metronome-preview.png',
+    title: 'Browser Metronome'
+  },
+  {
+    url: `${BASE_URL}/play/harp/`,
+    output: 'play/harp/harp-preview.png',
+    title: 'Browser Harp'
+  },
+  {
+    url: `${BASE_URL}/play/steeldrum/`,
+    output: 'play/steeldrum/steeldrum-preview.png',
+    title: 'Browser Steel Drum'
+  },
+  {
+    url: `${BASE_URL}/play/mallets/`,
+    output: 'play/mallets/mallets-preview.png',
+    title: 'Browser Mallet Keyboard'
+  },
+  {
+    url: `${BASE_URL}/play/theremin/`,
+    output: 'play/theremin/theremin-preview.png',
+    title: 'Browser Theremin'
+  },
+  {
+    url: `${BASE_URL}/play/tuner/`,
+    output: 'play/tuner/tuner-preview.png',
+    title: 'Browser Tuner'
+  },
+  {
+    url: `${BASE_URL}/paint/`,
+    output: 'paint/paint-preview.png',
+    title: 'Paint'
   }
 ];
 
@@ -189,6 +264,11 @@ async function generatePreviews() {
     console.log('');
   }
 
+  // Hoisted so the summary block below can read these counters.
+  let generated = 0;
+  let skipped = 0;
+  let failed = 0;
+
   // Launch browser
   const browser = await chromium.launch({
     headless: true // Set to false if you want to see the browser
@@ -207,11 +287,6 @@ async function generatePreviews() {
       'User-Agent':
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     });
-
-    // Process each page and track results
-    let generated = 0;
-    let skipped = 0;
-    let failed = 0;
 
     for (const pageConfig of PAGES) {
       const existedBefore = fs.existsSync(pageConfig.output);

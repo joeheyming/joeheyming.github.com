@@ -1,5 +1,38 @@
 [
   {
+    "id": "accordion-hero",
+    "name": "Accordion Hero 🪗",
+    "shortName": "Accordion Hero",
+    "description": "Stradella rhythm game — play any voicing that fits",
+    "detailedDescription": "Stepmania-style scrolling-notes rhythm game where the lanes are Stradella accordion bass and chord buttons. Improvise voicings (C6, Cmaj7, Am7) and still score — the judge rewards musical substitutions, not button-for-button accuracy.",
+    "icon": "🪗",
+    "path": "./accordion-hero/",
+    "category": "game",
+    "defaultWidth": 1000,
+    "defaultHeight": 720,
+    "gradient": "from-indigo-500/20 to-fuchsia-500/20",
+    "border": "border-indigo-500/30 hover:border-indigo-400/50",
+    "taskbarGradient": "from-indigo-500 to-fuchsia-500",
+    "taskbarText": "text-white",
+    "tags": [
+      "rhythm",
+      "music",
+      "accordion",
+      "game"
+    ],
+    "related": [
+      "stepmania",
+      "awesome",
+      "sadtrombone"
+    ],
+    "shareCategory": "game",
+    "pwaShortcut": {
+      "name": "Accordion Hero",
+      "short_name": "AccHero",
+      "description": "Stradella rhythm game in your browser"
+    }
+  },
+  {
     "id": "awesome",
     "name": "Everything is Awesome 🎉",
     "shortName": "Awesome",
@@ -1033,5 +1066,24 @@
       "play-drums"
     ],
     "shareCategory": "entertainment"
+  },
+  {
+    "id": "paint",
+    "name": "Paint 🎨",
+    "shortName": "Paint",
+    "description": "Draw and sketch in your browser",
+    "detailedDescription": "MS Paint-inspired canvas app. Pencil, brush, shapes, flood fill, eyedropper, undo/redo — all in the browser.",
+    "icon": "🎨",
+    "path": "./paint/",
+    "category": "utility",
+    "gradient": "from-pink-500/20 to-purple-500/20",
+    "border": "border-pink-500/30 hover:border-pink-400/50",
+    "taskbarGradient": "from-pink-500 to-purple-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 950,
+    "defaultHeight": 720,
+    "tags": ["art", "drawing", "paint", "creative", "canvas"],
+    "related": ["notepad"],
+    "shareCategory": "utility"
   }
 ]

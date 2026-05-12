@@ -13,6 +13,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://joeheyming.github.io/accordion-hero/</loc>
+    <lastmod>2026-05-12T00:00:00+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://joeheyming.github.io/awesome/</loc>
     <lastmod>2026-05-09T00:00:00+00:00</lastmod>
     <changefreq>monthly</changefreq>
@@ -263,5 +269,11 @@
     <lastmod>2026-05-09T00:00:00+00:00</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/paint/</loc>
+    <lastmod>2026-05-12T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
 </urlset>

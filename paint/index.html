@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>🎨 Paint - Draw in Your Browser | Joe Heyming</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎨</text></svg>"
+    />
+
+    <meta name="description" content="A free browser paint app. Draw, sketch, and create with pencil, shapes, fill, layers, and more." />
+    <meta name="theme-color" content="#0f172a" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming" />
+    <meta property="og:title" content="🎨 Paint - Draw in Your Browser" />
+    <meta property="og:description" content="MS Paint-inspired canvas app with layers, selection, zoom, lasso, magic wand, and more." />
+    <meta property="og:url" content="https://joeheyming.github.io/paint/" />
+    <meta property="og:image" content="https://joeheyming.github.io/paint/paint-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:title" content="🎨 Paint - Draw in Your Browser" />
+    <meta name="twitter:description" content="Browser paint app with layers, selection tools, zoom, and more." />
+    <meta name="twitter:image" content="https://joeheyming.github.io/paint/paint-preview.png" />
+
+    <link rel="canonical" href="https://joeheyming.github.io/paint/" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script>
+      (function () {
+        var m = window.matchMedia;
+        if (
+          (m && m('(display-mode: standalone)').matches) ||
+          (m && m('(display-mode: fullscreen)').matches) ||
+          (m && m('(display-mode: minimal-ui)').matches) ||
+          window.navigator.standalone === true ||
+          (document.referrer || '').indexOf('android-app://') === 0
+        ) {
+          window.backButtonInitialized = true;
+          document.documentElement.classList.add('pwa-standalone');
+          var s = document.createElement('style');
+          s.textContent = '.back-to-portfolio{display:none!important}';
+          document.head.appendChild(s);
+        }
+      })();
+    </script>
+    <script src="/back.js" data-back-size="compact"></script>
+
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="paint-layout">
+
+      <!-- ── Toolbar ── -->
+      <header class="paint-header" role="toolbar" aria-label="Paint tools">
+        <a href="/" class="paint-title" aria-label="Paint — back to portfolio">
+          <span aria-hidden="true">🎨</span>
+          <span>Paint</span>
+        </a>
+
+        <div class="header-sep" aria-hidden="true"></div>
+
+        <div class="shape-fill-group">
+          <label for="shape-fill" title="Fill shapes (rect/ellipse)">
+            <input type="checkbox" id="shape-fill" />
+            Fill
+          </label>
+        </div>
+
+        <div class="header-sep" aria-hidden="true"></div>
+
+        <div class="size-group">
+          <label for="brush-size">Size</label>
+          <input type="range" id="brush-size" min="1" max="50" value="4" aria-label="Brush size" />
+          <span id="size-display">4</span>
+        </div>
+
+        <div class="header-sep" aria-hidden="true"></div>
+
+        <div class="zoom-group" aria-label="Zoom controls">
+          <button class="zoom-btn" id="btn-zoom-out" title="Zoom out (-)">−</button>
+          <span id="zoom-display">100%</span>
+          <button class="zoom-btn" id="btn-zoom-in" title="Zoom in (+)">+</button>
+          <button class="zoom-btn" id="btn-zoom-reset" title="Reset zoom (0)" style="font-size:10px;">1:1</button>
+        </div>
+
+        <div class="action-group">
+          <button class="action-btn" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>
+            <span class="btn-icon" aria-hidden="true">↩</span>
+            <span>Undo</span>
+          </button>
+          <button class="action-btn" id="btn-redo" title="Redo (Ctrl+Y)" aria-label="Redo" disabled>
+            <span class="btn-icon" aria-hidden="true">↪</span>
+            <span>Redo</span>
+          </button>
+          <button class="action-btn" id="btn-upload" title="Upload image" aria-label="Upload image">
+            <span class="btn-icon" aria-hidden="true">📂</span>
+            <span>Open</span>
+          </button>
+          <button class="action-btn" id="btn-resize" title="Resize canvas" aria-label="Resize canvas">
+            <span class="btn-icon" aria-hidden="true">⇲</span>
+            <span>Resize</span>
+          </button>
+          <button class="action-btn danger" id="btn-clear" title="Clear active layer" aria-label="Clear">
+            <span class="btn-icon" aria-hidden="true">🗑️</span>
+            <span>Clear</span>
+          </button>
+          <button class="action-btn" id="btn-save" title="Save as PNG (flattens layers)" aria-label="Save">
+            <span class="btn-icon" aria-hidden="true">💾</span>
+            <span>Save</span>
+          </button>
+        </div>
+
+        <input type="file" id="upload-input" class="hidden-file" accept="image/*" aria-hidden="true" />
+      </header>
+
+      <!-- ── Canvas + panels ── -->
+      <div class="paint-body">
+
+        <!-- Left tool panel -->
+        <aside class="left-panel" aria-label="Tools">
+          <div id="tool-buttons" role="group" aria-label="Drawing tools"></div>
+        </aside>
+
+        <div id="canvas-area" aria-label="Drawing canvas">
+          <div class="canvas-stack" id="canvas-stack">
+            <!-- Layer canvases inserted here by JS -->
+            <canvas id="overlay-canvas" role="img" aria-label="Draw here"></canvas>
+          </div>
+          <!-- Text tool input -->
+          <textarea id="text-input" rows="1" aria-label="Type text to add"></textarea>
+        </div>
+
+        <!-- Drag handle between canvas and right panel -->
+        <div class="panel-resize-handle" id="panel-resize-handle" aria-hidden="true"></div>
+
+        <!-- Persistent right panel: Layers + History -->
+        <aside class="right-panel" aria-label="Panels">
+          <div class="panel-section expanded" id="section-layers">
+            <div class="panel-section-header" role="button" tabindex="0" aria-expanded="true">
+              <span>Layers</span>
+              <span class="panel-chevron" aria-hidden="true">▾</span>
+            </div>
+            <div class="panel-section-body">
+              <div id="layer-list-container"></div>
+            </div>
+          </div>
+          <div class="panel-section" id="section-history">
+            <div class="panel-section-header" role="button" tabindex="0" aria-expanded="true">
+              <span>History</span>
+              <span class="panel-chevron" aria-hidden="true">▾</span>
+            </div>
+            <div class="panel-section-body">
+              <div id="history-list-container"></div>
+            </div>
+          </div>
+        </aside>
+
+      </div>
+
+      <!-- ── Palette bar ── -->
+      <div class="palette-bar-outer" role="region" aria-label="Color palette">
+        <div id="palette-bar"></div>
+        <div class="status-bar">
+          <span id="status-coords" aria-live="polite" aria-atomic="true">0, 0</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Resize modal ── -->
+    <div id="resize-modal" class="modal hidden" role="dialog" aria-label="Resize canvas" aria-modal="true">
+      <div class="modal-box">
+        <h2>Resize Canvas</h2>
+        <div class="modal-row">
+          <label for="resize-w">Width</label>
+          <input type="number" id="resize-w" min="1" max="8000" value="800" />
+          <span style="color:var(--fg-dim);font-size:12px">px</span>
+        </div>
+        <div class="modal-row">
+          <label for="resize-h">Height</label>
+          <input type="number" id="resize-h" min="1" max="8000" value="600" />
+          <span style="color:var(--fg-dim);font-size:12px">px</span>
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="resize-cancel">Cancel</button>
+          <button class="modal-btn primary" id="resize-ok">Resize</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="paint.js"></script>
+
+  </body>
+</html>
