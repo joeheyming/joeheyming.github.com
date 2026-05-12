@@ -825,6 +825,38 @@
     "shareCategory": "utility"
   },
   {
+    "id": "model-viewer",
+    "name": "3D Viewer 🧊",
+    "shortName": "3D",
+    "description": "View 3D models (glTF, STL, OBJ, PLY, FBX, 3MF)",
+    "detailedDescription": "3D model viewer powered by <model-viewer>. Drop or open .glb/.gltf, .stl, .obj, .ply, .fbx, or .3mf files; rotate, zoom, swap lighting environments, and try built-in demos. Non-glTF formats are converted to glb in-browser via Three.js.",
+    "icon": "🧊",
+    "path": "./model-viewer/",
+    "category": "utility",
+    "gradient": "from-purple-500/20 to-pink-500/20",
+    "border": "border-purple-500/30 hover:border-purple-400/50",
+    "taskbarGradient": "from-purple-500 to-pink-500",
+    "taskbarText": "text-white",
+    "defaultWidth": 900,
+    "defaultHeight": 640,
+    "system": true,
+    "handles": [
+      "model/*",
+      "model/gltf-binary",
+      "model/gltf+json",
+      "model/stl",
+      "model/obj",
+      "model/3mf",
+      "application/x-ply",
+      "application/x-fbx"
+    ],
+    "related": [
+      "filemanager",
+      "image-viewer"
+    ],
+    "shareCategory": "utility"
+  },
+  {
     "id": "play",
     "name": "Play 🎵",
     "shortName": "Play",

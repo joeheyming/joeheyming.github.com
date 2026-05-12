@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🧊 3D Viewer - View glTF, STL, OBJ, FBX in Your Browser | Joe Heyming</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧊</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="A free in-browser 3D model viewer. Drag-and-drop or open .glb, .gltf, .stl, .obj, .ply, .fbx, and .3mf files. Rotate, zoom, swap lighting environments, and try built-in demos."
+    />
+    <meta
+      name="keywords"
+      content="3D viewer, glTF viewer, GLB viewer, STL viewer, OBJ viewer, FBX viewer, 3MF viewer, browser 3D, online 3D model viewer, model-viewer"
+    />
+    <meta name="theme-color" content="#0d0d12" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="3D Viewer" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - 3D Viewer" />
+    <meta property="og:title" content="🧊 3D Viewer - View glTF, STL, OBJ, FBX in Your Browser" />
+    <meta
+      property="og:description"
+      content="A free in-browser 3D model viewer. Drag-and-drop or open .glb, .gltf, .stl, .obj, .ply, .fbx, and .3mf files."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/model-viewer/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/model-viewer/model-viewer-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="3D Viewer drop zone with cube icon" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="🧊 3D Viewer - View glTF, STL, OBJ, FBX in Your Browser" />
+    <meta
+      name="twitter:description"
+      content="A free in-browser 3D model viewer. Drag-and-drop or open .glb, .gltf, .stl, .obj, .ply, .fbx, and .3mf files."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/model-viewer/model-viewer-preview.png"
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/model-viewer/" />
+
+    <link rel="stylesheet" href="style.css" />
+    <!--
+      Importmap is consumed by format-converter.js (dynamically imported when the user opens
+      a non-glTF file like .stl/.obj/.ply/.fbx/.3mf). It must appear before any module script.
+    -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script
+      type="module"
+      src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.2.0/dist/model-viewer.min.js"
+    ></script>
+  </head>
+  <body>
+    <div id="viewer-container">
+      <!-- Toolbar -->
+      <div id="toolbar">
+        <div class="toolbar-group">
+          <button id="btn-open" title="Open Model (Ctrl+O)">📂 Open</button>
+          <div class="dropdown">
+            <button id="btn-demo" title="Load demo model">🎲 Demo ▾</button>
+            <div class="dropdown-menu" id="demo-menu">
+              <!-- Filled by JS -->
+            </div>
+          </div>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+          <button id="btn-reset" title="Reset Camera (R)" disabled>↺ Reset</button>
+          <button id="btn-rotate" title="Toggle Auto-Rotate (A)" disabled>🔄 Rotate</button>
+          <button id="btn-shadow" title="Toggle Shadow (S)" disabled>🌑 Shadow</button>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+          <label class="toolbar-label" for="env-select">Env</label>
+          <select id="env-select" disabled>
+            <option value="neutral">Neutral</option>
+            <option value="legacy">Legacy</option>
+            <option value="https://modelviewer.dev/shared-assets/environments/spruit_sunrise_1k_HDR.hdr">
+              Sunrise
+            </option>
+            <option value="https://modelviewer.dev/shared-assets/environments/aircraft_workshop_01_1k.hdr">
+              Workshop
+            </option>
+            <option value="https://modelviewer.dev/shared-assets/environments/whipple_creek_regional_park_04_1k.hdr">
+              Forest
+            </option>
+            <option value="">None</option>
+          </select>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+          <button id="btn-fullscreen" title="Fullscreen (Enter)" disabled>⛶</button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <div class="toolbar-group">
+          <span id="model-info">No model</span>
+        </div>
+      </div>
+
+      <!-- Drop Zone -->
+      <div id="drop-zone" class="active">
+        <div class="drop-content">
+          <span class="icon">🧊</span>
+          <h2>3D Viewer</h2>
+          <p>
+            Drop a model here, click
+            <strong>Open</strong>, or try a
+            <strong>Demo</strong>
+          </p>
+          <p class="formats">Supports: GLB, GLTF, STL, OBJ, PLY, FBX, 3MF</p>
+        </div>
+      </div>
+
+      <!-- Model Area -->
+      <div id="model-wrapper" class="hidden">
+        <model-viewer
+          id="model"
+          camera-controls
+          touch-action="pan-y"
+          interaction-prompt="none"
+          shadow-intensity="1"
+          exposure="1"
+          environment-image="neutral"
+          auto-rotate
+        ></model-viewer>
+        <div id="loading-overlay" class="hidden">
+          <div class="spinner"></div>
+          <div class="loading-text">Loading model…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden file input -->
+    <input
+      type="file"
+      id="file-input"
+      accept=".glb,.gltf,.stl,.obj,.ply,.fbx,.3mf,model/gltf-binary,model/gltf+json,model/stl,model/obj,model/ply"
+      style="display: none"
+    />
+
+    <script src="model-viewer.js"></script>
+  </body>
+</html>

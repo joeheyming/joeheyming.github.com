@@ -75,6 +75,16 @@ export function applyFileSystemDbMime(FileSystemDB) {
       avi: 'video/x-msvideo',
       mkv: 'video/x-matroska',
 
+      // 3D models
+      glb: 'model/gltf-binary',
+      gltf: 'model/gltf+json',
+      stl: 'model/stl',
+      obj: 'model/obj',
+      mtl: 'model/mtl',
+      ply: 'application/x-ply',
+      fbx: 'application/x-fbx',
+      '3mf': 'model/3mf',
+
       // YouTube link
       ytlink: 'application/x-youtube',
 
