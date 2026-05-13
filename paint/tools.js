@@ -1,5 +1,11 @@
-// Tool registry — each entry is { label, icon, cursor, onDown, onMove, onUp }
+// Tool registry — each entry is { label, icon, cursor, options?, onDown, onMove, onUp }
 // All hooks: (ctx, overlayCtx, state, x, y, isRightClick)
+
+// Per-tool option lookup. Schema lives next to each tool definition (TOOL_OPTION_SCHEMA);
+// runtime values live on state.toolOptions[toolId].
+export function toolOpts(state, toolId) {
+  return (state.toolOptions && state.toolOptions[toolId]) || {};
+}
 
 function hexToRgba(hex) {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -50,8 +56,9 @@ function floodFill(ctx, startX, startY, fillHex, tolerance = 15) {
   ctx.putImageData(img, 0, 0);
 }
 
-// BFS selection — returns Uint8Array mask (1=selected) and bounding box
-export function floodSelect(ctx, startX, startY, tolerance = 30) {
+// BFS selection — returns Uint8Array mask (1=selected) and bounding box.
+// When contiguous=false, selects ALL matching pixels regardless of connectivity.
+export function floodSelect(ctx, startX, startY, tolerance = 30, contiguous = true) {
   const canvas = ctx.canvas;
   const W = canvas.width, H = canvas.height;
   const img = ctx.getImageData(0, 0, W, H);
@@ -61,21 +68,38 @@ export function floodSelect(ctx, startX, startY, tolerance = 30) {
 
   const base = (sy * W + sx) * 4;
   const tr = d[base], tg = d[base + 1], tb = d[base + 2], ta = d[base + 3];
-
   const mask = new Uint8Array(W * H);
+  let minX = sx, maxX = sx, minY = sy, maxY = sy;
+
+  const matches = (pos) =>
+    Math.abs(d[pos] - tr) <= tolerance &&
+    Math.abs(d[pos + 1] - tg) <= tolerance &&
+    Math.abs(d[pos + 2] - tb) <= tolerance &&
+    Math.abs(d[pos + 3] - ta) <= tolerance;
+
+  if (!contiguous) {
+    let any = false;
+    for (let i = 0; i < W * H; i++) {
+      if (matches(i * 4)) {
+        mask[i] = 1;
+        const px = i % W, py = (i / W) | 0;
+        if (!any) { minX = maxX = px; minY = maxY = py; any = true; }
+        else {
+          if (px < minX) minX = px; if (px > maxX) maxX = px;
+          if (py < minY) minY = py; if (py > maxY) maxY = py;
+        }
+      }
+    }
+    if (!any) return null;
+    return { mask, x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+  }
+
   const stack = [sx + sy * W];
   mask[sx + sy * W] = 1;
-  let minX = sx, maxX = sx, minY = sy, maxY = sy;
 
   while (stack.length) {
     const idx = stack.pop();
-    const pos = idx * 4;
-    if (
-      Math.abs(d[pos] - tr) > tolerance ||
-      Math.abs(d[pos + 1] - tg) > tolerance ||
-      Math.abs(d[pos + 2] - tb) > tolerance ||
-      Math.abs(d[pos + 3] - ta) > tolerance
-    ) continue;
+    if (!matches(idx * 4)) continue;
 
     const px = idx % W, py = (idx / W) | 0;
     if (px < minX) minX = px; if (px > maxX) maxX = px;
@@ -124,6 +148,86 @@ function applyFgStyle(ctx, state) {
   ctx.globalCompositeOperation = 'source-over';
 }
 
+// Pressure scales between 30%..100% of base size for stylus input,
+// and is a no-op (1.0) for mouse/touch.
+function pressureSize(state, baseSize) {
+  const p = state.pressure ?? 1;
+  if (p >= 1) return baseSize;
+  return Math.max(0.5, baseSize * (0.3 + 0.7 * p));
+}
+
+// Per-tool options schema. Renderer in ui.js reads this. Defaults seed state.toolOptions.
+// Types: 'range' { min, max, step, default }, 'checkbox' { default }, 'select' { options, default }.
+export const TOOL_OPTION_SCHEMA = {
+  pencil: [{ key: 'size', type: 'range', label: 'Size', min: 1, max: 100, step: 1, default: 4 }],
+  brush:  [
+    { key: 'size',  type: 'range', label: 'Size',  min: 1, max: 100, step: 1, default: 4 },
+    { key: 'flow',  type: 'range', label: 'Flow',  min: 1, max: 100, step: 1, default: 80 },
+  ],
+  eraser: [{ key: 'size', type: 'range', label: 'Size', min: 1, max: 100, step: 1, default: 4 }],
+  spray:  [
+    { key: 'size',    type: 'range', label: 'Size',    min: 1, max: 100, step: 1, default: 4 },
+    { key: 'density', type: 'range', label: 'Density', min: 1, max: 100, step: 1, default: 80 },
+  ],
+  fill: [
+    { key: 'tolerance', type: 'range', label: 'Tolerance', min: 0, max: 100, step: 1, default: 15 },
+  ],
+  eyedropper: [],
+  text: [
+    { key: 'size',   type: 'range',  label: 'Font size', min: 8,  max: 200, step: 1, default: 16 },
+    { key: 'family', type: 'select', label: 'Font',
+      options: [
+        { value: 'sans-serif', label: 'Sans' },
+        { value: 'serif',      label: 'Serif' },
+        { value: 'monospace',  label: 'Mono' },
+        { value: 'cursive',    label: 'Cursive' },
+        { value: 'fantasy',    label: 'Display' },
+      ],
+      default: 'sans-serif' },
+    { key: 'bold',   type: 'checkbox', label: 'Bold',   default: false },
+    { key: 'italic', type: 'checkbox', label: 'Italic', default: false },
+  ],
+  line:    [{ key: 'size', type: 'range', label: 'Width', min: 1, max: 50, step: 1, default: 2 }],
+  rect:    [
+    { key: 'size', type: 'range',    label: 'Width', min: 1, max: 50, step: 1, default: 2 },
+    { key: 'fill', type: 'checkbox', label: 'Fill',  default: false },
+  ],
+  ellipse: [
+    { key: 'size', type: 'range',    label: 'Width', min: 1, max: 50, step: 1, default: 2 },
+    { key: 'fill', type: 'checkbox', label: 'Fill',  default: false },
+  ],
+  rectSelect: [
+    { key: '_hint', type: 'hint',
+      text: '⇧/⌘ add · ⌥ subtract · ⇧⌥ intersect',
+      title: 'Hold Shift or Cmd/Ctrl to add to the selection. Hold Alt/Option to subtract. Combine for intersect.' },
+  ],
+  lasso: [
+    { key: '_hint', type: 'hint',
+      text: '⇧/⌘ add · ⌥ subtract · ⇧⌥ intersect',
+      title: 'Hold Shift or Cmd/Ctrl to add to the selection. Hold Alt/Option to subtract. Combine for intersect.' },
+  ],
+  magicWand: [
+    { key: 'tolerance',  type: 'range',    label: 'Tolerance',  min: 0, max: 200, step: 1, default: 30 },
+    { key: 'contiguous', type: 'checkbox', label: 'Contiguous', default: true },
+    { key: '_hint', type: 'hint',
+      text: '⇧/⌘ add · ⌥ subtract · ⇧⌥ intersect',
+      title: 'Hold Shift or Cmd/Ctrl to add to the selection. Hold Alt/Option to subtract. Combine for intersect.' },
+  ],
+};
+
+// Build the default state.toolOptions object from the schema.
+export function defaultToolOptions() {
+  const out = {};
+  for (const [tool, opts] of Object.entries(TOOL_OPTION_SCHEMA)) {
+    out[tool] = {};
+    for (const o of opts) {
+      if (o.type === 'hint') continue;
+      out[tool][o.key] = o.default;
+    }
+  }
+  return out;
+}
+
 export const TOOLS = {
   pencil: {
     label: 'Pencil', icon: '✏️', cursor: 'crosshair',
@@ -131,12 +235,15 @@ export const TOOLS = {
       state.drawing = true;
       state.lastX = x; state.lastY = y;
       applyFgStyle(ctx, state);
+      const sz = pressureSize(state, state.brushSize);
+      ctx.lineWidth = sz;
       ctx.beginPath();
-      ctx.arc(x, y, state.brushSize / 2, 0, Math.PI * 2);
+      ctx.arc(x, y, sz / 2, 0, Math.PI * 2);
       ctx.fill();
     },
     onMove(ctx, ov, state, x, y) {
       if (!state.drawing) return;
+      ctx.lineWidth = pressureSize(state, state.brushSize);
       ctx.beginPath();
       ctx.moveTo(state.lastX, state.lastY);
       ctx.lineTo(x, y);
@@ -148,22 +255,26 @@ export const TOOLS = {
 
   brush: {
     label: 'Brush', icon: '🖌️', cursor: 'crosshair',
+    options: { hardness: 80, flow: 80 },
     onDown(ctx, ov, state, x, y) {
       state.drawing = true;
       state.lastX = x; state.lastY = y;
+      const opts = toolOpts(state, 'brush');
+      const sz = pressureSize(state, state.brushSize * 3);
       ctx.strokeStyle = state.activeColor;
       ctx.fillStyle = state.activeColor;
-      ctx.lineWidth = state.brushSize * 3;
+      ctx.lineWidth = sz;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      ctx.globalAlpha = 0.8;
+      ctx.globalAlpha = (opts.flow ?? 80) / 100;
       ctx.globalCompositeOperation = 'source-over';
       ctx.beginPath();
-      ctx.arc(x, y, (state.brushSize * 3) / 2, 0, Math.PI * 2);
+      ctx.arc(x, y, sz / 2, 0, Math.PI * 2);
       ctx.fill();
     },
     onMove(ctx, ov, state, x, y) {
       if (!state.drawing) return;
+      ctx.lineWidth = pressureSize(state, state.brushSize * 3);
       ctx.beginPath();
       ctx.moveTo(state.lastX, state.lastY);
       ctx.lineTo(x, y);
@@ -178,19 +289,21 @@ export const TOOLS = {
     onDown(ctx, ov, state, x, y) {
       state.drawing = true;
       state.lastX = x; state.lastY = y;
+      const sz = pressureSize(state, state.brushSize * 3);
       ctx.strokeStyle = '#000';
       ctx.fillStyle = '#000';
-      ctx.lineWidth = state.brushSize * 3;
+      ctx.lineWidth = sz;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'destination-out';
       ctx.beginPath();
-      ctx.arc(x, y, (state.brushSize * 3) / 2, 0, Math.PI * 2);
+      ctx.arc(x, y, sz / 2, 0, Math.PI * 2);
       ctx.fill();
     },
     onMove(ctx, ov, state, x, y) {
       if (!state.drawing) return;
+      ctx.lineWidth = pressureSize(state, state.brushSize * 3);
       ctx.beginPath();
       ctx.moveTo(state.lastX, state.lastY);
       ctx.lineTo(x, y);
@@ -224,7 +337,10 @@ export const TOOLS = {
 
   fill: {
     label: 'Fill', icon: '🪣', cursor: 'crosshair',
-    onDown(ctx, ov, state, x, y) { floodFill(ctx, x, y, state.activeColor); },
+    onDown(ctx, ov, state, x, y) {
+      const tol = toolOpts(state, 'fill').tolerance ?? 15;
+      floodFill(ctx, x, y, state.activeColor, tol);
+    },
     onMove() {}, onUp() {},
   },
 
@@ -347,12 +463,12 @@ export const TOOLS = {
     label: 'Select', icon: '⬚', cursor: 'crosshair',
     onDown(ctx, ov, state, x, y) {
       const sel = state.sel;
-      if (sel.mode === 'active' && isInside(sel, x, y)) {
+      const hasModifier = !!(state.selectionModeFor?.(state));
+      if (!hasModifier && sel.mode === 'active' && isInside(sel, x, y)) {
         // Start moving the selection content
         state.selStartMoveX = x; state.selStartMoveY = y;
         state.selOrigX = sel.x; state.selOrigY = sel.y;
         if (!sel.data) {
-          // Grab pixel data and punch hole
           sel.data = ctx.getImageData(sel.x, sel.y, sel.w, sel.h);
           ctx.fillStyle = state.bgColor;
           ctx.fillRect(sel.x, sel.y, sel.w, sel.h);
@@ -360,12 +476,12 @@ export const TOOLS = {
         }
         sel.mode = 'moving';
       } else {
-        // Commit any existing floating content
-        state.commitSelection?.();
+        // Without a modifier key, commit any existing floating content
+        if (!hasModifier) state.commitSelection?.();
         // Start new selection
         sel.mode = 'drawing';
         sel.x = x; sel.y = y; sel.w = 0; sel.h = 0;
-        sel.data = null; sel.mask = null; sel.baseData = null;
+        if (!hasModifier) { sel.data = null; sel.mask = null; sel.baseData = null; }
         state.startX = x; state.startY = y;
         state.drawing = true;
       }
@@ -383,17 +499,24 @@ export const TOOLS = {
         const dy = y - state.selStartMoveY;
         sel.x = state.selOrigX + dx;
         sel.y = state.selOrigY + dy;
-        // Redraw base + floating content on canvas
         ctx.putImageData(sel.baseData, 0, 0);
         ctx.putImageData(sel.data, sel.x, sel.y);
       }
     },
-    onUp(ctx, ov, state, x, y) {
+    onUp(ctx, ov, state) {
       const sel = state.sel;
       if (sel.mode === 'drawing') {
         state.drawing = false;
-        if (sel.w < 2 || sel.h < 2) {
-          sel.mode = 'none';
+        if (sel.w < 2 || sel.h < 2) { sel.mode = 'none'; return; }
+        const W = ctx.canvas.width, H = ctx.canvas.height;
+        const mode = state.selectionModeFor?.(state);
+        if (mode && state.applySelectionWithMask) {
+          const m = new Uint8Array(W * H);
+          const x0 = Math.max(0, sel.x), y0 = Math.max(0, sel.y);
+          const x1 = Math.min(W, sel.x + sel.w), y1 = Math.min(H, sel.y + sel.h);
+          for (let yy = y0; yy < y1; yy++)
+            for (let xx = x0; xx < x1; xx++) m[yy * W + xx] = 1;
+          state.applySelectionWithMask(m, W, H, mode);
         } else {
           sel.mode = 'active';
           sel.data = ctx.getImageData(sel.x, sel.y, sel.w, sel.h);
@@ -407,7 +530,8 @@ export const TOOLS = {
   lasso: {
     label: 'Lasso', icon: '🔗', cursor: 'crosshair',
     onDown(ctx, ov, state, x, y) {
-      state.commitSelection?.();
+      const hasModifier = !!(state.selectionModeFor?.(state));
+      if (!hasModifier) state.commitSelection?.();
       state.lassoPath = [[x, y]];
       state.sel.mode = 'lasso-drawing';
       state.drawing = true;
@@ -415,7 +539,6 @@ export const TOOLS = {
     onMove(ctx, ov, state, x, y) {
       if (!state.drawing) return;
       state.lassoPath.push([x, y]);
-      // Preview path on overlay
       ov.clearRect(0, 0, ov.canvas.width, ov.canvas.height);
       ov.strokeStyle = '#fff';
       ov.lineWidth = 1;
@@ -426,7 +549,7 @@ export const TOOLS = {
       ov.stroke();
       ov.setLineDash([]);
     },
-    onUp(ctx, ov, state, x, y) {
+    onUp(ctx, ov, state) {
       if (!state.drawing) return;
       state.drawing = false;
       ov.clearRect(0, 0, ov.canvas.width, ov.canvas.height);
@@ -437,28 +560,38 @@ export const TOOLS = {
 
       const W = ctx.canvas.width, H = ctx.canvas.height;
       const mask = fill(state.lassoPath, W, H);
-      // Compute bounding box
-      let minX = W, maxX = 0, minY = H, maxY = 0;
-      for (const [px, py] of state.lassoPath) {
-        if (px < minX) minX = px; if (px > maxX) maxX = px;
-        if (py < minY) minY = py; if (py > maxY) maxY = py;
+      const mode = state.selectionModeFor?.(state);
+      if (mode && state.applySelectionWithMask) {
+        state.applySelectionWithMask(mask, W, H, mode);
+      } else {
+        let minX = W, maxX = 0, minY = H, maxY = 0;
+        for (const [px, py] of state.lassoPath) {
+          if (px < minX) minX = px; if (px > maxX) maxX = px;
+          if (py < minY) minY = py; if (py > maxY) maxY = py;
+        }
+        state.sel = {
+          mode: 'active',
+          x: Math.max(0, minX), y: Math.max(0, minY),
+          w: Math.min(maxX - minX + 1, W), h: Math.min(maxY - minY + 1, H),
+          mask, data: null, baseData: null,
+          lassoPoly: state.lassoPath,
+        };
       }
-      state.sel = {
-        mode: 'active',
-        x: Math.max(0, minX), y: Math.max(0, minY),
-        w: Math.min(maxX - minX + 1, W), h: Math.min(maxY - minY + 1, H),
-        mask, data: null, baseData: null,
-        lassoPoly: state.lassoPath,
-      };
     },
   },
 
   magicWand: {
     label: 'Magic Wand', icon: '🪄', cursor: 'crosshair',
     onDown(ctx, ov, state, x, y) {
-      state.commitSelection?.();
+      const hasModifier = !!(state.selectionModeFor?.(state));
+      if (!hasModifier) state.commitSelection?.();
       const result = state.doMagicWand?.(ctx, x, y);
-      if (result) {
+      if (!result) return;
+      const W = ctx.canvas.width, H = ctx.canvas.height;
+      const mode = state.selectionModeFor?.(state);
+      if (mode && state.applySelectionWithMask) {
+        state.applySelectionWithMask(result.mask, W, H, mode);
+      } else {
         state.sel = {
           mode: 'active',
           x: result.x, y: result.y, w: result.w, h: result.h,

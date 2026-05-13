@@ -132,3 +132,89 @@ export function updateStatus(x, y) {
   const el = document.getElementById('status-coords');
   if (el) el.textContent = `${Math.round(x)}, ${Math.round(y)}`;
 }
+
+// Render the per-tool option strip from a schema. Calls onChange(key, value)
+// whenever any control changes. Returns nothing.
+export function renderToolOptions(schema, values, container, onChange) {
+  container.innerHTML = '';
+  if (!schema || schema.length === 0) {
+    container.classList.add('empty');
+    return;
+  }
+  container.classList.remove('empty');
+
+  for (const opt of schema) {
+    const wrap = document.createElement('div');
+    wrap.className = 'tool-opt tool-opt-' + opt.type;
+
+    if (opt.type === 'range') {
+      const label = document.createElement('label');
+      label.textContent = opt.label;
+      label.htmlFor = 'opt-' + opt.key;
+
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.id = 'opt-' + opt.key;
+      input.min = String(opt.min);
+      input.max = String(opt.max);
+      input.step = String(opt.step ?? 1);
+      input.value = String(values[opt.key] ?? opt.default);
+      input.title = `${opt.label}: ${input.value}`;
+
+      const display = document.createElement('span');
+      display.className = 'tool-opt-value';
+      display.textContent = input.value;
+
+      input.addEventListener('input', e => {
+        const v = parseFloat(e.target.value);
+        display.textContent = String(v);
+        input.title = `${opt.label}: ${v}`;
+        onChange(opt.key, v);
+      });
+
+      wrap.appendChild(label);
+      wrap.appendChild(input);
+      wrap.appendChild(display);
+    } else if (opt.type === 'checkbox') {
+      const label = document.createElement('label');
+      label.htmlFor = 'opt-' + opt.key;
+
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.id = 'opt-' + opt.key;
+      input.checked = Boolean(values[opt.key] ?? opt.default);
+
+      input.addEventListener('change', e => onChange(opt.key, e.target.checked));
+
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(' ' + opt.label));
+      wrap.appendChild(label);
+    } else if (opt.type === 'select') {
+      const label = document.createElement('label');
+      label.textContent = opt.label;
+      label.htmlFor = 'opt-' + opt.key;
+
+      const select = document.createElement('select');
+      select.id = 'opt-' + opt.key;
+      const cur = values[opt.key] ?? opt.default;
+      for (const o of opt.options) {
+        const optEl = document.createElement('option');
+        optEl.value = o.value;
+        optEl.textContent = o.label;
+        if (o.value === cur) optEl.selected = true;
+        select.appendChild(optEl);
+      }
+      select.addEventListener('change', e => onChange(opt.key, e.target.value));
+
+      wrap.appendChild(label);
+      wrap.appendChild(select);
+    } else if (opt.type === 'hint') {
+      // Static help text — no input. Used for showing modifier-key legends.
+      wrap.classList.add('tool-opt-hint');
+      wrap.textContent = opt.text;
+      if (opt.title) wrap.title = opt.title;
+    }
+
+    container.appendChild(wrap);
+  }
+}

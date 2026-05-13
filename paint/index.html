@@ -67,20 +67,7 @@
 
         <div class="header-sep" aria-hidden="true"></div>
 
-        <div class="shape-fill-group">
-          <label for="shape-fill" title="Fill shapes (rect/ellipse)">
-            <input type="checkbox" id="shape-fill" />
-            Fill
-          </label>
-        </div>
-
-        <div class="header-sep" aria-hidden="true"></div>
-
-        <div class="size-group">
-          <label for="brush-size">Size</label>
-          <input type="range" id="brush-size" min="1" max="50" value="4" aria-label="Brush size" />
-          <span id="size-display">4</span>
-        </div>
+        <div id="tool-options" class="tool-options" aria-label="Tool options"></div>
 
         <div class="header-sep" aria-hidden="true"></div>
 
@@ -108,17 +95,34 @@
             <span class="btn-icon" aria-hidden="true">⇲</span>
             <span>Resize</span>
           </button>
+          <div class="action-menu" id="adjust-menu-wrap">
+            <button class="action-btn" id="btn-adjust" title="Image adjustments" aria-label="Adjust" aria-haspopup="true" aria-expanded="false">
+              <span class="btn-icon" aria-hidden="true">🎚</span>
+              <span>Adjust</span>
+              <span class="action-caret" aria-hidden="true">▾</span>
+            </button>
+            <div class="action-menu-list hidden" id="adjust-menu-list" role="menu"></div>
+          </div>
           <button class="action-btn danger" id="btn-clear" title="Clear active layer" aria-label="Clear">
             <span class="btn-icon" aria-hidden="true">🗑️</span>
             <span>Clear</span>
           </button>
-          <button class="action-btn" id="btn-save" title="Save as PNG (flattens layers)" aria-label="Save">
-            <span class="btn-icon" aria-hidden="true">💾</span>
-            <span>Save</span>
-          </button>
+          <div class="action-menu" id="save-menu-wrap">
+            <button class="action-btn" id="btn-save" title="Save (PNG)" aria-label="Save" aria-haspopup="true" aria-expanded="false">
+              <span class="btn-icon" aria-hidden="true">💾</span>
+              <span>Save</span>
+              <span class="action-caret" aria-hidden="true">▾</span>
+            </button>
+            <div class="action-menu-list hidden" id="save-menu-list" role="menu">
+              <button class="action-menu-item" data-save="png">Save PNG…</button>
+              <button class="action-menu-item" data-save="jpeg">Save JPEG…</button>
+              <div class="action-menu-sep"></div>
+              <button class="action-menu-item" data-save="project">Save Project (.paintproj)…</button>
+            </div>
+          </div>
         </div>
 
-        <input type="file" id="upload-input" class="hidden-file" accept="image/*" aria-hidden="true" />
+        <input type="file" id="upload-input" class="hidden-file" accept="image/*,.paintproj,application/json" aria-hidden="true" />
       </header>
 
       <!-- ── Canvas + panels ── -->
@@ -173,6 +177,18 @@
         </div>
       </div>
 
+    </div>
+
+    <!-- ── Adjust modal ── -->
+    <div id="adjust-modal" class="modal hidden" role="dialog" aria-label="Adjustment" aria-modal="true">
+      <div class="modal-box">
+        <h2 id="adjust-modal-title">Adjust</h2>
+        <div id="adjust-modal-fields"></div>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="adjust-cancel">Cancel</button>
+          <button class="modal-btn primary" id="adjust-ok">Apply</button>
+        </div>
+      </div>
     </div>
 
     <!-- ── Resize modal ── -->

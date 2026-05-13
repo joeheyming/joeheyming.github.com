@@ -2,20 +2,52 @@
 
 let nextLayerId = 1;
 
+// Blend modes mapped to canvas globalCompositeOperation values.
+// CSS mix-blend-mode uses the same names (with 'normal' = 'source-over').
+export const BLEND_MODES = [
+  { value: 'source-over',  label: 'Normal' },
+  { value: 'multiply',     label: 'Multiply' },
+  { value: 'screen',       label: 'Screen' },
+  { value: 'overlay',      label: 'Overlay' },
+  { value: 'darken',       label: 'Darken' },
+  { value: 'lighten',      label: 'Lighten' },
+  { value: 'color-dodge',  label: 'Color Dodge' },
+  { value: 'color-burn',   label: 'Color Burn' },
+  { value: 'hard-light',   label: 'Hard Light' },
+  { value: 'soft-light',   label: 'Soft Light' },
+  { value: 'difference',   label: 'Difference' },
+  { value: 'exclusion',    label: 'Exclusion' },
+  { value: 'hue',          label: 'Hue' },
+  { value: 'saturation',   label: 'Saturation' },
+  { value: 'color',        label: 'Color' },
+  { value: 'luminosity',   label: 'Luminosity' },
+];
+
+function blendCssValue(mode) {
+  return mode === 'source-over' ? 'normal' : mode;
+}
+
 export function createLayer(name, w, h) {
   const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;
   canvas.className = 'layer-canvas';
   canvas.dataset.layerId = nextLayerId;
-  const ctx = canvas.getContext('2d');
-  return { id: nextLayerId++, name, canvas, ctx, opacity: 1, visible: true };
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  return {
+    id: nextLayerId++,
+    name,
+    canvas,
+    ctx,
+    opacity: 1,
+    visible: true,
+    blendMode: 'source-over',
+  };
 }
 
 export function insertLayerBefore(layer, stackEl, refEl) {
   stackEl.insertBefore(layer.canvas, refEl);
-  layer.canvas.style.opacity = layer.opacity;
-  layer.canvas.style.display = layer.visible ? 'block' : 'none';
+  syncLayerDOM(layer);
 }
 
 export function removeLayerFromDOM(layer) {
@@ -25,21 +57,27 @@ export function removeLayerFromDOM(layer) {
 export function syncLayerDOM(layer) {
   layer.canvas.style.opacity = layer.opacity;
   layer.canvas.style.display = layer.visible ? 'block' : 'none';
+  layer.canvas.style.mixBlendMode = blendCssValue(layer.blendMode || 'source-over');
 }
 
-// Returns a flat offscreen canvas compositing all visible layers
-export function flattenToCanvas(layers, bgColor, w, h) {
+// Returns a flat offscreen canvas compositing all visible layers,
+// applying each layer's blendMode via globalCompositeOperation.
+export function flattenToCanvas(layers, bgColor, w, h, opts = {}) {
   const flat = document.createElement('canvas');
   flat.width = w; flat.height = h;
-  const flatCtx = flat.getContext('2d');
-  flatCtx.fillStyle = bgColor;
-  flatCtx.fillRect(0, 0, w, h);
+  const flatCtx = flat.getContext('2d', { willReadFrequently: true });
+  if (opts.transparentBg !== true) {
+    flatCtx.fillStyle = bgColor;
+    flatCtx.fillRect(0, 0, w, h);
+  }
   for (const layer of layers) {
     if (!layer.visible) continue;
     flatCtx.globalAlpha = layer.opacity;
+    flatCtx.globalCompositeOperation = layer.blendMode || 'source-over';
     flatCtx.drawImage(layer.canvas, 0, 0);
   }
   flatCtx.globalAlpha = 1;
+  flatCtx.globalCompositeOperation = 'source-over';
   return flat;
 }
 
@@ -84,6 +122,22 @@ export function renderLayerPanel(layers, activeIdx, container, callbacks) {
       }
     });
 
+    const blendEl = document.createElement('select');
+    blendEl.className = 'layer-blend';
+    blendEl.title = 'Blend mode';
+    for (const { value, label } of BLEND_MODES) {
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = label;
+      if ((layer.blendMode || 'source-over') === value) opt.selected = true;
+      blendEl.appendChild(opt);
+    }
+    blendEl.addEventListener('change', e => {
+      e.stopPropagation();
+      callbacks.onBlendModeChange(i, e.target.value);
+    });
+    blendEl.addEventListener('click', e => e.stopPropagation());
+
     const opacityEl = document.createElement('input');
     opacityEl.type = 'range';
     opacityEl.min = '0'; opacityEl.max = '100';
@@ -97,6 +151,7 @@ export function renderLayerPanel(layers, activeIdx, container, callbacks) {
     opacityEl.addEventListener('click', e => e.stopPropagation());
 
     nameWrap.appendChild(nameEl);
+    nameWrap.appendChild(blendEl);
     nameWrap.appendChild(opacityEl);
 
     const moveWrap = document.createElement('div');
