@@ -20,42 +20,31 @@
  */
 
 import * as THREE from 'three';
-import { TILE, GAMEPLAY, GHOST_STATE } from './constants.js';
+import { TILE, GAMEPLAY } from './constants.js';
 import { CHUNK_SIZE, CHUNK_TEMPLATES, generateChunk } from './templates.js';
 import { Chunk } from './chunk.js';
-import { Ghost, PERSONALITY } from './ghost.js';
 import { mulberry32, hashCoords, randomSeed } from './prng.js';
-
-const DEFAULT_RENDER_RADIUS = 2; // chunks: 5x5 grid loaded around player
-const DEFAULT_UNLOAD_RADIUS = 3; // sweep boundary
-
-// How many of the closest ghosts get BFS terrain-aware pathing each
-// frame. The rest fall back to greedy nearest-neighbour selection. 3 is
-// enough to make the immediate threat ring feel smart without paying
-// BFS cost for ghosts the player can't even see yet.
-const BFS_NEAREST_GHOST_COUNT = 3;
-
-// Active spawn rebalancing: if fewer than this many ghosts sit within
-// chase radius of Pacman, the next spawn attempt uses a tightened
-// min-spawn-distance (× this multiplier) so the world doesn't get a
-// lull just because the previous chasers wandered off.
-const NEAR_GHOST_TARGET_FRACTION = 0.4; // 40% of cap should be "near"
-const NEAR_SPAWN_DIST_TIGHTEN = 0.5; // tightens minD when we're under target
-
-// Tier 3 — distance-from-origin survival pressure. The further Pacman
-// wanders from spawn, the deadlier the world becomes. `farPct` is a
-// 0..1 progress scalar (game.js updates it each frame); the *_BOOST
-// constants below define how much each system intensifies at full
-// progression. All clamped at FAR_CAP_TILES so the curve eventually
-// flattens — past that point the world is "fully hard" without going
-// into infinity-mode.
-const FAR_CAP_TILES = 600;
-const FAR_GHOST_SPEED_BOOST = 0.4; // ×1.4 ghost speed at the cap
-const FAR_GHOST_COUNT_BOOST = 0.6; // ×1.6 ghost cap at the cap
-const FAR_HUNGER_BOOST = 0.6; // ×1.6 hunger drain at the cap
-const FAR_DOT_DENSITY_PENALTY = 0.7; // dotKeep × max(0.3, 1 − 0.7·farPct)
-const FAR_SCORE_MULT_MAX = 5; // 5× at the cap
-const FAR_SCORE_MULT_MIN = 1;
+import {
+  DEFAULT_RENDER_RADIUS,
+  DEFAULT_UNLOAD_RADIUS,
+  BFS_NEAREST_GHOST_COUNT,
+  FAR_CAP_TILES,
+  FAR_GHOST_SPEED_BOOST,
+  FAR_GHOST_COUNT_BOOST,
+  FAR_HUNGER_BOOST,
+  FAR_DOT_DENSITY_PENALTY,
+  FAR_SCORE_MULT_MAX,
+  FAR_SCORE_MULT_MIN
+} from './world-constants.js';
+import { chunkKey, createSharedAssets } from './world-assets.js';
+import {
+  seedInitialGhosts,
+  disposeEatenGhosts,
+  cullGhosts,
+  tickGhostSpawning,
+  findBlinkyReference,
+  pickClosestGhosts
+} from './world-ghost-pool.js';
 
 export class World {
   constructor(opts = {}) {
@@ -149,38 +138,8 @@ export class World {
     this._seedInitialGhosts(o);
   }
 
-  /**
-   * Spawn an initial batch of ghosts when the world first loads. Uses
-   * the same placement rules as the runtime spawn loop, but front-loads
-   * the population so a fresh game / continue resume always has a few
-   * ghosts visible nearby (without being on top of Pacman).
-   */
   _seedInitialGhosts(pacmanPos) {
-    // farPct is 0 at boot so the effective cap == base, but read through
-    // the helper for symmetry with the runtime spawn loop.
-    const targetCap = Math.round(GAMEPLAY.GHOST_TARGET_COUNT * this.effectiveGhostCountMul());
-    const target = Math.min(targetCap, 4);
-    // Walk colorIdx through 0..3 in order so the initial pool guarantees
-    // one of each personality whenever target ≥ 4 — important because
-    // Inky's flank target is meaningless without a Blinky reference.
-    let nextColorIdx = 0;
-    for (let i = 0; i < target * 3; i++) {
-      if (this.ghosts.size >= target) break;
-      const spawn = this._pickGhostSpawnTile(pacmanPos);
-      if (!spawn) continue;
-      const colorIdx = nextColorIdx % 4;
-      nextColorIdx++;
-      const ghost = new Ghost({
-        gridX: spawn.gx,
-        gridY: spawn.gy,
-        colorIdx,
-        scale: this.scale,
-        world: this
-      });
-      ghost.addToScene(this.scene);
-      this.ghosts.add(ghost);
-    }
-    this._ghostSpawnTimer = this._randomSpawnInterval();
+    seedInitialGhosts(this, pacmanPos);
   }
 
   // ---------------------------------------------------------------------------
@@ -548,162 +507,19 @@ export class World {
   // Ghost pool (Phase 3, Minecraft-style)
   //
   // The pool is regulated three ways:
-  //   1. _cullGhosts:      despawns ghosts farther than CULL_DIST_TILES from
-  //                        the player. Frees memory as the player walks away.
-  //   2. _disposeEatenGhosts: clears ghosts whose state machine flagged
-  //                        themselves shouldDespawn (eaten + delay).
-  //   3. _tickGhostSpawning: with a jittered timer, when below the soft
-  //                        target count, picks a random walkable tile in
-  //                        a loaded chunk that's outside MIN_SPAWN_DIST
-  //                        and inside MAX_SPAWN_DIST tiles of the player,
-  //                        and spawns one ghost there.
+  //   1. cullGhosts:        despawns ghosts farther than CULL_DIST_TILES from
+  //                         the player. Frees memory as the player walks away.
+  //   2. disposeEatenGhosts: clears ghosts whose state machine flagged
+  //                         themselves shouldDespawn (eaten + delay).
+  //   3. tickGhostSpawning: with a jittered timer, when below the soft
+  //                         target count, picks a random walkable tile in
+  //                         a loaded chunk that's outside MIN_SPAWN_DIST
+  //                         and inside MAX_SPAWN_DIST tiles of the player,
+  //                         and spawns one ghost there.
+  //
+  // The pool helpers themselves live in `./world-ghost-pool.js`; update()
+  // and addToScene() call them directly with `this` as the first argument.
   // ---------------------------------------------------------------------------
-
-  _disposeEatenGhosts() {
-    for (const g of this.ghosts) {
-      if (g.shouldDespawn) {
-        g.removeFromScene(this.scene);
-        g.dispose();
-        this.ghosts.delete(g);
-      }
-    }
-  }
-
-  _cullGhosts(pacmanPos) {
-    const cullR = GAMEPLAY.GHOST_CULL_DIST_TILES * this.scale;
-    const cullR2 = cullR * cullR;
-    for (const g of this.ghosts) {
-      const dx = g.position.x - pacmanPos.x;
-      const dy = g.position.y - pacmanPos.y;
-      if (dx * dx + dy * dy > cullR2) {
-        g.removeFromScene(this.scene);
-        g.dispose();
-        this.ghosts.delete(g);
-      }
-    }
-  }
-
-  _tickGhostSpawning(dt, pacmanPos, powerInfo) {
-    this._ghostSpawnTimer -= dt;
-    if (this._ghostSpawnTimer > 0) return;
-    // Re-roll the timer to a random interval. Even if we don't end up
-    // spawning this attempt (cap reached, no valid tile), the next
-    // attempt is also delayed so we don't churn.
-    this._ghostSpawnTimer = this._randomSpawnInterval();
-    // Distance-scaled population cap: the deeper Pacman wanders the more
-    // ghosts the world will keep alive around him. Capped by the
-    // effective helper (base × farPct boost).
-    const cap = Math.round(GAMEPLAY.GHOST_TARGET_COUNT * this.effectiveGhostCountMul());
-    if (this.ghosts.size >= cap) return;
-
-    // Active spawn rebalancing — count ghosts within chase radius. If we
-    // have fewer "near" ghosts than NEAR_GHOST_TARGET_FRACTION of the
-    // soft cap, this spawn attempt uses a tightened minimum spawn
-    // distance so the new ghost actually arrives near Pacman, not at
-    // the spawn-ring horizon. Keeps pressure constant even if a chase
-    // pack just despawned (fled / culled by distance).
-    const chaseR =
-      GAMEPLAY.GHOST_CHASE_RADIUS * this.scale * this.difficulty.ghostChaseRadiusMul;
-    const chaseR2 = chaseR * chaseR;
-    let nearCount = 0;
-    for (const g of this.ghosts) {
-      const dx = g.position.x - pacmanPos.x;
-      const dy = g.position.y - pacmanPos.y;
-      if (dx * dx + dy * dy <= chaseR2) nearCount++;
-    }
-    const nearTarget = Math.max(1, Math.round(cap * NEAR_GHOST_TARGET_FRACTION));
-    const tightenSpawn = nearCount < nearTarget;
-
-    const spawn = this._pickGhostSpawnTile(pacmanPos, { tighten: tightenSpawn });
-    if (!spawn) return;
-
-    // Colour: chunk-derived so a given tile in a given world reliably
-    // produces the same ghost colour. Adds visual consistency without
-    // making spawn TIMES predictable.
-    const colorIdx = (hashCoords(this.seed ^ 0xa5a5a5a5, spawn.gx, spawn.gy) >>> 0) % 4;
-    const ghost = new Ghost({
-      gridX: spawn.gx,
-      gridY: spawn.gy,
-      colorIdx,
-      scale: this.scale,
-      world: this
-    });
-    ghost.addToScene(this.scene);
-    this.ghosts.add(ghost);
-    // Pacman is mid-power-mode → flip the new ghost straight to FLEE
-    // for the remaining duration so it shows up blue, matching the
-    // ghosts that were already on the map when the pill was eaten.
-    if (powerInfo && powerInfo.powered && powerInfo.powerTimer > 0) {
-      ghost.enterFlee(powerInfo.powerTimer);
-    }
-  }
-
-  _randomSpawnInterval() {
-    const lo = GAMEPLAY.GHOST_SPAWN_INTERVAL_MIN;
-    const hi = GAMEPLAY.GHOST_SPAWN_INTERVAL_MAX;
-    return lo + Math.random() * (hi - lo);
-  }
-
-  /**
-   * Pick a tile to spawn a ghost on. Constraints:
-   *   - In a currently-loaded chunk
-   *   - Walkable (FLOOR or WALL — the ghost AI handles surface heights)
-   *   - Not within GHOST_MIN_SPAWN_DIST_TILES of Pacman (so spawns feel
-   *     "elsewhere", not in your face)
-   *   - Within GHOST_MAX_SPAWN_DIST_TILES of Pacman (avoids spawning in
-   *     a corner of a chunk we don't actually look at)
-   *
-   * Returns null after a few attempts; the spawn timer will retry next
-   * tick. Probabilistic, not exhaustive — spawning eventually happens
-   * naturally as the player moves.
-   */
-  _pickGhostSpawnTile(pacmanPos, opts = {}) {
-    const chunkList = Array.from(this.chunks.values());
-    if (chunkList.length === 0) return null;
-    // Difficulty-scaled minimum spawn distance: Hard pulls the floor in
-    // (5 tiles instead of 7) so ghosts can pop in around the corner;
-    // Easy pushes it out (9 tiles) so spawns always feel "elsewhere".
-    // When opts.tighten is true (active rebalancing — too few ghosts
-    // near the player), we further halve the minimum distance for *this
-    // attempt only* so the new ghost actually arrives in the chase ring.
-    const minDistTiles =
-      GAMEPLAY.GHOST_MIN_SPAWN_DIST_TILES *
-      (this.difficulty.ghostMinSpawnDistMul ?? 1.0) *
-      (opts.tighten ? NEAR_SPAWN_DIST_TIGHTEN : 1.0);
-    const minD = minDistTiles * this.scale;
-    const maxD = GAMEPLAY.GHOST_MAX_SPAWN_DIST_TILES * this.scale;
-    const minD2 = minD * minD;
-    const maxD2 = maxD * maxD;
-
-    for (let attempt = 0; attempt < 24; attempt++) {
-      const chunk = chunkList[Math.floor(Math.random() * chunkList.length)];
-      const lx = Math.floor(Math.random() * CHUNK_SIZE);
-      const ly = Math.floor(Math.random() * CHUNK_SIZE);
-      const tile = chunk.map[ly][lx];
-      if (tile !== TILE.FLOOR) continue; // ghosts spawn on the ground, not on top of walls
-      const gx = chunk.cx * CHUNK_SIZE + lx;
-      const gy = chunk.cy * CHUNK_SIZE + ly;
-      const wx = gx * this.scale;
-      const wy = gy * this.scale;
-      const dx = wx - pacmanPos.x;
-      const dy = wy - pacmanPos.y;
-      const d2 = dx * dx + dy * dy;
-      if (d2 < minD2) continue;
-      if (d2 > maxD2) continue;
-      // Don't double-up: avoid spawning where another ghost is already
-      // standing (rare, but feels janky if it happens).
-      let collides = false;
-      for (const g of this.ghosts) {
-        if (g.gridX === gx && g.gridY === gy) {
-          collides = true;
-          break;
-        }
-      }
-      if (collides) continue;
-      return { gx, gy };
-    }
-    return null;
-  }
 
   /** Force-clear all ghosts. Used on game-over → menu transitions. */
   clearGhosts() {
@@ -818,13 +634,13 @@ export class World {
       pacmanGridX: this.worldToGrid(pacmanPos.x),
       pacmanGridY: this.worldToGrid(pacmanPos.y),
       pacmanFacing: powerInfo?.pacmanFacing ?? null,
-      ...this._findBlinkyReference()
+      ...findBlinkyReference(this.ghosts)
     };
 
     // Tag the N closest ghosts with useBfs. They get terrain-aware
     // pathing so they don't bonk into cliffs when chasing through hilly
     // chunks. The rest fall back to greedy.
-    const bfsGhosts = this._pickClosestGhosts(pacmanPos, BFS_NEAREST_GHOST_COUNT);
+    const bfsGhosts = pickClosestGhosts(this.ghosts, pacmanPos, BFS_NEAREST_GHOST_COUNT);
 
     // Tick AI for every live ghost.
     for (const g of this.ghosts) {
@@ -835,50 +651,9 @@ export class World {
     // Pool maintenance — order matters: dispose eaten first so they don't
     // count against the population cap, then cull anyone too far away,
     // then maybe spawn one new ghost to keep the area populated.
-    this._disposeEatenGhosts();
-    this._cullGhosts(pacmanPos);
-    this._tickGhostSpawning(dt, pacmanPos, powerInfo);
-  }
-
-  /**
-   * Find the closest live red ghost to use as Inky's flank reference.
-   * Returns { blinkyGridX, blinkyGridY } or empty object if no Blinky.
-   */
-  _findBlinkyReference() {
-    let best = null;
-    let bestKey = Infinity;
-    for (const g of this.ghosts) {
-      if (g.personality !== PERSONALITY.BLINKY) continue;
-      if (g.state === GHOST_STATE.EATEN) continue;
-      // Lower gx+gy is arbitrary but deterministic — gives a stable pick
-      // when multiple Blinkys exist (rare, but possible with the spawn pool).
-      const key = g.gridX * 100000 + g.gridY;
-      if (key < bestKey) {
-        bestKey = key;
-        best = g;
-      }
-    }
-    if (!best) return {};
-    return { blinkyGridX: best.gridX, blinkyGridY: best.gridY };
-  }
-
-  /**
-   * Return a Set of the up-to-N ghosts closest to Pacman. Used to flag
-   * which ghosts get BFS pathing this frame (cheap subset, expensive
-   * brain). Squared-distance keeps the comparison branch-free.
-   */
-  _pickClosestGhosts(pacmanPos, n) {
-    if (n <= 0 || this.ghosts.size === 0) return new Set();
-    const arr = [];
-    for (const g of this.ghosts) {
-      const dx = g.position.x - pacmanPos.x;
-      const dy = g.position.y - pacmanPos.y;
-      arr.push({ g, d2: dx * dx + dy * dy });
-    }
-    arr.sort((a, b) => a.d2 - b.d2);
-    const out = new Set();
-    for (let i = 0; i < Math.min(n, arr.length); i++) out.add(arr[i].g);
-    return out;
+    disposeEatenGhosts(this);
+    cullGhosts(this, pacmanPos);
+    tickGhostSpawning(this, dt, pacmanPos, powerInfo);
   }
 
   /**
@@ -897,155 +672,4 @@ export class World {
       g.exitFlee();
     }
   }
-}
-
-function chunkKey(cx, cy) {
-  return `${cx},${cy}`;
-}
-
-/**
- * Build a procedural canvas texture that looks like a wall of building
- * windows when tiled vertically. Per-pixel window pattern is drawn once
- * at boot and re-used for every wall tile in every chunk.
- *
- * The texture itself is one "building floor" tall — in combination with
- * the per-tile UV V-scaling in chunk.buildWalls(), a 4-tile-tall mountain
- * gets 4 rows of windows stacked, reading as a 4-storey building.
- */
-function createBuildingWindowTexture() {
-  const SIZE = 128;
-  const COLS = 3; // windows across one tile width
-  const c = document.createElement('canvas');
-  c.width = SIZE;
-  c.height = SIZE;
-  const ctx = c.getContext('2d');
-  // Wall background — dark navy "facade" so the windows pop.
-  ctx.fillStyle = '#0e1840';
-  ctx.fillRect(0, 0, SIZE, SIZE);
-  // Faint mortar / floor-divider line at the top of the tile.
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.fillRect(0, 0, SIZE, 4);
-  // Vertical column gutters (between windows) for depth.
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  for (let i = 1; i < COLS; i++) {
-    const x = (SIZE / COLS) * i - 1;
-    ctx.fillRect(x, 0, 2, SIZE);
-  }
-  // Window grid. One row per tile-unit, with the windows centered
-  // vertically so the texture tiles cleanly when V repeats.
-  const cellW = SIZE / COLS;
-  const winW = cellW * 0.6;
-  const winH = SIZE * 0.55;
-  const yStart = SIZE * 0.2;
-  for (let i = 0; i < COLS; i++) {
-    const x = i * cellW + (cellW - winW) / 2;
-    const y = yStart;
-    // Pseudo-random lit pattern (deterministic per column index) so it
-    // looks like real windows without "every window lit" uniformity.
-    const lit = (i * 37 + 11) % 4 < 3;
-    if (lit) {
-      // Bright warm yellow window with a soft glow halo.
-      ctx.fillStyle = 'rgba(255, 220, 110, 0.35)';
-      ctx.fillRect(x - 6, y - 6, winW + 12, winH + 12);
-      ctx.fillStyle = '#ffe080';
-    } else {
-      ctx.fillStyle = '#070a18';
-    }
-    ctx.fillRect(x, y, winW, winH);
-    // Window cross-mullions for that "office tower" look.
-    ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(x + winW / 2, y);
-    ctx.lineTo(x + winW / 2, y + winH);
-    ctx.moveTo(x, y + winH / 2);
-    ctx.lineTo(x + winW, y + winH / 2);
-    ctx.stroke();
-  }
-  const tex = new THREE.CanvasTexture(c);
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.RepeatWrapping;
-  tex.magFilter = THREE.LinearFilter;
-  tex.minFilter = THREE.LinearMipmapLinearFilter;
-  tex.anisotropy = 4;
-  return tex;
-}
-
-/**
- * Create the materials + dot geometry that every chunk shares. Centralising
- * these means we only allocate the GL resources once per world, not per chunk.
- */
-function createSharedAssets(scale) {
-  // Two wall flavours, picked per-tile in chunk.buildWalls() based on
-  // the tile's stack height:
-  //   - HOUSES  (short walls, stackUnits ≤ 2): textured with a window
-  //     grid → reads as a low-rise village.
-  //   - MOUNTAIN (tall walls, stackUnits ≥ 3): plain rocky grey with
-  //     no windows → reads as a cliff/peak rather than a giant tower.
-  const wallTexture = createBuildingWindowTexture();
-  const wallMaterial = new THREE.MeshStandardMaterial({
-    color: 0xffffff, // texture provides the colour; keep tint neutral
-    roughness: 0.6,
-    metalness: 0.05,
-    // Emissive map = same texture, so the LIT WINDOWS glow against the
-    // dark facade. Modest base intensity — the lit pixels already pop.
-    emissive: 0xffffff,
-    emissiveIntensity: 0.35,
-    map: wallTexture,
-    emissiveMap: wallTexture
-  });
-  // Mountain rock: cool slate-grey with a hint of blue so it harmonises
-  // with the rest of the palette (which is mostly blue). High roughness
-  // and zero metalness keep it matte — natural stone, not building.
-  const mountainMaterial = new THREE.MeshStandardMaterial({
-    color: 0x55607a,
-    roughness: 0.95,
-    metalness: 0.0,
-    emissive: 0x111722,
-    emissiveIntensity: 0.2
-  });
-
-  // Floors: lighter steel-blue, distinct from walls but visibly part of the
-  // same family. Was 0x2a2a3a (almost black) which made elevated terrain
-  // (e.g. the terraced pyramid) silhouette into the dark sky.
-  const floorMaterial = new THREE.MeshStandardMaterial({
-    color: 0x6080b0,
-    roughness: 0.7,
-    metalness: 0.0,
-    emissive: 0x182840,
-    emissiveIntensity: 0.2
-  });
-
-  const dotMaterial = new THREE.MeshStandardMaterial({
-    color: 0xffffaa,
-    emissive: 0xffff88,
-    emissiveIntensity: 0.6,
-    roughness: 0.2,
-    metalness: 0.3
-  });
-
-  // Bump dot radius from 0.08 → 0.13 of a tile so individual pellets read
-  // from farther away — important now that they're sparser.
-  const dotGeometry = new THREE.SphereGeometry(scale * 0.13, 8, 8);
-
-  // Power pill — clearly distinct from regular dots: ~3× size, magenta,
-  // strong emissive that gets pulsed by World.update().
-  const pillMaterial = new THREE.MeshStandardMaterial({
-    color: 0xff80ff,
-    emissive: 0xff40ff,
-    emissiveIntensity: 0.7,
-    roughness: 0.3,
-    metalness: 0.4
-  });
-  const pillGeometry = new THREE.SphereGeometry(scale * 0.32, 16, 12);
-
-  return {
-    wallMaterial,
-    mountainMaterial,
-    floorMaterial,
-    dotMaterial,
-    dotGeometry,
-    pillMaterial,
-    pillGeometry
-  };
 }

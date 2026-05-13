@@ -1,0 +1,375 @@
+/* Accordion — register switches above the keyboard: silver "stop" pills with
+   reed indicator dots, plus the collapsed-toggle popover used on phones. */
+
+/* ---------- Register switches ----------
+ *
+ * Modelled on the physical "stop buttons" found above the keyboard on a
+ * piano accordion. Each button is a black plastic pill with a silver
+ * (metal) plate inset showing a vertical spine; black dots punched on the
+ * spine at top / middle / bottom mark which reed banks (H / M / L) the
+ * register engages. Pressing one engages those reeds — exactly the visual
+ * convention you'll find on a real instrument.
+ *
+ * The strip is positioned just above the keyboard / button array — the
+ * same place the row of stops is mounted on the body of a real accordion.
+ */
+.register-strip {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  margin: 0 auto 4px;
+  flex-wrap: wrap;
+}
+
+.register-strip-meta {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  user-select: none;
+}
+
+.register-strip-label {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+/* Tells the player at a glance which hand the visible stops belong to —
+ * because the strip swaps content when you switch between left- and
+ * right-hand views. */
+.register-strip-hand {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  text-transform: uppercase;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.register-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.register-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Tighter vertical packing — these buttons sit between the chrome
+   * row and the keyboard and were taking ~62px of vertical real
+   * estate (5+38+4+12+5). Trimmed gap and padding bring the chip
+   * closer to ~48px without losing the silver-stop look. */
+  gap: 2px;
+  padding: 3px 6px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #0d0d0d 100%);
+  border: 1px solid #000;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -2px 4px rgba(0, 0, 0, 0.6),
+    0 1px 2px rgba(0, 0, 0, 0.5);
+  transition: transform 80ms ease, box-shadow 120ms ease;
+}
+
+.register-button:hover .register-stop {
+  filter: brightness(1.05);
+}
+
+.register-button:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.7), 0 0 0 rgba(0, 0, 0, 0);
+}
+
+.register-button.selected {
+  background: linear-gradient(180deg, #4a4a4a 0%, #1a1a1a 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -2px 4px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(168, 85, 247, 0.85), 0 6px 16px -10px rgba(168, 85, 247, 0.7);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* Silver "stop" plate — the rectangular metal insert in the middle of the
+ * black button. Engraved with a vertical spine via ::before. */
+.register-stop {
+  position: relative;
+  width: 18px;
+  height: 28px;
+  background: linear-gradient(180deg, #f3f4f6 0%, #c4c4c4 50%, #9a9a9a 100%);
+  border: 1px solid #6b6b6b;
+  border-radius: 3px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.register-stop::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 50%;
+  width: 1.5px;
+  background: rgba(0, 0, 0, 0.55);
+  transform: translateX(-50%);
+  border-radius: 1px;
+}
+
+/* The dots are only rendered when their reed is active — appended by JS. */
+.register-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: radial-gradient(circle at 30% 30%, #2a2a2a, #000 70%);
+  border-radius: 50%;
+  left: 50%;
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.6);
+}
+
+.register-dot.h {
+  top: 24%;
+  transform: translate(-50%, -50%);
+}
+
+.register-dot.m {
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Musette: two M reeds shown as a vertically-split pair just above /
+ * below centre. The visual convention (used on real Italian-style
+ * accordion stops) lets the player tell a "single M" stop apart from
+ * a "double M" stop at a glance. The cents-detuned reed sits below;
+ * the unison reed above. Both inside the M zone (40–60%) so they
+ * read as "still M, just two of them" rather than drifting toward
+ * the L or H positions. */
+.register-dot.m1 {
+  top: 41%;
+  transform: translate(-50%, -50%);
+}
+
+.register-dot.m2 {
+  top: 59%;
+  transform: translate(-50%, -50%);
+}
+
+.register-dot.l {
+  top: 76%;
+  transform: translate(-50%, -50%);
+}
+
+.register-label {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: inherit;
+  text-transform: uppercase;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Compact "current register" pill — only visible when the strip
+ * collapses (short viewports). On desktop and portrait phones the
+ * full strip of stops is what the player sees; the toggle hides
+ * itself out of the way. */
+.register-toggle {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 3px 6px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #0d0d0d 100%);
+  border: 1px solid #000;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -2px 4px rgba(0, 0, 0, 0.6),
+    0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.register-toggle:active {
+  transform: translateY(1px);
+}
+
+.register-toggle-stop {
+  /* Mirror of the active register's silver plate — JS clones the dot
+   * pattern of whichever stop is currently engaged. */
+  width: 14px;
+  height: 22px;
+}
+
+.register-toggle-name {
+  line-height: 1;
+}
+
+.register-toggle-chevron {
+  font-size: 8px;
+  opacity: 0.7;
+  line-height: 1;
+  transition: transform 120ms ease;
+}
+
+.register-toggle[aria-expanded='true'] .register-toggle-chevron {
+  transform: rotate(180deg);
+}
+
+@media (max-width: 720px) {
+  .register-strip {
+    /* Tighter than desktop because every vertical pixel here pushes
+     * the keyboard further down on a phone. */
+    gap: 6px;
+    padding: 2px 6px;
+    margin: 0 auto 2px;
+  }
+  .register-button {
+    padding: 2px 5px 3px;
+    border-radius: 8px;
+  }
+  .register-stop {
+    width: 14px;
+    height: 22px;
+  }
+  .register-dot {
+    width: 4px;
+    height: 4px;
+  }
+  .register-label {
+    font-size: 8px;
+  }
+}
+
+/* JS moves the strip between `.accordion-stage` (desktop) and
+ * `.instrument-controls` (mobile). Until it's placed we keep it
+ * invisible so a mobile visitor doesn't briefly see the desktop
+ * full-stop strip flash above the keyboard before being relocated
+ * up into the chrome row. */
+.register-strip:not([data-placed]) {
+  visibility: hidden;
+}
+
+/* ---------- Collapsed register strip (mobile) ----------
+ *
+ * On phones (portrait or landscape) we collapse the register strip
+ * into a single "current register" pill that sits inline with the
+ * other chrome controls; the JS moves the element into the chrome
+ * row at this breakpoint. Tapping the pill opens a popover anchored
+ * to it that holds the full set of stops.
+ */
+@media (max-width: 720px), (max-height: 540px) {
+  .register-strip {
+    /* Anchor the popover to the strip and let the pill take its
+     * natural width — no big horizontal gap, no wrap. */
+    position: relative;
+    gap: 6px;
+    padding: 0;
+    margin: 0;
+    flex-wrap: nowrap;
+  }
+  /* When the strip lives inline with the chrome controls (mobile)
+   * we want the small "REGISTER" tag visible — every other item in
+   * that row has a label, and a bare silver-stop pill with no
+   * caption is harder to read at a glance. The desktop strip in
+   * .accordion-stage uses its own column-stacked meta block, so
+   * we only re-style when the strip is in .instrument-controls. */
+  .instrument-controls .register-strip-meta {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+  }
+  .instrument-controls .register-strip-label {
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--fg-dim);
+  }
+  .instrument-controls .register-strip-hand {
+    /* The active hand is implicit from the View dropdown — hide
+     * the sub-label inline so the chrome row stays tight. */
+    display: none;
+  }
+  /* If the strip ever ends up back in the stage on a mobile width
+   * (transient during JS placement, or no-JS), keep the meta hidden
+   * so the inline strip styling above doesn't leak through. */
+  .accordion-stage .register-strip-meta {
+    display: none;
+  }
+  .register-toggle {
+    display: inline-flex;
+  }
+  /* Inline strip becomes the popover panel: hidden by default, shown
+   * (anchored beneath the toggle) when the toggle is open. We keep
+   * the buttons rendered so the radiogroup state survives the toggle
+   * collapse, but hide them visually until the player asks. */
+  .register-options {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    flex-wrap: wrap;
+    gap: 6px;
+    /* Without an explicit sizing hint flexbox shrink-fits to the
+     * narrowest child, forcing every stop onto its own line — which
+     * with 6 right-hand registers blows past a 360-tall landscape
+     * viewport. `max-content` keeps the popover horizontal whenever
+     * it can; `max-width: 100vw - 16px` lets it wrap onto a second
+     * row on truly narrow phones rather than overflow off-screen. */
+    width: max-content;
+    max-width: calc(100vw - 16px);
+    padding: 6px 8px;
+    background: linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.7);
+  }
+  .register-strip[data-collapsed-open='true'] .register-options {
+    display: flex;
+  }
+  /* Restore the full per-button affordance inside the popover — these
+   * are now the primary tap targets, not crammed into a strip, so the
+   * label can come back. */
+  .register-button {
+    padding: 3px 6px;
+    border-radius: 8px;
+    gap: 2px;
+  }
+  .register-label {
+    display: inline;
+    font-size: 9px;
+  }
+}
+
+/* ---------- Landscape phone: REGISTER tightening ----------
+ *
+ * On landscape phones the chrome row is already two-deep (the four
+ * selects fill row 1; REGISTER often wraps to row 2 on its own and
+ * sits centered with a lot of empty whitespace either side). At this
+ * height we drop the inline "REGISTER" label so the pill alone is
+ * small enough to fit alongside the other controls on row 1, and
+ * kill the row-gap so any remaining wrap doesn't add a visible
+ * vertical band above the keyboard. The silver-stop pattern +
+ * active-register letter inside the pill still identifies it without
+ * the textual caption. */
+@media (max-height: 540px) {
+  .instrument-controls {
+    row-gap: 0;
+  }
+  .instrument-controls .register-strip-meta {
+    display: none;
+  }
+  .instrument-controls .register-strip {
+    gap: 0;
+  }
+}

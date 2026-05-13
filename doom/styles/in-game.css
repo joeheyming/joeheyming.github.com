@@ -1,0 +1,223 @@
+/* DOOM — in-game UI layered over the engine canvas:
+   #canvas sizing, the fullscreen toggle (#fsBtn), and the in-game
+   flavor switcher (floating top-right + inline picker variant). */
+
+
+#canvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  width: 100svw;
+  height: 100svh;
+  background: #000;
+  outline: 0;
+}
+
+#fsBtn {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  background: rgba(20, 20, 24, 0.6);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 11px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: inherit;
+  opacity: 0.35;
+  transition: opacity 0.2s;
+}
+#fsBtn:hover {
+  opacity: 1;
+  background: rgba(30, 30, 36, 0.9);
+}
+#fsBtn.hidden {
+  display: none;
+}
+body.mobile #fsBtn {
+  display: none !important;
+}
+
+/* In-game flavor switcher. Sits beside the fullscreen button (top-right)
+   while playing; the menu pops down. Visible on mobile too — switching
+   flavors is more useful than the fullscreen toggle on touch devices,
+   so we don't hide it like #fsBtn. */
+/* Floating in-game switcher (top-right of canvas while playing). */
+#flavorSwitcher.floating {
+  position: fixed;
+  top: 12px;
+  right: 100px;
+  z-index: 6;
+  font-family: inherit;
+}
+.flavor-switcher.hidden {
+  display: none;
+}
+body.mobile #flavorSwitcher.floating {
+  /* Push down a bit so it's clear of any phone notch/status. */
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: calc(12px + env(safe-area-inset-right, 0px));
+}
+.flavor-switch-btn {
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(20, 20, 24, 0.6);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 11px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: inherit;
+  opacity: 0.35;
+  transition: opacity 0.2s;
+}
+.flavor-switch-btn:hover,
+.flavor-switcher.open .flavor-switch-btn {
+  opacity: 1;
+  background: rgba(30, 30, 36, 0.9);
+}
+/* Inline picker variant: full opacity by default since it's the only
+   way into Manual mode and shouldn't be near-invisible. */
+.flavor-switcher.inline .flavor-switch-btn {
+  opacity: 0.9;
+  font-size: 12px;
+  padding: 8px 14px;
+}
+.flavor-switch-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  background: rgba(15, 15, 18, 0.96);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+}
+/* Inline picker menu opens centered under the button (the picker page
+   is centered, so right-anchoring would push it off-screen on small
+   widths). */
+.flavor-switcher.inline .flavor-switch-menu {
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.flavor-switch-menu.hidden {
+  display: none;
+}
+.flavor-switch-menu button {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  color: var(--text);
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 100ms;
+}
+.flavor-switch-menu button:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.flavor-switch-menu button[disabled] {
+  cursor: default;
+  opacity: 0.55;
+  background: rgba(255, 255, 255, 0.04);
+}
+.flavor-switch-menu button .dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+.flavor-switch-menu button[data-active='true']::after {
+  content: '✓';
+  margin-left: auto;
+  color: var(--accent);
+  font-size: 12px;
+}
+.flavor-switch-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--border);
+}
+/* Bigger touch targets on mobile so the menu doesn't feel cramped
+   when the user opens it from the inline picker. */
+body.mobile .flavor-switch-menu {
+  min-width: 240px;
+}
+body.mobile .flavor-switch-menu button {
+  padding: 12px 12px;
+  font-size: 13px;
+}
+
+#exited .outcome {
+  font-size: 14px;
+  color: var(--text);
+}
+#exited .outcome.ok {
+  color: var(--ok);
+}
+#exited .outcome.err {
+  color: var(--warn);
+}
+#exited .detail {
+  font-size: 11px;
+  color: var(--dim);
+  max-width: 500px;
+  line-height: 1.6;
+}
+#exited .reason {
+  font-size: 11px;
+  color: var(--dim);
+  font-family: inherit;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 20;
+}
+.modal.hidden {
+  display: none;
+}
+.modal .body {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 20px;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.modal h3 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text);
+}
+.modal p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--dim);
+  line-height: 1.5;
+}

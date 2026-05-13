@@ -1,0 +1,215 @@
+/* Periodic Speller — theme picker dropdown, per-theme overrides on
+   the tile palette, and the export-results button. */
+
+/* Theme picker */
+.theme-picker-wrap {
+  position: relative;
+}
+
+.theme-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.6rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+  min-width: 240px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  animation: modalIn 0.15s ease-out;
+  z-index: 10;
+}
+
+.theme-popover[hidden] {
+  display: none;
+}
+
+.theme-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.4rem;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background: none;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.theme-swatch:hover {
+  background: var(--border);
+}
+
+.theme-swatch.active {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.theme-swatch-preview {
+  width: 36px;
+  height: 28px;
+  border-radius: 5px;
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Theme overrides on tiles */
+.tiles[data-theme='pastel'] .tile {
+  background: #f0f4ff;
+  border-width: 2px;
+}
+.tiles[data-theme='pastel'] .tile .tile-symbol {
+  color: #1e293b;
+}
+.tiles[data-theme='pastel'] .tile .tile-name {
+  color: #64748b;
+}
+.tiles[data-theme='pastel'] .tile .tile-mass {
+  color: #94a3b8;
+}
+.tiles[data-theme='pastel'] .tile-unmatched {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+.tiles[data-theme='pastel'] .tile-unmatched .tile-symbol {
+  color: #94a3b8;
+}
+.tiles[data-theme='pastel'] .tile-unmatched .tile-name {
+  color: #cbd5e1;
+}
+
+.tiles[data-theme='neon'] .tile {
+  background: #0a0a0a;
+  box-shadow:
+    0 0 10px var(--tile-border),
+    inset 0 0 8px rgba(255, 255, 255, 0.03);
+}
+.tiles[data-theme='neon'] .tile .tile-symbol {
+  text-shadow: 0 0 12px currentColor;
+}
+
+.tiles[data-theme='mono'] .tile {
+  border-color: #e2e8f0;
+  background: var(--tile-bg);
+}
+.tiles[data-theme='mono'] .tile .tile-number {
+  color: #e2e8f0;
+}
+.tiles[data-theme='mono'] .tile .tile-symbol {
+  color: #f8fafc;
+}
+.tiles[data-theme='mono'] .tile .tile-name {
+  color: #94a3b8;
+}
+
+.tiles[data-theme='heisenberg'] .tile {
+  background: #0c1a0c;
+  border-color: #22c55e;
+}
+.tiles[data-theme='heisenberg'] .tile .tile-number {
+  color: #22c55e;
+}
+.tiles[data-theme='heisenberg'] .tile .tile-symbol {
+  color: #4ade80;
+}
+.tiles[data-theme='heisenberg'] .tile .tile-name {
+  color: #166534;
+}
+.tiles[data-theme='heisenberg'] .tile .tile-mass {
+  color: #14532d;
+}
+.tiles[data-theme='heisenberg'] .tile-unmatched {
+  background: #0c1a0c;
+  border-color: #166534;
+}
+.tiles[data-theme='heisenberg'] .tile-unmatched .tile-symbol {
+  color: #166534;
+}
+.tiles[data-theme='heisenberg'] .tile-unmatched .tile-name {
+  color: #14532d;
+}
+
+.tiles[data-theme='vintage'] .tile {
+  background: #fef3c7;
+  border-color: #92400e;
+  border-width: 2px;
+}
+.tiles[data-theme='vintage'] .tile .tile-number {
+  color: #92400e;
+}
+.tiles[data-theme='vintage'] .tile .tile-symbol {
+  color: #451a03;
+}
+.tiles[data-theme='vintage'] .tile .tile-name {
+  color: #78350f;
+}
+.tiles[data-theme='vintage'] .tile .tile-mass {
+  color: #92400e;
+}
+.tiles[data-theme='vintage'] .tile-unmatched {
+  background: #fef9ee;
+  border-color: #d6d3d1;
+}
+.tiles[data-theme='vintage'] .tile-unmatched .tile-symbol {
+  color: #a8a29e;
+}
+.tiles[data-theme='vintage'] .tile-unmatched .tile-name {
+  color: #d6d3d1;
+}
+
+.export-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.export-option {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.export-option input[type='checkbox'] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.export-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.export-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: var(--border);
+}
+

@@ -1,0 +1,445 @@
+/* Terminal — chrome: page layout, scroll region, prompt dock, input row,
+   transcript selection, pinned hints, scroll-latest button, scrollbar styling,
+   mobile responsive sizing, and the first-run setup wizard wrapper. */
+
+html {
+  color-scheme: dark;
+  /* Theme G: percentage height chain so the shell fills OS iframes (not only standalone 100vh) */
+  height: 100%;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  min-height: 100%;
+  background: #000;
+  color: #fff;
+  font-family: 'Hack', 'Courier New', Courier, ui-monospace, monospace;
+  overflow: hidden;
+}
+
+#terminal-container {
+  position: relative;
+  height: 100%;
+  min-height: 100%;
+  min-height: 100dvh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) calc(10px + env(safe-area-inset-right, 0px))
+    calc(10px + env(safe-area-inset-bottom, 0px)) calc(10px + env(safe-area-inset-left, 0px));
+}
+
+/* Theme G: Heyming OS opens terminal in an iframe — tighter chrome; hide standalone share dock */
+html.terminal-embed-os #terminal-container {
+  padding: calc(6px + env(safe-area-inset-top, 0px)) calc(6px + env(safe-area-inset-right, 0px))
+    calc(6px + env(safe-area-inset-bottom, 0px)) calc(6px + env(safe-area-inset-left, 0px));
+}
+
+html.terminal-embed-os #terminal-share-dock {
+  display: none;
+}
+
+/* Theme G: standalone share button — fixed corner, respects safe areas (no overlap with home indicator) */
+#terminal-share-dock {
+  position: fixed;
+  right: calc(20px + env(safe-area-inset-right, 0px));
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  z-index: 100;
+}
+
+/* Theme G: fatal OS init error (inline HTML in index.html catch) — stderr-like palette, readable in #terminal-output */
+.terminal-init-error {
+  margin: 8px 0;
+  padding: 12px 14px;
+  max-width: 42rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 120, 96, 0.45);
+  border-left: 3px solid rgba(255, 120, 96, 0.75);
+  background: linear-gradient(90deg, rgba(48, 12, 8, 0.55) 0%, rgba(0, 0, 0, 0.35) 100%);
+  color: #f5d0c8;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.terminal-init-error-title {
+  display: block;
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffb4a8;
+}
+
+.terminal-init-error-line {
+  margin: 4px 0 0;
+}
+
+.terminal-init-error-hint {
+  margin-top: 10px;
+  color: rgba(245, 208, 200, 0.82);
+  font-size: 12px;
+}
+
+@media (prefers-contrast: more) {
+  .terminal-init-error {
+    border-color: rgba(255, 180, 160, 0.85);
+    color: #fff;
+    background: #1a0806;
+  }
+
+  .terminal-init-error-title {
+    color: #fff;
+  }
+}
+
+/* Theme G: skip link — keyboard users jump past welcome/output to the prompt */
+.terminal-skip-link {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.terminal-skip-link:focus {
+  position: fixed;
+  left: 12px;
+  top: 12px;
+  z-index: 5000;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 8px 12px;
+  overflow: visible;
+  clip: auto;
+  white-space: nowrap;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 255, 80, 0.45);
+  background: rgba(0, 32, 0, 0.96);
+  color: #b6f7b6;
+  font-family: inherit;
+  font-size: 13px;
+  text-decoration: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+}
+
+.terminal-skip-link:focus-visible {
+  outline: 2px solid rgba(0, 255, 80, 0.55);
+  outline-offset: 2px;
+}
+
+/* Single scroll region: transcript + current prompt (input follows output, no fixed bottom gap). */
+#terminal-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  line-height: 1.45;
+  scrollbar-gutter: stable;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 255, 80, 0.42) #1a1a1a;
+}
+
+#terminal-output {
+  flex: 0 0 auto;
+  margin-bottom: 8px;
+  line-height: 1.45;
+  overflow: visible;
+  /* Theme G: default pipeline text — soft green-white (inherits to plain .terminal-output lines) */
+  color: #dff8e4;
+  font-variant-ligatures: none;
+  /* Theme G: make copy/select obvious without affecting the prompt input (sibling) */
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Theme G: ::selection — readable highlight when copying transcript (avoids low-contrast OS defaults on green text) */
+#terminal-output ::selection,
+#terminal-output *::selection {
+  background-color: rgba(140, 255, 190, 0.55) !important;
+  color: #051208 !important;
+}
+
+#terminal-output ::-moz-selection,
+#terminal-output *::-moz-selection {
+  background-color: rgba(140, 255, 190, 0.55) !important;
+  color: #051208 !important;
+}
+
+#terminal-input::selection {
+  background-color: rgba(140, 255, 190, 0.55) !important;
+  color: #051208 !important;
+}
+
+#terminal-input::-moz-selection {
+  background-color: rgba(140, 255, 190, 0.55) !important;
+  color: #051208 !important;
+}
+
+/* Theme G: pinned shortcut hints — always visible below transcript + prompt (does not scroll away) */
+.terminal-session-hints {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 8px 2px 4px;
+  padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgba(0, 255, 80, 0.1);
+  font-size: 11px;
+  color: rgba(0, 255, 80, 0.62);
+  line-height: 1.35;
+  user-select: none;
+}
+
+.terminal-session-hints-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  justify-content: flex-start;
+}
+
+.terminal-hint-group {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.terminal-hint-group kbd + kbd {
+  margin-left: 1px;
+}
+
+.terminal-hint-label {
+  margin-left: 4px;
+  color: rgba(0, 255, 80, 0.48);
+  font-weight: normal;
+}
+
+.terminal-hint-plus {
+  margin: 0 1px;
+  font-size: 10px;
+  color: rgba(0, 255, 80, 0.35);
+}
+
+.terminal-hint-sep {
+  color: rgba(0, 255, 80, 0.28);
+  user-select: none;
+}
+
+html.terminal-embed-os .terminal-session-hints {
+  padding-top: 6px;
+  padding-bottom: calc(2px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Theme G: jump to latest — when transcript is scrolled up, return to prompt + newest lines */
+/* z-index above site floating widgets (e.g. related-projects FAB at ~9000) */
+.terminal-scroll-latest {
+  position: fixed;
+  z-index: 9200;
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 255, 80, 0.38);
+  background: linear-gradient(180deg, rgba(0, 48, 12, 0.96) 0%, rgba(0, 24, 6, 0.98) 100%);
+  color: #b6f7b6;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+.terminal-scroll-latest:hover {
+  border-color: rgba(0, 255, 80, 0.55);
+  color: #d8ffd8;
+}
+
+.terminal-scroll-latest:focus-visible {
+  outline: 2px solid rgba(0, 255, 80, 0.55);
+  outline-offset: 2px;
+}
+
+html.terminal-embed-os .terminal-scroll-latest {
+  bottom: calc(46px + env(safe-area-inset-bottom, 0px));
+  right: calc(8px + env(safe-area-inset-right, 0px));
+  padding: 5px 8px;
+  font-size: 11px;
+}
+
+@media (prefers-contrast: more) {
+  .terminal-scroll-latest {
+    border-color: rgba(0, 255, 120, 0.75);
+    background: #0a1a0c;
+    color: #fff;
+  }
+}
+
+/* Theme G: prompt dock — separates scrolling transcript from the active input row */
+#current-prompt-line {
+  display: flex;
+  align-items: center;
+  margin: 6px 0 2px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 255, 80, 0.12);
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+html.terminal-embed-os #current-prompt-line {
+  margin-top: 4px;
+  padding-top: 8px;
+}
+
+/* Theme G: blocking command — input disabled; output region aria-busy */
+#terminal-container.terminal-command-running #prompt-text {
+  opacity: 0.72;
+}
+
+#terminal-container.terminal-command-running #terminal-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+#terminal-container.terminal-command-running #current-prompt-line::after {
+  content: 'Running… Ctrl+C to interrupt';
+  flex: 0 1 auto;
+  margin-left: 6px;
+  font-size: 12px;
+  line-height: 1.3;
+  color: #8fbc8f;
+  font-weight: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: min(52vw, 22rem);
+}
+
+/* Theme G: narrow screens — stack the running hint under prompt + input so it stays readable */
+@media (max-width: 520px) {
+  #terminal-container.terminal-command-running #current-prompt-line {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    row-gap: 2px;
+  }
+
+  #terminal-container.terminal-command-running #current-prompt-line::after {
+    flex: 1 1 100%;
+    margin-left: 0;
+    max-width: 100%;
+    padding-top: 2px;
+    white-space: normal;
+  }
+}
+
+#prompt-text {
+  color: #0f0;
+  font-weight: bold;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: min(46vw, 22rem);
+}
+
+#terminal-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #0f0;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.45;
+  caret-color: #0f0;
+  caret-shape: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: 0;
+}
+
+#terminal-input:focus-visible {
+  outline: none;
+}
+
+#terminal-input::placeholder {
+  color: rgba(0, 255, 80, 0.38);
+  opacity: 1;
+}
+
+.terminal-line {
+  margin: 2px 0;
+}
+
+/* Scrollbar styling (aligned with .top-modal .top-content — soft green, not full neon) */
+/* Scrollbar styling (aligned with .top-modal .top-content — soft green, not full neon) */
+#terminal-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+#terminal-scroll::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+#terminal-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 80, 0.42);
+  border-radius: 4px;
+}
+
+#terminal-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 80, 0.62);
+}
+
+/* Animation for matrix effect */
+@keyframes matrixRain {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  #terminal-container {
+    padding: calc(5px + env(safe-area-inset-top, 0px)) calc(5px + env(safe-area-inset-right, 0px))
+      calc(5px + env(safe-area-inset-bottom, 0px)) calc(5px + env(safe-area-inset-left, 0px));
+  }
+
+  #terminal-input {
+    font-size: 12px;
+  }
+
+  .terminal-output {
+    font-size: 12px;
+  }
+}
+
+/* First-run setup wizard */
+.setup-wizard {
+  color: #6ec6ff;
+  font-family: inherit;
+  line-height: 1.5;
+  margin: 0;
+  white-space: pre;
+}
+
+.setup-error {
+  color: #ff6b6b;
+  padding: 2px 0;
+}

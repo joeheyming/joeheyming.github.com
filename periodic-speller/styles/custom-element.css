@@ -1,0 +1,198 @@
+/* Periodic Speller — user-defined custom elements: the new-element
+   dialog, clickable unmatched tile, and the bar that lists added
+   custom elements with their actions. */
+
+/* Custom element dialog */
+.custom-el-dialog {
+  max-width: 360px;
+}
+
+.custom-el-hint {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.custom-el-hint span {
+  color: var(--accent);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.custom-el-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.8rem;
+}
+
+.custom-el-field label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.custom-el-field input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.custom-el-field input:focus {
+  border-color: var(--accent);
+}
+
+.custom-el-field input[readonly] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.custom-el-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.custom-el-save {
+  background: var(--accent) !important;
+  color: #0f172a !important;
+  border-color: var(--accent) !important;
+}
+
+.custom-el-save:hover {
+  opacity: 0.9;
+}
+
+/* Unmatched tile clickable */
+.tile-unmatched.clickable {
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.tile-unmatched.clickable:hover {
+  border-color: var(--accent);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.tile-unmatched.clickable .tile-name {
+  color: var(--accent);
+}
+
+/* Custom element list bar */
+.custom-el-list {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.custom-el-list[hidden] {
+  display: none;
+}
+
+.custom-el-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+}
+
+.custom-el-clear-all {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition:
+    color 0.15s,
+    background 0.15s;
+}
+
+.custom-el-clear-all:hover {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+}
+
+#customElItems {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.custom-el-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.5rem 0.3rem 0.7rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.custom-el-chip-sym {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.custom-el-chip-name {
+  color: var(--text-muted);
+}
+
+.custom-el-chip-remove {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0 0.15rem;
+  line-height: 1;
+  border-radius: 3px;
+  transition:
+    color 0.15s,
+    background 0.15s;
+}
+
+.custom-el-chip-remove:hover {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.15);
+}
+
+.how-it-works {
+  margin-top: 2.5rem;
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.how-it-works summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text);
+  user-select: none;
+}
+
+.how-it-works p {
+  margin-top: 0.6rem;
+}
+

@@ -144,7 +144,7 @@ class GameOverModalElement extends HTMLElement {
       ? '<div class="failed-badge" style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 999px; font-size: 12px; margin-bottom: 8px;">Health Depleted</div>'
       : '';
 
-    // Host animation styles; content styles from components.css via adoptSharedStyles
+    // Host animation styles; content styles from components/game-over.css via adoptSharedStyles
     this.shadowRoot.innerHTML = `
       <style>
         :host { animation: gameOverFadeIn 0.3s ease-out; }

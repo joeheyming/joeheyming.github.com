@@ -1,0 +1,54 @@
+/* DOOM (unified) — boot overlay, flavor picker, and in-game touch UI.
+ *
+ * uzdoom-loader.js owns most of the in-engine canvas styling implicitly
+ * (it doesn't write CSS). This file styles only the boot overlay layered
+ * on top of the canvas before launch, the flavor picker landing,
+ * and the mobile touch overlay.
+ *
+ * Three layout modes share the same DOM and are switched via a body
+ * class set by the inline mode-switch script in index.html:
+ *   - body.picker-mode (default, /doom/)        → flavor picker visible
+ *   - body.clean      (?flavor=NAME)            → hero w/ Launch button
+ *   - (no class)      (?manual=1)               → full uzdoom picker UI
+ *
+ * Flavor accent colors live on body.flavor-* overrides of the --accent
+ * custom property; the cards themselves drive their own --flavor-color
+ * via [data-flavor=...] attribute selectors.
+ */
+
+:root {
+  --bg: #0b0b0c;
+  --panel: #131316;
+  --panel2: #1a1a1e;
+  --border: #2a2a30;
+  --border-hot: #4a4a55;
+  --text: #dcdcdc;
+  --dim: #8a8a92;
+  /* Default accent is DOOM red. Flavor body classes override below:
+     freedoom → orange, legend → Zelda green. Classic keeps red. */
+  --accent: #c8392e;
+  --accent-dim: #6a1f18;
+  --ok: #6c6;
+  --warn: #db4;
+  --gold: #d9c77a;
+}
+body.flavor-freedoom {
+  --accent: #d9883a;
+  --accent-dim: #6e421a;
+}
+body.flavor-legend {
+  --accent: #4fa861;
+  --accent-dim: #2a5b37;
+}
+body.flavor-mario {
+  --accent: #2a73d8;
+  --accent-dim: #18467f;
+}
+body.flavor-metroid {
+  --accent: #c39e3a;
+  --accent-dim: #6e571c;
+}
+body.flavor-castlevania {
+  --accent: #7a3fb1;
+  --accent-dim: #3f1f5c;
+}

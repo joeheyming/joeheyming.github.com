@@ -1,0 +1,243 @@
+/* Play — phone-sized viewport rules (chrome + body-locked stage layout)
+   plus PWA standalone hiding of cross-app nav. Loaded LAST so its
+   mobile media queries override the desktop rules in the earlier partials. */
+
+@media (max-width: 640px) {
+  .instrument-header {
+    padding-left: 110px;
+    padding-right: 100px;
+    gap: 10px;
+  }
+  .instruments-link {
+    top: 12px;
+    right: 12px;
+    padding: 8px 12px;
+    font-size: 12px;
+    border-radius: 10px;
+  }
+  .instruments-link-text {
+    display: none;
+  }
+  .instruments-link-icon {
+    font-size: 18px;
+  }
+  .now-playing {
+    font-size: 12px;
+    min-width: 50px;
+  }
+}
+
+/* Very narrow phones (≤ ~iPhone SE / iPhone 12 portrait) — the title was
+ * getting squeezed because the header reserved 110+100px for the back
+ * pill and Instruments icon. Both are smaller at this size, so we can
+ * recover that space. */
+@media (max-width: 480px) {
+  .instrument-header {
+    padding: 14px 76px 6px 84px;
+    gap: 8px;
+  }
+  .instrument-page-title h1 {
+    font-size: clamp(20px, 5vw, 26px);
+  }
+  .now-playing {
+    font-size: 11px;
+    min-width: 0;
+  }
+}
+
+/* Phone-sized viewports: compact chrome so the instrument owns ~80% of
+ * the viewport (the "80/20" rule — controls are tools, not the focus).
+ *
+ * The default desktop controls bar is generous: 13px body, uppercase
+ * 11px labels with letter-spacing, 120px range sliders, free-growing
+ * selects. On a 390px portrait phone that wraps to 6 rows, eating
+ * ~30% of the viewport. On a 720x400 landscape phone the same rules
+ * push the controls offscreen entirely.
+ *
+ * The unified mobile rule below trims:
+ *   - header (icon-only Instruments pill, smaller title)
+ *   - controls bar (smaller padding, gap, font, range width)
+ *   - selects (max-width so a long option label can't widen the
+ *     control past pairing-width — the dropdown itself still
+ *     auto-sizes natively when opened)
+ *   - hints (desktop-only "(hold space)" etc.)
+ *
+ * Both axes get this treatment — portrait benefits from the smaller
+ * controls (fewer wrapping rows) and landscape benefits from the
+ * smaller header (more vertical real-estate for the playing area).
+ */
+@media (max-width: 720px), (max-height: 540px) {
+  .instrument-header {
+    padding-top: 8px;
+    padding-bottom: 4px;
+    /* Reserved horizontal space matches the icon-only pills. */
+    padding-left: 56px;
+    padding-right: 56px;
+    gap: 8px;
+  }
+  .instrument-page-title h1 {
+    font-size: clamp(18px, 4vw, 22px);
+  }
+  .instruments-link {
+    top: 6px;
+    right: 6px;
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  .instruments-link-text {
+    display: none;
+  }
+  .instruments-link-icon {
+    font-size: 16px;
+  }
+  .instrument-controls {
+    gap: 4px 12px;
+    padding: 4px 10px 6px;
+    font-size: 12px;
+  }
+  .control {
+    font-size: 12px;
+    gap: 6px;
+  }
+  .control label {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+  }
+  .control input[type='range'] {
+    width: 90px;
+  }
+  .control select {
+    padding: 3px 6px;
+    font-size: 12px;
+    /* Cap select width so a long option label can't push the control
+     * past the pairing threshold. The native dropdown still expands
+     * when opened. */
+    max-width: 140px;
+    text-overflow: ellipsis;
+  }
+  .octave-buttons button {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+  }
+  .octave-display {
+    min-width: 24px;
+  }
+  .show-options {
+    gap: 8px;
+  }
+  /* The "(hold space)" / "(loading…)" inline hints are noise on a
+   * cramped phone — the sustain checkbox and tone status still convey
+   * state without them. */
+  .control .hint {
+    display: none;
+  }
+}
+
+/* Landscape phones: vertical space is at a premium (a 720x360 device
+ * only has ~360px to work with). Tighten the header and controls
+ * vertical padding even further so the playing area still owns ~80%
+ * of the viewport. */
+@media (max-height: 480px) {
+  .instrument-header {
+    padding-top: 4px;
+    padding-bottom: 2px;
+  }
+  .instrument-controls {
+    padding: 2px 10px 4px;
+    gap: 2px 10px;
+  }
+}
+
+/* Touch devices: hide hints that only make sense with a physical
+ * keyboard (e.g. "(hold space)" next to the Sustain checkbox). The
+ * `.is-touch` class is added by JS on pages that detect touch input. */
+.is-touch .hint-desktop {
+  display: none;
+}
+
+/* Hide the "How to play" panel on phone-sized viewports — covers both
+ * portrait phones (narrow width) and landscape phones (short height),
+ * where vertical space is at a premium. The shared help-popup script
+ * (`/play/shared/help-popup.js`) re-exposes the same content via a
+ * "?" floating button + modal on those viewports. */
+@media (max-width: 720px), (max-height: 540px) {
+  .instrument-help {
+    display: none;
+  }
+}
+
+/* ---------- Phone-sized viewports: lock the page chrome ---------------------
+ *
+ * Same pattern as a sticky-header table: title + controls stay pinned at
+ * the top of the visible viewport, and the playing area below is its own
+ * scroll container that fills the leftover height. Without this, tall
+ * layouts (portrait stradella/chromatic, dense piano + octave control,
+ * 19-fret guitar in landscape) push the controls off the top of the
+ * screen — switching view / register / volume requires scrolling all the
+ * way back up, which is the QoL fix the user asked for.
+ *
+ * Convention: every instrument page has exactly one stage section that
+ * holds the playing area (`.piano-stage`, `.guitar-stage`,
+ * `.accordion-stage`, `.drums-stage`, `.harp-stage`, `.synth-stage`,
+ * `.metronome-stage`, `.hang-stage`, `.mallet-stage`). The
+ * instrument's own stylesheet already declares `flex: 1` on these —
+ * we just add `min-height: 0; overflow: auto` here so they scroll
+ * within the bounded body height.
+ *
+ * Selector specificity is intentionally kept at one class (0,1,0) so
+ * per-instrument mobile overrides at the same specificity win via
+ * cascade order (e.g. accordion sets `overflow: hidden` on the stage
+ * because the register strip should stay pinned and the inner
+ * `.accordion-view` does the actual scrolling).
+ *
+ * `100dvh` (dynamic viewport height) tracks iOS Safari's collapsing URL
+ * bar — using `100vh` alone leaves the bottom of the playing area cut
+ * off when the URL bar is visible. The plain `100vh` line above it is a
+ * fallback for older browsers that don't support `dvh`. */
+@media (max-width: 720px), (max-height: 540px) {
+  .instrument-body {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  .accordion-stage,
+  .piano-stage,
+  .guitar-stage,
+  .drums-stage,
+  .harp-stage,
+  .synth-stage,
+  .metronome-stage,
+  .hang-stage,
+  .mallet-stage {
+    min-height: 0;
+    overflow: auto;
+  }
+}
+
+/* PWA standalone mode: when the user has installed Play as an app,
+ * hide cross-app navigation (the back-to-portfolio button injected
+ * by /back.js, and the "Back home" link in the gallery footer). The
+ * in-app instrument switcher (.instruments-link) stays visible —
+ * that's the router *inside* the music app, not a way out of it.
+ *
+ * Two-pronged detection:
+ *   1. The `@media (display-mode: standalone)` query — modern iOS
+ *      16.4+ and Android Chrome.
+ *   2. The `.pwa-standalone` class set by /back.js on <html> at load
+ *      time. Covers legacy iOS Safari (where `navigator.standalone`
+ *      is the only signal) and any browser that reports the display
+ *      mode unreliably. Belt and suspenders. */
+@media (display-mode: standalone) {
+  .back-to-portfolio,
+  .play-footer a[href='/'] {
+    display: none !important;
+  }
+}
+
+html.pwa-standalone .back-to-portfolio,
+html.pwa-standalone .play-footer a[href='/'] {
+  display: none !important;
+}

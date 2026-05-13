@@ -1,0 +1,846 @@
+/* Heyming OS — modal / floating panels: context menus, notifications, quick-look preview,
+   shutdown dialog, file dialog, open-with dialog. */
+
+/* ============================================================
+   Quick Look Preview
+   ============================================================ */
+
+.quick-look-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 48px; /* Above taskbar */
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 900;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.quick-look-overlay.show {
+  opacity: 1;
+}
+
+.quick-look-container {
+  background: #1a1a2e;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  max-width: 80vw;
+  max-height: 80vh;
+  min-width: 400px;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: scale(0.9);
+  transition: transform 0.2s ease;
+}
+
+.quick-look-overlay.show .quick-look-container {
+  transform: scale(1);
+}
+
+.quick-look-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(to bottom, #2d2d44, #1a1a2e);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.quick-look-title {
+  font-weight: 600;
+  color: #fff;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-look-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.quick-look-close:hover {
+  background: rgba(255, 80, 80, 0.8);
+}
+
+.quick-look-close:focus-visible,
+.quick-look-open:focus-visible {
+  outline: 2px solid rgba(90, 160, 255, 0.95);
+  outline-offset: 2px;
+}
+
+.quick-look-content {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: #0d0d1a;
+}
+
+.quick-look-content img {
+  max-width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.quick-look-content video {
+  max-width: 100%;
+  max-height: 60vh;
+  border-radius: 4px;
+}
+
+.quick-look-content audio {
+  width: 100%;
+  max-width: 400px;
+}
+
+.quick-look-content.audio-preview {
+  background: linear-gradient(135deg, #1a1a2e, #2d2d44);
+}
+
+.quick-look-content.text-preview {
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.quick-look-content pre {
+  margin: 0;
+  padding: 16px;
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  font-size: 12px;
+  color: #a0e0a0;
+  background: #0d0d1a;
+  border-radius: 4px;
+  overflow: auto;
+  max-width: 100%;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.quick-look-content .no-preview {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.quick-look-content .no-preview .icon {
+  font-size: 64px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.quick-look-content .no-preview .mime {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  font-family: monospace;
+}
+
+.quick-look-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(to top, #2d2d44, #1a1a2e);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.quick-look-footer-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.quick-look-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.quick-look-info {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: monospace;
+}
+
+.quick-look-open {
+  background: linear-gradient(135deg, #4a90d9, #357abd);
+  border: none;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: transform 0.1s, box-shadow 0.2s;
+}
+
+.quick-look-open:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(74, 144, 217, 0.4);
+}
+
+.quick-look-open:active {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quick-look-overlay {
+    transition: none;
+  }
+
+  .quick-look-container {
+    transition: none;
+    transform: none;
+  }
+
+  .quick-look-overlay.show .quick-look-container {
+    transform: none;
+  }
+
+  .quick-look-open {
+    transition: none;
+  }
+
+  .quick-look-open:hover {
+    transform: none;
+  }
+}
+
+/* ============================================================
+   Context Menu  (basic rules; elaborate rules below override.)
+   ============================================================ */
+
+.context-menu {
+  position: absolute;
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  min-width: 160px;
+  padding: 4px 0;
+}
+
+.context-menu-item {
+  padding: 8px 16px;
+  color: #e2e8f0;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s ease;
+}
+
+.context-menu-item:hover {
+  background: #3182ce;
+}
+
+.context-menu-separator {
+  height: 1px;
+  background: #4a5568;
+  margin: 4px 0;
+}
+
+/* ============================================================
+   Notifications — stacked tray (multiple toasts don't obscure each other)
+   ============================================================ */
+
+.os-notification-region {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  left: auto;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  max-width: min(320px, calc(100vw - 40px));
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.os-notification-region .notification {
+  position: relative;
+  top: auto;
+  right: auto;
+  pointer-events: auto;
+  flex-shrink: 0;
+}
+
+.notification {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #e2e8f0;
+  font-size: 12px;
+  line-height: 1.35;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  max-width: 300px;
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Legacy: if toasts mount directly on #os-desktop (no #os-notification-region), keep corner anchoring */
+#os-desktop > .notification {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 3000;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ============================================================
+   Context Menu (elaborate variant; overrides the basic rules above)
+   ============================================================ */
+
+.context-menu {
+  position: absolute;
+  min-width: 200px;
+  background: linear-gradient(145deg, rgba(45, 55, 72, 0.98), rgba(26, 32, 44, 0.98));
+  backdrop-filter: blur(10px);
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  z-index: 10000;
+  padding: 6px 0;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.context-menu.show {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.context-menu.hidden {
+  pointer-events: none;
+}
+
+.context-menu-item {
+  padding: 8px 16px;
+  color: #e2e8f0;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.1s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.context-menu-item:hover:not(.disabled) {
+  background: rgba(66, 153, 225, 0.3);
+}
+
+.context-menu-item:focus-visible {
+  outline: 2px solid #63b3ed;
+  outline-offset: -2px;
+  background: rgba(66, 153, 225, 0.25);
+}
+
+.context-menu-item.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: default;
+}
+
+.context-menu-divider {
+  height: 1px;
+  background: #4a5568;
+  margin: 6px 0;
+}
+
+.context-menu-header {
+  padding: 8px 16px;
+  color: #a0aec0;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom: 1px solid #4a5568;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================================
+   Shutdown button + dialog
+   ============================================================ */
+
+.shutdown-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.shutdown-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 0, 0, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.3s ease;
+}
+
+.shutdown-btn:hover::before {
+  width: 100%;
+  height: 100%;
+}
+
+/* Shutdown Dialog Animations — duplicates of base.css fadeIn/fadeOut; preserved
+   from the source split so adding/removing the partial doesn't require cross-file edits. */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+#shutdown-dialog {
+  backdrop-filter: blur(4px);
+}
+
+#shutdown-dialog .bg-gray-800 {
+  animation: slideUp 0.3s ease-out;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+}
+
+#shutdown-dialog button:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.95);
+  outline-offset: 2px;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ============================================================
+   File Dialog
+   ============================================================ */
+
+.file-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+
+.file-dialog-overlay.hidden {
+  display: none;
+}
+
+.file-dialog {
+  background: linear-gradient(145deg, #2d2d44, #1a1a2e);
+  border: 1px solid #4d4d6c;
+  border-radius: 12px;
+  width: 600px;
+  max-width: 90vw;
+  max-height: 80vh;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  grid-template-columns: 140px 1fr;
+  grid-template-areas:
+    'header header'
+    'nav nav'
+    'sidebar content'
+    'footer footer';
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: dialogSlideIn 0.2s ease-out;
+}
+
+@keyframes dialogSlideIn {
+  from {
+    transform: scale(0.95) translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.file-dialog-header {
+  grid-area: header;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #252538;
+  border-bottom: 1px solid #3d3d5c;
+}
+
+.file-dialog-header span {
+  font-weight: 600;
+  color: #88c0d0;
+}
+
+.file-dialog-close {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.file-dialog-close:hover {
+  color: #ef4444;
+}
+
+.file-dialog-nav {
+  grid-area: nav;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #252538;
+  border-bottom: 1px solid #3d3d5c;
+}
+
+.file-dialog-nav button {
+  background: #3d3d5c;
+  border: 1px solid #4d4d6c;
+  border-radius: 4px;
+  color: #e0e0e0;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.file-dialog-nav button:hover {
+  background: #4d4d6c;
+}
+
+.file-dialog-path {
+  flex: 1;
+  font-family: 'Consolas', monospace;
+  font-size: 12px;
+  color: #88c0d0;
+  padding: 4px 8px;
+  background: #1a1a2e;
+  border-radius: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-dialog-sidebar {
+  grid-area: sidebar;
+  background: #252538;
+  border-right: 1px solid #3d3d5c;
+  padding: 8px 0;
+  overflow-y: auto;
+}
+
+.file-dialog-sidebar .sidebar-item {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #a0a0a0;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.file-dialog-sidebar .sidebar-item:hover {
+  background: rgba(136, 192, 208, 0.1);
+}
+
+.file-dialog-sidebar .sidebar-item.active {
+  background: rgba(136, 192, 208, 0.2);
+  color: #88c0d0;
+}
+
+.file-dialog-content {
+  grid-area: content;
+  overflow-y: auto;
+  padding: 8px;
+  min-height: 200px;
+  max-height: 300px;
+}
+
+.file-dialog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.file-dialog-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.file-dialog-item:hover {
+  background: rgba(136, 192, 208, 0.1);
+}
+
+.file-dialog-item.selected {
+  background: rgba(136, 192, 208, 0.25);
+  outline: 1px solid #88c0d0;
+}
+
+.file-dialog-item .icon {
+  font-size: 18px;
+}
+
+.file-dialog-item .name {
+  font-size: 13px;
+  color: #e0e0e0;
+}
+
+.file-dialog-content .loading,
+.file-dialog-content .empty,
+.file-dialog-content .error {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+  font-size: 13px;
+}
+
+.file-dialog-content .error {
+  color: #ef4444;
+}
+
+.file-dialog-footer {
+  grid-area: footer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #252538;
+  border-top: 1px solid #3d3d5c;
+}
+
+.file-dialog-footer input {
+  flex: 1;
+  padding: 8px 12px;
+  background: #1a1a2e;
+  border: 1px solid #4d4d6c;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-size: 13px;
+}
+
+.file-dialog-footer input:focus {
+  outline: none;
+  border-color: #88c0d0;
+}
+
+.file-dialog-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.file-dialog-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.file-dialog-btn.cancel {
+  background: #3d3d5c;
+  color: #e0e0e0;
+}
+
+.file-dialog-btn.cancel:hover {
+  background: #4d4d6c;
+}
+
+.file-dialog-btn.confirm {
+  background: #10b981;
+  color: white;
+}
+
+.file-dialog-btn.confirm:hover {
+  background: #059669;
+}
+
+/* ============================================================
+   "Open With" Dialog
+   ============================================================ */
+
+.open-with-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.15s ease-out;
+}
+
+.open-with-panel {
+  background: #1e1e2e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  width: 340px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.open-with-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px 20px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.open-with-file-icon {
+  font-size: 32px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.open-with-title {
+  color: #e2e8f0;
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 4px;
+  word-break: break-word;
+}
+
+.open-with-subtitle {
+  color: #64748b;
+  font-size: 12px;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.open-with-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.open-with-app-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #e2e8f0;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.open-with-app-btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+}
+
+.open-with-app-btn:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: -2px;
+}
+
+.open-with-app-icon {
+  font-size: 22px;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.open-with-app-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.open-with-footer {
+  padding: 10px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.open-with-cancel-btn {
+  padding: 6px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.open-with-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}

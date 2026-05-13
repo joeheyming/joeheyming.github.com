@@ -4,9 +4,30 @@ import { buildToolbar, buildPalette, updateFgSwatch, updateStatus, updateColorHi
 import { createLayer, insertLayerBefore, removeLayerFromDOM, syncLayerDOM,
          flattenToCanvas, renderLayerPanel, refreshLayerThumbs } from './layers.js';
 import { renderHistoryPanel as buildHistoryPanel } from './history.js';
-import { ADJUSTMENTS } from './adjustments.js';
 import { serializeProject, deserializeProject, downloadProject, readProjectFile,
          scheduleAutosave, readAutosave, clearAutosave } from './project.js';
+import {
+  drawSelectionOverlay as drawSelOverlay,
+  startSelectionAnimation,
+  commitSelection as doCommitSelection,
+  copySelection as doCopySelection,
+  pasteClipboard as doPasteClipboard,
+  deleteSelection as doDeleteSelection,
+  applySelectionWithMask as doApplySelectionWithMask,
+  selectAll as doSelectAll,
+  invertSelection as doInvertSelection,
+  selectionModeFor,
+} from './selection.js';
+import {
+  openAdjust as doOpenAdjust,
+  cancelAdjust,
+  commitAdjust,
+  buildAdjustMenu as doBuildAdjustMenu,
+  toggleAdjustMenu,
+  closeAdjustMenu,
+  toggleSaveMenu,
+  closeSaveMenu,
+} from './adjust-modal.js';
 
 const MAX_UNDO = 50;
 
@@ -219,297 +240,20 @@ function zoomToward(clientX, clientY, factor) {
 }
 
 // ── Selection helpers ────────────────────────────────────────────────────────
+// The actual implementations live in `./selection.js`. The wrappers below
+// inject the shared `state`, the overlay context `ov`, and a couple of
+// closures so the rest of paint.js can keep its no-arg call sites unchanged.
 
-// Collect every mask pixel that touches a non-mask pixel (or the canvas edge).
-// Used for true "marching ants" around non-rectangular selections — combined
-// Shift/Alt/Cmd magic-wand and lasso picks. We render these as a 1-pixel
-// alternating white/black pattern; setLineDash is unusable here because
-// per-pixel disjoint subpaths reset the dash pattern at every moveTo.
-function buildBoundaryPixels(mask, W, H) {
-  const out = [];
-  for (let y = 0; y < H; y++) {
-    const row = y * W;
-    for (let x = 0; x < W; x++) {
-      if (!mask[row + x]) continue;
-      const onEdge =
-        (y === 0 || !mask[row - W + x]) ||
-        (y === H - 1 || !mask[row + W + x]) ||
-        (x === 0 || !mask[row + x - 1]) ||
-        (x === W - 1 || !mask[row + x + 1]);
-      if (onEdge) out.push(x, y);
-    }
-  }
-  return out;
-}
-
-// Marching ants animation
-let dashOffset = 0;
-function drawSelectionOverlay() {
-  const sel = state.sel;
-  if (sel.mode === 'none') return;
-  if (state.drawing && state.tool !== 'rectSelect' && state.tool !== 'lasso') return;
-
-  ov.clearRect(0, 0, ov.canvas.width, ov.canvas.height);
-
-  if (sel.mode === 'moving' && sel.data) {
-    // Floating content already drawn to canvas in onMove, no extra needed
-  }
-
-  // Prefer the real mask outline when we have one — this is what makes
-  // multi-region selections (e.g. Shift-click magic wand) actually look right
-  // instead of one giant bbox swallowing the empty space between regions.
-  const W = ov.canvas.width, H = ov.canvas.height;
-  const hasFullMask = sel.mask && sel.mask.length === W * H && sel.mode === 'active';
-  if (hasFullMask) {
-    if (!sel.boundaryPixels) sel.boundaryPixels = buildBoundaryPixels(sel.mask, W, H);
-    const pts = sel.boundaryPixels;
-    // Two-pass: alternate white/black on a phase-shifting parity so the ants
-    // visibly march without depending on lineDash continuity.
-    ov.beginPath();
-    for (let i = 0; i < pts.length; i += 2) {
-      if (((pts[i] + pts[i + 1] + dashOffset) & 7) < 4) ov.rect(pts[i], pts[i + 1], 1, 1);
-    }
-    ov.fillStyle = '#fff';
-    ov.fill();
-    ov.beginPath();
-    for (let i = 0; i < pts.length; i += 2) {
-      if (((pts[i] + pts[i + 1] + dashOffset) & 7) >= 4) ov.rect(pts[i], pts[i + 1], 1, 1);
-    }
-    ov.fillStyle = '#000';
-    ov.fill();
-    return;
-  }
-
-  // Fallback: rectangle bbox or lasso polyline — these still use animated dashes.
-  ov.save();
-  ov.strokeStyle = '#fff';
-  ov.lineWidth = 1;
-  ov.setLineDash([4, 4]);
-  ov.lineDashOffset = -dashOffset;
-
-  if (sel.lassoPoly && sel.mode === 'active') {
-    ov.beginPath();
-    ov.moveTo(sel.lassoPoly[0][0], sel.lassoPoly[0][1]);
-    for (const [px, py] of sel.lassoPoly) ov.lineTo(px, py);
-    ov.closePath();
-    ov.stroke();
-    // Second pass in black offset by half period
-    ov.strokeStyle = '#000';
-    ov.lineDashOffset = -dashOffset + 4;
-    ov.beginPath();
-    ov.moveTo(sel.lassoPoly[0][0], sel.lassoPoly[0][1]);
-    for (const [px, py] of sel.lassoPoly) ov.lineTo(px, py);
-    ov.closePath();
-    ov.stroke();
-  } else {
-    ov.strokeRect(sel.x + 0.5, sel.y + 0.5, sel.w, sel.h);
-    ov.strokeStyle = '#000';
-    ov.lineDashOffset = -dashOffset + 4;
-    ov.strokeRect(sel.x + 0.5, sel.y + 0.5, sel.w, sel.h);
-  }
-  ov.setLineDash([]);
-  ov.restore();
-}
-
-// rAF loop for marching ants
-let lastDashTime = 0;
-function rafLoop(ts) {
-  if (ts - lastDashTime > 80) {
-    dashOffset = (dashOffset + 1) % 8;
-    lastDashTime = ts;
-    if (state.sel.mode !== 'none' && !state.drawing) drawSelectionOverlay();
-  }
-  requestAnimationFrame(rafLoop);
-}
-
-function commitSelection() {
-  const sel = state.sel;
-  if (sel.mode === 'none') return;
-  // If floating data was moved, it's already stamped in onMove
-  sel.mode = 'none';
-  sel.data = null; sel.mask = null; sel.baseData = null;
-  sel.lassoPoly = null;
-  ov.clearRect(0, 0, ov.canvas.width, ov.canvas.height);
-}
-
-// Build an ImageData for clipboard, zeroing non-masked pixels' alpha
-function getSelectionImageData(ctx) {
-  const sel = state.sel;
-  const raw = ctx.getImageData(sel.x, sel.y, sel.w, sel.h);
-  if (!sel.mask) return raw;
-  const W = ctx.canvas.width;
-  for (let row = 0; row < sel.h; row++) {
-    for (let col = 0; col < sel.w; col++) {
-      const maskIdx = (sel.y + row) * W + (sel.x + col);
-      if (!sel.mask[maskIdx]) raw.data[(row * sel.w + col) * 4 + 3] = 0;
-    }
-  }
-  return raw;
-}
-
-function copySelection(ctx, cut) {
-  const sel = state.sel;
-  if (sel.mode !== 'active') return;
-  const data = getSelectionImageData(ctx);
-  state.clipboard = { data, w: sel.w, h: sel.h, mask: sel.mask ? sel.mask.slice() : null };
-  if (cut) {
-    pushUndo('Cut');
-    if (sel.mask) {
-      // Fill only selected pixels with bgColor
-      const W = ctx.canvas.width;
-      const img = ctx.getImageData(0, 0, W, ctx.canvas.height);
-      const [br, bg, bb] = hexToRgb(state.bgColor);
-      for (let row = 0; row < sel.h; row++) {
-        for (let col = 0; col < sel.w; col++) {
-          const maskIdx = (sel.y + row) * W + (sel.x + col);
-          if (sel.mask[maskIdx]) {
-            const pos = maskIdx * 4;
-            img.data[pos] = br; img.data[pos+1] = bg; img.data[pos+2] = bb; img.data[pos+3] = 255;
-          }
-        }
-      }
-      ctx.putImageData(img, 0, 0);
-    } else {
-      ctx.fillStyle = state.bgColor;
-      ctx.fillRect(sel.x, sel.y, sel.w, sel.h);
-    }
-    commitSelection();
-  }
-}
-
-function pasteClipboard(ctx) {
-  if (!state.clipboard) return;
-  pushUndo('Paste');
-  const { data, w, h, mask } = state.clipboard;
-  if (mask) {
-    // Paste via temp canvas to handle alpha
-    const tmp = document.createElement('canvas');
-    tmp.width = w; tmp.height = h;
-    tmp.getContext('2d', { willReadFrequently: true }).putImageData(data, 0, 0);
-    ctx.drawImage(tmp, state.sel.x || 0, state.sel.y || 0);
-  } else {
-    ctx.putImageData(data, state.sel.x || 0, state.sel.y || 0);
-  }
-  state.sel = { mode: 'active', x: state.sel.x || 0, y: state.sel.y || 0, w, h,
-    data: null, mask: null, baseData: null };
-}
-
-function deleteSelection(ctx) {
-  const sel = state.sel;
-  if (sel.mode !== 'active') return;
-  pushUndo('Delete');
-  if (sel.mask) {
-    const W = ctx.canvas.width;
-    const img = ctx.getImageData(0, 0, W, ctx.canvas.height);
-    const [br, bg, bb] = hexToRgb(state.bgColor);
-    for (let row = 0; row < sel.h; row++) {
-      for (let col = 0; col < sel.w; col++) {
-        const maskIdx = (sel.y + row) * W + (sel.x + col);
-        if (sel.mask[maskIdx]) {
-          const pos = maskIdx * 4;
-          img.data[pos] = br; img.data[pos+1] = bg; img.data[pos+2] = bb; img.data[pos+3] = 255;
-        }
-      }
-    }
-    ctx.putImageData(img, 0, 0);
-  } else {
-    ctx.fillStyle = state.bgColor;
-    ctx.fillRect(sel.x, sel.y, sel.w, sel.h);
-  }
-  commitSelection();
-}
-
-function hexToRgb(hex) {
-  return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
-}
-
-// ── Selection mask helpers (for modifier-key combining) ──────────────────────
-
-function selectionToFullMask(sel, W, H) {
-  if (sel.mask && sel.mask.length === W * H) return sel.mask.slice();
-  const mask = new Uint8Array(W * H);
-  if (sel.mode !== 'active') return mask;
-  const x0 = Math.max(0, sel.x), y0 = Math.max(0, sel.y);
-  const x1 = Math.min(W, sel.x + sel.w), y1 = Math.min(H, sel.y + sel.h);
-  for (let y = y0; y < y1; y++) {
-    for (let x = x0; x < x1; x++) mask[y * W + x] = 1;
-  }
-  return mask;
-}
-
-function maskBBox(mask, W, H) {
-  let minX = W, maxX = -1, minY = H, maxY = -1;
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      if (mask[y * W + x]) {
-        if (x < minX) minX = x; if (x > maxX) maxX = x;
-        if (y < minY) minY = y; if (y > maxY) maxY = y;
-      }
-    }
-  }
-  if (maxX < 0) return null;
-  return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
-}
-
-// Combine a freshly-built selection mask with the existing selection per modifier mode.
-// Returns { mask, bbox } or sets sel to none if the result is empty.
+function drawSelectionOverlay() { drawSelOverlay(state, ov); }
+function commitSelection() { doCommitSelection(state, ov); }
+function copySelection(ctx, cut) { doCopySelection(state, ov, ctx, cut, pushUndo); }
+function pasteClipboard(ctx) { doPasteClipboard(state, ctx, pushUndo); }
+function deleteSelection(ctx) { doDeleteSelection(state, ov, ctx, pushUndo); }
 function applySelectionWithMask(newMask, W, H, mode) {
-  let combined = newMask;
-  if (mode && state.sel.mode === 'active') {
-    const existing = selectionToFullMask(state.sel, W, H);
-    combined = new Uint8Array(W * H);
-    for (let i = 0; i < W * H; i++) {
-      if (mode === 'add') combined[i] = (existing[i] || newMask[i]) ? 1 : 0;
-      else if (mode === 'subtract') combined[i] = (existing[i] && !newMask[i]) ? 1 : 0;
-      else if (mode === 'intersect') combined[i] = (existing[i] && newMask[i]) ? 1 : 0;
-    }
-  }
-  const bbox = maskBBox(combined, W, H);
-  if (!bbox) {
-    state.sel.mode = 'none';
-    state.sel.mask = null; state.sel.data = null; state.sel.baseData = null;
-    state.sel.lassoPoly = null;
-    return;
-  }
-  state.sel = {
-    mode: 'active',
-    x: bbox.x, y: bbox.y, w: bbox.w, h: bbox.h,
-    mask: combined,
-    data: null, baseData: null,
-  };
+  doApplySelectionWithMask(state, newMask, W, H, mode);
 }
-
-function selectionModeFor(state) {
-  // Add: Shift OR Cmd/Ctrl (web-multi-select intuition + Photoshop's Shift).
-  // Subtract: Alt/Option.
-  // Intersect: any add modifier combined with subtract.
-  const add = state.shiftKey || state.ctrlKey;
-  const sub = state.altKey;
-  if (add && sub) return 'intersect';
-  if (add) return 'add';
-  if (sub) return 'subtract';
-  return null;
-}
-
-function selectAll() {
-  const W = canvasW(), H = canvasH();
-  const mask = new Uint8Array(W * H).fill(1);
-  state.sel = { mode: 'active', x: 0, y: 0, w: W, h: H, mask, data: null, baseData: null };
-  drawSelectionOverlay();
-}
-
-function invertSelection() {
-  const W = canvasW(), H = canvasH();
-  if (state.sel.mode !== 'active') {
-    selectAll();
-    return;
-  }
-  const cur = selectionToFullMask(state.sel, W, H);
-  const inv = new Uint8Array(W * H);
-  for (let i = 0; i < W * H; i++) inv[i] = cur[i] ? 0 : 1;
-  applySelectionWithMask(inv, W, H, null);
-  drawSelectionOverlay();
-}
+function selectAll() { doSelectAll(state, ov, canvasW(), canvasH()); }
+function invertSelection() { doInvertSelection(state, ov, canvasW(), canvasH()); }
 
 // ── Layer panel ───────────────────────────────────────────────────────────────
 
@@ -926,148 +670,19 @@ function initPanelResize() {
 }
 
 // ── Adjustments ──────────────────────────────────────────────────────────────
-
-// Currently-open adjustment session: { id, baseImage, params, mask }.
-let adjustSession = null;
+// Modal lifecycle (open / preview / cancel / commit) and the action-menu
+// open/close helpers live in `./adjust-modal.js`. paint.js owns the wiring
+// to its own state + helpers via this thin wrapper layer.
 
 function openAdjust(id) {
-  const def = ADJUSTMENTS[id];
-  if (!def) return;
-  closeAdjustMenu();
-  const ctx = activeCtx();
-  const W = ctx.canvas.width, H = ctx.canvas.height;
-  const baseImage = ctx.getImageData(0, 0, W, H);
-  const mask = state.sel.mode === 'active' ? selectionToFullMask(state.sel, W, H) : null;
-  const params = {};
-  for (const f of def.fields) params[f.key] = f.default;
-  adjustSession = { id, baseImage, params, mask, ctx, W, H };
-
-  document.getElementById('adjust-modal-title').textContent = def.label;
-  const fieldsEl = document.getElementById('adjust-modal-fields');
-  fieldsEl.innerHTML = '';
-
-  if (def.fields.length === 0) {
-    // No-parameter adjustments — show preview directly without sliders.
-    const note = document.createElement('div');
-    note.style.fontSize = '13px';
-    note.style.color = 'var(--fg-dim)';
-    note.textContent = 'Apply ' + def.label + (mask ? ' to selection' : ' to active layer') + '?';
-    fieldsEl.appendChild(note);
-    previewAdjust();
-  } else {
-    for (const f of def.fields) {
-      const row = document.createElement('div');
-      row.className = 'adjust-field';
-      const label = document.createElement('label');
-      label.textContent = f.label;
-      const input = document.createElement('input');
-      input.type = 'range';
-      input.min = String(f.min);
-      input.max = String(f.max);
-      input.step = String(f.step ?? 1);
-      input.value = String(f.default);
-      const display = document.createElement('span');
-      display.className = 'adjust-field-value';
-      display.textContent = String(f.default);
-      input.addEventListener('input', e => {
-        const v = parseFloat(e.target.value);
-        adjustSession.params[f.key] = v;
-        display.textContent = String(v);
-        previewAdjust();
-      });
-      row.appendChild(label);
-      row.appendChild(input);
-      row.appendChild(display);
-      fieldsEl.appendChild(row);
-    }
-    previewAdjust();
-  }
-
-  document.getElementById('adjust-modal').classList.remove('hidden');
+  doOpenAdjust(id, state, {
+    activeCtx,
+    pushUndo,
+    onCommit: refreshLayerPanelUI,
+  });
 }
 
-function previewAdjust() {
-  if (!adjustSession) return;
-  const { id, baseImage, params, mask, ctx } = adjustSession;
-  // Clone base image so the original stays intact between preview redraws.
-  const work = ctx.createImageData(baseImage.width, baseImage.height);
-  work.data.set(baseImage.data);
-  ADJUSTMENTS[id].apply(work, params, mask);
-  ctx.putImageData(work, 0, 0);
-}
-
-function cancelAdjust() {
-  if (adjustSession) {
-    adjustSession.ctx.putImageData(adjustSession.baseImage, 0, 0);
-  }
-  adjustSession = null;
-  document.getElementById('adjust-modal').classList.add('hidden');
-}
-
-function commitAdjust() {
-  if (!adjustSession) return;
-  const def = ADJUSTMENTS[adjustSession.id];
-  // Restore base, push undo, re-apply for the canonical record.
-  adjustSession.ctx.putImageData(adjustSession.baseImage, 0, 0);
-  pushUndo(def.label);
-  const work = adjustSession.ctx.createImageData(adjustSession.W, adjustSession.H);
-  work.data.set(adjustSession.baseImage.data);
-  def.apply(work, adjustSession.params, adjustSession.mask);
-  adjustSession.ctx.putImageData(work, 0, 0);
-  refreshLayerPanelUI();
-  adjustSession = null;
-  document.getElementById('adjust-modal').classList.add('hidden');
-}
-
-function buildAdjustMenu() {
-  const list = document.getElementById('adjust-menu-list');
-  if (!list) return;
-  list.innerHTML = '';
-  const order = ['brightness', 'hsl', 'threshold', null, 'invert', 'grayscale', 'sepia', null, 'pixelate'];
-  for (const id of order) {
-    if (id === null) {
-      const sep = document.createElement('div');
-      sep.className = 'action-menu-sep';
-      list.appendChild(sep);
-      continue;
-    }
-    const def = ADJUSTMENTS[id];
-    if (!def) continue;
-    const item = document.createElement('button');
-    item.className = 'action-menu-item';
-    item.textContent = def.label;
-    item.addEventListener('click', () => openAdjust(id));
-    list.appendChild(item);
-  }
-}
-
-function toggleAdjustMenu() {
-  const list = document.getElementById('adjust-menu-list');
-  const btn = document.getElementById('btn-adjust');
-  if (!list) return;
-  const willOpen = list.classList.contains('hidden');
-  list.classList.toggle('hidden', !willOpen);
-  btn?.setAttribute('aria-expanded', String(willOpen));
-}
-
-function closeAdjustMenu() {
-  document.getElementById('adjust-menu-list')?.classList.add('hidden');
-  document.getElementById('btn-adjust')?.setAttribute('aria-expanded', 'false');
-}
-
-function toggleSaveMenu() {
-  const list = document.getElementById('save-menu-list');
-  const btn = document.getElementById('btn-save');
-  if (!list) return;
-  const willOpen = list.classList.contains('hidden');
-  list.classList.toggle('hidden', !willOpen);
-  btn?.setAttribute('aria-expanded', String(willOpen));
-}
-
-function closeSaveMenu() {
-  document.getElementById('save-menu-list')?.classList.add('hidden');
-  document.getElementById('btn-save')?.setAttribute('aria-expanded', 'false');
-}
+function buildAdjustMenu() { doBuildAdjustMenu(openAdjust); }
 
 // ── Tool activation + options panel ──────────────────────────────────────────
 
@@ -1327,7 +942,7 @@ function init() {
 
   updateUndoButtons();
   initPanelResize();
-  requestAnimationFrame(rafLoop);
+  startSelectionAnimation(state, ov);
   updateTransform();
   maybeOfferRestore();
 }

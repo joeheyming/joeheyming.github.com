@@ -1,0 +1,86 @@
+/* Heyming OS — taskbar: running-apps strip, app icons, focus rings, horizontal scroll. */
+
+/* Taskbar Button */
+.taskbar-app {
+  height: 32px;
+  padding: 0 12px;
+  background: #4a5568;
+  border: 1px solid #2d3748;
+  color: #e2e8f0;
+  font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  max-width: 200px;
+  flex-shrink: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.taskbar-app:hover {
+  background: #2b6cb0;
+}
+
+.taskbar-app.active {
+  background: #3182ce;
+  border-color: #63b3ed;
+}
+
+.taskbar-app:focus-visible {
+  outline: 2px solid #63b3ed;
+  outline-offset: 2px;
+}
+
+#app-launcher:focus-visible,
+#os-close:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+/* Many windows: horizontal scroll instead of squashing buttons */
+#running-apps.taskbar-running-apps {
+  min-width: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #4a5568 #1f2937;
+  -webkit-overflow-scrolling: touch;
+}
+
+#running-apps.taskbar-running-apps::-webkit-scrollbar {
+  height: 6px;
+}
+
+#running-apps.taskbar-running-apps::-webkit-scrollbar-track {
+  background: #1f2937;
+  border-radius: 3px;
+}
+
+#running-apps.taskbar-running-apps::-webkit-scrollbar-thumb {
+  background: #4a5568;
+  border-radius: 3px;
+}
+
+#running-apps.taskbar-running-apps::-webkit-scrollbar-thumb:hover {
+  background: #2b6cb0;
+}
+
+/* Application Icons (window title bar) */
+.app-icon {
+  flex-shrink: 0;
+  font-size: 16px;
+  display: inline-block;
+}
+
+/* Stay above #os-windows when a window is dragged over the taskbar strip */
+#os-taskbar {
+  z-index: 250;
+}
+
+#taskbar-clock:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+  border-radius: 4px;
+}

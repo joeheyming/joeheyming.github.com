@@ -1,0 +1,181 @@
+/* Play — floating "?" help popup that re-surfaces the inline help panel
+   on phone-sized viewports (where .instrument-help is display:none). */
+
+/* ---------- Help popup ----------------------------------------------------
+ *
+ * Floating "?" button + centered modal that re-surfaces the page's
+ * `.instrument-help` content on phone-sized viewports where the inline
+ * panel is hidden by the rule just above.
+ *
+ * Visibility model:
+ *   - Trigger button is `display: none` by default, so on desktop /
+ *     iPad portrait nothing changes — the inline help still sits
+ *     under the keyboard.
+ *   - At the same `(max-width: 720px), (max-height: 540px)` breakpoint
+ *     used to hide the inline help, the button flips to `inline-flex`.
+ *     Together that means: exactly one of the two affordances is ever
+ *     visible at a time.
+ *
+ * Position: top-right, just left of the icon-only Instruments pill.
+ * The pill on mobile sits at top:6 right:6 and is ~32px wide; we leave
+ * an 8px gap between them.
+ *
+ * The modal stays mounted (just `[hidden]`) so toggling open/close is
+ * cheap and we don't lose focus context. The body content is re-cloned
+ * on every open so live updates from the page (e.g. accordion's
+ * bellows-help item being unhidden after sensor detection) are picked
+ * up correctly. */
+
+/* Trigger button — designed to look like a sibling of the Instruments
+ * pill (same height, same border-radius, same gradient, same
+ * top-offset). Sits immediately to the left with a 6px gap so the
+ * top-right corner reads as one cohesive control cluster:
+ *   [ Back …                                       ?  Instruments ]
+ * Padding/font are picked to match the Instruments pill's measured
+ * 30px height on a 390px-wide phone (6+16+6 = 28; the icon font
+ * accounts for the rest). */
+.help-popup-button {
+  display: none;
+  position: fixed;
+  top: 6px;
+  right: 50px;
+  z-index: 999998;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.95), rgba(244, 114, 182, 0.95));
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(129, 140, 248, 0.35);
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    filter 200ms ease;
+}
+
+.help-popup-button:hover,
+.help-popup-button:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(244, 114, 182, 0.45);
+  outline: none;
+  filter: brightness(1.05);
+}
+
+@media (max-width: 720px), (max-height: 540px) {
+  .help-popup-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.help-popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.6);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.help-popup-overlay[hidden] {
+  display: none;
+}
+
+.help-popup-dialog {
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(160deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.help-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 14px 12px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.help-popup-title {
+  margin: 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fg);
+}
+
+.help-popup-close {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--fg);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.help-popup-close:hover,
+.help-popup-close:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.help-popup-body {
+  padding: 14px 20px 20px;
+  color: var(--fg-dim);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.help-popup-body ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.help-popup-body li + li {
+  margin-top: 8px;
+}
+
+.help-popup-body code {
+  background: rgba(148, 163, 184, 0.12);
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 12px;
+  color: var(--fg);
+}
+
+.help-popup-body strong {
+  color: var(--fg);
+}
+
+/* Lock background scroll while the modal is open (mainly affects
+ * pages where the body is taller than the viewport on desktop —
+ * harmless on phone-locked instrument pages). */
+body.help-popup-open {
+  overflow: hidden;
+}

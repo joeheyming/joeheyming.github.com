@@ -1,0 +1,41 @@
+/* Accordion — landscape phone tightening. Sits AFTER every keyboard partial in
+   load order so its `align-self: start` and trimmed padding take precedence over
+   the per-keyboard rules. */
+
+/* ---------- Landscape phone: tighten keyboard against chrome ----------
+ *
+ * Sits below the mobile-touch keyboard rules so it can override their
+ * 10px vertical padding. On landscape phones every pixel of vertical
+ * real-estate counts. Three changes:
+ *   - Trim the keyboard container's vertical padding so the buttons
+ *     don't have a wide breathing band inside the rounded border.
+ *   - `align-self: start` on the horizontal keyboard so it takes its
+ *     natural content height instead of being stretched by
+ *     `.accordion-view`'s default `align-items: stretch`. Without
+ *     this the chromatic keyboard's `column-reverse` packing leaves
+ *     a visible dark band of empty container above the topmost row;
+ *     and the Stradella's diagonal staircase ends with the same
+ *     visual gap above row 0. The leftover stage space below the
+ *     keyboard is just the page background and reads as natural
+ *     breathing room.
+ *   - `justify-content: flex-start` on the stage so the keyboard
+ *     hugs the chrome instead of being centered vertically. On real
+ *     touch phones the mobile-touch override gives `.accordion-view`
+ *     `flex: 1 1 0`, which already fills the stage; this rule covers
+ *     the narrow-desktop landscape case where that override doesn't
+ *     fire but the cramped vertical space still benefits from
+ *     pinning content to the top. */
+@media (max-height: 540px) {
+  .accordion-stage {
+    justify-content: flex-start;
+  }
+  .chromatic-keyboard,
+  .stradella-bass {
+    padding-top: 4px;
+    padding-bottom: 6px;
+  }
+  .chromatic-keyboard[data-orientation='horizontal'],
+  .stradella-bass:not([data-orientation='vertical']) {
+    align-self: start;
+  }
+}

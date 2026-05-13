@@ -1,0 +1,263 @@
+/* Play — shared piano-keyboard component used by piano, synth, and accordion.
+   Includes the desktop styling and the mobile-friendly tap-target sizing. */
+
+/* =========================================================================
+ * Shared piano-keyboard styles
+ * Used by /play/piano/, /play/accordion/, /play/synth/
+ * ========================================================================= */
+
+.piano-keyboard {
+  position: relative;
+  width: min(100%, 1100px);
+  height: clamp(180px, 32vh, 280px);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.4), rgba(0, 0, 0, 0.4)),
+    linear-gradient(180deg, #1e293b, #0f172a);
+  border: 1px solid var(--border);
+  padding: 14px 14px 16px;
+  box-shadow:
+    0 24px 40px -20px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  /* Let the browser handle horizontal panning natively (with momentum)
+   * when the keyboard is wider than its scroll container — see the
+   * tap-deferral helper in `play/shared/scroll-gesture.js` for why we
+   * want native scroll instead of JS-driven scrollLeft updates. Vertical
+   * touch is reserved for our own drag-to-play (glissando). */
+  touch-action: pan-x;
+}
+
+.piano-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+}
+
+.piano-key {
+  position: absolute;
+  top: 14px;
+  bottom: 16px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition:
+    transform 60ms ease,
+    background 80ms ease,
+    box-shadow 100ms ease;
+}
+
+.piano-key:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  z-index: 3;
+}
+
+.piano-key.white {
+  background: linear-gradient(180deg, #fafafa, #e5e7eb);
+  border-radius: 0 0 8px 8px;
+  border: 1px solid #cbd5e1;
+  border-top: none;
+  color: #475569;
+  box-shadow:
+    inset 0 -6px 0 rgba(0, 0, 0, 0.06),
+    0 2px 0 rgba(0, 0, 0, 0.18);
+  z-index: 1;
+}
+
+.piano-key.white.active {
+  background: linear-gradient(180deg, #c7d2fe, #a5b4fc);
+  color: #1e1b4b;
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 -2px 0 rgba(0, 0, 0, 0.18),
+    0 1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.piano-key.black {
+  background: linear-gradient(180deg, #1f2937, #0b1020);
+  border-radius: 0 0 6px 6px;
+  border: 1px solid #000;
+  color: #cbd5e1;
+  height: 62%;
+  top: 14px;
+  bottom: auto;
+  box-shadow:
+    inset 0 -4px 0 rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 4px 6px rgba(0, 0, 0, 0.4);
+  z-index: 2;
+}
+
+.piano-key.black.active {
+  background: linear-gradient(180deg, #4338ca, #1e1b4b);
+  color: #c7d2fe;
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 -2px 0 rgba(255, 255, 255, 0.05),
+    0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.piano-key .key-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.piano-key .key-label .note {
+  font-size: 11px;
+  opacity: 0.85;
+  font-weight: 600;
+}
+
+/* C keys keep the octave number ("C4") — useful as an at-a-glance anchor.
+ * Other white keys just show the pitch letter. */
+.piano-key.is-c .key-label .note {
+  font-weight: 700;
+  opacity: 0.95;
+}
+
+/* Two independent visibility toggles, driven by classes on the keyboard:
+ *   `.hide-notes` — hides the pitch-letter labels.
+ *   `.show-kbd`  — shows the QWERTY shortcut letters (off by default
+ *                  because most players want their keys to read as music,
+ *                  not as Z X C V). */
+.piano-key .key-label .kbd {
+  display: none;
+}
+
+.piano-keyboard.show-kbd .piano-key .key-label .kbd {
+  display: inline;
+}
+
+.piano-keyboard.hide-notes .piano-key .key-label .note {
+  display: none;
+}
+
+.piano-key.black .key-label {
+  color: #cbd5e1;
+}
+
+/* Legacy compound toggle — some pages may still wire up `hide-labels` to
+ * mean "hide everything". Keep it working as a strict superset. */
+.piano-keyboard.hide-labels .piano-key .key-label .kbd,
+.piano-keyboard.hide-labels .piano-key .key-label .note {
+  display: none;
+}
+
+/* Subtle accent stripe on QWERTY-mapped keys, only visible when the
+ * keyboard-shortcut overlay is enabled. Otherwise the keys read as pure
+ * sheet-music. */
+.piano-keyboard.show-kbd .piano-key.white.qwerty-mapped::after {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 4px;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.piano-keyboard.show-kbd .piano-key.black.qwerty-mapped::after {
+  content: '';
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  bottom: 5px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent-2);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .piano-key,
+  .instrument-card,
+  .midi-dot {
+    transition: none !important;
+    animation: none !important;
+  }
+  .piano-key.active {
+    transform: none !important;
+  }
+}
+
+/* ---------- Shared piano-keyboard mobile rules ---------------------------
+ *
+ * The piano-keyboard component shows up on three pages (piano, synth,
+ * accordion) — keep its mobile sizing / scroll behavior here so all three
+ * benefit equally. Page-specific sizing (e.g. piano page's octave control
+ * affecting the chrome height) lives in the page's own stylesheet.
+ *
+ * Strategy on phones:
+ *   1. Enforce a thumb-friendly per-key minimum (`--min-key-width`). JS
+ *      exposes `--white-key-count` on the keyboard element so we compute
+ *      the keyboard's intrinsic width and let the parent stage scroll
+ *      horizontally when it overflows.
+ *   2. The keyboard fills its parent stage's height. The shared
+ *      body-locked layout above bounds the stage to viewport-minus-chrome,
+ *      so the keyboard naturally fits without vh-based math (which
+ *      doesn't work on the synth page where `.synth-knobs` takes a
+ *      variable amount of space above the keyboard).
+ *   3. Pin the stage's content to the start when it overflows — centering
+ *      inside an overflowing container strands the leftmost keys
+ *      (`scrollLeft` can't go negative).
+ *   4. Right-edge gradient affordance hints "more keys this way". */
+@media (max-width: 720px), (max-height: 540px) {
+  .piano-stage {
+    /* Edge-to-edge so the swipe-to-scroll affordance reaches the screen
+     * edges. */
+    padding: 0 8px;
+    /* Narrow the body-locked rule's `overflow: auto` to X-only — the
+     * keyboard fills the parent vertically (rule #2 below), so Y
+     * overflow shouldn't appear. */
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    justify-content: flex-start;
+    /* Right-edge fade — visible whenever the keyboard overflows. */
+    background: linear-gradient(
+      to right,
+      rgba(15, 23, 42, 0) 0%,
+      rgba(15, 23, 42, 0) calc(100% - 24px),
+      rgba(15, 23, 42, 0.5) 100%
+    );
+    background-attachment: local;
+  }
+
+  .piano-keyboard {
+    /* 34px sits comfortably above an adult fingertip width (Apple HIG
+     * suggests 44pt for icon targets, but piano keys can be a touch
+     * narrower since fingers naturally find the key edges). The `+ 28px`
+     * accounts for the keyboard's own 14px-each-side padding so the
+     * per-key width really lands at `--min-key-width`. */
+    --min-key-width: 34px;
+    min-width: max(100%, calc(var(--white-key-count, 29) * var(--min-key-width) + 28px));
+    max-width: none;
+    /* Fill the parent stage (which is bounded by the body-locked
+     * layout) — but cap the height so portrait phones don't end up with
+     * 600px-tall white keys that look like javelins. 320px keeps the
+     * key proportions piano-like (white keys ~5x taller than wide at
+     * the 34px min-width) while leaving generous tap targets.
+     * Landscape phone stages are shorter than 320px, so the cap is a
+     * no-op there — the keyboard naturally fills the smaller stage. */
+    height: 100%;
+    max-height: 320px;
+  }
+}

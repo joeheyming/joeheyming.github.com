@@ -1,0 +1,305 @@
+/* DOOM — flavor picker: five cards (Classic / Freedoom / Legend / Mario /
+   Metroid / Castlevania), loading-focus mode that expands the clicked
+   card to full width, inline progress UI, and the inline flavor dropdown
+   that sits below the picker. */
+
+/* Flavor picker. Five cards now (Classic / Freedoom / Legend / Mario /
+   Metroid) — three layout modes:
+     • Mobile (<640px): single column, dense typography. Vertical
+       phones have to scroll past 5 cards + intro + warn banner so
+       every line of vertical space matters.
+     • Tablet (640–1100px): 2-col wrap, 5th card spans full width
+       (intentional — drawing attention to the newest flavor).
+     • Desktop (>=1100px): 5-across row. Below 1100px, 5 cards each
+       get <190px which is too cramped for the uppercase title.
+   The card click is the user gesture target — both selects the
+   flavor AND triggers prime+launch (no second click). */
+#flavorPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 1100px;
+  margin-top: 18px;
+}
+@media (min-width: 640px) {
+  #flavorPicker {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .flavor-card {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 240px;
+  }
+}
+@media (min-width: 1100px) {
+  #flavorPicker {
+    flex-wrap: nowrap;
+    gap: 14px;
+  }
+  .flavor-card {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+.flavor-card {
+  flex: 1;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--flavor-color, var(--accent));
+  border-radius: 6px;
+  /* Mobile: tight padding so 5 cards don't dominate the boot screen.
+     Wider viewports: media query below scales it back up. */
+  padding: 12px 14px 14px;
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms, transform 120ms;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+@media (min-width: 640px) {
+  .flavor-card {
+    padding: 18px 18px 20px;
+    gap: 8px;
+  }
+}
+.flavor-card[data-flavor='classic'] {
+  --flavor-color: #c8392e;
+}
+.flavor-card[data-flavor='freedoom'] {
+  --flavor-color: #d9883a;
+}
+.flavor-card[data-flavor='legend'] {
+  --flavor-color: #4fa861;
+}
+.flavor-card[data-flavor='mario'] {
+  --flavor-color: #2a73d8;
+}
+.flavor-card[data-flavor='metroid'] {
+  --flavor-color: #c39e3a;
+}
+.flavor-card[data-flavor='castlevania'] {
+  --flavor-color: #7a3fb1;
+}
+.flavor-card:hover:not([disabled]):not(.loading) {
+  background: var(--panel2);
+  border-color: var(--border-hot);
+  border-left-color: var(--flavor-color);
+  transform: translateY(-1px);
+}
+.flavor-card[disabled],
+.flavor-card.loading {
+  cursor: wait;
+  opacity: 0.6;
+}
+.flavor-card .name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--flavor-color);
+  line-height: 1.2;
+}
+@media (min-width: 640px) {
+  .flavor-card .name {
+    font-size: 17px;
+    letter-spacing: 1.5px;
+  }
+}
+.flavor-card .desc {
+  font-size: 11.5px;
+  color: var(--dim);
+  line-height: 1.4;
+}
+@media (min-width: 640px) {
+  .flavor-card .desc {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+}
+.flavor-card .cta {
+  margin-top: 2px;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text);
+  opacity: 0.7;
+}
+@media (min-width: 640px) {
+  .flavor-card .cta {
+    margin-top: 6px;
+    font-size: 11px;
+    letter-spacing: 2px;
+  }
+}
+.flavor-card.loading .cta::after {
+  content: ' …';
+}
+
+/* Loading-focus mode. Set on <body> the moment a flavor card is
+   clicked. Hides every sibling that competes for the user's attention
+   on the boot overlay — the other (now-disabled) cards, the inline
+   flavor dropdown, the warning banner, the manual-mode instructions,
+   and the cleanHero block — and expands the active card to fill the
+   picker so its inline progress UI is the visual focus.
+
+   Why the heavy hand: the previous UX was that clicking a card just
+   went translucent + appended a "…" to the CTA, with the actual
+   bytes-downloaded status text living in #status way down inside
+   the game-files panel. On a multi-MB flavor (Castlevania = 73 MB)
+   that read as a frozen page. Pull the progress where the click
+   happened. */
+body.flavor-loading #flavorPicker .flavor-card:not(.loading) {
+  display: none;
+}
+body.flavor-loading #flavorPicker .flavor-card.loading {
+  flex: 1 1 100%;
+  min-width: 0;
+  opacity: 1;
+  cursor: default;
+  border-left-width: 6px;
+  background: var(--panel2);
+}
+body.flavor-loading #flavorPickerSwitcher,
+body.flavor-loading #boot .warn-banner,
+body.flavor-loading #cleanHero,
+body.flavor-loading #autoInstructions {
+  display: none !important;
+}
+
+/* Inline progress block. Lives inside any element that wants visible
+   load feedback (.flavor-card.loading or #cleanHero during autolaunch).
+   Stays hidden until JS calls attachLoadInfo() and toggles
+   .has-load-info, so an empty .load-info doesn't reserve vertical
+   space on cards that aren't loading. */
+.load-info {
+  display: none;
+}
+.flavor-card.loading .load-info,
+.has-load-info .load-info {
+  display: block;
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+@media (min-width: 640px) {
+  .flavor-card.loading .load-info,
+  .has-load-info .load-info {
+    font-size: 12.5px;
+  }
+}
+.load-info .load-text {
+  display: block;
+  min-height: 16px;
+}
+.load-info .load-bar {
+  display: block;
+  margin-top: 6px;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.load-info .load-bar > .load-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--flavor-color, var(--accent));
+  transition: width 250ms linear;
+}
+/* Indeterminate variant — used whenever we don't have a concrete
+   total (no Content-Length header, or engine-boot phase where we
+   only have textual status). Slides a highlight back and forth so
+   the user still gets a "something is happening" signal. */
+.load-info .load-bar.indeterminate > .load-bar-fill {
+  width: 40% !important;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--flavor-color, var(--accent)) 50%,
+    transparent 100%
+  );
+  animation: load-bar-slide 1.4s linear infinite;
+}
+@keyframes load-bar-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+/* Inline picker dropdown — sits below the flavor cards on the picker
+   page where the "Use custom IWAD / mods…" link used to be. Same widget
+   markup as the floating in-game switcher; only the positioning differs.
+   Default-HIDDEN; opted in only when body.picker-mode is set. The
+   default-hidden direction matters: if a stale CSS bundle is served
+   from a service-worker / mobile browser cache, an older rule set
+   that doesn't know about #flavorPickerSwitcher will simply not show
+   it (the element has display:none from the base rule below).
+   `!important` because the in-game floating widget shares the
+   .flavor-switcher class and we don't want any class-level rule
+   accidentally re-showing this one outside picker mode. */
+#flavorPickerSwitcher {
+  position: relative;
+  display: none !important;
+  margin-top: 18px;
+}
+body.picker-mode #flavorPickerSwitcher {
+  display: inline-block !important;
+}
+
+.status-line {
+  font-size: 11px;
+  color: var(--dim);
+  min-height: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.progress {
+  width: 100%;
+  height: 4px;
+  background: #111;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress > .bar {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 120ms linear;
+}
+#assetList {
+  font-size: 10px;
+  color: var(--dim);
+  max-height: 140px;
+  overflow-y: auto;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 8px;
+  display: none;
+  text-align: left;
+  line-height: 1.6;
+}
+#assetList.show {
+  display: block;
+}
+#assetList .done {
+  color: var(--ok);
+}
+#assetList .fail {
+  color: var(--warn);
+}
+#assetList .pending {
+  color: var(--dim);
+}

@@ -1,0 +1,360 @@
+/* Terminal — interactive modals: top (fullscreen process list), vi (centered
+   editor), less (centered pager). All share footer kbd chips and the
+   prefers-contrast adjustments live in contrast.css. */
+
+/* top — fullscreen interactive modal (terminal/commands/system/top.js) */
+.top-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #000;
+  color: #0f0;
+  font-family: 'Hack', ui-monospace, 'Courier New', Courier, monospace;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.top-modal:focus {
+  outline: none;
+}
+
+.top-modal:focus-visible {
+  outline: 2px solid rgba(0, 255, 80, 0.45);
+  outline-offset: -2px;
+}
+
+.top-modal-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.top-modal-inner[role='dialog']:focus {
+  outline: none;
+}
+
+.top-modal-inner[role='dialog']:focus-visible {
+  outline: 2px solid rgba(0, 255, 80, 0.45);
+  outline-offset: -2px;
+}
+
+.top-modal-header {
+  flex-shrink: 0;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid rgba(0, 255, 80, 0.22);
+  background: linear-gradient(180deg, rgba(0, 56, 0, 0.55) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.top-modal-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #b6f7b6;
+}
+
+.top-modal-subtitle {
+  margin-top: 4px;
+  font-size: 11px;
+  color: rgba(0, 255, 80, 0.52);
+  letter-spacing: 0.02em;
+}
+
+.top-modal-refresh-hint {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 6px 16px 8px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(0, 255, 80, 0.55);
+  border-top: 1px solid rgba(0, 255, 80, 0.12);
+  letter-spacing: 0.02em;
+}
+
+.top-modal .top-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 16px 10px;
+  scrollbar-gutter: stable;
+}
+
+.top-modal .top-content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.top-modal .top-content::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.top-modal .top-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 80, 0.35);
+  border-radius: 4px;
+}
+
+.top-modal .top-output {
+  margin: 0;
+  white-space: pre;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.35;
+  color: #c8ffc8;
+}
+
+.top-modal-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 4px;
+  padding: 10px 16px 12px;
+  border-top: 1px solid rgba(0, 255, 80, 0.2);
+  font-size: 11px;
+  color: rgba(0, 255, 80, 0.78);
+  background: rgba(0, 24, 0, 0.42);
+}
+
+.top-modal-footer-sep {
+  color: rgba(0, 255, 80, 0.35);
+  user-select: none;
+}
+
+.top-modal-footer kbd,
+.vi-editor-modal .vi-footer kbd,
+.less-modal .less-footer kbd,
+.terminal-session-hints kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 255, 80, 0.32);
+  background: rgba(0, 40, 0, 0.5);
+  font-family: inherit;
+  font-size: 10px;
+  color: #9fdf9f;
+}
+
+.less-modal .less-footer .less-footer-note {
+  color: rgba(0, 255, 80, 0.55);
+  font-style: italic;
+}
+
+/* vi / less — centered interactive modals (commands/system/vi.js, less.js) */
+.vi-editor-modal,
+.less-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.88);
+  color: #c8ffc8;
+  font-family: 'Hack', ui-monospace, 'Courier New', Courier, monospace;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.vi-editor-modal:focus,
+.less-modal:focus {
+  outline: none;
+}
+
+.vi-editor-modal:focus-visible,
+.less-modal:focus-visible {
+  outline: 2px solid rgba(0, 255, 80, 0.45);
+  outline-offset: -2px;
+}
+
+.vi-editor-modal .vi-editor,
+.less-modal .less-viewer {
+  width: min(92vw, 1100px);
+  height: min(85vh, 900px);
+  min-height: 260px;
+  background: #000;
+  border: 1px solid rgba(0, 255, 80, 0.22);
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(0, 255, 80, 0.08), 0 16px 48px rgba(0, 0, 0, 0.75);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.vi-editor-modal .vi-header,
+.less-modal .less-header {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(0, 255, 80, 0.22);
+  background: linear-gradient(180deg, rgba(0, 56, 0, 0.55) 0%, rgba(0, 0, 0, 0) 100%);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #b6f7b6;
+}
+
+.vi-editor-modal .vi-filename,
+.less-modal .less-filename {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vi-editor-modal .vi-mode,
+.less-modal .less-position {
+  flex-shrink: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgba(0, 255, 80, 0.92);
+}
+
+.vi-editor-modal .vi-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 12px 14px;
+  overflow: auto;
+  white-space: pre;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.35;
+  color: #c8ffc8;
+  scrollbar-gutter: stable;
+}
+
+.vi-editor-modal .vi-content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.vi-editor-modal .vi-content::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.vi-editor-modal .vi-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 80, 0.35);
+  border-radius: 4px;
+}
+
+.vi-editor-modal .vi-footer,
+.less-modal .less-footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 10px;
+  border-top: 1px solid rgba(0, 255, 80, 0.2);
+  font-size: 11px;
+  color: rgba(0, 255, 80, 0.78);
+  background: rgba(0, 24, 0, 0.42);
+}
+
+.vi-editor-modal .vi-status {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.vi-editor-modal .vi-position {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.vi-editor-modal .vi-cursor {
+  background: #0f0;
+  color: #000;
+}
+
+.vi-editor-modal .vi-cursor.insert {
+  background: #ff0;
+  color: #000;
+}
+
+.vi-editor-modal .vi-cursor.normal {
+  background: #0f0;
+  color: #000;
+}
+
+.less-modal .less-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 12px 14px;
+  overflow: hidden;
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.35;
+  color: #c8ffc8;
+}
+
+.less-modal .less-content.less-content-chop {
+  white-space: pre;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.less-modal .less-help {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.less-modal .less-search {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.less-modal .less-search input {
+  min-width: 8em;
+  background: #0a0a0a;
+  color: #c8ffc8;
+  border: 1px solid rgba(0, 255, 80, 0.28);
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin-left: 0;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.less-modal .less-search input:focus-visible {
+  outline: 2px solid rgba(0, 255, 80, 0.45);
+  outline-offset: 1px;
+}
+
+.less-modal .less-highlight {
+  background: #ff0;
+  color: #000;
+}
+
+@media (max-width: 768px) {
+  .vi-editor-modal .vi-editor,
+  .less-modal .less-viewer {
+    width: 100%;
+    height: min(88vh, 900px);
+    border-radius: 6px;
+  }
+
+  .vi-editor-modal .vi-header,
+  .less-modal .less-header {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .vi-editor-modal .vi-footer,
+  .less-modal .less-footer {
+    flex-wrap: wrap;
+    font-size: 10px;
+  }
+}

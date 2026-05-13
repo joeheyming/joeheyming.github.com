@@ -1,0 +1,94 @@
+/* StepMania component — GAME OVER MODAL. Shadow-DOM content styles
+   (host animation styles live in stepmania/js/game-over-modal.js). */
+
+/* ==========================================
+   Game Over Modal (Shadow DOM styles)
+   ========================================== */
+
+.game-over-content {
+  background: #1f2937;
+  border-radius: 0.5rem;
+  padding: 2rem;
+  max-width: 28rem;
+  width: 100%;
+  margin: 1rem;
+  border: 1px solid #4b5563;
+  text-align: center;
+}
+
+.game-over-content h2 {
+  font-size: 1.875rem;
+  font-weight: bold;
+  color: white;
+  margin: 0 0 1.5rem 0;
+}
+
+.game-over-content .score-box {
+  background: #374151;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.game-over-content .grade {
+  font-size: 2.25rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.game-over-content .percentage {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #34d399;
+  margin-bottom: 0.5rem;
+}
+
+.game-over-content .notes,
+.game-over-content .points {
+  color: #d1d5db;
+}
+
+.game-over-content .buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.game-over-content button {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 1rem;
+  color: white;
+}
+
+.game-over-content .share-btn {
+  background: #2563eb;
+  font-size: 1.125rem;
+  font-weight: 700;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+}
+.game-over-content .share-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.4);
+}
+
+.game-over-content .restart-btn {
+  background: #16a34a;
+}
+.game-over-content .restart-btn:hover {
+  background: #15803d;
+}
+
+.game-over-content .close-btn {
+  background: #4b5563;
+}
+.game-over-content .close-btn:hover {
+  background: #374151;
+}

@@ -1,0 +1,64 @@
+/* StepMania component — DIFFICULTY SELECTOR. Custom <difficulty-selector>
+   element with a styled <select>. Loaded into shadow roots via
+   adoptedStyleSheets in stepmania/js/sharedStyles.js. */
+
+/* ==========================================
+   DIFFICULTY SELECTOR COMPONENT
+   ========================================== */
+
+difficulty-selector {
+  display: inline-flex;
+  align-items: center;
+}
+
+.difficulty-selector.hidden {
+  display: none;
+}
+
+.difficulty-select {
+  display: flex;
+  padding: 0.5rem 1.5rem;
+  font-size: 14px;
+  font-weight: bold;
+  color: white;
+  background: linear-gradient(to right, #3b82f6, #2563eb);
+  border: 2px solid rgba(139, 92, 246, 0.3);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  outline: none;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: fit-content;
+}
+
+@media (max-width: 768px) {
+  .difficulty-select {
+    padding: 0.25rem 0.75rem;
+    font-size: 12px;
+    height: 2rem;
+  }
+}
+
+.difficulty-select:hover {
+  background: linear-gradient(to right, #2563eb, #1d4ed8);
+  border-color: rgba(139, 92, 246, 0.6);
+  transform: scale(1.02);
+}
+
+.difficulty-select:focus {
+  border-color: rgba(0, 245, 255, 0.6);
+  box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.2);
+}
+
+.difficulty-select option {
+  background: #1f2937;
+  color: white;
+  padding: 0.5rem;
+}
+
+.difficulty-select option:hover {
+  background: #374151;
+}

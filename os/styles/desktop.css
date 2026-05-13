@@ -1,0 +1,157 @@
+/* Heyming OS — desktop surface: icons, file drag, selection box, wallpaper, drop zone. */
+
+/* Desktop Icons */
+.desktop-icon {
+  position: absolute;
+  width: 64px;
+  height: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  z-index: 5;
+  padding: 4px;
+}
+
+.desktop-icon:hover .icon {
+  transform: scale(1.1);
+}
+
+.desktop-icon:hover .label {
+  background: rgba(0, 123, 255, 0.8);
+  color: white;
+}
+
+.desktop-icon .icon {
+  font-size: 48px;
+  margin-bottom: 4px;
+  transition: all 0.2s ease;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.desktop-icon .label {
+  font-size: 11px;
+  font-weight: 500;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  text-align: center;
+  line-height: 1.2;
+  max-width: 64px;
+  word-wrap: break-word;
+  padding: 1px 3px;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+/* Dragging state for file icons */
+.desktop-icon.file-icon[draggable='true'] {
+  cursor: grab;
+}
+
+.desktop-icon.file-icon:active {
+  cursor: grabbing;
+  opacity: 0.7;
+  transform: scale(0.95);
+}
+
+.desktop-icon.file-icon.selected {
+  background: rgba(0, 123, 255, 0.3);
+  border-radius: 8px;
+  outline: 2px solid rgba(0, 123, 255, 0.8);
+}
+
+.desktop-icon.file-icon.selected .label {
+  background: rgba(0, 123, 255, 0.9);
+  color: white;
+}
+
+/* Theme E: keyboard focus rings for desktop icons (tab / arrow navigation) */
+.desktop-icon:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.desktop-icon.file-icon.selected:focus-visible {
+  outline-color: #e0f2fe;
+}
+
+/* Desktop drag selection box */
+.desktop-selection-box {
+  position: absolute;
+  border: 1px solid rgba(0, 123, 255, 0.8);
+  background: rgba(0, 123, 255, 0.15);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* Desktop Background with Famous Ghostscript Tiger SVG */
+#os-desktop {
+  background-image: url('../../assets/ghostscript_tiger.svg');
+  background-size: 25%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Subtle overlay to enhance tiger visibility */
+#os-desktop::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(ellipse at center, transparent 20%, rgba(0, 0, 0, 0.1) 70%);
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* Drop zone active state */
+#os-desktop.drop-active {
+  background-color: rgba(59, 130, 246, 0.12);
+}
+
+#os-desktop.drop-active::after {
+  content: '📥 Drop files here';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  background: linear-gradient(160deg, rgba(59, 130, 246, 0.42), rgba(37, 99, 235, 0.32));
+  padding: 1.75rem 3rem;
+  border-radius: 1rem;
+  border: 3px dashed rgba(147, 197, 253, 0.85);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+  z-index: 9999;
+  animation: pulse-drop 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-drop {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.02);
+    opacity: 0.88;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #os-desktop.drop-active::after {
+    animation: none;
+  }
+}

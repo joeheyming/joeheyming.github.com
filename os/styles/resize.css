@@ -1,0 +1,157 @@
+/* Heyming OS — window resize: edge/corner handles + visible bottom-right drag grip. */
+
+/* Window Resize Handles */
+.resize-handle {
+  position: absolute;
+  background: transparent;
+  z-index: 2; /* Lower than iframe content */
+  pointer-events: auto;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.resize-handle:hover {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+.os-window:hover .resize-handle {
+  opacity: 0.8;
+}
+
+.os-window .resize-handle {
+  opacity: 0.2;
+}
+
+.resize-handle.n {
+  top: -4px;
+  left: 12px;
+  right: 12px;
+  height: 8px;
+  cursor: n-resize;
+}
+
+.resize-handle.s {
+  bottom: -4px;
+  left: 12px;
+  right: 12px;
+  height: 8px;
+  cursor: s-resize;
+}
+
+.resize-handle.e {
+  top: 12px;
+  bottom: 12px;
+  right: -4px;
+  width: 8px;
+  cursor: e-resize;
+}
+
+.resize-handle.w {
+  top: 12px;
+  bottom: 12px;
+  left: -4px;
+  width: 8px;
+  cursor: w-resize;
+}
+
+.resize-handle.ne {
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  cursor: ne-resize;
+}
+
+.resize-handle.nw {
+  top: -4px;
+  left: -4px;
+  width: 16px;
+  height: 16px;
+  cursor: nw-resize;
+}
+
+.resize-handle.se {
+  bottom: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  cursor: se-resize;
+  position: relative;
+}
+
+.resize-handle.sw {
+  bottom: -4px;
+  left: -4px;
+  width: 16px;
+  height: 16px;
+  cursor: sw-resize;
+}
+
+/* Visible Drag Handle */
+.window-drag-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(
+    135deg,
+    transparent 30%,
+    #4a5568 30%,
+    #4a5568 40%,
+    transparent 40%,
+    transparent 50%,
+    #4a5568 50%,
+    #4a5568 60%,
+    transparent 60%,
+    transparent 70%,
+    #4a5568 70%
+  );
+  cursor: se-resize;
+  z-index: 1000;
+  opacity: 0.7;
+  transition: opacity 0.2s ease, background 0.2s ease, transform 0.2s ease;
+  border-top-left-radius: 4px;
+  pointer-events: auto;
+}
+
+.window-drag-handle:hover {
+  opacity: 1;
+  background: linear-gradient(
+    135deg,
+    transparent 30%,
+    #3182ce 30%,
+    #3182ce 40%,
+    transparent 40%,
+    transparent 50%,
+    #3182ce 50%,
+    #3182ce 60%,
+    transparent 60%,
+    transparent 70%,
+    #3182ce 70%
+  );
+  transform: scale(1.1);
+}
+
+.window-drag-handle::before {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 4px;
+  height: 4px;
+  background: #718096;
+  border-radius: 50%;
+}
+
+.window-drag-handle::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #718096;
+  border-top: none;
+  border-left: none;
+  transform: rotate(-45deg);
+}

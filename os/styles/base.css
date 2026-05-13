@@ -1,0 +1,101 @@
+/* Heyming OS — base styles: skip link, desktop focus, OS-wide animation utilities. */
+
+/* Theme E: skip link — keyboard users jump past chrome to the desktop surface */
+.os-skip-link {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.os-skip-link:focus {
+  position: fixed;
+  left: 12px;
+  top: 12px;
+  z-index: 5000;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 8px 12px;
+  overflow: visible;
+  clip: auto;
+  white-space: nowrap;
+  border-radius: 4px;
+  border: 1px solid rgba(147, 197, 253, 0.55);
+  background: rgba(15, 23, 42, 0.97);
+  color: #e2e8f0;
+  font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+  font-size: 13px;
+  text-decoration: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+}
+
+.os-skip-link:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.65);
+  outline-offset: 2px;
+}
+
+#os-desktop:focus {
+  outline: none;
+}
+
+#os-desktop:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.75);
+  outline-offset: -2px;
+}
+
+/* Animation Classes */
+.os-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.os-fade-out {
+  animation: fadeOut 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+/* Loading Animation */
+.loading-spinner {
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top: 3px solid #3182ce;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

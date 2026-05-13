@@ -1,0 +1,215 @@
+/* DOOM — mobile touch overlay. Synthetic KeyboardEvents dispatched on
+   the canvas; sub-weapon (Castlevania dagger throw) and round-robin
+   weapon-cycle pads are colored independently of the main buttons. */
+
+
+/* Mobile touch controls. Layered over the canvas after the engine
+   starts; synthetic KeyboardEvents are dispatched on #canvas. */
+#touch-ui {
+  display: none;
+}
+body.mobile #touch-ui {
+  display: block;
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  width: 100svw;
+  height: 100svh;
+  z-index: 5;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+body.mobile #touch-ui.hidden {
+  display: none !important;
+}
+
+.touch-btn {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 20, 24, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font-size: 20px;
+  font-family: inherit;
+  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  flex: 0 0 auto;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 80ms, transform 80ms;
+}
+.touch-btn.active,
+.touch-btn:active {
+  background: rgba(79, 168, 97, 0.7);
+  transform: scale(0.94);
+}
+.touch-btn.action {
+  width: 56px;
+  height: 56px;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+.touch-btn.action.fire {
+  background: rgba(200, 40, 40, 0.6);
+  width: 72px;
+  height: 72px;
+  font-size: 22px;
+}
+.touch-btn.action.use {
+  background: rgba(79, 168, 97, 0.55);
+}
+.touch-btn.action.jump {
+  background: rgba(80, 130, 200, 0.55);
+}
+/* Sub-weapon / alt-fire (Castlevania dagger throw, etc.) — warmer
+   orange so it reads as "another attack" without competing with FIRE. */
+.touch-btn.action.alt {
+  background: rgba(200, 120, 40, 0.55);
+}
+/* Round-robin weapon cycle — neutral indigo so it reads as "switch",
+   distinct from the colored attack/movement buttons. */
+.touch-btn.action.wpn {
+  background: rgba(120, 100, 180, 0.55);
+  font-size: 22px;
+}
+
+#touch-move {
+  position: absolute;
+  left: calc(14px + env(safe-area-inset-left, 0px));
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  width: 256px;
+  height: 256px;
+}
+#touch-move .touch-btn {
+  position: absolute;
+  width: 88px;
+  height: 88px;
+  font-size: 26px;
+}
+#touch-move .up {
+  top: 0;
+  left: 84px;
+}
+#touch-move .down {
+  bottom: 0;
+  left: 84px;
+}
+#touch-move .left {
+  top: 84px;
+  left: 0;
+}
+#touch-move .right {
+  top: 84px;
+  right: 0;
+}
+
+#touch-actions {
+  position: absolute;
+  right: calc(14px + env(safe-area-inset-right, 0px));
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+  /* Bumped from 160 to 220 to fit JUMP | USE | FIRE in the bottom row.
+     56 + 10 + 56 + 10 + 72 = 204px; the @media short-landscape rule
+     shrinks them to 48 + 10 + 48 + 10 + 60 = 176px. */
+  max-width: 220px;
+}
+#touch-actions .row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+@media (max-height: 420px) {
+  #touch-move {
+    width: 220px;
+    height: 220px;
+  }
+  #touch-move .up {
+    top: 0;
+    left: 74px;
+  }
+  #touch-move .down {
+    bottom: 0;
+    left: 74px;
+  }
+  #touch-move .left {
+    top: 74px;
+    left: 0;
+  }
+  #touch-move .right {
+    top: 74px;
+    right: 0;
+  }
+  #touch-move .touch-btn {
+    width: 72px;
+    height: 72px;
+    font-size: 22px;
+  }
+  .touch-btn.action {
+    width: 48px;
+    height: 48px;
+    font-size: 12px;
+  }
+  .touch-btn.action.fire {
+    width: 60px;
+    height: 60px;
+    font-size: 18px;
+  }
+}
+
+body.mobile .overlay {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+body.mobile .brand h1 {
+  font-size: 18px;
+}
+body.mobile #cleanLaunchBtn {
+  font-size: 14px;
+  padding: 14px 24px;
+}
+
+#landscape-hint {
+  display: none;
+}
+body.mobile.portrait #landscape-hint {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.85);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.6;
+}
+#landscape-hint .box {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 20px;
+  max-width: 320px;
+}
+#landscape-hint button {
+  margin-top: 12px;
+  padding: 8px 16px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+}

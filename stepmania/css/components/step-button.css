@@ -1,0 +1,100 @@
+/* StepMania component — STEP BUTTON. Single arrow tap pad used by the
+   stage; supports hold-flicker animation and reduced-motion fallback. */
+
+/* ==========================================
+   STEP BUTTON COMPONENT
+   ========================================== */
+
+step-button {
+  display: block;
+}
+
+.step-button {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, var(--bg-from) 0%, var(--bg-to) 50%, var(--bg-from) 100%);
+  border: 3px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  transition: all 0.15s ease;
+  transform: translateZ(0);
+}
+
+.step-button:hover {
+  box-shadow: 0 20px 25px -5px var(--hover-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+  border-color: var(--hover-border);
+  background: linear-gradient(
+    135deg,
+    var(--hover-from) 0%,
+    var(--hover-to) 50%,
+    var(--hover-from) 100%
+  );
+  transform: scale(1.1);
+}
+
+.step-button:active {
+  transform: scale(0.9);
+  box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: linear-gradient(
+    135deg,
+    var(--active-from) 0%,
+    var(--active-to) 50%,
+    var(--active-from) 100%
+  );
+}
+
+.step-button.button-pressed {
+  transform: scale(0.85) !important;
+  box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+  filter: brightness(0.8) !important;
+}
+
+.step-button .inner-glow {
+  position: absolute;
+  inset: 4px;
+  background: linear-gradient(to bottom right, var(--inner-from), var(--inner-to));
+  border-radius: 6px;
+  opacity: 0.6;
+}
+
+.step-button .arrow {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.step-button .arrow-image {
+  width: 40px;
+  height: 40px;
+  background-image: url('/stepmania/img/down-target.png');
+  background-size: 120px 40px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  transition: transform 0.15s ease;
+}
+
+@media (min-width: 768px) {
+  .step-button {
+    width: 64px;
+    height: 64px;
+  }
+
+  .step-button .arrow-image {
+    width: 48px;
+    height: 48px;
+    background-size: 144px 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-button {
+    transition: none;
+  }
+}

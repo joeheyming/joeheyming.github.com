@@ -1,0 +1,247 @@
+/* Accordion — Chromatic right-hand button accordion (B-system / C-system):
+   honeycomb stagger, horizontal + vertical orientations, flip-mirroring. */
+
+/* ---------- Chromatic right-hand button accordion ---------- */
+
+.chromatic-keyboard {
+  display: flex;
+  /* Cross-row spacing comes from the regular flex `gap` — the honeycomb
+   * feel is provided by the half-button horizontal stagger on alternating
+   * rows (`--row-offset` set in JS), not by physically tucking rows into
+   * each other. True hex close-packing (rows overlapping by √3/2) felt
+   * cramped on a touch UI; this looser layout matches how the reference
+   * CBA spelling charts are drawn — clearly separated rows with a
+   * half-button shift. */
+  gap: var(--btn-gap);
+  padding: 14px 12px;
+  background: linear-gradient(180deg, #1e1b4b, #0b1220);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 24px -16px rgba(0, 0, 0, 0.7);
+  user-select: none;
+  -webkit-user-select: none;
+  /* Container scrolls; the buttons themselves capture the gesture. */
+  touch-action: auto;
+  /* Auto-fit the button size to the chosen layout, same trick as the
+   * Stradella side. `--col-count` and `--row-count` are set by
+   * chromatic.js when a layout is built. */
+  --btn-gap: 8px;
+  --auto-btn: calc((100vw - 32px) / max(var(--col-count, 16), 1) - var(--btn-gap));
+  --btn-size: clamp(32px, var(--auto-btn), 56px);
+  --col-step: calc(var(--btn-size) + var(--btn-gap));
+}
+
+.chromatic-keyboard[data-orientation='horizontal'] {
+  /* Render row 0 at the BOTTOM. On a real CBA, "row 1" of the
+   * traditional spelling charts (the row closest to the player's wrist)
+   * sits at the bottom, with helper / duplicate rows further from the
+   * body. Source order in the DOM is row 0 → row N, so reverse. */
+  flex-direction: column-reverse;
+  align-items: safe center;
+  overflow: visible;
+}
+
+.chromatic-keyboard[data-orientation='vertical'] {
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: safe center;
+  overflow: visible;
+  /* Same fix as `.stradella-bass[data-orientation='vertical']`:
+   * `.accordion-view` is `display: flex; align-items: stretch` (default),
+   * so by default the keyboard gets stretched to the parent's cross-axis
+   * height — a fixed pixel box on mobile (where `.accordion-view` is
+   * `flex: 1 1 0`). The keyboard's content (15+ buttons per column,
+   * 4–5 columns) is much taller than that, so under the existing
+   * `overflow: visible` the buttons escape past the dark gradient
+   * background as the user scrolls. `align-self: start` opts out of the
+   * stretch and lets the keyboard size to its content; `.accordion-view`'s
+   * `overflow-y: auto` (mobile media block) provides the scroll
+   * container. */
+  align-self: flex-start;
+  /* In vertical mode the row-count drives horizontal fit (each chromatic
+   * "row" becomes a vertical column). 3-row models get huge buttons,
+   * 5-row stays comfortable. */
+  --btn-gap: 6px;
+  --auto-btn: calc((100vw - 32px) / max(var(--row-count, 4), 1) - var(--btn-gap));
+  --btn-size: clamp(48px, var(--auto-btn), 88px);
+}
+
+/* Honeycomb stagger via per-row leading padding. Rows with --row-offset 0.5
+ * push their first button half a column to the right; flush rows (offset 0)
+ * sit hard against the row's left edge.
+ *
+ * The complementary padding-right is critical: without it, staggered rows
+ * are wider than flush rows, and the keyboard's `align-items: safe center`
+ * re-centres each row independently — drifting the narrower rows inward
+ * and turning what should be a uniform half-button stagger into a 0.25 /
+ * 0.75 zigzag (visible as a "kink" in the F-G-A-B chromatic diagonal on
+ * B-system, and the mirror diagonal on C-system). Padding both sides so
+ * every row has the same total width = staggered rows + 0.5 col-step
+ * keeps the centred rows perfectly aligned and the stagger uniform.
+ *
+ * Same trick `.stradella-row` uses (see `padding-right` rule there). */
+.chromatic-row {
+  display: flex;
+  gap: var(--btn-gap);
+  flex-wrap: nowrap;
+  padding-left: calc(var(--row-offset, 0) * var(--col-step));
+  padding-right: calc((0.5 - var(--row-offset, 0)) * var(--col-step));
+  width: max-content;
+}
+
+.chromatic-col {
+  display: flex;
+  /* Column reads top-to-bottom matching the horizontal layout's
+   * left-to-right note order (i.e. the start of each row's pattern at
+   * the top). DOM order is c=0..cols-1, so plain `column` matches. */
+  flex-direction: column;
+  gap: var(--btn-gap);
+  padding-top: calc(var(--col-offset, 0) * var(--col-step));
+  /* Same equal-total-height balancing as .chromatic-row above: without
+   * the trailing padding the staggered columns are taller than flush
+   * ones and `align-items: safe center` (in horizontal-axis terms,
+   * `align-items` on a flex-row of columns) drifts them inward,
+   * producing the same diagonal kink in vertical orientation. */
+  padding-bottom: calc((0.5 - var(--col-offset, 0)) * var(--col-step));
+  height: max-content;
+}
+
+.chromatic-button {
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 999px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: pan-x pan-y; /* see `.stradella-button` for rationale */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--btn-size);
+  height: var(--btn-size);
+  flex: 0 0 var(--btn-size);
+  padding: 0;
+  font-size: calc(var(--btn-size) * 0.34);
+  line-height: 1;
+  transition: transform 80ms ease-out, background 80ms ease-out, box-shadow 80ms ease-out;
+}
+
+.chromatic-button:focus-visible {
+  outline: 2px solid #a78bfa;
+  outline-offset: 2px;
+}
+
+/* Naturals (the white piano keys: C D E F G A B) — light buttons.
+ * Accidentals (the black keys: C♯ D♯ F♯ G♯ A♯) — dark buttons. This
+ * matches the convention real CBA spelling charts use, so the player
+ * can read pitch class at a glance instead of decoding row position. */
+.chromatic-button.is-natural {
+  background: linear-gradient(180deg, #ede9fe, #c4b5fd);
+  color: #1e1b4b;
+  border: 1px solid rgba(99, 92, 161, 0.55);
+}
+
+.chromatic-button.is-accidental {
+  background: linear-gradient(180deg, #1e1b4b, #0a0a25);
+  color: #c4b5fd;
+  border: 1px solid rgba(124, 58, 237, 0.45);
+}
+
+/* C buttons: visual home base for the player. Light like other naturals
+ * but with a gold accent ring so they pop against the rest of the
+ * keyboard. */
+.chromatic-button.is-c {
+  background: linear-gradient(180deg, #fef3c7, #fcd34d);
+  color: #422006;
+  border-color: #b45309;
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.35);
+}
+
+.chromatic-button.active {
+  transform: translateY(1px) scale(0.94);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+  filter: brightness(1.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chromatic-button {
+    transition: none;
+  }
+}
+
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+  .chromatic-keyboard {
+    /* Mobile: same auto-fit math but with chunkier touch-friendly bounds.
+     * 40px floor matches the tap-target minimum; wider layouts (e.g.
+     * 16-col 5-row CBA) overflow `.accordion-view` and rely on the
+     * scroll-gesture heuristic in chromatic.js. */
+    --auto-btn: calc((100vw - 24px) / max(var(--col-count, 16), 1) - var(--btn-gap));
+    --btn-size: clamp(40px, var(--auto-btn), 64px);
+    --btn-gap: 5px;
+    padding: 10px 8px;
+  }
+}
+
+/* Mobile vertical chromatic: same gutter treatment as Stradella so the
+ * user has empty space to start a page scroll. Sits after the
+ * unconditional vertical rule for source-order priority. */
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+  .chromatic-keyboard[data-orientation='vertical'] {
+    margin-left: 24px;
+    margin-right: 24px;
+    /* Match the Stradella vertical-mobile margin so the deepest
+     * staggered button (last row in the bottom column) clears the
+     * system nav bar / home indicator when scrolled to the bottom.
+     * `env(safe-area-inset-bottom)` picks up the iOS home-indicator
+     * inset and Android gesture-bar inset; the +72px is plain visual
+     * breathing on top. */
+    margin-bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
+    --auto-btn: calc((100vw - 96px) / max(var(--row-count, 4), 1) - var(--btn-gap));
+    --btn-size: clamp(44px, var(--auto-btn), 88px);
+  }
+}
+
+/* Helper rows (4th and 5th rows on real CBAs) are MIDI-identical to
+ * rows 1 and 2 respectively. They no longer need their own tint —
+ * pitch-class coloring (natural / accidental / C) already tells the
+ * player which note is which — but they get a subtle inner shadow so
+ * the eye can tell where the helper rows start. */
+.chromatic-row-duplicate .chromatic-button,
+.chromatic-col-duplicate .chromatic-button {
+  box-shadow: inset 0 0 0 1px rgba(196, 181, 253, 0.15);
+}
+
+/* ---------- Chromatic flip mode ----------
+ *
+ * Mirrors the right-hand button section for players who prefer to
+ * read the layout from a different perspective. Same scheme as the
+ * Stradella flip block above: container scales via CSS variables,
+ * and the per-button text span counter-scales so glyphs stay upright.
+ * The CBA `.active` press transform composes naturally with the
+ * container transform.
+ */
+.chromatic-keyboard[data-flip='horizontal'] {
+  --flip-x: -1;
+  --flip-y: 1;
+}
+.chromatic-keyboard[data-flip='vertical'] {
+  --flip-x: 1;
+  --flip-y: -1;
+}
+.chromatic-keyboard[data-flip='both'] {
+  --flip-x: -1;
+  --flip-y: -1;
+}
+
+.chromatic-keyboard[data-flip='horizontal'],
+.chromatic-keyboard[data-flip='vertical'],
+.chromatic-keyboard[data-flip='both'] {
+  transform: scale(var(--flip-x, 1), var(--flip-y, 1));
+}
+
+.chromatic-keyboard[data-flip='horizontal'] .chromatic-button-label,
+.chromatic-keyboard[data-flip='vertical'] .chromatic-button-label,
+.chromatic-keyboard[data-flip='both'] .chromatic-button-label {
+  display: inline-block;
+  transform: scale(var(--flip-x, 1), var(--flip-y, 1));
+}

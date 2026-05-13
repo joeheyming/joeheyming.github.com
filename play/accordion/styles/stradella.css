@@ -1,0 +1,446 @@
+/* Accordion — Stradella bass (120-button, diagonal grid): horizontal + vertical
+   orientations, flip-mirroring, and mobile tap-target tuning. */
+
+/* ---------- Stradella bass (120-button, diagonal grid) ----------
+ *
+ * Real 120-bass accordions don't lay out their buttons on a rectangular
+ * grid — each successive row is offset by ~half a button-width, producing
+ * the diagonal "columns" the player navigates by feel.
+ *
+ * We replicate that here by: (1) using fixed-size circular buttons in a
+ * flex row, (2) giving each row class a `--row-offset` value (0, 0.5, 1,
+ * 1.5, …) and (3) translating the row's button strip horizontally by
+ * `row-offset × column-step`. Result: columns slope down-right, just like
+ * the real instrument.
+ */
+
+.stradella-bass {
+  display: flex;
+  flex-direction: column;
+  /* Center rows horizontally; `safe` falls back to flex-start when content
+   * overflows so we don't clip the left edge on small screens. */
+  align-items: safe center;
+  gap: 4px;
+  /* Horizontal padding has to clear the 14px container radius so the
+   * diagonal bottom row's last button doesn't kiss the bottom-right curve.
+   * 18px gives ~4px of breathing past the radius even at the tightest
+   * 1280px desktop fit. */
+  padding: 14px 18px;
+  background: linear-gradient(180deg, #0b1220, #1f2937);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 24px -16px rgba(0, 0, 0, 0.7);
+  user-select: none;
+  -webkit-user-select: none;
+  /* The container itself stays scrollable — touches that land in the empty
+   * gaps between buttons (e.g. the diagonal stagger) should let the user
+   * scroll the page. The buttons get `touch-action: pan-x` individually
+   * (see `.stradella-button` below) so a swipe that starts on a button
+   * still scrolls horizontally; vertical drags are reserved for our
+   * drag-play across rows. */
+  touch-action: auto;
+  /* Sizing knobs the row offset and button widths reference. The button
+   * size auto-grows when there are fewer columns (e.g. 12- or 24-bass
+   * instruments) so smaller layouts use the available space; clamps stop
+   * it from going too tiny for touch on full 120-bass layouts and from
+   * ballooning on huge desktops. */
+  --btn-gap: 4px;
+  /* Per-row diagonal stagger pushes successive rows right by `--row-offset *
+   * --col-step`. The widest (last) row therefore needs `col-count + max-row-
+   * offset` button-widths of horizontal space to fit, not just `col-count`.
+   * `--max-row-offset` is `(row-count − 1) × 0.5` for the layouts here
+   * (standard 6 → 2.5, eastern 5 → 2, free-bass 3 → 1). Without this term
+   * the bottom row's tail would clip past the container on a fully-laid-out
+   * 120-bass on a 1280px desktop. */
+  --max-row-offset: calc((max(var(--row-count, 6), 1) - 1) * 0.5);
+  /* Available width inside the keyboard's content area:
+   *   100vw − stage padding (24) − accordion-view padding (8)
+   *        − stradella-bass padding (36) − label column (88) = 100vw − 156
+   * BUT `.accordion-view` is capped at `max-width: 1280px`, so on wide
+   * monitors the actual content area never grows past `1280 − 8 − 36 − 88
+   * = 1148`. Without the `min(...)` cap the formula keeps growing past
+   * its real container, the clamp pins btn-size at the 56px maximum, and
+   * the diagonal bottom row overflows hundreds of pixels on a 1920px
+   * display. The cap pins the math to the real container above 1304px
+   * and is a no-op below it. */
+  --auto-btn: calc(
+    min(100vw - 156px, 1148px) / (max(var(--col-count, 20), 1) + var(--max-row-offset)) -
+      var(--btn-gap)
+  );
+  --btn-size: clamp(26px, var(--auto-btn), 56px);
+  --col-step: calc(var(--btn-size) + var(--btn-gap));
+  overflow: visible;
+}
+
+.stradella-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--btn-gap);
+  width: max-content; /* let the row grow to fit 20 staggered buttons */
+}
+
+/* Horizontal-mode equal-width trick: every row pads its right side by the
+ * *complement* of its own diagonal offset, so all rows render at the same
+ * total width as the bottom row. Combined with the container's `align-
+ * items: safe center`, this keeps every row's left edge aligned — the
+ * staircase comes purely from the per-row leading margin on the first
+ * button. Without this, shorter upper rows would each centre on their
+ * own midpoint and the diagonal would look bent.
+ *
+ * Scoped to horizontal orientation only: in vertical mode the row's
+ * width is fixed to `var(--btn-size)` (one button wide) and adding
+ * padding-right would, under the global `box-sizing: border-box`,
+ * eat into the content area and squash the buttons. */
+.stradella-bass:not([data-orientation='vertical']) .stradella-row {
+  padding-right: calc((var(--max-row-offset, 0) - var(--row-offset, 0)) * var(--col-step));
+}
+
+.stradella-row-label {
+  width: 80px;
+  flex: 0 0 80px;
+  margin-right: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted, #94a3b8);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: right;
+  padding-right: 4px;
+}
+
+/* Diagonal stagger — push only the first button so the label stays put. */
+.stradella-row > .stradella-button:first-of-type {
+  margin-left: calc(var(--row-offset, 0) * var(--col-step));
+}
+
+/* Per-row diagonal offsets. Each successive row shifts half a column. */
+.stradella-row-counter-bass {
+  --row-offset: 0;
+}
+.stradella-row-bass {
+  --row-offset: 0.5;
+}
+.stradella-row-major {
+  --row-offset: 1;
+}
+.stradella-row-minor {
+  --row-offset: 1.5;
+}
+.stradella-row-dom7 {
+  --row-offset: 2;
+}
+.stradella-row-dim7 {
+  --row-offset: 2.5;
+}
+
+/* Free-bass uses gentler stagger across just three rows. */
+.stradella-row-free-low {
+  --row-offset: 0;
+}
+.stradella-row-free-mid {
+  --row-offset: 0.5;
+}
+.stradella-row-free-high {
+  --row-offset: 1;
+}
+
+.stradella-button {
+  -webkit-appearance: none;
+  appearance: none;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: linear-gradient(180deg, #1e293b, #0f172a);
+  color: #e2e8f0;
+  border-radius: 999px;
+  font-family: inherit;
+  /* Heavier weight so chord glyphs (M / m / 7 / °) and the small note
+   * letters on counter-bass / bass stay legible on the 26px floor. */
+  font-weight: 700;
+  cursor: pointer;
+  /* `pan-x pan-y` lets the browser handle horizontal AND vertical
+   * panning natively (with momentum) on the `.accordion-view`
+   * scroll container. Whichever axis actually overflows is the one
+   * the browser uses for that gesture — landscape stradella overflows
+   * X, portrait stradella overflows Y, dense layouts can overflow
+   * both. The page chrome above stays pinned by the body-locked rule
+   * in `play/style.css`. We trade vertical drag-glissando across rows
+   * for native scroll in both axes (the user's QoL ask). */
+  touch-action: pan-x pan-y;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--btn-size);
+  height: var(--btn-size);
+  flex: 0 0 var(--btn-size);
+  padding: 0;
+  font-size: calc(var(--btn-size) * 0.42);
+  line-height: 1;
+  transition: transform 80ms ease-out, background 80ms ease-out, box-shadow 80ms ease-out;
+}
+
+.stradella-button:focus-visible {
+  outline: 2px solid #f472b6;
+  outline-offset: 2px;
+}
+
+.stradella-button.active {
+  transform: translateY(1px) scale(0.94);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* Counter-bass and bass: bigger, single-note buttons. */
+.stradella-button-counter-bass,
+.stradella-button-bass,
+.stradella-button-free-low,
+.stradella-button-free-mid,
+.stradella-button-free-high {
+  /* Note names ("A" / "C♯" / "B♭") scale with button size like the
+   * chord glyphs do. Slightly larger ratio (0.46 vs 0.42) because the
+   * letterforms have less vertical mass than 'M' / 'm' / '7' / '°' and
+   * benefit from a touch more presence. Two-character names (e.g. "C♯")
+   * still fit inside the circular chip at this ratio because letter
+   * advance is roughly 0.55–0.6 of font-size in the inherited UI font. */
+  font-size: calc(var(--btn-size) * 0.46);
+  background: linear-gradient(180deg, #f8fafc, #cbd5e1);
+  color: #0f172a;
+  border-color: #475569;
+}
+
+.stradella-button-counter-bass {
+  background: linear-gradient(180deg, #e0f2fe, #bae6fd);
+  color: #0c4a6e;
+  border-color: #0284c7;
+}
+
+/* Home buttons (F, C, G) — visible reference points the player feels for. */
+.stradella-button.is-home {
+  background: linear-gradient(180deg, #fecaca, #fca5a5);
+  color: #7f1d1d;
+  border-color: #dc2626;
+  box-shadow: inset 0 -2px 4px rgba(127, 29, 29, 0.3);
+}
+
+.stradella-button.is-home.active {
+  background: linear-gradient(180deg, #fca5a5, #ef4444);
+  color: #fff;
+}
+
+/* Chord rows: smaller label, color-coded subtle tints. */
+.stradella-button-major {
+  background: linear-gradient(180deg, #052e16, #14532d);
+  color: #bbf7d0;
+  border-color: #166534;
+}
+
+.stradella-button-minor {
+  background: linear-gradient(180deg, #042f2e, #134e4a);
+  color: #99f6e4;
+  border-color: #115e59;
+}
+
+.stradella-button-dom7 {
+  background: linear-gradient(180deg, #422006, #78350f);
+  color: #fed7aa;
+  border-color: #92400e;
+}
+
+.stradella-button-dim7 {
+  background: linear-gradient(180deg, #450a0a, #7f1d1d);
+  color: #fecaca;
+  border-color: #991b1b;
+}
+
+/* Free-bass octave coloring. */
+.stradella-button-free-low {
+  background: linear-gradient(180deg, #cbd5e1, #94a3b8);
+  color: #0f172a;
+}
+.stradella-button-free-high {
+  background: linear-gradient(180deg, #ede9fe, #c4b5fd);
+  color: #312e81;
+  border-color: #6d28d9;
+}
+
+/* Phone-sized viewports (and any touch-only device, regardless of width)
+ * get noticeably larger Stradella buttons so they're comfortable to press
+ * with a fingertip rather than aimed at with a cursor.
+ *
+ * The min in `clamp()` (38px) is the tap-target floor — when a wide layout
+ * (e.g. 120-bass × 20 cols) would force buttons below it, the row instead
+ * grows past the viewport and the parent `.accordion-view` scrolls
+ * horizontally (its `overflow-x: auto` is set in the
+ * `@media (max-width: 720px)` block above). */
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+  .stradella-bass {
+    padding: 10px 8px;
+    /* Mobile auto-fit: same formula but with bigger floor/cap so picking
+     * a 12- or 24-bass layout fills the screen with chunky touch targets.
+     * Same `+ max-row-offset` correction as desktop — when the floor
+     * (38px) clamps the size, `.accordion-view` scrolls horizontally
+     * either way; this just makes the keyboard fit on tablets / phones
+     * in landscape that *can* render 22.5 columns at the floor size.
+     * The 1192px cap mirrors the desktop cap for big landscape tablets:
+     *   1280 (av max-width) − 8 (av padding) − 16 (sb mobile padding)
+     *                       − 64 (mobile label) = 1192. */
+    --auto-btn: calc(
+      min(100vw - 88px, 1192px) / (max(var(--col-count, 20), 1) + var(--max-row-offset)) -
+        var(--btn-gap)
+    );
+    --btn-size: clamp(38px, var(--auto-btn), 64px);
+    --btn-gap: 5px;
+  }
+  .stradella-button {
+    /* Slightly larger glyphs to match the bigger buttons. */
+    font-size: calc(var(--btn-size) * 0.42);
+  }
+  .stradella-row-label {
+    width: 56px;
+    flex-basis: 56px;
+    font-size: 9px;
+    letter-spacing: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stradella-button {
+    transition: none;
+  }
+}
+
+/* ---------- Stradella, vertical orientation ----------
+ *
+ * Same DOM as horizontal — `.stradella-row` elements with a label and a
+ * `.stradella-cells` strip of 20 buttons. We just rotate the layout so each
+ * "row" becomes a vertical column, and the diagonal stagger now goes
+ * downward instead of rightward.
+ */
+.stradella-bass[data-orientation='vertical'] {
+  flex-direction: row;
+  align-items: flex-start;
+  /* Center the row-columns horizontally on wide viewports. */
+  justify-content: safe center;
+  gap: 4px;
+  overflow: visible;
+  /* `.accordion-view` is `display: flex; align-items: stretch` (default),
+   * so by default the keyboard gets stretched to the parent's cross-axis
+   * height — a fixed pixel box on mobile (where `.accordion-view` is
+   * `flex: 1 1 0`). The keyboard's content (20 staggered buttons per
+   * column, 6 columns) is much taller than that, so under the existing
+   * `overflow: visible` the buttons escape past the dark gradient
+   * background and float on the page background as the user scrolls.
+   * `align-self: start` opts out of the stretch and lets the keyboard
+   * size to its content; `.accordion-view`'s `overflow-y: auto` (mobile
+   * media block above) then provides the scroll container. */
+  align-self: flex-start;
+  /* In vertical mode the row-count drives horizontal fit (each Stradella
+   * "row" becomes a vertical column of buttons). Auto-fit on row-count
+   * so a 12-bass (2 rows) gets huge buttons, while a 6-row standard
+   * still fits comfortably. */
+  --btn-gap: 6px;
+  --auto-btn: calc((100vw - 32px) / max(var(--row-count, 6), 1) - var(--btn-gap));
+  --btn-size: clamp(48px, var(--auto-btn), 80px);
+}
+
+/* Mobile vertical: hug-the-viewport layout makes it impossible to start
+ * a page scroll because there's no empty space outside the keyboard for
+ * a finger to land in. Reserve a side gutter and shrink the auto-fit
+ * budget to match. The 96px subtracted from 100vw covers the side
+ * margins (48), the kb's own horizontal padding (16), and the page-
+ * level padding around `.accordion-stage` and `.accordion-view` (32). */
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+  .stradella-bass[data-orientation='vertical'] {
+    margin-left: 24px;
+    margin-right: 24px;
+    /* Page-level breathing room *below* the keyboard so the diagonal-
+     * deepest button (the last dim7 / dom7 in the staggered column,
+     * which sits 2.5 col-steps lower than the counter-bass column)
+     * clears the system nav bar / home indicator when the user scrolls
+     * all the way down. `env(safe-area-inset-bottom)` picks up the iOS
+     * home-indicator inset and the Android gesture-bar inset; the
+     * +72px is plain visual breathing on top. */
+    margin-bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
+    --auto-btn: calc((100vw - 96px) / max(var(--row-count, 6), 1) - var(--btn-gap));
+    /* Slightly lower floor than desktop so 6-row layouts can shrink
+     * buttons enough to fit without blowing past the side gutters. */
+    --btn-size: clamp(40px, var(--auto-btn), 80px);
+  }
+}
+
+.stradella-bass[data-orientation='vertical'] .stradella-row {
+  flex-direction: column;
+  align-items: center;
+  width: var(--btn-size);
+  height: max-content;
+  gap: var(--btn-gap);
+}
+
+.stradella-bass[data-orientation='vertical'] .stradella-row-label {
+  margin: 0 0 6px;
+  padding: 0;
+  width: var(--btn-size);
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: center;
+  color: var(--muted, #cbd5e1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+/* Vertical stagger lives on the first button instead of margin-left. */
+.stradella-bass[data-orientation='vertical'] .stradella-row > .stradella-button:first-of-type {
+  margin-left: 0;
+  margin-top: calc(var(--row-offset, 0) * var(--col-step));
+}
+
+/* ---------- Flip mode (mirror the bass section) ----------
+ *
+ * Some players read the layout from a different perspective than the
+ * default — audience-facing vs. player-facing, instrument turned
+ * around in the lap, or just personal preference. `data-flip` on the
+ * `.stradella-bass` host element mirrors the whole section via a CSS
+ * transform, while the per-button-text and per-row-label spans get a
+ * counter-flip so glyphs stay readable.
+ *
+ * The flip is driven by `--flip-x` / `--flip-y` CSS variables so the
+ * counter-transform on the inner spans can read the same value the
+ * parent applied — they always cancel out, regardless of which axis
+ * (or both) is mirrored.
+ *
+ * The container's transform composes naturally with the buttons' own
+ * `.active` transform (`translateY(1px) scale(0.94)`), so the press
+ * animation continues to work in every flip mode (the scale is
+ * symmetric; the 1px translate may invert direction but is visually
+ * imperceptible).
+ */
+.stradella-bass[data-flip='horizontal'] {
+  --flip-x: -1;
+  --flip-y: 1;
+}
+.stradella-bass[data-flip='vertical'] {
+  --flip-x: 1;
+  --flip-y: -1;
+}
+.stradella-bass[data-flip='both'] {
+  --flip-x: -1;
+  --flip-y: -1;
+}
+
+.stradella-bass[data-flip='horizontal'],
+.stradella-bass[data-flip='vertical'],
+.stradella-bass[data-flip='both'] {
+  transform: scale(var(--flip-x, 1), var(--flip-y, 1));
+}
+
+.stradella-bass[data-flip='horizontal'] .stradella-button-label,
+.stradella-bass[data-flip='horizontal'] .stradella-row-label-text,
+.stradella-bass[data-flip='vertical'] .stradella-button-label,
+.stradella-bass[data-flip='vertical'] .stradella-row-label-text,
+.stradella-bass[data-flip='both'] .stradella-button-label,
+.stradella-bass[data-flip='both'] .stradella-row-label-text {
+  display: inline-block;
+  transform: scale(var(--flip-x, 1), var(--flip-y, 1));
+}

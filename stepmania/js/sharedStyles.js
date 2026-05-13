@@ -4,6 +4,17 @@
 let sharedStyleSheet = null;
 let styleSheetPromise = null;
 
+// The shared sheet is split into per-component partials. They're fetched
+// in parallel and concatenated before being handed to CSSStyleSheet.replace()
+// — @import isn't an option because constructable stylesheets strip it.
+const COMPONENT_PARTIALS = [
+  '../css/components/difficulty-selector.css',
+  '../css/components/zenius-browser.css',
+  '../css/components/step-button.css',
+  '../css/components/game-over.css',
+  '../css/components/simfile-badges.css',
+];
+
 /**
  * Loads the shared component stylesheet and returns a CSSStyleSheet
  * that can be adopted by Shadow DOM components
@@ -19,8 +30,13 @@ export async function getSharedStyleSheet() {
 
   styleSheetPromise = (async () => {
     try {
-      const response = await fetch(new URL('../css/components.css', import.meta.url));
-      const cssText = await response.text();
+      const texts = await Promise.all(
+        COMPONENT_PARTIALS.map(async (path) => {
+          const response = await fetch(new URL(path, import.meta.url));
+          return response.text();
+        }),
+      );
+      const cssText = texts.join('\n');
 
       sharedStyleSheet = new CSSStyleSheet();
       await sharedStyleSheet.replace(cssText);
@@ -28,7 +44,6 @@ export async function getSharedStyleSheet() {
       return sharedStyleSheet;
     } catch (error) {
       console.error('Failed to load shared styles:', error);
-      // Return an empty stylesheet as fallback
       sharedStyleSheet = new CSSStyleSheet();
       return sharedStyleSheet;
     }

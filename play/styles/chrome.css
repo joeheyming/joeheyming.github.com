@@ -1,0 +1,299 @@
+/* Play — instrument page chrome (used by /play/piano, /play/accordion, etc.):
+   page body shell, header, Instruments pill, MIDI status, controls bar,
+   octave buttons, multi-toggle show group, inline help section. */
+
+/* =========================================================================
+ * Shared instrument-page chrome
+ * Header, instruments-link pill, controls, MIDI status, etc.
+ * Used by /play/piano/, /play/accordion/, /play/synth/, /play/drums/, /play/guitar/
+ * ========================================================================= */
+
+.instrument-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding-bottom: 24px;
+}
+
+.instrument-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 18px 24px 8px;
+  /* Leave room for the global Back button (top-left) and our Instruments
+   * pill (top-right). */
+  padding-left: 160px;
+  padding-right: 160px;
+  position: relative;
+}
+
+.instrument-page-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.instrument-page-title h1 {
+  margin: 0;
+  font-size: clamp(22px, 3.5vw, 30px);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.instruments-link {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 999998;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.95), rgba(244, 114, 182, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 14px rgba(129, 140, 248, 0.35);
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    filter 200ms ease;
+}
+
+.instruments-link:hover,
+.instruments-link:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(244, 114, 182, 0.45);
+  outline: none;
+  filter: brightness(1.05);
+}
+
+.instruments-link-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.header-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 60px;
+}
+
+.now-playing {
+  color: var(--fg-dim);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  text-align: left;
+  font-size: 14px;
+}
+
+.now-playing.active {
+  color: var(--accent);
+}
+
+/* Defensive: the HTML `hidden` attribute should always win over the
+ * `display: inline-flex` we set on the visible state. */
+.midi-status[hidden] {
+  display: none;
+}
+
+.midi-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  color: var(--accent-3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.midi-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-3);
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.6);
+  animation: midi-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes midi-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Generic controls bar used on all instrument pages */
+.instrument-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 22px;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px 18px;
+  color: var(--fg-dim);
+}
+
+.control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+/* The HTML `hidden` attribute should always win — without this, the
+ * `display: inline-flex` above overrides the user-agent `display: none`
+ * when JS sets `el.hidden = true`. */
+.control[hidden] {
+  display: none;
+}
+
+.control label {
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--fg-dim);
+}
+
+.control input[type='range'] {
+  accent-color: var(--accent);
+  width: 120px;
+}
+
+.control select {
+  background: rgba(30, 41, 59, 0.85);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 13px;
+}
+
+.octave-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.octave-buttons button {
+  background: rgba(30, 41, 59, 0.85);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+
+.octave-buttons button:hover {
+  border-color: var(--accent);
+}
+
+.octave-display {
+  min-width: 28px;
+  text-align: center;
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.toggle-control input[type='checkbox'] {
+  accent-color: var(--accent);
+  transform: scale(1.15);
+}
+
+/* Multi-toggle "Show" group: e.g. on the piano page lets the user
+ * independently flip pitch labels and QWERTY-key labels. */
+.show-options {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.show-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  color: var(--fg);
+}
+
+.show-option input[type='checkbox'] {
+  accent-color: var(--accent);
+  transform: scale(1.05);
+  cursor: pointer;
+}
+
+.hint {
+  color: var(--fg-dim);
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* Help section under the keyboard / instrument */
+.instrument-help {
+  max-width: 720px;
+  margin: 8px auto 0;
+  padding: 16px 24px;
+  color: var(--fg-dim);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.instrument-help h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fg);
+  margin: 0 0 8px;
+}
+
+.instrument-help ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.instrument-help code {
+  background: rgba(148, 163, 184, 0.12);
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 12px;
+  color: var(--fg);
+}
+
+/* Inline links inside the How-to-play text (and its mobile popup
+   clone). Soft accent colour with a dotted underline so the links
+   feel like footnotes rather than CTAs — the help panel is a
+   reference, not a navigation hub. */
+.instrument-help a,
+.help-popup-body a {
+  color: var(--accent);
+  text-decoration: underline dotted rgba(129, 140, 248, 0.55);
+  text-underline-offset: 2px;
+}
+.instrument-help a:hover,
+.help-popup-body a:hover {
+  text-decoration-style: solid;
+}

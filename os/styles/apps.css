@@ -1,0 +1,95 @@
+/* Heyming OS — embedded app surfaces (terminal, calculator) hosted inside .os-window-content. */
+
+/* Terminal Specific Styles */
+.terminal-content {
+  padding: 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.4;
+  background: #000000;
+  color: #00ff00;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.terminal-line {
+  margin-bottom: 4px;
+}
+
+.terminal-prompt {
+  color: #00ff00;
+}
+
+.terminal-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #00ff00;
+  font-family: inherit;
+  font-size: inherit;
+  width: 100%;
+  caret-color: #00ff00;
+}
+
+.terminal-input::placeholder {
+  color: #008000;
+  opacity: 0.6;
+}
+
+/* Application Content Styles */
+.calculator-content {
+  padding: 16px;
+  background: #2d3748;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.calculator-display {
+  background: #000000;
+  color: #00ff00;
+  padding: 12px;
+  text-align: right;
+  font-family: 'Courier New', monospace;
+  font-size: 18px;
+  border: 1px solid #4a5568;
+  border-radius: 4px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.calculator-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.calculator-button {
+  height: 40px;
+  background: #4a5568;
+  border: 1px solid #2d3748;
+  color: #e2e8f0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.calculator-button:hover {
+  background: #2b6cb0;
+}
+
+.calculator-button:active {
+  transform: scale(0.95);
+}
+
+.calculator-button.operator {
+  background: #3182ce;
+}
+
+.calculator-button.equals {
+  background: #10b981;
+}

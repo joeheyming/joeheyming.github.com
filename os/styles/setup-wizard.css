@@ -1,0 +1,247 @@
+/* Heyming OS — first-run setup wizard (GNOME / Ubuntu inspired card + step animation). */
+
+.os-setup-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #1e3a5f 0%, #2d1b69 50%, #1a1a2e 100%);
+  animation: setupBgShift 8s ease-in-out infinite alternate;
+}
+
+@keyframes setupBgShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.os-setup-container {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.os-setup-card {
+  background: rgba(30, 30, 46, 0.92);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 48px 40px 36px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  animation: setupCardIn 0.4s ease-out;
+}
+
+@keyframes setupCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.os-setup-step {
+  animation: setupFadeIn 0.3s ease-out;
+}
+
+@keyframes setupFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.os-setup-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+  line-height: 1;
+}
+
+.os-setup-heading {
+  color: #e2e8f0;
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.os-setup-subtitle {
+  color: #94a3b8;
+  font-size: 15px;
+  margin: 0 0 28px;
+  line-height: 1.5;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.os-setup-field {
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+.os-setup-label {
+  display: block;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.os-setup-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 2px solid rgba(99, 102, 241, 0.3);
+  border-radius: 10px;
+  color: #e2e8f0;
+  font-size: 16px;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.os-setup-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.os-setup-input::placeholder {
+  color: #475569;
+}
+
+.os-setup-hint {
+  color: #64748b;
+  font-size: 12px;
+  margin: 6px 0 0;
+}
+
+.os-setup-error {
+  color: #f87171;
+  font-size: 13px;
+  margin: 6px 0 0;
+}
+
+.os-setup-preview {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.os-setup-preview-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.os-setup-preview-label {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.os-setup-preview-value {
+  color: #a5b4fc;
+  font-size: 13px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.os-setup-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.os-setup-btn {
+  padding: 12px 28px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s, opacity 0.2s;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.os-setup-btn:active {
+  transform: scale(0.97);
+}
+
+.os-setup-btn-primary {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+}
+
+.os-setup-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #818cf8, #a78bfa);
+}
+
+.os-setup-btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.os-setup-btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.os-setup-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+.os-setup-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 28px;
+}
+
+.os-setup-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  transition: background 0.3s, transform 0.3s;
+}
+
+.os-setup-dot.active {
+  background: #6366f1;
+  transform: scale(1.2);
+}
+
+.os-setup-dot.completed {
+  background: #22c55e;
+}
+
+@media (max-width: 480px) {
+  .os-setup-card {
+    padding: 32px 24px 28px;
+    border-radius: 16px;
+  }
+  .os-setup-heading {
+    font-size: 20px;
+  }
+  .os-setup-icon {
+    font-size: 44px;
+  }
+}
