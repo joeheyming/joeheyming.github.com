@@ -318,8 +318,6 @@ export class HeymingOS {
         } else if (this.contextMenu?.visible) {
           this.contextMenu.hide();
           e.preventDefault();
-        } else if (this.isVisible) {
-          this.hide();
         }
       }
 

@@ -79,6 +79,30 @@
         </div>
 
         <div class="action-group">
+          <div class="action-menu" id="file-menu-wrap">
+            <button class="action-btn" id="btn-file" title="File" aria-label="File menu" aria-haspopup="true" aria-expanded="false">
+              <span class="btn-icon" aria-hidden="true">📁</span>
+              <span>File</span>
+              <span class="action-caret" aria-hidden="true">▾</span>
+            </button>
+            <div class="action-menu-list hidden" id="file-menu-list" role="menu">
+              <button class="action-menu-item" data-file="new">New</button>
+              <div class="action-menu-sep"></div>
+              <button class="action-menu-item" data-file="open-computer">Open from Computer…</button>
+              <!-- Open from OS injected here by initOSBridge() -->
+              <div class="action-menu-sep"></div>
+              <div class="action-menu-item has-submenu" role="menuitem" aria-haspopup="true">
+                Export
+                <div class="action-submenu" role="menu">
+                  <button class="action-menu-item" data-file="save-png">PNG image</button>
+                  <button class="action-menu-item" data-file="save-jpeg">JPEG image</button>
+                  <div class="action-menu-sep"></div>
+                  <button class="action-menu-item" data-file="save-project">Paint project (.paintproj)</button>
+                </div>
+              </div>
+              <!-- Save to OS submenu injected here by initOSBridge() -->
+            </div>
+          </div>
           <button class="action-btn" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>
             <span class="btn-icon" aria-hidden="true">↩</span>
             <span>Undo</span>
@@ -86,10 +110,6 @@
           <button class="action-btn" id="btn-redo" title="Redo (Ctrl+Y)" aria-label="Redo" disabled>
             <span class="btn-icon" aria-hidden="true">↪</span>
             <span>Redo</span>
-          </button>
-          <button class="action-btn" id="btn-upload" title="Upload image" aria-label="Upload image">
-            <span class="btn-icon" aria-hidden="true">📂</span>
-            <span>Open</span>
           </button>
           <button class="action-btn" id="btn-resize" title="Resize canvas" aria-label="Resize canvas">
             <span class="btn-icon" aria-hidden="true">⇲</span>
@@ -107,19 +127,6 @@
             <span class="btn-icon" aria-hidden="true">🗑️</span>
             <span>Clear</span>
           </button>
-          <div class="action-menu" id="save-menu-wrap">
-            <button class="action-btn" id="btn-save" title="Save (PNG)" aria-label="Save" aria-haspopup="true" aria-expanded="false">
-              <span class="btn-icon" aria-hidden="true">💾</span>
-              <span>Save</span>
-              <span class="action-caret" aria-hidden="true">▾</span>
-            </button>
-            <div class="action-menu-list hidden" id="save-menu-list" role="menu">
-              <button class="action-menu-item" data-save="png">Save PNG…</button>
-              <button class="action-menu-item" data-save="jpeg">Save JPEG…</button>
-              <div class="action-menu-sep"></div>
-              <button class="action-menu-item" data-save="project">Save Project (.paintproj)…</button>
-            </div>
-          </div>
         </div>
 
         <input type="file" id="upload-input" class="hidden-file" accept="image/*,.paintproj,application/json" aria-hidden="true" />
@@ -187,6 +194,21 @@
         <div class="modal-buttons">
           <button class="modal-btn secondary" id="adjust-cancel">Cancel</button>
           <button class="modal-btn primary" id="adjust-ok">Apply</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Filename modal ── -->
+    <div id="filename-modal" class="modal hidden" role="dialog" aria-label="Save file" aria-modal="true">
+      <div class="modal-box">
+        <h2 id="filename-modal-title">Save As</h2>
+        <div class="modal-row">
+          <label for="filename-input">Filename</label>
+          <input type="text" id="filename-input" value="untitled.png" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="filename-cancel">Cancel</button>
+          <button class="modal-btn primary" id="filename-ok">Download</button>
         </div>
       </div>
     </div>

@@ -48,7 +48,7 @@ html, body {
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   flex-wrap: wrap;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .paint-title {
@@ -241,6 +241,38 @@ html, body {
   cursor: pointer;
 }
 .action-menu-item:hover { background: var(--bg-3); }
+
+/* Flyout submenu */
+.action-menu-item.has-submenu {
+  position: relative;
+  justify-content: space-between;
+  cursor: default;
+}
+.action-menu-item.has-submenu::after {
+  content: '›';
+  font-size: 15px;
+  line-height: 1;
+  margin-left: 8px;
+  opacity: 0.7;
+}
+.action-submenu {
+  display: none;
+  position: absolute;
+  left: calc(100% + 2px);
+  top: -4px;
+  min-width: 200px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+  padding: 4px;
+  z-index: 200;
+}
+.action-menu-item.has-submenu:hover .action-submenu,
+.action-menu-item.has-submenu:focus-within .action-submenu {
+  display: block;
+}
+
 .action-menu-sep {
   height: 1px;
   background: var(--border);

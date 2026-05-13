@@ -25,8 +25,6 @@ import {
   buildAdjustMenu as doBuildAdjustMenu,
   toggleAdjustMenu,
   closeAdjustMenu,
-  toggleSaveMenu,
-  closeSaveMenu,
 } from './adjust-modal.js';
 
 const MAX_UNDO = 50;
@@ -607,6 +605,110 @@ function onPointerUp(e) {
   refreshLayerPanelUI();
 }
 
+// ── OS bridge (postMessage integration when running inside Heyming OS) ────────
+
+function isInOS() {
+  try { return window.parent !== window; } catch { return false; }
+}
+
+function sendToOS(message) {
+  window.parent.postMessage({ type: 'iframe-message', message }, '*');
+}
+
+function saveProjectToOS() {
+  const data = serializeProject(state, canvasW(), canvasH());
+  sendToOS({ type: 'saveAs', content: JSON.stringify(data), suggestedName: 'untitled.paintproj' });
+}
+
+function savePNGToOS() {
+  const flat = flattenToCanvas(state.layers, state.bgColor, canvasW(), canvasH(), { transparentBg: true });
+  sendToOS({ type: 'saveAs', content: flat.toDataURL('image/png'), suggestedName: 'untitled.png' });
+}
+
+function openFromOS() {
+  sendToOS({ type: 'openFileDialog', fileTypes: ['.paintproj', 'image/*'], title: 'Open in Paint' });
+}
+
+function handleOSMessage(e) {
+  const data = e.data;
+  if (!data || typeof data !== 'object') return;
+  if (data.type !== 'openFile') return;
+
+  const { content, fileName } = data;
+  if (!content) return;
+
+  const nameLC = (fileName || '').toLowerCase();
+  const isProject = nameLC.endsWith('.paintproj') ||
+    (typeof content === 'string' && content.trimStart().startsWith('{'));
+
+  if (isProject) {
+    try {
+      const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+      loadProjectData(parsed).catch(err => alert('Could not open project: ' + err.message));
+    } catch {
+      alert('Could not parse project file');
+    }
+  } else {
+    const src = typeof content === 'string' ? content
+      : URL.createObjectURL(new Blob([content]));
+    const img = new Image();
+    img.onload = () => {
+      pushUndo('Open from OS');
+      activeCtx().drawImage(img, 0, 0);
+      if (!src.startsWith('data:')) URL.revokeObjectURL(src);
+      refreshLayerPanelUI();
+    };
+    img.onerror = () => alert('Could not load image from OS');
+    img.src = src;
+  }
+}
+
+function initOSBridge() {
+  window.addEventListener('message', handleOSMessage);
+  if (!isInOS()) return;
+
+  const fileList = document.getElementById('file-menu-list');
+  if (!fileList) return;
+
+  // Insert "Open from OS…" after "Open from Computer…"
+  const openComputerBtn = fileList.querySelector('[data-file="open-computer"]');
+  if (openComputerBtn) {
+    const btnOpenOS = document.createElement('button');
+    btnOpenOS.className = 'action-menu-item';
+    btnOpenOS.textContent = 'Open from OS…';
+    btnOpenOS.addEventListener('click', () => { closeFileMenu(); openFromOS(); });
+    openComputerBtn.after(btnOpenOS);
+  }
+
+  // Append "Save to OS ›" submenu
+  const sep = document.createElement('div');
+  sep.className = 'action-menu-sep';
+
+  const saveToOSItem = document.createElement('div');
+  saveToOSItem.className = 'action-menu-item has-submenu';
+  saveToOSItem.setAttribute('role', 'menuitem');
+  saveToOSItem.setAttribute('aria-haspopup', 'true');
+  saveToOSItem.textContent = 'Save to OS';
+
+  const osSubmenu = document.createElement('div');
+  osSubmenu.className = 'action-submenu';
+  osSubmenu.setAttribute('role', 'menu');
+
+  const btnProjOS = document.createElement('button');
+  btnProjOS.className = 'action-menu-item';
+  btnProjOS.textContent = 'Paint project (.paintproj)';
+  btnProjOS.addEventListener('click', () => { closeFileMenu(); saveProjectToOS(); });
+
+  const btnPNGOS = document.createElement('button');
+  btnPNGOS.className = 'action-menu-item';
+  btnPNGOS.textContent = 'PNG image';
+  btnPNGOS.addEventListener('click', () => { closeFileMenu(); savePNGToOS(); });
+
+  osSubmenu.append(btnProjOS, btnPNGOS);
+  saveToOSItem.appendChild(osSubmenu);
+  fileList.append(sep, saveToOSItem);
+}
+
 // ── Clear / Save ──────────────────────────────────────────────────────────────
 
 function clearCanvas() {
@@ -618,25 +720,99 @@ function clearCanvas() {
   refreshLayerPanelUI();
 }
 
-function savePNG() {
+function newProject() {
+  if (state.undoStack.length > 0 && !confirm('Start a new project? Unsaved changes will be lost.')) return;
+  for (const l of state.layers) removeLayerFromDOM(l);
+  state.layers = [];
+  state.undoStack = [];
+  state.redoStack = [];
+  state.activeLayerIdx = 0;
+  const area = document.getElementById('canvas-area');
+  const rect = area.getBoundingClientRect();
+  const W = Math.max(Math.floor(rect.width), 400);
+  const H = Math.max(Math.floor(rect.height), 300);
+  const layer0 = createLayer('Layer 1', W, H);
+  layer0.ctx.fillStyle = state.bgColor;
+  layer0.ctx.fillRect(0, 0, W, H);
+  state.layers.push(layer0);
+  insertLayerBefore(layer0, stackEl, overlayCanvas);
+  overlayCanvas.width = W;
+  overlayCanvas.height = H;
+  stackEl.style.width = W + 'px';
+  stackEl.style.height = H + 'px';
+  updateUndoButtons();
+  refreshLayerPanelUI();
+  renderHistoryPanel();
+  clearAutosave();
+}
+
+// ── Filename modal ──────────────────────────────────────────────────────────
+
+let filenameModalCallback = null;
+
+function openFilenameModal(suggested, onConfirm) {
+  const modal = document.getElementById('filename-modal');
+  const input = document.getElementById('filename-input');
+  input.value = suggested;
+  filenameModalCallback = onConfirm;
+  modal.classList.remove('hidden');
+  setTimeout(() => {
+    input.focus();
+    const dot = suggested.lastIndexOf('.');
+    input.setSelectionRange(0, dot > 0 ? dot : suggested.length);
+  }, 50);
+}
+
+function confirmFilenameModal() {
+  const filename = document.getElementById('filename-input').value.trim();
+  if (!filename) return;
+  const cb = filenameModalCallback;
+  closeFilenameModal();
+  cb?.(filename);
+}
+
+function closeFilenameModal() {
+  document.getElementById('filename-modal')?.classList.add('hidden');
+  filenameModalCallback = null;
+}
+
+// ── File menu ───────────────────────────────────────────────────────────────
+
+function toggleFileMenu() {
+  const list = document.getElementById('file-menu-list');
+  const btn = document.getElementById('btn-file');
+  if (!list) return;
+  const willOpen = list.classList.contains('hidden');
+  list.classList.toggle('hidden', !willOpen);
+  btn?.setAttribute('aria-expanded', String(willOpen));
+}
+
+function closeFileMenu() {
+  document.getElementById('file-menu-list')?.classList.add('hidden');
+  document.getElementById('btn-file')?.setAttribute('aria-expanded', 'false');
+}
+
+// ── Download helpers ────────────────────────────────────────────────────────
+
+function downloadPNG(filename) {
   const flat = flattenToCanvas(state.layers, state.bgColor, canvasW(), canvasH(), { transparentBg: true });
   const link = document.createElement('a');
-  link.download = 'paint.png';
+  link.download = filename;
   link.href = flat.toDataURL('image/png');
   link.click();
 }
 
-function saveJPEG() {
+function downloadJPEG(filename) {
   const flat = flattenToCanvas(state.layers, state.bgColor, canvasW(), canvasH());
   const link = document.createElement('a');
-  link.download = 'paint.jpg';
+  link.download = filename;
   link.href = flat.toDataURL('image/jpeg', 0.92);
   link.click();
 }
 
-function saveProject() {
+function downloadProjectFile(filename) {
   const data = serializeProject(state, canvasW(), canvasH());
-  downloadProject(data, 'paint.paintproj');
+  downloadProject(data, filename);
 }
 
 // ── Panel resize ─────────────────────────────────────────────────────────────
@@ -800,24 +976,36 @@ function init() {
   document.getElementById('btn-redo').addEventListener('click', redo);
   document.getElementById('btn-clear').addEventListener('click', clearCanvas);
 
-  // Save dropdown — bare click saves PNG; caret opens menu with PNG/JPEG/Project
-  document.getElementById('btn-save')?.addEventListener('click', e => {
+  // File menu
+  document.getElementById('btn-file')?.addEventListener('click', e => {
     e.stopPropagation();
-    toggleSaveMenu();
+    toggleFileMenu();
   });
   document.addEventListener('click', e => {
-    const wrap = document.getElementById('save-menu-wrap');
-    if (wrap && !wrap.contains(e.target)) closeSaveMenu();
+    const wrap = document.getElementById('file-menu-wrap');
+    if (wrap && !wrap.contains(e.target)) closeFileMenu();
   });
-  document.querySelectorAll('#save-menu-list [data-save]').forEach(btn => {
+  const uploadInput = document.getElementById('upload-input');
+  document.querySelectorAll('#file-menu-list [data-file]').forEach(btn => {
     btn.addEventListener('click', () => {
-      closeSaveMenu();
-      const kind = btn.dataset.save;
-      if (kind === 'png') savePNG();
-      else if (kind === 'jpeg') saveJPEG();
-      else if (kind === 'project') saveProject();
+      closeFileMenu();
+      const kind = btn.dataset.file;
+      if (kind === 'new') newProject();
+      else if (kind === 'open-computer') uploadInput?.click();
+      else if (kind === 'save-png') openFilenameModal('untitled.png', f => downloadPNG(f));
+      else if (kind === 'save-jpeg') openFilenameModal('untitled.jpg', f => downloadJPEG(f));
+      else if (kind === 'save-project') openFilenameModal('untitled.paintproj', f => downloadProjectFile(f));
     });
   });
+
+  // Filename modal
+  document.getElementById('filename-ok')?.addEventListener('click', confirmFilenameModal);
+  document.getElementById('filename-cancel')?.addEventListener('click', closeFilenameModal);
+  document.getElementById('filename-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); confirmFilenameModal(); }
+    if (e.key === 'Escape') { e.preventDefault(); closeFilenameModal(); }
+  });
+
   document.getElementById('btn-resize')?.addEventListener('click', openResizeModal);
   document.getElementById('resize-ok')?.addEventListener('click', confirmResize);
   document.getElementById('resize-cancel')?.addEventListener('click', closeResizeModal);
@@ -835,12 +1023,10 @@ function init() {
   document.getElementById('adjust-ok')?.addEventListener('click', commitAdjust);
   document.getElementById('adjust-cancel')?.addEventListener('click', cancelAdjust);
 
-  // Upload (images and .paintproj projects)
-  const uploadInput = document.getElementById('upload-input');
+  // File input change — triggered by "Open from Computer" in file menu
   uploadInput?.addEventListener('change', e => {
     if (e.target.files[0]) { loadAnyFile(e.target.files[0]); e.target.value = ''; }
   });
-  document.getElementById('btn-upload')?.addEventListener('click', () => uploadInput?.click());
 
   // Drag-drop onto canvas
   const area = document.getElementById('canvas-area');
@@ -944,6 +1130,7 @@ function init() {
   initPanelResize();
   startSelectionAnimation(state, ov);
   updateTransform();
+  initOSBridge();
   maybeOfferRestore();
 }
 

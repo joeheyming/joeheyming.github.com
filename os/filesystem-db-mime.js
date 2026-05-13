@@ -85,6 +85,9 @@ export function applyFileSystemDbMime(FileSystemDB) {
       fbx: 'application/x-fbx',
       '3mf': 'model/3mf',
 
+      // Paint project
+      paintproj: 'application/x-paintproj',
+
       // YouTube link
       ytlink: 'application/x-youtube',
 

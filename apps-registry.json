@@ -1014,7 +1014,7 @@
     "description": "Browser fretboard for guitar, bass, ukulele, banjo, and mandolin",
     "detailedDescription": "One fretboard, five instruments — Guitar, Bass, Ukulele, Banjo, and Mandolin. Click frets to pluck or use the chord builder to strum. Mouse, touch, or MIDI.",
     "icon": "🎸",
-    "path": "./play/guitar/",
+    "path": "./play/strings/",
     "category": "entertainment",
     "gradient": "from-amber-500/20 to-orange-500/20",
     "border": "border-amber-500/30 hover:border-amber-400/50",
@@ -1082,6 +1082,10 @@
     "taskbarText": "text-white",
     "defaultWidth": 950,
     "defaultHeight": 720,
+    "system": true,
+    "handles": [
+      "application/x-paintproj"
+    ],
     "tags": ["art", "drawing", "paint", "creative", "canvas"],
     "related": ["notepad"],
     "shareCategory": "utility"
