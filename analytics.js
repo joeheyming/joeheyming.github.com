@@ -18,9 +18,57 @@ function normalizePagePath(path) {
   return normalized;
 }
 
+// Loopback (127/8), RFC1918 private ranges (10/8, 172.16/12, 192.168/16),
+// and link-local (169.254/16). Loose octet matching is fine here — this
+// gates analytics, not a firewall.
+const PRIVATE_IPV4 =
+  /^(?:127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|169\.254\.\d+\.\d+)$/;
+
 function isLocalDevHost() {
   const h = location.hostname;
-  return h === 'localhost' || h === '127.0.0.1' || h.match('192.168.d+.d+');
+  if (h === 'localhost' || h === '::1' || h === '') return true;
+  if (PRIVATE_IPV4.test(h)) return true;
+  // mDNS / Bonjour, e.g. `joes-macbook.local`
+  if (/\.local$/.test(h)) return true;
+  // Headless test runners (Playwright / playwright-cli, Puppeteer)
+  if (/HeadlessChrome|Playwright/i.test(navigator.userAgent)) return true;
+  return false;
+}
+
+const CANONICAL_HOST = 'joeheyming.github.io';
+
+function getParentHost() {
+  try {
+    return window.top.location.hostname;
+  } catch (e) {
+    try {
+      if (document.referrer) return new URL(document.referrer).hostname;
+    } catch (_) {
+      /* malformed referrer */
+    }
+    return '(cross-origin)';
+  }
+}
+
+function trackOffsiteUsage() {
+  const path = normalizePagePath(window.location.pathname);
+  const currentHost = location.hostname;
+
+  if (currentHost !== CANONICAL_HOST) {
+    window.trackEvent('offsite_hostname', 'Embed', `${currentHost} | path=${path}`);
+  }
+
+  if (window.top !== window.self) {
+    const parentHost = getParentHost();
+    if (parentHost !== CANONICAL_HOST) {
+      const ref = document.referrer || 'none';
+      window.trackEvent(
+        'iframe_embed',
+        'Embed',
+        `parent=${parentHost} | host=${currentHost} | path=${path} | ref=${ref}`
+      );
+    }
+  }
 }
 
 window.onload = function () {
@@ -44,6 +92,10 @@ window.onload = function () {
 
   // Initialize data-event click tracking
   initDataEventTracking();
+
+  // Track if the site is being served from an unexpected hostname
+  // or embedded in an iframe outside of joeheyming.github.io.
+  trackOffsiteUsage();
 };
 
 // Error tracking functionality
