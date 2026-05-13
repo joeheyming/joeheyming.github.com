@@ -49,7 +49,7 @@ acoustic / electric pianos remain available as alternative tones.
 
 ## Guitar
 
-[`play/guitar`](./guitar/) — the default "Acoustic (samples)" tone uses
+[`play/strings`](./strings/) — the default "Acoustic (samples)" tone uses
 real plucks, and "Electric clean (samples)" gives a true single-coil
 tone with natural decay (the soundfont overdriven voice has a much
 longer sustain by comparison). Soundfont tones remain for the steel /

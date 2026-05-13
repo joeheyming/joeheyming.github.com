@@ -144,8 +144,8 @@ const PAGES = [
     title: 'Browser Drums'
   },
   {
-    url: `${BASE_URL}/play/guitar/`,
-    output: 'play/guitar/guitar-preview.png',
+    url: `${BASE_URL}/play/strings/`,
+    output: 'play/strings/strings-preview.png',
     title: 'Browser Strings'
   },
   {

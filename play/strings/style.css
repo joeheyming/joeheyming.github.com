@@ -657,11 +657,133 @@
   color: var(--fg);
 }
 
+/* Transpose group — ♭ / ♯ pair that shifts every pinned chord by one
+ * semitone (capo-style). Lives in the header right edge, immediately
+ * before Clear. `margin-left: auto` here claims the right side of the
+ * flex container for the whole actions group; Clear's own margin-left
+ * then sits flush against it. Hidden alongside Clear when the bar is
+ * empty (toggled by JS — same `[hidden]` mechanism). */
+.strum-bar-transpose {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.strum-bar-transpose[hidden] {
+  display: none;
+}
+
+.strum-bar-transpose-btn {
+  /* `position: relative` is the anchor for the [data-tooltip]
+   * pseudo-element bubble below — the bubble is absolutely
+   * positioned against this button. */
+  position: relative;
+  background: transparent;
+  color: var(--fg-dim);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 6px;
+  /* Symbol fonts (♭ / ♯) tend to render tall — a touch more vertical
+   * padding keeps the buttons the same visual height as Clear (which
+   * uses a Latin glyph). */
+  padding: 1px 9px 3px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    background 120ms ease;
+  touch-action: manipulation;
+  min-width: 30px;
+}
+
+.strum-bar-transpose-btn:hover,
+.strum-bar-transpose-btn:focus-visible {
+  color: rgb(125, 247, 230);
+  border-color: rgba(94, 234, 212, 0.6);
+  background: rgba(94, 234, 212, 0.08);
+  outline: none;
+}
+
+/* Fast, styled tooltip — reads `data-tooltip` and pops above the
+ * button on hover / keyboard focus. Custom instead of relying on the
+ * native `title` attribute because the OS-level tooltip has a
+ * noticeable 0.5–1s reveal delay (and doesn't surface at all on
+ * touch). `aria-label` is the authoritative accessible name, so we
+ * intentionally do NOT also set `title` — screen readers wouldn't
+ * benefit, and dual tooltips would just overlap on hover. */
+.strum-bar-transpose-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(2px);
+  padding: 4px 8px;
+  background: rgba(15, 23, 42, 0.96);
+  color: var(--fg);
+  border: 1px solid rgba(94, 234, 212, 0.45);
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 120ms ease-out 30ms,
+    transform 120ms ease-out 30ms;
+  /* Above the popovers but below modal-grade UI. The popovers
+   * underneath top out around z-index 5; sit at 20 here so a tooltip
+   * over a transpose button is never occluded by a sibling popover
+   * peeking in from the row below. */
+  z-index: 20;
+}
+
+.strum-bar-transpose-btn[data-tooltip]:hover::after,
+.strum-bar-transpose-btn[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Little caret notch under the bubble, pointing back at the button.
+ * Same dark fill as the bubble; the border is faked with a 1px
+ * thinner triangle clipped behind the main shape so we don't need a
+ * second pseudo-element. */
+.strum-bar-transpose-btn[data-tooltip]::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 1px);
+  left: 50%;
+  transform: translateX(-50%) translateY(2px);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid rgba(94, 234, 212, 0.45);
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 120ms ease-out 30ms,
+    transform 120ms ease-out 30ms;
+  z-index: 20;
+}
+
+.strum-bar-transpose-btn[data-tooltip]:hover::before,
+.strum-bar-transpose-btn[data-tooltip]:focus-visible::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 /* "Clear" lives in the strum-bar header (right edge) so a wandering
  * tap on the pad area can't fire it. Subtle red tint on hover/focus
  * to read as a destructive action without screaming for attention.
- * `margin-left: auto` pushes it to the right edge of the flexbox
- * regardless of how much hint text is currently present. */
+ * When the transpose group is present its `margin-left: auto` already
+ * pushed the whole actions cluster to the right, so Clear's own
+ * auto-margin is a no-op (margins flatten when there's no slack); when
+ * the transpose group is hidden, Clear's auto-margin claims the right
+ * edge by itself. Either way the layout reads the same. */
 /* "♪ Title — Artist" link surfaced after a song load. Sits between
  * the title/hint and the Clear button. Underlined on hover so it
  * looks like the link it is, but stays visually quiet at rest so it
@@ -1083,8 +1205,20 @@ body.strum-dragging {
  * worth of chords rather than typing one). The "↧" glyph sits a hair
  * smaller than the "+" because it has more vertical mass. */
 .strum-pad-load {
+  /* Inner SVG icon is sized via `em` (see .strum-pad-load-icon) so
+   * font-size still drives the visual icon size — matches the "+"
+   * button's font-size-driven sizing. */
   font-size: 22px;
   line-height: 1;
+}
+
+.strum-pad-load-icon {
+  width: 1em;
+  height: 1em;
+  /* Optical centering: the magnifier sits a hair high inside the
+   * 24×24 viewBox because the handle stops mid-cell. Nudge down so
+   * it reads as vertically centred next to the "+" sibling. */
+  vertical-align: -0.05em;
 }
 
 .strum-pad-load:hover,
@@ -1639,6 +1773,19 @@ body.strum-dragging {
   }
   .strum-bar-hint {
     font-size: 10.5px;
+  }
+
+  /* Hide the edit-mode hint on mobile. The 90-char "Editing X · pick
+   * Root / Quality / Shape… (Esc) to stop" string wraps to 2-3 lines
+   * on a phone-width header, and every edit-mode toggle then yanks
+   * the rest of the bar up or down — disorienting in the middle of a
+   * strumming session. The teal outline + halo on `.strum-pad.editing`
+   * (~line 1014) is already an unmistakable "this pad is armed for
+   * editing" cue, and the "(Esc) to stop" half of the hint only makes
+   * sense on desktop (no keyboard on mobile anyway). Desktop keeps
+   * the verbose hint because the wider header fits it on one line. */
+  .strum-bar.editing .strum-bar-hint {
+    display: none;
   }
 
   /* Drop the parenthetical hints on narrow screens so each legend item

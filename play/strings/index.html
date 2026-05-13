@@ -29,10 +29,10 @@
       property="og:description"
       content="A free browser fretboard for guitar, bass, ukulele, banjo, and mandolin. Pluck notes or strum chords."
     />
-    <meta property="og:url" content="https://joeheyming.github.io/play/guitar/" />
+    <meta property="og:url" content="https://joeheyming.github.io/play/strings/" />
     <meta
       property="og:image"
-      content="https://joeheyming.github.io/play/guitar/guitar-preview.png"
+      content="https://joeheyming.github.io/play/strings/strings-preview.png"
     />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -49,10 +49,10 @@
     />
     <meta
       name="twitter:image"
-      content="https://joeheyming.github.io/play/guitar/guitar-preview.png"
+      content="https://joeheyming.github.io/play/strings/strings-preview.png"
     />
 
-    <link rel="canonical" href="https://joeheyming.github.io/play/guitar/" />
+    <link rel="canonical" href="https://joeheyming.github.io/play/strings/" />
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
@@ -168,6 +168,31 @@
               rel="noopener noreferrer"
               hidden
             ></a>
+            <!-- Transpose: shift every pinned chord up or down by one
+                 semitone (capo-style). Sits next to Clear on the right
+                 so the "operates on the whole bar" actions are
+                 grouped. Hidden when the bar is empty for the same
+                 reason Clear is — there's nothing to transpose. -->
+            <div class="strum-bar-transpose" id="strum-bar-transpose" hidden>
+              <button
+                class="strum-bar-transpose-btn"
+                id="strum-bar-transpose-down"
+                type="button"
+                aria-label="Transpose all chords down a semitone"
+                data-tooltip="Down ½ step"
+              >
+                <span aria-hidden="true">♭</span>
+              </button>
+              <button
+                class="strum-bar-transpose-btn"
+                id="strum-bar-transpose-up"
+                type="button"
+                aria-label="Transpose all chords up a semitone"
+                data-tooltip="Up ½ step"
+              >
+                <span aria-hidden="true">♯</span>
+              </button>
+            </div>
             <!-- Clear-all. Hidden when the bar is empty so it never
                  gets in the way; shows up the moment a chord is
                  pinned. Sits on the right edge of the header so it's
@@ -208,21 +233,36 @@
             >
               +
             </button>
-            <!-- Load-song button. Sibling to the "+" so the two
-                 chord-add affordances stay grouped at the right edge
-                 of the bar. The icon is the universal "open in" /
-                 link arrow so it reads as "pull chords from a URL"
-                 rather than another way to type one in. -->
+            <!-- Search-and-load button. Sibling to the "+" so the
+                 two chord-add affordances stay grouped at the right
+                 edge of the bar. The icon is a magnifying glass to
+                 read unambiguously as "search the catalog" — earlier
+                 versions used a download arrow which read as
+                 "import file" to non-musicians. SVG (not emoji) so
+                 it inherits the button's `currentColor` and matches
+                 the monochrome look of the "+". -->
             <button
               class="strum-pad-add strum-pad-load"
               id="strum-bar-load"
               type="button"
-              aria-label="Load a song's chords from a URL"
+              aria-label="Search and load a song's chords"
               aria-expanded="false"
               aria-controls="strum-bar-load-popover"
-              title="Load chords from an e-chords.com song URL"
+              title="Search for a song and load its chords"
             >
-              <span aria-hidden="true">↧</span>
+              <svg
+                class="strum-pad-load-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="10.5" cy="10.5" r="6.5"></circle>
+                <line x1="20" y1="20" x2="15.1" y2="15.1"></line>
+              </svg>
             </button>
           </div>
           <div
@@ -252,31 +292,30 @@
               <!-- Populated by JS as the player types. -->
             </ul>
           </div>
-          <!-- Load-song popover. Same visual shape as the "+" popover
-               above so the two affordances feel like sibling
-               variations of the same idea. The input is dual-mode:
-               type a song or artist to search e-chords' catalog, or
-               paste a chords-page URL directly. Results stream in
-               below the input as the player types; the status line
-               below covers fetch progress and any chord-name
-               normalisation issues. -->
+          <!-- Search-and-load popover. Same visual shape as the "+"
+               popover above so the two affordances feel like sibling
+               variations of the same idea. The input runs a live
+               (debounced) search against e-chords' catalog; results
+               stream in below the input as the player types. The
+               status line below covers fetch progress and any
+               chord-name normalisation issues. -->
           <div
             class="strum-bar-load-popover"
             id="strum-bar-load-popover"
             role="dialog"
-            aria-label="Find and load chords from a song"
+            aria-label="Search for a song and load its chords"
             hidden
           >
             <input
               id="strum-bar-load-input"
               type="search"
-              placeholder="Search song or artist, or paste a URL…"
+              placeholder="Search song or artist…"
               autocomplete="off"
               autocapitalize="words"
               autocorrect="off"
               spellcheck="false"
               inputmode="search"
-              aria-label="Song search or URL"
+              aria-label="Song search"
               aria-controls="strum-bar-load-results"
             />
             <ul
@@ -291,7 +330,7 @@
             <p class="strum-bar-load-hint">
               Powered by
               <a href="https://www.e-chords.com" target="_blank" rel="noopener">e-chords.com</a>.
-              Type to search, or paste a song-page URL.
+              Type a song or artist to search.
             </p>
             <p
               class="strum-bar-load-status"
@@ -437,6 +476,6 @@
       </ul>
     </section>
 
-    <script type="module" src="guitar.js"></script>
+    <script type="module" src="strings.js"></script>
   </body>
 </html>

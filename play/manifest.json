@@ -34,7 +34,7 @@
   "shortcuts": [
     { "name": "Piano", "short_name": "Piano", "url": "/play/piano/" },
     { "name": "Accordion", "short_name": "Accordion", "url": "/play/accordion/" },
-    { "name": "Guitar", "short_name": "Guitar", "url": "/play/guitar/" },
+    { "name": "Strings", "short_name": "Strings", "url": "/play/strings/" },
     { "name": "Drums", "short_name": "Drums", "url": "/play/drums/" },
     { "name": "Synth", "short_name": "Synth", "url": "/play/synth/" },
     { "name": "Metronome", "short_name": "Metronome", "url": "/play/metronome/" }

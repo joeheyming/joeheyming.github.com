@@ -5,7 +5,7 @@
 /* =========================================================================
  * Shared instrument-page chrome
  * Header, instruments-link pill, controls, MIDI status, etc.
- * Used by /play/piano/, /play/accordion/, /play/synth/, /play/drums/, /play/guitar/
+ * Used by /play/piano/, /play/accordion/, /play/synth/, /play/drums/, /play/strings/
  * ========================================================================= */
 
 .instrument-body {

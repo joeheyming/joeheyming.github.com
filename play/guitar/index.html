@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Strings — moved to /play/strings/ | Joe Heyming</title>
+
+    <!--
+      /play/guitar/ was renamed to /play/strings/ in May 2026. The page is
+      still called "Strings" inside — the URL just caught up with the UI.
+      This stub exists so any inbound link (bookmarks, social cards, search
+      results, the OS app registry from older builds) still works.
+
+      Static GitHub Pages — no real 301 redirects available. The combo of:
+        * <meta http-equiv="refresh" content="0; url=...">
+        * <link rel="canonical" href=".../play/strings/">
+        * JS that preserves any inbound query string / fragment
+        * <meta name="robots" content="noindex,follow">
+      is what Google et al treat as equivalent to a 301: search signal
+      consolidates onto /play/strings/, the old URL drops out of the
+      index, and any UTM params / fragments survive the bounce. Modeled
+      on /legend-of-doom/index.html (the unified-DOOM redirect).
+    -->
+    <meta name="robots" content="noindex,follow" />
+    <meta http-equiv="refresh" content="0; url=/play/strings/" />
+    <link rel="canonical" href="https://joeheyming.github.io/play/strings/" />
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎸</text></svg>"
+    />
+
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #0f172a;
+        color: #e5e7eb;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        text-align: center;
+        padding: 1.5rem;
+      }
+      main {
+        max-width: 32rem;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 0.5rem;
+      }
+      p {
+        margin: 0.5rem 0;
+        line-height: 1.5;
+        color: #cbd5e1;
+      }
+      a {
+        color: #93c5fd;
+      }
+      a:hover {
+        color: #bfdbfe;
+      }
+      .cta {
+        display: inline-block;
+        margin-top: 1rem;
+        padding: 0.75rem 1.25rem;
+        background: linear-gradient(135deg, #f59e0b, #ea580c);
+        color: #fff;
+        text-decoration: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
+      }
+    </style>
+
+    <script>
+      // Preserve any inbound query string / fragment so deep links keep
+      // working (e.g. ?instrument=bass on a future feature, or #help-
+      // anchors). replace() (not assign) so the back button skips the
+      // stub instead of trapping the player in a redirect loop.
+      (function () {
+        var qs = window.location.search || '';
+        var hash = window.location.hash || '';
+        window.location.replace('/play/strings/' + qs + hash);
+      })();
+    </script>
+  </head>
+  <body>
+    <main>
+      <h1>Strings moved</h1>
+      <p>
+        The browser fretboard now lives at
+        <a href="/play/strings/">/play/strings/</a>.
+      </p>
+      <p>Redirecting you now…</p>
+      <a class="cta" href="/play/strings/">Play Strings →</a>
+    </main>
+  </body>
+</html>

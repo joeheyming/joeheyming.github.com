@@ -24,8 +24,14 @@ import {
   formatChordName
 } from './chords.js';
 import { StringEngine } from './engine.js';
-import { fetchEchordsSong, isEchordsUrl, searchEchords } from './echords-source.js';
+import { createFretboardController } from './fretboard.js';
+import { createStrumPopovers } from './strum-popovers.js';
+import { initStrumDrag } from './strum-drag.js';
 
+// localStorage key is intentionally still `play.guitar.*` — the URL was
+// renamed from /play/guitar/ to /play/strings/ in May 2026, but the
+// stored prefs (tones-per-instrument, last instrument, voicing memory,
+// strum-bar pads) all predate the rename and should survive it.
 const Prefs = makePrefs('play.guitar.prefs.v1');
 
 // ---------- DOM refs ----------
@@ -60,6 +66,13 @@ const strumLoadInputEl = document.getElementById('strum-bar-load-input');
 const strumLoadResultsEl = document.getElementById('strum-bar-load-results');
 const strumLoadStatusEl = document.getElementById('strum-bar-load-status');
 const strumClearBtn = document.getElementById('strum-bar-clear');
+// Transpose group — ♭ / ♯ buttons that shift every pinned chord by one
+// semitone (capo-style). Group is hidden when the bar is empty; the
+// buttons inside don't care about state, they just delegate to
+// transposeStrumBar().
+const strumTransposeEl = document.getElementById('strum-bar-transpose');
+const strumTransposeDownBtn = document.getElementById('strum-bar-transpose-down');
+const strumTransposeUpBtn = document.getElementById('strum-bar-transpose-up');
 const strumBarHintEl = document.getElementById('strum-bar-hint');
 // "♪ Title — Artist" link surfaced in the strum-bar header after a
 // song load. Click opens the source page (e-chords) in a new tab so
@@ -304,167 +317,25 @@ const builderState = {
 };
 const chordShapeCells = new Set();
 
-// ---------- Fretboard rendering ----------
+// ---------- Fretboard rendering + pointer playback ----------
+//
+// `createFretboardController` owns the .fretboard-grid DOM (rebuild
+// on instrument switch) AND the pointer events that turn a tap on a
+// cell into a pluck. It populates the shared `cellEls` map so the
+// chord builder can still highlight individual cells, and exposes
+// flash / announce helpers for everything else that wants visual
+// feedback for a note (chord strum, MIDI input, etc.).
 
-function buildFretboard() {
-  fretboardEl.innerHTML = '';
-  cellEls.clear();
-  chordShapeCells.clear();
-  fretboardEl.classList.toggle('hide-notes', !showNotesEl.checked);
-
-  const { tuning, fretCount, singleDots, doubleDots, paired } = activeInstrument;
-
-  // Expose the fret count to CSS so the grid columns and the neck
-  // min-width can scale with it (used by the horizontal-scroll layout
-  // on narrow screens).
-  fretboardEl.style.setProperty('--fret-count', String(fretCount));
-
-  // Inner wrapper: holds the inlay overlay + string rows and owns the
-  // `min-width` that drives horizontal scrolling. Putting both children
-  // in the same containing block keeps the absolutely-positioned inlay
-  // aligned with the string rows when the neck is wider than the viewport.
-  const grid = document.createElement('div');
-  grid.className = 'fretboard-grid';
-  fretboardEl.appendChild(grid);
-
-  // Inlay overlay sits *behind* the strings (z-index: 0) so the position
-  // dots show through the fretboard wood without colliding with note
-  // labels.
-  const inlays = document.createElement('div');
-  inlays.className = 'fretboard-inlays';
-  inlays.setAttribute('aria-hidden', 'true');
-  const addInlay = (fret, isDouble) => {
-    const slot = document.createElement('div');
-    slot.className = isDouble ? 'inlay double' : 'inlay';
-    slot.style.gridColumn = String(fret);
-    // Force every inlay into the single explicit row (the grid was
-    // creating a 0/11px implicit row 2 for the double inlay, which
-    // collapsed both 12th-fret dots to the bottom edge).
-    slot.style.gridRow = '1';
-    inlays.appendChild(slot);
-  };
-  singleDots.forEach((f) => addInlay(f, false));
-  doubleDots.forEach((f) => addInlay(f, true));
-  grid.appendChild(inlays);
-
-  tuning.forEach((str, stringIdx) => {
-    const row = document.createElement('div');
-    row.className = 'fretboard-string' + (paired ? ' paired' : '');
-    row.style.setProperty('--string-thickness', `${str.thickness}px`);
-    const startFret = str.startFret || 0;
-    // `--start-offset` shifts the string line right by N fret columns so
-    // banjo's drone string doesn't render its line through the
-    // unavailable cells (frets 0..startFret-1).
-    if (startFret > 0) row.style.setProperty('--start-offset', String(startFret));
-
-    for (let fret = 0; fret <= fretCount; fret++) {
-      const cell = document.createElement('div');
-      const isUnavailable = fret < startFret;
-      const isStartOfDrone = fret === startFret && startFret > 0;
-      // For "short" drone strings (banjo 5th), we don't render the
-      // leftmost cells as `.open` — they get `.unavailable` instead so
-      // the standard nut bar + open-string label don't appear above
-      // unplayable cells. The drone's actual start cell (fret 5) gets
-      // its own `.drone-start` adornment.
-      const isOpen = fret === 0 && !isUnavailable;
-      cell.className = 'fret-cell';
-      if (isOpen) cell.classList.add('open');
-      if (isUnavailable) cell.classList.add('unavailable');
-      if (isStartOfDrone) cell.classList.add('drone-start');
-      cell.dataset.string = String(stringIdx);
-      cell.dataset.fret = String(fret);
-
-      if (!isUnavailable) {
-        const midi = str.midi + (fret - startFret);
-        cell.dataset.midi = String(midi);
-        const labelText =
-          isOpen || isStartOfDrone ? str.name : midiToName(midi).replace(/\d+$/, '');
-        const labelSpan = document.createElement('span');
-        labelSpan.className = 'note';
-        labelSpan.textContent = labelText;
-        cell.appendChild(labelSpan);
-      }
-
-      row.appendChild(cell);
-      cellEls.set(`${stringIdx}-${fret}`, cell);
-    }
-
-    grid.appendChild(row);
-  });
-}
-
-// ---------- Pointer playback ----------
-
-let nowPlayingTimer = null;
-const announceNote = (midi) => {
-  nowPlaying.textContent = midiToName(midi);
-  nowPlaying.classList.add('active');
-  clearTimeout(nowPlayingTimer);
-  nowPlayingTimer = setTimeout(() => nowPlaying.classList.remove('active'), 350);
-};
-
-const flashCell = (stringIdx, fret) => {
-  const el = cellEls.get(`${stringIdx}-${fret}`);
-  if (!el) return;
-  el.classList.add('active');
-  setTimeout(() => el.classList.remove('active'), 280);
-};
-
-const playFret = (stringIdx, fret) => {
-  const midi = midiAtCell(activeInstrument, stringIdx, fret);
-  if (midi == null) return;
-  if (!engine.pluck(midi)) return;
-  flashCell(stringIdx, fret);
-  announceNote(midi);
-};
-
-const lastCellByPointer = new Map();
-
-const pluckFromCell = (cell, pointerId) => {
-  if (!cell || cell.classList.contains('unavailable')) return;
-  if (lastCellByPointer.get(pointerId) === cell) return;
-  lastCellByPointer.set(pointerId, cell);
-  const stringIdx = Number(cell.dataset.string);
-  const fret = Number(cell.dataset.fret);
-  playFret(stringIdx, fret);
-};
-
-// Tap-deferral helper for touch input. The fretboard's `touch-action:
-// pan-x` lets the browser handle horizontal scroll natively (with
-// momentum). The util defers our pluck by ~80ms so a horizontal swipe
-// — which the browser commits to as a scroll within ~10-20ms and then
-// sends `pointercancel` to us — never accidentally fires a note.
-const fretboardScrollGesture = createScrollGesture();
-
-fretboardEl.addEventListener('pointerdown', (event) => {
-  const cell = event.target.closest('.fret-cell');
-  if (!cell || cell.classList.contains('unavailable')) return;
-  try {
-    fretboardEl.setPointerCapture?.(event.pointerId);
-  } catch (_) {
-    /* synthetic events may have no registered pointer */
-  }
-  fretboardScrollGesture.start(event, {
-    play: () => pluckFromCell(cell, event.pointerId)
-  });
-  if (event.pointerType !== 'touch') event.preventDefault();
+const fretboard = createFretboardController({
+  fretboardEl,
+  showNotesEl,
+  nowPlaying,
+  engine,
+  cellEls,
+  chordShapeCells,
+  getActiveInstrument: () => activeInstrument,
 });
-
-fretboardEl.addEventListener('pointermove', (event) => {
-  if (!lastCellByPointer.has(event.pointerId)) return;
-  const target = document.elementFromPoint(event.clientX, event.clientY);
-  const cell = target && target.closest && target.closest('.fret-cell');
-  if (cell) pluckFromCell(cell, event.pointerId);
-});
-
-fretboardEl.addEventListener('pointerup', (event) => {
-  fretboardScrollGesture.end(event.pointerId);
-  lastCellByPointer.delete(event.pointerId);
-});
-fretboardEl.addEventListener('pointercancel', (event) => {
-  fretboardScrollGesture.cancel(event.pointerId);
-  lastCellByPointer.delete(event.pointerId);
-});
+const { build: buildFretboard, playFret, flashCell, announceNote } = fretboard;
 
 // ---------- Chord builder (guitar-only) ----------
 
@@ -966,6 +837,9 @@ const renderStrumBar = () => {
   // button so it appears the moment the first chord is pinned and
   // disappears the moment the bar is wiped.
   if (strumClearBtn) strumClearBtn.hidden = strumBar.length === 0;
+  // Transpose buttons follow the same "show once a pad exists" rule —
+  // there's nothing to shift when the bar is empty.
+  if (strumTransposeEl) strumTransposeEl.hidden = strumBar.length === 0;
   strumBar.forEach((entry, idx) => {
     // Each render resolves the active instrument's preferred voicing
     // for this chord (per voicingPrefs). Same chord on uke vs guitar
@@ -1254,848 +1128,104 @@ const clearStrumBar = () => {
 
 strumClearBtn?.addEventListener('click', clearStrumBar);
 
+// ---------- Transpose ----------
+//
+// Shift every pinned chord up or down by N semitones (positive = up,
+// negative = down). Capo-style: chord identities are rewritten in
+// place, so a bar of `[Em, A, D, G]` shifted +2 becomes `[F♯m, B, E,
+// A]`. Voicing prefs stay keyed by the NEW (root, quality) — the
+// next render resolves each pad's preferred shape via the existing
+// `getVoicingIdxFor`, falling back to voicing 0 for chords the
+// player has never picked a shape for on this instrument. (Pre-
+// existing prefs for the OLD roots are preserved, so re-transposing
+// back to where you started restores your shapes.)
+//
+// Pitch-class shift is a bijection on Z₁₂, so we don't need to dedupe
+// — distinct (root, quality) pads stay distinct after the rotation.
+//
+// Side effects:
+//   - editTarget follows the chord it was armed for, so "edit C"
+//     becomes "edit D" after +2 instead of pointing at a ghost.
+//   - The chord builder's current selection (builderState) is shifted
+//     too, since the player's conceptual "key" has moved — the matrix
+//     should reflect that.
+//   - On undefined / 0-shift the function is a no-op (no save, no
+//     re-render).
+
+const transposeStrumBar = (semitones) => {
+  if (!strumBar.length) return;
+  const shift = (((semitones % 12) + 12) % 12);
+  if (shift === 0) return;
+  for (const entry of strumBar) {
+    entry.rootPc = (entry.rootPc + shift) % 12;
+  }
+  if (editTarget) {
+    editTarget = {
+      rootPc: (editTarget.rootPc + shift) % 12,
+      qualityId: editTarget.qualityId,
+    };
+  }
+  builderState.rootPc = (builderState.rootPc + shift) % 12;
+  savePrefs();
+  // Re-render in the right order so the highlighted selections in
+  // each panel match the new builderState. Voicings depends on
+  // (root, quality), so it re-resolves after roots/qualities have
+  // updated their `.selected` highlights.
+  renderRoots();
+  renderQualities();
+  renderVoicings();
+  renderStrumBar();
+};
+
+strumTransposeDownBtn?.addEventListener('click', () => transposeStrumBar(-1));
+strumTransposeUpBtn?.addEventListener('click', () => transposeStrumBar(+1));
+
 // ---------- Tap-to-play vs. drag-to-reorder ----------
 //
-// Pointer-driven, with two different gating strategies depending on
-// pointer type:
+// All the pointer-event plumbing for reordering strum-bar pads (touch
+// long-press → drag, mouse / pen → DRAG_THRESHOLD direction-gated
+// drag) plus the strum-pad click handler (tap to play + arm edit
+// target) lives in ./strum-drag.js. Wired here so the orchestrator
+// stays the integration point for editTarget + strumBar state.
+
+initStrumDrag({
+  strumPadsEl,
+  chordBuilderEl,
+  strumBar,
+  getEditTarget: () => editTarget,
+  setEditTarget,
+  renderStrumBar,
+  savePrefs,
+  playChordAtPad,
+  removeChordFromBar,
+});
+
+// ---------- Strum-bar action popovers ----------
 //
-// - TOUCH: requires a long-press (LONG_PRESS_MS) to enter drag mode.
-//   Any finger movement before the timer fires hands the gesture
-//   back to the browser, which then handles native scrolling
-//   (horizontal in the strum-bar pads container, vertical in the
-//   chord-builder). This is the iOS home-screen / Photos-album
-//   pattern: hold to pick up, then drag.
-// - MOUSE / PEN: skips long-press. A horizontal-dominant drag of
-//   more than DRAG_THRESHOLD pixels promotes to a reorder; vertical
-//   drags abandon the drag-state. Desktop users scroll with the
-//   wheel / trackpad, so they don't need a "scroll-friendly" gate
-//   on the pad itself.
-//
-// Either way, on drop we persist the new order. A floating ghost
-// clone follows the cursor / finger; the original pad stays in
-// place but dimmed (`drag-source` class) until drop.
+// Add-by-name ("+") and load-song ("↧") both live in
+// ./strum-popovers.js — they share open/close state (mutually
+// exclusive) and the click-outside-to-dismiss pattern, so keeping
+// them in one module avoids a circular dep between two halves of
+// the same UI surface.
 
-const DRAG_THRESHOLD = 8; // px before a mouse/pen tap promotes to a drag
-const LONG_PRESS_MS = 400; // touch hold time before the pad becomes draggable
-// Movement tolerance during the long-press wait — natural finger
-// tremor is typically 3-6px, so anything under this counts as "still
-// holding" and won't cancel the timer.
-const LONG_PRESS_TOLERANCE = 12;
-let dragState = null;
-let longPressTimer = null;
-let justDragged = false; // briefly true after a drag so the trailing
-// `click` event doesn't accidentally re-strum the dropped chord.
-
-const findPadByChord = (chord) =>
-  strumPadsEl?.querySelector(
-    `.strum-pad[data-root-pc="${chord.rootPc}"][data-quality="${chord.qualityId}"]`
-  );
-
-const startDrag = (event) => {
-  if (!dragState) return;
-  const sourcePad = findPadByChord(dragState.chord);
-  if (!sourcePad) return;
-  dragState.dragging = true;
-  sourcePad.classList.add('drag-source');
-  // Floating clone that the cursor literally drags around — no DOM
-  // reflow needed for the visual bit; the underlying pad order is
-  // updated independently.
-  const rect = sourcePad.getBoundingClientRect();
-  const ghost = sourcePad.cloneNode(true);
-  ghost.classList.add('drag-ghost');
-  ghost.classList.remove('drag-source');
-  ghost.querySelector('.strum-pad-remove')?.remove();
-  ghost.style.position = 'fixed';
-  ghost.style.left = `${rect.left}px`;
-  ghost.style.top = `${rect.top}px`;
-  ghost.style.width = `${rect.width}px`;
-  ghost.style.height = `${rect.height}px`;
-  ghost.style.pointerEvents = 'none';
-  ghost.style.zIndex = '9999';
-  ghost.style.transform = 'scale(1.05)';
-  ghost.style.transition = 'none';
-  document.body.appendChild(ghost);
-  dragState.ghostEl = ghost;
-  // Pointer offset within the source pad — the ghost stays anchored
-  // to that same offset for the life of the drag, so the chord name
-  // doesn't snap-jump under the finger when the drag begins.
-  dragState.ghostOffsetX = event.clientX - rect.left;
-  dragState.ghostOffsetY = event.clientY - rect.top;
-  document.body.classList.add('strum-dragging');
-};
-
-const cancelLongPress = () => {
-  if (longPressTimer) {
-    clearTimeout(longPressTimer);
-    longPressTimer = null;
-  }
-};
-
-// Defensive cleanup — strips ALL drag-related state from the DOM,
-// regardless of whether `dragState` still tracks them. Called from
-// every "interaction ended" hook (pointerup, pointercancel,
-// touchend, touchcancel) and the watchdog below, because iOS Safari
-// occasionally drops one of those events on the floor — if we
-// gated on pointerId we'd leave a ghost stranded mid-screen.
-const removeAllGhosts = () => {
-  document.querySelectorAll('.strum-pad.drag-ghost').forEach((el) => el.remove());
-  document
-    .querySelectorAll('.strum-pad.drag-source')
-    .forEach((el) => el.classList.remove('drag-source'));
-  document
-    .querySelectorAll('.strum-pad.long-press-active')
-    .forEach((el) => el.classList.remove('long-press-active'));
-  document
-    .querySelectorAll('.strum-pad.long-press-pending')
-    .forEach((el) => el.classList.remove('long-press-pending'));
-  document.body.classList.remove('strum-dragging');
-};
-
-// Watchdog: if a drag is "in flight" but no pointermove has arrived
-// for a while, the OS probably swallowed our pointerup. Force the
-// drop and clean up. Refreshed every pointermove so a slow but live
-// drag never trips it.
-let dragWatchdogTimer = null;
-const DRAG_WATCHDOG_MS = 2500;
-const armDragWatchdog = () => {
-  if (dragWatchdogTimer) clearTimeout(dragWatchdogTimer);
-  dragWatchdogTimer = setTimeout(() => {
-    dragWatchdogTimer = null;
-    if (dragState && dragState.dragging) {
-      removeAllGhosts();
-      dragState = null;
-    }
-  }, DRAG_WATCHDOG_MS);
-};
-const disarmDragWatchdog = () => {
-  if (dragWatchdogTimer) {
-    clearTimeout(dragWatchdogTimer);
-    dragWatchdogTimer = null;
-  }
-};
-
-const onStrumPointerDown = (event) => {
-  if (event.button !== undefined && event.button !== 0) return; // primary button only
-  if (event.target.closest('.strum-pad-remove')) return; // X button uses click
-  const pad = event.target.closest('.strum-pad');
-  if (!pad) return;
-  const isTouch = event.pointerType === 'touch';
-  dragState = {
-    pointerId: event.pointerId,
-    pointerType: event.pointerType,
-    chord: {
-      rootPc: Number(pad.dataset.rootPc),
-      qualityId: pad.dataset.quality
-    },
-    startX: event.clientX,
-    startY: event.clientY,
-    dragging: false,
-    // For mouse / pen we're already "armed" — any direction-passing
-    // drag past DRAG_THRESHOLD will start a reorder. Touch needs to
-    // win the long-press race first.
-    armed: !isTouch,
-    ghostEl: null
-  };
-  if (isTouch) {
-    cancelLongPress();
-    // Visual feedback during the wait so the player can SEE the
-    // long-press timer ticking — without this the pad just sits
-    // there for 400ms and feels unresponsive.
-    pad.classList.add('long-press-pending');
-    longPressTimer = setTimeout(() => {
-      longPressTimer = null;
-      if (!dragState) return;
-      dragState.armed = true;
-      const p = findPadByChord(dragState.chord);
-      p?.classList.remove('long-press-pending');
-      p?.classList.add('long-press-active');
-      // Haptic confirmation on supported devices ("you've picked it up").
-      if (navigator.vibrate) navigator.vibrate(15);
-      // Start the drag immediately at the long-press point so the ghost
-      // appears right under the finger — the player doesn't have to
-      // wiggle to make it materialise.
-      startDrag({ clientX: dragState.startX, clientY: dragState.startY });
-      armDragWatchdog();
-    }, LONG_PRESS_MS);
-  }
-};
-
-const onStrumPointerMove = (event) => {
-  if (!dragState || event.pointerId !== dragState.pointerId) return;
-  const dx = event.clientX - dragState.startX;
-  const dy = event.clientY - dragState.startY;
-  // Touch: small finger movement during the long-press wait is
-  // tolerated (natural tremor is 3-6px); only abandon if the player
-  // moves further than LONG_PRESS_TOLERANCE, which we read as
-  // "they're trying to scroll".
-  if (!dragState.armed) {
-    if (Math.hypot(dx, dy) <= LONG_PRESS_TOLERANCE) return;
-    cancelLongPress();
-    const p = findPadByChord(dragState.chord);
-    p?.classList.remove('long-press-pending');
-    p?.classList.remove('long-press-active');
-    dragState = null;
-    return;
-  }
-  if (!dragState.dragging) {
-    if (Math.hypot(dx, dy) <= DRAG_THRESHOLD) return;
-    // Mouse / pen direction gate (touch already passed long-press above
-    // and starts the drag from inside the timer callback).
-    if (dragState.pointerType !== 'touch' && Math.abs(dx) <= Math.abs(dy)) {
-      dragState = null;
-      return;
-    }
-    startDrag(event);
-    if (!dragState.dragging) return;
-  }
-  // Move the ghost.
-  dragState.ghostEl.style.left = `${event.clientX - dragState.ghostOffsetX}px`;
-  dragState.ghostEl.style.top = `${event.clientY - dragState.ghostOffsetY}px`;
-  armDragWatchdog();
-  // Look beneath the cursor for any pad that ISN'T the source. Use
-  // elementsFromPoint so the ghost (which is on top) doesn't shadow
-  // the result.
-  const els = document.elementsFromPoint(event.clientX, event.clientY);
-  const targetPad = els.find(
-    (el) => el.classList?.contains('strum-pad') && !el.classList.contains('drag-source')
-  );
-  if (!targetPad) return;
-  const sourceIdx = strumBar.findIndex(
-    (e) => e.rootPc === dragState.chord.rootPc && e.qualityId === dragState.chord.qualityId
-  );
-  const targetIdx = Number(targetPad.dataset.idx);
-  if (sourceIdx < 0 || Number.isNaN(targetIdx)) return;
-  // Insert the source before or after the target depending on which
-  // half of the target the cursor is over — gives a predictable feel
-  // regardless of approach direction.
-  const r = targetPad.getBoundingClientRect();
-  const insertBefore = event.clientX < r.left + r.width / 2;
-  let newIdx = insertBefore ? targetIdx : targetIdx + 1;
-  if (newIdx > sourceIdx) newIdx -= 1;
-  if (newIdx === sourceIdx) return;
-  const [moved] = strumBar.splice(sourceIdx, 1);
-  strumBar.splice(newIdx, 0, moved);
-  renderStrumBar();
-  // renderStrumBar wiped + rebuilt DOM, so re-mark the new source pad.
-  findPadByChord(dragState.chord)?.classList.add('drag-source');
-  event.preventDefault();
-};
-
-const endStrumDrag = (event) => {
-  // Defensive: even with no live dragState, sweep any orphan ghosts
-  // — covers the rare iOS case where pointercancel fires for a
-  // pointerId we no longer track but the ghost element remained.
-  if (!dragState) {
-    if (document.querySelector('.strum-pad.drag-ghost')) removeAllGhosts();
-    return;
-  }
-  // Tolerate pointerId mismatches: on iOS the pointerId can change
-  // when our touchmove preventDefault confuses the gesture
-  // recognizer. We'd rather over-clean than leave a ghost stranded.
-  // Multi-touch with a SECOND finger pressing while we're mid-drag
-  // would also land here — pointerup for that other pointer should
-  // still trigger an end-of-drag, since the player has clearly
-  // finished interacting with the pad.
-  cancelLongPress();
-  disarmDragWatchdog();
-  const wasDragging = dragState.dragging;
-  removeAllGhosts();
-  if (wasDragging) {
-    savePrefs();
-    // Suppress the trailing `click` that fires on touch/mouse after
-    // pointerup (otherwise the dropped pad would also strum).
-    justDragged = true;
-    setTimeout(() => {
-      justDragged = false;
-    }, 80);
-  }
-  dragState = null;
-};
-
-strumPadsEl?.addEventListener('pointerdown', onStrumPointerDown);
-// Listen on document so a fast drag that exits the bar doesn't lose
-// the pointerup event (capture-style behaviour without explicit
-// setPointerCapture, which was buggy in Safari for cloned ghosts).
-document.addEventListener('pointermove', onStrumPointerMove);
-document.addEventListener('pointerup', endStrumDrag);
-document.addEventListener('pointercancel', endStrumDrag);
-// Touch fallbacks — when our touchmove preventDefault confuses
-// Safari's gesture recognizer it sometimes drops the matching
-// pointerup, and the ghost is left floating mid-screen. The native
-// touchend / touchcancel still fire reliably, so we hook them as a
-// belt-and-braces cleanup path. (endStrumDrag is idempotent.)
-document.addEventListener('touchend', endStrumDrag);
-document.addEventListener('touchcancel', endStrumDrag);
-// And one more safety net: if focus leaves the page (e.g. user
-// switches apps mid-drag, or the system shows a permission prompt),
-// force-cleanup any in-flight ghost.
-window.addEventListener('blur', () => endStrumDrag());
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) endStrumDrag();
+createStrumPopovers({
+  strumPopoverEl,
+  strumAddBtn,
+  strumInputEl,
+  strumSuggestionsEl,
+  strumLoadPopoverEl,
+  strumLoadBtn,
+  strumLoadInputEl,
+  strumLoadResultsEl,
+  strumLoadStatusEl,
+  strumBar,
+  pinChordToBar,
+  playChordAtPad,
+  setEditTarget,
+  setLoadedSong,
+  savePrefs,
 });
 
-// While a long-press drag is ACTIVE, swallow touchmove so the
-// browser doesn't simultaneously scroll the strum-bar pads
-// container (or chord-builder) as the player drags a pad. Pointer
-// events alone can't stop native scroll — touchmove with
-// `{ passive: false }` is the only way to do it on iOS Safari.
-// We deliberately do NOT preventDefault before the long-press
-// fires, so the player can still tap-drag to scroll like normal.
-document.addEventListener(
-  'touchmove',
-  (event) => {
-    if (dragState && dragState.dragging) event.preventDefault();
-  },
-  { passive: false }
-);
-
-// iOS Safari fires `contextmenu` on long-press touches, which kills
-// the pointer events mid-stream and prevents the long-press timer
-// from completing. Block it on the strum pads so our own long-press
-// reorder can land cleanly.
-strumPadsEl?.addEventListener('contextmenu', (event) => {
-  if (event.target.closest('.strum-pad')) event.preventDefault();
-});
-
-strumPadsEl?.addEventListener('click', (event) => {
-  if (justDragged) {
-    event.stopPropagation();
-    event.preventDefault();
-    return;
-  }
-  const removeBtn = event.target.closest('.strum-pad-remove');
-  if (removeBtn) {
-    event.stopPropagation();
-    const pad = removeBtn.closest('.strum-pad');
-    if (!pad) return;
-    removeChordFromBar(Number(pad.dataset.rootPc), pad.dataset.quality);
-    return;
-  }
-  const pad = event.target.closest('.strum-pad');
-  if (!pad) return;
-  const rootPc = Number(pad.dataset.rootPc);
-  const qualityId = pad.dataset.quality;
-  const voicingIdx = Number(pad.dataset.voicingIdx) || 0;
-  // Tapping a pad arms it as the "edit target" — subsequent clicks
-  // on Root / Quality / Shape rewrite THIS pad in place rather than
-  // pinning a new one. Re-tapping the SAME pad toggles edit mode
-  // off (so the player can go back to the normal "click Root pins a
-  // new chord" flow without having to hunt for an exit).
-  const isAlreadyEditing =
-    editTarget && editTarget.rootPc === rootPc && editTarget.qualityId === qualityId;
-  setEditTarget(isAlreadyEditing ? null : { rootPc, qualityId });
-  playChordAtPad(rootPc, qualityId, voicingIdx);
-});
-
-// Escape always exits edit mode. Skipped while a chord-search /
-// chord-name input has focus so the input keeps its own Escape
-// dismissal (see the popovers above).
-document.addEventListener('keydown', (event) => {
-  if (event.key !== 'Escape') return;
-  if (!editTarget) return;
-  const t = event.target;
-  if (t && (t.matches('input, textarea, select') || t.isContentEditable)) return;
-  setEditTarget(null);
-});
-
-// Tap-away exits edit mode. Anything inside the chord-builder
-// wrapper (which contains both the strum bar AND the Root/Quality/
-// Shape matrix) counts as "still editing" — tapping elsewhere on the
-// page (fretboard, header, instrument picker, the gap above HOW TO
-// PLAY, etc.) means the player's attention has moved on, so we drop
-// the edit target so the next Root click pins a new chord again.
-//
-// Uses pointerdown (not click) for two reasons:
-//   1. Mobile feel — taps register as soon as the finger lands.
-//   2. The Root/Quality/Voicing buttons run their own click handlers,
-//      and pointerdown fires first; if we used click here, ordering
-//      around stopPropagation could clear editTarget before those
-//      handlers had a chance to read it. With pointerdown we exit
-//      strictly only on outside taps.
-//
-// Reuses the chordBuilderEl reference declared at the top of the
-// file — declaring it again here would shadow / collide.
-document.addEventListener('pointerdown', (event) => {
-  if (!editTarget) return;
-  if (chordBuilderEl?.contains(event.target)) return;
-  setEditTarget(null);
-});
-
-// ---------- "+" inline chord-name input + autocomplete ----------
-//
-// The popover lets the player type any supported chord name to add a
-// pad. Suggestions are computed live as they type — prefix-match on
-// the displayed chord name (with both `#` and `♯` accepted) — and
-// ENTER tries to parse the raw input first so power users can blast
-// through "em ↵ a ↵ d ↵ g ↵" without ever clicking a suggestion.
-
-// Pre-compute the full set of displayable chord names ONCE — 12 roots
-// × 7 qualities = 84 entries, used for both autocomplete suggestions
-// and the parsed-name fast path.
-const ALL_CHORDS = [];
-for (const r of ROOTS) {
-  for (const q of QUALITIES) {
-    ALL_CHORDS.push({
-      name: formatChordName(r.pc, q.id),
-      rootPc: r.pc,
-      qualityId: q.id
-    });
-  }
-}
-
-let suggestionIdx = -1; // keyboard-highlighted suggestion (-1 = none)
-
-const setStrumPopover = (open) => {
-  if (!strumPopoverEl || !strumAddBtn) return;
-  strumPopoverEl.hidden = !open;
-  strumAddBtn.setAttribute('aria-expanded', String(open));
-  if (open) {
-    // Close the sibling load-song popover so the two never overlap
-    // visually — they share the same anchor row.
-    setStrumLoadPopover(false);
-    strumInputEl.value = '';
-    refreshSuggestions();
-    // Defer focus a tick so iOS Safari opens the keyboard reliably.
-    setTimeout(() => strumInputEl?.focus(), 0);
-  } else {
-    suggestionIdx = -1;
-  }
-};
-
-const normalizeForMatch = (s) => s.toLowerCase().replace(/♯/g, '#').replace(/♭/g, 'b');
-
-const refreshSuggestions = () => {
-  if (!strumSuggestionsEl) return;
-  const raw = (strumInputEl?.value || '').trim();
-  const needle = normalizeForMatch(raw);
-  const matches = needle
-    ? // Prefix match, then prefer shorter names so "c" surfaces
-      // C / Cm / C7 above C♯ / C♯m / C♯7 (typed "c" usually means
-      // the natural C, not C-sharp).
-      ALL_CHORDS.filter((c) => normalizeForMatch(c.name).startsWith(needle))
-        .sort((a, b) => a.name.length - b.name.length)
-        .slice(0, 12)
-    : // No input yet: surface a handful of common starter chords so
-      // the popover isn't a wall of nothing.
-      ['C', 'G', 'D', 'A', 'E', 'F', 'Em', 'Am', 'Dm']
-        .map((n) => ALL_CHORDS.find((c) => c.name === n))
-        .filter(Boolean);
-  strumSuggestionsEl.innerHTML = '';
-  matches.forEach((m, i) => {
-    const li = document.createElement('li');
-    li.className = 'strum-bar-suggestion';
-    li.dataset.rootPc = String(m.rootPc);
-    li.dataset.quality = m.qualityId;
-    li.textContent = m.name;
-    li.setAttribute('role', 'option');
-    if (i === suggestionIdx) li.setAttribute('aria-selected', 'true');
-    strumSuggestionsEl.appendChild(li);
-  });
-};
-
-const commitTypedChord = () => {
-  // Prefer the keyboard-highlighted suggestion when one is selected;
-  // otherwise parse whatever the player typed and add that. Pin first
-  // (so the pad exists), then play it.
-  let target = null;
-  if (suggestionIdx >= 0) {
-    const li = strumSuggestionsEl?.children[suggestionIdx];
-    if (li) {
-      target = { rootPc: Number(li.dataset.rootPc), qualityId: li.dataset.quality };
-    }
-  }
-  if (!target) {
-    const parsed = parseChordName(strumInputEl?.value || '');
-    if (parsed) target = parsed;
-  }
-  if (!target) {
-    // Soft visual error: shake the input briefly so the player knows
-    // the typed name didn't parse, without nagging modal dialogs.
-    strumInputEl?.animate(
-      [
-        { transform: 'translateX(0)' },
-        { transform: 'translateX(-4px)' },
-        { transform: 'translateX(4px)' },
-        { transform: 'translateX(0)' }
-      ],
-      { duration: 220 }
-    );
-    return;
-  }
-  setStrumPopover(false);
-  // Typed-name shortcut always lands on voicingIdx 0 (the default
-  // shape) — there's no UI to specify a voicing in the input box.
-  // The player can switch shapes via the matrix afterwards and
-  // their selection will pin a separate `Cⁿ` pad.
-  setEditTarget(null);
-  playChordAtPad(target.rootPc, target.qualityId, 0);
-};
-
-strumAddBtn?.addEventListener('click', () => {
-  const open = strumAddBtn.getAttribute('aria-expanded') === 'true';
-  setStrumPopover(!open);
-});
-
-strumInputEl?.addEventListener('input', () => {
-  suggestionIdx = -1;
-  refreshSuggestions();
-});
-
-strumInputEl?.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter') {
-    event.preventDefault();
-    commitTypedChord();
-  } else if (event.key === 'Escape') {
-    setStrumPopover(false);
-  } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-    event.preventDefault();
-    const count = strumSuggestionsEl?.children.length || 0;
-    if (!count) return;
-    suggestionIdx =
-      event.key === 'ArrowDown'
-        ? (suggestionIdx + 1) % count
-        : (suggestionIdx - 1 + count) % count;
-    refreshSuggestions();
-  }
-});
-
-strumSuggestionsEl?.addEventListener('click', (event) => {
-  const li = event.target.closest('.strum-bar-suggestion');
-  if (!li) return;
-  setStrumPopover(false);
-  setEditTarget(null);
-  playChordAtPad(Number(li.dataset.rootPc), li.dataset.quality, 0);
-});
-
-// Click-outside-to-dismiss. Also covers the "tapped on the pads while
-// the popover was open" case which felt fiddly without it.
-document.addEventListener('pointerdown', (event) => {
-  if (strumPopoverEl?.hidden) return;
-  if (strumPopoverEl.contains(event.target)) return;
-  if (strumAddBtn?.contains(event.target)) return;
-  setStrumPopover(false);
-});
-
-// ---------- Load-song popover (search + URL paste) ----------
-//
-// The "↧" button next to "+" opens a dual-mode popover:
-//   - Type a song or artist → live results from e-chords' /api/search
-//     (debounced, click-to-load).
-//   - Paste a chords-page URL → loads that page directly.
-// Either path ends in fetchEchordsSong → pinChordToBar for each chord
-// in the song's palette.
-//
-// Mutually exclusive with the chord-name popover (opening one closes
-// the other) and shares the same click-outside-to-dismiss treatment.
-
-let loadInFlight = false;
-// Debounce + race-control state for the live-search input.
-let searchTimer = null;
-let searchSeq = 0; // monotonic id; results from a stale request get
-// dropped if the user has typed again since.
-let currentResults = [];
-let resultIdx = -1; // keyboard-highlighted result, -1 = none
-
-function setStrumLoadPopover(open) {
-  if (!strumLoadPopoverEl || !strumLoadBtn) return;
-  strumLoadPopoverEl.hidden = !open;
-  strumLoadBtn.setAttribute('aria-expanded', String(open));
-  if (open) {
-    setStrumPopover(false);
-    setLoadStatus(null);
-    renderSearchResults([]);
-    setTimeout(() => strumLoadInputEl?.focus(), 0);
-  } else {
-    if (searchTimer) {
-      clearTimeout(searchTimer);
-      searchTimer = null;
-    }
-    resultIdx = -1;
-  }
-}
-
-// Status helper: tone is one of 'info' | 'error' | 'success' | null
-// (null hides the line entirely). aria-live is set on the element so
-// screen readers announce the state changes without needing focus.
-function setLoadStatus(text, tone = 'info') {
-  if (!strumLoadStatusEl) return;
-  if (!text) {
-    strumLoadStatusEl.hidden = true;
-    strumLoadStatusEl.textContent = '';
-    strumLoadStatusEl.classList.remove('is-error', 'is-success');
-    return;
-  }
-  strumLoadStatusEl.hidden = false;
-  strumLoadStatusEl.textContent = text;
-  strumLoadStatusEl.classList.toggle('is-error', tone === 'error');
-  strumLoadStatusEl.classList.toggle('is-success', tone === 'success');
-}
-
-// Render the search-results list. A friendly "K plays" badge gives
-// the player a sense of how popular each chart is, which doubles as
-// a quality signal — e-chords transcriptions vary, and the most-played
-// version of a song is usually the one most other people trust.
-function renderSearchResults(hits) {
-  if (!strumLoadResultsEl) return;
-  currentResults = hits;
-  resultIdx = -1;
-  strumLoadResultsEl.innerHTML = '';
-  if (!hits.length) {
-    strumLoadResultsEl.hidden = true;
-    return;
-  }
-  strumLoadResultsEl.hidden = false;
-  hits.forEach((h, i) => {
-    const li = document.createElement('li');
-    li.className = 'strum-bar-load-result';
-    li.dataset.idx = String(i);
-    li.setAttribute('role', 'option');
-
-    const main = document.createElement('span');
-    main.className = 'strum-bar-load-result-main';
-    const title = document.createElement('span');
-    title.className = 'strum-bar-load-result-title';
-    title.textContent = h.title || '(untitled)';
-    const artist = document.createElement('span');
-    artist.className = 'strum-bar-load-result-artist';
-    artist.textContent = h.artist || '';
-    main.appendChild(title);
-    if (h.artist) main.appendChild(artist);
-
-    const meta = document.createElement('span');
-    meta.className = 'strum-bar-load-result-meta';
-    meta.textContent = formatPlays(h.popularity);
-
-    li.appendChild(main);
-    li.appendChild(meta);
-    strumLoadResultsEl.appendChild(li);
-  });
-}
-
-// Compact play-count formatter: 1234 → "1.2K", 1234567 → "1.2M".
-// Tiny counts are a useful "this is a deep cut, not a top hit"
-// signal so we don't round those up to "1K".
-function formatPlays(n) {
-  const v = Number(n) || 0;
-  if (v < 1000) return `${v} plays`;
-  if (v < 1_000_000) return `${(v / 1000).toFixed(v < 10_000 ? 1 : 0)}K plays`;
-  return `${(v / 1_000_000).toFixed(v < 10_000_000 ? 1 : 0)}M plays`;
-}
-
-function highlightResult(i) {
-  resultIdx = i;
-  if (!strumLoadResultsEl) return;
-  Array.from(strumLoadResultsEl.children).forEach((el, idx) => {
-    el.toggleAttribute('aria-selected', idx === i);
-    el.classList.toggle('is-highlighted', idx === i);
-  });
-  // Keep highlighted item in view inside the scroll container.
-  if (i >= 0) {
-    const el = strumLoadResultsEl.children[i];
-    if (el && typeof el.scrollIntoView === 'function') {
-      el.scrollIntoView({ block: 'nearest' });
-    }
-  }
-}
-
-async function runSearch(query) {
-  const seq = ++searchSeq;
-  setLoadStatus('Searching\u2026');
-  let hits = [];
-  try {
-    hits = await searchEchords(query, { limit: 12 });
-  } catch (err) {
-    if (seq !== searchSeq) return;
-    setLoadStatus(
-      err && err.message ? `Search failed: ${err.message}` : 'Search failed.',
-      'error'
-    );
-    renderSearchResults([]);
-    return;
-  }
-  if (seq !== searchSeq) return; // stale; user kept typing
-  renderSearchResults(hits);
-  setLoadStatus(
-    hits.length ? null : 'No songs matched. Try a different artist or title.',
-    hits.length ? 'info' : 'error'
-  );
-}
-
-async function loadSongFromUrl(url) {
-  if (loadInFlight) return;
-  loadInFlight = true;
-  strumLoadInputEl.disabled = true;
-  setLoadStatus('Fetching song\u2026');
-
-  let song;
-  try {
-    song = await fetchEchordsSong(url);
-  } catch (err) {
-    setLoadStatus(err && err.message ? err.message : 'Could not fetch that song.', 'error');
-    loadInFlight = false;
-    strumLoadInputEl.disabled = false;
-    return;
-  }
-
-  if (!song.barEntries.length) {
-    setLoadStatus(
-      `No playable chords found on that page${song.skipped.length ? ` (skipped: ${song.skipped.join(', ')})` : ''}.`,
-      'error'
-    );
-    loadInFlight = false;
-    strumLoadInputEl.disabled = false;
-    return;
-  }
-
-  // Loading a fresh song means the player isn't editing a previous
-  // pad anymore — drop the edit target so it doesn't lurk on a pad
-  // that may have just shifted positions.
-  setEditTarget(null);
-
-  // A fresh song-load REPLACES the bar — keeping leftover chords
-  // from a prior song would just confuse the palette. (The user can
-  // still build up mixed bars manually with the `+` button.)
-  strumBar.length = 0;
-
-  // Pin in song-palette order. pinChordToBar is LRU-prepend — walk
-  // the palette in REVERSE so the FIRST chord lands at the leftmost
-  // position after all the unshifts.
-  for (let i = song.barEntries.length - 1; i >= 0; i--) {
-    const e = song.barEntries[i];
-    pinChordToBar(e.rootPc, e.qualityId, 0);
-  }
-
-  // Surface the source link in the strum-bar header so the player
-  // can pop the original chord page open for lyrics / structure.
-  setLoadedSong({
-    url: song.url || url,
-    title: song.title || '',
-    artist: song.artist || ''
-  });
-  savePrefs();
-
-  const summary = `${song.title || 'Song'}${song.artist ? ` — ${song.artist}` : ''}: pinned ${
-    song.barEntries.length
-  } chord${song.barEntries.length === 1 ? '' : 's'}${
-    song.skipped.length ? ` (skipped: ${song.skipped.join(', ')})` : ''
-  }.`;
-  setLoadStatus(summary, 'success');
-
-  loadInFlight = false;
-  strumLoadInputEl.disabled = false;
-  // Auto-dismiss so the bar pads are immediately playable. Errors
-  // stay open so the player can adjust input without reopening.
-  setTimeout(() => {
-    if (!loadInFlight) setStrumLoadPopover(false);
-  }, 2200);
-}
-
-// Enter handler — dual-mode: a URL submits as a load; anything else
-// triggers an immediate search (skipping the debounce).
-function commitLoadInput() {
-  const raw = (strumLoadInputEl?.value || '').trim();
-  if (!raw) {
-    setLoadStatus('Type a song or artist, or paste an e-chords URL.', 'error');
-    return;
-  }
-  // If a search result is keyboard-highlighted, ENTER picks that
-  // result (gmail-style). This is the most useful binding for
-  // "type, arrow-down, enter" power use.
-  if (resultIdx >= 0 && currentResults[resultIdx]) {
-    loadSongFromUrl(currentResults[resultIdx].url);
-    return;
-  }
-  if (looksLikeUrl(raw)) {
-    if (!isEchordsUrl(raw)) {
-      setLoadStatus('That URL isn\u2019t on e-chords.com — paste a song page from there.', 'error');
-      return;
-    }
-    loadSongFromUrl(raw);
-    return;
-  }
-  // Otherwise treat as a search and run immediately.
-  if (searchTimer) clearTimeout(searchTimer);
-  runSearch(raw);
-}
-
-function looksLikeUrl(s) {
-  return /^https?:\/\//i.test(s) || /^[a-z0-9-]+\.[a-z]{2,}\//i.test(s);
-}
-
-strumLoadBtn?.addEventListener('click', () => {
-  const open = strumLoadBtn.getAttribute('aria-expanded') === 'true';
-  setStrumLoadPopover(!open);
-});
-
-// Live search as the player types. URL-shaped input bypasses the
-// debounce (no point searching e-chords for "https://…"), and very
-// short queries (< 2 chars) are ignored to avoid hammering the API
-// with single-letter typos.
-strumLoadInputEl?.addEventListener('input', () => {
-  const raw = (strumLoadInputEl?.value || '').trim();
-  if (searchTimer) {
-    clearTimeout(searchTimer);
-    searchTimer = null;
-  }
-  if (!raw) {
-    setLoadStatus(null);
-    renderSearchResults([]);
-    return;
-  }
-  if (looksLikeUrl(raw)) {
-    setLoadStatus('Press Enter to load that URL.');
-    renderSearchResults([]);
-    return;
-  }
-  if (raw.length < 2) {
-    setLoadStatus(null);
-    renderSearchResults([]);
-    return;
-  }
-  searchTimer = setTimeout(() => {
-    runSearch(raw);
-  }, 280);
-});
-
-strumLoadInputEl?.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter') {
-    event.preventDefault();
-    commitLoadInput();
-  } else if (event.key === 'Escape') {
-    setStrumLoadPopover(false);
-  } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-    if (!currentResults.length) return;
-    event.preventDefault();
-    const next =
-      event.key === 'ArrowDown'
-        ? (resultIdx + 1) % currentResults.length
-        : (resultIdx - 1 + currentResults.length) % currentResults.length;
-    highlightResult(next);
-  }
-});
-
-// Click on a result row → load that song. Listener is on the <ul>
-// (event delegation) so we don't have to wire one per row each
-// render.
-strumLoadResultsEl?.addEventListener('click', (event) => {
-  const li = event.target.closest('.strum-bar-load-result');
-  if (!li) return;
-  const i = Number(li.dataset.idx);
-  const hit = currentResults[i];
-  if (!hit) return;
-  loadSongFromUrl(hit.url);
-});
-
-// Click-outside-to-dismiss for the load popover. Same shape as the
-// chord-name popover above; kept as a separate listener so a click
-// on the chord-name button doesn't accidentally re-toggle the load
-// popover (and vice versa).
-document.addEventListener('pointerdown', (event) => {
-  if (strumLoadPopoverEl?.hidden) return;
-  if (strumLoadPopoverEl.contains(event.target)) return;
-  if (strumLoadBtn?.contains(event.target)) return;
-  setStrumLoadPopover(false);
-});
 
 // ---------- Tone + instrument switching ----------
 
