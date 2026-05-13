@@ -170,9 +170,7 @@ async function* streamUploadPackResponse(res) {
       bodyBytes: rawBuf.length
     });
     if (rawBuf.length > packMax) {
-      throw new Error(
-        `upload-pack response too large (${rawBuf.length} bytes; max ${packMax}). Try a smaller --depth, or set window.JSH_GIT_MAX_PACK_BYTES (capped at ${ABS_MAX_UPLOAD_PACK_BYTES}; large packs may OOM the tab).`
-      );
+      throw new Error(packTooLargeMessage(rawBuf.length, packMax));
     }
     const { body: normalized } = await uploadPackBodyStreamForIsoGit(rawBuf);
     for await (const part of normalized) {
@@ -196,9 +194,7 @@ async function* streamUploadPackResponse(res) {
         for (const c of chunks) {
           total += c.byteLength;
           if (total > packMax) {
-            throw new Error(
-              `upload-pack response too large (>${packMax} bytes). Try --depth 1 or window.JSH_GIT_MAX_PACK_BYTES.`
-            );
+            throw new Error(packTooLargeMessage(total, packMax));
           }
           yield c;
         }
@@ -227,9 +223,7 @@ async function* streamUploadPackResponse(res) {
           chunks.push(chunk.value);
           size += chunk.value.byteLength;
           if (size > packMax) {
-            throw new Error(
-              `upload-pack response too large (${size} bytes; max ${packMax}). Try a smaller --depth or window.JSH_GIT_MAX_PACK_BYTES.`
-            );
+            throw new Error(packTooLargeMessage(size, packMax));
           }
         }
       } while (!chunk.done);
@@ -250,9 +244,7 @@ async function* streamUploadPackResponse(res) {
     for (const c of chunks) {
       totalOut += c.byteLength;
       if (totalOut > packMax) {
-        throw new Error(
-          `upload-pack response too large (>${packMax} bytes). Try a smaller --depth or window.JSH_GIT_MAX_PACK_BYTES.`
-        );
+        throw new Error(packTooLargeMessage(totalOut, packMax));
       }
       yield c;
     }
@@ -262,9 +254,7 @@ async function* streamUploadPackResponse(res) {
       if (tail.value && tail.value.byteLength) {
         totalOut += tail.value.byteLength;
         if (totalOut > packMax) {
-          throw new Error(
-            `upload-pack response too large (${totalOut} bytes; max ${packMax}). Try a smaller --depth or window.JSH_GIT_MAX_PACK_BYTES.`
-          );
+          throw new Error(packTooLargeMessage(totalOut, packMax));
         }
         yield tail.value;
       }
@@ -322,21 +312,71 @@ const GIT_PKT_FLUSH = new Uint8Array([0x30, 0x30, 0x30, 0x30]);
 /** Max data bytes per pkt-line payload after the 0x01 side-band byte (65520 total line − 4 len − 1). */
 const SIDEBAND64K_MAX_CHUNK = 65515;
 
-/** Default cap: shallow clones of large repos can still exceed 64 MiB; override with window.JSH_GIT_MAX_PACK_BYTES. */
-const DEFAULT_MAX_UPLOAD_PACK_BYTES = 128 * 1024 * 1024;
+/**
+ * Default cap. Sized so a shallow clone of joeheyming.github.com (pack ~128 MiB)
+ * succeeds out of the box; tune higher with window.JSH_GIT_MAX_PACK_BYTES (capped
+ * by ABS_MAX_UPLOAD_PACK_BYTES). Streaming path does not hold the full pack in
+ * RAM, so 256 MiB is safe on typical desktops; mobile tabs may still OOM during
+ * checkout of huge working trees.
+ */
+const DEFAULT_MAX_UPLOAD_PACK_BYTES = 256 * 1024 * 1024;
 const ABS_MAX_UPLOAD_PACK_BYTES = 512 * 1024 * 1024;
 
+const MIN_PACK_BYTES_OVERRIDE = 8 * 1024 * 1024;
+
+function clampPackBytes(n) {
+  if (!Number.isFinite(n) || n < MIN_PACK_BYTES_OVERRIDE) return null;
+  return Math.min(Math.floor(n), ABS_MAX_UPLOAD_PACK_BYTES);
+}
+
+/**
+ * Effective pack-size cap, in priority order:
+ *   1. window.JSH_GIT_MAX_PACK_BYTES   (per-tab override, used by tests / dev consoles)
+ *   2. localStorage['jsh.git.maxPackBytes']  (persistent, set by `git config --jsh`)
+ *   3. DEFAULT_MAX_UPLOAD_PACK_BYTES
+ * Any value below MIN_PACK_BYTES_OVERRIDE is ignored to avoid accidentally
+ * shrinking the cap below a usable size.
+ */
 function maxUploadPackBytes() {
   try {
     const w = typeof window !== 'undefined' && window.JSH_GIT_MAX_PACK_BYTES;
-    const n = Number(w);
-    if (Number.isFinite(n) && n >= 8 * 1024 * 1024) {
-      return Math.min(Math.floor(n), ABS_MAX_UPLOAD_PACK_BYTES);
+    const clamped = clampPackBytes(Number(w));
+    if (clamped) return clamped;
+  } catch (_) {
+    /* ignore */
+  }
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem('jsh.git.maxPackBytes');
+      if (stored != null) {
+        const clamped = clampPackBytes(Number(stored));
+        if (clamped) return clamped;
+      }
     }
   } catch (_) {
     /* ignore */
   }
   return DEFAULT_MAX_UPLOAD_PACK_BYTES;
+}
+
+function formatPackHintMiB(bytes) {
+  return Math.max(1, Math.round(bytes / (1024 * 1024)));
+}
+
+function packTooLargeMessage(bytes, packMax) {
+  const overByMiB = formatPackHintMiB(bytes - packMax);
+  const suggestedMiB = Math.min(
+    formatPackHintMiB(ABS_MAX_UPLOAD_PACK_BYTES),
+    Math.max(formatPackHintMiB(packMax * 2), formatPackHintMiB(bytes) + 32)
+  );
+  return (
+    `upload-pack response too large (${bytes} bytes; max ${packMax}, ~${overByMiB} MiB over). Try one of:\n` +
+    `  • git clone --no-checkout <url>     (skip the working-tree write)\n` +
+    `  • git clone --depth 1 <url>         (already the default; remote may not support shallow)\n` +
+    `  • git config --jsh max-pack-mib ${suggestedMiB}     (persist a higher cap; abs max ${formatPackHintMiB(
+      ABS_MAX_UPLOAD_PACK_BYTES
+    )} MiB)`
+  );
 }
 
 /**

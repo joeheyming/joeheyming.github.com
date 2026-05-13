@@ -310,6 +310,38 @@ export function applyFileSystemDbOps(FileSystemDB) {
       });
     },
 
+    /**
+     * Bulk directory creation in a single readwrite transaction. Skips
+     * existence checks (idempotent put). Caller is responsible for ordering
+     * (parents before children doesn't matter for IDB, but matters semantically).
+     *
+     * Designed for git checkout: one tree may have hundreds of unique
+     * directories; doing them one-at-a-time costs N transactions × ~30 ms each.
+     * This bulk path commits all of them in a single transaction.
+     *
+     * @param {string[]} paths - absolute directory paths to create
+     * @returns {Promise<number>} number of directories written
+     */
+    async createDirectoriesBulk(paths) {
+      if (!this.isInitialized) await this.initialize();
+      if (!paths || paths.length === 0) return 0;
+      const now = new Date();
+      const records = paths.map((p) => ({
+        path: p,
+        type: 'directory',
+        parentPath: this.getParentPath(p),
+        created: now,
+        modified: now
+      }));
+      return new Promise((resolve, reject) => {
+        const tx = this.db.transaction(['files'], 'readwrite');
+        const store = tx.objectStore('files');
+        for (const rec of records) store.put(rec);
+        tx.oncomplete = () => resolve(records.length);
+        tx.onerror = () => reject(tx.error);
+      });
+    },
+
     // Delete file or directory
     async deleteItem(path, recursive = false) {
       if (!this.isInitialized) await this.initialize();

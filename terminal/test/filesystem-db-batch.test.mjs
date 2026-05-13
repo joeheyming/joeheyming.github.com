@@ -15,6 +15,41 @@ function mockDb() {
   const stored = new Map();
   const putCalls = [];
 
+  function makeIndex(field) {
+    return {
+      getAll(query) {
+        const matches = [];
+        for (const item of stored.values()) {
+          if (item[field] === query) matches.push(item);
+        }
+        return {
+          set onsuccess(fn) {
+            queueMicrotask(() => fn && fn());
+          },
+          set onerror(_fn) {},
+          get result() {
+            return matches;
+          }
+        };
+      },
+      getAllKeys(query) {
+        const keys = [];
+        for (const [k, item] of stored.entries()) {
+          if (item[field] === query) keys.push(k);
+        }
+        return {
+          set onsuccess(fn) {
+            queueMicrotask(() => fn && fn());
+          },
+          set onerror(_fn) {},
+          get result() {
+            return keys;
+          }
+        };
+      }
+    };
+  }
+
   return {
     stored,
     putCalls,
@@ -43,6 +78,9 @@ function mockDb() {
                   },
                   set onerror(_fn) {}
                 };
+              },
+              index(field) {
+                return makeIndex(field);
               }
             };
           }
@@ -194,4 +232,71 @@ test('beginBatchWrite: Uint8Array content stored as contentBytes', async () => {
   const stored = mock.stored.get('/bin.dat');
   assert.ok(stored.contentBytes instanceof ArrayBuffer);
   assert.equal(stored.size, 3);
+});
+
+// ---------------------------------------------------------------------------
+// createDirectoriesBulk
+// ---------------------------------------------------------------------------
+
+test('createDirectoriesBulk: writes all dirs in one transaction', async () => {
+  const { instance, mock } = makeInstance();
+  const count = await instance.createDirectoriesBulk(['/a', '/a/b', '/a/b/c']);
+  assert.equal(count, 3);
+  assert.equal(mock.putCalls.length, 3);
+  assert.ok(mock.stored.get('/a').type === 'directory');
+  assert.ok(mock.stored.get('/a/b').parentPath === '/a');
+  assert.ok(mock.stored.get('/a/b/c').parentPath === '/a/b');
+});
+
+test('createDirectoriesBulk: empty input is a no-op', async () => {
+  const { instance, mock } = makeInstance();
+  const count = await instance.createDirectoriesBulk([]);
+  assert.equal(count, 0);
+  assert.equal(mock.putCalls.length, 0);
+});
+
+test('createDirectoriesBulk: idempotent — overwrites existing dir record', async () => {
+  const { instance, mock } = makeInstance();
+  await instance.createDirectoriesBulk(['/dup']);
+  const firstCreatedAt = mock.stored.get('/dup').created;
+  // Re-call should overwrite (put is idempotent in IDB)
+  await instance.createDirectoriesBulk(['/dup']);
+  assert.equal(mock.putCalls.length, 2);
+  assert.ok(mock.stored.get('/dup').created >= firstCreatedAt);
+});
+
+// ---------------------------------------------------------------------------
+// listDirectoryNames (keys-only fast path)
+// ---------------------------------------------------------------------------
+
+test('listDirectoryNames: returns child paths via getAllKeys', async () => {
+  const { instance, mock } = makeInstance();
+  // Seed three children of /repo
+  mock.stored.set('/repo/a.txt', {
+    path: '/repo/a.txt',
+    parentPath: '/repo',
+    type: 'file',
+    contentBytes: new ArrayBuffer(10_000_000) // simulate huge file
+  });
+  mock.stored.set('/repo/b.txt', {
+    path: '/repo/b.txt',
+    parentPath: '/repo',
+    type: 'file'
+  });
+  mock.stored.set('/repo/sub', {
+    path: '/repo/sub',
+    parentPath: '/repo',
+    type: 'directory'
+  });
+  // And a non-child to make sure the parentPath filter works
+  mock.stored.set('/other', { path: '/other', parentPath: '/', type: 'directory' });
+
+  const names = await instance.listDirectoryNames('/repo');
+  assert.deepEqual(names.sort(), ['/repo/a.txt', '/repo/b.txt', '/repo/sub']);
+});
+
+test('listDirectoryNames: missing dir returns empty array', async () => {
+  const { instance } = makeInstance();
+  const names = await instance.listDirectoryNames('/no/such/dir');
+  assert.deepEqual(names, []);
 });

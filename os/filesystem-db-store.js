@@ -101,6 +101,35 @@ export function applyFileSystemDbStore(FileSystemDB) {
       });
     },
 
+    /**
+     * Names-only directory listing — returns primary keys (full child paths)
+     * via `index.getAllKeys`, so IDB does NOT deserialize record values
+     * (including potentially-huge `contentBytes` ArrayBuffers).
+     *
+     * Trace (2026-05-12T22:23) showed `listDirectory.onsuccess` consuming 54%
+     * of CPU during git checkout because every readdir was inflating every
+     * file's contents just to read filenames. This keys-only path is the
+     * fast option for callers (e.g. fs.readdir) that only need names.
+     *
+     * @param {string} parentPath
+     * @returns {Promise<string[]>} absolute paths of direct children
+     */
+    async listDirectoryNames(parentPath) {
+      if (!this.isInitialized) await this.initialize();
+
+      return new Promise((resolve, reject) => {
+        const transaction = this.db.transaction(['files'], 'readonly');
+        const store = transaction.objectStore('files');
+        const index = store.index('parentPath');
+        const request = index.getAllKeys(parentPath);
+
+        request.onsuccess = () => {
+          resolve(request.result || []);
+        };
+        request.onerror = () => reject(request.error);
+      });
+    },
+
     // Read directory contents (OS-compatible interface)
     async readdir(path) {
       const entries = await this.listDirectory(path);

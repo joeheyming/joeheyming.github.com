@@ -13,6 +13,7 @@ function mockFsdb(items = new Map()) {
     createFileFast: [],
     createDirectory: [],
     listDirectory: [],
+    listDirectoryNames: [],
     beginBatchWrite: [],
     rmdir: [],
     unlink: [],
@@ -26,6 +27,15 @@ function mockFsdb(items = new Map()) {
       async getItem(path) {
         calls.getItem.push(path);
         return items.get(path) || null;
+      },
+      async listDirectoryNames(path) {
+        calls.listDirectoryNames.push(path);
+        const names = [];
+        for (const [p, item] of items) {
+          const parent = p.substring(0, p.lastIndexOf('/')) || '/';
+          if (parent === path) names.push(item.path);
+        }
+        return names;
       },
       getParentPath(path) {
         const i = path.lastIndexOf('/');
@@ -219,6 +229,29 @@ test('stat ENOENT for missing path', async () => {
 // readdir
 // ---------------------------------------------------------------------------
 
+test('readdir prefers listDirectoryNames (keys-only) when available', async () => {
+  const items = new Map([
+    ['/dir/a.txt', { type: 'file', path: '/dir/a.txt', contentBytes: new ArrayBuffer(1024) }],
+    ['/dir/b.txt', { type: 'file', path: '/dir/b.txt' }]
+  ]);
+  const { fsdb, calls } = mockFsdb(items);
+  const fs = createJshGitFs({ fileSystemDB: fsdb });
+  const names = await fs.promises.readdir('/dir');
+  assert.deepEqual(names.sort(), ['a.txt', 'b.txt']);
+  assert.equal(calls.listDirectoryNames.length, 1, 'used keys-only path');
+  assert.equal(calls.listDirectory.length, 0, 'did NOT load full records');
+});
+
+test('readdir falls back to listDirectory when listDirectoryNames missing', async () => {
+  const items = new Map([['/dir/a.txt', { type: 'file', path: '/dir/a.txt' }]]);
+  const { fsdb, calls } = mockFsdb(items);
+  delete fsdb.listDirectoryNames;
+  const fs = createJshGitFs({ fileSystemDB: fsdb });
+  const names = await fs.promises.readdir('/dir');
+  assert.deepEqual(names, ['a.txt']);
+  assert.equal(calls.listDirectory.length, 1);
+});
+
 test('readdir returns filenames', async () => {
   const items = new Map([
     ['/dir', { type: 'directory', path: '/dir' }],
@@ -247,6 +280,81 @@ test('batch writes wire through to beginBatchWrite', async () => {
   await fs.flushBatchWrites();
   const item = await fsdb.getItem('/batch/file.txt');
   assert.ok(item, 'file exists after flush');
+});
+
+// ---------------------------------------------------------------------------
+// prewarmDirs
+// ---------------------------------------------------------------------------
+
+test('prewarmDirs uses createDirectoriesBulk and warms knownDirs', async () => {
+  const { fsdb, calls } = mockFsdb();
+  /** @type {string[][]} */
+  const bulkCalls = [];
+  fsdb.createDirectoriesBulk = async (paths) => {
+    bulkCalls.push([...paths]);
+    for (const p of paths) {
+      const parent = p.substring(0, p.lastIndexOf('/')) || '/';
+      calls.createDirectoryFast.push({ path: p, parent });
+    }
+    return paths.length;
+  };
+  const fs = createJshGitFs({ fileSystemDB: fsdb });
+
+  // Three files in two unique parent dirs that share the /repo/src ancestor.
+  const created = await fs.prewarmDirs(['/repo/src/a', '/repo/src/b', '/repo/docs']);
+
+  // Should expand to all ancestors: /repo, /repo/src, /repo/src/a, /repo/src/b, /repo/docs
+  assert.equal(bulkCalls.length, 1, 'one bulk transaction');
+  const written = bulkCalls[0];
+  assert.deepEqual(
+    written.sort(),
+    ['/repo', '/repo/docs', '/repo/src', '/repo/src/a', '/repo/src/b']
+  );
+  assert.equal(created, 5, 'returns count of newly-created dirs');
+
+  // After prewarm, writeFile under /repo/src/a should NOT call getItem (knownDirs hit)
+  fs.enableBatchWrites();
+  await fs.promises.writeFile('/repo/src/a/file.txt', 'x');
+  assert.equal(calls.getItem.length, 0, 'no IDB getItem for prewarmed parents');
+});
+
+test('prewarmDirs falls back to per-dir createDir when bulk API missing', async () => {
+  const { fsdb, calls } = mockFsdb();
+  // Explicitly DO NOT define createDirectoriesBulk
+  const fs = createJshGitFs({ fileSystemDB: fsdb });
+  await fs.prewarmDirs(['/a/b/c']);
+  assert.equal(calls.createDirectoryFast.length, 3, 'one createDirectoryFast per ancestor');
+  // Parents come before children
+  const order = calls.createDirectoryFast.map((c) => c.path);
+  assert.deepEqual(order, ['/a', '/a/b', '/a/b/c']);
+});
+
+test('prewarmDirs is a no-op when given empty input', async () => {
+  const { fsdb, calls } = mockFsdb();
+  fsdb.createDirectoriesBulk = async () => {
+    throw new Error('should not be called');
+  };
+  const fs = createJshGitFs({ fileSystemDB: fsdb });
+  const created = await fs.prewarmDirs([]);
+  assert.equal(created, 0);
+  assert.equal(calls.createDirectoryFast.length, 0);
+});
+
+test('prewarmDirs skips dirs already in knownDirs cache', async () => {
+  const { fsdb } = mockFsdb();
+  /** @type {string[]} */
+  let bulkPaths = [];
+  fsdb.createDirectoriesBulk = async (paths) => {
+    bulkPaths = [...paths];
+    return paths.length;
+  };
+  const fs = createJshGitFs({ fileSystemDB: fsdb });
+  await fs.prewarmDirs(['/x/y']);
+  assert.deepEqual(bulkPaths.sort(), ['/x', '/x/y']);
+  bulkPaths = [];
+  // Second call with overlapping ancestor should only write the new leaf.
+  await fs.prewarmDirs(['/x/y/z']);
+  assert.deepEqual(bulkPaths, ['/x/y/z']);
 });
 
 // ---------------------------------------------------------------------------

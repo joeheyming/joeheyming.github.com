@@ -237,6 +237,17 @@ export function createJshGitFs(terminal) {
 
     async readdir(path) {
       path = normalizeAbsPath(path);
+      // isomorphic-git calls fs.readdir hundreds of times during checkout
+      // (most heavily on .git/objects/pack/). Trace evidence showed the old
+      // listDirectory path consumed 54% of CPU because IDB had to deserialize
+      // every record (including contentBytes ArrayBuffers) just so we could
+      // throw all of that away and keep only filenames. Use the keys-only
+      // index lookup when available — same result, ~100× cheaper for dirs
+      // with binary contents.
+      if (typeof fsdb.listDirectoryNames === 'function') {
+        const paths = await fsdb.listDirectoryNames(path);
+        return paths.map((p) => fsdb.getFileName(p));
+      }
       const entries = await fsdb.listDirectory(path);
       return entries.map((e) => fsdb.getFileName(e.path));
     },
@@ -307,6 +318,51 @@ export function createJshGitFs(terminal) {
         await batchWriter.flush();
         batchWriter = null;
       }
+    },
+    /**
+     * Bulk-create the given absolute directories (and all of their ancestors)
+     * in a single IDB transaction, then mark them in the in-memory knownDirs
+     * cache so subsequent writeFile() calls skip mkdirp entirely.
+     *
+     * Designed for git checkout where the tree's ~hundreds of unique parent
+     * directories would otherwise cost N getItem + N put transactions.
+     *
+     * @param {string[]} absDirs - absolute directory paths
+     * @returns {Promise<number>} number of newly-recorded directories
+     */
+    async prewarmDirs(absDirs) {
+      if (!Array.isArray(absDirs) || absDirs.length === 0) return 0;
+      const allAncestors = new Set();
+      for (const raw of absDirs) {
+        const norm = normalizeAbsPath(raw);
+        if (!norm || norm === '/') continue;
+        const parts = norm.split('/').filter(Boolean);
+        let cur = '';
+        for (const p of parts) {
+          cur = `${cur}/${p}`;
+          allAncestors.add(cur);
+        }
+      }
+      const novel = [];
+      for (const d of allAncestors) {
+        if (!knownDirs.has(d)) novel.push(d);
+      }
+      if (novel.length === 0) return 0;
+      // Sort by depth so the bulk transaction writes parents before children.
+      novel.sort((a, b) => {
+        const da = a.split('/').length;
+        const db = b.split('/').length;
+        return da - db || a.length - b.length;
+      });
+      if (typeof fsdb.createDirectoriesBulk === 'function') {
+        await fsdb.createDirectoriesBulk(novel);
+      } else {
+        for (const d of novel) {
+          await createDir(d, fsdb.getParentPath(d));
+        }
+      }
+      for (const d of novel) knownDirs.add(d);
+      return novel.length;
     }
   };
 }
