@@ -24,6 +24,7 @@ import {
   formatChordName
 } from './chords.js';
 import { StringEngine } from './engine.js';
+import { fetchEchordsSong, isEchordsUrl, searchEchords } from './echords-source.js';
 
 const Prefs = makePrefs('play.guitar.prefs.v1');
 
@@ -53,6 +54,20 @@ const strumAddBtn = document.getElementById('strum-bar-add');
 const strumPopoverEl = document.getElementById('strum-bar-add-popover');
 const strumInputEl = document.getElementById('strum-bar-add-input');
 const strumSuggestionsEl = document.getElementById('strum-bar-suggestions');
+const strumLoadBtn = document.getElementById('strum-bar-load');
+const strumLoadPopoverEl = document.getElementById('strum-bar-load-popover');
+const strumLoadInputEl = document.getElementById('strum-bar-load-input');
+const strumLoadResultsEl = document.getElementById('strum-bar-load-results');
+const strumLoadStatusEl = document.getElementById('strum-bar-load-status');
+const strumClearBtn = document.getElementById('strum-bar-clear');
+const strumBarHintEl = document.getElementById('strum-bar-hint');
+// "♪ Title — Artist" link surfaced in the strum-bar header after a
+// song load. Click opens the source page (e-chords) in a new tab so
+// the player can read the original lyrics / structure / capo notes.
+const strumSongLinkEl = document.getElementById('strum-bar-song');
+// Captured at module load so we can restore it any time the
+// hint-slot is briefly repurposed as the edit-mode status line.
+const STRUM_BAR_HINT_DEFAULT = strumBarHintEl ? strumBarHintEl.innerHTML : '';
 
 // ---------- Prefs hydration + per-instrument tone memory ----------
 
@@ -81,18 +96,22 @@ if (!tonesPerInstrument.guitar && typeof prefs.tone === 'string') {
   tonesPerInstrument.guitar = prefs.tone;
 }
 
-// Strum Bar palette per-instrument. Each entry is `{ rootPc: 0..11,
-// qualityId: 'maj'|'min'|'7'|…, voicingIdx: 0..N }`. Each entry
-// captures the SPECIFIC shape (e.g. C Open and C Barre 3 are
-// separate pads), so a player who likes both an open C in the
-// verse and a barred C-at-3 for the chorus can have both side by
-// side. The pad shows the chord name with the fret position as a
-// small superscript when the voicing is non-open (e.g. `C³`,
-// `C⁵`) — the superscript convention avoids confusion with chord
-// extensions like `C7` or `Cmaj7`.
+// Strum Bar palette — SHARED across all chord-capable instruments
+// (guitar / ukulele / mandolin / banjo). Each entry is `{ rootPc:
+// 0..11, qualityId: 'maj'|'min'|'7'|… }` — voicing is intentionally
+// NOT part of pad identity, because the same chord (e.g. Cm) has
+// different shape options on different instruments. The user's
+// preferred shape is tracked separately, per-instrument, in
+// `voicingPrefs` below.
+//
+// Mental model: the bar is "the chords for the song you're playing
+// right now". Switching instruments is a render mode change — the
+// chords are the same, only the way they're voiced on the neck
+// changes.
 //
 // Capped at STRUM_BAR_MAX with LRU eviction so the row doesn't sprawl.
 const STRUM_BAR_MAX = 8;
+const chordKey = (rootPc, qualityId) => `${rootPc}:${qualityId}`;
 
 const sanitizeBarEntry = (e) => {
   if (!e || typeof e !== 'object') return null;
@@ -100,12 +119,7 @@ const sanitizeBarEntry = (e) => {
   if (!Number.isInteger(rootPc) || rootPc < 0 || rootPc > 11) return null;
   if (typeof e.qualityId !== 'string') return null;
   if (!QUALITIES.some((q) => q.id === e.qualityId)) return null;
-  let voicingIdx = Number(e.voicingIdx);
-  // Older saved entries (pre-voicing-aware) won't have voicingIdx;
-  // default them to 0 so they continue to play the chord-library's
-  // first voicing (typically Open).
-  if (!Number.isInteger(voicingIdx) || voicingIdx < 0) voicingIdx = 0;
-  return { rootPc, qualityId: e.qualityId, voicingIdx };
+  return { rootPc, qualityId: e.qualityId };
 };
 
 // Extracts the player-facing fret position for a voicing — used as
@@ -119,20 +133,156 @@ const voicingPositionSuperscript = (voicing) => {
   return m ? m[1] : '';
 };
 
-const strumBars =
-  prefs.strumBars && typeof prefs.strumBars === 'object' ? { ...prefs.strumBars } : {};
-for (const key of Object.keys(strumBars)) {
-  strumBars[key] = Array.isArray(strumBars[key])
-    ? strumBars[key].map(sanitizeBarEntry).filter(Boolean).slice(0, STRUM_BAR_MAX)
-    : [];
-}
+// `strumBar` (singular) is the global chord palette. `voicingPrefs`
+// is a per-instrument map of chord-key -> voicing index, so each
+// instrument remembers its preferred shape for each chord (guitar
+// might like Cm Barre 3, ukulele might like the open one).
+//
+// Migration from the old per-instrument `prefs.strumBars` shape:
+//   1. If new-shape `prefs.strumBar` exists, use it directly.
+//   2. Else fall back to the active instrument's old per-instrument
+//      bar — preserves the most-likely-relevant set of chords.
+//   3. Build voicingPrefs from EVERY instrument's old per-instrument
+//      bar so per-instrument shape preferences carry over.
+// Rationale for picking the active instrument's bar over a union:
+// the user almost certainly built their bar on whichever instrument
+// they were last playing; merging in stale chords from instruments
+// they haven't touched would be surprising.
+/** @type {{ rootPc: number, qualityId: string }[]} */
+const strumBar = (() => {
+  if (Array.isArray(prefs.strumBar)) {
+    return prefs.strumBar.map(sanitizeBarEntry).filter(Boolean).slice(0, STRUM_BAR_MAX);
+  }
+  const legacy = prefs.strumBars && typeof prefs.strumBars === 'object' ? prefs.strumBars : null;
+  if (!legacy) return [];
+  const activeBar = Array.isArray(legacy[initialInstrumentId]) ? legacy[initialInstrumentId] : [];
+  // Dedupe by (root, quality) — old bars allowed multiple shapes of
+  // the same chord as separate pads; we collapse to one entry per
+  // chord, keeping the FIRST occurrence (which is the most-recently
+  // pinned one, since pins prepend).
+  const seen = new Set();
+  const out = [];
+  for (const e of activeBar) {
+    const sane = sanitizeBarEntry(e);
+    if (!sane) continue;
+    const key = chordKey(sane.rootPc, sane.qualityId);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(sane);
+    if (out.length >= STRUM_BAR_MAX) break;
+  }
+  return out;
+})();
+
+/** @type {Record<string, Record<string, number>>} */
+const voicingPrefs = (() => {
+  const seed = {};
+  if (prefs.voicingPrefs && typeof prefs.voicingPrefs === 'object') {
+    for (const [iid, map] of Object.entries(prefs.voicingPrefs)) {
+      if (!map || typeof map !== 'object') continue;
+      const cleaned = {};
+      for (const [k, v] of Object.entries(map)) {
+        const n = Number(v);
+        if (Number.isInteger(n) && n >= 0) cleaned[k] = n;
+      }
+      seed[iid] = cleaned;
+    }
+  }
+  // Rescue per-instrument voicings from the old strumBars shape.
+  if (prefs.strumBars && typeof prefs.strumBars === 'object') {
+    for (const [iid, bar] of Object.entries(prefs.strumBars)) {
+      if (!Array.isArray(bar)) continue;
+      if (!seed[iid]) seed[iid] = {};
+      for (const e of bar) {
+        if (!e || typeof e !== 'object') continue;
+        const rootPc = Number(e.rootPc);
+        if (!Number.isInteger(rootPc)) continue;
+        if (typeof e.qualityId !== 'string') continue;
+        const v = Number(e.voicingIdx);
+        if (!Number.isInteger(v) || v <= 0) continue; // 0 is the default; no need to store
+        const key = chordKey(rootPc, e.qualityId);
+        // First-occurrence wins (matches how the bar was deduped above).
+        if (!(key in seed[iid])) seed[iid][key] = v;
+      }
+    }
+  }
+  return seed;
+})();
+
+// Track the song the player loaded most recently so we can surface a
+// clickable link back to the source page in the strum-bar header.
+// Cleared when the user hits Clear or loads a different song.
+/** @type {{ url: string, title: string, artist: string } | null} */
+let loadedSong = (() => {
+  const s = prefs.loadedSong;
+  if (!s || typeof s !== 'object') return null;
+  if (typeof s.url !== 'string' || !s.url) return null;
+  return {
+    url: s.url,
+    title: typeof s.title === 'string' ? s.title : '',
+    artist: typeof s.artist === 'string' ? s.artist : ''
+  };
+})();
+
+// Update the loaded-song reference and refresh the link in the
+// strum-bar header. Pass null to clear (e.g. on Clear button).
+const setLoadedSong = (song) => {
+  loadedSong = song;
+  if (!strumSongLinkEl) return;
+  if (!song || !song.url) {
+    strumSongLinkEl.hidden = true;
+    strumSongLinkEl.removeAttribute('href');
+    strumSongLinkEl.textContent = '';
+    return;
+  }
+  strumSongLinkEl.href = song.url;
+  // Falls back to "Source" when we couldn't parse a title — at least
+  // gives the player SOMETHING clickable, instead of an empty link.
+  const label = song.title
+    ? song.artist
+      ? `${song.title} — ${song.artist}`
+      : song.title
+    : 'Source';
+  strumSongLinkEl.textContent = `\u266A ${label}`;
+  strumSongLinkEl.title = `Open original chord page${song.artist ? ` for ${song.artist}` : ''} in a new tab`;
+  strumSongLinkEl.hidden = false;
+};
+
+// Look up the active instrument's preferred voicing for a chord.
+// Defaults to 0 (the chord library's first voicing — usually Open).
+// Clamped to the available voicings so we never index past the end
+// when a chord library shrinks between releases.
+const getVoicingIdxFor = (instrumentId, rootPc, qualityId) => {
+  const map = voicingPrefs[instrumentId];
+  const raw = map ? map[chordKey(rootPc, qualityId)] : undefined;
+  const want = Number.isInteger(raw) ? raw : 0;
+  const voicings = getChordVoicings(getInstrument(instrumentId), rootPc, qualityId);
+  if (!voicings.length) return 0;
+  return Math.min(Math.max(0, want), voicings.length - 1);
+};
+
+const setVoicingIdxFor = (instrumentId, rootPc, qualityId, voicingIdx) => {
+  if (!Number.isInteger(voicingIdx) || voicingIdx < 0) return;
+  if (!voicingPrefs[instrumentId]) voicingPrefs[instrumentId] = {};
+  const key = chordKey(rootPc, qualityId);
+  // Storing 0 (the default) is wasted bytes — drop it instead so
+  // saved prefs stay minimal.
+  if (voicingIdx === 0) {
+    delete voicingPrefs[instrumentId][key];
+  } else {
+    voicingPrefs[instrumentId][key] = voicingIdx;
+  }
+};
 
 const savePrefs = () => {
   Prefs.save({
     volume: Number(volumeEl.value),
     instrument: activeInstrument.id,
     tonesPerInstrument,
-    strumBars,
+    // New shape — written every save so legacy `strumBars` is ignored on next boot.
+    strumBar,
+    voicingPrefs,
+    loadedSong,
     showNotes: showNotesEl.checked
   });
 };
@@ -737,7 +887,12 @@ const playSelectedVoicing = (autoStrum = true) => {
 rootOptionsEl.addEventListener('click', (event) => {
   const btn = event.target.closest('button');
   if (!btn) return;
-  builderState.rootPc = Number(btn.dataset.pc);
+  const newRootPc = Number(btn.dataset.pc);
+  // Edit mode: rewrite the armed pad's root in place (Em → Am etc.).
+  // applyEditToPad handles all the syncing + strum, so we just
+  // return early.
+  if (editTarget && applyEditToPad({ rootPc: newRootPc })) return;
+  builderState.rootPc = newRootPc;
   renderRoots();
   renderVoicings();
   playSelectedVoicing();
@@ -746,7 +901,12 @@ rootOptionsEl.addEventListener('click', (event) => {
 qualityOptionsEl.addEventListener('click', (event) => {
   const btn = event.target.closest('button');
   if (!btn) return;
-  builderState.qualityId = btn.dataset.quality;
+  const newQualityId = btn.dataset.quality;
+  // Edit mode: rewrite the armed pad's quality (Em → Em7 etc.). The
+  // helper resets voicingIdx to 0 internally because shape numbering
+  // doesn't carry across qualities.
+  if (editTarget && applyEditToPad({ qualityId: newQualityId })) return;
+  builderState.qualityId = newQualityId;
   builderState.voicingIdx = 0;
   renderQualities();
   renderVoicings();
@@ -756,7 +916,17 @@ qualityOptionsEl.addEventListener('click', (event) => {
 voicingOptionsEl.addEventListener('click', (event) => {
   const btn = event.target.closest('button');
   if (!btn) return;
-  builderState.voicingIdx = Number(btn.dataset.voicingIdx);
+  const newIdx = Number(btn.dataset.voicingIdx);
+  // Edit mode: rewrite the armed pad's voicing (Cm Open → Cm Barre 3).
+  if (
+    editTarget &&
+    editTarget.rootPc === builderState.rootPc &&
+    editTarget.qualityId === builderState.qualityId &&
+    applyEditToPad({ voicingIdx: newIdx })
+  ) {
+    return;
+  }
+  builderState.voicingIdx = newIdx;
   renderVoicings();
   playSelectedVoicing(false);
 });
@@ -777,15 +947,10 @@ clearShapeButton?.addEventListener('click', () => {
 // pad — so an "Em A Em A" progression becomes one tap per change once
 // both chords have been played once.
 //
-// Per-instrument storage so guitar's palette doesn't pollute uke's.
-// Voicing is intentionally NOT stored per pad: pads always use the
-// default voicing (index 0), and the matrix below remains the place
-// to pick a non-default shape.
-
-const getBarForActive = () => {
-  if (!strumBars[activeInstrument.id]) strumBars[activeInstrument.id] = [];
-  return strumBars[activeInstrument.id];
-};
+// SHARED across all chord-capable instruments (guitar/uke/mando/banjo).
+// Switching instruments keeps the same chord set; only the rendered
+// shapes change. Per-instrument shape preferences live in
+// `voicingPrefs`.
 
 const renderStrumBar = () => {
   if (!strumPadsEl) return;
@@ -793,18 +958,25 @@ const renderStrumBar = () => {
   if (strumBarEl) strumBarEl.hidden = !activeInstrument.chords;
   strumPadsEl.innerHTML = '';
   if (!activeInstrument.chords) return;
-  const bar = getBarForActive();
   // CSS `.has-pads` hides the verbose hint header once the bar isn't
   // empty — saves ~25 px of vertical space on phones, where every
   // pixel between fretboard and chord builder matters.
-  strumBarEl?.classList.toggle('has-pads', bar.length > 0);
-  bar.forEach((entry, idx) => {
+  strumBarEl?.classList.toggle('has-pads', strumBar.length > 0);
+  // Mirror the same "is the bar non-empty?" signal onto the Clear
+  // button so it appears the moment the first chord is pinned and
+  // disappears the moment the bar is wiped.
+  if (strumClearBtn) strumClearBtn.hidden = strumBar.length === 0;
+  strumBar.forEach((entry, idx) => {
+    // Each render resolves the active instrument's preferred voicing
+    // for this chord (per voicingPrefs). Same chord on uke vs guitar
+    // can land on different shape indices.
+    const voicingIdx = getVoicingIdxFor(activeInstrument.id, entry.rootPc, entry.qualityId);
     const pad = document.createElement('button');
     pad.type = 'button';
     pad.className = 'strum-pad';
     pad.dataset.rootPc = String(entry.rootPc);
     pad.dataset.quality = entry.qualityId;
-    pad.dataset.voicingIdx = String(entry.voicingIdx);
+    pad.dataset.voicingIdx = String(voicingIdx);
     pad.dataset.idx = String(idx);
     const name = formatChordName(entry.rootPc, entry.qualityId);
     // Resolve the actual voicing object so we can label the pad with
@@ -813,7 +985,7 @@ const renderStrumBar = () => {
     // index — the pad still plays SOMETHING (voicingIdx clamps to 0
     // in `playSelectedVoicing`), it just won't claim a fret position.
     const voicings = getChordVoicings(activeInstrument, entry.rootPc, entry.qualityId);
-    const voicing = voicings[entry.voicingIdx] || voicings[0];
+    const voicing = voicings[voicingIdx] || voicings[0];
     const fret = voicingPositionSuperscript(voicing);
     const fullName = fret ? `${name} (${voicing.name})` : name;
     pad.setAttribute('aria-label', `Play ${fullName}`);
@@ -838,52 +1010,63 @@ const renderStrumBar = () => {
     pad.appendChild(remove);
     strumPadsEl.appendChild(pad);
   });
+  // Re-apply the "this pad is being shape-edited" highlight (the DOM
+  // was just rebuilt from scratch, so the class wouldn't survive).
+  highlightEditPad();
 };
 
-// Pin a chord+voicing to the Strum Bar. If THIS specific (chord,
-// voicing) is already pinned, don't reorder — just flash the pad.
+// Pin a chord to the Strum Bar. The bar dedupes by (root, quality);
+// the voicing rides as a per-instrument preference instead of being
+// part of the pad identity. Re-pinning a chord with a different
+// voicing therefore UPDATES the active instrument's preferred shape
+// for that chord rather than creating a parallel pad.
+//
 // We only LRU-promote on FIRST add so a "Em A Em A" loop doesn't
 // shuffle the pads on every tap (which is disorienting when you're
-// trying to play in time). C Open and C Barre 3 are two distinct
-// entries and pin independently.
-//
-// LRU eviction still kicks in when a NEW (chord, voicing) arrives
-// and the bar is at capacity — the oldest pad falls off the right
-// end.
+// trying to play in time). LRU eviction still kicks in when a NEW
+// chord arrives and the bar is at capacity.
 const pinChordToBar = (rootPc, qualityId, voicingIdx = 0) => {
   if (!activeInstrument.chords) return;
-  const bar = getBarForActive();
-  const idx = bar.findIndex(
-    (e) => e.rootPc === rootPc && e.qualityId === qualityId && e.voicingIdx === voicingIdx
-  );
+  const idx = strumBar.findIndex((e) => e.rootPc === rootPc && e.qualityId === qualityId);
+  // Update the active instrument's preferred voicing for this chord.
+  // This also handles "user just played C Barre 3 instead of C Open"
+  // — the pad keeps its position, the shape preference updates.
+  setVoicingIdxFor(activeInstrument.id, rootPc, qualityId, voicingIdx);
   if (idx >= 0) {
-    // Already pinned — no reorder, just visual feedback.
-    flashPad(rootPc, qualityId, voicingIdx);
+    // Already pinned — re-render in case the voicing change shifted
+    // the pad's superscript (e.g. C → C³), then flash.
+    renderStrumBar();
+    savePrefs();
+    flashPad(rootPc, qualityId);
     return;
   }
-  bar.unshift({ rootPc, qualityId, voicingIdx });
-  if (bar.length > STRUM_BAR_MAX) bar.length = STRUM_BAR_MAX;
+  strumBar.unshift({ rootPc, qualityId });
+  if (strumBar.length > STRUM_BAR_MAX) strumBar.length = STRUM_BAR_MAX;
   savePrefs();
   renderStrumBar();
-  flashPad(rootPc, qualityId, voicingIdx);
+  flashPad(rootPc, qualityId);
 };
 
-const removeChordFromBar = (rootPc, qualityId, voicingIdx = 0) => {
-  const bar = getBarForActive();
-  const idx = bar.findIndex(
-    (e) => e.rootPc === rootPc && e.qualityId === qualityId && e.voicingIdx === voicingIdx
-  );
+const removeChordFromBar = (rootPc, qualityId) => {
+  const idx = strumBar.findIndex((e) => e.rootPc === rootPc && e.qualityId === qualityId);
   if (idx < 0) return;
-  bar.splice(idx, 1);
+  strumBar.splice(idx, 1);
+  // If we just removed the pad the player was shape-editing, drop
+  // the edit target so a later shape click doesn't try to mutate a
+  // ghost.
+  if (editTarget && editTarget.rootPc === rootPc && editTarget.qualityId === qualityId) {
+    setEditTarget(null);
+  }
   savePrefs();
   renderStrumBar();
 };
 
 // Brief flash on whichever pad just played, so the player gets visual
 // feedback that their tap registered (and matches the fretboard's
-// cell-flash convention).
-const flashPad = (rootPc, qualityId, voicingIdx = 0) => {
-  const sel = `.strum-pad[data-root-pc="${rootPc}"][data-quality="${qualityId}"][data-voicing-idx="${voicingIdx}"]`;
+// cell-flash convention). Pads are uniquely identified by (root,
+// quality) — voicing isn't part of pad identity in the global bar.
+const flashPad = (rootPc, qualityId) => {
+  const sel = `.strum-pad[data-root-pc="${rootPc}"][data-quality="${qualityId}"]`;
   const pad = strumPadsEl?.querySelector(sel);
   if (!pad) return;
   pad.classList.remove('playing');
@@ -907,6 +1090,169 @@ const playChordAtPad = (rootPc, qualityId, voicingIdx = 0) => {
   renderVoicings();
   playSelectedVoicing();
 };
+
+// ---------- Edit-in-place: change a pad's voicing ----------
+//
+// "Edit target" tracks the pad the player most recently tapped, so
+// they can switch its voicing by clicking a Shape button without
+// having to remove the pad and re-add it. The flow:
+//
+//   1. Tap pinned pad        → editTarget = that pad's identity
+//   2. Click a Shape button  → if editTarget matches the current
+//                              (root, quality), update that pad's
+//                              voicingIdx in place (no new pad).
+//   3. Tap a Root / Quality  → editTarget cleared. Subsequent shape
+//                              changes pin a new pad as before.
+//   4. Tap another pinned    → editTarget moves to the new pad.
+//      pad
+//
+// This stays out of the way of "explore freely with the matrix" use
+// (the link only exists immediately after a pad tap), and keeps the
+// "creates a new pad for each new shape" model intact for everything
+// else.
+
+/** @type {{ rootPc: number, qualityId: string, voicingIdx: number } | null} */
+let editTarget = null;
+
+const setEditTarget = (target) => {
+  editTarget = target;
+  highlightEditPad();
+  refreshEditHint();
+};
+
+// Borrow the strum-bar hint slot to surface "you're in edit mode"
+// guidance — that slot is normally hidden once any pad is pinned, so
+// it's free real estate, and it sits right above the pads where the
+// player's eyes already are. When edit mode exits, we restore the
+// original empty-state hint HTML (kept in STRUM_BAR_HINT_DEFAULT).
+const refreshEditHint = () => {
+  if (!strumBarHintEl || !strumBarEl) return;
+  if (editTarget) {
+    const name = formatChordName(editTarget.rootPc, editTarget.qualityId);
+    strumBarHintEl.innerHTML =
+      `Editing <strong>${name}</strong> · pick Root / Quality / Shape to update, ` +
+      `or tap the pad again (Esc) to stop.`;
+    strumBarEl.classList.add('editing');
+  } else {
+    strumBarHintEl.innerHTML = STRUM_BAR_HINT_DEFAULT;
+    strumBarEl.classList.remove('editing');
+  }
+};
+
+const highlightEditPad = () => {
+  if (!strumPadsEl) return;
+  Array.from(strumPadsEl.querySelectorAll('.strum-pad.editing')).forEach((el) =>
+    el.classList.remove('editing')
+  );
+  if (!editTarget) return;
+  const sel = `.strum-pad[data-root-pc="${editTarget.rootPc}"][data-quality="${editTarget.qualityId}"]`;
+  strumPadsEl.querySelector(sel)?.classList.add('editing');
+};
+
+// Apply an in-place edit to whichever pad is currently armed for
+// editing. Each axis (root / quality / voicing) is optional — pass
+// only the field you want to change; the rest carry over from the
+// pad's current identity.
+//
+// Special cases the caller doesn't need to know about:
+//   - Changing quality resets voicing to the default (shapes vary by
+//     quality, so a "Barre 5" of m7 doesn't carry meaning to a "Barre
+//     5" of sus2 — and the chord-data lists are different lengths).
+//   - voicingIdx is clamped to the available voicings for the
+//     resolved (root, quality) so we never index past the end.
+//   - If another pinned pad already represents the resolved tuple,
+//     it's deduped (removed) so the bar never has two identical pads.
+//
+// Side effects: mutates the bar entry in place, updates editTarget
+// to the new identity, syncs builderState so the matrix below stays
+// in lockstep with the pad, re-renders, persists, and strums the
+// chord so the player hears the change.
+const applyEditToPad = (changes) => {
+  if (!editTarget) return false;
+  let idx = strumBar.findIndex(
+    (e) => e.rootPc === editTarget.rootPc && e.qualityId === editTarget.qualityId
+  );
+  if (idx < 0) {
+    // Pad got removed since we armed it (e.g. the × button). Bail.
+    setEditTarget(null);
+    return false;
+  }
+  const newRootPc = changes.rootPc != null ? changes.rootPc : editTarget.rootPc;
+  const newQualityId =
+    changes.qualityId != null ? changes.qualityId : editTarget.qualityId;
+  // Resolve the voicing for the edit. Three cases:
+  //   - Voicing was explicitly changed → use the new index.
+  //   - Quality changed → reset to 0 (shape numbering differs per
+  //     quality, see comment in voicingPrefs hydration).
+  //   - Otherwise carry the active instrument's existing voicing
+  //     pref forward.
+  let newVoicingIdx;
+  if (changes.voicingIdx != null) {
+    newVoicingIdx = changes.voicingIdx;
+  } else if (changes.qualityId != null && changes.qualityId !== editTarget.qualityId) {
+    newVoicingIdx = 0;
+  } else {
+    newVoicingIdx = getVoicingIdxFor(activeInstrument.id, newRootPc, newQualityId);
+  }
+  const voicings = getChordVoicings(activeInstrument, newRootPc, newQualityId);
+  if (!voicings.length) {
+    // No voicings available for the resolved chord — bail without
+    // mutating.
+    return false;
+  }
+  if (newVoicingIdx < 0 || newVoicingIdx >= voicings.length) newVoicingIdx = 0;
+
+  // Dedupe: if a different pad already represents the new (root,
+  // quality) identity, drop it. Keep the EDITED pad's slot so the
+  // player's spatial memory ("the third pad is the chorus chord")
+  // is preserved across the edit.
+  const dupIdx = strumBar.findIndex(
+    (e, i) => i !== idx && e.rootPc === newRootPc && e.qualityId === newQualityId
+  );
+  if (dupIdx >= 0) {
+    strumBar.splice(dupIdx, 1);
+    if (dupIdx < idx) idx -= 1;
+  }
+
+  strumBar[idx] = { rootPc: newRootPc, qualityId: newQualityId };
+  setVoicingIdxFor(activeInstrument.id, newRootPc, newQualityId, newVoicingIdx);
+
+  // Sync the matrix below so the rendered selection matches the pad.
+  builderState.rootPc = newRootPc;
+  builderState.qualityId = newQualityId;
+  builderState.voicingIdx = newVoicingIdx;
+
+  setEditTarget({ rootPc: newRootPc, qualityId: newQualityId });
+  savePrefs();
+  renderRoots();
+  renderQualities();
+  renderVoicings();
+  renderStrumBar();
+  // playSelectedVoicing() also calls pinChordToBar — that's a no-op
+  // for an already-pinned identity (just updates voicingPref + flash),
+  // so it doubles as both "play the new sound" AND "flash the
+  // edited pad" in one call.
+  playSelectedVoicing();
+  return true;
+};
+
+// ---------- Clear-all ----------
+//
+// Wipe every pad in one shot. Useful after loading a song with
+// leftover chords from a previous one. Also clears the edit target
+// (its pad is gone) and the loaded-song reference (the chords those
+// were FOR are gone, so the link would be misleading).
+
+const clearStrumBar = () => {
+  if (!strumBar.length && !loadedSong) return;
+  strumBar.length = 0;
+  setEditTarget(null);
+  setLoadedSong(null);
+  savePrefs();
+  renderStrumBar();
+};
+
+strumClearBtn?.addEventListener('click', clearStrumBar);
 
 // ---------- Tap-to-play vs. drag-to-reorder ----------
 //
@@ -942,7 +1288,7 @@ let justDragged = false; // briefly true after a drag so the trailing
 
 const findPadByChord = (chord) =>
   strumPadsEl?.querySelector(
-    `.strum-pad[data-root-pc="${chord.rootPc}"][data-quality="${chord.qualityId}"][data-voicing-idx="${chord.voicingIdx ?? 0}"]`
+    `.strum-pad[data-root-pc="${chord.rootPc}"][data-quality="${chord.qualityId}"]`
   );
 
 const startDrag = (event) => {
@@ -1039,8 +1385,7 @@ const onStrumPointerDown = (event) => {
     pointerType: event.pointerType,
     chord: {
       rootPc: Number(pad.dataset.rootPc),
-      qualityId: pad.dataset.quality,
-      voicingIdx: Number(pad.dataset.voicingIdx) || 0
+      qualityId: pad.dataset.quality
     },
     startX: event.clientX,
     startY: event.clientY,
@@ -1115,12 +1460,8 @@ const onStrumPointerMove = (event) => {
     (el) => el.classList?.contains('strum-pad') && !el.classList.contains('drag-source')
   );
   if (!targetPad) return;
-  const bar = getBarForActive();
-  const sourceIdx = bar.findIndex(
-    (e) =>
-      e.rootPc === dragState.chord.rootPc &&
-      e.qualityId === dragState.chord.qualityId &&
-      e.voicingIdx === dragState.chord.voicingIdx
+  const sourceIdx = strumBar.findIndex(
+    (e) => e.rootPc === dragState.chord.rootPc && e.qualityId === dragState.chord.qualityId
   );
   const targetIdx = Number(targetPad.dataset.idx);
   if (sourceIdx < 0 || Number.isNaN(targetIdx)) return;
@@ -1132,8 +1473,8 @@ const onStrumPointerMove = (event) => {
   let newIdx = insertBefore ? targetIdx : targetIdx + 1;
   if (newIdx > sourceIdx) newIdx -= 1;
   if (newIdx === sourceIdx) return;
-  const [moved] = bar.splice(sourceIdx, 1);
-  bar.splice(newIdx, 0, moved);
+  const [moved] = strumBar.splice(sourceIdx, 1);
+  strumBar.splice(newIdx, 0, moved);
   renderStrumBar();
   // renderStrumBar wiped + rebuilt DOM, so re-mark the new source pad.
   findPadByChord(dragState.chord)?.classList.add('drag-source');
@@ -1227,20 +1568,57 @@ strumPadsEl?.addEventListener('click', (event) => {
     event.stopPropagation();
     const pad = removeBtn.closest('.strum-pad');
     if (!pad) return;
-    removeChordFromBar(
-      Number(pad.dataset.rootPc),
-      pad.dataset.quality,
-      Number(pad.dataset.voicingIdx) || 0
-    );
+    removeChordFromBar(Number(pad.dataset.rootPc), pad.dataset.quality);
     return;
   }
   const pad = event.target.closest('.strum-pad');
   if (!pad) return;
-  playChordAtPad(
-    Number(pad.dataset.rootPc),
-    pad.dataset.quality,
-    Number(pad.dataset.voicingIdx) || 0
-  );
+  const rootPc = Number(pad.dataset.rootPc);
+  const qualityId = pad.dataset.quality;
+  const voicingIdx = Number(pad.dataset.voicingIdx) || 0;
+  // Tapping a pad arms it as the "edit target" — subsequent clicks
+  // on Root / Quality / Shape rewrite THIS pad in place rather than
+  // pinning a new one. Re-tapping the SAME pad toggles edit mode
+  // off (so the player can go back to the normal "click Root pins a
+  // new chord" flow without having to hunt for an exit).
+  const isAlreadyEditing =
+    editTarget && editTarget.rootPc === rootPc && editTarget.qualityId === qualityId;
+  setEditTarget(isAlreadyEditing ? null : { rootPc, qualityId });
+  playChordAtPad(rootPc, qualityId, voicingIdx);
+});
+
+// Escape always exits edit mode. Skipped while a chord-search /
+// chord-name input has focus so the input keeps its own Escape
+// dismissal (see the popovers above).
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  if (!editTarget) return;
+  const t = event.target;
+  if (t && (t.matches('input, textarea, select') || t.isContentEditable)) return;
+  setEditTarget(null);
+});
+
+// Tap-away exits edit mode. Anything inside the chord-builder
+// wrapper (which contains both the strum bar AND the Root/Quality/
+// Shape matrix) counts as "still editing" — tapping elsewhere on the
+// page (fretboard, header, instrument picker, the gap above HOW TO
+// PLAY, etc.) means the player's attention has moved on, so we drop
+// the edit target so the next Root click pins a new chord again.
+//
+// Uses pointerdown (not click) for two reasons:
+//   1. Mobile feel — taps register as soon as the finger lands.
+//   2. The Root/Quality/Voicing buttons run their own click handlers,
+//      and pointerdown fires first; if we used click here, ordering
+//      around stopPropagation could clear editTarget before those
+//      handlers had a chance to read it. With pointerdown we exit
+//      strictly only on outside taps.
+//
+// Reuses the chordBuilderEl reference declared at the top of the
+// file — declaring it again here would shadow / collide.
+document.addEventListener('pointerdown', (event) => {
+  if (!editTarget) return;
+  if (chordBuilderEl?.contains(event.target)) return;
+  setEditTarget(null);
 });
 
 // ---------- "+" inline chord-name input + autocomplete ----------
@@ -1272,6 +1650,9 @@ const setStrumPopover = (open) => {
   strumPopoverEl.hidden = !open;
   strumAddBtn.setAttribute('aria-expanded', String(open));
   if (open) {
+    // Close the sibling load-song popover so the two never overlap
+    // visually — they share the same anchor row.
+    setStrumLoadPopover(false);
     strumInputEl.value = '';
     refreshSuggestions();
     // Defer focus a tick so iOS Safari opens the keyboard reliably.
@@ -1346,6 +1727,7 @@ const commitTypedChord = () => {
   // shape) — there's no UI to specify a voicing in the input box.
   // The player can switch shapes via the matrix afterwards and
   // their selection will pin a separate `Cⁿ` pad.
+  setEditTarget(null);
   playChordAtPad(target.rootPc, target.qualityId, 0);
 };
 
@@ -1381,6 +1763,7 @@ strumSuggestionsEl?.addEventListener('click', (event) => {
   const li = event.target.closest('.strum-bar-suggestion');
   if (!li) return;
   setStrumPopover(false);
+  setEditTarget(null);
   playChordAtPad(Number(li.dataset.rootPc), li.dataset.quality, 0);
 });
 
@@ -1391,6 +1774,327 @@ document.addEventListener('pointerdown', (event) => {
   if (strumPopoverEl.contains(event.target)) return;
   if (strumAddBtn?.contains(event.target)) return;
   setStrumPopover(false);
+});
+
+// ---------- Load-song popover (search + URL paste) ----------
+//
+// The "↧" button next to "+" opens a dual-mode popover:
+//   - Type a song or artist → live results from e-chords' /api/search
+//     (debounced, click-to-load).
+//   - Paste a chords-page URL → loads that page directly.
+// Either path ends in fetchEchordsSong → pinChordToBar for each chord
+// in the song's palette.
+//
+// Mutually exclusive with the chord-name popover (opening one closes
+// the other) and shares the same click-outside-to-dismiss treatment.
+
+let loadInFlight = false;
+// Debounce + race-control state for the live-search input.
+let searchTimer = null;
+let searchSeq = 0; // monotonic id; results from a stale request get
+// dropped if the user has typed again since.
+let currentResults = [];
+let resultIdx = -1; // keyboard-highlighted result, -1 = none
+
+function setStrumLoadPopover(open) {
+  if (!strumLoadPopoverEl || !strumLoadBtn) return;
+  strumLoadPopoverEl.hidden = !open;
+  strumLoadBtn.setAttribute('aria-expanded', String(open));
+  if (open) {
+    setStrumPopover(false);
+    setLoadStatus(null);
+    renderSearchResults([]);
+    setTimeout(() => strumLoadInputEl?.focus(), 0);
+  } else {
+    if (searchTimer) {
+      clearTimeout(searchTimer);
+      searchTimer = null;
+    }
+    resultIdx = -1;
+  }
+}
+
+// Status helper: tone is one of 'info' | 'error' | 'success' | null
+// (null hides the line entirely). aria-live is set on the element so
+// screen readers announce the state changes without needing focus.
+function setLoadStatus(text, tone = 'info') {
+  if (!strumLoadStatusEl) return;
+  if (!text) {
+    strumLoadStatusEl.hidden = true;
+    strumLoadStatusEl.textContent = '';
+    strumLoadStatusEl.classList.remove('is-error', 'is-success');
+    return;
+  }
+  strumLoadStatusEl.hidden = false;
+  strumLoadStatusEl.textContent = text;
+  strumLoadStatusEl.classList.toggle('is-error', tone === 'error');
+  strumLoadStatusEl.classList.toggle('is-success', tone === 'success');
+}
+
+// Render the search-results list. A friendly "K plays" badge gives
+// the player a sense of how popular each chart is, which doubles as
+// a quality signal — e-chords transcriptions vary, and the most-played
+// version of a song is usually the one most other people trust.
+function renderSearchResults(hits) {
+  if (!strumLoadResultsEl) return;
+  currentResults = hits;
+  resultIdx = -1;
+  strumLoadResultsEl.innerHTML = '';
+  if (!hits.length) {
+    strumLoadResultsEl.hidden = true;
+    return;
+  }
+  strumLoadResultsEl.hidden = false;
+  hits.forEach((h, i) => {
+    const li = document.createElement('li');
+    li.className = 'strum-bar-load-result';
+    li.dataset.idx = String(i);
+    li.setAttribute('role', 'option');
+
+    const main = document.createElement('span');
+    main.className = 'strum-bar-load-result-main';
+    const title = document.createElement('span');
+    title.className = 'strum-bar-load-result-title';
+    title.textContent = h.title || '(untitled)';
+    const artist = document.createElement('span');
+    artist.className = 'strum-bar-load-result-artist';
+    artist.textContent = h.artist || '';
+    main.appendChild(title);
+    if (h.artist) main.appendChild(artist);
+
+    const meta = document.createElement('span');
+    meta.className = 'strum-bar-load-result-meta';
+    meta.textContent = formatPlays(h.popularity);
+
+    li.appendChild(main);
+    li.appendChild(meta);
+    strumLoadResultsEl.appendChild(li);
+  });
+}
+
+// Compact play-count formatter: 1234 → "1.2K", 1234567 → "1.2M".
+// Tiny counts are a useful "this is a deep cut, not a top hit"
+// signal so we don't round those up to "1K".
+function formatPlays(n) {
+  const v = Number(n) || 0;
+  if (v < 1000) return `${v} plays`;
+  if (v < 1_000_000) return `${(v / 1000).toFixed(v < 10_000 ? 1 : 0)}K plays`;
+  return `${(v / 1_000_000).toFixed(v < 10_000_000 ? 1 : 0)}M plays`;
+}
+
+function highlightResult(i) {
+  resultIdx = i;
+  if (!strumLoadResultsEl) return;
+  Array.from(strumLoadResultsEl.children).forEach((el, idx) => {
+    el.toggleAttribute('aria-selected', idx === i);
+    el.classList.toggle('is-highlighted', idx === i);
+  });
+  // Keep highlighted item in view inside the scroll container.
+  if (i >= 0) {
+    const el = strumLoadResultsEl.children[i];
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ block: 'nearest' });
+    }
+  }
+}
+
+async function runSearch(query) {
+  const seq = ++searchSeq;
+  setLoadStatus('Searching\u2026');
+  let hits = [];
+  try {
+    hits = await searchEchords(query, { limit: 12 });
+  } catch (err) {
+    if (seq !== searchSeq) return;
+    setLoadStatus(
+      err && err.message ? `Search failed: ${err.message}` : 'Search failed.',
+      'error'
+    );
+    renderSearchResults([]);
+    return;
+  }
+  if (seq !== searchSeq) return; // stale; user kept typing
+  renderSearchResults(hits);
+  setLoadStatus(
+    hits.length ? null : 'No songs matched. Try a different artist or title.',
+    hits.length ? 'info' : 'error'
+  );
+}
+
+async function loadSongFromUrl(url) {
+  if (loadInFlight) return;
+  loadInFlight = true;
+  strumLoadInputEl.disabled = true;
+  setLoadStatus('Fetching song\u2026');
+
+  let song;
+  try {
+    song = await fetchEchordsSong(url);
+  } catch (err) {
+    setLoadStatus(err && err.message ? err.message : 'Could not fetch that song.', 'error');
+    loadInFlight = false;
+    strumLoadInputEl.disabled = false;
+    return;
+  }
+
+  if (!song.barEntries.length) {
+    setLoadStatus(
+      `No playable chords found on that page${song.skipped.length ? ` (skipped: ${song.skipped.join(', ')})` : ''}.`,
+      'error'
+    );
+    loadInFlight = false;
+    strumLoadInputEl.disabled = false;
+    return;
+  }
+
+  // Loading a fresh song means the player isn't editing a previous
+  // pad anymore — drop the edit target so it doesn't lurk on a pad
+  // that may have just shifted positions.
+  setEditTarget(null);
+
+  // A fresh song-load REPLACES the bar — keeping leftover chords
+  // from a prior song would just confuse the palette. (The user can
+  // still build up mixed bars manually with the `+` button.)
+  strumBar.length = 0;
+
+  // Pin in song-palette order. pinChordToBar is LRU-prepend — walk
+  // the palette in REVERSE so the FIRST chord lands at the leftmost
+  // position after all the unshifts.
+  for (let i = song.barEntries.length - 1; i >= 0; i--) {
+    const e = song.barEntries[i];
+    pinChordToBar(e.rootPc, e.qualityId, 0);
+  }
+
+  // Surface the source link in the strum-bar header so the player
+  // can pop the original chord page open for lyrics / structure.
+  setLoadedSong({
+    url: song.url || url,
+    title: song.title || '',
+    artist: song.artist || ''
+  });
+  savePrefs();
+
+  const summary = `${song.title || 'Song'}${song.artist ? ` — ${song.artist}` : ''}: pinned ${
+    song.barEntries.length
+  } chord${song.barEntries.length === 1 ? '' : 's'}${
+    song.skipped.length ? ` (skipped: ${song.skipped.join(', ')})` : ''
+  }.`;
+  setLoadStatus(summary, 'success');
+
+  loadInFlight = false;
+  strumLoadInputEl.disabled = false;
+  // Auto-dismiss so the bar pads are immediately playable. Errors
+  // stay open so the player can adjust input without reopening.
+  setTimeout(() => {
+    if (!loadInFlight) setStrumLoadPopover(false);
+  }, 2200);
+}
+
+// Enter handler — dual-mode: a URL submits as a load; anything else
+// triggers an immediate search (skipping the debounce).
+function commitLoadInput() {
+  const raw = (strumLoadInputEl?.value || '').trim();
+  if (!raw) {
+    setLoadStatus('Type a song or artist, or paste an e-chords URL.', 'error');
+    return;
+  }
+  // If a search result is keyboard-highlighted, ENTER picks that
+  // result (gmail-style). This is the most useful binding for
+  // "type, arrow-down, enter" power use.
+  if (resultIdx >= 0 && currentResults[resultIdx]) {
+    loadSongFromUrl(currentResults[resultIdx].url);
+    return;
+  }
+  if (looksLikeUrl(raw)) {
+    if (!isEchordsUrl(raw)) {
+      setLoadStatus('That URL isn\u2019t on e-chords.com — paste a song page from there.', 'error');
+      return;
+    }
+    loadSongFromUrl(raw);
+    return;
+  }
+  // Otherwise treat as a search and run immediately.
+  if (searchTimer) clearTimeout(searchTimer);
+  runSearch(raw);
+}
+
+function looksLikeUrl(s) {
+  return /^https?:\/\//i.test(s) || /^[a-z0-9-]+\.[a-z]{2,}\//i.test(s);
+}
+
+strumLoadBtn?.addEventListener('click', () => {
+  const open = strumLoadBtn.getAttribute('aria-expanded') === 'true';
+  setStrumLoadPopover(!open);
+});
+
+// Live search as the player types. URL-shaped input bypasses the
+// debounce (no point searching e-chords for "https://…"), and very
+// short queries (< 2 chars) are ignored to avoid hammering the API
+// with single-letter typos.
+strumLoadInputEl?.addEventListener('input', () => {
+  const raw = (strumLoadInputEl?.value || '').trim();
+  if (searchTimer) {
+    clearTimeout(searchTimer);
+    searchTimer = null;
+  }
+  if (!raw) {
+    setLoadStatus(null);
+    renderSearchResults([]);
+    return;
+  }
+  if (looksLikeUrl(raw)) {
+    setLoadStatus('Press Enter to load that URL.');
+    renderSearchResults([]);
+    return;
+  }
+  if (raw.length < 2) {
+    setLoadStatus(null);
+    renderSearchResults([]);
+    return;
+  }
+  searchTimer = setTimeout(() => {
+    runSearch(raw);
+  }, 280);
+});
+
+strumLoadInputEl?.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    commitLoadInput();
+  } else if (event.key === 'Escape') {
+    setStrumLoadPopover(false);
+  } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    if (!currentResults.length) return;
+    event.preventDefault();
+    const next =
+      event.key === 'ArrowDown'
+        ? (resultIdx + 1) % currentResults.length
+        : (resultIdx - 1 + currentResults.length) % currentResults.length;
+    highlightResult(next);
+  }
+});
+
+// Click on a result row → load that song. Listener is on the <ul>
+// (event delegation) so we don't have to wire one per row each
+// render.
+strumLoadResultsEl?.addEventListener('click', (event) => {
+  const li = event.target.closest('.strum-bar-load-result');
+  if (!li) return;
+  const i = Number(li.dataset.idx);
+  const hit = currentResults[i];
+  if (!hit) return;
+  loadSongFromUrl(hit.url);
+});
+
+// Click-outside-to-dismiss for the load popover. Same shape as the
+// chord-name popover above; kept as a separate listener so a click
+// on the chord-name button doesn't accidentally re-toggle the load
+// popover (and vice versa).
+document.addEventListener('pointerdown', (event) => {
+  if (strumLoadPopoverEl?.hidden) return;
+  if (strumLoadPopoverEl.contains(event.target)) return;
+  if (strumLoadBtn?.contains(event.target)) return;
+  setStrumLoadPopover(false);
 });
 
 // ---------- Tone + instrument switching ----------
@@ -1446,8 +2150,9 @@ const applyInstrument = (instrumentId, { warm: warmAudio = false } = {}) => {
     clearChordShape();
     refreshCurrentLabel('');
   }
-  // Strum Bar contents are per-instrument, so re-render whenever the
-  // active instrument changes (and hide for non-chord instruments).
+  // Strum Bar contents are SHARED across chord-capable instruments;
+  // each render resolves voicings against the new active instrument's
+  // preferred shapes (per voicingPrefs). Hidden for bass.
   renderStrumBar();
   if (warmAudio) switchTone(toneEl.value);
 };
@@ -1493,6 +2198,10 @@ document.addEventListener('keydown', warm, { once: true });
 
 applyInstrument(initialInstrumentId);
 refreshCurrentLabel('');
+// Render any persisted song link (loadedSong was hydrated from
+// prefs above; the link element only exists once the DOM is ready,
+// so rendering here ensures it shows up on cold-load).
+setLoadedSong(loadedSong);
 
 // ---------- MIDI input ----------
 
@@ -1517,3 +2226,4 @@ setupMidi({
     /* string plucks decay naturally */
   }
 });
+

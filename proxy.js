@@ -222,8 +222,9 @@ class ProxyService {
     const { signal: userAbort, ...optionsForKey } = options;
     const cacheKey = `${url}-${JSON.stringify(optionsForKey)}`;
 
-    // Check cache first (skip cache when caller may cancel — signal is not part of key)
-    if (!userAbort && this.cache.has(cacheKey)) {
+    // Check cache first (skip cache when caller may cancel — signal is not part of key).
+    // Also skip empty cached entries — a previous empty-body failure may have slipped in.
+    if (!userAbort && this.cache.has(cacheKey) && this.cache.get(cacheKey)) {
       return this.cache.get(cacheKey);
     }
 
@@ -271,6 +272,17 @@ class ProxyService {
 
           if (response.ok) {
             const content = await response.text();
+
+            // Empty body = proxy silently failed (e.g. codetabs returning 200
+            // with no body when the target site blocks it). Treat as failure so
+            // the next proxy gets a chance.
+            if (!content) {
+              console.warn(`Proxy ${proxy} returned empty body — treating as failure`);
+              this.updateProxyScore(proxy, false);
+              this.proxyLastFailure.set(proxy, Date.now());
+              continue;
+            }
+
             this._cacheSet(cacheKey, content);
 
             // Update score for successful proxy

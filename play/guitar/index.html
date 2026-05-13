@@ -157,6 +157,32 @@
             <span class="strum-bar-hint" id="strum-bar-hint">
               Tap a Root below or use <kbd>+</kbd> to add chords here.
             </span>
+            <!-- Source-song link, populated after loadSongFromUrl
+                 succeeds. Hidden until then. Opens in a new tab so
+                 the player can keep their place in the chord palette
+                 while reading the lyrics / structure on e-chords. -->
+            <a
+              class="strum-bar-song"
+              id="strum-bar-song"
+              target="_blank"
+              rel="noopener noreferrer"
+              hidden
+            ></a>
+            <!-- Clear-all. Hidden when the bar is empty so it never
+                 gets in the way; shows up the moment a chord is
+                 pinned. Sits on the right edge of the header so it's
+                 well away from the pads themselves (no risk of a
+                 mis-tap wiping the bar mid-strum). -->
+            <button
+              class="strum-bar-clear"
+              id="strum-bar-clear"
+              type="button"
+              aria-label="Clear all chords from the strum bar"
+              title="Clear all chords from the bar"
+              hidden
+            >
+              Clear
+            </button>
           </div>
           <div class="strum-bar-row">
             <div
@@ -181,6 +207,22 @@
               title="Add a chord by name (e.g. Em, Cmaj7)"
             >
               +
+            </button>
+            <!-- Load-song button. Sibling to the "+" so the two
+                 chord-add affordances stay grouped at the right edge
+                 of the bar. The icon is the universal "open in" /
+                 link arrow so it reads as "pull chords from a URL"
+                 rather than another way to type one in. -->
+            <button
+              class="strum-pad-add strum-pad-load"
+              id="strum-bar-load"
+              type="button"
+              aria-label="Load a song's chords from a URL"
+              aria-expanded="false"
+              aria-controls="strum-bar-load-popover"
+              title="Load chords from an e-chords.com song URL"
+            >
+              <span aria-hidden="true">↧</span>
             </button>
           </div>
           <div
@@ -209,6 +251,54 @@
             >
               <!-- Populated by JS as the player types. -->
             </ul>
+          </div>
+          <!-- Load-song popover. Same visual shape as the "+" popover
+               above so the two affordances feel like sibling
+               variations of the same idea. The input is dual-mode:
+               type a song or artist to search e-chords' catalog, or
+               paste a chords-page URL directly. Results stream in
+               below the input as the player types; the status line
+               below covers fetch progress and any chord-name
+               normalisation issues. -->
+          <div
+            class="strum-bar-load-popover"
+            id="strum-bar-load-popover"
+            role="dialog"
+            aria-label="Find and load chords from a song"
+            hidden
+          >
+            <input
+              id="strum-bar-load-input"
+              type="search"
+              placeholder="Search song or artist, or paste a URL…"
+              autocomplete="off"
+              autocapitalize="words"
+              autocorrect="off"
+              spellcheck="false"
+              inputmode="search"
+              aria-label="Song search or URL"
+              aria-controls="strum-bar-load-results"
+            />
+            <ul
+              class="strum-bar-load-results"
+              id="strum-bar-load-results"
+              role="listbox"
+              aria-label="Song search results"
+              hidden
+            >
+              <!-- Populated by JS as the player types. -->
+            </ul>
+            <p class="strum-bar-load-hint">
+              Powered by
+              <a href="https://www.e-chords.com" target="_blank" rel="noopener">e-chords.com</a>.
+              Type to search, or paste a song-page URL.
+            </p>
+            <p
+              class="strum-bar-load-status"
+              id="strum-bar-load-status"
+              aria-live="polite"
+              hidden
+            ></p>
           </div>
         </div>
 

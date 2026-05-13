@@ -613,9 +613,23 @@
 /* The hint is only useful on the empty state — once the player has
  * pinned even one pad the meaning of the row is obvious from the pads
  * themselves. JS toggles `.has-pads` so the hint vanishes (and we
- * reclaim ~20-30 px of vertical space, which matters a lot on phones). */
+ * reclaim ~20-30 px of vertical space, which matters a lot on phones).
+ *
+ * Exception: when the player has tapped a pad to edit it, we
+ * temporarily repurpose the hint slot to surface "you're editing X"
+ * guidance — so override the hide rule for `.editing`. */
 .strum-bar.has-pads .strum-bar-hint {
   display: none;
+}
+
+.strum-bar.editing .strum-bar-hint {
+  display: inline;
+  color: rgb(94, 234, 212);
+}
+
+.strum-bar.editing .strum-bar-hint strong {
+  color: #fff;
+  font-weight: 800;
 }
 
 .strum-bar-title {
@@ -641,6 +655,69 @@
   font-size: 10px;
   font-weight: 700;
   color: var(--fg);
+}
+
+/* "Clear" lives in the strum-bar header (right edge) so a wandering
+ * tap on the pad area can't fire it. Subtle red tint on hover/focus
+ * to read as a destructive action without screaming for attention.
+ * `margin-left: auto` pushes it to the right edge of the flexbox
+ * regardless of how much hint text is currently present. */
+/* "♪ Title — Artist" link surfaced after a song load. Sits between
+ * the title/hint and the Clear button. Underlined on hover so it
+ * looks like the link it is, but stays visually quiet at rest so it
+ * doesn't compete with the chord pads below. Truncates on narrow
+ * screens — long song titles shouldn't push Clear off-screen. */
+.strum-bar-song {
+  color: rgb(94, 234, 212);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 11px;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.strum-bar-song[hidden] {
+  display: none;
+}
+
+.strum-bar-song:hover,
+.strum-bar-song:focus-visible {
+  text-decoration: underline;
+  color: rgb(125, 247, 230);
+  outline: none;
+}
+
+.strum-bar-clear {
+  margin-left: auto;
+  background: transparent;
+  color: var(--fg-dim);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    background 120ms ease;
+  touch-action: manipulation;
+}
+
+.strum-bar-clear[hidden] {
+  display: none;
+}
+
+.strum-bar-clear:hover,
+.strum-bar-clear:focus-visible {
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.6);
+  background: rgba(248, 113, 113, 0.08);
+  outline: none;
 }
 
 .strum-bar-row {
@@ -803,6 +880,19 @@ body.strum-dragging {
   /* Brief flash when the pad is the chord that just strummed. JS
    * removes the class on a timer; CSS handles the visual decay. */
   animation: strum-pad-flash 380ms ease-out;
+}
+
+/* "Editing" outline — the player has tapped this pad most recently,
+ * so a Shape click in the matrix below will rewrite THIS pad's
+ * voicing instead of pinning a new one. Teal accent matches the
+ * load-song button so the same colour means "the chord builder is
+ * pointed at something I already have". The outline doesn't
+ * displace layout (uses `outline`, not `border`) so the bar stays
+ * stable as the highlight moves between pads. */
+.strum-pad.editing {
+  outline: 2px solid rgba(45, 212, 191, 0.85);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.18);
 }
 
 @keyframes strum-pad-flash {
@@ -984,6 +1074,188 @@ body.strum-dragging {
   border-color: rgba(168, 85, 247, 0.85);
   background: rgba(168, 85, 247, 0.25);
   color: #fff;
+}
+
+/* Load-song button — sibling to the "+" pad-add. Styled with the
+ * same dashed frame so they read as a matched pair, but hover/active
+ * tints to a teal/emerald accent so the player can tell at a glance
+ * that this one DOES something different (loads a whole song's
+ * worth of chords rather than typing one). The "↧" glyph sits a hair
+ * smaller than the "+" because it has more vertical mass. */
+.strum-pad-load {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.strum-pad-load:hover,
+.strum-pad-load[aria-expanded='true'] {
+  color: var(--fg);
+  border-color: rgba(45, 212, 191, 0.75);
+  background: rgba(45, 212, 191, 0.1);
+}
+
+/* Load-song popover. Same skeleton as the chord-name popover above;
+ * accent colour shifts to teal so it visually echoes the load
+ * button. Includes a hint line under the input (telling the player
+ * which site we accept) and a status line below (used for fetch
+ * progress, success summaries, and error messages). */
+.strum-bar-load-popover {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(45, 212, 191, 0.55);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+}
+
+.strum-bar-load-popover[hidden] {
+  display: none;
+}
+
+.strum-bar-load-popover input {
+  background: rgba(15, 23, 42, 0.85);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  letter-spacing: 0;
+  width: 100%;
+  outline: none;
+}
+
+.strum-bar-load-popover input:focus {
+  border-color: rgba(45, 212, 191, 0.85);
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.2);
+}
+
+.strum-bar-load-popover input:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.strum-bar-load-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fg-dim);
+  line-height: 1.4;
+}
+
+.strum-bar-load-hint a {
+  color: rgb(94, 234, 212);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.strum-bar-load-status {
+  margin: 0;
+  padding: 6px 8px;
+  font-size: 12.5px;
+  border-radius: 6px;
+  background: rgba(30, 41, 59, 0.7);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  line-height: 1.35;
+}
+
+.strum-bar-load-status[hidden] {
+  display: none;
+}
+
+.strum-bar-load-status.is-success {
+  border-color: rgba(45, 212, 191, 0.55);
+  background: rgba(45, 212, 191, 0.12);
+}
+
+.strum-bar-load-status.is-error {
+  border-color: rgba(248, 113, 113, 0.55);
+  background: rgba(248, 113, 113, 0.1);
+  color: #fecaca;
+}
+
+/* Live-search results inside the load popover. List behaves like a
+ * compact two-line picker — title/artist on the left, popularity
+ * pill on the right — with a max-height + scroll so a popular query
+ * (say "house") doesn't push the chord builder off the page on a
+ * phone. Hover/keyboard-highlight share the same teal accent as the
+ * load button so it reads as the same surface. */
+.strum-bar-load-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.strum-bar-load-results[hidden] {
+  display: none;
+}
+
+.strum-bar-load-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+  transition:
+    background 100ms ease,
+    border-color 100ms ease;
+}
+
+.strum-bar-load-result:hover,
+.strum-bar-load-result.is-highlighted,
+.strum-bar-load-result[aria-selected='true'] {
+  background: rgba(45, 212, 191, 0.12);
+  border-color: rgba(45, 212, 191, 0.55);
+}
+
+.strum-bar-load-result-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.strum-bar-load-result-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.strum-bar-load-result-artist {
+  font-size: 11.5px;
+  color: var(--fg-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.strum-bar-load-result-meta {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
 }
 
 /* Reading-the-shape legend. Sits below the chord-builder rows; mini
