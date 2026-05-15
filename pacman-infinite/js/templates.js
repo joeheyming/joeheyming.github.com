@@ -2,19 +2,29 @@
  * Hand-authored chunk templates for the procedural infinite world.
  *
  * Every template is a 16x16 grid of int tile codes plus a parallel 16x16 grid
- * of integer height values:
- *   tile codes: 0 = VOID (no floor — deadly), 1 = FLOOR, 2 = WALL
- *   heights:    0..N — z-elevation of FLOOR/WALL stacks (0 = ground level)
+ * of integer height values. Tile codes for non-hazard tiles are fixed
+ * here (VOID/FLOOR/WALL); hazard tile codes come from
+ * `world-config.js#HAZARDS` and are looked up by id via HAZARD_CODE_BY_ID.
  *
  * Connector contract — guaranteed for every template via buildTemplate():
  *   - map[0][8]  = map[15][8] = map[8][0] = map[8][15] = FLOOR
  *   - heights[0][8] = heights[15][8] = heights[8][0] = heights[8][15] = 0
  *   - row 8 and column 8 are entirely FLOOR (the central cross).
  *   - all other border cells are WALL.
+ *   - ANY hazard tile is NEVER stamped on the cross — even brand-new
+ *     hazards added to the registry inherit this invariant via
+ *     `stampHazard`.
  *
  * Because every chunk shares the same connector-cross contract, chunks can
  * abut on any side and corridors line up at ground level.
+ *
+ * Templates can optionally include a `wallKind` (string id of a
+ * WALL_KINDS entry). When set, every WALL tile in the chunk renders in
+ * that flavour (obsidian/ice/glass/…) instead of the default
+ * height-based pick.
  */
+
+import { HAZARD_CODE_BY_ID } from './world-config.js';
 
 export const CHUNK_SIZE = 16;
 
@@ -25,41 +35,69 @@ const WALL = 2;
 const CENTER = CHUNK_SIZE / 2; // 8
 
 /**
- * Build a chunk template from a list of axis-aligned floor + void + height
- * rectangles. All rectangles are inclusive `[r0, c0, r1, c1]` and clamped to
- * the interior (rows 1..14, cols 1..14) so border integrity is never broken.
+ * Build a chunk template from rectangles. All rects are inclusive
+ * `[r0, c0, r1, c1]` and clamped to the interior (rows 1..14, cols
+ * 1..14) so border integrity is never broken.
+ *
+ * Pass order (latest wins for a given cell, except hazards never
+ * overwrite the central cross):
+ *   1. base = all WALL
+ *   2. carve central cross to FLOOR at height 0
+ *   3. apply VOID rects    (deadly pits)
+ *   4. apply FLOOR rects   (bridges, decks)
+ *   5. apply HAZARD rects  (per-id, skips cross cells)
+ *   6. apply elevate rects (heights only)
  *
  * @param {object} opts
- * @param {Array<[number,number,number,number]>} [opts.floor] - rects to set as FLOOR
- * @param {Array<[number,number,number,number]>} [opts.voids] - rects to set as VOID (deadly)
- * @param {Array<[number,number,number,number,number]>} [opts.elevate] - rects [r0,c0,r1,c1,h] setting heights
+ * @param {Array<[number,number,number,number]>} [opts.floor]    - FLOOR rects
+ * @param {Array<[number,number,number,number]>} [opts.voids]    - VOID rects (deadly)
+ * @param {Object<string, Array<[number,number,number,number]>>} [opts.hazards]
+ *        - keyed by hazard id (`'water'`, `'lava'`, `'mud'`, …) → rects.
+ *          Unknown ids are silently skipped (defensive against typos).
+ * @param {Array<[number,number,number,number,number]>} [opts.elevate]
+ *        - `[r0,c0,r1,c1,h]` rects setting heights only.
+ * @param {string|null} [opts.wallKind] - WALL_KINDS id override for every
+ *        wall in this chunk (e.g. 'obsidian'). null = use height-based
+ *        fallback picker.
  */
-function buildTemplate({ floor = [], voids = [], elevate = [] } = {}) {
+function buildTemplate({
+  floor = [],
+  voids = [],
+  elevate = [],
+  hazards = null,
+  wallKind = null
+} = {}) {
   const map = Array.from({ length: CHUNK_SIZE }, () => Array(CHUNK_SIZE).fill(WALL));
   const heights = Array.from({ length: CHUNK_SIZE }, () => Array(CHUNK_SIZE).fill(0));
 
-  // Carve the central cross — always FLOOR at height 0.
   for (let i = 0; i < CHUNK_SIZE; i++) {
     map[CENTER][i] = FLOOR;
     map[i][CENTER] = FLOOR;
   }
 
-  // Apply VOID rects first — they punch holes through walls and the cross.
   for (const rect of voids) {
     forEachInteriorCell(rect, (r, c) => {
       map[r][c] = VOID;
     });
   }
 
-  // Apply FLOOR rects last — they can bridge back across voids (e.g. the
-  // cross corridor crossing a central pit in `pit-cross`).
   for (const rect of floor) {
     forEachInteriorCell(rect, (r, c) => {
       map[r][c] = FLOOR;
     });
   }
 
-  // Apply elevation rects (only affects FLOOR/WALL tiles).
+  // Hazard passes — generic over the registry. `stampHazard` enforces
+  // the "never stamp on the cross" invariant so connector reachability
+  // survives every hazard biome and every future hazard kind.
+  if (hazards) {
+    for (const [hazardId, rects] of Object.entries(hazards)) {
+      const tileCode = HAZARD_CODE_BY_ID.get(hazardId);
+      if (tileCode == null) continue; // unknown id — skip silently
+      stampHazard(map, rects, tileCode);
+    }
+  }
+
   for (const rect of elevate) {
     const [r0, c0, r1, c1, h] = rect;
     forEachInteriorCell([r0, c0, r1, c1], (r, c) => {
@@ -67,7 +105,24 @@ function buildTemplate({ floor = [], voids = [], elevate = [] } = {}) {
     });
   }
 
-  return { map, heights };
+  return { map, heights, wallKind };
+}
+
+/**
+ * Stamp a hazard tile code onto every interior cell of every rect, EXCEPT
+ * the central cross (row CENTER and column CENTER). Keeping the cross
+ * hazard-free preserves the cross-corridor traversal invariant — every
+ * chunk has a guaranteed-safe + connected route from any side to any
+ * other, no matter how aggressively a biome floods its interior with
+ * lava or water.
+ */
+function stampHazard(map, rects, code) {
+  for (const rect of rects) {
+    forEachInteriorCell(rect, (r, c) => {
+      if (r === CENTER || c === CENTER) return;
+      map[r][c] = code;
+    });
+  }
 }
 
 function forEachInteriorCell(rect, fn) {
@@ -579,6 +634,155 @@ function biomeCrater(rng) {
   });
 }
 
+// -------------------- Hazard biomes ----------------------------------------
+// Each hazard biome stamps WATER / LAVA / MUD rects onto a normal FLOOR
+// base. `stampHazard` keeps the central cross safe, so connector
+// reachability is unconditionally preserved (the validator BFS only
+// counts FLOOR cells anyway, and the cross is always FLOOR — disconnected
+// FLOOR islands inside a hazard sea are tolerated as "isolated by
+// hazard", same as VOID islands in `biomeArchipelago`).
+//
+// All hazard biomes are tagged with `.isHazard = true` and a
+// `.minFarTiles` (mirrors `FRUIT_TYPES.minFarTiles` in fruit.js).
+// `generateChunk` filters by these so easy mode + chunks near origin
+// rarely produce hazards.
+
+function biomeLake(rng) {
+  // One large pool of WATER in a random quadrant. The cross still cuts
+  // through the chunk so you can always walk past, but the lake offers
+  // a tactical shortcut (or ghost-shortcut, since ghosts float).
+  // Walls render as `ice` so the biome reads as a frozen pond visually.
+  const topHalf = rng() < 0.5;
+  const leftHalf = rng() < 0.5;
+  const r0 = topHalf ? randInt(rng, 1, 3) : randInt(rng, 9, 11);
+  const c0 = leftHalf ? randInt(rng, 1, 3) : randInt(rng, 9, 11);
+  return buildTemplate({
+    floor: [[1, 1, 14, 14]],
+    hazards: {
+      water: [[r0, c0, r0 + randInt(rng, 3, 5), c0 + randInt(rng, 3, 5)]]
+    },
+    wallKind: 'ice'
+  });
+}
+biomeLake.isHazard = true;
+biomeLake.minFarTiles = 20;
+
+function biomeRiver(rng) {
+  // 3-tile-wide WATER ribbon across one quadrant with FLOOR stepping
+  // stones halfway across. The cross intersects perpendicularly so you
+  // can always walk around if you don't want to wade.
+  const horizontal = rng() < 0.5;
+  const water = [];
+  const floor = [[1, 1, 14, 14]];
+  if (horizontal) {
+    const row = rng() < 0.5 ? randInt(rng, 2, 4) : randInt(rng, 10, 12);
+    water.push([row, 1, row + 2, 14]);
+    const stoneC = randInt(rng, 3, 12);
+    floor.push([row + 1, stoneC, row + 1, stoneC]);
+  } else {
+    const col = rng() < 0.5 ? randInt(rng, 2, 4) : randInt(rng, 10, 12);
+    water.push([1, col, 14, col + 2]);
+    const stoneR = randInt(rng, 3, 12);
+    floor.push([stoneR, col + 1, stoneR, col + 1]);
+  }
+  return buildTemplate({ floor, hazards: { water } });
+}
+biomeRiver.isHazard = true;
+biomeRiver.minFarTiles = 40;
+
+function biomeLavaFlow(rng) {
+  // 2 narrow LAVA stripes radiating from a corner. The cross is safe;
+  // straying off-cross around a corner is suddenly very expensive.
+  // Walls switch to `obsidian` for visual cohesion with the lava.
+  const corner = randInt(rng, 0, 3);
+  const lava = [];
+  if (corner === 0) {
+    lava.push([2, 2, 6, 3]);
+    lava.push([2, 5, 3, 7]);
+  } else if (corner === 1) {
+    lava.push([2, 12, 6, 13]);
+    lava.push([2, 9, 3, 11]);
+  } else if (corner === 2) {
+    lava.push([9, 2, 13, 3]);
+    lava.push([12, 5, 13, 7]);
+  } else {
+    lava.push([9, 12, 13, 13]);
+    lava.push([12, 9, 13, 11]);
+  }
+  return buildTemplate({
+    floor: [[1, 1, 14, 14]],
+    hazards: { lava },
+    wallKind: 'obsidian'
+  });
+}
+biomeLavaFlow.isHazard = true;
+biomeLavaFlow.minFarTiles = 80;
+
+function biomeVolcano(rng) {
+  // Central elevated cone with LAVA pools in the four corners forming a
+  // ground-level moat. Visually striking, and since lava blocks ghosts
+  // the corners become Pacman-only score deposits. Walls render as
+  // `obsidian` so the cone reads as volcanic rock.
+  const peakHeight = randInt(rng, 2, 4);
+  const elevate = [];
+  for (let h = 1; h <= peakHeight; h++) {
+    const r = peakHeight - h + 1;
+    elevate.push([CENTER - r, CENTER - r, CENTER + r, CENTER + r, h]);
+  }
+  return buildTemplate({
+    floor: [[1, 1, 14, 14]],
+    hazards: {
+      lava: [
+        [1, 1, 3, 3],
+        [1, 12, 3, 14],
+        [12, 1, 14, 3],
+        [12, 12, 14, 14]
+      ]
+    },
+    elevate: [...elevate, ...flattenCrossElevations()],
+    wallKind: 'obsidian'
+  });
+}
+biomeVolcano.isHazard = true;
+biomeVolcano.minFarTiles = 150;
+
+function biomeSwamp(rng) {
+  // Speckled MUD across the whole interior — no death, but everyone
+  // (including ghosts) moves slowly. Acts as a "stalling zone" where
+  // pellet collection feels safer than usual because ghosts can't
+  // sprint at you.
+  const mud = [];
+  const n = randInt(rng, 5, 8);
+  for (let i = 0; i < n; i++) {
+    const r0 = randInt(rng, 1, 12);
+    const c0 = randInt(rng, 1, 12);
+    mud.push([r0, c0, r0 + randInt(rng, 1, 2), c0 + randInt(rng, 1, 2)]);
+  }
+  return buildTemplate({
+    floor: [[1, 1, 14, 14]],
+    hazards: { mud }
+  });
+}
+biomeSwamp.isHazard = true;
+biomeSwamp.minFarTiles = 0;
+
+function biomeMixedHazard(rng) {
+  // WATER + LAVA in opposite quadrants — forces a real route choice:
+  //   - go through water (slow, breath cost)
+  //   - go around the lava (long way)
+  //   - or stay on the cross (safe, but you miss the off-cross pellets).
+  const flip = rng() < 0.5;
+  return buildTemplate({
+    floor: [[1, 1, 14, 14]],
+    hazards: {
+      water: [flip ? [2, 2, 5, 5] : [2, 10, 5, 13]],
+      lava: [flip ? [10, 10, 13, 13] : [10, 2, 13, 5]]
+    }
+  });
+}
+biomeMixedHazard.isHazard = true;
+biomeMixedHazard.minFarTiles = 200;
+
 const BIOMES = [
   biomeOpen,
   biomeRooms,
@@ -594,7 +798,14 @@ const BIOMES = [
   biomeRidge,
   biomeArchipelago,
   biomeStaircase,
-  biomeCrater
+  biomeCrater,
+  // Hazard biomes (water, lava, mud — gated by distance + difficulty)
+  biomeLake,
+  biomeRiver,
+  biomeLavaFlow,
+  biomeVolcano,
+  biomeSwamp,
+  biomeMixedHazard
 ];
 
 /**
@@ -602,10 +813,34 @@ const BIOMES = [
  * `{ id, map, heights }` shape compatible with what `CHUNK_TEMPLATES`
  * holds, so callers don't need to special-case it.
  *
- * @param {() => number} rng  - mulberry32-style PRNG, seeded per chunk
+ * Two-stage gating runs before biome selection so easy mode + chunks
+ * near origin rarely produce hazards even though the biome list has
+ * grown:
+ *   1. distance gate — biomes with `minFarTiles > opts.farTiles` are
+ *      filtered out entirely. Hazards build up as you walk further.
+ *   2. hazard weight — once eligible, the chunk "decides" whether it
+ *      wants a hazard biome via a single rng() draw scaled by
+ *      `opts.hazardMul` (world.effectiveHazardDensityMul()). When the
+ *      draw fails, the safe-biome pool is used.
+ *
+ * @param {() => number} rng - mulberry32-style PRNG, seeded per chunk
+ * @param {{ farTiles?: number, hazardMul?: number }} [opts]
  */
-export function generateChunk(rng) {
-  const biome = BIOMES[Math.floor(rng() * BIOMES.length)];
+export function generateChunk(rng, opts = {}) {
+  const farTiles = opts.farTiles ?? 0;
+  const hazardMul = opts.hazardMul ?? 1.0;
+  // Filter by distance gate.
+  const eligible = BIOMES.filter((b) => (b.minFarTiles ?? 0) <= farTiles);
+  const hazardPool = eligible.filter((b) => b.isHazard);
+  const safePool = eligible.filter((b) => !b.isHazard);
+  // Decide once whether this chunk wants a hazard. 0.4 base × hazardMul
+  // means: at hazardMul=1.0 (normal at origin) ~40% of hazard-eligible
+  // chunks become hazardous; on easy (0.35) ~14%, on hard far (≥1.6×1.5)
+  // up to the 0.9 cap. Safe pool is otherwise picked from the existing
+  // 14 non-hazard biomes (uniform).
+  const wantsHazard = hazardPool.length > 0 && rng() < Math.min(0.9, hazardMul * 0.4);
+  const pool = wantsHazard && hazardPool.length > 0 ? hazardPool : safePool;
+  const biome = pool.length > 0 ? pool[Math.floor(rng() * pool.length)] : BIOMES[0];
   let tmpl;
   try {
     tmpl = biome(rng);

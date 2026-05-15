@@ -1,6 +1,7 @@
 import { GAME_STATES, GAMEPLAY, DIFFICULTY, DIFFICULTY_PRESETS } from './constants.js';
 import { CHUNK_SIZE } from './templates.js';
 import { loadSave, saveState, clearSave } from './save.js';
+import { METERS } from './world-config.js';
 
 const RESPAWN_DELAY = GAMEPLAY.PACMAN_RESPAWN_DELAY;
 const POST_RESPAWN_GRACE_S = 1.5;
@@ -105,6 +106,41 @@ export const gameState = {
   },
 
   /**
+   * Tick every registered meter (breath today; heat / cold / radiation
+   * tomorrow). For each METERS entry:
+   *   - If Pacman has it in `_activeMeters` → drain at `drainPerS` and
+   *     trigger `_loseLife(meter.deathCause)` on zero.
+   *   - Otherwise → refill at `refillPerS` toward `max`.
+   *
+   * Initialised lazily (`this._meters` is a Map keyed by meter id) so
+   * callers don't have to remember a constructor-side setup step. The
+   * HUD reads `gameState._meters.get(id)` to draw bars; game-hud
+   * iterates METERS identically.
+   *
+   * Refill rate higher than drain → quick dips are forgiving, sustained
+   * exposure is fatal.
+   */
+  _tickMeters(deltaTime) {
+    if (!this._meters) this._meters = new Map();
+    const active = this.pacman?._activeMeters;
+    for (const meter of Object.values(METERS)) {
+      let value = this._meters.has(meter.id) ? this._meters.get(meter.id) : meter.max;
+      if (active && active.has(meter.id)) {
+        value = Math.max(0, value - meter.drainPerS * deltaTime);
+        if (value <= 0 && !this.pacman.dead && !this.pacman.dying) {
+          // Route through _loseLife so animation, lives counter,
+          // streak reset, and overlay copy flow the same as a ghost
+          // kill. Pacman.dieByGhost handles the visual.
+          this._loseLife(meter.deathCause);
+        }
+      } else if (value < meter.max) {
+        value = Math.min(meter.max, value + meter.refillPerS * deltaTime);
+      }
+      this._meters.set(meter.id, value);
+    }
+  },
+
+  /**
    * Add `amount` (can be negative) to the food meter, clamped to
    * [0, FOOD_MAX]. If a negative amount drops food to zero we still
    * route through the death pipeline so the player gets the same
@@ -205,6 +241,10 @@ export const gameState = {
     this.world.difficulty.ghostCountMul = preset.ghostCountMul;
     this.world.difficulty.ghostChaseRadiusMul = preset.ghostChaseRadiusMul;
     this.world.difficulty.dotKeepMul = preset.dotKeepMul;
+    // Cross-corridor dot decimation. Defaults to 1.0 (classic full
+    // trail) when an older preset object doesn't carry the field, so
+    // legacy fixtures keep the original look.
+    this.world.difficulty.crossDotKeepMul = preset.crossDotKeepMul ?? 1.0;
     // hungerDrainMul + fruitSpawnPeriodMul used to be read off the preset
     // directly by the consumers; now mirrored onto world.difficulty so
     // World.effectiveHungerDrainMul() can fold the distance penalty over
@@ -222,6 +262,10 @@ export const gameState = {
     this.world.difficulty.ghostMinSpawnDistMul = preset.ghostMinSpawnDistMul ?? 1.0;
     this.world.difficulty.powerModeDurationS =
       preset.powerModeDurationS ?? GAMEPLAY.POWER_MODE_DURATION;
+    // Hazard-biome density. Per the AGENTS.md "past issues" entry on
+    // NaN `effective*()` results, every new world.difficulty.X must be
+    // mirrored here or world.effectiveHazardDensityMul() throws / NaNs.
+    this.world.difficulty.hazardDensityMul = preset.hazardDensityMul ?? 1.0;
   },
 
   /** Sync the menu pill highlights with the current `this.difficulty`. */
@@ -234,27 +278,31 @@ export const gameState = {
   },
 
   /**
-   * Pacman walked into a void this frame.
-   *
-   * Falling counts as losing a life — the player feels the cost the same
-   * way as a ghost touch. If lives run out the death animation runs and
-   * THEN we transition to GAME_OVER (after the fall completes), so the
-   * player still gets the visual moment.
+   * Pacman walked off a cliff (VOID) or onto a lethal hazard tile this
+   * frame. The shared `Pacman.die(cause)` path sets `pacman._deathCause`
+   * to whatever cause was supplied — typically 'void' for falls or
+   * `HAZARDS[id].pacman.deathCause` for tile-lethal hazards (today only
+   * 'lava'; future hazards can choose any DEATH_MESSAGES key). Falling
+   * counts as losing a life — the player feels the cost the same way
+   * as a ghost touch. If lives run out the death animation runs and
+   * THEN we transition to GAME_OVER (after the fall completes), so
+   * the player still gets the visual moment.
    */
   _enterDeath() {
+    const cause = this.pacman?._deathCause || 'void';
     this.state = GAME_STATES.DEATH;
     this._respawnTimer = RESPAWN_DELAY;
-    this._deathCause = 'void';
-    this._applyDeathMessage('void');
+    this._deathCause = cause;
+    this._applyDeathMessage(cause);
     if (this.respawnOverlay) this.respawnOverlay.classList.remove('hidden');
     this.audioManager.playDeath?.();
 
     // Cost a life, mirroring the ghost-touch path. Power mode ends.
     this.lives = Math.max(0, this.lives - 1);
     this.pacman.clearPowerMode();
-    // Same streak-reset as _loseLife — falling into the void counts as
-    // damage too, otherwise edge-walking around streak loss would be
-    // strictly free.
+    // Same streak-reset as _loseLife — falling into the void / stepping
+    // in lava counts as damage too, otherwise edge-walking around streak
+    // loss would be strictly free.
     this._resetStreak();
     this.audioManager.playLifeLost?.();
     // Refresh the HUD now so the heart count visibly updates as Pacman
@@ -276,6 +324,13 @@ export const gameState = {
     // re-trigger. Use FOOD_RESPAWN (60) instead of full so the player
     // still has to engage with hunger after coming back.
     this.food = GAMEPLAY.FOOD_RESPAWN;
+    // Refill every meter to full on respawn — otherwise a drown (or
+    // future heat-stroke / freeze) death would immediately retrigger
+    // if the player respawns near a hazard. randomLoadedFloor already
+    // guarantees the spawn tile is FLOOR, so a full refill is the
+    // right baseline.
+    if (!this._meters) this._meters = new Map();
+    for (const meter of Object.values(METERS)) this._meters.set(meter.id, meter.max);
 
     // If the void death used the player's last life, the fall animation
     // has finished — now it's safe to flip to GAME_OVER without losing

@@ -13,9 +13,14 @@ export class CameraController {
     this.scale = scale;
     this.levelWidth = levelWidth;
     this.levelHeight = levelHeight;
-    // BIRDSEYE_FOLLOW is the default for the infinite world — fixed BIRDSEYE
-    // would just frame an empty origin chunk.
-    this.currentMode = CAMERA_MODE.BIRDSEYE_FOLLOW;
+    // FPPOV is the default for the infinite world — first-person sells
+    // the scale of the procedurally-generated terrain (sunken water
+    // pits, towering mountain walls, lava chasms) much better than
+    // overhead does. Game.js may override via URL param, persisted
+    // user choice, or a mobile-device safety downgrade — see
+    // `startCameraMode` in `game.js`. Fixed BIRDSEYE would just frame
+    // an empty origin chunk so it isn't a sensible default here.
+    this.currentMode = CAMERA_MODE.FPPOV;
 
     // Zoom control
     this.zoomPercent = 1.0;

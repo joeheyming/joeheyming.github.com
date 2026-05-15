@@ -21,10 +21,19 @@ Key design pillars:
   browser. Persistence is `localStorage`. (See `.cursor/rules/static-site.mdc`.)
 - **Chunk-streamed infinite world.** No global level; `Chunk`s load
   and unload around the player within `RENDER_RADIUS`.
-- **Unified surface movement.** `FLOOR` and `WALL` tiles are both
-  walkable surfaces. `surfaceHeightAt()` returns the top of whatever
-  block is at `(x,y)`; Pac-Man auto-steps when `|Δsurface| ≤ 1` and
-  jumps when `|Δsurface| ≤ 1 + JUMP_HEIGHT`.
+- **Unified surface movement.** `FLOOR`, `WALL`, and the three
+  hazards (`WATER`/`LAVA`/`MUD`) are all walkable surfaces.
+  `surfaceHeightAt()` returns the top of whatever block is at `(x,y)`;
+  Pac-Man auto-steps when `|Δsurface| ≤ 1` and jumps when
+  `|Δsurface| ≤ 1 + JUMP_HEIGHT`. Whether a tile is *safe* to step on
+  is a separate concern handled by `pacman._reactToTileUnderFeet`
+  (Pacman) and `world.isGhostPassable` (ghosts).
+- **Asymmetric hazards.** Off the central cross corridor, chunks can
+  spawn `WATER` (Pacman drowns after `BREATH_MAX_S`; ghosts float over),
+  `LAVA` (Pacman dies instantly; ghosts can't enter — the only reliable
+  ghost barrier), and `MUD` (slows both Pacman AND ghosts; no damage).
+  Hazards never land on the cross, so traversal between chunks stays
+  guaranteed-safe.
 - **Survival = the meta-clock.** Hunger drain + dot scarcity push you
   to keep moving; jumping costs food; power pills cost food on
   activation. There's no idle-immortality.
@@ -85,7 +94,20 @@ pacman-infinite/
                           # dotKeepMul, fruitSpawnPeriodMul,
                           # powerModeDurationS, fleeSpeedMul,
                           # jumpCooldownMul, ghostMinSpawnDistMul,
-                          # foodPerDotMul.
+                          # foodPerDotMul, hazardDensityMul,
+                          # crossDotKeepMul (cross corridor density —
+                          # 1.0 on Easy/Normal, 0.5 on Hard).
+                          # TILE.WATER/LAVA/MUD codes are re-exported
+                          # from world-config.js HAZARDS so the registry
+                          # is the single source of truth.
+    world-config.js       # Data-driven registries: HAZARDS (tile codes
+                          # + Pacman/ghost effects + materials), METERS
+                          # (breath today; heat/cold/… via one entry),
+                          # WALL_KINDS (house/mountain/obsidian/ice/glass
+                          # + pickWallKindId selector), DEATH_MESSAGES
+                          # (respawn-overlay copy keyed by death cause).
+                          # Adding a new hazard / wall kind / meter is
+                          # a one-file edit here.
     controls.js           # keyboard + unified touch joystick + FPPOV
                           # twin-stick + double-tap-to-jump
     camera.js
@@ -196,10 +218,32 @@ Two layers of multipliers stack to produce the live game tuning:
    from Pacman's distance from origin via `world.updateFarProgress()`
    in `game.js`. The `world.effective*` helpers (`effectiveGhostSpeedMul`,
    `effectiveHungerDrainMul`, `effectiveDotKeepMul`,
-   `effectiveGhostCountMul`) fold farPct on top of the base mul so
-   ghost AI / hunger / dot density / spawn cap all scale with how
-   deep you've wandered. `world.scoreMultiplier()` returns the matching
-   1× → 5× score-side reward.
+   `effectiveGhostCountMul`, `effectiveHazardDensityMul`) fold farPct on
+   top of the base mul so ghost AI / hunger / dot density / spawn cap /
+   hazard biome odds all scale with how deep you've wandered.
+   `world.scoreMultiplier()` returns the matching 1× → 5× score-side
+   reward.
+
+   Difficulty spread at `farPct=0.5` after the 2026-05 retune
+   (see `DIFFICULTY_PRESETS` in `constants.js`):
+
+   |                       | Easy  | Normal | Hard  |
+   |-----------------------|-------|--------|-------|
+   | dotKeepEff (× base)   | 1.30  | 0.65   | 0.12  |
+   | crossDotKeepMul       | 1.00  | 1.00   | 0.35  |
+   | fruitSpawnPeriodMul   | 0.45  | 1.00   | 1.70  |
+   | foodPerDotMul         | 1.40  | 1.00   | 0.40  |
+   | hazardDensityMulEff   | 0.44  | 1.25   | 2.00  |
+
+   The dotKeep gap is now ~11× off-cross plus a ~3× cross-corridor
+   thinning on Hard (so the iconic dot trail also reads as sparse
+   stepping-stones, not a contiguous lane), fruit cadence ~3.8×,
+   food-per-dot ~3.5×, hazard density ~4.5×. On Hard the off-cross
+   density typically clamps to the 5% floor in `world._makeChunk`, so
+   most chunks read as "open arena with a few stray dots" — combined
+   with `foodPerDotMul: 0.4` the player can't graze their way to
+   immortality. Easy plays generously; Hard is a genuine
+   food-scarcity survival run.
 
    **Always go through `effective*()` for live tuning, never read
    `world.difficulty.X` directly** — otherwise the distance penalty
@@ -210,6 +254,222 @@ Two layers of multipliers stack to produce the live game tuning:
    void). `_addScore(base)` folds (distance multiplier × streak
    multiplier) onto every score event so streak and distance compound
    into the final per-pickup payout.
+
+### Config-driven world (read before adding any new tile/wall/meter)
+
+Hazards, drain meters, wall flavours, and death-overlay copy are
+declared once in **`js/world-config.js`** and consumed by everything
+else through small lookup loops. Adding a fourth hazard, a third drain
+meter, or a sixth wall kind is a one-file edit. The four registries
+are:
+
+| Registry         | What it controls                                          | Consumers                                                            |
+|------------------|-----------------------------------------------------------|----------------------------------------------------------------------|
+| `HAZARDS`        | Tile codes 7+ with side-effects; Pacman + ghost behaviour | `world.hazardAt`/`isGhostPassable`, `pacman._reactToTileUnderFeet`, `ghost._stepTowardTarget`, `chunk.buildHazards`, `world-assets.js` |
+| `METERS`         | Drain/refill timers with optional kill-on-zero (breath today) | `game-state._tickMeters`, `game-hud._refreshMetersHud`, `pacman._activeMeters` |
+| `WALL_KINDS`     | Pluggable wall flavours; height-fallback + biome override | `chunk.buildWalls`, `world-assets.js`, `pickWallKindId()` helper     |
+| `DEATH_MESSAGES` | Respawn-overlay copy keyed by death cause                 | `game-hud._deathMessage`/`_applyDeathMessage`                        |
+
+#### HAZARDS
+
+Each entry: `{ id, tileCode, pacman: { speedMul, lethal, deathCause, drainMeter }, ghost: { speedMul, blocked }, material, slabThickness?, pacmanSink? }`.
+
+Today's three entries:
+
+| id    | Code | Pacman effect                                          | Ghost effect                                    | Visual           | Wall kind override (biome-tagged) |
+|-------|------|--------------------------------------------------------|-------------------------------------------------|------------------|-----------------------------------|
+| water | 7    | wade at 0.55× speed; drains `breath` meter → drown     | freely passable (float over)                    | half-tile pit    | `ice` (in `biomeLake`)            |
+| lava  | 8    | instant death (`die('lava')`)                          | **blocked** (lava is the one reliable ghost barrier) | half-tile pit | `obsidian` (in `biomeLavaFlow` + `biomeVolcano`) |
+| mud   | 9    | 0.6× speed; no damage                                  | 0.6× speed via `spec.ghost.speedMul`            | flat surface     | —                                 |
+
+##### Sunken-hazard model — Pacman literally drops in
+
+Water and lava are **real pits** — Pacman's `tileHeight` actually
+goes negative when he steps into one, and he physically falls in.
+The auto-step (|Δh| ≤ 1) handles the descent **and** the climb-out:
+a 0.5-deep pool is a 0.5-tile step in either direction, so wading
+back to adjacent floor is automatic. Climbing **out** of a pit onto
+a tall wall (Δh = 1.5) requires a jump — wading slows your escape.
+
+Two fields on the HAZARDS spec drive the look + feel:
+
+- `slabThickness` — fraction of `scale` for the slab's vertical
+  extent. The top sits at `h * scale + 0.02` (flush with the
+  surrounding floor's top edge); bigger values just extend the slab
+  _downward_ to fill a pit. Water/lava use `0.5` (half-tile-deep
+  pool); mud uses `0.18` (thin puddle on the surface).
+- `pacmanSink` — how far Pacman's surface drops below the floor edge
+  when standing on this hazard, in tile units. **This is a real
+  height drop**, not a render offset. Water/lava use `0.5` so Pacman
+  wades half a tile below the floor edge (reads as chest-deep);
+  mud uses `0` (he stands on top, no dip). The drop flows through
+  `world.pacmanSurfaceHeightAt → pacman.tileHeight → smoothHeight →
+  position.z` so the standard step-lerp eases the descent.
+
+Ghosts deliberately read `surfaceHeightAt` (floor-edge) instead of
+`pacmanSurfaceHeightAt`, which is what keeps them "floating over"
+water at floor level even though Pacman drops in — that asymmetry
+is what makes water a Pacman-specific hazard.
+
+Both fields are entirely registry-driven: adding "tar pit —
+knee-deep slow plus damage" is `slabThickness: 0.7, pacmanSink: 0.7`
+plus the usual `pacman.speedMul`/`drainMeter` fields. No renderer or
+Pacman code changes.
+
+#### METERS
+
+Each entry: `{ id, max, drainPerS, refillPerS, deathCause, hudId, hudBarId, label, lowFrac }`.
+
+`pacman._activeMeters: Set<meterId>` is populated by
+`_reactToTileUnderFeet` based on `HAZARDS[…].pacman.drainMeter`.
+`game-state._tickMeters(dt)` iterates `METERS` once per frame, drains
+active ones, refills inactive ones, and routes meter-empty through
+`_loseLife(meter.deathCause)`. `game-hud._refreshMetersHud()` drives
+every bar from the same loop — show while active OR `< max`, with the
+`.low` class when below `lowFrac`. Adding a "heat" meter near lava is
+a new METERS entry + a new HAZARD entry pointing `drainMeter: 'heat'`
+plus a `<div id="heat-meter">` in `index.html`. No JS changes.
+
+#### WALL_KINDS
+
+Each entry: `{ id, stackRange: [min,max], material: {...}, textureId?, repeatVerticalUV?, default? }`.
+
+Selection per WALL tile (`chunk.buildWalls`):
+
+1. **Per-chunk override** wins — biomes set `template.wallKind` and the
+   chunk constructor reads it. `biomeVolcano` and `biomeLavaFlow` set
+   `'obsidian'`; `biomeLake` sets `'ice'`.
+2. **Height fallback** — first FALLBACK-eligible kind whose
+   `stackRange` contains the tile's stackUnits. `FALLBACK_WALL_KIND_IDS
+   = ['house','mountain']` so override-only kinds (obsidian, ice, glass)
+   never get picked accidentally by a non-volcanic biome.
+3. **Default-of-last-resort** — the entry with `default: true`
+   (`'mountain'`).
+
+| id        | stackRange | Look                                                 | Notes                                           |
+|-----------|------------|------------------------------------------------------|-------------------------------------------------|
+| house     | [1, 2]     | Windowed buildings (procedural canvas texture)       | repeatVerticalUV: one storey per stackUnit      |
+| mountain  | [3, 99]    | Rocky grey                                           | `default: true` — last-resort fallback          |
+| obsidian  | override   | Black with red emissive cracks                       | Auto-picked by lava biomes via biome `.wallKind` |
+| ice       | override   | Translucent cyan with soft blue glow                 | Auto-picked by `biomeLake`                       |
+| glass     | override   | Transparent see-through                              | Free for future puzzles; no biome uses it yet   |
+
+#### DEATH_MESSAGES
+
+`{ title, flavour, final }` per cause. Built-ins: `'ghost'`,
+`'starvation'`, `'void'`. Hazard tiles supply their own causes via
+`HAZARDS[…].pacman.deathCause` (`'lava'`). Meter exhaustion uses
+`METERS[…].deathCause` (`'drown'`). When adding a new cause, just add
+the registry entry — `getDeathMessage(cause)` falls back to `'ghost'`
+copy if you forget.
+
+### Hazard biomes + invariants
+
+Hazard biomes live in `templates.js`, tagged with `.isHazard = true`
+and `.minFarTiles` (distance gate), and optionally `.wallKind` (set on
+the template returned by `buildTemplate`):
+
+- `biomeLake` (≥ 20 tiles) — WATER pool in a quadrant; `wallKind: 'ice'`
+- `biomeRiver` (≥ 40) — 3-wide WATER ribbon + 1 stepping stone
+- `biomeLavaFlow` (≥ 80) — two LAVA stripes in a corner; `wallKind: 'obsidian'`
+- `biomeVolcano` (≥ 150) — central elevated cone + LAVA pools in 4 corners; `wallKind: 'obsidian'`
+- `biomeSwamp` (≥ 0) — speckled MUD across the interior
+- `biomeMixedHazard` (≥ 200) — WATER + LAVA in opposite quadrants
+
+`buildTemplate({ hazards: { water: [...], lava: [...], mud: [...] }, wallKind, ... })`
+takes a generic hazard-rects map keyed by registry id. Unknown ids are
+silently skipped (defensive against typos) — the hazard tile codes are
+looked up via `HAZARD_CODE_BY_ID`.
+
+`generateChunk(rng, { farTiles, hazardMul })` runs a two-stage gate:
+distance filter, then a single rng() draw for "hazard vs safe biome"
+scaled by `effectiveHazardDensityMul()` (base preset ×
+`(1 + 0.5 × farPct)`). At normal/origin ~40% of hazard-eligible chunks
+are hazardous; on easy ~14%, on hard far up to a 0.9 cap.
+
+**Cross-corridor invariant.** `stampHazard()` in `buildTemplate()`
+skips any cell on `row === CENTER` or `col === CENTER`, so a chunk
+can be 60% lava and the cross-corridor is still a safe traversal
+route between adjacent chunks. This loop is generic — every hazard
+in `HAZARDS`, including future additions, inherits the invariant
+automatically.
+
+### How to add a new hazard / wall kind / meter (one edit each)
+
+**New hazard** (e.g. "ice patch — slippery 1.5× momentum, kills
+ghosts on contact"):
+
+1. Add a `HAZARDS.icePatch` entry to `world-config.js` with the
+   tileCode, pacman/ghost effects, and material spec. Optionally set
+   `slabThickness` + `pacmanSink` if you want it to render as a
+   sunken pit (water/lava use `0.5` for both); omit for a flat
+   surface puddle like mud.
+2. Add a biome to `templates.js` that emits `hazards: { icePatch: [...] }`
+   in its `buildTemplate` call (optionally set `wallKind`).
+3. Add the biome to the `BIOMES` array with `.isHazard = true` and a
+   `.minFarTiles` gate.
+
+No other files need to change. `chunk.buildHazards`,
+`world.hazardAt`, `pacman._reactToTileUnderFeet`,
+`ghost._stepTowardTarget`, and `world-assets.js` all iterate the
+registry and pick up the new entry.
+
+**New wall kind** (e.g. "crystal — purple emissive, picked by a new
+biome"):
+
+1. Add a `WALL_KINDS.crystal` entry to `world-config.js` (material
+   spec + optional `textureId`/`repeatVerticalUV`). Don't add it to
+   `FALLBACK_WALL_KIND_IDS` unless you want it eligible for the
+   height-based pick.
+2. Tag a biome's template with `wallKind: 'crystal'` to use it.
+3. (Optional) If you want it to participate in the procedural canvas
+   texture system, add a factory entry to `TEXTURE_FACTORIES` in
+   `world-assets.js`.
+
+`chunk.buildWalls` and `world-assets.js` iterate `WALL_KINDS` so the
+new kind renders without any further changes.
+
+**New meter** (e.g. "heat — drains near lava, kills via heatstroke"):
+
+1. Add a `METERS.heat` entry to `world-config.js` with drain/refill,
+   `deathCause: 'heatstroke'`, and `hudId`/`hudBarId`.
+2. Add a `DEATH_MESSAGES.heatstroke` entry for the overlay copy.
+3. Add a `<div id="heat-meter">…<div id="heat-bar">` to `index.html`.
+4. Wire a hazard's `pacman.drainMeter: 'heat'` (e.g. a future "near
+   lava" radius effect, or directly on the lava tile spec).
+
+`game.js` registers the HUD elements automatically from `METERS`.
+`game-state._tickMeters` and `game-hud._refreshMetersHud` iterate the
+registry and handle the new meter without code changes.
+
+### Hazard runtime plumbing (registry consumers)
+
+- `world.surfaceHeightAt(gx, gy)` treats hazards as walkable (returns
+  finite height). Pacman + ghost movement use this for the |Δh| ≤ 1
+  auto-step check.
+- `world.hazardAt(gx, gy)` returns the **HAZARDS spec** (full object)
+  or `null`. Use `.id` for the kind name or `.tileCode` for the raw
+  number; consumers don't need a second lookup to read effects.
+- `world.isGhostPassable(gx, gy)` packs the finite-surface check AND
+  the `spec.ghost.blocked` rejection so `ghost._reachableNeighbors()`
+  and the bounded BFS in `_bfsNextStepToward()` agree on what counts
+  as ghost territory.
+- `pacman._reactToTileUnderFeet(gx, gy)` looks up the HAZARDS spec
+  and applies `pacman.lethal` (→ `die(spec.deathCause)`),
+  `pacman.drainMeter` (→ `_activeMeters.add(id)`), and
+  `pacman.speedMul` (→ `_hazardSpeedMul`). Adding a new hazard never
+  requires touching this function.
+- `ghost._stepTowardTarget` reads `world.hazardAt(…)?.ghost?.speedMul`
+  for tile-level slowdown so any future "slows ghosts" hazard is one
+  registry edit.
+- `game-state._tickMeters(dt)` iterates `METERS` every PLAYING
+  frame after `_tickHunger`. Drain when `pacman._activeMeters.has(id)`,
+  refill otherwise. Hitting 0 routes through `_loseLife(deathCause)`.
+- `game-hud._refreshMetersHud()` iterates `METERS` and shows each bar
+  while active OR while `value < max` (so the player sees recovery
+  progress). Cached DOM lookups via `game.meterElements: Map<id, {wrap, bar}>`.
+- `world.randomLoadedFloor()` filters to `TILE.FLOOR` only — keeps
+  respawns and fruit spawns hazard-safe by construction.
 
 ### Ghost personalities + pathing (Tier 2 architecture)
 
@@ -316,6 +576,12 @@ flashing arrows at fleeing ghosts would read backwards).
 | Eating a power pill stacked free combos with no downside.       | Pill activation only ADDED food, never spent any.                   | `FOOD_POWER_PILL_COST = -10` in `constants.js`; `game-spawn.js` adds `FOOD_PER_POWER_PILL + FOOD_POWER_PILL_COST` so the net is +15, not +25. |
 | Hard mode wasn't actually hard — ghost speed 39 vs Pacman 40.   | `ghostSpeedMul: 1.15` left ghosts strictly slower in straight lines. | Bumped Hard's `ghostSpeedMul` to 1.25 so chase speed (~42.5) exceeds Pacman's 40 and a clean line of sight will catch him. Distance penalty stacks on top via `effectiveGhostSpeedMul()`. |
 | Spam-jumping was a free 0.4 s panic-evade with i-frames.        | `tryJump()` set `invulnerable=true` for the entire arc.             | `pacman.js#update` now derives `invulnerable` per frame from `sin(πt) × JUMP_HEIGHT > 0.5` so only the apex of the arc grants pass-through; takeoff/landing are vulnerable. Plus `FOOD_PER_JUMP=2` ties jumps to the hunger budget. |
+| Hazard biome disconnected a chunk's cross corridor.             | Generator stamped a hazard over the cross during the elevation pass. | `stampHazard()` in `templates.js#buildTemplate` skips any cell on `row === CENTER` or `col === CENTER`. The stamp loop now iterates the generic `hazards` map so every HAZARDS entry — current or future — inherits the invariant automatically. Always go through `buildTemplate({ hazards: {...} })` rather than writing into the map directly. |
+| Ghosts walked into lava and stood there forever.                | `_reachableNeighbors` and `_bfsNextStepToward` used the same `surfaceHeightAt` finite check Pacman uses, which lets lava through. | `world.isGhostPassable(gx, gy)` combines the finite-surface check AND `HAZARDS[…].ghost.blocked` rejection; both ghost pathing call sites use it. Marking a new hazard as ghost-impassable is one `blocked: true` flag in `world-config.js` — no pathing code edits needed. |
+| Drown / lava death showed the "FELL INTO THE VOID" overlay.     | `_enterDeath()` always hardcoded `cause = 'void'`.                  | `Pacman.die(cause)` stores `_deathCause`; `_enterDeath` reads it directly so any HAZARDS entry's `deathCause` (or any future cause) flows through. Drown / heat / freeze deaths route through `_loseLife(meter.deathCause)` so they get the spin/shrink animation + correct overlay via `DEATH_MESSAGES`. |
+| Adding a fourth hazard touched 7 files (TILE enum, GAMEPLAY consts, world-assets, chunk meshes, world predicates, pacman reaction, game-state ticker). | No central registry — every consumer hardcoded WATER/LAVA/MUD branches. | Introduced `js/world-config.js` with `HAZARDS`/`METERS`/`WALL_KINDS`/`DEATH_MESSAGES` registries. Consumers iterate the registry by id and read effects from the spec. A new hazard is one entry; a new wall kind is one entry; a new meter is one entry + one HTML `<div>`. |
+| Ghosts going in circles (most visible in WANDER on small floor patches; also in CHASE when the personality target was unreachable). | Two stacked bugs: (1) the reverse-bias filter doesn't catch 4-step loops because each step is a different cardinal, and (2) `_pickGreedy*` used a strict `<` against scores ordered by the fixed `dirs` iteration in `_reachableNeighbors`, so ties always handed the win to "up", producing systematic loops. | Three coordinated changes in `ghost.js`: (a) `RECENT_TILE_HISTORY` ring buffer of the last 4 tiles the ghost stood on, with `_pickNextTarget` filtering candidates whose destination is in the ring (falls back to all candidates when truly cornered). (b) Greedy tiebreak unified into `_pickWithTiebreak` — collects all tied-best candidates, prefers the one matching `lastDir` so the ghost commits to a heading, randomises among remaining ties. (c) WANDER prefers continuing straight 70% of the time so wandering reads as readable lines of motion instead of jitter. Ghosts that are still legitimately stuck (single-tile dead-ends) still fall back to U-turning since the reverse-bias gate also has a fallback when filtered candidates is empty. |
+| Hard mode dot count was nominally `0.3 × baseKeep` but the cross corridor was always 100% dotted regardless of difficulty, so a Hard player walking the corridor between chunks still grazed a guaranteed-full dot lane and the food-scarcity loop never bit. | `chunk.buildDots` short-circuited the decimation hash for cross tiles. | Added `crossDotKeepMul` to `DIFFICULTY_PRESETS` (1.0 on Easy/Normal, 0.35 on Hard), threaded through `_syncWorldDifficulty → world.difficulty.crossDotKeepMul → world._makeChunk → Chunk.crossDotKeepPercent`. `chunk.buildDots` runs the same hash-decimation on cross tiles when the percent is < 100, salted with a different seed (`0x77`) so cross/off-cross hash patterns don't accidentally align. |
 
 ## Registry integration
 

@@ -72,7 +72,19 @@ export const DIFFICULTY = {
 //   - ghostCountMul         — soft cap on the live ghost pool
 //   - ghostChaseRadiusMul   — how early ghosts notice Pacman
 //   - fruitSpawnPeriodMul   — wider/narrower fruit cadence
-//   - dotKeepMul            — how dense pellets are per chunk
+//   - dotKeepMul            — how dense pellets are on **off-cross** floor
+//                             tiles per chunk (cross corridor dots are
+//                             gated separately by `crossDotKeepMul` so the
+//                             iconic "trail of dots down the corridor" can
+//                             also be thinned on Hard).
+//   - crossDotKeepMul       — fraction of cross-corridor floor tiles that
+//                             actually get a dot. 1.0 (Easy/Normal) keeps
+//                             the classic full trail; <1.0 (Hard) thins
+//                             the corridor too so the player isn't
+//                             grazing a guaranteed-full lane between
+//                             chunks. Decimation is hash-deterministic so
+//                             the same tile is always (or never) dotted
+//                             across reloads.
 //   - powerModeDurationS    — *absolute* power-pill window (not a multiplier
 //                             — the game previously used the flat 8 s
 //                             constant which made power pills equally
@@ -93,13 +105,15 @@ export const DIFFICULTY_PRESETS = {
     ghostSpeedMul: 0.85,
     ghostCountMul: 0.6,
     ghostChaseRadiusMul: 0.8,
-    fruitSpawnPeriodMul: 0.7, // shorter interval = more fruit
-    dotKeepMul: 1.6, // more pellets per chunk
+    fruitSpawnPeriodMul: 0.45, // shorter interval = more fruit (~2.2× hard's cadence)
+    dotKeepMul: 2.0, // more pellets per chunk — easy feels generously fed
+    crossDotKeepMul: 1.0, // full classic trail on the cross corridor
     powerModeDurationS: 10,
     fleeSpeedMul: 0.5,
     jumpCooldownMul: 0.8,
     ghostMinSpawnDistMul: 1.3,
-    foodPerDotMul: 1.2 // more nourishment per dot — easy is forgiving
+    foodPerDotMul: 1.4, // more nourishment per dot — easy is forgiving
+    hazardDensityMul: 0.35 // hazards rare on easy
   },
   normal: {
     label: 'Normal',
@@ -109,11 +123,13 @@ export const DIFFICULTY_PRESETS = {
     ghostChaseRadiusMul: 1.0,
     fruitSpawnPeriodMul: 1.0,
     dotKeepMul: 1.0,
+    crossDotKeepMul: 1.0, // full classic trail on the cross corridor
     powerModeDurationS: 8,
     fleeSpeedMul: 0.6,
     jumpCooldownMul: 1.0,
     ghostMinSpawnDistMul: 1.0,
-    foodPerDotMul: 1.0
+    foodPerDotMul: 1.0,
+    hazardDensityMul: 1.0
   },
   hard: {
     label: 'Hard',
@@ -121,13 +137,24 @@ export const DIFFICULTY_PRESETS = {
     ghostSpeedMul: 1.25, // above Pacman speed → straight-line chase catches him
     ghostCountMul: 1.4,
     ghostChaseRadiusMul: 1.25,
-    fruitSpawnPeriodMul: 1.25, // longer interval = less fruit (was 1.6 — too punishing on top of base nerf)
-    dotKeepMul: 0.5, // fewer pellets per chunk
+    fruitSpawnPeriodMul: 1.7, // wider window = fruit feels rare
+    dotKeepMul: 0.18, // very few pellets off-cross — clamps to the 5% floor
+                     // in world.js so most chunks read as "open arena
+                     // with a few stray dots", not a connect-the-dots
+                     // grind.
+    // Thin the cross corridor too — Hard players were grazing a
+    // guaranteed-full dot lane between chunks. 0.35 keeps the trail
+    // recognizable as "this is the cross" but the gaps between dots
+    // are large enough that the player can't just hug the cross and
+    // feed. Combined with foodPerDotMul: 0.4 and the off-cross cut,
+    // Hard becomes a genuine food-scarcity survival run.
+    crossDotKeepMul: 0.35,
     powerModeDurationS: 5,
     fleeSpeedMul: 0.85,
     jumpCooldownMul: 2.4,
     ghostMinSpawnDistMul: 0.7,
-    foodPerDotMul: 0.5 // grazing your way to immortality is no longer viable
+    foodPerDotMul: 0.4, // grazing your way to immortality is no longer viable
+    hazardDensityMul: 1.6 // hazardous biomes more common on hard
   }
 };
 
@@ -181,6 +208,16 @@ export const GHOST_COLORS = [
 // =============================================================================
 // TILE TYPES - Level map values
 // =============================================================================
+// Non-hazard tile codes. Hazard codes live in `world-config.js#HAZARDS`
+// — each entry there picks its own numeric tileCode (7+). Keeping the
+// two halves split means non-hazard code never needs to import the
+// hazard registry, and adding/removing a hazard only touches one file.
+//
+// We still expose `TILE.WATER/LAVA/MUD` here as a compatibility shim
+// (so existing references to `TILE.WATER` keep compiling) — they're
+// pulled from the registry rather than hardcoded.
+import { HAZARDS, HAZARD_TILE_CODES } from './world-config.js';
+
 export const TILE = {
   VOID: 0,
   FLOOR: 1,
@@ -188,8 +225,21 @@ export const TILE = {
   GHOST_HOME: 3,
   TELEPORT: 4,
   POWER_PILL: 5,
-  PACMAN_START: 6
+  PACMAN_START: 6,
+  // Hazard tile codes — sourced from world-config.HAZARDS so the
+  // registry stays the single source of truth. New hazards added there
+  // automatically appear here.
+  WATER: HAZARDS.water.tileCode,
+  LAVA: HAZARDS.lava.tileCode,
+  MUD: HAZARDS.mud.tileCode
 };
+
+/**
+ * Set of every tile code that's a hazard. Re-exported here from
+ * `world-config.js` so callers that only care about "is this a hazard?"
+ * don't have to import the full HAZARDS registry.
+ */
+export const HAZARD_TILES = HAZARD_TILE_CODES;
 
 // =============================================================================
 // GAMEPLAY CONSTANTS
@@ -318,6 +368,13 @@ export const GAMEPLAY = {
 
   // FPS danger warning
   DANGER_WARNING_RADIUS: 5 // tiles distance to trigger warning
+
+  // -------- Hazard / meter tunables -------------------------------------
+  // Per-hazard speed mults (water wade, mud slowdown, …) live on each
+  // HAZARDS entry in `world-config.js`. Per-meter drain/refill/death
+  // settings (breath today; heat / cold in the future) live on each
+  // METERS entry there too. Adding a new hazard or meter is a single
+  // edit to world-config.js — no changes here.
 };
 
 // =============================================================================

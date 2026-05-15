@@ -164,6 +164,29 @@
             </div>
           </div>
 
+          <!--
+            Breath meter — driven by `world-config.js#METERS.breath`.
+            Hidden when not wading and the meter is full. JS
+            (game-hud.js:_refreshMetersHud) shows it the moment Pacman
+            steps onto WATER and keeps it on screen until breath
+            refills all the way back to 1.0 (so the player knows the
+            meter is recovering, not just stuck empty). Adding another
+            meter (heat/cold/…) is a new METERS entry + a matching
+            <div id="..."> here.
+          -->
+          <div id="breath-meter" class="mt-2 hidden">
+            <div class="text-xs text-cyan-300 mb-1">BREATH</div>
+            <div
+              class="w-32 h-2 bg-black/60 rounded overflow-hidden border border-cyan-400/50"
+            >
+              <div
+                id="breath-bar"
+                class="h-full bg-cyan-400 transition-all duration-150"
+                style="width: 100%"
+              ></div>
+            </div>
+          </div>
+
           <!-- View toggle (cycles overhead / follow / first-person).
                Was labelled "Camera" but that read like "take a screenshot",
                so it's now "View" with an eye icon. -->

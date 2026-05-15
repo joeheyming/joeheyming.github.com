@@ -38,6 +38,23 @@ export class Pacman {
     this.invulnerable = false; // true mid-jump (sets up Phase 3 ghost interactions)
     this.dead = false; // true while falling/respawning into the void
     this.deathT = 0; // 0..1 progress through fall-into-void animation
+    // Hazard tile state (read by game-state._tickMeters + game-hud
+    // meters bar; written by _reactToTileUnderFeet every grounded
+    // movement step).
+    //   _activeMeters:    Set<meterId> currently being drained because
+    //                     of the hazard under foot. Today only ever
+    //                     contains 'breath' (when standing in WATER).
+    //                     game-state checks this per meter and decides
+    //                     drain-vs-refill.
+    //   _hazardSpeedMul:  speed multiplier contributed by the tile
+    //                     under foot, read from `HAZARDS[id].pacman.
+    //                     speedMul`. Defaults to 1.0 on safe tiles.
+    //                     Applied as a final factor on moveAmount.
+    //   _deathCause:      set by die(cause) so game-state's _enterDeath
+    //                     can show the right respawn copy.
+    this._activeMeters = new Set();
+    this._hazardSpeedMul = 1.0;
+    this._deathCause = 'void';
     // Classic Pac-Man "killed by ghost" animation: mouth opens wide,
     // then the body spins and shrinks. This is a separate visual from
     // the void fall; we keep the two state machines independent so they
@@ -167,10 +184,24 @@ export class Pacman {
     this.group.add(this.rightEye);
 
     // Position the group
-    this.group.position.copy(this.position);
+    this._syncGroupPosition();
 
     // Initial mouth animation
     this.animateMouth(0);
+  }
+
+  /**
+   * Copy the authoritative world position into the render group. All
+   * other transform updates (rotation, mouth) compose on top of this.
+   *
+   * Sunken-hazard "wading in water" is now a real height drop —
+   * `tileHeight` itself goes negative when Pacman steps into a water/
+   * lava pit (see `pacmanSurfaceHeightAt` in world.js), which flows
+   * through `position.z` via the standard surface-height pipeline. The
+   * group transform follows position 1:1 with no extra offset.
+   */
+  _syncGroupPosition() {
+    this.group.position.copy(this.position);
   }
 
   positionEyes() {
@@ -292,8 +323,10 @@ export class Pacman {
     if (this.dying) {
       this.dyingT = Math.min(1, this.dyingT + deltaTime / GAMEPLAY.PACMAN_DEATH_ANIM_DURATION);
       const t = this.dyingT;
-      // Stay anchored at the spot Pacman was caught — copy position.
-      this.group.position.copy(this.position);
+      // Stay anchored at the spot Pacman was caught — copy position
+      // (and keep the hazard sink so a drown-death sphere doesn't pop
+      // back up out of the water mid-spin).
+      this._syncGroupPosition();
       if (t < 0.4) {
         // Phase 1: mouth opens wide (0 → 170°). No spinning yet.
         this.setMouthAngle((t / 0.4) * 170);
@@ -315,7 +348,7 @@ export class Pacman {
       // Sink into the void: drop ~3 tiles below the surface we last stood on.
       const sink = this.deathT * this.scale * 3;
       this.position.z = this.smoothHeight * this.scale + this.scale / 2 - sink;
-      this.group.position.copy(this.position);
+      this._syncGroupPosition();
       this.group.rotation.z = (this.yaw * Math.PI) / 180;
       // Spin Pacman as he falls for cosmetic flair.
       this.group.rotation.x = this.deathT * Math.PI * 2;
@@ -359,6 +392,11 @@ export class Pacman {
     }
 
     // Compose final z = surface height + half-radius offset + jump arc.
+    // Stepping into water/lava drops `tileHeight` to a negative tile
+    // (e.g. -0.5 for a half-tile-deep pool, see
+    // `world.pacmanSurfaceHeightAt`); the same `smoothHeight` lerp
+    // above eases the dip in/out so wading reads as a step-down
+    // rather than a teleport.
     const jumpArc = this.jumping
       ? Math.sin(Math.PI * this.jumpT) * GAMEPLAY.PACMAN_JUMP_HEIGHT * this.scale
       : 0;
@@ -378,7 +416,7 @@ export class Pacman {
     }
 
     // Update group position and rotation
-    this.group.position.copy(this.position);
+    this._syncGroupPosition();
     this.group.rotation.x = 0;
     this.group.rotation.z = (this.yaw * Math.PI) / 180;
   }
@@ -418,14 +456,27 @@ export class Pacman {
 
   /**
    * Mark Pacman as dead — triggers fall animation. Game watches `dead` and
-   * runs the respawn timer.
+   * runs the respawn timer. The optional `cause` is stored on Pacman so
+   * game-state._enterDeath can pick the right respawn-overlay copy (void
+   * fall vs lava vs drowning all share this animation path but want
+   * different flavour text).
    */
-  die() {
+  die(cause = 'void') {
     if (this.dead) return;
     this.dead = true;
     this.deathT = 0;
     this.jumping = false;
     this.invulnerable = false;
+    this._deathCause = cause;
+    // Stop hazard effects so the meters HUD isn't draining a dead Pacman.
+    // Pacman's `tileHeight` (and therefore `position.z`) stays at the
+    // sunken value while the death animation plays — a drown-death
+    // sphere should remain submerged through the spin/shrink rather
+    // than popping out of the water the moment _loseLife fires. The
+    // void-fall branch in update() then drives the further sink-into-
+    // the-abyss animation off `smoothHeight`.
+    this._activeMeters.clear();
+    this._hazardSpeedMul = 1.0;
   }
 
   /**
@@ -457,7 +508,7 @@ export class Pacman {
     this.tileHeight = height;
     this.smoothHeight = height;
     this.position.set(gridX * this.scale, gridY * this.scale, height * this.scale + this.scale / 2);
-    this.group.position.copy(this.position);
+    this._syncGroupPosition();
     // Reset the spin/shrink/flatten transforms left over from the ghost
     // death animation so Pacman doesn't respawn tiny + sideways.
     this.group.scale.set(1, 1, 1);
@@ -473,6 +524,11 @@ export class Pacman {
     this.sprintTimer = 0;
     this.sprintCooldown = 0;
     this._sprintCooldownStart = 0;
+    // Clear any hazard state carried over from the previous life — a
+    // fresh spawn always lands on a FLOOR tile via randomLoadedFloor,
+    // so we start dry, mud-free, and at base speed.
+    this._activeMeters.clear();
+    this._hazardSpeedMul = 1.0;
   }
 
   /**
@@ -505,10 +561,11 @@ export class Pacman {
   /**
    * Resolve the tile under Pacman after a jump arc completes.
    *
-   * Lands cleanly if (a) the tile has a walkable surface (FLOOR or WALL)
-   * and (b) the surface is within reach of his pre-jump height (auto-step
-   * + jump apex). Otherwise he falls — VOID or overshooting too tall a
-   * tower are both fatal.
+   * Lands cleanly if (a) the tile has a walkable surface (FLOOR or WALL
+   * or a non-lava hazard) and (b) the surface is within reach of his
+   * pre-jump height (auto-step + jump apex). Otherwise he falls — VOID
+   * or overshooting too tall a tower are both fatal. Landing on lava is
+   * also fatal (same animation path as a void fall, different cause).
    */
   _resolveLanding() {
     if (!this.level) return;
@@ -517,16 +574,75 @@ export class Pacman {
     const surf = this.level.surfaceHeightAt(gx, gy);
     if (Number.isNaN(surf)) {
       // Landed on VOID.
-      this.die();
+      this.die('void');
       return;
     }
     const reach = 1 + GAMEPLAY.PACMAN_JUMP_HEIGHT; // auto-step (1) + jump (1)
+    // Reach check uses the floor-edge surface (`surfaceHeightAt`) so
+    // landing on top of a water pit's edge counts as the floor-level
+    // step (the pacman-specific drop is applied in
+    // `_reactToTileUnderFeet` after the reach gate passes).
     if (surf - this.tileHeight > reach) {
       // Tile is taller than our combined step+jump reach — bonk and fall.
-      this.die();
+      this.die('void');
       return;
     }
     this.tileHeight = surf;
+    // Defer hazard reactions (lava death / water-wade entry) to the
+    // shared helper used by grounded movement so jump landings and
+    // walking land in the same state machine. That helper resets
+    // tileHeight to the pacman-specific (sunken) height for hazards.
+    this._reactToTileUnderFeet(gx, gy);
+  }
+
+  /**
+   * React to whatever tile Pacman is now standing on. Called from
+   * `handleMovement` when grounded and from `_resolveLanding` after a
+   * jump.
+   *
+   * Two cases:
+   *   1. VOID (no surface) → die('void').
+   *   2. Any tile with a HAZARDS spec → apply spec.pacman:
+   *        - `lethal: true`   → die(spec.deathCause) and bail.
+   *        - `drainMeter: id` → add `id` to _activeMeters so the meter
+   *          ticker in game-state drains it; remove all other meters
+   *          (only one active hazard at a time).
+   *        - `speedMul`       → set `_hazardSpeedMul` (defaults to 1).
+   *   3. Anything else (FLOOR, WALL) → clear active meters, reset speed.
+   *
+   * Always updates `tileHeight` last so the next-frame movement code
+   * has the right surface to compare against.
+   *
+   * Registry-driven: adding a new hazard with a new speed/lethal/meter
+   * combo doesn't require code changes here — just a HAZARDS entry.
+   */
+  _reactToTileUnderFeet(gx, gy) {
+    if (!this.level) return;
+    const tile = this.level.tileAt(gx, gy);
+    if (tile === TILE.VOID) {
+      this.die('void');
+      return;
+    }
+    const haz = this.level.hazardAt(gx, gy);
+    if (haz) {
+      const p = haz.pacman || {};
+      if (p.lethal) {
+        this.die(p.deathCause || haz.id);
+        return;
+      }
+      this._activeMeters.clear();
+      if (p.drainMeter) this._activeMeters.add(p.drainMeter);
+      this._hazardSpeedMul = p.speedMul ?? 1.0;
+    } else {
+      this._activeMeters.clear();
+      this._hazardSpeedMul = 1.0;
+    }
+    // Use Pacman's per-actor surface so hazards with `pacmanSink > 0`
+    // (water, lava) physically drop him into the pit. The standard
+    // `smoothHeight` lerp in update() eases the descent so it reads
+    // as a step-down. Ghosts continue to read `surfaceHeightAt` and
+    // float at the floor-edge level — the asymmetry is the point.
+    this.tileHeight = this.level.pacmanSurfaceHeightAt(gx, gy);
   }
 
   handleMovement(deltaTime, direction, moveVec = null) {
@@ -544,8 +660,15 @@ export class Pacman {
     // single layer (rather than to `moveSpeed` itself) so the base spec
     // stays untouched and so any future movement code reading
     // `pacman.moveSpeed` still sees the canonical value.
+    //
+    // Hazard multiplier (`_hazardSpeedMul`, sourced from the HAZARDS
+    // registry per-tile) stacks underneath sprint so sprinting through
+    // water/mud is still slower than sprinting on floor — but faster
+    // than wading at base speed. Sprint > wade in any same-tile
+    // comparison, which matches the "dash to escape" intuition (water
+    // slows but doesn't strand you).
     const speedMul = this.sprintTimer > 0 ? GAMEPLAY.SPRINT_SPEED_MUL : 1;
-    const moveAmount = this.moveSpeed * speedMul * deltaTime;
+    const moveAmount = this.moveSpeed * speedMul * this._hazardSpeedMul * deltaTime;
 
     if (useVector) {
       this.position.x += moveVec.x * moveAmount;
@@ -645,20 +768,20 @@ export class Pacman {
       }
     }
 
-    // Resolve the tile we landed in. While jumping, this is purely a height
-    // bookkeeping step — we don't kill on void mid-arc, only on landing
-    // (handled by _resolveLanding when jumpT completes).
+    // Resolve the tile we landed in. While jumping, this is purely a
+    // height bookkeeping step — we don't kill on void/lava mid-arc,
+    // only on landing (handled by _resolveLanding when jumpT completes).
+    // When airborne we also can't drown / catch fire — flying over a
+    // hazard doesn't count as standing on it — so we explicitly clear
+    // active meters and reset speed for the mid-jump frames. (Reactivates
+    // on landing if the destination is a hazard.)
     if (!this.jumping) {
       const gx = this.level.worldToGrid(this.position.x);
       const gy = this.level.worldToGrid(this.position.y);
-      const tile = this.level.tileAt(gx, gy);
-      if (tile === TILE.VOID) {
-        // Walked off a cliff with no jump — fatal.
-        this.die();
-      } else {
-        // FLOOR or WALL — both are walkable surfaces in the new block model.
-        this.tileHeight = this.level.surfaceHeightAt(gx, gy);
-      }
+      this._reactToTileUnderFeet(gx, gy);
+    } else {
+      this._activeMeters.clear();
+      this._hazardSpeedMul = 1.0;
     }
 
     // Handle teleports
@@ -893,7 +1016,7 @@ export class Pacman {
     this.mouthAngle = 0;
     this.mouthAnimating = false;
     this.animateMouth(0);
-    this.group.position.copy(this.position);
+    this._syncGroupPosition();
     this.group.rotation.z = (this.yaw * Math.PI) / 180;
   }
 

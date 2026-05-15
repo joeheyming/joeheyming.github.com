@@ -24,7 +24,8 @@
 import * as THREE from 'three';
 import { CHUNK_SIZE } from './templates.js';
 import { hashCoords } from './prng.js';
-  
+import { HAZARDS, HAZARD_BY_CODE, WALL_KINDS, pickWallKindId } from './world-config.js';
+
 const TILE_VOID = 0;
 const TILE_FLOOR = 1;
 const TILE_WALL = 2;
@@ -54,18 +55,32 @@ export class Chunk {
     // to the base constant; world.js overrides with the active preset's
     // dotKeepMul × NON_CROSS_DOT_KEEP_PERCENT at construction time.
     this.dotKeepPercent = opts.dotKeepPercent ?? NON_CROSS_DOT_KEEP_PERCENT;
+    // Cross-corridor decimation. Defaults to 100 (every cross-floor
+    // tile gets a dot — the classic "trail down the corridor" look).
+    // World overrides via the active preset's `crossDotKeepMul` so
+    // Hard mode can thin the corridor too. Same hash-based gate as
+    // off-cross dots so the layout is deterministic per (cx,cy,lx,ly).
+    this.crossDotKeepPercent = opts.crossDotKeepPercent ?? 100;
+    // Per-chunk wall-kind override (set by biomes via the template).
+    // When unset, buildWalls picks per tile via WALL_KINDS stackRange
+    // fallback. When set, every wall in the chunk uses this kind
+    // regardless of height — a biome can say "I want volcanic obsidian
+    // for all my walls".
+    this.wallKind = opts.wallKind ?? template.wallKind ?? null;
 
     // Copy the per-cell tile codes and heights so per-chunk mutations
     // (collected dots) don't bleed into other chunks that share the template.
     this.map = template.map.map((row) => row.slice());
     this.heights = template.heights.map((row) => row.slice());
 
-    this.wallMesh = null;
-    // Tall walls (stackUnits ≥ 3) render with the rocky mountain
-    // material so big peaks/cliffs feel like terrain instead of
-    // skyscrapers. Tracked separately from wallMesh because they use
-    // different materials and can't be merged into a single mesh.
-    this.mountainMesh = null;
+    // Wall + hazard meshes are registry-driven: one entry per
+    // WALL_KINDS / HAZARDS id that actually produced geometry this
+    // chunk. Iterating the map covers every kind, so adding a new
+    // hazard or wall kind only requires editing the registry.
+    /** @type {Map<string, THREE.Mesh>} keyed by HAZARDS id */
+    this.hazardMeshes = new Map();
+    /** @type {Map<string, THREE.Mesh>} keyed by WALL_KINDS id */
+    this.wallMeshes = new Map();
     this.floorMesh = null;
     this.dotMesh = null; // InstancedMesh: 1 draw call for all small dots in this chunk
     this.pillMesh = null; // InstancedMesh: 1 draw call for power pills (typically 1 per chunk)
@@ -90,9 +105,13 @@ export class Chunk {
 
   /**
    * World z-coordinate of the walkable top surface at (lx, ly):
-   *   FLOOR → heights[ly][lx] * scale
-   *   WALL  → (heights[ly][lx] + 1) * scale (walls are 1 unit taller)
-   *   VOID  → NaN (no surface)
+   *   FLOOR / any HAZARD → heights[ly][lx] * scale
+   *   WALL                → (heights[ly][lx] + 1) * scale (walls are 1 unit taller)
+   *   VOID                → NaN (no surface)
+   *
+   * Hazards behave like FLOOR for surface-Z purposes — Pacman walks on
+   * their tops at the same height as the surrounding floor; what makes
+   * them hazardous lives in `pacman._reactToTileUnderFeet`, not here.
    */
   surfaceZ(lx, ly) {
     const t = this.map[ly][lx];
@@ -101,7 +120,7 @@ export class Chunk {
     return (this.heights[ly][lx] + offset) * this.scale;
   }
 
-  /** Surface height of (lx, ly) in tile-units (h for FLOOR, h+1 for WALL). */
+  /** Surface height of (lx, ly) in tile-units (h for FLOOR/hazard, h+1 for WALL). */
   surfaceHeight(lx, ly) {
     const t = this.map[ly][lx];
     if (t === TILE_VOID) return NaN;
@@ -112,41 +131,44 @@ export class Chunk {
   build() {
     this.buildWalls();
     this.buildFloor();
+    this.buildHazards();
     this.buildDots();
   }
 
   /**
    * Walls render as full boxes from z=0 to z=(h+1)*scale. Their tops are
-   * walkable surfaces at z=(h+1)*scale. All wall boxes in the chunk merge
-   * into a single BufferGeometry to keep draw calls bounded.
+   * walkable surfaces at z=(h+1)*scale.
+   *
+   * Wall-kind selection is registry-driven: for each WALL tile we ask
+   * `pickWallKindId(stackUnits, this.wallKind)` which honours a per-
+   * chunk biome override and otherwise falls back to height-based
+   * selection from the WALL_KINDS registry. All boxes of the same kind
+   * merge into a single BufferGeometry to keep draw calls bounded —
+   * one mesh per kind that's actually used in this chunk.
+   *
+   * UV handling: kinds with `repeatVerticalUV: true` (windowed houses
+   * today) get their side-face V coords scaled by stackUnits so a
+   * 4-tile-tall building shows 4 storeys of windows, while top + bottom
+   * UVs collapse to a non-window texel so the rooftop doesn't show
+   * stretched windows from above.
    */
   buildWalls() {
-    // Two buckets — short "house" walls and tall "mountain" walls. We
-    // build one merged mesh per bucket with its own material so windows
-    // only appear on low-rise tiles and big peaks read as natural rock.
-    const HOUSE_MAX_STACK = 2; // stackUnits ≤ 2 → houses; ≥ 3 → mountain
-    const houseGeos = [];
-    const mountainGeos = [];
+    /** @type {Map<string, THREE.BoxGeometry[]>} kindId → geometry buckets */
+    const buckets = new Map();
 
     for (let ly = 0; ly < CHUNK_SIZE; ly++) {
       for (let lx = 0; lx < CHUNK_SIZE; lx++) {
         if (this.map[ly][lx] !== TILE_WALL) continue;
         const stackUnits = this.heights[ly][lx] + 1; // walls are 1+h tall
         const totalHeight = stackUnits * this.scale;
-        const geo = new THREE.BoxGeometry(this.scale, this.scale, totalHeight);
-        const isHouse = stackUnits <= HOUSE_MAX_STACK;
+        const kindId = pickWallKindId(stackUnits, this.wallKind);
+        const kind = WALL_KINDS[kindId];
 
-        if (isHouse) {
+        const geo = new THREE.BoxGeometry(this.scale, this.scale, totalHeight);
+
+        if (kind?.repeatVerticalUV) {
           // Side faces (pX, nX, pY, nY) are vertices 0..15 → UVs 0..31.
           // Top + bottom faces (pZ, nZ) are vertices 16..23 → UVs 32..47.
-          // We do two things:
-          //   1. Repeat the side V coords by stackUnits so each tile-unit
-          //      of wall height shows one row of windows.
-          //   2. Collapse the top + bottom UVs onto a single non-window
-          //      pixel of the texture (the bottom-left of the canvas is
-          //      pure facade). Otherwise the roof would show the window
-          //      grid stretched across it — the user spotted this from
-          //      the top-down camera.
           const uvAttr = geo.attributes.uv;
           const uv = uvAttr.array;
           for (let i = 0; i < 16; i++) {
@@ -163,26 +185,25 @@ export class Chunk {
         matrix.setPosition(this.worldX(lx), this.worldY(ly), totalHeight / 2);
         geo.applyMatrix4(matrix);
 
-        if (isHouse) houseGeos.push(geo);
-        else mountainGeos.push(geo);
+        let bucket = buckets.get(kindId);
+        if (!bucket) {
+          bucket = [];
+          buckets.set(kindId, bucket);
+        }
+        bucket.push(geo);
       }
     }
 
-    if (houseGeos.length > 0) {
-      const merged = mergeBoxGeometries(houseGeos);
-      for (const g of houseGeos) g.dispose();
-      this.wallMesh = new THREE.Mesh(merged, this.assets.wallMaterial);
-      this.wallMesh.castShadow = true;
-      this.wallMesh.receiveShadow = true;
-    }
-    if (mountainGeos.length > 0) {
-      // Mountains don't need UVs (the rock material has no map), so the
-      // merger drops them automatically.
-      const merged = mergeBoxGeometries(mountainGeos);
-      for (const g of mountainGeos) g.dispose();
-      this.mountainMesh = new THREE.Mesh(merged, this.assets.mountainMaterial);
-      this.mountainMesh.castShadow = true;
-      this.mountainMesh.receiveShadow = true;
+    for (const [kindId, geos] of buckets) {
+      if (geos.length === 0) continue;
+      const material = this.assets.wallMaterials.get(kindId);
+      if (!material) continue;
+      const merged = mergeBoxGeometries(geos);
+      for (const g of geos) g.dispose();
+      const mesh = new THREE.Mesh(merged, material);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      this.wallMeshes.set(kindId, mesh);
     }
   }
 
@@ -224,6 +245,58 @@ export class Chunk {
     // Don't cast shadows from floors — too many block sides multiply the
     // shadow map cost and the visual win is marginal.
     this.floorMesh.castShadow = false;
+  }
+
+  /**
+   * Hazard rendering — one merged mesh per hazard kind that actually
+   * appears in this chunk. Each tile is a thin slab whose top surface
+   * sits flush with the floor at the same height; Pacman walks on top
+   * via `surfaceZ` (same as FLOOR) and gameplay reactions live in
+   * `pacman._reactToTileUnderFeet`.
+   *
+   * Registry-driven: we iterate `HAZARDS` once at end of build to flush
+   * each populated bucket. Adding a new hazard requires zero edits here.
+   */
+  buildHazards() {
+    const DEFAULT_SLAB_T = 0.18; // fraction of `scale` — thin slab on the floor
+    /** @type {Map<string, THREE.BoxGeometry[]>} hazardId → geometry buckets */
+    const buckets = new Map();
+
+    for (let ly = 0; ly < CHUNK_SIZE; ly++) {
+      for (let lx = 0; lx < CHUNK_SIZE; lx++) {
+        const tileCode = this.map[ly][lx];
+        const spec = HAZARD_BY_CODE.get(tileCode);
+        if (!spec) continue;
+        const h = this.heights[ly][lx];
+        const topZ = h * this.scale;
+        const thickness = this.scale * (spec.slabThickness ?? DEFAULT_SLAB_T);
+        const box = new THREE.BoxGeometry(this.scale, this.scale, thickness);
+        const matrix = new THREE.Matrix4();
+        // Slab is centred half-a-thickness below the top so the top face
+        // lands exactly at `topZ + 0.02` (tiny lift avoids z-fighting
+        // with the floor block underneath when h>0).
+        matrix.setPosition(this.worldX(lx), this.worldY(ly), topZ - thickness / 2 + 0.02);
+        box.applyMatrix4(matrix);
+        let bucket = buckets.get(spec.id);
+        if (!bucket) {
+          bucket = [];
+          buckets.set(spec.id, bucket);
+        }
+        bucket.push(box);
+      }
+    }
+
+    for (const [hazardId, geos] of buckets) {
+      if (geos.length === 0) continue;
+      const material = this.assets.hazardMaterials.get(hazardId);
+      if (!material) continue;
+      const merged = mergeBoxGeometries(geos);
+      for (const g of geos) g.dispose();
+      const mesh = new THREE.Mesh(merged, material);
+      mesh.receiveShadow = false;
+      mesh.castShadow = false;
+      this.hazardMeshes.set(hazardId, mesh);
+    }
   }
 
   /**
@@ -271,12 +344,22 @@ export class Chunk {
         }
 
         const onCross = lx === CROSS_AXIS || ly === CROSS_AXIS;
-        if (!onCross) {
-          // Decimate non-cross FLOOR tiles via global-coord hash. Same
-          // (cx, cy, lx, ly) always produces the same dot/no-dot decision,
-          // so dot layout is reproducible.
-          const gx = this.cx * CHUNK_SIZE + lx;
-          const gy = this.cy * CHUNK_SIZE + ly;
+        // Decimate FLOOR tiles via global-coord hash. Same (cx, cy,
+        // lx, ly) always produces the same dot/no-dot decision so the
+        // dot layout is reproducible across reloads. Cross corridor
+        // and off-cross use independent percentages so a difficulty
+        // preset can keep the cross full (Easy/Normal) or thin it
+        // alongside the off-cross density (Hard). Salt the cross hash
+        // with a different seed (0x77 vs 0) so the cross/off-cross
+        // patterns don't accidentally align on the same tile.
+        const gx = this.cx * CHUNK_SIZE + lx;
+        const gy = this.cy * CHUNK_SIZE + ly;
+        if (onCross) {
+          if (this.crossDotKeepPercent < 100) {
+            const h = hashCoords(0x77, gx, gy);
+            if (h % 100 >= this.crossDotKeepPercent) continue;
+          }
+        } else {
           const h = hashCoords(0, gx, gy);
           if (h % 100 >= this.dotKeepPercent) continue;
         }
@@ -368,9 +451,9 @@ export class Chunk {
 
   addToScene(scene) {
     if (this._added) return;
-    if (this.wallMesh) scene.add(this.wallMesh);
-    if (this.mountainMesh) scene.add(this.mountainMesh);
+    for (const mesh of this.wallMeshes.values()) scene.add(mesh);
     if (this.floorMesh) scene.add(this.floorMesh);
+    for (const mesh of this.hazardMeshes.values()) scene.add(mesh);
     if (this.dotMesh) scene.add(this.dotMesh);
     if (this.pillMesh) scene.add(this.pillMesh);
     this._added = true;
@@ -378,23 +461,23 @@ export class Chunk {
 
   removeFromScene(scene) {
     if (!this._added) return;
-    if (this.wallMesh) scene.remove(this.wallMesh);
-    if (this.mountainMesh) scene.remove(this.mountainMesh);
+    for (const mesh of this.wallMeshes.values()) scene.remove(mesh);
     if (this.floorMesh) scene.remove(this.floorMesh);
+    for (const mesh of this.hazardMeshes.values()) scene.remove(mesh);
     if (this.dotMesh) scene.remove(this.dotMesh);
     if (this.pillMesh) scene.remove(this.pillMesh);
     this._added = false;
   }
 
   dispose() {
-    if (this.wallMesh) {
-      this.wallMesh.geometry.dispose();
-      this.wallMesh = null;
-    }
-    if (this.mountainMesh) {
-      this.mountainMesh.geometry.dispose();
-      this.mountainMesh = null;
-    }
+    // Wall + hazard meshes — geometries are unique per chunk (merged
+    // BoxGeometry lists) so they must be disposed; the materials live
+    // on world.assets and are shared, so they stay alive past the
+    // chunk's lifetime.
+    for (const mesh of this.wallMeshes.values()) mesh.geometry.dispose();
+    this.wallMeshes.clear();
+    for (const mesh of this.hazardMeshes.values()) mesh.geometry.dispose();
+    this.hazardMeshes.clear();
     if (this.floorMesh) {
       this.floorMesh.geometry.dispose();
       this.floorMesh = null;

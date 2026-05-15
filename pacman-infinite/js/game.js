@@ -13,6 +13,7 @@ import { CameraController } from './camera.js';
 import { Controls } from './controls.js';
 import { AudioManager } from './audio.js';
 import { GAME_STATES, GAMEPLAY, CAMERA } from './constants.js';
+import { METERS } from './world-config.js';
 import { CHUNK_SIZE } from './templates.js';
 import { randomSeed } from './prng.js';
 import { loadSave } from './save.js';
@@ -70,8 +71,16 @@ class Game {
       this.seed = randomSeed();
     }
 
-    // Starting camera mode. Default = BIRDSEYE_FOLLOW per the plan; fixed
-    // BIRDSEYE is meaningless in an infinite world.
+    // Starting camera mode. Default = FPPOV on desktop (first-person
+    // sells the scale of the procedurally-generated terrain — sunken
+    // water pits, towering mountain walls, lava chasms — far better
+    // than overhead). On touch devices FPPOV is impractical without a
+    // mouse to aim, so mobile downgrades to BIRDSEYE_FOLLOW. Fixed
+    // BIRDSEYE (=0) is meaningless in an infinite world so it isn't a
+    // selectable default; users can still toggle to it via the C key.
+    //
+    // Resolution order: ?startcamera URL param > persisted localStorage
+    // choice > device-aware default.
     const startCameraParam = urlParams.get('startcamera');
     const savedCameraMode = localStorage.getItem(CAMERA_STORAGE_KEY);
     const parsedSavedMode = savedCameraMode !== null ? parseInt(savedCameraMode, 10) : null;
@@ -85,7 +94,8 @@ class Game {
     if (isMobile && validSavedMode === 2) validSavedMode = 1;
 
     const parsedStartCamera = this.parseCameraMode(startCameraParam);
-    this.startCameraMode = parsedStartCamera ?? validSavedMode ?? 1; // BIRDSEYE_FOLLOW
+    const deviceDefaultMode = isMobile ? 1 : 2; // BIRDSEYE_FOLLOW on touch, FPPOV elsewhere
+    this.startCameraMode = parsedStartCamera ?? validSavedMode ?? deviceDefaultMode;
 
     if (this.debugMode) {
       console.log('[pac-infinite] debug=true seed=', this.seed);
@@ -187,6 +197,17 @@ class Game {
     // Hunger HUD
     this.foodMeterElement = document.getElementById('food-meter');
     this.foodBarElement = document.getElementById('food-bar');
+    // Registry-driven meter HUD lookups. Each METERS entry declares
+    // its DOM ids (hudId / hudBarId); we cache the lookups once so
+    // _refreshMetersHud doesn't have to query per frame. Adding a new
+    // meter requires a matching <div> in index.html plus the registry
+    // entry — no code changes here.
+    this.meterElements = new Map();
+    for (const meter of Object.values(METERS)) {
+      const wrap = document.getElementById(meter.hudId);
+      const bar = document.getElementById(meter.hudBarId);
+      if (wrap && bar) this.meterElements.set(meter.id, { wrap, bar });
+    }
     // Tier 3 — survival/runner HUD elements (FAR / MULT / STREAK).
     this.farTilesElement = document.getElementById('far-tiles');
     this.scoreMultElement = document.getElementById('score-mult');
@@ -352,7 +373,12 @@ class Game {
     // coords/yaw, but recompute the surface height from the (deterministic)
     // world so a stale or impossible h doesn't strand him in mid-air.
     if (savedPacman) {
-      const surf = this.world.surfaceHeightAt(savedPacman.gx, savedPacman.gy);
+      // Use Pacman's per-actor surface height so a continuing save that
+      // left him standing in water restores at the sunken Z (not the
+      // floor-edge Z). The next movement step would correct it via
+      // `_reactToTileUnderFeet` anyway, but doing it here means the
+      // first frame after Continue doesn't pop him out of the pool.
+      const surf = this.world.pacmanSurfaceHeightAt(savedPacman.gx, savedPacman.gy);
       const safeHeight = Number.isFinite(surf) && !Number.isNaN(surf) ? surf : savedPacman.h ?? 0;
       this.pacman.respawnAt(savedPacman.gx, savedPacman.gy, safeHeight);
       if (typeof savedPacman.yaw === 'number') {
@@ -379,6 +405,9 @@ class Game {
     // Power-bar + food-bar update every frame so they visibly drain smoothly.
     this._refreshPowerHud();
     this._refreshFoodHud();
+    // Breath bar — only visible while wading or refilling. Cheap when
+    // hidden (early-out inside the helper).
+    this._refreshMetersHud();
     // On-screen ghost proximity arrows — runs every frame so the
     // markers track ghost motion smoothly and tier escalation happens
     // the moment a ghost crosses a radius threshold.
@@ -473,6 +502,11 @@ class Game {
       // in the corresponding handlers above; eating ghosts subtracts from it.
       // Hitting zero triggers a starvation-death (same flow as a ghost kill).
       this._tickHunger(this.deltaTime);
+      // All registry-driven meters (breath today; future heat/cold/…).
+      // Each ticks independently against pacman._activeMeters: an entry
+      // present in the set drains, otherwise it refills. Empty meter
+      // routes through _loseLife(meter.deathCause) — drown for water.
+      this._tickMeters(this.deltaTime);
     }
 
     if (this._postRespawnGrace > 0) {

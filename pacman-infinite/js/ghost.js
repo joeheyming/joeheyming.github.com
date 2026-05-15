@@ -92,6 +92,22 @@ const CLYDE_SHY_RADIUS_TILES = 8;
 const BFS_MAX_NODES = 240;
 const BFS_MAX_RADIUS_TILES = 10;
 const BFS_CACHE_TTL_S = 0.4;
+
+// Anti-circling tile memory. Without this, two failure modes appear:
+//   1. A WANDER ghost in a small enclosed area (2×N corridor, 4-tile
+//      loop) keeps cycling because the reverse-bias filter doesn't
+//      catch a 4-step loop (each step is a different cardinal).
+//   2. A CHASE ghost greedy-picking toward an unreachable target gets
+//      stuck in a deterministic cycle when neighbour distances are
+//      equal — the candidate list always iterates dirs in the same
+//      order so ties always break the same way.
+//
+// The fix is mild and shared by both states: keep a ring of the last
+// N tiles the ghost stood on. When picking the next target, prefer
+// candidates whose destination is NOT in that ring. 4 tiles catches
+// 2×2 loops and most 3-tile bounce patterns; bigger feels too much
+// like the ghost actively avoids re-tracing reasonable paths.
+const RECENT_TILE_HISTORY = 4;
 const FLEE_COLOR = 0x2030c0; // deep blue
 const FLEE_BLINK_COLOR = 0xffffff; // near end of power mode, blink white
 const EYE_COLOR = 0xffffff;
@@ -149,6 +165,11 @@ export class Ghost {
       this.surfaceHeight = 0;
     }
     this.lastDir = null; // last cardinal direction taken, for reverse-bias
+    // Ring buffer of "gx,gy" keys for the last RECENT_TILE_HISTORY
+    // tiles this ghost stood on. Used by `_pickNextTarget` to break
+    // out of small loops — see RECENT_TILE_HISTORY commentary above.
+    /** @type {string[]} */
+    this._recentTiles = [];
 
     // World-space position (driven by lerp between gridX/Y and targetGridX/Y).
     // Z anchor sits the body so the cylinder bottom is at the surface,
@@ -457,6 +478,15 @@ export class Ghost {
       }
     }
 
+    // Hazard slowdown — read the ghost's per-hazard speed multiplier
+    // from the HAZARDS registry. Today only MUD slows ghosts (water
+    // they float over, lava blocks them entirely in
+    // world.isGhostPassable). The multiplier applies immediately on
+    // tile-arrival rather than waiting for the next BFS re-decision.
+    const haz = this.world.hazardAt?.(this.gridX, this.gridY);
+    const ghostSpeedMul = haz?.ghost?.speedMul;
+    if (typeof ghostSpeedMul === 'number') speed *= ghostSpeedMul;
+
     const tx = this.targetGridX * this.scale;
     const ty = this.targetGridY * this.scale;
     const tz = this.world.surfaceHeightAt(this.targetGridX, this.targetGridY);
@@ -530,9 +560,23 @@ export class Ghost {
       return;
     }
 
+    // 1) Reverse-bias — never U-turn unless that's the only option.
     const reverseDir = this._reverseOf(this.lastDir);
     let candidates = neighbors.filter((n) => n.dir !== reverseDir);
     if (candidates.length === 0) candidates = neighbors;
+
+    // 2) Anti-circle — prefer candidates that DON'T land on a tile we
+    //    stood on within the last RECENT_TILE_HISTORY steps. Falls
+    //    back to all candidates if every option is recent (truly
+    //    cornered — let the per-state picker decide rather than
+    //    refuse to move). This is what breaks the "ghost going in a
+    //    circle" failure mode in WANDER and unreachable-target chases.
+    if (this._recentTiles.length > 0) {
+      const novel = candidates.filter(
+        (c) => !this._recentTiles.includes(`${c.gx},${c.gy}`)
+      );
+      if (novel.length > 0) candidates = novel;
+    }
 
     let chosen;
     if (this.state === GHOST_STATE.FLEE) {
@@ -557,12 +601,27 @@ export class Ghost {
         }
       }
     } else {
-      chosen = candidates[Math.floor(Math.random() * candidates.length)];
+      // WANDER — random non-reverse, non-recent. Prefer continuing
+      // straight when current direction is in the candidate set so a
+      // wandering ghost forms readable lines of motion instead of
+      // jittering at every step. This also reads more naturally to
+      // the player ("that ghost is heading west") than pure RNG.
+      const straight = candidates.find((c) => c.dir === this.lastDir);
+      chosen = straight && Math.random() < 0.7
+        ? straight
+        : candidates[Math.floor(Math.random() * candidates.length)];
     }
 
     this.targetGridX = chosen.gx;
     this.targetGridY = chosen.gy;
     this.lastDir = chosen.dir;
+
+    // 3) Update the recent-tile ring AFTER picking so the new
+    //    destination doesn't accidentally exclude itself from future
+    //    picks (we want to remember where we WERE, not where we're
+    //    going). Push the tile we're about to leave behind.
+    this._recentTiles.push(`${this.gridX},${this.gridY}`);
+    if (this._recentTiles.length > RECENT_TILE_HISTORY) this._recentTiles.shift();
   }
 
   /**
@@ -623,19 +682,21 @@ export class Ghost {
    * tile* (not Pacman directly). Used for personality-driven chases —
    * Pinky walks toward "4 tiles ahead of Pacman", Inky toward the pincer
    * point, etc.
+   *
+   * Tie-breaking matters: `_reachableNeighbors` iterates `dirs` in a
+   * fixed order (up, down, left, right), so a strict `<` comparison
+   * would hand every tie to "up", which is what produced the
+   * systematic-circling failure mode when the personality target was
+   * unreachable. We instead collect all tied-best candidates and prefer
+   * to **continue in the current direction** (commits the ghost to a
+   * heading instead of jittering); failing that, randomise among the
+   * ties so two ghosts stuck on the same target don't trace the same
+   * loop.
    */
   _pickGreedyTowardTile(candidates, target) {
-    let best = candidates[0];
-    let bestScore = this._tileDistSqToTile(best.gx, best.gy, target.gx, target.gy);
-    for (let i = 1; i < candidates.length; i++) {
-      const c = candidates[i];
-      const score = this._tileDistSqToTile(c.gx, c.gy, target.gx, target.gy);
-      if (score < bestScore) {
-        best = c;
-        bestScore = score;
-      }
-    }
-    return best;
+    return this._pickWithTiebreak(candidates, (c) =>
+      this._tileDistSqToTile(c.gx, c.gy, target.gx, target.gy)
+    );
   }
 
   _tileDistSqToTile(gx, gy, tx, ty) {
@@ -704,8 +765,17 @@ export class Ghost {
         const ny = node.gy + dy;
         const k = `${nx},${ny}`;
         if (visited.has(k)) continue;
+        // Same passability gate as `_reachableNeighbors`. Without this,
+        // BFS would happily route through LAVA and ghosts would walk to
+        // a tile they then can't actually step into next frame.
+        const passable = this.world.isGhostPassable
+          ? this.world.isGhostPassable(nx, ny)
+          : (() => {
+              const s = this.world.surfaceHeightAt(nx, ny);
+              return Number.isFinite(s) && !Number.isNaN(s);
+            })();
+        if (!passable) continue;
         const surf = this.world.surfaceHeightAt(nx, ny);
-        if (Number.isNaN(surf) || !Number.isFinite(surf)) continue;
         if (Math.abs(surf - here) > 1) continue;
         visited.set(k, `${node.gx},${node.gy}`);
         queue.push({ gx: nx, gy: ny });
@@ -754,19 +824,41 @@ export class Ghost {
    * @param {Array<{gx:number,gy:number,dir:string}>} candidates
    * @param {THREE.Vector3} pacmanPos
    * @param {number} sign +1 = minimize distance (chase), -1 = maximize (flee)
+   *
+   * Same continue-straight-then-random tiebreak as
+   * `_pickGreedyTowardTile` — without it, FLEE ghosts would also lock
+   * into systematic loops when several escape tiles are equidistant
+   * from Pacman.
    */
   _pickGreedy(candidates, pacmanPos, sign) {
-    let best = candidates[0];
-    let bestScore = sign * this._tileDistSqToPacman(best.gx, best.gy, pacmanPos);
+    return this._pickWithTiebreak(
+      candidates,
+      (c) => sign * this._tileDistSqToPacman(c.gx, c.gy, pacmanPos)
+    );
+  }
+
+  /**
+   * Shared tiebreak helper. Score `candidates` with `scoreFn`, take all
+   * tied-minimum candidates (within a tiny epsilon since some scores
+   * are floats), prefer the one matching `lastDir` (so the ghost
+   * commits to a heading instead of jittering at intersections), and
+   * fall back to random among the ties.
+   *
+   * Lifted out of `_pickGreedy*` so chase + flee + any future scorer
+   * share the exact same "no systematic-circle" guarantee.
+   */
+  _pickWithTiebreak(candidates, scoreFn) {
+    let best = scoreFn(candidates[0]);
     for (let i = 1; i < candidates.length; i++) {
-      const c = candidates[i];
-      const score = sign * this._tileDistSqToPacman(c.gx, c.gy, pacmanPos);
-      if (score < bestScore) {
-        best = c;
-        bestScore = score;
-      }
+      const s = scoreFn(candidates[i]);
+      if (s < best) best = s;
     }
-    return best;
+    const eps = 1e-6;
+    const tied = candidates.filter((c) => scoreFn(c) <= best + eps);
+    if (tied.length === 1) return tied[0];
+    const straight = tied.find((c) => c.dir === this.lastDir);
+    if (straight) return straight;
+    return tied[Math.floor(Math.random() * tied.length)];
   }
 
   _tileDistSqToPacman(gx, gy, pacmanPos) {
@@ -789,9 +881,19 @@ export class Ghost {
     for (const { dir, dx, dy } of dirs) {
       const gx = this.gridX + dx;
       const gy = this.gridY + dy;
+      // Same auto-step rule as Pacman's grounded movement (|Δh| ≤ 1) +
+      // ghost-specific hazard rule: LAVA is impassable (water/mud are
+      // still fine — water = ghost shortcut, mud = slow but walkable).
+      // `isGhostPassable` packs both the finite-surface check AND the
+      // lava rejection so both pathing call sites can't drift.
+      const passable = this.world.isGhostPassable
+        ? this.world.isGhostPassable(gx, gy)
+        : (() => {
+            const s = this.world.surfaceHeightAt(gx, gy);
+            return Number.isFinite(s) && !Number.isNaN(s);
+          })();
+      if (!passable) continue;
       const surf = this.world.surfaceHeightAt(gx, gy);
-      if (Number.isNaN(surf) || !Number.isFinite(surf)) continue;
-      // Same auto-step rule as Pacman's grounded movement (|Δh| ≤ 1).
       if (Math.abs(surf - here) > 1) continue;
       out.push({ dir, gx, gy, surf });
     }

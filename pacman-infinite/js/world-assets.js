@@ -9,11 +9,23 @@
  * Exports:
  *   - chunkKey(cx, cy)         — canonical "cx,cy" string key for the
  *                                chunk map in world.js.
- *   - createSharedAssets(scale) — wall / mountain / floor / dot / pill
- *                                materials and geometries.
+ *   - createSharedAssets(scale) — returns:
+ *       {
+ *         floorMaterial,
+ *         dotMaterial, dotGeometry,
+ *         pillMaterial, pillGeometry,
+ *         hazardMaterials:  Map<hazardId,  THREE.Material>,
+ *         wallMaterials:    Map<wallKindId, THREE.Material>,
+ *         wallTextures:     Map<textureId,  THREE.Texture>
+ *       }
+ *
+ * The hazard- and wall-material maps are populated from the HAZARDS /
+ * WALL_KINDS registries in `world-config.js`. Adding a new hazard or
+ * wall kind requires zero edits here.
  */
 
 import * as THREE from 'three';
+import { HAZARDS, WALL_KINDS } from './world-config.js';
 
 /** Stable string key for the world's chunk Map. */
 export function chunkKey(cx, cy) {
@@ -31,25 +43,20 @@ export function chunkKey(cx, cy) {
  */
 function createBuildingWindowTexture() {
   const SIZE = 128;
-  const COLS = 3; // windows across one tile width
+  const COLS = 3;
   const c = document.createElement('canvas');
   c.width = SIZE;
   c.height = SIZE;
   const ctx = c.getContext('2d');
-  // Wall background — dark navy "facade" so the windows pop.
   ctx.fillStyle = '#0e1840';
   ctx.fillRect(0, 0, SIZE, SIZE);
-  // Faint mortar / floor-divider line at the top of the tile.
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
   ctx.fillRect(0, 0, SIZE, 4);
-  // Vertical column gutters (between windows) for depth.
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
   for (let i = 1; i < COLS; i++) {
     const x = (SIZE / COLS) * i - 1;
     ctx.fillRect(x, 0, 2, SIZE);
   }
-  // Window grid. One row per tile-unit, with the windows centered
-  // vertically so the texture tiles cleanly when V repeats.
   const cellW = SIZE / COLS;
   const winW = cellW * 0.6;
   const winH = SIZE * 0.55;
@@ -57,11 +64,8 @@ function createBuildingWindowTexture() {
   for (let i = 0; i < COLS; i++) {
     const x = i * cellW + (cellW - winW) / 2;
     const y = yStart;
-    // Pseudo-random lit pattern (deterministic per column index) so it
-    // looks like real windows without "every window lit" uniformity.
     const lit = (i * 37 + 11) % 4 < 3;
     if (lit) {
-      // Bright warm yellow window with a soft glow halo.
       ctx.fillStyle = 'rgba(255, 220, 110, 0.35)';
       ctx.fillRect(x - 6, y - 6, winW + 12, winH + 12);
       ctx.fillStyle = '#ffe080';
@@ -69,7 +73,6 @@ function createBuildingWindowTexture() {
       ctx.fillStyle = '#070a18';
     }
     ctx.fillRect(x, y, winW, winH);
-    // Window cross-mullions for that "office tower" look.
     ctx.strokeStyle = 'rgba(0,0,0,0.7)';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -89,42 +92,106 @@ function createBuildingWindowTexture() {
 }
 
 /**
+ * Registry of procedural texture factories keyed by `textureId`. WALL_KINDS
+ * entries can reference one of these via their `textureId` field; the
+ * texture is bound to both `map` and `emissiveMap` so lit window pixels
+ * glow.
+ *
+ * Adding a new procedural texture (rock face, brick, hexagons, …):
+ *   1. Write a factory returning a `THREE.CanvasTexture` here.
+ *   2. Add an entry to TEXTURE_FACTORIES below.
+ *   3. Reference it from a WALL_KINDS entry's `textureId` field.
+ */
+const TEXTURE_FACTORIES = {
+  'building-windows': createBuildingWindowTexture
+};
+
+/**
+ * Build all procedural canvas textures referenced by the WALL_KINDS
+ * registry. Returns a Map<textureId, THREE.Texture>. Cached at
+ * world-load time so we don't redraw the canvas per chunk.
+ */
+function buildWallTextures() {
+  const out = new Map();
+  for (const kind of Object.values(WALL_KINDS)) {
+    const id = kind.textureId;
+    if (!id) continue;
+    if (out.has(id)) continue;
+    const factory = TEXTURE_FACTORIES[id];
+    if (!factory) {
+      // Don't crash on a typo — log once, render without a texture.
+      // eslint-disable-next-line no-console
+      console.warn(`world-assets: no texture factory for '${id}'; wall kind '${kind.id}' will render untextured.`);
+      continue;
+    }
+    out.set(id, factory());
+  }
+  return out;
+}
+
+/**
+ * Hydrate a single registry spec (HAZARDS[id].material or
+ * WALL_KINDS[id].material) into a THREE material. When the entry has a
+ * `textureId`, we look up the canvas texture and bind it as both `map`
+ * AND `emissiveMap` (matches the windowed-house behaviour: lit windows
+ * glow because the same canvas drives the emissive channel).
+ */
+function hydrateMaterial(spec, textureId, textures) {
+  const opts = { ...spec };
+  if (textureId && textures.has(textureId)) {
+    const tex = textures.get(textureId);
+    opts.map = tex;
+    opts.emissiveMap = tex;
+  }
+  return new THREE.MeshStandardMaterial(opts);
+}
+
+/**
+ * Build the hazard material map from the HAZARDS registry. Keyed by
+ * hazard id (`'water'`, `'lava'`, `'mud'`). Chunk.buildHazards reads
+ * `assets.hazardMaterials.get(spec.id)` per merged mesh.
+ */
+function buildHazardMaterials() {
+  const out = new Map();
+  for (const spec of Object.values(HAZARDS)) {
+    out.set(spec.id, hydrateMaterial(spec.material, null, new Map()));
+  }
+  return out;
+}
+
+/**
+ * Build the wall material map from the WALL_KINDS registry. Keyed by
+ * wall-kind id (`'house'`, `'mountain'`, `'obsidian'`, …). Chunk.buildWalls
+ * reads `assets.wallMaterials.get(kindId)` after picking the kind via
+ * `pickWallKindId(stackUnits, chunk.wallKind)`.
+ */
+function buildWallMaterials(textures) {
+  const out = new Map();
+  for (const kind of Object.values(WALL_KINDS)) {
+    out.set(kind.id, hydrateMaterial(kind.material, kind.textureId, textures));
+  }
+  return out;
+}
+
+/**
  * Create the materials + dot geometry that every chunk shares. Centralising
  * these means we only allocate the GL resources once per world, not per chunk.
+ *
+ * Output shape:
+ *   floorMaterial             — shared floor material (no registry — only one)
+ *   dotMaterial, dotGeometry  — instanced dots
+ *   pillMaterial, pillGeometry — instanced power pills
+ *   hazardMaterials: Map<id, Material>  — keyed by HAZARDS entry id
+ *   wallMaterials:   Map<id, Material>  — keyed by WALL_KINDS entry id
+ *   wallTextures:    Map<id, Texture>   — keyed by textureId for inspection
  */
 export function createSharedAssets(scale) {
-  // Two wall flavours, picked per-tile in chunk.buildWalls() based on
-  // the tile's stack height:
-  //   - HOUSES  (short walls, stackUnits ≤ 2): textured with a window
-  //     grid → reads as a low-rise village.
-  //   - MOUNTAIN (tall walls, stackUnits ≥ 3): plain rocky grey with
-  //     no windows → reads as a cliff/peak rather than a giant tower.
-  const wallTexture = createBuildingWindowTexture();
-  const wallMaterial = new THREE.MeshStandardMaterial({
-    color: 0xffffff, // texture provides the colour; keep tint neutral
-    roughness: 0.6,
-    metalness: 0.05,
-    // Emissive map = same texture, so the LIT WINDOWS glow against the
-    // dark facade. Modest base intensity — the lit pixels already pop.
-    emissive: 0xffffff,
-    emissiveIntensity: 0.35,
-    map: wallTexture,
-    emissiveMap: wallTexture
-  });
-  // Mountain rock: cool slate-grey with a hint of blue so it harmonises
-  // with the rest of the palette (which is mostly blue). High roughness
-  // and zero metalness keep it matte — natural stone, not building.
-  const mountainMaterial = new THREE.MeshStandardMaterial({
-    color: 0x55607a,
-    roughness: 0.95,
-    metalness: 0.0,
-    emissive: 0x111722,
-    emissiveIntensity: 0.2
-  });
+  // Procedural textures referenced by any wall kind.
+  const wallTextures = buildWallTextures();
 
-  // Floors: lighter steel-blue, distinct from walls but visibly part of the
-  // same family. Was 0x2a2a3a (almost black) which made elevated terrain
-  // (e.g. the terraced pyramid) silhouette into the dark sky.
+  // Floor: lighter steel-blue, distinct from walls but visibly part of the
+  // same family. (Floors only have one flavour today; if we add biome-
+  // specific floor materials later, this becomes a registry too.)
   const floorMaterial = new THREE.MeshStandardMaterial({
     color: 0x6080b0,
     roughness: 0.7,
@@ -140,9 +207,6 @@ export function createSharedAssets(scale) {
     roughness: 0.2,
     metalness: 0.3
   });
-
-  // Bump dot radius from 0.08 → 0.13 of a tile so individual pellets read
-  // from farther away — important now that they're sparser.
   const dotGeometry = new THREE.SphereGeometry(scale * 0.13, 8, 8);
 
   // Power pill — clearly distinct from regular dots: ~3× size, magenta,
@@ -156,13 +220,19 @@ export function createSharedAssets(scale) {
   });
   const pillGeometry = new THREE.SphereGeometry(scale * 0.32, 16, 12);
 
+  // Registry-driven maps — one entry per spec, looked up at chunk-build
+  // time by id.
+  const hazardMaterials = buildHazardMaterials();
+  const wallMaterials = buildWallMaterials(wallTextures);
+
   return {
-    wallMaterial,
-    mountainMaterial,
     floorMaterial,
     dotMaterial,
     dotGeometry,
     pillMaterial,
-    pillGeometry
+    pillGeometry,
+    hazardMaterials,
+    wallMaterials,
+    wallTextures
   };
 }

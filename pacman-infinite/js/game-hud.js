@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GAMEPLAY, GAME_STATES, GHOST_STATE } from './constants.js';
+import { METERS, getDeathMessage } from './world-config.js';
 
 // Watch radius (tiles) for the on-screen ghost proximity markers.
 // Anything beyond this is "out of mind" — no marker drawn. The
@@ -98,33 +99,60 @@ export const gameHud = {
    * Cause-specific copy used by the respawn overlay (between deaths
    * mid-run) and the GAME OVER screen (final death). Bold "title" plus
    * a quieter flavour line keeps the overlay glanceable.
+   *
+   * Registry-driven: looks up DEATH_MESSAGES[cause] with a graceful
+   * fallback to the 'ghost' entry. Adding a new death cause is a
+   * single registry edit — no switch statement to keep in sync.
    */
   _deathMessage(cause) {
-    switch (cause) {
-      case 'starvation':
-        return { title: 'YOU STARVED', flavour: 'Eat more pellets to keep your hunger up.' };
-      case 'void':
-        return { title: 'FELL INTO THE VOID', flavour: 'Stay on solid ground.' };
-      case 'ghost':
-      default:
-        return { title: 'A GHOST GOT YOU', flavour: 'Grab a power pill to fight back.' };
-    }
+    const m = getDeathMessage(cause);
+    return { title: m.title, flavour: m.flavour };
   },
 
   /** Update the death-overlay copy + the GAME OVER flavour line. */
   _applyDeathMessage(cause) {
-    const msg = this._deathMessage(cause);
-    if (this.respawnTitle) this.respawnTitle.textContent = msg.title;
-    if (this.respawnFlavour) this.respawnFlavour.textContent = msg.flavour;
+    const m = getDeathMessage(cause);
+    if (this.respawnTitle) this.respawnTitle.textContent = m.title;
+    if (this.respawnFlavour) this.respawnFlavour.textContent = m.flavour;
     if (this.gameOverCauseElement) {
-      // GAME OVER replaces "respawning" copy with a more final tone.
-      const finalText =
-        cause === 'starvation'
-          ? 'You starved.'
-          : cause === 'void'
-          ? 'You fell into the void.'
-          : 'A ghost got you.';
-      this.gameOverCauseElement.textContent = finalText;
+      this.gameOverCauseElement.textContent = m.final;
+    }
+  },
+
+  /**
+   * Drive every registered meter's HUD bar each frame, iterating the
+   * METERS registry. Per-meter visibility rule:
+   *   - active (Pacman has this meter in `_activeMeters`) → always
+   *     visible while draining.
+   *   - inactive but value < max → visible while refilling so the
+   *     player can see recovery progress.
+   *   - otherwise hidden.
+   *
+   * Width is `value / meter.max`. The `.low` class kicks in when the
+   * meter is below `meter.lowFrac` of max so the CSS can pulse red,
+   * mirroring the food bar's low-warning pattern.
+   *
+   * Adding a new meter HUD requires zero edits here — just add the
+   * METERS entry and a matching <div id="..."> in index.html.
+   */
+  _refreshMetersHud() {
+    if (!this.meterElements) return;
+    const active = this.pacman?._activeMeters;
+    for (const meter of Object.values(METERS)) {
+      const els = this.meterElements.get(meter.id);
+      if (!els) continue;
+      const stored = this._meters?.get(meter.id);
+      const value = Math.max(0, Math.min(meter.max, stored ?? meter.max));
+      const isActive = !!active?.has(meter.id);
+      const refilling = value < meter.max;
+      if (!isActive && !refilling) {
+        els.wrap.classList.add('hidden');
+        continue;
+      }
+      els.wrap.classList.remove('hidden');
+      els.bar.style.width = `${(value / meter.max) * 100}%`;
+      const low = value < meter.max * (meter.lowFrac ?? 0.25);
+      els.wrap.classList.toggle('low', low);
     }
   },
 

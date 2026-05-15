@@ -20,7 +20,8 @@
  */
 
 import * as THREE from 'three';
-import { TILE, GAMEPLAY } from './constants.js';
+import { TILE, HAZARD_TILES, GAMEPLAY } from './constants.js';
+import { HAZARD_BY_CODE } from './world-config.js';
 import { CHUNK_SIZE, CHUNK_TEMPLATES, generateChunk } from './templates.js';
 import { Chunk } from './chunk.js';
 import { mulberry32, hashCoords, randomSeed } from './prng.js';
@@ -79,6 +80,7 @@ export class World {
       ghostCountMul: 1.0,
       ghostChaseRadiusMul: 1.0,
       dotKeepMul: 1.0,
+      crossDotKeepMul: 1.0,
       // Tier 1 difficulty mults — runtime-synced from DIFFICULTY_PRESETS so
       // ghost.js / pacman.js can react without re-importing constants.
       fleeSpeedMul: GAMEPLAY.GHOST_FLEE_SPEED_MULTIPLIER,
@@ -169,6 +171,18 @@ export class World {
     return (
       this.difficulty.dotKeepMul * Math.max(0.3, 1 - FAR_DOT_DENSITY_PENALTY * this.farPct)
     );
+  }
+
+  /**
+   * Probability that a hazard-bearing biome (lake/lava/swamp/…) is
+   * accepted when rolling a new chunk. Stacks the base preset
+   * (`difficulty.hazardDensityMul`) on top of farPct so deep chunks
+   * lean more hazardous regardless of preset. Clamped above 0 so easy
+   * mode still sees occasional hazards on a long run.
+   */
+  effectiveHazardDensityMul() {
+    const base = this.difficulty.hazardDensityMul ?? 1.0;
+    return base * (1 + 0.5 * this.farPct);
   }
 
   /**
@@ -270,12 +284,23 @@ export class World {
    * Walkable surface height (in tile-units) of the tile at (gx, gy):
    *   FLOOR(h) → h
    *   WALL(h)  → h + 1   (walls are 1 tile taller than their `heights` value)
+   *   WATER(h) → h       (top edge of the pit — see `pacmanSurfaceHeightAt`
+   *                       for the lower height Pacman actually stands at)
+   *   LAVA(h)  → h       (Pacman can step on it then dies; ghosts blocked)
+   *   MUD(h)   → h       (slow but otherwise walkable)
    *   VOID     → NaN
    *   unloaded chunk → +Infinity (treated as an impassable tower)
    *
-   * This is the function the movement logic uses to decide whether Pacman
-   * can step onto a tile. The FLOOR/WALL distinction is otherwise purely
-   * cosmetic.
+   * This is the **floor-edge** height. Cliff/AABB checks (`canMoveTo`),
+   * ghost movement (`_reachableNeighbors`, `_bfsNextStepToward`), dot
+   * placement, and fruit hover all read this — they want to treat the
+   * top edge of a water pit as the surface so ghosts float over water,
+   * floors next to a pit don't bonk the wading Pacman with a cliff
+   * face, and so on.
+   *
+   * For the height **Pacman actually stands at** (which sinks below the
+   * floor edge for water/lava — that's the "fall into" terrain) use
+   * `pacmanSurfaceHeightAt`.
    */
   surfaceHeightAt(globalGridX, globalGridY) {
     const chunk = this._chunkAt(globalGridX, globalGridY);
@@ -287,6 +312,73 @@ export class World {
     return chunk.heights[ly][lx] + (tile === TILE.WALL ? 1 : 0);
   }
 
+  /**
+   * Surface height **for Pacman specifically**. Identical to
+   * `surfaceHeightAt` for FLOOR/WALL, but for hazards with
+   * `HAZARDS[id].pacmanSink > 0` (today: water + lava) the result
+   * drops by `pacmanSink` tiles so Pacman physically falls into the
+   * pit instead of skating across the top.
+   *
+   * The auto-step (|Δh| ≤ 1) handles dropping in / climbing out
+   * automatically: a 0.5-deep pool is a 0.5-tile step in either
+   * direction. Climbing onto a tall wall **from** a pit (Δh = 1.5)
+   * still requires a jump — wading slows your escape, which matches
+   * the "water is a real terrain hazard" intuition.
+   *
+   * Ghosts deliberately do NOT use this — their movement still reads
+   * `surfaceHeightAt` so they keep floating at floor level over water
+   * (matches the asymmetric-hazard design where Pacman wades and
+   * ghosts skim).
+   */
+  pacmanSurfaceHeightAt(globalGridX, globalGridY) {
+    const chunk = this._chunkAt(globalGridX, globalGridY);
+    if (!chunk) return Infinity;
+    const lx = globalGridX - chunk.cx * CHUNK_SIZE;
+    const ly = globalGridY - chunk.cy * CHUNK_SIZE;
+    const tile = chunk.map[ly][lx];
+    if (tile === TILE.VOID) return NaN;
+    if (tile === TILE.WALL) return chunk.heights[ly][lx] + 1;
+    const haz = HAZARD_BY_CODE.get(tile);
+    const sink = haz?.pacmanSink ?? 0;
+    return chunk.heights[ly][lx] - sink;
+  }
+
+  /**
+   * The hazard kind at (gx, gy) — returns the HAZARDS registry SPEC for
+   * the tile (full object with `id`, `pacman`, `ghost`, `material` …),
+   * or null if the tile is benign. Cheap (one tileAt + Map.get).
+   *
+   * Callers used to receive a raw tile-code number here. They now get
+   * the spec; use `.id` for the hazard kind name or `.tileCode` for the
+   * raw number. Returning the spec means consumers don't need a second
+   * lookup to read effects.
+   */
+  hazardAt(globalGridX, globalGridY) {
+    const t = this.tileAt(globalGridX, globalGridY);
+    return HAZARD_BY_CODE.get(t) ?? null;
+  }
+
+  /**
+   * Can a ghost legally occupy this tile? Mirrors the
+   * `surfaceHeightAt`-finite-and-not-NaN rule but additionally blocks
+   * any hazard tagged `ghost.blocked: true` in the HAZARDS registry
+   * (lava today; any future "fire pit" / "ghost ward" trivially slots
+   * in). Non-blocked hazards (water/mud) remain passable — water
+   * because ghosts float over it, mud because the slowdown is the
+   * mechanic.
+   *
+   * Both `ghost._reachableNeighbors` and the bounded BFS use this so
+   * the two pathing paths agree on what counts as "ghost territory".
+   */
+  isGhostPassable(globalGridX, globalGridY) {
+    const surf = this.surfaceHeightAt(globalGridX, globalGridY);
+    if (Number.isNaN(surf) || !Number.isFinite(surf)) return false;
+    const t = this.tileAt(globalGridX, globalGridY);
+    const haz = HAZARD_BY_CODE.get(t);
+    if (haz?.ghost?.blocked) return false;
+    return true;
+  }
+
   isVoid(gridX, gridY) {
     return this.tileAt(gridX, gridY) === TILE.VOID;
   }
@@ -294,7 +386,10 @@ export class World {
   /**
    * Convenience: is the tile at (gx, gy) something Pacman could plausibly
    * stand on (FLOOR or WALL)? This is the new "block-friendly" replacement
-   * for the FLOOR-only walkability check.
+   * for the FLOOR-only walkability check. Hazards are deliberately NOT
+   * included here — callers wanting "Pacman can be here without dying"
+   * should use `tileAt(...) === TILE.FLOOR` or `!HAZARD_TILES.has(...)`
+   * explicitly, since the hazard semantics vary (lava kills, mud slows).
    */
   isWalkable(gridX, gridY) {
     const t = this.tileAt(gridX, gridY);
@@ -303,7 +398,11 @@ export class World {
 
   /**
    * Pick a uniformly-random FLOOR tile from any currently-loaded chunk.
-   * Used as the respawn site after death.
+   * Used as the respawn site after death and as the candidate pool for
+   * fruit spawns. Hazards are deliberately filtered out (no respawning
+   * inside a lava lake, no fruit hovering over water — both would feel
+   * unfair). The fallback scan always succeeds because every chunk's
+   * central cross row/col is guaranteed-FLOOR by `buildTemplate`.
    *   @returns {{ gridX: number, gridY: number, height: number } | null}
    */
   randomLoadedFloor() {
@@ -322,8 +421,6 @@ export class World {
         };
       }
     }
-    // Fallback: scan deterministically. Every chunk has a FLOOR cross by
-    // contract so this always succeeds.
     for (const chunk of chunks) {
       for (let ly = 0; ly < CHUNK_SIZE; ly++) {
         for (let lx = 0; lx < CHUNK_SIZE; lx++) {
@@ -542,12 +639,21 @@ export class World {
   _makeChunk(cx, cy) {
     const rng = mulberry32(hashCoords(this.seed, cx, cy));
     // Heavily favour procedural now that there's enough biome variety
-    // (mountains, valleys, canyons, ridges, …). Keep a small slice of
-    // hand-authored templates so the iconic ghost-room / fruit-spawn
-    // layouts still surface and the world has familiar landmarks.
+    // (mountains, valleys, canyons, ridges, hazardous lakes, …). Keep a
+    // small slice of hand-authored templates so the iconic
+    // ghost-room / fruit-spawn layouts still surface and the world has
+    // familiar landmarks.
     const useProcedural = rng() < 0.85;
+    // Distance from origin used to gate hazard biomes — same shape as
+    // FRUIT_TYPES.minFarTiles. Chebyshev because chunks tile in a grid
+    // and "how far the chunk's nearest corner is" is what we care about
+    // for streaming.
+    const chunkFarTiles = Math.max(Math.abs(cx), Math.abs(cy)) * CHUNK_SIZE;
     const template = useProcedural
-      ? generateChunk(rng)
+      ? generateChunk(rng, {
+          farTiles: chunkFarTiles,
+          hazardMul: this.effectiveHazardDensityMul()
+        })
       : CHUNK_TEMPLATES[Math.floor(rng() * CHUNK_TEMPLATES.length)];
     // Difficulty + distance both scale pellet density: easy/origin gets
     // lots of dots, hard/far chunks are sparse. Base 30% × effective
@@ -559,7 +665,21 @@ export class World {
       5,
       Math.min(80, Math.round(baseKeep * this.effectiveDotKeepMul()))
     );
-    return new Chunk(cx, cy, template, this.scale, this.assets, { dotKeepPercent });
+    // Cross-corridor decimation: a separate knob from off-cross density
+    // because the cross used to be guaranteed-100% on every difficulty,
+    // which made Hard's overall dot count not actually feel sparse to
+    // a player walking the corridor between chunks. Hard's preset sets
+    // this to 0.5 → ~50% of cross tiles dotted (still recognizable as
+    // a trail; no longer a free meal). Easy/Normal stay at 1.0.
+    const crossKeepMul = this.difficulty.crossDotKeepMul ?? 1.0;
+    const crossDotKeepPercent = Math.max(
+      10,
+      Math.min(100, Math.round(100 * crossKeepMul))
+    );
+    return new Chunk(cx, cy, template, this.scale, this.assets, {
+      dotKeepPercent,
+      crossDotKeepPercent
+    });
   }
 
   getLoadedChunkCount() {
