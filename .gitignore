@@ -7,6 +7,10 @@ node_modules
 /playwright-report/
 /blob-report/
 /.playwright-cli/
+/.playwright/
+
+# Claude / Cursor agent local config
+/.claude/
 
 *.DS_Store
 */Thumbs.db
