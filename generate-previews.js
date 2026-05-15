@@ -187,6 +187,11 @@ const PAGES = [
     url: `${BASE_URL}/paint/`,
     output: 'paint/paint-preview.png',
     title: 'Paint'
+  },
+  {
+    url: `${BASE_URL}/stock/`,
+    output: 'stock/stock-preview.png',
+    title: 'Stock Ticker'
   }
 ];
 

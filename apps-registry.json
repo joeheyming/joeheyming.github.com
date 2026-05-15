@@ -634,6 +634,66 @@
     }
   },
   {
+    "id": "code-ide",
+    "name": "Code IDE 💻",
+    "shortName": "Code IDE",
+    "description": "Monaco-powered code editor",
+    "detailedDescription": "A full code editor in your browser, powered by Monaco (the engine behind VS Code). Multi-file project tree, tabs, syntax highlighting, Vim keybindings, Prettier format-on-save, a sandboxed JS runner, and a built-in diff view. Saves to the HeymingOS filesystem when embedded, or to a real folder on disk via the File System Access API.",
+    "icon": "💻",
+    "path": "./code-ide/",
+    "category": "utility",
+    "gradient": "from-slate-600/20 to-emerald-500/20",
+    "border": "border-emerald-500/30 hover:border-emerald-400/50",
+    "taskbarGradient": "from-slate-600 to-emerald-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 1100,
+    "defaultHeight": 720,
+    "system": true,
+    "desktopIcon": true,
+    "desktopPosition": {
+      "x": 30,
+      "y": 330
+    },
+    "handles": [
+      "text/javascript",
+      "application/javascript",
+      "text/typescript",
+      "application/json",
+      "text/markdown",
+      "text/css",
+      "text/x-python",
+      "text/x-sh",
+      "application/x-sh",
+      "text/x-yaml",
+      "application/x-yaml",
+      "text/x-c",
+      "text/x-c++",
+      "text/x-java",
+      "text/x-go",
+      "text/x-rust"
+    ],
+    "tags": [
+      "ide",
+      "editor",
+      "monaco",
+      "developer",
+      "javascript",
+      "vim"
+    ],
+    "related": [
+      "notepad",
+      "terminal",
+      "filemanager",
+      "calculator"
+    ],
+    "shareCategory": "utility",
+    "pwaShortcut": {
+      "name": "Code IDE",
+      "short_name": "Code IDE",
+      "description": "Browser-based code editor"
+    }
+  },
+  {
     "id": "countdown",
     "name": "Countdown ⏱️",
     "shortName": "Countdown",
@@ -1066,6 +1126,30 @@
       "play-drums"
     ],
     "shareCategory": "entertainment"
+  },
+  {
+    "id": "stock",
+    "name": "Stock Ticker 📈",
+    "shortName": "Stocks",
+    "description": "Track and graph the tickers you care about",
+    "detailedDescription": "Add the stocks you care about and graph them on one chart. Quick presets for 1D, 5D, 1M, 3M, 6M, 1Y, 5Y, and MAX. Optional % change overlay for comparing returns. Watchlist saved in your browser. Quotes via Yahoo Finance through the shared CORS proxy.",
+    "icon": "📈",
+    "path": "./stock/",
+    "category": "utility",
+    "gradient": "from-emerald-500/20 to-sky-500/20",
+    "border": "border-emerald-500/30 hover:border-emerald-400/50",
+    "taskbarGradient": "from-emerald-500 to-sky-500",
+    "taskbarText": "text-white",
+    "defaultWidth": 1100,
+    "defaultHeight": 740,
+    "tags": ["stocks", "finance", "chart", "ticker", "watchlist"],
+    "related": ["calculator", "countdown", "wordle-finder"],
+    "shareCategory": "utility",
+    "pwaShortcut": {
+      "name": "Stock Ticker",
+      "short_name": "Stocks",
+      "description": "Track and graph stock tickers in your browser"
+    }
   },
   {
     "id": "paint",

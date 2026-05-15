@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link
+      rel="icon"
+      id="site-favicon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>"
+    />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <title>📈 Stock Ticker — Live Quotes, Candles, Indicators & Alerts | Joe Heyming</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta
+      name="description"
+      content="Full-featured browser stock dashboard. Candlestick charts, SMA / EMA / Bollinger / RSI / MACD indicators, multiple watchlists, portfolio tracking, price alerts, news. No sign-up, no ads."
+    />
+
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="theme-color" content="#0b1220" />
+    <meta
+      name="keywords"
+      content="stock ticker, candlestick chart, technical analysis, RSI, MACD, Bollinger Bands, watchlist, portfolio tracker, price alerts, free stock dashboard"
+    />
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Stock Ticker" />
+    <meta property="og:title" content="📈 Stock Ticker — Live Quotes, Candles, Indicators & Alerts" />
+    <meta
+      property="og:description"
+      content="Browser stock dashboard with candlestick charts, technical indicators, multiple watchlists, portfolio tracking, and price alerts. Free, no sign-up."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/stock/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/stock/stock-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Stock Ticker dashboard with candlestick chart, technical indicators, and watchlist"
+    />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="📈 Stock Ticker — Live Quotes, Candles, Indicators & Alerts" />
+    <meta
+      name="twitter:description"
+      content="Candles, indicators, watchlists, portfolio, alerts — free in your browser."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/stock/stock-preview.png"
+    />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://joeheyming.github.io/stock/" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- proxy.js must load BEFORE the app module so window.proxyService is ready. -->
+    <script src="/proxy.js"></script>
+
+    <!-- ESM import map: chart.js + Luxon time-axis adapter via esm.sh. -->
+    <script type="importmap">
+      {
+        "imports": {
+          "chart.js": "https://esm.sh/chart.js@4.4.4",
+          "chart.js/auto": "https://esm.sh/chart.js@4.4.4/auto",
+          "luxon": "https://esm.sh/luxon@3.4.4",
+          "chartjs-adapter-luxon": "https://esm.sh/chartjs-adapter-luxon@1.3.1?deps=chart.js@4.4.4,luxon@3.4.4"
+        }
+      }
+    </script>
+
+    <link rel="stylesheet" href="style.css" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Stock Ticker",
+            "applicationCategory": "FinanceApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Full-featured browser stock dashboard. Candlestick charts, SMA / EMA / Bollinger / RSI / MACD indicators, multiple watchlists, portfolio tracking, price alerts, news feed.",
+            "url": "https://joeheyming.github.io/stock/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "featureList": [
+              "Line / area / candlestick chart types",
+              "Volume secondary axis",
+              "SMA, EMA, Bollinger Bands overlays",
+              "RSI and MACD subpanes",
+              "Logarithmic Y axis",
+              "Compare as % change",
+              "Multiple watchlists with tabs",
+              "Drag to reorder tickers",
+              "Portfolio mode (shares + cost basis = P/L)",
+              "Heatmap mode",
+              "Price alerts via browser notifications",
+              "News feed per ticker",
+              "Auto-refresh quotes",
+              "Export chart as PNG",
+              "Keyboard shortcuts",
+              "Shareable URL state"
+            ],
+            "inLanguage": "en"
+          }
+        ]
+      }
+    </script>
+
+    <script type="module" src="./index.js"></script>
+  </head>
+  <body class="bg-slate-950 text-slate-100 min-h-screen">
+    <div class="max-w-7xl mx-auto px-3 sm:px-5 py-4">
+      <!-- Header -->
+      <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
+        <div class="pl-24 sm:pl-28">
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <span>📈</span>
+            <span>Stock Ticker</span>
+          </h1>
+          <p class="text-slate-400 text-xs mt-0.5">
+            Candles, indicators, watchlists, portfolio &amp; alerts — all in your browser.
+          </p>
+        </div>
+
+        <!-- Search -->
+        <div class="relative w-full sm:w-80">
+          <label for="ticker-search" class="sr-only">Add ticker</label>
+          <div class="relative">
+            <input
+              id="ticker-search"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Add ticker (AAPL, ^GSPC, BTC-USD…)"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            />
+            <span
+              class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+              aria-hidden="true"
+            >
+              🔍
+            </span>
+          </div>
+          <div
+            id="ticker-suggestions"
+            class="hidden absolute z-30 left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-xl overflow-hidden max-h-80 overflow-y-auto"
+          ></div>
+        </div>
+      </header>
+
+      <!-- Watchlist tabs + mode switcher -->
+      <section class="flex flex-wrap items-center gap-2 mb-3">
+        <div id="list-tabs" class="flex flex-wrap items-center gap-1" role="tablist"></div>
+        <button
+          id="list-new"
+          type="button"
+          class="text-sm px-2 py-1 rounded border border-dashed border-slate-700 text-slate-300 hover:bg-slate-800"
+          title="Create a new watchlist"
+        >
+          + List
+        </button>
+
+        <div class="ml-auto inline-flex rounded-md overflow-hidden border border-slate-700 text-sm">
+          <button data-mode="chart" class="mode-btn active">Chart</button>
+          <button data-mode="heatmap" class="mode-btn">Heatmap</button>
+          <button data-mode="portfolio" class="mode-btn">Portfolio</button>
+        </div>
+      </section>
+
+      <!-- Toolbar -->
+      <section
+        id="toolbar"
+        class="bg-slate-900/50 border border-slate-800 rounded-xl px-3 py-2 mb-3 flex flex-wrap items-center gap-2"
+      >
+        <div id="range-buttons" class="flex flex-wrap gap-1" role="group" aria-label="Date range"></div>
+
+        <span class="hidden md:inline-block w-px h-5 bg-slate-700 mx-1"></span>
+
+        <div id="chart-type-buttons" class="flex gap-1" role="group" aria-label="Chart type">
+          <button data-type="line" class="type-btn">Line</button>
+          <button data-type="area" class="type-btn">Area</button>
+          <button data-type="candle" class="type-btn">Candle</button>
+        </div>
+
+        <span class="hidden md:inline-block w-px h-5 bg-slate-700 mx-1"></span>
+
+        <div class="relative">
+          <button
+            id="indicators-btn"
+            type="button"
+            class="text-sm px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 inline-flex items-center gap-1"
+          >
+            <span>Indicators</span>
+            <span class="text-slate-500" aria-hidden="true">▾</span>
+          </button>
+          <div
+            id="indicators-menu"
+            class="hidden absolute z-30 left-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-xl py-2 px-3 w-56 text-sm"
+          >
+            <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Overlays</div>
+            <label class="ind-row"><input type="checkbox" data-ind="sma20" /><span>SMA 20</span></label>
+            <label class="ind-row"><input type="checkbox" data-ind="sma50" /><span>SMA 50</span></label>
+            <label class="ind-row"><input type="checkbox" data-ind="sma200" /><span>SMA 200</span></label>
+            <label class="ind-row"><input type="checkbox" data-ind="ema12" /><span>EMA 12</span></label>
+            <label class="ind-row"><input type="checkbox" data-ind="ema26" /><span>EMA 26</span></label>
+            <label class="ind-row"><input type="checkbox" data-ind="bb" /><span>Bollinger Bands</span></label>
+            <div class="text-xs uppercase tracking-wider text-slate-500 mt-2 mb-1">Panes</div>
+            <label class="ind-row"><input type="checkbox" data-ind="volume" /><span>Volume</span></label>
+            <label class="ind-row"><input type="checkbox" data-ind="rsi" /><span>RSI 14</span></label>
+            <label class="ind-row"><input type="checkbox" data-ind="macd" /><span>MACD</span></label>
+          </div>
+        </div>
+
+        <label class="ind-toggle" title="Logarithmic Y axis">
+          <input id="log-toggle" type="checkbox" /><span>Log</span>
+        </label>
+        <label class="ind-toggle" title="Compare each stock's % change from the start of the range.">
+          <input id="normalize-toggle" type="checkbox" /><span>%Δ</span>
+        </label>
+
+        <span class="hidden md:inline-block w-px h-5 bg-slate-700 mx-1"></span>
+
+        <label class="ind-toggle" title="Auto-refresh quotes">
+          <span class="text-slate-400 text-xs uppercase">Auto</span>
+          <select
+            id="auto-refresh"
+            class="bg-slate-900 border border-slate-700 rounded text-xs py-0.5 pl-1 pr-5"
+          >
+            <option value="0">off</option>
+            <option value="15">15s</option>
+            <option value="30">30s</option>
+            <option value="60">1m</option>
+            <option value="300">5m</option>
+          </select>
+        </label>
+
+        <div class="ml-auto flex items-center gap-1.5">
+          <button
+            id="export-png"
+            type="button"
+            class="tool-btn"
+            title="Download chart as PNG"
+          >
+            ⬇ PNG
+          </button>
+          <button id="copy-link" type="button" class="tool-btn" title="Copy shareable URL">
+            🔗 Share
+          </button>
+          <button id="refresh-btn" type="button" class="tool-btn" title="Refresh now (R)">
+            ⟳ Refresh
+          </button>
+          <button id="help-btn" type="button" class="tool-btn" title="Keyboard shortcuts (?)">
+            ? Keys
+          </button>
+        </div>
+      </section>
+
+      <!-- Quote tiles -->
+      <section
+        id="quote-tiles"
+        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mb-3"
+      ></section>
+
+      <!-- Chart mode -->
+      <section id="chart-mode" class="relative">
+        <div
+          class="bg-slate-900/50 border border-slate-800 rounded-xl p-2 sm:p-3"
+          style="min-height: 380px"
+        >
+          <div
+            id="chart-empty"
+            class="hidden absolute inset-0 flex flex-col items-center justify-center text-center text-slate-400 px-6 z-0"
+          >
+            <div class="text-5xl mb-3" aria-hidden="true">📊</div>
+            <p class="text-lg font-medium text-slate-200">No tickers yet</p>
+            <p class="text-sm mt-1 max-w-md">
+              Type a symbol or company name above to start tracking. Try
+              <button data-add-suggested="AAPL" class="suggested-add">AAPL</button>,
+              <button data-add-suggested="MSFT" class="suggested-add">MSFT</button>,
+              <button data-add-suggested="NVDA" class="suggested-add">NVDA</button>,
+              <button data-add-suggested="^GSPC" class="suggested-add">S&amp;P&nbsp;500</button>, or
+              <button data-add-suggested="BTC-USD" class="suggested-add">BTC-USD</button>.
+            </p>
+          </div>
+
+          <div
+            id="chart-loading"
+            class="hidden absolute inset-0 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm rounded-xl z-10"
+          >
+            <div class="flex items-center gap-2 text-slate-300">
+              <span class="inline-block w-4 h-4 rounded-full border-2 border-slate-500 border-t-emerald-400 animate-spin"></span>
+              <span class="text-sm">Loading…</span>
+            </div>
+          </div>
+
+          <div
+            id="chart-error"
+            class="hidden absolute top-3 right-3 z-20 max-w-sm text-xs px-3 py-2 rounded-md bg-rose-950/80 border border-rose-700 text-rose-200"
+            role="alert"
+          ></div>
+
+          <div class="chart-pane" style="height: 380px">
+            <canvas id="price-chart" aria-label="Price chart"></canvas>
+          </div>
+          <div id="rsi-pane" class="chart-pane hidden mt-2" style="height: 130px">
+            <canvas id="rsi-chart" aria-label="RSI indicator"></canvas>
+          </div>
+          <div id="macd-pane" class="chart-pane hidden mt-2" style="height: 130px">
+            <canvas id="macd-chart" aria-label="MACD indicator"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Heatmap mode -->
+      <section id="heatmap-mode" class="hidden">
+        <div
+          id="heatmap-grid"
+          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2"
+        ></div>
+      </section>
+
+      <!-- Portfolio mode -->
+      <section id="portfolio-mode" class="hidden space-y-3">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="portfolio-summary"></div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm border-collapse" id="portfolio-table">
+            <thead>
+              <tr class="text-left text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                <th class="px-2 py-2">Symbol</th>
+                <th class="px-2 py-2 text-right">Shares</th>
+                <th class="px-2 py-2 text-right">Cost / share</th>
+                <th class="px-2 py-2 text-right">Current</th>
+                <th class="px-2 py-2 text-right">Mkt value</th>
+                <th class="px-2 py-2 text-right">Day Δ</th>
+                <th class="px-2 py-2 text-right">Total P/L</th>
+                <th class="px-2 py-2"></th>
+              </tr>
+            </thead>
+            <tbody id="portfolio-tbody"></tbody>
+          </table>
+        </div>
+        <p class="text-xs text-slate-500">
+          Cost basis and shares are stored locally in your browser. Stocks must be in the active
+          watchlist for prices to load.
+        </p>
+      </section>
+
+      <footer class="mt-6 text-center text-xs text-slate-500">
+        Data via Yahoo Finance through public CORS proxies. Quotes can be delayed; not investment
+        advice.
+      </footer>
+    </div>
+
+    <!-- Detail drawer -->
+    <div
+      id="detail-backdrop"
+      class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40"
+    ></div>
+    <aside
+      id="detail-drawer"
+      class="hidden fixed top-0 right-0 bottom-0 w-full sm:w-[28rem] bg-slate-900 border-l border-slate-700 z-50 overflow-y-auto shadow-2xl"
+      aria-label="Stock detail"
+    >
+      <header class="sticky top-0 bg-slate-900/95 backdrop-blur px-4 py-3 border-b border-slate-800 flex items-center gap-2">
+        <h2 id="detail-title" class="text-lg font-semibold flex-1 truncate"></h2>
+        <button
+          id="detail-close"
+          type="button"
+          class="text-slate-400 hover:text-slate-100 text-xl leading-none px-2"
+          aria-label="Close detail"
+        >
+          ×
+        </button>
+      </header>
+      <div id="detail-body" class="px-4 py-3"></div>
+    </aside>
+
+    <!-- Toast container -->
+    <div id="toast-stack" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] space-y-2"></div>
+
+    <!-- Keyboard help modal -->
+    <div
+      id="help-modal"
+      class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-4"
+    >
+      <div class="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-5 shadow-2xl">
+        <h2 class="text-lg font-semibold mb-3">Keyboard shortcuts</h2>
+        <ul class="text-sm space-y-1.5">
+          <li><kbd>/</kbd> · focus search</li>
+          <li><kbd>R</kbd> · refresh quotes</li>
+          <li><kbd>L</kbd> · toggle log scale</li>
+          <li><kbd>%</kbd> · toggle % change</li>
+          <li><kbd>1</kbd>–<kbd>8</kbd> · range presets (1D…MAX)</li>
+          <li><kbd>C</kbd> / <kbd>A</kbd> / <kbd>K</kbd> · chart / area / candle type</li>
+          <li><kbd>V</kbd> · toggle volume</li>
+          <li><kbd>I</kbd> · open indicators menu</li>
+          <li><kbd>M</kbd> · cycle Chart / Heatmap / Portfolio</li>
+          <li><kbd>?</kbd> · this help</li>
+          <li><kbd>Esc</kbd> · close panels</li>
+        </ul>
+        <div class="text-right mt-4">
+          <button id="help-close" type="button" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-sm">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 100">
+      <share-button label="📤 Share" theme="gradient"></share-button>
+    </div>
+  </body>
+</html>
