@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>💻 Code IDE — Monaco Editor in your Browser | Joe Heyming</title>
+
+    <meta
+      name="description"
+      content="A free in-browser code editor powered by Monaco (the editor behind VS Code). File tree, tabs, syntax highlighting, Vim keybindings, format-on-save with Prettier, a sandboxed JS runner, and a built-in diff view."
+    />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="theme-color" content="#1e1e1e" />
+    <meta
+      name="keywords"
+      content="code editor, ide, web ide, online ide, monaco editor, vs code in browser, browser code editor, javascript editor, typescript editor, prettier, vim"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Code IDE" />
+    <meta property="og:title" content="💻 Code IDE - Monaco Editor in your Browser" />
+    <meta
+      property="og:description"
+      content="A full code editor in your browser: file tree, tabs, Monaco, Vim, Prettier, sandboxed JS runner, and diff view."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/code-ide/" />
+    <meta property="og:image" content="https://joeheyming.github.io/code-ide/code-ide-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Code IDE interface" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="💻 Code IDE — Monaco Editor in your Browser" />
+    <meta
+      name="twitter:description"
+      content="A full code editor in your browser: file tree, tabs, Monaco, Vim, Prettier, sandboxed JS runner, and diff view."
+    />
+    <meta name="twitter:image" content="https://joeheyming.github.io/code-ide/code-ide-preview.png" />
+
+    <link rel="canonical" href="https://joeheyming.github.io/code-ide/" />
+    <link rel="stylesheet" href="style.css" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+    <link
+      rel="icon"
+      id="site-favicon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💻</text></svg>"
+    />
+    <script src="/back.js" data-back-size="compact"></script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Code IDE",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Web Browser",
+            "description": "A browser-based code editor powered by Monaco with a file tree, tabs, Vim keybindings, Prettier format-on-save, a sandboxed JS runner, and a diff view.",
+            "url": "https://joeheyming.github.io/code-ide/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "featureList": [
+              "Monaco editor (the engine behind VS Code)",
+              "Project file tree with create / rename / delete",
+              "Tabbed multi-file editing with dirty-state tracking",
+              "Light / dark / high-contrast themes",
+              "Vim keybindings (toggle on/off)",
+              "Prettier format-on-save for JS, TS, JSON, CSS, HTML, Markdown",
+              "Sandboxed JS runner with captured console output",
+              "Side-by-side diff view between any two open files",
+              "Opens files from disk via the File System Access API",
+              "Works inside HeymingOS and saves to its virtual filesystem"
+            ],
+            "screenshot": "https://joeheyming.github.io/code-ide/code-ide-preview.png",
+            "keywords": "code editor, ide, web ide, monaco editor, browser ide, vim, prettier",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Code IDE"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body class="theme-dark">
+    <div id="app">
+      <header class="titlebar">
+        <div class="titlebar-left">
+          <span class="logo">💻</span>
+          <span class="app-name">Code IDE</span>
+          <span id="project-label" class="project-label">Untitled Project</span>
+        </div>
+        <nav class="menubar" id="menubar">
+          <button class="menu" data-menu="file">File</button>
+          <button class="menu" data-menu="edit">Edit</button>
+          <button class="menu" data-menu="view">View</button>
+          <button class="menu" data-menu="run">Run</button>
+          <button class="menu" data-menu="help">Help</button>
+        </nav>
+        <div class="titlebar-right">
+          <button id="cmd-format" class="icon-btn" title="Format (Shift+Alt+F)">⌬</button>
+          <button id="cmd-run" class="icon-btn" title="Run current file (F5)">▶</button>
+          <button id="cmd-diff" class="icon-btn" title="Diff two files">⇆</button>
+          <button id="cmd-vim" class="icon-btn" title="Toggle Vim mode">V</button>
+          <button id="cmd-theme" class="icon-btn" title="Toggle theme">◐</button>
+        </div>
+      </header>
+
+      <div class="dropdown" id="menu-dropdown" hidden></div>
+
+      <main class="workspace">
+        <aside class="sidebar" id="sidebar" data-active-view="explorer">
+          <nav class="sidebar-tabs" role="tablist">
+            <button class="sidebar-tab active" role="tab" data-view="explorer" title="Explorer">
+              <span class="ico">📁</span><span class="lbl">Explorer</span>
+            </button>
+            <button class="sidebar-tab" role="tab" data-view="scm" title="Source Control">
+              <span class="ico">⎇</span><span class="lbl">Source Control</span>
+              <span class="badge" id="scm-badge" hidden>0</span>
+            </button>
+          </nav>
+
+          <section class="sidebar-view" data-view="explorer">
+            <div class="sidebar-header">
+              <span class="sidebar-title">Explorer</span>
+              <div class="sidebar-actions">
+                <button id="tree-new-file" class="icon-btn" title="New file">＋</button>
+                <button id="tree-new-folder" class="icon-btn" title="New folder">📁</button>
+                <button id="tree-open-folder" class="icon-btn" title="Open folder from disk">📂</button>
+                <button id="tree-refresh" class="icon-btn" title="Refresh">⟳</button>
+              </div>
+            </div>
+            <div id="tree" class="tree" tabindex="0" aria-label="File tree"></div>
+          </section>
+
+          <section class="sidebar-view" data-view="scm" hidden>
+            <div class="sidebar-header">
+              <span class="sidebar-title">Source Control</span>
+              <div class="sidebar-actions">
+                <button id="scm-refresh" class="icon-btn" title="Refresh">⟳</button>
+                <button id="scm-pull" class="icon-btn" title="Pull">⤓</button>
+                <button id="scm-push" class="icon-btn" title="Push">⤒</button>
+                <button id="scm-sync" class="icon-btn" title="Sync (pull, then push)">⟳⟳</button>
+                <button id="scm-more" class="icon-btn" title="More actions">⋯</button>
+              </div>
+            </div>
+            <div id="scm" class="scm" aria-label="Source control"></div>
+          </section>
+        </aside>
+
+        <section class="editor-area">
+          <div class="tabs" id="tabs"></div>
+          <div class="editor-container">
+            <div id="editor" class="editor"></div>
+            <div id="diff-main" class="editor diff-editor-main" hidden></div>
+            <div id="welcome" class="welcome">
+              <div class="welcome-inner">
+                <div class="welcome-logo">💻</div>
+                <h1>Code IDE</h1>
+                <p class="tagline">A Monaco-powered editor in your browser.</p>
+                <div class="welcome-actions">
+                  <button class="primary" data-welcome="new-file">New File</button>
+                  <button data-welcome="open-folder">Open Folder…</button>
+                  <button data-welcome="sample">Load Sample Project</button>
+                </div>
+                <ul class="shortcuts">
+                  <li><kbd>Ctrl</kbd>+<kbd>S</kbd> Save</li>
+                  <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> Save As</li>
+                  <li><kbd>Ctrl</kbd>+<kbd>P</kbd> Go to file</li>
+                  <li><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> Format</li>
+                  <li><kbd>F5</kbd> Run JS</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel" id="panel" hidden>
+          <div class="panel-header">
+            <div class="panel-tabs">
+              <button class="panel-tab active" data-panel-tab="console">Console</button>
+              <button class="panel-tab" data-panel-tab="diff">Diff</button>
+            </div>
+            <button id="panel-close" class="icon-btn" title="Close panel">×</button>
+          </div>
+          <div class="panel-body">
+            <div class="panel-view" data-panel-view="console">
+              <div class="console-toolbar">
+                <button id="console-clear" class="btn">Clear</button>
+                <span class="console-hint">Output from the sandboxed runner.</span>
+              </div>
+              <div id="console-output" class="console-output"></div>
+            </div>
+            <div class="panel-view" data-panel-view="diff" hidden>
+              <div class="diff-toolbar">
+                <label>Left <select id="diff-left"></select></label>
+                <label>Right <select id="diff-right"></select></label>
+                <button id="diff-render" class="btn">Compare</button>
+              </div>
+              <div id="diff-editor" class="diff-editor"></div>
+            </div>
+          </div>
+        </aside>
+      </main>
+
+      <footer class="statusbar">
+        <button id="status-branch" class="status-item status-branch" hidden title="Branch — click to switch">
+          <span class="branch-icon">⎇</span><span id="status-branch-name">—</span>
+          <span id="status-branch-counts" class="branch-counts"></span>
+        </button>
+        <span id="status-mode" class="status-pill">INS</span>
+        <span id="status-language" class="status-item">—</span>
+        <span id="status-cursor" class="status-item">Ln 1, Col 1</span>
+        <span id="status-encoding" class="status-item">UTF-8</span>
+        <span id="status-indent" class="status-item">Spaces: 2</span>
+        <span id="status-dirty" class="status-item"></span>
+        <span class="grow"></span>
+        <span id="status-env" class="status-item">Standalone</span>
+      </footer>
+    </div>
+
+    <iframe id="sandbox" sandbox="allow-scripts" title="JS runner sandbox" hidden></iframe>
+
+    <input id="file-input" type="file" hidden />
+
+    <!--
+      Prettier (standalone build + plugins) is loaded BEFORE Monaco's AMD
+      loader. The plugins' UMD wrappers check for `define` first; if Monaco's
+      AMD loader has already installed one, the plugins try to AMD-define
+      themselves and Monaco rejects the duplicate. Loading them first means
+      they attach to `window.prettierPlugins` instead.
+    -->
+    <script src="https://unpkg.com/prettier@3.2.5/standalone.js"></script>
+    <script src="https://unpkg.com/prettier@3.2.5/plugins/estree.js"></script>
+    <script src="https://unpkg.com/prettier@3.2.5/plugins/babel.js"></script>
+    <script src="https://unpkg.com/prettier@3.2.5/plugins/typescript.js"></script>
+    <script src="https://unpkg.com/prettier@3.2.5/plugins/postcss.js"></script>
+    <script src="https://unpkg.com/prettier@3.2.5/plugins/html.js"></script>
+    <script src="https://unpkg.com/prettier@3.2.5/plugins/markdown.js"></script>
+
+    <script>
+      // Monaco worker bootstrap. Cross-origin workers normally fail under same-origin
+      // policy; this wraps the CDN worker in a same-origin data: URL.
+      window.MonacoEnvironment = {
+        getWorkerUrl(_moduleId, _label) {
+          return (
+            'data:text/javascript;charset=utf-8,' +
+            encodeURIComponent(`
+              self.MonacoEnvironment = {
+                baseUrl: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.46.0/min/'
+              };
+              importScripts('https://cdn.jsdelivr.net/npm/monaco-editor@0.46.0/min/vs/base/worker/workerMain.js');
+            `)
+          );
+        }
+      };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.46.0/min/vs/loader.js"></script>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

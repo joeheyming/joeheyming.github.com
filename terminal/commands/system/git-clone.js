@@ -491,6 +491,63 @@ export async function streamingCheckout(git, fsClient, dir, ref, terminal, opts)
   console.log('[jsh-git] streamingCheckout: wrote', total, 'files in', writeSec + 's');
   jshGitTrace('streamingCheckout write', { files: total, seconds: Number(writeSec) });
 
+  // Phase 3: populate .git/index so post-clone `git status` reports a clean
+  // tree. Real `git checkout` updates both the working tree and the index;
+  // streamingCheckout only handles the former (since it bypasses
+  // isomorphic-git's checkout for OOM safety). Without this, every checked-out
+  // file shows up with stage=0 — `git status` lists them as deleted, and any
+  // status-aware UI (Code IDE's source-control panel, tree decorations) marks
+  // them as "staged for deletion". updateIndex with `add:true` and the known
+  // blob oid skips the file re-read + hash recompute that `add` would do.
+  const indexProgress = terminal ? createProgressWriter(terminal) : null;
+  if (indexProgress) indexProgress.update('Updating index...');
+  const indexStart = Date.now();
+  let indexed = 0;
+  let lastIndexProgressMs = 0;
+  try {
+    for (const entry of entries) {
+      try {
+        await git.updateIndex({
+          fs: fsClient,
+          dir,
+          filepath: entry.path,
+          oid: entry.oid,
+          add: true
+        });
+        indexed++;
+      } catch (idxErr) {
+        // A single bad entry shouldn't fail the whole clone — log and continue
+        // so the user at least has a working tree even if the index is partial.
+        console.warn('[jsh-git] streamingCheckout: updateIndex failed', entry.path, idxErr);
+      }
+      const nowMs = Date.now();
+      if (indexProgress && nowMs - lastIndexProgressMs >= 750) {
+        const pct = Math.round((indexed / total) * 100);
+        indexProgress.update(`Updating index: ${pct}% (${indexed}/${total})`);
+        lastIndexProgressMs = nowMs;
+      }
+    }
+  } catch (indexErr) {
+    console.error('[jsh-git] streamingCheckout: updateIndex phase failed', indexErr);
+  }
+  const indexSec = ((Date.now() - indexStart) / 1000).toFixed(1);
+  if (indexProgress) {
+    indexProgress.finish(`Updating index: ${indexed}/${total} entries (${indexSec}s).`);
+  }
+  console.log(
+    '[jsh-git] streamingCheckout: indexed',
+    indexed,
+    'of',
+    total,
+    'files in',
+    indexSec + 's'
+  );
+  jshGitTrace('streamingCheckout index', {
+    files: indexed,
+    total,
+    seconds: Number(indexSec)
+  });
+
   if (ownsCache) releaseGitCache(cache);
   return { fileCount: total };
 }
