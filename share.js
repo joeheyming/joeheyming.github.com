@@ -174,7 +174,12 @@
       shareBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        const url = window.location.href;
+        // Tag the URL so visitors who paste it land with `shared=1&share_source=related_widget`,
+        // which `trackSharedLinkArrival` in analytics.js converts to `shared_link_arrival`.
+        const url =
+          typeof window.buildSharedUrl === 'function'
+            ? window.buildSharedUrl('related_widget')
+            : window.location.href;
         navigator.clipboard
           .writeText(url)
           .then(() => {

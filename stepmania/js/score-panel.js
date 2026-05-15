@@ -111,16 +111,24 @@ export function createScoreMessage(scoreData, songInfo) {
   const score = scoreData.score ? scoreData.score.toLocaleString() : '0';
   const maxCombo = scoreData.maxCombo || 0;
 
-  return `I just played "${songInfo.title}" on StepMania with ${songInfo.difficulty}${
-    songInfo.difficultyRating
-  } difficulty!
+  // Tag the URL so arrivals can be attributed back to the score-share surface
+  // (`shared=1&share_source=stepmania_score`). buildSharedUrl falls back to the
+  // raw URL when window/URL isn't available (e.g. server-side or older shells).
+  const shareUrl =
+    typeof window !== 'undefined'
+      ? typeof window.buildSharedUrl === 'function'
+        ? window.buildSharedUrl('stepmania_score')
+        : window.location.href
+      : '';
+
+  return `I just played "${songInfo.title}" on StepMania with ${songInfo.difficulty}${songInfo.difficultyRating} difficulty!
 
 Grade: ${grade.letter} | Accuracy: ${scoreData.percentage}
 Score: ${score} | Max Combo: ${maxCombo}
 
 Perfect: ${perfect} | Great: ${great} | Good: ${good} | Bad: ${bad} | Miss: ${miss}
 
-${typeof window !== 'undefined' ? window.location.href : ''}`;
+${shareUrl}`;
 }
 
 // ============================================================================

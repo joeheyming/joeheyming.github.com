@@ -159,11 +159,19 @@ window.trackError = function (errorData) {
       ? `${errorType}: ${errorMessage} [${context}]`
       : `${errorType}: ${errorMessage}`;
 
-    window.trackEvent('error_occurred', 'Error', errorLabel);
-
-    // Track exception separately for better categorization
+    // Fire exactly one GA event per error. Errors with a stack are reported as
+    // `exception` (matches GA4's built-in name), everything else (resource
+    // errors, manual errors without a stack) as `error_occurred`. Previously
+    // both events fired for stack-bearing errors, which double-counted users
+    // in the GA report.
     if (errorData.stack) {
-      window.trackEvent('exception', 'Error', `${errorType} - ${errorMessage.substring(0, 100)}`);
+      window.trackEvent(
+        'exception',
+        'Error',
+        `${errorType} - ${errorMessage.substring(0, 100)}`
+      );
+    } else {
+      window.trackEvent('error_occurred', 'Error', errorLabel);
     }
 
     // Log additional context for debugging
@@ -220,15 +228,41 @@ function trackSharedLinkArrival() {
 
   // Track generic shared link arrivals (from share button)
   if (isSharedLink) {
-    window.trackEvent('shared_link_arrival', pageName, normalizePagePath(window.location.pathname));
-    console.log('Tracked shared link arrival:', pageName, 'referrer:', referrer);
+    // share_source identifies which surface produced the link (e.g. stepmania_score,
+    // related_widget). Falls back to "unknown" so older shared URLs still report.
+    const source = searchParams.get('share_source') || 'unknown';
+    const path = normalizePagePath(window.location.pathname);
+    window.trackEvent('shared_link_arrival', pageName, `${source} | ${path}`);
+    console.log('Tracked shared link arrival:', pageName, 'source:', source, 'referrer:', referrer);
 
     // Track referrer if present
     if (referrer) {
-      window.trackEvent('shared_link_referrer', pageName, referrer);
+      window.trackEvent('shared_link_referrer', pageName, `${source} | ${referrer}`);
     }
   }
 }
+
+// Build a URL pointing at the current page tagged for shared-link attribution.
+// Sets ?shared=1 plus an optional share_source so GA can tell which surface
+// produced the link. Strips any existing shared/share_source params first so
+// chained shares don't accumulate stale tags.
+window.buildSharedUrl = function (source) {
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('shared');
+    url.searchParams.delete('share_source');
+    url.searchParams.set('shared', '1');
+    if (source) {
+      url.searchParams.set('share_source', source);
+    }
+    return url.toString();
+  } catch (_) {
+    // Fallback for environments where URL construction fails (very old browsers).
+    const sep = window.location.href.includes('?') ? '&' : '?';
+    const sourceTag = source ? `&share_source=${encodeURIComponent(source)}` : '';
+    return `${window.location.href}${sep}shared=1${sourceTag}`;
+  }
+};
 
 // Helper to get page name from path
 function getPageName() {
@@ -374,7 +408,10 @@ function initDataEventTracking() {
 })();
 
 // Conversion Tracking
-// Track conversion events for key user actions
+// Fires the conversionType as its own GA event under the Conversion category.
+// Previously this funneled every call through a single `conversion` event with
+// the conversion type stuffed into event_label, which made it impossible to
+// separate engaged-session conversions from project-open conversions in GA.
 window.trackConversion = function (conversionType, value) {
   if (typeof gtag === 'undefined') {
     if (isLocalDevHost()) {
@@ -383,9 +420,8 @@ window.trackConversion = function (conversionType, value) {
     return;
   }
 
-  gtag('event', 'conversion', {
+  gtag('event', conversionType, {
     event_category: 'Conversion',
-    event_label: conversionType,
     value: value || 1
   });
 

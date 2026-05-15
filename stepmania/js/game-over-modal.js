@@ -194,7 +194,8 @@ class GameOverModalElement extends HTMLElement {
         </div>
 
         <div class="buttons">
-          <button class="share-btn" data-event="game_over_share_score" data-event-category="StepMania" data-event-label="Share Score">
+          <!-- No data-event here: _shareScore() fires game_over_share_score with a richer label (song title). Previously both the data-event delegate and _shareScore fired, double-counting taps. -->
+          <button class="share-btn">
             🎉 Share Your Score!
           </button>
           <button class="restart-btn" data-event="game_over_restart" data-event-category="StepMania" data-event-label="Play Again">
@@ -235,10 +236,15 @@ class GameOverModalElement extends HTMLElement {
     // Try Web Share API first (mobile-friendly and more prominent)
     if (navigator.share && window.isSecureContext) {
       try {
+        // Tag the shared URL so arrivals fire `shared_link_arrival` in GA.
+        const shareUrl =
+          typeof window.buildSharedUrl === 'function'
+            ? window.buildSharedUrl('stepmania_score')
+            : window.location.href;
         const shareData = {
           title: `StepMania Score: ${songInfo.title}`,
           text: message,
-          url: window.location.href
+          url: shareUrl
         };
 
         await navigator.share(shareData);
