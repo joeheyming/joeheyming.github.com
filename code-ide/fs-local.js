@@ -375,7 +375,7 @@ export async function createLocalFs() {
 export async function openLocalFolder() {
   if (!window.showDirectoryPicker) {
     throw new Error(
-      'Your browser does not support the File System Access API. Try Chrome or Edge.'
+      "This browser can't open a folder from disk. Try Chrome or Edge."
     );
   }
   const handle = await window.showDirectoryPicker({ mode: 'readwrite' });

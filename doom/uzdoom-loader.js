@@ -507,7 +507,7 @@ if (launcherArgs.iwad) {
     return { name: f, persisted: true };
   });
   console.log('[launcher] auto-launch from URL:', launcherArgs);
-  setStatus('Auto-launching from URL…');
+  setStatus('Auto-launching…');
   UZDoomLoader.primeWith({ iwad: urlIwad, mods: urlMods }).then(function () {
     UZDoomLoader.launch();
   });

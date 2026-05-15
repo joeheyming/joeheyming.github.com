@@ -297,7 +297,7 @@ export async function fetchEchordsSong(url) {
     throw new Error('Not an e-chords URL — paste a link from e-chords.com.');
   }
   if (typeof window === 'undefined' || !window.proxyService) {
-    throw new Error('Proxy service unavailable. Make sure /proxy.js is loaded.');
+    throw new Error("Couldn't reach e-chords. Try reloading the page.");
   }
   // skipDirect: e-chords blocks direct CORS, no point spending the
   // 3s direct-attempt budget every load.
@@ -306,7 +306,7 @@ export async function fetchEchordsSong(url) {
     timeout: 15000
   });
   if (!html || typeof html !== 'string') {
-    throw new Error('Empty response from proxy. Try again in a moment.');
+    throw new Error("Empty response from e-chords. Try again in a moment.");
   }
   return parseEchordsHtml(html, url.trim());
 }
@@ -341,7 +341,7 @@ export async function searchEchords(query, options = {}) {
   const q = (query || '').trim();
   if (!q) return [];
   if (typeof window === 'undefined' || !window.proxyService) {
-    throw new Error('Proxy service unavailable. Make sure /proxy.js is loaded.');
+    throw new Error("Couldn't reach e-chords. Try reloading the page.");
   }
   const limit = Math.max(1, Math.min(50, options.limit || 10));
   const apiUrl = `https://www.e-chords.com/api/search?q=${encodeURIComponent(q)}`;
@@ -355,7 +355,7 @@ export async function searchEchords(query, options = {}) {
   try {
     json = JSON.parse(raw);
   } catch {
-    throw new Error('Search response was not valid JSON.');
+    throw new Error("Couldn't read the search results. Try again in a moment.");
   }
   const songs = Array.isArray(json?.songs?.hits) ? json.songs.hits : [];
   // Rank by all-time popularity. Ties broken by weekly hits so a

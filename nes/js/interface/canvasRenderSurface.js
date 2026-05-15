@@ -33,7 +33,7 @@ this.Gui = this.Gui || {};
     this._offscreenData = this._offscreenCanvas.getImageData(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
     if (!this._offscreenData.data.buffer) {
-      throw new Error('Browser does not support canvas image buffers. Cannot run emulator');
+      throw new Error("This browser can't run the NES emulator.");
     }
     // Chrome & Firefox support passing the underlying image data buffer to Uint32Array(). IE does not.
     this._offscreen32BitView = new Uint32Array(this._offscreenData.data.buffer);

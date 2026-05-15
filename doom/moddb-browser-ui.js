@@ -45,7 +45,7 @@ function renderShell() {
     '<button type="button" class="moddb-close" data-role="close" aria-label="Close">×</button>' +
     '</div>' +
     '<div class="moddb-disclaimer">' +
-    'Mods are streamed through a public CORS proxy directly from moddb. ' +
+    'Mods are streamed directly from moddb. ' +
     'Some mods will fail (Cloudflare, dead mirrors, oversize, .rar/.7z, ' +
     'engine incompatibility). Most GZDoom-family mods work; multiplayer ' +
     '(Zandronum) and prboom+ mods may not. Saves and IWAD downloads ' +
@@ -104,7 +104,7 @@ async function loadAndRenderListing() {
     setStatus(
       'Could not load mod listing: ' +
         (e.message || e) +
-        ' — public CORS proxies are flaky; try again in a minute.',
+        ' — moddb is intermittent; try again in a minute.',
       'err'
     );
   }
@@ -329,7 +329,7 @@ async function runFullLaunchFlow(mod, info, iwadChoice) {
     setDetailStatus(
       'Failed: ' +
         (e.message || e) +
-        ' — try the manual upload picker (?manual=1) and grab the .pk3 from moddb.com directly.',
+        ' — try downloading the .pk3 from moddb.com and uploading it manually.',
       'err'
     );
   }

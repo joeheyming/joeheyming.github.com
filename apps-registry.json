@@ -78,7 +78,7 @@
     "name": "Doom 💀",
     "shortName": "Doom",
     "description": "Classic first-person shooter",
-    "detailedDescription": "Classic FPS with WebAssembly. Pick Classic DOOM, Freedoom, Legend of DOOM, Mario DOOM, Metroid DOOM, or Castlevania: Simon's Destiny at launch.",
+    "detailedDescription": "Classic FPS in your browser. Pick Classic DOOM, Freedoom, Legend of DOOM, Mario DOOM, Metroid DOOM, or Castlevania: Simon's Destiny at launch.",
     "icon": "💀",
     "path": "./doom/",
     "category": "game",
@@ -88,8 +88,7 @@
     "tags": [
       "fps",
       "retro",
-      "popular",
-      "wasm"
+      "popular"
     ],
     "related": [
       "pacman",
@@ -106,7 +105,7 @@
     "featured": {
       "order": 1,
       "headline": "Play Doom",
-      "blurb": "Classic FPS in your browser. Six flavors — Classic, Freedoom, Zelda, Mario, Metroid, Castlevania — WebAssembly magic with music & sound.",
+      "blurb": "Classic FPS in your browser. Six flavors — Classic, Freedoom, Zelda, Mario, Metroid, Castlevania — with music & sound.",
       "tagsLine": "🕹️ Game • ⭐ Popular",
       "preset": "doom",
       "analyticsLabel": "Doom"
@@ -126,7 +125,6 @@
     "tags": [
       "fps",
       "retro",
-      "wasm",
       "mods"
     ],
     "related": [
@@ -638,7 +636,7 @@
     "name": "Code IDE 💻",
     "shortName": "Code IDE",
     "description": "Monaco-powered code editor",
-    "detailedDescription": "A full code editor in your browser, powered by Monaco (the engine behind VS Code). Multi-file project tree, tabs, syntax highlighting, Vim keybindings, Prettier format-on-save, a sandboxed JS runner, and a built-in diff view. Saves to the HeymingOS filesystem when embedded, or to a real folder on disk via the File System Access API.",
+    "detailedDescription": "A full code editor in your browser, powered by Monaco (the engine behind VS Code). Multi-file project tree, tabs, syntax highlighting, Vim keybindings, Prettier format-on-save, a sandboxed JS runner, and a built-in diff view. Saves to the HeymingOS filesystem when embedded, or to a real folder on disk.",
     "icon": "💻",
     "path": "./code-ide/",
     "category": "utility",
@@ -843,7 +841,7 @@
     "name": "File Manager 📂",
     "shortName": "Files",
     "description": "Browse your filesystem",
-    "detailedDescription": "File manager with shared IndexedDB filesystem",
+    "detailedDescription": "File manager for files saved in your browser",
     "icon": "📂",
     "path": "./filemanager/",
     "category": "utility",
@@ -868,7 +866,7 @@
     "name": "Media Player 🎵",
     "shortName": "Media",
     "description": "Play video and audio files",
-    "detailedDescription": "HTML5 media player for video (MP4, WebM) and audio (MP3, WAV, OGG)",
+    "detailedDescription": "Media player for video (MP4, WebM) and audio (MP3, WAV, OGG)",
     "icon": "🎵",
     "path": "./media-player/",
     "category": "utility",
@@ -922,7 +920,7 @@
     "name": "3D Viewer 🧊",
     "shortName": "3D",
     "description": "View 3D models (glTF, STL, OBJ, PLY, FBX, 3MF)",
-    "detailedDescription": "3D model viewer powered by <model-viewer>. Drop or open .glb/.gltf, .stl, .obj, .ply, .fbx, or .3mf files; rotate, zoom, swap lighting environments, and try built-in demos. Non-glTF formats are converted to glb in-browser via Three.js.",
+    "detailedDescription": "3D model viewer. Drop or open .glb/.gltf, .stl, .obj, .ply, .fbx, or .3mf files; rotate, zoom, swap lighting environments, and try built-in demos. Non-glTF formats are converted to glb in-browser.",
     "icon": "🧊",
     "path": "./model-viewer/",
     "category": "utility",
@@ -1132,7 +1130,7 @@
     "name": "Stock Ticker 📈",
     "shortName": "Stocks",
     "description": "Track and graph the tickers you care about",
-    "detailedDescription": "Add the stocks you care about and graph them on one chart. Quick presets for 1D, 5D, 1M, 3M, 6M, 1Y, 5Y, and MAX. Optional % change overlay for comparing returns. Watchlist saved in your browser. Quotes via Yahoo Finance through the shared CORS proxy.",
+    "detailedDescription": "Add the stocks you care about and graph them on one chart. Quick presets for 1D, 5D, 1M, 3M, 6M, 1Y, 5Y, and MAX. Optional % change overlay for comparing returns. Watchlist saved in your browser. Quotes may be delayed.",
     "icon": "📈",
     "path": "./stock/",
     "category": "utility",

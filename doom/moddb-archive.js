@@ -125,7 +125,7 @@ async function extractZip(bytes, opts) {
     try {
       pako = await ensurePako();
     } catch (e) {
-      throw new Error('Cannot decompress DEFLATE entries (pako load failed): ' + (e.message || e));
+      throw new Error("Couldn't unpack this mod archive. Try again in a moment.");
     }
   }
 

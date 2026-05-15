@@ -121,7 +121,7 @@
               "Castlevania: Simon's Destiny",
               "Simon's Destiny"
             ],
-            "description": "Play DOOM in your browser, free and unblocked. Six flavors: Classic DOOM (1993), Freedoom, the Legend of DOOM Zelda total conversion, Mario DOOM (Valigarmander's MarioDoom gameplay mod), Metroid DOOM (Spram's Metroidvania total conversion), and Castlevania: Simon's Destiny (Batandy's standalone first-person Castlevania total conversion). No install, no plugins. Open-source on GitHub at github.com/joeheyming, runs on WebAssembly via UZDoom-WASM.",
+            "description": "Play DOOM in your browser, free and unblocked. Six flavors: Classic DOOM (1993), Freedoom, the Legend of DOOM Zelda total conversion, Mario DOOM (Valigarmander's MarioDoom gameplay mod), Metroid DOOM (Spram's Metroidvania total conversion), and Castlevania: Simon's Destiny (Batandy's standalone first-person Castlevania total conversion). No install, no plugins.",
             "url": "https://joeheyming.github.io/doom/",
             "image": "https://joeheyming.github.io/doom/doom-preview.png",
             "author": {
@@ -365,7 +365,7 @@
         Samus, beam upgrades, energy tanks, and Mother Brain), and Castlevania: Simon's Destiny
         (Batandy's standalone first-person reimagining of the NES Castlevania, with whip combat,
         sub-weapons, and Castle Dracula across six reimagined levels). Saves persist locally in
-        IndexedDB.
+        your browser.
       </p>
 
       <p class="intro">
@@ -387,14 +387,13 @@
         >
           uzdoom-wasm
         </a>
-        port. Everything stays local — files are stored in your browser via IndexedDB and never
-        leave this machine.
+        port. Everything stays local — files are stored in your browser and never leave this
+        machine.
       </p>
 
       <div class="warn-banner">
         <strong>⚠ Experimental tech demo.</strong>
-        Expect long load times on first visit (~60 MB download + pthread spin-up). Saves persist in
-        IndexedDB; use
+        Expect long load times on first visit (~60 MB download). Saves persist locally; use
         <em>Reset saved data</em>
         below to clear them. For a smoother native experience, install
         <a
@@ -564,7 +563,7 @@
         </p>
         <button id="cleanLaunchBtn" disabled>Preparing…</button>
         <p class="fineprint">
-          Experimental. ~60 MB first-load download. Saves persist in this browser via IndexedDB.
+          Experimental. ~60 MB first-load download. Saves persist in this browser.
         </p>
       </div>
 
@@ -704,8 +703,8 @@
       <div class="panel" style="gap: 14px">
         <div class="outcome ok" id="exitOutcome">Thanks for playing.</div>
         <div class="detail">
-          Save games and configuration have been synced to IndexedDB. Use the button below to start
-          a new session, or head back
+          Save games and configuration have been saved to your browser. Use the button below to
+          start a new session, or head back
           <a href="/" style="color: var(--accent)">home</a>
           .
         </div>

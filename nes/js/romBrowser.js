@@ -432,7 +432,7 @@ class RomBrowserElement extends HTMLElement {
           alert('NES emulator not ready. Please try again.');
         }
       } else {
-        throw new Error('Proxy service not available');
+        throw new Error("Couldn't reach the ROM source. Try again in a moment.");
       }
     } catch (error) {
       console.error('Error loading ROM:', error);

@@ -27,7 +27,7 @@ export function getVideoId(url) {
  */
 export async function fetchChannelHtml() {
   if (!window.proxyService || typeof window.proxyService.fetchWithProxy !== 'function') {
-    throw new Error('proxy.js not loaded — window.proxyService unavailable');
+    throw new Error("Couldn't reach the channel. Try reloading the page.");
   }
   return window.proxyService.fetchWithProxy(CHANNEL_URL, {
     skipDirect: true,

@@ -260,9 +260,9 @@ export const initAirInput = ({
       };
     }
     return {
-      title: "Camera API isn't available here",
+      title: 'Camera not available',
       message:
-        'This browser blocks the camera API. Try Chrome on Android, Safari on iOS, or a desktop Chrome / Firefox.'
+        "This browser doesn't allow camera access. Try Chrome on Android, Safari on iOS, or a desktop Chrome / Firefox."
     };
   };
 
@@ -340,7 +340,7 @@ export const initAirInput = ({
 
   const startCamera = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error('Camera API not available in this browser.');
+      throw new Error('Camera not available in this browser.');
     }
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },

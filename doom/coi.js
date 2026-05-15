@@ -60,7 +60,7 @@ function renderCountdown() {
   var st = document.getElementById('status');
   if (!st) return;
   var remaining = Math.max(0, Math.ceil((effectiveBudget() - elapsed()) / 1000));
-  st.textContent = 'Waiting for cross-origin isolation (' + remaining + 's)…';
+  st.textContent = 'Preparing the game (' + remaining + 's)…';
 }
 
 function detectInAppBrowser() {
@@ -126,8 +126,8 @@ function buildErrorBody(cause) {
     showOpenExternalBtn: false,
     html:
       "<strong>Couldn't start the game.</strong>" +
-      '<br /><br />A stale service worker is in the way. Tap below to reset ' +
-      "and reload. If that doesn't help, install " +
+      '<br /><br />Something from a previous visit is stuck. Tap below to ' +
+      "reset and reload. If that doesn't help, install " +
       '<a href="https://zdoom.org/downloads" target="_blank" rel="noopener" ' +
       'style="color:#f87171">GZDoom</a> locally.'
   };
@@ -205,12 +205,12 @@ function showCoiError() {
   var launchBtn = document.getElementById('launchBtn');
   if (launchBtn) {
     launchBtn.disabled = true;
-    launchBtn.title = 'Cross-origin isolation unavailable in this browser';
+    launchBtn.title = "This browser can't run the game";
   }
   var cleanBtn = document.getElementById('cleanLaunchBtn');
   if (cleanBtn) {
     cleanBtn.disabled = true;
-    cleanBtn.textContent = 'Cross-origin isolation failed';
+    cleanBtn.textContent = "Couldn't start the game";
   }
   var st = document.getElementById('status');
   if (st) st.textContent = '';
@@ -234,7 +234,7 @@ function showCoiError() {
     var btn = document.createElement('button');
     btn.id = 'coi-unregister-btn';
     btn.type = 'button';
-    btn.textContent = 'Unregister service worker & reload';
+    btn.textContent = 'Reset and reload';
     btn.style.cssText =
       'display:block;margin-top:10px;width:100%;min-height:44px;' +
       'padding:10px 14px;background:#f87171;color:#1a0a0a;' +

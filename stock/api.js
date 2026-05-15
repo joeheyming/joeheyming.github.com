@@ -113,7 +113,7 @@ const YF_QUOTE_SUMMARY = 'https://query2.finance.yahoo.com/v10/finance/quoteSumm
 
 function requireProxy() {
   if (!window.proxyService || typeof window.proxyService.fetchWithProxy !== 'function') {
-    throw new Error('proxy.js not loaded — window.proxyService unavailable');
+    throw new Error("Couldn't reach the data source. Try reloading the page.");
   }
   return window.proxyService;
 }
@@ -160,7 +160,7 @@ export async function searchTickersFull(query, opts = {}) {
   try {
     data = JSON.parse(text);
   } catch {
-    throw new Error('Search returned non-JSON response');
+    throw new Error("Couldn't read search results. Try again in a moment.");
   }
 
   const hits = Array.isArray(data.quotes)
@@ -268,7 +268,7 @@ export async function fetchChart(symbol, rangeId, opts = {}) {
   try {
     data = JSON.parse(text);
   } catch {
-    throw new Error(`Chart for ${sym} returned non-JSON response`);
+    throw new Error(`Couldn't read chart data for ${sym}.`);
   }
 
   const result = data?.chart?.result?.[0];

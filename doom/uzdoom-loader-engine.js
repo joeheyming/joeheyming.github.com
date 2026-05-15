@@ -210,7 +210,7 @@ export function installUzdomLoaderEngine(ctx) {
 
   function bootEngine() {
     mountFilesystems();
-    setStatus('Syncing saves from IndexedDB…');
+    setStatus('Syncing saves…');
     FS.syncfs(true, async (err) => {
       if (err) console.warn('syncfs pull:', err);
       try {
