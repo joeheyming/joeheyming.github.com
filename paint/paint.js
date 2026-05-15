@@ -1,13 +1,12 @@
 import { TOOLS, TOOL_OPTION_SCHEMA, floodSelect, scanlineFill, defaultToolOptions } from './tools.js';
-import { buildToolbar, buildPalette, updateFgSwatch, updateStatus, updateColorHistory,
+import { buildToolbar, buildPalette, updateFgSwatch, updateColorHistory,
          renderToolOptions } from './ui.js';
 import { createLayer, insertLayerBefore, removeLayerFromDOM, syncLayerDOM,
-         flattenToCanvas, renderLayerPanel, refreshLayerThumbs } from './layers.js';
+         flattenToCanvas, renderLayerPanel } from './layers.js';
 import { renderHistoryPanel as buildHistoryPanel } from './history.js';
-import { serializeProject, deserializeProject, downloadProject, readProjectFile,
+import { deserializeProject, readProjectFile,
          scheduleAutosave, readAutosave, clearAutosave } from './project.js';
 import {
-  drawSelectionOverlay as drawSelOverlay,
   startSelectionAnimation,
   commitSelection as doCommitSelection,
   copySelection as doCopySelection,
@@ -26,6 +25,21 @@ import {
   toggleAdjustMenu,
   closeAdjustMenu,
 } from './adjust-modal.js';
+import { installOSBridge } from './os-bridge.js';
+import {
+  toggleFileMenu,
+  closeFileMenu,
+  openFilenameModal,
+  confirmFilenameModal,
+  closeFilenameModal,
+  openResizeModal as openResizeModalUI,
+  closeResizeModal,
+  confirmResize as confirmResizeUI,
+  downloadPNG,
+  downloadJPEG,
+  downloadProjectFile,
+} from './file-menu.js';
+import { createPointerController } from './pointer.js';
 
 const MAX_UNDO = 50;
 
@@ -242,7 +256,6 @@ function zoomToward(clientX, clientY, factor) {
 // inject the shared `state`, the overlay context `ov`, and a couple of
 // closures so the rest of paint.js can keep its no-arg call sites unchanged.
 
-function drawSelectionOverlay() { drawSelOverlay(state, ov); }
 function commitSelection() { doCommitSelection(state, ov); }
 function copySelection(ctx, cut) { doCopySelection(state, ov, ctx, cut, pushUndo); }
 function pasteClipboard(ctx) { doPasteClipboard(state, ctx, pushUndo); }
@@ -348,90 +361,6 @@ function flattenLayers() {
   refreshLayerPanelUI();
 }
 
-// ── Text tool ────────────────────────────────────────────────────────────────
-
-function textFontSpec() {
-  const opts = state.toolOptions.text || {};
-  const sz = opts.size ?? 16;
-  const fam = opts.family ?? 'sans-serif';
-  const w = opts.bold ? 'bold ' : '';
-  const i = opts.italic ? 'italic ' : '';
-  return { spec: `${i}${w}${sz}px ${fam}`, size: sz };
-}
-
-function showTextInput(ctx, canvasX, canvasY) {
-  const area = document.getElementById('canvas-area');
-  const areaRect = area.getBoundingClientRect();
-  const stackRect = overlayCanvas.getBoundingClientRect();
-
-  const screenX = stackRect.left - areaRect.left + canvasX * state.zoom;
-  const screenY = stackRect.top - areaRect.top + canvasY * state.zoom;
-  const { spec, size } = textFontSpec();
-  const opts = state.toolOptions.text || {};
-
-  const input = document.getElementById('text-input');
-  input.style.left = screenX + 'px';
-  input.style.top = screenY + 'px';
-  input.style.fontFamily = opts.family ?? 'sans-serif';
-  input.style.fontSize = (size * state.zoom) + 'px';
-  input.style.fontWeight = opts.bold ? 'bold' : 'normal';
-  input.style.fontStyle = opts.italic ? 'italic' : 'normal';
-  input.style.color = state.activeColor;
-  input.value = '';
-  input.style.display = 'block';
-  input.dataset.canvasX = canvasX;
-  input.dataset.canvasY = canvasY;
-  input.dataset.layerId = activeLayer().id;
-  input.dataset.fontSpec = spec;
-  input.dataset.fontSize = String(size);
-  input.focus();
-}
-
-function commitTextInput() {
-  const input = document.getElementById('text-input');
-  if (input.style.display === 'none') return;
-  const text = input.value.trim();
-  if (text) {
-    const canvasX = parseFloat(input.dataset.canvasX);
-    const canvasY = parseFloat(input.dataset.canvasY);
-    const layerId = parseInt(input.dataset.layerId);
-    const fontSpec = input.dataset.fontSpec || '16px sans-serif';
-    const fontSize = parseFloat(input.dataset.fontSize) || 16;
-    const layer = state.layers.find(l => l.id === layerId);
-    if (layer) {
-      pushUndo('Text');
-      layer.ctx.font = fontSpec;
-      layer.ctx.fillStyle = state.activeColor;
-      layer.ctx.globalAlpha = 1;
-      layer.ctx.globalCompositeOperation = 'source-over';
-      layer.ctx.fillText(text, canvasX, canvasY + fontSize);
-    }
-  }
-  input.style.display = 'none';
-  input.value = '';
-}
-
-// ── Spray helper ─────────────────────────────────────────────────────────────
-
-function doSprayDot(x, y) {
-  const ctx = activeCtx();
-  const opts = state.toolOptions.spray || {};
-  const radius = (opts.size ?? state.brushSize) * 5;
-  const density = Math.max(1, Math.ceil(radius * ((opts.density ?? 80) / 100)));
-  ctx.fillStyle = state.activeColor;
-  ctx.globalAlpha = 1;
-  ctx.globalCompositeOperation = 'source-over';
-  for (let i = 0; i < density; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const r = Math.random() * radius;
-    const px = x + Math.cos(angle) * r;
-    const py = y + Math.sin(angle) * r;
-    ctx.beginPath();
-    ctx.arc(px, py, 0.5, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
 // ── Image upload ─────────────────────────────────────────────────────────────
 
 function loadAnyFile(file) {
@@ -484,27 +413,6 @@ async function loadProjectData(data) {
   });
 }
 
-// ── Canvas resize ─────────────────────────────────────────────────────────────
-
-function openResizeModal() {
-  const modal = document.getElementById('resize-modal');
-  document.getElementById('resize-w').value = canvasW();
-  document.getElementById('resize-h').value = canvasH();
-  modal.classList.remove('hidden');
-}
-
-function closeResizeModal() {
-  document.getElementById('resize-modal').classList.add('hidden');
-}
-
-function confirmResize() {
-  const W = parseInt(document.getElementById('resize-w').value, 10);
-  const H = parseInt(document.getElementById('resize-h').value, 10);
-  if (!W || !H || W < 1 || H < 1 || W > 8000 || H > 8000) return;
-  resizeStack(W, H);
-  closeResizeModal();
-}
-
 // ── Color history ─────────────────────────────────────────────────────────────
 
 function addToColorHistory(hex) {
@@ -516,200 +424,15 @@ function addToColorHistory(hex) {
   });
 }
 
-// ── Pointer events ────────────────────────────────────────────────────────────
+// ── Pointer controller (lives in ./pointer.js) ───────────────────────────────
 
-const UNDOABLE_ON_DOWN = new Set(['pencil', 'brush', 'eraser', 'fill', 'spray']);
-const UNDOABLE_ON_UP = new Set(['line', 'rect', 'ellipse']);
+const pointer = createPointerController({
+  state, overlayCanvas, ov, activeCtx, activeLayer,
+  pushUndo, updateTransform,
+  refreshLayerPanel: refreshLayerPanelUI,
+});
 
-function getCanvasCoords(e) {
-  const rect = overlayCanvas.getBoundingClientRect();
-  const scaleX = overlayCanvas.width / rect.width;
-  const scaleY = overlayCanvas.height / rect.height;
-  return {
-    x: (e.clientX - rect.left) * scaleX,
-    y: (e.clientY - rect.top) * scaleY,
-  };
-}
-
-function onPointerDown(e) {
-  // Middle mouse OR spacebar held = pan
-  if (e.button === 1 || (state.spaceDown && e.button === 0)) {
-    e.preventDefault();
-    state.panning = true;
-    state.panStartClientX = e.clientX; state.panStartClientY = e.clientY;
-    state.panStartX = state.panX; state.panStartY = state.panY;
-    overlayCanvas.setPointerCapture(e.pointerId);
-    overlayCanvas.style.cursor = 'grabbing';
-    return;
-  }
-  if (e.button !== 0 && e.button !== 2) return;
-  e.preventDefault();
-  overlayCanvas.setPointerCapture(e.pointerId);
-
-  const isRight = e.button === 2;
-  state.activeColor = isRight ? state.bgColor : state.color;
-  state.pressure = pressureFor(e);
-  state.shiftKey = e.shiftKey;
-  state.altKey = e.altKey;
-  // On Mac, Ctrl-click is a right-click — only treat ctrl/meta as a selection
-  // modifier on a real left-click, otherwise color-picking with right-click
-  // would also subtract from the selection.
-  state.ctrlKey = !isRight && (e.ctrlKey || e.metaKey);
-
-  const { x, y } = getCanvasCoords(e);
-  const tool = TOOLS[state.tool];
-
-  if (UNDOABLE_ON_DOWN.has(state.tool)) pushUndo(TOOLS[state.tool].label);
-
-  commitTextInput();
-
-  tool.onDown(activeCtx(), ov, state, x, y, isRight);
-}
-
-function onPointerMove(e) {
-  if (state.panning) {
-    state.panX = state.panStartX + (e.clientX - state.panStartClientX);
-    state.panY = state.panStartY + (e.clientY - state.panStartClientY);
-    updateTransform();
-    return;
-  }
-  state.pressure = pressureFor(e);
-  const { x, y } = getCanvasCoords(e);
-  updateStatus(x, y);
-  if (state.tool === 'spray') { state.sprayX = x; state.sprayY = y; }
-  if (!state.drawing && state.sel.mode !== 'moving') return;
-  TOOLS[state.tool].onMove(activeCtx(), ov, state, x, y);
-}
-
-// Real pen pressure for stylus, neutral 1.0 for mouse/touch.
-function pressureFor(e) {
-  if (e.pointerType === 'pen' && typeof e.pressure === 'number' && e.pressure > 0) {
-    return e.pressure;
-  }
-  return 1;
-}
-
-function onPointerUp(e) {
-  if (state.panning) {
-    state.panning = false;
-    overlayCanvas.style.cursor = TOOLS[state.tool]?.cursor ?? 'crosshair';
-    return;
-  }
-  if (!state.drawing && state.sel.mode !== 'moving') return;
-  const { x, y } = getCanvasCoords(e);
-  const tool = TOOLS[state.tool];
-
-  if (UNDOABLE_ON_UP.has(state.tool)) pushUndo(TOOLS[state.tool].label);
-
-  tool.onUp(activeCtx(), ov, state, x, y);
-  refreshLayerPanelUI();
-}
-
-// ── OS bridge (postMessage integration when running inside Heyming OS) ────────
-
-function isInOS() {
-  try { return window.parent !== window; } catch { return false; }
-}
-
-function sendToOS(message) {
-  window.parent.postMessage({ type: 'iframe-message', message }, '*');
-}
-
-function saveProjectToOS() {
-  const data = serializeProject(state, canvasW(), canvasH());
-  sendToOS({ type: 'saveAs', content: JSON.stringify(data), suggestedName: 'untitled.paintproj' });
-}
-
-function savePNGToOS() {
-  const flat = flattenToCanvas(state.layers, state.bgColor, canvasW(), canvasH(), { transparentBg: true });
-  sendToOS({ type: 'saveAs', content: flat.toDataURL('image/png'), suggestedName: 'untitled.png' });
-}
-
-function openFromOS() {
-  sendToOS({ type: 'openFileDialog', fileTypes: ['.paintproj', 'image/*'], title: 'Open in Paint' });
-}
-
-function handleOSMessage(e) {
-  const data = e.data;
-  if (!data || typeof data !== 'object') return;
-  if (data.type !== 'openFile') return;
-
-  const { content, fileName } = data;
-  if (!content) return;
-
-  const nameLC = (fileName || '').toLowerCase();
-  const isProject = nameLC.endsWith('.paintproj') ||
-    (typeof content === 'string' && content.trimStart().startsWith('{'));
-
-  if (isProject) {
-    try {
-      const parsed = typeof content === 'string' ? JSON.parse(content) : content;
-      loadProjectData(parsed).catch(err => alert('Could not open project: ' + err.message));
-    } catch {
-      alert('Could not parse project file');
-    }
-  } else {
-    const src = typeof content === 'string' ? content
-      : URL.createObjectURL(new Blob([content]));
-    const img = new Image();
-    img.onload = () => {
-      pushUndo('Open from OS');
-      activeCtx().drawImage(img, 0, 0);
-      if (!src.startsWith('data:')) URL.revokeObjectURL(src);
-      refreshLayerPanelUI();
-    };
-    img.onerror = () => alert('Could not load image from OS');
-    img.src = src;
-  }
-}
-
-function initOSBridge() {
-  window.addEventListener('message', handleOSMessage);
-  if (!isInOS()) return;
-
-  const fileList = document.getElementById('file-menu-list');
-  if (!fileList) return;
-
-  // Insert "Open from OS…" after "Open from Computer…"
-  const openComputerBtn = fileList.querySelector('[data-file="open-computer"]');
-  if (openComputerBtn) {
-    const btnOpenOS = document.createElement('button');
-    btnOpenOS.className = 'action-menu-item';
-    btnOpenOS.textContent = 'Open from OS…';
-    btnOpenOS.addEventListener('click', () => { closeFileMenu(); openFromOS(); });
-    openComputerBtn.after(btnOpenOS);
-  }
-
-  // Append "Save to OS ›" submenu
-  const sep = document.createElement('div');
-  sep.className = 'action-menu-sep';
-
-  const saveToOSItem = document.createElement('div');
-  saveToOSItem.className = 'action-menu-item has-submenu';
-  saveToOSItem.setAttribute('role', 'menuitem');
-  saveToOSItem.setAttribute('aria-haspopup', 'true');
-  saveToOSItem.textContent = 'Save to OS';
-
-  const osSubmenu = document.createElement('div');
-  osSubmenu.className = 'action-submenu';
-  osSubmenu.setAttribute('role', 'menu');
-
-  const btnProjOS = document.createElement('button');
-  btnProjOS.className = 'action-menu-item';
-  btnProjOS.textContent = 'Paint project (.paintproj)';
-  btnProjOS.addEventListener('click', () => { closeFileMenu(); saveProjectToOS(); });
-
-  const btnPNGOS = document.createElement('button');
-  btnPNGOS.className = 'action-menu-item';
-  btnPNGOS.textContent = 'PNG image';
-  btnPNGOS.addEventListener('click', () => { closeFileMenu(); savePNGToOS(); });
-
-  osSubmenu.append(btnProjOS, btnPNGOS);
-  saveToOSItem.appendChild(osSubmenu);
-  fileList.append(sep, saveToOSItem);
-}
-
-// ── Clear / Save ──────────────────────────────────────────────────────────────
+// ── Clear / new project ──────────────────────────────────────────────────────
 
 function clearCanvas() {
   pushUndo('Clear');
@@ -744,75 +467,6 @@ function newProject() {
   refreshLayerPanelUI();
   renderHistoryPanel();
   clearAutosave();
-}
-
-// ── Filename modal ──────────────────────────────────────────────────────────
-
-let filenameModalCallback = null;
-
-function openFilenameModal(suggested, onConfirm) {
-  const modal = document.getElementById('filename-modal');
-  const input = document.getElementById('filename-input');
-  input.value = suggested;
-  filenameModalCallback = onConfirm;
-  modal.classList.remove('hidden');
-  setTimeout(() => {
-    input.focus();
-    const dot = suggested.lastIndexOf('.');
-    input.setSelectionRange(0, dot > 0 ? dot : suggested.length);
-  }, 50);
-}
-
-function confirmFilenameModal() {
-  const filename = document.getElementById('filename-input').value.trim();
-  if (!filename) return;
-  const cb = filenameModalCallback;
-  closeFilenameModal();
-  cb?.(filename);
-}
-
-function closeFilenameModal() {
-  document.getElementById('filename-modal')?.classList.add('hidden');
-  filenameModalCallback = null;
-}
-
-// ── File menu ───────────────────────────────────────────────────────────────
-
-function toggleFileMenu() {
-  const list = document.getElementById('file-menu-list');
-  const btn = document.getElementById('btn-file');
-  if (!list) return;
-  const willOpen = list.classList.contains('hidden');
-  list.classList.toggle('hidden', !willOpen);
-  btn?.setAttribute('aria-expanded', String(willOpen));
-}
-
-function closeFileMenu() {
-  document.getElementById('file-menu-list')?.classList.add('hidden');
-  document.getElementById('btn-file')?.setAttribute('aria-expanded', 'false');
-}
-
-// ── Download helpers ────────────────────────────────────────────────────────
-
-function downloadPNG(filename) {
-  const flat = flattenToCanvas(state.layers, state.bgColor, canvasW(), canvasH(), { transparentBg: true });
-  const link = document.createElement('a');
-  link.download = filename;
-  link.href = flat.toDataURL('image/png');
-  link.click();
-}
-
-function downloadJPEG(filename) {
-  const flat = flattenToCanvas(state.layers, state.bgColor, canvasW(), canvasH());
-  const link = document.createElement('a');
-  link.download = filename;
-  link.href = flat.toDataURL('image/jpeg', 0.92);
-  link.click();
-}
-
-function downloadProjectFile(filename) {
-  const data = serializeProject(state, canvasW(), canvasH());
-  downloadProject(data, filename);
 }
 
 // ── Panel resize ─────────────────────────────────────────────────────────────
@@ -901,8 +555,8 @@ function init() {
     return floodSelect(ctx, x, y, opts.tolerance ?? 30, opts.contiguous !== false);
   };
   state.scanlineFill = scanlineFill;
-  state.showTextInput = showTextInput;
-  state.sprayDot = doSprayDot;
+  state.showTextInput = pointer.showTextInput;
+  state.sprayDot = pointer.doSprayDot;
   state.applySelectionWithMask = applySelectionWithMask;
   state.selectionModeFor = selectionModeFor;
 
@@ -911,7 +565,7 @@ function init() {
     if (state.sel.mode !== 'none' && id !== 'rectSelect' && id !== 'lasso' && id !== 'magicWand') {
       commitSelection();
     }
-    commitTextInput();
+    pointer.commitTextInput();
     setActiveTool(id);
   });
 
@@ -941,12 +595,12 @@ function init() {
   };
 
   // Canvas pointer events
-  overlayCanvas.addEventListener('pointerdown', onPointerDown);
-  overlayCanvas.addEventListener('pointermove', onPointerMove);
-  overlayCanvas.addEventListener('pointerup', onPointerUp);
+  overlayCanvas.addEventListener('pointerdown', pointer.onPointerDown);
+  overlayCanvas.addEventListener('pointermove', pointer.onPointerMove);
+  overlayCanvas.addEventListener('pointerup', pointer.onPointerUp);
   overlayCanvas.addEventListener('pointerleave', e => {
     if (state.panning) { state.panning = false; overlayCanvas.style.cursor = TOOLS[state.tool]?.cursor ?? 'crosshair'; }
-    if (state.drawing) onPointerUp(e);
+    if (state.drawing) pointer.onPointerUp(e);
   });
   overlayCanvas.addEventListener('contextmenu', e => e.preventDefault());
 
@@ -992,9 +646,9 @@ function init() {
       const kind = btn.dataset.file;
       if (kind === 'new') newProject();
       else if (kind === 'open-computer') uploadInput?.click();
-      else if (kind === 'save-png') openFilenameModal('untitled.png', f => downloadPNG(f));
-      else if (kind === 'save-jpeg') openFilenameModal('untitled.jpg', f => downloadJPEG(f));
-      else if (kind === 'save-project') openFilenameModal('untitled.paintproj', f => downloadProjectFile(f));
+      else if (kind === 'save-png') openFilenameModal('untitled.png', f => downloadPNG(f, state, canvasW(), canvasH()));
+      else if (kind === 'save-jpeg') openFilenameModal('untitled.jpg', f => downloadJPEG(f, state, canvasW(), canvasH()));
+      else if (kind === 'save-project') openFilenameModal('untitled.paintproj', f => downloadProjectFile(f, state, canvasW(), canvasH()));
     });
   });
 
@@ -1006,8 +660,9 @@ function init() {
     if (e.key === 'Escape') { e.preventDefault(); closeFilenameModal(); }
   });
 
-  document.getElementById('btn-resize')?.addEventListener('click', openResizeModal);
-  document.getElementById('resize-ok')?.addEventListener('click', confirmResize);
+  // Resize modal
+  document.getElementById('btn-resize')?.addEventListener('click', () => openResizeModalUI(canvasW(), canvasH()));
+  document.getElementById('resize-ok')?.addEventListener('click', () => confirmResizeUI(resizeStack));
   document.getElementById('resize-cancel')?.addEventListener('click', closeResizeModal);
 
   // Adjust menu
@@ -1041,9 +696,9 @@ function init() {
   const textInput = document.getElementById('text-input');
   textInput?.addEventListener('keydown', e => {
     if (e.key === 'Escape') { textInput.style.display = 'none'; textInput.value = ''; e.preventDefault(); }
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitTextInput(); }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); pointer.commitTextInput(); }
   });
-  textInput?.addEventListener('blur', commitTextInput);
+  textInput?.addEventListener('blur', pointer.commitTextInput);
 
   // Accordion panel section toggles
   document.querySelectorAll('.panel-section-header').forEach(header => {
@@ -1077,7 +732,7 @@ function init() {
       e.preventDefault(); invertSelection(); return;
     }
 
-    if (e.key === 'Escape') { commitSelection(); commitTextInput(); return; }
+    if (e.key === 'Escape') { commitSelection(); pointer.commitTextInput(); return; }
     if ((e.key === 'Delete' || e.key === 'Backspace') && !inInput) {
       e.preventDefault(); deleteSelection(activeCtx()); return;
     }
@@ -1098,7 +753,7 @@ function init() {
     };
     const toolId = shortcuts[e.key.toLowerCase()];
     if (toolId) {
-      commitTextInput();
+      pointer.commitTextInput();
       if (state.sel.mode !== 'none' && !['rectSelect','lasso','magicWand'].includes(toolId)) commitSelection();
       setActiveTool(toolId);
       return;
@@ -1130,7 +785,17 @@ function init() {
   initPanelResize();
   startSelectionAnimation(state, ov);
   updateTransform();
-  initOSBridge();
+
+  installOSBridge({
+    state,
+    getDims: () => ({ w: canvasW(), h: canvasH() }),
+    activeCtx,
+    pushUndo,
+    refreshLayerPanel: refreshLayerPanelUI,
+    closeFileMenu,
+    loadProjectData,
+  });
+
   maybeOfferRestore();
 }
 

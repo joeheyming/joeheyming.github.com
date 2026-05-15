@@ -1,0 +1,372 @@
+/* Main-area diff editor (working vs HEAD) */
+.diff-editor-main {
+  background: var(--bg);
+}
+
+.editor-area {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.tabs {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-elev);
+  border-bottom: 1px solid var(--border);
+  height: var(--tabs-h);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-mute);
+  background: var(--bg-elev);
+  min-width: 0;
+}
+
+.tab:hover {
+  background: var(--bg-elev-2);
+}
+
+.tab.active {
+  background: var(--bg);
+  color: var(--text-strong);
+  border-bottom: 1px solid var(--bg);
+}
+
+.tab .icon {
+  width: 14px;
+  text-align: center;
+}
+
+.tab .name {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 160px;
+}
+
+.tab .close {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-mute);
+  font-size: 12px;
+}
+
+.tab .close:hover {
+  background: var(--bg-hover);
+  color: var(--text-strong);
+}
+
+.tab.dirty .close::before {
+  content: '●';
+  color: var(--text);
+}
+
+.tab.dirty:not(:hover) .close {
+  font-size: 10px;
+}
+
+.tab.dirty .close:hover::before {
+  content: '×';
+  font-size: 12px;
+}
+
+.editor-container {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.editor {
+  position: absolute;
+  inset: 0;
+}
+
+.editor.hidden {
+  visibility: hidden;
+}
+
+.welcome {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  pointer-events: auto;
+}
+
+.welcome.hidden {
+  display: none;
+}
+
+.welcome-inner {
+  text-align: center;
+  max-width: 480px;
+}
+
+.welcome-logo {
+  font-size: 64px;
+  margin-bottom: 8px;
+}
+
+.welcome-inner h1 {
+  margin: 0 0 4px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.welcome-inner .tagline {
+  color: var(--text-mute);
+  margin: 0 0 20px;
+}
+
+.welcome-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.welcome-actions button {
+  background: var(--bg-elev-2);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.welcome-actions button.primary {
+  background: var(--accent);
+  border-color: var(--accent-strong);
+  color: white;
+}
+
+.welcome-actions button:hover {
+  filter: brightness(1.15);
+}
+
+.shortcuts {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  justify-content: center;
+  color: var(--text-mute);
+  font-size: 12px;
+}
+
+.shortcuts kbd {
+  font-family: var(--font-mono);
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--text);
+}
+
+.panel {
+  background: var(--bg-elev);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-tabs {
+  display: flex;
+  gap: 2px;
+}
+
+.panel-tab {
+  background: transparent;
+  color: var(--text-mute);
+  border: none;
+  padding: 4px 10px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.panel-tab.active {
+  color: var(--text-strong);
+  border-bottom-color: var(--accent-strong);
+}
+
+.panel-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.panel-view {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-view[hidden] {
+  display: none;
+}
+
+.console-toolbar,
+.diff-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.console-hint {
+  color: var(--text-mute);
+}
+
+.btn {
+  background: var(--bg-elev-2);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  padding: 3px 10px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.btn:hover {
+  filter: brightness(1.15);
+}
+
+.console-output {
+  flex: 1;
+  overflow: auto;
+  padding: 6px 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.console-line {
+  padding: 1px 0;
+}
+
+.console-line.log {
+  color: var(--text);
+}
+
+.console-line.info {
+  color: var(--good);
+}
+
+.console-line.warn {
+  color: var(--warn);
+}
+
+.console-line.error {
+  color: var(--danger);
+}
+
+.console-line.system {
+  color: var(--text-mute);
+  font-style: italic;
+}
+
+.diff-toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.diff-toolbar select {
+  background: var(--bg-input);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  padding: 2px 4px;
+  font: inherit;
+}
+
+.diff-editor {
+  flex: 1;
+  min-height: 0;
+}
+
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px;
+  background: var(--accent);
+  color: white;
+  font-size: 12px;
+  height: var(--statusbar-h);
+}
+
+body.theme-light .statusbar {
+  background: var(--accent);
+}
+
+.statusbar .grow {
+  flex: 1;
+}
+
+.status-pill {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0 6px;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.status-pill.vim {
+  background: var(--warn);
+  color: black;
+}
+
+.status-item {
+  white-space: nowrap;
+}
+
+#sandbox {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 0;
+}
+

@@ -9,24 +9,28 @@
  * pointer plucks, drive the chord builder (guitar-only), persist prefs,
  * and route MIDI input.
  */
-import { midiToName, resumeIfSuspended, setMasterVolume } from '../shared/audio.js';
+import { resumeIfSuspended, setMasterVolume } from '../shared/audio.js';
 import { setupMidi } from '../shared/midi.js';
 import { makePrefs } from '../shared/prefs.js';
-import { createScrollGesture } from '../shared/scroll-gesture.js';
-import { INSTRUMENTS, DEFAULT_INSTRUMENT_ID, getInstrument, midiAtCell } from './instruments.js';
+import { getInstrument, midiAtCell } from './instruments.js';
 import {
   ROOTS,
   QUALITIES,
   getChordVoicings,
-  assignFingers,
-  detectBarre,
-  parseChordName,
   formatChordName
 } from './chords.js';
 import { StringEngine } from './engine.js';
 import { createFretboardController } from './fretboard.js';
 import { createStrumPopovers } from './strum-popovers.js';
 import { initStrumDrag } from './strum-drag.js';
+import {
+  STRUM_BAR_MAX,
+  chordKey,
+  voicingPositionSuperscript,
+  hydratePrefs
+} from './prefs-hydrate.js';
+import { createChordShapePainter } from './chord-shape-render.js';
+import { createToneControls } from './tone-controls.js';
 
 // localStorage key is intentionally still `play.guitar.*` — the URL was
 // renamed from /play/guitar/ to /play/strings/ in May 2026, but the
@@ -84,158 +88,21 @@ const STRUM_BAR_HINT_DEFAULT = strumBarHintEl ? strumBarHintEl.innerHTML : '';
 
 // ---------- Prefs hydration + per-instrument tone memory ----------
 
-const prefs = Prefs.load();
-if (typeof prefs.volume === 'number') volumeEl.value = String(prefs.volume);
-if (typeof prefs.showNotes === 'boolean') showNotesEl.checked = prefs.showNotes;
-
-// Older saved prefs only have a single `tone` field (back when this page
-// was guitar-only); honour it as a guitar-tone hint and migrate it into
-// the per-instrument map below.
-const initialInstrumentId =
-  typeof prefs.instrument === 'string' && INSTRUMENTS[prefs.instrument]
-    ? prefs.instrument
-    : DEFAULT_INSTRUMENT_ID;
+const {
+  initialInstrumentId,
+  tonesPerInstrument,
+  strumBar,
+  voicingPrefs,
+  loadedSong: initialLoadedSong
+} = hydratePrefs(Prefs, volumeEl, showNotesEl);
 
 let activeInstrument = getInstrument(initialInstrumentId);
-
-// `tonesPerInstrument` remembers each instrument's last-picked tone so a
-// player who hops Guitar → Bass → Guitar comes back to the same overdriven
-// voice they had before, not the default acoustic.
-const tonesPerInstrument =
-  prefs.tonesPerInstrument && typeof prefs.tonesPerInstrument === 'object'
-    ? { ...prefs.tonesPerInstrument }
-    : {};
-if (!tonesPerInstrument.guitar && typeof prefs.tone === 'string') {
-  tonesPerInstrument.guitar = prefs.tone;
-}
-
-// Strum Bar palette — SHARED across all chord-capable instruments
-// (guitar / ukulele / mandolin / banjo). Each entry is `{ rootPc:
-// 0..11, qualityId: 'maj'|'min'|'7'|… }` — voicing is intentionally
-// NOT part of pad identity, because the same chord (e.g. Cm) has
-// different shape options on different instruments. The user's
-// preferred shape is tracked separately, per-instrument, in
-// `voicingPrefs` below.
-//
-// Mental model: the bar is "the chords for the song you're playing
-// right now". Switching instruments is a render mode change — the
-// chords are the same, only the way they're voiced on the neck
-// changes.
-//
-// Capped at STRUM_BAR_MAX with LRU eviction so the row doesn't sprawl.
-const STRUM_BAR_MAX = 8;
-const chordKey = (rootPc, qualityId) => `${rootPc}:${qualityId}`;
-
-const sanitizeBarEntry = (e) => {
-  if (!e || typeof e !== 'object') return null;
-  const rootPc = Number(e.rootPc);
-  if (!Number.isInteger(rootPc) || rootPc < 0 || rootPc > 11) return null;
-  if (typeof e.qualityId !== 'string') return null;
-  if (!QUALITIES.some((q) => q.id === e.qualityId)) return null;
-  return { rootPc, qualityId: e.qualityId };
-};
-
-// Extracts the player-facing fret position for a voicing — used as
-// the small superscript on each pad. We match the chord library's
-// own naming convention (`Barre 3`, `Pos 5`, …); open voicings
-// (`Open`, `Open+`, …) intentionally render with no superscript so
-// they read as "the chord with no neck position needed".
-const voicingPositionSuperscript = (voicing) => {
-  if (!voicing || typeof voicing.name !== 'string') return '';
-  const m = /^(?:Barre|Pos)\s*(\d+)/i.exec(voicing.name);
-  return m ? m[1] : '';
-};
-
-// `strumBar` (singular) is the global chord palette. `voicingPrefs`
-// is a per-instrument map of chord-key -> voicing index, so each
-// instrument remembers its preferred shape for each chord (guitar
-// might like Cm Barre 3, ukulele might like the open one).
-//
-// Migration from the old per-instrument `prefs.strumBars` shape:
-//   1. If new-shape `prefs.strumBar` exists, use it directly.
-//   2. Else fall back to the active instrument's old per-instrument
-//      bar — preserves the most-likely-relevant set of chords.
-//   3. Build voicingPrefs from EVERY instrument's old per-instrument
-//      bar so per-instrument shape preferences carry over.
-// Rationale for picking the active instrument's bar over a union:
-// the user almost certainly built their bar on whichever instrument
-// they were last playing; merging in stale chords from instruments
-// they haven't touched would be surprising.
-/** @type {{ rootPc: number, qualityId: string }[]} */
-const strumBar = (() => {
-  if (Array.isArray(prefs.strumBar)) {
-    return prefs.strumBar.map(sanitizeBarEntry).filter(Boolean).slice(0, STRUM_BAR_MAX);
-  }
-  const legacy = prefs.strumBars && typeof prefs.strumBars === 'object' ? prefs.strumBars : null;
-  if (!legacy) return [];
-  const activeBar = Array.isArray(legacy[initialInstrumentId]) ? legacy[initialInstrumentId] : [];
-  // Dedupe by (root, quality) — old bars allowed multiple shapes of
-  // the same chord as separate pads; we collapse to one entry per
-  // chord, keeping the FIRST occurrence (which is the most-recently
-  // pinned one, since pins prepend).
-  const seen = new Set();
-  const out = [];
-  for (const e of activeBar) {
-    const sane = sanitizeBarEntry(e);
-    if (!sane) continue;
-    const key = chordKey(sane.rootPc, sane.qualityId);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(sane);
-    if (out.length >= STRUM_BAR_MAX) break;
-  }
-  return out;
-})();
-
-/** @type {Record<string, Record<string, number>>} */
-const voicingPrefs = (() => {
-  const seed = {};
-  if (prefs.voicingPrefs && typeof prefs.voicingPrefs === 'object') {
-    for (const [iid, map] of Object.entries(prefs.voicingPrefs)) {
-      if (!map || typeof map !== 'object') continue;
-      const cleaned = {};
-      for (const [k, v] of Object.entries(map)) {
-        const n = Number(v);
-        if (Number.isInteger(n) && n >= 0) cleaned[k] = n;
-      }
-      seed[iid] = cleaned;
-    }
-  }
-  // Rescue per-instrument voicings from the old strumBars shape.
-  if (prefs.strumBars && typeof prefs.strumBars === 'object') {
-    for (const [iid, bar] of Object.entries(prefs.strumBars)) {
-      if (!Array.isArray(bar)) continue;
-      if (!seed[iid]) seed[iid] = {};
-      for (const e of bar) {
-        if (!e || typeof e !== 'object') continue;
-        const rootPc = Number(e.rootPc);
-        if (!Number.isInteger(rootPc)) continue;
-        if (typeof e.qualityId !== 'string') continue;
-        const v = Number(e.voicingIdx);
-        if (!Number.isInteger(v) || v <= 0) continue; // 0 is the default; no need to store
-        const key = chordKey(rootPc, e.qualityId);
-        // First-occurrence wins (matches how the bar was deduped above).
-        if (!(key in seed[iid])) seed[iid][key] = v;
-      }
-    }
-  }
-  return seed;
-})();
 
 // Track the song the player loaded most recently so we can surface a
 // clickable link back to the source page in the strum-bar header.
 // Cleared when the user hits Clear or loads a different song.
 /** @type {{ url: string, title: string, artist: string } | null} */
-let loadedSong = (() => {
-  const s = prefs.loadedSong;
-  if (!s || typeof s !== 'object') return null;
-  if (typeof s.url !== 'string' || !s.url) return null;
-  return {
-    url: s.url,
-    title: typeof s.title === 'string' ? s.title : '',
-    artist: typeof s.artist === 'string' ? s.artist : ''
-  };
-})();
+let loadedSong = initialLoadedSong;
 
 // Update the loaded-song reference and refresh the link in the
 // strum-bar header. Pass null to clear (e.g. on Clear button).
@@ -318,13 +185,6 @@ const builderState = {
 const chordShapeCells = new Set();
 
 // ---------- Fretboard rendering + pointer playback ----------
-//
-// `createFretboardController` owns the .fretboard-grid DOM (rebuild
-// on instrument switch) AND the pointer events that turn a tap on a
-// cell into a pluck. It populates the shared `cellEls` map so the
-// chord builder can still highlight individual cells, and exposes
-// flash / announce helpers for everything else that wants visual
-// feedback for a note (chord strum, MIDI input, etc.).
 
 const fretboard = createFretboardController({
   fretboardEl,
@@ -335,251 +195,18 @@ const fretboard = createFretboardController({
   chordShapeCells,
   getActiveInstrument: () => activeInstrument,
 });
-const { build: buildFretboard, playFret, flashCell, announceNote } = fretboard;
+const { build: buildFretboard, flashCell, announceNote } = fretboard;
 
-// ---------- Chord builder (guitar-only) ----------
+// ---------- Chord shape painter (./chord-shape-render.js) ----------
 
-// Overlays for the barre (amber pill across barred strings) and the
-// root cell (red disc, on top of the barre). Both live as siblings of
-// the .fret-cell elements inside .fretboard-grid so they can fight a
-// shared z-index battle (the strings row has its own z-index that's
-// strictly below these — that's why we can't render either one as a
-// pseudo-element of the cell itself).
-let barreOverlayEl = null;
-let rootOverlayEl = null;
+const { paintChordShape, clearChordShape } = createChordShapePainter({
+  fretboardEl,
+  cellEls,
+  chordShapeCells,
+  getActiveInstrument: () => activeInstrument,
+});
 
-const removeBarreOverlay = () => {
-  if (barreOverlayEl && barreOverlayEl.parentNode) {
-    barreOverlayEl.parentNode.removeChild(barreOverlayEl);
-  }
-  barreOverlayEl = null;
-};
-
-const removeRootOverlay = () => {
-  if (rootOverlayEl && rootOverlayEl.parentNode) {
-    rootOverlayEl.parentNode.removeChild(rootOverlayEl);
-  }
-  rootOverlayEl = null;
-};
-
-const clearChordShape = () => {
-  chordShapeCells.forEach((el) => {
-    el.classList.remove('in-chord', 'in-chord-root', 'in-chord-open', 'muted');
-    delete el.dataset.finger;
-    const badge = el.querySelector('.finger-badge');
-    if (badge) badge.remove();
-  });
-  chordShapeCells.clear();
-  removeBarreOverlay();
-  removeRootOverlay();
-};
-
-/**
- * Position the barre overlay across the cells the index finger covers.
- *
- * The overlay lives inside `.fretboard-grid` (which absolutely-positions
- * its inlay layer the same way) so we can use the cell DOM rects to
- * compute the bar's geometry without re-implementing the grid maths in
- * CSS. Re-derived on every paint so window resizes / orientation
- * changes naturally re-place it on the next paint pass.
- */
-const drawBarreOverlay = (barre) => {
-  removeBarreOverlay();
-  if (!barre) return;
-  const grid = fretboardEl.querySelector('.fretboard-grid');
-  if (!grid) return;
-  const fromCell = cellEls.get(`${barre.fromString}-${barre.fret}`);
-  const toCell = cellEls.get(`${barre.toString}-${barre.fret}`);
-  if (!fromCell || !toCell) return;
-  const gridRect = grid.getBoundingClientRect();
-  const fromRect = fromCell.getBoundingClientRect();
-  const toRect = toCell.getBoundingClientRect();
-  // The bar spans from the higher string row's top (smaller stringIdx
-  // = top of the array but visually lower? No — string 0 = highest
-  // pitch = top row of the fretboard since we render high-first).
-  // fromString < toString in our array, so fromCell is visually above
-  // toCell, hence we span fromCell.top → toCell.bottom.
-  const top = Math.min(fromRect.top, toRect.top) - gridRect.top;
-  const bottom = Math.max(fromRect.bottom, toRect.bottom) - gridRect.top;
-  const left = fromRect.left - gridRect.left;
-  const width = fromRect.width;
-
-  const el = document.createElement('div');
-  el.className = 'chord-barre';
-  el.style.top = `${top + 4}px`;
-  el.style.height = `${bottom - top - 8}px`;
-  el.style.left = `${left + 6}px`;
-  el.style.width = `${width - 12}px`;
-  el.setAttribute('aria-hidden', 'true');
-  // The "1" label sits on the left end so it doesn't collide with finger
-  // badges on cells that aren't part of the barre. Label uses the
-  // actual barring finger (usually 1, but chord-data has finger 3 / 4
-  // mini-barres for some open shapes like Am add9 or "open Am+").
-  const fingerLabel = barre.finger || 1;
-  el.innerHTML = `<span class="chord-barre-label">${fingerLabel}</span>`;
-  grid.appendChild(el);
-  barreOverlayEl = el;
-};
-
-const setFingerBadge = (cell, label) => {
-  let badge = cell.querySelector('.finger-badge');
-  if (!badge) {
-    badge = document.createElement('span');
-    badge.className = 'finger-badge';
-    cell.appendChild(badge);
-  }
-  badge.textContent = label;
-};
-
-/**
- * Render the root marker on top of the barre overlay (and on top of
- * any cell-level chord-tone disc). Same DOM-rect approach as the
- * barre — read the cell's bounding rect, position an overlay element
- * inside .fretboard-grid.
- *
- * The label is the actual ROOT NOTE NAME (e.g. "C", "F♯", "B♭") rather
- * than a generic "R" — non-musicians found "R" confusing, and showing
- * the note tells the player both "this is the root" (via the red
- * colour) AND "you're playing a C", which doubles as a sanity check
- * against the chord name. The fretting finger number sits as a small
- * superscript so the player still knows which finger to use.
- */
-const drawRootOverlay = (rootCell, fingerNumber, rootName) => {
-  removeRootOverlay();
-  if (!rootCell) return;
-  const grid = fretboardEl.querySelector('.fretboard-grid');
-  if (!grid) return;
-  const gridRect = grid.getBoundingClientRect();
-  const rect = rootCell.getBoundingClientRect();
-  const top = rect.top - gridRect.top + 3;
-  const left = rect.left - gridRect.left + 5;
-  const width = rect.width - 10;
-  const height = rect.height - 6;
-
-  const el = document.createElement('div');
-  el.className = 'chord-root-marker';
-  el.style.top = `${top}px`;
-  el.style.left = `${left}px`;
-  el.style.width = `${width}px`;
-  el.style.height = `${height}px`;
-  el.setAttribute('aria-hidden', 'true');
-  const label = rootName || 'R';
-  if (fingerNumber && fingerNumber > 0) {
-    el.innerHTML = `<span class="chord-root-marker-label">${label}<small>${fingerNumber}</small></span>`;
-  } else {
-    el.innerHTML = `<span class="chord-root-marker-label">${label}</span>`;
-  }
-  grid.appendChild(el);
-  rootOverlayEl = el;
-};
-
-/**
- * Highlight the chord shape on the fretboard and leave it in place.
- *
- * - Fretted cells get `.in-chord` (purple disc) plus a finger-number
- *   badge (1-4). The lowest-pitch root copy also gets `.in-chord-root`
- *   (amber disc) and an `R` label so the tonal centre pops visually.
- * - Open chord-tone cells get `.in-chord-open` (just a small ○ marker
- *   on the label cell — no full-cell tint, since the player isn't
- *   fingering anything).
- * - Muted strings get `.muted` (big × on the label cell).
- * - If the shape is a barre, draw a horizontal pill across the index
- *   finger's strings via `drawBarreOverlay`.
- */
-const paintChordShape = (frets, rootPc, providedFingers) => {
-  clearChordShape();
-  // Prefer chord-data fingers (textbook-vetted) when the voicing
-  // carries them; only fall back to the heuristic for algorithmic
-  // voicings (banjo / mandolin / uke C♯ / F♯).
-  const fingers = providedFingers || assignFingers(frets, activeInstrument.tuning);
-  const barre = detectBarre(frets, activeInstrument.tuning, providedFingers);
-
-  // Track the lowest-pitch sounding root (the bass-voice copy that
-  // anchors the chord). We use actual MIDI pitch rather than array
-  // index because banjo's 5th-string drone is a HIGH-pitched g4
-  // appended to the end of the tuning array — the array-index
-  // heuristic would mistakenly mark the drone as the bass root.
-  let bestRootMidi = Number.POSITIVE_INFINITY;
-  let bestRootStringIdx = -1;
-  let bestRootFret = -1;
-
-  frets.forEach((fret, stringIdx) => {
-    const startFret = activeInstrument.tuning[stringIdx].startFret || 0;
-    if (fret < 0) {
-      // Muted: × goes on the open-string label cell (or the
-      // drone's startFret cell, since that's where the string label
-      // lives for drones).
-      const labelCell = cellEls.get(`${stringIdx}-${startFret}`);
-      if (labelCell) {
-        labelCell.classList.add('muted');
-        chordShapeCells.add(labelCell);
-      }
-      return;
-    }
-    if (fret === startFret) {
-      // Open chord tone — covers regular open strings (fret 0) AND
-      // drone strings ringing at their startFret (e.g. banjo's 5th
-      // string at fret 5). Either way: no finger, just a small ○
-      // marker on the label/drone-start cell.
-      const openCell = cellEls.get(`${stringIdx}-${startFret}`);
-      if (openCell) {
-        openCell.classList.add('in-chord-open');
-        chordShapeCells.add(openCell);
-      }
-    } else {
-      const cell = cellEls.get(`${stringIdx}-${fret}`);
-      if (!cell) return;
-      cell.classList.add('in-chord');
-      chordShapeCells.add(cell);
-      const finger = fingers[stringIdx];
-      if (finger > 0) setFingerBadge(cell, String(finger));
-    }
-
-    const midi = midiAtCell(activeInstrument, stringIdx, fret);
-    if (midi != null && midi % 12 === rootPc && midi < bestRootMidi) {
-      bestRootMidi = midi;
-      bestRootStringIdx = stringIdx;
-      bestRootFret = fret;
-    }
-  });
-
-  if (bestRootStringIdx >= 0) {
-    const rootCell = cellEls.get(`${bestRootStringIdx}-${bestRootFret}`);
-    if (rootCell) {
-      rootCell.classList.remove('in-chord', 'in-chord-open');
-      rootCell.classList.add('in-chord-root');
-      const finger = fingers[bestRootStringIdx];
-      const rootStartFret = activeInstrument.tuning[bestRootStringIdx].startFret || 0;
-      const isOpenRoot = bestRootFret === rootStartFret;
-      // Display name for the root note ("C", "F♯", "B♭", …) — the
-      // ROOTS table already uses the prettier Unicode accidentals.
-      const rootName = ROOTS.find((r) => r.pc === rootPc)?.name || '';
-      if (isOpenRoot) {
-        // Open (or drone-open) root sits on a sticky / drone-start
-        // label cell. The cell already shows the open-string letter
-        // (e.g. "E", "A") and now sports the red `.in-chord-root`
-        // tint, which is enough to tell the player "this is the root"
-        // — adding an extra "R" badge on top was the part that
-        // confused non-musicians.
-        const stale = rootCell.querySelector('.finger-badge');
-        if (stale) stale.remove();
-      } else {
-        // Remove any finger-number badge that may have been added when
-        // the cell was first painted as `.in-chord` — the overlay
-        // takes over visual responsibility now.
-        const stale = rootCell.querySelector('.finger-badge');
-        if (stale) stale.remove();
-      }
-      // Order matters: barre first, then root on top, so the red
-      // disc visibly punches through the amber bar.
-      drawBarreOverlay(barre);
-      if (!isOpenRoot) drawRootOverlay(rootCell, finger, rootName);
-      return;
-    }
-  }
-
-  drawBarreOverlay(barre);
-};
+// ---------- Chord builder UI ----------
 
 const chordDisplayName = () => {
   const root = ROOTS.find((r) => r.pc === builderState.rootPc);
@@ -618,12 +245,6 @@ const renderRadioGroup = (containerEl, items, selectedId, idKey, labelKey, dataA
 // next to the sharp on the same button (e.g. `C♯ / D♭`). We can't use
 // the generic `renderRadioGroup` here because that helper only knows
 // how to read a single text key per item.
-//
-// The visual hierarchy keeps the canonical sharp on top (slightly
-// larger) and the flat below as a smaller "also known as" hint.
-// That way tapping is still about a single pitch class — the row
-// just doesn't pretend flats don't exist. Naturals (C/D/E/F/G/A/B)
-// render as a single name with no second line.
 const renderRoots = () => {
   rootOptionsEl.innerHTML = '';
   ROOTS.forEach((r) => {
@@ -751,17 +372,11 @@ const playSelectedVoicing = (autoStrum = true) => {
 
 // Root buttons are the "play" surface for song mode: tap a root to
 // strum the chord with whatever Quality + Shape is currently configured.
-// Quality and Shape just *adjust the chord* without playing — so the
-// player can preset "minor 7th, barre voicing" and play C-m7 → F-m7 →
-// G-m7 by tapping roots, without an unwanted re-strum every time they
-// tweak the chord type.
 rootOptionsEl.addEventListener('click', (event) => {
   const btn = event.target.closest('button');
   if (!btn) return;
   const newRootPc = Number(btn.dataset.pc);
   // Edit mode: rewrite the armed pad's root in place (Em → Am etc.).
-  // applyEditToPad handles all the syncing + strum, so we just
-  // return early.
   if (editTarget && applyEditToPad({ rootPc: newRootPc })) return;
   builderState.rootPc = newRootPc;
   renderRoots();
@@ -810,18 +425,6 @@ clearShapeButton?.addEventListener('click', () => {
 });
 
 // ---------- Strum Bar (one-tap chord pads) ----------
-//
-// The Strum Bar is the primary play surface for live strumming. Each
-// pad shows a complete chord name ("Em", "A", "Cmaj7") and tapping it
-// strums that chord. The bar auto-fills from every chord the player
-// plays — via the matrix above, via `+` name input, or via tapping a
-// pad — so an "Em A Em A" progression becomes one tap per change once
-// both chords have been played once.
-//
-// SHARED across all chord-capable instruments (guitar/uke/mando/banjo).
-// Switching instruments keeps the same chord set; only the rendered
-// shapes change. Per-instrument shape preferences live in
-// `voicingPrefs`.
 
 const renderStrumBar = () => {
   if (!strumPadsEl) return;
@@ -856,8 +459,8 @@ const renderStrumBar = () => {
     // Resolve the actual voicing object so we can label the pad with
     // its fret position (e.g. "C³" for C Barre 3). Falls back to no
     // superscript if the chord library no longer has that voicing
-    // index — the pad still plays SOMETHING (voicingIdx clamps to 0
-    // in `playSelectedVoicing`), it just won't claim a fret position.
+    // index — the pad still plays SOMETHING, it just won't claim a
+    // fret position.
     const voicings = getChordVoicings(activeInstrument, entry.rootPc, entry.qualityId);
     const voicing = voicings[voicingIdx] || voicings[0];
     const fret = voicingPositionSuperscript(voicing);
@@ -891,20 +494,11 @@ const renderStrumBar = () => {
 
 // Pin a chord to the Strum Bar. The bar dedupes by (root, quality);
 // the voicing rides as a per-instrument preference instead of being
-// part of the pad identity. Re-pinning a chord with a different
-// voicing therefore UPDATES the active instrument's preferred shape
-// for that chord rather than creating a parallel pad.
-//
-// We only LRU-promote on FIRST add so a "Em A Em A" loop doesn't
-// shuffle the pads on every tap (which is disorienting when you're
-// trying to play in time). LRU eviction still kicks in when a NEW
-// chord arrives and the bar is at capacity.
+// part of the pad identity.
 const pinChordToBar = (rootPc, qualityId, voicingIdx = 0) => {
   if (!activeInstrument.chords) return;
   const idx = strumBar.findIndex((e) => e.rootPc === rootPc && e.qualityId === qualityId);
   // Update the active instrument's preferred voicing for this chord.
-  // This also handles "user just played C Barre 3 instead of C Open"
-  // — the pad keeps its position, the shape preference updates.
   setVoicingIdxFor(activeInstrument.id, rootPc, qualityId, voicingIdx);
   if (idx >= 0) {
     // Already pinned — re-render in case the voicing change shifted
@@ -936,9 +530,7 @@ const removeChordFromBar = (rootPc, qualityId) => {
 };
 
 // Brief flash on whichever pad just played, so the player gets visual
-// feedback that their tap registered (and matches the fretboard's
-// cell-flash convention). Pads are uniquely identified by (root,
-// quality) — voicing isn't part of pad identity in the global bar.
+// feedback that their tap registered.
 const flashPad = (rootPc, qualityId) => {
   const sel = `.strum-pad[data-root-pc="${rootPc}"][data-quality="${qualityId}"]`;
   const pad = strumPadsEl?.querySelector(sel);
@@ -950,11 +542,7 @@ const flashPad = (rootPc, qualityId) => {
   setTimeout(() => pad.classList.remove('playing'), 400);
 };
 
-// Set the matrix selection to a chord and strum it. Used by both pad
-// taps and the `+` name input. The voicingIdx is restored from the
-// pad's stored value so re-tapping a pad always plays the SAME
-// shape the player originally pinned (e.g. tapping the `C³` pad
-// always plays the Barre 3 voicing, not the default Open).
+// Set the matrix selection to a chord and strum it.
 const playChordAtPad = (rootPc, qualityId, voicingIdx = 0) => {
   builderState.rootPc = rootPc;
   builderState.qualityId = qualityId;
@@ -966,24 +554,6 @@ const playChordAtPad = (rootPc, qualityId, voicingIdx = 0) => {
 };
 
 // ---------- Edit-in-place: change a pad's voicing ----------
-//
-// "Edit target" tracks the pad the player most recently tapped, so
-// they can switch its voicing by clicking a Shape button without
-// having to remove the pad and re-add it. The flow:
-//
-//   1. Tap pinned pad        → editTarget = that pad's identity
-//   2. Click a Shape button  → if editTarget matches the current
-//                              (root, quality), update that pad's
-//                              voicingIdx in place (no new pad).
-//   3. Tap a Root / Quality  → editTarget cleared. Subsequent shape
-//                              changes pin a new pad as before.
-//   4. Tap another pinned    → editTarget moves to the new pad.
-//      pad
-//
-// This stays out of the way of "explore freely with the matrix" use
-// (the link only exists immediately after a pad tap), and keeps the
-// "creates a new pad for each new shape" model intact for everything
-// else.
 
 /** @type {{ rootPc: number, qualityId: string, voicingIdx: number } | null} */
 let editTarget = null;
@@ -997,8 +567,7 @@ const setEditTarget = (target) => {
 // Borrow the strum-bar hint slot to surface "you're in edit mode"
 // guidance — that slot is normally hidden once any pad is pinned, so
 // it's free real estate, and it sits right above the pads where the
-// player's eyes already are. When edit mode exits, we restore the
-// original empty-state hint HTML (kept in STRUM_BAR_HINT_DEFAULT).
+// player's eyes already are.
 const refreshEditHint = () => {
   if (!strumBarHintEl || !strumBarEl) return;
   if (editTarget) {
@@ -1024,23 +593,7 @@ const highlightEditPad = () => {
 };
 
 // Apply an in-place edit to whichever pad is currently armed for
-// editing. Each axis (root / quality / voicing) is optional — pass
-// only the field you want to change; the rest carry over from the
-// pad's current identity.
-//
-// Special cases the caller doesn't need to know about:
-//   - Changing quality resets voicing to the default (shapes vary by
-//     quality, so a "Barre 5" of m7 doesn't carry meaning to a "Barre
-//     5" of sus2 — and the chord-data lists are different lengths).
-//   - voicingIdx is clamped to the available voicings for the
-//     resolved (root, quality) so we never index past the end.
-//   - If another pinned pad already represents the resolved tuple,
-//     it's deduped (removed) so the bar never has two identical pads.
-//
-// Side effects: mutates the bar entry in place, updates editTarget
-// to the new identity, syncs builderState so the matrix below stays
-// in lockstep with the pad, re-renders, persists, and strums the
-// chord so the player hears the change.
+// editing. Each axis (root / quality / voicing) is optional.
 const applyEditToPad = (changes) => {
   if (!editTarget) return false;
   let idx = strumBar.findIndex(
@@ -1057,7 +610,7 @@ const applyEditToPad = (changes) => {
   // Resolve the voicing for the edit. Three cases:
   //   - Voicing was explicitly changed → use the new index.
   //   - Quality changed → reset to 0 (shape numbering differs per
-  //     quality, see comment in voicingPrefs hydration).
+  //     quality).
   //   - Otherwise carry the active instrument's existing voicing
   //     pref forward.
   let newVoicingIdx;
@@ -1069,17 +622,12 @@ const applyEditToPad = (changes) => {
     newVoicingIdx = getVoicingIdxFor(activeInstrument.id, newRootPc, newQualityId);
   }
   const voicings = getChordVoicings(activeInstrument, newRootPc, newQualityId);
-  if (!voicings.length) {
-    // No voicings available for the resolved chord — bail without
-    // mutating.
-    return false;
-  }
+  if (!voicings.length) return false;
   if (newVoicingIdx < 0 || newVoicingIdx >= voicings.length) newVoicingIdx = 0;
 
   // Dedupe: if a different pad already represents the new (root,
   // quality) identity, drop it. Keep the EDITED pad's slot so the
-  // player's spatial memory ("the third pad is the chorus chord")
-  // is preserved across the edit.
+  // player's spatial memory is preserved across the edit.
   const dupIdx = strumBar.findIndex(
     (e, i) => i !== idx && e.rootPc === newRootPc && e.qualityId === newQualityId
   );
@@ -1103,19 +651,13 @@ const applyEditToPad = (changes) => {
   renderVoicings();
   renderStrumBar();
   // playSelectedVoicing() also calls pinChordToBar — that's a no-op
-  // for an already-pinned identity (just updates voicingPref + flash),
-  // so it doubles as both "play the new sound" AND "flash the
-  // edited pad" in one call.
+  // for an already-pinned identity, so it doubles as both "play the
+  // new sound" AND "flash the edited pad" in one call.
   playSelectedVoicing();
   return true;
 };
 
 // ---------- Clear-all ----------
-//
-// Wipe every pad in one shot. Useful after loading a song with
-// leftover chords from a previous one. Also clears the edit target
-// (its pad is gone) and the loaded-song reference (the chords those
-// were FOR are gone, so the link would be misleading).
 
 const clearStrumBar = () => {
   if (!strumBar.length && !loadedSong) return;
@@ -1132,25 +674,7 @@ strumClearBtn?.addEventListener('click', clearStrumBar);
 //
 // Shift every pinned chord up or down by N semitones (positive = up,
 // negative = down). Capo-style: chord identities are rewritten in
-// place, so a bar of `[Em, A, D, G]` shifted +2 becomes `[F♯m, B, E,
-// A]`. Voicing prefs stay keyed by the NEW (root, quality) — the
-// next render resolves each pad's preferred shape via the existing
-// `getVoicingIdxFor`, falling back to voicing 0 for chords the
-// player has never picked a shape for on this instrument. (Pre-
-// existing prefs for the OLD roots are preserved, so re-transposing
-// back to where you started restores your shapes.)
-//
-// Pitch-class shift is a bijection on Z₁₂, so we don't need to dedupe
-// — distinct (root, quality) pads stay distinct after the rotation.
-//
-// Side effects:
-//   - editTarget follows the chord it was armed for, so "edit C"
-//     becomes "edit D" after +2 instead of pointing at a ghost.
-//   - The chord builder's current selection (builderState) is shifted
-//     too, since the player's conceptual "key" has moved — the matrix
-//     should reflect that.
-//   - On undefined / 0-shift the function is a no-op (no save, no
-//     re-render).
+// place, so a bar of `[Em, A, D, G]` shifted +2 becomes `[F♯m, B, E, A]`.
 
 const transposeStrumBar = (semitones) => {
   if (!strumBar.length) return;
@@ -1167,10 +691,6 @@ const transposeStrumBar = (semitones) => {
   }
   builderState.rootPc = (builderState.rootPc + shift) % 12;
   savePrefs();
-  // Re-render in the right order so the highlighted selections in
-  // each panel match the new builderState. Voicings depends on
-  // (root, quality), so it re-resolves after roots/qualities have
-  // updated their `.selected` highlights.
   renderRoots();
   renderQualities();
   renderVoicings();
@@ -1181,12 +701,6 @@ strumTransposeDownBtn?.addEventListener('click', () => transposeStrumBar(-1));
 strumTransposeUpBtn?.addEventListener('click', () => transposeStrumBar(+1));
 
 // ---------- Tap-to-play vs. drag-to-reorder ----------
-//
-// All the pointer-event plumbing for reordering strum-bar pads (touch
-// long-press → drag, mouse / pen → DRAG_THRESHOLD direction-gated
-// drag) plus the strum-pad click handler (tap to play + arm edit
-// target) lives in ./strum-drag.js. Wired here so the orchestrator
-// stays the integration point for editTarget + strumBar state.
 
 initStrumDrag({
   strumPadsEl,
@@ -1201,12 +715,6 @@ initStrumDrag({
 });
 
 // ---------- Strum-bar action popovers ----------
-//
-// Add-by-name ("+") and load-song ("↧") both live in
-// ./strum-popovers.js — they share open/close state (mutually
-// exclusive) and the click-outside-to-dismiss pattern, so keeping
-// them in one module avoids a circular dep between two halves of
-// the same UI surface.
 
 createStrumPopovers({
   strumPopoverEl,
@@ -1229,35 +737,13 @@ createStrumPopovers({
 
 // ---------- Tone + instrument switching ----------
 
-const updateToneStatus = () => {
-  if (!toneStatus) return;
-  if (engine.isMultiSampleTone(engine.toneName) && engine.multiSamplerStatus === 'error') {
-    toneStatus.textContent = 'offline · pick a soundfont tone';
-    return;
-  }
-  toneStatus.textContent = engine.isReady() ? '' : 'loading…';
-};
-
-const switchTone = (name) => {
-  toneStatus.textContent = 'loading…';
-  engine.setTone(name).then(updateToneStatus).catch(updateToneStatus);
-};
-
-const populateToneOptions = () => {
-  toneEl.innerHTML = '';
-  for (const tone of activeInstrument.tones) {
-    const opt = document.createElement('option');
-    opt.value = tone.value;
-    opt.textContent = tone.label;
-    toneEl.appendChild(opt);
-  }
-  const remembered = tonesPerInstrument[activeInstrument.id];
-  const initial =
-    remembered && activeInstrument.tones.some((t) => t.value === remembered)
-      ? remembered
-      : activeInstrument.defaultTone;
-  toneEl.value = initial;
-};
+const { switchTone, populateToneOptions } = createToneControls({
+  engine,
+  toneEl,
+  toneStatus,
+  getActiveInstrument: () => activeInstrument,
+  tonesPerInstrument,
+});
 
 const applyInstrument = (instrumentId, { warm: warmAudio = false } = {}) => {
   const next = getInstrument(instrumentId);
@@ -1356,4 +842,3 @@ setupMidi({
     /* string plucks decay naturally */
   }
 });
-

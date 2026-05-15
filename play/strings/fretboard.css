@@ -1,0 +1,549 @@
+.guitar-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 16px 24px;
+  align-items: center;
+  justify-content: center;
+}
+
+.fretboard {
+  /* `flex-shrink: 0` is critical — `.guitar-stage` is `flex: 1` so
+   * the column can be height-bounded by the viewport, and without
+   * this the fretboard would absorb all the shrink (the chord-builder
+   * has rigid text content that won't compress). Combined with our
+   * own `overflow-y: hidden`, that quietly clipped the lowest string
+   * (or two) on phones — the player sees an "E A D G B" guitar with
+   * no low-E. flex-shrink: 0 lets the page scroll instead. */
+  flex-shrink: 0;
+  /* Shared knobs so the string rows and the inlay overlay stay aligned
+   * even when the open-string label cell shrinks on mobile. */
+  --label-col-width: 60px;
+  --fretboard-pad-top: 18px;
+  --fretboard-pad-right: 12px;
+  --fretboard-pad-bottom: 22px;
+  --fretboard-pad-left: 12px;
+  /* Minimum width per fret column. When (fret-count × this) exceeds the
+   * available width, the .fretboard scrolls horizontally instead of
+   * shrinking the cells into unreadable slivers. */
+  --fret-min-cell: 52px;
+  --fret-count: 19;
+
+  width: min(100%, 1100px);
+  background:
+    radial-gradient(circle at 30% 30%, rgba(180, 83, 9, 0.18), transparent 50%),
+    linear-gradient(180deg, #3f1d0e, #2a1006);
+  border: 1px solid #2a1006;
+  border-radius: 12px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 24px 40px -20px rgba(0, 0, 0, 0.6);
+  user-select: none;
+  -webkit-user-select: none;
+  /* The fretboard itself is the horizontal scroll container — when the
+   * inner grid's min-width exceeds the visible width, swiping the neck
+   * scrolls through the upper register. `overflow-y: hidden` keeps a
+   * stray vertical scrollbar from appearing. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* Smooth wheel/touch scrolling and a less jarring scroll snap on
+   * inertial swipes. */
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Inner wrapper that owns the layout (and the absolute-positioning
+ * containing block for the inlay overlay). Its `min-width` is what
+ * makes the outer .fretboard scroll horizontally on narrow viewports;
+ * on wide screens the strings stretch via the `1fr` columns to fill
+ * the available width. */
+.fretboard-grid {
+  position: relative;
+  padding: var(--fretboard-pad-top) var(--fretboard-pad-right) var(--fretboard-pad-bottom)
+    var(--fretboard-pad-left);
+  /* `1fr` columns inside the strings stretch to fill any extra space
+   * past min-width on desktop, so the neck looks the same as before
+   * on a 1100px viewport. */
+  min-width: calc(
+    var(--label-col-width) + var(--fret-min-cell) * var(--fret-count) + var(--fretboard-pad-left) +
+      var(--fretboard-pad-right)
+  );
+}
+
+.fretboard-string {
+  position: relative;
+  display: grid;
+  /* Two-part track: the open-string label, then N fret columns sized
+   * `minmax(<min>, 1fr)`. The minmax floor keeps cells tappable; the
+   * 1fr ceiling stretches them on wide screens. */
+  grid-template-columns:
+    var(--label-col-width)
+    repeat(var(--fret-count), minmax(var(--fret-min-cell), 1fr));
+  align-items: center;
+  height: clamp(34px, 5vw, 46px);
+  z-index: 1; /* keep cells above the inlay overlay */
+}
+
+/* Open-string label cell on the left.
+ * `position: sticky; left: 0` pins the label (E A D G B E) in place
+ * during horizontal scroll on mobile so the player can always see
+ * which string they're on while plucking the upper register. The
+ * z-index keeps it above the metallic string line + neighbouring fret
+ * cells as they scroll under it. */
+.fret-cell.open {
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.35), transparent),
+    linear-gradient(180deg, #5b2810, #381606);
+  border-right: 4px solid #d4d4d8;
+  font-weight: 700;
+  color: #fef3c7;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+.fret-cell {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: rgba(254, 243, 199, 0.7);
+  border-right: 1px solid rgba(212, 212, 216, 0.4);
+  transition: background 100ms ease;
+  /* `pan-x` lets the browser handle horizontal swipes natively — the
+   * fretboard's `overflow-x: auto` then gets momentum / inertia for
+   * free, instead of being driven choppily from JS. Vertical drags
+   * stay with us so a string-to-string slide still strums.
+   * `touch-action: none` (the previous value) blocked native scroll
+   * entirely and forced JS-driven scrollLeft, which felt jerky on
+   * a long neck. */
+  touch-action: pan-x;
+}
+
+.fret-cell:last-child {
+  border-right: none;
+}
+
+/* Subtle highlight on hover */
+.fret-cell:hover {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fef3c7;
+}
+
+.fret-cell.active {
+  background: linear-gradient(90deg, rgba(244, 114, 182, 0.45), rgba(129, 140, 248, 0.45));
+  color: #fff;
+  animation: fret-pulse 280ms ease-out;
+}
+
+/* Persistent chord-shape highlight — drawn as a solid disc inside the
+ * cell to mimic a real chord chart's "press here" dot, with the finger
+ * number written inside it. Cleared when another chord is selected or
+ * the explicit "clear" control is hit.
+ *
+ * Implementation: a ::before pseudo on the cell is the disc; the finger
+ * badge sits on top of it. The cell's own background stays neutral so
+ * the wood grain still reads behind the dot. */
+.fret-cell.in-chord {
+  color: transparent; /* hide the under-the-dot note name */
+}
+
+.fret-cell.in-chord::before {
+  content: '';
+  position: absolute;
+  inset: 4px 6px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 30%, #c084fc, #7e22ce 70%, #581c87);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.45);
+  z-index: 1;
+}
+
+/* Fretted root cell: just hide the under-the-marker note name. The
+ * actual red disc is rendered as an OVERLAY element in
+ * `.fretboard-grid` (see .chord-root-marker below) so it can sit
+ * above the barre overlay's stacking context. We can't win the
+ * z-index race from inside `.fret-cell` because the strings row has
+ * its own z-index that's strictly below the barre. */
+.fret-cell.in-chord-root {
+  color: transparent;
+}
+
+/* Finger number inside the chord-tone disc. White, bold, centred. The
+ * z-index puts it above the disc pseudo-element. */
+.finger-badge {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.fret-cell.in-chord-root .finger-badge {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+/* Active flash on top of in-chord — disc gets a pink overlay so the
+ * strum pulse is still readable. */
+.fret-cell.active.in-chord::before,
+.fret-cell.active.in-chord-root::before {
+  filter: brightness(1.25) saturate(1.3);
+}
+
+/* Open chord-tone marker: a small ○ over the open-string label cell.
+ * Intentionally NO full-cell tint — open notes don't need a finger so
+ * they shouldn't visually compete with the fretted disc shapes. */
+.fret-cell.in-chord-open {
+  /* Subtle outline so it reads as "in the chord" without shouting. */
+  box-shadow: inset 0 0 0 2px rgba(168, 85, 247, 0.45);
+}
+
+.fret-cell.in-chord-open::after {
+  content: '○';
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #c084fc;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+/* If the open chord-tone IS the root, swap the marker to an "R" inside
+ * a small red pill so it still reads as the tonal centre even without
+ * a full-cell disc. */
+.fret-cell.in-chord-root.open .finger-badge {
+  position: absolute;
+  inset: auto;
+  top: 2px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  background: radial-gradient(circle at 35% 30%, #fecaca, #ef4444 55%, #7f1d1d);
+  border-radius: 50%;
+  font-size: 11px;
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.fret-cell.in-chord-root.open::before {
+  /* Don't draw the giant disc on the sticky open-label cell — the small
+   * R pill above is enough. */
+  content: none;
+}
+
+/* Muted strings — the player needs to skip these when strumming, so the
+ * × should be UNMISSABLE. Big, centred, with a faint disc behind it for
+ * contrast against the open-cell wood grain. */
+.fret-cell.muted::after {
+  content: '×';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  line-height: 1;
+  font-weight: 900;
+  color: #fecaca;
+  background: radial-gradient(circle, rgba(127, 29, 29, 0.85), rgba(127, 29, 29, 0.3) 70%);
+  border-radius: 50%;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+.fret-cell.muted .note {
+  /* Hide the open-string letter (E A D G B E) when the string is
+   * muted — the big × is the message; the letter just adds noise. */
+  opacity: 0.25;
+}
+
+/* ---------- Barre overlay ----------
+ *
+ * Drawn as a single absolutely-positioned pill across the strings the
+ * index finger covers on barre chords. Geometry is computed in JS from
+ * the cell DOM rects (see drawBarreOverlay in guitar.js) so the bar
+ * stays glued to its cells across resize / scroll / orientation
+ * changes — no hardcoded fret-column maths in CSS. */
+.chord-barre {
+  position: absolute;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fde68a, #f59e0b 50%, #b45309);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 4px 10px rgba(0, 0, 0, 0.45),
+    0 0 0 2px rgba(254, 243, 199, 0.45);
+  z-index: 3; /* above .in-chord discs */
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chord-barre-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: #422006;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* Root-cell marker overlay — same trick as the barre, but for the
+ * root note. Drawn into `.fretboard-grid` so it competes in the same
+ * stacking context as the barre and can sit on top via z-index. The
+ * red hue is intentionally distinct from both the purple chord-tone
+ * discs and the amber barre so the player's eye lands on the tonal
+ * centre first. */
+.chord-root-marker {
+  position: absolute;
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 30%, #fecaca, #ef4444 55%, #7f1d1d);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 2px 8px rgba(239, 68, 68, 0.55),
+    0 0 0 2px rgba(254, 243, 199, 0.55);
+  z-index: 5; /* above .chord-barre (3) */
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chord-root-marker-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.chord-root-marker-label small {
+  font-size: 9px;
+  opacity: 0.9;
+  font-weight: 700;
+}
+
+@keyframes fret-pulse {
+  0% {
+    box-shadow: inset 0 0 0 0 rgba(244, 114, 182, 0.7);
+  }
+  50% {
+    box-shadow: inset 0 0 0 18px rgba(244, 114, 182, 0);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 rgba(244, 114, 182, 0);
+  }
+}
+
+.fret-cell .note {
+  pointer-events: none;
+  font-weight: 600;
+}
+
+.fretboard.hide-notes .fret-cell .note {
+  opacity: 0;
+}
+
+/* Each string is a thin horizontal line drawn on top of the cell row.
+ *
+ * `--start-offset` is the number of fret columns to skip from the
+ * leftmost playable cell — used by banjo's "short" 5th drone string
+ * (startFret: 5). At default 0, the line spans the whole neck. */
+.fretboard-string {
+  --start-offset: 0;
+}
+
+.fretboard-string::after {
+  content: '';
+  position: absolute;
+  left: calc(
+    var(--label-col-width) + (100% - var(--label-col-width)) * var(--start-offset) /
+      var(--fret-count)
+  );
+  right: 0;
+  top: 50%;
+  height: var(--string-thickness, 2px);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.65),
+    rgba(255, 255, 255, 0.25) 40%,
+    rgba(0, 0, 0, 0.4)
+  );
+  border-radius: 2px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+
+/* Paired courses (mandolin) — render two thin strings ~3px apart so the
+ * visual reads as a doubled course. The audio engine fires a quick
+ * tremolo retrigger to match (see StringEngine.pluck in engine.js). The
+ * ::after string is shifted up; ::before draws the second string below. */
+.fretboard-string.paired::after {
+  top: calc(50% - 3px);
+}
+
+.fretboard-string.paired::before {
+  content: '';
+  position: absolute;
+  left: calc(
+    var(--label-col-width) + (100% - var(--label-col-width)) * var(--start-offset) /
+      var(--fret-count)
+  );
+  right: 0;
+  top: calc(50% + 3px);
+  height: var(--string-thickness, 2px);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.65),
+    rgba(255, 255, 255, 0.25) 40%,
+    rgba(0, 0, 0, 0.4)
+  );
+  border-radius: 2px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+  z-index: 0;
+}
+
+/* Unavailable cells — used for banjo's 5th-string drone where the short
+ * string physically doesn't reach frets 0..4. Visually fade the cell out
+ * and disable interaction; we also skip drawing the string line up to
+ * the start fret with the .fret-cell.drone-start adornment below. */
+.fret-cell.unavailable {
+  cursor: default;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.32));
+  border-right-color: rgba(212, 212, 216, 0.15);
+}
+
+.fret-cell.unavailable:hover {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.32));
+}
+
+/* The cell where a "short" drone string actually starts (banjo's 5th
+ * string at fret 5). Marked with a thicker left border + the open-style
+ * accent so players see "this is the start of the string". */
+.fret-cell.drone-start {
+  border-left: 4px solid #d4d4d8;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.35), transparent),
+    linear-gradient(180deg, #5b2810, #381606);
+  font-weight: 700;
+  color: #fef3c7;
+}
+
+/* ---------- Fret inlays ----------
+ *
+ * On a real guitar the position-marker dots sit in the wood between the
+ * strings, not on top of any string. We replicate that with an overlay
+ * layer that grids the same 12 fret columns the strings use, sized to the
+ * inner padding box of the fretboard so its `align-items: center` lands
+ * vertically between the two middle strings (3rd ↔ 4th). Pointer-events:
+ * none keeps the dots out of the way of clicks.
+ */
+.fretboard-inlays {
+  /* Positioned relative to .fretboard-grid (the new inner wrapper) so
+   * the overlay extends the full scrollable neck width and stays
+   * aligned with the string fret cells under it. */
+  position: absolute;
+  top: var(--fretboard-pad-top);
+  bottom: var(--fretboard-pad-bottom);
+  left: calc(var(--fretboard-pad-left) + var(--label-col-width));
+  right: var(--fretboard-pad-right);
+  display: grid;
+  /* Mirror the strings' fret-column sizing exactly so dots line up with
+   * the cells they mark, regardless of whether we're stretched to fill
+   * a desktop viewport or scrolling at the cell-min-width on mobile. */
+  grid-template-columns: repeat(var(--fret-count), minmax(var(--fret-min-cell), 1fr));
+  /* One row that spans the full height of the strings area, so single-dot
+   * inlays can be centred via `align-items: center` and the double-dot
+   * inlay can stretch to position ::before / ::after at percentages.
+   * Plain `1fr` resolves to `minmax(auto, 1fr)` and collapses to content
+   * height when no item has intrinsic size; `100%` forces full height. */
+  grid-template-rows: 100%;
+  align-items: center;
+  justify-items: center;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.inlay {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(254, 243, 199, 0.85), rgba(180, 110, 40, 0.55));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Double-dot inlay (12th fret traditionally) — two stacked dots, one
+ * sitting roughly between strings 1↔2 (high) and the other between
+ * strings 5↔6 (low), without overlapping the middle strings' note
+ * labels. The container stretches the full inlay-overlay height
+ * (`align-self: stretch` — overriding the grid's `align-items: center`
+ * which would otherwise size it to its 0px intrinsic content) so
+ * percentage offsets on the ::before/::after pseudo-dots resolve
+ * relative to a meaningful height instead of collapsing to 0. */
+.inlay.double {
+  /* `align-self: stretch` alone doesn't work here — the element has no
+   * in-flow content (the dots are positioned via ::before / ::after)
+   * so the grid row can't infer a height to stretch into. With JS
+   * forcing every inlay into row 1 (height: 100% of the container),
+   * `height: 100%` resolves correctly. */
+  align-self: stretch;
+  justify-self: center;
+  background: transparent;
+  box-shadow: none;
+  width: 11px;
+  height: 100%;
+  position: relative;
+}
+
+.inlay.double::before,
+.inlay.double::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle at 35% 35%, rgba(254, 243, 199, 0.85), rgba(180, 110, 40, 0.55));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* 25% in from each edge centres each dot on its respective string-pair
+ * gap on a six-string guitar (top dot lands between strings 2↔3, bottom
+ * between 4↔5 — a more visually central placement than the 18% offset
+ * we used to use, which felt cramped against the edges). */
+.inlay.double::before {
+  top: 25%;
+}
+
+.inlay.double::after {
+  bottom: 25%;
+}
+

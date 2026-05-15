@@ -1,0 +1,21 @@
+/* ------------------------------------------------------------------
+ * Strum Bar — primary play surface (umbrella)
+ *
+ * Imported by play/strings/style.css. Split into three sibling files:
+ *   • strum-bar-pads.css     — bar surface, header (transpose/clear),
+ *                              pads, drag-and-drop reorder, fret-pos
+ *                              superscript, "+" add button.
+ *   • strum-bar-popovers.css — add-by-name popover and load-song
+ *                              popover (live search results).
+ *   • chord-legend.css       — "reading the shape" legend below the
+ *                              chord-builder, enharmonic root buttons,
+ *                              actions row, narrow-screen overrides.
+ *
+ * Order matters in cascade-equal cases (popovers anchored inside the
+ * bar inherit z-index/positioning context from the surface rules), so
+ * keep the import order stable.
+ * ------------------------------------------------------------------ */
+
+@import url('./strum-bar-pads.css');
+@import url('./strum-bar-popovers.css');
+@import url('./chord-legend.css');

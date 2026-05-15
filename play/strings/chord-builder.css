@@ -1,0 +1,32 @@
+/* ---------- Chord builder ----------
+ *
+ * Three pickable rows: Root × Quality × Voicing. Voicing is populated
+ * dynamically based on what's in the chord library for the chosen
+ * Root + Quality combo, then clicking a voicing strums and parks the
+ * shape on the fretboard.
+ */
+.chord-builder {
+  width: min(100%, 1100px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+/* The chord builder is guitar-only for now. JS toggles `[hidden]` when
+ * the active instrument changes; this rule beats `display: flex` above
+ * so it actually disappears for bass / uke / banjo / mandolin. */
+.chord-builder[hidden] {
+  display: none;
+}
+
+.chord-builder-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+

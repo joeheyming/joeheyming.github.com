@@ -1,8 +1,9 @@
 // Stock Ticker — main entry. ES module.
 // Owns app state, persistence, URL state, all UI wiring. Delegates chart drawing
-// to ChartView and stat-panel rendering to DetailView.
+// to ChartView, stat-panel rendering to DetailView, and the three top-level
+// list views (tiles, heatmap, portfolio) to ./views.js.
 
-import { searchTickers, fetchManyCharts, fetchQuotesWithFallback } from './api.js';
+import { fetchManyCharts, fetchQuotesWithFallback } from './api.js';
 import { ChartView } from './chart-view.js';
 import { DetailView } from './detail-view.js';
 import {
@@ -11,68 +12,20 @@ import {
   checkAlerts,
   notifyAlert
 } from './alerts.js';
+import {
+  RANGES,
+  loadInitialState,
+  saveState as persistState,
+  buildShareUrl,
+  newListId
+} from './state.js';
+import { renderTiles, renderHeatmap, renderPortfolio } from './views.js';
+import { createSearchController } from './search-ui.js';
+import { createKeyboardHandler } from './keyboard.js';
+import { colorForIndex, escapeHtml } from './format.js';
 
-const STORAGE_KEY = 'heyming.stock.v2';
-
+/** @typedef {import('./state.js').AppState} AppState */
 /** @typedef {import('./api.js').ChartSeries} ChartSeries */
-/** @typedef {import('./alerts.js').AlertSpec} AlertSpec */
-
-/**
- * @typedef {Object} WatchEntry
- * @property {string} symbol
- * @property {string} [name]
- * @property {boolean} visible
- * @property {number} [shares]
- * @property {number} [costBasis]
- */
-
-/**
- * @typedef {Object} WatchList
- * @property {string} id
- * @property {string} name
- * @property {WatchEntry[]} symbols
- */
-
-/**
- * @typedef {Object} AppState
- * @property {WatchList[]} lists
- * @property {string} activeListId
- * @property {'1d'|'5d'|'1mo'|'3mo'|'6mo'|'1y'|'5y'|'max'} range
- * @property {boolean} normalize
- * @property {boolean} logScale
- * @property {'line'|'area'|'candle'} chartType
- * @property {boolean} showVolume
- * @property {boolean} showRsi
- * @property {boolean} showMacd
- * @property {{sma20:boolean,sma50:boolean,sma200:boolean,ema12:boolean,ema26:boolean,bb:boolean}} indicators
- * @property {'chart'|'heatmap'|'portfolio'} mode
- * @property {number} autoRefreshSec
- * @property {AlertSpec[]} alerts
- */
-
-const RANGES = [
-  { id: '1d', label: '1D' },
-  { id: '5d', label: '5D' },
-  { id: '1mo', label: '1M' },
-  { id: '3mo', label: '3M' },
-  { id: '6mo', label: '6M' },
-  { id: '1y', label: '1Y' },
-  { id: '5y', label: '5Y' },
-  { id: 'max', label: 'MAX' }
-];
-
-const PALETTE = [
-  '#34d399',
-  '#60a5fa',
-  '#fbbf24',
-  '#f472b6',
-  '#a78bfa',
-  '#fb923c',
-  '#22d3ee',
-  '#facc15',
-  '#4ade80',
-  '#f87171'
-];
 
 // --- DOM ---
 const $ = (id) => /** @type {any} */ (document.getElementById(id));
@@ -162,246 +115,14 @@ const seriesBySymbol = new Map();
 
 let inflightAbort = /** @type {AbortController|null} */ (null);
 let fetchToken = 0;
-let searchToken = 0;
-let searchTimer = /** @type {ReturnType<typeof setTimeout>|null} */ (null);
-let suggestionIndex = -1;
 let autoRefreshTimer = /** @type {ReturnType<typeof setInterval>|null} */ (null);
 
-// --- Persistence ---
-
-function defaultState() {
-  return /** @type {AppState} */ ({
-    lists: [
-      {
-        id: newListId(),
-        name: 'Watchlist',
-        symbols: []
-      }
-    ],
-    activeListId: '',
-    range: '1mo',
-    normalize: false,
-    logScale: false,
-    chartType: 'line',
-    showVolume: false,
-    showRsi: false,
-    showMacd: false,
-    indicators: {
-      sma20: false,
-      sma50: false,
-      sma200: false,
-      ema12: false,
-      ema26: false,
-      bb: false
-    },
-    mode: 'chart',
-    autoRefreshSec: 0,
-    alerts: []
-  });
-}
-
-function newListId() {
-  return 'wl_' + Math.random().toString(36).slice(2, 10);
-}
-
-function loadInitialState() {
-  /** @type {AppState} */
-  let s = defaultState();
-  if (typeof localStorage !== 'undefined') {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === 'object') {
-          s = sanitize({ ...s, ...parsed });
-        }
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-  // URL state overrides storage (so shared links work in a fresh window).
-  const fromUrl = readUrlState();
-  if (fromUrl) {
-    if (Array.isArray(fromUrl.symbols) && fromUrl.symbols.length) {
-      // Place into a new "Shared" list (or update existing one).
-      let shared = s.lists.find((l) => l.name === 'Shared');
-      if (!shared) {
-        shared = { id: newListId(), name: 'Shared', symbols: [] };
-        s.lists.push(shared);
-      }
-      shared.symbols = fromUrl.symbols.map((sym) => ({
-        symbol: sym.toUpperCase(),
-        name: '',
-        visible: true
-      }));
-      s.activeListId = shared.id;
-    }
-    if (fromUrl.range) s.range = fromUrl.range;
-    if (fromUrl.type) s.chartType = fromUrl.type;
-    if (fromUrl.log != null) s.logScale = fromUrl.log;
-    if (fromUrl.norm != null) s.normalize = fromUrl.norm;
-    if (fromUrl.mode) s.mode = fromUrl.mode;
-    if (fromUrl.indicators) {
-      Object.assign(s.indicators, fromUrl.indicators);
-    }
-    if (fromUrl.panes) {
-      s.showVolume = !!fromUrl.panes.volume;
-      s.showRsi = !!fromUrl.panes.rsi;
-      s.showMacd = !!fromUrl.panes.macd;
-    }
-  }
-  // Ensure activeListId points at a real list.
-  if (!s.lists.some((l) => l.id === s.activeListId)) {
-    s.activeListId = s.lists[0]?.id || (s.lists[0] = { id: newListId(), name: 'Watchlist', symbols: [] }).id;
-  }
-  return s;
-}
-
-function sanitize(raw) {
-  const d = defaultState();
-  /** @type {AppState} */
-  const out = {
-    lists: Array.isArray(raw.lists) && raw.lists.length
-      ? raw.lists.map((l) => ({
-          id: typeof l.id === 'string' && l.id ? l.id : newListId(),
-          name: typeof l.name === 'string' ? l.name : 'Watchlist',
-          symbols: Array.isArray(l.symbols)
-            ? l.symbols
-                .map((e) => ({
-                  symbol: String(e?.symbol || '').toUpperCase(),
-                  name: typeof e?.name === 'string' ? e.name : '',
-                  visible: e?.visible !== false,
-                  shares: typeof e?.shares === 'number' ? e.shares : undefined,
-                  costBasis: typeof e?.costBasis === 'number' ? e.costBasis : undefined
-                }))
-                .filter((e) => e.symbol)
-            : []
-        }))
-      : d.lists,
-    activeListId: typeof raw.activeListId === 'string' ? raw.activeListId : '',
-    range: RANGES.some((r) => r.id === raw.range) ? raw.range : d.range,
-    normalize: Boolean(raw.normalize),
-    logScale: Boolean(raw.logScale),
-    chartType: ['line', 'area', 'candle'].includes(raw.chartType) ? raw.chartType : d.chartType,
-    showVolume: Boolean(raw.showVolume),
-    showRsi: Boolean(raw.showRsi),
-    showMacd: Boolean(raw.showMacd),
-    indicators: { ...d.indicators, ...(raw.indicators || {}) },
-    mode: ['chart', 'heatmap', 'portfolio'].includes(raw.mode) ? raw.mode : d.mode,
-    autoRefreshSec:
-      typeof raw.autoRefreshSec === 'number' && raw.autoRefreshSec >= 0
-        ? raw.autoRefreshSec
-        : d.autoRefreshSec,
-    alerts: Array.isArray(raw.alerts)
-      ? raw.alerts
-          .map((a) => ({
-            id: typeof a?.id === 'string' ? a.id : newAlertId(),
-            symbol: String(a?.symbol || '').toUpperCase(),
-            condition: a?.condition === 'below' ? 'below' : 'above',
-            price: Number(a?.price),
-            lastTriggeredAt: typeof a?.lastTriggeredAt === 'number' ? a.lastTriggeredAt : undefined
-          }))
-          .filter((a) => a.symbol && Number.isFinite(a.price))
-      : []
-  };
-  return out;
-}
-
 function saveState() {
-  if (typeof localStorage === 'undefined') return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    /* quota / private mode */
-  }
+  persistState(state);
 }
-
-// --- URL state ---
-
-function readUrlState() {
-  const url = new URL(location.href);
-  const sp = url.searchParams;
-  if (![...sp.keys()].length) return null;
-  /** @type {any} */
-  const out = {};
-  const list = sp.get('list');
-  if (list) out.symbols = list.split(',').map((s) => s.trim()).filter(Boolean);
-  const range = sp.get('range');
-  if (range && RANGES.some((r) => r.id === range)) out.range = range;
-  const type = sp.get('type');
-  if (type && ['line', 'area', 'candle'].includes(type)) out.type = type;
-  if (sp.has('log')) out.log = sp.get('log') === '1';
-  if (sp.has('norm')) out.norm = sp.get('norm') === '1';
-  const mode = sp.get('mode');
-  if (mode && ['chart', 'heatmap', 'portfolio'].includes(mode)) out.mode = mode;
-  const ind = sp.get('ind');
-  if (ind) {
-    out.indicators = {};
-    ind.split(',').forEach((k) => (out.indicators[k] = true));
-  }
-  const panes = sp.get('panes');
-  if (panes) {
-    out.panes = {};
-    panes.split(',').forEach((k) => (out.panes[k] = true));
-  }
-  return out;
-}
-
-function buildShareUrl() {
-  const url = new URL(location.href);
-  url.search = '';
-  const list = activeList();
-  if (list && list.symbols.length) {
-    url.searchParams.set('list', list.symbols.map((s) => s.symbol).join(','));
-  }
-  url.searchParams.set('range', state.range);
-  url.searchParams.set('type', state.chartType);
-  url.searchParams.set('mode', state.mode);
-  if (state.logScale) url.searchParams.set('log', '1');
-  if (state.normalize) url.searchParams.set('norm', '1');
-  const ind = Object.entries(state.indicators)
-    .filter(([, v]) => v)
-    .map(([k]) => k);
-  if (ind.length) url.searchParams.set('ind', ind.join(','));
-  const panes = [
-    state.showVolume && 'volume',
-    state.showRsi && 'rsi',
-    state.showMacd && 'macd'
-  ].filter(Boolean);
-  if (panes.length) url.searchParams.set('panes', panes.join(','));
-  return url.toString();
-}
-
-// --- Accessors ---
 
 function activeList() {
   return state.lists.find((l) => l.id === state.activeListId);
-}
-
-function colorForIndex(i) {
-  return PALETTE[i % PALETTE.length];
-}
-
-function escapeHtml(s) {
-  return String(s).replace(
-    /[&<>"']/g,
-    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] || c
-  );
-}
-
-function formatPrice(n, currency) {
-  if (!Number.isFinite(n)) return '—';
-  try {
-    return new Intl.NumberFormat('en-US', {
-      style: currency ? 'currency' : 'decimal',
-      currency: currency || 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(n);
-  } catch {
-    return n.toFixed(2);
-  }
 }
 
 // --- Watchlist mutations ---
@@ -496,7 +217,7 @@ function switchList(id) {
   refreshAll();
 }
 
-// --- Rendering: tabs ---
+// --- Small renderers tied to the toolbar ---
 
 function renderListTabs() {
   $listTabs.innerHTML = '';
@@ -523,8 +244,6 @@ function renderListTabs() {
     $listTabs.appendChild(tab);
   });
 }
-
-// --- Rendering: range and type ---
 
 function renderRangeButtons() {
   $rangeBtns.innerHTML = '';
@@ -565,118 +284,40 @@ function renderIndicatorsMenu() {
   });
 }
 
-// --- Rendering: quote tiles ---
+// --- Composite renderers (delegate to views.js) ---
 
-function renderTiles() {
-  $tiles.innerHTML = '';
-  const list = activeList();
-  if (!list) return;
-  list.symbols.forEach((entry, idx) => {
-    const series = seriesBySymbol.get(entry.symbol);
-    const color = colorForIndex(idx);
-    const tile = document.createElement('div');
-    tile.className = 'quote-tile';
-    tile.dataset.symbol = entry.symbol;
-    tile.draggable = true;
-
-    let priceHtml = '<span class="text-slate-500 text-sm">Loading…</span>';
-    let deltaHtml = '';
-    let cls = 'flat';
-    let currency = 'USD';
-
-    if (series) {
-      const m = series.meta;
-      currency = m.currency || 'USD';
-      const last =
-        typeof m.regularMarketPrice === 'number'
-          ? m.regularMarketPrice
-          : series.points.length
-            ? series.points[series.points.length - 1].c
-            : undefined;
-      const prev =
-        typeof m.chartPreviousClose === 'number'
-          ? m.chartPreviousClose
-          : series.points.length
-            ? series.points[0].c
-            : undefined;
-      if (typeof last === 'number') {
-        priceHtml = formatPrice(last, currency);
-        if (typeof prev === 'number' && prev !== 0) {
-          const diff = last - prev;
-          const pct = (diff / prev) * 100;
-          if (diff > 0) cls = 'up';
-          else if (diff < 0) cls = 'down';
-          const sign = diff >= 0 ? '+' : '';
-          deltaHtml = `${sign}${formatPrice(diff, currency)} (${sign}${pct.toFixed(2)}%)`;
-        }
-      }
-    }
-
-    tile.classList.add(cls);
-    if (!entry.visible) tile.classList.add('hidden-series');
-    if (idx === 0) tile.classList.add('focused');
-
-    const nameText = entry.name || series?.meta.longName || series?.meta.shortName || '';
-    tile.innerHTML = `
-      <div class="head">
-        <div class="min-w-0">
-          <div class="flex items-center gap-2">
-            <span class="swatch" style="background:${color}"></span>
-            <span class="sym">${escapeHtml(entry.symbol)}</span>
-          </div>
-          <div class="name" title="${escapeHtml(nameText)}">${escapeHtml(nameText)}</div>
-        </div>
-      </div>
-      <div class="price-row">
-        <div class="price">${priceHtml}</div>
-        <div class="delta">${deltaHtml}</div>
-      </div>
-      <div class="actions">
-        <button type="button" class="tile-btn js-detail">Stats</button>
-        <button type="button" class="tile-btn js-toggle">${entry.visible ? 'Hide' : 'Show'}</button>
-        <button type="button" class="tile-btn danger js-remove" aria-label="Remove ${escapeHtml(entry.symbol)}">×</button>
-      </div>
-    `;
-
-    tile.querySelector('.js-toggle')?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleVisible(entry.symbol);
-    });
-    tile.querySelector('.js-remove')?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      removeSymbol(entry.symbol);
-    });
-    tile.querySelector('.js-detail')?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      detailView.open(entry.symbol, nameText);
-    });
-
-    // Click the tile body opens detail.
-    tile.addEventListener('click', () => detailView.open(entry.symbol, nameText));
-
-    // Drag handlers.
-    tile.addEventListener('dragstart', (ev) => {
-      ev.dataTransfer?.setData('text/symbol', entry.symbol);
-      tile.classList.add('dragging');
-    });
-    tile.addEventListener('dragend', () => tile.classList.remove('dragging'));
-    tile.addEventListener('dragover', (ev) => {
-      ev.preventDefault();
-      tile.classList.add('drag-over');
-    });
-    tile.addEventListener('dragleave', () => tile.classList.remove('drag-over'));
-    tile.addEventListener('drop', (ev) => {
-      ev.preventDefault();
-      tile.classList.remove('drag-over');
-      const src = ev.dataTransfer?.getData('text/symbol');
-      if (src && src !== entry.symbol) reorder(src, entry.symbol);
-    });
-
-    $tiles.appendChild(tile);
+function renderTilesView() {
+  renderTiles({
+    container: $tiles,
+    list: activeList(),
+    seriesBySymbol,
+    detailView,
+    mutators: { toggleVisible, removeSymbol, reorder }
   });
 }
 
-// --- Rendering: chart ---
+function renderHeatmapView() {
+  renderHeatmap({
+    container: $heatmapGrid,
+    list: activeList(),
+    seriesBySymbol,
+    detailView
+  });
+}
+
+function renderPortfolioView() {
+  renderPortfolio({
+    tbody: $portfolioTbody,
+    summary: $portfolioSummary,
+    list: activeList(),
+    seriesBySymbol,
+    mutators: {
+      saveState,
+      removeSymbol,
+      renderPortfolio: renderPortfolioView
+    }
+  });
+}
 
 function renderChart() {
   const list = activeList();
@@ -707,161 +348,6 @@ function renderChart() {
   });
 }
 
-// --- Rendering: heatmap ---
-
-function renderHeatmap() {
-  $heatmapGrid.innerHTML = '';
-  const list = activeList();
-  if (!list) return;
-
-  list.symbols.forEach((entry) => {
-    const series = seriesBySymbol.get(entry.symbol);
-    const tile = document.createElement('div');
-    tile.className = 'heatmap-tile';
-
-    let last = null;
-    let prev = null;
-    let currency = 'USD';
-    if (series) {
-      currency = series.meta.currency || 'USD';
-      last =
-        typeof series.meta.regularMarketPrice === 'number'
-          ? series.meta.regularMarketPrice
-          : series.points.length
-            ? series.points[series.points.length - 1].c
-            : null;
-      prev =
-        typeof series.meta.chartPreviousClose === 'number'
-          ? series.meta.chartPreviousClose
-          : series.points.length
-            ? series.points[0].c
-            : null;
-    }
-    /** @type {number} */
-    let pct = 0;
-    if (typeof last === 'number' && typeof prev === 'number' && prev !== 0) {
-      pct = ((last - prev) / prev) * 100;
-    }
-    // Color intensity scales with |pct|, capped at 5%.
-    const intensity = Math.min(1, Math.abs(pct) / 5);
-    const r = pct >= 0 ? 16 : 248;
-    const g = pct >= 0 ? 185 : 113;
-    const b = pct >= 0 ? 129 : 113;
-    tile.style.background = `rgba(${r}, ${g}, ${b}, ${0.12 + intensity * 0.4})`;
-    tile.style.borderColor = `rgba(${r}, ${g}, ${b}, ${0.4 + intensity * 0.4})`;
-
-    tile.innerHTML = `
-      <div class="h-sym">${escapeHtml(entry.symbol)}</div>
-      <div class="h-price">${typeof last === 'number' ? formatPrice(last, currency) : '—'}</div>
-      <div class="h-delta">${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%</div>
-    `;
-    tile.addEventListener('click', () => detailView.open(entry.symbol, entry.name));
-    $heatmapGrid.appendChild(tile);
-  });
-}
-
-// --- Rendering: portfolio ---
-
-function renderPortfolio() {
-  const list = activeList();
-  if (!list) return;
-  $portfolioTbody.innerHTML = '';
-
-  let totalCost = 0;
-  let totalValue = 0;
-  let totalDay = 0;
-
-  list.symbols.forEach((entry) => {
-    const series = seriesBySymbol.get(entry.symbol);
-    const last =
-      typeof series?.meta.regularMarketPrice === 'number'
-        ? series.meta.regularMarketPrice
-        : series?.points?.length
-          ? series.points[series.points.length - 1].c
-          : null;
-    const prev =
-      typeof series?.meta.chartPreviousClose === 'number'
-        ? series.meta.chartPreviousClose
-        : series?.points?.length
-          ? series.points[0].c
-          : null;
-    const currency = series?.meta.currency || 'USD';
-
-    const shares = entry.shares ?? 0;
-    const cost = entry.costBasis ?? 0;
-    const mktVal = typeof last === 'number' ? last * shares : 0;
-    const costVal = cost * shares;
-    const dayDiff = typeof last === 'number' && typeof prev === 'number' ? (last - prev) * shares : 0;
-    const totalDiff = mktVal - costVal;
-
-    totalCost += costVal;
-    totalValue += mktVal;
-    totalDay += dayDiff;
-
-    const dayCls =
-      dayDiff > 0 ? 'text-emerald-400' : dayDiff < 0 ? 'text-rose-400' : 'text-slate-300';
-    const totalCls =
-      totalDiff > 0 ? 'text-emerald-400' : totalDiff < 0 ? 'text-rose-400' : 'text-slate-300';
-
-    const totalPct = costVal !== 0 ? (totalDiff / costVal) * 100 : 0;
-
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="px-2 py-1.5 font-medium">${escapeHtml(entry.symbol)}</td>
-      <td class="px-2 py-1.5 text-right">
-        <input type="number" min="0" step="any" value="${shares || ''}" data-field="shares" placeholder="0" />
-      </td>
-      <td class="px-2 py-1.5 text-right">
-        <input type="number" min="0" step="any" value="${cost || ''}" data-field="costBasis" placeholder="0.00" />
-      </td>
-      <td class="px-2 py-1.5 text-right tabular-nums">${typeof last === 'number' ? formatPrice(last, currency) : '—'}</td>
-      <td class="px-2 py-1.5 text-right tabular-nums">${formatPrice(mktVal, currency)}</td>
-      <td class="px-2 py-1.5 text-right tabular-nums ${dayCls}">${dayDiff >= 0 ? '+' : ''}${formatPrice(dayDiff, currency)}</td>
-      <td class="px-2 py-1.5 text-right tabular-nums ${totalCls}">
-        ${totalDiff >= 0 ? '+' : ''}${formatPrice(totalDiff, currency)}
-        <span class="text-xs">(${totalDiff >= 0 ? '+' : ''}${totalPct.toFixed(2)}%)</span>
-      </td>
-      <td class="px-2 py-1.5 text-right">
-        <button class="text-slate-500 hover:text-rose-400 text-sm" data-rm="${escapeHtml(entry.symbol)}">×</button>
-      </td>
-    `;
-    tr.querySelectorAll('input').forEach((inp) => {
-      inp.addEventListener('change', () => {
-        const field = inp.getAttribute('data-field');
-        const v = parseFloat(inp.value);
-        if (field === 'shares') entry.shares = Number.isFinite(v) ? v : 0;
-        if (field === 'costBasis') entry.costBasis = Number.isFinite(v) ? v : 0;
-        saveState();
-        renderPortfolio();
-      });
-    });
-    tr.querySelector('[data-rm]')?.addEventListener('click', () => removeSymbol(entry.symbol));
-    $portfolioTbody.appendChild(tr);
-  });
-
-  const dayCls =
-    totalDay > 0 ? 'text-emerald-400' : totalDay < 0 ? 'text-rose-400' : 'text-slate-300';
-  const totalPL = totalValue - totalCost;
-  const totalCls =
-    totalPL > 0 ? 'text-emerald-400' : totalPL < 0 ? 'text-rose-400' : 'text-slate-300';
-  const totalPct = totalCost !== 0 ? (totalPL / totalCost) * 100 : 0;
-
-  $portfolioSummary.innerHTML = `
-    <div class="summary-card"><div class="lbl">Total cost</div><div class="val">${formatPrice(totalCost)}</div></div>
-    <div class="summary-card"><div class="lbl">Market value</div><div class="val">${formatPrice(totalValue)}</div></div>
-    <div class="summary-card"><div class="lbl">Day Δ</div><div class="val ${dayCls}">${totalDay >= 0 ? '+' : ''}${formatPrice(totalDay)}</div></div>
-    <div class="summary-card">
-      <div class="lbl">Total P/L</div>
-      <div class="val ${totalCls}">
-        ${totalPL >= 0 ? '+' : ''}${formatPrice(totalPL)}
-        <span class="text-sm">(${totalPL >= 0 ? '+' : ''}${totalPct.toFixed(2)}%)</span>
-      </div>
-    </div>
-  `;
-}
-
-// --- Mode switching ---
-
 function applyMode() {
   document.querySelectorAll('.mode-btn').forEach((btn) => {
     const m = btn.getAttribute('data-mode');
@@ -875,20 +361,18 @@ function applyMode() {
   if (state.mode === 'chart') {
     setTimeout(() => renderChart(), 0);
   } else if (state.mode === 'heatmap') {
-    renderHeatmap();
+    renderHeatmapView();
   } else if (state.mode === 'portfolio') {
-    renderPortfolio();
+    renderPortfolioView();
   }
 }
 
-// --- Top-level render orchestration ---
-
 function renderAll() {
   renderListTabs();
-  renderTiles();
+  renderTilesView();
   if (state.mode === 'chart') renderChart();
-  if (state.mode === 'heatmap') renderHeatmap();
-  if (state.mode === 'portfolio') renderPortfolio();
+  if (state.mode === 'heatmap') renderHeatmapView();
+  if (state.mode === 'portfolio') renderPortfolioView();
 }
 
 // --- Fetching ---
@@ -906,10 +390,10 @@ async function refreshAll() {
 
   hideError();
   renderListTabs();
-  renderTiles();
+  renderTilesView();
   if (state.mode === 'chart') renderChart();
-  if (state.mode === 'heatmap') renderHeatmap();
-  if (state.mode === 'portfolio') renderPortfolio();
+  if (state.mode === 'heatmap') renderHeatmapView();
+  if (state.mode === 'portfolio') renderPortfolioView();
 
   const list = activeList();
   const symbols = list ? list.symbols.map((s) => s.symbol) : [];
@@ -987,119 +471,6 @@ function evaluateAlerts() {
   }
 }
 
-// --- Search dropdown ---
-
-function onSearchInput() {
-  const q = $search.value.trim();
-  if (searchTimer) clearTimeout(searchTimer);
-  if (!q) {
-    closeSuggestions();
-    return;
-  }
-  searchTimer = setTimeout(() => runSearch(q), 200);
-}
-
-async function runSearch(q) {
-  const myToken = ++searchToken;
-  try {
-    const hits = await searchTickers(q);
-    if (myToken !== searchToken) return;
-    renderSuggestions(hits, q);
-  } catch (err) {
-    if (myToken !== searchToken) return;
-    $suggestions.innerHTML = `<div class="px-3 py-2 text-sm text-rose-300">Search failed: ${escapeHtml(
-      err?.message || String(err)
-    )}</div>`;
-    $suggestions.classList.remove('hidden');
-  }
-}
-
-function renderSuggestions(hits, q) {
-  const raw = q.toUpperCase();
-  /** @type {{symbol:string,name:string,exchange:string,type:string}[]} */
-  const rows = [];
-  if (raw && !hits.some((h) => h.symbol.toUpperCase() === raw)) {
-    rows.push({ symbol: raw, name: 'Add as ticker', exchange: '', type: '' });
-  }
-  rows.push(...hits.slice(0, 10));
-
-  if (!rows.length) {
-    $suggestions.innerHTML = `<div class="px-3 py-2 text-sm text-slate-400">No results.</div>`;
-    $suggestions.classList.remove('hidden');
-    suggestionIndex = -1;
-    return;
-  }
-
-  $suggestions.innerHTML = '';
-  rows.forEach((hit, idx) => {
-    const row = document.createElement('div');
-    row.className = 'suggestion-row';
-    row.dataset.idx = String(idx);
-    row.innerHTML = `
-      <div class="min-w-0">
-        <div class="sym">${escapeHtml(hit.symbol)}</div>
-        <div class="name">${escapeHtml(hit.name)}</div>
-      </div>
-      <div class="ex">${escapeHtml(hit.exchange || hit.type || '')}</div>
-    `;
-    row.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      addSymbolToActive(hit.symbol, hit.name);
-      $search.value = '';
-      closeSuggestions();
-    });
-    row.addEventListener('mouseenter', () => {
-      suggestionIndex = idx;
-      highlightSuggestion();
-    });
-    $suggestions.appendChild(row);
-  });
-
-  suggestionIndex = 0;
-  highlightSuggestion();
-  $suggestions.classList.remove('hidden');
-}
-
-function closeSuggestions() {
-  $suggestions.classList.add('hidden');
-  $suggestions.innerHTML = '';
-  suggestionIndex = -1;
-}
-
-function highlightSuggestion() {
-  $suggestions.querySelectorAll('.suggestion-row').forEach((r, i) =>
-    r.classList.toggle('hl', i === suggestionIndex)
-  );
-}
-
-function onSearchKeydown(e) {
-  const rows = $suggestions.querySelectorAll('.suggestion-row');
-  if (e.key === 'ArrowDown') {
-    if (!rows.length) return;
-    e.preventDefault();
-    suggestionIndex = (suggestionIndex + 1) % rows.length;
-    highlightSuggestion();
-  } else if (e.key === 'ArrowUp') {
-    if (!rows.length) return;
-    e.preventDefault();
-    suggestionIndex = (suggestionIndex - 1 + rows.length) % rows.length;
-    highlightSuggestion();
-  } else if (e.key === 'Enter') {
-    e.preventDefault();
-    if (rows.length && suggestionIndex >= 0) {
-      rows[suggestionIndex].dispatchEvent(
-        new MouseEvent('mousedown', { bubbles: true, cancelable: true })
-      );
-    } else if ($search.value.trim()) {
-      addSymbolToActive($search.value.trim().toUpperCase());
-      $search.value = '';
-      closeSuggestions();
-    }
-  } else if (e.key === 'Escape') {
-    closeSuggestions();
-  }
-}
-
 // --- Errors & toasts ---
 
 function showError(msg) {
@@ -1150,77 +521,10 @@ async function refreshQuotesOnly() {
       s.meta.chartPreviousClose = q.regularMarketPreviousClose;
     }
   }
-  renderTiles();
-  if (state.mode === 'heatmap') renderHeatmap();
-  if (state.mode === 'portfolio') renderPortfolio();
+  renderTilesView();
+  if (state.mode === 'heatmap') renderHeatmapView();
+  if (state.mode === 'portfolio') renderPortfolioView();
   evaluateAlerts();
-}
-
-// --- Keyboard shortcuts ---
-
-function onKeydown(e) {
-  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-    return;
-  }
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
-  const key = e.key;
-  if (key === '/') {
-    e.preventDefault();
-    $search.focus();
-  } else if (key === 'r' || key === 'R') {
-    refreshAll();
-  } else if (key === 'l' || key === 'L') {
-    state.logScale = !state.logScale;
-    $log.checked = state.logScale;
-    saveState();
-    renderChart();
-  } else if (key === '%') {
-    state.normalize = !state.normalize;
-    $normalize.checked = state.normalize;
-    saveState();
-    renderChart();
-  } else if (key === 'v' || key === 'V') {
-    state.showVolume = !state.showVolume;
-    saveState();
-    renderIndicatorsMenu();
-    renderChart();
-  } else if (key === 'i' || key === 'I') {
-    $indicatorsMenu.classList.toggle('hidden');
-  } else if (key === '?') {
-    $helpModal.classList.remove('hidden');
-  } else if (key === 'Escape') {
-    $helpModal.classList.add('hidden');
-    $indicatorsMenu.classList.add('hidden');
-  } else if (key === 'c' || key === 'C') {
-    state.chartType = 'line';
-    saveState();
-    renderTypeButtons();
-    renderChart();
-  } else if (key === 'a' || key === 'A') {
-    state.chartType = 'area';
-    saveState();
-    renderTypeButtons();
-    renderChart();
-  } else if (key === 'k' || key === 'K') {
-    state.chartType = 'candle';
-    saveState();
-    renderTypeButtons();
-    renderChart();
-  } else if (key === 'm' || key === 'M') {
-    const modes = /** @type {const} */ (['chart', 'heatmap', 'portfolio']);
-    const idx = modes.indexOf(state.mode);
-    state.mode = modes[(idx + 1) % modes.length];
-    saveState();
-    applyMode();
-  } else if (/^[1-8]$/.test(key)) {
-    const r = RANGES[parseInt(key, 10) - 1];
-    if (r) {
-      state.range = /** @type {AppState['range']} */ (r.id);
-      saveState();
-      renderRangeButtons();
-      refreshAll();
-    }
-  }
 }
 
 // --- PNG export ---
@@ -1244,7 +548,7 @@ function exportPng() {
 // --- Share link ---
 
 async function copyShareLink() {
-  const url = buildShareUrl();
+  const url = buildShareUrl(state, activeList());
   try {
     await navigator.clipboard.writeText(url);
     showToast('Link copied — paste anywhere to share this view.', 'info');
@@ -1269,18 +573,21 @@ function init() {
 
   applyMode();
 
-  // List management.
   $listNew.addEventListener('click', newList);
 
-  // Search.
-  $search.addEventListener('input', onSearchInput);
-  $search.addEventListener('keydown', onSearchKeydown);
-  $search.addEventListener('blur', () => setTimeout(closeSuggestions, 120));
+  // Search controller.
+  const search = createSearchController({
+    input: $search,
+    suggestions: $suggestions,
+    onPick: (sym, name) => addSymbolToActive(sym, name)
+  });
+  $search.addEventListener('input', search.handleInput);
+  $search.addEventListener('keydown', search.handleKeydown);
+  $search.addEventListener('blur', () => setTimeout(search.close, 120));
   $search.addEventListener('focus', () => {
-    if ($search.value.trim()) onSearchInput();
+    if ($search.value.trim()) search.handleInput();
   });
 
-  // Toggles.
   $normalize.addEventListener('change', () => {
     state.normalize = $normalize.checked;
     saveState();
@@ -1297,7 +604,6 @@ function init() {
     applyAutoRefresh();
   });
 
-  // Type buttons.
   $typeBtns.querySelectorAll('button').forEach((btn) => {
     btn.addEventListener('click', () => {
       state.chartType = /** @type {AppState['chartType']} */ (btn.getAttribute('data-type'));
@@ -1307,7 +613,6 @@ function init() {
     });
   });
 
-  // Mode buttons.
   document.querySelectorAll('.mode-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       state.mode = /** @type {AppState['mode']} */ (btn.getAttribute('data-mode'));
@@ -1316,7 +621,6 @@ function init() {
     });
   });
 
-  // Indicators menu.
   $indicatorsBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     $indicatorsMenu.classList.toggle('hidden');
@@ -1344,7 +648,6 @@ function init() {
     });
   });
 
-  // Toolbar buttons.
   $refresh.addEventListener('click', () => refreshAll());
   $exportPng.addEventListener('click', exportPng);
   $copyLink.addEventListener('click', copyShareLink);
@@ -1354,7 +657,6 @@ function init() {
     if (e.target === $helpModal) $helpModal.classList.add('hidden');
   });
 
-  // Suggested-empty-state buttons.
   document.querySelectorAll('button[data-add-suggested]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const sym = btn.getAttribute('data-add-suggested');
@@ -1362,8 +664,24 @@ function init() {
     });
   });
 
-  // Global keyboard shortcuts.
-  document.addEventListener('keydown', onKeydown);
+  document.addEventListener(
+    'keydown',
+    createKeyboardHandler({
+      getState: () => state,
+      $search,
+      $log,
+      $normalize,
+      $indicatorsMenu,
+      $helpModal,
+      saveState,
+      refreshAll,
+      renderChart,
+      renderTypeButtons,
+      renderRangeButtons,
+      renderIndicatorsMenu,
+      applyMode
+    })
+  );
 
   // Alerts via DOM event.
   document.addEventListener('stock:alert', () => {

@@ -1,0 +1,323 @@
+/* Git status decorations on file tree rows */
+.tree-node .tree-badge {
+  margin-left: auto;
+  padding-right: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  flex-shrink: 0;
+}
+
+.tree-node.decor-modified > .name {
+  color: #e2c08d;
+}
+.tree-node.decor-added > .name {
+  color: var(--good);
+}
+.tree-node.decor-deleted > .name {
+  color: var(--danger);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+.tree-node.decor-untracked > .name {
+  color: #73c991;
+}
+.tree-node.decor-conflict > .name {
+  color: var(--danger);
+}
+
+.tree-badge.decor-modified {
+  color: #e2c08d;
+}
+.tree-badge.decor-added {
+  color: var(--good);
+}
+.tree-badge.decor-deleted {
+  color: var(--danger);
+}
+.tree-badge.decor-untracked {
+  color: #73c991;
+}
+.tree-badge.decor-conflict {
+  color: var(--danger);
+}
+
+.tree-node .name input {
+  background: var(--bg-input);
+  color: var(--text-strong);
+  border: 1px solid var(--accent-strong);
+  border-radius: 2px;
+  font: inherit;
+  width: 140px;
+  padding: 0 2px;
+  outline: none;
+}
+
+/* ── Source Control panel ─────────────────────────────────────────────── */
+.scm {
+  flex: 1;
+  overflow: auto;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.scm.busy {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.scm-empty {
+  padding: 16px 12px;
+  color: var(--text-mute);
+  text-align: center;
+}
+
+.scm-empty pre {
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  padding: 6px;
+  border-radius: 4px;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 100px;
+  overflow: auto;
+}
+
+.scm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.scm-commit {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.scm-msg {
+  width: 100%;
+  resize: vertical;
+  background: var(--bg-input);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  min-height: 32px;
+  max-height: 120px;
+  outline: none;
+}
+
+.scm-msg:focus {
+  border-color: var(--accent-strong);
+}
+
+.scm-buttons {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  align-items: center;
+}
+
+.scm-buttons .btn.primary {
+  flex: 1;
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent-strong);
+  padding: 4px 10px;
+  font-weight: 500;
+}
+
+.scm-buttons .btn.primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.scm-button-row {
+  display: flex;
+  gap: 2px;
+}
+
+.btn.small {
+  padding: 3px 6px;
+  font-size: 11px;
+  min-width: 26px;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.scm-group {
+  margin-top: 4px;
+}
+
+.scm-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-mute);
+}
+
+.scm-group-header:hover {
+  color: var(--text-strong);
+}
+
+.scm-group-header .chevron {
+  width: 10px;
+}
+
+.scm-group-header .title {
+  font-weight: 600;
+}
+
+.scm-group-header .count {
+  margin-left: auto;
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 10px;
+  padding: 0 6px;
+  border-radius: 8px;
+}
+
+.scm-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.scm-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.scm-row:hover {
+  background: var(--bg-hover);
+}
+
+.scm-name {
+  color: var(--text-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scm-dir {
+  color: var(--text-mute);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.scm-row-actions {
+  display: none;
+  gap: 2px;
+}
+
+.scm-row:hover .scm-row-actions {
+  display: inline-flex;
+}
+
+.scm-act {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: var(--text-mute);
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.scm-act:hover {
+  background: var(--bg-elev-2);
+  color: var(--text-strong);
+}
+
+.scm-code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  width: 22px;
+  text-align: right;
+}
+
+.scm-code.code-m {
+  color: #e2c08d;
+}
+.scm-code.code-a {
+  color: var(--good);
+}
+.scm-code.code-d {
+  color: var(--danger);
+}
+.scm-code.code-untracked {
+  color: #73c991;
+}
+.scm-code.code-conflict {
+  color: var(--danger);
+}
+
+.scm-clean {
+  text-align: center;
+  color: var(--text-mute);
+  padding: 14px 8px;
+  font-style: italic;
+}
+
+/* Branch indicator in status bar */
+.status-branch {
+  background: rgba(255, 255, 255, 0.12);
+  border: 0;
+  color: white;
+  cursor: pointer;
+  padding: 0 8px;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 12px;
+}
+
+.status-branch:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.status-branch[hidden] {
+  display: none;
+}
+
+.branch-icon {
+  font-weight: 700;
+}
+
+.branch-counts {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  opacity: 0.8;
+}
+
