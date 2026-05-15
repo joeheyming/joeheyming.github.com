@@ -2,6 +2,7 @@
 // Pure module: no DOM, no closures over the running app.
 
 import { newAlertId } from './alerts.js';
+import { createPrefs } from '/play/shared/prefs.js';
 
 /** @typedef {import('./api.js').ChartSeries} ChartSeries */
 /** @typedef {import('./alerts.js').AlertSpec} AlertSpec */
@@ -168,68 +169,75 @@ export function readUrlState() {
   return out;
 }
 
-/** @returns {AppState} */
-export function loadInitialState() {
-  /** @type {AppState} */
-  let s = defaultState();
-  if (typeof localStorage !== 'undefined') {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === 'object') {
-          s = sanitize({ ...s, ...parsed });
-        }
-      }
-    } catch {
-      /* ignore */
+// URL state has a different shape from on-disk state (it's flatter and
+// uses short keys for nicer share URLs), so we can't use the standard
+// `readUrlState` shallow-merge in createPrefs. Instead we let createPrefs
+// read into a `__urlOverrides` slot via the helper below, then `sanitize`
+// expands it back into the canonical AppState shape.
+function _mergeUrlOverrides(state, overrides) {
+  const s = { ...state };
+  if (Array.isArray(overrides.symbols) && overrides.symbols.length) {
+    // Place into a new "Shared" list (or update existing one).
+    s.lists = state.lists.slice();
+    let shared = s.lists.find((l) => l.name === 'Shared');
+    if (!shared) {
+      shared = { id: newListId(), name: 'Shared', symbols: [] };
+      s.lists.push(shared);
     }
+    shared.symbols = overrides.symbols.map((sym) => ({
+      symbol: sym.toUpperCase(),
+      name: '',
+      visible: true
+    }));
+    s.activeListId = shared.id;
   }
-  // URL state overrides storage (so shared links work in a fresh window).
-  const fromUrl = readUrlState();
-  if (fromUrl) {
-    if (Array.isArray(fromUrl.symbols) && fromUrl.symbols.length) {
-      // Place into a new "Shared" list (or update existing one).
-      let shared = s.lists.find((l) => l.name === 'Shared');
-      if (!shared) {
-        shared = { id: newListId(), name: 'Shared', symbols: [] };
-        s.lists.push(shared);
-      }
-      shared.symbols = fromUrl.symbols.map((sym) => ({
-        symbol: sym.toUpperCase(),
-        name: '',
-        visible: true
-      }));
-      s.activeListId = shared.id;
-    }
-    if (fromUrl.range) s.range = fromUrl.range;
-    if (fromUrl.type) s.chartType = fromUrl.type;
-    if (fromUrl.log != null) s.logScale = fromUrl.log;
-    if (fromUrl.norm != null) s.normalize = fromUrl.norm;
-    if (fromUrl.mode) s.mode = fromUrl.mode;
-    if (fromUrl.indicators) {
-      Object.assign(s.indicators, fromUrl.indicators);
-    }
-    if (fromUrl.panes) {
-      s.showVolume = !!fromUrl.panes.volume;
-      s.showRsi = !!fromUrl.panes.rsi;
-      s.showMacd = !!fromUrl.panes.macd;
-    }
+  if (overrides.range) s.range = overrides.range;
+  if (overrides.type) s.chartType = overrides.type;
+  if (overrides.log != null) s.logScale = overrides.log;
+  if (overrides.norm != null) s.normalize = overrides.norm;
+  if (overrides.mode) s.mode = overrides.mode;
+  if (overrides.indicators) {
+    s.indicators = { ...state.indicators, ...overrides.indicators };
   }
-  // Ensure activeListId points at a real list.
-  if (!s.lists.some((l) => l.id === s.activeListId)) {
-    s.activeListId = s.lists[0]?.id || (s.lists[0] = { id: newListId(), name: 'Watchlist', symbols: [] }).id;
+  if (overrides.panes) {
+    s.showVolume = !!overrides.panes.volume;
+    s.showRsi = !!overrides.panes.rsi;
+    s.showMacd = !!overrides.panes.macd;
   }
   return s;
 }
 
-export function saveState(state) {
-  if (typeof localStorage === 'undefined') return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    /* quota / private mode */
+const _prefs = createPrefs({
+  key: STORAGE_KEY,
+  defaults: defaultState,
+  // Sanitize handles two cases: a freshly merged blob from localStorage
+  // (`raw` already shaped like AppState) AND the URL-overrides envelope
+  // produced by `readUrlState` below — the envelope rides on the
+  // `__urlOverrides` field, which we expand here before re-sanitizing.
+  sanitize: (raw) => {
+    let s = sanitize(raw);
+    if (raw && raw.__urlOverrides) {
+      s = sanitize(_mergeUrlOverrides(s, raw.__urlOverrides));
+    }
+    // Ensure activeListId points at a real list.
+    if (!s.lists.some((l) => l.id === s.activeListId)) {
+      s.activeListId = s.lists[0]?.id || (s.lists[0] = { id: newListId(), name: 'Watchlist', symbols: [] }).id;
+    }
+    return s;
+  },
+  readUrlState: () => {
+    const overrides = readUrlState();
+    return overrides ? { __urlOverrides: overrides } : null;
   }
+});
+
+/** @returns {AppState} */
+export function loadInitialState() {
+  return _prefs.load();
+}
+
+export function saveState(state) {
+  _prefs.save(state);
 }
 
 /**

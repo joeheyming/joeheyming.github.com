@@ -572,6 +572,132 @@ class ProxyService {
     };
   }
 
+  /**
+   * Fetch a JSON endpoint through the proxy chain.
+   *
+   * Single helper that absorbs the four-step "guard proxy → fetchWithProxy →
+   * JSON.parse → friendly-error" pattern that ~10 callers were each
+   * re-deriving (stock/api.js had four copies on its own; the recent
+   * deslop pass had to touch each by hand).
+   *
+   * `skipDirect` defaults to true — most JSON APIs that need a proxy
+   * are CORS-blocked, so the direct attempt just wastes the 3 s budget.
+   *
+   * Throws a single friendly Error string regardless of which step failed
+   * (proxy-chain failure, empty body, JSON parse error). Callers that
+   * need to distinguish should catch and inspect — but in practice every
+   * caller just wants to surface the message via toast.
+   *
+   * @param {string} url
+   * @param {Object} [options] — passed to fetchWithProxy.
+   * @param {string} [options.friendlyError] — message used when proxy
+   *        succeeds but JSON.parse fails. Default: "Couldn't read the
+   *        response from <hostname>."
+   * @returns {Promise<any>}
+   */
+  async fetchJson(url, options = {}) {
+    const opts = { skipDirect: true, ...options };
+    const text = await this.fetchWithProxy(url, opts);
+    if (!text) {
+      throw new Error("That source didn't return anything readable. Try again in a moment.");
+    }
+    try {
+      return JSON.parse(text);
+    } catch {
+      const fallback = options.friendlyError;
+      if (typeof fallback === 'string' && fallback) throw new Error(fallback);
+      let host = '';
+      try {
+        host = new URL(url).hostname;
+      } catch {
+        /* keep host empty */
+      }
+      throw new Error(
+        host
+          ? `Couldn't read the response from ${host}.`
+          : "Couldn't read the response."
+      );
+    }
+  }
+
+  /**
+   * Fetch HTML and return a parsed `Document`. Used by the scrapers in
+   * play/strings/echords-source.js, doom/moddb-browser-net.js, etc.
+   *
+   * `skipDirect` defaults to false — some HTML sources do allow CORS.
+   *
+   * @param {string} url
+   * @param {Object} [options] — passed to fetchWithProxy.
+   * @returns {Promise<Document>}
+   */
+  async fetchHtml(url, options = {}) {
+    const text = await this.fetchWithProxy(url, options);
+    if (!text) {
+      throw new Error("That page didn't load. Try again in a moment.");
+    }
+    return new DOMParser().parseFromString(text, 'text/html');
+  }
+
+  /**
+   * Alias for `fetchBinaryWithProxy` — exists so the new "named-shape"
+   * API (`fetchHtml` / `fetchJson` / `fetchBinary`) reads consistently.
+   * Old name is kept for backwards compat.
+   */
+  async fetchBinary(url, options = {}) {
+    return this.fetchBinaryWithProxy(url, options);
+  }
+
+  /**
+   * localStorage-backed cache fronting any async fetcher. Replaces the
+   * ad-hoc `moddb.cache.v1:*` shape and lets future apps opt in without
+   * each re-implementing TTL bookkeeping.
+   *
+   *   const html = await proxy.cachedFetch(
+   *     `moddb:listing:${page}`,
+   *     30 * 60 * 1000,
+   *     () => proxy.fetchHtml(listingUrl)
+   *   );
+   *
+   * - Cache key is namespaced under `proxy.cache.v1:` so it doesn't
+   *   collide with app-specific keys.
+   * - Quota errors / private-mode failures are swallowed: a cache miss
+   *   just means we hit the network, which is the right fallback.
+   * - The fetcher's return value is JSON.stringified, so it should be
+   *   a plain JSON-able shape (not a `Document` — apps that cache
+   *   parsed HTML should serialize/deserialize themselves).
+   *
+   * @template T
+   * @param {string} cacheKey       — short logical key (no prefix needed).
+   * @param {number} ttlMs           — how long the cached value is valid.
+   * @param {() => Promise<T>} fetcher
+   * @returns {Promise<T>}
+   */
+  async cachedFetch(cacheKey, ttlMs, fetcher) {
+    const fullKey = `proxy.cache.v1:${cacheKey}`;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(fullKey);
+        if (raw) {
+          const entry = JSON.parse(raw);
+          if (entry && typeof entry.savedAt === 'number' && Date.now() - entry.savedAt < ttlMs) {
+            return entry.value;
+          }
+        }
+      } catch {
+        /* corrupt entry — treat as miss */
+      }
+    }
+    const value = await fetcher();
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(fullKey, JSON.stringify({ savedAt: Date.now(), value }));
+      } catch {
+        /* quota / private mode — pretend we cached */
+      }
+    }
+    return value;
+  }
+
   // Reset all proxy scores (useful for testing)
   resetProxyScores() {
     this.proxyOptions.forEach((proxy) => {

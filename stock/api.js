@@ -112,7 +112,7 @@ const YF_QUOTE = 'https://query1.finance.yahoo.com/v7/finance/quote';
 const YF_QUOTE_SUMMARY = 'https://query2.finance.yahoo.com/v10/finance/quoteSummary';
 
 function requireProxy() {
-  if (!window.proxyService || typeof window.proxyService.fetchWithProxy !== 'function') {
+  if (!window.proxyService || typeof window.proxyService.fetchJson !== 'function') {
     throw new Error("Couldn't reach the data source. Try reloading the page.");
   }
   return window.proxyService;
@@ -148,20 +148,13 @@ export async function searchTickersFull(query, opts = {}) {
   });
 
   const proxy = requireProxy();
-  const text = await proxy.fetchWithProxy(url, {
-    skipDirect: true,
+  /** @type {{ quotes?: any[], news?: any[] }} */
+  const data = await proxy.fetchJson(url, {
     timeout: 12000,
     maxRetries: 1,
-    signal: opts.signal
+    signal: opts.signal,
+    friendlyError: "Couldn't read search results. Try again in a moment."
   });
-
-  /** @type {{ quotes?: any[], news?: any[] }} */
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error("Couldn't read search results. Try again in a moment.");
-  }
 
   const hits = Array.isArray(data.quotes)
     ? data.quotes
@@ -256,20 +249,13 @@ export async function fetchChart(symbol, rangeId, opts = {}) {
   });
 
   const proxy = requireProxy();
-  const text = await proxy.fetchWithProxy(url, {
-    skipDirect: true,
+  /** @type {any} */
+  const data = await proxy.fetchJson(url, {
     timeout: 15000,
     maxRetries: 2,
-    signal: opts.signal
+    signal: opts.signal,
+    friendlyError: `Couldn't read chart data for ${sym}.`
   });
-
-  /** @type {any} */
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error(`Couldn't read chart data for ${sym}.`);
-  }
 
   const result = data?.chart?.result?.[0];
   const err = data?.chart?.error;
@@ -431,24 +417,18 @@ export async function fetchQuotes(symbols, opts = {}) {
   });
 
   const proxy = requireProxy();
-  /** @type {string} */
-  let text;
+  /** @type {any} */
+  let data;
   try {
-    text = await proxy.fetchWithProxy(url, {
-      skipDirect: true,
+    data = await proxy.fetchJson(url, {
       timeout: 12000,
       maxRetries: 1,
       signal: opts.signal
     });
   } catch {
-    return [];
-  }
-
-  /** @type {any} */
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
+    // v7/quote is the unreliable path — failures fall through to
+    // fetchQuoteSummary in fetchQuotesWithFallback. Return empty so
+    // the chain progresses rather than surfacing a toast.
     return [];
   }
 
@@ -487,24 +467,17 @@ export async function fetchQuoteSummary(symbol, opts = {}) {
   });
 
   const proxy = requireProxy();
-  /** @type {string} */
-  let text;
+  /** @type {any} */
+  let data;
   try {
-    text = await proxy.fetchWithProxy(url, {
-      skipDirect: true,
+    data = await proxy.fetchJson(url, {
       timeout: 10000,
       maxRetries: 1,
       signal: opts.signal
     });
   } catch {
-    return null;
-  }
-
-  /** @type {any} */
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
+    // Same fallback story as fetchQuotes — return null so the chain
+    // can carry on or the caller can render "no extended stats".
     return null;
   }
 

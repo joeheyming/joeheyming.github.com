@@ -35,6 +35,14 @@
   border-left-color: var(--warn);
 }
 
+/* Fade-out class added by the shared notifier (`/notifications.js`)
+ * 220 ms before removal. Matches the previous inline-style fade so the
+ * visual lifecycle is unchanged after the migration. */
+.toast.toast-out {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
 @keyframes toast-in {
   from {
     transform: translateX(20px);

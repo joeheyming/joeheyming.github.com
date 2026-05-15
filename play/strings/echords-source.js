@@ -345,17 +345,20 @@ export async function searchEchords(query, options = {}) {
   }
   const limit = Math.max(1, Math.min(50, options.limit || 10));
   const apiUrl = `https://www.e-chords.com/api/search?q=${encodeURIComponent(q)}`;
-  const raw = await window.proxyService.fetchWithProxy(apiUrl, {
-    skipDirect: true,
-    timeout: 12000,
-    signal: options.signal
-  });
-  if (!raw) return [];
+  /** @type {any} */
   let json;
   try {
-    json = JSON.parse(raw);
-  } catch {
-    throw new Error("Couldn't read the search results. Try again in a moment.");
+    json = await window.proxyService.fetchJson(apiUrl, {
+      timeout: 12000,
+      signal: options.signal,
+      friendlyError: "Couldn't read the search results. Try again in a moment."
+    });
+  } catch (err) {
+    // Empty body short-circuit: the legacy code returned [] for that
+    // case rather than surfacing an error. Preserve that behaviour by
+    // distinguishing "no readable response" from real failures.
+    if (/didn't return anything readable/.test(err?.message || '')) return [];
+    throw err;
   }
   const songs = Array.isArray(json?.songs?.hits) ? json.songs.hits : [];
   // Rank by all-time popularity. Ties broken by weekly hits so a

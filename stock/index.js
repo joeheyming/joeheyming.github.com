@@ -23,6 +23,7 @@ import { renderTiles, renderHeatmap, renderPortfolio } from './views.js';
 import { createSearchController } from './search-ui.js';
 import { createKeyboardHandler } from './keyboard.js';
 import { colorForIndex, escapeHtml } from './format.js';
+import { createNotifier } from '/notifications.js';
 
 /** @typedef {import('./state.js').AppState} AppState */
 /** @typedef {import('./api.js').ChartSeries} ChartSeries */
@@ -482,13 +483,16 @@ function hideError() {
   $errorBox.classList.add('hidden');
 }
 
+// Reuses the existing `.toast.toast-${kind}` CSS in stock/style.css; the
+// shared notifier owns lifecycle + safety (textContent, ARIA, dismiss).
+const _notifier = createNotifier({
+  container: $toastStack,
+  kindClass: (k) => `toast toast-${k}`,
+  defaultDurationMs: 4000,
+  dismissible: true
+});
 function showToast(msg, kind = 'info', ms = 4000) {
-  const t = document.createElement('div');
-  t.className = `toast toast-${kind}`;
-  t.innerHTML = `<span>${escapeHtml(msg)}</span><span class="toast-close" aria-label="Dismiss">×</span>`;
-  t.querySelector('.toast-close')?.addEventListener('click', () => t.remove());
-  $toastStack.appendChild(t);
-  if (ms > 0) setTimeout(() => t.remove(), ms);
+  _notifier.notify(msg, { kind, durationMs: ms });
 }
 
 // --- Auto-refresh ---

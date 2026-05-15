@@ -3,6 +3,16 @@
 import { bySymbol, loadCustomElements, saveCustomElements } from './elements.js';
 import { THEMES, getCurrentTheme, setTheme } from './themes.js';
 import { render } from './tiles.js';
+import { createNotifier } from '/notifications.js';
+
+// Singleton notifier — share-link is the only periodic-speller surface
+// that uses toasts today. `singletonHack: true` semantics aren't needed;
+// `existing.remove()` behaviour is preserved by `clear()` before each show.
+const _shareNotifier = createNotifier({
+  kindClass: () => 'share-toast',
+  defaultDurationMs: 2200,
+  fadeOut: { outClass: 'share-toast-out', outMs: 400 }
+});
 
 export function encodeShareState(inputValue) {
   var state = { t: inputValue };
@@ -46,18 +56,13 @@ export function applyShareState(decoded, onClickCreate, renderCustomList) {
 }
 
 export function showShareToast(msg) {
-  var existing = document.querySelector('.share-toast');
-  if (existing) existing.remove();
-  var toast = document.createElement('div');
-  toast.className = 'share-toast';
-  toast.textContent = msg;
-  document.body.appendChild(toast);
-  setTimeout(function () {
-    toast.classList.add('share-toast-out');
-  }, 1800);
-  setTimeout(function () {
-    toast.remove();
-  }, 2200);
+  // Match the old "only one share-toast on screen at a time" behaviour
+  // — the previous implementation always remove()'d the previous one.
+  _shareNotifier.clear();
+  // The 1800 ms "start fading out" hint matches the old hand-rolled
+  // timing: the shared notifier removes after `defaultDurationMs`
+  // (2200) and adds the out-class `outMs` (400) before that ⇒ 1800.
+  _shareNotifier.notify(msg);
 }
 
 export function initShareLink(getInputValue) {

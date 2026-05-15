@@ -19,6 +19,7 @@ import { ScmView } from './scm-view.js';
 import { scmMethods } from './scm-actions.js';
 import { menuMethods } from './menus.js';
 import { paletteMethods } from './palette.js';
+import { createNotifier } from '/notifications.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -45,6 +46,13 @@ class CodeIDE {
     this.toastStack = document.createElement('div');
     this.toastStack.className = 'toast-stack';
     document.body.appendChild(this.toastStack);
+
+    this._notifier = createNotifier({
+      container: this.toastStack,
+      kindClass: (k) => `toast ${k === 'warn' || k === 'error' || k === 'success' ? k : ''}`.trim(),
+      defaultDurationMs: 2400,
+      fadeOut: { outClass: 'toast-out', outMs: 220 }
+    });
 
     this.host = new EditorHost($('#editor'), {
       theme: localStorage.getItem('code-ide:theme') || 'vs-dark'
@@ -709,15 +717,7 @@ class CodeIDE {
   // ─── Toast ─────────────────────────────────────────────────────────────
 
   toast(message, type = 'info') {
-    const el = document.createElement('div');
-    el.className = `toast ${type}`;
-    el.textContent = message;
-    this.toastStack.appendChild(el);
-    setTimeout(() => {
-      el.style.opacity = '0';
-      el.style.transition = 'opacity 0.2s';
-      setTimeout(() => el.remove(), 220);
-    }, 2400);
+    this._notifier.notify(message, { kind: type });
   }
 }
 
