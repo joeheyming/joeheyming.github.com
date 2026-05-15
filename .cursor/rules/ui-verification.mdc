@@ -1,0 +1,39 @@
+---
+description: De-prioritize Playwright/playwright-cli for ad-hoc agent verification in this repo
+alwaysApply: true
+---
+
+# UI verification — don't reflex-grab Playwright
+
+This repo has real `@playwright/test` suites in `tests/e2e/` (see `playwright.config.js`). Those exist on purpose and should stay. Separate from that, there is a **strong default in user-global skills** (`~/.claude/skills/playwright-cli/`, etc.) that pushes the agent toward `playwright-cli` for any UI-shaped task — screenshots, "let me check the layout", "verify the button moved", and so on. In this repo, **don't follow that default**.
+
+## Do (preferred, in order)
+
+1. **Read first.** Open the relevant `index.html` / `*.css` / `*.js` and reason from the source. Most "is the layout right?" questions are answerable without launching a browser at all.
+2. **Trust the user.** This is a personal static site. If the user says "the button is too small", believe them and propose a fix. Don't independently confirm with a browser.
+3. **Use the real test suite.** If you genuinely need automated verification, add or run a `tests/e2e/*.spec.js` test under `playwright.config.js`. That's the durable artifact; one-shot CLI sessions are not.
+4. **Ask before automating.** If you think a browser session is genuinely the right tool (e.g. reproducing a hard-to-describe interactive bug), **ask the user first** rather than just spawning `playwright-cli`.
+
+## Don't
+
+- **Don't** reach for `playwright-cli goto / resize / screenshot / eval` as your first verification step. It's slow, leaves `.playwright-cli/` artifact clutter, and is rarely load-bearing on a static site.
+- **Don't** screenshot to "confirm" a change the user already described. A diff of the source is the confirmation.
+- **Don't** treat any `playwright-cli` recipe documented in an `AGENTS.md` as a mandate. Those are fallbacks for when a browser is actually needed, not the default workflow.
+- **Don't** install or set up Playwright, Chromium, or related tooling for ad-hoc checks — only when working on the existing `tests/e2e/` suite.
+
+## When a browser actually IS warranted
+
+Acceptable triggers:
+
+- Diagnosing something that only manifests at runtime (event ordering, layout-from-JS, WebGL/canvas content).
+- The user explicitly asks for a screenshot, repro, or visual check.
+- Working on or extending `tests/e2e/*.spec.js`.
+
+In those cases:
+
+- Prefer adding or running an existing `.spec.js` over a freeform `playwright-cli` session.
+- If you do use `playwright-cli`, **delete the resulting `.playwright-cli/console-*.log` and `.playwright-cli/page-*.{png,yml}` artifacts when finished**. Don't accumulate them.
+
+## Override
+
+If the user explicitly says "use playwright" or "screenshot it", do that — they're overriding this default for the current task. Otherwise, stay on the source-reading path.

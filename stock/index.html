@@ -183,10 +183,12 @@
           + List
         </button>
 
-        <div class="ml-auto inline-flex rounded-md overflow-hidden border border-slate-700 text-sm">
-          <button data-mode="chart" class="mode-btn active">Chart</button>
-          <button data-mode="heatmap" class="mode-btn">Heatmap</button>
-          <button data-mode="portfolio" class="mode-btn">Portfolio</button>
+        <div
+          class="w-full sm:w-auto sm:ml-auto inline-flex rounded-md overflow-hidden border border-slate-700 text-sm"
+        >
+          <button data-mode="chart" class="mode-btn flex-1 sm:flex-none active">Chart</button>
+          <button data-mode="heatmap" class="mode-btn flex-1 sm:flex-none">Heatmap</button>
+          <button data-mode="portfolio" class="mode-btn flex-1 sm:flex-none">Portfolio</button>
         </div>
       </section>
 
@@ -292,7 +294,7 @@
         >
           <div
             id="chart-empty"
-            class="hidden absolute inset-0 flex flex-col items-center justify-center text-center text-slate-400 px-6 z-0"
+            class="hidden absolute inset-0 flex flex-col items-center justify-center text-center text-slate-400 px-6 z-20 bg-slate-900/95 rounded-xl"
           >
             <div class="text-5xl mb-3" aria-hidden="true">📊</div>
             <p class="text-lg font-medium text-slate-200">No tickers yet</p>
@@ -322,7 +324,7 @@
             role="alert"
           ></div>
 
-          <div class="chart-pane" style="height: 380px">
+          <div id="price-pane" class="chart-pane" style="height: 380px">
             <canvas id="price-chart" aria-label="Price chart"></canvas>
           </div>
           <div id="rsi-pane" class="chart-pane hidden mt-2" style="height: 130px">
@@ -375,13 +377,14 @@
     </div>
 
     <!-- Detail drawer -->
+    <!-- z-index sits above the shared back-to-portfolio button (z-index 999999) -->
     <div
       id="detail-backdrop"
-      class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40"
+      class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[9999990]"
     ></div>
     <aside
       id="detail-drawer"
-      class="hidden fixed top-0 right-0 bottom-0 w-full sm:w-[28rem] bg-slate-900 border-l border-slate-700 z-50 overflow-y-auto shadow-2xl"
+      class="hidden fixed top-0 right-0 bottom-0 w-full sm:w-[28rem] bg-slate-900 border-l border-slate-700 z-[9999991] overflow-y-auto shadow-2xl"
       aria-label="Stock detail"
     >
       <header class="sticky top-0 bg-slate-900/95 backdrop-blur px-4 py-3 border-b border-slate-800 flex items-center gap-2">
@@ -399,12 +402,15 @@
     </aside>
 
     <!-- Toast container -->
-    <div id="toast-stack" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] space-y-2"></div>
+    <div
+      id="toast-stack"
+      class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999992] space-y-2"
+    ></div>
 
     <!-- Keyboard help modal -->
     <div
       id="help-modal"
-      class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-4"
+      class="hidden fixed inset-0 z-[9999993] flex items-center justify-center bg-slate-950/70 p-4"
     >
       <div class="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-5 shadow-2xl">
         <h2 class="text-lg font-semibold mb-3">Keyboard shortcuts</h2>

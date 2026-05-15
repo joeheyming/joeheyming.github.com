@@ -104,6 +104,7 @@ const $rsiCanvas = $('rsi-chart');
 const $macdCanvas = $('macd-chart');
 const $rsiPane = $('rsi-pane');
 const $macdPane = $('macd-pane');
+const $pricePane = $('price-pane');
 const $empty = $('chart-empty');
 const $loading = $('chart-loading');
 const $errorBox = $('chart-error');
@@ -682,6 +683,9 @@ function renderChart() {
   const entries = list ? list.symbols : [];
   const hasAny = entries.length > 0;
   $empty.classList.toggle('hidden', hasAny);
+  // Hide the chart canvas pane when empty so its default axes don't draw
+  // behind the empty-state message and intercept clicks on its buttons.
+  $pricePane.classList.toggle('hidden', !hasAny);
 
   const inputs = entries.map((entry, idx) => ({
     symbol: entry.symbol,

@@ -597,22 +597,16 @@ with `pacman-infinite` first. This is what makes:
 If you add another companion app, register it the same way and
 update both `related` lists so the cross-link is symmetric.
 
-## Testing recipe (playwright-cli)
+## Testing notes (read before reaching for a browser)
 
-```bash
-# Portrait phone
-playwright-cli resize 390 844
-playwright-cli goto "http://127.0.0.1:8765/pacman-infinite/index.html"
+See `.cursor/rules/ui-verification.mdc` — the default in this repo is **don't reflex-launch `playwright-cli`** for layout / "did the change land?" checks. Read the source, trust the user, or extend `tests/e2e/*.spec.js` instead.
 
-# Landscape phone (≤768 wide so the mobile @media triggers)
-playwright-cli resize 667 375
+If a browser session is genuinely needed (runtime-only bugs, explicit user request), two things specific to this app are worth knowing:
 
-# Force-start a run from the page (skips menu + intro)
-playwright-cli eval "() => { window.game.startGame(); return window.game.state; }"
-```
-
-Playwright's pointer is `pointer: fine`, so the `(pointer: coarse)`
-half of `@media (max-width: 768px), (pointer: coarse)` never fires.
-Test mobile CSS at viewports ≤768 wide; for real-phone landscape
-(844×390) verify with a manual device check or force
-`#touch-controls.style.display='flex'` via `eval` and read rects.
+- Force-start a run from the console / `eval`:
+  `window.game.startGame()` — skips menu + intro.
+- Playwright's pointer is `pointer: fine`, so the `(pointer: coarse)`
+  half of `@media (max-width: 768px), (pointer: coarse)` never fires.
+  Test mobile CSS at viewports ≤768 wide; for real-phone landscape
+  (844×390) verify with a manual device check or force
+  `#touch-controls.style.display='flex'` and read rects.
