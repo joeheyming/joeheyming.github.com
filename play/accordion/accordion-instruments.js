@@ -96,12 +96,20 @@ function buildButtonAccordionAnchors() {
  *     voices that the player wants ringing simultaneously.
  */
 export class AccordionSynth {
-  constructor({ destination = null } = {}) {
+  constructor({ destination = null, bassDestination = null } = {}) {
     // AudioNode that all voices created in setTone() route into. Default
     // (null) means voices route to the shared master gain. The accordion
     // page passes its BreathBus.input here so the bellows pressure can
     // gate the whole accordion graph without rewiring the global master.
     this.destination = destination;
+    // Optional separate destination for the left-hand (bass + chord
+    // buttons) voice. Lets callers stick a gain node in the bass path
+    // to compensate for the bass row playing only one note while the
+    // chord rows play 3-note triads — a 3:1 amplitude disparity that
+    // makes the bass feel quiet against the chord buttons in the
+    // rhythm-game context. Falls back to `destination` so old callers
+    // keep working unchanged.
+    this.bassDestination = bassDestination;
     this.toneName = '';
     // Right-hand voice: piano view, chromatic buttons, MIDI input, and
     // anything else that doesn't pass `side: 'left'` to noteOn(). In
@@ -147,6 +155,7 @@ export class AccordionSynth {
     // important for bellows mode, where the player may pump-and-hold
     // long after the sample would have naturally faded out.
     const dest = this.destination;
+    const bassDest = this.bassDestination || dest;
     if (name === BUTTON_ACCORDION_TONE) {
       const sampler = MultiSampler.fromNotes(buildButtonAccordionAnchors(), {
         loop: true,
@@ -174,13 +183,21 @@ export class AccordionSynth {
       // is what plays for bass row, counter-bass, and chord triads.
       const bass = new SampleVoice(BUTTON_ACCORDION_LEFT_HAND_TONE, {
         loop: true,
-        destination: dest
+        destination: bassDest
       });
       this.bassVoice = bass;
       bass.load();
     } else {
       this.voice = new SampleVoice(name, { loop: true, destination: dest });
       this.voice.load();
+      // For non-FreePats tones there's no separate bass voice — but if
+      // the caller asked for a bass-boost destination, route a parallel
+      // bass-only voice through it so the boost still applies.
+      if (this.bassDestination && this.bassDestination !== dest) {
+        const bass = new SampleVoice(name, { loop: true, destination: bassDest });
+        this.bassVoice = bass;
+        bass.load();
+      }
     }
   }
 

@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>🪗 Accordion Hero — Stradella Rhythm Game | Joe Heyming</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪗</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="Accordion Hero is a Stepmania-style rhythm game where the lanes are Stradella bass and chord buttons. Play any voicing that fits — full match, smooth sub, or relative-minor swap, all earn points."
+    />
+    <meta name="theme-color" content="#0f172a" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Accordion Hero" />
+    <meta property="og:title" content="🪗 Accordion Hero - Stradella Rhythm Game" />
+    <meta
+      property="og:description"
+      content="A free browser rhythm game with falling-notes onto Stradella bass + chord buttons. Improvise your voicings; the judge rewards musical substitutions."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/accordion-hero/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/accordion-hero/accordion-hero-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Accordion Hero rhythm game" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="🪗 Accordion Hero - Stradella Rhythm Game" />
+    <meta
+      name="twitter:description"
+      content="A free browser rhythm game with falling-notes onto Stradella bass + chord buttons."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/accordion-hero/accordion-hero-preview.png"
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/accordion-hero/" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
+    <script src="/proxy.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js"></script>
+
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="ah-header">
+      <div class="ah-title">
+        <span aria-hidden="true">🪗</span>
+        <h1>Accordion Hero</h1>
+      </div>
+      <div class="ah-header-status" aria-live="polite">
+        <span class="ah-judgment" id="ah-judgment">Ready</span>
+        <span class="ah-voicing" id="ah-voicing"></span>
+      </div>
+      <a class="ah-home-link" href="/" aria-label="Back to portfolio">Home</a>
+    </header>
+
+    <main class="ah-stage" id="ah-stage">
+      <!-- Start screen sits above the game canvas. JS hides it on Start. -->
+      <section class="ah-start-screen" id="ah-start-screen" aria-label="Start the song">
+        <div class="ah-start-card">
+          <h2>That's Amore</h2>
+          <p class="ah-song-credit" id="ah-song-credit"></p>
+          <p class="ah-blurb">
+            Notes fall onto your Stradella buttons. Hit them on the strike line —
+            <strong>any voicing that fits the chord earns points</strong>. Play the
+            suggested combo for the max, or improvise: C6, Cmaj7, even an Am
+            sub all count.
+          </p>
+
+          <label class="ah-control">
+            <span>Tone</span>
+            <select id="ah-tone-select" aria-label="Reed tone">
+              <option value="button_accordion_samples" selected>Button accordion (samples)</option>
+              <option value="accordion">Accordion (soundfont)</option>
+              <option value="tango_accordion">Tango accordion</option>
+              <option value="reed_organ">Reed organ</option>
+              <option value="harmonica">Harmonica</option>
+            </select>
+          </label>
+
+          <label class="ah-control">
+            <span>Tempo</span>
+            <input id="ah-speed" type="range" min="40" max="160" value="100" />
+            <span class="ah-speed-val" id="ah-speed-val">1.00×</span>
+          </label>
+
+          <button type="button" class="ah-start-btn" id="ah-start-btn">▶ Start</button>
+
+          <details class="ah-help" id="ah-help" open>
+            <summary>How to play</summary>
+            <ul>
+              <li>
+                <strong>Desktop keys</strong> — each Stradella column maps to a vertical slice of four keys (top → bottom on the keyboard = top → bottom on the lane bar):
+                <ul>
+                  <li>Column 1: <kbd>1</kbd> <kbd>Q</kbd> <kbd>A</kbd> <kbd>Z</kbd></li>
+                  <li>Column 2: <kbd>2</kbd> <kbd>W</kbd> <kbd>S</kbd> <kbd>X</kbd></li>
+                  <li>Column 3: <kbd>3</kbd> <kbd>E</kbd> <kbd>D</kbd> <kbd>C</kbd></li>
+                  <li>… and so on across the keyboard up to column 10 (<kbd>0</kbd> <kbd>P</kbd> <kbd>;</kbd> <kbd>/</kbd>).</li>
+                </ul>
+                Within a column, the top key always plays whatever button is at the top of that column on the lane bar — usually the <strong>bass</strong> note. Each button's key is printed on it.
+              </li>
+              <li>
+                <strong>Phone / tablet:</strong> tap the column buttons at the bottom. Multi-touch works — hold several at once.
+              </li>
+              <li>
+                Notes fall from the top. Hit them when they cross the pink
+                strike line. White notes are <strong>bass</strong>; colored
+                notes are chords (green = major, teal = minor, amber = dom7, red = dim7).
+              </li>
+              <li>
+                Any voicing that fits earns points —
+                <strong>Perfect</strong> (exact or extension, 1.0×),
+                <strong>Smooth sub</strong> (≥ 3 shared notes, 0.85×),
+                <strong>Close</strong> (≥ 2 shared, 0.7×), or
+                <strong>Miss</strong>.
+              </li>
+            </ul>
+          </details>
+        </div>
+      </section>
+
+      <!-- Game HUD: top bar shows score + combo; canvas hosts falling notes -->
+      <section class="ah-game" id="ah-game" style="display:none" aria-label="Accordion Hero playfield">
+        <div class="ah-hud">
+          <div class="ah-hud-cell">
+            <span class="ah-hud-label">Score</span>
+            <span class="ah-hud-value" id="ah-score">0</span>
+          </div>
+          <div class="ah-hud-cell">
+            <span class="ah-hud-label">Combo</span>
+            <span class="ah-hud-value" id="ah-combo">0</span>
+          </div>
+          <div class="ah-hud-cell">
+            <span class="ah-hud-label">Song</span>
+            <span class="ah-hud-value ah-hud-song" id="ah-song-title">—</span>
+          </div>
+          <button type="button" class="ah-pause-btn" id="ah-pause-btn" aria-label="Stop">⏹</button>
+        </div>
+        <div class="ah-playfield">
+          <canvas id="ah-canvas" aria-hidden="true"></canvas>
+          <div class="ah-lane-bar" id="ah-lane-bar" role="group" aria-label="Lane buttons"></div>
+        </div>
+      </section>
+
+      <!-- End-of-song results panel -->
+      <section class="ah-results" id="ah-results" style="display:none" aria-label="Results">
+        <div class="ah-results-card">
+          <h2>Results</h2>
+          <dl class="ah-results-grid">
+            <dt>Final score</dt><dd id="ah-results-score">0</dd>
+            <dt>Max combo</dt><dd id="ah-results-combo">0</dd>
+            <dt>Perfect voicings</dt><dd id="ah-results-perfect">0</dd>
+            <dt>Smooth subs</dt><dd id="ah-results-sub">0</dd>
+            <dt>Close calls</dt><dd id="ah-results-partial">0</dd>
+            <dt>Missed</dt><dd id="ah-results-miss">0</dd>
+          </dl>
+          <button type="button" class="ah-start-btn" id="ah-results-again">↻ Play again</button>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      window.addEventListener('error', (e) => {
+        const j = document.getElementById('ah-judgment');
+        const v = document.getElementById('ah-voicing');
+        if (j) { j.textContent = 'JS ERROR'; j.dataset.tier = 'miss'; }
+        if (v) v.textContent = e.message || String(e);
+      });
+      window.addEventListener('unhandledrejection', (e) => {
+        const j = document.getElementById('ah-judgment');
+        const v = document.getElementById('ah-voicing');
+        if (j) { j.textContent = 'JS ERROR'; j.dataset.tier = 'miss'; }
+        if (v) v.textContent = String(e.reason?.message || e.reason || e);
+      });
+    </script>
+    <script type="module" src="accordion-hero.js"></script>
+  </body>
+</html>

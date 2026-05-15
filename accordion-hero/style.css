@@ -1,0 +1,591 @@
+:root {
+  --bg-0: #0b1020;
+  --bg-1: #0f172a;
+  --bg-2: #1e293b;
+  --fg: #e2e8f0;
+  --fg-dim: #94a3b8;
+  --accent: #818cf8;
+  --accent-2: #f472b6;
+  --accent-3: #34d399;
+  --accent-4: #facc15;
+  --border: rgba(148, 163, 184, 0.18);
+
+  --lane-bass: #38bdf8;
+  --lane-chord: #c084fc;
+  --judge-perfect: #34d399;
+  --judge-sub: #facc15;
+  --judge-partial: #fb923c;
+  --judge-miss: #f87171;
+
+  /* Game tuning */
+  --strike-line-px: 96px;
+  --lane-height: clamp(60px, 14vw, 96px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background:
+    radial-gradient(900px 500px at 20% -10%, rgba(129, 140, 248, 0.18), transparent 60%),
+    radial-gradient(800px 500px at 110% 20%, rgba(244, 114, 182, 0.14), transparent 60%),
+    var(--bg-0);
+  color: var(--fg);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Header ---------- */
+
+.ah-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
+}
+
+.ah-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ah-title h1 {
+  margin: 0;
+  font-size: clamp(20px, 3.6vw, 28px);
+  letter-spacing: -0.01em;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.ah-title > span {
+  font-size: clamp(22px, 4vw, 30px);
+  filter: drop-shadow(0 4px 12px rgba(129, 140, 248, 0.5));
+}
+
+.ah-header-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-self: center;
+}
+
+.ah-judgment {
+  font-weight: 700;
+  font-size: clamp(14px, 2.6vw, 18px);
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: color 200ms ease, transform 200ms ease;
+}
+
+.ah-judgment[data-tier='full'] { color: var(--judge-perfect); }
+.ah-judgment[data-tier='sub']  { color: var(--judge-sub); }
+.ah-judgment[data-tier='partial'] { color: var(--judge-partial); }
+.ah-judgment[data-tier='wrong'],
+.ah-judgment[data-tier='miss'] { color: var(--judge-miss); }
+.ah-judgment.is-flash { transform: scale(1.15); }
+
+.ah-voicing {
+  font-size: clamp(11px, 2.2vw, 14px);
+  color: var(--fg-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.ah-home-link {
+  justify-self: end;
+  color: var(--fg-dim);
+  text-decoration: none;
+  font-size: 14px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(30, 41, 59, 0.6);
+}
+
+.ah-home-link:hover {
+  color: var(--fg);
+}
+
+/* ---------- Start screen ---------- */
+
+.ah-stage {
+  flex: 1 1 0;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.ah-start-screen {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+}
+
+.ah-start-card {
+  width: min(560px, 100%);
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: clamp(20px, 4vw, 28px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+}
+
+.ah-start-card h2 {
+  margin: 0 0 10px;
+  font-size: clamp(22px, 4vw, 28px);
+}
+
+.ah-blurb {
+  color: var(--fg-dim);
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.ah-song-credit {
+  margin: -6px 0 14px;
+  color: var(--fg-dim);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.ah-song-credit:empty {
+  display: none;
+}
+
+.ah-control {
+  display: grid;
+  grid-template-columns: 90px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.ah-control > span:first-child {
+  color: var(--fg-dim);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ah-control-check {
+  grid-template-columns: 22px 1fr;
+}
+
+.ah-control select,
+.ah-control input[type='range'] {
+  width: 100%;
+  background: var(--bg-2);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.ah-control input[type='checkbox'] {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent);
+}
+
+.ah-speed-val {
+  color: var(--fg-dim);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  min-width: 44px;
+  text-align: right;
+}
+
+.ah-start-btn {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px 18px;
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: transform 100ms ease, filter 100ms ease;
+}
+
+.ah-start-btn:hover {
+  filter: brightness(1.1);
+}
+
+.ah-start-btn:active {
+  transform: scale(0.98);
+}
+
+.ah-start-btn:disabled,
+.ah-start-btn[disabled] {
+  background: var(--bg-2);
+  color: var(--fg-dim);
+  cursor: not-allowed;
+  filter: none;
+  opacity: 0.55;
+}
+
+.ah-start-btn:disabled:hover,
+.ah-start-btn[disabled]:hover {
+  filter: none;
+}
+
+.ah-start-btn:disabled:active,
+.ah-start-btn[disabled]:active {
+  transform: none;
+}
+
+.ah-help {
+  margin-top: 20px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.ah-help summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.ah-help ul {
+  margin: 10px 0 0;
+  padding-left: 22px;
+  color: var(--fg-dim);
+  line-height: 1.55;
+}
+
+.ah-help li {
+  margin-bottom: 10px;
+}
+
+.ah-help a {
+  color: var(--accent);
+}
+
+/* ---------- Game ---------- */
+
+.ah-game {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+.ah-hud {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.ah-hud-cell {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.ah-hud-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fg-dim);
+}
+
+.ah-hud-value {
+  font-size: clamp(16px, 3vw, 22px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ah-hud-song {
+  max-width: 40vw;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  font-weight: 500;
+}
+
+.ah-pause-btn {
+  margin-left: auto;
+  background: rgba(30, 41, 59, 0.7);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 18px;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.ah-playfield {
+  flex: 1 1 0;
+  min-height: 0;
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.45), rgba(15, 23, 42, 0.6));
+  overflow: hidden;
+  touch-action: none;
+}
+
+#ah-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+/* ---------- Receptor strip (mini Stradella, horizontal orientation) ----------
+ *
+ * Mirrors the look of the real horizontal Stradella in /play/accordion/:
+ *   - dark gradient container with rounded bottom + inner highlight
+ *   - diagonally staggered rows (handled by JS via per-button `top`/`left`)
+ *   - round, color-coded buttons keyed by row (bass/major/minor/dom7/dim7)
+ *   - red "home" buttons on bass-row C/E/G♯ pitch classes
+ *
+ * Buttons are absolutely positioned by JS (percentage `left`/`top`) so the
+ * stagger logic stays in one place. The bar grows vertically with the number
+ * of rows used by the current song (`--row-count` is set from JS).
+ */
+
+.ah-lane-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* Grow with row count: ~44px per row + 28px padding, capped so very
+   * row-heavy songs don't eat the whole playfield. */
+  height: clamp(
+    110px,
+    calc(var(--row-count, 1) * 44px + 28px),
+    280px
+  );
+  padding: 12px 14px;
+  background: linear-gradient(180deg, #0b1220, #1f2937);
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 12px 12px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 -8px 24px -16px rgba(0, 0, 0, 0.7);
+  touch-action: none;
+}
+
+.ah-col-btn {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  aspect-ratio: 1 / 1;
+  /* Smaller default size than the original lane bar — we now show multiple
+   * rows of buttons so individual buttons need to be a bit more compact. */
+  height: clamp(34px, 6.5vw, 52px);
+  border-radius: 999px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  /* Default look — bass-style silver palette. Per-row palettes below
+   * override this for major/minor/dom7/dim7. */
+  background: linear-gradient(180deg, #f8fafc, #cbd5e1);
+  color: #0f172a;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 80ms ease-out, background 80ms ease-out, box-shadow 80ms ease-out;
+}
+
+.ah-col-btn:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+.ah-col-btn.is-active {
+  transform: translate(-50%, -50%) scale(0.92);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.45),
+    0 0 14px rgba(244, 114, 182, 0.45);
+}
+
+/* ----- Per-row palettes (mirror /play/accordion/ stradella styling) ----- */
+
+.ah-col-btn[data-row='bass'] {
+  background: linear-gradient(180deg, #f8fafc, #cbd5e1);
+  color: #0f172a;
+  border-color: #475569;
+}
+
+.ah-col-btn[data-row='counter-bass'] {
+  background: linear-gradient(180deg, #e0f2fe, #bae6fd);
+  color: #0c4a6e;
+  border-color: #0284c7;
+}
+
+.ah-col-btn[data-row='major'] {
+  background: linear-gradient(180deg, #052e16, #14532d);
+  color: #bbf7d0;
+  border-color: #166534;
+}
+
+.ah-col-btn[data-row='minor'] {
+  background: linear-gradient(180deg, #042f2e, #134e4a);
+  color: #99f6e4;
+  border-color: #115e59;
+}
+
+.ah-col-btn[data-row='dom7'] {
+  background: linear-gradient(180deg, #422006, #78350f);
+  color: #fed7aa;
+  border-color: #92400e;
+}
+
+.ah-col-btn[data-row='dim7'] {
+  background: linear-gradient(180deg, #450a0a, #7f1d1d);
+  color: #fecaca;
+  border-color: #991b1b;
+}
+
+/* Home buttons (F/C/G family — pc 0/4/8) — red tint, visible reference dots
+ * the player feels for, same convention as the real instrument. */
+.ah-col-btn.is-home {
+  background: linear-gradient(180deg, #fecaca, #fca5a5);
+  color: #7f1d1d;
+  border-color: #dc2626;
+  box-shadow: inset 0 -2px 4px rgba(127, 29, 29, 0.3);
+}
+
+.ah-col-btn.is-home.is-active {
+  background: linear-gradient(180deg, #fca5a5, #ef4444);
+  color: #fff;
+}
+
+.ah-col-name {
+  font-size: clamp(13px, 2.8vw, 18px);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ah-col-keys {
+  font-family: ui-monospace, 'Cascadia Code', 'Fira Mono', monospace;
+  font-size: clamp(9px, 1.8vw, 11px);
+  color: currentColor;
+  opacity: 0.55;
+}
+
+/* ---------- Results ---------- */
+
+.ah-results {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  padding-top: 60px;
+}
+
+.ah-results-card {
+  width: min(420px, 100%);
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+}
+
+.ah-results-card h2 {
+  margin: 0 0 16px;
+}
+
+.ah-results-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 18px;
+  text-align: left;
+  margin: 0 0 20px;
+}
+
+.ah-results-grid dt {
+  color: var(--fg-dim);
+}
+
+.ah-results-grid dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ---------- Mobile / small-screen tuning ---------- */
+
+@media (max-width: 720px) {
+  .ah-header {
+    padding: 10px 12px;
+    grid-template-columns: auto 1fr auto;
+  }
+  .ah-title h1 {
+    font-size: 18px;
+  }
+  .ah-game {
+    padding: 6px;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 360px) {
+  .ah-control {
+    grid-template-columns: 70px 1fr auto;
+  }
+}
+
+/* Honor reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .ah-col-btn,
+  .ah-judgment {
+    transition: none;
+  }
+  .ah-col-btn.is-active {
+    transform: translate(-50%, -50%);
+  }
+}

@@ -1,5 +1,6 @@
 import { createPointerSurface } from '../shared/pointer-surface.js';
 import { tap as hapticTap } from '../shared/haptics.js';
+import { SHARP_NAMES, FLAT_NAMES, notesForButton } from './stradella-chords.js';
 
 /**
  * Stradella bass system — the left-hand button system on a piano accordion.
@@ -20,10 +21,11 @@ import { tap as hapticTap } from '../shared/haptics.js';
  *                    folk accordions, 80- and 96-bass models.
  *   - "free-bass"  : 3 octaves of single chromatic notes (Russian bayan
  *                    soloist setup), columns still in circle-of-5ths.
+ *
+ * Note voicings (`bassNoteFor`, `counterBassNoteFor`, `chordNotesFor`,
+ * `notesForButton`) live in `stradella-chords.js` so the on-screen
+ * keyboard and the `accordion-hero` rhythm game stay in lock-step.
  */
-
-const SHARP_NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
-const FLAT_NAMES = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'];
 
 /**
  * Full 120-bass column layout: 20 columns × 6 rows = 120 buttons.
@@ -199,56 +201,6 @@ export const STRADELLA_SIZES = {
   96: { label: '96 bass', cols: 16, colStart: 1 },
   120: { label: '120 bass', cols: 20, colStart: 0 }
 };
-
-const BASS_OCTAVE_MIDI = 36; // C2 = 36
-const CHORD_OCTAVE_MIDI = 48; // C3 = 48
-
-function bassNoteFor(pc) {
-  return BASS_OCTAVE_MIDI + pc;
-}
-
-function counterBassNoteFor(pc) {
-  return BASS_OCTAVE_MIDI + pc + 4;
-}
-
-function chordNotesFor(pc, type) {
-  const root = CHORD_OCTAVE_MIDI + pc;
-  switch (type) {
-    case 'major':
-      return [root, root + 4, root + 7];
-    case 'minor':
-      return [root, root + 3, root + 7];
-    case 'dom7':
-      // Common Stradella voicing drops the 5th: root, major 3rd, minor 7th.
-      return [root, root + 4, root + 10];
-    case 'dim7':
-      return [root, root + 3, root + 6, root + 9];
-    default:
-      return [];
-  }
-}
-
-function notesForButton(rowType, pc) {
-  switch (rowType) {
-    case 'bass':
-      return [bassNoteFor(pc)];
-    case 'counter-bass':
-      return [counterBassNoteFor(pc)];
-    case 'major':
-    case 'minor':
-    case 'dom7':
-    case 'dim7':
-      return chordNotesFor(pc, rowType);
-    case 'free-low':
-      return [BASS_OCTAVE_MIDI + pc];
-    case 'free-mid':
-      return [CHORD_OCTAVE_MIDI + pc];
-    case 'free-high':
-      return [CHORD_OCTAVE_MIDI + 12 + pc];
-    default:
-      return [];
-  }
-}
 
 function buttonLabel(rowType, col) {
   switch (rowType) {
