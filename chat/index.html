@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🤖 Chat — OS-aware AI assistant | Joe Heyming</title>
+
+    <meta
+      name="description"
+      content="Static-site AI assistant that runs entirely in your browser via WebGPU. No backend, no API key, no third-party LLM endpoint. Knows the HeymingOS app registry and can read files in your virtual filesystem."
+    />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#06b6d4" />
+    <meta
+      name="keywords"
+      content="ai chat, llm, agent, webgpu, webllm, browser ai, static site llm, local llm, on-device ai"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming — Chat" />
+    <meta property="og:title" content="🤖 Chat — OS-aware AI assistant" />
+    <meta
+      property="og:description"
+      content="A backend-free LLM chat that runs in your browser via WebGPU. Can recommend apps and read your virtual filesystem."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/chat/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/assets/joe-heyming-og-image.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="🤖 Chat — OS-aware AI assistant" />
+    <meta
+      name="twitter:description"
+      content="Backend-free LLM chat. Runs entirely in your browser via WebGPU."
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/chat/" />
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="icon"
+      id="site-favicon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>"
+    />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+    <script src="/back.js"></script>
+    <script src="/proxy.js"></script>
+
+    <!-- Markdown rendering. textContent-only fallback if these fail to load. -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  </head>
+  <body>
+    <div class="chat-app" id="chat-app">
+      <header class="chat-header">
+        <div class="chat-title">
+          <span class="chat-emoji" aria-hidden="true">🤖</span>
+          <div class="chat-title-text">
+            <h1>Chat</h1>
+            <p id="chat-mode-line">Local model</p>
+          </div>
+        </div>
+        <div class="chat-header-actions">
+          <button
+            type="button"
+            id="chat-reload-btn"
+            class="chat-btn-ghost chat-btn-reload"
+            title="Re-fetch chat scripts without dropping the loaded model"
+          >
+            🔄 Reload
+          </button>
+          <button type="button" id="chat-new-btn" class="chat-btn-ghost" title="Start a new conversation">
+            New chat
+          </button>
+        </div>
+      </header>
+
+      <div
+        id="chat-unsupported"
+        class="chat-unsupported"
+        role="alert"
+        hidden
+      >
+        <strong>This chat needs WebGPU.</strong> The whole model runs on
+        your device — no backend, no keys — and that needs WebGPU.
+        <p class="chat-unsupported-detail" data-role="detail" hidden></p>
+        <p class="chat-unsupported-env" data-role="env" hidden></p>
+        <p class="chat-unsupported-hint">
+          Supported: Chrome 113+, Edge 113+, Firefox 141+ (Windows/macOS),
+          Safari 18+ (macOS). On Windows with a recent NVIDIA/AMD GPU,
+          WebGPU should be on by default in Chrome/Edge — if it's not,
+          the most common cause is hardware acceleration being disabled
+          in browser settings.
+        </p>
+      </div>
+
+      <main class="chat-scroll" id="chat-scroll" tabindex="0" aria-live="polite">
+        <div class="chat-empty" id="chat-empty">
+          <div class="chat-install" id="chat-install" hidden>
+            <span class="chat-install-emoji" aria-hidden="true">📦</span>
+            <h2 class="chat-install-title">Install the local model</h2>
+            <p class="chat-install-body">
+              This chat needs to install Hermes-3 8B (~4.5&nbsp;GB) into
+              your browser. The full model runs on your device — no
+              backend, no API key, no third-party LLM endpoint. After
+              installing, chat is instant and works offline.
+            </p>
+            <button type="button" id="chat-install-btn" class="chat-install-btn">
+              Install (~4.5&nbsp;GB)
+            </button>
+            <p class="chat-install-hint">
+              Stores in your browser's cache (OPFS). You can clear it
+              anytime from browser settings. The agent's tool-calling
+              needs an 8B-class model — smaller ones can't reliably
+              call functions.
+            </p>
+          </div>
+          <div class="chat-empty-default" id="chat-empty-default">
+            <p class="chat-empty-title">Ask me anything about HeymingOS.</p>
+            <p class="chat-empty-sub">
+              The model runs locally in your browser — no backend, no
+              API key.
+            </p>
+            <ul class="chat-empty-suggestions">
+              <li><button type="button" data-prompt="What apps do you have? Recommend one for making music.">What apps do you have?</button></li>
+              <li><button type="button" data-prompt="Open Paint for me.">Open Paint for me</button></li>
+              <li><button type="button" data-prompt="What's in /Documents/?">What's in /Documents/?</button></li>
+              <li><button type="button" data-prompt="Summarize the page at https://news.ycombinator.com">Summarize news.ycombinator.com</button></li>
+            </ul>
+            <p class="chat-empty-hint">
+              Tip: drag a text file, PDF, or code file onto the chat to
+              analyze its contents.
+            </p>
+          </div>
+        </div>
+        <ol class="chat-messages" id="chat-messages" aria-label="Conversation"></ol>
+      </main>
+
+      <form class="chat-composer" id="chat-composer">
+        <div class="chat-attachments" id="chat-attachments" hidden aria-label="Pending attachments"></div>
+        <div class="chat-composer-row">
+          <button
+            type="button"
+            id="chat-attach-btn"
+            class="chat-attach-btn"
+            title="Attach a document"
+            aria-label="Attach a document"
+          >
+            <span aria-hidden="true">📎</span>
+          </button>
+          <input type="file" id="chat-attach-input" hidden />
+          <textarea
+            id="chat-input"
+            name="message"
+            rows="1"
+            autocomplete="off"
+            placeholder="Ask anything… (Enter to send, Shift+Enter for newline)"
+            aria-label="Message"
+          ></textarea>
+          <button type="submit" id="chat-send" class="chat-send" aria-label="Send">
+            <span aria-hidden="true">➤</span>
+          </button>
+          <button type="button" id="chat-stop" class="chat-stop" hidden aria-label="Stop generating">
+            <span aria-hidden="true">■</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div
+      id="chat-drop-overlay"
+      class="chat-drop-overlay"
+      role="presentation"
+      hidden
+    >
+      <div class="chat-drop-overlay-inner">
+        <div class="chat-drop-emoji" aria-hidden="true">📄</div>
+        <div class="chat-drop-title">Drop to attach</div>
+        <div class="chat-drop-sub">
+          Text, code, JSON, CSV, or PDF — analyzed locally in the model.
+        </div>
+      </div>
+    </div>
+
+    <div id="chat-toasts" class="notify-stack" aria-live="polite"></div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

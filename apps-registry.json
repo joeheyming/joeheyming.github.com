@@ -1150,6 +1150,36 @@
     }
   },
   {
+    "id": "chat",
+    "name": "Chat 🤖",
+    "shortName": "Chat",
+    "description": "On-device AI agent (Hermes-3 8B) that runs entirely in your browser",
+    "detailedDescription": "Static-site LLM agent powered by WebLLM. The full model (Hermes-3-Llama-3.1-8B) runs on your GPU via WebGPU — no backend, no API key, no third-party LLM endpoint. Install once (~4.5 GB into your browser's OPFS cache); after that, chat is instant and works offline. Knows the HeymingOS app registry, can launch apps for you, and can read files in your virtual filesystem.",
+    "icon": "🤖",
+    "path": "./chat/",
+    "category": "utility",
+    "defaultWidth": 720,
+    "defaultHeight": 820,
+    "gradient": "from-cyan-500/20 to-violet-500/20",
+    "border": "border-cyan-500/30 hover:border-cyan-400/50",
+    "taskbarGradient": "from-cyan-500 to-violet-600",
+    "taskbarText": "text-white",
+    "desktopIcon": true,
+    "tags": [
+      "ai",
+      "assistant",
+      "chat",
+      "llm",
+      "agent"
+    ],
+    "related": [
+      "notepad",
+      "terminal",
+      "filemanager"
+    ],
+    "shareCategory": "utility"
+  },
+  {
     "id": "paint",
     "name": "Paint 🎨",
     "shortName": "Paint",

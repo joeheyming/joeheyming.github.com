@@ -295,6 +295,20 @@ export function createOSEmbed(config) {
     postToHost({ type: ACTION.FILESYSTEM_CHANGED, path });
   }
 
+  /**
+   * Ask the host OS to launch another app by id. Used by tool-using apps
+   * (e.g. the Chat assistant calling `launchApp("paint")`). No-op when
+   * standalone — the caller can fall back to a plain navigation.
+   *
+   * @param {string} appId
+   * @returns {boolean} true when the message was sent to the host
+   */
+  function launchApp(appId) {
+    if (!embedded || !appId) return false;
+    postToHost({ type: ACTION.LAUNCH, app: appId });
+    return true;
+  }
+
   function dispose() {
     window.removeEventListener('message', handleHostMessage);
   }
@@ -308,6 +322,7 @@ export function createOSEmbed(config) {
     saveAs,
     installSaveMenu,
     notifyFilesystemChanged,
+    launchApp,
     dispose
   };
 }
