@@ -11,18 +11,18 @@
       href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗺️</text></svg>"
     />
 
-    <title>🗺️ Trip Log — record GPS trips into your own spreadsheet | Joe Heyming</title>
+    <title>🗺️ Trip Log — record GPS trips in your browser | Joe Heyming</title>
 
     <meta
       name="description"
-      content="Record real-world trips in the browser using your phone's GPS. See live distance, time, and a moving map; every trip and GPS point saves into your own Google Sheet."
+      content="Record real-world trips in the browser using your phone's GPS. See live distance, time, and a moving map. Trips are stored locally on the device—no sign-in, no servers."
     />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#7c3aed" />
     <meta
       name="keywords"
-      content="GPS tracker, trip log, browser GPS, geolocation, map, Google Sheets, OpenStreetMap, mobile, web app"
+      content="GPS tracker, trip log, browser GPS, geolocation, map, IndexedDB, offline, OpenStreetMap, mobile, web app"
     />
 
     <meta property="og:type" content="website" />
@@ -30,7 +30,7 @@
     <meta property="og:title" content="🗺️ Trip Log — record GPS trips" />
     <meta
       property="og:description"
-      content="Record GPS trips in the browser. Live map, distance, and time. Saves to your own Google Sheet."
+      content="Record GPS trips in the browser. Live map, distance, and time. Saved locally on your device."
     />
     <meta property="og:url" content="https://joeheyming.github.io/triplog/" />
     <meta
@@ -86,8 +86,8 @@
       };
     </script>
     <style>
-      #signed-out[hidden],
-      #app-loading[hidden] {
+      #app-loading[hidden],
+      #app-error[hidden] {
         display: none !important;
       }
       #map {
@@ -123,7 +123,6 @@
         class="flex min-h-[min(52vh,28rem)] flex-1 flex-col items-center justify-center px-1 py-6 sm:py-10"
         role="status"
         aria-live="polite"
-        hidden
       >
         <div
           class="w-full max-w-md rounded-2xl border border-zinc-200/90 bg-white/90 p-8 text-center shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/90"
@@ -136,43 +135,34 @@
             id="app-loading-message"
             class="text-sm font-medium text-zinc-700 dark:text-zinc-200"
           >
-            Connecting to Google…
+            Opening local trip database…
           </p>
         </div>
       </div>
 
       <div
-        id="signed-out"
+        id="app-error"
         class="flex min-h-[min(52vh,28rem)] flex-1 flex-col items-center justify-center px-1 py-6 sm:py-10"
-        role="region"
-        aria-label="Signed out"
+        role="alert"
+        hidden
       >
         <div
-          class="w-full max-w-md rounded-2xl border border-violet-200/80 bg-white/90 p-8 text-center shadow-xl dark:border-violet-800/50 dark:bg-zinc-900/90"
+          class="w-full max-w-md rounded-2xl border border-rose-200/80 bg-white/90 p-6 text-center shadow-xl dark:border-rose-800/50 dark:bg-zinc-900/90"
         >
-          <p class="mb-3 text-4xl leading-none" aria-hidden="true">🛰️</p>
-          <h2 class="text-lg font-semibold sm:text-xl">Sign in to record trips</h2>
-          <p class="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-            Trips and GPS samples are saved as rows in your own Google Sheet. Same workbook
-            other apps on this site (e.g. Todo) use—Trip Log adds two new tabs:
-            <code class="text-xs">triplog-trips</code> and
-            <code class="text-xs">triplog-points</code>.
+          <p class="mb-2 text-3xl leading-none" aria-hidden="true">⚠️</p>
+          <h2 class="text-lg font-semibold sm:text-xl">Could not start Trip Log</h2>
+          <p
+            id="app-error-message"
+            class="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400"
+          ></p>
+          <p class="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+            Trip Log uses IndexedDB. Private/Incognito windows usually disable it; try a
+            regular window.
           </p>
-          <button
-            type="button"
-            id="btn-signin"
-            class="mt-6 w-full rounded-full border border-violet-300 bg-violet-50 px-5 py-3 text-sm font-semibold text-violet-900 shadow-sm transition hover:bg-violet-100 dark:border-violet-700 dark:bg-violet-950/80 dark:text-violet-100 dark:hover:bg-violet-900/60 sm:w-auto sm:px-8"
-          >
-            Sign in with Google
-          </button>
         </div>
       </div>
 
-      <main
-        id="app-main"
-        class="flex min-h-0 flex-1 flex-col gap-3"
-        hidden
-      >
+      <main id="app-main" class="flex min-h-0 flex-1 flex-col gap-3" hidden>
         <section
           id="map-card"
           class="relative flex min-h-[40vh] flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/85 shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/85"
@@ -194,20 +184,44 @@
           class="grid grid-cols-2 gap-2 rounded-2xl border border-zinc-200/90 bg-white/85 p-3 shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/85 sm:grid-cols-4"
         >
           <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
-            <div class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Distance</div>
-            <div id="stat-distance" class="mt-0.5 text-xl font-semibold tabular-nums">0.00 km</div>
+            <div
+              class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+            >
+              Distance
+            </div>
+            <div id="stat-distance" class="mt-0.5 text-xl font-semibold tabular-nums">
+              0.00 km
+            </div>
           </div>
           <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
-            <div class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Time</div>
-            <div id="stat-duration" class="mt-0.5 text-xl font-semibold tabular-nums">0:00</div>
+            <div
+              class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+            >
+              Time
+            </div>
+            <div id="stat-duration" class="mt-0.5 text-xl font-semibold tabular-nums">
+              0:00
+            </div>
           </div>
           <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
-            <div class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Speed</div>
-            <div id="stat-speed" class="mt-0.5 text-xl font-semibold tabular-nums">— km/h</div>
+            <div
+              class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+            >
+              Speed
+            </div>
+            <div id="stat-speed" class="mt-0.5 text-xl font-semibold tabular-nums">
+              — km/h
+            </div>
           </div>
           <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
-            <div class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Accuracy</div>
-            <div id="stat-accuracy" class="mt-0.5 text-xl font-semibold tabular-nums">—</div>
+            <div
+              class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+            >
+              Accuracy
+            </div>
+            <div id="stat-accuracy" class="mt-0.5 text-xl font-semibold tabular-nums">
+              —
+            </div>
           </div>
         </section>
 
@@ -243,8 +257,8 @@
             </button>
           </div>
           <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-            Recording uses your device's GPS and keeps the screen on. Points are batched and
-            saved to your spreadsheet every few seconds.
+            Recording uses your device's GPS and keeps the screen on. Trips are stored locally
+            in your browser (IndexedDB)—they stay on this device.
           </p>
         </section>
 
@@ -253,7 +267,9 @@
           class="rounded-2xl border border-zinc-200/90 bg-white/85 p-3 shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/85"
         >
           <div class="mb-2 flex items-center justify-between">
-            <h2 class="text-sm font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">
+            <h2
+              class="text-sm font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300"
+            >
               Past trips
             </h2>
             <button
@@ -276,22 +292,6 @@
             No trips yet. Tap Start above to record one.
           </p>
         </section>
-
-        <footer
-          id="auth-card"
-          class="mt-auto flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200/90 bg-white/85 p-3 shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/85"
-        >
-          <span class="text-xs text-zinc-500 dark:text-zinc-400">
-            Signed in. Trips save to your Google Sheet.
-          </span>
-          <button
-            type="button"
-            id="btn-signout"
-            class="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
-          >
-            Sign out
-          </button>
-        </footer>
       </main>
     </div>
 
@@ -313,20 +313,28 @@
               class="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm"
             ></p>
           </div>
-          <button
-            type="button"
-            id="btn-trip-view-close"
-            class="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
-          >
-            Close
-          </button>
+          <div class="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              id="btn-trip-view-delete"
+              class="rounded-full border border-rose-300 bg-white px-4 py-2 text-sm font-medium text-rose-700 shadow-sm hover:bg-rose-50 dark:border-rose-700 dark:bg-zinc-800 dark:text-rose-300 dark:hover:bg-rose-950/40"
+            >
+              Delete
+            </button>
+            <button
+              type="button"
+              id="btn-trip-view-close"
+              class="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+            >
+              Close
+            </button>
+          </div>
         </div>
         <div id="trip-view-map" class="min-h-0 flex-1"></div>
       </div>
     </dialog>
 
     <script src="/share.js"></script>
-    <script src="https://accounts.google.com/gsi/client" defer></script>
     <script type="module" src="./app.js"></script>
   </body>
 </html>

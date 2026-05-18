@@ -1,51 +1,28 @@
 /**
- * Trip Log — record real-world GPS trips into your own Google Sheet.
+ * Trip Log — record real-world GPS trips into local browser storage.
  *
- * Flow on first sign-in:
+ * Storage is IndexedDB (`triplog-db.js`); no sign-in, no network. The
+ * app boots by opening the database, populating the trip list, and
+ * showing a live map. Recording is a `navigator.geolocation.watchPosition`
+ * loop that streams accepted fixes into the points store and keeps the
+ * stats panel + polyline live.
  *
- *   1. GIS pops the consent dialog → `requestAccessToken`.
- *   2. `openSiteDatabase` either reuses the same workbook the Todo app
- *      created or makes a fresh one.
- *   3. We make sure the two `triplog-*` tables exist with the right
- *      headers (`triplog-sheets.js` ensures this is idempotent).
- *
- * Recording flow:
- *
- *   • START — append a `recording` row to `triplog-trips`, start the
- *     tracker, kick off a periodic flush of buffered points to the
- *     `triplog-points` table (every 5s).
- *   • Live — every accepted GPS fix updates the map polyline + stats
- *     panel, and lands in the buffer.
- *   • STOP — last flush, mark the trip row `complete` with final stats.
+ * Buffering exists for IDB efficiency (one transaction per flush
+ * instead of one per fix), but the flush cadence is small enough that
+ * a tab-close mid-recording loses at most a couple of seconds of data.
  */
 
-import {
-  initGoogleAuth,
-  isOAuthUserCancelledError,
-  requestAccessToken,
-  getCachedAccessToken,
-  waitForGoogle,
-  clearAccessToken
-} from '../google-db/google-auth.js';
-import { openSiteDatabase } from '../google-db/site-database.js';
 import { createOSEmbed } from '/os-embed.js';
-import { TRIPS_TABLE, defaultTripName, TRIP_STATUS } from './triplog-constants.js';
-import {
-  createPointBuffer,
-  createTrip,
-  ensureTripLogTables,
-  listPoints,
-  listTrips,
-  updateTripStats
-} from './triplog-sheets.js';
+import { defaultTripName, randomUuid, TRIP_STATUS } from './triplog-constants.js';
+import { openTriplogDb } from './triplog-db.js';
 import { createTracker } from './triplog-tracker.js';
 import { createLiveMap, createReplayMap } from './triplog-map.js';
 
-/** Flush buffered GPS points to Sheets at most this often (ms). */
-const FLUSH_INTERVAL_MS = 5_000;
+/** Flush buffered GPS points to IndexedDB at most this often (ms). */
+const FLUSH_INTERVAL_MS = 2_000;
 
-/** Update the trip-row stats columns at most this often (ms). */
-const TRIP_ROW_UPDATE_MS = 30_000;
+/** Update the trip record's stats columns at most this often (ms). */
+const TRIP_ROW_UPDATE_MS = 5_000;
 
 const STATUS_BASE = 'min-w-0 flex-1 break-words text-right empty:hidden text-xs sm:text-sm';
 
@@ -126,10 +103,6 @@ function main() {
   /** @type {HTMLElement} */
   const statusEl = $('status');
   /** @type {HTMLButtonElement} */
-  const btnSignin = $('btn-signin');
-  /** @type {HTMLButtonElement} */
-  const btnSignout = $('btn-signout');
-  /** @type {HTMLButtonElement} */
   const btnStart = $('btn-start');
   /** @type {HTMLButtonElement} */
   const btnStop = $('btn-stop');
@@ -140,13 +113,15 @@ function main() {
   /** @type {HTMLInputElement} */
   const tripNameInput = $('trip-name');
   /** @type {HTMLElement} */
-  const signedOutEl = $('signed-out');
-  /** @type {HTMLElement} */
   const appLoadingEl = $('app-loading');
   /** @type {HTMLElement} */
   const appLoadingMsgEl = $('app-loading-message');
   /** @type {HTMLElement} */
   const appMainEl = $('app-main');
+  /** @type {HTMLElement} */
+  const appErrorEl = $('app-error');
+  /** @type {HTMLElement} */
+  const appErrorMsgEl = $('app-error-message');
   /** @type {HTMLElement} */
   const statDistance = $('stat-distance');
   /** @type {HTMLElement} */
@@ -171,52 +146,38 @@ function main() {
   const tripViewSummary = $('trip-view-summary');
   /** @type {HTMLButtonElement} */
   const btnTripViewClose = $('btn-trip-view-close');
+  /** @type {HTMLButtonElement} */
+  const btnTripViewDelete = $('btn-trip-view-delete');
 
   const embed = createOSEmbed({ app: 'triplog' });
 
   /** @type {{
-   *   db: import('../google-db/site-database.js').SiteDatabase | null,
+   *   db: Awaited<ReturnType<typeof openTriplogDb>> | null,
    *   liveMap: ReturnType<typeof createLiveMap> | null,
    *   tracker: ReturnType<typeof createTracker> | null,
-   *   buffer: ReturnType<typeof createPointBuffer> | null,
-   *   currentTrip: import('./triplog-sheets.js').TripRow | null,
+   *   buffer: import('./triplog-db.js').PointRecord[],
+   *   currentTripId: string | null,
    *   flushHandle: number | null,
    *   tripRowUpdateHandle: number | null,
-   *   replayMap: ReturnType<typeof createReplayMap> | null
+   *   replayMap: ReturnType<typeof createReplayMap> | null,
+   *   currentReplayTripId: string | null
    * }} */
   const state = {
     db: null,
     liveMap: null,
     tracker: null,
-    buffer: null,
-    currentTrip: null,
+    buffer: [],
+    currentTripId: null,
     flushHandle: null,
     tripRowUpdateHandle: null,
-    replayMap: null
+    replayMap: null,
+    currentReplayTripId: null
   };
 
-  function setUiVisibility({ signedIn, loading }) {
-    signedOutEl.hidden = signedIn || loading;
+  function setUiVisibility({ ready, loading, error }) {
     appLoadingEl.hidden = !loading;
-    appMainEl.hidden = !signedIn || loading;
-  }
-
-  function setLoading(message) {
-    appLoadingMsgEl.textContent = message;
-    setUiVisibility({ signedIn: false, loading: true });
-  }
-
-  async function getAccessToken() {
-    let t = getCachedAccessToken();
-    if (t) {
-      return t;
-    }
-    await requestAccessToken({ prompt: '' });
-    t = getCachedAccessToken();
-    if (!t) {
-      throw new Error('No access token');
-    }
-    return t;
+    appMainEl.hidden = !ready;
+    appErrorEl.hidden = !error;
   }
 
   function ensureLiveMap() {
@@ -224,8 +185,6 @@ function main() {
       return state.liveMap;
     }
     state.liveMap = createLiveMap(mapEl);
-    // Leaflet measures the container at construction time. Inside a
-    // flex column, measurements are off until the next paint—nudge it.
     requestAnimationFrame(() => state.liveMap?.invalidateSize());
     return state.liveMap;
   }
@@ -256,7 +215,7 @@ function main() {
       return;
     }
     try {
-      const trips = await listTrips(state.db);
+      const trips = await state.db.listTrips();
       tripsList.replaceChildren();
       if (trips.length === 0) {
         tripsEmpty.hidden = false;
@@ -292,11 +251,12 @@ function main() {
     }
   }
 
-  /** @param {import('./triplog-sheets.js').TripRow} trip */
+  /** @param {import('./triplog-db.js').TripRecord} trip */
   async function openTripView(trip) {
     if (!state.db) {
       return;
     }
+    state.currentReplayTripId = trip.id;
     tripViewTitle.textContent = trip.name || 'Untitled trip';
     tripViewSummary.textContent = `${formatTripStartedAt(trip.startedAt)} • ${formatDistance(
       trip.distanceMeters
@@ -312,7 +272,7 @@ function main() {
     requestAnimationFrame(() => state.replayMap?.invalidateSize());
 
     try {
-      const points = await listPoints(state.db, trip.id);
+      const points = await state.db.listPoints(trip.id);
       state.replayMap.drawTrack(points);
     } catch (err) {
       console.error('[triplog] openTripView', err);
@@ -328,6 +288,30 @@ function main() {
       state.replayMap.destroy();
       state.replayMap = null;
     }
+    state.currentReplayTripId = null;
+  }
+
+  async function deleteCurrentReplayTrip() {
+    if (!state.db || !state.currentReplayTripId) {
+      return;
+    }
+    const id = state.currentReplayTripId;
+    if (id === state.currentTripId) {
+      setStatus(statusEl, 'Stop the active recording before deleting this trip.', true);
+      return;
+    }
+    if (!globalThis.confirm('Delete this trip and all of its GPS points? This cannot be undone.')) {
+      return;
+    }
+    try {
+      await state.db.deleteTrip(id);
+      closeTripView();
+      void refreshTripsList();
+      setStatus(statusEl, 'Trip deleted.');
+    } catch (err) {
+      console.error('[triplog] deleteCurrentReplayTrip', err);
+      setStatus(statusEl, err instanceof Error ? err.message : String(err), true);
+    }
   }
 
   function applyStatsToUi(stats) {
@@ -337,28 +321,31 @@ function main() {
     statAccuracy.textContent = formatAccuracy(stats.accuracyM);
   }
 
-  async function safeFlush() {
-    if (!state.buffer || !state.db) {
+  async function flushPointBuffer() {
+    if (!state.db || state.buffer.length === 0) {
       return;
     }
-    if (state.buffer.size === 0) {
-      return;
-    }
+    const batch = state.buffer;
+    state.buffer = [];
     try {
-      await state.buffer.flush();
+      await state.db.addPoints(batch);
     } catch (err) {
-      console.error('[triplog] flush failed; will retry', err);
+      console.error('[triplog] flush failed; re-queueing', err);
+      // Put the points back so the next flush retries them. Most IDB
+      // failures here are transient (quota, version change in another
+      // tab); blocking the UI on it would be worse.
+      state.buffer = batch.concat(state.buffer);
       setStatus(statusEl, 'Saving GPS points failed; will retry…', true);
     }
   }
 
   async function periodicTripRowUpdate() {
-    if (!state.db || !state.currentTrip || !state.tracker) {
+    if (!state.db || !state.currentTripId || !state.tracker) {
       return;
     }
     try {
       const stats = state.tracker.stats;
-      await updateTripStats(state.db, state.currentTrip, {
+      await state.db.updateTripStats(state.currentTripId, {
         distanceMeters: stats.distanceMeters,
         durationSec: stats.durationSec,
         pointCount: stats.pointCount
@@ -370,7 +357,7 @@ function main() {
 
   async function startRecording() {
     if (!state.db) {
-      setStatus(statusEl, 'Not connected to your spreadsheet yet.', true);
+      setStatus(statusEl, 'Database is not ready yet.', true);
       return;
     }
     if (state.tracker?.isRecording) {
@@ -380,18 +367,17 @@ function main() {
     setStatus(statusEl, 'Asking for GPS…');
 
     try {
-      const tripId = crypto.randomUUID();
+      const tripId = randomUuid();
       const name = tripNameInput.value.trim() || defaultTripName();
       const startedAt = new Date();
 
-      // Create the row first so the UI list shows the in-progress trip
-      // even if the user reloads partway through.
-      state.currentTrip = await createTrip(state.db, { id: tripId, name, startedAt });
-      state.buffer = createPointBuffer(state.db);
+      await state.db.createTrip({ id: tripId, name, startedAt });
+      state.currentTripId = tripId;
+      state.buffer = [];
 
       const tracker = createTracker({
         onPoint: (p, stats) => {
-          state.buffer?.push(p);
+          state.buffer.push(p);
           state.liveMap?.addLivePoint({
             lat: p.lat,
             lon: p.lon,
@@ -424,7 +410,7 @@ function main() {
 
       ensureLiveMap();
 
-      state.flushHandle = window.setInterval(() => void safeFlush(), FLUSH_INTERVAL_MS);
+      state.flushHandle = window.setInterval(() => void flushPointBuffer(), FLUSH_INTERVAL_MS);
       state.tripRowUpdateHandle = window.setInterval(
         () => void periodicTripRowUpdate(),
         TRIP_ROW_UPDATE_MS
@@ -437,8 +423,8 @@ function main() {
       console.error('[triplog] startRecording', err);
       setStatus(statusEl, err instanceof Error ? err.message : String(err), true);
       state.tracker = null;
-      state.buffer = null;
-      state.currentTrip = null;
+      state.buffer = [];
+      state.currentTripId = null;
     } finally {
       btnStart.disabled = false;
     }
@@ -463,10 +449,10 @@ function main() {
       }
 
       // Final flush of the points buffer.
-      await safeFlush();
+      await flushPointBuffer();
 
-      if (state.db && state.currentTrip) {
-        await updateTripStats(state.db, state.currentTrip, {
+      if (state.db && state.currentTripId) {
+        await state.db.updateTripStats(state.currentTripId, {
           distanceMeters: final.distanceMeters,
           durationSec: final.durationSec,
           pointCount: final.pointCount,
@@ -492,8 +478,8 @@ function main() {
       setStatus(statusEl, err instanceof Error ? err.message : String(err), true);
     } finally {
       state.tracker = null;
-      state.buffer = null;
-      state.currentTrip = null;
+      state.buffer = [];
+      state.currentTripId = null;
       btnStop.hidden = true;
       btnStart.hidden = false;
       btnStop.disabled = false;
@@ -505,71 +491,23 @@ function main() {
     }
   }
 
-  async function connect({ silent }) {
-    setLoading('Connecting to Google…');
+  async function init() {
+    setUiVisibility({ ready: false, loading: true, error: false });
+    appLoadingMsgEl.textContent = 'Opening local trip database…';
     try {
-      await waitForGoogle();
-      initGoogleAuth();
-      let token = getCachedAccessToken();
-      if (!token) {
-        if (silent) {
-          setUiVisibility({ signedIn: false, loading: false });
-          return;
-        }
-        await requestAccessToken({ prompt: 'consent' });
-        token = getCachedAccessToken();
-        if (!token) {
-          throw new Error('No access token');
-        }
-      }
-
-      const opened = await openSiteDatabase({
-        getAccessToken,
-        initialTables: [TRIPS_TABLE],
-        silent,
-        onWillCreateWorkbook: () => {
-          appLoadingMsgEl.textContent = 'Setting up your spreadsheet…';
-        }
-      });
-      if (!opened) {
-        setUiVisibility({ signedIn: false, loading: false });
-        return;
-      }
-      state.db = opened.db;
-
-      appLoadingMsgEl.textContent = 'Preparing tables…';
-      await ensureTripLogTables(state.db);
-
-      setUiVisibility({ signedIn: true, loading: false });
+      state.db = await openTriplogDb();
+      setUiVisibility({ ready: true, loading: false, error: false });
       setStatus(statusEl, '');
       ensureLiveMap();
       tryShowInitialPosition();
       await refreshTripsList();
     } catch (err) {
-      if (isOAuthUserCancelledError(err)) {
-        setUiVisibility({ signedIn: false, loading: false });
-        return;
-      }
-      console.error('[triplog] connect', err);
-      setUiVisibility({ signedIn: false, loading: false });
-      setStatus(statusEl, err instanceof Error ? err.message : String(err), true);
+      console.error('[triplog] init', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      appErrorMsgEl.textContent = msg;
+      setUiVisibility({ ready: false, loading: false, error: true });
     }
   }
-
-  btnSignin.addEventListener('click', () => {
-    void connect({ silent: false });
-  });
-
-  btnSignout.addEventListener('click', () => {
-    if (state.tracker?.isRecording) {
-      setStatus(statusEl, 'Stop the current recording before signing out.', true);
-      return;
-    }
-    clearAccessToken();
-    state.db = null;
-    setUiVisibility({ signedIn: false, loading: false });
-    setStatus(statusEl, '');
-  });
 
   btnStart.addEventListener('click', () => void startRecording());
   btnStop.addEventListener('click', () => void stopRecording());
@@ -589,17 +527,17 @@ function main() {
   btnRefreshTrips.addEventListener('click', () => void refreshTripsList());
 
   btnTripViewClose.addEventListener('click', () => closeTripView());
+  btnTripViewDelete.addEventListener('click', () => void deleteCurrentReplayTrip());
   tripViewDialog.addEventListener('close', () => closeTripView());
 
   // Best-effort flush if the user closes the tab mid-recording. The
-  // browser kills async work fast on unload, but `keepalive` is a
-  // browser-level hint we don't get from `appendTableRow`, so this is
-  // best-effort and the periodic flush is the real safety net.
+  // browser kills async work fast on unload, so this is best-effort
+  // and the periodic flush is the real safety net.
   window.addEventListener('pagehide', () => {
-    void safeFlush();
+    void flushPointBuffer();
   });
 
-  void connect({ silent: true });
+  void init();
 }
 
 main();

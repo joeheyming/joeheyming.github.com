@@ -608,8 +608,8 @@
     "id": "triplog",
     "name": "Trip Log 🗺️",
     "shortName": "Trip Log",
-    "description": "Record GPS trips into a Google Sheet",
-    "detailedDescription": "Record real-world trips with your phone's GPS. Live map of where you've been, distance and time as you go, and every trip + GPS point saves into your own Google Sheet so you can graph or export it later.",
+    "description": "Record GPS trips with a live map",
+    "detailedDescription": "Record real-world trips with your phone's GPS. Live map of where you've been, distance and time as you go. Trips are saved locally in your browser (IndexedDB)—no sign-in, no servers, fully offline-capable.",
     "icon": "🗺️",
     "path": "./triplog/",
     "category": "utility",
@@ -624,15 +624,15 @@
       "gps",
       "map",
       "geolocation",
-      "google",
-      "sheets",
       "fitness",
-      "tracker"
+      "tracker",
+      "offline",
+      "indexeddb"
     ],
     "related": [
-      "todo",
       "notepad",
-      "terminal"
+      "terminal",
+      "stock"
     ],
     "shareCategory": "utility",
     "pwaShortcut": {

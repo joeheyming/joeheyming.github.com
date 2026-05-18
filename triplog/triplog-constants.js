@@ -1,61 +1,49 @@
 /**
- * Sheet table titles, column layouts, and small helpers shared across the
- * Trip Log app. The site workbook (see `../google-db/site-database.js`) is
- * shared with other apps (e.g. todo), so we prefix our tabs with
- * `triplog-` to keep our data clearly separated.
+ * Small constants and helpers shared between modules in the Trip Log app.
  */
 
-/** Tab names — one row per trip, one row per GPS sample. */
-export const TRIPS_TABLE = 'triplog-trips';
-export const POINTS_TABLE = 'triplog-points';
-
-/**
- * Header rows we expect (and write on first run). Order matters: callers
- * use these as the canonical column order when reading/writing rows.
- */
-export const TRIPS_HEADER = /** @type {const} */ ([
-  'id',
-  'name',
-  'startedAt',
-  'endedAt',
-  'durationSec',
-  'distanceMeters',
-  'pointCount',
-  'status'
-]);
-
-export const POINTS_HEADER = /** @type {const} */ ([
-  'tripId',
-  't',
-  'lat',
-  'lon',
-  'accuracy',
-  'altitude',
-  'speed',
-  'heading'
-]);
-
-/** A1 ranges for the columns above. */
-export const TRIPS_RANGE = `A:${columnLetter(TRIPS_HEADER.length)}`;
-export const POINTS_RANGE = `A:${columnLetter(POINTS_HEADER.length)}`;
-
-/** @param {number} count 1-based number of columns. */
-export function columnLetter(count) {
-  let n = count;
-  let s = '';
-  while (n > 0) {
-    const r = (n - 1) % 26;
-    s = String.fromCharCode(65 + r) + s;
-    n = Math.floor((n - 1) / 26);
-  }
-  return s;
-}
-
-/** Status values stored in the trips sheet. */
+/** Status values stored on each trip record. */
 export const TRIP_STATUS = /** @type {const} */ ({
   RECORDING: 'recording',
   COMPLETE: 'complete'
 });
+
+/**
+ * UUID generator that survives insecure contexts.
+ *
+ * `crypto.randomUUID()` is the obvious choice but it's gated to secure
+ * contexts (HTTPS or `localhost`), so it's literally not a function on
+ * `http://192.168.x.x:8000`. `crypto.getRandomValues()` IS available
+ * even on insecure origins, so we use it to spin a v4 UUID by hand;
+ * `Math.random()` is the last-resort path for ancient browsers.
+ *
+ * @returns {string}
+ */
+export function randomUuid() {
+  const c = /** @type {Crypto | undefined} */ (globalThis.crypto);
+  if (c && typeof c.randomUUID === 'function') {
+    return c.randomUUID();
+  }
+  const bytes = new Uint8Array(16);
+  if (c && typeof c.getRandomValues === 'function') {
+    c.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < 16; i++) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
+  }
+  // Per RFC 4122 §4.4: set the version (4) and variant (10xx) bits.
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0'));
+  return (
+    `${hex[0]}${hex[1]}${hex[2]}${hex[3]}-` +
+    `${hex[4]}${hex[5]}-` +
+    `${hex[6]}${hex[7]}-` +
+    `${hex[8]}${hex[9]}-` +
+    `${hex[10]}${hex[11]}${hex[12]}${hex[13]}${hex[14]}${hex[15]}`
+  );
+}
 
 /**
  * Default trip name when the user doesn't provide one. Uses the device's
