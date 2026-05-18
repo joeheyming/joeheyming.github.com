@@ -35,6 +35,28 @@ export class Terminal {
     /** Exit status of the last completed command line (pipelines: last segment), for `$?` / Unix parity */
     this.lastExitCode = 0;
 
+    /**
+     * Shell options (bash `set` builtin). `errexit` (-e) aborts a list on first
+     * non-zero, `nounset` (-u) errors on unset $VAR, `pipefail` (-o pipefail)
+     * makes a pipeline's $? the rightmost non-zero stage.
+     */
+    this.shellOptions = {
+      errexit: false,
+      nounset: false,
+      pipefail: false,
+      xtrace: false
+    };
+
+    /** Shell functions defined via `name() { body }` (A7). */
+    this.shellFunctions = {};
+
+    /**
+     * Background job table (A5). Each entry: { jobId, pgid, pids, command,
+     * state: 'Running'|'Done'|'Stopped', exitCode?, startTime, promise }.
+     */
+    this.jobs = [];
+    this._nextJobId = 1;
+
     /** Set while a command line is running: inputs disabled, Ctrl+C aborts `runAbortSignal` (capture phase). */
     this.commandRunning = false;
     this.runAbortSignal = null;

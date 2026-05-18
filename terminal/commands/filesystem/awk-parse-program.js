@@ -1,25 +1,34 @@
 import { awkSplitPrintArgs } from './awk-comma.js';
 
 /**
- * Parse inner of `{ ... }` as `print EXPR,...` (jsh subset).
+ * Parse inner of `{ ... }` as `print EXPR,...` OR `printf FMT, EXPR,...` (B11).
  * @param {string} body
- * @returns {{ ok: true, exprs: string[] } | { ok: false, stderr: string }}
+ * @returns {{ ok: true, kind: 'print', exprs: string[] } | { ok: true, kind: 'printf', exprs: string[] } | { ok: false, stderr: string }}
  */
 function parseAwkPrintBlockBody(body) {
   const trimmed = String(body).trim();
+  const pf = /^\s*printf\s*(.*)\s*$/s.exec(trimmed);
+  if (pf) {
+    const inner = pf[1].trim();
+    if (inner === '') {
+      return { ok: false, stderr: 'awk: printf requires at least a format string\n' };
+    }
+    const sp = awkSplitPrintArgs(inner);
+    return { ok: true, kind: 'printf', exprs: sp.parts.length > 0 ? sp.parts : [inner] };
+  }
   const m = /^\s*print\s*(.*)\s*$/s.exec(trimmed);
   if (!m) {
-    return { ok: false, stderr: 'awk: jsh only supports {print ...} blocks\n' };
+    return { ok: false, stderr: 'awk: jsh only supports {print ...} or {printf ...} blocks\n' };
   }
   const inner = m[1].trim();
   if (inner === '') {
-    return { ok: true, exprs: ['$0'] };
+    return { ok: true, kind: 'print', exprs: ['$0'] };
   }
   const sp = awkSplitPrintArgs(inner);
   if (sp.parts.length === 0) {
-    return { ok: true, exprs: ['$0'] };
+    return { ok: true, kind: 'print', exprs: ['$0'] };
   }
-  return { ok: true, exprs: sp.parts };
+  return { ok: true, kind: 'print', exprs: sp.parts };
 }
 
 /**
@@ -67,15 +76,20 @@ function extractAwkBraceBlock(s) {
 }
 
 /**
- * Parse optional BEGIN / main / END `{print ...}` blocks (jsh subset).
+ * Parse optional BEGIN / main / END `{print|printf ...}` blocks (jsh subset).
+ * Main rule may be `/PATTERN/ { action }` — body only runs when $0 matches.
  * @param {string} program
- * @returns {{ ok: true, beginExprs: string[] | null, mainExprs: string[] | null, endExprs: string[] | null } | { ok: false, stderr: string }}
+ * @returns {{ ok: true, beginExprs: string[] | null, beginKind?: string, mainExprs: string[] | null, mainKind?: string, mainCondition?: { type: 'regex', source: string, flags: string } | null, endExprs: string[] | null, endKind?: string } | { ok: false, stderr: string }}
  */
 function parseAwkFullProgram(program) {
   let s = String(program).trim();
   let beginExprs = null;
+  let beginKind = 'print';
   let mainExprs = null;
+  let mainKind = 'print';
+  let mainCondition = null;
   let endExprs = null;
+  let endKind = 'print';
 
   if (s.startsWith('BEGIN')) {
     s = s.slice(5).trimStart();
@@ -88,7 +102,37 @@ function parseAwkFullProgram(program) {
       return pb;
     }
     beginExprs = pb.exprs;
+    beginKind = pb.kind;
     s = br.rest.trimStart();
+  }
+
+  // Main rule: optional `/PATTERN/` condition before the `{action}` block.
+  if (s.startsWith('/')) {
+    // Parse a slash-delimited regex condition; backslash-escape \/ inside.
+    let i = 1;
+    let pat = '';
+    while (i < s.length) {
+      const c = s[i];
+      if (c === '\\' && i + 1 < s.length) {
+        const n = s[i + 1];
+        if (n === '/') {
+          pat += '/';
+          i += 2;
+          continue;
+        }
+        pat += '\\' + n;
+        i += 2;
+        continue;
+      }
+      if (c === '/') break;
+      pat += c;
+      i++;
+    }
+    if (s[i] !== '/') {
+      return { ok: false, stderr: 'awk: unterminated /regex/ condition\n' };
+    }
+    s = s.slice(i + 1).trimStart();
+    mainCondition = { type: 'regex', source: pat, flags: '' };
   }
 
   if (s.startsWith('{')) {
@@ -101,7 +145,12 @@ function parseAwkFullProgram(program) {
       return pb;
     }
     mainExprs = pb.exprs;
+    mainKind = pb.kind;
     s = br.rest.trimStart();
+  } else if (mainCondition !== null) {
+    // `/pat/` with no action prints the matching line.
+    mainExprs = ['$0'];
+    mainKind = 'print';
   }
 
   if (s.startsWith('END')) {
@@ -115,6 +164,7 @@ function parseAwkFullProgram(program) {
       return pb;
     }
     endExprs = pb.exprs;
+    endKind = pb.kind;
     s = br.rest.trimStart();
   }
 
@@ -125,11 +175,20 @@ function parseAwkFullProgram(program) {
   if (beginExprs === null && mainExprs === null && endExprs === null) {
     return {
       ok: false,
-      stderr: 'awk: jsh only supports BEGIN ... {print ...} END ...\n'
+      stderr: 'awk: jsh only supports BEGIN/main/END {print|printf ...} (with optional /regex/ on main)\n'
     };
   }
 
-  return { ok: true, beginExprs, mainExprs, endExprs };
+  return {
+    ok: true,
+    beginExprs,
+    beginKind,
+    mainExprs,
+    mainKind,
+    mainCondition,
+    endExprs,
+    endKind
+  };
 }
 
 /**
@@ -156,5 +215,8 @@ function parseAwkPrintProgram(program) {
   }
   return { ok: true, exprs: fp.mainExprs };
 }
+
+/** Get parseAwkPrintBlockBody for external callers (tests). */
+export { parseAwkPrintBlockBody };
 
 export { parseAwkFullProgram, parseAwkPrintProgram };

@@ -38,22 +38,30 @@ async function xargsHandler(terminal, args) {
   const nullDelim = parsed.nullDelim;
   const maxArgs = parsed.maxArgs;
   const verbose = parsed.verbose;
+  const customDelim = parsed.delim;
 
   /** @type {string[][]} */
   let invocations = [];
 
+  // Pick splitter based on flags. -0 is a synonym for -d '\0'.
+  const splitForRecords = () => {
+    if (customDelim != null) return XargsLib.xargsSplitOnDelim(stdinText, customDelim);
+    return XargsLib.xargsSplitLines(stdinText);
+  };
+  const splitForWords = () => {
+    if (customDelim != null) return XargsLib.xargsSplitOnDelim(stdinText, customDelim);
+    if (nullDelim) return XargsLib.xargsSplitNullRecords(stdinText);
+    return XargsLib.xargsSplitWhitespaceWords(stdinText);
+  };
+
   if (replaceStr != null) {
-    const records = nullDelim
-      ? XargsLib.xargsSplitNullRecords(stdinText)
-      : XargsLib.xargsSplitLines(stdinText);
+    const records = splitForRecords();
     for (const rec of records) {
       const subst = XargsLib.xargsSubstituteInArgs(initialArgs, replaceStr, rec);
       invocations.push([cmdName, ...subst]);
     }
   } else {
-    const words = nullDelim
-      ? XargsLib.xargsSplitNullRecords(stdinText)
-      : XargsLib.xargsSplitWhitespaceWords(stdinText);
+    const words = splitForWords();
     if (words.length === 0) {
       if (maxArgs == null) {
         invocations.push([cmdName, ...initialArgs]);
@@ -111,6 +119,6 @@ async function xargsHandler(terminal, args) {
 export default {
   name: 'xargs',
   handler: xargsHandler,
-  description: 'build and execute COMMAND lines from stdin (-0 -I -n -t)',
+  description: 'build and execute COMMAND lines from stdin (-0 -I -n -d -t, -P stubbed)',
   category: 'System'
 };

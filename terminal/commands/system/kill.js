@@ -32,6 +32,27 @@ async function killHandler(terminal, args) {
   try {
     const processes = pm.getAllProcesses() || [];
 
+    // Map pid -> children pids using process.children (Set) seeded by ProcessManager.
+    const childIdx = new Map();
+    for (const p of processes) {
+      childIdx.set(p.pid, Array.from(p.children || []));
+    }
+
+    /** Walk a pid's full descendant tree. */
+    function collectTree(root) {
+      const out = [root];
+      const stack = [root];
+      while (stack.length) {
+        const cur = stack.pop();
+        const kids = childIdx.get(cur) || [];
+        for (const k of kids) {
+          out.push(k);
+          stack.push(k);
+        }
+      }
+      return out;
+    }
+
     for (const pid of pids) {
       const proc = processes.find((p) => p.pid === pid);
 
@@ -51,8 +72,19 @@ async function killHandler(terminal, args) {
       }
 
       try {
-        // Simulated kernel: map all kill signals to termination (not full signal semantics).
-        await pm.terminateProcess(pid);
+        // Tree-walk: SIGTERM/SIGKILL propagate to children of process groups
+        // when the target is a process group leader (pid === pgid). Otherwise
+        // only the target is signalled. (Simulated; jsh has no real signals.)
+        const isGroupLeader = proc.pgid === proc.pid;
+        const targets = isGroupLeader ? collectTree(pid) : [pid];
+        for (const t of targets) {
+          if (t === 1) continue;
+          try {
+            await pm.terminateProcess(t);
+          } catch (_) {
+            /* per-target failures are quiet to match traditional kill */
+          }
+        }
       } catch (error) {
         stderrLines.push(`kill: (${pid}) - ${error.message}`);
       }

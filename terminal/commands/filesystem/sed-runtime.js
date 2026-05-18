@@ -1,4 +1,56 @@
 /**
+ * Like sedExpandSubstReplacement but also expands `\1`..`\9` capture groups.
+ * Used when sed runs in -E (regex) mode (B10).
+ * @param {string} replacement
+ * @param {string} matched
+ * @param {string[]} groups
+ * @returns {string}
+ */
+function sedExpandSubstReplacementRegex(replacement, matched, groups) {
+  let out = '';
+  let i = 0;
+  while (i < replacement.length) {
+    if (replacement[i] === '\\' && i + 1 < replacement.length) {
+      const n = replacement[i + 1];
+      if (n === '&') {
+        out += '&';
+        i += 2;
+        continue;
+      }
+      if (n === 'n') {
+        out += '\n';
+        i += 2;
+        continue;
+      }
+      if (n === 't') {
+        out += '\t';
+        i += 2;
+        continue;
+      }
+      if (n === '\\') {
+        out += '\\';
+        i += 2;
+        continue;
+      }
+      if (n >= '1' && n <= '9') {
+        const gi = parseInt(n, 10) - 1;
+        out += groups[gi] != null ? groups[gi] : '';
+        i += 2;
+        continue;
+      }
+    }
+    if (replacement[i] === '&') {
+      out += matched;
+      i++;
+      continue;
+    }
+    out += replacement[i];
+    i++;
+  }
+  return out;
+}
+
+/**
  * Expand GNU-style `&` and `\&` in substitute replacement (single match).
  * @param {string} replacement
  * @param {string} matched
@@ -81,16 +133,37 @@ export function sedLineMatchesDeleteAddress(address, lineNum, totalLines, lineTe
 }
 
 /**
- * Apply one literal substitute to a line; returns updated line and whether a replacement occurred.
+ * Apply one substitute to a line.
+ * If `spec.regex` is true the pattern is treated as a JS RegExp (B10).
  *
  * @param {string} line
- * @param {{ pattern: string, replacement: string, global: boolean, ignoreCase: boolean }} spec
+ * @param {{ pattern: string, replacement: string, global: boolean, ignoreCase: boolean, regex?: boolean }} spec
  * @returns {{ line: string, subbed: boolean }}
  */
 export function sedApplySubstituteLine(line, spec) {
   const { pattern, replacement, global, ignoreCase } = spec;
   if (pattern === '') {
     return { line, subbed: false };
+  }
+
+  if (spec.regex) {
+    let re;
+    try {
+      let flags = '';
+      if (ignoreCase) flags += 'i';
+      if (global) flags += 'g';
+      re = new RegExp(pattern, flags);
+    } catch (_) {
+      return { line, subbed: false };
+    }
+    let subbed = false;
+    const out = line.replace(re, (m, ...rest) => {
+      subbed = true;
+      // Last two args are offset and full string when no groups.
+      const groups = rest.slice(0, rest.length - 2);
+      return sedExpandSubstReplacementRegex(replacement, m, groups);
+    });
+    return { line: out, subbed };
   }
 
   function oneReplace(src, pat, replFn) {
@@ -154,14 +227,15 @@ export function sedApplySubstituteLine(line, spec) {
 
 /**
  * Narrow a parsed **substitute** command to the fields **sedApplySubstituteLine** consumes.
- * @param {{ pattern: string, replacement: string, global: boolean, ignoreCase: boolean }} cmd
+ * @param {{ pattern: string, replacement: string, global: boolean, ignoreCase: boolean, regex?: boolean }} cmd
  */
 function sedSubstSpec(cmd) {
   return {
     pattern: cmd.pattern,
     replacement: cmd.replacement,
     global: cmd.global,
-    ignoreCase: cmd.ignoreCase
+    ignoreCase: cmd.ignoreCase,
+    regex: cmd.regex === true
   };
 }
 export function sedProcessContent(content, specs, quiet) {

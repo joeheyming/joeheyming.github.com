@@ -326,6 +326,25 @@ export class HeymingKernel {
         'createSocket',
         this.networkManager.createSocket.bind(this.networkManager)
       );
+      this.registerSystemCall(
+        'socket',
+        this.networkManager.createSocket.bind(this.networkManager)
+      );
+      if (this.networkManager.connect) {
+        this.registerSystemCall('connect', this.networkManager.connect.bind(this.networkManager));
+      }
+      if (this.networkManager.send) {
+        this.registerSystemCall('send', this.networkManager.send.bind(this.networkManager));
+      }
+      if (this.networkManager.recv) {
+        this.registerSystemCall('recv', this.networkManager.recv.bind(this.networkManager));
+      }
+      if (this.networkManager.bind) {
+        this.registerSystemCall('bindSocket', this.networkManager.bind.bind(this.networkManager));
+      }
+      if (this.networkManager.close && !this.systemCalls.has('closeSocket')) {
+        this.registerSystemCall('closeSocket', this.networkManager.close.bind(this.networkManager));
+      }
     }
   }
 

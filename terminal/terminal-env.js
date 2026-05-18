@@ -114,18 +114,42 @@ export class TerminalEnvMixin {
   }
 
   /**
-   * Convert a simple glob pattern (supports * and ?) into a RegExp.
-   * Only the filename portion is matched — directory separators are not
-   * crossed by *.
+   * Convert a simple glob pattern (supports *, ?, and `[abc]` character classes)
+   * into a RegExp. Only the filename portion is matched — directory separators
+   * are not crossed by *.
    * @param {string} pattern
    * @returns {RegExp}
    */
   _globPatternToRegex(pattern) {
     let re = '';
-    for (const ch of pattern) {
-      if (ch === '*') re += '[^/]*';
-      else if (ch === '?') re += '[^/]';
-      else re += ch.replace(/[\\^$.|+()[\]{}]/g, '\\$&');
+    let i = 0;
+    while (i < pattern.length) {
+      const ch = pattern[i];
+      if (ch === '*') {
+        re += '[^/]*';
+        i++;
+        continue;
+      }
+      if (ch === '?') {
+        re += '[^/]';
+        i++;
+        continue;
+      }
+      if (ch === '[') {
+        const end = pattern.indexOf(']', i + 1);
+        if (end === -1) {
+          re += '\\[';
+          i++;
+          continue;
+        }
+        let body = pattern.slice(i + 1, end);
+        if (body.startsWith('!')) body = '^' + body.slice(1);
+        re += '[' + body + ']';
+        i = end + 1;
+        continue;
+      }
+      re += ch.replace(/[\\^$.|+()[\]{}]/g, '\\$&');
+      i++;
     }
     return new RegExp(`^${re}$`);
   }
@@ -165,13 +189,15 @@ export class TerminalEnvMixin {
   }
 
   /**
-   * Expand glob patterns in a command's argument list.
+   * Expand glob patterns in a command's argument list. Runs brace expansion
+   * (a{1,2}, {1..5}) first, then glob expansion against the VFS.
    * @param {string[]} args
    * @returns {Promise<string[]>}
    */
   async expandGlobs(args) {
+    const braceExpanded = ShellCore.expandBracesInArgv(args);
     const expanded = [];
-    for (const arg of args) {
+    for (const arg of braceExpanded) {
       const results = await this._expandGlobToken(arg);
       expanded.push(...results);
     }
@@ -223,7 +249,22 @@ export class TerminalEnvMixin {
 
   // Expand environment variables in a string
   expandVariables(str) {
-    return ShellCore.expandVariablesInString(str, this.env, this.lastExitCode);
+    const out = ShellCore.expandVariablesInString(str, this.env, this.lastExitCode);
+    // nounset (set -u): if the result contains an unexpanded $VAR for a name
+    // that's missing, ShellCore returns ''. Detect by re-scanning original for
+    // any $NAME / ${NAME} whose key is not in env.
+    if (this.shellOptions && this.shellOptions.nounset && typeof str === 'string') {
+      const m = str.match(/\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?/);
+      if (m) {
+        const name = m[1];
+        if (!(name in this.env)) {
+          const err = new Error(`${name}: unbound variable`);
+          err.code = 'EUNBOUND';
+          throw err;
+        }
+      }
+    }
+    return out;
   }
 
   // Set environment variable

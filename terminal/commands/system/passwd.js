@@ -62,7 +62,7 @@ async function passwdHandler(terminal, args) {
         return resolve('passwd: passwords do not match');
       }
 
-      const hash = sm.hashPassword(newPass);
+      const hash = await sm.hashPassword(newPass);
       sm.modifyUser(user.uid, { passwordHash: hash });
       await sm.syncEtcFiles(terminal.fileSystemDB);
       resolve(`passwd: password updated successfully for ${targetName}`);

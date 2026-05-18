@@ -1,18 +1,20 @@
 const CP_HELP = `Usage: cp [OPTION]... SOURCE DEST
-Copy SOURCE to DEST.
+   or: cp [OPTION]... SOURCE... DIRECTORY
+Copy SOURCE(s) to DEST.
 
   -r, -R, --recursive    copy directories recursively
   -h, --help             display this help and exit
 
 jsh:
-  Two operands only (no DIRECTORY multi-source form). Use -- before paths
-  that start with '-'.
+  Multi-source form (cp a b c dir/) is now supported (B12). Use -- before
+  paths that start with '-'.
 
 Full documentation: <https://www.gnu.org/software/coreutils/manual/html_node/cp-invocation.html>
 `;
 
 const MV_HELP = `Usage: mv [OPTION]... SOURCE DEST
-Rename SOURCE to DEST, or move SOURCE to DEST.
+   or: mv [OPTION]... SOURCE... DIRECTORY
+Rename SOURCE to DEST, or move SOURCE(s) into an existing DIRECTORY.
 
   -f, --force            ignored (jsh does not overwrite existing DEST)
   -i, --interactive      ignored
@@ -21,7 +23,8 @@ Rename SOURCE to DEST, or move SOURCE to DEST.
   -h, --help             display this help and exit
 
 jsh:
-  Two operands only. Use -- before paths that start with '-'.
+  Multi-source form (mv a b c dir/) is now supported (B12). Use -- before
+  paths that start with '-'.
 
 Full documentation: <https://www.gnu.org/software/coreutils/manual/html_node/mv-invocation.html>
 `;

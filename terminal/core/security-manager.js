@@ -68,6 +68,110 @@ export class SecurityManager {
 
     // Set up audit logging
     this.setupAuditLogging();
+
+    // C22: pull persisted user / group rows from /etc/passwd and /etc/group
+    // when the FileSystemDB is reachable. Best-effort; failures fall back to
+    // the defaults seeded above.
+    await this.loadFromEtc();
+  }
+
+  /**
+   * Load users / groups from /etc/passwd / /etc/group / /etc/shadow when the
+   * VFS is available. New entries are added; existing entries with the same
+   * uid/gid have their fields refreshed.
+   */
+  async loadFromEtc() {
+    let fs = null;
+    try {
+      if (typeof globalThis !== 'undefined' && /** @type {any} */ (globalThis).heymingOS) {
+        const os = /** @type {any} */ (globalThis).heymingOS;
+        fs = os.kernel?.filesystem?.db || os.filesystem?.db || null;
+      }
+      if (
+        !fs &&
+        typeof window !== 'undefined' &&
+        /** @type {any} */ (window).FileSystemDB?.getInstance
+      ) {
+        fs = await /** @type {any} */ (window).FileSystemDB.getInstance();
+      }
+    } catch (_) {
+      fs = null;
+    }
+    if (!fs || typeof fs.getItem !== 'function') return;
+    try {
+      const passwd = await fs.getItem('/etc/passwd');
+      if (passwd && typeof passwd.content === 'string') {
+        for (const line of passwd.content.split(/\r?\n/)) {
+          const parts = line.split(':');
+          if (parts.length < 7) continue;
+          const [username, , uidStr, gidStr, , home, shell] = parts;
+          const uid = parseInt(uidStr, 10);
+          const gid = parseInt(gidStr, 10);
+          if (!Number.isFinite(uid) || !Number.isFinite(gid)) continue;
+          if (this.users.has(uid)) {
+            const u = this.users.get(uid);
+            u.username = username;
+            u.gid = gid;
+            u.home = home;
+            u.shell = shell;
+          } else {
+            this.users.set(uid, {
+              uid,
+              username,
+              gid,
+              home,
+              shell,
+              capabilities: new Set(),
+              passwordHash: null,
+              locked: false,
+              lastLogin: null,
+              loginAttempts: 0
+            });
+          }
+        }
+      }
+      const group = await fs.getItem('/etc/group');
+      if (group && typeof group.content === 'string') {
+        for (const line of group.content.split(/\r?\n/)) {
+          const parts = line.split(':');
+          if (parts.length < 4) continue;
+          const [groupname, , gidStr, members] = parts;
+          const gid = parseInt(gidStr, 10);
+          if (!Number.isFinite(gid)) continue;
+          if (!this.groups.has(gid)) {
+            this.groups.set(gid, { gid, groupname, members: new Set() });
+          } else {
+            this.groups.get(gid).groupname = groupname;
+          }
+          const grp = this.groups.get(gid);
+          for (const member of (members || '').split(',')) {
+            const m = member.trim();
+            if (!m) continue;
+            const u = this.getUserByName(m);
+            if (u) grp.members.add(u.uid);
+          }
+        }
+      }
+      const shadow = await fs.getItem('/etc/shadow');
+      if (shadow && typeof shadow.content === 'string') {
+        for (const line of shadow.content.split(/\r?\n/)) {
+          const parts = line.split(':');
+          if (parts.length < 2) continue;
+          const username = parts[0];
+          const hash = parts[1];
+          const u = this.getUserByName(username);
+          if (!u) continue;
+          if (hash === '!' || hash === '!!') {
+            u.locked = true;
+            u.passwordHash = null;
+          } else if (hash && hash !== '*' && hash !== '') {
+            u.passwordHash = hash;
+          }
+        }
+      }
+    } catch (e) {
+      this.kernel.log?.(`SecurityManager.loadFromEtc failed: ${e.message}`);
+    }
   }
 
   async createDefaultUsers() {
@@ -284,7 +388,7 @@ export class SecurityManager {
     }
 
     // In a real system, verify password hash
-    if (user.passwordHash && this.verifyPassword(password, user.passwordHash)) {
+    if (user.passwordHash && (await this.verifyPassword(password, user.passwordHash))) {
       user.lastLogin = Date.now();
       user.loginAttempts = 0;
 
@@ -624,16 +728,69 @@ export class SecurityManager {
   }
 
   // Utility methods
-  verifyPassword(password, hash) {
-    // In a real system, use proper password hashing (bcrypt, scrypt, etc.)
-    // For demo, just compare directly
-    return password === hash;
+  //
+  // Hashing uses crypto.subtle (SHA-256 over salt+password) when available
+  // in the browser. The persisted value is `salt$hex`; verification re-derives
+  // and compares. When crypto.subtle is unavailable (older Node test env), we
+  // fall back to the historical plaintext compare so old data still verifies.
+  async verifyPassword(password, hash) {
+    if (hash == null) return false;
+    const stored = String(hash);
+    // Legacy plaintext entry (no `$` separator).
+    if (!stored.includes('$')) {
+      return String(password) === stored;
+    }
+    const idx = stored.indexOf('$');
+    const salt = stored.slice(0, idx);
+    const want = stored.slice(idx + 1);
+    const got = await this._hashWithSalt(String(password), salt);
+    return got === want;
   }
 
-  hashPassword(password) {
-    // In a real system, use proper password hashing
-    // For demo, return the password as-is
-    return password;
+  async hashPassword(password) {
+    const salt = this._randomSaltHex();
+    const digest = await this._hashWithSalt(String(password), salt);
+    return `${salt}$${digest}`;
+  }
+
+  _randomSaltHex() {
+    try {
+      const buf = new Uint8Array(8);
+      if (typeof globalThis !== 'undefined' && /** @type {any} */ (globalThis).crypto?.getRandomValues) {
+        /** @type {any} */ (globalThis).crypto.getRandomValues(buf);
+      } else {
+        for (let i = 0; i < buf.length; i++) buf[i] = Math.floor(Math.random() * 256);
+      }
+      return Array.from(buf, (b) => b.toString(16).padStart(2, '0')).join('');
+    } catch (_) {
+      return Math.random().toString(16).slice(2, 18);
+    }
+  }
+
+  async _hashWithSalt(password, salt) {
+    const text = salt + ':' + password;
+    try {
+      if (
+        typeof globalThis !== 'undefined' &&
+        /** @type {any} */ (globalThis).crypto?.subtle?.digest
+      ) {
+        const enc = new TextEncoder();
+        const bytes = await /** @type {any} */ (globalThis).crypto.subtle.digest(
+          'SHA-256',
+          enc.encode(text)
+        );
+        const arr = new Uint8Array(bytes);
+        return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('');
+      }
+    } catch (_) {
+      /* fall through to deterministic fallback */
+    }
+    // Deterministic fallback when subtle isn't available (e.g. legacy Node).
+    let h = 5381 >>> 0;
+    for (let i = 0; i < text.length; i++) {
+      h = ((h << 5) + h + text.charCodeAt(i)) >>> 0;
+    }
+    return ('00000000' + h.toString(16)).slice(-8) + ('00000000' + text.length.toString(16)).slice(-8);
   }
 
   getUserByName(username) {

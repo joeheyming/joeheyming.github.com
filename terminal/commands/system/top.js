@@ -71,12 +71,22 @@ function generateTopOutput(terminal) {
           .padStart(4)} ${proc.time.padStart(9)} ${proc.command}\n`;
       });
     } else {
+      const sched = terminal.os?.kernel?.schedulerManager;
       processes.forEach((proc) => {
-        const cpu = (Math.random() * 5).toFixed(1);
+        // C25: use the scheduler's sampled per-pid CPU% when available;
+        // fall back to a small randomised value so the column never looks
+        // dead in environments where no sampling has run yet.
+        let cpuVal = 0;
+        if (sched && typeof sched.getCpuPercent === 'function') {
+          cpuVal = sched.getCpuPercent(proc.pid);
+        }
+        if (!Number.isFinite(cpuVal) || cpuVal === 0) cpuVal = Math.random() * 0.5;
+        const cpu = cpuVal.toFixed(1);
         const mem = (Math.random() * 10).toFixed(1);
-        const time = `${Math.floor(Math.random() * 60)}:${Math.floor(Math.random() * 60)
+        const totalCpuSec = Math.floor((proc.cpuTime || 0) / 1000);
+        const time = `${Math.floor(totalCpuSec / 60)}:${(totalCpuSec % 60)
           .toString()
-          .padStart(2, '0')}.${Math.floor(Math.random() * 100)
+          .padStart(2, '0')}.${Math.floor(((proc.cpuTime || 0) % 1000) / 10)
           .toString()
           .padStart(2, '0')}`;
 

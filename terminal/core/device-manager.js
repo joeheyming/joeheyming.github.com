@@ -632,29 +632,185 @@ class VirtualEthernetDevice extends Device {
   }
 }
 
-// Network Manager placeholder
+// Network Manager — HTTP-shaped socket simulation.
+//
+// jsh notes:
+//   - Browsers don't expose raw TCP/UDP. The "connect" syscall here routes
+//     `host:port` into a real `fetch()` call (optionally through
+//     window.proxyService for CORS-restricted hosts). The socket's "data"
+//     is the response body.
+//   - listen/accept are stubs: a tab can't be a server.
+//   - This is by design — see JSH-SPEC.md ("What jsh cannot do in a browser").
 export class NetworkManager {
   constructor(kernel) {
     this.kernel = kernel;
+    /** @type {Map<number, {host?: string, port?: number, scheme?: string, sendBuffer: string, response: string|null, status: number|null, error: string|null, connected: boolean}>} */
+    this.sockets = new Map();
+    this.nextFd = 100;
   }
 
   async initialize() {
-    this.kernel.log('Network Manager initializing');
+    this.kernel.log('Network Manager initializing (HTTP-only)');
   }
 
-  createSocket() {
-    return 1;
+  /**
+   * Allocate a socket "fd". `domain`/`type` are accepted for API shape but
+   * the only behaviour we model is HTTP-over-fetch.
+   * @param {number} [domain]
+   * @param {number} [type]
+   * @returns {number}
+   */
+  createSocket(domain = 2, type = 1) {
+    const fd = this.nextFd++;
+    this.sockets.set(fd, {
+      domain,
+      type,
+      sendBuffer: '',
+      response: null,
+      status: null,
+      error: null,
+      connected: false
+    });
+    return fd;
   }
+
+  /**
+   * Map a virtual connect to a real fetch. Doesn't actually fire the request
+   * until the caller `send`s a payload — same pattern as connect+write.
+   * @param {number} fd
+   * @param {{host: string, port?: number, scheme?: string}} addr
+   */
+  connect(fd, addr) {
+    const sock = this.sockets.get(fd);
+    if (!sock) {
+      const err = new Error('Bad file descriptor');
+      /** @type {any} */ (err).code = 'EBADF';
+      throw err;
+    }
+    sock.host = addr.host;
+    sock.port = addr.port || (addr.scheme === 'https' ? 443 : 80);
+    sock.scheme = addr.scheme || (sock.port === 443 ? 'https' : 'http');
+    sock.connected = true;
+    return 0;
+  }
+
+  /**
+   * Buffer outgoing bytes; if the buffer contains a complete HTTP request
+   * (terminated by CRLF CRLF), flush via fetch.
+   * @param {number} fd
+   * @param {string} data
+   */
+  async send(fd, data) {
+    const sock = this.sockets.get(fd);
+    if (!sock || !sock.connected) {
+      const err = new Error('Not connected');
+      /** @type {any} */ (err).code = 'ENOTCONN';
+      throw err;
+    }
+    sock.sendBuffer += String(data);
+    if (sock.sendBuffer.includes('\r\n\r\n')) {
+      await this._flushRequest(sock);
+    }
+    return String(data).length;
+  }
+
+  /**
+   * Read response bytes; returns at most `n` chars or empty when nothing
+   * left.
+   * @param {number} fd
+   * @param {number} [n]
+   * @returns {string}
+   */
+  recv(fd, n = 65536) {
+    const sock = this.sockets.get(fd);
+    if (!sock) return '';
+    if (sock.error) {
+      // Surface the error once as a synthetic 502 line.
+      const out = `HTTP/1.0 502 Bad Gateway\r\n\r\n${sock.error}\n`;
+      sock.error = null;
+      return out;
+    }
+    if (sock.response == null) return '';
+    if (n >= sock.response.length) {
+      const out = sock.response;
+      sock.response = '';
+      return out;
+    }
+    const out = sock.response.slice(0, n);
+    sock.response = sock.response.slice(n);
+    return out;
+  }
+
+  close(fd) {
+    return this.sockets.delete(fd) ? 0 : -1;
+  }
+
   bind() {
     return 0;
   }
   listen() {
-    return 0;
+    const err = new Error('listen: jsh does not implement inbound sockets');
+    /** @type {any} */ (err).code = 'EOPNOTSUPP';
+    throw err;
   }
   accept() {
-    return 1;
+    return -1;
   }
-  connect() {
-    return 0;
+
+  /**
+   * Translate the buffered "HTTP request" into a real fetch and store the
+   * response back on the socket.
+   * @param {{host?: string, port?: number, scheme?: string, sendBuffer: string, response: string|null, status: number|null, error: string|null}} sock
+   */
+  async _flushRequest(sock) {
+    const raw = sock.sendBuffer;
+    sock.sendBuffer = '';
+    const headerEnd = raw.indexOf('\r\n\r\n');
+    const head = raw.slice(0, headerEnd);
+    const body = raw.slice(headerEnd + 4);
+    const lines = head.split(/\r?\n/);
+    const requestLine = lines[0] || 'GET / HTTP/1.1';
+    const m = requestLine.match(/^(\S+)\s+(\S+)\s+HTTP/);
+    if (!m) {
+      sock.error = `invalid request line: ${requestLine}`;
+      return;
+    }
+    const method = m[1].toUpperCase();
+    let path = m[2];
+    if (!path.startsWith('/')) path = '/' + path;
+    const headers = {};
+    for (let i = 1; i < lines.length; i++) {
+      const idx = lines[i].indexOf(':');
+      if (idx <= 0) continue;
+      const k = lines[i].slice(0, idx).trim();
+      const v = lines[i].slice(idx + 1).trim();
+      headers[k] = v;
+    }
+    const host = headers.Host || sock.host;
+    const url = `${sock.scheme}://${host}${path}`;
+    try {
+      const init = { method, headers };
+      if (body && method !== 'GET' && method !== 'HEAD') init.body = body;
+      let resp;
+      // Prefer the project's CORS-proxy service when present.
+      if (
+        typeof globalThis !== 'undefined' &&
+        /** @type {any} */ (globalThis).window?.proxyService?.fetch
+      ) {
+        resp = await /** @type {any} */ (globalThis).window.proxyService.fetch(url, init);
+      } else {
+        resp = await fetch(url, init);
+      }
+      const text = await resp.text();
+      let out = `HTTP/1.1 ${resp.status} ${resp.statusText}\r\n`;
+      resp.headers.forEach((v, k) => {
+        out += `${k}: ${v}\r\n`;
+      });
+      out += '\r\n' + text;
+      sock.status = resp.status;
+      sock.response = (sock.response || '') + out;
+    } catch (e) {
+      sock.error = e?.message || String(e);
+    }
   }
 }

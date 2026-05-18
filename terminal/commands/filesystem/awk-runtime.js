@@ -904,15 +904,140 @@ function awkRunPrintOnce(exprs, ctx) {
 }
 
 /**
+ * GNU-ish printf format string interpreter for awk action bodies (B11).
+ * Supports %s, %d/%i, %x, %X, %o, %f/%g, %c, %%; width / precision / 0 / -
+ * flags. Returns the formatted string (no trailing newline added — awk's
+ * `printf` does not auto-add one, matching bash printf).
+ *
+ * @param {string} fmt
+ * @param {string[]} args - additional argument values (already string-coerced)
+ * @returns {string}
+ */
+function awkApplyPrintfFormat(fmt, args) {
+  let i = 0;
+  let ai = 0;
+  let out = '';
+  const re = /%(-?)(0?)(\d*)(?:\.(\d+))?([sdioxXfgeEcq%])/y;
+  while (i < fmt.length) {
+    if (fmt[i] !== '%') {
+      // Handle \n, \t escapes (awk gives them in literal strings already; here we leave alone)
+      out += fmt[i];
+      i++;
+      continue;
+    }
+    re.lastIndex = i;
+    const m = re.exec(fmt);
+    if (!m) {
+      out += fmt[i];
+      i++;
+      continue;
+    }
+    const [whole, leftAlign, zeroPad, widthStr, precStr, conv] = m;
+    i += whole.length;
+    if (conv === '%') {
+      out += '%';
+      continue;
+    }
+    const width = widthStr ? parseInt(widthStr, 10) : 0;
+    const prec = precStr != null ? parseInt(precStr, 10) : null;
+    const argVal = args[ai++] != null ? args[ai - 1] : '';
+    let s;
+    switch (conv) {
+      case 's':
+        s = String(argVal);
+        if (prec != null) s = s.slice(0, prec);
+        break;
+      case 'd':
+      case 'i': {
+        const n = Math.trunc(Number(argVal) || 0);
+        s = String(n);
+        if (prec != null && prec > Math.abs(n).toString().length) {
+          const sign = n < 0 ? '-' : '';
+          s = sign + Math.abs(n).toString().padStart(prec, '0');
+        }
+        break;
+      }
+      case 'x':
+        s = Math.trunc(Number(argVal) || 0).toString(16);
+        if (prec != null) s = s.padStart(prec, '0');
+        break;
+      case 'X':
+        s = Math.trunc(Number(argVal) || 0).toString(16).toUpperCase();
+        if (prec != null) s = s.padStart(prec, '0');
+        break;
+      case 'o':
+        s = Math.trunc(Number(argVal) || 0).toString(8);
+        break;
+      case 'f':
+        s = (Number(argVal) || 0).toFixed(prec != null ? prec : 6);
+        break;
+      case 'g':
+      case 'e':
+      case 'E':
+        s =
+          conv === 'g'
+            ? (Number(argVal) || 0).toPrecision(prec != null ? prec : 6)
+            : (Number(argVal) || 0).toExponential(prec != null ? prec : 6);
+        if (conv === 'E') s = s.toUpperCase();
+        break;
+      case 'c':
+        s = String(argVal)[0] != null ? String(argVal)[0] : '';
+        break;
+      case 'q':
+        s = "'" + String(argVal).replace(/'/g, `'\\''`) + "'";
+        break;
+      default:
+        s = String(argVal);
+    }
+    if (width > s.length) {
+      const isNumericConv = conv === 'd' || conv === 'i' || conv === 'x' ||
+        conv === 'X' || conv === 'o' || conv === 'f' || conv === 'g' ||
+        conv === 'e' || conv === 'E';
+      if (leftAlign) s = s.padEnd(width, ' ');
+      else if (zeroPad && isNumericConv) s = s.padStart(width, '0');
+      else s = s.padStart(width, ' ');
+    }
+    out += s;
+  }
+  return out;
+}
+
+/**
+ * Run a single `printf "fmt", arg1, arg2…` action.
+ * @param {string[]} exprs - first is fmt, rest are args
+ * @param {{ $0: string, fields: string[], NR: number, NF: number }} ctx
+ * @returns {{ ok: true, stdout: string } | { ok: false, stderr: string }}
+ */
+function awkRunPrintfOnce(exprs, ctx) {
+  if (!exprs || exprs.length === 0) {
+    return { ok: false, stderr: 'awk: printf requires a format string\n' };
+  }
+  const fmtV = awkEvalPrintExpr(exprs[0], ctx);
+  if (fmtV === null) {
+    return { ok: false, stderr: `awk: invalid printf format: ${exprs[0]}\n` };
+  }
+  const args = [];
+  for (let k = 1; k < exprs.length; k++) {
+    const v = awkEvalPrintExpr(exprs[k], ctx);
+    if (v === null) {
+      return { ok: false, stderr: `awk: invalid printf arg: ${exprs[k]}\n` };
+    }
+    args.push(v);
+  }
+  return { ok: true, stdout: awkApplyPrintfFormat(String(fmtV), args) };
+}
+
+/**
  * Run main-rule `print` on each line, or scan lines only when **exprs** is **null** (for **NR**).
  * @param {string} text
  * @param {string[] | null} exprs
  * @param {string} fieldSeparator
  * @param {number} nrStart - starting NR (1-based)
  * @param {Record<string, Record<string, string>>} [awkArraysStore] - shared across lines for **match(..., ..., arr)** and **arr[i]** reads
+ * @param {{ kind?: 'print'|'printf', condition?: { type: 'regex', source: string, flags: string } | null }} [opts]
  * @returns {{ ok: true, stdout: string, nextNr: number, lastReadCtx: { $0: string, fields: string[], NR: number, NF: number } | null } | { ok: false, stderr: string }}
  */
-function awkRunPrintProgram(text, exprs, fieldSeparator, nrStart, awkArraysStore) {
+function awkRunPrintProgram(text, exprs, fieldSeparator, nrStart, awkArraysStore, opts) {
   const raw = String(text);
   const lines = awkSplitRecordLines(raw);
   const hadTrailingNl = raw.length > 0 && raw.endsWith('\n');
@@ -920,6 +1045,16 @@ function awkRunPrintProgram(text, exprs, fieldSeparator, nrStart, awkArraysStore
   let nr = nrStart;
   let lastReadCtx = null;
   const arrStore = awkArraysStore === undefined ? Object.create(null) : awkArraysStore;
+  const kind = opts && opts.kind ? opts.kind : 'print';
+  let condRe = null;
+  if (opts && opts.condition && opts.condition.type === 'regex') {
+    try {
+      condRe = new RegExp(opts.condition.source, opts.condition.flags || '');
+    } catch (_) {
+      condRe = null;
+    }
+  }
+  let printfChunks = '';
   for (const line of lines) {
     const fields = awkSplitFields(line, fieldSeparator);
     const ctx = {
@@ -933,25 +1068,37 @@ function awkRunPrintProgram(text, exprs, fieldSeparator, nrStart, awkArraysStore
       awkArrays: arrStore
     };
     lastReadCtx = ctx;
-    if (exprs !== null && exprs !== undefined) {
-      const parts = [];
-      for (const ex of exprs) {
-        const v = awkEvalPrintExpr(ex, ctx);
-        if (v === null) {
-          return {
-            ok: false,
-            stderr: `awk: invalid print expression: ${ex.trim()}\n`
-          };
+    const matchCond = condRe == null || condRe.test(line);
+    if (exprs !== null && exprs !== undefined && matchCond) {
+      if (kind === 'printf') {
+        const r = awkRunPrintfOnce(exprs, ctx);
+        if (r.ok === false) return r;
+        printfChunks += r.stdout;
+      } else {
+        const parts = [];
+        for (const ex of exprs) {
+          const v = awkEvalPrintExpr(ex, ctx);
+          if (v === null) {
+            return {
+              ok: false,
+              stderr: `awk: invalid print expression: ${ex.trim()}\n`
+            };
+          }
+          parts.push(v);
         }
-        parts.push(v);
+        out.push(parts.join(' '));
       }
-      out.push(parts.join(' '));
     }
     nr++;
   }
-  let stdout = out.join('\n');
-  if (out.length > 0 && (hadTrailingNl || lines.length === 0)) {
-    stdout += '\n';
+  let stdout;
+  if (kind === 'printf') {
+    stdout = printfChunks;
+  } else {
+    stdout = out.join('\n');
+    if (out.length > 0 && (hadTrailingNl || lines.length === 0)) {
+      stdout += '\n';
+    }
   }
   return { ok: true, stdout, nextNr: nr, lastReadCtx };
 }
@@ -970,5 +1117,7 @@ export {
   awkEvalPrintExpr,
   awkBeginCtx,
   awkRunPrintOnce,
-  awkRunPrintProgram
+  awkRunPrintProgram,
+  awkApplyPrintfFormat,
+  awkRunPrintfOnce
 };

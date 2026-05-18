@@ -18,7 +18,9 @@ import {
   awkEvalPrintExpr,
   awkBeginCtx,
   awkRunPrintOnce,
-  awkRunPrintProgram
+  awkRunPrintProgram,
+  awkApplyPrintfFormat,
+  awkRunPrintfOnce
 } from './awk-runtime.js';
 
 export const AwkLib = {
@@ -46,5 +48,7 @@ export const AwkLib = {
   awkParseSlashDelimitedRegex,
   awkExpandRegexReplacement,
   awkRegexGsubAll,
-  awkRegexSubFirst
+  awkRegexSubFirst,
+  awkApplyPrintfFormat,
+  awkRunPrintfOnce
 };

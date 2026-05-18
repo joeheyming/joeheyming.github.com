@@ -2,9 +2,12 @@ const XARGS_HELP = `Usage: xargs [OPTION]... [COMMAND [INITIAL-ARGS]...]
 Build and execute COMMAND lines from standard input.
 
   -0, --null                  input items are null-separated, not whitespace-separated
+  -d DELIM, --delimiter=DELIM use DELIM as the input item separator (supports \\n, \\t, \\0)
   -I REPLACE-STR              replace REPLACE-STR in INITIAL-ARGS with each input record
       --replace=REPLACE-STR
   -n MAX-ARGS, --max-args=MAX-ARGS   use at most MAX-ARGS input items per invocation
+  -P MAX-PROCS                in GNU xargs, run up to MAX-PROCS in parallel; jsh treats
+                              this as -P 1 (no real parallelism in a single-tab JS runtime)
   -t, --verbose               print each command before executing (to stderr)
   -h, --help                  display this help and exit
   --                          end of options
@@ -13,10 +16,12 @@ If COMMAND is omitted, echo is used (GNU-style).
 
 jsh:
   Reads stdin only (pipe or redirect). Whitespace mode splits on runs of whitespace;
-  -0 splits on NUL bytes into records. With -I/--replace, each line (or -0 record) is one
-  substitution; empty stdin yields zero invocations. Child commands run with empty stdin.
-  Exit status is 0 only if every invocation exits 0; otherwise 1.
-  Not implemented vs GNU: -P, -s, -x, -r, -d, --show-limits, line limits, env -0, shell -I.
+  -0 (alias for -d '\\0') splits on NUL bytes; -d DELIM splits on the given delimiter.
+  With -I/--replace, each line (or -0 record) is one substitution; empty stdin yields
+  zero invocations. Child commands run with empty stdin. Exit status is 0 only if every
+  invocation exits 0; otherwise 1.
+  Not implemented vs GNU: -s, -x, -r, --show-limits, line limits, env -0, shell -I.
+  -P is parsed but treated as -P 1 (documented stub).
 
 Full documentation: <https://www.gnu.org/software/findutils/manual/html_node/xargs-options.html>
 `;
@@ -77,6 +82,51 @@ function xargsSplitNullRecords(stdin) {
 }
 
 /**
+ * Interpret GNU-style escape sequences in a -d argument:
+ *   \\n \\t \\r \\0 \\\\
+ * @param {string} raw
+ * @returns {string}
+ */
+function xargsDecodeDelim(raw) {
+  if (raw == null || raw === '') return '';
+  let out = '';
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw[i];
+    if (c !== '\\' || i + 1 >= raw.length) {
+      out += c;
+      continue;
+    }
+    const nxt = raw[i + 1];
+    if (nxt === 'n') out += '\n';
+    else if (nxt === 't') out += '\t';
+    else if (nxt === 'r') out += '\r';
+    else if (nxt === '0') out += '\0';
+    else if (nxt === '\\') out += '\\';
+    else out += '\\' + nxt;
+    i++;
+  }
+  return out;
+}
+
+/**
+ * Split xargs stdin on a single-character (or multi-char) delimiter (-d DELIM).
+ * Does not strip whitespace inside fields. Trailing delim → drop trailing empty.
+ * @param {string} stdin
+ * @param {string} delim
+ * @returns {string[]}
+ */
+function xargsSplitOnDelim(stdin, delim) {
+  const s = String(stdin ?? '');
+  if (s === '') return [];
+  if (!delim) return [s];
+  const parts = s.split(delim);
+  if (parts.length && parts[parts.length - 1] === '') {
+    parts.pop();
+  }
+  return parts;
+}
+
+/**
  * Substitute replaceStr with record in each initial argument (GNU -I).
  * @param {string[]} args
  * @param {string} replaceStr
@@ -114,6 +164,8 @@ function parseXargsArgv(args) {
   let maxArgs = null;
   let replaceStr = null;
   let verbose = false;
+  let delim = null; // raw user delimiter (decoded)
+  let maxProcs = 1;
   const operands = [];
   let i = 0;
 
@@ -126,6 +178,8 @@ function parseXargsArgv(args) {
         maxArgs,
         replaceStr,
         verbose,
+        delim,
+        maxProcs,
         command: [],
         help: true
       };
@@ -136,12 +190,53 @@ function parseXargsArgv(args) {
     }
     if (arg === '-0' || arg === '--null') {
       nullDelim = true;
+      delim = '\0';
       i++;
       continue;
     }
     if (arg === '-t' || arg === '--verbose') {
       verbose = true;
       i++;
+      continue;
+    }
+    if (arg === '-d' || arg === '--delimiter') {
+      if (i + 1 >= argsArr.length) {
+        return {
+          ok: false,
+          stderr: `xargs: option '${arg}' requires an argument\nTry 'xargs --help' for more information.\n`,
+          exitCode: 2
+        };
+      }
+      delim = xargsDecodeDelim(String(argsArr[i + 1]));
+      if (delim === '\0') nullDelim = true;
+      i += 2;
+      continue;
+    }
+    if (arg.startsWith('--delimiter=')) {
+      delim = xargsDecodeDelim(arg.slice('--delimiter='.length));
+      if (delim === '\0') nullDelim = true;
+      i++;
+      continue;
+    }
+    if (arg === '-P') {
+      if (i + 1 >= argsArr.length) {
+        return {
+          ok: false,
+          stderr: `xargs: option requires an argument -- 'P'\nTry 'xargs --help' for more information.\n`,
+          exitCode: 2
+        };
+      }
+      const n = parseInt(String(argsArr[i + 1]), 10);
+      if (!Number.isFinite(n) || n < 0) {
+        return {
+          ok: false,
+          stderr: `xargs: invalid number for -P option\nTry 'xargs --help' for more information.\n`,
+          exitCode: 2
+        };
+      }
+      // Documented stub: jsh is single-tab JS, no real parallelism.
+      maxProcs = 1;
+      i += 2;
       continue;
     }
     if (arg === '-I' || arg === '--replace') {
@@ -202,6 +297,7 @@ function parseXargsArgv(args) {
         const c = rest[j];
         if (c === '0') {
           nullDelim = true;
+          delim = '\0';
           j++;
         } else if (c === 't') {
           verbose = true;
@@ -213,6 +309,8 @@ function parseXargsArgv(args) {
             maxArgs,
             replaceStr,
             verbose,
+            delim,
+            maxProcs,
             command: [],
             help: true
           };
@@ -286,6 +384,8 @@ function parseXargsArgv(args) {
     maxArgs,
     replaceStr,
     verbose,
+    delim,
+    maxProcs,
     command
   };
 }
@@ -296,6 +396,8 @@ export const XargsLib = {
   xargsSplitWhitespaceWords,
   xargsSplitLines,
   xargsSplitNullRecords,
+  xargsSplitOnDelim,
+  xargsDecodeDelim,
   xargsSubstituteInArgs,
   xargsFormatVerboseCommandLine,
   parseXargsArgv

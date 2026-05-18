@@ -28,8 +28,31 @@ export class TerminalPipelineMixin {
       this.addOutput(`${expandedCommand}`);
     }
 
+    // Function definition: `name() { body }` (single-line bodies) → register
+    // and return immediately. Multi-line function bodies are not supported in
+    // jsh (no continuation reader yet).
+    const fnDef = ShellCore.parseFunctionDefinition(expandedCommand);
+    if (fnDef.ok) {
+      if (!this.shellFunctions) this.shellFunctions = {};
+      this.shellFunctions[fnDef.name] = fnDef.body;
+      this.lastExitCode = 0;
+      return '';
+    }
+
+    // Resolve `$(...)` / backtick command substitutions before list parsing.
+    // Each inner span is captured (no display, no `$?` leak to parent).
+    let substituted;
+    try {
+      substituted = await this.resolveCommandSubstitutions(expandedCommand);
+    } catch (substErr) {
+      if (this.isAbortLikeError(substErr)) throw substErr;
+      this.lastExitCode = 1;
+      this.addOutput(`jsh: ${substErr.message}`, { outputClass: 'stderr' });
+      return '';
+    }
+
     // Parse command lists (`&&` / `||` / `;`), then pipes + redirections per segment
-    const split = ShellCore.splitShellList(expandedCommand);
+    const split = ShellCore.splitShellList(substituted);
     if (split.ok === false) {
       this.lastExitCode = 2;
       this.addOutput(split.error, { outputClass: 'stderr' });
@@ -38,6 +61,12 @@ export class TerminalPipelineMixin {
 
     let lastExit = 0;
     const { pipelines, ops } = split;
+    const opts = this.shellOptions || {
+      errexit: false,
+      nounset: false,
+      pipefail: false,
+      xtrace: false
+    };
 
     try {
       for (let i = 0; i < pipelines.length; i++) {
@@ -51,6 +80,51 @@ export class TerminalPipelineMixin {
           lastExit = 0;
           continue;
         }
+        // Trailing `&` after this segment: queue as background job and
+        // continue without waiting. Bash sets $? to 0 for backgrounded.
+        const nextOpAfter = i < pipelines.length - 1 ? ops[i] : null;
+        if (nextOpAfter === '&') {
+          this.launchBackgroundJob(segment);
+          lastExit = 0;
+          continue;
+        }
+        if (opts.xtrace) {
+          this.addOutput(`+ ${segment}`, { outputClass: 'stderr' });
+        }
+
+        // Subshell `(...)`: run with snapshot/restore of env, cwd, lastExit,
+        // shellOptions, and shellFunctions so mutations don't escape.
+        const subTrim = segment.trim();
+        if (subTrim.startsWith('(') && subTrim.endsWith(')')) {
+          const inner = subTrim.slice(1, -1).trim();
+          const snapEnv = { ...this.env };
+          const snapCwd = this.currentDirectory;
+          const snapExit = this.lastExitCode;
+          const snapOpts = { ...this.shellOptions };
+          const snapFns = { ...this.shellFunctions };
+          try {
+            const captured = await this.captureInnerPipeline(inner);
+            if (captured) this.addOutput(captured);
+            lastExit = this.lastExitCode;
+          } finally {
+            this.env = snapEnv;
+            this.currentDirectory = snapCwd;
+            this.env.PWD = snapCwd;
+            this.shellOptions = snapOpts;
+            this.shellFunctions = snapFns;
+            // Preserve subshell's exit, but don't leak option/function changes.
+            void snapExit;
+          }
+          if (opts.errexit && lastExit !== 0) {
+            const nextOp = i + 1 < pipelines.length ? ops[i] : null;
+            if (nextOp !== '||' && nextOp !== '&&') {
+              this.lastExitCode = lastExit;
+              return '';
+            }
+          }
+          continue;
+        }
+
         const parsedCommand = this.parseCommand(segment);
         const {
           stdout: out,
@@ -72,6 +146,14 @@ export class TerminalPipelineMixin {
         if (err) {
           this.addOutput(err, { outputClass: 'stderr' });
         }
+        // errexit: abort on first non-zero pipeline (unless suppressed by &&/||)
+        if (opts.errexit && lastExit !== 0) {
+          const nextOp = i + 1 < pipelines.length ? ops[i] : null;
+          if (nextOp !== '||' && nextOp !== '&&') {
+            this.lastExitCode = lastExit;
+            return '';
+          }
+        }
       }
       this.lastExitCode = lastExit;
       return '';
@@ -83,6 +165,116 @@ export class TerminalPipelineMixin {
       this.addOutput(`Error: ${error.message}`, { outputClass: 'stderr' });
       return '';
     }
+  }
+
+  /**
+   * Invoke a shell function defined via `name() { body }`. Body runs as a
+   * sub-pipeline with positional params $1..$9, $@, $#, $0 mapped on env.
+   * On return, env positional params and $0 are restored. $? leaks (bash-like).
+   *
+   * @param {string} name
+   * @param {string} body
+   * @param {string[]} args
+   * @param {string} stdin
+   * @param {object} options
+   */
+  async invokeShellFunction(name, body, args, stdin, options) {
+    const savedPositional = {};
+    for (let i = 0; i <= 9; i++) savedPositional[i] = this.env[String(i)];
+    const savedAt = this.env['@'];
+    const savedHash = this.env['#'];
+    const savedZero = this.env['0'];
+    this.env['0'] = name;
+    for (let i = 1; i <= 9; i++) this.env[String(i)] = args[i - 1] != null ? args[i - 1] : '';
+    this.env['@'] = args.join(' ');
+    this.env['#'] = String(args.length);
+
+    try {
+      const captured = await this.captureInnerPipeline(body);
+      // Inner pipeline already wrote stderr lines; here we hand back as stdout
+      // so the function call participates in pipes naturally. Honor stdin via
+      // standard piped-in mechanism (handled by inner exec already).
+      void stdin;
+      void options;
+      return this.commandResult(captured, '', this.lastExitCode);
+    } finally {
+      for (let i = 0; i <= 9; i++) {
+        if (savedPositional[i] === undefined) delete this.env[String(i)];
+        else this.env[String(i)] = savedPositional[i];
+      }
+      if (savedAt === undefined) delete this.env['@'];
+      else this.env['@'] = savedAt;
+      if (savedHash === undefined) delete this.env['#'];
+      else this.env['#'] = savedHash;
+      if (savedZero === undefined) delete this.env['0'];
+      else this.env['0'] = savedZero;
+    }
+  }
+
+  /**
+   * Resolve `$(...)` and backtick command substitutions inside a command line.
+   * Each substitution runs as an isolated inner pipeline; its captured stdout
+   * (trailing newlines stripped, bash-style) is spliced back into the line.
+   * `$?` for the parent is preserved; inner exit codes are not propagated.
+   *
+   * @param {string} line
+   * @returns {Promise<string>}
+   */
+  async resolveCommandSubstitutions(line) {
+    const parts = ShellCore.extractCommandSubstitutions(line);
+    const hasAny = parts.some((p) => p.type === 'subst');
+    if (!hasAny) return line;
+
+    const savedExit = this.lastExitCode;
+    const results = [];
+    for (const p of parts) {
+      if (p.type !== 'subst') continue;
+      // Recurse: inner pipeline may itself contain $(...)
+      const innerLine = await this.resolveCommandSubstitutions(p.inner);
+      const captured = await this.captureInnerPipeline(innerLine);
+      results.push(captured);
+    }
+    this.lastExitCode = savedExit;
+    return ShellCore.spliceCommandSubstitutions(parts, results);
+  }
+
+  /**
+   * Run an inner pipeline (no UI side-effects) and return captured stdout.
+   * Trailing newlines are stripped to match bash command substitution.
+   *
+   * @param {string} line
+   * @returns {Promise<string>}
+   */
+  async captureInnerPipeline(line) {
+    const split = ShellCore.splitShellList(line);
+    if (split.ok === false) {
+      throw new Error(split.error);
+    }
+    let captured = '';
+    const { pipelines, ops } = split;
+    let innerExit = 0;
+    for (let i = 0; i < pipelines.length; i++) {
+      const segment = pipelines[i];
+      if (i > 0) {
+        const op = ops[i - 1];
+        if (op === '&&' && innerExit !== 0) continue;
+        if (op === '||' && innerExit === 0) continue;
+      }
+      if (segment.trim() === '') {
+        innerExit = 0;
+        continue;
+      }
+      const parsedCommand = this.parseCommand(segment);
+      const { stdout: out, stderr: err } = await this.executeCommandChain(parsedCommand);
+      innerExit = this.lastExitCode;
+      if (out) captured += (captured ? '\n' : '') + out;
+      if (err) {
+        // Surface inner stderr like bash does
+        this.addOutput(err, { outputClass: 'stderr' });
+      }
+    }
+    // Bash strips trailing newlines from substitution output
+    return String(captured).replace(/\n+$/, '');
   }
 
   // Expand history (!!, !n, etc.)
@@ -274,6 +466,9 @@ export class TerminalPipelineMixin {
     let displayStdout = '';
     let displayStderr = '';
     let chainLastExit = 0;
+    /** Rightmost non-zero stage exit (for `set -o pipefail`). */
+    let pipefailExit = 0;
+    const opts = this.shellOptions || {};
 
     for (let i = 0; i < commandChain.length; i++) {
       const cmd = commandChain[i];
@@ -298,6 +493,7 @@ export class TerminalPipelineMixin {
         // Execute the command
         const result = await this.executeSingleCommand(cmd, input, { stdinFromPipe: i > 0 });
         chainLastExit = result.exitCode ?? 0;
+        if (chainLastExit !== 0) pipefailExit = chainLastExit;
 
         const mergeErr = cmd.redirections.stderrToStdout;
         const out = ShellCore.coerceShellString(result.stdout);
@@ -349,7 +545,7 @@ export class TerminalPipelineMixin {
       }
     }
 
-    this.lastExitCode = chainLastExit;
+    this.lastExitCode = opts.pipefail && pipefailExit !== 0 ? pipefailExit : chainLastExit;
     const lastCmd = commandChain.length ? commandChain[commandChain.length - 1] : null;
     const lastName = (lastCmd?.name || '').toLowerCase();
     let stdoutOutputClass;
@@ -377,6 +573,13 @@ export class TerminalPipelineMixin {
       stdin.length > 0 || stdinFromPipe || !!(cmd.redirections && cmd.redirections.stdin);
 
     let cmdName = cmd.name.toLowerCase();
+
+    // Shell function dispatch (A7) — case-sensitive, runs body with positional
+    // params $1..$9, $@, $#. Body runs as a sub-pipeline; $? leaks to caller.
+    const fnBody = this.shellFunctions ? this.shellFunctions[cmd.name] : null;
+    if (fnBody != null) {
+      return await this.invokeShellFunction(cmd.name, fnBody, cmd.args || [], stdin, options);
+    }
 
     // Check for aliases first
     if (this.aliases[cmdName]) {
@@ -658,6 +861,111 @@ export class TerminalPipelineMixin {
       throw new Error(`cannot redirect to '${filename}': ${error.message}`);
     }
   }
+  /**
+   * Background job launcher (A5). Runs `segment` as a detached pipeline,
+   * appends an entry to `this.jobs`, and prints `[jobId] PID` to stderr like
+   * bash. State transitions to 'Done' on resolve, 'Error' on reject. The
+   * shell does not block.
+   *
+   * Cooperative only — JS has no preemption, so a tight `while(true)` in a
+   * background job still freezes the tab.
+   *
+   * @param {string} segment
+   */
+  launchBackgroundJob(segment) {
+    if (!this.jobs) this.jobs = [];
+    if (!this._nextJobId) this._nextJobId = 1;
+    const jobId = this._nextJobId++;
+    const startTime = Date.now();
+    /** @type {{jobId:number, command:string, state:string, startTime:number, exitCode?:number, promise:Promise<void>, pid?:number}} */
+    const job = {
+      jobId,
+      command: segment,
+      state: 'Running',
+      startTime,
+      promise: Promise.resolve()
+    };
+    // Register this job in the simulated process table (C20) so `ps`, `top`,
+    // and `kill %pid` can see it. The "process" is a placeholder — its real
+    // work runs cooperatively on the main thread; isolation:false avoids
+    // spinning up a Web Worker.
+    if (this.os && this.os.kernel && this.os.kernel.processManager) {
+      try {
+        const pm = this.os.kernel.processManager;
+        const parentPID = this.process ? this.process.pid : 1;
+        // createProcess is async; for jobs we synchronously claim a PID and
+        // attach the real registration as a follow-up.
+        job.pid = pm.nextPID;
+        const cmdName = String(segment).split(/\s+/)[0] || 'job';
+        pm.createProcess({
+          name: cmdName,
+          executable: '/bin/' + cmdName,
+          args: [],
+          parentPID,
+          uid: this.process ? this.process.uid : 1000,
+          gid: this.process ? this.process.gid : 1000,
+          isolated: false,
+          env: { ...this.env },
+          cwd: this.currentDirectory
+        })
+          .then((proc) => {
+            job.pid = proc.pid;
+            proc._jobId = jobId;
+          })
+          .catch(() => {
+            /* registration best-effort; the job still runs */
+          });
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    this.jobs.push(job);
+    const summary = segment.length > 60 ? segment.slice(0, 57) + '...' : segment;
+    this.addOutput(`[${jobId}] ${job.pid || ''} ${summary}`.trim(), { outputClass: 'stderr' });
+    job.promise = (async () => {
+      try {
+        const split = ShellCore.splitShellList(segment);
+        if (split.ok === false) {
+          throw new Error(split.error);
+        }
+        let innerExit = 0;
+        const { pipelines, ops } = split;
+        let captured = '';
+        for (let i = 0; i < pipelines.length; i++) {
+          const seg = pipelines[i];
+          if (i > 0) {
+            const op = ops[i - 1];
+            if (op === '&&' && innerExit !== 0) continue;
+            if (op === '||' && innerExit === 0) continue;
+          }
+          if (seg.trim() === '') continue;
+          const parsed = this.parseCommand(seg);
+          const { stdout, stderr } = await this.executeCommandChain(parsed);
+          innerExit = this.lastExitCode;
+          if (stdout) captured += (captured ? '\n' : '') + stdout;
+          if (stderr) this.addOutput(stderr, { outputClass: 'stderr' });
+        }
+        if (captured) this.addOutput(captured);
+        job.state = 'Done';
+        job.exitCode = innerExit;
+      } catch (err) {
+        job.state = 'Error';
+        job.exitCode = 1;
+        this.addOutput(`jsh: job [${jobId}] error: ${err.message}`, { outputClass: 'stderr' });
+      } finally {
+        this.addOutput(`[${jobId}]+ ${job.state}\t\t${segment}`, { outputClass: 'stderr' });
+        // Reap the simulated process entry (C20).
+        if (this.os && this.os.kernel && this.os.kernel.processManager && job.pid) {
+          try {
+            await this.os.kernel.processManager.terminateProcess(job.pid, job.exitCode || 0);
+          } catch (_) {
+            /* already gone */
+          }
+        }
+      }
+    })();
+  }
+
   helpCommand(args = []) {
     const parsed = ShellCore.parseHelpArgs(args);
     if (parsed.ok === false) {

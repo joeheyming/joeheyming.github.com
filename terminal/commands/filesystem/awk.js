@@ -29,10 +29,11 @@ async function awkHandler(terminal, args) {
   let endCtx = AwkLib.awkBeginCtx(parsed.fieldSeparator, sharedAwkArrays);
 
   if (pp.beginExprs) {
-    const br = AwkLib.awkRunPrintOnce(
-      pp.beginExprs,
-      AwkLib.awkBeginCtx(parsed.fieldSeparator, sharedAwkArrays)
-    );
+    const beginCtx = AwkLib.awkBeginCtx(parsed.fieldSeparator, sharedAwkArrays);
+    const br =
+      pp.beginKind === 'printf'
+        ? AwkLib.awkRunPrintfOnce(pp.beginExprs, beginCtx)
+        : AwkLib.awkRunPrintOnce(pp.beginExprs, beginCtx);
     if (br.ok === false) {
       return { stdout: '', stderr: br.stderr, exitCode: 2 };
     }
@@ -45,7 +46,8 @@ async function awkHandler(terminal, args) {
       pp.mainExprs,
       parsed.fieldSeparator,
       nr,
-      sharedAwkArrays
+      sharedAwkArrays,
+      { kind: pp.mainKind || 'print', condition: pp.mainCondition || null }
     );
     if (r.ok === false) {
       return r;
@@ -100,7 +102,10 @@ async function awkHandler(terminal, args) {
   }
 
   if (pp.endExprs) {
-    const er = AwkLib.awkRunPrintOnce(pp.endExprs, endCtx);
+    const er =
+      pp.endKind === 'printf'
+        ? AwkLib.awkRunPrintfOnce(pp.endExprs, endCtx)
+        : AwkLib.awkRunPrintOnce(pp.endExprs, endCtx);
     if (er.ok === false) {
       return { stdout: '', stderr: er.stderr, exitCode: 2 };
     }

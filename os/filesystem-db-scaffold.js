@@ -132,6 +132,23 @@ export function applyFileSystemDbScaffold(FileSystemDB) {
           created: new Date(),
           modified: new Date()
         },
+        {
+          path: '/var/log',
+          type: 'directory',
+          parentPath: '/var',
+          created: new Date(),
+          modified: new Date()
+        },
+        {
+          path: '/root',
+          type: 'directory',
+          parentPath: '/',
+          mode: 0o700,
+          uid: 0,
+          gid: 0,
+          created: new Date(),
+          modified: new Date()
+        },
 
         // Default files
         {
@@ -236,6 +253,52 @@ export function applyFileSystemDbScaffold(FileSystemDB) {
           type: 'file',
           parentPath: '/etc',
           content: `127.0.0.1 localhost\n::1 localhost\n127.0.0.1 ${host}\n`,
+          created: new Date(),
+          modified: new Date(),
+          size: 0
+        },
+        {
+          path: '/etc/os-release',
+          type: 'file',
+          parentPath: '/etc',
+          content:
+            'NAME="HeymingOS"\n' +
+            'PRETTY_NAME="HeymingOS (jsh)"\n' +
+            'ID=heymingos\n' +
+            'VERSION_ID="1.0"\n' +
+            'VERSION="1.0 (jsh)"\n' +
+            'HOME_URL="https://joeheyming.github.io/"\n' +
+            'JSH_NOTE="A browser-tab simulated OS; not a real kernel."\n',
+          created: new Date(),
+          modified: new Date(),
+          size: 0
+        },
+        {
+          path: '/etc/profile',
+          type: 'file',
+          parentPath: '/etc',
+          content:
+            '# /etc/profile — system-wide jsh login defaults.\n' +
+            'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n' +
+            'export PATH\n',
+          created: new Date(),
+          modified: new Date(),
+          size: 0
+        },
+        {
+          path: '/var/log/messages',
+          type: 'file',
+          parentPath: '/var/log',
+          content: `${new Date().toISOString()} ${host} kernel: HeymingOS booted (jsh).\n`,
+          created: new Date(),
+          modified: new Date(),
+          size: 0
+        },
+        {
+          path: '/var/log/dmesg',
+          type: 'file',
+          parentPath: '/var/log',
+          content: `[    0.000000] HeymingOS boot — jsh kernel ${'5.15.0-jsh-generic'}\n[    0.000123] proc fs mounted on /proc (virtual)\n`,
           created: new Date(),
           modified: new Date(),
           size: 0

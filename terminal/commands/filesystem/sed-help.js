@@ -61,6 +61,8 @@ export function sedOptionError(arg) {
 export function parseSedArgv(args) {
   const argsArr = Array.isArray(args) ? args : [];
   let quiet = false;
+  let extended = false;
+  let inPlace = false;
   /** @type {string[]} */
   const scripts = [];
   let i = 0;
@@ -68,13 +70,23 @@ export function parseSedArgv(args) {
     const arg = argsArr[i];
     if (arg === '--') {
       const rest = argsArr.slice(i + 1);
-      return { ok: true, quiet, scripts, fileOperands: rest };
+      return { ok: true, quiet, extended, inPlace, scripts, fileOperands: rest };
     }
     if (arg === '--help' || arg === '-h') {
-      return { ok: true, help: true, quiet, scripts: [], fileOperands: [] };
+      return { ok: true, help: true, quiet, extended, inPlace, scripts: [], fileOperands: [] };
     }
     if (arg === '-n' || arg === '--quiet' || arg === '--silent') {
       quiet = true;
+      i++;
+      continue;
+    }
+    if (arg === '-E' || arg === '-r' || arg === '--regexp-extended') {
+      extended = true;
+      i++;
+      continue;
+    }
+    if (arg === '-i' || arg === '--in-place') {
+      inPlace = true;
       i++;
       continue;
     }
@@ -112,12 +124,12 @@ export function parseSedArgv(args) {
     if (scripts.length === 0) {
       scripts.push(arg);
       i++;
-      return { ok: true, quiet, scripts, fileOperands: argsArr.slice(i) };
+      return { ok: true, quiet, extended, inPlace, scripts, fileOperands: argsArr.slice(i) };
     }
-    return { ok: true, quiet, scripts, fileOperands: argsArr.slice(i) };
+    return { ok: true, quiet, extended, inPlace, scripts, fileOperands: argsArr.slice(i) };
   }
   if (scripts.length === 0) {
     return { ok: false, stderr: 'sed: missing operand\n', exitCode: 2 };
   }
-  return { ok: true, quiet, scripts, fileOperands: [] };
+  return { ok: true, quiet, extended, inPlace, scripts, fileOperands: [] };
 }

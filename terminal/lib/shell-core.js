@@ -129,6 +129,7 @@ function splitShellList(line) {
   let current = '';
   let inQuotes = false;
   let quoteChar = '';
+  let parenDepth = 0;
   const s = String(line);
   for (let i = 0; i < s.length; i++) {
     const c = s[i];
@@ -144,23 +145,40 @@ function splitShellList(line) {
       continue;
     }
     if (!inQuotes) {
-      if (c === '&' && s[i + 1] === '&') {
+      if (c === '(') {
+        parenDepth++;
+        current += c;
+        continue;
+      }
+      if (c === ')') {
+        parenDepth = Math.max(0, parenDepth - 1);
+        current += c;
+        continue;
+      }
+      if (parenDepth === 0 && c === '&' && s[i + 1] === '&') {
         pipelines.push(current.trim());
         ops.push('&&');
         current = '';
         i += 1;
         continue;
       }
-      if (c === '|' && s[i + 1] === '|') {
+      if (parenDepth === 0 && c === '|' && s[i + 1] === '|') {
         pipelines.push(current.trim());
         ops.push('||');
         current = '';
         i += 1;
         continue;
       }
-      if (c === ';') {
+      if (parenDepth === 0 && c === ';') {
         pipelines.push(current.trim());
         ops.push(';');
+        current = '';
+        continue;
+      }
+      // Bare `&` (not `&&`) → background separator.
+      if (parenDepth === 0 && c === '&' && s[i + 1] !== '&') {
+        pipelines.push(current.trim());
+        ops.push('&');
         current = '';
         continue;
       }
@@ -177,7 +195,7 @@ function splitShellList(line) {
       continue;
     }
     const prevOp = ops[i - 1];
-    if (prevOp === ';') continue;
+    if (prevOp === ';' || prevOp === '&') continue;
     if (prevOp === '&&' || prevOp === '||')
       return { ok: false, error: 'jsh: syntax error: expression expected after && or ||' };
   }
@@ -415,18 +433,576 @@ function escapeTypeAliasBody(s) {
 }
 
 // ---------------------------------------------------------------------------
-// Variable expansion
+// Variable expansion (bash-style: $VAR, ${VAR}, ${VAR:-d}, ${VAR%pat}, ${#VAR})
 // ---------------------------------------------------------------------------
+
+/**
+ * Find matching closing brace, accounting for nested ${...} groups.
+ * @param {string} s
+ * @param {number} start - index of the opening `{`
+ * @returns {number} index of matching `}`, or -1 if not found
+ */
+function findMatchingBrace(s, start) {
+  let depth = 1;
+  for (let i = start + 1; i < s.length; i++) {
+    const c = s[i];
+    if (c === '\\') {
+      i++;
+      continue;
+    }
+    if (c === '$' && s[i + 1] === '{') {
+      depth++;
+      i++;
+      continue;
+    }
+    if (c === '{') {
+      depth++;
+      continue;
+    }
+    if (c === '}') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Convert a shell glob-ish pattern (with *, ?, [...]) to a JS RegExp source
+ * suitable for matching a single word in parameter-expansion patterns
+ * like `${VAR#pat}` / `${VAR%pat}`.
+ * @param {string} pat
+ * @returns {string}
+ */
+function shellPatternToRegexSrc(pat) {
+  let src = '';
+  for (let i = 0; i < pat.length; i++) {
+    const c = pat[i];
+    if (c === '\\' && i + 1 < pat.length) {
+      src += pat[i + 1].replace(/[\\^$.|?*+()[\]{}]/g, '\\$&');
+      i++;
+      continue;
+    }
+    if (c === '*') {
+      src += '.*';
+      continue;
+    }
+    if (c === '?') {
+      src += '.';
+      continue;
+    }
+    if (c === '[') {
+      let end = pat.indexOf(']', i + 1);
+      if (end === -1) {
+        src += '\\[';
+        continue;
+      }
+      src += pat.slice(i, end + 1);
+      i = end;
+      continue;
+    }
+    src += c.replace(/[\\^$.|?*+()[\]{}]/g, '\\$&');
+  }
+  return src;
+}
+
+/**
+ * Compile a shell glob pattern (`*`, `?`, `[abc]`, `[!abc]`) into an anchored
+ * RegExp that matches the whole string. Convenience wrapper around
+ * `shellPatternToRegexSrc` for callers that want a ready-to-use regex.
+ * @param {string} pattern
+ * @param {string} [flags]
+ * @returns {RegExp}
+ */
+function shellPatternToRegex(pattern, flags = '') {
+  return new RegExp('^' + shellPatternToRegexSrc(pattern) + '$', flags);
+}
+
+/**
+ * Strip the longest/shortest matching prefix/suffix using a shell glob pattern.
+ * @param {string} value
+ * @param {string} pattern
+ * @param {'prefix'|'suffix'} side
+ * @param {boolean} longest
+ * @returns {string}
+ */
+function trimPattern(value, pattern, side, longest) {
+  if (!pattern) return value;
+  const src = shellPatternToRegexSrc(pattern);
+  if (side === 'prefix') {
+    const re = new RegExp('^' + (longest ? src : src.replace(/\.\*/g, '.*?')));
+    const m = re.exec(value);
+    if (!m) return value;
+    return value.slice(m[0].length);
+  }
+  const re = new RegExp((longest ? src : src.replace(/\.\*/g, '.*?')) + '$');
+  if (longest) {
+    const m = re.exec(value);
+    if (!m) return value;
+    return value.slice(0, value.length - m[0].length);
+  }
+  // shortest suffix: find the largest i where value.slice(i) fully matches
+  const r = new RegExp('^' + src.replace(/\.\*/g, '.*?') + '$');
+  for (let i = value.length; i >= 0; i--) {
+    const tail = value.slice(i);
+    if (r.test(tail)) return value.slice(0, i);
+  }
+  return value;
+}
+
+/**
+ * Evaluate one ${...} parameter expansion.
+ * @param {string} body - content between `${` and `}`
+ * @param {Record<string,string>} env
+ * @param {number} lastExitCode
+ * @returns {string}
+ */
+function evalParamExpansion(body, env, lastExitCode) {
+  // ${#VAR} — length
+  if (body.startsWith('#') && body.length > 1) {
+    const name = body.slice(1);
+    if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
+      const v = env[name];
+      return String((v == null ? '' : String(v)).length);
+    }
+  }
+  // ${VAR:-default} / ${VAR-default} / ${VAR:=default} / ${VAR:+alt} / ${VAR:?msg}
+  const opMatch = body.match(/^([A-Za-z_][A-Za-z0-9_]*)(:?)([-=+?])([\s\S]*)$/);
+  if (opMatch) {
+    const name = opMatch[1];
+    const colon = opMatch[2] === ':';
+    const op = opMatch[3];
+    const word = expandVariablesInString(opMatch[4], env, lastExitCode);
+    const v = env[name];
+    const empty = v == null || (colon && v === '');
+    if (op === '-') return empty ? word : String(v);
+    if (op === '=') {
+      if (empty) {
+        env[name] = word;
+        return word;
+      }
+      return String(v);
+    }
+    if (op === '+') return empty ? '' : word;
+    if (op === '?') {
+      if (empty) throw new Error(`${name}: ${word || 'parameter null or not set'}`);
+      return String(v);
+    }
+  }
+  // ${VAR#pat} / ${VAR##pat} / ${VAR%pat} / ${VAR%%pat}
+  const trimMatch = body.match(/^([A-Za-z_][A-Za-z0-9_]*)(##|#|%%|%)([\s\S]*)$/);
+  if (trimMatch) {
+    const name = trimMatch[1];
+    const op = trimMatch[2];
+    const pat = expandVariablesInString(trimMatch[3], env, lastExitCode);
+    const v = env[name] == null ? '' : String(env[name]);
+    if (op === '#') return trimPattern(v, pat, 'prefix', false);
+    if (op === '##') return trimPattern(v, pat, 'prefix', true);
+    if (op === '%') return trimPattern(v, pat, 'suffix', false);
+    if (op === '%%') return trimPattern(v, pat, 'suffix', true);
+  }
+  // ${VAR}
+  if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(body)) {
+    return env[body] == null ? '' : String(env[body]);
+  }
+  // ${?} / ${0}-${9}
+  if (body === '?') return String(lastExitCode);
+  if (/^[0-9]+$/.test(body)) return env[body] == null ? '' : String(env[body]);
+  return '';
+}
 
 function expandVariablesInString(str, env, lastExitCode) {
   if (str == null) return '';
   const s = typeof str === 'string' ? str : String(str);
   const e = env && typeof env === 'object' ? env : {};
   const lc = lastExitCode !== undefined && lastExitCode !== null ? lastExitCode : 0;
-  return s
-    .replace(/\$\?/g, () => String(lc))
-    .replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (match, varName) => e[varName] ?? '')
-    .replace(/\$([A-Za-z_][A-Za-z0-9_]*)/g, (match, varName) => e[varName] ?? '');
+  let out = '';
+  let i = 0;
+  while (i < s.length) {
+    const c = s[i];
+    if (c !== '$') {
+      out += c;
+      i++;
+      continue;
+    }
+    // `$$` literal not supported as PID; preserve verbatim
+    const next = s[i + 1];
+    if (next === '{') {
+      const close = findMatchingBrace(s, i + 1);
+      if (close === -1) {
+        out += c;
+        i++;
+        continue;
+      }
+      const body = s.slice(i + 2, close);
+      try {
+        out += evalParamExpansion(body, e, lc);
+      } catch (err) {
+        throw err;
+      }
+      i = close + 1;
+      continue;
+    }
+    if (next === '?') {
+      out += String(lc);
+      i += 2;
+      continue;
+    }
+    if (next && /[A-Za-z_]/.test(next)) {
+      let j = i + 2;
+      while (j < s.length && /[A-Za-z0-9_]/.test(s[j])) j++;
+      const name = s.slice(i + 1, j);
+      out += e[name] == null ? '' : String(e[name]);
+      i = j;
+      continue;
+    }
+    if (next && /[0-9]/.test(next)) {
+      out += e[next] == null ? '' : String(e[next]);
+      i += 2;
+      continue;
+    }
+    out += c;
+    i++;
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Brace expansion ({a,b,c} and {1..5})
+// ---------------------------------------------------------------------------
+
+/**
+ * Find matching closing brace at the same brace-nesting depth (no $-escape semantics).
+ * Used for brace expansion only.
+ * @param {string} s
+ * @param {number} start
+ * @returns {number}
+ */
+function findClosingBraceFlat(s, start) {
+  let depth = 1;
+  for (let i = start + 1; i < s.length; i++) {
+    const c = s[i];
+    if (c === '\\') {
+      i++;
+      continue;
+    }
+    if (c === '{') depth++;
+    else if (c === '}') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Split brace body on commas at depth 0.
+ * @param {string} body
+ * @returns {string[]|null} null when no top-level comma (treat as literal)
+ */
+function splitBraceList(body) {
+  const parts = [];
+  let depth = 0;
+  let cur = '';
+  let sawComma = false;
+  for (let i = 0; i < body.length; i++) {
+    const c = body[i];
+    if (c === '\\') {
+      cur += c;
+      if (i + 1 < body.length) {
+        cur += body[i + 1];
+        i++;
+      }
+      continue;
+    }
+    if (c === '{') {
+      depth++;
+      cur += c;
+      continue;
+    }
+    if (c === '}') {
+      depth--;
+      cur += c;
+      continue;
+    }
+    if (c === ',' && depth === 0) {
+      parts.push(cur);
+      cur = '';
+      sawComma = true;
+      continue;
+    }
+    cur += c;
+  }
+  parts.push(cur);
+  return sawComma ? parts : null;
+}
+
+/**
+ * Parse `{START..END[..STEP]}` numeric or single-character sequence.
+ * @param {string} body
+ * @returns {string[]|null}
+ */
+function parseBraceSequence(body) {
+  const m = body.match(/^(-?\d+)\.\.(-?\d+)(?:\.\.(-?\d+))?$/);
+  if (m) {
+    const start = parseInt(m[1], 10);
+    const end = parseInt(m[2], 10);
+    let step = m[3] != null ? Math.abs(parseInt(m[3], 10)) : 1;
+    if (step === 0) step = 1;
+    const out = [];
+    if (start <= end) {
+      for (let v = start; v <= end; v += step) out.push(String(v));
+    } else {
+      for (let v = start; v >= end; v -= step) out.push(String(v));
+    }
+    return out;
+  }
+  const a = body.match(/^([A-Za-z])\.\.([A-Za-z])(?:\.\.(\d+))?$/);
+  if (a) {
+    const s = a[1].charCodeAt(0);
+    const e = a[2].charCodeAt(0);
+    const step = a[3] != null ? Math.max(1, parseInt(a[3], 10)) : 1;
+    const out = [];
+    if (s <= e) {
+      for (let v = s; v <= e; v += step) out.push(String.fromCharCode(v));
+    } else {
+      for (let v = s; v >= e; v -= step) out.push(String.fromCharCode(v));
+    }
+    return out;
+  }
+  return null;
+}
+
+/**
+ * Bash-style brace expansion on a single token (no $-evaluation; runs after
+ * variable expansion but before glob expansion).
+ *
+ * @param {string} token
+ * @returns {string[]}
+ */
+function expandBraces(token) {
+  if (token == null) return [''];
+  const s = String(token);
+  // Find first unmatched opening brace at depth 0
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === '\\') {
+      i++;
+      continue;
+    }
+    if (s[i] !== '{') continue;
+    const close = findClosingBraceFlat(s, i);
+    if (close === -1) break;
+    const body = s.slice(i + 1, close);
+    const seq = parseBraceSequence(body);
+    /** @type {string[]|null} */
+    let items = seq;
+    if (!items) items = splitBraceList(body);
+    if (!items) continue;
+    const before = s.slice(0, i);
+    const after = s.slice(close + 1);
+    const results = [];
+    for (const item of items) {
+      for (const inner of expandBraces(item)) {
+        for (const tail of expandBraces(after)) {
+          results.push(before + inner + tail);
+        }
+      }
+    }
+    return results;
+  }
+  return [s];
+}
+
+/**
+ * Apply brace expansion across an argv list, preserving ordering.
+ * @param {string[]} args
+ * @returns {string[]}
+ */
+function expandBracesInArgv(args) {
+  const out = [];
+  for (const a of args) {
+    out.push(...expandBraces(a));
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Shell function definitions (`name() { body }`)
+// ---------------------------------------------------------------------------
+
+/**
+ * Try to parse a function definition. Supports:
+ *   name() { body }
+ *   name () { body }
+ *   function name { body }
+ *   function name() { body }
+ *
+ * @param {string} line
+ * @returns {{ ok: true, name: string, body: string } | { ok: false }}
+ */
+function parseFunctionDefinition(line) {
+  if (line == null) return { ok: false };
+  const trimmed = String(line).trim();
+  // function name [()] { body }
+  let m = trimmed.match(/^function\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\(\s*\))?\s*\{([\s\S]*)\}\s*$/);
+  if (m) return { ok: true, name: m[1], body: m[2].trim() };
+  // name() { body }
+  m = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*\)\s*\{([\s\S]*)\}\s*$/);
+  if (m) return { ok: true, name: m[1], body: m[2].trim() };
+  return { ok: false };
+}
+
+// ---------------------------------------------------------------------------
+// Command substitution: extract $(...) and `...` spans
+// ---------------------------------------------------------------------------
+
+/**
+ * Scan a line for command-substitution spans (`$(...)` and backticks).
+ * Returns a list of literal text segments interleaved with inner pipelines.
+ * Single-quoted content does NOT expand substitutions; double-quoted content
+ * does.
+ *
+ * @param {string} line
+ * @returns {Array<{type:'text', value:string} | {type:'subst', inner:string, kind:'dollar'|'backtick'}>}
+ */
+function extractCommandSubstitutions(line) {
+  if (line == null) return [{ type: 'text', value: '' }];
+  const s = String(line);
+  const out = [];
+  let buf = '';
+  let i = 0;
+  let inSingle = false;
+  let inDouble = false;
+  while (i < s.length) {
+    const c = s[i];
+    if (!inDouble && c === "'" && !inSingle) {
+      inSingle = true;
+      buf += c;
+      i++;
+      continue;
+    }
+    if (inSingle && c === "'") {
+      inSingle = false;
+      buf += c;
+      i++;
+      continue;
+    }
+    if (inSingle) {
+      buf += c;
+      i++;
+      continue;
+    }
+    if (!inSingle && c === '"') {
+      inDouble = !inDouble;
+      buf += c;
+      i++;
+      continue;
+    }
+    if (c === '\\' && i + 1 < s.length) {
+      buf += c + s[i + 1];
+      i += 2;
+      continue;
+    }
+    if (c === '$' && s[i + 1] === '(') {
+      const close = findMatchingParen(s, i + 1);
+      if (close === -1) {
+        buf += c;
+        i++;
+        continue;
+      }
+      if (buf.length > 0) {
+        out.push({ type: 'text', value: buf });
+        buf = '';
+      }
+      out.push({ type: 'subst', inner: s.slice(i + 2, close), kind: 'dollar' });
+      i = close + 1;
+      continue;
+    }
+    if (c === '`') {
+      let end = i + 1;
+      while (end < s.length) {
+        if (s[end] === '\\' && end + 1 < s.length) {
+          end += 2;
+          continue;
+        }
+        if (s[end] === '`') break;
+        end++;
+      }
+      if (end >= s.length) {
+        buf += c;
+        i++;
+        continue;
+      }
+      if (buf.length > 0) {
+        out.push({ type: 'text', value: buf });
+        buf = '';
+      }
+      out.push({ type: 'subst', inner: s.slice(i + 1, end), kind: 'backtick' });
+      i = end + 1;
+      continue;
+    }
+    buf += c;
+    i++;
+  }
+  if (buf.length > 0) out.push({ type: 'text', value: buf });
+  if (out.length === 0) out.push({ type: 'text', value: '' });
+  return out;
+}
+
+/**
+ * Find the matching `)` for the `(` at index `start`. Skips quoted regions
+ * and nested parentheses.
+ * @param {string} s
+ * @param {number} start - index of opening `(`
+ * @returns {number} index of matching `)`, or -1
+ */
+function findMatchingParen(s, start) {
+  let depth = 1;
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = start + 1; i < s.length; i++) {
+    const c = s[i];
+    if (c === '\\' && i + 1 < s.length) {
+      i++;
+      continue;
+    }
+    if (!inDouble && c === "'") {
+      inSingle = !inSingle;
+      continue;
+    }
+    if (!inSingle && c === '"') {
+      inDouble = !inDouble;
+      continue;
+    }
+    if (inSingle || inDouble) continue;
+    if (c === '(') depth++;
+    else if (c === ')') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * After all substitutions have been resolved into strings, splice them back
+ * into the original line.
+ *
+ * @param {ReturnType<typeof extractCommandSubstitutions>} parts
+ * @param {string[]} substResults - resolved output per substitution (in order)
+ * @returns {string}
+ */
+function spliceCommandSubstitutions(parts, substResults) {
+  let out = '';
+  let idx = 0;
+  for (const p of parts) {
+    if (p.type === 'text') out += p.value;
+    else {
+      out += substResults[idx] != null ? substResults[idx] : '';
+      idx++;
+    }
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -484,5 +1060,15 @@ export const ShellCore = {
   formatDeclareXLine,
   escapeTypeAliasBody,
   expandVariablesInString,
-  combinedFetchSignal
+  combinedFetchSignal,
+  // Brace expansion + parameter helpers
+  expandBraces,
+  expandBracesInArgv,
+  shellPatternToRegexSrc,
+  shellPatternToRegex,
+  // Command substitution
+  extractCommandSubstitutions,
+  spliceCommandSubstitutions,
+  // Shell functions
+  parseFunctionDefinition
 };

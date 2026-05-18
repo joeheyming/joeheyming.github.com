@@ -16,10 +16,34 @@ function makeGlobStub(directoryEntries) {
     // Copied from Terminal.prototype — the actual implementation under test.
     _globPatternToRegex(pattern) {
       let re = '';
-      for (const ch of pattern) {
-        if (ch === '*') re += '[^/]*';
-        else if (ch === '?') re += '[^/]';
-        else re += ch.replace(/[\\^$.|+()[\]{}]/g, '\\$&');
+      let i = 0;
+      while (i < pattern.length) {
+        const ch = pattern[i];
+        if (ch === '*') {
+          re += '[^/]*';
+          i++;
+          continue;
+        }
+        if (ch === '?') {
+          re += '[^/]';
+          i++;
+          continue;
+        }
+        if (ch === '[') {
+          const end = pattern.indexOf(']', i + 1);
+          if (end === -1) {
+            re += '\\[';
+            i++;
+            continue;
+          }
+          let body = pattern.slice(i + 1, end);
+          if (body.startsWith('!')) body = '^' + body.slice(1);
+          re += '[' + body + ']';
+          i = end + 1;
+          continue;
+        }
+        re += ch.replace(/[\\^$.|+()[\]{}]/g, '\\$&');
+        i++;
       }
       return new RegExp(`^${re}$`);
     },
@@ -78,11 +102,17 @@ test('_globPatternToRegex: ? matches single character', () => {
   assert.ok(!re.test('file.txt'), 'should not match zero characters');
 });
 
-test('_globPatternToRegex: escapes regex specials', () => {
+test('_globPatternToRegex: [...] is character class (bash semantics)', () => {
   const stub = makeGlobStub([]);
   const re = stub._globPatternToRegex('foo[1].js');
-  assert.ok(re.test('foo[1].js'));
-  assert.ok(!re.test('foo1.js'), 'brackets should be literal');
+  assert.ok(re.test('foo1.js'), 'brackets are now a character class');
+  assert.ok(!re.test('foo[1].js'), 'literal "[1]" no longer matches the pattern');
+});
+
+test('_globPatternToRegex: unclosed bracket falls back to literal', () => {
+  const stub = makeGlobStub([]);
+  const re = stub._globPatternToRegex('foo[bar');
+  assert.ok(re.test('foo[bar'));
 });
 
 test('_globPatternToRegex: escapes dots', () => {
@@ -165,6 +195,44 @@ test('expandGlobs: mixes literal and glob args', async () => {
 test('expandGlobs: empty args returns empty', async () => {
   const stub = makeGlobStub([]);
   assert.deepEqual(await stub.expandGlobs([]), []);
+});
+
+// ---------------------------------------------------------------------------
+// Character class globs [abc]
+// ---------------------------------------------------------------------------
+
+test('_globPatternToRegex: [abc] character class', () => {
+  const stub = makeGlobStub([]);
+  const re = stub._globPatternToRegex('f[oi]o');
+  assert.ok(re.test('foo'));
+  assert.ok(re.test('fio'));
+  assert.ok(!re.test('fxo'));
+});
+
+test('_globPatternToRegex: [!abc] negated character class', () => {
+  const stub = makeGlobStub([]);
+  const re = stub._globPatternToRegex('f[!o]o');
+  assert.ok(!re.test('foo'));
+  assert.ok(re.test('fxo'));
+});
+
+test('_globPatternToRegex: [a-z] character range', () => {
+  const stub = makeGlobStub([]);
+  const re = stub._globPatternToRegex('[a-z]ar');
+  assert.ok(re.test('car'));
+  assert.ok(re.test('zar'));
+  assert.ok(!re.test('Car'));
+});
+
+test('_expandGlobToken: character class', async () => {
+  const stub = makeGlobStub([
+    { name: 'foo.js' },
+    { name: 'bar.js' },
+    { name: 'baz.js' },
+    { name: 'qux.js' }
+  ]);
+  const result = await stub._expandGlobToken('[fb]*.js');
+  assert.deepEqual(result, ['bar.js', 'baz.js', 'foo.js']);
 });
 
 // ---------------------------------------------------------------------------

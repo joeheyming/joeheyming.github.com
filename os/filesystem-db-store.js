@@ -48,6 +48,13 @@ export function applyFileSystemDbStore(FileSystemDB) {
           };
 
           FileSystemDB._debug('IndexedDB filesystem initialized');
+          // Best-effort post-open backfill for the v2 schema. Runs once per
+          // process and updates rows that lack mode/uid/gid; safe to call on
+          // an already-migrated DB because we no-op when the metadata flag
+          // is set. Fire-and-forget so we don't block initialize.
+          this.backfillModeUidGid?.().catch((e) =>
+            FileSystemDB._debug(`backfillModeUidGid failed: ${e?.message || e}`)
+          );
           resolve();
         };
 
@@ -64,8 +71,112 @@ export function applyFileSystemDbStore(FileSystemDB) {
           if (!db.objectStoreNames.contains('metadata')) {
             db.createObjectStore('metadata', { keyPath: 'key' });
           }
+          // For older schemas (event.oldVersion < 2) we mark the v2 backfill
+          // as pending. The actual mutation runs after the connection is
+          // resolved in onsuccess (see backfillModeUidGid), because
+          // upgradeneeded transactions don't let us await async helpers
+          // cleanly.
+          if (typeof event.oldVersion === 'number' && event.oldVersion < 2) {
+            try {
+              const t = /** @type {IDBOpenDBRequest} */ (event.target).transaction;
+              if (t && db.objectStoreNames.contains('metadata')) {
+                const meta = t.objectStore('metadata');
+                meta.put({ key: 'fs_schema_v2_backfill_needed', value: true });
+              }
+            } catch (_) {
+              /* the post-open backfill is idempotent */
+            }
+          }
         };
       });
+    },
+
+    /**
+     * v2 schema backfill: ensure every row has reasonable mode / uid / gid
+     * defaults. Idempotent: a metadata flag (`fs_schema_v2_backfill_done`)
+     * gates further runs, and the per-row check still skips rows that
+     * already carry the fields. Safe to call multiple times.
+     */
+    async backfillModeUidGid() {
+      if (!this.isInitialized) return;
+      try {
+        const done = await this.getMetadata('fs_schema_v2_backfill_done');
+        if (done === true) return;
+      } catch (_) {
+        /* ignore */
+      }
+      const defaultUserUid = 1000;
+      const defaultUserGid = 1000;
+      const fileMode = 0o644;
+      const dirMode = 0o755;
+      const symlinkMode = 0o777;
+      let changed = 0;
+      let touched = 0;
+
+      const rows = await new Promise((resolve, reject) => {
+        const tx = this.db.transaction(['files'], 'readonly');
+        const store = tx.objectStore('files');
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      });
+
+      const updates = [];
+      for (const row of rows) {
+        let mutated = false;
+        const isRoot =
+          typeof row.path === 'string' &&
+          (row.path === '/etc' ||
+            row.path === '/etc/passwd' ||
+            row.path === '/etc/shadow' ||
+            row.path === '/etc/group' ||
+            row.path.startsWith('/root') ||
+            row.path === '/bin/jsh');
+        if (row.mode == null) {
+          row.mode =
+            row.type === 'directory'
+              ? dirMode
+              : row.type === 'symlink'
+              ? symlinkMode
+              : fileMode;
+          mutated = true;
+        }
+        if (row.uid == null) {
+          row.uid = isRoot ? 0 : defaultUserUid;
+          mutated = true;
+        }
+        if (row.gid == null) {
+          row.gid = isRoot ? 0 : defaultUserGid;
+          mutated = true;
+        }
+        if (mutated) {
+          updates.push(row);
+          changed++;
+        }
+        touched++;
+      }
+
+      if (updates.length > 0) {
+        await new Promise((resolve, reject) => {
+          const tx = this.db.transaction(['files'], 'readwrite');
+          const store = tx.objectStore('files');
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+          for (const row of updates) store.put(row);
+        });
+      }
+
+      try {
+        await this.setMetadata('fs_schema_v2_backfill_done', true);
+        await this.setMetadata('fs_schema_v2_backfill_stats', {
+          changed,
+          touched,
+          at: Date.now()
+        });
+      } catch (_) {
+        /* ignore */
+      }
+      FileSystemDB._debug?.(`backfillModeUidGid: updated ${changed}/${touched} rows`);
     },
 
     // Check if scaffolding exists

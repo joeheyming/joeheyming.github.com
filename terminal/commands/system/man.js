@@ -107,6 +107,11 @@ async function manHandler(terminal, args) {
     };
   }
 
+  if (t === 'jsh') {
+    const page = await renderJshOverviewPage();
+    return { stdout: page, stderr: '', exitCode: 0 };
+  }
+
   if (!commandRegistry.has(t)) {
     return {
       stdout: '',
@@ -131,9 +136,79 @@ async function manHandler(terminal, args) {
   return { stdout: page, stderr: '', exitCode: 0 };
 }
 
+/**
+ * Render the `man jsh` overview page. Prefers the live JSH-SPEC.md when we
+ * can fetch it (browser environment with the static file served alongside);
+ * otherwise falls back to a compact inline summary.
+ *
+ * @returns {Promise<string>}
+ */
+async function renderJshOverviewPage() {
+  const fallback = buildJshFallbackPage();
+  if (typeof fetch !== 'function') return fallback;
+  try {
+    const candidates = ['JSH-SPEC.md', '/terminal/JSH-SPEC.md'];
+    for (const url of candidates) {
+      try {
+        const resp = await fetch(url, { cache: 'no-cache' });
+        if (resp.ok) {
+          const text = await resp.text();
+          if (text && text.length > 100) {
+            return `JSH(1)\n\n${text.trim()}\n`;
+          }
+        }
+      } catch (_) {
+        // Try next candidate URL.
+      }
+    }
+  } catch (_) {
+    // Fall through to the inline summary.
+  }
+  return fallback;
+}
+
+function buildJshFallbackPage() {
+  return `JSH(1)
+
+NAME
+       jsh - HeymingOS shell (browser-resident, not bash)
+
+SYNOPSIS
+       jsh [SHELL-OPTIONS] [SCRIPT|COMMAND]
+
+DESCRIPTION
+       jsh is a JS-hosted shell built into HeymingOS. It runs entirely in
+       a single browser tab and operates against the shared FileSystemDB
+       VFS. It is not bash, dash, or BusyBox.
+
+CAPABILITIES (HIGHLIGHTS)
+       Lists      &&, ||, ; with short-circuit
+       Pipes      | between stages
+       Redirects  >, >>, <, 2>, 2>&1 (stream merge)
+       Expansion  $VAR, $?, $(...), \`...\`, brace, glob, parameter
+                  expansion ($\{VAR:-d\}, $\{VAR%pat\}, $\{#VAR\})
+       Jobs       trailing &, jobs, fg, bg, %n
+       Options    set -e, set -u, set -o pipefail, set -x
+       Functions  name() { ... } with $1..$@..$#
+
+COMMANDS
+       Run 'help' for the live, category-grouped catalog of builtins.
+
+LIMITATIONS
+       jsh cannot offer real processes, signals, raw TCP/UDP, a TTY, or
+       a privilege boundary. See the JSH-SPEC.md file shipped with the
+       terminal for the full capability / promise / impossible matrix.
+
+SEE ALSO
+       help(1jsh), man(1), JSH-SPEC.md
+`;
+}
+
 export default {
   name: 'man',
   handler: manHandler,
   description: 'short manual pages for jsh commands (no real man-db)',
   category: 'System'
 };
+
+export { renderJshOverviewPage, buildJshFallbackPage };

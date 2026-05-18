@@ -50,16 +50,54 @@ async function cpHandler(terminal, args) {
       exitCode: 1
     };
   }
+
+  // Multi-source form (B12): `cp a b c destdir/` — last operand must be a dir.
   if (operands.length > 2) {
-    const extra = operands[2];
+    const destOperand = operands[operands.length - 1];
+    const destPath = terminal.resolvePath(destOperand);
+    const destItem = await terminal.getFileSystemItem(destPath);
+    if (!destItem || destItem.type !== 'directory') {
+      return {
+        stderr: `cp: target '${destOperand}' is not a directory\n`,
+        exitCode: 1
+      };
+    }
+    const stderrLines = [];
+    let failed = 0;
+    for (let i = 0; i < operands.length - 1; i++) {
+      const srcOperand = operands[i];
+      const srcPath = terminal.resolvePath(srcOperand);
+      const name = terminal.fileSystemDB.getFileName(srcPath);
+      const finalDest = terminal.fileSystemDB.joinPath(destPath, name);
+      try {
+        await terminal.fileSystemDB.copyItem(srcPath, finalDest, recursive);
+      } catch (error) {
+        const { stderr } = cpStderrFromCopyError(error, srcOperand, finalDest);
+        stderrLines.push(stderr.replace(/\n$/, ''));
+        failed++;
+      }
+    }
     return {
-      stderr: `cp: extra operand '${extra}'\nTry 'cp --help' for more information.\n`,
-      exitCode: 1
+      stdout: '',
+      stderr: stderrLines.length ? stderrLines.join('\n') + '\n' : '',
+      exitCode: failed > 0 ? 1 : 0
     };
   }
 
+  // Two-operand form: existing behavior.
   const sourcePath = terminal.resolvePath(operands[0]);
-  const destPath = terminal.resolvePath(operands[1]);
+  let destPath = terminal.resolvePath(operands[1]);
+
+  // GNU cp: if dest is an existing directory, copy SOURCE inside it.
+  try {
+    const destItem = await terminal.getFileSystemItem(destPath);
+    if (destItem && destItem.type === 'directory') {
+      const name = terminal.fileSystemDB.getFileName(sourcePath);
+      destPath = terminal.fileSystemDB.joinPath(destPath, name);
+    }
+  } catch (_) {
+    /* getItem failure handled below */
+  }
 
   try {
     await terminal.fileSystemDB.copyItem(sourcePath, destPath, recursive);

@@ -34,6 +34,18 @@ export class SchedulerManager {
       idleTime: 0,
       lastSchedule: Date.now()
     };
+
+    // C25: per-pid sliding-window CPU% samples for `top`.
+    // Each sample: { ts: number, cpuTime: number }. We trim to ~30s.
+    /** @type {Map<number, {ts: number, cpuTime: number}[]>} */
+    this.cpuSamples = new Map();
+    this.cpuWindowMs = 5000;
+    // Track main-thread busy/idle ratio via requestIdleCallback (Chrome) or
+    // requestAnimationFrame fallback. `mainThreadBusyRatio` is a 0–1 number
+    // representing the recent fraction of wall-clock time we observed the
+    // main thread as not idle.
+    this.mainThreadBusyRatio = 0;
+    this._idleAttributionInstalled = false;
   }
 
   async initialize() {
@@ -94,10 +106,95 @@ export class SchedulerManager {
       this.stats.idleTime += timeSinceLastSchedule;
     }
 
+    // C25: record per-pid CPU sample for top/htop. We sample whatever
+    // processManager.getAllProcesses() currently knows about; missing pids
+    // simply don't get an entry this tick.
+    try {
+      const all = this.kernel?.processManager?.getAllProcesses?.() || [];
+      for (const proc of all) {
+        if (proc.pid == null) continue;
+        const arr = this.cpuSamples.get(proc.pid) || [];
+        arr.push({ ts: now, cpuTime: proc.cpuTime || 0 });
+        while (arr.length > 0 && now - arr[0].ts > this.cpuWindowMs * 6) {
+          arr.shift();
+        }
+        this.cpuSamples.set(proc.pid, arr);
+      }
+      this._installIdleAttribution();
+    } catch (_) {
+      /* ignore */
+    }
+
     // Schedule next process
     this.schedule();
 
     this.stats.lastSchedule = now;
+  }
+
+  /**
+   * Install a requestIdleCallback (or rAF) loop that estimates how busy the
+   * main thread has been. Idempotent and only runs when global APIs exist.
+   */
+  _installIdleAttribution() {
+    if (this._idleAttributionInstalled) return;
+    if (typeof globalThis === 'undefined') return;
+    const g = /** @type {any} */ (globalThis);
+    if (typeof g.requestIdleCallback !== 'function' && typeof g.requestAnimationFrame !== 'function') {
+      return;
+    }
+    this._idleAttributionInstalled = true;
+    const useIdle = typeof g.requestIdleCallback === 'function';
+    let lastTick = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    let busyAcc = 0;
+    let wallAcc = 0;
+    const tick = (deadline) => {
+      const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      const wall = now - lastTick;
+      const idleTime = useIdle && deadline && typeof deadline.timeRemaining === 'function' ? deadline.timeRemaining() : wall * 0.5;
+      const busy = Math.max(0, wall - idleTime);
+      busyAcc += busy;
+      wallAcc += wall;
+      if (wallAcc >= 1000) {
+        this.mainThreadBusyRatio = Math.max(0, Math.min(1, busyAcc / wallAcc));
+        busyAcc = 0;
+        wallAcc = 0;
+      }
+      lastTick = now;
+      if (useIdle) g.requestIdleCallback(tick);
+      else g.requestAnimationFrame(tick);
+    };
+    if (useIdle) g.requestIdleCallback(tick);
+    else g.requestAnimationFrame(tick);
+  }
+
+  /**
+   * Estimate recent CPU% for a pid using a 5-second sliding window. Result
+   * is scaled by mainThreadBusyRatio so very idle tabs report low values.
+   * @param {number} pid
+   * @returns {number} percentage, 0..100
+   */
+  getCpuPercent(pid) {
+    const arr = this.cpuSamples.get(pid);
+    if (!arr || arr.length < 2) return 0;
+    const now = arr[arr.length - 1].ts;
+    const last = arr[arr.length - 1];
+    // Find the oldest sample still within the sliding window so the delta
+    // covers as much wall time as possible.
+    let windowStart = arr[0];
+    for (let j = arr.length - 2; j >= 0; j--) {
+      if (now - arr[j].ts <= this.cpuWindowMs) {
+        windowStart = arr[j];
+      } else {
+        break;
+      }
+    }
+    const wallDelta = last.ts - windowStart.ts;
+    if (wallDelta <= 0) return 0;
+    const cpuDelta = Math.max(0, last.cpuTime - windowStart.cpuTime);
+    const raw = (cpuDelta / wallDelta) * 100;
+    // Attribute by main-thread busy ratio when we have one.
+    const factor = this.mainThreadBusyRatio > 0 ? this.mainThreadBusyRatio : 1;
+    return Math.max(0, Math.min(100, raw * factor));
   }
 
   // Main scheduling function

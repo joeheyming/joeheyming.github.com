@@ -138,13 +138,22 @@ test('parseChmodArgv: mode + files, help, errors', () => {
 });
 
 test('parseStatArgv: -L, --, help, operands, errors', () => {
-  assert.deepEqual(parseStatArgv(['-L', 'a']), { ok: true, dereference: true, operands: ['a'] });
-  assert.deepEqual(parseStatArgv(['--dereference', 'b']), {
-    ok: true,
-    dereference: true,
-    operands: ['b']
-  });
-  assert.deepEqual(parseStatArgv(['--', '-x']), { ok: true, dereference: false, operands: ['-x'] });
+  const a = parseStatArgv(['-L', 'a']);
+  assert.equal(a.ok, true);
+  assert.equal(a.dereference, true);
+  assert.deepEqual(a.operands, ['a']);
+  assert.equal(a.format, null);
+
+  const b = parseStatArgv(['--dereference', 'b']);
+  assert.equal(b.ok, true);
+  assert.equal(b.dereference, true);
+  assert.deepEqual(b.operands, ['b']);
+
+  const dd = parseStatArgv(['--', '-x']);
+  assert.equal(dd.ok, true);
+  assert.equal(dd.dereference, false);
+  assert.deepEqual(dd.operands, ['-x']);
+
   assert.equal(parseStatArgv(['--help']).ok, true);
   assert.equal(parseStatArgv(['--help']).help, true);
   assert.equal(parseStatArgv(['-h']).help, true);
@@ -153,9 +162,10 @@ test('parseStatArgv: -L, --, help, operands, errors', () => {
   assert.equal(miss.ok, false);
   assert.match(miss.stderr, /missing operand/);
 
-  const bad = parseStatArgv(['--format=%s']);
-  assert.equal(bad.ok, false);
-  assert.match(bad.stderr, /unrecognized option/);
+  // --format=… is now supported (B15); it no longer errors but does need an operand.
+  const fmtNoArg = parseStatArgv(['--format=%s']);
+  assert.equal(fmtNoArg.ok, false);
+  assert.match(fmtNoArg.stderr, /missing operand/);
 
   const shortBad = parseStatArgv(['-z']);
   assert.equal(shortBad.ok, false);

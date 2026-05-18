@@ -42,7 +42,7 @@ async function suHandler(terminal, args) {
       input.addEventListener('keydown', handler);
     });
 
-    if (!sm.verifyPassword(password, user.passwordHash)) {
+    if (!(await sm.verifyPassword(password, user.passwordHash))) {
       return 'su: authentication failure';
     }
   }
