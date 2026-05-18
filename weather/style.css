@@ -347,6 +347,126 @@ body {
   margin: 1rem 0 0.4rem;
 }
 
+/* ─── Radar mode ───────────────────────────────────────────────────── */
+
+.radar-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+.radar-map {
+  width: 100%;
+  height: clamp(420px, 60vh, 640px);
+  background: rgb(2 6 23);
+  border: 1px solid rgb(30 41 59);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+/* Match Leaflet's tiles to the dark UI background while they load. */
+.radar-map .leaflet-container {
+  background: rgb(2 6 23);
+}
+.radar-map .leaflet-control-attribution {
+  background: rgb(15 23 42 / 0.85);
+  color: rgb(203 213 225);
+  font-size: 0.65rem;
+}
+.radar-map .leaflet-control-attribution a {
+  color: rgb(125 211 252);
+}
+
+.radar-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+  background: rgb(15 23 42 / 0.6);
+  border: 1px solid rgb(30 41 59);
+  border-radius: 0.6rem;
+  padding: 0.45rem 0.75rem;
+}
+.radar-play {
+  background: rgb(56 189 248);
+  color: rgb(2 6 23);
+  border: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.radar-play:hover {
+  background: rgb(125 211 252);
+}
+.radar-play[data-state='playing'] {
+  background: rgb(251 146 60);
+  color: rgb(2 6 23);
+}
+.radar-slider {
+  flex: 1 1 auto;
+  accent-color: rgb(56 189 248);
+  height: 1rem;
+  cursor: pointer;
+}
+.radar-time {
+  font-size: 0.78rem;
+  color: rgb(226 232 240);
+  font-variant-numeric: tabular-nums;
+  min-width: 7rem;
+  text-align: right;
+}
+
+/* Marker popups blended with the dark UI. */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: rgb(15 23 42);
+  color: rgb(226 232 240);
+  border: 1px solid rgb(51 65 85);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.45);
+}
+.leaflet-popup-content {
+  margin: 0.55rem 0.75rem;
+}
+.leaflet-popup-close-button {
+  color: rgb(148 163 184) !important;
+}
+.radar-popup-name {
+  font-weight: 600;
+  color: rgb(248 250 252);
+  font-size: 0.95rem;
+}
+.radar-popup-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+}
+.radar-popup-emoji {
+  font-size: 1.3rem;
+}
+.radar-popup-temp {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: rgb(248 250 252);
+}
+.radar-popup-cond {
+  font-size: 0.78rem;
+  color: rgb(148 163 184);
+  margin-top: 0.1rem;
+}
+.radar-popup-loading {
+  font-size: 0.78rem;
+  color: rgb(148 163 184);
+  margin-top: 0.2rem;
+}
+
 /* Toast container reuses the same look as the stock app. */
 .toast {
   background: rgb(15 23 42);

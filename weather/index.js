@@ -13,6 +13,7 @@ import {
   saveState as persistState,
   buildShareUrl
 } from './state.js';
+import { createRadarMap } from './radar-map.js';
 import { createNotifier } from '/notifications.js';
 
 /** @typedef {import('./state.js').AppState} AppState */
@@ -34,6 +35,11 @@ const $locateMe = $('locate-me');
 const $copyLink = $('copy-link');
 const $refreshBtn = $('refresh-btn');
 const $toastStack = $('toast-stack');
+const $modeCards = $('mode-cards');
+const $modeRadar = $('mode-radar');
+const $radarMode = $('radar-mode');
+const $radarMap = $('radar-map');
+const $radarControls = $('radar-controls');
 
 // --- Toast helper ---
 const _notifier = createNotifier({
@@ -55,6 +61,8 @@ const errorByLoc = new Map();
 const loadingLoc = new Set();
 let refreshTimer = /** @type {ReturnType<typeof setInterval>|null} */ (null);
 const REFRESH_MS = 5 * 60 * 1000;
+/** @type {ReturnType<typeof createRadarMap>|null} */
+let radar = null;
 
 function saveState() {
   persistState(state);
@@ -371,13 +379,59 @@ function renderDetail() {
 
 function renderAll() {
   renderUnits();
-  renderTiles();
-  renderDetail();
+  renderMode();
+  if (state.mode === 'radar') {
+    renderRadar();
+  } else {
+    renderTiles();
+    renderDetail();
+  }
 }
 
 function renderUnits() {
   $unitF.classList.toggle('active', state.units === 'f');
   $unitC.classList.toggle('active', state.units === 'c');
+}
+
+function renderMode() {
+  const isRadar = state.mode === 'radar';
+  $modeCards.classList.toggle('active', !isRadar);
+  $modeRadar.classList.toggle('active', isRadar);
+
+  if (isRadar) {
+    $tiles.classList.add('hidden');
+    $emptyState.classList.add('hidden');
+    $detail.classList.add('hidden');
+    $radarMode.classList.remove('hidden');
+  } else {
+    $radarMode.classList.add('hidden');
+    // The cards-mode visibility (tiles vs empty-state vs detail) is set
+    // back up by renderTiles() / renderDetail().
+  }
+}
+
+function ensureRadar() {
+  if (radar) return radar;
+  radar = createRadarMap({
+    map: $radarMap,
+    controls: $radarControls,
+    getUnits: () => state.units
+  });
+  radar.loadFrames().catch(() => {});
+  return radar;
+}
+
+function renderRadar() {
+  const r = ensureRadar();
+  r.invalidateSize();
+  r.setLocations(state.locations, state.activeLocationId);
+  r.setForecasts(forecastByLoc);
+  if (!state.locations.length) {
+    // No saved locations yet — keep the radar visible (the user can still
+    // browse weather worldwide) but also surface the same suggestion
+    // chips the cards mode shows.
+    $emptyState.classList.remove('hidden');
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -429,8 +483,10 @@ function removeLocation(/** @type {string} */ id) {
 async function fetchOne(/** @type {SavedLocation} */ loc) {
   loadingLoc.add(loc.id);
   errorByLoc.delete(loc.id);
-  renderTiles();
-  if (loc.id === state.activeLocationId) renderDetail();
+  if (state.mode === 'cards') {
+    renderTiles();
+    if (loc.id === state.activeLocationId) renderDetail();
+  }
   try {
     const f = await fetchForecast(loc);
     forecastByLoc.set(loc.id, f);
@@ -440,8 +496,11 @@ async function fetchOne(/** @type {SavedLocation} */ loc) {
   } finally {
     loadingLoc.delete(loc.id);
   }
-  renderTiles();
-  if (loc.id === state.activeLocationId) renderDetail();
+  if (state.mode === 'cards') {
+    renderTiles();
+    if (loc.id === state.activeLocationId) renderDetail();
+  }
+  radar?.setForecasts(forecastByLoc);
 }
 
 async function fetchAll() {
@@ -603,6 +662,19 @@ $unitF.addEventListener('click', () => {
 $unitC.addEventListener('click', () => {
   if (state.units === 'c') return;
   state.units = 'c';
+  saveState();
+  renderAll();
+});
+
+$modeCards.addEventListener('click', () => {
+  if (state.mode === 'cards') return;
+  state.mode = 'cards';
+  saveState();
+  renderAll();
+});
+$modeRadar.addEventListener('click', () => {
+  if (state.mode === 'radar') return;
+  state.mode = 'radar';
   saveState();
   renderAll();
 });

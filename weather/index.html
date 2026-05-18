@@ -57,6 +57,20 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- Leaflet — used by the radar mode. Loaded eagerly so the global
+         `L` is available the first time the user toggles into Radar. -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+
     <!-- proxy.js must load BEFORE the app module so window.proxyService is ready. -->
     <script src="/proxy.js"></script>
 
@@ -145,6 +159,13 @@
       <section
         class="bg-slate-900/50 border border-slate-800 rounded-xl px-3 py-2 mb-3 flex flex-wrap items-center gap-2"
       >
+        <div class="inline-flex rounded-md overflow-hidden border border-slate-700 text-sm" role="group" aria-label="View mode">
+          <button id="mode-cards" class="tool-btn !rounded-none border-0" type="button">📋 Cards</button>
+          <button id="mode-radar" class="tool-btn !rounded-none border-0 border-l border-slate-700" type="button">🗺️ Radar</button>
+        </div>
+
+        <span class="hidden md:inline-block w-px h-5 bg-slate-700 mx-1"></span>
+
         <div class="inline-flex rounded-md overflow-hidden border border-slate-700 text-sm" role="group" aria-label="Temperature units">
           <button id="unit-f" class="tool-btn !rounded-none border-0" type="button">°F</button>
           <button id="unit-c" class="tool-btn !rounded-none border-0 border-l border-slate-700" type="button">°C</button>
@@ -196,11 +217,23 @@
       <!-- Detail view for active location -->
       <section id="detail" class="hidden space-y-3"></section>
 
+      <!-- Radar mode: precipitation overlay + time slider -->
+      <section id="radar-mode" class="hidden">
+        <div id="radar-map" class="radar-map"></div>
+        <div id="radar-controls" class="radar-controls"></div>
+        <p class="text-xs text-slate-500 mt-2">
+          Precipitation radar — last ~2 hours plus a ~30-minute nowcast.
+          Markers show your saved locations — tap one for current conditions.
+        </p>
+      </section>
+
       <footer class="mt-6 text-center text-xs text-slate-500">
         Forecast data from
         <a class="underline hover:text-slate-300" href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>.
         ZIP lookups from
         <a class="underline hover:text-slate-300" href="https://www.zippopotam.us/" target="_blank" rel="noopener">Zippopotam.us</a>.
+        Radar from
+        <a class="underline hover:text-slate-300" href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a>.
       </footer>
     </div>
 
