@@ -605,6 +605,43 @@
     "shareCategory": "utility"
   },
   {
+    "id": "triplog",
+    "name": "Trip Log 🗺️",
+    "shortName": "Trip Log",
+    "description": "Record GPS trips into a Google Sheet",
+    "detailedDescription": "Record real-world trips with your phone's GPS. Live map of where you've been, distance and time as you go, and every trip + GPS point saves into your own Google Sheet so you can graph or export it later.",
+    "icon": "🗺️",
+    "path": "./triplog/",
+    "category": "utility",
+    "gradient": "from-violet-500/20 to-emerald-500/20",
+    "border": "border-violet-500/30 hover:border-emerald-400/50",
+    "taskbarGradient": "from-violet-500 to-emerald-500",
+    "taskbarText": "text-white",
+    "defaultWidth": 720,
+    "defaultHeight": 820,
+    "desktopIcon": true,
+    "tags": [
+      "gps",
+      "map",
+      "geolocation",
+      "google",
+      "sheets",
+      "fitness",
+      "tracker"
+    ],
+    "related": [
+      "todo",
+      "notepad",
+      "terminal"
+    ],
+    "shareCategory": "utility",
+    "pwaShortcut": {
+      "name": "Trip Log",
+      "short_name": "Trip Log",
+      "description": "Record GPS trips in your browser"
+    }
+  },
+  {
     "id": "calculator",
     "name": "Calculator",
     "shortName": "Calculator",

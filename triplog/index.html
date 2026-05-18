@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <base href="./" />
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗺️</text></svg>"
+    />
+
+    <title>🗺️ Trip Log — record GPS trips into your own spreadsheet | Joe Heyming</title>
+
+    <meta
+      name="description"
+      content="Record real-world trips in the browser using your phone's GPS. See live distance, time, and a moving map; every trip and GPS point saves into your own Google Sheet."
+    />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#7c3aed" />
+    <meta
+      name="keywords"
+      content="GPS tracker, trip log, browser GPS, geolocation, map, Google Sheets, OpenStreetMap, mobile, web app"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming — Trip Log" />
+    <meta property="og:title" content="🗺️ Trip Log — record GPS trips" />
+    <meta
+      property="og:description"
+      content="Record GPS trips in the browser. Live map, distance, and time. Saves to your own Google Sheet."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/triplog/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/assets/joe-heyming-og-image.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+
+    <link rel="canonical" href="https://joeheyming.github.io/triplog/" />
+
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Trip Log" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'media',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['DM Sans', 'system-ui', 'sans-serif']
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      #signed-out[hidden],
+      #app-loading[hidden] {
+        display: none !important;
+      }
+      #map {
+        min-height: 0;
+      }
+      #map .leaflet-container {
+        font-family: inherit;
+      }
+    </style>
+  </head>
+  <body
+    class="min-h-full bg-gradient-to-br from-violet-100/90 via-zinc-50 to-fuchsia-50/70 font-sans text-zinc-900 antialiased dark:from-zinc-950 dark:via-zinc-900 dark:to-violet-950/40 dark:text-zinc-100"
+  >
+    <div
+      id="triplog-root"
+      class="mx-auto flex min-h-dvh max-w-3xl flex-col px-4 pt-4 sm:px-6 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]"
+    >
+      <header class="mb-3 flex flex-nowrap items-center justify-between gap-3">
+        <h1
+          class="shrink-0 bg-gradient-to-r from-violet-700 to-fuchsia-600 bg-clip-text text-2xl font-semibold tracking-tight text-transparent dark:from-violet-300 dark:to-fuchsia-400"
+        >
+          🗺️ Trip Log
+        </h1>
+        <div
+          id="status"
+          class="min-w-0 flex-1 break-words text-right empty:hidden text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm"
+          role="status"
+        ></div>
+      </header>
+
+      <div
+        id="app-loading"
+        class="flex min-h-[min(52vh,28rem)] flex-1 flex-col items-center justify-center px-1 py-6 sm:py-10"
+        role="status"
+        aria-live="polite"
+        hidden
+      >
+        <div
+          class="w-full max-w-md rounded-2xl border border-zinc-200/90 bg-white/90 p-8 text-center shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/90"
+        >
+          <div
+            class="mx-auto mb-4 h-11 w-11 animate-spin rounded-full border-2 border-zinc-200 border-t-violet-600 dark:border-zinc-600 dark:border-t-violet-400"
+            aria-hidden="true"
+          ></div>
+          <p
+            id="app-loading-message"
+            class="text-sm font-medium text-zinc-700 dark:text-zinc-200"
+          >
+            Connecting to Google…
+          </p>
+        </div>
+      </div>
+
+      <div
+        id="signed-out"
+        class="flex min-h-[min(52vh,28rem)] flex-1 flex-col items-center justify-center px-1 py-6 sm:py-10"
+        role="region"
+        aria-label="Signed out"
+      >
+        <div
+          class="w-full max-w-md rounded-2xl border border-violet-200/80 bg-white/90 p-8 text-center shadow-xl dark:border-violet-800/50 dark:bg-zinc-900/90"
+        >
+          <p class="mb-3 text-4xl leading-none" aria-hidden="true">🛰️</p>
+          <h2 class="text-lg font-semibold sm:text-xl">Sign in to record trips</h2>
+          <p class="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+            Trips and GPS samples are saved as rows in your own Google Sheet. Same workbook
+            other apps on this site (e.g. Todo) use—Trip Log adds two new tabs:
+            <code class="text-xs">triplog-trips</code> and
+            <code class="text-xs">triplog-points</code>.
+          </p>
+          <button
+            type="button"
+            id="btn-signin"
+            class="mt-6 w-full rounded-full border border-violet-300 bg-violet-50 px-5 py-3 text-sm font-semibold text-violet-900 shadow-sm transition hover:bg-violet-100 dark:border-violet-700 dark:bg-violet-950/80 dark:text-violet-100 dark:hover:bg-violet-900/60 sm:w-auto sm:px-8"
+          >
+            Sign in with Google
+          </button>
+        </div>
+      </div>
+
+      <main
+        id="app-main"
+        class="flex min-h-0 flex-1 flex-col gap-3"
+        hidden
+      >
+        <section
+          id="map-card"
+          class="relative flex min-h-[40vh] flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/85 shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/85"
+        >
+          <div id="map" class="h-full w-full flex-1"></div>
+          <button
+            type="button"
+            id="btn-follow"
+            class="absolute right-3 top-3 z-[400] hidden items-center gap-1.5 rounded-full border border-zinc-300 bg-white/95 px-3 py-1.5 text-xs font-medium text-zinc-800 shadow hover:bg-white dark:border-zinc-600 dark:bg-zinc-800/95 dark:text-zinc-100"
+            aria-pressed="false"
+          >
+            <span aria-hidden="true">📍</span>
+            Follow
+          </button>
+        </section>
+
+        <section
+          id="stats-card"
+          class="grid grid-cols-2 gap-2 rounded-2xl border border-zinc-200/90 bg-white/85 p-3 shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/85 sm:grid-cols-4"
+        >
+          <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
+            <div class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Distance</div>
+            <div id="stat-distance" class="mt-0.5 text-xl font-semibold tabular-nums">0.00 km</div>
+          </div>
+          <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
+            <div class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Time</div>
+            <div id="stat-duration" class="mt-0.5 text-xl font-semibold tabular-nums">0:00</div>
+          </div>
+          <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
+            <div class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Speed</div>
+            <div id="stat-speed" class="mt-0.5 text-xl font-semibold tabular-nums">— km/h</div>
+          </div>
+          <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
+            <div class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Accuracy</div>
+            <div id="stat-accuracy" class="mt-0.5 text-xl font-semibold tabular-nums">—</div>
+          </div>
+        </section>
+
+        <section
+          id="controls-card"
+          class="rounded-2xl border border-zinc-200/90 bg-white/85 p-3 shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/85"
+        >
+          <div class="flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              id="trip-name"
+              maxlength="100"
+              autocomplete="off"
+              placeholder="Trip name (optional)"
+              class="min-w-0 flex-1 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-base placeholder:text-zinc-400 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400/30 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100"
+            />
+            <button
+              type="button"
+              id="btn-start"
+              class="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border border-violet-600 bg-violet-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700"
+            >
+              <span aria-hidden="true">●</span>
+              Start
+            </button>
+            <button
+              type="button"
+              id="btn-stop"
+              class="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border border-rose-600 bg-rose-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700"
+              hidden
+            >
+              <span aria-hidden="true">■</span>
+              Stop
+            </button>
+          </div>
+          <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+            Recording uses your device's GPS and keeps the screen on. Points are batched and
+            saved to your spreadsheet every few seconds.
+          </p>
+        </section>
+
+        <section
+          id="trips-card"
+          class="rounded-2xl border border-zinc-200/90 bg-white/85 p-3 shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/85"
+        >
+          <div class="mb-2 flex items-center justify-between">
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">
+              Past trips
+            </h2>
+            <button
+              type="button"
+              id="btn-refresh-trips"
+              class="rounded-full border border-zinc-300 bg-white px-3 py-1 text-xs font-medium text-zinc-700 shadow-sm hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+            >
+              Refresh
+            </button>
+          </div>
+          <ul
+            id="trips-list"
+            class="list-none divide-y divide-zinc-200/90 dark:divide-zinc-700"
+          ></ul>
+          <p
+            id="trips-empty"
+            class="py-3 text-center text-sm text-zinc-500 dark:text-zinc-400"
+            hidden
+          >
+            No trips yet. Tap Start above to record one.
+          </p>
+        </section>
+
+        <footer
+          id="auth-card"
+          class="mt-auto flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200/90 bg-white/85 p-3 shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/85"
+        >
+          <span class="text-xs text-zinc-500 dark:text-zinc-400">
+            Signed in. Trips save to your Google Sheet.
+          </span>
+          <button
+            type="button"
+            id="btn-signout"
+            class="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+          >
+            Sign out
+          </button>
+        </footer>
+      </main>
+    </div>
+
+    <dialog
+      id="trip-view-dialog"
+      class="m-0 h-dvh max-h-none w-screen max-w-none border-0 bg-transparent p-0 [&::backdrop]:bg-zinc-950/60"
+      aria-labelledby="trip-view-title"
+    >
+      <div class="flex h-full w-full flex-col bg-zinc-50 dark:bg-zinc-950">
+        <div
+          class="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-zinc-200 bg-white/95 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900/95"
+        >
+          <div class="min-w-0 flex-1">
+            <h2 id="trip-view-title" class="truncate text-base font-semibold sm:text-lg">
+              Trip
+            </h2>
+            <p
+              id="trip-view-summary"
+              class="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm"
+            ></p>
+          </div>
+          <button
+            type="button"
+            id="btn-trip-view-close"
+            class="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+          >
+            Close
+          </button>
+        </div>
+        <div id="trip-view-map" class="min-h-0 flex-1"></div>
+      </div>
+    </dialog>
+
+    <script src="/share.js"></script>
+    <script src="https://accounts.google.com/gsi/client" defer></script>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
