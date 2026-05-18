@@ -880,6 +880,40 @@
     }
   },
   {
+    "id": "sudoku",
+    "name": "Sudoku 🔢",
+    "shortName": "Sudoku",
+    "description": "Classic 9×9 puzzle game",
+    "detailedDescription": "Classic 9×9 Sudoku in your browser. Pencil marks, undo/redo, hints, auto-check, and mobile-friendly touch controls. Four difficulty levels.",
+    "icon": "🔢",
+    "path": "./sudoku/",
+    "category": "game",
+    "gradient": "from-indigo-500/20 to-purple-600/20",
+    "border": "border-indigo-500/30 hover:border-indigo-400/50",
+    "taskbarGradient": "from-indigo-500 to-purple-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 600,
+    "defaultHeight": 800,
+    "tags": [
+      "puzzle",
+      "sudoku",
+      "logic",
+      "numbers",
+      "classic"
+    ],
+    "related": [
+      "minesweeper",
+      "wordle-finder",
+      "calculator"
+    ],
+    "shareCategory": "game",
+    "pwaShortcut": {
+      "name": "Sudoku",
+      "short_name": "Sudoku",
+      "description": "Classic 9×9 Sudoku in your browser"
+    }
+  },
+  {
     "id": "nes",
     "name": "NES 🕹️",
     "shortName": "NES",

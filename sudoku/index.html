@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f172a" />
+    <title>Sudoku 🔢 - Joe Heyming</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔢</text></svg>"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="../back.js"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <meta
+      name="description"
+      content="Play classic 9x9 Sudoku in your browser. Mobile friendly with pencil marks, hints, undo/redo, and auto-check. Free, no ads."
+    />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta
+      name="keywords"
+      content="sudoku, puzzle game, browser game, free, no ads, mobile, pencil marks, hints"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming" />
+    <meta property="og:title" content="Sudoku 🔢" />
+    <meta
+      property="og:description"
+      content="Play classic 9x9 Sudoku in your browser. Mobile friendly with pencil marks, hints, undo/redo, and auto-check."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/sudoku/" />
+    <meta property="og:locale" content="en_US" />
+
+    <link rel="canonical" href="https://joeheyming.github.io/sudoku/" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "VideoGame",
+            "name": "Sudoku",
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Classic 9x9 Sudoku in your browser. Pencil marks, undo/redo, hints, mobile friendly.",
+            "url": "https://joeheyming.github.io/sudoku/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "gamePlatform": "Web Browser",
+            "genre": "Puzzle",
+            "keywords": "sudoku, puzzle, classic game, browser game",
+            "inLanguage": "en"
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <div class="page">
+      <header class="page-header">
+        <h1>🔢 Sudoku</h1>
+        <div class="badges">
+          <span class="badge" id="difficulty-badge">Medium</span>
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <button class="btn primary" id="open-newgame">＋ New Game</button>
+        <button class="btn" id="restart-btn" title="Restart this puzzle">↺ Restart</button>
+        <button class="btn icon-btn" id="undo-btn" title="Undo (Ctrl/Cmd+Z)">↶</button>
+        <button class="btn icon-btn" id="redo-btn" title="Redo (Ctrl/Cmd+Shift+Z)">↷</button>
+        <button class="btn icon-btn" id="hint-btn" title="Hint (H)">💡</button>
+        <button class="btn icon-btn" id="autofill-btn" title="Auto-fill pencil marks">🖊️</button>
+        <button class="btn icon-btn" id="pause-btn" title="Pause">⏸</button>
+      </div>
+
+      <div class="status-bar">
+        <div class="stat">
+          <span class="stat-label">Time</span>
+          <span class="stat-value" id="timer">0:00</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Hints</span>
+          <span class="stat-value" id="hints-count">0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Mistakes</span>
+          <span class="stat-value" id="mistakes-count">0</span>
+        </div>
+      </div>
+
+      <div class="board-wrap">
+        <div class="board" id="board" role="grid" aria-label="Sudoku board"></div>
+        <div class="pause-overlay" id="pause-overlay">
+          <div class="pause-message">
+            <div class="pause-icon">⏸</div>
+            <div>Paused — tap to resume</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="message" id="message" aria-live="polite"></div>
+
+      <div class="numpad" id="numpad" aria-label="Number pad"></div>
+
+      <div class="settings-row">
+        <button class="toggle" id="notes-toggle" aria-pressed="false">
+          <span class="toggle-icon">✏️</span>
+          <span>Notes</span>
+          <span class="kbd">N</span>
+        </button>
+        <button class="toggle" id="auto-check" aria-pressed="true">
+          <span class="toggle-icon">✓</span>
+          <span>Auto-check</span>
+        </button>
+        <button class="toggle" id="highlight-same" aria-pressed="true">
+          <span class="toggle-icon">🔆</span>
+          <span>Highlight</span>
+        </button>
+        <button class="toggle" id="auto-remove-notes" aria-pressed="true">
+          <span class="toggle-icon">🧽</span>
+          <span>Auto-clean</span>
+        </button>
+      </div>
+
+      <div class="help">
+        <span>Arrows to move • 1–9 to fill • N for notes • H for hint</span>
+        <span class="sep">•</span>
+        <share-button label="📤 Share" theme="dark"></share-button>
+      </div>
+    </div>
+
+    <!-- New Game Modal -->
+    <div class="modal" id="newgame-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>New Game</h2>
+          <button class="modal-close" data-close-modal="newgame-modal">×</button>
+        </div>
+        <form id="newgame-form" class="modal-body">
+          <fieldset class="field-group">
+            <legend>Difficulty</legend>
+            <div class="radio-group">
+              <label class="radio-pill">
+                <input type="radio" name="difficulty" value="easy" />
+                <span>Easy</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="difficulty" value="medium" checked />
+                <span>Medium</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="difficulty" value="hard" />
+                <span>Hard</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="difficulty" value="expert" />
+                <span>Expert</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <div class="form-buttons">
+            <button type="button" class="btn" data-close-modal="newgame-modal">Cancel</button>
+            <button type="submit" class="btn primary">Start</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script type="module" src="sudoku.js"></script>
+  </body>
+</html>
