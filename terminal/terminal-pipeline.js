@@ -1,11 +1,32 @@
+/**
+ * Top-level pipeline orchestrator for jsh.
+ *
+ * Owns the public `processCommand` entry point and the close cohort that
+ * lives next to it: shell-function invocation, `$(...)` substitution,
+ * inner-pipeline capture (used by both substitution and subshells), the
+ * pipe-stage executor, and the single-command dispatcher.
+ *
+ * Less central concerns are split into sibling method bags and mixed
+ * onto this class at the bottom of the file:
+ *   - **terminal-parser.js**   — history expansion, tokenizer, segment parser
+ *   - **terminal-redirect.js** — `>`/`>>`/`<` redirection, heredoc, `js` eval, background jobs
+ *   - **terminal-help.js**     — `help` builtin and the catalog renderer
+ *
+ * `terminal.js` mixes this class onto `Terminal.prototype` once via
+ * `mixinPrototype`, which carries the sibling methods along for the ride.
+ */
+
 import { commandRegistry } from './commands.js';
 import { ShellCore } from './lib/shell-core.js';
 import { VfsUtils } from './lib/vfs-utils.js';
+import { parserMethods } from './terminal-parser.js';
+import { redirectMethods } from './terminal-redirect.js';
+import { helpMethods } from './terminal-help.js';
+
 export class TerminalPipelineMixin {
   async processCommand(command) {
     if (command.trim() === '') return '';
 
-    // Check if commands are loaded
     if (!this.commandsLoaded) {
       this.lastExitCode = 1;
       this.addOutput('Terminal is still loading commands, please wait...', {
@@ -14,17 +35,14 @@ export class TerminalPipelineMixin {
       return '';
     }
 
-    // Check if filesystem is ready
     if (!this.filesystemReady) {
       this.lastExitCode = 1;
       this.addOutput('Filesystem is still initializing, please wait...', { outputClass: 'stderr' });
       return '';
     }
 
-    // Handle history expansion
     const expandedCommand = this.expandHistory(command);
     if (expandedCommand !== command) {
-      // Show the expanded command
       this.addOutput(`${expandedCommand}`);
     }
 
@@ -51,7 +69,6 @@ export class TerminalPipelineMixin {
       return '';
     }
 
-    // Parse command lists (`&&` / `||` / `;`), then pipes + redirections per segment
     const split = ShellCore.splitShellList(substituted);
     if (split.ok === false) {
       this.lastExitCode = 2;
@@ -277,190 +294,6 @@ export class TerminalPipelineMixin {
     return String(captured).replace(/\n+$/, '');
   }
 
-  // Expand history (!!, !n, etc.)
-  expandHistory(command) {
-    // Handle !! (repeat last command)
-    if (command.trim() === '!!') {
-      if (this.commandHistory.length === 0) {
-        throw new Error('jsh: !!: event not found');
-      }
-      return this.commandHistory[this.commandHistory.length - 1];
-    }
-
-    // Handle !n (repeat command number n)
-    const historyMatch = command.match(/^!(\d+)$/);
-    if (historyMatch) {
-      const historyNumber = parseInt(historyMatch[1]);
-      if (historyNumber < 1 || historyNumber > this.commandHistory.length) {
-        throw new Error(`jsh: !${historyNumber}: event not found`);
-      }
-      return this.commandHistory[historyNumber - 1];
-    }
-
-    // Handle !string (repeat last command starting with string)
-    const stringMatch = command.match(/^!([a-zA-Z].*)$/);
-    if (stringMatch) {
-      const searchString = stringMatch[1];
-      for (let i = this.commandHistory.length - 1; i >= 0; i--) {
-        if (this.commandHistory[i].startsWith(searchString)) {
-          return this.commandHistory[i];
-        }
-      }
-      throw new Error(`jsh: !${searchString}: event not found`);
-    }
-
-    return command;
-  }
-
-  parseCommand(command) {
-    // Split by pipes first
-    const pipeSegments = command.split('|').map((seg) => seg.trim());
-
-    const commandChain = [];
-
-    for (let segment of pipeSegments) {
-      const cmd = this.parseSegment(segment);
-      commandChain.push(cmd);
-    }
-
-    return commandChain;
-  }
-
-  parseSegment(segment) {
-    const tokens = ShellCore.mergeRedirectDupStderrTokens(this.tokenize(segment));
-    const cmd = {
-      name: '',
-      args: [],
-      redirections: {
-        stdout: null,
-        stderr: null,
-        stdin: null,
-        append: false,
-        stderrToStdout: false
-      }
-    };
-
-    let i = 0;
-    while (i < tokens.length) {
-      const token = tokens[i];
-
-      if (token === '>') {
-        if (i + 1 < tokens.length) {
-          const raw = tokens[i + 1];
-          if (ShellCore.isEmptyRedirectTarget(raw)) {
-            throw new Error('Syntax error: empty redirect target');
-          }
-          cmd.redirections.stdout = ShellCore.normalizeRedirectFilename(raw);
-          cmd.redirections.append = false;
-          i += 2;
-        } else {
-          throw new Error('Syntax error: expected filename after >');
-        }
-      } else if (token === '>>') {
-        if (i + 1 < tokens.length) {
-          const raw = tokens[i + 1];
-          if (ShellCore.isEmptyRedirectTarget(raw)) {
-            throw new Error('Syntax error: empty redirect target');
-          }
-          cmd.redirections.stdout = ShellCore.normalizeRedirectFilename(raw);
-          cmd.redirections.append = true;
-          i += 2;
-        } else {
-          throw new Error('Syntax error: expected filename after >>');
-        }
-      } else if (token === '2>') {
-        if (i + 1 < tokens.length) {
-          const raw = tokens[i + 1];
-          if (ShellCore.isEmptyRedirectTarget(raw)) {
-            throw new Error('Syntax error: empty redirect target');
-          }
-          cmd.redirections.stderr = ShellCore.normalizeRedirectFilename(raw);
-          i += 2;
-        } else {
-          throw new Error('Syntax error: expected filename after 2>');
-        }
-      } else if (token === '2>&1') {
-        cmd.redirections.stderrToStdout = true;
-        i += 1;
-      } else if (token === '<') {
-        if (i + 1 < tokens.length) {
-          const raw = tokens[i + 1];
-          if (ShellCore.isEmptyRedirectTarget(raw)) {
-            throw new Error('Syntax error: empty redirect target');
-          }
-          cmd.redirections.stdin = ShellCore.normalizeRedirectFilename(raw);
-          i += 2;
-        } else {
-          throw new Error('Syntax error: expected filename after <');
-        }
-      } else {
-        // Regular argument
-        if (cmd.name === '') {
-          cmd.name = token;
-        } else {
-          cmd.args.push(token);
-        }
-        i++;
-      }
-    }
-
-    return cmd;
-  }
-
-  tokenize(segment) {
-    const tokens = [];
-    let current = '';
-    let inQuotes = false;
-    let quoteChar = '';
-
-    for (let i = 0; i < segment.length; i++) {
-      const char = segment[i];
-
-      if ((char === '"' || char === "'") && !inQuotes) {
-        inQuotes = true;
-        quoteChar = char;
-      } else if (char === quoteChar && inQuotes) {
-        inQuotes = false;
-        quoteChar = '';
-      } else if (!inQuotes && /\s/.test(char)) {
-        if (current) {
-          tokens.push(current);
-          current = '';
-        }
-      } else if (!inQuotes && (char === '>' || char === '<')) {
-        if (current) {
-          tokens.push(current);
-          current = '';
-        }
-
-        // Handle >> and 2>
-        if (char === '>' && i + 1 < segment.length && segment[i + 1] === '>') {
-          tokens.push('>>');
-          i++;
-        } else if (char === '>' && i > 0 && segment[i - 1] === '2') {
-          // Remove the '2' from the last token and add '2>'
-          if (tokens.length > 0 && tokens[tokens.length - 1].endsWith('2')) {
-            const lastToken = tokens.pop();
-            if (lastToken.length > 1) {
-              tokens.push(lastToken.slice(0, -1));
-            }
-          }
-          tokens.push('2>');
-        } else {
-          tokens.push(char);
-        }
-      } else {
-        current += char;
-      }
-    }
-
-    if (current) {
-      tokens.push(current);
-    }
-
-    return tokens;
-  }
-
   async executeCommandChain(commandChain) {
     let input = '';
     let displayStdout = '';
@@ -475,7 +308,6 @@ export class TerminalPipelineMixin {
       const isLastCommand = i === commandChain.length - 1;
 
       try {
-        // Handle stdin redirection (follow symlinks to regular files)
         if (cmd.redirections.stdin) {
           const resolved = await VfsUtils.vfsFollowSymlinksToFile(
             this,
@@ -490,7 +322,6 @@ export class TerminalPipelineMixin {
           input = VfsUtils.fileItemUtf8ForDisplay(resolved.file).text;
         }
 
-        // Execute the command
         const result = await this.executeSingleCommand(cmd, input, { stdinFromPipe: i > 0 });
         chainLastExit = result.exitCode ?? 0;
         if (chainLastExit !== 0) pipefailExit = chainLastExit;
@@ -581,19 +412,15 @@ export class TerminalPipelineMixin {
       return await this.invokeShellFunction(cmd.name, fnBody, cmd.args || [], stdin, options);
     }
 
-    // Check for aliases first
     if (this.aliases[cmdName]) {
       const aliasCommand = this.aliases[cmdName];
-      // Simple alias expansion - replace command name with alias value
       const expandedArgs = aliasCommand.split(' ').concat(cmd.args);
       cmdName = expandedArgs[0].toLowerCase();
       cmd.args = expandedArgs.slice(1);
     }
 
-    // Expand glob patterns (* and ?) in arguments
     cmd.args = await this.expandGlobs(cmd.args);
 
-    // Special case for help command
     if (cmdName === 'help') {
       const h = this.helpCommand(cmd.args);
       return this.commandResult(h.stdout, h.stderr, h.exitCode);
@@ -605,7 +432,6 @@ export class TerminalPipelineMixin {
         const filePath = this.resolvePath(cmdName);
         let file = await this.getFileSystemItem(filePath);
 
-        // Follow symlink chains so /path/to/symlink resolves to the target
         if (file && file.type === 'symlink') {
           const resolved = await VfsUtils.vfsFollowSymlinksToAny(this, filePath);
           file = resolved.ok ? resolved.item : null;
@@ -614,7 +440,6 @@ export class TerminalPipelineMixin {
         if (file && file.type === 'file') {
           const actualCmd = cmdName.split('/').pop().toLowerCase();
 
-          // Check if it's an executable file in /bin/
           if (filePath.startsWith('/bin/')) {
             const commandHandler = await commandRegistry.get(actualCmd);
             if (commandHandler) {
@@ -628,7 +453,6 @@ export class TerminalPipelineMixin {
                 const result = commandHandler(terminalContext, cmd.args);
                 const output = result instanceof Promise ? await result : result;
 
-                // Clean up temporary properties
                 delete terminalContext.stdin;
                 delete terminalContext.hasStdin;
                 delete terminalContext.stdinSupplied;
@@ -648,7 +472,6 @@ export class TerminalPipelineMixin {
             }
           }
 
-          // Handle script files (e.g., ./script.js, /path/to/script.sh)
           if (actualCmd.endsWith('.js') || actualCmd.endsWith('.sh') || file.executable) {
             if (actualCmd.endsWith('.js')) {
               const nodeCommand = await commandRegistry.get('node');
@@ -665,17 +488,14 @@ export class TerminalPipelineMixin {
                 );
               }
             } else {
-              // For shell scripts and other executables, show content for now
               const { text, isBinary } = VfsUtils.fileItemUtf8ForDisplay(file);
               const body = isBinary ? '[binary file]' : text || 'File is empty';
               return this.commandResult(`Executing ${filePath}:\n${body}`, '', 0);
             }
           }
 
-          // File exists but is not executable
           return this.commandResult('', `jsh: ${filePath}: Permission denied`, 126);
         } else {
-          // File doesn't exist
           return this.commandResult('', `jsh: ${cmdName}: No such file or directory`, 127);
         }
       } catch (error) {
@@ -684,7 +504,6 @@ export class TerminalPipelineMixin {
       }
     }
 
-    // Try to get command from registry (now async)
     const commandHandler = await commandRegistry.get(cmdName);
     if (commandHandler) {
       const terminalContext = this;
@@ -697,7 +516,6 @@ export class TerminalPipelineMixin {
         const result = commandHandler(terminalContext, cmd.args);
         const output = result instanceof Promise ? await result : result;
 
-        // Clean up temporary properties
         delete terminalContext.stdin;
         delete terminalContext.hasStdin;
         delete terminalContext.stdinSupplied;
@@ -722,359 +540,10 @@ export class TerminalPipelineMixin {
       127
     );
   }
-
-  async executeHeredocCommand() {
-    this.beginBlockingCommandRun();
-    try {
-      try {
-        const content = this.heredocContent.join('\n');
-        const command = this.heredocCommand.toLowerCase();
-
-        // Build complete heredoc command for history
-        const completeHeredoc = `${this.heredocCommand} << ${this.heredocDelimiter}\n${content}\n${this.heredocDelimiter}`;
-
-        // Add complete heredoc to command history
-        if (
-          completeHeredoc &&
-          completeHeredoc !== this.commandHistory[this.commandHistory.length - 1]
-        ) {
-          this.commandHistory.push(completeHeredoc);
-        }
-
-        // Reset heredoc state
-        this.heredocMode = false;
-        this.heredocCommand = null;
-        this.heredocDelimiter = null;
-        this.heredocContent = [];
-
-        // Handle different heredoc commands
-        if (command === 'js' || command === 'node' || command === 'javascript') {
-          const result = await this.executeJavaScriptContent(content);
-          if (result.stdout) {
-            this.addOutput(result.stdout);
-          }
-          if (result.stderr) {
-            this.addOutput(result.stderr, { outputClass: 'stderr' });
-          }
-          this.lastExitCode = result.stderr ? 1 : 0;
-        } else if (command === 'cat') {
-          this.addOutput(content);
-          this.lastExitCode = 0;
-        } else if (command === 'echo') {
-          this.addOutput(content);
-          this.lastExitCode = 0;
-        } else {
-          const result = await this.executeSingleCommand(
-            { name: command, args: [], redirections: {} },
-            content
-          );
-          if (result.stdout) {
-            this.addOutput(result.stdout);
-          }
-          if (result.stderr) {
-            this.addOutput(result.stderr, { outputClass: 'stderr' });
-          }
-          this.lastExitCode = result.exitCode ?? 0;
-        }
-      } catch (error) {
-        if (this.isAbortLikeError(error)) {
-          this.lastExitCode = 130;
-          this.addOutput('^C');
-        } else {
-          this.lastExitCode = 1;
-          this.addOutput(`Error executing heredoc: ${error.message}`, { outputClass: 'stderr' });
-        }
-      }
-    } finally {
-      this.endBlockingCommandRun();
-    }
-
-    this.printPrompt();
-  }
-
-  async executeJavaScriptContent(content) {
-    // Simple JavaScript execution for heredoc content
-    try {
-      let output = '';
-      let errorOutput = '';
-
-      // Override console to capture output
-      const originalConsole = console.log;
-      const originalError = console.error;
-      const originalWarn = console.warn;
-
-      console.log = (...args) => {
-        output += args.join(' ') + '\n';
-      };
-
-      console.error = (...args) => {
-        errorOutput += args.join(' ') + '\n';
-      };
-
-      console.warn = (...args) => {
-        errorOutput += args.join(' ') + '\n';
-      };
-
-      try {
-        // Execute the JavaScript content
-        const func = new Function(content);
-        func();
-      } finally {
-        // Restore original console
-        console.log = originalConsole;
-        console.error = originalError;
-        console.warn = originalWarn;
-      }
-
-      return {
-        stdout: output.trim(),
-        stderr: errorOutput.trim()
-      };
-    } catch (error) {
-      return {
-        stdout: '',
-        stderr: `Error: ${error.message}`
-      };
-    }
-  }
-  async redirectToFile(filename, content, append = false) {
-    const filePath = this.resolvePath(filename);
-
-    try {
-      if (append) {
-        // Read existing content and append
-        const existingFile = await this.getFileSystemItem(filePath);
-        const existingContent =
-          existingFile && existingFile.type === 'file'
-            ? (() => {
-                const d = VfsUtils.fileItemUtf8ForDisplay(existingFile);
-                return d.isBinary ? '' : d.text;
-              })()
-            : '';
-
-        await this.fileSystemDB.createFile(filePath, existingContent + content, true);
-      } else {
-        // Overwrite file
-        await this.fileSystemDB.createFile(filePath, content, true);
-      }
-    } catch (error) {
-      throw new Error(`cannot redirect to '${filename}': ${error.message}`);
-    }
-  }
-  /**
-   * Background job launcher (A5). Runs `segment` as a detached pipeline,
-   * appends an entry to `this.jobs`, and prints `[jobId] PID` to stderr like
-   * bash. State transitions to 'Done' on resolve, 'Error' on reject. The
-   * shell does not block.
-   *
-   * Cooperative only — JS has no preemption, so a tight `while(true)` in a
-   * background job still freezes the tab.
-   *
-   * @param {string} segment
-   */
-  launchBackgroundJob(segment) {
-    if (!this.jobs) this.jobs = [];
-    if (!this._nextJobId) this._nextJobId = 1;
-    const jobId = this._nextJobId++;
-    const startTime = Date.now();
-    /** @type {{jobId:number, command:string, state:string, startTime:number, exitCode?:number, promise:Promise<void>, pid?:number}} */
-    const job = {
-      jobId,
-      command: segment,
-      state: 'Running',
-      startTime,
-      promise: Promise.resolve()
-    };
-    // Register this job in the simulated process table (C20) so `ps`, `top`,
-    // and `kill %pid` can see it. The "process" is a placeholder — its real
-    // work runs cooperatively on the main thread; isolation:false avoids
-    // spinning up a Web Worker.
-    if (this.os && this.os.kernel && this.os.kernel.processManager) {
-      try {
-        const pm = this.os.kernel.processManager;
-        const parentPID = this.process ? this.process.pid : 1;
-        // createProcess is async; for jobs we synchronously claim a PID and
-        // attach the real registration as a follow-up.
-        job.pid = pm.nextPID;
-        const cmdName = String(segment).split(/\s+/)[0] || 'job';
-        pm.createProcess({
-          name: cmdName,
-          executable: '/bin/' + cmdName,
-          args: [],
-          parentPID,
-          uid: this.process ? this.process.uid : 1000,
-          gid: this.process ? this.process.gid : 1000,
-          isolated: false,
-          env: { ...this.env },
-          cwd: this.currentDirectory
-        })
-          .then((proc) => {
-            job.pid = proc.pid;
-            proc._jobId = jobId;
-          })
-          .catch(() => {
-            /* registration best-effort; the job still runs */
-          });
-      } catch (_) {
-        /* ignore */
-      }
-    }
-    this.jobs.push(job);
-    const summary = segment.length > 60 ? segment.slice(0, 57) + '...' : segment;
-    this.addOutput(`[${jobId}] ${job.pid || ''} ${summary}`.trim(), { outputClass: 'stderr' });
-    job.promise = (async () => {
-      try {
-        const split = ShellCore.splitShellList(segment);
-        if (split.ok === false) {
-          throw new Error(split.error);
-        }
-        let innerExit = 0;
-        const { pipelines, ops } = split;
-        let captured = '';
-        for (let i = 0; i < pipelines.length; i++) {
-          const seg = pipelines[i];
-          if (i > 0) {
-            const op = ops[i - 1];
-            if (op === '&&' && innerExit !== 0) continue;
-            if (op === '||' && innerExit === 0) continue;
-          }
-          if (seg.trim() === '') continue;
-          const parsed = this.parseCommand(seg);
-          const { stdout, stderr } = await this.executeCommandChain(parsed);
-          innerExit = this.lastExitCode;
-          if (stdout) captured += (captured ? '\n' : '') + stdout;
-          if (stderr) this.addOutput(stderr, { outputClass: 'stderr' });
-        }
-        if (captured) this.addOutput(captured);
-        job.state = 'Done';
-        job.exitCode = innerExit;
-      } catch (err) {
-        job.state = 'Error';
-        job.exitCode = 1;
-        this.addOutput(`jsh: job [${jobId}] error: ${err.message}`, { outputClass: 'stderr' });
-      } finally {
-        this.addOutput(`[${jobId}]+ ${job.state}\t\t${segment}`, { outputClass: 'stderr' });
-        // Reap the simulated process entry (C20).
-        if (this.os && this.os.kernel && this.os.kernel.processManager && job.pid) {
-          try {
-            await this.os.kernel.processManager.terminateProcess(job.pid, job.exitCode || 0);
-          } catch (_) {
-            /* already gone */
-          }
-        }
-      }
-    })();
-  }
-
-  helpCommand(args = []) {
-    const parsed = ShellCore.parseHelpArgs(args);
-    if (parsed.ok === false) {
-      return { stdout: '', stderr: parsed.stderr, exitCode: parsed.exitCode };
-    }
-    if (parsed.sawHelpFlag) {
-      return { stdout: ShellCore.HELP_USAGE.trim() + '\n', stderr: '', exitCode: 0 };
-    }
-    const rest = parsed.rest;
-    if (rest.length === 1) {
-      const topic = rest[0];
-      const line = this.lookupHelpTopicLine(topic);
-      if (!line) {
-        return {
-          stdout: '',
-          stderr: `help: no help topics match '${topic}'\n`,
-          exitCode: 1
-        };
-      }
-      return { stdout: line.endsWith('\n') ? line : line + '\n', stderr: '', exitCode: 0 };
-    }
-    return { stdout: this.buildFullHelpCatalog(), stderr: '', exitCode: 0 };
-  }
-
-  /**
-   * One-line or short description for `help TOPIC` (includes built-in `help` itself).
-   * @param {string} topic - Operand as typed (preserved for display)
-   * @returns {string|null}
-   */
-  lookupHelpTopicLine(topic) {
-    const key = topic.toLowerCase();
-    if (key === 'help') {
-      return `${ShellCore.HELP_USAGE.trim()}\n\n  (builtin) List all commands or describe one command by name.`;
-    }
-    const all = commandRegistry.getAllCommands();
-    const found = all.find((c) => c.name.toLowerCase() === key);
-    if (!found) {
-      return null;
-    }
-    return `${found.name}: ${found.description}`;
-  }
-
-  buildFullHelpCatalog() {
-    const commandsByCategory = commandRegistry.getCommandsByCategory();
-
-    // Define category emojis and preferred order
-    const categoryEmojis = {
-      'File System': '📁',
-      System: '📊',
-      Apps: '🚀',
-      'Fun Stuff': '🎪',
-      'Speech & Media': '🔊',
-      Other: '🔧'
-    };
-
-    // Preferred category order
-    const categoryOrder = ['File System', 'System', 'Apps', 'Fun Stuff', 'Speech & Media', 'Other'];
-
-    let helpText = 'Available commands:\n\n';
-    helpText += `🧭 Shell:\n  ${'help'.padEnd(
-      12
-    )} - List commands or describe one topic (try "help help")\n\n`;
-
-    // Sort categories by preferred order, then alphabetically for any extras
-    const sortedCategories = Object.keys(commandsByCategory).sort((a, b) => {
-      const aIndex = categoryOrder.indexOf(a);
-      const bIndex = categoryOrder.indexOf(b);
-
-      if (aIndex !== -1 && bIndex !== -1) {
-        return aIndex - bIndex;
-      } else if (aIndex !== -1) {
-        return -1;
-      } else if (bIndex !== -1) {
-        return 1;
-      } else {
-        return a.localeCompare(b);
-      }
-    });
-
-    sortedCategories.forEach((category) => {
-      const commands = commandsByCategory[category];
-      const emoji = categoryEmojis[category] || '🔧';
-
-      helpText += `${emoji} ${category}:\n`;
-
-      commands.forEach((cmd) => {
-        helpText += `  ${cmd.name.padEnd(12)} - ${cmd.description}\n`;
-      });
-      helpText += '\n';
-    });
-
-    helpText += `💡 Pro Tips:
-- Use arrow keys to navigate command history
-- Tab completion works for commands
-- clear/Ctrl+L to clear screen
-- Ctrl+W to delete word backwards
-- Ctrl+U to delete line backwards
-- Ctrl+K to delete line forwards
-- Ctrl+A/E to move to beginning/end of line
-- Ctrl+R for reverse search
-
-🔧 Pipes & Redirection:
-- Use | to pipe output: ls | grep txt
-- Lists: cmd1 && cmd2 (if first succeeds), cmd1 || cmd2 (if first fails), a; b (always run both)
-- Redirect output: echo "hello" > file.txt
-- Append to file: echo "world" >> file.txt
-- Redirect stderr: command 2> error.log
-- Read from file: sort < data.txt`;
-
-    return helpText;
-  }
 }
+
+// Mix in the methods that live in sibling files. They use `this` like
+// regular class methods, but live separately so this file stays focused
+// on the pipeline orchestration. `terminal.js` carries the whole bundle
+// onto `Terminal.prototype` via its existing `mixinPrototype` call.
+Object.assign(TerminalPipelineMixin.prototype, parserMethods, redirectMethods, helpMethods);
