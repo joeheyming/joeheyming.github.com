@@ -8,7 +8,11 @@ const FEATURED_PRESETS = {
   minesweeper: { gradient: 'bg-gradient-to-br from-gray-600 to-gray-700', tone: 'light' },
   awesome: { gradient: 'bg-gradient-to-br from-yellow-400 to-orange-500', tone: 'dark' },
   terminal: { gradient: 'bg-gradient-to-br from-green-600 to-emerald-700', tone: 'light' },
-  countdown: { gradient: 'bg-gradient-to-br from-amber-500 to-orange-600', tone: 'light' }
+  countdown: { gradient: 'bg-gradient-to-br from-amber-500 to-orange-600', tone: 'light' },
+  nes: { gradient: 'bg-gradient-to-br from-stone-700 to-indigo-800', tone: 'light' },
+  stepmania: { gradient: 'bg-gradient-to-br from-pink-500 to-rose-600', tone: 'light' },
+  'wordle-finder': { gradient: 'bg-gradient-to-br from-teal-500 to-cyan-600', tone: 'light' },
+  badapple: { gradient: 'bg-gradient-to-br from-gray-900 to-red-800', tone: 'light' }
 };
 
 // Apps that map to the highest-value search queries get an explicit "popular"

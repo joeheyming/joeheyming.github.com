@@ -15,6 +15,11 @@
 import { createOSEmbed } from '/os-embed.js';
 import { defaultTripName, randomUuid, TRIP_STATUS } from './triplog-constants.js';
 import { openTriplogDb } from './triplog-db.js';
+import {
+  getGeolocationState,
+  getPlatform,
+  onGeolocationStateChange
+} from './triplog-permissions.js';
 import { createTracker } from './triplog-tracker.js';
 import { createLiveMap, createReplayMap } from './triplog-map.js';
 
@@ -148,8 +153,21 @@ function main() {
   const btnTripViewClose = $('btn-trip-view-close');
   /** @type {HTMLButtonElement} */
   const btnTripViewDelete = $('btn-trip-view-delete');
+  /** @type {HTMLElement} */
+  const permissionCard = $('permission-card');
+  /** @type {HTMLElement} */
+  const permissionTitle = $('permission-title');
+  /** @type {HTMLElement} */
+  const permissionBody = $('permission-body');
+  /** @type {HTMLAnchorElement} */
+  const permissionAndroidLink = $('permission-android-link');
+  /** @type {HTMLButtonElement} */
+  const permissionRetryBtn = $('permission-retry');
+  /** @type {HTMLButtonElement} */
+  const permissionDismissBtn = $('permission-dismiss');
 
   const embed = createOSEmbed({ app: 'triplog' });
+  const platform = getPlatform();
 
   /** @type {{
    *   db: Awaited<ReturnType<typeof openTriplogDb>> | null,
@@ -178,6 +196,145 @@ function main() {
     appLoadingEl.hidden = !loading;
     appMainEl.hidden = !ready;
     appErrorEl.hidden = !error;
+  }
+
+  /**
+   * Render plain-English guidance into the permission-help card, then
+   * show it. The card is hidden again whenever permission flips to
+   * granted (via the Permissions API onchange) or when the user taps
+   * Hide / Try again with success.
+   *
+   * @param {'site-blocked' | 'system-off' | 'timeout'} reason
+   */
+  function showPermissionCard(reason) {
+    permissionBody.replaceChildren();
+    permissionAndroidLink.hidden = true;
+
+    /** @param {string} text */
+    const para = (text) => {
+      const p = document.createElement('p');
+      p.textContent = text;
+      return p;
+    };
+
+    /** @param {string[]} items */
+    const steps = (items) => {
+      const ol = document.createElement('ol');
+      ol.className = 'mt-1 list-decimal space-y-0.5 pl-5';
+      for (const t of items) {
+        const li = document.createElement('li');
+        li.textContent = t;
+        ol.appendChild(li);
+      }
+      return ol;
+    };
+
+    if (reason === 'site-blocked') {
+      permissionTitle.textContent = "Trip Log isn't allowed to use your location";
+      if (platform === 'android') {
+        permissionBody.append(
+          para('To fix this on your phone:'),
+          steps([
+            'Tap the lock icon to the left of the address bar.',
+            'Tap "Permissions" (or "Reset permissions").',
+            'Set Location to "Allow" — or tap Reset and reload the page.'
+          ])
+        );
+      } else if (platform === 'ios') {
+        permissionBody.append(
+          para('To fix this in Safari:'),
+          steps([
+            'Tap "AA" in the address bar.',
+            'Tap "Website Settings".',
+            'Set Location to "Allow".'
+          ])
+        );
+      } else {
+        permissionBody.append(
+          para('To fix this in your browser:'),
+          steps([
+            'Click the lock icon to the left of the address bar.',
+            'Change "Location" to "Allow".',
+            'Reload the page.'
+          ])
+        );
+      }
+    } else if (reason === 'system-off') {
+      permissionTitle.textContent = "Your phone's location appears to be off";
+      if (platform === 'android') {
+        permissionBody.append(
+          para(
+            'Turn on Location in your phone, then tap Try again. The button below jumps to the settings page on your phone.'
+          )
+        );
+        permissionAndroidLink.hidden = false;
+      } else if (platform === 'ios') {
+        permissionBody.append(
+          para('To turn it on:'),
+          steps([
+            'Open the Settings app.',
+            'Tap Privacy & Security, then Location Services.',
+            'Make sure Location Services is on at the top.',
+            'Scroll to Safari Websites and choose "While Using the App".'
+          ])
+        );
+      } else {
+        permissionBody.append(
+          para(
+            "Your device's location service appears to be off. Turn it on in your system settings, then come back and tap Try again."
+          )
+        );
+      }
+    } else if (reason === 'timeout') {
+      permissionTitle.textContent = "GPS couldn't get a fix";
+      permissionBody.append(
+        para(
+          'Try moving outside or near a window — indoor GPS is often unreliable. When you have signal, tap Try again.'
+        )
+      );
+    }
+
+    permissionCard.hidden = false;
+  }
+
+  function hidePermissionCard() {
+    permissionCard.hidden = true;
+  }
+
+  /**
+   * Re-check whether we can get a fix. Used by the "Try again" button.
+   * If permission is granted and the device returns a position, the
+   * card is hidden. Otherwise we re-show the right card based on the
+   * new error.
+   */
+  function recheckLocation() {
+    if (!('geolocation' in navigator)) {
+      return;
+    }
+    setStatus(statusEl, 'Checking location…');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        hidePermissionCard();
+        setStatus(statusEl, '');
+        state.liveMap?.showInitialPosition({
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          zoom: 15
+        });
+      },
+      (err) => {
+        setStatus(statusEl, '');
+        if (err.code === 1) {
+          showPermissionCard('site-blocked');
+        } else if (err.code === 2) {
+          showPermissionCard('system-off');
+        } else {
+          showPermissionCard('timeout');
+        }
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10_000 }
+    );
   }
 
   function ensureLiveMap() {
@@ -389,11 +546,19 @@ function main() {
           applyStatsToUi(stats);
         },
         onError: (err) => {
-          const msg =
-            'code' in err && err.code === 1
-              ? 'Location permission denied. Allow location and tap Start again.'
-              : err.message || 'GPS error';
-          setStatus(statusEl, msg, true);
+          const code = 'code' in err ? err.code : 0;
+          if (code === 1) {
+            showPermissionCard('site-blocked');
+            setStatus(statusEl, '');
+          } else if (code === 2) {
+            showPermissionCard('system-off');
+            setStatus(statusEl, '');
+          } else if (code === 3) {
+            showPermissionCard('timeout');
+            setStatus(statusEl, '');
+          } else {
+            setStatus(statusEl, err.message || 'GPS error', true);
+          }
         }
       });
       state.tracker = tracker;
@@ -501,6 +666,22 @@ function main() {
       ensureLiveMap();
       tryShowInitialPosition();
       await refreshTripsList();
+
+      // Preemptively check permission so we can show the help card
+      // before the user even taps Start. Subscribe to changes so
+      // flipping it from site settings in another tab hides the card
+      // automatically — no manual reload required.
+      const initialState = await getGeolocationState();
+      if (initialState === 'denied') {
+        showPermissionCard('site-blocked');
+      }
+      onGeolocationStateChange((s) => {
+        if (s === 'granted') {
+          hidePermissionCard();
+        } else if (s === 'denied') {
+          showPermissionCard('site-blocked');
+        }
+      });
     } catch (err) {
       console.error('[triplog] init', err);
       const msg = err instanceof Error ? err.message : String(err);
@@ -529,6 +710,9 @@ function main() {
   btnTripViewClose.addEventListener('click', () => closeTripView());
   btnTripViewDelete.addEventListener('click', () => void deleteCurrentReplayTrip());
   tripViewDialog.addEventListener('close', () => closeTripView());
+
+  permissionRetryBtn.addEventListener('click', () => recheckLocation());
+  permissionDismissBtn.addEventListener('click', () => hidePermissionCard());
 
   // Best-effort flush if the user closes the tab mid-recording. The
   // browser kills async work fast on unload, so this is best-effort

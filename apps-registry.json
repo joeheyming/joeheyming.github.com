@@ -339,7 +339,7 @@
     "detailedDescription": "For those disappointing moments",
     "icon": "🎺",
     "path": "./sadtrombone/",
-    "category": "utility",
+    "category": "entertainment",
     "gradient": "from-amber-500/20 to-yellow-500/20",
     "border": "border-amber-500/30 hover:border-amber-400/50",
     "taskbarGradient": "from-amber-400 to-yellow-500",
@@ -359,7 +359,7 @@
     "detailedDescription": "Text-to-speech greetings",
     "icon": "👋",
     "path": "./sayhello/",
-    "category": "utility",
+    "category": "entertainment",
     "gradient": "from-purple-500/20 to-indigo-500/20",
     "border": "border-purple-500/30 hover:border-purple-400/50",
     "taskbarGradient": "from-purple-500 to-indigo-500",
@@ -401,7 +401,7 @@
     "name": "Stepmania 💃",
     "shortName": "Stepmania",
     "description": "Rhythm game excellence",
-    "detailedDescription": "Rhythm game experience",
+    "detailedDescription": "Browser StepMania — scrolling arrows, your own songs, keyboard or dance pad. Bring a .sm chart or pick from the built-in pack.",
     "icon": "💃",
     "path": "./stepmania/",
     "category": "game",
@@ -411,7 +411,15 @@
     "border": "border-pink-500/30 hover:border-pink-400/50",
     "taskbarGradient": "from-pink-500 to-rose-500",
     "taskbarText": "text-white",
+    "tags": [
+      "rhythm",
+      "music",
+      "dance",
+      "popular"
+    ],
     "related": [
+      "accordion-hero",
+      "play",
       "awesome",
       "doom",
       "nes"
@@ -421,6 +429,14 @@
       "name": "StepMania",
       "short_name": "StepMania",
       "description": "Rhythm game in your browser"
+    },
+    "featured": {
+      "order": 8,
+      "headline": "StepMania",
+      "blurb": "Browser rhythm game — scrolling arrows, your own songs, keyboard or dance pad.",
+      "tagsLine": "🕹️ Game • 🎵 Rhythm",
+      "preset": "stepmania",
+      "analyticsLabel": "StepMania"
     }
   },
   {
@@ -428,7 +444,7 @@
     "name": "Wordle Finder 🔤",
     "shortName": "Wordle",
     "description": "Word puzzle solving tools",
-    "detailedDescription": "Wordle puzzle solver",
+    "detailedDescription": "Wordle solver and word explorer — filter by greens, yellows, and grays. Anagram and pattern search built in.",
     "icon": "🔤",
     "path": "./wordle-finder/",
     "category": "utility",
@@ -439,6 +455,13 @@
     "taskbarGradient": "from-teal-500 to-cyan-500",
     "taskbarText": "text-white",
     "desktopIcon": true,
+    "tags": [
+      "wordle",
+      "words",
+      "puzzle",
+      "solver",
+      "popular"
+    ],
     "related": [
       "minesweeper",
       "terminal",
@@ -450,6 +473,14 @@
       "name": "Wordle Finder",
       "short_name": "Wordle",
       "description": "Find Wordle solutions"
+    },
+    "featured": {
+      "order": 9,
+      "headline": "Wordle Finder",
+      "blurb": "Wordle solver and word explorer — filter by greens, yellows, and grays.",
+      "tagsLine": "🔤 Words • 🧠 Puzzle",
+      "preset": "wordle-finder",
+      "analyticsLabel": "Wordle Finder"
     }
   },
   {
@@ -506,27 +537,45 @@
   },
   {
     "id": "badapple",
-    "name": "Bad Apple",
+    "name": "Bad Apple 🍎",
     "shortName": "Bad Apple",
-    "description": "Bad Apple",
-    "detailedDescription": "Bad Apple",
+    "description": "ASCII-art Bad Apple animation",
+    "detailedDescription": "The Touhou meme rendered as a 6,500-frame ASCII animation, synced to the music. Click play and watch your browser do the impossible.",
     "icon": "🍎",
     "path": "./badapple/",
     "category": "entertainment",
-    "gradient": "from-red-500/20 to-pink-500/20",
+    "defaultWidth": 900,
+    "defaultHeight": 720,
+    "gradient": "from-gray-800/20 to-red-700/20",
     "border": "border-red-500/30 hover:border-red-400/50",
-    "taskbarGradient": "from-red-500 to-pink-500",
+    "taskbarGradient": "from-gray-800 to-red-700",
     "taskbarText": "text-white",
+    "tags": [
+      "ascii",
+      "animation",
+      "meme",
+      "touhou",
+      "music"
+    ],
     "related": [
       "awesome",
       "shadowbox",
-      "pbs"
+      "pbs",
+      "terminal"
     ],
     "shareCategory": "entertainment",
     "pwaShortcut": {
       "name": "Bad Apple",
       "short_name": "Bad Apple",
       "description": "Bad Apple ASCII animation"
+    },
+    "featured": {
+      "order": 10,
+      "headline": "Bad Apple",
+      "blurb": "The Touhou meme as a 6,500-frame ASCII animation, synced to the music.",
+      "tagsLine": "🎉 Fun • 🍎 Meme",
+      "preset": "badapple",
+      "analyticsLabel": "Bad Apple"
     }
   },
   {
@@ -832,23 +881,45 @@
   },
   {
     "id": "nes",
-    "name": "NES",
+    "name": "NES 🕹️",
     "shortName": "NES",
-    "description": "NES emulator",
-    "detailedDescription": "NES emulator",
+    "description": "Classic Nintendo emulator",
+    "detailedDescription": "Play classic NES games right in your browser. Save states, ROM browser, gamepad support — bring your own .nes ROM, or pick from the built-in collection.",
     "icon": "🕹️",
     "path": "./nes/",
     "category": "game",
+    "defaultWidth": 1024,
+    "defaultHeight": 768,
+    "gradient": "from-stone-600/20 to-indigo-700/20",
+    "border": "border-stone-500/30 hover:border-stone-400/50",
+    "taskbarGradient": "from-stone-600 to-indigo-700",
+    "taskbarText": "text-white",
+    "tags": [
+      "retro",
+      "emulator",
+      "nintendo",
+      "8-bit",
+      "popular"
+    ],
     "related": [
       "doom",
       "pacman",
-      "stepmania"
+      "stepmania",
+      "minesweeper"
     ],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "NES Emulator",
       "short_name": "NES",
       "description": "Play NES games in your browser"
+    },
+    "featured": {
+      "order": 7,
+      "headline": "NES Emulator",
+      "blurb": "Classic Nintendo in your browser. Save states, ROM browser, gamepad support.",
+      "tagsLine": "🕹️ Game • 🎮 Retro",
+      "preset": "nes",
+      "analyticsLabel": "NES"
     }
   },
   {
