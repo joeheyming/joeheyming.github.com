@@ -132,11 +132,18 @@ function initErrorTracking() {
     'error',
     function (event) {
       if (event.target !== window) {
+        const resource = event.target.src || event.target.href || 'Unknown resource';
+        const tagName = event.target.tagName || 'Unknown';
+        // Reduce a full URL to the host + last path segment so labels stay
+        // under GA's ~100-char cap while still being triagable. We get one
+        // bucket per (tag, host, file) instead of one giant bucket for
+        // every resource error on the site.
+        const shortResource = summarizeResourceUrl(resource);
         trackError({
           type: 'resource_error',
-          message: 'Failed to load resource',
-          resource: event.target.src || event.target.href || 'Unknown resource',
-          tagName: event.target.tagName,
+          message: `Failed to load ${tagName}: ${shortResource}`,
+          resource: resource,
+          tagName: tagName,
           url: window.location.href,
           timestamp: new Date().toISOString()
         });
@@ -144,6 +151,21 @@ function initErrorTracking() {
     },
     true
   );
+}
+
+// Collapse a resource URL into "host/lastSegment" (or the raw value if it
+// isn't parseable) so resource_error labels are distinguishable in GA
+// without blowing past the label length limit.
+function summarizeResourceUrl(resource) {
+  if (!resource || typeof resource !== 'string') return 'unknown';
+  try {
+    const u = new URL(resource, window.location.href);
+    const segments = u.pathname.split('/').filter(Boolean);
+    const tail = segments.length ? segments[segments.length - 1] : '/';
+    return `${u.host}/${tail}`;
+  } catch (_) {
+    return resource.slice(0, 80);
+  }
 }
 
 // Function to manually track errors with enhanced context

@@ -210,6 +210,38 @@ export async function appendRow(spreadsheetId, range, row, accessToken) {
   return res.json();
 }
 
+/**
+ * Like {@link appendRow} but writes many rows in a single API call. Prefer this
+ * when you have buffered data (e.g. streamed GPS samples) so you don't blow
+ * through the per-minute write quota.
+ *
+ * @param {string} spreadsheetId
+ * @param {string} range
+ * @param {unknown[][]} rows
+ * @param {string} accessToken
+ */
+export async function appendRows(spreadsheetId, range, rows, accessToken) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return null;
+  }
+  const enc = encodeURIComponent(range);
+  const url = `${API}/${encodeURIComponent(
+    spreadsheetId
+  )}/values/${enc}:append?valueInputOption=USER_ENTERED`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ values: rows })
+  });
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+  return res.json();
+}
+
 export function a1ColumnLetter(zeroBasedCol) {
   let n = zeroBasedCol + 1;
   let s = '';

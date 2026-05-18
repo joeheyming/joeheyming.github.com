@@ -8,6 +8,7 @@ import { SITE_SPREADSHEET_DOCUMENT_TITLE } from './site-config.js';
 import {
   a1Range,
   appendRow as apiAppendRow,
+  appendRows as apiAppendRows,
   createSheetTab,
   createSpreadsheet,
   deleteSheetRow,
@@ -179,6 +180,20 @@ export class SiteDatabase {
   async appendTableRow(tableName, rangeSuffix, row) {
     const range = a1Range(tableName, rangeSuffix);
     await apiAppendRow(this._workbookId, range, row, await this.#token());
+  }
+
+  /**
+   * Batched variant of {@link appendTableRow}. No-op for empty input.
+   * @param {string} tableName
+   * @param {string} rangeSuffix e.g. `A:H`
+   * @param {unknown[][]} rows
+   */
+  async appendTableRows(tableName, rangeSuffix, rows) {
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return;
+    }
+    const range = a1Range(tableName, rangeSuffix);
+    await apiAppendRows(this._workbookId, range, rows, await this.#token());
   }
 
   /**

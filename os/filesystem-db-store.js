@@ -14,8 +14,39 @@ export function applyFileSystemDbStore(FileSystemDB) {
         };
 
         request.onsuccess = () => {
-          this.db = request.result;
+          const db = request.result;
+          this.db = db;
           this.isInitialized = true;
+
+          // Another tab opened the same DB at a newer version. If we hold
+          // the connection open the upgrade hangs there and every
+          // subsequent transaction on *our* side throws InvalidStateError
+          // ("transaction on a closed database"). Close cleanly and drop
+          // our cached handle so the next call lazily re-initializes.
+          db.onversionchange = () => {
+            FileSystemDB._debug('IndexedDB versionchange — closing connection');
+            try {
+              db.close();
+            } catch (_) {
+              /* already closed */
+            }
+            if (this.db === db) {
+              this.db = null;
+              this.isInitialized = false;
+            }
+          };
+
+          // Fires when the connection closes abnormally (storage cleared,
+          // DB deleted from devtools, OS quota hit). Same reset so the
+          // next transaction re-opens instead of throwing on a dead handle.
+          db.onclose = () => {
+            FileSystemDB._debug('IndexedDB connection closed unexpectedly');
+            if (this.db === db) {
+              this.db = null;
+              this.isInitialized = false;
+            }
+          };
+
           FileSystemDB._debug('IndexedDB filesystem initialized');
           resolve();
         };
@@ -44,6 +75,7 @@ export function applyFileSystemDbStore(FileSystemDB) {
 
     // Get metadata
     async getMetadata(key) {
+      if (!this.isInitialized) await this.initialize();
       return new Promise((resolve, reject) => {
         const transaction = this.db.transaction(['metadata'], 'readonly');
         const store = transaction.objectStore('metadata');
@@ -58,6 +90,7 @@ export function applyFileSystemDbStore(FileSystemDB) {
 
     // Set metadata
     async setMetadata(key, value) {
+      if (!this.isInitialized) await this.initialize();
       return new Promise((resolve, reject) => {
         const transaction = this.db.transaction(['metadata'], 'readwrite');
         const store = transaction.objectStore('metadata');

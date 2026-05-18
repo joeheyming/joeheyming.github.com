@@ -405,8 +405,16 @@ $('resetConfirmBtn').addEventListener('click', async () => {
 
 $('canvas').addEventListener('click', () => {
   if (!LC.isRunning()) return;
-  if (document.pointerLockElement === $('canvas')) return;
-  if ($('canvas').requestPointerLock) $('canvas').requestPointerLock();
+  const c = $('canvas');
+  if (document.pointerLockElement === c) return;
+  if (!c.requestPointerLock) return;
+  // requestPointerLock() returns a Promise in modern browsers. The benign
+  // rejections (user hit ESC mid-request, "Pointer lock cannot be acquired
+  // immediately after the user gesture" cooldown, "Pointer is already
+  // locked" race on a double-click) are not actionable — swallow them so
+  // they don't show up in GA as unhandledrejection noise.
+  const p = c.requestPointerLock();
+  if (p && typeof p.catch === 'function') p.catch(() => {});
 });
 
 (function startStallMonitor() {
