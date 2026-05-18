@@ -1,0 +1,363 @@
+/* Weather — custom styles on top of Tailwind CDN. Keeps the same visual
+   language as /stock so the two apps feel like a set. */
+
+:root {
+  --warm: #fb923c;
+  --cool: #38bdf8;
+  --flat: #94a3b8;
+}
+
+body {
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+}
+
+/* Toggle (units, auto-refresh). */
+.tool-btn {
+  font-size: 0.78rem;
+  padding: 0.32rem 0.6rem;
+  border-radius: 0.4rem;
+  border: 1px solid rgb(51 65 85);
+  background: rgb(15 23 42 / 0.6);
+  color: rgb(203 213 225);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.tool-btn:hover {
+  background: rgb(30 41 59);
+  border-color: rgb(71 85 105);
+}
+.tool-btn.active {
+  background: rgb(56 189 248);
+  color: rgb(2 6 23);
+  border-color: rgb(56 189 248);
+  font-weight: 600;
+}
+
+/* Search suggestions popover. */
+.suggestion-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid rgb(30 41 59);
+}
+.suggestion-row:last-child {
+  border-bottom: none;
+}
+.suggestion-row:hover,
+.suggestion-row.hl {
+  background: rgb(30 41 59);
+}
+.suggestion-row .place {
+  font-weight: 600;
+  color: rgb(248 250 252);
+}
+.suggestion-row .region {
+  color: rgb(148 163 184);
+  font-size: 0.8rem;
+  margin-top: 0.05rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 16rem;
+}
+.suggestion-row .country {
+  font-size: 0.7rem;
+  color: rgb(100 116 139);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Location tiles. The active tile gets a sky-blue ring. */
+.weather-tile {
+  background: rgb(15 23 42 / 0.6);
+  border: 1px solid rgb(30 41 59);
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  position: relative;
+  cursor: pointer;
+  transition:
+    transform 0.12s,
+    border-color 0.15s,
+    background 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-height: 8.5rem;
+}
+.weather-tile:hover {
+  border-color: rgb(71 85 105);
+  transform: translateY(-1px);
+}
+.weather-tile.active {
+  border-color: rgb(56 189 248);
+  box-shadow: 0 0 0 2px rgb(56 189 248 / 0.15);
+  background: rgb(8 47 73 / 0.4);
+}
+.weather-tile .tile-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.weather-tile .tile-name {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  font-size: 0.98rem;
+}
+.weather-tile .tile-region {
+  font-size: 0.72rem;
+  color: rgb(148 163 184);
+  margin-top: 0.1rem;
+}
+.weather-tile .tile-close {
+  color: rgb(100 116 139);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0.2rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.weather-tile .tile-close:hover {
+  color: rgb(248 113 113);
+}
+.weather-tile .tile-temp {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.weather-tile .tile-cond {
+  font-size: 0.85rem;
+  color: rgb(203 213 225);
+}
+.weather-tile .tile-cond .emoji {
+  font-size: 1.1rem;
+  margin-right: 0.25rem;
+}
+.weather-tile .tile-range {
+  font-size: 0.72rem;
+  color: rgb(148 163 184);
+  margin-top: auto;
+}
+.weather-tile .tile-error {
+  font-size: 0.78rem;
+  color: rgb(252 165 165);
+}
+
+/* Hourly horizontal scroller. */
+.hour-strip {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.4rem;
+  scroll-snap-type: x mandatory;
+}
+.hour-cell {
+  flex: 0 0 auto;
+  min-width: 4.5rem;
+  background: rgb(15 23 42 / 0.6);
+  border: 1px solid rgb(30 41 59);
+  border-radius: 0.6rem;
+  padding: 0.5rem 0.4rem;
+  text-align: center;
+  scroll-snap-align: start;
+}
+.hour-cell .hr {
+  font-size: 0.72rem;
+  color: rgb(148 163 184);
+}
+.hour-cell .emoji {
+  font-size: 1.2rem;
+  margin: 0.15rem 0;
+}
+.hour-cell .temp {
+  font-weight: 600;
+}
+.hour-cell .pop {
+  font-size: 0.68rem;
+  color: rgb(56 189 248);
+  margin-top: 0.15rem;
+}
+.hour-cell .pop.dry {
+  color: rgb(100 116 139);
+}
+
+/* Daily forecast rows. */
+.day-row {
+  display: grid;
+  grid-template-columns: 5.5rem 2rem 1fr 5rem;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid rgb(30 41 59);
+}
+.day-row:last-child {
+  border-bottom: none;
+}
+.day-row .day-name {
+  color: rgb(226 232 240);
+  font-size: 0.9rem;
+}
+.day-row .day-emoji {
+  font-size: 1.25rem;
+  text-align: center;
+}
+.day-row .temp-bar {
+  position: relative;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: rgb(30 41 59);
+  overflow: hidden;
+}
+.day-row .temp-bar-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, var(--cool), var(--warm));
+  border-radius: 999px;
+}
+.day-row .day-range {
+  text-align: right;
+  font-size: 0.85rem;
+  color: rgb(226 232 240);
+  font-variant-numeric: tabular-nums;
+}
+.day-row .day-range .lo {
+  color: rgb(148 163 184);
+  margin-right: 0.4rem;
+}
+
+/* Big detail card. */
+.detail-card {
+  background: linear-gradient(180deg, rgb(8 47 73 / 0.6), rgb(15 23 42 / 0.7));
+  border: 1px solid rgb(30 41 59);
+  border-radius: 1rem;
+  padding: 1.1rem 1.2rem;
+}
+.detail-card .place {
+  font-size: 0.95rem;
+  color: rgb(148 163 184);
+}
+.detail-card .place strong {
+  color: rgb(248 250 252);
+  font-weight: 600;
+}
+.detail-card .now {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 0.4rem;
+}
+.detail-card .now .emoji {
+  font-size: 3.5rem;
+  line-height: 1;
+}
+.detail-card .now .temp {
+  font-size: 3.2rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.detail-card .now .cond {
+  font-size: 1rem;
+  color: rgb(203 213 225);
+  margin-top: 0.2rem;
+}
+.detail-card .now .feels {
+  font-size: 0.8rem;
+  color: rgb(148 163 184);
+}
+.detail-card .stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem 1rem;
+  margin-top: 0.95rem;
+}
+@media (min-width: 640px) {
+  .detail-card .stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.detail-card .stat {
+  background: rgb(2 6 23 / 0.45);
+  border: 1px solid rgb(30 41 59);
+  border-radius: 0.55rem;
+  padding: 0.5rem 0.65rem;
+}
+.detail-card .stat .lbl {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgb(148 163 184);
+}
+.detail-card .stat .val {
+  font-size: 1rem;
+  color: rgb(226 232 240);
+  margin-top: 0.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Empty state. */
+.empty-card {
+  background: rgb(15 23 42 / 0.5);
+  border: 1px dashed rgb(51 65 85);
+  border-radius: 0.85rem;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+.empty-card .icon {
+  font-size: 3rem;
+}
+.empty-card .suggested {
+  background: rgb(30 41 59);
+  border: 1px solid rgb(51 65 85);
+  color: rgb(226 232 240);
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.6rem;
+  margin: 0.15rem 0.2rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.empty-card .suggested:hover {
+  background: rgb(51 65 85);
+  color: rgb(248 250 252);
+}
+
+/* Section headings inside the detail view. */
+.section-h {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgb(148 163 184);
+  margin: 1rem 0 0.4rem;
+}
+
+/* Toast container reuses the same look as the stock app. */
+.toast {
+  background: rgb(15 23 42);
+  border: 1px solid rgb(51 65 85);
+  color: rgb(226 232 240);
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.85rem;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+}
+.toast.error {
+  border-color: rgb(239 68 68);
+  color: rgb(254 226 226);
+}

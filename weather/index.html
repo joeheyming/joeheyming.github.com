@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link
+      rel="icon"
+      id="site-favicon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌤️</text></svg>"
+    />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <title>🌤️ Weather — Forecast by City or ZIP | Joe Heyming</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta
+      name="description"
+      content="Browser weather dashboard. Add cities or ZIP codes, see current conditions, 48-hour forecast, and 7-day outlook. No sign-up, no ads."
+    />
+
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="theme-color" content="#082f49" />
+    <meta
+      name="keywords"
+      content="weather, forecast, hourly forecast, 7-day forecast, ZIP code weather, city weather, free weather dashboard"
+    />
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Weather" />
+    <meta property="og:title" content="🌤️ Weather — Forecast by City or ZIP" />
+    <meta
+      property="og:description"
+      content="Add cities or ZIP codes and see current conditions, hourly forecast, and 7-day outlook — all in your browser."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/weather/" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="🌤️ Weather — Forecast by City or ZIP" />
+    <meta
+      name="twitter:description"
+      content="Hourly + 7-day weather for any city or ZIP, free in your browser."
+    />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://joeheyming.github.io/weather/" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- proxy.js must load BEFORE the app module so window.proxyService is ready. -->
+    <script src="/proxy.js"></script>
+
+    <link rel="stylesheet" href="style.css" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Weather",
+            "applicationCategory": "UtilitiesApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Browser weather dashboard with city/ZIP search, hourly forecast, and 7-day outlook.",
+            "url": "https://joeheyming.github.io/weather/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "featureList": [
+              "Search by city name or US ZIP code",
+              "Save multiple locations",
+              "Current conditions",
+              "48-hour hourly forecast",
+              "7-day daily forecast",
+              "Celsius / Fahrenheit toggle",
+              "Auto-refresh",
+              "Shareable URL"
+            ],
+            "inLanguage": "en"
+          }
+        ]
+      }
+    </script>
+
+    <script type="module" src="./index.js"></script>
+  </head>
+  <body class="bg-slate-950 text-slate-100 min-h-screen">
+    <div class="max-w-5xl mx-auto px-3 sm:px-5 py-4">
+      <!-- Header -->
+      <header
+        class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4"
+      >
+        <div class="pl-24 sm:pl-28">
+          <h1
+            class="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2"
+          >
+            <span>🌤️</span>
+            <span>Weather</span>
+          </h1>
+          <p class="text-slate-400 text-xs mt-0.5">
+            Add any city or ZIP — hourly and 7-day forecast, all in your browser.
+          </p>
+        </div>
+
+        <!-- Search -->
+        <div class="relative w-full sm:w-96">
+          <label for="place-search" class="sr-only">Add location</label>
+          <div class="relative">
+            <input
+              id="place-search"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Add city or ZIP (Seattle, 10001, Paris…)"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+            />
+            <span
+              class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+              aria-hidden="true"
+            >
+              🔍
+            </span>
+          </div>
+          <div
+            id="place-suggestions"
+            class="hidden absolute z-30 left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-xl overflow-hidden max-h-80 overflow-y-auto"
+          ></div>
+        </div>
+      </header>
+
+      <!-- Toolbar -->
+      <section
+        class="bg-slate-900/50 border border-slate-800 rounded-xl px-3 py-2 mb-3 flex flex-wrap items-center gap-2"
+      >
+        <div class="inline-flex rounded-md overflow-hidden border border-slate-700 text-sm" role="group" aria-label="Temperature units">
+          <button id="unit-f" class="tool-btn !rounded-none border-0" type="button">°F</button>
+          <button id="unit-c" class="tool-btn !rounded-none border-0 border-l border-slate-700" type="button">°C</button>
+        </div>
+
+        <span class="hidden md:inline-block w-px h-5 bg-slate-700 mx-1"></span>
+
+        <button id="locate-me" type="button" class="tool-btn" title="Use my current location">
+          📍 Locate me
+        </button>
+
+        <label class="tool-btn cursor-pointer" title="Auto-refresh every 5 minutes">
+          <input id="auto-refresh" type="checkbox" class="mr-1 accent-sky-400" />
+          Auto
+        </label>
+
+        <div class="ml-auto flex items-center gap-1.5">
+          <button id="copy-link" type="button" class="tool-btn" title="Copy shareable URL">
+            🔗 Share
+          </button>
+          <button id="refresh-btn" type="button" class="tool-btn" title="Refresh now">
+            ⟳ Refresh
+          </button>
+        </div>
+      </section>
+
+      <!-- Locations grid -->
+      <section
+        id="tiles"
+        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4"
+      ></section>
+
+      <!-- Empty state -->
+      <section id="empty-state" class="hidden">
+        <div class="empty-card">
+          <div class="icon" aria-hidden="true">🌍</div>
+          <p class="text-lg font-medium text-slate-200 mt-2">No locations yet</p>
+          <p class="text-sm text-slate-400 mt-1 max-w-md mx-auto">
+            Type a city name or US ZIP above. Or try
+            <button data-add-suggested='{"id":"geo:47.606,-122.332","name":"Seattle","admin1":"Washington","country":"United States","countryCode":"US","latitude":47.6062,"longitude":-122.3321}' class="suggested">Seattle</button>,
+            <button data-add-suggested='{"id":"geo:40.713,-74.006","name":"New York","admin1":"New York","country":"United States","countryCode":"US","latitude":40.7128,"longitude":-74.006}' class="suggested">New York</button>,
+            <button data-add-suggested='{"id":"geo:48.857,2.352","name":"Paris","admin1":"Île-de-France","country":"France","countryCode":"FR","latitude":48.8566,"longitude":2.3522}' class="suggested">Paris</button>,
+            or
+            <button data-add-suggested='{"id":"geo:35.690,139.692","name":"Tokyo","admin1":"Tokyo","country":"Japan","countryCode":"JP","latitude":35.6895,"longitude":139.6917}' class="suggested">Tokyo</button>.
+          </p>
+        </div>
+      </section>
+
+      <!-- Detail view for active location -->
+      <section id="detail" class="hidden space-y-3"></section>
+
+      <footer class="mt-6 text-center text-xs text-slate-500">
+        Forecast data from
+        <a class="underline hover:text-slate-300" href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>.
+        ZIP lookups from
+        <a class="underline hover:text-slate-300" href="https://www.zippopotam.us/" target="_blank" rel="noopener">Zippopotam.us</a>.
+      </footer>
+    </div>
+
+    <!-- Toast container -->
+    <div
+      id="toast-stack"
+      class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999992] space-y-2"
+    ></div>
+
+    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 100">
+      <share-button label="📤 Share" theme="gradient"></share-button>
+    </div>
+  </body>
+</html>

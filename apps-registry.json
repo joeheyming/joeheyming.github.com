@@ -1234,6 +1234,30 @@
     "shareCategory": "entertainment"
   },
   {
+    "id": "weather",
+    "name": "Weather 🌤️",
+    "shortName": "Weather",
+    "description": "Forecast for any city or ZIP — current, hourly, and 7-day",
+    "detailedDescription": "Add cities or US ZIP codes and see current conditions, hourly forecast for the next 24 hours, and a 7-day outlook. Toggle Fahrenheit / Celsius, use \"Locate me\" to add your current spot, and share any location via URL. Locations saved in your browser.",
+    "icon": "🌤️",
+    "path": "./weather/",
+    "category": "utility",
+    "gradient": "from-sky-500/20 to-indigo-500/20",
+    "border": "border-sky-500/30 hover:border-sky-400/50",
+    "taskbarGradient": "from-sky-500 to-indigo-500",
+    "taskbarText": "text-white",
+    "defaultWidth": 960,
+    "defaultHeight": 740,
+    "tags": ["weather", "forecast", "zip code", "city", "hourly"],
+    "related": ["stock", "countdown", "calculator"],
+    "shareCategory": "utility",
+    "pwaShortcut": {
+      "name": "Weather",
+      "short_name": "Weather",
+      "description": "City and ZIP forecast in your browser"
+    }
+  },
+  {
     "id": "stock",
     "name": "Stock Ticker 📈",
     "shortName": "Stocks",
