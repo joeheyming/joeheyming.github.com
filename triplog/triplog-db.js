@@ -32,9 +32,12 @@ const INDEX_TRIPS_STARTED = 'by_startedAt';
  * @property {string} name
  * @property {string} startedAt    — ISO 8601
  * @property {string} endedAt      — ISO 8601, or '' while recording
- * @property {number} durationSec
+ * @property {number} durationSec  — moving time (auto-pause subtracted)
+ * @property {number} [elapsedSec] — wall-clock duration; added in schema v2
  * @property {number} distanceMeters
  * @property {number} pointCount
+ * @property {number} [elevationGainM] — cumulative positive altitude delta; added in v2
+ * @property {string} [activity]   — 'run' | 'walk' | 'bike' | etc.; added in v2
  * @property {'recording' | 'complete' | string} status
  */
 
@@ -112,20 +115,24 @@ function openRawDb() {
  * @returns {Promise<{
  *   listTrips: () => Promise<TripRecord[]>,
  *   getTrip: (id: string) => Promise<TripRecord | null>,
- *   createTrip: (init: { id: string, name: string, startedAt: Date }) => Promise<TripRecord>,
+ *   createTrip: (init: { id: string, name: string, startedAt: Date, activity?: string }) => Promise<TripRecord>,
  *   updateTripStats: (
  *     id: string,
  *     update: {
  *       distanceMeters: number,
  *       durationSec: number,
+ *       elapsedSec?: number,
  *       pointCount: number,
+ *       elevationGainM?: number,
  *       endedAt?: Date,
  *       status?: 'recording' | 'complete' | string
  *     }
  *   ) => Promise<TripRecord>,
+ *   renameTrip: (id: string, newName: string) => Promise<TripRecord>,
  *   deleteTrip: (id: string) => Promise<void>,
  *   addPoints: (points: PointRecord[]) => Promise<void>,
- *   listPoints: (tripId: string) => Promise<PointRecord[]>
+ *   listPoints: (tripId: string) => Promise<PointRecord[]>,
+ *   removePointsAfter: (tripId: string, keepThroughMs: number) => Promise<number>
  * }>}
  */
 export async function openTriplogDb() {
@@ -164,7 +171,7 @@ export async function openTriplogDb() {
     return trip ?? null;
   }
 
-  /** @param {{ id: string, name: string, startedAt: Date }} init */
+  /** @param {{ id: string, name: string, startedAt: Date, activity?: string }} init */
   async function createTrip(init) {
     /** @type {TripRecord} */
     const trip = {
@@ -173,8 +180,11 @@ export async function openTriplogDb() {
       startedAt: init.startedAt.toISOString(),
       endedAt: '',
       durationSec: 0,
+      elapsedSec: 0,
       distanceMeters: 0,
       pointCount: 0,
+      elevationGainM: 0,
+      activity: init.activity ?? 'run',
       status: 'recording'
     };
     const tx = db.transaction(STORE_TRIPS, 'readwrite');
@@ -188,7 +198,9 @@ export async function openTriplogDb() {
    * @param {{
    *   distanceMeters: number,
    *   durationSec: number,
+   *   elapsedSec?: number,
    *   pointCount: number,
+   *   elevationGainM?: number,
    *   endedAt?: Date,
    *   status?: 'recording' | 'complete' | string
    * }} update
@@ -205,7 +217,13 @@ export async function openTriplogDb() {
       ...existing,
       distanceMeters: Math.round(update.distanceMeters),
       durationSec: Math.round(update.durationSec),
+      elapsedSec:
+        update.elapsedSec !== undefined ? Math.round(update.elapsedSec) : existing.elapsedSec ?? 0,
       pointCount: update.pointCount,
+      elevationGainM:
+        update.elevationGainM !== undefined
+          ? Math.round(update.elevationGainM)
+          : existing.elevationGainM ?? 0,
       endedAt: update.endedAt ? update.endedAt.toISOString() : existing.endedAt,
       status: update.status ?? existing.status
     };
@@ -260,6 +278,64 @@ export async function openTriplogDb() {
     await txComplete(tx);
   }
 
+  /**
+   * Rename a saved (or in-progress) trip. Read-modify-write inside a
+   * single transaction so two rapid renames can't race.
+   *
+   * @param {string} id
+   * @param {string} newName
+   * @returns {Promise<TripRecord>}
+   */
+  async function renameTrip(id, newName) {
+    const tx = db.transaction(STORE_TRIPS, 'readwrite');
+    const store = tx.objectStore(STORE_TRIPS);
+    const existing = /** @type {TripRecord | undefined} */ (await reqToPromise(store.get(id)));
+    if (!existing) {
+      await txComplete(tx);
+      throw new Error(`Trip ${id} not found`);
+    }
+    const renamed = { ...existing, name: newName };
+    await reqToPromise(store.put(renamed));
+    await txComplete(tx);
+    return renamed;
+  }
+
+  /**
+   * Delete every point belonging to a trip whose timestamp is strictly
+   * greater than `keepThroughMs`. Used by the end-crop feature when
+   * the user forgot to hit Stop and wants to trim the trailing tail
+   * off a saved trip. The trip record's stats need to be recomputed
+   * separately by the caller (this only touches the points store).
+   *
+   * @param {string} tripId
+   * @param {number} keepThroughMs epoch ms; points with `t <= keepThroughMs` are kept
+   * @returns {Promise<number>} number of points removed
+   */
+  async function removePointsAfter(tripId, keepThroughMs) {
+    const tx = db.transaction(STORE_POINTS, 'readwrite');
+    const idx = tx.objectStore(STORE_POINTS).index(INDEX_POINTS_TRIP);
+    let removed = 0;
+    await new Promise((resolve, reject) => {
+      const req = idx.openCursor(IDBKeyRange.only(tripId));
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (!cursor) {
+          resolve(undefined);
+          return;
+        }
+        const pt = /** @type {PointRecord} */ (cursor.value);
+        if (typeof pt.t === 'number' && pt.t > keepThroughMs) {
+          cursor.delete();
+          removed += 1;
+        }
+        cursor.continue();
+      };
+      req.onerror = () => reject(req.error);
+    });
+    await txComplete(tx);
+    return removed;
+  }
+
   /** @param {string} tripId @returns {Promise<PointRecord[]>} */
   async function listPoints(tripId) {
     const tx = db.transaction(STORE_POINTS, 'readonly');
@@ -289,8 +365,10 @@ export async function openTriplogDb() {
     getTrip,
     createTrip,
     updateTripStats,
+    renameTrip,
     deleteTrip,
     addPoints,
-    listPoints
+    listPoints,
+    removePointsAfter
   };
 }

@@ -50,13 +50,32 @@ const MIN_MOVEMENT_M = 0.5;
  */
 
 /**
+ * Smallest absolute altitude change worth counting toward elevation
+ * gain. GPS altitude is noisy (often ±5–10m on consumer hardware), so
+ * smaller wiggles produce phantom climbs of hundreds of meters on a
+ * flat walk. 2 m is a reasonable compromise between filtering noise
+ * and still seeing real stairs/hills.
+ */
+const MIN_ELEVATION_DELTA_M = 2;
+
+/**
  * @typedef {object} TrackerStats
  * @property {number} distanceMeters
- * @property {number} durationSec
+ * @property {number} durationSec       — moving time (auto-pause subtracted)
+ * @property {number} elapsedSec        — wall-clock time since start
  * @property {number} pointCount
  * @property {number | null} currentSpeedMs
- * @property {number} averageSpeedMs   — based on (distance / duration)
- * @property {number | null} accuracyM — accuracy of the last accepted fix
+ * @property {number} averageSpeedMs    — distance / movingSec
+ * @property {number | null} accuracyM  — accuracy of the last accepted fix
+ * @property {number} elevationGainM    — cumulative positive altitude delta
+ * @property {boolean} paused           — currently paused (either auto or manual)
+ * @property {'auto' | 'manual' | null} pauseReason
+ */
+
+/**
+ * @typedef {object} TrackerOptions
+ * @property {number} [autoPauseSpeedMs] — below this speed, auto-pause kicks in
+ * @property {number} [autoPauseSeconds] — how long below the threshold before pausing
  */
 
 /**
@@ -64,6 +83,7 @@ const MIN_MOVEMENT_M = 0.5;
  * @property {(p: TrackPoint, stats: TrackerStats) => void} [onPoint]
  * @property {(stats: TrackerStats) => void} [onStats]   — fired every tick (~1s) even without new fixes
  * @property {(err: GeolocationPositionError | Error) => void} [onError]
+ * @property {TrackerOptions} [tuning]
  */
 
 /**
@@ -88,6 +108,9 @@ export function haversineMeters(lat1, lon1, lat2, lon2) {
  * @param {TrackerCallbacks} callbacks
  */
 export function createTracker(callbacks = {}) {
+  const autoPauseSpeedMs = callbacks.tuning?.autoPauseSpeedMs ?? 0.5;
+  const autoPauseSeconds = callbacks.tuning?.autoPauseSeconds ?? 5;
+
   /** @type {number | null} */
   let watchId = null;
   /** @type {WakeLockSentinel | null} */
@@ -97,8 +120,27 @@ export function createTracker(callbacks = {}) {
   /** @type {string | null} */
   let tripId = null;
   let startedAtMs = 0;
+  /**
+   * User-initiated pause flag. While true, GPS fixes are dropped (no
+   * distance, no points, no marker movement), the moving-time clock is
+   * frozen, and the `paused` stat reports reason `'manual'` regardless
+   * of speed. Only `resumeManual()` clears it.
+   */
+  let manuallyPaused = false;
   /** @type {TrackPoint | null} */
   let lastAccepted = null;
+  /** Last altitude that counted toward elevation gain. */
+  let lastElevAccepted = /** @type {number | null} */ (null);
+  /**
+   * Wall-clock timestamp of the previous `emitStats` call. We integrate
+   * `now - lastTickMs` into `movingSec` when not paused, which is more
+   * accurate than relying on the GPS sample cadence (which can stutter
+   * or pause entirely while still backgrounded).
+   */
+  let lastTickMs = 0;
+  /** Wall-clock of last sample whose speed was above the pause threshold. */
+  let lastMovingMs = 0;
+  let movingSec = 0;
   /** @type {TrackerStats} */
   let stats = freshStats();
 
@@ -106,16 +148,63 @@ export function createTracker(callbacks = {}) {
     return /** @type {TrackerStats} */ ({
       distanceMeters: 0,
       durationSec: 0,
+      elapsedSec: 0,
       pointCount: 0,
       currentSpeedMs: null,
       averageSpeedMs: 0,
-      accuracyM: null
+      accuracyM: null,
+      elevationGainM: 0,
+      paused: false,
+      pauseReason: null
     });
+  }
+
+  /**
+   * Decide whether we're currently in an auto-pause window. The rule:
+   * if no fix has shown movement above the pause threshold in the last
+   * `autoPauseSeconds`, we're paused.
+   *
+   * @param {number} now epoch ms
+   */
+  function computePaused(now) {
+    if (lastMovingMs === 0) {
+      // We've never seen movement (just started). Don't pause yet —
+      // we'd just be staring at "PAUSED" while waiting for the first
+      // real fix.
+      return false;
+    }
+    return (now - lastMovingMs) / 1000 >= autoPauseSeconds;
   }
 
   function emitStats() {
     if (startedAtMs > 0) {
-      stats.durationSec = Math.max(0, (Date.now() - startedAtMs) / 1000);
+      const now = Date.now();
+      const elapsed = Math.max(0, (now - startedAtMs) / 1000);
+      // Add wall-clock since last tick to movingSec, but only if we
+      // weren't paused at the start of that interval. This is what
+      // makes pace stable through stop lights — `durationSec` is the
+      // *moving* time so "distance / time" matches what runners see
+      // on a Garmin.
+      const autoPaused = computePaused(now);
+      if (lastTickMs > 0 && !stats.paused) {
+        movingSec += (now - lastTickMs) / 1000;
+      }
+      lastTickMs = now;
+      // Manual pause always wins over auto. Auto is only meaningful
+      // while we're "trying to record" — if the user explicitly hit
+      // Pause, we don't care that their speed dropped to zero.
+      if (manuallyPaused) {
+        stats.paused = true;
+        stats.pauseReason = 'manual';
+      } else if (autoPaused) {
+        stats.paused = true;
+        stats.pauseReason = 'auto';
+      } else {
+        stats.paused = false;
+        stats.pauseReason = null;
+      }
+      stats.elapsedSec = elapsed;
+      stats.durationSec = Math.max(0, movingSec);
       stats.averageSpeedMs = stats.durationSec > 0 ? stats.distanceMeters / stats.durationSec : 0;
     }
     callbacks.onStats?.({ ...stats });
@@ -124,6 +213,14 @@ export function createTracker(callbacks = {}) {
   /** @param {GeolocationPosition} pos */
   function handlePosition(pos) {
     if (!tripId) {
+      return;
+    }
+    if (manuallyPaused) {
+      // User explicitly paused — drop the fix entirely so the polyline,
+      // distance, and points buffer all freeze where they were. Still
+      // emit a stats tick so the UI's "Paused" badge stays alive even
+      // if no `setInterval` ticks land between fixes.
+      emitStats();
       return;
     }
     const { latitude, longitude, accuracy, altitude, speed, heading } = pos.coords;
@@ -147,6 +244,9 @@ export function createTracker(callbacks = {}) {
       heading: typeof heading === 'number' ? heading : null
     });
 
+    /** Implied speed of the segment ending at this point, m/s. null if there's no prior anchor. */
+    let segmentSpeedMs = /** @type {number | null} */ (null);
+
     if (lastAccepted) {
       const dt = Math.max(0.001, (point.t - lastAccepted.t) / 1000);
       const d = haversineMeters(lastAccepted.lat, lastAccepted.lon, point.lat, point.lon);
@@ -157,6 +257,7 @@ export function createTracker(callbacks = {}) {
         emitStats();
         return;
       }
+      segmentSpeedMs = implied;
       if (d >= MIN_MOVEMENT_M) {
         stats.distanceMeters += d;
         lastAccepted = point;
@@ -173,9 +274,33 @@ export function createTracker(callbacks = {}) {
       lastAccepted = point;
     }
 
+    if (typeof altitude === 'number' && Number.isFinite(altitude)) {
+      if (lastElevAccepted === null) {
+        lastElevAccepted = altitude;
+      } else {
+        const dAlt = altitude - lastElevAccepted;
+        if (Math.abs(dAlt) >= MIN_ELEVATION_DELTA_M) {
+          if (dAlt > 0) {
+            stats.elevationGainM += dAlt;
+          }
+          lastElevAccepted = altitude;
+        }
+      }
+    }
+
     stats.pointCount += 1;
     stats.currentSpeedMs = typeof speed === 'number' && speed >= 0 ? speed : null;
     stats.accuracyM = accuracy;
+
+    // Mark "movement" for auto-pause. Prefer the device's reported
+    // speed (the GPS chip uses doppler hints we can't replicate); fall
+    // back to the segment's implied speed; if we have neither (first
+    // fix), don't make a decision yet.
+    const movementSpeed =
+      typeof speed === 'number' && Number.isFinite(speed) && speed >= 0 ? speed : segmentSpeedMs;
+    if (movementSpeed !== null && movementSpeed >= autoPauseSpeedMs) {
+      lastMovingMs = point.t;
+    }
 
     emitStats();
     callbacks.onPoint?.(point, { ...stats });
@@ -241,7 +366,12 @@ export function createTracker(callbacks = {}) {
       }
       tripId = init.tripId;
       startedAtMs = Date.now();
+      manuallyPaused = false;
       lastAccepted = null;
+      lastElevAccepted = null;
+      lastTickMs = 0;
+      lastMovingMs = 0;
+      movingSec = 0;
       stats = freshStats();
 
       watchId = navigator.geolocation.watchPosition(handlePosition, handleError, {
@@ -278,9 +408,18 @@ export function createTracker(callbacks = {}) {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       releaseWakeLock();
 
+      // Final accumulate of any not-yet-ticked moving time so the
+      // saved durationSec matches what the user saw last on screen.
+      const now = Date.now();
+      if (lastTickMs > 0 && !stats.paused) {
+        movingSec += (now - lastTickMs) / 1000;
+      }
+      const elapsed = Math.max(0, (now - startedAtMs) / 1000);
       const finalStats = {
         ...stats,
-        durationSec: Math.max(0, (Date.now() - startedAtMs) / 1000),
+        durationSec: Math.max(0, movingSec),
+        elapsedSec: elapsed,
+        paused: false,
         startedAt: new Date(startedAtMs),
         endedAt: new Date()
       };
@@ -289,8 +428,60 @@ export function createTracker(callbacks = {}) {
 
       tripId = null;
       startedAtMs = 0;
+      manuallyPaused = false;
       lastAccepted = null;
+      lastElevAccepted = null;
+      lastTickMs = 0;
+      lastMovingMs = 0;
+      movingSec = 0;
       return finalStats;
+    },
+
+    /**
+     * Pause the recording at the user's request. While paused, no new
+     * GPS fixes are recorded (no distance, no points, no marker move),
+     * and the moving-time clock is frozen. The Wake Lock stays held so
+     * the screen doesn't sleep — they'll want it on to hit Resume.
+     */
+    pauseManual() {
+      if (!tripId || manuallyPaused) {
+        return;
+      }
+      // Flush the in-progress moving-time slice into the counter so we
+      // get an accurate freeze point before flipping the flag.
+      const now = Date.now();
+      if (lastTickMs > 0 && !stats.paused) {
+        movingSec += (now - lastTickMs) / 1000;
+      }
+      lastTickMs = now;
+      manuallyPaused = true;
+      emitStats();
+    },
+
+    /**
+     * Resume after a manual pause. We deliberately reset the anchor
+     * point and the auto-pause "last moving" timestamp: otherwise the
+     * straight-line distance between the pause point and wherever the
+     * user resumed (could be meters away) would attribute to the trip,
+     * and the auto-pause heuristic would think we'd been sitting still
+     * for the whole break.
+     */
+    resumeManual() {
+      if (!tripId || !manuallyPaused) {
+        return;
+      }
+      manuallyPaused = false;
+      lastAccepted = null;
+      // Start the pause-detection window fresh so we don't immediately
+      // re-enter auto-pause just because the user is gathering speed.
+      lastMovingMs = Date.now();
+      lastTickMs = Date.now();
+      emitStats();
+    },
+
+    /** @returns {boolean} */
+    get isManuallyPaused() {
+      return manuallyPaused;
     }
   };
 }

@@ -14,9 +14,15 @@
 
 import { createOSEmbed } from '/os-embed.js';
 import {
+  ACTIVITY_TUNING,
   defaultTripName,
+  loadStoredActivity,
   loadStoredUnit,
+  METERS_PER_FOOT,
+  METERS_PER_KM,
+  METERS_PER_MILE,
   randomUuid,
+  saveStoredActivity,
   saveStoredUnit,
   TRIP_STATUS,
   UNITS
@@ -27,7 +33,9 @@ import {
   getPlatform,
   onGeolocationStateChange
 } from './triplog-permissions.js';
-import { createTracker } from './triplog-tracker.js';
+import { downsample, renderLineChart } from './triplog-chart.js';
+import { createSplitTracker } from './triplog-splits.js';
+import { createTracker, haversineMeters } from './triplog-tracker.js';
 import { createLiveMap, createReplayMap } from './triplog-map.js';
 
 /** Flush buffered GPS points to IndexedDB at most this often (ms). */
@@ -45,9 +53,6 @@ function setStatus(el, text, isError = false) {
     ? `${STATUS_BASE} text-red-600 dark:text-red-400`
     : `${STATUS_BASE} text-zinc-500 dark:text-zinc-400`;
 }
-
-const METERS_PER_MILE = 1609.344;
-const METERS_PER_FOOT = 0.3048;
 
 /**
  * @param {number} m
@@ -114,6 +119,63 @@ function formatAccuracy(m, unit = UNITS.METRIC) {
   return `±${Math.round(m)} m`;
 }
 
+/**
+ * Pace, the runner's reciprocal of speed: "minutes per kilometer/mile".
+ * Caps out at "—" for stationary samples so we don't show "Infinity /km".
+ *
+ * @param {number | null | undefined} ms speed in m/s
+ * @param {import('./triplog-constants.js').Unit} unit
+ */
+function formatPace(ms, unit) {
+  const unitLabel = unit === UNITS.IMPERIAL ? '/mi' : '/km';
+  if (ms == null || !Number.isFinite(ms) || ms <= 0.05) {
+    // <0.05 m/s ≈ standing still — Strava shows pace as "—" rather
+    // than "00:00:33 /km" in that case.
+    return `— ${unitLabel}`;
+  }
+  const metersPerUnit = unit === UNITS.IMPERIAL ? METERS_PER_MILE : METERS_PER_KM;
+  const secPerUnit = metersPerUnit / ms;
+  if (secPerUnit > 60 * 60) {
+    // Cap at "60+ min" so a barely-moving sample doesn't blow out the
+    // layout with three-digit minutes.
+    return `60+ min ${unitLabel}`;
+  }
+  const totalSec = Math.round(secPerUnit);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${min}:${String(sec).padStart(2, '0')} ${unitLabel}`;
+}
+
+/**
+ * Elevation gain — display in meters (metric) or feet (imperial).
+ *
+ * @param {number | null | undefined} m
+ * @param {import('./triplog-constants.js').Unit} [unit]
+ */
+function formatElevation(m, unit = UNITS.METRIC) {
+  if (m == null || !Number.isFinite(m) || m < 0) {
+    return unit === UNITS.IMPERIAL ? '0 ft' : '0 m';
+  }
+  if (unit === UNITS.IMPERIAL) {
+    return `${Math.round(m / METERS_PER_FOOT)} ft`;
+  }
+  return `${Math.round(m)} m`;
+}
+
+/**
+ * Format split time. Splits are short enough that we don't need hours.
+ * @param {number} sec
+ */
+function formatSplitTime(sec) {
+  if (!Number.isFinite(sec) || sec <= 0) {
+    return '0:00';
+  }
+  const total = Math.floor(sec);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 /** @param {string} iso */
 function formatTripStartedAt(iso) {
   const d = new Date(iso);
@@ -143,15 +205,41 @@ function main() {
   /** @type {HTMLButtonElement} */
   const btnStart = $('btn-start');
   /** @type {HTMLButtonElement} */
-  const btnStop = $('btn-stop');
+  const btnPause = $('btn-pause');
+  /** @type {HTMLButtonElement} */
+  const btnResume = $('btn-resume');
+  /** @type {HTMLButtonElement} */
+  const btnFinish = $('btn-finish');
   /** @type {HTMLButtonElement} */
   const btnFollow = $('btn-follow');
   /** @type {HTMLButtonElement} */
   const btnRefreshTrips = $('btn-refresh-trips');
   /** @type {HTMLButtonElement} */
   const btnUnits = $('btn-units');
+  /** @type {HTMLDialogElement} */
+  const finishDialog = $('finish-dialog');
+  /** @type {HTMLFormElement} */
+  const finishForm = $('finish-form');
   /** @type {HTMLInputElement} */
-  const tripNameInput = $('trip-name');
+  const finishNameInput = $('finish-name');
+  /** @type {HTMLElement} */
+  const finishDistance = $('finish-distance');
+  /** @type {HTMLElement} */
+  const finishDuration = $('finish-duration');
+  /** @type {HTMLElement} */
+  const finishPace = $('finish-pace');
+  /** @type {HTMLElement} */
+  const finishPaceLabel = $('finish-pace-label');
+  /** @type {HTMLElement} */
+  const finishElevation = $('finish-elevation');
+  /** @type {HTMLElement} */
+  const finishActivityBadge = $('finish-activity-badge');
+  /** @type {HTMLButtonElement} */
+  const btnFinishSave = $('btn-finish-save');
+  /** @type {HTMLButtonElement} */
+  const btnFinishDiscard = $('btn-finish-discard');
+  /** @type {HTMLButtonElement} */
+  const btnFinishBack = $('btn-finish-back');
   /** @type {HTMLElement} */
   const appLoadingEl = $('app-loading');
   /** @type {HTMLElement} */
@@ -167,9 +255,31 @@ function main() {
   /** @type {HTMLElement} */
   const statDuration = $('stat-duration');
   /** @type {HTMLElement} */
+  const statElapsed = $('stat-elapsed');
+  /** @type {HTMLElement} */
   const statSpeed = $('stat-speed');
   /** @type {HTMLElement} */
+  const statSpeedLabel = $('stat-speed-label');
+  /** @type {HTMLElement} */
+  const statAvgSpeed = $('stat-avg-speed');
+  /** @type {HTMLElement} */
+  const statAvgSpeedLabel = $('stat-avg-speed-label');
+  /** @type {HTMLElement} */
+  const statElevation = $('stat-elevation');
+  /** @type {HTMLElement} */
   const statAccuracy = $('stat-accuracy');
+  /** @type {HTMLElement} */
+  const pausedBadge = $('paused-badge');
+  /** @type {HTMLSelectElement} */
+  const activitySelect = $('activity-select');
+  /** @type {HTMLElement} */
+  const splitsCard = $('splits-card');
+  /** @type {HTMLElement} */
+  const splitsList = $('splits-list');
+  /** @type {HTMLElement} */
+  const splitsUnitLabel = $('splits-unit-label');
+  /** @type {HTMLElement} */
+  const splitsSummary = $('splits-summary');
   /** @type {HTMLElement} */
   const tripsList = $('trips-list');
   /** @type {HTMLElement} */
@@ -184,10 +294,72 @@ function main() {
   const tripViewTitle = $('trip-view-title');
   /** @type {HTMLElement} */
   const tripViewSummary = $('trip-view-summary');
+  /** @type {HTMLElement} */
+  const tvActivityBadge = $('trip-view-activity-badge');
+  /** @type {HTMLElement} */
+  const tvWhen = $('trip-view-when');
+  /** @type {HTMLElement} */
+  const tvDistance = $('tv-distance');
+  /** @type {HTMLElement} */
+  const tvDuration = $('tv-duration');
+  /** @type {HTMLElement} */
+  const tvElapsed = $('tv-elapsed');
+  /** @type {HTMLElement} */
+  const tvPace = $('tv-pace');
+  /** @type {HTMLElement} */
+  const tvPaceLabel = $('tv-pace-label');
+  /** @type {HTMLElement} */
+  const tvElevation = $('tv-elevation');
+  /** @type {HTMLElement} */
+  const tvPoints = $('tv-points');
+  /** @type {HTMLElement} */
+  const tvElevCard = $('trip-view-elev-card');
+  /** @type {HTMLElement} */
+  const tvElevChart = $('trip-view-elev-chart');
+  /** @type {HTMLElement} */
+  const tvElevHover = $('trip-view-elev-hover');
+  /** @type {HTMLElement} */
+  const tvPaceCard = $('trip-view-pace-card');
+  /** @type {HTMLElement} */
+  const tvPaceChart = $('trip-view-pace-chart');
+  /** @type {HTMLElement} */
+  const tvPaceTitle = $('trip-view-pace-title');
+  /** @type {HTMLElement} */
+  const tvPaceHover = $('trip-view-pace-hover');
+  /** @type {HTMLElement} */
+  const tvPaceScaleMin = $('trip-view-pace-scale-min');
+  /** @type {HTMLElement} */
+  const tvPaceScaleMax = $('trip-view-pace-scale-max');
+  /** @type {HTMLElement} */
+  const tvBestsCard = $('trip-view-bests-card');
+  /** @type {HTMLElement} */
+  const tvBestsList = $('trip-view-bests-list');
+  /** @type {HTMLElement} */
+  const tvSplitsCard = $('trip-view-splits-card');
+  /** @type {HTMLElement} */
+  const tvSplitsList = $('trip-view-splits-list');
+  /** @type {HTMLElement} */
+  const tvSplitsUnitLabel = $('tv-splits-unit-label');
+  /** @type {HTMLElement} */
+  const tvSplitsSummary = $('tv-splits-summary');
   /** @type {HTMLButtonElement} */
   const btnTripViewClose = $('btn-trip-view-close');
   /** @type {HTMLButtonElement} */
   const btnTripViewDelete = $('btn-trip-view-delete');
+  /** @type {HTMLButtonElement} */
+  const btnTripViewCrop = $('btn-trip-view-crop');
+  /** @type {HTMLElement} */
+  const cropBar = $('crop-bar');
+  /** @type {HTMLInputElement} */
+  const cropSlider = $('crop-slider');
+  /** @type {HTMLElement} */
+  const cropKeepSummary = $('crop-keep-summary');
+  /** @type {HTMLElement} */
+  const cropTrimSummary = $('crop-trim-summary');
+  /** @type {HTMLButtonElement} */
+  const btnCropSave = $('btn-crop-save');
+  /** @type {HTMLButtonElement} */
+  const btnCropCancel = $('btn-crop-cancel');
   /** @type {HTMLElement} */
   const permissionCard = $('permission-card');
   /** @type {HTMLElement} */
@@ -227,8 +399,25 @@ function main() {
     currentReplayTripId: null,
     /** @type {import('./triplog-constants.js').Unit} */
     unit: loadStoredUnit(),
+    /** @type {import('./triplog-constants.js').Activity} */
+    activity: loadStoredActivity(),
     /** Last live stats snapshot so we can re-render when the unit toggles. */
-    lastStats: /** @type {import('./triplog-tracker.js').TrackerStats | null} */ (null)
+    lastStats: /** @type {import('./triplog-tracker.js').TrackerStats | null} */ (null),
+    /** Split trackers — one per unit so toggling mid-trip is lossless. */
+    splits: {
+      /** @type {ReturnType<typeof createSplitTracker> | null} */
+      km: null,
+      /** @type {ReturnType<typeof createSplitTracker> | null} */
+      mi: null
+    },
+    /**
+     * Replay-side state. `replayPoints` is loaded once when the trip
+     * view opens and reused by the crop slider so we don't re-hit IDB
+     * on every drag tick.
+     */
+    /** @type {import('./triplog-db.js').PointRecord[]} */
+    replayPoints: [],
+    cropMode: false
   };
 
   function setUiVisibility({ ready, loading, error }) {
@@ -433,8 +622,10 @@ function main() {
         meta.className = 'mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400 tabular-nums';
         const status = trip.status === TRIP_STATUS.RECORDING ? ' • ⏺ recording' : '';
         meta.textContent =
-          `${formatTripStartedAt(trip.startedAt)} • ${formatDistance(trip.distanceMeters)}` +
-          ` • ${formatDuration(trip.durationSec)}${status}`;
+          `${formatTripStartedAt(trip.startedAt)} • ${formatDistance(
+            trip.distanceMeters,
+            state.unit
+          )}` + ` • ${formatDuration(trip.durationSec)}${status}`;
         left.append(title, meta);
         left.addEventListener('click', () => openTripView(trip));
 
@@ -455,7 +646,8 @@ function main() {
     state.currentReplayTripId = trip.id;
     tripViewTitle.textContent = trip.name || 'Untitled trip';
     tripViewSummary.textContent = `${formatTripStartedAt(trip.startedAt)} • ${formatDistance(
-      trip.distanceMeters
+      trip.distanceMeters,
+      state.unit
     )} • ${formatDuration(trip.durationSec)}`;
     tripViewDialog.showModal();
 
@@ -467,13 +659,582 @@ function main() {
     state.replayMap = createReplayMap(tripViewMap);
     requestAnimationFrame(() => state.replayMap?.invalidateSize());
 
+    // Reset the secondary cards while we load — avoids briefly showing
+    // the previous trip's chart/splits if the user opens a new one.
+    tvElevCard.hidden = true;
+    tvElevChart.replaceChildren();
+    tvElevHover.textContent = '';
+    tvPaceCard.hidden = true;
+    tvPaceChart.replaceChildren();
+    tvPaceHover.textContent = '';
+    tvBestsCard.hidden = true;
+    tvBestsList.replaceChildren();
+    tvSplitsCard.hidden = true;
+    tvSplitsList.replaceChildren();
+    tvSplitsSummary.textContent = '';
+    renderTripStatsCard(trip, []);
+
     try {
       const points = await state.db.listPoints(trip.id);
-      state.replayMap.drawTrack(points);
+      state.replayPoints = points;
+      renderTripViewDetails(trip, points);
+      // Crop is only meaningful on completed trips with at least 2 points
+      // (anything less can be deleted, not cropped).
+      btnTripViewCrop.disabled = points.length < 2 || trip.status === TRIP_STATUS.RECORDING;
     } catch (err) {
       console.error('[triplog] openTripView', err);
       setStatus(statusEl, err instanceof Error ? err.message : String(err), true);
     }
+  }
+
+  /**
+   * Render all the trip-view detail panels (colored polyline, mile
+   * markers, stats grid, elevation + pace charts, best efforts,
+   * splits). Called whenever the trip viewer needs a full refresh
+   * — initial open, unit toggle, after a crop save, after exiting
+   * crop mode.
+   *
+   * @param {import('./triplog-db.js').TripRecord} trip
+   * @param {import('./triplog-db.js').PointRecord[]} points
+   */
+  function renderTripViewDetails(trip, points) {
+    const activityKey =
+      trip.activity && Object.prototype.hasOwnProperty.call(ACTIVITY_TUNING, trip.activity)
+        ? /** @type {import('./triplog-constants.js').Activity} */ (trip.activity)
+        : 'other';
+    const tuning = ACTIVITY_TUNING[activityKey];
+    const segmentSpeeds = computeSegmentSpeeds(points);
+    state.replayMap?.setColoredTrack(points, segmentSpeeds);
+    state.replayMap?.setMileMarkers(computeMileMarkers(points, state.unit));
+    renderTripStatsCard(trip, points);
+    renderElevationChart(points);
+    renderPaceChart(points, tuning);
+    renderBestEfforts(points, tuning);
+    renderTripSplits(points);
+  }
+
+  /**
+   * Populate the trip-view stats card from a `TripRecord` plus the
+   * full point list. We rely on the stored stats for moving time and
+   * elevation (those needed live computation we can't perfectly
+   * replay), and use `points` to fill in elapsed time and the GPS
+   * sample count.
+   *
+   * @param {import('./triplog-db.js').TripRecord} trip
+   * @param {import('./triplog-db.js').PointRecord[]} points
+   */
+  function renderTripStatsCard(trip, points) {
+    const activityKey =
+      trip.activity && Object.prototype.hasOwnProperty.call(ACTIVITY_TUNING, trip.activity)
+        ? /** @type {import('./triplog-constants.js').Activity} */ (trip.activity)
+        : 'other';
+    const tuning = ACTIVITY_TUNING[activityKey];
+    tvActivityBadge.textContent = `${tuning.emoji} ${tuning.label}`;
+    tvWhen.textContent = formatTripStartedAt(trip.startedAt);
+
+    tvDistance.textContent = formatDistance(trip.distanceMeters, state.unit);
+    tvDuration.textContent = formatDuration(trip.durationSec);
+
+    // Prefer the stored elapsedSec; if it's missing (old trips) or
+    // zero, derive it from the points' first/last timestamps.
+    let elapsedSec = trip.elapsedSec ?? 0;
+    if ((!elapsedSec || elapsedSec < trip.durationSec) && points.length >= 2) {
+      elapsedSec = Math.max(0, (points[points.length - 1].t - points[0].t) / 1000);
+    }
+    tvElapsed.textContent = formatDuration(elapsedSec);
+
+    // Average pace/speed is derived from distance / moving time, the
+    // same way the live screen shows it during recording.
+    const avgMs = trip.durationSec > 0 ? trip.distanceMeters / trip.durationSec : 0;
+    if (tuning.prefersPace) {
+      tvPaceLabel.textContent = 'Avg pace';
+      tvPace.textContent = formatPace(avgMs, state.unit);
+    } else {
+      tvPaceLabel.textContent = 'Avg speed';
+      tvPace.textContent = formatSpeed(avgMs, state.unit);
+    }
+
+    tvElevation.textContent = formatElevation(trip.elevationGainM ?? 0, state.unit);
+    tvPoints.textContent = String(trip.pointCount ?? points.length);
+  }
+
+  /**
+   * Build the elevation-over-distance area chart. Skips if too few
+   * points or if no altitude data was recorded (which is the case on
+   * a lot of phones — the GPS chip reports altitude when it has it
+   * and `null` when it doesn't).
+   *
+   * Hover/drag the chart to drop a synced marker on the trip map.
+   *
+   * @param {import('./triplog-db.js').PointRecord[]} points
+   */
+  function renderElevationChart(points) {
+    tvElevChart.replaceChildren();
+    tvElevHover.textContent = '';
+    if (points.length < 2) {
+      tvElevCard.hidden = true;
+      return;
+    }
+    // Walk the points once to build {distanceCumulative, altitude}
+    // tuples, skipping samples without altitude. Lat/lon ride along so
+    // the hover callback can drop a synced marker on the map.
+    /** @type {{ x: number, y: number, lat: number, lon: number }[]} */
+    const series = [];
+    let cumDist = 0;
+    /** @type {import('./triplog-db.js').PointRecord | null} */
+    let prev = null;
+    for (const p of points) {
+      if (prev) {
+        cumDist += haversineMeters(prev.lat, prev.lon, p.lat, p.lon);
+      }
+      if (typeof p.altitude === 'number' && Number.isFinite(p.altitude)) {
+        series.push({ x: cumDist, y: p.altitude, lat: p.lat, lon: p.lon });
+      }
+      prev = p;
+    }
+    if (series.length < 2) {
+      // No usable altitude data — hide the card rather than show an
+      // empty chart.
+      tvElevCard.hidden = true;
+      return;
+    }
+    tvElevCard.hidden = false;
+    const sampled = downsample(series, 180);
+    const useImperial = state.unit === UNITS.IMPERIAL;
+    const xDivisor = useImperial ? METERS_PER_MILE : METERS_PER_KM;
+    const xLabel = useImperial ? 'mi' : 'km';
+    const xConverted = sampled.map((p) => ({
+      x: p.x / xDivisor,
+      y: useImperial ? p.y / METERS_PER_FOOT : p.y,
+      lat: p.lat,
+      lon: p.lon
+    }));
+    /** @param {number} v */
+    const fmtY = (v) => `${Math.round(v)}${useImperial ? ' ft' : ' m'}`;
+    /** @param {number} v */
+    const fmtX = (v) => `${v.toFixed(v < 10 ? 1 : 0)} ${xLabel}`;
+    const svg = renderLineChart({
+      points: xConverted,
+      color: '#7c3aed',
+      fillColor: 'rgba(124, 58, 237, 0.18)',
+      width: 360,
+      height: 130,
+      title: 'Elevation profile',
+      formatY: fmtY,
+      formatX: fmtX,
+      onHover: (_idx, p) => {
+        if (!p) {
+          state.replayMap?.setHoverMarker(null);
+          tvElevHover.textContent = '';
+          return;
+        }
+        state.replayMap?.setHoverMarker({ lat: p.lat, lon: p.lon });
+        tvElevHover.textContent = `${fmtX(p.x)} • ${fmtY(p.y)}`;
+      }
+    });
+    tvElevChart.appendChild(svg);
+  }
+
+  /**
+   * Build the pace (or speed) chart. Smoothed using a ~10-second
+   * sliding window so GPS jitter doesn't create a saw-tooth. For
+   * paced activities (run/walk/etc.) we plot pace (sec / unit) so
+   * the chart reads like a Strava pace chart: peaks = slow points.
+   * For wheel activities we plot speed (units / hour) instead.
+   *
+   * @param {import('./triplog-db.js').PointRecord[]} points
+   * @param {import('./triplog-constants.js').ActivityTuning} tuning
+   */
+  function renderPaceChart(points, tuning) {
+    tvPaceChart.replaceChildren();
+    tvPaceHover.textContent = '';
+    if (points.length < 2) {
+      tvPaceCard.hidden = true;
+      return;
+    }
+    const useImperial = state.unit === UNITS.IMPERIAL;
+    const metersPerUnit = useImperial ? METERS_PER_MILE : METERS_PER_KM;
+    const unitLabel = useImperial ? 'mi' : 'km';
+
+    const speedsMs = smoothSpeeds(points, 10);
+    const cumDistArr = cumulativeDistances(points);
+    /** @type {{ x: number, y: number, lat: number, lon: number }[]} */
+    const series = [];
+    for (let i = 0; i < points.length; i += 1) {
+      const sp = speedsMs[i];
+      // Skip basically-stationary samples — they'd otherwise yank the
+      // line to the floor (or to infinite pace) and ruin the Y range.
+      if (!Number.isFinite(sp) || sp < 0.3) continue;
+      const x = cumDistArr[i] / metersPerUnit;
+      const y = tuning.prefersPace
+        ? metersPerUnit / sp // seconds per unit (pace)
+        : (sp * 3600) / metersPerUnit; // units per hour (speed)
+      series.push({ x, y, lat: points[i].lat, lon: points[i].lon });
+    }
+    if (series.length < 2) {
+      tvPaceCard.hidden = true;
+      return;
+    }
+    tvPaceCard.hidden = false;
+    tvPaceTitle.textContent = tuning.prefersPace ? 'Pace profile' : 'Speed profile';
+    const sampled = downsample(series, 180);
+
+    /** @param {number} secPerUnit */
+    const formatPaceSec = (secPerUnit) => {
+      const total = Math.max(0, Math.round(secPerUnit));
+      const m = Math.floor(total / 60);
+      const s = total % 60;
+      return `${m}:${String(s).padStart(2, '0')} /${unitLabel}`;
+    };
+    /** @param {number} v */
+    const fmtY = tuning.prefersPace
+      ? formatPaceSec
+      : (v) => `${v.toFixed(v < 10 ? 1 : 0)} ${useImperial ? 'mph' : 'km/h'}`;
+    /** @param {number} v */
+    const fmtX = (v) => `${v.toFixed(v < 10 ? 1 : 0)} ${unitLabel}`;
+
+    // The min/max labels under the gradient strip mirror the trip's
+    // observed range, in the same unit the chart uses.
+    const ys = sampled.map((p) => p.y);
+    if (tuning.prefersPace) {
+      // High Y = slow pace, low Y = fast pace.
+      tvPaceScaleMin.textContent = `slow (${fmtY(Math.max(...ys))})`;
+      tvPaceScaleMax.textContent = `fast (${fmtY(Math.min(...ys))})`;
+    } else {
+      tvPaceScaleMin.textContent = `slow (${fmtY(Math.min(...ys))})`;
+      tvPaceScaleMax.textContent = `fast (${fmtY(Math.max(...ys))})`;
+    }
+
+    const svg = renderLineChart({
+      points: sampled,
+      color: '#0d9488', // teal — distinct from the violet elevation chart
+      fillColor: 'rgba(13, 148, 136, 0.18)',
+      width: 360,
+      height: 130,
+      title: tuning.prefersPace ? 'Pace profile' : 'Speed profile',
+      formatY: fmtY,
+      formatX: fmtX,
+      onHover: (_idx, p) => {
+        if (!p) {
+          state.replayMap?.setHoverMarker(null);
+          tvPaceHover.textContent = '';
+          return;
+        }
+        state.replayMap?.setHoverMarker({ lat: p.lat, lon: p.lon });
+        tvPaceHover.textContent = `${fmtX(p.x)} • ${fmtY(p.y)}`;
+      }
+    });
+    tvPaceChart.appendChild(svg);
+  }
+
+  /**
+   * Sliding-window best efforts (fastest 1k / 1mi / 5k / 10k / half /
+   * full) for paced activities. Skipped for wheel activities — "best
+   * 5 km on a bike" isn't really a thing people care about.
+   *
+   * For each target distance, we find the smallest time window in
+   * which the cumulative distance grows by ≥ target. Binary search
+   * keeps it O(N log N) which is fine for the few-thousand points a
+   * GPS trip produces.
+   *
+   * @param {import('./triplog-db.js').PointRecord[]} points
+   * @param {import('./triplog-constants.js').ActivityTuning} tuning
+   */
+  function renderBestEfforts(points, tuning) {
+    tvBestsList.replaceChildren();
+    if (!tuning.prefersPace || points.length < 2) {
+      tvBestsCard.hidden = true;
+      return;
+    }
+    /** @type {{ meters: number, label: string }[]} */
+    const targets = [
+      { meters: 400, label: '400 m' },
+      { meters: METERS_PER_KM, label: '1 km' },
+      { meters: METERS_PER_MILE, label: '1 mi' },
+      { meters: 5 * METERS_PER_KM, label: '5 km' },
+      { meters: 10 * METERS_PER_KM, label: '10 km' },
+      { meters: 21097.5, label: 'Half marathon' },
+      { meters: 42195, label: 'Marathon' }
+    ];
+    const cumDistArr = cumulativeDistances(points);
+    const totalDist = cumDistArr[cumDistArr.length - 1];
+    /** @type {{ label: string, meters: number, timeSec: number }[]} */
+    const results = [];
+    for (const target of targets) {
+      if (totalDist < target.meters) continue;
+      let bestTime = Infinity;
+      for (let i = 0; i < cumDistArr.length; i += 1) {
+        const need = cumDistArr[i] + target.meters;
+        // Binary search for the smallest j where cumDist[j] >= need.
+        let lo = i + 1;
+        let hi = cumDistArr.length - 1;
+        while (lo < hi) {
+          const mid = (lo + hi) >>> 1;
+          if (cumDistArr[mid] >= need) hi = mid;
+          else lo = mid + 1;
+        }
+        if (cumDistArr[lo] < need) break;
+        const time = (points[lo].t - points[i].t) / 1000;
+        if (time > 0 && time < bestTime) {
+          bestTime = time;
+        }
+      }
+      if (Number.isFinite(bestTime)) {
+        results.push({ label: target.label, meters: target.meters, timeSec: bestTime });
+      }
+    }
+    if (results.length === 0) {
+      tvBestsCard.hidden = true;
+      return;
+    }
+    tvBestsCard.hidden = false;
+    for (const r of results) {
+      const li = document.createElement('li');
+      li.className = 'flex items-baseline justify-between gap-3 py-1.5 text-sm';
+      const label = document.createElement('span');
+      label.className = 'flex-1 font-medium';
+      label.textContent = r.label;
+      const time = document.createElement('span');
+      time.className = 'w-20 text-right tabular-nums';
+      time.textContent = formatDuration(r.timeSec);
+      const paceMs = r.meters / r.timeSec;
+      const pace = document.createElement('span');
+      pace.className = 'w-24 text-right text-zinc-600 dark:text-zinc-300';
+      pace.textContent = formatPace(paceMs, state.unit);
+      li.append(label, time, pace);
+      tvBestsList.appendChild(li);
+    }
+  }
+
+  /**
+   * Smoothed per-point speed in m/s using a sliding time window. For
+   * each sample we walk outwards until the surrounding window spans
+   * `windowSec` seconds total, then divide that window's distance by
+   * its time. Way calmer than raw segment speeds.
+   *
+   * @param {import('./triplog-db.js').PointRecord[]} points
+   * @param {number} windowSec
+   * @returns {number[]}
+   */
+  function smoothSpeeds(points, windowSec) {
+    const n = points.length;
+    const speeds = new Array(n).fill(0);
+    const halfMs = (windowSec * 1000) / 2;
+    for (let i = 0; i < n; i += 1) {
+      let lo = i;
+      let hi = i;
+      while (lo > 0 && points[i].t - points[lo - 1].t < halfMs) lo -= 1;
+      while (hi < n - 1 && points[hi + 1].t - points[i].t < halfMs) hi += 1;
+      if (hi <= lo) continue;
+      let dist = 0;
+      for (let k = lo + 1; k <= hi; k += 1) {
+        dist += haversineMeters(points[k - 1].lat, points[k - 1].lon, points[k].lat, points[k].lon);
+      }
+      const dt = (points[hi].t - points[lo].t) / 1000;
+      if (dt > 0) speeds[i] = dist / dt;
+    }
+    return speeds;
+  }
+
+  /**
+   * Per-segment speeds (between consecutive points) using the same
+   * smoothing as the pace chart. `result[i]` is the speed in m/s for
+   * the segment that connects `points[i]` and `points[i+1]`. The
+   * coloured polyline on the replay map consumes this directly.
+   *
+   * @param {import('./triplog-db.js').PointRecord[]} points
+   * @returns {number[]}
+   */
+  function computeSegmentSpeeds(points) {
+    if (points.length < 2) return [];
+    const sm = smoothSpeeds(points, 10);
+    const out = new Array(points.length - 1);
+    for (let i = 0; i < points.length - 1; i += 1) {
+      // Average the two endpoint speeds for the segment between them.
+      out[i] = (sm[i] + sm[i + 1]) / 2;
+    }
+    return out;
+  }
+
+  /**
+   * Cumulative distance in meters at each point — `result[0]` is 0,
+   * `result[i]` is the running total at point i. Used by the pace
+   * chart and best-efforts search to avoid recomputing haversine
+   * lengths each time.
+   *
+   * @param {import('./triplog-db.js').PointRecord[]} points
+   * @returns {number[]}
+   */
+  function cumulativeDistances(points) {
+    const out = new Array(points.length);
+    out[0] = 0;
+    for (let i = 1; i < points.length; i += 1) {
+      out[i] =
+        out[i - 1] +
+        haversineMeters(points[i - 1].lat, points[i - 1].lon, points[i].lat, points[i].lon);
+    }
+    return out;
+  }
+
+  /**
+   * Build km/mi marker locations along the track. We walk the cumulative
+   * distance and, each time it crosses `N * unitMeters`, linearly
+   * interpolate between the bracketing GPS points to estimate the
+   * exact lat/lon of the crossing. Returns one marker per whole unit.
+   *
+   * @param {import('./triplog-db.js').PointRecord[]} points
+   * @param {import('./triplog-constants.js').Unit} unit
+   * @returns {{ lat: number, lon: number, label: string }[]}
+   */
+  function computeMileMarkers(points, unit) {
+    if (points.length < 2) return [];
+    const unitMeters = unit === UNITS.IMPERIAL ? METERS_PER_MILE : METERS_PER_KM;
+    /** @type {{ lat: number, lon: number, label: string }[]} */
+    const markers = [];
+    let cum = 0;
+    let nextTarget = unitMeters;
+    for (let i = 1; i < points.length; i += 1) {
+      const prev = points[i - 1];
+      const cur = points[i];
+      const segLen = haversineMeters(prev.lat, prev.lon, cur.lat, cur.lon);
+      while (cum + segLen >= nextTarget) {
+        const t = (nextTarget - cum) / segLen;
+        markers.push({
+          lat: prev.lat + (cur.lat - prev.lat) * t,
+          lon: prev.lon + (cur.lon - prev.lon) * t,
+          label: String(Math.round(nextTarget / unitMeters))
+        });
+        nextTarget += unitMeters;
+        // Cap the number of markers we ever render so a very long
+        // trip doesn't paint hundreds of overlapping pins.
+        if (markers.length > 100) return markers;
+      }
+      cum += segLen;
+    }
+    return markers;
+  }
+
+  /**
+   * Recompute splits from the persisted points so past trips show the
+   * same splits the user saw live. Uses the active unit (km vs mi)
+   * and pipes cumulative distance + (best-effort) elapsed time into
+   * the existing `createSplitTracker`. We don't have the live
+   * auto-pause window here, so "time per split" is wall-clock from
+   * the first to the last point in that split — close enough for a
+   * post-trip recap.
+   *
+   * @param {import('./triplog-db.js').PointRecord[]} points
+   */
+  function renderTripSplits(points) {
+    tvSplitsList.replaceChildren();
+    tvSplitsSummary.textContent = '';
+    if (points.length < 2) {
+      tvSplitsCard.hidden = true;
+      return;
+    }
+    const unitMeters = state.unit === UNITS.IMPERIAL ? METERS_PER_MILE : METERS_PER_KM;
+    tvSplitsUnitLabel.textContent = state.unit === UNITS.IMPERIAL ? '(mi)' : '(km)';
+    const splits = createSplitTracker(unitMeters);
+    let cumDist = 0;
+    const t0 = points[0].t;
+    /** @type {import('./triplog-db.js').PointRecord | null} */
+    let prev = null;
+    for (const p of points) {
+      if (prev) {
+        cumDist += haversineMeters(prev.lat, prev.lon, p.lat, p.lon);
+      }
+      splits.update(cumDist, Math.max(0, (p.t - t0) / 1000));
+      prev = p;
+    }
+    const snap = splits.snapshot();
+    if (snap.completed.length === 0 && !snap.inProgress) {
+      tvSplitsCard.hidden = true;
+      return;
+    }
+    tvSplitsCard.hidden = false;
+    // Pre-compute the min/max pace across completed splits so the bar
+    // widths give a relative sense of which splits were slower. The
+    // bar is filled in proportion to (pace - minPace) / range, so the
+    // slowest split gets a full bar and the fastest a near-empty one.
+    const paces = snap.completed.map((s) => s.paceSecPerMeter).filter((p) => p > 0);
+    const minPace = paces.length ? Math.min(...paces) : 0;
+    const maxPace = paces.length ? Math.max(...paces) : 0;
+    const range = maxPace - minPace;
+    /** @param {number} pace */
+    const widthFor = (pace) => {
+      if (!Number.isFinite(pace) || pace <= 0 || range === 0) return 0.5;
+      return 0.15 + 0.85 * ((pace - minPace) / range);
+    };
+    for (const s of snap.completed) {
+      tvSplitsList.appendChild(
+        renderTripSplitRow(
+          s.index,
+          s.timeSec,
+          s.paceSecPerMeter,
+          false,
+          widthFor(s.paceSecPerMeter)
+        )
+      );
+    }
+    if (snap.inProgress && snap.inProgress.distanceMeters > 0) {
+      tvSplitsList.appendChild(
+        renderTripSplitRow(
+          snap.inProgress.index,
+          snap.inProgress.timeSec,
+          snap.inProgress.paceSecPerMeter,
+          true,
+          widthFor(snap.inProgress.paceSecPerMeter)
+        )
+      );
+    }
+    if (snap.completed.length > 0) {
+      const fastest = snap.completed.reduce((best, s) =>
+        s.paceSecPerMeter > 0 &&
+        (best.paceSecPerMeter === 0 || s.paceSecPerMeter < best.paceSecPerMeter)
+          ? s
+          : best
+      );
+      const fastestPaceLabel = formatPace(
+        fastest.paceSecPerMeter > 0 ? 1 / fastest.paceSecPerMeter : null,
+        state.unit
+      );
+      tvSplitsSummary.textContent = `Fastest: split ${fastest.index} • ${fastestPaceLabel}`;
+    }
+  }
+
+  /**
+   * @param {number} index
+   * @param {number} timeSec
+   * @param {number} paceSecPerMeter
+   * @param {boolean} inProgress
+   * @param {number} [barWidth] 0..1 — used for the inline "longer bar = slower" indicator
+   */
+  function renderTripSplitRow(index, timeSec, paceSecPerMeter, inProgress, barWidth = 0.5) {
+    const li = document.createElement('li');
+    li.className =
+      'flex items-center gap-3 py-1.5 text-sm' +
+      (inProgress ? ' text-zinc-500 dark:text-zinc-400' : '');
+    const left = document.createElement('span');
+    left.className = 'w-8 font-semibold';
+    left.textContent = `${index}${inProgress ? '·' : ''}`;
+    // Bar takes the middle column; the inner fill is colored teal and
+    // sized by `barWidth`. Visually mirrors Strava-style split bars
+    // where slower splits stretch farther across the row.
+    const barWrap = document.createElement('span');
+    barWrap.className =
+      'relative h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800';
+    const barFill = document.createElement('span');
+    barFill.className = 'absolute inset-y-0 left-0 rounded-full bg-teal-500/80';
+    barFill.style.width = `${Math.round(Math.max(0, Math.min(1, barWidth)) * 100)}%`;
+    barWrap.appendChild(barFill);
+    const time = document.createElement('span');
+    time.className = 'w-12 text-right tabular-nums';
+    time.textContent = formatSplitTime(timeSec);
+    const pace = document.createElement('span');
+    pace.className = 'w-24 text-right tabular-nums text-zinc-600 dark:text-zinc-300';
+    pace.textContent = formatPace(paceSecPerMeter > 0 ? 1 / paceSecPerMeter : null, state.unit);
+    li.append(left, barWrap, time, pace);
+    return li;
   }
 
   function closeTripView() {
@@ -485,6 +1246,175 @@ function main() {
       state.replayMap = null;
     }
     state.currentReplayTripId = null;
+    state.replayPoints = [];
+    exitCropMode();
+  }
+
+  /**
+   * Re-derive total distance + elevation gain from a kept slice of
+   * points. We use the same Haversine helper and elevation-delta rule
+   * the live tracker uses, so cropped stats stay consistent with what
+   * the user saw during recording.
+   *
+   * @param {import('./triplog-db.js').PointRecord[]} points
+   */
+  function recomputeStatsFromPoints(points) {
+    let distance = 0;
+    let elevation = 0;
+    /** @type {import('./triplog-db.js').PointRecord | null} */
+    let prev = null;
+    /** @type {number | null} */
+    let lastElev = null;
+    for (const p of points) {
+      if (prev) {
+        distance += haversineMeters(prev.lat, prev.lon, p.lat, p.lon);
+      }
+      if (typeof p.altitude === 'number' && Number.isFinite(p.altitude)) {
+        if (lastElev === null) {
+          lastElev = p.altitude;
+        } else {
+          const dAlt = p.altitude - lastElev;
+          if (Math.abs(dAlt) >= 2) {
+            if (dAlt > 0) {
+              elevation += dAlt;
+            }
+            lastElev = p.altitude;
+          }
+        }
+      }
+      prev = p;
+    }
+    return { distanceMeters: distance, elevationGainM: elevation };
+  }
+
+  /** Push crop summary text + slider value into the bar. */
+  function renderCropSummary() {
+    const total = state.replayPoints.length;
+    const keep = Math.max(1, Math.min(total, Number(cropSlider.value) || total));
+    const kept = state.replayPoints.slice(0, keep);
+    const trimmedCount = total - keep;
+    const keptStats = recomputeStatsFromPoints(kept);
+    const lastKeptT = kept[kept.length - 1]?.t ?? 0;
+    const firstT = kept[0]?.t ?? 0;
+    const keptDurSec = Math.max(0, (lastKeptT - firstT) / 1000);
+    cropKeepSummary.textContent = `${formatDistance(
+      keptStats.distanceMeters,
+      state.unit
+    )} • ${formatDuration(keptDurSec)}`;
+    if (trimmedCount === 0) {
+      cropTrimSummary.textContent = '0 points';
+    } else {
+      const trimmed = state.replayPoints.slice(keep);
+      const trimmedStats = recomputeStatsFromPoints([kept[kept.length - 1], ...trimmed]);
+      const tailDurSec =
+        trimmed.length > 0 ? Math.max(0, (trimmed[trimmed.length - 1].t - lastKeptT) / 1000) : 0;
+      cropTrimSummary.textContent = `${trimmedCount} points • ${formatDistance(
+        trimmedStats.distanceMeters,
+        state.unit
+      )} • ${formatDuration(tailDurSec)}`;
+    }
+    state.replayMap?.previewCrop?.(keep);
+  }
+
+  function enterCropMode() {
+    if (state.replayPoints.length < 2 || !state.replayMap) {
+      return;
+    }
+    state.cropMode = true;
+    cropBar.hidden = false;
+    cropSlider.max = String(state.replayPoints.length);
+    cropSlider.value = String(state.replayPoints.length);
+    // Hide the destructive Delete button while cropping so the bar is
+    // the focused interaction.
+    btnTripViewDelete.disabled = true;
+    btnTripViewCrop.disabled = true;
+    renderCropSummary();
+  }
+
+  function exitCropMode() {
+    state.cropMode = false;
+    cropBar.hidden = true;
+    btnTripViewDelete.disabled = false;
+    // Only re-enable Crop if there's a trip loaded with enough points.
+    btnTripViewCrop.disabled = state.replayPoints.length < 2;
+    state.replayMap?.clearCropPreview?.();
+    // Redraw the full track in its colored form so the dashed overlay
+    // disappears and the end marker snaps back to the true end.
+    if (state.replayPoints.length > 0 && state.db && state.currentReplayTripId) {
+      const id = state.currentReplayTripId;
+      state.db
+        .getTrip(id)
+        .then((trip) => {
+          if (trip && state.currentReplayTripId === id) {
+            renderTripViewDetails(trip, state.replayPoints);
+          } else {
+            state.replayMap?.drawTrack(state.replayPoints);
+          }
+        })
+        .catch((err) => {
+          console.error('[triplog] exitCropMode refresh', err);
+          state.replayMap?.drawTrack(state.replayPoints);
+        });
+    }
+  }
+
+  async function saveCrop() {
+    if (!state.db || !state.currentReplayTripId || !state.cropMode) {
+      return;
+    }
+    const total = state.replayPoints.length;
+    const keep = Math.max(1, Math.min(total, Number(cropSlider.value) || total));
+    if (keep >= total) {
+      // Nothing to trim.
+      exitCropMode();
+      return;
+    }
+    const kept = state.replayPoints.slice(0, keep);
+    const keepThroughMs = kept[kept.length - 1].t;
+    const tripId = state.currentReplayTripId;
+
+    btnCropSave.disabled = true;
+    btnCropCancel.disabled = true;
+    try {
+      const removed = await state.db.removePointsAfter(tripId, keepThroughMs);
+      const recomputed = recomputeStatsFromPoints(kept);
+      const firstT = kept[0].t;
+      const newEndedAt = new Date(keepThroughMs);
+      // Wall-clock duration to the new end point. We lose the moving-
+      // time refinement because we don't replay the auto-pause logic
+      // here; that's a deliberate trade-off — cropping is usually about
+      // removing a forgotten-to-stop tail, where wall-clock is the
+      // honest number anyway.
+      const newDurationSec = Math.max(0, (keepThroughMs - firstT) / 1000);
+      await state.db.updateTripStats(tripId, {
+        distanceMeters: recomputed.distanceMeters,
+        durationSec: newDurationSec,
+        elapsedSec: newDurationSec,
+        pointCount: kept.length,
+        elevationGainM: recomputed.elevationGainM,
+        endedAt: newEndedAt
+      });
+      state.replayPoints = kept;
+      // exitCropMode below will redraw the colored track and refresh
+      // all the detail cards from the freshly-persisted trip record.
+      exitCropMode();
+      const updated = await state.db.getTrip(tripId);
+      if (updated) {
+        tripViewSummary.textContent = `${formatTripStartedAt(updated.startedAt)} • ${formatDistance(
+          updated.distanceMeters,
+          state.unit
+        )} • ${formatDuration(updated.durationSec)}`;
+        renderTripViewDetails(updated, kept);
+      }
+      void refreshTripsList();
+      setStatus(statusEl, `Trimmed ${removed} point${removed === 1 ? '' : 's'} from the end.`);
+    } catch (err) {
+      console.error('[triplog] saveCrop', err);
+      setStatus(statusEl, err instanceof Error ? err.message : String(err), true);
+    } finally {
+      btnCropSave.disabled = false;
+      btnCropCancel.disabled = false;
+    }
   }
 
   async function deleteCurrentReplayTrip() {
@@ -510,12 +1440,78 @@ function main() {
     }
   }
 
+  /** Bike shows speed; run/walk show pace. Driven by the activity tuning. */
+  function activityPrefersPace() {
+    return ACTIVITY_TUNING[state.activity].prefersPace;
+  }
+
+  /**
+   * Drive button visibility from the three recorder states. Single
+   * source of truth so we don't get stuck with both Pause and Resume
+   * showing at the same time.
+   *
+   * @param {'idle' | 'recording' | 'paused'} mode
+   */
+  function setRecorderMode(mode) {
+    btnStart.hidden = mode !== 'idle';
+    btnPause.hidden = mode !== 'recording';
+    btnResume.hidden = mode !== 'paused';
+    btnFinish.hidden = mode !== 'paused';
+  }
+
   function applyStatsToUi(stats) {
     state.lastStats = stats;
     statDistance.textContent = formatDistance(stats.distanceMeters, state.unit);
     statDuration.textContent = formatDuration(stats.durationSec);
-    statSpeed.textContent = formatSpeed(stats.currentSpeedMs, state.unit);
+    statElapsed.textContent = formatDuration(stats.elapsedSec || stats.durationSec);
+    if (activityPrefersPace()) {
+      statSpeedLabel.textContent = 'Pace';
+      statAvgSpeedLabel.textContent = 'Avg pace';
+      statSpeed.textContent = formatPace(stats.currentSpeedMs, state.unit);
+      statAvgSpeed.textContent = formatPace(stats.averageSpeedMs, state.unit);
+    } else {
+      statSpeedLabel.textContent = 'Speed';
+      statAvgSpeedLabel.textContent = 'Avg speed';
+      statSpeed.textContent = formatSpeed(stats.currentSpeedMs, state.unit);
+      statAvgSpeed.textContent = formatSpeed(stats.averageSpeedMs, state.unit);
+    }
+    statElevation.textContent = formatElevation(stats.elevationGainM, state.unit);
     statAccuracy.textContent = formatAccuracy(stats.accuracyM, state.unit);
+    if (stats.paused) {
+      pausedBadge.hidden = false;
+      pausedBadge.lastElementChild?.remove?.();
+      pausedBadge.textContent = '';
+      const icon = document.createElement('span');
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = '⏸';
+      const label = document.createTextNode(
+        ' ' + (stats.pauseReason === 'manual' ? 'Paused' : 'Auto-paused')
+      );
+      pausedBadge.append(icon, label);
+    } else {
+      pausedBadge.hidden = true;
+    }
+    // Keep button visibility in lock-step with manual pause. We only
+    // toggle between recording/paused here; idle is owned by start/stop.
+    if (state.tracker?.isRecording) {
+      setRecorderMode(stats.pauseReason === 'manual' ? 'paused' : 'recording');
+    }
+  }
+
+  /** Empty placeholder stats; used between trips and after init. */
+  function emptyStats() {
+    return /** @type {import('./triplog-tracker.js').TrackerStats} */ ({
+      distanceMeters: 0,
+      durationSec: 0,
+      elapsedSec: 0,
+      pointCount: 0,
+      currentSpeedMs: null,
+      averageSpeedMs: 0,
+      accuracyM: null,
+      elevationGainM: 0,
+      paused: false,
+      pauseReason: null
+    });
   }
 
   /**
@@ -524,8 +1520,7 @@ function main() {
    * tapping it will switch to, not what they're currently seeing).
    */
   function refreshUnitsButton() {
-    btnUnits.textContent =
-      state.unit === UNITS.IMPERIAL ? 'Switch to km' : 'Switch to mi';
+    btnUnits.textContent = state.unit === UNITS.IMPERIAL ? 'Switch to km' : 'Switch to mi';
     btnUnits.setAttribute(
       'aria-label',
       state.unit === UNITS.IMPERIAL ? 'Switch to metric units' : 'Switch to imperial units'
@@ -536,20 +1531,151 @@ function main() {
     state.unit = state.unit === UNITS.IMPERIAL ? UNITS.METRIC : UNITS.IMPERIAL;
     saveStoredUnit(state.unit);
     refreshUnitsButton();
+    renderSplits();
     if (state.lastStats) {
       applyStatsToUi(state.lastStats);
     } else {
       // No active recording — just refresh the placeholders so the
       // unit labels in "— km/h" / "0.00 km" reflect the new choice.
-      applyStatsToUi({
-        distanceMeters: 0,
-        durationSec: 0,
-        pointCount: 0,
-        currentSpeedMs: null,
-        averageSpeedMs: 0,
-        accuracyM: null
-      });
+      applyStatsToUi(emptyStats());
     }
+    // If the trip viewer is open, re-render its stats/charts/splits so
+    // distances, elevation, pace axis, splits, mile markers, and best
+    // efforts all switch to the new unit.
+    if (tripViewDialog.open && state.currentReplayTripId && state.db) {
+      const currentId = state.currentReplayTripId;
+      state.db
+        .getTrip(currentId)
+        .then((trip) => {
+          if (!trip || state.currentReplayTripId !== currentId) {
+            return;
+          }
+          renderTripViewDetails(trip, state.replayPoints);
+        })
+        .catch((err) => console.error('[triplog] refresh trip view after units', err));
+    }
+  }
+
+  /** @param {import('./triplog-constants.js').Activity} activity */
+  function setActivity(activity) {
+    if (state.activity === activity) {
+      return;
+    }
+    state.activity = activity;
+    saveStoredActivity(activity);
+    refreshActivityPicker();
+    // Activity changes what "Speed" vs "Pace" means, so re-render stats.
+    if (state.lastStats) {
+      applyStatsToUi(state.lastStats);
+    } else {
+      applyStatsToUi(emptyStats());
+    }
+  }
+
+  /** Populate the activity dropdown from ACTIVITY_TUNING. Idempotent. */
+  function populateActivitySelect() {
+    activitySelect.replaceChildren();
+    for (const [value, tuning] of Object.entries(ACTIVITY_TUNING)) {
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = `${tuning.emoji} ${tuning.label}`;
+      activitySelect.appendChild(opt);
+    }
+    activitySelect.value = state.activity;
+  }
+
+  function refreshActivityPicker() {
+    if (activitySelect.value !== state.activity) {
+      activitySelect.value = state.activity;
+    }
+  }
+
+  /** Lock the activity picker once recording starts; unlock when it ends. */
+  function setActivityPickerLocked(locked) {
+    activitySelect.disabled = locked;
+  }
+
+  /**
+   * Render the splits panel from the active split tracker (chosen by
+   * `state.unit`). Hides the panel entirely when there are no completed
+   * splits AND nothing in progress — i.e. before recording starts.
+   */
+  function renderSplits() {
+    const tracker = state.unit === UNITS.IMPERIAL ? state.splits.mi : state.splits.km;
+    splitsUnitLabel.textContent = state.unit === UNITS.IMPERIAL ? '(mi)' : '(km)';
+    if (!tracker) {
+      splitsCard.hidden = true;
+      splitsList.replaceChildren();
+      splitsSummary.textContent = '';
+      return;
+    }
+    const snap = tracker.snapshot();
+    if (snap.completed.length === 0 && !snap.inProgress) {
+      splitsCard.hidden = true;
+      splitsList.replaceChildren();
+      splitsSummary.textContent = '';
+      return;
+    }
+    splitsCard.hidden = false;
+
+    splitsList.replaceChildren();
+    for (const s of snap.completed) {
+      splitsList.appendChild(renderSplitRow(s.index, s.timeSec, s.paceSecPerMeter, false));
+    }
+    if (snap.inProgress && snap.inProgress.distanceMeters > 0) {
+      splitsList.appendChild(
+        renderSplitRow(
+          snap.inProgress.index,
+          snap.inProgress.timeSec,
+          snap.inProgress.paceSecPerMeter,
+          true
+        )
+      );
+    }
+
+    if (snap.completed.length > 0) {
+      const fastest = snap.completed.reduce((best, s) =>
+        s.paceSecPerMeter > 0 &&
+        (best.paceSecPerMeter === 0 || s.paceSecPerMeter < best.paceSecPerMeter)
+          ? s
+          : best
+      );
+      const fastestPaceLabel = formatPace(
+        fastest.paceSecPerMeter > 0 ? 1 / fastest.paceSecPerMeter : null,
+        state.unit
+      );
+      splitsSummary.textContent = `Fastest: split ${fastest.index} • ${fastestPaceLabel}`;
+    } else {
+      splitsSummary.textContent = '';
+    }
+  }
+
+  /**
+   * Build a single row of the splits list. Marks the in-progress
+   * (partial) split with reduced opacity and a "current" suffix so
+   * runners don't think their pace just got 3× better.
+   *
+   * @param {number} index
+   * @param {number} timeSec
+   * @param {number} paceSecPerMeter
+   * @param {boolean} inProgress
+   */
+  function renderSplitRow(index, timeSec, paceSecPerMeter, inProgress) {
+    const li = document.createElement('li');
+    li.className =
+      'flex items-baseline justify-between gap-3 py-1.5 text-sm' +
+      (inProgress ? ' text-zinc-500 dark:text-zinc-400' : '');
+    const left = document.createElement('span');
+    left.className = 'w-12 font-semibold';
+    left.textContent = `${index}${inProgress ? '·' : ''}`;
+    const time = document.createElement('span');
+    time.className = 'flex-1 text-right';
+    time.textContent = formatSplitTime(timeSec);
+    const pace = document.createElement('span');
+    pace.className = 'w-24 text-right text-zinc-600 dark:text-zinc-300';
+    pace.textContent = formatPace(paceSecPerMeter > 0 ? 1 / paceSecPerMeter : null, state.unit);
+    li.append(left, time, pace);
+    return li;
   }
 
   async function flushPointBuffer() {
@@ -579,7 +1705,9 @@ function main() {
       await state.db.updateTripStats(state.currentTripId, {
         distanceMeters: stats.distanceMeters,
         durationSec: stats.durationSec,
-        pointCount: stats.pointCount
+        elapsedSec: stats.elapsedSec,
+        pointCount: stats.pointCount,
+        elevationGainM: stats.elevationGainM
       });
     } catch (err) {
       console.warn('[triplog] periodicTripRowUpdate', err);
@@ -599,19 +1727,30 @@ function main() {
 
     try {
       const tripId = randomUuid();
-      const name = tripNameInput.value.trim() || defaultTripName();
       const startedAt = new Date();
+      const activity = state.activity;
+      // Strava-style: the trip gets a friendly auto-name now and the
+      // user can rename it in the Finish dialog if they care to.
+      const name = defaultTripName(startedAt, activity);
 
-      await state.db.createTrip({ id: tripId, name, startedAt });
+      await state.db.createTrip({ id: tripId, name, startedAt, activity });
       state.currentTripId = tripId;
       state.buffer = [];
+      state.splits.km = createSplitTracker(METERS_PER_KM);
+      state.splits.mi = createSplitTracker(METERS_PER_MILE);
+      renderSplits();
 
       // First-fix latch: zoom the live map in tight the moment we get
       // a real position. We can't do it before `tracker.start` because
       // the user may still be looking at the OS permission prompt.
       let zoomedToTrip = false;
 
+      const tuning = ACTIVITY_TUNING[activity];
       const tracker = createTracker({
+        tuning: {
+          autoPauseSpeedMs: tuning.autoPauseSpeedMs,
+          autoPauseSeconds: tuning.autoPauseSeconds
+        },
         onPoint: (p, stats) => {
           state.buffer.push(p);
           if (!zoomedToTrip) {
@@ -623,10 +1762,19 @@ function main() {
             lon: p.lon,
             accuracy: p.accuracy
           });
+          // Feed both split trackers so toggling units mid-trip is free.
+          state.splits.km?.update(stats.distanceMeters, stats.durationSec);
+          state.splits.mi?.update(stats.distanceMeters, stats.durationSec);
           applyStatsToUi(stats);
+          renderSplits();
         },
         onStats: (stats) => {
+          // Time-only tick (no new fix): still push to splits so the
+          // in-progress row's time keeps counting while standing still.
+          state.splits.km?.update(stats.distanceMeters, stats.durationSec);
+          state.splits.mi?.update(stats.distanceMeters, stats.durationSec);
           applyStatsToUi(stats);
+          renderSplits();
         },
         onError: (err) => {
           const code = 'code' in err ? err.code : 0;
@@ -648,13 +1796,12 @@ function main() {
 
       await tracker.start({ tripId });
 
-      btnStart.hidden = true;
-      btnStop.hidden = false;
+      setRecorderMode('recording');
       btnFollow.classList.remove('hidden');
       btnFollow.classList.add('flex');
       btnFollow.setAttribute('aria-pressed', 'true');
       btnFollow.dataset.on = 'true';
-      tripNameInput.disabled = true;
+      setActivityPickerLocked(true);
 
       ensureLiveMap();
 
@@ -678,14 +1825,102 @@ function main() {
     }
   }
 
-  async function stopRecording() {
-    if (!state.tracker?.isRecording) {
+  function pauseRecording() {
+    if (!state.tracker?.isRecording || state.tracker.isManuallyPaused) {
       return;
     }
-    btnStop.disabled = true;
-    setStatus(statusEl, 'Stopping…');
+    state.tracker.pauseManual();
+    setRecorderMode('paused');
+    setStatus(statusEl, 'Paused.');
+  }
 
+  function resumeRecording() {
+    if (!state.tracker?.isRecording || !state.tracker.isManuallyPaused) {
+      return;
+    }
+    state.tracker.resumeManual();
+    setRecorderMode('recording');
+    setStatus(statusEl, 'Recording.');
+  }
+
+  /**
+   * Open the Strava-style "Finish trip" dialog. The recording is *not*
+   * stopped yet — that happens when the user taps Save or Discard from
+   * inside the dialog. "Back" returns to the paused state so they can
+   * keep going.
+   */
+  async function openFinishDialog() {
+    if (!state.tracker?.isRecording || !state.currentTripId) {
+      return;
+    }
+    // Make sure we're paused before we open the dialog so the timers
+    // freeze and the snapshot we show doesn't tick under the user.
+    if (!state.tracker.isManuallyPaused) {
+      state.tracker.pauseManual();
+      setRecorderMode('paused');
+    }
+    const snap = state.tracker.stats;
+    const tuning = ACTIVITY_TUNING[state.activity];
+    const usePace = tuning.prefersPace;
+
+    finishDistance.textContent = formatDistance(snap.distanceMeters, state.unit);
+    finishDuration.textContent = formatDuration(snap.durationSec);
+    finishPaceLabel.textContent = usePace ? 'Avg pace' : 'Avg speed';
+    finishPace.textContent = usePace
+      ? formatPace(snap.averageSpeedMs, state.unit)
+      : formatSpeed(snap.averageSpeedMs, state.unit);
+    finishElevation.textContent = formatElevation(snap.elevationGainM, state.unit);
+    finishActivityBadge.textContent = `${tuning.emoji} ${tuning.label}`;
+
+    // Pre-fill the editable name with whatever's currently on the trip
+    // (the auto-name picked at Start), so the user only has to type if
+    // they actually want a different name.
+    const current = state.db ? await state.db.getTrip(state.currentTripId) : null;
+    finishNameInput.value = current?.name || defaultTripName(new Date(), state.activity);
+
+    if (typeof finishDialog.showModal === 'function') {
+      finishDialog.showModal();
+    } else {
+      finishDialog.setAttribute('open', '');
+    }
+    // Focus the name field on a slight delay so the dialog has actually
+    // mounted before we try to grab focus (avoids a Safari quirk).
+    requestAnimationFrame(() => finishNameInput.select());
+  }
+
+  /**
+   * Shared cleanup after a trip has been finished (either saved or
+   * discarded). Resets the recorder UI and in-memory state so the user
+   * can immediately start another trip.
+   */
+  function resetAfterFinish() {
+    state.tracker = null;
+    state.buffer = [];
+    state.currentTripId = null;
+    state.splits.km = null;
+    state.splits.mi = null;
+    setRecorderMode('idle');
+    btnFinish.disabled = false;
+    btnFollow.classList.add('hidden');
+    btnFollow.classList.remove('flex');
+    setActivityPickerLocked(false);
+    pausedBadge.hidden = true;
+    renderSplits();
+  }
+
+  /**
+   * Persist the in-progress trip, applying any name change from the
+   * Finish dialog. Closes the dialog and refreshes the trips list.
+   */
+  async function saveTrip() {
+    if (!state.tracker?.isRecording || !state.currentTripId) {
+      return;
+    }
+    btnFinishSave.disabled = true;
+    btnFinishDiscard.disabled = true;
+    btnFinishBack.disabled = true;
     try {
+      const tripId = state.currentTripId;
       const final = state.tracker.stop();
       if (state.flushHandle !== null) {
         window.clearInterval(state.flushHandle);
@@ -695,46 +1930,101 @@ function main() {
         window.clearInterval(state.tripRowUpdateHandle);
         state.tripRowUpdateHandle = null;
       }
-
-      // Final flush of the points buffer.
       await flushPointBuffer();
 
-      if (state.db && state.currentTripId) {
-        await state.db.updateTripStats(state.currentTripId, {
+      if (state.db) {
+        // First update the rolling stats fields...
+        const updated = await state.db.updateTripStats(tripId, {
           distanceMeters: final.distanceMeters,
           durationSec: final.durationSec,
+          elapsedSec: final.elapsedSec,
           pointCount: final.pointCount,
+          elevationGainM: final.elevationGainM,
           endedAt: final.endedAt,
           status: TRIP_STATUS.COMPLETE
         });
+        // ...then apply the (possibly edited) name in a second write.
+        // We keep the rename out of `updateTripStats` to avoid blowing
+        // out its narrow contract; this is the only place rename
+        // happens.
+        const desiredName = finishNameInput.value.trim();
+        if (desiredName && desiredName !== updated.name) {
+          await state.db.renameTrip(tripId, desiredName);
+        }
       }
 
+      finishDialog.close();
       setStatus(
         statusEl,
-        `Saved trip — ${formatDistance(final.distanceMeters)} in ${formatDuration(
+        `Saved — ${formatDistance(final.distanceMeters, state.unit)} in ${formatDuration(
           final.durationSec
         )}`
       );
       embed.notify(
-        `Trip saved: ${formatDistance(final.distanceMeters)} in ${formatDuration(
+        `Trip saved: ${formatDistance(final.distanceMeters, state.unit)} in ${formatDuration(
           final.durationSec
         )}`,
         { kind: 'success' }
       );
     } catch (err) {
-      console.error('[triplog] stopRecording', err);
+      console.error('[triplog] saveTrip', err);
       setStatus(statusEl, err instanceof Error ? err.message : String(err), true);
     } finally {
-      state.tracker = null;
+      btnFinishSave.disabled = false;
+      btnFinishDiscard.disabled = false;
+      btnFinishBack.disabled = false;
+      resetAfterFinish();
+      void refreshTripsList();
+    }
+  }
+
+  /**
+   * Throw away the in-progress trip — deletes the IDB record and every
+   * point — after a confirmation prompt. Used by the Discard button in
+   * the Finish dialog when the user starts and immediately realises
+   * they didn't mean to.
+   */
+  async function discardTrip() {
+    if (!state.tracker?.isRecording || !state.currentTripId) {
+      return;
+    }
+    if (!globalThis.confirm('Discard this trip? It will be deleted and cannot be recovered.')) {
+      return;
+    }
+    btnFinishSave.disabled = true;
+    btnFinishDiscard.disabled = true;
+    btnFinishBack.disabled = true;
+    try {
+      const tripId = state.currentTripId;
+      try {
+        state.tracker.stop();
+      } catch {
+        /* already stopped */
+      }
+      if (state.flushHandle !== null) {
+        window.clearInterval(state.flushHandle);
+        state.flushHandle = null;
+      }
+      if (state.tripRowUpdateHandle !== null) {
+        window.clearInterval(state.tripRowUpdateHandle);
+        state.tripRowUpdateHandle = null;
+      }
+      // Drop the in-memory buffer so it can't get flushed against the
+      // about-to-be-deleted trip's id.
       state.buffer = [];
-      state.currentTripId = null;
-      btnStop.hidden = true;
-      btnStart.hidden = false;
-      btnStop.disabled = false;
-      tripNameInput.disabled = false;
-      tripNameInput.value = '';
-      btnFollow.classList.add('hidden');
-      btnFollow.classList.remove('flex');
+      if (state.db) {
+        await state.db.deleteTrip(tripId);
+      }
+      finishDialog.close();
+      setStatus(statusEl, 'Trip discarded.');
+    } catch (err) {
+      console.error('[triplog] discardTrip', err);
+      setStatus(statusEl, err instanceof Error ? err.message : String(err), true);
+    } finally {
+      btnFinishSave.disabled = false;
+      btnFinishDiscard.disabled = false;
+      btnFinishBack.disabled = false;
+      resetAfterFinish();
       void refreshTripsList();
     }
   }
@@ -774,7 +2064,25 @@ function main() {
   }
 
   btnStart.addEventListener('click', () => void startRecording());
-  btnStop.addEventListener('click', () => void stopRecording());
+  btnPause.addEventListener('click', () => pauseRecording());
+  btnResume.addEventListener('click', () => resumeRecording());
+  btnFinish.addEventListener('click', () => void openFinishDialog());
+
+  // The Save button is type="submit" so Enter in the name field also
+  // saves. We preventDefault so the dialog doesn't auto-close — we
+  // close it explicitly inside saveTrip after the write succeeds.
+  finishForm.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    void saveTrip();
+  });
+  btnFinishDiscard.addEventListener('click', () => void discardTrip());
+  btnFinishBack.addEventListener('click', () => {
+    // Close without saving — recording stays paused. The user can hit
+    // Resume to keep going, or Finish again to bring the dialog back.
+    if (finishDialog.open) {
+      finishDialog.close();
+    }
+  });
 
   btnFollow.addEventListener('click', () => {
     const on = btnFollow.dataset.on !== 'true';
@@ -790,22 +2098,28 @@ function main() {
 
   btnRefreshTrips.addEventListener('click', () => void refreshTripsList());
   btnUnits.addEventListener('click', () => toggleUnits());
-  refreshUnitsButton();
-  // Render placeholder stats once so the initial labels match the saved unit.
-  applyStatsToUi({
-    distanceMeters: 0,
-    durationSec: 0,
-    pointCount: 0,
-    currentSpeedMs: null,
-    averageSpeedMs: 0,
-    accuracyM: null
+
+  populateActivitySelect();
+  activitySelect.addEventListener('change', () => {
+    const v = activitySelect.value;
+    if (Object.prototype.hasOwnProperty.call(ACTIVITY_TUNING, v)) {
+      setActivity(/** @type {import('./triplog-constants.js').Activity} */ (v));
+    }
   });
+
+  refreshUnitsButton();
+  // Render placeholder stats once so the initial labels match the saved unit + activity.
+  applyStatsToUi(emptyStats());
   // Clear the cached snapshot so an actual recording later doesn't think
   // these placeholder values are real samples.
   state.lastStats = null;
 
   btnTripViewClose.addEventListener('click', () => closeTripView());
   btnTripViewDelete.addEventListener('click', () => void deleteCurrentReplayTrip());
+  btnTripViewCrop.addEventListener('click', () => enterCropMode());
+  btnCropCancel.addEventListener('click', () => exitCropMode());
+  btnCropSave.addEventListener('click', () => void saveCrop());
+  cropSlider.addEventListener('input', () => renderCropSummary());
   tripViewDialog.addEventListener('close', () => closeTripView());
 
   permissionRetryBtn.addEventListener('click', () => recheckLocation());
