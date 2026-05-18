@@ -181,8 +181,16 @@
 
         <section
           id="stats-card"
-          class="grid grid-cols-2 gap-2 rounded-2xl border border-zinc-200/90 bg-white/85 p-3 shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/85 sm:grid-cols-4"
+          class="relative grid grid-cols-2 gap-2 rounded-2xl border border-zinc-200/90 bg-white/85 p-3 pt-10 shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/85 sm:grid-cols-4"
         >
+          <button
+            type="button"
+            id="btn-units"
+            class="absolute right-2 top-2 z-10 rounded-full border border-zinc-300 bg-white/95 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-700 shadow-sm hover:bg-white dark:border-zinc-600 dark:bg-zinc-800/95 dark:text-zinc-200"
+            aria-label="Switch units"
+          >
+            Switch to mi
+          </button>
           <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
             <div
               class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"

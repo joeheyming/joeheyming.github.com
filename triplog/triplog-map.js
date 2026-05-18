@@ -19,6 +19,14 @@
 const TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
+/**
+ * How much to shrink the viewport when deciding whether to auto-pan.
+ * `-0.2` keeps the user inside the middle 60% of the visible area;
+ * once they drift past that "safe zone" we pan to recenter them.
+ * Negative values shrink the bounds (see Leaflet's `LatLngBounds.pad`).
+ */
+const FOLLOW_INNER_PAD = -0.2;
+
 /** @typedef {{ lat: number, lon: number }} LatLon */
 
 /**
@@ -47,7 +55,12 @@ export function createLiveMap(container, opts = {}) {
   }).setView([startView.lat, startView.lon], startView.zoom);
 
   L.tileLayer(TILE_URL, {
-    maxZoom: 19,
+    // OSM has real tiles up through zoom 19. Above that, Leaflet
+    // upscales the z19 tile so the user can pinch in further and still
+    // see *something* (just blurrier). Useful on a trip recorder where
+    // "where exactly am I" beats "perfectly crisp tile."
+    maxNativeZoom: 19,
+    maxZoom: 22,
     attribution: TILE_ATTR
   }).addTo(map);
 
@@ -70,6 +83,19 @@ export function createLiveMap(container, opts = {}) {
   map.on('dragstart', () => {
     following = false;
   });
+
+  /**
+   * Pan only when the marker has drifted into the outer band of the
+   * viewport. This avoids the jittery "recenter on every fix" feel
+   * while still preventing the live polyline from wandering off-screen.
+   * @param {any} latLng
+   */
+  function panToKeepInView(latLng) {
+    const safe = map.getBounds().pad(FOLLOW_INNER_PAD);
+    if (!safe.contains(latLng)) {
+      map.panTo(latLng, { animate: true });
+    }
+  }
 
   function updateMarker(lat, lon, accuracyM) {
     if (!currentMarker) {
@@ -112,8 +138,10 @@ export function createLiveMap(container, opts = {}) {
     },
 
     /**
-     * Append a new GPS fix to the live track. When `following` is true,
-     * the camera pans to keep the marker in view.
+     * Append a new GPS fix to the live track. When `following` is true
+     * the camera pans only once the marker reaches the outer band of
+     * the viewport — so the user keeps a stable view while they're
+     * comfortably on-screen, and we re-center before they walk off it.
      * @param {LatLon & { accuracy?: number }} p
      */
     addLivePoint(p) {
@@ -121,8 +149,19 @@ export function createLiveMap(container, opts = {}) {
       polyline.addLatLng(latLng);
       updateMarker(p.lat, p.lon, p.accuracy);
       if (following) {
-        map.panTo(latLng, { animate: true });
+        panToKeepInView(latLng);
       }
+    },
+
+    /**
+     * Recenter and zoom the map to a specific point. Used at the start
+     * of a recording so the user sees their immediate surroundings
+     * instead of whatever zoom level we happened to be at.
+     * @param {LatLon} p
+     * @param {number} zoom
+     */
+    setView(p, zoom) {
+      map.setView([p.lat, p.lon], zoom);
     },
 
     /** @param {boolean} on */
@@ -155,7 +194,8 @@ export function createReplayMap(container) {
   const L = leaflet();
   const map = L.map(container, { zoomControl: true }).setView([0, 0], 2);
   L.tileLayer(TILE_URL, {
-    maxZoom: 19,
+    maxNativeZoom: 19,
+    maxZoom: 22,
     attribution: TILE_ATTR
   }).addTo(map);
 

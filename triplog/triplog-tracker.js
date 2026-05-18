@@ -28,8 +28,14 @@ const MAX_GOOD_ACCURACY_M = 50;
  */
 const MAX_PLAUSIBLE_SPEED_M_S = 100;
 
-/** Don't accumulate distance for sub-meter wiggle. */
-const MIN_MOVEMENT_M = 1.5;
+/**
+ * Don't accumulate distance for sub-meter wiggle. Tuned for walking:
+ * at a 1.4 m/s pace with 1 Hz samples each segment is roughly 1.4 m,
+ * so the threshold needs to sit well under that or we discard real
+ * footsteps. 0.5 m still filters typical stationary jitter (a phone
+ * sitting on a table drifts ~0.1–0.3 m between fixes).
+ */
+const MIN_MOVEMENT_M = 0.5;
 
 /**
  * @typedef {object} TrackPoint
@@ -146,17 +152,27 @@ export function createTracker(callbacks = {}) {
       const d = haversineMeters(lastAccepted.lat, lastAccepted.lon, point.lat, point.lon);
       const implied = d / dt;
       if (implied > MAX_PLAUSIBLE_SPEED_M_S) {
-        // Looks like a GPS jump — skip but keep counting accuracy.
+        // Looks like a GPS jump — drop the sample entirely.
         stats.accuracyM = accuracy;
         emitStats();
         return;
       }
       if (d >= MIN_MOVEMENT_M) {
         stats.distanceMeters += d;
+        lastAccepted = point;
+      } else {
+        // Sub-threshold movement: keep the same anchor so slow walking
+        // (or anything where each tick is tiny) accumulates once the
+        // cumulative move crosses the threshold. If we advanced the
+        // anchor here we'd lose `d` meters every single sample, and a
+        // long walk would round down to a couple of meters. The point
+        // itself is still real GPS data, so the polyline + buffer
+        // still see it below.
       }
+    } else {
+      lastAccepted = point;
     }
 
-    lastAccepted = point;
     stats.pointCount += 1;
     stats.currentSpeedMs = typeof speed === 'number' && speed >= 0 ? speed : null;
     stats.accuracyM = accuracy;

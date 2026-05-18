@@ -8,6 +8,40 @@ export const TRIP_STATUS = /** @type {const} */ ({
   COMPLETE: 'complete'
 });
 
+/** Units the user can pick for the stats display. */
+export const UNITS = /** @type {const} */ ({
+  METRIC: 'metric',
+  IMPERIAL: 'imperial'
+});
+
+/** @typedef {'metric' | 'imperial'} Unit */
+
+const LS_UNITS = 'triplog.units';
+
+/**
+ * @returns {Unit}
+ */
+export function loadStoredUnit() {
+  try {
+    const raw = localStorage.getItem(LS_UNITS);
+    if (raw === UNITS.IMPERIAL) {
+      return UNITS.IMPERIAL;
+    }
+  } catch {
+    /* private mode / disabled storage */
+  }
+  return UNITS.METRIC;
+}
+
+/** @param {Unit} unit */
+export function saveStoredUnit(unit) {
+  try {
+    localStorage.setItem(LS_UNITS, unit);
+  } catch {
+    /* private mode / quota */
+  }
+}
+
 /**
  * UUID generator that survives insecure contexts.
  *

@@ -13,7 +13,14 @@
  */
 
 import { createOSEmbed } from '/os-embed.js';
-import { defaultTripName, randomUuid, TRIP_STATUS } from './triplog-constants.js';
+import {
+  defaultTripName,
+  loadStoredUnit,
+  randomUuid,
+  saveStoredUnit,
+  TRIP_STATUS,
+  UNITS
+} from './triplog-constants.js';
 import { openTriplogDb } from './triplog-db.js';
 import {
   getGeolocationState,
@@ -39,10 +46,23 @@ function setStatus(el, text, isError = false) {
     : `${STATUS_BASE} text-zinc-500 dark:text-zinc-400`;
 }
 
-/** @param {number} m */
-function formatDistance(m) {
+const METERS_PER_MILE = 1609.344;
+const METERS_PER_FOOT = 0.3048;
+
+/**
+ * @param {number} m
+ * @param {import('./triplog-constants.js').Unit} [unit]
+ */
+function formatDistance(m, unit = UNITS.METRIC) {
   if (!Number.isFinite(m) || m <= 0) {
-    return '0.00 km';
+    return unit === UNITS.IMPERIAL ? '0 ft' : '0.00 km';
+  }
+  if (unit === UNITS.IMPERIAL) {
+    const feet = m / METERS_PER_FOOT;
+    if (feet < 1000) {
+      return `${Math.round(feet)} ft`;
+    }
+    return `${(m / METERS_PER_MILE).toFixed(2)} mi`;
   }
   if (m < 1000) {
     return `${Math.round(m)} m`;
@@ -65,18 +85,31 @@ function formatDuration(sec) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-/** @param {number | null | undefined} ms */
-function formatSpeed(ms) {
+/**
+ * @param {number | null | undefined} ms
+ * @param {import('./triplog-constants.js').Unit} [unit]
+ */
+function formatSpeed(ms, unit = UNITS.METRIC) {
+  const unitLabel = unit === UNITS.IMPERIAL ? 'mph' : 'km/h';
   if (ms == null || !Number.isFinite(ms) || ms < 0) {
-    return '— km/h';
+    return `— ${unitLabel}`;
+  }
+  if (unit === UNITS.IMPERIAL) {
+    return `${(ms * 2.23694).toFixed(1)} mph`;
   }
   return `${(ms * 3.6).toFixed(1)} km/h`;
 }
 
-/** @param {number | null | undefined} m */
-function formatAccuracy(m) {
+/**
+ * @param {number | null | undefined} m
+ * @param {import('./triplog-constants.js').Unit} [unit]
+ */
+function formatAccuracy(m, unit = UNITS.METRIC) {
   if (m == null || !Number.isFinite(m)) {
     return '—';
+  }
+  if (unit === UNITS.IMPERIAL) {
+    return `±${Math.round(m / METERS_PER_FOOT)} ft`;
   }
   return `±${Math.round(m)} m`;
 }
@@ -115,6 +148,8 @@ function main() {
   const btnFollow = $('btn-follow');
   /** @type {HTMLButtonElement} */
   const btnRefreshTrips = $('btn-refresh-trips');
+  /** @type {HTMLButtonElement} */
+  const btnUnits = $('btn-units');
   /** @type {HTMLInputElement} */
   const tripNameInput = $('trip-name');
   /** @type {HTMLElement} */
@@ -189,7 +224,11 @@ function main() {
     flushHandle: null,
     tripRowUpdateHandle: null,
     replayMap: null,
-    currentReplayTripId: null
+    currentReplayTripId: null,
+    /** @type {import('./triplog-constants.js').Unit} */
+    unit: loadStoredUnit(),
+    /** Last live stats snapshot so we can re-render when the unit toggles. */
+    lastStats: /** @type {import('./triplog-tracker.js').TrackerStats | null} */ (null)
   };
 
   function setUiVisibility({ ready, loading, error }) {
@@ -472,10 +511,45 @@ function main() {
   }
 
   function applyStatsToUi(stats) {
-    statDistance.textContent = formatDistance(stats.distanceMeters);
+    state.lastStats = stats;
+    statDistance.textContent = formatDistance(stats.distanceMeters, state.unit);
     statDuration.textContent = formatDuration(stats.durationSec);
-    statSpeed.textContent = formatSpeed(stats.currentSpeedMs);
-    statAccuracy.textContent = formatAccuracy(stats.accuracyM);
+    statSpeed.textContent = formatSpeed(stats.currentSpeedMs, state.unit);
+    statAccuracy.textContent = formatAccuracy(stats.accuracyM, state.unit);
+  }
+
+  /**
+   * Render the units toggle text to reflect the *opposite* of the
+   * current unit (because the button label tells the user what
+   * tapping it will switch to, not what they're currently seeing).
+   */
+  function refreshUnitsButton() {
+    btnUnits.textContent =
+      state.unit === UNITS.IMPERIAL ? 'Switch to km' : 'Switch to mi';
+    btnUnits.setAttribute(
+      'aria-label',
+      state.unit === UNITS.IMPERIAL ? 'Switch to metric units' : 'Switch to imperial units'
+    );
+  }
+
+  function toggleUnits() {
+    state.unit = state.unit === UNITS.IMPERIAL ? UNITS.METRIC : UNITS.IMPERIAL;
+    saveStoredUnit(state.unit);
+    refreshUnitsButton();
+    if (state.lastStats) {
+      applyStatsToUi(state.lastStats);
+    } else {
+      // No active recording — just refresh the placeholders so the
+      // unit labels in "— km/h" / "0.00 km" reflect the new choice.
+      applyStatsToUi({
+        distanceMeters: 0,
+        durationSec: 0,
+        pointCount: 0,
+        currentSpeedMs: null,
+        averageSpeedMs: 0,
+        accuracyM: null
+      });
+    }
   }
 
   async function flushPointBuffer() {
@@ -532,9 +606,18 @@ function main() {
       state.currentTripId = tripId;
       state.buffer = [];
 
+      // First-fix latch: zoom the live map in tight the moment we get
+      // a real position. We can't do it before `tracker.start` because
+      // the user may still be looking at the OS permission prompt.
+      let zoomedToTrip = false;
+
       const tracker = createTracker({
         onPoint: (p, stats) => {
           state.buffer.push(p);
+          if (!zoomedToTrip) {
+            state.liveMap?.setView({ lat: p.lat, lon: p.lon }, 22);
+            zoomedToTrip = true;
+          }
           state.liveMap?.addLivePoint({
             lat: p.lat,
             lon: p.lon,
@@ -706,6 +789,20 @@ function main() {
   });
 
   btnRefreshTrips.addEventListener('click', () => void refreshTripsList());
+  btnUnits.addEventListener('click', () => toggleUnits());
+  refreshUnitsButton();
+  // Render placeholder stats once so the initial labels match the saved unit.
+  applyStatsToUi({
+    distanceMeters: 0,
+    durationSec: 0,
+    pointCount: 0,
+    currentSpeedMs: null,
+    averageSpeedMs: 0,
+    accuracyM: null
+  });
+  // Clear the cached snapshot so an actual recording later doesn't think
+  // these placeholder values are real samples.
+  state.lastStats = null;
 
   btnTripViewClose.addEventListener('click', () => closeTripView());
   btnTripViewDelete.addEventListener('click', () => void deleteCurrentReplayTrip());
