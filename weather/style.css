@@ -17,6 +17,23 @@ body {
     'Helvetica Neue',
     Arial,
     sans-serif;
+  /* Respect notched-phone bottom inset so the share button and
+     refresh bar don't get clipped by the home-indicator. */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Disable iOS double-tap zoom on the interactive parts that we own.
+   Tap targets are already finger-sized below; this kills the 300ms
+   delay on toolbar pills and pickers. */
+.tool-btn,
+.radar-var,
+.radar-play,
+.compare-var,
+.compare-range-btn,
+.weather-tile,
+.tile-close,
+.suggestion-row {
+  touch-action: manipulation;
 }
 
 /* Toggle (units, auto-refresh). */
@@ -347,15 +364,85 @@ body {
   margin: 1rem 0 0.4rem;
 }
 
-/* ─── Radar mode ───────────────────────────────────────────────────── */
+/* ─── Radar mode (MapLibre + Open-Meteo weather layer) ─────────────── */
 
-.radar-toolbar {
+/* Flowx-style "daily ticker" — sits above the map and shows the
+   active location's 7-day max temperatures color-coded by warmth, so
+   the user can scan the week without leaving the radar.
+   Designed to read tightly on phones (small text, tabular numerics)
+   but stretches gracefully on desktop. */
+.radar-ticker {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-  flex-wrap: wrap;
+  gap: 0.75rem;
+  background: rgb(15 23 42 / 0.65);
+  border: 1px solid rgb(30 41 59);
+  border-radius: 0.6rem 0.6rem 0 0;
+  border-bottom: none;
+  padding: 0.45rem 0.7rem 0.5rem;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
 }
+.radar-ticker-head {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 40%;
+}
+.radar-ticker-place {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: rgb(248 250 252);
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.radar-ticker-meta {
+  font-size: 0.65rem;
+  color: rgb(148 163 184);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.radar-ticker-days {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 0.55rem;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  justify-content: flex-end;
+}
+.radar-ticker-days::-webkit-scrollbar {
+  display: none;
+}
+.radar-ticker-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.05rem;
+  min-width: 1.9rem;
+  padding: 0.1rem 0.2rem;
+  border-radius: 0.35rem;
+}
+.radar-ticker-day.today {
+  background: rgb(8 47 73 / 0.55);
+  box-shadow: 0 0 0 1px rgb(56 189 248 / 0.35);
+}
+.radar-ticker-temp {
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.radar-ticker-day-name {
+  font-size: 0.6rem;
+  color: rgb(148 163 184);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .radar-map {
   width: 100%;
   height: clamp(420px, 60vh, 640px);
@@ -364,29 +451,114 @@ body {
   border-radius: 0.75rem;
   overflow: hidden;
 }
-/* Match Leaflet's tiles to the dark UI background while they load. */
-.radar-map .leaflet-container {
-  background: rgb(2 6 23);
+/* When the ticker is visible above the map, flush their seams so they
+   read as one panel. */
+.radar-ticker:not([hidden]) + .radar-map {
+  border-radius: 0 0 0.75rem 0.75rem;
+  border-top-color: transparent;
 }
-.radar-map .leaflet-control-attribution {
+/* Keep MapLibre's canvas crisp against the dark frame. */
+.radar-map .maplibregl-canvas {
+  outline: none;
+}
+.radar-map .maplibregl-ctrl-attrib {
   background: rgb(15 23 42 / 0.85);
   color: rgb(203 213 225);
-  font-size: 0.65rem;
+  font-size: 0.6rem;
 }
-.radar-map .leaflet-control-attribution a {
+.radar-map .maplibregl-ctrl-attrib a {
   color: rgb(125 211 252);
 }
 
 .radar-controls {
   display: flex;
-  align-items: center;
-  gap: 0.6rem;
+  flex-direction: column;
+  gap: 0.5rem;
   margin-top: 0.6rem;
   background: rgb(15 23 42 / 0.6);
   border: 1px solid rgb(30 41 59);
   border-radius: 0.6rem;
-  padding: 0.45rem 0.75rem;
+  padding: 0.55rem 0.75rem;
 }
+.radar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.radar-row-pickers {
+  gap: 0.75rem;
+}
+
+/* Model picker (compact dark <select>). */
+.radar-model-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: rgb(148 163 184);
+}
+.radar-row-title {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.65rem;
+  color: rgb(100 116 139);
+}
+.radar-model {
+  background: rgb(15 23 42);
+  color: rgb(226 232 240);
+  border: 1px solid rgb(51 65 85);
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.radar-model:focus {
+  outline: 2px solid rgb(56 189 248);
+  outline-offset: 1px;
+}
+
+/* Variable pill buttons. */
+.radar-vars {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+.radar-var {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgb(15 23 42);
+  color: rgb(203 213 225);
+  border: 1px solid rgb(51 65 85);
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.radar-var:hover:not(:disabled) {
+  background: rgb(30 41 59);
+  border-color: rgb(71 85 105);
+}
+.radar-var.active {
+  background: rgb(56 189 248);
+  color: rgb(2 6 23);
+  border-color: rgb(56 189 248);
+  font-weight: 600;
+}
+.radar-var.unsupported,
+.radar-var:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.radar-var-emoji {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+/* Time row: play | slider | time label. */
 .radar-play {
   background: rgb(56 189 248);
   color: rgb(2 6 23);
@@ -409,34 +581,78 @@ body {
   background: rgb(251 146 60);
   color: rgb(2 6 23);
 }
+/* While the active forecast frame's tiles are still loading we
+   visually pulse the play button so the user knows the loop is
+   pacing itself to the network (especially on mobile), rather than
+   thinking the app froze. */
+.radar-play[data-loading='true'] {
+  animation: radar-play-pulse 1.1s ease-in-out infinite;
+}
+.radar-time[data-loading='true']::after {
+  content: ' …';
+  color: rgb(148 163 184);
+  font-weight: 500;
+  margin-left: 0.1rem;
+}
+@keyframes radar-play-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgb(56 189 248 / 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgb(56 189 248 / 0);
+  }
+}
 .radar-slider {
   flex: 1 1 auto;
   accent-color: rgb(56 189 248);
   height: 1rem;
   cursor: pointer;
+  min-width: 8rem;
 }
 .radar-time {
   font-size: 0.78rem;
   color: rgb(226 232 240);
   font-variant-numeric: tabular-nums;
-  min-width: 7rem;
+  min-width: 10rem;
   text-align: right;
 }
 
-/* Marker popups blended with the dark UI. */
-.leaflet-popup-content-wrapper,
-.leaflet-popup-tip {
+/* Status line under the slider — mirrors the old radar-status semantics. */
+.radar-status {
+  font-size: 0.72rem;
+  color: rgb(148 163 184);
+  font-variant-numeric: tabular-nums;
+}
+.radar-status[data-tone='wait'] {
+  color: rgb(148 163 184);
+  font-style: italic;
+}
+.radar-status[data-tone='ok'] {
+  color: rgb(125 211 252);
+}
+.radar-status[data-tone='warn'] {
+  color: rgb(252 165 165);
+}
+
+/* MapLibre popups blended with the dark UI. */
+.maplibregl-popup-content {
   background: rgb(15 23 42);
   color: rgb(226 232 240);
   border: 1px solid rgb(51 65 85);
+  border-radius: 0.5rem;
   box-shadow: 0 6px 18px rgb(0 0 0 / 0.45);
+  padding: 0.6rem 0.75rem;
 }
-.leaflet-popup-content {
-  margin: 0.55rem 0.75rem;
+.maplibregl-popup-tip {
+  border-top-color: rgb(15 23 42) !important;
+  border-bottom-color: rgb(15 23 42) !important;
 }
-.leaflet-popup-close-button {
+.maplibregl-popup-close-button {
   color: rgb(148 163 184) !important;
+  font-size: 1.1rem;
+  padding: 0.1rem 0.35rem 0.2rem;
 }
+
 .radar-popup-name {
   font-weight: 600;
   color: rgb(248 250 252);
@@ -467,6 +683,182 @@ body {
   margin-top: 0.2rem;
 }
 
+/* ─── Compare mode (multi-model stacked forecast graphs) ───────────── */
+
+.compare-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.compare-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.compare-place {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgb(248 250 252);
+}
+.compare-place-select {
+  background: rgb(15 23 42);
+  color: rgb(248 250 252);
+  border: 1px solid rgb(51 65 85);
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  max-width: 100%;
+}
+.compare-place-select:focus {
+  outline: 2px solid rgb(56 189 248);
+  outline-offset: 1px;
+}
+.compare-meta {
+  font-size: 0.72rem;
+  color: rgb(148 163 184);
+}
+.compare-vars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.compare-var {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgb(15 23 42);
+  color: rgb(203 213 225);
+  border: 1px solid rgb(51 65 85);
+  border-radius: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.compare-var:hover:not(.active) {
+  background: rgb(30 41 59);
+  border-color: rgb(71 85 105);
+}
+.compare-var.active {
+  background: rgb(56 189 248);
+  color: rgb(2 6 23);
+  border-color: rgb(56 189 248);
+  font-weight: 600;
+}
+.compare-var-emoji {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.compare-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.compare-empty {
+  background: rgb(15 23 42 / 0.5);
+  border: 1px dashed rgb(51 65 85);
+  border-radius: 0.6rem;
+  padding: 1rem;
+  color: rgb(148 163 184);
+  font-size: 0.85rem;
+  text-align: center;
+}
+.compare-empty.compare-empty-error {
+  border-color: rgb(127 29 29);
+  color: rgb(252 165 165);
+}
+
+.compare-row {
+  background: rgb(15 23 42 / 0.6);
+  border: 1px solid rgb(30 41 59);
+  border-radius: 0.7rem;
+  padding: 0.6rem 0.7rem 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.compare-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.compare-row-model {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgb(226 232 240);
+  letter-spacing: 0.02em;
+}
+.compare-row-stats {
+  font-size: 0.7rem;
+  color: rgb(148 163 184);
+  font-variant-numeric: tabular-nums;
+}
+.compare-row-chart {
+  position: relative;
+  width: 100%;
+  height: 90px;
+}
+.compare-row-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.compare-row-yaxis {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2.5rem;
+  pointer-events: none;
+  font-size: 0.65rem;
+  color: rgb(100 116 139);
+  font-variant-numeric: tabular-nums;
+}
+.compare-row-yaxis .compare-y-hi,
+.compare-row-yaxis .compare-y-lo {
+  position: absolute;
+  left: 0.2rem;
+  /* The labels overlap the sparkline, so add a subtle dark halo so
+     they stay readable against the fill color underneath. */
+  text-shadow: 0 0 3px rgb(2 6 23 / 0.95), 0 0 6px rgb(2 6 23 / 0.7);
+}
+.compare-row-yaxis .compare-y-hi {
+  top: 0.1rem;
+}
+.compare-row-yaxis .compare-y-lo {
+  bottom: 0.1rem;
+}
+.compare-row-axis {
+  position: relative;
+  height: 0.95rem;
+  font-size: 0.65rem;
+  color: rgb(148 163 184);
+  font-variant-numeric: tabular-nums;
+}
+.compare-axis-tick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.compare-axis-tick.today {
+  color: rgb(125 211 252);
+  font-weight: 600;
+}
+.compare-axis-tick.past {
+  color: rgb(244 114 182);
+  font-style: italic;
+}
+.compare-footnote {
+  font-size: 0.68rem;
+  color: rgb(100 116 139);
+  margin-top: 0.25rem;
+}
+
 /* Toast container reuses the same look as the stock app. */
 .toast {
   background: rgb(15 23 42);
@@ -480,4 +872,328 @@ body {
 .toast.error {
   border-color: rgb(239 68 68);
   color: rgb(254 226 226);
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  Mobile polish (≤ 640px)
+ *  Goal: match Flowx's mobile feel — bigger hero viz (map / charts),
+ *  denser & touch-friendlier toolbars, less wasted vertical space, and
+ *  cleaner typography hierarchy on phones.
+ * ────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  /* Header: drop the marketing subtitle on phones, shrink the title,
+     and remove the extra left padding meant for a desktop back button. */
+  header .pl-24 {
+    padding-left: 0 !important;
+  }
+  header h1 {
+    font-size: 1.4rem;
+    line-height: 1.15;
+  }
+  header p {
+    display: none;
+  }
+
+  /* Toolbar pills: slim down so the row fits in one wrap, leaving
+     more vertical room for the map/charts. */
+  .tool-btn {
+    font-size: 0.78rem;
+    padding: 0.34rem 0.55rem;
+    min-height: 1.9rem;
+  }
+
+  /* Compact the wrapping toolbar — the locate/auto/share/refresh
+     buttons can stay on the same row as the picker pills. */
+  header {
+    margin-bottom: 0.5rem !important;
+    gap: 0.4rem !important;
+  }
+  /* Mode-toolbar section: less vertical padding and tighter gaps. */
+  section.bg-slate-900\/50 {
+    padding: 0.35rem 0.5rem !important;
+    gap: 0.35rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  /* Tiles: less padding, tighter range/condition typography so the
+     grid feels denser and you can see two or three at once. */
+  .weather-tile {
+    padding: 0.7rem 0.85rem;
+    min-height: 7rem;
+    gap: 0.35rem;
+  }
+  .weather-tile .tile-temp {
+    font-size: 1.85rem;
+  }
+  .weather-tile .tile-cond {
+    font-size: 0.82rem;
+  }
+
+  /* Detail card: lean a little harder on the "current conditions"
+     hero — bigger temp, smaller stat boxes. */
+  .detail-card {
+    padding: 0.9rem 1rem;
+    border-radius: 0.85rem;
+  }
+  .detail-card .now {
+    gap: 0.65rem;
+  }
+  .detail-card .now .emoji {
+    font-size: 2.9rem;
+  }
+  .detail-card .now .temp {
+    font-size: 2.6rem;
+  }
+  .detail-card .stat {
+    padding: 0.45rem 0.55rem;
+  }
+  .detail-card .stat .val {
+    font-size: 0.92rem;
+  }
+
+  .hour-cell {
+    min-width: 4rem;
+    padding: 0.45rem 0.35rem;
+  }
+
+  /* The big page-wide attribution footer below the radar/compare
+     sections also takes a lot of phone real estate; let it compress
+     to a 2-line max. */
+  body > div > footer.mt-6 {
+    margin-top: 0.6rem !important;
+    font-size: 0.62rem;
+    line-height: 1.25;
+  }
+
+  /* ─── Radar mode ──────────────────────────────────────────────────
+     Aim for "everything fits on one screen" instead of "map is the
+     hero." A typical mobile viewport (~700px) needs to host: header,
+     toolbar, ticker, map, picker row, time row, status, footer. So
+     the map gets a modest 36–44vh budget and the controls stay
+     compact — picker row stays single-line (model dropdown + var
+     pills) and only scrolls horizontally when overflowing. */
+  .radar-ticker {
+    gap: 0.55rem;
+    padding: 0.35rem 0.55rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+  }
+  .radar-ticker-place {
+    font-size: 0.82rem;
+  }
+  .radar-ticker-temp {
+    font-size: 0.82rem;
+  }
+  .radar-ticker-day-name {
+    font-size: 0.55rem;
+  }
+  .radar-ticker-day {
+    min-width: 1.75rem;
+    padding: 0.05rem 0.15rem;
+  }
+  .radar-map {
+    height: clamp(220px, 40vh, 360px);
+    border-radius: 0.7rem;
+  }
+  .radar-ticker:not([hidden]) + .radar-map {
+    border-radius: 0 0 0.7rem 0.7rem;
+  }
+  .radar-controls {
+    padding: 0.5rem 0.6rem;
+    gap: 0.4rem;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    background: rgb(2 6 23 / 0.7);
+  }
+  .radar-row {
+    gap: 0.45rem;
+  }
+  /* Keep picker row on a single line — model dropdown takes its
+     natural width, the variable pills scroll alongside. */
+  .radar-row-pickers {
+    flex-wrap: nowrap;
+  }
+  .radar-model-label {
+    flex: 0 0 auto;
+  }
+  .radar-row-title {
+    display: none;
+  }
+  .radar-model {
+    font-size: 0.82rem;
+    padding: 0.35rem 0.45rem;
+    max-width: 9.5rem;
+  }
+
+  /* Variable pills: horizontal scroll instead of wrap. */
+  .radar-vars {
+    margin-left: auto;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    min-width: 0;
+  }
+  .radar-vars::-webkit-scrollbar {
+    display: none;
+  }
+  .radar-var {
+    flex: 0 0 auto;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.78rem;
+    min-height: 2.1rem;
+  }
+  .radar-var-emoji {
+    font-size: 1rem;
+  }
+
+  /* Play + slider + time stay tappable but slimmer overall. */
+  .radar-row-time {
+    gap: 0.5rem;
+  }
+  .radar-play {
+    width: 2.2rem;
+    height: 2.2rem;
+    font-size: 0.95rem;
+  }
+  .radar-slider {
+    height: 1.3rem;
+  }
+  .radar-time {
+    min-width: 4.8rem;
+    font-size: 0.72rem;
+    text-align: right;
+  }
+  .radar-status {
+    font-size: 0.68rem;
+  }
+  /* The bottom attribution paragraph eats a lot of vertical space on
+     phones. Shrink it heavily — full text remains for screen readers,
+     but it visually compresses to one line. */
+  #radar-mode > p {
+    font-size: 0.62rem;
+    line-height: 1.25;
+    margin-top: 0.35rem;
+  }
+
+  /* ─── Compare mode ─────────────────────────────────────────────────
+     Goal here is "see all three model rows + picker on one screen."
+     We dropped chart height instead of raising it, kept the row head
+     on one line, and tightened paddings everywhere. The variable
+     picker scrolls horizontally so adding variables later doesn't
+     grow the screen. */
+  .compare-head {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 0.6rem;
+  }
+  .compare-place,
+  .compare-place-select {
+    font-size: 0.98rem;
+  }
+  .compare-meta {
+    font-size: 0.65rem;
+  }
+  .compare-vars {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin: 0 -0.25rem;
+    padding: 0.1rem 0.25rem 0.3rem;
+  }
+  .compare-vars::-webkit-scrollbar {
+    display: none;
+  }
+  .compare-var {
+    flex: 0 0 auto;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.78rem;
+    min-height: 2.1rem;
+  }
+  .compare-row {
+    padding: 0.4rem 0.55rem 0.3rem;
+    border-radius: 0.55rem;
+  }
+  .compare-row-head {
+    /* One row — model name left, delta-text right. Stack only on
+       very tight stats labels (handled in the ≤380px block below). */
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.4rem;
+  }
+  .compare-row-model {
+    font-size: 0.74rem;
+  }
+  .compare-row-stats {
+    font-size: 0.66rem;
+  }
+  .compare-row-chart {
+    height: 64px;
+  }
+  .compare-row-axis {
+    height: 0.85rem;
+    font-size: 0.6rem;
+  }
+  .compare-row-yaxis {
+    font-size: 0.6rem;
+  }
+  .compare-footnote {
+    font-size: 0.62rem;
+    margin-top: 0.15rem;
+  }
+  /* Tighten attribution under the Compare section the same way as the
+     radar's attribution — kept legible, takes less than half the
+     vertical space. */
+  #compare-mode > p {
+    font-size: 0.62rem;
+    line-height: 1.25;
+    margin-top: 0.35rem;
+  }
+}
+
+/* Phones in narrow portrait (≤ 380px / iPhone SE-ish). Squeeze more —
+   variable pills go icon-only (Flowx style), tile typography compacts. */
+@media (max-width: 380px) {
+  header h1 {
+    font-size: 1.25rem;
+  }
+  .tool-btn {
+    font-size: 0.78rem;
+    padding: 0.4rem 0.55rem;
+  }
+  .weather-tile .tile-temp {
+    font-size: 1.65rem;
+  }
+  .detail-card .now .temp {
+    font-size: 2.3rem;
+  }
+  .detail-card .stats {
+    gap: 0.45rem 0.55rem;
+  }
+  /* Icon-only variable pills — emoji is the affordance, text label is
+     dropped. The `title` attribute provides a tooltip / accessible name. */
+  .radar-var .radar-var-label,
+  .compare-var .compare-var-label {
+    display: none;
+  }
+  .radar-var,
+  .compare-var {
+    padding: 0.5rem 0.65rem;
+  }
+  .radar-var-emoji,
+  .compare-var-emoji {
+    font-size: 1.15rem;
+  }
+  /* Ticker on tiny phones: drop the city subtitle and show 5 days max. */
+  .radar-ticker {
+    gap: 0.5rem;
+    padding: 0.4rem 0.55rem;
+  }
+  .radar-ticker-meta {
+    display: none;
+  }
+  .radar-ticker-day {
+    min-width: 1.6rem;
+  }
 }

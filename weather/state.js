@@ -23,7 +23,7 @@ import { createPrefs } from '/play/shared/prefs.js';
  * @property {string} activeLocationId   Empty string until the user picks one.
  * @property {'c'|'f'} units             Temperature units.
  * @property {boolean} autoRefresh       Refresh every ~5 minutes.
- * @property {'cards'|'radar'} mode      View mode: forecast cards or radar map.
+ * @property {'cards'|'radar'|'compare'} mode  View mode: forecast cards, radar map, or multi-model comparison graphs.
  */
 
 export const STORAGE_KEY = 'heyming.weather.v1';
@@ -83,7 +83,7 @@ export function sanitize(raw) {
         : dedup[0]?.id || '',
     units: r.units === 'c' ? 'c' : r.units === 'f' ? 'f' : d.units,
     autoRefresh: r.autoRefresh !== false,
-    mode: r.mode === 'radar' ? 'radar' : 'cards'
+    mode: r.mode === 'radar' ? 'radar' : r.mode === 'compare' ? 'compare' : 'cards'
   };
   return out;
 }
@@ -117,7 +117,7 @@ export function readUrlState() {
   const u = sp.get('units');
   if (u === 'c' || u === 'f') out.units = u;
   const m = sp.get('mode');
-  if (m === 'cards' || m === 'radar') out.mode = m;
+  if (m === 'cards' || m === 'radar' || m === 'compare') out.mode = m;
   return Object.keys(out).length ? out : null;
 }
 
@@ -176,6 +176,8 @@ export function buildShareUrl(state) {
     if (active.countryCode) url.searchParams.set('cc', active.countryCode);
   }
   url.searchParams.set('units', state.units);
-  if (state.mode === 'radar') url.searchParams.set('mode', 'radar');
+  if (state.mode === 'radar' || state.mode === 'compare') {
+    url.searchParams.set('mode', state.mode);
+  }
   return url.toString();
 }

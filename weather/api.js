@@ -379,6 +379,115 @@ export async function fetchForecast(loc, opts = {}) {
 }
 
 /**
+ * @typedef {Object} ModelComparison
+ * @property {string} timezone
+ * @property {number} utcOffsetSeconds
+ * @property {number[]} times                 Unix ms timestamps (168 entries for forecast_days=7).
+ * @property {Map<string, Record<string, Array<number | null>>>} byModel
+ *           Per-model series, keyed by the Open-Meteo model id (`icon_seamless`,
+ *           `gfs_seamless`, `ecmwf_ifs025`). Inner record is variable -> values[].
+ */
+
+/** Default model set used by the Compare view. */
+export const COMPARE_MODELS = [
+  { id: 'icon_seamless', label: 'DWD ICON', short: 'ICON' },
+  { id: 'gfs_seamless', label: 'NCEP GFS', short: 'GFS' },
+  { id: 'ecmwf_ifs025', label: 'ECMWF IFS', short: 'ECMWF' }
+];
+
+/** Variables we expose in the Compare view's picker. */
+export const COMPARE_VARIABLES = [
+  { id: 'temperature_2m', label: 'Temperature', emoji: '🌡', unit: '°C', tone: 'warm' },
+  { id: 'precipitation', label: 'Precipitation', emoji: '🌧', unit: 'mm/h', tone: 'rain' },
+  { id: 'wind_speed_10m', label: 'Wind', emoji: '💨', unit: 'km/h', tone: 'wind' },
+  { id: 'cloud_cover', label: 'Cloud cover', emoji: '☁', unit: '%', tone: 'cloud' },
+  { id: 'relative_humidity_2m', label: 'Humidity', emoji: '💧', unit: '%', tone: 'humid' },
+  { id: 'pressure_msl', label: 'Pressure', emoji: '🌀', unit: 'hPa', tone: 'pressure' }
+];
+
+/**
+ * Fetch a multi-model hourly comparison for one location. The API call
+ * requests every variable in {@link COMPARE_VARIABLES} from every model
+ * in {@link COMPARE_MODELS} in a single round-trip — Open-Meteo returns
+ * per-model parallel series like `temperature_2m_icon_seamless`,
+ * `temperature_2m_gfs_seamless`, etc.
+ *
+ * The default window is 7 forecast days (168 entries). Pass `pastDays`
+ * to also include reanalysis for days before today — used by the
+ * day-over-day overlay (yesterday vs tomorrow) to fetch
+ * `past_days=1&forecast_days=2` in one shot.
+ *
+ * @param {{ latitude: number, longitude: number }} loc
+ * @param {Object} [opts]
+ * @param {number} [opts.pastDays]      0–7, default 0.
+ * @param {number} [opts.forecastDays]  1–16, default 7.
+ * @param {AbortSignal} [opts.signal]
+ * @returns {Promise<ModelComparison>}
+ */
+export async function fetchModelComparison(loc, opts = {}) {
+  const lat = Number(loc?.latitude);
+  const lon = Number(loc?.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    throw new Error('latitude/longitude required');
+  }
+
+  const forecastDays = Math.max(1, Math.min(16, Math.round(opts.forecastDays ?? 7)));
+  const pastDays = Math.max(0, Math.min(7, Math.round(opts.pastDays ?? 0)));
+
+  const hourlyVars = COMPARE_VARIABLES.map((v) => v.id).join(',');
+  const modelIds = COMPARE_MODELS.map((m) => m.id).join(',');
+  /** @type {Record<string, string | number>} */
+  const params = {
+    latitude: lat.toFixed(4),
+    longitude: lon.toFixed(4),
+    hourly: hourlyVars,
+    models: modelIds,
+    forecast_days: forecastDays,
+    timezone: 'auto'
+  };
+  if (pastDays > 0) params.past_days = pastDays;
+  const url = buildUrl(OPEN_METEO_FORECAST, params);
+
+  const proxy = requireProxy();
+  /** @type {any} */
+  const data = await proxy.fetchJson(url, {
+    timeout: 15000,
+    maxRetries: 1,
+    signal: opts.signal,
+    friendlyError: "Couldn't read comparison data for that location."
+  });
+
+  const h = data?.hourly || {};
+  const times = Array.isArray(h.time) ? h.time : [];
+  /** @type {number[]} */
+  const tsMs = [];
+  for (const iso of times) {
+    const t = Date.parse(iso);
+    if (Number.isFinite(t)) tsMs.push(t);
+  }
+
+  /** @type {Map<string, Record<string, Array<number | null>>>} */
+  const byModel = new Map();
+  for (const m of COMPARE_MODELS) {
+    /** @type {Record<string, Array<number | null>>} */
+    const series = {};
+    for (const v of COMPARE_VARIABLES) {
+      const key = `${v.id}_${m.id}`;
+      const arr = Array.isArray(h[key]) ? h[key] : [];
+      series[v.id] = arr.map((x) => (typeof x === 'number' && Number.isFinite(x) ? x : null));
+    }
+    byModel.set(m.id, series);
+  }
+
+  return {
+    timezone: String(data?.timezone || 'UTC'),
+    utcOffsetSeconds: Number(data?.utc_offset_seconds || 0),
+    times: tsMs,
+    byModel
+  };
+}
+
+/**
  * Fetch forecasts for many locations in parallel; never throws — failed
  * lookups come back as `{ id, error }` rows so the caller can render an
  * inline error tile instead of blowing up the whole page.

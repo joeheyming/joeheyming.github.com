@@ -57,19 +57,20 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Leaflet — used by the radar mode. Loaded eagerly so the global
-         `L` is available the first time the user toggles into Radar. -->
+    <!-- MapLibre GL JS — used by the radar mode for the multi-layer weather
+         map (Open-Meteo precip / temp / cloud / wind etc.). Loaded eagerly
+         so the global `maplibregl` is available the first time the user
+         toggles into Radar. -->
     <link
       rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-      crossorigin=""
+      href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
     />
-    <script
-      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-      crossorigin=""
-    ></script>
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+    <!-- Open-Meteo Weather Map Layer (the `om://` protocol). Adds the
+         OMWeatherMapLayer global; we hand MapLibre an `om://...` URL and
+         the package decodes the binary `.om` tiles client-side. -->
+    <script src="https://unpkg.com/@openmeteo/weather-map-layer@0.0.19/dist/index.js"></script>
 
     <!-- proxy.js must load BEFORE the app module so window.proxyService is ready. -->
     <script src="/proxy.js"></script>
@@ -117,7 +118,7 @@
       <header
         class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4"
       >
-        <div class="pl-24 sm:pl-28">
+        <div class="pl-32 sm:pl-28">
           <h1
             class="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2"
           >
@@ -162,6 +163,7 @@
         <div class="inline-flex rounded-md overflow-hidden border border-slate-700 text-sm" role="group" aria-label="View mode">
           <button id="mode-cards" class="tool-btn !rounded-none border-0" type="button">📋 Cards</button>
           <button id="mode-radar" class="tool-btn !rounded-none border-0 border-l border-slate-700" type="button">🗺️ Radar</button>
+          <button id="mode-compare" class="tool-btn !rounded-none border-0 border-l border-slate-700" type="button">📊 Compare</button>
         </div>
 
         <span class="hidden md:inline-block w-px h-5 bg-slate-700 mx-1"></span>
@@ -217,23 +219,39 @@
       <!-- Detail view for active location -->
       <section id="detail" class="hidden space-y-3"></section>
 
-      <!-- Radar mode: precipitation overlay + time slider -->
+      <!-- Radar mode: multi-layer animated weather map (Open-Meteo). -->
       <section id="radar-mode" class="hidden">
+        <div id="radar-ticker" class="radar-ticker" hidden></div>
         <div id="radar-map" class="radar-map"></div>
         <div id="radar-controls" class="radar-controls"></div>
         <p class="text-xs text-slate-500 mt-2">
-          Precipitation radar — last ~2 hours plus a ~30-minute nowcast.
-          Markers show your saved locations — tap one for current conditions.
+          Animated weather forecast from
+          <a class="underline hover:text-slate-300" href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>'s
+          public model tiles. Pick a variable (precipitation, temperature, clouds, wind…),
+          a forecast model, and scrub the time slider to step through the next several days.
+        </p>
+      </section>
+
+      <!-- Compare mode: Flowx-style stacked multi-model forecast graphs. -->
+      <section id="compare-mode" class="hidden">
+        <div id="compare-view" class="compare-view"></div>
+        <p class="text-xs text-slate-500 mt-2">
+          7-day hourly forecast compared across three numerical weather models
+          (DWD ICON, NCEP GFS, ECMWF IFS) from
+          <a class="underline hover:text-slate-300" href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>.
+          When the lines disagree, the real forecast is more uncertain than any single
+          model suggests.
         </p>
       </section>
 
       <footer class="mt-6 text-center text-xs text-slate-500">
         Forecast data from
         <a class="underline hover:text-slate-300" href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>.
+        Weather model tiles via
+        <a class="underline hover:text-slate-300" href="https://maps.open-meteo.com/" target="_blank" rel="noopener">map-tiles.open-meteo.com</a>.
         ZIP lookups from
         <a class="underline hover:text-slate-300" href="https://www.zippopotam.us/" target="_blank" rel="noopener">Zippopotam.us</a>.
-        Radar from
-        <a class="underline hover:text-slate-300" href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a>.
+        Basemap &copy; <a class="underline hover:text-slate-300" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.
       </footer>
     </div>
 

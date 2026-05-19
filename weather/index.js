@@ -14,6 +14,7 @@ import {
   buildShareUrl
 } from './state.js';
 import { createRadarMap } from './radar-map.js';
+import { createCompareView } from './compare-view.js';
 import { createNotifier } from '/notifications.js';
 
 /** @typedef {import('./state.js').AppState} AppState */
@@ -37,9 +38,13 @@ const $refreshBtn = $('refresh-btn');
 const $toastStack = $('toast-stack');
 const $modeCards = $('mode-cards');
 const $modeRadar = $('mode-radar');
+const $modeCompare = $('mode-compare');
 const $radarMode = $('radar-mode');
 const $radarMap = $('radar-map');
 const $radarControls = $('radar-controls');
+const $radarTicker = $('radar-ticker');
+const $compareMode = $('compare-mode');
+const $compareView = $('compare-view');
 
 // --- Toast helper ---
 const _notifier = createNotifier({
@@ -63,6 +68,8 @@ let refreshTimer = /** @type {ReturnType<typeof setInterval>|null} */ (null);
 const REFRESH_MS = 5 * 60 * 1000;
 /** @type {ReturnType<typeof createRadarMap>|null} */
 let radar = null;
+/** @type {ReturnType<typeof createCompareView>|null} */
+let compareView = null;
 
 function saveState() {
   persistState(state);
@@ -382,6 +389,8 @@ function renderAll() {
   renderMode();
   if (state.mode === 'radar') {
     renderRadar();
+  } else if (state.mode === 'compare') {
+    renderCompare();
   } else {
     renderTiles();
     renderDetail();
@@ -395,19 +404,21 @@ function renderUnits() {
 
 function renderMode() {
   const isRadar = state.mode === 'radar';
-  $modeCards.classList.toggle('active', !isRadar);
+  const isCompare = state.mode === 'compare';
+  const isCards = !isRadar && !isCompare;
+  $modeCards.classList.toggle('active', isCards);
   $modeRadar.classList.toggle('active', isRadar);
+  $modeCompare.classList.toggle('active', isCompare);
 
-  if (isRadar) {
+  if (isRadar || isCompare) {
     $tiles.classList.add('hidden');
     $emptyState.classList.add('hidden');
     $detail.classList.add('hidden');
-    $radarMode.classList.remove('hidden');
-  } else {
-    $radarMode.classList.add('hidden');
-    // The cards-mode visibility (tiles vs empty-state vs detail) is set
-    // back up by renderTiles() / renderDetail().
   }
+  $radarMode.classList.toggle('hidden', !isRadar);
+  $compareMode.classList.toggle('hidden', !isCompare);
+  // The cards-mode visibility (tiles vs empty-state vs detail) is set
+  // back up by renderTiles() / renderDetail().
 }
 
 function ensureRadar() {
@@ -417,7 +428,10 @@ function ensureRadar() {
     controls: $radarControls,
     getUnits: () => state.units
   });
-  radar.loadFrames().catch(() => {});
+  // The radar map starts fetching its own model metadata (DWD ICON by
+  // default) as soon as it constructs. We only need to feed it the
+  // saved locations and forecast popups via setLocations / setForecasts
+  // below.
   return radar;
 }
 
@@ -426,10 +440,101 @@ function renderRadar() {
   r.invalidateSize();
   r.setLocations(state.locations, state.activeLocationId);
   r.setForecasts(forecastByLoc);
+  renderRadarTicker();
   if (!state.locations.length) {
     // No saved locations yet — keep the radar visible (the user can still
     // browse weather worldwide) but also surface the same suggestion
     // chips the cards mode shows.
+    $emptyState.classList.remove('hidden');
+  }
+}
+
+/**
+ * The Flowx-style "daily ticker" that sits above the map: a row of
+ * color-coded daily highs (and the city name) for the active location,
+ * so the user has an at-a-glance week summary even while panning the
+ * radar around. Hidden if there's no active location yet.
+ */
+function renderRadarTicker() {
+  if (!$radarTicker) return;
+  const active = state.locations.find((l) => l.id === state.activeLocationId);
+  const f = active ? forecastByLoc.get(active.id) : null;
+  if (!active || !f || !f.daily?.length) {
+    $radarTicker.hidden = true;
+    $radarTicker.innerHTML = '';
+    return;
+  }
+  $radarTicker.hidden = false;
+  const items = f.daily.slice(0, 7);
+  const todayIdx = 0;
+  $radarTicker.innerHTML = `
+    <div class="radar-ticker-head">
+      <div class="radar-ticker-place">${escapeHtml(active.name)}</div>
+      <div class="radar-ticker-meta">${escapeHtml(
+        [active.admin1, active.countryCode || active.country].filter(Boolean).join(', ') || ' '
+      )}</div>
+    </div>
+    <div class="radar-ticker-days">
+      ${items
+        .map((d, i) => {
+          const label = i === 0 ? 'Today' : formatDayLocal(d.t, f.timezone);
+          const tempC = d.tempMaxC;
+          const colorHex = colorForTempC(tempC);
+          const tempDisp = cToDisplay(tempC);
+          return `
+            <div class="radar-ticker-day${i === todayIdx ? ' today' : ''}">
+              <div class="radar-ticker-temp" style="color:${colorHex}">${escapeHtml(tempDisp)}</div>
+              <div class="radar-ticker-day-name">${escapeHtml(label)}</div>
+            </div>
+          `;
+        })
+        .join('')}
+    </div>
+  `;
+}
+
+/**
+ * Quick five-stop temperature → color ramp for the ticker. Picks a
+ * tone that visually matches the warm/cool palette the rest of the
+ * app uses (orange = hot, sky-blue = cool, deep blue = freezing).
+ *
+ * @param {number} c
+ */
+function colorForTempC(c) {
+  if (!Number.isFinite(c)) return 'rgb(148 163 184)';
+  if (c >= 30) return '#f87171';   // red
+  if (c >= 22) return '#fb923c';   // warm orange
+  if (c >= 15) return '#facc15';   // yellow
+  if (c >= 8)  return '#a3e635';   // lime
+  if (c >= 0)  return '#38bdf8';   // sky blue
+  return '#60a5fa';                // cold blue
+}
+
+function ensureCompare() {
+  if (compareView) return compareView;
+  compareView = createCompareView({
+    container: $compareView,
+    getUnits: () => state.units,
+    onSelectLocation: (id) => {
+      if (!id || state.activeLocationId === id) return;
+      state.activeLocationId = id;
+      saveState();
+      // No renderAll() — switching active location inside compare mode
+      // shouldn't tear down + rebuild the whole view; the compare-view
+      // itself reacts via setLocations below.
+      compareView?.setLocations(state.locations, state.activeLocationId);
+    }
+  });
+  return compareView;
+}
+
+function renderCompare() {
+  const cv = ensureCompare();
+  cv.setLocations(state.locations, state.activeLocationId);
+  cv.refresh();
+  if (!state.locations.length) {
+    // Same "no saved locations" treatment as radar — show the suggested
+    // city chips so the user has somewhere to start.
     $emptyState.classList.remove('hidden');
   }
 }
@@ -501,6 +606,8 @@ async function fetchOne(/** @type {SavedLocation} */ loc) {
     if (loc.id === state.activeLocationId) renderDetail();
   }
   radar?.setForecasts(forecastByLoc);
+  // Keep the radar's daily ticker in sync once a forecast arrives.
+  if (state.mode === 'radar') renderRadarTicker();
 }
 
 async function fetchAll() {
@@ -675,6 +782,12 @@ $modeCards.addEventListener('click', () => {
 $modeRadar.addEventListener('click', () => {
   if (state.mode === 'radar') return;
   state.mode = 'radar';
+  saveState();
+  renderAll();
+});
+$modeCompare.addEventListener('click', () => {
+  if (state.mode === 'compare') return;
+  state.mode = 'compare';
   saveState();
   renderAll();
 });
