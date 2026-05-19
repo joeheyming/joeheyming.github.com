@@ -23,7 +23,7 @@ import {
 import { downsample, renderLineChart } from './triplog-chart.js';
 import { createReplayMap } from './triplog-map.js';
 import { createSplitTracker } from './triplog-splits.js';
-import { haversineMeters } from './triplog-tracker.js';
+import { haversineMeters, isGapSegment } from './triplog-tracker.js';
 import {
   computeMileMarkers,
   computeSegmentSpeeds,
@@ -41,6 +41,7 @@ import {
  *     tripViewTitle: HTMLElement,
  *     tripViewSummary: HTMLElement,
  *     tvActivityBadge: HTMLElement,
+ *     tvGapBadge: HTMLElement,
  *     tvWhen: HTMLElement,
  *     tvDistance: HTMLElement,
  *     tvDuration: HTMLElement,
@@ -186,6 +187,19 @@ export function createTripView(deps) {
     const tuning = ACTIVITY_TUNING[activityKey];
     dom.tvActivityBadge.textContent = `${tuning.emoji} ${tuning.label}`;
     dom.tvWhen.textContent = formatTripStartedAt(trip.startedAt);
+
+    // Show the GPS-gap badge if the recording has any silent stretch.
+    // Tagged-on-recording (`gap: true`) is the modern signal; the
+    // timestamp-delta fallback inside `isGapSegment` keeps older trips
+    // honest.
+    let hasGap = false;
+    for (let i = 1; i < points.length; i += 1) {
+      if (isGapSegment(points[i - 1], points[i])) {
+        hasGap = true;
+        break;
+      }
+    }
+    dom.tvGapBadge.hidden = !hasGap;
 
     dom.tvDistance.textContent = formatDistance(trip.distanceMeters, state.unit);
     dom.tvDuration.textContent = formatDuration(trip.durationSec);

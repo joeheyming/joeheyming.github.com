@@ -51,6 +51,10 @@ const INDEX_TRIPS_STARTED = 'by_startedAt';
  * @property {number | null} [altitude]
  * @property {number | null} [speed]
  * @property {number | null} [heading]
+ * @property {boolean} [gap]       — true on the resume fix after a long
+ *                                   silent gap (browser-tab suspension);
+ *                                   marks the segment back to the
+ *                                   previous point as "GPS lost here."
  */
 
 /** Wrap an IDBRequest in a Promise. */

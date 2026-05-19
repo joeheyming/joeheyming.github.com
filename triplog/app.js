@@ -122,6 +122,8 @@ function main() {
   const statAccuracy = $('stat-accuracy');
   /** @type {HTMLElement} */
   const pausedBadge = $('paused-badge');
+  /** @type {HTMLElement} */
+  const gapBadge = $('gap-badge');
   /** @type {HTMLSelectElement} */
   const activitySelect = $('activity-select');
   /** @type {HTMLElement} */
@@ -148,6 +150,8 @@ function main() {
   const tripViewSummary = $('trip-view-summary');
   /** @type {HTMLElement} */
   const tvActivityBadge = $('trip-view-activity-badge');
+  /** @type {HTMLElement} */
+  const tvGapBadge = $('trip-view-gap-badge');
   /** @type {HTMLElement} */
   const tvWhen = $('trip-view-when');
   /** @type {HTMLElement} */
@@ -377,6 +381,7 @@ function main() {
       tripViewTitle,
       tripViewSummary,
       tvActivityBadge,
+      tvGapBadge,
       tvWhen,
       tvDistance,
       tvDuration,
@@ -427,6 +432,7 @@ function main() {
       statElevation,
       statAccuracy,
       pausedBadge,
+      gapBadge,
       splitsCard,
       splitsList,
       splitsUnitLabel,

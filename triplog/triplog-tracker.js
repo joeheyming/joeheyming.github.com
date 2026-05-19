@@ -47,7 +47,49 @@ const MIN_MOVEMENT_M = 0.5;
  * @property {number | null} altitude
  * @property {number | null} speed   — m/s, from device when available
  * @property {number | null} heading — degrees, from device when available
+ * @property {boolean} [gap]      — set on a fix that resumes after a long
+ *                                  silent gap (browser-tab suspension);
+ *                                  the segment from the previous accepted
+ *                                  fix to this one is "we don't really
+ *                                  know what happened in between."
  */
+
+/**
+ * Wall-clock seconds with no accepted fix that we treat as "the browser
+ * was suspended" rather than "the user moved very slowly". GPS callbacks
+ * normally arrive at roughly 1 Hz, so any quiet stretch much longer than
+ * that on a phone strongly implies the tab went into the background.
+ */
+export const GAP_DETECT_SEC = 30;
+
+/**
+ * Minimum displacement between the last accepted fix and the next one
+ * for us to credit a gap as "moving" (rather than "the user really did
+ * stop moving for a while"). 20 m at any reasonable walking pace is
+ * well above GPS noise but small enough to catch a slow walk through
+ * the silent period.
+ */
+const GAP_MOVEMENT_M = 20;
+
+/**
+ * Whether the segment between two consecutive points crossed a GPS gap
+ * — i.e. the tracker recorded a long silent stretch (typically because
+ * Chrome backgrounded the tab on Android). Newer recordings tag the
+ * resume point with `gap: true`; older recordings fall back to the raw
+ * timestamp delta so they still get the dashed-rendering treatment.
+ *
+ * @param {{ t: number } | null | undefined} prev
+ * @param {{ t: number, gap?: boolean } | null | undefined} next
+ */
+export function isGapSegment(prev, next) {
+  if (!prev || !next) {
+    return false;
+  }
+  if (next.gap === true) {
+    return true;
+  }
+  return (next.t - prev.t) / 1000 >= GAP_DETECT_SEC;
+}
 
 /**
  * Smallest absolute altitude change worth counting toward elevation
@@ -256,6 +298,21 @@ export function createTracker(callbacks = {}) {
         stats.accuracyM = accuracy;
         emitStats();
         return;
+      }
+      // Gap recovery. When the tab was suspended (Chrome on Android
+      // backgrounds aggressively the moment the screen locks) the 1 Hz
+      // tick has been silent and `lastMovingMs` is stale, so emitStats
+      // has been declaring auto-pause and discarding moving time. If
+      // the next accepted fix is far from the previous anchor we have
+      // direct evidence the user kept moving through the silent
+      // window, so credit the wall-clock as moving time and tag the
+      // point so the polyline can render the segment as "we don't
+      // really know the path here."
+      if (dt >= GAP_DETECT_SEC && d >= GAP_MOVEMENT_M) {
+        movingSec += dt;
+        lastTickMs = point.t;
+        lastMovingMs = point.t;
+        point.gap = true;
       }
       segmentSpeedMs = implied;
       if (d >= MIN_MOVEMENT_M) {

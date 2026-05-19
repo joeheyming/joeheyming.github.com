@@ -16,8 +16,24 @@
  * Both expose `destroy()` so the caller can swap maps cleanly.
  */
 
+import { isGapSegment } from './triplog-tracker.js';
+
 const TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+
+/**
+ * Visual style for a "we don't actually know the path here" segment:
+ * dashed grey, slightly thinner than the solid track. Reused for the
+ * live map and both replay paths so the cue is consistent.
+ */
+const GAP_STYLE = /** @type {const} */ ({
+  color: '#9ca3af', // zinc-400 — dim enough to read as "not a real path"
+  weight: 4,
+  opacity: 0.85,
+  dashArray: '6 8',
+  lineJoin: 'round',
+  lineCap: 'round'
+});
 
 /**
  * How much to shrink the viewport when deciding whether to auto-pan.
@@ -79,13 +95,26 @@ export function createLiveMap(container, opts = {}) {
     attribution: TILE_ATTR
   }).addTo(map);
 
-  const polyline = L.polyline([], {
+  const SOLID_STYLE = {
     color: '#7c3aed',
     weight: 5,
     opacity: 0.9,
     lineJoin: 'round',
     lineCap: 'round'
-  }).addTo(map);
+  };
+
+  /**
+   * Live tracks render as one *current* solid polyline that we keep
+   * extending fix-by-fix; whenever a gap fix arrives we close it out,
+   * draw a dashed grey connector to the new fix, and start a fresh
+   * solid run. All segments live under one layer group so it's easy
+   * to wipe on destroy / restart.
+   */
+  const trackLayer = L.layerGroup().addTo(map);
+  /** @type {any} */
+  let currentSolid = L.polyline([], SOLID_STYLE).addTo(trackLayer);
+  /** @type {any} */
+  let lastLatLng = null;
 
   /** @type {any} */
   let currentMarker = null;
@@ -157,11 +186,24 @@ export function createLiveMap(container, opts = {}) {
      * the camera pans only once the marker reaches the outer band of
      * the viewport — so the user keeps a stable view while they're
      * comfortably on-screen, and we re-center before they walk off it.
-     * @param {LatLon & { accuracy?: number }} p
+     *
+     * If `p.gap` is true the fix is the resume after a long silent
+     * stretch (browser tab was suspended); we draw a dashed grey
+     * connector from the last fix to this one and start a fresh solid
+     * run, so the live polyline visibly marks "we don't know the path
+     * through here" instead of inventing a straight cut across blocks.
+     *
+     * @param {LatLon & { accuracy?: number, gap?: boolean }} p
      */
     addLivePoint(p) {
       const latLng = L.latLng(p.lat, p.lon);
-      polyline.addLatLng(latLng);
+      if (p.gap && lastLatLng) {
+        L.polyline([lastLatLng, latLng], GAP_STYLE).addTo(trackLayer);
+        currentSolid = L.polyline([latLng], SOLID_STYLE).addTo(trackLayer);
+      } else {
+        currentSolid.addLatLng(latLng);
+      }
+      lastLatLng = latLng;
       updateMarker(p.lat, p.lon, p.accuracy);
       if (following) {
         panToKeepInView(latLng);
@@ -314,23 +356,62 @@ export function createReplayMap(container) {
   }
 
   return {
-    /** @param {LatLon[]} points */
+    /**
+     * @param {(LatLon & { t?: number, gap?: boolean })[]} points
+     */
     drawTrack(points) {
       clearLayers();
       lastTrack = points.slice();
       if (points.length === 0) {
         return;
       }
-      const latLngs = points.map((p) => L.latLng(p.lat, p.lon));
-      polylines = [
-        L.polyline(latLngs, {
-          color: '#7c3aed',
-          weight: 5,
-          opacity: 0.9,
-          lineJoin: 'round',
-          lineCap: 'round'
-        }).addTo(map)
-      ];
+      // Break the path at GPS gaps so we don't draw a straight line
+      // across blocks the user took an unknown path through. The kept
+      // segments stay solid violet; gaps are dashed grey.
+      polylines = [];
+      let runStart = 0;
+      for (let i = 1; i < points.length; i += 1) {
+        if (isGapSegment(points[i - 1], points[i])) {
+          if (i - runStart >= 2) {
+            polylines.push(
+              L.polyline(
+                points.slice(runStart, i).map((p) => L.latLng(p.lat, p.lon)),
+                {
+                  color: '#7c3aed',
+                  weight: 5,
+                  opacity: 0.9,
+                  lineJoin: 'round',
+                  lineCap: 'round'
+                }
+              ).addTo(map)
+            );
+          }
+          polylines.push(
+            L.polyline(
+              [
+                L.latLng(points[i - 1].lat, points[i - 1].lon),
+                L.latLng(points[i].lat, points[i].lon)
+              ],
+              GAP_STYLE
+            ).addTo(map)
+          );
+          runStart = i;
+        }
+      }
+      if (points.length - runStart >= 2) {
+        polylines.push(
+          L.polyline(
+            points.slice(runStart).map((p) => L.latLng(p.lat, p.lon)),
+            {
+              color: '#7c3aed',
+              weight: 5,
+              opacity: 0.9,
+              lineJoin: 'round',
+              lineCap: 'round'
+            }
+          ).addTo(map)
+        );
+      }
       addEndCapsAndFit(points);
     },
 
@@ -339,9 +420,11 @@ export function createReplayMap(container) {
      * `segmentSpeedsMs[i]` (the speed between `points[i]` and
      * `points[i+1]` in m/s). Slow segments turn red, fast turn green.
      * If `segmentSpeedsMs` is missing or all the speeds are zero,
-     * falls back to a plain violet track.
+     * falls back to a plain violet track. Segments that crossed a GPS
+     * gap (browser-suspension blackout) are always rendered dashed
+     * grey so the speed coloring isn't lying about an inferred path.
      *
-     * @param {LatLon[]} points
+     * @param {(LatLon & { t?: number, gap?: boolean })[]} points
      * @param {number[]} segmentSpeedsMs
      */
     setColoredTrack(points, segmentSpeedsMs) {
@@ -353,14 +436,22 @@ export function createReplayMap(container) {
       const latLngs = points.map((p) => L.latLng(p.lat, p.lon));
       let speedMin = Infinity;
       let speedMax = -Infinity;
-      for (const s of segmentSpeedsMs) {
+      for (let i = 0; i < segmentSpeedsMs.length; i += 1) {
+        const s = segmentSpeedsMs[i];
+        // Ignore gap segments when computing the speed range; their
+        // implied speed is meaningless (distance over a long blackout)
+        // and would compress the rest of the gradient flat.
+        if (isGapSegment(points[i], points[i + 1])) continue;
         if (!Number.isFinite(s) || s <= 0) continue;
         if (s < speedMin) speedMin = s;
         if (s > speedMax) speedMax = s;
       }
       const haveRange =
         Number.isFinite(speedMin) && Number.isFinite(speedMax) && speedMax > speedMin;
-      if (!haveRange) {
+      const anyGap = points.some((_, i) => i > 0 && isGapSegment(points[i - 1], points[i]));
+      if (!haveRange && !anyGap) {
+        // Fast path: no usable speed range and no gaps to break on,
+        // so a single solid polyline is fine.
         polylines = [
           L.polyline(latLngs, {
             color: '#7c3aed',
@@ -371,19 +462,36 @@ export function createReplayMap(container) {
           }).addTo(map)
         ];
       } else {
-        const span = speedMax - speedMin;
+        const span = haveRange ? speedMax - speedMin : 0;
         polylines = [];
         for (let i = 0; i < latLngs.length - 1; i += 1) {
+          if (isGapSegment(points[i], points[i + 1])) {
+            polylines.push(L.polyline([latLngs[i], latLngs[i + 1]], GAP_STYLE).addTo(map));
+            continue;
+          }
           const s = segmentSpeedsMs[i];
-          const t = Number.isFinite(s) && s > 0 ? (s - speedMin) / span : 0;
-          const seg = L.polyline([latLngs[i], latLngs[i + 1]], {
-            color: speedColor(t),
-            weight: 5,
-            opacity: 0.95,
-            lineJoin: 'round',
-            lineCap: 'round'
-          }).addTo(map);
-          polylines.push(seg);
+          if (haveRange) {
+            const t = Number.isFinite(s) && s > 0 ? (s - speedMin) / span : 0;
+            polylines.push(
+              L.polyline([latLngs[i], latLngs[i + 1]], {
+                color: speedColor(t),
+                weight: 5,
+                opacity: 0.95,
+                lineJoin: 'round',
+                lineCap: 'round'
+              }).addTo(map)
+            );
+          } else {
+            polylines.push(
+              L.polyline([latLngs[i], latLngs[i + 1]], {
+                color: '#7c3aed',
+                weight: 5,
+                opacity: 0.9,
+                lineJoin: 'round',
+                lineCap: 'round'
+              }).addTo(map)
+            );
+          }
         }
       }
       addEndCapsAndFit(points);

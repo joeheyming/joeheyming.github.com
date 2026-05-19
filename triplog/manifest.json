@@ -1,0 +1,22 @@
+{
+  "name": "Trip Log — record GPS trips",
+  "short_name": "Trip Log",
+  "description": "Record real-world GPS trips in your browser. Live map, distance, time, splits. Trips are saved locally — no sign-in.",
+  "start_url": "/triplog/",
+  "scope": "/triplog/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#7c3aed",
+  "icons": [
+    {
+      "src": "/triplog/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "fitness", "navigation"],
+  "lang": "en-US",
+  "dir": "ltr"
+}

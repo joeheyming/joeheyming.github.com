@@ -21,6 +21,7 @@ import {
   defaultTripName,
   randomUuid
 } from './triplog-constants.js';
+import { createKeepalive } from './triplog-keepalive.js';
 import { createSplitTracker } from './triplog-splits.js';
 import { createTracker } from './triplog-tracker.js';
 
@@ -66,6 +67,11 @@ export function createRecorder(deps) {
     formatSpeed
   } = format;
 
+  // One keep-alive instance for the lifetime of the recorder. It's
+  // idempotent — start()/stop() are no-ops when already in that state
+  // — so we don't need to recreate it per trip.
+  const keepalive = createKeepalive();
+
   async function flushPointBuffer() {
     if (!state.db || state.buffer.length === 0) {
       return;
@@ -100,6 +106,22 @@ export function createRecorder(deps) {
     } catch (err) {
       console.warn('[triplog] periodicTripRowUpdate', err);
     }
+  }
+
+  /**
+   * Push the latest stats into the keep-alive title ticker + MediaSession
+   * metadata. Cheap, called from every `onPoint` / `onStats` tick.
+   *
+   * @param {import('./triplog-tracker.js').TrackerStats} stats
+   */
+  function pushKeepaliveStatus(stats) {
+    if (!keepalive.isActive) {
+      return;
+    }
+    const title = `${formatDistance(stats.distanceMeters, state.unit)} · ${formatDuration(
+      stats.durationSec
+    )}`;
+    keepalive.update({ paused: stats.paused, title });
   }
 
   async function start() {
@@ -148,13 +170,21 @@ export function createRecorder(deps) {
           state.liveMap?.addLivePoint({
             lat: p.lat,
             lon: p.lon,
-            accuracy: p.accuracy
+            accuracy: p.accuracy,
+            gap: p.gap === true
           });
+          if (p.gap === true) {
+            // First gap-resume of the trip flips on the live "GPS gap"
+            // badge so the user knows the dashed segment they just
+            // saw drawn was the tab waking back up.
+            liveUi.markGapDetected();
+          }
           // Feed both split trackers so toggling units mid-trip is free.
           state.splits.km?.update(stats.distanceMeters, stats.durationSec);
           state.splits.mi?.update(stats.distanceMeters, stats.durationSec);
           liveUi.applyStatsToUi(stats);
           liveUi.renderSplits();
+          pushKeepaliveStatus(stats);
         },
         onStats: (stats) => {
           // Time-only tick (no new fix): still push to splits so the
@@ -163,6 +193,7 @@ export function createRecorder(deps) {
           state.splits.mi?.update(stats.distanceMeters, stats.durationSec);
           liveUi.applyStatsToUi(stats);
           liveUi.renderSplits();
+          pushKeepaliveStatus(stats);
         },
         onError: (err) => {
           const code = 'code' in err ? err.code : 0;
@@ -183,6 +214,18 @@ export function createRecorder(deps) {
       state.tracker = tracker;
 
       await tracker.start({ tripId });
+
+      // Spin up the background keep-alive (silent audio + MediaSession
+      // metadata + title ticker). This is our best non-native shot at
+      // keeping `watchPosition` callbacks flowing once the screen
+      // locks; see triplog-keepalive.js for the rationale. We have a
+      // user gesture here (the Start button), which is what AudioContext
+      // needs in order to actually emit samples.
+      keepalive.start({
+        onPause: () => pause(),
+        onResume: () => resume()
+      });
+      pushKeepaliveStatus(tracker.stats);
 
       liveUi.setRecorderMode('recording');
       dom.btnFollow.classList.remove('hidden');
@@ -208,6 +251,9 @@ export function createRecorder(deps) {
       state.tracker = null;
       state.buffer = [];
       state.currentTripId = null;
+      // The keep-alive may or may not have started before the failure;
+      // stop() is idempotent, so unconditionally call it.
+      keepalive.stop();
     } finally {
       dom.btnStart.disabled = false;
     }
@@ -220,6 +266,7 @@ export function createRecorder(deps) {
     state.tracker.pauseManual();
     liveUi.setRecorderMode('paused');
     setStatus(dom.statusEl, 'Paused.');
+    pushKeepaliveStatus(state.tracker.stats);
   }
 
   function resume() {
@@ -229,6 +276,7 @@ export function createRecorder(deps) {
     state.tracker.resumeManual();
     liveUi.setRecorderMode('recording');
     setStatus(dom.statusEl, 'Recording.');
+    pushKeepaliveStatus(state.tracker.stats);
   }
 
   /**
@@ -246,6 +294,7 @@ export function createRecorder(deps) {
     if (!state.tracker.isManuallyPaused) {
       state.tracker.pauseManual();
       liveUi.setRecorderMode('paused');
+      pushKeepaliveStatus(state.tracker.stats);
     }
     const snap = state.tracker.stats;
     const tuning = ACTIVITY_TUNING[state.activity];
@@ -292,7 +341,9 @@ export function createRecorder(deps) {
     dom.btnFollow.classList.remove('flex');
     liveUi.setActivityPickerLocked(false);
     dom.pausedBadge.hidden = true;
+    liveUi.clearGapBadge();
     liveUi.renderSplits();
+    keepalive.stop();
   }
 
   /**

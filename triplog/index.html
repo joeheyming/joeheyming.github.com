@@ -6,10 +6,9 @@
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
 
-    <link
-      rel="icon"
-      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗺️</text></svg>"
-    />
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <link rel="apple-touch-icon" href="./icon.svg" />
+    <link rel="manifest" href="./manifest.json" />
 
     <title>🗺️ Trip Log — record GPS trips in your browser | Joe Heyming</title>
 
@@ -194,6 +193,15 @@
           >
             <span aria-hidden="true">⏸</span>
             Auto-paused
+          </div>
+          <div
+            id="gap-badge"
+            class="absolute left-2 top-9 z-10 inline-flex items-center gap-1 rounded-full bg-zinc-500 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-white shadow-sm"
+            title="The browser tab was suspended for a while; that part of the path is dashed because we don't know the exact route."
+            hidden
+          >
+            <span aria-hidden="true">⚠</span>
+            GPS gap
           </div>
           <button
             type="button"
@@ -524,13 +532,24 @@
               id="trip-view-stats-card"
               class="rounded-2xl border border-zinc-200/90 bg-white/95 p-3 shadow-sm dark:border-zinc-700/90 dark:bg-zinc-900/95"
             >
-              <div class="mb-2 flex items-center justify-between gap-2">
-                <span
-                  id="trip-view-activity-badge"
-                  class="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-800 dark:bg-violet-950/60 dark:text-violet-200"
-                >
-                  🏃 Run
-                </span>
+              <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span
+                    id="trip-view-activity-badge"
+                    class="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-800 dark:bg-violet-950/60 dark:text-violet-200"
+                  >
+                    🏃 Run
+                  </span>
+                  <span
+                    id="trip-view-gap-badge"
+                    class="inline-flex items-center gap-1 rounded-full bg-zinc-200 px-2.5 py-0.5 text-xs font-semibold text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200"
+                    title="The browser tab was suspended at least once; dashed segments on the map are stretches with no GPS samples."
+                    hidden
+                  >
+                    <span aria-hidden="true">⚠</span>
+                    GPS gap
+                  </span>
+                </div>
                 <span id="trip-view-when" class="text-xs text-zinc-500 dark:text-zinc-400"></span>
               </div>
               <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">

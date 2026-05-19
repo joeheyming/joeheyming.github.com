@@ -34,6 +34,7 @@ import {
  *     statElevation: HTMLElement,
  *     statAccuracy: HTMLElement,
  *     pausedBadge: HTMLElement,
+ *     gapBadge: HTMLElement,
  *     splitsCard: HTMLElement,
  *     splitsList: HTMLElement,
  *     splitsUnitLabel: HTMLElement,
@@ -119,6 +120,21 @@ export function createLiveUi(deps) {
     if (state.tracker?.isRecording) {
       setRecorderMode(stats.pauseReason === 'manual' ? 'paused' : 'recording');
     }
+  }
+
+  /**
+   * Show the "GPS gap" badge on the live stats card. Idempotent — once
+   * a trip has had a single gap-resume the badge stays on for the
+   * rest of that trip (gaps are a quality flag for the *whole* trip,
+   * not a momentary state).
+   */
+  function markGapDetected() {
+    dom.gapBadge.hidden = false;
+  }
+
+  /** Hide the gap badge — called when a recording ends or is discarded. */
+  function clearGapBadge() {
+    dom.gapBadge.hidden = true;
   }
 
   /** Empty placeholder stats; used between trips and after init. */
@@ -290,7 +306,9 @@ export function createLiveUi(deps) {
   return {
     activityPrefersPace,
     applyStatsToUi,
+    clearGapBadge,
     emptyStats,
+    markGapDetected,
     populateActivitySelect,
     refreshActivityPicker,
     refreshUnitsButton,
