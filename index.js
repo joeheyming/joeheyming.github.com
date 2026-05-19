@@ -5,6 +5,10 @@ const FEATURED_CARD_BASE =
 const FEATURED_PRESETS = {
   doom: { gradient: 'bg-gradient-to-br from-red-600 to-orange-700', tone: 'light' },
   pacman: { gradient: 'bg-gradient-to-br from-yellow-500 to-yellow-600', tone: 'dark' },
+  'pacman-infinite': {
+    gradient: 'bg-gradient-to-br from-yellow-400 to-pink-600',
+    tone: 'dark'
+  },
   minesweeper: { gradient: 'bg-gradient-to-br from-gray-600 to-gray-700', tone: 'light' },
   awesome: { gradient: 'bg-gradient-to-br from-yellow-400 to-orange-500', tone: 'dark' },
   terminal: { gradient: 'bg-gradient-to-br from-green-600 to-emerald-700', tone: 'light' },
@@ -12,21 +16,27 @@ const FEATURED_PRESETS = {
   nes: { gradient: 'bg-gradient-to-br from-stone-700 to-indigo-800', tone: 'light' },
   stepmania: { gradient: 'bg-gradient-to-br from-pink-500 to-rose-600', tone: 'light' },
   'wordle-finder': { gradient: 'bg-gradient-to-br from-teal-500 to-cyan-600', tone: 'light' },
-  badapple: { gradient: 'bg-gradient-to-br from-gray-900 to-red-800', tone: 'light' }
+  badapple: { gradient: 'bg-gradient-to-br from-gray-900 to-red-800', tone: 'light' },
+  'code-ide': { gradient: 'bg-gradient-to-br from-slate-700 to-emerald-700', tone: 'light' }
 };
 
 // Apps that map to the highest-value search queries get an explicit "popular"
 // pin on the home page. Order matches the keyword-report priority: DOOM
 // first (~14k impressions/mo), then NES, Pac-Man, StepMania, Wordle, etc.
+// `pacman-infinite` is pinned next to `pacman` because the GA report shows it
+// has the highest per-session engagement on the site (~944s) but virtually no
+// discovery — 3 sessions in 9 days.
 const POPULAR_APP_IDS = [
   'doom',
   'nes',
   'pacman',
+  'pacman-infinite',
   'stepmania',
   'wordle-finder',
   'minesweeper',
   'badapple',
-  'terminal'
+  'terminal',
+  'code-ide'
 ];
 
 // Section grouping for the full gallery. Order here is presentation order

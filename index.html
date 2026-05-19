@@ -14,17 +14,12 @@
     <meta name="geo.region" content="US-CA" />
     <meta name="geo.placename" content="Campbell, California" />
 
-    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <!-- Global site tag (gtag.js) - Google Analytics.
+         The inline `gtag('config', ...)` snippet that used to live here was
+         removed because /analytics.js now fires the same config call
+         synchronously at script-evaluation time. Two configs meant two
+         page_views per visit on the home page. -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
-      }
-      gtag('js', new Date());
-      gtag('config', 'G-Q62Q3E20Y0');
-    </script>
-
     <script src="/analytics.js"></script>
     <title>
       Joe Heyming — Free Browser Games &amp; Tools (DOOM, Pac-Man, Wordle, NES, StepMania)

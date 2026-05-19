@@ -71,34 +71,6 @@ function trackOffsiteUsage() {
   }
 }
 
-// Use addEventListener instead of window.onload = ... so per-page scripts that
-// assign their own window.onload (e.g. wordle-finder/index.js) can't clobber
-// the GA bootstrap. Without this, gtag('config', ...) silently never fires on
-// those pages and they vanish from GA Landing Page reports.
-window.addEventListener('load', function () {
-  if (isLocalDevHost()) {
-    window.gtag = function () {};
-    window.trackError = function () {}; // No-op for local dev
-    return;
-  }
-  window.gtag = function () {
-    dataLayer.push(arguments);
-  };
-  gtag('js', new Date());
-
-  // Configure GA with normalized page path to consolidate /page/ and /page/index.html
-  gtag('config', 'G-Q62Q3E20Y0', {
-    page_path: normalizePagePath(window.location.pathname)
-  });
-
-  initErrorTracking();
-  initDataEventTracking();
-
-  // Track if the site is being served from an unexpected hostname
-  // or embedded in an iframe outside of joeheyming.github.io.
-  trackOffsiteUsage();
-});
-
 // Error tracking functionality
 function initErrorTracking() {
   // Track JavaScript errors
@@ -456,3 +428,47 @@ window.trackProjectOpen = function (projectName) {
   window.trackEvent('project_open', 'Projects', projectName);
   window.trackConversion('project_opened', 1);
 };
+
+// =====================================================================
+// GA bootstrap — runs synchronously when this script finishes evaluating.
+//
+// Previously the config call lived inside `window.addEventListener('load', …)`,
+// which fires only after every image, stylesheet, and async script has
+// finished. On wordle-finder that meant jQuery + Plotly + Moment all had to
+// load before the page_view ever went out — any visitor who bounced first
+// landed in GA4's "(not set)" landing-page bucket.
+//
+// Running it at script-evaluation time fires the page_view far earlier,
+// long before `load`. `analytics.js` is loaded as a regular sync `<script>`
+// after the gtag/js loader, so `dataLayer` is safe to push into at this
+// point — calls queue in the array and the gtag library drains them when
+// it finishes loading. This block sits at the bottom of the file so every
+// helper it transitively touches (window.trackEvent etc.) is already
+// defined when trackOffsiteUsage runs.
+// =====================================================================
+window.dataLayer = window.dataLayer || [];
+
+if (isLocalDevHost()) {
+  // Keep `gtag` defined so callers don't crash, but no traffic to GA.
+  // `trackEvent` / `trackError` already short-circuit on localhost via
+  // their own `isLocalDevHost()` check, so we don't replace them here.
+  window.gtag = function () {};
+} else {
+  window.gtag = function () {
+    dataLayer.push(arguments);
+  };
+  gtag('js', new Date());
+
+  // Normalized page path consolidates /page/ and /page/index.html into one
+  // entry in GA reports.
+  gtag('config', 'G-Q62Q3E20Y0', {
+    page_path: normalizePagePath(window.location.pathname)
+  });
+
+  initErrorTracking();
+  initDataEventTracking();
+
+  // Track if the site is being served from an unexpected hostname
+  // or embedded in an iframe outside of joeheyming.github.io.
+  trackOffsiteUsage();
+}

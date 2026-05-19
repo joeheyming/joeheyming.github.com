@@ -66,16 +66,10 @@
 
     <link rel="canonical" href="https://joeheyming.github.io/about/" />
 
-    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <!-- Global site tag (gtag.js) - Google Analytics. The config call lives
+         in /analytics.js so every page on the site fires exactly one
+         page_view with a normalized path. -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
-      }
-      gtag('js', new Date());
-      gtag('config', 'G-Q62Q3E20Y0');
-    </script>
     <script src="/analytics.js"></script>
     <script src="/back.js"></script>
 

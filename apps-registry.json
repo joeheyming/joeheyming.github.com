@@ -281,7 +281,15 @@
       "nes",
       "minesweeper"
     ],
-    "shareCategory": "game"
+    "shareCategory": "game",
+    "featured": {
+      "order": 11,
+      "headline": "Pac-Infinite",
+      "blurb": "Endless 3D Pac-Man maze. Procedurally-generated chunks with mountains, jumps, hunger, ghosts, fruits, and difficulty modes.",
+      "tagsLine": "🕹️ Game • ♾️ Endless",
+      "preset": "pacman-infinite",
+      "analyticsLabel": "Pac-Infinite"
+    }
   },
   {
     "id": "periodic-speller",
@@ -719,10 +727,10 @@
   },
   {
     "id": "code-ide",
-    "name": "Code IDE 💻",
+    "name": "Code IDE ✨",
     "shortName": "Code IDE",
-    "description": "Monaco-powered code editor",
-    "detailedDescription": "A full code editor in your browser, powered by Monaco (the engine behind VS Code). Multi-file project tree, tabs, syntax highlighting, Vim keybindings, Prettier format-on-save, a sandboxed JS runner, and a built-in diff view. Saves to the HeymingOS filesystem when embedded, or to a real folder on disk.",
+    "description": "Monaco editor with on-device AI coding assistant",
+    "detailedDescription": "A full code editor in your browser with a Cursor-style AI assistant that runs entirely on your GPU. Powered by Monaco (the engine behind VS Code) plus Hermes-3-Llama-3.1-8B via WebLLM — no backend, no API key, no telemetry. Cmd+K for inline edits with side-by-side diff preview. Side panel chat for explanations and refactors. Plus the usual: multi-file project tree, tabs, syntax highlighting, Vim keybindings, Prettier format-on-save, sandboxed JS runner, git integration. Saves to the HeymingOS filesystem when embedded, or to a real folder on disk.",
     "icon": "💻",
     "path": "./code-ide/",
     "category": "utility",
@@ -762,9 +770,17 @@
       "monaco",
       "developer",
       "javascript",
-      "vim"
+      "typescript",
+      "vim",
+      "ai",
+      "ai-assistant",
+      "cursor",
+      "webllm",
+      "on-device-ai",
+      "popular"
     ],
     "related": [
+      "chat",
       "notepad",
       "terminal",
       "filemanager",
@@ -774,7 +790,15 @@
     "pwaShortcut": {
       "name": "Code IDE",
       "short_name": "Code IDE",
-      "description": "Browser-based code editor"
+      "description": "Monaco editor with on-device AI assistant"
+    },
+    "featured": {
+      "order": 8,
+      "headline": "Code IDE + on-device AI",
+      "blurb": "VS Code-style editor with a Cursor-like AI assistant that runs entirely on your GPU. Cmd+K for inline edits, full diff preview before anything writes.",
+      "tagsLine": "💻 Editor • ✨ On-device AI",
+      "preset": "code-ide",
+      "analyticsLabel": "Code IDE"
     }
   },
   {
