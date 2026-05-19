@@ -292,11 +292,11 @@
     <div id="upgradeMessage" style="display: none; width: 100%; text-align: center">
       <script src="js/utils/ie6_warning/warning.js"></script>
       <script>
-        window.onload = function () {
+        window.addEventListener('load', function () {
           if (UNSUPPORTED) {
             e('js/utils/ie6_warning/');
           }
-        };
+        });
       </script>
     </div>
 

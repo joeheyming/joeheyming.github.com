@@ -71,7 +71,11 @@ function trackOffsiteUsage() {
   }
 }
 
-window.onload = function () {
+// Use addEventListener instead of window.onload = ... so per-page scripts that
+// assign their own window.onload (e.g. wordle-finder/index.js) can't clobber
+// the GA bootstrap. Without this, gtag('config', ...) silently never fires on
+// those pages and they vanish from GA Landing Page reports.
+window.addEventListener('load', function () {
   if (isLocalDevHost()) {
     window.gtag = function () {};
     window.trackError = function () {}; // No-op for local dev
@@ -87,16 +91,13 @@ window.onload = function () {
     page_path: normalizePagePath(window.location.pathname)
   });
 
-  // Initialize error tracking
   initErrorTracking();
-
-  // Initialize data-event click tracking
   initDataEventTracking();
 
   // Track if the site is being served from an unexpected hostname
   // or embedded in an iframe outside of joeheyming.github.io.
   trackOffsiteUsage();
-};
+});
 
 // Error tracking functionality
 function initErrorTracking() {

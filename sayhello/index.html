@@ -223,7 +223,7 @@
       </form>
     </div>
     <script>
-      window.onload = function () {
+      window.addEventListener('load', function () {
         var voiceLookup = {};
         window.speechSynthesis.onvoiceschanged = function () {
           window.speechSynthesis.getVoices();
@@ -279,7 +279,7 @@
             return 'Check out Say Hello - a text-to-speech tool! 🗣️';
           };
         }
-      };
+      });
     </script>
   </body>
 </html>

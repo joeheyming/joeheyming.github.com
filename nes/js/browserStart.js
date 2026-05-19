@@ -24,7 +24,7 @@ function getParameterByName(name) {
   return results == null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
 }
 
-window.onload = function () {
+window.addEventListener('load', function () {
   // This allows a list box to be on the page to load a given nes file local to the site
   var sel = document.getElementById('loadGameComboBox');
   if (sel) {
@@ -71,4 +71,4 @@ window.onload = function () {
   if (Gui.HotkeyManager) {
     Gui.hotkeyManager = new Gui.HotkeyManager(Gui.App);
   }
-};
+});

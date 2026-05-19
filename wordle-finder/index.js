@@ -194,7 +194,10 @@ function addSwipe() {
   document.addEventListener('touchmove', handleTouchMove, false);
 }
 
-window.onload = function () {
+// Don't use `window.onload = ...` here — analytics.js also listens for load,
+// and a property assignment would replace its handler, breaking GA tracking
+// for this page.
+window.addEventListener('load', function () {
   setTimeout(function () {
     addSwipe();
     // there is a limit to the number of wordles
@@ -223,4 +226,4 @@ window.onload = function () {
 
     initPlayer();
   }, 1);
-};
+});
