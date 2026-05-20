@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>"
+    />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+    <script src="/proxy.js"></script>
+
+    <title>📚 Books — Free Public-Domain E-Books | Joe Heyming</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta
+      name="description"
+      content="Read thousands of free public-domain books from Project Gutenberg. Adjustable font, themes, and reading position saved automatically."
+    />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#0f172a" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="📚 Books — Free Public-Domain E-Books" />
+    <meta
+      property="og:description"
+      content="Read thousands of free classics from Project Gutenberg. Dark, sepia, and light themes. Your reading position is saved automatically."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/read/" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="📚 Books — Free Public-Domain E-Books" />
+
+    <link rel="canonical" href="https://joeheyming.github.io/read/" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+
+    <!-- Browse view -->
+    <div id="browse-view">
+      <div class="page-wrap">
+
+        <header class="app-header">
+          <h1>📚 Books</h1>
+          <p class="app-subtitle">Free public-domain books from Project Gutenberg</p>
+        </header>
+
+        <!-- Search -->
+        <div class="search-wrap">
+          <span class="search-icon" aria-hidden="true">🔍</span>
+          <input
+            id="search-input"
+            type="search"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Search by title or author…"
+            aria-label="Search books"
+          />
+          <button class="search-clear" id="search-clear" aria-label="Clear search">✕</button>
+        </div>
+
+        <!-- Search results -->
+        <section id="search-results-section" class="hidden">
+          <p class="section-title">Search results</p>
+          <div id="search-results-grid" class="books-grid"></div>
+        </section>
+
+        <!-- Recently opened shelf -->
+        <section id="shelf-section" class="hidden">
+          <p class="section-title">Recently opened</p>
+          <div id="shelf-grid" class="books-grid"></div>
+        </section>
+
+        <!-- Featured classics -->
+        <section>
+          <p class="section-title">Popular classics</p>
+          <div id="featured-grid" class="books-grid"></div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- Reader view (full-screen overlay) -->
+    <div id="reader-view" class="hidden">
+      <!-- Reading progress indicator (thin top strip) -->
+      <div id="reading-progress" aria-hidden="true"></div>
+
+      <!-- Tap zones: left = page back, right = page forward (Kindle-style) -->
+      <div class="page-zone" id="zone-prev" aria-label="Previous page" role="button" tabindex="0">
+        <span class="page-chevron" aria-hidden="true">‹</span>
+      </div>
+      <div class="page-zone" id="zone-next" aria-label="Next page" role="button" tabindex="0">
+        <span class="page-chevron" aria-hidden="true">›</span>
+      </div>
+
+      <!-- Floating settings toolbar (auto-hides; tap top of screen to show) -->
+      <div id="reader-controls" role="toolbar" aria-label="Reading settings">
+        <span id="reader-title"></span>
+
+        <button
+          class="reader-ctrl-btn"
+          id="btn-font-dec"
+          aria-label="Decrease font size"
+          title="Smaller text"
+        >A−</button>
+
+        <button
+          class="reader-ctrl-btn"
+          id="btn-font-inc"
+          aria-label="Increase font size"
+          title="Larger text"
+        >A+</button>
+
+        <button
+          class="reader-ctrl-btn"
+          id="btn-font-family"
+          aria-label="Toggle font"
+          title="Toggle serif/sans-serif"
+        >Serif</button>
+
+        <button
+          class="reader-ctrl-btn"
+          id="btn-theme"
+          aria-label="Change theme"
+          title="Cycle theme"
+        >🌙 Dark</button>
+      </div>
+
+      <!-- Scrollable text -->
+      <div id="reader-container" role="main" tabindex="0" aria-label="Book content"></div>
+
+      <!-- Always-visible bottom navigation bar -->
+      <div id="reader-nav-bar" role="navigation" aria-label="Reader navigation">
+        <button
+          class="reader-nav-btn"
+          id="btn-close-reader"
+          aria-label="Back to library"
+        >← Library</button>
+
+        <span id="reader-progress-pct" class="reader-nav-progress" aria-live="polite"></span>
+
+        <button
+          class="reader-nav-btn reader-nav-btn-toc"
+          id="btn-toc"
+          aria-label="Table of contents"
+        >≡ Contents</button>
+      </div>
+    </div>
+
+    <!-- TOC bottom sheet -->
+    <div id="toc-sheet-overlay" class="hidden" aria-hidden="true"></div>
+    <div id="toc-sheet" class="hidden" role="dialog" aria-modal="true" aria-label="Table of contents">
+      <div class="toc-sheet-handle" aria-hidden="true"></div>
+      <div class="toc-sheet-head">
+        <p class="toc-sheet-title" id="toc-sheet-book-title"></p>
+        <button id="btn-close-toc" class="toc-sheet-close" aria-label="Close contents">✕</button>
+      </div>
+      <div id="toc-list" class="toc-sheet-body"></div>
+    </div>
+
+    <!-- Toast notifications -->
+    <div id="toast-stack" aria-live="polite"></div>
+
+  </body>
+</html>

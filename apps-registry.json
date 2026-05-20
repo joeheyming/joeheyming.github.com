@@ -1370,6 +1370,74 @@
     "shareCategory": "utility"
   },
   {
+    "id": "listen",
+    "name": "Audiobooks 🎧",
+    "shortName": "Audiobooks",
+    "description": "Free public-domain audiobooks from LibriVox",
+    "detailedDescription": "Stream thousands of free audiobooks from LibriVox's public-domain catalog. Chapter navigation, playback speed control, and Bluetooth/car media button support via the Web Media Session API. Resumes where you left off.",
+    "icon": "🎧",
+    "path": "./listen/",
+    "category": "utility",
+    "gradient": "from-violet-500/20 to-purple-600/20",
+    "border": "border-violet-500/30 hover:border-violet-400/50",
+    "taskbarGradient": "from-violet-500 to-purple-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 600,
+    "defaultHeight": 820,
+    "tags": [
+      "audio",
+      "books",
+      "audiobooks",
+      "librivox",
+      "public domain"
+    ],
+    "related": [
+      "read",
+      "media-player",
+      "play"
+    ],
+    "shareCategory": "utility",
+    "pwaShortcut": {
+      "name": "Audiobooks",
+      "short_name": "Audiobooks",
+      "description": "Free public-domain audiobooks"
+    }
+  },
+  {
+    "id": "read",
+    "name": "Books 📚",
+    "shortName": "Books",
+    "description": "Free public-domain e-books from Project Gutenberg",
+    "detailedDescription": "Read thousands of free public-domain books from Project Gutenberg via the Gutendex API. Adjustable font size and family, dark/sepia/light themes. Your reading position is saved automatically per book.",
+    "icon": "📚",
+    "path": "./read/",
+    "category": "utility",
+    "gradient": "from-indigo-500/20 to-blue-600/20",
+    "border": "border-indigo-500/30 hover:border-indigo-400/50",
+    "taskbarGradient": "from-indigo-500 to-blue-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 700,
+    "defaultHeight": 860,
+    "tags": [
+      "books",
+      "reading",
+      "ebooks",
+      "gutenberg",
+      "public domain"
+    ],
+    "related": [
+      "listen",
+      "notepad",
+      "programming-advice"
+    ],
+    "shareCategory": "utility",
+    "pwaShortcut": {
+      "name": "Books",
+      "short_name": "Books",
+      "description": "Free public-domain e-books"
+    }
+  },
+  {
     "id": "paint",
     "name": "Paint 🎨",
     "shortName": "Paint",

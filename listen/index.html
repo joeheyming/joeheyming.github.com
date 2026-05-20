@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎧</text></svg>"
+    />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+    <script src="/proxy.js"></script>
+
+    <title>🎧 Audiobooks — Free Public-Domain Audio | Joe Heyming</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta
+      name="description"
+      content="Listen to free public-domain audiobooks from LibriVox. Chapter navigation, playback speed, and Bluetooth car button support."
+    />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#0f172a" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="🎧 Audiobooks — Free Public-Domain Audio" />
+    <meta
+      property="og:description"
+      content="Stream thousands of free audiobooks. Chapter navigation, speed control, and Bluetooth media button support for car listening."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/listen/" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="🎧 Audiobooks — Free Public-Domain Audio" />
+
+    <link rel="canonical" href="https://joeheyming.github.io/listen/" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+    <!-- Hidden audio element -->
+    <audio id="audio-element" preload="metadata"></audio>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="hidden" aria-live="polite" aria-label="Loading">
+      <div class="spinner"></div>
+    </div>
+
+    <div class="page-wrap">
+
+      <!-- Header -->
+      <header class="app-header">
+        <h1>🎧 Audiobooks</h1>
+        <p class="app-subtitle">Free public-domain audiobooks from LibriVox</p>
+      </header>
+
+      <!-- Search -->
+      <div class="search-wrap">
+        <span class="search-icon" aria-hidden="true">🔍</span>
+        <input
+          id="search-input"
+          type="search"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="Search by title or author…"
+          aria-label="Search audiobooks"
+        />
+        <button class="search-clear" id="search-clear" aria-label="Clear search">✕</button>
+      </div>
+
+      <!-- Browse view -->
+      <div id="browse-view">
+
+        <!-- Search results (shown when searching) -->
+        <section id="search-results-section" class="hidden">
+          <p class="section-title">Search results</p>
+          <div id="search-results-grid" class="books-grid"></div>
+        </section>
+
+        <!-- Continue listening -->
+        <section id="continue-section" class="hidden">
+          <p class="section-title">Continue listening</p>
+          <div id="continue-list" class="continue-list"></div>
+        </section>
+
+        <!-- Browse recent -->
+        <section>
+          <p class="section-title">Recently added</p>
+          <div id="browse-grid" class="books-grid"></div>
+        </section>
+
+      </div>
+
+      <!-- Book detail view -->
+      <div id="book-detail" class="hidden">
+        <!-- Sticky navigation (always visible, doesn't scroll away) -->
+        <div id="detail-sticky-nav">
+          <button id="back-to-browse" class="detail-nav-back" aria-label="Back to browse">
+            ← Browse
+          </button>
+          <span id="detail-nav-title" class="detail-nav-title" aria-hidden="true"></span>
+          <button id="btn-open-chapters" class="detail-nav-chapters" aria-label="Open chapter list">
+            ≡ Chapters
+          </button>
+        </div>
+
+        <!-- Book cover / description -->
+        <div id="book-detail-header"></div>
+      </div>
+
+    </div>
+
+    <!-- Chapter bottom sheet -->
+    <div id="chapter-sheet-overlay" class="hidden" aria-hidden="true"></div>
+    <div id="chapter-sheet" class="hidden" role="dialog" aria-modal="true" aria-label="Chapter list">
+      <div class="chapter-sheet-handle" aria-hidden="true"></div>
+      <div class="chapter-sheet-head">
+        <p class="chapter-sheet-title" id="chapter-sheet-book-title"></p>
+        <button id="btn-close-chapters" class="chapter-sheet-close" aria-label="Close chapters">✕</button>
+      </div>
+      <div id="chapter-list" class="chapter-sheet-body"></div>
+    </div>
+
+    <!-- Fixed player bar -->
+    <div id="player-bar" class="hidden" role="region" aria-label="Audio player">
+      <div class="player-inner">
+        <div class="player-info">
+          <p id="player-title"></p>
+          <p id="player-chapter"></p>
+        </div>
+
+        <div class="seek-row">
+          <input
+            type="range"
+            id="seek-bar"
+            min="0"
+            max="1000"
+            value="0"
+            aria-label="Seek"
+            step="1"
+          />
+          <span id="time-display">0:00 / 0:00</span>
+        </div>
+
+        <div class="player-controls-row">
+          <button
+            class="ctrl-btn ctrl-btn-sm"
+            id="btn-prev"
+            aria-label="Previous chapter"
+          >⏮</button>
+
+          <button
+            class="ctrl-btn"
+            id="btn-play-pause"
+            aria-label="Play"
+          >▶</button>
+
+          <button
+            class="ctrl-btn ctrl-btn-sm"
+            id="btn-next"
+            aria-label="Next chapter"
+          >⏭</button>
+
+          <select id="speed-select" aria-label="Playback speed">
+            <option value="0.75">0.75×</option>
+            <option value="1" selected>1×</option>
+            <option value="1.25">1.25×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option>
+          </select>
+
+          <button class="ctrl-btn ctrl-btn-sm" id="btn-chapters" aria-label="Chapters" title="Chapters">≡</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast notifications -->
+    <div id="toast-stack" aria-live="polite"></div>
+  </body>
+</html>
