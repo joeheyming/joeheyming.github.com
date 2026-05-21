@@ -587,6 +587,25 @@
     }
   },
   {
+    "id": "starwars",
+    "name": "ASCII Star Wars 🌟",
+    "shortName": "Star Wars",
+    "description": "Star Wars Episode IV recreated in ASCII art",
+    "detailedDescription": "Simon Jansen's legendary asciimation — Star Wars Episode IV retold entirely in ASCII art. The classic late-90s internet masterpiece, now playable in your browser.",
+    "icon": "🌟",
+    "path": "./starwars/",
+    "category": "entertainment",
+    "defaultWidth": 900,
+    "defaultHeight": 600,
+    "gradient": "from-yellow-900/20 to-black/20",
+    "border": "border-yellow-500/30 hover:border-yellow-400/50",
+    "taskbarGradient": "from-yellow-700 to-black",
+    "taskbarText": "text-yellow-300",
+    "tags": ["ascii", "animation", "starwars", "retro", "classic"],
+    "related": ["badapple", "terminal", "nes"],
+    "shareCategory": "entertainment"
+  },
+  {
     "id": "terminal",
     "name": "Terminal",
     "shortName": "Terminal",

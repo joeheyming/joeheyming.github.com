@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <base href="./" />
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="icon"
+      id="site-favicon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌟</text></svg>"
+    />
+
+    <title>ASCII Star Wars — Simon Jansen's Asciimation in Your Browser</title>
+
+    <meta
+      name="description"
+      content="Watch Star Wars Episode IV retold entirely in ASCII art. Simon Jansen's legendary asciimation — the classic late-90s internet masterpiece, now playable in your browser with play/pause, speed control, and frame navigation."
+    />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="keywords"
+      content="ASCII Star Wars, asciimation, Simon Jansen, Star Wars ASCII art, telnet star wars, towel.blinkenlights.nl, ASCII animation, retro internet, browser Star Wars"
+    />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming — ASCII Star Wars" />
+    <meta property="og:title" content="🌟 ASCII Star Wars — Simon Jansen's Asciimation" />
+    <meta
+      property="og:description"
+      content="Star Wars Episode IV retold in ASCII art. Simon Jansen's legendary asciimation — the classic late-90s internet masterpiece, now in your browser."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/starwars/" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="🌟 ASCII Star Wars — Simon Jansen's Asciimation" />
+    <meta
+      name="twitter:description"
+      content="Star Wars Episode IV in ASCII art — the classic late-90s internet masterpiece, now in your browser."
+    />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://joeheyming.github.io/starwars/" />
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "ASCII Star Wars — Asciimation",
+            "applicationCategory": "EntertainmentApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Simon Jansen's legendary Star Wars asciimation — Star Wars Episode IV retold in ASCII art, playable in the browser.",
+            "url": "https://joeheyming.github.io/starwars/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "inLanguage": "en"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              { "@type": "ListItem", "position": 2, "name": "ASCII Star Wars" }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <!-- Film data (Simon Jansen's asciimation, © 1997-2026 Simon Jansen, asciimation.co.nz) -->
+    <script src="./sw-data.js"></script>
+
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: #000;
+        color: #fff;
+        font-family: 'Courier New', Courier, monospace;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      #app-wrapper {
+        width: 100%;
+        max-width: 760px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+
+      #title-bar {
+        text-align: center;
+        padding: 8px 0 4px;
+      }
+
+      #title-bar h1 {
+        font-size: 1.25rem;
+        color: #ffcc00;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      #screen-container {
+        width: 100%;
+        background: #000;
+        border: 2px solid #333;
+        border-radius: 4px;
+        padding: 8px 12px;
+        overflow: hidden;
+      }
+
+      #screen {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 14px;
+        line-height: 1.2;
+        color: #fff;
+        white-space: pre;
+        display: block;
+        min-height: calc(13 * 1.2 * 14px);
+        overflow: hidden;
+        /* prevent text selection jitter during animation */
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      @media (max-width: 600px) {
+        #screen {
+          font-size: 8px;
+          line-height: 1.1;
+          min-height: calc(13 * 1.1 * 8px);
+        }
+      }
+
+      #controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .ctrl-btn {
+        background: #1a1a1a;
+        color: #0f0;
+        border: 1px solid #0f0;
+        border-radius: 3px;
+        padding: 4px 10px;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 13px;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+      }
+
+      .ctrl-btn:hover {
+        background: #0f0;
+        color: #000;
+      }
+
+      .ctrl-btn:active {
+        transform: scale(0.95);
+      }
+
+      .ctrl-btn.active {
+        background: #0a0;
+        color: #fff;
+        border-color: #0a0;
+      }
+
+      #speed-label {
+        color: #0f0;
+        font-size: 12px;
+        font-family: 'Courier New', Courier, monospace;
+        min-width: 60px;
+        text-align: center;
+      }
+
+      #speed-range {
+        accent-color: #0f0;
+        width: 100px;
+      }
+
+      #frame-counter {
+        color: #555;
+        font-size: 11px;
+        font-family: 'Courier New', Courier, monospace;
+        text-align: center;
+      }
+
+      #attribution {
+        text-align: center;
+        font-size: 11px;
+        color: #666;
+        line-height: 1.6;
+      }
+
+      #attribution a {
+        color: #888;
+        text-decoration: underline;
+      }
+
+      #attribution a:hover {
+        color: #ffcc00;
+      }
+
+      #progress-bar-container {
+        width: 100%;
+        height: 3px;
+        background: #1a1a1a;
+        border-radius: 2px;
+        cursor: pointer;
+        position: relative;
+      }
+
+      #progress-bar {
+        height: 100%;
+        background: #0f0;
+        border-radius: 2px;
+        transition: width 0.1s linear;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Share button (bottom-left, from share.js) -->
+    <div class="fixed bottom-5 left-5 z-50">
+      <share-button label="📤 Share" theme="retro"></share-button>
+    </div>
+
+    <div id="app-wrapper">
+      <div id="title-bar">
+        <h1>ASCII Star Wars</h1>
+      </div>
+
+      <div id="screen-container">
+        <pre id="screen">Loading...</pre>
+      </div>
+
+      <!-- Progress bar -->
+      <div id="progress-bar-container" title="Click to seek">
+        <div id="progress-bar" style="width: 0%"></div>
+      </div>
+
+      <!-- Controls -->
+      <div id="controls">
+        <button class="ctrl-btn" id="btn-restart" title="Restart (Home)">|◀</button>
+        <button class="ctrl-btn" id="btn-prev" title="Previous frame (←)">◀|</button>
+        <button class="ctrl-btn active" id="btn-playpause" title="Play/Pause (Space)">⏸ Pause</button>
+        <button class="ctrl-btn" id="btn-next" title="Next frame (→)">|▶</button>
+        <button class="ctrl-btn" id="btn-end" title="End (End)">▶|</button>
+        <span style="color:#333">|</span>
+        <span style="color:#0f0; font-size:12px; font-family:monospace">Speed:</span>
+        <input type="range" id="speed-range" min="1" max="8" step="1" value="4" title="Speed" />
+        <span id="speed-label">1×</span>
+      </div>
+
+      <div id="frame-counter">Frame 0 / 0</div>
+
+      <div id="attribution">
+        Animation by <a href="https://asciimation.co.nz" target="_blank" rel="noopener">Simon Jansen</a>
+        &mdash; <em>Star Wars Episode IV in ASCII art</em> &mdash;
+        &copy; 1997&ndash;2026 Simon Jansen &middot;
+        <a href="https://asciimation.co.nz" target="_blank" rel="noopener">asciimation.co.nz</a>
+      </div>
+    </div>
+
+    <!-- SEO footer -->
+    <footer class="seo-intro" hidden>
+      <h2>ASCII Star Wars &mdash; Simon Jansen's Asciimation in Your Browser</h2>
+      <p>
+        Simon Jansen's legendary ASCII animation of Star Wars Episode IV &mdash; the classic
+        late-90s internet art project originally accessible via
+        <code>telnet towel.blinkenlights.nl</code>, now playable directly in your browser.
+        Play, pause, adjust speed, and scrub through all the frames.
+      </p>
+      <nav aria-label="More from Joe Heyming">
+        <strong>More from Joe Heyming:</strong>
+        <a href="/badapple/">Bad Apple ASCII</a>
+        &middot;
+        <a href="/terminal/">Web Terminal</a>
+        &middot;
+        <a href="/nes/">NES Emulator</a>
+        &middot;
+        <a href="/doom/">DOOM in Browser</a>
+        &middot;
+        <a href="/about/">About Joe</a>
+      </nav>
+    </footer>
+
+    <script>
+      // ── Player ────────────────────────────────────────────────────────────────
+      // Film data is loaded from sw-data.js as `var film = [...]`
+      // Format: every 14 elements = one frame.
+      //   film[i*14]       = display-duration in 67ms ticks
+      //   film[i*14+1..13] = 13 lines of ASCII art
+      //
+      // Original player logic adapted from asciimation.co.nz
+      // © 1997-2026 Simon Jansen — used with attribution for fan/educational purposes.
+
+      const LINES_PER_FRAME = 14;
+      const BASE_DELAY_MS = 67; // milliseconds per tick at 1× speed
+
+      const screenEl = document.getElementById('screen');
+      const frameCounterEl = document.getElementById('frame-counter');
+      const progressBarEl = document.getElementById('progress-bar');
+      const btnPlayPause = document.getElementById('btn-playpause');
+      const speedRange = document.getElementById('speed-range');
+      const speedLabel = document.getElementById('speed-label');
+
+      // Speed map: slider value → multiplier
+      const SPEED_MAP = [0.25, 0.5, 0.75, 1, 2, 4, 8, 16];
+
+      let totalFrames = 0;
+      let currentFrame = 0;
+      let isPlaying = false;
+      let timerHandle = null;
+      let speedMultiplier = 1;
+
+      function init() {
+        if (!window.film || film.length < LINES_PER_FRAME) {
+          screenEl.textContent = 'Error: film data not loaded.';
+          return;
+        }
+        totalFrames = Math.floor(film.length / LINES_PER_FRAME);
+        currentFrame = 0;
+        renderFrame(0);
+        startPlay();
+      }
+
+      function renderFrame(n) {
+        if (n < 0 || n >= totalFrames) return;
+        const base = n * LINES_PER_FRAME;
+        const lines = [];
+        for (let i = 1; i < LINES_PER_FRAME; i++) {
+          lines.push(film[base + i] || '');
+        }
+        screenEl.textContent = lines.join('\n');
+        frameCounterEl.textContent = `Frame ${n + 1} / ${totalFrames}`;
+        const pct = totalFrames > 1 ? ((n / (totalFrames - 1)) * 100).toFixed(2) : 0;
+        progressBarEl.style.width = pct + '%';
+        currentFrame = n;
+      }
+
+      function getFrameDelay(n) {
+        const raw = parseInt(film[n * LINES_PER_FRAME], 10) || 1;
+        return Math.max(1, Math.round((raw * BASE_DELAY_MS) / speedMultiplier));
+      }
+
+      function scheduleNext() {
+        const delay = getFrameDelay(currentFrame);
+        timerHandle = setTimeout(() => {
+          if (!isPlaying) return;
+          const next = currentFrame + 1;
+          if (next >= totalFrames) {
+            // Loop back to start
+            renderFrame(0);
+          } else {
+            renderFrame(next);
+          }
+          scheduleNext();
+        }, delay);
+      }
+
+      function startPlay() {
+        if (isPlaying) return;
+        isPlaying = true;
+        btnPlayPause.textContent = '⏸ Pause';
+        btnPlayPause.classList.add('active');
+        scheduleNext();
+      }
+
+      function pausePlay() {
+        isPlaying = false;
+        btnPlayPause.textContent = '▶ Play';
+        btnPlayPause.classList.remove('active');
+        clearTimeout(timerHandle);
+      }
+
+      function togglePlayPause() {
+        if (isPlaying) {
+          pausePlay();
+        } else {
+          startPlay();
+        }
+      }
+
+      function restart() {
+        pausePlay();
+        renderFrame(0);
+        startPlay();
+      }
+
+      function stepFrame(delta) {
+        const wasPlaying = isPlaying;
+        pausePlay();
+        const next = Math.max(0, Math.min(totalFrames - 1, currentFrame + delta));
+        renderFrame(next);
+        if (wasPlaying) startPlay();
+      }
+
+      function jumpToEnd() {
+        pausePlay();
+        renderFrame(totalFrames - 1);
+      }
+
+      // ── Controls ──────────────────────────────────────────────────────────────
+      document.getElementById('btn-restart').addEventListener('click', restart);
+      document.getElementById('btn-prev').addEventListener('click', () => stepFrame(-1));
+      btnPlayPause.addEventListener('click', togglePlayPause);
+      document.getElementById('btn-next').addEventListener('click', () => stepFrame(1));
+      document.getElementById('btn-end').addEventListener('click', jumpToEnd);
+
+      speedRange.addEventListener('input', () => {
+        const idx = parseInt(speedRange.value, 10) - 1;
+        speedMultiplier = SPEED_MAP[idx];
+        const label = speedMultiplier < 1
+          ? `${speedMultiplier}×`
+          : `${speedMultiplier}×`;
+        speedLabel.textContent = label;
+      });
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT') return;
+        switch (e.key) {
+          case ' ':
+            e.preventDefault();
+            togglePlayPause();
+            break;
+          case 'ArrowLeft':
+            e.preventDefault();
+            stepFrame(-1);
+            break;
+          case 'ArrowRight':
+            e.preventDefault();
+            stepFrame(1);
+            break;
+          case 'Home':
+            e.preventDefault();
+            restart();
+            break;
+          case 'End':
+            e.preventDefault();
+            jumpToEnd();
+            break;
+        }
+      });
+
+      // Progress bar seek
+      document.getElementById('progress-bar-container').addEventListener('click', (e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const ratio = (e.clientX - rect.left) / rect.width;
+        const target = Math.floor(ratio * (totalFrames - 1));
+        const wasPlaying = isPlaying;
+        pausePlay();
+        renderFrame(Math.max(0, Math.min(totalFrames - 1, target)));
+        if (wasPlaying) startPlay();
+      });
+
+      // ── Boot ─────────────────────────────────────────────────────────────────
+      // Wait for sw-data.js to be available (it's in <head> so sync)
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    </script>
+  </body>
+</html>
