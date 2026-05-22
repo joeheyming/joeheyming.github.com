@@ -122,7 +122,8 @@ export class SudokuUI {
       const cell = document.createElement('div');
       cell.className = 'cell';
       cell.dataset.idx = i;
-      cell.setAttribute('role', 'gridcell');
+      cell.setAttribute('role', 'button');
+      cell.setAttribute('tabindex', '0');
       cell.setAttribute('aria-label', `Row ${Math.floor(i / SIZE) + 1}, column ${(i % SIZE) + 1}`);
       const r = Math.floor(i / SIZE);
       const c = i % SIZE;

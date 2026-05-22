@@ -263,8 +263,8 @@
       }
 
       #speed-controls button.active {
-        background: #ee5a5a;
-        border-color: #ff6b6b;
+        background: #c0392b;
+        border-color: #e74c3c;
       }
 
       #volume-controls {
@@ -341,7 +341,7 @@
           <button onclick="setSpeed(2)">2x</button>
         </div>
         <div id="volume-controls">
-          <label>🔊</label>
+          <label for="volume-slider">Volume</label>
           <input
             type="range"
             id="volume-slider"
@@ -349,6 +349,7 @@
             max="1"
             step="0.1"
             value="1"
+            aria-label="Volume"
             oninput="setVolume(this.value)"
           />
         </div>

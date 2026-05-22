@@ -44,7 +44,8 @@ class DifficultySelectorElement extends HTMLElement {
   render() {
     this.shadowRoot.innerHTML = `
       <span class="difficulty-selector" id="difficulty-selector">
-        <select class="difficulty-select" id="difficulty-select">
+        <label class="difficulty-label" for="difficulty-select">Difficulty</label>
+        <select class="difficulty-select" id="difficulty-select" aria-label="Difficulty">
           <option value="">Difficulty</option>
         </select>
       </span>

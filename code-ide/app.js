@@ -20,6 +20,8 @@ import { scmMethods } from './scm-actions.js';
 import { menuMethods } from './menus.js';
 import { paletteMethods } from './palette.js';
 import { createNotifier } from '/notifications.js';
+import { mountAgent } from './agent/panel.js';
+import { createCmdK } from './agent/cmdk.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -111,6 +113,7 @@ class CodeIDE {
     this.bindFsChanges();
     this.bindSidebarTabs();
     if (this.git) this.bindScmActions();
+    this.bindAgent();
 
     this.updateStatusEnvironment();
     this.updateProjectLabel();
@@ -377,6 +380,7 @@ class CodeIDE {
     $('#cmd-format').addEventListener('click', () => this.formatActive());
     $('#cmd-run').addEventListener('click', () => this.runActive());
     $('#cmd-diff').addEventListener('click', () => this.showPanel('diff'));
+    $('#cmd-ai')?.addEventListener('click', () => this.agent?.open());
     $('#cmd-theme').addEventListener('click', () => {
       const next = this.host.cycleTheme();
       localStorage.setItem('code-ide:theme', next);
@@ -426,6 +430,28 @@ class CodeIDE {
       return items.find((it) => it.path === path)?.isDirectory ?? false;
     } catch {
       return false;
+    }
+  }
+
+  // ─── Agent (✨ Assistant + Cmd+K) ──────────────────────────────────────
+
+  bindAgent() {
+    this.agent = mountAgent(this);
+    if (!this.agent) return;
+    this.cmdk = createCmdK(this, this.agent);
+
+    // Register Cmd+K as an editor-scoped action so it only fires when
+    // Monaco has focus — avoids conflicts with the tree's rename input
+    // and other text fields. The action also makes Cmd+K discoverable
+    // through F1 (Monaco command palette → "AI: Edit selection…").
+    const keys = this.host.keyConsts?.();
+    if (keys) {
+      this.host.addEditorAction({
+        id: 'agent.cmdk',
+        label: '✨ AI: Edit selection / file…',
+        keybindings: [keys.KeyMod.CtrlCmd | keys.KeyCode.KeyK],
+        run: () => this.cmdk?.open?.()
+      });
     }
   }
 

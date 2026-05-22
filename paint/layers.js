@@ -125,6 +125,7 @@ export function renderLayerPanel(layers, activeIdx, container, callbacks) {
     const blendEl = document.createElement('select');
     blendEl.className = 'layer-blend';
     blendEl.title = 'Blend mode';
+    blendEl.setAttribute('aria-label', `${layer.name} blend mode`);
     for (const { value, label } of BLEND_MODES) {
       const opt = document.createElement('option');
       opt.value = value;
@@ -144,6 +145,7 @@ export function renderLayerPanel(layers, activeIdx, container, callbacks) {
     opacityEl.value = Math.round(layer.opacity * 100);
     opacityEl.className = 'layer-opacity';
     opacityEl.title = `Opacity: ${Math.round(layer.opacity * 100)}%`;
+    opacityEl.setAttribute('aria-label', `${layer.name} opacity`);
     opacityEl.addEventListener('input', e => {
       e.stopPropagation();
       callbacks.onOpacityChange(i, parseInt(e.target.value, 10) / 100);

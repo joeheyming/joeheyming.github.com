@@ -137,7 +137,7 @@
           </button>
         </div>
 
-        <input type="file" id="upload-input" class="hidden-file" accept="image/*,.paintproj,application/json" aria-hidden="true" />
+        <input type="file" id="upload-input" class="hidden-file" accept="image/*,.paintproj,application/json" aria-label="Upload image or project" />
       </header>
 
       <!-- ── Canvas + panels ── -->
@@ -212,7 +212,7 @@
         <h2 id="filename-modal-title">Save As</h2>
         <div class="modal-row">
           <label for="filename-input">Filename</label>
-          <input type="text" id="filename-input" value="untitled.png" autocomplete="off" spellcheck="false" />
+          <input type="text" id="filename-input" value="untitled.png" autocomplete="off" spellcheck="false" aria-label="Filename" />
         </div>
         <div class="modal-buttons">
           <button class="modal-btn secondary" id="filename-cancel">Cancel</button>
@@ -227,12 +227,12 @@
         <h2>Resize Canvas</h2>
         <div class="modal-row">
           <label for="resize-w">Width</label>
-          <input type="number" id="resize-w" min="1" max="8000" value="800" />
+          <input type="number" id="resize-w" min="1" max="8000" value="800" aria-label="Canvas width in pixels" />
           <span style="color:var(--fg-dim);font-size:12px">px</span>
         </div>
         <div class="modal-row">
           <label for="resize-h">Height</label>
-          <input type="number" id="resize-h" min="1" max="8000" value="600" />
+          <input type="number" id="resize-h" min="1" max="8000" value="600" aria-label="Canvas height in pixels" />
           <span style="color:var(--fg-dim);font-size:12px">px</span>
         </div>
         <div class="modal-buttons">

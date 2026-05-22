@@ -1,6 +1,6 @@
 :root {
-  --wordle-green: #6aaa64;
-  --wordle-gray: #787c7e;
+  --wordle-green: #467046;
+  --wordle-gray: #686c70;
   --wordle-yellow: #c9b458;
   --long-input-width: 182px;
 }
@@ -125,6 +125,7 @@ input.correct {
 
 .maybecorrects input {
   background-color: var(--wordle-yellow);
+  color: #1a1a1a;
   width: 44px;
   height: 44px;
   min-width: 44px;

@@ -121,7 +121,7 @@
         <div class="toolbar-divider"></div>
         <div class="toolbar-group">
           <button id="btn-loop" title="Loop (L)" disabled>🔁</button>
-          <select id="playback-speed" title="Playback Speed" disabled>
+          <select id="playback-speed" title="Playback Speed" aria-label="Playback speed" disabled>
             <option value="0.25">0.25x</option>
             <option value="0.5">0.5x</option>
             <option value="0.75">0.75x</option>
@@ -192,7 +192,7 @@
     </div>
 
     <!-- Hidden file input for opening files -->
-    <input type="file" id="file-input" accept="video/*,audio/*" style="display: none" />
+    <input type="file" id="file-input" accept="video/*,audio/*" style="display: none" aria-label="Open media file" />
 
     <script src="id3-parser.js"></script>
     <script src="media-player.js"></script>

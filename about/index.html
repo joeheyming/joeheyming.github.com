@@ -378,7 +378,7 @@
         <p id="contrib-fallback" class="text-gray-600 text-sm" style="display: none">
           Could not load GitHub activity.
         </p>
-        <div class="mt-4 flex items-center gap-2 text-xs text-gray-500">
+        <div class="mt-4 flex items-center gap-2 text-xs text-gray-400">
           <span>Less</span>
           <span style="display: inline-flex; gap: 3px">
             <span
@@ -433,6 +433,8 @@
           id="gh-feed"
           class="mt-6 text-sm text-gray-400"
           style="max-height: 200px; overflow-y: auto"
+          tabindex="0"
+          aria-label="Recent GitHub activity"
         >
           Loading recent activity…
         </div>
@@ -818,7 +820,7 @@
               'border-bottom:1px solid #21262d;';
 
             var timeSpan = document.createElement('span');
-            timeSpan.style.cssText = 'color:#6e7681;white-space:nowrap;flex-shrink:0;';
+            timeSpan.style.cssText = 'color:#9ca3af;white-space:nowrap;flex-shrink:0;';
             timeSpan.textContent = '\uD83D\uDD50 ' + item.time;
 
             var textSpan = document.createElement('span');

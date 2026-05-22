@@ -188,7 +188,7 @@ class CelebrationVideoSelector extends HTMLElement {
 
         .video-artist {
           font-size: 0.7rem;
-          color: #64748b;
+          color: #94a3b8;
           margin-top: 1px;
           white-space: nowrap;
           overflow: hidden;

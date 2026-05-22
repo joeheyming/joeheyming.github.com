@@ -103,7 +103,7 @@
         </p>
       </div>
 
-      <main class="chat-scroll" id="chat-scroll" tabindex="0" aria-live="polite">
+      <main class="chat-scroll" id="chat-scroll" tabindex="0">
         <div class="chat-empty" id="chat-empty">
           <div class="chat-install" id="chat-install" hidden>
             <span class="chat-install-emoji" aria-hidden="true">📦</span>
@@ -162,7 +162,7 @@
             </p>
           </div>
         </div>
-        <ol class="chat-messages" id="chat-messages" aria-label="Conversation"></ol>
+        <ol class="chat-messages" id="chat-messages" aria-label="Conversation" aria-live="polite"></ol>
       </main>
 
       <form class="chat-composer" id="chat-composer">
@@ -170,7 +170,6 @@
           class="chat-attachments"
           id="chat-attachments"
           hidden
-          aria-label="Pending attachments"
         ></div>
         <div class="chat-composer-row">
           <button

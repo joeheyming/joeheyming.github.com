@@ -596,10 +596,10 @@
   },
   {
     "id": "code-ide",
-    "name": "Code IDE \ud83d\udcbb",
+    "name": "Code IDE \u2728",
     "shortName": "Code IDE",
-    "description": "Monaco editor in your browser",
-    "detailedDescription": "A full code editor in your browser, powered by Monaco (the engine behind VS Code). Multi-file project tree, tabs, syntax highlighting, Vim keybindings, Prettier format-on-save, sandboxed JS runner, side-by-side diff, and git integration. Saves to the HeymingOS filesystem when embedded, or to a real folder on disk via the File System Access API. No backend, no telemetry.",
+    "description": "Monaco editor with an on-device AI assistant",
+    "detailedDescription": "A full code editor in your browser, powered by Monaco (the engine behind VS Code). Multi-file project tree, tabs, syntax highlighting, Vim keybindings, Prettier format-on-save, sandboxed JS runner, side-by-side diff, and git integration. Includes an opt-in on-device AI assistant (Hermes-3 via WebLLM, runs over WebGPU) that reads and edits workspace files through a dry-run + Apply diff. Saves to the HeymingOS filesystem when embedded, or to a real folder on disk via the File System Access API. No backend, no telemetry.",
     "icon": "\ud83d\udcbb",
     "path": "./code-ide/",
     "category": "utility",
@@ -642,20 +642,26 @@
       "typescript",
       "vim",
       "prettier",
+      "ai",
+      "ai-assistant",
+      "cursor",
+      "webllm",
+      "on-device-ai",
+      "hermes",
       "popular"
     ],
-    "related": ["notepad", "terminal", "filemanager", "calculator"],
+    "related": ["notepad", "terminal", "filemanager", "chat", "calculator"],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Code IDE",
       "short_name": "Code IDE",
-      "description": "Monaco editor in your browser"
+      "description": "Monaco editor with an on-device AI assistant"
     },
     "featured": {
       "order": 8,
-      "headline": "Code IDE in your browser",
-      "blurb": "A VS Code-style editor that runs entirely in the browser. Monaco, Vim keybindings, Prettier format-on-save, sandboxed JS runner, and git integration.",
-      "tagsLine": "\ud83d\udcbb Editor \u2022 Monaco \u2022 Vim",
+      "headline": "Code IDE with on-device AI",
+      "blurb": "A VS Code-style editor that runs entirely in the browser. Monaco, Vim, Prettier, git, and an opt-in on-device AI assistant (Hermes-3 via WebLLM) that proposes edits through a dry-run + Apply diff.",
+      "tagsLine": "\u2728 AI \u2022 \ud83d\udcbb Editor \u2022 Monaco \u2022 Vim",
       "preset": "code-ide",
       "analyticsLabel": "Code IDE"
     }

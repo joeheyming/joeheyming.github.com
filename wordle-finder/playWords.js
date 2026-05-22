@@ -229,7 +229,7 @@ function updateStatsGraph() {
     {
       type: 'bar',
       marker: {
-        color: '#6aaa64'
+        color: '#467046'
       },
       x: x,
       y: y,
@@ -537,7 +537,7 @@ function finishBenchmark(total, totalGuesses, distribution, failures, startTime)
     if (count === 0) continue;
     var pct = ((count / total) * 100).toFixed(1);
     var width = Math.round((count / total) * 200);
-    var color = g <= 6 ? '#6aaa64' : '#787c7e';
+    var color = g <= 6 ? '#467046' : '#686c70';
     html += '<div style="margin: 2px 0; display: flex; align-items: center;">';
     html += '<span style="width: 20px;">' + g + '</span>';
     html +=

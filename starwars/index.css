@@ -100,9 +100,9 @@ body {
 }
 
 .ctrl-btn.active {
-  background: #0a0;
-  color: #fff;
-  border-color: #0a0;
+  background: #0f0;
+  color: #000;
+  border-color: #0f0;
 }
 
 #speed-label {
@@ -119,7 +119,7 @@ body {
 }
 
 #frame-counter {
-  color: #555;
+  color: #999;
   font-size: 11px;
   font-family: 'Courier New', Courier, monospace;
   text-align: center;
@@ -128,12 +128,12 @@ body {
 #attribution {
   text-align: center;
   font-size: 11px;
-  color: #666;
+  color: #999;
   line-height: 1.6;
 }
 
 #attribution a {
-  color: #888;
+  color: #bbb;
   text-decoration: underline;
 }
 

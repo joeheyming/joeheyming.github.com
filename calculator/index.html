@@ -129,16 +129,23 @@
     </div>
 
     <div id="calc-app" class="calc-app calc-app--standard">
-      <nav class="calc-mode-nav" aria-label="Calculator mode">
+      <nav class="calc-mode-nav" role="tablist" aria-label="Calculator mode">
         <button
           type="button"
           class="calc-mode-tab calc-mode-tab--active"
           data-mode="standard"
+          role="tab"
           aria-selected="true"
         >
           Standard
         </button>
-        <button type="button" class="calc-mode-tab" data-mode="graph" aria-selected="false">
+        <button
+          type="button"
+          class="calc-mode-tab"
+          data-mode="graph"
+          role="tab"
+          aria-selected="false"
+        >
           Graph
         </button>
       </nav>

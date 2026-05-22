@@ -346,7 +346,8 @@ body.theme-light .statusbar {
 }
 
 .status-pill {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.35);
+  color: #ecfeff;
   padding: 0 6px;
   border-radius: 8px;
   font-family: var(--font-mono);

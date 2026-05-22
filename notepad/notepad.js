@@ -42,6 +42,7 @@ class RichNotepad {
 
     // Add custom buttons to toolbar
     this.addCustomButtons();
+    this.enhanceToolbarAccessibility();
 
     // Auto-focus the editor
     this.quill.focus();
@@ -292,6 +293,71 @@ class RichNotepad {
     });
   }
 
+  enhanceToolbarAccessibility() {
+    const toolbar = document.querySelector('.ql-toolbar');
+    if (!toolbar) return;
+
+    const quillLabels = {
+      'ql-bold': 'Bold',
+      'ql-italic': 'Italic',
+      'ql-underline': 'Underline',
+      'ql-strike': 'Strikethrough',
+      'ql-blockquote': 'Blockquote',
+      'ql-code-block': 'Code block',
+      'ql-link': 'Insert link',
+      'ql-clean': 'Clear formatting',
+      'ql-list': 'List',
+      'ql-indent': 'Indent',
+      'ql-direction': 'Text direction',
+      'ql-script': 'Script',
+      'ql-copy-button': 'Copy all content',
+      'ql-export-button': 'Export notes',
+      'ql-import-button': 'Import notes',
+      'ql-save-button': 'Save',
+      'ql-save-as-button': 'Save as'
+    };
+
+    toolbar.querySelectorAll('button').forEach((btn) => {
+      if (btn.getAttribute('aria-label')) return;
+      if (btn.classList.contains('ql-list')) {
+        btn.setAttribute(
+          'aria-label',
+          btn.value === 'ordered' ? 'Numbered list' : 'Bullet list'
+        );
+        return;
+      }
+      for (const cls of btn.classList) {
+        if (quillLabels[cls]) {
+          btn.setAttribute('aria-label', quillLabels[cls]);
+          return;
+        }
+      }
+      const title = btn.getAttribute('title');
+      if (title) btn.setAttribute('aria-label', title);
+    });
+
+    const pickerLabels = {
+      'ql-header': 'Heading level',
+      'ql-font': 'Font',
+      'ql-size': 'Text size',
+      'ql-color': 'Text color',
+      'ql-background': 'Background color',
+      'ql-align': 'Text alignment'
+    };
+
+    toolbar.querySelectorAll('.ql-picker-label').forEach((label) => {
+      if (label.getAttribute('aria-label')) return;
+      const picker = label.closest('.ql-picker');
+      if (!picker) return;
+      for (const cls of picker.classList) {
+        if (pickerLabels[cls]) {
+          label.setAttribute('aria-label', pickerLabels[cls]);
+          return;
+        }
+      }
+    });
+  }
+
   addCustomButtons() {
     const toolbarContainer = document.querySelector('.ql-toolbar');
 
@@ -299,6 +365,7 @@ class RichNotepad {
     const copyButton = document.createElement('button');
     copyButton.innerHTML = '📋';
     copyButton.title = 'Copy all content';
+    copyButton.setAttribute('aria-label', 'Copy all content');
     copyButton.type = 'button';
     copyButton.className = 'ql-copy-button';
     copyButton.addEventListener('click', () => this.copyContent());
@@ -313,6 +380,7 @@ class RichNotepad {
       const saveButton = document.createElement('button');
       saveButton.innerHTML = '💾';
       saveButton.title = 'Save (Ctrl+S)';
+      saveButton.setAttribute('aria-label', 'Save');
       saveButton.type = 'button';
       saveButton.className = 'ql-save-button';
       saveButton.addEventListener('click', () => this.quickSave());
@@ -322,6 +390,7 @@ class RichNotepad {
       const saveAsButton = document.createElement('button');
       saveAsButton.innerHTML = '📂';
       saveAsButton.title = 'Save As...';
+      saveAsButton.setAttribute('aria-label', 'Save as');
       saveAsButton.type = 'button';
       saveAsButton.className = 'ql-save-as-button';
       saveAsButton.addEventListener('click', () => this.saveAs());
@@ -333,6 +402,7 @@ class RichNotepad {
       const exportButton = document.createElement('button');
       exportButton.innerHTML = '💾';
       exportButton.title = 'Export notes to file';
+      exportButton.setAttribute('aria-label', 'Export notes');
       exportButton.type = 'button';
       exportButton.className = 'ql-export-button';
       exportButton.addEventListener('click', () => this.exportNotes());
@@ -342,6 +412,7 @@ class RichNotepad {
       const importButton = document.createElement('button');
       importButton.innerHTML = '📁';
       importButton.title = 'Import notes from file';
+      importButton.setAttribute('aria-label', 'Import notes');
       importButton.type = 'button';
       importButton.className = 'ql-import-button';
       importButton.addEventListener('click', () => this.importNotes());
@@ -353,6 +424,7 @@ class RichNotepad {
     fileInput.type = 'file';
     fileInput.accept = '.md,.markdown,.txt,.html';
     fileInput.style.display = 'none';
+    fileInput.setAttribute('aria-label', 'Import notes file');
     fileInput.addEventListener('change', (e) => this.handleFileImport(e));
     document.body.appendChild(fileInput);
     this.fileInput = fileInput;

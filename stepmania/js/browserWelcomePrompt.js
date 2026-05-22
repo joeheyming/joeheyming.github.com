@@ -84,11 +84,11 @@ export function showBrowserWelcomePrompt() {
           transition: all 0.2s;
         }
         .browser-prompt-btn-primary {
-          background: #8b5cf6;
+          background: #6d28d9;
           color: white;
         }
         .browser-prompt-btn-primary:hover {
-          background: #7c3aed;
+          background: #5b21b6;
         }
         .browser-prompt-btn-secondary {
           background: #4b5563;

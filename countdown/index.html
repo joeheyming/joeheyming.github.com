@@ -173,8 +173,14 @@
               class="custom-name-input"
               placeholder="Event name..."
               maxlength="50"
+              aria-label="Event name"
             />
-            <input type="datetime-local" id="customDate" class="date-input" />
+            <input
+              type="datetime-local"
+              id="customDate"
+              class="date-input"
+              aria-label="Event date and time"
+            />
             <button class="custom-btn" id="setCustomBtn">Create</button>
           </div>
         </div>
@@ -188,7 +194,7 @@
           <h2 class="event-name" id="eventName">New Year's Day</h2>
           <div class="year-selector" id="yearSelector">
             <button class="year-btn year-down" id="yearDown" title="Previous year">−</button>
-            <input type="number" id="yearInput" class="year-input" max="2100" />
+            <input type="number" id="yearInput" class="year-input" max="2100" aria-label="Year" />
             <button class="year-btn year-up" id="yearUp" title="Next year">+</button>
           </div>
         </div>

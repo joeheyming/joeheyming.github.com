@@ -69,7 +69,7 @@
   }
 }
 .flavor-card[data-flavor='classic'] {
-  --flavor-color: #c8392e;
+  --flavor-color: #f06055;
 }
 .flavor-card[data-flavor='freedoom'] {
   --flavor-color: #d9883a;
@@ -78,13 +78,13 @@
   --flavor-color: #4fa861;
 }
 .flavor-card[data-flavor='mario'] {
-  --flavor-color: #2a73d8;
+  --flavor-color: #5b9dfb;
 }
 .flavor-card[data-flavor='metroid'] {
   --flavor-color: #c39e3a;
 }
 .flavor-card[data-flavor='castlevania'] {
-  --flavor-color: #7a3fb1;
+  --flavor-color: #b894e8;
 }
 .flavor-card:hover:not([disabled]):not(.loading) {
   background: var(--panel2);

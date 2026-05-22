@@ -100,7 +100,7 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #4f46e5;
+  color: #818cf8;
   margin-bottom: 0.75rem;
 }
 
@@ -241,7 +241,7 @@ body {
 .grid-loading {
   grid-column: 1 / -1;
   text-align: center;
-  color: #475569;
+  color: #94a3b8;
   padding: 2rem 0;
   font-size: 0.9rem;
 }

@@ -57,10 +57,12 @@ export function buildPalette(state, container, onFgChange, onBgChange) {
   const fgInput = document.createElement('input');
   fgInput.type = 'color'; fgInput.id = 'fg-color-input';
   fgInput.value = state.color; fgInput.className = 'hidden-color-input';
+  fgInput.setAttribute('aria-label', 'Foreground color');
 
   const bgInput = document.createElement('input');
   bgInput.type = 'color'; bgInput.id = 'bg-color-input';
   bgInput.value = state.bgColor; bgInput.className = 'hidden-color-input';
+  bgInput.setAttribute('aria-label', 'Background color');
 
   fgSwatch.addEventListener('click', () => fgInput.click());
   bgSwatch.addEventListener('click', () => bgInput.click());

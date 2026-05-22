@@ -298,8 +298,8 @@ class LoadingOverlayElement extends HTMLElement {
           
           <!-- Difficulty Selector -->
           <div class="difficulty-container ${difficultyClass}" id="difficulty-container">
-            <label class="difficulty-label">Select Difficulty:</label>
-            <select class="difficulty-select" id="difficulty-select">
+            <label class="difficulty-label" for="difficulty-select">Select Difficulty:</label>
+            <select class="difficulty-select" id="difficulty-select" aria-label="Difficulty">
               ${difficultyOptions}
             </select>
           </div>

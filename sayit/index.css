@@ -148,9 +148,9 @@ body {
 }
 
 .mode-button.active {
-  background: #2196f3;
+  background: #1565c0;
   color: white;
-  border-color: #2196f3;
+  border-color: #1565c0;
 }
 
 /* Canvas Mode */
@@ -211,7 +211,7 @@ body {
 }
 
 .tool-button.active {
-  background: #2196f3;
+  background: #1565c0;
   color: white;
 }
 
@@ -248,7 +248,7 @@ body {
 }
 
 .control-button {
-  background: #ff5722;
+  background: #bf360c;
   color: white;
   border: none;
   padding: 8px 16px;
@@ -259,7 +259,7 @@ body {
 }
 
 .control-button:hover {
-  background: #e64a19;
+  background: #a52714;
   transform: translateY(-1px);
 }
 
@@ -285,7 +285,7 @@ body {
 }
 
 .read-button {
-  background: #4caf50;
+  background: #2e7d32;
   color: white;
   border: none;
   padding: 12px 20px;
@@ -601,7 +601,7 @@ body {
 }
 
 .play-button {
-  background: #4caf50;
+  background: #2e7d32;
   color: white;
   border: none;
   padding: 12px 20px;
@@ -631,9 +631,9 @@ body {
 }
 
 .play-button.playing {
-  background: #ff5722;
+  background: #d84315;
 }
 
 .play-button.playing:hover {
-  background: #e64a19;
+  background: #bf360c;
 }
