@@ -1234,7 +1234,9 @@
     "related": [
       "play",
       "play-accordion",
-      "play-synth"
+      "play-synth",
+      "play-metronome",
+      "play-tuner"
     ],
     "shareCategory": "entertainment"
   },
@@ -1289,7 +1291,8 @@
     "related": [
       "play",
       "play-guitar",
-      "play-synth"
+      "play-synth",
+      "play-metronome"
     ],
     "shareCategory": "entertainment"
   },
@@ -1349,7 +1352,183 @@
     "related": [
       "play",
       "play-piano",
-      "play-drums"
+      "play-drums",
+      "play-theremin"
+    ],
+    "shareCategory": "entertainment"
+  },
+  {
+    "id": "play-metronome",
+    "name": "Browser Metronome 🎵",
+    "shortName": "Metronome",
+    "description": "Precision metronome with tap tempo",
+    "detailedDescription": "Precision metronome with adjustable BPM, tap tempo, and multiple time signatures. Perfect for practice.",
+    "icon": "🎵",
+    "path": "./play/metronome/",
+    "category": "entertainment",
+    "gradient": "from-purple-500/20 to-indigo-500/20",
+    "border": "border-purple-500/30 hover:border-purple-400/50",
+    "taskbarGradient": "from-purple-500 to-indigo-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 600,
+    "defaultHeight": 500,
+    "tags": [
+      "music",
+      "metronome",
+      "tempo",
+      "practice",
+      "audio"
+    ],
+    "related": [
+      "play-piano",
+      "play-drums",
+      "play-synth"
+    ],
+    "shareCategory": "entertainment"
+  },
+  {
+    "id": "play-harp",
+    "name": "Browser Harp 🎵",
+    "shortName": "Harp",
+    "description": "Play a virtual harp in your browser",
+    "detailedDescription": "Pluck strings on a virtual concert harp. Click or touch individual strings to play notes across multiple octaves.",
+    "icon": "🎵",
+    "path": "./play/harp/",
+    "category": "entertainment",
+    "gradient": "from-teal-500/20 to-green-500/20",
+    "border": "border-teal-500/30 hover:border-teal-400/50",
+    "taskbarGradient": "from-teal-500 to-green-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 900,
+    "defaultHeight": 600,
+    "tags": [
+      "music",
+      "harp",
+      "strings",
+      "audio"
+    ],
+    "related": [
+      "play-piano",
+      "play-guitar",
+      "play-mallets"
+    ],
+    "shareCategory": "entertainment"
+  },
+  {
+    "id": "play-steeldrum",
+    "name": "Browser Steel Drum 🥁",
+    "shortName": "Steel Drum",
+    "description": "Play Caribbean steel pan drums in your browser",
+    "detailedDescription": "Caribbean steel pan with authentic tuning. Click or tap the pan segments to play island rhythms.",
+    "icon": "🥁",
+    "path": "./play/steeldrum/",
+    "category": "entertainment",
+    "gradient": "from-yellow-500/20 to-orange-500/20",
+    "border": "border-yellow-500/30 hover:border-yellow-400/50",
+    "taskbarGradient": "from-yellow-500 to-orange-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 900,
+    "defaultHeight": 600,
+    "tags": [
+      "music",
+      "steeldrum",
+      "percussion",
+      "caribbean",
+      "audio"
+    ],
+    "related": [
+      "play-drums",
+      "play-mallets",
+      "play-harp"
+    ],
+    "shareCategory": "entertainment"
+  },
+  {
+    "id": "play-mallets",
+    "name": "Browser Mallet Keyboard 🎹",
+    "shortName": "Mallets",
+    "description": "Xylophone, marimba, and vibraphone in your browser",
+    "detailedDescription": "Switch between xylophone, marimba, and vibraphone. Click or use keyboard to play. Rich, resonant tones.",
+    "icon": "🎹",
+    "path": "./play/mallets/",
+    "category": "entertainment",
+    "gradient": "from-lime-500/20 to-amber-500/20",
+    "border": "border-lime-500/30 hover:border-lime-400/50",
+    "taskbarGradient": "from-lime-500 to-amber-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 900,
+    "defaultHeight": 600,
+    "tags": [
+      "music",
+      "xylophone",
+      "marimba",
+      "vibraphone",
+      "percussion",
+      "audio"
+    ],
+    "related": [
+      "play-harp",
+      "play-steeldrum",
+      "play-piano"
+    ],
+    "shareCategory": "entertainment"
+  },
+  {
+    "id": "play-theremin",
+    "name": "Browser Theremin 🌊",
+    "shortName": "Theremin",
+    "description": "Play a theremin with hand gestures via your webcam",
+    "detailedDescription": "Control pitch and volume with hand movements detected by your webcam. No touching required.",
+    "icon": "🌊",
+    "path": "./play/theremin/",
+    "category": "entertainment",
+    "gradient": "from-blue-500/20 to-violet-500/20",
+    "border": "border-blue-500/30 hover:border-blue-400/50",
+    "taskbarGradient": "from-blue-500 to-violet-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 900,
+    "defaultHeight": 600,
+    "tags": [
+      "music",
+      "theremin",
+      "webcam",
+      "gesture",
+      "electronic",
+      "audio"
+    ],
+    "related": [
+      "play-synth",
+      "play-piano",
+      "play-tuner"
+    ],
+    "shareCategory": "entertainment"
+  },
+  {
+    "id": "play-tuner",
+    "name": "Browser Tuner 🎸",
+    "shortName": "Tuner",
+    "description": "Chromatic instrument tuner using your microphone",
+    "detailedDescription": "Chromatic tuner that listens via your microphone and displays pitch, note name, and cents deviation in real time.",
+    "icon": "🎸",
+    "path": "./play/tuner/",
+    "category": "entertainment",
+    "gradient": "from-emerald-500/20 to-teal-500/20",
+    "border": "border-emerald-500/30 hover:border-emerald-400/50",
+    "taskbarGradient": "from-emerald-500 to-teal-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 700,
+    "defaultHeight": 500,
+    "tags": [
+      "music",
+      "tuner",
+      "microphone",
+      "pitch",
+      "audio"
+    ],
+    "related": [
+      "play-theremin",
+      "play-piano",
+      "play-metronome"
     ],
     "shareCategory": "entertainment"
   },

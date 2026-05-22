@@ -12,6 +12,10 @@ node_modules
 # Claude / Cursor agent local config
 /.claude/
 
+# GSC indexing automation local state
+/scripts/.gsc-results.md
+/scripts/.gsc-profile/
+
 *.DS_Store
 */Thumbs.db
 

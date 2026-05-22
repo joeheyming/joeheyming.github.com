@@ -1,0 +1,64 @@
+body {
+  background: white;
+}
+.content-wrapper {
+  margin-left: 120px;
+  padding: 20px;
+}
+@media (max-width: 640px) {
+  .content-wrapper {
+    margin-left: 20px;
+    padding: 10px;
+  }
+}
+#helloForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 400px;
+}
+#helloForm select,
+#helloForm textarea,
+#helloForm button {
+  width: 100%;
+  box-sizing: border-box;
+}
+#helloForm label {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+.header-icon {
+  font-size: 1.2em;
+  margin-right: 10px;
+}
+.speaking-indicator {
+  display: inline-block;
+  font-size: 1.5em;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.speaking-indicator.active {
+  opacity: 1;
+  animation: pulse 1s infinite;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+.learn-more {
+  font-size: 0.9em;
+  margin-top: 10px;
+}
+.learn-more a {
+  color: #0066cc;
+  text-decoration: none;
+  border-bottom: 1px dotted #0066cc;
+}
+.learn-more a:hover {
+  border-bottom-style: solid;
+}

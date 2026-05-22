@@ -42,6 +42,9 @@
     />
     <meta property="og:url" content="https://joeheyming.github.io/starwars/" />
     <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://joeheyming.github.io/starwars/starwars-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -52,12 +55,13 @@
       name="twitter:description"
       content="Star Wars Episode IV in ASCII art — the classic late-90s internet masterpiece, now in your browser."
     />
+    <meta name="twitter:image" content="https://joeheyming.github.io/starwars/starwars-preview.png" />
 
     <!-- Canonical -->
     <link rel="canonical" href="https://joeheyming.github.io/starwars/" />
 
     <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com/3.4.16/tailwind.min.js"></script>
 
     <!-- Structured Data -->
     <script type="application/ld+json">
@@ -97,165 +101,7 @@
 
     <!-- Film data (Simon Jansen's asciimation, © 1997-2026 Simon Jansen, asciimation.co.nz) -->
     <script src="./sw-data.js"></script>
-
-    <style>
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-
-      body {
-        background: #000;
-        color: #fff;
-        font-family: 'Courier New', Courier, monospace;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-
-      #app-wrapper {
-        width: 100%;
-        max-width: 760px;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 12px;
-      }
-
-      #title-bar {
-        text-align: center;
-        padding: 8px 0 4px;
-      }
-
-      #title-bar h1 {
-        font-size: 1.25rem;
-        color: #ffcc00;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-      }
-
-      #screen-container {
-        width: 100%;
-        background: #000;
-        border: 2px solid #333;
-        border-radius: 4px;
-        padding: 8px 12px;
-        overflow: hidden;
-      }
-
-      #screen {
-        font-family: 'Courier New', Courier, monospace;
-        font-size: 14px;
-        line-height: 1.2;
-        color: #fff;
-        white-space: pre;
-        display: block;
-        min-height: calc(13 * 1.2 * 14px);
-        overflow: hidden;
-        /* prevent text selection jitter during animation */
-        user-select: none;
-        -webkit-user-select: none;
-      }
-
-      @media (max-width: 600px) {
-        #screen {
-          font-size: 8px;
-          line-height: 1.1;
-          min-height: calc(13 * 1.1 * 8px);
-        }
-      }
-
-      #controls {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        flex-wrap: wrap;
-        justify-content: center;
-      }
-
-      .ctrl-btn {
-        background: #1a1a1a;
-        color: #0f0;
-        border: 1px solid #0f0;
-        border-radius: 3px;
-        padding: 4px 10px;
-        font-family: 'Courier New', Courier, monospace;
-        font-size: 13px;
-        cursor: pointer;
-        transition: background 0.15s, color 0.15s;
-      }
-
-      .ctrl-btn:hover {
-        background: #0f0;
-        color: #000;
-      }
-
-      .ctrl-btn:active {
-        transform: scale(0.95);
-      }
-
-      .ctrl-btn.active {
-        background: #0a0;
-        color: #fff;
-        border-color: #0a0;
-      }
-
-      #speed-label {
-        color: #0f0;
-        font-size: 12px;
-        font-family: 'Courier New', Courier, monospace;
-        min-width: 60px;
-        text-align: center;
-      }
-
-      #speed-range {
-        accent-color: #0f0;
-        width: 100px;
-      }
-
-      #frame-counter {
-        color: #555;
-        font-size: 11px;
-        font-family: 'Courier New', Courier, monospace;
-        text-align: center;
-      }
-
-      #attribution {
-        text-align: center;
-        font-size: 11px;
-        color: #666;
-        line-height: 1.6;
-      }
-
-      #attribution a {
-        color: #888;
-        text-decoration: underline;
-      }
-
-      #attribution a:hover {
-        color: #ffcc00;
-      }
-
-      #progress-bar-container {
-        width: 100%;
-        height: 3px;
-        background: #1a1a1a;
-        border-radius: 2px;
-        cursor: pointer;
-        position: relative;
-      }
-
-      #progress-bar {
-        height: 100%;
-        background: #0f0;
-        border-radius: 2px;
-        transition: width 0.1s linear;
-        pointer-events: none;
-      }
-    </style>
+    <link rel="stylesheet" href="index.css" />
   </head>
 
   <body>
@@ -324,183 +170,6 @@
       </nav>
     </footer>
 
-    <script>
-      // ── Player ────────────────────────────────────────────────────────────────
-      // Film data is loaded from sw-data.js as `var film = [...]`
-      // Format: every 14 elements = one frame.
-      //   film[i*14]       = display-duration in 67ms ticks
-      //   film[i*14+1..13] = 13 lines of ASCII art
-      //
-      // Original player logic adapted from asciimation.co.nz
-      // © 1997-2026 Simon Jansen — used with attribution for fan/educational purposes.
-
-      const LINES_PER_FRAME = 14;
-      const BASE_DELAY_MS = 67; // milliseconds per tick at 1× speed
-
-      const screenEl = document.getElementById('screen');
-      const frameCounterEl = document.getElementById('frame-counter');
-      const progressBarEl = document.getElementById('progress-bar');
-      const btnPlayPause = document.getElementById('btn-playpause');
-      const speedRange = document.getElementById('speed-range');
-      const speedLabel = document.getElementById('speed-label');
-
-      // Speed map: slider value → multiplier
-      const SPEED_MAP = [0.25, 0.5, 0.75, 1, 2, 4, 8, 16];
-
-      let totalFrames = 0;
-      let currentFrame = 0;
-      let isPlaying = false;
-      let timerHandle = null;
-      let speedMultiplier = 1;
-
-      function init() {
-        if (!window.film || film.length < LINES_PER_FRAME) {
-          screenEl.textContent = 'Error: film data not loaded.';
-          return;
-        }
-        totalFrames = Math.floor(film.length / LINES_PER_FRAME);
-        currentFrame = 0;
-        renderFrame(0);
-        startPlay();
-      }
-
-      function renderFrame(n) {
-        if (n < 0 || n >= totalFrames) return;
-        const base = n * LINES_PER_FRAME;
-        const lines = [];
-        for (let i = 1; i < LINES_PER_FRAME; i++) {
-          lines.push(film[base + i] || '');
-        }
-        screenEl.textContent = lines.join('\n');
-        frameCounterEl.textContent = `Frame ${n + 1} / ${totalFrames}`;
-        const pct = totalFrames > 1 ? ((n / (totalFrames - 1)) * 100).toFixed(2) : 0;
-        progressBarEl.style.width = pct + '%';
-        currentFrame = n;
-      }
-
-      function getFrameDelay(n) {
-        const raw = parseInt(film[n * LINES_PER_FRAME], 10) || 1;
-        return Math.max(1, Math.round((raw * BASE_DELAY_MS) / speedMultiplier));
-      }
-
-      function scheduleNext() {
-        const delay = getFrameDelay(currentFrame);
-        timerHandle = setTimeout(() => {
-          if (!isPlaying) return;
-          const next = currentFrame + 1;
-          if (next >= totalFrames) {
-            // Loop back to start
-            renderFrame(0);
-          } else {
-            renderFrame(next);
-          }
-          scheduleNext();
-        }, delay);
-      }
-
-      function startPlay() {
-        if (isPlaying) return;
-        isPlaying = true;
-        btnPlayPause.textContent = '⏸ Pause';
-        btnPlayPause.classList.add('active');
-        scheduleNext();
-      }
-
-      function pausePlay() {
-        isPlaying = false;
-        btnPlayPause.textContent = '▶ Play';
-        btnPlayPause.classList.remove('active');
-        clearTimeout(timerHandle);
-      }
-
-      function togglePlayPause() {
-        if (isPlaying) {
-          pausePlay();
-        } else {
-          startPlay();
-        }
-      }
-
-      function restart() {
-        pausePlay();
-        renderFrame(0);
-        startPlay();
-      }
-
-      function stepFrame(delta) {
-        const wasPlaying = isPlaying;
-        pausePlay();
-        const next = Math.max(0, Math.min(totalFrames - 1, currentFrame + delta));
-        renderFrame(next);
-        if (wasPlaying) startPlay();
-      }
-
-      function jumpToEnd() {
-        pausePlay();
-        renderFrame(totalFrames - 1);
-      }
-
-      // ── Controls ──────────────────────────────────────────────────────────────
-      document.getElementById('btn-restart').addEventListener('click', restart);
-      document.getElementById('btn-prev').addEventListener('click', () => stepFrame(-1));
-      btnPlayPause.addEventListener('click', togglePlayPause);
-      document.getElementById('btn-next').addEventListener('click', () => stepFrame(1));
-      document.getElementById('btn-end').addEventListener('click', jumpToEnd);
-
-      speedRange.addEventListener('input', () => {
-        const idx = parseInt(speedRange.value, 10) - 1;
-        speedMultiplier = SPEED_MAP[idx];
-        const label = speedMultiplier < 1
-          ? `${speedMultiplier}×`
-          : `${speedMultiplier}×`;
-        speedLabel.textContent = label;
-      });
-
-      // Keyboard shortcuts
-      document.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'INPUT') return;
-        switch (e.key) {
-          case ' ':
-            e.preventDefault();
-            togglePlayPause();
-            break;
-          case 'ArrowLeft':
-            e.preventDefault();
-            stepFrame(-1);
-            break;
-          case 'ArrowRight':
-            e.preventDefault();
-            stepFrame(1);
-            break;
-          case 'Home':
-            e.preventDefault();
-            restart();
-            break;
-          case 'End':
-            e.preventDefault();
-            jumpToEnd();
-            break;
-        }
-      });
-
-      // Progress bar seek
-      document.getElementById('progress-bar-container').addEventListener('click', (e) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const ratio = (e.clientX - rect.left) / rect.width;
-        const target = Math.floor(ratio * (totalFrames - 1));
-        const wasPlaying = isPlaying;
-        pausePlay();
-        renderFrame(Math.max(0, Math.min(totalFrames - 1, target)));
-        if (wasPlaying) startPlay();
-      });
-
-      // ── Boot ─────────────────────────────────────────────────────────────────
-      // Wait for sw-data.js to be available (it's in <head> so sync)
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-      } else {
-        init();
-      }
-    </script>
+    <script type="module" src="index.js"></script>
   </body>
 </html>

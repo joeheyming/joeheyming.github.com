@@ -212,6 +212,31 @@ const PAGES = [
     url: `${BASE_URL}/ascii/`,
     output: 'ascii/ascii-preview.png',
     title: 'ASCII Art'
+  },
+  {
+    url: `${BASE_URL}/countdown/`,
+    output: 'countdown/countdown-preview.png',
+    title: 'Countdown'
+  },
+  {
+    url: `${BASE_URL}/pacman-infinite/`,
+    output: 'pacman-infinite/pacman-infinite-preview.png',
+    title: 'Pacman Infinite'
+  },
+  {
+    url: `${BASE_URL}/listen/`,
+    output: 'listen/listen-preview.png',
+    title: 'Listen'
+  },
+  {
+    url: `${BASE_URL}/read/`,
+    output: 'read/read-preview.png',
+    title: 'Read'
+  },
+  {
+    url: `${BASE_URL}/chat/`,
+    output: 'chat/chat-preview.png',
+    title: 'Chat'
   }
 ];
 
