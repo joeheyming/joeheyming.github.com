@@ -74,6 +74,7 @@ body {
 .crt-brand {
   font-family: var(--font-label);
   font-size: 14px;
+  font-weight: 400;
   letter-spacing: 6px;
   color: var(--crt-brass);
   text-shadow: 0 0 8px rgba(201, 169, 106, 0.5);
