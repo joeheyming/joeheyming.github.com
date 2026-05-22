@@ -42,16 +42,11 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 14px 0 72px; /* left: clear compact back button */
+  padding: 0 14px 0 90px; /* left: clear compact back button on all viewports */
   height: 52px;
   background: var(--bg1);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-}
-@media (min-width: 641px) {
-  .app-header {
-    padding-left: 14px;
-  }
 }
 
 .app-title {

@@ -7,6 +7,121 @@ const CHARSETS = {
   braille: '⣿⣾⣼⣸⣰⣠⣀⢀⠀'
 };
 
+// Predator IR palette — cold → hot (1987 film look: no white peak, green mid-band)
+const THERMAL_STOPS = [
+  [0, 0, 0],
+  [0, 24, 64],
+  [0, 200, 255],
+  [0, 255, 96],
+  [255, 255, 0],
+  [255, 102, 0],
+  [204, 0, 0]
+];
+
+function predatorHeat(r, g, b) {
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+  const warmth = Math.max(0, r - b);
+  const maxC = Math.max(r, g, b);
+  const minC = Math.min(r, g, b);
+  const chroma = maxC - minC;
+  // Neutral bright pixels (lamps, windows) read cooler than warm skin
+  const neutral = lum > 120 ? Math.max(0, 1 - chroma / 80) * (lum - 120) * 0.55 : 0;
+  let heat = lum * 0.5 + r * 0.3 + warmth * 0.35 - neutral;
+  return Math.max(0, Math.min(255, heat));
+}
+
+function thermalRgb(heat) {
+  const bands = 10;
+  const t = Math.floor((Math.max(0, Math.min(255, heat)) / 255) * (bands - 1)) / (bands - 1);
+  const idx = t * (THERMAL_STOPS.length - 1);
+  const lo = Math.floor(idx);
+  const hi = Math.min(lo + 1, THERMAL_STOPS.length - 1);
+  const f = idx - lo;
+  const a = THERMAL_STOPS[lo];
+  const b = THERMAL_STOPS[hi];
+  return [
+    Math.round(a[0] + (b[0] - a[0]) * f),
+    Math.round(a[1] + (b[1] - a[1]) * f),
+    Math.round(a[2] + (b[2] - a[2]) * f)
+  ];
+}
+
+function remapPredatorHeat(heat) {
+  if (heat <= 90) return heat * (145 / 90);
+  return 145 + (heat - 90) * (110 / 165);
+}
+
+function blurHeat3x3(heat, cols, rows) {
+  const out = new Float32Array(heat.length);
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      let sum = 0;
+      let count = 0;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const nr = row + dy;
+          const nc = col + dx;
+          if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+            sum += heat[nr * cols + nc];
+            count++;
+          }
+        }
+      }
+      out[row * cols + col] = sum / count;
+    }
+  }
+  return out;
+}
+
+function cyanGlowStrength(heat, cols, rows, row, col) {
+  const idx = row * cols + col;
+  const h = heat[idx];
+  let maxN = h;
+  let minN = h;
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (!dx && !dy) continue;
+      const nr = row + dy;
+      const nc = col + dx;
+      if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+      const nh = heat[nr * cols + nc];
+      if (nh > maxN) maxN = nh;
+      if (nh < minN) minN = nh;
+    }
+  }
+  const grad = maxN - minN;
+  if (h < 115 && maxN > h + 22 && grad > 18) {
+    return Math.min(1, grad / 70) * Math.min(1, (maxN - h) / 50);
+  }
+  return 0;
+}
+
+function predatorColor(heat, glow) {
+  const rgb = thermalRgb(heat);
+  if (glow <= 0) return 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
+  const t = glow * 0.9;
+  const r = Math.round(rgb[0] * (1 - t));
+  const g = Math.round(rgb[1] * (1 - t) + 200 * t);
+  const b = Math.round(rgb[2] * (1 - t) + 255 * t);
+  return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
+
+function buildPredatorHeatMap(px, cols, rows) {
+  const heat = new Float32Array(cols * rows);
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const i = (row * cols + col) * 4;
+      let h = predatorHeat(px[i], px[i + 1], px[i + 2]);
+      h = (h - 128) * cfg.contrast + 128 + cfg.brightness;
+      h = Math.max(0, Math.min(255, h));
+      h += (Math.random() - 0.5) * 12;
+      h = remapPredatorHeat(Math.max(0, Math.min(255, h)));
+      heat[row * cols + col] = h;
+    }
+  }
+  return blurHeat3x3(heat, cols, rows);
+}
+
 const state = {
   mode: 'image',
   sourceImg: null,
@@ -95,7 +210,10 @@ function sampleAndRender(source) {
   asciiCanvas.width = Math.round(cols * charW);
   asciiCanvas.height = rows * charH;
 
-  ctx.fillStyle = cfg.colorMode === 'inverted' ? '#ffffff' : '#000000';
+  const isPredator = cfg.colorMode === 'predator';
+  const predatorHeatMap = isPredator ? buildPredatorHeatMap(px, cols, rows) : null;
+
+  ctx.fillStyle = isPredator ? '#001830' : cfg.colorMode === 'inverted' ? '#ffffff' : '#000000';
   ctx.fillRect(0, 0, asciiCanvas.width, asciiCanvas.height);
   ctx.font = cfg.fontSize + 'px monospace';
 
@@ -108,10 +226,15 @@ function sampleAndRender(source) {
       const g = px[i + 1];
       const b = px[i + 2];
 
-      let gray = 0.299 * r + 0.587 * g + 0.114 * b;
-      gray = (gray - 128) * cfg.contrast + 128 + cfg.brightness;
-      gray = Math.max(0, Math.min(255, gray));
-      if (cfg.colorMode === 'inverted') gray = 255 - gray;
+      let gray;
+      if (isPredator) {
+        gray = predatorHeatMap[row * cols + col];
+      } else {
+        let lum = 0.299 * r + 0.587 * g + 0.114 * b;
+        gray = (lum - 128) * cfg.contrast + 128 + cfg.brightness;
+        gray = Math.max(0, Math.min(255, gray));
+        if (cfg.colorMode === 'inverted') gray = 255 - gray;
+      }
 
       const ci = Math.min(chars.length - 1, Math.floor(((255 - gray) / 255) * chars.length));
       const ch = chars[ci];
@@ -130,6 +253,9 @@ function sampleAndRender(source) {
           break;
         case 'inverted':
           color = '#000000';
+          break;
+        case 'predator':
+          color = predatorColor(gray, cyanGlowStrength(predatorHeatMap, cols, rows, row, col));
           break;
         default:
           color = '#cccccc';

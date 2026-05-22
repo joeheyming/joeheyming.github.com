@@ -678,7 +678,7 @@ input[type="file"].hidden-file { position: absolute; width: 0; height: 0; opacit
 
 /* ── Mobile ─────────────────────────────────── */
 @media (max-width: 600px) {
-  .paint-header { height: auto; padding: 6px 8px 6px 72px; gap: 4px; }
+  .paint-header { height: auto; padding: 6px 8px 6px 80px; gap: 4px; }
   #brush-size { width: 60px; }
   .action-btn span:not(.btn-icon) { display: none; }
   .swatch-grid { gap: 1px; }

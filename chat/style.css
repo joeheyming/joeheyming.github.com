@@ -786,6 +786,9 @@ body {
   .chat-header {
     padding: 10px 12px;
   }
+  .chat-title {
+    padding-left: 100px;
+  }
   .chat-title-text h1 {
     font-size: 15px;
   }

@@ -172,9 +172,24 @@ When adding or fixing an app for Search:
 | `/share.js` | Related-projects panel from `apps-registry.json` `related` field | Apps with `related` entries |
 | `/proxy.js` | `window.proxyService` — CORS-safe fetch with fallback proxies, caching, circuit breaker | Only when fetching cross-origin resources (ROMs, APIs, etc.) |
 
-**`back.js` tip:** Add `data-back-size="compact"` to the `<script>` tag when the app header is short, to avoid overlap on mobile:
-```html
-<script src="/back.js" data-back-size="compact"></script>
+### Back button clearance
+
+The back button is `position: fixed` at `top: 20px; left: 20px` (desktop) and `top: 12px; left: 12px` (mobile ≤640px). Its rendered size is roughly **44px tall × 100px wide** on desktop and **40px tall × 90px wide** on mobile portrait.
+
+**Every app header must clear it.** Common fixes:
+
+- Titles or nav links at top-left: add `padding-left` equal to or greater than the button width + gap (≥ 120px desktop, ≥ 100px mobile). See `ascii/index.css` for an example.
+- Short app headers: opt into compact mode — the button shrinks to ~26px tall × 65px wide, and drops opacity:
+  ```html
+  <script src="/back.js" data-back-size="compact"></script>
+  ```
+- Full-bleed hero layouts: use `padding-top` ≥ 60px on the first content block so the button doesn't land on a heading.
+
+The automated test `tests/e2e/back-button-overlap.spec.js` checks all apps at desktop (1280×720), mobile portrait (390×844), and mobile landscape (844×390). Run it after any header or layout change:
+```bash
+npx playwright test back-button-overlap
+```
+Failing tests save a screenshot to `tests/e2e/screenshots/` for visual debugging.
 ```
 
 ---

@@ -72,7 +72,7 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap"
       rel="stylesheet"
     />
-    <script src="https://cdn.tailwindcss.com/3.4.16/tailwind.min.js"></script>
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
     <script>
       tailwind.config = {
         darkMode: 'media',
@@ -86,6 +86,10 @@
       };
     </script>
     <style>
+      /* Back button clearance when CDN stylesheet fails to load */
+      #todo-app-root {
+        padding-top: 4rem;
+      }
       /* HTML [hidden] loses to Tailwind utilities like `flex` on the same node — force collapse. */
       #signed-out-empty[hidden],
       #app-loading[hidden] {
@@ -105,7 +109,7 @@
   >
     <div
       id="todo-app-root"
-      class="mx-auto flex min-h-dvh max-w-xl flex-col px-4 pt-6 sm:px-6 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]"
+      class="mx-auto flex min-h-dvh max-w-xl flex-col px-4 pt-16 sm:px-6 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]"
     >
       <header class="mb-6 flex flex-nowrap items-center justify-between gap-3">
         <h1

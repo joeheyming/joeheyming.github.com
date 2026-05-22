@@ -69,7 +69,11 @@
     <!-- Canonical URL -->
     <link rel="canonical" href="https://joeheyming.github.io/stock/" />
 
-    <script src="https://cdn.tailwindcss.com/3.4.16/tailwind.min.js"></script>
+    <style>
+      /* Ensure title always clears the fixed back button regardless of CDN timing */
+      .stock-title-area { padding-left: 7.5rem !important; }
+    </style>
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 
     <!-- proxy.js must load BEFORE the app module so window.proxyService is ready. -->
     <script src="/proxy.js"></script>
@@ -135,7 +139,7 @@
     <div class="max-w-7xl mx-auto px-3 sm:px-5 py-4">
       <!-- Header -->
       <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
-        <div class="pl-24 sm:pl-28">
+        <div class="pl-24 sm:pl-28 stock-title-area">
           <h1 class="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
             <span>📈</span>
             <span>Stock Ticker</span>

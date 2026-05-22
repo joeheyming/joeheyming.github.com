@@ -60,6 +60,9 @@ body {
 }
 
 @media (max-width: 600px) {
+  #app-wrapper {
+    padding-top: 55px;
+  }
   #screen {
     font-size: 8px;
     line-height: 1.1;

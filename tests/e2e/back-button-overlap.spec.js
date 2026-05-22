@@ -45,14 +45,17 @@ const APPS = [
   '/play/metronome/',
   '/play/theremin/',
   '/play/tuner/',
+  '/media-player/',
+  '/image-viewer/',
 ];
 
 for (const app of APPS) {
   for (const vp of VIEWPORTS) {
     test(`${app} — no back-button overlap at ${vp.name}`, async ({ page }) => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
-      await page.goto(app, { waitUntil: 'domcontentloaded', timeout: 15_000 });
-      await page.waitForTimeout(800); // allow back.js to inject
+      // Use 'load' so CDN stylesheets (Tailwind, etc.) are applied before we measure layout
+      await page.goto(app, { waitUntil: 'load', timeout: 20_000 });
+      await page.waitForTimeout(600); // allow back.js to inject
 
       const btn = page.locator('.back-to-portfolio');
       const btnCount = await btn.count();
@@ -61,12 +64,23 @@ for (const app of APPS) {
       const btnBox = await btn.boundingBox();
       if (!btnBox) return;
 
-      const candidates = await page.evaluate(() => {
-        const sel =
-          'h1, h2, header a, header button, .app-title, [role="banner"] > *, nav > a, nav > button';
+      const candidates = await page.evaluate((viewportWidth) => {
+        const sel = [
+          'h1', 'h2',
+          'header a', 'header button',
+          '.app-title',
+          '[role="banner"] > *',
+          'nav > a', 'nav > button',
+          // toolbar/app-bar interactive elements near the top of the page
+          '[role="toolbar"] button', '[role="toolbar"] a',
+          '#toolbar button', '#toolbar a',
+          '.toolbar button', '.toolbar a',
+          '.app-header button', '.app-header a',
+        ].join(', ');
         return Array.from(document.querySelectorAll(sel))
           .map((el) => {
             const r = el.getBoundingClientRect();
+            const style = window.getComputedStyle(el);
             return {
               tag: el.tagName,
               text: el.textContent?.trim().slice(0, 40) ?? '',
@@ -74,20 +88,29 @@ for (const app of APPS) {
               left: r.left,
               bottom: r.bottom,
               right: r.right,
+              // detect full-width elements whose content may be centered/right-aligned
+              textAlign: style.textAlign,
+              isFullWidth: r.right - r.left > viewportWidth * 0.75,
             };
           })
           .filter((r) => r.bottom > 0 && r.right > 0 && r.top < window.innerHeight);
-      });
+      }, vp.width);
 
-      const overlaps = candidates.filter(
-        (c) =>
-          btnBox.x < c.right &&
-          btnBox.x + btnBox.width > c.left &&
-          btnBox.y < c.bottom &&
-          btnBox.y + btnBox.height > c.top &&
-          !c.text.includes('Back') &&
-          !c.text.includes('←')
-      );
+      const overlaps = candidates.filter((c) => {
+        // Bounding boxes must intersect
+        if (
+          !(btnBox.x < c.right &&
+            btnBox.x + btnBox.width > c.left &&
+            btnBox.y < c.bottom &&
+            btnBox.y + btnBox.height > c.top)
+        ) return false;
+        // Skip the back button's own text
+        if (c.text.includes('Back') || c.text.includes('←')) return false;
+        // Full-width block elements with centered/right text are false-positives:
+        // the back button visually covers empty space, not the actual text.
+        if (c.isFullWidth && (c.textAlign === 'center' || c.textAlign === 'right')) return false;
+        return true;
+      });
 
       if (overlaps.length > 0) {
         await page.screenshot({
