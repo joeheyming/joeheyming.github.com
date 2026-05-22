@@ -20,6 +20,9 @@ import { scmMethods } from './scm-actions.js';
 import { menuMethods } from './menus.js';
 import { paletteMethods } from './palette.js';
 import { createNotifier } from '/notifications.js';
+import { AiDiffController } from './ai-diff.js';
+import { AiPanelController } from './ai-panel.js';
+import { AiCmdKController } from './ai-cmdk.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -111,6 +114,7 @@ class CodeIDE {
     this.bindFsChanges();
     this.bindSidebarTabs();
     if (this.git) this.bindScmActions();
+    this.bindAi();
 
     this.updateStatusEnvironment();
     this.updateProjectLabel();
@@ -454,11 +458,88 @@ class CodeIDE {
       view.hidden = view.dataset.panelView !== which;
     }
     if (which === 'diff') this.refreshDiffSelects();
+    const aiBtn = $('#cmd-ai');
+    if (aiBtn) aiBtn.dataset.active = which === 'ai' ? 'true' : 'false';
   }
 
   hidePanel() {
     $('.workspace').classList.remove('has-panel');
     $('#panel').hidden = true;
+    const aiBtn = $('#cmd-ai');
+    if (aiBtn) aiBtn.dataset.active = 'false';
+  }
+
+  // ─── AI Assistant ─────────────────────────────────────────────────────
+
+  bindAi() {
+    // Diff controller is always present — both Cmd+K and the side
+    // panel share it, and its only DOM mutation is a hidden bar that
+    // appears when there's a pending edit.
+    this.aiDiff = new AiDiffController({ ide: this });
+
+    // Register Cmd+K / Ctrl+K on the Monaco editor. Editor-scoped so
+    // it only fires when the editor has focus — typing K in the file
+    // tree, terminal, or palette is unaffected.
+    const k = this.host.keyConsts();
+    if (k) {
+      this.host.addEditorAction({
+        id: 'codeIDE.aiInlineEdit',
+        label: 'AI: Edit Selection / File',
+        keybindings: [k.KeyMod.CtrlCmd | k.KeyCode.KeyK],
+        run: () => this.openAiCmdK()
+      });
+    }
+
+    // Side panel — mounts into the Assistant tab's panel-view div.
+    const panelMount = $('#ai-panel-view');
+    if (panelMount) {
+      this.aiPanel = new AiPanelController({
+        ide: this,
+        container: panelMount,
+        diffController: this.aiDiff,
+        isEmbedded: isOsEmbedded()
+      });
+    }
+
+    // Cmd+K floating prompt.
+    this.aiCmdK = new AiCmdKController({
+      ide: this,
+      diffController: this.aiDiff,
+      isEmbedded: isOsEmbedded()
+    });
+
+    // Titlebar ✨ button toggles the panel.
+    const aiBtn = $('#cmd-ai');
+    if (aiBtn) {
+      aiBtn.addEventListener('click', () => {
+        const panel = $('#panel');
+        const onAiTab = panel && !panel.hidden && aiBtn.dataset.active === 'true';
+        if (onAiTab) {
+          this.hidePanel();
+        } else {
+          this.showPanel('ai');
+        }
+      });
+    }
+
+    // Top-level Esc closes Cmd+K (the controller already handles its
+    // own keydown listener for the input; this is a belt-and-suspenders
+    // guard so if focus escapes, the user can still bail).
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.aiCmdK?.isOpen()) {
+        e.preventDefault();
+        this.aiCmdK.close();
+      }
+    });
+  }
+
+  /**
+   * Opens the Cmd+K inline-edit prompt. Called from the Monaco
+   * `addAction` we register in editor.js, and from the menu.
+   */
+  openAiCmdK() {
+    if (!this.aiCmdK) return;
+    this.aiCmdK.open();
   }
 
   refreshDiffSelects() {

@@ -192,12 +192,67 @@ export class EditorHost {
   }
 
   /**
+   * Register an editor-scoped action. Keybindings only fire when the
+   * editor has focus, which is exactly what we want for things like
+   * Cmd+K (we don't want it firing while the user is typing in the
+   * tree's rename input). Registers on the live Monaco editor; safe
+   * to call after `init`.
+   *
+   * @param {{
+   *   id: string,
+   *   label: string,
+   *   keybindings?: number[],
+   *   run: (editor: any) => void
+   * }} spec
+   */
+  addEditorAction(spec) {
+    if (!this.editor || !this.monaco) return null;
+    return this.editor.addAction({
+      id: spec.id,
+      label: spec.label,
+      keybindings: spec.keybindings || [],
+      contextMenuGroupId: 'modification',
+      contextMenuOrder: 1.5,
+      run: (ed) => {
+        try {
+          spec.run(ed);
+        } catch (err) {
+          console.warn(`[code-ide] action ${spec.id} threw`, err);
+        }
+      }
+    });
+  }
+
+  /**
+   * Convenience getter that exposes Monaco's `KeyMod` / `KeyCode`
+   * enums so callers can build keybindings without re-importing
+   * monaco. Available after `init`.
+   */
+  keyConsts() {
+    if (!this.monaco) return null;
+    return { KeyMod: this.monaco.KeyMod, KeyCode: this.monaco.KeyCode };
+  }
+
+  /**
    * Show a side-by-side diff in the main editor area. Replaces the editor's
    * visible model with a Monaco diff editor backed by ephemeral models. Returns
    * the diff editor instance so callers can dispose models if needed.
    */
   showMainDiff(leftValue, rightValue, language, leftTitle, rightTitle) {
-    if (!this.diffContainer) return null;
+    if (!this.diffContainer) {
+      console.error(
+        '[code-ide:editor] showMainDiff called but diffContainer is missing — ' +
+          'EditorHost was never .init()ed with a diff host element. The AI diff cannot mount.'
+      );
+      return null;
+    }
+    if (!this.monaco) {
+      console.error(
+        '[code-ide:editor] showMainDiff called but Monaco is not loaded yet — ' +
+          'EditorHost.init() must finish before requesting a diff.'
+      );
+      return null;
+    }
     if (!this.mainDiff) {
       this.mainDiff = this.monaco.editor.createDiffEditor(this.diffContainer, {
         readOnly: false,

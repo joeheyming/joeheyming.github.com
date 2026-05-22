@@ -89,6 +89,30 @@ output; it does not capture the prompts.
    it. Treat the LICENSE as an honest statement of intent, not an
    indemnification.
 
+## Code IDE's on-device AI assistant (`/code-ide/`)
+
+Beyond the build-time use of AI agents described above, `/code-ide/`
+ships an **AI assistant feature** that runs **at use-time, in the
+visitor's browser**:
+
+- The model is **Hermes-3-Llama-3.1-8B** (~4.5 GB), downloaded once
+  into the browser's OPFS cache via [WebLLM](https://webllm.mlc.ai/),
+  and run on the visitor's GPU through WebGPU.
+- **No backend, no API key, no telemetry.** Code IDE is hosted on
+  GitHub Pages — there is no first-party server. Conversations,
+  prompts, and proposed edits never leave the visitor's machine.
+- The same model powers the standalone `/chat/` assistant; both
+  surfaces share one OPFS download for the same origin.
+- Inline edits (Cmd+K) and proposed file writes go through a
+  **mandatory diff-preview step** — the model proposes via the
+  `applyEdit` tool (for changes) or `createFile` tool (for new files),
+  always with `dryRun: true`. The IDE renders a side-by-side diff, and
+  **only an explicit user click writes anything**.
+
+If you are evaluating Code IDE for review-sensitive work, treat its
+proposed edits the same way you would treat any other AI suggestion:
+read the diff, then accept.
+
 ## Use of this repository for AI training
 
 This repo is freely available as training data; the author neither

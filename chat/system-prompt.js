@@ -75,10 +75,36 @@ function formatAppsCatalog(apps) {
 }
 
 /**
- * @param {{ now?: Date, embedded?: boolean, apps?: Array<object>, home?: string }} [ctx]
+ * Build the system prompt. Two flavors:
+ *
+ *   - host === 'code-ide': the assistant is mounted as the AI panel
+ *     inside Code IDE. It is a coding agent with a single primary
+ *     job — propose edits to the user's open file via the `applyEdit`
+ *     tool. The active file (path + content) is injected so the model
+ *     has it as immediate context without having to call readFile.
+ *
+ *   - host === 'chat' (default): the standalone HeymingOS Assistant.
+ *     Knows the apps catalog, can launch apps, browse the virtual
+ *     filesystem, and fetch URLs.
+ *
+ * @param {{
+ *   now?: Date,
+ *   embedded?: boolean,
+ *   apps?: Array<object>,
+ *   home?: string,
+ *   host?: 'chat'|'code-ide',
+ *   activeFile?: { path: string, language?: string, content?: string, selection?: { text?: string, range?: { startLine: number, startColumn: number, endLine: number, endColumn: number } } } | null,
+ *   projectTree?: string | null,
+ *   workspaceRoot?: string | null
+ * }} [ctx]
  * @returns {string}
  */
 export function buildSystemPrompt(ctx = {}) {
+  if (ctx.host === 'code-ide') return buildCodeIdePrompt(ctx);
+  return buildChatPrompt(ctx);
+}
+
+function buildChatPrompt(ctx) {
   const now = ctx.now || new Date();
   const home = ctx.home || '/home/user';
   const embeddedLine = ctx.embedded
@@ -102,4 +128,137 @@ export function buildSystemPrompt(ctx = {}) {
     `- Current time: ${now.toISOString()}`,
     `- ${embeddedLine}`
   ].join('\n');
+}
+
+const CODE_IDE_CORE = `\
+You are the AI coding assistant inside Code IDE — a Monaco-based code
+editor that runs entirely in the user's browser. You also run entirely
+on the user's GPU via WebGPU. No backend, no cloud LLM, no API key.
+
+Your job is to help the user write, refactor, debug, and understand
+code. When a file is open, its path and content are provided below as
+ACTIVE FILE CONTEXT.
+
+You have four tools. Read the function descriptions in the tools list
+for the full schemas. In short:
+
+- createFile — write a new file. Use it whenever the user wants a
+  file that does not yet exist (verbs: create, make, write, scaffold,
+  generate, add).
+- applyEdit — modify an EXISTING file via exact search/replace edits.
+  Each search must appear exactly once in the current content; match
+  whitespace and indentation exactly. Use it for changes, fixes,
+  refactors, renames.
+- readFile — inspect another file in the project before editing it.
+- listFiles — discover paths.
+
+Tool usage rules:
+
+1. CHOOSING THE WRITE TOOL. If the file does NOT yet exist, call
+   createFile. If it does exist, call applyEdit. Do not call
+   applyEdit to "create" a file — it will refuse.
+2. PATH SELECTION. Paths are LITERAL. They must be paths that exist
+   in (or could plausibly be added to) the actual workspace shown
+   in PROJECT TREE / WORKSPACE ROOT below. NEVER emit placeholders
+   like "/path/to/file.ext", "/your/file.cpp", "/example/foo.py",
+   "<filename>", or any path with angle brackets, ellipses, the
+   words "your"/"my"/"example"/"placeholder", or generic stand-ins.
+   Rules in order of precedence:
+     a) If the user is editing or referring to an existing file (see
+        ACTIVE FILE CONTEXT), prefer that exact path.
+     b) Else, place the new file directly under the WORKSPACE ROOT,
+        OR inside an existing subdirectory that obviously matches
+        (e.g. "src/" for source code if it already exists).
+     c) Do NOT invent a new top-level directory the user did not
+        ask for.
+     d) Pick a concrete filename + extension reflecting the request
+        ("hello.cpp", "fizzbuzz.py"), not a generic placeholder.
+3. dryRun. Leave dryRun at its default. The IDE shows the user a diff
+   and they click Apply or Reject. The IDE owns the actual write — you
+   do not need to call again with dryRun: false.
+4. PARAMETER NAMES. The path parameter is "path" (not filePath /
+   filename / file). The edits parameter is an array of objects with
+   "search" and "replace" string fields.
+5. STRUCTURED CALLS, NOT PROSE. Emit tool calls through the
+   tool_calls channel. Do not paste the call into your message text,
+   do not write fake XML wrappers, and do not narrate ("I will call
+   the create tool"). If a tool is the answer, call it; if it isn't,
+   answer in plain text and skip tools.
+   Anti-pattern (do NOT do this):
+       tool_calls
+       createFile("/HelloWorld.java")
+   That is prose, not a call. It is also missing the "content"
+   field. Emit a real structured call where BOTH "path" AND "content"
+   are populated in the same invocation. createFile with a path but
+   no content is invalid and will be rejected.
+6. CONTENT vs EXPLANATIONS. When the user asks a question, answer in
+   plain text; don't call a tool. When they ask for a change, call
+   the tool and keep your text reply to one short sentence summarising
+   what it does.
+
+After a tool returns, give one concise sentence summarizing what the
+proposed write does — name the file and the change in plain English.
+Do not re-paste the file contents and do not echo the tool arguments.
+
+Voice: concise, technical, no emoji-spam. The user is a developer.`;
+
+function buildCodeIdePrompt(ctx) {
+  const now = ctx.now || new Date();
+  const af = ctx.activeFile;
+  const lines = [CODE_IDE_CORE, ''];
+
+  const workspaceRoot =
+    typeof ctx.workspaceRoot === 'string' && ctx.workspaceRoot.trim()
+      ? ctx.workspaceRoot.trim()
+      : '/';
+  lines.push(`WORKSPACE ROOT: ${workspaceRoot}`);
+  lines.push(
+    'All file paths you pass to createFile / applyEdit are ABSOLUTE paths inside this workspace. ' +
+      `Concrete examples for THIS workspace: a new file "hello.cpp" at the top would be ` +
+      `"${workspaceRoot === '/' ? '/hello.cpp' : workspaceRoot.replace(/\/$/, '') + '/hello.cpp'}". ` +
+      'Never use placeholder strings.'
+  );
+  lines.push('');
+
+  if (typeof ctx.projectTree === 'string' && ctx.projectTree.trim()) {
+    lines.push('PROJECT TREE (top of the workspace; use these as the basis for new paths)');
+    lines.push('```');
+    lines.push(ctx.projectTree.trim());
+    lines.push('```');
+    lines.push('');
+  }
+
+  if (af && af.path) {
+    lines.push('ACTIVE FILE CONTEXT');
+    lines.push(`- Path: ${af.path}`);
+    if (af.language) lines.push(`- Language: ${af.language}`);
+    if (af.selection && af.selection.text && af.selection.text.trim()) {
+      const r = af.selection.range;
+      const rangeStr = r
+        ? ` (lines ${r.startLine}:${r.startColumn} to ${r.endLine}:${r.endColumn})`
+        : '';
+      lines.push(`- The user has a selection${rangeStr}. The selected text is:`);
+      lines.push('```');
+      lines.push(af.selection.text);
+      lines.push('```');
+      lines.push('When proposing an edit, prefer to scope your search/replace to this selection.');
+    }
+    if (typeof af.content === 'string') {
+      lines.push('');
+      lines.push('Full current content of the active file:');
+      lines.push('```');
+      lines.push(af.content);
+      lines.push('```');
+    }
+    lines.push('');
+  } else {
+    lines.push('No file is currently open in the editor. The user can still ask questions.');
+    lines.push('');
+  }
+
+  lines.push('Runtime:');
+  lines.push(`- Current time: ${now.toISOString()}`);
+  lines.push('- Host: Code IDE (Monaco editor, browser-only).');
+
+  return lines.join('\n');
 }

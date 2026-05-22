@@ -184,6 +184,12 @@ export const menuMethods = {
           label: 'Command Palette',
           kbd: 'F1',
           action: () => this.host.editor.getAction('editor.action.quickCommand')?.run()
+        },
+        { sep: true },
+        {
+          label: '✨ AI: Edit Selection / File…',
+          kbd: 'Ctrl+K',
+          action: () => this.openAiCmdK?.()
         }
       ],
       view: () => [
@@ -199,7 +205,8 @@ export const menuMethods = {
         },
         { sep: true },
         { label: 'Console Panel', action: () => this.showPanel('console') },
-        { label: 'Diff Panel', action: () => this.showPanel('diff') }
+        { label: 'Diff Panel', action: () => this.showPanel('diff') },
+        { label: '✨ AI Assistant', action: () => this.showPanel('ai') }
       ],
       run: () => [
         { label: 'Run Current File', kbd: 'F5', action: () => this.runActive() },

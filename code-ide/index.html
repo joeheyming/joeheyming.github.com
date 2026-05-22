@@ -127,6 +127,7 @@
           <button id="cmd-format" class="icon-btn" title="Format (Shift+Alt+F)">⌬</button>
           <button id="cmd-run" class="icon-btn" title="Run current file (F5)">▶</button>
           <button id="cmd-diff" class="icon-btn" title="Diff two files">⇆</button>
+          <button id="cmd-ai" class="icon-btn ai-btn" title="AI Assistant">✨</button>
           <button id="cmd-vim" class="icon-btn" title="Toggle Vim mode">V</button>
           <button id="cmd-theme" class="icon-btn" title="Toggle theme">◐</button>
         </div>
@@ -195,6 +196,7 @@
                   <li><kbd>Ctrl</kbd>+<kbd>P</kbd> Go to file</li>
                   <li><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> Format</li>
                   <li><kbd>F5</kbd> Run JS</li>
+                  <li><kbd>Ctrl</kbd>+<kbd>K</kbd> ✨ AI edit</li>
                 </ul>
               </div>
             </div>
@@ -206,6 +208,7 @@
             <div class="panel-tabs">
               <button class="panel-tab active" data-panel-tab="console">Console</button>
               <button class="panel-tab" data-panel-tab="diff">Diff</button>
+              <button class="panel-tab" data-panel-tab="ai">✨ Assistant</button>
             </div>
             <button id="panel-close" class="icon-btn" title="Close panel">×</button>
           </div>
@@ -225,6 +228,7 @@
               </div>
               <div id="diff-editor" class="diff-editor"></div>
             </div>
+            <div class="panel-view" data-panel-view="ai" id="ai-panel-view" hidden></div>
           </div>
         </aside>
       </main>

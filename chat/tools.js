@@ -5,9 +5,13 @@
  *   - `definition`: an OpenAI-shaped function schema (sent to the model).
  *   - `execute(args, ctx)`: runs in the browser, returns a JSON-able value.
  *
- * Read-leaning by design — no `writeFile`, no `runJsh` in v1. The few
- * actions we DO expose (`launchApp`, `notify`) are bounded and safe to
- * run without confirmation; the user sees them happen.
+ * Read-leaning by design. The two write tools (`applyEdit` for editing
+ * an existing file, `createFile` for writing a new one) are both gated
+ * by a mandatory dry-run / preview step — the model proposes the
+ * write, the UI shows a diff, and only an explicit user accept
+ * triggers a real write. Other actions (`launchApp`, `notify`) are
+ * bounded and safe to run without confirmation; the user sees them
+ * happen.
  *
  * `ctx` is provided by the chat client and exposes:
  *   - `embed`: the `os-embed` bridge (for notify / launchApp).
@@ -15,6 +19,10 @@
  *   - `fs`: a FileSystemDB instance (lazily initialized in the client).
  *   - `proxy`: `window.proxyService` (for webFetch).
  *   - `appsRegistry`: cached parsed apps-registry.json.
+ *   - `toolNames` (optional): when present, restricts which tools
+ *     `getToolDefinitions()` exposes to the model. Used by hosts like
+ *     Code IDE to drop irrelevant tools (e.g. `launchApp`, which would
+ *     navigate the IDE iframe and lose the user's editor state).
  */
 
 const MAX_RESULT_CHARS = 6000;
@@ -45,7 +53,9 @@ export function getHome() {
  * Normalize a path the model gave us. Accepts:
  *   - `~` and `~/` → home
  *   - `~/Downloads` → /home/<user>/Downloads
- *   - bare names like `Downloads` or `Documents/notes.txt` → home-relative
+ *   - bare names like `Downloads` or `Documents/notes.txt` → resolved
+ *     against `base` (defaults to home for the chat host; Code IDE
+ *     passes its workspace root)
  *   - already-absolute paths → unchanged (minus trailing slash)
  *
  * Trailing slashes are stripped (except on the root `/`) so e.g.
@@ -53,18 +63,133 @@ export function getHome() {
  * entry. Multiple slashes collapse.
  *
  * @param {string} input
+ * @param {{ base?: string }} [opts]  When `base` is provided, bare
+ *   relative paths are resolved against it instead of $HOME. `~/...`
+ *   still resolves against $HOME — the tilde explicitly means home.
  * @returns {string}
  */
-export function resolvePath(input) {
+export function resolvePath(input, opts = {}) {
   const home = getHome();
+  const base = typeof opts.base === 'string' && opts.base ? opts.base : home;
   let path = String(input || '').trim();
   if (!path || path === '~' || path === '~/') return home;
   if (path.startsWith('~/')) path = `${home}/${path.slice(2)}`;
-  else if (!path.startsWith('/')) path = `${home}/${path}`;
+  else if (!path.startsWith('/')) {
+    // Resolve relative paths against the host's working base. For the
+    // chat host that's $HOME; for Code IDE it's the workspace root
+    // (`/` in standalone, `/home/<user>/Documents` in OS-embedded).
+    path = base === '/' ? `/${path}` : `${base}/${path}`;
+  }
   // Collapse `//` and strip trailing `/` (except root).
   path = path.replace(/\/+/g, '/');
   if (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1);
   return path;
+}
+
+/**
+ * Pick the right base directory for `resolvePath` from the chat tool
+ * context. Hosts may expose a `workspaceRoot()` callback (Code IDE
+ * does); otherwise we fall back to the user's home so the legacy chat
+ * tools keep their old behavior unchanged.
+ *
+ * @param {any} ctx
+ * @returns {string}
+ */
+function resolveBaseForCtx(ctx) {
+  if (ctx && typeof ctx.workspaceRoot === 'function') {
+    try {
+      const root = ctx.workspaceRoot();
+      if (typeof root === 'string' && root) return root;
+    } catch {
+      /* fall through */
+    }
+  }
+  return getHome();
+}
+
+// Strings that show up when the model emitted a placeholder path
+// instead of a real one — "/path/to/yourfile.cpp", "/your/file.py",
+// "<filename>.js", etc. We catch these BEFORE dispatching the tool so
+// the model gets a useful error back ("pick a real path") instead of
+// silently creating a junk file the user has to clean up.
+const PLACEHOLDER_PATH_PATTERNS = [
+  /\/path\/to\//i,
+  /\/your(?:_|-)?(?:file|dir|directory|folder|project|app|code)/i,
+  /\/your\/(?:file|dir|directory|folder|project|app|code|src)/i,
+  /\/example\b/i,
+  /\/placeholder\b/i,
+  /<[^>]+>/, // `<filename>`, `<path>`, etc.
+  /\.{3,}/ // `...` ellipsis stand-in
+];
+
+/**
+ * Quick reject for obvious placeholder paths. Returns an error string
+ * to send back to the model, or null when the path looks real.
+ *
+ * When `workspaceRoot` is supplied (Code IDE always does), the error
+ * message includes a concrete suggested replacement built from the
+ * path's basename + the workspace root, e.g.:
+ *
+ *   "Path '/path/to/hello.sh' is a placeholder. Did you mean '/hello.sh'?"
+ *
+ * That suggestion is what the model echoes back on the retry pass,
+ * which is the difference between "wasted iteration + apology" and
+ * "second call lands a valid path".
+ *
+ * @param {string} path
+ * @param {string} [workspaceRoot]
+ * @returns {string | null}
+ */
+export function placeholderRejection(path, workspaceRoot) {
+  if (typeof path !== 'string') return null;
+  for (const re of PLACEHOLDER_PATH_PATTERNS) {
+    if (re.test(path)) {
+      const baseHint = suggestRealPath(path, workspaceRoot);
+      const suggestion = baseHint ? ` Did you mean "${baseHint}"? ` : ' ';
+      const root =
+        typeof workspaceRoot === 'string' && workspaceRoot ? workspaceRoot : '/';
+      return (
+        `Path "${path}" is a placeholder.${suggestion}` +
+        `Pick a real absolute path inside the workspace (root is "${root}"). ` +
+        'Use the PROJECT TREE in your system message as the basis for new paths. ' +
+        'Never emit "/path/to/<file>", "/your/file.X", "<filename>", or "..." literally.'
+      );
+    }
+  }
+  return null;
+}
+
+/**
+ * Strip the placeholder prefix (`/path/to/`, `/your/`, `/example/`,
+ * `<...>` brackets, `...`) from a path and rejoin the remaining
+ * basename onto the workspace root. Returns null when no usable
+ * basename can be recovered.
+ *
+ * @param {string} path
+ * @param {string} [workspaceRoot]
+ */
+function suggestRealPath(path, workspaceRoot) {
+  if (typeof path !== 'string' || !path) return null;
+  const parts = path.split('/').filter(Boolean);
+  // Bail if the original basename was a placeholder bracket
+  // (`<filename>`) or an ellipsis. We have nothing useful to
+  // suggest in that case — the model literally never named a file.
+  const lastSegment = parts[parts.length - 1];
+  if (
+    !lastSegment ||
+    /<[^>]+>/.test(lastSegment) ||
+    /^\.{3,}$/.test(lastSegment) ||
+    /^your/i.test(lastSegment) ||
+    lastSegment.toLowerCase() === 'file' ||
+    lastSegment.toLowerCase() === 'dir' ||
+    lastSegment.toLowerCase() === 'directory' ||
+    lastSegment.toLowerCase() === 'folder'
+  ) {
+    return null;
+  }
+  const root =
+    typeof workspaceRoot === 'string' && workspaceRoot ? workspaceRoot.replace(/\/+$/, '') : '';
+  return `${root}/${lastSegment}`;
 }
 
 /** @typedef {{ definition: object, execute: (args: any, ctx: any) => Promise<any> }} ChatTool */
@@ -194,7 +319,7 @@ export const TOOLS = {
       if (!args || typeof args.path !== 'string') {
         return { ok: false, error: 'path is required.' };
       }
-      const resolved = resolvePath(args.path);
+      const resolved = resolvePath(args.path, { base: resolveBaseForCtx(ctx) });
       console.log('[chat:tool:listFiles] resolving', { input: args.path, resolved });
       try {
         const fs = await ctx.fs();
@@ -239,7 +364,7 @@ export const TOOLS = {
       if (!args || typeof args.path !== 'string') {
         return { ok: false, error: 'path is required.' };
       }
-      const resolved = resolvePath(args.path);
+      const resolved = resolvePath(args.path, { base: resolveBaseForCtx(ctx) });
       console.log('[chat:tool:readFile] resolving', { input: args.path, resolved });
       try {
         const fs = await ctx.fs();
@@ -336,6 +461,224 @@ export const TOOLS = {
     }
   },
 
+  applyEdit: {
+    definition: {
+      type: 'function',
+      function: {
+        name: 'applyEdit',
+        description:
+          "Modify an EXISTING text file by applying one or more exact search/replace edits. Each edit's `search` must appear EXACTLY ONCE in the current file content (after preceding edits in the same call). Always pass `dryRun: true` (the default); the UI will show the user a diff and they must accept before anything writes. Refuses binary files. Use `createFile` for new files — applyEdit refuses to create files.",
+        parameters: {
+          type: 'object',
+          properties: {
+            path: {
+              type: 'string',
+              description:
+                "Path to an existing file. Accepts '~', '~/Documents/notes.txt', 'Documents/notes.txt' (home-relative), or absolute paths."
+            },
+            edits: {
+              type: 'array',
+              description:
+                'Ordered list of edits. Each replaces an exact substring with another. Include enough surrounding context in `search` to make it unambiguous within the file. `replace` may be empty to delete.',
+              items: {
+                type: 'object',
+                properties: {
+                  search: {
+                    type: 'string',
+                    description: 'Exact text to find. Must occur exactly once in the current content.'
+                  },
+                  replace: {
+                    type: 'string',
+                    description: 'Replacement text. May be empty to delete the matched range.'
+                  }
+                },
+                required: ['search', 'replace'],
+                additionalProperties: false
+              },
+              minItems: 1
+            },
+            dryRun: {
+              type: 'boolean',
+              description:
+                'When true (the default), do not write — return the proposed new content + per-edit summary so the user can preview a diff. Set to false only after the user has accepted the preview.'
+            }
+          },
+          required: ['path', 'edits'],
+          additionalProperties: false
+        }
+      }
+    },
+    async execute(args, ctx) {
+      if (!args || typeof args.path !== 'string') {
+        return { ok: false, error: 'path is required.' };
+      }
+      const placeholder = placeholderRejection(args.path, resolveBaseForCtx(ctx));
+      if (placeholder) return { ok: false, error: placeholder };
+      if (!Array.isArray(args.edits) || args.edits.length === 0) {
+        return { ok: false, error: 'edits must be a non-empty array.' };
+      }
+      const dryRun = args.dryRun !== false;
+      const resolved = resolvePath(args.path, { base: resolveBaseForCtx(ctx) });
+      console.log('[chat:tool:applyEdit]', {
+        input: args.path,
+        resolved,
+        editCount: args.edits.length,
+        dryRun
+      });
+
+      const fs = await ctx.fs();
+      const item = await fs.getItem(resolved);
+      if (!item) return { ok: false, error: `No such file: ${resolved}` };
+      if (item.type !== 'file') return { ok: false, error: `Not a regular file: ${resolved}` };
+      if (item.contentBytes) {
+        return {
+          ok: false,
+          error: `'${resolved}' is binary (${item.size} bytes); applyEdit only handles text.`
+        };
+      }
+
+      let content = item.content || '';
+      const applied = [];
+      for (let i = 0; i < args.edits.length; i++) {
+        const { search, replace } = args.edits[i];
+        if (typeof search !== 'string' || typeof replace !== 'string') {
+          return { ok: false, error: `Edit ${i}: search and replace must both be strings.` };
+        }
+        if (search === '') {
+          return { ok: false, error: `Edit ${i}: search must be non-empty.` };
+        }
+        const first = content.indexOf(search);
+        if (first === -1) {
+          return {
+            ok: false,
+            error: `Edit ${i}: search text not found. Re-read the file with readFile and try again.`
+          };
+        }
+        if (content.indexOf(search, first + 1) !== -1) {
+          return {
+            ok: false,
+            error: `Edit ${i}: search text matches more than once. Add surrounding context to disambiguate.`
+          };
+        }
+        content = content.slice(0, first) + replace + content.slice(first + search.length);
+        applied.push({
+          index: i,
+          offset: first,
+          searchPreview: truncateForModel(search, 120),
+          replacePreview: truncateForModel(replace, 120)
+        });
+      }
+
+      if (dryRun) {
+        return {
+          ok: true,
+          path: resolved,
+          dryRun: true,
+          applied,
+          newSize: new Blob([content]).size,
+          preview: truncateForModel(content, 8000)
+        };
+      }
+
+      try {
+        await fs.createFile(resolved, content, true);
+      } catch (err) {
+        return { ok: false, error: err?.message || String(err) };
+      }
+      ctx.notify(`Edited ${resolved.split('/').pop()}.`, 'success');
+      return {
+        ok: true,
+        path: resolved,
+        dryRun: false,
+        applied,
+        newSize: new Blob([content]).size
+      };
+    }
+  },
+
+  createFile: {
+    definition: {
+      type: 'function',
+      function: {
+        name: 'createFile',
+        description:
+          "Create a NEW text file at the given path. Refuses if the file already exists — use applyEdit to modify existing files. Always pass `dryRun: true` (the default); the UI will show the user a diff (empty → proposed content) and they must accept before anything writes. Returns the proposed content for preview when dryRun is true.",
+        parameters: {
+          type: 'object',
+          properties: {
+            path: {
+              type: 'string',
+              description:
+                "Absolute path or home-relative path for the new file (e.g. '/scripts/foo.sh', '~/notes/todo.md', 'Documents/draft.txt'). Must include a sensible filename and extension. Do NOT pass weird/random names — pick one that matches what the user asked for."
+            },
+            content: {
+              type: 'string',
+              description:
+                'Full text content for the new file. May be empty. Do not include literal escape sequences like \\n — emit real newlines.'
+            },
+            dryRun: {
+              type: 'boolean',
+              description:
+                'When true (the default), do not write — return the proposed content so the user can preview a diff. Set to false only after the user has accepted the preview.'
+            }
+          },
+          required: ['path', 'content'],
+          additionalProperties: false
+        }
+      }
+    },
+    async execute(args, ctx) {
+      if (!args || typeof args.path !== 'string' || !args.path.trim()) {
+        return { ok: false, error: 'path is required.' };
+      }
+      const placeholder = placeholderRejection(args.path, resolveBaseForCtx(ctx));
+      if (placeholder) return { ok: false, error: placeholder };
+      if (typeof args.content !== 'string') {
+        return { ok: false, error: 'content is required and must be a string.' };
+      }
+      const dryRun = args.dryRun !== false;
+      const resolved = resolvePath(args.path, { base: resolveBaseForCtx(ctx) });
+      console.log('[chat:tool:createFile]', {
+        input: args.path,
+        resolved,
+        contentSize: args.content.length,
+        dryRun
+      });
+
+      const fs = await ctx.fs();
+      const existing = await fs.getItem(resolved);
+      if (existing) {
+        return {
+          ok: false,
+          error: `'${resolved}' already exists (${existing.type}). Use applyEdit to modify an existing file.`
+        };
+      }
+
+      if (dryRun) {
+        return {
+          ok: true,
+          path: resolved,
+          dryRun: true,
+          newSize: new Blob([args.content]).size,
+          preview: truncateForModel(args.content, 8000)
+        };
+      }
+
+      try {
+        await fs.createFile(resolved, args.content, false);
+      } catch (err) {
+        return { ok: false, error: err?.message || String(err) };
+      }
+      ctx.notify(`Created ${resolved.split('/').pop()}.`, 'success');
+      return {
+        ok: true,
+        path: resolved,
+        dryRun: false,
+        newSize: new Blob([args.content]).size
+      };
+    }
+  },
+
   notify: {
     definition: {
       type: 'function',
@@ -370,9 +713,20 @@ export const TOOLS = {
   }
 };
 
-/** @returns {Array<object>} OpenAI-shaped tools array. */
-export function getToolDefinitions() {
-  return Object.values(TOOLS).map((t) => t.definition);
+/**
+ * Return the OpenAI-shaped tool definitions array.
+ *
+ * @param {string[]} [toolNames]  When provided, only tools whose name
+ *   appears in this array are exposed to the model. Used by hosts
+ *   like Code IDE to drop irrelevant tools (`launchApp`, `notify`,
+ *   etc.). When omitted (or empty), all tools are returned.
+ * @returns {Array<object>}
+ */
+export function getToolDefinitions(toolNames) {
+  const all = Object.values(TOOLS).map((t) => t.definition);
+  if (!Array.isArray(toolNames) || toolNames.length === 0) return all;
+  const allow = new Set(toolNames);
+  return all.filter((d) => allow.has(d.function?.name));
 }
 
 /**

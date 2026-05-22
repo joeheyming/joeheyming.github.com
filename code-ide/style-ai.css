@@ -1,0 +1,573 @@
+/* AI Assistant — side panel, Cmd+K inline edit, and the
+   Apply / Reject diff bar. All styling here uses Code IDE's existing
+   CSS variables (`--bg`, `--accent`, etc.) so it tracks the theme. */
+
+/* ───── Side panel: AI Assistant tab ─────────────────────────────── */
+
+.ai-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.ai-panel-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  background: var(--bg-elev);
+}
+
+.ai-panel-title {
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.ai-panel-status {
+  margin-left: auto;
+  color: var(--text-mute);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.ai-icon-btn {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.ai-icon-btn:hover {
+  background: var(--bg-elev-2);
+  color: var(--text-strong);
+  border-color: var(--border-strong);
+}
+
+.ai-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ───── Install gate ─────────────────────────────────────────────── */
+
+.ai-install {
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-install-headline {
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.ai-install-blurb {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.ai-install-progress {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-mute);
+  min-height: 14px;
+}
+
+.ai-install-btn {
+  align-self: flex-start;
+  background: var(--accent);
+  color: white;
+  border: 1px solid var(--accent-strong);
+  border-radius: 4px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.ai-install-btn:hover {
+  filter: brightness(1.1);
+}
+
+.ai-install-btn:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.ai-install-fineprint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--danger);
+  min-height: 14px;
+  white-space: pre-wrap;
+}
+
+/* ───── Empty state ─────────────────────────────────────────────── */
+
+.ai-empty {
+  border: 1px dashed var(--border-strong);
+  border-radius: 6px;
+  padding: 14px;
+  color: var(--text-mute);
+}
+
+.ai-empty[hidden] {
+  display: none;
+}
+
+.ai-empty-headline {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-mute);
+  margin-bottom: 6px;
+}
+
+.ai-empty-suggestions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ai-empty-suggestions li {
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 12px;
+  transition: filter 0.1s;
+}
+
+.ai-empty-suggestions li:hover {
+  filter: brightness(1.2);
+  border-color: var(--accent-strong);
+}
+
+.ai-empty-tip {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+.ai-empty-tip kbd {
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  padding: 0 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+/* ───── Messages ─────────────────────────────────────────────────── */
+
+.ai-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ai-msg {
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-msg-user {
+  align-items: flex-end;
+}
+
+.ai-msg-asst {
+  align-items: flex-start;
+}
+
+.ai-msg-sys {
+  align-self: center;
+  font-size: 11px;
+  color: var(--text-mute);
+  font-style: italic;
+  padding: 2px 8px;
+}
+
+.ai-bubble {
+  max-width: 92%;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.45;
+  word-wrap: break-word;
+  user-select: text;
+}
+
+.ai-msg-user .ai-bubble {
+  background: var(--accent);
+  color: white;
+}
+
+.ai-msg-asst .ai-bubble {
+  background: var(--bg-elev-2);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+}
+
+.ai-bubble p {
+  margin: 0 0 6px;
+}
+
+.ai-bubble p:last-child {
+  margin: 0;
+}
+
+.ai-bubble code {
+  font-family: var(--font-mono);
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.ai-msg-user .ai-bubble code {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.ai-bubble pre.ai-code {
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin: 6px 0;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.ai-bubble pre.ai-code code {
+  background: transparent;
+  padding: 0;
+}
+
+/* ───── Tool-call cards ─────────────────────────────────────────── */
+
+.ai-tool {
+  align-self: flex-start;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-mute);
+  font-family: var(--font-mono);
+}
+
+.ai-tool .ai-tool-name {
+  color: var(--text);
+}
+
+.ai-tool .ai-tool-status::before {
+  content: '⏳';
+  margin-right: 4px;
+}
+
+.ai-tool.completed .ai-tool-status::before {
+  content: '✓';
+  color: var(--good);
+}
+
+.ai-tool.failed .ai-tool-status::before {
+  content: '⚠';
+  color: var(--danger);
+}
+
+/* ───── Composer ─────────────────────────────────────────────────── */
+
+.ai-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 8px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+
+.ai-input {
+  background: var(--bg-input);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 6px 8px;
+  resize: none;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  font-family: inherit;
+  min-height: 36px;
+  max-height: 180px;
+  outline: 0;
+}
+
+.ai-input:focus {
+  border-color: var(--accent-strong);
+}
+
+.ai-composer-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.ai-send,
+.ai-stop {
+  background: var(--accent);
+  color: white;
+  border: 1px solid var(--accent-strong);
+  border-radius: 4px;
+  padding: 4px 14px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+
+.ai-send:hover,
+.ai-stop:hover {
+  filter: brightness(1.1);
+}
+
+.ai-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ai-stop {
+  background: var(--bg-elev-2);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+/* ───── Cmd+K floating prompt ────────────────────────────────────── */
+
+.ai-cmdk-backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.palette.ai-cmdk {
+  /* The base .palette rules in style-overlays.css set width/center;
+     we just stack our header / input / hint vertically inside it. */
+  padding: 0;
+}
+
+.ai-cmdk-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-strong);
+  font-size: 12px;
+  color: var(--text-mute);
+}
+
+.ai-cmdk-icon {
+  font-size: 14px;
+}
+
+.ai-cmdk-target code {
+  font-family: var(--font-mono);
+  background: var(--bg-elev-2);
+  color: var(--text-strong);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.ai-cmdk-selection {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-mute);
+  font-family: var(--font-mono);
+}
+
+.palette.ai-cmdk .ai-cmdk-input {
+  background: var(--bg-input);
+  color: var(--text);
+  border: 0;
+  border-bottom: 1px solid var(--border-strong);
+  outline: 0;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ai-cmdk-status {
+  padding: 6px 12px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-mute);
+  min-height: 22px;
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.ai-cmdk-status:empty {
+  display: none;
+}
+
+.ai-cmdk-hint {
+  display: flex;
+  gap: 16px;
+  justify-content: flex-end;
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+.ai-cmdk-hint kbd {
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  padding: 0 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+/* ───── Apply / Reject diff bar (above showMainDiff, not over it) ─ */
+
+.editor-container.has-ai-diff-bar {
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-container.has-ai-diff-bar #diff-main.editor {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  inset: unset;
+}
+
+.editor-container.has-ai-diff-bar .ai-diff-bar {
+  order: -1;
+}
+
+.ai-diff-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 12px;
+  background: linear-gradient(180deg, rgba(14, 116, 144, 0.95), rgba(14, 116, 144, 0.85));
+  color: white;
+  font-size: 12px;
+  border-bottom: 1px solid var(--accent-strong);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.ai-diff-bar[hidden] {
+  display: none;
+}
+
+.ai-diff-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ai-diff-icon {
+  font-size: 16px;
+}
+
+.ai-diff-bar-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ai-diff-bar-title {
+  font-weight: 600;
+}
+
+.ai-diff-bar-path {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  opacity: 0.85;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.ai-diff-bar-path code {
+  background: rgba(255, 255, 255, 0.18);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.ai-diff-bar-right {
+  display: flex;
+  gap: 6px;
+}
+
+.ai-diff-btn {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 3px;
+  padding: 4px 14px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ai-diff-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.ai-diff-btn.ai-diff-apply {
+  background: var(--good);
+  border-color: var(--good);
+  color: black;
+}
+
+.ai-diff-btn.ai-diff-apply:hover {
+  filter: brightness(1.1);
+}
+
+.ai-diff-btn.ai-diff-reject {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* ───── AI button in titlebar ─────────────────────────────────── */
+
+.icon-btn.ai-btn[data-active='true'] {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent-strong);
+}
