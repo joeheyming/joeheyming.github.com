@@ -544,6 +544,25 @@
     }
   },
   {
+    "id": "ascii",
+    "name": "ASCII Art 🔡",
+    "shortName": "ASCII",
+    "description": "Turn images and live webcam into ASCII art",
+    "detailedDescription": "Convert any image or your live webcam feed into ASCII art. Choose from Classic, Dense, Block, or Braille character sets. Full color, green matrix, amber terminal, or monochrome. Export as PNG or text.",
+    "icon": "🔡",
+    "path": "./ascii/",
+    "category": "entertainment",
+    "gradient": "from-green-900/20 to-gray-900/20",
+    "border": "border-green-700/30 hover:border-green-600/50",
+    "taskbarGradient": "from-green-900 to-gray-900",
+    "taskbarText": "text-green-400",
+    "defaultWidth": 900,
+    "defaultHeight": 700,
+    "tags": ["ascii", "art", "webcam", "image", "creative", "matrix"],
+    "related": ["badapple", "starwars", "paint"],
+    "shareCategory": "entertainment"
+  },
+  {
     "id": "badapple",
     "name": "Bad Apple 🍎",
     "shortName": "Bad Apple",

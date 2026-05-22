@@ -41,6 +41,11 @@ if (typeof window === 'undefined') {
 
     if (requestURL.origin !== self.location.origin) return;
 
+    // Never intercept blob: or data: URLs — the browser handles them
+    // natively and wrapping their response body in a new Response can
+    // break consumers (e.g. EmulatorJS fetching blob ROM URLs).
+    if (requestURL.protocol === 'blob:' || requestURL.protocol === 'data:') return;
+
     event.respondWith(
       fetch(request)
         .then((response) => {
