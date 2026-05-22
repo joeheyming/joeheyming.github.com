@@ -25,7 +25,8 @@ const cfg = {
   colorMode: 'mono',
   fontSize: 10,
   contrast: 1.0,
-  brightness: 0
+  brightness: 0,
+  facingMode: 'user'
 };
 
 function $id(id) {
@@ -59,6 +60,7 @@ const ctrlBrightVal = $id('ctrl-bright-val');
 const btnCopy = $id('btn-copy');
 const btnPng = $id('btn-png');
 const btnTxt = $id('btn-txt');
+const btnFlipCam = $id('btn-flip-cam');
 
 const offscreen = document.createElement('canvas');
 const offCtx = offscreen.getContext('2d', { willReadFrequently: true });
@@ -208,7 +210,7 @@ async function startCamera() {
   }
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 640 }, height: { ideal: 480 } }
+      video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: cfg.facingMode }
     });
     state.webcamStream = stream;
     videoEl.srcObject = stream;
@@ -219,7 +221,9 @@ async function startCamera() {
     btnStartCam.style.display = 'none';
     btnStopCam.style.display = '';
     btnSnapshot.style.display = '';
+    btnFlipCam.style.display = '';
     btnTom.style.display = '';
+    asciiCanvas.classList.toggle('mirrored', cfg.facingMode === 'user');
     state.rafId = requestAnimationFrame(webcamLoop);
   } catch (err) {
     let msg;
@@ -251,9 +255,23 @@ function stopCamera() {
   btnStartCam.style.display = '';
   btnStopCam.style.display = 'none';
   btnSnapshot.style.display = 'none';
+  btnFlipCam.style.display = 'none';
   btnTom.style.display = 'none';
   btnSnapshot.textContent = '📷 Snapshot';
   showOverlay('webcam');
+}
+
+async function flipCamera() {
+  cfg.facingMode = cfg.facingMode === 'user' ? 'environment' : 'user';
+  if (state.webcamStream) {
+    state.webcamStream.getTracks().forEach(function (t) {
+      t.stop();
+    });
+    state.webcamStream = null;
+  }
+  cancelAnimationFrame(state.rafId);
+  state.webcamRunning = false;
+  await startCamera();
 }
 
 function snapshot() {
@@ -297,7 +315,7 @@ function switchMode(newMode) {
   tabImage.setAttribute('aria-pressed', newMode === 'image' ? 'true' : 'false');
   tabWebcam.setAttribute('aria-pressed', newMode === 'webcam' ? 'true' : 'false');
   webcamControls.style.display = newMode === 'webcam' ? '' : 'none';
-  asciiCanvas.classList.toggle('mirrored', newMode === 'webcam');
+  asciiCanvas.classList.toggle('mirrored', newMode === 'webcam' && cfg.facingMode === 'user');
 
   if (newMode === 'webcam') {
     if (!state.webcamStream) showOverlay('webcam');
@@ -438,6 +456,7 @@ document.addEventListener('webkitfullscreenchange', updateFsBtn);
 btnStartCam.addEventListener('click', startCamera);
 btnStopCam.addEventListener('click', stopCamera);
 btnSnapshot.addEventListener('click', snapshot);
+btnFlipCam.addEventListener('click', flipCamera);
 btnCopy.addEventListener('click', copyText);
 btnPng.addEventListener('click', downloadPng);
 btnTxt.addEventListener('click', downloadTxt);
