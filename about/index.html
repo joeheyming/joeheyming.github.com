@@ -72,6 +72,7 @@
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
     <script src="/back.js"></script>
+    <script src="/proxy.js"></script>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/index.css" />
@@ -345,6 +346,91 @@
         </div>
       </section>
 
+      <!-- GitHub Activity -->
+      <section class="bg-gray-900 rounded-3xl p-6 sm:p-10 mb-12 shadow-xl">
+        <h2 class="text-2xl sm:text-3xl font-bold mb-1 text-white">🐙 GitHub Activity</h2>
+        <p id="contrib-summary" class="text-gray-400 text-sm mb-5">Loading GitHub activity…</p>
+        <div
+          id="contrib-wrapper"
+          class="relative overflow-x-auto"
+          style="display: none"
+          role="img"
+          aria-label="GitHub contribution graph"
+        >
+          <canvas id="contrib-canvas" style="display: block; border-radius: 6px"></canvas>
+          <div
+            id="contrib-tooltip"
+            style="
+              position: absolute;
+              background: #1c2128;
+              color: #e6edf3;
+              font-size: 12px;
+              padding: 6px 10px;
+              border-radius: 6px;
+              pointer-events: none;
+              display: none;
+              border: 1px solid #30363d;
+              white-space: nowrap;
+              z-index: 10;
+            "
+          ></div>
+        </div>
+        <p id="contrib-fallback" class="text-gray-600 text-sm" style="display: none">
+          Could not load GitHub activity.
+        </p>
+        <div class="mt-4 flex items-center gap-2 text-xs text-gray-500">
+          <span>Less</span>
+          <span style="display: inline-flex; gap: 3px">
+            <span
+              style="
+                width: 11px;
+                height: 11px;
+                background: #161b22;
+                border-radius: 2px;
+                display: inline-block;
+              "
+            ></span>
+            <span
+              style="
+                width: 11px;
+                height: 11px;
+                background: #0e4429;
+                border-radius: 2px;
+                display: inline-block;
+              "
+            ></span>
+            <span
+              style="
+                width: 11px;
+                height: 11px;
+                background: #006d32;
+                border-radius: 2px;
+                display: inline-block;
+              "
+            ></span>
+            <span
+              style="
+                width: 11px;
+                height: 11px;
+                background: #26a641;
+                border-radius: 2px;
+                display: inline-block;
+              "
+            ></span>
+            <span
+              style="
+                width: 11px;
+                height: 11px;
+                background: #39d353;
+                border-radius: 2px;
+                display: inline-block;
+              "
+            ></span>
+          </span>
+          <span>More</span>
+        </div>
+      </section>
+
       <!-- Try the apps callout -->
       <section
         class="bg-white/90 backdrop-blur-sm rounded-3xl p-6 sm:p-10 mb-12 shadow-xl text-center"
@@ -419,6 +505,235 @@
         var current = new Date().getFullYear();
         var el = document.getElementById('years-experience');
         if (el) el.textContent = current - startYear + '+ years';
+      })();
+    </script>
+
+    <script>
+      (function () {
+        var COLORS = ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353'];
+        var MONTHS = [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec'
+        ];
+        var CELL = 11;
+        var GAP = 2;
+        var STEP = CELL + GAP;
+        var LEFT_PAD = 30;
+        var TOP_PAD = 22;
+        var API_URL = 'https://github-contributions-api.jogruber.de/v4/joeheyming?y=last';
+
+        function parseLocalDate(str) {
+          var parts = str.split('-');
+          return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        }
+
+        function fillRoundRect(ctx, x, y, w, h, r) {
+          ctx.beginPath();
+          ctx.moveTo(x + r, y);
+          ctx.lineTo(x + w - r, y);
+          ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+          ctx.lineTo(x + w, y + h - r);
+          ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+          ctx.lineTo(x + r, y + h);
+          ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+          ctx.lineTo(x, y + r);
+          ctx.quadraticCurveTo(x, y, x + r, y);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        function renderGraph(contributions, total) {
+          var canvas = document.getElementById('contrib-canvas');
+          if (!canvas) return;
+          var ctx = canvas.getContext('2d');
+
+          contributions.sort(function (a, b) {
+            return a.date < b.date ? -1 : 1;
+          });
+
+          var dataMap = {};
+          for (var i = 0; i < contributions.length; i++) {
+            dataMap[contributions[i].date] = contributions[i];
+          }
+
+          var firstDate = parseLocalDate(contributions[0].date);
+          var lastDate = parseLocalDate(contributions[contributions.length - 1].date);
+
+          // Align week start to Sunday
+          var startDay = new Date(firstDate);
+          startDay.setDate(startDay.getDate() - startDay.getDay());
+
+          var msPerDay = 86400000;
+          var totalDays = Math.round((lastDate - startDay) / msPerDay) + 1;
+          var numWeeks = Math.ceil(totalDays / 7);
+
+          var W = LEFT_PAD + numWeeks * STEP - GAP;
+          var H = TOP_PAD + 7 * STEP - GAP;
+
+          var dpr = window.devicePixelRatio || 1;
+          canvas.width = Math.round(W * dpr);
+          canvas.height = Math.round(H * dpr);
+          canvas.style.width = W + 'px';
+          canvas.style.height = H + 'px';
+          ctx.scale(dpr, dpr);
+
+          ctx.fillStyle = '#0d1117';
+          ctx.fillRect(0, 0, W, H);
+
+          // Month labels
+          ctx.fillStyle = '#8b949e';
+          ctx.font = '10px system-ui,-apple-system,sans-serif';
+          ctx.textAlign = 'left';
+          var lastMonth = -1;
+          for (var w = 0; w < numWeeks; w++) {
+            var wd = new Date(startDay);
+            wd.setDate(wd.getDate() + w * 7);
+            if (wd.getMonth() !== lastMonth) {
+              lastMonth = wd.getMonth();
+              ctx.fillText(MONTHS[wd.getMonth()], LEFT_PAD + w * STEP, 12);
+            }
+          }
+
+          // Day labels: Mon row=1, Wed row=3, Fri row=5 (Sun-start grid)
+          ctx.font = '9px system-ui,-apple-system,sans-serif';
+          ctx.textAlign = 'right';
+          var dayLabelRows = [
+            [1, 'Mon'],
+            [3, 'Wed'],
+            [5, 'Fri']
+          ];
+          for (var li = 0; li < dayLabelRows.length; li++) {
+            var row = dayLabelRows[li][0];
+            var label = dayLabelRows[li][1];
+            ctx.fillText(label, LEFT_PAD - 4, TOP_PAD + row * STEP + CELL - 1);
+          }
+
+          // Cells
+          var cellHitData = [];
+          for (var wk = 0; wk < numWeeks; wk++) {
+            for (var dy = 0; dy < 7; dy++) {
+              var cellDate = new Date(startDay);
+              cellDate.setDate(cellDate.getDate() + wk * 7 + dy);
+
+              var yr = cellDate.getFullYear();
+              var mo = String(cellDate.getMonth() + 1).padStart(2, '0');
+              var dd = String(cellDate.getDate()).padStart(2, '0');
+              var dateStr = yr + '-' + mo + '-' + dd;
+
+              var inRange = cellDate >= firstDate && cellDate <= lastDate;
+              if (!inRange) continue;
+
+              var entry = dataMap[dateStr];
+              var level = entry ? entry.level : 0;
+
+              var cx = LEFT_PAD + wk * STEP;
+              var cy = TOP_PAD + dy * STEP;
+
+              ctx.fillStyle = COLORS[level];
+              fillRoundRect(ctx, cx, cy, CELL, CELL, 2);
+
+              cellHitData.push({ x: cx, y: cy, date: dateStr, count: entry ? entry.count : 0 });
+            }
+          }
+
+          var wrapper = document.getElementById('contrib-wrapper');
+          if (wrapper) wrapper.style.display = '';
+
+          var summary = document.getElementById('contrib-summary');
+          if (summary) {
+            var count =
+              total && total.lastYear != null
+                ? total.lastYear
+                : contributions.reduce(function (s, c) {
+                    return s + c.count;
+                  }, 0);
+            summary.textContent = count + ' contributions in the last year';
+          }
+
+          setupTooltip(canvas, cellHitData);
+        }
+
+        function setupTooltip(canvas, cellData) {
+          var tooltip = document.getElementById('contrib-tooltip');
+          if (!tooltip) return;
+
+          canvas.addEventListener('mousemove', function (e) {
+            var rect = canvas.getBoundingClientRect();
+            var mx = e.clientX - rect.left;
+            var my = e.clientY - rect.top;
+
+            var found = null;
+            for (var i = 0; i < cellData.length; i++) {
+              var cell = cellData[i];
+              if (mx >= cell.x && mx < cell.x + CELL && my >= cell.y && my < cell.y + CELL) {
+                found = cell;
+                break;
+              }
+            }
+
+            if (found) {
+              var d = parseLocalDate(found.date);
+              var label = d.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+              });
+              var word = found.count === 1 ? 'contribution' : 'contributions';
+              tooltip.textContent = found.count + ' ' + word + ' on ' + label;
+              tooltip.style.display = 'block';
+              var tipLeft = found.x + CELL + 6;
+              var tipTop = found.y - 4;
+              var wrapperW = canvas.parentElement ? canvas.parentElement.clientWidth : 9999;
+              if (tipLeft + 180 > wrapperW) tipLeft = found.x - 186;
+              tooltip.style.left = tipLeft + 'px';
+              tooltip.style.top = tipTop + 'px';
+            } else {
+              tooltip.style.display = 'none';
+            }
+          });
+
+          canvas.addEventListener('mouseleave', function () {
+            tooltip.style.display = 'none';
+          });
+        }
+
+        function showFallback() {
+          var summary = document.getElementById('contrib-summary');
+          if (summary) summary.style.display = 'none';
+          var fallback = document.getElementById('contrib-fallback');
+          if (fallback) fallback.style.display = '';
+        }
+
+        function loadGraph() {
+          var fetcher =
+            window.proxyService && typeof window.proxyService.fetch === 'function'
+              ? window.proxyService.fetch(API_URL)
+              : fetch(API_URL);
+          fetcher
+            .then(function (r) {
+              return r.json();
+            })
+            .then(function (data) {
+              renderGraph(data.contributions, data.total);
+            })
+            .catch(showFallback);
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', loadGraph);
+        } else {
+          loadGraph();
+        }
       })();
     </script>
   </body>
