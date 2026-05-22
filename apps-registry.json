@@ -821,6 +821,30 @@
     }
   },
   {
+    "id": "clock",
+    "name": "Clock 🕐",
+    "shortName": "Clock",
+    "description": "Clock, stopwatch, and timer — all in one",
+    "detailedDescription": "A full-featured clock app in your browser. Live time with world clocks, a centisecond stopwatch with lap tracking, and a timer with Pomodoro presets and a progress ring. Works offline.",
+    "icon": "🕐",
+    "path": "./clock/",
+    "category": "utility",
+    "gradient": "from-gray-800/20 to-slate-900/20",
+    "border": "border-gray-600/30 hover:border-gray-500/50",
+    "taskbarGradient": "from-gray-700 to-slate-900",
+    "taskbarText": "text-white",
+    "defaultWidth": 400,
+    "defaultHeight": 780,
+    "tags": ["clock", "timer", "stopwatch", "world clock", "pomodoro", "utility"],
+    "related": ["countdown", "calculator", "todo"],
+    "shareCategory": "utility",
+    "pwaShortcut": {
+      "name": "Clock",
+      "short_name": "Clock",
+      "description": "Clock, stopwatch, and timer"
+    }
+  },
+  {
     "id": "countdown",
     "name": "Countdown ⏱️",
     "shortName": "Countdown",

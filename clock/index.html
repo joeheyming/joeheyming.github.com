@@ -1,0 +1,2208 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link
+      rel="icon"
+      id="site-favicon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕐</text></svg>"
+    />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <title>🕐 Clock — Stopwatch, Timer & World Clocks | Joe Heyming</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta name="description" content="A full-featured clock app in your browser. Live time with world clocks, centisecond stopwatch with lap tracking, and a timer with Pomodoro presets. No ads, works offline." />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="keywords" content="clock, stopwatch, timer, world clock, pomodoro, lap timer, countdown, browser clock" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Clock" />
+    <meta property="og:title" content="🕐 Clock — Stopwatch, Timer & World Clocks" />
+    <meta property="og:description" content="Clock, stopwatch with laps, and a Pomodoro timer — all in your browser. No install, no ads." />
+    <meta property="og:url" content="https://joeheyming.github.io/clock/" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="🕐 Clock — Stopwatch, Timer & World Clocks" />
+    <meta name="twitter:description" content="Clock, stopwatch with laps, and a Pomodoro timer — all in your browser." />
+
+    <link rel="canonical" href="https://joeheyming.github.io/clock/" />
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "SoftwareApplication",
+          "name": "Clock",
+          "applicationCategory": "UtilityApplication",
+          "operatingSystem": "Web Browser",
+          "description": "A full-featured clock app with world clocks, stopwatch, and timer.",
+          "url": "https://joeheyming.github.io/clock/",
+          "author": {
+            "@type": "Person",
+            "name": "Joe Heyming",
+            "url": "https://joeheyming.github.io/"
+          },
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+          "featureList": ["World clocks", "Stopwatch with laps", "Pomodoro timer", "Progress ring", "Chime alert"],
+          "inLanguage": "en"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Joe Heyming", "item": "https://joeheyming.github.io/" },
+            { "@type": "ListItem", "position": 2, "name": "Clock" }
+          ]
+        }
+      ]
+    }
+    </script>
+
+    <style>
+      /* ── Reset & base ── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg: #000;
+        --bg1: #0e0e0e;
+        --bg2: #1c1c1e;
+        --bg3: #2c2c2e;
+        --bg4: #3a3a3c;
+        --sep: #38383a;
+        --text: #fff;
+        --text2: #ebebf5cc;
+        --text3: #ebebf599;
+        --text4: #ebebf54d;
+        --accent: #ff9f0a;
+        --accent2: #30d158;
+        --accent3: #0a84ff;
+        --danger: #ff453a;
+        --tab-h: 84px;
+        --radius: 14px;
+        --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+
+      html, body {
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font);
+        -webkit-font-smoothing: antialiased;
+        overscroll-behavior: none;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100dvh;
+      }
+
+      /* ── App shell ── */
+      #app {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        max-width: 480px;
+        width: 100%;
+        margin: 0 auto;
+        position: relative;
+      }
+
+      /* ── Panels ── */
+      .panel {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        display: none;
+        flex-direction: column;
+        padding: 0 0 calc(var(--tab-h) + 12px);
+        scrollbar-width: none;
+      }
+      .panel::-webkit-scrollbar { display: none; }
+      .panel.active { display: flex; }
+
+      /* ── Tab bar ── */
+      #tab-bar {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 480px;
+        height: var(--tab-h);
+        background: rgba(28,28,30,0.92);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        border-top: 1px solid var(--sep);
+        display: flex;
+        align-items: flex-start;
+        padding-top: 10px;
+        z-index: 100;
+      }
+
+      .tab-btn {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 6px 4px;
+        color: var(--text3);
+        font-family: var(--font);
+        font-size: clamp(9px, 2.4vw, 11px);
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        transition: color 0.15s;
+        min-height: 44px;
+        min-width: 44px;
+        border-radius: 8px;
+      }
+      .tab-btn:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .tab-btn .tab-icon {
+        font-size: clamp(20px, 5vw, 24px);
+        line-height: 1;
+      }
+      .tab-btn.active { color: var(--accent); }
+
+      /* ── Section header ── */
+      .section-title {
+        font-size: clamp(26px, 7vw, 34px);
+        font-weight: 700;
+        color: var(--text);
+        padding: 20px 20px 8px;
+        letter-spacing: -0.5px;
+      }
+
+      /* ══════════════════════════════════════════
+         CLOCK TAB
+      ══════════════════════════════════════════ */
+      #clock-panel {
+        padding-top: 0;
+      }
+
+      .clock-hero {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: clamp(28px, 8vw, 48px) 20px clamp(16px, 4vw, 24px);
+      }
+
+      .clock-time {
+        font-size: clamp(68px, 20vw, 96px);
+        font-weight: 200;
+        letter-spacing: -4px;
+        line-height: 1;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+        transition: opacity 0.1s;
+      }
+
+      .clock-ampm {
+        font-size: clamp(18px, 5vw, 26px);
+        font-weight: 300;
+        color: var(--text2);
+        margin-top: 6px;
+        letter-spacing: 1px;
+      }
+
+      .clock-date {
+        font-size: clamp(15px, 4vw, 18px);
+        font-weight: 400;
+        color: var(--text3);
+        margin-top: 10px;
+        letter-spacing: 0.2px;
+      }
+
+      .clock-controls {
+        display: flex;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      /* ── Clock face mode selector ── */
+      .face-mode-btns {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 14px;
+        max-width: 100%;
+      }
+      .face-btn {
+        background: var(--bg3);
+        border: none;
+        border-radius: 20px;
+        color: var(--text3);
+        font-family: var(--font);
+        font-size: clamp(11px, 3vw, 13px);
+        font-weight: 500;
+        padding: 7px 14px;
+        cursor: pointer;
+        min-height: 36px;
+        transition: background 0.15s, color 0.15s;
+      }
+      .face-btn:hover { background: var(--bg4); color: var(--text2); }
+      .face-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      .face-btn.active { background: var(--bg4); color: var(--text); }
+
+      /* ── Analog clock face ── */
+      .analog-face {
+        width: clamp(200px, 55vw, 260px);
+        height: clamp(200px, 55vw, 260px);
+        display: none;
+        margin: 0 auto;
+      }
+      .analog-face circle.bg { fill: var(--bg2); }
+      .analog-face circle.rim { fill: none; stroke: var(--sep); stroke-width: 2; }
+      .analog-face .tick-major { stroke: var(--text3); stroke-width: 2.5; stroke-linecap: round; }
+      .analog-face .tick-minor { stroke: var(--bg4); stroke-width: 1.5; stroke-linecap: round; }
+      .analog-face .hand-hour  { stroke: var(--text); stroke-width: 5; stroke-linecap: round; transition: transform 0.3s cubic-bezier(.4,2.2,.6,1); }
+      .analog-face .hand-min   { stroke: var(--text); stroke-width: 3.5; stroke-linecap: round; transition: transform 0.3s cubic-bezier(.4,2.2,.6,1); }
+      .analog-face .hand-sec   { stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+      .analog-face .hand-sec-tail { stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+      .analog-face .center-dot { fill: var(--accent); }
+      @media (prefers-reduced-motion: reduce) {
+        .analog-face .hand-hour,
+        .analog-face .hand-min { transition: none; }
+      }
+
+      /* ── Flip clock face ── */
+      .flip-face {
+        display: none;
+        gap: clamp(6px, 2vw, 12px);
+        align-items: center;
+        justify-content: center;
+        padding: 8px 0;
+      }
+      .flip-sep {
+        font-size: clamp(36px, 10vw, 56px);
+        font-weight: 200;
+        color: var(--text3);
+        line-height: 1;
+        margin-bottom: 6px;
+        user-select: none;
+      }
+      .flip-group {
+        display: flex;
+        gap: 4px;
+      }
+      .flip-digit {
+        position: relative;
+        width: clamp(40px, 11vw, 56px);
+        height: clamp(64px, 18vw, 88px);
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--bg2);
+        box-shadow: 0 4px 12px rgba(0,0,0,.6);
+      }
+      .flip-digit::after {
+        content: '';
+        position: absolute;
+        left: 0; right: 0;
+        top: 50%;
+        height: 1px;
+        background: rgba(0,0,0,.5);
+        z-index: 3;
+      }
+      .flip-top, .flip-bottom {
+        position: absolute;
+        left: 0; right: 0;
+        height: 50%;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        overflow: hidden;
+        background: var(--bg2);
+      }
+      .flip-top { top: 0; align-items: flex-end; border-radius: 8px 8px 0 0; }
+      .flip-bottom { bottom: 0; align-items: flex-start; border-radius: 0 0 8px 8px; background: var(--bg3); }
+      .flip-top span, .flip-bottom span {
+        font-size: clamp(46px, 13vw, 70px);
+        font-weight: 200;
+        color: var(--text);
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+        display: block;
+        transform: translateY(50%);
+      }
+      .flip-bottom span { transform: translateY(-50%); }
+      .flip-digit.flipping .flip-top-fold {
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 50%;
+        background: var(--bg2);
+        border-radius: 8px 8px 0 0;
+        transform-origin: bottom center;
+        animation: flipTop 0.25s ease-in forwards;
+        z-index: 2;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        overflow: hidden;
+      }
+      .flip-digit.flipping .flip-top-fold span {
+        font-size: clamp(46px, 13vw, 70px);
+        font-weight: 200;
+        color: var(--text);
+        line-height: 1;
+        transform: translateY(50%);
+      }
+      .flip-digit.flipping .flip-bottom-fold {
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        height: 50%;
+        background: var(--bg3);
+        border-radius: 0 0 8px 8px;
+        transform-origin: top center;
+        animation: flipBottom 0.25s ease-out 0.12s forwards;
+        z-index: 2;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        overflow: hidden;
+        transform: rotateX(90deg);
+      }
+      .flip-digit.flipping .flip-bottom-fold span {
+        font-size: clamp(46px, 13vw, 70px);
+        font-weight: 200;
+        color: var(--text);
+        line-height: 1;
+        transform: translateY(-50%);
+      }
+      @keyframes flipTop {
+        from { transform: rotateX(0deg); }
+        to   { transform: rotateX(-90deg); }
+      }
+      @keyframes flipBottom {
+        from { transform: rotateX(90deg); }
+        to   { transform: rotateX(0deg); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .flip-digit.flipping .flip-top-fold,
+        .flip-digit.flipping .flip-bottom-fold { animation: none; }
+      }
+
+      /* ── Roman numerals face ── */
+      .roman-container {
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        gap: clamp(10px, 4vw, 28px);
+        flex-wrap: wrap;
+        padding: 4px 8px;
+      }
+      .roman-unit { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+      .roman-value {
+        font-family: 'Cinzel Decorative', 'Palatino Linotype', 'Book Antiqua', serif;
+        font-size: clamp(24px, 7vw, 42px);
+        font-weight: 700;
+        color: var(--accent);
+        text-shadow: 0 0 18px rgba(255,159,10,.35);
+        letter-spacing: .04em;
+        text-align: center;
+        min-width: clamp(50px, 14vw, 90px);
+        font-variant-numeric: tabular-nums;
+      }
+      .roman-label {
+        font-family: 'Cinzel Decorative', serif;
+        font-size: clamp(8px, 2vw, 11px);
+        color: var(--text3);
+        letter-spacing: .15em;
+        text-transform: uppercase;
+      }
+      .roman-sep {
+        font-size: clamp(24px, 7vw, 40px);
+        color: var(--sep);
+        align-self: center;
+        margin-top: -14px;
+        user-select: none;
+      }
+      .roman-ampm {
+        text-align: center;
+        font-family: 'Cinzel Decorative', serif;
+        font-size: clamp(13px, 3.5vw, 18px);
+        color: var(--text3);
+        letter-spacing: .2em;
+        margin-top: 6px;
+      }
+
+      /* ── Binary clock face ── */
+      .binary-clock {
+        display: flex;
+        flex-direction: column;
+        gap: clamp(10px, 3vw, 16px);
+        background: var(--bg2);
+        border: 1px solid var(--sep);
+        border-radius: var(--radius);
+        padding: clamp(14px, 4vw, 24px) clamp(16px, 5vw, 32px);
+      }
+      .binary-row {
+        display: flex;
+        align-items: center;
+        gap: clamp(10px, 3vw, 16px);
+      }
+      .binary-row-label {
+        font-size: clamp(11px, 3vw, 13px);
+        font-weight: 600;
+        color: var(--text3);
+        width: 14px;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+      }
+      .binary-dots {
+        display: flex;
+        gap: clamp(5px, 1.5vw, 8px);
+        flex-wrap: nowrap;
+      }
+      .bin-dot {
+        width: clamp(16px, 4.5vw, 22px);
+        height: clamp(16px, 4.5vw, 22px);
+        border-radius: 50%;
+        background: var(--bg3);
+        border: 1px solid var(--sep);
+        transition: background .1s, box-shadow .1s;
+        flex-shrink: 0;
+      }
+      .bin-dot.on-h { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+      .bin-dot.on-m { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
+      .bin-dot.on-s { background: var(--accent3); box-shadow: 0 0 8px var(--accent3); }
+      .binary-row-val {
+        font-size: clamp(12px, 3.2vw, 14px);
+        font-weight: 500;
+        color: var(--text3);
+        font-variant-numeric: tabular-nums;
+        width: clamp(20px, 5vw, 26px);
+        text-align: right;
+      }
+      .binary-ampm {
+        text-align: center;
+        font-size: clamp(12px, 3vw, 14px);
+        color: var(--text3);
+        margin-top: 6px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .bin-dot { transition: none; }
+      }
+
+      /* ── LED dot-matrix face ── */
+      .led-housing {
+        background: #0a0a0a;
+        border: 2px solid #2a2a2a;
+        border-radius: 10px;
+        padding: clamp(10px, 3vw, 18px) clamp(12px, 4vw, 22px);
+        box-shadow: inset 0 2px 10px rgba(0,0,0,.7), 0 4px 20px rgba(0,0,0,.5);
+        display: inline-flex;
+        overflow-x: auto;
+        max-width: 100%;
+      }
+      .led-grid {
+        display: inline-flex;
+        gap: clamp(4px, 1.5vw, 8px);
+        align-items: center;
+        flex-wrap: nowrap;
+      }
+      .led-unit-group { display: flex; flex-direction: column; align-items: center; }
+      .led-unit-digits { display: flex; gap: 1px; }
+      .led-digit-matrix {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        grid-template-rows: repeat(7, 1fr);
+        gap: clamp(1px, .4vw, 2px);
+      }
+      .ldot {
+        width: clamp(3px, 1vw, 5px);
+        height: clamp(3px, 1vw, 5px);
+        border-radius: 50%;
+        background: #1a0a0a;
+      }
+      .ldot.on-red  { background: #ff3333; box-shadow: 0 0 4px #ff3333, 0 0 8px rgba(255,51,51,.5); }
+      .ldot.on-grn  { background: #00ff44; box-shadow: 0 0 4px #00ff44, 0 0 8px rgba(0,255,68,.5); }
+      .ldot.on-amb  { background: #ffaa00; box-shadow: 0 0 4px #ffaa00, 0 0 8px rgba(255,170,0,.5); }
+      .led-sep-col {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 0 2px;
+        align-self: center;
+      }
+      .led-sep-dot {
+        width: clamp(3px, 1vw, 5px);
+        height: clamp(3px, 1vw, 5px);
+        border-radius: 50%;
+        background: #ffaa00;
+        box-shadow: 0 0 6px #ffaa00;
+        animation: ledBlink 1s infinite;
+      }
+      @keyframes ledBlink { 0%,100%{opacity:1} 50%{opacity:.25} }
+      @media (prefers-reduced-motion: reduce) {
+        .led-sep-dot { animation: none; }
+      }
+      .led-unit-label {
+        font-family: 'Courier New', monospace;
+        font-size: clamp(7px, 2vw, 9px);
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-top: 5px;
+      }
+      .led-ampm {
+        text-align: center;
+        font-family: 'Courier New', monospace;
+        font-size: clamp(11px, 3vw, 13px);
+        color: #555;
+        margin-top: 8px;
+        letter-spacing: .1em;
+      }
+
+      /* ── Words face ── */
+      .words-phrase {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: clamp(20px, 6vw, 34px);
+        font-weight: 400;
+        line-height: 1.5;
+        color: var(--text);
+        text-align: center;
+        padding: 8px 16px;
+        max-width: 380px;
+        margin: 0 auto;
+      }
+      .words-phrase .w-num  { color: var(--accent); font-style: italic; }
+      .words-phrase .w-unit { color: var(--text2); }
+      .words-phrase .w-sep  { color: var(--text3); }
+
+      .pill-btn {
+        background: var(--bg3);
+        border: none;
+        border-radius: 20px;
+        color: var(--text2);
+        font-family: var(--font);
+        font-size: clamp(12px, 3.2vw, 14px);
+        font-weight: 500;
+        padding: 8px 18px;
+        cursor: pointer;
+        min-height: 36px;
+        transition: background 0.15s, color 0.15s;
+      }
+      .pill-btn:hover { background: var(--bg4); }
+      .pill-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      .pill-btn.active { background: var(--accent); color: #000; }
+
+      /* World Clocks */
+      .world-clocks-section {
+        padding: 0 16px;
+      }
+
+      .world-clocks-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      .world-clocks-title {
+        font-size: clamp(18px, 4.5vw, 22px);
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .add-city-btn {
+        background: none;
+        border: none;
+        color: var(--accent);
+        font-family: var(--font);
+        font-size: clamp(13px, 3.5vw, 15px);
+        font-weight: 500;
+        cursor: pointer;
+        padding: 6px 2px;
+        min-height: 44px;
+        min-width: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 4px;
+      }
+      .add-city-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+      .city-search-container {
+        background: var(--bg2);
+        border-radius: var(--radius);
+        overflow: hidden;
+        margin-bottom: 12px;
+        border: 1px solid var(--sep);
+      }
+
+      .city-search-input {
+        width: 100%;
+        background: transparent;
+        border: none;
+        color: var(--text);
+        font-family: var(--font);
+        font-size: clamp(14px, 3.8vw, 16px);
+        padding: 14px 16px;
+        outline: none;
+      }
+      .city-search-input::placeholder { color: var(--text4); }
+
+      .city-dropdown {
+        max-height: 220px;
+        overflow-y: auto;
+        border-top: 1px solid var(--sep);
+        scrollbar-width: none;
+      }
+      .city-dropdown::-webkit-scrollbar { display: none; }
+
+      .city-option {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        cursor: pointer;
+        font-size: clamp(13px, 3.5vw, 15px);
+        color: var(--text2);
+        transition: background 0.1s;
+        min-height: 44px;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+        font-family: var(--font);
+      }
+      .city-option:hover, .city-option:focus-visible { background: var(--bg3); outline: none; }
+
+      .city-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+
+      .city-row {
+        background: var(--bg2);
+        border-radius: var(--radius);
+        display: flex;
+        align-items: center;
+        padding: 14px 16px;
+        gap: 12px;
+        min-height: 64px;
+      }
+
+      .city-row-left {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .city-name {
+        font-size: clamp(14px, 3.8vw, 16px);
+        font-weight: 500;
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .city-offset {
+        font-size: clamp(11px, 3vw, 13px);
+        color: var(--text3);
+        margin-top: 2px;
+      }
+
+      .city-time {
+        font-size: clamp(22px, 6vw, 28px);
+        font-weight: 200;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -1px;
+        flex-shrink: 0;
+      }
+
+      .city-ampm {
+        font-size: clamp(11px, 3vw, 13px);
+        color: var(--text3);
+        font-weight: 400;
+        margin-left: 4px;
+      }
+
+      .remove-city-btn {
+        background: none;
+        border: none;
+        color: var(--danger);
+        cursor: pointer;
+        padding: 6px;
+        min-width: 36px;
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 18px;
+        line-height: 1;
+        transition: background 0.15s;
+        flex-shrink: 0;
+      }
+      .remove-city-btn:hover { background: rgba(255,69,58,0.15); }
+      .remove-city-btn:focus-visible { outline: 2px solid var(--danger); outline-offset: 2px; }
+
+      /* ══════════════════════════════════════════
+         STOPWATCH TAB
+      ══════════════════════════════════════════ */
+      .stopwatch-display {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: clamp(28px, 8vw, 48px) 20px clamp(20px, 5vw, 32px);
+      }
+
+      .sw-time {
+        font-size: clamp(62px, 18vw, 88px);
+        font-weight: 200;
+        letter-spacing: -3px;
+        line-height: 1;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .sw-time .cs {
+        font-size: clamp(36px, 10vw, 52px);
+        color: var(--text2);
+      }
+
+      .sw-buttons {
+        display: flex;
+        gap: 16px;
+        margin-top: clamp(24px, 6vw, 40px);
+      }
+
+      .circle-btn {
+        width: clamp(72px, 18vw, 84px);
+        height: clamp(72px, 18vw, 84px);
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        font-family: var(--font);
+        font-size: clamp(13px, 3.5vw, 15px);
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.1s, opacity 0.15s;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .circle-btn:active { transform: scale(0.94); }
+      .circle-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+      .btn-start { background: rgba(48,209,88,0.2); color: var(--accent2); }
+      .btn-stop  { background: rgba(255,69,58,0.2); color: var(--danger); }
+      .btn-lap   { background: var(--bg3); color: var(--text2); }
+      .btn-reset { background: var(--bg3); color: var(--text2); }
+
+      .lap-list-header {
+        display: flex;
+        align-items: center;
+        padding: 0 20px 8px;
+        border-bottom: 1px solid var(--sep);
+        font-size: clamp(11px, 3vw, 13px);
+        color: var(--text4);
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .lap-list-header span:first-child { flex: 0 0 48px; }
+      .lap-list-header span:nth-child(2) { flex: 1; text-align: right; }
+      .lap-list-header span:last-child   { flex: 1; text-align: right; }
+
+      .lap-list {
+        flex: 1;
+        overflow-y: auto;
+        scrollbar-width: none;
+        padding: 0 20px;
+      }
+      .lap-list::-webkit-scrollbar { display: none; }
+
+      .lap-row {
+        display: flex;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--sep);
+        font-variant-numeric: tabular-nums;
+        animation: fadeIn 0.15s ease;
+      }
+      .lap-row:last-child { border-bottom: none; }
+
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+      .lap-num  { flex: 0 0 48px; font-size: clamp(13px, 3.5vw, 15px); color: var(--text3); font-weight: 500; }
+      .lap-split { flex: 1; text-align: right; font-size: clamp(14px, 3.8vw, 16px); color: var(--text); font-weight: 400; }
+      .lap-total { flex: 1; text-align: right; font-size: clamp(14px, 3.8vw, 16px); color: var(--text3); font-weight: 300; }
+
+      .lap-row.best  .lap-split { color: var(--accent2); }
+      .lap-row.worst .lap-split { color: var(--danger); }
+
+      /* ══════════════════════════════════════════
+         TIMER TAB
+      ══════════════════════════════════════════ */
+      .timer-panel-inner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: clamp(16px, 4vw, 28px) 20px 0;
+      }
+
+      .timer-presets {
+        display: flex;
+        gap: 10px;
+        margin-bottom: clamp(20px, 5vw, 28px);
+      }
+
+      .preset-btn {
+        flex: 1;
+        background: var(--bg2);
+        border: 1px solid var(--sep);
+        border-radius: 12px;
+        color: var(--text2);
+        font-family: var(--font);
+        font-size: clamp(13px, 3.5vw, 15px);
+        font-weight: 500;
+        padding: 12px 8px;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+        min-height: 48px;
+      }
+      .preset-btn:hover  { background: var(--bg3); }
+      .preset-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      .preset-btn.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+
+      /* Custom input wheels */
+      .timer-inputs {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        margin-bottom: clamp(20px, 5vw, 28px);
+      }
+
+      .time-unit {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .time-spinner {
+        width: clamp(72px, 18vw, 84px);
+        height: clamp(56px, 13vw, 64px);
+        background: var(--bg2);
+        border: 1px solid var(--sep);
+        border-radius: 12px;
+        color: var(--text);
+        font-family: var(--font);
+        font-size: clamp(22px, 6vw, 28px);
+        font-weight: 300;
+        text-align: center;
+        padding: 0;
+        -moz-appearance: textfield;
+        font-variant-numeric: tabular-nums;
+        cursor: pointer;
+        transition: border-color 0.15s;
+      }
+      .time-spinner::-webkit-inner-spin-button,
+      .time-spinner::-webkit-outer-spin-button { -webkit-appearance: none; }
+      .time-spinner:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+      .time-spinner:disabled { opacity: 0.4; cursor: not-allowed; }
+
+      .time-label {
+        font-size: clamp(10px, 2.8vw, 12px);
+        color: var(--text4);
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .time-sep {
+        font-size: clamp(24px, 7vw, 32px);
+        font-weight: 200;
+        color: var(--text3);
+        padding-bottom: clamp(16px, 4vw, 24px);
+        align-self: flex-end;
+      }
+
+      /* SVG Ring */
+      .timer-ring-wrap {
+        position: relative;
+        width: clamp(200px, 54vw, 240px);
+        height: clamp(200px, 54vw, 240px);
+        margin: 0 auto clamp(20px, 5vw, 28px);
+        flex-shrink: 0;
+      }
+
+      .timer-ring-svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+        overflow: visible;
+      }
+
+      .ring-track {
+        fill: none;
+        stroke: var(--bg3);
+        stroke-width: 8;
+      }
+
+      .ring-progress {
+        fill: none;
+        stroke: var(--accent);
+        stroke-width: 8;
+        stroke-linecap: round;
+        transition: stroke-dashoffset 0.25s linear, stroke 0.3s;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .ring-progress { transition: none; }
+      }
+
+      .timer-center-text {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
+
+      .timer-countdown {
+        font-size: clamp(36px, 10vw, 48px);
+        font-weight: 200;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -2px;
+      }
+
+      .timer-status {
+        font-size: clamp(11px, 3vw, 13px);
+        color: var(--text3);
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-top: 4px;
+      }
+
+      .timer-ring-wrap.flashing .timer-countdown {
+        animation: flash 0.5s ease-in-out infinite;
+      }
+
+      @keyframes flash {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.2; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .timer-ring-wrap.flashing .timer-countdown { animation: none; color: var(--accent); }
+      }
+
+      .timer-buttons {
+        display: flex;
+        gap: 16px;
+      }
+
+      .timer-ring-wrap.flashing .ring-progress { stroke: var(--accent2); }
+
+      /* ── Shared empty-state ── */
+      .empty-hint {
+        text-align: center;
+        color: var(--text4);
+        font-size: clamp(12px, 3.2vw, 14px);
+        padding: 24px 20px;
+      }
+
+      /* ── Focus ring global ── */
+      :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+      /* ── Reduced motion ── */
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+      }
+
+      /* ── Responsive tweaks ── */
+      @media (max-width: 360px) {
+        .sw-buttons { gap: 12px; }
+        .timer-inputs { gap: 4px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app" role="main">
+
+      <!-- ═══ CLOCK PANEL ═══ -->
+      <section id="clock-panel" class="panel active" role="tabpanel" aria-labelledby="tab-clock">
+
+        <div class="clock-hero">
+          <!-- Digital face -->
+          <div id="digital-face">
+            <div
+              id="clock-time"
+              class="clock-time"
+              role="timer"
+              aria-live="off"
+              aria-label="Current time"
+            >00:00:00</div>
+            <div id="clock-ampm" class="clock-ampm" aria-hidden="true"></div>
+          </div>
+
+          <!-- Analog face -->
+          <svg id="analog-face" class="analog-face" viewBox="0 0 200 200" aria-label="Analog clock" role="img">
+            <circle class="bg" cx="100" cy="100" r="99"/>
+            <circle class="rim" cx="100" cy="100" r="97"/>
+            <!-- Minute ticks (60) -->
+            <g id="analog-ticks"></g>
+            <!-- Hands -->
+            <line id="hand-hour" class="hand-hour" x1="100" y1="100" x2="100" y2="42" stroke-linecap="round"/>
+            <line id="hand-min"  class="hand-min"  x1="100" y1="100" x2="100" y2="26" stroke-linecap="round"/>
+            <line id="hand-sec"  class="hand-sec"  x1="100" y1="100" x2="100" y2="20" stroke-linecap="round"/>
+            <line id="hand-sec-tail" class="hand-sec-tail" x1="100" y1="100" x2="100" y2="118"/>
+            <circle class="center-dot" cx="100" cy="100" r="4"/>
+          </svg>
+
+          <!-- Flip face -->
+          <div id="flip-face" class="flip-face" role="timer" aria-label="Flip clock">
+            <div class="flip-group" id="flip-h" aria-hidden="true">
+              <div class="flip-digit" id="fd-h0"><div class="flip-top"><span>0</span></div><div class="flip-bottom"><span>0</span></div></div>
+              <div class="flip-digit" id="fd-h1"><div class="flip-top"><span>0</span></div><div class="flip-bottom"><span>0</span></div></div>
+            </div>
+            <div class="flip-sep" aria-hidden="true">:</div>
+            <div class="flip-group" id="flip-m" aria-hidden="true">
+              <div class="flip-digit" id="fd-m0"><div class="flip-top"><span>0</span></div><div class="flip-bottom"><span>0</span></div></div>
+              <div class="flip-digit" id="fd-m1"><div class="flip-top"><span>0</span></div><div class="flip-bottom"><span>0</span></div></div>
+            </div>
+            <div class="flip-sep" aria-hidden="true">:</div>
+            <div class="flip-group" id="flip-s" aria-hidden="true">
+              <div class="flip-digit" id="fd-s0"><div class="flip-top"><span>0</span></div><div class="flip-bottom"><span>0</span></div></div>
+              <div class="flip-digit" id="fd-s1"><div class="flip-top"><span>0</span></div><div class="flip-bottom"><span>0</span></div></div>
+            </div>
+            <div id="flip-ampm" style="font-size:clamp(14px,4vw,18px);color:var(--text3);font-weight:400;margin-left:4px;align-self:flex-end;padding-bottom:8px"></div>
+          </div>
+
+          <!-- Roman numerals face -->
+          <div id="roman-face" style="display:none" role="timer" aria-label="Roman numeral clock">
+            <div class="roman-container">
+              <div class="roman-unit">
+                <div id="roman-h" class="roman-value"></div>
+                <span class="roman-label">HORAE</span>
+              </div>
+              <span class="roman-sep">·</span>
+              <div class="roman-unit">
+                <div id="roman-m" class="roman-value"></div>
+                <span class="roman-label">MINUTAE</span>
+              </div>
+              <span class="roman-sep">·</span>
+              <div class="roman-unit">
+                <div id="roman-s" class="roman-value"></div>
+                <span class="roman-label">SECUNDAE</span>
+              </div>
+            </div>
+            <div id="roman-ampm" class="roman-ampm"></div>
+          </div>
+
+          <!-- Binary clock face -->
+          <div id="binary-face" style="display:none" role="timer" aria-label="Binary clock">
+            <div class="binary-clock">
+              <div class="binary-row">
+                <span class="binary-row-label">H</span>
+                <div class="binary-dots" id="bin-h"></div>
+                <span class="binary-row-val" id="bin-h-val"></span>
+              </div>
+              <div class="binary-row">
+                <span class="binary-row-label">M</span>
+                <div class="binary-dots" id="bin-m"></div>
+                <span class="binary-row-val" id="bin-m-val"></span>
+              </div>
+              <div class="binary-row">
+                <span class="binary-row-label">S</span>
+                <div class="binary-dots" id="bin-s"></div>
+                <span class="binary-row-val" id="bin-s-val"></span>
+              </div>
+            </div>
+            <div id="binary-ampm" class="binary-ampm"></div>
+          </div>
+
+          <!-- LED dot-matrix face -->
+          <div id="led-face" style="display:none" role="timer" aria-label="LED dot matrix clock">
+            <div class="led-housing">
+              <div class="led-grid" id="led-grid"></div>
+            </div>
+            <div id="led-ampm" class="led-ampm"></div>
+          </div>
+
+          <!-- Words face -->
+          <div id="words-face" style="display:none" role="timer" aria-live="polite" aria-label="Time in words">
+            <p id="words-phrase" class="words-phrase"></p>
+          </div>
+
+          <div id="clock-date" class="clock-date" aria-live="polite"></div>
+
+          <!-- Format (12/24h) + face mode controls -->
+          <div class="clock-controls">
+            <button id="btn-12hr" class="pill-btn active" aria-pressed="true" aria-label="Switch to 12-hour format">12h</button>
+            <button id="btn-24hr" class="pill-btn" aria-pressed="false" aria-label="Switch to 24-hour format">24h</button>
+          </div>
+          <div class="face-mode-btns" role="group" aria-label="Clock face style">
+            <button class="face-btn active" data-face="digital" aria-pressed="true">Digital</button>
+            <button class="face-btn" data-face="analog" aria-pressed="false">Analog</button>
+            <button class="face-btn" data-face="flip" aria-pressed="false">Flip</button>
+            <button class="face-btn" data-face="roman" aria-pressed="false">Roman</button>
+            <button class="face-btn" data-face="binary" aria-pressed="false">Binary</button>
+            <button class="face-btn" data-face="led" aria-pressed="false">LED</button>
+            <button class="face-btn" data-face="words" aria-pressed="false">Words</button>
+          </div>
+        </div>
+
+        <div class="world-clocks-section">
+          <div class="world-clocks-header">
+            <h2 class="world-clocks-title">World Clocks</h2>
+            <button
+              id="open-add-city"
+              class="add-city-btn"
+              aria-label="Add a city"
+              aria-expanded="false"
+              aria-controls="city-search-container"
+            >+ Add</button>
+          </div>
+
+          <div id="city-search-container" class="city-search-container" hidden>
+            <input
+              id="city-search"
+              class="city-search-input"
+              type="search"
+              placeholder="Search cities…"
+              autocomplete="off"
+              aria-label="Search for a city to add"
+              aria-autocomplete="list"
+              aria-controls="city-dropdown"
+            />
+            <div
+              id="city-dropdown"
+              class="city-dropdown"
+              role="listbox"
+              aria-label="City suggestions"
+            ></div>
+          </div>
+
+          <div id="city-list" class="city-list" role="list" aria-label="Saved world clocks"></div>
+          <p id="city-empty" class="empty-hint" hidden>No world clocks added yet.</p>
+        </div>
+
+      </section>
+
+      <!-- ═══ STOPWATCH PANEL ═══ -->
+      <section id="sw-panel" class="panel" role="tabpanel" aria-labelledby="tab-sw" hidden>
+
+        <h1 class="section-title">Stopwatch</h1>
+
+        <div class="stopwatch-display">
+          <div
+            id="sw-display"
+            class="sw-time"
+            role="timer"
+            aria-live="off"
+            aria-label="Stopwatch"
+            aria-atomic="false"
+          >
+            <span id="sw-mins">00</span>:<span id="sw-secs">00</span><span class="cs">.<span id="sw-cs">00</span></span>
+          </div>
+
+          <div class="sw-buttons" role="group" aria-label="Stopwatch controls">
+            <button id="sw-lap-reset" class="circle-btn btn-reset" aria-label="Reset">Reset</button>
+            <button id="sw-start-stop" class="circle-btn btn-start" aria-label="Start stopwatch">Start</button>
+          </div>
+        </div>
+
+        <div class="lap-list-header" aria-hidden="true">
+          <span>Lap</span>
+          <span>Lap Time</span>
+          <span>Overall</span>
+        </div>
+        <div id="lap-list" class="lap-list" role="list" aria-label="Lap times" aria-live="polite"></div>
+        <p id="sw-empty" class="empty-hint">Start the stopwatch to track laps.</p>
+
+      </section>
+
+      <!-- ═══ TIMER PANEL ═══ -->
+      <section id="timer-panel" class="panel" role="tabpanel" aria-labelledby="tab-timer" hidden>
+
+        <h1 class="section-title">Timer</h1>
+
+        <div class="timer-panel-inner">
+
+          <div class="timer-presets" role="group" aria-label="Quick presets">
+            <button class="preset-btn" data-secs="300"  aria-label="Set 5 minute timer">5 min</button>
+            <button class="preset-btn" data-secs="600"  aria-label="Set 10 minute timer">10 min</button>
+            <button class="preset-btn" data-secs="1500" aria-label="Set 25 minute Pomodoro timer">25 min 🍅</button>
+          </div>
+
+          <div class="timer-inputs" role="group" aria-label="Set custom timer duration">
+            <div class="time-unit">
+              <input id="t-hrs"  class="time-spinner" type="number" min="0" max="23" value="0" aria-label="Hours" />
+              <span class="time-label">hr</span>
+            </div>
+            <span class="time-sep" aria-hidden="true">:</span>
+            <div class="time-unit">
+              <input id="t-mins" class="time-spinner" type="number" min="0" max="59" value="0" aria-label="Minutes" />
+              <span class="time-label">min</span>
+            </div>
+            <span class="time-sep" aria-hidden="true">:</span>
+            <div class="time-unit">
+              <input id="t-secs" class="time-spinner" type="number" min="0" max="59" value="0" aria-label="Seconds" />
+              <span class="time-label">sec</span>
+            </div>
+          </div>
+
+          <div class="timer-ring-wrap" id="timer-ring-wrap">
+            <svg class="timer-ring-svg" viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="ring-track"    cx="60" cy="60" r="52" />
+              <circle class="ring-progress" cx="60" cy="60" r="52" id="ring-prog" />
+            </svg>
+            <div class="timer-center-text" aria-hidden="true">
+              <div id="timer-countdown" class="timer-countdown">0:00</div>
+              <div id="timer-status"    class="timer-status">ready</div>
+            </div>
+          </div>
+
+          <!-- accessible live region for timer -->
+          <div id="timer-live" role="timer" aria-live="off" aria-atomic="true" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;"></div>
+
+          <div class="timer-buttons" role="group" aria-label="Timer controls">
+            <button id="timer-cancel"     class="circle-btn btn-reset" aria-label="Cancel timer">Cancel</button>
+            <button id="timer-start-stop" class="circle-btn btn-start" aria-label="Start timer">Start</button>
+          </div>
+
+        </div>
+      </section>
+
+    </div><!-- /app -->
+
+    <!-- ═══ TAB BAR ═══ -->
+    <nav id="tab-bar" role="tablist" aria-label="Clock app sections">
+      <button id="tab-clock" class="tab-btn active" role="tab" aria-selected="true"  aria-controls="clock-panel"  tabindex="0">
+        <span class="tab-icon" aria-hidden="true">🕐</span>
+        <span>Clock</span>
+      </button>
+      <button id="tab-sw"    class="tab-btn"        role="tab" aria-selected="false" aria-controls="sw-panel"     tabindex="-1">
+        <span class="tab-icon" aria-hidden="true">⏱</span>
+        <span>Stopwatch</span>
+      </button>
+      <button id="tab-timer" class="tab-btn"        role="tab" aria-selected="false" aria-controls="timer-panel"  tabindex="-1">
+        <span class="tab-icon" aria-hidden="true">⏲</span>
+        <span>Timer</span>
+      </button>
+    </nav>
+
+    <script>
+    (() => {
+      'use strict';
+
+      /* ── Constants ── */
+      const CITIES = [
+        { name: 'New York',      tz: 'America/New_York' },
+        { name: 'Los Angeles',   tz: 'America/Los_Angeles' },
+        { name: 'Chicago',       tz: 'America/Chicago' },
+        { name: 'Denver',        tz: 'America/Denver' },
+        { name: 'Toronto',       tz: 'America/Toronto' },
+        { name: 'São Paulo',     tz: 'America/Sao_Paulo' },
+        { name: 'London',        tz: 'Europe/London' },
+        { name: 'Paris',         tz: 'Europe/Paris' },
+        { name: 'Berlin',        tz: 'Europe/Berlin' },
+        { name: 'Moscow',        tz: 'Europe/Moscow' },
+        { name: 'Dubai',         tz: 'Asia/Dubai' },
+        { name: 'Mumbai',        tz: 'Asia/Kolkata' },
+        { name: 'Kolkata',       tz: 'Asia/Kolkata' },
+        { name: 'Bangkok',       tz: 'Asia/Bangkok' },
+        { name: 'Singapore',     tz: 'Asia/Singapore' },
+        { name: 'Hong Kong',     tz: 'Asia/Hong_Kong' },
+        { name: 'Shanghai',      tz: 'Asia/Shanghai' },
+        { name: 'Tokyo',         tz: 'Asia/Tokyo' },
+        { name: 'Seoul',         tz: 'Asia/Seoul' },
+        { name: 'Sydney',        tz: 'Australia/Sydney' },
+        { name: 'Auckland',      tz: 'Pacific/Auckland' },
+        { name: 'Honolulu',      tz: 'Pacific/Honolulu' },
+      ];
+
+      const LS_AMPM   = 'clock_use12hr';
+      const LS_CITIES = 'clock_cities';
+      const RING_R    = 52;
+      const RING_CIRC = 2 * Math.PI * RING_R;
+
+      /* ── Utilities ── */
+      const pad2 = n => String(n).padStart(2, '0');
+
+      function tzOffset(tz) {
+        const now   = new Date();
+        const local = new Date(now.toLocaleString('en-US', { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }));
+        const city  = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+        const diffMs = city - local;
+        const diffH  = diffMs / 3600000;
+        if (diffH === 0) return 'Local';
+        const sign   = diffH > 0 ? '+' : '−';
+        const abs    = Math.abs(diffH);
+        return Number.isInteger(abs) ? `${sign}${abs}h` : `${sign}${abs.toFixed(1).replace('.', 'h')}m`.replace('hm', 'h30m');
+      }
+
+      function formatTZ(tz, use12) {
+        const now  = new Date();
+        const opts = { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: use12 };
+        const str  = now.toLocaleString('en-US', opts);
+        if (use12) {
+          const [time, period] = str.split(' ');
+          return { time, period };
+        }
+        return { time: str, period: '' };
+      }
+
+      function fmtDuration(ms) {
+        const totalCs = Math.floor(ms / 10);
+        const cs   = totalCs % 100;
+        const secs = Math.floor(totalCs / 100) % 60;
+        const mins = Math.floor(totalCs / 6000);
+        return { mins: pad2(mins), secs: pad2(secs), cs: pad2(cs) };
+      }
+
+      function fmtTimerDisplay(totalSecs) {
+        const h = Math.floor(totalSecs / 3600);
+        const m = Math.floor((totalSecs % 3600) / 60);
+        const s = totalSecs % 60;
+        if (h > 0) return `${h}:${pad2(m)}:${pad2(s)}`;
+        return `${m}:${pad2(s)}`;
+      }
+
+      /* ── Tab switching ── */
+      const tabs = [
+        { btn: document.getElementById('tab-clock'),  panel: document.getElementById('clock-panel') },
+        { btn: document.getElementById('tab-sw'),     panel: document.getElementById('sw-panel') },
+        { btn: document.getElementById('tab-timer'),  panel: document.getElementById('timer-panel') },
+      ];
+
+      tabs.forEach(({ btn, panel }, idx) => {
+        btn.addEventListener('click', () => activateTab(idx));
+        btn.addEventListener('keydown', e => {
+          if (e.key === 'ArrowRight') { activateTab((idx + 1) % tabs.length); tabs[(idx + 1) % tabs.length].btn.focus(); }
+          if (e.key === 'ArrowLeft')  { activateTab((idx + 2) % tabs.length); tabs[(idx + 2) % tabs.length].btn.focus(); }
+        });
+      });
+
+      function activateTab(idx) {
+        tabs.forEach(({ btn, panel: p }, i) => {
+          const active = i === idx;
+          btn.classList.toggle('active', active);
+          btn.setAttribute('aria-selected', active);
+          btn.setAttribute('tabindex', active ? '0' : '-1');
+          p.classList.toggle('active', active);
+          p.hidden = !active;
+        });
+      }
+
+      /* ══════════════════════════════════════════
+         CLOCK
+      ══════════════════════════════════════════ */
+      let use12 = localStorage.getItem(LS_AMPM) !== 'false';
+
+      const clockTimeEl  = document.getElementById('clock-time');
+      const clockAmpmEl  = document.getElementById('clock-ampm');
+      const clockDateEl  = document.getElementById('clock-date');
+      const btn12        = document.getElementById('btn-12hr');
+      const btn24        = document.getElementById('btn-24hr');
+
+      function setFormat(to12) {
+        use12 = to12;
+        localStorage.setItem(LS_AMPM, to12);
+        btn12.classList.toggle('active', to12);
+        btn24.classList.toggle('active', !to12);
+        btn12.setAttribute('aria-pressed', to12);
+        btn24.setAttribute('aria-pressed', !to12);
+        renderCityList();
+      }
+
+      btn12.addEventListener('click', () => setFormat(true));
+      btn24.addEventListener('click', () => setFormat(false));
+
+      /* ── Clock face modes ── */
+      const LS_FACE = 'clock.face';
+      let clockFace = localStorage.getItem(LS_FACE) || 'digital';
+
+      const digitalFaceEl = document.getElementById('digital-face');
+      const analogFaceEl  = document.getElementById('analog-face');
+      const flipFaceEl    = document.getElementById('flip-face');
+      const romanFaceEl   = document.getElementById('roman-face');
+      const binaryFaceEl  = document.getElementById('binary-face');
+      const ledFaceEl     = document.getElementById('led-face');
+      const wordsFaceEl   = document.getElementById('words-face');
+      const faceBtns      = document.querySelectorAll('.face-btn');
+
+      const faceMap = {
+        digital: { el: digitalFaceEl, display: '' },
+        analog:  { el: analogFaceEl,  display: 'block' },
+        flip:    { el: flipFaceEl,    display: 'flex' },
+        roman:   { el: romanFaceEl,   display: 'block' },
+        binary:  { el: binaryFaceEl,  display: 'block' },
+        led:     { el: ledFaceEl,     display: 'block' },
+        words:   { el: wordsFaceEl,   display: 'block' },
+      };
+
+      function applyFace(face) {
+        clockFace = face;
+        localStorage.setItem(LS_FACE, face);
+        for (const [key, { el, display }] of Object.entries(faceMap)) {
+          el.style.display = key === face ? display : 'none';
+        }
+        clockAmpmEl.hidden = face !== 'digital' || !use12;
+        faceBtns.forEach(b => {
+          const active = b.dataset.face === face;
+          b.classList.toggle('active', active);
+          b.setAttribute('aria-pressed', active);
+        });
+      }
+
+      /* ── Roman numerals helpers ── */
+      const ROMAN_MAP = [
+        ['M',1000],['CM',900],['D',500],['CD',400],
+        ['C',100],['XC',90],['L',50],['XL',40],
+        ['X',10],['IX',9],['V',5],['IV',4],['I',1]
+      ];
+      function toRoman(n) {
+        if (n === 0) return '–';
+        let r = '';
+        for (const [sym, val] of ROMAN_MAP) { while (n >= val) { r += sym; n -= val; } }
+        return r;
+      }
+      const romanH = document.getElementById('roman-h');
+      const romanM = document.getElementById('roman-m');
+      const romanS = document.getElementById('roman-s');
+      const romanAmpm = document.getElementById('roman-ampm');
+
+      function updateRoman(hrs, mins, secs, ampm) {
+        romanH.textContent = toRoman(hrs);
+        romanM.textContent = toRoman(mins);
+        romanS.textContent = toRoman(secs);
+        romanAmpm.textContent = ampm;
+      }
+
+      /* ── Binary clock helpers ── */
+      function buildBinaryDots(containerId, bits, colorClass) {
+        const el = document.getElementById(containerId);
+        el.innerHTML = '';
+        for (let i = bits - 1; i >= 0; i--) {
+          const d = document.createElement('div');
+          d.className = 'bin-dot';
+          d.dataset.bit = i;
+          d.dataset.color = colorClass;
+          el.appendChild(d);
+        }
+      }
+      buildBinaryDots('bin-h', 5, 'on-h');  /* 0-23 needs 5 bits */
+      buildBinaryDots('bin-m', 6, 'on-m');  /* 0-59 needs 6 bits */
+      buildBinaryDots('bin-s', 6, 'on-s');
+
+      function updateBinaryRow(containerId, valElId, value, colorClass) {
+        const dots = document.querySelectorAll(`#${containerId} .bin-dot`);
+        const bits = dots.length;
+        dots.forEach((d, i) => {
+          const bitPos = bits - 1 - i;
+          const on = (value >> bitPos) & 1;
+          d.classList.toggle(colorClass, !!on);
+        });
+        document.getElementById(valElId).textContent = pad2(value);
+      }
+      const binaryAmpm = document.getElementById('binary-ampm');
+
+      function updateBinary(hrs, mins, secs, ampm) {
+        updateBinaryRow('bin-h', 'bin-h-val', hrs, 'on-h');
+        updateBinaryRow('bin-m', 'bin-m-val', mins, 'on-m');
+        updateBinaryRow('bin-s', 'bin-s-val', secs, 'on-s');
+        binaryAmpm.textContent = ampm;
+      }
+
+      /* ── LED dot-matrix helpers ── */
+      const LED_PATTERNS = {
+        0:['01110','10001','10001','10001','10001','10001','01110'],
+        1:['00100','01100','00100','00100','00100','00100','01110'],
+        2:['01110','10001','00001','00110','01000','10000','11111'],
+        3:['01110','10001','00001','00110','00001','10001','01110'],
+        4:['00010','00110','01010','10010','11111','00010','00010'],
+        5:['11111','10000','11110','00001','00001','10001','01110'],
+        6:['00110','01000','10000','11110','10001','10001','01110'],
+        7:['11111','00001','00010','00100','01000','01000','01000'],
+        8:['01110','10001','10001','01110','10001','10001','01110'],
+        9:['01110','10001','10001','01111','00001','00010','01100'],
+      };
+      function makeLedDigit(d, colorClass) {
+        const pat = LED_PATTERNS[d] || LED_PATTERNS[0];
+        const matrix = document.createElement('div');
+        matrix.className = 'led-digit-matrix';
+        for (let r = 0; r < 7; r++) {
+          for (let c = 0; c < 5; c++) {
+            const dot = document.createElement('div');
+            dot.className = 'ldot' + (pat[r][c] === '1' ? ' ' + colorClass : '');
+            matrix.appendChild(dot);
+          }
+        }
+        return matrix;
+      }
+      function makeLedSep() {
+        const sep = document.createElement('div');
+        sep.className = 'led-sep-col';
+        sep.innerHTML = '<div class="led-sep-dot"></div><div class="led-sep-dot"></div>';
+        return sep;
+      }
+      function makeLedGroup(value, label, colorClass) {
+        const grp = document.createElement('div');
+        grp.className = 'led-unit-group';
+        const digits = document.createElement('div');
+        digits.className = 'led-unit-digits';
+        String(pad2(value)).split('').forEach(ch => digits.appendChild(makeLedDigit(+ch, colorClass)));
+        const lbl = document.createElement('span');
+        lbl.className = 'led-unit-label';
+        lbl.textContent = label;
+        grp.appendChild(digits);
+        grp.appendChild(lbl);
+        return grp;
+      }
+      const ledGrid = document.getElementById('led-grid');
+      const ledAmpm = document.getElementById('led-ampm');
+
+      function updateLed(hrs, mins, secs, ampm) {
+        ledGrid.innerHTML = '';
+        ledGrid.appendChild(makeLedGroup(hrs,  'hr',  'on-amb'));
+        ledGrid.appendChild(makeLedSep());
+        ledGrid.appendChild(makeLedGroup(mins, 'min', 'on-grn'));
+        ledGrid.appendChild(makeLedSep());
+        ledGrid.appendChild(makeLedGroup(secs, 'sec', 'on-red'));
+        ledAmpm.textContent = ampm;
+      }
+
+      /* ── Words face helpers ── */
+      const ONES = ['','one','two','three','four','five','six','seven','eight','nine',
+                    'ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen',
+                    'seventeen','eighteen','nineteen'];
+      const TENS = ['','','twenty','thirty','forty','fifty'];
+      function numWords(n) {
+        if (n < 20) return ONES[n];
+        return TENS[Math.floor(n / 10)] + (n % 10 ? '-' + ONES[n % 10] : '');
+      }
+      function w(text) { return `<span class="w-num">${text}</span>`; }
+      function u(text) { return `<span class="w-unit">${text}</span>`; }
+      function buildWordsPhrase(hrs, mins, secs, ampm) {
+        let phrase;
+        if (mins === 0 && secs === 0) {
+          phrase = `${w(numWords(hrs))} ${u("o'clock")}`;
+        } else if (secs === 0) {
+          if (mins === 15)       phrase = `${u('quarter past')} ${w(numWords(hrs))}`;
+          else if (mins === 30)  phrase = `${w('half')} ${u('past')} ${w(numWords(hrs))}`;
+          else if (mins === 45)  phrase = `${u('quarter to')} ${w(numWords(hrs + 1 > 12 ? 1 : hrs + 1))}`;
+          else phrase = `${w(numWords(mins))} ${u(mins === 1 ? 'minute past' : 'minutes past')} ${w(numWords(hrs))}`;
+        } else {
+          phrase = `${w(numWords(hrs))} ${u('h')} ${w(numWords(mins))} ${u('m')} ${w(numWords(secs))} ${u('s')}`;
+        }
+        return phrase + (ampm ? ` <span class="w-sep">${ampm}</span>` : '');
+      }
+      const wordsPhrase = document.getElementById('words-phrase');
+
+      function updateWords(hrs, mins, secs, ampm) {
+        wordsPhrase.innerHTML = buildWordsPhrase(hrs, mins, secs, ampm);
+      }
+
+      faceBtns.forEach(b => b.addEventListener('click', () => applyFace(b.dataset.face)));
+      applyFace(clockFace);
+
+      /* ── Build analog tick marks ── */
+      (function buildTicks() {
+        const g = document.getElementById('analog-ticks');
+        for (let i = 0; i < 60; i++) {
+          const isMajor = i % 5 === 0;
+          const angle   = (i / 60) * 360;
+          const r1 = isMajor ? 82 : 88;
+          const r2 = 93;
+          const rad = (angle - 90) * Math.PI / 180;
+          const x1  = 100 + r1 * Math.cos(rad);
+          const y1  = 100 + r1 * Math.sin(rad);
+          const x2  = 100 + r2 * Math.cos(rad);
+          const y2  = 100 + r2 * Math.sin(rad);
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+          line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+          line.setAttribute('class', isMajor ? 'tick-major' : 'tick-minor');
+          g.appendChild(line);
+        }
+      })();
+
+      const handHour    = document.getElementById('hand-hour');
+      const handMin     = document.getElementById('hand-min');
+      const handSec     = document.getElementById('hand-sec');
+      const handSecTail = document.getElementById('hand-sec-tail');
+
+      function updateAnalog(hrs24, mins, secs) {
+        const hDeg = ((hrs24 % 12) / 12) * 360 + (mins / 60) * 30;
+        const mDeg = (mins / 60) * 360 + (secs / 60) * 6;
+        const sDeg = (secs / 60) * 360;
+        const rot  = deg => `rotate(${deg}, 100, 100)`;
+        handHour.setAttribute('transform', rot(hDeg));
+        handMin.setAttribute('transform',  rot(mDeg));
+        handSec.setAttribute('transform',  rot(sDeg));
+        handSecTail.setAttribute('transform', rot(sDeg));
+      }
+
+      /* ── Flip clock ── */
+      const flipDigitPrev = { h0:'', h1:'', m0:'', m1:'', s0:'', s1:'' };
+
+      function setFlipDigit(id, newVal) {
+        const key = id.replace('fd-', '');
+        if (flipDigitPrev[key] === newVal) return;
+        const oldVal = flipDigitPrev[key];
+        flipDigitPrev[key] = newVal;
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        /* Update static top/bottom to new value */
+        el.querySelector('.flip-top span').textContent  = newVal;
+        el.querySelector('.flip-bottom span').textContent = newVal;
+
+        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (prefersReduced || oldVal === '') return;
+
+        /* Animate: clone old value into fold panels */
+        const topFold = document.createElement('div');
+        topFold.className = 'flip-top-fold';
+        topFold.innerHTML = `<span>${oldVal}</span>`;
+
+        const botFold = document.createElement('div');
+        botFold.className = 'flip-bottom-fold';
+        botFold.innerHTML = `<span>${newVal}</span>`;
+
+        el.classList.add('flipping');
+        el.appendChild(topFold);
+        el.appendChild(botFold);
+
+        topFold.addEventListener('animationend', () => {
+          topFold.remove();
+          if (!el.querySelector('.flip-bottom-fold')) el.classList.remove('flipping');
+        }, { once: true });
+        botFold.addEventListener('animationend', () => {
+          botFold.remove();
+          el.classList.remove('flipping');
+        }, { once: true });
+      }
+
+      function updateFlip(hrs, mins, secs) {
+        const hStr = pad2(hrs), mStr = pad2(mins), sStr = pad2(secs);
+        setFlipDigit('fd-h0', hStr[0]);
+        setFlipDigit('fd-h1', hStr[1]);
+        setFlipDigit('fd-m0', mStr[0]);
+        setFlipDigit('fd-m1', mStr[1]);
+        setFlipDigit('fd-s0', sStr[0]);
+        setFlipDigit('fd-s1', sStr[1]);
+        document.getElementById('flip-ampm').textContent =
+          use12 ? (hrs >= 12 ? 'PM' : 'AM') : '';
+      }
+
+      const DAYS  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+      function tickClock() {
+        const now    = new Date();
+        const hrs24  = now.getHours();
+        const mins   = now.getMinutes();
+        const secs   = now.getSeconds();
+        let dispHrs  = hrs24;
+        let ampm     = '';
+        if (use12) {
+          ampm    = hrs24 >= 12 ? 'PM' : 'AM';
+          dispHrs = hrs24 % 12 || 12;
+        }
+
+        if (clockFace === 'digital') {
+          clockTimeEl.textContent = `${pad2(dispHrs)}:${pad2(mins)}:${pad2(secs)}`;
+          clockAmpmEl.textContent = ampm;
+          clockAmpmEl.hidden = !use12;
+        } else if (clockFace === 'analog') {
+          updateAnalog(hrs24, mins, secs);
+        } else if (clockFace === 'flip') {
+          updateFlip(dispHrs, mins, secs);
+        } else if (clockFace === 'roman') {
+          updateRoman(dispHrs, mins, secs, ampm);
+        } else if (clockFace === 'binary') {
+          updateBinary(dispHrs, mins, secs, ampm);
+        } else if (clockFace === 'led') {
+          updateLed(dispHrs, mins, secs, ampm);
+        } else if (clockFace === 'words') {
+          updateWords(dispHrs, mins, secs, ampm);
+        }
+
+        clockDateEl.textContent = `${DAYS[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}`;
+      }
+
+      /* World Clocks */
+      let savedCities = JSON.parse(localStorage.getItem(LS_CITIES) || '[]');
+
+      const cityListEl    = document.getElementById('city-list');
+      const cityEmptyEl   = document.getElementById('city-empty');
+      const openAddBtn    = document.getElementById('open-add-city');
+      const searchCont    = document.getElementById('city-search-container');
+      const searchInput   = document.getElementById('city-search');
+      const cityDropdown  = document.getElementById('city-dropdown');
+
+      openAddBtn.addEventListener('click', () => {
+        const open = searchCont.hidden;
+        searchCont.hidden = !open;
+        openAddBtn.setAttribute('aria-expanded', open);
+        if (open) { searchInput.value = ''; renderDropdown(''); searchInput.focus(); }
+      });
+
+      searchInput.addEventListener('input', () => renderDropdown(searchInput.value));
+      searchInput.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { searchCont.hidden = true; openAddBtn.setAttribute('aria-expanded', 'false'); openAddBtn.focus(); }
+      });
+
+      function renderDropdown(q) {
+        const lq      = q.toLowerCase();
+        const matches = CITIES.filter(c => c.name.toLowerCase().includes(lq) && !savedCities.find(s => s.tz === c.tz));
+        cityDropdown.innerHTML = '';
+        if (!matches.length) {
+          const li = document.createElement('div');
+          li.className = 'city-option';
+          li.textContent = 'No cities found';
+          li.setAttribute('aria-disabled', 'true');
+          cityDropdown.appendChild(li);
+          return;
+        }
+        matches.forEach(city => {
+          const btn = document.createElement('button');
+          btn.className = 'city-option';
+          btn.textContent = city.name;
+          btn.setAttribute('role', 'option');
+          btn.addEventListener('click', () => addCity(city));
+          cityDropdown.appendChild(btn);
+        });
+      }
+
+      function addCity(city) {
+        if (savedCities.find(c => c.tz === city.tz)) return;
+        savedCities.push(city);
+        localStorage.setItem(LS_CITIES, JSON.stringify(savedCities));
+        renderCityList();
+        searchCont.hidden = true;
+        openAddBtn.setAttribute('aria-expanded', 'false');
+        openAddBtn.focus();
+      }
+
+      function removeCity(tz) {
+        savedCities = savedCities.filter(c => c.tz !== tz);
+        localStorage.setItem(LS_CITIES, JSON.stringify(savedCities));
+        renderCityList();
+      }
+
+      function renderCityList() {
+        cityListEl.innerHTML = '';
+        cityEmptyEl.hidden = savedCities.length > 0;
+
+        savedCities.forEach(city => {
+          const { time, period } = formatTZ(city.tz, use12);
+          const offset = tzOffset(city.tz);
+
+          const row = document.createElement('div');
+          row.className = 'city-row';
+          row.setAttribute('role', 'listitem');
+
+          const left = document.createElement('div');
+          left.className = 'city-row-left';
+
+          const nameEl = document.createElement('div');
+          nameEl.className = 'city-name';
+          nameEl.textContent = city.name;
+
+          const offEl = document.createElement('div');
+          offEl.className = 'city-offset';
+          offEl.textContent = offset;
+
+          left.append(nameEl, offEl);
+
+          const timeEl = document.createElement('div');
+          timeEl.className = 'city-time';
+          timeEl.setAttribute('aria-label', `${city.name}: ${time}${period ? ' ' + period : ''}`);
+
+          const timeSpan = document.createElement('span');
+          timeSpan.textContent = time;
+          const ampmSpan = document.createElement('span');
+          ampmSpan.className = 'city-ampm';
+          ampmSpan.textContent = period;
+          timeEl.append(timeSpan, ampmSpan);
+
+          const rmBtn = document.createElement('button');
+          rmBtn.className = 'remove-city-btn';
+          rmBtn.setAttribute('aria-label', `Remove ${city.name}`);
+          rmBtn.textContent = '×';
+          rmBtn.addEventListener('click', () => removeCity(city.tz));
+
+          row.append(left, timeEl, rmBtn);
+          cityListEl.appendChild(row);
+        });
+      }
+
+      function tickWorldClocks() {
+        const rows  = cityListEl.querySelectorAll('.city-row');
+        savedCities.forEach((city, i) => {
+          const row = rows[i];
+          if (!row) return;
+          const { time, period } = formatTZ(city.tz, use12);
+          const timeEl   = row.querySelector('.city-time');
+          const timeSpan = timeEl.querySelector('span:first-child');
+          const ampmSpan = timeEl.querySelector('.city-ampm');
+          timeSpan.textContent = time;
+          ampmSpan.textContent = period;
+          timeEl.setAttribute('aria-label', `${city.name}: ${time}${period ? ' ' + period : ''}`);
+        });
+      }
+
+      /* Clock tick master */
+      function clockTick() {
+        tickClock();
+        tickWorldClocks();
+      }
+
+      setFormat(use12);
+      renderCityList();
+      renderDropdown('');
+      clockTick();
+      setInterval(clockTick, 1000);
+
+      /* ══════════════════════════════════════════
+         STOPWATCH
+      ══════════════════════════════════════════ */
+      let swRunning   = false;
+      let swStart     = 0;
+      let swElapsed   = 0;
+      let swLapStart  = 0;
+      let swRaf       = null;
+      let laps        = [];
+
+      const swMins     = document.getElementById('sw-mins');
+      const swSecs     = document.getElementById('sw-secs');
+      const swCs       = document.getElementById('sw-cs');
+      const swDisplay  = document.getElementById('sw-display');
+      const btnSS      = document.getElementById('sw-start-stop');
+      const btnLR      = document.getElementById('sw-lap-reset');
+      const lapListEl  = document.getElementById('lap-list');
+      const swEmptyEl  = document.getElementById('sw-empty');
+
+      function swRender(ms) {
+        const { mins, secs, cs } = fmtDuration(ms);
+        swMins.textContent = mins;
+        swSecs.textContent = secs;
+        swCs.textContent   = cs;
+      }
+
+      function swLoop() {
+        const now = performance.now();
+        swElapsed = swStart > 0 ? (now - swStart) + swElapsed : swElapsed;
+        swStart   = now;
+        swRender(swElapsed);
+        swRaf = requestAnimationFrame(swLoop);
+      }
+
+      function swStart_() {
+        swRunning  = true;
+        swStart    = performance.now();
+        if (swLapStart === 0) swLapStart = 0;
+        btnSS.textContent = 'Stop';
+        btnSS.className   = 'circle-btn btn-stop';
+        btnSS.setAttribute('aria-label', 'Stop stopwatch');
+        btnLR.textContent = 'Lap';
+        btnLR.className   = 'circle-btn btn-lap';
+        btnLR.setAttribute('aria-label', 'Record lap');
+        swEmptyEl.hidden  = true;
+        swRaf = requestAnimationFrame(swLoop);
+      }
+
+      function swStop() {
+        swRunning = false;
+        const now = performance.now();
+        swElapsed += (now - swStart);
+        swStart    = 0;
+        cancelAnimationFrame(swRaf);
+        btnSS.textContent = 'Start';
+        btnSS.className   = 'circle-btn btn-start';
+        btnSS.setAttribute('aria-label', 'Start stopwatch');
+        btnLR.textContent = 'Reset';
+        btnLR.className   = 'circle-btn btn-reset';
+        btnLR.setAttribute('aria-label', 'Reset stopwatch');
+      }
+
+      function swReset() {
+        cancelAnimationFrame(swRaf);
+        swRunning  = false;
+        swStart    = 0;
+        swElapsed  = 0;
+        swLapStart = 0;
+        laps       = [];
+        swRender(0);
+        btnSS.textContent = 'Start';
+        btnSS.className   = 'circle-btn btn-start';
+        btnSS.setAttribute('aria-label', 'Start stopwatch');
+        btnLR.textContent = 'Reset';
+        btnLR.className   = 'circle-btn btn-reset';
+        btnLR.setAttribute('aria-label', 'Reset stopwatch');
+        lapListEl.innerHTML = '';
+        swEmptyEl.hidden = false;
+      }
+
+      function swLap() {
+        const lapMs  = swElapsed - swLapStart;
+        swLapStart   = swElapsed;
+        laps.push({ lap: lapMs, total: swElapsed });
+        renderLaps();
+      }
+
+      function renderLaps() {
+        lapListEl.innerHTML = '';
+        if (!laps.length) { swEmptyEl.hidden = false; return; }
+        swEmptyEl.hidden = true;
+        const lapTimes = laps.map(l => l.lap);
+        const minLap   = Math.min(...lapTimes);
+        const maxLap   = Math.max(...lapTimes);
+
+        [...laps].reverse().forEach((entry, ri) => {
+          const num   = laps.length - ri;
+          const row   = document.createElement('div');
+          row.className = 'lap-row';
+          row.setAttribute('role', 'listitem');
+          if (laps.length > 1) {
+            if (entry.lap === minLap) row.classList.add('best');
+            else if (entry.lap === maxLap) row.classList.add('worst');
+          }
+
+          const { mins: lm, secs: ls, cs: lc } = fmtDuration(entry.lap);
+          const { mins: tm, secs: ts, cs: tc }  = fmtDuration(entry.total);
+
+          const numEl   = document.createElement('div');
+          numEl.className = 'lap-num';
+          numEl.textContent = `Lap ${num}`;
+
+          const splitEl = document.createElement('div');
+          splitEl.className = 'lap-split';
+          splitEl.textContent = `${lm}:${ls}.${lc}`;
+
+          const totalEl = document.createElement('div');
+          totalEl.className = 'lap-total';
+          totalEl.textContent = `${tm}:${ts}.${tc}`;
+
+          row.setAttribute('aria-label', `Lap ${num}, split ${lm}:${ls}.${lc}, total ${tm}:${ts}.${tc}`);
+          row.append(numEl, splitEl, totalEl);
+          lapListEl.appendChild(row);
+        });
+      }
+
+      btnSS.addEventListener('click', () => { swRunning ? swStop() : swStart_(); });
+      btnLR.addEventListener('click', () => { swRunning ? swLap() : swReset(); });
+
+      /* ══════════════════════════════════════════
+         TIMER
+      ══════════════════════════════════════════ */
+      let timerTotal    = 0;
+      let timerRemain   = 0;
+      let timerRunning  = false;
+      let timerInterval = null;
+      let timerFlashing = false;
+
+      const tHrs         = document.getElementById('t-hrs');
+      const tMins        = document.getElementById('t-mins');
+      const tSecs        = document.getElementById('t-secs');
+      const timerRingWrap  = document.getElementById('timer-ring-wrap');
+      const ringProg       = document.getElementById('ring-prog');
+      const timerCountdown = document.getElementById('timer-countdown');
+      const timerStatus    = document.getElementById('timer-status');
+      const timerLive      = document.getElementById('timer-live');
+      const timerStartStop = document.getElementById('timer-start-stop');
+      const timerCancel    = document.getElementById('timer-cancel');
+      const presetBtns     = document.querySelectorAll('.preset-btn');
+
+      ringProg.setAttribute('stroke-dasharray', RING_CIRC);
+      ringProg.setAttribute('stroke-dashoffset', RING_CIRC);
+
+      function ringSet(frac) {
+        const offset = RING_CIRC * (1 - Math.max(0, Math.min(1, frac)));
+        ringProg.setAttribute('stroke-dashoffset', offset);
+      }
+
+      function timerRender() {
+        const secs = Math.ceil(timerRemain);
+        timerCountdown.textContent = fmtTimerDisplay(secs);
+        if (timerTotal > 0) ringSet(timerRemain / timerTotal);
+        else ringSet(0);
+      }
+
+      function readInputSecs() {
+        const h = parseInt(tHrs.value, 10)  || 0;
+        const m = parseInt(tMins.value, 10) || 0;
+        const s = parseInt(tSecs.value, 10) || 0;
+        return h * 3600 + m * 60 + s;
+      }
+
+      function setTimerInputs(totalSecs) {
+        const h = Math.floor(totalSecs / 3600);
+        const m = Math.floor((totalSecs % 3600) / 60);
+        const s = totalSecs % 60;
+        tHrs.value  = h;
+        tMins.value = m;
+        tSecs.value = s;
+      }
+
+      function enableInputs(en) {
+        tHrs.disabled  = !en;
+        tMins.disabled = !en;
+        tSecs.disabled = !en;
+        presetBtns.forEach(b => { b.disabled = !en; });
+      }
+
+      function clearPresetActive() {
+        presetBtns.forEach(b => b.classList.remove('active'));
+      }
+
+      presetBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (timerRunning) return;
+          const secs = parseInt(btn.dataset.secs, 10);
+          clearPresetActive();
+          btn.classList.add('active');
+          setTimerInputs(secs);
+          timerTotal  = secs;
+          timerRemain = secs;
+          timerRender();
+          timerStatus.textContent = 'ready';
+          stopFlashing();
+        });
+      });
+
+      [tHrs, tMins, tSecs].forEach(inp => {
+        inp.addEventListener('input', () => {
+          if (timerRunning) return;
+          clearPresetActive();
+          const total = readInputSecs();
+          timerTotal  = total;
+          timerRemain = total;
+          timerRender();
+        });
+      });
+
+      function chime() {
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          [0, 0.18, 0.36].forEach(delay => {
+            const osc  = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type      = 'sine';
+            osc.frequency.setValueAtTime(880, ctx.currentTime + delay);
+            osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + delay + 0.4);
+            gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+            gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + delay + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + 0.9);
+            osc.start(ctx.currentTime + delay);
+            osc.stop(ctx.currentTime  + delay + 1);
+          });
+        } catch (_) { /* audio unavailable */ }
+      }
+
+      function stopFlashing() {
+        timerFlashing = false;
+        timerRingWrap.classList.remove('flashing');
+      }
+
+      function startTimer() {
+        const total = timerRunning ? timerTotal : readInputSecs();
+        if (total <= 0) return;
+        stopFlashing();
+        timerTotal  = total;
+        if (!timerRunning) timerRemain = total;
+        timerRunning = true;
+
+        timerStartStop.textContent = 'Pause';
+        timerStartStop.className   = 'circle-btn btn-stop';
+        timerStartStop.setAttribute('aria-label', 'Pause timer');
+        timerStatus.textContent = 'running';
+        enableInputs(false);
+
+        const TICK_MS = 100;
+        let last = performance.now();
+
+        timerInterval = setInterval(() => {
+          const now  = performance.now();
+          timerRemain -= (now - last) / 1000;
+          last = now;
+          if (timerRemain <= 0) {
+            timerRemain = 0;
+            clearInterval(timerInterval);
+            timerRunning = false;
+            timerRender();
+            timerStatus.textContent = 'done';
+            timerLive.textContent   = 'Timer finished';
+            chime();
+            timerRingWrap.classList.add('flashing');
+            timerFlashing = true;
+            timerStartStop.textContent = 'Start';
+            timerStartStop.className   = 'circle-btn btn-start';
+            timerStartStop.setAttribute('aria-label', 'Start timer');
+            enableInputs(true);
+            return;
+          }
+          timerRender();
+        }, TICK_MS);
+      }
+
+      function pauseTimer() {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        timerStartStop.textContent = 'Resume';
+        timerStartStop.className   = 'circle-btn btn-start';
+        timerStartStop.setAttribute('aria-label', 'Resume timer');
+        timerStatus.textContent = 'paused';
+      }
+
+      function cancelTimer() {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        timerRemain  = timerTotal;
+        timerRender();
+        timerStatus.textContent = 'ready';
+        timerStartStop.textContent = 'Start';
+        timerStartStop.className   = 'circle-btn btn-start';
+        timerStartStop.setAttribute('aria-label', 'Start timer');
+        enableInputs(true);
+        stopFlashing();
+        timerLive.textContent = '';
+      }
+
+      timerStartStop.addEventListener('click', () => {
+        if (timerFlashing) { cancelTimer(); return; }
+        timerRunning ? pauseTimer() : startTimer();
+      });
+      timerCancel.addEventListener('click', cancelTimer);
+
+      timerRender();
+    })();
+    </script>
+  </body>
+</html>
