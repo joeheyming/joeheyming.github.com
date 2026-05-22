@@ -14,17 +14,8 @@
     "border": "border-indigo-500/30 hover:border-indigo-400/50",
     "taskbarGradient": "from-indigo-500 to-fuchsia-500",
     "taskbarText": "text-white",
-    "tags": [
-      "rhythm",
-      "music",
-      "accordion",
-      "game"
-    ],
-    "related": [
-      "stepmania",
-      "awesome",
-      "sadtrombone"
-    ],
+    "tags": ["rhythm", "music", "accordion", "game"],
+    "related": ["stepmania", "awesome", "sadtrombone"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "Accordion Hero",
@@ -46,18 +37,8 @@
     "taskbarGradient": "from-yellow-400 to-orange-500",
     "taskbarText": "text-black",
     "desktopIcon": true,
-    "tags": [
-      "fun",
-      "music",
-      "popular",
-      "interactive"
-    ],
-    "related": [
-      "badapple",
-      "stepmania",
-      "farm",
-      "pbs"
-    ],
+    "tags": ["fun", "music", "popular", "interactive"],
+    "related": ["badapple", "stepmania", "farm", "pbs"],
     "shareCategory": "entertainment",
     "pwaShortcut": {
       "name": "Everything is Awesome",
@@ -85,17 +66,8 @@
     "defaultWidth": 1024,
     "defaultHeight": 768,
     "desktopIcon": true,
-    "tags": [
-      "fps",
-      "retro",
-      "popular"
-    ],
-    "related": [
-      "pacman",
-      "nes",
-      "minesweeper",
-      "stepmania"
-    ],
+    "tags": ["fps", "retro", "popular"],
+    "related": ["pacman", "nes", "minesweeper", "stepmania"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "DOOM",
@@ -122,16 +94,8 @@
     "category": "game",
     "defaultWidth": 1024,
     "defaultHeight": 768,
-    "tags": [
-      "fps",
-      "retro",
-      "mods"
-    ],
-    "related": [
-      "doom",
-      "nes",
-      "stepmania"
-    ],
+    "tags": ["fps", "retro", "mods"],
+    "related": ["doom", "nes", "stepmania"],
     "shareCategory": "game"
   },
   {
@@ -148,11 +112,7 @@
     "taskbarGradient": "from-green-400 to-emerald-500",
     "taskbarText": "text-white",
     "desktopIcon": true,
-    "related": [
-      "awesome",
-      "pacman",
-      "doom"
-    ],
+    "related": ["awesome", "pacman", "doom"],
     "shareCategory": "game"
   },
   {
@@ -183,12 +143,7 @@
       "application/xml",
       "application/x-sh"
     ],
-    "related": [
-      "terminal",
-      "todo",
-      "filemanager",
-      "calculator"
-    ],
+    "related": ["terminal", "todo", "filemanager", "calculator"],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Notepad",
@@ -212,9 +167,7 @@
     "defaultWidth": 900,
     "defaultHeight": 600,
     "system": true,
-    "handles": [
-      "text/html"
-    ]
+    "handles": ["text/html"]
   },
   {
     "id": "pacman",
@@ -231,18 +184,8 @@
     "taskbarText": "text-black",
     "defaultWidth": 900,
     "defaultHeight": 700,
-    "tags": [
-      "arcade",
-      "retro",
-      "popular",
-      "3d"
-    ],
-    "related": [
-      "pacman-infinite",
-      "doom",
-      "nes",
-      "minesweeper"
-    ],
+    "tags": ["arcade", "retro", "popular", "3d"],
+    "related": ["pacman-infinite", "doom", "nes", "minesweeper"],
     "shareCategory": "game",
     "featured": {
       "order": 2,
@@ -268,19 +211,8 @@
     "taskbarText": "text-black",
     "defaultWidth": 900,
     "defaultHeight": 700,
-    "tags": [
-      "arcade",
-      "retro",
-      "3d",
-      "endless",
-      "procedural"
-    ],
-    "related": [
-      "pacman",
-      "doom",
-      "nes",
-      "minesweeper"
-    ],
+    "tags": ["arcade", "retro", "3d", "endless", "procedural"],
+    "related": ["pacman", "doom", "nes", "minesweeper"],
     "shareCategory": "game",
     "featured": {
       "order": 11,
@@ -306,17 +238,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 800,
     "defaultHeight": 600,
-    "tags": [
-      "science",
-      "chemistry",
-      "fun",
-      "export"
-    ],
-    "related": [
-      "wordle-finder",
-      "calculator",
-      "countdown"
-    ],
+    "tags": ["science", "chemistry", "fun", "export"],
+    "related": ["wordle-finder", "calculator", "countdown"],
     "shareCategory": "utility"
   },
   {
@@ -332,11 +255,7 @@
     "border": "border-red-500/30 hover:border-red-400/50",
     "taskbarGradient": "from-red-500 to-pink-500",
     "taskbarText": "text-white",
-    "related": [
-      "awesome",
-      "sadtrombone",
-      "sayhello"
-    ],
+    "related": ["awesome", "sadtrombone", "sayhello"],
     "shareCategory": "entertainment"
   },
   {
@@ -352,11 +271,7 @@
     "border": "border-amber-500/30 hover:border-amber-400/50",
     "taskbarGradient": "from-amber-400 to-yellow-500",
     "taskbarText": "text-black",
-    "related": [
-      "pbs",
-      "awesome",
-      "sayhello"
-    ],
+    "related": ["pbs", "awesome", "sayhello"],
     "shareCategory": "entertainment"
   },
   {
@@ -372,11 +287,7 @@
     "border": "border-purple-500/30 hover:border-purple-400/50",
     "taskbarGradient": "from-purple-500 to-indigo-500",
     "taskbarText": "text-white",
-    "related": [
-      "sayit",
-      "pbs",
-      "sadtrombone"
-    ],
+    "related": ["sayit", "pbs", "sadtrombone"],
     "shareCategory": "utility"
   },
   {
@@ -392,11 +303,7 @@
     "border": "border-indigo-500/30 hover:border-indigo-400/50",
     "taskbarGradient": "from-indigo-500 to-blue-600",
     "taskbarText": "text-white",
-    "related": [
-      "sayhello",
-      "pbs",
-      "awesome"
-    ],
+    "related": ["sayhello", "pbs", "awesome"],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Say It OCR",
@@ -419,19 +326,8 @@
     "border": "border-pink-500/30 hover:border-pink-400/50",
     "taskbarGradient": "from-pink-500 to-rose-500",
     "taskbarText": "text-white",
-    "tags": [
-      "rhythm",
-      "music",
-      "dance",
-      "popular"
-    ],
-    "related": [
-      "accordion-hero",
-      "play",
-      "awesome",
-      "doom",
-      "nes"
-    ],
+    "tags": ["rhythm", "music", "dance", "popular"],
+    "related": ["accordion-hero", "play", "awesome", "doom", "nes"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "StepMania",
@@ -463,19 +359,8 @@
     "taskbarGradient": "from-teal-500 to-cyan-500",
     "taskbarText": "text-white",
     "desktopIcon": true,
-    "tags": [
-      "wordle",
-      "words",
-      "puzzle",
-      "solver",
-      "popular"
-    ],
-    "related": [
-      "minesweeper",
-      "terminal",
-      "calculator",
-      "todo"
-    ],
+    "tags": ["wordle", "words", "puzzle", "solver", "popular"],
+    "related": ["minesweeper", "terminal", "calculator", "todo"],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Wordle Finder",
@@ -506,11 +391,7 @@
     "taskbarText": "text-white",
     "defaultWidth": 540,
     "defaultHeight": 780,
-    "related": [
-      "media-player",
-      "vibe-coding",
-      "awesome"
-    ],
+    "related": ["media-player", "vibe-coding", "awesome"],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "JoeTube",
@@ -531,11 +412,7 @@
     "border": "border-gray-500/30 hover:border-gray-400/50",
     "taskbarGradient": "from-gray-600 to-gray-700",
     "taskbarText": "text-white",
-    "related": [
-      "badapple",
-      "image-viewer",
-      "terminal"
-    ],
+    "related": ["badapple", "image-viewer", "terminal"],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Operation SHADOWBOX",
@@ -558,19 +435,8 @@
     "taskbarText": "text-green-400",
     "defaultWidth": 900,
     "defaultHeight": 700,
-    "tags": [
-      "ascii",
-      "art",
-      "webcam",
-      "image",
-      "creative",
-      "matrix"
-    ],
-    "related": [
-      "badapple",
-      "starwars",
-      "paint"
-    ],
+    "tags": ["ascii", "art", "webcam", "image", "creative", "matrix"],
+    "related": ["badapple", "starwars", "paint"],
     "shareCategory": "entertainment"
   },
   {
@@ -588,19 +454,8 @@
     "border": "border-red-500/30 hover:border-red-400/50",
     "taskbarGradient": "from-gray-800 to-red-700",
     "taskbarText": "text-white",
-    "tags": [
-      "ascii",
-      "animation",
-      "meme",
-      "touhou",
-      "music"
-    ],
-    "related": [
-      "awesome",
-      "shadowbox",
-      "pbs",
-      "terminal"
-    ],
+    "tags": ["ascii", "animation", "meme", "touhou", "music"],
+    "related": ["awesome", "shadowbox", "pbs", "terminal"],
     "shareCategory": "entertainment",
     "pwaShortcut": {
       "name": "Bad Apple",
@@ -631,18 +486,8 @@
     "border": "border-yellow-500/30 hover:border-yellow-400/50",
     "taskbarGradient": "from-yellow-700 to-black",
     "taskbarText": "text-yellow-300",
-    "tags": [
-      "ascii",
-      "animation",
-      "starwars",
-      "retro",
-      "classic"
-    ],
-    "related": [
-      "badapple",
-      "terminal",
-      "nes"
-    ],
+    "tags": ["ascii", "animation", "starwars", "retro", "classic"],
+    "related": ["badapple", "terminal", "nes"],
     "shareCategory": "entertainment"
   },
   {
@@ -664,18 +509,8 @@
       "x": 30,
       "y": 30
     },
-    "tags": [
-      "utility",
-      "cli",
-      "filesystem",
-      "interactive"
-    ],
-    "related": [
-      "notepad",
-      "filemanager",
-      "calculator",
-      "countdown"
-    ],
+    "tags": ["utility", "cli", "filesystem", "interactive"],
+    "related": ["notepad", "filemanager", "calculator", "countdown"],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Terminal",
@@ -707,17 +542,8 @@
     "defaultWidth": 440,
     "defaultHeight": 720,
     "desktopIcon": true,
-    "tags": [
-      "productivity",
-      "google",
-      "sheets",
-      "tasks"
-    ],
-    "related": [
-      "notepad",
-      "terminal",
-      "wordle-finder"
-    ],
+    "tags": ["productivity", "google", "sheets", "tasks"],
+    "related": ["notepad", "terminal", "wordle-finder"],
     "shareCategory": "utility"
   },
   {
@@ -736,20 +562,8 @@
     "defaultWidth": 720,
     "defaultHeight": 820,
     "desktopIcon": true,
-    "tags": [
-      "gps",
-      "map",
-      "geolocation",
-      "fitness",
-      "tracker",
-      "offline",
-      "indexeddb"
-    ],
-    "related": [
-      "notepad",
-      "terminal",
-      "stock"
-    ],
+    "tags": ["gps", "map", "geolocation", "fitness", "tracker", "offline", "indexeddb"],
+    "related": ["notepad", "terminal", "stock"],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Trip Log",
@@ -772,11 +586,7 @@
       "x": 30,
       "y": 130
     },
-    "related": [
-      "terminal",
-      "notepad",
-      "countdown"
-    ],
+    "related": ["terminal", "notepad", "countdown"],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Calculator",
@@ -786,10 +596,10 @@
   },
   {
     "id": "code-ide",
-    "name": "Code IDE \u2728",
+    "name": "Code IDE \ud83d\udcbb",
     "shortName": "Code IDE",
-    "description": "Monaco editor with on-device AI coding assistant",
-    "detailedDescription": "A full code editor in your browser with a Cursor-style AI assistant that runs entirely on your GPU. Powered by Monaco (the engine behind VS Code) plus Hermes-3-Llama-3.1-8B via WebLLM \u2014 no backend, no API key, no telemetry. Cmd+K for inline edits with side-by-side diff preview. Side panel chat for explanations and refactors. Plus the usual: multi-file project tree, tabs, syntax highlighting, Vim keybindings, Prettier format-on-save, sandboxed JS runner, git integration. Saves to the HeymingOS filesystem when embedded, or to a real folder on disk.",
+    "description": "Monaco editor in your browser",
+    "detailedDescription": "A full code editor in your browser, powered by Monaco (the engine behind VS Code). Multi-file project tree, tabs, syntax highlighting, Vim keybindings, Prettier format-on-save, sandboxed JS runner, side-by-side diff, and git integration. Saves to the HeymingOS filesystem when embedded, or to a real folder on disk via the File System Access API. No backend, no telemetry.",
     "icon": "\ud83d\udcbb",
     "path": "./code-ide/",
     "category": "utility",
@@ -831,31 +641,21 @@
       "javascript",
       "typescript",
       "vim",
-      "ai",
-      "ai-assistant",
-      "cursor",
-      "webllm",
-      "on-device-ai",
+      "prettier",
       "popular"
     ],
-    "related": [
-      "chat",
-      "notepad",
-      "terminal",
-      "filemanager",
-      "calculator"
-    ],
+    "related": ["notepad", "terminal", "filemanager", "calculator"],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Code IDE",
       "short_name": "Code IDE",
-      "description": "Monaco editor with on-device AI assistant"
+      "description": "Monaco editor in your browser"
     },
     "featured": {
       "order": 8,
-      "headline": "Code IDE + on-device AI",
-      "blurb": "VS Code-style editor with a Cursor-like AI assistant that runs entirely on your GPU. Cmd+K for inline edits, full diff preview before anything writes.",
-      "tagsLine": "\ud83d\udcbb Editor \u2022 \u2728 On-device AI",
+      "headline": "Code IDE in your browser",
+      "blurb": "A VS Code-style editor that runs entirely in the browser. Monaco, Vim keybindings, Prettier format-on-save, sandboxed JS runner, and git integration.",
+      "tagsLine": "\ud83d\udcbb Editor \u2022 Monaco \u2022 Vim",
       "preset": "code-ide",
       "analyticsLabel": "Code IDE"
     }
@@ -875,19 +675,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 400,
     "defaultHeight": 780,
-    "tags": [
-      "clock",
-      "timer",
-      "stopwatch",
-      "world clock",
-      "pomodoro",
-      "utility"
-    ],
-    "related": [
-      "countdown",
-      "calculator",
-      "todo"
-    ],
+    "tags": ["clock", "timer", "stopwatch", "world clock", "pomodoro", "utility"],
+    "related": ["countdown", "calculator", "todo"],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Clock",
@@ -910,17 +699,8 @@
     "taskbarText": "text-black",
     "defaultWidth": 900,
     "defaultHeight": 700,
-    "tags": [
-      "utility",
-      "time",
-      "events",
-      "timer"
-    ],
-    "related": [
-      "calculator",
-      "terminal",
-      "wordle-finder"
-    ],
+    "tags": ["utility", "time", "events", "timer"],
+    "related": ["calculator", "terminal", "wordle-finder"],
     "shareCategory": "utility",
     "featured": {
       "order": 6,
@@ -946,19 +726,9 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 700,
-    "tags": [
-      "wisdom",
-      "learning",
-      "advice",
-      "quotes",
-      "developers"
-    ],
+    "tags": ["wisdom", "learning", "advice", "quotes", "developers"],
     "desktopIcon": true,
-    "related": [
-      "terminal",
-      "notepad",
-      "wordle-finder"
-    ],
+    "related": ["terminal", "notepad", "wordle-finder"],
     "shareCategory": "utility"
   },
   {
@@ -976,17 +746,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 400,
     "defaultHeight": 500,
-    "tags": [
-      "puzzle",
-      "strategy",
-      "retro",
-      "classic"
-    ],
-    "related": [
-      "pacman",
-      "doom",
-      "wordle-finder"
-    ],
+    "tags": ["puzzle", "strategy", "retro", "classic"],
+    "related": ["pacman", "doom", "wordle-finder"],
     "shareCategory": "game",
     "featured": {
       "order": 3,
@@ -1012,18 +773,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 600,
     "defaultHeight": 800,
-    "tags": [
-      "puzzle",
-      "sudoku",
-      "logic",
-      "numbers",
-      "classic"
-    ],
-    "related": [
-      "minesweeper",
-      "wordle-finder",
-      "calculator"
-    ],
+    "tags": ["puzzle", "sudoku", "logic", "numbers", "classic"],
+    "related": ["minesweeper", "wordle-finder", "calculator"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "Sudoku",
@@ -1046,19 +797,8 @@
     "border": "border-stone-500/30 hover:border-stone-400/50",
     "taskbarGradient": "from-stone-600 to-indigo-700",
     "taskbarText": "text-white",
-    "tags": [
-      "retro",
-      "emulator",
-      "nintendo",
-      "8-bit",
-      "popular"
-    ],
-    "related": [
-      "doom",
-      "pacman",
-      "stepmania",
-      "minesweeper"
-    ],
+    "tags": ["retro", "emulator", "nintendo", "8-bit", "popular"],
+    "related": ["doom", "pacman", "stepmania", "minesweeper"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "NES Emulator",
@@ -1089,18 +829,8 @@
     "border": "border-blue-500/30 hover:border-blue-400/50",
     "taskbarGradient": "from-blue-700 to-cyan-600",
     "taskbarText": "text-white",
-    "tags": [
-      "retro",
-      "emulator",
-      "sega",
-      "16-bit"
-    ],
-    "related": [
-      "nes",
-      "doom",
-      "pacman",
-      "stepmania"
-    ],
+    "tags": ["retro", "emulator", "sega", "16-bit"],
+    "related": ["nes", "doom", "pacman", "stepmania"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "Sega Genesis",
@@ -1131,11 +861,7 @@
     "taskbarText": "text-white",
     "defaultWidth": 800,
     "defaultHeight": 600,
-    "related": [
-      "youtube",
-      "terminal",
-      "notepad"
-    ],
+    "related": ["youtube", "terminal", "notepad"],
     "shareCategory": "utility"
   },
   {
@@ -1155,12 +881,7 @@
     "defaultHeight": 600,
     "desktopIcon": true,
     "system": true,
-    "related": [
-      "terminal",
-      "notepad",
-      "image-viewer",
-      "media-player"
-    ],
+    "related": ["terminal", "notepad", "image-viewer", "media-player"],
     "shareCategory": "utility"
   },
   {
@@ -1179,16 +900,8 @@
     "defaultWidth": 800,
     "defaultHeight": 500,
     "system": true,
-    "handles": [
-      "video/*",
-      "audio/*",
-      "application/x-youtube"
-    ],
-    "related": [
-      "filemanager",
-      "youtube",
-      "awesome"
-    ],
+    "handles": ["video/*", "audio/*", "application/x-youtube"],
+    "related": ["filemanager", "youtube", "awesome"],
     "shareCategory": "utility"
   },
   {
@@ -1207,14 +920,8 @@
     "defaultWidth": 800,
     "defaultHeight": 600,
     "system": true,
-    "handles": [
-      "image/*"
-    ],
-    "related": [
-      "filemanager",
-      "shadowbox",
-      "badapple"
-    ],
+    "handles": ["image/*"],
+    "related": ["filemanager", "shadowbox", "badapple"],
     "shareCategory": "utility"
   },
   {
@@ -1243,10 +950,7 @@
       "application/x-ply",
       "application/x-fbx"
     ],
-    "related": [
-      "filemanager",
-      "image-viewer"
-    ],
+    "related": ["filemanager", "image-viewer"],
     "shareCategory": "utility"
   },
   {
@@ -1265,18 +969,8 @@
     "defaultWidth": 900,
     "defaultHeight": 700,
     "desktopIcon": true,
-    "tags": [
-      "music",
-      "instruments",
-      "audio",
-      "fun"
-    ],
-    "related": [
-      "play-piano",
-      "play-drums",
-      "play-guitar",
-      "awesome"
-    ],
+    "tags": ["music", "instruments", "audio", "fun"],
+    "related": ["play-piano", "play-drums", "play-guitar", "awesome"],
     "shareCategory": "entertainment",
     "pwaShortcut": {
       "name": "Play",
@@ -1299,19 +993,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": [
-      "music",
-      "piano",
-      "midi",
-      "audio"
-    ],
-    "related": [
-      "play",
-      "play-accordion",
-      "play-synth",
-      "play-metronome",
-      "play-tuner"
-    ],
+    "tags": ["music", "piano", "midi", "audio"],
+    "related": ["play", "play-accordion", "play-synth", "play-metronome", "play-tuner"],
     "shareCategory": "entertainment"
   },
   {
@@ -1329,16 +1012,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": [
-      "music",
-      "accordion",
-      "audio"
-    ],
-    "related": [
-      "play",
-      "play-piano",
-      "play-synth"
-    ],
+    "tags": ["music", "accordion", "audio"],
+    "related": ["play", "play-piano", "play-synth"],
     "shareCategory": "entertainment"
   },
   {
@@ -1356,18 +1031,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": [
-      "music",
-      "drums",
-      "percussion",
-      "audio"
-    ],
-    "related": [
-      "play",
-      "play-guitar",
-      "play-synth",
-      "play-metronome"
-    ],
+    "tags": ["music", "drums", "percussion", "audio"],
+    "related": ["play", "play-guitar", "play-synth", "play-metronome"],
     "shareCategory": "entertainment"
   },
   {
@@ -1385,21 +1050,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": [
-      "music",
-      "guitar",
-      "bass",
-      "ukulele",
-      "banjo",
-      "mandolin",
-      "strings",
-      "audio"
-    ],
-    "related": [
-      "play",
-      "play-drums",
-      "play-piano"
-    ],
+    "tags": ["music", "guitar", "bass", "ukulele", "banjo", "mandolin", "strings", "audio"],
+    "related": ["play", "play-drums", "play-piano"],
     "shareCategory": "entertainment"
   },
   {
@@ -1417,18 +1069,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": [
-      "music",
-      "synth",
-      "audio",
-      "electronic"
-    ],
-    "related": [
-      "play",
-      "play-piano",
-      "play-drums",
-      "play-theremin"
-    ],
+    "tags": ["music", "synth", "audio", "electronic"],
+    "related": ["play", "play-piano", "play-drums", "play-theremin"],
     "shareCategory": "entertainment"
   },
   {
@@ -1446,18 +1088,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 600,
     "defaultHeight": 500,
-    "tags": [
-      "music",
-      "metronome",
-      "tempo",
-      "practice",
-      "audio"
-    ],
-    "related": [
-      "play-piano",
-      "play-drums",
-      "play-synth"
-    ],
+    "tags": ["music", "metronome", "tempo", "practice", "audio"],
+    "related": ["play-piano", "play-drums", "play-synth"],
     "shareCategory": "entertainment"
   },
   {
@@ -1475,17 +1107,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": [
-      "music",
-      "harp",
-      "strings",
-      "audio"
-    ],
-    "related": [
-      "play-piano",
-      "play-guitar",
-      "play-mallets"
-    ],
+    "tags": ["music", "harp", "strings", "audio"],
+    "related": ["play-piano", "play-guitar", "play-mallets"],
     "shareCategory": "entertainment"
   },
   {
@@ -1503,18 +1126,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": [
-      "music",
-      "steeldrum",
-      "percussion",
-      "caribbean",
-      "audio"
-    ],
-    "related": [
-      "play-drums",
-      "play-mallets",
-      "play-harp"
-    ],
+    "tags": ["music", "steeldrum", "percussion", "caribbean", "audio"],
+    "related": ["play-drums", "play-mallets", "play-harp"],
     "shareCategory": "entertainment"
   },
   {
@@ -1532,19 +1145,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": [
-      "music",
-      "xylophone",
-      "marimba",
-      "vibraphone",
-      "percussion",
-      "audio"
-    ],
-    "related": [
-      "play-harp",
-      "play-steeldrum",
-      "play-piano"
-    ],
+    "tags": ["music", "xylophone", "marimba", "vibraphone", "percussion", "audio"],
+    "related": ["play-harp", "play-steeldrum", "play-piano"],
     "shareCategory": "entertainment"
   },
   {
@@ -1562,19 +1164,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": [
-      "music",
-      "theremin",
-      "webcam",
-      "gesture",
-      "electronic",
-      "audio"
-    ],
-    "related": [
-      "play-synth",
-      "play-piano",
-      "play-tuner"
-    ],
+    "tags": ["music", "theremin", "webcam", "gesture", "electronic", "audio"],
+    "related": ["play-synth", "play-piano", "play-tuner"],
     "shareCategory": "entertainment"
   },
   {
@@ -1592,18 +1183,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 700,
     "defaultHeight": 500,
-    "tags": [
-      "music",
-      "tuner",
-      "microphone",
-      "pitch",
-      "audio"
-    ],
-    "related": [
-      "play-theremin",
-      "play-piano",
-      "play-metronome"
-    ],
+    "tags": ["music", "tuner", "microphone", "pitch", "audio"],
+    "related": ["play-theremin", "play-piano", "play-metronome"],
     "shareCategory": "entertainment"
   },
   {
@@ -1621,18 +1202,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 960,
     "defaultHeight": 740,
-    "tags": [
-      "weather",
-      "forecast",
-      "zip code",
-      "city",
-      "hourly"
-    ],
-    "related": [
-      "stock",
-      "countdown",
-      "calculator"
-    ],
+    "tags": ["weather", "forecast", "zip code", "city", "hourly"],
+    "related": ["stock", "countdown", "calculator"],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Weather",
@@ -1655,18 +1226,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 1100,
     "defaultHeight": 740,
-    "tags": [
-      "stocks",
-      "finance",
-      "chart",
-      "ticker",
-      "watchlist"
-    ],
-    "related": [
-      "calculator",
-      "countdown",
-      "wordle-finder"
-    ],
+    "tags": ["stocks", "finance", "chart", "ticker", "watchlist"],
+    "related": ["calculator", "countdown", "wordle-finder"],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Stock Ticker",
@@ -1690,18 +1251,8 @@
     "taskbarGradient": "from-cyan-500 to-violet-600",
     "taskbarText": "text-white",
     "desktopIcon": true,
-    "tags": [
-      "ai",
-      "assistant",
-      "chat",
-      "llm",
-      "agent"
-    ],
-    "related": [
-      "notepad",
-      "terminal",
-      "filemanager"
-    ],
+    "tags": ["ai", "assistant", "chat", "llm", "agent"],
+    "related": ["notepad", "terminal", "filemanager"],
     "shareCategory": "utility"
   },
   {
@@ -1719,18 +1270,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 600,
     "defaultHeight": 820,
-    "tags": [
-      "audio",
-      "books",
-      "audiobooks",
-      "librivox",
-      "public domain"
-    ],
-    "related": [
-      "read",
-      "media-player",
-      "play"
-    ],
+    "tags": ["audio", "books", "audiobooks", "librivox", "public domain"],
+    "related": ["read", "media-player", "play"],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Audiobooks",
@@ -1753,18 +1294,8 @@
     "taskbarText": "text-white",
     "defaultWidth": 700,
     "defaultHeight": 860,
-    "tags": [
-      "books",
-      "reading",
-      "ebooks",
-      "gutenberg",
-      "public domain"
-    ],
-    "related": [
-      "listen",
-      "notepad",
-      "programming-advice"
-    ],
+    "tags": ["books", "reading", "ebooks", "gutenberg", "public domain"],
+    "related": ["listen", "notepad", "programming-advice"],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Books",
@@ -1788,19 +1319,9 @@
     "defaultWidth": 950,
     "defaultHeight": 720,
     "system": true,
-    "handles": [
-      "application/x-paintproj"
-    ],
-    "tags": [
-      "art",
-      "drawing",
-      "paint",
-      "creative",
-      "canvas"
-    ],
-    "related": [
-      "notepad"
-    ],
+    "handles": ["application/x-paintproj"],
+    "tags": ["art", "drawing", "paint", "creative", "canvas"],
+    "related": ["notepad"],
     "shareCategory": "utility"
   }
 ]

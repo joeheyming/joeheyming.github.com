@@ -242,7 +242,7 @@ export class EditorHost {
     if (!this.diffContainer) {
       console.error(
         '[code-ide:editor] showMainDiff called but diffContainer is missing — ' +
-          'EditorHost was never .init()ed with a diff host element. The AI diff cannot mount.'
+          'EditorHost was never .init()ed with a diff host element. The diff cannot mount.'
       );
       return null;
     }

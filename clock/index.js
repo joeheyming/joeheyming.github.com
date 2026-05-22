@@ -994,3 +994,23 @@ timerStartStop.addEventListener('click', () => {
 timerCancel.addEventListener('click', cancelTimer);
 
 timerRender();
+
+// Apply a pending timer written by the chat assistant's setTimer tool.
+// Both standalone and OS-embedded paths write to the same localStorage key.
+(function applyPendingTimer() {
+  try {
+    const raw = localStorage.getItem('clock.pendingTimer');
+    if (!raw) return;
+    localStorage.removeItem('clock.pendingTimer');
+    const { seconds, label } = JSON.parse(raw);
+    if (!seconds || seconds <= 0) return;
+    activateTab(2);
+    setTimerInputs(seconds);
+    timerTotal = seconds;
+    timerRemain = seconds;
+    timerRender();
+    if (label) timerStatus.textContent = label;
+  } catch (_) {
+    // non-fatal
+  }
+})();

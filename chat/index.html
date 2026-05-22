@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>🤖 Chat — OS-aware AI assistant | Joe Heyming</title>
+    <title>🤖 Chat — local browser AI | Joe Heyming</title>
 
     <meta
       name="description"
-      content="Static-site AI assistant that runs entirely in your browser via WebGPU. No backend, no API key, no third-party LLM endpoint. Knows the HeymingOS app registry and can read files in your virtual filesystem."
+      content="Static-site AI assistant that runs entirely in your browser via WebGPU. No backend, no API key, no third-party LLM endpoint. Drop in a text file or PDF and chat about it."
     />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
@@ -19,16 +19,13 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming — Chat" />
-    <meta property="og:title" content="🤖 Chat — OS-aware AI assistant" />
+    <meta property="og:title" content="🤖 Chat — local browser AI" />
     <meta
       property="og:description"
-      content="A backend-free LLM chat that runs in your browser via WebGPU. Can recommend apps and read your virtual filesystem."
+      content="A backend-free LLM chat that runs in your browser via WebGPU. Drop in a document and chat about it."
     />
     <meta property="og:url" content="https://joeheyming.github.io/chat/" />
-    <meta
-      property="og:image"
-      content="https://joeheyming.github.io/chat/chat-preview.png"
-    />
+    <meta property="og:image" content="https://joeheyming.github.io/chat/chat-preview.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="en_US" />
@@ -36,7 +33,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="🤖 Chat — OS-aware AI assistant" />
+    <meta name="twitter:title" content="🤖 Chat — local browser AI" />
     <meta
       name="twitter:description"
       content="Backend-free LLM chat. Runs entirely in your browser via WebGPU."
@@ -82,28 +79,27 @@
           >
             🔄 Reload
           </button>
-          <button type="button" id="chat-new-btn" class="chat-btn-ghost" title="Start a new conversation">
+          <button
+            type="button"
+            id="chat-new-btn"
+            class="chat-btn-ghost"
+            title="Start a new conversation"
+          >
             New chat
           </button>
         </div>
       </header>
 
-      <div
-        id="chat-unsupported"
-        class="chat-unsupported"
-        role="alert"
-        hidden
-      >
-        <strong>This chat needs WebGPU.</strong> The whole model runs on
-        your device — no backend, no keys — and that needs WebGPU.
+      <div id="chat-unsupported" class="chat-unsupported" role="alert" hidden>
+        <strong>This chat needs WebGPU.</strong>
+        The whole model runs on your device — no backend, no keys — and that needs WebGPU.
         <p class="chat-unsupported-detail" data-role="detail" hidden></p>
         <p class="chat-unsupported-env" data-role="env" hidden></p>
         <p class="chat-unsupported-hint">
-          Supported: Chrome 113+, Edge 113+, Firefox 141+ (Windows/macOS),
-          Safari 18+ (macOS). On Windows with a recent NVIDIA/AMD GPU,
-          WebGPU should be on by default in Chrome/Edge — if it's not,
-          the most common cause is hardware acceleration being disabled
-          in browser settings.
+          Supported: Chrome 113+, Edge 113+, Firefox 141+ (Windows/macOS), Safari 18+ (macOS). On
+          Windows with a recent NVIDIA/AMD GPU, WebGPU should be on by default in Chrome/Edge — if
+          it's not, the most common cause is hardware acceleration being disabled in browser
+          settings.
         </p>
       </div>
 
@@ -113,36 +109,56 @@
             <span class="chat-install-emoji" aria-hidden="true">📦</span>
             <h2 class="chat-install-title">Install the local model</h2>
             <p class="chat-install-body">
-              This chat needs to install Hermes-3 8B (~4.5&nbsp;GB) into
-              your browser. The full model runs on your device — no
-              backend, no API key, no third-party LLM endpoint. After
+              This chat needs to install Hermes-3 8B (~4.5&nbsp;GB) into your browser. The full
+              model runs on your device — no backend, no API key, no third-party LLM endpoint. After
               installing, chat is instant and works offline.
             </p>
             <button type="button" id="chat-install-btn" class="chat-install-btn">
               Install (~4.5&nbsp;GB)
             </button>
             <p class="chat-install-hint">
-              Stores in your browser's cache (OPFS). You can clear it
-              anytime from browser settings. The agent's tool-calling
-              needs an 8B-class model — smaller ones can't reliably
-              call functions.
+              Stores in your browser's cache (OPFS). You can clear it anytime from browser settings.
+              First load takes a minute or two; everything after that runs from cache.
             </p>
           </div>
           <div class="chat-empty-default" id="chat-empty-default">
-            <p class="chat-empty-title">Ask me anything about HeymingOS.</p>
+            <p class="chat-empty-title">Ask me anything.</p>
             <p class="chat-empty-sub">
-              The model runs locally in your browser — no backend, no
-              API key.
+              The model runs locally in your browser — no backend, no API key.
             </p>
             <ul class="chat-empty-suggestions">
-              <li><button type="button" data-prompt="What apps do you have? Recommend one for making music.">What apps do you have?</button></li>
-              <li><button type="button" data-prompt="Open Paint for me.">Open Paint for me</button></li>
-              <li><button type="button" data-prompt="What's in /Documents/?">What's in /Documents/?</button></li>
-              <li><button type="button" data-prompt="Summarize the page at https://news.ycombinator.com">Summarize news.ycombinator.com</button></li>
+              <li>
+                <button type="button" data-prompt="Explain how WebGPU works in a paragraph.">
+                  Explain WebGPU
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  data-prompt="Draft a short, friendly out-of-office reply for next week."
+                >
+                  Draft an OOO reply
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  data-prompt="What's a good way to explain closures to someone new to JavaScript?"
+                >
+                  Explain closures
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  data-prompt="Give me five dinner ideas using rice, eggs, and whatever is usually in the fridge."
+                >
+                  Dinner ideas
+                </button>
+              </li>
             </ul>
             <p class="chat-empty-hint">
-              Tip: drag a text file, PDF, or code file onto the chat to
-              analyze its contents.
+              Tip: drag a text file, PDF, or code file onto the chat to ask questions about it.
             </p>
           </div>
         </div>
@@ -150,7 +166,12 @@
       </main>
 
       <form class="chat-composer" id="chat-composer">
-        <div class="chat-attachments" id="chat-attachments" hidden aria-label="Pending attachments"></div>
+        <div
+          class="chat-attachments"
+          id="chat-attachments"
+          hidden
+          aria-label="Pending attachments"
+        ></div>
         <div class="chat-composer-row">
           <button
             type="button"
@@ -173,19 +194,20 @@
           <button type="submit" id="chat-send" class="chat-send" aria-label="Send">
             <span aria-hidden="true">➤</span>
           </button>
-          <button type="button" id="chat-stop" class="chat-stop" hidden aria-label="Stop generating">
+          <button
+            type="button"
+            id="chat-stop"
+            class="chat-stop"
+            hidden
+            aria-label="Stop generating"
+          >
             <span aria-hidden="true">■</span>
           </button>
         </div>
       </form>
     </div>
 
-    <div
-      id="chat-drop-overlay"
-      class="chat-drop-overlay"
-      role="presentation"
-      hidden
-    >
+    <div id="chat-drop-overlay" class="chat-drop-overlay" role="presentation" hidden>
       <div class="chat-drop-overlay-inner">
         <div class="chat-drop-emoji" aria-hidden="true">📄</div>
         <div class="chat-drop-title">Drop to attach</div>

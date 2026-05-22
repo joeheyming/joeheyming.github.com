@@ -26,7 +26,10 @@
       content="A full code editor in your browser: file tree, tabs, Monaco, Vim, Prettier, sandboxed JS runner, and diff view."
     />
     <meta property="og:url" content="https://joeheyming.github.io/code-ide/" />
-    <meta property="og:image" content="https://joeheyming.github.io/code-ide/code-ide-preview.png" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/code-ide/code-ide-preview.png"
+    />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Code IDE interface" />
@@ -40,7 +43,10 @@
       name="twitter:description"
       content="A full code editor in your browser: file tree, tabs, Monaco, Vim, Prettier, sandboxed JS runner, and diff view."
     />
-    <meta name="twitter:image" content="https://joeheyming.github.io/code-ide/code-ide-preview.png" />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/code-ide/code-ide-preview.png"
+    />
 
     <link rel="canonical" href="https://joeheyming.github.io/code-ide/" />
     <link rel="stylesheet" href="style.css" />
@@ -127,7 +133,6 @@
           <button id="cmd-format" class="icon-btn" title="Format (Shift+Alt+F)">⌬</button>
           <button id="cmd-run" class="icon-btn" title="Run current file (F5)">▶</button>
           <button id="cmd-diff" class="icon-btn" title="Diff two files">⇆</button>
-          <button id="cmd-ai" class="icon-btn ai-btn" title="AI Assistant">✨</button>
           <button id="cmd-vim" class="icon-btn" title="Toggle Vim mode">V</button>
           <button id="cmd-theme" class="icon-btn" title="Toggle theme">◐</button>
         </div>
@@ -139,10 +144,12 @@
         <aside class="sidebar" id="sidebar" data-active-view="explorer">
           <nav class="sidebar-tabs" role="tablist">
             <button class="sidebar-tab active" role="tab" data-view="explorer" title="Explorer">
-              <span class="ico">📁</span><span class="lbl">Explorer</span>
+              <span class="ico">📁</span>
+              <span class="lbl">Explorer</span>
             </button>
             <button class="sidebar-tab" role="tab" data-view="scm" title="Source Control">
-              <span class="ico">⎇</span><span class="lbl">Source Control</span>
+              <span class="ico">⎇</span>
+              <span class="lbl">Source Control</span>
               <span class="badge" id="scm-badge" hidden>0</span>
             </button>
           </nav>
@@ -153,7 +160,9 @@
               <div class="sidebar-actions">
                 <button id="tree-new-file" class="icon-btn" title="New file">＋</button>
                 <button id="tree-new-folder" class="icon-btn" title="New folder">📁</button>
-                <button id="tree-open-folder" class="icon-btn" title="Open folder from disk">📂</button>
+                <button id="tree-open-folder" class="icon-btn" title="Open folder from disk">
+                  📂
+                </button>
                 <button id="tree-refresh" class="icon-btn" title="Refresh">⟳</button>
               </div>
             </div>
@@ -191,12 +200,38 @@
                   <button data-welcome="sample">Load Sample Project</button>
                 </div>
                 <ul class="shortcuts">
-                  <li><kbd>Ctrl</kbd>+<kbd>S</kbd> Save</li>
-                  <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> Save As</li>
-                  <li><kbd>Ctrl</kbd>+<kbd>P</kbd> Go to file</li>
-                  <li><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> Format</li>
-                  <li><kbd>F5</kbd> Run JS</li>
-                  <li><kbd>Ctrl</kbd>+<kbd>K</kbd> ✨ AI edit</li>
+                  <li>
+                    <kbd>Ctrl</kbd>
+                    +
+                    <kbd>S</kbd>
+                    Save
+                  </li>
+                  <li>
+                    <kbd>Ctrl</kbd>
+                    +
+                    <kbd>Shift</kbd>
+                    +
+                    <kbd>S</kbd>
+                    Save As
+                  </li>
+                  <li>
+                    <kbd>Ctrl</kbd>
+                    +
+                    <kbd>P</kbd>
+                    Go to file
+                  </li>
+                  <li>
+                    <kbd>Shift</kbd>
+                    +
+                    <kbd>Alt</kbd>
+                    +
+                    <kbd>F</kbd>
+                    Format
+                  </li>
+                  <li>
+                    <kbd>F5</kbd>
+                    Run JS
+                  </li>
                 </ul>
               </div>
             </div>
@@ -208,7 +243,6 @@
             <div class="panel-tabs">
               <button class="panel-tab active" data-panel-tab="console">Console</button>
               <button class="panel-tab" data-panel-tab="diff">Diff</button>
-              <button class="panel-tab" data-panel-tab="ai">✨ Assistant</button>
             </div>
             <button id="panel-close" class="icon-btn" title="Close panel">×</button>
           </div>
@@ -222,20 +256,31 @@
             </div>
             <div class="panel-view" data-panel-view="diff" hidden>
               <div class="diff-toolbar">
-                <label>Left <select id="diff-left"></select></label>
-                <label>Right <select id="diff-right"></select></label>
+                <label>
+                  Left
+                  <select id="diff-left"></select>
+                </label>
+                <label>
+                  Right
+                  <select id="diff-right"></select>
+                </label>
                 <button id="diff-render" class="btn">Compare</button>
               </div>
               <div id="diff-editor" class="diff-editor"></div>
             </div>
-            <div class="panel-view" data-panel-view="ai" id="ai-panel-view" hidden></div>
           </div>
         </aside>
       </main>
 
       <footer class="statusbar">
-        <button id="status-branch" class="status-item status-branch" hidden title="Branch — click to switch">
-          <span class="branch-icon">⎇</span><span id="status-branch-name">—</span>
+        <button
+          id="status-branch"
+          class="status-item status-branch"
+          hidden
+          title="Branch — click to switch"
+        >
+          <span class="branch-icon">⎇</span>
+          <span id="status-branch-name">—</span>
           <span id="status-branch-counts" class="branch-counts"></span>
         </button>
         <span id="status-mode" class="status-pill">INS</span>

@@ -279,6 +279,17 @@ class RichNotepad {
         debug('Could not load saved content');
       }
     }
+    // Live-update when the chat assistant writes notepad-rich-content from
+    // another same-origin context (storage events fire in other windows/iframes).
+    window.addEventListener('storage', (e) => {
+      if (e.key !== 'notepad-rich-content' || e.newValue === null) return;
+      try {
+        const content = JSON.parse(e.newValue);
+        this.quill.setContents(content);
+      } catch (_) {
+        // ignore malformed deltas
+      }
+    });
   }
 
   addCustomButtons() {

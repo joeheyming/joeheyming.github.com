@@ -27,8 +27,7 @@ export const menuMethods = {
         continue;
       }
       const row = document.createElement('div');
-      row.className =
-        'item' + (item.danger ? ' danger' : '') + (item.disabled ? ' disabled' : '');
+      row.className = 'item' + (item.danger ? ' danger' : '') + (item.disabled ? ' disabled' : '');
       row.textContent = item.label;
       if (!item.disabled) {
         row.addEventListener('click', () => {
@@ -64,13 +63,9 @@ export const menuMethods = {
     };
     const others = () => this.tabs.filter((t) => t.path !== path).map((t) => t.path);
     const toRight = () =>
-      this.tabs
-        .slice(this.tabs.findIndex((t) => t.path === path) + 1)
-        .map((t) => t.path);
+      this.tabs.slice(this.tabs.findIndex((t) => t.path === path) + 1).map((t) => t.path);
     const saved = () =>
-      this.tabs
-        .filter((t) => t.kind === 'diff' || !this.host.isDirty(t.path))
-        .map((t) => t.path);
+      this.tabs.filter((t) => t.kind === 'diff' || !this.host.isDirty(t.path)).map((t) => t.path);
     const all = () => this.tabs.map((t) => t.path);
 
     const items = [
@@ -184,12 +179,6 @@ export const menuMethods = {
           label: 'Command Palette',
           kbd: 'F1',
           action: () => this.host.editor.getAction('editor.action.quickCommand')?.run()
-        },
-        { sep: true },
-        {
-          label: '✨ AI: Edit Selection / File…',
-          kbd: 'Ctrl+K',
-          action: () => this.openAiCmdK?.()
         }
       ],
       view: () => [
@@ -205,8 +194,7 @@ export const menuMethods = {
         },
         { sep: true },
         { label: 'Console Panel', action: () => this.showPanel('console') },
-        { label: 'Diff Panel', action: () => this.showPanel('diff') },
-        { label: '✨ AI Assistant', action: () => this.showPanel('ai') }
+        { label: 'Diff Panel', action: () => this.showPanel('diff') }
       ],
       run: () => [
         { label: 'Run Current File', kbd: 'F5', action: () => this.runActive() },
