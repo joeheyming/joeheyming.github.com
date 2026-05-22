@@ -4,8 +4,27 @@
 //   options.deferProxies: string[] — try these proxy URL prefixes last (e.g. ['https://corsproxy.io/']).
 //   options.timeout, options.maxRetries, options.headers — passed through.
 //   options.signal — optional AbortSignal (e.g. jsh Ctrl+C); merged with timeout for each fetch.
+//   options.validate: (text)=>boolean — optional body check; on false the proxy
+//     is treated as failed and the chain advances. `fetchJson` sets this by
+//     default to reject non-JSON bodies (catches codetabs' rate-limit garbage).
 
 const PROXY_HEALTH_STORAGE_KEY = 'heyming.proxyService.v1';
+
+/**
+ * Cheap pre-flight check used by `fetchJson`'s default `validate`. CORS
+ * proxies that silently fail (e.g. codetabs returning the plain-text body
+ * `Edge: Too Many Requests` with a 200 status) get caught here so the chain
+ * advances to the next proxy instead of caching garbage. All JSON APIs we
+ * call return objects or arrays at the top level, so a `{` / `[` first char
+ * is a sufficient guard.
+ */
+function looksLikeJsonBody(text) {
+  if (typeof text !== 'string' || !text) return false;
+  const trimmed = text.trimStart();
+  if (!trimmed) return false;
+  const first = trimmed[0];
+  return first === '{' || first === '[';
+}
 
 /** @param {number} timeoutMs @param {AbortSignal|undefined|null} userSignal */
 function mergeFetchAbortSignal(timeoutMs, userSignal) {
@@ -278,6 +297,20 @@ class ProxyService {
             // the next proxy gets a chance.
             if (!content) {
               console.warn(`Proxy ${proxy} returned empty body — treating as failure`);
+              this.updateProxyScore(proxy, false);
+              this.proxyLastFailure.set(proxy, Date.now());
+              continue;
+            }
+
+            // Caller-supplied body validation. Catches proxies that return 200 OK
+            // with a non-empty body that isn't what we asked for — e.g. codetabs
+            // returning "Edge: Too Many Requests" as a plain-text 23-byte body
+            // when rate-limited. Without this check we'd cache that string and
+            // surface it to every caller for the same URL.
+            if (typeof options.validate === 'function' && !options.validate(content)) {
+              console.warn(
+                `Proxy ${proxy} returned body failing validation — treating as failure`
+              );
               this.updateProxyScore(proxy, false);
               this.proxyLastFailure.set(proxy, Date.now());
               continue;
@@ -596,7 +629,11 @@ class ProxyService {
    * @returns {Promise<any>}
    */
   async fetchJson(url, options = {}) {
-    const opts = { skipDirect: true, ...options };
+    // Per-call default validator: bodies that aren't JSON-shaped (i.e. don't
+    // start with `{` or `[`) get rejected before we cache them, so the proxy
+    // chain falls through to the next proxy instead of memoizing garbage.
+    // Caller can still pass their own `validate` to override.
+    const opts = { skipDirect: true, validate: looksLikeJsonBody, ...options };
     const text = await this.fetchWithProxy(url, opts);
     if (!text) {
       throw new Error("That source didn't return anything readable. Try again in a moment.");
