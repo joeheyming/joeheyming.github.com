@@ -86,6 +86,24 @@ function requireProxy() {
   return window.proxyService;
 }
 
+/**
+ * Open-Meteo signals API errors with `{ error: true, reason: "..." }` and an
+ * HTTP 4xx status. The CORS proxies we fall back to pass that JSON body
+ * through with their own 200 status, so `proxy.fetchJson` happily returns
+ * the error envelope instead of throwing. Catch it explicitly so callers
+ * see a real Error (and the user sees the reason — usually "Daily API
+ * request limit exceeded" when the shared proxy IP is over quota).
+ *
+ * @param {any} data
+ * @param {string} fallback
+ */
+function ensureNotOpenMeteoError(data, fallback) {
+  if (data && typeof data === 'object' && data.error === true) {
+    const reason = typeof data.reason === 'string' && data.reason ? data.reason : fallback;
+    throw new Error(reason);
+  }
+}
+
 function buildUrl(base, params) {
   const qs = Object.entries(params)
     .filter(([, v]) => v !== undefined && v !== null && v !== '')
@@ -124,7 +142,10 @@ export function looksLikePostalCode(q) {
  * @returns {Promise<GeoHit[]>}
  */
 export async function lookupZip(zip, opts = {}) {
-  const code = String(zip || '').trim().toUpperCase().replace(/\s+/g, '');
+  const code = String(zip || '')
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, '');
   if (!code) return [];
   const country = (opts.country || 'us').toLowerCase();
   const url = `${ZIPPOPOTAM_BASE}/${encodeURIComponent(country)}/${encodeURIComponent(code)}`;
@@ -136,7 +157,10 @@ export async function lookupZip(zip, opts = {}) {
     data = await proxy.fetchJson(url, {
       timeout: 10000,
       maxRetries: 1,
-      signal: opts.signal
+      signal: opts.signal,
+      // Zippopotam allows CORS; try the user's own IP first so we don't burn
+      // the shared proxy's quota on a tiny postal lookup.
+      skipDirect: false
     });
   } catch {
     return [];
@@ -191,8 +215,12 @@ export async function searchPlaces(query, opts = {}) {
       timeout: 10000,
       maxRetries: 1,
       signal: opts.signal,
-      friendlyError: "Couldn't read place search results. Try again in a moment."
+      friendlyError: "Couldn't read place search results. Try again in a moment.",
+      // Open-Meteo's geocoder allows CORS; direct first avoids the shared
+      // proxy's daily quota.
+      skipDirect: false
     });
+    ensureNotOpenMeteoError(data, "Couldn't read place search results. Try again in a moment.");
   } catch {
     return [];
   }
@@ -305,14 +333,26 @@ export async function fetchForecast(loc, opts = {}) {
     timeout: 15000,
     maxRetries: 2,
     signal: opts.signal,
-    friendlyError: "Couldn't read forecast data for that location."
+    friendlyError: "Couldn't read forecast data for that location.",
+    // Open-Meteo's forecast API allows CORS; try the user's own IP first so
+    // we don't pile onto the shared proxy IP's daily 10k-call quota (when
+    // that quota is hit, Open-Meteo returns {error: true, reason: ...} and
+    // the proxy passes the body through with HTTP 200 — see ensureNotOpenMeteoError).
+    skipDirect: false
   });
+  ensureNotOpenMeteoError(data, "Couldn't read forecast data for that location.");
 
   const tz = String(data?.timezone || 'UTC');
   const utcOffset = Number(data?.utc_offset_seconds || 0);
   const elev = Number(data?.elevation || 0);
 
-  const c = data?.current || {};
+  // Defense in depth: if the response made it past ensureNotOpenMeteoError
+  // but somehow has no `current` block, refuse to render a tile full of NaN.
+  if (!data || typeof data.current !== 'object' || data.current === null) {
+    throw new Error('Forecast data was incomplete. Try again in a moment.');
+  }
+
+  const c = data.current;
   /** @type {CurrentWeather} */
   const current = {
     timeIso: String(c.time || ''),
@@ -364,7 +404,8 @@ export async function fetchForecast(loc, opts = {}) {
       sunriseIso: typeof d.sunrise?.[i] === 'string' ? d.sunrise[i] : undefined,
       sunsetIso: typeof d.sunset?.[i] === 'string' ? d.sunset[i] : undefined,
       uvIndexMax: typeof d.uv_index_max?.[i] === 'number' ? d.uv_index_max[i] : undefined,
-      windKphMax: typeof d.wind_speed_10m_max?.[i] === 'number' ? d.wind_speed_10m_max[i] : undefined
+      windKphMax:
+        typeof d.wind_speed_10m_max?.[i] === 'number' ? d.wind_speed_10m_max[i] : undefined
     });
   }
 
@@ -454,8 +495,10 @@ export async function fetchModelComparison(loc, opts = {}) {
     timeout: 15000,
     maxRetries: 1,
     signal: opts.signal,
-    friendlyError: "Couldn't read comparison data for that location."
+    friendlyError: "Couldn't read comparison data for that location.",
+    skipDirect: false
   });
+  ensureNotOpenMeteoError(data, "Couldn't read comparison data for that location.");
 
   const h = data?.hourly || {};
   const times = Array.isArray(h.time) ? h.time : [];
