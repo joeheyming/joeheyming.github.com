@@ -197,6 +197,21 @@ const PAGES = [
     url: `${BASE_URL}/code-ide/`,
     output: 'code-ide/code-ide-preview.png',
     title: 'Code IDE'
+  },
+  {
+    url: `${BASE_URL}/clock/`,
+    output: 'clock/clock-preview.png',
+    title: 'Clock'
+  },
+  {
+    url: `${BASE_URL}/starwars/`,
+    output: 'starwars/starwars-preview.png',
+    title: 'Star Wars ASCII'
+  },
+  {
+    url: `${BASE_URL}/ascii/`,
+    output: 'ascii/ascii-preview.png',
+    title: 'ASCII Art'
   }
 ];
 

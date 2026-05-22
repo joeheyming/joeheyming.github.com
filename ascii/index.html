@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🔡 ASCII Art - Image &amp; Webcam Converter | Joe Heyming</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔡</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="Convert images and live webcam feed into ASCII art. Choose from Classic, Dense, Block, or Braille characters. Full color, green matrix, amber terminal. Export as PNG or text."
+    />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta
+      name="keywords"
+      content="ascii art, image to ascii, webcam ascii, ascii converter, text art, matrix art, braille art, terminal art"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming" />
+    <meta property="og:title" content="🔡 ASCII Art - Image &amp; Webcam Converter" />
+    <meta
+      property="og:description"
+      content="Convert any image or your live webcam feed into ASCII art. Classic, Dense, Block, or Braille. Full color or terminal modes. Export as PNG or text."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/ascii/" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="🔡 ASCII Art - Image &amp; Webcam Converter" />
+    <meta
+      name="twitter:description"
+      content="Convert any image or live webcam into ASCII art with Classic, Dense, Block, or Braille characters."
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/ascii/" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "ASCII Art Converter",
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Convert images and webcam feed to ASCII art with multiple character sets and color modes.",
+            "url": "https://joeheyming.github.io/ascii/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "featureList": [
+              "Image to ASCII art",
+              "Live webcam ASCII",
+              "Full color mode",
+              "Export PNG and TXT",
+              "Multiple character sets"
+            ],
+            "keywords": "ascii art, webcam, image converter, text art, matrix"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              { "@type": "ListItem", "position": 2, "name": "ASCII Art" }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <link rel="stylesheet" href="index.css" />
+  </head>
+
+  <body>
+    <header class="app-header">
+      <span class="app-title">🔡 ASCII Art</span>
+      <div class="tabs">
+        <button id="tab-image" class="tab-btn active" aria-pressed="true" aria-label="Image mode">
+          🖼 Image
+        </button>
+        <button id="tab-webcam" class="tab-btn" aria-pressed="false" aria-label="Webcam mode">
+          📷 Webcam
+        </button>
+      </div>
+    </header>
+
+    <div id="canvas-wrap">
+      <canvas id="ascii-canvas" aria-label="ASCII art output"></canvas>
+      <video
+        id="video-feed"
+        playsinline
+        muted
+        autoplay
+        webkit-playsinline
+        aria-hidden="true"
+      ></video>
+      <div id="tom-pip" aria-label="Take On Me music video" role="region">
+        <div id="tom-pip-label">a-ha — Take On Me</div>
+        <iframe
+          id="tom-iframe"
+          src=""
+          allow="autoplay; encrypted-media"
+          allowfullscreen
+          title="Take On Me by a-ha"
+        ></iframe>
+      </div>
+      <button id="btn-fullscreen" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button>
+      <div id="overlay-msg" aria-live="polite"></div>
+    </div>
+
+    <div class="controls-panel" role="region" aria-label="ASCII art controls">
+      <div id="webcam-controls" class="webcam-ctrl-row" style="display: none">
+        <button id="btn-start-cam" class="btn btn-primary" aria-label="Start camera">
+          📷 Start Camera
+        </button>
+        <button
+          id="btn-stop-cam"
+          class="btn btn-danger"
+          aria-label="Stop camera"
+          style="display: none"
+        >
+          ⏹ Stop
+        </button>
+        <button id="btn-snapshot" class="btn" aria-label="Snapshot" style="display: none">
+          📷 Snapshot
+        </button>
+        <button
+          id="btn-tom"
+          class="btn btn-tom"
+          aria-pressed="false"
+          aria-label="Toggle Take On Me mode"
+          style="display: none"
+        >
+          🎵 Take On Me
+        </button>
+        <div
+          id="cam-error"
+          class="cam-error"
+          style="display: none"
+          role="alert"
+          aria-live="assertive"
+        ></div>
+      </div>
+
+      <div class="ctrl-row">
+        <div class="ctrl-group">
+          <label class="ctrl-label" for="ctrl-charset">Charset</label>
+          <select id="ctrl-charset" aria-label="Character set">
+            <option value="classic">Classic</option>
+            <option value="dense">Dense</option>
+            <option value="block">Block</option>
+            <option value="braille">Braille</option>
+            <option value="custom">Custom…</option>
+          </select>
+        </div>
+
+        <div id="ctrl-custom-wrap" class="ctrl-group" style="display: none">
+          <label class="ctrl-label" for="ctrl-custom">Chars</label>
+          <input
+            type="text"
+            id="ctrl-custom"
+            aria-label="Custom character set"
+            placeholder="@#:. "
+            maxlength="128"
+          />
+        </div>
+
+        <div class="ctrl-group">
+          <label class="ctrl-label" for="ctrl-color">Color</label>
+          <select id="ctrl-color" aria-label="Color mode">
+            <option value="mono">Monochrome</option>
+            <option value="green">Green Matrix</option>
+            <option value="amber">Amber Terminal</option>
+            <option value="color">Full Color</option>
+            <option value="inverted">Inverted</option>
+          </select>
+        </div>
+
+        <div class="ctrl-group">
+          <label class="ctrl-label" for="ctrl-cols">Columns</label>
+          <input
+            type="range"
+            id="ctrl-cols"
+            min="20"
+            max="200"
+            value="80"
+            aria-label="Column count (20–200)"
+            style="width: 100px"
+          />
+          <span class="ctrl-val" id="ctrl-cols-val" aria-live="polite">80</span>
+        </div>
+
+        <div class="ctrl-group">
+          <label class="ctrl-label" for="ctrl-font">Font</label>
+          <input
+            type="range"
+            id="ctrl-font"
+            min="6"
+            max="18"
+            value="10"
+            aria-label="Font size (6–18px)"
+            style="width: 72px"
+          />
+          <span class="ctrl-val" id="ctrl-font-val" aria-live="polite">10</span>
+        </div>
+
+        <div class="ctrl-group">
+          <label class="ctrl-label" for="ctrl-contrast">Contrast</label>
+          <input
+            type="range"
+            id="ctrl-contrast"
+            min="0.1"
+            max="3"
+            step="0.1"
+            value="1"
+            aria-label="Contrast (0.1–3.0)"
+            style="width: 80px"
+          />
+          <span class="ctrl-val" id="ctrl-contrast-val" aria-live="polite">1.0</span>
+        </div>
+
+        <div class="ctrl-group">
+          <label class="ctrl-label" for="ctrl-bright">Bright</label>
+          <input
+            type="range"
+            id="ctrl-bright"
+            min="-100"
+            max="100"
+            value="0"
+            aria-label="Brightness (−100 to 100)"
+            style="width: 80px"
+          />
+          <span class="ctrl-val" id="ctrl-bright-val" aria-live="polite">0</span>
+        </div>
+      </div>
+
+      <div class="export-row">
+        <span class="export-label">Export</span>
+        <button id="btn-copy" class="btn" aria-label="Copy ASCII text to clipboard">
+          📋 Copy Text
+        </button>
+        <button id="btn-png" class="btn" aria-label="Download as PNG image">🖼 PNG</button>
+        <button id="btn-txt" class="btn" aria-label="Download as text file">📄 TXT</button>
+      </div>
+    </div>
+
+    <input
+      type="file"
+      id="file-input"
+      accept="image/*"
+      style="display: none"
+      aria-hidden="true"
+      tabindex="-1"
+    />
+
+    <script type="module" src="index.js"></script>
+  </body>
+</html>
