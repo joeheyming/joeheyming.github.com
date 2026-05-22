@@ -73,12 +73,6 @@
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://joeheyming.github.io/legend-of-doom/</loc>
-    <lastmod>2026-05-09T00:00:00+00:00</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://joeheyming.github.io/media-player/</loc>
     <lastmod>2026-05-09T00:00:00+00:00</lastmod>
     <changefreq>monthly</changefreq>
@@ -107,12 +101,6 @@
     <lastmod>2026-05-09T00:00:00+00:00</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://joeheyming.github.io/os/</loc>
-    <lastmod>2026-05-09T00:00:00+00:00</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://joeheyming.github.io/pacman/</loc>
@@ -291,6 +279,60 @@
   <url>
     <loc>https://joeheyming.github.io/paint/</loc>
     <lastmod>2026-05-12T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/ascii/</loc>
+    <lastmod>2026-05-22T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/chat/</loc>
+    <lastmod>2026-05-22T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/clock/</loc>
+    <lastmod>2026-05-22T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/listen/</loc>
+    <lastmod>2026-05-22T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/pacman-infinite/</loc>
+    <lastmod>2026-05-22T00:00:00+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/read/</loc>
+    <lastmod>2026-05-22T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/starwars/</loc>
+    <lastmod>2026-05-22T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/sudoku/</loc>
+    <lastmod>2026-05-22T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/triplog/</loc>
+    <lastmod>2026-05-22T00:00:00+00:00</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
