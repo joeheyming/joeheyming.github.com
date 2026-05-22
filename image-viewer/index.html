@@ -3,9 +3,54 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Viewer - Zoom, Pan &amp; Rotate | Joe Heyming</title>
+
+    <meta
+      name="description"
+      content="View image files in your browser with zoom, pan, rotate, and fullscreen. Supports PNG, JPG, GIF, WebP, SVG, and BMP — drop a file or click Open."
+    />
+    <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
-    <title>Image Viewer - Heyming OS</title>
+    <meta name="theme-color" content="#1a1a1a" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming" />
+    <meta property="og:title" content="Image Viewer - Zoom, Pan &amp; Rotate" />
+    <meta
+      property="og:description"
+      content="View image files in your browser with zoom, pan, rotate, and fullscreen. Supports PNG, JPG, GIF, WebP, SVG, and BMP."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/image-viewer/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/image-viewer/image-viewer-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:title" content="Image Viewer - Zoom, Pan &amp; Rotate" />
+    <meta
+      name="twitter:description"
+      content="View image files in your browser with zoom, pan, rotate, and fullscreen. Supports PNG, JPG, GIF, WebP, SVG, and BMP."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/image-viewer/image-viewer-preview.png"
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/image-viewer/" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🖼️</text></svg>"
+    />
     <link rel="stylesheet" href="style.css" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
   </head>
   <body>
     <div id="viewer-container">
@@ -44,19 +89,23 @@
       <div id="drop-zone" class="active">
         <div class="drop-content">
           <span class="icon">🖼️</span>
-          <h2>Image Viewer</h2>
+          <h1>Image Viewer</h1>
           <p>
             Drop an image here or click
             <strong>Open</strong>
           </p>
           <p class="formats">Supports: PNG, JPG, GIF, WebP, SVG, BMP</p>
+          <p class="seo-intro">
+            A lightweight image viewer for Heyming OS. Zoom in for detail, rotate photos, fit images
+            to the window, or go fullscreen — all without leaving the browser.
+          </p>
         </div>
       </div>
 
       <!-- Image Area -->
       <div id="image-wrapper" class="hidden">
         <div id="image-container">
-          <img id="image" draggable="false" />
+          <img id="image" draggable="false" alt="" role="presentation" />
         </div>
       </div>
     </div>

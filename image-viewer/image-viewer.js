@@ -493,6 +493,8 @@ class ImageViewer {
 
       this.imageWrapper.classList.remove('loading');
       this.enableControls(true);
+      this.image.alt = fileName ? `${fileName} preview` : 'Loaded image preview';
+      this.image.removeAttribute('role');
 
       // Reset transform
       this.rotation = 0;
@@ -518,6 +520,8 @@ class ImageViewer {
   reset() {
     this._revokeImageBlobUrl();
     this.image.src = '';
+    this.image.alt = '';
+    this.image.setAttribute('role', 'presentation');
     this.image.style.width = '';
     this.image.style.height = '';
     this.imageWrapper.classList.add('hidden');

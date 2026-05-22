@@ -133,6 +133,25 @@ body {
   padding: 12px 0;
 }
 
+.sidebar-seo {
+  padding: 0 12px 12px;
+  border-bottom: 1px solid #3d3d5c;
+  margin-bottom: 12px;
+}
+
+.sidebar-seo h1 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #e0e0e0;
+}
+
+.sidebar-seo .seo-intro {
+  font-size: 11px;
+  line-height: 1.4;
+  color: rgba(224, 224, 224, 0.65);
+}
+
 .sidebar-section {
   margin-bottom: 16px;
 }

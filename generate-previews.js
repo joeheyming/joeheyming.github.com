@@ -247,6 +247,26 @@ const PAGES = [
     url: `${BASE_URL}/about/`,
     output: 'about/about-preview.png',
     title: 'About Joe Heyming'
+  },
+  {
+    url: `${BASE_URL}/surf/`,
+    output: 'surf/surf-preview.png',
+    title: 'Surf HTML Viewer'
+  },
+  {
+    url: `${BASE_URL}/filemanager/`,
+    output: 'filemanager/filemanager-preview.png',
+    title: 'File Manager'
+  },
+  {
+    url: `${BASE_URL}/image-viewer/`,
+    output: 'image-viewer/image-viewer-preview.png',
+    title: 'Image Viewer'
+  },
+  {
+    url: `${BASE_URL}/programming-advice/`,
+    output: 'programming-advice/programming-advice-preview.png',
+    title: 'Programming Wisdom'
   }
 ];
 

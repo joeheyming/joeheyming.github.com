@@ -27,6 +27,24 @@ main {
   text-align: center;
 }
 
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.page-header .seo-intro {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 36rem;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
 .advice-card {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);

@@ -139,7 +139,7 @@ body {
   }
 }
 
-.drop-content h2 {
+.drop-content h1 {
   font-size: 28px;
   font-weight: 600;
   margin-bottom: 12px;
@@ -147,6 +147,13 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.drop-content .seo-intro {
+  font-size: 14px;
+  max-width: 28rem;
+  margin: 0.75rem auto 0;
+  line-height: 1.45;
 }
 
 .drop-content p {

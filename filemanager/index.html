@@ -3,11 +3,54 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>File Manager - Browse Browser Files | Joe Heyming</title>
+
+    <meta
+      name="description"
+      content="Browse and manage files stored in your browser's Heyming OS filesystem. Create folders, paste from the clipboard, and open files with installed apps."
+    />
+    <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#1a1828" />
-    <title>File Manager - Heyming OS</title>
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming" />
+    <meta property="og:title" content="File Manager - Browse Browser Files" />
+    <meta
+      property="og:description"
+      content="Browse and manage files stored in your browser's Heyming OS filesystem. Create folders, paste from the clipboard, and open files with installed apps."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/filemanager/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/filemanager/filemanager-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:title" content="File Manager - Browse Browser Files" />
+    <meta
+      name="twitter:description"
+      content="Browse and manage files stored in your browser's Heyming OS filesystem. Create folders, paste from the clipboard, and open files."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/filemanager/filemanager-preview.png"
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/filemanager/" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📂</text></svg>"
+    />
     <link rel="stylesheet" href="style.css" />
-    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
   </head>
   <body>
     <div id="file-manager">
@@ -38,6 +81,13 @@
 
       <!-- Sidebar (populated by JS from config) -->
       <div id="sidebar">
+        <header class="sidebar-seo">
+          <h1>File Manager</h1>
+          <p class="seo-intro">
+            Browse files saved in your browser's Heyming OS filesystem. Navigate folders, create
+            files, paste from the clipboard, and open documents with installed apps.
+          </p>
+        </header>
         <div class="sidebar-section" id="quick-access-section">
           <h3>Quick Access</h3>
           <!-- Generated dynamically -->

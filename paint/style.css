@@ -51,6 +51,22 @@ html, body {
   overflow: visible;
 }
 
+.paint-title-wrap {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+.paint-seo-intro {
+  font-size: 11px;
+  color: var(--fg-muted, #94a3b8);
+  max-width: 14rem;
+  line-height: 1.3;
+  margin: 0;
+  flex-shrink: 1;
+}
+
 .paint-title {
   display: flex;
   align-items: center;
