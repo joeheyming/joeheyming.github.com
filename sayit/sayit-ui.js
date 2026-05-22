@@ -33,6 +33,7 @@ export function hideResults() {
 
 export function displayImage(src) {
   S.imgPreview.src = src;
+  S.imgPreview.alt = 'Uploaded image used for text recognition';
 }
 
 export function showLoading() {

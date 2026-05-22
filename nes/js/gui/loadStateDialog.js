@@ -74,7 +74,9 @@ this.Gui = this.Gui || {};
           SCREEN_WIDTH +
           "' height='" +
           SCREEN_HEIGHT +
-          "'/><br/>";
+          "' alt='" +
+          slotName +
+          " save state screenshot'/><br/>";
         //	html += "<img src='" + slot.screen + "'/><br/>";
       }
       html += '<span>' + slotName + '</span><br/>';
