@@ -17,7 +17,7 @@
     <meta charset="utf-8" />
     <meta
       name="description"
-      content="Free online calculator with a clean, modern interface. Perform basic arithmetic operations including addition, subtraction, multiplication, and division. No ads. Built by Joe Heyming."
+      content="Free online calculator with standard and graphing modes. Basic arithmetic plus plot f(x) and g(x) with pan and zoom. No ads. Built by Joe Heyming."
     />
 
     <!-- Enhanced SEO Meta Tags -->
@@ -27,7 +27,7 @@
     <meta name="theme-color" content="#6366f1" />
     <meta
       name="keywords"
-      content="calculator, online calculator, math calculator, arithmetic, addition, subtraction, multiplication, division, web calculator, free calculator, ad-free, no ads"
+      content="calculator, graphing calculator, online calculator, math calculator, arithmetic, plot functions, sin cos, web calculator, free calculator"
     />
 
     <!-- Open Graph Meta Tags -->
@@ -36,7 +36,7 @@
     <meta property="og:title" content="🧮 Calculator - Online Calculator Tool" />
     <meta
       property="og:description"
-      content="Free online calculator with a clean, modern interface. Perform basic arithmetic operations with ease. No downloads required, no ads - works in any browser."
+      content="Free online calculator with standard and graphing modes. Plot functions, pan and zoom — works in any browser, no ads."
     />
     <meta property="og:url" content="https://joeheyming.github.io/calculator/" />
     <meta
@@ -55,7 +55,7 @@
     <meta name="twitter:title" content="🧮 Calculator - Online Calculator Tool" />
     <meta
       name="twitter:description"
-      content="Free online calculator with a clean, modern interface. Perfect for quick calculations and basic arithmetic operations. No ads."
+      content="Free online calculator with standard and graphing modes. Plot f(x) and g(x) with pan and zoom. No ads."
     />
     <meta
       name="twitter:image"
@@ -64,11 +64,10 @@
 
     <!-- Canonical URL -->
     <link rel="canonical" href="https://joeheyming.github.io/calculator/" />
-    <script src="https://cdn.tailwindcss.com/3.4.16/tailwind.min.js"></script>
-    <script src="calculator.js"></script>
     <script src="/feedback.js"></script>
     <script src="/share.js"></script>
     <link rel="stylesheet" href="style.css" />
+    <script type="module" src="calculator.js"></script>
 
     <!-- Structured Data (JSON-LD) -->
     <script type="application/ld+json">
@@ -80,7 +79,7 @@
             "name": "Online Calculator",
             "applicationCategory": "UtilityApplication",
             "operatingSystem": "Web Browser",
-            "description": "Free online calculator for basic arithmetic operations. Clean, modern interface with support for addition, subtraction, multiplication, and division.",
+            "description": "Free online calculator with standard arithmetic and graphing mode. Plot two functions of x with pan and zoom.",
             "url": "https://joeheyming.github.io/calculator/",
             "author": {
               "@type": "Person",
@@ -94,12 +93,13 @@
             },
             "featureList": [
               "Basic arithmetic operations",
-              "Clean, modern interface",
+              "Graphing mode with f(x) and g(x)",
+              "Pan and zoom on the graph",
               "Keyboard support",
               "Mobile-friendly design",
               "No installation required"
             ],
-            "keywords": "calculator, arithmetic, math, addition, subtraction, multiplication, division",
+            "keywords": "calculator, graphing calculator, arithmetic, math, functions",
             "inLanguage": "en"
           },
           {
@@ -122,32 +122,153 @@
       }
     </script>
   </head>
-  <body class="min-h-screen overflow-x-hidden">
+  <body class="calc-page--standard">
     <div style="position: fixed; bottom: 20px; right: 20px; z-index: 100">
       <share-button label="📤 Share" theme="gradient"></share-button>
     </div>
-    <div class="calculator-content">
-      <div class="calculator-display" id="calc-display">0</div>
-      <div class="calculator-buttons">
-        <button class="calculator-button" data-calc="clear">C</button>
-        <button class="calculator-button" data-calc="sign">±</button>
-        <button class="calculator-button" data-calc="percent">%</button>
-        <button class="calculator-button operator" data-calc="/">÷</button>
-        <button class="calculator-button" data-calc="7">7</button>
-        <button class="calculator-button" data-calc="8">8</button>
-        <button class="calculator-button" data-calc="9">9</button>
-        <button class="calculator-button operator" data-calc="*">×</button>
-        <button class="calculator-button" data-calc="4">4</button>
-        <button class="calculator-button" data-calc="5">5</button>
-        <button class="calculator-button" data-calc="6">6</button>
-        <button class="calculator-button operator" data-calc="-">-</button>
-        <button class="calculator-button" data-calc="1">1</button>
-        <button class="calculator-button" data-calc="2">2</button>
-        <button class="calculator-button" data-calc="3">3</button>
-        <button class="calculator-button operator" data-calc="+">+</button>
-        <button class="calculator-button" data-calc="0" style="grid-column: span 2">0</button>
-        <button class="calculator-button" data-calc=".">.</button>
-        <button class="calculator-button equals" data-calc="=">=</button>
+
+    <div id="calc-app" class="calc-app calc-app--standard">
+      <nav class="calc-mode-nav" aria-label="Calculator mode">
+        <button
+          type="button"
+          class="calc-mode-tab calc-mode-tab--active"
+          data-mode="standard"
+          aria-selected="true"
+        >
+          Standard
+        </button>
+        <button type="button" class="calc-mode-tab" data-mode="graph" aria-selected="false">
+          Graph
+        </button>
+      </nav>
+
+      <div id="calc-panel-standard" class="calc-panel calc-panel--standard">
+        <div class="calculator-display" id="calc-display">0</div>
+        <div class="calculator-buttons">
+          <button type="button" class="calculator-button" data-calc="clear">C</button>
+          <button type="button" class="calculator-button" data-calc="sign">±</button>
+          <button type="button" class="calculator-button" data-calc="percent">%</button>
+          <button type="button" class="calculator-button operator" data-calc="/">÷</button>
+          <button type="button" class="calculator-button" data-calc="7">7</button>
+          <button type="button" class="calculator-button" data-calc="8">8</button>
+          <button type="button" class="calculator-button" data-calc="9">9</button>
+          <button type="button" class="calculator-button operator" data-calc="*">×</button>
+          <button type="button" class="calculator-button" data-calc="4">4</button>
+          <button type="button" class="calculator-button" data-calc="5">5</button>
+          <button type="button" class="calculator-button" data-calc="6">6</button>
+          <button type="button" class="calculator-button operator" data-calc="-">-</button>
+          <button type="button" class="calculator-button" data-calc="1">1</button>
+          <button type="button" class="calculator-button" data-calc="2">2</button>
+          <button type="button" class="calculator-button" data-calc="3">3</button>
+          <button type="button" class="calculator-button operator" data-calc="+">+</button>
+          <button type="button" class="calculator-button" data-calc="0" style="grid-column: span 2">
+            0
+          </button>
+          <button type="button" class="calculator-button" data-calc=".">.</button>
+          <button type="button" class="calculator-button equals" data-calc="=">=</button>
+        </div>
+      </div>
+
+      <div id="calc-panel-graph" class="calc-panel calc-panel--graph" hidden>
+        <div class="graph-expr-row">
+          <label class="graph-expr-label" for="graph-expr-f">
+            <span class="graph-swatch" style="background: #38bdf8"></span>
+            f(x)
+          </label>
+          <div class="graph-expr-field graph-expr-field--has-value">
+            <input
+              id="graph-expr-f"
+              class="graph-expr-input"
+              type="text"
+              spellcheck="false"
+              autocomplete="off"
+              aria-label="f of x"
+            />
+            <button
+              type="button"
+              class="graph-expr-clear"
+              data-for="graph-expr-f"
+              aria-label="Clear f(x)"
+              title="Clear"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+        <div class="graph-expr-row">
+          <label class="graph-expr-label" for="graph-expr-g">
+            <span class="graph-swatch" style="background: #fb923c"></span>
+            g(x)
+          </label>
+          <div class="graph-expr-field graph-expr-field--has-value">
+            <input
+              id="graph-expr-g"
+              class="graph-expr-input"
+              type="text"
+              spellcheck="false"
+              autocomplete="off"
+              aria-label="g of x"
+            />
+            <button
+              type="button"
+              class="graph-expr-clear"
+              data-for="graph-expr-g"
+              aria-label="Clear g(x)"
+              title="Clear"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+        <p id="graph-error" class="graph-error" hidden></p>
+        <div class="graph-toolbar">
+          <div class="graph-presets" role="group" aria-label="Example functions">
+            <button type="button" class="graph-preset" data-target="f" data-expr="sin(x)">
+              sin(x)
+            </button>
+            <button type="button" class="graph-preset" data-target="f" data-expr="cos(x)">
+              cos(x)
+            </button>
+            <button type="button" class="graph-preset" data-target="f" data-expr="x^2">x²</button>
+            <button type="button" class="graph-preset" data-target="f" data-expr="x^3 - 3*x">
+              x³−3x
+            </button>
+            <button type="button" class="graph-preset" data-target="f" data-expr="1/x">1/x</button>
+            <button type="button" class="graph-preset" data-target="f" data-expr="sqrt(abs(x))">
+              √|x|
+            </button>
+          </div>
+          <div class="graph-view-controls">
+            <label class="graph-range">
+              x min
+              <input id="graph-x-min" type="number" step="any" value="-10" />
+            </label>
+            <label class="graph-range">
+              x max
+              <input id="graph-x-max" type="number" step="any" value="10" />
+            </label>
+            <label class="graph-range">
+              y min
+              <input id="graph-y-min" type="number" step="any" value="-10" />
+            </label>
+            <label class="graph-range">
+              y max
+              <input id="graph-y-max" type="number" step="any" value="10" />
+            </label>
+            <button type="button" class="graph-btn" id="graph-fit-y">Fit Y</button>
+            <button type="button" class="graph-btn" id="graph-reset-view">Reset view</button>
+          </div>
+        </div>
+        <div class="graph-canvas-wrap">
+          <canvas
+            id="graph-canvas"
+            class="graph-canvas"
+            role="img"
+            aria-label="Function plot"
+          ></canvas>
+          <div id="graph-tooltip" class="graph-tooltip" hidden aria-live="polite"></div>
+        </div>
+        <p class="graph-hint">Drag to pan · scroll to zoom · hover to see f(x) and g(x)</p>
       </div>
     </div>
   </body>

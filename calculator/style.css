@@ -97,6 +97,11 @@ body.calc-page--graph {
   gap: 12px;
 }
 
+/* display:flex above wins over the UA [hidden] rule — keep inactive panels out of layout */
+.calc-panel[hidden] {
+  display: none !important;
+}
+
 .calc-app--graph .calc-panel {
   padding: 16px;
 }
@@ -201,10 +206,16 @@ body.calc-page--graph {
   flex-shrink: 0;
 }
 
-.graph-expr-input {
+.graph-expr-field {
+  position: relative;
   flex: 1;
   min-width: 0;
-  padding: 10px 12px;
+}
+
+.graph-expr-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 36px 10px 12px;
   font-family: 'Courier New', monospace;
   font-size: 15px;
   border: 1px solid var(--calc-border);
@@ -216,6 +227,37 @@ body.calc-page--graph {
 .graph-expr-input:focus {
   outline: 2px solid var(--calc-accent);
   outline-offset: 1px;
+}
+
+.graph-expr-clear {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+
+.graph-expr-field--has-value .graph-expr-clear,
+.graph-expr-field:focus-within .graph-expr-clear {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.graph-expr-clear:hover {
+  color: var(--calc-text);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .graph-error {
@@ -291,18 +333,46 @@ body.calc-page--graph {
   background: var(--calc-accent);
 }
 
+.graph-canvas-wrap {
+  position: relative;
+}
+
 .graph-canvas {
+  display: block;
   width: 100%;
   height: min(52vh, 360px);
   min-height: 220px;
   border-radius: 8px;
   border: 1px solid var(--calc-border);
   touch-action: none;
-  cursor: grab;
+  cursor: crosshair;
 }
 
 .graph-canvas:active {
   cursor: grabbing;
+}
+
+.graph-tooltip {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--calc-border);
+  background: rgba(15, 23, 42, 0.92);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+.graph-tooltip[hidden] {
+  display: none !important;
+}
+
+.graph-tooltip-line {
+  display: block;
 }
 
 .graph-hint {
