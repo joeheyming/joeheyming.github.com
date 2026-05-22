@@ -24,6 +24,11 @@ const PAGES = [
     title: 'NES Emulator'
   },
   {
+    url: `${BASE_URL}/sega/`,
+    output: 'sega/sega-preview.png',
+    title: 'Sega Genesis'
+  },
+  {
     url: `${BASE_URL}/calculator/`,
     output: 'calculator/calculator-preview.png',
     title: 'Calculator'
@@ -237,6 +242,11 @@ const PAGES = [
     url: `${BASE_URL}/chat/`,
     output: 'chat/chat-preview.png',
     title: 'Chat'
+  },
+  {
+    url: `${BASE_URL}/about/`,
+    output: 'about/about-preview.png',
+    title: 'About Joe Heyming'
   }
 ];
 

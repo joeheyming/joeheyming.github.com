@@ -28,6 +28,17 @@ class MediaPlayer {
     this.audioVisual = document.getElementById('audio-visual');
     this.audioTitle = document.getElementById('audio-title');
     this.audioArtist = document.getElementById('audio-artist');
+    this.vizCanvas = document.getElementById('viz-canvas');
+    /** @type {CanvasRenderingContext2D|null} */
+    this.vizCtx = null;
+    /** @type {AudioContext|null} */
+    this.audioCtx = null;
+    /** @type {AnalyserNode|null} */
+    this.analyser = null;
+    /** @type {Uint8Array|null} */
+    this.dataArray = null;
+    /** @type {number|null} */
+    this._vizRafId = null;
 
     // YouTube elements
     this.youtubeContainer = document.getElementById('youtube-container');
@@ -257,18 +268,26 @@ class MediaPlayer {
       this.btnPlayPause.textContent = '⏸️';
       this.btnPlayPause.title = 'Pause (Space)';
       this.mediaWrapper.classList.add('playing');
+      if (this.isAudio) {
+        this.initAudioContext(this.media);
+        this.drawSpectrum();
+      }
     });
 
     this.media.addEventListener('pause', () => {
       this.btnPlayPause.textContent = '▶️';
       this.btnPlayPause.title = 'Play (Space)';
       this.mediaWrapper.classList.remove('playing');
+      if (this.isAudio) {
+        this.stopSpectrum();
+      }
     });
 
     this.media.addEventListener('ended', () => {
       if (!this.isLooping) {
         this.btnPlayPause.textContent = '▶️';
         this.mediaWrapper.classList.remove('playing');
+        this.stopSpectrum();
       }
     });
 
@@ -639,6 +658,79 @@ class MediaPlayer {
     this.timeDisplay.textContent = 'YouTube';
   }
 
+  // ========== Audio Visualizer ==========
+
+  initAudioContext(mediaElement) {
+    if (this.audioCtx) {
+      if (this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume();
+      }
+      return;
+    }
+    this.audioCtx = new AudioContext();
+    this.analyser = this.audioCtx.createAnalyser();
+    this.analyser.fftSize = 256;
+    this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+    const source = this.audioCtx.createMediaElementSource(mediaElement);
+    source.connect(this.analyser);
+    this.analyser.connect(this.audioCtx.destination);
+  }
+
+  drawSpectrum() {
+    this.stopSpectrum();
+    if (!this.vizCanvas || !this.analyser || !this.dataArray) return;
+
+    const canvas = this.vizCanvas;
+    if (!this.vizCtx) {
+      this.vizCtx = canvas.getContext('2d');
+    }
+    const ctx = this.vizCtx;
+
+    const draw = () => {
+      this._vizRafId = requestAnimationFrame(draw);
+
+      const rect = canvas.getBoundingClientRect();
+      if (canvas.width !== rect.width || canvas.height !== rect.height) {
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+      }
+
+      const width = canvas.width;
+      const height = canvas.height;
+
+      this.analyser.getByteFrequencyData(this.dataArray);
+      ctx.clearRect(0, 0, width, height);
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, '#06b6d4');
+      gradient.addColorStop(1, '#8b5cf6');
+      ctx.fillStyle = gradient;
+
+      const bufferLength = this.dataArray.length;
+      const barWidth = (width / bufferLength) * 2.5;
+      let x = 0;
+
+      for (let i = 0; i < bufferLength; i++) {
+        const barHeight = (this.dataArray[i] / 255) * height;
+        ctx.fillRect(x, height - barHeight, barWidth - 1, barHeight);
+        x += barWidth;
+        if (x > width) break;
+      }
+    };
+
+    draw();
+  }
+
+  stopSpectrum() {
+    if (this._vizRafId !== null) {
+      cancelAnimationFrame(this._vizRafId);
+      this._vizRafId = null;
+    }
+    if (this.vizCanvas && this.vizCtx) {
+      this.vizCtx.clearRect(0, 0, this.vizCanvas.width, this.vizCanvas.height);
+    }
+  }
+
   showError(message) {
     this.dropZone.classList.remove('active');
     this.mediaWrapper.classList.remove('hidden', 'loading');
@@ -663,6 +755,7 @@ class MediaPlayer {
 
   reset() {
     this._revokeMediaBlobUrl();
+    this.stopSpectrum();
     this.media.pause();
 
     this._isResetting = true;

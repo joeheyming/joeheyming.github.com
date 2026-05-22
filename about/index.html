@@ -360,7 +360,7 @@
           <canvas id="contrib-canvas" style="display: block; border-radius: 6px"></canvas>
           <div
             id="contrib-tooltip"
-            style="
+            style="ok 
               position: absolute;
               background: #1c2128;
               color: #e6edf3;
@@ -428,6 +428,13 @@
             ></span>
           </span>
           <span>More</span>
+        </div>
+        <div
+          id="gh-feed"
+          class="mt-6 text-sm text-gray-400"
+          style="max-height: 200px; overflow-y: auto"
+        >
+          Loading recent activity…
         </div>
       </section>
 
@@ -729,10 +736,137 @@
             .catch(showFallback);
         }
 
+        // ── Recent activity feed ──────────────────────────────────────────────
+
+        var FEED_URL = 'https://api.github.com/users/joeheyming/events?per_page=15';
+
+        function relativeTime(isoStr) {
+          var diff = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000);
+          if (diff < 60) return 'just now';
+          if (diff < 3600) return Math.floor(diff / 60) + ' minutes ago';
+          if (diff < 86400) return Math.floor(diff / 3600) + ' hours ago';
+          var days = Math.floor(diff / 86400);
+          if (days === 1) return '1 day ago';
+          if (days < 30) return days + ' days ago';
+          var months = Math.floor(days / 30);
+          return months === 1 ? '1 month ago' : months + ' months ago';
+        }
+
+        function escapeHtml(str) {
+          return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+        }
+
+        function formatEvent(event) {
+          var repo = event.repo.name.replace(/^[^/]+\//, '');
+          var type = event.type;
+          var label, detail;
+          if (type === 'PushEvent') {
+            label = 'Pushed to ' + repo;
+            var commits = event.payload && event.payload.commits;
+            var msg = commits && commits.length > 0 ? commits[0].message : '';
+            detail = msg.length > 60 ? msg.slice(0, 60) + '\u2026' : msg;
+          } else if (type === 'CreateEvent') {
+            label = 'Created ' + repo;
+            detail = '';
+          } else if (type === 'WatchEvent') {
+            label = 'Starred ' + repo;
+            detail = '';
+          } else if (type === 'ForkEvent') {
+            label = 'Forked ' + repo;
+            detail = '';
+          } else if (type === 'PullRequestEvent') {
+            var pr = event.payload && event.payload.pull_request;
+            var title = pr ? pr.title : repo;
+            label = 'PR: ' + (title.length > 60 ? title.slice(0, 60) + '\u2026' : title);
+            detail = '';
+          } else {
+            var cleanType = type
+              .replace(/Event$/, '')
+              .replace(/([A-Z])/g, ' $1')
+              .trim();
+            label = cleanType + ' \u00b7 ' + repo;
+            detail = '';
+          }
+          return { label: label, detail: detail, time: relativeTime(event.created_at) };
+        }
+
+        function renderFeed(events) {
+          var feedEl = document.getElementById('gh-feed');
+          if (!feedEl) return;
+          var cutoff = Date.now() - 90 * 86400 * 1000;
+          var recent = events
+            .filter(function (e) {
+              return new Date(e.created_at).getTime() > cutoff;
+            })
+            .slice(0, 8);
+
+          if (recent.length === 0) {
+            feedEl.textContent = 'No recent public activity.';
+            return;
+          }
+
+          feedEl.innerHTML = '';
+          recent.forEach(function (event) {
+            var item = formatEvent(event);
+            var row = document.createElement('div');
+            row.style.cssText =
+              'display:flex;align-items:baseline;gap:8px;padding:5px 0;' +
+              'border-bottom:1px solid #21262d;';
+
+            var timeSpan = document.createElement('span');
+            timeSpan.style.cssText = 'color:#6e7681;white-space:nowrap;flex-shrink:0;';
+            timeSpan.textContent = '\uD83D\uDD50 ' + item.time;
+
+            var textSpan = document.createElement('span');
+            textSpan.style.cssText =
+              'color:#c9d1d9;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+            if (item.detail) {
+              textSpan.innerHTML =
+                '<span style="color:#e6edf3">' +
+                escapeHtml(item.label) +
+                '</span>' +
+                ' <span style="color:#484f58">\u2192</span> ' +
+                '<span style="color:#8b949e">' +
+                escapeHtml(item.detail) +
+                '</span>';
+            } else {
+              textSpan.textContent = item.label;
+            }
+
+            row.appendChild(timeSpan);
+            row.appendChild(textSpan);
+            feedEl.appendChild(row);
+          });
+
+          // Remove bottom border on last row
+          var lastRow = feedEl.lastElementChild;
+          if (lastRow) lastRow.style.borderBottom = 'none';
+        }
+
+        function loadFeed() {
+          fetch(FEED_URL)
+            .then(function (r) {
+              return r.json();
+            })
+            .then(renderFeed)
+            .catch(function () {
+              var feedEl = document.getElementById('gh-feed');
+              if (feedEl) feedEl.textContent = '';
+            });
+        }
+
         if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', loadGraph);
+          document.addEventListener('DOMContentLoaded', function () {
+            loadGraph();
+            loadFeed();
+          });
         } else {
           loadGraph();
+          loadFeed();
         }
       })();
     </script>

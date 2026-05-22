@@ -292,63 +292,18 @@ body {
   color: rgba(255, 255, 255, 0.6);
 }
 
-/* Visualizer bars */
+/* Frequency spectrum canvas */
 .visualizer {
-  display: flex;
-  gap: 6px;
-  align-items: flex-end;
-  height: 60px;
+  width: 100%;
+  max-width: 400px;
 }
 
-.visualizer .bar {
-  width: 8px;
-  background: linear-gradient(to top, #e94560, #ff6b6b);
-  border-radius: 4px;
-  animation: visualize 0.5s ease-in-out infinite alternate;
-}
-
-.visualizer .bar:nth-child(1) {
-  animation-delay: 0s;
-  height: 20px;
-}
-.visualizer .bar:nth-child(2) {
-  animation-delay: 0.1s;
-  height: 35px;
-}
-.visualizer .bar:nth-child(3) {
-  animation-delay: 0.2s;
-  height: 45px;
-}
-.visualizer .bar:nth-child(4) {
-  animation-delay: 0.3s;
-  height: 30px;
-}
-.visualizer .bar:nth-child(5) {
-  animation-delay: 0.15s;
-  height: 50px;
-}
-.visualizer .bar:nth-child(6) {
-  animation-delay: 0.25s;
-  height: 25px;
-}
-.visualizer .bar:nth-child(7) {
-  animation-delay: 0.05s;
-  height: 40px;
-}
-.visualizer .bar:nth-child(8) {
-  animation-delay: 0.35s;
-  height: 30px;
-}
-
-@keyframes visualize {
-  to {
-    height: 60px;
-  }
-}
-
-/* Pause the visualizer when not playing */
-#media-wrapper:not(.playing) .visualizer .bar {
-  animation-play-state: paused;
+#viz-canvas {
+  width: 100%;
+  height: 80px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  display: block;
 }
 
 /* Loading state */
