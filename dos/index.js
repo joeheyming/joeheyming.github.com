@@ -752,6 +752,7 @@ async function launch(entry) {
 
   setStatus(`Booting ${entry.name}…`);
   els.app.classList.add('is-playing');
+  document.body.classList.add('is-playing');
   els.launcher.hidden = true;
   els.player.hidden = false;
   els.playerTitle.textContent = entry.name;
@@ -821,6 +822,7 @@ async function endActiveSession({ persistFirst }) {
 
 async function returnToLauncher() {
   els.app.classList.remove('is-playing');
+  document.body.classList.remove('is-playing');
   els.player.hidden = true;
   els.launcher.hidden = false;
   await renderAll();

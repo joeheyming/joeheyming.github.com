@@ -9,14 +9,18 @@
    * shared --play-* tokens so the audit sees zero bare literals and
    * the whole family can be re-tinted from one place. */
 
-  /* Note / key tints (used across piano, strings, accordion) */
-  --play-note-base: #1e1b4b; /* deep indigo (un-pressed/dark) */
-  --play-note-active: #818cf8; /* indigo-400 (lit/pressed key) */
-  --play-note-active-soft: #a5b4fc; /* indigo-300 */
-  --play-key-purple: #a855f7; /* purple-500 (highlight ring) */
-  --play-purple-soft: #ede9fe; /* purple-100 (soft fill) */
+  /* Note / key tints (used across piano, strings, accordion).
+   * "Lit" key state uses brand blue so a pressed key reads as "active"
+   * in the same vocabulary the rest of the site uses. */
+  --play-note-base: var(--text-2);
+  --play-note-active: var(--accent-primary);
+  --play-note-active-soft: var(--accent-primary-soft);
+  --play-key-purple: var(--accent-primary);
+  --play-purple-soft: var(--accent-primary-soft);
 
-  /* Wood / brass / instrument body warmth */
+  /* Wood / brass / instrument body warmth — physical-instrument
+   * identity, kept so a guitar still looks like wood and an accordion
+   * still has bellows. */
   --play-wood-deep: #4a3520;
   --play-wood-mid: #6b4423;
   --play-wood-warm: #8b5a2b;
@@ -25,26 +29,30 @@
 
   /* Status / pad tints used as colour-coded music-theory cues
    * (correct note green, wrong red, key change amber). */
-  --play-ok: #22c55e; /* major / hit */
-  --play-ok-mid: #16a34a;
-  --play-ok-soft: #bbf7d0;
-  --play-ok-faint: #86efac;
-  --play-ok-deep: #14532d;
-  --play-ok-darkbg: #052e16;
-  --play-warn: #f97316; /* dominant / warning */
-  --play-warn-soft: #fed7aa;
-  --play-warn-deep: #7c2d12;
-  --play-warn-darkbg: #422006;
-  --play-err: #ef4444; /* miss / out-of-key */
-  --play-err-soft: #fecaca;
-  --play-err-faint: #fca5a5;
-  --play-err-deep: #b91c1c;
-  --play-cream: #fef3c7; /* parchment / score paper */
+  --play-ok: var(--success);
+  --play-ok-mid: var(--success);
+  --play-ok-soft: var(--success-soft);
+  --play-ok-faint: var(--success-soft);
+  --play-ok-deep: var(--success);
+  --play-ok-darkbg: var(--success-soft);
+  --play-warn: var(--warning);
+  --play-warn-soft: var(--warning-soft);
+  --play-warn-deep: var(--warning);
+  --play-warn-darkbg: var(--warning-soft);
+  --play-err: var(--danger);
+  --play-err-soft: var(--danger-soft);
+  --play-err-faint: var(--danger-soft);
+  --play-err-deep: var(--danger);
+  --play-cream: #fef3c7; /* parchment / score paper — used by mallets / vibraphone */
 
-  /* Slate panel bg (used in modal/popover surfaces across instruments) */
-  --play-slate-deep: #0b1220;
-  --play-slate-mid: #1e293b;
-  --play-slate-soft: #f8fafc;
+  /* Generic panel surfaces — formerly "play-slate"; now route to brand
+   * surface tokens so popovers and modals match the rest of the site. */
+  --play-slate-deep: var(--surface-2);
+  --play-slate-mid: var(--surface-1);
+  --play-slate-soft: var(--surface-0);
+  --play-slate-300: var(--hairline-strong);
+  --play-slate-800: var(--surface-2);
+  --play-slate-900: var(--surface-2);
 }
 
 /* =========================================================================
@@ -82,10 +90,9 @@
 .instrument-page-title h1 {
   margin: 0;
   font-size: clamp(22px, 3.5vw, 30px);
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-1);
 }
 
 .instruments-link {
@@ -97,28 +104,23 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   text-decoration: none;
-  color: var(--pure-white, #fff);
+  color: var(--text-on-accent);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--play-indigo, #818cf8) 95%, transparent),
-    color-mix(in srgb, var(--play-pink, #f472b6) 95%, transparent)
-  );
-  border: 1px solid color-mix(in srgb, var(--pure-white, #fff) 12%, transparent);
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--play-indigo, #818cf8) 35%, transparent);
-  transition: transform 200ms ease, box-shadow 200ms ease, filter 200ms ease;
+  background: var(--accent-primary-bg);
+  border: 1px solid var(--accent-primary-bg);
+  transition: background 200ms ease, transform 200ms ease;
 }
 
 .instruments-link:hover,
 .instruments-link:focus-visible {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--play-pink, #f472b6) 45%, transparent);
+  transform: translateY(-1px);
+  background: var(--accent-primary-bg-hover);
+  border-color: var(--accent-primary-bg-hover);
   outline: none;
-  filter: brightness(1.05);
 }
 
 .instruments-link-icon {
@@ -157,9 +159,9 @@
   gap: 6px;
   padding: 3px 9px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--play-emerald, #34d399) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--play-emerald, #34d399) 35%, transparent);
-  color: var(--accent-3);
+  background: var(--success-soft);
+  border: 1px solid var(--success);
+  color: var(--success);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -170,8 +172,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--accent-3);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--play-emerald, #34d399) 60%, transparent);
+  background: var(--success);
   animation: midi-pulse 2.4s ease-in-out infinite;
 }
 
@@ -224,10 +225,10 @@
 }
 
 .control select {
-  background: color-mix(in srgb, var(--play-slate-800, #1e293b) 85%, transparent);
+  background: var(--surface-1);
   color: var(--fg);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 5px 8px;
   font-size: 13px;
 }
@@ -239,10 +240,10 @@
 }
 
 .octave-buttons button {
-  background: color-mix(in srgb, var(--play-slate-800, #1e293b) 85%, transparent);
+  background: var(--surface-1);
   color: var(--fg);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   width: 28px;
   height: 28px;
   font-size: 16px;
@@ -322,11 +323,12 @@
 }
 
 .instrument-help code {
-  background: color-mix(in srgb, var(--play-slate-300, #94a3b8) 12%, transparent);
+  background: var(--surface-2);
   padding: 1px 6px;
-  border-radius: 5px;
+  border-radius: var(--radius);
   font-size: 12px;
   color: var(--fg);
+  font-family: var(--font-mono);
 }
 
 /* Inline links inside the How-to-play text (and its mobile popup
@@ -335,8 +337,8 @@
    reference, not a navigation hub. */
 .instrument-help a,
 .help-popup-body a {
-  color: var(--accent);
-  text-decoration: underline dotted color-mix(in srgb, var(--play-indigo, #818cf8) 55%, transparent);
+  color: var(--accent-primary);
+  text-decoration: underline dotted var(--accent-primary);
   text-underline-offset: 2px;
 }
 .instrument-help a:hover,

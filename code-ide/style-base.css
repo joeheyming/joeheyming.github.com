@@ -7,27 +7,27 @@
  * VSCode dark palette routed through brand tokens; literal fallbacks
  * preserve the IDE look if brand.css fails to load. */
 :root {
-  --bg: var(--surface-0, #1e1e1e);
-  --bg-elev: var(--surface-1, #252526);
-  --bg-elev-2: var(--surface-2, #2d2d2d);
+  --bg: var(--surface-0);
+  --bg-elev: var(--surface-1);
+  --bg-elev-2: var(--surface-2);
   --bg-input: #3c3c3c;
-  --bg-active: var(--accent-primary-bg, #5b3cdc); /* was VSCode blue #094771 — now brand violet */
+  --bg-active: var(--accent-primary-bg); /* was VSCode blue #094771 — now brand violet */
   --bg-hover: #2a2d2e;
-  --border: var(--surface-0, #1e1e1e);
-  --border-strong: var(--hairline-strong, #3c3c3c);
-  --text: var(--text-1, #d4d4d4);
-  --text-mute: var(--text-2, #969696);
-  --text-strong: var(--pure-white, #ffffff);
-  --accent: var(--accent-primary, #7c5cff); /* brand foreground violet */
-  --accent-strong: var(--accent-primary-hover, #9077ff);
-  --danger: var(--danger, #f48771);
+  --border: var(--surface-0);
+  --border-strong: var(--hairline-strong);
+  --text: var(--text-1);
+  --text-mute: var(--text-2);
+  --text-strong: var(--pure-white);
+  --accent: var(--accent-primary); /* brand foreground violet */
+  --accent-strong: var(--accent-primary-hover);
+  --danger: var(--danger);
   --good: #4ec9b0;
   --warn: #dcdcaa;
   --titlebar-h: 36px;
   --statusbar-h: 22px;
   --tabs-h: 34px;
-  --font-ui: var(--font-ui, 'Inter', system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif);
-  --font-mono: var(--font-mono, 'JetBrains Mono', 'Fira Code', Menlo, Monaco, 'Cascadia Mono', Consolas, 'Liberation Mono', monospace);
+  --font-ui: var(--font-ui);
+  --font-mono: var(--font-mono);
 }
 
 body.theme-light {
@@ -42,8 +42,8 @@ body.theme-light {
   --text: #1f1f1f;
   --text-mute: #6a6a6a;
   --text-strong: #000000;
-  --accent: var(--accent-primary-bg, #5b3cdc); /* brand accent-primary-bg works on white */
-  --accent-strong: var(--accent-primary-bg-hover, #6e50e6);
+  --accent: var(--accent-primary-bg); /* brand accent-primary-bg works on white */
+  --accent-strong: var(--accent-primary-bg-hover);
   --danger: #d73a49;
   --good: #28a745;
   --warn: #b08800;

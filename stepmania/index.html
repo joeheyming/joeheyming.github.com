@@ -23,7 +23,7 @@
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#7C5CFF" />
+    <meta name="theme-color" content="#FAFAFA" />
     <meta
       name="keywords"
       content="StepMania, StepMania online, stepmaniaonline, DDR, Dance Dance Revolution, dance game, rhythm game, music game, beat game, arrow keys, dance steps, browser, online game, ad-free, no ads, free game"
@@ -72,9 +72,13 @@
     <link href="css/screen.css" media="all" rel="stylesheet" type="text/css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <script>
-      /* Append StepMania's neon rhythm-game palette to the brand config so
-         both brand utilities (bg-surface-0, text-text-2, etc.) and game-
-         identity utilities (text-neon-blue, from-neon-purple) coexist. */
+      /* Append StepMania's rhythm-game palette to the brand config.
+       * Cyan-blue is the canonical "Great" judgment color; pink and
+       * green are kept for badge gradients and combo flashes. The
+       * old "neon.purple" was page-chrome drift from a previous brand
+       * and has been replaced with brand --accent-primary so dialogs
+       * and titles live in the same blue-on-cream world as the rest
+       * of the site. */
       (function () {
         const cfg = (window.tailwind && window.tailwind.config) || {
           theme: { extend: { colors: {} } }
@@ -84,7 +88,7 @@
         cfg.theme.extend.colors = cfg.theme.extend.colors || {};
         cfg.theme.extend.colors.neon = {
           blue: '#00f5ff',
-          purple: '#8b5cf6',
+          purple: '#1a73e8' /* legacy alias → brand accent-primary */,
           pink: '#f472b6',
           green: '#10b981'
         };
@@ -157,9 +161,7 @@
     />
     <link rel="stylesheet" href="/brand.css" />
   </head>
-  <body
-    class="bg-gradient-to-br from-surface-1 via-surface-0 to-surface-1 h-screen overflow-hidden"
-  >
+  <body class="bg-surface-0 h-screen overflow-hidden">
     <!-- Title Header -->
     <div class="text-center py-2 md:py-3" style="text-align: center; padding-top: 3.5rem">
       <h1
@@ -283,7 +285,7 @@
           <div
             id="video-conversion-status"
             class="hidden absolute top-2 left-2 px-3 py-1.5 rounded-lg text-sm font-medium z-10 transition-all duration-300"
-            style="background: var(--scrim-strong, rgba(0, 0, 0, 0.7)); backdrop-filter: blur(4px)"
+            style="background: var(--scrim-strong); backdrop-filter: blur(4px)"
           >
             <span id="video-status-text">🎬 Converting video...</span>
           </div>

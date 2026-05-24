@@ -7,8 +7,8 @@
    * tokens don't capture. --cool intentionally aliases the brand violet
    * so the cold end of the temperature ramp reads as brand. */
   --warm: #fb923c;
-  --cool: var(--accent-primary, #7c5cff);
-  --flat: var(--text-2, #a1a1aa);
+  --cool: var(--accent-primary);
+  --flat: var(--text-2);
 }
 
 body {
@@ -39,7 +39,7 @@ body {
   padding: 0.32rem 0.6rem;
   border-radius: 0.4rem;
   border: 1px solid var(--hairline-strong);
-  background: color-mix(in srgb, var(--surface-1, #15151b) 60%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 60%, transparent);
   color: var(--text-2);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
@@ -94,7 +94,7 @@ body {
 
 /* Location tiles. The active tile gets a sky-blue ring. */
 .weather-tile {
-  background: color-mix(in srgb, var(--surface-1, #15151b) 60%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 60%, transparent);
   border: 1px solid var(--hairline);
   border-radius: 0.75rem;
   padding: 0.85rem 1rem;
@@ -179,7 +179,7 @@ body {
 .hour-cell {
   flex: 0 0 auto;
   min-width: 4.5rem;
-  background: color-mix(in srgb, var(--surface-1, #15151b) 60%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 60%, transparent);
   border: 1px solid var(--hairline);
   border-radius: 0.6rem;
   padding: 0.5rem 0.4rem;
@@ -255,8 +255,8 @@ body {
 .detail-card {
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--accent-primary, #7c5cff) 18%, transparent),
-    color-mix(in srgb, var(--surface-1, #15151b) 70%, transparent)
+    color-mix(in srgb, var(--accent-primary) 18%, transparent),
+    color-mix(in srgb, var(--surface-1) 70%, transparent)
   );
   border: 1px solid var(--hairline);
   border-radius: 1rem;
@@ -307,7 +307,7 @@ body {
   }
 }
 .detail-card .stat {
-  background: color-mix(in srgb, var(--surface-0, #0b0b0f) 45%, transparent);
+  background: color-mix(in srgb, var(--surface-0) 45%, transparent);
   border: 1px solid var(--hairline);
   border-radius: 0.55rem;
   padding: 0.5rem 0.65rem;
@@ -327,7 +327,7 @@ body {
 
 /* Empty state. */
 .empty-card {
-  background: color-mix(in srgb, var(--surface-1, #15151b) 50%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 50%, transparent);
   border: 1px dashed var(--hairline-strong);
   border-radius: 0.85rem;
   padding: 2rem 1rem;
@@ -371,7 +371,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: color-mix(in srgb, var(--surface-1, #15151b) 65%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 65%, transparent);
   border: 1px solid var(--hairline);
   border-radius: 0.6rem 0.6rem 0 0;
   border-bottom: none;
@@ -458,7 +458,7 @@ body {
   outline: none;
 }
 .radar-map .maplibregl-ctrl-attrib {
-  background: color-mix(in srgb, var(--surface-1, #15151b) 85%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 85%, transparent);
   color: var(--text-2);
   font-size: 0.6rem;
 }
@@ -471,7 +471,7 @@ body {
   flex-direction: column;
   gap: 0.5rem;
   margin-top: 0.6rem;
-  background: color-mix(in srgb, var(--surface-1, #15151b) 60%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 60%, transparent);
   border: 1px solid var(--hairline);
   border-radius: 0.6rem;
   padding: 0.55rem 0.75rem;
@@ -593,7 +593,7 @@ body {
 @keyframes radar-play-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary, #7c5cff) 55%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary) 55%, transparent);
   }
   50% {
     box-shadow: 0 0 0 6px transparent;
@@ -637,7 +637,7 @@ body {
   color: var(--text-1);
   border: 1px solid var(--hairline-strong);
   border-radius: 0.5rem;
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--pure-black, #000000) 45%, transparent);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--pure-black) 45%, transparent);
   padding: 0.6rem 0.75rem;
 }
 .maplibregl-popup-tip {
@@ -757,7 +757,7 @@ body {
   gap: 0.55rem;
 }
 .compare-empty {
-  background: color-mix(in srgb, var(--surface-1, #15151b) 50%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 50%, transparent);
   border: 1px dashed var(--hairline-strong);
   border-radius: 0.6rem;
   padding: 1rem;
@@ -771,7 +771,7 @@ body {
 }
 
 .compare-row {
-  background: color-mix(in srgb, var(--surface-1, #15151b) 60%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 60%, transparent);
   border: 1px solid var(--hairline);
   border-radius: 0.7rem;
   padding: 0.6rem 0.7rem 0.4rem;
@@ -821,8 +821,8 @@ body {
   left: 0.2rem;
   /* The labels overlap the sparkline, so add a subtle dark halo so
      they stay readable against the fill color underneath. */
-  text-shadow: 0 0 3px color-mix(in srgb, var(--surface-0, #0b0b0f) 95%, transparent),
-    0 0 6px color-mix(in srgb, var(--surface-0, #0b0b0f) 70%, transparent);
+  text-shadow: 0 0 3px color-mix(in srgb, var(--surface-0) 95%, transparent),
+    0 0 6px color-mix(in srgb, var(--surface-0) 70%, transparent);
 }
 .compare-row-yaxis .compare-y-hi {
   top: 0.1rem;
@@ -865,7 +865,7 @@ body {
   border-radius: 0.5rem;
   padding: 0.55rem 0.85rem;
   font-size: 0.85rem;
-  box-shadow: var(--shadow-card, 0 8px 24px rgba(0, 0, 0, 0.3));
+  box-shadow: var(--shadow-card);
 }
 .toast.error {
   border-color: var(--danger);
@@ -908,7 +908,7 @@ body {
     gap: 0.4rem !important;
   }
   /* Mode-toolbar section: less vertical padding and tighter gaps. */
-  section.bg-slate-900\/50 {
+  section.weather-toolbar {
     padding: 0.35rem 0.5rem !important;
     gap: 0.35rem !important;
     margin-bottom: 0.5rem !important;
@@ -1001,7 +1001,7 @@ body {
     gap: 0.4rem;
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
-    background: color-mix(in srgb, var(--surface-0, #0b0b0f) 70%, transparent);
+    background: color-mix(in srgb, var(--surface-0) 70%, transparent);
   }
   .radar-row {
     gap: 0.45rem;

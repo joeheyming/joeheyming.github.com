@@ -4,7 +4,6 @@
  */
 
 #app-launcher-menu {
-  backdrop-filter: blur(10px);
   z-index: 1000; /* Above all windows */
   position: absolute;
   transform-origin: bottom left;
@@ -76,12 +75,11 @@
   transform: translateX(-20px);
 }
 
-/* Card surface */
+/* Card surface — flat raised card on the new heyming-engineering brand */
 #app-launcher-menu {
-  background: var(--surface-glass);
+  background: var(--surface-1);
   border: 1px solid var(--hairline-strong);
-  box-shadow: 0 20px 40px color-mix(in srgb, var(--pure-black) 45%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--pure-white) 6%, transparent);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--pure-black) 12%, transparent);
 }
 
 /* App category headers */
@@ -129,7 +127,7 @@
   background: var(--surface-0);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-sm);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--pure-black) 35%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--pure-black) 12%, transparent);
 }
 
 .app-item:focus-visible {

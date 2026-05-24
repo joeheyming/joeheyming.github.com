@@ -31,7 +31,7 @@
     <meta name="application-name" content="Heyming OS" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#7C5CFF" />
+    <meta name="theme-color" content="#FAFAFA" />
     <meta
       name="keywords"
       content="Heyming OS, browser OS, browser desktop, DOOM browser, NES emulator online, 3D Pac-Man, StepMania online, Wordle answer finder, web terminal, browser apps, no install games, ad-free"
@@ -79,7 +79,7 @@
     <meta name="apple-mobile-web-app-title" content="Heyming OS" />
 
     <!-- Brand foundation (load order matters):
-         1. preconnect + Inter font CDN
+         1. preconnect + Source Serif 4 + JetBrains Mono font CDN
          2. Tailwind CDN — installs window.tailwind first
          3. brand-tailwind.js — sets tailwind.config AFTER CDN is live
             (the older CDN read pre-set config on boot; current CDN
@@ -90,7 +90,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
+      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
     />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/brand-tailwind.js"></script>
@@ -223,7 +223,7 @@
     <div id="hamburger-menu" class="fixed top-4 right-4 sm:top-6 sm:right-6 z-[100] md:hidden">
       <button
         id="hamburger-toggle"
-        class="w-14 h-14 sm:w-12 sm:h-12 bg-surface-1 backdrop-blur-sm border border-hairline rounded-lg flex flex-col justify-center items-center space-y-1 hover:bg-surface-2 transition-all duration-hover shadow-lg"
+        class="w-14 h-14 sm:w-12 sm:h-12 bg-surface-1 border border-hairline rounded flex flex-col justify-center items-center space-y-1 hover:bg-surface-2 transition-all duration-hover shadow"
         aria-label="Toggle navigation menu"
       >
         <span
@@ -238,7 +238,7 @@
       </button>
       <div
         id="hamburger-panel"
-        class="absolute top-16 sm:top-14 right-0 w-[90vw] max-w-80 bg-surface-1 backdrop-blur-md border border-hairline rounded-xl shadow-2xl transform translate-x-full transition-all duration-modal opacity-0"
+        class="absolute top-16 sm:top-14 right-0 w-[90vw] max-w-80 bg-surface-1 border border-hairline rounded-lg shadow-xl transform translate-x-full transition-all duration-modal opacity-0"
       >
         <div class="p-6">
           <div class="flex items-center justify-between mb-4">
@@ -256,7 +256,7 @@
               type="text"
               id="hamburger-filter"
               placeholder="Filter apps..."
-              class="w-full bg-surface-2 border border-hairline rounded-lg px-4 py-2 pl-10 text-text-1 text-sm placeholder-text-3 focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all duration-hover"
+              class="w-full bg-surface-2 border border-hairline rounded px-4 py-2 pl-10 text-text-1 text-sm placeholder-text-3 focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all duration-hover"
               autocomplete="off"
               autocapitalize="off"
               spellcheck="false"

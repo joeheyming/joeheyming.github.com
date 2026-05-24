@@ -8,33 +8,38 @@
 }
 
 :root {
-  /* Clock keeps its own iOS-style chrome palette but anchors surfaces
-     and body text to brand tokens so dark / high-contrast / forced-colors
-     all cascade correctly. The accent trio (clock orange, stopwatch
-     green, timer blue) is intentionally preserved — they encode mode and
-     aren't decorative.
-
-     Scoped --clock-* tokens hold the LED dot-matrix face palette (off,
-     red, green, amber + housing + label text). */
-  --bg: var(--surface-0, #000000);
-  --bg1: var(--surface-1, #0e0e0e);
-  --bg2: #1c1c1e;
-  --bg3: #2c2c2e;
-  --bg4: #3a3a3c;
-  --sep: var(--hairline-strong, #38383a);
-  --text: var(--text-1, #ffffff);
-  --text2: var(--text-2, #ebebf5cc);
-  --text3: var(--text-3, #ebebf599);
-  --text4: #ebebf54d;
+  /* Clock chrome (page bg, tab bar, face buttons, world-clock rows,
+   * timer spinners, stopwatch lap rows) routes through brand surface
+   * tokens — the app lives in the same paper-cream world as the rest
+   * of the site.
+   *
+   * The accent trio (orange / green / blue) is iOS-Clock canonical
+   * mode-marking and survives the brand pivot. The LED dot-matrix
+   * face also keeps its retro red/green/amber-on-housing palette as
+   * scoped --clock-led-* tokens — that face is supposed to look like
+   * a 70s 7-segment display, not like a brand surface. */
+  --bg: var(--surface-0);
+  --bg1: var(--surface-1);
+  --bg2: var(--surface-1);
+  --bg3: var(--surface-2);
+  --bg4: var(--hairline-strong);
+  --sep: var(--hairline-strong);
+  --text: var(--text-1);
+  --text2: var(--text-2);
+  --text3: var(--text-3);
+  --text4: var(--text-3);
   --accent: #ff9f0a;
   --accent2: #30d158;
   --accent3: #0a84ff;
-  --danger: var(--danger, #ff453a);
+  --danger: var(--danger);
   --tab-h: 84px;
-  --radius: var(--radius, 14px);
-  --font: var(--font-ui, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
+  --radius: var(--radius);
+  --font: var(--font-ui);
 
-  /* ── Scoped LED-face identity tokens ───────────────────────────── */
+  /* ── Scoped LED-face identity tokens ─────────────────────────────
+   * The LED face is a retro 7-segment-style fake. It's a simulated
+   * display, so it stays "off"-dark with bright LED dots — that's
+   * the point of the face and not a brand drift. */
   --clock-led-off: #1a0a0a;
   --clock-led-red: #ff3333;
   --clock-led-green: #00ff44;
@@ -564,7 +569,7 @@ body {
 
 /* ── LED dot-matrix face ── */
 .led-housing {
-  background: var(--surface-0, #0a0a0a);
+  background: var(--surface-0);
   border: 2px solid var(--clock-led-housing, #2a2a2a);
   border-radius: 10px;
   padding: clamp(10px, 3vw, 18px) clamp(12px, 4vw, 22px);
@@ -707,7 +712,7 @@ body {
 }
 .pill-btn.active {
   background: var(--accent);
-  color: var(--pure-black, #000000);
+  color: var(--pure-black);
 }
 
 /* World Clocks */
@@ -1076,7 +1081,7 @@ body {
 .preset-btn.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--pure-black, #000000);
+  color: var(--pure-black);
   font-weight: 600;
 }
 

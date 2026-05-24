@@ -13,6 +13,12 @@ class RomBrowserElement extends HTMLElement {
   }
 
   render() {
+    /* All chrome reads from /brand.css through the host page; the
+     * Sega-identity Genesis-red lives in sega/index.html as
+     * `--accent-bright` (and `-soft` / `-ring` siblings). CSS custom
+     * properties inherit through shadow DOM, so this whole component
+     * is theme-swappable: brand.css drives chrome, sega/index.html
+     * drives identity, and zero color hexes are frozen in this file. */
     this.shadowRoot.innerHTML = `
       <style>
         :host {
@@ -26,13 +32,14 @@ class RomBrowserElement extends HTMLElement {
           width: 100%;
         }
         
+        /* Launch button — Sega-identity red routed via sega/index.html. */
         .rom-browser-btn {
-          background: linear-gradient(135deg, #e94560, #c73652);
-          color: white;
+          background: var(--accent-bright);
+          color: var(--text-on-accent);
           font-weight: bold;
           padding: 14px 20px;
           border-radius: 8px;
-          transition: all 0.2s;
+          transition: filter 0.2s, transform 0.2s;
           border: none;
           cursor: pointer;
           font-size: 15px;
@@ -44,20 +51,18 @@ class RomBrowserElement extends HTMLElement {
           line-height: 1.2;
           margin: 0;
           white-space: nowrap;
-          box-shadow: 0 4px 16px rgba(233,69,96,0.4);
+          box-shadow: var(--shadow-card);
         }
         
         .rom-browser-btn:hover {
-          background: linear-gradient(135deg, #c73652, #a02840);
+          filter: brightness(0.88);
           transform: scale(1.05);
-          box-shadow: 0 6px 20px rgba(233,69,96,0.5);
         }
         
         .modal {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.8);
-          backdrop-filter: blur(8px);
+          background: var(--scrim-strong);
           z-index: 50;
           display: flex;
           align-items: center;
@@ -73,15 +78,15 @@ class RomBrowserElement extends HTMLElement {
         }
         
         .modal-content {
-          background: linear-gradient(to bottom right, rgba(15, 52, 96, 0.95), rgba(30, 10, 20, 0.95));
-          backdrop-filter: blur(8px);
+          background: var(--surface-1);
+          color: var(--text-1);
           border-radius: 1.5rem;
           width: min(90vw, 90rem);
           max-height: 90vh;
           display: flex;
           flex-direction: column;
-          border: 1px solid rgba(233, 69, 96, 0.4);
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 60px rgba(233, 69, 96, 0.1);
+          border: 1px solid var(--hairline-strong);
+          box-shadow: var(--shadow-modal);
         }
         
         .modal-header {
@@ -91,14 +96,13 @@ class RomBrowserElement extends HTMLElement {
         .modal-title {
           font-size: 2rem;
           font-weight: bold;
-          color: #e94560;
+          color: var(--accent-bright);
           margin-bottom: 0.5rem;
           text-align: center;
-          text-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
         }
         
         .modal-subtitle {
-          color: #e5e7eb;
+          color: var(--text-2);
           text-align: center;
           font-size: 1rem;
         }
@@ -116,27 +120,27 @@ class RomBrowserElement extends HTMLElement {
         }
         
         .close-btn {
-          background: linear-gradient(to right, #4b5563, #374151);
-          color: white;
+          background: var(--surface-2);
+          color: var(--text-1);
           font-weight: bold;
           padding: 0.75rem 2rem;
           border-radius: 0.75rem;
-          border: 1px solid rgba(255,255,255,0.1);
+          border: 1px solid var(--hairline-strong);
           cursor: pointer;
-          transition: all 0.2s;
+          transition: background-color 0.2s, transform 0.2s;
         }
         
         .close-btn:hover {
-          background: linear-gradient(to right, #374151, #1f2937);
+          background: var(--accent-primary-soft);
           transform: scale(1.05);
         }
         
         .content-area {
           height: 60vh;
           overflow-y: auto;
-          border: 1px solid rgba(233, 69, 96, 0.3);
+          border: 1px solid var(--hairline);
           border-radius: 0.75rem;
-          background: rgba(0, 0, 0, 0.3);
+          background: var(--surface-2);
         }
         
         .loading {
@@ -144,7 +148,7 @@ class RomBrowserElement extends HTMLElement {
           justify-content: center;
           align-items: center;
           height: 200px;
-          color: #e94560;
+          color: var(--text-2);
           font-size: 1.25rem;
         }
         
@@ -153,7 +157,7 @@ class RomBrowserElement extends HTMLElement {
           justify-content: center;
           align-items: center;
           height: 200px;
-          color: #ef4444;
+          color: var(--danger);
           font-size: 1.25rem;
           text-align: center;
           padding: 1rem;
@@ -167,8 +171,8 @@ class RomBrowserElement extends HTMLElement {
         }
         
         .rom-card {
-          background: rgba(0, 0, 0, 0.4);
-          border: 1px solid rgba(233, 69, 96, 0.25);
+          background: var(--surface-1);
+          border: 1px solid var(--hairline);
           border-radius: 0.75rem;
           padding: 1rem;
           cursor: pointer;
@@ -176,27 +180,27 @@ class RomBrowserElement extends HTMLElement {
         }
         
         .rom-card:hover {
-          background: rgba(233, 69, 96, 0.12);
-          border-color: #e94560;
+          background: var(--accent-bright-soft);
+          border-color: var(--accent-bright);
           transform: translateY(-2px);
-          box-shadow: 0 4px 16px rgba(233, 69, 96, 0.2);
+          box-shadow: var(--shadow-card);
         }
         
         .rom-title {
           font-weight: bold;
-          color: #f5a623;
+          color: var(--accent-gold);
           margin-bottom: 0.5rem;
           font-size: 1.1rem;
         }
         
         .rom-info {
-          color: #e5e7eb;
+          color: var(--text-1);
           font-size: 0.875rem;
           line-height: 1.4;
         }
         
         .rom-size {
-          color: #9ca3af;
+          color: var(--text-3);
           font-size: 0.75rem;
           margin-top: 0.25rem;
         }
@@ -209,22 +213,22 @@ class RomBrowserElement extends HTMLElement {
         .search-input {
           width: 100%;
           padding: 0.75rem 1rem;
-          border: 1px solid rgba(233, 69, 96, 0.3);
+          border: 1px solid var(--hairline-strong);
           border-radius: 0.75rem;
-          background: rgba(0, 0, 0, 0.4);
-          color: white;
+          background: var(--surface-1);
+          color: var(--text-1);
           font-size: 1rem;
           box-sizing: border-box;
         }
         
         .search-input::placeholder {
-          color: #9ca3af;
+          color: var(--text-3);
         }
         
         .search-input:focus {
           outline: none;
-          border-color: #e94560;
-          box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.25);
+          border-color: var(--accent-bright);
+          box-shadow: 0 0 0 2px var(--accent-bright-ring);
         }
       </style>
       
@@ -367,7 +371,7 @@ class RomBrowserElement extends HTMLElement {
       contentArea.innerHTML = `<div class="loading">Loading ${rom.title}...</div>`;
 
       if (!window.proxyService) {
-        throw new Error("Proxy service not available.");
+        throw new Error('Proxy service not available.');
       }
 
       // Download the ROM zip via segaArchiveRoms (returns raw Uint8Array)
@@ -445,7 +449,7 @@ class RomBrowserElement extends HTMLElement {
     const scored = this.allRoms
       .map((rom) => ({
         rom,
-        score: Math.max(this.fuzzyScore(rom.title, query), this.fuzzyScore(rom.name, query)),
+        score: Math.max(this.fuzzyScore(rom.title, query), this.fuzzyScore(rom.name, query))
       }))
       .filter(({ score }) => score > 0)
       .sort((a, b) => b.score - a.score);

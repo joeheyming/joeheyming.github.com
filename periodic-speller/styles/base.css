@@ -2,24 +2,24 @@
    styling, and the "no match" hint. */
 
 :root {
-  --bg: var(--surface-0, #0f172a);
-  --surface: var(--surface-1, #1e293b);
-  --border: var(--hairline-strong, #334155);
-  --text: var(--text-1, #e2e8f0);
-  --text-muted: var(--text-2, #94a3b8);
+  --bg: var(--surface-0);
+  --surface: var(--surface-1);
+  --border: var(--hairline-strong);
+  --text: var(--text-1);
+  --text-muted: var(--text-2);
   /* Page chrome accent routes to brand violet. The element-category
      palette below is kept as-is — those colors are data, not chrome. */
-  --accent: var(--accent-primary, #7c5cff);
-  --accent-glow: var(--accent-primary-soft, rgba(124, 92, 255, 0.25));
-  --tile-bg: var(--surface-1, #1e293b);
-  --tile-border: var(--accent-primary, #7c5cff);
-  --tile-symbol: var(--text-1, #f8fafc);
-  --tile-number: var(--accent-primary, #7c5cff);
-  --tile-name: var(--text-2, #94a3b8);
-  --unmatched-bg: var(--hairline-strong, #334155);
-  --unmatched-text: var(--text-3, #64748b);
+  --accent: var(--accent-primary);
+  --accent-glow: var(--accent-primary-soft);
+  --tile-bg: var(--surface-1);
+  --tile-border: var(--accent-primary);
+  --tile-symbol: var(--text-1);
+  --tile-number: var(--accent-primary);
+  --tile-name: var(--text-2);
+  --unmatched-bg: var(--hairline-strong);
+  --unmatched-text: var(--text-3);
   --category-nonmetal: #22d3ee;
-  --category-noble: var(--accent-primary, #7c5cff);
+  --category-noble: var(--accent-primary);
   --category-alkali: #f87171;
   --category-alkaline: #fb923c;
   --category-metalloid: #34d399;
@@ -57,7 +57,7 @@ header h1 {
   font-size: 2.2rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, var(--accent), var(--accent-primary-hover, #a78bfa));
+  background: linear-gradient(135deg, var(--accent), var(--accent-primary-hover));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -100,9 +100,7 @@ main {
   background: var(--surface);
   color: var(--text);
   outline: none;
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 #wordInput::placeholder {
@@ -133,9 +131,7 @@ main {
   padding: 0.4rem;
   border-radius: 6px;
   line-height: 1;
-  transition:
-    color 0.15s,
-    background 0.15s;
+  transition: color 0.15s, background 0.15s;
   display: none;
 }
 
@@ -169,9 +165,7 @@ main {
   border: 2px solid var(--tile-border);
   background: var(--tile-bg);
   position: relative;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s;
   animation: tileIn 0.3s ease-out both;
 }
 
@@ -265,3 +259,4 @@ main {
 .no-match-hint {
   font-size: 0.85rem;
   color: var(--unmatched-text);
+}

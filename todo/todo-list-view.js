@@ -42,7 +42,7 @@ export function createTodoListView(opts) {
         const inp = document.createElement('input');
         inp.type = 'text';
         inp.className =
-          'min-w-0 flex-1 rounded-xl border border-zinc-200 bg-white px-2.5 py-2 text-base focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400/30 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-violet-500';
+          'min-w-0 flex-1 rounded-xl border border-hairline-strong bg-surface-1 px-2.5 py-2 text-base text-text-1 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30';
         inp.id = `todo-edit-${todo.id}`;
         inp.maxLength = 500;
         inp.value = (todo.title || '').trim();
@@ -51,7 +51,7 @@ export function createTodoListView(opts) {
         const btnUpdate = document.createElement('button');
         btnUpdate.type = 'button';
         btnUpdate.className =
-          'shrink-0 rounded-full border border-violet-600 bg-violet-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-violet-700 dark:border-violet-500 dark:hover:bg-violet-500';
+          'shrink-0 rounded-full border border-accent-primary bg-accent-primary px-3 py-1.5 text-sm font-medium text-text-on-accent shadow-sm hover:bg-accent-primary-hover hover:border-accent-primary-hover';
         btnUpdate.textContent = 'Update';
 
         const finishEdit = () => {
@@ -122,7 +122,7 @@ export function createTodoListView(opts) {
         chk.type = 'checkbox';
         chk.checked = done;
         chk.className =
-          'mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded border-zinc-300 text-violet-600 focus:ring-violet-400 dark:border-zinc-500 dark:bg-zinc-900 dark:text-violet-500';
+          'mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded border-hairline-strong text-accent-primary focus:ring-accent-primary';
         chk.setAttribute('aria-label', done ? 'Mark as not done' : 'Mark as done');
         chk.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -156,12 +156,12 @@ export function createTodoListView(opts) {
           void refreshTodos();
         });
         const dateEl = document.createElement('span');
-        dateEl.className = 'mr-1.5 text-[0.82em] text-zinc-500 dark:text-zinc-400';
+        dateEl.className = 'mr-1.5 text-[0.82em] text-text-3';
         dateEl.textContent = todo.createdAt
           ? String(todo.createdAt).slice(0, 19).replace('T', ' ')
           : '—';
         const contentEl = document.createElement('span');
-        contentEl.className = 'text-zinc-900 dark:text-zinc-100';
+        contentEl.className = 'text-text-1';
         contentEl.textContent = displayTitle;
         line.appendChild(dateEl);
         line.appendChild(document.createTextNode(' '));

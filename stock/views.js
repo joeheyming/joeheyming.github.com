@@ -25,14 +25,14 @@ function quoteFromSeries(series) {
     typeof m.regularMarketPrice === 'number'
       ? m.regularMarketPrice
       : series.points?.length
-        ? series.points[series.points.length - 1].c
-        : null;
+      ? series.points[series.points.length - 1].c
+      : null;
   const prev =
     typeof m.chartPreviousClose === 'number'
       ? m.chartPreviousClose
       : series.points?.length
-        ? series.points[0].c
-        : null;
+      ? series.points[0].c
+      : null;
   return { last, prev, currency };
 }
 
@@ -49,7 +49,7 @@ export function renderTiles(ctx) {
     tile.dataset.symbol = entry.symbol;
     tile.draggable = true;
 
-    let priceHtml = '<span class="text-slate-500 text-sm">Loading…</span>';
+    let priceHtml = '<span class="text-text-3 text-sm">Loading…</span>';
     let deltaHtml = '';
     let cls = 'flat';
     const { last, prev, currency } = quoteFromSeries(series);
@@ -88,7 +88,9 @@ export function renderTiles(ctx) {
       <div class="actions">
         <button type="button" class="tile-btn js-detail">Stats</button>
         <button type="button" class="tile-btn js-toggle">${entry.visible ? 'Hide' : 'Show'}</button>
-        <button type="button" class="tile-btn danger js-remove" aria-label="Remove ${escapeHtml(entry.symbol)}">×</button>
+        <button type="button" class="tile-btn danger js-remove" aria-label="Remove ${escapeHtml(
+          entry.symbol
+        )}">×</button>
       </div>
     `;
 
@@ -179,17 +181,16 @@ export function renderPortfolio(ctx) {
     const cost = entry.costBasis ?? 0;
     const mktVal = typeof last === 'number' ? last * shares : 0;
     const costVal = cost * shares;
-    const dayDiff = typeof last === 'number' && typeof prev === 'number' ? (last - prev) * shares : 0;
+    const dayDiff =
+      typeof last === 'number' && typeof prev === 'number' ? (last - prev) * shares : 0;
     const totalDiff = mktVal - costVal;
 
     totalCost += costVal;
     totalValue += mktVal;
     totalDay += dayDiff;
 
-    const dayCls =
-      dayDiff > 0 ? 'text-emerald-400' : dayDiff < 0 ? 'text-rose-400' : 'text-slate-300';
-    const totalCls =
-      totalDiff > 0 ? 'text-emerald-400' : totalDiff < 0 ? 'text-rose-400' : 'text-slate-300';
+    const dayCls = dayDiff > 0 ? 'text-success' : dayDiff < 0 ? 'text-danger' : 'text-text-2';
+    const totalCls = totalDiff > 0 ? 'text-success' : totalDiff < 0 ? 'text-danger' : 'text-text-2';
 
     const totalPct = costVal !== 0 ? (totalDiff / costVal) * 100 : 0;
 
@@ -197,20 +198,30 @@ export function renderPortfolio(ctx) {
     tr.innerHTML = `
       <td class="px-2 py-1.5 font-medium">${escapeHtml(entry.symbol)}</td>
       <td class="px-2 py-1.5 text-right">
-        <input type="number" min="0" step="any" value="${shares || ''}" data-field="shares" placeholder="0" />
+        <input type="number" min="0" step="any" value="${
+          shares || ''
+        }" data-field="shares" placeholder="0" />
       </td>
       <td class="px-2 py-1.5 text-right">
-        <input type="number" min="0" step="any" value="${cost || ''}" data-field="costBasis" placeholder="0.00" />
+        <input type="number" min="0" step="any" value="${
+          cost || ''
+        }" data-field="costBasis" placeholder="0.00" />
       </td>
-      <td class="px-2 py-1.5 text-right tabular-nums">${typeof last === 'number' ? formatPrice(last, currency) : '—'}</td>
+      <td class="px-2 py-1.5 text-right tabular-nums">${
+        typeof last === 'number' ? formatPrice(last, currency) : '—'
+      }</td>
       <td class="px-2 py-1.5 text-right tabular-nums">${formatPrice(mktVal, currency)}</td>
-      <td class="px-2 py-1.5 text-right tabular-nums ${dayCls}">${dayDiff >= 0 ? '+' : ''}${formatPrice(dayDiff, currency)}</td>
+      <td class="px-2 py-1.5 text-right tabular-nums ${dayCls}">${
+      dayDiff >= 0 ? '+' : ''
+    }${formatPrice(dayDiff, currency)}</td>
       <td class="px-2 py-1.5 text-right tabular-nums ${totalCls}">
         ${totalDiff >= 0 ? '+' : ''}${formatPrice(totalDiff, currency)}
         <span class="text-xs">(${totalDiff >= 0 ? '+' : ''}${totalPct.toFixed(2)}%)</span>
       </td>
       <td class="px-2 py-1.5 text-right">
-        <button class="text-slate-500 hover:text-rose-400 text-sm" data-rm="${escapeHtml(entry.symbol)}">×</button>
+        <button class="text-text-3 hover:text-danger text-sm" data-rm="${escapeHtml(
+          entry.symbol
+        )}">×</button>
       </td>
     `;
     tr.querySelectorAll('input').forEach((inp) => {
@@ -223,21 +234,27 @@ export function renderPortfolio(ctx) {
         mutators.renderPortfolio();
       });
     });
-    tr.querySelector('[data-rm]')?.addEventListener('click', () => mutators.removeSymbol(entry.symbol));
+    tr.querySelector('[data-rm]')?.addEventListener('click', () =>
+      mutators.removeSymbol(entry.symbol)
+    );
     tbody.appendChild(tr);
   });
 
-  const dayCls =
-    totalDay > 0 ? 'text-emerald-400' : totalDay < 0 ? 'text-rose-400' : 'text-slate-300';
+  const dayCls = totalDay > 0 ? 'text-success' : totalDay < 0 ? 'text-danger' : 'text-text-2';
   const totalPL = totalValue - totalCost;
-  const totalCls =
-    totalPL > 0 ? 'text-emerald-400' : totalPL < 0 ? 'text-rose-400' : 'text-slate-300';
+  const totalCls = totalPL > 0 ? 'text-success' : totalPL < 0 ? 'text-danger' : 'text-text-2';
   const totalPct = totalCost !== 0 ? (totalPL / totalCost) * 100 : 0;
 
   summary.innerHTML = `
-    <div class="summary-card"><div class="lbl">Total cost</div><div class="val">${formatPrice(totalCost)}</div></div>
-    <div class="summary-card"><div class="lbl">Market value</div><div class="val">${formatPrice(totalValue)}</div></div>
-    <div class="summary-card"><div class="lbl">Day Δ</div><div class="val ${dayCls}">${totalDay >= 0 ? '+' : ''}${formatPrice(totalDay)}</div></div>
+    <div class="summary-card"><div class="lbl">Total cost</div><div class="val">${formatPrice(
+      totalCost
+    )}</div></div>
+    <div class="summary-card"><div class="lbl">Market value</div><div class="val">${formatPrice(
+      totalValue
+    )}</div></div>
+    <div class="summary-card"><div class="lbl">Day Δ</div><div class="val ${dayCls}">${
+    totalDay >= 0 ? '+' : ''
+  }${formatPrice(totalDay)}</div></div>
     <div class="summary-card">
       <div class="lbl">Total P/L</div>
       <div class="val ${totalCls}">

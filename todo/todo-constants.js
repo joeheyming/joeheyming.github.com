@@ -1,9 +1,17 @@
 /** Tab prefix, storage keys, and list-name helpers for the todo app. */
 
-export const TW_BTN_EMOJI =
-  'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-lg shadow-sm transition hover:border-violet-400 hover:bg-violet-50 dark:border-zinc-600 dark:bg-zinc-800 dark:hover:border-violet-500 dark:hover:bg-violet-950/50';
-export const TW_BTN_EMOJI_DANGER =
-  'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-lg shadow-sm transition hover:border-rose-400 hover:bg-rose-50 dark:border-zinc-600 dark:bg-zinc-800 dark:hover:border-rose-500 dark:hover:bg-rose-950/40';
+/* Brand-routed circular icon buttons used across the todo UI. The
+ * surface, border, and hover state all read from /brand.css tokens —
+ * a brand swap edits one file and these buttons follow. The `accent`
+ * variant uses brand accent-primary for "default action" affordance,
+ * the `danger` variant uses --danger for destructive actions. The
+ * Tailwind `dark:` prefix pairs that used to live here are gone:
+ * surfaces are theme-swappable via the cascade now, not via Tailwind
+ * dark-mode classes. */
+const TW_BTN_EMOJI_BASE =
+  'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-surface-1 text-lg shadow-sm transition border-hairline-strong';
+export const TW_BTN_EMOJI = `${TW_BTN_EMOJI_BASE} hover:border-accent-primary hover:bg-accent-primary-soft`;
+export const TW_BTN_EMOJI_DANGER = `${TW_BTN_EMOJI_BASE} hover:border-danger hover:bg-danger-soft`;
 
 export const TODO_TAB_PREFIX = 'todo-app-';
 export const DEFAULT_LIST_DISPLAY_NAME = 'Tasks';

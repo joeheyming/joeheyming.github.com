@@ -65,11 +65,11 @@
 
 .hos-button-danger {
   background: var(--danger);
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
   border-color: transparent;
 }
 .hos-button-danger:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--danger, #f87171) 85%, var(--pure-black, #000000));
+  background: color-mix(in srgb, var(--danger) 85%, var(--pure-black));
   border-color: transparent;
 }
 
@@ -163,10 +163,13 @@
 .hos-card-flush {
   padding: 0;
 }
+/* .hos-card-glass — kept as a backwards-compat alias. The new
+ * heyming-engineering brand has no glass / backdrop-filter, so this
+ * paints a solid raised card with the strong hairline. Apps that still
+ * reach for the class still get a recognizable card; the visual weight
+ * just matches the rest of the chrome. */
 .hos-card-glass {
-  background: var(--surface-glass);
-  backdrop-filter: var(--surface-glass-blur);
-  -webkit-backdrop-filter: var(--surface-glass-blur);
+  background: var(--surface-1);
   border: 1px solid var(--hairline-strong);
 }
 
@@ -405,19 +408,22 @@
   color: var(--text-2);
 }
 .hos-tag-success {
-  background: color-mix(in srgb, var(--success, #34d399) 16%, transparent);
+  background: var(--success-soft);
   color: var(--success);
-  border-color: color-mix(in srgb, var(--success, #34d399) 32%, transparent);
+  border-color: color-mix(in srgb, var(--success) 32%, transparent);
 }
+/* Warning fg falls back to dark text on a pale-yellow tile because
+ * --warning (#F29900) is a fill color, not a text color, against the
+ * paper-cream surface. */
 .hos-tag-warning {
-  background: color-mix(in srgb, var(--warning, #fbbf24) 16%, transparent);
-  color: var(--warning);
-  border-color: color-mix(in srgb, var(--warning, #fbbf24) 32%, transparent);
+  background: var(--warning-soft);
+  color: var(--text-1);
+  border-color: color-mix(in srgb, var(--warning) 32%, transparent);
 }
 .hos-tag-danger {
-  background: color-mix(in srgb, var(--danger, #f87171) 16%, transparent);
+  background: var(--danger-soft);
   color: var(--danger);
-  border-color: color-mix(in srgb, var(--danger, #f87171) 32%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 32%, transparent);
 }
 .hos-tag-info {
   background: var(--accent-primary-soft);
@@ -440,23 +446,27 @@
 }
 .hos-notify {
   pointer-events: auto;
-  background: var(--surface-2);
+  background: var(--surface-1);
   color: var(--text-1);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
   padding: 12px 16px;
   font-size: var(--text-caption);
-  box-shadow: var(--shadow-card, 0 8px 24px rgba(0, 0, 0, 0.3));
+  box-shadow: var(--shadow-modal);
   animation: hos-notify-in 0.22s ease-out;
+  /* Engineering signal: notifications get a left-edge color stripe
+   * instead of a soft tint. Mirrors the way GitHub flash messages
+   * and HN moderation banners signal severity. */
+  border-left-width: 4px;
 }
 .hos-notify.hos-notify-success {
-  border-color: color-mix(in srgb, var(--success, #34d399) 45%, transparent);
+  border-left-color: var(--success);
 }
 .hos-notify.hos-notify-danger {
-  border-color: color-mix(in srgb, var(--danger, #f87171) 45%, transparent);
+  border-left-color: var(--danger);
 }
 .hos-notify.hos-notify-warning {
-  border-color: color-mix(in srgb, var(--warning, #fbbf24) 45%, transparent);
+  border-left-color: var(--warning);
 }
 @keyframes hos-notify-in {
   from {

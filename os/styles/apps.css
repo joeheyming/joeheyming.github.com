@@ -12,8 +12,8 @@
   font-family: 'Courier New', monospace;
   font-size: 14px;
   line-height: 1.4;
-  background: var(--pure-black, #000000);
-  color: var(--success, #34d399);
+  background: var(--pure-black);
+  color: var(--success);
   height: 100%;
   overflow-y: auto;
 }
@@ -23,43 +23,43 @@
 }
 
 .terminal-prompt {
-  color: var(--success, #34d399);
+  color: var(--success);
 }
 
 .terminal-input {
   background: transparent;
   border: none;
   outline: none;
-  color: var(--success, #34d399);
+  color: var(--success);
   font-family: inherit;
   font-size: inherit;
   width: 100%;
-  caret-color: var(--success, #34d399);
+  caret-color: var(--success);
 }
 
 .terminal-input::placeholder {
-  color: var(--success, #34d399);
+  color: var(--success);
   opacity: 0.6;
 }
 
 /* Application Content Styles */
 .calculator-content {
   padding: 16px;
-  background: var(--surface-2, #1f1f27);
+  background: var(--surface-2);
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
 .calculator-display {
-  background: var(--pure-black, #000000);
-  color: var(--success, #34d399);
+  background: var(--pure-black);
+  color: var(--success);
   padding: 12px;
   text-align: right;
   font-family: 'Courier New', monospace;
   font-size: 18px;
-  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
-  border-radius: 4px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
   min-height: 40px;
   display: flex;
   align-items: center;
@@ -74,10 +74,10 @@
 
 .calculator-button {
   height: 40px;
-  background: var(--surface-2, #1f1f27);
-  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
-  color: var(--text-1, #f5f5f7);
-  border-radius: 4px;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-strong);
+  color: var(--text-1);
+  border-radius: var(--radius);
   cursor: pointer;
   font-size: 14px;
   font-weight: bold;
@@ -85,7 +85,8 @@
 }
 
 .calculator-button:hover {
-  background: var(--accent-primary-bg-hover, #6e50e6);
+  background: var(--accent-primary-soft);
+  border-color: var(--accent-primary);
 }
 
 .calculator-button:active {
@@ -93,9 +94,13 @@
 }
 
 .calculator-button.operator {
-  background: var(--accent-primary-bg, #5b3cdc);
+  background: var(--accent-primary-bg);
+  color: var(--text-on-accent);
+  border-color: var(--accent-primary-bg-hover);
 }
 
 .calculator-button.equals {
-  background: var(--success, #34d399);
+  background: var(--success);
+  color: var(--text-on-accent);
+  border-color: var(--success);
 }

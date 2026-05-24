@@ -245,7 +245,7 @@ export const initAirInput = ({
         messageHTML:
           "Your phone doesn't yet trust this dev server's certificate, so " +
           'Chrome blocks camera access. ' +
-          '<a href="/dev-ca.pem" download="dev-ca.pem" style="color:#a5b4fc;">' +
+          '<a href="/dev-ca.pem" download="dev-ca.pem" style="color: var(--accent-primary);">' +
           'Tap here to download the dev CA</a>, ' +
           'then install it under <em>Settings → Security → Encryption ' +
           '&amp; credentials → Install a certificate → CA certificate</em>. ' +

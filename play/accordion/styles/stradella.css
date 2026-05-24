@@ -5,8 +5,12 @@
   /* Auto-scoped identity palette for play-acc-strad. Every bare color in
    * this file is routed through one of these tokens so the brand
    * audit sees zero literals while keeping the visual identity. */
-  --play-acc-strad-c01: #0b1220;
-  --play-acc-strad-c02: #1f2937;
+  /* The bass panel was navy slate, which read as "dark mode" against
+   * the cream page chrome. Real Stradella accordions use a stained-
+   * wood or matte-black bass register — using a warm near-black here
+   * keeps the high-contrast feel without the blue cast. */
+  --play-acc-strad-c01: #1c1612;
+  --play-acc-strad-c02: #2a221a;
   --play-acc-strad-c03: rgba(148, 163, 184, 0.45);
   --play-acc-strad-c04: #1e293b;
   --play-acc-strad-c05: #0f172a;

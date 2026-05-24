@@ -103,7 +103,7 @@
 .palette-backdrop {
   position: fixed;
   inset: 0;
-  background: var(--scrim, rgba(11, 11, 15, 0.6));
+  background: var(--scrim);
   z-index: 300;
 }
 

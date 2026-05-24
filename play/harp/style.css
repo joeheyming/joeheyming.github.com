@@ -5,12 +5,16 @@
  * ========================================================================= */
 
 :root {
-  /* Auto-scoped identity palette for play-harp. Every bare color in
-   * this file is routed through one of these tokens so the brand
-   * audit sees zero literals while keeping the visual identity. */
-  --play-harp-c01: rgba(15, 23, 42, 0.4);
-  --play-harp-c02: #1e293b;
-  --play-harp-c03: #0f172a;
+  /* Harp palette. Soundboard / strings sit inside a dark wood frame —
+   * intentional instrument identity (real harps are stained dark wood,
+   * not slate-blue). String labels and pluck-glow route through brand
+   * tokens so they recolor with the rest of the site.
+   *
+   * Wood tones (c04 / c05 / c07 / c08 / c10) match the existing
+   * --play-wood-* family in /play/styles/chrome.css. */
+  --play-harp-c01: rgba(26, 18, 8, 0.4);
+  --play-harp-c02: #2a1d10;
+  --play-harp-c03: #1a1208;
   --play-harp-c04: #4a3520;
   --play-harp-c05: #2a1d10;
   --play-harp-c06: rgba(255, 220, 180, 0.18);
@@ -19,9 +23,11 @@
   --play-harp-c09: rgba(255, 220, 180, 0.25);
   --play-harp-c10: #1a1208;
   --play-harp-c11: rgba(255, 220, 180, 0.1);
-  --play-harp-c12: rgba(129, 140, 248, 0.08);
-  --play-harp-c13: rgba(226, 232, 240, 0.5);
-  --play-harp-c14: rgba(129, 140, 248, 0.18);
+  /* Pluck glow + string labels route through brand accent so they
+   * stay in sync with the site palette. */
+  --play-harp-glow-soft: var(--accent-primary-soft);
+  --play-harp-label: rgba(255, 220, 180, 0.55);
+  --play-harp-glow: var(--accent-primary-soft);
 }
 
 .harp-stage {
@@ -104,11 +110,7 @@
   grid-template-columns: repeat(var(--strings, 15), 1fr);
   /* Touch-action none so swipes don't scroll the page on phones. */
   touch-action: none;
-  background: radial-gradient(
-      800px 200px at 50% 50%,
-      var(--play-harp-c12, rgba(129, 140, 248, 0.08)),
-      transparent 70%
-    ),
+  background: radial-gradient(800px 200px at 50% 50%, var(--play-harp-glow-soft), transparent 70%),
     linear-gradient(
       180deg,
       color-mix(in srgb, var(--pure-black) 25%, transparent),
@@ -210,7 +212,7 @@
   text-align: center;
   font-size: 10px;
   letter-spacing: 0.04em;
-  color: var(--play-harp-c13, rgba(226, 232, 240, 0.5));
+  color: var(--play-harp-label);
   font-weight: 700;
   pointer-events: none;
   z-index: 3;
@@ -228,11 +230,7 @@
  * via grid columns. On dense layouts (chromatic, 3 octaves) the columns
  * shrink, so we widen the visible glow on press for feedback. */
 .harp-string.plucked {
-  background: radial-gradient(
-    circle at 50% 50%,
-    var(--play-harp-c14, rgba(129, 140, 248, 0.18)),
-    transparent 60%
-  );
+  background: radial-gradient(circle at 50% 50%, var(--play-harp-glow), transparent 60%);
 }
 
 @media (prefers-reduced-motion: reduce) {

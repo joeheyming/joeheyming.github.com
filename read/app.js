@@ -1,5 +1,11 @@
 import { Reader } from './reader.js';
-import { saveToShelf, getRecentBooks, removeFromShelf, saveScrollPosition, getScrollPosition } from './shelf.js';
+import {
+  saveToShelf,
+  getRecentBooks,
+  removeFromShelf,
+  saveScrollPosition,
+  getScrollPosition
+} from './shelf.js';
 
 const GUTENDEX_URL = 'https://gutendex.com/books/';
 
@@ -37,12 +43,9 @@ const btnToc = document.getElementById('btn-toc');
 const btnCloseToc = document.getElementById('btn-close-toc');
 
 const reader = new Reader(readerContainer, readerControls);
-reader.setupPageZones(
-  document.getElementById('zone-prev'),
-  document.getElementById('zone-next')
-);
+reader.setupPageZones(document.getElementById('zone-prev'), document.getElementById('zone-next'));
 
-const THEMES = ['dark', 'sepia', 'light'];
+const THEMES = ['sepia', 'light', 'dark'];
 let themeIndex = 0;
 
 // --- Gutendex API ---
@@ -196,7 +199,7 @@ function openBookFromShelf(entry) {
     id: entry.id,
     title: entry.title,
     authors: [{ name: entry.author }],
-    formats: entry.formats,
+    formats: entry.formats
   };
   openBook(book);
 }
@@ -212,7 +215,8 @@ async function renderFeatured() {
       featuredGrid.appendChild(createBookCard(book));
     }
   } catch {
-    featuredGrid.innerHTML = '<p class="empty-message">Could not load books. Check your connection.</p>';
+    featuredGrid.innerHTML =
+      '<p class="empty-message">Could not load books. Check your connection.</p>';
   }
 }
 
@@ -243,14 +247,17 @@ async function runSearch(query) {
     const books = await searchBooks(query);
     searchResultsGrid.innerHTML = '';
     if (!books.length) {
-      searchResultsGrid.innerHTML = `<p class="empty-message">No results for "<em>${escapeHtml(query)}</em>".</p>`;
+      searchResultsGrid.innerHTML = `<p class="empty-message">No results for "<em>${escapeHtml(
+        query
+      )}</em>".</p>`;
       return;
     }
     for (const book of books) {
       searchResultsGrid.appendChild(createBookCard(book));
     }
   } catch {
-    searchResultsGrid.innerHTML = '<p class="empty-message">Search failed. Check your connection.</p>';
+    searchResultsGrid.innerHTML =
+      '<p class="empty-message">Search failed. Check your connection.</p>';
   }
 }
 
@@ -299,7 +306,9 @@ function closeTocSheet() {
 btnToc.addEventListener('click', openTocSheet);
 btnCloseToc.addEventListener('click', closeTocSheet);
 tocSheetOverlay.addEventListener('click', closeTocSheet);
-tocSheet.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTocSheet(); });
+tocSheet.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeTocSheet();
+});
 
 // --- Reader ---
 
@@ -321,7 +330,8 @@ async function openBook(book) {
   reader.onPageChange = (page, total) => {
     const pct = total > 1 ? (page / (total - 1)) * 100 : 0;
     if (readingProgress) readingProgress.style.width = `${pct}%`;
-    if (readerProgressPct) readerProgressPct.textContent = total > 0 ? `${page + 1} / ${total}` : '';
+    if (readerProgressPct)
+      readerProgressPct.textContent = total > 0 ? `${page + 1} / ${total}` : '';
   };
 
   try {
@@ -356,7 +366,9 @@ btnTheme.addEventListener('click', () => {
 });
 
 btnFontFamily.addEventListener('click', () => {
-  const isSerif = readerContainer.style.getPropertyValue('--reader-font-family').includes('Georgia');
+  const isSerif = readerContainer.style
+    .getPropertyValue('--reader-font-family')
+    .includes('Georgia');
   if (isSerif) {
     reader.setFontFamily('sans');
     btnFontFamily.textContent = 'Sans';

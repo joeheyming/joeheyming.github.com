@@ -198,10 +198,10 @@ class ScorePanelElement extends HTMLElement {
          * stays as BRAND.md permits a wordmark-style gradient for hero
          * numbers. */
         .score-container {
-          background: var(--surface-1, #15151b);
+          background: var(--surface-1);
           border-radius: 0.75rem;
           padding: 1rem;
-          border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
+          border: 1px solid var(--hairline-strong);
         }
         .stats-row {
           display: flex;
@@ -213,14 +213,14 @@ class ScorePanelElement extends HTMLElement {
           flex: 1;
           text-align: center;
           padding: 0.5rem;
-          background: var(--surface-2, #1f1f27);
-          border: 1px solid var(--hairline, rgba(255, 255, 255, 0.08));
+          background: var(--surface-2);
+          border: 1px solid var(--hairline);
           border-radius: 0.5rem;
         }
         .stat-label {
           font-size: 0.625rem;
           text-transform: uppercase;
-          color: rgba(255, 255, 255, 0.6);
+          color: var(--text-3);
           margin-bottom: 0.25rem;
         }
         .stat-value {
@@ -228,13 +228,13 @@ class ScorePanelElement extends HTMLElement {
           font-size: 1rem;
         }
         .stat-value.combo {
-          color: #fbbf24;
+          color: var(--warning);
         }
         .stat-value.multiplier {
-          color: #34d399;
+          color: var(--success);
         }
         .stat-value.score {
-          color: #60a5fa;
+          color: var(--accent-primary);
         }
         .percent-score {
           font-size: 1.875rem;
@@ -256,23 +256,23 @@ class ScorePanelElement extends HTMLElement {
           justify-content: space-between;
           align-items: center;
           padding: 0.5rem 0.75rem;
-          background: var(--surface-2, #1f1f27);
-          border: 1px solid var(--hairline, rgba(255, 255, 255, 0.08));
+          background: var(--surface-2);
+          border: 1px solid var(--hairline);
           border-radius: 0.5rem;
         }
         .score-label {
           font-weight: 600;
         }
         .score-value {
-          color: white;
+          color: var(--text-1);
           font-weight: 700;
         }
         .score-row.updated {
           animation: flash 0.3s ease-out;
         }
         @keyframes flash {
-          0% { background: var(--accent-primary-soft, rgba(124, 92, 255, 0.25)); }
-          100% { background: var(--surface-2, #1f1f27); }
+          0% { background: var(--accent-primary-soft); }
+          100% { background: var(--surface-2); }
         }
       </style>
       

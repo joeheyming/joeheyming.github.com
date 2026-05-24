@@ -111,6 +111,10 @@
   // Inject styles. Kept inline so the component is fully self-contained
   // and does not depend on play/style.css being loaded.
   const style = document.createElement('style');
+  /* Routes through brand.css custom properties (loaded by every Play
+   * page) so a theme swap re-tints the install prompt without touching
+   * this module. The previous palette (indigo→pink violet gradient,
+   * slate-900 dialog) was a fixed dark theme. */
   style.textContent = `
     .play-install-button {
       position: fixed;
@@ -122,13 +126,12 @@
       align-items: center;
       gap: 8px;
       padding: 11px 18px 11px 14px;
-      background: linear-gradient(135deg, rgba(129, 140, 248, 0.95), rgba(244, 114, 182, 0.95));
-      color: white;
-      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: var(--accent-primary);
+      color: var(--text-on-accent);
+      border: 1px solid var(--hairline-strong);
       border-radius: 999px;
       font: 600 14px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.45);
-      backdrop-filter: blur(8px);
+      box-shadow: var(--shadow-card);
       cursor: pointer;
       animation: play-install-rise 0.4s ease-out;
     }
@@ -141,15 +144,15 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      background: rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.2);
       border: 0;
       border-radius: 999px;
-      color: white;
+      color: var(--text-on-accent);
       font-size: 14px;
       cursor: pointer;
       padding: 0;
     }
-    .play-install-button .pi-close:hover { background: rgba(255, 255, 255, 0.28); }
+    .play-install-button .pi-close:hover { background: rgba(255, 255, 255, 0.32); }
     @keyframes play-install-rise {
       from { opacity: 0; transform: translateX(-50%) translateY(20px); }
       to { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -162,8 +165,7 @@
       display: flex;
       align-items: flex-end;
       justify-content: center;
-      background: rgba(15, 23, 42, 0.55);
-      backdrop-filter: blur(4px);
+      background: var(--scrim);
       opacity: 0;
       transition: opacity 0.2s ease;
     }
@@ -172,11 +174,11 @@
       width: min(440px, 100% - 24px);
       margin: 0 12px max(20px, env(safe-area-inset-bottom));
       padding: 20px 22px 18px;
-      background: linear-gradient(180deg, #1e293b, #0f172a);
-      color: #e2e8f0;
-      border: 1px solid rgba(148, 163, 184, 0.18);
+      background: var(--surface-1);
+      color: var(--text-1);
+      border: 1px solid var(--hairline-strong);
       border-radius: 18px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      box-shadow: var(--shadow-modal);
       transform: translateY(20px);
       transition: transform 0.22s ease;
       font: 14px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -185,10 +187,7 @@
     .play-install-modal h3 {
       margin: 0 0 10px;
       font-size: 17px;
-      background: linear-gradient(135deg, #818cf8, #f472b6);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+      color: var(--accent-primary);
     }
     .play-install-modal ol {
       margin: 0;
@@ -196,16 +195,16 @@
       display: grid;
       gap: 8px;
     }
-    .play-install-modal li { color: #cbd5e1; }
+    .play-install-modal li { color: var(--text-2); }
     .play-install-modal kbd {
       display: inline-block;
       padding: 1px 6px;
-      background: rgba(148, 163, 184, 0.18);
-      border: 1px solid rgba(148, 163, 184, 0.28);
+      background: var(--surface-2);
+      border: 1px solid var(--hairline);
       border-radius: 6px;
-      font-family: ui-monospace, monospace;
+      font-family: var(--font-mono);
       font-size: 12px;
-      color: #f1f5f9;
+      color: var(--text-1);
     }
     .play-install-modal-actions {
       margin-top: 16px;
@@ -216,16 +215,16 @@
     .play-install-modal-actions button {
       padding: 8px 14px;
       border-radius: 10px;
-      border: 1px solid rgba(148, 163, 184, 0.28);
-      background: rgba(148, 163, 184, 0.08);
-      color: #e2e8f0;
+      border: 1px solid var(--hairline-strong);
+      background: var(--surface-2);
+      color: var(--text-1);
       font: 600 13px/1 inherit;
       cursor: pointer;
     }
     .play-install-modal-actions .primary {
-      background: linear-gradient(135deg, #818cf8, #f472b6);
+      background: var(--accent-primary);
       border-color: transparent;
-      color: white;
+      color: var(--text-on-accent);
     }
   `;
   document.head.appendChild(style);

@@ -1,13 +1,11 @@
 :root {
-  /* Auto-scoped identity palette for play-synth. Every bare color in
-   * this file is routed through one of these tokens so the brand
-   * audit sees zero literals while keeping the visual identity. */
-  --play-synth-c01: rgba(30, 41, 59, 0.7);
-  --play-synth-c02: rgba(15, 23, 42, 0.7);
-  --play-synth-c03: rgba(30, 41, 59, 0.85);
-  --play-synth-c04: rgba(30, 41, 59, 1);
-  --play-synth-c05: rgba(129, 140, 248, 0.25);
-  --play-synth-c06: rgba(244, 114, 182, 0.25);
+  /* Synth panel palette. Cards and preset buttons sit on the brand
+   * cream surface, so the panel chrome routes through brand surface /
+   * hairline tokens. The "active preset" tint uses brand accent-soft
+   * (no longer the indigo→pink wash from the dark era). */
+  --play-synth-panel: var(--surface-1);
+  --play-synth-panel-strong: var(--surface-2);
+  --play-synth-active: var(--accent-primary-soft);
 }
 
 .synth-stage {
@@ -28,15 +26,11 @@
 }
 
 .knob-group {
-  background: linear-gradient(
-    160deg,
-    var(--play-synth-c01, rgba(30, 41, 59, 0.7)),
-    var(--play-synth-c02, rgba(15, 23, 42, 0.7))
-  );
+  background: var(--play-synth-panel);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px 14px;
-  backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-card);
 }
 
 .knob-group h3 {
@@ -91,7 +85,7 @@
 }
 
 .preset-buttons button {
-  background: var(--play-synth-c03, rgba(30, 41, 59, 0.85));
+  background: var(--play-synth-panel);
   color: var(--fg);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -105,7 +99,7 @@
 
 .preset-buttons button:hover {
   border-color: var(--accent);
-  background: var(--play-synth-c04, rgba(30, 41, 59, 1));
+  background: var(--play-synth-panel-strong);
 }
 
 .preset-buttons button:active {
@@ -114,11 +108,8 @@
 
 .preset-buttons button.is-active {
   border-color: var(--accent);
-  background: linear-gradient(
-    135deg,
-    var(--play-synth-c05, rgba(129, 140, 248, 0.25)),
-    var(--play-synth-c06, rgba(244, 114, 182, 0.25))
-  );
+  background: var(--play-synth-active);
+  color: var(--accent-primary-hover);
 }
 
 @media (max-width: 640px) {

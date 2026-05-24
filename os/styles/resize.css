@@ -10,7 +10,7 @@
 }
 
 .resize-handle:hover {
-  background: var(--accent-primary-soft, rgba(124, 92, 255, 0.15));
+  background: var(--accent-primary-soft);
 }
 
 .os-window:hover .resize-handle {
@@ -92,9 +92,9 @@
  * inside the linear-gradient stop list (color-stops can't read tokens
  * directly, but they can read CSS variables). */
 .window-drag-handle {
-  --drag-stripe: var(--text-3, #8e8e96);
-  --drag-stripe-hover: var(--accent-primary-bg, #5b3cdc);
-  --drag-dot: var(--text-2, #a1a1aa);
+  --drag-stripe: var(--text-3);
+  --drag-stripe-hover: var(--accent-primary-bg);
+  --drag-dot: var(--text-2);
   position: absolute;
   bottom: 0;
   right: 0;

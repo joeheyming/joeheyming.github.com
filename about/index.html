@@ -22,7 +22,7 @@
     <meta name="application-name" content="Heyming OS" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#7C5CFF" />
+    <meta name="theme-color" content="#FAFAFA" />
     <meta
       name="keywords"
       content="Joe Heyming, Heyming OS, UI Engineer, Roblox, Software Engineer, UCSB, Web Developer, JavaScript, React, Frontend, Trust &amp; Safety, Cloudera, Aruba Networks, Hewlett Packard"
@@ -76,7 +76,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
     />
     <!-- Tailwind CDN must load BEFORE brand-tailwind.js — the CDN
          installs window.tailwind on boot and overwrites any pre-set
@@ -189,16 +189,10 @@
         overflow: hidden;
       }
       .about-hero-glow {
-        position: absolute;
-        inset: -20% -10% auto -10%;
-        height: 320px;
-        background: radial-gradient(
-          ellipse at center top,
-          rgba(124, 92, 255, 0.22),
-          rgba(124, 92, 255, 0) 70%
-        );
-        pointer-events: none;
-        z-index: 0;
+        /* Heyming-engineering brand has no gradients — the legacy violet
+         * glow is suppressed but the markup hook stays so the JS doesn't
+         * break if it queries this element. */
+        display: none;
       }
       .about-hero-body {
         position: relative;
@@ -379,12 +373,12 @@
         font-weight: 600;
         transition: background var(--motion-hover), transform var(--motion-hover),
           box-shadow var(--motion-hover);
-        box-shadow: 0 8px 24px rgba(91, 60, 220, 0.32);
+        box-shadow: var(--shadow-card);
       }
       .callout-cta:hover {
         background: var(--accent-primary-bg-hover);
         transform: translateY(-1px);
-        box-shadow: 0 12px 32px rgba(91, 60, 220, 0.42);
+        box-shadow: var(--shadow-modal);
       }
 
       .about-footer {

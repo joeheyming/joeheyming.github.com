@@ -66,8 +66,8 @@
   /* Selection (mint pad with inverted fg) */
   --terminal-selection-bg: var(--crt-selection-bg, rgba(140, 255, 190, 0.55));
   --terminal-selection-fg: var(--crt-selection-fg, #051208);
-  --terminal-selection-bg-hi: var(--pure-white, #fff);
-  --terminal-selection-fg-hi: var(--pure-black, #000);
+  --terminal-selection-bg-hi: var(--pure-white);
+  --terminal-selection-fg-hi: var(--pure-black);
 
   /* Welcome banner & gradient stops */
   --terminal-welcome-grad: var(--crt-welcome-grad, rgba(0, 48, 0, 0.45));
@@ -75,7 +75,7 @@
   --terminal-grad-end: var(--crt-grad-end, rgba(0, 0, 0, 0));
 
   /* Modal chrome (terminal black, NOT brand surface — preserves CRT) */
-  --terminal-modal-bg: var(--pure-black, #000);
+  --terminal-modal-bg: var(--pure-black);
   --terminal-modal-scrim: var(--crt-modal-scrim, rgba(0, 0, 0, 0.88));
   --terminal-modal-shadow: var(--crt-modal-shadow, rgba(0, 0, 0, 0.75));
   --terminal-modal-track: var(--crt-modal-track, #1a1a1a);
@@ -90,7 +90,7 @@
   /* High-contrast variants for chrome surfaces */
   --terminal-init-error-bg-hi: var(--crt-init-error-bg-hi, #1a0806);
   --terminal-scroll-latest-bg-hi: var(--crt-scroll-latest-bg-hi, #0a1a0c);
-  --terminal-init-error-fg-hi: var(--pure-white, #fff);
+  --terminal-init-error-fg-hi: var(--pure-white);
 
   /* Running-command indicator (sage, distinct from phosphor) */
   --terminal-running-fg: var(--crt-running-fg, #8fbc8f);
@@ -168,7 +168,7 @@
   --terminal-hollywood-bg: var(--crt-hollywood-bg, #1a1a1a);
 
   /* Vi cursor / less highlight */
-  --terminal-cursor-fg: var(--pure-black, #000);
+  --terminal-cursor-fg: var(--pure-black);
   --terminal-cursor-bg: var(--crt-cursor-bg, #0f0);
   --terminal-cursor-insert-bg: var(--crt-cursor-insert-bg, #ff0);
 
@@ -190,8 +190,12 @@ body {
   padding: 0;
   height: 100%;
   min-height: 100%;
-  background: var(--surface-0, #000);
-  color: var(--text-1, #fff);
+  /* Tier-3 carve-out: the terminal is a full-page CRT/phosphor surface
+   * — dark sky with green text. Brand-cream body would flatten the
+   * scanline / glow palette below into invisibility, so the body is
+   * pinned to a deep terminal-black instead. */
+  background: var(--terminal-bg, #050a05);
+  color: var(--terminal-text, #dff8e4);
   font-family: 'Hack', 'Courier New', Courier, ui-monospace, monospace;
   overflow: hidden;
 }
@@ -216,7 +220,7 @@ body {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  background: var(--surface-0, #000);
+  background: var(--terminal-bg, #050a05);
   padding: calc(10px + env(safe-area-inset-top, 0px)) calc(10px + env(safe-area-inset-right, 0px))
     calc(10px + env(safe-area-inset-bottom, 0px)) calc(10px + env(safe-area-inset-left, 0px));
 }
@@ -245,14 +249,14 @@ html.terminal-embed-os #terminal-share-dock {
   margin: 8px 0;
   padding: 12px 14px;
   max-width: 42rem;
-  border-radius: var(--radius, 8px);
-  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
-  border-left: 3px solid var(--danger, #f87171);
-  background: var(--surface-1, rgba(48, 12, 8, 0.55));
-  color: var(--text-1, #f5d0c8);
+  border-radius: var(--radius);
+  border: 1px solid var(--hairline-strong);
+  border-left: 3px solid var(--danger);
+  background: var(--surface-1);
+  color: var(--text-1);
   font-size: 13px;
   line-height: 1.45;
-  font-family: var(--font-ui, system-ui, sans-serif);
+  font-family: var(--font-ui);
 }
 
 .terminal-init-error-title {
@@ -260,7 +264,7 @@ html.terminal-embed-os #terminal-share-dock {
   margin: 0 0 8px;
   font-size: 14px;
   font-weight: 700;
-  color: var(--danger, #ffb4a8);
+  color: var(--danger);
 }
 
 .terminal-init-error-line {
@@ -269,13 +273,13 @@ html.terminal-embed-os #terminal-share-dock {
 
 .terminal-init-error-hint {
   margin-top: 10px;
-  color: var(--text-2, rgba(245, 208, 200, 0.82));
+  color: var(--text-2);
   font-size: 12px;
 }
 
 @media (prefers-contrast: more) {
   .terminal-init-error {
-    border-color: var(--danger, rgba(255, 180, 160, 0.85));
+    border-color: var(--danger);
     color: var(--terminal-init-error-fg-hi, #fff);
     background: var(--terminal-init-error-bg-hi, #1a0806);
   }
@@ -310,10 +314,10 @@ html.terminal-embed-os #terminal-share-dock {
   overflow: visible;
   clip: auto;
   white-space: nowrap;
-  border-radius: var(--radius-sm, 4px);
-  border: 1px solid var(--hairline-strong, rgba(0, 255, 80, 0.45));
-  background: var(--surface-2, rgba(0, 32, 0, 0.96));
-  color: var(--text-1, #b6f7b6);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-2);
+  color: var(--text-1);
   font-family: inherit;
   font-size: 13px;
   text-decoration: none;
@@ -321,9 +325,9 @@ html.terminal-embed-os #terminal-share-dock {
 }
 
 .terminal-skip-link:focus-visible {
-  outline: 2px solid var(--focus-ring-inner, rgba(0, 255, 80, 0.55));
+  outline: 2px solid var(--focus-ring-inner);
   outline-offset: 2px;
-  box-shadow: 0 0 0 4px var(--focus-ring-outer, rgba(255, 255, 255, 0.65)),
+  box-shadow: 0 0 0 4px var(--focus-ring-outer),
     0 4px 16px var(--terminal-shadow-md, rgba(0, 0, 0, 0.55));
 }
 
@@ -341,7 +345,7 @@ html.terminal-embed-os #terminal-share-dock {
   overscroll-behavior-y: contain;
   touch-action: pan-y;
   scrollbar-width: thin;
-  scrollbar-color: var(--terminal-scrollbar) var(--surface-1, #1a1a1a);
+  scrollbar-color: var(--terminal-scrollbar) var(--surface-1);
 }
 
 #terminal-output {
@@ -441,29 +445,29 @@ html.terminal-embed-os .terminal-session-hints {
   bottom: calc(52px + env(safe-area-inset-bottom, 0px));
   margin: 0;
   padding: 6px 10px;
-  border-radius: var(--radius-sm, 6px);
-  border: 1px solid var(--hairline-strong, rgba(0, 255, 80, 0.38));
-  background: var(--surface-2, rgba(0, 48, 12, 0.96));
-  color: var(--text-1, #b6f7b6);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-2);
+  color: var(--text-1);
   font-family: inherit;
   font-size: 12px;
   line-height: 1.2;
   cursor: pointer;
   box-shadow: 0 4px 14px var(--terminal-shadow-sm, rgba(0, 0, 0, 0.45));
-  transition: border-color var(--motion-hover, 150ms ease),
-    background-color var(--motion-hover, 150ms ease), color var(--motion-hover, 150ms ease);
+  transition: border-color var(--motion-hover), background-color var(--motion-hover),
+    color var(--motion-hover);
 }
 
 .terminal-scroll-latest:hover {
-  border-color: var(--accent-primary, rgba(0, 255, 80, 0.55));
-  color: var(--text-1, #d8ffd8);
+  border-color: var(--accent-primary);
+  color: var(--text-1);
   background: var(--surface-1);
 }
 
 .terminal-scroll-latest:focus-visible {
-  outline: 2px solid var(--focus-ring-inner, rgba(0, 255, 80, 0.55));
+  outline: 2px solid var(--focus-ring-inner);
   outline-offset: 2px;
-  box-shadow: 0 0 0 4px var(--focus-ring-outer, rgba(255, 255, 255, 0.65)),
+  box-shadow: 0 0 0 4px var(--focus-ring-outer),
     0 4px 14px var(--terminal-shadow-sm, rgba(0, 0, 0, 0.45));
 }
 
@@ -476,7 +480,7 @@ html.terminal-embed-os .terminal-scroll-latest {
 
 @media (prefers-contrast: more) {
   .terminal-scroll-latest {
-    border-color: var(--text-1, rgba(0, 255, 120, 0.75));
+    border-color: var(--text-1);
     background: var(--terminal-scroll-latest-bg-hi, #0a1a0c);
     color: var(--terminal-init-error-fg-hi, #fff);
   }
@@ -597,7 +601,7 @@ html.terminal-embed-os #current-prompt-line {
 }
 
 #terminal-scroll::-webkit-scrollbar-track {
-  background: var(--surface-1, #1a1a1a);
+  background: var(--surface-1);
 }
 
 #terminal-scroll::-webkit-scrollbar-thumb {
@@ -645,6 +649,6 @@ html.terminal-embed-os #current-prompt-line {
 }
 
 .setup-error {
-  color: var(--danger, #ff6b6b);
+  color: var(--danger);
   padding: 2px 0;
 }

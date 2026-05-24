@@ -11,9 +11,9 @@
   min-width: 400px;
   min-height: 300px;
   background: var(--surface-1);
-  border: 1px solid var(--hairline);
+  border: 1px solid var(--hairline-strong);
   border-radius: var(--radius) var(--radius) 0 0;
-  box-shadow: 0 10px 25px color-mix(in srgb, var(--pure-black) 50%, transparent);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--pure-black) 12%, transparent);
   overflow: hidden;
   z-index: 100;
   pointer-events: auto; /* #os-windows uses pointer-events: none so clicks reach desktop icons */
@@ -117,7 +117,7 @@
 
 .os-window:not(.active) {
   border-color: var(--hairline);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--pure-black) 40%, transparent);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--pure-black) 8%, transparent);
 }
 
 .os-window:not(.active) .os-window-titlebar {
@@ -134,7 +134,7 @@
 
 .os-window.active {
   border-color: var(--accent-primary);
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--pure-black) 55%, transparent),
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--pure-black) 12%, transparent),
     0 0 0 1px var(--hairline-accent);
 }
 
@@ -171,7 +171,8 @@
 }
 
 .os-window.active .os-window-titlebar {
-  background: linear-gradient(to bottom, var(--surface-2), var(--surface-1));
+  background: var(--surface-1);
+  border-bottom-color: var(--hairline-strong);
 }
 
 .os-window.active .os-window-titlebar:hover {

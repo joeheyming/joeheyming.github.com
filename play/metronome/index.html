@@ -15,7 +15,7 @@
       name="description"
       content="A free browser metronome with tap tempo, time signatures, and beat subdivisions. Keep steady timing for practice sessions — works offline in your browser."
     />
-    <meta name="theme-color" content="#7C5CFF" />
+    <meta name="theme-color" content="#FAFAFA" />
 
     <link rel="manifest" href="/play/manifest.json" />
     <link rel="apple-touch-icon" sizes="180x180" href="/play/icons/apple-touch-icon.png" />
@@ -169,21 +169,19 @@
       <div class="metronome-tempo">
         <div class="tempo-row">
           <button class="tempo-btn" id="bpm-down" type="button" aria-label="Slower">−</button>
-          <div class="tempo-display">
-            <input
-              id="bpm"
-              type="number"
-              min="30"
-              max="300"
-              step="1"
-              value="100"
-              inputmode="numeric"
-              aria-label="Beats per minute"
-            />
-            <div class="tempo-unit">BPM</div>
-          </div>
+          <input
+            id="bpm"
+            type="number"
+            min="30"
+            max="300"
+            step="1"
+            value="100"
+            inputmode="numeric"
+            aria-label="Beats per minute"
+          />
           <button class="tempo-btn" id="bpm-up" type="button" aria-label="Faster">+</button>
         </div>
+        <div class="tempo-unit">BPM</div>
         <input
           id="bpm-slider"
           type="range"

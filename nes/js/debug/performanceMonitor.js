@@ -110,7 +110,7 @@ PerformanceMonitor.prototype.addToHamburgerMenu = function () {
       var menuItem = document.createElement('button');
       menuItem.textContent = '📊 Performance Monitor';
       menuItem.className =
-        'block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200';
+        'block w-full text-left px-4 py-2 text-sm text-text-1 hover:bg-surface-2 transition-colors duration-200';
       menuItem.onclick = function (e) {
         e.preventDefault();
         e.stopPropagation();
@@ -121,7 +121,7 @@ PerformanceMonitor.prototype.addToHamburgerMenu = function () {
 
       // Add separator line before our menu item
       var separator = document.createElement('div');
-      separator.className = 'border-t border-gray-200 my-1';
+      separator.className = 'border-t border-hairline my-1';
       hamburgerMenu.appendChild(separator);
 
       // Add it to the menu (after the existing items)

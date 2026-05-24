@@ -4,14 +4,18 @@
 :root {
   /* Local aliases re-route the legacy palette through brand tokens so
    * any selector that still names --os-dialogs-c* picks up the cascade.
-   * Tokens used only by removed gradients have been dropped. */
+   *
+   * Phase 4 of the brand pivot re-pointed every legacy dark-theme alias
+   * (#252538, #88c0d0, #6366f1, …) to the new heyming-engineering
+   * tokens (paper-cream surfaces, accent-blue chrome, brand text). The
+   * naming is preserved so the selectors below don't need to change. */
   --os-dialogs-c01: var(--surface-1);
   --os-dialogs-c03: color-mix(in srgb, var(--danger) 80%, transparent);
   --os-dialogs-c04: var(--accent-primary);
   --os-dialogs-c05: var(--surface-0);
-  --os-dialogs-c06: #a0e0a0;
+  --os-dialogs-c06: var(--success);
   --os-dialogs-c09: color-mix(in srgb, var(--accent-primary) 40%, transparent);
-  --os-dialogs-c10: var(--surface-2);
+  --os-dialogs-c10: var(--surface-1);
   --os-dialogs-c11: var(--hairline-strong);
   --os-dialogs-c12: var(--text-1);
   --os-dialogs-c13: var(--accent-primary-soft);
@@ -22,24 +26,24 @@
   --os-dialogs-c20: color-mix(in srgb, var(--danger) 30%, transparent);
   --os-dialogs-c21: var(--accent-primary);
   --os-dialogs-c22: var(--hairline-strong);
-  --os-dialogs-c23: #252538;
-  --os-dialogs-c24: #3d3d5c;
-  --os-dialogs-c25: #88c0d0;
-  --os-dialogs-c26: #888888;
-  --os-dialogs-c27: #ef4444;
-  --os-dialogs-c28: #e0e0e0;
-  --os-dialogs-c29: #a0a0a0;
-  --os-dialogs-c30: rgba(136, 192, 208, 0.1);
-  --os-dialogs-c31: rgba(136, 192, 208, 0.2);
-  --os-dialogs-c32: rgba(136, 192, 208, 0.25);
-  --os-dialogs-c33: #666666;
-  --os-dialogs-c34: #10b981;
-  --os-dialogs-c35: #059669;
-  --os-dialogs-c36: #1e1e2e;
-  --os-dialogs-c37: #64748b;
-  --os-dialogs-c38: rgba(99, 102, 241, 0.15);
-  --os-dialogs-c39: #6366f1;
-  --os-dialogs-c40: #94a3b8;
+  --os-dialogs-c23: var(--surface-2);
+  --os-dialogs-c24: var(--hairline-strong);
+  --os-dialogs-c25: var(--accent-primary);
+  --os-dialogs-c26: var(--text-3);
+  --os-dialogs-c27: var(--danger);
+  --os-dialogs-c28: var(--text-1);
+  --os-dialogs-c29: var(--text-2);
+  --os-dialogs-c30: var(--accent-primary-soft);
+  --os-dialogs-c31: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+  --os-dialogs-c32: color-mix(in srgb, var(--accent-primary) 22%, transparent);
+  --os-dialogs-c33: var(--text-3);
+  --os-dialogs-c34: var(--success);
+  --os-dialogs-c35: color-mix(in srgb, var(--success) 85%, var(--pure-black));
+  --os-dialogs-c36: var(--surface-1);
+  --os-dialogs-c37: var(--text-2);
+  --os-dialogs-c38: var(--accent-primary-soft);
+  --os-dialogs-c39: var(--accent-primary);
+  --os-dialogs-c40: var(--text-3);
 }
 
 /* ============================================================
@@ -52,8 +56,7 @@
   left: 0;
   right: 0;
   bottom: 48px; /* Above taskbar */
-  background: color-mix(in srgb, var(--pure-black) 70%, transparent);
-  backdrop-filter: blur(10px);
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -67,9 +70,10 @@
 }
 
 .quick-look-container {
-  background: var(--os-dialogs-c01, #1a1a2e);
-  border-radius: 12px;
-  box-shadow: 0 20px 60px color-mix(in srgb, var(--pure-black) 50%, transparent);
+  background: var(--os-dialogs-c01, #ffffff);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--hairline-strong);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--pure-black) 16%, transparent);
   max-width: 80vw;
   max-height: 80vh;
   min-width: 400px;
@@ -91,12 +95,12 @@
   align-items: center;
   padding: 12px 16px;
   background: var(--surface-2);
-  border-bottom: 1px solid color-mix(in srgb, var(--pure-white) 10%, transparent);
+  border-bottom: 1px solid var(--hairline);
 }
 
 .quick-look-title {
   font-weight: 600;
-  color: var(--pure-white, #ffffff);
+  color: var(--text-1);
   font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -104,9 +108,9 @@
 }
 
 .quick-look-close {
-  background: color-mix(in srgb, var(--pure-white) 10%, transparent);
-  border: none;
-  color: var(--pure-white, #ffffff);
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-strong);
+  color: var(--text-1);
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -178,7 +182,7 @@
 
 .quick-look-content .no-preview {
   text-align: center;
-  color: color-mix(in srgb, var(--pure-white) 60%, transparent);
+  color: var(--text-2);
 }
 
 .quick-look-content .no-preview .icon {
@@ -189,7 +193,7 @@
 
 .quick-look-content .no-preview .mime {
   font-size: 12px;
-  color: color-mix(in srgb, var(--pure-white) 40%, transparent);
+  color: var(--text-3);
   font-family: monospace;
 }
 
@@ -200,7 +204,7 @@
   gap: 12px;
   padding: 12px 16px;
   background: var(--surface-2);
-  border-top: 1px solid color-mix(in srgb, var(--pure-white) 10%, transparent);
+  border-top: 1px solid var(--hairline);
 }
 
 .quick-look-footer-left {
@@ -212,12 +216,12 @@
 
 .quick-look-hint {
   font-size: 11px;
-  color: color-mix(in srgb, var(--pure-white) 45%, transparent);
+  color: var(--text-3);
 }
 
 .quick-look-info {
   font-size: 12px;
-  color: color-mix(in srgb, var(--pure-white) 50%, transparent);
+  color: var(--text-2);
   font-family: monospace;
 }
 
@@ -364,13 +368,10 @@
 .context-menu {
   position: absolute;
   min-width: 200px;
-  background: var(--surface-glass);
-  backdrop-filter: var(--surface-glass-blur);
-  -webkit-backdrop-filter: var(--surface-glass-blur);
-  border: 1px solid var(--os-dialogs-c11, #4a5568);
-  border-radius: 8px;
-  box-shadow: 0 10px 40px color-mix(in srgb, var(--pure-black) 40%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--pure-white) 5%, transparent);
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--pure-black) 12%, transparent);
   z-index: 10000;
   padding: 6px 0;
   opacity: 0;
@@ -422,14 +423,14 @@
 
 .context-menu-header {
   padding: 8px 16px;
-  color: var(--os-dialogs-c19, #a0aec0);
+  color: var(--os-dialogs-c19, #6e6e6e);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  border-bottom: 1px solid var(--os-dialogs-c11, #4a5568);
-  background: color-mix(in srgb, var(--pure-black) 20%, transparent);
+  border-bottom: 1px solid var(--os-dialogs-c11, #c8c8c0);
+  background: var(--surface-2);
 }
 
 /* ============================================================
@@ -484,12 +485,12 @@
 }
 
 #shutdown-dialog {
-  backdrop-filter: blur(4px);
+  background: var(--scrim);
 }
 
-#shutdown-dialog .bg-gray-800 {
+#shutdown-dialog .shutdown-dialog-panel {
   animation: slideUp 0.3s ease-out;
-  box-shadow: 0 25px 50px color-mix(in srgb, var(--pure-black) 50%, transparent);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--pure-black) 16%, transparent);
 }
 
 #shutdown-dialog button:focus-visible {
@@ -518,12 +519,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: color-mix(in srgb, var(--pure-black) 70%, transparent);
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10000;
-  backdrop-filter: blur(4px);
 }
 
 .file-dialog-overlay.hidden {
@@ -533,7 +533,7 @@
 .file-dialog {
   background: var(--surface-1);
   border: 1px solid var(--os-dialogs-c22, var(--hairline-strong));
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   width: 600px;
   max-width: 90vw;
   max-height: 80vh;
@@ -546,7 +546,7 @@
     'sidebar content'
     'footer footer';
   overflow: hidden;
-  box-shadow: 0 20px 60px color-mix(in srgb, var(--pure-black) 50%, transparent);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--pure-black) 16%, transparent);
   animation: dialogSlideIn 0.2s ease-out;
 }
 
@@ -776,20 +776,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--pure-black) 50%, transparent);
-  backdrop-filter: blur(4px);
+  background: var(--scrim);
   animation: fadeIn 0.15s ease-out;
 }
 
 .open-with-panel {
-  background: var(--os-dialogs-c36, #1e1e2e);
-  border: 1px solid color-mix(in srgb, var(--pure-white) 10%, transparent);
-  border-radius: 14px;
+  background: var(--os-dialogs-c36, #ffffff);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-lg);
   width: 340px;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px color-mix(in srgb, var(--pure-black) 50%, transparent);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--pure-black) 16%, transparent);
   overflow: hidden;
 }
 
@@ -798,7 +797,7 @@
   align-items: flex-start;
   gap: 12px;
   padding: 20px 20px 14px;
-  border-bottom: 1px solid color-mix(in srgb, var(--pure-white) 6%, transparent);
+  border-bottom: 1px solid var(--hairline);
 }
 
 .open-with-file-icon {
@@ -867,23 +866,23 @@
 
 .open-with-footer {
   padding: 10px 16px;
-  border-top: 1px solid color-mix(in srgb, var(--pure-white) 6%, transparent);
+  border-top: 1px solid var(--hairline);
   display: flex;
   justify-content: flex-end;
 }
 
 .open-with-cancel-btn {
   padding: 6px 16px;
-  border: 1px solid color-mix(in srgb, var(--pure-white) 12%, transparent);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--pure-white) 6%, transparent);
-  color: var(--os-dialogs-c40, #94a3b8);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  color: var(--text-2);
   font-size: 13px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 
 .open-with-cancel-btn:hover {
-  background: color-mix(in srgb, var(--pure-white) 10%, transparent);
-  color: var(--os-dialogs-c12, #e2e8f0);
+  background: var(--surface-2);
+  color: var(--text-1);
 }

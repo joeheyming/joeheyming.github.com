@@ -177,7 +177,7 @@ export class QuickLookPreview {
       }
       iframe.srcdoc = html;
       iframe.title = fileName;
-      iframe.style.cssText = 'width:100%;height:100%;border:none;background:#fff;';
+      iframe.style.cssText = 'width:100%;height:100%;border:none;background:var(--surface-1);';
       contentEl.appendChild(iframe);
     } else if (this._isTextMimeType(mimeType)) {
       const pre = document.createElement('pre');

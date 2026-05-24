@@ -60,7 +60,7 @@ function fmtDate(ms) {
 function escapeHtml(s) {
   return String(s).replace(
     /[&<>"']/g,
-    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] || c
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c)
   );
 }
 
@@ -152,7 +152,7 @@ export class DetailView {
   _renderSkeleton() {
     this.els.body.innerHTML = `
       <div class="space-y-4">
-        <div class="text-sm text-slate-400">Loading stats…</div>
+        <div class="text-sm text-text-3">Loading stats…</div>
       </div>
     `;
   }
@@ -186,10 +186,7 @@ export class DetailView {
     const sym = this.currentSymbol;
     const currency = q?.currency || series?.meta?.currency || 'USD';
     const price =
-      q?.regularMarketPrice ??
-      series?.meta?.regularMarketPrice ??
-      fb.lastPrice ??
-      undefined;
+      q?.regularMarketPrice ?? series?.meta?.regularMarketPrice ?? fb.lastPrice ?? undefined;
     const prev =
       q?.regularMarketPreviousClose ??
       series?.meta?.chartPreviousClose ??
@@ -199,23 +196,23 @@ export class DetailView {
       typeof q?.regularMarketChange === 'number'
         ? q.regularMarketChange
         : typeof price === 'number' && typeof prev === 'number'
-          ? price - prev
-          : undefined;
+        ? price - prev
+        : undefined;
     const changePct =
       typeof q?.regularMarketChangePercent === 'number'
         ? q.regularMarketChangePercent
         : typeof change === 'number' && typeof prev === 'number' && prev !== 0
-          ? (change / prev) * 100
-          : undefined;
+        ? (change / prev) * 100
+        : undefined;
 
     const dirCls =
       typeof change === 'number'
         ? change > 0
-          ? 'text-emerald-400'
+          ? 'text-success'
           : change < 0
-            ? 'text-rose-400'
-            : 'text-slate-300'
-        : 'text-slate-300';
+          ? 'text-danger'
+          : 'text-text-2'
+        : 'text-text-2';
 
     const longName = q?.longName || q?.shortName || this.currentName || sym;
 
@@ -230,18 +227,15 @@ export class DetailView {
 
     /** [label, value, optionalCls] rows. */
     const stats = [
-      [
-        'Market cap',
-        typeof marketCap === 'number' ? fmtCompact(marketCap) : '—'
-      ],
+      ['Market cap', typeof marketCap === 'number' ? fmtCompact(marketCap) : '—'],
       ['Volume', typeof volume === 'number' ? fmtCompact(volume) : '—'],
       [
         'Avg vol (3M)',
         typeof q?.averageDailyVolume3Month === 'number'
           ? fmtCompact(q.averageDailyVolume3Month)
           : fb.avgVolInRange != null
-            ? fmtCompact(fb.avgVolInRange)
-            : '—'
+          ? fmtCompact(fb.avgVolInRange)
+          : '—'
       ],
       ['P/E (TTM)', typeof q?.trailingPE === 'number' ? fmt(q.trailingPE) : '—'],
       ['Fwd P/E', typeof q?.forwardPE === 'number' ? fmt(q.forwardPE) : '—'],
@@ -256,59 +250,74 @@ export class DetailView {
         typeof q?.dividendYield === 'number'
           ? `${(q.dividendYield * 100).toFixed(2)}%`
           : typeof q?.trailingAnnualDividendYield === 'number'
-            ? `${(q.trailingAnnualDividendYield * 100).toFixed(2)}%`
-            : '—'
+          ? `${(q.trailingAnnualDividendYield * 100).toFixed(2)}%`
+          : '—'
       ],
       [
         'Div rate',
         typeof q?.dividendRate === 'number'
           ? fmt(q.dividendRate, { currency })
           : typeof q?.trailingAnnualDividendRate === 'number'
-            ? fmt(q.trailingAnnualDividendRate, { currency })
-            : '—'
+          ? fmt(q.trailingAnnualDividendRate, { currency })
+          : '—'
       ],
-      ['Shares out', typeof q?.sharesOutstanding === 'number' ? fmtCompact(q.sharesOutstanding) : '—'],
+      [
+        'Shares out',
+        typeof q?.sharesOutstanding === 'number' ? fmtCompact(q.sharesOutstanding) : '—'
+      ],
       ['Float', typeof q?.floatShares === 'number' ? fmtCompact(q.floatShares) : '—']
     ];
 
     const range = [
       ['Day low', typeof dayLow === 'number' ? fmt(dayLow, { currency }) : '—'],
       ['Day high', typeof dayHigh === 'number' ? fmt(dayHigh, { currency }) : '—'],
-      ['Open', typeof q?.regularMarketOpen === 'number' ? fmt(q.regularMarketOpen, { currency }) : '—'],
+      [
+        'Open',
+        typeof q?.regularMarketOpen === 'number' ? fmt(q.regularMarketOpen, { currency }) : '—'
+      ],
       ['Prev close', typeof prev === 'number' ? fmt(prev, { currency }) : '—'],
       [
         '52W low',
         typeof fiftyTwoL === 'number'
           ? fmt(fiftyTwoL, { currency })
           : typeof fb.rangeLow === 'number'
-            ? fmt(fb.rangeLow, { currency })
-            : '—'
+          ? fmt(fb.rangeLow, { currency })
+          : '—'
       ],
       [
         '52W high',
         typeof fiftyTwoH === 'number'
           ? fmt(fiftyTwoH, { currency })
           : typeof fb.rangeHigh === 'number'
-            ? fmt(fb.rangeHigh, { currency })
-            : '—'
+          ? fmt(fb.rangeHigh, { currency })
+          : '—'
       ],
-      ['50D avg', typeof q?.fiftyDayAverage === 'number' ? fmt(q.fiftyDayAverage, { currency }) : '—'],
-      ['200D avg', typeof q?.twoHundredDayAverage === 'number' ? fmt(q.twoHundredDayAverage, { currency }) : '—']
+      [
+        '50D avg',
+        typeof q?.fiftyDayAverage === 'number' ? fmt(q.fiftyDayAverage, { currency }) : '—'
+      ],
+      [
+        '200D avg',
+        typeof q?.twoHundredDayAverage === 'number'
+          ? fmt(q.twoHundredDayAverage, { currency })
+          : '—'
+      ]
     ];
 
-    const earnings = typeof q?.earningsTimestamp === 'number'
-      ? new Date(q.earningsTimestamp * 1000).toLocaleDateString(undefined, {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        })
-      : '—';
+    const earnings =
+      typeof q?.earningsTimestamp === 'number'
+        ? new Date(q.earningsTimestamp * 1000).toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          })
+        : '—';
 
     const alerts = this.deps.getAlerts().filter((a) => a.symbol === sym);
 
     this.els.body.innerHTML = `
       <section class="mb-5">
-        <div class="text-xs uppercase tracking-wide text-slate-500">${escapeHtml(longName)}</div>
+        <div class="text-xs uppercase tracking-wide text-text-3">${escapeHtml(longName)}</div>
         <div class="flex items-baseline gap-3 mt-1">
           <div class="text-3xl font-semibold tabular-nums">
             ${typeof price === 'number' ? fmt(price, { currency }) : '—'}
@@ -316,16 +325,30 @@ export class DetailView {
           <div class="text-sm ${dirCls} tabular-nums">
             ${
               typeof change === 'number'
-                ? `${change >= 0 ? '+' : ''}${fmt(change, { currency })} (${fmtPct(changePct ?? 0)})`
+                ? `${change >= 0 ? '+' : ''}${fmt(change, { currency })} (${fmtPct(
+                    changePct ?? 0
+                  )})`
                 : ''
             }
           </div>
         </div>
-        <div class="text-xs text-slate-500 mt-1">
+        <div class="text-xs text-text-3 mt-1">
           ${escapeHtml(q?.exchange || series?.meta?.exchangeName || '')}
           ${q?.marketState ? ` · ${escapeHtml(q.marketState)}` : ''}
-          ${q?.preMarketPrice ? ` · Pre: ${fmt(q.preMarketPrice, { currency })} (${fmtPct(q.preMarketChangePercent ?? 0)})` : ''}
-          ${q?.postMarketPrice ? ` · After: ${fmt(q.postMarketPrice, { currency })} (${fmtPct(q.postMarketChangePercent ?? 0)})` : ''}
+          ${
+            q?.preMarketPrice
+              ? ` · Pre: ${fmt(q.preMarketPrice, { currency })} (${fmtPct(
+                  q.preMarketChangePercent ?? 0
+                )})`
+              : ''
+          }
+          ${
+            q?.postMarketPrice
+              ? ` · After: ${fmt(q.postMarketPrice, { currency })} (${fmtPct(
+                  q.postMarketChangePercent ?? 0
+                )})`
+              : ''
+          }
         </div>
       </section>
 
@@ -335,8 +358,8 @@ export class DetailView {
           ${stats
             .map(
               ([k, v]) => `
-            <div class="flex items-center justify-between border-b border-slate-800/70 py-1">
-              <span class="text-slate-400">${escapeHtml(k)}</span>
+            <div class="flex items-center justify-between border-b border-hairline py-1">
+              <span class="text-text-2">${escapeHtml(k)}</span>
               <span class="tabular-nums">${v}</span>
             </div>
           `
@@ -351,15 +374,15 @@ export class DetailView {
           ${range
             .map(
               ([k, v]) => `
-            <div class="flex items-center justify-between border-b border-slate-800/70 py-1">
-              <span class="text-slate-400">${escapeHtml(k)}</span>
+            <div class="flex items-center justify-between border-b border-hairline py-1">
+              <span class="text-text-2">${escapeHtml(k)}</span>
               <span class="tabular-nums">${v}</span>
             </div>
           `
             )
             .join('')}
-          <div class="flex items-center justify-between border-b border-slate-800/70 py-1 col-span-2">
-            <span class="text-slate-400">Next earnings</span>
+          <div class="flex items-center justify-between border-b border-hairline py-1 col-span-2">
+            <span class="text-text-2">Next earnings</span>
             <span class="tabular-nums">${escapeHtml(earnings)}</span>
           </div>
         </div>
@@ -368,10 +391,10 @@ export class DetailView {
       <section class="mb-5">
         <h3 class="section-h flex items-center justify-between">
           Price alerts
-          <button id="dv-add-alert" type="button" class="text-xs px-2 py-1 rounded bg-emerald-600/20 text-emerald-300 border border-emerald-700/40 hover:bg-emerald-600/30">+ New</button>
+          <button id="dv-add-alert" type="button" class="text-xs px-2 py-1 rounded bg-success-soft text-success border border-success/40 hover:bg-success/20">+ New</button>
         </h3>
-        <form id="dv-alert-form" class="hidden mt-2 flex flex-wrap items-center gap-2 text-sm bg-slate-900/50 border border-slate-800 rounded p-2">
-          <select id="dv-alert-cond" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm">
+        <form id="dv-alert-form" class="hidden mt-2 flex flex-wrap items-center gap-2 text-sm bg-surface-2 border border-hairline rounded p-2">
+          <select id="dv-alert-cond" class="bg-surface-1 border border-hairline-strong rounded px-2 py-1 text-sm text-text-1">
             <option value="above">Notify when price ≥</option>
             <option value="below">Notify when price ≤</option>
           </select>
@@ -380,12 +403,12 @@ export class DetailView {
             type="number"
             step="0.01"
             inputmode="decimal"
-            class="flex-1 min-w-[8rem] bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm placeholder:text-slate-500"
+            class="flex-1 min-w-[8rem] bg-surface-1 border border-hairline-strong rounded px-2 py-1 text-sm text-text-1 placeholder:text-text-3"
             placeholder="${typeof price === 'number' ? fmt(price, { maxFrac: 2 }) : '0.00'}"
             required
           />
-          <button class="px-3 py-1 rounded bg-emerald-500 text-slate-950 text-sm font-medium hover:bg-emerald-400">Create</button>
-          <button type="button" id="dv-alert-cancel" class="px-3 py-1 rounded border border-slate-700 text-slate-300 text-sm hover:bg-slate-800">Cancel</button>
+          <button class="px-3 py-1 rounded bg-accent-primary text-text-on-accent text-sm font-medium hover:bg-accent-primary-hover">Create</button>
+          <button type="button" id="dv-alert-cancel" class="px-3 py-1 rounded border border-hairline-strong text-text-1 text-sm hover:bg-surface-2">Cancel</button>
         </form>
         <ul class="mt-2 space-y-1 text-sm">
           ${
@@ -393,18 +416,28 @@ export class DetailView {
               ? alerts
                   .map(
                     (a) => `
-              <li class="flex items-center justify-between bg-slate-900/40 border border-slate-800 rounded px-2 py-1">
+              <li class="flex items-center justify-between bg-surface-2 border border-hairline rounded px-2 py-1">
                 <span>
-                  <span class="text-slate-400 text-xs uppercase tracking-wider mr-1">${a.condition === 'above' ? '↑' : '↓'}</span>
+                  <span class="text-text-3 text-xs uppercase tracking-wider mr-1">${
+                    a.condition === 'above' ? '↑' : '↓'
+                  }</span>
                   ${a.condition === 'above' ? '≥' : '≤'} ${fmt(a.price, { currency, maxFrac: 4 })}
-                  ${a.lastTriggeredAt ? `<span class="text-xs text-amber-400 ml-2">triggered ${fmtDate(a.lastTriggeredAt)}</span>` : ''}
+                  ${
+                    a.lastTriggeredAt
+                      ? `<span class="text-xs text-warning ml-2">triggered ${fmtDate(
+                          a.lastTriggeredAt
+                        )}</span>`
+                      : ''
+                  }
                 </span>
-                <button class="text-rose-400 text-xs hover:text-rose-300" data-rm-alert="${a.id}">Remove</button>
+                <button class="text-danger text-xs hover:underline" data-rm-alert="${
+                  a.id
+                }">Remove</button>
               </li>
             `
                   )
                   .join('')
-              : `<li class="text-slate-500 text-xs">No alerts yet.</li>`
+              : `<li class="text-text-3 text-xs">No alerts yet.</li>`
           }
         </ul>
       </section>
@@ -412,7 +445,7 @@ export class DetailView {
       <section class="mb-2">
         <h3 class="section-h flex items-center justify-between">
           News
-          <button id="dv-portfolio" type="button" class="text-xs px-2 py-1 rounded border border-slate-700 text-slate-300 hover:bg-slate-800">+ Add to portfolio</button>
+          <button id="dv-portfolio" type="button" class="text-xs px-2 py-1 rounded border border-hairline-strong text-text-1 hover:bg-surface-2">+ Add to portfolio</button>
         </h3>
         <ul class="mt-2 space-y-2 text-sm">
           ${
@@ -420,18 +453,20 @@ export class DetailView {
               ? news
                   .map(
                     (n) => `
-              <li class="bg-slate-900/40 border border-slate-800 rounded p-2 hover:border-slate-600 transition">
-                <a href="${escapeHtml(n.url)}" target="_blank" rel="noopener" class="text-slate-200 hover:text-emerald-300">
+              <li class="bg-surface-2 border border-hairline rounded p-2 hover:border-hairline-strong transition">
+                <a href="${escapeHtml(
+                  n.url
+                )}" target="_blank" rel="noopener" class="text-text-1 hover:text-accent-primary">
                   ${escapeHtml(n.title)}
                 </a>
-                <div class="text-xs text-slate-500 mt-1">
+                <div class="text-xs text-text-3 mt-1">
                   ${escapeHtml(n.publisher)} · ${fmtDate(n.publishedAtMs)}
                 </div>
               </li>
             `
                   )
                   .join('')
-              : `<li class="text-slate-500 text-xs">No news found.</li>`
+              : `<li class="text-text-3 text-xs">No news found.</li>`
           }
         </ul>
       </section>
@@ -447,9 +482,7 @@ export class DetailView {
     cancel?.addEventListener('click', () => form?.classList.add('hidden'));
     form?.addEventListener('submit', (e) => {
       e.preventDefault();
-      const cond = /** @type {HTMLSelectElement} */ (
-        form.querySelector('#dv-alert-cond')
-      ).value;
+      const cond = /** @type {HTMLSelectElement} */ (form.querySelector('#dv-alert-cond')).value;
       const price = parseFloat(
         /** @type {HTMLInputElement} */ (form.querySelector('#dv-alert-price')).value
       );

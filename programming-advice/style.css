@@ -8,7 +8,7 @@
 :root {
   /* Scoped: pill text color must read on a white pill background, so we
    * use --accent-primary-bg (deeper violet) for AA contrast on white. */
-  --pa-chip-text: var(--accent-primary-bg, #5b3cdc);
+  --pa-chip-text: var(--accent-primary-bg);
 }
 
 * {
@@ -20,12 +20,8 @@
 body {
   font-family: var(--font-ui), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
     'Helvetica Neue', Arial, sans-serif;
-  background: linear-gradient(
-    135deg,
-    var(--accent-primary, #7c5cff) 0%,
-    var(--accent-primary-bg, #5b3cdc) 100%
-  );
-  color: var(--pure-white, #ffffff);
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-bg) 100%);
+  color: var(--pure-white);
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -56,19 +52,19 @@ main {
 
 .page-header .seo-intro {
   font-size: 1rem;
-  color: color-mix(in srgb, var(--pure-white, #ffffff) 85%, transparent);
+  color: color-mix(in srgb, var(--pure-white) 85%, transparent);
   max-width: 36rem;
   margin: 0 auto;
   line-height: 1.5;
 }
 
 .advice-card {
-  background: color-mix(in srgb, var(--pure-white, #ffffff) 10%, transparent);
+  background: color-mix(in srgb, var(--pure-white) 10%, transparent);
   backdrop-filter: blur(10px);
   border-radius: 20px;
   padding: 60px 40px;
-  box-shadow: var(--shadow-modal, 0 20px 60px rgba(0, 0, 0, 0.5));
-  border: 1px solid color-mix(in srgb, var(--pure-white, #ffffff) 20%, transparent);
+  box-shadow: var(--shadow-modal);
+  border: 1px solid color-mix(in srgb, var(--pure-white) 20%, transparent);
   transition: all 0.3s ease;
   position: relative;
   pointer-events: none;
@@ -79,8 +75,8 @@ main {
   top: -15px;
   left: 50%;
   transform: translateX(-50%);
-  background: color-mix(in srgb, var(--pure-white, #ffffff) 90%, transparent);
-  color: var(--pa-chip-text, #5b3cdc);
+  background: color-mix(in srgb, var(--pure-white) 90%, transparent);
+  color: var(--pa-chip-text, #1558b8);
   padding: 8px 20px;
   border-radius: 20px;
   font-size: 0.9rem;
@@ -88,7 +84,7 @@ main {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  box-shadow: var(--shadow-soft, 0 4px 16px rgba(0, 0, 0, 0.2));
+  box-shadow: var(--shadow-soft);
 }
 
 .category-icon {
@@ -100,7 +96,7 @@ main {
   font-weight: 300;
   line-height: 1.5;
   margin: 30px 0 20px;
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
 }
 
 .advice-source {
@@ -111,16 +107,16 @@ main {
 }
 
 .advice-source a {
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
   text-decoration: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--pure-white, #ffffff) 50%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--pure-white) 50%, transparent);
   transition: border-color 0.2s;
   pointer-events: auto;
   cursor: pointer;
 }
 
 .advice-source a:hover {
-  border-bottom-color: var(--pure-white, #ffffff);
+  border-bottom-color: var(--pure-white);
 }
 
 /* Mobile adjustments */

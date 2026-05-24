@@ -1,21 +1,16 @@
 :root {
-  /* Auto-scoped identity palette for play-drums. Every bare color in
-   * this file is routed through one of these tokens so the brand
-   * audit sees zero literals while keeping the visual identity. */
-  --play-drums-c01: rgba(30, 41, 59, 0.85);
-  --play-drums-c02: rgba(15, 23, 42, 0.85);
-  --play-drums-c03: rgba(30, 41, 59, 0.95);
-  --play-drums-c04: rgba(15, 23, 42, 0.95);
-  --play-drums-c05: rgba(15, 23, 42, 0.6);
-  --play-drums-c06: #ef4444;
-  --play-drums-c07: rgba(239, 68, 68, 0.18);
-  --play-drums-c08: #fecaca;
-  --play-drums-c09: rgba(239, 68, 68, 0.55);
-  --play-drums-c10: #ecfdf5;
-  --play-drums-c11: rgba(239, 68, 68, 0);
-  --play-drums-c12: #fca5a5;
-  --play-drums-c13: rgba(148, 163, 184, 0.18);
-  --play-drums-c14: #f97316;
+  /* Drums palette. The pads now sit on the brand cream surface, so
+   * each pad routes through brand surface / hairline tokens for a
+   * "rubbery white pad" look (still pressable-feeling). The Rec / Play
+   * / Loop transport colors stay as semantic status tokens. */
+  --play-drums-pad: var(--surface-1);
+  --play-drums-pad-strong: var(--surface-2);
+  --play-drums-key-bg: var(--surface-2);
+  --play-drums-rec: var(--danger);
+  --play-drums-rec-soft: var(--danger-soft);
+  --play-drums-rec-mint: var(--success-soft);
+  --play-drums-warn: var(--warning);
+  --play-drums-tab-bg: var(--surface-2);
 }
 
 .drums-stage {
@@ -56,14 +51,11 @@
   gap: 6px;
   /* Touch target — generous on phones. */
   min-height: 56px;
-  background: linear-gradient(
-    160deg,
-    var(--play-drums-c01, rgba(30, 41, 59, 0.85)),
-    var(--play-drums-c02, rgba(15, 23, 42, 0.85))
-  );
+  background: var(--play-drums-pad);
   border: 1px solid var(--border);
   border-radius: 16px;
   color: var(--fg);
+  box-shadow: var(--shadow-card);
   font-weight: 600;
   cursor: pointer;
   user-select: none;
@@ -93,13 +85,9 @@
 
 .drum-pad.active {
   transform: translateY(2px) scale(0.98);
-  background: linear-gradient(
-    160deg,
-    var(--play-drums-c03, rgba(30, 41, 59, 0.95)),
-    var(--play-drums-c04, rgba(15, 23, 42, 0.95))
-  );
+  background: var(--play-drums-pad-strong);
   border-color: var(--pad-accent);
-  box-shadow: inset 0 0 0 1px var(--pad-accent), 0 0 30px var(--pad-accent);
+  box-shadow: inset 0 0 0 1px var(--pad-accent), 0 0 24px -4px var(--pad-accent);
 }
 
 .drum-pad.active::before {
@@ -127,7 +115,7 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   color: var(--fg-dim);
-  background: var(--play-drums-c05, rgba(15, 23, 42, 0.6));
+  background: var(--play-drums-key-bg);
   border: 1px solid var(--border);
   border-radius: 5px;
   padding: 2px 6px;
@@ -143,7 +131,7 @@
 }
 
 .drum-pad.active .drum-pad-key {
-  color: var(--pure-white, #ffffff);
+  color: var(--pad-accent);
   border-color: var(--pad-accent);
 }
 
@@ -270,7 +258,7 @@
   padding: 6px 12px;
   border-radius: 8px;
   border: 1px solid var(--border);
-  background: var(--play-drums-c01, rgba(30, 41, 59, 0.85));
+  background: var(--play-drums-pad);
   color: var(--fg);
   font-size: 13px;
   font-weight: 600;
@@ -298,8 +286,8 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--play-drums-c06, #ef4444);
-  box-shadow: 0 0 0 2px var(--play-drums-c07, rgba(239, 68, 68, 0.18));
+  background: var(--play-drums-rec);
+  box-shadow: 0 0 0 2px var(--play-drums-rec-soft);
   flex-shrink: 0;
 }
 
@@ -311,21 +299,21 @@
 
 /* Armed: rec is "waiting for first hit" — pulse softly */
 .loop-record.armed {
-  border-color: var(--play-drums-c06, #ef4444);
-  color: var(--play-drums-c08, #fecaca);
+  border-color: var(--play-drums-rec);
+  color: var(--play-drums-rec);
 }
 
 .loop-record.armed .loop-btn-dot {
   animation: loop-rec-pulse 0.9s ease-in-out infinite;
 }
 
-/* Recording / overdubbing — solid red glow */
+/* Recording / overdubbing — solid red glow on light pink card. */
 .loop-record.recording,
 .loop-record.overdubbing {
-  border-color: var(--play-drums-c06, #ef4444);
-  background: var(--play-drums-c07, rgba(239, 68, 68, 0.18));
-  color: var(--pure-white, #ffffff);
-  box-shadow: 0 0 18px -2px var(--play-drums-c09, rgba(239, 68, 68, 0.55));
+  border-color: var(--play-drums-rec);
+  background: var(--play-drums-rec-soft);
+  color: var(--play-drums-rec);
+  box-shadow: 0 0 18px -2px var(--play-drums-rec-soft);
 }
 
 .loop-record.recording .loop-btn-dot,
@@ -336,18 +324,18 @@
 .loop-play.playing {
   border-color: var(--accent-3);
   background: color-mix(in srgb, var(--success) 16%, transparent);
-  color: var(--play-drums-c10, #ecfdf5);
+  color: var(--play-drums-rec-mint);
   box-shadow: 0 0 18px -4px color-mix(in srgb, var(--success) 50%, transparent);
 }
 
 @keyframes loop-rec-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 2px var(--play-drums-c07, rgba(239, 68, 68, 0.18));
+    box-shadow: 0 0 0 2px var(--play-drums-rec-soft);
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 0 6px var(--play-drums-c11, rgba(239, 68, 68, 0));
+    box-shadow: 0 0 0 6px transparent;
     transform: scale(1.18);
   }
 }
@@ -367,7 +355,7 @@
 
 .loop-status.recording,
 .loop-status.armed {
-  color: var(--play-drums-c12, #fca5a5);
+  color: var(--play-drums-rec);
 }
 
 .loop-status.playing,
@@ -381,7 +369,7 @@
   height: 4px;
   margin: 0 auto 10px;
   border-radius: 999px;
-  background: var(--play-drums-c13, rgba(148, 163, 184, 0.18));
+  background: var(--play-drums-tab-bg);
   overflow: hidden;
   opacity: 0;
   transition: opacity 200ms ease;
@@ -400,15 +388,11 @@
 }
 
 .loop-bar.recording .loop-bar-fill {
-  background: linear-gradient(
-    90deg,
-    var(--play-drums-c06, #ef4444),
-    var(--play-drums-c14, #f97316)
-  );
+  background: linear-gradient(90deg, var(--play-drums-rec), var(--play-drums-warn));
 }
 
 .loop-bar.overdubbing .loop-bar-fill {
-  background: linear-gradient(90deg, var(--accent-3), var(--play-drums-c06, #ef4444));
+  background: linear-gradient(90deg, var(--accent-3), var(--play-drums-rec));
 }
 
 @media (prefers-reduced-motion: reduce) {

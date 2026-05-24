@@ -12,7 +12,7 @@
   /* Classic Win95 minesweeper tile palette stays intact — that's the
    * point of the app. Only the page background routes to Heyming OS
    * surface-0 so the game tray sits on the brand chassis. */
-  --bg: var(--surface-0, #0b0b0f);
+  --bg: var(--surface-0);
   --surface: #c0c0c0;
   --surface-dark: #a0a0a0;
   --surface-light: #dfdfdf;
@@ -62,7 +62,7 @@ body {
     color-mix(in srgb, var(--pure-white) 3%, transparent) 2px,
     color-mix(in srgb, var(--pure-white) 3%, transparent) 4px
   );
-  color: var(--text-1, #f5f5f7);
+  color: var(--text-1);
   font-family: 'Inter', -apple-system, sans-serif;
   padding: 12px;
 }
@@ -537,3 +537,5 @@ body {
     width: 44px;
     height: 44px;
     font-size: 1.5rem;
+  }
+}

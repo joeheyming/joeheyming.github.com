@@ -11,6 +11,42 @@ import 'chartjs-adapter-luxon';
 
 import { sma, ema, bollinger, rsi, macd } from './indicators.js';
 
+/**
+ * Read a CSS custom property off `:root` so Chart.js — which only
+ * accepts string colors, not CSS — can still follow brand. Falls back
+ * to the supplied hex when the var is undefined (e.g. brand.css not yet
+ * loaded). Each call is one lookup; cheap.
+ *
+ * @param {string} name      e.g. "--text-2"
+ * @param {string} fallback  used when the var resolves to empty
+ * @returns {string}
+ */
+function brandToken(name, fallback) {
+  if (typeof document === 'undefined') return fallback;
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
+/**
+ * Chrome color set used across all chart sub-panes. Reads brand tokens
+ * once on first use; if the brand changes between renders, callers can
+ * simply re-render — the next read picks up the new values.
+ */
+function chartChrome() {
+  const text2 = brandToken('--text-2', '#555555');
+  const text3 = brandToken('--text-3', '#6E6E6E');
+  return {
+    legendLabel: text2,
+    axisTick: text3,
+    axisGrid: 'rgba(110, 110, 110, 0.15)',
+    crosshair: 'rgba(110, 110, 110, 0.35)',
+    tooltipBg: brandToken('--surface-1', '#FFFFFF'),
+    tooltipBorder: brandToken('--hairline-strong', '#C8C8C0'),
+    tooltipTitle: brandToken('--text-1', '#1A1A1A'),
+    tooltipBody: text2
+  };
+}
+
 // --- Custom candlestick plugin ---
 const candlestickPlugin = {
   id: 'candlestickPlugin',
@@ -85,7 +121,7 @@ const crosshairPlugin = {
     const bottom = chart.chartArea.bottom;
     const ctx = chart.ctx;
     ctx.save();
-    ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+    ctx.strokeStyle = chartChrome().crosshair;
     ctx.lineWidth = 1;
     ctx.setLineDash([3, 3]);
     ctx.beginPath();
@@ -142,7 +178,9 @@ function formatPrice(n, currency) {
 
 function formatCompact(n) {
   if (!Number.isFinite(n)) return '—';
-  return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(n);
+  return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(
+    n
+  );
 }
 
 /**
@@ -352,18 +390,18 @@ export class ChartView {
             display: true,
             position: 'top',
             labels: {
-              color: '#cbd5e1',
+              color: chartChrome().legendLabel,
               boxWidth: 14,
               usePointStyle: true,
               filter: (item) => !/^BB (Upper|Lower)$/.test(item.text)
             }
           },
           tooltip: {
-            backgroundColor: 'rgba(15, 23, 42, 0.95)',
-            borderColor: '#334155',
+            backgroundColor: chartChrome().tooltipBg,
+            borderColor: chartChrome().tooltipBorder,
             borderWidth: 1,
-            titleColor: '#f1f5f9',
-            bodyColor: '#e2e8f0',
+            titleColor: chartChrome().tooltipTitle,
+            bodyColor: chartChrome().tooltipBody,
             callbacks: {
               title: (items) => {
                 if (!items.length) return '';
@@ -417,16 +455,21 @@ export class ChartView {
           x: {
             type: 'time',
             time: { unit: hints.unit, tooltipFormat: hints.tooltipFmt },
-            grid: { color: 'rgba(148, 163, 184, 0.08)' },
-            ticks: { color: '#94a3b8', maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }
+            grid: { color: chartChrome().axisGrid },
+            ticks: {
+              color: chartChrome().axisTick,
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 8
+            }
           },
           y: {
             type: opts.logScale && !opts.normalize ? 'logarithmic' : 'linear',
             position: 'left',
             weight: 3,
-            grid: { color: 'rgba(148, 163, 184, 0.08)' },
+            grid: { color: chartChrome().axisGrid },
             ticks: {
-              color: '#94a3b8',
+              color: chartChrome().axisTick,
               callback: (v) =>
                 opts.normalize ? `${Number(v).toFixed(0)}%` : formatPrice(Number(v))
             }
@@ -438,7 +481,7 @@ export class ChartView {
             weight: 1,
             grid: { drawOnChartArea: false },
             ticks: {
-              color: '#64748b',
+              color: chartChrome().axisTick,
               callback: (v) => formatCompact(Number(v))
             }
           }
@@ -498,13 +541,17 @@ export class ChartView {
         animation: false,
         interaction: { mode: 'index', axis: 'x', intersect: false },
         plugins: {
-          legend: { display: true, position: 'top', labels: { color: '#cbd5e1', boxWidth: 14 } },
+          legend: {
+            display: true,
+            position: 'top',
+            labels: { color: chartChrome().legendLabel, boxWidth: 14 }
+          },
           tooltip: {
-            backgroundColor: 'rgba(15,23,42,0.95)',
-            borderColor: '#334155',
+            backgroundColor: chartChrome().tooltipBg,
+            borderColor: chartChrome().tooltipBorder,
             borderWidth: 1,
-            titleColor: '#f1f5f9',
-            bodyColor: '#e2e8f0',
+            titleColor: chartChrome().tooltipTitle,
+            bodyColor: chartChrome().tooltipBody,
             callbacks: {
               label: (ctx) => ` RSI: ${Number(ctx.parsed.y).toFixed(1)}`
             }
@@ -516,15 +563,20 @@ export class ChartView {
           x: {
             type: 'time',
             time: { unit: hints.unit, tooltipFormat: hints.tooltipFmt },
-            grid: { color: 'rgba(148, 163, 184, 0.06)' },
-            ticks: { color: '#94a3b8', maxRotation: 0, autoSkip: true, maxTicksLimit: 6 }
+            grid: { color: chartChrome().axisGrid },
+            ticks: {
+              color: chartChrome().axisTick,
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 6
+            }
           },
           y: {
             min: 0,
             max: 100,
-            grid: { color: 'rgba(148, 163, 184, 0.08)' },
+            grid: { color: chartChrome().axisGrid },
             ticks: {
-              color: '#94a3b8',
+              color: chartChrome().axisTick,
               stepSize: 25,
               callback: (v) => Number(v).toFixed(0)
             }
@@ -605,25 +657,34 @@ export class ChartView {
         animation: false,
         interaction: { mode: 'index', axis: 'x', intersect: false },
         plugins: {
-          legend: { display: true, position: 'top', labels: { color: '#cbd5e1', boxWidth: 14 } },
+          legend: {
+            display: true,
+            position: 'top',
+            labels: { color: chartChrome().legendLabel, boxWidth: 14 }
+          },
           tooltip: {
-            backgroundColor: 'rgba(15,23,42,0.95)',
-            borderColor: '#334155',
+            backgroundColor: chartChrome().tooltipBg,
+            borderColor: chartChrome().tooltipBorder,
             borderWidth: 1,
-            titleColor: '#f1f5f9',
-            bodyColor: '#e2e8f0'
+            titleColor: chartChrome().tooltipTitle,
+            bodyColor: chartChrome().tooltipBody
           }
         },
         scales: {
           x: {
             type: 'time',
             time: { unit: hints.unit, tooltipFormat: hints.tooltipFmt },
-            grid: { color: 'rgba(148, 163, 184, 0.06)' },
-            ticks: { color: '#94a3b8', maxRotation: 0, autoSkip: true, maxTicksLimit: 6 }
+            grid: { color: chartChrome().axisGrid },
+            ticks: {
+              color: chartChrome().axisTick,
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 6
+            }
           },
           y: {
-            grid: { color: 'rgba(148, 163, 184, 0.08)' },
-            ticks: { color: '#94a3b8' }
+            grid: { color: chartChrome().axisGrid },
+            ticks: { color: chartChrome().axisTick }
           }
         }
       }

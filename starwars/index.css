@@ -1,18 +1,21 @@
 :root {
   /* ── starwars (asciimation): scoped CRT palette ────────────────────
-   * The ASCII Star Wars animation is presented in a 90's terminal:
-   * pure-black CRT, white pixels, amber title, phosphor-green status,
-   * tactile gray bevels. Chrome routes through brand tokens; the
-   * CRT-internal palette routes through these scoped --sw-* tokens
-   * so the brand audit sees zero bare literals.
+   * Page chrome (body, title bar, controls, attribution) lives on
+   * the brand paper-cream surface — the asciimation viewer sits in a
+   * showroom rather than a darkened theater. The CRT screen INSIDE
+   * the bezel (`#screen-container`) keeps its canonical pure-black-
+   * with-white-pixels identity, with the amber Lucasfilm title and
+   * green phosphor HUD readouts unchanged. That dark rectangle is
+   * the show — flipping it would mean rendering the animation as
+   * black-on-cream which loses the entire CRT-terminal vibe.
    */
-  --sw-crt-bg: var(--pure-black, #000000);
-  --sw-crt-ink: var(--pure-white, #ffffff);
+  --sw-crt-bg: var(--pure-black);
+  --sw-crt-ink: var(--pure-white);
   --sw-crt-title: #ffcc00; /* Lucasfilm yellow */
   --sw-crt-frame: #333333; /* CRT bezel */
-  --sw-crt-status: #00ff00; /* phosphor green for HUD readouts */
-  --sw-crt-dim: #999999; /* dimmed label text */
-  --sw-crt-mute: #bbbbbb; /* tertiary status */
+  --sw-crt-status: var(--success); /* HUD readouts in brand green */
+  --sw-crt-dim: var(--text-3); /* dimmed label text on the cream chrome */
+  --sw-crt-mute: var(--text-2); /* tertiary status */
 }
 
 * {
@@ -22,8 +25,8 @@
 }
 
 body {
-  background: var(--sw-crt-bg, var(--sw-crt-bg, #000000));
-  color: var(--sw-crt-ink, var(--sw-crt-ink, #ffffff));
+  background: var(--surface-0);
+  color: var(--text-1);
   font-family: 'Courier New', Courier, monospace;
   min-height: 100vh;
   display: flex;
@@ -48,8 +51,10 @@ body {
 
 #title-bar h1 {
   font-size: 1.25rem;
-  color: var(--sw-crt-title, #ffcc00);
-  letter-spacing: 0.1em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-1);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
@@ -96,20 +101,21 @@ body {
 }
 
 .ctrl-btn {
-  background: var(--surface-1, #1a1a1a);
-  color: var(--sw-crt-status, #00ff00);
-  border: 1px solid var(--sw-crt-status, #00ff00);
-  border-radius: 3px;
+  background: var(--surface-1);
+  color: var(--text-1);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
   padding: 4px 10px;
-  font-family: 'Courier New', Courier, monospace;
+  font-family: var(--font-mono), 'Courier New', monospace;
   font-size: 13px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .ctrl-btn:hover {
-  background: var(--sw-crt-status, #00ff00);
-  color: var(--sw-crt-bg, #000000);
+  background: var(--accent-primary-soft);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
 }
 
 .ctrl-btn:active {
@@ -117,69 +123,69 @@ body {
 }
 
 .ctrl-btn.active {
-  background: var(--sw-crt-status, #00ff00);
-  color: var(--sw-crt-bg, #000000);
-  border-color: var(--sw-crt-status, #00ff00);
+  background: var(--accent-primary-bg);
+  color: var(--text-on-accent);
+  border-color: var(--accent-primary-bg);
 }
 
 .ctrl-divider {
-  color: var(--sw-crt-frame, #333333);
+  color: var(--hairline-strong);
 }
 .ctrl-status-label {
-  color: var(--sw-crt-status, #00ff00);
+  color: var(--text-2);
   font-size: 12px;
-  font-family: 'Courier New', Courier, monospace;
+  font-family: var(--font-mono), 'Courier New', monospace;
 }
 
 #speed-label {
-  color: var(--sw-crt-status, #00ff00);
+  color: var(--text-2);
   font-size: 12px;
-  font-family: 'Courier New', Courier, monospace;
+  font-family: var(--font-mono), 'Courier New', monospace;
   min-width: 60px;
   text-align: center;
 }
 
 #speed-range {
-  accent-color: var(--sw-crt-status, #00ff00);
+  accent-color: var(--accent-primary);
   width: 100px;
 }
 
 #frame-counter {
-  color: var(--sw-crt-dim, #999999);
+  color: var(--text-3);
   font-size: 11px;
-  font-family: 'Courier New', Courier, monospace;
+  font-family: var(--font-mono), 'Courier New', monospace;
   text-align: center;
 }
 
 #attribution {
   text-align: center;
   font-size: 11px;
-  color: var(--sw-crt-dim, #999999);
+  color: var(--text-3);
   line-height: 1.6;
 }
 
 #attribution a {
-  color: var(--sw-crt-mute, #bbbbbb);
+  color: var(--accent-primary);
   text-decoration: underline;
 }
 
 #attribution a:hover {
-  color: var(--sw-crt-title, #ffcc00);
+  color: var(--accent-primary-hover);
 }
 
 #progress-bar-container {
   width: 100%;
   height: 3px;
-  background: var(--surface-1, #1a1a1a);
-  border-radius: 2px;
+  background: var(--surface-2);
+  border-radius: var(--radius);
   cursor: pointer;
   position: relative;
 }
 
 #progress-bar {
   height: 100%;
-  background: var(--sw-crt-status, #00ff00);
-  border-radius: 2px;
+  background: var(--accent-primary);
+  border-radius: var(--radius);
   transition: width 0.1s linear;
   pointer-events: none;
 }

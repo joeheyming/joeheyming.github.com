@@ -336,7 +336,7 @@ function main() {
         title.className = 'truncate text-sm font-medium';
         title.textContent = trip.name || 'Untitled trip';
         const meta = document.createElement('span');
-        meta.className = 'mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400 tabular-nums';
+        meta.className = 'mt-0.5 truncate text-xs text-text-3 tabular-nums';
         const status = trip.status === TRIP_STATUS.RECORDING ? ' • ⏺ recording' : '';
         meta.textContent =
           `${formatTripStartedAt(trip.startedAt)} • ${formatDistance(

@@ -4,9 +4,8 @@
 
   // Check if we're on mobile
   const isMobile =
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent
-    ) || window.innerWidth <= 768;
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    window.innerWidth <= 768;
 
   if (isMobile) {
     // Show mobile controller
@@ -28,9 +27,7 @@
         // Check if ROM browser modal is visible
         const romBrowser = document.querySelector('rom-browser');
         const romBrowserVisible =
-          romBrowser &&
-          romBrowser.shadowRoot &&
-          romBrowser.shadowRoot.querySelector('.modal.show');
+          romBrowser && romBrowser.shadowRoot && romBrowser.shadowRoot.querySelector('.modal.show');
 
         // Check if hamburger menu is open
         const hamburgerDropdown = document.getElementById('hamburgerDropdown');
@@ -52,10 +49,10 @@
       if (orientationMsg) {
         if (window.innerHeight > window.innerWidth) {
           orientationMsg.textContent = 'Rotate device horizontally for best experience';
-          orientationMsg.className = 'text-sm text-orange-600 font-medium';
+          orientationMsg.className = 'text-sm text-warning font-medium';
         } else {
           orientationMsg.textContent = 'Perfect! Enjoy your game';
-          orientationMsg.className = 'text-sm text-green-600';
+          orientationMsg.className = 'text-sm text-success';
         }
       }
     }

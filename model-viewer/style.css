@@ -1,21 +1,30 @@
-/* ─── Scoped tokens (3D model viewer identity) ─────────────────────
- * The viewer ships its own purple/magenta palette distinct from
- * brand violet — it predates the brand and the dropzone gradient
- * is part of the visual identity. Chrome (black, white, hairlines,
- * danger) routes through brand; identity stays scoped.
+/* ─── Scoped tokens (3D model viewer) ─────────────────────────────
+ * Page chrome (body, toolbar, dropdowns, drop zone) routes through
+ * brand surface / accent / hairline tokens — the viewer lives in
+ * the same paper-cream world as the rest of the site.
+ *
+ * The 3D STAGE itself stays dark — three.js renders models against
+ * a dim charcoal-to-black radial so geometry, normals, and material
+ * highlights actually pop. That dark backdrop is content (the viewer
+ * canvas), not chrome. Tokens are kept under --mv-stage-* so the
+ * stage gradient is editable independently of the brand.
  */
 :root {
-  --mv-bg: #0d0d12;
-  --mv-purple: #a864ff;
-  --mv-purple-magenta: #f06aff;
-  --mv-toolbar-top: #2a1f3d;
-  --mv-toolbar-bottom: #14101e;
-  --mv-dropdown-bg: #1f1730;
-  --mv-stage-inner: #1a1430;
-  --mv-stage-mid: #0a0612;
-  --mv-stage-outer: #050308;
-  --mv-loading-bg: rgba(10, 6, 18, 0.7);
-  --mv-error: #b4283c;
+  --mv-bg: var(--surface-0);
+  /* "Accent" inside the viewer is brand blue — was a magenta-purple
+   * unique to the previous brand; now it matches the rest of the
+   * site's "active / selected" affordance. */
+  --mv-accent: var(--accent-primary);
+  --mv-accent-soft: var(--accent-primary-soft);
+  --mv-toolbar-bg: var(--surface-1);
+  --mv-dropdown-bg: var(--surface-1);
+  /* 3D stage backdrop. Charcoal-to-black radial; deliberately dark
+   * so models (PBR materials, normals, edges) read clearly. */
+  --mv-stage-inner: #1f1f24;
+  --mv-stage-mid: #121216;
+  --mv-stage-outer: #08080a;
+  --mv-loading-bg: color-mix(in srgb, var(--surface-0) 90%, transparent);
+  --mv-error: var(--danger);
 }
 
 * {
@@ -25,9 +34,9 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: var(--mv-bg, #0d0d12);
-  color: var(--pure-white, #fff);
+  font-family: var(--font-ui);
+  background: var(--mv-bg);
+  color: var(--text-1);
   height: 100vh;
   overflow: hidden;
 }
@@ -45,12 +54,8 @@ body {
   align-items: center;
   gap: 8px;
   padding: 8px 12px 8px 90px; /* left: clear compact back button */
-  background: linear-gradient(
-    to bottom,
-    var(--mv-toolbar-top, #2a1f3d),
-    var(--mv-toolbar-bottom, #14101e)
-  );
-  border-bottom: 1px solid var(--hairline, rgba(255, 255, 255, 0.1));
+  background: var(--mv-toolbar-bg);
+  border-bottom: 1px solid var(--hairline-strong);
   flex-shrink: 0;
   flex-wrap: wrap;
 }
@@ -65,7 +70,7 @@ body {
 .toolbar-divider {
   width: 1px;
   height: 24px;
-  background: color-mix(in srgb, var(--pure-white) 20%, transparent);
+  background: var(--hairline-strong);
   margin: 0 4px;
 }
 
@@ -75,17 +80,17 @@ body {
 
 .toolbar-label {
   font-size: 12px;
-  color: color-mix(in srgb, var(--pure-white) 60%, transparent);
+  color: var(--text-2);
   margin-right: 4px;
 }
 
 #toolbar button,
 #toolbar select {
-  background: color-mix(in srgb, var(--pure-white) 8%, transparent);
-  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.18));
-  color: var(--pure-white, #fff);
+  background: var(--surface-0);
+  border: 1px solid var(--hairline-strong);
+  color: var(--text-1);
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s ease;
@@ -100,8 +105,8 @@ body {
 
 #toolbar button:hover:not(:disabled),
 #toolbar select:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--mv-purple) 30%, transparent);
-  border-color: var(--mv-purple, #a864ff);
+  background: var(--mv-accent-soft);
+  border-color: var(--mv-accent);
 }
 
 #toolbar button:active:not(:disabled) {
@@ -115,9 +120,9 @@ body {
 }
 
 #toolbar button.active {
-  background: color-mix(in srgb, var(--mv-purple) 40%, transparent);
-  border-color: var(--mv-purple, #a864ff);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--mv-purple) 40%, transparent);
+  background: var(--mv-accent-soft);
+  border-color: var(--mv-accent);
+  color: var(--mv-accent);
 }
 
 /* Dropdown */
@@ -129,14 +134,14 @@ body {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  background: var(--mv-dropdown-bg, #1f1730);
-  border: 1px solid color-mix(in srgb, var(--mv-purple) 40%, transparent);
-  border-radius: 8px;
+  background: var(--mv-dropdown-bg);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
   padding: 4px;
   min-width: 180px;
   display: none;
   z-index: 100;
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--pure-black) 50%, transparent);
+  box-shadow: var(--shadow-modal);
 }
 
 .dropdown-menu.open {
@@ -150,18 +155,18 @@ body {
   background: transparent;
   border: 1px solid transparent;
   padding: 8px 12px;
-  border-radius: 4px;
+  border-radius: var(--radius);
   margin: 0;
 }
 
 .dropdown-menu button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--mv-purple) 30%, transparent);
+  background: var(--mv-accent-soft);
   border-color: transparent;
 }
 
 #model-info {
   font-size: 13px;
-  color: color-mix(in srgb, var(--pure-white) 60%, transparent);
+  color: var(--text-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -175,10 +180,12 @@ body {
   align-items: center;
   justify-content: center;
   flex: 1;
-  border: 3px dashed color-mix(in srgb, var(--pure-white) 20%, transparent);
-  border-radius: 16px;
+  border: 3px dashed var(--hairline-strong);
+  border-radius: var(--radius-lg);
   margin: 20px;
   transition: all 0.3s ease;
+  background: var(--surface-0);
+  color: var(--text-2);
 }
 
 #drop-zone.active {
@@ -186,8 +193,9 @@ body {
 }
 
 #drop-zone.drag-over {
-  border-color: var(--mv-purple, #a864ff);
-  background: color-mix(in srgb, var(--mv-purple) 10%, transparent);
+  border-color: var(--mv-accent);
+  background: var(--mv-accent-soft);
+  color: var(--text-1);
 }
 
 .drop-content {
@@ -200,7 +208,6 @@ body {
   display: inline-block;
   margin-bottom: 20px;
   animation: spin 8s linear infinite;
-  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--mv-purple) 40%, transparent));
 }
 
 @keyframes spin {
@@ -214,23 +221,21 @@ body {
 
 .drop-content h1 {
   font-size: 28px;
-  font-weight: 600;
+  font-weight: 700;
+  font-family: var(--font-display);
   margin-bottom: 12px;
-  background: linear-gradient(90deg, var(--mv-purple, #a864ff), var(--mv-purple-magenta, #f06aff));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text-1);
 }
 
 .drop-content p {
-  color: color-mix(in srgb, var(--pure-white) 60%, transparent);
+  color: var(--text-2);
   font-size: 16px;
   margin-bottom: 8px;
 }
 
 .drop-content .formats {
   font-size: 12px;
-  color: color-mix(in srgb, var(--pure-white) 58%, transparent);
+  color: var(--text-3);
 }
 
 /* Model wrapper */
@@ -257,7 +262,8 @@ body {
   background: transparent;
 }
 
-/* Loading overlay */
+/* Loading overlay — rests on top of the dark 3D stage so it stays
+   on a darker scrim and the spinner reads against the model bg. */
 #loading-overlay {
   position: absolute;
   inset: 0;
@@ -265,8 +271,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: var(--mv-loading-bg, rgba(10, 6, 18, 0.7));
-  backdrop-filter: blur(4px);
+  background: color-mix(in srgb, var(--pure-black) 60%, transparent);
   z-index: 5;
 }
 
@@ -277,8 +282,8 @@ body {
 .spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid color-mix(in srgb, var(--mv-purple) 20%, transparent);
-  border-top-color: var(--mv-purple, #a864ff);
+  border: 4px solid color-mix(in srgb, var(--mv-accent) 25%, transparent);
+  border-top-color: var(--mv-accent);
   border-radius: 50%;
   animation: rotate 0.9s linear infinite;
 }
@@ -291,7 +296,7 @@ body {
 
 .loading-text {
   margin-top: 16px;
-  color: color-mix(in srgb, var(--pure-white) 80%, transparent);
+  color: var(--pure-white);
   font-size: 14px;
 }
 
@@ -301,12 +306,12 @@ body {
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  background: color-mix(in srgb, var(--mv-error) 95%, transparent);
-  color: var(--pure-white, #fff);
+  background: var(--danger);
+  color: var(--text-on-accent);
   padding: 10px 16px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   font-size: 14px;
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--pure-black) 40%, transparent);
+  box-shadow: var(--shadow-modal);
   z-index: 10;
   max-width: 80%;
 }

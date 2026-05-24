@@ -45,13 +45,12 @@
 }
 
 body {
+  /* Page chrome lives on the brand paper-cream surface; the maze /
+   * dots / ghosts paint inside the canvas in their classic arcade
+   * palette. */
   font-family: 'Press Start 2P', 'Courier New', monospace;
-  background: linear-gradient(
-    135deg,
-    var(--pac-inf-c01, #0f0c29) 0%,
-    var(--pac-inf-c02, #302b63) 50%,
-    var(--pac-inf-c03, #24243e) 100%
-  );
+  background: var(--surface-0);
+  color: var(--text-1);
   overflow: hidden;
   /* Stop iOS rubber-band overscroll and Android pull-to-refresh from
      fighting with in-canvas drag controls in Birds-Eye Follow mode. */
@@ -95,17 +94,15 @@ html {
 /* Strong text shadow for yellow score text */
 #score,
 #high-score {
-  text-shadow: 2px 2px 0 var(--pure-black, #000000), -2px -2px 0 var(--pure-black, #000000),
-    2px -2px 0 var(--pure-black, #000000), -2px 2px 0 var(--pure-black, #000000),
-    0 0 10px var(--pure-black, #000000),
+  text-shadow: 2px 2px 0 var(--pure-black), -2px -2px 0 var(--pure-black),
+    2px -2px 0 var(--pure-black), -2px 2px 0 var(--pure-black), 0 0 10px var(--pure-black),
     0 0 20px color-mix(in srgb, var(--warning) 50%, transparent);
 }
 
 /* Improve readability of camera mode text */
 #camera-mode {
-  text-shadow: 1px 1px 0 var(--pure-black, #000000), -1px -1px 0 var(--pure-black, #000000),
-    1px -1px 0 var(--pure-black, #000000), -1px 1px 0 var(--pure-black, #000000),
-    0 0 8px var(--pure-black, #000000);
+  text-shadow: 1px 1px 0 var(--pure-black), -1px -1px 0 var(--pure-black),
+    1px -1px 0 var(--pure-black), -1px 1px 0 var(--pure-black), 0 0 8px var(--pure-black);
   background: color-mix(in srgb, var(--pure-black) 50%, transparent);
   padding: 4px 8px;
   border-radius: 6px;
@@ -124,12 +121,10 @@ html {
 @keyframes pulse-glow {
   0%,
   100% {
-    text-shadow: 0 0 10px var(--warning, #fbbf24), 0 0 20px var(--warning, #fbbf24),
-      0 0 30px var(--warning, #fbbf24);
+    text-shadow: 0 0 10px var(--warning), 0 0 20px var(--warning), 0 0 30px var(--warning);
   }
   50% {
-    text-shadow: 0 0 20px var(--warning, #fbbf24), 0 0 40px var(--warning, #fbbf24),
-      0 0 60px var(--warning, #fbbf24);
+    text-shadow: 0 0 20px var(--warning), 0 0 40px var(--warning), 0 0 60px var(--warning);
   }
 }
 
@@ -155,7 +150,7 @@ button:hover {
  */
 .btn-primary {
   background-color: var(--pac-yellow, #eab308);
-  color: var(--pure-black, #000000);
+  color: var(--pure-black);
 }
 .btn-primary:hover {
   background-color: var(--pac-yellow-bright, #facc15);
@@ -190,7 +185,7 @@ button:hover {
   transform-origin: 50% 50%;
 }
 #dash-status.dash-active {
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
   text-shadow: 0 0 6px var(--pac-cyan, #22d3ee), 0 0 12px var(--pac-cyan-deep, #06b6d4);
   animation: dash-active-pulse 0.3s ease-in-out infinite;
 }
@@ -249,7 +244,7 @@ button:hover {
   will-change: transform;
 }
 .dash-bar.dash-active {
-  background: linear-gradient(90deg, var(--pure-white, #ffffff), var(--pac-cyan-glow, #67e8f9));
+  background: linear-gradient(90deg, var(--pure-white), var(--pac-cyan-glow, #67e8f9));
   box-shadow: 0 0 8px color-mix(in srgb, var(--pac-cyan) 85%, transparent);
 }
 .dash-bar.dash-cooldown {
@@ -395,9 +390,9 @@ button:hover {
   transform: translate(calc(var(--marker-x, 0px) - 50%), calc(var(--marker-y, 0px) - 50%))
     rotate(var(--marker-rot, 0deg));
   transform-origin: 50% 50%;
-  text-shadow: -2px -2px 0 var(--pure-black, #000000), 2px -2px 0 var(--pure-black, #000000),
-    -2px 2px 0 var(--pure-black, #000000), 2px 2px 0 var(--pure-black, #000000),
-    0 0 10px currentColor, 0 0 18px currentColor;
+  text-shadow: -2px -2px 0 var(--pure-black), 2px -2px 0 var(--pure-black),
+    -2px 2px 0 var(--pure-black), 2px 2px 0 var(--pure-black), 0 0 10px currentColor,
+    0 0 18px currentColor;
 }
 .ghost-marker.warn-watch {
   color: var(--pac-yellow-glow, #fde047); /* yellow-300 */
@@ -407,7 +402,7 @@ button:hover {
   animation: ghost-marker-pulse 0.8s ease-in-out infinite;
 }
 .ghost-marker.warn-imminent {
-  color: var(--danger, #f87171); /* red-400 */
+  color: var(--danger); /* red-400 */
   font-size: 40px;
   animation: ghost-marker-pulse 0.35s ease-in-out infinite;
 }
@@ -452,7 +447,7 @@ button:hover {
 
 /* Lives display */
 #lives span {
-  filter: drop-shadow(0 0 5px var(--warning, #fbbf24));
+  filter: drop-shadow(0 0 5px var(--warning));
 }
 
 /* Control hints */

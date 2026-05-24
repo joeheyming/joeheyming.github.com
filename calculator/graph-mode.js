@@ -446,9 +446,7 @@ export function initGraphMode(panel) {
     const { x } = clientToMath(e.clientX, e.clientY);
     probe = { x };
 
-    const lines = [
-      `<span class="graph-tooltip-line" style="color:#e2e8f0">x = ${formatCoord(x)}</span>`
-    ];
+    const lines = [`<span class="graph-tooltip-line">x = ${formatCoord(x)}</span>`];
     for (const { curve, y } of evaluationsAtX(x)) {
       lines.push(
         `<span class="graph-tooltip-line" style="color:${curve.color}">${

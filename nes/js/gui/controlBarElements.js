@@ -306,11 +306,12 @@ this.Gui = this.Gui || {};
 
     // Ensure the dialog is visible and properly sized
     this._dialog.element.style.zIndex = '2000';
-    this._dialog.element.style.backgroundColor = '#fff';
-    this._dialog.element.style.border = '2px solid #333';
+    this._dialog.element.style.backgroundColor = 'var(--surface-1)';
+    this._dialog.element.style.color = 'var(--text-1)';
+    this._dialog.element.style.border = '2px solid var(--hairline-strong)';
     this._dialog.element.style.borderRadius = '8px';
     this._dialog.element.style.padding = '10px';
-    this._dialog.element.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+    this._dialog.element.style.boxShadow = 'var(--shadow-modal)';
     this._dialog.element.style.minWidth = '60px';
     this._dialog.element.style.minHeight = '120px';
 

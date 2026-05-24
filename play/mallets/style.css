@@ -205,7 +205,7 @@
   background: linear-gradient(
     180deg,
     var(--play-mallets-c25, #fef3c7) 0%,
-    var(--warning, #fbbf24) 35%,
+    var(--warning) 35%,
     var(--play-mallets-c26, #d97706) 75%,
     var(--play-mallets-c27, #92400e) 100%
   );

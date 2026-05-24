@@ -2,17 +2,8 @@
 // Loads state, wires search + tiles + detail view, fetches forecasts in
 // parallel, and refreshes every five minutes (when auto-refresh is on).
 
-import {
-  fetchManyForecasts,
-  fetchForecast,
-  searchAny,
-  weatherCodeMeta
-} from './api.js';
-import {
-  loadInitialState,
-  saveState as persistState,
-  buildShareUrl
-} from './state.js';
+import { fetchManyForecasts, fetchForecast, searchAny, weatherCodeMeta } from './api.js';
+import { loadInitialState, saveState as persistState, buildShareUrl } from './state.js';
 import { createRadarMap } from './radar-map.js';
 import { createCompareView } from './compare-view.js';
 import { createNotifier } from '/notifications.js';
@@ -88,7 +79,7 @@ function escapeHtml(/** @type {string} */ s) {
 function cToDisplay(/** @type {number} */ c) {
   if (!Number.isFinite(c)) return '—';
   if (state.units === 'f') {
-    return `${Math.round(c * 9 / 5 + 32)}°`;
+    return `${Math.round((c * 9) / 5 + 32)}°`;
   }
   return `${Math.round(c)}°`;
 }
@@ -104,7 +95,7 @@ function kmhToDisplay(/** @type {number} */ kmh) {
 function compassFromDeg(/** @type {number} */ deg) {
   if (!Number.isFinite(deg)) return '';
   const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-  return dirs[Math.round(((deg % 360) / 45)) % 8];
+  return dirs[Math.round((deg % 360) / 45) % 8];
 }
 
 function locationLabel(/** @type {SavedLocation} */ loc) {
@@ -203,7 +194,7 @@ function renderTiles() {
 
     if (loading && !f) {
       const body = document.createElement('div');
-      body.className = 'text-sm text-slate-400';
+      body.className = 'text-sm text-text-3';
       body.textContent = 'Loading…';
       tile.appendChild(body);
     } else if (err && !f) {
@@ -273,7 +264,7 @@ function renderDetail() {
       $detail.innerHTML = `
         <div class="detail-card">
           <div class="place"><strong>${escapeHtml(locationLabel(active))}</strong></div>
-          <p class="mt-2 text-rose-300 text-sm">${escapeHtml(err)}</p>
+          <p class="mt-2 text-danger text-sm">${escapeHtml(err)}</p>
         </div>
       `;
       return;
@@ -282,7 +273,7 @@ function renderDetail() {
     $detail.innerHTML = `
       <div class="detail-card">
         <div class="place"><strong>${escapeHtml(locationLabel(active))}</strong></div>
-        <p class="mt-2 text-slate-400 text-sm">Loading forecast…</p>
+        <p class="mt-2 text-text-3 text-sm">Loading forecast…</p>
       </div>
     `;
     return;
@@ -301,33 +292,51 @@ function renderDetail() {
     <div class="detail-card">
       <div class="place">
         <strong>${escapeHtml(locationLabel(active))}</strong>
-        ${active.zip ? `<span class="ml-1 text-slate-500">· ZIP ${escapeHtml(active.zip)}</span>` : ''}
+        ${active.zip ? `<span class="ml-1 text-text-3">· ZIP ${escapeHtml(active.zip)}</span>` : ''}
       </div>
       <div class="now">
         <div class="emoji" aria-hidden="true">${meta.emoji}</div>
         <div>
           <div class="temp">${cToDisplay(f.current.temperatureC)}</div>
           <div class="cond">${escapeHtml(meta.label)}</div>
-          <div class="feels">Feels like ${cToDisplay(f.current.apparentC)} · Humidity ${Math.round(f.current.humidity)}%</div>
+          <div class="feels">Feels like ${cToDisplay(f.current.apparentC)} · Humidity ${Math.round(
+    f.current.humidity
+  )}%</div>
         </div>
         ${
           today
-            ? `<div class="ml-auto text-right text-sm text-slate-300">
+            ? `<div class="ml-auto text-right text-sm text-text-2">
                 <div>H <span class="font-semibold">${cToDisplay(today.tempMaxC)}</span></div>
-                <div class="text-slate-400">L ${cToDisplay(today.tempMinC)}</div>
+                <div class="text-text-3">L ${cToDisplay(today.tempMinC)}</div>
               </div>`
             : ''
         }
       </div>
       <div class="stats">
-        <div class="stat"><div class="lbl">Wind</div><div class="val">${kmhToDisplay(f.current.windKph)} ${escapeHtml(compassFromDeg(f.current.windDirection))}</div></div>
-        <div class="stat"><div class="lbl">Humidity</div><div class="val">${Math.round(f.current.humidity)}%</div></div>
-        <div class="stat"><div class="lbl">Pressure</div><div class="val">${f.current.pressureHpa ? `${Math.round(f.current.pressureHpa)} hPa` : '—'}</div></div>
-        <div class="stat"><div class="lbl">UV (max)</div><div class="val">${today?.uvIndexMax != null ? today.uvIndexMax.toFixed(1) : '—'}</div></div>
-        <div class="stat"><div class="lbl">Sunrise</div><div class="val">${escapeHtml(formatTimeLocal(today?.sunriseIso || '', f.timezone))}</div></div>
-        <div class="stat"><div class="lbl">Sunset</div><div class="val">${escapeHtml(formatTimeLocal(today?.sunsetIso || '', f.timezone))}</div></div>
-        <div class="stat"><div class="lbl">Precip (today)</div><div class="val">${today ? `${today.precipitationMm.toFixed(1)} mm` : '—'}</div></div>
-        <div class="stat"><div class="lbl">Chance of rain</div><div class="val">${today ? `${Math.round(today.precipitationProb)}%` : '—'}</div></div>
+        <div class="stat"><div class="lbl">Wind</div><div class="val">${kmhToDisplay(
+          f.current.windKph
+        )} ${escapeHtml(compassFromDeg(f.current.windDirection))}</div></div>
+        <div class="stat"><div class="lbl">Humidity</div><div class="val">${Math.round(
+          f.current.humidity
+        )}%</div></div>
+        <div class="stat"><div class="lbl">Pressure</div><div class="val">${
+          f.current.pressureHpa ? `${Math.round(f.current.pressureHpa)} hPa` : '—'
+        }</div></div>
+        <div class="stat"><div class="lbl">UV (max)</div><div class="val">${
+          today?.uvIndexMax != null ? today.uvIndexMax.toFixed(1) : '—'
+        }</div></div>
+        <div class="stat"><div class="lbl">Sunrise</div><div class="val">${escapeHtml(
+          formatTimeLocal(today?.sunriseIso || '', f.timezone)
+        )}</div></div>
+        <div class="stat"><div class="lbl">Sunset</div><div class="val">${escapeHtml(
+          formatTimeLocal(today?.sunsetIso || '', f.timezone)
+        )}</div></div>
+        <div class="stat"><div class="lbl">Precip (today)</div><div class="val">${
+          today ? `${today.precipitationMm.toFixed(1)} mm` : '—'
+        }</div></div>
+        <div class="stat"><div class="lbl">Chance of rain</div><div class="val">${
+          today ? `${Math.round(today.precipitationProb)}%` : '—'
+        }</div></div>
       </div>
     </div>
 
@@ -352,7 +361,9 @@ function renderDetail() {
         <div class="hr">${escapeHtml(formatHourLocal(h.t, f.timezone))}</div>
         <div class="emoji" aria-hidden="true">${m.emoji}</div>
         <div class="temp">${cToDisplay(h.temperatureC)}</div>
-        <div class="pop ${h.precipitationProb < 20 ? 'dry' : ''}">${Math.round(h.precipitationProb)}%</div>
+        <div class="pop ${h.precipitationProb < 20 ? 'dry' : ''}">${Math.round(
+        h.precipitationProb
+      )}%</div>
       `;
       $strip.appendChild(cell);
     }
@@ -372,12 +383,19 @@ function renderDetail() {
       const row = document.createElement('div');
       row.className = 'day-row';
       row.innerHTML = `
-        <div class="day-name">${i === 0 ? 'Today' : escapeHtml(formatDayLocal(d.t, f.timezone))}</div>
+        <div class="day-name">${
+          i === 0 ? 'Today' : escapeHtml(formatDayLocal(d.t, f.timezone))
+        }</div>
         <div class="day-emoji" aria-hidden="true">${m.emoji}</div>
         <div class="temp-bar">
-          <div class="temp-bar-fill" style="left:${startPct.toFixed(1)}%;width:${Math.max(widthPct, 4).toFixed(1)}%"></div>
+          <div class="temp-bar-fill" style="left:${startPct.toFixed(1)}%;width:${Math.max(
+        widthPct,
+        4
+      ).toFixed(1)}%"></div>
         </div>
-        <div class="day-range"><span class="lo">${cToDisplay(d.tempMinC)}</span>${cToDisplay(d.tempMaxC)}</div>
+        <div class="day-range"><span class="lo">${cToDisplay(d.tempMinC)}</span>${cToDisplay(
+        d.tempMaxC
+      )}</div>
       `;
       $dayList.appendChild(row);
     }
@@ -502,12 +520,12 @@ function renderRadarTicker() {
  */
 function colorForTempC(c) {
   if (!Number.isFinite(c)) return 'rgb(148 163 184)';
-  if (c >= 30) return '#f87171';   // red
-  if (c >= 22) return '#fb923c';   // warm orange
-  if (c >= 15) return '#facc15';   // yellow
-  if (c >= 8)  return '#a3e635';   // lime
-  if (c >= 0)  return '#38bdf8';   // sky blue
-  return '#60a5fa';                // cold blue
+  if (c >= 30) return '#f87171'; // red
+  if (c >= 22) return '#fb923c'; // warm orange
+  if (c >= 15) return '#facc15'; // yellow
+  if (c >= 8) return '#a3e635'; // lime
+  if (c >= 0) return '#38bdf8'; // sky blue
+  return '#60a5fa'; // cold blue
 }
 
 function ensureCompare() {
@@ -658,14 +676,14 @@ function closeSuggestions() {
 }
 
 function highlightSuggestion() {
-  $suggestions.querySelectorAll('.suggestion-row').forEach((r, i) =>
-    r.classList.toggle('hl', i === suggestionIndex)
-  );
+  $suggestions
+    .querySelectorAll('.suggestion-row')
+    .forEach((r, i) => r.classList.toggle('hl', i === suggestionIndex));
 }
 
 function renderSuggestions(/** @type {GeoHit[]} */ hits) {
   if (!hits.length) {
-    $suggestions.innerHTML = `<div class="px-3 py-2 text-sm text-slate-400">No matches.</div>`;
+    $suggestions.innerHTML = `<div class="px-3 py-2 text-sm text-text-3">No matches.</div>`;
     $suggestions.classList.remove('hidden');
     suggestionIndex = -1;
     return;
@@ -708,7 +726,7 @@ async function runSearch(/** @type {string} */ q) {
     renderSuggestions(hits);
   } catch (err) {
     if (myToken !== searchToken) return;
-    $suggestions.innerHTML = `<div class="px-3 py-2 text-sm text-rose-300">Search failed: ${escapeHtml(
+    $suggestions.innerHTML = `<div class="px-3 py-2 text-sm text-danger">Search failed: ${escapeHtml(
       err?.message || String(err)
     )}</div>`;
     $suggestions.classList.remove('hidden');

@@ -290,9 +290,9 @@
 
 /* Branch indicator in status bar */
 .status-branch {
-  background: var(--hairline-strong, rgba(255, 255, 255, 0.14));
+  background: var(--hairline-strong);
   border: 0;
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
   cursor: pointer;
   padding: 0 8px;
   height: 100%;

@@ -63,7 +63,7 @@
 /* Base styles that complement Tailwind */
 body {
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  color: var(--text-1, #f5f5f7);
+  color: var(--text-1);
   overflow: hidden;
   padding-bottom: env(safe-area-inset-bottom);
 }
@@ -208,10 +208,10 @@ body.mobile .score-toggle {
   top: 10px;
   right: 10px;
   z-index: 60;
-  background: var(--accent-primary-bg, #5b3cdc);
+  background: var(--accent-primary-bg);
   backdrop-filter: blur(10px);
-  border: 1px solid var(--hairline-accent, rgba(124, 92, 255, 0.32));
-  color: var(--text-on-accent, #ffffff);
+  border: 1px solid var(--hairline-accent);
+  color: var(--text-on-accent);
   border-radius: 0.5rem;
   padding: 0.5rem 1rem;
   cursor: pointer;
@@ -221,7 +221,7 @@ body.mobile .score-toggle {
 }
 
 body.mobile .score-toggle:hover {
-  background: var(--accent-primary, #7c5cff);
+  background: var(--accent-primary);
   transform: scale(1.05);
 }
 
@@ -434,7 +434,7 @@ game-over-modal.visible {
   top: 20px;
   right: 20px;
   background: color-mix(in srgb, var(--surface-0) 80%, transparent); /* surface-0 @ 0.8 */
-  color: var(--success, #34d399);
+  color: var(--success);
   padding: 10px;
   border-radius: 5px;
   font-family: monospace;
@@ -451,11 +451,11 @@ game-over-modal.visible {
   min-width: 40px;
   min-height: 40px;
   cursor: pointer;
-  color: var(--accent-primary-hover, #9077ff);
+  color: var(--accent-primary-hover);
 }
 
 #fullscreen-toggle:hover {
-  color: var(--text-1, #f5f5f7);
+  color: var(--text-1);
   box-shadow: 0 0 15px color-mix(in srgb, var(--accent-primary) 50%, transparent); /* accent-primary @ 0.5 */
 }
 
@@ -493,7 +493,7 @@ game-over-modal.visible {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background-color: var(--surface-0, #0b0b0f) !important;
+  background-color: var(--surface-0) !important;
   background-size: cover !important;
   background-position: center !important;
 }
@@ -529,8 +529,8 @@ game-over-modal.visible {
      bright video/song backgrounds; brand surface-0 would tint cool. */
   background: color-mix(in srgb, var(--pure-black) 50%, transparent);
   backdrop-filter: blur(4px);
-  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
-  color: var(--text-2, #a1a1aa);
+  border: 1px solid var(--hairline-strong);
+  color: var(--text-2);
   border-radius: 8px;
   padding: 8px 12px;
   cursor: pointer;
@@ -553,7 +553,7 @@ game-over-modal.visible {
     var(--accent-primary) 50%,
     transparent
   ); /* accent-primary @ 0.5 */
-  color: var(--text-1, #f5f5f7);
+  color: var(--text-1);
   transform: scale(1.1);
   box-shadow: 0 0 20px color-mix(in srgb, var(--accent-primary) 50%, transparent); /* accent-primary @ 0.5 */
 }
@@ -613,7 +613,7 @@ game-over-modal.visible {
   backdrop-filter: blur(10px);
   border-radius: 16px;
   padding: 16px 20px;
-  border: 1px solid var(--hairline-accent, rgba(124, 92, 255, 0.32));
+  border: 1px solid var(--hairline-accent);
   min-width: 140px;
   text-align: center;
 }
@@ -640,7 +640,7 @@ game-over-modal.visible {
 
 .fs-stat-label {
   font-size: 0.7rem;
-  color: var(--text-2, #a1a1aa);
+  color: var(--text-2);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -673,10 +673,10 @@ game-over-modal.visible {
   justify-content: center;
   align-items: center;
   padding: 20px 32px;
-  background: var(--scrim, rgba(11, 11, 15, 0.6)); /* surface-0 @ 0.6 */
+  background: var(--scrim); /* surface-0 @ 0.6 */
   backdrop-filter: blur(8px);
   border-radius: 20px;
-  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
+  border: 1px solid var(--hairline-strong);
 }
 
 .fullscreen-step-buttons step-button {
@@ -704,8 +704,8 @@ game-over-modal.visible {
   z-index: 200;
   background: color-mix(in srgb, var(--danger) 80%, transparent); /* danger @ 0.8 */
   backdrop-filter: blur(4px);
-  color: var(--text-on-accent, #ffffff);
-  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
+  color: var(--text-on-accent);
+  border: 1px solid var(--hairline-strong);
   border-radius: 50%;
   width: 44px;
   height: 44px;
@@ -721,7 +721,7 @@ game-over-modal.visible {
 }
 
 .fullscreen-exit-button:hover {
-  background: var(--danger, #f87171);
+  background: var(--danger);
   transform: scale(1.1);
   box-shadow: 0 0 20px color-mix(in srgb, var(--danger) 50%, transparent); /* danger @ 0.5 */
 }

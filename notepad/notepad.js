@@ -158,9 +158,9 @@ class RichNotepad {
     // Fallback (legacy / shell-less). Read brand tokens directly so colors
     // still match the rest of the OS.
     const tones = {
-      info: 'var(--accent-primary-bg, #5b3cdc)',
-      success: 'var(--success, #16a34a)',
-      error: 'var(--danger, #ef4444)'
+      info: 'var(--accent-primary-bg)',
+      success: 'var(--success)',
+      error: 'var(--danger)'
     };
 
     const notification = document.createElement('div');
@@ -169,10 +169,10 @@ class RichNotepad {
       top: 60px;
       right: 20px;
       background: ${tones[type] || tones.info};
-      color: var(--text-on-accent, #fff);
+      color: var(--text-on-accent);
       padding: 12px 20px;
       border-radius: 10px;
-      font-family: var(--font-ui, system-ui, sans-serif);
+      font-family: var(--font-ui);
       font-size: 14px;
       font-weight: 500;
       box-shadow: 0 8px 24px rgba(0,0,0,0.4);
@@ -473,7 +473,7 @@ class RichNotepad {
     const copyButton = document.querySelector('.ql-copy-button');
     const originalText = copyButton.innerHTML;
     copyButton.innerHTML = '✅';
-    copyButton.style.background = '#10b981';
+    copyButton.style.background = 'var(--success)';
 
     setTimeout(() => {
       copyButton.innerHTML = originalText;
@@ -741,7 +741,7 @@ class RichNotepad {
     const exportButton = document.querySelector('.ql-export-button');
     const originalText = exportButton.innerHTML;
     exportButton.innerHTML = '✅';
-    exportButton.style.background = '#10b981';
+    exportButton.style.background = 'var(--success)';
 
     setTimeout(() => {
       exportButton.innerHTML = originalText;
@@ -753,7 +753,7 @@ class RichNotepad {
     const importButton = document.querySelector('.ql-import-button');
     const originalText = importButton.innerHTML;
     importButton.innerHTML = '✅';
-    importButton.style.background = '#10b981';
+    importButton.style.background = 'var(--success)';
 
     setTimeout(() => {
       importButton.innerHTML = originalText;

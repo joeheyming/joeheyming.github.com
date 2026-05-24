@@ -15,19 +15,19 @@
  * bare literals while preserving the green-on-black terminal identity.
  */
 :root {
-  --bg: var(--surface-0, #0a0a0a);
-  --bg1: var(--surface-1, #111111);
-  --bg2: var(--surface-2, #1a1a1a);
+  --bg: var(--surface-0);
+  --bg1: var(--surface-1);
+  --bg2: var(--surface-2);
   --bg3: rgba(255, 255, 255, 0.04);
-  --border: var(--hairline, rgba(255, 255, 255, 0.08));
-  --border2: var(--hairline-strong, rgba(255, 255, 255, 0.14));
-  --fg: var(--text-1, #f5f5f7);
-  --fg2: var(--text-2, #a1a1aa);
-  --fg3: var(--text-3, #8e8e96);
+  --border: var(--hairline);
+  --border2: var(--hairline-strong);
+  --fg: var(--text-1);
+  --fg2: var(--text-2);
+  --fg3: var(--text-3);
   --green: #22c55e;
   --green-dk: #15803d;
   --green-gl: #00ff41;
-  --red: var(--danger, #ef4444);
+  --red: var(--danger);
 
   /* ── Scoped identity palettes (new) ────────────────────────────── */
   --ascii-matrix-green: var(--green, #22c55e);
@@ -108,7 +108,7 @@ body {
 .tab-btn.active {
   background: var(--green-dk);
   border-color: var(--green);
-  color: var(--pure-white, #fff);
+  color: var(--pure-white);
   box-shadow: 0 0 8px color-mix(in srgb, var(--green) 20%, transparent);
 }
 
@@ -120,7 +120,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--pure-black, #000);
+  background: var(--pure-black);
   overflow: hidden;
   transition: outline 0.12s;
 }
@@ -194,7 +194,7 @@ body {
 }
 #tom-yt-link:hover,
 #tom-yt-link:focus-visible {
-  color: var(--pure-white, #fff);
+  color: var(--pure-white);
   border-color: var(--ascii-tom-mid, #a78bfa);
   outline: none;
 }
@@ -232,7 +232,7 @@ body {
 /* Fullscreen state */
 #canvas-wrap:fullscreen,
 #canvas-wrap:-webkit-full-screen {
-  background: var(--pure-black, #000);
+  background: var(--pure-black);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -423,7 +423,7 @@ input[type='text']:focus {
 .btn-primary {
   background: var(--green-dk);
   border-color: var(--green);
-  color: var(--pure-white, #fff);
+  color: var(--pure-white);
   font-weight: 600;
   font-size: 14px;
   padding: 10px 26px;
@@ -432,7 +432,7 @@ input[type='text']:focus {
 
 .btn-primary:hover {
   background: var(--green);
-  color: var(--pure-black, #000);
+  color: var(--pure-black);
 }
 
 .btn-danger {
@@ -453,7 +453,7 @@ input[type='text']:focus {
 }
 .btn-tom.active {
   background: var(--ascii-tom-purple, #5b21b6);
-  color: var(--pure-white, #fff);
+  color: var(--pure-white);
   border-color: var(--ascii-tom-mid, #a78bfa);
   box-shadow: 0 0 12px color-mix(in srgb, var(--ascii-tom-mid) 50%, transparent);
   animation: tomPulse 0.35s ease infinite alternate;

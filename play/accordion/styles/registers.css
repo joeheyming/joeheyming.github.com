@@ -10,8 +10,13 @@
   --play-acc-reg-c03: #000000;
   --play-acc-reg-c04: #4a4a4a;
   --play-acc-reg-c05: #1a1a1a;
-  --play-acc-reg-c06: rgba(168, 85, 247, 0.85);
-  --play-acc-reg-c07: rgba(168, 85, 247, 0.7);
+  /* "Selected" ring + glow on a register stop — was old-brand violet,
+   * now routed through the live brand accent so it follows the rest
+   * of the site. The stop body itself stays black plastic + silver
+   * plate (real accordion identity) so re-tinting brand never touches
+   * the physical-object look. */
+  --play-acc-reg-c06: color-mix(in srgb, var(--accent-primary) 85%, transparent);
+  --play-acc-reg-c07: color-mix(in srgb, var(--accent-primary) 70%, transparent);
   --play-acc-reg-c08: #f3f4f6;
   --play-acc-reg-c09: #c4c4c4;
   --play-acc-reg-c10: #9a9a9a;

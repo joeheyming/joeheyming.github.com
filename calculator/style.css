@@ -401,10 +401,8 @@ body.calc-page--graph {
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--hairline-strong);
-  background: var(--surface-glass);
-  backdrop-filter: var(--surface-glass-blur);
-  -webkit-backdrop-filter: var(--surface-glass-blur);
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--pure-black) 40%, transparent);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-card);
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.45;

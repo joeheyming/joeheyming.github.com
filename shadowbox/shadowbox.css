@@ -37,8 +37,8 @@ body {
    * brand-dark adjustment lands here too. The neon-green text color is
    * the page's spy-terminal identity (analogous to clock's iOS-amber
    * accent) and stays scoped via --shadow-spy-green. */
-  background: var(--surface-0, #000);
-  color: var(--shadow-spy-green, #00ff00);
+  background: var(--surface-0);
+  color: var(--shadow-spy-green);
   overflow: hidden;
   height: 100vh;
   position: relative;
@@ -64,11 +64,11 @@ body {
   height: 30px;
   background: linear-gradient(
     90deg,
-    var(--shadow-spy-alert, #ff0000),
-    var(--shadow-spy-alert-bright, #ff3333),
-    var(--shadow-spy-alert, #ff0000)
+    var(--shadow-spy-alert),
+    var(--shadow-spy-alert-bright),
+    var(--shadow-spy-alert)
   );
-  color: var(--pure-white, #fff);
+  color: var(--pure-white);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -91,17 +91,17 @@ body {
   from {
     background: linear-gradient(
       90deg,
-      var(--shadow-spy-alert, #ff0000),
-      var(--shadow-spy-alert-bright, #ff3333),
-      var(--shadow-spy-alert, #ff0000)
+      var(--shadow-spy-alert),
+      var(--shadow-spy-alert-bright),
+      var(--shadow-spy-alert)
     );
   }
   to {
     background: linear-gradient(
       90deg,
-      var(--shadow-spy-alert-deep, #cc0000),
-      var(--shadow-spy-alert, #ff0000),
-      var(--shadow-spy-alert-deep, #cc0000)
+      var(--shadow-spy-alert-deep),
+      var(--shadow-spy-alert),
+      var(--shadow-spy-alert-deep)
     );
   }
 }
@@ -116,15 +116,15 @@ body {
   height: 100vh;
   background: radial-gradient(
     circle at center,
-    var(--shadow-spy-grid-inner, #001100) 0%,
-    var(--pure-black, #000000) 70%
+    var(--shadow-spy-grid-inner) 0%,
+    var(--pure-black) 70%
   );
 }
 
 /* Panel Styles */
 .panel {
-  background: var(--shadow-spy-panel-bg, rgba(0, 20, 0, 0.8));
-  border: 2px solid var(--shadow-spy-green, #00ff00);
+  background: var(--shadow-spy-panel-bg);
+  border: 2px solid var(--shadow-spy-green);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -149,7 +149,7 @@ body {
 .panel-header {
   background: color-mix(in srgb, var(--shadow-spy-green) 10%, transparent);
   padding: 8px 12px;
-  border-bottom: 1px solid var(--shadow-spy-green, #00ff00);
+  border-bottom: 1px solid var(--shadow-spy-green);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -158,8 +158,8 @@ body {
 }
 
 .panel-title {
-  color: var(--shadow-spy-green, #00ff00);
-  text-shadow: 0 0 5px var(--shadow-spy-green, #00ff00);
+  color: var(--shadow-spy-green);
+  text-shadow: 0 0 5px var(--shadow-spy-green);
 }
 
 .panel-status {
@@ -171,33 +171,33 @@ body {
 }
 
 .panel-status.online {
-  background: var(--shadow-spy-green-bg, #004400);
-  color: var(--shadow-spy-green, #00ff00);
+  background: var(--shadow-spy-green-bg);
+  color: var(--shadow-spy-green);
   animation: blink-green 1s infinite;
 }
 .panel-status.scanning {
-  background: var(--shadow-spy-yellow-bg, #444400);
-  color: var(--shadow-spy-yellow, #ffff00);
+  background: var(--shadow-spy-yellow-bg);
+  color: var(--shadow-spy-yellow);
   animation: blink-yellow 1.5s infinite;
 }
 .panel-status.decrypting {
-  background: var(--shadow-spy-magenta-bg, #400040);
-  color: var(--shadow-spy-magenta, #ff00ff);
+  background: var(--shadow-spy-magenta-bg);
+  color: var(--shadow-spy-magenta);
   animation: blink-purple 2s infinite;
 }
 .panel-status.active {
-  background: var(--shadow-spy-red-bg, #440000);
-  color: var(--shadow-spy-red, #ff4444);
+  background: var(--shadow-spy-red-bg);
+  color: var(--shadow-spy-red);
   animation: blink-red 1.2s infinite;
 }
 .panel-status.monitoring {
-  background: var(--shadow-spy-cyan-bg, #004444);
-  color: var(--shadow-spy-cyan, #44ffff);
+  background: var(--shadow-spy-cyan-bg);
+  color: var(--shadow-spy-cyan);
   animation: blink-cyan 1.8s infinite;
 }
 .panel-status.operational {
-  background: var(--shadow-spy-mint-bg, #002200);
-  color: var(--shadow-spy-mint, #88ff88);
+  background: var(--shadow-spy-mint-bg);
+  color: var(--shadow-spy-mint);
 }
 
 @keyframes blink-green {
@@ -274,11 +274,7 @@ body {
   left: 0;
   right: 0;
   height: 20px;
-  background: linear-gradient(
-    to bottom,
-    var(--shadow-spy-panel-bg, rgba(0, 20, 0, 0.8)),
-    transparent
-  );
+  background: linear-gradient(to bottom, var(--shadow-spy-panel-bg), transparent);
   z-index: 10;
 }
 
@@ -289,28 +285,28 @@ body {
   left: 0;
   right: 0;
   height: 20px;
-  background: linear-gradient(to top, var(--shadow-spy-panel-bg, rgba(0, 20, 0, 0.8)), transparent);
+  background: linear-gradient(to top, var(--shadow-spy-panel-bg), transparent);
   z-index: 10;
 }
 
 /* Specialized Panel Colors */
 .satellite-panel .data-stream {
-  color: var(--shadow-spy-green, #00ff00);
+  color: var(--shadow-spy-green);
 }
 .network-panel .data-stream {
-  color: var(--shadow-spy-yellow, #ffff00);
+  color: var(--shadow-spy-yellow);
 }
 .crypto-panel .data-stream {
-  color: var(--shadow-spy-magenta, #ff00ff);
+  color: var(--shadow-spy-magenta);
 }
 .tracking-panel .data-stream {
-  color: var(--shadow-spy-red, #ff4444);
+  color: var(--shadow-spy-red);
 }
 .sigint-panel .data-stream {
-  color: var(--shadow-spy-cyan, #44ffff);
+  color: var(--shadow-spy-cyan);
 }
 .mission-panel .data-stream {
-  color: var(--shadow-spy-mint, #88ff88);
+  color: var(--shadow-spy-mint);
 }
 
 /* Mission Progress Bar */
@@ -325,7 +321,7 @@ body {
   width: 100%;
   height: 20px;
   background: color-mix(in srgb, var(--pure-black) 70%, transparent);
-  border: 1px solid var(--shadow-spy-green, #00ff00);
+  border: 1px solid var(--shadow-spy-green);
   border-radius: 10px;
   overflow: hidden;
   position: relative;
@@ -335,9 +331,9 @@ body {
   height: 100%;
   background: linear-gradient(
     90deg,
-    var(--shadow-spy-green-bg, #004400),
-    var(--shadow-spy-green, #00ff00),
-    var(--shadow-spy-green-bg, #004400)
+    var(--shadow-spy-green-bg),
+    var(--shadow-spy-green),
+    var(--shadow-spy-green-bg)
   );
   width: 0%;
   transition: width 0.5s ease;
@@ -358,7 +354,7 @@ body {
   display: block;
   margin-top: 8px;
   font-size: 10px;
-  color: var(--shadow-spy-mint, #88ff88);
+  color: var(--shadow-spy-mint);
 }
 
 /* Exit Controls */
@@ -386,8 +382,8 @@ body {
 }
 
 .abort-btn {
-  color: var(--shadow-spy-red, #ff4444);
-  border-color: var(--shadow-spy-red, #ff4444);
+  color: var(--shadow-spy-red);
+  border-color: var(--shadow-spy-red);
 }
 
 .abort-btn:hover {
@@ -396,8 +392,8 @@ body {
 }
 
 .stealth-btn {
-  color: var(--shadow-spy-cyan, #44ffff);
-  border-color: var(--shadow-spy-cyan, #44ffff);
+  color: var(--shadow-spy-cyan);
+  border-color: var(--shadow-spy-cyan);
 }
 
 .stealth-btn:hover {

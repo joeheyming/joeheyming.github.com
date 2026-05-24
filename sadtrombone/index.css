@@ -43,18 +43,14 @@
 }
 
 body {
-  font-family: var(--font-ui, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
-  background: linear-gradient(
-    135deg,
-    var(--accent-primary, #7c5cff) 0%,
-    var(--accent-primary-bg, #5b3cdc) 100%
-  );
+  font-family: var(--font-ui);
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-bg) 100%);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
   overflow-x: hidden;
   position: relative;
 }
@@ -71,7 +67,7 @@ body {
 
 .particle {
   position: absolute;
-  background: color-mix(in srgb, var(--pure-white, #ffffff) 10%, transparent);
+  background: color-mix(in srgb, var(--pure-white) 10%, transparent);
   border-radius: 50%;
   animation: float 6s ease-in-out infinite;
 }
@@ -98,18 +94,18 @@ body {
   font-size: 3.5em;
   font-weight: bold;
   margin-bottom: 20px;
-  text-shadow: 2px 2px 4px color-mix(in srgb, var(--pure-black, #000000) 30%, transparent);
+  text-shadow: 2px 2px 4px color-mix(in srgb, var(--pure-black) 30%, transparent);
   animation: glow 2s ease-in-out infinite alternate;
 }
 
 @keyframes glow {
   from {
-    text-shadow: 2px 2px 4px color-mix(in srgb, var(--pure-black, #000000) 30%, transparent),
-      0 0 10px color-mix(in srgb, var(--pure-white, #ffffff) 20%, transparent);
+    text-shadow: 2px 2px 4px color-mix(in srgb, var(--pure-black) 30%, transparent),
+      0 0 10px color-mix(in srgb, var(--pure-white) 20%, transparent);
   }
   to {
-    text-shadow: 2px 2px 4px color-mix(in srgb, var(--pure-black, #000000) 30%, transparent),
-      0 0 20px color-mix(in srgb, var(--pure-white, #ffffff) 40%, transparent);
+    text-shadow: 2px 2px 4px color-mix(in srgb, var(--pure-black) 30%, transparent),
+      0 0 20px color-mix(in srgb, var(--pure-white) 40%, transparent);
   }
 }
 
@@ -128,13 +124,13 @@ body {
   max-width: 300px;
   height: auto;
   border-radius: 15px;
-  box-shadow: 0 10px 30px color-mix(in srgb, var(--pure-black, #000000) 30%, transparent);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--pure-black) 30%, transparent);
   transition: all 0.3s ease;
 }
 
 .trombone-img.playing {
   transform: scale(1.1);
-  box-shadow: 0 15px 40px color-mix(in srgb, var(--pure-black, #000000) 40%, transparent);
+  box-shadow: 0 15px 40px color-mix(in srgb, var(--pure-black) 40%, transparent);
   animation: bounce 0.5s ease-in-out;
 }
 
@@ -162,17 +158,17 @@ body {
   padding: 15px 30px;
   font-size: 1.3em;
   font-weight: bold;
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
   border-radius: 50px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 5px 15px color-mix(in srgb, var(--pure-black, #000000) 20%, transparent);
+  box-shadow: 0 5px 15px color-mix(in srgb, var(--pure-black) 20%, transparent);
   min-width: 200px;
 }
 
 .main-button:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 25px color-mix(in srgb, var(--pure-black, #000000) 30%, transparent);
+  box-shadow: 0 8px 25px color-mix(in srgb, var(--pure-black) 30%, transparent);
 }
 
 .main-button:active {
@@ -184,7 +180,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  background: color-mix(in srgb, var(--pure-white, #ffffff) 10%, transparent);
+  background: color-mix(in srgb, var(--pure-white) 10%, transparent);
   padding: 20px;
   border-radius: 15px;
   backdrop-filter: blur(10px);
@@ -198,7 +194,7 @@ body {
 .slider {
   width: 200px;
   height: 8px;
-  background: color-mix(in srgb, var(--pure-white, #ffffff) 30%, transparent);
+  background: color-mix(in srgb, var(--pure-white) 30%, transparent);
   border-radius: 4px;
   outline: none;
   appearance: none;
@@ -223,7 +219,7 @@ body {
 }
 
 .scenario-box {
-  background: color-mix(in srgb, var(--pure-white, #ffffff) 15%, transparent);
+  background: color-mix(in srgb, var(--pure-white) 15%, transparent);
   padding: 20px;
   border-radius: 15px;
   margin: 20px 0;
@@ -250,7 +246,7 @@ body {
 }
 
 .stat-item {
-  background: color-mix(in srgb, var(--pure-white, #ffffff) 10%, transparent);
+  background: color-mix(in srgb, var(--pure-white) 10%, transparent);
   padding: 15px 25px;
   border-radius: 10px;
   text-align: center;
@@ -278,10 +274,10 @@ body {
 }
 
 .share-btn {
-  background: color-mix(in srgb, var(--pure-white, #ffffff) 20%, transparent);
+  background: color-mix(in srgb, var(--pure-white) 20%, transparent);
   border: none;
   padding: 10px 20px;
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
   border-radius: 25px;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -289,7 +285,7 @@ body {
 }
 
 .share-btn:hover {
-  background: color-mix(in srgb, var(--pure-white, #ffffff) 30%, transparent);
+  background: color-mix(in srgb, var(--pure-white) 30%, transparent);
   transform: translateY(-2px);
 }
 
@@ -301,7 +297,7 @@ body {
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 5px 15px color-mix(in srgb, var(--pure-black, #000000) 20%, transparent);
+  box-shadow: 0 5px 15px color-mix(in srgb, var(--pure-black) 20%, transparent);
   font-size: 1.5em;
   width: 60px;
   height: 60px;
@@ -313,7 +309,7 @@ body {
 
 .scenario-refresh-btn:hover {
   transform: translateY(-3px) rotate(180deg);
-  box-shadow: 0 8px 25px color-mix(in srgb, var(--pure-black, #000000) 30%, transparent);
+  box-shadow: 0 8px 25px color-mix(in srgb, var(--pure-black) 30%, transparent);
 }
 
 .scenario-refresh-btn:active {

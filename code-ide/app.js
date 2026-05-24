@@ -759,7 +759,7 @@ Object.assign(CodeIDE.prototype, scmMethods, menuMethods, paletteMethods);
     await ide.boot();
   } catch (err) {
     console.error('Failed to boot Code IDE', err);
-    document.body.innerHTML = `<pre style="padding:24px;color:#f48771;background:#1e1e1e;height:100vh;margin:0;">Failed to boot Code IDE:\n\n${
+    document.body.innerHTML = `<pre style="padding:24px;color:var(--danger);background:var(--surface-1);height:100vh;margin:0;">Failed to boot Code IDE:\n\n${
       err.stack || err.message || err
     }</pre>`;
   }

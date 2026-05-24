@@ -22,6 +22,11 @@ class RomBrowserElement extends HTMLElement {
   }
 
   render() {
+    /* All chrome here reads from /brand.css through the host page so a
+     * theme swap re-tints the modal without touching this file. The
+     * shadow boundary doesn't block CSS custom properties — they
+     * inherit through it. No gradients, no slate hexes, no glass
+     * blur — those are all gone on the new brand. */
     this.shadowRoot.innerHTML = `
       <style>
         :host {
@@ -36,13 +41,12 @@ class RomBrowserElement extends HTMLElement {
         }
         
         .rom-browser-btn {
-          background: linear-gradient(to right, #3b82f6, #1d4ed8);
-          color: white;
+          background: var(--accent-primary);
+          color: var(--text-on-accent);
           font-weight: bold;
           padding: 0.5rem 1.5rem;
           border-radius: 0.75rem;
-          transition: all 0.2s;
-          transform: scale(1);
+          transition: background-color 0.2s, transform 0.2s;
           border: none;
           cursor: pointer;
           font-size: 14px;
@@ -56,15 +60,14 @@ class RomBrowserElement extends HTMLElement {
         }
         
         .rom-browser-btn:hover {
-          background: linear-gradient(to right, #2563eb, #1e40af);
+          background: var(--accent-primary-hover);
           transform: scale(1.05);
         }
         
         .modal {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.8);
-          backdrop-filter: blur(8px);
+          background: var(--scrim-strong);
           z-index: 50;
           display: flex;
           align-items: center;
@@ -80,15 +83,15 @@ class RomBrowserElement extends HTMLElement {
         }
         
         .modal-content {
-          background: linear-gradient(to bottom right, rgba(30, 58, 138, 0.9), rgba(88, 28, 135, 0.9));
-          backdrop-filter: blur(8px);
+          background: var(--surface-1);
+          color: var(--text-1);
           border-radius: 1.5rem;
           max-width: 90rem;
           max-height: 90vh;
           display: flex;
           flex-direction: column;
-          border: 1px solid rgba(59, 130, 246, 0.3);
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+          border: 1px solid var(--hairline-strong);
+          box-shadow: var(--shadow-modal);
         }
         
         .modal-header {
@@ -98,13 +101,13 @@ class RomBrowserElement extends HTMLElement {
         .modal-title {
           font-size: 2rem;
           font-weight: bold;
-          color: #00f5ff;
+          color: var(--text-1);
           margin-bottom: 0.5rem;
           text-align: center;
         }
         
         .modal-subtitle {
-          color: #e5e7eb;
+          color: var(--text-2);
           text-align: center;
           font-size: 1rem;
         }
@@ -122,18 +125,18 @@ class RomBrowserElement extends HTMLElement {
         }
         
         .close-btn {
-          background: linear-gradient(to right, #ef4444, #dc2626);
-          color: white;
+          background: var(--danger);
+          color: var(--text-on-accent);
           font-weight: bold;
           padding: 0.75rem 2rem;
           border-radius: 0.75rem;
           border: none;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: filter 0.2s, transform 0.2s;
         }
         
         .close-btn:hover {
-          background: linear-gradient(to right, #dc2626, #b91c1c);
+          filter: brightness(0.92);
           transform: scale(1.05);
         }
         
@@ -141,9 +144,9 @@ class RomBrowserElement extends HTMLElement {
         .content-area {
           height: 60vh;
           overflow-y: auto;
-          border: 1px solid rgba(59, 130, 246, 0.3);
+          border: 1px solid var(--hairline);
           border-radius: 0.75rem;
-          background: rgba(0, 0, 0, 0.2);
+          background: var(--surface-2);
         }
         
         .loading {
@@ -151,7 +154,7 @@ class RomBrowserElement extends HTMLElement {
           justify-content: center;
           align-items: center;
           height: 200px;
-          color: #00f5ff;
+          color: var(--text-2);
           font-size: 1.25rem;
         }
         
@@ -160,7 +163,7 @@ class RomBrowserElement extends HTMLElement {
           justify-content: center;
           align-items: center;
           height: 200px;
-          color: #ef4444;
+          color: var(--danger);
           font-size: 1.25rem;
           text-align: center;
           padding: 1rem;
@@ -174,8 +177,8 @@ class RomBrowserElement extends HTMLElement {
         }
         
         .rom-card {
-          background: rgba(0, 0, 0, 0.3);
-          border: 1px solid rgba(59, 130, 246, 0.3);
+          background: var(--surface-1);
+          border: 1px solid var(--hairline);
           border-radius: 0.75rem;
           padding: 1rem;
           cursor: pointer;
@@ -183,26 +186,26 @@ class RomBrowserElement extends HTMLElement {
         }
         
         .rom-card:hover {
-          background: rgba(59, 130, 246, 0.1);
-          border-color: #00f5ff;
+          background: var(--accent-primary-soft);
+          border-color: var(--accent-primary);
           transform: translateY(-2px);
         }
         
         .rom-title {
           font-weight: bold;
-          color: #00f5ff;
+          color: var(--accent-primary);
           margin-bottom: 0.5rem;
           font-size: 1.1rem;
         }
         
         .rom-info {
-          color: #e5e7eb;
+          color: var(--text-1);
           font-size: 0.875rem;
           line-height: 1.4;
         }
         
         .rom-size {
-          color: #9ca3af;
+          color: var(--text-3);
           font-size: 0.75rem;
           margin-top: 0.25rem;
         }
@@ -216,21 +219,21 @@ class RomBrowserElement extends HTMLElement {
         .search-input {
           width: 100%;
           padding: 0.75rem 1rem;
-          border: 1px solid rgba(59, 130, 246, 0.3);
+          border: 1px solid var(--hairline-strong);
           border-radius: 0.75rem;
-          background: rgba(0, 0, 0, 0.3);
-          color: white;
+          background: var(--surface-1);
+          color: var(--text-1);
           font-size: 1rem;
         }
         
         .search-input::placeholder {
-          color: #9ca3af;
+          color: var(--text-3);
         }
         
         .search-input:focus {
           outline: none;
-          border-color: #00f5ff;
-          box-shadow: 0 0 0 2px rgba(0, 245, 255, 0.2);
+          border-color: var(--accent-primary);
+          box-shadow: 0 0 0 2px var(--accent-primary-soft);
         }
       </style>
       

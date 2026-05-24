@@ -5,17 +5,17 @@
 }
 
 :root {
-  /* Countdown is a Tier-3 experience: the warm amber/gold sparkle is
-     deliberately preserved (it's celebration-coded, not chrome). We
-     anchor surfaces and body text to brand tokens so the experience
-     still belongs to Heyming OS, but keep the local accent palette so
-     the visual identity of the countdown doesn't dissolve.
-
-     Identity tokens use the --cd-* prefix to avoid shadowing brand
-     tokens (the legacy --accent-primary name conflicted with brand
-     violet). Brand chrome (pure white/black, hairline, danger, accent)
-     still routes through brand tokens. */
-  --bg-deep: var(--surface-0, #030712);
+  /* Countdown is a tier-3 carve-out — full-page "night sky" experience
+   * (twinkling starfield, amber/gold celebration palette, glowing
+   * digits). The dark sky is the identity, not chrome; flipping the
+   * body to brand cream broke the contrast model and made the dark
+   * cards look like accidental drift instead of a deliberate stage.
+   *
+   * Brand-aware: text-on-accent and danger still come from brand.css,
+   * so a brand re-tint still lands on the OK / failure colors. The
+   * sky / slate / amber tokens are pinned because they encode the
+   * celebration aesthetic. */
+  --bg-deep: #0a0a18; /* deep midnight night sky */
   --bg-surface: rgba(15, 23, 42, 0.7);
   --cd-amber: #f59e0b;
   --cd-gold: #fbbf24;
@@ -25,10 +25,12 @@
   --cd-celebrate-pink: #ec4899;
   --cd-final-orange: #f97316;
   --cd-playing-mid: #64748b;
-  --text-primary: var(--text-1, #f8fafc);
-  --text-secondary: var(--text-2, #94a3b8);
-  --text-muted: var(--text-3, #94a3b8);
-  --border-subtle: var(--hairline, rgba(148, 163, 184, 0.1));
+  /* Page text reads on the dark sky, so route to white tones rather
+   * than brand text-1 (which is dark for cream). */
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-subtle: rgba(148, 163, 184, 0.18);
   --cd-border-accent: rgba(245, 158, 11, 0.3);
 }
 
@@ -74,7 +76,7 @@ body.rtl {
 
 .star {
   position: absolute;
-  background: var(--pure-white, #ffffff);
+  background: var(--pure-white);
   border-radius: 50%;
   animation: twinkle var(--duration) ease-in-out infinite;
   animation-delay: var(--delay);
@@ -160,7 +162,7 @@ body.rtl {
     135deg,
     var(--cd-amber) 0%,
     var(--cd-gold) 50%,
-    var(--pure-white, #ffffff) 100%
+    var(--pure-white) 100%
   );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -397,9 +399,9 @@ event-autocomplete {
 }
 
 .custom-btn {
-  background: var(--accent-primary-bg, #5b3cdc);
+  background: var(--accent-primary-bg);
   border: none;
-  color: var(--text-on-accent, #fff);
+  color: var(--text-on-accent);
   padding: 10px 18px;
   border-radius: 10px;
   font-family: 'Outfit', sans-serif;
@@ -618,7 +620,7 @@ body.fullscreen-mode .locale-selector-wrapper {
 }
 
 .year-input.invalid {
-  color: var(--danger, #ef4444);
+  color: var(--danger);
   animation: shake 0.3s ease;
 }
 
@@ -804,7 +806,7 @@ body.fullscreen-mode .locale-selector-wrapper {
 .celebrate-btn {
   background: linear-gradient(135deg, var(--cd-celebrate-purple) 0%, var(--cd-celebrate-pink) 100%);
   border: none;
-  color: var(--pure-white, #fff);
+  color: var(--pure-white);
   padding: 12px 24px;
   border-radius: 12px;
   font-family: 'Outfit', sans-serif;
@@ -825,9 +827,9 @@ body.fullscreen-mode .locale-selector-wrapper {
 }
 
 .final-countdown-btn {
-  background: linear-gradient(135deg, var(--danger, #ef4444) 0%, var(--cd-final-orange) 100%);
+  background: linear-gradient(135deg, var(--danger) 0%, var(--cd-final-orange) 100%);
   border: none;
-  color: var(--pure-white, #fff);
+  color: var(--pure-white);
   padding: 12px 24px;
   border-radius: 12px;
   font-family: 'Outfit', sans-serif;
@@ -848,7 +850,7 @@ body.fullscreen-mode .locale-selector-wrapper {
 }
 
 .final-countdown-btn.playing {
-  background: linear-gradient(135deg, var(--text-3, #64748b) 0%, var(--text-3, #475569) 100%);
+  background: linear-gradient(135deg, var(--text-3) 0%, var(--text-3) 100%);
   box-shadow: 0 4px 15px color-mix(in srgb, var(--cd-playing-mid) 30%, transparent);
 }
 
@@ -871,7 +873,7 @@ body.fullscreen-mode .locale-selector-wrapper {
   right: 8px;
   background: color-mix(in srgb, var(--pure-black) 70%, transparent);
   border: 1px solid color-mix(in srgb, var(--pure-white) 20%, transparent);
-  color: var(--pure-white, #fff);
+  color: var(--pure-white);
   padding: 6px 12px;
   border-radius: 8px;
   font-family: 'Outfit', sans-serif;

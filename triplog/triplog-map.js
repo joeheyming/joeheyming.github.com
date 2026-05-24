@@ -22,12 +22,29 @@ const TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
 /**
+ * Read a CSS custom property off `:root` so map markers and polylines
+ * (Leaflet uses raw color strings, not CSS) follow the brand. Resolves
+ * once per call — cheap, but if you need it inside hot loops, hoist the
+ * read. Falls back to the supplied hex when the token is undefined
+ * (e.g. brand.css not yet loaded).
+ *
+ * @param {string} name      e.g. "--accent-primary"
+ * @param {string} fallback  used when the var resolves to empty
+ * @returns {string}
+ */
+function brandToken(name, fallback) {
+  if (typeof document === 'undefined') return fallback;
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
+/**
  * Visual style for a "we don't actually know the path here" segment:
- * dashed grey, slightly thinner than the solid track. Reused for the
+ * dashed neutral, slightly thinner than the solid track. Reused for the
  * live map and both replay paths so the cue is consistent.
  */
 const GAP_STYLE = /** @type {const} */ ({
-  color: '#9ca3af', // zinc-400 — dim enough to read as "not a real path"
+  color: brandToken('--text-3', '#6E6E6E'),
   weight: 4,
   opacity: 0.85,
   dashArray: '6 8',
@@ -95,8 +112,11 @@ export function createLiveMap(container, opts = {}) {
     attribution: TILE_ATTR
   }).addTo(map);
 
+  const TRACK_COLOR = brandToken('--accent-primary', '#1A73E8');
+  const MARKER_STROKE = brandToken('--surface-1', '#FFFFFF');
+
   const SOLID_STYLE = {
-    color: '#7c3aed',
+    color: TRACK_COLOR,
     weight: 5,
     opacity: 0.9,
     lineJoin: 'round',
@@ -145,9 +165,9 @@ export function createLiveMap(container, opts = {}) {
     if (!currentMarker) {
       currentMarker = L.circleMarker([lat, lon], {
         radius: 7,
-        color: '#fff',
+        color: MARKER_STROKE,
         weight: 2,
-        fillColor: '#7c3aed',
+        fillColor: TRACK_COLOR,
         fillOpacity: 1
       }).addTo(map);
     } else {
@@ -157,10 +177,10 @@ export function createLiveMap(container, opts = {}) {
       if (!accuracyCircle) {
         accuracyCircle = L.circle([lat, lon], {
           radius: accuracyM,
-          color: '#7c3aed',
+          color: TRACK_COLOR,
           weight: 1,
           opacity: 0.4,
-          fillColor: '#7c3aed',
+          fillColor: TRACK_COLOR,
           fillOpacity: 0.08
         }).addTo(map);
       } else {
@@ -256,6 +276,11 @@ export function createReplayMap(container) {
     attribution: TILE_ATTR
   }).addTo(map);
 
+  const TRACK_COLOR = brandToken('--accent-primary', '#1A73E8');
+  const MARKER_STROKE = brandToken('--surface-1', '#FFFFFF');
+  const TRIM_COLOR = brandToken('--text-3', '#6E6E6E');
+  const HOVER_COLOR = brandToken('--warning', '#f29900');
+
   /**
    * One or more Leaflet polylines. With a plain track this is a
    * single solid line; with `setColoredTrack` it's an array of
@@ -326,18 +351,18 @@ export function createReplayMap(container) {
     const end = points[points.length - 1];
     startMarker = L.circleMarker([start.lat, start.lon], {
       radius: 7,
-      color: '#fff',
+      color: MARKER_STROKE,
       weight: 2,
-      fillColor: '#10b981',
+      fillColor: brandToken('--success', '#188038'),
       fillOpacity: 1
     })
       .bindTooltip('Start', { permanent: false })
       .addTo(map);
     endMarker = L.circleMarker([end.lat, end.lon], {
       radius: 7,
-      color: '#fff',
+      color: MARKER_STROKE,
       weight: 2,
-      fillColor: '#ef4444',
+      fillColor: brandToken('--danger', '#d93025'),
       fillOpacity: 1
     })
       .bindTooltip('End', { permanent: false })
@@ -377,7 +402,7 @@ export function createReplayMap(container) {
               L.polyline(
                 points.slice(runStart, i).map((p) => L.latLng(p.lat, p.lon)),
                 {
-                  color: '#7c3aed',
+                  color: TRACK_COLOR,
                   weight: 5,
                   opacity: 0.9,
                   lineJoin: 'round',
@@ -403,7 +428,7 @@ export function createReplayMap(container) {
           L.polyline(
             points.slice(runStart).map((p) => L.latLng(p.lat, p.lon)),
             {
-              color: '#7c3aed',
+              color: TRACK_COLOR,
               weight: 5,
               opacity: 0.9,
               lineJoin: 'round',
@@ -454,7 +479,7 @@ export function createReplayMap(container) {
         // so a single solid polyline is fine.
         polylines = [
           L.polyline(latLngs, {
-            color: '#7c3aed',
+            color: TRACK_COLOR,
             weight: 5,
             opacity: 0.9,
             lineJoin: 'round',
@@ -484,7 +509,7 @@ export function createReplayMap(container) {
           } else {
             polylines.push(
               L.polyline([latLngs[i], latLngs[i + 1]], {
-                color: '#7c3aed',
+                color: TRACK_COLOR,
                 weight: 5,
                 opacity: 0.9,
                 lineJoin: 'round',
@@ -542,9 +567,9 @@ export function createReplayMap(container) {
       if (!hoverMarker) {
         hoverMarker = L.circleMarker([latLon.lat, latLon.lon], {
           radius: 8,
-          color: '#fff',
+          color: MARKER_STROKE,
           weight: 3,
-          fillColor: '#f59e0b',
+          fillColor: HOVER_COLOR,
           fillOpacity: 1,
           interactive: false
         }).addTo(map);
@@ -584,7 +609,7 @@ export function createReplayMap(container) {
       clearPolylines();
       polylines = [
         L.polyline(keptLatLngs, {
-          color: '#7c3aed',
+          color: TRACK_COLOR,
           weight: 5,
           opacity: 0.9,
           lineJoin: 'round',
@@ -596,7 +621,7 @@ export function createReplayMap(container) {
           trimmedPolyline.setLatLngs(trimmedLatLngs);
         } else {
           trimmedPolyline = L.polyline(trimmedLatLngs, {
-            color: '#71717a', // zinc-500
+            color: TRIM_COLOR,
             weight: 4,
             opacity: 0.7,
             dashArray: '6 8',

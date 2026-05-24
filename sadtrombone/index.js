@@ -151,7 +151,7 @@ function playTrombone() {
 
   // Button state
   mainButton.textContent = '🛑 Stop the Sadness';
-  mainButton.style.background = 'linear-gradient(45deg, #4CAF50, #45a049)';
+  mainButton.style.background = 'var(--success)';
 
   // Play audio with volume based on sadness level
   tromboneAudio.volume = Math.min(sadnessValue / 10, 1);
@@ -172,7 +172,7 @@ function stopTrombone() {
 
   // Button state
   mainButton.textContent = '💔 Express Sadness 💔';
-  mainButton.style.background = 'linear-gradient(45deg, #ff6b6b, #ee5a6f)';
+  mainButton.style.background = 'var(--danger)';
 
   // Stop audio
   tromboneAudio.pause();

@@ -14,13 +14,13 @@
   background: linear-gradient(
       180deg,
       color-mix(in srgb, var(--play-slate-900, #0f172a) 40%, transparent),
-      color-mix(in srgb, var(--pure-black, #000) 40%, transparent)
+      color-mix(in srgb, var(--pure-black) 40%, transparent)
     ),
-    linear-gradient(180deg, var(--surface-1, #1e293b), var(--surface-0, #0f172a));
+    linear-gradient(180deg, var(--surface-1), var(--surface-0));
   border: 1px solid var(--border);
   padding: 14px 14px 16px;
-  box-shadow: 0 24px 40px -20px color-mix(in srgb, var(--pure-black, #000) 60%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 4%, transparent);
+  box-shadow: 0 24px 40px -20px color-mix(in srgb, var(--pure-black) 60%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--pure-white) 4%, transparent);
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
@@ -68,11 +68,11 @@
     var(--play-key-white-to, #e5e7eb)
   );
   border-radius: 0 0 8px 8px;
-  border: 1px solid var(--text-1, #cbd5e1);
+  border: 1px solid var(--text-1);
   border-top: none;
-  color: var(--text-3, #475569);
-  box-shadow: inset 0 -6px 0 color-mix(in srgb, var(--pure-black, #000) 6%, transparent),
-    0 2px 0 color-mix(in srgb, var(--pure-black, #000) 18%, transparent);
+  color: var(--text-3);
+  box-shadow: inset 0 -6px 0 color-mix(in srgb, var(--pure-black) 6%, transparent),
+    0 2px 0 color-mix(in srgb, var(--pure-black) 18%, transparent);
   z-index: 1;
 }
 
@@ -84,21 +84,23 @@
   );
   color: var(--play-key-active-text, #1e1b4b);
   transform: translateY(2px);
-  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--pure-black, #000) 18%, transparent),
-    0 1px 0 color-mix(in srgb, var(--pure-black, #000) 18%, transparent);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--pure-black) 18%, transparent),
+    0 1px 0 color-mix(in srgb, var(--pure-black) 18%, transparent);
 }
 
 .piano-key.black {
-  background: linear-gradient(180deg, var(--surface-1, #1f2937), var(--play-bg-deepest, #0b1020));
+  /* Black keys stay actually black — the white/black contrast is the
+   * whole point of a piano keyboard. This is identity, not chrome. */
+  background: linear-gradient(180deg, #2a2a2a, #0a0a0a);
   border-radius: 0 0 6px 6px;
-  border: 1px solid var(--pure-black, #000);
-  color: var(--text-1, #cbd5e1);
+  border: 1px solid var(--pure-black);
+  color: var(--pure-white);
   height: 62%;
   top: 14px;
   bottom: auto;
-  box-shadow: inset 0 -4px 0 color-mix(in srgb, var(--pure-white, #fff) 5%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 8%, transparent),
-    0 4px 6px color-mix(in srgb, var(--pure-black, #000) 40%, transparent);
+  box-shadow: inset 0 -4px 0 color-mix(in srgb, var(--pure-white) 5%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--pure-white) 8%, transparent),
+    0 4px 6px color-mix(in srgb, var(--pure-black) 40%, transparent);
   z-index: 2;
 }
 
@@ -110,8 +112,8 @@
   );
   color: var(--play-key-label, #c7d2fe);
   transform: translateY(2px);
-  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--pure-white, #fff) 5%, transparent),
-    0 2px 4px color-mix(in srgb, var(--pure-black, #000) 40%, transparent);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--pure-white) 5%, transparent),
+    0 2px 4px color-mix(in srgb, var(--pure-black) 40%, transparent);
 }
 
 .piano-key .key-label {
@@ -153,7 +155,7 @@
 }
 
 .piano-key.black .key-label {
-  color: var(--text-1, #cbd5e1);
+  color: var(--text-1);
 }
 
 /* Legacy compound toggle — some pages may still wire up `hide-labels` to

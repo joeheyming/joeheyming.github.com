@@ -172,7 +172,7 @@ export class Launcher {
 
     // Add separator
     const separator = document.createElement('div');
-    separator.className = 'border-t border-gray-600 my-2 launcher-separator';
+    separator.className = 'border-t border-hairline my-2 launcher-separator';
     this.container.appendChild(separator);
 
     // Get non-system apps
@@ -199,7 +199,7 @@ export class Launcher {
       // Category header
       const header = document.createElement('div');
       header.className =
-        'text-gray-400 text-xs font-bold uppercase tracking-wide px-3 py-1 mt-3 mb-1 launcher-category-header';
+        'text-text-3 text-xs font-bold uppercase tracking-wide px-3 py-1 mt-3 mb-1 launcher-category-header';
       header.setAttribute('data-category', category);
       header.textContent = this.C.CATEGORY_NAMES[category] || category;
       this.container.appendChild(header);
@@ -220,7 +220,7 @@ export class Launcher {
   _createAppButton(appId, icon, name, searchText, category = null) {
     const button = document.createElement('button');
     button.className =
-      'app-item w-full text-left px-3 py-2 text-white hover:bg-gray-700 rounded transition-colors duration-200';
+      'app-item w-full text-left px-3 py-2 text-text-1 hover:bg-surface-2 rounded transition-colors duration-200';
     button.setAttribute('data-app', appId);
     button.setAttribute('data-filterable', 'true');
     button.setAttribute('data-search', searchText);

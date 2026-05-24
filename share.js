@@ -247,6 +247,11 @@
   }
 
   // Add styles
+  //
+  // Phase 3 of the brand pivot re-skinned the related-projects widget
+  // for the new heyming-engineering palette: paper surfaces, blue
+  // accents, no glass/gradients. Geometry preserved (positioning,
+  // toggle size, slide animation).
   const style = document.createElement('style');
   style.textContent = `
     .related-projects-container {
@@ -254,7 +259,7 @@
       bottom: 20px;
       right: 20px;
       z-index: 9000;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-family: var(--font-ui), -apple-system, 'Segoe UI', Roboto, sans-serif;
     }
 
     /* Adjust position if there's another button in bottom-right (like info button) */
@@ -267,12 +272,12 @@
       width: 56px;
       height: 56px;
       border-radius: 50%;
-      border: none;
-      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-      color: white;
+      border: 1px solid var(--accent-primary-bg-hover);
+      background: var(--accent-primary-bg);
+      color: var(--text-on-accent);
       font-size: 24px;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
       transition: all 0.3s ease;
       display: flex;
       align-items: center;
@@ -282,12 +287,13 @@
     }
 
     .related-projects-toggle:hover {
-      transform: scale(1.1);
-      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+      transform: scale(1.05);
+      background: var(--accent-primary-bg-hover);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
     }
 
     .related-projects-toggle:active {
-      transform: scale(1.05);
+      transform: scale(1.02);
     }
 
     .related-projects-panel {
@@ -296,12 +302,11 @@
       right: 0;
       max-width: 360px;
       width: 360px;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(249, 250, 251, 0.98));
-      border-radius: 16px;
+      background: var(--surface-1);
+      border-radius: var(--radius-lg);
       padding: 20px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-        backdrop-filter: blur(10px);
-      border: 1px solid rgba(139, 92, 246, 0.2);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+      border: 1px solid var(--hairline-strong);
       opacity: 0;
       transform: translateY(10px) scale(0.95);
       pointer-events: none;
@@ -320,15 +325,15 @@
       right: 8px;
       width: 28px;
       height: 28px;
-          border: none;
-      background: rgba(139, 92, 246, 0.1);
-      color: #7c3aed;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-2);
       border-radius: 50%;
       font-size: 20px;
       line-height: 1;
-          cursor: pointer;
+      cursor: pointer;
       display: flex;
-          align-items: center;
+      align-items: center;
       justify-content: center;
       transition: all 0.2s ease;
       padding: 0;
@@ -336,22 +341,23 @@
     }
 
     .related-projects-close:hover {
-      background: rgba(139, 92, 246, 0.2);
-      transform: scale(1.1);
+      background: var(--accent-primary-soft);
+      color: var(--accent-primary-hover);
     }
 
     .related-projects-header h3 {
       margin: 0 0 16px 0;
-      font-size: 16px;
+      font-family: var(--font-display), Georgia, serif;
+      font-size: 18px;
       font-weight: 700;
-      color: #4c1d95;
-      letter-spacing: -0.2px;
+      color: var(--text-1);
+      letter-spacing: -0.005em;
     }
 
     .related-projects-grid {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
       margin-bottom: 16px;
     }
 
@@ -359,19 +365,19 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 12px;
-      background: white;
-      border-radius: 10px;
+      padding: 10px 12px;
+      background: var(--surface-1);
+      border-radius: var(--radius);
       text-decoration: none;
       color: inherit;
       transition: all 0.2s ease;
-      border: 1px solid rgba(139, 92, 246, 0.1);
+      border: 1px solid var(--hairline);
     }
 
     .related-project-card:hover {
-      transform: translateX(-4px);
-      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
-      border-color: rgba(139, 92, 246, 0.3);
+      transform: translateX(-2px);
+      background: var(--accent-primary-soft);
+      border-color: var(--hairline-accent);
     }
 
     .related-project-icon {
@@ -388,7 +394,7 @@
     .related-project-name {
       font-size: 14px;
       font-weight: 600;
-      color: #1f2937;
+      color: var(--text-1);
       margin-bottom: 2px;
       white-space: nowrap;
       overflow: hidden;
@@ -397,7 +403,7 @@
 
     .related-project-description {
       font-size: 12px;
-      color: #6b7280;
+      color: var(--text-2);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -405,7 +411,7 @@
 
     .related-projects-footer {
       padding-top: 12px;
-      border-top: 1px solid rgba(139, 92, 246, 0.1);
+      border-top: 1px solid var(--hairline);
       text-align: center;
       display: flex;
       flex-direction: column;
@@ -416,16 +422,17 @@
       display: inline-block;
       font-size: 13px;
       font-weight: 600;
-      color: #7c3aed;
-      text-decoration: none;
-      padding: 8px 16px;
-      border-radius: 8px;
-          transition: all 0.2s ease;
+      color: var(--accent-primary);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      padding: 6px 12px;
+      border-radius: var(--radius);
+      transition: all 0.2s ease;
     }
 
     .related-projects-footer a:hover {
-      background: rgba(139, 92, 246, 0.1);
-      transform: translateX(2px);
+      background: #fffacd;
+      color: var(--accent-primary-hover);
     }
 
     .share-btn-mini,
@@ -433,11 +440,11 @@
       display: inline-block;
       font-size: 13px;
       font-weight: 600;
-      color: #8b5cf6;
-      background: transparent;
-      border: 1px solid rgba(139, 92, 246, 0.3);
-      padding: 8px 16px;
-      border-radius: 8px;
+      color: var(--accent-primary);
+      background: var(--surface-1);
+      border: 1px solid var(--hairline-strong);
+      padding: 6px 12px;
+      border-radius: var(--radius);
       transition: all 0.2s ease;
       cursor: pointer;
       text-align: center;
@@ -445,8 +452,8 @@
 
     .share-btn-mini:hover:not(:disabled),
     .feedback-btn-mini:hover {
-      background: rgba(139, 92, 246, 0.1);
-      border-color: rgba(139, 92, 246, 0.5);
+      background: var(--accent-primary-soft);
+      border-color: var(--accent-primary);
     }
 
     .share-btn-mini:disabled {

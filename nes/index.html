@@ -30,7 +30,7 @@
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#7C5CFF" />
+    <meta name="theme-color" content="#FAFAFA" />
     <meta
       name="keywords"
       content="NES emulator, NES emulator online, Nintendo emulator, online NES emulator, browser NES emulator, web NES emulator, play NES games online, classic Nintendo games, JavaScript emulator, 8-bit games, vintage gaming, save states, ad-free, no ads, free"
@@ -476,7 +476,7 @@
       <!-- Initial ROM Selection Menu -->
       <div
         id="initialMenu"
-        class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50"
+        class="fixed inset-0 bg-scrim-strong flex items-center justify-center z-50"
       >
         <div
           class="bg-surface-1 text-text-1 rounded-lg p-8 max-w-md w-full mx-4 text-center shadow-2xl"
@@ -490,7 +490,7 @@
             <!-- Browse ROMs Button -->
             <button
               id="initialBrowseRomsButton"
-              class="w-full bg-accent-primary-bg hover:bg-accent-primary-bg-hover text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+              class="w-full bg-accent-primary-bg hover:bg-accent-primary-bg-hover text-text-on-accent font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
             >
               <span class="text-xl">🎮</span>
               <span>Browse ROM Collection</span>
@@ -499,7 +499,7 @@
             <!-- Load Last ROM Button (hidden by default) -->
             <button
               id="initialLastRomButton"
-              class="w-full bg-success hover:bg-success/90 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 hidden"
+              class="w-full bg-success hover:bg-success/90 text-text-on-accent font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 hidden"
             >
               <span class="text-xl">⚡</span>
               <span>
@@ -508,10 +508,10 @@
               </span>
             </button>
 
-            <!-- Load Local ROM Button -->
+            <!-- Load Local ROM File: chrome (not on-accent) — keep readable on cream. -->
             <button
               id="initialLoadRomButton"
-              class="w-full bg-surface-2 hover:bg-accent-primary-soft text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+              class="w-full bg-surface-2 hover:bg-accent-primary-soft text-text-1 font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
             >
               <span class="text-xl">📁</span>
               <span>Load Local ROM File</span>
@@ -634,7 +634,7 @@
       <!-- Snackbar for notifications -->
       <div
         id="snackbar"
-        class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-surface-2 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-all duration-300 pointer-events-none"
+        class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-surface-2 text-text-1 px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-all duration-300 pointer-events-none"
       >
         <span id="snackbarMessage"></span>
       </div>

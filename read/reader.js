@@ -3,16 +3,16 @@ const MAX_FONT = 28;
 const DEFAULT_FONT = 18;
 
 const THEMES = {
-  dark:  { bg: '#0f172a', text: '#e2e8f0', accent: '#7c3aed' },
+  dark: { bg: '#0f172a', text: '#e2e8f0', accent: '#7c3aed' },
   sepia: { bg: '#f5f0e8', text: '#3d2b1f', accent: '#8b5a2b' },
-  light: { bg: '#ffffff', text: '#1a1a1a', accent: '#4f46e5' },
+  light: { bg: '#ffffff', text: '#1a1a1a', accent: '#4f46e5' }
 };
 
 export class Reader {
   constructor(containerEl, controlsEl) {
     this.container = containerEl;
     this.controls = controlsEl;
-    this.theme = 'dark';
+    this.theme = 'sepia';
     this.fontSize = DEFAULT_FONT;
     this.fontFamily = 'serif';
     this.currentBookId = null;
@@ -51,7 +51,7 @@ export class Reader {
    */
   async loadBook(book, savedPosition = 0) {
     this.currentBookId = String(book.id);
-    this._savedFraction = (savedPosition > 0 && savedPosition <= 1) ? savedPosition : 0;
+    this._savedFraction = savedPosition > 0 && savedPosition <= 1 ? savedPosition : 0;
     this._wrapper = null;
     this._toc = [];
     this._totalPages = 0;
@@ -98,10 +98,28 @@ export class Reader {
       el.classList.add('tapped');
       setTimeout(() => el.classList.remove('tapped'), 150);
     };
-    prevEl.addEventListener('click', (e) => { e.stopPropagation(); flash(prevEl); this.prevPage(); });
-    nextEl.addEventListener('click', (e) => { e.stopPropagation(); flash(nextEl); this.nextPage(); });
-    prevEl.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.prevPage(); } });
-    nextEl.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.nextPage(); } });
+    prevEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      flash(prevEl);
+      this.prevPage();
+    });
+    nextEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      flash(nextEl);
+      this.nextPage();
+    });
+    prevEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.prevPage();
+      }
+    });
+    nextEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.nextPage();
+      }
+    });
   }
 
   setTheme(theme) {
@@ -122,10 +140,16 @@ export class Reader {
   }
 
   /** @returns {{ id: string, text: string, level: number }[]} */
-  get toc() { return this._toc; }
+  get toc() {
+    return this._toc;
+  }
 
-  get currentPage() { return this._currentPage; }
-  get totalPages() { return this._totalPages; }
+  get currentPage() {
+    return this._currentPage;
+  }
+  get totalPages() {
+    return this._totalPages;
+  }
 
   get readingProgress() {
     if (!this._totalPages || this._totalPages <= 1) return 0;
@@ -206,23 +230,38 @@ export class Reader {
 
   _buildToc(article) {
     const headings = Array.from(article.querySelectorAll('h1, h2, h3, h4'));
-    headings.forEach((h, i) => { if (!h.id) h.id = `toc-${i}`; });
+    headings.forEach((h, i) => {
+      if (!h.id) h.id = `toc-${i}`;
+    });
     this._toc = headings.map((h) => ({
       id: h.id,
       text: h.textContent.trim(),
-      level: parseInt(h.tagName[1], 10),
+      level: parseInt(h.tagName[1], 10)
     }));
   }
 
   _cleanHtml(raw) {
     const doc = new DOMParser().parseFromString(raw, 'text/html');
     for (const sel of [
-      '#pg-header', '#pg-footer', '.pg-boilerplate',
-      '#header', '#footer', 'nav', '.navigation', '#toc', '.toc',
+      '#pg-header',
+      '#pg-footer',
+      '.pg-boilerplate',
+      '#header',
+      '#footer',
+      'nav',
+      '.navigation',
+      '#toc',
+      '.toc'
     ]) {
-      try { doc.querySelectorAll(sel).forEach((el) => el.remove()); } catch { /* :has() fallback */ }
+      try {
+        doc.querySelectorAll(sel).forEach((el) => el.remove());
+      } catch {
+        /* :has() fallback */
+      }
     }
-    try { doc.querySelectorAll('pre:has(a)').forEach((el) => el.remove()); } catch {}
+    try {
+      doc.querySelectorAll('pre:has(a)').forEach((el) => el.remove());
+    } catch {}
     doc.querySelectorAll('script, style, link, meta, noscript').forEach((el) => el.remove());
     return doc.body ? doc.body.innerHTML : doc.documentElement.innerHTML;
   }
@@ -243,7 +282,7 @@ export class Reader {
     this._totalPages = Math.max(1, Math.ceil((totalH - overlap) / this._stepHeight));
     const targetPage = Math.min(
       Math.round(this._savedFraction * (this._totalPages - 1)),
-      this._totalPages - 1,
+      this._totalPages - 1
     );
     this.goToPage(targetPage);
   }
@@ -322,7 +361,7 @@ export class Reader {
       '--reader-font-family',
       this.fontFamily === 'sans'
         ? '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-        : 'Georgia, "Times New Roman", serif',
+        : 'Georgia, "Times New Roman", serif'
     );
     // Re-paginate after font change since content height changes
     if (this._wrapper) this._repaginate();

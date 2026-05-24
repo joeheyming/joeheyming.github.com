@@ -2,15 +2,15 @@
  * the active brush, stroke, and selection use brand violet. The dark
  * canvas chrome aligns with Heyming OS surfaces. */
 :root {
-  --bg-0: var(--surface-0, #0b0b0f);
-  --bg-1: var(--surface-1, #15151b);
-  --bg-2: var(--surface-2, #1f1f27);
+  --bg-0: var(--surface-0);
+  --bg-1: var(--surface-1);
+  --bg-2: var(--surface-2);
   --bg-3: rgba(255, 255, 255, 0.08);
-  --fg: var(--text-1, #f5f5f7);
-  --fg-dim: var(--text-2, #a1a1aa);
-  --accent: var(--accent-primary, #7c5cff);
-  --accent-2: var(--accent-primary-hover, #9077ff);
-  --border: var(--hairline, rgba(255, 255, 255, 0.08));
+  --fg: var(--text-1);
+  --fg-dim: var(--text-2);
+  --accent: var(--accent-primary);
+  --accent-2: var(--accent-primary-hover);
+  --border: var(--hairline);
   --header-h: 52px;
   --palette-h: 52px;
   --layer-panel-w: 200px;
@@ -128,7 +128,7 @@ body {
   border-color: var(--border);
 }
 .tool-btn.active {
-  background: var(--accent-primary-soft, rgba(124, 92, 255, 0.15));
+  background: var(--accent-primary-soft);
   border-color: var(--accent);
   color: var(--accent);
 }
@@ -257,8 +257,8 @@ body {
   cursor: default;
 }
 .action-btn.danger:hover {
-  border-color: var(--danger, #f87171);
-  color: var(--danger, #f87171);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 .action-caret {
   font-size: 9px;
@@ -277,7 +277,7 @@ body {
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: 6px;
-  box-shadow: var(--shadow-card, 0 8px 24px rgba(0, 0, 0, 0.3));
+  box-shadow: var(--shadow-card);
   padding: 4px;
   z-index: 100;
 }
@@ -324,7 +324,7 @@ body {
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: 6px;
-  box-shadow: var(--shadow-card, 0 8px 24px rgba(0, 0, 0, 0.3));
+  box-shadow: var(--shadow-card);
   padding: 4px;
   z-index: 200;
 }
@@ -443,12 +443,12 @@ input[type='file'].hidden-file {
   display: none;
   position: absolute;
   background: transparent;
-  border: 1px dashed color-mix(in srgb, var(--pure-white, #ffffff) 50%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--pure-white) 50%, transparent);
   outline: none;
   padding: 2px 4px;
   min-width: 80px;
   min-height: 1.4em;
-  color: var(--pure-black, #000000);
+  color: var(--pure-black);
   font-family: sans-serif;
   resize: none;
   overflow: hidden;
@@ -475,10 +475,10 @@ input[type='file'].hidden-file {
 }
 .panel-resize-handle:hover,
 .panel-resize-handle.dragging {
-  background: color-mix(in srgb, var(--text-2, #a1a1aa) 30%, transparent);
+  background: color-mix(in srgb, var(--text-2) 30%, transparent);
 }
 .panel-resize-handle.dragging {
-  background: color-mix(in srgb, var(--accent-primary, #7c5cff) 35%, transparent);
+  background: color-mix(in srgb, var(--accent-primary) 35%, transparent);
 }
 
 /* ── Right panel (always visible) ───────────── */
@@ -568,7 +568,7 @@ input[type='file'].hidden-file {
 }
 .layer-row.active {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent-primary, #7c5cff) 8%, transparent);
+  background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
 }
 
 .layer-vis-btn {
@@ -647,8 +647,8 @@ input[type='file'].hidden-file {
   border-color: var(--fg-dim);
 }
 .layer-del-btn:hover {
-  color: var(--danger, #f87171);
-  border-color: var(--danger, #f87171);
+  color: var(--danger);
+  border-color: var(--danger);
 }
 .layer-del-btn:disabled,
 .layer-move-btn:disabled {
@@ -747,7 +747,7 @@ input[type='file'].hidden-file {
   position: absolute;
   width: 26px;
   height: 26px;
-  border: 2px solid var(--pure-white, #ffffff);
+  border: 2px solid var(--pure-white);
   border-radius: 3px;
   cursor: pointer;
   transition: transform 0.1s;
@@ -761,7 +761,7 @@ input[type='file'].hidden-file {
 .fg-swatch {
   top: 0;
   left: 0;
-  border-color: var(--pure-white, #ffffff);
+  border-color: var(--pure-white);
   z-index: 2;
 }
 .fg-swatch:hover,
@@ -794,7 +794,7 @@ input[type='file'].hidden-file {
 .color-swatch {
   width: 20px;
   height: 20px;
-  border: 1px solid var(--hairline, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--hairline);
   border-radius: 2px;
   cursor: pointer;
   transition: transform 0.1s, border-color 0.1s;
@@ -802,7 +802,7 @@ input[type='file'].hidden-file {
 }
 .color-swatch:hover {
   transform: scale(1.3);
-  border-color: var(--pure-white, #ffffff);
+  border-color: var(--pure-white);
   z-index: 1;
   position: relative;
 }
@@ -815,14 +815,14 @@ input[type='file'].hidden-file {
 .history-swatch {
   width: 18px;
   height: 18px;
-  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
+  border: 1px solid var(--hairline-strong);
   border-radius: 2px;
   cursor: pointer;
   transition: transform 0.1s, border-color 0.1s;
 }
 .history-swatch:hover {
   transform: scale(1.3);
-  border-color: var(--pure-white, #ffffff);
+  border-color: var(--pure-white);
   position: relative;
   z-index: 1;
 }
@@ -847,7 +847,7 @@ input[type='file'].hidden-file {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--scrim, rgba(11, 11, 15, 0.6));
+  background: var(--scrim);
   backdrop-filter: blur(4px);
 }
 .modal.hidden {
@@ -902,7 +902,7 @@ input[type='file'].hidden-file {
 .modal-btn.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--text-on-accent, #ffffff);
+  color: var(--text-on-accent);
 }
 .modal-btn.secondary {
   background: var(--bg-3);

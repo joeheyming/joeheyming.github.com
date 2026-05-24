@@ -63,7 +63,7 @@
 
 .custom-el-save {
   background: var(--accent) !important;
-  color: var(--surface-0, #0f172a) !important;
+  color: var(--surface-0) !important;
   border-color: var(--accent) !important;
 }
 
@@ -120,7 +120,7 @@
 }
 
 .custom-el-clear-all:hover {
-  color: var(--danger, #f87171);
+  color: var(--danger);
   background: color-mix(in srgb, var(--danger) 10%, transparent);
 }
 
@@ -164,7 +164,7 @@
 }
 
 .custom-el-chip-remove:hover {
-  color: var(--danger, #f87171);
+  color: var(--danger);
   background: color-mix(in srgb, var(--danger) 15%, transparent);
 }
 

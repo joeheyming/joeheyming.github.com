@@ -17,32 +17,22 @@
  * ========================================================================= */
 
 :root {
-  /* Auto-scoped identity palette for play-tuner. Every bare color in
-   * this file is routed through one of these tokens so the brand
-   * audit sees zero literals while keeping the visual identity. */
-  --play-tuner-c01: rgba(30, 41, 59, 0.85);
-  --play-tuner-c02: rgba(30, 41, 59, 0.7);
-  --play-tuner-c03: rgba(15, 23, 42, 0.7);
-  --play-tuner-c04: rgba(129, 140, 248, 0.45);
-  --play-tuner-c05: rgba(129, 140, 248, 0.7);
-  --play-tuner-c06: #86efac;
-  --play-tuner-c07: #042f2e;
-  --play-tuner-c08: rgba(244, 114, 182, 0.4);
-  --play-tuner-c09: rgba(129, 140, 248, 0.55);
-  --play-tuner-c10: rgba(244, 114, 182, 0.6);
-  --play-tuner-c11: #f8fafc;
-  --play-tuner-c12: rgba(148, 163, 184, 0.15);
-  --play-tuner-c13: rgba(129, 140, 248, 0.15);
-  --play-tuner-c14: rgba(129, 140, 248, 0.4);
-  --play-tuner-c15: rgba(244, 114, 182, 0.16);
-  --play-tuner-c16: #ef4444;
-  --play-tuner-c17: #f97316;
-  --play-tuner-c18: rgba(239, 68, 68, 0.7);
-  --play-tuner-c19: rgba(244, 114, 182, 0.08);
-  --play-tuner-c20: rgba(244, 114, 182, 0.32);
-  --play-tuner-c21: #a5b4fc;
-  --play-tuner-c22: rgba(30, 41, 59, 0.55);
-  --play-tuner-c23: rgba(15, 23, 42, 0.55);
+  /* Tuner panel palette. Cards and tabs sit on the brand cream surface,
+   * so chrome routes through brand surface / hairline / status tokens.
+   * Identity gradients (the dial arm, the active note carousel) still
+   * use --accent / --accent-2 so brand-driven recolors propagate. */
+  --play-tuner-input: var(--surface-1);
+  --play-tuner-card: var(--surface-1);
+  --play-tuner-listening: var(--accent-primary-soft);
+  --play-tuner-listening-strong: var(--accent-primary);
+  --play-tuner-success: var(--success);
+  --play-tuner-success-soft: var(--success-soft);
+  --play-tuner-warn: var(--warning);
+  --play-tuner-warn-soft: var(--warning-soft);
+  --play-tuner-danger: var(--danger);
+  --play-tuner-danger-soft: var(--danger-soft);
+  --play-tuner-pivot-hi: var(--surface-1);
+  --play-tuner-link: var(--accent-primary-hover);
 }
 
 .tuner-stage {
@@ -58,7 +48,7 @@
 
 .control input[type='number']#a4-ref {
   width: 70px;
-  background: var(--play-tuner-c01, rgba(30, 41, 59, 0.85));
+  background: var(--play-tuner-input);
   color: var(--fg);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -90,13 +80,9 @@
   gap: 10px;
   padding: 14px 16px 16px;
   border-radius: 22px;
-  background: linear-gradient(
-    160deg,
-    var(--play-tuner-c02, rgba(30, 41, 59, 0.7)),
-    var(--play-tuner-c03, rgba(15, 23, 42, 0.7))
-  );
+  background: var(--play-tuner-card);
   border: 1px solid var(--border);
-  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-card);
   transition: border-color 200ms ease, box-shadow 200ms ease;
 }
 
@@ -106,7 +92,7 @@
 }
 
 .tuner-card[data-state='listening'] {
-  border-color: var(--play-tuner-c04, rgba(129, 140, 248, 0.45));
+  border-color: var(--play-tuner-listening-strong);
 }
 
 /* ---- String tabs ----------------------------------------------------- */
@@ -136,7 +122,7 @@
   padding: 4px 10px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: var(--play-tuner-c01, rgba(30, 41, 59, 0.85));
+  background: var(--play-tuner-input);
   color: var(--fg);
   font-size: 14px;
   font-weight: 700;
@@ -173,13 +159,13 @@
 
 .string-tab[aria-pressed='true'] {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: var(--pure-white, #ffffff);
+  color: var(--text-on-accent);
   border-color: color-mix(in srgb, var(--pure-white) 25%, transparent);
-  box-shadow: 0 4px 14px -6px var(--play-tuner-c05, rgba(129, 140, 248, 0.7));
+  box-shadow: 0 4px 14px -6px var(--play-tuner-listening-strong);
 }
 
 .string-tab[aria-pressed='true'] sub {
-  color: color-mix(in srgb, var(--pure-white) 80%, transparent);
+  color: color-mix(in srgb, var(--text-on-accent) 80%, transparent);
 }
 
 .string-tab-auto {
@@ -190,8 +176,8 @@
 }
 
 .string-tab-auto[aria-pressed='true'] {
-  background: linear-gradient(135deg, var(--accent-3), var(--play-tuner-c06, #86efac));
-  color: var(--play-tuner-c07, #042f2e);
+  background: linear-gradient(135deg, var(--accent-3), var(--play-tuner-success));
+  color: var(--text-on-accent);
   border-color: color-mix(in srgb, var(--pure-white) 25%, transparent);
   box-shadow: 0 4px 14px -6px color-mix(in srgb, var(--success) 70%, transparent);
 }
@@ -252,7 +238,7 @@
 }
 
 .tuner-card[data-state='in-tune'] .carousel-note-active {
-  background: linear-gradient(135deg, var(--accent-3), var(--play-tuner-c06, #86efac));
+  background: linear-gradient(135deg, var(--accent-3), var(--play-tuner-success));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -267,7 +253,7 @@
 @keyframes carousel-flash {
   0% {
     transform: scale(1.06);
-    filter: drop-shadow(0 0 12px var(--play-tuner-c08, rgba(244, 114, 182, 0.4)));
+    filter: drop-shadow(0 0 12px var(--play-tuner-warn-soft));
   }
   100% {
     transform: scale(1);
@@ -307,7 +293,7 @@
   height: 75%;
   border-radius: 2px;
   background: linear-gradient(180deg, var(--accent-2), var(--accent));
-  box-shadow: 0 0 10px var(--play-tuner-c09, rgba(129, 140, 248, 0.55)),
+  box-shadow: 0 0 10px var(--play-tuner-listening),
     inset 0 0 0 0.5px color-mix(in srgb, var(--pure-white) 15%, transparent);
   transform-origin: 50% 100%;
   --needle: 0;
@@ -330,7 +316,7 @@
   border-right: 6px solid transparent;
   border-bottom: 10px solid var(--accent-2);
   transform: translateX(-50%);
-  filter: drop-shadow(0 0 6px var(--play-tuner-c10, rgba(244, 114, 182, 0.6)));
+  filter: drop-shadow(0 0 6px var(--play-tuner-warn-soft));
 }
 
 .tuner-card[data-state='listening'] .tuner-arm,
@@ -339,7 +325,7 @@
 }
 
 .tuner-card[data-state='in-tune'] .tuner-arm {
-  background: linear-gradient(180deg, var(--play-tuner-c06, #86efac), var(--accent-3));
+  background: linear-gradient(180deg, var(--play-tuner-success), var(--accent-3));
   box-shadow: 0 0 14px color-mix(in srgb, var(--success) 75%, transparent),
     inset 0 0 0 0.5px color-mix(in srgb, var(--pure-white) 20%, transparent);
 }
@@ -356,9 +342,9 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, var(--play-tuner-c11, #f8fafc), var(--bg-2) 70%);
+  background: radial-gradient(circle at 30% 30%, var(--play-tuner-pivot-hi), var(--bg-2) 70%);
   border: 2px solid var(--accent);
-  box-shadow: 0 0 10px var(--play-tuner-c09, rgba(129, 140, 248, 0.55)),
+  box-shadow: 0 0 10px var(--play-tuner-listening)),
     inset 0 -2px 0 color-mix(in srgb, var(--pure-black) 40%, transparent);
   transform: translate(-50%, 50%);
   pointer-events: none;
@@ -414,14 +400,14 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  background: var(--play-tuner-c12, rgba(148, 163, 184, 0.15));
+  background: var(--surface-2);
   border: 1px solid var(--border);
   color: var(--fg-dim);
 }
 
 .tuner-status-pill[data-status='listening'] {
-  background: var(--play-tuner-c13, rgba(129, 140, 248, 0.15));
-  border-color: var(--play-tuner-c14, rgba(129, 140, 248, 0.4));
+  background: var(--play-tuner-listening);
+  border-color: var(--play-tuner-listening-strong);
   color: var(--accent);
 }
 
@@ -433,8 +419,8 @@
 
 .tuner-status-pill[data-status='flat'],
 .tuner-status-pill[data-status='sharp'] {
-  background: var(--play-tuner-c15, rgba(244, 114, 182, 0.16));
-  border-color: var(--play-tuner-c08, rgba(244, 114, 182, 0.4));
+  background: var(--play-tuner-warn-soft);
+  border-color: var(--play-tuner-warn-soft);
   color: var(--accent-2);
 }
 
@@ -467,8 +453,8 @@
   justify-content: center;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   border-color: color-mix(in srgb, var(--pure-white) 12%, transparent);
-  color: var(--pure-white, #ffffff);
-  box-shadow: 0 6px 18px -8px var(--play-tuner-c05, rgba(129, 140, 248, 0.7));
+  color: var(--text-on-accent);
+  box-shadow: 0 6px 18px -8px var(--play-tuner-listening-strong);
 }
 
 .primary-btn:hover {
@@ -482,16 +468,12 @@
 }
 
 .primary-btn[aria-pressed='true'] {
-  background: linear-gradient(
-    135deg,
-    var(--play-tuner-c16, #ef4444),
-    var(--play-tuner-c17, #f97316)
-  );
-  box-shadow: 0 6px 18px -8px var(--play-tuner-c18, rgba(239, 68, 68, 0.7));
+  background: linear-gradient(135deg, var(--play-tuner-danger), var(--play-tuner-warn));
+  box-shadow: 0 6px 18px -8px var(--play-tuner-danger-soft);
 }
 
 .secondary-btn {
-  background: var(--play-tuner-c01, rgba(30, 41, 59, 0.85));
+  background: var(--play-tuner-input);
   color: var(--fg);
 }
 
@@ -515,8 +497,8 @@
   width: min(100%, 520px);
   padding: 16px 18px;
   border-radius: 14px;
-  background: var(--play-tuner-c19, rgba(244, 114, 182, 0.08));
-  border: 1px solid var(--play-tuner-c20, rgba(244, 114, 182, 0.32));
+  background: var(--play-tuner-warn-soft);
+  border: 1px solid var(--play-tuner-warn);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -540,7 +522,7 @@
 }
 
 .fallback-message a {
-  color: var(--play-tuner-c21, #a5b4fc);
+  color: var(--play-tuner-link);
 }
 
 #fallback-retry {
@@ -554,11 +536,7 @@
   width: min(100%, 520px);
   padding: 0;
   border-radius: 16px;
-  background: linear-gradient(
-    160deg,
-    var(--play-tuner-c22, rgba(30, 41, 59, 0.55)),
-    var(--play-tuner-c23, rgba(15, 23, 42, 0.55))
-  );
+  background: var(--play-tuner-card);
   border: 1px solid var(--border);
   overflow: hidden;
 }
@@ -653,7 +631,7 @@
   padding: 10px 4px;
   border-radius: 10px;
   border: 1px solid var(--border);
-  background: var(--play-tuner-c01, rgba(30, 41, 59, 0.85));
+  background: var(--play-tuner-input);
   color: var(--fg);
   font-size: 16px;
   font-weight: 700;
@@ -687,8 +665,8 @@
 .ref-btn[aria-pressed='true'] {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   border-color: color-mix(in srgb, var(--pure-white) 18%, transparent);
-  color: var(--pure-white, #ffffff);
-  box-shadow: 0 6px 16px -8px var(--play-tuner-c05, rgba(129, 140, 248, 0.7));
+  color: var(--text-on-accent);
+  box-shadow: 0 6px 16px -8px var(--play-tuner-listening-strong);
 }
 
 .reference-hint {

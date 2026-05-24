@@ -230,7 +230,7 @@ html {
 .btn.primary {
   background: var(--accent-dim);
   border-color: var(--accent);
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
 }
 .btn.primary:hover {
   background: var(--accent);
@@ -329,7 +329,7 @@ body:not(.clean):not(.picker-mode) #flavorPicker {
   background: var(--accent-dim);
   border: 1px solid var(--accent);
   border-radius: 4px;
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
   cursor: pointer;
   font-family: inherit;
   font-size: 16px;

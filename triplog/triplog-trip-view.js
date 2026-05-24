@@ -468,7 +468,7 @@ export function createTripView(deps) {
       time.textContent = formatDuration(r.timeSec);
       const paceMs = r.meters / r.timeSec;
       const pace = document.createElement('span');
-      pace.className = 'w-24 text-right text-zinc-600 dark:text-zinc-300';
+      pace.className = 'w-24 text-right text-text-2';
       pace.textContent = formatPace(paceMs, state.unit);
       li.append(label, time, pace);
       dom.tvBestsList.appendChild(li);
@@ -572,27 +572,24 @@ export function createTripView(deps) {
    */
   function renderTripSplitRow(index, timeSec, paceSecPerMeter, inProgress, barWidth = 0.5) {
     const li = document.createElement('li');
-    li.className =
-      'flex items-center gap-3 py-1.5 text-sm' +
-      (inProgress ? ' text-zinc-500 dark:text-zinc-400' : '');
+    li.className = 'flex items-center gap-3 py-1.5 text-sm' + (inProgress ? ' text-text-3' : '');
     const left = document.createElement('span');
     left.className = 'w-8 font-semibold';
     left.textContent = `${index}${inProgress ? '·' : ''}`;
-    // Bar takes the middle column; the inner fill is colored teal and
-    // sized by `barWidth`. Visually mirrors Strava-style split bars
-    // where slower splits stretch farther across the row.
+    // Bar takes the middle column; the inner fill is colored with the
+    // brand accent and sized by `barWidth`. Visually mirrors Strava-style
+    // split bars where slower splits stretch farther across the row.
     const barWrap = document.createElement('span');
-    barWrap.className =
-      'relative h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800';
+    barWrap.className = 'relative h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2';
     const barFill = document.createElement('span');
-    barFill.className = 'absolute inset-y-0 left-0 rounded-full bg-teal-500/80';
+    barFill.className = 'absolute inset-y-0 left-0 rounded-full bg-accent-primary/80';
     barFill.style.width = `${Math.round(Math.max(0, Math.min(1, barWidth)) * 100)}%`;
     barWrap.appendChild(barFill);
     const time = document.createElement('span');
     time.className = 'w-12 text-right tabular-nums';
     time.textContent = formatSplitTime(timeSec);
     const pace = document.createElement('span');
-    pace.className = 'w-24 text-right tabular-nums text-zinc-600 dark:text-zinc-300';
+    pace.className = 'w-24 text-right tabular-nums text-text-2';
     pace.textContent = formatPace(paceSecPerMeter > 0 ? 1 / paceSecPerMeter : null, state.unit);
     li.append(left, barWrap, time, pace);
     return li;
@@ -724,10 +721,11 @@ export function createTripView(deps) {
       exitCrop();
       const updated = await state.db.getTrip(tripId);
       if (updated) {
-        dom.tripViewSummary.textContent = `${formatTripStartedAt(updated.startedAt)} • ${formatDistance(
-          updated.distanceMeters,
-          state.unit
-        )} • ${formatDuration(updated.durationSec)}`;
+        dom.tripViewSummary.textContent = `${formatTripStartedAt(
+          updated.startedAt
+        )} • ${formatDistance(updated.distanceMeters, state.unit)} • ${formatDuration(
+          updated.durationSec
+        )}`;
         renderTripViewDetails(updated, kept);
       }
       void callbacks.refreshTripsList();

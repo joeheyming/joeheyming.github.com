@@ -4,19 +4,19 @@
  * drop overlay now use brand violet so the app reads as part of the OS.
  */
 :root {
-  --chat-bg: var(--surface-0, #0b0b0f);
-  --chat-bg-2: var(--surface-1, #15151b);
-  --chat-fg: var(--text-1, #f5f5f7);
-  --chat-fg-dim: var(--text-2, #a1a1aa);
-  --chat-accent: var(--accent-primary, #7c5cff);
-  --chat-accent-2: var(--accent-primary-hover, #9077ff);
-  --chat-bubble-user: var(--accent-primary-bg, #5b3cdc);
-  --chat-bubble-asst: var(--surface-2, #1f1f27);
-  --chat-bubble-tool: var(--surface-1, #15151b);
-  --chat-border: var(--hairline, rgba(255, 255, 255, 0.08));
-  --chat-error: var(--danger, #f87171);
-  --chat-success: var(--success, #34d399);
-  --chat-warning: var(--warning, #fbbf24);
+  --chat-bg: var(--surface-0);
+  --chat-bg-2: var(--surface-1);
+  --chat-fg: var(--text-1);
+  --chat-fg-dim: var(--text-2);
+  --chat-accent: var(--accent-primary);
+  --chat-accent-2: var(--accent-primary-hover);
+  --chat-bubble-user: var(--accent-primary-bg);
+  --chat-bubble-asst: var(--surface-2);
+  --chat-bubble-tool: var(--surface-1);
+  --chat-border: var(--hairline);
+  --chat-error: var(--danger);
+  --chat-success: var(--success);
+  --chat-warning: var(--warning);
 }
 
 * {
@@ -30,7 +30,7 @@ body {
   height: 100%;
   background: var(--chat-bg);
   color: var(--chat-fg);
-  font-family: var(--font-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-family: var(--font-ui);
   font-size: 15px;
   line-height: 1.5;
 }
@@ -51,7 +51,7 @@ body {
   gap: 16px;
   padding: 14px 18px;
   border-bottom: 1px solid var(--chat-border);
-  background: color-mix(in srgb, var(--surface-0, #0b0b0f) 85%, transparent);
+  background: color-mix(in srgb, var(--surface-0) 85%, transparent);
   backdrop-filter: blur(8px);
 }
 
@@ -64,7 +64,7 @@ body {
 
 .chat-emoji {
   font-size: 26px;
-  filter: drop-shadow(0 0 8px var(--accent-primary-soft, rgba(124, 92, 255, 0.5)));
+  filter: drop-shadow(0 0 8px var(--accent-primary-soft));
 }
 
 .chat-title-text h1 {
@@ -98,7 +98,7 @@ body {
 }
 
 .chat-btn-ghost:hover {
-  background: color-mix(in srgb, var(--pure-white, #ffffff) 6%, transparent);
+  background: var(--surface-2);
 }
 
 .chat-btn-ghost:disabled {
@@ -121,8 +121,8 @@ body {
 .chat-unsupported {
   margin: 14px 18px 0;
   padding: 12px 14px;
-  border: 1px solid color-mix(in srgb, var(--warning, #fbbf24) 50%, transparent);
-  background: var(--warning-soft, rgba(251, 191, 36, 0.15));
+  border: 1px solid color-mix(in srgb, var(--warning) 50%, transparent);
+  background: var(--warning-soft);
   color: var(--chat-fg);
   border-radius: 10px;
   font-size: 13px;
@@ -132,40 +132,48 @@ body {
 .chat-unsupported strong {
   display: block;
   margin-bottom: 4px;
-  color: var(--warning, #fbbf24);
+  color: var(--warning);
 }
 
+/* The inset code/env boxes used to be dark slabs with translucent
+ * white text — that read fine on the old dark brand, but on the new
+ * cream warning-soft panel it paints near-white text on a near-cream
+ * background. They now use brand surfaces with --text-1 / --text-2 so
+ * the technical error stays legible whatever the theme is. */
 .chat-unsupported-detail {
   margin: 8px 0 0;
   padding: 8px 10px;
-  background: color-mix(in srgb, var(--pure-black, #000000) 25%, transparent);
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
   border-radius: 6px;
-  font-family: var(--font-mono, ui-monospace, Menlo, Consolas, monospace);
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.45;
-  color: color-mix(in srgb, var(--pure-white, #ffffff) 92%, transparent);
+  color: var(--text-1);
 }
 
 .chat-unsupported-env {
   margin: 6px 0 0;
   padding: 4px 8px;
-  background: color-mix(in srgb, var(--pure-black, #000000) 18%, transparent);
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
   border-radius: 4px;
-  font-family: var(--font-mono, ui-monospace, Menlo, Consolas, monospace);
+  font-family: var(--font-mono);
   font-size: 11px;
   line-height: 1.4;
-  color: color-mix(in srgb, var(--pure-white, #ffffff) 65%, transparent);
+  color: var(--text-2);
   word-break: break-all;
 }
 
 .chat-unsupported-hint {
   margin: 8px 0 0;
-  color: color-mix(in srgb, var(--pure-white, #ffffff) 72%, transparent);
+  color: var(--text-2);
   font-size: 12px;
 }
 
 .chat-unsupported-hint code {
-  background: var(--hairline, rgba(255, 255, 255, 0.08));
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
   padding: 1px 5px;
   border-radius: 4px;
   font-size: 11px;
@@ -192,8 +200,8 @@ body {
 /* ---------- Install CTA ---------- */
 .chat-install {
   background: var(--surface-1);
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #7c5cff) 30%, transparent);
-  border-radius: var(--radius-lg, 16px);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent);
+  border-radius: var(--radius-lg);
   padding: 28px 24px 22px;
   text-align: center;
 }
@@ -202,7 +210,7 @@ body {
   display: block;
   font-size: 40px;
   margin-bottom: 4px;
-  filter: drop-shadow(0 0 16px color-mix(in srgb, var(--accent-primary, #7c5cff) 45%, transparent));
+  filter: drop-shadow(0 0 16px color-mix(in srgb, var(--accent-primary) 45%, transparent));
 }
 
 .chat-install-title {
@@ -222,7 +230,7 @@ body {
 .chat-install-btn {
   display: inline-block;
   background: var(--accent-primary-bg);
-  color: var(--text-on-accent, #ffffff);
+  color: var(--text-on-accent);
   border: none;
   border-radius: 10px;
   padding: 12px 22px;
@@ -231,12 +239,12 @@ body {
   font-size: 14px;
   cursor: pointer;
   transition: transform 120ms ease, box-shadow 120ms ease;
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-primary, #7c5cff) 25%, transparent);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-primary) 25%, transparent);
 }
 
 .chat-install-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent-primary, #7c5cff) 35%, transparent);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent-primary) 35%, transparent);
 }
 
 .chat-install-btn:disabled {
@@ -274,7 +282,7 @@ body {
 }
 
 .chat-empty-suggestions button {
-  background: color-mix(in srgb, var(--pure-white, #ffffff) 4%, transparent);
+  background: var(--surface-1);
   color: var(--chat-fg);
   border: 1px solid var(--chat-border);
   border-radius: 10px;
@@ -287,8 +295,8 @@ body {
 }
 
 .chat-empty-suggestions button:hover {
-  background: color-mix(in srgb, var(--pure-white, #ffffff) 7%, transparent);
-  border-color: color-mix(in srgb, var(--accent-primary, #7c5cff) 40%, transparent);
+  background: var(--surface-2);
+  border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent);
 }
 
 .chat-messages {
@@ -328,12 +336,17 @@ body {
 
 .chat-msg-user .chat-bubble {
   background: var(--chat-bubble-user);
-  color: var(--text-on-accent, #ffffff);
+  color: var(--text-on-accent);
   border-color: transparent;
 }
 
+/* Code blocks inside bubbles always render as a neutral inset slab with
+ * dark text — the user bubble inherits white text-on-accent, which would
+ * otherwise paint white-on-near-white inside the code box. */
 .chat-bubble pre {
-  background: color-mix(in srgb, var(--pure-black, #000000) 40%, transparent);
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  color: var(--text-1);
   border-radius: 8px;
   padding: 10px 12px;
   overflow-x: auto;
@@ -343,12 +356,14 @@ body {
 }
 
 .chat-bubble code {
-  font-family: var(--font-mono, 'SF Mono', Menlo, Consolas, monospace);
+  font-family: var(--font-mono);
   font-size: 13px;
 }
 
 .chat-bubble :not(pre) > code {
-  background: color-mix(in srgb, var(--pure-black, #000000) 30%, transparent);
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  color: var(--text-1);
   padding: 1px 6px;
   border-radius: 4px;
 }
@@ -386,7 +401,7 @@ body {
   padding: 6px 10px;
   font-size: 12px;
   color: var(--chat-fg-dim);
-  font-family: var(--font-mono, 'SF Mono', Menlo, Consolas, monospace);
+  font-family: var(--font-mono);
   max-width: 92%;
   align-self: flex-start;
 }
@@ -435,7 +450,8 @@ body {
 .chat-tool-body {
   margin-top: 8px;
   padding: 8px 10px;
-  background: color-mix(in srgb, var(--pure-black, #000000) 30%, transparent);
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
   border-radius: 6px;
   white-space: pre-wrap;
   overflow-x: auto;
@@ -468,7 +484,7 @@ body {
   gap: 8px;
   padding: 12px 14px 16px;
   border-top: 1px solid var(--chat-border);
-  background: color-mix(in srgb, var(--surface-0, #0b0b0f) 85%, transparent);
+  background: color-mix(in srgb, var(--surface-0) 85%, transparent);
   backdrop-filter: blur(8px);
 }
 
@@ -481,7 +497,7 @@ body {
 
 #chat-input {
   resize: none;
-  background: color-mix(in srgb, var(--pure-white, #ffffff) 5%, transparent);
+  background: var(--surface-1);
   color: var(--chat-fg);
   border: 1px solid var(--chat-border);
   border-radius: 12px;
@@ -505,22 +521,22 @@ body {
   height: 44px;
   border-radius: 12px;
   border: none;
-  color: var(--text-on-accent, #ffffff);
+  color: var(--text-on-accent);
   font-size: 18px;
   cursor: pointer;
   align-self: end;
 }
 
 .chat-attach-btn {
-  background: color-mix(in srgb, var(--pure-white, #ffffff) 6%, transparent);
+  background: var(--surface-1);
   border: 1px solid var(--chat-border);
   color: var(--chat-fg);
   transition: background 120ms ease, border-color 120ms ease;
 }
 
 .chat-attach-btn:hover {
-  background: color-mix(in srgb, var(--pure-white, #ffffff) 12%, transparent);
-  border-color: color-mix(in srgb, var(--accent-primary, #7c5cff) 40%, transparent);
+  background: var(--surface-2);
+  border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent);
 }
 
 .chat-send,
@@ -549,8 +565,8 @@ body {
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  background: color-mix(in srgb, var(--accent-primary, #7c5cff) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #7c5cff) 35%, transparent);
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 35%, transparent);
   border-radius: 999px;
   font-size: 12px;
   color: var(--chat-fg);
@@ -593,14 +609,14 @@ body {
 
 /* Chips that appear inside a sent user bubble */
 .chat-bubble .chat-attachment-chip {
-  background: color-mix(in srgb, var(--pure-white, #ffffff) 18%, transparent);
-  border-color: color-mix(in srgb, var(--pure-white, #ffffff) 35%, transparent);
-  color: var(--text-on-accent, #ffffff);
+  background: color-mix(in srgb, var(--pure-white) 18%, transparent);
+  border-color: color-mix(in srgb, var(--pure-white) 35%, transparent);
+  color: var(--text-on-accent);
   margin-bottom: 6px;
 }
 
 .chat-bubble .chat-attachment-chip .chat-attachment-chip-meta {
-  color: color-mix(in srgb, var(--pure-white, #ffffff) 80%, transparent);
+  color: color-mix(in srgb, var(--pure-white) 80%, transparent);
 }
 
 /* ---------- Drop overlay ---------- */
@@ -617,27 +633,27 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--accent-primary, #7c5cff) 12%, transparent);
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
   backdrop-filter: blur(6px);
   pointer-events: none;
-  border: 3px dashed color-mix(in srgb, var(--accent-primary, #7c5cff) 70%, transparent);
+  border: 3px dashed color-mix(in srgb, var(--accent-primary) 70%, transparent);
   border-radius: 0;
 }
 
 .chat-drop-overlay-inner {
-  background: var(--scrim-strong, rgba(11, 11, 15, 0.85));
-  border: 1px solid var(--accent-primary, #7c5cff);
+  background: var(--scrim-strong);
+  border: 1px solid var(--accent-primary);
   border-radius: 16px;
   padding: 28px 36px;
   text-align: center;
-  box-shadow: var(--shadow-modal, 0 20px 60px rgba(0, 0, 0, 0.5));
+  box-shadow: var(--shadow-modal);
 }
 
 .chat-drop-emoji {
   font-size: 56px;
   line-height: 1;
   margin-bottom: 10px;
-  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent-primary, #7c5cff) 40%, transparent));
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent-primary) 40%, transparent));
 }
 
 .chat-drop-title {
@@ -675,24 +691,24 @@ body {
   pointer-events: auto;
   padding: 10px 14px;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--surface-2, #1f1f27) 95%, transparent);
+  background: color-mix(in srgb, var(--surface-2) 95%, transparent);
   border: 1px solid var(--chat-border);
   color: var(--chat-fg);
   font-size: 13px;
   max-width: 320px;
-  box-shadow: var(--shadow-card, 0 8px 24px rgba(0, 0, 0, 0.3));
+  box-shadow: var(--shadow-card);
 }
 
 .notify-success {
-  border-color: color-mix(in srgb, var(--success, #34d399) 50%, transparent);
+  border-color: color-mix(in srgb, var(--success) 50%, transparent);
 }
 
 .notify-error {
-  border-color: color-mix(in srgb, var(--danger, #f87171) 50%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 50%, transparent);
 }
 
 .notify-warn {
-  border-color: color-mix(in srgb, var(--warning, #fbbf24) 50%, transparent);
+  border-color: color-mix(in srgb, var(--warning) 50%, transparent);
 }
 
 .notify-close {
@@ -711,7 +727,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--scrim, rgba(11, 11, 15, 0.6));
+  background: var(--scrim);
   z-index: 10000;
 }
 
@@ -722,7 +738,7 @@ body {
   padding: 22px 26px;
   max-width: 440px;
   width: calc(100% - 32px);
-  box-shadow: var(--shadow-modal, 0 20px 60px rgba(0, 0, 0, 0.5));
+  box-shadow: var(--shadow-modal);
 }
 
 .chat-modal-box h2 {
@@ -755,13 +771,13 @@ body {
 .chat-modal-actions .chat-modal-primary {
   background: var(--chat-accent);
   border-color: var(--chat-accent);
-  color: var(--text-on-accent, #ffffff);
+  color: var(--text-on-accent);
 }
 
 .chat-modal-progress {
   margin-top: 12px;
   height: 6px;
-  background: var(--hairline, rgba(255, 255, 255, 0.08));
+  background: var(--hairline);
   border-radius: 3px;
   overflow: hidden;
 }

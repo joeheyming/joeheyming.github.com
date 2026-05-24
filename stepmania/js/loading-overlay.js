@@ -84,11 +84,15 @@ class LoadingOverlayElement extends HTMLElement {
         :host {
           display: block;
         }
+        /* All chrome routes through /brand.css custom properties (which
+         * inherit through the shadow boundary). The previous palette
+         * (purple #a855f7, gray-700 #374151, etc.) was a fixed dark
+         * theme — this version reuses brand surfaces so a theme swap
+         * re-tints the loading overlay without touching this module. */
         .overlay {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.9);
-          backdrop-filter: blur(12px);
+          background: var(--scrim-strong);
           z-index: 70;
           display: flex;
           align-items: center;
@@ -106,7 +110,7 @@ class LoadingOverlayElement extends HTMLElement {
           display: inline-block;
           width: 4rem;
           height: 4rem;
-          border: 4px solid #a855f7;
+          border: 4px solid var(--accent-primary);
           border-top-color: transparent;
           border-radius: 50%;
           animation: spin 1s linear infinite;
@@ -120,7 +124,7 @@ class LoadingOverlayElement extends HTMLElement {
           display: inline-flex;
           width: 4rem;
           height: 4rem;
-          background: #ef4444;
+          background: var(--danger);
           border-radius: 50%;
           margin-bottom: 1.5rem;
           align-items: center;
@@ -131,17 +135,18 @@ class LoadingOverlayElement extends HTMLElement {
         .title {
           font-size: 1.5rem;
           font-weight: 700;
-          color: white;
+          color: var(--pure-white);
           margin-bottom: 0.5rem;
         }
         .status {
-          color: #c4b5fd;
+          color: var(--pure-white);
+          opacity: 0.85;
           margin-bottom: 1rem;
         }
         .progress-container {
           margin-top: 1rem;
           width: 16rem;
-          background: #374151;
+          background: var(--surface-2);
           border-radius: 9999px;
           height: 0.5rem;
           margin-left: auto;
@@ -149,7 +154,7 @@ class LoadingOverlayElement extends HTMLElement {
         }
         .progress-container.hidden { display: none; }
         .progress-bar {
-          background: #a855f7;
+          background: var(--accent-primary);
           height: 0.5rem;
           border-radius: 9999px;
           transition: width 0.3s ease;
@@ -174,25 +179,23 @@ class LoadingOverlayElement extends HTMLElement {
           border-radius: 0.5rem;
           border: none;
           cursor: pointer;
-          transition: background-color 0.2s;
-          color: white;
+          transition: filter 0.2s;
+          color: var(--text-on-accent);
         }
+        button:hover { filter: brightness(0.92); }
         .btn-play {
-          background: #16a34a;
+          background: var(--success);
         }
-        .btn-play:hover { background: #15803d; }
         .btn-browse {
-          background: #2563eb;
+          background: var(--accent-primary);
         }
-        .btn-browse:hover { background: #1d4ed8; }
         .btn-retry {
-          background: #a855f7;
+          background: var(--accent-primary);
         }
-        .btn-retry:hover { background: #9333ea; }
         .btn-back {
-          background: #4b5563;
+          background: var(--surface-2);
+          color: var(--text-1);
         }
-        .btn-back:hover { background: #374151; }
         .hidden { display: none !important; }
         .difficulty-container {
           margin-top: 1rem;
@@ -203,20 +206,21 @@ class LoadingOverlayElement extends HTMLElement {
           display: block;
           font-size: 0.875rem;
           font-weight: 500;
-          color: #d1d5db;
+          color: var(--pure-white);
+          opacity: 0.85;
           margin-bottom: 0.5rem;
         }
         .difficulty-select {
           padding: 0.5rem 1rem;
-          background: #374151;
-          border: 1px solid #4b5563;
+          background: var(--surface-1);
+          border: 1px solid var(--hairline-strong);
           border-radius: 0.5rem;
-          color: white;
+          color: var(--text-1);
           font-size: 1rem;
         }
         .difficulty-select:focus {
           outline: none;
-          box-shadow: 0 0 0 2px #a855f7;
+          box-shadow: 0 0 0 2px var(--accent-primary);
           border-color: transparent;
         }
         .video-status {
@@ -233,21 +237,21 @@ class LoadingOverlayElement extends HTMLElement {
           display: none;
         }
         .video-pending {
-          background: rgba(107, 114, 128, 0.3);
-          color: #9ca3af;
+          background: var(--surface-2);
+          color: var(--text-2);
         }
         .video-loading {
-          background: rgba(59, 130, 246, 0.3);
-          color: #93c5fd;
+          background: var(--accent-primary-soft);
+          color: var(--accent-primary);
           animation: pulse 1.5s ease-in-out infinite;
         }
         .video-ready {
-          background: rgba(34, 197, 94, 0.3);
-          color: #86efac;
+          background: var(--success-soft);
+          color: var(--success);
         }
         .video-failed {
-          background: rgba(239, 68, 68, 0.2);
-          color: #fca5a5;
+          background: var(--danger-soft);
+          color: var(--danger);
         }
         @keyframes pulse {
           0%, 100% { opacity: 1; }

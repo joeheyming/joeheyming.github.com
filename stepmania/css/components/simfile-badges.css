@@ -30,13 +30,9 @@
 /* "Has video" indicator — generic chrome, not a difficulty signal, so
    tinted to brand accent rather than the legacy purple-500/violet-500. */
 .badge-video {
-  background: linear-gradient(
-    135deg,
-    var(--accent-primary-bg, #5b3cdc),
-    var(--accent-primary, #7c5cff)
-  );
-  color: var(--text-on-accent, #ffffff);
-  border: 1px solid var(--hairline-accent, rgba(124, 92, 255, 0.32));
+  background: linear-gradient(135deg, var(--accent-primary-bg), var(--accent-primary));
+  color: var(--text-on-accent);
+  border: 1px solid var(--hairline-accent);
 }
 
 /* Difficulty badges with DDR-inspired colors.
@@ -104,8 +100,8 @@
 
 /* Unknown difficulty - neutral gray (uses brand text tokens) */
 .badge-diff-u {
-  background: linear-gradient(135deg, var(--text-3, #8e8e96), var(--text-2, #a1a1aa));
-  color: var(--text-on-accent, #ffffff);
+  background: linear-gradient(135deg, var(--text-3), var(--text-2));
+  color: var(--text-on-accent);
 }
 
 /* Edit difficulty - Teal (StepMania convention) */
@@ -128,13 +124,13 @@
   font-size: 1rem;
   text-decoration: none;
   border-radius: 0.375rem;
-  background: var(--hairline, rgba(255, 255, 255, 0.08));
+  background: var(--hairline);
   margin-left: auto;
   flex-shrink: 0;
   transition: background 0.2s, transform 0.15s;
 }
 
 .simfile-external-link:hover {
-  background: var(--hairline-strong, rgba(255, 255, 255, 0.14));
+  background: var(--hairline-strong);
   transform: scale(1.1);
 }

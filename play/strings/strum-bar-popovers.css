@@ -10,7 +10,7 @@
   background: color-mix(in srgb, var(--play-slate-900, #0f172a) 95%, transparent);
   border: 1px solid color-mix(in srgb, var(--strings-indigo-strum, #6366f1) 55%, transparent);
   border-radius: 10px;
-  box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--pure-black, #000) 60%, transparent);
+  box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--pure-black) 60%, transparent);
 }
 
 .strum-bar-add-popover[hidden] {
@@ -66,7 +66,7 @@
 .strum-bar-suggestion[aria-selected='true'] {
   border-color: color-mix(in srgb, var(--strings-violet, #a855f7) 85%, transparent);
   background: color-mix(in srgb, var(--strings-violet, #a855f7) 25%, transparent);
-  color: var(--pure-white, #fff);
+  color: var(--pure-white);
 }
 
 /* Load-song button — sibling to the "+" pad-add. Styled with the
@@ -112,7 +112,7 @@
   background: color-mix(in srgb, var(--play-slate-900, #0f172a) 95%, transparent);
   border: 1px solid color-mix(in srgb, var(--strings-teal, #2dd4bf) 55%, transparent);
   border-radius: 10px;
-  box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--pure-black, #000) 60%, transparent);
+  box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--pure-black) 60%, transparent);
 }
 
 .strum-bar-load-popover[hidden] {
@@ -175,8 +175,8 @@
 }
 
 .strum-bar-load-status.is-error {
-  border-color: color-mix(in srgb, var(--danger, #f87171) 55%, transparent);
-  background: color-mix(in srgb, var(--danger, #f87171) 10%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
   color: var(--strings-root-light, #fecaca);
 }
 

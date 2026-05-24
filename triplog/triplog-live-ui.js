@@ -13,12 +13,7 @@
  * listeners.
  */
 
-import {
-  ACTIVITY_TUNING,
-  UNITS,
-  saveStoredActivity,
-  saveStoredUnit
-} from './triplog-constants.js';
+import { ACTIVITY_TUNING, UNITS, saveStoredActivity, saveStoredUnit } from './triplog-constants.js';
 
 /**
  * @param {{
@@ -289,7 +284,7 @@ export function createLiveUi(deps) {
     const li = document.createElement('li');
     li.className =
       'flex items-baseline justify-between gap-3 py-1.5 text-sm' +
-      (inProgress ? ' text-zinc-500 dark:text-zinc-400' : '');
+      (inProgress ? ' text-text-3' : '');
     const left = document.createElement('span');
     left.className = 'w-12 font-semibold';
     left.textContent = `${index}${inProgress ? '·' : ''}`;
@@ -297,7 +292,7 @@ export function createLiveUi(deps) {
     time.className = 'flex-1 text-right';
     time.textContent = formatSplitTime(timeSec);
     const pace = document.createElement('span');
-    pace.className = 'w-24 text-right text-zinc-600 dark:text-zinc-300';
+    pace.className = 'w-24 text-right text-text-2';
     pace.textContent = formatPace(paceSecPerMeter > 0 ? 1 / paceSecPerMeter : null, state.unit);
     li.append(left, time, pace);
     return li;

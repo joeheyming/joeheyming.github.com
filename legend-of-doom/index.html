@@ -29,15 +29,19 @@
       href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗡️</text></svg>"
     />
 
+    <link rel="stylesheet" href="/brand.css" />
+
     <style>
+      /* Redirect stub — barely visible. Routes through brand.css so a
+       * theme swap re-tints even this transient page. */
       body {
         margin: 0;
         min-height: 100vh;
         display: grid;
         place-items: center;
-        background: #0f172a;
-        color: #e5e7eb;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        background: var(--surface-0);
+        color: var(--text-1);
+        font-family: var(--font-ui);
         text-align: center;
         padding: 1.5rem;
       }
@@ -51,20 +55,20 @@
       p {
         margin: 0.5rem 0;
         line-height: 1.5;
-        color: #cbd5e1;
+        color: var(--text-2);
       }
       a {
-        color: #93c5fd;
+        color: var(--accent-primary);
       }
       a:hover {
-        color: #bfdbfe;
+        color: var(--accent-primary-hover);
       }
       .cta {
         display: inline-block;
         margin-top: 1rem;
         padding: 0.75rem 1.25rem;
-        background: linear-gradient(135deg, #4f46e5, #9333ea);
-        color: #fff;
+        background: var(--accent-primary);
+        color: var(--text-on-accent);
         text-decoration: none;
         border-radius: 0.5rem;
         font-weight: 600;
@@ -92,8 +96,8 @@
       <h1>Legend of DOOM moved</h1>
       <p>
         This page now lives at
-        <a href="/doom/?flavor=legend">/doom/?flavor=legend</a> as one of the flavors in the
-        unified DOOM runner.
+        <a href="/doom/?flavor=legend">/doom/?flavor=legend</a>
+        as one of the flavors in the unified DOOM runner.
       </p>
       <p>Redirecting you now…</p>
       <a class="cta" href="/doom/?flavor=legend">Play Legend of DOOM →</a>

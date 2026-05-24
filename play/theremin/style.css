@@ -50,10 +50,10 @@
       color-mix(in srgb, var(--play-indigo, #818cf8) 18%, transparent),
       transparent 60%
     ),
-    linear-gradient(180deg, var(--surface-1, #1e293b), var(--theremin-bg-deep, #0b1224));
+    linear-gradient(180deg, var(--surface-1), var(--theremin-bg-deep, #0b1224));
   border: 1px solid var(--border);
-  box-shadow: 0 24px 40px -20px color-mix(in srgb, var(--pure-black, #000) 60%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 4%, transparent),
+  box-shadow: 0 24px 40px -20px color-mix(in srgb, var(--pure-black) 60%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--pure-white) 4%, transparent),
     inset 0 0 0 1px color-mix(in srgb, var(--play-indigo, #818cf8) 8%, transparent);
   overflow: hidden;
   user-select: none;
@@ -109,7 +109,7 @@
   letter-spacing: 0.04em;
   color: color-mix(in srgb, var(--play-slate-100, #e2e8f0) 45%, transparent);
   pointer-events: none;
-  text-shadow: 0 1px 2px color-mix(in srgb, var(--pure-black, #000) 60%, transparent);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--pure-black) 60%, transparent);
 }
 
 .theremin-grid-label.is-root {
@@ -133,7 +133,7 @@
     180deg,
     color-mix(in srgb, var(--play-indigo, #818cf8) 12%, transparent),
     transparent 50%,
-    color-mix(in srgb, var(--pure-black, #000) 18%, transparent)
+    color-mix(in srgb, var(--pure-black) 18%, transparent)
   );
   pointer-events: none;
 }
@@ -299,7 +299,7 @@
    * frame — the natural "mirror" feel for selfie cameras. */
   transform: scaleX(-1);
   opacity: 0.45;
-  background: var(--pure-black, #000);
+  background: var(--pure-black);
 }
 
 .theremin-overlay {
@@ -342,8 +342,8 @@
   border-radius: 18px;
   background: color-mix(in srgb, var(--play-slate-900, #0f172a) 92%, transparent);
   border: 1px solid var(--border);
-  box-shadow: 0 24px 60px -20px color-mix(in srgb, var(--pure-black, #000) 70%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 6%, transparent);
+  box-shadow: 0 24px 60px -20px color-mix(in srgb, var(--pure-black) 70%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--pure-white) 6%, transparent);
   max-width: min(90%, 380px);
   text-align: center;
   backdrop-filter: blur(8px);
@@ -377,13 +377,13 @@
   margin-top: 4px;
   padding: 10px 20px;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--pure-white, #fff) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pure-white) 12%, transparent);
   background: linear-gradient(
     135deg,
     color-mix(in srgb, var(--play-indigo, #818cf8) 95%, transparent),
     color-mix(in srgb, var(--play-pink, #f472b6) 95%, transparent)
   );
-  color: var(--pure-white, #fff);
+  color: var(--pure-white);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -465,7 +465,7 @@
   gap: 6px;
   padding: 6px 12px;
   border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--pure-white, #fff) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pure-white) 12%, transparent);
   background: color-mix(in srgb, var(--play-slate-900, #0f172a) 60%, transparent);
   color: var(--fg);
   font-size: 12px;
@@ -686,7 +686,7 @@
 .record-btn {
   padding: 6px 12px;
   border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--pure-white, #fff) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pure-white) 12%, transparent);
   background: color-mix(in srgb, var(--play-slate-900, #0f172a) 60%, transparent);
   color: var(--fg);
   font-size: 12px;
@@ -715,7 +715,7 @@
     color-mix(in srgb, var(--theremin-rec-strong, #dc2663) 95%, transparent)
   );
   border-color: transparent;
-  color: var(--pure-white, #fff);
+  color: var(--pure-white);
   box-shadow: 0 0 12px color-mix(in srgb, var(--play-pink, #f472b6) 50%, transparent);
   /* Pulsing glow signals "we are actively recording right now". */
   animation: theremin-record-pulse 1.2s ease-in-out infinite;
@@ -776,10 +776,10 @@
   gap: 12px;
   padding: 22px 24px 24px;
   border-radius: 18px;
-  background: linear-gradient(180deg, var(--surface-1, #1e293b), var(--theremin-bg-deep, #0b1224));
+  background: linear-gradient(180deg, var(--surface-1), var(--theremin-bg-deep, #0b1224));
   border: 1px solid var(--border);
-  box-shadow: 0 32px 70px -20px color-mix(in srgb, var(--pure-black, #000) 70%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 6%, transparent);
+  box-shadow: 0 32px 70px -20px color-mix(in srgb, var(--pure-black) 70%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--pure-white) 6%, transparent);
   width: min(460px, 100%);
   max-height: calc(100vh - 48px);
   overflow: auto;
@@ -802,7 +802,7 @@
 .theremin-record-modal-video {
   width: 100%;
   border-radius: 12px;
-  background: var(--pure-black, #000);
+  background: var(--pure-black);
   /* Square aspect — matches the recording canvas. */
   aspect-ratio: 1 / 1;
   object-fit: contain;
@@ -819,7 +819,7 @@
   flex: 1 1 100px;
   padding: 10px 16px;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--pure-white, #fff) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pure-white) 12%, transparent);
   background: color-mix(in srgb, var(--play-slate-900, #0f172a) 60%, transparent);
   color: var(--fg);
   font-size: 14px;
@@ -844,7 +844,7 @@
     color-mix(in srgb, var(--play-pink, #f472b6) 95%, transparent)
   );
   border-color: transparent;
-  color: var(--pure-white, #fff);
+  color: var(--pure-white);
   box-shadow: 0 4px 14px color-mix(in srgb, var(--play-indigo, #818cf8) 35%, transparent);
 }
 

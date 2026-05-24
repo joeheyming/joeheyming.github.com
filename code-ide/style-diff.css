@@ -347,7 +347,7 @@ body.theme-light .statusbar {
 
 .status-pill {
   background: color-mix(in srgb, var(--pure-black) 35%, transparent);
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
   padding: 0 6px;
   border-radius: 8px;
   font-family: var(--font-mono);
@@ -357,7 +357,7 @@ body.theme-light .statusbar {
 
 .status-pill.vim {
   background: var(--warn);
-  color: var(--pure-black, #000000);
+  color: var(--pure-black);
 }
 
 .status-item {

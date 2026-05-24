@@ -10,6 +10,18 @@ function debug(...args) {
   }
 }
 
+/**
+ * Read a brand CSS custom property as a string color, with a fallback.
+ * Canvas 2D `fillStyle` can't consume `var(...)` directly, so the
+ * frequency-bar gradient resolves brand tokens at draw time. If the
+ * brand ever flips, the next animation frame picks up the new value.
+ */
+function brandToken(name, fallback) {
+  if (typeof document === 'undefined') return fallback;
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
 /** Heyming OS expects `{ type: 'iframe-message', message }` (see os/IframeMessageBridge.js). */
 function postOsIframeMessage(message) {
   window.parent.postMessage({ type: 'iframe-message', message }, '*');
@@ -702,8 +714,8 @@ class MediaPlayer {
       ctx.clearRect(0, 0, width, height);
 
       const gradient = ctx.createLinearGradient(0, 0, 0, height);
-      gradient.addColorStop(0, '#06b6d4');
-      gradient.addColorStop(1, '#8b5cf6');
+      gradient.addColorStop(0, brandToken('--accent-blue', '#1a73e8'));
+      gradient.addColorStop(1, brandToken('--accent-red', '#ea4335'));
       ctx.fillStyle = gradient;
 
       const bufferLength = this.dataArray.length;

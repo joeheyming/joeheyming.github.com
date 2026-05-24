@@ -39,9 +39,9 @@
   --awesome-nyan-size: 100px;
 
   /* Effects — alpha tints route through scoped/brand tokens via color-mix. */
-  --awesome-animal-shadow: 0 4px 15px color-mix(in srgb, var(--pure-black, #000) 30%, transparent);
+  --awesome-animal-shadow: 0 4px 15px color-mix(in srgb, var(--pure-black) 30%, transparent);
   --awesome-parrot-glow: drop-shadow(
-    0 0 10px color-mix(in srgb, var(--pure-white, #fff) 80%, transparent)
+    0 0 10px color-mix(in srgb, var(--pure-white) 80%, transparent)
   );
   --awesome-nyan-glow: drop-shadow(
     0 0 20px color-mix(in srgb, var(--awe-neon-magenta, #ff00ff) 80%, transparent)
@@ -70,8 +70,8 @@ body {
  * but if any future descendant inherits from <body> it should land on the
  * brand light-on-dark, not the UA default black. */
 body {
-  background-color: var(--surface-0, #0b0b0f);
-  color: var(--text-1, #f5f5f7);
+  background-color: var(--surface-0);
+  color: var(--text-1);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -129,8 +129,8 @@ body {
   position: fixed;
   max-width: 300px;
   padding: 15px;
-  background: color-mix(in srgb, var(--pure-black, #000) 80%, transparent);
-  color: var(--pure-white, #ffffff);
+  background: color-mix(in srgb, var(--pure-black) 80%, transparent);
+  color: var(--pure-white);
   border-radius: 10px;
   font-size: 14px;
   box-shadow: var(--awesome-animal-shadow);
@@ -177,7 +177,7 @@ body {
     to top,
     var(--awe-firework-orange, #ff6600),
     var(--awe-firework-yellow, #ffcc00),
-    var(--pure-white, #ffffff)
+    var(--pure-white)
   );
   border-radius: 2px;
   pointer-events: none;
@@ -219,14 +219,14 @@ body {
     var(--awe-disco-chain-dark, #444444),
     var(--awe-disco-chain-light, #888888)
   );
-  box-shadow: 0 0 3px color-mix(in srgb, var(--pure-black, #000) 50%, transparent);
+  box-shadow: 0 0 3px color-mix(in srgb, var(--pure-black) 50%, transparent);
 }
 
 .awesome-disco-ball {
   width: 80px;
   height: 80px;
   object-fit: contain;
-  filter: drop-shadow(0 5px 15px color-mix(in srgb, var(--pure-white, #fff) 50%, transparent));
+  filter: drop-shadow(0 5px 15px color-mix(in srgb, var(--pure-white) 50%, transparent));
   animation: disco-swing 2s ease-in-out infinite;
 }
 
@@ -483,7 +483,7 @@ audio {
 .start-title {
   font-family: 'Bangers', 'Impact', sans-serif;
   font-size: clamp(2.5rem, 8vw, 4.5rem);
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
   text-shadow: 0 0 10px var(--awe-coral, #ff6b6b), 0 0 20px var(--awe-coral, #ff6b6b),
     0 0 40px var(--awe-coral, #ff6b6b), 3px 3px 0 var(--awe-teal, #4ecdc4);
   margin: 0 0 10px 0;
@@ -511,17 +511,17 @@ audio {
 }
 
 .start-credits {
-  background: color-mix(in srgb, var(--pure-white, #fff) 10%, transparent);
+  background: color-mix(in srgb, var(--pure-white) 10%, transparent);
   backdrop-filter: blur(10px);
   border-radius: 16px;
   padding: 20px 30px;
   margin-bottom: 30px;
-  border: 1px solid color-mix(in srgb, var(--pure-white, #fff) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pure-white) 20%, transparent);
 }
 
 .credit-line {
   font-size: 1.1rem;
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
   margin: 0 0 5px 0;
 }
 
@@ -534,7 +534,7 @@ audio {
 
 .credit-source {
   font-size: 0.95rem;
-  color: var(--text-2, #a1a1aa);
+  color: var(--text-2);
   margin: 0;
   font-style: italic;
 }
@@ -545,7 +545,7 @@ audio {
     var(--awe-coral, #ff6b6b) 0%,
     var(--awe-coral-bright, #ff8e53) 100%
   );
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
   font-family: 'Fredoka One', 'Comic Sans MS', cursive;
   font-size: 1.4rem;
   padding: 18px 45px;
@@ -585,7 +585,7 @@ audio {
 }
 
 .start-hints {
-  color: color-mix(in srgb, var(--pure-white, #fff) 70%, transparent);
+  color: color-mix(in srgb, var(--pure-white) 70%, transparent);
   font-size: 0.9rem;
   line-height: 1.8;
 }
@@ -596,7 +596,7 @@ audio {
 
 .keyboard-hint {
   font-size: 0.8rem !important;
-  color: color-mix(in srgb, var(--pure-white, #fff) 50%, transparent) !important;
+  color: color-mix(in srgb, var(--pure-white) 50%, transparent) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -609,9 +609,9 @@ audio {
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--pure-black, #000) 70%, transparent);
-  border: 2px solid color-mix(in srgb, var(--pure-white, #fff) 30%, transparent);
-  color: var(--pure-white, #ffffff);
+  background: color-mix(in srgb, var(--pure-black) 70%, transparent);
+  border: 2px solid color-mix(in srgb, var(--pure-white) 30%, transparent);
+  color: var(--pure-white);
   font-size: 24px;
   cursor: pointer;
   z-index: 10000;
@@ -637,7 +637,7 @@ audio {
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--scrim-strong, rgba(11, 11, 15, 0.85));
+  background: var(--scrim-strong);
   backdrop-filter: blur(10px);
   z-index: 100001;
   display: flex;
@@ -664,9 +664,9 @@ audio {
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
-  border: 1px solid var(--hairline, rgba(255, 255, 255, 0.1));
-  box-shadow: 0 25px 80px color-mix(in srgb, var(--pure-black, #000) 50%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 10%, transparent);
+  border: 1px solid var(--hairline);
+  box-shadow: 0 25px 80px color-mix(in srgb, var(--pure-black) 50%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--pure-white) 10%, transparent);
 }
 
 .info-close {
@@ -676,9 +676,9 @@ audio {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--pure-white, #fff) 10%, transparent);
+  background: color-mix(in srgb, var(--pure-white) 10%, transparent);
   border: none;
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
   font-size: 18px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -692,7 +692,7 @@ audio {
 .info-title {
   font-family: 'Bangers', 'Impact', sans-serif;
   font-size: 2.2rem;
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
   text-align: center;
   margin: 0 0 30px 0;
   text-shadow: 0 0 20px color-mix(in srgb, var(--awe-coral, #ff6b6b) 50%, transparent);
@@ -701,7 +701,7 @@ audio {
 .info-section {
   margin-bottom: 25px;
   padding-bottom: 25px;
-  border-bottom: 1px solid var(--hairline, rgba(255, 255, 255, 0.1));
+  border-bottom: 1px solid var(--hairline);
 }
 
 .info-section:last-of-type {
@@ -717,14 +717,14 @@ audio {
 }
 
 .info-section p {
-  color: color-mix(in srgb, var(--pure-white, #fff) 85%, transparent);
+  color: color-mix(in srgb, var(--pure-white) 85%, transparent);
   margin: 5px 0;
   line-height: 1.6;
 }
 
 .info-small {
   font-size: 0.8rem !important;
-  color: color-mix(in srgb, var(--pure-white, #fff) 50%, transparent) !important;
+  color: color-mix(in srgb, var(--pure-white) 50%, transparent) !important;
   margin-top: 10px !important;
 }
 
@@ -749,27 +749,27 @@ audio {
 
 .stream-link.spotify {
   background: var(--awe-spotify, #1db954);
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
 }
 
 .stream-link.apple {
   background: linear-gradient(135deg, var(--awe-apple-red, #fc3c44), var(--awe-apple-red, #fc3c44));
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
 }
 
 .stream-link.youtube {
   background: var(--awe-youtube-red, #ff0000);
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
 }
 
 .stream-link.amazon {
   background: var(--awe-amazon-orange, #ff9900);
-  color: var(--pure-black, #000000);
+  color: var(--pure-black);
 }
 
 .stream-link:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 20px color-mix(in srgb, var(--pure-black, #000) 30%, transparent);
+  box-shadow: 0 5px 20px color-mix(in srgb, var(--pure-black) 30%, transparent);
 }
 
 /* Feature List */
@@ -780,7 +780,7 @@ audio {
 }
 
 .feature-list li {
-  color: color-mix(in srgb, var(--pure-white, #fff) 80%, transparent);
+  color: color-mix(in srgb, var(--pure-white) 80%, transparent);
   padding: 6px 0;
   font-size: 0.95rem;
 }
@@ -796,17 +796,17 @@ audio {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: color-mix(in srgb, var(--pure-white, #fff) 80%, transparent);
+  color: color-mix(in srgb, var(--pure-white) 80%, transparent);
   font-size: 0.9rem;
 }
 
 .shortcut kbd {
-  background: color-mix(in srgb, var(--pure-white, #fff) 15%, transparent);
+  background: color-mix(in srgb, var(--pure-white) 15%, transparent);
   padding: 5px 12px;
   border-radius: 6px;
   font-family: 'SF Mono', 'Monaco', monospace;
   font-size: 0.85rem;
-  border: 1px solid color-mix(in srgb, var(--pure-white, #fff) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pure-white) 20%, transparent);
 }
 
 /* Contact Links */
@@ -831,7 +831,7 @@ audio {
 .info-disclaimer {
   text-align: center;
   font-size: 0.75rem;
-  color: color-mix(in srgb, var(--pure-white, #fff) 40%, transparent);
+  color: color-mix(in srgb, var(--pure-white) 40%, transparent);
   margin-top: 20px;
   font-style: italic;
 }

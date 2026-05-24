@@ -15,8 +15,8 @@
 
 body {
   font-family: 'Courier New', monospace;
-  background: linear-gradient(135deg, var(--surface-0, #0f172a) 0%, var(--surface-1, #1e293b) 100%);
-  color: var(--text-1, #e2e8f0);
+  background: linear-gradient(135deg, var(--surface-0) 0%, var(--surface-1) 100%);
+  color: var(--text-1);
   margin: 0;
   padding: 20px;
   min-height: 100vh;
@@ -45,7 +45,7 @@ marquee {
   padding: 20px;
   background: color-mix(in srgb, var(--surface-0) 80%, transparent);
   border-radius: 12px;
-  border: 1px solid var(--hairline-strong, #334155);
+  border: 1px solid var(--hairline-strong);
 }
 
 .header h1 {
@@ -86,34 +86,34 @@ marquee {
 
 .btn-primary {
   background: linear-gradient(135deg, var(--farm-green-deep, #059669), var(--farm-green, #10b981));
-  color: var(--pure-white, #fff);
+  color: var(--pure-white);
 }
 
 .btn-secondary {
-  background: linear-gradient(135deg, var(--farm-danger-deep, #dc2626), var(--danger, #ef4444));
-  color: var(--pure-white, #fff);
+  background: linear-gradient(135deg, var(--farm-danger-deep, #dc2626), var(--danger));
+  color: var(--pure-white);
 }
 
 .terminal-container {
-  background: var(--surface-0, #0f172a);
+  background: var(--surface-0);
   border-radius: 12px;
-  border: 1px solid var(--hairline-strong, #334155);
+  border: 1px solid var(--hairline-strong);
   overflow: hidden;
   margin-bottom: 25px;
   box-shadow: 0 8px 25px color-mix(in srgb, var(--pure-black) 50%, transparent);
 }
 
 .terminal-header {
-  background: var(--surface-1, #1e293b);
+  background: var(--surface-1);
   padding: 12px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--hairline-strong, #334155);
+  border-bottom: 1px solid var(--hairline-strong);
 }
 
 .terminal-title {
-  color: var(--text-1, #e2e8f0);
+  color: var(--text-1);
   font-weight: bold;
   font-size: 0.95rem;
 }
@@ -130,7 +130,7 @@ marquee {
 }
 
 .dot.red {
-  background: var(--danger, #ef4444);
+  background: var(--danger);
 }
 .dot.yellow {
   background: var(--farm-warning, #f59e0b);
@@ -140,7 +140,7 @@ marquee {
 }
 
 .terminal {
-  background: var(--surface-0, #0f172a);
+  background: var(--surface-0);
   padding: 20px;
   height: 500px;
   overflow-y: auto;
@@ -160,11 +160,11 @@ marquee {
 }
 
 .text {
-  color: var(--text-1, #e2e8f0);
+  color: var(--text-1);
 }
 
 .error {
-  color: var(--danger, #ef4444);
+  color: var(--danger);
   font-weight: bold;
 }
 
@@ -182,7 +182,7 @@ marquee {
 }
 
 .debug {
-  color: var(--text-2, #94a3b8);
+  color: var(--text-2);
   font-size: 0.8rem;
 }
 
@@ -191,11 +191,11 @@ marquee {
 }
 
 .terminal::-webkit-scrollbar-track {
-  background: var(--surface-1, #1e293b);
+  background: var(--surface-1);
 }
 
 .terminal::-webkit-scrollbar-thumb {
-  background: var(--text-3, #475569);
+  background: var(--text-3);
   border-radius: 4px;
 }
 
@@ -210,8 +210,8 @@ marquee {
 
 .status-idle {
   background: color-mix(in srgb, var(--farm-slate) 20%, transparent);
-  color: var(--text-2, #9ca3af);
-  border: 1px solid var(--text-3, #6b7280);
+  color: var(--text-2);
+  border: 1px solid var(--text-3);
 }
 
 .status-running {
@@ -229,7 +229,7 @@ marquee {
 
 .status-failed {
   background: color-mix(in srgb, var(--danger) 20%, transparent);
-  color: var(--danger, #ef4444);
+  color: var(--danger);
   border: 1px solid var(--farm-danger-deep, #dc2626);
 }
 

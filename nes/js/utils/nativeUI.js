@@ -28,10 +28,11 @@
     // Style the dialog element
     this.element.style.position = 'fixed';
     this.element.style.zIndex = '1000';
-    this.element.style.backgroundColor = '#fff';
-    this.element.style.border = '1px solid #ccc';
-    this.element.style.borderRadius = '4px';
-    this.element.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
+    this.element.style.backgroundColor = 'var(--surface-1)';
+    this.element.style.color = 'var(--text-1)';
+    this.element.style.border = '1px solid var(--hairline-strong)';
+    this.element.style.borderRadius = 'var(--radius-md, 4px)';
+    this.element.style.boxShadow = 'var(--shadow-modal)';
     this.element.style.padding = '20px';
     this.element.style.display = 'none';
 
@@ -45,7 +46,7 @@
     this.closeButton.style.border = 'none';
     this.closeButton.style.fontSize = '20px';
     this.closeButton.style.cursor = 'pointer';
-    this.closeButton.style.color = '#999';
+    this.closeButton.style.color = 'var(--text-3)';
     this.closeButton.style.lineHeight = '1';
     this.closeButton.style.padding = '0';
     this.closeButton.style.width = '20px';
@@ -58,10 +59,10 @@
 
     // Hover effect for close button
     this.closeButton.addEventListener('mouseenter', function () {
-      this.style.color = '#000';
+      this.style.color = 'var(--text-1)';
     });
     this.closeButton.addEventListener('mouseleave', function () {
-      this.style.color = '#999';
+      this.style.color = 'var(--text-3)';
     });
 
     this.element.appendChild(this.closeButton);
@@ -74,7 +75,7 @@
       this.backdrop.style.left = '0';
       this.backdrop.style.width = '100%';
       this.backdrop.style.height = '100%';
-      this.backdrop.style.backgroundColor = 'rgba(0,0,0,0.5)';
+      this.backdrop.style.backgroundColor = 'var(--scrim)';
       this.backdrop.style.zIndex = '999';
       this.backdrop.style.display = 'none';
       document.body.appendChild(this.backdrop);

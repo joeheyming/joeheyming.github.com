@@ -1,23 +1,35 @@
-/* DOS Player — amber-on-black DOSBox vibe with modern readable chrome.
-   Layout works full-bleed (player) or as a centered card (launcher). */
+/* DOS Player — paper-cream launcher chrome + amber-on-black emulator
+ * canvas. The launcher card (file picker, settings, links) lives in
+ * the brand world; once a ROM/IMG is loaded, the running DOSBox
+ * canvas is its own dark amber-text universe and the body bg flips
+ * dark via `body.is-playing` so the full-bleed CRT vibe is intact.
+ *
+ * The amber accent is preserved as the app's identity color even on
+ * the light launcher — it's the emulator's signature.
+ */
 
 :root {
-  --dos-bg: #0a0805;
-  --dos-bg-panel: #15110a;
-  --dos-bg-elev: #1c170d;
-  --dos-border: #3a2d14;
-  --dos-border-hot: #6b5021;
-  --dos-amber: #f59e0b;
-  --dos-amber-soft: #fbbf24;
-  --dos-amber-dim: #b45309;
-  --dos-text: #f3e9d0;
-  --dos-text-dim: #b8a878;
-  --dos-text-muted: #7c6c45;
-  --dos-danger: #f87171;
-  --dos-success: #84cc16;
-  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', 'Liberation Mono', monospace;
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    sans-serif;
+  --dos-bg: var(--surface-0);
+  --dos-bg-panel: var(--surface-1);
+  --dos-bg-elev: var(--surface-2);
+  --dos-border: var(--hairline);
+  --dos-border-hot: var(--hairline-strong);
+  --dos-amber: #b45309;
+  --dos-amber-soft: #d97706;
+  --dos-amber-dim: #92400e;
+  --dos-text: var(--text-1);
+  --dos-text-dim: var(--text-2);
+  --dos-text-muted: var(--text-3);
+  --dos-danger: var(--danger);
+  --dos-success: var(--success);
+  --font-mono: var(--font-mono);
+  --font-sans: var(--font-ui);
+
+  /* When the emulator is running we flip back to canonical
+   * DOSBox-amber-on-black. Set on `body.is-playing` below. */
+  --dos-bg-emulator: #0a0805;
+  --dos-text-emulator: #f3e9d0;
+  --dos-amber-emulator: #f59e0b;
 }
 
 * {
@@ -34,8 +46,14 @@ body {
   font-size: 15px;
   line-height: 1.5;
   min-height: 100vh;
-  /* Subtle horizontal scanline texture — gives the page CRT character
-     without hurting text readability. Keeps OG screenshot interesting. */
+}
+
+/* When a ROM is loaded, the page flips to canonical DOSBox amber-on-
+ * black so the running emulator sits on its native CRT backdrop and
+ * the scanline texture reads as a CRT (not as paper). */
+body.is-playing {
+  background: var(--dos-bg-emulator);
+  color: var(--dos-text-emulator);
   background-image: repeating-linear-gradient(
     180deg,
     rgba(245, 158, 11, 0.025) 0px,
@@ -159,7 +177,7 @@ code {
   outline: none;
   border-color: var(--card-border-hot, var(--dos-border-hot));
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-card);
 }
 
 .card:hover::before,
@@ -763,8 +781,10 @@ button.ghost:hover {
   gap: 14px;
   padding: 24px 32px;
   border-radius: 10px;
-  background: rgba(124, 92, 255, 0.18);
-  border: 1px solid rgba(124, 92, 255, 0.45);
+  /* Lives on the dark emulator canvas (body.is-playing). DOS-amber tint
+   * matches the in-game palette instead of the old brand-violet wash. */
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.45);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
 }
 

@@ -435,8 +435,8 @@ var awesomeNamespace = (function () {
       if (e.key.toLowerCase() === keys.colorToggle) {
         this.disableColors = !this.disableColors;
         if (this.disableColors) {
-          this.content.style.color = '#000';
-          this.container.style.background = '#fff';
+          this.content.style.color = 'var(--text-1)';
+          this.container.style.background = 'var(--surface-0)';
         }
       }
     },

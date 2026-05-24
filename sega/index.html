@@ -9,7 +9,7 @@
     />
 
     <title>Sega Genesis Emulator Online — Play Mega Drive Games in Browser</title>
-    <meta name="theme-color" content="#7C5CFF" />
+    <meta name="theme-color" content="#FAFAFA" />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
@@ -140,17 +140,29 @@
         padding: 0;
       }
 
+      /* Sega launcher / boot card lives in the brand paper-cream world.
+       * The Genesis-red title gradient is preserved as the app's
+       * identity color; once a ROM boots, the EmulatorJS canvas takes
+       * over the viewport and renders the game in its native palette
+       * (Mega Drive 16-bit colors are the actual game content). */
       :root {
-        --bg: #0d0d1a;
-        --surface: #1a1a2e;
-        --surface2: #16213e;
-        --accent: #0f3460;
+        --bg: var(--surface-0);
+        --surface: var(--surface-1);
+        --surface2: var(--surface-2);
+        --accent: var(--accent-primary);
+        /* Genesis-red identity tokens. Single source of truth for the
+         * Sega launcher, the ROM browser shadow-DOM component, and the
+         * boot screen — JS components reference these via var() so a
+         * future Sega re-skin (or a brand-driven override) only has to
+         * touch this block. */
         --accent-bright: #e94560;
-        --accent-gold: #f5a623;
-        --text: #e8e8f0;
-        --text-dim: #8888a8;
-        --border: #2a2a4a;
-        --card-bg: #1e1e3a;
+        --accent-bright-soft: rgba(233, 69, 96, 0.08);
+        --accent-bright-ring: rgba(233, 69, 96, 0.25);
+        --accent-gold: #c2410c; /* darker Genesis-orange that reads on cream */
+        --text: var(--text-1);
+        --text-dim: var(--text-2);
+        --border: var(--hairline-strong);
+        --card-bg: var(--surface-1);
       }
 
       html,
@@ -158,7 +170,7 @@
         height: 100%;
         background: var(--bg);
         color: var(--text);
-        font-family: system-ui, -apple-system, sans-serif;
+        font-family: var(--font-ui);
         overflow: hidden;
       }
 
@@ -190,7 +202,6 @@
         line-height: 1;
         margin-bottom: 12px;
         display: block;
-        filter: drop-shadow(0 0 20px rgba(233, 69, 96, 0.5));
       }
 
       .brand h1 {
@@ -198,7 +209,17 @@
         font-weight: 900;
         letter-spacing: 2px;
         text-transform: uppercase;
-        background: linear-gradient(135deg, #e94560 0%, #f5a623 50%, #e94560 100%);
+        /* Hero wordmark: red→orange→red sunset is part of Sega-identity.
+         * The two stops route through `--accent-bright` and
+         * `--accent-gold` so a future re-skin updates the wordmark
+         * automatically. Gradients in identity hero type are an
+         * explicit BRAND.md carve-out (see "Wordmarks & marquee text"). */
+        background: linear-gradient(
+          135deg,
+          var(--accent-bright) 0%,
+          var(--accent-gold) 50%,
+          var(--accent-bright) 100%
+        );
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -218,11 +239,11 @@
       .boot-card {
         background: var(--card-bg);
         border: 1px solid var(--border);
-        border-radius: 12px;
+        border-radius: var(--radius-lg);
         padding: 28px;
         max-width: 520px;
         width: 100%;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        box-shadow: var(--shadow-card);
       }
 
       .boot-card h2 {
@@ -254,14 +275,15 @@
       }
 
       .btn-primary {
-        background: linear-gradient(135deg, #e94560, #c73652);
-        color: #fff;
-        box-shadow: 0 4px 16px rgba(233, 69, 96, 0.4);
+        background: var(--accent-bright);
+        color: var(--text-on-accent);
+        border: 1px solid var(--accent-bright);
+        transition: filter 0.2s, transform 0.2s;
       }
 
       .btn-primary:hover {
         transform: translateY(-1px);
-        box-shadow: 0 6px 20px rgba(233, 69, 96, 0.5);
+        filter: brightness(0.88);
       }
 
       .btn-secondary {
@@ -583,7 +605,13 @@
         window.EJS_gameName = romName || (romUrl instanceof File ? romUrl.name : '');
         window.EJS_pathtodata = 'https://cdn.emulatorjs.org/latest/data/';
         window.EJS_startOnLoaded = true;
-        window.EJS_color = '#e94560';
+        // EmulatorJS only takes a string color; resolve `--accent-bright`
+        // off `:root` so a Sega re-skin propagates without touching this
+        // file. Falls back to the canonical Genesis red if the var is
+        // somehow missing (e.g. brand.css failed to load).
+        window.EJS_color =
+          getComputedStyle(document.documentElement).getPropertyValue('--accent-bright').trim() ||
+          '#e94560';
         window.EJS_defaultControls = 1;
 
         const script = document.createElement('script');

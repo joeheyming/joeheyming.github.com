@@ -23,9 +23,9 @@ export function createSearchController({ input, suggestions, onPick }) {
   }
 
   function highlight() {
-    suggestions.querySelectorAll('.suggestion-row').forEach((r, i) =>
-      r.classList.toggle('hl', i === suggestionIndex)
-    );
+    suggestions
+      .querySelectorAll('.suggestion-row')
+      .forEach((r, i) => r.classList.toggle('hl', i === suggestionIndex));
   }
 
   function render(hits, q) {
@@ -38,7 +38,7 @@ export function createSearchController({ input, suggestions, onPick }) {
     rows.push(...hits.slice(0, 10));
 
     if (!rows.length) {
-      suggestions.innerHTML = `<div class="px-3 py-2 text-sm text-slate-400">No results.</div>`;
+      suggestions.innerHTML = `<div class="px-3 py-2 text-sm text-text-3">No results.</div>`;
       suggestions.classList.remove('hidden');
       suggestionIndex = -1;
       return;
@@ -82,7 +82,7 @@ export function createSearchController({ input, suggestions, onPick }) {
       render(hits, q);
     } catch (err) {
       if (myToken !== searchToken) return;
-      suggestions.innerHTML = `<div class="px-3 py-2 text-sm text-rose-300">Search failed: ${escapeHtml(
+      suggestions.innerHTML = `<div class="px-3 py-2 text-sm text-danger">Search failed: ${escapeHtml(
         err?.message || String(err)
       )}</div>`;
       suggestions.classList.remove('hidden');

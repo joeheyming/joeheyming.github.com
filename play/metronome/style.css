@@ -51,6 +51,16 @@
 }
 
 .tempo-btn {
+  /* inline-flex + center/center is the only reliable way to put a single
+   * glyph at the geometric center of a circular button. Default button
+   * layout uses an inline-block line box whose vertical position is
+   * driven by line-height + font metrics — and `−` (U+2212) and `+`
+   * have asymmetric ascender/descender slots in most UI fonts, so they
+   * read as "sitting above center". The flex container ignores that
+   * and just centers the glyph's box in the 44×44 frame. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -77,16 +87,18 @@
   outline-offset: 2px;
 }
 
-.tempo-display {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  min-width: 140px;
-}
-
-.tempo-display input[type='number'] {
-  width: 140px;
+/* The BPM number used to be wrapped in a `.tempo-display` flex column
+ * with the BPM label below it. That made the column taller than the
+ * number itself, so the +/- buttons (centered by the parent row) lined
+ * up with the BPM label instead of the digits. The label now lives as
+ * a sibling under the row so the row only has to center three things
+ * of similar visual height: [-] [number] [+]. */
+#bpm {
+  /* Wide enough for the upper clamp value: at font-size: 84px,
+   * "300" with letter-spacing: -0.04em renders ~150px wide. The 200px
+   * width plus inner padding gives the gradient text-fill room to
+   * paint the full glyphs without clipping the right edge. */
+  width: 200px;
   background: transparent;
   border: none;
   color: var(--fg);
@@ -95,6 +107,7 @@
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum';
   letter-spacing: -0.04em;
+  line-height: 1;
   text-align: center;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   -webkit-background-clip: text;
@@ -106,17 +119,17 @@
   caret-color: var(--accent);
 }
 
-.tempo-display input[type='number']:focus {
+#bpm:focus {
   outline: none;
 }
 
-.tempo-display input[type='number']::-webkit-outer-spin-button,
-.tempo-display input[type='number']::-webkit-inner-spin-button {
+#bpm::-webkit-outer-spin-button,
+#bpm::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-.tempo-display input[type='number'] {
+#bpm {
   -moz-appearance: textfield;
 }
 
@@ -126,7 +139,6 @@
   letter-spacing: 0.18em;
   color: var(--fg-dim);
   text-transform: uppercase;
-  margin-top: -8px;
 }
 
 #bpm-slider {
@@ -293,7 +305,7 @@
   justify-content: center;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   border-color: color-mix(in srgb, var(--pure-white) 12%, transparent);
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
   box-shadow: 0 6px 18px -8px var(--play-metro-c09, rgba(129, 140, 248, 0.7));
 }
 
@@ -380,8 +392,10 @@
 }
 
 @media (max-width: 480px) {
-  .tempo-display input[type='number'] {
-    width: 110px;
+  #bpm {
+    /* Mobile font tops out around 56-58px (12vw of 480px = 57.6px),
+     * so 160px easily clears "300" with the letter-spacing applied. */
+    width: 160px;
   }
   .tempo-btn {
     width: 40px;

@@ -168,13 +168,14 @@ class VideoManager {
     // Show the container
     this.statusElement.classList.remove('hidden');
 
-    // Set color based on type
+    // Set color based on type — semantic brand tokens so a theme swap re-tints
+    // these without touching this module.
     if (type === 'ready') {
-      this.statusElement.style.color = '#86efac'; // green
+      this.statusElement.style.color = 'var(--success)';
     } else if (type === 'failed') {
-      this.statusElement.style.color = '#fca5a5'; // red
+      this.statusElement.style.color = 'var(--danger)';
     } else {
-      this.statusElement.style.color = '#93c5fd'; // blue (loading)
+      this.statusElement.style.color = 'var(--accent-primary)';
     }
   }
 

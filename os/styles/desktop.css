@@ -103,21 +103,13 @@
   background-attachment: fixed;
 }
 
-/* Subtle overlay so the tiger reads against the desktop tint */
+/* Vignette overlay deliberately removed for the heyming-engineering brand
+ * (no gradients, period). The Ghostscript tiger SVG sits flat on the
+ * desktop tint. The ::before pseudo-rule is preserved as a no-op so any
+ * downstream JS that queries layout/size still finds it. */
 #os-desktop::before {
   content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(
-    ellipse at center,
-    transparent 20%,
-    color-mix(in srgb, var(--pure-black) 10%, transparent) 70%
-  );
-  pointer-events: none;
-  opacity: 0.6;
+  display: none;
 }
 
 /* Drop zone active state */
@@ -141,8 +133,7 @@
   padding: 1.75rem 3rem;
   border-radius: var(--radius-lg);
   border: 3px dashed var(--accent-primary-hover);
-  box-shadow: 0 12px 40px color-mix(in srgb, var(--pure-black) 45%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, var(--pure-white) 12%, transparent);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--pure-black) 16%, transparent);
   pointer-events: none;
   z-index: 9999;
   animation: pulse-drop 1.2s ease-in-out infinite;

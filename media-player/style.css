@@ -12,14 +12,14 @@
 }
 
 body {
-  font-family: var(--font-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-family: var(--font-ui);
   background: linear-gradient(
     135deg,
-    var(--surface-1, #15151b) 0%,
-    var(--surface-2, #1f1f27) 50%,
-    var(--surface-0, #0b0b0f) 100%
+    var(--surface-1) 0%,
+    var(--surface-2) 50%,
+    var(--surface-0) 100%
   );
-  color: var(--text-1, #f5f5f7);
+  color: var(--text-1);
   height: 100vh;
   overflow: hidden;
 }
@@ -37,8 +37,8 @@ body {
   align-items: center;
   gap: 8px;
   padding: 8px 12px 8px 90px;
-  background: linear-gradient(to bottom, var(--surface-2, #1f1f27), var(--surface-1, #15151b));
-  border-bottom: 1px solid var(--hairline, rgba(255, 255, 255, 0.08));
+  background: linear-gradient(to bottom, var(--surface-2), var(--surface-1));
+  border-bottom: 1px solid var(--hairline);
   flex-shrink: 0;
 }
 
@@ -51,7 +51,7 @@ body {
 .toolbar-divider {
   width: 1px;
   height: 24px;
-  background: var(--hairline-strong, rgba(255, 255, 255, 0.14));
+  background: var(--hairline-strong);
   margin: 0 4px;
 }
 
@@ -60,9 +60,9 @@ body {
 }
 
 #toolbar button {
-  background: color-mix(in srgb, var(--pure-white, #ffffff) 10%, transparent);
-  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
-  color: var(--text-1, #f5f5f7);
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-strong);
+  color: var(--text-1);
   padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
@@ -72,8 +72,8 @@ body {
 }
 
 #toolbar button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent-primary, #7c5cff) 30%, transparent);
-  border-color: var(--accent-primary, #7c5cff);
+  background: color-mix(in srgb, var(--accent-primary) 30%, transparent);
+  border-color: var(--accent-primary);
 }
 
 #toolbar button:active:not(:disabled) {
@@ -86,14 +86,14 @@ body {
 }
 
 #toolbar button.active {
-  background: color-mix(in srgb, var(--accent-primary, #7c5cff) 40%, transparent);
-  border-color: var(--accent-primary, #7c5cff);
+  background: color-mix(in srgb, var(--accent-primary) 40%, transparent);
+  border-color: var(--accent-primary);
 }
 
 #playback-speed {
-  background: color-mix(in srgb, var(--pure-white, #ffffff) 10%, transparent);
-  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
-  color: var(--text-1, #f5f5f7);
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-strong);
+  color: var(--text-1);
   padding: 6px 8px;
   border-radius: 6px;
   cursor: pointer;
@@ -106,14 +106,14 @@ body {
 }
 
 #playback-speed option {
-  background: var(--surface-1, #15151b);
-  color: var(--text-1, #f5f5f7);
+  background: var(--surface-1);
+  color: var(--text-1);
 }
 
 #time-display {
   font-size: 13px;
-  color: var(--text-2, #a1a1aa);
-  font-family: var(--font-mono, 'SF Mono', Monaco, Consolas, monospace);
+  color: var(--text-2);
+  font-family: var(--font-mono);
   padding: 0 8px;
 }
 
@@ -124,7 +124,7 @@ body {
   align-items: center;
   justify-content: center;
   flex: 1;
-  border: 3px dashed var(--hairline-strong, rgba(255, 255, 255, 0.14));
+  border: 3px dashed var(--hairline-strong);
   border-radius: 16px;
   margin: 20px;
   transition: all 0.3s ease;
@@ -135,8 +135,8 @@ body {
 }
 
 #drop-zone.drag-over {
-  border-color: var(--accent-primary, #7c5cff);
-  background: var(--accent-primary-soft, rgba(124, 92, 255, 0.15));
+  border-color: var(--accent-primary);
+  background: var(--accent-primary-soft);
 }
 
 .drop-content {
@@ -165,25 +165,21 @@ body {
   font-size: 28px;
   font-weight: 600;
   margin-bottom: 12px;
-  background: linear-gradient(
-    90deg,
-    var(--accent-primary, #7c5cff),
-    var(--accent-primary-hover, #9077ff)
-  );
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-primary-hover));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .drop-content p {
-  color: var(--text-2, #a1a1aa);
+  color: var(--text-2);
   font-size: 16px;
   margin-bottom: 8px;
 }
 
 .drop-content .formats {
   font-size: 12px;
-  color: var(--text-3, #8e8e96);
+  color: var(--text-3);
 }
 
 /* Media wrapper */
@@ -191,7 +187,7 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: var(--pure-black, #000000);
+  background: var(--pure-black);
   min-height: 0;
   position: relative;
 }
@@ -204,7 +200,7 @@ body {
   flex: 1;
   width: 100%;
   object-fit: contain;
-  background: var(--pure-black, #000000);
+  background: var(--pure-black);
   min-height: 0;
 }
 
@@ -224,7 +220,7 @@ body {
   flex: 1;
   width: 100%;
   display: none;
-  background: var(--pure-black, #000000);
+  background: var(--pure-black);
 }
 
 #youtube-container.visible {
@@ -243,17 +239,17 @@ body {
 
 #media-info {
   height: 32px;
-  background: linear-gradient(to right, var(--surface-1, #15151b), var(--surface-2, #1f1f27));
+  background: linear-gradient(to right, var(--surface-1), var(--surface-2));
   display: flex;
   align-items: center;
   padding: 0 16px;
-  border-top: 1px solid var(--hairline, rgba(255, 255, 255, 0.08));
+  border-top: 1px solid var(--hairline);
   flex-shrink: 0;
 }
 
 #media-name {
   font-size: 14px;
-  color: var(--text-2, #a1a1aa);
+  color: var(--text-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -268,9 +264,9 @@ body {
   justify-content: center;
   background: linear-gradient(
     135deg,
-    var(--surface-1, #15151b) 0%,
-    var(--accent-primary-bg, #5b3cdc) 50%,
-    var(--surface-2, #1f1f27) 100%
+    var(--surface-1) 0%,
+    var(--accent-primary-bg) 50%,
+    var(--surface-2) 100%
   );
   padding: 40px;
   padding-bottom: 80px;
@@ -305,12 +301,12 @@ body {
   font-size: 24px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: var(--text-1, #f5f5f7);
+  color: var(--text-1);
 }
 
 #audio-artist {
   font-size: 16px;
-  color: var(--text-2, #a1a1aa);
+  color: var(--text-2);
 }
 
 /* Frequency spectrum canvas */
@@ -323,7 +319,12 @@ body {
   width: 100%;
   height: 80px;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--pure-black, #000000) 30%, transparent);
+  /* The canvas needs to stay a dark slab so the frequency bars (drawn
+   * in JS using brand accent + white) read as bright glyphs against it.
+   * The old pure-black @ 30% tint expected a dark page surface; on the
+   * cream brand it became a barely-visible cream tint that hid the bars.
+   * --text-1 (#1a1a1a) keeps it a true near-black under light theme. */
+  background: var(--text-1);
   display: block;
 }
 
@@ -335,7 +336,7 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 24px;
-  color: var(--text-1, #f5f5f7);
+  color: var(--text-1);
   z-index: 10;
 }
 
@@ -349,8 +350,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--scrim-strong, rgba(11, 11, 15, 0.85));
-  color: var(--danger, #f87171);
+  background: var(--scrim-strong);
+  color: var(--danger);
   font-size: 20px;
   font-weight: 500;
   z-index: 20;

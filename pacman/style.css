@@ -25,13 +25,14 @@ body {
 }
 
 body {
+  /* The arcade-cabinet violet starfield is gone — the page now sits
+   * on brand paper-cream, like a Pac-Man cabinet on a showroom floor.
+   * The game canvas itself paints its own classic black maze + dot
+   * grid + neon ghost colors via the canvas API, so gameplay
+   * fidelity is unchanged. */
   font-family: 'Press Start 2P', 'Courier New', monospace;
-  background: linear-gradient(
-    135deg,
-    var(--pacman-c01, #0f0c29) 0%,
-    var(--pacman-c02, #302b63) 50%,
-    var(--pacman-c03, #24243e) 100%
-  );
+  background: var(--surface-0);
+  color: var(--text-1);
   overflow: hidden;
 }
 
@@ -68,16 +69,15 @@ body {
 /* Strong text shadow for yellow score text */
 #score,
 #high-score {
-  text-shadow: 2px 2px 0 var(--pure-black, #000), -2px -2px 0 var(--pure-black, #000),
-    2px -2px 0 var(--pure-black, #000), -2px 2px 0 var(--pure-black, #000),
-    0 0 10px var(--pure-black, #000), 0 0 20px color-mix(in srgb, var(--warning) 50%, transparent);
+  text-shadow: 2px 2px 0 var(--pure-black), -2px -2px 0 var(--pure-black),
+    2px -2px 0 var(--pure-black), -2px 2px 0 var(--pure-black), 0 0 10px var(--pure-black),
+    0 0 20px color-mix(in srgb, var(--warning) 50%, transparent);
 }
 
 /* Improve readability of camera mode text */
 #camera-mode {
-  text-shadow: 1px 1px 0 var(--pure-black, #000), -1px -1px 0 var(--pure-black, #000),
-    1px -1px 0 var(--pure-black, #000), -1px 1px 0 var(--pure-black, #000),
-    0 0 8px var(--pure-black, #000);
+  text-shadow: 1px 1px 0 var(--pure-black), -1px -1px 0 var(--pure-black),
+    1px -1px 0 var(--pure-black), -1px 1px 0 var(--pure-black), 0 0 8px var(--pure-black);
   background: color-mix(in srgb, var(--pure-black) 50%, transparent);
   padding: 4px 8px;
   border-radius: 6px;
@@ -96,12 +96,10 @@ body {
 @keyframes pulse-glow {
   0%,
   100% {
-    text-shadow: 0 0 10px var(--warning, #fbbf24), 0 0 20px var(--warning, #fbbf24),
-      0 0 30px var(--warning, #fbbf24);
+    text-shadow: 0 0 10px var(--warning), 0 0 20px var(--warning), 0 0 30px var(--warning);
   }
   50% {
-    text-shadow: 0 0 20px var(--warning, #fbbf24), 0 0 40px var(--warning, #fbbf24),
-      0 0 60px var(--warning, #fbbf24);
+    text-shadow: 0 0 20px var(--warning), 0 0 40px var(--warning), 0 0 60px var(--warning);
   }
 }
 
@@ -120,7 +118,7 @@ button:hover {
 
 /* Lives display */
 #lives span {
-  filter: drop-shadow(0 0 5px var(--warning, #fbbf24));
+  filter: drop-shadow(0 0 5px var(--warning));
 }
 
 /* Control hints */

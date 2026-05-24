@@ -74,25 +74,17 @@
   box-sizing: border-box;
 }
 
+/* JoeTube body — the vintage CRT cabinet sits on the brand paper-cream
+ * surface, like a TV displayed in a showroom rather than the original
+ * "TV in a dim wood-paneled rec-room" backdrop. The cabinet, screen
+ * phosphor, knobs, and brass trim keep their full retro identity; the
+ * page surrounding it just adopts the rest of the site's chrome. */
 body {
   margin: 0;
   min-height: 100vh;
   font-family: var(--font-screen);
-  color: var(--crt-phosphor, #f5d573);
-  background: radial-gradient(
-      ellipse at 50% 30%,
-      var(--crt-room-mid, #2c1f15) 0%,
-      var(--crt-room-deep, #1a120a) 60%,
-      var(--crt-room-darkest, #0b0703) 100%
-    ),
-    repeating-linear-gradient(
-      90deg,
-      var(--crt-room-stripe, rgba(120, 80, 40, 0.08)) 0px,
-      var(--crt-room-stripe, rgba(120, 80, 40, 0.08)) 2px,
-      transparent 2px,
-      transparent 90px
-    );
-  background-attachment: fixed;
+  color: var(--text-1);
+  background: var(--surface-0);
   overflow-x: hidden;
 }
 
@@ -126,7 +118,7 @@ body {
   border-radius: 50%;
   background: var(--crt-led-red, #ff3a2e);
   box-shadow: 0 0 8px var(--crt-led-red-glow, rgba(255, 58, 46, 0.7)),
-    inset 0 -2px 4px color-mix(in srgb, var(--pure-black, #000) 40%, transparent);
+    inset 0 -2px 4px color-mix(in srgb, var(--pure-black) 40%, transparent);
   animation: pwr-pulse 2.4s ease-in-out infinite;
 }
 
@@ -135,12 +127,12 @@ body {
   100% {
     opacity: 1;
     box-shadow: 0 0 10px var(--crt-led-red-glow, rgba(255, 58, 46, 0.7)),
-      inset 0 -2px 4px color-mix(in srgb, var(--pure-black, #000) 40%, transparent);
+      inset 0 -2px 4px color-mix(in srgb, var(--pure-black) 40%, transparent);
   }
   50% {
     opacity: 0.75;
     box-shadow: 0 0 4px var(--crt-led-red-glow, rgba(255, 58, 46, 0.7)),
-      inset 0 -2px 4px color-mix(in srgb, var(--pure-black, #000) 40%, transparent);
+      inset 0 -2px 4px color-mix(in srgb, var(--pure-black) 40%, transparent);
   }
 }
 
@@ -169,10 +161,10 @@ body {
       var(--crt-wood-dark, #2c1908) 100%
     );
   box-shadow: inset 0 2px 0 var(--crt-wood-shine, rgba(255, 220, 170, 0.22)),
-    inset 0 -6px 18px color-mix(in srgb, var(--pure-black, #000) 55%, transparent),
-    inset 0 0 0 4px color-mix(in srgb, var(--pure-black, #000) 25%, transparent),
-    0 24px 40px color-mix(in srgb, var(--pure-black, #000) 65%, transparent),
-    0 4px 0 color-mix(in srgb, var(--pure-black, #000) 50%, transparent);
+    inset 0 -6px 18px color-mix(in srgb, var(--pure-black) 55%, transparent),
+    inset 0 0 0 4px color-mix(in srgb, var(--pure-black) 25%, transparent),
+    0 24px 40px color-mix(in srgb, var(--pure-black) 65%, transparent),
+    0 4px 0 color-mix(in srgb, var(--pure-black) 50%, transparent);
   border: 2px solid var(--crt-wood-dark, #2c1908);
 }
 
@@ -202,7 +194,7 @@ body {
   letter-spacing: 2px;
   color: var(--crt-brass, #c9a96a);
   opacity: 0.7;
-  text-shadow: 0 1px 0 color-mix(in srgb, var(--pure-black, #000) 60%, transparent);
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--pure-black) 60%, transparent);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -218,9 +210,9 @@ body {
     var(--crt-bezel, #2e2114) 0%,
     var(--crt-bezel-edge, #110a05) 100%
   );
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 6%, transparent),
-    inset 0 -10px 30px color-mix(in srgb, var(--pure-black, #000) 80%, transparent),
-    inset 0 0 0 2px color-mix(in srgb, var(--pure-black, #000) 60%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white) 6%, transparent),
+    inset 0 -10px 30px color-mix(in srgb, var(--pure-black) 80%, transparent),
+    inset 0 0 0 2px color-mix(in srgb, var(--pure-black) 60%, transparent);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -254,13 +246,13 @@ body {
 }
 
 .crt-bezel-label .crt-channel-chip {
-  background: linear-gradient(180deg, var(--surface-0, #0b0b0f), var(--surface-1, #15151b));
+  background: linear-gradient(180deg, var(--surface-0), var(--surface-1));
   color: var(--crt-phosphor, #f5d573);
   padding: 4px 10px;
   border-radius: 4px;
-  border: 1px solid var(--pure-black, #000);
-  box-shadow: inset 0 1px 0 var(--hairline, rgba(255, 255, 255, 0.08)),
-    inset 0 -2px 4px color-mix(in srgb, var(--pure-black, #000) 80%, transparent);
+  border: 1px solid var(--pure-black);
+  box-shadow: inset 0 1px 0 var(--hairline),
+    inset 0 -2px 4px color-mix(in srgb, var(--pure-black) 80%, transparent);
   text-shadow: 0 0 6px var(--crt-phosphor-glow, rgba(245, 213, 115, 0.55));
 }
 
@@ -272,9 +264,8 @@ body {
   position: relative;
   border-radius: 28px / 36px;
   background: var(--crt-screen-off, #0a1a0a);
-  box-shadow: inset 0 0 0 6px var(--pure-black, #000),
-    inset 0 0 0 9px var(--crt-bezel-stripe, #1c1c1c),
-    inset 0 0 60px color-mix(in srgb, var(--pure-black, #000) 95%, transparent),
+  box-shadow: inset 0 0 0 6px var(--pure-black), inset 0 0 0 9px var(--crt-bezel-stripe, #1c1c1c),
+    inset 0 0 60px color-mix(in srgb, var(--pure-black) 95%, transparent),
     0 0 60px var(--crt-phosphor-faint, rgba(245, 213, 115, 0.04));
   overflow: hidden;
   aspect-ratio: 16 / 10;
@@ -289,7 +280,7 @@ body {
     ellipse at 50% 50%,
     var(--crt-screen-on, #061206) 0%,
     var(--crt-screen-on, #061206) 60%,
-    var(--pure-black, #000) 100%
+    var(--pure-black) 100%
   );
   display: flex;
   align-items: center;
@@ -350,8 +341,8 @@ body {
   justify-content: center;
   background: radial-gradient(
     circle at 50% 50%,
-    color-mix(in srgb, var(--pure-black, #000) 0%, transparent) 0%,
-    color-mix(in srgb, var(--pure-black, #000) 55%, transparent) 100%
+    color-mix(in srgb, var(--pure-black) 0%, transparent) 0%,
+    color-mix(in srgb, var(--pure-black) 55%, transparent) 100%
   );
   transition: background 0.3s ease;
 }
@@ -359,8 +350,8 @@ body {
 .video-stage:hover .play-overlay {
   background: radial-gradient(
     circle at 50% 50%,
-    color-mix(in srgb, var(--pure-black, #000) 0%, transparent) 0%,
-    color-mix(in srgb, var(--pure-black, #000) 35%, transparent) 100%
+    color-mix(in srgb, var(--pure-black) 0%, transparent) 0%,
+    color-mix(in srgb, var(--pure-black) 35%, transparent) 100%
   );
 }
 
@@ -376,7 +367,7 @@ body {
   justify-content: center;
   border: 4px solid var(--crt-amber-deep, #1a1208);
   box-shadow: 0 0 30px var(--crt-phosphor-glow, rgba(245, 213, 115, 0.55)),
-    inset 0 -4px 8px color-mix(in srgb, var(--pure-black, #000) 40%, transparent);
+    inset 0 -4px 8px color-mix(in srgb, var(--pure-black) 40%, transparent);
   transition: transform 0.2s ease;
 }
 
@@ -394,7 +385,7 @@ body {
   height: 100%;
   border: 0;
   display: block;
-  background: var(--pure-black, #000);
+  background: var(--pure-black);
 }
 
 /* Scanline overlay (drawn on top of the screen) */
@@ -406,8 +397,8 @@ body {
   z-index: 2;
   background: repeating-linear-gradient(
     to bottom,
-    color-mix(in srgb, var(--pure-black, #000) 18%, transparent) 0px,
-    color-mix(in srgb, var(--pure-black, #000) 18%, transparent) 1px,
+    color-mix(in srgb, var(--pure-black) 18%, transparent) 0px,
+    color-mix(in srgb, var(--pure-black) 18%, transparent) 1px,
     transparent 1px,
     transparent 3px
   );
@@ -424,11 +415,11 @@ body {
   background: radial-gradient(
       ellipse at 50% 50%,
       transparent 55%,
-      color-mix(in srgb, var(--pure-black, #000) 45%, transparent) 100%
+      color-mix(in srgb, var(--pure-black) 45%, transparent) 100%
     ),
     radial-gradient(
       ellipse at 30% 20%,
-      color-mix(in srgb, var(--pure-white, #fff) 6%, transparent),
+      color-mix(in srgb, var(--pure-white) 6%, transparent),
       transparent 50%
     );
   animation: crt-flicker 4.5s steps(60) infinite;
@@ -497,8 +488,8 @@ body {
   z-index: 4;
   background: repeating-conic-gradient(
     from 0deg,
-    color-mix(in srgb, var(--pure-white, #fff) 5%, transparent) 0deg 1deg,
-    color-mix(in srgb, var(--pure-black, #000) 5%, transparent) 1deg 2deg
+    color-mix(in srgb, var(--pure-white) 5%, transparent) 0deg 1deg,
+    color-mix(in srgb, var(--pure-black) 5%, transparent) 1deg 2deg
   );
   background-size: 4px 4px;
   animation: crt-static 0.18s steps(2) infinite;
@@ -550,10 +541,10 @@ body {
   gap: 6px;
   padding: 8px 14px;
   border-radius: 6px;
-  background: linear-gradient(180deg, var(--surface-0, #0b0b0f), var(--crt-channel-mid, #181818));
-  border: 1px solid var(--pure-black, #000);
-  box-shadow: inset 0 1px 0 var(--hairline, rgba(255, 255, 255, 0.08)),
-    inset 0 -2px 6px color-mix(in srgb, var(--pure-black, #000) 90%, transparent);
+  background: linear-gradient(180deg, var(--surface-0), var(--crt-channel-mid, #181818));
+  border: 1px solid var(--pure-black);
+  box-shadow: inset 0 1px 0 var(--hairline),
+    inset 0 -2px 6px color-mix(in srgb, var(--pure-black) 90%, transparent);
   font-family: var(--font-screen);
   color: var(--crt-phosphor, #f5d573);
   text-shadow: 0 0 6px var(--crt-phosphor-glow, rgba(245, 213, 115, 0.55));
@@ -590,9 +581,9 @@ body {
     var(--crt-knob, #3a2b1a) 40%,
     var(--crt-knob-edge, #1c130a) 100%
   );
-  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--pure-white, #fff) 18%, transparent),
-    inset 0 -4px 8px color-mix(in srgb, var(--pure-black, #000) 70%, transparent),
-    0 4px 6px color-mix(in srgb, var(--pure-black, #000) 60%, transparent),
+  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--pure-white) 18%, transparent),
+    inset 0 -4px 8px color-mix(in srgb, var(--pure-black) 70%, transparent),
+    0 4px 6px color-mix(in srgb, var(--pure-black) 60%, transparent),
     0 0 0 3px var(--crt-bezel-edge, #110a05);
   cursor: pointer;
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
@@ -632,7 +623,7 @@ body {
     var(--crt-knob-cap-top, #8a6b3f),
     var(--crt-knob-cap-bot, #3a2a18)
   );
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 20%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white) 20%, transparent);
 }
 
 /* Channel up/down buttons stacked beside the knob */
@@ -652,9 +643,9 @@ body {
   padding: 14px 18px;
   border-radius: 10px;
   background: linear-gradient(180deg, var(--crt-panel-top, #2a1c0e), var(--crt-panel-bot, #1a110a));
-  border: 1px solid var(--pure-black, #000);
+  border: 1px solid var(--pure-black);
   box-shadow: inset 0 1px 0 var(--crt-wood-shine-dim, rgba(255, 220, 170, 0.12)),
-    inset 0 -4px 10px color-mix(in srgb, var(--pure-black, #000) 70%, transparent);
+    inset 0 -4px 10px color-mix(in srgb, var(--pure-black) 70%, transparent);
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 10px;
@@ -668,18 +659,18 @@ body {
   letter-spacing: 2px;
   color: var(--crt-btn-label, #f4e0a8);
   text-transform: uppercase;
-  text-shadow: 0 1px 0 color-mix(in srgb, var(--pure-black, #000) 70%, transparent);
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--pure-black) 70%, transparent);
   padding: 14px 8px;
   background: linear-gradient(
     180deg,
     var(--crt-btn-top, #4d3920) 0%,
     var(--crt-btn-bot, #2c1f10) 100%
   );
-  border: 1px solid var(--pure-black, #000);
+  border: 1px solid var(--pure-black);
   border-radius: 6px;
   box-shadow: inset 0 2px 0 var(--crt-wood-shine-soft, rgba(255, 220, 170, 0.18)),
-    inset 0 -4px 8px color-mix(in srgb, var(--pure-black, #000) 60%, transparent),
-    0 3px 0 var(--pure-black, #000);
+    inset 0 -4px 8px color-mix(in srgb, var(--pure-black) 60%, transparent),
+    0 3px 0 var(--pure-black);
   cursor: pointer;
   transition: transform 0.1s ease, box-shadow 0.1s ease;
   display: flex;
@@ -696,9 +687,9 @@ body {
 .crt-btn:active,
 .crt-btn.is-pressed {
   transform: translateY(2px);
-  box-shadow: inset 0 2px 6px color-mix(in srgb, var(--pure-black, #000) 80%, transparent),
+  box-shadow: inset 0 2px 6px color-mix(in srgb, var(--pure-black) 80%, transparent),
     inset 0 -1px 0 color-mix(in srgb, var(--crt-wood-shine, rgba(255, 220, 170, 0.22)) 25%, transparent),
-    0 1px 0 var(--pure-black, #000);
+    0 1px 0 var(--pure-black);
 }
 
 .crt-btn.is-accent {
@@ -730,11 +721,11 @@ body {
 .crt-marquee {
   width: min(1100px, 100%);
   margin-top: 8px;
-  background: linear-gradient(180deg, var(--surface-0, #0b0b0f), var(--crt-channel-mid, #181818));
+  background: linear-gradient(180deg, var(--surface-0), var(--crt-channel-mid, #181818));
   border-radius: 10px;
-  border: 1px solid var(--pure-black, #000);
-  box-shadow: inset 0 1px 0 var(--hairline, rgba(255, 255, 255, 0.08)),
-    inset 0 -4px 8px color-mix(in srgb, var(--pure-black, #000) 70%, transparent);
+  border: 1px solid var(--pure-black);
+  box-shadow: inset 0 1px 0 var(--hairline),
+    inset 0 -4px 8px color-mix(in srgb, var(--pure-black) 70%, transparent);
   padding: 12px 18px;
   display: flex;
   align-items: center;

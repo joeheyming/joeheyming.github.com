@@ -469,7 +469,7 @@ function main() {
         : displayNameFromFullTitle(sheetTabSelect.value);
     const strong = document.createElement('strong');
     strong.id = 'remove-list-name';
-    strong.className = 'text-zinc-900 dark:text-zinc-100';
+    strong.className = 'text-text-1';
     strong.textContent = `“${label}”`;
     removeListDetailEl.replaceChildren();
     if (origin === 'main') {

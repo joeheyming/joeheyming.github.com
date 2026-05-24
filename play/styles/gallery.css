@@ -1,48 +1,57 @@
 /* Play — gallery page (/play/): theme vars, header, instrument grid + cards, footer. */
 
 /* ── play namespace: shared palette across the instrument family ─────
- * The /play/ family wears its own theme on top of brand: Tailwind
- * indigo-400 + pink-400 stage lights, Tailwind emerald-400 for
- * "active" / MIDI-connected status, Tailwind slate-* for surfaces,
- * and a piano-key gradient that the keyboard, accordion, and synth
- * all consume. Per-instrument identity tokens (wood, brass, neon,
- * copper) layer on top in each instrument's own `:root`.
+ * Page chrome (body, gallery cards, instrument-page header) routes
+ * through brand surface / text / hairline tokens — the family lives
+ * in the same paper-cream world as the rest of the site. The
+ * instrument-identity tokens (--play-key-*, wood, brass, neon, copper,
+ * note tints) stay scoped here so music-theory cues and instrument
+ * body warmth survive the brand pivot intact.
  */
 :root {
-  --bg-0: var(--play-bg-deepest, #0b1020);
-  --bg-1: var(--surface-0, #0f172a);
-  --bg-2: var(--surface-1, #1e293b);
-  --fg: var(--text-1, #e2e8f0);
-  --fg-dim: var(--text-2, #94a3b8);
-  --accent: var(--accent-primary-hover, #9077ff);
-  --accent-2: var(--play-pink, #f472b6);
-  --accent-3: var(--play-emerald, #34d399);
-  --border: color-mix(in srgb, var(--play-slate-300, #94a3b8) 18%, transparent);
+  --bg-0: var(--surface-0);
+  --bg-1: var(--surface-1);
+  --bg-2: var(--surface-2);
+  --fg: var(--text-1);
+  --fg-dim: var(--text-2);
+  --accent: var(--accent-primary);
+  --accent-2: var(--accent-red);
+  --accent-3: var(--success);
+  --border: var(--hairline-strong);
 
-  /* play-namespace palette — shared by every instrument page */
-  --play-bg-deepest: #0b1020;
-  --play-indigo: #818cf8;
-  --play-indigo-strong: #4f46e5;
-  --play-pink: #f472b6;
-  --play-emerald: #34d399;
-  --play-slate-100: #e2e8f0;
-  --play-slate-200: #cbd5e1;
-  --play-slate-300: #94a3b8;
-  --play-slate-400: #64748b;
-  --play-slate-500: #475569;
-  --play-slate-700: #334155;
-  --play-slate-800: #1e293b;
-  --play-slate-900: #0f172a;
+  /* Status dot colors carry over for "active / MIDI" affordances */
+  --play-emerald: var(--success);
 
-  /* piano-keyboard component palette (used by piano, accordion, synth) */
-  --play-key-white-from: #fafafa;
+  /* Legacy --play-* aliases. These used to hold the dark indigo/pink/
+   * slate palette of the previous brand. They're kept (now routing to
+   * brand surface / accent / hairline tokens) so the existing
+   * consumers in keyboard.css, help-popup.css, the strings sub-app,
+   * theremin, etc. don't all need to be rewritten — they just inherit
+   * the new paper-cream surfaces and brand-blue accent. */
+  --play-bg-deepest: var(--surface-0);
+  --play-indigo: var(--accent-primary);
+  --play-indigo-strong: var(--accent-primary-bg-hover);
+  --play-pink: var(--accent-red);
+  --play-slate-100: var(--surface-1);
+  --play-slate-200: var(--surface-2);
+  --play-slate-300: var(--hairline-strong);
+  --play-slate-400: var(--text-3);
+  --play-slate-500: var(--text-2);
+  --play-slate-700: var(--text-2);
+  --play-slate-800: var(--surface-2);
+  --play-slate-900: var(--surface-2);
+
+  /* piano-keyboard component palette (used by piano, accordion, synth)
+     — keys keep their own tonal scale; the active state uses brand
+     accent-primary for "lit" feedback. */
+  --play-key-white-from: #ffffff;
   --play-key-white-to: #e5e7eb;
-  --play-key-white-active-from: #c7d2fe;
-  --play-key-white-active-to: #a5b4fc;
-  --play-key-black-active-from: #4338ca;
-  --play-key-black-active-to: #1e1b4b;
-  --play-key-active-text: #1e1b4b;
-  --play-key-label: #c7d2fe;
+  --play-key-white-active-from: var(--accent-primary-soft);
+  --play-key-white-active-to: var(--accent-primary-soft);
+  --play-key-black-active-from: var(--accent-primary);
+  --play-key-black-active-to: var(--accent-primary-bg-hover);
+  --play-key-active-text: var(--text-on-accent);
+  --play-key-label: var(--accent-primary-bg);
 }
 
 * {
@@ -53,19 +62,9 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: radial-gradient(
-      1200px 600px at 20% -10%,
-      color-mix(in srgb, var(--play-indigo, #818cf8) 18%, transparent),
-      transparent 60%
-    ),
-    radial-gradient(
-      1000px 600px at 110% 20%,
-      color-mix(in srgb, var(--play-pink, #f472b6) 14%, transparent),
-      transparent 60%
-    ),
-    var(--bg-0);
+  background: var(--bg-0);
   color: var(--fg);
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-ui), ui-sans-serif, system-ui, -apple-system, sans-serif;
   min-height: 100vh;
 }
 
@@ -84,15 +83,13 @@ body {
   margin: 0;
   font-size: clamp(36px, 6vw, 56px);
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-1);
 }
 
 .play-emoji {
   font-size: clamp(36px, 6vw, 56px);
-  filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--play-indigo, #818cf8) 50%, transparent));
 }
 
 .play-subtitle {
@@ -117,25 +114,19 @@ body {
   flex-direction: column;
   gap: 10px;
   padding: 24px 22px;
-  border-radius: 18px;
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--play-slate-800, #1e293b) 70%, transparent),
-    color-mix(in srgb, var(--play-slate-900, #0f172a) 70%, transparent)
-  );
+  border-radius: var(--radius);
+  background: var(--surface-1);
   border: 1px solid var(--border);
   text-decoration: none;
   color: var(--fg);
-  backdrop-filter: blur(8px);
-  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease,
-    background 200ms ease;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .instrument-card.available:hover,
 .instrument-card.available:focus-visible {
-  transform: translateY(-3px);
-  border-color: color-mix(in srgb, var(--play-indigo, #818cf8) 60%, transparent);
-  box-shadow: 0 18px 40px -20px color-mix(in srgb, var(--play-indigo, #818cf8) 60%, transparent);
+  transform: translateY(-2px);
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-card);
   outline: none;
 }
 
@@ -170,15 +161,15 @@ body {
   letter-spacing: 0.08em;
   padding: 4px 10px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--play-emerald, #34d399) 14%, transparent);
-  color: var(--accent-3);
-  border: 1px solid color-mix(in srgb, var(--play-emerald, #34d399) 30%, transparent);
+  background: var(--success-soft);
+  color: var(--success);
+  border: 1px solid var(--success);
 }
 
 .instrument-card.coming-soon .instrument-status {
-  background: color-mix(in srgb, var(--play-slate-300, #94a3b8) 12%, transparent);
+  background: var(--surface-2);
   color: var(--fg-dim);
-  border-color: color-mix(in srgb, var(--play-slate-300, #94a3b8) 25%, transparent);
+  border-color: var(--hairline-strong);
 }
 
 .play-footer {

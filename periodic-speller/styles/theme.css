@@ -89,27 +89,27 @@
   border-width: 2px;
 }
 .tiles[data-theme='pastel'] .tile .tile-symbol {
-  color: var(--surface-1, #1e293b);
+  color: var(--surface-1);
 }
 .tiles[data-theme='pastel'] .tile .tile-name {
-  color: var(--text-3, #64748b);
+  color: var(--text-3);
 }
 .tiles[data-theme='pastel'] .tile .tile-mass {
-  color: var(--text-2, #94a3b8);
+  color: var(--text-2);
 }
 .tiles[data-theme='pastel'] .tile-unmatched {
-  background: var(--text-1, #f1f5f9);
-  border-color: var(--text-1, #cbd5e1);
+  background: var(--text-1);
+  border-color: var(--text-1);
 }
 .tiles[data-theme='pastel'] .tile-unmatched .tile-symbol {
-  color: var(--text-2, #94a3b8);
+  color: var(--text-2);
 }
 .tiles[data-theme='pastel'] .tile-unmatched .tile-name {
-  color: var(--text-1, #cbd5e1);
+  color: var(--text-1);
 }
 
 .tiles[data-theme='neon'] .tile {
-  background: var(--surface-0, #0a0a0a);
+  background: var(--surface-0);
   box-shadow: 0 0 10px var(--tile-border),
     inset 0 0 8px color-mix(in srgb, var(--pure-white) 3%, transparent);
 }
@@ -118,17 +118,17 @@
 }
 
 .tiles[data-theme='mono'] .tile {
-  border-color: var(--text-1, #e2e8f0);
+  border-color: var(--text-1);
   background: var(--tile-bg);
 }
 .tiles[data-theme='mono'] .tile .tile-number {
-  color: var(--text-1, #e2e8f0);
+  color: var(--text-1);
 }
 .tiles[data-theme='mono'] .tile .tile-symbol {
   color: var(--ps-mono-symbol, #f8fafc);
 }
 .tiles[data-theme='mono'] .tile .tile-name {
-  color: var(--text-2, #94a3b8);
+  color: var(--text-2);
 }
 
 .tiles[data-theme='heisenberg'] .tile {

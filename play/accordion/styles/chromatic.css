@@ -2,22 +2,25 @@
    honeycomb stagger, horizontal + vertical orientations, flip-mirroring. */
 
 :root {
-  /* Auto-scoped identity palette for play-acc-chrom. Every bare color in
-   * this file is routed through one of these tokens so the brand
-   * audit sees zero literals while keeping the visual identity. */
-  --play-acc-chrom-c01: #1e1b4b;
-  --play-acc-chrom-c02: #0b1220;
-  --play-acc-chrom-c03: #a78bfa;
-  --play-acc-chrom-c04: #ede9fe;
-  --play-acc-chrom-c05: #c4b5fd;
-  --play-acc-chrom-c06: rgba(99, 92, 161, 0.55);
-  --play-acc-chrom-c07: #0a0a25;
-  --play-acc-chrom-c08: rgba(124, 58, 237, 0.45);
-  --play-acc-chrom-c09: #fef3c7;
-  --play-acc-chrom-c10: #fcd34d;
-  --play-acc-chrom-c11: #422006;
-  --play-acc-chrom-c12: #b45309;
-  --play-acc-chrom-c13: rgba(196, 181, 253, 0.15);
+  /* Chromatic right-hand palette. The keyboard reads like a real
+   * piano-style chromatic button accordion: ivory-white naturals,
+   * matte-black accidentals, gold C "home" buttons, on a dark wood
+   * panel. The old indigo/violet palette has been pulled forward to
+   * the wood / piano-key vocabulary used by the rest of the play
+   * family. */
+  --play-acc-chrom-c01: #1c1612; /* very dark text on light naturals; panel top wood */
+  --play-acc-chrom-c02: #2a221a; /* panel bottom wood */
+  --play-acc-chrom-c03: var(--accent-primary); /* focus ring */
+  --play-acc-chrom-c04: #f8fafc; /* natural button top (ivory) */
+  --play-acc-chrom-c05: #e2e8f0; /* natural button bottom */
+  --play-acc-chrom-c06: rgba(100, 116, 139, 0.55); /* natural button border */
+  --play-acc-chrom-c07: #0f0a06; /* accidental button bottom (matte black wood) */
+  --play-acc-chrom-c08: rgba(74, 53, 32, 0.6); /* accidental button border */
+  --play-acc-chrom-c09: #fef3c7; /* C button top (cream) */
+  --play-acc-chrom-c10: #fcd34d; /* C button bottom (gold) */
+  --play-acc-chrom-c11: #422006; /* C button text */
+  --play-acc-chrom-c12: #b45309; /* C button border */
+  --play-acc-chrom-c13: rgba(148, 163, 184, 0.15); /* helper-row inner shadow */
 }
 
 /* ---------- Chromatic right-hand button accordion ---------- */

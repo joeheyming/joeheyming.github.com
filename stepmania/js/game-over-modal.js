@@ -139,9 +139,9 @@ class GameOverModalElement extends HTMLElement {
     this.classList.toggle('visible', this._visible);
 
     const title = this._failed ? '💔 Song Failed!' : '🎵 Song Complete!';
-    const titleColor = this._failed ? 'color: #ef4444;' : '';
+    const titleColor = this._failed ? 'color: var(--danger);' : '';
     const failedBadge = this._failed
-      ? '<div class="failed-badge" style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 999px; font-size: 12px; margin-bottom: 8px;">Health Depleted</div>'
+      ? '<div class="failed-badge" style="background: var(--danger); color: var(--text-on-accent); padding: 4px 12px; border-radius: 999px; font-size: 12px; margin-bottom: 8px;">Health Depleted</div>'
       : '';
 
     // Host animation styles; content styles from components/game-over.css via adoptSharedStyles
@@ -253,7 +253,7 @@ class GameOverModalElement extends HTMLElement {
         if (shareBtn) {
           const originalText = shareBtn.textContent;
           shareBtn.textContent = '✓ Shared!';
-          shareBtn.style.backgroundColor = '#10b981';
+          shareBtn.style.backgroundColor = 'var(--success)';
           setTimeout(() => {
             shareBtn.textContent = originalText;
             shareBtn.style.backgroundColor = '';
@@ -276,7 +276,7 @@ class GameOverModalElement extends HTMLElement {
       if (shareBtn) {
         const originalText = shareBtn.textContent;
         shareBtn.textContent = '✓ Copied!';
-        shareBtn.style.backgroundColor = '#10b981';
+        shareBtn.style.backgroundColor = 'var(--success)';
 
         // Show a more prominent success message
         this._showShareSuccess(message);
@@ -292,7 +292,7 @@ class GameOverModalElement extends HTMLElement {
       if (shareBtn) {
         const originalText = shareBtn.textContent;
         shareBtn.textContent = '✗ Failed';
-        shareBtn.style.backgroundColor = '#ef4444';
+        shareBtn.style.backgroundColor = 'var(--danger)';
 
         setTimeout(() => {
           shareBtn.textContent = originalText;
@@ -310,30 +310,30 @@ class GameOverModalElement extends HTMLElement {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: #1f2937;
-      border: 2px solid #10b981;
+      background: var(--surface-1);
+      border: 2px solid var(--success);
       border-radius: 0.5rem;
       padding: 1.5rem;
       max-width: 90%;
       max-height: 80vh;
       overflow-y: auto;
       z-index: 10000;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+      box-shadow: var(--shadow-modal);
     `;
 
     successOverlay.innerHTML = `
-      <div style="text-align: center; color: white;">
+      <div style="text-align: center; color: var(--text-1);">
         <div style="font-size: 2rem; margin-bottom: 0.5rem;">✓</div>
-        <h3 style="margin: 0 0 1rem 0; color: #10b981;">Score Copied!</h3>
-        <p style="margin: 0 0 1rem 0; color: #d1d5db; font-size: 0.875rem;">
+        <h3 style="margin: 0 0 1rem 0; color: var(--success);">Score Copied!</h3>
+        <p style="margin: 0 0 1rem 0; color: var(--text-2); font-size: 0.875rem;">
           Your score has been copied to clipboard. Paste it anywhere to share!
         </p>
-        <div style="background: #374151; padding: 1rem; border-radius: 0.25rem; margin-bottom: 1rem; text-align: left; font-family: monospace; font-size: 0.75rem; color: #d1d5db; white-space: pre-wrap; word-break: break-word;">
+        <div style="background: var(--surface-2); padding: 1rem; border-radius: 0.25rem; margin-bottom: 1rem; text-align: left; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-1); white-space: pre-wrap; word-break: break-word;">
           ${message.substring(0, 200)}${message.length > 200 ? '...' : ''}
         </div>
         <button id="close-share-success" style="
-          background: #2563eb;
-          color: white;
+          background: var(--accent-primary);
+          color: var(--text-on-accent);
           border: none;
           padding: 0.5rem 1.5rem;
           border-radius: 0.25rem;

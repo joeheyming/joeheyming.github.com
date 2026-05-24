@@ -30,7 +30,7 @@ export function showBrowserWelcomePrompt() {
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
+      background: var(--scrim);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -49,23 +49,24 @@ export function showBrowserWelcomePrompt() {
           to { transform: translateY(0); opacity: 1; }
         }
         .browser-prompt {
-          background: #1f2937;
-          border: 2px solid #8b5cf6;
-          border-radius: 0.75rem;
+          background: var(--surface-0);
+          border: 1px solid var(--hairline-strong);
+          border-radius: var(--radius-lg);
           padding: 2rem;
           max-width: 90%;
           width: 500px;
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+          box-shadow: var(--shadow-modal);
           animation: slideUp 0.3s ease-out;
           text-align: center;
         }
         .browser-prompt h3 {
-          color: white;
+          color: var(--text-1);
+          font-family: var(--font-display);
           font-size: 1.5rem;
           margin: 0 0 1rem 0;
         }
         .browser-prompt p {
-          color: #d1d5db;
+          color: var(--text-2);
           margin: 0 0 1.5rem 0;
           line-height: 1.6;
         }
@@ -76,26 +77,29 @@ export function showBrowserWelcomePrompt() {
         }
         .browser-prompt-btn {
           padding: 0.75rem 1.5rem;
-          border-radius: 0.5rem;
-          border: none;
+          border-radius: var(--radius);
+          border: 1px solid transparent;
           font-weight: 600;
           cursor: pointer;
           font-size: 1rem;
           transition: all 0.2s;
         }
         .browser-prompt-btn-primary {
-          background: #6d28d9;
-          color: white;
+          background: var(--accent-primary-bg);
+          color: var(--text-on-accent);
+          border-color: var(--accent-primary-bg);
         }
         .browser-prompt-btn-primary:hover {
-          background: #5b21b6;
+          background: var(--accent-primary-bg-hover);
+          border-color: var(--accent-primary-bg-hover);
         }
         .browser-prompt-btn-secondary {
-          background: #4b5563;
-          color: white;
+          background: var(--surface-1);
+          color: var(--text-1);
+          border-color: var(--hairline-strong);
         }
         .browser-prompt-btn-secondary:hover {
-          background: #374151;
+          background: var(--surface-2);
         }
       </style>
       <div class="browser-prompt">

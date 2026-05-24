@@ -268,7 +268,7 @@ body.picker-mode #flavorPickerSwitcher {
 .progress {
   width: 100%;
   height: 4px;
-  background: var(--surface-1, #111111);
+  background: var(--surface-1);
   border-radius: 2px;
   overflow: hidden;
 }

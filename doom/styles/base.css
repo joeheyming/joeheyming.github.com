@@ -40,15 +40,15 @@
    */
 
   /* Surfaces */
-  --doom-bg: var(--surface-0, #0b0b0c);
-  --doom-panel: var(--surface-1, #131316);
-  --doom-panel-2: var(--surface-1, #1a1a1e);
-  --doom-panel-hover: var(--surface-2, #1d1d22);
+  --doom-bg: var(--surface-0);
+  --doom-panel: var(--surface-1);
+  --doom-panel-2: var(--surface-1);
+  --doom-panel-hover: var(--surface-2);
   --doom-chip: #222228;
   --doom-btn-hover: #222222;
   --doom-border: #2a2a30;
   --doom-border-hot: #4a4a55;
-  --doom-hint: var(--text-3, #555555);
+  --doom-hint: var(--text-3);
 
   /* Disabled state — secondary CTA */
   --doom-disabled-bg: #2a2a2e;
@@ -60,8 +60,8 @@
   --doom-btn-primary-disabled-text: #777777;
 
   /* Text */
-  --doom-text: var(--text-1, #dcdcdc);
-  --doom-dim: var(--text-2, #8a8a92);
+  --doom-text: var(--text-1);
+  --doom-dim: var(--text-2);
 
   /* Identity — default flavor (Classic DOOM red) */
   --doom-blood: #c8392e;

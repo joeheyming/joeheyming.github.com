@@ -62,34 +62,36 @@ class FeedbackButtonElement extends HTMLElement {
     // automatically when the brand changes. Hex fallbacks make the
     // component still look right on pages that haven't loaded brand.css.
     //
+    // Phase 3 of the brand pivot re-skinned for the new heyming-
+    // engineering palette (paper-cream + Google '99 blue, no glass).
+    //
     // Contrast (verified, see BRAND.md contrast matrix):
-    //   primary : white on #5B3CDC ≈ 6.7:1 (AA pass)
-    //   dark    : violet text on near-black ≈ 5.0:1 (AA pass)
-    //   light   : violet text on white ≈ 6.7:1 (AA pass)
-    //   glass   : white on dark backdrop with hairline border;
-    //             contrast depends on backdrop — pair carefully.
+    //   primary : white on #1A73E8 ≈ 4.5:1 (AA body)
+    //   dark    : retained as a paper-cream variant — blue text on
+    //             surface-1 (#FFFFFF) ≈ 4.5:1 (AA body)
+    //   light   : same — kept as a darker-bordered light variant
+    //   glass   : kept as a backwards-compat alias for primary; the
+    //             new brand has no glass blur
     const themes = {
       primary: `
-        background: var(--accent-primary-bg, #5b3cdc);
-        color: var(--text-on-accent, #fff);
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: var(--accent-primary-bg);
+        color: var(--text-on-accent);
+        border: 1px solid var(--accent-primary-bg-hover);
       `,
       dark: `
-        background: var(--surface-1, #15151b);
-        color: var(--accent-primary, #7c5cff);
-        border: 1px solid var(--accent-primary, #7c5cff);
+        background: var(--surface-1);
+        color: var(--accent-primary);
+        border: 1px solid var(--accent-primary);
       `,
       light: `
-        background: #fff;
-        color: var(--accent-primary-bg, #5b3cdc);
-        border: 1px solid var(--accent-primary-bg, #5b3cdc);
+        background: var(--surface-1);
+        color: var(--accent-primary);
+        border: 1px solid var(--accent-primary);
       `,
       glass: `
-        background: var(--surface-glass, rgba(21, 21, 27, 0.72));
-        -webkit-backdrop-filter: blur(20px) saturate(160%);
-        backdrop-filter: blur(20px) saturate(160%);
-        color: var(--text-1, #f5f5f7);
-        border: 1px solid var(--hairline, rgba(255, 255, 255, 0.14));
+        background: var(--accent-primary-bg);
+        color: var(--text-on-accent);
+        border: 1px solid var(--accent-primary-bg-hover);
       `
     };
     return themes[this.theme] || themes.primary;
@@ -117,12 +119,12 @@ class FeedbackButtonElement extends HTMLElement {
 
         .feedback-btn {
           ${this.getThemeStyles()}
-          font-weight: bold;
+          font-family: var(--font-ui), -apple-system, 'Segoe UI', Roboto, sans-serif;
+          font-weight: 600;
           padding: 0.5rem 1.25rem;
-          border-radius: 0.75rem;
+          border-radius: var(--radius);
           transition: all 0.2s ease;
           transform: scale(1);
-          border: none;
           cursor: pointer;
           font-size: 14px;
           display: inline-flex;
@@ -166,9 +168,9 @@ class FeedbackButtonElement extends HTMLElement {
         }
 
         .feedback-btn:hover {
-          transform: scale(1.05);
-          filter: brightness(1.1);
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+          transform: scale(1.04);
+          filter: brightness(0.96);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
         }
 
         .feedback-btn:active {
@@ -176,9 +178,9 @@ class FeedbackButtonElement extends HTMLElement {
         }
 
         .feedback-btn:focus-visible {
-          outline: 2px solid var(--focus-ring-inner, #7c5cff);
+          outline: 2px solid var(--focus-ring-inner);
           outline-offset: 2px;
-          box-shadow: 0 0 0 4px var(--focus-ring-outer, rgba(255, 255, 255, 0.65));
+          box-shadow: 0 0 0 4px var(--focus-ring-outer);
         }
       </style>
 

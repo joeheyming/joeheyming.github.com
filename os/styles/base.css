@@ -59,11 +59,11 @@
 
 /* Animation Classes */
 .os-fade-in {
-  animation: fadeIn var(--motion-modal, 220ms ease-out);
+  animation: fadeIn var(--motion-modal);
 }
 
 .os-fade-out {
-  animation: fadeOut var(--motion-modal, 220ms ease-out);
+  animation: fadeOut var(--motion-modal);
 }
 
 @keyframes fadeIn {

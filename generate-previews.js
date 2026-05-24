@@ -246,7 +246,30 @@ const PAGES = [
   {
     url: `${BASE_URL}/chat/`,
     output: 'chat/chat-preview.png',
-    title: 'Chat'
+    title: 'Chat',
+    // The chat app gates the UI on WebGPU. Headless Chromium does not
+    // expose WebGPU, so the page renders a "browser unsupported" error
+    // banner — useless for an OG/preview image. Hide the banner and
+    // restore the composer so the preview shows the actual empty-chat
+    // experience users see when WebGPU is available.
+    setup: async (page) => {
+      await page.addStyleTag({
+        content: '#chat-unsupported { display: none !important; }'
+      });
+      await page.evaluate(() => {
+        const input = document.getElementById('chat-input');
+        if (input instanceof HTMLTextAreaElement) {
+          input.disabled = false;
+          input.placeholder = 'Ask anything… (Enter to send, Shift+Enter for newline)';
+        }
+        const send = document.getElementById('chat-send');
+        if (send instanceof HTMLButtonElement) send.disabled = false;
+        const attach = document.getElementById('chat-attach-btn');
+        if (attach instanceof HTMLButtonElement) attach.disabled = false;
+        const modeLine = document.getElementById('chat-mode-line');
+        if (modeLine) modeLine.textContent = 'Local model';
+      });
+    }
   },
   {
     url: `${BASE_URL}/about/`,
@@ -272,6 +295,41 @@ const PAGES = [
     url: `${BASE_URL}/programming-advice/`,
     output: 'programming-advice/programming-advice-preview.png',
     title: 'Programming Wisdom'
+  },
+  {
+    url: `${BASE_URL}/pacman/`,
+    output: 'pacman/pacman-preview.png',
+    title: 'Pac-Man'
+  },
+  {
+    url: `${BASE_URL}/minesweeper/`,
+    output: 'minesweeper/minesweeper-preview.png',
+    title: 'Minesweeper'
+  },
+  {
+    url: `${BASE_URL}/sudoku/`,
+    output: 'sudoku/sudoku-preview.png',
+    title: 'Sudoku'
+  },
+  {
+    url: `${BASE_URL}/triplog/`,
+    output: 'triplog/triplog-preview.png',
+    title: 'Trip Log'
+  },
+  {
+    url: `${BASE_URL}/media-player/`,
+    output: 'media-player/media-player-preview.png',
+    title: 'Media Player'
+  },
+  {
+    url: `${BASE_URL}/vibe-coding/`,
+    output: 'vibe-coding/vibe-coding-preview.png',
+    title: 'Vibe Coding'
+  },
+  {
+    url: `${BASE_URL}/weather/`,
+    output: 'weather/weather-preview.png',
+    title: 'Weather'
   }
 ];
 
@@ -316,6 +374,21 @@ async function takeScreenshot(page, pageConfig) {
 
     // Wait another moment after closing modals
     await page.waitForTimeout(1000);
+
+    // Per-page setup hook — runs after the page has settled so it can
+    // do things like hiding capability-gate banners (e.g. the chat app's
+    // WebGPU error banner that always shows in headless Chromium) or
+    // dismissing onboarding panels that would otherwise dominate the
+    // OG image. Hooks are async so they can `await` style/eval calls.
+    if (typeof pageConfig.setup === 'function') {
+      try {
+        await pageConfig.setup(page);
+        // Brief wait so any layout reflow from the hook lands before capture.
+        await page.waitForTimeout(300);
+      } catch (err) {
+        console.warn(`   ⚠️  setup hook for ${pageConfig.title} threw: ${err.message}`);
+      }
+    }
 
     // Ensure output directory exists
     await ensureDirectoryExists(pageConfig.output);

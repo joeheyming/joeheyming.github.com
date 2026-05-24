@@ -33,7 +33,7 @@ body.mobile #touch-ui.hidden {
   justify-content: center;
   background: var(--doom-overlay, rgba(20, 20, 24, 0.55));
   border: 1px solid var(--doom-touch-border, rgba(255, 255, 255, 0.25));
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
   font-size: 20px;
   font-family: inherit;
   border-radius: 50%;
@@ -186,7 +186,7 @@ body.mobile.portrait #landscape-hint {
   position: fixed;
   inset: 0;
   z-index: 40;
-  background: var(--scrim-strong, rgba(11, 11, 15, 0.85));
+  background: var(--scrim-strong);
   align-items: center;
   justify-content: center;
   padding: 24px;
@@ -208,7 +208,7 @@ body.mobile.portrait #landscape-hint {
   background: var(--accent-dim);
   border: 1px solid var(--accent);
   border-radius: 3px;
-  color: var(--pure-white, #ffffff);
+  color: var(--pure-white);
   font-family: inherit;
   font-size: 12px;
 }

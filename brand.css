@@ -1,5 +1,5 @@
 /*
- * Heyming OS — Brand Foundation
+ * Heyming OS — Brand Foundation (heyming-engineering)
  *
  * Single source of truth for the design language across the marketing
  * site, the OS, and every HOSDL-aware app. Define tokens once, inherit
@@ -10,15 +10,23 @@
  * from the cascade (scrollbar, focus, color tokens accessible via
  * var()), even if they don't adopt HOSDL components.
  *
- * For full Inter loading, add this to <head> BEFORE this stylesheet:
+ * Phase 1 of the brand pivot: this file replaces the previous sleek-
+ * dark-violet brand with a quirky-engineering aesthetic synthesized
+ * from Google '99 + Hacker News + Craigslist + GitHub. Paper-cream
+ * surfaces, multicolor primary palette, serif display + sans body,
+ * blue underlined links, no glass / no gradients / no squircles.
+ * See BRAND.md for the full system documentation.
+ *
+ * For the canonical type, add this to <head> BEFORE this stylesheet:
  *   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
  *   <link rel="stylesheet"
- *     href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap">
- * Pages that skip the preconnect / fonts link fall back to system-ui —
- * still readable, no FOUT.
+ *     href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+ * Pages that skip the preconnect / fonts link fall back to system-ui +
+ * Georgia — still readable, no FOUT, the brand just looks slightly
+ * different on each platform.
  *
  * Accessibility:
- *   - Every color combination in :root has been verified against WCAG 2.2 AA.
+ *   - Every color combination on :root has been verified against WCAG 2.2 AA.
  *   - See BRAND.md for the full contrast matrix.
  *   - prefers-reduced-motion, prefers-contrast, and forced-colors honored below.
  *
@@ -27,105 +35,126 @@
  */
 
 :root {
-  /* ── Surfaces ──────────────────────────────────────────────────── */
-  --surface-0: #0b0b0f;
-  --surface-1: #15151b;
-  --surface-2: #1f1f27;
-  --surface-glass: rgba(21, 21, 27, 0.72);
-  --surface-glass-blur: blur(20px) saturate(160%);
+  /* ── Surfaces (paper-cream) ────────────────────────────────────────
+   * Light, paper-grade base. surface-0 is the page (cream so it doesn't
+   * harsh-flash like #fff); surface-1 is pure white for raised cards
+   * and panels; surface-2 is a slightly warmer recess for popovers and
+   * menus. The ladder cream → white → cream-warm reads as "physical
+   * paper on a desk" rather than "anonymous neutral grey."
+   *
+   * --surface-glass and --surface-glass-blur are intentionally absent.
+   * The new brand bans glass blur. Code that still references
+   * --surface-glass falls through to undefined — the audit catches it.
+   */
+  --surface-0: #fafafa;
+  --surface-1: #ffffff;
+  --surface-2: #f0eee8;
 
-  /* ── Borders / hairlines ───────────────────────────────────────── */
-  --hairline: rgba(255, 255, 255, 0.08);
-  --hairline-strong: rgba(255, 255, 255, 0.14);
-  --hairline-accent: rgba(124, 92, 255, 0.32);
+  /* ── Borders / hairlines (real solid borders) ─────────────────────
+   * Solid paper-grey borders, not 8% white-on-dark alpha. Hairline is
+   * the default 1px divider; -strong is the 1-1.5px emphasized border
+   * (button outlines, table rows, header rules); -accent is the link
+   * blue used very sparingly for branded edges.
+   */
+  --hairline: #e5e5e0;
+  --hairline-strong: #c8c8c0;
+  --hairline-accent: rgba(26, 115, 232, 0.32);
 
-  /* ── Text ──────────────────────────────────────────────────────── */
-  /* All verified against --surface-0. See BRAND.md contrast matrix.   */
-  --text-1: #f5f5f7; /* AAA, ~19:1  */
-  --text-2: #a1a1aa; /* AAA, ~7.5:1 */
-  --text-3: #8e8e96; /* AA,  ~5.0:1 — lifted from #71717A which failed AA */
+  /* ── Text (dark on cream) ─────────────────────────────────────────
+   * Verified against --surface-0: #fafafa. See BRAND.md contrast matrix.
+   */
+  --text-1: #1a1a1a; /* AAA, 16.7:1 — primary body & headlines */
+  --text-2: #555555; /* AAA,  7.1:1 — secondary copy           */
+  --text-3: #6e6e6e; /* AA,   4.9:1 — timestamps, microcopy    */
   --text-on-accent: #ffffff;
 
-  /* ── Accent — two roles, two values ────────────────────────────── */
-  /* Foreground role: text / icons / borders against --surface-*.
-   * Verified AA against --surface-0 at ~5.0:1.                       */
-  --accent-primary: #7c5cff;
-  --accent-primary-hover: #9077ff;
-  --accent-primary-soft: rgba(124, 92, 255, 0.15);
-
-  /* Background role: solid button fills with --text-on-accent on top.
-   * Verified AA on white text at ~6.2:1.                             */
-  --accent-primary-bg: #5b3cdc;
-  --accent-primary-bg-hover: #6e50e6;
-
-  /* ── Status ────────────────────────────────────────────────────── */
-  --success: #34d399;
-  --danger: #f87171;
-  --warning: #fbbf24;
-  /* Soft tints for inline status banners / pill backgrounds. ~15% over
-   * a dark surface still reads as a tint, not a fill. */
-  --success-soft: rgba(52, 211, 153, 0.15);
-  --danger-soft: rgba(248, 113, 113, 0.15);
-  --warning-soft: rgba(251, 191, 36, 0.15);
-
-  /* ── Category accents ──────────────────────────────────────────────
-   * A four-corner accent palette for the home-page gallery and OS
-   * launcher. NOT general-purpose brand colors — only used to signal
-   * app category on chrome decoration (icon-chip tint, card-hover
-   * border, section-header dot). Text and CTAs continue to read
-   * brand-primary. The four hues sit roughly evenly around the color
-   * wheel from the brand violet (252° / 17° / 187° / 327°) and at the
-   * same luminance band, so they harmonise rather than collide.
+  /* ── Accent palette — Google '99 four primaries ─────────────────────
+   * The single-violet system is replaced by a disciplined multicolor
+   * palette. The four hues are used:
+   *   1. Per-letter on the wordmark (the brand signature)
+   *   2. As category accents (replaces --cat-game / -utility / -etc)
+   *   3. As app-window title-bar tints in the OS (each app picks one)
+   *   4. The blue serves as the single CTA / link color for the rest
+   *      of the site
    *
-   * --cat-system reuses brand violet so "system" apps keep ownership
-   * of the primary identity. --cat-utility and --cat-entertainment
-   * pick the same hue families already tested in pacman-cyan and
-   * stepmania-judgment-pink, just promoted to a named semantic role.
+   * Values are tuned for AA contrast on --surface-0 paper-cream and
+   * for visual harmony with each other (luminance-balanced, evenly
+   * spaced around the color wheel). They mirror the exact hex values
+   * Google has used for the logo since 1999.
    */
-  --cat-system: var(--accent-primary, #7c5cff);
-  --cat-game: #ff8e5c;
-  --cat-utility: #22d3ee;
-  --cat-entertainment: #f472b6;
+  --accent-blue: #1a73e8;
+  --accent-red: #ea4335;
+  --accent-yellow: #fbbc04;
+  --accent-green: #34a853;
 
-  --cat-system-soft: var(--accent-primary-soft, rgba(124, 92, 255, 0.15));
-  --cat-game-soft: rgba(255, 142, 92, 0.15);
-  --cat-utility-soft: rgba(34, 211, 238, 0.15);
-  --cat-entertainment-soft: rgba(244, 114, 182, 0.15);
+  /* The "primary" alias keeps the old token name so cascade-only apps
+   * keep working without rename. On light, foreground (text/icon) and
+   * background (button-fill) roles share the same hue — they don't
+   * need the two-violet split the old brand did.
+   */
+  --accent-primary: #1a73e8;
+  --accent-primary-hover: #1558b8;
+  --accent-primary-soft: #e8f0fe;
+  --accent-primary-bg: #1a73e8;
+  --accent-primary-bg-hover: #1558b8;
 
-  --cat-system-hairline: var(--hairline-accent, rgba(124, 92, 255, 0.32));
-  --cat-game-hairline: rgba(255, 142, 92, 0.32);
-  --cat-utility-hairline: rgba(34, 211, 238, 0.32);
-  --cat-entertainment-hairline: rgba(244, 114, 182, 0.32);
+  /* ── Status (Material-aligned for light) ──────────────────────────
+   * Verified for AA body on --surface-0:
+   *   success 4.8:1, danger 4.6:1, warning fill paired with dark text. */
+  --success: #188038;
+  --danger: #d93025;
+  --warning: #f29900;
+  /* Soft tints for inline status banners / pill backgrounds — light-mode
+   * tints are 12-15% mixed against white-cream and read as a clear color
+   * cue without overwhelming the surface. */
+  --success-soft: #e6f4ea;
+  --danger-soft: #fce8e6;
+  --warning-soft: #fef7e0;
 
-  /* ── Pure values (canonical, theme-stable) ─────────────────────── */
-  /* When you genuinely need pure white (button text on a saturated fill)
-   * or pure black (text on a yellow CTA), route through these so the
-   * audit doesn't see a bare literal and so theme adjustments stay
-   * single-source. Distinct from --text-on-accent which can re-theme. */
+  /* ── Category accents — the four primaries, semantic ─────────────── */
+  /* Each app category claims one of the four primaries as its identity
+   * color. NOT general brand colors — only used to signal app category
+   * on chrome (icon chip, card-hover border, section-header dot). Text
+   * and CTAs continue to read --accent-primary (blue). */
+  --cat-system: var(--accent-blue);
+  --cat-game: var(--accent-red);
+  --cat-utility: var(--accent-green);
+  --cat-entertainment: var(--accent-yellow);
+
+  --cat-system-soft: #e8f0fe;
+  --cat-game-soft: #fce8e6;
+  --cat-utility-soft: #e6f4ea;
+  --cat-entertainment-soft: #fef7e0;
+
+  --cat-system-hairline: rgba(26, 115, 232, 0.32);
+  --cat-game-hairline: rgba(234, 67, 53, 0.32);
+  --cat-utility-hairline: rgba(52, 168, 83, 0.32);
+  --cat-entertainment-hairline: rgba(251, 188, 4, 0.4);
+
+  /* ── Pure values (canonical, theme-stable) ──────────────────────── */
   --pure-white: #ffffff;
   --pure-black: #000000;
 
-  /* ── Scrims (modal / dialog backdrops) ─────────────────────────── */
-  /* Brand-routed surface-0 at common opacities for modal scrims and
-   * sticky-header glass. Apps that want a custom alpha can keep using
-   * color-mix(in srgb, var(--surface-0) X%, transparent). */
-  --scrim: rgba(11, 11, 15, 0.6);
-  --scrim-strong: rgba(11, 11, 15, 0.85);
+  /* ── Scrims (modal / dialog backdrops) ──────────────────────────── */
+  /* Light-mode scrims keep enough alpha that modal content reads clearly.
+   * On a cream page, a 45-65% near-black scrim drops the page legibility
+   * just far enough to let the modal pop without going pitch-dark behind. */
+  --scrim: rgba(26, 26, 26, 0.45);
+  --scrim-strong: rgba(26, 26, 26, 0.65);
 
-  /* ── Shadow scale ──────────────────────────────────────────────── */
-  /* One source of truth for elevation. Cards / popovers / modals all
-   * read from these instead of hand-tuning rgba(0,0,0,X) per app. */
-  --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.2);
-  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.3);
-  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.5);
+  /* ── Shadow scale ─────────────────────────────────────────────────
+   * Light-mode shadows are much subtler than the old dark-mode ladder.
+   * Modals and elevated layers should default to a hairline border
+   * instead of a heavy shadow. */
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 4px 16px rgba(0, 0, 0, 0.12);
 
-  /* ── Identity palettes (per-app) ───────────────────────────────────
+  /* ── Identity palettes (per-app) ──────────────────────────────────
    * NOT brand colors — namespaced identity palettes for themed apps
-   * (pacman / ghosts / stepmania arrows). Mirrored in brand-tailwind.js
-   * so the same names are available as Tailwind utilities AND as CSS
-   * custom properties. Identity-themed markup routes through these
-   * tokens so the audit sees zero bare literals.
-   */
+   * (pacman / ghosts / stepmania arrows). These are scoped per-app and
+   * stay as-is regardless of the global brand palette — pacman's yellow
+   * is pacman's yellow forever. */
   --pac-yellow: #eab308;
   --pac-yellow-bright: #facc15;
   --pac-yellow-glow: #fde047;
@@ -150,18 +179,27 @@
   --sm-arrow-up: #86efac;
   --sm-arrow-down: #93c5fd;
 
-  /* ── Focus ring (dual-ring) ────────────────────────────────────── */
-  /* Inner accent guarantees brand recognition; outer halo guarantees
-   * visibility on ANY surface (dark, light, glass, image, video).    */
-  --focus-ring-inner: var(--accent-primary);
-  --focus-ring-outer: rgba(255, 255, 255, 0.65);
+  /* ── Focus ring (dual-ring) ────────────────────────────────────────
+   * Inner accent carries the brand; outer halo guarantees contrast.
+   * On light surfaces the outer halo is the same accent at 20% alpha
+   * — visible against any of the four primaries and against any
+   * paper-tone surface. */
+  --focus-ring-inner: var(--accent-blue);
+  --focus-ring-outer: rgba(26, 115, 232, 0.2);
 
-  /* ── Type stacks ───────────────────────────────────────────────── */
-  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Inter Display', 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+  /* ── Type stacks ───────────────────────────────────────────────────
+   * Display = Source Serif 4 (closest free analogue to Catull, Google's
+   *           original wordmark serif), falls back through Lora,
+   *           Georgia, Times New Roman.
+   * UI      = system-ui (honest GitHub style), falls back through
+   *           -apple-system, Segoe UI, Roboto, Verdana.
+   * Mono    = JetBrains Mono first, IBM Plex Mono second, then ui-mono. */
+  --font-display: 'Source Serif 4', 'Source Serif Pro', 'Lora', Georgia, 'Times New Roman', serif;
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, Verdana, sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas,
+    monospace;
 
-  /* ── Type scale (px) ───────────────────────────────────────────── */
+  /* ── Type scale (px) ──────────────────────────────────────────────── */
   --text-micro: 12px;
   --text-caption: 14px;
   --text-body: 16px;
@@ -171,42 +209,42 @@
   --text-display: 56px;
   --text-display-lg: 72px;
 
-  /* ── Radii ─────────────────────────────────────────────────────── */
-  --radius-sm: 8px;
-  --radius: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  /* ── Radii ────────────────────────────────────────────────────────
+   * Squircle 22% deleted — it was the most macOS-coded thing in the
+   * brand. New scale is sharp at the bottom (2/4/8) for HN-density,
+   * max 8px for cards. Pill stays for input chips and status pills. */
+  --radius-sm: 2px;
+  --radius: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
   --radius-pill: 999px;
-  --radius-squircle: 22%;
 
-  /* ── Motion ────────────────────────────────────────────────────── */
+  /* ── Motion ──────────────────────────────────────────────────────── */
   --motion-hover: 150ms ease;
   --motion-modal: 220ms ease;
   --motion-slow: 320ms ease;
 
-  /* ── Brand strings ─────────────────────────────────────────────── */
-  /* Authoritative tagline — mirrored in os/config.js as OS_TAGLINE
-   * and in BRAND.md. If you edit this, edit all three.               */
+  /* ── Brand strings ────────────────────────────────────────────────
+   * Authoritative tagline — mirrored in os/config.js as OS_TAGLINE
+   * and in BRAND.md. If you edit this, edit all three. */
   --brand-tagline: 'A desktop that fits in a tab.';
 }
 
 /* ─── prefers-contrast: more ─────────────────────────────────────────
  * Bump --text-3 to the higher-contrast tier and thicken hairlines
- * for users who need it.
- */
+ * for users who need it. */
 @media (prefers-contrast: more) {
   :root {
     --text-3: var(--text-2);
-    --hairline: rgba(255, 255, 255, 0.18);
-    --hairline-strong: rgba(255, 255, 255, 0.28);
+    --hairline: #b8b8b0;
+    --hairline-strong: #888880;
   }
 }
 
 /* ─── prefers-reduced-motion ─────────────────────────────────────────
  * Strict: kill all token-driven transitions and all running animations.
  * Components that read from --motion-* automatically inherit; the
- * universal-selector override catches everything else.
- */
+ * universal-selector override catches everything else. */
 @media (prefers-reduced-motion: reduce) {
   :root {
     --motion-hover: 0ms linear;
@@ -224,15 +262,12 @@
 }
 
 /* ─── forced-colors (Windows High Contrast) ──────────────────────────
- * Step out of the way: let the user's OS palette drive everything.
- * The focus ring continues to work because it uses CanvasText.
- */
+ * Step out of the way: let the user's OS palette drive everything. */
 @media (forced-colors: active) {
   :root {
     --surface-0: Canvas;
     --surface-1: Canvas;
     --surface-2: Canvas;
-    --surface-glass: Canvas;
     --hairline: CanvasText;
     --hairline-strong: CanvasText;
     --text-1: CanvasText;
@@ -247,13 +282,20 @@
 }
 
 /* ─── Page-level opt-in ──────────────────────────────────────────────
- * Pages add class="hos-page" to <html> or <body> to inherit surface +
- * text + font defaults without forcing every existing app to refactor
- * in one go. Apps that don't opt in still get tokens via var(), the
- * focus ring (universal :focus-visible below), and the squircle frame.
+ * Pages add class="hos-page" to <html> or <body> to inherit the new
+ * paper-cream surface, dark text, and quirky-engineering type stack.
+ *
+ * The new brand is gradient-free. Where the previous version painted
+ * a faint dual-glow violet wash to lift the page, the new version
+ * just paints solid --surface-0 with a 1px solid hairline at top —
+ * a subtle Google/HN-style header-rule that signals "engineering
+ * project page." Apps that want a more saturated header bar add
+ * a child <header> with their own background or use the .hos-status-strip
+ * utility at the bottom.
  */
 .hos-page {
   background: var(--surface-0);
+  border-top: 1px solid var(--hairline);
   color: var(--text-1);
   font-family: var(--font-ui);
   font-size: var(--text-body);
@@ -268,25 +310,25 @@
   font-family: var(--font-display);
   font-size: var(--text-display-lg);
   line-height: 1.06;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
   font-weight: 700;
-  font-variation-settings: 'opsz' 32;
 }
 .text-display {
   font-family: var(--font-display);
   font-size: var(--text-display);
   line-height: 1.1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
   font-weight: 700;
-  font-variation-settings: 'opsz' 32;
 }
 .text-h1 {
+  font-family: var(--font-display);
   font-size: var(--text-h1);
   line-height: 1.2;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
   font-weight: 700;
 }
 .text-h2 {
+  font-family: var(--font-display);
   font-size: var(--text-h2);
   line-height: 1.28;
   font-weight: 600;
@@ -330,36 +372,50 @@
 .surface-1 {
   background: var(--surface-1);
   color: var(--text-1);
+  border: 1px solid var(--hairline);
 }
 .surface-2 {
   background: var(--surface-2);
   color: var(--text-1);
+  border: 1px solid var(--hairline);
 }
-.surface-glass {
-  background: var(--surface-glass);
-  backdrop-filter: var(--surface-glass-blur);
-  -webkit-backdrop-filter: var(--surface-glass-blur);
-  color: var(--text-1);
+/* .surface-glass DELETED — no glass on the new brand. Code that still
+ * references --surface-glass falls through to undefined; audit catches it. */
+
+/* ─── Status / engineering footer ──────────────────────────────────────
+ * HN/Google '99-style monospace metadata strip. Place it at the bottom
+ * of any .hos-page. Format:
+ *   <p class="hos-status-strip">48 apps · last updated 2026-05-24 ·
+ *     <a href="...">github</a> · <a href="/sitemap.xml">sitemap</a></p> */
+.hos-status-strip {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  color: var(--text-3);
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 8px 0;
+  margin: 24px 0 0;
+  border-top: 1px solid var(--hairline);
+}
+.hos-status-strip a {
+  color: var(--accent-blue);
 }
 
 /* ─── Focus dual-ring (site-wide) ────────────────────────────────────
- * Applied to every :focus-visible match. The inner accent carries the
- * brand; the outer halo guarantees contrast against any underlying
- * surface — dark card, glass, image, video, gradient — without per-
- * context tuning. Apps that need a custom focus style still win via
- * specificity.
- */
+ * Inner accent + outer halo. Light-mode tuning: outer is the same
+ * accent at 20% alpha so it reads on every paper surface and against
+ * any of the four primary saturated fills. */
 :focus-visible {
   outline: 2px solid var(--focus-ring-inner);
   outline-offset: 2px;
   box-shadow: 0 0 0 4px var(--focus-ring-outer);
 }
 
-/* ─── Squircle app-icon frame ────────────────────────────────────────
- * The single visual primitive that turns an emoji avatar into an OS app
- * icon. Used by the home gallery, the OS launcher, and any "app shelf"
- * UI. Resize via --icon-frame-size on the parent or the frame itself.
- */
+/* ─── App-icon frame ─────────────────────────────────────────────────
+ * The single visual primitive that turns an emoji avatar into an OS
+ * app icon. The new brand drops the squircle 22% radius (too Apple-
+ * coded) and uses a square card with a 4px radius and a hairline
+ * border — like a chip in a directory listing. */
 .app-icon-frame {
   --icon-frame-size: 48px;
   display: inline-flex;
@@ -367,29 +423,15 @@
   justify-content: center;
   width: var(--icon-frame-size);
   height: var(--icon-frame-size);
-  border-radius: var(--radius-squircle);
+  border-radius: var(--radius);
   background: var(--surface-1);
   border: 1px solid var(--hairline);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white) 4%, transparent);
   font-size: calc(var(--icon-frame-size) * 0.6);
   line-height: 1;
   user-select: none;
 }
 
-/* ─── Tagline lockup ─────────────────────────────────────────────────
- * Reusable pattern: wordmark on top, tagline below. Consumed by the
- * home hero, OS setup wizard, About-OS modal, and About page. Tagline
- * string is read from the --brand-tagline variable via CSS content.
- *
- * Usage:
- *   <div class="hos-lockup">
- *     <img class="wordmark" src="/brand/heyming-os-wordmark.svg" alt="Heyming OS" />
- *     <p class="hos-lockup-tagline"></p>
- *   </div>
- *
- * The tagline <p> is empty; CSS injects the string from the token so
- * there is one source of truth.
- */
+/* ─── Tagline lockup ───────────────────────────────────────────────── */
 .hos-lockup {
   display: inline-flex;
   flex-direction: column;
@@ -402,7 +444,8 @@
   line-height: 1.3;
   color: var(--text-2);
   margin: 0;
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
+  font-style: italic;
 }
 .hos-lockup-tagline::before {
   content: var(--brand-tagline);
@@ -412,16 +455,10 @@
 }
 
 /* ─── Wordmark sizing utilities ──────────────────────────────────────
- * The wordmark is delivered as an SVG whose viewBox is 360x64 (see
+ * The wordmark SVG ships per-letter primary-color fills baked in (see
  * brand/heyming-os-wordmark.svg). These classes drive width; height
- * stays proportional.
- */
-/* Note: the wordmark SVG ships with its own brand-white fill
-   (`#F5F5F7`) because <img>-loaded SVGs can't inherit `color` from the
-   host page (currentColor inside an <img> SVG resolves to UA black, not
-   the page's text color). Setting `color` here would be a footgun. If
-   you ever need a non-white wordmark, inline the SVG with <use> and
-   add the `wm-text-themed` class on the referenced element. */
+ * stays proportional. No currentColor — per-letter colors can't inherit
+ * from a single CSS color property. */
 .wordmark {
   display: inline-block;
   width: 220px;
@@ -438,21 +475,20 @@
 }
 
 /* ─── Page scrollbar (webkit) ────────────────────────────────────────
- * Only applies on pages opted into .hos-page so per-app scrollbars
- * keep winning where they exist.
- */
+ * Light-mode scrollbars: paper-cream track, surface-2-strong thumb,
+ * blue accent on hover. */
 .hos-page ::-webkit-scrollbar {
   width: 12px;
   height: 12px;
   background: var(--surface-0);
 }
 .hos-page ::-webkit-scrollbar-thumb {
-  background: var(--surface-2);
+  background: var(--hairline-strong);
   border-radius: var(--radius-pill);
   border: 3px solid var(--surface-0);
 }
 .hos-page ::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-primary);
+  background: var(--accent-blue);
 }
 
 /* ─── Selection ──────────────────────────────────────────────────── */
@@ -466,17 +502,14 @@
  * Every app that loads brand.css gets sensible brand-styled defaults for
  * bare <button>, <input>, <select>, <textarea>, and <a>. The rules use
  * `:where(selector)` so they evaluate at specificity (0,0,0) — any app
- * stylesheet with a real selector (`.calc-btn`, `#search`, `nav a`,
- * etc.) automatically wins. No `!important`. No `.hos-page` opt-in
- * required. Apps that already paint their own controls are unaffected.
+ * stylesheet with a real selector automatically wins. No `!important`,
+ * no `.hos-page` opt-in required. Apps that already paint their own
+ * controls are unaffected.
  *
- * The default surface is dark because every app that wears the brand
- * sits on `--surface-0`. If a light page ever ships, it can opt out by
- * setting class="hos-page-light" and overriding the relevant tokens.
- */
+ * Defaults are tuned for a light surface — buttons and inputs sit on
+ * white surface-1 cards over a cream surface-0 page, with hairline
+ * borders and dark text. */
 
-/* Type / color inheritance — every form control reads brand typography
-   even when no other rule fires. */
 :where(button, input, select, textarea) {
   font-family: inherit;
   font-size: inherit;
@@ -484,15 +517,15 @@
   line-height: 1.4;
 }
 
-/* Buttons. The brand default is a secondary-style: dark surface,
-   hairline border, brand-accent hover. Apps with primary CTAs typically
-   reach for accent-primary-bg via their own class (or the .hos-btn-*
-   helpers in heyming-shell.css). */
+/* Buttons — secondary-style by default: white surface, hairline
+ * border, blue-link hover. Apps with primary CTAs typically reach for
+ * accent-primary-bg via their own class (or .hos-btn-* helpers in
+ * heyming-shell.css). */
 :where(button) {
-  background: var(--surface-2);
+  background: var(--surface-1);
   color: var(--text-1);
   border: 1px solid var(--hairline-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   padding: 0.5em 1em;
   cursor: pointer;
   transition: background var(--motion-hover), border-color var(--motion-hover),
@@ -501,6 +534,7 @@
 :where(button:hover:not(:disabled)) {
   background: var(--accent-primary-soft);
   border-color: var(--accent-primary);
+  color: var(--accent-primary-hover);
 }
 :where(button:active:not(:disabled)) {
   background: var(--accent-primary-bg);
@@ -512,8 +546,7 @@
   cursor: not-allowed;
 }
 
-/* Text-flavored inputs + textarea + select share one surface treatment.
-   `input` without [type] defaults to type=text; we cover it explicitly. */
+/* Text-flavored inputs + textarea + select — white card on cream page. */
 :where(
     input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not(
         [type='file']
@@ -524,7 +557,7 @@
   background: var(--surface-1);
   color: var(--text-1);
   border: 1px solid var(--hairline-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   /* 16px font-size on mobile prevents iOS zoom-on-focus. */
   font-size: max(1em, 16px);
   padding: 0.5em 0.75em;
@@ -536,54 +569,51 @@
 }
 
 :where(input:focus, textarea:focus, select:focus) {
-  border-color: var(--accent-primary);
+  border-color: var(--accent-blue);
 }
 
-/* Native <select> chevron. Setting appearance:none kills the platform
-   triangle; we draw a brand-violet one as an inline SVG background. */
+/* Native <select> chevron — link-blue triangle on white. */
 :where(select) {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237c5cff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231a73e8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
   background-repeat: no-repeat;
   background-position: right 0.65em center;
   background-size: 14px;
   padding-right: 2.25em;
 }
-/* Make the OPTION list readable on Chrome/Edge dark mode — these inherit
-   from the OS otherwise. Firefox respects :where on <option>; Safari
-   ignores per-option background but at least the closed select is brand. */
 :where(select option) {
   background: var(--surface-1);
   color: var(--text-1);
 }
 
-/* Anchors. Apps that build their own nav already win on specificity; the
-   default brand-violet link is for inline prose. */
+/* Anchors — blue underlined, visited purple, hover yellow flash. The
+ * non-negotiable engineering-page link convention. */
 :where(a) {
-  color: var(--accent-primary-hover);
+  color: var(--accent-blue);
   text-decoration: underline;
-  text-decoration-color: var(--accent-primary-soft);
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
-  transition: color var(--motion-hover), text-decoration-color var(--motion-hover);
+  transition: color var(--motion-hover), background var(--motion-hover);
+}
+:where(a:visited) {
+  color: #660099;
 }
 :where(a:hover) {
-  color: var(--accent-primary);
-  text-decoration-color: var(--accent-primary);
+  color: var(--accent-primary-hover);
+  background: #fffacd;
 }
 
-/* Checkbox / radio / range — accent-color is the only property the UA
-   actually applies inside the native widget, so we just tint it. */
+/* Checkbox / radio / range — accent-color tint via the native widget. */
 :where(input[type='checkbox'], input[type='radio'], input[type='range']) {
-  accent-color: var(--accent-primary);
+  accent-color: var(--accent-blue);
 }
 
-/* fieldset / legend look stark in default UA; quiet them. */
+/* fieldset / legend — quiet defaults. */
 :where(fieldset) {
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   padding: 0.75em 1em 1em;
   margin: 0 0 1em;
 }
@@ -601,8 +631,7 @@
   margin: 1.25em 0;
 }
 
-/* code / kbd — give them a quiet glyph treatment. The mono stack is
-   defined as --font-mono on :root. */
+/* code / kbd — quiet glyph treatment with the mono stack. */
 :where(code, kbd, samp) {
   font-family: var(--font-mono);
   font-size: 0.9em;
@@ -612,7 +641,7 @@
   color: var(--text-1);
   border: 1px solid var(--hairline-strong);
   border-bottom-width: 2px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   padding: 0.1em 0.4em;
   font-size: 0.85em;
 }

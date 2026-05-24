@@ -19,7 +19,7 @@
   --wordle-green: #16a34a;
   --wordle-yellow: #d4a017;
   --wordle-gray: #3a3a44;
-  --wordle-text-on-tile: var(--pure-white, #ffffff);
+  --wordle-text-on-tile: var(--pure-white);
   --wordle-text-on-tile-dark: #1a1a1a;
   --long-input-width: 182px;
 }
@@ -211,7 +211,7 @@ input.correct {
 
 input.correct::placeholder,
 input.incorrect::placeholder {
-  color: color-mix(in srgb, var(--pure-white, #ffffff) 85%, transparent);
+  color: color-mix(in srgb, var(--pure-white) 85%, transparent);
   opacity: 1;
 }
 
@@ -468,7 +468,7 @@ input:focus-visible {
   position: fixed;
   inset: 0;
   overflow: auto;
-  background-color: var(--scrim, rgba(11, 11, 15, 0.6));
+  background-color: var(--scrim);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   display: flex;
@@ -484,7 +484,7 @@ input:focus-visible {
   width: min(80vw, 720px);
   height: min(80vh, 640px);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-modal, 0 20px 60px rgba(0, 0, 0, 0.5));
+  box-shadow: var(--shadow-modal);
   color: var(--text-1);
 }
 

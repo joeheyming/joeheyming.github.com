@@ -1,9 +1,9 @@
 /* Stock Ticker — custom styles on top of Tailwind CDN. */
 
 :root {
-  --pos: var(--success, #34d399); /* data-viz: aligned to --success */
-  --neg: var(--danger, #f87171); /* data-viz: aligned to --danger */
-  --flat: var(--text-2, #a1a1aa); /* data-viz: text-2 mid */
+  --pos: var(--success); /* data-viz: aligned to --success */
+  --neg: var(--danger); /* data-viz: aligned to --danger */
+  --flat: var(--text-2); /* data-viz: text-2 mid */
 }
 
 body {
@@ -353,7 +353,7 @@ kbd {
   border-bottom: 1px solid var(--hairline);
 }
 #portfolio-table tbody tr:hover {
-  background: color-mix(in srgb, var(--pure-white) 4%, transparent);
+  background: var(--surface-2);
 }
 #portfolio-table tbody input {
   width: 100%;

@@ -1,24 +1,15 @@
 /* Heyming OS — first-run setup wizard.
  *
- * Color literals migrated to brand tokens. The backdrop is now a single
- * deep-violet glow over --surface-0 (was a tri-stop gradient). The
- * welcome step renders the wordmark lockup instead of a generic 👋 icon.
+ * Phase 4 of the brand pivot: backdrop is a flat paper-cream surface,
+ * the card is a flat raised white card with a thin hairline. No
+ * gradients, no glass blur. The welcome step renders the wordmark
+ * lockup instead of a generic 👋 icon.
  */
 
 .os-setup-bg {
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-      ellipse at 30% 20%,
-      color-mix(in srgb, var(--accent-primary) 35%, transparent) 0%,
-      color-mix(in srgb, var(--accent-primary) 0%, transparent) 55%
-    ),
-    radial-gradient(
-      ellipse at 75% 80%,
-      color-mix(in srgb, var(--accent-primary-bg) 25%, transparent) 0%,
-      color-mix(in srgb, var(--accent-primary-bg) 0%, transparent) 60%
-    ),
-    var(--surface-0);
+  background: var(--surface-0);
 }
 
 .os-setup-container {
@@ -31,14 +22,13 @@
 }
 
 .os-setup-card {
-  background: var(--surface-glass);
-  backdrop-filter: blur(24px);
+  background: var(--surface-1);
   border: 1px solid var(--hairline-strong);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   padding: 48px 40px 36px;
   max-width: 480px;
   width: 100%;
-  box-shadow: 0 24px 80px color-mix(in srgb, var(--pure-black) 50%, transparent);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--pure-black) 12%, transparent);
   text-align: center;
   animation: setupCardIn 0.4s ease-out;
 }

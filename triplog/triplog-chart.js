@@ -65,8 +65,8 @@ export function downsample(points, targetCount) {
 export function renderLineChart(opts) {
   const {
     points,
-    color = '#7c3aed',
-    fillColor = 'rgba(124, 58, 237, 0.15)',
+    color = '#1A73E8',
+    fillColor = 'rgba(26, 115, 232, 0.15)',
     width = 320,
     height = 120,
     title = 'Chart',
@@ -88,7 +88,7 @@ export function renderLineChart(opts) {
     text.setAttribute('y', String(height / 2));
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('dominant-baseline', 'middle');
-    text.setAttribute('fill', '#a1a1aa');
+    text.style.fill = 'var(--text-3)';
     text.setAttribute('font-size', '12');
     text.textContent = 'Not enough data';
     svg.appendChild(text);
@@ -163,7 +163,7 @@ export function renderLineChart(opts) {
     t.setAttribute('y', String(y));
     t.setAttribute('text-anchor', anchor);
     t.setAttribute('dominant-baseline', 'middle');
-    t.setAttribute('fill', '#71717a');
+    t.style.fill = 'var(--text-3)';
     t.setAttribute('font-size', '10');
     t.textContent = formatY(val);
     return t;
@@ -178,7 +178,7 @@ export function renderLineChart(opts) {
     t.setAttribute('x', String(x));
     t.setAttribute('y', String(height - 4));
     t.setAttribute('text-anchor', anchor);
-    t.setAttribute('fill', '#71717a');
+    t.style.fill = 'var(--text-3)';
     t.setAttribute('font-size', '10');
     t.textContent = formatX(val);
     return t;
@@ -202,7 +202,7 @@ export function renderLineChart(opts) {
     const dot = document.createElementNS(SVG_NS, 'circle');
     dot.setAttribute('r', '4');
     dot.setAttribute('fill', color);
-    dot.setAttribute('stroke', '#fff');
+    dot.style.stroke = 'var(--surface-1)';
     dot.setAttribute('stroke-width', '2');
     dot.setAttribute('opacity', '0');
     dot.setAttribute('pointer-events', 'none');

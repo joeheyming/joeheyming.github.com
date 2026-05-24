@@ -11,21 +11,14 @@
  * no module-level DOM refs — each function takes what it needs.
  */
 
-import {
-  METERS_PER_FOOT,
-  METERS_PER_KM,
-  METERS_PER_MILE,
-  UNITS
-} from './triplog-constants.js';
+import { METERS_PER_FOOT, METERS_PER_KM, METERS_PER_MILE, UNITS } from './triplog-constants.js';
 
 const STATUS_BASE = 'min-w-0 flex-1 break-words text-right empty:hidden text-xs sm:text-sm';
 
 /** @param {HTMLElement} el */
 export function setStatus(el, text, isError = false) {
   el.textContent = typeof text === 'string' ? text.trim() : String(text);
-  el.className = isError
-    ? `${STATUS_BASE} text-red-600 dark:text-red-400`
-    : `${STATUS_BASE} text-zinc-500 dark:text-zinc-400`;
+  el.className = isError ? `${STATUS_BASE} text-danger` : `${STATUS_BASE} text-text-3`;
 }
 
 /** @template T @param {string} id @returns {T} */

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Heyming OS — wordmark.
+  Heyming OS — wordmark (heyming-engineering brand).
 
   Two variants live in this single SVG via <symbol>:
-    #wordmark-horizontal — "heyming " os" on one line. Default render.
+    #wordmark-horizontal — "heyming · os" on one line. Default render.
     #wordmark-stacked    — "heyming" / "OS 1.0" two-line lockup. For
                            tall layouts (setup wizard, About-OS modal).
 
@@ -15,58 +15,67 @@
       <use href="/brand/heyming-os-wordmark.svg#wordmark-stacked" />
     </svg>
 
-  Coloring:
-    - Text fill is hardcoded to brand text-1 white (#F5F5F7). We used
-      to use currentColor and rely on the host page's color for theming,
-      but this wordmark is used everywhere as an img src and
-      currentColor inside an img-loaded SVG resolves to BLACK (the UA
-      default; an img cannot inherit color from the host). For the rare
-      inline-SVG case (svg/use href), a page can still override via the
-      .wm-text-themed class below.
-    - The accent dot is hardcoded violet (#7C5CFF) because the dot IS
-      the brand signature, and must stay violet on every surface to
-      preserve recognition.
+  Coloring — Google '99 four primaries, baked per-letter:
+    h(B) e(R) y(Y) m(B) i(G) n(R) g(B) · o(R) s(Y)
+    Where B=#1A73E8, R=#EA4335, Y=#FBBC04, G=#34A853, K=#1A1A1A.
+    The dot stays as the brand signature, recolored to black for
+    legibility against any of the four primaries.
+
+  These fills are intentionally hardcoded (not currentColor) because
+  per-letter colors cannot inherit from a single CSS color property,
+  and because the wordmark is loaded both as <img src> (where
+  currentColor resolves to UA black) and via <use href>. There is
+  intentionally no .wm-text-themed escape hatch on this brand —
+  the multicolor wordmark IS the brand.
 
   Font behavior:
-    - Renders in Inter Display when the page loads Inter; otherwise
-      falls back to the platform display sans (SF on Apple, Segoe UI
-      on Windows, Roboto on Android). The mark stays recognizable
-      across fallbacks because the layout, weight, tracking, and the
-      violet dot do the heavy lifting.
+    Renders in Source Serif 4 when the page loads it; otherwise falls
+    back through Lora, Georgia, Times New Roman. The mark stays
+    recognizable across fallbacks because the per-letter color pattern
+    does the heavy lifting.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 64" role="img" aria-label="Heyming OS">
   <defs>
     <style><![CDATA[
       .wm-text {
-        font-family: 'Inter Display', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        font-family: 'Source Serif 4', 'Source Serif Pro', 'Lora', Georgia, 'Times New Roman', serif;
         font-weight: 700;
-        letter-spacing: -0.025em;
-        fill: #F5F5F7;
-        font-variation-settings: 'opsz' 32;
+        letter-spacing: 0;
       }
       .wm-text-stacked-version {
-        font-family: ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+        font-family: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
         font-weight: 500;
         letter-spacing: 0;
-        fill: #F5F5F7;
+        fill: #1A1A1A;
       }
-      /* Opt-in escape hatch for inline-SVG hosts only — does not apply
-         when the wordmark is loaded via <img src=...>, because
-         currentColor inside an img-loaded SVG resolves to UA black. */
-      .wm-text-themed { fill: currentColor; }
     ]]></style>
 
     <symbol id="wordmark-horizontal" viewBox="0 0 360 64">
-      <text class="wm-text" x="0" y="48" font-size="48">heyming</text>
-      <circle cx="208" cy="30" r="6" fill="#7C5CFF" />
-      <text class="wm-text" x="228" y="48" font-size="48">os</text>
+      <text class="wm-text" x="0" y="48" font-size="48">
+        <tspan fill="#1A73E8">h</tspan><tspan fill="#EA4335">e</tspan><tspan fill="#FBBC04">y</tspan><tspan fill="#1A73E8">m</tspan><tspan fill="#34A853">i</tspan><tspan fill="#EA4335">n</tspan><tspan fill="#1A73E8">g</tspan>
+      </text>
+      <!--
+        The interpunct between "heyming" and "os" sits at cx=224 with a
+        ~22px clear-space cushion either side. Earlier (cx=208) it landed
+        right on top of the "g" whenever the font fell back from Source
+        Serif 4 to a wider serif (Lora, Georgia, Times New Roman). The
+        wider gap makes the position font-agnostic.
+      -->
+      <circle cx="224" cy="32" r="6" fill="#1A1A1A" />
+      <text class="wm-text" x="246" y="48" font-size="48">
+        <tspan fill="#EA4335">o</tspan><tspan fill="#FBBC04">s</tspan>
+      </text>
     </symbol>
 
     <symbol id="wordmark-stacked" viewBox="0 0 240 144">
-      <text class="wm-text" x="0" y="56" font-size="56">heyming</text>
-      <text class="wm-text" x="0" y="120" font-size="48" letter-spacing="0">OS</text>
-      <circle cx="92" cy="104" r="5" fill="#7C5CFF" />
-      <text class="wm-text-stacked-version" x="108" y="120" font-size="18">1.0</text>
+      <text class="wm-text" x="0" y="56" font-size="56">
+        <tspan fill="#1A73E8">h</tspan><tspan fill="#EA4335">e</tspan><tspan fill="#FBBC04">y</tspan><tspan fill="#1A73E8">m</tspan><tspan fill="#34A853">i</tspan><tspan fill="#EA4335">n</tspan><tspan fill="#1A73E8">g</tspan>
+      </text>
+      <text class="wm-text" x="0" y="124" font-size="48" letter-spacing="0">
+        <tspan fill="#EA4335">O</tspan><tspan fill="#FBBC04">S</tspan>
+      </text>
+      <circle cx="92" cy="108" r="5" fill="#1A1A1A" />
+      <text class="wm-text-stacked-version" x="108" y="124" font-size="18">1.0</text>
     </symbol>
   </defs>
 

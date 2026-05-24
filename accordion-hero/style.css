@@ -1,11 +1,11 @@
 :root {
   /* ── Brand-routed surfaces / text ─────────────────────────────── */
   --bg-0: #0b1020;
-  --bg-1: var(--surface-0, #0f172a);
-  --bg-2: var(--surface-1, #1e293b);
-  --fg: var(--text-1, #e2e8f0);
-  --fg-dim: var(--text-2, #94a3b8);
-  --accent: var(--accent-primary-hover, #9077ff);
+  --bg-1: var(--surface-0);
+  --bg-2: var(--surface-1);
+  --fg: var(--text-1);
+  --fg-dim: var(--text-2);
+  --accent: var(--accent-primary-hover);
 
   /* ── Accordion Hero scoped identity tokens ────────────────────── */
   --accent-2: #f472b6;
@@ -22,10 +22,10 @@
   --lane-chord: #c084fc;
 
   /* Judgment tiers (semantic mirrors of brand status hues) */
-  --judge-perfect: var(--success, #34d399);
+  --judge-perfect: var(--success);
   --judge-sub: #facc15;
   --judge-partial: #fb923c;
-  --judge-miss: var(--danger, #f87171);
+  --judge-miss: var(--danger);
 
   /* Lane bar (Stradella) palette: each row gets top/bottom/text/border. */
   --ah-lanebar-top: #0b1220;
@@ -76,7 +76,7 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: var(--surface-0, var(--bg-0));
+  background: var(--surface-0);
   color: var(--fg);
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   overflow: hidden;
@@ -110,7 +110,7 @@ body {
   margin: 0;
   font-size: clamp(20px, 3.6vw, 28px);
   letter-spacing: -0.01em;
-  color: var(--accent-primary, #7c5cff);
+  color: var(--accent-primary);
 }
 
 .ah-title > span {
@@ -274,8 +274,8 @@ body {
   padding: 14px 18px;
   font-size: 18px;
   font-weight: 700;
-  color: var(--text-on-accent, #fff);
-  background: var(--accent-primary-bg, #5b3cdc);
+  color: var(--text-on-accent);
+  background: var(--accent-primary-bg);
   border: none;
   border-radius: 12px;
   cursor: pointer;
@@ -439,7 +439,7 @@ body {
    * row-heavy songs don't eat the whole playfield. */
   height: clamp(110px, calc(var(--row-count, 1) * 44px + 28px), 280px);
   padding: 12px 14px;
-  background: linear-gradient(180deg, var(--ah-lanebar-top, #0b1220), var(--surface-1, #1f2937));
+  background: linear-gradient(180deg, var(--ah-lanebar-top, #0b1220), var(--surface-1));
   border-top: 1px solid var(--border);
   border-radius: 0 0 12px 12px;
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white) 5%, transparent),
@@ -463,8 +463,8 @@ body {
   border: 1px solid color-mix(in srgb, var(--ah-slate) 45%, transparent);
   /* Default look — bass-style silver palette. Per-row palettes below
    * override this for major/minor/dom7/dim7. */
-  background: linear-gradient(180deg, var(--ah-bass-light, #f8fafc), var(--text-1, #cbd5e1));
-  color: var(--surface-0, #0f172a);
+  background: linear-gradient(180deg, var(--ah-bass-light, #f8fafc), var(--text-1));
+  color: var(--surface-0);
   font-weight: 700;
   cursor: pointer;
   padding: 0;
@@ -489,9 +489,9 @@ body {
 /* ----- Per-row palettes (mirror /play/accordion/ stradella styling) ----- */
 
 .ah-col-btn[data-row='bass'] {
-  background: linear-gradient(180deg, var(--ah-bass-light, #f8fafc), var(--text-1, #cbd5e1));
-  color: var(--surface-0, #0f172a);
-  border-color: var(--text-3, #475569);
+  background: linear-gradient(180deg, var(--ah-bass-light, #f8fafc), var(--text-1));
+  color: var(--surface-0);
+  border-color: var(--text-3);
 }
 
 .ah-col-btn[data-row='counter-bass'] {
@@ -547,7 +547,7 @@ body {
     var(--ah-home-bottom, #fca5a5),
     var(--ah-home-active-bottom, #ef4444)
   );
-  color: var(--pure-white, #fff);
+  color: var(--pure-white);
 }
 
 .ah-col-name {
