@@ -8,14 +8,25 @@
  * so utility classes like `bg-pac-yellow`, `text-ghost-pinky-300`,
  * `border-pac-cyan/50` compile as expected.
  *
- * Lives here, not in brand-tailwind.js, because:
- *   - These hues belong to Pac-Man's identity, not the Heyming OS
- *     brand. The site-wide brand layer should not grow when a new
- *     themed app ships.
- *   - The Tailwind Play CDN reads `window.tailwind.config` whenever
- *     it JIT-compiles a utility class; per-app config that mutates
- *     the same object before <body> parses produces identical output
- *     to merging at the brand layer.
+ * Lives here, not in brand-tailwind.js, because these hues belong to
+ * Pac-Man's identity, not the Heyming OS brand. The site-wide brand
+ * layer should not grow when a new themed app ships.
+ *
+ * Implementation note — single top-level assignment matters.
+ *
+ * The Tailwind Play CDN wraps `window.tailwind.config` in a recursive
+ * Proxy whose `set` trap fires a full JIT rebuild and inserts a fresh
+ * <style> tag. That style insertion is itself a DOM mutation, which the
+ * CDN's MutationObserver picks up to schedule another rebuild. Mutating
+ * the live config object in place — `cfg.theme = ...; cfg.theme.extend
+ * = ...; cfg.theme.extend.colors = ...` — fires the trap on every
+ * nested set, producing a cascading rebuild storm that on heavy pages
+ * (e.g. /stepmania/, where an inline neon-palette script does the same
+ * chained-set pattern after this file) was enough to freeze the tab.
+ *
+ * The fix: read the current config, build a fresh merged tree off to
+ * the side, and assign it via ONE top-level write — exactly like
+ * /brand-tailwind.js does. That fires the proxy's `set` once.
  *
  * If you add a new themed app, mirror this pattern: create
  * <app>/<app>-tailwind.js, load it AFTER /brand-tailwind.js in the
@@ -56,13 +67,20 @@
 
   function applyConfig() {
     if (!window.tailwind) return false;
-    const cfg = (window.tailwind.config = window.tailwind.config || {});
-    cfg.theme = cfg.theme || {};
-    cfg.theme.extend = cfg.theme.extend || {};
-    cfg.theme.extend.colors = Object.assign({}, cfg.theme.extend.colors, {
-      pac: PAC,
-      ghost: GHOST
-    });
+    const cur = window.tailwind.config || {};
+    const theme = cur.theme || {};
+    const extend = theme.extend || {};
+    const colors = extend.colors || {};
+    window.tailwind.config = {
+      ...cur,
+      theme: {
+        ...theme,
+        extend: {
+          ...extend,
+          colors: { ...colors, pac: PAC, ghost: GHOST }
+        }
+      }
+    };
     return true;
   }
 

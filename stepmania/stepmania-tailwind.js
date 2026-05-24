@@ -1,24 +1,41 @@
 /*
  * StepMania identity palette — Tailwind extension.
  *
- * Used by /stepmania/. NOT brand colors. Loaded AFTER /brand-tailwind.js
- * (order enforced in stepmania/index.html): brand-tailwind.js installs
- * the global brand config, this file deep-merges the sm-arrow.* keys
- * into theme.extend.colors so utility classes like `text-sm-arrow-left`,
- * `bg-sm-arrow-up`, `border-sm-arrow-down` compile.
+ * Used by /stepmania/. NOT brand colors. Loaded AFTER /brand-tailwind.js:
+ * brand-tailwind.js installs the global brand config, this file rebuilds
+ * the config tree with sm-arrow.* keys merged into theme.extend.colors so
+ * utility classes like `text-sm-arrow-left`, `bg-sm-arrow-up`, and
+ * `border-sm-arrow-down` compile.
  *
- * Lives here, not in brand-tailwind.js, because the four arrow tints
- * belong to StepMania's identity, not the Heyming OS brand. The
- * site-wide brand layer should not grow when a new themed app ships.
+ * Implementation note — single top-level assignment matters.
  *
- * See /pacman/pacman-tailwind.js for the same pattern; mirror it for
- * any future themed app.
+ * The Tailwind Play CDN wraps `window.tailwind.config` in a recursive
+ * Proxy whose `set` trap fires a full JIT rebuild and inserts a fresh
+ * <style> tag. That style insertion is itself a DOM mutation, which the
+ * CDN's MutationObserver picks up and uses to schedule another rebuild.
+ *
+ * Because of that, mutating the live proxied config — e.g.
+ *   cfg.theme = ...; cfg.theme.extend = ...; cfg.theme.extend.colors = ...
+ * — fires the trap on every nested set, producing a cascade of rebuilds
+ * per call. Stepmania's existing inline `neon.*` script (loaded after
+ * this file) does the same chained-set pattern, and the page's runtime
+ * constantly toggles class attributes that the CDN's class-attr observer
+ * also reacts to. With the chained-set pattern, the combined storm was
+ * heavy enough to freeze the tab during init.
+ *
+ * The fix here: read the current config (a single get; nested values
+ * come back wrapped in proxies, but reads don't trigger Xf), build a
+ * fresh merged tree off to the side, and assign it via ONE top-level
+ * write. That fires the proxy's `set` once — exactly like
+ * /brand-tailwind.js's `window.tailwind.config = BRAND_CONFIG`.
+ *
+ * See /pacman/pacman-tailwind.js for the same pattern.
  */
 
 (function () {
-  // StepMania arrow tints — pastel red / yellow / green / blue,
-  // mapped to ←/→/↑/↓ on the simfile-input chip. AA-checked against
-  // dark-tile backgrounds in stepmania/css/components/.
+  // StepMania arrow tints — pastel red / yellow / green / blue, mapped
+  // to ←/→/↑/↓ on the simfile-input chip. AA-checked against dark-tile
+  // backgrounds in stepmania/css/components/.
   const SM_ARROW = {
     left: '#FCA5A5',
     right: '#FDE68A',
@@ -28,12 +45,20 @@
 
   function applyConfig() {
     if (!window.tailwind) return false;
-    const cfg = (window.tailwind.config = window.tailwind.config || {});
-    cfg.theme = cfg.theme || {};
-    cfg.theme.extend = cfg.theme.extend || {};
-    cfg.theme.extend.colors = Object.assign({}, cfg.theme.extend.colors, {
-      'sm-arrow': SM_ARROW
-    });
+    const cur = window.tailwind.config || {};
+    const theme = cur.theme || {};
+    const extend = theme.extend || {};
+    const colors = extend.colors || {};
+    window.tailwind.config = {
+      ...cur,
+      theme: {
+        ...theme,
+        extend: {
+          ...extend,
+          colors: { ...colors, 'sm-arrow': SM_ARROW }
+        }
+      }
+    };
     return true;
   }
 
