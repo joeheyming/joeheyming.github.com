@@ -592,8 +592,41 @@ btnTxt.addEventListener('click', downloadTxt);
 
 const btnTom = $id('btn-tom');
 const tomPip = $id('tom-pip');
-const tomIframe = $id('tom-iframe');
+const tomIframeSlot = $id('tom-iframe-slot');
 const TOM_VIDEO_ID = 'djV11Xbc914'; // a-ha — Take On Me (official)
+
+// Iframe permissions match countdown/components/youtube-player.js — the
+// short `allow="autoplay; encrypted-media"` list is what previously got
+// the embed blocked / sandboxed by extensions + COEP-strict browsers.
+const TOM_IFRAME_ALLOW = [
+  'accelerometer',
+  'autoplay',
+  'clipboard-write',
+  'encrypted-media',
+  'gyroscope',
+  'picture-in-picture',
+  'web-share'
+].join('; ');
+
+function mountTomIframe() {
+  tomIframeSlot.innerHTML = '';
+  const iframe = document.createElement('iframe');
+  iframe.id = 'tom-iframe';
+  // youtube.com/embed/ (not youtube-nocookie) — better extension compat.
+  iframe.src = `https://www.youtube.com/embed/${TOM_VIDEO_ID}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
+  iframe.title = 'Take On Me by a-ha';
+  iframe.allow = TOM_IFRAME_ALLOW;
+  iframe.allowFullscreen = true;
+  // `credentialless` lets the embed render even on pages served with
+  // Cross-Origin-Embedder-Policy: require-corp (no-op elsewhere).
+  iframe.setAttribute('credentialless', '');
+  iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+  tomIframeSlot.appendChild(iframe);
+}
+
+function unmountTomIframe() {
+  tomIframeSlot.innerHTML = '';
+}
 
 const BPM = 169;
 const BEAT = 60 / BPM;
@@ -723,7 +756,7 @@ function startTom() {
   tomRafId = requestAnimationFrame(tomTick);
   btnTom.classList.add('active');
   btnTom.setAttribute('aria-pressed', 'true');
-  tomIframe.src = `https://www.youtube-nocookie.com/embed/${TOM_VIDEO_ID}?autoplay=1&rel=0&modestbranding=1`;
+  mountTomIframe();
   tomPip.style.display = 'block';
   tomAudioCtx.suspend();
 }
@@ -735,7 +768,7 @@ function stopTom() {
     tomAudioCtx.close();
     tomAudioCtx = null;
   }
-  tomIframe.src = '';
+  unmountTomIframe();
   tomPip.style.display = 'none';
   if (tomBaseSettings) {
     Object.assign(cfg, tomBaseSettings);

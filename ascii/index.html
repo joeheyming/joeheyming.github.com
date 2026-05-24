@@ -130,14 +130,18 @@
         aria-hidden="true"
       ></video>
       <div id="tom-pip" aria-label="Take On Me music video" role="region">
-        <div id="tom-pip-label">a-ha — Take On Me</div>
-        <iframe
-          id="tom-iframe"
-          src=""
-          allow="autoplay; encrypted-media"
-          allowfullscreen
-          title="Take On Me by a-ha"
-        ></iframe>
+        <div id="tom-pip-label">
+          <span>a-ha — Take On Me</span>
+          <a
+            id="tom-yt-link"
+            href="https://www.youtube.com/watch?v=djV11Xbc914"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open Take On Me on YouTube in a new tab"
+            >YouTube ↗</a
+          >
+        </div>
+        <div id="tom-iframe-slot"></div>
       </div>
       <button id="btn-fullscreen" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button>
       <div id="overlay-msg" aria-live="polite"></div>

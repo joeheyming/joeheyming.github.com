@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <title>DOS Player Online — Play Classic MS-DOS Games in Browser</title>
+    <meta name="theme-color" content="#7C5CFF" />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta
+      name="description"
+      content="Free MS-DOS game player in your browser — load any DOS game zip from your computer or paste an Internet Archive item URL. Save states persist locally. No ads, no install, no third-party trackers. Open-source on GitHub."
+    />
+    <meta
+      name="keywords"
+      content="DOS emulator, DOS games online, MS-DOS in browser, js-dos, DOSBox browser, play DOS games, retro games, classic PC games, abandonware player, Internet Archive DOS, browser DOSBox, free DOS emulator, no ads"
+    />
+
+    <link
+      rel="icon"
+      id="site-favicon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💾</text></svg>"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="joeheyming.github.io" />
+    <meta property="og:title" content="💾 DOS Player — Play Classic MS-DOS Games in Browser" />
+    <meta
+      property="og:description"
+      content="Drop in any DOS game zip or paste an Internet Archive URL. Plays in your browser via js-dos/DOSBox. Saves persist locally. Free, ad-free, no install."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/dos/" />
+    <meta property="og:image" content="https://joeheyming.github.io/dos/dos-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="DOS Player — amber DOSBox terminal in the browser" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="💾 DOS Player — Play Classic MS-DOS Games in Browser" />
+    <meta
+      name="twitter:description"
+      content="Drop in any DOS game zip or paste an Internet Archive URL. Plays in your browser via js-dos/DOSBox. Saves persist locally. Free, ad-free, no install."
+    />
+    <meta name="twitter:image" content="https://joeheyming.github.io/dos/dos-preview.png" />
+
+    <link rel="canonical" href="https://joeheyming.github.io/dos/" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "DOS Player",
+        "applicationCategory": "GameApplication",
+        "operatingSystem": "Web Browser",
+        "url": "https://joeheyming.github.io/dos/",
+        "description": "Browser-based MS-DOS game player powered by js-dos and DOSBox-x. Load any DOS game zip from disk or paste an Internet Archive item URL.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "author": { "@type": "Person", "name": "Joe Heyming" }
+      }
+    </script>
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+    <script src="/proxy.js"></script>
+
+    <!-- Cross-origin isolation: js-dos uses SharedArrayBuffer for its
+         pthread workers, which requires COOP+COEP headers. GitHub Pages
+         doesn't let us set headers, so coi-serviceworker injects them on
+         the next navigation after install. Same pattern as doom/. -->
+    <script src="/coi-serviceworker.js"></script>
+
+    <!-- js-dos v8 — open-source DOSBox-x compiled to WASM. Pinned via
+         jsDelivr to specific npm package versions so a future upstream
+         release can't silently break us. `emulators@8.3.8` matches the
+         version `js-dos@8.3.20` was built against (per its package.json
+         devDependencies); keep them aligned when bumping. The matching
+         `pathPrefix` lives in `dos/jsdos-host.js`. -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/js-dos@8.3.20/dist/js-dos.css" />
+    <script src="https://cdn.jsdelivr.net/npm/js-dos@8.3.20/dist/js-dos.js"></script>
+
+    <!-- JSZip — needed to repack a user-supplied game zip with a
+         dynamically generated .jsdos/dosbox.conf so js-dos knows what
+         to boot. Pinned to a specific version for reproducibility. -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+    <!-- Brand foundation: Inter / JetBrains Mono + brand tokens. Loaded
+         before the per-app stylesheet so the brand cascade is the base. -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+
+    <link rel="stylesheet" href="./index.css" />
+  </head>
+
+  <body>
+    <main id="app">
+      <header class="app-header">
+        <h1 class="app-title">
+          <span class="app-icon" aria-hidden="true">💾</span>
+          DOS Player
+        </h1>
+        <p class="app-tagline">Pick a game. Plays in your browser. Saves stay on this device.</p>
+      </header>
+
+      <section id="launcher" class="launcher">
+        <div class="status" id="status" role="status" aria-live="polite"></div>
+
+        <h2 class="section-title">Catalog</h2>
+        <div class="catalog" id="catalog"></div>
+
+        <section class="library-section" id="librarySection" hidden>
+          <h2 class="section-title">Your library</h2>
+          <div class="library" id="library"></div>
+        </section>
+
+        <details class="advanced">
+          <summary>
+            <span class="advanced-summary-text">Add a custom game</span>
+            <span class="advanced-summary-hint">URL or local file</span>
+          </summary>
+
+          <div class="advanced-body">
+            <div class="advanced-tabs" role="tablist">
+              <button type="button" class="tab is-active" data-tab="url" role="tab">
+                From URL
+              </button>
+              <button type="button" class="tab" data-tab="file" role="tab">From file</button>
+            </div>
+
+            <div class="tab-panel is-active" data-panel="url">
+              <label class="field">
+                <span class="field-label">Internet Archive item or direct .zip / .jsdos URL</span>
+                <input
+                  type="url"
+                  id="urlInput"
+                  placeholder="https://archive.org/details/msdos_…"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </label>
+              <p class="field-hint">
+                Paste any
+                <code>archive.org/details/…</code>
+                page — we'll find the playable file in the item and cache it locally after the first
+                load.
+              </p>
+              <div class="row">
+                <button type="button" class="primary" id="loadUrlBtn">Load &amp; play</button>
+              </div>
+            </div>
+
+            <div class="tab-panel" data-panel="file">
+              <div class="dropzone" id="dropzone" tabindex="0">
+                <div class="dropzone-inner">
+                  <strong>Drop a .zip or .jsdos here</strong>
+                  <span>or click to browse</span>
+                </div>
+                <input type="file" id="fileInput" accept=".zip,.jsdos,application/zip" hidden />
+              </div>
+              <p class="field-hint">
+                Game files stay on your device. Nothing uploads anywhere — DOSBox runs in this tab.
+              </p>
+            </div>
+          </div>
+        </details>
+
+        <details class="info">
+          <summary>How this works</summary>
+          <ul>
+            <li>
+              Powered by
+              <a href="https://js-dos.com/" target="_blank" rel="noopener">js-dos v8</a>
+              — DOSBox-x compiled to WebAssembly. Runs entirely in your browser.
+            </li>
+            <li>
+              Catalog games are pulled from
+              <a
+                href="https://archive.org/details/softwarelibrary_msdos_games"
+                target="_blank"
+                rel="noopener"
+              >
+                Internet Archive's MS-DOS library
+              </a>
+              on demand. Once cached they're instant and work offline.
+            </li>
+            <li>
+              Save files persist per game in IndexedDB on this device. Hit
+              <strong>← Back to catalog</strong>
+              to snapshot the game state.
+            </li>
+            <li>
+              First-ever visit reloads once so the cross-origin-isolation service worker can take
+              effect. After that, the player launches immediately.
+            </li>
+          </ul>
+        </details>
+      </section>
+
+      <section id="player" class="player" hidden>
+        <div class="player-toolbar">
+          <button type="button" id="exitBtn" class="ghost">← Back to catalog</button>
+          <span class="player-title" id="playerTitle"></span>
+          <button type="button" id="fullscreenBtn" class="ghost">Fullscreen</button>
+        </div>
+        <div class="dos-host" id="dosHost"></div>
+      </section>
+    </main>
+
+    <script type="module" src="./index.js"></script>
+  </body>
+</html>

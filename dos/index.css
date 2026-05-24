@@ -1,0 +1,830 @@
+/* DOS Player — amber-on-black DOSBox vibe with modern readable chrome.
+   Layout works full-bleed (player) or as a centered card (launcher). */
+
+:root {
+  --dos-bg: #0a0805;
+  --dos-bg-panel: #15110a;
+  --dos-bg-elev: #1c170d;
+  --dos-border: #3a2d14;
+  --dos-border-hot: #6b5021;
+  --dos-amber: #f59e0b;
+  --dos-amber-soft: #fbbf24;
+  --dos-amber-dim: #b45309;
+  --dos-text: #f3e9d0;
+  --dos-text-dim: #b8a878;
+  --dos-text-muted: #7c6c45;
+  --dos-danger: #f87171;
+  --dos-success: #84cc16;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', 'Liberation Mono', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--dos-bg);
+  color: var(--dos-text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100vh;
+  /* Subtle horizontal scanline texture — gives the page CRT character
+     without hurting text readability. Keeps OG screenshot interesting. */
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgba(245, 158, 11, 0.025) 0px,
+    rgba(245, 158, 11, 0.025) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+a {
+  color: var(--dos-amber);
+}
+a:hover {
+  color: var(--dos-amber-soft);
+}
+
+code {
+  font-family: var(--font-mono);
+  background: var(--dos-bg-elev);
+  border: 1px solid var(--dos-border);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--dos-amber-soft);
+  font-size: 0.9em;
+}
+
+#app {
+  max-width: 760px;
+  margin: 0 auto;
+  /* 64px top clears the back-button (44px tall + 20px top + gap). */
+  padding: 64px 20px 40px;
+}
+
+#app.is-playing {
+  max-width: none;
+  padding: 0;
+}
+
+.app-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.app-title {
+  margin: 0 0 6px;
+  font-family: var(--font-mono);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--dos-amber);
+  text-shadow: 0 0 14px rgba(245, 158, 11, 0.35);
+}
+
+.app-icon {
+  font-family: var(--font-sans);
+  display: inline-block;
+  margin-right: 6px;
+  transform: translateY(-2px);
+}
+
+.app-tagline {
+  margin: 0;
+  color: var(--dos-text-dim);
+  font-size: 14px;
+}
+
+.section-title {
+  margin: 28px 0 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dos-amber-dim);
+}
+
+.section-title:first-of-type {
+  margin-top: 8px;
+}
+
+/* ----- Catalog grid ----- */
+
+.catalog {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  background: var(--dos-bg-panel);
+  border: 1px solid var(--card-border, var(--dos-border));
+  border-radius: 6px;
+  padding: 18px 18px 16px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  transition: border-color 140ms, transform 140ms, box-shadow 140ms;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at top right,
+    var(--card-glow, transparent) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+  opacity: 0.5;
+  transition: opacity 140ms;
+}
+
+.card:hover,
+.card:focus-visible {
+  outline: none;
+  border-color: var(--card-border-hot, var(--dos-border-hot));
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.card:hover::before,
+.card:focus-visible::before {
+  opacity: 1;
+}
+
+.card[data-state='loading'] {
+  cursor: progress;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.card-icon {
+  font-size: 32px;
+  line-height: 1;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.25));
+}
+
+.card-name {
+  margin: 0 0 4px;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--dos-text);
+  letter-spacing: 0.01em;
+}
+
+.card-meta {
+  margin: 0 0 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dos-text-muted);
+}
+
+.card-blurb {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dos-text-dim);
+  flex: 1;
+}
+
+.card-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.card-action {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dos-amber);
+}
+
+.card-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dos-text-muted);
+  padding: 3px 7px;
+  border: 1px solid var(--dos-border);
+  border-radius: 3px;
+}
+
+.card-badge[data-state='cached'] {
+  color: var(--dos-success);
+  border-color: rgba(132, 204, 22, 0.4);
+}
+
+.card-progress {
+  width: 100%;
+  height: 3px;
+  background: var(--dos-bg);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.card-progress span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--dos-amber);
+  transition: width 200ms ease-out;
+}
+
+/* Indeterminate state — used when the download is routed through a CORS
+   proxy and we can't compute real percentages. A 40% strip slides across
+   the bar so the user can see *something* is happening. */
+.card-progress.is-indeterminate {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-progress.is-indeterminate span {
+  width: 40%;
+  transform: translateX(-100%);
+  animation: card-progress-indeterminate 1.4s ease-in-out infinite;
+  transition: none;
+}
+
+@keyframes card-progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.card[data-accent='amber'] {
+  --card-border: rgba(245, 158, 11, 0.25);
+  --card-border-hot: rgba(245, 158, 11, 0.6);
+  --card-glow: rgba(245, 158, 11, 0.08);
+}
+
+.card[data-accent='rust'] {
+  --card-border: rgba(194, 65, 12, 0.3);
+  --card-border-hot: rgba(234, 88, 12, 0.65);
+  --card-glow: rgba(194, 65, 12, 0.1);
+}
+
+.card[data-accent='slate'] {
+  --card-border: rgba(100, 116, 139, 0.3);
+  --card-border-hot: rgba(148, 163, 184, 0.6);
+  --card-glow: rgba(100, 116, 139, 0.1);
+}
+
+.card[data-accent='olive'] {
+  --card-border: rgba(132, 204, 22, 0.25);
+  --card-border-hot: rgba(132, 204, 22, 0.55);
+  --card-glow: rgba(132, 204, 22, 0.08);
+}
+
+.card[data-accent='plum'] {
+  --card-border: rgba(168, 85, 247, 0.25);
+  --card-border-hot: rgba(168, 85, 247, 0.55);
+  --card-glow: rgba(168, 85, 247, 0.1);
+}
+
+.card[data-accent='teal'] {
+  --card-border: rgba(20, 184, 166, 0.3);
+  --card-border-hot: rgba(45, 212, 191, 0.6);
+  --card-glow: rgba(20, 184, 166, 0.1);
+}
+
+.card[data-accent='crimson'] {
+  --card-border: rgba(220, 38, 38, 0.3);
+  --card-border-hot: rgba(248, 113, 113, 0.6);
+  --card-glow: rgba(220, 38, 38, 0.1);
+}
+
+.library-section {
+  margin-top: 8px;
+}
+
+/* ----- Advanced disclosure ----- */
+
+.advanced {
+  margin-top: 28px;
+  background: var(--dos-bg-panel);
+  border: 1px solid var(--dos-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.advanced > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 14px 16px;
+  user-select: none;
+}
+
+.advanced > summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced > summary::before {
+  content: '▸';
+  color: var(--dos-amber-dim);
+  font-size: 11px;
+  transition: transform 140ms;
+  margin-right: 2px;
+}
+
+.advanced[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.advanced-summary-text {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--dos-text);
+}
+
+.advanced-summary-hint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--dos-text-muted);
+}
+
+.advanced-body {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--dos-border);
+}
+
+.advanced-tabs {
+  display: flex;
+  gap: 0;
+  margin: 8px 0 14px;
+  border-bottom: 1px solid var(--dos-border);
+}
+
+.tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--dos-text-muted);
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 120ms, border-color 120ms;
+}
+
+.tab:hover {
+  color: var(--dos-text-dim);
+}
+
+.tab.is-active {
+  color: var(--dos-amber);
+  border-bottom-color: var(--dos-amber);
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.is-active {
+  display: block;
+}
+
+.field {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dos-text-dim);
+}
+
+.field input[type='url'],
+.field input[type='text'] {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--dos-bg);
+  border: 1px solid var(--dos-border);
+  border-radius: 4px;
+  color: var(--dos-text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  transition: border-color 120ms;
+}
+
+.field input[type='url']:focus,
+.field input[type='text']:focus {
+  outline: none;
+  border-color: var(--dos-amber);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+.field-hint {
+  margin: 8px 0 16px;
+  color: var(--dos-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+button.primary,
+button.ghost {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 10px 18px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 120ms, color 120ms, border-color 120ms;
+  min-height: 40px;
+}
+
+button.primary {
+  background: var(--dos-amber);
+  color: #1a1206;
+  border: 1px solid var(--dos-amber-soft);
+  text-transform: uppercase;
+}
+
+button.primary:hover {
+  background: var(--dos-amber-soft);
+}
+
+button.primary:disabled {
+  background: var(--dos-border);
+  color: var(--dos-text-muted);
+  border-color: var(--dos-border);
+  cursor: not-allowed;
+}
+
+button.ghost {
+  background: transparent;
+  color: var(--dos-text-dim);
+  border: 1px solid var(--dos-border);
+}
+
+button.ghost:hover {
+  color: var(--dos-amber);
+  border-color: var(--dos-border-hot);
+}
+
+.dropzone {
+  position: relative;
+  border: 2px dashed var(--dos-border);
+  border-radius: 6px;
+  padding: 36px 20px;
+  text-align: center;
+  background: var(--dos-bg);
+  cursor: pointer;
+  transition: border-color 120ms, background 120ms;
+}
+
+.dropzone:hover,
+.dropzone:focus,
+.dropzone.is-dragging {
+  outline: none;
+  border-color: var(--dos-amber);
+  background: rgba(245, 158, 11, 0.04);
+}
+
+.dropzone-inner strong {
+  display: block;
+  color: var(--dos-text);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.dropzone-inner span {
+  color: var(--dos-text-muted);
+  font-size: 13px;
+}
+
+.library {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.library-empty {
+  color: var(--dos-text-muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 20px 0;
+  margin: 0;
+}
+
+.library-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--dos-bg);
+  border: 1px solid var(--dos-border);
+  border-radius: 4px;
+  transition: border-color 120ms;
+}
+
+.library-row:hover {
+  border-color: var(--dos-border-hot);
+}
+
+.library-name {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--dos-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-size {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--dos-text-muted);
+}
+
+.library-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.library-actions button {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid var(--dos-border);
+  border-radius: 3px;
+  color: var(--dos-text-dim);
+  cursor: pointer;
+}
+
+.library-actions button:hover {
+  color: var(--dos-amber);
+  border-color: var(--dos-border-hot);
+}
+
+.library-actions button.danger:hover {
+  color: var(--dos-danger);
+  border-color: var(--dos-danger);
+}
+
+.status {
+  margin-top: 14px;
+  min-height: 22px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--dos-text-dim);
+  text-align: center;
+}
+
+.status[data-tone='error'] {
+  color: var(--dos-danger);
+}
+
+.status[data-tone='success'] {
+  color: var(--dos-success);
+}
+
+.status .progress {
+  display: inline-block;
+  min-width: 4ch;
+  color: var(--dos-amber);
+}
+
+.info {
+  margin-top: 24px;
+  background: var(--dos-bg-panel);
+  border: 1px solid var(--dos-border);
+  border-radius: 6px;
+  padding: 12px 16px;
+}
+
+.info summary {
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--dos-amber-dim);
+  list-style: none;
+}
+
+.info summary::-webkit-details-marker {
+  display: none;
+}
+
+.info summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 8px;
+  transition: transform 120ms;
+}
+
+.info[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.info ul {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  color: var(--dos-text-dim);
+  font-size: 13px;
+}
+
+.info li {
+  margin-bottom: 6px;
+}
+
+/* ----- Player view ----- */
+
+.player {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.player-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--dos-bg-panel);
+  border-bottom: 1px solid var(--dos-border);
+  flex-shrink: 0;
+}
+
+.player-title {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--dos-text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.dos-host {
+  flex: 1;
+  min-height: 0;
+  background: #000;
+  position: relative;
+}
+
+/* js-dos v8 mounts its UI as a flex root — ensure it fills the host. */
+.dos-host > .jsdos-rso {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Click-to-start overlay. WebAudio's AudioContext starts in a
+   suspended state and only unlocks when a real user gesture handler
+   calls resume(). With js-dos's sidebar hidden by `kiosk: true`, the
+   page has no inviting click target, so we lay our own button across
+   the emulator. Tapping it counts as the gesture, removes itself,
+   and focuses the canvas. */
+.jsdos-click-to-start {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+  /* Soft fade-in keeps it from punching in jarringly before the canvas. */
+  animation: jsdos-click-to-start-fade-in 180ms ease-out;
+}
+
+.jsdos-click-to-start:hover,
+.jsdos-click-to-start:focus-visible {
+  background: rgba(0, 0, 0, 0.74);
+  outline: none;
+}
+
+.jsdos-click-to-start-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 24px 32px;
+  border-radius: 10px;
+  background: rgba(124, 92, 255, 0.18);
+  border: 1px solid rgba(124, 92, 255, 0.45);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.jsdos-click-to-start-icon {
+  font-size: 2.8rem;
+  line-height: 1;
+}
+
+.jsdos-click-to-start-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.jsdos-click-to-start-sub {
+  font-size: 0.85rem;
+  font-weight: 400;
+  opacity: 0.78;
+  letter-spacing: 0;
+}
+
+@keyframes jsdos-click-to-start-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ----- Mobile ----- */
+
+@media (max-width: 640px) {
+  #app {
+    padding: 56px 14px 24px;
+  }
+
+  .app-title {
+    font-size: 26px;
+  }
+
+  .loader-card {
+    padding: 16px;
+  }
+
+  .tab {
+    font-size: 11px;
+    padding: 10px 6px;
+    letter-spacing: 0.04em;
+  }
+
+  .player-toolbar {
+    padding: 8px 10px;
+  }
+
+  .player-title {
+    font-size: 11px;
+  }
+}
