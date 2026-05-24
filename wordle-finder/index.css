@@ -196,11 +196,19 @@ input.correct {
   background-color: var(--wordle-green);
 }
 
+/* The five letter-tiles render as 44×44 squares — discrete typing cells,
+ * not styled inputs. brand.css applies a default 0.5em 0.75em padding to
+ * every text-flavored input via a :where() rule at zero specificity; that
+ * default is right for prose forms but wrong for these tiles, where it
+ * inflates each cell's min-content width and pushes the grid past the
+ * mobile viewport (the "yellow squares scrolling off-screen" bug).
+ * Explicitly zero padding here so the tile shape stays. */
 .corrects input {
   width: 44px;
   height: 44px;
   min-width: 44px;
   min-height: 44px;
+  padding: 0;
 }
 
 input.correct {
@@ -230,6 +238,7 @@ input.incorrect {
   height: 44px;
   min-width: 44px;
   min-height: 44px;
+  padding: 0;
 }
 
 .form-input.form-grid {
@@ -707,10 +716,16 @@ footer {
     width: 100%;
   }
 
+  /* min-width: 0 (not unset) is intentional. `unset` falls through to the
+   * initial value of `min-width`, which is `auto`, and `min-width: auto`
+   * on a grid item means "content's min-content size" — the tile would
+   * refuse to shrink below the implicit width of `<input size="5">` on
+   * iOS Safari and overflow the row. Forcing 0 lets `repeat(5, 1fr)`
+   * actually distribute equally on narrow viewports. */
   .corrects input,
   .maybecorrects input {
     width: auto;
-    min-width: unset;
+    min-width: 0;
   }
 
   .form-controls {

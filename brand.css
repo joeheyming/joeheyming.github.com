@@ -150,34 +150,11 @@
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow-modal: 0 4px 16px rgba(0, 0, 0, 0.12);
 
-  /* ── Identity palettes (per-app) ──────────────────────────────────
-   * NOT brand colors — namespaced identity palettes for themed apps
-   * (pacman / ghosts / stepmania arrows). These are scoped per-app and
-   * stay as-is regardless of the global brand palette — pacman's yellow
-   * is pacman's yellow forever. */
-  --pac-yellow: #eab308;
-  --pac-yellow-bright: #facc15;
-  --pac-yellow-glow: #fde047;
-  --pac-cyan: #22d3ee;
-  --pac-cyan-deep: #06b6d4;
-  --pac-cyan-glow: #67e8f9;
-  --pac-red: #ef4444;
-  --pac-red-hot: #ff3030;
-  --pac-amber: #ffaa00;
-  --pac-orange-fruit: #fb923c;
-  --pac-radioactive: #82e000;
-
-  --ghost-pinky: #ff80ff;
-  --ghost-pinky-soft: #f9a8d4;
-  --ghost-pinky-300: #f0abfc;
-  --ghost-inky: #67e8f9;
-  --ghost-blinky: #ef4444;
-  --ghost-clyde: #fb923c;
-
-  --sm-arrow-left: #fca5a5;
-  --sm-arrow-right: #fde68a;
-  --sm-arrow-up: #86efac;
-  --sm-arrow-down: #93c5fd;
+  /* Per-app identity palettes (Pac-Man yellow, ghost colors, StepMania
+   * arrow tints, ...) deliberately do NOT live in the brand layer.
+   * They're declared in <app>/style.css :root or in
+   * <app>/<app>-tailwind.js. The brand layer doesn't grow when a new
+   * themed app ships. See BRAND.md → "Per-app identity palettes". */
 
   /* ── Focus ring (dual-ring) ────────────────────────────────────────
    * Inner accent carries the brand; outer halo guarantees contrast.
@@ -228,16 +205,198 @@
    * Authoritative tagline — mirrored in os/config.js as OS_TAGLINE
    * and in BRAND.md. If you edit this, edit all three. */
   --brand-tagline: 'A desktop that fits in a tab.';
+
+  /* ── color-scheme ─────────────────────────────────────────────────
+   * Tells the browser this surface is light, so native UI (page-level
+   * scrollbars, default form controls, autofill bg, the date-picker
+   * popover, scrollbar-color "auto", etc.) renders in its light
+   * variant. The dark override below flips this to "dark" so OS-native
+   * scrollbars and form widgets follow the page theme. Without this
+   * declaration browsers default to light, painting a light scrollbar
+   * over a near-black page in dark mode. */
+  color-scheme: light;
+}
+
+/* ─── Dark theme ─────────────────────────────────────────────────────
+ * Theme #2. Two activation paths share the same token block:
+ *
+ *   1. Manual override — user toggles the home-page switcher, which sets
+ *      <html data-theme="dark">. Wins absolute regardless of OS preference.
+ *   2. OS preference — when no explicit choice is made, prefers-color-scheme
+ *      auto-routes onto these same values. The :not([data-theme="light"])
+ *      guard lets the Light option in the home toggle override OS dark.
+ *
+ * What changes:
+ *   - Surfaces invert ladder-wise (deep ink page, slightly-lifted cards,
+ *     a recess one step further). Not pure black: harsh CRT, fails
+ *     gradient-soft shadows.
+ *   - Text bumps to a near-white off the GitHub dimmed scale, with
+ *     secondary/tertiary stepped to keep AA on surface-1.
+ *   - Accent blue gets lifted (#4f8cff) so links clear AA on dark cards
+ *     without driving people insane the way pure-blue links do on dark.
+ *   - Status colors lift to their dark-mode tier; *-soft tints become
+ *     deep tinted slabs sitting two notches off the page.
+ *   - Scrim alpha increases so modals still part the surface visibly
+ *     on a near-black page.
+ *   - Shadows deepen but stay pure-black — see "pure-black/white policy"
+ *     in BRAND.md, those tokens are theme-stable.
+ *
+ * What does NOT change:
+ *   - --pure-white / --pure-black (theme-stable primitives).
+ *   - Per-app identity palettes (declared in each themed app's own
+ *     style.css or <app>-tailwind.js — outside the brand layer).
+ *   - Type stacks and motion durations.
+ *   - Radii.
+ *   - --brand-tagline.
+ *
+ * Cascade contract: any app that paints chrome via brand tokens
+ * (var(--surface-0), var(--text-1), var(--accent-primary), ...)
+ * dark-modes for free. Apps that hard-code colors (identity-bound
+ * apps in BRAND.md "Tier-3 carve-outs" and HOSDL.md "Tier
+ * classification") stay as-is by design. */
+:root[data-theme='dark'] {
+  /* Native scrollbars + default form controls render dark. See the
+   * matching `color-scheme: light` on :root above. */
+  color-scheme: dark;
+
+  --surface-0: #0e1217;
+  --surface-1: #161b22;
+  --surface-2: #1f262f;
+
+  --hairline: #2a3138;
+  --hairline-strong: #3a434b;
+  --hairline-accent: rgba(96, 165, 250, 0.4);
+
+  --text-1: #e6edf3; /* AAA, ~14.7:1 on surface-1 */
+  --text-2: #aab1b9; /*  AA,  ~7.7:1 on surface-1 */
+  --text-3: #8b949e; /*  AA,  ~5.0:1 on surface-1 */
+  --text-on-accent: #ffffff;
+
+  --accent-blue: #4f8cff;
+  --accent-red: #ff6961;
+  --accent-yellow: #f5c45e;
+  --accent-green: #4cc26a;
+
+  --accent-primary: #4f8cff;
+  --accent-primary-hover: #75a5ff;
+  --accent-primary-soft: #1a2740;
+  --accent-primary-bg: #4f8cff;
+  --accent-primary-bg-hover: #75a5ff;
+
+  --success: #56d364;
+  --danger: #f85149;
+  --warning: #f0b73f;
+  --success-soft: #1a2e1f;
+  --danger-soft: #2d1b1d;
+  --warning-soft: #2d2418;
+
+  --cat-system: var(--accent-blue);
+  --cat-game: var(--accent-red);
+  --cat-utility: var(--accent-green);
+  --cat-entertainment: var(--accent-yellow);
+
+  --cat-system-soft: #1a2740;
+  --cat-game-soft: #2d1b1d;
+  --cat-utility-soft: #1a2e1f;
+  --cat-entertainment-soft: #2d2418;
+
+  --cat-system-hairline: rgba(79, 140, 255, 0.4);
+  --cat-game-hairline: rgba(255, 105, 97, 0.4);
+  --cat-utility-hairline: rgba(76, 194, 106, 0.4);
+  --cat-entertainment-hairline: rgba(245, 196, 94, 0.45);
+
+  --scrim: rgba(0, 0, 0, 0.65);
+  --scrim-strong: rgba(0, 0, 0, 0.8);
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-modal: 0 4px 16px rgba(0, 0, 0, 0.65);
+
+  --focus-ring-inner: var(--accent-blue);
+  --focus-ring-outer: rgba(79, 140, 255, 0.32);
+}
+
+/* prefers-color-scheme: dark — apply the same overrides when the OS is
+ * dark AND the user hasn't explicitly picked Light from the home toggle.
+ * Block must mirror :root[data-theme="dark"] above; if you edit one,
+ * edit the other (single source of dark-mode truth). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --surface-0: #0e1217;
+    --surface-1: #161b22;
+    --surface-2: #1f262f;
+
+    --hairline: #2a3138;
+    --hairline-strong: #3a434b;
+    --hairline-accent: rgba(96, 165, 250, 0.4);
+
+    --text-1: #e6edf3;
+    --text-2: #aab1b9;
+    --text-3: #8b949e;
+    --text-on-accent: #ffffff;
+
+    --accent-blue: #4f8cff;
+    --accent-red: #ff6961;
+    --accent-yellow: #f5c45e;
+    --accent-green: #4cc26a;
+
+    --accent-primary: #4f8cff;
+    --accent-primary-hover: #75a5ff;
+    --accent-primary-soft: #1a2740;
+    --accent-primary-bg: #4f8cff;
+    --accent-primary-bg-hover: #75a5ff;
+
+    --success: #56d364;
+    --danger: #f85149;
+    --warning: #f0b73f;
+    --success-soft: #1a2e1f;
+    --danger-soft: #2d1b1d;
+    --warning-soft: #2d2418;
+
+    --cat-system-soft: #1a2740;
+    --cat-game-soft: #2d1b1d;
+    --cat-utility-soft: #1a2e1f;
+    --cat-entertainment-soft: #2d2418;
+
+    --cat-system-hairline: rgba(79, 140, 255, 0.4);
+    --cat-game-hairline: rgba(255, 105, 97, 0.4);
+    --cat-utility-hairline: rgba(76, 194, 106, 0.4);
+    --cat-entertainment-hairline: rgba(245, 196, 94, 0.45);
+
+    --scrim: rgba(0, 0, 0, 0.65);
+    --scrim-strong: rgba(0, 0, 0, 0.8);
+
+    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --shadow-modal: 0 4px 16px rgba(0, 0, 0, 0.65);
+
+    --focus-ring-outer: rgba(79, 140, 255, 0.32);
+  }
 }
 
 /* ─── prefers-contrast: more ─────────────────────────────────────────
  * Bump --text-3 to the higher-contrast tier and thicken hairlines
- * for users who need it. */
+ * for users who need it. Light- and dark-tier hairlines tracked
+ * separately because the dark hairline range starts darker. */
 @media (prefers-contrast: more) {
   :root {
     --text-3: var(--text-2);
     --hairline: #b8b8b0;
     --hairline-strong: #888880;
+  }
+  :root[data-theme='dark'] {
+    --text-3: var(--text-2);
+    --hairline: #4a5159;
+    --hairline-strong: #6a737d;
+  }
+}
+@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --text-3: var(--text-2);
+    --hairline: #4a5159;
+    --hairline-strong: #6a737d;
   }
 }
 
@@ -603,6 +762,37 @@
 :where(a:hover) {
   color: var(--accent-primary-hover);
   background: #fffacd;
+}
+
+/* Dark-theme link tunings: academic purple is unreadable on near-black,
+ * and HN-yellow hover fill burns the eye; lift the visited hue toward
+ * a soft lilac and swap the hover backsplash for a deep amber that
+ * still recalls the engineering-page hover convention. Order: explicit
+ * data-theme="dark" wins; OS-level prefers-color-scheme: dark applies
+ * when no explicit theme override is set.
+ *
+ * The whole selector is wrapped in :where() so specificity stays at
+ * (0,0,0) — same contract as the light-mode rule above. Without the
+ * wrap, `:root[data-theme='dark']` adds (0,2,0) and beats class-level
+ * overrides like `.hos-cta-primary { color: var(--text-on-accent) }`,
+ * which produced a visible visited-state bleed: the "Launch Heyming
+ * OS" CTA flipped from white text to lilac after first click in dark
+ * mode. App rules must always win on specificity. */
+:where(:root[data-theme='dark'] a:visited) {
+  color: #c290e8;
+}
+:where(:root[data-theme='dark'] a:hover) {
+  color: var(--accent-primary-hover);
+  background: #3a2f00;
+}
+@media (prefers-color-scheme: dark) {
+  :where(:root:not([data-theme='light']) a:visited) {
+    color: #c290e8;
+  }
+  :where(:root:not([data-theme='light']) a:hover) {
+    color: var(--accent-primary-hover);
+    background: #3a2f00;
+  }
 }
 
 /* Checkbox / radio / range — accent-color tint via the native widget. */

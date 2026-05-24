@@ -517,6 +517,49 @@
   border-radius: var(--radius-lg);
 }
 
+/* ─── Theme switcher (footer segmented control) ─────────────────────
+ * Three-way Auto/Light/Dark. The active option carries
+ * `aria-checked="true"` from theme.js; the visual selection rides
+ * on that attribute so screen readers and the painted UI agree.
+ *
+ * Color reads from brand tokens — the switcher itself dark-modes
+ * along with everything else on the home page. */
+.hos-theme-switch {
+  display: inline-flex;
+  align-items: stretch;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 2px;
+  gap: 0;
+}
+.hos-theme-option {
+  font-family: var(--font-ui);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  color: var(--text-2);
+  background: transparent;
+  border: 0;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--motion-hover), color var(--motion-hover),
+    box-shadow var(--motion-hover);
+  letter-spacing: 0.01em;
+}
+.hos-theme-option:hover:not([aria-checked='true']) {
+  color: var(--text-1);
+  background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
+}
+.hos-theme-option[aria-checked='true'] {
+  background: var(--surface-1);
+  color: var(--text-1);
+  box-shadow: var(--shadow-soft);
+}
+.hos-theme-option:focus-visible {
+  outline-offset: -1px;
+}
+
 /* ─── Footer ───────────────────────────────────────────────────────── */
 .hos-footer {
   display: flex;

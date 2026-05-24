@@ -69,6 +69,10 @@
          config, so brand-tailwind.js sets `tailwind.config` after. -->
     <script src="https://cdn.tailwindcss.com/3.4.16"></script>
     <script src="/brand-tailwind.js"></script>
+    <!-- StepMania identity palette (sm-arrow.* utilities). Must load
+         AFTER brand-tailwind.js so it can extend the same
+         `tailwind.config` object before <body> parses. -->
+    <script src="/stepmania/stepmania-tailwind.js"></script>
     <link href="css/screen.css" media="all" rel="stylesheet" type="text/css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <script>

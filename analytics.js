@@ -1,3 +1,31 @@
+// =====================================================================
+// Theme bootstrap — runs on every page, before first paint.
+//
+// analytics.js is loaded synchronously in <head> on all 58 sitemap
+// pages, which makes it the cheapest (zero per-app HTML edit) place
+// to propagate the home-page theme switcher choice site-wide. The
+// home toggle persists 'light' or 'dark' to localStorage under
+// 'hos-theme'; this block reads that key and mirrors it onto the
+// <html> data-theme attribute so brand.css's :root[data-theme="dark"]
+// override block wins before any pixels paint. Absent / 'auto' /
+// invalid values fall through to brand.css's prefers-color-scheme
+// rule, so OS-level dark mode still auto-applies for users who
+// haven't picked an explicit theme.
+//
+// Wrapped in try/catch because localStorage access throws in private
+// mode and on file:// URLs. A theme failure must never block GA.
+// =====================================================================
+(function bootHeymingTheme() {
+  try {
+    const t = localStorage.getItem('hos-theme');
+    if (t === 'light' || t === 'dark') {
+      document.documentElement.dataset.theme = t;
+    }
+  } catch (e) {
+    /* localStorage unavailable — fall back to OS preference via @media */
+  }
+})();
+
 // assuming google analytics is already loaded
 // onload
 // Normalize page path by removing index.html and ensuring trailing slashes for directories

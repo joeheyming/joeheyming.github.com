@@ -67,6 +67,10 @@
          config, so brand-tailwind.js sets `tailwind.config` after. -->
     <script src="https://cdn.tailwindcss.com/3.4.16"></script>
     <script src="/brand-tailwind.js"></script>
+    <!-- Pac-Man identity palette (pac.* + ghost.* utilities). Shared
+         with /pacman/. Must load AFTER brand-tailwind.js so it can
+         extend the same `tailwind.config` object before <body>. -->
+    <script src="/pacman/pacman-tailwind.js"></script>
     <link rel="stylesheet" href="style.css" />
 
     <!-- Heyming OS brand foundation -->
@@ -322,7 +326,7 @@
             Normal
           </button>
           <button
-            class="difficulty-btn px-3 py-1 rounded border border-pac-red/40 text-sm-arrow-left hover:bg-pac-red/10"
+            class="difficulty-btn px-3 py-1 rounded border border-pac-red/40 text-pac-red-soft hover:bg-pac-red/10"
             data-difficulty="hard"
           >
             Hard

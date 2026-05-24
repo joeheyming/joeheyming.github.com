@@ -1,6 +1,20 @@
 <!DOCTYPE html>
 <html lang="en" class="hos-page">
   <head>
+    <!-- Theme bootstrap — runs synchronously, before any stylesheet parse,
+         to set <html data-theme="..."> from the user's saved choice. The
+         same block ships in /analytics.js for every other app on the site;
+         duplicating it inline here prevents any flash on the home page
+         where the theme switcher itself lives. Auto / unset falls through
+         to brand.css's prefers-color-scheme: dark rule. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('hos-theme');
+          if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
     <meta name="google-site-verification" content="G4xgpb4nOfGShosuh1Tg0z-702kfJqP3tuqbhh_2YRE" />
     <!-- Favicon - SVG for modern browsers, PNG fallbacks -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -409,6 +423,52 @@
         <p class="text-caption text-muted">Version 1.0 · Made by Joe Heyming</p>
       </div>
       <div class="hos-footer-social" id="footer-social"></div>
+      <!--
+        Theme switcher — three-way segmented control. Choosing a value
+        persists to localStorage('hos-theme') and the data-theme on
+        <html>; the choice propagates to every other app on the site
+        through analytics.js's bootstrap (loaded synchronously on all
+        58 pages). Auto removes the override and falls through to
+        prefers-color-scheme.
+      -->
+      <div class="hos-theme-switch" id="theme-switch" role="radiogroup" aria-label="Theme">
+        <button
+          type="button"
+          class="hos-theme-option"
+          data-theme-value="auto"
+          role="radio"
+          aria-checked="true"
+          data-event="theme_set"
+          data-event-category="Preferences"
+          data-event-label="auto"
+        >
+          Auto
+        </button>
+        <button
+          type="button"
+          class="hos-theme-option"
+          data-theme-value="light"
+          role="radio"
+          aria-checked="false"
+          data-event="theme_set"
+          data-event-category="Preferences"
+          data-event-label="light"
+        >
+          Light
+        </button>
+        <button
+          type="button"
+          class="hos-theme-option"
+          data-theme-value="dark"
+          role="radio"
+          aria-checked="false"
+          data-event="theme_set"
+          data-event-category="Preferences"
+          data-event-label="dark"
+        >
+          Dark
+        </button>
+      </div>
       <nav class="hos-footer-legal" aria-label="Legal">
         <a href="/about/">About</a>
         <span aria-hidden="true">·</span>

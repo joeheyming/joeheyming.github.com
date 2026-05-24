@@ -72,6 +72,10 @@
 
     <script src="https://cdn.tailwindcss.com/3.4.16"></script>
     <script src="/brand-tailwind.js"></script>
+    <!-- Pac-Man identity palette (pac.* + ghost.* utilities). Must
+         load AFTER brand-tailwind.js so it can extend the same
+         `tailwind.config` object before <body> parses. -->
+    <script src="/pacman/pacman-tailwind.js"></script>
     <link rel="stylesheet" href="style.css" />
 
     <!-- Structured Data (JSON-LD) -->

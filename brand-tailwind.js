@@ -37,18 +37,28 @@
 (function () {
   // Note: Tailwind CDN uses JIT — declaring a color makes its full
   // utility family (bg-, text-, border-, ring-, etc.) available.
+  //
+  // Theme-aware tokens are wired to CSS custom properties via var(...)
+  // rather than baked literals. brand.css owns the hex values and the
+  // dark-theme override block, so utility classes like `bg-surface-1`
+  // resolve through the cascade and theme-swap automatically when
+  // <html data-theme="dark"> or prefers-color-scheme: dark is in effect.
+  // Theme-stable canonical literals (PURE) stay as hex because they
+  // don't theme-swap by design. Per-app identity palettes (pac.*,
+  // ghost.*, sm-arrow.*) live in <app>/<app>-tailwind.js, loaded
+  // after this file. See BRAND.md.
   const SURFACE = {
-    0: '#FAFAFA',
-    1: '#FFFFFF',
-    2: '#F0EEE8'
+    0: 'var(--surface-0)',
+    1: 'var(--surface-1)',
+    2: 'var(--surface-2)'
     // glass intentionally absent — no glass on the new brand
   };
 
   const TEXT = {
-    1: '#1A1A1A',
-    2: '#555555',
-    3: '#6E6E6E',
-    'on-accent': '#FFFFFF'
+    1: 'var(--text-1)',
+    2: 'var(--text-2)',
+    3: 'var(--text-3)',
+    'on-accent': 'var(--text-on-accent)'
   };
 
   // Single-accent system. On light surfaces, foreground (text/icon) and
@@ -56,98 +66,70 @@
   //   accent-primary           — brand blue, links, CTAs, focus
   //   accent-primary-bg        — same blue, used on solid fills
   const ACCENT_PRIMARY = {
-    DEFAULT: '#1A73E8',
-    hover: '#1558B8',
-    soft: '#E8F0FE',
-    bg: '#1A73E8',
-    'bg-hover': '#1558B8'
+    DEFAULT: 'var(--accent-primary)',
+    hover: 'var(--accent-primary-hover)',
+    soft: 'var(--accent-primary-soft)',
+    bg: 'var(--accent-primary-bg)',
+    'bg-hover': 'var(--accent-primary-bg-hover)'
   };
 
-  // Google '99 four primaries. Used per-letter on the wordmark, as
-  // category accents, and as app-window title-bar tints.
-  const ACCENT_BLUE = '#1A73E8';
-  const ACCENT_RED = '#EA4335';
-  const ACCENT_YELLOW = '#FBBC04';
-  const ACCENT_GREEN = '#34A853';
+  // Google '99 four primaries. Routed through brand.css so the dark
+  // theme can lift them for legibility on near-black surfaces.
+  const ACCENT_BLUE = 'var(--accent-blue)';
+  const ACCENT_RED = 'var(--accent-red)';
+  const ACCENT_YELLOW = 'var(--accent-yellow)';
+  const ACCENT_GREEN = 'var(--accent-green)';
 
   const HAIRLINE = {
-    DEFAULT: '#E5E5E0',
-    strong: '#C8C8C0',
-    accent: 'rgba(26, 115, 232, 0.32)'
+    DEFAULT: 'var(--hairline)',
+    strong: 'var(--hairline-strong)',
+    accent: 'var(--hairline-accent)'
   };
 
-  // Status colors — Material-aligned for light surfaces.
-  const SUCCESS = { DEFAULT: '#188038', soft: '#E6F4EA' };
-  const DANGER = { DEFAULT: '#D93025', soft: '#FCE8E6' };
-  const WARNING = { DEFAULT: '#F29900', soft: '#FEF7E0' };
+  // Status colors — themed via brand.css (light tier here, dark tier
+  // under :root[data-theme="dark"] / prefers-color-scheme: dark).
+  const SUCCESS = { DEFAULT: 'var(--success)', soft: 'var(--success-soft)' };
+  const DANGER = { DEFAULT: 'var(--danger)', soft: 'var(--danger-soft)' };
+  const WARNING = { DEFAULT: 'var(--warning)', soft: 'var(--warning-soft)' };
 
-  // Brand-routed canonical pure values.
+  // Theme-stable canonical pure values — by BRAND.md policy these
+  // never get redefined under a theme override; they're for shadow
+  // and scrim math, not direct surface use.
   const PURE = { white: '#FFFFFF', black: '#000000' };
 
-  // Brand-aligned modal scrim tints — near-black for visibility on cream.
+  // Modal scrim tints. Theme-aware: cream-page scrims sit at ~45-65%
+  // near-black; dark-page scrims drop deeper to keep modals legible.
   const SCRIM = {
-    DEFAULT: 'rgba(26, 26, 26, 0.45)',
-    strong: 'rgba(26, 26, 26, 0.65)'
-  };
-
-  // ── Scoped identity palettes ────────────────────────────────────────
-  // These are NOT brand colors — they're per-app identity palettes
-  // exposed as Tailwind utilities so identity-themed markup (pacman
-  // arcade yellow, ghost colors, stepmania arrow keys, ...) can stay
-  // markup-pure. Each cluster is namespaced so it can't be confused with
-  // brand tokens. These stay as-is across brand pivots.
-  const PAC = {
-    yellow: '#EAB308',
-    'yellow-bright': '#FACC15',
-    'yellow-glow': '#FDE047',
-    cyan: '#22D3EE',
-    'cyan-deep': '#06B6D4',
-    'cyan-glow': '#67E8F9',
-    red: '#EF4444',
-    'red-hot': '#FF3030',
-    amber: '#FFAA00',
-    'orange-fruit': '#FB923C',
-    radioactive: '#82E000'
-  };
-  const GHOST = {
-    pinky: '#FF80FF',
-    'pinky-soft': '#F9A8D4',
-    pinky300: '#F0ABFC',
-    inky: '#67E8F9',
-    blinky: '#EF4444',
-    clyde: '#FB923C'
-  };
-  const SM_ARROW = {
-    left: '#FCA5A5',
-    right: '#FDE68A',
-    up: '#86EFAC',
-    down: '#93C5FD'
+    DEFAULT: 'var(--scrim)',
+    strong: 'var(--scrim-strong)'
   };
 
   // ── Category accents — the four primaries, semantic ─────────────────
   // Each app category claims one of the four primaries.
   //   bg-cat-game (red), text-cat-game, border-cat-game, bg-cat-game-soft
   //   bg-cat-utility (green), bg-cat-entertainment (yellow), bg-cat-system (blue)
+  // All four tiers route through brand.css, so the soft-tint variants
+  // and hairlines theme-swap with the rest of the surface ladder.
   const CAT = {
     system: {
-      DEFAULT: ACCENT_BLUE,
-      soft: '#E8F0FE',
-      hairline: 'rgba(26, 115, 232, 0.32)'
+      DEFAULT: 'var(--cat-system)',
+      soft: 'var(--cat-system-soft)',
+      hairline: 'var(--cat-system-hairline)'
     },
     game: {
-      DEFAULT: ACCENT_RED,
-      soft: '#FCE8E6',
-      hairline: 'rgba(234, 67, 53, 0.32)'
+      DEFAULT: 'var(--cat-game)',
+      soft: 'var(--cat-game-soft)',
+      hairline: 'var(--cat-game-hairline)'
     },
     utility: {
-      DEFAULT: ACCENT_GREEN,
-      soft: '#E6F4EA',
-      hairline: 'rgba(52, 168, 83, 0.32)'
+      DEFAULT: 'var(--cat-utility)',
+      soft: 'var(--cat-utility-soft)',
+      hairline: 'var(--cat-utility-hairline)'
     },
     entertainment: {
-      DEFAULT: ACCENT_YELLOW,
-      soft: '#FEF7E0',
-      hairline: 'rgba(251, 188, 4, 0.4)'
+      DEFAULT: 'var(--cat-entertainment)',
+      soft: 'var(--cat-entertainment-soft)',
+      hairline: 'var(--cat-entertainment-hairline)'
     }
   };
 
@@ -168,9 +150,6 @@
           warning: WARNING,
           pure: PURE,
           scrim: SCRIM,
-          pac: PAC,
-          ghost: GHOST,
-          'sm-arrow': SM_ARROW,
           cat: CAT
         },
         fontFamily: {

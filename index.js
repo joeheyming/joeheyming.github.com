@@ -522,6 +522,87 @@ function renderFooterSocial() {
   });
 }
 
+/* ─── Theme switcher ─────────────────────────────────────────────────
+ * Three-way control (Auto / Light / Dark). Auto removes the override and
+ * lets brand.css's `prefers-color-scheme: dark` rule pick the theme;
+ * Light/Dark write `data-theme` on <html> and persist to localStorage
+ * under `hos-theme`. analytics.js mirrors the same key onto every other
+ * app at script-load time, so the user's choice is site-wide.
+ *
+ * Listens to `prefers-color-scheme` so the rendered "Auto" indicator
+ * keeps re-painting if the user flips their OS theme without leaving
+ * the page. */
+const THEME_KEY = 'hos-theme';
+const VALID_THEMES = ['auto', 'light', 'dark'];
+
+function readSavedTheme() {
+  try {
+    const v = localStorage.getItem(THEME_KEY);
+    return v === 'light' || v === 'dark' ? v : 'auto';
+  } catch (_) {
+    return 'auto';
+  }
+}
+
+function applyTheme(value) {
+  if (!VALID_THEMES.includes(value)) value = 'auto';
+  if (value === 'auto') {
+    delete document.documentElement.dataset.theme;
+    try {
+      localStorage.removeItem(THEME_KEY);
+    } catch (_) {
+      /* localStorage unavailable — runtime apply still works */
+    }
+  } else {
+    document.documentElement.dataset.theme = value;
+    try {
+      localStorage.setItem(THEME_KEY, value);
+    } catch (_) {
+      /* same as above */
+    }
+  }
+}
+
+function reflectThemeState(value) {
+  document.querySelectorAll('.hos-theme-option').forEach((btn) => {
+    const isActive = btn.getAttribute('data-theme-value') === value;
+    btn.setAttribute('aria-checked', isActive ? 'true' : 'false');
+  });
+}
+
+function initThemeSwitch() {
+  const root = document.getElementById('theme-switch');
+  if (!root) return;
+
+  const initial = readSavedTheme();
+  applyTheme(initial);
+  reflectThemeState(initial);
+
+  root.addEventListener('click', (e) => {
+    const btn = e.target.closest('.hos-theme-option');
+    if (!btn) return;
+    const value = btn.getAttribute('data-theme-value') || 'auto';
+    applyTheme(value);
+    reflectThemeState(value);
+  });
+
+  // Reflect OS dark/light flips while the page is open and the user is
+  // on Auto. Doesn't change the saved value — just keeps the rendered
+  // surface in sync. Modern Safari/Firefox/Chrome all support
+  // addEventListener on a MediaQueryList.
+  if (window.matchMedia) {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = () => {
+      if (readSavedTheme() === 'auto') {
+        // No data-theme to set; brand.css's @media block re-evaluates
+        // automatically. Nothing to do beyond letting the cascade run.
+      }
+    };
+    if (mq.addEventListener) mq.addEventListener('change', onChange);
+    else if (mq.addListener) mq.addListener(onChange);
+  }
+}
+
 /* ─── Boot ─────────────────────────────────────────────────────────── */
 
 function bootHome() {
@@ -530,6 +611,7 @@ function bootHome() {
   bindGalleryFilter();
   renderFooterSocial();
   initHamburgerMenu();
+  initThemeSwitch();
 }
 
 bootHome();
