@@ -109,6 +109,12 @@
     <priority>0.5</priority>
   </url>
   <url>
+    <loc>https://joeheyming.github.io/os/</loc>
+    <lastmod>2026-05-24T00:00:00+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://joeheyming.github.io/pacman/</loc>
     <lastmod>2026-05-09T00:00:00+00:00</lastmod>
     <changefreq>weekly</changefreq>
