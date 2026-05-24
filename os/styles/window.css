@@ -1,23 +1,27 @@
-/* Heyming OS — window chrome: frame, titlebar, content, iframe, scrollbars, mobile rules. */
+/* Heyming OS — window chrome: frame, titlebar, content, iframe, scrollbars, mobile rules.
+ *
+ * Color literals migrated to brand tokens. Geometry, animation, and z-index
+ * stacking are unchanged. The previous blue-on-blue active state is now
+ * brand-violet-on-surface.
+ */
 
-/* OS Window Styling */
+/* OS Window */
 .os-window {
   position: absolute;
   min-width: 400px;
   min-height: 300px;
-  background: #2d3748;
-  border: 1px solid #4a5568;
-  border-radius: 8px 8px 0 0;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius) var(--radius) 0 0;
+  box-shadow: 0 10px 25px color-mix(in srgb, var(--pure-black) 50%, transparent);
   overflow: hidden;
   z-index: 100;
   pointer-events: auto; /* #os-windows uses pointer-events: none so clicks reach desktop icons */
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color var(--motion-hover), box-shadow var(--motion-hover);
 }
 
-/* Mobile-friendly styles */
+/* Mobile-friendly */
 @media (max-width: 768px), (max-height: 600px) {
-  /* Windows */
   .os-window {
     min-width: 280px;
     min-height: 200px;
@@ -42,13 +46,11 @@
     font-size: 18px !important;
   }
 
-  /* Hide resize handles on mobile */
   .resize-handle,
   .window-drag-handle {
     display: none !important;
   }
 
-  /* Taskbar - larger touch targets */
   #os-taskbar {
     height: 56px !important;
   }
@@ -69,7 +71,6 @@
     padding: 0 12px !important;
   }
 
-  /* Desktop icons - larger touch targets */
   .desktop-icon {
     width: 80px !important;
     height: 100px !important;
@@ -84,13 +85,11 @@
     font-size: 12px !important;
   }
 
-  /* Context menus - larger touch targets */
   .context-menu-item {
     padding: 14px 16px !important;
     font-size: 15px !important;
   }
 
-  /* Launcher - larger items */
   #app-launcher-menu {
     width: 280px !important;
     max-height: 70vh !important;
@@ -100,7 +99,6 @@
     padding: 12px 16px !important;
   }
 
-  /* Quick Look - full screen on mobile */
   .quick-look-container {
     max-width: 95vw !important;
     max-height: 85vh !important;
@@ -114,30 +112,30 @@
 
 .os-window.dragging .resize-handle {
   opacity: 0.4;
-  background: rgba(59, 130, 246, 0.2);
+  background: var(--accent-primary-soft);
 }
 
 .os-window:not(.active) {
-  border-color: #4b5563;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  border-color: var(--hairline);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--pure-black) 40%, transparent);
 }
 
 .os-window:not(.active) .os-window-titlebar {
-  background: linear-gradient(to bottom, #3d4756, #252a36);
+  background: var(--surface-2);
 }
 
 .os-window:not(.active) .os-window-title {
-  color: #94a3b8;
+  color: var(--text-3);
 }
 
 .os-window:not(.active) .os-window-titlebar:hover {
-  background: linear-gradient(to bottom, #454f5f, #2a303c);
+  background: var(--surface-1);
 }
 
 .os-window.active {
-  /* z-index is set dynamically by WindowManager */
-  border-color: #3182ce;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(49, 130, 206, 0.22);
+  border-color: var(--accent-primary);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--pure-black) 55%, transparent),
+    0 0 0 1px var(--hairline-accent);
 }
 
 .os-window.minimized {
@@ -147,7 +145,6 @@
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease-out;
 }
 
-/* Restore animation */
 .os-window.restoring {
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease-in;
 }
@@ -164,8 +161,8 @@
 .os-window-titlebar {
   height: 32px;
   min-width: 0;
-  background: linear-gradient(to bottom, #4a5568, #2d3748);
-  border-bottom: 1px solid #1a202c;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--hairline);
   display: flex;
   align-items: center;
   padding: 0 8px;
@@ -173,14 +170,18 @@
   user-select: none;
 }
 
+.os-window.active .os-window-titlebar {
+  background: linear-gradient(to bottom, var(--surface-2), var(--surface-1));
+}
+
 .os-window.active .os-window-titlebar:hover {
-  background: linear-gradient(to bottom, #3182ce, #2b6cb0);
+  background: var(--accent-primary-soft);
 }
 
 .os-window-title {
   flex: 1;
   min-width: 0;
-  color: #e2e8f0;
+  color: var(--text-1);
   font-size: 12px;
   font-weight: 500;
   text-overflow: ellipsis;
@@ -205,52 +206,56 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all var(--motion-hover);
 }
 
+/* Window controls: each gets a deep on-color text tint that comes from
+ * its own dot color (warning/success/danger) at high darkness, so the
+ * glyph reads against the dot but never as plain black/white literals. */
 .os-window-control.minimize {
-  background: #fbbf24;
-  color: #92400e;
+  background: var(--warning);
+  color: color-mix(in srgb, var(--warning) 30%, var(--pure-black));
 }
 
 .os-window-control.maximize {
-  background: #10b981;
-  color: #064e3b;
+  background: var(--success);
+  color: color-mix(in srgb, var(--success) 30%, var(--pure-black));
 }
 
 .os-window-control.close {
-  background: #ef4444;
-  color: #7f1d1d;
+  background: var(--danger);
+  color: color-mix(in srgb, var(--danger) 30%, var(--pure-black));
 }
 
 .os-window-control:hover {
   transform: scale(1.1);
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 .os-window-control:focus-visible {
-  outline: 2px solid #63b3ed;
+  outline: 2px solid var(--focus-ring-inner);
   outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--focus-ring-outer);
 }
 
 /* Window Content */
 .os-window-content {
   height: calc(100% - 32px);
   overflow: auto;
-  background: #1a202c;
-  color: #e2e8f0;
+  background: var(--surface-0);
+  color: var(--text-1);
   position: relative;
-  z-index: 3; /* Above resize handles but below iframe content */
-  padding-bottom: 20px; /* Reserve space for drag handle */
+  z-index: 3;
+  padding-bottom: 20px;
 }
 
-/* Iframe content — shell matches window body (Theme E: avoids bright white flash before app paints) */
+/* Iframe content — shell matches window body so apps don't flash white before paint */
 .iframe-content {
   position: relative;
   width: 100%;
-  height: calc(100% - 20px); /* Leave space for drag handle */
-  z-index: 15; /* Higher than desktop icons and resize handles */
-  background: #1a202c;
+  height: calc(100% - 20px);
+  z-index: 15;
+  background: var(--surface-0);
   overflow: hidden;
   pointer-events: auto;
 }
@@ -258,11 +263,11 @@
 .iframe-content iframe {
   position: relative;
   z-index: 16;
-  background: #1a202c;
+  background: var(--surface-0);
   pointer-events: auto;
 }
 
-/* Scrollbar Styling */
+/* Scrollbars */
 .os-window-content::-webkit-scrollbar,
 .terminal-content::-webkit-scrollbar {
   width: 12px;
@@ -270,23 +275,23 @@
 
 .os-window-content::-webkit-scrollbar-track,
 .terminal-content::-webkit-scrollbar-track {
-  background: #2d3748;
+  background: var(--surface-1);
 }
 
 .os-window-content::-webkit-scrollbar-thumb,
 .terminal-content::-webkit-scrollbar-thumb {
-  background: #4a5568;
+  background: var(--surface-2);
   border-radius: 6px;
 }
 
 .os-window-content::-webkit-scrollbar-thumb:hover,
 .terminal-content::-webkit-scrollbar-thumb:hover {
-  background: #2b6cb0;
+  background: var(--accent-primary);
 }
 
-/* Stacking context above desktop icons; pointer-events none so the full-bleed layer does not
- * steal clicks from icons (windows opt back in via .os-window { pointer-events: auto }).
- */
+/* Stacking context above desktop icons; pointer-events none so the full-bleed
+ * layer does not steal clicks from icons (windows opt back in via
+ * .os-window { pointer-events: auto }). */
 #os-windows {
   z-index: 200;
   isolation: isolate;
@@ -299,9 +304,9 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  background: #1a202c;
-  color: #e2e8f0;
-  font-family: monospace;
+  background: var(--surface-0);
+  color: var(--text-1);
+  font-family: var(--font-mono);
 }
 
 .iframe-loading::before {
@@ -309,8 +314,8 @@
   display: inline-block;
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid #3182ce;
+  border: 2px solid var(--hairline);
+  border-top: 2px solid var(--accent-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-right: 10px;

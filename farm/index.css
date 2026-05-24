@@ -1,7 +1,22 @@
+/* Farm — CI/CD-themed terminal display. Status hues (success / warn /
+ * error / info / amber-header) are the visual identity, so they ship
+ * as scoped --farm-* tokens. Surfaces / hairlines / body text route to
+ * brand tokens. */
+:root {
+  --farm-amber: #f1c40f;
+  --farm-green: #10b981;
+  --farm-green-deep: #059669;
+  --farm-blue: #60a5fa;
+  --farm-blue-deep: #3b82f6;
+  --farm-warning: #f59e0b;
+  --farm-danger-deep: #dc2626;
+  --farm-slate: #6b7280;
+}
+
 body {
   font-family: 'Courier New', monospace;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  color: #e2e8f0;
+  background: linear-gradient(135deg, var(--surface-0, #0f172a) 0%, var(--surface-1, #1e293b) 100%);
+  color: var(--text-1, #e2e8f0);
   margin: 0;
   padding: 20px;
   min-height: 100vh;
@@ -28,16 +43,16 @@ marquee {
   text-align: center;
   margin-bottom: 30px;
   padding: 20px;
-  background: rgba(15, 23, 42, 0.8);
+  background: color-mix(in srgb, var(--surface-0) 80%, transparent);
   border-radius: 12px;
-  border: 1px solid #334155;
+  border: 1px solid var(--hairline-strong, #334155);
 }
 
 .header h1 {
   font-size: 2rem;
-  color: #f1c40f;
+  color: var(--farm-amber, #f1c40f);
   margin-bottom: 10px;
-  text-shadow: 0 0 10px rgba(241, 196, 15, 0.3);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--farm-amber) 30%, transparent);
 }
 
 .controls {
@@ -56,12 +71,12 @@ marquee {
   font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--pure-black) 30%, transparent);
 }
 
 .btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--pure-black) 40%, transparent);
 }
 
 .btn:disabled {
@@ -70,35 +85,35 @@ marquee {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #059669, #10b981);
-  color: white;
+  background: linear-gradient(135deg, var(--farm-green-deep, #059669), var(--farm-green, #10b981));
+  color: var(--pure-white, #fff);
 }
 
 .btn-secondary {
-  background: linear-gradient(135deg, #dc2626, #ef4444);
-  color: white;
+  background: linear-gradient(135deg, var(--farm-danger-deep, #dc2626), var(--danger, #ef4444));
+  color: var(--pure-white, #fff);
 }
 
 .terminal-container {
-  background: #0f172a;
+  background: var(--surface-0, #0f172a);
   border-radius: 12px;
-  border: 1px solid #334155;
+  border: 1px solid var(--hairline-strong, #334155);
   overflow: hidden;
   margin-bottom: 25px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 25px color-mix(in srgb, var(--pure-black) 50%, transparent);
 }
 
 .terminal-header {
-  background: #1e293b;
+  background: var(--surface-1, #1e293b);
   padding: 12px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid var(--hairline-strong, #334155);
 }
 
 .terminal-title {
-  color: #e2e8f0;
+  color: var(--text-1, #e2e8f0);
   font-weight: bold;
   font-size: 0.95rem;
 }
@@ -115,17 +130,17 @@ marquee {
 }
 
 .dot.red {
-  background: #ef4444;
+  background: var(--danger, #ef4444);
 }
 .dot.yellow {
-  background: #f59e0b;
+  background: var(--farm-warning, #f59e0b);
 }
 .dot.green {
-  background: #10b981;
+  background: var(--farm-green, #10b981);
 }
 
 .terminal {
-  background: #0f172a;
+  background: var(--surface-0, #0f172a);
   padding: 20px;
   height: 500px;
   overflow-y: auto;
@@ -140,34 +155,34 @@ marquee {
 }
 
 .prompt {
-  color: #10b981;
+  color: var(--farm-green, #10b981);
   font-weight: bold;
 }
 
 .text {
-  color: #e2e8f0;
+  color: var(--text-1, #e2e8f0);
 }
 
 .error {
-  color: #ef4444;
+  color: var(--danger, #ef4444);
   font-weight: bold;
 }
 
 .warning {
-  color: #f59e0b;
+  color: var(--farm-warning, #f59e0b);
 }
 
 .success {
-  color: #10b981;
+  color: var(--farm-green, #10b981);
   font-weight: bold;
 }
 
 .info {
-  color: #60a5fa;
+  color: var(--farm-blue, #60a5fa);
 }
 
 .debug {
-  color: #94a3b8;
+  color: var(--text-2, #94a3b8);
   font-size: 0.8rem;
 }
 
@@ -176,11 +191,11 @@ marquee {
 }
 
 .terminal::-webkit-scrollbar-track {
-  background: #1e293b;
+  background: var(--surface-1, #1e293b);
 }
 
 .terminal::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: var(--text-3, #475569);
   border-radius: 4px;
 }
 
@@ -194,28 +209,28 @@ marquee {
 }
 
 .status-idle {
-  background: rgba(107, 114, 128, 0.2);
-  color: #9ca3af;
-  border: 1px solid #6b7280;
+  background: color-mix(in srgb, var(--farm-slate) 20%, transparent);
+  color: var(--text-2, #9ca3af);
+  border: 1px solid var(--text-3, #6b7280);
 }
 
 .status-running {
-  background: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
-  border: 1px solid #3b82f6;
+  background: color-mix(in srgb, var(--farm-blue-deep) 20%, transparent);
+  color: var(--farm-blue, #60a5fa);
+  border: 1px solid var(--farm-blue-deep, #3b82f6);
   animation: pulse 2s infinite;
 }
 
 .status-success {
-  background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
-  border: 1px solid #059669;
+  background: color-mix(in srgb, var(--farm-green) 20%, transparent);
+  color: var(--farm-green, #10b981);
+  border: 1px solid var(--farm-green-deep, #059669);
 }
 
 .status-failed {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-  border: 1px solid #dc2626;
+  background: color-mix(in srgb, var(--danger) 20%, transparent);
+  color: var(--danger, #ef4444);
+  border: 1px solid var(--farm-danger-deep, #dc2626);
 }
 
 @keyframes pulse {

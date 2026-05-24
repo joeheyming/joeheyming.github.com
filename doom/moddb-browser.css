@@ -77,8 +77,8 @@ body.moddb-open #flavorPickerSwitcher {
 .moddb-disclaimer {
   font-size: 11px;
   color: var(--dim);
-  background: rgba(219, 180, 68, 0.06);
-  border: 1px solid rgba(219, 180, 68, 0.25);
+  background: var(--doom-warn-tint-soft, rgba(219, 180, 68, 0.06));
+  border: 1px solid var(--doom-warn-tint-mid, rgba(219, 180, 68, 0.25));
   border-radius: 4px;
   padding: 8px 12px;
   line-height: 1.5;
@@ -169,7 +169,7 @@ body.moddb-open #flavorPickerSwitcher {
   width: 100%;
   height: 140px;
   object-fit: cover;
-  background: #000;
+  background: var(--pure-black, #000000);
   border-bottom: 1px solid var(--border);
 }
 .moddb-card-thumb.placeholder {
@@ -333,7 +333,7 @@ body.moddb-open #flavorPickerSwitcher {
   width: 100%;
   height: 130px;
   object-fit: cover;
-  background: #000;
+  background: var(--pure-black, #000000);
   border: 1px solid var(--border);
   border-radius: 3px;
 }

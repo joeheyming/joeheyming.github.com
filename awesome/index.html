@@ -27,7 +27,7 @@
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#3b82f6" />
+    <meta name="theme-color" content="#7C5CFF" />
     <meta
       name="keywords"
       content="everything is awesome, interactive experience, fun, animation, music, celebration, digital joy, entertainment"
@@ -136,6 +136,14 @@
         overflow: hidden;
       }
     </style>
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
   <body>
     <div
@@ -155,13 +163,14 @@
         id="awesome-timer"
         style="
           display: none;
-          background: rgba(0, 0, 0, 0.7);
-          color: #fff;
+          background: color-mix(in srgb, var(--pure-black, #000) 70%, transparent);
+          color: var(--pure-white, #ffffff);
           padding: 8px 16px;
           border-radius: 20px;
           font-family: 'Comic Sans MS', cursive, sans-serif;
           font-size: 14px;
-          text-shadow: 0 0 10px #ff00ff, 0 0 20px #00ffff;
+          text-shadow: 0 0 10px var(--awe-neon-magenta, #ff00ff),
+            0 0 20px var(--awe-neon-cyan, #00ffff);
         "
       >
         🤘 You've been awesome for

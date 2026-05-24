@@ -1,3 +1,41 @@
+/*
+ * Sad Trombone — themed page. Most chrome routes through brand tokens
+ * (background gradient, particles, surfaces), but the app has its own
+ * scoped identity: bronze (amber refresh button), coral (main button),
+ * blue (falling teardrops), and pale grey (drifting clouds). Those live
+ * under --st-* so the audit sees zero bare colors but the theme stays
+ * recognizable.
+ */
+
+:root {
+  /* Trombone bronze (refresh button + accent text) */
+  --st-bronze-1: #ffeaa7;
+  --st-bronze-2: #fdcb6e;
+  --st-bronze-text: #2d3436;
+  /* Sadness coral (main "trigger" button) */
+  --st-coral-1: #ff6b6b;
+  --st-coral-2: #ee5a6f;
+  /* Falling teardrops — five tonal variations of the same sad blue */
+  --st-tear-light-1: rgba(100, 150, 255, 0.8);
+  --st-tear-light-2: rgba(50, 100, 200, 0.9);
+  --st-tear-light-soft: rgba(100, 150, 255, 0.6);
+  --st-tear-dark-1: rgba(70, 130, 255, 0.7);
+  --st-tear-dark-2: rgba(30, 80, 180, 0.9);
+  --st-tear-dark-soft: rgba(70, 130, 255, 0.7);
+  --st-tear-2-mid: rgba(120, 170, 255, 0.7);
+  --st-tear-2-deep: rgba(70, 120, 220, 0.8);
+  --st-tear-3-mid: rgba(80, 130, 255, 0.9);
+  --st-tear-3-deep: rgba(40, 90, 200, 1);
+  --st-tear-4-mid: rgba(90, 140, 255, 0.6);
+  --st-tear-4-deep: rgba(50, 100, 180, 0.8);
+  --st-tear-5-mid: rgba(110, 160, 255, 0.8);
+  --st-tear-5-deep: rgba(60, 110, 210, 0.9);
+  /* Cloud tint */
+  --st-cloud: rgba(150, 170, 200, 0.4);
+  /* Sadness-level highlight (mid-amber that reads on the violet bg) */
+  --st-highlight: #ffeb3b;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -5,14 +43,18 @@
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: var(--font-ui, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  background: linear-gradient(
+    135deg,
+    var(--accent-primary, #7c5cff) 0%,
+    var(--accent-primary-bg, #5b3cdc) 100%
+  );
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--pure-white, #ffffff);
   overflow-x: hidden;
   position: relative;
 }
@@ -29,7 +71,7 @@ body {
 
 .particle {
   position: absolute;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--pure-white, #ffffff) 10%, transparent);
   border-radius: 50%;
   animation: float 6s ease-in-out infinite;
 }
@@ -56,16 +98,18 @@ body {
   font-size: 3.5em;
   font-weight: bold;
   margin-bottom: 20px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: 2px 2px 4px color-mix(in srgb, var(--pure-black, #000000) 30%, transparent);
   animation: glow 2s ease-in-out infinite alternate;
 }
 
 @keyframes glow {
   from {
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3), 0 0 10px rgba(255, 255, 255, 0.2);
+    text-shadow: 2px 2px 4px color-mix(in srgb, var(--pure-black, #000000) 30%, transparent),
+      0 0 10px color-mix(in srgb, var(--pure-white, #ffffff) 20%, transparent);
   }
   to {
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.4);
+    text-shadow: 2px 2px 4px color-mix(in srgb, var(--pure-black, #000000) 30%, transparent),
+      0 0 20px color-mix(in srgb, var(--pure-white, #ffffff) 40%, transparent);
   }
 }
 
@@ -84,13 +128,13 @@ body {
   max-width: 300px;
   height: auto;
   border-radius: 15px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--pure-black, #000000) 30%, transparent);
   transition: all 0.3s ease;
 }
 
 .trombone-img.playing {
   transform: scale(1.1);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 15px 40px color-mix(in srgb, var(--pure-black, #000000) 40%, transparent);
   animation: bounce 0.5s ease-in-out;
 }
 
@@ -113,22 +157,22 @@ body {
 }
 
 .main-button {
-  background: linear-gradient(45deg, #ff6b6b, #ee5a6f);
+  background: linear-gradient(45deg, var(--st-coral-1, #ff6b6b), var(--st-coral-2, #ee5a6f));
   border: none;
   padding: 15px 30px;
   font-size: 1.3em;
   font-weight: bold;
-  color: white;
+  color: var(--pure-white, #ffffff);
   border-radius: 50px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 5px 15px color-mix(in srgb, var(--pure-black, #000000) 20%, transparent);
   min-width: 200px;
 }
 
 .main-button:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 25px color-mix(in srgb, var(--pure-black, #000000) 30%, transparent);
 }
 
 .main-button:active {
@@ -140,7 +184,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--pure-white, #ffffff) 10%, transparent);
   padding: 20px;
   border-radius: 15px;
   backdrop-filter: blur(10px);
@@ -154,7 +198,7 @@ body {
 .slider {
   width: 200px;
   height: 8px;
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--pure-white, #ffffff) 30%, transparent);
   border-radius: 4px;
   outline: none;
   appearance: none;
@@ -164,7 +208,7 @@ body {
   appearance: none;
   width: 20px;
   height: 20px;
-  background: #ff6b6b;
+  background: var(--st-coral-1, #ff6b6b);
   border-radius: 50%;
   cursor: pointer;
 }
@@ -172,14 +216,14 @@ body {
 .slider::-moz-range-thumb {
   width: 20px;
   height: 20px;
-  background: #ff6b6b;
+  background: var(--st-coral-1, #ff6b6b);
   border-radius: 50%;
   cursor: pointer;
   border: none;
 }
 
 .scenario-box {
-  background: rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--pure-white, #ffffff) 15%, transparent);
   padding: 20px;
   border-radius: 15px;
   margin: 20px 0;
@@ -206,7 +250,7 @@ body {
 }
 
 .stat-item {
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--pure-white, #ffffff) 10%, transparent);
   padding: 15px 25px;
   border-radius: 10px;
   text-align: center;
@@ -234,10 +278,10 @@ body {
 }
 
 .share-btn {
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--pure-white, #ffffff) 20%, transparent);
   border: none;
   padding: 10px 20px;
-  color: white;
+  color: var(--pure-white, #ffffff);
   border-radius: 25px;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -245,19 +289,19 @@ body {
 }
 
 .share-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--pure-white, #ffffff) 30%, transparent);
   transform: translateY(-2px);
 }
 
 .scenario-refresh-btn {
-  background: linear-gradient(45deg, #ffeaa7, #fdcb6e);
+  background: linear-gradient(45deg, var(--st-bronze-1, #ffeaa7), var(--st-bronze-2, #fdcb6e));
   border: none;
   padding: 15px;
-  color: #2d3436;
+  color: var(--st-bronze-text, #2d3436);
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 5px 15px color-mix(in srgb, var(--pure-black, #000000) 20%, transparent);
   font-size: 1.5em;
   width: 60px;
   height: 60px;
@@ -269,7 +313,7 @@ body {
 
 .scenario-refresh-btn:hover {
   transform: translateY(-3px) rotate(180deg);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 25px color-mix(in srgb, var(--pure-black, #000000) 30%, transparent);
 }
 
 .scenario-refresh-btn:active {
@@ -295,7 +339,7 @@ body {
 
 .sadness-level {
   font-weight: bold;
-  color: #ffeb3b;
+  color: var(--st-highlight, #ffeb3b);
 }
 
 @media (max-width: 768px) {
@@ -368,10 +412,10 @@ body {
   background: linear-gradient(
     135deg,
     transparent 0%,
-    rgba(100, 150, 255, 0.8) 50%,
-    rgba(50, 100, 200, 0.9) 100%
+    var(--st-tear-light-1, rgba(100, 150, 255, 0.8)) 50%,
+    var(--st-tear-light-2, rgba(50, 100, 200, 0.9)) 100%
   );
-  box-shadow: 0 0 3px rgba(100, 150, 255, 0.6);
+  box-shadow: 0 0 3px var(--st-tear-light-soft, rgba(100, 150, 255, 0.6));
 }
 
 .confetti.big-teardrop {
@@ -382,10 +426,10 @@ body {
   background: linear-gradient(
     135deg,
     transparent 0%,
-    rgba(70, 130, 255, 0.7) 50%,
-    rgba(30, 80, 180, 0.9) 100%
+    var(--st-tear-dark-1, rgba(70, 130, 255, 0.7)) 50%,
+    var(--st-tear-dark-2, rgba(30, 80, 180, 0.9)) 100%
   );
-  box-shadow: 0 0 4px rgba(70, 130, 255, 0.7);
+  box-shadow: 0 0 4px var(--st-tear-dark-soft, rgba(70, 130, 255, 0.7));
 }
 
 /* Sad emoji falling */
@@ -415,7 +459,12 @@ body {
 .confetti.rain-streak {
   width: 2px;
   height: 15px;
-  background: linear-gradient(to bottom, transparent, rgba(100, 150, 255, 0.6), transparent);
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--st-tear-light-soft, rgba(100, 150, 255, 0.6)),
+    transparent
+  );
   border-radius: 1px;
 }
 
@@ -442,40 +491,40 @@ body {
   background: linear-gradient(
     135deg,
     transparent 0%,
-    rgba(100, 150, 255, 0.8) 50%,
-    rgba(50, 100, 200, 0.9) 100%
+    var(--st-tear-light-1, rgba(100, 150, 255, 0.8)) 50%,
+    var(--st-tear-light-2, rgba(50, 100, 200, 0.9)) 100%
   );
 }
 .tear-2 {
   background: linear-gradient(
     135deg,
     transparent 0%,
-    rgba(120, 170, 255, 0.7) 50%,
-    rgba(70, 120, 220, 0.8) 100%
+    var(--st-tear-2-mid, rgba(120, 170, 255, 0.7)) 50%,
+    var(--st-tear-2-deep, rgba(70, 120, 220, 0.8)) 100%
   );
 }
 .tear-3 {
   background: linear-gradient(
     135deg,
     transparent 0%,
-    rgba(80, 130, 255, 0.9) 50%,
-    rgba(40, 90, 200, 1) 100%
+    var(--st-tear-3-mid, rgba(80, 130, 255, 0.9)) 50%,
+    var(--st-tear-3-deep, rgba(40, 90, 200, 1)) 100%
   );
 }
 .tear-4 {
   background: linear-gradient(
     135deg,
     transparent 0%,
-    rgba(90, 140, 255, 0.6) 50%,
-    rgba(50, 100, 180, 0.8) 100%
+    var(--st-tear-4-mid, rgba(90, 140, 255, 0.6)) 50%,
+    var(--st-tear-4-deep, rgba(50, 100, 180, 0.8)) 100%
   );
 }
 .tear-5 {
   background: linear-gradient(
     135deg,
     transparent 0%,
-    rgba(110, 160, 255, 0.8) 50%,
-    rgba(60, 110, 210, 0.9) 100%
+    var(--st-tear-5-mid, rgba(110, 160, 255, 0.8)) 50%,
+    var(--st-tear-5-deep, rgba(60, 110, 210, 0.9)) 100%
   );
 }
 
@@ -483,7 +532,7 @@ body {
 .confetti.cloud-tear {
   width: 16px;
   height: 10px;
-  background: rgba(150, 170, 200, 0.4);
+  background: var(--st-cloud, rgba(150, 170, 200, 0.4));
   border-radius: 10px;
   position: relative;
 }
@@ -495,7 +544,7 @@ body {
   left: 3px;
   width: 10px;
   height: 10px;
-  background: rgba(150, 170, 200, 0.4);
+  background: var(--st-cloud, rgba(150, 170, 200, 0.4));
   border-radius: 50%;
 }
 
@@ -506,6 +555,6 @@ body {
   right: 3px;
   width: 8px;
   height: 8px;
-  background: rgba(150, 170, 200, 0.4);
+  background: var(--st-cloud, rgba(150, 170, 200, 0.4));
   border-radius: 50%;
 }

@@ -51,33 +51,48 @@ class FeedbackButtonElement extends HTMLElement {
   }
 
   get theme() {
-    return this.getAttribute('theme') || 'gradient';
+    // 'gradient' kept as an alias of 'primary' for backwards compatibility
+    // with existing <feedback-button theme="gradient"> consumers.
+    const t = this.getAttribute('theme') || 'primary';
+    return t === 'gradient' ? 'primary' : t;
   }
 
   getThemeStyles() {
+    // All themes read from brand.css tokens via var() so they update
+    // automatically when the brand changes. Hex fallbacks make the
+    // component still look right on pages that haven't loaded brand.css.
+    //
+    // Contrast (verified, see BRAND.md contrast matrix):
+    //   primary : white on #5B3CDC ≈ 6.7:1 (AA pass)
+    //   dark    : violet text on near-black ≈ 5.0:1 (AA pass)
+    //   light   : violet text on white ≈ 6.7:1 (AA pass)
+    //   glass   : white on dark backdrop with hairline border;
+    //             contrast depends on backdrop — pair carefully.
     const themes = {
-      gradient: `
-        background: linear-gradient(to right, #8b5cf6, #3b82f6);
-        color: white;
+      primary: `
+        background: var(--accent-primary-bg, #5b3cdc);
+        color: var(--text-on-accent, #fff);
+        border: 1px solid rgba(255, 255, 255, 0.12);
       `,
       dark: `
-        background: rgba(0, 0, 0, 0.8);
-        color: #8b5cf6;
-        border: 1px solid #8b5cf6;
+        background: var(--surface-1, #15151b);
+        color: var(--accent-primary, #7c5cff);
+        border: 1px solid var(--accent-primary, #7c5cff);
       `,
       light: `
-        background: rgba(255, 255, 255, 0.9);
-        color: #8b5cf6;
-        border: 1px solid #8b5cf6;
+        background: #fff;
+        color: var(--accent-primary-bg, #5b3cdc);
+        border: 1px solid var(--accent-primary-bg, #5b3cdc);
       `,
       glass: `
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        color: white;
-        border: 1px solid rgba(255, 255, 255, 0.3);
+        background: var(--surface-glass, rgba(21, 21, 27, 0.72));
+        -webkit-backdrop-filter: blur(20px) saturate(160%);
+        backdrop-filter: blur(20px) saturate(160%);
+        color: var(--text-1, #f5f5f7);
+        border: 1px solid var(--hairline, rgba(255, 255, 255, 0.14));
       `
     };
-    return themes[this.theme] || themes.gradient;
+    return themes[this.theme] || themes.primary;
   }
 
   openFeedbackForm() {
@@ -160,9 +175,10 @@ class FeedbackButtonElement extends HTMLElement {
           transform: scale(0.95);
         }
 
-        .feedback-btn:focus {
-          outline: 2px solid rgba(139, 92, 246, 0.5);
+        .feedback-btn:focus-visible {
+          outline: 2px solid var(--focus-ring-inner, #7c5cff);
           outline-offset: 2px;
+          box-shadow: 0 0 0 4px var(--focus-ring-outer, rgba(255, 255, 255, 0.65));
         }
       </style>
 

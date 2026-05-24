@@ -5,16 +5,31 @@
 }
 
 :root {
-  --bg-deep: #030712;
+  /* Countdown is a Tier-3 experience: the warm amber/gold sparkle is
+     deliberately preserved (it's celebration-coded, not chrome). We
+     anchor surfaces and body text to brand tokens so the experience
+     still belongs to Heyming OS, but keep the local accent palette so
+     the visual identity of the countdown doesn't dissolve.
+
+     Identity tokens use the --cd-* prefix to avoid shadowing brand
+     tokens (the legacy --accent-primary name conflicted with brand
+     violet). Brand chrome (pure white/black, hairline, danger, accent)
+     still routes through brand tokens. */
+  --bg-deep: var(--surface-0, #030712);
   --bg-surface: rgba(15, 23, 42, 0.7);
-  --accent-primary: #f59e0b;
-  --accent-secondary: #fbbf24;
-  --accent-glow: rgba(245, 158, 11, 0.4);
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #94a3b8;
-  --border-subtle: rgba(148, 163, 184, 0.1);
-  --border-accent: rgba(245, 158, 11, 0.3);
+  --cd-amber: #f59e0b;
+  --cd-gold: #fbbf24;
+  --cd-glow: rgba(245, 158, 11, 0.4);
+  --cd-slate: #0f172a;
+  --cd-celebrate-purple: #a855f7;
+  --cd-celebrate-pink: #ec4899;
+  --cd-final-orange: #f97316;
+  --cd-playing-mid: #64748b;
+  --text-primary: var(--text-1, #f8fafc);
+  --text-secondary: var(--text-2, #94a3b8);
+  --text-muted: var(--text-3, #94a3b8);
+  --border-subtle: var(--hairline, rgba(148, 163, 184, 0.1));
+  --cd-border-accent: rgba(245, 158, 11, 0.3);
 }
 
 body {
@@ -59,7 +74,7 @@ body.rtl {
 
 .star {
   position: absolute;
-  background: #fff;
+  background: var(--pure-white, #ffffff);
   border-radius: 50%;
   animation: twinkle var(--duration) ease-in-out infinite;
   animation-delay: var(--delay);
@@ -92,7 +107,7 @@ body.rtl {
   position: absolute;
   width: 100px;
   height: 2px;
-  background: linear-gradient(90deg, var(--accent-primary), transparent);
+  background: var(--cd-amber);
   border-radius: 2px;
   animation: shoot 1.5s ease-out forwards;
   opacity: 0;
@@ -143,14 +158,14 @@ body.rtl {
   text-transform: uppercase;
   background: linear-gradient(
     135deg,
-    var(--accent-primary) 0%,
-    var(--accent-secondary) 50%,
-    #fff 100%
+    var(--cd-amber) 0%,
+    var(--cd-gold) 50%,
+    var(--pure-white, #ffffff) 100%
   );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-shadow: 0 0 60px var(--accent-glow);
+  text-shadow: 0 0 60px var(--cd-glow);
   margin-bottom: 0;
   display: flex;
   align-items: baseline;
@@ -203,9 +218,9 @@ event-autocomplete {
 
 /* Custom Event Toggle Button */
 .toggle-custom-btn {
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid var(--border-accent);
-  color: var(--accent-secondary);
+  background: color-mix(in srgb, var(--cd-amber) 10%, transparent);
+  border: 1px solid var(--cd-border-accent);
+  color: var(--cd-gold);
   padding: 10px 16px;
   border-radius: 12px;
   font-family: 'Outfit', sans-serif;
@@ -220,12 +235,12 @@ event-autocomplete {
 }
 
 .toggle-custom-btn:hover {
-  background: rgba(245, 158, 11, 0.2);
-  border-color: var(--accent-primary);
+  background: color-mix(in srgb, var(--cd-amber) 20%, transparent);
+  border-color: var(--cd-amber);
 }
 
 .toggle-custom-btn.active {
-  background: var(--accent-primary);
+  background: var(--cd-amber);
   color: var(--bg-deep);
 }
 
@@ -264,8 +279,8 @@ event-autocomplete {
 .emoji-btn {
   width: 40px;
   height: 40px;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid var(--border-accent);
+  background: color-mix(in srgb, var(--cd-slate) 80%, transparent);
+  border: 1px solid var(--cd-border-accent);
   border-radius: 10px;
   font-size: 1.3rem;
   cursor: pointer;
@@ -277,7 +292,7 @@ event-autocomplete {
 }
 
 .emoji-btn:hover {
-  border-color: var(--accent-primary);
+  border-color: var(--cd-amber);
   transform: scale(1.05);
 }
 
@@ -285,12 +300,12 @@ event-autocomplete {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  background: rgba(15, 23, 42, 0.98);
-  border: 1px solid var(--border-accent);
+  background: color-mix(in srgb, var(--cd-slate) 98%, transparent);
+  border: 1px solid var(--cd-border-accent);
   border-radius: 12px;
   padding: 10px;
   z-index: 200;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 40px color-mix(in srgb, var(--pure-black) 50%, transparent);
   backdrop-filter: blur(20px);
   animation: slideDown 0.2s ease;
 }
@@ -312,7 +327,7 @@ event-autocomplete {
 }
 
 .emoji-grid::-webkit-scrollbar-thumb {
-  background: rgba(245, 158, 11, 0.3);
+  background: color-mix(in srgb, var(--cd-amber) 30%, transparent);
   border-radius: 3px;
 }
 
@@ -331,14 +346,14 @@ event-autocomplete {
 }
 
 .emoji-option:hover {
-  background: rgba(245, 158, 11, 0.2);
+  background: color-mix(in srgb, var(--cd-amber) 20%, transparent);
   transform: scale(1.15);
 }
 
 .custom-name-input {
   flex: 1;
   min-width: 120px;
-  background: rgba(15, 23, 42, 0.8);
+  background: color-mix(in srgb, var(--cd-slate) 80%, transparent);
   border: 1px solid var(--border-subtle);
   border-radius: 10px;
   padding: 10px 12px;
@@ -350,8 +365,8 @@ event-autocomplete {
 
 .custom-name-input:focus {
   outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+  border-color: var(--cd-amber);
+  box-shadow: 0 0 15px color-mix(in srgb, var(--cd-amber) 20%, transparent);
 }
 
 .custom-name-input::placeholder {
@@ -360,7 +375,7 @@ event-autocomplete {
 
 .date-input {
   min-width: 160px;
-  background: rgba(15, 23, 42, 0.8);
+  background: color-mix(in srgb, var(--cd-slate) 80%, transparent);
   border: 1px solid var(--border-subtle);
   border-radius: 10px;
   padding: 10px 12px;
@@ -372,8 +387,8 @@ event-autocomplete {
 
 .date-input:focus {
   outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+  border-color: var(--cd-amber);
+  box-shadow: 0 0 15px color-mix(in srgb, var(--cd-amber) 20%, transparent);
 }
 
 .date-input::-webkit-calendar-picker-indicator {
@@ -382,9 +397,9 @@ event-autocomplete {
 }
 
 .custom-btn {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: var(--accent-primary-bg, #5b3cdc);
   border: none;
-  color: white;
+  color: var(--text-on-accent, #fff);
   padding: 10px 18px;
   border-radius: 10px;
   font-family: 'Outfit', sans-serif;
@@ -397,7 +412,7 @@ event-autocomplete {
 
 .custom-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent-primary) 40%, transparent);
 }
 
 /* Countdown Display */
@@ -420,7 +435,7 @@ event-autocomplete {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+  background: var(--cd-amber);
 }
 
 /* Fullscreen button */
@@ -428,9 +443,9 @@ event-autocomplete {
   position: absolute;
   top: 12px;
   right: 12px;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid var(--border-accent);
-  color: var(--accent-secondary);
+  background: color-mix(in srgb, var(--cd-amber) 10%, transparent);
+  border: 1px solid var(--cd-border-accent);
+  color: var(--cd-gold);
   width: 36px;
   height: 36px;
   border-radius: 8px;
@@ -445,7 +460,7 @@ event-autocomplete {
 
 .fullscreen-btn:hover {
   opacity: 1;
-  background: rgba(245, 158, 11, 0.2);
+  background: color-mix(in srgb, var(--cd-amber) 20%, transparent);
   transform: scale(1.05);
 }
 
@@ -536,7 +551,7 @@ body.fullscreen-mode .locale-selector-wrapper {
   font-family: 'Orbitron', monospace;
   font-size: clamp(1.2rem, 4vw, 1.8rem);
   font-weight: 500;
-  color: var(--accent-secondary);
+  color: var(--cd-gold);
   letter-spacing: 0.05em;
   margin: 0;
 }
@@ -545,8 +560,8 @@ body.fullscreen-mode .locale-selector-wrapper {
   display: inline-flex;
   align-items: center;
   gap: 0.25em;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid var(--border-accent);
+  background: color-mix(in srgb, var(--cd-slate) 60%, transparent);
+  border: 1px solid var(--cd-border-accent);
   border-radius: 8px;
   padding: 0.2em 0.3em;
 }
@@ -554,8 +569,8 @@ body.fullscreen-mode .locale-selector-wrapper {
 .year-btn {
   padding: 0.3em 0.5em;
   border: none;
-  background: rgba(245, 158, 11, 0.15);
-  color: var(--accent-secondary);
+  background: color-mix(in srgb, var(--cd-amber) 15%, transparent);
+  color: var(--cd-gold);
   font-size: 1rem;
   font-weight: 600;
   border-radius: 6px;
@@ -568,7 +583,7 @@ body.fullscreen-mode .locale-selector-wrapper {
 }
 
 .year-btn:hover:not(:disabled) {
-  background: var(--accent-primary);
+  background: var(--cd-amber);
   color: var(--bg-deep);
 }
 
@@ -581,7 +596,7 @@ body.fullscreen-mode .locale-selector-wrapper {
   width: 70px;
   background: transparent;
   border: none;
-  color: var(--accent-secondary);
+  color: var(--cd-gold);
   font-family: 'Orbitron', monospace;
   font-size: 1.1rem;
   font-weight: 600;
@@ -598,12 +613,12 @@ body.fullscreen-mode .locale-selector-wrapper {
 }
 
 .year-input:focus {
-  background: rgba(245, 158, 11, 0.1);
+  background: color-mix(in srgb, var(--cd-amber) 10%, transparent);
   border-radius: 4px;
 }
 
 .year-input.invalid {
-  color: #ef4444;
+  color: var(--danger, #ef4444);
   animation: shake 0.3s ease;
 }
 
@@ -651,7 +666,7 @@ body.fullscreen-mode .locale-selector-wrapper {
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1;
-  text-shadow: 0 0 40px var(--accent-glow);
+  text-shadow: 0 0 40px var(--cd-glow);
   transition: transform 0.1s ease;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.05em;
@@ -667,7 +682,7 @@ body.fullscreen-mode .locale-selector-wrapper {
   }
   50% {
     transform: scale(1.1);
-    color: var(--accent-primary);
+    color: var(--cd-amber);
   }
   100% {
     transform: scale(1);
@@ -685,7 +700,7 @@ body.fullscreen-mode .locale-selector-wrapper {
 .time-separator {
   font-family: 'Orbitron', monospace;
   font-size: clamp(2rem, 6vw, 3.5rem);
-  color: var(--accent-primary);
+  color: var(--cd-amber);
   opacity: 0.6;
   animation: blink 1s infinite;
   flex-shrink: 0;
@@ -737,7 +752,7 @@ body.fullscreen-mode .locale-selector-wrapper {
 .progress-container {
   width: 100%;
   height: 6px;
-  background: rgba(148, 163, 184, 0.1);
+  background: color-mix(in srgb, var(--text-secondary) 10%, transparent);
   border-radius: 3px;
   overflow: hidden;
   margin-bottom: 20px;
@@ -745,10 +760,10 @@ body.fullscreen-mode .locale-selector-wrapper {
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+  background: var(--cd-amber);
   border-radius: 3px;
   transition: width 1s linear;
-  box-shadow: 0 0 10px var(--accent-glow);
+  box-shadow: 0 0 10px var(--cd-glow);
 }
 
 .target-date {
@@ -787,9 +802,9 @@ body.fullscreen-mode .locale-selector-wrapper {
 }
 
 .celebrate-btn {
-  background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+  background: linear-gradient(135deg, var(--cd-celebrate-purple) 0%, var(--cd-celebrate-pink) 100%);
   border: none;
-  color: white;
+  color: var(--pure-white, #fff);
   padding: 12px 24px;
   border-radius: 12px;
   font-family: 'Outfit', sans-serif;
@@ -797,12 +812,12 @@ body.fullscreen-mode .locale-selector-wrapper {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
+  box-shadow: 0 4px 15px color-mix(in srgb, var(--cd-celebrate-purple) 30%, transparent);
 }
 
 .celebrate-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(168, 85, 247, 0.5);
+  box-shadow: 0 8px 25px color-mix(in srgb, var(--cd-celebrate-purple) 50%, transparent);
 }
 
 .celebrate-btn:active {
@@ -810,9 +825,9 @@ body.fullscreen-mode .locale-selector-wrapper {
 }
 
 .final-countdown-btn {
-  background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+  background: linear-gradient(135deg, var(--danger, #ef4444) 0%, var(--cd-final-orange) 100%);
   border: none;
-  color: white;
+  color: var(--pure-white, #fff);
   padding: 12px 24px;
   border-radius: 12px;
   font-family: 'Outfit', sans-serif;
@@ -820,12 +835,12 @@ body.fullscreen-mode .locale-selector-wrapper {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 4px 15px color-mix(in srgb, var(--danger) 30%, transparent);
 }
 
 .final-countdown-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
+  box-shadow: 0 8px 25px color-mix(in srgb, var(--danger) 50%, transparent);
 }
 
 .final-countdown-btn:active {
@@ -833,8 +848,8 @@ body.fullscreen-mode .locale-selector-wrapper {
 }
 
 .final-countdown-btn.playing {
-  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
-  box-shadow: 0 4px 15px rgba(100, 116, 139, 0.3);
+  background: linear-gradient(135deg, var(--text-3, #64748b) 0%, var(--text-3, #475569) 100%);
+  box-shadow: 0 4px 15px color-mix(in srgb, var(--cd-playing-mid) 30%, transparent);
 }
 
 /* Music Section */
@@ -854,9 +869,9 @@ body.fullscreen-mode .locale-selector-wrapper {
   position: absolute;
   top: 8px;
   right: 8px;
-  background: rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
+  background: color-mix(in srgb, var(--pure-black) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pure-white) 20%, transparent);
+  color: var(--pure-white, #fff);
   padding: 6px 12px;
   border-radius: 8px;
   font-family: 'Outfit', sans-serif;
@@ -867,8 +882,8 @@ body.fullscreen-mode .locale-selector-wrapper {
 }
 
 .stop-music-btn:hover {
-  background: rgba(239, 68, 68, 0.8);
-  border-color: rgba(239, 68, 68, 0.5);
+  background: color-mix(in srgb, var(--danger) 80%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 50%, transparent);
 }
 
 /* Responsive */
@@ -893,7 +908,7 @@ body.fullscreen-mode .locale-selector-wrapper {
 
   .time-unit {
     width: 72px;
-    background: rgba(15, 23, 42, 0.5);
+    background: color-mix(in srgb, var(--cd-slate) 50%, transparent);
     padding: 12px 8px;
     border-radius: 12px;
     border: 1px solid var(--border-subtle);

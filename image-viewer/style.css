@@ -1,3 +1,17 @@
+/*
+ * Image viewer — brand chrome. Toolbar active state and drag-over highlight
+ * use a scoped sky-cyan accent (recognizable image-viewer identity). The
+ * transparency checkerboard stays a neutral grey because that's its
+ * functional purpose — showing alpha against a known background.
+ */
+
+:root {
+  --iv-accent: var(--accent-primary, #64c8ff);
+  /* Checkerboard pattern color. Intentionally NOT a brand token because
+   * the checkerboard must be a known mid-grey to read alpha correctly. */
+  --iv-checker: #2a2a2a;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -5,9 +19,9 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #1a1a1a;
-  color: #fff;
+  font-family: var(--font-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  background: var(--surface-1, #15151b);
+  color: var(--text-1, #f5f5f7);
   height: 100vh;
   overflow: hidden;
 }
@@ -25,8 +39,8 @@ body {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: linear-gradient(to bottom, #2d2d2d, #1a1a1a);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface-2, #1f1f27);
+  border-bottom: 1px solid var(--hairline, rgba(255, 255, 255, 0.08));
   flex-shrink: 0;
 }
 
@@ -39,7 +53,7 @@ body {
 .toolbar-divider {
   width: 1px;
   height: 24px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--hairline-strong, rgba(255, 255, 255, 0.14));
   margin: 0 4px;
 }
 
@@ -48,9 +62,9 @@ body {
 }
 
 #toolbar button {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background: color-mix(in srgb, var(--pure-white, #ffffff) 10%, transparent);
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
+  color: var(--text-1, #f5f5f7);
   padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
@@ -60,8 +74,8 @@ body {
 }
 
 #toolbar button:hover:not(:disabled) {
-  background: rgba(100, 200, 255, 0.3);
-  border-color: #64c8ff;
+  background: color-mix(in srgb, var(--iv-accent, #64c8ff) 30%, transparent);
+  border-color: var(--iv-accent, #64c8ff);
 }
 
 #toolbar button:active:not(:disabled) {
@@ -74,21 +88,21 @@ body {
 }
 
 #toolbar button.active {
-  background: rgba(100, 200, 255, 0.4);
-  border-color: #64c8ff;
+  background: color-mix(in srgb, var(--iv-accent, #64c8ff) 40%, transparent);
+  border-color: var(--iv-accent, #64c8ff);
 }
 
 #zoom-level {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-1, #f5f5f7);
   min-width: 50px;
   text-align: center;
-  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  font-family: var(--font-mono, 'SF Mono', Monaco, Consolas, monospace);
 }
 
 #image-info {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-2, #a1a1aa);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -102,7 +116,7 @@ body {
   align-items: center;
   justify-content: center;
   flex: 1;
-  border: 3px dashed rgba(255, 255, 255, 0.2);
+  border: 3px dashed var(--hairline-strong, rgba(255, 255, 255, 0.14));
   border-radius: 16px;
   margin: 20px;
   transition: all 0.3s ease;
@@ -113,8 +127,8 @@ body {
 }
 
 #drop-zone.drag-over {
-  border-color: #64c8ff;
-  background: rgba(100, 200, 255, 0.1);
+  border-color: var(--iv-accent, #64c8ff);
+  background: color-mix(in srgb, var(--iv-accent, #64c8ff) 10%, transparent);
 }
 
 .drop-content {
@@ -143,7 +157,7 @@ body {
   font-size: 28px;
   font-weight: 600;
   margin-bottom: 12px;
-  background: linear-gradient(90deg, #64c8ff, #a0e0ff);
+  background: var(--accent-primary, #7c5cff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -157,14 +171,14 @@ body {
 }
 
 .drop-content p {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-2, #a1a1aa);
   font-size: 16px;
   margin-bottom: 8px;
 }
 
 .drop-content .formats {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.58);
+  color: var(--text-3, #8e8e96);
 }
 
 /* Image wrapper */
@@ -174,7 +188,7 @@ body {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: #0d0d0d;
+  background: var(--surface-0, #0b0b0f);
   position: relative;
   cursor: grab;
 }
@@ -206,12 +220,13 @@ body {
   image-rendering: auto;
 }
 
-/* Checkerboard background for transparent images */
+/* Checkerboard background for transparent images. Stays neutral so alpha
+ * reads correctly. */
 #image-wrapper.show-transparency #image-container {
-  background-image: linear-gradient(45deg, #2a2a2a 25%, transparent 25%),
-    linear-gradient(-45deg, #2a2a2a 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #2a2a2a 75%),
-    linear-gradient(-45deg, transparent 75%, #2a2a2a 75%);
+  background-image: linear-gradient(45deg, var(--iv-checker, #2a2a2a) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--iv-checker, #2a2a2a) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--iv-checker, #2a2a2a) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--iv-checker, #2a2a2a) 75%);
   background-size: 20px 20px;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0;
 }
@@ -224,7 +239,7 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 24px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-1, #f5f5f7);
   z-index: 10;
 }
 

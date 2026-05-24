@@ -43,6 +43,13 @@ export function isFirstRun() {
 }
 
 export const Config = {
+  // ─── Brand identity ─────────────────────────────────────────────
+  // Mirror of the same values in brand.css (--brand-tagline) and
+  // BRAND.md. If you change these, change all three.
+  OS_NAME: 'Heyming OS',
+  OS_VERSION: '1.0',
+  OS_TAGLINE: 'A desktop that fits in a tab.',
+
   get USER() {
     return getSavedUsername() || 'user';
   },

@@ -1,9 +1,11 @@
-/* Heyming OS — application launcher menu: card, animations, category headers, app list scroll. */
+/* Heyming OS — application launcher menu: card, animations, category headers, app list scroll.
+ *
+ * Color literals migrated to brand tokens. Animations and geometry preserved.
+ */
 
-/* App Launcher Improvements */
 #app-launcher-menu {
   backdrop-filter: blur(10px);
-  z-index: 1000; /* Very high z-index to appear above all windows */
+  z-index: 1000; /* Above all windows */
   position: absolute;
   transform-origin: bottom left;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -14,15 +16,14 @@
 }
 
 /*
- * Tailwind's .hidden is display:none on a class selector; this ID rule sets display:flex,
- * so the menu stayed visible whenever "hidden" was present. Collapse for real when closed.
+ * Tailwind's .hidden is display:none on a class; this ID rule sets display:flex,
+ * so the menu stayed visible whenever "hidden" was present. Collapse for real.
  */
 #app-launcher-menu.hidden {
   display: none !important;
   pointer-events: none;
 }
 
-/* Fancy App Launcher Animations */
 @keyframes slideUpFadeIn {
   0% {
     transform: translateY(20px) scale(0.9);
@@ -75,30 +76,31 @@
   transform: translateX(-20px);
 }
 
-/* Enhanced visual effects */
+/* Card surface */
 #app-launcher-menu {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  background: linear-gradient(145deg, rgba(55, 65, 81, 0.95), rgba(31, 41, 55, 0.95));
+  background: var(--surface-glass);
+  border: 1px solid var(--hairline-strong);
+  box-shadow: 0 20px 40px color-mix(in srgb, var(--pure-black) 45%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--pure-white) 6%, transparent);
 }
 
-/* App category headers in launcher */
+/* App category headers */
 .category-header {
-  color: #9ca3af;
+  color: var(--text-3);
   font-size: 10px;
-  font-weight: bold;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   padding: 8px 12px 4px 12px;
   margin-top: 12px;
   margin-bottom: 4px;
-  border-bottom: 1px solid #374151;
+  border-bottom: 1px solid var(--hairline);
 }
 
-/* Inner list scrolls; header + footer stay visible (outer #app-launcher-menu is flex column). */
+/* Inner list scrolls; header + footer stay visible. */
 .launcher-apps-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #4a5568 #2d3748;
+  scrollbar-color: var(--surface-2) var(--surface-1);
 }
 
 .launcher-apps-scroll::-webkit-scrollbar {
@@ -106,32 +108,32 @@
 }
 
 .launcher-apps-scroll::-webkit-scrollbar-track {
-  background: #2d3748;
+  background: var(--surface-1);
 }
 
 .launcher-apps-scroll::-webkit-scrollbar-thumb {
-  background: #4a5568;
-  border-radius: 4px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
 }
 
 .launcher-apps-scroll::-webkit-scrollbar-thumb:hover {
-  background: #2b6cb0;
+  background: var(--accent-primary);
 }
 
 .launcher-kbd {
   display: inline-block;
   padding: 0.12em 0.45em;
   font-size: 0.92em;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-  color: #e5e7eb;
-  background: #111827;
-  border: 1px solid #4b5563;
-  border-radius: 4px;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+  font-family: var(--font-mono);
+  color: var(--text-1);
+  background: var(--surface-0);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--pure-black) 35%, transparent);
 }
 
 .app-item:focus-visible {
-  outline: 2px solid #63b3ed;
+  outline: 2px solid var(--focus-ring-inner);
   outline-offset: 1px;
+  box-shadow: 0 0 0 4px var(--focus-ring-outer);
 }

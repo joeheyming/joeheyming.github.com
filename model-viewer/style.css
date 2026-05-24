@@ -1,3 +1,23 @@
+/* ─── Scoped tokens (3D model viewer identity) ─────────────────────
+ * The viewer ships its own purple/magenta palette distinct from
+ * brand violet — it predates the brand and the dropzone gradient
+ * is part of the visual identity. Chrome (black, white, hairlines,
+ * danger) routes through brand; identity stays scoped.
+ */
+:root {
+  --mv-bg: #0d0d12;
+  --mv-purple: #a864ff;
+  --mv-purple-magenta: #f06aff;
+  --mv-toolbar-top: #2a1f3d;
+  --mv-toolbar-bottom: #14101e;
+  --mv-dropdown-bg: #1f1730;
+  --mv-stage-inner: #1a1430;
+  --mv-stage-mid: #0a0612;
+  --mv-stage-outer: #050308;
+  --mv-loading-bg: rgba(10, 6, 18, 0.7);
+  --mv-error: #b4283c;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -6,8 +26,8 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #0d0d12;
-  color: #fff;
+  background: var(--mv-bg, #0d0d12);
+  color: var(--pure-white, #fff);
   height: 100vh;
   overflow: hidden;
 }
@@ -25,8 +45,12 @@ body {
   align-items: center;
   gap: 8px;
   padding: 8px 12px 8px 90px; /* left: clear compact back button */
-  background: linear-gradient(to bottom, #2a1f3d, #14101e);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(
+    to bottom,
+    var(--mv-toolbar-top, #2a1f3d),
+    var(--mv-toolbar-bottom, #14101e)
+  );
+  border-bottom: 1px solid var(--hairline, rgba(255, 255, 255, 0.1));
   flex-shrink: 0;
   flex-wrap: wrap;
 }
@@ -41,7 +65,7 @@ body {
 .toolbar-divider {
   width: 1px;
   height: 24px;
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--pure-white) 20%, transparent);
   margin: 0 4px;
 }
 
@@ -51,15 +75,15 @@ body {
 
 .toolbar-label {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  color: color-mix(in srgb, var(--pure-white) 60%, transparent);
   margin-right: 4px;
 }
 
 #toolbar button,
 #toolbar select {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #fff;
+  background: color-mix(in srgb, var(--pure-white) 8%, transparent);
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.18));
+  color: var(--pure-white, #fff);
   padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
@@ -76,8 +100,8 @@ body {
 
 #toolbar button:hover:not(:disabled),
 #toolbar select:hover:not(:disabled) {
-  background: rgba(168, 100, 255, 0.3);
-  border-color: #a864ff;
+  background: color-mix(in srgb, var(--mv-purple) 30%, transparent);
+  border-color: var(--mv-purple, #a864ff);
 }
 
 #toolbar button:active:not(:disabled) {
@@ -91,9 +115,9 @@ body {
 }
 
 #toolbar button.active {
-  background: rgba(168, 100, 255, 0.4);
-  border-color: #a864ff;
-  box-shadow: 0 0 8px rgba(168, 100, 255, 0.4);
+  background: color-mix(in srgb, var(--mv-purple) 40%, transparent);
+  border-color: var(--mv-purple, #a864ff);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--mv-purple) 40%, transparent);
 }
 
 /* Dropdown */
@@ -105,14 +129,14 @@ body {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  background: #1f1730;
-  border: 1px solid rgba(168, 100, 255, 0.4);
+  background: var(--mv-dropdown-bg, #1f1730);
+  border: 1px solid color-mix(in srgb, var(--mv-purple) 40%, transparent);
   border-radius: 8px;
   padding: 4px;
   min-width: 180px;
   display: none;
   z-index: 100;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--pure-black) 50%, transparent);
 }
 
 .dropdown-menu.open {
@@ -131,13 +155,13 @@ body {
 }
 
 .dropdown-menu button:hover:not(:disabled) {
-  background: rgba(168, 100, 255, 0.3);
+  background: color-mix(in srgb, var(--mv-purple) 30%, transparent);
   border-color: transparent;
 }
 
 #model-info {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
+  color: color-mix(in srgb, var(--pure-white) 60%, transparent);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -151,7 +175,7 @@ body {
   align-items: center;
   justify-content: center;
   flex: 1;
-  border: 3px dashed rgba(255, 255, 255, 0.2);
+  border: 3px dashed color-mix(in srgb, var(--pure-white) 20%, transparent);
   border-radius: 16px;
   margin: 20px;
   transition: all 0.3s ease;
@@ -162,8 +186,8 @@ body {
 }
 
 #drop-zone.drag-over {
-  border-color: #a864ff;
-  background: rgba(168, 100, 255, 0.1);
+  border-color: var(--mv-purple, #a864ff);
+  background: color-mix(in srgb, var(--mv-purple) 10%, transparent);
 }
 
 .drop-content {
@@ -176,7 +200,7 @@ body {
   display: inline-block;
   margin-bottom: 20px;
   animation: spin 8s linear infinite;
-  filter: drop-shadow(0 0 20px rgba(168, 100, 255, 0.4));
+  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--mv-purple) 40%, transparent));
 }
 
 @keyframes spin {
@@ -192,21 +216,21 @@ body {
   font-size: 28px;
   font-weight: 600;
   margin-bottom: 12px;
-  background: linear-gradient(90deg, #a864ff, #f06aff);
+  background: linear-gradient(90deg, var(--mv-purple, #a864ff), var(--mv-purple-magenta, #f06aff));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .drop-content p {
-  color: rgba(255, 255, 255, 0.6);
+  color: color-mix(in srgb, var(--pure-white) 60%, transparent);
   font-size: 16px;
   margin-bottom: 8px;
 }
 
 .drop-content .formats {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.58);
+  color: color-mix(in srgb, var(--pure-white) 58%, transparent);
 }
 
 /* Model wrapper */
@@ -214,8 +238,12 @@ body {
   flex: 1;
   position: relative;
   overflow: hidden;
-  background:
-    radial-gradient(ellipse at center, #1a1430 0%, #0a0612 70%, #050308 100%);
+  background: radial-gradient(
+    ellipse at center,
+    var(--mv-stage-inner, #1a1430) 0%,
+    var(--mv-stage-mid, #0a0612) 70%,
+    var(--mv-stage-outer, #050308) 100%
+  );
 }
 
 #model-wrapper.hidden {
@@ -237,7 +265,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 6, 18, 0.7);
+  background: var(--mv-loading-bg, rgba(10, 6, 18, 0.7));
   backdrop-filter: blur(4px);
   z-index: 5;
 }
@@ -249,8 +277,8 @@ body {
 .spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid rgba(168, 100, 255, 0.2);
-  border-top-color: #a864ff;
+  border: 4px solid color-mix(in srgb, var(--mv-purple) 20%, transparent);
+  border-top-color: var(--mv-purple, #a864ff);
   border-radius: 50%;
   animation: rotate 0.9s linear infinite;
 }
@@ -263,7 +291,7 @@ body {
 
 .loading-text {
   margin-top: 16px;
-  color: rgba(255, 255, 255, 0.8);
+  color: color-mix(in srgb, var(--pure-white) 80%, transparent);
   font-size: 14px;
 }
 
@@ -273,12 +301,12 @@ body {
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(180, 40, 60, 0.95);
-  color: #fff;
+  background: color-mix(in srgb, var(--mv-error) 95%, transparent);
+  color: var(--pure-white, #fff);
   padding: 10px 16px;
   border-radius: 8px;
   font-size: 14px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--pure-black) 40%, transparent);
   z-index: 10;
   max-width: 80%;
 }

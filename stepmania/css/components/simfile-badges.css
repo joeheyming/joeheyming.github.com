@@ -1,5 +1,9 @@
 /* StepMania component — SIMFILE BADGES. Difficulty chips (DDR-inspired
-   colors) and video-availability indicators on simfile cards. */
+   colors) and video-availability indicators on simfile cards.
+
+   PRESERVED: every .badge-diff-* color (Beginner blue, Light orange,
+   Standard red, Heavy green, Challenge purple, Edit teal). These are the
+   canonical StepMania difficulty palette and must not be brandized. */
 
 /* ==========================================
    SIMFILE BADGES (Video & Difficulty)
@@ -23,62 +27,94 @@
   letter-spacing: 0.025em;
 }
 
+/* "Has video" indicator — generic chrome, not a difficulty signal, so
+   tinted to brand accent rather than the legacy purple-500/violet-500. */
 .badge-video {
-  background: linear-gradient(135deg, #7c3aed, #a855f7);
-  color: white;
-  border: 1px solid rgba(168, 85, 247, 0.5);
+  background: linear-gradient(
+    135deg,
+    var(--accent-primary-bg, #5b3cdc),
+    var(--accent-primary, #7c5cff)
+  );
+  color: var(--text-on-accent, #ffffff);
+  border: 1px solid var(--hairline-accent, rgba(124, 92, 255, 0.32));
 }
 
-/* Difficulty badges with DDR-inspired colors */
+/* Difficulty badges with DDR-inspired colors.
+   Border stays at white @ 0.3 (slightly stronger than --hairline-strong)
+   to keep each color pop legible on the dark card. */
 .badge-diff {
   min-width: 1.5rem;
   justify-content: center;
   font-weight: bold;
   font-size: 0.7rem;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid color-mix(in srgb, var(--pure-white) 30%, transparent);
   cursor: help;
   padding: 0.15rem 0.35rem;
 }
 
-/* Beginner - Light blue */
+/* Beginner - Light blue (StepMania convention) */
 .badge-diff-b {
-  background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+  background: linear-gradient(
+    135deg,
+    var(--sm-badge-sky-lo, #0ea5e9),
+    var(--sm-badge-sky-hi, #38bdf8)
+  );
   color: white;
 }
 
-/* Basic/Light - Orange */
+/* Basic/Light - Orange (StepMania convention) */
 .badge-diff-l {
-  background: linear-gradient(135deg, #f97316, #fb923c);
+  background: linear-gradient(
+    135deg,
+    var(--sm-badge-orange-lo, #f97316),
+    var(--sm-badge-orange-hi, #fb923c)
+  );
   color: white;
 }
 
-/* Standard/Difficult - Red */
+/* Standard/Difficult - Red (StepMania convention) */
 .badge-diff-s {
-  background: linear-gradient(135deg, #dc2626, #ef4444);
+  background: linear-gradient(
+    135deg,
+    var(--sm-badge-red-lo, #dc2626),
+    var(--sm-badge-red-hi, #ef4444)
+  );
   color: white;
 }
 
-/* Heavy/Expert - Green */
+/* Heavy/Expert - Green (StepMania convention) */
 .badge-diff-h {
-  background: linear-gradient(135deg, #16a34a, #22c55e);
+  background: linear-gradient(
+    135deg,
+    var(--sm-badge-green-lo, #16a34a),
+    var(--sm-badge-green-hi, #22c55e)
+  );
   color: white;
 }
 
-/* Challenge - Purple */
+/* Challenge - Purple (StepMania convention) */
 .badge-diff-c {
-  background: linear-gradient(135deg, #9333ea, #a855f7);
+  background: linear-gradient(
+    135deg,
+    var(--sm-badge-purple-lo, #9333ea),
+    var(--sm-badge-purple-hi, #a855f7)
+  );
   color: white;
 }
 
-/* Unknown difficulty - Gray */
+/* Unknown difficulty - neutral gray (uses brand text tokens) */
 .badge-diff-u {
-  background: linear-gradient(135deg, #6b7280, #9ca3af);
-  color: white;
+  background: linear-gradient(135deg, var(--text-3, #8e8e96), var(--text-2, #a1a1aa));
+  color: var(--text-on-accent, #ffffff);
 }
 
-/* Edit difficulty - Teal */
+/* Edit difficulty - Teal (StepMania convention) */
 .badge-diff-e {
-  background: linear-gradient(135deg, #0d9488, #14b8a6);
+  background: linear-gradient(
+    135deg,
+    var(--sm-badge-teal-lo, #0d9488),
+    var(--sm-badge-teal-hi, #14b8a6)
+  );
   color: white;
 }
 
@@ -92,13 +128,13 @@
   font-size: 1rem;
   text-decoration: none;
   border-radius: 0.375rem;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--hairline, rgba(255, 255, 255, 0.08));
   margin-left: auto;
   flex-shrink: 0;
   transition: background 0.2s, transform 0.15s;
 }
 
 .simfile-external-link:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--hairline-strong, rgba(255, 255, 255, 0.14));
   transform: scale(1.1);
 }

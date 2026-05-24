@@ -1,25 +1,37 @@
-:root {
-  --calc-bg: #2d3748;
-  --calc-border: #4a5568;
-  --calc-text: #e2e8f0;
-  --calc-accent: #3182ce;
-  --calc-equals: #10b981;
-  --calc-surface: #1e293b;
-}
+/*
+ * Heyming OS Calculator — Tier-1 rebuild.
+ *
+ * Built on brand tokens + HOSDL primitives. The old terminal-green LED
+ * display and bevel-style keys are gone; the new chrome is a flat
+ * iOS/macOS Calculator-inspired card with the Heyming violet accent.
+ *
+ * Functionality is preserved 1:1: every data-calc, data-mode, data-target,
+ * data-expr, and element id the calculator.js / graph-mode.js modules
+ * bind to is intact.
+ */
 
 * {
   box-sizing: border-box;
 }
 
-body {
+body.calc-page {
   margin: 0;
   min-height: 100vh;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  padding: 0 16px 32px;
+  background: var(--surface-0);
+  color: var(--text-1);
+  font-family: var(--font-ui);
 }
 
+body.calc-page--graph {
+  padding-top: 0;
+}
+
+/* Screen-reader-only page title — h1 lives at the top for crawlers and
+ * AT, but visually the .hos-app-header title carries the brand. */
 .page-title {
   position: absolute;
   width: 1px;
@@ -32,181 +44,173 @@ body {
   border: 0;
 }
 
-body.calc-page--standard {
-  color: var(--calc-text);
-}
-
-body.calc-page--graph {
-  align-items: flex-start;
-  padding: 56px 16px 80px;
-  color: var(--calc-text);
-  background: linear-gradient(160deg, #1a202c 0%, #2d3748 45%, #1e293b 100%);
-}
-
-.calc-app {
+/* Header — overrides .hos-app-header to span full width and stack the
+ * segmented control under identity on narrow screens. */
+.hos-app-header {
   width: 100%;
-  max-width: 800px;
-  padding: 16px;
-  background: var(--calc-bg);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  max-width: 880px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
 }
 
-.calc-app--standard {
-  max-height: 600px;
-}
-
-.calc-app--graph {
-  max-width: min(720px, 100%);
-  border-radius: 12px;
-  border: 1px solid var(--calc-border);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
-  overflow: hidden;
-  padding: 0;
-  gap: 0;
-}
-
-.calc-mode-nav {
-  display: flex;
-  border-bottom: 1px solid var(--calc-border);
-  background: var(--calc-surface);
-}
-
-/* Landscape phones: back button collapses to icon-only (~46px wide).
-   Push first tab right of it. */
-@media (max-height: 480px) {
+@media (max-width: 520px) {
+  .hos-app-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
   .calc-mode-nav {
-    padding-left: 55px;
+    align-self: stretch;
+    justify-content: stretch;
+  }
+  .calc-mode-nav > button {
+    flex: 1;
   }
 }
 
-.calc-mode-tab {
-  flex: 1;
-  padding: 12px 16px;
-  border: none;
-  background: transparent;
-  color: #94a3b8;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: color 0.15s, background 0.15s;
+/* App body */
+.calc-app {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.calc-mode-tab:hover {
-  color: var(--calc-text);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.calc-mode-tab--active {
-  color: var(--calc-text);
-  box-shadow: inset 0 -2px 0 var(--calc-accent);
+.calc-app--graph {
+  max-width: 880px;
 }
 
 .calc-panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
-/* display:flex above wins over the UA [hidden] rule — keep inactive panels out of layout */
 .calc-panel[hidden] {
   display: none !important;
 }
 
-.calc-app--graph .calc-panel {
-  padding: 16px;
-}
-
-.calc-panel--standard {
-  position: relative;
-  padding: 0;
-  gap: 12px;
-}
-
-.calc-to-graph {
-  align-self: flex-end;
-  margin: 0 0 -4px;
-  padding: 0;
-  border: none;
-  background: none;
-  color: #94a3b8;
-  font-size: 13px;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.calc-to-graph:hover {
-  color: var(--calc-text);
-}
-
-.calc-panel--graph {
-  gap: 10px;
-}
+/* ─── Standard mode ────────────────────────────────────────────────── */
 
 .calculator-display {
-  background: #000000;
-  color: #00ff00;
-  padding: 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  padding: 28px 20px 24px;
   text-align: right;
-  font-family: 'Courier New', monospace;
-  font-size: 18px;
-  border: 1px solid var(--calc-border);
-  border-radius: 4px;
-  min-height: 40px;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-size: 48px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: var(--text-1);
+  min-height: 96px;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: flex-end;
   overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  line-height: 1.1;
 }
 
 .calculator-buttons {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  gap: 10px;
 }
 
 .calculator-button {
-  height: 40px;
-  background: #4a5568;
-  border: 1px solid #2d3748;
-  color: var(--calc-text);
-  border-radius: 4px;
+  height: 64px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  color: var(--text-1);
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  font-size: 14px;
-  font-weight: bold;
-  transition: background 0.2s ease, transform 0.1s ease;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  transition: background var(--motion-hover), border-color var(--motion-hover),
+    transform var(--motion-hover);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .calculator-button:hover {
-  background: #2b6cb0;
+  background: var(--surface-1);
+  border-color: var(--hairline-accent);
 }
 
 .calculator-button:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
+}
+
+/* Utility row (C, ±, %) — softer surface so they read as "modifier". */
+.calculator-button.calc-key--util {
+  background: var(--surface-1);
+  color: var(--accent-primary-hover);
+  font-weight: 600;
 }
 
 .calculator-button.operator {
-  background: var(--calc-accent);
+  background: var(--accent-primary-bg);
+  color: var(--text-on-accent);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.calculator-button.operator:hover {
+  background: var(--accent-primary-bg-hover);
 }
 
 .calculator-button.equals {
-  background: var(--calc-equals);
+  background: var(--accent-primary);
+  color: var(--text-on-accent);
+  border-color: transparent;
+  font-weight: 700;
+}
+
+.calculator-button.equals:hover {
+  background: var(--accent-primary-hover);
+}
+
+@media (max-width: 480px) {
+  .calculator-display {
+    font-size: 40px;
+    padding: 24px 16px 20px;
+    min-height: 84px;
+  }
+  .calculator-button {
+    height: 56px;
+    font-size: 20px;
+  }
+}
+
+/* ─── Graph mode ───────────────────────────────────────────────────── */
+
+.calc-panel--graph {
+  width: 100%;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  gap: 14px;
 }
 
 .graph-expr-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .graph-expr-label {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 600;
+  color: var(--text-2);
   white-space: nowrap;
   min-width: 4.5rem;
 }
@@ -216,6 +220,12 @@ body.calc-page--graph {
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+.graph-swatch--f {
+  background: var(--accent-primary);
+}
+.graph-swatch--g {
+  background: var(--warning);
 }
 
 .graph-expr-field {
@@ -227,18 +237,20 @@ body.calc-page--graph {
 .graph-expr-input {
   width: 100%;
   box-sizing: border-box;
-  padding: 10px 36px 10px 12px;
-  font-family: 'Courier New', monospace;
-  font-size: 15px;
-  border: 1px solid var(--calc-border);
-  border-radius: 6px;
-  background: #0f172a;
-  color: #7dd3fc;
+  padding: 10px 36px 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  background: var(--surface-0);
+  color: var(--text-1);
+  transition: border-color var(--motion-hover), box-shadow var(--motion-hover);
 }
 
 .graph-expr-input:focus {
-  outline: 2px solid var(--calc-accent);
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-primary-soft);
 }
 
 .graph-expr-clear {
@@ -250,15 +262,15 @@ body.calc-page--graph {
   height: 28px;
   padding: 0;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: #94a3b8;
-  font-size: 20px;
+  color: var(--text-3);
+  font-size: 18px;
   line-height: 1;
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  transition: opacity var(--motion-hover), color var(--motion-hover), background var(--motion-hover);
 }
 
 .graph-expr-field--has-value .graph-expr-clear,
@@ -268,20 +280,20 @@ body.calc-page--graph {
 }
 
 .graph-expr-clear:hover {
-  color: var(--calc-text);
-  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-1);
+  background: var(--surface-2);
 }
 
 .graph-error {
   margin: 0;
-  font-size: 13px;
-  color: #fca5a5;
+  font-size: var(--text-caption);
+  color: var(--danger);
 }
 
 .graph-toolbar {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .graph-presets {
@@ -291,58 +303,75 @@ body.calc-page--graph {
 }
 
 .graph-preset {
-  padding: 4px 10px;
+  padding: 5px 12px;
+  font-family: var(--font-mono);
   font-size: 12px;
-  border-radius: 999px;
-  border: 1px solid var(--calc-border);
-  background: var(--calc-surface);
-  color: var(--calc-text);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-2);
+  color: var(--text-1);
   cursor: pointer;
+  transition: border-color var(--motion-hover), background var(--motion-hover);
 }
 
 .graph-preset:hover {
-  border-color: var(--calc-accent);
-  background: #334155;
+  border-color: var(--accent-primary);
+  background: var(--accent-primary-soft);
 }
 
 .graph-view-controls {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-end;
+  gap: 10px;
 }
 
 .graph-range {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+  font-family: var(--font-ui);
   font-size: 11px;
-  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+  font-weight: 600;
 }
 
 .graph-range input {
   width: 72px;
-  padding: 4px 6px;
+  padding: 6px 8px;
+  font-family: var(--font-mono);
   font-size: 13px;
-  border: 1px solid var(--calc-border);
-  border-radius: 4px;
-  background: #0f172a;
-  color: var(--calc-text);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-0);
+  color: var(--text-1);
+  transition: border-color var(--motion-hover), box-shadow var(--motion-hover);
+}
+
+.graph-range input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-primary-soft);
 }
 
 .graph-btn {
-  padding: 6px 12px;
-  font-size: 14px;
+  padding: 8px 14px;
+  font-size: 13px;
   font-weight: 600;
-  border: 1px solid var(--calc-border);
-  border-radius: 6px;
-  background: #4a5568;
-  color: var(--calc-text);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text-1);
   cursor: pointer;
+  transition: background var(--motion-hover), border-color var(--motion-hover);
 }
 
 .graph-btn:hover {
-  background: var(--calc-accent);
+  background: var(--accent-primary-bg);
+  color: var(--text-on-accent);
+  border-color: transparent;
 }
 
 .graph-canvas-wrap {
@@ -354,8 +383,9 @@ body.calc-page--graph {
   width: 100%;
   height: min(52vh, 360px);
   min-height: 220px;
-  border-radius: 8px;
-  border: 1px solid var(--calc-border);
+  border-radius: var(--radius);
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-0);
   touch-action: none;
   cursor: crosshair;
 }
@@ -369,13 +399,16 @@ body.calc-page--graph {
   z-index: 2;
   pointer-events: none;
   padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--calc-border);
-  background: rgba(15, 23, 42, 0.92);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-  font-family: 'Courier New', monospace;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-glass);
+  backdrop-filter: var(--surface-glass-blur);
+  -webkit-backdrop-filter: var(--surface-glass-blur);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--pure-black) 40%, transparent);
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.45;
+  color: var(--text-1);
   white-space: nowrap;
 }
 
@@ -389,20 +422,7 @@ body.calc-page--graph {
 
 .graph-hint {
   margin: 0;
-  font-size: 11px;
-  color: #64748b;
+  font-size: var(--text-caption);
+  color: var(--text-3);
   text-align: center;
-}
-
-@media (max-width: 640px) {
-  body.calc-page--graph {
-    padding-top: 48px;
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-
-  .calculator-button {
-    height: 44px;
-    font-size: 15px;
-  }
 }

@@ -10,7 +10,7 @@
 }
 
 .resize-handle:hover {
-  background: rgba(59, 130, 246, 0.3);
+  background: var(--accent-primary-soft, rgba(124, 92, 255, 0.15));
 }
 
 .os-window:hover .resize-handle {
@@ -86,8 +86,15 @@
   cursor: sw-resize;
 }
 
-/* Visible Drag Handle */
+/* Visible Drag Handle.
+ * The diagonal stripe pattern is painted via three brand-routed CSS
+ * variables so the colors stay in sync with the surface scale even
+ * inside the linear-gradient stop list (color-stops can't read tokens
+ * directly, but they can read CSS variables). */
 .window-drag-handle {
+  --drag-stripe: var(--text-3, #8e8e96);
+  --drag-stripe-hover: var(--accent-primary-bg, #5b3cdc);
+  --drag-dot: var(--text-2, #a1a1aa);
   position: absolute;
   bottom: 0;
   right: 0;
@@ -96,15 +103,15 @@
   background: linear-gradient(
     135deg,
     transparent 30%,
-    #4a5568 30%,
-    #4a5568 40%,
+    var(--drag-stripe) 30%,
+    var(--drag-stripe) 40%,
     transparent 40%,
     transparent 50%,
-    #4a5568 50%,
-    #4a5568 60%,
+    var(--drag-stripe) 50%,
+    var(--drag-stripe) 60%,
     transparent 60%,
     transparent 70%,
-    #4a5568 70%
+    var(--drag-stripe) 70%
   );
   cursor: se-resize;
   z-index: 1000;
@@ -119,15 +126,15 @@
   background: linear-gradient(
     135deg,
     transparent 30%,
-    #3182ce 30%,
-    #3182ce 40%,
+    var(--drag-stripe-hover) 30%,
+    var(--drag-stripe-hover) 40%,
     transparent 40%,
     transparent 50%,
-    #3182ce 50%,
-    #3182ce 60%,
+    var(--drag-stripe-hover) 50%,
+    var(--drag-stripe-hover) 60%,
     transparent 60%,
     transparent 70%,
-    #3182ce 70%
+    var(--drag-stripe-hover) 70%
   );
   transform: scale(1.1);
 }
@@ -139,7 +146,7 @@
   right: 2px;
   width: 4px;
   height: 4px;
-  background: #718096;
+  background: var(--drag-dot);
   border-radius: 50%;
 }
 
@@ -150,7 +157,7 @@
   right: 6px;
   width: 8px;
   height: 8px;
-  border: 2px solid #718096;
+  border: 2px solid var(--drag-dot);
   border-top: none;
   border-left: none;
   transform: rotate(-45deg);

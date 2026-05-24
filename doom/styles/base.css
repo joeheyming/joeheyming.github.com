@@ -14,23 +14,120 @@
  * Flavor accent colors live on body.flavor-* overrides of the --accent
  * custom property; the cards themselves drive their own --flavor-color
  * via [data-flavor=...] attribute selectors.
+ *
+ * ── Tokens ──────────────────────────────────────────────────────────
+ * The doom theme intentionally keeps its own gritty/blood/cacodemon
+ * palette via SCOPED --doom-* tokens (declared below). These are
+ * SEPARATE from the brand /brand.css tokens — chrome elsewhere on the
+ * site uses brand violet, but doom keeps its horror aesthetic. Routing
+ * everything through --doom-* makes the boundary explicit.
+ *
+ * The legacy --bg / --panel / --accent / etc. names are aliased to the
+ * scoped tokens so the rest of the doom CSS keeps working untouched
+ * AND the flavor body-class overrides (which set --accent directly to
+ * a per-flavor literal) continue to win over the alias.
  */
 
 :root {
-  --bg: #0b0b0c;
-  --panel: #131316;
-  --panel2: #1a1a1e;
-  --border: #2a2a30;
-  --border-hot: #4a4a55;
-  --text: #dcdcdc;
-  --dim: #8a8a92;
+  /* ── DOOM scoped horror palette ────────────────────────────────────
+   *
+   * Surfaces: descending panel depths from #0b0b0c → #2a2a30.
+   * Identity: blood (red default), bone (gold), fire (warn yellow),
+   *           life (ok green).
+   * Touch:    battlefield button tints layered over the engine canvas —
+   *           fire = red, use = green, jump = blue, alt = orange
+   *           (sub-weapon), wpn = indigo (cycle).
+   */
+
+  /* Surfaces */
+  --doom-bg: var(--surface-0, #0b0b0c);
+  --doom-panel: var(--surface-1, #131316);
+  --doom-panel-2: var(--surface-1, #1a1a1e);
+  --doom-panel-hover: var(--surface-2, #1d1d22);
+  --doom-chip: #222228;
+  --doom-btn-hover: #222222;
+  --doom-border: #2a2a30;
+  --doom-border-hot: #4a4a55;
+  --doom-hint: var(--text-3, #555555);
+
+  /* Disabled state — secondary CTA */
+  --doom-disabled-bg: #2a2a2e;
+  --doom-disabled-border: #3a3a3e;
+  --doom-disabled-text: #6a6a72;
+  /* Disabled state — primary CTA */
+  --doom-btn-primary-disabled-bg: #333333;
+  --doom-btn-primary-disabled-border: #444444;
+  --doom-btn-primary-disabled-text: #777777;
+
+  /* Text */
+  --doom-text: var(--text-1, #dcdcdc);
+  --doom-dim: var(--text-2, #8a8a92);
+
+  /* Identity — default flavor (Classic DOOM red) */
+  --doom-blood: #c8392e;
+  --doom-blood-deep: #6a1f18;
+  --doom-bone: #d9c77a;
+  --doom-fire: #ddbb44;
+  --doom-life: #66cc66;
+
+  /* Flavor-switcher menu dots — one tinted dot per playable flavor.
+   * Used by `.flavor-switch-menu button[data-switch=…] .dot` selectors
+   * in styles/in-game.css; HTML stays markup-pure (no inline styles). */
+  --doom-dot-classic: var(--doom-blood);
+  --doom-dot-freedoom: #d9883a;
+  --doom-dot-legend: #4fa861;
+  --doom-dot-mario: #2a73d8;
+  --doom-dot-metroid: #c39e3a;
+  --doom-dot-castlevania: #7a3fb1;
+  --doom-dot-moddb: #d96aa6;
+  --doom-dot-manual: #888888;
+
+  /* Warn yellow tints (the gold/fire family) */
+  --doom-warn-tint: rgba(219, 180, 68, 0.08);
+  --doom-warn-tint-strong: rgba(219, 180, 68, 0.4);
+  --doom-warn-tint-soft: rgba(219, 180, 68, 0.06);
+  --doom-warn-tint-mid: rgba(219, 180, 68, 0.25);
+
+  /* Canvas overlay surfaces (semi-translucent on the engine canvas) */
+  --doom-overlay: rgba(20, 20, 24, 0.55);
+  --doom-overlay-strong: rgba(20, 20, 24, 0.6);
+  --doom-overlay-hover: rgba(30, 30, 36, 0.9);
+  --doom-overlay-deep: rgba(15, 15, 18, 0.96);
+  --doom-overlay-load: rgba(0, 0, 0, 0.4);
+
+  /* Touch button identity colors */
+  --doom-touch-border: rgba(255, 255, 255, 0.25);
+  --doom-touch-fire: rgba(200, 40, 40, 0.6);
+  --doom-touch-use: rgba(79, 168, 97, 0.55);
+  --doom-touch-active: rgba(79, 168, 97, 0.7);
+  --doom-touch-jump: rgba(80, 130, 200, 0.55);
+  --doom-touch-alt: rgba(200, 120, 40, 0.55);
+  --doom-touch-wpn: rgba(120, 100, 180, 0.55);
+
+  /* Switcher menu hover/disabled tints (reads as "above the canvas") */
+  --doom-menu-hover: rgba(255, 255, 255, 0.06);
+  --doom-menu-disabled: rgba(255, 255, 255, 0.04);
+
+  /* ── Legacy aliases ────────────────────────────────────────────────
+   * The rest of the doom CSS reads --bg / --accent / etc.; route them
+   * through the --doom-* source-of-truth so flavor body classes still
+   * override (e.g. body.flavor-legend overrides --accent and the alias
+   * chain keeps working).
+   */
+  --bg: var(--doom-bg);
+  --panel: var(--doom-panel);
+  --panel2: var(--doom-panel-2);
+  --border: var(--doom-border);
+  --border-hot: var(--doom-border-hot);
+  --text: var(--doom-text);
+  --dim: var(--doom-dim);
   /* Default accent is DOOM red. Flavor body classes override below:
      freedoom → orange, legend → Zelda green. Classic keeps red. */
-  --accent: #c8392e;
-  --accent-dim: #6a1f18;
-  --ok: #6c6;
-  --warn: #db4;
-  --gold: #d9c77a;
+  --accent: var(--doom-blood);
+  --accent-dim: var(--doom-blood-deep);
+  --ok: var(--doom-life);
+  --warn: var(--doom-fire);
+  --gold: var(--doom-bone);
 }
 body.flavor-freedoom {
   --accent: #d9883a;

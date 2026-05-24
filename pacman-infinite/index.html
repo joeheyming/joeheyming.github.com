@@ -25,7 +25,7 @@
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#1a1a2e" />
+    <meta name="theme-color" content="#7C5CFF" />
     <meta
       name="keywords"
       content="pacman, pac-man, infinite pacman, procedural pacman, 3d pacman, endless maze"
@@ -40,10 +40,16 @@
     />
     <meta property="og:url" content="https://joeheyming.github.io/pacman-infinite/" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:image" content="https://joeheyming.github.io/pacman-infinite/pacman-infinite-preview.png" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/pacman-infinite/pacman-infinite-preview.png"
+    />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta name="twitter:image" content="https://joeheyming.github.io/pacman-infinite/pacman-infinite-preview.png" />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/pacman-infinite/pacman-infinite-preview.png"
+    />
 
     <link rel="canonical" href="https://joeheyming.github.io/pacman-infinite/" />
 
@@ -56,10 +62,22 @@
       }
     </script>
 
+    <!-- Tailwind CDN must load BEFORE brand-tailwind.js — the CDN
+         installs window.tailwind on boot and overwrites any pre-set
+         config, so brand-tailwind.js sets `tailwind.config` after. -->
     <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script src="/brand-tailwind.js"></script>
     <link rel="stylesheet" href="style.css" />
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
-  <body class="bg-gray-900 min-h-screen overflow-hidden">
+  <body class="bg-surface-0 min-h-screen overflow-hidden">
     <div id="game-container" class="relative w-full h-screen">
       <!--
         HUD Overlay.
@@ -71,18 +89,18 @@
         developer telemetry, not gameplay info.
       -->
       <div id="hud" class="absolute top-0 left-0 p-4 pl-20 sm:pl-24 pointer-events-none z-10">
-        <div class="text-left text-white font-mono space-y-1">
+        <div class="text-left text-text-1 font-mono space-y-1">
           <div class="text-sm">
-            <span class="text-gray-400">Score:</span>
-            <span id="score" class="text-yellow-300 font-bold text-xl">0</span>
+            <span class="text-text-2">Score:</span>
+            <span id="score" class="text-pac-yellow-glow font-bold text-xl">0</span>
           </div>
           <div class="text-xs">
-            <span class="text-gray-400">High:</span>
-            <span id="high-score" class="text-pink-300 font-bold">0</span>
+            <span class="text-text-2">High:</span>
+            <span id="high-score" class="text-ghost-pinky-300 font-bold">0</span>
           </div>
           <div class="text-sm">
-            <span class="text-gray-400">Lives:</span>
-            <span id="lives" class="text-red-400 font-bold">&hearts;&hearts;&hearts;</span>
+            <span class="text-text-2">Lives:</span>
+            <span id="lives" class="text-pac-red font-bold">&hearts;&hearts;&hearts;</span>
           </div>
 
           <!--
@@ -97,16 +115,16 @@
           -->
           <div class="mt-2 text-xs space-y-0.5">
             <div>
-              <span class="text-gray-400">Far:</span>
-              <span id="far-tiles" class="text-cyan-300 font-bold">0</span>
+              <span class="text-text-2">Far:</span>
+              <span id="far-tiles" class="text-pac-cyan-glow font-bold">0</span>
             </div>
             <div>
-              <span class="text-gray-400">Mult:</span>
-              <span id="score-mult" class="text-yellow-300 font-bold">×1.0</span>
+              <span class="text-text-2">Mult:</span>
+              <span id="score-mult" class="text-pac-yellow-glow font-bold">×1.0</span>
             </div>
             <div>
-              <span class="text-gray-400">Streak:</span>
-              <span id="dot-streak" class="text-green-300 font-bold">0</span>
+              <span class="text-text-2">Streak:</span>
+              <span id="dot-streak" class="text-sm-arrow-up font-bold">0</span>
             </div>
             <!--
               DASH readout (Tier 5). Combines a one-word status label
@@ -128,8 +146,8 @@
               — full = use it, empty = waiting.
             -->
             <div id="dash-line" class="dash-line">
-              <span class="text-gray-400">Dash:</span>
-              <span id="dash-status" class="text-cyan-300 font-bold">READY</span>
+              <span class="text-text-2">Dash:</span>
+              <span id="dash-status" class="text-pac-cyan-glow font-bold">READY</span>
               <div id="dash-bar-container" class="dash-bar-container">
                 <div id="dash-bar" class="dash-bar"></div>
               </div>
@@ -142,13 +160,13 @@
             `low` class for a red-pulse warning when food is critical.
           -->
           <div id="food-meter" class="mt-2">
-            <div class="text-xs text-green-300 mb-1">HUNGER</div>
+            <div class="text-xs text-sm-arrow-up mb-1">HUNGER</div>
             <div
-              class="w-32 h-2 bg-black/60 rounded overflow-hidden border border-green-400/50"
+              class="w-32 h-2 bg-surface-0/60 rounded overflow-hidden border border-sm-arrow-up/50"
             >
               <div
                 id="food-bar"
-                class="h-full bg-green-400 transition-all duration-150"
+                class="h-full bg-sm-arrow-up transition-all duration-150"
                 style="width: 100%"
               ></div>
             </div>
@@ -156,13 +174,13 @@
 
           <!-- Power-mode timer bar (Phase 3). Hidden when not powered. -->
           <div id="power-timer" class="mt-2 hidden">
-            <div class="text-xs text-pink-300 mb-1">POWER</div>
+            <div class="text-xs text-ghost-pinky-300 mb-1">POWER</div>
             <div
-              class="w-32 h-2 bg-black/60 rounded overflow-hidden border border-pink-400/50"
+              class="w-32 h-2 bg-surface-0/60 rounded overflow-hidden border border-ghost-pinky-soft/50"
             >
               <div
                 id="power-timer-bar"
-                class="h-full bg-pink-400 transition-all duration-150"
+                class="h-full bg-ghost-pinky-soft transition-all duration-150"
                 style="width: 100%"
               ></div>
             </div>
@@ -179,13 +197,11 @@
             <div id="..."> here.
           -->
           <div id="breath-meter" class="mt-2 hidden">
-            <div class="text-xs text-cyan-300 mb-1">BREATH</div>
-            <div
-              class="w-32 h-2 bg-black/60 rounded overflow-hidden border border-cyan-400/50"
-            >
+            <div class="text-xs text-pac-cyan-glow mb-1">BREATH</div>
+            <div class="w-32 h-2 bg-surface-0/60 rounded overflow-hidden border border-pac-cyan/50">
               <div
                 id="breath-bar"
-                class="h-full bg-cyan-400 transition-all duration-150"
+                class="h-full bg-pac-cyan transition-all duration-150"
                 style="width: 100%"
               ></div>
             </div>
@@ -196,13 +212,13 @@
                so it's now "View" with an eye icon. -->
           <div
             id="camera-toggle"
-            class="mt-3 text-cyan-400 text-xs cursor-pointer pointer-events-auto active:opacity-70"
+            class="mt-3 text-pac-cyan text-xs cursor-pointer pointer-events-auto active:opacity-70"
           >
             <span aria-hidden="true">👁</span>
             View:
             <span id="camera-mode">Follow</span>
           </div>
-          <div class="text-gray-500 text-xs hidden sm:block">[C] change view</div>
+          <div class="text-text-3 text-xs hidden sm:block">[C] change view</div>
         </div>
       </div>
 
@@ -233,7 +249,7 @@
       <!-- Controls Help -->
       <div
         id="controls-help"
-        class="absolute bottom-4 right-4 text-gray-500 font-mono text-xs text-right z-10"
+        class="absolute bottom-4 right-4 text-text-3 font-mono text-xs text-right z-10"
       >
         <div>Arrow Keys / WASD: Move</div>
         <div>Space: Jump</div>
@@ -255,9 +271,11 @@
         id="respawn-overlay"
         class="absolute inset-x-0 top-16 sm:top-20 flex flex-col items-center z-30 hidden pointer-events-none"
       >
-        <div class="bg-black/70 px-6 py-3 rounded-lg flex flex-col items-center">
-          <h2 id="respawn-title" class="text-2xl sm:text-3xl font-bold text-pink-400 mb-1">FELL INTO THE VOID</h2>
-          <p id="respawn-flavour" class="text-gray-300 font-mono text-xs sm:text-sm">Respawning…</p>
+        <div class="bg-surface-0/70 px-6 py-3 rounded-lg flex flex-col items-center">
+          <h2 id="respawn-title" class="text-2xl sm:text-3xl font-bold text-ghost-pinky-soft mb-1">
+            FELL INTO THE VOID
+          </h2>
+          <p id="respawn-flavour" class="text-text-2 font-mono text-xs sm:text-sm">Respawning…</p>
         </div>
       </div>
 
@@ -272,12 +290,12 @@
       <!-- Game State Overlays -->
       <div
         id="start-screen"
-        class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-20"
+        class="absolute inset-0 bg-surface-0/80 flex flex-col items-center justify-center z-20"
       >
-        <h1 class="text-5xl sm:text-6xl font-bold text-yellow-400 mb-2 text-center px-4">
+        <h1 class="text-5xl sm:text-6xl font-bold text-pac-yellow-bright mb-2 text-center px-4">
           PAC-INFINITE
         </h1>
-        <p class="text-gray-400 mb-6 text-center px-4">An endless 3D Pac-Man maze</p>
+        <p class="text-text-2 mb-6 text-center px-4">An endless 3D Pac-Man maze</p>
 
         <!--
           Difficulty selector. The currently-selected pill gets the
@@ -286,20 +304,29 @@
           Hidden when CONTINUE is the implied action because difficulty
           is locked to whatever the saved run started under.
         -->
-        <div id="difficulty-row" class="flex flex-row flex-wrap items-center justify-center gap-2 mb-6 font-mono text-xs sm:text-sm px-2">
-          <span class="text-gray-400 mr-1">Difficulty:</span>
+        <div
+          id="difficulty-row"
+          class="flex flex-row flex-wrap items-center justify-center gap-2 mb-6 font-mono text-xs sm:text-sm px-2"
+        >
+          <span class="text-text-2 mr-1">Difficulty:</span>
           <button
-            class="difficulty-btn px-3 py-1 rounded border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10"
+            class="difficulty-btn px-3 py-1 rounded border border-pac-cyan-deep/40 text-pac-cyan-glow hover:bg-pac-cyan-deep/10"
             data-difficulty="easy"
-          >Easy</button>
+          >
+            Easy
+          </button>
           <button
-            class="difficulty-btn px-3 py-1 rounded border border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/10"
+            class="difficulty-btn px-3 py-1 rounded border border-pac-yellow/40 text-pac-yellow-glow hover:bg-pac-yellow/10"
             data-difficulty="normal"
-          >Normal</button>
+          >
+            Normal
+          </button>
           <button
-            class="difficulty-btn px-3 py-1 rounded border border-red-500/40 text-red-300 hover:bg-red-500/10"
+            class="difficulty-btn px-3 py-1 rounded border border-pac-red/40 text-sm-arrow-left hover:bg-pac-red/10"
             data-difficulty="hard"
-          >Hard</button>
+          >
+            Hard
+          </button>
         </div>
 
         <!--
@@ -311,7 +338,7 @@
         <div class="flex flex-col items-center gap-3">
           <button
             id="continue-btn"
-            class="hidden px-8 py-4 bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-xl rounded-lg transition-all duration-300 hover:scale-110"
+            class="hidden px-8 py-4 bg-pac-yellow hover:bg-pac-yellow-bright text-black font-bold text-xl rounded-lg transition-all duration-300 hover:scale-110"
           >
             CONTINUE
           </button>
@@ -322,23 +349,23 @@
             NEW GAME
           </button>
         </div>
-        <div class="mt-8 text-gray-500 text-sm text-center px-4 hidden sm:block">
+        <div class="mt-8 text-text-3 text-sm text-center px-4 hidden sm:block">
           Arrows move • Space jumps • Double-tap dir to dash • C view • P pause
         </div>
-        <div class="mt-8 text-gray-500 text-sm text-center px-4 sm:hidden">
+        <div class="mt-8 text-text-3 text-sm text-center px-4 sm:hidden">
           Drag to move • JUMP to hop • DASH to sprint • VIEW to change angle
         </div>
-        <div class="mt-2 text-gray-600 text-xs text-center px-4 max-w-md">
+        <div class="mt-2 text-text-3 text-xs text-center px-4 max-w-md">
           Beware the void: walk off a tile with no floor and you'll respawn somewhere else.
         </div>
       </div>
 
       <div
         id="pause-screen"
-        class="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-20 hidden cursor-pointer"
+        class="absolute inset-0 bg-surface-0/70 flex flex-col items-center justify-center z-20 hidden cursor-pointer"
       >
-        <h2 class="text-4xl font-bold text-white mb-4">PAUSED</h2>
-        <p class="text-gray-400">Click or press ESC to resume</p>
+        <h2 class="text-4xl font-bold text-text-1 mb-4">PAUSED</h2>
+        <p class="text-text-2">Click or press ESC to resume</p>
       </div>
 
       <!--
@@ -349,16 +376,16 @@
       -->
       <div
         id="game-over-screen"
-        class="absolute inset-0 bg-black/85 flex flex-col items-center justify-center z-20 hidden"
+        class="absolute inset-0 bg-surface-0/85 flex flex-col items-center justify-center z-20 hidden"
       >
-        <h2 class="text-5xl sm:text-6xl font-bold text-red-500 mb-2 text-center px-4">GAME OVER</h2>
-        <p id="game-over-cause" class="text-gray-300 font-mono mb-6 text-lg">Thanks for playing!</p>
+        <h2 class="text-5xl sm:text-6xl font-bold text-pac-red mb-2 text-center px-4">GAME OVER</h2>
+        <p id="game-over-cause" class="text-text-2 font-mono mb-6 text-lg">Thanks for playing!</p>
         <div class="text-center mb-8 font-mono">
-          <div class="text-yellow-300 text-2xl">
+          <div class="text-pac-yellow-glow text-2xl">
             Score:
             <span id="final-score">0</span>
           </div>
-          <div class="text-pink-300 text-lg mt-1">
+          <div class="text-ghost-pinky-300 text-lg mt-1">
             High Score:
             <span id="final-high-score">0</span>
           </div>
@@ -369,7 +396,7 @@
             chasing. Hidden when zero so a player who died without a
             single pickup doesn't see a confusing "Best Streak: 0".
           -->
-          <div id="final-streak-row" class="text-green-300 text-lg mt-1 hidden">
+          <div id="final-streak-row" class="text-sm-arrow-up text-lg mt-1 hidden">
             Best Streak:
             <span id="final-streak">0</span>
           </div>

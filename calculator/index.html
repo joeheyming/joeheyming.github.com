@@ -1,42 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="hos-page">
   <head>
     <link
       rel="icon"
       id="site-favicon"
-      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦄</text></svg>"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧮</text></svg>"
     />
 
-    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
-
     <script src="/analytics.js"></script>
     <script src="/back.js"></script>
-    <title>🧮 Calculator - Online Calculator Tool | Joe Heyming</title>
+
+    <title>🧮 Calculator — Heyming OS</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta charset="utf-8" />
     <meta
       name="description"
-      content="Free online calculator with standard and graphing modes. Basic arithmetic plus plot f(x) and g(x) with pan and zoom. No ads. Built by Joe Heyming."
+      content="A calculator built for Heyming OS — standard arithmetic plus a graphing mode with pan and zoom. No ads, no install."
     />
-
-    <!-- Enhanced SEO Meta Tags -->
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#6366f1" />
+    <meta name="theme-color" content="#7C5CFF" />
     <meta
       name="keywords"
-      content="calculator, graphing calculator, online calculator, math calculator, arithmetic, plot functions, sin cos, web calculator, free calculator"
+      content="calculator, graphing calculator, online calculator, math calculator, arithmetic, plot functions, Heyming OS calculator"
     />
 
-    <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Joe Heyming - Calculator" />
-    <meta property="og:title" content="🧮 Calculator - Online Calculator Tool" />
+    <meta property="og:site_name" content="Heyming OS" />
+    <meta property="og:title" content="Calculator — Heyming OS" />
     <meta
       property="og:description"
-      content="Free online calculator with standard and graphing modes. Plot functions, pan and zoom — works in any browser, no ads."
+      content="Standard + graphing calculator built for Heyming OS. Plot f(x) and g(x) with pan and zoom."
     />
     <meta property="og:url" content="https://joeheyming.github.io/calculator/" />
     <meta
@@ -45,28 +42,36 @@
     />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Online Calculator Tool" />
-    <meta property="og:locale" content="en_US" />
+    <meta property="og:image:alt" content="Heyming OS Calculator" />
 
-    <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="🧮 Calculator - Online Calculator Tool" />
+    <meta name="twitter:title" content="Calculator — Heyming OS" />
     <meta
       name="twitter:description"
-      content="Free online calculator with standard and graphing modes. Plot f(x) and g(x) with pan and zoom. No ads."
+      content="Standard + graphing calculator. Plot f(x) and g(x) with pan and zoom. No ads."
     />
     <meta
       name="twitter:image"
       content="https://joeheyming.github.io/calculator/calculator-preview.png"
     />
 
-    <!-- Canonical URL -->
     <link rel="canonical" href="https://joeheyming.github.io/calculator/" />
+
+    <!-- Brand foundation + HOSDL component library. -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="/heyming-shell.css" />
+    <link rel="stylesheet" href="style.css" />
+
     <script src="/feedback.js"></script>
     <script src="/share.js"></script>
-    <link rel="stylesheet" href="style.css" />
+    <script src="/heyming-shell.js"></script>
     <script type="module" src="calculator.js"></script>
 
     <!-- Structured Data (JSON-LD) -->
@@ -76,10 +81,10 @@
         "@graph": [
           {
             "@type": "SoftwareApplication",
-            "name": "Online Calculator",
+            "name": "Heyming OS Calculator",
             "applicationCategory": "UtilityApplication",
             "operatingSystem": "Web Browser",
-            "description": "Free online calculator with standard arithmetic and graphing mode. Plot two functions of x with pan and zoom.",
+            "description": "A calculator built for Heyming OS. Standard arithmetic plus a graphing mode that plots two functions of x with pan and zoom.",
             "url": "https://joeheyming.github.io/calculator/",
             "author": {
               "@type": "Person",
@@ -99,7 +104,6 @@
               "Mobile-friendly design",
               "No installation required"
             ],
-            "keywords": "calculator, graphing calculator, arithmetic, math, functions",
             "inLanguage": "en"
           },
           {
@@ -108,7 +112,7 @@
               {
                 "@type": "ListItem",
                 "position": 1,
-                "name": "Joe Heyming",
+                "name": "Heyming OS",
                 "item": "https://joeheyming.github.io/"
               },
               {
@@ -122,17 +126,18 @@
       }
     </script>
   </head>
-  <body class="calc-page--standard">
+  <body class="hos-page calc-page calc-page--standard">
     <h1 class="page-title">Calculator</h1>
-    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 100">
-      <share-button label="📤 Share" theme="gradient"></share-button>
-    </div>
 
-    <div id="calc-app" class="calc-app calc-app--standard">
-      <nav class="calc-mode-nav" role="tablist" aria-label="Calculator mode">
+    <header class="hos-app-header" aria-label="Calculator">
+      <div class="hos-app-header-identity">
+        <span class="app-icon-frame" aria-hidden="true">🧮</span>
+        <h2 class="hos-app-header-title">Calculator</h2>
+      </div>
+      <nav class="hos-segmented calc-mode-nav" role="tablist" aria-label="Calculator mode">
         <button
           type="button"
-          class="calc-mode-tab calc-mode-tab--active"
+          class="is-active calc-mode-tab calc-mode-tab--active"
           data-mode="standard"
           role="tab"
           aria-selected="true"
@@ -149,13 +154,27 @@
           Graph
         </button>
       </nav>
+    </header>
 
-      <div id="calc-panel-standard" class="calc-panel calc-panel--standard">
-        <div class="calculator-display" id="calc-display">0</div>
-        <div class="calculator-buttons">
-          <button type="button" class="calculator-button" data-calc="clear">C</button>
-          <button type="button" class="calculator-button" data-calc="sign">±</button>
-          <button type="button" class="calculator-button" data-calc="percent">%</button>
+    <main id="calc-app" class="calc-app calc-app--standard">
+      <section id="calc-panel-standard" class="calc-panel calc-panel--standard">
+        <div
+          class="calculator-display hos-scrollbar"
+          id="calc-display"
+          role="status"
+          aria-live="polite"
+          aria-label="Calculator display"
+        >
+          0
+        </div>
+        <div class="calculator-buttons" role="group" aria-label="Calculator keypad">
+          <button type="button" class="calculator-button calc-key--util" data-calc="clear">
+            C
+          </button>
+          <button type="button" class="calculator-button calc-key--util" data-calc="sign">±</button>
+          <button type="button" class="calculator-button calc-key--util" data-calc="percent">
+            %
+          </button>
           <button type="button" class="calculator-button operator" data-calc="/">÷</button>
           <button type="button" class="calculator-button" data-calc="7">7</button>
           <button type="button" class="calculator-button" data-calc="8">8</button>
@@ -164,23 +183,28 @@
           <button type="button" class="calculator-button" data-calc="4">4</button>
           <button type="button" class="calculator-button" data-calc="5">5</button>
           <button type="button" class="calculator-button" data-calc="6">6</button>
-          <button type="button" class="calculator-button operator" data-calc="-">-</button>
+          <button type="button" class="calculator-button operator" data-calc="-">−</button>
           <button type="button" class="calculator-button" data-calc="1">1</button>
           <button type="button" class="calculator-button" data-calc="2">2</button>
           <button type="button" class="calculator-button" data-calc="3">3</button>
           <button type="button" class="calculator-button operator" data-calc="+">+</button>
-          <button type="button" class="calculator-button" data-calc="0" style="grid-column: span 2">
+          <button
+            type="button"
+            class="calculator-button calc-key--zero"
+            data-calc="0"
+            style="grid-column: span 2"
+          >
             0
           </button>
           <button type="button" class="calculator-button" data-calc=".">.</button>
           <button type="button" class="calculator-button equals" data-calc="=">=</button>
         </div>
-      </div>
+      </section>
 
-      <div id="calc-panel-graph" class="calc-panel calc-panel--graph" hidden>
+      <section id="calc-panel-graph" class="calc-panel calc-panel--graph" hidden>
         <div class="graph-expr-row">
           <label class="graph-expr-label" for="graph-expr-f">
-            <span class="graph-swatch" style="background: #38bdf8"></span>
+            <span class="graph-swatch graph-swatch--f"></span>
             f(x)
           </label>
           <div class="graph-expr-field graph-expr-field--has-value">
@@ -205,7 +229,7 @@
         </div>
         <div class="graph-expr-row">
           <label class="graph-expr-label" for="graph-expr-g">
-            <span class="graph-swatch" style="background: #fb923c"></span>
+            <span class="graph-swatch graph-swatch--g"></span>
             g(x)
           </label>
           <div class="graph-expr-field graph-expr-field--has-value">
@@ -276,8 +300,8 @@
           ></canvas>
           <div id="graph-tooltip" class="graph-tooltip" hidden aria-live="polite"></div>
         </div>
-        <p class="graph-hint">Drag to pan · scroll to zoom · hover to see f(x) and g(x)</p>
-      </div>
-    </div>
+        <p class="graph-hint">Drag to pan · scroll to zoom · hover for f(x) and g(x)</p>
+      </section>
+    </main>
   </body>
 </html>

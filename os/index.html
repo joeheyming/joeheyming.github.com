@@ -21,7 +21,7 @@
     />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#1e3a5f" />
+    <meta name="theme-color" content="#7C5CFF" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming" />
@@ -33,7 +33,24 @@
     <meta property="og:url" content="https://joeheyming.github.io/os/" />
     <meta property="og:image" content="https://joeheyming.github.io/os/os-preview.png" />
 
+    <!-- Brand foundation. Load order matters:
+         1. preconnect + Inter font CDN
+         2. Tailwind CDN — installs window.tailwind on boot
+         3. brand-tailwind.js — sets tailwind.config AFTER CDN is live
+            (current CDN overwrites window.tailwind, so config must
+            come after it loads)
+         4. brand.css (tokens)
+         5. brand-icons.js
+         6. OS stylesheets (built on top of brand tokens) -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/brand-tailwind.js"></script>
+    <link rel="stylesheet" href="/brand.css" />
+    <script src="/brand-icons.js"></script>
     <script src="mime-handlers.js"></script>
     <script src="app.js"></script>
     <!-- OS modules (ES Module entry point) -->
@@ -58,7 +75,7 @@
       }
     </style>
   </head>
-  <body class="h-full bg-gray-900">
+  <body class="hos-page h-full">
     <!-- First-run setup wizard (GNOME/Ubuntu-style) -->
     <div id="os-setup-wizard" class="fixed inset-0 z-[500] hidden">
       <div class="os-setup-bg"></div>
@@ -69,12 +86,16 @@
         aria-labelledby="os-setup-title"
       >
         <div class="os-setup-card">
-          <!-- Step 1: Welcome -->
+          <!-- Step 1: Welcome — wordmark lockup replaces the generic 👋 icon
+               so first-run users see the brand on first contact. -->
           <div id="os-setup-step-welcome" class="os-setup-step">
-            <div class="os-setup-icon">👋</div>
+            <div class="os-setup-welcome-mark">
+              <img src="/brand/heyming-os-wordmark.svg" alt="Heyming OS" />
+              <p class="os-setup-welcome-version">Version 1.0</p>
+            </div>
             <h1 id="os-setup-title" class="os-setup-heading">Welcome to Heyming OS</h1>
             <p class="os-setup-subtitle">
-              Let's get your system set up. This will only take a moment.
+              A desktop that fits in a tab. Let's get your system set up — it only takes a moment.
             </p>
             <button type="button" id="os-setup-start" class="os-setup-btn os-setup-btn-primary">
               Let's Go
@@ -173,8 +194,11 @@
       </div>
     </div>
 
-    <!-- Heyming OS (visible by default on dedicated page) -->
-    <div id="heyming-os" class="fixed inset-0 bg-gray-900 z-[200]">
+    <!-- Heyming OS (visible by default on dedicated page).
+         Surface tokens drive the entire OS shell now. The previous
+         blue-to-purple desktop gradient is replaced by a single accent
+         glow + --surface-0 — calmer, on-brand, AA contrast for icons. -->
+    <div id="heyming-os" class="fixed inset-0 z-[200]" style="background: var(--surface-0)">
       <!-- Absolute path: <base href="../"> makes fragment-only #hash resolve to site root, not this page -->
       <a class="os-skip-link" href="/os/index.html#os-desktop">Skip to desktop</a>
       <!-- Desktop Background -->
@@ -183,7 +207,20 @@
         role="main"
         aria-label="Desktop"
         tabindex="-1"
-        class="w-full h-full bg-gradient-to-br from-blue-900 to-purple-900 relative overflow-hidden"
+        class="w-full h-full relative overflow-hidden"
+        style="
+          background: radial-gradient(
+              ellipse at 25% 15%,
+              rgba(124, 92, 255, 0.18) 0%,
+              rgba(124, 92, 255, 0) 55%
+            ),
+            radial-gradient(
+              ellipse at 75% 85%,
+              rgba(91, 60, 220, 0.12) 0%,
+              rgba(91, 60, 220, 0) 60%
+            ),
+            var(--surface-0);
+        "
       >
         <div
           id="os-notification-region"
@@ -195,13 +232,24 @@
         <!-- Taskbar -->
         <div
           id="os-taskbar"
-          class="absolute bottom-0 left-0 right-0 h-12 bg-gray-800 border-t border-gray-600 flex items-center px-2"
+          class="absolute bottom-0 left-0 right-0 h-12 flex items-center px-2"
+          style="
+            background: var(--surface-glass);
+            backdrop-filter: var(--surface-glass-blur);
+            -webkit-backdrop-filter: var(--surface-glass-blur);
+            border-top: 1px solid var(--hairline-strong);
+          "
         >
           <!-- Application Launcher -->
           <button
             type="button"
             id="app-launcher"
-            class="h-8 px-3 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded transition-colors duration-200 mr-2 shrink-0"
+            class="h-8 px-3 text-sm rounded transition-colors duration-200 mr-2 shrink-0"
+            style="
+              background: var(--accent-primary-bg);
+              color: var(--text-on-accent);
+              font-weight: 600;
+            "
             aria-haspopup="dialog"
             aria-controls="app-launcher-menu"
             aria-expanded="false"
@@ -221,23 +269,40 @@
           <!-- Clock (click or Enter/Space toggles seconds; see Clock.js) -->
           <time
             id="taskbar-clock"
-            class="text-white text-sm font-mono px-3 cursor-pointer select-none"
+            class="text-sm font-mono px-3 cursor-pointer select-none"
+            style="color: var(--text-1)"
             role="button"
             tabindex="0"
             aria-pressed="false"
             aria-label="Clock, show or hide seconds"
           ></time>
 
-          <!-- System Info -->
-          <div id="system-info" class="text-green-400 text-sm font-mono" role="status">
+          <!-- System Info — clicking opens "About Heyming OS". -->
+          <button
+            type="button"
+            id="system-info"
+            class="text-sm font-mono cursor-pointer"
+            style="
+              color: var(--accent-primary-hover);
+              background: transparent;
+              border: 1px solid transparent;
+              padding: 4px 10px;
+              border-radius: var(--radius-sm);
+              transition: background var(--motion-hover), border-color var(--motion-hover);
+            "
+            aria-haspopup="dialog"
+            aria-controls="about-os-dialog"
+            title="About Heyming OS"
+          >
             Heyming OS v1.0
-          </div>
+          </button>
 
           <!-- Shutdown Button -->
           <button
             type="button"
             id="os-close"
-            class="ml-2 h-8 px-3 bg-gray-700 hover:bg-red-600 text-white text-sm rounded transition-colors duration-200 shutdown-btn shrink-0"
+            class="ml-2 h-8 px-3 text-sm rounded transition-colors duration-200 shutdown-btn shrink-0"
+            style="background: var(--surface-2); color: var(--text-1)"
             title="Shutdown Heyming OS"
             aria-label="Shut down Heyming OS"
           >
@@ -245,16 +310,24 @@
           </button>
         </div>
 
-        <!-- App Launcher Menu -->
+        <!-- App Launcher Menu — surface tokens; the launcher.css file
+             paints the glass background, hairline borders, and animations. -->
         <div
           id="app-launcher-menu"
-          class="absolute bottom-12 left-2 w-72 bg-gray-800 border border-gray-600 rounded-t-lg shadow-2xl hidden overflow-hidden"
+          class="absolute bottom-12 left-2 w-72 hidden overflow-hidden"
+          style="border-radius: var(--radius-lg) var(--radius-lg) 0 0"
           role="dialog"
           aria-modal="true"
           aria-labelledby="launcher-title"
         >
           <div class="launcher-header flex-shrink-0 px-4 pt-4 pb-2">
-            <h3 id="launcher-title" class="text-white font-bold mb-3">Applications</h3>
+            <h3
+              id="launcher-title"
+              class="font-bold mb-3"
+              style="color: var(--text-1); font-family: var(--font-display)"
+            >
+              Applications
+            </h3>
             <!-- Filter Input -->
             <div class="relative mb-1">
               <input
@@ -262,10 +335,16 @@
                 id="launcher-filter"
                 placeholder="Search apps..."
                 autocomplete="off"
-                class="w-full px-3 py-2 pl-8 bg-gray-700 text-white rounded border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                class="w-full px-3 py-2 pl-8 rounded text-sm"
+                style="
+                  background: var(--surface-0);
+                  color: var(--text-1);
+                  border: 1px solid var(--hairline-strong);
+                "
               />
               <span
-                class="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm pointer-events-none"
+                class="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-sm pointer-events-none"
+                style="color: var(--text-3)"
                 aria-hidden="true"
               >
                 🔍
@@ -277,35 +356,159 @@
             class="launcher-apps-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pb-2"
           >
             <div id="launcher-apps-container" class="space-y-2"></div>
-            <div id="launcher-no-results" class="hidden text-gray-400 text-sm text-center py-4">
+            <div
+              id="launcher-no-results"
+              class="hidden text-sm text-center py-4"
+              style="color: var(--text-3)"
+            >
               No matching apps
             </div>
           </div>
           <div
-            class="launcher-footer flex-shrink-0 border-t border-gray-600 px-4 py-2 text-[11px] text-gray-400 leading-snug"
+            class="launcher-footer flex-shrink-0 px-4 py-2 text-[11px] leading-snug flex items-center justify-between"
+            style="border-top: 1px solid var(--hairline); color: var(--text-3)"
             role="note"
           >
-            <span>
-              <kbd class="launcher-kbd">Esc</kbd>
-              close
-            </span>
-            <span class="text-gray-600 mx-1.5" aria-hidden="true">·</span>
-            <span>
-              <kbd class="launcher-kbd">Enter</kbd>
-              open first match
-            </span>
-            <span class="text-gray-600 mx-1.5" aria-hidden="true">·</span>
-            <span class="text-gray-500">Meta toggles menu</span>
+            <div>
+              <span>
+                <kbd class="launcher-kbd">Esc</kbd>
+                close
+              </span>
+              <span style="color: var(--hairline-strong); margin: 0 6px" aria-hidden="true">·</span>
+              <span>
+                <kbd class="launcher-kbd">Enter</kbd>
+                open
+              </span>
+            </div>
+            <button
+              type="button"
+              id="launcher-about-os"
+              class="cursor-pointer"
+              style="
+                background: transparent;
+                border: none;
+                color: var(--accent-primary-hover);
+                font-size: 11px;
+                padding: 2px 6px;
+                border-radius: var(--radius-sm);
+                font-weight: 600;
+              "
+              aria-haspopup="dialog"
+              aria-controls="about-os-dialog"
+            >
+              About this OS
+            </button>
           </div>
         </div>
 
         <!-- Windows Container -->
         <div id="os-windows" class="absolute inset-0 bottom-12"></div>
 
-        <!-- Shutdown Confirmation Dialog -->
+        <!-- About Heyming OS Dialog — accessible from the launcher footer
+             "About this OS" link and from the taskbar version button. Mirrors
+             the macOS "About This Mac" / GNOME "About" pattern. -->
+        <div
+          id="about-os-dialog"
+          class="fixed inset-0 hidden z-[300] flex items-center justify-center"
+          style="background: var(--scrim, rgba(0, 0, 0, 0.5)); backdrop-filter: blur(4px)"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="about-os-title"
+          aria-hidden="true"
+        >
+          <div
+            style="
+              background: var(--surface-glass);
+              backdrop-filter: var(--surface-glass-blur);
+              -webkit-backdrop-filter: var(--surface-glass-blur);
+              border: 1px solid var(--hairline-strong);
+              border-radius: var(--radius-xl);
+              padding: 36px 32px 28px;
+              max-width: 420px;
+              width: calc(100% - 32px);
+              text-align: center;
+              box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+              animation: fadeIn 0.22s ease-out;
+            "
+          >
+            <img
+              src="/brand/heyming-os-wordmark.svg"
+              alt="Heyming OS"
+              style="width: 240px; max-width: 100%; height: auto; color: var(--text-1)"
+            />
+            <h2
+              id="about-os-title"
+              style="
+                font-family: var(--font-display);
+                font-size: 18px;
+                color: var(--text-2);
+                margin: 14px 0 4px;
+                font-weight: 600;
+                letter-spacing: -0.005em;
+              "
+            >
+              Version 1.0
+            </h2>
+            <p
+              style="
+                color: var(--text-2);
+                font-size: 14px;
+                margin: 0 0 18px;
+                line-height: 1.5;
+                font-family: var(--font-display);
+                font-style: italic;
+              "
+              id="about-os-tagline"
+            >
+              A desktop that fits in a tab.
+            </p>
+            <div
+              style="
+                background: var(--surface-0);
+                border: 1px solid var(--hairline);
+                border-radius: var(--radius);
+                padding: 14px 16px;
+                margin: 16px 0 20px;
+                text-align: left;
+                font-size: 13px;
+                color: var(--text-2);
+                font-family: var(--font-mono);
+              "
+            >
+              <div style="display: flex; justify-content: space-between; padding: 3px 0">
+                <span style="color: var(--text-3)">Build</span>
+                <span style="color: var(--accent-primary-hover)" id="about-os-build">1.0</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 3px 0">
+                <span style="color: var(--text-3)">Runtime</span>
+                <span style="color: var(--text-1)">Browser</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 3px 0">
+                <span style="color: var(--text-3)">Maker</span>
+                <span style="color: var(--text-1)">Joe Heyming</span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center">
+              <a
+                href="/about/"
+                target="_top"
+                class="os-setup-btn os-setup-btn-secondary"
+                style="text-decoration: none; display: inline-block"
+              >
+                About the maker
+              </a>
+              <button type="button" id="about-os-close" class="os-setup-btn os-setup-btn-primary">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shutdown Confirmation Dialog — re-themed to brand tokens. -->
         <div
           id="shutdown-dialog"
-          class="fixed inset-0 bg-black bg-opacity-50 hidden z-[300] flex items-center justify-center"
+          class="fixed inset-0 hidden z-[300] flex items-center justify-center"
+          style="background: var(--scrim, rgba(0, 0, 0, 0.5))"
           role="dialog"
           aria-modal="true"
           aria-labelledby="shutdown-dialog-title"
@@ -313,29 +516,45 @@
           aria-hidden="true"
         >
           <div
-            class="shutdown-dialog-panel bg-gray-800 border border-gray-600 rounded-lg p-6 max-w-sm w-full mx-4 shadow-2xl"
+            class="shutdown-dialog-panel bg-surface-1 p-6 max-w-sm w-full mx-4"
+            style="
+              background: var(--surface-1);
+              border: 1px solid var(--hairline-strong);
+              border-radius: var(--radius-lg);
+              box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            "
           >
             <div class="flex items-center mb-4">
               <div class="text-3xl mr-3" aria-hidden="true">⏻</div>
-              <h3 id="shutdown-dialog-title" class="text-white text-lg font-semibold">
+              <h3
+                id="shutdown-dialog-title"
+                class="text-lg font-semibold"
+                style="color: var(--text-1); font-family: var(--font-display)"
+              >
                 Shutdown Heyming OS
               </h3>
             </div>
-            <p id="shutdown-dialog-desc" class="text-gray-300 mb-6">
+            <p id="shutdown-dialog-desc" class="mb-6" style="color: var(--text-2)">
               Are you sure you want to shut down the operating system?
             </p>
             <div class="flex space-x-3 justify-end">
               <button
                 type="button"
                 id="shutdown-cancel"
-                class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors duration-200"
+                class="px-4 py-2 rounded transition-colors duration-200"
+                style="background: var(--surface-2); color: var(--text-1)"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 id="shutdown-confirm"
-                class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded transition-colors duration-200"
+                class="px-4 py-2 rounded transition-colors duration-200"
+                style="
+                  background: var(--danger);
+                  color: var(--text-on-accent, #fff);
+                  font-weight: 600;
+                "
               >
                 Shutdown
               </button>
@@ -358,6 +577,58 @@
       } else {
         autoShowOS();
       }
+    </script>
+
+    <script>
+      // About Heyming OS modal wiring. Two entry points:
+      //   1. Taskbar version button (#system-info)
+      //   2. Launcher footer "About this OS" link (#launcher-about-os)
+      // Close via the Close button, the Escape key, or clicking the backdrop.
+      (function () {
+        var dialog = document.getElementById('about-os-dialog');
+        if (!dialog) return;
+
+        function open() {
+          dialog.classList.remove('hidden');
+          dialog.setAttribute('aria-hidden', 'false');
+          // Move focus into the dialog for keyboard users.
+          var closeBtn = document.getElementById('about-os-close');
+          if (closeBtn) closeBtn.focus();
+        }
+        function close() {
+          dialog.classList.add('hidden');
+          dialog.setAttribute('aria-hidden', 'true');
+        }
+
+        var sysBtn = document.getElementById('system-info');
+        if (sysBtn) sysBtn.addEventListener('click', open);
+
+        var launcherAbout = document.getElementById('launcher-about-os');
+        if (launcherAbout) {
+          launcherAbout.addEventListener('click', function (e) {
+            e.stopPropagation();
+            // Close the launcher menu, then open About-OS.
+            var launcher = document.getElementById('app-launcher-menu');
+            if (launcher) launcher.classList.add('hidden');
+            open();
+          });
+        }
+
+        var closeBtn = document.getElementById('about-os-close');
+        if (closeBtn) closeBtn.addEventListener('click', close);
+
+        dialog.addEventListener('click', function (e) {
+          // Backdrop click — only when the click hits the dialog backdrop
+          // itself, not the inner panel.
+          if (e.target === dialog) close();
+        });
+
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && !dialog.classList.contains('hidden')) {
+            close();
+          }
+        });
+      })();
     </script>
   </body>
 </html>

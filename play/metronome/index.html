@@ -15,7 +15,7 @@
       name="description"
       content="A free browser metronome with tap tempo, time signatures, and beat subdivisions. Keep steady timing for practice sessions — works offline in your browser."
     />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#7C5CFF" />
 
     <link rel="manifest" href="/play/manifest.json" />
     <link rel="apple-touch-icon" sizes="180x180" href="/play/icons/apple-touch-icon.png" />
@@ -76,8 +76,7 @@
           window.backButtonInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent =
-            '.back-to-portfolio,.play-footer a[href="/"]{display:none!important}';
+          s.textContent = '.back-to-portfolio,.play-footer a[href="/"]{display:none!important}';
           document.head.appendChild(s);
         }
       })();
@@ -90,6 +89,14 @@
     <link rel="stylesheet" href="style.css" />
 
     <script src="/proxy.js"></script>
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
   <body class="instrument-body">
     <header class="instrument-header">
@@ -215,20 +222,31 @@
       <h2>How to use</h2>
       <ul>
         <li>
-          Press <strong>Start</strong> or hit <code>Space</code> to play. The
-          first beat of each measure is accented.
+          Press
+          <strong>Start</strong>
+          or hit
+          <code>Space</code>
+          to play. The first beat of each measure is accented.
         </li>
         <li>
-          Drag the slider, type a number, or use <code>↑</code>/<code>↓</code>
-          to change tempo. Hold <code>Shift</code> for ±5 BPM.
+          Drag the slider, type a number, or use
+          <code>↑</code>
+          /
+          <code>↓</code>
+          to change tempo. Hold
+          <code>Shift</code>
+          for ±5 BPM.
         </li>
         <li>
-          <strong>Tap</strong> (or hit <code>T</code>) at least three times to
-          set the tempo by feel.
+          <strong>Tap</strong>
+          (or hit
+          <code>T</code>
+          ) at least three times to set the tempo by feel.
         </li>
         <li>
-          Try a <strong>subdivision</strong> like Eighth or Triplet to feel the
-          space between beats.
+          Try a
+          <strong>subdivision</strong>
+          like Eighth or Triplet to feel the space between beats.
         </li>
       </ul>
     </section>

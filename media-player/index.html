@@ -12,7 +12,7 @@
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#e11d48" />
+    <meta name="theme-color" content="#7C5CFF" />
     <meta
       name="keywords"
       content="media player, video player, audio player, MP4, WebM, MP3, browser player, online media player, YouTube player"
@@ -103,6 +103,14 @@
         ]
       }
     </script>
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
   <body>
     <div id="player-container">
@@ -192,7 +200,13 @@
     </div>
 
     <!-- Hidden file input for opening files -->
-    <input type="file" id="file-input" accept="video/*,audio/*" style="display: none" aria-label="Open media file" />
+    <input
+      type="file"
+      id="file-input"
+      accept="video/*,audio/*"
+      style="display: none"
+      aria-label="Open media file"
+    />
 
     <script src="id3-parser.js"></script>
     <script src="media-player.js"></script>

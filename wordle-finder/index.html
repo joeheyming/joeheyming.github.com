@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" dir="ltr">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" dir="ltr" class="hos-page">
   <head>
     <base href="./" />
-    <title>Wordle Answer Finder — Best Next Guess for Today's Wordle</title>
+    <title>Wordle Answer Finder — Heyming OS</title>
 
     <!-- Preconnect to external resources for better performance -->
     <link rel="preconnect" href="https://code.jquery.com" />
@@ -21,7 +21,7 @@
     <meta name="language" content="English" />
     <meta name="robots" content="index, follow" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#4f46e5" />
+    <meta name="theme-color" content="#7C5CFF" />
     <meta
       name="description"
       content="Free Wordle answer finder and solver. Enter the green, yellow, and gray letters you know — see the best next guess ranked by entropy. Today's Wordle in 2-3 tries. No ads, no signup, no install."
@@ -85,6 +85,14 @@
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json" />
 
+    <!-- Brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="/heyming-shell.css" />
     <link href="index.css" rel="stylesheet" />
 
     <link rel="canonical" href="https://joeheyming.github.io/wordle-finder/" />
@@ -277,28 +285,19 @@
         </div>
       </div>
     </div>
-    <header>
-      <h1>
-        Wordle Answer Finder &amp; Solver
-        <button id="helpIcon" class="info">i</button>
-        <share-button label="📤 Share" theme="gradient" style="margin-left: 10px"></share-button>
-      </h1>
+    <header class="hos-app-header wordle-app-header" aria-label="Wordle Answer Finder">
+      <div class="hos-app-header-identity">
+        <span class="app-icon-frame" aria-hidden="true">🔍</span>
+        <h1 class="hos-app-header-title">Wordle Answer Finder</h1>
+      </div>
+      <div class="hos-app-header-actions">
+        <button id="helpIcon" class="info" aria-label="How does this work?">i</button>
+      </div>
       <!-- Tiny date line: cheap "Today's Wordle" relevance signal for the
            {today, today solver, today finder} query cluster (~80 imp/yr at
            pos 30-70). Static fallback text so crawlers see it; JS upgrades
            it to a real date for users. -->
-      <p
-        id="todays-wordle"
-        style="
-          margin: 4px 0 0;
-          text-align: center;
-          font-size: 0.85em;
-          color: #6b7280;
-          font-weight: normal;
-        "
-      >
-        Today's Wordle answer finder
-      </p>
+      <p id="todays-wordle">Today's Wordle answer finder</p>
       <script>
         (function () {
           var el = document.getElementById('todays-wordle');
@@ -543,7 +542,7 @@
               maxlength="5"
               placeholder="e.g. slate"
               class="wordle-style"
-              style="width: 100px; background-color: #4f46e5"
+              style="width: 100px; background-color: var(--accent-primary-bg, #5b3cdc)"
               aria-label="Benchmark starting word"
             />
           </div>

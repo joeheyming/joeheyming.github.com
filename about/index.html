@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="hos-page">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,32 +11,32 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
 
-    <title>About Joe Heyming — UI Engineer at Roblox</title>
+    <title>About the maker of Heyming OS — Joe Heyming</title>
 
     <!-- SEO Meta Tags -->
     <meta
       name="description"
-      content="About Joe Heyming — UI Engineer at Roblox, UCSB Computer Science graduate, based in Campbell, CA. 18+ years of frontend, ML platforms, and trust &amp; safety work."
+      content="Heyming OS is made by Joe Heyming — a UI Engineer at Roblox based in Campbell, CA. 18+ years of frontend, ML platforms, and trust &amp; safety work."
     />
     <meta name="author" content="Joe Heyming" />
-    <meta name="application-name" content="Joe Heyming" />
+    <meta name="application-name" content="Heyming OS" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#8b5cf6" />
+    <meta name="theme-color" content="#7C5CFF" />
     <meta
       name="keywords"
-      content="Joe Heyming, UI Engineer, Roblox, Software Engineer, UCSB, Web Developer, JavaScript, React, Frontend, Trust &amp; Safety, Cloudera, Aruba Networks, Hewlett Packard"
+      content="Joe Heyming, Heyming OS, UI Engineer, Roblox, Software Engineer, UCSB, Web Developer, JavaScript, React, Frontend, Trust &amp; Safety, Cloudera, Aruba Networks, Hewlett Packard"
     />
     <meta name="geo.region" content="US-CA" />
     <meta name="geo.placename" content="Campbell, California" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="profile" />
-    <meta property="og:site_name" content="Joe Heyming" />
-    <meta property="og:title" content="About Joe Heyming — UI Engineer at Roblox" />
+    <meta property="og:site_name" content="Heyming OS" />
+    <meta property="og:title" content="About the maker of Heyming OS" />
     <meta
       property="og:description"
-      content="UI Engineer at Roblox. UCSB CS. 18+ years building frontends, ML platforms, and trust &amp; safety tools."
+      content="Heyming OS is made by Joe Heyming — UI Engineer at Roblox. 18+ years of frontend, ML platforms, and trust &amp; safety."
     />
     <meta property="og:url" content="https://joeheyming.github.io/about/" />
     <meta
@@ -45,7 +45,7 @@
     />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Joe Heyming - UI Engineer" />
+    <meta property="og:image:alt" content="Joe Heyming — maker of Heyming OS" />
     <meta property="og:locale" content="en_US" />
     <meta property="profile:first_name" content="Joe" />
     <meta property="profile:last_name" content="Heyming" />
@@ -54,7 +54,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="About Joe Heyming — UI Engineer at Roblox" />
+    <meta name="twitter:title" content="About the maker of Heyming OS" />
     <meta
       name="twitter:description"
       content="UI Engineer at Roblox. UCSB CS. 18+ years of frontend, ML platforms, and trust &amp; safety."
@@ -66,16 +66,25 @@
 
     <link rel="canonical" href="https://joeheyming.github.io/about/" />
 
-    <!-- Global site tag (gtag.js) - Google Analytics. The config call lives
-         in /analytics.js so every page on the site fires exactly one
-         page_view with a normalized path. -->
+    <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
     <script src="/back.js"></script>
     <script src="/proxy.js"></script>
 
+    <!-- Brand foundation. Same load order as the home page. -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <!-- Tailwind CDN must load BEFORE brand-tailwind.js — the CDN
+         installs window.tailwind on boot and overwrites any pre-set
+         config, so brand-tailwind.js sets `tailwind.config` after. -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/index.css" />
+    <script src="/brand-tailwind.js"></script>
+    <link rel="stylesheet" href="/brand.css" />
+    <script src="/brand-icons.js"></script>
 
     <!-- Structured Data (JSON-LD) -->
     <script type="application/ld+json">
@@ -111,7 +120,7 @@
               "Machine Learning Platforms",
               "Web Development"
             ],
-            "description": "UI Engineer at Roblox, UCSB Computer Science graduate, based in Campbell, California. 18+ years of frontend, ML platforms, and trust & safety work.",
+            "description": "Maker of Heyming OS. UI Engineer at Roblox, UCSB Computer Science graduate, based in Campbell, California.",
             "image": "https://joeheyming.github.io/assets/joe-heyming-og-image.png",
             "address": {
               "@type": "PostalAddress",
@@ -126,7 +135,7 @@
               {
                 "@type": "ListItem",
                 "position": 1,
-                "name": "Joe Heyming",
+                "name": "Heyming OS",
                 "item": "https://joeheyming.github.io/"
               },
               {
@@ -141,204 +150,420 @@
     </script>
 
     <style>
-      .hero-bg {
+      /* About-page styles. Token-driven. The GitHub contribution-graph
+         palette is exposed as scoped --gh-contrib-* tokens below so the
+         heatmap renders in the familiar GitHub greens while keeping
+         brand-audit clean (no bare hex outside of token definitions). */
+
+      :root {
+        /* GitHub contribution-graph palette (scoped, dark-theme).
+           The canvas renderer below reads these via getComputedStyle so
+           the legend swatches and the canvas cells stay in lockstep. */
+        --gh-contrib-0: #161b22;
+        --gh-contrib-1: #0e4429;
+        --gh-contrib-2: #006d32;
+        --gh-contrib-3: #26a641;
+        --gh-contrib-4: #39d353;
+        --gh-canvas-bg: #0d1117;
+        --gh-canvas-label: #8b949e;
+      }
+
+      .about-page {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 56px 24px 96px;
+      }
+
+      .about-hero {
         position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        text-align: center;
+        padding: 64px 24px;
+        background: var(--surface-1);
+        border: 1px solid var(--hairline);
+        border-radius: var(--radius-xl);
+        margin-bottom: 56px;
         overflow: hidden;
       }
-      .hero-bg::before {
-        content: '';
+      .about-hero-glow {
         position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: linear-gradient(45deg, transparent, rgba(102, 126, 234, 0.1), transparent);
-        animation: spin 20s linear infinite;
+        inset: -20% -10% auto -10%;
+        height: 320px;
+        background: radial-gradient(
+          ellipse at center top,
+          rgba(124, 92, 255, 0.22),
+          rgba(124, 92, 255, 0) 70%
+        );
+        pointer-events: none;
+        z-index: 0;
       }
-      @keyframes spin {
-        from {
-          transform: rotate(0deg);
-        }
-        to {
-          transform: rotate(360deg);
-        }
+      .about-hero-body {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
       }
-      @keyframes float {
-        0%,
-        100% {
-          transform: translateY(0px);
-        }
-        50% {
-          transform: translateY(-12px);
-        }
+      .about-hero h1 {
+        font-family: var(--font-display);
+        font-size: var(--text-h1);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0;
+        color: var(--text-1);
       }
-      .animate-float {
-        animation: float 6s ease-in-out infinite;
+      .about-hero-lede {
+        color: var(--text-2);
+        max-width: 56ch;
+        line-height: 1.55;
+        margin: 0;
+      }
+      .about-hero-tagline {
+        color: var(--accent-primary-hover);
+        font-style: italic;
+        margin: 8px 0 0;
+      }
+
+      .about-section {
+        background: var(--surface-1);
+        border: 1px solid var(--hairline);
+        border-radius: var(--radius-xl);
+        padding: 32px;
+        margin-bottom: 32px;
+      }
+      .about-section h2 {
+        font-family: var(--font-display);
+        font-size: var(--text-h2);
+        font-weight: 700;
+        margin: 0 0 24px;
+        color: var(--text-1);
+        letter-spacing: -0.015em;
+      }
+
+      .work-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 14px;
+      }
+      .work-card {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 18px;
+        background: var(--surface-2);
+        border: 1px solid var(--hairline);
+        border-radius: var(--radius-lg);
+      }
+      .work-card-title {
+        font-weight: 600;
+        color: var(--text-1);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .work-card-role {
+        font-size: var(--text-caption);
+        color: var(--text-2);
+        line-height: 1.5;
+        margin: 0;
+      }
+      .work-card-role small {
+        color: var(--text-3);
+      }
+
+      .work-footer {
+        margin-top: 20px;
+        color: var(--text-2);
+        font-size: var(--text-caption);
+        text-align: center;
+      }
+      .work-footer strong {
+        color: var(--accent-primary-hover);
+      }
+
+      .random-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 14px;
+      }
+      .random-card {
+        padding: 18px;
+        background: var(--surface-2);
+        border: 1px solid var(--hairline);
+        border-radius: var(--radius-lg);
+        transition: border-color var(--motion-hover);
+      }
+      .random-card:hover {
+        border-color: var(--hairline-accent);
+      }
+      .random-card h3 {
+        margin: 0 0 6px;
+        font-size: var(--text-body);
+        font-weight: 600;
+        color: var(--text-1);
+      }
+      .random-card p {
+        margin: 0;
+        font-size: var(--text-caption);
+        color: var(--text-2);
+        line-height: 1.5;
+      }
+      .random-card a {
+        color: var(--accent-primary-hover);
+        text-decoration: underline;
+      }
+      .random-card a:hover {
+        color: var(--text-1);
+      }
+
+      .github-section h2 {
+        margin-bottom: 6px;
+      }
+      .github-summary {
+        margin: 0 0 16px;
+        color: var(--text-2);
+        font-size: var(--text-caption);
+      }
+      .github-legend {
+        margin-top: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-3);
+        font-size: 11px;
+      }
+      .github-legend-swatches {
+        display: inline-flex;
+        gap: 3px;
+      }
+      .gh-swatch {
+        width: 11px;
+        height: 11px;
+        border-radius: 2px;
+      }
+
+      .callout {
+        text-align: center;
+        background: var(--surface-1);
+        border: 1px solid var(--hairline);
+        border-radius: var(--radius-xl);
+        padding: 40px 24px;
+        margin-top: 32px;
+      }
+      .callout h2 {
+        margin: 0 0 12px;
+        font-family: var(--font-display);
+        font-size: var(--text-h2);
+        font-weight: 700;
+        color: var(--text-1);
+      }
+      .callout p {
+        margin: 0 auto 24px;
+        max-width: 60ch;
+        color: var(--text-2);
+        line-height: 1.55;
+      }
+      .callout-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 24px;
+        background: var(--accent-primary-bg);
+        color: var(--text-on-accent);
+        border-radius: var(--radius);
+        text-decoration: none;
+        font-weight: 600;
+        transition: background var(--motion-hover), transform var(--motion-hover),
+          box-shadow var(--motion-hover);
+        box-shadow: 0 8px 24px rgba(91, 60, 220, 0.32);
+      }
+      .callout-cta:hover {
+        background: var(--accent-primary-bg-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 12px 32px rgba(91, 60, 220, 0.42);
+      }
+
+      .about-footer {
+        padding: 48px 24px;
+        text-align: center;
+        background: var(--surface-1);
+        border-top: 1px solid var(--hairline);
+        margin-top: 48px;
+      }
+      .about-footer-tag {
+        color: var(--text-2);
+        margin: 0 0 16px;
+      }
+      .about-footer-social {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+      .about-footer .hos-social-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius);
+        background: var(--surface-2);
+        border: 1px solid var(--hairline);
+        color: var(--text-2);
+        text-decoration: none;
+        transition: color var(--motion-hover), border-color var(--motion-hover),
+          background var(--motion-hover);
+      }
+      .about-footer .hos-social-link:hover {
+        color: var(--text-1);
+        border-color: var(--hairline-accent);
+      }
+      .about-footer-legal {
+        color: var(--text-3);
+        font-size: var(--text-caption);
+      }
+      .about-footer-legal a {
+        color: var(--text-2);
+        text-decoration: none;
+      }
+      .about-footer-legal a:hover {
+        color: var(--text-1);
+      }
+      .about-footer-legal span {
+        margin: 0 8px;
+        color: var(--hairline-strong);
       }
     </style>
   </head>
-  <body
-    class="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 overflow-x-hidden"
-  >
+  <body class="hos-page">
     <nav
       style="
         font-size: 0.875rem;
-        padding: 0.5rem 1rem;
+        padding: 0.6rem 1rem;
         text-align: center;
-        background: rgba(0, 0, 0, 0.35);
-        color: #fff;
-        font-family: system-ui, -apple-system, sans-serif;
+        background: var(--surface-1);
+        border-bottom: 1px solid var(--hairline);
+        color: var(--text-2);
+        font-family: var(--font-ui);
       "
       aria-label="Site identity and policies"
     >
-      <a href="/" style="color: #fff; text-decoration: none">
-        <strong>Joe Heyming</strong>
+      <a href="/" style="color: var(--text-1); text-decoration: none">
+        <strong>Heyming OS</strong>
       </a>
-      <span style="color: rgba(255, 255, 255, 0.45); margin: 0 0.5rem">·</span>
-      <a href="/privacy-policy.html" style="color: #bfdbfe; text-decoration: underline">
-        Privacy Policy
-      </a>
-      <span style="color: rgba(255, 255, 255, 0.45); margin: 0 0.5rem">·</span>
-      <a href="/terms-of-service.html" style="color: #bfdbfe; text-decoration: underline">
-        Terms of Service
-      </a>
+      <span style="color: var(--text-3); margin: 0 0.5rem">·</span>
+      <a href="/privacy-policy.html" style="color: var(--text-2); text-decoration: none">Privacy</a>
+      <span style="color: var(--text-3); margin: 0 0.5rem">·</span>
+      <a href="/terms-of-service.html" style="color: var(--text-2); text-decoration: none">Terms</a>
     </nav>
 
-    <main id="main-content" class="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    <main id="main-content" class="about-page">
       <!-- Hero -->
-      <div
-        class="hero-bg relative bg-white/95 backdrop-blur-sm rounded-3xl p-6 sm:p-12 lg:p-16 mb-12 shadow-2xl text-center overflow-hidden"
-      >
-        <div class="relative z-10">
-          <h1
-            class="text-4xl sm:text-5xl md:text-6xl font-bold mb-4 sm:mb-6 pb-2"
-            style="
-              background: linear-gradient(45deg, rgb(99 102 241), rgb(147 51 234));
-              -webkit-background-clip: text;
-              -webkit-text-fill-color: transparent;
-              background-clip: text;
-            "
-          >
-            🦄 Joe Heyming
-          </h1>
-          <p class="text-xl sm:text-2xl text-gray-600 mb-4">UI Engineer</p>
-          <p class="text-lg text-gray-700 max-w-2xl mx-auto">
-            Building user experiences at Roblox 🎮 &mdash; previously Cloudera, Aruba Networks, and
-            Hewlett Packard. UCSB Computer Science. Campbell, CA.
+      <header class="about-hero" aria-labelledby="about-title">
+        <div class="about-hero-glow" aria-hidden="true"></div>
+        <div class="about-hero-body">
+          <img class="wordmark wordmark-lg" src="/brand/heyming-os-wordmark.svg" alt="Heyming OS" />
+          <h1 id="about-title">About the maker</h1>
+          <p class="about-hero-lede">
+            Heyming OS is built by
+            <strong style="color: var(--text-1)">Joe Heyming</strong>
+            — UI Engineer at Roblox, previously Cloudera, Aruba Networks, and Hewlett Packard. UCSB
+            Computer Science. Campbell, CA.
           </p>
-          <p class="mt-6 text-base text-indigo-700">
-            <em>"Lots of hard work."</em>
+          <p class="about-hero-tagline">
+            Frontend, ML platforms, and trust &amp; safety — same toolbox, different floors.
           </p>
         </div>
-      </div>
+      </header>
 
       <!-- Places I've Worked -->
-      <section class="bg-white/90 backdrop-blur-sm rounded-3xl p-6 sm:p-10 mb-12 shadow-xl">
-        <h2 class="text-3xl sm:text-4xl font-bold text-center mb-6 sm:mb-10 text-indigo-700">
-          Places I've Worked
-        </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div
-            class="bg-gradient-to-r from-red-500 to-pink-500 text-white p-6 rounded-2xl transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl animate-float"
-          >
-            <h3 class="text-xl font-bold mb-2">🎮 Roblox</h3>
-            <p class="text-sm opacity-90">
+      <section class="about-section" aria-labelledby="work-heading">
+        <h2 id="work-heading">Places I've worked</h2>
+        <div class="work-grid">
+          <div class="work-card">
+            <div class="work-card-title">
+              <span aria-hidden="true">🎮</span>
+              <span>Roblox</span>
+            </div>
+            <p class="work-card-role">
               UI Engineer
               <br />
-              <span class="text-xs">Trust &amp; Safety Platform</span>
+              <small>Trust &amp; Safety Platform</small>
             </p>
           </div>
-          <div
-            class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 rounded-2xl transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl animate-float"
-            style="animation-delay: 0.2s"
-          >
-            <h3 class="text-xl font-bold mb-2">☁️ Cloudera</h3>
-            <p class="text-sm opacity-90">
-              Staff/Principal Engineer
+          <div class="work-card">
+            <div class="work-card-title">
+              <span aria-hidden="true">☁️</span>
+              <span>Cloudera</span>
+            </div>
+            <p class="work-card-role">
+              Staff / Principal Engineer
               <br />
-              <span class="text-xs">7+ years of ML &amp; Data platforms</span>
+              <small>7+ years of ML &amp; Data platforms</small>
             </p>
           </div>
-          <div
-            class="bg-gradient-to-r from-green-500 to-teal-500 text-white p-6 rounded-2xl transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl animate-float"
-            style="animation-delay: 0.4s"
-          >
-            <h3 class="text-xl font-bold mb-2">📡 Aruba Networks</h3>
-            <p class="text-sm opacity-90">
+          <div class="work-card">
+            <div class="work-card-title">
+              <span aria-hidden="true">📡</span>
+              <span>Aruba Networks</span>
+            </div>
+            <p class="work-card-role">
               Staff Software Engineer
               <br />
-              <span class="text-xs">VisualRF &amp; "Take it to the cloud!"</span>
+              <small>VisualRF &amp; "Take it to the cloud!"</small>
             </p>
           </div>
-          <div
-            class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-6 rounded-2xl transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl animate-float"
-            style="animation-delay: 0.6s"
-          >
-            <h3 class="text-xl font-bold mb-2">💻 Hewlett Packard</h3>
-            <p class="text-sm opacity-90">
+          <div class="work-card">
+            <div class="work-card-title">
+              <span aria-hidden="true">💻</span>
+              <span>Hewlett Packard</span>
+            </div>
+            <p class="work-card-role">
               Performance &amp; Scalability
               <br />
-              <span class="text-xs">HPSA/Opsware optimization</span>
+              <small>HPSA / Opsware optimization</small>
             </p>
           </div>
         </div>
-        <div class="text-center space-y-2">
-          <p class="text-xl font-semibold text-indigo-600">
-            Been doing this for
-            <strong id="years-experience">18+ years</strong>
-          </p>
-          <p class="text-lg text-purple-600">UCSB CS · Campbell, CA</p>
-        </div>
+        <p class="work-footer">
+          Been doing this for
+          <strong id="years-experience">18+ years</strong>
+          · UCSB CS · Campbell, CA
+        </p>
       </section>
 
       <!-- Random Stuff -->
-      <section
-        class="bg-gradient-to-r from-cyan-400 to-blue-500 text-white rounded-3xl p-6 sm:p-10 mb-12 shadow-xl"
-      >
-        <h2 class="text-3xl sm:text-4xl font-bold text-center mb-6 sm:mb-10">Random Stuff</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div
-            class="bg-white/20 backdrop-blur-sm p-6 rounded-2xl hover:bg-white/30 transition-all"
-          >
-            <h3 class="text-xl font-bold mb-3">📺 I was in a commercial once</h3>
-            <p class="text-sm">Said "Why don't you take it to the cloud?" for Aruba Networks</p>
+      <section class="about-section" aria-labelledby="random-heading">
+        <h2 id="random-heading">Random stuff</h2>
+        <div class="random-grid">
+          <div class="random-card">
+            <h3>📺 I was in a commercial once</h3>
+            <p>Said "Why don't you take it to the cloud?" for Aruba Networks.</p>
           </div>
-          <div
-            class="bg-white/20 backdrop-blur-sm p-6 rounded-2xl hover:bg-white/30 transition-all"
-          >
-            <h3 class="text-xl font-bold mb-3">🎯 Got a patent</h3>
-            <p class="text-sm">
+          <div class="random-card">
+            <h3>🎯 Got a patent</h3>
+            <p>
               <a
                 href="https://www.freepatentsonline.com/y2015/0381434.html"
                 target="_blank"
                 rel="noopener"
-                class="underline hover:text-yellow-200"
               >
                 WiFi heatmap visualization thing
               </a>
             </p>
           </div>
-          <div
-            class="bg-white/20 backdrop-blur-sm p-6 rounded-2xl hover:bg-white/30 transition-all"
-          >
-            <h3 class="text-xl font-bold mb-3">🏕️ Was a Cubmaster</h3>
-            <p class="text-sm">
-              Pack 333, Campbell CA
-              <br />
-              2018-2020
-            </p>
+          <div class="random-card">
+            <h3>🏕️ Was a Cubmaster</h3>
+            <p>Pack 333, Campbell CA · 2018-2020</p>
           </div>
-          <div
-            class="bg-white/20 backdrop-blur-sm p-6 rounded-2xl hover:bg-white/30 transition-all"
-          >
-            <h3 class="text-xl font-bold mb-3">🔧 Some open source</h3>
-            <p class="text-sm">
-              <a
-                href="https://github.com/joeheyming"
-                target="_blank"
-                rel="noopener"
-                class="underline hover:text-yellow-200"
-              >
+          <div class="random-card">
+            <h3>🔧 Some open source</h3>
+            <p>
+              <a href="https://github.com/joeheyming" target="_blank" rel="noopener">
                 Emacs stuff, Python tools
               </a>
             </p>
@@ -347,20 +572,22 @@
       </section>
 
       <!-- GitHub Activity -->
-      <section class="bg-gray-900 rounded-3xl p-6 sm:p-10 mb-12 shadow-xl">
-        <h2 class="text-2xl sm:text-3xl font-bold mb-1 text-white">🐙 GitHub Activity</h2>
-        <p id="contrib-summary" class="text-gray-400 text-sm mb-5">Loading GitHub activity…</p>
+      <section class="about-section github-section" aria-labelledby="gh-heading">
+        <h2 id="gh-heading">
+          <span aria-hidden="true">🐙</span>
+          GitHub activity
+        </h2>
+        <p id="contrib-summary" class="github-summary">Loading GitHub activity…</p>
         <div
           id="contrib-wrapper"
-          class="relative overflow-x-auto"
-          style="display: none"
+          style="position: relative; overflow-x: auto; display: none"
           role="img"
           aria-label="GitHub contribution graph"
         >
           <canvas id="contrib-canvas" style="display: block; border-radius: 6px"></canvas>
           <div
             id="contrib-tooltip"
-            style="ok 
+            style="
               position: absolute;
               background: #1c2128;
               color: #e6edf3;
@@ -375,64 +602,29 @@
             "
           ></div>
         </div>
-        <p id="contrib-fallback" class="text-gray-600 text-sm" style="display: none">
+        <p id="contrib-fallback" class="github-summary" style="display: none">
           Could not load GitHub activity.
         </p>
-        <div class="mt-4 flex items-center gap-2 text-xs text-gray-400">
+        <div class="github-legend" aria-hidden="true">
           <span>Less</span>
-          <span style="display: inline-flex; gap: 3px">
-            <span
-              style="
-                width: 11px;
-                height: 11px;
-                background: #161b22;
-                border-radius: 2px;
-                display: inline-block;
-              "
-            ></span>
-            <span
-              style="
-                width: 11px;
-                height: 11px;
-                background: #0e4429;
-                border-radius: 2px;
-                display: inline-block;
-              "
-            ></span>
-            <span
-              style="
-                width: 11px;
-                height: 11px;
-                background: #006d32;
-                border-radius: 2px;
-                display: inline-block;
-              "
-            ></span>
-            <span
-              style="
-                width: 11px;
-                height: 11px;
-                background: #26a641;
-                border-radius: 2px;
-                display: inline-block;
-              "
-            ></span>
-            <span
-              style="
-                width: 11px;
-                height: 11px;
-                background: #39d353;
-                border-radius: 2px;
-                display: inline-block;
-              "
-            ></span>
+          <span class="github-legend-swatches">
+            <span class="gh-swatch" style="background: var(--gh-contrib-0)"></span>
+            <span class="gh-swatch" style="background: var(--gh-contrib-1)"></span>
+            <span class="gh-swatch" style="background: var(--gh-contrib-2)"></span>
+            <span class="gh-swatch" style="background: var(--gh-contrib-3)"></span>
+            <span class="gh-swatch" style="background: var(--gh-contrib-4)"></span>
           </span>
           <span>More</span>
         </div>
         <div
           id="gh-feed"
-          class="mt-6 text-sm text-gray-400"
-          style="max-height: 200px; overflow-y: auto"
+          style="
+            margin-top: 24px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 14px;
+            color: var(--text-2);
+          "
           tabindex="0"
           aria-label="Recent GitHub activity"
         >
@@ -441,85 +633,87 @@
       </section>
 
       <!-- Try the apps callout -->
-      <section
-        class="bg-white/90 backdrop-blur-sm rounded-3xl p-6 sm:p-10 mb-12 shadow-xl text-center"
-      >
-        <h2 class="text-2xl sm:text-3xl font-bold mb-4 text-indigo-700">
-          Want to see what I build?
-        </h2>
-        <p class="text-gray-700 mb-6 max-w-2xl mx-auto">
-          The home page is a living gallery of every game and tool I&rsquo;ve shipped &mdash; from
-          DOOM in your browser to a 3D Pac-Man, a Wordle solver, a NES emulator, an ASCII Bad Apple,
-          and a small in-browser operating system. All free, no signup, no ads.
+      <section class="callout" aria-labelledby="callout-heading">
+        <h2 id="callout-heading">Want to see what I build?</h2>
+        <p>
+          The home page is the launchpad for Heyming OS — a browser desktop with 50+ apps. DOOM in
+          your browser, a 3D Pac-Man, a Wordle solver, a NES emulator, an ASCII Bad Apple, and more.
+          Free. No signup. No ads.
         </p>
-        <a
-          href="/"
-          class="inline-block bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold px-8 py-4 rounded-full shadow-lg hover:shadow-2xl hover:scale-105 transition-all"
-        >
-          🚀 Browse all projects
+        <a href="/" class="callout-cta">
+          Launch Heyming OS
+          <span aria-hidden="true">→</span>
         </a>
       </section>
     </main>
 
-    <footer id="main-footer" class="text-center py-12 text-white">
-      <p class="text-xl mb-6">Built with JavaScript and too much coffee ☕</p>
-      <div class="flex justify-center space-x-8 mb-6">
-        <a
-          href="https://www.linkedin.com/in/joeheyming/"
-          target="_blank"
-          rel="noopener"
-          class="text-white hover:scale-125 transition-transform duration-300 text-2xl"
-        >
-          🔗 LinkedIn
-        </a>
-        <a
-          href="https://github.com/joeheyming"
-          target="_blank"
-          rel="noopener"
-          class="text-white hover:scale-125 transition-transform duration-300 text-2xl"
-        >
-          🐙 GitHub
-        </a>
-        <a
-          href="https://twitter.com/joeheyming"
-          target="_blank"
-          rel="noopener"
-          class="text-white hover:scale-125 transition-transform duration-300 text-2xl"
-        >
-          🐦 Twitter
-        </a>
-      </div>
-      <nav class="mb-6 text-sm" aria-label="Legal">
-        <a
-          href="/privacy-policy.html"
-          class="text-white/90 underline underline-offset-2 hover:text-white"
-        >
-          Privacy Policy
-        </a>
-        <span class="text-white/50 mx-2" aria-hidden="true">·</span>
-        <a
-          href="/terms-of-service.html"
-          class="text-white/90 underline underline-offset-2 hover:text-white"
-        >
-          Terms of Service
-        </a>
+    <footer id="main-footer" class="about-footer">
+      <p class="about-footer-tag">Built with JavaScript and too much coffee ☕</p>
+      <div class="about-footer-social" id="about-footer-social"></div>
+      <nav class="about-footer-legal" aria-label="Legal">
+        <a href="/privacy-policy.html">Privacy</a>
+        <span aria-hidden="true">·</span>
+        <a href="/terms-of-service.html">Terms</a>
       </nav>
-      <p class="text-sm opacity-80">"Lots of hard work."</p>
     </footer>
 
     <script>
-      // Live experience counter — same logic as the old home page.
+      // Live experience counter — Started 2006.
       (function () {
         var startYear = 2006;
         var current = new Date().getFullYear();
         var el = document.getElementById('years-experience');
         if (el) el.textContent = current - startYear + '+ years';
       })();
+
+      // Footer social icons via brandIcon registry.
+      (function () {
+        var root = document.getElementById('about-footer-social');
+        if (!root || typeof window.brandIcon !== 'function') return;
+        var links = [
+          {
+            href: 'https://www.linkedin.com/in/joeheyming/',
+            label: 'LinkedIn',
+            icon: 'linkedin'
+          },
+          { href: 'https://github.com/joeheyming', label: 'GitHub', icon: 'github' },
+          {
+            href: 'https://x.com/joeheyming',
+            label: 'X (formerly Twitter)',
+            icon: 'x-twitter'
+          }
+        ];
+        links.forEach(function (l) {
+          var a = document.createElement('a');
+          a.href = l.href;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.className = 'hos-social-link';
+          a.setAttribute('aria-label', l.label);
+          a.innerHTML = window.brandIcon(l.icon);
+          root.appendChild(a);
+        });
+      })();
     </script>
 
     <script>
+      // GitHub contribution graph + recent activity feed. Graph mirrors
+      // GitHub's own palette deliberately so the visualization is familiar.
       (function () {
-        var COLORS = ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353'];
+        var rootStyle = getComputedStyle(document.documentElement);
+        function cssVar(name, fallback) {
+          var v = rootStyle.getPropertyValue(name).trim();
+          return v || fallback;
+        }
+        var COLORS = [
+          cssVar('--gh-contrib-0', '#161b22'),
+          cssVar('--gh-contrib-1', '#0e4429'),
+          cssVar('--gh-contrib-2', '#006d32'),
+          cssVar('--gh-contrib-3', '#26a641'),
+          cssVar('--gh-contrib-4', '#39d353')
+        ];
+        var CANVAS_BG = cssVar('--gh-canvas-bg', '#0d1117');
+        var CANVAS_LABEL = cssVar('--gh-canvas-label', '#8b949e');
         var MONTHS = [
           'Jan',
           'Feb',
@@ -578,7 +772,6 @@
           var firstDate = parseLocalDate(contributions[0].date);
           var lastDate = parseLocalDate(contributions[contributions.length - 1].date);
 
-          // Align week start to Sunday
           var startDay = new Date(firstDate);
           startDay.setDate(startDay.getDate() - startDay.getDay());
 
@@ -596,11 +789,10 @@
           canvas.style.height = H + 'px';
           ctx.scale(dpr, dpr);
 
-          ctx.fillStyle = '#0d1117';
+          ctx.fillStyle = CANVAS_BG;
           ctx.fillRect(0, 0, W, H);
 
-          // Month labels
-          ctx.fillStyle = '#8b949e';
+          ctx.fillStyle = CANVAS_LABEL;
           ctx.font = '10px system-ui,-apple-system,sans-serif';
           ctx.textAlign = 'left';
           var lastMonth = -1;
@@ -613,7 +805,6 @@
             }
           }
 
-          // Day labels: Mon row=1, Wed row=3, Fri row=5 (Sun-start grid)
           ctx.font = '9px system-ui,-apple-system,sans-serif';
           ctx.textAlign = 'right';
           var dayLabelRows = [
@@ -627,7 +818,6 @@
             ctx.fillText(label, LEFT_PAD - 4, TOP_PAD + row * STEP + CELL - 1);
           }
 
-          // Cells
           var cellHitData = [];
           for (var wk = 0; wk < numWeeks; wk++) {
             for (var dy = 0; dy < 7; dy++) {
@@ -651,7 +841,12 @@
               ctx.fillStyle = COLORS[level];
               fillRoundRect(ctx, cx, cy, CELL, CELL, 2);
 
-              cellHitData.push({ x: cx, y: cy, date: dateStr, count: entry ? entry.count : 0 });
+              cellHitData.push({
+                x: cx,
+                y: cy,
+                date: dateStr,
+                count: entry ? entry.count : 0
+              });
             }
           }
 
@@ -738,7 +933,7 @@
             .catch(showFallback);
         }
 
-        // ── Recent activity feed ──────────────────────────────────────────────
+        // ── Recent activity feed ─────────────────────────────────────────
 
         var FEED_URL = 'https://api.github.com/users/joeheyming/events?per_page=15';
 
@@ -816,23 +1011,24 @@
             var item = formatEvent(event);
             var row = document.createElement('div');
             row.style.cssText =
-              'display:flex;align-items:baseline;gap:8px;padding:5px 0;' +
-              'border-bottom:1px solid #21262d;';
+              'display:flex;align-items:baseline;gap:8px;padding:6px 0;' +
+              'border-bottom:1px solid var(--hairline);';
 
             var timeSpan = document.createElement('span');
-            timeSpan.style.cssText = 'color:#9ca3af;white-space:nowrap;flex-shrink:0;';
+            timeSpan.style.cssText =
+              'color:var(--text-3);white-space:nowrap;flex-shrink:0;font-size:12px;';
             timeSpan.textContent = '\uD83D\uDD50 ' + item.time;
 
             var textSpan = document.createElement('span');
             textSpan.style.cssText =
-              'color:#c9d1d9;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+              'color:var(--text-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
             if (item.detail) {
               textSpan.innerHTML =
-                '<span style="color:#e6edf3">' +
+                '<span style="color:var(--text-1)">' +
                 escapeHtml(item.label) +
                 '</span>' +
-                ' <span style="color:#484f58">\u2192</span> ' +
-                '<span style="color:#8b949e">' +
+                ' <span style="color:var(--text-3)">\u2192</span> ' +
+                '<span style="color:var(--text-3)">' +
                 escapeHtml(item.detail) +
                 '</span>';
             } else {
@@ -844,7 +1040,6 @@
             feedEl.appendChild(row);
           });
 
-          // Remove bottom border on last row
           var lastRow = feedEl.lastElementChild;
           if (lastRow) lastRow.style.borderBottom = 'none';
         }

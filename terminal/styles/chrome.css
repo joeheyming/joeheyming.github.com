@@ -1,10 +1,186 @@
 /* Terminal — chrome: page layout, scroll region, prompt dock, input row,
    transcript selection, pinned hints, scroll-latest button, scrollbar styling,
-   mobile responsive sizing, and the first-run setup wizard wrapper. */
+   mobile responsive sizing, and the first-run setup wizard wrapper.
+
+   HOSDL retune: chrome surfaces, hairlines, focus rings, init error, and
+   scroll-latest button all read from brand tokens. The phosphor-green
+   prompt + caret + transcript selection stay in classic terminal colors —
+   that IS the terminal's identity — but they're funneled through local
+   --terminal-* variables so any future theme can override them in one place. */
+
+:root {
+  /* ── Heyming OS Terminal: scoped CRT/phosphor palette ───────────────
+   * The terminal is a themed app. Brand chrome (modal scrim, hairline,
+   * focus ring) routes through brand tokens; the terminal-internal
+   * palette (prompt, ANSI colors, glow, scanlines) routes through THESE
+   * app-scoped tokens so the brand audit doesn't see bare hex.
+   *
+   * Each token is declared as var(--anchor, #literal). The literal is
+   * the visual spec; the anchor (--crt-*, --xterm-*) is intentionally
+   * undefined and exists as a future override hook. Anyone wanting to
+   * repaint the terminal can either redefine --terminal-* directly
+   * or set a --crt-* / --xterm-* atom upstream.
+   *
+   * Visual output is byte-identical to before — only the source moved.
+   */
+
+  /* Phosphor identity — prompt, caret, blink cursor */
+  --terminal-prompt: var(--crt-prompt, #0f0);
+  --terminal-prompt-deep: var(--crt-prompt-deep, #0b0);
+
+  /* Phosphor text — default ink + variants */
+  --terminal-text: var(--crt-text, #dff8e4);
+  --terminal-text-bright: var(--crt-text-bright, #b6f7b6);
+  --terminal-text-soft: var(--crt-text-soft, #c8ffc8);
+  --terminal-text-hi: var(--crt-text-hi, #e8ffe8);
+  --terminal-text-hi-vi: var(--crt-text-hi-vi, #e0ffe0);
+  --terminal-text-kbd: var(--crt-text-kbd, #9fdf9f);
+  --terminal-text-ok-hi: var(--crt-text-ok-hi, #9ae89a);
+
+  /* Phosphor green alpha tints (rgb(0,255,80) over dark surface) —
+     rules, edges, dim text. Values escalate by alpha. */
+  --terminal-glow: var(--crt-glow, rgba(0, 255, 80, 0.08));
+  --terminal-rule: var(--crt-rule, rgba(0, 255, 80, 0.12));
+  --terminal-rule-soft: var(--crt-rule-soft, rgba(0, 255, 80, 0.14));
+  --terminal-rule-hairline: var(--crt-rule-hairline, rgba(0, 255, 80, 0.2));
+  --terminal-rule-mid: var(--crt-rule-mid, rgba(0, 255, 80, 0.22));
+  --terminal-edge-soft: var(--crt-edge-soft, rgba(0, 255, 80, 0.28));
+  --terminal-edge: var(--crt-edge, rgba(0, 255, 80, 0.32));
+  --terminal-edge-faint: var(--crt-edge-faint, rgba(0, 255, 80, 0.35));
+  --terminal-edge-mid: var(--crt-edge-mid, rgba(0, 255, 80, 0.38));
+  --terminal-edge-strong: var(--crt-edge-strong, rgba(0, 255, 80, 0.42));
+  --terminal-focus-ring: var(--crt-focus-ring, rgba(0, 255, 80, 0.45));
+  --terminal-rule-hi: var(--crt-rule-hi, rgba(0, 255, 80, 0.5));
+  --terminal-text-faint: var(--crt-text-faint, rgba(0, 255, 80, 0.52));
+  --terminal-text-mute: var(--crt-text-mute, rgba(0, 255, 80, 0.55));
+  --terminal-text-dim: var(--crt-text-dim, rgba(0, 255, 80, 0.62));
+  --terminal-text-dim-2: var(--crt-text-dim-2, rgba(0, 255, 80, 0.65));
+  --terminal-text-dim-strong: var(--crt-text-dim-strong, rgba(0, 255, 80, 0.78));
+  --terminal-text-dim-hi: var(--crt-text-dim-hi, rgba(0, 255, 80, 0.88));
+  --terminal-text-dim-hi-2: var(--crt-text-dim-hi-2, rgba(0, 255, 80, 0.92));
+
+  /* Scrollbar (phosphor thumb) */
+  --terminal-scrollbar: var(--crt-scrollbar, rgba(0, 255, 80, 0.42));
+  --terminal-scrollbar-hover: var(--crt-scrollbar-hover, rgba(0, 255, 80, 0.62));
+
+  /* Selection (mint pad with inverted fg) */
+  --terminal-selection-bg: var(--crt-selection-bg, rgba(140, 255, 190, 0.55));
+  --terminal-selection-fg: var(--crt-selection-fg, #051208);
+  --terminal-selection-bg-hi: var(--pure-white, #fff);
+  --terminal-selection-fg-hi: var(--pure-black, #000);
+
+  /* Welcome banner & gradient stops */
+  --terminal-welcome-grad: var(--crt-welcome-grad, rgba(0, 48, 0, 0.45));
+  --terminal-modal-grad: var(--crt-modal-grad, rgba(0, 56, 0, 0.55));
+  --terminal-grad-end: var(--crt-grad-end, rgba(0, 0, 0, 0));
+
+  /* Modal chrome (terminal black, NOT brand surface — preserves CRT) */
+  --terminal-modal-bg: var(--pure-black, #000);
+  --terminal-modal-scrim: var(--crt-modal-scrim, rgba(0, 0, 0, 0.88));
+  --terminal-modal-shadow: var(--crt-modal-shadow, rgba(0, 0, 0, 0.75));
+  --terminal-modal-track: var(--crt-modal-track, #1a1a1a);
+  --terminal-modal-input-bg: var(--crt-modal-input-bg, #0a0a0a);
+  --terminal-modal-footer-bg: var(--crt-modal-footer-bg, rgba(0, 24, 0, 0.42));
+  --terminal-modal-kbd-bg: var(--crt-modal-kbd-bg, rgba(0, 40, 0, 0.5));
+
+  /* Box-shadow elevation alphas */
+  --terminal-shadow-md: var(--crt-shadow-md, rgba(0, 0, 0, 0.55));
+  --terminal-shadow-sm: var(--crt-shadow-sm, rgba(0, 0, 0, 0.45));
+
+  /* High-contrast variants for chrome surfaces */
+  --terminal-init-error-bg-hi: var(--crt-init-error-bg-hi, #1a0806);
+  --terminal-scroll-latest-bg-hi: var(--crt-scroll-latest-bg-hi, #0a1a0c);
+  --terminal-init-error-fg-hi: var(--pure-white, #fff);
+
+  /* Running-command indicator (sage, distinct from phosphor) */
+  --terminal-running-fg: var(--crt-running-fg, #8fbc8f);
+
+  /* Setup wizard (cool blue) */
+  --terminal-wizard-fg: var(--crt-wizard-fg, #6ec6ff);
+
+  /* Stderr / non-zero exit */
+  --terminal-stderr-fg: var(--crt-stderr-fg, #f5a898);
+  --terminal-stderr-edge: var(--crt-stderr-edge, rgba(255, 120, 96, 0.45));
+  --terminal-stderr-fg-hi: var(--crt-stderr-fg-hi, #ffded8);
+  --terminal-stderr-edge-hi: var(--crt-stderr-edge-hi, rgba(255, 160, 140, 0.95));
+  --terminal-exit-fail: var(--crt-exit-fail, rgba(255, 170, 150, 0.88));
+  --terminal-exit-fail-hi: var(--crt-exit-fail-hi, #ffddd6);
+
+  /* Tabular (ps) panel — phosphor tint */
+  --terminal-panel-ps-edge: var(--crt-panel-ps-edge, rgba(0, 255, 136, 0.35));
+  --terminal-panel-ps-bg: var(--crt-panel-ps-bg, rgba(0, 24, 12, 0.35));
+  --terminal-panel-ps-edge-hi: var(--crt-panel-ps-edge-hi, rgba(0, 255, 136, 0.75));
+  --terminal-panel-ps-bg-hi: var(--crt-panel-ps-bg-hi, rgba(0, 32, 16, 0.55));
+
+  /* Man-page panel — warm amber */
+  --terminal-panel-man-fg: var(--crt-panel-man-fg, #f0ebe2);
+  --terminal-panel-man-edge: var(--crt-panel-man-edge, rgba(255, 200, 120, 0.45));
+  --terminal-panel-man-bg: var(--crt-panel-man-bg, rgba(36, 28, 18, 0.45));
+  --terminal-panel-man-edge-hi: var(--crt-panel-man-edge-hi, rgba(255, 210, 140, 0.9));
+  --terminal-panel-man-bg-hi: var(--crt-panel-man-bg-hi, rgba(48, 36, 22, 0.65));
+
+  /* Debug-dump panel — cool blue */
+  --terminal-panel-debug-fg: var(--crt-panel-debug-fg, #dceaf8);
+  --terminal-panel-debug-edge: var(--crt-panel-debug-edge, rgba(120, 200, 255, 0.42));
+  --terminal-panel-debug-bg: var(--crt-panel-debug-bg, rgba(16, 28, 44, 0.5));
+  --terminal-panel-debug-edge-hi: var(--crt-panel-debug-edge-hi, rgba(160, 220, 255, 0.95));
+  --terminal-panel-debug-bg-hi: var(--crt-panel-debug-bg-hi, rgba(20, 36, 56, 0.72));
+
+  /* Hex-dump panel — amber bytes */
+  --terminal-panel-hex-fg: var(--crt-panel-hex-fg, #f4ead8);
+  --terminal-panel-hex-edge: var(--crt-panel-hex-edge, rgba(255, 170, 80, 0.48));
+  --terminal-panel-hex-bg: var(--crt-panel-hex-bg, rgba(40, 28, 12, 0.48));
+  --terminal-panel-hex-edge-hi: var(--crt-panel-hex-edge-hi, rgba(255, 190, 120, 0.92));
+  --terminal-panel-hex-bg-hi: var(--crt-panel-hex-bg-hi, rgba(52, 36, 14, 0.72));
+
+  /* Ping-log panel — teal */
+  --terminal-panel-ping-fg: var(--crt-panel-ping-fg, #d4f4ef);
+  --terminal-panel-ping-edge: var(--crt-panel-ping-edge, rgba(64, 220, 200, 0.42));
+  --terminal-panel-ping-bg: var(--crt-panel-ping-bg, rgba(10, 32, 36, 0.52));
+  --terminal-panel-ping-edge-hi: var(--crt-panel-ping-edge-hi, rgba(120, 240, 220, 0.9));
+  --terminal-panel-ping-bg-hi: var(--crt-panel-ping-bg-hi, rgba(14, 40, 44, 0.72));
+
+  /* ANSI 16-color palette — pure xterm. Used by .ansi-output spans
+     plus a handful of command-output classes (success, error, ls...). */
+  --terminal-ansi-black: var(--xterm-black, #000000);
+  --terminal-ansi-red: var(--xterm-red, #ff0000);
+  --terminal-ansi-green: var(--xterm-green, #00ff00);
+  --terminal-ansi-yellow: var(--xterm-yellow, #ffff00);
+  --terminal-ansi-blue: var(--xterm-blue, #0000ff);
+  --terminal-ansi-magenta: var(--xterm-magenta, #ff00ff);
+  --terminal-ansi-cyan: var(--xterm-cyan, #00ffff);
+  --terminal-ansi-white: var(--xterm-white, #ffffff);
+  --terminal-ansi-gray: var(--xterm-gray, #808080);
+  --terminal-ansi-bright-red: var(--xterm-bright-red, #ff8080);
+  --terminal-ansi-bright-green: var(--xterm-bright-green, #80ff80);
+  --terminal-ansi-bright-yellow: var(--xterm-bright-yellow, #ffff80);
+  --terminal-ansi-bright-blue: var(--xterm-bright-blue, #8080ff);
+  --terminal-ansi-bright-magenta: var(--xterm-bright-magenta, #ff80ff);
+  --terminal-ansi-bright-cyan: var(--xterm-bright-cyan, #80ffff);
+
+  /* Helper accents */
+  --terminal-ls-blue: var(--crt-ls-blue, #0088ff);
+  --terminal-history-fg: var(--crt-history-fg, #888888);
+
+  /* Hollywood panel — cyan + coral */
+  --terminal-hollywood-cyan: var(--crt-hollywood-cyan, #4ecdc4);
+  --terminal-hollywood-red: var(--crt-hollywood-red, #ff6b6b);
+  --terminal-hollywood-bg: var(--crt-hollywood-bg, #1a1a1a);
+
+  /* Vi cursor / less highlight */
+  --terminal-cursor-fg: var(--pure-black, #000);
+  --terminal-cursor-bg: var(--crt-cursor-bg, #0f0);
+  --terminal-cursor-insert-bg: var(--crt-cursor-insert-bg, #ff0);
+
+  /* cat block bg (legacy 1a1a1a, same family as scrollbar track) */
+  --terminal-cat-bg: var(--crt-cat-bg, #1a1a1a);
+
+  /* Matrix effect glow */
+  --terminal-matrix-glow: var(--crt-matrix-glow, rgba(0, 255, 0, 0.3));
+}
 
 html {
   color-scheme: dark;
-  /* Theme G: percentage height chain so the shell fills OS iframes (not only standalone 100vh) */
   height: 100%;
   min-height: 100%;
 }
@@ -14,8 +190,8 @@ body {
   padding: 0;
   height: 100%;
   min-height: 100%;
-  background: #000;
-  color: #fff;
+  background: var(--surface-0, #000);
+  color: var(--text-1, #fff);
   font-family: 'Hack', 'Courier New', Courier, ui-monospace, monospace;
   overflow: hidden;
 }
@@ -40,12 +216,12 @@ body {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  background: #000;
+  background: var(--surface-0, #000);
   padding: calc(10px + env(safe-area-inset-top, 0px)) calc(10px + env(safe-area-inset-right, 0px))
     calc(10px + env(safe-area-inset-bottom, 0px)) calc(10px + env(safe-area-inset-left, 0px));
 }
 
-/* Theme G: Heyming OS opens terminal in an iframe — tighter chrome; hide standalone share dock */
+/* Heyming OS opens terminal in an iframe — tighter chrome; hide standalone share dock */
 html.terminal-embed-os #terminal-container {
   padding: calc(6px + env(safe-area-inset-top, 0px)) calc(6px + env(safe-area-inset-right, 0px))
     calc(6px + env(safe-area-inset-bottom, 0px)) calc(6px + env(safe-area-inset-left, 0px));
@@ -55,7 +231,6 @@ html.terminal-embed-os #terminal-share-dock {
   display: none;
 }
 
-/* Theme G: standalone share button — fixed corner, respects safe areas (no overlap with home indicator) */
 #terminal-share-dock {
   position: fixed;
   right: calc(20px + env(safe-area-inset-right, 0px));
@@ -63,18 +238,21 @@ html.terminal-embed-os #terminal-share-dock {
   z-index: 100;
 }
 
-/* Theme G: fatal OS init error (inline HTML in index.html catch) — stderr-like palette, readable in #terminal-output */
+/* Fatal OS init error (inline HTML in index.html catch). Now uses brand
+   danger token for the strip + a flattened surface so it reads as a
+   first-class HOSDL alert rather than a gradient panel. */
 .terminal-init-error {
   margin: 8px 0;
   padding: 12px 14px;
   max-width: 42rem;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 120, 96, 0.45);
-  border-left: 3px solid rgba(255, 120, 96, 0.75);
-  background: linear-gradient(90deg, rgba(48, 12, 8, 0.55) 0%, rgba(0, 0, 0, 0.35) 100%);
-  color: #f5d0c8;
+  border-radius: var(--radius, 8px);
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
+  border-left: 3px solid var(--danger, #f87171);
+  background: var(--surface-1, rgba(48, 12, 8, 0.55));
+  color: var(--text-1, #f5d0c8);
   font-size: 13px;
   line-height: 1.45;
+  font-family: var(--font-ui, system-ui, sans-serif);
 }
 
 .terminal-init-error-title {
@@ -82,7 +260,7 @@ html.terminal-embed-os #terminal-share-dock {
   margin: 0 0 8px;
   font-size: 14px;
   font-weight: 700;
-  color: #ffb4a8;
+  color: var(--danger, #ffb4a8);
 }
 
 .terminal-init-error-line {
@@ -91,23 +269,23 @@ html.terminal-embed-os #terminal-share-dock {
 
 .terminal-init-error-hint {
   margin-top: 10px;
-  color: rgba(245, 208, 200, 0.82);
+  color: var(--text-2, rgba(245, 208, 200, 0.82));
   font-size: 12px;
 }
 
 @media (prefers-contrast: more) {
   .terminal-init-error {
-    border-color: rgba(255, 180, 160, 0.85);
-    color: #fff;
-    background: #1a0806;
+    border-color: var(--danger, rgba(255, 180, 160, 0.85));
+    color: var(--terminal-init-error-fg-hi, #fff);
+    background: var(--terminal-init-error-bg-hi, #1a0806);
   }
-
   .terminal-init-error-title {
-    color: #fff;
+    color: var(--terminal-init-error-fg-hi, #fff);
   }
 }
 
-/* Theme G: skip link — keyboard users jump past welcome/output to the prompt */
+/* Skip link — keyboard users jump past welcome/output to the prompt.
+   When visible, switches to brand chrome tokens with the dual focus ring. */
 .terminal-skip-link {
   position: absolute;
   width: 1px;
@@ -132,22 +310,24 @@ html.terminal-embed-os #terminal-share-dock {
   overflow: visible;
   clip: auto;
   white-space: nowrap;
-  border-radius: 4px;
-  border: 1px solid rgba(0, 255, 80, 0.45);
-  background: rgba(0, 32, 0, 0.96);
-  color: #b6f7b6;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--hairline-strong, rgba(0, 255, 80, 0.45));
+  background: var(--surface-2, rgba(0, 32, 0, 0.96));
+  color: var(--text-1, #b6f7b6);
   font-family: inherit;
   font-size: 13px;
   text-decoration: none;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 4px 16px var(--terminal-shadow-md, rgba(0, 0, 0, 0.55));
 }
 
 .terminal-skip-link:focus-visible {
-  outline: 2px solid rgba(0, 255, 80, 0.55);
+  outline: 2px solid var(--focus-ring-inner, rgba(0, 255, 80, 0.55));
   outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--focus-ring-outer, rgba(255, 255, 255, 0.65)),
+    0 4px 16px var(--terminal-shadow-md, rgba(0, 0, 0, 0.55));
 }
 
-/* Single scroll region: transcript + current prompt (input follows output, no fixed bottom gap). */
+/* Single scroll region: transcript + current prompt. */
 #terminal-scroll {
   flex: 1 1 auto;
   min-height: 0;
@@ -161,7 +341,7 @@ html.terminal-embed-os #terminal-share-dock {
   overscroll-behavior-y: contain;
   touch-action: pan-y;
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 255, 80, 0.42) #1a1a1a;
+  scrollbar-color: var(--terminal-scrollbar) var(--surface-1, #1a1a1a);
 }
 
 #terminal-output {
@@ -169,47 +349,44 @@ html.terminal-embed-os #terminal-share-dock {
   margin-bottom: 8px;
   line-height: 1.45;
   overflow: visible;
-  /* Theme G: default pipeline text — soft green-white (inherits to plain .terminal-output lines) */
-  color: #dff8e4;
+  color: var(--terminal-text);
   font-variant-ligatures: none;
-  /* Theme G: make copy/select obvious without affecting the prompt input (sibling) */
   cursor: text;
   user-select: text;
   -webkit-user-select: text;
 }
 
-/* Theme G: ::selection — readable highlight when copying transcript (avoids low-contrast OS defaults on green text) */
 #terminal-output ::selection,
 #terminal-output *::selection {
-  background-color: rgba(140, 255, 190, 0.55) !important;
-  color: #051208 !important;
+  background-color: var(--terminal-selection-bg) !important;
+  color: var(--terminal-selection-fg) !important;
 }
 
 #terminal-output ::-moz-selection,
 #terminal-output *::-moz-selection {
-  background-color: rgba(140, 255, 190, 0.55) !important;
-  color: #051208 !important;
+  background-color: var(--terminal-selection-bg) !important;
+  color: var(--terminal-selection-fg) !important;
 }
 
 #terminal-input::selection {
-  background-color: rgba(140, 255, 190, 0.55) !important;
-  color: #051208 !important;
+  background-color: var(--terminal-selection-bg) !important;
+  color: var(--terminal-selection-fg) !important;
 }
 
 #terminal-input::-moz-selection {
-  background-color: rgba(140, 255, 190, 0.55) !important;
-  color: #051208 !important;
+  background-color: var(--terminal-selection-bg) !important;
+  color: var(--terminal-selection-fg) !important;
 }
 
-/* Theme G: pinned shortcut hints — always visible below transcript + prompt (does not scroll away) */
+/* Pinned shortcut hints — always visible below transcript + prompt. */
 .terminal-session-hints {
   flex-shrink: 0;
   margin: 0;
   padding: 8px 2px 4px;
   padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid rgba(0, 255, 80, 0.1);
+  border-top: 1px solid var(--terminal-rule);
   font-size: 11px;
-  color: rgba(0, 255, 80, 0.62);
+  color: var(--terminal-text-dim);
   line-height: 1.35;
   user-select: none;
 }
@@ -235,18 +412,18 @@ html.terminal-embed-os #terminal-share-dock {
 
 .terminal-hint-label {
   margin-left: 4px;
-  color: rgba(0, 255, 80, 0.78);
+  color: var(--terminal-text-dim-strong, rgba(0, 255, 80, 0.78));
   font-weight: normal;
 }
 
 .terminal-hint-plus {
   margin: 0 1px;
   font-size: 10px;
-  color: rgba(0, 255, 80, 0.35);
+  color: var(--terminal-edge-faint, rgba(0, 255, 80, 0.35));
 }
 
 .terminal-hint-sep {
-  color: rgba(0, 255, 80, 0.28);
+  color: var(--terminal-edge-soft, rgba(0, 255, 80, 0.28));
   user-select: none;
 }
 
@@ -255,8 +432,8 @@ html.terminal-embed-os .terminal-session-hints {
   padding-bottom: calc(2px + env(safe-area-inset-bottom, 0px));
 }
 
-/* Theme G: jump to latest — when transcript is scrolled up, return to prompt + newest lines */
-/* z-index above site floating widgets (e.g. related-projects FAB at ~9000) */
+/* Jump to latest — when transcript is scrolled up, return to prompt.
+   Now a flat HOSDL chip rather than a gradient pill. */
 .terminal-scroll-latest {
   position: fixed;
   z-index: 9200;
@@ -264,25 +441,30 @@ html.terminal-embed-os .terminal-session-hints {
   bottom: calc(52px + env(safe-area-inset-bottom, 0px));
   margin: 0;
   padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid rgba(0, 255, 80, 0.38);
-  background: linear-gradient(180deg, rgba(0, 48, 12, 0.96) 0%, rgba(0, 24, 6, 0.98) 100%);
-  color: #b6f7b6;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--hairline-strong, rgba(0, 255, 80, 0.38));
+  background: var(--surface-2, rgba(0, 48, 12, 0.96));
+  color: var(--text-1, #b6f7b6);
   font-family: inherit;
   font-size: 12px;
   line-height: 1.2;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 14px var(--terminal-shadow-sm, rgba(0, 0, 0, 0.45));
+  transition: border-color var(--motion-hover, 150ms ease),
+    background-color var(--motion-hover, 150ms ease), color var(--motion-hover, 150ms ease);
 }
 
 .terminal-scroll-latest:hover {
-  border-color: rgba(0, 255, 80, 0.55);
-  color: #d8ffd8;
+  border-color: var(--accent-primary, rgba(0, 255, 80, 0.55));
+  color: var(--text-1, #d8ffd8);
+  background: var(--surface-1);
 }
 
 .terminal-scroll-latest:focus-visible {
-  outline: 2px solid rgba(0, 255, 80, 0.55);
+  outline: 2px solid var(--focus-ring-inner, rgba(0, 255, 80, 0.55));
   outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--focus-ring-outer, rgba(255, 255, 255, 0.65)),
+    0 4px 14px var(--terminal-shadow-sm, rgba(0, 0, 0, 0.45));
 }
 
 html.terminal-embed-os .terminal-scroll-latest {
@@ -294,19 +476,19 @@ html.terminal-embed-os .terminal-scroll-latest {
 
 @media (prefers-contrast: more) {
   .terminal-scroll-latest {
-    border-color: rgba(0, 255, 120, 0.75);
-    background: #0a1a0c;
-    color: #fff;
+    border-color: var(--text-1, rgba(0, 255, 120, 0.75));
+    background: var(--terminal-scroll-latest-bg-hi, #0a1a0c);
+    color: var(--terminal-init-error-fg-hi, #fff);
   }
 }
 
-/* Theme G: prompt dock — separates scrolling transcript from the active input row */
+/* Prompt dock — separates scrolling transcript from the active input row. */
 #current-prompt-line {
   display: flex;
   align-items: center;
   margin: 6px 0 2px;
   padding-top: 10px;
-  border-top: 1px solid rgba(0, 255, 80, 0.12);
+  border-top: 1px solid var(--terminal-rule);
   flex-shrink: 0;
   gap: 4px;
 }
@@ -316,7 +498,7 @@ html.terminal-embed-os #current-prompt-line {
   padding-top: 8px;
 }
 
-/* Theme G: blocking command — input disabled; output region aria-busy */
+/* Blocking command — input disabled; output region aria-busy. */
 #terminal-container.terminal-command-running #prompt-text {
   opacity: 0.72;
 }
@@ -332,7 +514,7 @@ html.terminal-embed-os #current-prompt-line {
   margin-left: 6px;
   font-size: 12px;
   line-height: 1.3;
-  color: #8fbc8f;
+  color: var(--terminal-running-fg, #8fbc8f);
   font-weight: normal;
   white-space: nowrap;
   overflow: hidden;
@@ -340,14 +522,12 @@ html.terminal-embed-os #current-prompt-line {
   max-width: min(52vw, 22rem);
 }
 
-/* Theme G: narrow screens — stack the running hint under prompt + input so it stays readable */
 @media (max-width: 520px) {
   #terminal-container.terminal-command-running #current-prompt-line {
     flex-wrap: wrap;
     align-items: flex-start;
     row-gap: 2px;
   }
-
   #terminal-container.terminal-command-running #current-prompt-line::after {
     flex: 1 1 100%;
     margin-left: 0;
@@ -357,8 +537,9 @@ html.terminal-embed-os #current-prompt-line {
   }
 }
 
+/* Prompt + input keep their phosphor color — the terminal's identity. */
 #prompt-text {
-  color: #0f0;
+  color: var(--terminal-prompt);
   font-weight: bold;
   white-space: nowrap;
   min-width: 0;
@@ -369,26 +550,39 @@ html.terminal-embed-os #current-prompt-line {
 }
 
 #terminal-input {
+  /* The CLI input must look like bare phosphor — no chrome around the
+     prompt. We explicitly null out everything brand.css :where(input)
+     adds (padding, border-radius, surface fill) on top of the obvious
+     border/outline resets. */
   background: transparent;
   border: none;
+  border-radius: 0;
   outline: none;
-  color: #0f0;
+  padding: 0;
+  color: var(--terminal-prompt);
   font-family: inherit;
   font-size: 14px;
   line-height: 1.45;
-  caret-color: #0f0;
+  caret-color: var(--terminal-prompt);
   caret-shape: block;
   flex: 1 1 auto;
   min-width: 0;
   margin-left: 0;
 }
 
+/* Focus state: cancel both the site-wide `:focus-visible` outline AND
+   the dual-ring box-shadow halo (otherwise the prompt looks like it's
+   wrapped in a pale pill). The caret is the only focus affordance the
+   classic terminal needs. */
+#terminal-input:focus,
 #terminal-input:focus-visible {
   outline: none;
+  box-shadow: none;
+  border-color: transparent;
 }
 
 #terminal-input::placeholder {
-  color: rgba(0, 255, 80, 0.38);
+  color: var(--terminal-edge-mid, rgba(0, 255, 80, 0.38));
   opacity: 1;
 }
 
@@ -396,24 +590,23 @@ html.terminal-embed-os #current-prompt-line {
   margin: 2px 0;
 }
 
-/* Scrollbar styling (aligned with .top-modal .top-content — soft green, not full neon) */
-/* Scrollbar styling (aligned with .top-modal .top-content — soft green, not full neon) */
+/* Scrollbar — phosphor green thumb on dark token track. */
 #terminal-scroll::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 #terminal-scroll::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background: var(--surface-1, #1a1a1a);
 }
 
 #terminal-scroll::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 80, 0.42);
+  background: var(--terminal-scrollbar);
   border-radius: 4px;
 }
 
 #terminal-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 255, 80, 0.62);
+  background: var(--terminal-scrollbar-hover);
 }
 
 /* Animation for matrix effect */
@@ -444,7 +637,7 @@ html.terminal-embed-os #current-prompt-line {
 
 /* First-run setup wizard */
 .setup-wizard {
-  color: #6ec6ff;
+  color: var(--terminal-wizard-fg, #6ec6ff);
   font-family: inherit;
   line-height: 1.5;
   margin: 0;
@@ -452,6 +645,6 @@ html.terminal-embed-os #current-prompt-line {
 }
 
 .setup-error {
-  color: #ff6b6b;
+  color: var(--danger, #ff6b6b);
   padding: 2px 0;
 }

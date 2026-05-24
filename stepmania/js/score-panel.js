@@ -193,12 +193,15 @@ class ScorePanelElement extends HTMLElement {
         :host {
           display: block;
         }
+        /* Score card chrome: solid brand surface-1 (no violet wash). The
+         * percent-score text uses an identity cyan→violet clip — that
+         * stays as BRAND.md permits a wordmark-style gradient for hero
+         * numbers. */
         .score-container {
-          background: linear-gradient(to right, rgba(168, 85, 247, 0.2), rgba(59, 130, 246, 0.2));
+          background: var(--surface-1, #15151b);
           border-radius: 0.75rem;
           padding: 1rem;
-          backdrop-filter: blur(12px);
-          border: 1px solid rgba(192, 132, 252, 0.3);
+          border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
         }
         .stats-row {
           display: flex;
@@ -210,7 +213,8 @@ class ScorePanelElement extends HTMLElement {
           flex: 1;
           text-align: center;
           padding: 0.5rem;
-          background: rgba(0, 0, 0, 0.3);
+          background: var(--surface-2, #1f1f27);
+          border: 1px solid var(--hairline, rgba(255, 255, 255, 0.08));
           border-radius: 0.5rem;
         }
         .stat-label {
@@ -252,7 +256,8 @@ class ScorePanelElement extends HTMLElement {
           justify-content: space-between;
           align-items: center;
           padding: 0.5rem 0.75rem;
-          background: rgba(255, 255, 255, 0.1);
+          background: var(--surface-2, #1f1f27);
+          border: 1px solid var(--hairline, rgba(255, 255, 255, 0.08));
           border-radius: 0.5rem;
         }
         .score-label {
@@ -266,8 +271,8 @@ class ScorePanelElement extends HTMLElement {
           animation: flash 0.3s ease-out;
         }
         @keyframes flash {
-          0% { background: rgba(255, 255, 255, 0.3); }
-          100% { background: rgba(255, 255, 255, 0.1); }
+          0% { background: var(--accent-primary-soft, rgba(124, 92, 255, 0.25)); }
+          100% { background: var(--surface-2, #1f1f27); }
         }
       </style>
       

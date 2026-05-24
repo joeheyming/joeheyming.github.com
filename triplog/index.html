@@ -18,7 +18,7 @@
     />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#7c3aed" />
+    <meta name="theme-color" content="#7C5CFF" />
     <meta
       name="keywords"
       content="GPS tracker, trip log, browser GPS, geolocation, map, IndexedDB, offline, OpenStreetMap, mobile, web app"
@@ -71,19 +71,11 @@
       crossorigin=""
     ></script>
 
+    <!-- Tailwind CDN must load BEFORE brand-tailwind.js — the CDN
+         installs window.tailwind on boot and overwrites any pre-set
+         config, so brand-tailwind.js sets `tailwind.config` after. -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'media',
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['DM Sans', 'system-ui', 'sans-serif']
-            }
-          }
-        }
-      };
-    </script>
+    <script src="/brand-tailwind.js"></script>
     <style>
       /*
        * Tailwind utility classes (flex, inline-flex, grid, …) all set
@@ -102,10 +94,23 @@
       #map .leaflet-container {
         font-family: inherit;
       }
+      /* Safety net: pin <html> to brand surface-0 so any transparent
+       * region in the body gradient shows brand dark, not UA white. */
+      html {
+        background-color: var(--surface-0, #0b0b0f);
+      }
     </style>
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
   <body
-    class="min-h-full bg-gradient-to-br from-violet-100/90 via-zinc-50 to-fuchsia-50/70 font-sans text-zinc-900 antialiased dark:from-zinc-950 dark:via-zinc-900 dark:to-violet-950/40 dark:text-zinc-100"
+    class="min-h-full bg-gradient-to-br from-surface-0 via-surface-1 to-accent-primary/15 font-ui text-text-1 antialiased"
   >
     <div
       id="triplog-root"
@@ -113,13 +118,13 @@
     >
       <header class="mb-3 flex flex-nowrap items-center justify-between gap-3">
         <h1
-          class="shrink-0 bg-gradient-to-r from-violet-700 to-fuchsia-600 bg-clip-text text-2xl font-semibold tracking-tight text-transparent dark:from-violet-300 dark:to-fuchsia-400"
+          class="shrink-0 bg-gradient-to-r from-accent-primary-hover to-accent-primary bg-clip-text text-2xl font-semibold tracking-tight text-transparent"
         >
           🗺️ Trip Log
         </h1>
         <div
           id="status"
-          class="min-w-0 flex-1 break-words text-right empty:hidden text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm"
+          class="min-w-0 flex-1 break-words text-right empty:hidden text-xs text-text-2 sm:text-sm"
           role="status"
         ></div>
       </header>
@@ -131,13 +136,13 @@
         aria-live="polite"
       >
         <div
-          class="w-full max-w-md rounded-2xl border border-zinc-200/90 bg-white/90 p-8 text-center shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/90"
+          class="w-full max-w-md rounded-2xl border border-hairline bg-surface-1/90 p-8 text-center shadow-xl"
         >
           <div
-            class="mx-auto mb-4 h-11 w-11 animate-spin rounded-full border-2 border-zinc-200 border-t-violet-600 dark:border-zinc-600 dark:border-t-violet-400"
+            class="mx-auto mb-4 h-11 w-11 animate-spin rounded-full border-2 border-hairline border-t-accent-primary"
             aria-hidden="true"
           ></div>
-          <p id="app-loading-message" class="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+          <p id="app-loading-message" class="text-sm font-medium text-text-1">
             Opening local trip database…
           </p>
         </div>
@@ -150,15 +155,12 @@
         hidden
       >
         <div
-          class="w-full max-w-md rounded-2xl border border-rose-200/80 bg-white/90 p-6 text-center shadow-xl dark:border-rose-800/50 dark:bg-zinc-900/90"
+          class="w-full max-w-md rounded-2xl border border-danger bg-surface-1/90 p-6 text-center shadow-xl"
         >
           <p class="mb-2 text-3xl leading-none" aria-hidden="true">⚠️</p>
           <h2 class="text-lg font-semibold sm:text-xl">Could not start Trip Log</h2>
-          <p
-            id="app-error-message"
-            class="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400"
-          ></p>
-          <p class="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+          <p id="app-error-message" class="mt-2 text-sm leading-relaxed text-text-2"></p>
+          <p class="mt-3 text-xs text-text-2">
             Trip Log uses IndexedDB. Private/Incognito windows usually disable it; try a regular
             window.
           </p>
@@ -168,13 +170,13 @@
       <main id="app-main" class="flex min-h-0 flex-1 flex-col gap-3" hidden>
         <section
           id="map-card"
-          class="relative flex min-h-[40vh] flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/85 shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/85"
+          class="relative flex min-h-[40vh] flex-1 flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-1/85 shadow-xl"
         >
           <div id="map" class="h-full w-full flex-1"></div>
           <button
             type="button"
             id="btn-follow"
-            class="absolute right-3 top-3 z-[400] hidden items-center gap-1.5 rounded-full border border-zinc-300 bg-white/95 px-3 py-1.5 text-xs font-medium text-zinc-800 shadow hover:bg-white dark:border-zinc-600 dark:bg-zinc-800/95 dark:text-zinc-100"
+            class="absolute right-3 top-3 z-[400] hidden items-center gap-1.5 rounded-full border border-hairline bg-surface-2/95 px-3 py-1.5 text-xs font-medium text-text-1 shadow hover:bg-surface-1"
             aria-pressed="false"
           >
             <span aria-hidden="true">📍</span>
@@ -184,11 +186,11 @@
 
         <section
           id="stats-card"
-          class="relative rounded-2xl border border-zinc-200/90 bg-white/85 p-3 pt-10 shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/85"
+          class="relative rounded-2xl border border-hairline bg-surface-1/85 p-3 pt-10 shadow-xl"
         >
           <div
             id="paused-badge"
-            class="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-white shadow-sm"
+            class="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-warning px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-text-on-accent shadow-sm"
             hidden
           >
             <span aria-hidden="true">⏸</span>
@@ -196,7 +198,7 @@
           </div>
           <div
             id="gap-badge"
-            class="absolute left-2 top-9 z-10 inline-flex items-center gap-1 rounded-full bg-zinc-500 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-white shadow-sm"
+            class="absolute left-2 top-9 z-10 inline-flex items-center gap-1 rounded-full bg-text-3 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-text-on-accent shadow-sm"
             title="The browser tab was suspended for a while; that part of the path is dashed because we don't know the exact route."
             hidden
           >
@@ -206,66 +208,58 @@
           <button
             type="button"
             id="btn-units"
-            class="absolute right-2 top-2 z-10 rounded-full border border-zinc-300 bg-white/95 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-700 shadow-sm hover:bg-white dark:border-zinc-600 dark:bg-zinc-800/95 dark:text-zinc-200"
+            class="absolute right-2 top-2 z-10 rounded-full border border-hairline bg-surface-2/95 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-text-1 shadow-sm hover:bg-surface-1"
             aria-label="Switch units"
           >
             Switch to mi
           </button>
           <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
-              <div
-                class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
-              >
+            <div class="rounded-xl bg-surface-0/60 px-3 py-2">
+              <div class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2">
                 Distance
               </div>
               <div id="stat-distance" class="mt-0.5 text-xl font-semibold tabular-nums">
                 0.00 km
               </div>
             </div>
-            <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
-              <div
-                class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
-              >
+            <div class="rounded-xl bg-surface-0/60 px-3 py-2">
+              <div class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2">
                 Moving
               </div>
               <div id="stat-duration" class="mt-0.5 text-xl font-semibold tabular-nums">0:00</div>
             </div>
-            <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
-              <div
-                class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
-              >
+            <div class="rounded-xl bg-surface-0/60 px-3 py-2">
+              <div class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2">
                 Elapsed
               </div>
               <div id="stat-elapsed" class="mt-0.5 text-xl font-semibold tabular-nums">0:00</div>
             </div>
-            <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
+            <div class="rounded-xl bg-surface-0/60 px-3 py-2">
               <div
                 id="stat-speed-label"
-                class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+                class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2"
               >
                 Pace
               </div>
               <div id="stat-speed" class="mt-0.5 text-xl font-semibold tabular-nums">—</div>
             </div>
-            <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
+            <div class="rounded-xl bg-surface-0/60 px-3 py-2">
               <div
                 id="stat-avg-speed-label"
-                class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+                class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2"
               >
                 Avg pace
               </div>
               <div id="stat-avg-speed" class="mt-0.5 text-xl font-semibold tabular-nums">—</div>
             </div>
-            <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
-              <div
-                class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
-              >
+            <div class="rounded-xl bg-surface-0/60 px-3 py-2">
+              <div class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2">
                 Elevation
               </div>
               <div id="stat-elevation" class="mt-0.5 text-xl font-semibold tabular-nums">0 m</div>
             </div>
           </div>
-          <p class="mt-2 text-right text-[0.65rem] text-zinc-500 dark:text-zinc-400">
+          <p class="mt-2 text-right text-[0.65rem] text-text-2">
             GPS
             <span id="stat-accuracy" class="tabular-nums">—</span>
           </p>
@@ -273,52 +267,41 @@
 
         <section
           id="splits-card"
-          class="rounded-2xl border border-zinc-200/90 bg-white/85 p-3 shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/85"
+          class="rounded-2xl border border-hairline bg-surface-1/85 p-3 shadow-xl"
           hidden
         >
           <div class="mb-2 flex items-center justify-between">
-            <h2
-              class="text-sm font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300"
-            >
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-text-2">
               Splits
-              <span id="splits-unit-label" class="text-zinc-400">(km)</span>
+              <span id="splits-unit-label" class="text-text-3">(km)</span>
             </h2>
-            <span
-              id="splits-summary"
-              class="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums"
-            ></span>
+            <span id="splits-summary" class="text-xs text-text-2 tabular-nums"></span>
           </div>
-          <ol
-            id="splits-list"
-            class="list-none divide-y divide-zinc-200/90 dark:divide-zinc-700 tabular-nums"
-          ></ol>
+          <ol id="splits-list" class="list-none divide-y divide-hairline tabular-nums"></ol>
         </section>
 
         <section
           id="permission-card"
-          class="rounded-2xl border border-amber-300/80 bg-amber-50/90 p-4 shadow-xl dark:border-amber-700/60 dark:bg-amber-950/40"
+          class="rounded-2xl border border-warning bg-warning/15 p-4 shadow-xl"
           role="alert"
           hidden
         >
           <div class="flex items-start gap-3">
             <span class="text-2xl leading-none" aria-hidden="true">📍</span>
             <div class="min-w-0 flex-1">
-              <h3
-                id="permission-title"
-                class="text-base font-semibold text-amber-900 dark:text-amber-100"
-              >
+              <h3 id="permission-title" class="text-base font-semibold text-warning">
                 Trip Log can't see your location
               </h3>
               <div
                 id="permission-body"
-                class="mt-1 space-y-1 text-sm leading-relaxed text-amber-900/90 dark:text-amber-100/90"
+                class="mt-1 space-y-1 text-sm leading-relaxed text-warning"
               ></div>
               <div class="mt-3 flex flex-wrap items-center gap-2">
                 <a
                   id="permission-android-link"
                   href="intent:#Intent;action=android.settings.LOCATION_SOURCE_SETTINGS;end"
                   rel="noopener"
-                  class="inline-flex items-center gap-1.5 rounded-full border border-amber-400 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 shadow-sm hover:bg-amber-50 dark:border-amber-700 dark:bg-zinc-900 dark:text-amber-100 dark:hover:bg-zinc-800"
+                  class="inline-flex items-center gap-1.5 rounded-full border border-warning bg-surface-1 px-3 py-1.5 text-xs font-semibold text-warning shadow-sm hover:bg-warning/15"
                   hidden
                 >
                   Open phone location settings
@@ -326,14 +309,14 @@
                 <button
                   type="button"
                   id="permission-retry"
-                  class="inline-flex items-center gap-1.5 rounded-full border border-amber-600 bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-amber-700"
+                  class="inline-flex items-center gap-1.5 rounded-full border border-warning bg-warning px-3 py-1.5 text-xs font-semibold text-text-on-accent shadow-sm hover:bg-warning/90"
                 >
                   Try again
                 </button>
                 <button
                   type="button"
                   id="permission-dismiss"
-                  class="inline-flex items-center rounded-full border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 shadow-sm hover:bg-amber-100 dark:border-amber-700 dark:bg-zinc-900 dark:text-amber-100 dark:hover:bg-zinc-800"
+                  class="inline-flex items-center rounded-full border border-warning bg-surface-1 px-3 py-1.5 text-xs font-medium text-warning shadow-sm hover:bg-warning/15"
                 >
                   Hide
                 </button>
@@ -344,17 +327,15 @@
 
         <section
           id="controls-card"
-          class="rounded-2xl border border-zinc-200/90 bg-white/85 p-3 shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/85"
+          class="rounded-2xl border border-hairline bg-surface-1/85 p-3 shadow-xl"
         >
           <label class="mb-3 flex items-center gap-2 text-sm">
-            <span
-              class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
-            >
+            <span class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2">
               Activity
             </span>
             <select
               id="activity-select"
-              class="min-w-0 flex-1 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm font-semibold text-zinc-900 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400/30 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 sm:flex-none sm:w-56"
+              class="min-w-0 flex-1 rounded-full border border-hairline bg-surface-2 px-3 py-1.5 text-sm font-semibold text-text-1 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 sm:flex-none sm:w-56"
               aria-label="Activity type"
             ></select>
           </label>
@@ -362,7 +343,7 @@
             <button
               type="button"
               id="btn-start"
-              class="inline-flex h-14 min-w-[9rem] flex-1 items-center justify-center gap-2 rounded-full border border-violet-600 bg-violet-600 px-5 text-base font-semibold text-white shadow-sm transition hover:bg-violet-700 sm:max-w-xs"
+              class="inline-flex h-14 min-w-[9rem] flex-1 items-center justify-center gap-2 rounded-full border border-accent-primary-bg bg-accent-primary-bg px-5 text-base font-semibold text-text-on-accent shadow-sm transition hover:bg-accent-primary-bg-hover sm:max-w-xs"
             >
               <span aria-hidden="true">▶</span>
               Start
@@ -370,7 +351,7 @@
             <button
               type="button"
               id="btn-pause"
-              class="inline-flex h-14 min-w-[9rem] flex-1 items-center justify-center gap-2 rounded-full border border-amber-500 bg-amber-500 px-5 text-base font-semibold text-white shadow-sm transition hover:bg-amber-600 sm:max-w-xs"
+              class="inline-flex h-14 min-w-[9rem] flex-1 items-center justify-center gap-2 rounded-full border border-warning bg-warning px-5 text-base font-semibold text-text-on-accent shadow-sm transition hover:bg-warning/90 sm:max-w-xs"
               hidden
             >
               <span aria-hidden="true">⏸</span>
@@ -379,7 +360,7 @@
             <button
               type="button"
               id="btn-resume"
-              class="inline-flex h-14 flex-1 items-center justify-center gap-2 rounded-full border border-emerald-600 bg-emerald-600 px-5 text-base font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+              class="inline-flex h-14 flex-1 items-center justify-center gap-2 rounded-full border border-success bg-success px-5 text-base font-semibold text-text-on-accent shadow-sm transition hover:bg-success/90"
               hidden
             >
               <span aria-hidden="true">▶</span>
@@ -388,14 +369,14 @@
             <button
               type="button"
               id="btn-finish"
-              class="inline-flex h-14 flex-1 items-center justify-center gap-2 rounded-full border border-rose-600 bg-rose-600 px-5 text-base font-semibold text-white shadow-sm transition hover:bg-rose-700"
+              class="inline-flex h-14 flex-1 items-center justify-center gap-2 rounded-full border border-danger bg-danger px-5 text-base font-semibold text-text-on-accent shadow-sm transition hover:bg-danger/90"
               hidden
             >
               <span aria-hidden="true">■</span>
               Finish
             </button>
           </div>
-          <p class="mt-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
+          <p class="mt-2 text-center text-xs text-text-2">
             Uses your device's GPS and keeps the screen on. Trips are stored locally in your
             browser.
           </p>
@@ -403,31 +384,20 @@
 
         <section
           id="trips-card"
-          class="rounded-2xl border border-zinc-200/90 bg-white/85 p-3 shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/85"
+          class="rounded-2xl border border-hairline bg-surface-1/85 p-3 shadow-xl"
         >
           <div class="mb-2 flex items-center justify-between">
-            <h2
-              class="text-sm font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300"
-            >
-              Past trips
-            </h2>
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-text-2">Past trips</h2>
             <button
               type="button"
               id="btn-refresh-trips"
-              class="rounded-full border border-zinc-300 bg-white px-3 py-1 text-xs font-medium text-zinc-700 shadow-sm hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+              class="rounded-full border border-hairline bg-surface-2 px-3 py-1 text-xs font-medium text-text-1 shadow-sm hover:bg-surface-1"
             >
               Refresh
             </button>
           </div>
-          <ul
-            id="trips-list"
-            class="list-none divide-y divide-zinc-200/90 dark:divide-zinc-700"
-          ></ul>
-          <p
-            id="trips-empty"
-            class="py-3 text-center text-sm text-zinc-500 dark:text-zinc-400"
-            hidden
-          >
+          <ul id="trips-list" class="list-none divide-y divide-hairline"></ul>
+          <p id="trips-empty" class="py-3 text-center text-sm text-text-2" hidden>
             No trips yet. Tap Start above to record one.
           </p>
         </section>
@@ -436,39 +406,36 @@
 
     <dialog
       id="trip-view-dialog"
-      class="m-0 h-dvh max-h-none w-screen max-w-none border-0 bg-transparent p-0 [&::backdrop]:bg-zinc-950/60"
+      class="m-0 h-dvh max-h-none w-screen max-w-none border-0 bg-transparent p-0 [&::backdrop]:bg-surface-0/70"
       aria-labelledby="trip-view-title"
     >
-      <div class="flex h-full w-full flex-col bg-zinc-50 dark:bg-zinc-950">
+      <div class="flex h-full w-full flex-col bg-surface-0">
         <div
-          class="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-zinc-200 bg-white/95 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900/95"
+          class="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-hairline bg-surface-1/95 px-4 py-3"
         >
           <div class="min-w-0 flex-1">
             <h2 id="trip-view-title" class="truncate text-base font-semibold sm:text-lg">Trip</h2>
-            <p
-              id="trip-view-summary"
-              class="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm"
-            ></p>
+            <p id="trip-view-summary" class="mt-0.5 truncate text-xs text-text-2 sm:text-sm"></p>
           </div>
           <div class="flex shrink-0 items-center gap-2">
             <button
               type="button"
               id="btn-trip-view-crop"
-              class="rounded-full border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-800 shadow-sm hover:bg-amber-50 dark:border-amber-700 dark:bg-zinc-800 dark:text-amber-300 dark:hover:bg-amber-950/40"
+              class="rounded-full border border-warning bg-surface-2 px-4 py-2 text-sm font-medium text-warning shadow-sm hover:bg-warning/15"
             >
               Crop end
             </button>
             <button
               type="button"
               id="btn-trip-view-delete"
-              class="rounded-full border border-rose-300 bg-white px-4 py-2 text-sm font-medium text-rose-700 shadow-sm hover:bg-rose-50 dark:border-rose-700 dark:bg-zinc-800 dark:text-rose-300 dark:hover:bg-rose-950/40"
+              class="rounded-full border border-danger bg-surface-2 px-4 py-2 text-sm font-medium text-danger shadow-sm hover:bg-danger/15"
             >
               Delete
             </button>
             <button
               type="button"
               id="btn-trip-view-close"
-              class="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+              class="rounded-full border border-hairline bg-surface-2 px-4 py-2 text-sm font-medium text-text-1 shadow-sm hover:bg-surface-1"
             >
               Close
             </button>
@@ -476,16 +443,14 @@
         </div>
         <div
           id="crop-bar"
-          class="flex shrink-0 flex-col gap-2 border-b border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/60 dark:bg-amber-950/40"
+          class="flex shrink-0 flex-col gap-2 border-b border-warning bg-warning/15 px-4 py-3"
           hidden
         >
           <div class="flex flex-wrap items-baseline justify-between gap-2">
             <div class="text-sm">
-              <span class="font-semibold text-amber-900 dark:text-amber-100">Keep:</span>
-              <span id="crop-keep-summary" class="tabular-nums text-amber-900 dark:text-amber-100">
-                —
-              </span>
-              <span class="ml-3 text-xs text-amber-700/80 dark:text-amber-300/80">
+              <span class="font-semibold text-warning">Keep:</span>
+              <span id="crop-keep-summary" class="tabular-nums text-warning">—</span>
+              <span class="ml-3 text-xs text-warning">
                 trim
                 <span id="crop-trim-summary" class="tabular-nums">—</span>
               </span>
@@ -494,14 +459,14 @@
               <button
                 type="button"
                 id="btn-crop-cancel"
-                class="rounded-full border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 shadow-sm hover:bg-amber-100 dark:border-amber-700 dark:bg-zinc-900 dark:text-amber-100 dark:hover:bg-zinc-800"
+                class="rounded-full border border-warning bg-surface-1 px-3 py-1.5 text-xs font-medium text-warning shadow-sm hover:bg-warning/15"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 id="btn-crop-save"
-                class="rounded-full border border-amber-600 bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-amber-700"
+                class="rounded-full border border-warning bg-warning px-3 py-1.5 text-xs font-semibold text-text-on-accent shadow-sm hover:bg-warning/90"
               >
                 Trim &amp; save
               </button>
@@ -514,7 +479,7 @@
             max="1"
             step="1"
             value="1"
-            class="w-full accent-amber-600"
+            class="w-full accent-warning"
             aria-label="Drag to choose where the trip ends"
           />
         </div>
@@ -530,19 +495,19 @@
           <div class="flex flex-col gap-3 px-4 py-4">
             <section
               id="trip-view-stats-card"
-              class="rounded-2xl border border-zinc-200/90 bg-white/95 p-3 shadow-sm dark:border-zinc-700/90 dark:bg-zinc-900/95"
+              class="rounded-2xl border border-hairline bg-surface-1/95 p-3 shadow-sm"
             >
               <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <div class="flex flex-wrap items-center gap-2">
                   <span
                     id="trip-view-activity-badge"
-                    class="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-800 dark:bg-violet-950/60 dark:text-violet-200"
+                    class="rounded-full bg-accent-primary/15 px-2.5 py-0.5 text-xs font-semibold text-accent-primary"
                   >
                     🏃 Run
                   </span>
                   <span
                     id="trip-view-gap-badge"
-                    class="inline-flex items-center gap-1 rounded-full bg-zinc-200 px-2.5 py-0.5 text-xs font-semibold text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200"
+                    class="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-semibold text-text-2"
                     title="The browser tab was suspended at least once; dashed segments on the map are stretches with no GPS samples."
                     hidden
                   >
@@ -550,54 +515,44 @@
                     GPS gap
                   </span>
                 </div>
-                <span id="trip-view-when" class="text-xs text-zinc-500 dark:text-zinc-400"></span>
+                <span id="trip-view-when" class="text-xs text-text-2"></span>
               </div>
               <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
-                  <div
-                    class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
-                  >
+                <div class="rounded-xl bg-surface-0/60 px-3 py-2">
+                  <div class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2">
                     Distance
                   </div>
                   <div id="tv-distance" class="mt-0.5 text-xl font-semibold tabular-nums">—</div>
                 </div>
-                <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
-                  <div
-                    class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
-                  >
+                <div class="rounded-xl bg-surface-0/60 px-3 py-2">
+                  <div class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2">
                     Moving
                   </div>
                   <div id="tv-duration" class="mt-0.5 text-xl font-semibold tabular-nums">—</div>
                 </div>
-                <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
-                  <div
-                    class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
-                  >
+                <div class="rounded-xl bg-surface-0/60 px-3 py-2">
+                  <div class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2">
                     Elapsed
                   </div>
                   <div id="tv-elapsed" class="mt-0.5 text-xl font-semibold tabular-nums">—</div>
                 </div>
-                <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
+                <div class="rounded-xl bg-surface-0/60 px-3 py-2">
                   <div
                     id="tv-pace-label"
-                    class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+                    class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2"
                   >
                     Avg pace
                   </div>
                   <div id="tv-pace" class="mt-0.5 text-xl font-semibold tabular-nums">—</div>
                 </div>
-                <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
-                  <div
-                    class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
-                  >
+                <div class="rounded-xl bg-surface-0/60 px-3 py-2">
+                  <div class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2">
                     Elevation
                   </div>
                   <div id="tv-elevation" class="mt-0.5 text-xl font-semibold tabular-nums">—</div>
                 </div>
-                <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
-                  <div
-                    class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
-                  >
+                <div class="rounded-xl bg-surface-0/60 px-3 py-2">
+                  <div class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2">
                     GPS samples
                   </div>
                   <div id="tv-points" class="mt-0.5 text-xl font-semibold tabular-nums">—</div>
@@ -607,39 +562,31 @@
 
             <section
               id="trip-view-elev-card"
-              class="rounded-2xl border border-zinc-200/90 bg-white/95 p-3 shadow-sm dark:border-zinc-700/90 dark:bg-zinc-900/95"
+              class="rounded-2xl border border-hairline bg-surface-1/95 p-3 shadow-sm"
               hidden
             >
               <div class="mb-1 flex items-baseline justify-between gap-2">
-                <h3
-                  class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
-                >
+                <h3 class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2">
                   Elevation profile
                 </h3>
-                <span
-                  id="trip-view-elev-hover"
-                  class="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums"
-                ></span>
+                <span id="trip-view-elev-hover" class="text-xs text-text-2 tabular-nums"></span>
               </div>
               <div id="trip-view-elev-chart" class="h-32 w-full"></div>
             </section>
 
             <section
               id="trip-view-pace-card"
-              class="rounded-2xl border border-zinc-200/90 bg-white/95 p-3 shadow-sm dark:border-zinc-700/90 dark:bg-zinc-900/95"
+              class="rounded-2xl border border-hairline bg-surface-1/95 p-3 shadow-sm"
               hidden
             >
               <div class="mb-1 flex items-baseline justify-between gap-2">
                 <h3
                   id="trip-view-pace-title"
-                  class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+                  class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2"
                 >
                   Pace profile
                 </h3>
-                <span
-                  id="trip-view-pace-hover"
-                  class="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums"
-                ></span>
+                <span id="trip-view-pace-hover" class="text-xs text-text-2 tabular-nums"></span>
               </div>
               <div id="trip-view-pace-chart" class="h-32 w-full"></div>
               <!--
@@ -647,9 +594,7 @@
                 map is colored to match this scale: red = slow,
                 green = fast.
               -->
-              <div
-                class="mt-2 flex items-center gap-2 text-[0.65rem] text-zinc-500 dark:text-zinc-400"
-              >
+              <div class="mt-2 flex items-center gap-2 text-[0.65rem] text-text-2">
                 <span id="trip-view-pace-scale-min">slow</span>
                 <div
                   class="h-1.5 flex-1 rounded-full"
@@ -668,40 +613,33 @@
 
             <section
               id="trip-view-bests-card"
-              class="rounded-2xl border border-zinc-200/90 bg-white/95 p-3 shadow-sm dark:border-zinc-700/90 dark:bg-zinc-900/95"
+              class="rounded-2xl border border-hairline bg-surface-1/95 p-3 shadow-sm"
               hidden
             >
-              <h3
-                class="mb-1 text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
-              >
+              <h3 class="mb-1 text-[0.65rem] font-semibold uppercase tracking-wider text-text-2">
                 Best efforts
               </h3>
               <ol
                 id="trip-view-bests-list"
-                class="list-none divide-y divide-zinc-200/90 tabular-nums dark:divide-zinc-700"
+                class="list-none divide-y divide-hairline tabular-nums"
               ></ol>
             </section>
 
             <section
               id="trip-view-splits-card"
-              class="rounded-2xl border border-zinc-200/90 bg-white/95 p-3 shadow-sm dark:border-zinc-700/90 dark:bg-zinc-900/95"
+              class="rounded-2xl border border-hairline bg-surface-1/95 p-3 shadow-sm"
               hidden
             >
               <div class="mb-1 flex items-center justify-between">
-                <h3
-                  class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
-                >
+                <h3 class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2">
                   Splits
-                  <span id="tv-splits-unit-label" class="text-zinc-400">(km)</span>
+                  <span id="tv-splits-unit-label" class="text-text-3">(km)</span>
                 </h3>
-                <span
-                  id="tv-splits-summary"
-                  class="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums"
-                ></span>
+                <span id="tv-splits-summary" class="text-xs text-text-2 tabular-nums"></span>
               </div>
               <ol
                 id="trip-view-splits-list"
-                class="list-none divide-y divide-zinc-200/90 tabular-nums dark:divide-zinc-700"
+                class="list-none divide-y divide-hairline tabular-nums"
               ></ol>
             </section>
           </div>
@@ -711,54 +649,46 @@
 
     <dialog
       id="finish-dialog"
-      class="m-auto w-[min(28rem,calc(100vw-1.5rem))] rounded-2xl border-0 bg-transparent p-0 [&::backdrop]:bg-zinc-950/60"
+      class="m-auto w-[min(28rem,calc(100vw-1.5rem))] rounded-2xl border-0 bg-transparent p-0 [&::backdrop]:bg-surface-0/70"
       aria-labelledby="finish-dialog-title"
     >
       <form
         method="dialog"
         id="finish-form"
-        class="flex flex-col gap-4 rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xl dark:border-zinc-700/90 dark:bg-zinc-900"
+        class="flex flex-col gap-4 rounded-2xl border border-hairline bg-surface-1 p-5 shadow-2xl"
       >
         <header class="flex items-center justify-between gap-3">
           <h2 id="finish-dialog-title" class="text-lg font-semibold">Finish trip</h2>
           <span
             id="finish-activity-badge"
-            class="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-800 dark:bg-violet-950/60 dark:text-violet-200"
+            class="rounded-full bg-accent-primary/15 px-2.5 py-0.5 text-xs font-semibold text-accent-primary"
           >
             🏃 Run
           </span>
         </header>
 
         <dl class="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-          <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
-            <dt
-              class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
-            >
+          <div class="rounded-xl bg-surface-0/60 px-3 py-2">
+            <dt class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2">
               Distance
             </dt>
             <dd id="finish-distance" class="mt-0.5 text-base font-semibold tabular-nums">—</dd>
           </div>
-          <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
-            <dt
-              class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
-            >
-              Time
-            </dt>
+          <div class="rounded-xl bg-surface-0/60 px-3 py-2">
+            <dt class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2">Time</dt>
             <dd id="finish-duration" class="mt-0.5 text-base font-semibold tabular-nums">—</dd>
           </div>
-          <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
+          <div class="rounded-xl bg-surface-0/60 px-3 py-2">
             <dt
               id="finish-pace-label"
-              class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+              class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2"
             >
               Avg pace
             </dt>
             <dd id="finish-pace" class="mt-0.5 text-base font-semibold tabular-nums">—</dd>
           </div>
-          <div class="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950/60">
-            <dt
-              class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
-            >
+          <div class="rounded-xl bg-surface-0/60 px-3 py-2">
+            <dt class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2">
               Elevation
             </dt>
             <dd id="finish-elevation" class="mt-0.5 text-base font-semibold tabular-nums">—</dd>
@@ -766,9 +696,7 @@
         </dl>
 
         <label class="flex flex-col gap-1.5">
-          <span
-            class="text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
-          >
+          <span class="text-[0.65rem] font-semibold uppercase tracking-wider text-text-2">
             Trip name
           </span>
           <input
@@ -776,7 +704,7 @@
             id="finish-name"
             maxlength="100"
             autocomplete="off"
-            class="rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-base placeholder:text-zinc-400 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400/30 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100"
+            class="rounded-xl border border-hairline bg-surface-2 px-3 py-2.5 text-base text-text-1 placeholder:text-text-3 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
           />
         </label>
 
@@ -784,7 +712,7 @@
           <button
             type="button"
             id="btn-finish-discard"
-            class="rounded-full border border-rose-300 bg-white px-4 py-2 text-sm font-medium text-rose-700 shadow-sm hover:bg-rose-50 dark:border-rose-700 dark:bg-zinc-800 dark:text-rose-300 dark:hover:bg-rose-950/40"
+            class="rounded-full border border-danger bg-surface-2 px-4 py-2 text-sm font-medium text-danger shadow-sm hover:bg-danger/15"
           >
             Discard
           </button>
@@ -792,14 +720,14 @@
             <button
               type="button"
               id="btn-finish-back"
-              class="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+              class="rounded-full border border-hairline bg-surface-2 px-4 py-2 text-sm font-medium text-text-1 shadow-sm hover:bg-surface-1"
             >
               Back
             </button>
             <button
               type="submit"
               id="btn-finish-save"
-              class="rounded-full border border-violet-600 bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700"
+              class="rounded-full border border-accent-primary-bg bg-accent-primary-bg px-4 py-2 text-sm font-semibold text-text-on-accent shadow-sm hover:bg-accent-primary-bg-hover"
             >
               Save trip
             </button>

@@ -1,31 +1,25 @@
-/** @typedef {{ order?: number; headline?: string; blurb?: string; tagsLine?: string; preset?: string; analyticsLabel?: string }} FeaturedConfig */
+/**
+ * Heyming OS — home page renderer.
+ *
+ * Builds:
+ *   - Featured grid (editorial picks; small, browse-first card)
+ *   - Apps gallery (full bundled suite, grouped by category, tier-aware)
+ *   - Mobile hamburger menu (universal launcher across the portfolio)
+ *   - Footer social brand marks (from brand-icons.js)
+ *
+ * Cards use the HOSDL primitive set: surface-1 cards with squircle
+ * app-icon frames. The legacy per-app gradient cards are gone — gradients
+ * are reserved for the OS hero block per BRAND.md gradient policy.
+ *
+ * @typedef {{
+ *   order?: number; headline?: string; blurb?: string;
+ *   tagsLine?: string; preset?: string; analyticsLabel?: string
+ * }} FeaturedConfig
+ */
 
-const FEATURED_CARD_BASE =
-  'group rounded-2xl p-6 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 block';
-const FEATURED_PRESETS = {
-  doom: { gradient: 'bg-gradient-to-br from-red-600 to-orange-700', tone: 'light' },
-  pacman: { gradient: 'bg-gradient-to-br from-yellow-500 to-yellow-600', tone: 'dark' },
-  'pacman-infinite': {
-    gradient: 'bg-gradient-to-br from-yellow-400 to-pink-600',
-    tone: 'dark'
-  },
-  minesweeper: { gradient: 'bg-gradient-to-br from-gray-600 to-gray-700', tone: 'light' },
-  awesome: { gradient: 'bg-gradient-to-br from-yellow-400 to-orange-500', tone: 'dark' },
-  terminal: { gradient: 'bg-gradient-to-br from-green-600 to-emerald-700', tone: 'light' },
-  countdown: { gradient: 'bg-gradient-to-br from-amber-500 to-orange-600', tone: 'light' },
-  nes: { gradient: 'bg-gradient-to-br from-stone-700 to-indigo-800', tone: 'light' },
-  stepmania: { gradient: 'bg-gradient-to-br from-pink-500 to-rose-600', tone: 'light' },
-  'wordle-finder': { gradient: 'bg-gradient-to-br from-teal-500 to-cyan-600', tone: 'light' },
-  badapple: { gradient: 'bg-gradient-to-br from-gray-900 to-red-800', tone: 'light' },
-  'code-ide': { gradient: 'bg-gradient-to-br from-slate-700 to-emerald-700', tone: 'light' }
-};
-
-// Apps that map to the highest-value search queries get an explicit "popular"
-// pin on the home page. Order matches the keyword-report priority: DOOM
-// first (~14k impressions/mo), then NES, Pac-Man, StepMania, Wordle, etc.
-// `pacman-infinite` is pinned next to `pacman` because the GA report shows it
-// has the highest per-session engagement on the site (~944s) but virtually no
-// discovery — 3 sessions in 9 days.
+// Apps that map to the highest-value search queries get an explicit "Featured"
+// pin on the home page. Order matches the keyword-report priority: DOOM first
+// (~14k impressions/mo), then NES, Pac-Man, StepMania, Wordle, etc.
 const POPULAR_APP_IDS = [
   'doom',
   'nes',
@@ -39,53 +33,80 @@ const POPULAR_APP_IDS = [
   'code-ide'
 ];
 
-// Section grouping for the full gallery. Order here is presentation order
-// on the home page. Each section pulls from the registry by category, with
-// special-case overrides for music (the /play/* family).
+// Section grouping for the full gallery. Order is presentation order on
+// the page. Each section pulls from the registry by category, with the
+// /play/* music family carved out so it gets its own bucket.
 const GALLERY_SECTIONS = [
   {
     id: 'games',
-    title: '🕹️ Games',
+    icon: '🕹️',
+    title: 'Games',
     blurb: 'Browser games — no install, no signup, no ads.',
     filter: (app) => app.category === 'game'
   },
   {
     id: 'music',
-    title: '🎵 Make music',
+    icon: '🎵',
+    title: 'Make music',
     blurb: 'Pick an instrument and play it right in your browser.',
     filter: (app) => app.id === 'play' || /^play-/.test(app.id)
   },
   {
     id: 'tools',
-    title: '🛠️ Tools',
+    icon: '🛠️',
+    title: 'Tools',
     blurb: 'Useful little utilities.',
     filter: (app) => app.category === 'utility' && app.id !== 'play' && !/^play-/.test(app.id)
   },
   {
     id: 'fun',
-    title: '🎉 Fun &amp; experiments',
+    icon: '🎉',
+    title: 'Fun & experiments',
     blurb: 'Just-for-fun side projects.',
     filter: (app) => app.category === 'entertainment' && app.id !== 'play' && !/^play-/.test(app.id)
   }
 ];
 
-const GALLERY_FALLBACK_GRADIENT = 'bg-gradient-to-br from-slate-700 to-slate-900';
+// Stand-in tier map for the gallery during the rollout. Once
+// apps-registry.json carries an `appTier` field on every entry, this map
+// becomes obsolete and tierFor() reads from app.appTier directly.
+const TIER_FALLBACK = {
+  calculator: 'system',
+  notepad: 'system',
+  'wordle-finder': 'system',
+  terminal: 'system',
+  weather: 'system',
+  stock: 'system',
+  clock: 'system',
+  countdown: 'system',
+  filemanager: 'system',
+  'image-viewer': 'system',
+  'media-player': 'system',
+  read: 'system',
+  doom: 'experience',
+  nes: 'experience',
+  stepmania: 'experience',
+  pacman: 'experience',
+  'pacman-infinite': 'experience',
+  badapple: 'experience',
+  starwars: 'experience',
+  'bad-apple': 'experience',
+  pbs: 'experience',
+  paint: 'experience',
+  'model-viewer': 'experience',
+  farm: 'experience',
+  ascii: 'experience'
+};
 
-function tailwindGradientFromTokens(tokens) {
-  // Apps in the registry use Tailwind tokens like "from-yellow-500/20 to-orange-500/20"
-  // (designed for the OS chrome). On the home page gallery cards we want a
-  // bolder fill, so strip the /alpha suffixes if present and prepend
-  // "bg-gradient-to-br".
-  if (!tokens || typeof tokens !== 'string') return GALLERY_FALLBACK_GRADIENT;
-  const cleaned = tokens.replace(/\/\d+/g, '');
-  return 'bg-gradient-to-br ' + cleaned;
+function tierFor(app) {
+  if (app.appTier) return app.appTier;
+  return TIER_FALLBACK[app.id] || 'app';
 }
 
 function featuredHrefFromPath(path) {
-  // Split off the query string / fragment first so trailing-slash
-  // normalization doesn't accidentally append `/` after `?...` —
-  // e.g. './doom/?flavor=classic' must become '/doom/?flavor=classic'
-  // (the slash belongs after the directory, not after the value).
+  // Split off the query / fragment first so trailing-slash normalization
+  // doesn't accidentally append `/` after `?...` — e.g.
+  // './doom/?flavor=classic' must become '/doom/?flavor=classic'.
   const m = path.match(/^([^?#]*)(.*)$/);
   const base = (m ? m[1] : path).replace(/^\.\//, '').replace(/\/$/, '');
   const suffix = m ? m[2] : '';
@@ -104,34 +125,27 @@ function renderFeaturedProjects() {
   popular.forEach((app) => {
     /** @type {FeaturedConfig | undefined} */
     const f = app.featured;
-    const presetKey = f && f.preset && FEATURED_PRESETS[f.preset] ? f.preset : 'doom';
-    const preset = FEATURED_PRESETS[presetKey] || FEATURED_PRESETS.doom;
-    const tone = preset.tone;
-    const titleClass =
-      tone === 'dark'
-        ? 'text-2xl font-bold mb-2 group-hover:scale-105 transition-transform text-gray-900'
-        : 'text-2xl font-bold mb-2 group-hover:scale-105 transition-transform';
-    const bodyClass = tone === 'dark' ? 'text-sm text-gray-900/90' : 'text-sm text-white/90';
-    const footerClass =
-      tone === 'dark' ? 'mt-4 text-xs text-gray-900/70' : 'mt-4 text-xs text-white/70';
-
     const link = document.createElement('a');
     link.href = featuredHrefFromPath(app.path);
+    link.className = 'hos-featured-card';
+    if (app.category) link.setAttribute('data-category', app.category);
     link.setAttribute('data-event', 'featured_project_click');
     link.setAttribute('data-event-category', 'Engagement');
     link.setAttribute('data-event-label', (f && f.analyticsLabel) || app.shortName || app.name);
-    link.className = `${FEATURED_CARD_BASE} ${preset.gradient}`;
 
-    const headline = (f && f.headline) || app.name;
-    const blurb = (f && f.blurb) || app.detailedDescription || app.description || '';
-    const tagsLine = (f && f.tagsLine) || '';
+    const headline = (f && f.headline) || app.shortName || app.name;
+    const blurb = (f && f.blurb) || app.description || '';
 
-    link.innerHTML = `
-      <div class="text-5xl mb-3">${app.icon || ''}</div>
-      <h3 class="${titleClass}">${headline}</h3>
-      <p class="${bodyClass}">${blurb}</p>
-      <div class="${footerClass}">${tagsLine}</div>
-    `;
+    link.innerHTML =
+      '<span class="app-icon-frame" aria-hidden="true">' +
+      (app.icon || '🔹') +
+      '</span>' +
+      '<h3 class="hos-featured-card-title">' +
+      headline +
+      '</h3>' +
+      '<p class="hos-featured-card-blurb">' +
+      blurb +
+      '</p>';
 
     grid.appendChild(link);
   });
@@ -142,7 +156,6 @@ function renderAppGallery() {
   if (!root || typeof AppModule === 'undefined') return;
 
   const allApps = AppModule.getAllApps();
-
   root.innerHTML = '';
 
   GALLERY_SECTIONS.forEach((section) => {
@@ -153,31 +166,42 @@ function renderAppGallery() {
     if (!apps.length) return;
 
     const sectionEl = document.createElement('section');
-    sectionEl.className = 'gallery-section mb-10';
-    sectionEl.setAttribute('aria-labelledby', `gallery-${section.id}`);
+    sectionEl.className = 'hos-gallery-section';
+    sectionEl.setAttribute('data-section', section.id);
+    sectionEl.setAttribute('aria-labelledby', 'gallery-' + section.id);
 
+    // h3 because these sections are nested under the "Apps in Heyming OS"
+    // h2 ("gallery-heading"). Keeps the document outline flat-but-correct.
     const header = document.createElement('div');
-    header.className = 'mb-4';
-    header.innerHTML = `
-      <h2
-        id="gallery-${section.id}"
-        class="text-2xl sm:text-3xl font-bold text-white mb-1"
-      >${section.title}</h2>
-      <p class="text-white/80 text-sm">${section.blurb}</p>
-    `;
+    header.className = 'hos-gallery-section-header';
+    header.innerHTML =
+      '<h3 id="gallery-' +
+      section.id +
+      '" class="hos-gallery-section-title">' +
+      '<span class="hos-gallery-section-icon" aria-hidden="true">' +
+      section.icon +
+      '</span>' +
+      section.title +
+      '</h3>' +
+      '<p class="hos-gallery-section-blurb">' +
+      section.blurb +
+      '</p>';
     sectionEl.appendChild(header);
 
     const grid = document.createElement('div');
-    grid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3';
+    grid.className = 'hos-gallery-grid';
 
     apps.forEach((app) => {
       const card = document.createElement('a');
       card.href = featuredHrefFromPath(app.path);
+      card.className = 'hos-app-card';
       card.setAttribute('data-filterable', 'true');
-      // Wide search corpus so the filter input finds apps by long
-      // description, pwa shortcut name, related ids, and tags — not just
-      // the visible name. e.g. "stradella" finds the accordion, "ocr"
-      // finds Say It, "ascii" finds Bad Apple.
+      const tier = tierFor(app);
+      card.setAttribute('data-tier', tier);
+      if (app.category) card.setAttribute('data-category', app.category);
+
+      // Wide search corpus so the filter finds apps by long description,
+      // pwa shortcut name, related ids, tags — not just the visible name.
       const pwa = app.pwaShortcut || {};
       const searchText = [
         app.id,
@@ -195,26 +219,35 @@ function renderAppGallery() {
         .join(' ')
         .toLowerCase();
       card.setAttribute('data-search', searchText);
+
       card.setAttribute('data-event', 'gallery_app_click');
       card.setAttribute('data-event-category', 'Engagement');
-      // Label format: "<app>:<section>" (e.g. "DOOM:games"). Lets the
-      // GA report tell us whether users discover apps by browsing Games
-      // vs Tools vs Music — and which section is dead weight.
-      card.setAttribute('data-event-label', `${app.shortName || app.name}:${section.id}`);
-      card.className = `gallery-card group relative overflow-hidden rounded-xl p-4 text-white shadow-md hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 ${tailwindGradientFromTokens(
-        app.gradient
-      )}`;
-      const taskbarText = app.taskbarText === 'text-black' ? 'text-gray-900' : 'text-white';
-      card.classList.add(taskbarText);
-      card.innerHTML = `
-        <div class="text-3xl mb-2">${app.icon || '🔹'}</div>
-        <div class="font-bold text-sm sm:text-base leading-tight">
-          ${app.shortName || app.name}
-        </div>
-        <div class="text-xs opacity-80 mt-1 leading-snug">
-          ${app.description || ''}
-        </div>
-      `;
+      // Label format: "<app>:<section>" so GA reporting can tell us which
+      // section is dead weight vs. where users actually discover apps.
+      card.setAttribute('data-event-label', (app.shortName || app.name) + ':' + section.id);
+
+      const tierLabel = tier === 'system' ? 'system' : tier === 'experience' ? 'experience' : '';
+      const tierMarkup = tierLabel
+        ? '<span class="hos-app-card-tier" aria-label="Tier: ' +
+          tierLabel +
+          '">' +
+          tierLabel +
+          '</span>'
+        : '';
+
+      card.innerHTML =
+        tierMarkup +
+        '<div class="hos-app-card-head">' +
+        '<span class="app-icon-frame" aria-hidden="true">' +
+        (app.icon || '🔹') +
+        '</span>' +
+        '<h4 class="hos-app-card-title">' +
+        (app.shortName || app.name) +
+        '</h4>' +
+        '</div>' +
+        '<p class="hos-app-card-blurb">' +
+        (app.description || '') +
+        '</p>';
       grid.appendChild(card);
     });
 
@@ -239,20 +272,16 @@ function bindGalleryFilter() {
     clearButton: clearBtn,
     getSearchText: (el) => el.getAttribute('data-search') || el.textContent.toLowerCase(),
     onFilter: ({ searchTerm }) => {
-      // Hide section headers whose grid is now empty so the page doesn't
-      // show a heading like "Games" with nothing under it. Each section
-      // is `.gallery-section`; a card is `.gallery-card`.
-      root.querySelectorAll('.gallery-section').forEach((sec) => {
-        const visible = Array.from(sec.querySelectorAll('.gallery-card')).some(
+      root.querySelectorAll('.hos-gallery-section').forEach((sec) => {
+        const visible = Array.from(sec.querySelectorAll('.hos-app-card')).some(
           (card) => card.style.display !== 'none'
         );
         sec.style.display = visible ? '' : 'none';
       });
 
-      // While the user is filtering, hide the "Popular projects" pin so
-      // the filter narrows the whole page. The popular grid is just a
-      // duplicate of cards that also appear in the gallery, so showing
-      // it during search is confusing.
+      // While the user is filtering, hide the Featured pin so the filter
+      // narrows the whole page. The featured grid duplicates cards that
+      // also appear in the gallery; showing both during search is noise.
       if (popularSection) {
         popularSection.style.display = searchTerm ? 'none' : '';
       }
@@ -260,31 +289,30 @@ function bindGalleryFilter() {
   });
   ctrl.bindKeyboardShortcuts({});
 
-  // Search-driven discovery signal. The card itself already fires
-  // `gallery_app_click` via data-event; this secondary event tells us
-  // the user typed a query first. We capture the search term (truncated)
-  // and the chosen app so we can spot queries that surface useful apps.
+  // Secondary tracking: the card already fires gallery_app_click via
+  // data-event; this event captures the search term so we can see which
+  // queries actually surface useful apps.
   root.addEventListener(
     'click',
     (e) => {
-      const card = e.target.closest('.gallery-card');
+      const card = e.target.closest('.hos-app-card');
       if (!card) return;
       const term = (input.value || '').trim().toLowerCase();
       if (!term) return;
       const label =
         card.getAttribute('data-event-label') ||
-        card.querySelector('.font-bold')?.textContent.trim() ||
+        (card.querySelector('.hos-app-card-title') &&
+          card.querySelector('.hos-app-card-title').textContent.trim()) ||
         '';
       if (typeof window.trackEvent === 'function') {
-        window.trackEvent('gallery_search_click', 'Engagement', `${term.slice(0, 40)} → ${label}`);
+        window.trackEvent('gallery_search_click', 'Engagement', term.slice(0, 40) + ' → ' + label);
       }
     },
     true
   );
 
-  // Page-level shortcut: pressing "/" focuses the filter input (skipped
-  // when the user is already typing in another input/textarea or in
-  // contenteditable). Mirrors GitHub/GitLab's filter affordance.
+  // Pressing "/" focuses the filter input (skipped when the user is
+  // already typing somewhere else). Mirrors GitHub/GitLab's affordance.
   document.addEventListener('keydown', (e) => {
     if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
     const target = e.target;
@@ -303,69 +331,43 @@ function bindGalleryFilter() {
   });
 }
 
-tailwind.config = {
-  theme: {
-    extend: {
-      animation: {
-        gradient: 'gradient 15s ease infinite',
-        float: 'float 6s ease-in-out infinite',
-        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite'
-      },
-      keyframes: {
-        gradient: {
-          '0%, 100%': {
-            'background-size': '200% 200%',
-            'background-position': 'left center'
-          },
-          '50%': {
-            'background-size': '200% 200%',
-            'background-position': 'right center'
-          }
-        },
-        float: {
-          '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-20px)' }
-        }
-      }
-    }
-  }
-};
+/* ─── Hamburger menu (mobile launcher) ─────────────────────────────── */
 
-// Hamburger Menu Functionality
 function generateHamburgerMenuItems() {
   const menuContainer = document.getElementById('hamburger-app-links');
+  if (!menuContainer || typeof AppModule === 'undefined') return;
   const menuItems = AppModule.generateHamburgerMenuItems();
 
-  // Clear existing content
   menuContainer.innerHTML = '';
 
-  // Generate menu items with data-filterable attribute
   menuItems.forEach((app) => {
     const menuItem = document.createElement('a');
     menuItem.href = app.path;
-    menuItem.className = `hamburger-app-link flex items-center space-x-3 p-3 rounded-lg bg-gradient-to-r ${app.gradient} border ${app.border} transition-all duration-200 group`;
+    menuItem.className = 'hamburger-app-link';
     menuItem.setAttribute('data-filterable', 'true');
     menuItem.setAttribute(
       'data-search',
-      `${app.name} ${app.description} ${app.icon}`.toLowerCase()
+      (app.name + ' ' + app.description + ' ' + app.icon).toLowerCase()
     );
 
-    menuItem.innerHTML = `
-      <span class="text-2xl">${app.icon}</span>
-      <div>
-        <div class="text-green-400 font-mono font-bold group-hover:text-green-300">
-          ${app.name}
-        </div>
-        <div class="text-gray-400 text-sm">${app.description}</div>
-      </div>
-    `;
+    menuItem.innerHTML =
+      '<span class="app-icon-frame" aria-hidden="true" style="--icon-frame-size: 36px;">' +
+      app.icon +
+      '</span>' +
+      '<div>' +
+      '<div style="color: var(--text-1); font-weight: 600; font-size: 14px;">' +
+      app.name +
+      '</div>' +
+      '<div style="color: var(--text-2); font-size: 12px;">' +
+      app.description +
+      '</div>' +
+      '</div>';
 
     menuContainer.appendChild(menuItem);
   });
 }
 
 function initHamburgerMenu() {
-  // Generate menu items from AppModule
   generateHamburgerMenuItems();
 
   const hamburgerToggle = document.getElementById('hamburger-toggle');
@@ -376,9 +378,10 @@ function initHamburgerMenu() {
   const noResults = document.getElementById('no-results');
   const menuContainer = document.getElementById('hamburger-app-links');
 
+  if (!hamburgerToggle || !hamburgerPanel) return;
+
   let isMenuOpen = false;
 
-  // Create shared filter controller
   const filterController = AppFilter.create({
     container: menuContainer,
     filterInput: filterInput,
@@ -387,7 +390,6 @@ function initHamburgerMenu() {
     getSearchText: (el) => el.getAttribute('data-search') || el.textContent.toLowerCase()
   });
 
-  // Bind keyboard shortcuts
   filterController.bindKeyboardShortcuts({
     onEscape: () => closeMenu()
   });
@@ -396,24 +398,18 @@ function initHamburgerMenu() {
     isMenuOpen = !isMenuOpen;
 
     if (isMenuOpen) {
-      // Track menu open
       if (window.trackEvent) {
         window.trackEvent('hamburger_menu_open', 'Navigation', 'Main Menu');
       }
 
-      // Open menu
       hamburgerToggle.classList.add('active');
       hamburgerPanel.classList.add('show');
-
-      // Clear filter and focus input
       filterController.reset();
 
-      // Focus the filter input after a short delay for the animation
       setTimeout(() => {
         filterInput.focus();
       }, 300);
 
-      // Add staggered animation to links
       const links = hamburgerPanel.querySelectorAll('.hamburger-app-link');
       links.forEach((link, index) => {
         setTimeout(() => {
@@ -421,19 +417,14 @@ function initHamburgerMenu() {
         }, index * 50);
       });
     } else {
-      // Track menu close
       if (window.trackEvent) {
         window.trackEvent('hamburger_menu_close', 'Navigation', 'Main Menu');
       }
 
-      // Close menu
       hamburgerToggle.classList.remove('active');
       hamburgerPanel.classList.remove('show');
-
-      // Clear filter
       filterController.reset();
 
-      // Reset link opacity
       const links = hamburgerPanel.querySelectorAll('.hamburger-app-link');
       links.forEach((link) => {
         link.style.opacity = '0';
@@ -442,77 +433,103 @@ function initHamburgerMenu() {
   }
 
   function closeMenu() {
-    if (isMenuOpen) {
-      toggleMenu();
-    }
+    if (isMenuOpen) toggleMenu();
   }
 
   function attachMenuLinkListeners() {
-    // Handle app link clicks with some visual feedback
     const appLinks = hamburgerPanel.querySelectorAll('.hamburger-app-link');
-
     appLinks.forEach((link) => {
-      link.addEventListener('click', (e) => {
-        // Track the click
-        const projectName = link.querySelector('.text-green-400').textContent.trim();
-        const projectUrl = link.getAttribute('href');
+      link.addEventListener('click', () => {
+        // First inner div holds the project name now (was .text-green-400
+        // before the brand refactor); look it up by structure.
+        const nameEl = link.querySelector('div > div:first-child');
+        const projectName = nameEl ? nameEl.textContent.trim() : '';
 
-        if (window.trackEvent) {
+        if (window.trackEvent && projectName) {
           window.trackEvent('hamburger_menu_click', 'Navigation', projectName);
         }
-        if (window.trackProjectOpen) {
+        if (window.trackProjectOpen && projectName) {
           window.trackProjectOpen(projectName);
         }
 
-        // Add click animation
         link.style.transform = 'scale(0.95)';
         setTimeout(() => {
           link.style.transform = '';
         }, 150);
 
-        // Close menu after a short delay for better UX
         setTimeout(() => {
-          if (isMenuOpen) {
-            closeMenu();
-          }
+          if (isMenuOpen) closeMenu();
         }, 200);
       });
     });
   }
 
-  // Event listeners
   hamburgerToggle.addEventListener('click', toggleMenu);
-  menuClose.addEventListener('click', closeMenu);
+  if (menuClose) menuClose.addEventListener('click', closeMenu);
 
-  // Close menu when clicking outside
   document.addEventListener('click', (e) => {
     if (isMenuOpen && !hamburgerToggle.contains(e.target) && !hamburgerPanel.contains(e.target)) {
       closeMenu();
     }
   });
 
-  // Close menu on escape key
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && isMenuOpen) {
-      closeMenu();
-    }
+    if (e.key === 'Escape' && isMenuOpen) closeMenu();
   });
 
-  // Close menu when window loses focus (for better mobile experience)
   window.addEventListener('blur', closeMenu);
 
-  // Attach listeners to dynamically generated menu items
   attachMenuLinkListeners();
 }
 
-// Wire everything up once the DOM is ready. The home page is now an
-// apps gallery, so the only legacy bits we still need are the hamburger
-// menu (used as the universal launcher across the portfolio) and the
-// featured/popular grid.
-document.addEventListener('DOMContentLoaded', () => {
+/* ─── Footer social icons ──────────────────────────────────────────── */
+
+function renderFooterSocial() {
+  const root = document.getElementById('footer-social');
+  if (!root || typeof window.brandIcon !== 'function') return;
+
+  const links = [
+    {
+      href: 'https://www.linkedin.com/in/joeheyming/',
+      label: 'LinkedIn',
+      icon: 'linkedin'
+    },
+    {
+      href: 'https://github.com/joeheyming',
+      label: 'GitHub',
+      icon: 'github'
+    },
+    {
+      href: 'https://x.com/joeheyming',
+      label: 'X (formerly Twitter)',
+      icon: 'x-twitter'
+    }
+  ];
+
+  root.innerHTML = '';
+  links.forEach((l) => {
+    const a = document.createElement('a');
+    a.href = l.href;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.className = 'hos-social-link';
+    a.setAttribute('aria-label', l.label);
+    a.setAttribute('data-event', 'footer_social_click');
+    a.setAttribute('data-event-category', 'Engagement');
+    a.setAttribute('data-event-label', l.label);
+    a.innerHTML = window.brandIcon(l.icon);
+    root.appendChild(a);
+  });
+}
+
+/* ─── Boot ─────────────────────────────────────────────────────────── */
+
+function bootHome() {
   renderFeaturedProjects();
   renderAppGallery();
   bindGalleryFilter();
-
+  renderFooterSocial();
   initHamburgerMenu();
-});
+}
+
+bootHome();

@@ -1,3 +1,46 @@
+/* ── play/strings: scoped guitar/bass family palette ─────────────────
+ * The strings family wears a warm-wood guitar identity: cherry-stained
+ * fretboard, steel fret wire, brass inlay dots, and four signal hues
+ * that each map to a chord-builder role:
+ *   - amber barre  (index-finger bar across the neck)
+ *   - red root     (tonal-centre marker)
+ *   - purple disc  (fretted chord-tone fingers)
+ *   - teal accent  (load-song affordance, distinct from "add one chord")
+ * Brand chrome (header, MIDI status) still routes through --surface-*
+ * / --text-* / --play-* shared tokens above. These --strings-* tokens
+ * live for the instrument-internal palette only.
+ */
+:root {
+  --strings-wood-neck-from: #3f1d0e;
+  --strings-wood-neck-to: #2a1006;
+  --strings-wood-open-from: #5b2810;
+  --strings-wood-open-to: #381606;
+  --strings-fret-wire: #d4d4d8;
+  --strings-cream: #fef3c7;
+
+  --strings-brass-glow: #b46e28;
+  --strings-amber-light: #fde68a;
+  --strings-amber-mid: #f59e0b;
+  --strings-amber-deep: #b45309;
+  --strings-amber-text: #422006;
+  --strings-amber-pulse: #f59e0b;
+
+  --strings-finger-light: #c084fc;
+  --strings-finger-mid: #7e22ce;
+  --strings-finger-deep: #581c87;
+  --strings-violet: #a855f7;
+  --strings-indigo-strum: #6366f1;
+
+  --strings-root-light: #fecaca;
+  --strings-root-mid: #ef4444;
+  --strings-root-deep: #7f1d1d;
+  --strings-mute-glyph: #fca5a5;
+
+  --strings-teal: #2dd4bf;
+  --strings-teal-light: #5eead4;
+  --strings-teal-bright: #7df7e6;
+}
+
 .guitar-stage {
   flex: 1;
   display: flex;
@@ -31,14 +74,20 @@
   --fret-count: 19;
 
   width: min(100%, 1100px);
-  background:
-    radial-gradient(circle at 30% 30%, rgba(180, 83, 9, 0.18), transparent 50%),
-    linear-gradient(180deg, #3f1d0e, #2a1006);
-  border: 1px solid #2a1006;
+  background: radial-gradient(
+      circle at 30% 30%,
+      color-mix(in srgb, var(--strings-amber-deep, #b45309) 18%, transparent),
+      transparent 50%
+    ),
+    linear-gradient(
+      180deg,
+      var(--strings-wood-neck-from, #3f1d0e),
+      var(--strings-wood-neck-to, #2a1006)
+    );
+  border: 1px solid var(--strings-wood-neck-to, #2a1006);
   border-radius: 12px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 24px 40px -20px rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 6%, transparent),
+    0 24px 40px -20px color-mix(in srgb, var(--pure-black, #000) 60%, transparent);
   user-select: none;
   -webkit-user-select: none;
   /* The fretboard itself is the horizontal scroll container — when the
@@ -92,12 +141,19 @@
  * z-index keeps it above the metallic string line + neighbouring fret
  * cells as they scroll under it. */
 .fret-cell.open {
-  background:
-    linear-gradient(90deg, rgba(0, 0, 0, 0.35), transparent),
-    linear-gradient(180deg, #5b2810, #381606);
-  border-right: 4px solid #d4d4d8;
+  background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--pure-black, #000) 35%, transparent),
+      transparent
+    ),
+    linear-gradient(
+      180deg,
+      var(--strings-wood-open-from, #5b2810),
+      var(--strings-wood-open-to, #381606)
+    );
+  border-right: 4px solid var(--strings-fret-wire, #d4d4d8);
   font-weight: 700;
-  color: #fef3c7;
+  color: var(--strings-cream, #fef3c7);
   position: sticky;
   left: 0;
   z-index: 2;
@@ -112,8 +168,8 @@
   cursor: pointer;
   font-size: 11px;
   letter-spacing: 0.04em;
-  color: rgba(254, 243, 199, 0.7);
-  border-right: 1px solid rgba(212, 212, 216, 0.4);
+  color: color-mix(in srgb, var(--strings-cream, #fef3c7) 70%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--strings-fret-wire, #d4d4d8) 40%, transparent);
   transition: background 100ms ease;
   /* `pan-x` lets the browser handle horizontal swipes natively — the
    * fretboard's `overflow-x: auto` then gets momentum / inertia for
@@ -131,13 +187,17 @@
 
 /* Subtle highlight on hover */
 .fret-cell:hover {
-  background: rgba(245, 158, 11, 0.18);
-  color: #fef3c7;
+  background: color-mix(in srgb, var(--strings-amber-mid, #f59e0b) 18%, transparent);
+  color: var(--strings-cream, #fef3c7);
 }
 
 .fret-cell.active {
-  background: linear-gradient(90deg, rgba(244, 114, 182, 0.45), rgba(129, 140, 248, 0.45));
-  color: #fff;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--play-pink, #f472b6) 45%, transparent),
+    color-mix(in srgb, var(--play-indigo, #818cf8) 45%, transparent)
+  );
+  color: var(--pure-white, #fff);
   animation: fret-pulse 280ms ease-out;
 }
 
@@ -158,10 +218,14 @@
   position: absolute;
   inset: 4px 6px;
   border-radius: 999px;
-  background: radial-gradient(circle at 35% 30%, #c084fc, #7e22ce 70%, #581c87);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    0 2px 6px rgba(0, 0, 0, 0.45);
+  background: radial-gradient(
+    circle at 35% 30%,
+    var(--strings-finger-light, #c084fc),
+    var(--strings-finger-mid, #7e22ce) 70%,
+    var(--strings-finger-deep, #581c87)
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 35%, transparent),
+    0 2px 6px color-mix(in srgb, var(--pure-black, #000) 45%, transparent);
   z-index: 1;
 }
 
@@ -185,15 +249,15 @@
   justify-content: center;
   font-size: 14px;
   font-weight: 800;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  color: var(--pure-white, #fff);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--pure-black, #000) 50%, transparent);
   pointer-events: none;
   z-index: 2;
 }
 
 .fret-cell.in-chord-root .finger-badge {
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  color: var(--pure-white, #fff);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--pure-black, #000) 70%, transparent);
 }
 
 /* Active flash on top of in-chord — disc gets a pink overlay so the
@@ -208,7 +272,7 @@
  * they shouldn't visually compete with the fretted disc shapes. */
 .fret-cell.in-chord-open {
   /* Subtle outline so it reads as "in the chord" without shouting. */
-  box-shadow: inset 0 0 0 2px rgba(168, 85, 247, 0.45);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--strings-violet, #a855f7) 45%, transparent);
 }
 
 .fret-cell.in-chord-open::after {
@@ -218,8 +282,8 @@
   right: 4px;
   font-size: 14px;
   font-weight: 700;
-  color: #c084fc;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  color: var(--strings-finger-light, #c084fc);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--pure-black, #000) 50%, transparent);
   pointer-events: none;
 }
 
@@ -233,11 +297,16 @@
   right: 4px;
   width: 18px;
   height: 18px;
-  background: radial-gradient(circle at 35% 30%, #fecaca, #ef4444 55%, #7f1d1d);
+  background: radial-gradient(
+    circle at 35% 30%,
+    var(--strings-root-light, #fecaca),
+    var(--strings-root-mid, #ef4444) 55%,
+    var(--strings-root-deep, #7f1d1d)
+  );
   border-radius: 50%;
   font-size: 11px;
-  color: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  color: var(--pure-white, #fff);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--pure-black, #000) 45%, transparent);
 }
 
 .fret-cell.in-chord-root.open::before {
@@ -263,10 +332,14 @@
   font-size: 26px;
   line-height: 1;
   font-weight: 900;
-  color: #fecaca;
-  background: radial-gradient(circle, rgba(127, 29, 29, 0.85), rgba(127, 29, 29, 0.3) 70%);
+  color: var(--strings-root-light, #fecaca);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--strings-root-deep, #7f1d1d) 85%, transparent),
+    color-mix(in srgb, var(--strings-root-deep, #7f1d1d) 30%, transparent) 70%
+  );
   border-radius: 50%;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--pure-black, #000) 60%, transparent);
   pointer-events: none;
 }
 
@@ -286,11 +359,15 @@
 .chord-barre {
   position: absolute;
   border-radius: 999px;
-  background: linear-gradient(180deg, #fde68a, #f59e0b 50%, #b45309);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 4px 10px rgba(0, 0, 0, 0.45),
-    0 0 0 2px rgba(254, 243, 199, 0.45);
+  background: linear-gradient(
+    180deg,
+    var(--strings-amber-light, #fde68a),
+    var(--strings-amber-mid, #f59e0b) 50%,
+    var(--strings-amber-deep, #b45309)
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 50%, transparent),
+    0 4px 10px color-mix(in srgb, var(--pure-black, #000) 45%, transparent),
+    0 0 0 2px color-mix(in srgb, var(--strings-cream, #fef3c7) 45%, transparent);
   z-index: 3; /* above .in-chord discs */
   pointer-events: none;
   display: flex;
@@ -301,8 +378,8 @@
 .chord-barre-label {
   font-size: 14px;
   font-weight: 800;
-  color: #422006;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  color: var(--strings-amber-text, #422006);
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 40%, transparent);
 }
 
 /* Root-cell marker overlay — same trick as the barre, but for the
@@ -314,11 +391,15 @@
 .chord-root-marker {
   position: absolute;
   border-radius: 999px;
-  background: radial-gradient(circle at 35% 30%, #fecaca, #ef4444 55%, #7f1d1d);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.45),
-    0 2px 8px rgba(239, 68, 68, 0.55),
-    0 0 0 2px rgba(254, 243, 199, 0.55);
+  background: radial-gradient(
+    circle at 35% 30%,
+    var(--strings-root-light, #fecaca),
+    var(--strings-root-mid, #ef4444) 55%,
+    var(--strings-root-deep, #7f1d1d)
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 45%, transparent),
+    0 2px 8px color-mix(in srgb, var(--strings-root-mid, #ef4444) 55%, transparent),
+    0 0 0 2px color-mix(in srgb, var(--strings-cream, #fef3c7) 55%, transparent);
   z-index: 5; /* above .chord-barre (3) */
   pointer-events: none;
   display: flex;
@@ -329,8 +410,8 @@
 .chord-root-marker-label {
   font-size: 14px;
   font-weight: 800;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  color: var(--pure-white, #fff);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--pure-black, #000) 55%, transparent);
   display: flex;
   align-items: baseline;
   gap: 2px;
@@ -344,13 +425,13 @@
 
 @keyframes fret-pulse {
   0% {
-    box-shadow: inset 0 0 0 0 rgba(244, 114, 182, 0.7);
+    box-shadow: inset 0 0 0 0 color-mix(in srgb, var(--play-pink, #f472b6) 70%, transparent);
   }
   50% {
-    box-shadow: inset 0 0 0 18px rgba(244, 114, 182, 0);
+    box-shadow: inset 0 0 0 18px color-mix(in srgb, var(--play-pink, #f472b6) 0%, transparent);
   }
   100% {
-    box-shadow: inset 0 0 0 0 rgba(244, 114, 182, 0);
+    box-shadow: inset 0 0 0 0 color-mix(in srgb, var(--play-pink, #f472b6) 0%, transparent);
   }
 }
 
@@ -384,14 +465,14 @@
   height: var(--string-thickness, 2px);
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.65),
-    rgba(255, 255, 255, 0.25) 40%,
-    rgba(0, 0, 0, 0.4)
+    color-mix(in srgb, var(--pure-white, #fff) 65%, transparent),
+    color-mix(in srgb, var(--pure-white, #fff) 25%, transparent) 40%,
+    color-mix(in srgb, var(--pure-black, #000) 40%, transparent)
   );
   border-radius: 2px;
   transform: translateY(-50%);
   pointer-events: none;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 1px 1px color-mix(in srgb, var(--pure-black, #000) 50%, transparent);
 }
 
 /* Paired courses (mandolin) — render two thin strings ~3px apart so the
@@ -414,14 +495,14 @@
   height: var(--string-thickness, 2px);
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.65),
-    rgba(255, 255, 255, 0.25) 40%,
-    rgba(0, 0, 0, 0.4)
+    color-mix(in srgb, var(--pure-white, #fff) 65%, transparent),
+    color-mix(in srgb, var(--pure-white, #fff) 25%, transparent) 40%,
+    color-mix(in srgb, var(--pure-black, #000) 40%, transparent)
   );
   border-radius: 2px;
   transform: translateY(-50%);
   pointer-events: none;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 1px 1px color-mix(in srgb, var(--pure-black, #000) 50%, transparent);
   z-index: 0;
 }
 
@@ -432,24 +513,39 @@
 .fret-cell.unavailable {
   cursor: default;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.32));
-  border-right-color: rgba(212, 212, 216, 0.15);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--pure-black, #000) 18%, transparent),
+    color-mix(in srgb, var(--pure-black, #000) 32%, transparent)
+  );
+  border-right-color: color-mix(in srgb, var(--strings-fret-wire, #d4d4d8) 15%, transparent);
 }
 
 .fret-cell.unavailable:hover {
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.32));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--pure-black, #000) 18%, transparent),
+    color-mix(in srgb, var(--pure-black, #000) 32%, transparent)
+  );
 }
 
 /* The cell where a "short" drone string actually starts (banjo's 5th
  * string at fret 5). Marked with a thicker left border + the open-style
  * accent so players see "this is the start of the string". */
 .fret-cell.drone-start {
-  border-left: 4px solid #d4d4d8;
-  background:
-    linear-gradient(90deg, rgba(0, 0, 0, 0.35), transparent),
-    linear-gradient(180deg, #5b2810, #381606);
+  border-left: 4px solid var(--strings-fret-wire, #d4d4d8);
+  background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--pure-black, #000) 35%, transparent),
+      transparent
+    ),
+    linear-gradient(
+      180deg,
+      var(--strings-wood-open-from, #5b2810),
+      var(--strings-wood-open-to, #381606)
+    );
   font-weight: 700;
-  color: #fef3c7;
+  color: var(--strings-cream, #fef3c7);
 }
 
 /* ---------- Fret inlays ----------
@@ -491,10 +587,13 @@
   width: 11px;
   height: 11px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, rgba(254, 243, 199, 0.85), rgba(180, 110, 40, 0.55));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    0 1px 2px rgba(0, 0, 0, 0.5);
+  background: radial-gradient(
+    circle at 35% 35%,
+    color-mix(in srgb, var(--strings-cream, #fef3c7) 85%, transparent),
+    color-mix(in srgb, var(--strings-brass-glow, #b46e28) 55%, transparent)
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 40%, transparent),
+    0 1px 2px color-mix(in srgb, var(--pure-black, #000) 50%, transparent);
 }
 
 /* Double-dot inlay (12th fret traditionally) — two stacked dots, one
@@ -529,10 +628,13 @@
   height: 11px;
   border-radius: 50%;
   transform: translateX(-50%);
-  background: radial-gradient(circle at 35% 35%, rgba(254, 243, 199, 0.85), rgba(180, 110, 40, 0.55));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    0 1px 2px rgba(0, 0, 0, 0.5);
+  background: radial-gradient(
+    circle at 35% 35%,
+    color-mix(in srgb, var(--strings-cream, #fef3c7) 85%, transparent),
+    color-mix(in srgb, var(--strings-brass-glow, #b46e28) 55%, transparent)
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 40%, transparent),
+    0 1px 2px color-mix(in srgb, var(--pure-black, #000) 50%, transparent);
 }
 
 /* 25% in from each edge centres each dot on its respective string-pair
@@ -546,4 +648,3 @@
 .inlay.double::after {
   bottom: 25%;
 }
-

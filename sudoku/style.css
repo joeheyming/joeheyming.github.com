@@ -6,30 +6,45 @@
   box-sizing: border-box;
 }
 
+/* Sudoku — Heyming OS routing. The board itself is a paper-style light
+ * surface (keeps the classic puzzle feel), but the page chrome around
+ * it and the user-entered numbers + selection now use brand violet.
+ *
+ * Scoped --sud-* tokens hold the paper-light identity (ink, cell line,
+ * selection ring, X-Sudoku diagonals, "won" yellow); brand tokens carry
+ * chrome (page bg, pure white/black, danger, accents). Every bare color
+ * is routed via var(--token, #fallback) or color-mix(...).
+ */
 :root {
-  --bg: #0f172a;
-  --bg-2: #1e293b;
-  --surface: #ffffff;
-  --surface-2: #f8fafc;
+  --bg: var(--surface-0, #0b0b0f);
+  --bg-2: var(--surface-1, #15151b);
+  --sud-paper-surface: var(--pure-white, #ffffff);
+  --sud-paper-surface-soft: #f8fafc;
 
-  --ink: #0f172a;
-  --ink-soft: #334155;
-  --ink-muted: #64748b;
-  --line: #cbd5e1;
-  --line-bold: #0f172a;
+  /* Paper-board ink palette — intentionally slate (not brand) because
+   * the sudoku board paints a light paper surface where dark ink reads. */
+  --sud-ink: #0f172a;
+  --sud-ink-soft: #334155;
+  --sud-ink-muted: #64748b;
+  --sud-line: #cbd5e1;
+  --sud-line-bold: #0f172a;
 
-  --given: #0f172a;
-  --user: #1d4ed8;
-  --note: #64748b;
+  --sud-given: #0f172a;
+  --user: var(--accent-primary-bg, #5b3cdc); /* brand accent-primary-bg — readable on white */
+  --sud-note: #64748b;
 
-  --sel: #fde68a;
-  --peer: #f1f5f9;
-  --same: #fcd34d;
-  --conflict: #fecaca;
-  --wrong: #ef4444;
+  --sel: color-mix(in srgb, var(--accent-primary) 22%, transparent);
+  --sud-peer: #f1f5f9;
+  --same: color-mix(in srgb, var(--accent-primary) 32%, transparent);
+  --sud-conflict: #fecaca;
+  --wrong: var(--danger, #ef4444);
 
-  --accent: #6366f1;
-  --accent-2: #8b5cf6;
+  /* ── Sudoku-scoped identity tokens (new) ──────────────────────── */
+  --sud-accent-deep: #4338ca;
+  --sud-x-main: #6366f1;
+  --sud-x-anti: #ec4899;
+  --sud-selected-ring: #f59e0b;
+  --sud-won: #fde047;
 
   /* Cell size is set by JS-free CSS clamp: fits both width and height. */
   --board-max-w: min(96vw, 540px);
@@ -42,7 +57,11 @@ body {
   padding: 0;
   height: 100%;
   background: var(--bg);
-  color: var(--ink);
+  /* Body chrome reads on the brand dark gradient. The paper-style board
+   * paints its own light surface and explicitly uses --ink / --given /
+   * --user for the puzzle text, so this routing only affects the page
+   * header, controls, and any text outside the board. */
+  color: var(--text-1, #f5f5f7);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   /* Allow vertical scrolling when the page is taller than the viewport. */
@@ -50,7 +69,7 @@ body {
 }
 
 body {
-  background: radial-gradient(1200px 600px at 50% -10%, #312e81 0%, #0f172a 60%, #020617 100%);
+  background: var(--surface-0);
   min-height: 100dvh;
   padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));
   display: flex;
@@ -72,7 +91,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  color: white;
+  color: var(--pure-white, #fff);
 }
 
 .page-header h1 {
@@ -90,12 +109,12 @@ body {
 }
 
 .badge {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--pure-white) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pure-white) 15%, transparent);
   border-radius: 999px;
   padding: 3px 10px;
   font-size: 0.75rem;
-  color: white;
+  color: var(--pure-white, #fff);
   letter-spacing: 0.02em;
 }
 
@@ -108,9 +127,9 @@ body {
 }
 
 .btn {
-  background: rgba(255, 255, 255, 0.08);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: color-mix(in srgb, var(--pure-white) 8%, transparent);
+  color: var(--pure-white, #fff);
+  border: 1px solid color-mix(in srgb, var(--pure-white) 12%, transparent);
   padding: 8px 12px;
   border-radius: 10px;
   font-family: inherit;
@@ -125,7 +144,7 @@ body {
 }
 
 .btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--pure-white) 15%, transparent);
 }
 
 .btn:active {
@@ -133,9 +152,10 @@ body {
 }
 
 .btn.primary {
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  background: var(--accent-primary-bg);
+  color: var(--text-on-accent);
   border-color: transparent;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent-primary) 35%, transparent);
 }
 
 .btn.primary:hover {
@@ -153,7 +173,7 @@ body {
   display: flex;
   gap: 14px;
   justify-content: center;
-  color: white;
+  color: var(--pure-white, #fff);
 }
 
 .stat {
@@ -166,7 +186,7 @@ body {
 
 .stat-label {
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: color-mix(in srgb, var(--pure-white) 60%, transparent);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -175,16 +195,17 @@ body {
   font-family: 'JetBrains Mono', monospace;
   font-size: 1.25rem;
   font-weight: 700;
-  color: white;
+  color: var(--pure-white, #fff);
 }
 
 /* Board */
 .board-wrap {
   position: relative;
-  background: var(--surface);
+  background: var(--sud-paper-surface);
   padding: 6px;
   border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--pure-black) 40%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--pure-white) 5%, transparent);
 }
 
 .board {
@@ -194,8 +215,8 @@ body {
   grid-template-rows: repeat(9, var(--cell-size));
   width: calc(var(--cell-size) * 9);
   height: calc(var(--cell-size) * 9);
-  background: var(--surface);
-  border: 2px solid var(--line-bold);
+  background: var(--sud-paper-surface);
+  border: 2px solid var(--sud-line-bold);
   border-radius: 6px;
   overflow: hidden;
   touch-action: manipulation;
@@ -228,12 +249,12 @@ body {
 }
 
 .x-line-main {
-  stroke: #6366f1;
+  stroke: var(--sud-x-main, #6366f1);
   opacity: 0.55;
 }
 
 .x-line-anti {
-  stroke: #ec4899;
+  stroke: var(--sud-x-anti, #ec4899);
   opacity: 0.55;
 }
 
@@ -241,7 +262,7 @@ body {
    outline overlay sits above them. Together they make the 4 extra
    regions readable in every variant combo. */
 .hyper-region {
-  background: rgba(99, 102, 241, 0.2);
+  background: color-mix(in srgb, var(--accent-primary) 20%, transparent);
   pointer-events: none;
   z-index: 0;
 }
@@ -250,7 +271,7 @@ body {
   pointer-events: none;
   z-index: 2;
   margin: 2px;
-  border: 2px dashed rgba(67, 56, 202, 0.85);
+  border: 2px dashed color-mix(in srgb, var(--sud-accent-deep) 85%, transparent);
   border-radius: 5px;
 }
 
@@ -259,8 +280,8 @@ body {
   position: relative;
   z-index: 1;
   background: transparent;
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--sud-line);
+  border-bottom: 1px solid var(--sud-line);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -272,11 +293,11 @@ body {
 }
 
 .cell.thick-right {
-  border-right: 3px solid var(--line-bold);
+  border-right: 3px solid var(--sud-line-bold);
 }
 
 .cell.thick-bottom {
-  border-bottom: 3px solid var(--line-bold);
+  border-bottom: 3px solid var(--sud-line-bold);
 }
 
 /* Jigsaw region color hint — clear per-region pastel so the regions
@@ -287,7 +308,7 @@ body {
 }
 
 .cell:hover:not(.given) {
-  background: var(--peer);
+  background: var(--sud-peer);
 }
 
 .cell.jigsaw:hover:not(.given) {
@@ -295,7 +316,7 @@ body {
 }
 
 .cell.peer {
-  background: var(--peer);
+  background: var(--sud-peer);
 }
 
 .cell.jigsaw.peer {
@@ -308,11 +329,11 @@ body {
 
 .cell.selected {
   background: var(--sel) !important;
-  box-shadow: inset 0 0 0 3px #f59e0b;
+  box-shadow: inset 0 0 0 3px var(--sud-selected-ring, #f59e0b);
 }
 
 .cell.conflict {
-  background: var(--conflict) !important;
+  background: var(--sud-conflict) !important;
 }
 
 .cell.wrong .cell-value {
@@ -326,7 +347,7 @@ body {
 }
 
 .cell.given .cell-value {
-  color: var(--given);
+  color: var(--sud-given);
   font-weight: 700;
 }
 
@@ -341,7 +362,7 @@ body {
 
 .cell-notes .note {
   font-size: calc(var(--cell-size) * 0.22);
-  color: var(--note);
+  color: var(--sud-note);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -355,8 +376,8 @@ body {
   display: none;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.94);
-  color: white;
+  background: color-mix(in srgb, var(--surface-0) 94%, transparent);
+  color: var(--pure-white, #fff);
   border-radius: 12px;
   cursor: pointer;
 }
@@ -376,13 +397,13 @@ body {
 /* Message line */
 .message {
   min-height: 24px;
-  color: rgba(255, 255, 255, 0.85);
+  color: color-mix(in srgb, var(--pure-white) 85%, transparent);
   font-size: 0.95rem;
   text-align: center;
 }
 
 .message.won {
-  color: #fde047;
+  color: var(--sud-won, #fde047);
   font-weight: 700;
   font-size: 1.05rem;
   animation: pop 0.4s ease;
@@ -410,8 +431,8 @@ body {
 
 .numpad-btn {
   position: relative;
-  background: rgba(255, 255, 255, 0.95);
-  color: var(--ink);
+  background: color-mix(in srgb, var(--pure-white) 95%, transparent);
+  color: var(--sud-ink);
   border: none;
   border-radius: 8px;
   padding: 0;
@@ -424,33 +445,33 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--pure-black) 15%, transparent);
 }
 
 .numpad-btn:hover {
-  background: white;
+  background: var(--pure-white, #fff);
   transform: translateY(-1px);
 }
 
 .numpad-btn:active {
   transform: translateY(1px);
-  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  box-shadow: 0 0 0 color-mix(in srgb, var(--pure-black) 0%, transparent);
 }
 
 .numpad-btn.done {
-  background: rgba(255, 255, 255, 0.25);
-  color: rgba(255, 255, 255, 0.4);
+  background: color-mix(in srgb, var(--pure-white) 25%, transparent);
+  color: color-mix(in srgb, var(--pure-white) 40%, transparent);
   box-shadow: none;
 }
 
 .numpad-btn.selected-digit {
   background: var(--same);
-  color: var(--ink);
+  color: var(--sud-ink);
 }
 
 .numpad-btn.numpad-erase {
-  background: rgba(239, 68, 68, 0.85);
-  color: white;
+  background: color-mix(in srgb, var(--danger) 85%, transparent);
+  color: var(--pure-white, #fff);
   font-size: clamp(1rem, 4vw, 1.25rem);
 }
 
@@ -461,7 +482,7 @@ body {
   right: 4px;
   font-size: 0.6rem;
   font-weight: 500;
-  color: var(--ink-muted);
+  color: var(--sud-ink-muted);
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -482,9 +503,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: color-mix(in srgb, var(--pure-white) 8%, transparent);
+  color: color-mix(in srgb, var(--pure-white) 85%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pure-white) 12%, transparent);
   border-radius: 999px;
   padding: 8px 14px;
   font-family: inherit;
@@ -496,14 +517,14 @@ body {
 }
 
 .toggle:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--pure-white) 15%, transparent);
 }
 
 .toggle.is-on {
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  background: var(--accent-primary-bg);
   border-color: transparent;
-  color: white;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+  color: var(--text-on-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 30%, transparent);
 }
 
 .toggle-icon {
@@ -513,10 +534,10 @@ body {
 .kbd {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.7rem;
-  background: rgba(0, 0, 0, 0.25);
+  background: color-mix(in srgb, var(--pure-black) 25%, transparent);
   padding: 2px 6px;
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid color-mix(in srgb, var(--pure-white) 10%, transparent);
   margin-left: 2px;
 }
 
@@ -527,7 +548,7 @@ body {
   gap: 8px;
   justify-content: center;
   align-items: center;
-  color: rgba(255, 255, 255, 0.55);
+  color: color-mix(in srgb, var(--pure-white) 55%, transparent);
   font-size: 0.8rem;
 }
 
@@ -540,7 +561,7 @@ body {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: color-mix(in srgb, var(--pure-black) 70%, transparent);
   z-index: 100;
   align-items: center;
   justify-content: center;
@@ -552,13 +573,13 @@ body {
 }
 
 .modal-content {
-  background: var(--surface);
+  background: var(--sud-paper-surface);
   border-radius: 16px;
   max-width: 460px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 25px 60px color-mix(in srgb, var(--pure-black) 50%, transparent);
 }
 
 .modal-header {
@@ -566,7 +587,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--sud-line);
 }
 
 .modal-header h2 {
@@ -583,12 +604,12 @@ body {
   border-radius: 8px;
   font-size: 1.5rem;
   cursor: pointer;
-  color: var(--ink-muted);
+  color: var(--sud-ink-muted);
 }
 
 .modal-close:hover {
-  background: var(--surface-2);
-  color: var(--ink);
+  background: var(--sud-paper-surface-soft);
+  color: var(--sud-ink);
 }
 
 .modal-body {
@@ -599,7 +620,7 @@ body {
 }
 
 .field-group {
-  border: 1px solid var(--line);
+  border: 1px solid var(--sud-line);
   border-radius: 12px;
   padding: 14px;
   margin: 0;
@@ -610,14 +631,14 @@ body {
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--ink-muted);
+  color: var(--sud-ink-muted);
   padding: 0 6px;
 }
 
 .field-hint {
   margin: 0 0 10px 0;
   font-size: 0.8rem;
-  color: var(--ink-muted);
+  color: var(--sud-ink-muted);
 }
 
 .radio-group,
@@ -637,8 +658,8 @@ body {
 .radio-pill {
   display: inline-flex;
   align-items: center;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
+  background: var(--sud-paper-surface-soft);
+  border: 1px solid var(--sud-line);
   border-radius: 999px;
   padding: 8px 14px;
   cursor: pointer;
@@ -651,8 +672,8 @@ body {
 }
 
 .radio-pill:has(input:checked) {
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: white;
+  background: var(--accent-primary-bg);
+  color: var(--text-on-accent);
   border-color: transparent;
 }
 
@@ -663,8 +684,8 @@ body {
 .check-pill {
   display: flex;
   flex-direction: column;
-  background: var(--surface-2);
-  border: 2px solid var(--line);
+  background: var(--sud-paper-surface-soft);
+  border: 2px solid var(--sud-line);
   border-radius: 12px;
   padding: 12px 14px;
   cursor: pointer;
@@ -672,13 +693,13 @@ body {
 }
 
 .check-pill:hover {
-  background: var(--surface);
+  background: var(--sud-paper-surface);
 }
 
 .check-pill:has(input:checked) {
-  background: rgba(99, 102, 241, 0.08);
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 12%, transparent);
 }
 
 .check-pill-title {
@@ -688,7 +709,7 @@ body {
 
 .check-pill-sub {
   font-size: 0.78rem;
-  color: var(--ink-muted);
+  color: var(--sud-ink-muted);
   margin-top: 2px;
 }
 
@@ -699,20 +720,20 @@ body {
 }
 
 .form-buttons .btn {
-  background: var(--surface-2);
-  color: var(--ink);
-  border-color: var(--line);
+  background: var(--sud-paper-surface-soft);
+  color: var(--sud-ink);
+  border-color: var(--sud-line);
   min-height: 42px;
   padding: 8px 18px;
 }
 
 .form-buttons .btn:hover {
-  background: white;
+  background: var(--pure-white, #fff);
 }
 
 .form-buttons .btn.primary {
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: white;
+  background: var(--accent-primary-bg);
+  color: var(--text-on-accent);
   border-color: transparent;
 }
 

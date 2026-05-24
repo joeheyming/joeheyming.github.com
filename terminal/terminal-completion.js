@@ -168,16 +168,19 @@ export class TerminalCompletionMixin {
           input.value += ' ';
         }
       } else if (matches.length > 1) {
-        // Multiple matches
+        // Multiple matches — compute common prefix case-insensitively so that
+        // typing `doc` against [`Documents`, `Downloads`] still corrects case
+        // to `Do` (bash readline behavior with completion-ignore-case on).
         const matchNames = matches.map((m) => m.name);
-        const commonPrefix = this.findCommonPrefix(matchNames);
+        const commonPrefix = this.findCommonPrefixCaseInsensitive(matchNames);
+        const shouldComplete =
+          commonPrefix.length > searchPattern.length ||
+          (commonPrefix.length === searchPattern.length && commonPrefix !== searchPattern);
 
-        if (commonPrefix.length > searchPattern.length) {
-          // Complete to common prefix
+        if (shouldComplete) {
           const beforeLastPart = parts.slice(0, -1).join(' ');
           input.value = beforeLastPart + (beforeLastPart ? ' ' : '') + displayBase + commonPrefix;
         } else {
-          // Show all matches
           const matchDisplay = matches
             .map((m) => (m.isDirectory ? `📁 ${m.name}` : `📄 ${m.name}`))
             .join('  ');
@@ -198,6 +201,25 @@ export class TerminalCompletionMixin {
     let prefix = strings[0];
     for (let i = 1; i < strings.length; i++) {
       while (prefix.length > 0 && !strings[i].startsWith(prefix)) {
+        prefix = prefix.substring(0, prefix.length - 1);
+      }
+      if (prefix.length === 0) break;
+    }
+    return prefix;
+  }
+
+  /**
+   * Like findCommonPrefix but case-insensitive. Returns the prefix using the
+   * case from the first string (so the user sees the real filesystem casing).
+   */
+  findCommonPrefixCaseInsensitive(strings) {
+    if (strings.length === 0) return '';
+    if (strings.length === 1) return strings[0];
+
+    let prefix = strings[0];
+    for (let i = 1; i < strings.length; i++) {
+      const otherLower = strings[i].toLowerCase();
+      while (prefix.length > 0 && !otherLower.startsWith(prefix.toLowerCase())) {
         prefix = prefix.substring(0, prefix.length - 1);
       }
       if (prefix.length === 0) break;

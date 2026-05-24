@@ -39,6 +39,11 @@ const PAGES = [
     title: 'Browser DOOM'
   },
   {
+    url: `${BASE_URL}/dos/`,
+    output: 'dos/dos-preview.png',
+    title: 'DOS Player'
+  },
+  {
     url: `${BASE_URL}/stepmania/`,
     output: 'stepmania/stepmania-preview.png',
     title: 'StepMania'

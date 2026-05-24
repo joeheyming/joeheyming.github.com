@@ -25,3 +25,5 @@ node_modules
 # Source clone for uzdoom-wasm (if we ever need to rebuild locally).
 /doom/uzdoom-src/
 
+.brand-audit/
+.playwright-cli/

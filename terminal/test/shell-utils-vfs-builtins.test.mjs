@@ -87,6 +87,31 @@ test('filterDirectoryEntriesForTabCompletion: hides dotfiles unless prefix start
   );
 });
 
+test('filterDirectoryEntriesForTabCompletion: case-insensitive (bash completion-ignore-case)', () => {
+  const entries = [
+    { name: 'Documents', type: 'directory' },
+    { name: 'Downloads', type: 'directory' },
+    { name: 'desktop.ini', type: 'file' },
+    { name: 'README.md', type: 'file' }
+  ];
+  assert.deepEqual(
+    filterDirectoryEntriesForTabCompletion(entries, 'doc').map((e) => e.name),
+    ['Documents']
+  );
+  assert.deepEqual(
+    filterDirectoryEntriesForTabCompletion(entries, 'do').map((e) => e.name),
+    ['Documents', 'Downloads']
+  );
+  assert.deepEqual(
+    filterDirectoryEntriesForTabCompletion(entries, 'D').map((e) => e.name),
+    ['Documents', 'Downloads', 'desktop.ini']
+  );
+  assert.deepEqual(
+    filterDirectoryEntriesForTabCompletion(entries, 'readme').map((e) => e.name),
+    ['README.md']
+  );
+});
+
 test('parseLsDisplayFlags: -la and --all/--long', () => {
   assert.deepEqual(parseLsDisplayFlags(['-la', '/']), { showDetails: true, showAll: true });
   assert.deepEqual(parseLsDisplayFlags(['-l']), { showDetails: true, showAll: false });

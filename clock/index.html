@@ -16,16 +16,25 @@
     <title>🕐 Clock — Stopwatch, Timer & World Clocks | Joe Heyming</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta charset="utf-8" />
-    <meta name="description" content="A full-featured clock app in your browser. Live time with world clocks, centisecond stopwatch with lap tracking, and a timer with Pomodoro presets. No ads, works offline." />
+    <meta
+      name="description"
+      content="A full-featured clock app in your browser. Live time with world clocks, centisecond stopwatch with lap tracking, and a timer with Pomodoro presets. No ads, works offline."
+    />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#000000" />
-    <meta name="keywords" content="clock, stopwatch, timer, world clock, pomodoro, lap timer, countdown, browser clock" />
+    <meta name="theme-color" content="#7C5CFF" />
+    <meta
+      name="keywords"
+      content="clock, stopwatch, timer, world clock, pomodoro, lap timer, countdown, browser clock"
+    />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Clock" />
     <meta property="og:title" content="🕐 Clock — Stopwatch, Timer & World Clocks" />
-    <meta property="og:description" content="Clock, stopwatch with laps, and a Pomodoro timer — all in your browser. No install, no ads." />
+    <meta
+      property="og:description"
+      content="Clock, stopwatch with laps, and a Pomodoro timer — all in your browser. No install, no ads."
+    />
     <meta property="og:url" content="https://joeheyming.github.io/clock/" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://joeheyming.github.io/clock/clock-preview.png" />
@@ -36,44 +45,69 @@
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
     <meta name="twitter:title" content="🕐 Clock — Stopwatch, Timer & World Clocks" />
-    <meta name="twitter:description" content="Clock, stopwatch with laps, and a Pomodoro timer — all in your browser." />
+    <meta
+      name="twitter:description"
+      content="Clock, stopwatch with laps, and a Pomodoro timer — all in your browser."
+    />
     <meta name="twitter:image" content="https://joeheyming.github.io/clock/clock-preview.png" />
 
     <link rel="canonical" href="https://joeheyming.github.io/clock/" />
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
 
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@graph": [
-        {
-          "@type": "SoftwareApplication",
-          "name": "Clock",
-          "applicationCategory": "UtilityApplication",
-          "operatingSystem": "Web Browser",
-          "description": "A full-featured clock app with world clocks, stopwatch, and timer.",
-          "url": "https://joeheyming.github.io/clock/",
-          "author": {
-            "@type": "Person",
-            "name": "Joe Heyming",
-            "url": "https://joeheyming.github.io/"
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Clock",
+            "applicationCategory": "UtilityApplication",
+            "operatingSystem": "Web Browser",
+            "description": "A full-featured clock app with world clocks, stopwatch, and timer.",
+            "url": "https://joeheyming.github.io/clock/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "featureList": [
+              "World clocks",
+              "Stopwatch with laps",
+              "Pomodoro timer",
+              "Progress ring",
+              "Chime alert"
+            ],
+            "inLanguage": "en"
           },
-          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-          "featureList": ["World clocks", "Stopwatch with laps", "Pomodoro timer", "Progress ring", "Chime alert"],
-          "inLanguage": "en"
-        },
-        {
-          "@type": "BreadcrumbList",
-          "itemListElement": [
-            { "@type": "ListItem", "position": 1, "name": "Joe Heyming", "item": "https://joeheyming.github.io/" },
-            { "@type": "ListItem", "position": 2, "name": "Clock" }
-          ]
-        }
-      ]
-    }
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              { "@type": "ListItem", "position": 2, "name": "Clock" }
+            ]
+          }
+        ]
+      }
     </script>
     <link rel="stylesheet" href="index.css" />
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
   <body>
     <div id="app" role="main">
@@ -81,7 +115,6 @@
 
       <!-- ═══ CLOCK PANEL ═══ -->
       <section id="clock-panel" class="panel active" role="tabpanel" aria-labelledby="tab-clock">
-
         <div class="clock-hero">
           <!-- Digital face -->
           <div id="digital-face">
@@ -91,45 +124,105 @@
               role="timer"
               aria-live="off"
               aria-label="Current time"
-            >00:00:00</div>
+            >
+              00:00:00
+            </div>
             <div id="clock-ampm" class="clock-ampm" aria-hidden="true"></div>
           </div>
 
           <!-- Analog face -->
-          <svg id="analog-face" class="analog-face" viewBox="0 0 200 200" aria-label="Analog clock" role="img">
-            <circle class="bg" cx="100" cy="100" r="99"/>
-            <circle class="rim" cx="100" cy="100" r="97"/>
+          <svg
+            id="analog-face"
+            class="analog-face"
+            viewBox="0 0 200 200"
+            aria-label="Analog clock"
+            role="img"
+          >
+            <circle class="bg" cx="100" cy="100" r="99" />
+            <circle class="rim" cx="100" cy="100" r="97" />
             <!-- Minute ticks (60) -->
             <g id="analog-ticks"></g>
             <!-- Hands -->
-            <line id="hand-hour" class="hand-hour" x1="100" y1="100" x2="100" y2="42" stroke-linecap="round"/>
-            <line id="hand-min"  class="hand-min"  x1="100" y1="100" x2="100" y2="26" stroke-linecap="round"/>
-            <line id="hand-sec"  class="hand-sec"  x1="100" y1="100" x2="100" y2="20" stroke-linecap="round"/>
-            <line id="hand-sec-tail" class="hand-sec-tail" x1="100" y1="100" x2="100" y2="118"/>
-            <circle class="center-dot" cx="100" cy="100" r="4"/>
+            <line
+              id="hand-hour"
+              class="hand-hour"
+              x1="100"
+              y1="100"
+              x2="100"
+              y2="42"
+              stroke-linecap="round"
+            />
+            <line
+              id="hand-min"
+              class="hand-min"
+              x1="100"
+              y1="100"
+              x2="100"
+              y2="26"
+              stroke-linecap="round"
+            />
+            <line
+              id="hand-sec"
+              class="hand-sec"
+              x1="100"
+              y1="100"
+              x2="100"
+              y2="20"
+              stroke-linecap="round"
+            />
+            <line id="hand-sec-tail" class="hand-sec-tail" x1="100" y1="100" x2="100" y2="118" />
+            <circle class="center-dot" cx="100" cy="100" r="4" />
           </svg>
 
           <!-- Flip face -->
           <div id="flip-face" class="flip-face" role="timer" aria-label="Flip clock">
             <div class="flip-group" id="flip-h" aria-hidden="true">
-              <div class="flip-digit" id="fd-h0"><div class="flip-top"><span>0</span></div><div class="flip-bottom"><span>0</span></div></div>
-              <div class="flip-digit" id="fd-h1"><div class="flip-top"><span>0</span></div><div class="flip-bottom"><span>0</span></div></div>
+              <div class="flip-digit" id="fd-h0">
+                <div class="flip-top"><span>0</span></div>
+                <div class="flip-bottom"><span>0</span></div>
+              </div>
+              <div class="flip-digit" id="fd-h1">
+                <div class="flip-top"><span>0</span></div>
+                <div class="flip-bottom"><span>0</span></div>
+              </div>
             </div>
             <div class="flip-sep" aria-hidden="true">:</div>
             <div class="flip-group" id="flip-m" aria-hidden="true">
-              <div class="flip-digit" id="fd-m0"><div class="flip-top"><span>0</span></div><div class="flip-bottom"><span>0</span></div></div>
-              <div class="flip-digit" id="fd-m1"><div class="flip-top"><span>0</span></div><div class="flip-bottom"><span>0</span></div></div>
+              <div class="flip-digit" id="fd-m0">
+                <div class="flip-top"><span>0</span></div>
+                <div class="flip-bottom"><span>0</span></div>
+              </div>
+              <div class="flip-digit" id="fd-m1">
+                <div class="flip-top"><span>0</span></div>
+                <div class="flip-bottom"><span>0</span></div>
+              </div>
             </div>
             <div class="flip-sep" aria-hidden="true">:</div>
             <div class="flip-group" id="flip-s" aria-hidden="true">
-              <div class="flip-digit" id="fd-s0"><div class="flip-top"><span>0</span></div><div class="flip-bottom"><span>0</span></div></div>
-              <div class="flip-digit" id="fd-s1"><div class="flip-top"><span>0</span></div><div class="flip-bottom"><span>0</span></div></div>
+              <div class="flip-digit" id="fd-s0">
+                <div class="flip-top"><span>0</span></div>
+                <div class="flip-bottom"><span>0</span></div>
+              </div>
+              <div class="flip-digit" id="fd-s1">
+                <div class="flip-top"><span>0</span></div>
+                <div class="flip-bottom"><span>0</span></div>
+              </div>
             </div>
-            <div id="flip-ampm" style="font-size:clamp(14px,4vw,18px);color:var(--text3);font-weight:400;margin-left:4px;align-self:flex-end;padding-bottom:8px"></div>
+            <div
+              id="flip-ampm"
+              style="
+                font-size: clamp(14px, 4vw, 18px);
+                color: var(--text3);
+                font-weight: 400;
+                margin-left: 4px;
+                align-self: flex-end;
+                padding-bottom: 8px;
+              "
+            ></div>
           </div>
 
           <!-- Roman numerals face -->
-          <div id="roman-face" style="display:none" role="timer" aria-label="Roman numeral clock">
+          <div id="roman-face" style="display: none" role="timer" aria-label="Roman numeral clock">
             <div class="roman-container">
               <div class="roman-unit">
                 <div id="roman-h" class="roman-value"></div>
@@ -150,7 +243,7 @@
           </div>
 
           <!-- Binary clock face -->
-          <div id="binary-face" style="display:none" role="timer" aria-label="Binary clock">
+          <div id="binary-face" style="display: none" role="timer" aria-label="Binary clock">
             <div class="binary-clock">
               <div class="binary-row">
                 <span class="binary-row-label">H</span>
@@ -172,7 +265,7 @@
           </div>
 
           <!-- LED dot-matrix face -->
-          <div id="led-face" style="display:none" role="timer" aria-label="LED dot matrix clock">
+          <div id="led-face" style="display: none" role="timer" aria-label="LED dot matrix clock">
             <div class="led-housing">
               <div class="led-grid" id="led-grid"></div>
             </div>
@@ -180,7 +273,13 @@
           </div>
 
           <!-- Words face -->
-          <div id="words-face" style="display:none" role="timer" aria-live="polite" aria-label="Time in words">
+          <div
+            id="words-face"
+            style="display: none"
+            role="timer"
+            aria-live="polite"
+            aria-label="Time in words"
+          >
             <p id="words-phrase" class="words-phrase"></p>
           </div>
 
@@ -188,8 +287,22 @@
 
           <!-- Format (12/24h) + face mode controls -->
           <div class="clock-controls">
-            <button id="btn-12hr" class="pill-btn active" aria-pressed="true" aria-label="Switch to 12-hour format">12h</button>
-            <button id="btn-24hr" class="pill-btn" aria-pressed="false" aria-label="Switch to 24-hour format">24h</button>
+            <button
+              id="btn-12hr"
+              class="pill-btn active"
+              aria-pressed="true"
+              aria-label="Switch to 12-hour format"
+            >
+              12h
+            </button>
+            <button
+              id="btn-24hr"
+              class="pill-btn"
+              aria-pressed="false"
+              aria-label="Switch to 24-hour format"
+            >
+              24h
+            </button>
           </div>
           <div class="face-mode-btns" role="group" aria-label="Clock face style">
             <button class="face-btn active" data-face="digital" aria-pressed="true">Digital</button>
@@ -211,7 +324,9 @@
               aria-label="Add a city"
               aria-expanded="false"
               aria-controls="city-search-container"
-            >+ Add</button>
+            >
+              + Add
+            </button>
           </div>
 
           <div id="city-search-container" class="city-search-container" hidden>
@@ -236,12 +351,10 @@
           <div id="city-list" class="city-list" role="list" aria-label="Saved world clocks"></div>
           <p id="city-empty" class="empty-hint" hidden>No world clocks added yet.</p>
         </div>
-
       </section>
 
       <!-- ═══ STOPWATCH PANEL ═══ -->
       <section id="sw-panel" class="panel" role="tabpanel" aria-labelledby="tab-sw" hidden>
-
         <h2 class="section-title">Stopwatch</h2>
 
         <div class="stopwatch-display">
@@ -253,12 +366,20 @@
             aria-label="Stopwatch"
             aria-atomic="false"
           >
-            <span id="sw-mins">00</span>:<span id="sw-secs">00</span><span class="cs">.<span id="sw-cs">00</span></span>
+            <span id="sw-mins">00</span>
+            :
+            <span id="sw-secs">00</span>
+            <span class="cs">
+              .
+              <span id="sw-cs">00</span>
+            </span>
           </div>
 
           <div class="sw-buttons" role="group" aria-label="Stopwatch controls">
             <button id="sw-lap-reset" class="circle-btn btn-reset" aria-label="Reset">Reset</button>
-            <button id="sw-start-stop" class="circle-btn btn-start" aria-label="Start stopwatch">Start</button>
+            <button id="sw-start-stop" class="circle-btn btn-start" aria-label="Start stopwatch">
+              Start
+            </button>
           </div>
         </div>
 
@@ -267,76 +388,147 @@
           <span>Lap Time</span>
           <span>Overall</span>
         </div>
-        <div id="lap-list" class="lap-list" role="list" aria-label="Lap times" aria-live="polite"></div>
+        <div
+          id="lap-list"
+          class="lap-list"
+          role="list"
+          aria-label="Lap times"
+          aria-live="polite"
+        ></div>
         <p id="sw-empty" class="empty-hint">Start the stopwatch to track laps.</p>
-
       </section>
 
       <!-- ═══ TIMER PANEL ═══ -->
       <section id="timer-panel" class="panel" role="tabpanel" aria-labelledby="tab-timer" hidden>
-
         <h2 class="section-title">Timer</h2>
 
         <div class="timer-panel-inner">
-
           <div class="timer-presets" role="group" aria-label="Quick presets">
-            <button class="preset-btn" data-secs="300"  aria-label="Set 5 minute timer">5 min</button>
-            <button class="preset-btn" data-secs="600"  aria-label="Set 10 minute timer">10 min</button>
-            <button class="preset-btn" data-secs="1500" aria-label="Set 25 minute Pomodoro timer">25 min 🍅</button>
+            <button class="preset-btn" data-secs="300" aria-label="Set 5 minute timer">
+              5 min
+            </button>
+            <button class="preset-btn" data-secs="600" aria-label="Set 10 minute timer">
+              10 min
+            </button>
+            <button class="preset-btn" data-secs="1500" aria-label="Set 25 minute Pomodoro timer">
+              25 min 🍅
+            </button>
           </div>
 
           <div class="timer-inputs" role="group" aria-label="Set custom timer duration">
             <div class="time-unit">
-              <input id="t-hrs"  class="time-spinner" type="number" min="0" max="23" value="0" aria-label="Hours" />
+              <input
+                id="t-hrs"
+                class="time-spinner"
+                type="number"
+                min="0"
+                max="23"
+                value="0"
+                aria-label="Hours"
+              />
               <span class="time-label">hr</span>
             </div>
             <span class="time-sep" aria-hidden="true">:</span>
             <div class="time-unit">
-              <input id="t-mins" class="time-spinner" type="number" min="0" max="59" value="0" aria-label="Minutes" />
+              <input
+                id="t-mins"
+                class="time-spinner"
+                type="number"
+                min="0"
+                max="59"
+                value="0"
+                aria-label="Minutes"
+              />
               <span class="time-label">min</span>
             </div>
             <span class="time-sep" aria-hidden="true">:</span>
             <div class="time-unit">
-              <input id="t-secs" class="time-spinner" type="number" min="0" max="59" value="0" aria-label="Seconds" />
+              <input
+                id="t-secs"
+                class="time-spinner"
+                type="number"
+                min="0"
+                max="59"
+                value="0"
+                aria-label="Seconds"
+              />
               <span class="time-label">sec</span>
             </div>
           </div>
 
           <div class="timer-ring-wrap" id="timer-ring-wrap">
             <svg class="timer-ring-svg" viewBox="0 0 120 120" aria-hidden="true">
-              <circle class="ring-track"    cx="60" cy="60" r="52" />
+              <circle class="ring-track" cx="60" cy="60" r="52" />
               <circle class="ring-progress" cx="60" cy="60" r="52" id="ring-prog" />
             </svg>
             <div class="timer-center-text" aria-hidden="true">
               <div id="timer-countdown" class="timer-countdown">0:00</div>
-              <div id="timer-status"    class="timer-status">ready</div>
+              <div id="timer-status" class="timer-status">ready</div>
             </div>
           </div>
 
           <!-- accessible live region for timer -->
-          <div id="timer-live" role="timer" aria-live="off" aria-atomic="true" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;"></div>
+          <div
+            id="timer-live"
+            role="timer"
+            aria-live="off"
+            aria-atomic="true"
+            class="sr-only"
+            style="
+              position: absolute;
+              width: 1px;
+              height: 1px;
+              overflow: hidden;
+              clip: rect(0, 0, 0, 0);
+              white-space: nowrap;
+            "
+          ></div>
 
           <div class="timer-buttons" role="group" aria-label="Timer controls">
-            <button id="timer-cancel"     class="circle-btn btn-reset" aria-label="Cancel timer">Cancel</button>
-            <button id="timer-start-stop" class="circle-btn btn-start" aria-label="Start timer">Start</button>
+            <button id="timer-cancel" class="circle-btn btn-reset" aria-label="Cancel timer">
+              Cancel
+            </button>
+            <button id="timer-start-stop" class="circle-btn btn-start" aria-label="Start timer">
+              Start
+            </button>
           </div>
-
         </div>
       </section>
-
-    </div><!-- /app -->
+    </div>
+    <!-- /app -->
 
     <!-- ═══ TAB BAR ═══ -->
     <nav id="tab-bar" role="tablist" aria-label="Clock app sections">
-      <button id="tab-clock" class="tab-btn active" role="tab" aria-selected="true"  aria-controls="clock-panel"  tabindex="0">
+      <button
+        id="tab-clock"
+        class="tab-btn active"
+        role="tab"
+        aria-selected="true"
+        aria-controls="clock-panel"
+        tabindex="0"
+      >
         <span class="tab-icon" aria-hidden="true">🕐</span>
         <span>Clock</span>
       </button>
-      <button id="tab-sw"    class="tab-btn"        role="tab" aria-selected="false" aria-controls="sw-panel"     tabindex="-1">
+      <button
+        id="tab-sw"
+        class="tab-btn"
+        role="tab"
+        aria-selected="false"
+        aria-controls="sw-panel"
+        tabindex="-1"
+      >
         <span class="tab-icon" aria-hidden="true">⏱</span>
         <span>Stopwatch</span>
       </button>
-      <button id="tab-timer" class="tab-btn"        role="tab" aria-selected="false" aria-controls="timer-panel"  tabindex="-1">
+      <button
+        id="tab-timer"
+        class="tab-btn"
+        role="tab"
+        aria-selected="false"
+        aria-controls="timer-panel"
+        tabindex="-1"
+      >
         <span class="tab-icon" aria-hidden="true">⏲</span>
         <span>Timer</span>
       </button>

@@ -26,7 +26,7 @@
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#7C5CFF" />
     <meta
       name="keywords"
       content="ASCII Star Wars, asciimation, Simon Jansen, Star Wars ASCII art, telnet star wars, towel.blinkenlights.nl, ASCII animation, retro internet, browser Star Wars"
@@ -42,7 +42,10 @@
     />
     <meta property="og:url" content="https://joeheyming.github.io/starwars/" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:image" content="https://joeheyming.github.io/starwars/starwars-preview.png" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/starwars/starwars-preview.png"
+    />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
@@ -55,7 +58,10 @@
       name="twitter:description"
       content="Star Wars Episode IV in ASCII art — the classic late-90s internet masterpiece, now in your browser."
     />
-    <meta name="twitter:image" content="https://joeheyming.github.io/starwars/starwars-preview.png" />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/starwars/starwars-preview.png"
+    />
 
     <!-- Canonical -->
     <link rel="canonical" href="https://joeheyming.github.io/starwars/" />
@@ -102,6 +108,14 @@
     <!-- Film data (Simon Jansen's asciimation, © 1997-2026 Simon Jansen, asciimation.co.nz) -->
     <script src="./sw-data.js"></script>
     <link rel="stylesheet" href="index.css" />
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
 
   <body>
@@ -128,21 +142,33 @@
       <div id="controls">
         <button class="ctrl-btn" id="btn-restart" title="Restart (Home)">|◀</button>
         <button class="ctrl-btn" id="btn-prev" title="Previous frame (←)">◀|</button>
-        <button class="ctrl-btn active" id="btn-playpause" title="Play/Pause (Space)">⏸ Pause</button>
+        <button class="ctrl-btn active" id="btn-playpause" title="Play/Pause (Space)">
+          ⏸ Pause
+        </button>
         <button class="ctrl-btn" id="btn-next" title="Next frame (→)">|▶</button>
         <button class="ctrl-btn" id="btn-end" title="End (End)">▶|</button>
-        <span style="color:#333">|</span>
-        <span style="color:#0f0; font-size:12px; font-family:monospace">Speed:</span>
-        <input type="range" id="speed-range" min="1" max="8" step="1" value="4" aria-label="Playback speed" />
+        <span class="ctrl-divider" aria-hidden="true">|</span>
+        <span class="ctrl-status-label">Speed:</span>
+        <input
+          type="range"
+          id="speed-range"
+          min="1"
+          max="8"
+          step="1"
+          value="4"
+          aria-label="Playback speed"
+        />
         <span id="speed-label">1×</span>
       </div>
 
       <div id="frame-counter">Frame 0 / 0</div>
 
       <div id="attribution">
-        Animation by <a href="https://asciimation.co.nz" target="_blank" rel="noopener">Simon Jansen</a>
-        &mdash; <em>Star Wars Episode IV in ASCII art</em> &mdash;
-        &copy; 1997&ndash;2026 Simon Jansen &middot;
+        Animation by
+        <a href="https://asciimation.co.nz" target="_blank" rel="noopener">Simon Jansen</a>
+        &mdash;
+        <em>Star Wars Episode IV in ASCII art</em>
+        &mdash; &copy; 1997&ndash;2026 Simon Jansen &middot;
         <a href="https://asciimation.co.nz" target="_blank" rel="noopener">asciimation.co.nz</a>
       </div>
     </div>
@@ -153,8 +179,9 @@
       <p>
         Simon Jansen's legendary ASCII animation of Star Wars Episode IV &mdash; the classic
         late-90s internet art project originally accessible via
-        <code>telnet towel.blinkenlights.nl</code>, now playable directly in your browser.
-        Play, pause, adjust speed, and scrub through all the frames.
+        <code>telnet towel.blinkenlights.nl</code>
+        , now playable directly in your browser. Play, pause, adjust speed, and scrub through all
+        the frames.
       </p>
       <nav aria-label="More from Joe Heyming">
         <strong>More from Joe Heyming:</strong>

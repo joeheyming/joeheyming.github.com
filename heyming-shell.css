@@ -1,0 +1,470 @@
+/*
+ * Heyming OS Design Language (HOSDL) — component contract.
+ *
+ * This file ships the .hos-* classes documented in HOSDL.md. Apps opt in
+ * by loading /brand.css first, then this file. All colors, motion, type,
+ * and radii come from brand tokens — no literals.
+ *
+ * The single invariant: app functionality is preserved. These components
+ * are the chrome over that functionality.
+ */
+
+/* ─── Buttons ──────────────────────────────────────────────────────── */
+
+.hos-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--surface-2);
+  color: var(--text-1);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  font-family: var(--font-ui);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--motion-hover), border-color var(--motion-hover),
+    color var(--motion-hover), transform var(--motion-hover);
+  user-select: none;
+}
+.hos-button:hover:not(:disabled) {
+  background: var(--surface-1);
+  border-color: var(--hairline-accent);
+}
+.hos-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.hos-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.hos-button-primary {
+  background: var(--accent-primary-bg);
+  color: var(--text-on-accent);
+  border-color: transparent;
+}
+.hos-button-primary:hover:not(:disabled) {
+  background: var(--accent-primary-bg-hover);
+  border-color: transparent;
+}
+
+.hos-button-ghost {
+  background: transparent;
+  color: var(--accent-primary-hover);
+  border-color: transparent;
+}
+.hos-button-ghost:hover:not(:disabled) {
+  background: var(--accent-primary-soft);
+  border-color: transparent;
+}
+
+.hos-button-danger {
+  background: var(--danger);
+  color: var(--pure-white, #ffffff);
+  border-color: transparent;
+}
+.hos-button-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger, #f87171) 85%, var(--pure-black, #000000));
+  border-color: transparent;
+}
+
+.hos-button-sm {
+  padding: 6px 12px;
+  font-size: var(--text-micro);
+}
+.hos-button-lg {
+  padding: 14px 24px;
+  font-size: var(--text-body);
+}
+
+/* ─── Inputs ───────────────────────────────────────────────────────── */
+
+.hos-input,
+.hos-textarea,
+.hos-select {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--surface-0);
+  color: var(--text-1);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: 1.4;
+  transition: border-color var(--motion-hover), box-shadow var(--motion-hover);
+  outline: none;
+  box-sizing: border-box;
+}
+.hos-textarea {
+  resize: vertical;
+  min-height: 96px;
+  font-family: var(--font-ui);
+}
+.hos-input::placeholder,
+.hos-textarea::placeholder {
+  color: var(--text-3);
+}
+.hos-input:focus,
+.hos-textarea:focus,
+.hos-select:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-primary-soft);
+}
+.hos-input:disabled,
+.hos-textarea:disabled,
+.hos-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hos-input-mono,
+.hos-textarea-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.hos-label {
+  display: block;
+  font-size: var(--text-micro);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-2);
+  margin-bottom: 6px;
+}
+
+.hos-field {
+  margin-bottom: 16px;
+}
+.hos-field-hint {
+  font-size: var(--text-caption);
+  color: var(--text-3);
+  margin: 6px 0 0;
+}
+.hos-field-error {
+  font-size: var(--text-caption);
+  color: var(--danger);
+  margin: 6px 0 0;
+}
+
+/* ─── Cards / surfaces ─────────────────────────────────────────────── */
+
+.hos-card {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+.hos-card-flush {
+  padding: 0;
+}
+.hos-card-glass {
+  background: var(--surface-glass);
+  backdrop-filter: var(--surface-glass-blur);
+  -webkit-backdrop-filter: var(--surface-glass-blur);
+  border: 1px solid var(--hairline-strong);
+}
+
+/* ─── App header ───────────────────────────────────────────────────── */
+
+.hos-app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--hairline);
+  /* Clears the floating back button on standalone pages. */
+  padding-left: max(20px, 120px);
+}
+.hos-app-header-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.hos-app-header-identity .app-icon-frame {
+  --icon-frame-size: 36px;
+}
+.hos-app-header-title {
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--text-1);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hos-app-header-subtitle {
+  font-size: var(--text-caption);
+  color: var(--text-2);
+  margin: 2px 0 0;
+}
+.hos-app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Compact mode for tight chrome (mobile, narrow popovers). */
+.hos-app-header-compact {
+  padding: 10px 16px;
+  padding-left: max(16px, 100px);
+}
+.hos-app-header-compact .hos-app-header-title {
+  font-size: var(--text-body);
+}
+
+/* ─── Toolbar ──────────────────────────────────────────────────────── */
+
+.hos-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--hairline);
+  flex-wrap: wrap;
+}
+.hos-toolbar-separator {
+  width: 1px;
+  height: 22px;
+  background: var(--hairline-strong);
+  margin: 0 4px;
+}
+.hos-toolbar-spacer {
+  flex: 1;
+}
+
+/* ─── List ─────────────────────────────────────────────────────────── */
+
+.hos-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+.hos-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  color: var(--text-1);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--motion-hover);
+}
+.hos-list-item:hover {
+  background: var(--accent-primary-soft);
+}
+.hos-list-item.is-selected {
+  background: var(--accent-primary-soft);
+  color: var(--accent-primary-hover);
+  font-weight: 600;
+}
+.hos-list-item-divider {
+  height: 1px;
+  background: var(--hairline);
+  margin: 6px 0;
+  pointer-events: none;
+}
+
+/* ─── Segmented control ────────────────────────────────────────────── */
+
+.hos-segmented {
+  display: inline-flex;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 3px;
+  gap: 2px;
+}
+.hos-segmented > button,
+.hos-segmented > label {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  font-family: var(--font-ui);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: calc(var(--radius) - 4px);
+  cursor: pointer;
+  transition: background var(--motion-hover), color var(--motion-hover);
+}
+.hos-segmented > button:hover,
+.hos-segmented > label:hover {
+  color: var(--text-1);
+}
+.hos-segmented > .is-active,
+.hos-segmented > [aria-checked='true'],
+.hos-segmented > [aria-selected='true'],
+.hos-segmented > input:checked + label {
+  background: var(--accent-primary-bg);
+  color: var(--text-on-accent);
+}
+
+/* ─── Switch ───────────────────────────────────────────────────────── */
+
+.hos-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-1);
+  font-family: var(--font-ui);
+  font-size: var(--text-caption);
+}
+.hos-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.hos-switch-track {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 22px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-pill);
+  transition: background var(--motion-hover), border-color var(--motion-hover);
+  flex-shrink: 0;
+}
+.hos-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: var(--text-1);
+  border-radius: 50%;
+  transition: transform var(--motion-hover);
+}
+.hos-switch input:checked + .hos-switch-track {
+  background: var(--accent-primary-bg);
+  border-color: var(--accent-primary);
+}
+.hos-switch input:checked + .hos-switch-track .hos-switch-thumb {
+  transform: translateX(14px);
+}
+.hos-switch input:focus-visible + .hos-switch-track {
+  outline: 2px solid var(--focus-ring-inner);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--focus-ring-outer);
+}
+
+/* ─── Scrollbar (component-local opt-in) ───────────────────────────── */
+
+.hos-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-2) var(--surface-0);
+}
+.hos-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.hos-scrollbar::-webkit-scrollbar-track {
+  background: var(--surface-0);
+}
+.hos-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--surface-2);
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--surface-0);
+}
+.hos-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+}
+
+/* ─── Status tag (success / warning / danger / info) ───────────────── */
+
+.hos-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline);
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+.hos-tag-success {
+  background: color-mix(in srgb, var(--success, #34d399) 16%, transparent);
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success, #34d399) 32%, transparent);
+}
+.hos-tag-warning {
+  background: color-mix(in srgb, var(--warning, #fbbf24) 16%, transparent);
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning, #fbbf24) 32%, transparent);
+}
+.hos-tag-danger {
+  background: color-mix(in srgb, var(--danger, #f87171) 16%, transparent);
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger, #f87171) 32%, transparent);
+}
+.hos-tag-info {
+  background: var(--accent-primary-soft);
+  color: var(--accent-primary-hover);
+  border-color: var(--hairline-accent);
+}
+
+/* ─── Notification toast ───────────────────────────────────────────── */
+
+.hos-notify-region {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9000;
+  pointer-events: none;
+  max-width: min(320px, calc(100vw - 40px));
+}
+.hos-notify {
+  pointer-events: auto;
+  background: var(--surface-2);
+  color: var(--text-1);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: var(--text-caption);
+  box-shadow: var(--shadow-card, 0 8px 24px rgba(0, 0, 0, 0.3));
+  animation: hos-notify-in 0.22s ease-out;
+}
+.hos-notify.hos-notify-success {
+  border-color: color-mix(in srgb, var(--success, #34d399) 45%, transparent);
+}
+.hos-notify.hos-notify-danger {
+  border-color: color-mix(in srgb, var(--danger, #f87171) 45%, transparent);
+}
+.hos-notify.hos-notify-warning {
+  border-color: color-mix(in srgb, var(--warning, #fbbf24) 45%, transparent);
+}
+@keyframes hos-notify-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

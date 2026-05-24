@@ -41,12 +41,6 @@ Examples:
         await fs.clearDatabase();
         output += '✅ Filesystem database cleared\n';
 
-        // Reinitialize to recreate scaffold
-        fs.isInitialized = false;
-        await fs.initialize();
-        output += '✅ Filesystem scaffold recreated\n';
-
-        // Emit create event so desktop and other components refresh
         const _su = () => {
           try {
             return localStorage.getItem('heymingOS_username');
@@ -55,6 +49,15 @@ Examples:
           }
         };
         const _u = _su() || 'user';
+
+        // Re-open the IDB connection and recreate the standard scaffold so
+        // /home/<user>/{Desktop,Documents,…} are restored as real directories
+        // immediately, without requiring a page reload.
+        fs.isInitialized = false;
+        await fs.initializeWithScaffolding(_u);
+        output += '✅ Filesystem scaffold recreated\n';
+
+        // Emit create event so desktop and other components refresh
         const cfg = window.parent?.HeymingOS?.Config || {
           HOME: `/home/${_u}`,
           DESKTOP: `/home/${_u}/Desktop`

@@ -10,52 +10,52 @@
 }
 
 .ansi-output span[style*='color: black'] {
-  color: #000000 !important;
+  color: var(--terminal-ansi-black, #000000) !important;
 }
 .ansi-output span[style*='color: red'] {
-  color: #ff0000 !important;
+  color: var(--terminal-ansi-red, #ff0000) !important;
 }
 .ansi-output span[style*='color: green'] {
-  color: #00ff00 !important;
+  color: var(--terminal-ansi-green, #00ff00) !important;
 }
 .ansi-output span[style*='color: yellow'] {
-  color: #ffff00 !important;
+  color: var(--terminal-ansi-yellow, #ffff00) !important;
 }
 .ansi-output span[style*='color: blue'] {
-  color: #0000ff !important;
+  color: var(--terminal-ansi-blue, #0000ff) !important;
 }
 .ansi-output span[style*='color: magenta'] {
-  color: #ff00ff !important;
+  color: var(--terminal-ansi-magenta, #ff00ff) !important;
 }
 .ansi-output span[style*='color: cyan'] {
-  color: #00ffff !important;
+  color: var(--terminal-ansi-cyan, #00ffff) !important;
 }
 .ansi-output span[style*='color: white'] {
-  color: #ffffff !important;
+  color: var(--terminal-ansi-white, #ffffff) !important;
 }
 .ansi-output span[style*='color: gray'] {
-  color: #808080 !important;
+  color: var(--terminal-ansi-gray, #808080) !important;
 }
 .ansi-output span[style*='color: lightred'] {
-  color: #ff8080 !important;
+  color: var(--terminal-ansi-bright-red, #ff8080) !important;
 }
 .ansi-output span[style*='color: lightgreen'] {
-  color: #80ff80 !important;
+  color: var(--terminal-ansi-bright-green, #80ff80) !important;
 }
 .ansi-output span[style*='color: lightyellow'] {
-  color: #ffff80 !important;
+  color: var(--terminal-ansi-bright-yellow, #ffff80) !important;
 }
 .ansi-output span[style*='color: lightblue'] {
-  color: #8080ff !important;
+  color: var(--terminal-ansi-bright-blue, #8080ff) !important;
 }
 .ansi-output span[style*='color: lightmagenta'] {
-  color: #ff80ff !important;
+  color: var(--terminal-ansi-bright-magenta, #ff80ff) !important;
 }
 .ansi-output span[style*='color: lightcyan'] {
-  color: #80ffff !important;
+  color: var(--terminal-ansi-bright-cyan, #80ffff) !important;
 }
 .ansi-output span[style*='color: lightwhite'] {
-  color: #ffffff !important;
+  color: var(--terminal-ansi-white, #ffffff) !important;
 }
 
 /* Animation support */
@@ -71,7 +71,7 @@
 }
 
 .prompt {
-  color: #0f0;
+  color: var(--terminal-prompt, #0f0);
   font-weight: bold;
 }
 
@@ -84,7 +84,7 @@
 .command-echo-line:not(.command-echo-first) {
   margin-top: 6px;
   padding-top: 8px;
-  border-top: 1px solid rgba(0, 255, 80, 0.14);
+  border-top: 1px solid var(--terminal-rule-soft, rgba(0, 255, 80, 0.14));
 }
 
 /* Theme G: exit code hint on echoed command lines (see annotateCommandLineWithExit) */
@@ -92,15 +92,15 @@
   font-weight: normal;
   font-size: 0.92em;
   margin-left: 2px;
-  color: rgba(0, 255, 80, 0.42);
+  color: var(--terminal-edge-strong, rgba(0, 255, 80, 0.42));
 }
 
 .command-exit-code[data-exit='0'] {
-  color: rgba(0, 255, 80, 0.38);
+  color: var(--terminal-edge-mid, rgba(0, 255, 80, 0.38));
 }
 
 .command-exit-code[data-exit]:not([data-exit='0']) {
-  color: rgba(255, 170, 150, 0.88);
+  color: var(--terminal-exit-fail, rgba(255, 170, 150, 0.88));
 }
 
 .terminal-output {
@@ -110,14 +110,18 @@
 
 .terminal-output.welcome,
 .terminal-line.terminal-output.welcome {
-  color: #b6f7b6;
+  color: var(--terminal-text-bright, #b6f7b6);
   font-weight: normal;
   margin: 0 0 14px 0;
   padding: 10px 12px 12px;
-  border-left: 3px solid #0b0;
-  background: linear-gradient(90deg, rgba(0, 48, 0, 0.45) 0%, rgba(0, 0, 0, 0) 100%);
+  border-left: 3px solid var(--terminal-prompt-deep, #0b0);
+  background: linear-gradient(
+    90deg,
+    var(--terminal-welcome-grad, rgba(0, 48, 0, 0.45)) 0%,
+    var(--terminal-grad-end, rgba(0, 0, 0, 0)) 100%
+  );
   border-radius: 0 6px 6px 0;
-  box-shadow: inset 0 0 0 1px rgba(0, 255, 80, 0.12);
+  box-shadow: inset 0 0 0 1px var(--terminal-rule, rgba(0, 255, 80, 0.12));
   line-height: 1.25;
   font-size: 13px;
   letter-spacing: 0.02em;
@@ -135,100 +139,105 @@
 }
 
 .terminal-output.help {
-  color: #ffffff;
+  color: var(--terminal-ansi-white, #ffffff);
 }
 
 .terminal-output.success {
-  color: #00ff00;
+  color: var(--terminal-ansi-green, #00ff00);
 }
 
 .terminal-output.error {
-  color: #ff0000;
+  color: var(--terminal-ansi-red, #ff0000);
 }
 
 /* Command stderr stream (distinct from default stdout lines) */
 .terminal-output.stderr {
-  color: #f5a898;
-  border-left: 2px solid rgba(255, 120, 96, 0.45);
+  color: var(--terminal-stderr-fg, #f5a898);
+  border-left: 2px solid var(--terminal-stderr-edge, rgba(255, 120, 96, 0.45));
   padding-left: 8px;
   margin-left: 2px;
 }
 
 /* Theme G — tabular process list (ps): single block, monospace columns */
 .terminal-output.tabular {
-  font-family: 'Hack', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-family: 'Hack', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    monospace;
   font-variant-ligatures: none;
-  color: #dff8e4;
-  border-left: 2px solid rgba(0, 255, 136, 0.35);
+  color: var(--terminal-text, #dff8e4);
+  border-left: 2px solid var(--terminal-panel-ps-edge, rgba(0, 255, 136, 0.35));
   padding: 6px 8px 8px 10px;
   margin: 4px 0 2px;
   border-radius: 2px;
-  background: rgba(0, 24, 12, 0.35);
+  background: var(--terminal-panel-ps-bg, rgba(0, 24, 12, 0.35));
 }
 
 /* Theme G — man(1) pages: monospace troff-like block, warm accent (distinct from ps) */
 .terminal-output.man-page {
-  font-family: 'Hack', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-family: 'Hack', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    monospace;
   font-variant-ligatures: none;
   font-size: 13px;
   line-height: 1.35;
-  color: #f0ebe2;
-  border-left: 2px solid rgba(255, 200, 120, 0.45);
+  color: var(--terminal-panel-man-fg, #f0ebe2);
+  border-left: 2px solid var(--terminal-panel-man-edge, rgba(255, 200, 120, 0.45));
   padding: 8px 10px 10px 12px;
   margin: 4px 0 2px;
   border-radius: 2px;
-  background: rgba(36, 28, 18, 0.45);
+  background: var(--terminal-panel-man-bg, rgba(36, 28, 18, 0.45));
 }
 
 /* Theme G — debug(1) diagnostics: monospace panel, cool accent (distinct from ps / man) */
 .terminal-output.debug-dump {
-  font-family: 'Hack', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-family: 'Hack', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    monospace;
   font-variant-ligatures: none;
   font-size: 13px;
   line-height: 1.35;
-  color: #dceaf8;
-  border-left: 2px solid rgba(120, 200, 255, 0.42);
+  color: var(--terminal-panel-debug-fg, #dceaf8);
+  border-left: 2px solid var(--terminal-panel-debug-edge, rgba(120, 200, 255, 0.42));
   padding: 8px 10px 10px 12px;
   margin: 4px 0 2px;
   border-radius: 2px;
-  background: rgba(16, 28, 44, 0.5);
+  background: var(--terminal-panel-debug-bg, rgba(16, 28, 44, 0.5));
 }
 
 /* Theme G — hexdump: monospace byte view, amber accent (distinct from tabular / man / debug) */
 .terminal-output.hex-dump {
-  font-family: 'Hack', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-family: 'Hack', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    monospace;
   font-variant-ligatures: none;
   font-size: 13px;
   line-height: 1.35;
-  color: #f4ead8;
-  border-left: 2px solid rgba(255, 170, 80, 0.48);
+  color: var(--terminal-panel-hex-fg, #f4ead8);
+  border-left: 2px solid var(--terminal-panel-hex-edge, rgba(255, 170, 80, 0.48));
   padding: 8px 10px 10px 12px;
   margin: 4px 0 2px;
   border-radius: 2px;
-  background: rgba(40, 28, 12, 0.48);
+  background: var(--terminal-panel-hex-bg, rgba(40, 28, 12, 0.48));
 }
 
 /* Theme G — ping: HTTP probe transcript, teal accent (distinct from ps / man / debug / hexdump) */
 .terminal-output.ping-log {
-  font-family: 'Hack', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-family: 'Hack', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    monospace;
   font-variant-ligatures: none;
   font-size: 13px;
   line-height: 1.35;
-  color: #d4f4ef;
-  border-left: 2px solid rgba(64, 220, 200, 0.42);
+  color: var(--terminal-panel-ping-fg, #d4f4ef);
+  border-left: 2px solid var(--terminal-panel-ping-edge, rgba(64, 220, 200, 0.42));
   padding: 8px 10px 10px 12px;
   margin: 4px 0 2px;
   border-radius: 2px;
-  background: rgba(10, 32, 36, 0.52);
+  background: var(--terminal-panel-ping-bg, rgba(10, 32, 36, 0.52));
 }
 
 .terminal-output.echo {
-  color: #ffffff;
+  color: var(--terminal-ansi-white, #ffffff);
 }
 
 .terminal-output.cat {
-  color: #ffffff;
-  background: #1a1a1a;
+  color: var(--terminal-ansi-white, #ffffff);
+  background: var(--terminal-cat-bg, #1a1a1a);
   padding: 5px;
   border-radius: 3px;
 }
@@ -238,76 +247,76 @@
 }
 
 .terminal-output.ls span[style*='blue'] {
-  color: #0088ff !important;
+  color: var(--terminal-ls-blue, #0088ff) !important;
 }
 
 .terminal-output.ls span[style*='green'] {
-  color: #00ff00 !important;
+  color: var(--terminal-ansi-green, #00ff00) !important;
 }
 
 .terminal-output.cowsay {
-  color: #ffffff;
+  color: var(--terminal-ansi-white, #ffffff);
   font-family: monospace;
 }
 
 .terminal-output.fortune {
-  color: #ffff00;
+  color: var(--terminal-ansi-yellow, #ffff00);
   font-style: italic;
 }
 
 .terminal-output.neofetch {
-  color: #00ffff;
+  color: var(--terminal-ansi-cyan, #00ffff);
 }
 
 .terminal-output.ping {
-  color: #00ff00;
+  color: var(--terminal-ansi-green, #00ff00);
 }
 
 .terminal-output.top {
-  color: #ffffff;
+  color: var(--terminal-ansi-white, #ffffff);
   font-family: monospace;
   font-size: 12px;
 }
 
 .terminal-output.ps {
-  color: #ffffff;
+  color: var(--terminal-ansi-white, #ffffff);
   font-family: monospace;
   font-size: 12px;
 }
 
 .terminal-output.date {
-  color: #ffff00;
+  color: var(--terminal-ansi-yellow, #ffff00);
 }
 
 .terminal-output.whoami {
-  color: #00ff00;
+  color: var(--terminal-ansi-green, #00ff00);
 }
 
 .terminal-output.uname {
-  color: #ffffff;
+  color: var(--terminal-ansi-white, #ffffff);
 }
 
 .terminal-output.history {
-  color: #888888;
+  color: var(--terminal-history-fg, #888888);
   font-family: monospace;
 }
 
 .terminal-output.autocomplete {
-  color: #888888;
+  color: var(--terminal-history-fg, #888888);
   font-style: italic;
 }
 
 .terminal-output.interrupt {
-  color: #ff0000;
+  color: var(--terminal-ansi-red, #ff0000);
   font-weight: bold;
 }
 
 .terminal-output.exit {
-  color: #ff0000;
+  color: var(--terminal-ansi-red, #ff0000);
   font-weight: bold;
 }
 
 .terminal-output.search {
-  color: #ffff00;
+  color: var(--terminal-ansi-yellow, #ffff00);
   font-weight: bold;
 }

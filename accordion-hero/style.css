@@ -1,21 +1,66 @@
 :root {
+  /* ── Brand-routed surfaces / text ─────────────────────────────── */
   --bg-0: #0b1020;
-  --bg-1: #0f172a;
-  --bg-2: #1e293b;
-  --fg: #e2e8f0;
-  --fg-dim: #94a3b8;
-  --accent: #818cf8;
+  --bg-1: var(--surface-0, #0f172a);
+  --bg-2: var(--surface-1, #1e293b);
+  --fg: var(--text-1, #e2e8f0);
+  --fg-dim: var(--text-2, #94a3b8);
+  --accent: var(--accent-primary-hover, #9077ff);
+
+  /* ── Accordion Hero scoped identity tokens ────────────────────── */
   --accent-2: #f472b6;
   --accent-3: #34d399;
   --accent-4: #facc15;
-  --border: rgba(148, 163, 184, 0.18);
 
+  /* Halos + slate base for in-rule rgba alphas */
+  --ah-glow-indigo: #818cf8;
+  --ah-slate: #94a3b8;
+  --border: color-mix(in srgb, var(--ah-slate) 18%, transparent);
+
+  /* Beat-track lane key colors */
   --lane-bass: #38bdf8;
   --lane-chord: #c084fc;
-  --judge-perfect: #34d399;
+
+  /* Judgment tiers (semantic mirrors of brand status hues) */
+  --judge-perfect: var(--success, #34d399);
   --judge-sub: #facc15;
   --judge-partial: #fb923c;
-  --judge-miss: #f87171;
+  --judge-miss: var(--danger, #f87171);
+
+  /* Lane bar (Stradella) palette: each row gets top/bottom/text/border. */
+  --ah-lanebar-top: #0b1220;
+  --ah-bass-light: #f8fafc;
+
+  --ah-cb-top: #e0f2fe;
+  --ah-cb-bottom: #bae6fd;
+  --ah-cb-text: #0c4a6e;
+  --ah-cb-border: #0284c7;
+
+  --ah-major-top: #052e16;
+  --ah-major-bottom: #14532d;
+  --ah-major-text: #bbf7d0;
+  --ah-major-border: #166534;
+
+  --ah-minor-top: #042f2e;
+  --ah-minor-bottom: #134e4a;
+  --ah-minor-text: #99f6e4;
+  --ah-minor-border: #115e59;
+
+  --ah-dom7-top: #422006;
+  --ah-dom7-bottom: #78350f;
+  --ah-dom7-text: #fed7aa;
+  --ah-dom7-border: #92400e;
+
+  --ah-dim7-top: #450a0a;
+  --ah-dim7-bottom: #7f1d1d;
+  --ah-dim7-text: #fecaca;
+  --ah-dim7-border: #991b1b;
+
+  --ah-home-top: #fecaca;
+  --ah-home-bottom: #fca5a5;
+  --ah-home-text: #7f1d1d;
+  --ah-home-border: #dc2626;
+  --ah-home-active-bottom: #ef4444;
 
   /* Game tuning */
   --strike-line-px: 96px;
@@ -31,18 +76,9 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background:
-    radial-gradient(900px 500px at 20% -10%, rgba(129, 140, 248, 0.18), transparent 60%),
-    radial-gradient(800px 500px at 110% 20%, rgba(244, 114, 182, 0.14), transparent 60%),
-    var(--bg-0);
+  background: var(--surface-0, var(--bg-0));
   color: var(--fg);
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   overflow: hidden;
 }
 
@@ -60,7 +96,7 @@ body {
   gap: 12px;
   padding: 16px 20px 16px 90px;
   border-bottom: 1px solid var(--border);
-  background: rgba(15, 23, 42, 0.55);
+  background: color-mix(in srgb, var(--bg-1) 55%, transparent);
   backdrop-filter: blur(6px);
 }
 
@@ -74,15 +110,12 @@ body {
   margin: 0;
   font-size: clamp(20px, 3.6vw, 28px);
   letter-spacing: -0.01em;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--accent-primary, #7c5cff);
 }
 
 .ah-title > span {
   font-size: clamp(22px, 4vw, 30px);
-  filter: drop-shadow(0 4px 12px rgba(129, 140, 248, 0.5));
+  filter: drop-shadow(0 4px 12px color-mix(in srgb, var(--ah-glow-indigo) 50%, transparent));
 }
 
 .ah-header-status {
@@ -101,12 +134,22 @@ body {
   transition: color 200ms ease, transform 200ms ease;
 }
 
-.ah-judgment[data-tier='full'] { color: var(--judge-perfect); }
-.ah-judgment[data-tier='sub']  { color: var(--judge-sub); }
-.ah-judgment[data-tier='partial'] { color: var(--judge-partial); }
+.ah-judgment[data-tier='full'] {
+  color: var(--judge-perfect);
+}
+.ah-judgment[data-tier='sub'] {
+  color: var(--judge-sub);
+}
+.ah-judgment[data-tier='partial'] {
+  color: var(--judge-partial);
+}
 .ah-judgment[data-tier='wrong'],
-.ah-judgment[data-tier='miss'] { color: var(--judge-miss); }
-.ah-judgment.is-flash { transform: scale(1.15); }
+.ah-judgment[data-tier='miss'] {
+  color: var(--judge-miss);
+}
+.ah-judgment.is-flash {
+  transform: scale(1.15);
+}
 
 .ah-voicing {
   font-size: clamp(11px, 2.2vw, 14px);
@@ -122,7 +165,7 @@ body {
   padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: rgba(30, 41, 59, 0.6);
+  background: color-mix(in srgb, var(--bg-2) 60%, transparent);
 }
 
 .ah-home-link:hover {
@@ -152,11 +195,11 @@ body {
 
 .ah-start-card {
   width: min(560px, 100%);
-  background: rgba(15, 23, 42, 0.72);
+  background: color-mix(in srgb, var(--bg-1) 72%, transparent);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: clamp(20px, 4vw, 28px);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 40px color-mix(in srgb, var(--pure-black) 35%, transparent);
 }
 
 .ah-start-card h2 {
@@ -231,8 +274,8 @@ body {
   padding: 14px 18px;
   font-size: 18px;
   font-weight: 700;
-  color: white;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: var(--text-on-accent, #fff);
+  background: var(--accent-primary-bg, #5b3cdc);
   border: none;
   border-radius: 12px;
   cursor: pointer;
@@ -310,7 +353,7 @@ body {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: rgba(15, 23, 42, 0.6);
+  background: color-mix(in srgb, var(--bg-1) 60%, transparent);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 14px;
@@ -345,7 +388,7 @@ body {
 
 .ah-pause-btn {
   margin-left: auto;
-  background: rgba(30, 41, 59, 0.7);
+  background: color-mix(in srgb, var(--bg-2) 70%, transparent);
   color: var(--fg);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -362,7 +405,7 @@ body {
   position: relative;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: linear-gradient(180deg, rgba(30, 41, 59, 0.45), rgba(15, 23, 42, 0.6));
+  background: color-mix(in srgb, var(--bg-2) 50%, transparent);
   overflow: hidden;
   touch-action: none;
 }
@@ -394,18 +437,13 @@ body {
   bottom: 0;
   /* Grow with row count: ~44px per row + 28px padding, capped so very
    * row-heavy songs don't eat the whole playfield. */
-  height: clamp(
-    110px,
-    calc(var(--row-count, 1) * 44px + 28px),
-    280px
-  );
+  height: clamp(110px, calc(var(--row-count, 1) * 44px + 28px), 280px);
   padding: 12px 14px;
-  background: linear-gradient(180deg, #0b1220, #1f2937);
+  background: linear-gradient(180deg, var(--ah-lanebar-top, #0b1220), var(--surface-1, #1f2937));
   border-top: 1px solid var(--border);
   border-radius: 0 0 12px 12px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 -8px 24px -16px rgba(0, 0, 0, 0.7);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white) 5%, transparent),
+    0 -8px 24px -16px color-mix(in srgb, var(--pure-black) 70%, transparent);
   touch-action: none;
 }
 
@@ -422,11 +460,11 @@ body {
   align-items: center;
   justify-content: center;
   gap: 1px;
-  border: 1px solid rgba(148, 163, 184, 0.45);
+  border: 1px solid color-mix(in srgb, var(--ah-slate) 45%, transparent);
   /* Default look — bass-style silver palette. Per-row palettes below
    * override this for major/minor/dom7/dim7. */
-  background: linear-gradient(180deg, #f8fafc, #cbd5e1);
-  color: #0f172a;
+  background: linear-gradient(180deg, var(--ah-bass-light, #f8fafc), var(--text-1, #cbd5e1));
+  color: var(--surface-0, #0f172a);
   font-weight: 700;
   cursor: pointer;
   padding: 0;
@@ -444,61 +482,72 @@ body {
 
 .ah-col-btn.is-active {
   transform: translate(-50%, -50%) scale(0.92);
-  box-shadow:
-    inset 0 2px 6px rgba(0, 0, 0, 0.45),
-    0 0 14px rgba(244, 114, 182, 0.45);
+  box-shadow: inset 0 2px 6px color-mix(in srgb, var(--pure-black) 45%, transparent),
+    0 0 14px color-mix(in srgb, var(--accent-2) 45%, transparent);
 }
 
 /* ----- Per-row palettes (mirror /play/accordion/ stradella styling) ----- */
 
 .ah-col-btn[data-row='bass'] {
-  background: linear-gradient(180deg, #f8fafc, #cbd5e1);
-  color: #0f172a;
-  border-color: #475569;
+  background: linear-gradient(180deg, var(--ah-bass-light, #f8fafc), var(--text-1, #cbd5e1));
+  color: var(--surface-0, #0f172a);
+  border-color: var(--text-3, #475569);
 }
 
 .ah-col-btn[data-row='counter-bass'] {
-  background: linear-gradient(180deg, #e0f2fe, #bae6fd);
-  color: #0c4a6e;
-  border-color: #0284c7;
+  background: linear-gradient(180deg, var(--ah-cb-top, #e0f2fe), var(--ah-cb-bottom, #bae6fd));
+  color: var(--ah-cb-text, #0c4a6e);
+  border-color: var(--ah-cb-border, #0284c7);
 }
 
 .ah-col-btn[data-row='major'] {
-  background: linear-gradient(180deg, #052e16, #14532d);
-  color: #bbf7d0;
-  border-color: #166534;
+  background: linear-gradient(
+    180deg,
+    var(--ah-major-top, #052e16),
+    var(--ah-major-bottom, #14532d)
+  );
+  color: var(--ah-major-text, #bbf7d0);
+  border-color: var(--ah-major-border, #166534);
 }
 
 .ah-col-btn[data-row='minor'] {
-  background: linear-gradient(180deg, #042f2e, #134e4a);
-  color: #99f6e4;
-  border-color: #115e59;
+  background: linear-gradient(
+    180deg,
+    var(--ah-minor-top, #042f2e),
+    var(--ah-minor-bottom, #134e4a)
+  );
+  color: var(--ah-minor-text, #99f6e4);
+  border-color: var(--ah-minor-border, #115e59);
 }
 
 .ah-col-btn[data-row='dom7'] {
-  background: linear-gradient(180deg, #422006, #78350f);
-  color: #fed7aa;
-  border-color: #92400e;
+  background: linear-gradient(180deg, var(--ah-dom7-top, #422006), var(--ah-dom7-bottom, #78350f));
+  color: var(--ah-dom7-text, #fed7aa);
+  border-color: var(--ah-dom7-border, #92400e);
 }
 
 .ah-col-btn[data-row='dim7'] {
-  background: linear-gradient(180deg, #450a0a, #7f1d1d);
-  color: #fecaca;
-  border-color: #991b1b;
+  background: linear-gradient(180deg, var(--ah-dim7-top, #450a0a), var(--ah-dim7-bottom, #7f1d1d));
+  color: var(--ah-dim7-text, #fecaca);
+  border-color: var(--ah-dim7-border, #991b1b);
 }
 
 /* Home buttons (F/C/G family — pc 0/4/8) — red tint, visible reference dots
  * the player feels for, same convention as the real instrument. */
 .ah-col-btn.is-home {
-  background: linear-gradient(180deg, #fecaca, #fca5a5);
-  color: #7f1d1d;
-  border-color: #dc2626;
-  box-shadow: inset 0 -2px 4px rgba(127, 29, 29, 0.3);
+  background: linear-gradient(180deg, var(--ah-home-top, #fecaca), var(--ah-home-bottom, #fca5a5));
+  color: var(--ah-home-text, #7f1d1d);
+  border-color: var(--ah-home-border, #dc2626);
+  box-shadow: inset 0 -2px 4px color-mix(in srgb, var(--ah-home-text) 30%, transparent);
 }
 
 .ah-col-btn.is-home.is-active {
-  background: linear-gradient(180deg, #fca5a5, #ef4444);
-  color: #fff;
+  background: linear-gradient(
+    180deg,
+    var(--ah-home-bottom, #fca5a5),
+    var(--ah-home-active-bottom, #ef4444)
+  );
+  color: var(--pure-white, #fff);
 }
 
 .ah-col-name {
@@ -527,7 +576,7 @@ body {
 
 .ah-results-card {
   width: min(420px, 100%);
-  background: rgba(15, 23, 42, 0.85);
+  background: color-mix(in srgb, var(--bg-1) 85%, transparent);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 24px;

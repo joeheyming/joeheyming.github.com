@@ -15,7 +15,7 @@
       name="description"
       content="A free browser drum kit with twelve pads — kick, snare, hi-hats, toms, and cymbals. Tap or click to play, with multi-touch support on phones and tablets."
     />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#7C5CFF" />
 
     <link rel="manifest" href="/play/manifest.json" />
     <link rel="apple-touch-icon" sizes="180x180" href="/play/icons/apple-touch-icon.png" />
@@ -31,10 +31,7 @@
       content="A free browser drum kit with twelve pads — kick, snare, hi-hats, toms, and cymbals. Tap or click to play, with multi-touch support on phones and tablets."
     />
     <meta property="og:url" content="https://joeheyming.github.io/play/drums/" />
-    <meta
-      property="og:image"
-      content="https://joeheyming.github.io/play/drums/drums-preview.png"
-    />
+    <meta property="og:image" content="https://joeheyming.github.io/play/drums/drums-preview.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Browser drum kit" />
@@ -76,8 +73,7 @@
           window.backButtonInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent =
-            '.back-to-portfolio,.play-footer a[href="/"]{display:none!important}';
+          s.textContent = '.back-to-portfolio,.play-footer a[href="/"]{display:none!important}';
           document.head.appendChild(s);
         }
       })();
@@ -91,6 +87,14 @@
     <link rel="stylesheet" href="style.css" />
 
     <script src="/proxy.js"></script>
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
   <body class="instrument-body">
     <header class="instrument-header">
@@ -173,27 +177,43 @@
       <h2>How to play</h2>
       <ul>
         <li>
-          <strong>Click</strong>, <strong>tap</strong>, or use the
-          <strong>computer keyboard</strong> — each pad shows its key.
+          <strong>Click</strong>
+          ,
+          <strong>tap</strong>
+          , or use the
+          <strong>computer keyboard</strong>
+          — each pad shows its key.
         </li>
         <li>
-          The 4×3 layout matches the Q W E R / A S D F / Z X C V rows. Left
-          half is the rhythm section (snare, kick, toms); right half is hats
-          and cymbals — same hand-split as a real kit, also great for thumbs
-          on a phone in landscape.
+          The 4×3 layout matches the Q W E R / A S D F / Z X C V rows. Left half is the rhythm
+          section (snare, kick, toms); right half is hats and cymbals — same hand-split as a real
+          kit, also great for thumbs on a phone in landscape.
         </li>
         <li>
-          Switch between sampled <strong>LinnDrum</strong> /
-          <strong>TR-808</strong> kits (loaded on demand from a
-          public-domain catalog) and the always-available
-          <strong>synth</strong> kits.
+          Switch between sampled
+          <strong>LinnDrum</strong>
+          /
+          <strong>TR-808</strong>
+          kits (loaded on demand from a public-domain catalog) and the always-available
+          <strong>synth</strong>
+          kits.
         </li>
         <li>
-          Lay down a sick beat: hit <strong>Rec</strong> (or <code>Space</code>),
-          play your pattern, hit <strong>Rec</strong> again to lock the loop. It
-          plays back instantly. Hit <strong>Rec</strong> again while it's
-          playing to <strong>overdub</strong> more layers, or
-          <strong>Play</strong> (<code>P</code>) to stop and start.
+          Lay down a sick beat: hit
+          <strong>Rec</strong>
+          (or
+          <code>Space</code>
+          ), play your pattern, hit
+          <strong>Rec</strong>
+          again to lock the loop. It plays back instantly. Hit
+          <strong>Rec</strong>
+          again while it's playing to
+          <strong>overdub</strong>
+          more layers, or
+          <strong>Play</strong>
+          (
+          <code>P</code>
+          ) to stop and start.
         </li>
       </ul>
     </section>

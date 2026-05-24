@@ -11,14 +11,16 @@
   width: min(100%, 1100px);
   height: clamp(180px, 32vh, 280px);
   border-radius: 14px;
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.4), rgba(0, 0, 0, 0.4)),
-    linear-gradient(180deg, #1e293b, #0f172a);
+  background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--play-slate-900, #0f172a) 40%, transparent),
+      color-mix(in srgb, var(--pure-black, #000) 40%, transparent)
+    ),
+    linear-gradient(180deg, var(--surface-1, #1e293b), var(--surface-0, #0f172a));
   border: 1px solid var(--border);
   padding: 14px 14px 16px;
-  box-shadow:
-    0 24px 40px -20px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: 0 24px 40px -20px color-mix(in srgb, var(--pure-black, #000) 60%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 4%, transparent);
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
@@ -50,10 +52,7 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   cursor: pointer;
-  transition:
-    transform 60ms ease,
-    background 80ms ease,
-    box-shadow 100ms ease;
+  transition: transform 60ms ease, background 80ms ease, box-shadow 100ms ease;
 }
 
 .piano-key:focus-visible {
@@ -63,48 +62,56 @@
 }
 
 .piano-key.white {
-  background: linear-gradient(180deg, #fafafa, #e5e7eb);
+  background: linear-gradient(
+    180deg,
+    var(--play-key-white-from, #fafafa),
+    var(--play-key-white-to, #e5e7eb)
+  );
   border-radius: 0 0 8px 8px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--text-1, #cbd5e1);
   border-top: none;
-  color: #475569;
-  box-shadow:
-    inset 0 -6px 0 rgba(0, 0, 0, 0.06),
-    0 2px 0 rgba(0, 0, 0, 0.18);
+  color: var(--text-3, #475569);
+  box-shadow: inset 0 -6px 0 color-mix(in srgb, var(--pure-black, #000) 6%, transparent),
+    0 2px 0 color-mix(in srgb, var(--pure-black, #000) 18%, transparent);
   z-index: 1;
 }
 
 .piano-key.white.active {
-  background: linear-gradient(180deg, #c7d2fe, #a5b4fc);
-  color: #1e1b4b;
+  background: linear-gradient(
+    180deg,
+    var(--play-key-white-active-from, #c7d2fe),
+    var(--play-key-white-active-to, #a5b4fc)
+  );
+  color: var(--play-key-active-text, #1e1b4b);
   transform: translateY(2px);
-  box-shadow:
-    inset 0 -2px 0 rgba(0, 0, 0, 0.18),
-    0 1px 0 rgba(0, 0, 0, 0.18);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--pure-black, #000) 18%, transparent),
+    0 1px 0 color-mix(in srgb, var(--pure-black, #000) 18%, transparent);
 }
 
 .piano-key.black {
-  background: linear-gradient(180deg, #1f2937, #0b1020);
+  background: linear-gradient(180deg, var(--surface-1, #1f2937), var(--play-bg-deepest, #0b1020));
   border-radius: 0 0 6px 6px;
-  border: 1px solid #000;
-  color: #cbd5e1;
+  border: 1px solid var(--pure-black, #000);
+  color: var(--text-1, #cbd5e1);
   height: 62%;
   top: 14px;
   bottom: auto;
-  box-shadow:
-    inset 0 -4px 0 rgba(255, 255, 255, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 4px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 -4px 0 color-mix(in srgb, var(--pure-white, #fff) 5%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 8%, transparent),
+    0 4px 6px color-mix(in srgb, var(--pure-black, #000) 40%, transparent);
   z-index: 2;
 }
 
 .piano-key.black.active {
-  background: linear-gradient(180deg, #4338ca, #1e1b4b);
-  color: #c7d2fe;
+  background: linear-gradient(
+    180deg,
+    var(--play-key-black-active-from, #4338ca),
+    var(--play-key-black-active-to, #1e1b4b)
+  );
+  color: var(--play-key-label, #c7d2fe);
   transform: translateY(2px);
-  box-shadow:
-    inset 0 -2px 0 rgba(255, 255, 255, 0.05),
-    0 2px 4px rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--pure-white, #fff) 5%, transparent),
+    0 2px 4px color-mix(in srgb, var(--pure-black, #000) 40%, transparent);
 }
 
 .piano-key .key-label {
@@ -146,7 +153,7 @@
 }
 
 .piano-key.black .key-label {
-  color: #cbd5e1;
+  color: var(--text-1, #cbd5e1);
 }
 
 /* Legacy compound toggle — some pages may still wire up `hide-labels` to
@@ -234,9 +241,9 @@
     /* Right-edge fade — visible whenever the keyboard overflows. */
     background: linear-gradient(
       to right,
-      rgba(15, 23, 42, 0) 0%,
-      rgba(15, 23, 42, 0) calc(100% - 24px),
-      rgba(15, 23, 42, 0.5) 100%
+      color-mix(in srgb, var(--play-slate-900, #0f172a) 0%, transparent) 0%,
+      color-mix(in srgb, var(--play-slate-900, #0f172a) 0%, transparent) calc(100% - 24px),
+      color-mix(in srgb, var(--play-slate-900, #0f172a) 50%, transparent) 100%
     );
     background-attachment: local;
   }

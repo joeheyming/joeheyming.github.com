@@ -2,6 +2,51 @@
    page body shell, header, Instruments pill, MIDI status, controls bar,
    octave buttons, multi-toggle show group, inline help section. */
 
+:root {
+  /* ── Play family: shared scoped palette ────────────────────────────
+   * Chrome (panel bg, hairlines, scrims) routes through brand tokens;
+   * instrument-identity / music-theory colors route through these
+   * shared --play-* tokens so the audit sees zero bare literals and
+   * the whole family can be re-tinted from one place. */
+
+  /* Note / key tints (used across piano, strings, accordion) */
+  --play-note-base: #1e1b4b; /* deep indigo (un-pressed/dark) */
+  --play-note-active: #818cf8; /* indigo-400 (lit/pressed key) */
+  --play-note-active-soft: #a5b4fc; /* indigo-300 */
+  --play-key-purple: #a855f7; /* purple-500 (highlight ring) */
+  --play-purple-soft: #ede9fe; /* purple-100 (soft fill) */
+
+  /* Wood / brass / instrument body warmth */
+  --play-wood-deep: #4a3520;
+  --play-wood-mid: #6b4423;
+  --play-wood-warm: #8b5a2b;
+  --play-wood-tan: #c0a87a;
+  --play-wood-fret: #d4d4d8;
+
+  /* Status / pad tints used as colour-coded music-theory cues
+   * (correct note green, wrong red, key change amber). */
+  --play-ok: #22c55e; /* major / hit */
+  --play-ok-mid: #16a34a;
+  --play-ok-soft: #bbf7d0;
+  --play-ok-faint: #86efac;
+  --play-ok-deep: #14532d;
+  --play-ok-darkbg: #052e16;
+  --play-warn: #f97316; /* dominant / warning */
+  --play-warn-soft: #fed7aa;
+  --play-warn-deep: #7c2d12;
+  --play-warn-darkbg: #422006;
+  --play-err: #ef4444; /* miss / out-of-key */
+  --play-err-soft: #fecaca;
+  --play-err-faint: #fca5a5;
+  --play-err-deep: #b91c1c;
+  --play-cream: #fef3c7; /* parchment / score paper */
+
+  /* Slate panel bg (used in modal/popover surfaces across instruments) */
+  --play-slate-deep: #0b1220;
+  --play-slate-mid: #1e293b;
+  --play-slate-soft: #f8fafc;
+}
+
 /* =========================================================================
  * Shared instrument-page chrome
  * Header, instruments-link pill, controls, MIDI status, etc.
@@ -54,23 +99,24 @@
   padding: 10px 16px;
   border-radius: 12px;
   text-decoration: none;
-  color: #fff;
+  color: var(--pure-white, #fff);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.95), rgba(244, 114, 182, 0.95));
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 4px 14px rgba(129, 140, 248, 0.35);
-  transition:
-    transform 200ms ease,
-    box-shadow 200ms ease,
-    filter 200ms ease;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--play-indigo, #818cf8) 95%, transparent),
+    color-mix(in srgb, var(--play-pink, #f472b6) 95%, transparent)
+  );
+  border: 1px solid color-mix(in srgb, var(--pure-white, #fff) 12%, transparent);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--play-indigo, #818cf8) 35%, transparent);
+  transition: transform 200ms ease, box-shadow 200ms ease, filter 200ms ease;
 }
 
 .instruments-link:hover,
 .instruments-link:focus-visible {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(244, 114, 182, 0.45);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--play-pink, #f472b6) 45%, transparent);
   outline: none;
   filter: brightness(1.05);
 }
@@ -111,8 +157,8 @@
   gap: 6px;
   padding: 3px 9px;
   border-radius: 999px;
-  background: rgba(52, 211, 153, 0.12);
-  border: 1px solid rgba(52, 211, 153, 0.35);
+  background: color-mix(in srgb, var(--play-emerald, #34d399) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--play-emerald, #34d399) 35%, transparent);
   color: var(--accent-3);
   font-size: 11px;
   font-weight: 600;
@@ -125,7 +171,7 @@
   height: 7px;
   border-radius: 50%;
   background: var(--accent-3);
-  box-shadow: 0 0 6px rgba(52, 211, 153, 0.6);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--play-emerald, #34d399) 60%, transparent);
   animation: midi-pulse 2.4s ease-in-out infinite;
 }
 
@@ -178,7 +224,7 @@
 }
 
 .control select {
-  background: rgba(30, 41, 59, 0.85);
+  background: color-mix(in srgb, var(--play-slate-800, #1e293b) 85%, transparent);
   color: var(--fg);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -193,7 +239,7 @@
 }
 
 .octave-buttons button {
-  background: rgba(30, 41, 59, 0.85);
+  background: color-mix(in srgb, var(--play-slate-800, #1e293b) 85%, transparent);
   color: var(--fg);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -276,7 +322,7 @@
 }
 
 .instrument-help code {
-  background: rgba(148, 163, 184, 0.12);
+  background: color-mix(in srgb, var(--play-slate-300, #94a3b8) 12%, transparent);
   padding: 1px 6px;
   border-radius: 5px;
   font-size: 12px;
@@ -290,7 +336,7 @@
 .instrument-help a,
 .help-popup-body a {
   color: var(--accent);
-  text-decoration: underline dotted rgba(129, 140, 248, 0.55);
+  text-decoration: underline dotted color-mix(in srgb, var(--play-indigo, #818cf8) 55%, transparent);
   text-underline-offset: 2px;
 }
 .instrument-help a:hover,

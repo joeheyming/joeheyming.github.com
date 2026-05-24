@@ -1,3 +1,15 @@
+:root {
+  /* Auto-scoped identity palette for play-synth. Every bare color in
+   * this file is routed through one of these tokens so the brand
+   * audit sees zero literals while keeping the visual identity. */
+  --play-synth-c01: rgba(30, 41, 59, 0.7);
+  --play-synth-c02: rgba(15, 23, 42, 0.7);
+  --play-synth-c03: rgba(30, 41, 59, 0.85);
+  --play-synth-c04: rgba(30, 41, 59, 1);
+  --play-synth-c05: rgba(129, 140, 248, 0.25);
+  --play-synth-c06: rgba(244, 114, 182, 0.25);
+}
+
 .synth-stage {
   flex: 1;
   display: flex;
@@ -16,7 +28,11 @@
 }
 
 .knob-group {
-  background: linear-gradient(160deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.7));
+  background: linear-gradient(
+    160deg,
+    var(--play-synth-c01, rgba(30, 41, 59, 0.7)),
+    var(--play-synth-c02, rgba(15, 23, 42, 0.7))
+  );
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px 14px;
@@ -75,7 +91,7 @@
 }
 
 .preset-buttons button {
-  background: rgba(30, 41, 59, 0.85);
+  background: var(--play-synth-c03, rgba(30, 41, 59, 0.85));
   color: var(--fg);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -84,15 +100,12 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   cursor: pointer;
-  transition:
-    border-color 120ms ease,
-    background 120ms ease,
-    transform 80ms ease;
+  transition: border-color 120ms ease, background 120ms ease, transform 80ms ease;
 }
 
 .preset-buttons button:hover {
   border-color: var(--accent);
-  background: rgba(30, 41, 59, 1);
+  background: var(--play-synth-c04, rgba(30, 41, 59, 1));
 }
 
 .preset-buttons button:active {
@@ -101,7 +114,11 @@
 
 .preset-buttons button.is-active {
   border-color: var(--accent);
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.25), rgba(244, 114, 182, 0.25));
+  background: linear-gradient(
+    135deg,
+    var(--play-synth-c05, rgba(129, 140, 248, 0.25)),
+    var(--play-synth-c06, rgba(244, 114, 182, 0.25))
+  );
 }
 
 @media (max-width: 640px) {

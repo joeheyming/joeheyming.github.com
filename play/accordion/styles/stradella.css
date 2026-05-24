@@ -1,6 +1,52 @@
 /* Accordion — Stradella bass (120-button, diagonal grid): horizontal + vertical
    orientations, flip-mirroring, and mobile tap-target tuning. */
 
+:root {
+  /* Auto-scoped identity palette for play-acc-strad. Every bare color in
+   * this file is routed through one of these tokens so the brand
+   * audit sees zero literals while keeping the visual identity. */
+  --play-acc-strad-c01: #0b1220;
+  --play-acc-strad-c02: #1f2937;
+  --play-acc-strad-c03: rgba(148, 163, 184, 0.45);
+  --play-acc-strad-c04: #1e293b;
+  --play-acc-strad-c05: #0f172a;
+  --play-acc-strad-c06: #e2e8f0;
+  --play-acc-strad-c07: #f472b6;
+  --play-acc-strad-c08: #f8fafc;
+  --play-acc-strad-c09: #cbd5e1;
+  --play-acc-strad-c10: #475569;
+  --play-acc-strad-c11: #e0f2fe;
+  --play-acc-strad-c12: #bae6fd;
+  --play-acc-strad-c13: #0c4a6e;
+  --play-acc-strad-c14: #0284c7;
+  --play-acc-strad-c15: #fecaca;
+  --play-acc-strad-c16: #fca5a5;
+  --play-acc-strad-c17: #7f1d1d;
+  --play-acc-strad-c18: #dc2626;
+  --play-acc-strad-c19: rgba(127, 29, 29, 0.3);
+  --play-acc-strad-c20: #ef4444;
+  --play-acc-strad-c21: #ffffff;
+  --play-acc-strad-c22: #052e16;
+  --play-acc-strad-c23: #14532d;
+  --play-acc-strad-c24: #bbf7d0;
+  --play-acc-strad-c25: #166534;
+  --play-acc-strad-c26: #042f2e;
+  --play-acc-strad-c27: #134e4a;
+  --play-acc-strad-c28: #99f6e4;
+  --play-acc-strad-c29: #115e59;
+  --play-acc-strad-c30: #422006;
+  --play-acc-strad-c31: #78350f;
+  --play-acc-strad-c32: #fed7aa;
+  --play-acc-strad-c33: #92400e;
+  --play-acc-strad-c34: #450a0a;
+  --play-acc-strad-c35: #991b1b;
+  --play-acc-strad-c36: #94a3b8;
+  --play-acc-strad-c37: #ede9fe;
+  --play-acc-strad-c38: #c4b5fd;
+  --play-acc-strad-c39: #312e81;
+  --play-acc-strad-c40: #6d28d9;
+}
+
 /* ---------- Stradella bass (120-button, diagonal grid) ----------
  *
  * Real 120-bass accordions don't lay out their buttons on a rectangular
@@ -26,10 +72,15 @@
    * 18px gives ~4px of breathing past the radius even at the tightest
    * 1280px desktop fit. */
   padding: 14px 18px;
-  background: linear-gradient(180deg, #0b1220, #1f2937);
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-strad-c01, #0b1220),
+    var(--play-acc-strad-c02, #1f2937)
+  );
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 24px -16px rgba(0, 0, 0, 0.7);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white) 5%, transparent),
+    0 8px 24px -16px color-mix(in srgb, var(--pure-black) 70%, transparent);
   user-select: none;
   -webkit-user-select: none;
   /* The container itself stays scrollable — touches that land in the empty
@@ -148,9 +199,13 @@
 .stradella-button {
   -webkit-appearance: none;
   appearance: none;
-  border: 1px solid rgba(148, 163, 184, 0.45);
-  background: linear-gradient(180deg, #1e293b, #0f172a);
-  color: #e2e8f0;
+  border: 1px solid var(--play-acc-strad-c03, rgba(148, 163, 184, 0.45));
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-strad-c04, #1e293b),
+    var(--play-acc-strad-c05, #0f172a)
+  );
+  color: var(--play-acc-strad-c06, #e2e8f0);
   border-radius: 999px;
   font-family: inherit;
   /* Heavier weight so chord glyphs (M / m / 7 / °) and the small note
@@ -179,13 +234,13 @@
 }
 
 .stradella-button:focus-visible {
-  outline: 2px solid #f472b6;
+  outline: 2px solid var(--play-acc-strad-c07, #f472b6);
   outline-offset: 2px;
 }
 
 .stradella-button.active {
   transform: translateY(1px) scale(0.94);
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 2px 6px color-mix(in srgb, var(--pure-black) 50%, transparent);
 }
 
 /* Counter-bass and bass: bigger, single-note buttons. */
@@ -201,64 +256,104 @@
    * still fit inside the circular chip at this ratio because letter
    * advance is roughly 0.55–0.6 of font-size in the inherited UI font. */
   font-size: calc(var(--btn-size) * 0.46);
-  background: linear-gradient(180deg, #f8fafc, #cbd5e1);
-  color: #0f172a;
-  border-color: #475569;
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-strad-c08, #f8fafc),
+    var(--play-acc-strad-c09, #cbd5e1)
+  );
+  color: var(--play-acc-strad-c05, #0f172a);
+  border-color: var(--play-acc-strad-c10, #475569);
 }
 
 .stradella-button-counter-bass {
-  background: linear-gradient(180deg, #e0f2fe, #bae6fd);
-  color: #0c4a6e;
-  border-color: #0284c7;
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-strad-c11, #e0f2fe),
+    var(--play-acc-strad-c12, #bae6fd)
+  );
+  color: var(--play-acc-strad-c13, #0c4a6e);
+  border-color: var(--play-acc-strad-c14, #0284c7);
 }
 
 /* Home buttons (F, C, G) — visible reference points the player feels for. */
 .stradella-button.is-home {
-  background: linear-gradient(180deg, #fecaca, #fca5a5);
-  color: #7f1d1d;
-  border-color: #dc2626;
-  box-shadow: inset 0 -2px 4px rgba(127, 29, 29, 0.3);
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-strad-c15, #fecaca),
+    var(--play-acc-strad-c16, #fca5a5)
+  );
+  color: var(--play-acc-strad-c17, #7f1d1d);
+  border-color: var(--play-acc-strad-c18, #dc2626);
+  box-shadow: inset 0 -2px 4px var(--play-acc-strad-c19, rgba(127, 29, 29, 0.3));
 }
 
 .stradella-button.is-home.active {
-  background: linear-gradient(180deg, #fca5a5, #ef4444);
-  color: #fff;
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-strad-c16, #fca5a5),
+    var(--play-acc-strad-c20, #ef4444)
+  );
+  color: var(--play-acc-strad-c21, #fff);
 }
 
 /* Chord rows: smaller label, color-coded subtle tints. */
 .stradella-button-major {
-  background: linear-gradient(180deg, #052e16, #14532d);
-  color: #bbf7d0;
-  border-color: #166534;
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-strad-c22, #052e16),
+    var(--play-acc-strad-c23, #14532d)
+  );
+  color: var(--play-acc-strad-c24, #bbf7d0);
+  border-color: var(--play-acc-strad-c25, #166534);
 }
 
 .stradella-button-minor {
-  background: linear-gradient(180deg, #042f2e, #134e4a);
-  color: #99f6e4;
-  border-color: #115e59;
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-strad-c26, #042f2e),
+    var(--play-acc-strad-c27, #134e4a)
+  );
+  color: var(--play-acc-strad-c28, #99f6e4);
+  border-color: var(--play-acc-strad-c29, #115e59);
 }
 
 .stradella-button-dom7 {
-  background: linear-gradient(180deg, #422006, #78350f);
-  color: #fed7aa;
-  border-color: #92400e;
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-strad-c30, #422006),
+    var(--play-acc-strad-c31, #78350f)
+  );
+  color: var(--play-acc-strad-c32, #fed7aa);
+  border-color: var(--play-acc-strad-c33, #92400e);
 }
 
 .stradella-button-dim7 {
-  background: linear-gradient(180deg, #450a0a, #7f1d1d);
-  color: #fecaca;
-  border-color: #991b1b;
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-strad-c34, #450a0a),
+    var(--play-acc-strad-c17, #7f1d1d)
+  );
+  color: var(--play-acc-strad-c15, #fecaca);
+  border-color: var(--play-acc-strad-c35, #991b1b);
 }
 
 /* Free-bass octave coloring. */
 .stradella-button-free-low {
-  background: linear-gradient(180deg, #cbd5e1, #94a3b8);
-  color: #0f172a;
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-strad-c09, #cbd5e1),
+    var(--play-acc-strad-c36, #94a3b8)
+  );
+  color: var(--play-acc-strad-c05, #0f172a);
 }
 .stradella-button-free-high {
-  background: linear-gradient(180deg, #ede9fe, #c4b5fd);
-  color: #312e81;
-  border-color: #6d28d9;
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-strad-c37, #ede9fe),
+    var(--play-acc-strad-c38, #c4b5fd)
+  );
+  color: var(--play-acc-strad-c39, #312e81);
+  border-color: var(--play-acc-strad-c40, #6d28d9);
 }
 
 /* Phone-sized viewports (and any touch-only device, regardless of width)

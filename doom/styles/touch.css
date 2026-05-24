@@ -2,7 +2,6 @@
    the canvas; sub-weapon (Castlevania dagger throw) and round-robin
    weapon-cycle pads are colored independently of the main buttons. */
 
-
 /* Mobile touch controls. Layered over the canvas after the engine
    starts; synthetic KeyboardEvents are dispatched on #canvas. */
 #touch-ui {
@@ -32,9 +31,9 @@ body.mobile #touch-ui.hidden {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(20, 20, 24, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: #fff;
+  background: var(--doom-overlay, rgba(20, 20, 24, 0.55));
+  border: 1px solid var(--doom-touch-border, rgba(255, 255, 255, 0.25));
+  color: var(--pure-white, #ffffff);
   font-size: 20px;
   font-family: inherit;
   border-radius: 50%;
@@ -47,7 +46,7 @@ body.mobile #touch-ui.hidden {
 }
 .touch-btn.active,
 .touch-btn:active {
-  background: rgba(79, 168, 97, 0.7);
+  background: var(--doom-touch-active, rgba(79, 168, 97, 0.7));
   transform: scale(0.94);
 }
 .touch-btn.action {
@@ -57,26 +56,26 @@ body.mobile #touch-ui.hidden {
   letter-spacing: 1px;
 }
 .touch-btn.action.fire {
-  background: rgba(200, 40, 40, 0.6);
+  background: var(--doom-touch-fire, rgba(200, 40, 40, 0.6));
   width: 72px;
   height: 72px;
   font-size: 22px;
 }
 .touch-btn.action.use {
-  background: rgba(79, 168, 97, 0.55);
+  background: var(--doom-touch-use, rgba(79, 168, 97, 0.55));
 }
 .touch-btn.action.jump {
-  background: rgba(80, 130, 200, 0.55);
+  background: var(--doom-touch-jump, rgba(80, 130, 200, 0.55));
 }
 /* Sub-weapon / alt-fire (Castlevania dagger throw, etc.) — warmer
    orange so it reads as "another attack" without competing with FIRE. */
 .touch-btn.action.alt {
-  background: rgba(200, 120, 40, 0.55);
+  background: var(--doom-touch-alt, rgba(200, 120, 40, 0.55));
 }
 /* Round-robin weapon cycle — neutral indigo so it reads as "switch",
    distinct from the colored attack/movement buttons. */
 .touch-btn.action.wpn {
-  background: rgba(120, 100, 180, 0.55);
+  background: var(--doom-touch-wpn, rgba(120, 100, 180, 0.55));
   font-size: 22px;
 }
 
@@ -187,7 +186,7 @@ body.mobile.portrait #landscape-hint {
   position: fixed;
   inset: 0;
   z-index: 40;
-  background: rgba(0, 0, 0, 0.85);
+  background: var(--scrim-strong, rgba(11, 11, 15, 0.85));
   align-items: center;
   justify-content: center;
   padding: 24px;
@@ -209,7 +208,7 @@ body.mobile.portrait #landscape-hint {
   background: var(--accent-dim);
   border: 1px solid var(--accent);
   border-radius: 3px;
-  color: #fff;
+  color: var(--pure-white, #ffffff);
   font-family: inherit;
   font-size: 12px;
 }

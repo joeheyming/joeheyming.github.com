@@ -306,17 +306,21 @@ export class Terminal {
       terminalOutput.appendChild(err);
     };
 
-    const askInput = (label, placeholder, validate) => {
+    const askInput = (label, placeholder, validate, defaultValue) => {
       return new Promise((resolve) => {
-        promptText.textContent = `  ${label}`;
-        terminalInput.placeholder = placeholder;
+        const hasDefault = typeof defaultValue === 'string' && defaultValue.length > 0;
+        const fullLabel = hasDefault ? `${label}[${defaultValue}] ` : label;
+        promptText.textContent = `  ${fullLabel}`;
+        terminalInput.placeholder = hasDefault ? defaultValue : placeholder;
         terminalInput.value = '';
         terminalInput.disabled = false;
         terminalInput.focus();
         const handler = (e) => {
           if (e.key !== 'Enter') return;
           e.preventDefault();
-          const result = validate(terminalInput.value);
+          const raw =
+            terminalInput.value.trim() === '' && hasDefault ? defaultValue : terminalInput.value;
+          const result = validate(raw);
           if (result.error) {
             showError(result.error);
             terminalInput.value = '';
@@ -324,7 +328,7 @@ export class Terminal {
           }
           terminalInput.removeEventListener('keydown', handler);
           terminalInput.disabled = true;
-          echoPrompt(label, result.value);
+          echoPrompt(fullLabel, result.value);
           resolve(result.value);
         };
         terminalInput.addEventListener('keydown', handler);
@@ -362,25 +366,36 @@ export class Terminal {
         ''
       ]);
 
-      const username = await askInput('Enter your username: ', 'e.g. alice', (raw) => {
-        const v = raw
-          .trim()
-          .toLowerCase()
-          .replace(/[^a-z0-9._-]/g, '');
-        if (!v) return { error: 'Username must contain at least one character (a-z, 0-9, . _ -)' };
-        return { value: v };
-      });
+      const username = await askInput(
+        'Enter your username: ',
+        'e.g. alice',
+        (raw) => {
+          const v = raw
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9._-]/g, '');
+          if (!v)
+            return { error: 'Username must contain at least one character (a-z, 0-9, . _ -)' };
+          return { value: v };
+        },
+        'joe'
+      );
 
       addPre(['', '  [  2 / 3  ]  Computer Name', '']);
 
-      const hostname = await askInput('Enter hostname: ', 'e.g. my-laptop', (raw) => {
-        const v = raw
-          .trim()
-          .toLowerCase()
-          .replace(/[^a-z0-9-]/g, '');
-        if (!v) return { error: 'Hostname must contain at least one character (a-z, 0-9, -)' };
-        return { value: v };
-      });
+      const hostname = await askInput(
+        'Enter hostname: ',
+        'e.g. my-laptop',
+        (raw) => {
+          const v = raw
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9-]/g, '');
+          if (!v) return { error: 'Hostname must contain at least one character (a-z, 0-9, -)' };
+          return { value: v };
+        },
+        'heyming-os'
+      );
 
       addPre([
         '',

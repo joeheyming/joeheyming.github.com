@@ -57,6 +57,16 @@
   `;
 
   // Add styles
+  //
+  // The back button is the one piece of brand chrome that every
+  // standalone app on the site inherits. After the Heyming OS brand
+  // pass it switched from a two-stop violet gradient to a flat
+  // accent-primary-bg fill — solid violet that clears WCAG AA with
+  // white text (~6.7:1). Geometry is preserved exactly so the
+  // tests/e2e/back-button-overlap spec still passes.
+  //
+  // var() with hex fallbacks means the button still looks like the
+  // brand on pages that haven't loaded /brand.css yet.
   const style = document.createElement('style');
   style.textContent = `
     .back-to-portfolio {
@@ -68,33 +78,42 @@
       align-items: center;
       gap: 8px;
       padding: 12px 20px;
-      background: linear-gradient(135deg, rgba(139, 92, 246, 0.95), rgba(124, 58, 237, 0.95));
-      color: white;
+      background: var(--accent-primary-bg, #5b3cdc);
+      color: var(--text-on-accent, #fff);
       text-decoration: none;
       border-radius: 12px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       font-size: 14px;
       font-weight: 600;
-      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-      transition: all 0.3s ease;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      letter-spacing: -0.005em;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transition: background var(--motion-hover, 150ms ease),
+                  transform var(--motion-hover, 150ms ease),
+                  box-shadow var(--motion-hover, 150ms ease);
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
 
     .back-to-portfolio:hover {
       transform: translateX(-4px) translateY(-2px);
-      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
-      background: linear-gradient(135deg, rgba(124, 58, 237, 0.98), rgba(109, 40, 217, 0.98));
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+      background: var(--accent-primary-bg-hover, #6e50e6);
     }
 
     .back-to-portfolio:active {
       transform: translateX(-2px) translateY(-1px);
     }
 
+    .back-to-portfolio:focus-visible {
+      outline: 2px solid var(--focus-ring-inner, #7c5cff);
+      outline-offset: 3px;
+      box-shadow: 0 0 0 5px var(--focus-ring-outer, rgba(255, 255, 255, 0.65)),
+                  0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
     .back-arrow {
       font-size: 18px;
       display: inline-block;
-      transition: transform 0.3s ease;
+      transition: transform var(--motion-hover, 150ms ease);
     }
 
     .back-to-portfolio:hover .back-arrow {
@@ -112,13 +131,13 @@
       padding: 6px 12px;
       font-size: 11px;
       border-radius: 8px;
-      opacity: 0.55;
-      box-shadow: 0 2px 6px rgba(139, 92, 246, 0.2);
+      opacity: 0.6;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
     }
 
     html[data-back-size="compact"] .back-to-portfolio:hover {
       opacity: 1;
-      box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
     }
 
     html[data-back-size="compact"] .back-arrow {

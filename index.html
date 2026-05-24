@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="hos-page">
   <head>
     <meta name="google-site-verification" content="G4xgpb4nOfGShosuh1Tg0z-702kfJqP3tuqbhh_2YRE" />
     <!-- Favicon - SVG for modern browsers, PNG fallbacks -->
@@ -14,39 +14,36 @@
     <meta name="geo.region" content="US-CA" />
     <meta name="geo.placename" content="Campbell, California" />
 
-    <!-- Global site tag (gtag.js) - Google Analytics.
-         The inline `gtag('config', ...)` snippet that used to live here was
-         removed because /analytics.js now fires the same config call
-         synchronously at script-evaluation time. Two configs meant two
-         page_views per visit on the home page. -->
+    <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
-    <title>Joe Heyming — Free Browser Games &amp; Tools</title>
+
+    <title>Heyming OS — A desktop that fits in a tab</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta charset="utf-8" />
     <meta
       name="description"
-      content="A gallery of free, ad-free browser games and tools by Joe Heyming — play DOOM in your browser, 3D Pac-Man, a NES emulator, StepMania, Minesweeper, a Wordle answer finder, a web terminal, and more. No install, no signup."
+      content="Heyming OS is a browser desktop with 50+ built-in apps — DOOM, NES, 3D Pac-Man, StepMania, a Wordle solver, a web terminal, a notepad, a paint app, and more. No install, no signup. Launches in a tab."
     />
 
     <!-- Enhanced SEO Meta Tags -->
     <meta name="author" content="Joe Heyming" />
-    <meta name="application-name" content="Joe Heyming" />
+    <meta name="application-name" content="Heyming OS" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#8b5cf6" />
+    <meta name="theme-color" content="#7C5CFF" />
     <meta
       name="keywords"
-      content="Joe Heyming, browser games, free online games, DOOM browser, Pac-Man 3D, NES emulator online, StepMania online, Wordle answer finder, web terminal, periodic table speller, Bad Apple ASCII, Minesweeper, no install games, ad-free games"
+      content="Heyming OS, browser OS, browser desktop, DOOM browser, NES emulator online, 3D Pac-Man, StepMania online, Wordle answer finder, web terminal, browser apps, no install games, ad-free"
     />
 
     <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Joe Heyming" />
-    <meta property="og:title" content="Joe Heyming — Free Browser Games &amp; Tools" />
+    <meta property="og:site_name" content="Heyming OS" />
+    <meta property="og:title" content="Heyming OS — A desktop that fits in a tab" />
     <meta
       property="og:description"
-      content="A gallery of free, ad-free browser games and tools — DOOM, 3D Pac-Man, NES emulator, StepMania, Wordle finder, web terminal, and more."
+      content="A browser desktop with 50+ built-in apps — games, tools, and experiences. No install, no signup."
     />
     <meta property="og:url" content="https://joeheyming.github.io/" />
     <meta
@@ -55,17 +52,17 @@
     />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Joe Heyming — browser games and tools" />
+    <meta property="og:image:alt" content="Heyming OS — browser desktop with built-in apps" />
     <meta property="og:locale" content="en_US" />
 
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="Joe Heyming — Free Browser Games &amp; Tools" />
+    <meta name="twitter:title" content="Heyming OS — A desktop that fits in a tab" />
     <meta
       name="twitter:description"
-      content="DOOM, 3D Pac-Man, NES emulator, StepMania, Wordle finder, and more — free browser games and tools, no install."
+      content="Browser desktop with 50+ apps — DOOM, NES, Pac-Man, StepMania, Wordle, terminal, and more. No install."
     />
     <meta
       name="twitter:image"
@@ -79,26 +76,42 @@
     <meta name="format-detection" content="telephone=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Joe Heyming" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="mime-handlers.js"></script>
-    <script src="app.js"></script>
-    <script src="index.js"></script>
-    <link rel="stylesheet" href="index.css" />
+    <meta name="apple-mobile-web-app-title" content="Heyming OS" />
 
-    <!-- Structured Data (JSON-LD): WebSite + ItemList of the popular apps
-         + a Person reference that points at /about/. The ItemList helps
-         Google build sitelinks for the high-traffic project pages. -->
+    <!-- Brand foundation (load order matters):
+         1. preconnect + Inter font CDN
+         2. Tailwind CDN — installs window.tailwind first
+         3. brand-tailwind.js — sets tailwind.config AFTER CDN is live
+            (the older CDN read pre-set config on boot; current CDN
+            overwrites window.tailwind, so config must come after)
+         4. brand.css (tokens for var() consumers)
+         5. brand-icons.js (window.brandIcon registry)
+         6. index.css (page-specific styles built on tokens) -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/brand-tailwind.js"></script>
+    <link rel="stylesheet" href="/brand.css" />
+    <script src="/brand-icons.js"></script>
+    <link rel="stylesheet" href="/index.css" />
+    <script src="/mime-handlers.js"></script>
+    <script src="/app.js"></script>
+
+    <!-- Structured Data (JSON-LD): WebSite + the OS as a SoftwareApplication
+         + ItemList of the headline bundled apps. -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@graph": [
           {
             "@type": "WebSite",
-            "name": "Joe Heyming",
+            "name": "Heyming OS",
             "alternateName": "joeheyming.github.io",
             "url": "https://joeheyming.github.io/",
-            "description": "A gallery of free, ad-free browser games and tools by Joe Heyming.",
+            "description": "A browser desktop with 50+ built-in apps. No install, no signup.",
             "inLanguage": "en",
             "publisher": {
               "@type": "Person",
@@ -112,8 +125,26 @@
             }
           },
           {
+            "@type": "SoftwareApplication",
+            "name": "Heyming OS",
+            "operatingSystem": "Web",
+            "applicationCategory": "OperatingSystem",
+            "softwareVersion": "1.0",
+            "url": "https://joeheyming.github.io/os/",
+            "description": "A browser desktop environment with windows, a taskbar, a virtual filesystem, and 50+ built-in apps.",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            }
+          },
+          {
             "@type": "ItemList",
-            "name": "Browser games and tools by Joe Heyming",
+            "name": "Apps in Heyming OS",
             "itemListElement": [
               {
                 "@type": "ListItem",
@@ -168,99 +199,53 @@
         ]
       }
     </script>
-
-    <style>
-      .gallery-card {
-        min-height: 132px;
-      }
-
-      @keyframes os-glow-pulse {
-        0%, 100% {
-          box-shadow: 0 0 18px rgba(139, 92, 246, 0.45), 0 0 40px rgba(139, 92, 246, 0.2);
-        }
-        50% {
-          box-shadow: 0 0 32px rgba(139, 92, 246, 0.75), 0 0 65px rgba(139, 92, 246, 0.4),
-            0 0 90px rgba(99, 102, 241, 0.25);
-        }
-      }
-
-      @keyframes os-btn-glow {
-        0%, 100% {
-          box-shadow: 0 0 6px rgba(74, 222, 128, 0.35), 0 4px 18px rgba(0, 0, 0, 0.5);
-        }
-        50% {
-          box-shadow: 0 0 18px rgba(74, 222, 128, 0.75), 0 0 32px rgba(74, 222, 128, 0.4),
-            0 4px 18px rgba(0, 0, 0, 0.5);
-        }
-      }
-
-      .os-hero-card {
-        animation: os-glow-pulse 3s ease-in-out infinite;
-      }
-
-      #heyming-os-btn {
-        animation: os-btn-glow 2.5s ease-in-out infinite;
-      }
-    </style>
   </head>
-  <body
-    class="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 overflow-x-hidden"
-  >
+  <body class="hos-page">
     <!--
-      OAuth / crawler visibility: plain HTML + inline styles so a link to the privacy policy
-      and About page exists even if Tailwind CDN is slow or blocked.
+      Identity strip — plain HTML + inline styles so links to About / Privacy /
+      Terms exist even if Tailwind CDN is slow or blocked. Brand tokens are
+      inlined as fallbacks for the same reason.
     -->
-    <nav
-      style="
-        font-size: 0.875rem;
-        padding: 0.5rem 1rem;
-        text-align: center;
-        background: rgba(0, 0, 0, 0.35);
-        color: #fff;
-        font-family: system-ui, -apple-system, sans-serif;
-      "
-      aria-label="Site identity and policies"
-    >
-      <strong>Joe Heyming</strong>
-      <span style="color: rgba(255, 255, 255, 0.45); margin: 0 0.5rem">·</span>
-      <a href="/about/" style="color: #bfdbfe; text-decoration: underline">About</a>
-      <span style="color: rgba(255, 255, 255, 0.45); margin: 0 0.5rem">·</span>
-      <a href="/privacy-policy.html" style="color: #bfdbfe; text-decoration: underline">
-        Privacy Policy
-      </a>
-      <span style="color: rgba(255, 255, 255, 0.45); margin: 0 0.5rem">·</span>
-      <a href="/terms-of-service.html" style="color: #bfdbfe; text-decoration: underline">
-        Terms of Service
-      </a>
+    <nav class="hos-identity-strip" aria-label="Site identity and policies">
+      <strong>Heyming OS</strong>
+      <span aria-hidden="true">·</span>
+      <a href="/about/">About</a>
+      <span aria-hidden="true">·</span>
+      <a href="/privacy-policy.html">Privacy</a>
+      <span aria-hidden="true">·</span>
+      <a href="/terms-of-service.html">Terms</a>
     </nav>
 
-    <!-- Hamburger Menu (kept for parity with the rest of the portfolio) -->
-    <div id="hamburger-menu" class="fixed top-4 right-4 sm:top-6 sm:right-6 z-[100]">
+    <!--
+      Hamburger menu — mobile only. Desktop uses the inline "Apps in Heyming OS"
+      filter that lives on the gallery section. md:hidden hides this above 768px.
+    -->
+    <div id="hamburger-menu" class="fixed top-4 right-4 sm:top-6 sm:right-6 z-[100] md:hidden">
       <button
         id="hamburger-toggle"
-        class="w-14 h-14 sm:w-12 sm:h-12 bg-gray-900/90 backdrop-blur-sm border border-green-500/50 rounded-lg flex flex-col justify-center items-center space-y-1 hover:bg-gray-800/90 transition-all duration-300 shadow-lg"
+        class="w-14 h-14 sm:w-12 sm:h-12 bg-surface-1 backdrop-blur-sm border border-hairline rounded-lg flex flex-col justify-center items-center space-y-1 hover:bg-surface-2 transition-all duration-hover shadow-lg"
         aria-label="Toggle navigation menu"
       >
         <span
-          class="hamburger-line w-7 h-0.5 sm:w-6 bg-green-400 transition-all duration-300"
+          class="hamburger-line w-7 h-0.5 sm:w-6 bg-text-1 transition-all duration-hover"
         ></span>
         <span
-          class="hamburger-line w-7 h-0.5 sm:w-6 bg-green-400 transition-all duration-300"
+          class="hamburger-line w-7 h-0.5 sm:w-6 bg-text-1 transition-all duration-hover"
         ></span>
         <span
-          class="hamburger-line w-7 h-0.5 sm:w-6 bg-green-400 transition-all duration-300"
+          class="hamburger-line w-7 h-0.5 sm:w-6 bg-text-1 transition-all duration-hover"
         ></span>
       </button>
       <div
         id="hamburger-panel"
-        class="absolute top-16 sm:top-14 right-0 w-[90vw] max-w-80 bg-gray-900/95 backdrop-blur-md border border-green-500/50 rounded-xl shadow-2xl transform translate-x-full transition-all duration-300 opacity-0"
+        class="absolute top-16 sm:top-14 right-0 w-[90vw] max-w-80 bg-surface-1 backdrop-blur-md border border-hairline rounded-xl shadow-2xl transform translate-x-full transition-all duration-modal opacity-0"
       >
         <div class="p-6">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-green-400 font-mono text-lg font-bold">🚀 Applications</h3>
+            <h3 class="text-text-1 text-lg font-semibold">All apps</h3>
             <button
               id="menu-close"
-              class="text-green-400 hover:text-green-300 text-xl transition-colors duration-200"
+              class="text-text-2 hover:text-text-1 text-xl transition-colors duration-hover"
               aria-label="Close menu"
             >
               ×
@@ -271,123 +256,123 @@
               type="text"
               id="hamburger-filter"
               placeholder="Filter apps..."
-              class="w-full bg-gray-800/80 border border-green-500/30 rounded-lg px-4 py-2 pl-10 text-green-400 font-mono text-sm placeholder-gray-500 focus:outline-none focus:border-green-400/60 focus:ring-1 focus:ring-green-400/30 transition-all duration-200"
+              class="w-full bg-surface-2 border border-hairline rounded-lg px-4 py-2 pl-10 text-text-1 text-sm placeholder-text-3 focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all duration-hover"
               autocomplete="off"
               autocapitalize="off"
               spellcheck="false"
             />
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">🔍</span>
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-3">🔍</span>
             <button
               id="filter-clear"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-green-400 transition-colors duration-200 hidden"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-text-3 hover:text-text-1 transition-colors duration-hover hidden"
               aria-label="Clear filter"
             >
               ×
             </button>
           </div>
           <nav id="hamburger-app-links" class="space-y-2 max-h-80 overflow-y-auto pr-2"></nav>
-          <div id="no-results" class="hidden text-center text-gray-500 py-4 font-mono text-sm">
-            No apps match your filter 🤷
+          <div id="no-results" class="hidden text-center text-text-3 py-4 text-sm">
+            No apps match your filter
           </div>
-          <div class="mt-6 pt-4 border-t border-gray-700">
-            <div class="text-center text-gray-400 text-sm font-mono">
-              <a href="/about/" class="hover:text-green-400">About Joe Heyming →</a>
+          <div class="mt-6 pt-4 border-t border-hairline">
+            <div class="text-center text-text-2 text-sm">
+              <a href="/about/" class="hover:text-text-1">About the maker →</a>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <main id="main-content" class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      <!-- SEO copy. Marked .seo-intro + hidden so the keyword-rich paragraph
-           stays in the DOM for crawlers but doesn't show on the page. -->
-      <p class="seo-intro" hidden>
-        Play DOOM, 3D Pac-Man, classic NES games, StepMania, and Minesweeper right in your browser.
-        Solve today's Wordle, run a web terminal, or spell your name with periodic table elements.
-        Built by Joe Heyming, UI Engineer at Roblox.
-      </p>
-
-      <!-- Minimal hero: title only. The popular projects + gallery below
-           are doing all the work; this is just an identity anchor. -->
-      <header class="text-center mb-8 sm:mb-10">
-        <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-white">
-          Joe Heyming&rsquo;s Browser Apps
-        </h1>
+    <main id="main-content">
+      <!--
+        Hero — Heyming OS marketing landing. Wordmark + tagline + Launch CTA on
+        the left, OS desktop screenshot on the right (stacked on mobile). This
+        is the page's primary conversion surface; everything else supports it.
+      -->
+      <header class="hos-hero" aria-labelledby="hos-hero-title">
+        <div class="hos-hero-content">
+          <p class="hos-hero-eyebrow text-micro" id="hos-hero-title">
+            Version 1.0 — Browser desktop environment
+          </p>
+          <img
+            class="wordmark wordmark-xl hos-hero-wordmark"
+            src="/brand/heyming-os-wordmark.svg"
+            alt="Heyming OS"
+            width="360"
+            height="64"
+          />
+          <p class="hos-hero-tagline">A desktop that fits in a tab.</p>
+          <p class="hos-hero-description">
+            A browser desktop with windows, a taskbar, a virtual filesystem, and 50+ built-in apps.
+            Games, tools, and experiences. No install. No signup.
+          </p>
+          <div class="hos-hero-actions">
+            <a
+              href="/os/"
+              class="hos-cta-primary"
+              data-event="hero_launch_os"
+              data-event-category="Engagement"
+              data-event-label="Launch Heyming OS"
+            >
+              Launch Heyming OS
+              <span aria-hidden="true">→</span>
+            </a>
+            <a href="#apps" class="hos-cta-secondary">Browse apps</a>
+          </div>
+        </div>
+        <div class="hos-hero-art" aria-hidden="true">
+          <div class="hos-hero-art-frame">
+            <img src="/os/os-preview.png" alt="" width="1200" height="630" loading="lazy" />
+          </div>
+          <div class="hos-hero-art-glow"></div>
+        </div>
       </header>
 
-      <!-- Heyming OS hero CTA -->
-      <section
-        class="os-hero-card bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border border-purple-500/50 rounded-2xl p-6 sm:p-8 mb-10 text-center relative overflow-hidden"
-        aria-label="Heyming OS — launch the browser desktop"
-      >
-        <!-- subtle background shimmer -->
-        <div
-          class="absolute inset-0 bg-gradient-to-r from-purple-900/15 via-transparent to-indigo-900/15 pointer-events-none"
-          aria-hidden="true"
-        ></div>
-
-        <div class="relative z-10">
-          <!-- pill badge -->
-          <div
-            class="inline-flex items-center gap-2 bg-purple-500/20 border border-purple-400/30 rounded-full px-3 py-1 text-purple-300 text-xs font-mono mb-4"
-          >
-            <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-            Browser Desktop Environment
-          </div>
-
-          <h2 class="text-2xl sm:text-3xl font-bold text-white mb-2">💻 Heyming OS</h2>
-
-          <p class="text-gray-300 text-sm sm:text-base mb-6 max-w-xl mx-auto">
-            A full desktop OS running entirely in your browser &mdash; windows, a taskbar, a
-            filesystem, and every app on this site. No install, no signup.
-          </p>
-
-          <a
-            href="/os/"
-            class="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold px-8 py-3 rounded-xl text-base sm:text-lg transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-purple-500/40 no-underline"
-          >
-            Experience all apps in Heyming OS
-            <span aria-hidden="true">→</span>
-          </a>
-        </div>
-      </section>
-
-      <!-- Popular / featured grid. Hidden by index.js while the gallery
-           filter has a query, so search narrows the whole page. -->
+      <!--
+        Featured — editorial picks from the bundled app suite. Hidden by
+        index.js while the gallery filter has a query so search narrows
+        the whole page.
+      -->
       <section
         id="popular-section"
-        class="bg-gradient-to-r from-purple-700 to-indigo-800 text-white rounded-3xl p-5 sm:p-8 mb-10 shadow-xl"
+        class="hos-section hos-featured-section"
         aria-labelledby="popular-heading"
       >
-        <h2 id="popular-heading" class="text-xl sm:text-2xl font-bold mb-5">⭐ Popular</h2>
-        <div
-          id="featured-projects-grid"
-          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
-        ></div>
+        <h2 id="popular-heading" class="text-h2">Featured</h2>
+        <p class="text-caption text-muted hos-section-blurb">
+          A few apps to start with if you've never used Heyming OS before.
+        </p>
+        <div id="featured-projects-grid" class="hos-featured-grid"></div>
       </section>
 
-      <!-- Full app gallery. Sections (Games / Music / Tools / Fun) are
-           rendered by index.js from apps-registry.json. -->
-      <section class="mb-12" aria-labelledby="gallery-heading">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
-          <h2 id="gallery-heading" class="text-xl sm:text-2xl font-bold text-white">
-            All projects
-          </h2>
-          <div class="relative w-full sm:w-72">
+      <!--
+        Apps in Heyming OS 1.0 — the full bundled app suite, grouped by category.
+        Sections are rendered by index.js from apps-registry.json, with tier-aware
+        visual signaling (Tier-1 system / Tier-3 experience markers).
+      -->
+      <section class="hos-section" id="apps" aria-labelledby="gallery-heading">
+        <div class="hos-section-header">
+          <div>
+            <h2 id="gallery-heading" class="text-h2">Apps in Heyming OS 1.0</h2>
+            <p class="text-caption text-muted hos-section-blurb">
+              Click any app to launch it standalone. Or open them all together in the OS.
+            </p>
+          </div>
+          <div class="hos-filter-wrap">
             <input
               type="text"
               id="gallery-filter-input"
-              placeholder="Filter projects... (press /)"
-              class="w-full bg-black/30 border border-white/30 rounded-lg pl-10 pr-9 py-2 text-white placeholder-white/60 focus:outline-none focus:border-white/70 focus:ring-1 focus:ring-white/40"
+              placeholder="Filter apps... (press /)"
+              class="hos-filter-input"
               autocomplete="off"
               autocapitalize="off"
               spellcheck="false"
-              aria-label="Filter projects"
+              aria-label="Filter apps"
             />
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/70">🔎</span>
+            <span class="hos-filter-icon" aria-hidden="true">🔎</span>
             <button
               id="gallery-filter-clear"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 hover:text-white hidden"
+              class="hos-filter-clear hidden"
               aria-label="Clear filter"
             >
               ×
@@ -395,67 +380,44 @@
           </div>
         </div>
         <div id="app-gallery"></div>
-        <div id="gallery-no-results" class="hidden text-center text-white/80 py-8 font-mono">
-          No projects match your filter 🤷
-        </div>
+        <div id="gallery-no-results" class="hidden hos-no-results">No apps match your filter</div>
       </section>
 
-      <!-- Bio teaser kept in DOM so this page still ranks for "joeheyming"
-           queries; hidden visually so the home page stays minimal. -->
+      <!-- SEO copy. Marked .seo-intro + hidden so the keyword-rich paragraph
+           stays in the DOM for crawlers but doesn't show on the page. -->
+      <p class="seo-intro" hidden>
+        Play DOOM, 3D Pac-Man, classic NES games, StepMania, and Minesweeper right in your browser.
+        Solve today's Wordle, run a web terminal, or spell your name with periodic table elements.
+        Built by Joe Heyming, UI Engineer at Roblox.
+      </p>
       <p class="seo-intro" hidden>
         I'm Joe Heyming, a UI Engineer at Roblox based in Campbell, CA. This domain is a
-        long-running playground for browser-side experiments &mdash; a Wordle solver, a NES
-        emulator, a web terminal, a tiny in-browser OS, Bad Apple in pure ASCII, and more.
+        long-running playground for browser-side experiments — a Wordle solver, a NES emulator, a
+        web terminal, a tiny in-browser OS called Heyming OS, Bad Apple in pure ASCII, and more.
       </p>
     </main>
 
-    <footer id="main-footer" class="text-center py-8 text-white text-sm">
-      <div class="flex justify-center gap-6 mb-3 text-base">
-        <a
-          href="https://www.linkedin.com/in/joeheyming/"
-          target="_blank"
-          rel="noopener"
-          aria-label="LinkedIn"
-          class="hover:scale-110 transition-transform"
-        >
-          🔗
-        </a>
-        <a
-          href="https://github.com/joeheyming"
-          target="_blank"
-          rel="noopener"
-          aria-label="GitHub"
-          class="hover:scale-110 transition-transform"
-        >
-          🐙
-        </a>
-        <a
-          href="https://twitter.com/joeheyming"
-          target="_blank"
-          rel="noopener"
-          aria-label="Twitter"
-          class="hover:scale-110 transition-transform"
-        >
-          🐦
-        </a>
+    <footer id="main-footer" class="hos-footer">
+      <div class="hos-footer-brand">
+        <img
+          class="wordmark wordmark-sm"
+          src="/brand/heyming-os-wordmark.svg"
+          alt="Heyming OS"
+          width="360"
+          height="64"
+        />
+        <p class="text-caption text-muted">Version 1.0 · Made by Joe Heyming</p>
       </div>
-      <nav aria-label="Legal" class="text-white/80">
-        <a href="/about/" class="hover:text-white">About</a>
-        <span class="text-white/40 mx-2" aria-hidden="true">·</span>
-        <a href="/privacy-policy.html" class="hover:text-white">Privacy</a>
-        <span class="text-white/40 mx-2" aria-hidden="true">·</span>
-        <a href="/terms-of-service.html" class="hover:text-white">Terms</a>
+      <div class="hos-footer-social" id="footer-social"></div>
+      <nav class="hos-footer-legal" aria-label="Legal">
+        <a href="/about/">About</a>
+        <span aria-hidden="true">·</span>
+        <a href="/privacy-policy.html">Privacy</a>
+        <span aria-hidden="true">·</span>
+        <a href="/terms-of-service.html">Terms</a>
       </nav>
     </footer>
-
-    <!-- Heyming OS Button -->
-    <a
-      id="heyming-os-btn"
-      href="/os/"
-      class="fixed bottom-6 left-6 flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-gray-900 to-black text-green-400 rounded-xl font-mono shadow-2xl hover:scale-110 hover:from-gray-800 hover:to-gray-900 transition-all duration-300 z-50 border border-green-500/60 no-underline"
-      title="Launch Heyming OS"
-    >
-      💻 <span class="text-sm font-bold">Heyming OS</span>
-    </a>
+    <!-- Run after gallery nodes exist so first paint includes cards (CLS). -->
+    <script src="/index.js"></script>
   </body>
 </html>

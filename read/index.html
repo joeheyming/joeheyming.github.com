@@ -22,7 +22,7 @@
     />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#7C5CFF" />
 
     <meta property="og:type" content="website" />
     <meta property="og:title" content="📚 Books — Free Public-Domain E-Books" />
@@ -44,13 +44,19 @@
 
     <link rel="stylesheet" href="style.css" />
     <script type="module" src="app.js"></script>
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
   <body>
-
     <!-- Browse view -->
     <div id="browse-view">
       <div class="page-wrap">
-
         <header class="app-header">
           <h1>📚 Books</h1>
           <p class="app-subtitle">Free public-domain books from Project Gutenberg</p>
@@ -87,7 +93,6 @@
           <p class="section-title">Popular classics</p>
           <div id="featured-grid" class="books-grid"></div>
         </section>
-
       </div>
     </div>
 
@@ -113,28 +118,36 @@
           id="btn-font-dec"
           aria-label="Decrease font size"
           title="Smaller text"
-        >A−</button>
+        >
+          A−
+        </button>
 
         <button
           class="reader-ctrl-btn"
           id="btn-font-inc"
           aria-label="Increase font size"
           title="Larger text"
-        >A+</button>
+        >
+          A+
+        </button>
 
         <button
           class="reader-ctrl-btn"
           id="btn-font-family"
           aria-label="Toggle font"
           title="Toggle serif/sans-serif"
-        >Serif</button>
+        >
+          Serif
+        </button>
 
         <button
           class="reader-ctrl-btn"
           id="btn-theme"
           aria-label="Change theme"
           title="Cycle theme"
-        >🌙 Dark</button>
+        >
+          🌙 Dark
+        </button>
       </div>
 
       <!-- Scrollable text -->
@@ -142,11 +155,9 @@
 
       <!-- Always-visible bottom navigation bar -->
       <div id="reader-nav-bar" role="navigation" aria-label="Reader navigation">
-        <button
-          class="reader-nav-btn"
-          id="btn-close-reader"
-          aria-label="Back to library"
-        >← Library</button>
+        <button class="reader-nav-btn" id="btn-close-reader" aria-label="Back to library">
+          ← Library
+        </button>
 
         <span id="reader-progress-pct" class="reader-nav-progress" aria-live="polite"></span>
 
@@ -154,13 +165,21 @@
           class="reader-nav-btn reader-nav-btn-toc"
           id="btn-toc"
           aria-label="Table of contents"
-        >≡ Contents</button>
+        >
+          ≡ Contents
+        </button>
       </div>
     </div>
 
     <!-- TOC bottom sheet -->
     <div id="toc-sheet-overlay" class="hidden" aria-hidden="true"></div>
-    <div id="toc-sheet" class="hidden" role="dialog" aria-modal="true" aria-label="Table of contents">
+    <div
+      id="toc-sheet"
+      class="hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Table of contents"
+    >
       <div class="toc-sheet-handle" aria-hidden="true"></div>
       <div class="toc-sheet-head">
         <p class="toc-sheet-title" id="toc-sheet-book-title"></p>
@@ -171,6 +190,5 @@
 
     <!-- Toast notifications -->
     <div id="toast-stack" aria-live="polite"></div>
-
   </body>
 </html>

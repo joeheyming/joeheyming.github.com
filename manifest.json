@@ -25,6 +25,12 @@
   "scope": "/",
   "shortcuts": [
     {
+      "name": "Accordion Hero",
+      "short_name": "AccHero",
+      "description": "Stradella rhythm game in your browser",
+      "url": "/accordion-hero/"
+    },
+    {
       "name": "Everything is Awesome",
       "short_name": "Awesome",
       "description": "Everything is Awesome player",
@@ -35,6 +41,12 @@
       "short_name": "DOOM",
       "description": "Play DOOM in your browser",
       "url": "/doom/"
+    },
+    {
+      "name": "DOS Player",
+      "short_name": "DOS",
+      "description": "Play DOS games in your browser",
+      "url": "/dos/"
     },
     {
       "name": "Notepad",
@@ -85,10 +97,34 @@
       "url": "/terminal/"
     },
     {
+      "name": "Trip Log",
+      "short_name": "Trip Log",
+      "description": "Record GPS trips in your browser",
+      "url": "/triplog/"
+    },
+    {
       "name": "Calculator",
       "short_name": "Calc",
       "description": "Web calculator",
       "url": "/calculator/"
+    },
+    {
+      "name": "Code IDE",
+      "short_name": "Code IDE",
+      "description": "Monaco editor with an on-device AI assistant",
+      "url": "/code-ide/"
+    },
+    {
+      "name": "Clock",
+      "short_name": "Clock",
+      "description": "Clock, stopwatch, and timer",
+      "url": "/clock/"
+    },
+    {
+      "name": "Sudoku",
+      "short_name": "Sudoku",
+      "description": "Classic 9×9 Sudoku in your browser",
+      "url": "/sudoku/"
     },
     {
       "name": "NES Emulator",
@@ -97,10 +133,40 @@
       "url": "/nes/"
     },
     {
+      "name": "Sega Genesis",
+      "short_name": "Sega",
+      "description": "Play Sega Genesis games in your browser",
+      "url": "/sega/"
+    },
+    {
       "name": "Play",
       "short_name": "Play",
       "description": "Make music in your browser",
       "url": "/play/"
+    },
+    {
+      "name": "Weather",
+      "short_name": "Weather",
+      "description": "City and ZIP forecast in your browser",
+      "url": "/weather/"
+    },
+    {
+      "name": "Stock Ticker",
+      "short_name": "Stocks",
+      "description": "Track and graph stock tickers in your browser",
+      "url": "/stock/"
+    },
+    {
+      "name": "Audiobooks",
+      "short_name": "Audiobooks",
+      "description": "Free public-domain audiobooks",
+      "url": "/listen/"
+    },
+    {
+      "name": "Books",
+      "short_name": "Books",
+      "description": "Free public-domain e-books",
+      "url": "/read/"
     }
   ]
 }

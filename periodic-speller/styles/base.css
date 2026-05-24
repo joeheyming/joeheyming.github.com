@@ -2,22 +2,24 @@
    styling, and the "no match" hint. */
 
 :root {
-  --bg: #0f172a;
-  --surface: #1e293b;
-  --border: #334155;
-  --text: #e2e8f0;
-  --text-muted: #94a3b8;
-  --accent: #38bdf8;
-  --accent-glow: rgba(56, 189, 248, 0.25);
-  --tile-bg: #1e293b;
-  --tile-border: #38bdf8;
-  --tile-symbol: #f8fafc;
-  --tile-number: #38bdf8;
-  --tile-name: #94a3b8;
-  --unmatched-bg: #334155;
-  --unmatched-text: #64748b;
+  --bg: var(--surface-0, #0f172a);
+  --surface: var(--surface-1, #1e293b);
+  --border: var(--hairline-strong, #334155);
+  --text: var(--text-1, #e2e8f0);
+  --text-muted: var(--text-2, #94a3b8);
+  /* Page chrome accent routes to brand violet. The element-category
+     palette below is kept as-is — those colors are data, not chrome. */
+  --accent: var(--accent-primary, #7c5cff);
+  --accent-glow: var(--accent-primary-soft, rgba(124, 92, 255, 0.25));
+  --tile-bg: var(--surface-1, #1e293b);
+  --tile-border: var(--accent-primary, #7c5cff);
+  --tile-symbol: var(--text-1, #f8fafc);
+  --tile-number: var(--accent-primary, #7c5cff);
+  --tile-name: var(--text-2, #94a3b8);
+  --unmatched-bg: var(--hairline-strong, #334155);
+  --unmatched-text: var(--text-3, #64748b);
   --category-nonmetal: #22d3ee;
-  --category-noble: #a78bfa;
+  --category-noble: var(--accent-primary, #7c5cff);
   --category-alkali: #f87171;
   --category-alkaline: #fb923c;
   --category-metalloid: #34d399;
@@ -55,7 +57,7 @@ header h1 {
   font-size: 2.2rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, var(--accent), #a78bfa);
+  background: linear-gradient(135deg, var(--accent), var(--accent-primary-hover, #a78bfa));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -175,7 +177,7 @@ main {
 
 .tile:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--pure-black) 30%, transparent);
 }
 
 @keyframes tileIn {
@@ -263,5 +265,3 @@ main {
 .no-match-hint {
   font-size: 0.85rem;
   color: var(--unmatched-text);
-}
-

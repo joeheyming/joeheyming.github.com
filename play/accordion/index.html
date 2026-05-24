@@ -15,7 +15,7 @@
       name="description"
       content="A free browser accordion with reedy keyboard sounds and a breathing bellows animation. Play melodies with mouse, touch, or keyboard — no install required."
     />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#7C5CFF" />
 
     <link rel="manifest" href="/play/manifest.json" />
     <link rel="apple-touch-icon" sizes="180x180" href="/play/icons/apple-touch-icon.png" />
@@ -76,8 +76,7 @@
           window.backButtonInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent =
-            '.back-to-portfolio,.play-footer a[href="/"]{display:none!important}';
+          s.textContent = '.back-to-portfolio,.play-footer a[href="/"]{display:none!important}';
           document.head.appendChild(s);
         }
       })();
@@ -96,6 +95,14 @@
     <link rel="stylesheet" href="styles/chromatic.css" />
     <link rel="stylesheet" href="styles/diatonic.css" />
     <link rel="stylesheet" href="styles/landscape.css" />
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
   <body class="instrument-body">
     <header class="instrument-header">
@@ -150,7 +157,9 @@
       <div class="control">
         <label for="tone">Reed</label>
         <select id="tone">
-          <option value="button_accordion_samples" selected>Button accordion (musette samples)</option>
+          <option value="button_accordion_samples" selected>
+            Button accordion (musette samples)
+          </option>
           <option value="accordion">Accordion (soundfont)</option>
           <option value="tango_accordion">Tango accordion (soundfont)</option>
           <option value="reed_organ">Reed organ (soundfont)</option>
@@ -253,8 +262,12 @@
         </select>
       </div>
 
-
-      <div class="control show-control" role="group" aria-label="Show on keys" data-only-for="piano">
+      <div
+        class="control show-control"
+        role="group"
+        aria-label="Show on keys"
+        data-only-for="piano"
+      >
         <label id="show-label">Show</label>
         <div class="show-options" aria-labelledby="show-label">
           <label class="show-option">
@@ -278,12 +291,7 @@
           <input id="bellows-mode" type="checkbox" />
           <span>Bellows</span>
         </label>
-        <span
-          class="bellows-meter"
-          id="bellows-meter"
-          aria-hidden="true"
-          title="Bellows pressure"
-        >
+        <span class="bellows-meter" id="bellows-meter" aria-hidden="true" title="Bellows pressure">
           <span class="bellows-meter-fill"></span>
         </span>
       </div>
@@ -338,91 +346,191 @@
       <summary>How to play</summary>
       <ul>
         <li>
-          The <strong>View</strong> menu picks one face of the instrument at
-          a time — pick a Stradella variant for left-hand practice, or a
-          right-hand layout (piano / chromatic B / chromatic C) for melody.
-          Each one comes in a <em>horizontal</em> and a <em>vertical</em>
+          The
+          <strong>View</strong>
+          menu picks one face of the instrument at a time — pick a Stradella variant for left-hand
+          practice, or a right-hand layout (piano / chromatic B / chromatic C) for melody. Each one
+          comes in a
+          <em>horizontal</em>
+          and a
+          <em>vertical</em>
           flavour.
         </li>
         <li>
-          <strong><a href="https://en.wikipedia.org/wiki/Stradella_bass_system" target="_blank" rel="noopener">Stradella</a></strong>
+          <strong>
+            <a
+              href="https://en.wikipedia.org/wiki/Stradella_bass_system"
+              target="_blank"
+              rel="noopener"
+            >
+              Stradella
+            </a>
+          </strong>
           columns run around the
-          <a href="https://en.wikipedia.org/wiki/Circle_of_fifths" target="_blank" rel="noopener">circle of fifths</a>
+          <a href="https://en.wikipedia.org/wiki/Circle_of_fifths" target="_blank" rel="noopener">
+            circle of fifths
+          </a>
           with home markers every
-          <a href="https://en.wikipedia.org/wiki/Major_third" target="_blank" rel="noopener">major 3rd</a>
-          — <em>C&nbsp;/&nbsp;E&nbsp;/&nbsp;G♯&nbsp;(A♭)</em> — same
-          spacing as a real 120-bass instrument. <em>Eastern 5-row</em>
+          <a href="https://en.wikipedia.org/wiki/Major_third" target="_blank" rel="noopener">
+            major 3rd
+          </a>
+          —
+          <em>C&nbsp;/&nbsp;E&nbsp;/&nbsp;G♯&nbsp;(A♭)</em>
+          — same spacing as a real 120-bass instrument.
+          <em>Eastern 5-row</em>
           drops the
-          <a href="https://en.wikipedia.org/wiki/Diminished_seventh_chord" target="_blank" rel="noopener">diminished-7</a>
+          <a
+            href="https://en.wikipedia.org/wiki/Diminished_seventh_chord"
+            target="_blank"
+            rel="noopener"
+          >
+            diminished-7
+          </a>
           row;
-          <em><a href="https://en.wikipedia.org/wiki/Free-bass_system" target="_blank" rel="noopener">Free bass</a></em>
-          swaps the chord rows for three octaves of single chromatic
-          notes (Russian
-          <a href="https://en.wikipedia.org/wiki/Bayan_(accordion)" target="_blank" rel="noopener">bayan</a>
-          style). Sizes from <strong>8-bass</strong> children's models
-          up to the full <strong>120-bass</strong> are in the dropdown.
+          <em>
+            <a href="https://en.wikipedia.org/wiki/Free-bass_system" target="_blank" rel="noopener">
+              Free bass
+            </a>
+          </em>
+          swaps the chord rows for three octaves of single chromatic notes (Russian
+          <a href="https://en.wikipedia.org/wiki/Bayan_(accordion)" target="_blank" rel="noopener">
+            bayan
+          </a>
+          style). Sizes from
+          <strong>8-bass</strong>
+          children's models up to the full
+          <strong>120-bass</strong>
+          are in the dropdown.
         </li>
         <li>
-          <strong><a href="https://en.wikipedia.org/wiki/Chromatic_button_accordion" target="_blank" rel="noopener">Chromatic</a></strong>
+          <strong>
+            <a
+              href="https://en.wikipedia.org/wiki/Chromatic_button_accordion"
+              target="_blank"
+              rel="noopener"
+            >
+              Chromatic
+            </a>
+          </strong>
           rows ascend by
-          <a href="https://en.wikipedia.org/wiki/Minor_third" target="_blank" rel="noopener">minor 3rds</a>
+          <a href="https://en.wikipedia.org/wiki/Minor_third" target="_blank" rel="noopener">
+            minor 3rds
+          </a>
           with adjacent rows offset a semitone — diagonals trace a
-          <a href="https://en.wikipedia.org/wiki/Chromatic_scale" target="_blank" rel="noopener">chromatic scale</a>.
-          <em>B-system</em> is standard on the bayan; <em>C-system</em>
+          <a href="https://en.wikipedia.org/wiki/Chromatic_scale" target="_blank" rel="noopener">
+            chromatic scale
+          </a>
+          .
+          <em>B-system</em>
+          is standard on the bayan;
+          <em>C-system</em>
           is the Western chromatic mirror.
         </li>
         <li>
-          <strong><a href="https://en.wikipedia.org/wiki/Diatonic_button_accordion" target="_blank" rel="noopener">Diatonic</a></strong>
+          <strong>
+            <a
+              href="https://en.wikipedia.org/wiki/Diatonic_button_accordion"
+              target="_blank"
+              rel="noopener"
+            >
+              Diatonic
+            </a>
+          </strong>
           (melodeon) is
-          <a href="https://en.wikipedia.org/wiki/Bisonoric" target="_blank" rel="noopener">bisonoric</a>:
-          each physical button on a real instrument plays a different
-          note on the <em>push</em> than on the <em>pull</em>. We split
-          that out into two keyboards side by side — the green
-          <em>PUSH</em> half on the left and the orange <em>PULL</em>
-          half on the right. Only one half can sound at a time, just
-          like a real bellows can only push or pull (try it: hold a
-          PUSH button and tap the PULL side — nothing plays until you
-          release). The <em>C</em> 1-row is the
-          <a href="https://en.wikipedia.org/wiki/Cajun_accordion" target="_blank" rel="noopener">Cajun</a>
-          / Hohner Pokerwork; <em>D/G</em> and <em>G/C</em> are the
-          standard British / French folk 2-rows; <em>B/C</em> is the
-          Irish trad layout where the rows are a semitone apart.
+          <a href="https://en.wikipedia.org/wiki/Bisonoric" target="_blank" rel="noopener">
+            bisonoric
+          </a>
+          : each physical button on a real instrument plays a different note on the
+          <em>push</em>
+          than on the
+          <em>pull</em>
+          . We split that out into two keyboards side by side — the green
+          <em>PUSH</em>
+          half on the left and the orange
+          <em>PULL</em>
+          half on the right. Only one half can sound at a time, just like a real bellows can only
+          push or pull (try it: hold a PUSH button and tap the PULL side — nothing plays until you
+          release). The
+          <em>C</em>
+          1-row is the
+          <a href="https://en.wikipedia.org/wiki/Cajun_accordion" target="_blank" rel="noopener">
+            Cajun
+          </a>
+          / Hohner Pokerwork;
+          <em>D/G</em>
+          and
+          <em>G/C</em>
+          are the standard British / French folk 2-rows;
+          <em>B/C</em>
+          is the Irish trad layout where the rows are a semitone apart.
         </li>
         <li>
-          The <strong>Register</strong> switches engage different reed
-          banks, just like a real accordion. The <em>right hand</em>
-          (treble) side has the full 11-stop matrix: <em>L</em> = low
-          (octave down, "Bassoon"), <em>M</em> = middle (concert pitch,
-          "Clarinet"), <em>H</em> = high (octave up, "Piccolo"), plus
-          combos like <em>LM</em> ("Bandoneon"), <em>LH</em> ("Organ"),
-          <em>MH</em> ("Violin") and <em>LMH</em> ("Master") for fuller
-          sounds. Stops with <em>two M dots</em> on the silver plate
-          (<em>MM</em> "Musette", <em>LMM</em>, <em>MMH</em>,
-          <em>LMMH</em> "Tutti") engage two M reeds detuned a few cents
-          apart — the characteristic
-          <a href="https://en.wikipedia.org/wiki/Musette_register" target="_blank" rel="noopener">musette</a>
-          beating you hear on French / Italian folk accordions.
-          The <em>left hand</em> (Stradella) side has its own simpler
-          pair: <em>Tenor</em> for a single tonal reed, or <em>Master</em>
-          for all bass reeds layered together (loud and full). The strip
-          swaps automatically when you switch views, and each hand
-          remembers its last setting.
+          The
+          <strong>Register</strong>
+          switches engage different reed banks, just like a real accordion. The
+          <em>right hand</em>
+          (treble) side has the full 11-stop matrix:
+          <em>L</em>
+          = low (octave down, "Bassoon"),
+          <em>M</em>
+          = middle (concert pitch, "Clarinet"),
+          <em>H</em>
+          = high (octave up, "Piccolo"), plus combos like
+          <em>LM</em>
+          ("Bandoneon"),
+          <em>LH</em>
+          ("Organ"),
+          <em>MH</em>
+          ("Violin") and
+          <em>LMH</em>
+          ("Master") for fuller sounds. Stops with
+          <em>two M dots</em>
+          on the silver plate (
+          <em>MM</em>
+          "Musette",
+          <em>LMM</em>
+          ,
+          <em>MMH</em>
+          ,
+          <em>LMMH</em>
+          "Tutti") engage two M reeds detuned a few cents apart — the characteristic
+          <a href="https://en.wikipedia.org/wiki/Musette_register" target="_blank" rel="noopener">
+            musette
+          </a>
+          beating you hear on French / Italian folk accordions. The
+          <em>left hand</em>
+          (Stradella) side has its own simpler pair:
+          <em>Tenor</em>
+          for a single tonal reed, or
+          <em>Master</em>
+          for all bass reeds layered together (loud and full). The strip swaps automatically when
+          you switch views, and each hand remembers its last setting.
         </li>
         <li>
-          On the <strong>Piano</strong> view, the computer keyboard plays
-          (<code>Z X C V B N M</code> / <code>Q W E R T Y U</code>) and
-          <strong>← / →</strong> shifts the octave. A real accordion keeps
-          a note ringing only while you press it, so there's no sustain —
-          just hold the key.
-          <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API" target="_blank" rel="noopener">WebMIDI</a>
+          On the
+          <strong>Piano</strong>
+          view, the computer keyboard plays (
+          <code>Z X C V B N M</code>
+          /
+          <code>Q W E R T Y U</code>
+          ) and
+          <strong>← / →</strong>
+          shifts the octave. A real accordion keeps a note ringing only while you press it, so
+          there's no sustain — just hold the key.
+          <a
+            href="https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API"
+            target="_blank"
+            rel="noopener"
+          >
+            WebMIDI
+          </a>
           works on every view.
         </li>
         <li class="bellows-help" hidden>
-          <strong>Bellows mode</strong> (phones only): when on, notes only
-          sound while you're moving your phone — swing it left and right
-          like a real bellows. Hold a button still and the room goes
-          silent; rock the phone to "pump" air through it. Bigger swings
-          push more volume.
+          <strong>Bellows mode</strong>
+          (phones only): when on, notes only sound while you're moving your phone — swing it left
+          and right like a real bellows. Hold a button still and the room goes silent; rock the
+          phone to "pump" air through it. Bigger swings push more volume.
         </li>
       </ul>
     </details>

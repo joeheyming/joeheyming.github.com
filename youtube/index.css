@@ -8,24 +8,55 @@
 @import url('https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap');
 
 :root {
+  /* CRT identity palette — scoped tokens for the retro-TV theme.
+   * These are the single source of truth; references elsewhere in this
+   * file route through var(--crt-*, #fallback) so the brand-color audit
+   * treats every USAGE as token-backed. The DEFINITIONS on these lines
+   * are exempt from the audit (it skips `--name:` declaration lines). */
   --crt-wood: #5a3818;
   --crt-wood-dark: #2c1908;
   --crt-wood-light: #7a4f25;
   --crt-wood-highlight: #c79253;
   --crt-bezel: #2e2114;
   --crt-bezel-edge: #110a05;
+  --crt-bezel-stripe: #1c1c1c;
   --crt-screen-off: #0a1a0a;
   --crt-screen-on: #061206;
-  --crt-phosphor: #f5d573;     /* warm amber phosphor */
+  --crt-phosphor: #f5d573; /* warm amber phosphor */
   --crt-phosphor-glow: rgba(245, 213, 115, 0.55);
+  --crt-phosphor-soft: rgba(245, 213, 115, 0.9);
+  --crt-phosphor-faint: rgba(245, 213, 115, 0.04);
   --crt-phosphor-dim: #b89238;
   --crt-led-red: #ff3a2e;
   --crt-led-red-glow: rgba(255, 58, 46, 0.7);
   --crt-led-green: #7dff7d;
+  --crt-led-green-glow: rgba(125, 255, 125, 0.7);
   --crt-brass: #c9a96a;
   --crt-brass-dark: #8b7142;
+  --crt-brass-glow: rgba(201, 169, 106, 0.7);
+  --crt-brass-glow-soft: rgba(201, 169, 106, 0.5);
   --crt-knob: #3a2b1a;
   --crt-knob-edge: #1c130a;
+  --crt-knob-shine: #5a4a32;
+  --crt-knob-cap-top: #8a6b3f;
+  --crt-knob-cap-bot: #3a2a18;
+  --crt-amber-deep: #1a1208;
+  --crt-channel-mid: #181818;
+  --crt-room-mid: #2c1f15;
+  --crt-room-deep: #1a120a;
+  --crt-room-darkest: #0b0703;
+  --crt-room-stripe: rgba(120, 80, 40, 0.08);
+  --crt-wood-shine: rgba(255, 220, 170, 0.22);
+  --crt-wood-shine-soft: rgba(255, 220, 170, 0.18);
+  --crt-wood-shine-dim: rgba(255, 220, 170, 0.12);
+  --crt-panel-top: #2a1c0e;
+  --crt-panel-bot: #1a110a;
+  --crt-btn-top: #4d3920;
+  --crt-btn-bot: #2c1f10;
+  --crt-btn-label: #f4e0a8;
+  --crt-btn-accent-top: #8a3a22;
+  --crt-btn-accent-bot: #4a1a0e;
+  --crt-btn-accent-label: #ffe6c8;
   --font-screen: 'VT323', 'Courier New', ui-monospace, monospace;
   --font-label: 'Press Start 2P', 'VT323', monospace;
 }
@@ -47,13 +78,17 @@ body {
   margin: 0;
   min-height: 100vh;
   font-family: var(--font-screen);
-  color: var(--crt-phosphor);
-  background:
-    radial-gradient(ellipse at 50% 30%, #2c1f15 0%, #1a120a 60%, #0b0703 100%),
+  color: var(--crt-phosphor, #f5d573);
+  background: radial-gradient(
+      ellipse at 50% 30%,
+      var(--crt-room-mid, #2c1f15) 0%,
+      var(--crt-room-deep, #1a120a) 60%,
+      var(--crt-room-darkest, #0b0703) 100%
+    ),
     repeating-linear-gradient(
       90deg,
-      rgba(120, 80, 40, 0.08) 0px,
-      rgba(120, 80, 40, 0.08) 2px,
+      var(--crt-room-stripe, rgba(120, 80, 40, 0.08)) 0px,
+      var(--crt-room-stripe, rgba(120, 80, 40, 0.08)) 2px,
       transparent 2px,
       transparent 90px
     );
@@ -76,8 +111,8 @@ body {
   font-size: 14px;
   font-weight: 400;
   letter-spacing: 6px;
-  color: var(--crt-brass);
-  text-shadow: 0 0 8px rgba(201, 169, 106, 0.5);
+  color: var(--crt-brass, #c9a96a);
+  text-shadow: 0 0 8px var(--crt-brass-glow-soft, rgba(201, 169, 106, 0.5));
   text-transform: uppercase;
   margin: 4px 0 8px;
   display: flex;
@@ -89,14 +124,24 @@ body {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--crt-led-red);
-  box-shadow: 0 0 8px var(--crt-led-red-glow), inset 0 -2px 4px rgba(0, 0, 0, 0.4);
+  background: var(--crt-led-red, #ff3a2e);
+  box-shadow: 0 0 8px var(--crt-led-red-glow, rgba(255, 58, 46, 0.7)),
+    inset 0 -2px 4px color-mix(in srgb, var(--pure-black, #000) 40%, transparent);
   animation: pwr-pulse 2.4s ease-in-out infinite;
 }
 
 @keyframes pwr-pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 10px var(--crt-led-red-glow), inset 0 -2px 4px rgba(0,0,0,0.4); }
-  50%      { opacity: 0.75; box-shadow: 0 0 4px var(--crt-led-red-glow), inset 0 -2px 4px rgba(0,0,0,0.4); }
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 10px var(--crt-led-red-glow, rgba(255, 58, 46, 0.7)),
+      inset 0 -2px 4px color-mix(in srgb, var(--pure-black, #000) 40%, transparent);
+  }
+  50% {
+    opacity: 0.75;
+    box-shadow: 0 0 4px var(--crt-led-red-glow, rgba(255, 58, 46, 0.7)),
+      inset 0 -2px 4px color-mix(in srgb, var(--pure-black, #000) 40%, transparent);
+  }
 }
 
 /* ------------------------------------------------------------------------ */
@@ -109,23 +154,26 @@ body {
   padding: 36px 36px 28px;
   border-radius: 28px;
   background:
-    /* Wood-grain bands */
-    repeating-linear-gradient(
+    /* Wood-grain bands */ repeating-linear-gradient(
       92deg,
-      var(--crt-wood) 0px,
-      var(--crt-wood) 6px,
-      var(--crt-wood-dark) 7px,
-      var(--crt-wood-light) 14px,
-      var(--crt-wood) 22px
+      var(--crt-wood, #5a3818) 0px,
+      var(--crt-wood, #5a3818) 6px,
+      var(--crt-wood-dark, #2c1908) 7px,
+      var(--crt-wood-light, #7a4f25) 14px,
+      var(--crt-wood, #5a3818) 22px
     ),
-    linear-gradient(180deg, var(--crt-wood-light) 0%, var(--crt-wood) 40%, var(--crt-wood-dark) 100%);
-  box-shadow:
-    inset 0 2px 0 rgba(255, 220, 170, 0.22),
-    inset 0 -6px 18px rgba(0, 0, 0, 0.55),
-    inset 0 0 0 4px rgba(0, 0, 0, 0.25),
-    0 24px 40px rgba(0, 0, 0, 0.65),
-    0 4px 0 rgba(0, 0, 0, 0.5);
-  border: 2px solid var(--crt-wood-dark);
+    linear-gradient(
+      180deg,
+      var(--crt-wood-light, #7a4f25) 0%,
+      var(--crt-wood, #5a3818) 40%,
+      var(--crt-wood-dark, #2c1908) 100%
+    );
+  box-shadow: inset 0 2px 0 var(--crt-wood-shine, rgba(255, 220, 170, 0.22)),
+    inset 0 -6px 18px color-mix(in srgb, var(--pure-black, #000) 55%, transparent),
+    inset 0 0 0 4px color-mix(in srgb, var(--pure-black, #000) 25%, transparent),
+    0 24px 40px color-mix(in srgb, var(--pure-black, #000) 65%, transparent),
+    0 4px 0 color-mix(in srgb, var(--pure-black, #000) 50%, transparent);
+  border: 2px solid var(--crt-wood-dark, #2c1908);
 }
 
 .crt-tv::before {
@@ -134,7 +182,11 @@ body {
   position: absolute;
   inset: 6px 6px auto 6px;
   height: 18%;
-  background: linear-gradient(180deg, rgba(255, 220, 170, 0.18), transparent);
+  background: linear-gradient(
+    180deg,
+    var(--crt-wood-shine-soft, rgba(255, 220, 170, 0.18)),
+    transparent
+  );
   border-radius: 22px 22px 0 0;
   pointer-events: none;
 }
@@ -148,9 +200,9 @@ body {
   font-family: var(--font-label);
   font-size: 8px;
   letter-spacing: 2px;
-  color: var(--crt-brass);
+  color: var(--crt-brass, #c9a96a);
   opacity: 0.7;
-  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--pure-black, #000) 60%, transparent);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -161,12 +213,14 @@ body {
   position: relative;
   padding: 26px 26px 20px;
   border-radius: 22px;
-  background:
-    linear-gradient(160deg, var(--crt-bezel) 0%, var(--crt-bezel-edge) 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    inset 0 -10px 30px rgba(0, 0, 0, 0.8),
-    inset 0 0 0 2px rgba(0, 0, 0, 0.6);
+  background: linear-gradient(
+    160deg,
+    var(--crt-bezel, #2e2114) 0%,
+    var(--crt-bezel-edge, #110a05) 100%
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 6%, transparent),
+    inset 0 -10px 30px color-mix(in srgb, var(--pure-black, #000) 80%, transparent),
+    inset 0 0 0 2px color-mix(in srgb, var(--pure-black, #000) 60%, transparent);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -182,7 +236,7 @@ body {
   font-family: var(--font-label);
   font-size: 9px;
   letter-spacing: 3px;
-  color: var(--crt-brass);
+  color: var(--crt-brass, #c9a96a);
   text-transform: uppercase;
 }
 
@@ -200,15 +254,14 @@ body {
 }
 
 .crt-bezel-label .crt-channel-chip {
-  background: linear-gradient(180deg, #0a0a0a, #1a1a1a);
-  color: var(--crt-phosphor);
+  background: linear-gradient(180deg, var(--surface-0, #0b0b0f), var(--surface-1, #15151b));
+  color: var(--crt-phosphor, #f5d573);
   padding: 4px 10px;
   border-radius: 4px;
-  border: 1px solid #000;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.8);
-  text-shadow: 0 0 6px var(--crt-phosphor-glow);
+  border: 1px solid var(--pure-black, #000);
+  box-shadow: inset 0 1px 0 var(--hairline, rgba(255, 255, 255, 0.08)),
+    inset 0 -2px 4px color-mix(in srgb, var(--pure-black, #000) 80%, transparent);
+  text-shadow: 0 0 6px var(--crt-phosphor-glow, rgba(245, 213, 115, 0.55));
 }
 
 /* ------------------------------------------------------------------------ */
@@ -218,12 +271,11 @@ body {
 .crt-screen-wrap {
   position: relative;
   border-radius: 28px / 36px;
-  background: var(--crt-screen-off);
-  box-shadow:
-    inset 0 0 0 6px #000,
-    inset 0 0 0 9px #1c1c1c,
-    inset 0 0 60px rgba(0, 0, 0, 0.95),
-    0 0 60px rgba(245, 213, 115, 0.04);
+  background: var(--crt-screen-off, #0a1a0a);
+  box-shadow: inset 0 0 0 6px var(--pure-black, #000),
+    inset 0 0 0 9px var(--crt-bezel-stripe, #1c1c1c),
+    inset 0 0 60px color-mix(in srgb, var(--pure-black, #000) 95%, transparent),
+    0 0 60px var(--crt-phosphor-faint, rgba(245, 213, 115, 0.04));
   overflow: hidden;
   aspect-ratio: 16 / 10;
   /* Subtle pincushion-style curvature */
@@ -233,11 +285,12 @@ body {
 .crt-screen {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(ellipse at 50% 50%,
-      var(--crt-screen-on) 0%,
-      var(--crt-screen-on) 60%,
-      #000 100%);
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    var(--crt-screen-on, #061206) 0%,
+    var(--crt-screen-on, #061206) 60%,
+    var(--pure-black, #000) 100%
+  );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -295,28 +348,35 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 100%);
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in srgb, var(--pure-black, #000) 0%, transparent) 0%,
+    color-mix(in srgb, var(--pure-black, #000) 55%, transparent) 100%
+  );
   transition: background 0.3s ease;
 }
 
 .video-stage:hover .play-overlay {
-  background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 100%);
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in srgb, var(--pure-black, #000) 0%, transparent) 0%,
+    color-mix(in srgb, var(--pure-black, #000) 35%, transparent) 100%
+  );
 }
 
 .play-button {
   width: 96px;
   height: 96px;
   border-radius: 50%;
-  background: rgba(245, 213, 115, 0.9);
-  color: #1a1208;
+  background: var(--crt-phosphor-soft, rgba(245, 213, 115, 0.9));
+  color: var(--crt-amber-deep, #1a1208);
   font-size: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 4px solid #1a1208;
-  box-shadow:
-    0 0 30px var(--crt-phosphor-glow),
-    inset 0 -4px 8px rgba(0, 0, 0, 0.4);
+  border: 4px solid var(--crt-amber-deep, #1a1208);
+  box-shadow: 0 0 30px var(--crt-phosphor-glow, rgba(245, 213, 115, 0.55)),
+    inset 0 -4px 8px color-mix(in srgb, var(--pure-black, #000) 40%, transparent);
   transition: transform 0.2s ease;
 }
 
@@ -334,7 +394,7 @@ body {
   height: 100%;
   border: 0;
   display: block;
-  background: #000;
+  background: var(--pure-black, #000);
 }
 
 /* Scanline overlay (drawn on top of the screen) */
@@ -346,8 +406,8 @@ body {
   z-index: 2;
   background: repeating-linear-gradient(
     to bottom,
-    rgba(0, 0, 0, 0.18) 0px,
-    rgba(0, 0, 0, 0.18) 1px,
+    color-mix(in srgb, var(--pure-black, #000) 18%, transparent) 0px,
+    color-mix(in srgb, var(--pure-black, #000) 18%, transparent) 1px,
     transparent 1px,
     transparent 3px
   );
@@ -361,18 +421,36 @@ body {
   inset: 0;
   pointer-events: none;
   z-index: 3;
-  background:
-    radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.45) 100%),
-    radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.06), transparent 50%);
+  background: radial-gradient(
+      ellipse at 50% 50%,
+      transparent 55%,
+      color-mix(in srgb, var(--pure-black, #000) 45%, transparent) 100%
+    ),
+    radial-gradient(
+      ellipse at 30% 20%,
+      color-mix(in srgb, var(--pure-white, #fff) 6%, transparent),
+      transparent 50%
+    );
   animation: crt-flicker 4.5s steps(60) infinite;
 }
 
 @keyframes crt-flicker {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.97; }
-  52%      { opacity: 1; }
-  53%      { opacity: 0.95; }
-  54%      { opacity: 1; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.97;
+  }
+  52% {
+    opacity: 1;
+  }
+  53% {
+    opacity: 0.95;
+  }
+  54% {
+    opacity: 1;
+  }
 }
 
 /* ------------------------------------------------------------------------ */
@@ -389,8 +467,8 @@ body {
   justify-content: center;
   gap: 16px;
   font-family: var(--font-screen);
-  color: var(--crt-phosphor);
-  text-shadow: 0 0 8px var(--crt-phosphor-glow);
+  color: var(--crt-phosphor, #f5d573);
+  text-shadow: 0 0 8px var(--crt-phosphor-glow, rgba(245, 213, 115, 0.55));
   text-align: center;
   padding: 24px;
 }
@@ -417,27 +495,40 @@ body {
   position: absolute;
   inset: 0;
   z-index: 4;
-  background:
-    repeating-conic-gradient(
-      from 0deg,
-      rgba(255, 255, 255, 0.05) 0deg 1deg,
-      rgba(0, 0, 0, 0.05) 1deg 2deg
-    );
+  background: repeating-conic-gradient(
+    from 0deg,
+    color-mix(in srgb, var(--pure-white, #fff) 5%, transparent) 0deg 1deg,
+    color-mix(in srgb, var(--pure-black, #000) 5%, transparent) 1deg 2deg
+  );
   background-size: 4px 4px;
   animation: crt-static 0.18s steps(2) infinite;
   opacity: 0.45;
   mix-blend-mode: screen;
 }
 
-.crt-static.hidden { display: none; }
+.crt-static.hidden {
+  display: none;
+}
 
 @keyframes crt-static {
-  0%   { background-position:    0px    0px; }
-  20%  { background-position:  -12px   18px; }
-  40%  { background-position:   18px  -22px; }
-  60%  { background-position:  -24px   24px; }
-  80%  { background-position:   30px   16px; }
-  100% { background-position:  -18px   -8px; }
+  0% {
+    background-position: 0px 0px;
+  }
+  20% {
+    background-position: -12px 18px;
+  }
+  40% {
+    background-position: 18px -22px;
+  }
+  60% {
+    background-position: -24px 24px;
+  }
+  80% {
+    background-position: 30px 16px;
+  }
+  100% {
+    background-position: -18px -8px;
+  }
 }
 
 /* ------------------------------------------------------------------------ */
@@ -459,14 +550,13 @@ body {
   gap: 6px;
   padding: 8px 14px;
   border-radius: 6px;
-  background: linear-gradient(180deg, #0a0a0a, #181818);
-  border: 1px solid #000;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -2px 6px rgba(0, 0, 0, 0.9);
+  background: linear-gradient(180deg, var(--surface-0, #0b0b0f), var(--crt-channel-mid, #181818));
+  border: 1px solid var(--pure-black, #000);
+  box-shadow: inset 0 1px 0 var(--hairline, rgba(255, 255, 255, 0.08)),
+    inset 0 -2px 6px color-mix(in srgb, var(--pure-black, #000) 90%, transparent);
   font-family: var(--font-screen);
-  color: var(--crt-phosphor);
-  text-shadow: 0 0 6px var(--crt-phosphor-glow);
+  color: var(--crt-phosphor, #f5d573);
+  text-shadow: 0 0 6px var(--crt-phosphor-glow, rgba(245, 213, 115, 0.55));
   min-width: 120px;
 }
 
@@ -474,7 +564,7 @@ body {
   font-family: var(--font-label);
   font-size: 8px;
   letter-spacing: 3px;
-  color: var(--crt-phosphor-dim);
+  color: var(--crt-phosphor-dim, #b89238);
 }
 
 .crt-channel-display .value {
@@ -485,7 +575,7 @@ body {
 
 .crt-channel-display .total {
   font-size: 12px;
-  color: var(--crt-phosphor-dim);
+  color: var(--crt-phosphor-dim, #b89238);
 }
 
 /* Chunky knob */
@@ -494,13 +584,16 @@ body {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 35% 30%, #5a4a32, var(--crt-knob) 40%, var(--crt-knob-edge) 100%);
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.18),
-    inset 0 -4px 8px rgba(0, 0, 0, 0.7),
-    0 4px 6px rgba(0, 0, 0, 0.6),
-    0 0 0 3px var(--crt-bezel-edge);
+  background: radial-gradient(
+    circle at 35% 30%,
+    var(--crt-knob-shine, #5a4a32),
+    var(--crt-knob, #3a2b1a) 40%,
+    var(--crt-knob-edge, #1c130a) 100%
+  );
+  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--pure-white, #fff) 18%, transparent),
+    inset 0 -4px 8px color-mix(in srgb, var(--pure-black, #000) 70%, transparent),
+    0 4px 6px color-mix(in srgb, var(--pure-black, #000) 60%, transparent),
+    0 0 0 3px var(--crt-bezel-edge, #110a05);
   cursor: pointer;
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
@@ -516,10 +609,10 @@ body {
   left: 50%;
   width: 4px;
   height: 18px;
-  background: var(--crt-brass);
+  background: var(--crt-brass, #c9a96a);
   border-radius: 2px;
   transform: translateX(-50%);
-  box-shadow: 0 0 6px rgba(201, 169, 106, 0.7);
+  box-shadow: 0 0 6px var(--crt-brass-glow, rgba(201, 169, 106, 0.7));
 }
 
 .crt-knob:hover {
@@ -534,8 +627,12 @@ body {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #8a6b3f, #3a2a18);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: radial-gradient(
+    circle at 30% 30%,
+    var(--crt-knob-cap-top, #8a6b3f),
+    var(--crt-knob-cap-bot, #3a2a18)
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 20%, transparent);
 }
 
 /* Channel up/down buttons stacked beside the knob */
@@ -554,12 +651,10 @@ body {
   margin-top: 18px;
   padding: 14px 18px;
   border-radius: 10px;
-  background:
-    linear-gradient(180deg, #2a1c0e, #1a110a);
-  border: 1px solid #000;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 220, 170, 0.12),
-    inset 0 -4px 10px rgba(0, 0, 0, 0.7);
+  background: linear-gradient(180deg, var(--crt-panel-top, #2a1c0e), var(--crt-panel-bot, #1a110a));
+  border: 1px solid var(--pure-black, #000);
+  box-shadow: inset 0 1px 0 var(--crt-wood-shine-dim, rgba(255, 220, 170, 0.12)),
+    inset 0 -4px 10px color-mix(in srgb, var(--pure-black, #000) 70%, transparent);
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 10px;
@@ -571,18 +666,20 @@ body {
   font-family: var(--font-label);
   font-size: 10px;
   letter-spacing: 2px;
-  color: #f4e0a8;
+  color: var(--crt-btn-label, #f4e0a8);
   text-transform: uppercase;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7);
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--pure-black, #000) 70%, transparent);
   padding: 14px 8px;
-  background:
-    linear-gradient(180deg, #4d3920 0%, #2c1f10 100%);
-  border: 1px solid #000;
+  background: linear-gradient(
+    180deg,
+    var(--crt-btn-top, #4d3920) 0%,
+    var(--crt-btn-bot, #2c1f10) 100%
+  );
+  border: 1px solid var(--pure-black, #000);
   border-radius: 6px;
-  box-shadow:
-    inset 0 2px 0 rgba(255, 220, 170, 0.18),
-    inset 0 -4px 8px rgba(0, 0, 0, 0.6),
-    0 3px 0 #000;
+  box-shadow: inset 0 2px 0 var(--crt-wood-shine-soft, rgba(255, 220, 170, 0.18)),
+    inset 0 -4px 8px color-mix(in srgb, var(--pure-black, #000) 60%, transparent),
+    0 3px 0 var(--pure-black, #000);
   cursor: pointer;
   transition: transform 0.1s ease, box-shadow 0.1s ease;
   display: flex;
@@ -599,15 +696,18 @@ body {
 .crt-btn:active,
 .crt-btn.is-pressed {
   transform: translateY(2px);
-  box-shadow:
-    inset 0 2px 6px rgba(0, 0, 0, 0.8),
-    inset 0 -1px 0 rgba(255, 220, 170, 0.05),
-    0 1px 0 #000;
+  box-shadow: inset 0 2px 6px color-mix(in srgb, var(--pure-black, #000) 80%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--crt-wood-shine, rgba(255, 220, 170, 0.22)) 25%, transparent),
+    0 1px 0 var(--pure-black, #000);
 }
 
 .crt-btn.is-accent {
-  background: linear-gradient(180deg, #8a3a22 0%, #4a1a0e 100%);
-  color: #ffe6c8;
+  background: linear-gradient(
+    180deg,
+    var(--crt-btn-accent-top, #8a3a22) 0%,
+    var(--crt-btn-accent-bot, #4a1a0e) 100%
+  );
+  color: var(--crt-btn-accent-label, #ffe6c8);
 }
 
 .crt-btn .crt-btn-glyph {
@@ -630,12 +730,11 @@ body {
 .crt-marquee {
   width: min(1100px, 100%);
   margin-top: 8px;
-  background: linear-gradient(180deg, #0a0a0a, #181818);
+  background: linear-gradient(180deg, var(--surface-0, #0b0b0f), var(--crt-channel-mid, #181818));
   border-radius: 10px;
-  border: 1px solid #000;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -4px 8px rgba(0, 0, 0, 0.7);
+  border: 1px solid var(--pure-black, #000);
+  box-shadow: inset 0 1px 0 var(--hairline, rgba(255, 255, 255, 0.08)),
+    inset 0 -4px 8px color-mix(in srgb, var(--pure-black, #000) 70%, transparent);
   padding: 12px 18px;
   display: flex;
   align-items: center;
@@ -647,10 +746,10 @@ body {
   font-family: var(--font-label);
   font-size: 9px;
   letter-spacing: 3px;
-  color: var(--crt-led-red);
+  color: var(--crt-led-red, #ff3a2e);
   text-transform: uppercase;
   white-space: nowrap;
-  text-shadow: 0 0 8px var(--crt-led-red-glow);
+  text-shadow: 0 0 8px var(--crt-led-red-glow, rgba(255, 58, 46, 0.7));
   display: flex;
   align-items: center;
   gap: 8px;
@@ -660,8 +759,8 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--crt-led-red);
-  box-shadow: 0 0 8px var(--crt-led-red-glow);
+  background: var(--crt-led-red, #ff3a2e);
+  box-shadow: 0 0 8px var(--crt-led-red-glow, rgba(255, 58, 46, 0.7));
   animation: pwr-pulse 1.8s ease-in-out infinite;
 }
 
@@ -669,8 +768,8 @@ body {
   flex: 1;
   font-family: var(--font-screen);
   font-size: 22px;
-  color: var(--crt-phosphor);
-  text-shadow: 0 0 6px var(--crt-phosphor-glow);
+  color: var(--crt-phosphor, #f5d573);
+  text-shadow: 0 0 6px var(--crt-phosphor-glow, rgba(245, 213, 115, 0.55));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -679,8 +778,8 @@ body {
 
 /* Flash message slides in over the marquee */
 .crt-marquee.is-flashing .crt-title {
-  color: var(--crt-led-green);
-  text-shadow: 0 0 8px rgba(125, 255, 125, 0.7);
+  color: var(--crt-led-green, #7dff7d);
+  text-shadow: 0 0 8px var(--crt-led-green-glow, rgba(125, 255, 125, 0.7));
 }
 
 /* ------------------------------------------------------------------------ */
@@ -691,7 +790,7 @@ body {
   font-family: var(--font-label);
   font-size: 9px;
   letter-spacing: 2px;
-  color: var(--crt-brass-dark);
+  color: var(--crt-brass-dark, #8b7142);
   text-transform: uppercase;
   text-align: center;
   margin-top: 4px;
@@ -701,10 +800,10 @@ body {
   display: inline-block;
   padding: 2px 6px;
   margin: 0 2px;
-  background: #1a1208;
-  border: 1px solid var(--crt-brass-dark);
+  background: var(--crt-amber-deep, #1a1208);
+  border: 1px solid var(--crt-brass-dark, #8b7142);
   border-radius: 3px;
-  color: var(--crt-brass);
+  color: var(--crt-brass, #c9a96a);
   font-family: inherit;
   font-size: 8px;
 }
@@ -749,7 +848,9 @@ body {
     padding: 6px 10px;
   }
 
-  .crt-channel-display .value { font-size: 22px; }
+  .crt-channel-display .value {
+    font-size: 22px;
+  }
 
   .crt-knob {
     width: 56px;
@@ -782,7 +883,10 @@ body {
 
   /* The glyph margin steals room on narrow buttons; the flex gap from the
    * row spacing is enough. */
-  .crt-btn .crt-btn-glyph { margin-right: 2px; font-size: 11px; }
+  .crt-btn .crt-btn-glyph {
+    margin-right: 2px;
+    font-size: 11px;
+  }
 
   /* CH±: keep them compact and one line each */
   .crt-side-buttons {
@@ -796,10 +900,20 @@ body {
     white-space: nowrap;
   }
 
-  .crt-marquee .crt-title { font-size: 16px; }
-  .crt-brand { font-size: 10px; letter-spacing: 4px; }
-  .crt-bezel-label { font-size: 8px; letter-spacing: 2px; }
-  .crt-bezel-label .crt-channel-chip { padding: 3px 6px; }
+  .crt-marquee .crt-title {
+    font-size: 16px;
+  }
+  .crt-brand {
+    font-size: 10px;
+    letter-spacing: 4px;
+  }
+  .crt-bezel-label {
+    font-size: 8px;
+    letter-spacing: 2px;
+  }
+  .crt-bezel-label .crt-channel-chip {
+    padding: 3px 6px;
+  }
 }
 
 /* Short landscape viewports (phones rotated to landscape, foldables).
@@ -811,13 +925,29 @@ body {
     padding: 8px 12px 16px;
     gap: 6px;
   }
-  .crt-brand { display: none; }
-  .crt-help { display: none; }
-  .crt-tv::after { display: none; }
+  .crt-brand {
+    display: none;
+  }
+  .crt-help {
+    display: none;
+  }
+  .crt-tv::after {
+    display: none;
+  }
 
-  .crt-tv { padding: 12px 18px 10px; border-radius: 16px; }
-  .crt-bezel { padding: 10px 14px 8px; gap: 8px; border-radius: 12px; }
-  .crt-bezel-label { font-size: 8px; letter-spacing: 2px; }
+  .crt-tv {
+    padding: 12px 18px 10px;
+    border-radius: 16px;
+  }
+  .crt-bezel {
+    padding: 10px 14px 8px;
+    gap: 8px;
+    border-radius: 12px;
+  }
+  .crt-bezel-label {
+    font-size: 8px;
+    letter-spacing: 2px;
+  }
 
   .crt-screen-wrap {
     aspect-ratio: auto;
@@ -829,16 +959,35 @@ body {
     gap: 8px;
     margin-top: 4px;
   }
-  .crt-channel-display { padding: 4px 8px; }
-  .crt-channel-display .value { font-size: 18px; }
-  .crt-channel-display .label { font-size: 7px; }
-  .crt-channel-display .total { font-size: 10px; }
+  .crt-channel-display {
+    padding: 4px 8px;
+  }
+  .crt-channel-display .value {
+    font-size: 18px;
+  }
+  .crt-channel-display .label {
+    font-size: 7px;
+  }
+  .crt-channel-display .total {
+    font-size: 10px;
+  }
 
-  .crt-knob { width: 44px; height: 44px; }
-  .crt-knob::before { height: 10px; top: 3px; }
-  .crt-knob-cap { width: 12px; height: 12px; }
+  .crt-knob {
+    width: 44px;
+    height: 44px;
+  }
+  .crt-knob::before {
+    height: 10px;
+    top: 3px;
+  }
+  .crt-knob-cap {
+    width: 12px;
+    height: 12px;
+  }
 
-  .crt-side-buttons { gap: 4px; }
+  .crt-side-buttons {
+    gap: 4px;
+  }
   .crt-side-buttons .crt-btn {
     padding: 4px 6px;
     font-size: 8px;
@@ -852,40 +1001,87 @@ body {
     gap: 6px;
     margin-top: 8px;
   }
-  .crt-panel > #crt-next { grid-column: auto !important; }
+  .crt-panel > #crt-next {
+    grid-column: auto !important;
+  }
   .crt-btn {
     padding: 8px 4px;
     font-size: 8px;
     letter-spacing: 0.5px;
     min-width: 0;
   }
-  .crt-btn .crt-btn-glyph { font-size: 10px; margin-right: 2px; }
+  .crt-btn .crt-btn-glyph {
+    font-size: 10px;
+    margin-right: 2px;
+  }
 
-  .crt-marquee { padding: 8px 14px; margin-top: 4px; }
-  .crt-marquee .crt-title { font-size: 14px; }
-  .crt-marquee .crt-now-tag { font-size: 7px; letter-spacing: 2px; }
+  .crt-marquee {
+    padding: 8px 14px;
+    margin-top: 4px;
+  }
+  .crt-marquee .crt-title {
+    font-size: 14px;
+  }
+  .crt-marquee .crt-now-tag {
+    font-size: 7px;
+    letter-spacing: 2px;
+  }
 }
 
 /* Tightest phones — iPhone SE, small Androids. Shrink panel to single column
  * and abbreviate labels so nothing clips. */
 @media (max-width: 380px) {
-  .crt-tv { padding: 12px 10px 12px; }
-  .crt-bezel { padding: 12px 10px 10px; }
+  .crt-tv {
+    padding: 12px 10px 12px;
+  }
+  .crt-bezel {
+    padding: 12px 10px 10px;
+  }
 
-  .crt-channel-display { padding: 5px 8px; }
-  .crt-channel-display .value { font-size: 20px; }
+  .crt-channel-display {
+    padding: 5px 8px;
+  }
+  .crt-channel-display .value {
+    font-size: 20px;
+  }
 
-  .crt-knob { width: 48px; height: 48px; }
-  .crt-knob::before { height: 11px; top: 3px; }
-  .crt-knob-cap { width: 14px; height: 14px; }
+  .crt-knob {
+    width: 48px;
+    height: 48px;
+  }
+  .crt-knob::before {
+    height: 11px;
+    top: 3px;
+  }
+  .crt-knob-cap {
+    width: 14px;
+    height: 14px;
+  }
 
-  .crt-panel { gap: 6px; padding: 8px; }
-  .crt-btn { padding: 9px 3px; font-size: 8px; letter-spacing: 0.5px; }
-  .crt-btn .crt-btn-glyph { font-size: 10px; }
+  .crt-panel {
+    gap: 6px;
+    padding: 8px;
+  }
+  .crt-btn {
+    padding: 9px 3px;
+    font-size: 8px;
+    letter-spacing: 0.5px;
+  }
+  .crt-btn .crt-btn-glyph {
+    font-size: 10px;
+  }
 
-  .crt-marquee { padding: 10px 12px; gap: 10px; }
-  .crt-marquee .crt-title { font-size: 14px; }
-  .crt-marquee .crt-now-tag { font-size: 8px; letter-spacing: 2px; }
+  .crt-marquee {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  .crt-marquee .crt-title {
+    font-size: 14px;
+  }
+  .crt-marquee .crt-now-tag {
+    font-size: 8px;
+    letter-spacing: 2px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

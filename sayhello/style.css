@@ -1,9 +1,29 @@
+/* Say Hello — pulled into the Heyming OS chassis. Original surface was
+   bare white; now it inherits the brand dark surface, body text, and
+   typography. The voice control widgets are left to their native UA
+   styling because that's what gives the OS speech APIs their familiar
+   look (and we don't want to fight `select` rendering across platforms). */
 body {
-  background: white;
+  background: var(--surface-0, #0b0b0f);
+  color: var(--text-1, #f5f5f7);
+  font-family: var(--font-ui, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+  min-height: 100dvh;
 }
 .content-wrapper {
   margin-left: 120px;
   padding: 20px;
+  max-width: 720px;
+}
+h1 {
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-bottom: 1rem;
+}
+p {
+  color: var(--text-2, #a1a1aa);
+  margin-bottom: 0.75rem;
+  line-height: 1.55;
 }
 @media (max-width: 640px) {
   .content-wrapper {
@@ -55,10 +75,12 @@ body {
   margin-top: 10px;
 }
 .learn-more a {
-  color: #0066cc;
+  color: var(--accent-primary-hover, #9077ff);
   text-decoration: none;
-  border-bottom: 1px dotted #0066cc;
+  border-bottom: 1px dotted var(--accent-primary-hover, #9077ff);
 }
 .learn-more a:hover {
   border-bottom-style: solid;
+  color: var(--accent-primary, #7c5cff);
+  border-bottom-color: var(--accent-primary, #7c5cff);
 }

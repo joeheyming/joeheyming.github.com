@@ -11,8 +11,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #000;
-  color: #0f0;
+  background: var(--terminal-modal-bg, #000);
+  color: var(--terminal-prompt, #0f0);
   font-family: 'Hack', ui-monospace, 'Courier New', Courier, monospace;
   font-size: 13px;
   line-height: 1.35;
@@ -23,7 +23,7 @@
 }
 
 .top-modal:focus-visible {
-  outline: 2px solid rgba(0, 255, 80, 0.45);
+  outline: 2px solid var(--terminal-focus-ring, rgba(0, 255, 80, 0.45));
   outline-offset: -2px;
 }
 
@@ -40,28 +40,32 @@
 }
 
 .top-modal-inner[role='dialog']:focus-visible {
-  outline: 2px solid rgba(0, 255, 80, 0.45);
+  outline: 2px solid var(--terminal-focus-ring, rgba(0, 255, 80, 0.45));
   outline-offset: -2px;
 }
 
 .top-modal-header {
   flex-shrink: 0;
   padding: 12px 16px 10px;
-  border-bottom: 1px solid rgba(0, 255, 80, 0.22);
-  background: linear-gradient(180deg, rgba(0, 56, 0, 0.55) 0%, rgba(0, 0, 0, 0) 100%);
+  border-bottom: 1px solid var(--terminal-rule-mid, rgba(0, 255, 80, 0.22));
+  background: linear-gradient(
+    180deg,
+    var(--terminal-modal-grad, rgba(0, 56, 0, 0.55)) 0%,
+    var(--terminal-grad-end, rgba(0, 0, 0, 0)) 100%
+  );
 }
 
 .top-modal-title {
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.03em;
-  color: #b6f7b6;
+  color: var(--terminal-text-bright, #b6f7b6);
 }
 
 .top-modal-subtitle {
   margin-top: 4px;
   font-size: 11px;
-  color: rgba(0, 255, 80, 0.52);
+  color: var(--terminal-text-faint, rgba(0, 255, 80, 0.52));
   letter-spacing: 0.02em;
 }
 
@@ -71,8 +75,8 @@
   padding: 6px 16px 8px;
   font-size: 11px;
   line-height: 1.35;
-  color: rgba(0, 255, 80, 0.55);
-  border-top: 1px solid rgba(0, 255, 80, 0.12);
+  color: var(--terminal-text-mute, rgba(0, 255, 80, 0.55));
+  border-top: 1px solid var(--terminal-rule, rgba(0, 255, 80, 0.12));
   letter-spacing: 0.02em;
 }
 
@@ -90,11 +94,11 @@
 }
 
 .top-modal .top-content::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background: var(--terminal-modal-track, #1a1a1a);
 }
 
 .top-modal .top-content::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 80, 0.35);
+  background: var(--terminal-edge-faint, rgba(0, 255, 80, 0.35));
   border-radius: 4px;
 }
 
@@ -104,7 +108,7 @@
   font-family: inherit;
   font-size: 13px;
   line-height: 1.35;
-  color: #c8ffc8;
+  color: var(--terminal-text-soft, #c8ffc8);
 }
 
 .top-modal-footer {
@@ -114,14 +118,14 @@
   align-items: center;
   gap: 6px 4px;
   padding: 10px 16px 12px;
-  border-top: 1px solid rgba(0, 255, 80, 0.2);
+  border-top: 1px solid var(--terminal-rule-hairline, rgba(0, 255, 80, 0.2));
   font-size: 11px;
-  color: rgba(0, 255, 80, 0.78);
-  background: rgba(0, 24, 0, 0.42);
+  color: var(--terminal-text-dim-strong, rgba(0, 255, 80, 0.78));
+  background: var(--terminal-modal-footer-bg, rgba(0, 24, 0, 0.42));
 }
 
 .top-modal-footer-sep {
-  color: rgba(0, 255, 80, 0.35);
+  color: var(--terminal-edge-faint, rgba(0, 255, 80, 0.35));
   user-select: none;
 }
 
@@ -132,15 +136,15 @@
   display: inline-block;
   padding: 2px 6px;
   border-radius: 4px;
-  border: 1px solid rgba(0, 255, 80, 0.32);
-  background: rgba(0, 40, 0, 0.5);
+  border: 1px solid var(--terminal-edge, rgba(0, 255, 80, 0.32));
+  background: var(--terminal-modal-kbd-bg, rgba(0, 40, 0, 0.5));
   font-family: inherit;
   font-size: 10px;
-  color: #9fdf9f;
+  color: var(--terminal-text-kbd, #9fdf9f);
 }
 
 .less-modal .less-footer .less-footer-note {
-  color: rgba(0, 255, 80, 0.55);
+  color: var(--terminal-text-mute, rgba(0, 255, 80, 0.55));
   font-style: italic;
 }
 
@@ -155,8 +159,8 @@
   justify-content: center;
   align-items: center;
   padding: 12px;
-  background: rgba(0, 0, 0, 0.88);
-  color: #c8ffc8;
+  background: var(--terminal-modal-scrim, rgba(0, 0, 0, 0.88));
+  color: var(--terminal-text-soft, #c8ffc8);
   font-family: 'Hack', ui-monospace, 'Courier New', Courier, monospace;
   font-size: 13px;
   line-height: 1.35;
@@ -169,7 +173,7 @@
 
 .vi-editor-modal:focus-visible,
 .less-modal:focus-visible {
-  outline: 2px solid rgba(0, 255, 80, 0.45);
+  outline: 2px solid var(--terminal-focus-ring, rgba(0, 255, 80, 0.45));
   outline-offset: -2px;
 }
 
@@ -178,10 +182,11 @@
   width: min(92vw, 1100px);
   height: min(85vh, 900px);
   min-height: 260px;
-  background: #000;
-  border: 1px solid rgba(0, 255, 80, 0.22);
+  background: var(--terminal-modal-bg, #000);
+  border: 1px solid var(--terminal-rule-mid, rgba(0, 255, 80, 0.22));
   border-radius: 8px;
-  box-shadow: 0 0 0 1px rgba(0, 255, 80, 0.08), 0 16px 48px rgba(0, 0, 0, 0.75);
+  box-shadow: 0 0 0 1px var(--terminal-glow, rgba(0, 255, 80, 0.08)),
+    0 16px 48px var(--terminal-modal-shadow, rgba(0, 0, 0, 0.75));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -196,12 +201,16 @@
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border-bottom: 1px solid rgba(0, 255, 80, 0.22);
-  background: linear-gradient(180deg, rgba(0, 56, 0, 0.55) 0%, rgba(0, 0, 0, 0) 100%);
+  border-bottom: 1px solid var(--terminal-rule-mid, rgba(0, 255, 80, 0.22));
+  background: linear-gradient(
+    180deg,
+    var(--terminal-modal-grad, rgba(0, 56, 0, 0.55)) 0%,
+    var(--terminal-grad-end, rgba(0, 0, 0, 0)) 100%
+  );
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: #b6f7b6;
+  color: var(--terminal-text-bright, #b6f7b6);
 }
 
 .vi-editor-modal .vi-filename,
@@ -217,7 +226,7 @@
   flex-shrink: 0;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: rgba(0, 255, 80, 0.92);
+  color: var(--terminal-text-dim-hi-2, rgba(0, 255, 80, 0.92));
 }
 
 .vi-editor-modal .vi-content {
@@ -229,7 +238,7 @@
   font-family: inherit;
   font-size: 13px;
   line-height: 1.35;
-  color: #c8ffc8;
+  color: var(--terminal-text-soft, #c8ffc8);
   scrollbar-gutter: stable;
 }
 
@@ -239,11 +248,11 @@
 }
 
 .vi-editor-modal .vi-content::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background: var(--terminal-modal-track, #1a1a1a);
 }
 
 .vi-editor-modal .vi-content::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 80, 0.35);
+  background: var(--terminal-edge-faint, rgba(0, 255, 80, 0.35));
   border-radius: 4px;
 }
 
@@ -255,10 +264,10 @@
   align-items: center;
   gap: 8px;
   padding: 8px 14px 10px;
-  border-top: 1px solid rgba(0, 255, 80, 0.2);
+  border-top: 1px solid var(--terminal-rule-hairline, rgba(0, 255, 80, 0.2));
   font-size: 11px;
-  color: rgba(0, 255, 80, 0.78);
-  background: rgba(0, 24, 0, 0.42);
+  color: var(--terminal-text-dim-strong, rgba(0, 255, 80, 0.78));
+  background: var(--terminal-modal-footer-bg, rgba(0, 24, 0, 0.42));
 }
 
 .vi-editor-modal .vi-status {
@@ -272,18 +281,18 @@
 }
 
 .vi-editor-modal .vi-cursor {
-  background: #0f0;
-  color: #000;
+  background: var(--terminal-cursor-bg, #0f0);
+  color: var(--terminal-cursor-fg, #000);
 }
 
 .vi-editor-modal .vi-cursor.insert {
-  background: #ff0;
-  color: #000;
+  background: var(--terminal-cursor-insert-bg, #ff0);
+  color: var(--terminal-cursor-fg, #000);
 }
 
 .vi-editor-modal .vi-cursor.normal {
-  background: #0f0;
-  color: #000;
+  background: var(--terminal-cursor-bg, #0f0);
+  color: var(--terminal-cursor-fg, #000);
 }
 
 .less-modal .less-content {
@@ -295,7 +304,7 @@
   font-family: inherit;
   font-size: 13px;
   line-height: 1.35;
-  color: #c8ffc8;
+  color: var(--terminal-text-soft, #c8ffc8);
 }
 
 .less-modal .less-content.less-content-chop {
@@ -318,9 +327,9 @@
 
 .less-modal .less-search input {
   min-width: 8em;
-  background: #0a0a0a;
-  color: #c8ffc8;
-  border: 1px solid rgba(0, 255, 80, 0.28);
+  background: var(--terminal-modal-input-bg, #0a0a0a);
+  color: var(--terminal-text-soft, #c8ffc8);
+  border: 1px solid var(--terminal-edge-soft, rgba(0, 255, 80, 0.28));
   border-radius: 4px;
   padding: 4px 8px;
   margin-left: 0;
@@ -329,13 +338,13 @@
 }
 
 .less-modal .less-search input:focus-visible {
-  outline: 2px solid rgba(0, 255, 80, 0.45);
+  outline: 2px solid var(--terminal-focus-ring, rgba(0, 255, 80, 0.45));
   outline-offset: 1px;
 }
 
 .less-modal .less-highlight {
-  background: #ff0;
-  color: #000;
+  background: var(--terminal-cursor-insert-bg, #ff0);
+  color: var(--terminal-cursor-fg, #000);
 }
 
 @media (max-width: 768px) {

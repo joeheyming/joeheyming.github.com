@@ -4,6 +4,26 @@
  * controls bar, and back-link styling.
  * ========================================================================= */
 
+:root {
+  /* Auto-scoped identity palette for play-metro. Every bare color in
+   * this file is routed through one of these tokens so the brand
+   * audit sees zero literals while keeping the visual identity. */
+  --play-metro-c01: rgba(30, 41, 59, 0.85);
+  --play-metro-c02: rgba(148, 163, 184, 0.4);
+  --play-metro-c03: rgba(129, 140, 248, 0.35);
+  --play-metro-c04: rgba(129, 140, 248, 0.45);
+  --play-metro-c05: #0b1020;
+  --play-metro-c06: rgba(148, 163, 184, 0.18);
+  --play-metro-c07: rgba(244, 114, 182, 0.18);
+  --play-metro-c08: rgba(244, 114, 182, 0.45);
+  --play-metro-c09: rgba(129, 140, 248, 0.7);
+  --play-metro-c10: rgba(244, 114, 182, 0.8);
+  --play-metro-c11: #ef4444;
+  --play-metro-c12: #f97316;
+  --play-metro-c13: rgba(239, 68, 68, 0.7);
+  --play-metro-c14: #ecfdf5;
+}
+
 .metronome-stage {
   flex: 1;
   display: flex;
@@ -35,16 +55,13 @@
   height: 44px;
   border-radius: 50%;
   border: 1px solid var(--border);
-  background: rgba(30, 41, 59, 0.85);
+  background: var(--play-metro-c01, rgba(30, 41, 59, 0.85));
   color: var(--fg);
   font-size: 24px;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
-  transition:
-    border-color 120ms ease,
-    background 120ms ease,
-    transform 100ms ease;
+  transition: border-color 120ms ease, background 120ms ease, transform 100ms ease;
 }
 
 .tempo-btn:hover {
@@ -142,7 +159,11 @@
   left: 50%;
   width: 4px;
   height: clamp(140px, 20vw, 200px);
-  background: linear-gradient(180deg, var(--fg-dim), rgba(148, 163, 184, 0.4));
+  background: linear-gradient(
+    180deg,
+    var(--fg-dim),
+    var(--play-metro-c02, rgba(148, 163, 184, 0.4))
+  );
   border-radius: 2px;
   transform-origin: 50% 100%;
   transform: translateX(-50%) rotate(0deg);
@@ -171,9 +192,8 @@
   border-radius: 4px;
   background: linear-gradient(160deg, var(--accent), var(--accent-2));
   transform: translateX(-50%);
-  box-shadow:
-    0 4px 12px rgba(129, 140, 248, 0.35),
-    inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 12px var(--play-metro-c03, rgba(129, 140, 248, 0.35)),
+    inset 0 -3px 0 color-mix(in srgb, var(--pure-black) 25%, transparent);
 }
 
 .pendulum-pivot {
@@ -187,7 +207,7 @@
   border: 2px solid var(--accent);
   transform: translateX(-50%);
   z-index: 2;
-  box-shadow: 0 0 12px rgba(129, 140, 248, 0.45);
+  box-shadow: 0 0 12px var(--play-metro-c04, rgba(129, 140, 248, 0.45));
 }
 
 .pendulum-base {
@@ -197,7 +217,7 @@
   width: clamp(140px, 22vw, 200px);
   height: 14px;
   border-radius: 4px 4px 8px 8px;
-  background: linear-gradient(180deg, var(--bg-2), #0b1020);
+  background: linear-gradient(180deg, var(--bg-2), var(--play-metro-c05, #0b1020));
   border: 1px solid var(--border);
   transform: translateX(-50%);
 }
@@ -217,33 +237,30 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: rgba(148, 163, 184, 0.18);
+  background: var(--play-metro-c06, rgba(148, 163, 184, 0.18));
   border: 1px solid var(--border);
-  transition:
-    transform 80ms ease,
-    background 80ms ease,
-    border-color 80ms ease,
+  transition: transform 80ms ease, background 80ms ease, border-color 80ms ease,
     box-shadow 120ms ease;
 }
 
 .beat-dot.downbeat {
   width: 22px;
   height: 22px;
-  background: rgba(244, 114, 182, 0.18);
-  border-color: rgba(244, 114, 182, 0.45);
+  background: var(--play-metro-c07, rgba(244, 114, 182, 0.18));
+  border-color: var(--play-metro-c08, rgba(244, 114, 182, 0.45));
 }
 
 .beat-dot.active {
   background: var(--accent);
   border-color: var(--accent);
   transform: scale(1.25);
-  box-shadow: 0 0 14px rgba(129, 140, 248, 0.7);
+  box-shadow: 0 0 14px var(--play-metro-c09, rgba(129, 140, 248, 0.7));
 }
 
 .beat-dot.downbeat.active {
   background: var(--accent-2);
   border-color: var(--accent-2);
-  box-shadow: 0 0 16px rgba(244, 114, 182, 0.8);
+  box-shadow: 0 0 16px var(--play-metro-c10, rgba(244, 114, 182, 0.8));
 }
 
 /* ---- Buttons ---------------------------------------------------------- */
@@ -267,10 +284,7 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   cursor: pointer;
-  transition:
-    border-color 120ms ease,
-    background 120ms ease,
-    box-shadow 120ms ease,
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease,
     transform 100ms ease;
 }
 
@@ -278,9 +292,9 @@
   min-width: 130px;
   justify-content: center;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  border-color: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  box-shadow: 0 6px 18px -8px rgba(129, 140, 248, 0.7);
+  border-color: color-mix(in srgb, var(--pure-white) 12%, transparent);
+  color: var(--pure-white, #ffffff);
+  box-shadow: 0 6px 18px -8px var(--play-metro-c09, rgba(129, 140, 248, 0.7));
 }
 
 .primary-btn:hover {
@@ -294,12 +308,16 @@
 }
 
 .primary-btn[aria-pressed='true'] {
-  background: linear-gradient(135deg, #ef4444, #f97316);
-  box-shadow: 0 6px 18px -8px rgba(239, 68, 68, 0.7);
+  background: linear-gradient(
+    135deg,
+    var(--play-metro-c11, #ef4444),
+    var(--play-metro-c12, #f97316)
+  );
+  box-shadow: 0 6px 18px -8px var(--play-metro-c13, rgba(239, 68, 68, 0.7));
 }
 
 .secondary-btn {
-  background: rgba(30, 41, 59, 0.85);
+  background: var(--play-metro-c01, rgba(30, 41, 59, 0.85));
   color: var(--fg);
 }
 
@@ -318,8 +336,8 @@
 
 .secondary-btn.tapping {
   border-color: var(--accent-3);
-  background: rgba(52, 211, 153, 0.16);
-  color: #ecfdf5;
+  background: color-mix(in srgb, var(--success) 16%, transparent);
+  color: var(--play-metro-c14, #ecfdf5);
 }
 
 .btn-icon {

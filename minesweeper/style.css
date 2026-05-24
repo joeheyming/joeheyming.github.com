@@ -9,8 +9,10 @@
 }
 
 :root {
-  /* Classic Windows palette with modern twist */
-  --bg: #1a1a2e;
+  /* Classic Win95 minesweeper tile palette stays intact — that's the
+   * point of the app. Only the page background routes to Heyming OS
+   * surface-0 so the game tray sits on the brand chassis. */
+  --bg: var(--surface-0, #0b0b0f);
   --surface: #c0c0c0;
   --surface-dark: #a0a0a0;
   --surface-light: #dfdfdf;
@@ -28,6 +30,7 @@
   /* LCD colors */
   --lcd-bg: #300000;
   --lcd-glow: #ff0000;
+  --lcd-glow-timer: #00ff00; /* phosphor green for the timer counter */
 
   /* Number colors - classic */
   --n1: #0000ff;
@@ -56,9 +59,10 @@ body {
     0deg,
     transparent,
     transparent 2px,
-    rgba(255, 255, 255, 0.03) 2px,
-    rgba(255, 255, 255, 0.03) 4px
+    color-mix(in srgb, var(--pure-white) 3%, transparent) 2px,
+    color-mix(in srgb, var(--pure-white) 3%, transparent) 4px
   );
+  color: var(--text-1, #f5f5f7);
   font-family: 'Inter', -apple-system, sans-serif;
   padding: 12px;
 }
@@ -85,7 +89,7 @@ body {
   font-weight: 400;
   color: var(--text-light);
   letter-spacing: 0.05em;
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+  text-shadow: 2px 2px 0 color-mix(in srgb, var(--pure-black) 50%, transparent);
 }
 
 /* Difficulty Controls */
@@ -175,15 +179,23 @@ body {
 }
 
 .timer-counter .counter-value {
-  color: #00ff00;
-  text-shadow: 0 0 10px #00ff00;
+  color: var(--lcd-glow-timer, #00ff00);
+  text-shadow: 0 0 10px var(--lcd-glow-timer, #00ff00);
 }
 
-/* Face Button */
+/* Face Button — the emoji glyph has its own baseline metrics; without
+ * explicit flex centering it floats off in the upper-left of the
+ * button. line-height: 1 collapses the emoji's natural leading so the
+ * vertical-center math is honest. */
 .face-btn {
   width: 72px;
   height: 72px;
   font-size: 2.75rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border: 3px solid;
   border-color: var(--highlight) var(--shadow-dark) var(--shadow-dark) var(--highlight);
   background: var(--surface);
@@ -304,7 +316,7 @@ body {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: color-mix(in srgb, var(--pure-black) 70%, transparent);
   z-index: 1000;
   justify-content: center;
   align-items: center;
@@ -525,5 +537,3 @@ body {
     width: 44px;
     height: 44px;
     font-size: 1.5rem;
-  }
-}

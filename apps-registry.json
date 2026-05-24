@@ -21,7 +21,8 @@
       "name": "Accordion Hero",
       "short_name": "AccHero",
       "description": "Stradella rhythm game in your browser"
-    }
+    },
+    "appTier": "experience"
   },
   {
     "id": "awesome",
@@ -52,7 +53,8 @@
       "tagsLine": "\ud83c\udfaa Fun \u2022 \ud83c\udfb5 Music",
       "preset": "awesome",
       "analyticsLabel": "Everything is Awesome"
-    }
+    },
+    "appTier": "experience"
   },
   {
     "id": "doom",
@@ -81,7 +83,8 @@
       "tagsLine": "\ud83d\udd79\ufe0f Game \u2022 \u2b50 Popular",
       "preset": "doom",
       "analyticsLabel": "Doom"
-    }
+    },
+    "appTier": "experience"
   },
   {
     "id": "doom-mods",
@@ -96,7 +99,33 @@
     "defaultHeight": 768,
     "tags": ["fps", "retro", "mods"],
     "related": ["doom", "nes", "stepmania"],
-    "shareCategory": "game"
+    "shareCategory": "game",
+    "appTier": "experience"
+  },
+  {
+    "id": "dos",
+    "name": "DOS Player \ud83d\udcbe",
+    "shortName": "DOS",
+    "description": "Browser DOSBox \u2014 bring your own game zip",
+    "detailedDescription": "Play classic MS-DOS games in your browser. Load a game zip from disk or paste an Internet Archive URL; the player auto-detects the boot EXE, caches the bundle locally in IndexedDB, and persists save files across sessions. Powered by js-dos v8 and DOSBox-x compiled to WebAssembly.",
+    "icon": "\ud83d\udcbe",
+    "path": "./dos/",
+    "category": "game",
+    "defaultWidth": 1024,
+    "defaultHeight": 768,
+    "gradient": "from-amber-500/20 to-orange-500/20",
+    "border": "border-amber-500/30 hover:border-amber-400/50",
+    "taskbarGradient": "from-amber-600 to-orange-700",
+    "taskbarText": "text-white",
+    "tags": ["dos", "dosbox", "retro", "emulator", "pc", "rpg", "adventure"],
+    "related": ["doom", "nes", "sega", "stepmania"],
+    "shareCategory": "game",
+    "pwaShortcut": {
+      "name": "DOS Player",
+      "short_name": "DOS",
+      "description": "Play DOS games in your browser"
+    },
+    "appTier": "experience"
   },
   {
     "id": "farm",
@@ -113,7 +142,8 @@
     "taskbarText": "text-white",
     "desktopIcon": true,
     "related": ["awesome", "pacman", "doom"],
-    "shareCategory": "game"
+    "shareCategory": "game",
+    "appTier": "experience"
   },
   {
     "id": "notepad",
@@ -149,7 +179,8 @@
       "name": "Notepad",
       "short_name": "Notepad",
       "description": "Web-based notepad"
-    }
+    },
+    "appTier": "system"
   },
   {
     "id": "surf",
@@ -167,7 +198,8 @@
     "defaultWidth": 900,
     "defaultHeight": 600,
     "system": true,
-    "handles": ["text/html"]
+    "handles": ["text/html"],
+    "appTier": "experience"
   },
   {
     "id": "pacman",
@@ -194,7 +226,8 @@
       "tagsLine": "\ud83d\udd79\ufe0f Game \u2022 \ud83c\udfae Retro",
       "preset": "pacman",
       "analyticsLabel": "Pac-Man"
-    }
+    },
+    "appTier": "experience"
   },
   {
     "id": "pacman-infinite",
@@ -221,7 +254,8 @@
       "tagsLine": "\ud83d\udd79\ufe0f Game \u2022 \u267e\ufe0f Endless",
       "preset": "pacman-infinite",
       "analyticsLabel": "Pac-Infinite"
-    }
+    },
+    "appTier": "experience"
   },
   {
     "id": "periodic-speller",
@@ -240,7 +274,8 @@
     "defaultHeight": 600,
     "tags": ["science", "chemistry", "fun", "export"],
     "related": ["wordle-finder", "calculator", "countdown"],
-    "shareCategory": "utility"
+    "shareCategory": "utility",
+    "appTier": "experience"
   },
   {
     "id": "pbs",
@@ -256,7 +291,8 @@
     "taskbarGradient": "from-red-500 to-pink-500",
     "taskbarText": "text-white",
     "related": ["awesome", "sadtrombone", "sayhello"],
-    "shareCategory": "entertainment"
+    "shareCategory": "entertainment",
+    "appTier": "experience"
   },
   {
     "id": "sadtrombone",
@@ -272,7 +308,8 @@
     "taskbarGradient": "from-amber-400 to-yellow-500",
     "taskbarText": "text-black",
     "related": ["pbs", "awesome", "sayhello"],
-    "shareCategory": "entertainment"
+    "shareCategory": "entertainment",
+    "appTier": "experience"
   },
   {
     "id": "sayhello",
@@ -288,7 +325,8 @@
     "taskbarGradient": "from-purple-500 to-indigo-500",
     "taskbarText": "text-white",
     "related": ["sayit", "pbs", "sadtrombone"],
-    "shareCategory": "utility"
+    "shareCategory": "utility",
+    "appTier": "experience"
   },
   {
     "id": "sayit",
@@ -309,7 +347,8 @@
       "name": "Say It OCR",
       "short_name": "Say It",
       "description": "OCR text recognition tool"
-    }
+    },
+    "appTier": "app"
   },
   {
     "id": "stepmania",
@@ -341,7 +380,8 @@
       "tagsLine": "\ud83d\udd79\ufe0f Game \u2022 \ud83c\udfb5 Rhythm",
       "preset": "stepmania",
       "analyticsLabel": "StepMania"
-    }
+    },
+    "appTier": "experience"
   },
   {
     "id": "wordle-finder",
@@ -374,7 +414,8 @@
       "tagsLine": "\ud83d\udd24 Words \u2022 \ud83e\udde0 Puzzle",
       "preset": "wordle-finder",
       "analyticsLabel": "Wordle Finder"
-    }
+    },
+    "appTier": "system"
   },
   {
     "id": "youtube",
@@ -397,7 +438,8 @@
       "name": "JoeTube",
       "short_name": "JoeTube",
       "description": "YouTube link extractor"
-    }
+    },
+    "appTier": "experience"
   },
   {
     "id": "shadowbox",
@@ -418,7 +460,8 @@
       "name": "Operation SHADOWBOX",
       "short_name": "SHADOWBOX",
       "description": "Operation SHADOWBOX"
-    }
+    },
+    "appTier": "experience"
   },
   {
     "id": "ascii",
@@ -437,7 +480,8 @@
     "defaultHeight": 700,
     "tags": ["ascii", "art", "webcam", "image", "creative", "matrix"],
     "related": ["badapple", "starwars", "paint"],
-    "shareCategory": "entertainment"
+    "shareCategory": "entertainment",
+    "appTier": "experience"
   },
   {
     "id": "badapple",
@@ -469,7 +513,8 @@
       "tagsLine": "\ud83c\udf89 Fun \u2022 \ud83c\udf4e Meme",
       "preset": "badapple",
       "analyticsLabel": "Bad Apple"
-    }
+    },
+    "appTier": "experience"
   },
   {
     "id": "starwars",
@@ -488,7 +533,8 @@
     "taskbarText": "text-yellow-300",
     "tags": ["ascii", "animation", "starwars", "retro", "classic"],
     "related": ["badapple", "terminal", "nes"],
-    "shareCategory": "entertainment"
+    "shareCategory": "entertainment",
+    "appTier": "experience"
   },
   {
     "id": "terminal",
@@ -524,7 +570,8 @@
       "tagsLine": "\ud83d\udee0\ufe0f Utility \u2022 \ud83d\udcbe Interactive",
       "preset": "terminal",
       "analyticsLabel": "Terminal"
-    }
+    },
+    "appTier": "system"
   },
   {
     "id": "todo",
@@ -544,7 +591,8 @@
     "desktopIcon": true,
     "tags": ["productivity", "google", "sheets", "tasks"],
     "related": ["notepad", "terminal", "wordle-finder"],
-    "shareCategory": "utility"
+    "shareCategory": "utility",
+    "appTier": "system"
   },
   {
     "id": "triplog",
@@ -569,7 +617,8 @@
       "name": "Trip Log",
       "short_name": "Trip Log",
       "description": "Record GPS trips in your browser"
-    }
+    },
+    "appTier": "system"
   },
   {
     "id": "calculator",
@@ -592,7 +641,8 @@
       "name": "Calculator",
       "short_name": "Calc",
       "description": "Web calculator"
-    }
+    },
+    "appTier": "system"
   },
   {
     "id": "code-ide",
@@ -664,7 +714,8 @@
       "tagsLine": "\u2728 AI \u2022 \ud83d\udcbb Editor \u2022 Monaco \u2022 Vim",
       "preset": "code-ide",
       "analyticsLabel": "Code IDE"
-    }
+    },
+    "appTier": "app"
   },
   {
     "id": "clock",
@@ -688,7 +739,8 @@
       "name": "Clock",
       "short_name": "Clock",
       "description": "Clock, stopwatch, and timer"
-    }
+    },
+    "appTier": "system"
   },
   {
     "id": "countdown",
@@ -715,7 +767,8 @@
       "tagsLine": "\ud83d\udee0\ufe0f Utility \u2022 \u23f0 Time",
       "preset": "countdown",
       "analyticsLabel": "Countdown"
-    }
+    },
+    "appTier": "system"
   },
   {
     "id": "programming-advice",
@@ -735,7 +788,8 @@
     "tags": ["wisdom", "learning", "advice", "quotes", "developers"],
     "desktopIcon": true,
     "related": ["terminal", "notepad", "wordle-finder"],
-    "shareCategory": "utility"
+    "shareCategory": "utility",
+    "appTier": "experience"
   },
   {
     "id": "minesweeper",
@@ -762,7 +816,8 @@
       "tagsLine": "\ud83e\udde9 Puzzle \u2022 \ud83e\udde0 Strategy",
       "preset": "minesweeper",
       "analyticsLabel": "Minesweeper"
-    }
+    },
+    "appTier": "experience"
   },
   {
     "id": "sudoku",
@@ -786,7 +841,8 @@
       "name": "Sudoku",
       "short_name": "Sudoku",
       "description": "Classic 9\u00d79 Sudoku in your browser"
-    }
+    },
+    "appTier": "experience"
   },
   {
     "id": "nes",
@@ -818,7 +874,8 @@
       "tagsLine": "\ud83d\udd79\ufe0f Game \u2022 \ud83c\udfae Retro",
       "preset": "nes",
       "analyticsLabel": "NES"
-    }
+    },
+    "appTier": "experience"
   },
   {
     "id": "sega",
@@ -850,7 +907,8 @@
       "tagsLine": "\ud83d\udd79\ufe0f Game \u2022 \ud83c\udfae Retro",
       "preset": "sega",
       "analyticsLabel": "Sega"
-    }
+    },
+    "appTier": "experience"
   },
   {
     "id": "vibe-coding",
@@ -868,7 +926,8 @@
     "defaultWidth": 800,
     "defaultHeight": 600,
     "related": ["youtube", "terminal", "notepad"],
-    "shareCategory": "utility"
+    "shareCategory": "utility",
+    "appTier": "app"
   },
   {
     "id": "filemanager",
@@ -888,7 +947,8 @@
     "desktopIcon": true,
     "system": true,
     "related": ["terminal", "notepad", "image-viewer", "media-player"],
-    "shareCategory": "utility"
+    "shareCategory": "utility",
+    "appTier": "system"
   },
   {
     "id": "media-player",
@@ -908,7 +968,8 @@
     "system": true,
     "handles": ["video/*", "audio/*", "application/x-youtube"],
     "related": ["filemanager", "youtube", "awesome"],
-    "shareCategory": "utility"
+    "shareCategory": "utility",
+    "appTier": "system"
   },
   {
     "id": "image-viewer",
@@ -928,7 +989,8 @@
     "system": true,
     "handles": ["image/*"],
     "related": ["filemanager", "shadowbox", "badapple"],
-    "shareCategory": "utility"
+    "shareCategory": "utility",
+    "appTier": "system"
   },
   {
     "id": "model-viewer",
@@ -957,7 +1019,8 @@
       "application/x-fbx"
     ],
     "related": ["filemanager", "image-viewer"],
-    "shareCategory": "utility"
+    "shareCategory": "utility",
+    "appTier": "app"
   },
   {
     "id": "play",
@@ -982,7 +1045,8 @@
       "name": "Play",
       "short_name": "Play",
       "description": "Make music in your browser"
-    }
+    },
+    "appTier": "experience"
   },
   {
     "id": "play-piano",
@@ -1001,7 +1065,8 @@
     "defaultHeight": 600,
     "tags": ["music", "piano", "midi", "audio"],
     "related": ["play", "play-accordion", "play-synth", "play-metronome", "play-tuner"],
-    "shareCategory": "entertainment"
+    "shareCategory": "entertainment",
+    "appTier": "experience"
   },
   {
     "id": "play-accordion",
@@ -1020,7 +1085,8 @@
     "defaultHeight": 600,
     "tags": ["music", "accordion", "audio"],
     "related": ["play", "play-piano", "play-synth"],
-    "shareCategory": "entertainment"
+    "shareCategory": "entertainment",
+    "appTier": "experience"
   },
   {
     "id": "play-drums",
@@ -1039,7 +1105,8 @@
     "defaultHeight": 600,
     "tags": ["music", "drums", "percussion", "audio"],
     "related": ["play", "play-guitar", "play-synth", "play-metronome"],
-    "shareCategory": "entertainment"
+    "shareCategory": "entertainment",
+    "appTier": "experience"
   },
   {
     "id": "play-guitar",
@@ -1058,7 +1125,8 @@
     "defaultHeight": 600,
     "tags": ["music", "guitar", "bass", "ukulele", "banjo", "mandolin", "strings", "audio"],
     "related": ["play", "play-drums", "play-piano"],
-    "shareCategory": "entertainment"
+    "shareCategory": "entertainment",
+    "appTier": "experience"
   },
   {
     "id": "play-synth",
@@ -1077,7 +1145,8 @@
     "defaultHeight": 600,
     "tags": ["music", "synth", "audio", "electronic"],
     "related": ["play", "play-piano", "play-drums", "play-theremin"],
-    "shareCategory": "entertainment"
+    "shareCategory": "entertainment",
+    "appTier": "experience"
   },
   {
     "id": "play-metronome",
@@ -1096,7 +1165,8 @@
     "defaultHeight": 500,
     "tags": ["music", "metronome", "tempo", "practice", "audio"],
     "related": ["play-piano", "play-drums", "play-synth"],
-    "shareCategory": "entertainment"
+    "shareCategory": "entertainment",
+    "appTier": "experience"
   },
   {
     "id": "play-harp",
@@ -1115,7 +1185,8 @@
     "defaultHeight": 600,
     "tags": ["music", "harp", "strings", "audio"],
     "related": ["play-piano", "play-guitar", "play-mallets"],
-    "shareCategory": "entertainment"
+    "shareCategory": "entertainment",
+    "appTier": "experience"
   },
   {
     "id": "play-steeldrum",
@@ -1134,7 +1205,8 @@
     "defaultHeight": 600,
     "tags": ["music", "steeldrum", "percussion", "caribbean", "audio"],
     "related": ["play-drums", "play-mallets", "play-harp"],
-    "shareCategory": "entertainment"
+    "shareCategory": "entertainment",
+    "appTier": "experience"
   },
   {
     "id": "play-mallets",
@@ -1153,7 +1225,8 @@
     "defaultHeight": 600,
     "tags": ["music", "xylophone", "marimba", "vibraphone", "percussion", "audio"],
     "related": ["play-harp", "play-steeldrum", "play-piano"],
-    "shareCategory": "entertainment"
+    "shareCategory": "entertainment",
+    "appTier": "experience"
   },
   {
     "id": "play-theremin",
@@ -1172,7 +1245,8 @@
     "defaultHeight": 600,
     "tags": ["music", "theremin", "webcam", "gesture", "electronic", "audio"],
     "related": ["play-synth", "play-piano", "play-tuner"],
-    "shareCategory": "entertainment"
+    "shareCategory": "entertainment",
+    "appTier": "experience"
   },
   {
     "id": "play-tuner",
@@ -1191,7 +1265,8 @@
     "defaultHeight": 500,
     "tags": ["music", "tuner", "microphone", "pitch", "audio"],
     "related": ["play-theremin", "play-piano", "play-metronome"],
-    "shareCategory": "entertainment"
+    "shareCategory": "entertainment",
+    "appTier": "experience"
   },
   {
     "id": "weather",
@@ -1215,7 +1290,8 @@
       "name": "Weather",
       "short_name": "Weather",
       "description": "City and ZIP forecast in your browser"
-    }
+    },
+    "appTier": "system"
   },
   {
     "id": "stock",
@@ -1239,7 +1315,8 @@
       "name": "Stock Ticker",
       "short_name": "Stocks",
       "description": "Track and graph stock tickers in your browser"
-    }
+    },
+    "appTier": "system"
   },
   {
     "id": "chat",
@@ -1259,7 +1336,8 @@
     "desktopIcon": true,
     "tags": ["ai", "assistant", "chat", "llm", "agent"],
     "related": ["notepad", "terminal", "filemanager"],
-    "shareCategory": "utility"
+    "shareCategory": "utility",
+    "appTier": "system"
   },
   {
     "id": "listen",
@@ -1283,7 +1361,8 @@
       "name": "Audiobooks",
       "short_name": "Audiobooks",
       "description": "Free public-domain audiobooks"
-    }
+    },
+    "appTier": "app"
   },
   {
     "id": "read",
@@ -1307,7 +1386,8 @@
       "name": "Books",
       "short_name": "Books",
       "description": "Free public-domain e-books"
-    }
+    },
+    "appTier": "system"
   },
   {
     "id": "paint",
@@ -1328,6 +1408,7 @@
     "handles": ["application/x-paintproj"],
     "tags": ["art", "drawing", "paint", "creative", "canvas"],
     "related": ["notepad"],
-    "shareCategory": "utility"
+    "shareCategory": "utility",
+    "appTier": "app"
   }
 ]

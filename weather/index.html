@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="hos-page">
   <head>
     <link
       rel="icon"
@@ -14,7 +14,7 @@
     <script src="/feedback.js"></script>
     <script src="/share.js"></script>
 
-    <title>🌤️ Weather — Forecast by City or ZIP | Joe Heyming</title>
+    <title>🌤️ Weather — Heyming OS</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta charset="utf-8" />
     <meta
@@ -25,7 +25,7 @@
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#082f49" />
+    <meta name="theme-color" content="#7C5CFF" />
     <meta
       name="keywords"
       content="weather, forecast, hourly forecast, 7-day forecast, ZIP code weather, city weather, free weather dashboard"
@@ -56,15 +56,13 @@
     <link rel="canonical" href="https://joeheyming.github.io/weather/" />
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/brand-tailwind.js"></script>
 
     <!-- MapLibre GL JS — used by the radar mode for the multi-layer weather
          map (Open-Meteo precip / temp / cloud / wind etc.). Loaded eagerly
          so the global `maplibregl` is available the first time the user
          toggles into Radar. -->
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
-    />
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
     <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 
     <!-- Open-Meteo Weather Map Layer (the `om://` protocol). Adds the
@@ -75,6 +73,14 @@
     <!-- proxy.js must load BEFORE the app module so window.proxyService is ready. -->
     <script src="/proxy.js"></script>
 
+    <!-- Brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="/heyming-shell.css" />
     <link rel="stylesheet" href="style.css" />
 
     <script type="application/ld+json">
@@ -112,22 +118,19 @@
 
     <script type="module" src="./index.js"></script>
   </head>
-  <body class="bg-slate-950 text-slate-100 min-h-screen">
+  <body class="hos-page min-h-screen">
     <div class="max-w-5xl mx-auto px-3 sm:px-5 py-4">
-      <!-- Header -->
+      <!-- Header — HOSDL identity strip + search. -->
       <header
-        class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4"
+        class="weather-app-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4"
+        aria-label="Weather"
       >
-        <div class="pl-32 sm:pl-28">
-          <h1
-            class="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2"
-          >
-            <span>🌤️</span>
-            <span>Weather</span>
-          </h1>
-          <p class="text-slate-400 text-xs mt-0.5">
-            Add any city or ZIP — hourly and 7-day forecast, all in your browser.
-          </p>
+        <div class="weather-app-header-identity flex items-center gap-3 min-w-0">
+          <span class="app-icon-frame" aria-hidden="true">🌤️</span>
+          <div class="min-w-0">
+            <h1 class="weather-app-title">Weather</h1>
+            <p class="weather-app-subtitle">Add any city or ZIP — hourly and 7-day forecast.</p>
+          </div>
         </div>
 
         <!-- Search -->
@@ -140,10 +143,10 @@
               autocomplete="off"
               spellcheck="false"
               placeholder="Add city or ZIP (Seattle, 10001, Paris…)"
-              class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+              class="weather-search w-full rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none"
             />
             <span
-              class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+              class="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none weather-search-icon"
               aria-hidden="true"
             >
               🔍
@@ -151,36 +154,48 @@
           </div>
           <div
             id="place-suggestions"
-            class="hidden absolute z-30 left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-xl overflow-hidden max-h-80 overflow-y-auto"
+            class="hidden absolute z-30 left-0 right-0 mt-1 weather-suggestions rounded-lg shadow-xl overflow-hidden max-h-80 overflow-y-auto"
           ></div>
         </div>
       </header>
 
       <!-- Toolbar -->
-      <section
-        class="bg-slate-900/50 border border-slate-800 rounded-xl px-3 py-2 mb-3 flex flex-wrap items-center gap-2"
-      >
-        <div class="inline-flex rounded-md overflow-hidden border border-slate-700 text-sm" role="group" aria-label="View mode">
-          <button id="mode-cards" class="tool-btn !rounded-none border-0" type="button">📋 Cards</button>
-          <button id="mode-radar" class="tool-btn !rounded-none border-0 border-l border-slate-700" type="button">🗺️ Radar</button>
-          <button id="mode-compare" class="tool-btn !rounded-none border-0 border-l border-slate-700" type="button">📊 Compare</button>
+      <section class="weather-toolbar mb-3 flex flex-wrap items-center gap-2">
+        <div
+          class="weather-segmented inline-flex rounded-md overflow-hidden text-sm"
+          role="group"
+          aria-label="View mode"
+        >
+          <button id="mode-cards" class="tool-btn !rounded-none border-0" type="button">
+            📋 Cards
+          </button>
+          <button id="mode-radar" class="tool-btn !rounded-none border-0" type="button">
+            🗺️ Radar
+          </button>
+          <button id="mode-compare" class="tool-btn !rounded-none border-0" type="button">
+            📊 Compare
+          </button>
         </div>
 
-        <span class="hidden md:inline-block w-px h-5 bg-slate-700 mx-1"></span>
+        <span class="weather-divider hidden md:inline-block"></span>
 
-        <div class="inline-flex rounded-md overflow-hidden border border-slate-700 text-sm" role="group" aria-label="Temperature units">
+        <div
+          class="weather-segmented inline-flex rounded-md overflow-hidden text-sm"
+          role="group"
+          aria-label="Temperature units"
+        >
           <button id="unit-f" class="tool-btn !rounded-none border-0" type="button">°F</button>
-          <button id="unit-c" class="tool-btn !rounded-none border-0 border-l border-slate-700" type="button">°C</button>
+          <button id="unit-c" class="tool-btn !rounded-none border-0" type="button">°C</button>
         </div>
 
-        <span class="hidden md:inline-block w-px h-5 bg-slate-700 mx-1"></span>
+        <span class="weather-divider hidden md:inline-block"></span>
 
         <button id="locate-me" type="button" class="tool-btn" title="Use my current location">
           📍 Locate me
         </button>
 
         <label class="tool-btn cursor-pointer" title="Auto-refresh every 5 minutes">
-          <input id="auto-refresh" type="checkbox" class="mr-1 accent-sky-400" />
+          <input id="auto-refresh" type="checkbox" class="mr-1 weather-checkbox" />
           Auto
         </label>
 
@@ -204,14 +219,37 @@
       <section id="empty-state" class="hidden">
         <div class="empty-card">
           <div class="icon" aria-hidden="true">🌍</div>
-          <p class="text-lg font-medium text-slate-200 mt-2">No locations yet</p>
-          <p class="text-sm text-slate-400 mt-1 max-w-md mx-auto">
+          <p class="text-lg font-medium text-text-1 mt-2">No locations yet</p>
+          <p class="text-sm text-text-2 mt-1 max-w-md mx-auto">
             Type a city name or US ZIP above. Or try
-            <button data-add-suggested='{"id":"geo:47.606,-122.332","name":"Seattle","admin1":"Washington","country":"United States","countryCode":"US","latitude":47.6062,"longitude":-122.3321}' class="suggested">Seattle</button>,
-            <button data-add-suggested='{"id":"geo:40.713,-74.006","name":"New York","admin1":"New York","country":"United States","countryCode":"US","latitude":40.7128,"longitude":-74.006}' class="suggested">New York</button>,
-            <button data-add-suggested='{"id":"geo:48.857,2.352","name":"Paris","admin1":"Île-de-France","country":"France","countryCode":"FR","latitude":48.8566,"longitude":2.3522}' class="suggested">Paris</button>,
-            or
-            <button data-add-suggested='{"id":"geo:35.690,139.692","name":"Tokyo","admin1":"Tokyo","country":"Japan","countryCode":"JP","latitude":35.6895,"longitude":139.6917}' class="suggested">Tokyo</button>.
+            <button
+              data-add-suggested='{"id":"geo:47.606,-122.332","name":"Seattle","admin1":"Washington","country":"United States","countryCode":"US","latitude":47.6062,"longitude":-122.3321}'
+              class="suggested"
+            >
+              Seattle
+            </button>
+            ,
+            <button
+              data-add-suggested='{"id":"geo:40.713,-74.006","name":"New York","admin1":"New York","country":"United States","countryCode":"US","latitude":40.7128,"longitude":-74.006}'
+              class="suggested"
+            >
+              New York
+            </button>
+            ,
+            <button
+              data-add-suggested='{"id":"geo:48.857,2.352","name":"Paris","admin1":"Île-de-France","country":"France","countryCode":"FR","latitude":48.8566,"longitude":2.3522}'
+              class="suggested"
+            >
+              Paris
+            </button>
+            , or
+            <button
+              data-add-suggested='{"id":"geo:35.690,139.692","name":"Tokyo","admin1":"Tokyo","country":"Japan","countryCode":"JP","latitude":35.6895,"longitude":139.6917}'
+              class="suggested"
+            >
+              Tokyo
+            </button>
+            .
           </p>
         </div>
       </section>
@@ -224,34 +262,78 @@
         <div id="radar-ticker" class="radar-ticker" hidden></div>
         <div id="radar-map" class="radar-map"></div>
         <div id="radar-controls" class="radar-controls"></div>
-        <p class="text-xs text-slate-500 mt-2">
+        <p class="text-xs text-text-3 mt-2">
           Animated weather forecast from
-          <a class="underline hover:text-slate-300" href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>'s
-          public model tiles. Pick a variable (precipitation, temperature, clouds, wind…),
-          a forecast model, and scrub the time slider to step through the next several days.
+          <a
+            class="underline hover:text-text-1"
+            href="https://open-meteo.com/"
+            target="_blank"
+            rel="noopener"
+          >
+            Open-Meteo
+          </a>
+          's public model tiles. Pick a variable (precipitation, temperature, clouds, wind…), a
+          forecast model, and scrub the time slider to step through the next several days.
         </p>
       </section>
 
       <!-- Compare mode: Flowx-style stacked multi-model forecast graphs. -->
       <section id="compare-mode" class="hidden">
         <div id="compare-view" class="compare-view"></div>
-        <p class="text-xs text-slate-500 mt-2">
-          7-day hourly forecast compared across three numerical weather models
-          (DWD ICON, NCEP GFS, ECMWF IFS) from
-          <a class="underline hover:text-slate-300" href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>.
-          When the lines disagree, the real forecast is more uncertain than any single
-          model suggests.
+        <p class="text-xs text-text-3 mt-2">
+          7-day hourly forecast compared across three numerical weather models (DWD ICON, NCEP GFS,
+          ECMWF IFS) from
+          <a
+            class="underline hover:text-text-1"
+            href="https://open-meteo.com/"
+            target="_blank"
+            rel="noopener"
+          >
+            Open-Meteo
+          </a>
+          . When the lines disagree, the real forecast is more uncertain than any single model
+          suggests.
         </p>
       </section>
 
-      <footer class="mt-6 text-center text-xs text-slate-400">
+      <footer class="mt-6 text-center text-xs text-text-2">
         Forecast data from
-        <a class="underline hover:text-slate-300" href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>.
-        Weather model tiles via
-        <a class="underline hover:text-slate-300" href="https://maps.open-meteo.com/" target="_blank" rel="noopener">map-tiles.open-meteo.com</a>.
-        ZIP lookups from
-        <a class="underline hover:text-slate-300" href="https://www.zippopotam.us/" target="_blank" rel="noopener">Zippopotam.us</a>.
-        Basemap &copy; <a class="underline hover:text-slate-300" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.
+        <a
+          class="underline hover:text-text-1"
+          href="https://open-meteo.com/"
+          target="_blank"
+          rel="noopener"
+        >
+          Open-Meteo
+        </a>
+        . Weather model tiles via
+        <a
+          class="underline hover:text-text-1"
+          href="https://maps.open-meteo.com/"
+          target="_blank"
+          rel="noopener"
+        >
+          map-tiles.open-meteo.com
+        </a>
+        . ZIP lookups from
+        <a
+          class="underline hover:text-text-1"
+          href="https://www.zippopotam.us/"
+          target="_blank"
+          rel="noopener"
+        >
+          Zippopotam.us
+        </a>
+        . Basemap &copy;
+        <a
+          class="underline hover:text-text-1"
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noopener"
+        >
+          OpenStreetMap
+        </a>
+        contributors.
       </footer>
     </div>
 

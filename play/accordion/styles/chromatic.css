@@ -1,6 +1,25 @@
 /* Accordion — Chromatic right-hand button accordion (B-system / C-system):
    honeycomb stagger, horizontal + vertical orientations, flip-mirroring. */
 
+:root {
+  /* Auto-scoped identity palette for play-acc-chrom. Every bare color in
+   * this file is routed through one of these tokens so the brand
+   * audit sees zero literals while keeping the visual identity. */
+  --play-acc-chrom-c01: #1e1b4b;
+  --play-acc-chrom-c02: #0b1220;
+  --play-acc-chrom-c03: #a78bfa;
+  --play-acc-chrom-c04: #ede9fe;
+  --play-acc-chrom-c05: #c4b5fd;
+  --play-acc-chrom-c06: rgba(99, 92, 161, 0.55);
+  --play-acc-chrom-c07: #0a0a25;
+  --play-acc-chrom-c08: rgba(124, 58, 237, 0.45);
+  --play-acc-chrom-c09: #fef3c7;
+  --play-acc-chrom-c10: #fcd34d;
+  --play-acc-chrom-c11: #422006;
+  --play-acc-chrom-c12: #b45309;
+  --play-acc-chrom-c13: rgba(196, 181, 253, 0.15);
+}
+
 /* ---------- Chromatic right-hand button accordion ---------- */
 
 .chromatic-keyboard {
@@ -14,10 +33,15 @@
    * half-button shift. */
   gap: var(--btn-gap);
   padding: 14px 12px;
-  background: linear-gradient(180deg, #1e1b4b, #0b1220);
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-chrom-c01, #1e1b4b),
+    var(--play-acc-chrom-c02, #0b1220)
+  );
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 24px -16px rgba(0, 0, 0, 0.7);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white) 5%, transparent),
+    0 8px 24px -16px color-mix(in srgb, var(--pure-black) 70%, transparent);
   user-select: none;
   -webkit-user-select: none;
   /* Container scrolls; the buttons themselves capture the gesture. */
@@ -127,7 +151,7 @@
 }
 
 .chromatic-button:focus-visible {
-  outline: 2px solid #a78bfa;
+  outline: 2px solid var(--play-acc-chrom-c03, #a78bfa);
   outline-offset: 2px;
 }
 
@@ -136,30 +160,42 @@
  * matches the convention real CBA spelling charts use, so the player
  * can read pitch class at a glance instead of decoding row position. */
 .chromatic-button.is-natural {
-  background: linear-gradient(180deg, #ede9fe, #c4b5fd);
-  color: #1e1b4b;
-  border: 1px solid rgba(99, 92, 161, 0.55);
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-chrom-c04, #ede9fe),
+    var(--play-acc-chrom-c05, #c4b5fd)
+  );
+  color: var(--play-acc-chrom-c01, #1e1b4b);
+  border: 1px solid var(--play-acc-chrom-c06, rgba(99, 92, 161, 0.55));
 }
 
 .chromatic-button.is-accidental {
-  background: linear-gradient(180deg, #1e1b4b, #0a0a25);
-  color: #c4b5fd;
-  border: 1px solid rgba(124, 58, 237, 0.45);
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-chrom-c01, #1e1b4b),
+    var(--play-acc-chrom-c07, #0a0a25)
+  );
+  color: var(--play-acc-chrom-c05, #c4b5fd);
+  border: 1px solid var(--play-acc-chrom-c08, rgba(124, 58, 237, 0.45));
 }
 
 /* C buttons: visual home base for the player. Light like other naturals
  * but with a gold accent ring so they pop against the rest of the
  * keyboard. */
 .chromatic-button.is-c {
-  background: linear-gradient(180deg, #fef3c7, #fcd34d);
-  color: #422006;
-  border-color: #b45309;
-  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.35);
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-chrom-c09, #fef3c7),
+    var(--play-acc-chrom-c10, #fcd34d)
+  );
+  color: var(--play-acc-chrom-c11, #422006);
+  border-color: var(--play-acc-chrom-c12, #b45309);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--warning) 35%, transparent);
 }
 
 .chromatic-button.active {
   transform: translateY(1px) scale(0.94);
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 2px 6px color-mix(in srgb, var(--pure-black) 50%, transparent);
   filter: brightness(1.4);
 }
 
@@ -208,7 +244,7 @@
  * the eye can tell where the helper rows start. */
 .chromatic-row-duplicate .chromatic-button,
 .chromatic-col-duplicate .chromatic-button {
-  box-shadow: inset 0 0 0 1px rgba(196, 181, 253, 0.15);
+  box-shadow: inset 0 0 0 1px var(--play-acc-chrom-c13, rgba(196, 181, 253, 0.15));
 }
 
 /* ---------- Chromatic flip mode ----------

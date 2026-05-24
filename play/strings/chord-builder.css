@@ -11,7 +11,7 @@
   flex-direction: column;
   gap: 10px;
   padding: 12px 14px;
-  background: rgba(15, 23, 42, 0.55);
+  background: color-mix(in srgb, var(--play-slate-900, #0f172a) 55%, transparent);
   border: 1px solid var(--border);
   border-radius: 12px;
 }
@@ -29,4 +29,3 @@
   gap: 12px;
   flex-wrap: wrap;
 }
-

@@ -9,7 +9,7 @@
     />
 
     <title>Sega Genesis Emulator Online — Play Mega Drive Games in Browser</title>
-    <meta name="theme-color" content="#1a1a2e" />
+    <meta name="theme-color" content="#7C5CFF" />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
@@ -41,10 +41,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta
-      name="twitter:title"
-      content="🎮 Sega Genesis Emulator — Play Mega Drive Games Online"
-    />
+    <meta name="twitter:title" content="🎮 Sega Genesis Emulator — Play Mega Drive Games Online" />
     <meta
       name="twitter:description"
       content="Play classic Sega Genesis / Mega Drive 16-bit games in your browser. Free, no install. Bring your own ROM."
@@ -135,7 +132,13 @@
     <script src="js/romBrowser.js"></script>
 
     <style>
-      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
 
       :root {
         --bg: #0d0d1a;
@@ -150,7 +153,8 @@
         --card-bg: #1e1e3a;
       }
 
-      html, body {
+      html,
+      body {
         height: 100%;
         background: var(--bg);
         color: var(--text);
@@ -172,7 +176,9 @@
         overflow-y: auto;
       }
 
-      #boot.hidden { display: none; }
+      #boot.hidden {
+        display: none;
+      }
 
       .brand {
         text-align: center;
@@ -184,7 +190,7 @@
         line-height: 1;
         margin-bottom: 12px;
         display: block;
-        filter: drop-shadow(0 0 20px rgba(233,69,96,0.5));
+        filter: drop-shadow(0 0 20px rgba(233, 69, 96, 0.5));
       }
 
       .brand h1 {
@@ -216,7 +222,7 @@
         padding: 28px;
         max-width: 520px;
         width: 100%;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
       }
 
       .boot-card h2 {
@@ -250,12 +256,12 @@
       .btn-primary {
         background: linear-gradient(135deg, #e94560, #c73652);
         color: #fff;
-        box-shadow: 0 4px 16px rgba(233,69,96,0.4);
+        box-shadow: 0 4px 16px rgba(233, 69, 96, 0.4);
       }
 
       .btn-primary:hover {
         transform: translateY(-1px);
-        box-shadow: 0 6px 20px rgba(233,69,96,0.5);
+        box-shadow: 0 6px 20px rgba(233, 69, 96, 0.5);
       }
 
       .btn-secondary {
@@ -289,7 +295,8 @@
         position: relative;
       }
 
-      .divider::before, .divider::after {
+      .divider::before,
+      .divider::after {
         content: '';
         position: absolute;
         top: 50%;
@@ -298,8 +305,12 @@
         background: var(--border);
       }
 
-      .divider::before { left: 0; }
-      .divider::after { right: 0; }
+      .divider::before {
+        left: 0;
+      }
+      .divider::after {
+        right: 0;
+      }
 
       .controls-info {
         margin-top: 20px;
@@ -320,7 +331,9 @@
         gap: 6px;
       }
 
-      .controls-info summary::-webkit-details-marker { display: none; }
+      .controls-info summary::-webkit-details-marker {
+        display: none;
+      }
 
       .controls-info summary::before {
         content: '▶';
@@ -349,7 +362,9 @@
         border-radius: 6px;
       }
 
-      .controls-grid .key-row span { color: var(--text-dim); }
+      .controls-grid .key-row span {
+        color: var(--text-dim);
+      }
 
       kbd {
         background: var(--surface2);
@@ -391,14 +406,30 @@
       }
 
       /* SEO footer hidden from users */
-      .seo-intro { display: none; }
+      .seo-intro {
+        display: none;
+      }
 
       @media (max-width: 480px) {
-        .brand-logo { font-size: 52px; }
-        .boot-card { padding: 20px; }
-        .controls-grid { grid-template-columns: 1fr; }
+        .brand-logo {
+          font-size: 52px;
+        }
+        .boot-card {
+          padding: 20px;
+        }
+        .controls-grid {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
 
   <body>
@@ -486,9 +517,14 @@
         <h2>Sega Genesis Emulator Online — Play Mega Drive Games in Browser</h2>
         <p>
           Free Sega Genesis and Mega Drive emulator running entirely in your browser. No download,
-          no install, no ads. Bring your own <code>.md</code>, <code>.bin</code>, or
-          <code>.gen</code> ROM file and start playing classic 16-bit games instantly. Powered by
-          EmulatorJS with the segaMD core.
+          no install, no ads. Bring your own
+          <code>.md</code>
+          ,
+          <code>.bin</code>
+          , or
+          <code>.gen</code>
+          ROM file and start playing classic 16-bit games instantly. Powered by EmulatorJS with the
+          segaMD core.
         </p>
         <nav aria-label="More retro games">
           <strong>More retro games from Joe Heyming:</strong>
@@ -553,7 +589,7 @@
         const script = document.createElement('script');
         script.src = 'https://cdn.emulatorjs.org/latest/data/loader.js';
         document.body.appendChild(script);
-      }
+      };
     </script>
   </body>
 </html>

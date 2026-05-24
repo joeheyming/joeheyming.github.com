@@ -10,7 +10,7 @@
 }
 
 .tree-node.decor-modified > .name {
-  color: #e2c08d;
+  color: var(--warn, #dcdcaa);
 }
 .tree-node.decor-added > .name {
   color: var(--good);
@@ -21,14 +21,14 @@
   text-decoration-thickness: 1px;
 }
 .tree-node.decor-untracked > .name {
-  color: #73c991;
+  color: var(--good, #4ec9b0);
 }
 .tree-node.decor-conflict > .name {
   color: var(--danger);
 }
 
 .tree-badge.decor-modified {
-  color: #e2c08d;
+  color: var(--warn, #dcdcaa);
 }
 .tree-badge.decor-added {
   color: var(--good);
@@ -37,7 +37,7 @@
   color: var(--danger);
 }
 .tree-badge.decor-untracked {
-  color: #73c991;
+  color: var(--good, #4ec9b0);
 }
 .tree-badge.decor-conflict {
   color: var(--danger);
@@ -266,7 +266,7 @@
 }
 
 .scm-code.code-m {
-  color: #e2c08d;
+  color: var(--warn, #dcdcaa);
 }
 .scm-code.code-a {
   color: var(--good);
@@ -275,7 +275,7 @@
   color: var(--danger);
 }
 .scm-code.code-untracked {
-  color: #73c991;
+  color: var(--good, #4ec9b0);
 }
 .scm-code.code-conflict {
   color: var(--danger);
@@ -290,9 +290,9 @@
 
 /* Branch indicator in status bar */
 .status-branch {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--hairline-strong, rgba(255, 255, 255, 0.14));
   border: 0;
-  color: white;
+  color: var(--pure-white, #ffffff);
   cursor: pointer;
   padding: 0 8px;
   height: 100%;
@@ -304,7 +304,7 @@
 }
 
 .status-branch:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: color-mix(in srgb, var(--pure-white) 22%, transparent);
 }
 
 .status-branch[hidden] {
@@ -320,4 +320,3 @@
   font-size: 11px;
   opacity: 0.8;
 }
-

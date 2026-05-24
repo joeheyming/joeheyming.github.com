@@ -70,8 +70,8 @@ html {
   max-width: 560px;
   width: 100%;
   padding: 10px 14px;
-  background: rgba(219, 180, 68, 0.08);
-  border: 1px solid rgba(219, 180, 68, 0.4);
+  background: var(--doom-warn-tint, rgba(219, 180, 68, 0.08));
+  border: 1px solid var(--doom-warn-tint-strong, rgba(219, 180, 68, 0.4));
   border-radius: 4px;
   font-size: 11px;
   color: var(--warn);
@@ -132,7 +132,7 @@ html {
   text-transform: none;
   letter-spacing: 0;
   font-size: 10px;
-  color: #555;
+  color: var(--doom-hint, #555555);
 }
 
 .picker {
@@ -150,7 +150,7 @@ html {
 .picker.drag,
 .picker:hover {
   border-color: var(--border-hot);
-  background: #1d1d22;
+  background: var(--doom-panel-hover, #1d1d22);
 }
 .picker.filled {
   border-style: solid;
@@ -178,7 +178,7 @@ html {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #222228;
+  background: var(--doom-chip, #222228);
   border: 1px solid var(--border);
   border-radius: 3px;
   padding: 4px 6px 4px 8px;
@@ -220,7 +220,7 @@ html {
   transition: border-color 120ms, background 120ms;
 }
 .btn:hover {
-  background: #222;
+  background: var(--doom-btn-hover, #222222);
   border-color: var(--border-hot);
 }
 .btn[disabled] {
@@ -230,15 +230,15 @@ html {
 .btn.primary {
   background: var(--accent-dim);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--pure-white, #ffffff);
 }
 .btn.primary:hover {
   background: var(--accent);
 }
 .btn.primary[disabled] {
-  background: #333;
-  border-color: #444;
-  color: #777;
+  background: var(--doom-btn-primary-disabled-bg, #333333);
+  border-color: var(--doom-btn-primary-disabled-border, #444444);
+  color: var(--doom-btn-primary-disabled-text, #777777);
 }
 .btn.ghost {
   background: transparent;
@@ -329,7 +329,7 @@ body:not(.clean):not(.picker-mode) #flavorPicker {
   background: var(--accent-dim);
   border: 1px solid var(--accent);
   border-radius: 4px;
-  color: #fff;
+  color: var(--pure-white, #ffffff);
   cursor: pointer;
   font-family: inherit;
   font-size: 16px;
@@ -343,9 +343,9 @@ body:not(.clean):not(.picker-mode) #flavorPicker {
   transform: translateY(-1px);
 }
 #cleanLaunchBtn[disabled] {
-  background: #2a2a2e;
-  border-color: #3a3a3e;
-  color: #6a6a72;
+  background: var(--doom-disabled-bg, #2a2a2e);
+  border-color: var(--doom-disabled-border, #3a3a3e);
+  color: var(--doom-disabled-text, #6a6a72);
   cursor: wait;
 }
 .hero .fineprint {
@@ -357,4 +357,3 @@ body:not(.clean):not(.picker-mode) #flavorPicker {
 .hero .fineprint a {
   color: var(--accent);
 }
-

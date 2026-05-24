@@ -9,7 +9,7 @@
     />
 
     <title>Play DOOM in Browser — Classic &amp; Fan Mods Online</title>
-    <meta name="theme-color" content="#1b1b1c" />
+    <meta name="theme-color" content="#7C5CFF" />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta
@@ -53,10 +53,7 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="joeheyming.github.io" />
-    <meta
-      property="og:title"
-      content="Play DOOM in Browser — Classic &amp; Fan Mods Online"
-    />
+    <meta property="og:title" content="Play DOOM in Browser — Classic &amp; Fan Mods Online" />
     <meta
       property="og:description"
       content="Classic DOOM, Freedoom, Legend of DOOM (Zelda), Mario DOOM, Metroid DOOM, and Castlevania: Simon's Destiny — six flavors playable instantly in your browser. Free, unblocked, no install. Open-source on GitHub."
@@ -71,10 +68,7 @@
     <meta property="og:image:alt" content="DOOM title screen with the iconic logo." />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta
-      name="twitter:title"
-      content="Play DOOM in Browser — Classic &amp; Fan Mods Online"
-    />
+    <meta name="twitter:title" content="Play DOOM in Browser — Classic &amp; Fan Mods Online" />
     <meta
       name="twitter:description"
       content="Six DOOM flavors in your browser — Classic, Freedoom, Legend of DOOM (Zelda), Mario DOOM, Metroid DOOM, and Castlevania: Simon's Destiny. Free, unblocked, no install."
@@ -251,6 +245,14 @@
          moddb" item or ?manual=browse). The browser itself doesn't pull
          the engine — that still requires user action. -->
     <link rel="stylesheet" href="moddb-browser.css" />
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
 
   <body>
@@ -360,11 +362,10 @@
         from six DOOM flavors below: Classic DOOM (the original 1993 id Software shareware),
         Freedoom Phase 1 (the open-source DOOM-compatible IWAD), the Zelda-themed Legend of DOOM
         total conversion by DeTwelveGames, Mario DOOM (Valigarmander's MarioDoom gameplay mod
-        layered over Freedoom), Metroid DOOM (Spram's Metroidvania total conversion with
-        Samus, beam upgrades, energy tanks, and Mother Brain), and Castlevania: Simon's Destiny
-        (Batandy's standalone first-person reimagining of the NES Castlevania, with whip combat,
-        sub-weapons, and Castle Dracula across six reimagined levels). Saves persist locally in
-        your browser.
+        layered over Freedoom), Metroid DOOM (Spram's Metroidvania total conversion with Samus, beam
+        upgrades, energy tanks, and Mother Brain), and Castlevania: Simon's Destiny (Batandy's
+        standalone first-person reimagining of the NES Castlevania, with whip combat, sub-weapons,
+        and Castle Dracula across six reimagined levels). Saves persist locally in your browser.
       </p>
 
       <p class="intro">
@@ -517,36 +518,36 @@
         </button>
         <div class="flavor-switch-menu hidden" data-role="menu" role="menu">
           <button type="button" role="menuitem" data-switch="classic">
-            <span class="dot" style="background: #c8392e"></span>
+            <span class="dot" aria-hidden="true"></span>
             Classic DOOM
           </button>
           <button type="button" role="menuitem" data-switch="freedoom">
-            <span class="dot" style="background: #d9883a"></span>
+            <span class="dot" aria-hidden="true"></span>
             Freedoom
           </button>
           <button type="button" role="menuitem" data-switch="legend">
-            <span class="dot" style="background: #4fa861"></span>
+            <span class="dot" aria-hidden="true"></span>
             Legend of DOOM
           </button>
           <button type="button" role="menuitem" data-switch="mario">
-            <span class="dot" style="background: #2a73d8"></span>
+            <span class="dot" aria-hidden="true"></span>
             🍄 Mario DOOM
           </button>
           <button type="button" role="menuitem" data-switch="metroid">
-            <span class="dot" style="background: #c39e3a"></span>
+            <span class="dot" aria-hidden="true"></span>
             🛸 Metroid DOOM
           </button>
           <button type="button" role="menuitem" data-switch="castlevania">
-            <span class="dot" style="background: #7a3fb1"></span>
+            <span class="dot" aria-hidden="true"></span>
             🦇 Castlevania
           </button>
           <div class="flavor-switch-sep" role="separator"></div>
           <button type="button" role="menuitem" data-switch="moddb">
-            <span class="dot" style="background: #d96aa6"></span>
+            <span class="dot" aria-hidden="true"></span>
             🛒 Browse Doom mods on moddb…
           </button>
           <button type="button" role="menuitem" data-switch="manual">
-            <span class="dot" style="background: #888"></span>
+            <span class="dot" aria-hidden="true"></span>
             Manual mode (custom IWAD / mods)…
           </button>
         </div>
@@ -663,9 +664,9 @@
         <code>met2.pk3</code>
         (Spram's Metroid Doom v2.2, bugfix by OkDoomer174); the Castlevania flavor ships
         <code>Castlevania.ipk3</code>
-        (Batandy's Castlevania: Simon's Destiny v1.4). Mario, Metroid, and Castlevania assets are
-        © Nintendo / © Konami respectively, bundled here as non-profit fan projects, not endorsed
-        by either company. Reload with
+        (Batandy's Castlevania: Simon's Destiny v1.4). Mario, Metroid, and Castlevania assets are ©
+        Nintendo / © Konami respectively, bundled here as non-profit fan projects, not endorsed by
+        either company. Reload with
         <code>?manual=1</code>
         to upload your own copy instead.
       </p>
@@ -734,36 +735,36 @@
       </button>
       <div class="flavor-switch-menu hidden" id="flavorSwitchMenu" data-role="menu" role="menu">
         <button type="button" role="menuitem" data-switch="classic">
-          <span class="dot" style="background: #c8392e"></span>
+          <span class="dot" aria-hidden="true"></span>
           Classic DOOM
         </button>
         <button type="button" role="menuitem" data-switch="freedoom">
-          <span class="dot" style="background: #d9883a"></span>
+          <span class="dot" aria-hidden="true"></span>
           Freedoom
         </button>
         <button type="button" role="menuitem" data-switch="legend">
-          <span class="dot" style="background: #4fa861"></span>
+          <span class="dot" aria-hidden="true"></span>
           Legend of DOOM
         </button>
         <button type="button" role="menuitem" data-switch="mario">
-          <span class="dot" style="background: #2a73d8"></span>
+          <span class="dot" aria-hidden="true"></span>
           🍄 Mario DOOM
         </button>
         <button type="button" role="menuitem" data-switch="metroid">
-          <span class="dot" style="background: #c39e3a"></span>
+          <span class="dot" aria-hidden="true"></span>
           🛸 Metroid DOOM
         </button>
         <button type="button" role="menuitem" data-switch="castlevania">
-          <span class="dot" style="background: #7a3fb1"></span>
+          <span class="dot" aria-hidden="true"></span>
           🦇 Castlevania
         </button>
         <div class="flavor-switch-sep" role="separator"></div>
         <button type="button" role="menuitem" data-switch="moddb">
-          <span class="dot" style="background: #d96aa6"></span>
+          <span class="dot" aria-hidden="true"></span>
           🛒 Browse Doom mods on moddb…
         </button>
         <button type="button" role="menuitem" data-switch="manual">
-          <span class="dot" style="background: #888"></span>
+          <span class="dot" aria-hidden="true"></span>
           Manual mode (custom IWAD / mods)…
         </button>
       </div>

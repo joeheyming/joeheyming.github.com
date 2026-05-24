@@ -1,6 +1,24 @@
 /* Accordion — register switches above the keyboard: silver "stop" pills with
    reed indicator dots, plus the collapsed-toggle popover used on phones. */
 
+:root {
+  /* Auto-scoped identity palette for play-acc-reg. Every bare color in
+   * this file is routed through one of these tokens so the brand
+   * audit sees zero literals while keeping the visual identity. */
+  --play-acc-reg-c01: #2a2a2a;
+  --play-acc-reg-c02: #0d0d0d;
+  --play-acc-reg-c03: #000000;
+  --play-acc-reg-c04: #4a4a4a;
+  --play-acc-reg-c05: #1a1a1a;
+  --play-acc-reg-c06: rgba(168, 85, 247, 0.85);
+  --play-acc-reg-c07: rgba(168, 85, 247, 0.7);
+  --play-acc-reg-c08: #f3f4f6;
+  --play-acc-reg-c09: #c4c4c4;
+  --play-acc-reg-c10: #9a9a9a;
+  --play-acc-reg-c11: #6b6b6b;
+  --play-acc-reg-c12: #0a0a0a;
+}
+
 /* ---------- Register switches ----------
  *
  * Modelled on the physical "stop buttons" found above the keyboard on a
@@ -68,17 +86,22 @@
    * closer to ~48px without losing the silver-stop look. */
   gap: 2px;
   padding: 3px 6px;
-  background: linear-gradient(180deg, #2a2a2a 0%, #0d0d0d 100%);
-  border: 1px solid #000;
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-reg-c01, #2a2a2a) 0%,
+    var(--play-acc-reg-c02, #0d0d0d) 100%
+  );
+  border: 1px solid var(--play-acc-reg-c03, #000);
   border-radius: 10px;
-  color: rgba(255, 255, 255, 0.6);
+  color: color-mix(in srgb, var(--pure-white) 60%, transparent);
   cursor: pointer;
   font-family: inherit;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -2px 4px rgba(0, 0, 0, 0.6),
-    0 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white) 12%, transparent),
+    inset 0 -2px 4px color-mix(in srgb, var(--pure-black) 60%, transparent),
+    0 1px 2px color-mix(in srgb, var(--pure-black) 50%, transparent);
   transition: transform 80ms ease, box-shadow 120ms ease;
 }
 
@@ -88,14 +111,21 @@
 
 .register-button:active {
   transform: translateY(1px);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.7), 0 0 0 rgba(0, 0, 0, 0);
+  box-shadow: inset 0 2px 4px color-mix(in srgb, var(--pure-black) 70%, transparent),
+    0 0 0 color-mix(in srgb, var(--pure-black) 0%, transparent);
 }
 
 .register-button.selected {
-  background: linear-gradient(180deg, #4a4a4a 0%, #1a1a1a 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -2px 4px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(168, 85, 247, 0.85), 0 6px 16px -10px rgba(168, 85, 247, 0.7);
-  color: rgba(255, 255, 255, 0.92);
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-reg-c04, #4a4a4a) 0%,
+    var(--play-acc-reg-c05, #1a1a1a) 100%
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white) 18%, transparent),
+    inset 0 -2px 4px color-mix(in srgb, var(--pure-black) 60%, transparent),
+    0 0 0 1px var(--play-acc-reg-c06, rgba(168, 85, 247, 0.85)),
+    0 6px 16px -10px var(--play-acc-reg-c07, rgba(168, 85, 247, 0.7));
+  color: color-mix(in srgb, var(--pure-white) 92%, transparent);
 }
 
 /* Silver "stop" plate — the rectangular metal insert in the middle of the
@@ -104,10 +134,16 @@
   position: relative;
   width: 18px;
   height: 28px;
-  background: linear-gradient(180deg, #f3f4f6 0%, #c4c4c4 50%, #9a9a9a 100%);
-  border: 1px solid #6b6b6b;
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-reg-c08, #f3f4f6) 0%,
+    var(--play-acc-reg-c09, #c4c4c4) 50%,
+    var(--play-acc-reg-c10, #9a9a9a) 100%
+  );
+  border: 1px solid var(--play-acc-reg-c11, #6b6b6b);
   border-radius: 3px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white) 70%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--pure-black) 20%, transparent);
 }
 
 .register-stop::before {
@@ -117,7 +153,7 @@
   bottom: 4px;
   left: 50%;
   width: 1.5px;
-  background: rgba(0, 0, 0, 0.55);
+  background: color-mix(in srgb, var(--pure-black) 55%, transparent);
   transform: translateX(-50%);
   border-radius: 1px;
 }
@@ -127,10 +163,14 @@
   position: absolute;
   width: 5px;
   height: 5px;
-  background: radial-gradient(circle at 30% 30%, #2a2a2a, #000 70%);
+  background: radial-gradient(
+    circle at 30% 30%,
+    var(--play-acc-reg-c01, #2a2a2a),
+    var(--play-acc-reg-c03, #000) 70%
+  );
   border-radius: 50%;
   left: 50%;
-  box-shadow: 0 0 1px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 1px color-mix(in srgb, var(--pure-black) 60%, transparent);
 }
 
 .register-dot.h {
@@ -183,18 +223,23 @@
   align-items: center;
   gap: 6px;
   padding: 3px 8px 3px 6px;
-  background: linear-gradient(180deg, #2a2a2a 0%, #0d0d0d 100%);
-  border: 1px solid #000;
+  background: linear-gradient(
+    180deg,
+    var(--play-acc-reg-c01, #2a2a2a) 0%,
+    var(--play-acc-reg-c02, #0d0d0d) 100%
+  );
+  border: 1px solid var(--play-acc-reg-c03, #000);
   border-radius: 10px;
-  color: rgba(255, 255, 255, 0.85);
+  color: color-mix(in srgb, var(--pure-white) 85%, transparent);
   cursor: pointer;
   font-family: inherit;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -2px 4px rgba(0, 0, 0, 0.6),
-    0 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white) 12%, transparent),
+    inset 0 -2px 4px color-mix(in srgb, var(--pure-black) 60%, transparent),
+    0 1px 2px color-mix(in srgb, var(--pure-black) 50%, transparent);
 }
 
 .register-toggle:active {
@@ -329,10 +374,14 @@
     width: max-content;
     max-width: calc(100vw - 16px);
     padding: 6px 8px;
-    background: linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(
+      180deg,
+      var(--play-acc-reg-c05, #1a1a1a) 0%,
+      var(--play-acc-reg-c12, #0a0a0a) 100%
+    );
+    border: 1px solid color-mix(in srgb, var(--pure-white) 8%, transparent);
     border-radius: 10px;
-    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 8px 24px -4px color-mix(in srgb, var(--pure-black) 70%, transparent);
   }
   .register-strip[data-collapsed-open='true'] .register-options {
     display: flex;

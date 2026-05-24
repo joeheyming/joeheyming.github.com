@@ -1,19 +1,26 @@
-/* Heyming OS — taskbar: running-apps strip, app icons, focus rings, horizontal scroll. */
+/* Heyming OS — taskbar: running-apps strip, app icons, focus rings, horizontal scroll.
+ *
+ * All color literals migrated to brand tokens (see /brand.css). The
+ * geometry and behavior are unchanged; only the palette is now driven
+ * by the brand. The blue accent ring (was #3182ce / #63b3ed) is now the
+ * brand violet so taskbar focus matches every other focus ring on the OS.
+ */
 
 /* Taskbar Button */
 .taskbar-app {
   height: 32px;
   padding: 0 12px;
-  background: #4a5568;
-  border: 1px solid #2d3748;
-  color: #e2e8f0;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  color: var(--text-1);
   font-size: 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: all 0.2s ease;
+  transition: background var(--motion-hover), border-color var(--motion-hover),
+    color var(--motion-hover);
   max-width: 200px;
   flex-shrink: 0;
   overflow: hidden;
@@ -22,30 +29,34 @@
 }
 
 .taskbar-app:hover {
-  background: #2b6cb0;
+  background: var(--accent-primary-soft);
+  border-color: var(--hairline-accent);
 }
 
 .taskbar-app.active {
-  background: #3182ce;
-  border-color: #63b3ed;
+  background: var(--accent-primary-bg);
+  border-color: var(--accent-primary);
+  color: var(--text-on-accent);
 }
 
 .taskbar-app:focus-visible {
-  outline: 2px solid #63b3ed;
+  outline: 2px solid var(--focus-ring-inner);
   outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--focus-ring-outer);
 }
 
 #app-launcher:focus-visible,
 #os-close:focus-visible {
-  outline: 2px solid #93c5fd;
+  outline: 2px solid var(--focus-ring-inner);
   outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--focus-ring-outer);
 }
 
 /* Many windows: horizontal scroll instead of squashing buttons */
 #running-apps.taskbar-running-apps {
   min-width: 0;
   scrollbar-width: thin;
-  scrollbar-color: #4a5568 #1f2937;
+  scrollbar-color: var(--surface-2) var(--surface-0);
   -webkit-overflow-scrolling: touch;
 }
 
@@ -54,17 +65,17 @@
 }
 
 #running-apps.taskbar-running-apps::-webkit-scrollbar-track {
-  background: #1f2937;
+  background: var(--surface-0);
   border-radius: 3px;
 }
 
 #running-apps.taskbar-running-apps::-webkit-scrollbar-thumb {
-  background: #4a5568;
+  background: var(--surface-2);
   border-radius: 3px;
 }
 
 #running-apps.taskbar-running-apps::-webkit-scrollbar-thumb:hover {
-  background: #2b6cb0;
+  background: var(--accent-primary);
 }
 
 /* Application Icons (window title bar) */
@@ -74,13 +85,14 @@
   display: inline-block;
 }
 
-/* Stay above #os-windows when a window is dragged over the taskbar strip */
+/* Stay above #os-windows when a window is dragged over the taskbar strip. */
 #os-taskbar {
   z-index: 250;
 }
 
 #taskbar-clock:focus-visible {
-  outline: 2px solid #60a5fa;
+  outline: 2px solid var(--focus-ring-inner);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 4px var(--focus-ring-outer);
 }

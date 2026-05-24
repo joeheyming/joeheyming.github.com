@@ -15,7 +15,7 @@
       name="description"
       content="A free chromatic browser tuner with cents-off needle, instrument presets (guitar, bass, ukulele, violin, mandolin, banjo, cello), tap-to-hear reference pitches, and Equal/Just/Pythagorean temperaments."
     />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#7C5CFF" />
 
     <link rel="manifest" href="/play/manifest.json" />
     <link rel="apple-touch-icon" sizes="180x180" href="/play/icons/apple-touch-icon.png" />
@@ -31,10 +31,7 @@
       content="Browser tuner with instrument presets, cents-off needle, locked-target mode, temperaments, and reference pitches."
     />
     <meta property="og:url" content="https://joeheyming.github.io/play/tuner/" />
-    <meta
-      property="og:image"
-      content="https://joeheyming.github.io/play/tuner/tuner-preview.png"
-    />
+    <meta property="og:image" content="https://joeheyming.github.io/play/tuner/tuner-preview.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Browser tuner" />
@@ -76,8 +73,7 @@
           window.backButtonInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent =
-            '.back-to-portfolio,.play-footer a[href="/"]{display:none!important}';
+          s.textContent = '.back-to-portfolio,.play-footer a[href="/"]{display:none!important}';
           document.head.appendChild(s);
         }
       })();
@@ -88,6 +84,14 @@
 
     <link rel="stylesheet" href="../style.css" />
     <link rel="stylesheet" href="style.css" />
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
   <body class="instrument-body">
     <header class="instrument-header">
@@ -151,8 +155,18 @@
              active. Each tab targets one open string; the trailing
              AUTO pill switches back to "snap to nearest chromatic". -->
         <div class="string-tabs" id="string-tabs" hidden>
-          <div class="string-tab-row" id="string-tab-row" role="radiogroup" aria-label="Lock to a string"></div>
-          <button id="auto-toggle" class="string-tab string-tab-auto" type="button" aria-pressed="true">
+          <div
+            class="string-tab-row"
+            id="string-tab-row"
+            role="radiogroup"
+            aria-label="Lock to a string"
+          ></div>
+          <button
+            id="auto-toggle"
+            class="string-tab string-tab-auto"
+            type="button"
+            aria-pressed="true"
+          >
             AUTO
           </button>
         </div>
@@ -185,13 +199,15 @@
           Cents-to-angle: ±100¢ → ±70°, so each cent = 0.7°.
         -->
         <div class="tuner-dial" aria-hidden="true">
-          <svg
-            class="tuner-dial-svg"
-            viewBox="-80 -10 360 220"
-            preserveAspectRatio="xMidYMid meet"
-          >
+          <svg class="tuner-dial-svg" viewBox="-80 -10 360 220" preserveAspectRatio="xMidYMid meet">
             <defs>
-              <radialGradient id="tuner-face-grad" cx="100" cy="200" r="170" gradientUnits="userSpaceOnUse">
+              <radialGradient
+                id="tuner-face-grad"
+                cx="100"
+                cy="200"
+                r="170"
+                gradientUnits="userSpaceOnUse"
+              >
                 <stop offset="0" stop-color="rgba(15, 23, 42, 0)" />
                 <stop offset="0.7" stop-color="rgba(15, 23, 42, 0.55)" />
                 <stop offset="1" stop-color="rgba(11, 16, 32, 0.85)" />
@@ -209,9 +225,18 @@
             <!-- Color band: pink (flat) → green (in-tune ~±5¢ ≈ ±3.5°,
                  widened to ±4° for visibility) → pink (sharp). -->
             <g fill="none" stroke-linecap="round" stroke-width="6">
-              <path d="M -55.05 143.57 A 165 165 0 0 1 88.49 35.4" stroke="rgba(244, 114, 182, 0.55)" />
-              <path d="M 88.49 35.4 A 165 165 0 0 1 111.51 35.4" stroke="rgba(52, 211, 153, 0.85)" />
-              <path d="M 111.51 35.4 A 165 165 0 0 1 255.05 143.57" stroke="rgba(244, 114, 182, 0.55)" />
+              <path
+                d="M -55.05 143.57 A 165 165 0 0 1 88.49 35.4"
+                stroke="rgba(244, 114, 182, 0.55)"
+              />
+              <path
+                d="M 88.49 35.4 A 165 165 0 0 1 111.51 35.4"
+                stroke="rgba(52, 211, 153, 0.85)"
+              />
+              <path
+                d="M 111.51 35.4 A 165 165 0 0 1 255.05 143.57"
+                stroke="rgba(244, 114, 182, 0.55)"
+              />
             </g>
 
             <!-- Major ticks at -100, -50, 0, +50, +100¢ (every 35°). -->
@@ -263,7 +288,9 @@
               font-weight="600"
               text-anchor="middle"
               letter-spacing="0.18em"
-            >TARGET —</text>
+            >
+              TARGET —
+            </text>
           </svg>
 
           <div class="tuner-arm" id="tuner-arm"></div>
@@ -307,11 +334,16 @@
               <span>Clamp to speaker octave</span>
             </label>
           </div>
-          <div class="reference-grid" id="reference-grid" role="group" aria-label="Tap a note to hear it"></div>
+          <div
+            class="reference-grid"
+            id="reference-grid"
+            role="group"
+            aria-label="Tap a note to hear it"
+          ></div>
           <p class="reference-hint">
             Tap a note to play a sustained sine. Tap again to stop. With
-            <em>Clamp</em> on, all references play in the C4–C6 range so
-            you can hear them on a phone speaker.
+            <em>Clamp</em>
+            on, all references play in the C4–C6 range so you can hear them on a phone speaker.
           </p>
         </div>
       </details>
@@ -321,34 +353,43 @@
       <h2>How to use</h2>
       <ul>
         <li>
-          Pick your <strong>Instrument</strong> at the top — the string
-          row appears below the note carousel. Tap a string to
-          <strong>lock the target</strong>; tap <strong>AUTO</strong>
+          Pick your
+          <strong>Instrument</strong>
+          at the top — the string row appears below the note carousel. Tap a string to
+          <strong>lock the target</strong>
+          ; tap
+          <strong>AUTO</strong>
           to snap to the nearest chromatic note instead.
         </li>
         <li>
-          Tap <strong>Start listening</strong> and allow microphone
-          access. Pluck a string and the dial shows how many cents
-          you're sharp (right) or flat (left). The needle goes green
-          inside ±5 ¢ — that's "in tune".
+          Tap
+          <strong>Start listening</strong>
+          and allow microphone access. Pluck a string and the dial shows how many cents you're sharp
+          (right) or flat (left). The needle goes green inside ±5 ¢ — that's "in tune".
         </li>
         <li>
-          The note carousel above the dial shows the current note plus
-          its chromatic neighbours, so you can see which way the next
-          note lies even before the cents settles.
+          The note carousel above the dial shows the current note plus its chromatic neighbours, so
+          you can see which way the next note lies even before the cents settles.
         </li>
         <li>
-          <strong>A4</strong> defaults to <code>440 Hz</code>. Drop it
-          to <code>415</code> for baroque pitch, or nudge to
-          <code>442</code> / <code>444</code> for orchestral.
-          <strong>Tuning</strong> swaps between Equal, Just (centred on
-          C), and Pythagorean — set this for a-cappella or early-music
-          sessions; leave on Equal otherwise.
+          <strong>A4</strong>
+          defaults to
+          <code>440 Hz</code>
+          . Drop it to
+          <code>415</code>
+          for baroque pitch, or nudge to
+          <code>442</code>
+          /
+          <code>444</code>
+          for orchestral.
+          <strong>Tuning</strong>
+          swaps between Equal, Just (centred on C), and Pythagorean — set this for a-cappella or
+          early-music sessions; leave on Equal otherwise.
         </li>
         <li>
-          No mic? Open the <strong>Reference pitches</strong> section
-          and tap any note to play a sustained sine you can ear-tune
-          against.
+          No mic? Open the
+          <strong>Reference pitches</strong>
+          section and tap any note to play a sustained sine you can ear-tune against.
         </li>
       </ul>
     </section>

@@ -15,8 +15,12 @@
   flex-direction: column;
   gap: 8px;
   padding: 12px;
-  background: linear-gradient(180deg, rgba(99, 102, 241, 0.1), rgba(15, 23, 42, 0.4));
-  border: 1px solid rgba(99, 102, 241, 0.35);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--strings-indigo-strum, #6366f1) 10%, transparent),
+    color-mix(in srgb, var(--play-slate-900, #0f172a) 40%, transparent)
+  );
+  border: 1px solid color-mix(in srgb, var(--strings-indigo-strum, #6366f1) 35%, transparent);
   border-radius: 12px;
   position: relative;
 }
@@ -43,11 +47,11 @@
 
 .strum-bar.editing .strum-bar-hint {
   display: inline;
-  color: rgb(94, 234, 212);
+  color: var(--strings-teal-light, #5eead4);
 }
 
 .strum-bar.editing .strum-bar-hint strong {
-  color: #fff;
+  color: var(--pure-white, #fff);
   font-weight: 800;
 }
 
@@ -67,8 +71,8 @@
 .strum-bar-hint kbd {
   display: inline-block;
   padding: 0 5px;
-  background: rgba(99, 102, 241, 0.18);
-  border: 1px solid rgba(99, 102, 241, 0.4);
+  background: color-mix(in srgb, var(--strings-indigo-strum, #6366f1) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--strings-indigo-strum, #6366f1) 40%, transparent);
   border-radius: 4px;
   font-family: inherit;
   font-size: 10px;
@@ -99,7 +103,7 @@
   position: relative;
   background: transparent;
   color: var(--fg-dim);
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  border: 1px solid color-mix(in srgb, var(--play-slate-300, #94a3b8) 35%, transparent);
   border-radius: 6px;
   /* Symbol fonts (♭ / ♯) tend to render tall — a touch more vertical
    * padding keeps the buttons the same visual height as Clear (which
@@ -109,19 +113,16 @@
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
-  transition:
-    color 120ms ease,
-    border-color 120ms ease,
-    background 120ms ease;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
   touch-action: manipulation;
   min-width: 30px;
 }
 
 .strum-bar-transpose-btn:hover,
 .strum-bar-transpose-btn:focus-visible {
-  color: rgb(125, 247, 230);
-  border-color: rgba(94, 234, 212, 0.6);
-  background: rgba(94, 234, 212, 0.08);
+  color: var(--strings-teal-bright, #7df7e6);
+  border-color: color-mix(in srgb, var(--strings-teal-light, #5eead4) 60%, transparent);
+  background: color-mix(in srgb, var(--strings-teal-light, #5eead4) 8%, transparent);
   outline: none;
 }
 
@@ -139,9 +140,9 @@
   left: 50%;
   transform: translateX(-50%) translateY(2px);
   padding: 4px 8px;
-  background: rgba(15, 23, 42, 0.96);
+  background: color-mix(in srgb, var(--play-slate-900, #0f172a) 96%, transparent);
   color: var(--fg);
-  border: 1px solid rgba(94, 234, 212, 0.45);
+  border: 1px solid color-mix(in srgb, var(--strings-teal-light, #5eead4) 45%, transparent);
   border-radius: 4px;
   font-size: 10.5px;
   font-weight: 600;
@@ -150,9 +151,7 @@
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
-  transition:
-    opacity 120ms ease-out 30ms,
-    transform 120ms ease-out 30ms;
+  transition: opacity 120ms ease-out 30ms, transform 120ms ease-out 30ms;
   /* Above the popovers but below modal-grade UI. The popovers
    * underneath top out around z-index 5; sit at 20 here so a tooltip
    * over a transpose button is never occluded by a sibling popover
@@ -180,12 +179,10 @@
   height: 0;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
-  border-top: 5px solid rgba(94, 234, 212, 0.45);
+  border-top: 5px solid color-mix(in srgb, var(--strings-teal-light, #5eead4) 45%, transparent);
   pointer-events: none;
   opacity: 0;
-  transition:
-    opacity 120ms ease-out 30ms,
-    transform 120ms ease-out 30ms;
+  transition: opacity 120ms ease-out 30ms, transform 120ms ease-out 30ms;
   z-index: 20;
 }
 
@@ -209,7 +206,7 @@
  * doesn't compete with the chord pads below. Truncates on narrow
  * screens — long song titles shouldn't push Clear off-screen. */
 .strum-bar-song {
-  color: rgb(94, 234, 212);
+  color: var(--strings-teal-light, #5eead4);
   text-decoration: none;
   font-weight: 600;
   font-size: 11px;
@@ -226,7 +223,7 @@
 .strum-bar-song:hover,
 .strum-bar-song:focus-visible {
   text-decoration: underline;
-  color: rgb(125, 247, 230);
+  color: var(--strings-teal-bright, #7df7e6);
   outline: none;
 }
 
@@ -234,7 +231,7 @@
   margin-left: auto;
   background: transparent;
   color: var(--fg-dim);
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  border: 1px solid color-mix(in srgb, var(--play-slate-300, #94a3b8) 35%, transparent);
   border-radius: 6px;
   padding: 3px 10px;
   font-size: 10.5px;
@@ -242,10 +239,7 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
-  transition:
-    color 120ms ease,
-    border-color 120ms ease,
-    background 120ms ease;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
   touch-action: manipulation;
 }
 
@@ -255,9 +249,9 @@
 
 .strum-bar-clear:hover,
 .strum-bar-clear:focus-visible {
-  color: #fecaca;
-  border-color: rgba(248, 113, 113, 0.6);
-  background: rgba(248, 113, 113, 0.08);
+  color: var(--strings-root-light, #fecaca);
+  border-color: color-mix(in srgb, var(--danger, #f87171) 60%, transparent);
+  background: color-mix(in srgb, var(--danger, #f87171) 8%, transparent);
   outline: none;
 }
 
@@ -308,9 +302,13 @@
   min-width: 64px;
   min-height: 56px;
   padding: 8px 16px;
-  background: linear-gradient(160deg, rgba(99, 102, 241, 0.85), rgba(168, 85, 247, 0.75));
-  color: #fff;
-  border: 1px solid rgba(168, 85, 247, 0.85);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--strings-indigo-strum, #6366f1) 85%, transparent),
+    color-mix(in srgb, var(--strings-violet, #a855f7) 75%, transparent)
+  );
+  color: var(--pure-white, #fff);
+  border: 1px solid color-mix(in srgb, var(--strings-violet, #a855f7) 85%, transparent);
   border-radius: 12px;
   font-size: 18px;
   font-weight: 800;
@@ -319,12 +317,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition:
-    transform 80ms ease,
-    box-shadow 120ms ease,
-    border-color 120ms ease,
+  transition: transform 80ms ease, box-shadow 120ms ease, border-color 120ms ease,
     opacity 120ms ease;
-  box-shadow: 0 4px 12px -8px rgba(168, 85, 247, 0.7);
+  box-shadow: 0 4px 12px -8px color-mix(in srgb, var(--strings-violet, #a855f7) 70%, transparent);
   /* `touch-action: pan-x pan-y` lets the browser handle BOTH axes of
    * native scroll (vertical for the chord-builder, horizontal for
    * the strum-bar pads container) on touch devices. To preserve
@@ -361,12 +356,12 @@
 @keyframes strum-pad-press-pending {
   0% {
     transform: scale(1);
-    box-shadow: 0 4px 12px -8px rgba(168, 85, 247, 0.7);
+    box-shadow: 0 4px 12px -8px color-mix(in srgb, var(--strings-violet, #a855f7) 70%, transparent);
   }
   100% {
     transform: scale(1.04);
-    box-shadow: 0 0 0 3px rgba(254, 243, 199, 0.45),
-      0 10px 20px -6px rgba(168, 85, 247, 0.7);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--strings-cream, #fef3c7) 45%, transparent),
+      0 10px 20px -6px color-mix(in srgb, var(--strings-violet, #a855f7) 70%, transparent);
   }
 }
 
@@ -378,7 +373,7 @@
  * fires AFTER the user has held still. */
 .strum-pad.long-press-active {
   transform: scale(1.06);
-  box-shadow: 0 14px 28px -6px rgba(168, 85, 247, 0.7);
+  box-shadow: 0 14px 28px -6px color-mix(in srgb, var(--strings-violet, #a855f7) 70%, transparent);
 }
 
 /* The original pad stays in place but dims while a drag-clone of it
@@ -392,7 +387,7 @@
 
 .strum-pad.drag-ghost {
   cursor: grabbing;
-  box-shadow: 0 18px 36px -10px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 18px 36px -10px color-mix(in srgb, var(--pure-black, #000) 70%, transparent);
   opacity: 0.95;
   /* Disable the pulse animation on the floating clone — its motion
    * is the pointer's, not a CSS keyframe. */
@@ -409,8 +404,8 @@ body.strum-dragging {
 }
 
 .strum-pad:hover {
-  border-color: rgba(244, 114, 182, 0.95);
-  box-shadow: 0 8px 18px -8px rgba(168, 85, 247, 0.9);
+  border-color: color-mix(in srgb, var(--play-pink, #f472b6) 95%, transparent);
+  box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--strings-violet, #a855f7) 90%, transparent);
 }
 
 .strum-pad:active {
@@ -431,21 +426,21 @@ body.strum-dragging {
  * displace layout (uses `outline`, not `border`) so the bar stays
  * stable as the highlight moves between pads. */
 .strum-pad.editing {
-  outline: 2px solid rgba(45, 212, 191, 0.85);
+  outline: 2px solid color-mix(in srgb, var(--strings-teal, #2dd4bf) 85%, transparent);
   outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.18);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--strings-teal, #2dd4bf) 18%, transparent);
 }
 
 @keyframes strum-pad-flash {
   0% {
-    box-shadow: 0 0 0 0 rgba(244, 114, 182, 0.9);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--play-pink, #f472b6) 90%, transparent);
     transform: translateY(0) scale(1);
   }
   20% {
     transform: translateY(-1px) scale(1.04);
   }
   100% {
-    box-shadow: 0 4px 12px -8px rgba(168, 85, 247, 0.7);
+    box-shadow: 0 4px 12px -8px color-mix(in srgb, var(--strings-violet, #a855f7) 70%, transparent);
     transform: translateY(0) scale(1);
   }
 }
@@ -477,8 +472,8 @@ body.strum-dragging {
   line-height: 1;
   margin-left: 2px;
   letter-spacing: 0;
-  color: rgba(254, 243, 199, 0.95);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  color: color-mix(in srgb, var(--strings-cream, #fef3c7) 95%, transparent);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--pure-black, #000) 55%, transparent);
   vertical-align: baseline;
 }
 
@@ -489,9 +484,9 @@ body.strum-dragging {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.95);
-  color: #fca5a5;
-  border: 1px solid rgba(244, 114, 182, 0.5);
+  background: color-mix(in srgb, var(--play-slate-900, #0f172a) 95%, transparent);
+  color: var(--strings-mute-glyph, #fca5a5);
+  border: 1px solid color-mix(in srgb, var(--play-pink, #f472b6) 50%, transparent);
   font-size: 12px;
   font-weight: 900;
   line-height: 1;
@@ -501,9 +496,7 @@ body.strum-dragging {
   cursor: pointer;
   opacity: 0;
   transform: scale(0.85);
-  transition:
-    opacity 120ms ease,
-    transform 120ms ease;
+  transition: opacity 120ms ease, transform 120ms ease;
   /* Keep tap targets reachable on touch — the × is small visually but
    * still ≥ 18px hit area, padded out by the pad's own breathing room. */
 }
@@ -516,9 +509,9 @@ body.strum-dragging {
 }
 
 .strum-pad-remove:hover {
-  background: #7f1d1d;
-  color: #fff;
-  border-color: #fecaca;
+  background: var(--strings-root-deep, #7f1d1d);
+  color: var(--pure-white, #fff);
+  border-color: var(--strings-root-light, #fecaca);
 }
 
 .strum-pad-add {
@@ -527,21 +520,18 @@ body.strum-dragging {
   min-height: 56px;
   background: transparent;
   color: var(--fg-dim);
-  border: 2px dashed rgba(148, 163, 184, 0.45);
+  border: 2px dashed color-mix(in srgb, var(--play-slate-300, #94a3b8) 45%, transparent);
   border-radius: 12px;
   font-size: 24px;
   font-weight: 700;
   cursor: pointer;
-  transition:
-    color 120ms ease,
-    border-color 120ms ease,
-    background 120ms ease;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
   touch-action: manipulation;
 }
 
 .strum-pad-add:hover,
 .strum-pad-add[aria-expanded='true'] {
   color: var(--fg);
-  border-color: rgba(99, 102, 241, 0.75);
-  background: rgba(99, 102, 241, 0.08);
+  border-color: color-mix(in srgb, var(--strings-indigo-strum, #6366f1) 75%, transparent);
+  background: color-mix(in srgb, var(--strings-indigo-strum, #6366f1) 8%, transparent);
 }

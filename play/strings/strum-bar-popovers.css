@@ -7,10 +7,10 @@
   flex-direction: column;
   gap: 6px;
   padding: 10px;
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(99, 102, 241, 0.55);
+  background: color-mix(in srgb, var(--play-slate-900, #0f172a) 95%, transparent);
+  border: 1px solid color-mix(in srgb, var(--strings-indigo-strum, #6366f1) 55%, transparent);
   border-radius: 10px;
-  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--pure-black, #000) 60%, transparent);
 }
 
 .strum-bar-add-popover[hidden] {
@@ -18,7 +18,7 @@
 }
 
 .strum-bar-add-popover input {
-  background: rgba(15, 23, 42, 0.85);
+  background: color-mix(in srgb, var(--play-slate-900, #0f172a) 85%, transparent);
   color: var(--fg);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -31,8 +31,8 @@
 }
 
 .strum-bar-add-popover input:focus {
-  border-color: rgba(168, 85, 247, 0.85);
-  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.18);
+  border-color: color-mix(in srgb, var(--strings-violet, #a855f7) 85%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--strings-violet, #a855f7) 18%, transparent);
 }
 
 .strum-bar-suggestions {
@@ -51,7 +51,7 @@
 }
 
 .strum-bar-suggestion {
-  background: rgba(30, 41, 59, 0.85);
+  background: color-mix(in srgb, var(--play-slate-800, #1e293b) 85%, transparent);
   color: var(--fg);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -64,9 +64,9 @@
 
 .strum-bar-suggestion:hover,
 .strum-bar-suggestion[aria-selected='true'] {
-  border-color: rgba(168, 85, 247, 0.85);
-  background: rgba(168, 85, 247, 0.25);
-  color: #fff;
+  border-color: color-mix(in srgb, var(--strings-violet, #a855f7) 85%, transparent);
+  background: color-mix(in srgb, var(--strings-violet, #a855f7) 25%, transparent);
+  color: var(--pure-white, #fff);
 }
 
 /* Load-song button — sibling to the "+" pad-add. Styled with the
@@ -95,8 +95,8 @@
 .strum-pad-load:hover,
 .strum-pad-load[aria-expanded='true'] {
   color: var(--fg);
-  border-color: rgba(45, 212, 191, 0.75);
-  background: rgba(45, 212, 191, 0.1);
+  border-color: color-mix(in srgb, var(--strings-teal, #2dd4bf) 75%, transparent);
+  background: color-mix(in srgb, var(--strings-teal, #2dd4bf) 10%, transparent);
 }
 
 /* Load-song popover. Same skeleton as the chord-name popover above;
@@ -109,10 +109,10 @@
   flex-direction: column;
   gap: 8px;
   padding: 10px;
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(45, 212, 191, 0.55);
+  background: color-mix(in srgb, var(--play-slate-900, #0f172a) 95%, transparent);
+  border: 1px solid color-mix(in srgb, var(--strings-teal, #2dd4bf) 55%, transparent);
   border-radius: 10px;
-  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--pure-black, #000) 60%, transparent);
 }
 
 .strum-bar-load-popover[hidden] {
@@ -120,7 +120,7 @@
 }
 
 .strum-bar-load-popover input {
-  background: rgba(15, 23, 42, 0.85);
+  background: color-mix(in srgb, var(--play-slate-900, #0f172a) 85%, transparent);
   color: var(--fg);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -132,8 +132,8 @@
 }
 
 .strum-bar-load-popover input:focus {
-  border-color: rgba(45, 212, 191, 0.85);
-  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.2);
+  border-color: color-mix(in srgb, var(--strings-teal, #2dd4bf) 85%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--strings-teal, #2dd4bf) 20%, transparent);
 }
 
 .strum-bar-load-popover input:disabled {
@@ -149,7 +149,7 @@
 }
 
 .strum-bar-load-hint a {
-  color: rgb(94, 234, 212);
+  color: var(--strings-teal-light, #5eead4);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -159,7 +159,7 @@
   padding: 6px 8px;
   font-size: 12.5px;
   border-radius: 6px;
-  background: rgba(30, 41, 59, 0.7);
+  background: color-mix(in srgb, var(--play-slate-800, #1e293b) 70%, transparent);
   color: var(--fg);
   border: 1px solid var(--border);
   line-height: 1.35;
@@ -170,14 +170,14 @@
 }
 
 .strum-bar-load-status.is-success {
-  border-color: rgba(45, 212, 191, 0.55);
-  background: rgba(45, 212, 191, 0.12);
+  border-color: color-mix(in srgb, var(--strings-teal, #2dd4bf) 55%, transparent);
+  background: color-mix(in srgb, var(--strings-teal, #2dd4bf) 12%, transparent);
 }
 
 .strum-bar-load-status.is-error {
-  border-color: rgba(248, 113, 113, 0.55);
-  background: rgba(248, 113, 113, 0.1);
-  color: #fecaca;
+  border-color: color-mix(in srgb, var(--danger, #f87171) 55%, transparent);
+  background: color-mix(in srgb, var(--danger, #f87171) 10%, transparent);
+  color: var(--strings-root-light, #fecaca);
 }
 
 /* Live-search results inside the load popover. List behaves like a
@@ -195,7 +195,7 @@
   gap: 4px;
   max-height: 240px;
   overflow-y: auto;
-  background: rgba(15, 23, 42, 0.6);
+  background: color-mix(in srgb, var(--play-slate-900, #0f172a) 60%, transparent);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 4px;
@@ -215,16 +215,14 @@
   cursor: pointer;
   user-select: none;
   border: 1px solid transparent;
-  transition:
-    background 100ms ease,
-    border-color 100ms ease;
+  transition: background 100ms ease, border-color 100ms ease;
 }
 
 .strum-bar-load-result:hover,
 .strum-bar-load-result.is-highlighted,
 .strum-bar-load-result[aria-selected='true'] {
-  background: rgba(45, 212, 191, 0.12);
-  border-color: rgba(45, 212, 191, 0.55);
+  background: color-mix(in srgb, var(--strings-teal, #2dd4bf) 12%, transparent);
+  border-color: color-mix(in srgb, var(--strings-teal, #2dd4bf) 55%, transparent);
 }
 
 .strum-bar-load-result-main {
@@ -256,7 +254,7 @@
   flex: 0 0 auto;
   font-size: 10.5px;
   color: var(--fg-dim);
-  background: rgba(30, 41, 59, 0.7);
+  background: color-mix(in srgb, var(--play-slate-800, #1e293b) 70%, transparent);
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 2px 8px;

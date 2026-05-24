@@ -2,20 +2,17 @@
    language as /stock so the two apps feel like a set. */
 
 :root {
+  /* Weather data-viz palette — temperature gradient stops. Scoped because
+   * they encode meaning (warm = high temp, cool = low) that brand status
+   * tokens don't capture. --cool intentionally aliases the brand violet
+   * so the cold end of the temperature ramp reads as brand. */
   --warm: #fb923c;
-  --cool: #38bdf8;
-  --flat: #94a3b8;
+  --cool: var(--accent-primary, #7c5cff);
+  --flat: var(--text-2, #a1a1aa);
 }
 
 body {
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    'Helvetica Neue',
-    Arial,
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     sans-serif;
   /* Respect notched-phone bottom inset so the share button and
      refresh bar don't get clipped by the home-indicator. */
@@ -41,22 +38,20 @@ body {
   font-size: 0.78rem;
   padding: 0.32rem 0.6rem;
   border-radius: 0.4rem;
-  border: 1px solid rgb(51 65 85);
-  background: rgb(15 23 42 / 0.6);
-  color: rgb(203 213 225);
+  border: 1px solid var(--hairline-strong);
+  background: color-mix(in srgb, var(--surface-1, #15151b) 60%, transparent);
+  color: var(--text-2);
   cursor: pointer;
-  transition:
-    background 0.15s,
-    border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s;
 }
 .tool-btn:hover {
-  background: rgb(30 41 59);
-  border-color: rgb(71 85 105);
+  background: var(--hairline);
+  border-color: var(--hairline-accent);
 }
 .tool-btn.active {
-  background: rgb(56 189 248);
-  color: rgb(2 6 23);
-  border-color: rgb(56 189 248);
+  background: var(--accent-primary);
+  color: var(--surface-0);
+  border-color: var(--accent-primary);
   font-weight: 600;
 }
 
@@ -68,21 +63,21 @@ body {
   gap: 0.75rem;
   padding: 0.55rem 0.75rem;
   cursor: pointer;
-  border-bottom: 1px solid rgb(30 41 59);
+  border-bottom: 1px solid var(--hairline);
 }
 .suggestion-row:last-child {
   border-bottom: none;
 }
 .suggestion-row:hover,
 .suggestion-row.hl {
-  background: rgb(30 41 59);
+  background: var(--hairline);
 }
 .suggestion-row .place {
   font-weight: 600;
-  color: rgb(248 250 252);
+  color: var(--text-1);
 }
 .suggestion-row .region {
-  color: rgb(148 163 184);
+  color: var(--text-2);
   font-size: 0.8rem;
   margin-top: 0.05rem;
   white-space: nowrap;
@@ -92,36 +87,33 @@ body {
 }
 .suggestion-row .country {
   font-size: 0.7rem;
-  color: rgb(100 116 139);
+  color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 /* Location tiles. The active tile gets a sky-blue ring. */
 .weather-tile {
-  background: rgb(15 23 42 / 0.6);
-  border: 1px solid rgb(30 41 59);
+  background: color-mix(in srgb, var(--surface-1, #15151b) 60%, transparent);
+  border: 1px solid var(--hairline);
   border-radius: 0.75rem;
   padding: 0.85rem 1rem;
   position: relative;
   cursor: pointer;
-  transition:
-    transform 0.12s,
-    border-color 0.15s,
-    background 0.15s;
+  transition: transform 0.12s, border-color 0.15s, background 0.15s;
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
   min-height: 8.5rem;
 }
 .weather-tile:hover {
-  border-color: rgb(71 85 105);
+  border-color: var(--hairline-accent);
   transform: translateY(-1px);
 }
 .weather-tile.active {
-  border-color: rgb(56 189 248);
-  box-shadow: 0 0 0 2px rgb(56 189 248 / 0.15);
-  background: rgb(8 47 73 / 0.4);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-primary-soft);
+  background: var(--accent-primary-soft);
 }
 .weather-tile .tile-head {
   display: flex;
@@ -137,11 +129,11 @@ body {
 }
 .weather-tile .tile-region {
   font-size: 0.72rem;
-  color: rgb(148 163 184);
+  color: var(--text-2);
   margin-top: 0.1rem;
 }
 .weather-tile .tile-close {
-  color: rgb(100 116 139);
+  color: var(--text-3);
   font-size: 1rem;
   line-height: 1;
   padding: 0 0.2rem;
@@ -150,7 +142,7 @@ body {
   cursor: pointer;
 }
 .weather-tile .tile-close:hover {
-  color: rgb(248 113 113);
+  color: var(--danger);
 }
 .weather-tile .tile-temp {
   font-size: 2rem;
@@ -160,7 +152,7 @@ body {
 }
 .weather-tile .tile-cond {
   font-size: 0.85rem;
-  color: rgb(203 213 225);
+  color: var(--text-2);
 }
 .weather-tile .tile-cond .emoji {
   font-size: 1.1rem;
@@ -168,12 +160,12 @@ body {
 }
 .weather-tile .tile-range {
   font-size: 0.72rem;
-  color: rgb(148 163 184);
+  color: var(--text-2);
   margin-top: auto;
 }
 .weather-tile .tile-error {
   font-size: 0.78rem;
-  color: rgb(252 165 165);
+  color: var(--danger);
 }
 
 /* Hourly horizontal scroller. */
@@ -187,8 +179,8 @@ body {
 .hour-cell {
   flex: 0 0 auto;
   min-width: 4.5rem;
-  background: rgb(15 23 42 / 0.6);
-  border: 1px solid rgb(30 41 59);
+  background: color-mix(in srgb, var(--surface-1, #15151b) 60%, transparent);
+  border: 1px solid var(--hairline);
   border-radius: 0.6rem;
   padding: 0.5rem 0.4rem;
   text-align: center;
@@ -196,7 +188,7 @@ body {
 }
 .hour-cell .hr {
   font-size: 0.72rem;
-  color: rgb(148 163 184);
+  color: var(--text-2);
 }
 .hour-cell .emoji {
   font-size: 1.2rem;
@@ -207,11 +199,11 @@ body {
 }
 .hour-cell .pop {
   font-size: 0.68rem;
-  color: rgb(56 189 248);
+  color: var(--accent-primary);
   margin-top: 0.15rem;
 }
 .hour-cell .pop.dry {
-  color: rgb(100 116 139);
+  color: var(--text-3);
 }
 
 /* Daily forecast rows. */
@@ -221,13 +213,13 @@ body {
   align-items: center;
   gap: 0.6rem;
   padding: 0.55rem 0;
-  border-bottom: 1px solid rgb(30 41 59);
+  border-bottom: 1px solid var(--hairline);
 }
 .day-row:last-child {
   border-bottom: none;
 }
 .day-row .day-name {
-  color: rgb(226 232 240);
+  color: var(--text-1);
   font-size: 0.9rem;
 }
 .day-row .day-emoji {
@@ -238,7 +230,7 @@ body {
   position: relative;
   height: 0.45rem;
   border-radius: 999px;
-  background: rgb(30 41 59);
+  background: var(--hairline);
   overflow: hidden;
 }
 .day-row .temp-bar-fill {
@@ -251,27 +243,31 @@ body {
 .day-row .day-range {
   text-align: right;
   font-size: 0.85rem;
-  color: rgb(226 232 240);
+  color: var(--text-1);
   font-variant-numeric: tabular-nums;
 }
 .day-row .day-range .lo {
-  color: rgb(148 163 184);
+  color: var(--text-2);
   margin-right: 0.4rem;
 }
 
 /* Big detail card. */
 .detail-card {
-  background: linear-gradient(180deg, rgb(8 47 73 / 0.6), rgb(15 23 42 / 0.7));
-  border: 1px solid rgb(30 41 59);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent-primary, #7c5cff) 18%, transparent),
+    color-mix(in srgb, var(--surface-1, #15151b) 70%, transparent)
+  );
+  border: 1px solid var(--hairline);
   border-radius: 1rem;
   padding: 1.1rem 1.2rem;
 }
 .detail-card .place {
   font-size: 0.95rem;
-  color: rgb(148 163 184);
+  color: var(--text-2);
 }
 .detail-card .place strong {
-  color: rgb(248 250 252);
+  color: var(--text-1);
   font-weight: 600;
 }
 .detail-card .now {
@@ -292,12 +288,12 @@ body {
 }
 .detail-card .now .cond {
   font-size: 1rem;
-  color: rgb(203 213 225);
+  color: var(--text-2);
   margin-top: 0.2rem;
 }
 .detail-card .now .feels {
   font-size: 0.8rem;
-  color: rgb(148 163 184);
+  color: var(--text-2);
 }
 .detail-card .stats {
   display: grid;
@@ -311,8 +307,8 @@ body {
   }
 }
 .detail-card .stat {
-  background: rgb(2 6 23 / 0.45);
-  border: 1px solid rgb(30 41 59);
+  background: color-mix(in srgb, var(--surface-0, #0b0b0f) 45%, transparent);
+  border: 1px solid var(--hairline);
   border-radius: 0.55rem;
   padding: 0.5rem 0.65rem;
 }
@@ -320,19 +316,19 @@ body {
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgb(148 163 184);
+  color: var(--text-2);
 }
 .detail-card .stat .val {
   font-size: 1rem;
-  color: rgb(226 232 240);
+  color: var(--text-1);
   margin-top: 0.15rem;
   font-variant-numeric: tabular-nums;
 }
 
 /* Empty state. */
 .empty-card {
-  background: rgb(15 23 42 / 0.5);
-  border: 1px dashed rgb(51 65 85);
+  background: color-mix(in srgb, var(--surface-1, #15151b) 50%, transparent);
+  border: 1px dashed var(--hairline-strong);
   border-radius: 0.85rem;
   padding: 2rem 1rem;
   text-align: center;
@@ -341,9 +337,9 @@ body {
   font-size: 3rem;
 }
 .empty-card .suggested {
-  background: rgb(30 41 59);
-  border: 1px solid rgb(51 65 85);
-  color: rgb(226 232 240);
+  background: var(--hairline);
+  border: 1px solid var(--hairline-strong);
+  color: var(--text-1);
   border-radius: 0.5rem;
   padding: 0.25rem 0.6rem;
   margin: 0.15rem 0.2rem;
@@ -351,8 +347,8 @@ body {
   cursor: pointer;
 }
 .empty-card .suggested:hover {
-  background: rgb(51 65 85);
-  color: rgb(248 250 252);
+  background: var(--hairline-strong);
+  color: var(--text-1);
 }
 
 /* Section headings inside the detail view. */
@@ -360,7 +356,7 @@ body {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgb(148 163 184);
+  color: var(--text-2);
   margin: 1rem 0 0.4rem;
 }
 
@@ -375,8 +371,8 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: rgb(15 23 42 / 0.65);
-  border: 1px solid rgb(30 41 59);
+  background: color-mix(in srgb, var(--surface-1, #15151b) 65%, transparent);
+  border: 1px solid var(--hairline);
   border-radius: 0.6rem 0.6rem 0 0;
   border-bottom: none;
   padding: 0.45rem 0.7rem 0.5rem;
@@ -391,7 +387,7 @@ body {
 .radar-ticker-place {
   font-size: 0.92rem;
   font-weight: 700;
-  color: rgb(248 250 252);
+  color: var(--text-1);
   line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
@@ -399,7 +395,7 @@ body {
 }
 .radar-ticker-meta {
   font-size: 0.65rem;
-  color: rgb(148 163 184);
+  color: var(--text-2);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   white-space: nowrap;
@@ -428,8 +424,8 @@ body {
   border-radius: 0.35rem;
 }
 .radar-ticker-day.today {
-  background: rgb(8 47 73 / 0.55);
-  box-shadow: 0 0 0 1px rgb(56 189 248 / 0.35);
+  background: var(--accent-primary-soft);
+  box-shadow: 0 0 0 1px var(--accent-primary-soft);
 }
 .radar-ticker-temp {
   font-size: 0.92rem;
@@ -438,7 +434,7 @@ body {
 }
 .radar-ticker-day-name {
   font-size: 0.6rem;
-  color: rgb(148 163 184);
+  color: var(--text-2);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -446,8 +442,8 @@ body {
 .radar-map {
   width: 100%;
   height: clamp(420px, 60vh, 640px);
-  background: rgb(2 6 23);
-  border: 1px solid rgb(30 41 59);
+  background: var(--surface-0);
+  border: 1px solid var(--hairline);
   border-radius: 0.75rem;
   overflow: hidden;
 }
@@ -462,12 +458,12 @@ body {
   outline: none;
 }
 .radar-map .maplibregl-ctrl-attrib {
-  background: rgb(15 23 42 / 0.85);
-  color: rgb(203 213 225);
+  background: color-mix(in srgb, var(--surface-1, #15151b) 85%, transparent);
+  color: var(--text-2);
   font-size: 0.6rem;
 }
 .radar-map .maplibregl-ctrl-attrib a {
-  color: rgb(125 211 252);
+  color: var(--accent-primary-hover);
 }
 
 .radar-controls {
@@ -475,8 +471,8 @@ body {
   flex-direction: column;
   gap: 0.5rem;
   margin-top: 0.6rem;
-  background: rgb(15 23 42 / 0.6);
-  border: 1px solid rgb(30 41 59);
+  background: color-mix(in srgb, var(--surface-1, #15151b) 60%, transparent);
+  border: 1px solid var(--hairline);
   border-radius: 0.6rem;
   padding: 0.55rem 0.75rem;
 }
@@ -496,25 +492,25 @@ body {
   align-items: center;
   gap: 0.4rem;
   font-size: 0.72rem;
-  color: rgb(148 163 184);
+  color: var(--text-2);
 }
 .radar-row-title {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-size: 0.65rem;
-  color: rgb(100 116 139);
+  color: var(--text-3);
 }
 .radar-model {
-  background: rgb(15 23 42);
-  color: rgb(226 232 240);
-  border: 1px solid rgb(51 65 85);
+  background: var(--surface-1);
+  color: var(--text-1);
+  border: 1px solid var(--hairline-strong);
   border-radius: 0.4rem;
   padding: 0.3rem 0.5rem;
   font-size: 0.78rem;
   cursor: pointer;
 }
 .radar-model:focus {
-  outline: 2px solid rgb(56 189 248);
+  outline: 2px solid var(--accent-primary);
   outline-offset: 1px;
 }
 
@@ -529,9 +525,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  background: rgb(15 23 42);
-  color: rgb(203 213 225);
-  border: 1px solid rgb(51 65 85);
+  background: var(--surface-1);
+  color: var(--text-2);
+  border: 1px solid var(--hairline-strong);
   border-radius: 0.4rem;
   padding: 0.3rem 0.55rem;
   font-size: 0.75rem;
@@ -539,13 +535,13 @@ body {
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 .radar-var:hover:not(:disabled) {
-  background: rgb(30 41 59);
-  border-color: rgb(71 85 105);
+  background: var(--hairline);
+  border-color: var(--hairline-accent);
 }
 .radar-var.active {
-  background: rgb(56 189 248);
-  color: rgb(2 6 23);
-  border-color: rgb(56 189 248);
+  background: var(--accent-primary);
+  color: var(--surface-0);
+  border-color: var(--accent-primary);
   font-weight: 600;
 }
 .radar-var.unsupported,
@@ -560,8 +556,8 @@ body {
 
 /* Time row: play | slider | time label. */
 .radar-play {
-  background: rgb(56 189 248);
-  color: rgb(2 6 23);
+  background: var(--accent-primary);
+  color: var(--surface-0);
   border: none;
   width: 2rem;
   height: 2rem;
@@ -575,11 +571,11 @@ body {
   justify-content: center;
 }
 .radar-play:hover {
-  background: rgb(125 211 252);
+  background: var(--accent-primary-hover);
 }
 .radar-play[data-state='playing'] {
-  background: rgb(251 146 60);
-  color: rgb(2 6 23);
+  background: var(--warning);
+  color: var(--surface-0);
 }
 /* While the active forecast frame's tiles are still loading we
    visually pulse the play button so the user knows the loop is
@@ -590,28 +586,29 @@ body {
 }
 .radar-time[data-loading='true']::after {
   content: ' …';
-  color: rgb(148 163 184);
+  color: var(--text-2);
   font-weight: 500;
   margin-left: 0.1rem;
 }
 @keyframes radar-play-pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgb(56 189 248 / 0.55);
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary, #7c5cff) 55%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 6px rgb(56 189 248 / 0);
+    box-shadow: 0 0 0 6px transparent;
   }
 }
 .radar-slider {
   flex: 1 1 auto;
-  accent-color: rgb(56 189 248);
+  accent-color: var(--accent-primary);
   height: 1rem;
   cursor: pointer;
   min-width: 8rem;
 }
 .radar-time {
   font-size: 0.78rem;
-  color: rgb(226 232 240);
+  color: var(--text-1);
   font-variant-numeric: tabular-nums;
   min-width: 10rem;
   text-align: right;
@@ -620,42 +617,42 @@ body {
 /* Status line under the slider — mirrors the old radar-status semantics. */
 .radar-status {
   font-size: 0.72rem;
-  color: rgb(148 163 184);
+  color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
 .radar-status[data-tone='wait'] {
-  color: rgb(148 163 184);
+  color: var(--text-2);
   font-style: italic;
 }
 .radar-status[data-tone='ok'] {
-  color: rgb(125 211 252);
+  color: var(--accent-primary-hover);
 }
 .radar-status[data-tone='warn'] {
-  color: rgb(252 165 165);
+  color: var(--danger);
 }
 
 /* MapLibre popups blended with the dark UI. */
 .maplibregl-popup-content {
-  background: rgb(15 23 42);
-  color: rgb(226 232 240);
-  border: 1px solid rgb(51 65 85);
+  background: var(--surface-1);
+  color: var(--text-1);
+  border: 1px solid var(--hairline-strong);
   border-radius: 0.5rem;
-  box-shadow: 0 6px 18px rgb(0 0 0 / 0.45);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--pure-black, #000000) 45%, transparent);
   padding: 0.6rem 0.75rem;
 }
 .maplibregl-popup-tip {
-  border-top-color: rgb(15 23 42) !important;
-  border-bottom-color: rgb(15 23 42) !important;
+  border-top-color: var(--surface-1) !important;
+  border-bottom-color: var(--surface-1) !important;
 }
 .maplibregl-popup-close-button {
-  color: rgb(148 163 184) !important;
+  color: var(--text-2) !important;
   font-size: 1.1rem;
   padding: 0.1rem 0.35rem 0.2rem;
 }
 
 .radar-popup-name {
   font-weight: 600;
-  color: rgb(248 250 252);
+  color: var(--text-1);
   font-size: 0.95rem;
 }
 .radar-popup-row {
@@ -670,16 +667,16 @@ body {
 .radar-popup-temp {
   font-size: 1.2rem;
   font-weight: 600;
-  color: rgb(248 250 252);
+  color: var(--text-1);
 }
 .radar-popup-cond {
   font-size: 0.78rem;
-  color: rgb(148 163 184);
+  color: var(--text-2);
   margin-top: 0.1rem;
 }
 .radar-popup-loading {
   font-size: 0.78rem;
-  color: rgb(148 163 184);
+  color: var(--text-2);
   margin-top: 0.2rem;
 }
 
@@ -700,12 +697,12 @@ body {
 .compare-place {
   font-size: 1rem;
   font-weight: 600;
-  color: rgb(248 250 252);
+  color: var(--text-1);
 }
 .compare-place-select {
-  background: rgb(15 23 42);
-  color: rgb(248 250 252);
-  border: 1px solid rgb(51 65 85);
+  background: var(--surface-1);
+  color: var(--text-1);
+  border: 1px solid var(--hairline-strong);
   border-radius: 0.4rem;
   padding: 0.3rem 0.55rem;
   font-size: 0.85rem;
@@ -714,12 +711,12 @@ body {
   max-width: 100%;
 }
 .compare-place-select:focus {
-  outline: 2px solid rgb(56 189 248);
+  outline: 2px solid var(--accent-primary);
   outline-offset: 1px;
 }
 .compare-meta {
   font-size: 0.72rem;
-  color: rgb(148 163 184);
+  color: var(--text-2);
 }
 .compare-vars {
   display: flex;
@@ -730,9 +727,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  background: rgb(15 23 42);
-  color: rgb(203 213 225);
-  border: 1px solid rgb(51 65 85);
+  background: var(--surface-1);
+  color: var(--text-2);
+  border: 1px solid var(--hairline-strong);
   border-radius: 0.4rem;
   padding: 0.35rem 0.65rem;
   font-size: 0.78rem;
@@ -740,13 +737,13 @@ body {
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 .compare-var:hover:not(.active) {
-  background: rgb(30 41 59);
-  border-color: rgb(71 85 105);
+  background: var(--hairline);
+  border-color: var(--hairline-accent);
 }
 .compare-var.active {
-  background: rgb(56 189 248);
-  color: rgb(2 6 23);
-  border-color: rgb(56 189 248);
+  background: var(--accent-primary);
+  color: var(--surface-0);
+  border-color: var(--accent-primary);
   font-weight: 600;
 }
 .compare-var-emoji {
@@ -760,22 +757,22 @@ body {
   gap: 0.55rem;
 }
 .compare-empty {
-  background: rgb(15 23 42 / 0.5);
-  border: 1px dashed rgb(51 65 85);
+  background: color-mix(in srgb, var(--surface-1, #15151b) 50%, transparent);
+  border: 1px dashed var(--hairline-strong);
   border-radius: 0.6rem;
   padding: 1rem;
-  color: rgb(148 163 184);
+  color: var(--text-2);
   font-size: 0.85rem;
   text-align: center;
 }
 .compare-empty.compare-empty-error {
-  border-color: rgb(127 29 29);
-  color: rgb(252 165 165);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .compare-row {
-  background: rgb(15 23 42 / 0.6);
-  border: 1px solid rgb(30 41 59);
+  background: color-mix(in srgb, var(--surface-1, #15151b) 60%, transparent);
+  border: 1px solid var(--hairline);
   border-radius: 0.7rem;
   padding: 0.6rem 0.7rem 0.4rem;
   display: flex;
@@ -791,12 +788,12 @@ body {
 .compare-row-model {
   font-size: 0.78rem;
   font-weight: 600;
-  color: rgb(226 232 240);
+  color: var(--text-1);
   letter-spacing: 0.02em;
 }
 .compare-row-stats {
   font-size: 0.7rem;
-  color: rgb(148 163 184);
+  color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
 .compare-row-chart {
@@ -815,7 +812,7 @@ body {
   width: 2.5rem;
   pointer-events: none;
   font-size: 0.65rem;
-  color: rgb(100 116 139);
+  color: var(--text-3);
   font-variant-numeric: tabular-nums;
 }
 .compare-row-yaxis .compare-y-hi,
@@ -824,7 +821,8 @@ body {
   left: 0.2rem;
   /* The labels overlap the sparkline, so add a subtle dark halo so
      they stay readable against the fill color underneath. */
-  text-shadow: 0 0 3px rgb(2 6 23 / 0.95), 0 0 6px rgb(2 6 23 / 0.7);
+  text-shadow: 0 0 3px color-mix(in srgb, var(--surface-0, #0b0b0f) 95%, transparent),
+    0 0 6px color-mix(in srgb, var(--surface-0, #0b0b0f) 70%, transparent);
 }
 .compare-row-yaxis .compare-y-hi {
   top: 0.1rem;
@@ -836,7 +834,7 @@ body {
   position: relative;
   height: 0.95rem;
   font-size: 0.65rem;
-  color: rgb(148 163 184);
+  color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
 .compare-axis-tick {
@@ -846,32 +844,32 @@ body {
   white-space: nowrap;
 }
 .compare-axis-tick.today {
-  color: rgb(125 211 252);
+  color: var(--accent-primary-hover);
   font-weight: 600;
 }
 .compare-axis-tick.past {
-  color: rgb(244 114 182);
+  color: var(--accent-primary-hover);
   font-style: italic;
 }
 .compare-footnote {
   font-size: 0.68rem;
-  color: rgb(100 116 139);
+  color: var(--text-3);
   margin-top: 0.25rem;
 }
 
 /* Toast container reuses the same look as the stock app. */
 .toast {
-  background: rgb(15 23 42);
-  border: 1px solid rgb(51 65 85);
-  color: rgb(226 232 240);
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-strong);
+  color: var(--text-1);
   border-radius: 0.5rem;
   padding: 0.55rem 0.85rem;
   font-size: 0.85rem;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+  box-shadow: var(--shadow-card, 0 8px 24px rgba(0, 0, 0, 0.3));
 }
 .toast.error {
-  border-color: rgb(239 68 68);
-  color: rgb(254 226 226);
+  border-color: var(--danger);
+  color: var(--text-1);
 }
 
 /* ──────────────────────────────────────────────────────────────────────
@@ -1003,7 +1001,7 @@ body {
     gap: 0.4rem;
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
-    background: rgb(2 6 23 / 0.7);
+    background: color-mix(in srgb, var(--surface-0, #0b0b0f) 70%, transparent);
   }
   .radar-row {
     gap: 0.45rem;
@@ -1195,5 +1193,111 @@ body {
   }
   .radar-ticker-day {
     min-width: 1.6rem;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────
+ * HOSDL header overrides — replaces the legacy gradient title block
+ * with the brand identity strip pattern (squircle icon + title).
+ * The original markup classes are kept; new classes layer on top.
+ * ─────────────────────────────────────────────────────────────────── */
+
+.weather-app-header {
+  /* Leave the back button clear on desktop; on mobile, back button is
+     compact (~46px) so the squircle's left padding handles the rest. */
+  padding-left: 0;
+}
+
+@media (min-width: 641px) {
+  .weather-app-header {
+    padding-left: 110px;
+  }
+}
+
+.weather-app-header-identity .app-icon-frame {
+  flex: 0 0 auto;
+}
+
+.weather-app-title {
+  font-family: var(--font-display);
+  font-size: var(--text-h2);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-1);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.weather-app-subtitle {
+  font-family: var(--font-ui);
+  font-size: var(--text-caption);
+  color: var(--text-3);
+  margin: 4px 0 0;
+  line-height: 1.3;
+}
+
+.weather-search {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-strong);
+  color: var(--text-1);
+  font-family: var(--font-ui);
+  transition: border-color var(--motion-hover), box-shadow var(--motion-hover);
+}
+
+.weather-search::placeholder {
+  color: var(--text-3);
+}
+
+.weather-search:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-primary-soft);
+}
+
+.weather-search-icon {
+  color: var(--text-3);
+}
+
+.weather-suggestions {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-strong);
+  color: var(--text-1);
+}
+
+/* Toolbar surface + dividers + segmented control (replaces the
+ * slate-/sky-* Tailwind cluster on the section element). */
+.weather-toolbar {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 0.45rem 0.7rem;
+}
+
+.weather-segmented {
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-2);
+}
+
+.weather-segmented > .tool-btn + .tool-btn {
+  border-left: 1px solid var(--hairline-strong) !important;
+}
+
+.weather-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--hairline-strong);
+  margin: 0 0.25rem;
+}
+
+.weather-checkbox {
+  accent-color: var(--accent-primary);
+}
+
+/* Legacy mobile rule referenced a tailwind class we no longer use on the
+ * toolbar; replicate its spacing on the new .weather-toolbar. */
+@media (max-width: 640px) {
+  .weather-toolbar {
+    padding: 0.35rem 0.5rem !important;
+    gap: 0.35rem !important;
+    margin-bottom: 0.5rem !important;
   }
 }

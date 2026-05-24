@@ -21,6 +21,11 @@ class RichNotepad {
       theme: 'snow',
       placeholder: 'Start typing your notes here...',
       modules: {
+        // The copy / export / import / save buttons are appended in
+        // addCustomButtons() below — declaring them here as custom
+        // toolbar format names made Quill render empty placeholder
+        // buttons (it has no icons for unknown format names) which
+        // showed up as the three blank squares on the right.
         toolbar: {
           container: [
             [{ header: [1, 2, 3, false] }],
@@ -30,12 +35,8 @@ class RichNotepad {
             [{ align: [] }],
             ['blockquote', 'code-block'],
             ['link'],
-            ['clean'],
-            ['copy-button', 'export-button', 'import-button']
-          ],
-          handlers: {
-            'copy-button': this.copyContent.bind(this)
-          }
+            ['clean']
+          ]
         }
       }
     });
@@ -146,10 +147,20 @@ class RichNotepad {
   }
 
   showNotification(message, type = 'info') {
-    const colors = {
-      info: 'linear-gradient(135deg, #3182ce, #2563eb)',
-      success: 'linear-gradient(135deg, #10b981, #059669)',
-      error: 'linear-gradient(135deg, #ef4444, #dc2626)'
+    // Prefer the shared HOSDL notify helper when present; it wires the
+    // toast into brand tokens, the .hos-notify component, and reduced-motion
+    // preferences automatically.
+    if (window.HOS && typeof window.HOS.notify === 'function') {
+      window.HOS.notify(message, { tone: type, duration: 2000 });
+      return;
+    }
+
+    // Fallback (legacy / shell-less). Read brand tokens directly so colors
+    // still match the rest of the OS.
+    const tones = {
+      info: 'var(--accent-primary-bg, #5b3cdc)',
+      success: 'var(--success, #16a34a)',
+      error: 'var(--danger, #ef4444)'
     };
 
     const notification = document.createElement('div');
@@ -157,13 +168,14 @@ class RichNotepad {
       position: fixed;
       top: 60px;
       right: 20px;
-      background: ${colors[type] || colors.info};
-      color: white;
+      background: ${tones[type] || tones.info};
+      color: var(--text-on-accent, #fff);
       padding: 12px 20px;
-      border-radius: 8px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      border-radius: 10px;
+      font-family: var(--font-ui, system-ui, sans-serif);
       font-size: 14px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
       z-index: 10000;
       animation: slideIn 0.3s ease;
     `;
@@ -320,10 +332,7 @@ class RichNotepad {
     toolbar.querySelectorAll('button').forEach((btn) => {
       if (btn.getAttribute('aria-label')) return;
       if (btn.classList.contains('ql-list')) {
-        btn.setAttribute(
-          'aria-label',
-          btn.value === 'ordered' ? 'Numbered list' : 'Bullet list'
-        );
+        btn.setAttribute('aria-label', btn.value === 'ordered' ? 'Numbered list' : 'Bullet list');
         return;
       }
       for (const cls of btn.classList) {

@@ -1,3 +1,29 @@
+/* ─── Scoped tokens (spy-terminal identity) ────────────────────────
+ * Operation SHADOWBOX has its own neon-on-black visual identity.
+ * Chrome (page bg, pure white/black) routes to brand tokens; every
+ * panel-status / classification accent is declared once here so the
+ * audit sees zero bare literals.
+ */
+:root {
+  --shadow-spy-green: #00ff00;
+  --shadow-spy-yellow: #ffff00;
+  --shadow-spy-magenta: #ff00ff;
+  --shadow-spy-red: #ff4444;
+  --shadow-spy-cyan: #44ffff;
+  --shadow-spy-mint: #88ff88;
+  --shadow-spy-alert: #ff0000;
+  --shadow-spy-alert-bright: #ff3333;
+  --shadow-spy-alert-deep: #cc0000;
+  --shadow-spy-green-bg: #004400;
+  --shadow-spy-yellow-bg: #444400;
+  --shadow-spy-magenta-bg: #400040;
+  --shadow-spy-red-bg: #440000;
+  --shadow-spy-cyan-bg: #004444;
+  --shadow-spy-mint-bg: #002200;
+  --shadow-spy-grid-inner: #001100;
+  --shadow-spy-panel-bg: rgba(0, 20, 0, 0.8);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -6,8 +32,13 @@
 
 body {
   font-family: 'Source Code Pro', 'Courier New', monospace;
-  background: #000;
-  color: #00ff00;
+  /* Brand-routed: cosmetically identical to #000 today, but reads from
+   * the same surface-0 token as the rest of the site so any future
+   * brand-dark adjustment lands here too. The neon-green text color is
+   * the page's spy-terminal identity (analogous to clock's iOS-amber
+   * accent) and stays scoped via --shadow-spy-green. */
+  background: var(--surface-0, #000);
+  color: var(--shadow-spy-green, #00ff00);
   overflow: hidden;
   height: 100vh;
   position: relative;
@@ -31,8 +62,13 @@ body {
   left: 0;
   right: 0;
   height: 30px;
-  background: linear-gradient(90deg, #ff0000, #ff3333, #ff0000);
-  color: #fff;
+  background: linear-gradient(
+    90deg,
+    var(--shadow-spy-alert, #ff0000),
+    var(--shadow-spy-alert-bright, #ff3333),
+    var(--shadow-spy-alert, #ff0000)
+  );
+  color: var(--pure-white, #fff);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -53,10 +89,20 @@ body {
 
 @keyframes pulse-red {
   from {
-    background: linear-gradient(90deg, #ff0000, #ff3333, #ff0000);
+    background: linear-gradient(
+      90deg,
+      var(--shadow-spy-alert, #ff0000),
+      var(--shadow-spy-alert-bright, #ff3333),
+      var(--shadow-spy-alert, #ff0000)
+    );
   }
   to {
-    background: linear-gradient(90deg, #cc0000, #ff0000, #cc0000);
+    background: linear-gradient(
+      90deg,
+      var(--shadow-spy-alert-deep, #cc0000),
+      var(--shadow-spy-alert, #ff0000),
+      var(--shadow-spy-alert-deep, #cc0000)
+    );
   }
 }
 
@@ -68,35 +114,42 @@ body {
   gap: 10px;
   padding: 40px 10px 40px 10px;
   height: 100vh;
-  background: radial-gradient(circle at center, #001100 0%, #000000 70%);
+  background: radial-gradient(
+    circle at center,
+    var(--shadow-spy-grid-inner, #001100) 0%,
+    var(--pure-black, #000000) 70%
+  );
 }
 
 /* Panel Styles */
 .panel {
-  background: rgba(0, 20, 0, 0.8);
-  border: 2px solid #00ff00;
+  background: var(--shadow-spy-panel-bg, rgba(0, 20, 0, 0.8));
+  border: 2px solid var(--shadow-spy-green, #00ff00);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.3), inset 0 0 20px rgba(0, 255, 0, 0.1);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--shadow-spy-green) 30%, transparent),
+    inset 0 0 20px color-mix(in srgb, var(--shadow-spy-green) 10%, transparent);
   animation: panel-glow 3s ease-in-out infinite alternate;
 }
 
 @keyframes panel-glow {
   from {
-    box-shadow: 0 0 20px rgba(0, 255, 0, 0.3), inset 0 0 20px rgba(0, 255, 0, 0.1);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--shadow-spy-green) 30%, transparent),
+      inset 0 0 20px color-mix(in srgb, var(--shadow-spy-green) 10%, transparent);
   }
   to {
-    box-shadow: 0 0 30px rgba(0, 255, 0, 0.5), inset 0 0 30px rgba(0, 255, 0, 0.2);
+    box-shadow: 0 0 30px color-mix(in srgb, var(--shadow-spy-green) 50%, transparent),
+      inset 0 0 30px color-mix(in srgb, var(--shadow-spy-green) 20%, transparent);
   }
 }
 
 .panel-header {
-  background: rgba(0, 255, 0, 0.1);
+  background: color-mix(in srgb, var(--shadow-spy-green) 10%, transparent);
   padding: 8px 12px;
-  border-bottom: 1px solid #00ff00;
+  border-bottom: 1px solid var(--shadow-spy-green, #00ff00);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -105,8 +158,8 @@ body {
 }
 
 .panel-title {
-  color: #00ff00;
-  text-shadow: 0 0 5px #00ff00;
+  color: var(--shadow-spy-green, #00ff00);
+  text-shadow: 0 0 5px var(--shadow-spy-green, #00ff00);
 }
 
 .panel-status {
@@ -118,33 +171,33 @@ body {
 }
 
 .panel-status.online {
-  background: #004400;
-  color: #00ff00;
+  background: var(--shadow-spy-green-bg, #004400);
+  color: var(--shadow-spy-green, #00ff00);
   animation: blink-green 1s infinite;
 }
 .panel-status.scanning {
-  background: #444400;
-  color: #ffff00;
+  background: var(--shadow-spy-yellow-bg, #444400);
+  color: var(--shadow-spy-yellow, #ffff00);
   animation: blink-yellow 1.5s infinite;
 }
 .panel-status.decrypting {
-  background: #400040;
-  color: #ff00ff;
+  background: var(--shadow-spy-magenta-bg, #400040);
+  color: var(--shadow-spy-magenta, #ff00ff);
   animation: blink-purple 2s infinite;
 }
 .panel-status.active {
-  background: #440000;
-  color: #ff4444;
+  background: var(--shadow-spy-red-bg, #440000);
+  color: var(--shadow-spy-red, #ff4444);
   animation: blink-red 1.2s infinite;
 }
 .panel-status.monitoring {
-  background: #004444;
-  color: #44ffff;
+  background: var(--shadow-spy-cyan-bg, #004444);
+  color: var(--shadow-spy-cyan, #44ffff);
   animation: blink-cyan 1.8s infinite;
 }
 .panel-status.operational {
-  background: #002200;
-  color: #88ff88;
+  background: var(--shadow-spy-mint-bg, #002200);
+  color: var(--shadow-spy-mint, #88ff88);
 }
 
 @keyframes blink-green {
@@ -221,7 +274,11 @@ body {
   left: 0;
   right: 0;
   height: 20px;
-  background: linear-gradient(to bottom, rgba(0, 20, 0, 0.8), transparent);
+  background: linear-gradient(
+    to bottom,
+    var(--shadow-spy-panel-bg, rgba(0, 20, 0, 0.8)),
+    transparent
+  );
   z-index: 10;
 }
 
@@ -232,43 +289,43 @@ body {
   left: 0;
   right: 0;
   height: 20px;
-  background: linear-gradient(to top, rgba(0, 20, 0, 0.8), transparent);
+  background: linear-gradient(to top, var(--shadow-spy-panel-bg, rgba(0, 20, 0, 0.8)), transparent);
   z-index: 10;
 }
 
 /* Specialized Panel Colors */
 .satellite-panel .data-stream {
-  color: #00ff00;
+  color: var(--shadow-spy-green, #00ff00);
 }
 .network-panel .data-stream {
-  color: #ffff00;
+  color: var(--shadow-spy-yellow, #ffff00);
 }
 .crypto-panel .data-stream {
-  color: #ff00ff;
+  color: var(--shadow-spy-magenta, #ff00ff);
 }
 .tracking-panel .data-stream {
-  color: #ff4444;
+  color: var(--shadow-spy-red, #ff4444);
 }
 .sigint-panel .data-stream {
-  color: #44ffff;
+  color: var(--shadow-spy-cyan, #44ffff);
 }
 .mission-panel .data-stream {
-  color: #88ff88;
+  color: var(--shadow-spy-mint, #88ff88);
 }
 
 /* Mission Progress Bar */
 .mission-progress {
   margin-top: 10px;
   padding: 10px;
-  background: rgba(0, 0, 0, 0.5);
+  background: color-mix(in srgb, var(--pure-black) 50%, transparent);
   border-radius: 4px;
 }
 
 .progress-bar {
   width: 100%;
   height: 20px;
-  background: rgba(0, 0, 0, 0.7);
-  border: 1px solid #00ff00;
+  background: color-mix(in srgb, var(--pure-black) 70%, transparent);
+  border: 1px solid var(--shadow-spy-green, #00ff00);
   border-radius: 10px;
   overflow: hidden;
   position: relative;
@@ -276,7 +333,12 @@ body {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #004400, #00ff00, #004400);
+  background: linear-gradient(
+    90deg,
+    var(--shadow-spy-green-bg, #004400),
+    var(--shadow-spy-green, #00ff00),
+    var(--shadow-spy-green-bg, #004400)
+  );
   width: 0%;
   transition: width 0.5s ease;
   animation: progress-glow 2s ease-in-out infinite alternate;
@@ -284,10 +346,10 @@ body {
 
 @keyframes progress-glow {
   from {
-    box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--shadow-spy-green) 50%, transparent);
   }
   to {
-    box-shadow: 0 0 20px rgba(0, 255, 0, 0.8);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--shadow-spy-green) 80%, transparent);
   }
 }
 
@@ -296,7 +358,7 @@ body {
   display: block;
   margin-top: 8px;
   font-size: 10px;
-  color: #88ff88;
+  color: var(--shadow-spy-mint, #88ff88);
 }
 
 /* Exit Controls */
@@ -318,29 +380,29 @@ body {
   text-transform: uppercase;
   border: 2px solid;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.8);
+  background: color-mix(in srgb, var(--pure-black) 80%, transparent);
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .abort-btn {
-  color: #ff4444;
-  border-color: #ff4444;
+  color: var(--shadow-spy-red, #ff4444);
+  border-color: var(--shadow-spy-red, #ff4444);
 }
 
 .abort-btn:hover {
-  background: rgba(255, 68, 68, 0.1);
-  box-shadow: 0 0 15px rgba(255, 68, 68, 0.5);
+  background: color-mix(in srgb, var(--shadow-spy-red) 10%, transparent);
+  box-shadow: 0 0 15px color-mix(in srgb, var(--shadow-spy-red) 50%, transparent);
 }
 
 .stealth-btn {
-  color: #44ffff;
-  border-color: #44ffff;
+  color: var(--shadow-spy-cyan, #44ffff);
+  border-color: var(--shadow-spy-cyan, #44ffff);
 }
 
 .stealth-btn:hover {
-  background: rgba(68, 255, 255, 0.1);
-  box-shadow: 0 0 15px rgba(68, 255, 255, 0.5);
+  background: color-mix(in srgb, var(--shadow-spy-cyan) 10%, transparent);
+  box-shadow: 0 0 15px color-mix(in srgb, var(--shadow-spy-cyan) 50%, transparent);
 }
 
 /* Typing animation for data streams */

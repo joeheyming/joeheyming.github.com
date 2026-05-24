@@ -2,14 +2,13 @@
    #canvas sizing, the fullscreen toggle (#fsBtn), and the in-game
    flavor switcher (floating top-right + inline picker variant). */
 
-
 #canvas {
   display: block;
   width: 100vw;
   height: 100vh;
   width: 100svw;
   height: 100svh;
-  background: #000;
+  background: var(--pure-black, #000000);
   outline: 0;
 }
 
@@ -18,7 +17,7 @@
   top: 12px;
   right: 12px;
   z-index: 5;
-  background: rgba(20, 20, 24, 0.6);
+  background: var(--doom-overlay-strong, rgba(20, 20, 24, 0.6));
   border: 1px solid var(--border);
   color: var(--text);
   padding: 6px 10px;
@@ -31,7 +30,7 @@
 }
 #fsBtn:hover {
   opacity: 1;
-  background: rgba(30, 30, 36, 0.9);
+  background: var(--doom-overlay-hover, rgba(30, 30, 36, 0.9));
 }
 #fsBtn.hidden {
   display: none;
@@ -63,7 +62,7 @@ body.mobile #flavorSwitcher.floating {
 .flavor-switch-btn {
   -webkit-appearance: none;
   appearance: none;
-  background: rgba(20, 20, 24, 0.6);
+  background: var(--doom-overlay-strong, rgba(20, 20, 24, 0.6));
   border: 1px solid var(--border);
   color: var(--text);
   padding: 6px 10px;
@@ -77,7 +76,7 @@ body.mobile #flavorSwitcher.floating {
 .flavor-switch-btn:hover,
 .flavor-switcher.open .flavor-switch-btn {
   opacity: 1;
-  background: rgba(30, 30, 36, 0.9);
+  background: var(--doom-overlay-hover, rgba(30, 30, 36, 0.9));
 }
 /* Inline picker variant: full opacity by default since it's the only
    way into Manual mode and shouldn't be near-invisible. */
@@ -91,14 +90,14 @@ body.mobile #flavorSwitcher.floating {
   top: 100%;
   right: 0;
   margin-top: 6px;
-  background: rgba(15, 15, 18, 0.96);
+  background: var(--doom-overlay-deep, rgba(15, 15, 18, 0.96));
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 4px;
   display: flex;
   flex-direction: column;
   min-width: 220px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-modal, 0 20px 60px rgba(0, 0, 0, 0.5));
   backdrop-filter: blur(4px);
   z-index: 10;
 }
@@ -131,12 +130,12 @@ body.mobile #flavorSwitcher.floating {
   transition: background 100ms;
 }
 .flavor-switch-menu button:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--doom-menu-hover, rgba(255, 255, 255, 0.06));
 }
 .flavor-switch-menu button[disabled] {
   cursor: default;
   opacity: 0.55;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--doom-menu-disabled, rgba(255, 255, 255, 0.04));
 }
 .flavor-switch-menu button .dot {
   display: inline-block;
@@ -144,6 +143,35 @@ body.mobile #flavorSwitcher.floating {
   height: 10px;
   border-radius: 50%;
   flex: 0 0 auto;
+  /* Flavour-specific dot colours map to scoped --doom-dot-* tokens so
+   * the HTML stays markup-pure and the audit sees zero bare literals.
+   * Tokens defined in styles/base.css alongside the rest of the
+   * doom-scoped palette. */
+  background: var(--doom-dot-classic, #c8392e);
+}
+.flavor-switch-menu button[data-switch='classic'] .dot {
+  background: var(--doom-dot-classic, #c8392e);
+}
+.flavor-switch-menu button[data-switch='freedoom'] .dot {
+  background: var(--doom-dot-freedoom, #d9883a);
+}
+.flavor-switch-menu button[data-switch='legend'] .dot {
+  background: var(--doom-dot-legend, #4fa861);
+}
+.flavor-switch-menu button[data-switch='mario'] .dot {
+  background: var(--doom-dot-mario, #2a73d8);
+}
+.flavor-switch-menu button[data-switch='metroid'] .dot {
+  background: var(--doom-dot-metroid, #c39e3a);
+}
+.flavor-switch-menu button[data-switch='castlevania'] .dot {
+  background: var(--doom-dot-castlevania, #7a3fb1);
+}
+.flavor-switch-menu button[data-switch='moddb'] .dot {
+  background: var(--doom-dot-moddb, #d96aa6);
+}
+.flavor-switch-menu button[data-switch='manual'] .dot {
+  background: var(--doom-dot-manual, #888888);
 }
 .flavor-switch-menu button[data-active='true']::after {
   content: '✓';
@@ -194,7 +222,7 @@ body.mobile .flavor-switch-menu button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--scrim, rgba(11, 11, 15, 0.6));
   z-index: 20;
 }
 .modal.hidden {

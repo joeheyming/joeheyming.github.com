@@ -346,8 +346,8 @@ body.theme-light .statusbar {
 }
 
 .status-pill {
-  background: rgba(0, 0, 0, 0.35);
-  color: #ecfeff;
+  background: color-mix(in srgb, var(--pure-black) 35%, transparent);
+  color: var(--pure-white, #ffffff);
   padding: 0 6px;
   border-radius: 8px;
   font-family: var(--font-mono);
@@ -357,7 +357,7 @@ body.theme-light .statusbar {
 
 .status-pill.vim {
   background: var(--warn);
-  color: black;
+  color: var(--pure-black, #000000);
 }
 
 .status-item {
@@ -370,4 +370,3 @@ body.theme-light .statusbar {
   height: 0;
   border: 0;
 }
-

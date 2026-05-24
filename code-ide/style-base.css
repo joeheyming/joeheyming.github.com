@@ -1,28 +1,33 @@
+/* code-ide palette — VSCode-style depths with Heyming OS accents.
+ * The body / titlebar / sidebar stay in the iconic VSCode dark steps
+ * (preserves muscle memory) but selection, active rows, and accent
+ * affordances now route through the brand violet so it reads as part
+ * of the OS.
+ *
+ * VSCode dark palette routed through brand tokens; literal fallbacks
+ * preserve the IDE look if brand.css fails to load. */
 :root {
-  --bg: #1e1e1e;
-  --bg-elev: #252526;
-  --bg-elev-2: #2d2d2d;
+  --bg: var(--surface-0, #1e1e1e);
+  --bg-elev: var(--surface-1, #252526);
+  --bg-elev-2: var(--surface-2, #2d2d2d);
   --bg-input: #3c3c3c;
-  --bg-active: #094771;
+  --bg-active: var(--accent-primary-bg, #5b3cdc); /* was VSCode blue #094771 — now brand violet */
   --bg-hover: #2a2d2e;
-  --border: #1e1e1e;
-  --border-strong: #3c3c3c;
-  --text: #d4d4d4;
-  --text-mute: #969696;
-  --text-strong: #ffffff;
-  --accent: #0e7490;
-  --accent-strong: #06b6d4;
-  --danger: #f48771;
+  --border: var(--surface-0, #1e1e1e);
+  --border-strong: var(--hairline-strong, #3c3c3c);
+  --text: var(--text-1, #d4d4d4);
+  --text-mute: var(--text-2, #969696);
+  --text-strong: var(--pure-white, #ffffff);
+  --accent: var(--accent-primary, #7c5cff); /* brand foreground violet */
+  --accent-strong: var(--accent-primary-hover, #9077ff);
+  --danger: var(--danger, #f48771);
   --good: #4ec9b0;
   --warn: #dcdcaa;
   --titlebar-h: 36px;
   --statusbar-h: 22px;
   --tabs-h: 34px;
-  --font-ui:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'Helvetica Neue', Arial, sans-serif;
-  --font-mono:
-    'JetBrains Mono', 'Fira Code', Menlo, Monaco, 'Cascadia Mono', Consolas, 'Liberation Mono',
-    monospace;
+  --font-ui: var(--font-ui, 'Inter', system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif);
+  --font-mono: var(--font-mono, 'JetBrains Mono', 'Fira Code', Menlo, Monaco, 'Cascadia Mono', Consolas, 'Liberation Mono', monospace);
 }
 
 body.theme-light {
@@ -30,15 +35,15 @@ body.theme-light {
   --bg-elev: #f3f3f3;
   --bg-elev-2: #ececec;
   --bg-input: #ffffff;
-  --bg-active: #cce6ff;
+  --bg-active: #ddd2ff; /* brand violet @ very light */
   --bg-hover: #e8e8e8;
   --border: #e7e7e7;
   --border-strong: #cccccc;
   --text: #1f1f1f;
   --text-mute: #6a6a6a;
   --text-strong: #000000;
-  --accent: #007acc;
-  --accent-strong: #0098ff;
+  --accent: var(--accent-primary-bg, #5b3cdc); /* brand accent-primary-bg works on white */
+  --accent-strong: var(--accent-primary-bg-hover, #6e50e6);
   --danger: #d73a49;
   --good: #28a745;
   --warn: #b08800;
@@ -171,7 +176,7 @@ body.standalone .titlebar {
   top: var(--titlebar-h);
   background: var(--bg-elev);
   border: 1px solid var(--border-strong);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--pure-black) 40%, transparent);
   min-width: 240px;
   z-index: 50;
   border-radius: 4px;
@@ -370,4 +375,3 @@ body.standalone .titlebar {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-

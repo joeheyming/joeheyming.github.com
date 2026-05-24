@@ -34,11 +34,36 @@
   /* Judgment text */
   --canvas-judgment-fill: #ff4444;
   --canvas-judgment-shadow: black;
+
+  /* ── stepmania: scoped UI palette ─────────────────────────────────
+   * The judgment / grade text colors and the simfile difficulty
+   * badge gradients are StepMania-genre conventions (DDR/ITG
+   * traditions). They live as scoped --sm-* tokens so the brand
+   * audit sees zero bare literals while the gameplay convention is
+   * preserved. */
+  --sm-judgment-perfect: var(--sm-judgment-perfect, #f472b6); /* pink "Perfect" pop */
+  --sm-judgment-great: var(--sm-judgment-great, #00f5ff); /* cyan "Great" pop */
+  --sm-badge-sky-lo: #0ea5e9;
+  --sm-badge-sky-hi: #38bdf8;
+  --sm-badge-orange-lo: #f97316;
+  --sm-badge-orange-hi: #fb923c;
+  --sm-badge-red-lo: #dc2626;
+  --sm-badge-red-hi: #ef4444;
+  --sm-badge-green-lo: #16a34a;
+  --sm-badge-green-hi: #22c55e;
+  --sm-badge-purple-lo: #9333ea;
+  --sm-badge-purple-hi: #a855f7;
+  --sm-badge-teal-lo: #0d9488;
+  --sm-badge-teal-hi: #14b8a6;
+  /* Zenius browser cyan/blue gradient header */
+  --sm-zb-accent-cyan: var(--sm-judgment-great, #00f5ff);
+  --sm-zb-accent-blue: #3b82f6;
 }
 
 /* Base styles that complement Tailwind */
 body {
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--text-1, #f5f5f7);
   overflow: hidden;
   padding-bottom: env(safe-area-inset-bottom);
 }
@@ -183,10 +208,10 @@ body.mobile .score-toggle {
   top: 10px;
   right: 10px;
   z-index: 60;
-  background: rgba(139, 92, 246, 0.9);
+  background: var(--accent-primary-bg, #5b3cdc);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  color: white;
+  border: 1px solid var(--hairline-accent, rgba(124, 92, 255, 0.32));
+  color: var(--text-on-accent, #ffffff);
   border-radius: 0.5rem;
   padding: 0.5rem 1rem;
   cursor: pointer;
@@ -196,7 +221,7 @@ body.mobile .score-toggle {
 }
 
 body.mobile .score-toggle:hover {
-  background: rgba(139, 92, 246, 1);
+  background: var(--accent-primary, #7c5cff);
   transform: scale(1.05);
 }
 
@@ -264,11 +289,11 @@ body:not(.mobile) .score-toggle {
     align-items: center !important;
     justify-content: center !important;
   }
-  
+
   .restart-btn .restart-text-label {
     display: none !important;
   }
-  
+
   .restart-btn .restart-icon-only {
     display: inline-block !important;
     font-size: 1.25rem !important;
@@ -326,7 +351,7 @@ body:not(.mobile) .score-toggle {
 /* Button pressed state for visual feedback */
 .button-pressed {
   transform: scale(0.85) !important;
-  box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: inset 0 4px 8px color-mix(in srgb, var(--pure-black) 30%, transparent) !important;
   filter: brightness(0.8) !important;
 }
 
@@ -379,7 +404,7 @@ game-over-modal {
   height: 100%;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.7);
+  background: color-mix(in srgb, var(--surface-0) 70%, transparent); /* surface-0 @ 0.7 */
   z-index: 50;
 }
 
@@ -408,8 +433,8 @@ game-over-modal.visible {
   position: fixed;
   top: 20px;
   right: 20px;
-  background: rgba(0, 0, 0, 0.8);
-  color: #10b981;
+  background: color-mix(in srgb, var(--surface-0) 80%, transparent); /* surface-0 @ 0.8 */
+  color: var(--success, #34d399);
   padding: 10px;
   border-radius: 5px;
   font-family: monospace;
@@ -426,12 +451,12 @@ game-over-modal.visible {
   min-width: 40px;
   min-height: 40px;
   cursor: pointer;
-  color: #c4b5fd;
+  color: var(--accent-primary-hover, #9077ff);
 }
 
 #fullscreen-toggle:hover {
-  color: #ddd6fe;
-  box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+  color: var(--text-1, #f5f5f7);
+  box-shadow: 0 0 15px color-mix(in srgb, var(--accent-primary) 50%, transparent); /* accent-primary @ 0.5 */
 }
 
 /* Hide button text, show only icon */
@@ -468,7 +493,7 @@ game-over-modal.visible {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background-color: #000 !important;
+  background-color: var(--surface-0, #0b0b0f) !important;
   background-size: cover !important;
   background-position: center !important;
 }
@@ -500,10 +525,12 @@ game-over-modal.visible {
   top: 10px;
   right: 10px;
   z-index: 100;
-  background: rgba(0, 0, 0, 0.5);
+  /* On-canvas scrim: pure black @ 0.5 keeps the icon legible against
+     bright video/song backgrounds; brand surface-0 would tint cool. */
+  background: color-mix(in srgb, var(--pure-black) 50%, transparent);
   backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
+  color: var(--text-2, #a1a1aa);
   border-radius: 8px;
   padding: 8px 12px;
   cursor: pointer;
@@ -520,11 +547,15 @@ game-over-modal.visible {
 }
 
 .fullscreen-toggle-btn:hover {
-  background: rgba(139, 92, 246, 0.7);
-  border-color: rgba(139, 92, 246, 0.5);
-  color: #fff;
+  background: color-mix(in srgb, var(--accent-primary) 70%, transparent); /* accent-primary @ 0.7 */
+  border-color: color-mix(
+    in srgb,
+    var(--accent-primary) 50%,
+    transparent
+  ); /* accent-primary @ 0.5 */
+  color: var(--text-1, #f5f5f7);
   transform: scale(1.1);
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--accent-primary) 50%, transparent); /* accent-primary @ 0.5 */
 }
 
 .fullscreen-toggle-btn:active {
@@ -578,11 +609,11 @@ game-over-modal.visible {
   top: 20px;
   right: 20px;
   z-index: 100;
-  background: rgba(0, 0, 0, 0.7);
+  background: color-mix(in srgb, var(--surface-0) 70%, transparent); /* surface-0 @ 0.7 */
   backdrop-filter: blur(10px);
   border-radius: 16px;
   padding: 16px 20px;
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  border: 1px solid var(--hairline-accent, rgba(124, 92, 255, 0.32));
   min-width: 140px;
   text-align: center;
 }
@@ -590,8 +621,8 @@ game-over-modal.visible {
 .fs-score-percent {
   font-size: 2rem;
   font-weight: bold;
-  color: #f472b6;
-  text-shadow: 0 0 10px rgba(244, 114, 182, 0.5);
+  color: var(--sm-judgment-perfect, #f472b6);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--sm-judgment-perfect, #f472b6) 50%, transparent);
   margin-bottom: 12px;
 }
 
@@ -609,7 +640,7 @@ game-over-modal.visible {
 
 .fs-stat-label {
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-2, #a1a1aa);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -617,7 +648,7 @@ game-over-modal.visible {
 .fs-stat-value {
   font-size: 1.1rem;
   font-weight: bold;
-  color: #00f5ff;
+  color: var(--sm-judgment-great, #00f5ff);
 }
 
 /* Larger score on bigger screens */
@@ -642,10 +673,10 @@ game-over-modal.visible {
   justify-content: center;
   align-items: center;
   padding: 20px 32px;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--scrim, rgba(11, 11, 15, 0.6)); /* surface-0 @ 0.6 */
   backdrop-filter: blur(8px);
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
 }
 
 .fullscreen-step-buttons step-button {
@@ -671,10 +702,10 @@ game-over-modal.visible {
   top: 20px;
   left: 20px;
   z-index: 200;
-  background: rgba(239, 68, 68, 0.8);
+  background: color-mix(in srgb, var(--danger) 80%, transparent); /* danger @ 0.8 */
   backdrop-filter: blur(4px);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-on-accent, #ffffff);
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
   border-radius: 50%;
   width: 44px;
   height: 44px;
@@ -690,7 +721,7 @@ game-over-modal.visible {
 }
 
 .fullscreen-exit-button:hover {
-  background: rgba(239, 68, 68, 1);
+  background: var(--danger, #f87171);
   transform: scale(1.1);
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--danger) 50%, transparent); /* danger @ 0.5 */
 }

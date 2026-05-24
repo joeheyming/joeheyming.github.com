@@ -1,4 +1,10 @@
-/* Heyming OS — embedded app surfaces (terminal, calculator) hosted inside .os-window-content. */
+/* Heyming OS — embedded app surfaces (terminal, calculator) hosted inside .os-window-content.
+ *
+ * Brand-routed: the terminal fallback keeps a green-on-black identity by
+ * routing through --success + --pure-black so the terminal still reads
+ * as a terminal but the palette comes from /brand.css. The calculator
+ * fallback uses brand surfaces / accent.
+ */
 
 /* Terminal Specific Styles */
 .terminal-content {
@@ -6,8 +12,8 @@
   font-family: 'Courier New', monospace;
   font-size: 14px;
   line-height: 1.4;
-  background: #000000;
-  color: #00ff00;
+  background: var(--pure-black, #000000);
+  color: var(--success, #34d399);
   height: 100%;
   overflow-y: auto;
 }
@@ -17,42 +23,42 @@
 }
 
 .terminal-prompt {
-  color: #00ff00;
+  color: var(--success, #34d399);
 }
 
 .terminal-input {
   background: transparent;
   border: none;
   outline: none;
-  color: #00ff00;
+  color: var(--success, #34d399);
   font-family: inherit;
   font-size: inherit;
   width: 100%;
-  caret-color: #00ff00;
+  caret-color: var(--success, #34d399);
 }
 
 .terminal-input::placeholder {
-  color: #008000;
+  color: var(--success, #34d399);
   opacity: 0.6;
 }
 
 /* Application Content Styles */
 .calculator-content {
   padding: 16px;
-  background: #2d3748;
+  background: var(--surface-2, #1f1f27);
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
 .calculator-display {
-  background: #000000;
-  color: #00ff00;
+  background: var(--pure-black, #000000);
+  color: var(--success, #34d399);
   padding: 12px;
   text-align: right;
   font-family: 'Courier New', monospace;
   font-size: 18px;
-  border: 1px solid #4a5568;
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
   border-radius: 4px;
   min-height: 40px;
   display: flex;
@@ -68,9 +74,9 @@
 
 .calculator-button {
   height: 40px;
-  background: #4a5568;
-  border: 1px solid #2d3748;
-  color: #e2e8f0;
+  background: var(--surface-2, #1f1f27);
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
+  color: var(--text-1, #f5f5f7);
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
@@ -79,7 +85,7 @@
 }
 
 .calculator-button:hover {
-  background: #2b6cb0;
+  background: var(--accent-primary-bg-hover, #6e50e6);
 }
 
 .calculator-button:active {
@@ -87,9 +93,9 @@
 }
 
 .calculator-button.operator {
-  background: #3182ce;
+  background: var(--accent-primary-bg, #5b3cdc);
 }
 
 .calculator-button.equals {
-  background: #10b981;
+  background: var(--success, #34d399);
 }

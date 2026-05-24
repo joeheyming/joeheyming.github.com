@@ -1,20 +1,13 @@
 /* Stock Ticker — custom styles on top of Tailwind CDN. */
 
 :root {
-  --pos: #34d399; /* emerald-400 */
-  --neg: #f87171; /* red-400 */
-  --flat: #94a3b8; /* slate-400 */
+  --pos: var(--success, #34d399); /* data-viz: aligned to --success */
+  --neg: var(--danger, #f87171); /* data-viz: aligned to --danger */
+  --flat: var(--text-2, #a1a1aa); /* data-viz: text-2 mid */
 }
 
 body {
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    'Helvetica Neue',
-    Arial,
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     sans-serif;
 }
 
@@ -22,18 +15,12 @@ kbd {
   display: inline-block;
   padding: 0.05rem 0.4rem;
   font-size: 0.75rem;
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    'SF Mono',
-    Menlo,
-    Consolas,
-    monospace;
-  background: rgb(30 41 59);
-  border: 1px solid rgb(51 65 85);
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  background: var(--hairline);
+  border: 1px solid var(--hairline-strong);
   border-bottom-width: 2px;
   border-radius: 0.35rem;
-  color: rgb(226 232 240);
+  color: var(--text-1);
   line-height: 1.2;
 }
 
@@ -43,25 +30,22 @@ kbd {
   font-size: 0.78rem;
   padding: 0.3rem 0.65rem;
   border-radius: 0.4rem;
-  border: 1px solid rgb(51 65 85);
+  border: 1px solid var(--hairline-strong);
   background: transparent;
-  color: rgb(203 213 225);
+  color: var(--text-2);
   cursor: pointer;
-  transition:
-    background-color 0.15s,
-    border-color 0.15s,
-    color 0.15s;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
 }
 .range-btn:hover,
 .type-btn:hover {
-  background: rgb(30 41 59);
-  color: rgb(248 250 252);
+  background: var(--hairline);
+  color: var(--text-1);
 }
 .range-btn.active,
 .type-btn.active {
-  background: rgb(16 185 129);
-  border-color: rgb(16 185 129);
-  color: rgb(2 6 23);
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: var(--surface-0);
   font-weight: 600;
 }
 
@@ -71,68 +55,63 @@ kbd {
   padding: 0.35rem 0.8rem;
   border-radius: 0.4rem;
   border: 1px solid transparent;
-  background: rgb(15 23 42 / 0.6);
-  color: rgb(203 213 225);
+  background: color-mix(in srgb, var(--surface-1) 60%, transparent);
+  color: var(--text-2);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 .list-tab:hover {
-  background: rgb(30 41 59);
-  border-color: rgb(51 65 85);
+  background: var(--hairline);
+  border-color: var(--hairline-strong);
 }
 .list-tab.active {
-  background: rgb(16 185 129 / 0.15);
-  border-color: rgb(16 185 129 / 0.6);
-  color: rgb(167 243 208);
+  background: var(--accent-primary-soft);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary-hover);
   font-weight: 600;
 }
 .list-tab .list-count {
   font-size: 0.7rem;
-  background: rgb(30 41 59);
+  background: var(--hairline);
   border-radius: 999px;
   padding: 0.05rem 0.45rem;
-  color: rgb(148 163 184);
+  color: var(--text-2);
 }
 .list-tab.active .list-count {
-  background: rgb(2 6 23);
-  color: rgb(110 231 183);
+  background: var(--surface-0);
+  color: var(--accent-primary-hover);
 }
 .list-tab .list-close {
-  color: rgb(100 116 139);
+  color: var(--text-3);
   font-size: 0.85rem;
   line-height: 1;
   padding: 0 0.15rem;
 }
 .list-tab .list-close:hover {
-  color: rgb(248 113 113);
+  color: var(--danger);
 }
 
 /* Mode switcher. */
 .mode-btn {
   padding: 0.35rem 0.85rem;
-  background: rgb(15 23 42 / 0.6);
-  color: rgb(203 213 225);
-  border-right: 1px solid rgb(30 41 59);
+  background: color-mix(in srgb, var(--surface-1) 60%, transparent);
+  color: var(--text-2);
+  border-right: 1px solid var(--hairline);
   cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 .mode-btn:last-child {
   border-right: none;
 }
 .mode-btn:hover {
-  background: rgb(30 41 59);
+  background: var(--hairline);
 }
 .mode-btn.active {
-  background: rgb(16 185 129);
-  color: rgb(2 6 23);
+  background: var(--accent-primary);
+  color: var(--surface-0);
   font-weight: 600;
 }
 
@@ -141,22 +120,20 @@ kbd {
   font-size: 0.78rem;
   padding: 0.32rem 0.6rem;
   border-radius: 0.4rem;
-  border: 1px solid rgb(51 65 85);
-  background: rgb(15 23 42 / 0.6);
-  color: rgb(203 213 225);
+  border: 1px solid var(--hairline-strong);
+  background: color-mix(in srgb, var(--surface-1) 60%, transparent);
+  color: var(--text-2);
   cursor: pointer;
-  transition:
-    background 0.15s,
-    border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s;
 }
 .tool-btn:hover {
-  background: rgb(30 41 59);
-  border-color: rgb(71 85 105);
+  background: var(--hairline);
+  border-color: var(--hairline-accent);
 }
 .tool-btn.active {
-  background: rgb(16 185 129);
-  color: rgb(2 6 23);
-  border-color: rgb(16 185 129);
+  background: var(--accent-primary);
+  color: var(--surface-0);
+  border-color: var(--accent-primary);
 }
 
 /* Inline indicator toggles (Log / %Δ / Auto). */
@@ -167,19 +144,19 @@ kbd {
   font-size: 0.78rem;
   padding: 0.2rem 0.5rem;
   border-radius: 0.4rem;
-  background: rgb(15 23 42 / 0.6);
-  border: 1px solid rgb(51 65 85);
-  color: rgb(203 213 225);
+  background: color-mix(in srgb, var(--surface-1) 60%, transparent);
+  border: 1px solid var(--hairline-strong);
+  color: var(--text-2);
   cursor: pointer;
   user-select: none;
 }
 .ind-toggle input[type='checkbox'] {
-  accent-color: rgb(16 185 129);
+  accent-color: var(--accent-primary);
   width: 0.9rem;
   height: 0.9rem;
 }
 .ind-toggle:hover {
-  border-color: rgb(71 85 105);
+  border-color: var(--hairline-accent);
 }
 
 /* Indicators dropdown rows. */
@@ -189,13 +166,13 @@ kbd {
   gap: 0.5rem;
   padding: 0.2rem 0;
   cursor: pointer;
-  color: rgb(226 232 240);
+  color: var(--text-1);
 }
 .ind-row input[type='checkbox'] {
-  accent-color: rgb(16 185 129);
+  accent-color: var(--accent-primary);
 }
 .ind-row:hover {
-  color: rgb(248 250 252);
+  color: var(--text-1);
 }
 
 /* Search suggestion dropdown rows. */
@@ -206,21 +183,21 @@ kbd {
   gap: 0.75rem;
   padding: 0.55rem 0.75rem;
   cursor: pointer;
-  border-bottom: 1px solid rgb(30 41 59);
+  border-bottom: 1px solid var(--hairline);
 }
 .suggestion-row:last-child {
   border-bottom: none;
 }
 .suggestion-row:hover,
 .suggestion-row.hl {
-  background: rgb(30 41 59);
+  background: var(--hairline);
 }
 .suggestion-row .sym {
   font-weight: 600;
-  color: rgb(248 250 252);
+  color: var(--text-1);
 }
 .suggestion-row .name {
-  color: rgb(148 163 184);
+  color: var(--text-2);
   font-size: 0.8rem;
   margin-top: 0.05rem;
   white-space: nowrap;
@@ -230,25 +207,23 @@ kbd {
 }
 .suggestion-row .ex {
   font-size: 0.7rem;
-  color: rgb(100 116 139);
+  color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 /* Quote tiles. */
 .quote-tile {
-  background: rgb(15 23 42 / 0.6);
-  border: 1px solid rgb(30 41 59);
+  background: color-mix(in srgb, var(--surface-1) 60%, transparent);
+  border: 1px solid var(--hairline);
   border-radius: 0.55rem;
   padding: 0.55rem 0.65rem;
   position: relative;
   cursor: pointer;
-  transition:
-    transform 0.1s,
-    border-color 0.15s;
+  transition: transform 0.1s, border-color 0.15s;
 }
 .quote-tile:hover {
-  border-color: rgb(71 85 105);
+  border-color: var(--hairline-accent);
   transform: translateY(-1px);
 }
 .quote-tile.dragging {
@@ -256,7 +231,7 @@ kbd {
   transform: scale(0.97);
 }
 .quote-tile.drag-over {
-  outline: 2px dashed rgb(16 185 129);
+  outline: 2px dashed var(--accent-primary);
   outline-offset: -2px;
 }
 .quote-tile .head {
@@ -277,7 +252,7 @@ kbd {
   flex: 0 0 auto;
 }
 .quote-tile .name {
-  color: rgb(148 163 184);
+  color: var(--text-2);
   font-size: 0.7rem;
   white-space: nowrap;
   overflow: hidden;
@@ -319,19 +294,19 @@ kbd {
   font-size: 0.68rem;
   padding: 0.25rem 0.35rem;
   border-radius: 0.3rem;
-  border: 1px solid rgb(30 41 59);
-  background: rgb(15 23 42);
-  color: rgb(203 213 225);
+  border: 1px solid var(--hairline);
+  background: var(--surface-1);
+  color: var(--text-2);
   cursor: pointer;
 }
 .quote-tile button.tile-btn:hover {
-  background: rgb(30 41 59);
-  border-color: rgb(71 85 105);
+  background: var(--hairline);
+  border-color: var(--hairline-accent);
 }
 .quote-tile button.tile-btn.danger:hover {
-  background: rgb(76 5 25);
-  border-color: rgb(225 29 72);
-  color: rgb(254 226 226);
+  background: color-mix(in srgb, var(--danger) 18%, transparent); /* var(--danger) soft */
+  border-color: var(--danger);
+  color: var(--text-1);
 }
 .quote-tile.hidden-series {
   opacity: 0.55;
@@ -339,10 +314,10 @@ kbd {
 .quote-tile.hidden-series .price {
   text-decoration: line-through;
   text-decoration-thickness: 1px;
-  text-decoration-color: rgb(100 116 139);
+  text-decoration-color: var(--text-3);
 }
 .quote-tile.focused {
-  outline: 1.5px solid rgb(16 185 129);
+  outline: 1.5px solid var(--accent-primary);
   outline-offset: -1.5px;
 }
 
@@ -350,7 +325,7 @@ kbd {
 .heatmap-tile {
   border-radius: 0.5rem;
   padding: 0.6rem 0.7rem;
-  border: 1px solid rgb(30 41 59);
+  border: 1px solid var(--hairline);
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -375,10 +350,10 @@ kbd {
 
 /* Portfolio table. */
 #portfolio-table tbody tr {
-  border-bottom: 1px solid rgb(30 41 59);
+  border-bottom: 1px solid var(--hairline);
 }
 #portfolio-table tbody tr:hover {
-  background: rgb(30 41 59 / 0.5);
+  background: color-mix(in srgb, var(--pure-white) 4%, transparent);
 }
 #portfolio-table tbody input {
   width: 100%;
@@ -386,27 +361,27 @@ kbd {
   border: 1px solid transparent;
   border-radius: 0.3rem;
   padding: 0.2rem 0.4rem;
-  color: rgb(241 245 249);
+  color: var(--text-1);
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 #portfolio-table tbody input:hover {
-  border-color: rgb(51 65 85);
+  border-color: var(--hairline-strong);
 }
 #portfolio-table tbody input:focus {
   outline: none;
-  border-color: rgb(16 185 129);
-  background: rgb(15 23 42);
+  border-color: var(--accent-primary);
+  background: var(--surface-1);
 }
 #portfolio-table .summary-card {
-  background: rgb(15 23 42 / 0.6);
-  border: 1px solid rgb(30 41 59);
+  background: color-mix(in srgb, var(--surface-1) 60%, transparent);
+  border: 1px solid var(--hairline);
   border-radius: 0.6rem;
   padding: 0.55rem 0.75rem;
 }
 .summary-card {
-  background: rgb(15 23 42 / 0.6);
-  border: 1px solid rgb(30 41 59);
+  background: color-mix(in srgb, var(--surface-1) 60%, transparent);
+  border: 1px solid var(--hairline);
   border-radius: 0.6rem;
   padding: 0.55rem 0.75rem;
 }
@@ -414,7 +389,7 @@ kbd {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-size: 0.65rem;
-  color: rgb(148 163 184);
+  color: var(--text-2);
 }
 .summary-card .val {
   font-size: 1.1rem;
@@ -427,11 +402,11 @@ kbd {
 .suggested-add {
   text-decoration: underline;
   text-underline-offset: 2px;
-  color: rgb(110 231 183);
+  color: var(--accent-primary-hover);
   cursor: pointer;
 }
 .suggested-add:hover {
-  color: rgb(167 243 208);
+  color: var(--accent-primary-hover);
 }
 
 /* Detail drawer headings. */
@@ -439,46 +414,53 @@ kbd {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-size: 0.7rem;
-  color: rgb(148 163 184);
+  color: var(--text-2);
   margin-bottom: 0.4rem;
 }
 
 /* Toasts. */
 .toast {
-  background: rgb(15 23 42 / 0.95);
-  border: 1px solid rgb(51 65 85);
+  background: color-mix(in srgb, var(--surface-1) 95%, transparent);
+  border: 1px solid var(--hairline-strong);
   border-radius: 0.55rem;
   padding: 0.5rem 0.8rem;
   font-size: 0.85rem;
-  color: rgb(226 232 240);
+  color: var(--text-1);
   display: flex;
   align-items: center;
   gap: 0.5rem;
   min-width: 18rem;
-  box-shadow:
-    0 10px 25px -5px rgb(0 0 0 / 0.5),
-    0 6px 10px -6px rgb(0 0 0 / 0.6);
+  box-shadow: 0 10px 25px -5px color-mix(in srgb, var(--pure-black) 50%, transparent),
+    0 6px 10px -6px color-mix(in srgb, var(--pure-black) 60%, transparent);
   animation: toast-in 0.18s ease-out;
 }
 .toast.toast-alert {
-  border-color: rgb(217 119 6);
-  background: linear-gradient(180deg, rgb(120 53 15 / 0.85), rgb(15 23 42 / 0.95));
+  border-color: var(--warning);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--warning) 18%, transparent) /* var(--warning) soft */,
+    color-mix(in srgb, var(--surface-1) 95%, transparent) /* var(--surface-1) opaque */
+  );
 }
 .toast.toast-info {
-  border-color: rgb(16 185 129);
+  border-color: var(--accent-primary);
 }
 .toast.toast-error {
-  border-color: rgb(225 29 72);
-  background: linear-gradient(180deg, rgb(76 5 25 / 0.85), rgb(15 23 42 / 0.95));
+  border-color: var(--danger);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--danger) 18%, transparent) /* var(--danger) soft */,
+    color-mix(in srgb, var(--surface-1) 95%, transparent) /* var(--surface-1) opaque */
+  );
 }
 .toast-close {
   margin-left: auto;
-  color: rgb(148 163 184);
+  color: var(--text-2);
   cursor: pointer;
   padding: 0 0.25rem;
 }
 .toast-close:hover {
-  color: rgb(248 250 252);
+  color: var(--text-1);
 }
 @keyframes toast-in {
   from {
@@ -507,10 +489,68 @@ kbd {
 }
 #ticker-suggestions::-webkit-scrollbar-thumb,
 #detail-drawer::-webkit-scrollbar-thumb {
-  background: rgb(51 65 85);
+  background: var(--hairline-strong);
   border-radius: 4px;
 }
 #ticker-suggestions::-webkit-scrollbar-track,
 #detail-drawer::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* ───────────────────────────────────────────────────────────────────
+ * HOSDL header overrides — replaces the legacy gradient title block
+ * with the brand identity strip (squircle icon + title).
+ * ─────────────────────────────────────────────────────────────────── */
+
+.stock-app-header {
+  padding-left: 0;
+}
+
+@media (min-width: 641px) {
+  .stock-app-header {
+    padding-left: 110px;
+  }
+}
+
+.stock-app-header-identity .app-icon-frame {
+  flex: 0 0 auto;
+}
+
+.stock-app-title {
+  font-family: var(--font-display);
+  font-size: var(--text-h2);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-1);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.stock-app-subtitle {
+  font-family: var(--font-ui);
+  font-size: var(--text-caption);
+  color: var(--text-3);
+  margin: 4px 0 0;
+  line-height: 1.3;
+}
+
+.stock-search {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-strong);
+  color: var(--text-1);
+  font-family: var(--font-ui);
+  transition: border-color var(--motion-hover), box-shadow var(--motion-hover);
+}
+
+.stock-search::placeholder {
+  color: var(--text-3);
+}
+
+.stock-search:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-primary-soft);
+}
+
+.stock-search-icon {
+  color: var(--text-3);
 }

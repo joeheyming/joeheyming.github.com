@@ -1,4 +1,8 @@
-/* Heyming OS — desktop surface: icons, file drag, selection box, wallpaper, drop zone. */
+/* Heyming OS — desktop surface: icons, file drag, selection box, wallpaper, drop zone.
+ *
+ * Color literals migrated to brand tokens. The Ghostscript tiger SVG stays
+ * (it's a wallpaper, not chrome). Selection/drop accents are now brand violet.
+ */
 
 /* Desktop Icons */
 .desktop-icon {
@@ -10,7 +14,7 @@
   align-items: center;
   justify-content: flex-start;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform var(--motion-hover);
   user-select: none;
   z-index: 5;
   padding: 4px;
@@ -21,29 +25,29 @@
 }
 
 .desktop-icon:hover .label {
-  background: rgba(0, 123, 255, 0.8);
-  color: white;
+  background: var(--accent-primary-bg);
+  color: var(--text-on-accent);
 }
 
 .desktop-icon .icon {
   font-size: 48px;
   margin-bottom: 4px;
-  transition: all 0.2s ease;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform var(--motion-hover);
+  text-shadow: 1px 1px 2px color-mix(in srgb, var(--pure-black) 30%, transparent);
 }
 
 .desktop-icon .label {
   font-size: 11px;
   font-weight: 500;
-  color: white;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  color: var(--text-on-accent);
+  text-shadow: 1px 1px 2px color-mix(in srgb, var(--pure-black) 80%, transparent);
   text-align: center;
   line-height: 1.2;
   max-width: 64px;
   word-wrap: break-word;
   padding: 1px 3px;
   border-radius: 2px;
-  transition: all 0.2s ease;
+  transition: background var(--motion-hover), color var(--motion-hover);
 }
 
 /* Dragging state for file icons */
@@ -58,32 +62,33 @@
 }
 
 .desktop-icon.file-icon.selected {
-  background: rgba(0, 123, 255, 0.3);
-  border-radius: 8px;
-  outline: 2px solid rgba(0, 123, 255, 0.8);
+  background: var(--accent-primary-soft);
+  border-radius: var(--radius-sm);
+  outline: 2px solid var(--accent-primary);
 }
 
 .desktop-icon.file-icon.selected .label {
-  background: rgba(0, 123, 255, 0.9);
-  color: white;
+  background: var(--accent-primary-bg);
+  color: var(--text-on-accent);
 }
 
-/* Theme E: keyboard focus rings for desktop icons (tab / arrow navigation) */
+/* Keyboard focus rings for desktop icons (tab / arrow navigation) */
 .desktop-icon:focus-visible {
-  outline: 2px solid #93c5fd;
+  outline: 2px solid var(--focus-ring-inner);
   outline-offset: 2px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 4px var(--focus-ring-outer);
 }
 
 .desktop-icon.file-icon.selected:focus-visible {
-  outline-color: #e0f2fe;
+  outline-color: var(--accent-primary-hover);
 }
 
 /* Desktop drag selection box */
 .desktop-selection-box {
   position: absolute;
-  border: 1px solid rgba(0, 123, 255, 0.8);
-  background: rgba(0, 123, 255, 0.15);
+  border: 1px solid var(--accent-primary);
+  background: var(--accent-primary-soft);
   border-radius: 2px;
   pointer-events: none;
   z-index: 100;
@@ -98,7 +103,7 @@
   background-attachment: fixed;
 }
 
-/* Subtle overlay to enhance tiger visibility */
+/* Subtle overlay so the tiger reads against the desktop tint */
 #os-desktop::before {
   content: '';
   position: absolute;
@@ -106,14 +111,18 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(ellipse at center, transparent 20%, rgba(0, 0, 0, 0.1) 70%);
+  background: radial-gradient(
+    ellipse at center,
+    transparent 20%,
+    color-mix(in srgb, var(--pure-black) 10%, transparent) 70%
+  );
   pointer-events: none;
   opacity: 0.6;
 }
 
 /* Drop zone active state */
 #os-desktop.drop-active {
-  background-color: rgba(59, 130, 246, 0.12);
+  background-color: var(--accent-primary-soft);
 }
 
 #os-desktop.drop-active::after {
@@ -122,17 +131,18 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.75rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: rgba(255, 255, 255, 0.95);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
-  background: linear-gradient(160deg, rgba(59, 130, 246, 0.42), rgba(37, 99, 235, 0.32));
+  color: var(--text-on-accent);
+  text-shadow: 0 1px 3px color-mix(in srgb, var(--pure-black) 55%, transparent);
+  background: var(--accent-primary-bg);
   padding: 1.75rem 3rem;
-  border-radius: 1rem;
-  border: 3px dashed rgba(147, 197, 253, 0.85);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg);
+  border: 3px dashed var(--accent-primary-hover);
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--pure-black) 45%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--pure-white) 12%, transparent);
   pointer-events: none;
   z-index: 9999;
   animation: pulse-drop 1.2s ease-in-out infinite;

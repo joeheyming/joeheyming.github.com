@@ -15,7 +15,7 @@
       name="description"
       content="A free browser mallet keyboard. Play xylophone, marimba, vibraphone, and glockenspiel through one bar layout. Real samples with a synth fallback."
     />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#7C5CFF" />
 
     <link rel="manifest" href="/play/manifest.json" />
     <link rel="apple-touch-icon" sizes="180x180" href="/play/icons/apple-touch-icon.png" />
@@ -76,8 +76,7 @@
           window.backButtonInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent =
-            '.back-to-portfolio,.play-footer a[href="/"]{display:none!important}';
+          s.textContent = '.back-to-portfolio,.play-footer a[href="/"]{display:none!important}';
           document.head.appendChild(s);
         }
       })();
@@ -90,6 +89,14 @@
 
     <link rel="stylesheet" href="../style.css" />
     <link rel="stylesheet" href="style.css" />
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
   <body class="instrument-body">
     <header class="instrument-header">
@@ -177,19 +184,32 @@
       <h2>How to play</h2>
       <ul>
         <li>
-          <strong>Tap</strong> a bar to ring it. Drag across the bars to
-          glissando — bars layer naturally, just like real mallet hits.
+          <strong>Tap</strong>
+          a bar to ring it. Drag across the bars to glissando — bars layer naturally, just like real
+          mallet hits.
         </li>
         <li>
-          Switch <strong>Tone</strong> to flip between xylophone (bright
-          wood), marimba (warm wood), vibraphone (sustained metal with
-          optional tremolo), and glockenspiel (high bells).
+          Switch
+          <strong>Tone</strong>
+          to flip between xylophone (bright wood), marimba (warm wood), vibraphone (sustained metal
+          with optional tremolo), and glockenspiel (high bells).
         </li>
         <li>
           On desktop the QWERTY mapping from the piano works here too:
-          <kbd>Z</kbd>–<kbd>M</kbd> are the lower-octave naturals,
-          <kbd>S</kbd> <kbd>D</kbd> <kbd>G</kbd> <kbd>H</kbd> <kbd>J</kbd> are
-          the accidentals, and <kbd>[</kbd> / <kbd>]</kbd> shift the octave.
+          <kbd>Z</kbd>
+          –
+          <kbd>M</kbd>
+          are the lower-octave naturals,
+          <kbd>S</kbd>
+          <kbd>D</kbd>
+          <kbd>G</kbd>
+          <kbd>H</kbd>
+          <kbd>J</kbd>
+          are the accidentals, and
+          <kbd>[</kbd>
+          /
+          <kbd>]</kbd>
+          shift the octave.
         </li>
       </ul>
     </section>

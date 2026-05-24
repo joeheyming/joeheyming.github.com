@@ -8,7 +8,10 @@
     <script src="/feedback.js"></script>
     <script src="/share.js"></script>
 
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💡</text></svg>" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💡</text></svg>"
+    />
 
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -50,10 +53,21 @@
 
     <link rel="canonical" href="https://joeheyming.github.io/programming-advice/" />
     <link rel="stylesheet" href="style.css" />
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+    <meta name="theme-color" content="#7C5CFF" />
   </head>
   <body>
-    <back-button project-name="Programming Advice" theme="dark"></back-button>
-    <related-projects-widget></related-projects-widget>
+    <!-- back button + related-projects widget are injected by /back.js
+         and /share.js (loaded in <head>). The bare <back-button> and
+         <related-projects-widget> tags that used to sit here rendered as
+         inert unknown elements — neither script defines a custom element. -->
 
     <div class="container">
       <main>
@@ -71,9 +85,7 @@
             <span class="category-icon">🧠</span>
             <span class="category-name">Complexity</span>
           </div>
-          <p class="advice-text" id="advice-text">
-            Click for wisdom
-          </p>
+          <p class="advice-text" id="advice-text">Click for wisdom</p>
           <p class="advice-source" id="advice-source"></p>
         </div>
       </main>

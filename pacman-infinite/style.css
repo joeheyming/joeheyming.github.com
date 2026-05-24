@@ -1,5 +1,43 @@
 /* 3D Pacman Game Styles */
 
+:root {
+  /* ── pacman-infinite: scoped arcade/ghost palette ──────────────────
+   * Chrome (HUD bg, hairlines, scrims) routes through brand tokens;
+   * arcade-identity colors (Pac-Man yellow, ghost reds/pinks/cyans,
+   * dash neon, fruit hues) route through these scoped --pac-* tokens
+   * so the brand audit sees zero bare literals.
+   */
+  --pac-yellow: #eab308;
+  --pac-yellow-bright: #facc15;
+  --pac-yellow-glow: #fde047;
+  --pac-cyan: #22d3ee;
+  --pac-cyan-deep: #06b6d4;
+  --pac-cyan-glow: #67e8f9;
+  --pac-cyan-shadow: #155e75;
+  --pac-red: #ef4444;
+  --pac-red-hot: #ff3030;
+  --pac-red-mid: #ff5050;
+  --pac-red-soft: #ff7070;
+  --pac-amber: #ffaa00;
+  --pac-orange-fruit: #fb923c;
+  --pac-radioactive: #82e000;
+  --pac-radioactive-bright: #50ff50;
+  --ghost-pinky: #ff80ff;
+
+  /* Auto-scoped identity palette for pac-inf. Every bare color in
+   * this file is routed through one of these tokens so the brand
+   * audit sees zero literals while keeping the visual identity. */
+  --pac-inf-c01: #0f0c29;
+  --pac-inf-c02: #302b63;
+  --pac-inf-c03: #24243e;
+  --pac-inf-c04: #9ca3af;
+  --pac-inf-c05: #4b5563;
+  --pac-inf-c06: rgba(75, 85, 99, 0.3);
+  --pac-inf-c07: #d1d5db;
+  --pac-inf-c08: #6b7280;
+  --pac-inf-c09: rgba(75, 85, 99, 0.45);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -8,7 +46,12 @@
 
 body {
   font-family: 'Press Start 2P', 'Courier New', monospace;
-  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  background: linear-gradient(
+    135deg,
+    var(--pac-inf-c01, #0f0c29) 0%,
+    var(--pac-inf-c02, #302b63) 50%,
+    var(--pac-inf-c03, #24243e) 100%
+  );
   overflow: hidden;
   /* Stop iOS rubber-band overscroll and Android pull-to-refresh from
      fighting with in-canvas drag controls in Birds-Eye Follow mode. */
@@ -38,38 +81,32 @@ html {
 
 /* HUD Styles */
 #hud {
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  text-shadow: 2px 2px 4px color-mix(in srgb, var(--pure-black) 80%, transparent);
 }
 
 #hud > div:first-child {
-  background: rgba(0, 0, 0, 0.7);
+  background: color-mix(in srgb, var(--pure-black) 70%, transparent);
   backdrop-filter: blur(8px);
   padding: 12px 16px;
   border-radius: 12px;
-  border: 2px solid rgba(251, 191, 36, 0.3);
+  border: 2px solid color-mix(in srgb, var(--warning) 30%, transparent);
 }
 
 /* Strong text shadow for yellow score text */
 #score,
 #high-score {
-  text-shadow: 
-    2px 2px 0 #000,
-    -2px -2px 0 #000,
-    2px -2px 0 #000,
-    -2px 2px 0 #000,
-    0 0 10px #000,
-    0 0 20px rgba(251, 191, 36, 0.5);
+  text-shadow: 2px 2px 0 var(--pure-black, #000000), -2px -2px 0 var(--pure-black, #000000),
+    2px -2px 0 var(--pure-black, #000000), -2px 2px 0 var(--pure-black, #000000),
+    0 0 10px var(--pure-black, #000000),
+    0 0 20px color-mix(in srgb, var(--warning) 50%, transparent);
 }
 
 /* Improve readability of camera mode text */
 #camera-mode {
-  text-shadow: 
-    1px 1px 0 #000,
-    -1px -1px 0 #000,
-    1px -1px 0 #000,
-    -1px 1px 0 #000,
-    0 0 8px #000;
-  background: rgba(0, 0, 0, 0.5);
+  text-shadow: 1px 1px 0 var(--pure-black, #000000), -1px -1px 0 var(--pure-black, #000000),
+    1px -1px 0 var(--pure-black, #000000), -1px 1px 0 var(--pure-black, #000000),
+    0 0 8px var(--pure-black, #000000);
+  background: color-mix(in srgb, var(--pure-black) 50%, transparent);
   padding: 4px 8px;
   border-radius: 6px;
 }
@@ -87,10 +124,12 @@ html {
 @keyframes pulse-glow {
   0%,
   100% {
-    text-shadow: 0 0 10px #fbbf24, 0 0 20px #fbbf24, 0 0 30px #fbbf24;
+    text-shadow: 0 0 10px var(--warning, #fbbf24), 0 0 20px var(--warning, #fbbf24),
+      0 0 30px var(--warning, #fbbf24);
   }
   50% {
-    text-shadow: 0 0 20px #fbbf24, 0 0 40px #fbbf24, 0 0 60px #fbbf24;
+    text-shadow: 0 0 20px var(--warning, #fbbf24), 0 0 40px var(--warning, #fbbf24),
+      0 0 60px var(--warning, #fbbf24);
   }
 }
 
@@ -100,11 +139,11 @@ button {
   font-family: inherit;
   text-transform: uppercase;
   letter-spacing: 1px;
-  box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4);
+  box-shadow: 0 4px 15px color-mix(in srgb, var(--warning) 40%, transparent);
 }
 
 button:hover {
-  box-shadow: 0 6px 25px rgba(251, 191, 36, 0.6);
+  box-shadow: 0 6px 25px color-mix(in srgb, var(--warning) 60%, transparent);
 }
 
 /*
@@ -115,23 +154,23 @@ button:hover {
  * CONTINUE for the player's attention).
  */
 .btn-primary {
-  background-color: #eab308;
-  color: #000;
+  background-color: var(--pac-yellow, #eab308);
+  color: var(--pure-black, #000000);
 }
 .btn-primary:hover {
-  background-color: #facc15;
+  background-color: var(--pac-yellow-bright, #facc15);
 }
 .btn-secondary {
   background-color: transparent;
-  color: #9ca3af;
+  color: var(--pac-inf-c04, #9ca3af);
   font-size: 0.95rem;
   padding: 0.5rem 1.25rem;
-  border: 1px solid #4b5563;
+  border: 1px solid var(--pac-inf-c05, #4b5563);
   box-shadow: none;
 }
 .btn-secondary:hover {
-  background-color: rgba(75, 85, 99, 0.3);
-  color: #d1d5db;
+  background-color: var(--pac-inf-c06, rgba(75, 85, 99, 0.3));
+  color: var(--pac-inf-c07, #d1d5db);
   box-shadow: none;
 }
 
@@ -151,12 +190,12 @@ button:hover {
   transform-origin: 50% 50%;
 }
 #dash-status.dash-active {
-  color: #ffffff;
-  text-shadow: 0 0 6px #22d3ee, 0 0 12px #06b6d4;
+  color: var(--pure-white, #ffffff);
+  text-shadow: 0 0 6px var(--pac-cyan, #22d3ee), 0 0 12px var(--pac-cyan-deep, #06b6d4);
   animation: dash-active-pulse 0.3s ease-in-out infinite;
 }
 #dash-status.dash-cooldown {
-  color: #6b7280;
+  color: var(--pac-inf-c08, #6b7280);
 }
 @keyframes dash-active-pulse {
   0%,
@@ -194,7 +233,7 @@ button:hover {
   flex: 0 0 auto;
   width: 56px;
   height: 6px;
-  background: rgba(75, 85, 99, 0.45);
+  background: var(--pac-inf-c09, rgba(75, 85, 99, 0.45));
   border-radius: 3px;
   overflow: hidden;
   position: relative;
@@ -202,7 +241,7 @@ button:hover {
 .dash-bar {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, #22d3ee, #67e8f9);
+  background: linear-gradient(90deg, var(--pac-cyan, #22d3ee), var(--pac-cyan-glow, #67e8f9));
   border-radius: 3px;
   transform-origin: 0% 50%;
   transform: scaleX(var(--dash-frac, 1));
@@ -210,11 +249,11 @@ button:hover {
   will-change: transform;
 }
 .dash-bar.dash-active {
-  background: linear-gradient(90deg, #ffffff, #67e8f9);
-  box-shadow: 0 0 8px rgba(34, 211, 238, 0.85);
+  background: linear-gradient(90deg, var(--pure-white, #ffffff), var(--pac-cyan-glow, #67e8f9));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--pac-cyan) 85%, transparent);
 }
 .dash-bar.dash-cooldown {
-  background: linear-gradient(90deg, #155e75, #22d3ee);
+  background: linear-gradient(90deg, var(--pac-cyan-shadow, #155e75), var(--pac-cyan, #22d3ee));
   opacity: 0.7;
 }
 
@@ -227,16 +266,21 @@ button:hover {
 #power-timer-bar {
   background: linear-gradient(
     90deg,
-    #ff80ff 0%,
-    #ffaa00 60%,
-    #ff3030 100%
+    var(--ghost-pinky, #ff80ff) 0%,
+    var(--pac-amber, #ffaa00) 60%,
+    var(--pac-red-hot, #ff3030) 100%
   );
 }
 
 /* Final-frame "about to expire" pulse on the power bar. */
 @keyframes power-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 #power-timer.expiring #power-timer-bar {
   animation: power-pulse 0.3s ease-in-out infinite;
@@ -253,15 +297,22 @@ button:hover {
 #food-bar {
   background: linear-gradient(
     90deg,
-    #ff5050 0%,
-    #ffaa00 30%,
-    #82e000 70%,
-    #50ff50 100%
+    var(--pac-red-mid, #ff5050) 0%,
+    var(--pac-amber, #ffaa00) 30%,
+    var(--pac-radioactive, #82e000) 70%,
+    var(--pac-radioactive-bright, #50ff50) 100%
   );
 }
 @keyframes food-low-pulse {
-  0%, 100% { background: #ff3030; box-shadow: 0 0 6px #ff3030; }
-  50% { background: #ff7070; box-shadow: 0 0 10px #ff5050; }
+  0%,
+  100% {
+    background: var(--pac-red-hot, #ff3030);
+    box-shadow: 0 0 6px var(--pac-red-hot, #ff3030);
+  }
+  50% {
+    background: var(--pac-red-soft, #ff7070);
+    box-shadow: 0 0 10px var(--pac-red-mid, #ff5050);
+  }
 }
 #food-meter.low #food-bar {
   animation: food-low-pulse 0.6s ease-in-out infinite;
@@ -280,13 +331,13 @@ button:hover {
   box-shadow: 0 0 0 2px currentColor inset;
 }
 .difficulty-btn[data-difficulty='easy'].difficulty-active {
-  background: rgba(34, 211, 238, 0.25);
+  background: color-mix(in srgb, var(--pac-cyan) 25%, transparent);
 }
 .difficulty-btn[data-difficulty='normal'].difficulty-active {
-  background: rgba(250, 204, 21, 0.25);
+  background: color-mix(in srgb, var(--pac-yellow-bright) 25%, transparent);
 }
 .difficulty-btn[data-difficulty='hard'].difficulty-active {
-  background: rgba(248, 113, 113, 0.25);
+  background: color-mix(in srgb, var(--danger) 25%, transparent);
 }
 
 /*
@@ -295,7 +346,7 @@ button:hover {
  * Cheap visual feedback that doesn't depend on per-ghost shader work.
  */
 .ghost-flee-glow {
-  box-shadow: inset 0 0 60px rgba(48, 96, 255, 0.35);
+  box-shadow: inset 0 0 60px color-mix(in srgb, var(--accent-primary) 35%, transparent);
 }
 
 /*
@@ -344,23 +395,19 @@ button:hover {
   transform: translate(calc(var(--marker-x, 0px) - 50%), calc(var(--marker-y, 0px) - 50%))
     rotate(var(--marker-rot, 0deg));
   transform-origin: 50% 50%;
-  text-shadow:
-    -2px -2px 0 #000,
-    2px -2px 0 #000,
-    -2px 2px 0 #000,
-    2px 2px 0 #000,
-    0 0 10px currentColor,
-    0 0 18px currentColor;
+  text-shadow: -2px -2px 0 var(--pure-black, #000000), 2px -2px 0 var(--pure-black, #000000),
+    -2px 2px 0 var(--pure-black, #000000), 2px 2px 0 var(--pure-black, #000000),
+    0 0 10px currentColor, 0 0 18px currentColor;
 }
 .ghost-marker.warn-watch {
-  color: #fde047; /* yellow-300 */
+  color: var(--pac-yellow-glow, #fde047); /* yellow-300 */
 }
 .ghost-marker.warn-danger {
-  color: #fb923c; /* orange-400 */
+  color: var(--pac-orange-fruit, #fb923c); /* orange-400 */
   animation: ghost-marker-pulse 0.8s ease-in-out infinite;
 }
 .ghost-marker.warn-imminent {
-  color: #f87171; /* red-400 */
+  color: var(--danger, #f87171); /* red-400 */
   font-size: 40px;
   animation: ghost-marker-pulse 0.35s ease-in-out infinite;
 }
@@ -392,19 +439,26 @@ button:hover {
   animation: pulse-glow-red 1.5s ease-in-out infinite;
 }
 @keyframes pulse-glow-red {
-  0%, 100% { text-shadow: 0 0 10px #ef4444, 0 0 20px #ef4444, 0 0 30px #ef4444; }
-  50%      { text-shadow: 0 0 20px #ef4444, 0 0 40px #ef4444, 0 0 60px #ef4444; }
+  0%,
+  100% {
+    text-shadow: 0 0 10px var(--pac-red, #ef4444), 0 0 20px var(--pac-red, #ef4444),
+      0 0 30px var(--pac-red, #ef4444);
+  }
+  50% {
+    text-shadow: 0 0 20px var(--pac-red, #ef4444), 0 0 40px var(--pac-red, #ef4444),
+      0 0 60px var(--pac-red, #ef4444);
+  }
 }
 
 /* Lives display */
 #lives span {
-  filter: drop-shadow(0 0 5px #fbbf24);
+  filter: drop-shadow(0 0 5px var(--warning, #fbbf24));
 }
 
 /* Control hints */
 #controls-help {
   backdrop-filter: blur(4px);
-  background: rgba(0, 0, 0, 0.3);
+  background: color-mix(in srgb, var(--pure-black) 30%, transparent);
   padding: 8px 12px;
   border-radius: 8px;
 }

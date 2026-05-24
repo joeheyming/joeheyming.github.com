@@ -153,6 +153,7 @@ export class SetupWizardController {
 
       doneUser.textContent = user;
       setStep(2);
+      setTimeout(() => finishBtn.focus(), 0);
 
       if (this.os.fileSystemDB) {
         this.os.fileSystemDB.initializeWithScaffolding(user).catch(() => {});

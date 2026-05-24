@@ -1,149 +1,651 @@
-.gradient-text {
-  background: linear-gradient(45deg, rgb(99 102 241), rgb(147 51 234));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/*
+ * Heyming OS — home page styles.
+ *
+ * Built on brand.css tokens. Nothing in this file hardcodes colors;
+ * everything reads from --surface-*, --text-*, --accent-primary*, etc.
+ * Changing brand.css repaints the home page automatically.
+ */
+
+/* ─── Identity strip (top) ─────────────────────────────────────────── */
+.hos-identity-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--hairline);
+  font-size: var(--text-caption);
+  color: var(--text-2);
 }
-.hero-bg::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(45deg, transparent, rgba(102, 126, 234, 0.1), transparent);
-  animation: spin 20s linear infinite;
+.hos-identity-strip strong {
+  color: var(--text-1);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.hos-identity-strip a {
+  color: var(--text-2);
+  text-decoration: none;
+  transition: color var(--motion-hover);
+}
+.hos-identity-strip a:hover {
+  color: var(--accent-primary-hover);
+}
+.hos-identity-strip span[aria-hidden] {
+  color: var(--text-3);
 }
 
-/* Terminal-like scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  background: rgb(17 24 39);
+/* ─── Hero ─────────────────────────────────────────────────────────── */
+.hos-hero {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 48px;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 72px 24px 96px;
+  position: relative;
+}
+@media (min-width: 960px) {
+  .hos-hero {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: 64px;
+    padding: 120px 32px 160px;
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: rgb(31 41 55);
+.hos-hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
 }
-
-::-webkit-scrollbar-thumb {
-  background: rgb(16 185 129);
-  border-radius: 4px;
+.hos-hero-eyebrow {
+  color: var(--accent-primary-hover);
+  margin: 0;
 }
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgb(5 150 105);
-}
-
-/* Desktop grid pattern */
-.desktop-pattern {
-  background-image: linear-gradient(rgba(16, 185, 129, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(16, 185, 129, 0.1) 1px, transparent 1px);
-  background-size: 20px 20px;
-}
-
-/* Terminal Message and Help Content Styles */
-.help-section {
-  margin-bottom: 16px;
-}
-
-.command-list {
-  margin-left: 8px;
-}
-
-.command-item {
+.hos-hero-wordmark {
+  width: 100%;
+  max-width: 480px;
   margin: 4px 0;
+  color: var(--text-1);
+  aspect-ratio: 360 / 64;
+  height: auto;
+}
+.hos-hero-tagline {
+  font-family: var(--font-display);
+  font-size: var(--text-h1);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  color: var(--text-1);
+  margin: 0;
+  max-width: 18ch;
+}
+@media (min-width: 960px) {
+  .hos-hero-tagline {
+    font-size: var(--text-display);
+    line-height: 1.06;
+  }
+}
+.hos-hero-description {
+  font-size: var(--text-body);
+  line-height: 1.55;
+  color: var(--text-2);
+  margin: 4px 0 0;
+  max-width: 48ch;
 }
 
-.command-name {
-  color: rgb(16 185 129);
-  font-family: monospace;
+.hos-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+.hos-cta-primary,
+.hos-cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  border-radius: var(--radius);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  transition: background var(--motion-hover), transform var(--motion-hover),
+    box-shadow var(--motion-hover);
+  border: 1px solid transparent;
+}
+.hos-cta-primary {
+  background: var(--accent-primary-bg);
+  color: var(--text-on-accent);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent-primary-bg) 32%, transparent);
+}
+.hos-cta-primary:hover {
+  background: var(--accent-primary-bg-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--accent-primary-bg) 42%, transparent);
+}
+.hos-cta-secondary {
+  background: var(--surface-1);
+  color: var(--text-1);
+  border-color: var(--hairline-strong);
+}
+.hos-cta-secondary:hover {
+  background: var(--surface-2);
+  border-color: var(--hairline-accent);
 }
 
-/* Hamburger Menu Styles */
+/* ─── Hero art (desktop screenshot) ────────────────────────────────── */
+.hos-hero-art {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+.hos-hero-art-frame {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  aspect-ratio: 1200 / 630;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-1);
+  box-shadow: 0 30px 80px color-mix(in srgb, var(--pure-black) 50%, transparent),
+    0 0 0 1px var(--hairline);
+  transform: rotate(-1.2deg);
+  transition: transform var(--motion-slow);
+  z-index: 1;
+}
+.hos-hero-art-frame:hover {
+  transform: rotate(0deg);
+}
+.hos-hero-art-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Hide mobile menu on desktop before Tailwind CDN applies md:hidden */
 #hamburger-menu {
-  /* Ensure it stays above everything */
+  display: none;
+}
+@media (max-width: 767px) {
+  #hamburger-menu {
+    display: block;
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 100;
+  }
+}
+/* Signature radial glow — the ONE permitted gradient on the site. */
+.hos-hero-art-glow {
+  position: absolute;
+  inset: -10% -8%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--accent-primary) 32%, transparent),
+    transparent 75%
+  );
+  filter: blur(40px);
+  z-index: 0;
+  pointer-events: none;
 }
 
+/* ─── Sections ─────────────────────────────────────────────────────── */
+.hos-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 56px 24px;
+}
+@media (min-width: 960px) {
+  .hos-section {
+    padding: 72px 32px;
+  }
+}
+
+.hos-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+@media (min-width: 768px) {
+  .hos-section-header {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+}
+.hos-section-blurb {
+  margin: 4px 0 0;
+  max-width: 60ch;
+}
+
+/* ─── Filter input (gallery + featured) ────────────────────────────── */
+.hos-filter-wrap {
+  position: relative;
+  min-width: 240px;
+}
+.hos-filter-input {
+  width: 100%;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 10px 36px 10px 40px;
+  color: var(--text-1);
+  font-family: var(--font-ui);
+  font-size: var(--text-caption);
+  transition: border-color var(--motion-hover), box-shadow var(--motion-hover);
+}
+.hos-filter-input::placeholder {
+  color: var(--text-3);
+}
+.hos-filter-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-primary-soft);
+}
+.hos-filter-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-3);
+  pointer-events: none;
+  font-size: 14px;
+}
+.hos-filter-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color var(--motion-hover), background var(--motion-hover);
+}
+.hos-filter-clear:hover {
+  color: var(--text-1);
+  background: var(--surface-2);
+}
+.hos-filter-clear.hidden {
+  display: none;
+}
+
+/* ─── Category accent system ──────────────────────────────────────────
+ * Each gallery card carries data-category="game|utility|entertainment"
+ * (system tier inherits brand violet). These rules promote that data
+ * attribute to a single --card-accent custom property — every other
+ * chrome rule (icon-chip tint, hover border, section dot) just reads
+ * from --card-accent and inherits the right color automatically.
+ *
+ * Color lands on chrome only — never on text, never as a card-surface
+ * fill. The dark --surface-1 stays the readable canvas; color signals
+ * category at a glance via the icon chip and the on-hover border. */
+[data-category='game'] {
+  --card-accent: var(--cat-game, #ff8e5c);
+  --card-accent-soft: var(--cat-game-soft, rgba(255, 142, 92, 0.15));
+  --card-accent-hairline: var(--cat-game-hairline, rgba(255, 142, 92, 0.32));
+}
+[data-category='utility'] {
+  --card-accent: var(--cat-utility, #22d3ee);
+  --card-accent-soft: var(--cat-utility-soft, rgba(34, 211, 238, 0.15));
+  --card-accent-hairline: var(--cat-utility-hairline, rgba(34, 211, 238, 0.32));
+}
+[data-category='entertainment'] {
+  --card-accent: var(--cat-entertainment, #f472b6);
+  --card-accent-soft: var(--cat-entertainment-soft, rgba(244, 114, 182, 0.15));
+  --card-accent-hairline: var(--cat-entertainment-hairline, rgba(244, 114, 182, 0.32));
+}
+/* System tier wins over category — keeps the OS shell and its launcher
+ * shortcuts identifiably brand-violet wherever they appear. */
+[data-tier='system'] {
+  --card-accent: var(--cat-system, #7c5cff);
+  --card-accent-soft: var(--cat-system-soft, rgba(124, 92, 255, 0.15));
+  --card-accent-hairline: var(--cat-system-hairline, rgba(124, 92, 255, 0.32));
+}
+
+/* ─── Featured grid ────────────────────────────────────────────────── */
+.hos-featured-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.hos-featured-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: var(--text-1);
+  transition: border-color var(--motion-hover), transform var(--motion-hover),
+    background var(--motion-hover), box-shadow var(--motion-hover);
+}
+.hos-featured-card:hover {
+  background: var(--surface-2);
+  border-color: var(--card-accent-hairline, var(--hairline-accent));
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px
+    color-mix(in srgb, var(--card-accent, var(--accent-primary)) 18%, transparent);
+}
+/* Tinted icon chip — the category accent rides on the squircle, not on
+ * the whole card. Single biggest "this is a game / tool / experience"
+ * cue without any color landing on the text. */
+.hos-featured-card .app-icon-frame {
+  --icon-frame-size: 56px;
+  background: color-mix(
+    in srgb,
+    var(--card-accent, var(--accent-primary)) 14%,
+    var(--surface-1)
+  );
+  border-color: var(--card-accent-hairline, var(--hairline));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white) 4%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--card-accent, var(--accent-primary)) 8%, transparent);
+}
+.hos-featured-card-title {
+  font-size: var(--text-h3);
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.005em;
+}
+.hos-featured-card-blurb {
+  font-size: var(--text-caption);
+  color: var(--text-2);
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* ─── Gallery (tier-aware) ─────────────────────────────────────────── */
+#app-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+}
+
+.hos-gallery-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.hos-gallery-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hos-gallery-section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--text-h3);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  margin: 0;
+  color: var(--text-1);
+}
+.hos-gallery-section-title .hos-gallery-section-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+/* Section heading accent pip — the legend for the category palette. A
+ * 10px solid dot in the section's category color, paired with the
+ * existing emoji so color reinforces rather than carries the meaning
+ * (a11y: color is never the sole signal). Section ids map to the
+ * registry category their filter selects on. */
+.hos-gallery-section[data-section='games'] .hos-gallery-section-title::before,
+.hos-gallery-section[data-section='music'] .hos-gallery-section-title::before,
+.hos-gallery-section[data-section='tools'] .hos-gallery-section-title::before,
+.hos-gallery-section[data-section='fun'] .hos-gallery-section-title::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--section-accent, var(--accent-primary));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--section-accent) 55%, transparent);
+  flex-shrink: 0;
+}
+.hos-gallery-section[data-section='games'] {
+  --section-accent: var(--cat-game, #ff8e5c);
+}
+.hos-gallery-section[data-section='music'] {
+  --section-accent: var(--cat-entertainment, #f472b6);
+}
+.hos-gallery-section[data-section='tools'] {
+  --section-accent: var(--cat-utility, #22d3ee);
+}
+.hos-gallery-section[data-section='fun'] {
+  --section-accent: var(--cat-entertainment, #f472b6);
+}
+.hos-gallery-section-blurb {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--text-caption);
+}
+
+.hos-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.hos-app-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: var(--text-1);
+  transition: border-color var(--motion-hover), transform var(--motion-hover),
+    background var(--motion-hover), box-shadow var(--motion-hover);
+}
+.hos-app-card:hover {
+  background: var(--surface-2);
+  border-color: var(--card-accent-hairline, var(--hairline-accent));
+  transform: translateY(-2px);
+  /* Tinted hover halo — the same color the icon chip carries, dropped
+   * as a soft outer glow so the card "lights up in its own color" on
+   * hover. Adds variety as the cursor moves across the grid. */
+  box-shadow: 0 8px 24px
+    color-mix(in srgb, var(--card-accent, var(--accent-primary)) 18%, transparent);
+}
+/* Tinted icon chip — same recipe as the featured card. The squircle
+ * carries the category color so every card reads its meaning at a
+ * glance without text or color contrast trade-offs. */
+.hos-app-card .app-icon-frame {
+  background: color-mix(
+    in srgb,
+    var(--card-accent, var(--accent-primary)) 14%,
+    var(--surface-1)
+  );
+  border-color: var(--card-accent-hairline, var(--hairline));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white) 4%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--card-accent, var(--accent-primary)) 8%, transparent);
+}
+
+.hos-app-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hos-app-card-title {
+  font-size: var(--text-body);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  margin: 0;
+}
+.hos-app-card-blurb {
+  margin: 0;
+  font-size: var(--text-caption);
+  color: var(--text-2);
+  line-height: 1.45;
+  flex: 1;
+}
+
+/* Tier signaling — shape + typography, NOT color alone (a11y). */
+.hos-app-card-tier {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  padding: 2px 6px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--surface-0);
+}
+.hos-app-card[data-tier='system'] {
+  border-color: var(--hairline-accent);
+}
+.hos-app-card[data-tier='system'] .hos-app-card-tier {
+  color: var(--accent-primary-hover);
+  border-color: var(--hairline-accent);
+}
+.hos-app-card[data-tier='experience'] .hos-app-card-tier {
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning) 28%, transparent);
+}
+
+/* ─── No-results state ─────────────────────────────────────────────── */
+.hos-no-results {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-3);
+  font-size: var(--text-caption);
+  background: var(--surface-1);
+  border: 1px dashed var(--hairline);
+  border-radius: var(--radius-lg);
+}
+
+/* ─── Footer ───────────────────────────────────────────────────────── */
+.hos-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+  padding: 48px 24px 64px;
+  background: var(--surface-1);
+  border-top: 1px solid var(--hairline);
+}
+.hos-footer-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.hos-footer-brand p {
+  margin: 0;
+}
+.hos-footer-social {
+  display: flex;
+  gap: 8px;
+}
+.hos-social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  color: var(--text-2);
+  text-decoration: none;
+  transition: color var(--motion-hover), background var(--motion-hover),
+    border-color var(--motion-hover);
+}
+.hos-social-link:hover {
+  color: var(--text-1);
+  background: var(--surface-1);
+  border-color: var(--hairline-accent);
+}
+.hos-social-link svg {
+  width: 20px;
+  height: 20px;
+}
+.hos-footer-legal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--text-caption);
+  color: var(--text-3);
+}
+.hos-footer-legal a {
+  color: var(--text-2);
+  text-decoration: none;
+  transition: color var(--motion-hover);
+}
+.hos-footer-legal a:hover {
+  color: var(--text-1);
+}
+.hos-footer-legal span[aria-hidden] {
+  color: var(--hairline-strong);
+}
+
+/* ─── Hamburger menu (mobile) ──────────────────────────────────────── *
+ * Retuned to brand tokens. Behavior preserved (animation, slide-in,
+ * staggered link reveal) but the palette is now Heyming OS, not green.
+ */
 .hamburger-line {
   transform-origin: center;
 }
-
-/* Hamburger animation to X */
 #hamburger-toggle.active .hamburger-line:nth-child(1) {
   transform: rotate(45deg) translate(2px, 2px);
 }
-
 #hamburger-toggle.active .hamburger-line:nth-child(2) {
   opacity: 0;
 }
-
 #hamburger-toggle.active .hamburger-line:nth-child(3) {
   transform: rotate(-45deg) translate(2px, -2px);
 }
 
-/* Menu panel animations */
 #hamburger-panel.show {
   transform: translateX(0);
   opacity: 1;
 }
 
-/* App link hover effects */
-.hamburger-app-link:hover {
-  transform: translateX(-2px);
-  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+.hamburger-app-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--text-1);
+  transition: transform var(--motion-hover), background var(--motion-hover);
 }
-
+.hamburger-app-link:hover {
+  background: var(--surface-2);
+  transform: translateX(-2px);
+}
 .hamburger-app-link:active {
   transform: translateX(0) scale(0.98);
 }
 
-/* Staggered animation for app links */
-.hamburger-app-link:nth-child(1) {
-  animation-delay: 0.05s;
-}
-.hamburger-app-link:nth-child(2) {
-  animation-delay: 0.1s;
-}
-.hamburger-app-link:nth-child(3) {
-  animation-delay: 0.15s;
-}
-.hamburger-app-link:nth-child(4) {
-  animation-delay: 0.2s;
-}
-.hamburger-app-link:nth-child(5) {
-  animation-delay: 0.25s;
-}
-.hamburger-app-link:nth-child(6) {
-  animation-delay: 0.3s;
-}
-.hamburger-app-link:nth-child(7) {
-  animation-delay: 0.35s;
-}
-.hamburger-app-link:nth-child(8) {
-  animation-delay: 0.4s;
-}
-.hamburger-app-link:nth-child(9) {
-  animation-delay: 0.45s;
-}
-.hamburger-app-link:nth-child(10) {
-  animation-delay: 0.5s;
-}
-
-/* Menu show animation */
-@keyframes slideIn {
+@keyframes hos-fade-up {
   from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes fadeInUp {
-  from {
-    transform: translateY(10px);
+    transform: translateY(6px);
     opacity: 0;
   }
   to {
@@ -151,41 +653,47 @@
     opacity: 1;
   }
 }
-
-/* Apply animations when menu is shown */
 #hamburger-panel.show .hamburger-app-link {
-  animation: fadeInUp 0.3s ease-out forwards;
+  animation: hos-fade-up 0.25s ease-out forwards;
   opacity: 0;
 }
+#hamburger-panel.show .hamburger-app-link:nth-child(1) {
+  animation-delay: 0.04s;
+}
+#hamburger-panel.show .hamburger-app-link:nth-child(2) {
+  animation-delay: 0.08s;
+}
+#hamburger-panel.show .hamburger-app-link:nth-child(3) {
+  animation-delay: 0.12s;
+}
+#hamburger-panel.show .hamburger-app-link:nth-child(4) {
+  animation-delay: 0.16s;
+}
+#hamburger-panel.show .hamburger-app-link:nth-child(5) {
+  animation-delay: 0.2s;
+}
+#hamburger-panel.show .hamburger-app-link:nth-child(6) {
+  animation-delay: 0.24s;
+}
+#hamburger-panel.show .hamburger-app-link:nth-child(n + 7) {
+  animation-delay: 0.28s;
+}
 
-/* Mobile responsiveness */
 @media (max-width: 640px) {
   #hamburger-panel {
     width: 90vw;
     right: -45vw;
     max-width: none;
   }
-
   #hamburger-panel.show {
     right: -5vw;
   }
-
-  .hamburger-app-link {
-    padding: 0.75rem;
-  }
-
-  .hamburger-app-link span:first-child {
-    font-size: 1.25rem;
-  }
-
-  /* Ensure hamburger button is easily tappable on mobile */
   #hamburger-toggle {
     min-height: 56px;
     min-width: 56px;
   }
 }
 
-/* Backdrop blur for mobile */
 @media (max-width: 768px) {
   #hamburger-panel::before {
     content: '';
@@ -194,8 +702,21 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.3);
+    background: color-mix(in srgb, var(--pure-black) 40%, transparent);
     backdrop-filter: blur(2px);
     z-index: -1;
   }
+}
+
+/* ─── SEO intro (visually hidden but in DOM for crawlers) ──────────── */
+.seo-intro {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

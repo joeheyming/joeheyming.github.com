@@ -1,9 +1,20 @@
+/*
+ * Heyming OS Notepad — Tier-1 rebuild.
+ *
+ * Dark HOSDL chrome wrapping a paper-like writing surface (TextEdit feel).
+ * Quill .ql-* classes are restyled in place — the Quill JS module remains
+ * untouched.
+ */
+
 body {
   margin: 0;
   padding: 0;
-  height: 100vh;
-  font-family: Arial, sans-serif;
-  background: #ffffff;
+  min-height: 100vh;
+  font-family: var(--font-ui);
+  background: var(--surface-0);
+  color: var(--text-1);
+  display: flex;
+  flex-direction: column;
 }
 
 .page-title {
@@ -18,120 +29,295 @@ body {
   border: 0;
 }
 
-.notepad-content {
-  padding: 8px;
-  background: #ffffff;
-  height: 100vh;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
+.notepad-header {
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-top: none;
 }
 
-/* Quill Editor Customizations */
+.notepad-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px 32px;
+  box-sizing: border-box;
+}
+
+.notepad-paper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--pure-black) 35%, transparent);
+}
+
 #editor {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
-.ql-container {
-  flex: 1;
-  font-size: 22px; /* 50% bigger than 14px */
-  font-family: 'Georgia', 'Times New Roman', serif;
-  line-height: 1.6;
-}
-
-.ql-editor {
-  padding: 16px;
-  min-height: calc(100vh - 120px);
-}
+/* ─── Quill toolbar — flatten to HOSDL chrome ─────────────────────── */
 
 .ql-snow.ql-toolbar,
 .ql-snow .ql-toolbar {
-  border-top: 1px solid #ccc;
-  border-left: 1px solid #ccc;
-  border-right: 1px solid #ccc;
-  border-bottom: 1px solid #ccc;
-  background: #f8f9fa;
-  font-size: 20px; /* 50% bigger toolbar icons */
+  border: none !important;
+  border-bottom: 1px solid var(--hairline) !important;
+  background: var(--surface-2) !important;
+  padding: 10px 14px !important;
+  font-family: var(--font-ui) !important;
 }
 
 .ql-snow.ql-toolbar .ql-formats,
 .ql-snow .ql-toolbar .ql-formats {
-  margin-right: 24px; /* 50% bigger spacing */
+  margin-right: 18px !important;
 }
 
 .ql-snow.ql-toolbar button,
 .ql-snow .ql-toolbar button {
-  width: 42px !important; /* 50% bigger than default ~28px */
-  height: 42px !important;
-  padding: 8px !important;
+  width: 32px !important;
+  height: 32px !important;
+  padding: 6px !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--text-2) !important;
+  transition: background var(--motion-hover), color var(--motion-hover) !important;
+}
+
+.ql-snow.ql-toolbar button:hover,
+.ql-snow .ql-toolbar button:hover {
+  background: var(--surface-1) !important;
+  color: var(--text-1) !important;
+}
+
+.ql-snow.ql-toolbar button.ql-active,
+.ql-snow .ql-toolbar button.ql-active {
+  background: var(--accent-primary-soft) !important;
+  color: var(--accent-primary) !important;
 }
 
 .ql-snow.ql-toolbar button svg,
 .ql-snow .ql-toolbar button svg {
-  width: 24px !important; /* 50% bigger icons */
-  height: 24px !important;
+  width: 18px !important;
+  height: 18px !important;
+}
+
+.ql-snow .ql-stroke {
+  stroke: currentColor !important;
+}
+
+.ql-snow .ql-fill,
+.ql-snow .ql-stroke.ql-fill {
+  fill: currentColor !important;
+}
+
+.ql-snow .ql-picker {
+  color: var(--text-2) !important;
+}
+
+.ql-snow .ql-picker:hover,
+.ql-snow .ql-picker.ql-expanded .ql-picker-label {
+  color: var(--text-1) !important;
+}
+
+.ql-snow .ql-picker-options {
+  background: var(--surface-1) !important;
+  border: 1px solid var(--hairline-strong) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--pure-black) 45%, transparent) !important;
+  color: var(--text-1) !important;
+}
+
+.ql-snow .ql-picker.ql-expanded .ql-picker-label {
+  border-color: var(--hairline-accent) !important;
+}
+
+.ql-snow .ql-picker .ql-picker-item:hover,
+.ql-snow .ql-picker .ql-picker-item.ql-selected {
+  color: var(--accent-primary) !important;
+}
+
+.ql-snow .ql-tooltip {
+  background: var(--surface-1) !important;
+  border: 1px solid var(--hairline-strong) !important;
+  border-radius: var(--radius) !important;
+  color: var(--text-1) !important;
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--pure-black) 45%, transparent) !important;
+}
+
+.ql-snow .ql-tooltip input[type='text'] {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--hairline-strong) !important;
+  color: var(--text-1) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.ql-snow .ql-tooltip a.ql-action,
+.ql-snow .ql-tooltip a.ql-remove {
+  color: var(--accent-primary-hover) !important;
+}
+
+/* ─── Quill content area — paper-like writing surface ─────────────── */
+
+.ql-container {
+  flex: 1;
+  font-size: 18px;
+  font-family: 'iA Writer Quattro', 'Georgia', 'Charter', 'Times New Roman', serif;
+  line-height: 1.65;
+  border: none !important;
+  background: var(--surface-0);
 }
 
 .ql-container.ql-snow {
-  border-left: 1px solid #ccc;
-  border-right: 1px solid #ccc;
-  border-bottom: 1px solid #ccc;
+  border: none !important;
 }
 
-/* Custom styling for better readability */
-.ql-editor h1 {
-  font-size: 3em; /* 50% bigger */
-  color: #2c3e50;
+.ql-editor {
+  padding: 32px 36px !important;
+  color: var(--text-1);
+  caret-color: var(--accent-primary);
+  min-height: calc(100vh - 220px);
 }
 
-.ql-editor h2 {
-  font-size: 2.25em; /* 50% bigger */
-  color: #34495e;
+.ql-editor::selection,
+.ql-editor *::selection {
+  background: var(--accent-primary-soft);
+  color: var(--text-1);
 }
 
+.ql-editor.ql-blank::before {
+  color: var(--text-3) !important;
+  font-style: normal !important;
+  font-family: var(--font-ui) !important;
+  font-size: 16px !important;
+  left: 36px !important;
+}
+
+.ql-editor h1,
+.ql-editor h2,
 .ql-editor h3 {
-  font-size: 1.875em; /* 50% bigger */
-  color: #34495e;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-1);
+  margin-top: 1.4em;
+  margin-bottom: 0.4em;
+}
+
+.ql-editor h1 {
+  font-size: 2.25em;
+}
+.ql-editor h2 {
+  font-size: 1.75em;
+}
+.ql-editor h3 {
+  font-size: 1.35em;
 }
 
 .ql-editor blockquote {
-  border-left: 4px solid #3498db;
-  padding-left: 16px;
+  border-left: 3px solid var(--accent-primary);
+  padding: 4px 0 4px 16px;
   margin-left: 0;
+  color: var(--text-2);
   font-style: italic;
-  color: #7f8c8d;
 }
 
-/* Custom Button Styling */
+.ql-editor pre,
+.ql-editor .ql-code-block-container {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--hairline) !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--text-1) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 14px !important;
+  padding: 12px 14px !important;
+}
+
+.ql-editor code {
+  background: var(--surface-2);
+  color: var(--accent-primary-hover);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.ql-editor a {
+  color: var(--accent-primary-hover);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Scrollbar inside the editor */
+.ql-editor::-webkit-scrollbar {
+  width: 10px;
+}
+.ql-editor::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ql-editor::-webkit-scrollbar-thumb {
+  background: var(--hairline-strong);
+  border-radius: 5px;
+}
+.ql-editor::-webkit-scrollbar-thumb:hover {
+  background: var(--text-3);
+}
+
+/* ─── Custom toolbar buttons (notepad.js appends these) ───────────── */
+
 .ql-copy-button,
 .ql-export-button,
-.ql-import-button {
-  background: #f8f9fa;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  padding: 8px 12px; /* 50% bigger padding */
-  margin-left: 12px; /* 50% bigger margin */
+.ql-import-button,
+.ql-save-button,
+.ql-save-as-button {
+  background: transparent !important;
+  border: 1px solid var(--hairline) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 0 !important;
+  margin-left: 8px !important;
   cursor: pointer;
-  font-size: 20px; /* 50% bigger font */
-  transition: all 0.2s ease;
-  width: 42px; /* Match other toolbar buttons */
-  height: 42px;
-  display: flex;
+  font-size: 16px !important;
+  transition: background var(--motion-hover), border-color var(--motion-hover);
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
   align-items: center;
   justify-content: center;
 }
 
 .ql-copy-button:hover,
 .ql-export-button:hover,
-.ql-import-button:hover {
-  background: #e9ecef;
-  border-color: #adb5bd;
+.ql-import-button:hover,
+.ql-save-button:hover,
+.ql-save-as-button:hover {
+  background: var(--surface-1) !important;
+  border-color: var(--hairline-accent) !important;
 }
 
 .ql-copy-button:active,
 .ql-export-button:active,
-.ql-import-button:active {
-  background: #dee2e6;
+.ql-import-button:active,
+.ql-save-button:active,
+.ql-save-as-button:active {
+  background: var(--accent-primary-soft) !important;
+}
+
+@media (max-width: 640px) {
+  .notepad-content {
+    padding: 16px;
+  }
+  .ql-editor {
+    padding: 20px 18px !important;
+  }
+  .ql-editor.ql-blank::before {
+    left: 18px !important;
+  }
+  .ql-snow.ql-toolbar,
+  .ql-snow .ql-toolbar {
+    padding: 8px 10px !important;
+  }
 }

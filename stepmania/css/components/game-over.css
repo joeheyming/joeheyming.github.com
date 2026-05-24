@@ -6,25 +6,25 @@
    ========================================== */
 
 .game-over-content {
-  background: #1f2937;
+  background: var(--surface-1, #15151b);
   border-radius: 0.5rem;
   padding: 2rem;
   max-width: 28rem;
   width: 100%;
   margin: 1rem;
-  border: 1px solid #4b5563;
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
   text-align: center;
 }
 
 .game-over-content h2 {
   font-size: 1.875rem;
   font-weight: bold;
-  color: white;
+  color: var(--text-1, #f5f5f7);
   margin: 0 0 1.5rem 0;
 }
 
 .game-over-content .score-box {
-  background: #374151;
+  background: var(--surface-2, #1f1f27);
   border-radius: 0.5rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -39,13 +39,15 @@
 .game-over-content .percentage {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #34d399;
+  /* StepMania grade-success readout — brand --success happens to be
+     the same #34d399, so it's both brand-aligned and gameplay-correct. */
+  color: var(--success, #34d399);
   margin-bottom: 0.5rem;
 }
 
 .game-over-content .notes,
 .game-over-content .points {
-  color: #d1d5db;
+  color: var(--text-1, #f5f5f7);
 }
 
 .game-over-content .buttons {
@@ -63,32 +65,34 @@
   cursor: pointer;
   transition: background-color 0.2s;
   font-size: 1rem;
-  color: white;
+  color: var(--text-on-accent, #ffffff);
 }
 
 .game-over-content .share-btn {
-  background: #2563eb;
+  background: var(--accent-primary-bg, #5b3cdc);
   font-size: 1.125rem;
   font-weight: 700;
   padding: 1rem 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 6px -1px color-mix(in srgb, var(--accent-primary-bg) 30%, transparent); /* accent-primary-bg @ 0.3 */
 }
 .game-over-content .share-btn:hover {
-  background: #1d4ed8;
+  background: var(--accent-primary-bg-hover, #6e50e6);
   transform: translateY(-2px);
-  box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 6px 8px -1px color-mix(in srgb, var(--accent-primary-bg) 40%, transparent); /* accent-primary-bg @ 0.4 */
 }
 
 .game-over-content .restart-btn {
-  background: #16a34a;
+  /* "Play again" semantic green — brand --success */
+  background: var(--success, #34d399);
 }
 .game-over-content .restart-btn:hover {
-  background: #15803d;
+  background: var(--success, #34d399);
+  filter: brightness(0.9);
 }
 
 .game-over-content .close-btn {
-  background: #4b5563;
+  background: var(--surface-2, #1f1f27);
 }
 .game-over-content .close-btn:hover {
-  background: #374151;
+  background: var(--accent-primary-soft, rgba(124, 92, 255, 0.15));
 }

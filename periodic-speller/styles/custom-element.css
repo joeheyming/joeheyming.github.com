@@ -63,7 +63,7 @@
 
 .custom-el-save {
   background: var(--accent) !important;
-  color: #0f172a !important;
+  color: var(--surface-0, #0f172a) !important;
   border-color: var(--accent) !important;
 }
 
@@ -74,14 +74,12 @@
 /* Unmatched tile clickable */
 .tile-unmatched.clickable {
   cursor: pointer;
-  transition:
-    border-color 0.15s,
-    background 0.15s;
+  transition: border-color 0.15s, background 0.15s;
 }
 
 .tile-unmatched.clickable:hover {
   border-color: var(--accent);
-  background: rgba(56, 189, 248, 0.08);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 .tile-unmatched.clickable .tile-name {
@@ -118,14 +116,12 @@
   cursor: pointer;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  transition:
-    color 0.15s,
-    background 0.15s;
+  transition: color 0.15s, background 0.15s;
 }
 
 .custom-el-clear-all:hover {
-  color: #f87171;
-  background: rgba(248, 113, 113, 0.1);
+  color: var(--danger, #f87171);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
 }
 
 #customElItems {
@@ -164,14 +160,12 @@
   padding: 0 0.15rem;
   line-height: 1;
   border-radius: 3px;
-  transition:
-    color 0.15s,
-    background 0.15s;
+  transition: color 0.15s, background 0.15s;
 }
 
 .custom-el-chip-remove:hover {
-  color: #f87171;
-  background: rgba(248, 113, 113, 0.15);
+  color: var(--danger, #f87171);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
 }
 
 .how-it-works {
@@ -195,4 +189,3 @@
 .how-it-works p {
   margin-top: 0.6rem;
 }
-

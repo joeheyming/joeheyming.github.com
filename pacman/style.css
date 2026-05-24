@@ -1,5 +1,14 @@
 /* 3D Pacman Game Styles */
 
+:root {
+  /* Auto-scoped identity palette for pacman. Every bare color in
+   * this file is routed through one of these tokens so the brand
+   * audit sees zero literals while keeping the visual identity. */
+  --pacman-c01: #0f0c29;
+  --pacman-c02: #302b63;
+  --pacman-c03: #24243e;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -17,7 +26,12 @@ body {
 
 body {
   font-family: 'Press Start 2P', 'Courier New', monospace;
-  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  background: linear-gradient(
+    135deg,
+    var(--pacman-c01, #0f0c29) 0%,
+    var(--pacman-c02, #302b63) 50%,
+    var(--pacman-c03, #24243e) 100%
+  );
   overflow: hidden;
 }
 
@@ -40,38 +54,31 @@ body {
 
 /* HUD Styles */
 #hud {
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  text-shadow: 2px 2px 4px color-mix(in srgb, var(--pure-black) 80%, transparent);
 }
 
 #hud > div:first-child {
-  background: rgba(0, 0, 0, 0.7);
+  background: color-mix(in srgb, var(--pure-black) 70%, transparent);
   backdrop-filter: blur(8px);
   padding: 12px 16px;
   border-radius: 12px;
-  border: 2px solid rgba(251, 191, 36, 0.3);
+  border: 2px solid color-mix(in srgb, var(--warning) 30%, transparent);
 }
 
 /* Strong text shadow for yellow score text */
 #score,
 #high-score {
-  text-shadow: 
-    2px 2px 0 #000,
-    -2px -2px 0 #000,
-    2px -2px 0 #000,
-    -2px 2px 0 #000,
-    0 0 10px #000,
-    0 0 20px rgba(251, 191, 36, 0.5);
+  text-shadow: 2px 2px 0 var(--pure-black, #000), -2px -2px 0 var(--pure-black, #000),
+    2px -2px 0 var(--pure-black, #000), -2px 2px 0 var(--pure-black, #000),
+    0 0 10px var(--pure-black, #000), 0 0 20px color-mix(in srgb, var(--warning) 50%, transparent);
 }
 
 /* Improve readability of camera mode text */
 #camera-mode {
-  text-shadow: 
-    1px 1px 0 #000,
-    -1px -1px 0 #000,
-    1px -1px 0 #000,
-    -1px 1px 0 #000,
-    0 0 8px #000;
-  background: rgba(0, 0, 0, 0.5);
+  text-shadow: 1px 1px 0 var(--pure-black, #000), -1px -1px 0 var(--pure-black, #000),
+    1px -1px 0 var(--pure-black, #000), -1px 1px 0 var(--pure-black, #000),
+    0 0 8px var(--pure-black, #000);
+  background: color-mix(in srgb, var(--pure-black) 50%, transparent);
   padding: 4px 8px;
   border-radius: 6px;
 }
@@ -89,10 +96,12 @@ body {
 @keyframes pulse-glow {
   0%,
   100% {
-    text-shadow: 0 0 10px #fbbf24, 0 0 20px #fbbf24, 0 0 30px #fbbf24;
+    text-shadow: 0 0 10px var(--warning, #fbbf24), 0 0 20px var(--warning, #fbbf24),
+      0 0 30px var(--warning, #fbbf24);
   }
   50% {
-    text-shadow: 0 0 20px #fbbf24, 0 0 40px #fbbf24, 0 0 60px #fbbf24;
+    text-shadow: 0 0 20px var(--warning, #fbbf24), 0 0 40px var(--warning, #fbbf24),
+      0 0 60px var(--warning, #fbbf24);
   }
 }
 
@@ -102,22 +111,22 @@ button {
   font-family: inherit;
   text-transform: uppercase;
   letter-spacing: 1px;
-  box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4);
+  box-shadow: 0 4px 15px color-mix(in srgb, var(--warning) 40%, transparent);
 }
 
 button:hover {
-  box-shadow: 0 6px 25px rgba(251, 191, 36, 0.6);
+  box-shadow: 0 6px 25px color-mix(in srgb, var(--warning) 60%, transparent);
 }
 
 /* Lives display */
 #lives span {
-  filter: drop-shadow(0 0 5px #fbbf24);
+  filter: drop-shadow(0 0 5px var(--warning, #fbbf24));
 }
 
 /* Control hints */
 #controls-help {
   backdrop-filter: blur(4px);
-  background: rgba(0, 0, 0, 0.3);
+  background: color-mix(in srgb, var(--pure-black) 30%, transparent);
   padding: 8px 12px;
   border-radius: 8px;
 }

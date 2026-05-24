@@ -15,7 +15,7 @@
       name="description"
       content="Free, ad-free browser music studio. Pick an instrument and start playing — piano, accordion, drums, guitar, and synth, all in your browser."
     />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#7C5CFF" />
 
     <link rel="manifest" href="/play/manifest.json" />
     <link rel="apple-touch-icon" sizes="180x180" href="/play/icons/apple-touch-icon.png" />
@@ -70,8 +70,7 @@
           window.backButtonInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent =
-            '.back-to-portfolio,.play-footer a[href="/"]{display:none!important}';
+          s.textContent = '.back-to-portfolio,.play-footer a[href="/"]{display:none!important}';
           document.head.appendChild(s);
         }
       })();
@@ -82,6 +81,14 @@
     <script src="/play/install-prompt.js" defer></script>
 
     <link rel="stylesheet" href="style.css" />
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
   <body>
     <header class="play-header">
@@ -124,8 +131,8 @@
         <div class="instrument-icon" aria-hidden="true">🎸</div>
         <div class="instrument-name">Strings</div>
         <div class="instrument-blurb">
-          One fretboard, five instruments — Guitar, Bass, Ukulele, Banjo, and Mandolin.
-          Pluck notes or strum chords.
+          One fretboard, five instruments — Guitar, Bass, Ukulele, Banjo, and Mandolin. Pluck notes
+          or strum chords.
         </div>
         <div class="instrument-status">Play now</div>
       </a>
@@ -143,8 +150,7 @@
         <div class="instrument-icon" aria-hidden="true">⏱️</div>
         <div class="instrument-name">Metronome</div>
         <div class="instrument-blurb">
-          Tight click track with tap tempo, subdivisions, and odd
-          time signatures.
+          Tight click track with tap tempo, subdivisions, and odd time signatures.
         </div>
         <div class="instrument-status">Play now</div>
       </a>
@@ -153,8 +159,8 @@
         <div class="instrument-icon" aria-hidden="true">🎵</div>
         <div class="instrument-name">Harp</div>
         <div class="instrument-blurb">
-          Vertical strings tuned to your favourite scale — swipe to strum,
-          tap to pluck. Multi-touch friendly.
+          Vertical strings tuned to your favourite scale — swipe to strum, tap to pluck. Multi-touch
+          friendly.
         </div>
         <div class="instrument-status">Play now</div>
       </a>
@@ -163,8 +169,8 @@
         <div class="instrument-icon" aria-hidden="true">🥁</div>
         <div class="instrument-name">Steel drum</div>
         <div class="instrument-blurb">
-          Tongue-drum / Hang with a circular tap surface and exotic
-          handpan scales. Tap or roll fingers across the rim.
+          Tongue-drum / Hang with a circular tap surface and exotic handpan scales. Tap or roll
+          fingers across the rim.
         </div>
         <div class="instrument-status">Play now</div>
       </a>
@@ -173,8 +179,8 @@
         <div class="instrument-icon" aria-hidden="true">🎶</div>
         <div class="instrument-name">Mallets</div>
         <div class="instrument-blurb">
-          One bar keyboard, four voices: xylophone, marimba, vibraphone
-          (with tremolo), and glockenspiel.
+          One bar keyboard, four voices: xylophone, marimba, vibraphone (with tremolo), and
+          glockenspiel.
         </div>
         <div class="instrument-status">Play now</div>
       </a>
@@ -183,8 +189,8 @@
         <div class="instrument-icon" aria-hidden="true">📻</div>
         <div class="instrument-name">Theremin</div>
         <div class="instrument-blurb">
-          XY pad with continuous pitch and volume — drag to play, or
-          switch to Air mode and wave your hand in front of the camera.
+          XY pad with continuous pitch and volume — drag to play, or switch to Air mode and wave
+          your hand in front of the camera.
         </div>
         <div class="instrument-status">Play now</div>
       </a>
@@ -193,8 +199,8 @@
         <div class="instrument-icon" aria-hidden="true">🎯</div>
         <div class="instrument-name">Tuner</div>
         <div class="instrument-blurb">
-          Chromatic tuner with a cents-off needle and tap-to-hear
-          reference tones — works for any string instrument.
+          Chromatic tuner with a cents-off needle and tap-to-hear reference tones — works for any
+          string instrument.
         </div>
         <div class="instrument-status">Play now</div>
       </a>

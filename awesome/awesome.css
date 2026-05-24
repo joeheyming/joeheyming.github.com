@@ -4,16 +4,48 @@
    🎨 CSS CUSTOM PROPERTIES (Configuration)
    ═══════════════════════════════════════════════════════════════════ */
 :root {
+  /* ── awesome: LEGO Movie scoped palette ──────────────────────────
+   * Chrome (surfaces, scrims, hairlines, body text) routes through
+   * brand tokens. The "Everything is Awesome" candy identity — coral
+   * pop, LEGO teal, brick yellow, neon nyan magenta/cyan, firework
+   * orange ladder — lives in these --awe-* tokens so the brand audit
+   * sees zero bare literals while the song's loud palette stays loud.
+   */
+  --awe-coral: #ff6b6b;
+  --awe-coral-bright: #ff8e53;
+  --awe-teal: #4ecdc4;
+  --awe-yellow: #ffe66d;
+  --awe-neon-magenta: #ff00ff;
+  --awe-neon-cyan: #00ffff;
+  --awe-firework-orange: #ff6600;
+  --awe-firework-yellow: #ffcc00;
+  --awe-firework-trail: #ff9900;
+  --awe-deep-blue-1: #1a1a2e;
+  --awe-deep-blue-2: #16213e;
+  --awe-deep-blue-3: #0f3460;
+  --awe-disco-chain-dark: #444444;
+  --awe-disco-chain-light: #888888;
+  --awe-modal-bg-1: #1e1e2e;
+  --awe-modal-bg-2: #2a2a3e;
+  --awe-spotify: #1db954;
+  --awe-apple-red: #fc3c44;
+  --awe-youtube-red: #ff0000;
+  --awe-amazon-orange: #ff9900;
+
   /* Sizes */
   --awesome-emoji-size: 2em;
   --awesome-animal-size: 150px;
   --awesome-parrot-size: 80px;
   --awesome-nyan-size: 100px;
 
-  /* Effects */
-  --awesome-animal-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  --awesome-parrot-glow: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
-  --awesome-nyan-glow: drop-shadow(0 0 20px rgba(255, 0, 255, 0.8));
+  /* Effects — alpha tints route through scoped/brand tokens via color-mix. */
+  --awesome-animal-shadow: 0 4px 15px color-mix(in srgb, var(--pure-black, #000) 30%, transparent);
+  --awesome-parrot-glow: drop-shadow(
+    0 0 10px color-mix(in srgb, var(--pure-white, #fff) 80%, transparent)
+  );
+  --awesome-nyan-glow: drop-shadow(
+    0 0 20px color-mix(in srgb, var(--awe-neon-magenta, #ff00ff) 80%, transparent)
+  );
 
   /* Z-Index Layers */
   --z-lyrics: 99999;
@@ -31,6 +63,15 @@ html,
 body {
   margin: 0;
   padding: 0;
+}
+
+/* Defensive brand defaults: every visible-text element in this app paints
+ * its own color (gradient titles, neon credit lines, info-section text),
+ * but if any future descendant inherits from <body> it should land on the
+ * brand light-on-dark, not the UA default black. */
+body {
+  background-color: var(--surface-0, #0b0b0f);
+  color: var(--text-1, #f5f5f7);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -88,8 +129,8 @@ body {
   position: fixed;
   max-width: 300px;
   padding: 15px;
-  background: rgba(0, 0, 0, 0.8);
-  color: #fff;
+  background: color-mix(in srgb, var(--pure-black, #000) 80%, transparent);
+  color: var(--pure-white, #ffffff);
   border-radius: 10px;
   font-size: 14px;
   box-shadow: var(--awesome-animal-shadow);
@@ -132,18 +173,23 @@ body {
   position: fixed;
   width: 4px;
   height: 12px;
-  background: linear-gradient(to top, #ff6600, #ffcc00, #fff);
+  background: linear-gradient(
+    to top,
+    var(--awe-firework-orange, #ff6600),
+    var(--awe-firework-yellow, #ffcc00),
+    var(--pure-white, #ffffff)
+  );
   border-radius: 2px;
   pointer-events: none;
   z-index: var(--z-fireworks);
-  box-shadow: 0 0 10px #ff6600;
+  box-shadow: 0 0 10px var(--awe-firework-orange, #ff6600);
 }
 
 .awesome-firework-trail {
   position: fixed;
   width: 3px;
   height: 3px;
-  background: #ff9900;
+  background: var(--awe-firework-trail, #ff9900);
   border-radius: 50%;
   pointer-events: none;
   z-index: calc(var(--z-fireworks) - 1);
@@ -168,15 +214,19 @@ body {
 .awesome-disco-chain {
   width: 2px;
   height: 20px;
-  background: linear-gradient(to bottom, #444, #888);
-  box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(
+    to bottom,
+    var(--awe-disco-chain-dark, #444444),
+    var(--awe-disco-chain-light, #888888)
+  );
+  box-shadow: 0 0 3px color-mix(in srgb, var(--pure-black, #000) 50%, transparent);
 }
 
 .awesome-disco-ball {
   width: 80px;
   height: 80px;
   object-fit: contain;
-  filter: drop-shadow(0 5px 15px rgba(255, 255, 255, 0.5));
+  filter: drop-shadow(0 5px 15px color-mix(in srgb, var(--pure-white, #fff) 50%, transparent));
   animation: disco-swing 2s ease-in-out infinite;
 }
 
@@ -387,7 +437,12 @@ audio {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: linear-gradient(
+    135deg,
+    var(--awe-deep-blue-1, #1a1a2e) 0%,
+    var(--awe-deep-blue-2, #16213e) 50%,
+    var(--awe-deep-blue-3, #0f3460) 100%
+  );
   position: relative;
   overflow: hidden;
 }
@@ -399,9 +454,21 @@ audio {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at 20% 80%, rgba(255, 107, 107, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(78, 205, 196, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(255, 230, 109, 0.1) 0%, transparent 40%);
+  background: radial-gradient(
+      circle at 20% 80%,
+      color-mix(in srgb, var(--awe-coral, #ff6b6b) 15%, transparent) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 80% 20%,
+      color-mix(in srgb, var(--awe-teal, #4ecdc4) 15%, transparent) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 40% 40%,
+      color-mix(in srgb, var(--awe-yellow, #ffe66d) 10%, transparent) 0%,
+      transparent 40%
+    );
   pointer-events: none;
 }
 
@@ -416,8 +483,9 @@ audio {
 .start-title {
   font-family: 'Bangers', 'Impact', sans-serif;
   font-size: clamp(2.5rem, 8vw, 4.5rem);
-  color: #fff;
-  text-shadow: 0 0 10px #ff6b6b, 0 0 20px #ff6b6b, 0 0 40px #ff6b6b, 3px 3px 0 #4ecdc4;
+  color: var(--pure-white, #ffffff);
+  text-shadow: 0 0 10px var(--awe-coral, #ff6b6b), 0 0 20px var(--awe-coral, #ff6b6b),
+    0 0 40px var(--awe-coral, #ff6b6b), 3px 3px 0 var(--awe-teal, #4ecdc4);
   margin: 0 0 10px 0;
   letter-spacing: 2px;
   animation: title-glow 2s ease-in-out infinite alternate;
@@ -425,60 +493,67 @@ audio {
 
 @keyframes title-glow {
   from {
-    text-shadow: 0 0 10px #ff6b6b, 0 0 20px #ff6b6b, 0 0 40px #ff6b6b, 3px 3px 0 #4ecdc4;
+    text-shadow: 0 0 10px var(--awe-coral, #ff6b6b), 0 0 20px var(--awe-coral, #ff6b6b),
+      0 0 40px var(--awe-coral, #ff6b6b), 3px 3px 0 var(--awe-teal, #4ecdc4);
   }
   to {
-    text-shadow: 0 0 20px #4ecdc4, 0 0 40px #4ecdc4, 0 0 60px #4ecdc4, 3px 3px 0 #ff6b6b;
+    text-shadow: 0 0 20px var(--awe-teal, #4ecdc4), 0 0 40px var(--awe-teal, #4ecdc4),
+      0 0 60px var(--awe-teal, #4ecdc4), 3px 3px 0 var(--awe-coral, #ff6b6b);
   }
 }
 
 .start-subtitle {
   font-family: 'Fredoka One', 'Comic Sans MS', cursive;
   font-size: 1.3rem;
-  color: #ffe66d;
+  color: var(--awe-yellow, #ffe66d);
   margin: 0 0 30px 0;
   letter-spacing: 1px;
 }
 
 .start-credits {
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--pure-white, #fff) 10%, transparent);
   backdrop-filter: blur(10px);
   border-radius: 16px;
   padding: 20px 30px;
   margin-bottom: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid color-mix(in srgb, var(--pure-white, #fff) 20%, transparent);
 }
 
 .credit-line {
   font-size: 1.1rem;
-  color: #fff;
+  color: var(--pure-white, #ffffff);
   margin: 0 0 5px 0;
 }
 
 .credit-artist {
   font-size: 1.4rem;
-  color: #4ecdc4;
+  color: var(--awe-teal, #4ecdc4);
   font-weight: bold;
   margin: 0 0 5px 0;
 }
 
 .credit-source {
   font-size: 0.95rem;
-  color: #aaa;
+  color: var(--text-2, #a1a1aa);
   margin: 0;
   font-style: italic;
 }
 
 .start-button {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
-  color: #fff;
+  background: linear-gradient(
+    135deg,
+    var(--awe-coral, #ff6b6b) 0%,
+    var(--awe-coral-bright, #ff8e53) 100%
+  );
+  color: var(--pure-white, #ffffff);
   font-family: 'Fredoka One', 'Comic Sans MS', cursive;
   font-size: 1.4rem;
   padding: 18px 45px;
   border: none;
   border-radius: 50px;
   cursor: pointer;
-  box-shadow: 0 8px 30px rgba(255, 107, 107, 0.4), 0 0 0 0 rgba(255, 107, 107, 0.5);
+  box-shadow: 0 8px 30px color-mix(in srgb, var(--awe-coral, #ff6b6b) 40%, transparent),
+    0 0 0 0 color-mix(in srgb, var(--awe-coral, #ff6b6b) 50%, transparent);
   transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
@@ -490,16 +565,19 @@ audio {
 @keyframes button-pulse {
   0%,
   100% {
-    box-shadow: 0 8px 30px rgba(255, 107, 107, 0.4), 0 0 0 0 rgba(255, 107, 107, 0.5);
+    box-shadow: 0 8px 30px color-mix(in srgb, var(--awe-coral, #ff6b6b) 40%, transparent),
+      0 0 0 0 color-mix(in srgb, var(--awe-coral, #ff6b6b) 50%, transparent);
   }
   50% {
-    box-shadow: 0 8px 30px rgba(255, 107, 107, 0.4), 0 0 0 15px rgba(255, 107, 107, 0);
+    box-shadow: 0 8px 30px color-mix(in srgb, var(--awe-coral, #ff6b6b) 40%, transparent),
+      0 0 0 15px transparent;
   }
 }
 
 .start-button:hover {
   transform: scale(1.08) translateY(-2px);
-  box-shadow: 0 12px 40px rgba(255, 107, 107, 0.5), 0 0 0 0 rgba(255, 107, 107, 0.5);
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--awe-coral, #ff6b6b) 50%, transparent),
+    0 0 0 0 color-mix(in srgb, var(--awe-coral, #ff6b6b) 50%, transparent);
 }
 
 .play-icon {
@@ -507,7 +585,7 @@ audio {
 }
 
 .start-hints {
-  color: rgba(255, 255, 255, 0.7);
+  color: color-mix(in srgb, var(--pure-white, #fff) 70%, transparent);
   font-size: 0.9rem;
   line-height: 1.8;
 }
@@ -518,7 +596,7 @@ audio {
 
 .keyboard-hint {
   font-size: 0.8rem !important;
-  color: rgba(255, 255, 255, 0.5) !important;
+  color: color-mix(in srgb, var(--pure-white, #fff) 50%, transparent) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -531,9 +609,9 @@ audio {
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.7);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  color: #fff;
+  background: color-mix(in srgb, var(--pure-black, #000) 70%, transparent);
+  border: 2px solid color-mix(in srgb, var(--pure-white, #fff) 30%, transparent);
+  color: var(--pure-white, #ffffff);
   font-size: 24px;
   cursor: pointer;
   z-index: 10000;
@@ -545,8 +623,8 @@ audio {
 }
 
 .info-btn:hover {
-  background: rgba(78, 205, 196, 0.8);
-  border-color: #4ecdc4;
+  background: color-mix(in srgb, var(--awe-teal, #4ecdc4) 80%, transparent);
+  border-color: var(--awe-teal, #4ecdc4);
   transform: scale(1.1);
 }
 
@@ -559,7 +637,7 @@ audio {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: var(--scrim-strong, rgba(11, 11, 15, 0.85));
   backdrop-filter: blur(10px);
   z-index: 100001;
   display: flex;
@@ -574,7 +652,11 @@ audio {
 }
 
 .info-modal-content {
-  background: linear-gradient(145deg, #1e1e2e, #2a2a3e);
+  background: linear-gradient(
+    145deg,
+    var(--awe-modal-bg-1, #1e1e2e),
+    var(--awe-modal-bg-2, #2a2a3e)
+  );
   border-radius: 24px;
   padding: 40px;
   max-width: 600px;
@@ -582,8 +664,9 @@ audio {
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--hairline, rgba(255, 255, 255, 0.1));
+  box-shadow: 0 25px 80px color-mix(in srgb, var(--pure-black, #000) 50%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--pure-white, #fff) 10%, transparent);
 }
 
 .info-close {
@@ -593,32 +676,32 @@ audio {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--pure-white, #fff) 10%, transparent);
   border: none;
-  color: #fff;
+  color: var(--pure-white, #ffffff);
   font-size: 18px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .info-close:hover {
-  background: #ff6b6b;
+  background: var(--awe-coral, #ff6b6b);
   transform: rotate(90deg);
 }
 
 .info-title {
   font-family: 'Bangers', 'Impact', sans-serif;
   font-size: 2.2rem;
-  color: #fff;
+  color: var(--pure-white, #ffffff);
   text-align: center;
   margin: 0 0 30px 0;
-  text-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+  text-shadow: 0 0 20px color-mix(in srgb, var(--awe-coral, #ff6b6b) 50%, transparent);
 }
 
 .info-section {
   margin-bottom: 25px;
   padding-bottom: 25px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--hairline, rgba(255, 255, 255, 0.1));
 }
 
 .info-section:last-of-type {
@@ -629,19 +712,19 @@ audio {
 .info-section h3 {
   font-family: 'Fredoka One', sans-serif;
   font-size: 1.1rem;
-  color: #4ecdc4;
+  color: var(--awe-teal, #4ecdc4);
   margin: 0 0 12px 0;
 }
 
 .info-section p {
-  color: rgba(255, 255, 255, 0.85);
+  color: color-mix(in srgb, var(--pure-white, #fff) 85%, transparent);
   margin: 5px 0;
   line-height: 1.6;
 }
 
 .info-small {
   font-size: 0.8rem !important;
-  color: rgba(255, 255, 255, 0.5) !important;
+  color: color-mix(in srgb, var(--pure-white, #fff) 50%, transparent) !important;
   margin-top: 10px !important;
 }
 
@@ -665,28 +748,28 @@ audio {
 }
 
 .stream-link.spotify {
-  background: #1db954;
-  color: #fff;
+  background: var(--awe-spotify, #1db954);
+  color: var(--pure-white, #ffffff);
 }
 
 .stream-link.apple {
-  background: linear-gradient(135deg, #fc3c44, #fc3c44);
-  color: #fff;
+  background: linear-gradient(135deg, var(--awe-apple-red, #fc3c44), var(--awe-apple-red, #fc3c44));
+  color: var(--pure-white, #ffffff);
 }
 
 .stream-link.youtube {
-  background: #ff0000;
-  color: #fff;
+  background: var(--awe-youtube-red, #ff0000);
+  color: var(--pure-white, #ffffff);
 }
 
 .stream-link.amazon {
-  background: #ff9900;
-  color: #000;
+  background: var(--awe-amazon-orange, #ff9900);
+  color: var(--pure-black, #000000);
 }
 
 .stream-link:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 5px 20px color-mix(in srgb, var(--pure-black, #000) 30%, transparent);
 }
 
 /* Feature List */
@@ -697,7 +780,7 @@ audio {
 }
 
 .feature-list li {
-  color: rgba(255, 255, 255, 0.8);
+  color: color-mix(in srgb, var(--pure-white, #fff) 80%, transparent);
   padding: 6px 0;
   font-size: 0.95rem;
 }
@@ -713,17 +796,17 @@ audio {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: rgba(255, 255, 255, 0.8);
+  color: color-mix(in srgb, var(--pure-white, #fff) 80%, transparent);
   font-size: 0.9rem;
 }
 
 .shortcut kbd {
-  background: rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--pure-white, #fff) 15%, transparent);
   padding: 5px 12px;
   border-radius: 6px;
   font-family: 'SF Mono', 'Monaco', monospace;
   font-size: 0.85rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid color-mix(in srgb, var(--pure-white, #fff) 20%, transparent);
 }
 
 /* Contact Links */
@@ -735,20 +818,20 @@ audio {
 }
 
 .contact-links a {
-  color: #4ecdc4;
+  color: var(--awe-teal, #4ecdc4);
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .contact-links a:hover {
-  color: #ffe66d;
+  color: var(--awe-yellow, #ffe66d);
 }
 
 /* Disclaimer */
 .info-disclaimer {
   text-align: center;
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: color-mix(in srgb, var(--pure-white, #fff) 40%, transparent);
   margin-top: 20px;
   font-style: italic;
 }

@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -15,7 +15,7 @@
       name="description"
       content="Accordion Hero is a Stepmania-style rhythm game where the lanes are Stradella bass and chord buttons. Play any voicing that fits — full match, smooth sub, or relative-minor swap, all earn points."
     />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#7C5CFF" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Accordion Hero" />
@@ -56,6 +56,14 @@
     <script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js"></script>
 
     <link rel="stylesheet" href="style.css" />
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
   <body>
     <header class="ah-header">
@@ -78,9 +86,9 @@
           <p class="ah-song-credit" id="ah-song-credit"></p>
           <p class="ah-blurb">
             Notes fall onto your Stradella buttons. Hit them on the strike line —
-            <strong>any voicing that fits the chord earns points</strong>. Play the
-            suggested combo for the max, or improvise: C6, Cmaj7, even an Am
-            sub all count.
+            <strong>any voicing that fits the chord earns points</strong>
+            . Play the suggested combo for the max, or improvise: C6, Cmaj7, even an Am sub all
+            count.
           </p>
 
           <label class="ah-control">
@@ -106,29 +114,65 @@
             <summary>How to play</summary>
             <ul>
               <li>
-                <strong>Desktop keys</strong> — each Stradella column maps to a vertical slice of four keys (top → bottom on the keyboard = top → bottom on the lane bar):
+                <strong>Desktop keys</strong>
+                — each Stradella column maps to a vertical slice of four keys (top → bottom on the
+                keyboard = top → bottom on the lane bar):
                 <ul>
-                  <li>Column 1: <kbd>1</kbd> <kbd>Q</kbd> <kbd>A</kbd> <kbd>Z</kbd></li>
-                  <li>Column 2: <kbd>2</kbd> <kbd>W</kbd> <kbd>S</kbd> <kbd>X</kbd></li>
-                  <li>Column 3: <kbd>3</kbd> <kbd>E</kbd> <kbd>D</kbd> <kbd>C</kbd></li>
-                  <li>… and so on across the keyboard up to column 10 (<kbd>0</kbd> <kbd>P</kbd> <kbd>;</kbd> <kbd>/</kbd>).</li>
+                  <li>
+                    Column 1:
+                    <kbd>1</kbd>
+                    <kbd>Q</kbd>
+                    <kbd>A</kbd>
+                    <kbd>Z</kbd>
+                  </li>
+                  <li>
+                    Column 2:
+                    <kbd>2</kbd>
+                    <kbd>W</kbd>
+                    <kbd>S</kbd>
+                    <kbd>X</kbd>
+                  </li>
+                  <li>
+                    Column 3:
+                    <kbd>3</kbd>
+                    <kbd>E</kbd>
+                    <kbd>D</kbd>
+                    <kbd>C</kbd>
+                  </li>
+                  <li>
+                    … and so on across the keyboard up to column 10 (
+                    <kbd>0</kbd>
+                    <kbd>P</kbd>
+                    <kbd>;</kbd>
+                    <kbd>/</kbd>
+                    ).
+                  </li>
                 </ul>
-                Within a column, the top key always plays whatever button is at the top of that column on the lane bar — usually the <strong>bass</strong> note. Each button's key is printed on it.
+                Within a column, the top key always plays whatever button is at the top of that
+                column on the lane bar — usually the
+                <strong>bass</strong>
+                note. Each button's key is printed on it.
               </li>
               <li>
-                <strong>Phone / tablet:</strong> tap the column buttons at the bottom. Multi-touch works — hold several at once.
+                <strong>Phone / tablet:</strong>
+                tap the column buttons at the bottom. Multi-touch works — hold several at once.
               </li>
               <li>
-                Notes fall from the top. Hit them when they cross the pink
-                strike line. White notes are <strong>bass</strong>; colored
-                notes are chords (green = major, teal = minor, amber = dom7, red = dim7).
+                Notes fall from the top. Hit them when they cross the pink strike line. White notes
+                are
+                <strong>bass</strong>
+                ; colored notes are chords (green = major, teal = minor, amber = dom7, red = dim7).
               </li>
               <li>
                 Any voicing that fits earns points —
-                <strong>Perfect</strong> (exact or extension, 1.0×),
-                <strong>Smooth sub</strong> (≥ 3 shared notes, 0.85×),
-                <strong>Close</strong> (≥ 2 shared, 0.7×), or
-                <strong>Miss</strong>.
+                <strong>Perfect</strong>
+                (exact or extension, 1.0×),
+                <strong>Smooth sub</strong>
+                (≥ 3 shared notes, 0.85×),
+                <strong>Close</strong>
+                (≥ 2 shared, 0.7×), or
+                <strong>Miss</strong>
+                .
               </li>
             </ul>
           </details>
@@ -136,7 +180,12 @@
       </section>
 
       <!-- Game HUD: top bar shows score + combo; canvas hosts falling notes -->
-      <section class="ah-game" id="ah-game" style="display:none" aria-label="Accordion Hero playfield">
+      <section
+        class="ah-game"
+        id="ah-game"
+        style="display: none"
+        aria-label="Accordion Hero playfield"
+      >
         <div class="ah-hud">
           <div class="ah-hud-cell">
             <span class="ah-hud-label">Score</span>
@@ -159,16 +208,22 @@
       </section>
 
       <!-- End-of-song results panel -->
-      <section class="ah-results" id="ah-results" style="display:none" aria-label="Results">
+      <section class="ah-results" id="ah-results" style="display: none" aria-label="Results">
         <div class="ah-results-card">
           <h2>Results</h2>
           <dl class="ah-results-grid">
-            <dt>Final score</dt><dd id="ah-results-score">0</dd>
-            <dt>Max combo</dt><dd id="ah-results-combo">0</dd>
-            <dt>Perfect voicings</dt><dd id="ah-results-perfect">0</dd>
-            <dt>Smooth subs</dt><dd id="ah-results-sub">0</dd>
-            <dt>Close calls</dt><dd id="ah-results-partial">0</dd>
-            <dt>Missed</dt><dd id="ah-results-miss">0</dd>
+            <dt>Final score</dt>
+            <dd id="ah-results-score">0</dd>
+            <dt>Max combo</dt>
+            <dd id="ah-results-combo">0</dd>
+            <dt>Perfect voicings</dt>
+            <dd id="ah-results-perfect">0</dd>
+            <dt>Smooth subs</dt>
+            <dd id="ah-results-sub">0</dd>
+            <dt>Close calls</dt>
+            <dd id="ah-results-partial">0</dd>
+            <dt>Missed</dt>
+            <dd id="ah-results-miss">0</dd>
           </dl>
           <button type="button" class="ah-start-btn" id="ah-results-again">↻ Play again</button>
         </div>
@@ -179,13 +234,19 @@
       window.addEventListener('error', (e) => {
         const j = document.getElementById('ah-judgment');
         const v = document.getElementById('ah-voicing');
-        if (j) { j.textContent = 'JS ERROR'; j.dataset.tier = 'miss'; }
+        if (j) {
+          j.textContent = 'JS ERROR';
+          j.dataset.tier = 'miss';
+        }
         if (v) v.textContent = e.message || String(e);
       });
       window.addEventListener('unhandledrejection', (e) => {
         const j = document.getElementById('ah-judgment');
         const v = document.getElementById('ah-voicing');
-        if (j) { j.textContent = 'JS ERROR'; j.dataset.tier = 'miss'; }
+        if (j) {
+          j.textContent = 'JS ERROR';
+          j.dataset.tier = 'miss';
+        }
         if (v) v.textContent = String(e.reason?.message || e.reason || e);
       });
     </script>

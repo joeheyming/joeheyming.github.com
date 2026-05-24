@@ -1,6 +1,11 @@
-/* Heyming OS — base styles: skip link, desktop focus, OS-wide animation utilities. */
+/* Heyming OS — base styles: skip link, desktop focus, OS-wide animation utilities.
+ *
+ * All colors and motion durations come from /brand.css tokens. Update those
+ * in one place to repaint the OS chrome. The focus pattern matches the
+ * site-wide dual-ring system documented in BRAND.md.
+ */
 
-/* Theme E: skip link — keyboard users jump past chrome to the desktop surface */
+/* Skip link — keyboard users jump past chrome to the desktop surface. */
 .os-skip-link {
   position: absolute;
   width: 1px;
@@ -21,23 +26,25 @@
   width: auto;
   height: auto;
   margin: 0;
-  padding: 8px 12px;
+  padding: 10px 14px;
   overflow: visible;
   clip: auto;
   white-space: nowrap;
-  border-radius: 4px;
-  border: 1px solid rgba(147, 197, 253, 0.55);
-  background: rgba(15, 23, 42, 0.97);
-  color: #e2e8f0;
-  font-family: system-ui, -apple-system, Segoe UI, sans-serif;
-  font-size: 13px;
+  border-radius: var(--radius);
+  border: 1px solid var(--hairline-accent);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-family: var(--font-ui);
+  font-size: var(--text-caption);
   text-decoration: none;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--pure-black) 50%, transparent);
 }
 
 .os-skip-link:focus-visible {
-  outline: 2px solid rgba(96, 165, 250, 0.65);
+  outline: 2px solid var(--focus-ring-inner);
   outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--focus-ring-outer),
+    0 8px 24px color-mix(in srgb, var(--pure-black) 50%, transparent);
 }
 
 #os-desktop:focus {
@@ -45,23 +52,24 @@
 }
 
 #os-desktop:focus-visible {
-  outline: 2px solid rgba(96, 165, 250, 0.75);
+  outline: 2px solid var(--focus-ring-inner);
   outline-offset: -2px;
+  box-shadow: inset 0 0 0 4px var(--focus-ring-outer);
 }
 
 /* Animation Classes */
 .os-fade-in {
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn var(--motion-modal, 220ms ease-out);
 }
 
 .os-fade-out {
-  animation: fadeOut 0.3s ease-out;
+  animation: fadeOut var(--motion-modal, 220ms ease-out);
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: scale(0.9);
+    transform: scale(0.96);
   }
   to {
     opacity: 1;
@@ -76,14 +84,14 @@
   }
   to {
     opacity: 0;
-    transform: scale(0.9);
+    transform: scale(0.96);
   }
 }
 
 /* Loading Animation */
 .loading-spinner {
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top: 3px solid #3182ce;
+  border: 3px solid var(--hairline);
+  border-top: 3px solid var(--accent-primary);
   border-radius: 50%;
   width: 24px;
   height: 24px;

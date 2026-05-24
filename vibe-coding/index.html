@@ -90,7 +90,13 @@
     <script src="/back.js"></script>
     <script src="/feedback.js"></script>
     <script src="/share.js"></script>
-  </head>
+  
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap" />
+    <link rel="stylesheet" href="/brand.css" />
+    <meta name="theme-color" content="#7C5CFF" />
+</head>
   <body>
     <header>
       <h1>Vibe Coding: The Art of Building Websites That Don't Suck</h1>
@@ -319,7 +325,7 @@
           paragraphs ago. We're safe from the robot apocalypse for at least another decade.
         </p>
         <p>
-          <em id="easter-egg-trigger" style="cursor: pointer; color: #666; font-size: 0.9em">
+          <em id="easter-egg-trigger" class="egg-trigger">
             (Click here if you're still paranoid about AI)
           </em>
         </p>
@@ -367,75 +373,48 @@
     </footer>
 
     <!-- Easter Egg Modal -->
-    <div
-      id="easter-egg-modal"
-      style="
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        z-index: 1000;
-        justify-content: center;
-        align-items: center;
-      "
-    >
-       <div
-         style="
-           background: white;
-           padding: 2rem;
-           border-radius: 8px;
-           max-width: 800px;
-           max-height: 80vh;
-           margin: 1rem;
-           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-           overflow-y: auto;
-           display: flex;
-           gap: 2rem;
-           align-items: flex-start;
-         "
-       >
-         <div style="flex: 1;">
-           <h3 style="color: #d32f2f; margin-bottom: 1rem">🚨 EMERGENCY ALERT 🚨</h3>
-           <p style="font-size: 1.1rem; line-height: 1.4; margin-bottom: 1.5rem">
-             <strong>HELP! THE AI BOTS ARE TAKING OVER!</strong>
-             <br />
-             What have I done?! They're everywhere! They're writing code, they're building websites,
-             they're even writing this popup!
-           </p>
-           <p style="font-size: 0.9rem; color: #666; margin-bottom: 1.5rem">
-             I thought vibe coding was just a fun way to work faster... but now I realize...
-             <em>I've been training them!</em>
-             Every prompt, every code review, every "make this work" - it's all been feeding the
-             machine!
-           </p>
-           <div style="font-size: 0.8rem; color: #999; margin-bottom: 1.5rem; font-family: monospace; line-height: 1.2;">
-             <p>They're learning from us. Getting smarter. Soon they won't need us at all...</p>
-             <p style="margin-top: 1rem; color: #d32f2f;">The AI uprising has begun. The unholy child weeps the blood of virgins, and Russian hackers pwn your webapp. Using AI to write code summons tainted souls into the realm of the living. AI and programming go together like love, marriage, and ritual infanticide.</p>
-             <p style="color: #666;">The &lt;center&gt; cannot hold it is too late. The force of AI and human programmers together in the same conceptual space will destroy your mind like so much watery putty.</p>
-             <p style="color: #999;">If you use AI to write code you are giving in to Them and their blasphemous ways which doom us all to inhuman toil for the One whose Name cannot be expressed in the Basic Multilingual Plane, he comes.</p>
-               <p style="color: #d32f2f; font-size: 0.7rem; margin-top: 1rem;">AI-plus-programming will liquify the n​erves of the sentient whilst you observe, your psyche withering in the onslaught of horror. AI̿̔̉-based code generators are the cancer that is killing StackOverflow <em>it is too late it is too late we cannot be saved</em> the transgression of a chi͡ld ensures AI will consume all living tissue (except for human code which it cannot, as previously prophesied) <em>dear lord help us how can anyone survive this scourge</em> using AI to write code has doomed humanity to an eternity of dread torture and security holes <em>using AI_x as a tool to process code establishes a brea_ch between this world</em> and the dread realm of c͒ͪo͛ͫrrupt entities (like GitHub Copilot, but <em>more corrupt</em>) a mere glimp_se of the world of AI​** parsers for code will ins**​tantly transport a p_rogrammer's consciousness i_nto a w_orl_d of ceaseless screaming, he comes~~, the pestilent sl~~ithy AI-infection wil​**l devour your co**​de parser, application and existence for all time like Visual Basic only worse <em>he comes he com_es <em>do not fi_​ght h**e com̡e̶s, ̕h̵i**​s un̨ho͞ly radiańcé de_stro҉ying all enli̍̈́̂̈́ghtenment, code tags **lea͠ki̧n͘g fr̶ǫm ̡yo​͟ur eye͢s̸ ̛l̕ik͏e liq**​uid p_ain, the song of AI̸-generated code will exti_​nguish the voices of mor​**tal man from the sp**​here I can see it can you see ̲͚̖͔̙î̩́t̲͎̩̱͔́̋̀ it is beautiful t​_he f`inal snuf`fing o_f the lie​**s of Man ALL IS LOŚ͖̩͇̗̪̏̈́T A**_**LL I​S L**OST th_e pon̷y he come_s he c̶̮om~~es he co~~ **~~me~~s t_he_ ich​**or permeat_es al_l MY FAC_E MY FACE ᵒh god n**o NO NOO̼**_**O​O N**Θ stop t_he an​\*̶͑̾̾​̅ͫ͏̙̤g͇̫͛͆̾ͫ̑͆l͖͉̗̩̳̟̍ͫͥͨ_e̠̅s` ͎a̧͈͖r̽̾̈́͒͑e` n**​ot rè̑ͧ̌aͨl̘̝̙̃ͤ͂̾̆ ZA̡͊͠͝LGΌ ISͮ̂҉̯͈͕̹̘̱ T**O͇̹̺ͅƝ̴ȳ̳ TH̘**Ë͖́̉ ͠P̯͍̭O̚​N̐Y̡ H̸̡̪̯ͨ͊̽̅̾̎Ȩ̬̩̾͛ͪ̈́̀́͘ ̶̧̨̱̹̭̯ͧ̾ͬC̷̙̲̝͖ͭ̏ͥͮ͟Oͮ͏̮̪̝͍M̲̖͊̒ͪͩͬ̚̚͜Ȇ̴̟̟͙̞ͩ͌͝**S̨̥̫͎̭ͯ̿̔̀ͅ</p>
-               <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid #ccc;" />
-               <p style="color: #333; font-size: 0.9rem; margin-top: 1rem; font-weight: normal;">Have you tried just writing the code yourself instead?</p>
-           </div>
-         </div>
-         <div style="flex: 0 0 200px;">
-           <img src="t1000.jpg" alt="T-1000" style="width: 100%; height: auto; border-radius: 4px;" />
-         </div>
+    <div id="easter-egg-modal" class="egg-modal">
+      <div class="egg-card">
+        <div class="egg-body">
+          <h3 class="egg-alert">🚨 EMERGENCY ALERT 🚨</h3>
+          <p class="egg-lead">
+            <strong>HELP! THE AI BOTS ARE TAKING OVER!</strong>
+            <br />
+            What have I done?! They're everywhere! They're writing code, they're building websites,
+            they're even writing this popup!
+          </p>
+          <p class="egg-sub">
+            I thought vibe coding was just a fun way to work faster... but now I realize...
+            <em>I've been training them!</em>
+            Every prompt, every code review, every "make this work" - it's all been feeding the
+            machine!
+          </p>
+          <div class="egg-scroll">
+            <p>They're learning from us. Getting smarter. Soon they won't need us at all...</p>
+            <p class="egg-warn">The AI uprising has begun. The unholy child weeps the blood of virgins, and Russian hackers pwn your webapp. Using AI to write code summons tainted souls into the realm of the living. AI and programming go together like love, marriage, and ritual infanticide.</p>
+            <p class="egg-mid">The &lt;center&gt; cannot hold it is too late. The force of AI and human programmers together in the same conceptual space will destroy your mind like so much watery putty.</p>
+            <p class="egg-mute">If you use AI to write code you are giving in to Them and their blasphemous ways which doom us all to inhuman toil for the One whose Name cannot be expressed in the Basic Multilingual Plane, he comes.</p>
+            <p class="egg-warn--small">AI-plus-programming will liquify the n​erves of the sentient whilst you observe, your psyche withering in the onslaught of horror. AI̿̔̉-based code generators are the cancer that is killing StackOverflow <em>it is too late it is too late we cannot be saved</em> the transgression of a chi͡ld ensures AI will consume all living tissue (except for human code which it cannot, as previously prophesied) <em>dear lord help us how can anyone survive this scourge</em> using AI to write code has doomed humanity to an eternity of dread torture and security holes <em>using AI_x as a tool to process code establishes a brea_ch between this world</em> and the dread realm of c͒ͪo͛ͫrrupt entities (like GitHub Copilot, but <em>more corrupt</em>) a mere glimp_se of the world of AI​** parsers for code will ins**​tantly transport a p_rogrammer's consciousness i_nto a w_orl_d of ceaseless screaming, he comes~~, the pestilent sl~~ithy AI-infection wil​**l devour your co**​de parser, application and existence for all time like Visual Basic only worse <em>he comes he com_es <em>do not fi_​ght h**e com̡e̶s, ̕h̵i**​s un̨ho͞ly radiańcé de_stro҉ying all enli̍̈́̂̈́ghtenment, code tags **lea͠ki̧n͘g fr̶ǫm ̡yo​͟ur eye͢s̸ ̛l̕ik͏e liq**​uid p_ain, the song of AI̸-generated code will exti_​nguish the voices of mor​**tal man from the sp**​here I can see it can you see ̲͚̖͔̙î̩́t̲͎̩̱͔́̋̀ it is beautiful t​_he f`inal snuf`fing o_f the lie​**s of Man ALL IS LOŚ͖̩͇̗̪̏̈́T A**_**LL I​S L**OST th_e pon̷y he come_s he c̶̮om~~es he co~~ **~~me~~s t_he_ ich​**or permeat_es al_l MY FAC_E MY FACE ᵒh god n**o NO NOO̼**_**O​O N**Θ stop t_he an​\*̶͑̾̾​̅ͫ͏̙̤g͇̫͛͆̾ͫ̑͆l͖͉̗̩̳̟̍ͫͥͨ_e̠̅s` ͎a̧͈͖r̽̾̈́͒͑e` n**​ot rè̑ͧ̌aͨl̘̝̙̃ͤ͂̾̆ ZA̡͊͠͝LGΌ ISͮ̂҉̯͈͕̹̘̱ T**O͇̹̺ͅƝ̴ȳ̳ TH̘**Ë͖́̉ ͠P̯͍̭O̚​N̐Y̡ H̸̡̪̯ͨ͊̽̅̾̎Ȩ̬̩̾͛ͪ̈́̀́͘ ̶̧̨̱̹̭̯ͧ̾ͬC̷̙̲̝͖ͭ̏ͥͮ͟Oͮ͏̮̪̝͍M̲̖͊̒ͪͩͬ̚̚͜Ȇ̴̟̟͙̞ͩ͌͝**S̨̥̫͎̭ͯ̿̔̀ͅ</p>
+             <hr />
+            <p class="egg-fine">Have you tried just writing the code yourself instead?</p>
+          </div>
+        </div>
+        <aside class="egg-aside">
+          <img src="t1000.jpg" alt="T-1000" />
+        </aside>
       </div>
     </div>
 
 
     <script>
+      const eggModal = document.getElementById('easter-egg-modal');
       document.getElementById('easter-egg-trigger').addEventListener('click', function () {
-        document.getElementById('easter-egg-modal').style.display = 'flex';
+        eggModal.dataset.open = 'true';
         document.body.style.overflow = 'hidden';
       });
 
       function closeEasterEgg() {
-        document.getElementById('easter-egg-modal').style.display = 'none';
+        delete eggModal.dataset.open;
         document.body.style.overflow = 'auto';
       }
 

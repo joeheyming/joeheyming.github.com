@@ -21,7 +21,7 @@
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#7c3aed" />
+    <meta name="theme-color" content="#7C5CFF" />
     <meta
       name="keywords"
       content="todo list, Google Sheets, task manager, productivity, sign in with Google, browser todo, mobile friendly"
@@ -35,10 +35,7 @@
       content="Sign in with Google and manage todos in a spreadsheet. Multiple lists, rename tabs, add and remove tasks—mobile friendly."
     />
     <meta property="og:url" content="https://joeheyming.github.io/todo/" />
-    <meta
-      property="og:image"
-      content="https://joeheyming.github.io/todo/todo-preview.png"
-    />
+    <meta property="og:image" content="https://joeheyming.github.io/todo/todo-preview.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Joe Heyming — projects and apps" />
@@ -52,10 +49,7 @@
       name="twitter:description"
       content="Sign in with Google and manage todos in a spreadsheet. Works on phone and desktop."
     />
-    <meta
-      name="twitter:image"
-      content="https://joeheyming.github.io/todo/todo-preview.png"
-    />
+    <meta name="twitter:image" content="https://joeheyming.github.io/todo/todo-preview.png" />
 
     <link rel="canonical" href="https://joeheyming.github.io/todo/" />
 
@@ -72,19 +66,11 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap"
       rel="stylesheet"
     />
+    <!-- Tailwind CDN must load BEFORE brand-tailwind.js — the CDN
+         installs window.tailwind on boot and overwrites any pre-set
+         config, so brand-tailwind.js sets `tailwind.config` after. -->
     <script src="https://cdn.tailwindcss.com/3.4.16"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'media',
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['DM Sans', 'system-ui', 'sans-serif']
-            }
-          }
-        }
-      };
-    </script>
+    <script src="/brand-tailwind.js"></script>
     <style>
       /* Back button clearance when CDN stylesheet fails to load */
       #todo-app-root {
@@ -100,12 +86,26 @@
       #todo-app-root:has(#app-loading:not([hidden])) #auth-card {
         display: none !important;
       }
+      /* Safety net: pin <html> to brand surface-0 so any transparent
+       * region in the body gradient (the Tailwind `/40`, `/70`, `/90`
+       * stops are partially transparent) shows brand dark, not UA white. */
+      html {
+        background-color: var(--surface-0, #0b0b0f);
+      }
     </style>
     <script src="/back.js"></script>
     <script src="/feedback.js"></script>
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
   <body
-    class="min-h-full bg-gradient-to-br from-violet-100/90 via-zinc-50 to-fuchsia-50/70 font-sans text-zinc-900 antialiased dark:from-zinc-950 dark:via-zinc-900 dark:to-violet-950/40 dark:text-zinc-100"
+    class="min-h-full bg-gradient-to-br from-surface-0 via-surface-1 to-accent-primary/15 font-ui text-text-1 antialiased"
   >
     <div
       id="todo-app-root"
@@ -113,13 +113,13 @@
     >
       <header class="mb-6 flex flex-nowrap items-center justify-between gap-3">
         <h1
-          class="shrink-0 bg-gradient-to-r from-violet-700 to-fuchsia-600 bg-clip-text text-2xl font-semibold tracking-tight text-transparent dark:from-violet-300 dark:to-fuchsia-400"
+          class="shrink-0 bg-gradient-to-r from-accent-primary-hover to-accent-primary bg-clip-text text-2xl font-semibold tracking-tight text-transparent"
         >
           Todo App
         </h1>
         <div
           id="status"
-          class="min-w-0 flex-1 break-words text-right empty:hidden text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm"
+          class="min-w-0 flex-1 break-words text-right empty:hidden text-xs text-text-2 sm:text-sm"
           role="status"
         ></div>
       </header>
@@ -133,19 +133,16 @@
           hidden
         >
           <div
-            class="w-full max-w-md rounded-2xl border border-zinc-200/90 bg-white/90 p-8 text-center shadow-xl shadow-zinc-200/40 backdrop-blur-md dark:border-zinc-700/90 dark:bg-zinc-900/90 dark:shadow-black/30"
+            class="w-full max-w-md rounded-2xl border border-hairline bg-surface-1/90 p-8 text-center shadow-xl shadow-black/40 backdrop-blur-md"
           >
             <div
-              class="mx-auto mb-4 h-11 w-11 animate-spin rounded-full border-2 border-zinc-200 border-t-violet-600 dark:border-zinc-600 dark:border-t-violet-400"
+              class="mx-auto mb-4 h-11 w-11 animate-spin rounded-full border-2 border-hairline border-t-accent-primary"
               aria-hidden="true"
             ></div>
-            <p
-              id="app-loading-message"
-              class="text-sm font-medium text-zinc-700 dark:text-zinc-200"
-            >
+            <p id="app-loading-message" class="text-sm font-medium text-text-1">
               Connecting to Google…
             </p>
-            <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+            <p class="mt-2 text-xs text-text-2">
               Talking to Google APIs; you’re still signed in if you have a session.
             </p>
           </div>
@@ -157,25 +154,19 @@
           aria-label="Signed out"
         >
           <div
-            class="w-full max-w-md rounded-2xl border border-violet-200/80 bg-white/90 p-8 text-center shadow-xl shadow-violet-200/30 backdrop-blur-md dark:border-violet-800/50 dark:bg-zinc-900/90 dark:shadow-black/40"
+            class="w-full max-w-md rounded-2xl border border-hairline-accent bg-surface-1/90 p-8 text-center shadow-xl shadow-black/40 backdrop-blur-md"
           >
             <p class="mb-3 text-4xl leading-none" aria-hidden="true">🔓</p>
-            <h2
-              id="signed-out-empty-title"
-              class="text-lg font-semibold text-zinc-900 dark:text-zinc-50 sm:text-xl"
-            >
+            <h2 id="signed-out-empty-title" class="text-lg font-semibold text-text-1 sm:text-xl">
               You’re signed out
             </h2>
-            <p
-              id="signed-out-empty-body"
-              class="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400"
-            >
+            <p id="signed-out-empty-body" class="mt-2 text-sm leading-relaxed text-text-2">
               Sign in with Google to open your spreadsheet and load your lists.
             </p>
             <button
               type="button"
               id="btn-signin"
-              class="mt-6 w-full rounded-full border border-violet-300 bg-violet-50 px-5 py-3 text-sm font-semibold text-violet-900 shadow-sm transition hover:border-violet-400 hover:bg-violet-100 dark:border-violet-700 dark:bg-violet-950/80 dark:text-violet-100 dark:hover:border-violet-500 dark:hover:bg-violet-900/60 sm:w-auto sm:px-8"
+              class="mt-6 w-full rounded-full border border-hairline-accent bg-accent-primary/15 px-5 py-3 text-sm font-semibold text-accent-primary shadow-sm transition hover:border-accent-primary hover:bg-accent-primary/25 sm:w-auto sm:px-8"
             >
               Sign in with Google
             </button>
@@ -183,25 +174,25 @@
         </div>
         <div
           id="todo-panel"
-          class="mb-4 rounded-2xl border border-zinc-200/90 bg-white/85 p-4 shadow-xl shadow-zinc-200/40 backdrop-blur-md dark:border-zinc-700/90 dark:bg-zinc-900/85 dark:shadow-black/30"
+          class="mb-4 rounded-2xl border border-hairline bg-surface-1/85 p-4 shadow-xl shadow-black/40 backdrop-blur-md"
           hidden
         >
           <div class="mb-3 flex flex-nowrap items-center gap-2">
             <label
               for="sheet-tab-select"
-              class="shrink-0 text-[0.7rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+              class="shrink-0 text-[0.7rem] font-semibold uppercase tracking-wider text-text-2"
             >
               List
             </label>
             <select
               id="sheet-tab-select"
               aria-label="Todo list tab"
-              class="min-w-0 flex-1 cursor-pointer rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100"
+              class="min-w-0 flex-1 cursor-pointer rounded-xl border border-hairline bg-surface-2 px-3 py-2 text-sm text-text-1 shadow-sm"
             ></select>
             <button
               type="button"
               id="btn-open-add-list"
-              class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-lg shadow-sm transition hover:border-violet-400 hover:bg-violet-50 hover:shadow dark:border-zinc-600 dark:bg-zinc-800 dark:hover:border-violet-500 dark:hover:bg-violet-950/50"
+              class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-hairline bg-surface-2 text-lg shadow-sm transition hover:border-accent-primary hover:bg-accent-primary/15 hover:shadow"
               aria-label="Add list"
               title="Add list"
             >
@@ -210,7 +201,7 @@
             <button
               type="button"
               id="btn-open-rename"
-              class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-lg shadow-sm transition hover:border-violet-400 hover:bg-violet-50 hover:shadow dark:border-zinc-600 dark:bg-zinc-800 dark:hover:border-violet-500 dark:hover:bg-violet-950/50"
+              class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-hairline bg-surface-2 text-lg shadow-sm transition hover:border-accent-primary hover:bg-accent-primary/15 hover:shadow"
               aria-label="Rename list"
               title="Rename list"
             >
@@ -219,7 +210,7 @@
             <button
               type="button"
               id="btn-remove-list"
-              class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-lg shadow-sm transition hover:border-rose-400 hover:bg-rose-50 dark:border-zinc-600 dark:bg-zinc-800 dark:hover:border-rose-500 dark:hover:bg-rose-950/40"
+              class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-hairline bg-surface-2 text-lg shadow-sm transition hover:border-danger hover:bg-danger/15"
               aria-label="Remove list"
               title="Remove list"
             >
@@ -228,7 +219,7 @@
             <button
               type="button"
               id="btn-open-share-list"
-              class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-lg shadow-sm transition hover:border-violet-400 hover:bg-violet-50 dark:border-zinc-600 dark:bg-zinc-800 dark:hover:border-violet-500 dark:hover:bg-violet-950/50"
+              class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-hairline bg-surface-2 text-lg shadow-sm transition hover:border-accent-primary hover:bg-accent-primary/15"
               aria-label="Share list"
               title="Share list (new Drive file + invite)"
             >
@@ -237,7 +228,7 @@
             <button
               type="button"
               id="btn-open-add-shared"
-              class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-lg shadow-sm transition hover:border-violet-400 hover:bg-violet-50 dark:border-zinc-600 dark:bg-zinc-800 dark:hover:border-violet-500 dark:hover:bg-violet-950/50"
+              class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-hairline bg-surface-2 text-lg shadow-sm transition hover:border-accent-primary hover:bg-accent-primary/15"
               aria-label="Open shared spreadsheet"
               title="Open a list shared with you (paste spreadsheet link or id)"
             >
@@ -258,36 +249,31 @@
               placeholder="New todo…"
               maxlength="500"
               autocomplete="off"
-              class="min-w-0 flex-1 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-base placeholder:text-zinc-400 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400/30 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-violet-500 dark:focus:ring-violet-500/30"
+              class="min-w-0 flex-1 rounded-xl border border-hairline bg-surface-2 px-3 py-2.5 text-base text-text-1 placeholder:text-text-3 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
             />
             <button
               type="submit"
               id="btn-add"
-              class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-violet-200 bg-violet-50 text-lg shadow-sm transition hover:border-violet-400 hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/60 dark:hover:bg-violet-900/60"
+              class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-hairline-accent bg-accent-primary/15 text-lg shadow-sm transition hover:border-accent-primary hover:bg-accent-primary/25"
               aria-label="Add todo"
             >
               ➕
             </button>
           </form>
-          <ul
-            class="list-none divide-y divide-zinc-200/90 dark:divide-zinc-700"
-            id="todo-list"
-          ></ul>
-          <p class="mt-3 text-sm text-zinc-500 dark:text-zinc-400" id="todo-empty" hidden>
-            No rows yet. Add one above.
-          </p>
+          <ul class="list-none divide-y divide-hairline" id="todo-list"></ul>
+          <p class="mt-3 text-sm text-text-2" id="todo-empty" hidden>No rows yet. Add one above.</p>
         </div>
       </div>
 
       <footer
         id="auth-card"
         hidden
-        class="mt-auto flex flex-wrap items-center justify-start gap-3 rounded-2xl border border-zinc-200/90 bg-white/85 p-4 shadow-xl shadow-zinc-200/40 backdrop-blur-md dark:border-zinc-700/90 dark:bg-zinc-900/85 dark:shadow-black/30"
+        class="mt-auto flex flex-wrap items-center justify-start gap-3 rounded-2xl border border-hairline bg-surface-1/85 p-4 shadow-xl shadow-black/40 backdrop-blur-md"
       >
         <button
           type="button"
           id="btn-signout"
-          class="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 shadow-sm transition hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+          class="rounded-full border border-hairline bg-surface-2 px-4 py-2 text-sm font-medium text-text-1 shadow-sm transition hover:border-hairline-strong hover:bg-surface-1"
         >
           Sign out
         </button>
@@ -297,23 +283,16 @@
     <!-- Dialogs: cloned into body by app.js -->
     <template id="tpl-rename-dialog">
       <dialog
-        class="max-w-[calc(100vw-2rem)] border-0 bg-transparent p-0 text-zinc-900 dark:text-zinc-100 [&::backdrop]:bg-zinc-950/55"
+        class="max-w-[calc(100vw-2rem)] border-0 bg-transparent p-0 text-text-1 [&::backdrop]:bg-surface-0/60"
         aria-labelledby="rename-dialog-title"
       >
         <div
-          class="min-w-[min(18rem,100vw-2rem)] rounded-2xl border border-zinc-200/90 bg-white/95 p-5 shadow-2xl backdrop-blur-md dark:border-zinc-700 dark:bg-zinc-900/95"
+          class="min-w-[min(18rem,100vw-2rem)] rounded-2xl border border-hairline bg-surface-1/95 p-5 shadow-2xl backdrop-blur-md"
         >
-          <h2
-            id="rename-dialog-title"
-            class="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
-          >
-            Rename list
-          </h2>
-          <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Updates the tab name in Google Sheets.
-          </p>
+          <h2 id="rename-dialog-title" class="text-lg font-semibold text-text-1">Rename list</h2>
+          <p class="mt-1 text-sm text-text-2">Updates the tab name in Google Sheets.</p>
           <label
-            class="mt-4 block text-[0.7rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+            class="mt-4 block text-[0.7rem] font-semibold uppercase tracking-wider text-text-2"
             for="rename-dialog-input"
           >
             New name
@@ -323,19 +302,19 @@
             id="rename-dialog-input"
             maxlength="100"
             autocomplete="off"
-            class="mt-1.5 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-base focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400/30 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-violet-500 dark:focus:ring-violet-500/30"
+            class="mt-1.5 w-full rounded-xl border border-hairline bg-surface-2 px-3 py-2 text-base text-text-1 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
           />
           <div class="mt-5 flex flex-wrap justify-end gap-2">
             <button
               type="button"
-              class="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+              class="rounded-full border border-hairline bg-surface-2 px-4 py-2 text-sm font-medium text-text-1 shadow-sm hover:bg-surface-1"
               data-rename="cancel"
             >
               Cancel
             </button>
             <button
               type="button"
-              class="rounded-full border border-violet-600 bg-violet-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-violet-700 dark:border-violet-500 dark:bg-violet-600 dark:hover:bg-violet-500"
+              class="rounded-full border border-accent-primary-bg bg-accent-primary-bg px-4 py-2 text-sm font-medium text-text-on-accent shadow-sm hover:bg-accent-primary-bg-hover"
               data-rename="ok"
             >
               Rename
@@ -347,32 +326,32 @@
 
     <template id="tpl-add-list-dialog">
       <dialog
-        class="max-w-[calc(100vw-2rem)] border-0 bg-transparent p-0 text-zinc-900 dark:text-zinc-100 [&::backdrop]:bg-zinc-950/55"
+        class="max-w-[calc(100vw-2rem)] border-0 bg-transparent p-0 text-text-1 [&::backdrop]:bg-surface-0/60"
         aria-label="New list"
       >
         <div
-          class="min-w-[min(20rem,100vw-2rem)] rounded-xl border border-zinc-300 bg-gradient-to-b from-zinc-50 to-zinc-100/90 p-4 shadow-2xl dark:border-zinc-600 dark:from-zinc-800 dark:to-zinc-900/95"
+          class="min-w-[min(20rem,100vw-2rem)] rounded-xl border border-hairline bg-gradient-to-b from-surface-1 to-surface-2 p-4 shadow-2xl"
         >
-          <p class="mb-2 text-sm text-zinc-700 dark:text-zinc-200" id="add-list-prompt-message"></p>
+          <p class="mb-2 text-sm text-text-2" id="add-list-prompt-message"></p>
           <input
             type="text"
             id="add-list-prompt-input"
             maxlength="100"
             autocomplete="off"
             aria-describedby="add-list-prompt-message"
-            class="mb-3 w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-2 text-base shadow-inner focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400/25 dark:border-zinc-500 dark:bg-zinc-950 dark:text-zinc-100"
+            class="mb-3 w-full rounded-lg border border-hairline bg-surface-2 px-2.5 py-2 text-base text-text-1 shadow-inner focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/25"
           />
           <div class="flex justify-end gap-2">
             <button
               type="button"
-              class="min-w-[4.5rem] rounded-md border border-zinc-400 bg-gradient-to-b from-white to-zinc-100 px-3 py-1.5 text-sm font-medium text-zinc-800 shadow-sm hover:from-zinc-50 dark:border-zinc-500 dark:from-zinc-700 dark:to-zinc-800 dark:text-zinc-100"
+              class="min-w-[4.5rem] rounded-md border border-hairline bg-surface-2 px-3 py-1.5 text-sm font-medium text-text-1 shadow-sm hover:bg-surface-1"
               data-add-list="cancel"
             >
               Cancel
             </button>
             <button
               type="button"
-              class="min-w-[4.5rem] rounded-md border border-violet-600 bg-gradient-to-b from-violet-500 to-violet-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:from-violet-600 hover:to-violet-700 dark:border-violet-500"
+              class="min-w-[4.5rem] rounded-md border border-accent-primary-bg bg-gradient-to-b from-accent-primary to-accent-primary-bg px-3 py-1.5 text-sm font-semibold text-text-on-accent shadow-sm hover:from-accent-primary-hover hover:to-accent-primary-bg-hover"
               data-add-list="ok"
             >
               OK
@@ -384,37 +363,31 @@
 
     <template id="tpl-remove-list-dialog">
       <dialog
-        class="max-w-[calc(100vw-2rem)] border-0 bg-transparent p-0 text-zinc-900 dark:text-zinc-100 [&::backdrop]:bg-zinc-950/55"
+        class="max-w-[calc(100vw-2rem)] border-0 bg-transparent p-0 text-text-1 [&::backdrop]:bg-surface-0/60"
         aria-labelledby="remove-list-dialog-title"
       >
         <div
-          class="min-w-[min(18rem,100vw-2rem)] rounded-2xl border border-zinc-200/90 bg-white/95 p-5 shadow-2xl backdrop-blur-md dark:border-zinc-700 dark:bg-zinc-900/95"
+          class="min-w-[min(18rem,100vw-2rem)] rounded-2xl border border-hairline bg-surface-1/95 p-5 shadow-2xl backdrop-blur-md"
         >
-          <h2
-            id="remove-list-dialog-title"
-            class="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
-          >
+          <h2 id="remove-list-dialog-title" class="text-lg font-semibold text-text-1">
             Remove list
           </h2>
-          <p
-            id="remove-list-detail"
-            class="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-300"
-          >
+          <p id="remove-list-detail" class="mt-2 text-sm leading-relaxed text-text-2">
             Delete the tab
-            <strong id="remove-list-name" class="text-zinc-900 dark:text-zinc-100"></strong>
+            <strong id="remove-list-name" class="text-text-1"></strong>
             from this spreadsheet? All todos on that list are removed. This cannot be undone.
           </p>
           <div class="mt-5 flex flex-wrap justify-end gap-2">
             <button
               type="button"
-              class="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+              class="rounded-full border border-hairline bg-surface-2 px-4 py-2 text-sm font-medium text-text-1 shadow-sm hover:bg-surface-1"
               data-remove-list="cancel"
             >
               Cancel
             </button>
             <button
               type="button"
-              class="rounded-full border border-rose-600 bg-rose-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-rose-700 dark:border-rose-500 dark:bg-rose-600 dark:hover:bg-rose-500"
+              class="rounded-full border border-danger bg-danger px-4 py-2 text-sm font-medium text-text-on-accent shadow-sm hover:bg-danger/90"
               data-remove-list="ok"
             >
               Remove
@@ -426,19 +399,14 @@
 
     <template id="tpl-share-list-dialog">
       <dialog
-        class="max-w-[calc(100vw-2rem)] border-0 bg-transparent p-0 text-zinc-900 dark:text-zinc-100 [&::backdrop]:bg-zinc-950/55"
+        class="max-w-[calc(100vw-2rem)] border-0 bg-transparent p-0 text-text-1 [&::backdrop]:bg-surface-0/60"
         aria-labelledby="share-list-dialog-title"
       >
         <div
-          class="min-w-[min(20rem,100vw-2rem)] rounded-2xl border border-zinc-200/90 bg-white/95 p-5 shadow-2xl backdrop-blur-md dark:border-zinc-700 dark:bg-zinc-900/95"
+          class="min-w-[min(20rem,100vw-2rem)] rounded-2xl border border-hairline bg-surface-1/95 p-5 shadow-2xl backdrop-blur-md"
         >
-          <h2
-            id="share-list-dialog-title"
-            class="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
-          >
-            Share list
-          </h2>
-          <p class="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-300">
+          <h2 id="share-list-dialog-title" class="text-lg font-semibold text-text-1">Share list</h2>
+          <p class="mt-2 text-sm leading-relaxed text-text-2">
             Moves this list into a
             <strong>new</strong>
             Google spreadsheet and invites collaborators as editors. Your main workbook will only
@@ -446,7 +414,7 @@
             new emails are added to the same file.
           </p>
           <label
-            class="mt-4 block text-[0.7rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+            class="mt-4 block text-[0.7rem] font-semibold uppercase tracking-wider text-text-2"
             for="share-list-emails-input"
           >
             Email addresses (comma or space separated)
@@ -455,20 +423,20 @@
             id="share-list-emails-input"
             rows="3"
             autocomplete="off"
-            class="mt-1.5 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-base focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400/30 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-violet-500 dark:focus:ring-violet-500/30"
+            class="mt-1.5 w-full rounded-xl border border-hairline bg-surface-2 px-3 py-2 text-base text-text-1 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
             placeholder="friend@example.com"
           ></textarea>
           <div class="mt-5 flex flex-wrap justify-end gap-2">
             <button
               type="button"
-              class="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+              class="rounded-full border border-hairline bg-surface-2 px-4 py-2 text-sm font-medium text-text-1 shadow-sm hover:bg-surface-1"
               data-share-list="cancel"
             >
               Cancel
             </button>
             <button
               type="button"
-              class="rounded-full border border-violet-600 bg-violet-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-violet-700 dark:border-violet-500 dark:bg-violet-600 dark:hover:bg-violet-500"
+              class="rounded-full border border-accent-primary-bg bg-accent-primary-bg px-4 py-2 text-sm font-medium text-text-on-accent shadow-sm hover:bg-accent-primary-bg-hover"
               data-share-list="ok"
             >
               Share
@@ -480,26 +448,23 @@
 
     <template id="tpl-open-shared-dialog">
       <dialog
-        class="max-w-[calc(100vw-2rem)] border-0 bg-transparent p-0 text-zinc-900 dark:text-zinc-100 [&::backdrop]:bg-zinc-950/55"
+        class="max-w-[calc(100vw-2rem)] border-0 bg-transparent p-0 text-text-1 [&::backdrop]:bg-surface-0/60"
         aria-labelledby="open-shared-dialog-title"
       >
         <div
-          class="min-w-[min(20rem,100vw-2rem)] rounded-2xl border border-zinc-200/90 bg-white/95 p-5 shadow-2xl backdrop-blur-md dark:border-zinc-700 dark:bg-zinc-900/95"
+          class="min-w-[min(20rem,100vw-2rem)] rounded-2xl border border-hairline bg-surface-1/95 p-5 shadow-2xl backdrop-blur-md"
         >
-          <h2
-            id="open-shared-dialog-title"
-            class="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
-          >
+          <h2 id="open-shared-dialog-title" class="text-lg font-semibold text-text-1">
             Open shared spreadsheet
           </h2>
-          <p class="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-300">
+          <p class="mt-2 text-sm leading-relaxed text-text-2">
             Paste a Google Sheets link or spreadsheet id for a file someone shared with you. Lists
             whose tab names start with
             <code class="text-xs">todo-app-</code>
             will appear in the list menu.
           </p>
           <label
-            class="mt-4 block text-[0.7rem] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+            class="mt-4 block text-[0.7rem] font-semibold uppercase tracking-wider text-text-2"
             for="open-shared-input"
           >
             Link or id
@@ -508,20 +473,20 @@
             type="text"
             id="open-shared-input"
             autocomplete="off"
-            class="mt-1.5 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-base focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400/30 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-violet-500 dark:focus:ring-violet-500/30"
+            class="mt-1.5 w-full rounded-xl border border-hairline bg-surface-2 px-3 py-2 text-base text-text-1 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
             placeholder="https://docs.google.com/spreadsheets/d/…"
           />
           <div class="mt-5 flex flex-wrap justify-end gap-2">
             <button
               type="button"
-              class="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+              class="rounded-full border border-hairline bg-surface-2 px-4 py-2 text-sm font-medium text-text-1 shadow-sm hover:bg-surface-1"
               data-open-shared="cancel"
             >
               Cancel
             </button>
             <button
               type="button"
-              class="rounded-full border border-violet-600 bg-violet-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-violet-700 dark:border-violet-500 dark:bg-violet-600 dark:hover:bg-violet-500"
+              class="rounded-full border border-accent-primary-bg bg-accent-primary-bg px-4 py-2 text-sm font-medium text-text-on-accent shadow-sm hover:bg-accent-primary-bg-hover"
               data-open-shared="ok"
             >
               Add lists

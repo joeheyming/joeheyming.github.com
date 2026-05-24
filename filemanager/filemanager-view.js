@@ -1,4 +1,5 @@
 import { debug } from './filemanager-shared.js';
+import { Icons } from '../os/Icons.js';
 /** @param {new () => object} FileManager */
 export function applyFileManagerView(FileManager) {
   Object.assign(FileManager.prototype, {
@@ -273,7 +274,8 @@ export function applyFileManagerView(FileManager) {
     },
 
     getFileIcon(item) {
-      return window.parent?.HeymingOS?.Icons?.getIconForItem(item) || '📄';
+      const osIcons = window.parent?.HeymingOS?.Icons;
+      return (osIcons || Icons).getIconForItem(item);
     },
 
     toggleView() {

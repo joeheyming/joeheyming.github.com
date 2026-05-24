@@ -15,7 +15,7 @@
       name="description"
       content="A free browser theremin and XY pad. Drag for pitch and volume; add a second finger for vibrato. Multi-touch friendly — no plugins or install required."
     />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#7C5CFF" />
 
     <link rel="manifest" href="/play/manifest.json" />
     <link rel="apple-touch-icon" sizes="180x180" href="/play/icons/apple-touch-icon.png" />
@@ -76,8 +76,7 @@
           window.backButtonInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent =
-            '.back-to-portfolio,.play-footer a[href="/"]{display:none!important}';
+          s.textContent = '.back-to-portfolio,.play-footer a[href="/"]{display:none!important}';
           document.head.appendChild(s);
         }
       })();
@@ -88,6 +87,14 @@
 
     <link rel="stylesheet" href="../style.css" />
     <link rel="stylesheet" href="style.css" />
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
   <body class="instrument-body">
     <header class="instrument-header">
@@ -234,7 +241,12 @@
         id="theremin-record-modal-backdrop"
         aria-hidden="true"
       ></div>
-      <div class="theremin-record-modal-card" role="dialog" aria-modal="true" aria-labelledby="theremin-record-modal-title">
+      <div
+        class="theremin-record-modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="theremin-record-modal-title"
+      >
         <h2 class="theremin-record-modal-title" id="theremin-record-modal-title">
           Recording ready
         </h2>
@@ -308,17 +320,17 @@
         </li>
         <li>
           <strong>Paint</strong>
-          turns your fingertip — finger on screen in touch mode, or right-hand index tip in air
-          mode — into a glowing rainbow trail. Stays on for recordings, so a 10-second clip
-          captures whatever you "drew" along with the audio.
+          turns your fingertip — finger on screen in touch mode, or right-hand index tip in air mode
+          — into a glowing rainbow trail. Stays on for recordings, so a 10-second clip captures
+          whatever you "drew" along with the audio.
         </li>
         <li>
           <strong>Rec 10s / 30s</strong>
           captures a sharable video of your performance. The
           <strong>Muted / Unmuted</strong>
-          toggle next to the Rec buttons mixes your microphone into the recording when unmuted
-          (your browser will ask for permission the first time). Mic is only on while a recording
-          is actually in progress.
+          toggle next to the Rec buttons mixes your microphone into the recording when unmuted (your
+          browser will ask for permission the first time). Mic is only on while a recording is
+          actually in progress.
         </li>
       </ul>
     </section>

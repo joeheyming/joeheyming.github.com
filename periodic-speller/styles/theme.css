@@ -1,5 +1,28 @@
 /* Periodic Speller — theme picker dropdown, per-theme overrides on
-   the tile palette, and the export-results button. */
+   the tile palette, and the export-results button.
+ *
+ * Scoped --ps-* tokens hold the per-theme tile palettes (pastel cream,
+ * mono off-white, Heisenberg green CRT, vintage paper). The element-
+ * category palette stays in base.css under --category-* — those are
+ * data, not chrome, and intentionally non-brand. */
+:root {
+  --ps-pastel-bg: #f0f4ff;
+  --ps-mono-symbol: #f8fafc;
+
+  --ps-heisenberg-bg: #0c1a0c;
+  --ps-heisenberg-bright: #22c55e;
+  --ps-heisenberg-mid: #4ade80;
+  --ps-heisenberg-deep: #166534;
+  --ps-heisenberg-shadow: #14532d;
+
+  --ps-vintage-bg: #fef3c7;
+  --ps-vintage-bg-soft: #fef9ee;
+  --ps-vintage-deep: #451a03;
+  --ps-vintage-mid: #78350f;
+  --ps-vintage-border: #92400e;
+  --ps-vintage-line: #d6d3d1;
+  --ps-vintage-line-soft: #a8a29e;
+}
 
 /* Theme picker */
 .theme-picker-wrap {
@@ -19,7 +42,7 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 0.4rem;
   min-width: 240px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--pure-black) 40%, transparent);
   animation: modalIn 0.15s ease-out;
   z-index: 10;
 }
@@ -38,9 +61,7 @@
   border: 2px solid transparent;
   background: none;
   cursor: pointer;
-  transition:
-    border-color 0.15s,
-    background 0.15s;
+  transition: border-color 0.15s, background 0.15s;
   color: var(--text-muted);
   font-size: 0.7rem;
   font-weight: 600;
@@ -59,111 +80,110 @@
   width: 36px;
   height: 28px;
   border-radius: 5px;
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border: 1.5px solid color-mix(in srgb, var(--pure-white) 10%, transparent);
 }
 
 /* Theme overrides on tiles */
 .tiles[data-theme='pastel'] .tile {
-  background: #f0f4ff;
+  background: var(--ps-pastel-bg, #f0f4ff);
   border-width: 2px;
 }
 .tiles[data-theme='pastel'] .tile .tile-symbol {
-  color: #1e293b;
+  color: var(--surface-1, #1e293b);
 }
 .tiles[data-theme='pastel'] .tile .tile-name {
-  color: #64748b;
+  color: var(--text-3, #64748b);
 }
 .tiles[data-theme='pastel'] .tile .tile-mass {
-  color: #94a3b8;
+  color: var(--text-2, #94a3b8);
 }
 .tiles[data-theme='pastel'] .tile-unmatched {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
+  background: var(--text-1, #f1f5f9);
+  border-color: var(--text-1, #cbd5e1);
 }
 .tiles[data-theme='pastel'] .tile-unmatched .tile-symbol {
-  color: #94a3b8;
+  color: var(--text-2, #94a3b8);
 }
 .tiles[data-theme='pastel'] .tile-unmatched .tile-name {
-  color: #cbd5e1;
+  color: var(--text-1, #cbd5e1);
 }
 
 .tiles[data-theme='neon'] .tile {
-  background: #0a0a0a;
-  box-shadow:
-    0 0 10px var(--tile-border),
-    inset 0 0 8px rgba(255, 255, 255, 0.03);
+  background: var(--surface-0, #0a0a0a);
+  box-shadow: 0 0 10px var(--tile-border),
+    inset 0 0 8px color-mix(in srgb, var(--pure-white) 3%, transparent);
 }
 .tiles[data-theme='neon'] .tile .tile-symbol {
   text-shadow: 0 0 12px currentColor;
 }
 
 .tiles[data-theme='mono'] .tile {
-  border-color: #e2e8f0;
+  border-color: var(--text-1, #e2e8f0);
   background: var(--tile-bg);
 }
 .tiles[data-theme='mono'] .tile .tile-number {
-  color: #e2e8f0;
+  color: var(--text-1, #e2e8f0);
 }
 .tiles[data-theme='mono'] .tile .tile-symbol {
-  color: #f8fafc;
+  color: var(--ps-mono-symbol, #f8fafc);
 }
 .tiles[data-theme='mono'] .tile .tile-name {
-  color: #94a3b8;
+  color: var(--text-2, #94a3b8);
 }
 
 .tiles[data-theme='heisenberg'] .tile {
-  background: #0c1a0c;
-  border-color: #22c55e;
+  background: var(--ps-heisenberg-bg, var(--ps-heisenberg-bg, #0c1a0c));
+  border-color: var(--ps-heisenberg-bright, var(--ps-heisenberg-bright, #22c55e));
 }
 .tiles[data-theme='heisenberg'] .tile .tile-number {
-  color: #22c55e;
+  color: var(--ps-heisenberg-bright, var(--ps-heisenberg-bright, #22c55e));
 }
 .tiles[data-theme='heisenberg'] .tile .tile-symbol {
-  color: #4ade80;
+  color: var(--ps-heisenberg-mid, var(--ps-heisenberg-mid, #4ade80));
 }
 .tiles[data-theme='heisenberg'] .tile .tile-name {
-  color: #166534;
+  color: var(--ps-heisenberg-deep, var(--ps-heisenberg-deep, #166534));
 }
 .tiles[data-theme='heisenberg'] .tile .tile-mass {
-  color: #14532d;
+  color: var(--ps-heisenberg-shadow, var(--ps-heisenberg-shadow, #14532d));
 }
 .tiles[data-theme='heisenberg'] .tile-unmatched {
-  background: #0c1a0c;
-  border-color: #166534;
+  background: var(--ps-heisenberg-bg, var(--ps-heisenberg-bg, #0c1a0c));
+  border-color: var(--ps-heisenberg-deep, var(--ps-heisenberg-deep, #166534));
 }
 .tiles[data-theme='heisenberg'] .tile-unmatched .tile-symbol {
-  color: #166534;
+  color: var(--ps-heisenberg-deep, var(--ps-heisenberg-deep, #166534));
 }
 .tiles[data-theme='heisenberg'] .tile-unmatched .tile-name {
-  color: #14532d;
+  color: var(--ps-heisenberg-shadow, var(--ps-heisenberg-shadow, #14532d));
 }
 
 .tiles[data-theme='vintage'] .tile {
-  background: #fef3c7;
-  border-color: #92400e;
+  background: var(--ps-vintage-bg, var(--ps-vintage-bg, #fef3c7));
+  border-color: var(--ps-vintage-border, var(--ps-vintage-border, #92400e));
   border-width: 2px;
 }
 .tiles[data-theme='vintage'] .tile .tile-number {
-  color: #92400e;
+  color: var(--ps-vintage-border, var(--ps-vintage-border, #92400e));
 }
 .tiles[data-theme='vintage'] .tile .tile-symbol {
-  color: #451a03;
+  color: var(--ps-vintage-deep, var(--ps-vintage-deep, #451a03));
 }
 .tiles[data-theme='vintage'] .tile .tile-name {
-  color: #78350f;
+  color: var(--ps-vintage-mid, var(--ps-vintage-mid, #78350f));
 }
 .tiles[data-theme='vintage'] .tile .tile-mass {
-  color: #92400e;
+  color: var(--ps-vintage-border, var(--ps-vintage-border, #92400e));
 }
 .tiles[data-theme='vintage'] .tile-unmatched {
-  background: #fef9ee;
-  border-color: #d6d3d1;
+  background: var(--ps-vintage-bg-soft, var(--ps-vintage-bg-soft, #fef9ee));
+  border-color: var(--ps-vintage-line, var(--ps-vintage-line, #d6d3d1));
 }
 .tiles[data-theme='vintage'] .tile-unmatched .tile-symbol {
-  color: #a8a29e;
+  color: var(--ps-vintage-line-soft, var(--ps-vintage-line-soft, #a8a29e));
 }
 .tiles[data-theme='vintage'] .tile-unmatched .tile-name {
-  color: #d6d3d1;
+  color: var(--ps-vintage-line, var(--ps-vintage-line, #d6d3d1));
 }
 
 .export-row {
@@ -201,10 +221,7 @@
   padding: 0.5rem 1.2rem;
   border-radius: 8px;
   cursor: pointer;
-  transition:
-    color 0.15s,
-    background 0.15s,
-    border-color 0.15s;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
 }
 
 .export-btn:hover {
@@ -212,4 +229,3 @@
   border-color: var(--accent);
   background: var(--border);
 }
-

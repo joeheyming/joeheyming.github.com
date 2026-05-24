@@ -1,13 +1,86 @@
+/*
+ * Sayit (Tesseract OCR → speech) — brand dark body, brand dark cards.
+ *
+ * The ONE surface that stays white is the drawing canvas itself
+ * (Tesseract needs dark ink on a light background). Every other panel
+ * — instructions, control bar, drop zone, sample area, result cards —
+ * is a brand --surface-1 card with a hairline border, light text, and
+ * brand-violet / brand-success / brand-danger CTAs on top.
+ *
+ * Earlier passes left this app with white panels on a brand-dark body
+ * — a "light theme dropped onto a dark chassis" look. The chrome now
+ * commits to brand-dark; only the canvas and the uploaded-image preview
+ * are light because the content needs it.
+ *
+ * Token contract: --si-* aliases route through brand tokens. Soft/tint
+ * variants assume DARK panels — they're translucent overlays of the
+ * accent over the brand surface, not light fills over white.
+ */
+
+:root {
+  /* Primary action / "selected tool" — brand violet. */
+  --si-blue: var(--accent-primary, #7c5cff);
+  --si-blue-dark: var(--accent-primary-bg, #5b3cdc);
+  --si-blue-darker: var(--accent-primary-bg-hover, #6e50e6);
+  --si-blue-soft: var(--accent-primary-soft, rgba(124, 92, 255, 0.15));
+  --si-blue-tint: var(--accent-primary-soft, rgba(124, 92, 255, 0.15));
+
+  /* Success / "read" — brand success green. */
+  --si-green: var(--success, #34d399);
+  --si-green-dark: var(--success, #34d399);
+  --si-green-hover: color-mix(in srgb, var(--success) 85%, var(--pure-white));
+  --si-green-soft: var(--success-soft, rgba(52, 211, 153, 0.15));
+
+  /* Destructive / "clear" + "playing" — brand danger red. */
+  --si-orange: var(--danger, #f87171);
+  --si-orange-hover: color-mix(in srgb, var(--danger) 85%, var(--pure-white));
+  --si-orange-active: color-mix(in srgb, var(--danger) 90%, var(--pure-black));
+  --si-orange-soft: var(--danger-soft, rgba(248, 113, 113, 0.15));
+
+  /* Surface + text — dark panels, light text. The `--si-text-dark`
+   * name is legacy ("dark ink on light panel"); it now resolves to the
+   * brand light text token because the panels themselves are dark. */
+  --si-border: var(--hairline-strong, rgba(255, 255, 255, 0.14));
+  --si-border-strong: var(--hairline-strong, rgba(255, 255, 255, 0.14));
+  --si-text-dark: var(--text-1, #f5f5f7);
+  --si-text-muted: var(--text-2, #a1a1aa);
+  --si-disabled-bg: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  --si-disabled-text: var(--text-3, #8e8e96);
+  --si-hover-grey: var(--surface-2, #1f1f27);
+  --si-soft-bg: var(--surface-2, #1f1f27);
+
+  /* Error toast routed to brand danger. */
+  --si-error-text: var(--danger, #f87171);
+  --si-error-border: var(--danger, #f87171);
+  --si-error-bg: var(--danger-soft, rgba(248, 113, 113, 0.15));
+
+  /* Tooltip surface — brand surface-2 tint, matches OS chrome. */
+  --si-tooltip-bg: color-mix(in srgb, var(--surface-2, #1f1f27) 96%, transparent);
+}
+
 body {
-  font-family: Arial, sans-serif;
+  font-family: var(--font-ui, Arial, sans-serif);
   max-width: 1200px;
   margin: 0 auto;
   padding-top: max(20px, env(safe-area-inset-top, 0px));
   padding-right: max(20px, env(safe-area-inset-right, 0px));
   padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
   padding-left: max(20px, env(safe-area-inset-left, 0px));
-  background-color: #f5f5f5;
+  background-color: var(--surface-0, #0b0b0f);
+  color: var(--text-1, #f5f5f7);
   box-sizing: border-box;
+}
+
+/* Panels inside sayit are brand-dark cards. Anchor a light text color so
+ * paragraphs read on the dark --surface-1 the cards below establish. The
+ * #drawingCanvas is the only intentionally-white surface (Tesseract reads
+ * dark ink on light paper). */
+.canvas-instructions,
+.instructions,
+.result-panel,
+.sample-section,
+#parsedContent {
+  color: var(--text-1, #f5f5f7);
 }
 
 .sayit-app-message {
@@ -20,19 +93,19 @@ body {
   border-radius: 8px;
   font-size: 15px;
   line-height: 1.4;
-  color: #1a1a1a;
-  background: #fff;
-  border: 1px solid #ccc;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  color: var(--text-1, #f5f5f7);
+  background: var(--surface-1, #15151b);
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
+  box-shadow: var(--shadow-card, 0 4px 20px rgba(0, 0, 0, 0.4));
   max-width: min(560px, 100%);
   margin: 0 auto;
   text-align: center;
 }
 
 .sayit-app-message.sayit-app-message--error {
-  border-color: #c62828;
-  background: #ffebee;
-  color: #b71c1c;
+  border-color: var(--si-error-border, #c62828);
+  background: var(--si-error-bg, #ffebee);
+  color: var(--si-error-text, #b71c1c);
 }
 
 /* Quick custom tooltips — data-tip on .has-tip (faster than native title="" popups) */
@@ -54,14 +127,14 @@ body {
   font-size: 12px;
   font-weight: normal;
   line-height: 1.4;
-  color: #fff;
+  color: var(--pure-white, #ffffff);
   text-align: left;
   white-space: normal;
   word-wrap: break-word;
   pointer-events: none;
-  background: rgba(33, 33, 33, 0.96);
+  background: var(--si-tooltip-bg, rgba(33, 33, 33, 0.96));
   border-radius: 6px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--pure-black, #000000) 22%, transparent);
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.06s ease, visibility 0s linear 0.12s;
@@ -133,8 +206,9 @@ body {
 }
 
 .mode-button {
-  background: white;
-  border: 2px solid #ddd;
+  background: var(--surface-2, #1f1f27);
+  color: var(--text-1, #f5f5f7);
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
   border-radius: 8px;
   padding: 12px 20px;
   cursor: pointer;
@@ -143,14 +217,14 @@ body {
 }
 
 .mode-button:hover {
-  border-color: #2196f3;
-  background: #f0f8ff;
+  border-color: var(--accent-primary, #7c5cff);
+  background: var(--accent-primary-soft, rgba(124, 92, 255, 0.15));
 }
 
 .mode-button.active {
-  background: #1565c0;
-  color: white;
-  border-color: #1565c0;
+  background: var(--si-blue-dark, #5b3cdc);
+  color: var(--text-on-accent, #ffffff);
+  border-color: var(--si-blue-dark, #5b3cdc);
 }
 
 /* Canvas Mode */
@@ -159,8 +233,8 @@ body {
 }
 
 .canvas-instructions {
-  background: #e8f5e8;
-  border: 2px solid #4caf50;
+  background: var(--surface-1, #15151b);
+  border: 1px solid var(--si-green, #34d399);
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
@@ -168,7 +242,7 @@ body {
 
 .canvas-instructions h3 {
   margin-top: 0;
-  color: #2e7d32;
+  color: var(--si-green, #34d399);
 }
 
 .canvas-controls {
@@ -177,9 +251,10 @@ body {
   gap: 20px;
   margin-bottom: 20px;
   padding: 15px;
-  background: white;
+  background: var(--surface-1, #15151b);
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-soft, 0 2px 4px rgba(0, 0, 0, 0.3));
   position: relative;
   z-index: 1;
 }
@@ -187,19 +262,20 @@ body {
 .tool-group {
   display: flex;
   gap: 2px;
-  border: 2px solid #ddd;
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
   border-radius: 6px;
   overflow: visible;
 }
 
 .tool-button {
-  background: white;
+  background: var(--surface-2, #1f1f27);
+  color: var(--text-1, #f5f5f7);
   border: none;
   padding: 8px 16px;
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s ease;
-  border-right: 1px solid #ddd;
+  border-right: 1px solid var(--hairline, rgba(255, 255, 255, 0.08));
 }
 
 .tool-button:last-child {
@@ -207,27 +283,27 @@ body {
 }
 
 .tool-button:hover {
-  background: #f0f8ff;
+  background: var(--accent-primary-soft, rgba(124, 92, 255, 0.15));
 }
 
 .tool-button.active {
-  background: #1565c0;
-  color: white;
+  background: var(--si-blue-dark, #5b3cdc);
+  color: var(--text-on-accent, #ffffff);
 }
 
 .history-group {
   display: flex;
   gap: 4px;
-  border: 2px solid #ddd;
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
   border-radius: 6px;
   overflow: visible;
 }
 
 .history-button {
-  background: white;
-  color: #333;
+  background: var(--surface-2, #1f1f27);
+  color: var(--text-1, #f5f5f7);
   border: none;
-  border-right: 1px solid #ddd;
+  border-right: 1px solid var(--hairline, rgba(255, 255, 255, 0.08));
   padding: 8px 12px;
   cursor: pointer;
   font-size: 14px;
@@ -239,17 +315,17 @@ body {
 }
 
 .history-button:hover:not(:disabled) {
-  background: #f5f5f5;
+  background: var(--accent-primary-soft, rgba(124, 92, 255, 0.15));
 }
 
 .history-button:disabled {
-  color: #aaa;
+  color: var(--text-3, #8e8e96);
   cursor: not-allowed;
 }
 
 .control-button {
-  background: #bf360c;
-  color: white;
+  background: var(--si-orange, #bf360c);
+  color: var(--pure-white, #ffffff);
   border: none;
   padding: 8px 16px;
   border-radius: 6px;
@@ -259,7 +335,7 @@ body {
 }
 
 .control-button:hover {
-  background: #a52714;
+  background: var(--si-orange-hover, #a52714);
   transform: translateY(-1px);
 }
 
@@ -268,7 +344,7 @@ body {
   align-items: center;
   gap: 8px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-1, #f5f5f7);
 }
 
 .pen-size-slider {
@@ -276,17 +352,17 @@ body {
 }
 
 .canvas-status {
-  background: #e8f5e8;
-  color: #2e7d32;
+  background: var(--success-soft, rgba(52, 211, 153, 0.15));
+  color: var(--si-green, #34d399);
   padding: 6px 12px;
   border-radius: 4px;
   font-size: 14px;
-  border: 1px solid #4caf50;
+  border: 1px solid var(--si-green, #34d399);
 }
 
 .read-button {
-  background: #2e7d32;
-  color: white;
+  background: var(--si-green-dark, #2e7d32);
+  color: var(--pure-white, #ffffff);
   border: none;
   padding: 12px 20px;
   border-radius: 6px;
@@ -298,12 +374,12 @@ body {
 }
 
 .read-button:hover {
-  background: #45a049;
+  background: var(--si-green-hover, #45a049);
   transform: translateY(-1px);
 }
 
 .read-button:disabled {
-  background: #cccccc;
+  background: var(--si-disabled-bg, #cccccc);
   cursor: not-allowed;
   transform: none;
 }
@@ -311,21 +387,24 @@ body {
 .canvas-wrapper {
   display: flex;
   justify-content: center;
-  background: white;
+  background: var(--surface-1, #15151b);
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-soft, 0 2px 4px rgba(0, 0, 0, 0.3));
   position: relative;
   z-index: 0;
 }
 
+/* Canvas STAYS white — Tesseract reads dark ink on a light surface, so
+ * this is the one intentionally-light element inside the dark chrome. */
 .canvas-stack {
   position: relative;
   display: inline-block;
   line-height: 0;
-  border: 2px solid #ddd;
+  border: 2px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
   border-radius: 4px;
-  background: white;
+  background: var(--pure-white, #ffffff);
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -335,7 +414,7 @@ body {
   display: block;
   border: none;
   cursor: crosshair;
-  background: white;
+  background: var(--pure-white, #ffffff);
 }
 
 .canvas-stack .eraser-hover-overlay {
@@ -349,7 +428,7 @@ body {
 }
 
 #drawingCanvas:focus-visible {
-  outline: 3px solid #2196f3;
+  outline: 3px solid var(--si-blue, #2196f3);
   outline-offset: 3px;
 }
 
@@ -488,8 +567,8 @@ body {
 }
 
 .instructions {
-  background: #e8f4fd;
-  border: 2px solid #2196f3;
+  background: var(--surface-1, #15151b);
+  border: 1px solid var(--si-blue, #7c5cff);
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 30px;
@@ -497,27 +576,27 @@ body {
 
 .instructions h3 {
   margin-top: 0;
-  color: #1976d2;
+  color: var(--si-blue, #7c5cff);
 }
 
 .drop-zone {
-  border: 3px dashed #ccc;
+  border: 3px dashed var(--hairline-strong, rgba(255, 255, 255, 0.14));
   border-radius: 10px;
   padding: 40px 20px;
   text-align: center;
   margin: 20px 0;
-  background: white;
+  background: var(--surface-1, #15151b);
   transition: all 0.3s ease;
   cursor: pointer;
 }
 
 .drop-zone.dragover {
-  border-color: #2196f3;
-  background-color: #e8f4fd;
+  border-color: var(--si-blue, #7c5cff);
+  background-color: var(--accent-primary-soft, rgba(124, 92, 255, 0.15));
 }
 
 .drop-zone-text {
-  color: #666;
+  color: var(--text-2, #a1a1aa);
   font-size: 18px;
   margin-bottom: 10px;
 }
@@ -525,15 +604,16 @@ body {
 .sample-section {
   margin: 30px 0;
   padding: 20px;
-  background: white;
+  background: var(--surface-1, #15151b);
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-soft, 0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 .sample-image {
   max-width: 300px;
   height: auto;
-  border: 2px solid #ddd;
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
   border-radius: 4px;
   cursor: grab;
   transition: transform 0.2s ease;
@@ -559,31 +639,33 @@ body {
   flex: 1;
   min-width: min(100%, 280px);
   max-width: 100%;
-  background: white;
+  background: var(--surface-1, #15151b);
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-soft, 0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 .result-panel h3 {
   margin-top: 0;
-  color: #333;
+  color: var(--text-1, #f5f5f7);
 }
 
 #imgPreview {
   max-width: 100%;
   height: auto;
-  border: 1px solid #ddd;
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
   border-radius: 4px;
 }
 
 #parsedContent {
-  background: #f8f8f8;
-  border: 1px solid #ddd;
+  background: var(--surface-2, #1f1f27);
+  color: var(--text-1, #f5f5f7);
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
   border-radius: 4px;
   padding: 15px;
   min-height: 100px;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono, 'Courier New', monospace);
   white-space: pre-wrap;
 }
 
@@ -601,8 +683,8 @@ body {
 }
 
 .play-button {
-  background: #2e7d32;
-  color: white;
+  background: var(--si-green-dark, #2e7d32);
+  color: var(--pure-white, #ffffff);
   border: none;
   padding: 12px 20px;
   border-radius: 6px;
@@ -616,7 +698,7 @@ body {
 }
 
 .play-button:hover {
-  background: #45a049;
+  background: var(--si-green-hover, #45a049);
   transform: translateY(-1px);
 }
 
@@ -625,15 +707,15 @@ body {
 }
 
 .play-button:disabled {
-  background: #cccccc;
+  background: var(--si-disabled-bg, #cccccc);
   cursor: not-allowed;
   transform: none;
 }
 
 .play-button.playing {
-  background: #d84315;
+  background: var(--si-orange-active, #d84315);
 }
 
 .play-button.playing:hover {
-  background: #bf360c;
+  background: var(--si-orange, #bf360c);
 }

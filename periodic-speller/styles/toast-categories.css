@@ -8,22 +8,20 @@
   left: 50%;
   transform: translateX(-50%);
   background: var(--accent);
-  color: #0f172a;
+  color: var(--surface-0, #0f172a);
   font-weight: 700;
   font-size: 0.9rem;
   padding: 0.6rem 1.4rem;
   border-radius: 8px;
   z-index: 9999;
   animation: toastIn 0.25s ease-out;
-  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.35);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .share-toast-out {
   opacity: 0;
   transform: translateX(-50%) translateY(8px);
-  transition:
-    opacity 0.3s,
-    transform 0.3s;
+  transition: opacity 0.3s, transform 0.3s;
 }
 
 @keyframes toastIn {
@@ -105,4 +103,3 @@
 .tile[data-category='custom'] .tile-number {
   color: var(--category-custom);
 }
-

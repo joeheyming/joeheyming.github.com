@@ -22,7 +22,7 @@
     />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#7C5CFF" />
 
     <meta property="og:type" content="website" />
     <meta property="og:title" content="🎧 Audiobooks — Free Public-Domain Audio" />
@@ -44,6 +44,14 @@
 
     <link rel="stylesheet" href="style.css" />
     <script type="module" src="app.js"></script>
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
   </head>
   <body>
     <!-- Hidden audio element -->
@@ -55,7 +63,6 @@
     </div>
 
     <div class="page-wrap">
-
       <!-- Header -->
       <header class="app-header">
         <h1>🎧 Audiobooks</h1>
@@ -78,7 +85,6 @@
 
       <!-- Browse view -->
       <div id="browse-view">
-
         <!-- Search results (shown when searching) -->
         <section id="search-results-section" class="hidden">
           <p class="section-title">Search results</p>
@@ -96,7 +102,6 @@
           <p class="section-title">Recently added</p>
           <div id="browse-grid" class="books-grid"></div>
         </section>
-
       </div>
 
       <!-- Book detail view -->
@@ -115,16 +120,23 @@
         <!-- Book cover / description -->
         <div id="book-detail-header"></div>
       </div>
-
     </div>
 
     <!-- Chapter bottom sheet -->
     <div id="chapter-sheet-overlay" class="hidden" aria-hidden="true"></div>
-    <div id="chapter-sheet" class="hidden" role="dialog" aria-modal="true" aria-label="Chapter list">
+    <div
+      id="chapter-sheet"
+      class="hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Chapter list"
+    >
       <div class="chapter-sheet-handle" aria-hidden="true"></div>
       <div class="chapter-sheet-head">
         <p class="chapter-sheet-title" id="chapter-sheet-book-title"></p>
-        <button id="btn-close-chapters" class="chapter-sheet-close" aria-label="Close chapters">✕</button>
+        <button id="btn-close-chapters" class="chapter-sheet-close" aria-label="Close chapters">
+          ✕
+        </button>
       </div>
       <div id="chapter-list" class="chapter-sheet-body"></div>
     </div>
@@ -151,23 +163,13 @@
         </div>
 
         <div class="player-controls-row">
-          <button
-            class="ctrl-btn ctrl-btn-sm"
-            id="btn-prev"
-            aria-label="Previous chapter"
-          >⏮</button>
+          <button class="ctrl-btn ctrl-btn-sm" id="btn-prev" aria-label="Previous chapter">
+            ⏮
+          </button>
 
-          <button
-            class="ctrl-btn"
-            id="btn-play-pause"
-            aria-label="Play"
-          >▶</button>
+          <button class="ctrl-btn" id="btn-play-pause" aria-label="Play">▶</button>
 
-          <button
-            class="ctrl-btn ctrl-btn-sm"
-            id="btn-next"
-            aria-label="Next chapter"
-          >⏭</button>
+          <button class="ctrl-btn ctrl-btn-sm" id="btn-next" aria-label="Next chapter">⏭</button>
 
           <select id="speed-select" aria-label="Playback speed">
             <option value="0.75">0.75×</option>
@@ -177,7 +179,14 @@
             <option value="2">2×</option>
           </select>
 
-          <button class="ctrl-btn ctrl-btn-sm" id="btn-chapters" aria-label="Chapters" title="Chapters">≡</button>
+          <button
+            class="ctrl-btn ctrl-btn-sm"
+            id="btn-chapters"
+            aria-label="Chapters"
+            title="Chapters"
+          >
+            ≡
+          </button>
         </div>
       </div>
     </div>

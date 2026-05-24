@@ -1,102 +1,208 @@
+/*
+ * Heyming OS Wordle Answer Finder — Tier-1 rebuild.
+ *
+ * Built on brand tokens + HOSDL primitives. The Wordle green / yellow /
+ * gray tile semantics are preserved (muscle memory matters), but their
+ * exact colors are now derived from brand tokens so they hold up against
+ * the dark surface and meet WCAG 2.2 AA against tile text.
+ *
+ * All IDs, class names, ARIA roles, and data attributes the solver JS
+ * binds to (.corrects, .maybecorrects, input#first..#fifth, #excludeLetters,
+ * #results [role=tab], .play-letter.correct/maybecorrect/incorrect, etc.)
+ * are intact.
+ */
+
 :root {
-  --wordle-green: #467046;
-  --wordle-gray: #686c70;
-  --wordle-yellow: #c9b458;
+  /* Wordle tile palette — recognizable, AA-clear on tile text. Scoped
+   * --wordle-* tokens carry the muscle-memory green/yellow/gray, plus
+   * one dark text color for the yellow tile (white-on-yellow fails AA). */
+  --wordle-green: #16a34a;
+  --wordle-yellow: #d4a017;
+  --wordle-gray: #3a3a44;
+  --wordle-text-on-tile: var(--pure-white, #ffffff);
+  --wordle-text-on-tile-dark: #1a1a1a;
   --long-input-width: 182px;
 }
 
-.info {
-  background-color: #00a5ff;
-  border: none;
-  border-radius: 100%;
-  padding: 2px;
-  line-height: 16px;
-  color: white;
-  font-family: initial;
-  font-style: italic;
-  font-weight: 900;
-  text-transform: lowercase;
-  min-width: 44px;
+* {
+  box-sizing: border-box;
 }
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  margin: 0;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--surface-0);
+  color: var(--text-1);
+  font-family: var(--font-ui);
+  touch-action: manipulation;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* ─── App header ───────────────────────────────────────────────────── */
+
+.wordle-app-header {
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  margin-bottom: 8px;
+}
+
+.wordle-app-header .hos-app-header-title {
+  font-size: var(--text-h3);
+  letter-spacing: -0.01em;
+}
+
+/* Help / info button — round token-aware variant of the legacy chip. */
+.info {
+  background-color: var(--accent-primary-bg);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  color: var(--text-on-accent);
+  font-family: var(--font-ui);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
+  text-transform: lowercase;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--motion-hover), transform var(--motion-hover);
+}
+
+.info:hover {
+  background-color: var(--accent-primary-bg-hover);
+}
+
+.info:active {
+  transform: scale(0.94);
+}
+
+/* ─── Base button reset ────────────────────────────────────────────── */
 
 button {
   display: inline-flex;
-  -webkit-box-align: center;
   align-items: center;
-  -webkit-box-pack: center;
   justify-content: center;
   position: relative;
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
-  outline: 0px;
-  margin: 0px;
+  outline: 0;
+  margin: 0;
   border: 0;
   cursor: pointer;
   user-select: none;
   vertical-align: middle;
   appearance: none;
   text-decoration: none;
-  font-weight: bold;
-  font-size: 0.875rem;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 14px;
   line-height: 1.5;
-  letter-spacing: 0.02857em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
   min-width: 64px;
-  padding: 12px 16px;
+  padding: 10px 16px;
   min-height: 44px;
-  border-radius: 4px;
-  transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms,
-    box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms,
-    border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms,
-    color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
-  color: inherit;
-  background-color: inherit;
-  box-shadow: rgb(0 0 0 / 20%) 0px 3px 1px -2px, rgb(0 0 0 / 14%) 0px 2px 2px 0px,
-    rgb(0 0 0 / 12%) 0px 1px 5px 0px;
-  color: white;
+  border-radius: var(--radius);
+  background-color: var(--surface-2);
+  color: var(--text-1);
+  transition: background-color var(--motion-hover), border-color var(--motion-hover),
+    color var(--motion-hover), transform 0.1s ease;
+}
+
+button:hover {
+  background-color: var(--surface-1);
+}
+
+button:active {
+  transform: scale(0.97);
 }
 
 .btn-txt {
-  color: inherit;
+  color: var(--text-1);
+  background-color: transparent;
 }
 
 .btn-bordered {
-  border: solid 1px var(--wordle-gray);
+  border: 1px solid var(--hairline-strong);
 }
 
+.btn-bordered:hover {
+  border-color: var(--accent-primary);
+}
+
+.btn-primary {
+  background-color: var(--accent-primary-bg);
+  color: var(--text-on-accent);
+  border-color: transparent;
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-primary-bg-hover);
+}
+
+/* ─── Tile inputs (correct/maybe/incorrect) ────────────────────────── */
+
+input[type='text'] {
+  text-transform: uppercase;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  text-align: center;
+  color: var(--wordle-text-on-tile);
+  font-size: 16px;
+  caret-color: var(--accent-primary);
+}
+
+input.wordle-style {
+  border: 2px solid transparent;
+  border-radius: 6px;
+  transition: border-color var(--motion-hover), box-shadow var(--motion-hover),
+    background-color var(--motion-hover);
+}
+
+input.wordle-style:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-primary-soft);
+}
+
+/* Correct (green tile) — used for "include in position N" inputs and the
+ * .corrects parent block. */
 .corrects .form-input > input,
 .maybecorrects .form-input > input {
   margin: 0;
   padding: 0;
 }
 
-.form-input.form-grid {
-  display: grid;
-  grid-gap: 5px;
-  grid-template-columns: repeat(5, 1fr);
-}
-
-input[type='text'] {
-  text-transform: uppercase;
-  font-weight: bold;
-  text-align: center;
-  color: white;
-  font-size: 16px; /* Prevents zoom on iOS */
-}
-
-input.wordle-style {
-  border: 2px solid transparent;
+.corrects input,
+input.correct {
+  background-color: var(--wordle-green);
 }
 
 .corrects input {
-  background-color: var(--wordle-green);
   width: 44px;
   height: 44px;
   min-width: 44px;
   min-height: 44px;
 }
 
-input.incorrect,
 input.correct {
   height: 44px;
   width: var(--long-input-width);
@@ -105,60 +211,66 @@ input.correct {
 
 input.correct::placeholder,
 input.incorrect::placeholder {
-  /* Chrome, Firefox, Opera, Safari 10.1+ */
-  color: white;
-  opacity: 1; /* Firefox */
-}
-
-input.correct::-ms-input-placeholder input.incorrect::-ms-input-placeholder {
-  /* Microsoft Edge */
-  color: white;
+  color: color-mix(in srgb, var(--pure-white, #ffffff) 85%, transparent);
+  opacity: 1;
 }
 
 input.incorrect {
   background-color: var(--wordle-gray);
-}
-
-input.correct {
-  background-color: var(--wordle-green);
+  height: 44px;
+  width: var(--long-input-width);
+  min-height: 44px;
+  color: var(--text-1);
 }
 
 .maybecorrects input {
   background-color: var(--wordle-yellow);
-  color: #1a1a1a;
+  color: var(--wordle-text-on-tile-dark, #1a1a1a);
   width: 44px;
   height: 44px;
   min-width: 44px;
   min-height: 44px;
 }
 
+.form-input.form-grid {
+  display: grid;
+  grid-gap: 6px;
+  grid-template-columns: repeat(5, 1fr);
+}
+
+/* ─── Stats panel tile glyphs ──────────────────────────────────────── */
+
 .stat-letter {
-  margin: 5px 0px 5px 0px;
+  margin: 5px 0;
   display: inline-block;
   height: 100%;
   text-align: center;
-  content: '';
+  font-family: var(--font-mono);
   font-weight: 600;
   width: 30px;
 }
 
 .stat-letter-block {
-  border: solid 1px var(--wordle-gray);
+  border: solid 1px var(--hairline-strong);
   width: 20px;
   margin-right: 5px;
 }
+
 .included-stat {
-  color: white;
+  color: var(--wordle-text-on-tile);
   background-color: var(--wordle-green);
 }
+
 .included-stat-wrong-spot {
-  color: white;
+  color: var(--wordle-text-on-tile);
   background-color: var(--wordle-yellow);
 }
 
 #randomWord {
+  font-family: var(--font-mono);
   font-weight: 600;
   text-transform: uppercase;
+  color: var(--accent-primary);
 }
 
 .block-input-control,
@@ -173,21 +285,14 @@ input.correct {
   align-items: center;
 }
 
-html,
-body {
-  height: 100%;
-  width: 100%;
-}
-
-body {
-  background: white;
-}
+/* ─── Layout ───────────────────────────────────────────────────────── */
 
 main {
   width: calc(100vw - 20px);
   margin-left: auto;
   margin-right: auto;
 }
+
 @media screen and (min-width: 480px) {
   main {
     width: 450px;
@@ -217,40 +322,23 @@ main {
   min-width: 200px;
 }
 
-body {
-  font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
-  touch-action: manipulation;
-  margin: 0;
-  /* Safe area support for modern devices with notches */
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  /* Prevent overscroll bounce on iOS */
-  overscroll-behavior: none;
-  /* Support system font scaling for accessibility */
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
-header {
-  padding-top: 50px;
-}
-
-h1 {
-  margin-top: 0;
-  margin-bottom: 4px;
-  text-align: center;
-}
-
 hr {
   width: 100%;
-  border: solid 0.5px inherit;
+  border: none;
+  border-top: 1px solid var(--hairline);
+  margin: 8px 0;
 }
 
 pre {
-  font-family: sans-serif;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-1);
   text-transform: uppercase;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin: 0;
 }
 
 @media screen and (max-width: 480px) {
@@ -263,19 +351,16 @@ pre {
     column-count: 2;
   }
 }
-
 @media screen and (min-width: 600px) {
   pre {
     column-count: 3;
   }
 }
-
 @media screen and (min-width: 800px) {
   pre {
     column-count: 4;
   }
 }
-
 @media screen and (min-width: 1024px) {
   pre {
     column-count: 5;
@@ -283,7 +368,7 @@ pre {
 }
 
 #results {
-  margin-top: 10px;
+  margin-top: 12px;
   margin-left: 10px;
   margin-right: 10px;
 }
@@ -297,110 +382,170 @@ pre {
 .panels {
   max-height: calc(100vh - 370px);
   overflow-y: auto;
+  border: 1px solid var(--hairline);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: var(--surface-1);
+  padding: 12px 14px;
 }
+
+/* Results tablist as a HOSDL-tinted tab strip. */
 #results [role='tablist'] {
-  border-bottom: solid 1px var(--wordle-gray);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border-bottom: 1px solid var(--hairline-strong);
+  padding: 4px 4px 0;
+  background: var(--surface-1);
+  border-radius: var(--radius) var(--radius) 0 0;
+  border: 1px solid var(--hairline);
+  border-bottom-color: var(--hairline-strong);
 }
 
 @media screen and (max-width: 480px) {
   #results [role='tablist'] {
-    display: flex;
     justify-content: space-between;
   }
 }
 
 #results button[role='tab'] {
-  border-bottom: none;
-  border-radius: 4px 4px 0 0;
-  outline: none;
-  box-shadow: none;
+  border: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: transparent;
+  color: var(--text-2);
+  font-weight: 600;
+  padding: 8px 12px;
+  min-height: 36px;
+  min-width: 0;
 }
 
-#results button[role='tab']:hover,
-#results button[role='tab']:focus,
+#results button[role='tab']:hover {
+  background-color: var(--surface-2);
+  color: var(--text-1);
+}
+
 #results button[role='tab'][aria-selected='true'] {
-  background-color: var(--wordle-yellow);
-  color: white;
+  background-color: var(--accent-primary-bg);
+  color: var(--text-on-accent);
 }
 
-/* Enhanced touch states */
-button:focus {
-  outline: 3px solid #ffbf47;
-  outline-offset: 0;
+/* Override the generic transform-on-active because tab text shouldn't jump. */
+#results button[role='tab']:active {
+  transform: none;
 }
 
-button:active {
-  transform: scale(0.95);
-  transition: transform 0.1s ease;
+/* ─── Focus + touch ────────────────────────────────────────────────── */
+
+button:focus-visible {
+  outline: 2px solid var(--focus-ring-inner);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--focus-ring-outer);
 }
 
 input:focus {
-  outline: 2px solid #4f46e5;
-  outline-offset: 2px;
+  outline: none;
 }
 
-/* Better touch feedback for mobile */
+input:focus-visible {
+  outline: 2px solid var(--focus-ring-inner);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--focus-ring-outer);
+}
+
 @media (hover: none) and (pointer: coarse) {
   button:hover {
-    background-color: initial;
+    background-color: var(--surface-2);
   }
-
   button:active {
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: var(--surface-1);
   }
 }
 
-.btn-primary {
-  color: white;
-  background-color: var(--wordle-green);
-}
+/* ─── Help modal ───────────────────────────────────────────────────── */
 
 .modal-layer {
   z-index: 3;
   position: fixed;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   overflow: auto;
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: var(--scrim, rgba(11, 11, 15, 0.6));
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
-  flex: 1;
   flex-direction: column;
   align-items: center;
   justify-content: center;
 }
+
 .modal {
   display: block;
-  background-color: white;
-  width: 80vw;
-  height: 600px;
-  border-radius: 4px;
+  background-color: var(--surface-1);
+  border: 1px solid var(--hairline-strong);
+  width: min(80vw, 720px);
+  height: min(80vh, 640px);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal, 0 20px 60px rgba(0, 0, 0, 0.5));
+  color: var(--text-1);
 }
 
 .modal-title {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 0 20px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--hairline);
 }
+
+.modal-title h2 {
+  margin: 0;
+  font-size: var(--text-h3);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.modal-content {
+  height: calc(100% - 64px);
+  padding: 16px 20px 24px;
+  overflow-y: auto;
+}
+
+.modal-content p {
+  color: var(--text-2);
+  line-height: 1.55;
+}
+
+.modal-content img {
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline);
+  margin: 8px 0;
+}
+
+.close-modal {
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  min-width: 32px;
+  min-height: 32px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+
+.close-modal:hover {
+  background: var(--surface-2);
+  color: var(--text-1);
+}
+
+/* ─── Form rows ────────────────────────────────────────────────────── */
 
 .content {
   display: flex;
   flex-direction: column;
   margin-left: 10px;
   margin-right: 10px;
-}
-.modal-content {
-  height: 500px;
-  margin: 0 20px;
-  overflow-y: auto;
-}
-.modal-content img {
-  max-width: 100%;
-}
-.close-modal {
-  border: none;
 }
 
 .form-controls {
@@ -413,12 +558,14 @@ input:focus {
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 label.form-input,
 .form-label {
-  font-weight: 400;
+  font-family: var(--font-ui);
+  font-weight: 500;
+  color: var(--text-2);
   min-width: 240px;
 }
 
@@ -428,29 +575,35 @@ label.form-input,
 
 .form-input > input[type='checkbox'] {
   margin-left: 0;
+  accent-color: var(--accent-primary);
 }
 
 .form-row#wordSelector {
   margin-top: 10px;
   margin-bottom: 10px;
 }
+
 .form-row#wordDisplay {
   margin-top: 10px;
   margin-bottom: 10px;
   display: grid;
-  grid-gap: 5px;
+  grid-gap: 6px;
   justify-content: space-around;
 }
 
 .play-letter {
   display: inline-block;
-  width: 30px;
-  height: 30px;
-  line-height: 30px;
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
   text-align: center;
   text-transform: uppercase;
   vertical-align: middle;
   margin-left: 5px;
+  border-radius: 4px;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  color: var(--wordle-text-on-tile);
 }
 
 .play-letter.correct {
@@ -459,10 +612,12 @@ label.form-input,
 
 .play-letter.maybecorrect {
   background-color: var(--wordle-yellow);
+  color: var(--wordle-text-on-tile-dark, #1a1a1a);
 }
 
 .play-letter.incorrect {
   background-color: var(--wordle-gray);
+  color: var(--text-1);
 }
 
 .form-row#step1 {
@@ -473,8 +628,31 @@ select {
   width: 190px;
   height: 44px;
   min-height: 44px;
-  font-size: 16px; /* Prevents zoom on iOS */
+  font-size: 16px; /* prevents iOS auto-zoom */
+  font-family: var(--font-ui);
+  font-weight: 500;
+  background: var(--surface-2);
+  color: var(--text-1);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  padding: 0 12px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-2) 50%),
+    linear-gradient(135deg, var(--text-2) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
 }
+
+select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-primary-soft);
+}
+
+/* ─── Accessibility helpers ────────────────────────────────────────── */
 
 .screenreader-text {
   position: absolute;
@@ -484,7 +662,7 @@ select {
   top: auto;
 }
 .screenreader-text:focus {
-  color: black;
+  color: var(--text-1);
   display: inline-block;
   height: auto;
   width: auto;
@@ -495,6 +673,23 @@ select {
 footer {
   display: none;
 }
+
+/* SEO copy: stays in the DOM for crawlers but hidden from view (the
+ * markup uses `hidden` already; this guarantees it even if [hidden] is
+ * overridden by ancestor display rules). */
+.seo-intro[hidden] {
+  display: none !important;
+}
+
+#todays-wordle {
+  margin: 4px 0 0;
+  text-align: center;
+  font-size: var(--text-caption);
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+/* ─── Mobile ───────────────────────────────────────────────────────── */
 
 @media screen and (max-width: 479px) {
   .form-row {

@@ -42,25 +42,26 @@
   z-index: 999998;
   padding: 6px 10px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.95), rgba(244, 114, 182, 0.95));
-  color: #fff;
+  border: 1px solid color-mix(in srgb, var(--pure-white, #fff) 18%, transparent);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--play-indigo, #818cf8) 95%, transparent),
+    color-mix(in srgb, var(--play-pink, #f472b6) 95%, transparent)
+  );
+  color: var(--pure-white, #fff);
   font-size: 16px;
   font-weight: 700;
   font-family: inherit;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(129, 140, 248, 0.35);
-  transition:
-    transform 200ms ease,
-    box-shadow 200ms ease,
-    filter 200ms ease;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--play-indigo, #818cf8) 35%, transparent);
+  transition: transform 200ms ease, box-shadow 200ms ease, filter 200ms ease;
 }
 
 .help-popup-button:hover,
 .help-popup-button:focus-visible {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(244, 114, 182, 0.45);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--play-pink, #f472b6) 45%, transparent);
   outline: none;
   filter: brightness(1.05);
 }
@@ -81,7 +82,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--scrim, rgba(0, 0, 0, 0.6));
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
 }
@@ -97,10 +98,14 @@
   max-height: calc(100dvh - 40px);
   display: flex;
   flex-direction: column;
-  background: linear-gradient(160deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--play-slate-800, #1e293b) 98%, transparent),
+    color-mix(in srgb, var(--play-slate-900, #0f172a) 98%, transparent)
+  );
   border: 1px solid var(--border);
   border-radius: 16px;
-  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 30px 60px -20px color-mix(in srgb, var(--pure-black, #000) 60%, transparent);
   overflow: hidden;
 }
 
@@ -127,7 +132,7 @@
   padding: 0;
   border-radius: 8px;
   border: 1px solid var(--border);
-  background: rgba(15, 23, 42, 0.6);
+  background: color-mix(in srgb, var(--play-slate-900, #0f172a) 60%, transparent);
   color: var(--fg);
   font-size: 22px;
   line-height: 1;
@@ -162,7 +167,7 @@
 }
 
 .help-popup-body code {
-  background: rgba(148, 163, 184, 0.12);
+  background: color-mix(in srgb, var(--play-slate-300, #94a3b8) 12%, transparent);
   padding: 1px 6px;
   border-radius: 5px;
   font-size: 12px;

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="hos-page">
   <head>
     <link
       rel="icon"
@@ -14,7 +14,7 @@
     <script src="/feedback.js"></script>
     <script src="/share.js"></script>
 
-    <title>Stock Ticker — Charts, Quotes &amp; Alerts | Joe Heyming</title>
+    <title>📈 Stocks — Heyming OS</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta charset="utf-8" />
     <meta
@@ -25,7 +25,7 @@
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#0b1220" />
+    <meta name="theme-color" content="#7C5CFF" />
     <meta
       name="keywords"
       content="stock ticker, candlestick chart, technical analysis, RSI, MACD, Bollinger Bands, watchlist, portfolio tracker, price alerts, free stock dashboard"
@@ -40,10 +40,7 @@
       content="Browser stock dashboard with candlestick charts, technical indicators, multiple watchlists, portfolio tracking, and price alerts. Free, no sign-up."
     />
     <meta property="og:url" content="https://joeheyming.github.io/stock/" />
-    <meta
-      property="og:image"
-      content="https://joeheyming.github.io/stock/stock-preview.png"
-    />
+    <meta property="og:image" content="https://joeheyming.github.io/stock/stock-preview.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta
@@ -61,19 +58,22 @@
       name="twitter:description"
       content="Candles, indicators, watchlists, portfolio, alerts — free in your browser."
     />
-    <meta
-      name="twitter:image"
-      content="https://joeheyming.github.io/stock/stock-preview.png"
-    />
+    <meta name="twitter:image" content="https://joeheyming.github.io/stock/stock-preview.png" />
 
     <!-- Canonical URL -->
     <link rel="canonical" href="https://joeheyming.github.io/stock/" />
 
     <style>
       /* Ensure title always clears the fixed back button regardless of CDN timing */
-      .stock-title-area { padding-left: 7.5rem !important; }
+      .stock-title-area {
+        padding-left: 7.5rem !important;
+      }
     </style>
+    <!-- Tailwind CDN must load BEFORE brand-tailwind.js — the CDN
+         installs window.tailwind on boot and overwrites any pre-set
+         config, so brand-tailwind.js sets `tailwind.config` after. -->
     <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script src="/brand-tailwind.js"></script>
 
     <!-- proxy.js must load BEFORE the app module so window.proxyService is ready. -->
     <script src="/proxy.js"></script>
@@ -90,6 +90,14 @@
       }
     </script>
 
+    <!-- Brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="/heyming-shell.css" />
     <link rel="stylesheet" href="style.css" />
 
     <script type="application/ld+json">
@@ -135,18 +143,21 @@
 
     <script type="module" src="./index.js"></script>
   </head>
-  <body class="bg-slate-950 text-slate-100 min-h-screen">
+  <body class="hos-page min-h-screen">
     <div class="max-w-7xl mx-auto px-3 sm:px-5 py-4">
-      <!-- Header -->
-      <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
-        <div class="pl-24 sm:pl-28 stock-title-area">
-          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <span>📈</span>
-            <span>Stock Ticker</span>
-          </h1>
-          <p class="text-slate-400 text-xs mt-0.5">
-            Candles, indicators, watchlists, portfolio &amp; alerts — all in your browser.
-          </p>
+      <!-- Header — HOSDL identity strip + ticker search. -->
+      <header
+        class="stock-app-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4"
+        aria-label="Stocks"
+      >
+        <div class="stock-app-header-identity flex items-center gap-3 min-w-0 stock-title-area">
+          <span class="app-icon-frame" aria-hidden="true">📈</span>
+          <div class="min-w-0">
+            <h1 class="stock-app-title">Stocks</h1>
+            <p class="stock-app-subtitle">
+              Candles, indicators, watchlists, portfolio &amp; alerts.
+            </p>
+          </div>
         </div>
 
         <!-- Search -->
@@ -159,10 +170,10 @@
               autocomplete="off"
               spellcheck="false"
               placeholder="Add ticker (AAPL, ^GSPC, BTC-USD…)"
-              class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              class="stock-search w-full rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none"
             />
             <span
-              class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+              class="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none stock-search-icon"
               aria-hidden="true"
             >
               🔍
@@ -170,7 +181,7 @@
           </div>
           <div
             id="ticker-suggestions"
-            class="hidden absolute z-30 left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-xl overflow-hidden max-h-80 overflow-y-auto"
+            class="hidden absolute z-30 left-0 right-0 mt-1 stock-suggestions rounded-lg shadow-xl overflow-hidden max-h-80 overflow-y-auto"
           ></div>
         </div>
       </header>
@@ -181,14 +192,14 @@
         <button
           id="list-new"
           type="button"
-          class="text-sm px-2 py-1 rounded border border-dashed border-slate-700 text-slate-300 hover:bg-slate-800"
+          class="text-sm px-2 py-1 rounded border border-dashed border-hairline-strong text-text-1 hover:bg-surface-2"
           title="Create a new watchlist"
         >
           + List
         </button>
 
         <div
-          class="w-full sm:w-auto sm:ml-auto inline-flex rounded-md overflow-hidden border border-slate-700 text-sm"
+          class="w-full sm:w-auto sm:ml-auto inline-flex rounded-md overflow-hidden border border-hairline-strong text-sm"
         >
           <button data-mode="chart" class="mode-btn flex-1 sm:flex-none active">Chart</button>
           <button data-mode="heatmap" class="mode-btn flex-1 sm:flex-none">Heatmap</button>
@@ -199,11 +210,16 @@
       <!-- Toolbar -->
       <section
         id="toolbar"
-        class="bg-slate-900/50 border border-slate-800 rounded-xl px-3 py-2 mb-3 flex flex-wrap items-center gap-2"
+        class="bg-surface-1/50 border border-hairline rounded-xl px-3 py-2 mb-3 flex flex-wrap items-center gap-2"
       >
-        <div id="range-buttons" class="flex flex-wrap gap-1" role="group" aria-label="Date range"></div>
+        <div
+          id="range-buttons"
+          class="flex flex-wrap gap-1"
+          role="group"
+          aria-label="Date range"
+        ></div>
 
-        <span class="hidden md:inline-block w-px h-5 bg-slate-700 mx-1"></span>
+        <span class="hidden md:inline-block w-px h-5 bg-hairline-strong mx-1"></span>
 
         <div id="chart-type-buttons" class="flex gap-1" role="group" aria-label="Chart type">
           <button data-type="line" class="type-btn">Line</button>
@@ -211,49 +227,81 @@
           <button data-type="candle" class="type-btn">Candle</button>
         </div>
 
-        <span class="hidden md:inline-block w-px h-5 bg-slate-700 mx-1"></span>
+        <span class="hidden md:inline-block w-px h-5 bg-hairline-strong mx-1"></span>
 
         <div class="relative">
           <button
             id="indicators-btn"
             type="button"
-            class="text-sm px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 inline-flex items-center gap-1"
+            class="text-sm px-2.5 py-1 rounded-md bg-surface-2 hover:bg-hairline-strong border border-hairline-strong inline-flex items-center gap-1"
           >
             <span>Indicators</span>
-            <span class="text-slate-500" aria-hidden="true">▾</span>
+            <span class="text-text-3" aria-hidden="true">▾</span>
           </button>
           <div
             id="indicators-menu"
-            class="hidden absolute z-30 left-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-xl py-2 px-3 w-56 text-sm"
+            class="hidden absolute z-30 left-0 mt-1 bg-surface-1 border border-hairline-strong rounded-lg shadow-xl py-2 px-3 w-56 text-sm"
           >
-            <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Overlays</div>
-            <label class="ind-row"><input type="checkbox" data-ind="sma20" /><span>SMA 20</span></label>
-            <label class="ind-row"><input type="checkbox" data-ind="sma50" /><span>SMA 50</span></label>
-            <label class="ind-row"><input type="checkbox" data-ind="sma200" /><span>SMA 200</span></label>
-            <label class="ind-row"><input type="checkbox" data-ind="ema12" /><span>EMA 12</span></label>
-            <label class="ind-row"><input type="checkbox" data-ind="ema26" /><span>EMA 26</span></label>
-            <label class="ind-row"><input type="checkbox" data-ind="bb" /><span>Bollinger Bands</span></label>
-            <div class="text-xs uppercase tracking-wider text-slate-500 mt-2 mb-1">Panes</div>
-            <label class="ind-row"><input type="checkbox" data-ind="volume" /><span>Volume</span></label>
-            <label class="ind-row"><input type="checkbox" data-ind="rsi" /><span>RSI 14</span></label>
-            <label class="ind-row"><input type="checkbox" data-ind="macd" /><span>MACD</span></label>
+            <div class="text-xs uppercase tracking-wider text-text-3 mb-1">Overlays</div>
+            <label class="ind-row">
+              <input type="checkbox" data-ind="sma20" />
+              <span>SMA 20</span>
+            </label>
+            <label class="ind-row">
+              <input type="checkbox" data-ind="sma50" />
+              <span>SMA 50</span>
+            </label>
+            <label class="ind-row">
+              <input type="checkbox" data-ind="sma200" />
+              <span>SMA 200</span>
+            </label>
+            <label class="ind-row">
+              <input type="checkbox" data-ind="ema12" />
+              <span>EMA 12</span>
+            </label>
+            <label class="ind-row">
+              <input type="checkbox" data-ind="ema26" />
+              <span>EMA 26</span>
+            </label>
+            <label class="ind-row">
+              <input type="checkbox" data-ind="bb" />
+              <span>Bollinger Bands</span>
+            </label>
+            <div class="text-xs uppercase tracking-wider text-text-3 mt-2 mb-1">Panes</div>
+            <label class="ind-row">
+              <input type="checkbox" data-ind="volume" />
+              <span>Volume</span>
+            </label>
+            <label class="ind-row">
+              <input type="checkbox" data-ind="rsi" />
+              <span>RSI 14</span>
+            </label>
+            <label class="ind-row">
+              <input type="checkbox" data-ind="macd" />
+              <span>MACD</span>
+            </label>
           </div>
         </div>
 
         <label class="ind-toggle" title="Logarithmic Y axis">
-          <input id="log-toggle" type="checkbox" /><span>Log</span>
+          <input id="log-toggle" type="checkbox" />
+          <span>Log</span>
         </label>
-        <label class="ind-toggle" title="Compare each stock's % change from the start of the range.">
-          <input id="normalize-toggle" type="checkbox" /><span>%Δ</span>
+        <label
+          class="ind-toggle"
+          title="Compare each stock's % change from the start of the range."
+        >
+          <input id="normalize-toggle" type="checkbox" />
+          <span>%Δ</span>
         </label>
 
-        <span class="hidden md:inline-block w-px h-5 bg-slate-700 mx-1"></span>
+        <span class="hidden md:inline-block w-px h-5 bg-hairline-strong mx-1"></span>
 
         <label class="ind-toggle" title="Auto-refresh quotes">
-          <span class="text-slate-400 text-xs uppercase">Auto</span>
+          <span class="text-text-2 text-xs uppercase">Auto</span>
           <select
             id="auto-refresh"
-            class="bg-slate-900 border border-slate-700 rounded text-xs py-0.5 pl-1 pr-5"
+            class="bg-surface-1 border border-hairline-strong rounded text-xs py-0.5 pl-1 pr-5"
           >
             <option value="0">off</option>
             <option value="15">15s</option>
@@ -264,12 +312,7 @@
         </label>
 
         <div class="ml-auto flex items-center gap-1.5">
-          <button
-            id="export-png"
-            type="button"
-            class="tool-btn"
-            title="Download chart as PNG"
-          >
+          <button id="export-png" type="button" class="tool-btn" title="Download chart as PNG">
             ⬇ PNG
           </button>
           <button id="copy-link" type="button" class="tool-btn" title="Copy shareable URL">
@@ -293,38 +336,45 @@
       <!-- Chart mode -->
       <section id="chart-mode" class="relative">
         <div
-          class="bg-slate-900/50 border border-slate-800 rounded-xl p-2 sm:p-3"
+          class="bg-surface-1/50 border border-hairline rounded-xl p-2 sm:p-3"
           style="min-height: 380px"
         >
           <div
             id="chart-empty"
-            class="hidden absolute inset-0 flex flex-col items-center justify-center text-center text-slate-400 px-6 z-20 bg-slate-900/95 rounded-xl"
+            class="hidden absolute inset-0 flex flex-col items-center justify-center text-center text-text-2 px-6 z-20 bg-surface-1/95 rounded-xl"
           >
             <div class="text-5xl mb-3" aria-hidden="true">📊</div>
-            <p class="text-lg font-medium text-slate-200">No tickers yet</p>
+            <p class="text-lg font-medium text-text-1">No tickers yet</p>
             <p class="text-sm mt-1 max-w-md">
               Type a symbol or company name above to start tracking. Try
-              <button data-add-suggested="AAPL" class="suggested-add">AAPL</button>,
-              <button data-add-suggested="MSFT" class="suggested-add">MSFT</button>,
-              <button data-add-suggested="NVDA" class="suggested-add">NVDA</button>,
-              <button data-add-suggested="^GSPC" class="suggested-add">S&amp;P&nbsp;500</button>, or
-              <button data-add-suggested="BTC-USD" class="suggested-add">BTC-USD</button>.
+              <button data-add-suggested="AAPL" class="suggested-add">AAPL</button>
+              ,
+              <button data-add-suggested="MSFT" class="suggested-add">MSFT</button>
+              ,
+              <button data-add-suggested="NVDA" class="suggested-add">NVDA</button>
+              ,
+              <button data-add-suggested="^GSPC" class="suggested-add">S&amp;P&nbsp;500</button>
+              , or
+              <button data-add-suggested="BTC-USD" class="suggested-add">BTC-USD</button>
+              .
             </p>
           </div>
 
           <div
             id="chart-loading"
-            class="hidden absolute inset-0 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm rounded-xl z-10"
+            class="hidden absolute inset-0 flex items-center justify-center bg-surface-0/40 backdrop-blur-sm rounded-xl z-10"
           >
-            <div class="flex items-center gap-2 text-slate-300">
-              <span class="inline-block w-4 h-4 rounded-full border-2 border-slate-500 border-t-emerald-400 animate-spin"></span>
+            <div class="flex items-center gap-2 text-text-1">
+              <span
+                class="inline-block w-4 h-4 rounded-full border-2 border-text-3 border-t-accent-primary animate-spin"
+              ></span>
               <span class="text-sm">Loading…</span>
             </div>
           </div>
 
           <div
             id="chart-error"
-            class="hidden absolute top-3 right-3 z-20 max-w-sm text-xs px-3 py-2 rounded-md bg-rose-950/80 border border-rose-700 text-rose-200"
+            class="hidden absolute top-3 right-3 z-20 max-w-sm text-xs px-3 py-2 rounded-md bg-danger/15 border border-danger text-danger"
             role="alert"
           ></div>
 
@@ -354,7 +404,9 @@
         <div class="overflow-x-auto">
           <table class="min-w-full text-sm border-collapse" id="portfolio-table">
             <thead>
-              <tr class="text-left text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
+              <tr
+                class="text-left text-xs uppercase tracking-wider text-text-2 border-b border-hairline"
+              >
                 <th class="px-2 py-2">Symbol</th>
                 <th class="px-2 py-2 text-right">Shares</th>
                 <th class="px-2 py-2 text-right">Cost / share</th>
@@ -368,13 +420,13 @@
             <tbody id="portfolio-tbody"></tbody>
           </table>
         </div>
-        <p class="text-xs text-slate-500">
+        <p class="text-xs text-text-3">
           Cost basis and shares are stored locally in your browser. Stocks must be in the active
           watchlist for prices to load.
         </p>
       </section>
 
-      <footer class="mt-6 text-center text-xs text-slate-400">
+      <footer class="mt-6 text-center text-xs text-text-2">
         Quotes may be delayed. Not investment advice.
       </footer>
     </div>
@@ -383,19 +435,21 @@
     <!-- z-index sits above the shared back-to-portfolio button (z-index 999999) -->
     <div
       id="detail-backdrop"
-      class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[9999990]"
+      class="hidden fixed inset-0 bg-surface-0/60 backdrop-blur-sm z-[9999990]"
     ></div>
     <aside
       id="detail-drawer"
-      class="hidden fixed top-0 right-0 bottom-0 w-full sm:w-[28rem] bg-slate-900 border-l border-slate-700 z-[9999991] overflow-y-auto shadow-2xl"
+      class="hidden fixed top-0 right-0 bottom-0 w-full sm:w-[28rem] bg-surface-1 border-l border-hairline-strong z-[9999991] overflow-y-auto shadow-2xl"
       aria-label="Stock detail"
     >
-      <header class="sticky top-0 bg-slate-900/95 backdrop-blur px-4 py-3 border-b border-slate-800 flex items-center gap-2">
+      <header
+        class="sticky top-0 bg-surface-1/95 backdrop-blur px-4 py-3 border-b border-hairline flex items-center gap-2"
+      >
         <h2 id="detail-title" class="text-lg font-semibold flex-1 truncate"></h2>
         <button
           id="detail-close"
           type="button"
-          class="text-slate-400 hover:text-slate-100 text-xl leading-none px-2"
+          class="text-text-2 hover:text-text-1 text-xl leading-none px-2"
           aria-label="Close detail"
         >
           ×
@@ -413,25 +467,70 @@
     <!-- Keyboard help modal -->
     <div
       id="help-modal"
-      class="hidden fixed inset-0 z-[9999993] flex items-center justify-center bg-slate-950/70 p-4"
+      class="hidden fixed inset-0 z-[9999993] flex items-center justify-center bg-surface-0/70 p-4"
     >
-      <div class="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-5 shadow-2xl">
+      <div
+        class="bg-surface-1 border border-hairline-strong rounded-xl max-w-md w-full p-5 shadow-2xl"
+      >
         <h2 class="text-lg font-semibold mb-3">Keyboard shortcuts</h2>
         <ul class="text-sm space-y-1.5">
-          <li><kbd>/</kbd> · focus search</li>
-          <li><kbd>R</kbd> · refresh quotes</li>
-          <li><kbd>L</kbd> · toggle log scale</li>
-          <li><kbd>%</kbd> · toggle % change</li>
-          <li><kbd>1</kbd>–<kbd>8</kbd> · range presets (1D…MAX)</li>
-          <li><kbd>C</kbd> / <kbd>A</kbd> / <kbd>K</kbd> · chart / area / candle type</li>
-          <li><kbd>V</kbd> · toggle volume</li>
-          <li><kbd>I</kbd> · open indicators menu</li>
-          <li><kbd>M</kbd> · cycle Chart / Heatmap / Portfolio</li>
-          <li><kbd>?</kbd> · this help</li>
-          <li><kbd>Esc</kbd> · close panels</li>
+          <li>
+            <kbd>/</kbd>
+            · focus search
+          </li>
+          <li>
+            <kbd>R</kbd>
+            · refresh quotes
+          </li>
+          <li>
+            <kbd>L</kbd>
+            · toggle log scale
+          </li>
+          <li>
+            <kbd>%</kbd>
+            · toggle % change
+          </li>
+          <li>
+            <kbd>1</kbd>
+            –
+            <kbd>8</kbd>
+            · range presets (1D…MAX)
+          </li>
+          <li>
+            <kbd>C</kbd>
+            /
+            <kbd>A</kbd>
+            /
+            <kbd>K</kbd>
+            · chart / area / candle type
+          </li>
+          <li>
+            <kbd>V</kbd>
+            · toggle volume
+          </li>
+          <li>
+            <kbd>I</kbd>
+            · open indicators menu
+          </li>
+          <li>
+            <kbd>M</kbd>
+            · cycle Chart / Heatmap / Portfolio
+          </li>
+          <li>
+            <kbd>?</kbd>
+            · this help
+          </li>
+          <li>
+            <kbd>Esc</kbd>
+            · close panels
+          </li>
         </ul>
         <div class="text-right mt-4">
-          <button id="help-close" type="button" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-sm">
+          <button
+            id="help-close"
+            type="button"
+            class="px-3 py-1 rounded bg-surface-2 hover:bg-hairline-strong text-sm"
+          >
             Close
           </button>
         </div>

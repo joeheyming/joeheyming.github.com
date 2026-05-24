@@ -161,11 +161,12 @@ function sortDirectoryEntriesByName(entries) {
  */
 function filterDirectoryEntriesForTabCompletion(entries, searchPattern) {
   const pat = searchPattern == null ? '' : String(searchPattern);
+  const patLower = pat.toLowerCase();
   const includeDotfiles = pat.length > 0 && pat.startsWith('.');
   return entries.filter((entry) => {
     const name = entry && entry.name != null ? String(entry.name) : '';
     if (!includeDotfiles && name.startsWith('.')) return false;
-    return name.startsWith(pat);
+    return name.toLowerCase().startsWith(patLower);
   });
 }
 
