@@ -58,14 +58,8 @@ import { createTracker } from './triplog-tracker.js';
  */
 export function createRecorder(deps) {
   const { state, dom, format, embed, liveUi, permissionCard, intervals, callbacks } = deps;
-  const {
-    setStatus,
-    formatDistance,
-    formatDuration,
-    formatElevation,
-    formatPace,
-    formatSpeed
-  } = format;
+  const { setStatus, formatDistance, formatDuration, formatElevation, formatPace, formatSpeed } =
+    format;
 
   // One keep-alive instance for the lifetime of the recorder. It's
   // idempotent — start()/stop() are no-ops when already in that state
@@ -164,7 +158,12 @@ export function createRecorder(deps) {
         onPoint: (p, stats) => {
           state.buffer.push(p);
           if (!zoomedToTrip) {
-            state.liveMap?.setView({ lat: p.lat, lon: p.lon }, 22);
+            // Zoom 17 shows a couple of blocks of context around the
+            // dot — enough to see where you're heading while still
+            // close enough to trace the path. We used to slam in at
+            // zoom 22, which is well past OSM's native zoom 19 and
+            // shows upscaled tiles with almost no surrounding context.
+            state.liveMap?.setView({ lat: p.lat, lon: p.lon }, 17);
             zoomedToTrip = true;
           }
           state.liveMap?.addLivePoint({

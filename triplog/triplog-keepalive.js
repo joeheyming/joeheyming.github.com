@@ -13,11 +13,13 @@
  * along with title updates and persistent notifications. So while the
  * recorder is running we:
  *
- *  1. Spin up a Web Audio graph that emits near-silent (~ -74 dBFS)
+ *  1. Spin up a Web Audio graph that emits low-amplitude (~ -46 dBFS)
  *     white noise on a one-second loop. Real audio frames hit the
- *     output device → Chrome marks the tab "audible" → tab is exempt
- *     from background freezing. The amplitude is low enough that the
- *     user can't hear it even at full system volume.
+ *     output device → Chrome's "is this tab audible" RMS check passes
+ *     → tab is exempt from background freezing. We previously ran at
+ *     ~-74 dBFS which was below Chrome's audibility threshold, so
+ *     the tab was being frozen anyway; -46 dBFS is the sweet spot
+ *     between "definitely counted as audio" and "user can't hear it".
  *  2. Register `navigator.mediaSession` with metadata + play/pause
  *     handlers, so Android puts a "Trip Log — recording" entry on the
  *     lock screen. Media-session pages get further lifecycle priority
@@ -26,13 +28,20 @@
  *     mutations are another freeze-exemption signal, and they make
  *     the recents card preview show "0.4 mi · 8:12" while the user
  *     has the tab in the background.
+ *  4. Drive a persistent system notification through the service
+ *     worker. A notification with `requireInteraction: true` keeps
+ *     the page at "foreground service" importance on Android, which
+ *     dramatically reduces the chance the OS will throttle GPS even
+ *     once the screen locks. Only meaningful when the user has
+ *     installed the PWA *and* granted notification permission, so
+ *     the install-prompt makes this a real lever.
  *
  * Nothing here guarantees that GPS itself keeps firing while the
  * screen is locked — Android can throttle the GPS subsystem
  * independently of page lifecycle — but this is the strongest known
- * lever a static web page has. The gap-aware logic in
- * `triplog-tracker.js` covers the remaining failure case where fixes
- * still drop out.
+ * combination of levers a static web page (and an installed PWA) has.
+ * The gap-aware logic in `triplog-tracker.js` covers the remaining
+ * failure case where fixes still drop out.
  *
  * Public surface is `createKeepalive()` returning:
  *   - `start({ onPause, onResume })`   begin keep-alive
@@ -43,8 +52,14 @@
  * method is idempotent and tolerates missing browser APIs.
  */
 
-/** Sample amplitude for the silent loop. ~ -74 dBFS — well below audibility. */
-const SILENT_NOISE_AMPLITUDE = 0.0002;
+/**
+ * Sample amplitude for the silent loop. ~ -46 dBFS — high enough
+ * for Chrome's audible-tab detector to fire, but low enough to be
+ * inaudible in a pocket or on a desk at normal volumes. The previous
+ * value (0.0002, ~ -74 dBFS) was below Chrome's threshold, which is
+ * why the keepalive didn't actually prevent suspension.
+ */
+const SILENT_NOISE_AMPLITUDE = 0.005;
 
 /**
  * @typedef {object} KeepaliveCallbacks
@@ -70,6 +85,13 @@ export function createKeepalive() {
   let callbacks = {};
   let active = false;
   let lastVisibilityHandler = /** @type {(() => void) | null} */ (null);
+  /**
+   * Last delivered notification payload (so visibility-driven
+   * re-pings can refresh the SW notification without the caller
+   * having to remember what was last shown).
+   * @type {{ title: string, subtitle: string, paused: boolean } | null}
+   */
+  let lastNotificationPayload = null;
 
   function startSilentLoop() {
     /** @type {typeof AudioContext | undefined} */
@@ -184,6 +206,55 @@ export function createKeepalive() {
     }
   }
 
+  /**
+   * Push the current status to the service worker so it can keep the
+   * persistent recording notification in sync. Cheap; falls through
+   * silently if the SW isn't installed, isn't controlling the page,
+   * or the user hasn't granted notification permission.
+   *
+   * @param {{ title: string, subtitle: string, paused: boolean }} payload
+   */
+  function postRecordingStatusToSw(payload) {
+    if (typeof navigator === 'undefined' || !navigator.serviceWorker) {
+      return;
+    }
+    const ctrl = navigator.serviceWorker.controller;
+    if (!ctrl) {
+      // SW is registered but hasn't taken control of this page yet
+      // (happens on the very first load before reload). No-op; the
+      // next status update after the page comes back will catch up.
+      return;
+    }
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+      return;
+    }
+    try {
+      ctrl.postMessage({
+        type: 'recording-status',
+        title: payload.paused ? 'Trip Log — paused' : 'Trip Log — recording',
+        body: payload.title,
+        paused: payload.paused
+      });
+    } catch (err) {
+      console.warn('[triplog] postRecordingStatusToSw failed', err);
+    }
+  }
+
+  function clearRecordingNotification() {
+    if (typeof navigator === 'undefined' || !navigator.serviceWorker) {
+      return;
+    }
+    const ctrl = navigator.serviceWorker.controller;
+    if (!ctrl) {
+      return;
+    }
+    try {
+      ctrl.postMessage({ type: 'stop-recording' });
+    } catch {
+      /* best-effort cleanup */
+    }
+  }
+
   return {
     /** @returns {boolean} */
     get isActive() {
@@ -223,10 +294,12 @@ export function createKeepalive() {
         const prefix = paused ? '⏸ ' : '⏺ ';
         document.title = `${prefix}${title} — Trip Log`;
       }
-      setMediaSession({
-        paused,
-        subtitle: subtitle || (paused ? 'Paused' : 'Recording')
-      });
+      const computedSubtitle = subtitle || (paused ? 'Paused' : 'Recording');
+      setMediaSession({ paused, subtitle: computedSubtitle });
+      if (typeof title === 'string' && title.length > 0) {
+        lastNotificationPayload = { title, subtitle: computedSubtitle, paused };
+        postRecordingStatusToSw(lastNotificationPayload);
+      }
     },
 
     /** Tear everything down — restores title, releases audio, clears MediaSession. */
@@ -236,8 +309,10 @@ export function createKeepalive() {
       }
       active = false;
       callbacks = {};
+      lastNotificationPayload = null;
       stopSilentLoop();
       clearMediaSession();
+      clearRecordingNotification();
       if (originalTitle !== null) {
         document.title = originalTitle;
         originalTitle = null;

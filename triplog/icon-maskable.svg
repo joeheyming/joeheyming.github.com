@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Trip Log">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c3aed" />
+      <stop offset="100%" stop-color="#d946ef" />
+    </linearGradient>
+  </defs>
+  <!--
+    Maskable variant: same artwork as icon.svg but shrunk into the
+    inner 80% safe zone (51..461). Android masks maskable icons into
+    a squircle/circle and crops the outer ~10% in the process, so the
+    route ends must live inside the safe zone or they'll get clipped.
+  -->
+  <rect width="512" height="512" fill="url(#bg)" />
+  <g transform="translate(51 51) scale(0.8)">
+    <path
+      d="M 96 384 Q 184 232 264 288 T 416 128"
+      stroke="white"
+      stroke-width="34"
+      fill="none"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      opacity="0.95"
+    />
+    <circle cx="96" cy="384" r="32" fill="white" />
+    <circle cx="96" cy="384" r="16" fill="#7c3aed" />
+    <path
+      d="M 416 96 C 388 96 366 118 366 146 C 366 184 416 232 416 232 C 416 232 466 184 466 146 C 466 118 444 96 416 96 Z"
+      fill="white"
+    />
+    <circle cx="416" cy="146" r="18" fill="#d946ef" />
+  </g>
+</svg>

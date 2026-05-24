@@ -475,11 +475,59 @@ function main() {
     callbacks: { refreshTripsList, ensureLiveMap }
   });
 
+  // ---- service worker + install-time wiring ----------------------------------
+
+  /**
+   * Register the Trip Log service worker. The SW exists so Chrome
+   * counts the page as a "real" PWA (one of the install heuristics)
+   * AND so we have somewhere to host the ongoing recording
+   * notification. We deliberately skip registration inside the
+   * Heyming OS iframe — the shell page already owns the SW scope at
+   * `/`, and registering a nested one creates "scope already in use"
+   * errors that don't help anyone.
+   */
+  async function registerServiceWorker() {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+      return;
+    }
+    if (window.self !== window.top) {
+      return;
+    }
+    try {
+      await navigator.serviceWorker.register('/triplog/sw.js', { scope: '/triplog/' });
+    } catch (err) {
+      console.warn('[triplog] service worker registration failed', err);
+    }
+  }
+
+  /**
+   * Ask the user for notification permission. Must be called from a
+   * user gesture (the Start button) or some browsers — notably iOS
+   * Safari — refuse to surface the prompt. Idempotent: a no-op when
+   * permission is already decided. The recorder doesn't *block* on
+   * the answer; granted permission just lets the keepalive show its
+   * ongoing recording notification (which significantly improves
+   * background tracking on installed PWAs).
+   */
+  async function ensureNotificationPermission() {
+    if (typeof Notification === 'undefined') return;
+    if (Notification.permission !== 'default') return;
+    try {
+      await Notification.requestPermission();
+    } catch (err) {
+      console.warn('[triplog] notification permission request failed', err);
+    }
+  }
+
   // ---- init + event wiring --------------------------------------------------
 
   async function init() {
     setUiVisibility({ ready: false, loading: true, error: false });
     appLoadingMsgEl.textContent = 'Opening local trip database…';
+    // Fire-and-forget — we don't want to block the UI on SW boot,
+    // and the page is fully usable without one. A failure here just
+    // means no offline shell + no ongoing notification.
+    void registerServiceWorker();
     try {
       state.db = await openTriplogDb();
       setUiVisibility({ ready: true, loading: false, error: false });
@@ -511,7 +559,14 @@ function main() {
     }
   }
 
-  btnStart.addEventListener('click', () => void recorder.start());
+  btnStart.addEventListener('click', () => {
+    // Piggy-back on the user gesture to ask for notification
+    // permission — iOS Safari ignores requestPermission() outside
+    // one, and we want the granted answer in place before the
+    // keepalive starts posting recording-status to the SW.
+    void ensureNotificationPermission();
+    void recorder.start();
+  });
   btnPause.addEventListener('click', () => recorder.pause());
   btnResume.addEventListener('click', () => recorder.resume());
   btnFinish.addEventListener('click', () => void recorder.openFinish());
