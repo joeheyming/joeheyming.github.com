@@ -306,6 +306,98 @@
   --card-accent-hairline: var(--cat-system-hairline);
 }
 
+/* ─── Featured heroes ──────────────────────────────────────────────── */
+/* Two oversized tiles for the apps that drive ~94% of engaged minutes
+ * (Doom + Stepmania per 2026-04/05 GA4). Above-the-fold dual-column on
+ * desktop; stack to single column on narrow screens. Below them sits the
+ * compact Featured strip with the next 8 popular apps. */
+.hos-featured-heroes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+  margin-bottom: 28px;
+}
+
+.hos-featured-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: var(--text-1);
+  min-height: 220px;
+  transition: border-color var(--motion-hover), transform var(--motion-hover),
+    background var(--motion-hover), box-shadow var(--motion-hover);
+}
+.hos-featured-hero:hover {
+  background: var(--surface-2);
+  border-color: var(--card-accent-hairline, var(--hairline-accent));
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px
+    color-mix(in srgb, var(--card-accent, var(--accent-primary)) 22%, transparent);
+}
+.hos-featured-hero-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.hos-featured-hero .app-icon-frame {
+  --icon-frame-size: 72px;
+  background: color-mix(in srgb, var(--card-accent, var(--accent-primary)) 16%, var(--surface-1));
+  border-color: var(--card-accent-hairline, var(--hairline));
+  flex-shrink: 0;
+}
+.hos-featured-hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.hos-featured-hero-title {
+  font-size: var(--text-h2);
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+.hos-featured-hero-tags {
+  font-size: var(--text-caption);
+  color: var(--text-2);
+  margin: 0;
+}
+.hos-featured-hero-blurb {
+  font-size: var(--text-body);
+  color: var(--text-1);
+  margin: 0;
+  line-height: 1.5;
+  flex: 1;
+}
+.hos-featured-hero-cta {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--card-accent, var(--accent-primary));
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 640px) {
+  .hos-featured-hero {
+    padding: 20px;
+    min-height: 0;
+  }
+  .hos-featured-hero .app-icon-frame {
+    --icon-frame-size: 56px;
+  }
+  .hos-featured-hero-title {
+    font-size: var(--text-h3);
+  }
+}
+
 /* ─── Featured grid ────────────────────────────────────────────────── */
 .hos-featured-grid {
   display: grid;
@@ -504,6 +596,25 @@
 .hos-app-card[data-tier='experience'] .hos-app-card-tier {
   color: var(--warning);
   border-color: color-mix(in srgb, var(--warning) 28%, transparent);
+}
+
+/* ─── Novelty treatment ────────────────────────────────────────────────
+ * Apps with sub-35s average engagement (per 2026-04/05 GA4) stay in the
+ * catalog but step back visually so the eye lands on apps that retain.
+ * The card keeps its hit area; we mute the surface, dim the body copy,
+ * and shrink the icon a notch. Hover restores normal contrast so the
+ * affordance is preserved for anyone who actually wants the novelty. */
+.hos-app-card[data-engagement='novelty'] {
+  opacity: 0.78;
+}
+.hos-app-card[data-engagement='novelty'] .app-icon-frame {
+  --icon-frame-size: 40px;
+}
+.hos-app-card[data-engagement='novelty'] .hos-app-card-blurb {
+  color: var(--text-3);
+}
+.hos-app-card[data-engagement='novelty']:hover {
+  opacity: 1;
 }
 
 /* ─── No-results state ─────────────────────────────────────────────── */

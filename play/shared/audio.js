@@ -47,8 +47,34 @@ export function getMaster() {
   return master;
 }
 
+// One-shot "the visitor actually used the instrument" signal. Every
+// /play/* page funnels first-interaction through resumeIfSuspended()
+// (it's called from every note-on / pointer-down path), so this is the
+// universal "view → engaged" conversion for the instrument pages. The
+// label is the slug after /play/ in the URL (theremin, accordion, etc.)
+// so we can compare engaged-rate across instruments in GA4 with one
+// event_name. Fires at most once per page-load.
+//
+// Gated on `wasSuspended` rather than just "any call": several pages
+// also call resumeIfSuspended from a window focus listener so audio
+// keeps working after the tab loses focus. Without this gate, alt-
+// tabbing back to a previously-visited play page would false-fire the
+// event with no real instrument interaction.
+let _firstInteractionFired = false;
 export function resumeIfSuspended() {
-  if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+  const wasSuspended = ctx && ctx.state === 'suspended';
+  if (wasSuspended) ctx.resume().catch(() => {});
+  if (
+    wasSuspended &&
+    !_firstInteractionFired &&
+    typeof window !== 'undefined' &&
+    window.trackEvent
+  ) {
+    _firstInteractionFired = true;
+    const m = /^\/play\/([^/]+)/.exec(window.location.pathname || '');
+    const slug = (m && m[1]) || window.location.pathname.replace(/[^a-z0-9-]/gi, '_');
+    window.trackEvent('play_first_interaction', 'Engagement', slug);
+  }
 }
 
 export function setMasterVolume(v) {

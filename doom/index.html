@@ -211,7 +211,15 @@
     <script src="/analytics.js"></script>
     <script src="/back.js" data-back-size="compact"></script>
     <script src="/feedback.js"></script>
-    <script src="/share.js"></script>
+    <!-- data-share-fab="off" suppresses share.js's generic floating share
+         button on this page. Doom ships its own dedicated chrome share
+         button (share-button.js below) and we don't want both. The
+         🎯 related-projects panel from share.js still renders normally. -->
+    <script src="/share.js" data-share-fab="off"></script>
+    <!-- Persistent "Share DOOM" button in the page chrome. Doom has no easy
+         level-end hook so the share moment has to be always-on rather than
+         tied to a gameplay event. -->
+    <script src="share-button.js"></script>
     <!-- Shared CORS proxy service. Used by the moddb browser to fetch
          listings, mod pages, and binary downloads cross-origin. Safe to
          load on every visit — does not run anything until called. -->

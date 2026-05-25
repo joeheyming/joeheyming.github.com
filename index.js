@@ -17,9 +17,23 @@
  * }} FeaturedConfig
  */
 
+// Hero apps drive ~94% of engaged minutes on the site (Doom 56%, Stepmania
+// 38% per 2026-04/05 GA4). They get an oversized dual-tile slot above the
+// rest of the Featured strip so the highest-value entry points are visually
+// dominant on first paint.
+const HERO_APP_IDS = ['doom', 'stepmania'];
+
+// Low-engagement novelties (avg engagement <35s per 2026-04/05 GA4). They
+// stay in the gallery so the catalog is complete, but get a muted visual
+// treatment via [data-engagement="novelty"] so they stop competing for
+// attention with the apps that retain users.
+const LOW_ENGAGEMENT_APP_IDS = new Set(['awesome', 'sadtrombone', 'farm', 'badapple']);
+
 // Apps that map to the highest-value search queries get an explicit "Featured"
 // pin on the home page. Order matches the keyword-report priority: DOOM first
-// (~14k impressions/mo), then NES, Pac-Man, StepMania, Wordle, etc.
+// (~14k impressions/mo), then NES, Pac-Man, StepMania, Wordle, etc. The hero
+// apps are rendered separately above by renderFeaturedHeroes() and filtered
+// out of this strip by renderFeaturedProjects() so they don't double-render.
 const POPULAR_APP_IDS = [
   'doom',
   'nes',
@@ -113,12 +127,71 @@ function featuredHrefFromPath(path) {
   return '/' + base + '/' + suffix;
 }
 
+// Hero tiles: Doom + Stepmania, oversized dual layout. Same data shape as the
+// Featured strip cards but bigger and ahead of the strip on the page.
+function renderFeaturedHeroes() {
+  const grid = document.getElementById('featured-heroes-grid');
+  if (!grid || typeof AppModule === 'undefined') return;
+
+  const allApps = AppModule.getAllApps();
+  const heroes = HERO_APP_IDS.map((id) => allApps.find((app) => app.id === id)).filter(Boolean);
+
+  grid.innerHTML = '';
+
+  heroes.forEach((app) => {
+    /** @type {FeaturedConfig | undefined} */
+    const f = app.featured;
+    const link = document.createElement('a');
+    link.href = featuredHrefFromPath(app.path);
+    link.className = 'hos-featured-hero';
+    if (app.category) link.setAttribute('data-category', app.category);
+    const labelBase = (f && f.analyticsLabel) || app.shortName || app.name;
+    const positionLabel = labelBase + ':featured-hero';
+    link.setAttribute('data-event', 'featured_project_click');
+    link.setAttribute('data-event-category', 'Engagement');
+    link.setAttribute('data-event-label', positionLabel);
+    link.addEventListener('click', () => {
+      if (typeof window.trackProjectOpen === 'function') {
+        window.trackProjectOpen(positionLabel);
+      }
+    });
+
+    const headline = (f && f.headline) || app.shortName || app.name;
+    const blurb = (f && f.blurb) || app.description || '';
+    const tagsLine = f && f.tagsLine ? f.tagsLine : '';
+
+    link.innerHTML =
+      '<div class="hos-featured-hero-head">' +
+      '<span class="app-icon-frame" aria-hidden="true">' +
+      (app.icon || '🔹') +
+      '</span>' +
+      '<div class="hos-featured-hero-text">' +
+      '<h3 class="hos-featured-hero-title">' +
+      headline +
+      '</h3>' +
+      (tagsLine ? '<p class="hos-featured-hero-tags">' + tagsLine + '</p>' : '') +
+      '</div>' +
+      '</div>' +
+      '<p class="hos-featured-hero-blurb">' +
+      blurb +
+      '</p>' +
+      '<span class="hos-featured-hero-cta" aria-hidden="true">Play now →</span>';
+
+    grid.appendChild(link);
+  });
+}
+
 function renderFeaturedProjects() {
   const grid = document.getElementById('featured-projects-grid');
   if (!grid || typeof AppModule === 'undefined') return;
 
   const allApps = AppModule.getAllApps();
-  const popular = POPULAR_APP_IDS.map((id) => allApps.find((app) => app.id === id)).filter(Boolean);
+  // Heroes render in their own oversized grid above; skip them here so they
+  // don't double-appear in the strip.
+  const heroSet = new Set(HERO_APP_IDS);
+  const popular = POPULAR_APP_IDS.filter((id) => !heroSet.has(id))
+    .map((id) => allApps.find((app) => app.id === id))
+    .filter(Boolean);
 
   grid.innerHTML = '';
 
@@ -129,9 +202,20 @@ function renderFeaturedProjects() {
     link.href = featuredHrefFromPath(app.path);
     link.className = 'hos-featured-card';
     if (app.category) link.setAttribute('data-category', app.category);
+    const labelBase = (f && f.analyticsLabel) || app.shortName || app.name;
+    const positionLabel = labelBase + ':featured-strip';
     link.setAttribute('data-event', 'featured_project_click');
     link.setAttribute('data-event-category', 'Engagement');
-    link.setAttribute('data-event-label', (f && f.analyticsLabel) || app.shortName || app.name);
+    link.setAttribute('data-event-label', positionLabel);
+    // Also fire the project_opened conversion so we can finally measure the
+    // home-to-app CTR per tile position. Until now, only the hamburger menu
+    // fired this conversion, which made the real Featured + gallery CTR
+    // invisible in GA4.
+    link.addEventListener('click', () => {
+      if (typeof window.trackProjectOpen === 'function') {
+        window.trackProjectOpen(positionLabel);
+      }
+    });
 
     const headline = (f && f.headline) || app.shortName || app.name;
     const blurb = (f && f.blurb) || app.description || '';
@@ -199,6 +283,9 @@ function renderAppGallery() {
       const tier = tierFor(app);
       card.setAttribute('data-tier', tier);
       if (app.category) card.setAttribute('data-category', app.category);
+      if (LOW_ENGAGEMENT_APP_IDS.has(app.id)) {
+        card.setAttribute('data-engagement', 'novelty');
+      }
 
       // Wide search corpus so the filter finds apps by long description,
       // pwa shortcut name, related ids, tags — not just the visible name.
@@ -222,9 +309,18 @@ function renderAppGallery() {
 
       card.setAttribute('data-event', 'gallery_app_click');
       card.setAttribute('data-event-category', 'Engagement');
-      // Label format: "<app>:<section>" so GA reporting can tell us which
-      // section is dead weight vs. where users actually discover apps.
-      card.setAttribute('data-event-label', (app.shortName || app.name) + ':' + section.id);
+      // Label format: "<app>:gallery-<section>" so GA reporting can tell us
+      // which section is dead weight vs. where users actually discover apps,
+      // and so the prefix groups cleanly with featured-hero / featured-strip.
+      const galleryLabel = (app.shortName || app.name) + ':gallery-' + section.id;
+      card.setAttribute('data-event-label', galleryLabel);
+      // Mirror Featured: also fire the project_opened conversion so home-to-app
+      // CTR is measurable from this surface (not just the hamburger menu).
+      card.addEventListener('click', () => {
+        if (typeof window.trackProjectOpen === 'function') {
+          window.trackProjectOpen(galleryLabel);
+        }
+      });
 
       const tierLabel = tier === 'system' ? 'system' : tier === 'experience' ? 'experience' : '';
       const tierMarkup = tierLabel
@@ -606,6 +702,7 @@ function initThemeSwitch() {
 /* ─── Boot ─────────────────────────────────────────────────────────── */
 
 function bootHome() {
+  renderFeaturedHeroes();
   renderFeaturedProjects();
   renderAppGallery();
   bindGalleryFilter();

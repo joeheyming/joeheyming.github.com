@@ -4,6 +4,12 @@
 (function () {
   'use strict';
 
+  // Capture our own <script> tag immediately. `document.currentScript` is
+  // only defined during the synchronous execution of this file, so we read
+  // its data attributes here before any async DOM work could shadow it.
+  // Matches the convention used by /back.js (`data-back-size="compact"`).
+  const scriptTag = document.currentScript;
+
   // Only run once
   if (window.relatedProjectsInitialized) return;
   window.relatedProjectsInitialized = true;
@@ -12,6 +18,14 @@
   if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
     return;
   }
+
+  // Generic opt-out for the one-click share FAB. A page that ships its own
+  // dedicated share affordance (e.g. doom/share-button.js) can set
+  // `data-share-fab="off"` on the share.js <script> tag to suppress the
+  // generic floating button. The related-projects 🎯 panel still renders
+  // so cross-app discovery is preserved. No page-specific allow-list lives
+  // in this file.
+  const shareFabSuppressed = scriptTag?.dataset.shareFab === 'off';
 
   function loadAppsRegistryForShareSync() {
     try {
@@ -461,6 +475,45 @@
       opacity: 0.9;
     }
 
+    /* One-click share FAB — lives inside .related-projects-container so it
+     * inherits the bottom-right anchor + the body:has(.info-btn) shift, and
+     * stacks ABOVE the 🎯 toggle. Smaller than the toggle so visual weight
+     * stays on the primary related-projects entry point. */
+    .share-fab {
+      position: absolute;
+      bottom: 68px;
+      right: 6px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--hairline-strong);
+      background: var(--surface-1);
+      color: var(--accent-primary);
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      transition: background var(--motion-hover, 180ms ease),
+        border-color var(--motion-hover, 180ms ease),
+        transform var(--motion-hover, 180ms ease);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9001;
+    }
+    .share-fab:hover {
+      background: var(--accent-primary-soft);
+      border-color: var(--accent-primary);
+      transform: scale(1.05);
+    }
+    .share-fab:active {
+      transform: scale(1.02);
+    }
+    .share-fab--success {
+      background: var(--success, #22863a);
+      color: #fff;
+      border-color: var(--success, #22863a);
+    }
+
     /* Mobile responsive */
     @media (max-width: 768px) {
       .related-projects-container {
@@ -472,6 +525,14 @@
         width: 48px;
         height: 48px;
         font-size: 20px;
+      }
+
+      .share-fab {
+        width: 38px;
+        height: 38px;
+        font-size: 16px;
+        bottom: 58px;
+        right: 5px;
       }
 
       .related-projects-panel {
@@ -521,12 +582,73 @@
     }
   `;
 
+  // ─── One-click share FAB ────────────────────────────────────────────
+  //
+  // Lever B3 of the moneyball plan: the existing "🔗 Share" button is
+  // buried two clicks deep inside the 🎯 related-projects panel, so almost
+  // nobody finds it (2 `shared_link_arrival` events in 28 days across the
+  // whole site). This FAB sits next to the 🎯 toggle and shares in one
+  // click. share_source tag is `share_fab` so GA can attribute arrivals.
+  function createShareFab() {
+    if (shareFabSuppressed) return null;
+    const fab = document.createElement('button');
+    fab.type = 'button';
+    fab.className = 'share-fab';
+    fab.setAttribute('aria-label', 'Share this page');
+    fab.setAttribute('title', 'Share');
+    fab.innerHTML = '🔗';
+
+    fab.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const url =
+        typeof window.buildSharedUrl === 'function'
+          ? window.buildSharedUrl('share_fab')
+          : window.location.href;
+
+      if (window.trackEvent) {
+        window.trackEvent('share_fab_click', 'Engagement', window.location.pathname);
+      }
+
+      if (navigator.share && window.isSecureContext) {
+        try {
+          await navigator.share({ url, title: document.title });
+          return;
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+          // Fall through to clipboard.
+        }
+      }
+
+      try {
+        await navigator.clipboard.writeText(url);
+        const original = fab.innerHTML;
+        fab.innerHTML = '✓';
+        fab.classList.add('share-fab--success');
+        setTimeout(() => {
+          fab.innerHTML = original;
+          fab.classList.remove('share-fab--success');
+        }, 1500);
+      } catch (_) {
+        const original = fab.innerHTML;
+        fab.innerHTML = '✗';
+        setTimeout(() => {
+          fab.innerHTML = original;
+        }, 1500);
+      }
+    });
+
+    return fab;
+  }
+
   // Insert when DOM is ready
   function insertWidget() {
     const widget = createRelatedProjects();
     if (widget) {
       document.head.appendChild(style);
       document.body.appendChild(widget);
+      const fab = createShareFab();
+      if (fab) widget.appendChild(fab);
     }
   }
 

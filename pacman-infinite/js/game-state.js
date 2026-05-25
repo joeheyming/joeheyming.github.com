@@ -10,9 +10,21 @@ const DIFFICULTY_STORAGE_KEY = 'pacman-infinite-difficulty';
 export const gameState = {
   startGame() {
     if (this.startScreen) this.startScreen.classList.add('hidden');
+    const wasContinue = this.state !== GAME_STATES.PLAYING && this._savedState != null;
     this.state = GAME_STATES.PLAYING;
     // From here on we can persist progress (and pagehide will flush).
     this._canSave = true;
+    if (typeof window !== 'undefined' && window.trackEvent) {
+      // Label = difficulty so we can see retention/score-by-difficulty.
+      // Value = 1 for new game, 2 for continue (so we can sum to count
+      // sessions and split-by-value to see continue vs. fresh-start).
+      window.trackEvent(
+        'pacinfinite_game_start',
+        'PacInfinite',
+        this.difficulty || 'unknown',
+        wasContinue ? 2 : 1
+      );
+    }
   },
 
   /**
@@ -406,6 +418,28 @@ export const gameState = {
         this.finalStreakRow.classList.add('hidden');
       }
     }
+    // Fire game-over BEFORE we zero out score / streak below so the GA
+    // event carries the actual run totals, not the cleared state.
+    if (typeof window !== 'undefined' && window.trackEvent) {
+      // Label encodes both difficulty and best-streak bucket so we can
+      // slice "how far did people get on hard?" without exploding label
+      // cardinality. Score → value (numeric metric for GA4 averages).
+      const streak = this._streakBest || 0;
+      let streakBucket = '0';
+      if (streak >= 50) streakBucket = '50+';
+      else if (streak >= 20) streakBucket = '20-49';
+      else if (streak >= 10) streakBucket = '10-19';
+      else if (streak >= 5) streakBucket = '5-9';
+      else if (streak > 0) streakBucket = '1-4';
+      const diff = this.difficulty || 'unknown';
+      window.trackEvent(
+        'pacinfinite_game_over',
+        'PacInfinite',
+        `${diff}|${streakBucket}`,
+        this.score
+      );
+    }
+
     // Persist the high-score and zero out the run's score. Eaten dots and
     // pacman pose are preserved so Continue picks up where the player
     // fell — only the run-specific stats reset.

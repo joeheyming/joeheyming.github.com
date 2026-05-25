@@ -416,6 +416,10 @@ class Game {
   async startGame() {
     this.startScreen.classList.add('hidden');
 
+    if (typeof window !== 'undefined' && window.trackEvent) {
+      window.trackEvent('pacman_game_start', 'Pacman', 'start');
+    }
+
     // In debug mode, skip the intro sound and start immediately
     if (this.debugMode) {
       this.state = GAME_STATES.PLAYING;
@@ -501,6 +505,9 @@ class Game {
   }
 
   async restartGame() {
+    if (typeof window !== 'undefined' && window.trackEvent) {
+      window.trackEvent('pacman_game_start', 'Pacman', 'restart');
+    }
     // Reset game state
     this.score = 0;
     this.lives = GAMEPLAY.STARTING_LIVES;
@@ -561,6 +568,21 @@ class Game {
     if (this.score > this.highScore) {
       this.highScore = this.score;
       localStorage.setItem('pacman-high-score', this.highScore.toString());
+    }
+
+    if (typeof window !== 'undefined' && window.trackEvent) {
+      // Score → value so GA4 can compute avg/median. Label is a coarse
+      // bucket so "Top event labels" gives a quick distribution without
+      // exploding cardinality.
+      const s = this.score;
+      let bucket = '0';
+      if (s >= 5000) bucket = '5000+';
+      else if (s >= 2000) bucket = '2000-4999';
+      else if (s >= 1000) bucket = '1000-1999';
+      else if (s >= 500) bucket = '500-999';
+      else if (s >= 100) bucket = '100-499';
+      else if (s > 0) bucket = '1-99';
+      window.trackEvent('pacman_game_over', 'Pacman', bucket, s);
     }
   }
 
@@ -786,8 +808,7 @@ class Game {
     // keyboard input) so the player can walk in any of 360°. Top-Down
     // and FPPOV still use the cardinal `direction` enum.
     const direction = this.controls.getDirection();
-    const moveVec =
-      this.cameraController.currentMode === 1 ? this.controls.getMoveVector() : null;
+    const moveVec = this.cameraController.currentMode === 1 ? this.controls.getMoveVector() : null;
     this.pacman.update(this.deltaTime, direction, moveVec);
 
     // Update ghosts

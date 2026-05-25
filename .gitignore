@@ -27,3 +27,7 @@ node_modules
 
 .brand-audit/
 .playwright-cli/
+
+# Local scratch notes (checkpoints, progress logs). Anything named
+# *.local.md is intentionally never committed.
+*.local.md

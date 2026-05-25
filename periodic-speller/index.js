@@ -108,9 +108,30 @@ function reRender() {
   render(input.value, openCustomElementDialog);
 }
 
+// Debounced "user committed to a word" tracker. We don't want to fire a
+// GA event for every keystroke (would torch the daily event quota and
+// the data would be noise), so wait 1500ms of input-quiet before logging
+// the current input value. Skip the seed value "genius" so we don't
+// flood the report with the default; skip empties.
+var _spellerLastFired = '';
+var _spellerTimer = null;
+function _spellerScheduleEvent() {
+  if (_spellerTimer) clearTimeout(_spellerTimer);
+  _spellerTimer = setTimeout(function () {
+    var word = input.value.trim();
+    if (!word || word.toLowerCase() === 'genius') return;
+    if (word === _spellerLastFired) return;
+    _spellerLastFired = word;
+    if (window.trackEvent) {
+      window.trackEvent('speller_word_rendered', 'Speller', word.slice(0, 40), word.length);
+    }
+  }, 1500);
+}
+
 input.addEventListener('input', function () {
   clearBtn.style.display = input.value ? 'block' : 'none';
   reRender();
+  _spellerScheduleEvent();
 });
 
 clearBtn.addEventListener('click', function () {

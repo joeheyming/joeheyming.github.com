@@ -98,6 +98,16 @@ var animateFunction;
   App.prototype._loadRomCallback = function (name, binaryString) {
     this._newRomWaiting = true;
     this._newRomLoaded = { name: name, binaryString: binaryString };
+    // Single funnel for every ROM source (drag-drop, file picker, Internet
+    // Archive browser). Label = filename so GA4 surfaces which titles
+    // actually get loaded. Truncated to keep event_label well under GA4's
+    // 100-char cap, and the binaryString size goes in `value` so we can
+    // sanity-check ROM sizes (NES carts are typically 8 KB – 1 MB).
+    if (typeof window !== 'undefined' && window.trackEvent) {
+      var label = (typeof name === 'string' ? name : 'unknown').slice(0, 80);
+      var sizeKb = binaryString && binaryString.length ? Math.round(binaryString.length / 1024) : 0;
+      window.trackEvent('nes_rom_loaded', 'NES', label, sizeKb);
+    }
   };
 
   App.prototype.start = function (options) {
