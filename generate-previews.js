@@ -84,6 +84,11 @@ const PAGES = [
     title: 'JoeTube'
   },
   {
+    url: `${BASE_URL}/simpletons/`,
+    output: 'simpletons/simpletons-preview.png',
+    title: 'Simpleton TV'
+  },
+  {
     url: `${BASE_URL}/badapple/`,
     output: 'badapple/badapple-preview.png',
     title: 'Bad Apple ASCII'

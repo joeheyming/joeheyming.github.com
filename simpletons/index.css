@@ -1,0 +1,725 @@
+/* ============================================================================
+ * Simpleton TV — Modern flat-screen TV theme
+ * ============================================================================
+ * Less CRT, more "thin black-bezel smart TV on a stand". The video element
+ * uses native controls; the chrome around it is just chassis + content rows.
+ * ========================================================================= */
+
+:root {
+  --tv-bezel: #0e0e10;
+  --tv-bezel-edge: #050507;
+  --tv-bezel-trim: #1d1d22;
+  --tv-screen-off: #050608;
+  --tv-screen-tint: #0a0f14;
+  --tv-stand: #2a2a30;
+  --tv-stand-dark: #14141a;
+  --tv-led: #c0ff5a;
+  --tv-led-glow: rgba(192, 255, 90, 0.55);
+  --tv-led-red: #ff4b3a;
+  --tv-led-red-glow: rgba(255, 75, 58, 0.6);
+  --tv-accent: #ffb800;
+  --tv-accent-dim: #c98a00;
+  --tv-accent-glow: rgba(255, 184, 0, 0.45);
+  --tv-chip-bg: #1b1b22;
+  --tv-chip-border: #2a2a35;
+  --tv-chip-active: #ffb800;
+  --tv-card-bg: #15151a;
+  --tv-card-border: #24242c;
+  --tv-text: #f5f5f7;
+  --tv-text-dim: #9a9aa3;
+  --tv-text-dimmer: #65656e;
+  --font-screen: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-screen);
+  color: var(--tv-text);
+  background: radial-gradient(ellipse at 50% 0%, #1a1a22 0%, #0b0b10 60%, #050507 100%);
+  overflow-x: hidden;
+}
+
+.tv-room {
+  min-height: 100vh;
+  padding: 76px 16px 96px;
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 20px;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Header                                                                   */
+/* ------------------------------------------------------------------------ */
+
+.tv-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.tv-brand {
+  margin: 0;
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--tv-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tv-led {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--tv-led);
+  box-shadow: 0 0 10px var(--tv-led-glow);
+  animation: tv-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes tv-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.tv-tagline {
+  margin: 0;
+  font-size: 13px;
+  color: var(--tv-text-dim);
+  font-family: var(--font-mono);
+}
+
+.tv-tagline a {
+  color: var(--tv-accent);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--tv-accent-dim);
+}
+
+.tv-tagline a:hover {
+  color: #ffd24a;
+}
+
+/* ------------------------------------------------------------------------ */
+/* TV chassis                                                               */
+/* ------------------------------------------------------------------------ */
+
+.tv-set {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 0;
+}
+
+.tv-bezel {
+  width: min(1100px, 100%);
+  background: linear-gradient(180deg, var(--tv-bezel) 0%, var(--tv-bezel-edge) 100%);
+  border-radius: 22px;
+  padding: 14px 14px 0;
+  border: 1px solid var(--tv-bezel-trim);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  position: relative;
+}
+
+.tv-bezel-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 8px 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--tv-text-dimmer);
+  text-transform: uppercase;
+}
+
+.tv-channel-chip {
+  background: var(--tv-chip-bg);
+  color: var(--tv-led);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--tv-chip-border);
+  letter-spacing: 1.5px;
+  text-shadow: 0 0 6px var(--tv-led-glow);
+}
+
+.tv-screen {
+  position: relative;
+  background: var(--tv-screen-off);
+  border-radius: 10px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border: 1px solid #000;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8), inset 0 0 0 3px var(--tv-bezel-edge);
+}
+
+.tv-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  outline: none;
+}
+
+.tv-base {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 0 6px;
+}
+
+.tv-stand {
+  width: 32%;
+  max-width: 280px;
+  height: 8px;
+  border-radius: 0 0 10px 10px;
+  background: linear-gradient(180deg, var(--tv-stand) 0%, var(--tv-stand-dark) 100%);
+  border: 1px solid #000;
+  border-top: 0;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.55);
+}
+
+/* Loading + no-signal overlays sit ON TOP of the video element.
+ * They are intentionally opaque-ish so the user sees them while the
+ * <video> source is still empty. */
+.tv-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(180deg, #0a0d10 0%, #050608 100%);
+  color: var(--tv-text);
+  text-align: center;
+  padding: 24px;
+}
+
+.tv-overlay.hidden {
+  display: none;
+}
+
+.tv-overlay-title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: clamp(14px, 2vw, 18px);
+  letter-spacing: 4px;
+  color: var(--tv-led);
+  text-shadow: 0 0 10px var(--tv-led-glow);
+}
+
+#tv-no-signal .tv-overlay-title {
+  color: var(--tv-led-red);
+  text-shadow: 0 0 10px var(--tv-led-red-glow);
+}
+
+.tv-overlay-detail {
+  margin: 0;
+  font-size: 14px;
+  color: var(--tv-text-dim);
+  max-width: 50ch;
+}
+
+/* Playback error banner (sits ABOVE the controls inside the screen). */
+.tv-error {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 50px;
+  z-index: 3;
+  background: rgba(20, 4, 4, 0.92);
+  border: 1px solid #5a1d15;
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: #ffdcd2;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  pointer-events: auto;
+}
+
+.tv-error.hidden {
+  display: none;
+}
+
+.tv-error-link {
+  color: var(--tv-accent);
+  background: rgba(255, 184, 0, 0.1);
+  border: 1px solid rgba(255, 184, 0, 0.4);
+  padding: 4px 10px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.tv-error-link:hover {
+  background: rgba(255, 184, 0, 0.18);
+}
+
+/* ------------------------------------------------------------------------ */
+/* Marquee                                                                  */
+/* ------------------------------------------------------------------------ */
+
+.tv-marquee {
+  background: var(--tv-card-bg);
+  border: 1px solid var(--tv-card-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  overflow: hidden;
+}
+
+.tv-now-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  color: var(--tv-led-red);
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: 0 0 8px var(--tv-led-red-glow);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tv-rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tv-led-red);
+  box-shadow: 0 0 8px var(--tv-led-red-glow);
+  animation: tv-pulse 1.8s ease-in-out infinite;
+}
+
+.tv-now-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.tv-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--tv-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-subtitle {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--tv-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-marquee.is-flashing .tv-title {
+  color: var(--tv-led);
+  text-shadow: 0 0 8px var(--tv-led-glow);
+}
+
+/* Synopsis card under the marquee. Sourced from TVMaze; hidden when
+   the episode has no summary (e.g. the movie). */
+.tv-summary {
+  background: var(--tv-card-bg);
+  border: 1px solid var(--tv-card-border);
+  border-left: 3px solid var(--tv-accent);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin: 0;
+}
+
+.tv-summary-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tv-text);
+}
+
+/* ------------------------------------------------------------------------ */
+/* Remote-control button row                                                */
+/* ------------------------------------------------------------------------ */
+
+.tv-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.tv-btn {
+  appearance: none;
+  font-family: var(--font-screen);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--tv-card-border);
+  background: linear-gradient(180deg, #25252d 0%, #18181f 100%);
+  color: var(--tv-text);
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.1s ease, filter 0.15s ease, background 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tv-btn:hover {
+  filter: brightness(1.15);
+}
+
+.tv-btn:active {
+  transform: translateY(1px);
+}
+
+.tv-btn.is-accent {
+  background: linear-gradient(180deg, var(--tv-accent) 0%, #c98a00 100%);
+  color: #1b1100;
+  border-color: var(--tv-accent-dim);
+  box-shadow: 0 0 14px var(--tv-accent-glow);
+}
+
+.tv-btn--ghost {
+  background: transparent;
+  color: var(--tv-text-dim);
+  border-color: #2a2a32;
+  font-weight: 500;
+}
+
+.tv-btn--ghost:hover {
+  color: var(--tv-text);
+  background: #1c1c22;
+}
+
+.tv-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--tv-text-dim);
+  font-family: var(--font-mono);
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px dashed var(--tv-card-border);
+  cursor: pointer;
+  user-select: none;
+}
+
+.tv-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--tv-accent);
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Section blocks (seasons + episodes)                                      */
+/* ------------------------------------------------------------------------ */
+
+.tv-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tv-section-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 2.5px;
+  color: var(--tv-text-dim);
+  text-transform: uppercase;
+  padding-left: 4px;
+}
+
+.tv-chip-row {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 6px;
+  padding: 4px 4px 10px;
+  scroll-snap-type: x proximity;
+}
+
+.tv-chip-row::-webkit-scrollbar {
+  height: 8px;
+}
+
+.tv-chip-row::-webkit-scrollbar-thumb {
+  background: var(--tv-card-border);
+  border-radius: 4px;
+}
+
+.tv-chip {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 1px;
+  padding: 8px 12px;
+  background: var(--tv-chip-bg);
+  color: var(--tv-text-dim);
+  border: 1px solid var(--tv-chip-border);
+  border-radius: 6px;
+  cursor: pointer;
+  scroll-snap-align: center;
+  transition: color 0.15s ease, background 0.15s ease, border 0.15s ease;
+}
+
+.tv-chip:hover {
+  color: var(--tv-text);
+  background: #232330;
+}
+
+.tv-chip.is-active {
+  background: var(--tv-accent);
+  color: #1b1100;
+  border-color: var(--tv-accent-dim);
+  font-weight: 600;
+  box-shadow: 0 0 12px var(--tv-accent-glow);
+}
+
+/* Episode grid — Netflix-style cards */
+.tv-ep-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.tv-ep-card {
+  appearance: none;
+  border: 1px solid var(--tv-card-border);
+  background: var(--tv-card-bg);
+  border-radius: 10px;
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: left;
+  color: var(--tv-text);
+  transition: transform 0.15s ease, border 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tv-ep-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--tv-accent-dim);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+.tv-ep-card.is-active {
+  border-color: var(--tv-accent);
+  box-shadow: 0 0 0 2px rgba(255, 184, 0, 0.25), 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+.tv-ep-thumb {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #0a0a10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.tv-ep-thumb.is-empty {
+  font-size: 36px;
+  color: var(--tv-text-dimmer);
+}
+
+.tv-ep-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tv-ep-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38px;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.65) 100%);
+}
+
+.tv-ep-card:hover .tv-ep-play,
+.tv-ep-card.is-active .tv-ep-play {
+  opacity: 1;
+}
+
+.tv-ep-meta {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tv-ep-num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--tv-accent);
+  text-transform: uppercase;
+}
+
+.tv-ep-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tv-text);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Help footer                                                              */
+/* ------------------------------------------------------------------------ */
+
+.tv-help {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--tv-text-dimmer);
+  text-transform: uppercase;
+}
+
+.tv-help kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  margin: 0 2px;
+  background: #15151c;
+  border: 1px solid #2a2a35;
+  border-radius: 3px;
+  color: var(--tv-text-dim);
+  font-family: inherit;
+  font-size: 10px;
+}
+
+.tv-fineprint {
+  text-align: center;
+  font-size: 11px;
+  color: var(--tv-text-dimmer);
+  margin: 0;
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Responsive                                                               */
+/* ------------------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+  .tv-room {
+    padding: 64px 10px 80px;
+    gap: 14px;
+  }
+
+  .tv-bezel {
+    padding: 8px 8px 0;
+    border-radius: 14px;
+  }
+
+  .tv-marquee {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .tv-title {
+    font-size: 15px;
+  }
+
+  .tv-subtitle {
+    font-size: 11px;
+  }
+
+  .tv-summary {
+    padding: 8px 12px;
+  }
+
+  .tv-summary-text {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .tv-btn {
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+
+  .tv-ep-grid {
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+  }
+
+  .tv-ep-meta {
+    padding: 8px 10px 10px;
+  }
+
+  .tv-ep-title {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .tv-ep-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tv-controls {
+    gap: 6px;
+  }
+
+  .tv-btn {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .tv-toggle {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-led,
+  .tv-rec-dot {
+    animation: none;
+  }
+}

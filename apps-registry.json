@@ -432,12 +432,37 @@
     "taskbarText": "text-white",
     "defaultWidth": 540,
     "defaultHeight": 780,
-    "related": ["media-player", "vibe-coding", "awesome"],
+    "related": ["media-player", "simpletons", "vibe-coding", "awesome"],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "JoeTube",
       "short_name": "JoeTube",
       "description": "YouTube link extractor"
+    },
+    "appTier": "experience"
+  },
+  {
+    "id": "simpletons",
+    "name": "Simpleton TV \ud83d\udcfa",
+    "shortName": "Simpleton TV",
+    "description": "Stream the Simpletons archive in a smart-TV interface",
+    "detailedDescription": "Smart-TV style player that streams a public Simpsons archive from the Internet Archive \u2014 18 seasons plus the movie, browseable like a channel guide. MP4 with native audio.",
+    "icon": "\ud83d\udcfa",
+    "path": "./simpletons/",
+    "category": "entertainment",
+    "gradient": "from-yellow-500/20 to-amber-600/20",
+    "border": "border-yellow-500/30 hover:border-amber-400/50",
+    "taskbarGradient": "from-yellow-500 to-amber-600",
+    "taskbarText": "text-black",
+    "defaultWidth": 1100,
+    "defaultHeight": 780,
+    "tags": ["tv", "video", "streaming", "archive", "classic"],
+    "related": ["youtube", "media-player", "awesome"],
+    "shareCategory": "entertainment",
+    "pwaShortcut": {
+      "name": "Simpleton TV",
+      "short_name": "SimpletonTV",
+      "description": "Browser smart-TV for the Simpletons archive"
     },
     "appTier": "experience"
   },

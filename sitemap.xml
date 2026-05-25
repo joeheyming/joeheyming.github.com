@@ -235,6 +235,12 @@
     <priority>0.5</priority>
   </url>
   <url>
+    <loc>https://joeheyming.github.io/simpletons/</loc>
+    <lastmod>2026-05-25T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://joeheyming.github.io/stepmania/</loc>
     <lastmod>2026-05-09T00:00:00+00:00</lastmod>
     <changefreq>weekly</changefreq>

@@ -79,6 +79,12 @@
       "url": "/youtube/"
     },
     {
+      "name": "Simpleton TV",
+      "short_name": "SimpletonTV",
+      "description": "Browser smart-TV for the Simpletons archive",
+      "url": "/simpletons/"
+    },
+    {
       "name": "Operation SHADOWBOX",
       "short_name": "SHADOWBOX",
       "description": "Operation SHADOWBOX",
@@ -130,13 +136,13 @@
       "name": "NES Emulator",
       "short_name": "NES",
       "description": "Play NES games in your browser",
-      "url": "/nes/"
+      "url": "/emulator/?console=nes/"
     },
     {
       "name": "Sega Genesis",
       "short_name": "Sega",
       "description": "Play Sega Genesis games in your browser",
-      "url": "/sega/"
+      "url": "/emulator/?console=sega/"
     },
     {
       "name": "Play",
