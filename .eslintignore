@@ -3,7 +3,6 @@ node_modules
 speakGenerator.js
 
 # Ignore directories with massive amounts of files
-nes/js/db/
 badapple/frame/
 pacman/Executable/
 pacman/Source/

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover"
+    />
+
+    <title>Online Retro Game Emulator — NES, Sega Genesis & Game Boy in Browser</title>
+    <meta name="theme-color" content="#FAFAFA" />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta
+      name="description"
+      content="Free retro game emulator online — play NES, Sega Genesis / Mega Drive, and Game Boy games directly in your browser. Powered by EmulatorJS. No install, no ads. Bring your own ROM."
+    />
+    <meta
+      name="keywords"
+      content="online emulator, retro game emulator, NES emulator online, Sega Genesis emulator, Mega Drive emulator, Game Boy emulator, browser emulator, play retro games online, 8-bit emulator, 16-bit emulator, EmulatorJS, free emulator, no install emulator"
+    />
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Retro Emulator" />
+    <meta
+      property="og:title"
+      content="🎮 Retro Game Emulator — NES, Sega Genesis & Game Boy Online"
+    />
+    <meta
+      property="og:description"
+      content="Play NES, Sega Genesis, and Game Boy games in your browser. Powered by EmulatorJS. Free, no install, no ads. Bring your own ROM or browse the built-in collection."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/emulator/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/emulator/emulator-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Retro game emulator running in a web browser" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta
+      name="twitter:title"
+      content="🎮 Retro Game Emulator — NES, Sega Genesis & Game Boy Online"
+    />
+    <meta
+      name="twitter:description"
+      content="Play NES, Sega Genesis, and Game Boy games in your browser. Free, no install. Bring your own ROM."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/emulator/emulator-preview.png"
+    />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://joeheyming.github.io/emulator/" />
+
+    <!-- Favicon -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>"
+    />
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": ["SoftwareApplication", "VideoGame"],
+            "name": "Retro Game Emulator Online",
+            "alternateName": [
+              "Online Retro Emulator",
+              "NES Emulator Online",
+              "Sega Genesis Emulator Online",
+              "Game Boy Emulator Online",
+              "Mega Drive Emulator Browser"
+            ],
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Free online emulator for NES, Sega Genesis / Mega Drive, and Game Boy. Powered by EmulatorJS WebAssembly cores. No install, no ads. Bring your own ROM file or browse the built-in public-domain collection.",
+            "url": "https://joeheyming.github.io/emulator/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "featureList": [
+              "Play NES, Sega Genesis, and Game Boy games in your browser",
+              "Save and load game states (F5 / F9)",
+              "Keyboard and gamepad controller support",
+              "Touch controls on mobile",
+              "Full-screen gaming mode",
+              "Bring your own ROM file or browse Internet Archive collection",
+              "No install, no ads, no signup"
+            ],
+            "keywords": "online emulator, NES emulator, Sega Genesis emulator, Game Boy emulator, retro gaming, EmulatorJS",
+            "inLanguage": "en",
+            "gamePlatform": ["Web Browser", "HTML5"]
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              { "@type": "ListItem", "position": 2, "name": "Retro Game Emulator" }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <!-- Cross-origin isolation: required for SharedArrayBuffer / EmulatorJS WebAssembly threads -->
+    <script src="/coi-serviceworker.js"></script>
+
+    <!-- Site chrome: analytics + back button + feedback widget + sharing -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+    <script src="/proxy.js"></script>
+
+    <!-- Shared emulator shell. Load order matters: registry → IA client →
+         web component → orchestrator (orchestrator reads from the others). -->
+    <script src="consoles.js"></script>
+    <script src="internet-archive.js"></script>
+    <script src="rom-browser.js"></script>
+    <script src="launch.js"></script>
+
+    <link rel="stylesheet" href="emulator.css" />
+
+    <!-- Heyming OS brand foundation -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+  </head>
+
+  <body>
+    <!-- Hidden ROM file input. launch.js sets the `accept` attribute
+         from the active console (or leaves it permissive for the picker). -->
+    <input
+      type="file"
+      id="romFileInput"
+      class="hidden-input"
+      accept=".nes,.md,.bin,.gen,.smd,.gb,.gbc,.zip,.7z"
+    />
+
+    <!-- Boot overlay. The two child slots (#brand, #boot-card) are
+         filled in by launch.js based on `?console=`. Static fallback
+         content here is what crawlers / no-JS visitors see. -->
+    <div id="boot">
+      <div class="brand" id="brand">
+        <span class="brand-logo">🎮</span>
+        <h1>
+          Retro Game Emulator
+          <span class="sub">NES · Sega Genesis · Game Boy · in your browser</span>
+        </h1>
+      </div>
+
+      <div class="boot-card" id="boot-card">
+        <h2>🕹️ Pick a console</h2>
+        <div class="picker-grid">
+          <a class="picker-tile" href="?console=nes">
+            <span class="picker-emoji">🕹️</span>
+            <span class="picker-title">NES</span>
+            <span class="picker-sub">Nintendo Entertainment System</span>
+          </a>
+          <a class="picker-tile" href="?console=sega">
+            <span class="picker-emoji">🎮</span>
+            <span class="picker-title">Sega Genesis</span>
+            <span class="picker-sub">Mega Drive Emulator</span>
+          </a>
+          <a class="picker-tile" href="?console=gb">
+            <span class="picker-emoji">👾</span>
+            <span class="picker-title">Game Boy</span>
+            <span class="picker-sub">Game Boy &amp; Game Boy Color</span>
+          </a>
+        </div>
+        <p class="picker-help">
+          Free, browser-based emulators. No install, no ads. Bring your own ROM or browse the
+          built-in public-domain collection.
+        </p>
+      </div>
+
+      <!-- SEO cross-link footer — hidden from users, visible to crawlers -->
+      <footer class="seo-intro" hidden>
+        <h2>Free Online Retro Game Emulator</h2>
+        <p>
+          Play classic NES (Nintendo Entertainment System), Sega Genesis / Mega Drive, and Game Boy
+          games directly in your browser. No download, no install, no ads. Bring your own
+          <code>.nes</code>
+          ,
+          <code>.md</code>
+          ,
+          <code>.bin</code>
+          ,
+          <code>.gen</code>
+          ,
+          <code>.gb</code>
+          , or
+          <code>.gbc</code>
+          ROM file, or browse a built-in public-domain collection. Powered by EmulatorJS with the
+          FCEUmm, genesis_plus_gx, and gambatte libretro cores.
+        </p>
+        <nav aria-label="More retro games">
+          <strong>More retro games from Joe Heyming:</strong>
+          <a href="/doom/">DOOM in Browser</a>
+          &middot;
+          <a href="/pacman/">3D Pac-Man</a>
+          &middot;
+          <a href="/stepmania/">StepMania</a>
+          &middot;
+          <a href="/minesweeper/">Minesweeper</a>
+          &middot;
+          <a href="/terminal/">Web Terminal</a>
+          &middot;
+          <a href="/about/">About Joe</a>
+        </nav>
+      </footer>
+    </div>
+
+    <!-- Game container — EmulatorJS mounts here after ROM is chosen -->
+    <div id="game-container">
+      <div id="game"></div>
+    </div>
+
+    <!-- Share button (always visible) -->
+    <div class="share-overlay">
+      <share-button label="📤 Share" theme="retro"></share-button>
+    </div>
+  </body>
+</html>

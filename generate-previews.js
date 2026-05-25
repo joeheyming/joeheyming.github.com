@@ -19,14 +19,9 @@ const PAGES = [
     title: 'Joe Heyming Portfolio'
   },
   {
-    url: `${BASE_URL}/nes/`,
-    output: 'nes/images/nes-emulator-preview.png',
-    title: 'NES Emulator'
-  },
-  {
-    url: `${BASE_URL}/sega/`,
-    output: 'sega/sega-preview.png',
-    title: 'Sega Genesis'
+    url: `${BASE_URL}/emulator/`,
+    output: 'emulator/emulator-preview.png',
+    title: 'Retro Emulator (NES / Sega / Game Boy)'
   },
   {
     url: `${BASE_URL}/calculator/`,

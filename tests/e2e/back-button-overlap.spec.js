@@ -19,7 +19,7 @@ const APPS = [
   '/paint/',
   '/terminal/',
   '/doom/',
-  '/nes/',
+  '/emulator/',
   '/stepmania/',
   '/stock/',
   '/wordle-finder/',

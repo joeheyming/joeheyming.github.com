@@ -1,623 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta
-      name="viewport"
-      content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover"
-    />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sega Genesis Emulator — moved to /emulator/?console=sega | Joe Heyming</title>
 
-    <title>Sega Genesis Emulator Online — Play Mega Drive Games in Browser</title>
-    <meta name="theme-color" content="#FAFAFA" />
-    <meta name="author" content="Joe Heyming" />
-    <meta name="robots" content="index, follow" />
-    <meta name="language" content="English" />
-    <meta
-      name="description"
-      content="Free Sega Genesis / Mega Drive emulator online — play classic 16-bit games directly in your browser. Powered by EmulatorJS. No install, no ads. Bring your own .md/.bin/.gen ROM file."
-    />
-    <meta
-      name="keywords"
-      content="Sega Genesis emulator, Mega Drive emulator, online Sega emulator, browser Genesis emulator, Sega emulator online, play Genesis games online, 16-bit emulator, retro gaming, EmulatorJS, Sega emulator browser, no install"
-    />
+    <!--
+      /sega/ was folded into /emulator/?console=sega as part of the
+      shared-emulator consolidation. The unified shell uses
+      EmulatorJS (genesis_plus_gx core) under the hood and shares
+      its boot card, ROM browser, and identity layer with /nes/
+      and /gb/. This page exists so inbound links, search results,
+      and bookmarks to the old URL still work.
 
-    <!-- Open Graph Meta Tags -->
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Joe Heyming - Sega Genesis Emulator" />
-    <meta property="og:title" content="🎮 Sega Genesis Emulator — Play Mega Drive Games Online" />
-    <meta
-      property="og:description"
-      content="Play classic Sega Genesis / Mega Drive games in your browser. Powered by EmulatorJS. Free, no install, no ads. Bring your own .md/.bin/.gen ROM."
-    />
-    <meta property="og:url" content="https://joeheyming.github.io/sega/" />
-    <meta property="og:image" content="https://joeheyming.github.io/sega/sega-preview.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Sega Genesis emulator running in a web browser" />
-    <meta property="og:locale" content="en_US" />
+      Same redirect pattern as /legend-of-doom/ → /doom/?flavor=legend:
+        * <meta http-equiv="refresh" content="0; url=...">
+        * <link rel="canonical" href="...">
+        * JS that preserves any query string / fragment
+        * <meta name="robots" content="noindex,follow">
+    -->
+    <meta name="robots" content="noindex,follow" />
+    <meta http-equiv="refresh" content="0; url=/emulator/?console=sega" />
+    <link rel="canonical" href="https://joeheyming.github.io/emulator/?console=sega" />
 
-    <!-- Twitter Card Meta Tags -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@joeheyming" />
-    <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="🎮 Sega Genesis Emulator — Play Mega Drive Games Online" />
-    <meta
-      name="twitter:description"
-      content="Play classic Sega Genesis / Mega Drive 16-bit games in your browser. Free, no install. Bring your own ROM."
-    />
-    <meta name="twitter:image" content="https://joeheyming.github.io/sega/sega-preview.png" />
-
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://joeheyming.github.io/sega/" />
-
-    <!-- Favicon -->
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>"
     />
 
-    <!-- Structured Data (JSON-LD) -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@graph": [
-          {
-            "@type": ["SoftwareApplication", "VideoGame"],
-            "name": "Sega Genesis Emulator Online",
-            "alternateName": [
-              "Mega Drive Emulator",
-              "Online Sega Genesis Emulator",
-              "Browser Genesis Emulator",
-              "Sega Mega Drive Browser Emulator"
-            ],
-            "applicationCategory": "GameApplication",
-            "operatingSystem": "Web Browser",
-            "description": "Free Sega Genesis / Mega Drive emulator running in your browser. Powered by EmulatorJS segaMD core. No install, no ads. Bring your own .md/.bin/.gen ROM file.",
-            "url": "https://joeheyming.github.io/sega/",
-            "author": {
-              "@type": "Person",
-              "name": "Joe Heyming",
-              "url": "https://joeheyming.github.io/about/"
-            },
-            "offers": {
-              "@type": "Offer",
-              "price": "0",
-              "priceCurrency": "USD"
-            },
-            "featureList": [
-              "Play Sega Genesis and Mega Drive games in your browser",
-              "Save and load game states",
-              "Keyboard and gamepad controller support",
-              "Full-screen gaming mode",
-              "Bring your own .md/.bin/.gen ROM file",
-              "No install, no ads, no signup"
-            ],
-            "keywords": "Sega Genesis emulator online, Mega Drive emulator browser, retro gaming 16-bit",
-            "inLanguage": "en",
-            "gamePlatform": ["Web Browser", "HTML5"],
-            "genre": ["Action", "Platform", "RPG", "Retro"]
-          },
-          {
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Joe Heyming",
-                "item": "https://joeheyming.github.io/"
-              },
-              {
-                "@type": "ListItem",
-                "position": 2,
-                "name": "Sega Genesis Emulator"
-              }
-            ]
-          }
-        ]
-      }
-    </script>
-
-    <!-- Cross-origin isolation: required for SharedArrayBuffer / EmulatorJS WebAssembly threads -->
-    <script src="/coi-serviceworker.js"></script>
-
-    <!-- Site chrome: analytics + back button + feedback widget -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
-    <script src="/analytics.js"></script>
-    <script src="/back.js" data-back-size="compact"></script>
-    <script src="/feedback.js"></script>
-    <script src="/share.js"></script>
-    <script src="/proxy.js"></script>
-    <script src="js/internetArchiveRoms.js"></script>
-    <script src="js/romBrowser.js"></script>
+    <link rel="stylesheet" href="/brand.css" />
 
     <style>
-      *,
-      *::before,
-      *::after {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-
-      /* Sega launcher / boot card lives in the brand paper-cream world.
-       * The Genesis-red title gradient is preserved as the app's
-       * identity color; once a ROM boots, the EmulatorJS canvas takes
-       * over the viewport and renders the game in its native palette
-       * (Mega Drive 16-bit colors are the actual game content). */
-      :root {
-        --bg: var(--surface-0);
-        --surface: var(--surface-1);
-        --surface2: var(--surface-2);
-        --accent: var(--accent-primary);
-        /* Genesis-red identity tokens. Single source of truth for the
-         * Sega launcher, the ROM browser shadow-DOM component, and the
-         * boot screen — JS components reference these via var() so a
-         * future Sega re-skin (or a brand-driven override) only has to
-         * touch this block. */
-        --accent-bright: #e94560;
-        --accent-bright-soft: rgba(233, 69, 96, 0.08);
-        --accent-bright-ring: rgba(233, 69, 96, 0.25);
-        --accent-gold: #c2410c; /* darker Genesis-orange that reads on cream */
-        --text: var(--text-1);
-        --text-dim: var(--text-2);
-        --border: var(--hairline-strong);
-        --card-bg: var(--surface-1);
-      }
-
-      html,
       body {
-        height: 100%;
-        background: var(--bg);
-        color: var(--text);
-        font-family: var(--font-ui);
-        overflow: hidden;
-      }
-
-      /* Boot overlay */
-      #boot {
-        position: fixed;
-        inset: 0;
-        background: var(--bg);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 100;
-        padding: 24px;
-        overflow-y: auto;
-      }
-
-      #boot.hidden {
-        display: none;
-      }
-
-      .brand {
-        text-align: center;
-        margin-bottom: 32px;
-      }
-
-      .brand-logo {
-        font-size: 72px;
-        line-height: 1;
-        margin-bottom: 12px;
-        display: block;
-      }
-
-      .brand h1 {
-        font-size: clamp(28px, 5vw, 42px);
-        font-weight: 900;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        /* Hero wordmark: red→orange→red sunset is part of Sega-identity.
-         * The two stops route through `--accent-bright` and
-         * `--accent-gold` so a future re-skin updates the wordmark
-         * automatically. Gradients in identity hero type are an
-         * explicit BRAND.md carve-out (see "Wordmarks & marquee text"). */
-        background: linear-gradient(
-          135deg,
-          var(--accent-bright) 0%,
-          var(--accent-gold) 50%,
-          var(--accent-bright) 100%
-        );
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-      }
-
-      .brand .sub {
-        display: block;
-        font-size: 11px;
-        letter-spacing: 4px;
-        color: var(--text-dim);
-        font-weight: 400;
-        margin-top: 6px;
-        -webkit-text-fill-color: var(--text-dim);
-        background: none;
-      }
-
-      .boot-card {
-        background: var(--card-bg);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 28px;
-        max-width: 520px;
-        width: 100%;
-        box-shadow: var(--shadow-card);
-      }
-
-      .boot-card h2 {
-        font-size: 15px;
-        font-weight: 700;
-        color: var(--text-dim);
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        width: 100%;
-        padding: 14px 20px;
-        border-radius: 8px;
-        border: none;
-        font-size: 15px;
-        font-weight: 700;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-decoration: none;
-      }
-
-      .btn-primary {
-        background: var(--accent-bright);
-        color: var(--text-on-accent);
-        border: 1px solid var(--accent-bright);
-        transition: filter 0.2s, transform 0.2s;
-      }
-
-      .btn-primary:hover {
-        transform: translateY(-1px);
-        filter: brightness(0.88);
-      }
-
-      .btn-secondary {
-        background: var(--surface2);
-        color: var(--text);
-        border: 1px solid var(--border);
-      }
-
-      .btn-secondary:hover {
-        background: var(--accent);
-        border-color: var(--accent-bright);
-      }
-
-      .btn-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-
-      .btn-stack rom-browser {
-        display: block;
-        width: 100%;
-      }
-
-      .divider {
-        text-align: center;
-        color: var(--text-dim);
-        font-size: 12px;
-        letter-spacing: 2px;
-        margin: 4px 0;
-        position: relative;
-      }
-
-      .divider::before,
-      .divider::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        width: 42%;
-        height: 1px;
-        background: var(--border);
-      }
-
-      .divider::before {
-        left: 0;
-      }
-      .divider::after {
-        right: 0;
-      }
-
-      .controls-info {
-        margin-top: 20px;
-        padding-top: 20px;
-        border-top: 1px solid var(--border);
-      }
-
-      .controls-info summary {
-        cursor: pointer;
-        font-size: 13px;
-        color: var(--text-dim);
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        user-select: none;
-        list-style: none;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-
-      .controls-info summary::-webkit-details-marker {
-        display: none;
-      }
-
-      .controls-info summary::before {
-        content: '▶';
-        font-size: 9px;
-        transition: transform 0.2s;
-      }
-
-      .controls-info[open] summary::before {
-        transform: rotate(90deg);
-      }
-
-      .controls-grid {
-        margin-top: 14px;
+        margin: 0;
+        min-height: 100vh;
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        font-size: 13px;
+        place-items: center;
+        background: var(--surface-0);
+        color: var(--text-1);
+        font-family: var(--font-ui);
+        text-align: center;
+        padding: 1.5rem;
       }
-
-      .controls-grid .key-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 5px 10px;
-        background: var(--surface);
-        border-radius: 6px;
+      main {
+        max-width: 32rem;
       }
-
-      .controls-grid .key-row span {
-        color: var(--text-dim);
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 0.5rem;
       }
-
-      kbd {
-        background: var(--surface2);
-        border: 1px solid var(--border);
-        border-radius: 4px;
-        padding: 2px 6px;
-        font-size: 11px;
-        font-family: monospace;
-        color: var(--accent-gold);
+      p {
+        margin: 0.5rem 0;
+        line-height: 1.5;
+        color: var(--text-2);
       }
-
-      .hidden-input {
-        display: none;
+      a {
+        color: var(--accent-primary);
       }
-
-      /* Game container */
-      #game-container {
-        position: fixed;
-        inset: 0;
-        background: #000;
-        display: none;
+      a:hover {
+        color: var(--accent-primary-hover);
       }
-
-      #game-container.visible {
-        display: block;
-      }
-
-      #game {
-        width: 100%;
-        height: 100%;
-      }
-
-      /* Share button overlay */
-      .share-overlay {
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        z-index: 200;
-      }
-
-      /* SEO footer hidden from users */
-      .seo-intro {
-        display: none;
-      }
-
-      @media (max-width: 480px) {
-        .brand-logo {
-          font-size: 52px;
-        }
-        .boot-card {
-          padding: 20px;
-        }
-        .controls-grid {
-          grid-template-columns: 1fr;
-        }
+      .cta {
+        display: inline-block;
+        margin-top: 1rem;
+        padding: 0.75rem 1.25rem;
+        background: var(--accent-primary);
+        color: var(--text-on-accent);
+        text-decoration: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
       }
     </style>
 
-    <!-- Heyming OS brand foundation -->
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
-    />
-    <link rel="stylesheet" href="/brand.css" />
-  </head>
-
-  <body>
-    <!-- Hidden ROM file input -->
-    <input
-      type="file"
-      id="romFileInput"
-      class="hidden-input"
-      accept=".md,.bin,.gen,.smd,.zip,.7z"
-    />
-
-    <!-- Boot overlay -->
-    <div id="boot">
-      <div class="brand">
-        <span class="brand-logo">🎮</span>
-        <h1>
-          Sega Genesis
-          <span class="sub">Mega Drive Emulator</span>
-        </h1>
-      </div>
-
-      <div class="boot-card">
-        <h2>🕹️ Load a ROM to play</h2>
-
-        <div class="btn-stack">
-          <rom-browser></rom-browser>
-
-          <div class="divider">OR</div>
-
-          <button class="btn btn-secondary" id="loadRomBtn" type="button">
-            <span>📁</span>
-            <span>Load Local ROM File (.md / .bin / .gen)</span>
-          </button>
-        </div>
-
-        <details class="controls-info">
-          <summary>Keyboard Controls</summary>
-          <div class="controls-grid">
-            <div class="key-row">
-              <span>D-Pad</span>
-              <kbd>Arrow keys</kbd>
-            </div>
-            <div class="key-row">
-              <span>A button</span>
-              <kbd>Z</kbd>
-            </div>
-            <div class="key-row">
-              <span>B button</span>
-              <kbd>X</kbd>
-            </div>
-            <div class="key-row">
-              <span>C button</span>
-              <kbd>C</kbd>
-            </div>
-            <div class="key-row">
-              <span>X button</span>
-              <kbd>A</kbd>
-            </div>
-            <div class="key-row">
-              <span>Y button</span>
-              <kbd>S</kbd>
-            </div>
-            <div class="key-row">
-              <span>Z button</span>
-              <kbd>D</kbd>
-            </div>
-            <div class="key-row">
-              <span>Start</span>
-              <kbd>Enter</kbd>
-            </div>
-            <div class="key-row">
-              <span>Save state</span>
-              <kbd>F5</kbd>
-            </div>
-            <div class="key-row">
-              <span>Load state</span>
-              <kbd>F9</kbd>
-            </div>
-          </div>
-        </details>
-      </div>
-
-      <!-- SEO cross-link footer — hidden from users, visible to crawlers -->
-      <footer class="seo-intro" hidden>
-        <h2>Sega Genesis Emulator Online — Play Mega Drive Games in Browser</h2>
-        <p>
-          Free Sega Genesis and Mega Drive emulator running entirely in your browser. No download,
-          no install, no ads. Bring your own
-          <code>.md</code>
-          ,
-          <code>.bin</code>
-          , or
-          <code>.gen</code>
-          ROM file and start playing classic 16-bit games instantly. Powered by EmulatorJS with the
-          segaMD core.
-        </p>
-        <nav aria-label="More retro games">
-          <strong>More retro games from Joe Heyming:</strong>
-          <a href="/nes/">NES Emulator</a>
-          &middot;
-          <a href="/doom/">DOOM in Browser</a>
-          &middot;
-          <a href="/pacman/">3D Pac-Man</a>
-          &middot;
-          <a href="/stepmania/">StepMania</a>
-          &middot;
-          <a href="/minesweeper/">Minesweeper</a>
-          &middot;
-          <a href="/terminal/">Web Terminal</a>
-          &middot;
-          <a href="/about/">About Joe</a>
-        </nav>
-      </footer>
-    </div>
-
-    <!-- Game container — EmulatorJS mounts here after ROM is chosen -->
-    <div id="game-container">
-      <div id="game"></div>
-    </div>
-
-    <!-- Share button (always visible) -->
-    <div class="share-overlay">
-      <share-button label="📤 Share" theme="retro"></share-button>
-    </div>
-
     <script>
-      const romInput = document.getElementById('romFileInput');
-      const loadRomBtn = document.getElementById('loadRomBtn');
-      const bootEl = document.getElementById('boot');
-      const gameContainer = document.getElementById('game-container');
-
-      loadRomBtn.addEventListener('click', () => romInput.click());
-
-      romInput.addEventListener('change', function () {
-        const file = this.files && this.files[0];
-        if (!file) return;
-        window.launchEmulator(URL.createObjectURL(file), file.name);
-      });
-
-      window.launchEmulator = function launchEmulator(romUrl, romName) {
-        bootEl.classList.add('hidden');
-        gameContainer.classList.add('visible');
-
-        window.EJS_player = '#game';
-        window.EJS_core = 'segaMD';
-        // Accept a File object (preferred: preserves filename for zip detection)
-        // or a string URL as fallback (e.g. from the local file picker).
-        window.EJS_gameUrl = romUrl;
-        // EJS_gameName must be a string so saveInBrowserSupported() short-circuits
-        // before calling .startsWith() on the File object.
-        window.EJS_gameName = romName || (romUrl instanceof File ? romUrl.name : '');
-        window.EJS_pathtodata = 'https://cdn.emulatorjs.org/latest/data/';
-        window.EJS_startOnLoaded = true;
-        // EmulatorJS only takes a string color; resolve `--accent-bright`
-        // off `:root` so a Sega re-skin propagates without touching this
-        // file. Falls back to the canonical Genesis red if the var is
-        // somehow missing (e.g. brand.css failed to load).
-        window.EJS_color =
-          getComputedStyle(document.documentElement).getPropertyValue('--accent-bright').trim() ||
-          '#e94560';
-        window.EJS_defaultControls = 1;
-
-        const script = document.createElement('script');
-        script.src = 'https://cdn.emulatorjs.org/latest/data/loader.js';
-        document.body.appendChild(script);
-      };
+      // Preserve any inbound query string / fragment, but make sure
+      // ?console=sega reaches the unified shell. replace() (not
+      // assign) so the back button skips this stub.
+      (function () {
+        var inbound = new URLSearchParams(window.location.search);
+        if (!inbound.has('console')) inbound.set('console', 'sega');
+        var qs = inbound.toString();
+        var target = '/emulator/' + (qs ? '?' + qs : '') + (window.location.hash || '');
+        window.location.replace(target);
+      })();
     </script>
+  </head>
+  <body>
+    <main>
+      <h1>Sega Genesis Emulator moved</h1>
+      <p>
+        The Sega Genesis / Mega Drive emulator now lives at
+        <a href="/emulator/?console=sega">/emulator/?console=sega</a>
+        as one of three consoles in the unified emulator shell.
+      </p>
+      <p>Redirecting you now…</p>
+      <a class="cta" href="/emulator/?console=sega">Play Sega Genesis games →</a>
+    </main>
   </body>
 </html>
