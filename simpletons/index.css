@@ -723,3 +723,155 @@ body {
     animation: none;
   }
 }
+
+/* ------------------------------------------------------------------------ */
+/* Mobile polish                                                            */
+/* ------------------------------------------------------------------------ */
+
+/* Make sure the marquee row can wrap cleanly on the narrowest phones so
+   the title doesn't get truncated under the "NOW PLAYING" tag. */
+@media (max-width: 420px) {
+  .tv-marquee {
+    flex-wrap: wrap;
+  }
+  .tv-now-stack {
+    flex-basis: 100%;
+  }
+  /* Native video controls and tap targets need at least 44px to comply
+     with the iOS HIG; expand the chip row touch area to match. */
+  .tv-chip {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+}
+
+/* The chip row is horizontally scrollable everywhere; make sure the
+   scroll surface itself doesn't intercept page swipes on iOS. */
+.tv-season-chips {
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+/* ------------------------------------------------------------------------ */
+/* TV mode — focus rings, 10-ft typography, safe-area padding              */
+/* ------------------------------------------------------------------------ */
+
+/* Toggled by index.js when the URL has ?source=twa, ?tv=1, or the
+   viewport heuristic matches (≥1900px + coarse pointer). Everything
+   below is scoped to `body.is-tv` so it never bleeds into the regular
+   desktop/mobile layout. */
+
+body.is-tv {
+  /* Disable text selection in TV mode — the cursor (when present) is
+     usually a virtual D-pad pointer; selection is just visual noise. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body.is-tv .tv-room {
+  max-width: none;
+  /* TV-safe-area: most consumer TVs overscan 3–5%. Padding here keeps
+     all interactive UI clear of any cropped pixels. */
+  padding: clamp(40px, 5vh, 80px) clamp(40px, 5vw, 96px);
+  gap: 28px;
+}
+
+body.is-tv .tv-brand {
+  font-size: clamp(28px, 3.5vw, 44px);
+}
+
+body.is-tv .tv-tagline,
+body.is-tv .tv-subtitle {
+  font-size: 16px;
+}
+
+body.is-tv .tv-title {
+  font-size: 26px;
+}
+
+body.is-tv .tv-summary-text {
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+body.is-tv .tv-btn {
+  padding: 14px 24px;
+  font-size: 16px;
+}
+
+body.is-tv .tv-toggle {
+  font-size: 16px;
+  padding: 10px 14px;
+}
+
+body.is-tv .tv-chip {
+  padding: 12px 20px;
+  font-size: 16px;
+}
+
+body.is-tv .tv-channel-chip {
+  font-size: 13px;
+}
+
+body.is-tv .tv-ep-title {
+  font-size: 16px;
+}
+
+body.is-tv .tv-ep-num {
+  font-size: 13px;
+}
+
+body.is-tv .tv-ep-grid {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* In TV mode we drive focus with the D-pad, so the regular hover
+   affordances aren't useful — replace them with focus-visible. */
+body.is-tv :focus {
+  outline: none;
+}
+
+body.is-tv .tv-chip:focus-visible,
+body.is-tv .tv-btn:focus-visible,
+body.is-tv .tv-error-link:focus-visible {
+  outline: 4px solid var(--tv-accent);
+  outline-offset: 3px;
+  box-shadow: 0 0 28px var(--tv-accent-glow);
+}
+
+body.is-tv .tv-toggle:focus-within {
+  outline: 4px solid var(--tv-accent);
+  outline-offset: 3px;
+  box-shadow: 0 0 28px var(--tv-accent-glow);
+}
+
+body.is-tv .tv-video:focus-visible {
+  outline: 4px solid var(--tv-accent);
+  outline-offset: -4px;
+  box-shadow: 0 0 28px var(--tv-accent-glow);
+}
+
+/* Episode cards: big focus rings + a subtle pop so the active item is
+   unmistakable from across a room. */
+body.is-tv .tv-ep-card {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+body.is-tv .tv-ep-card:focus-visible {
+  outline: 4px solid var(--tv-accent);
+  outline-offset: 4px;
+  box-shadow: 0 0 32px var(--tv-accent-glow);
+  transform: scale(1.04);
+  z-index: 5;
+}
+
+body.is-tv .tv-chip.is-active {
+  background: var(--tv-accent);
+  color: #1a1612;
+}
+
+body.is-tv .tv-ep-card.is-active {
+  border-color: var(--tv-accent);
+}

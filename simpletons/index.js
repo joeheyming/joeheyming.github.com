@@ -13,6 +13,7 @@
 
 import { loadCatalog } from './modules/catalog.js';
 import { loadDescriptions, makeKey as descKey } from './modules/descriptions.js';
+import { enableSpatialNav } from './modules/nav.js';
 import {
   setLoadingVisible,
   showNoSignal,
@@ -51,6 +52,7 @@ function $(id) {
 async function main() {
   setLoadingVisible(true);
   loadPrefs();
+  applyTvMode();
 
   bindCopyButtons(() => STATE.current);
   bindShareButton(() => STATE.current);
@@ -240,6 +242,35 @@ function playEpisode(ep, opts = {}) {
  */
 function scrollToVideo() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/**
+ * Switch into TV mode (D-pad navigation, big focus rings, safe-area
+ * padding, hide-cursor-on-idle) when the app is running in a context
+ * that looks like a TV. We trust three signals:
+ *
+ *   - `?source=twa` — set by the per-app manifest's start_url so the
+ *      Trusted Web Activity APK always lands in TV mode.
+ *   - `?tv=1` — manual override for testing on a desktop browser.
+ *   - Coarse pointer + ≥1900px viewport — a heuristic for "this is
+ *      probably a TV browser" (Bravia Chrome reports both).
+ *
+ * Once enabled, install the spatial-nav module so the remote's D-pad
+ * works. Cursor auto-hide is handled in CSS.
+ */
+function applyTvMode() {
+  const params = new URLSearchParams(location.search);
+  const explicit = params.has('tv') || params.get('source') === 'twa';
+  const heuristic =
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(min-width: 1900px) and (pointer: coarse)').matches;
+  if (!explicit && !heuristic) return;
+  document.body.classList.add('is-tv');
+  enableSpatialNav({
+    // Skip the season chip row's horizontal-scroll arrows — D-pad on
+    // the chip row already handles left/right via the spatial algorithm.
+    focusableSelector: '.tv-chip, .tv-ep-card, .tv-btn, #tv-autoplay, #tv-video, #tv-archive-link'
+  });
 }
 
 /**
