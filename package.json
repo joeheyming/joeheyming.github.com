@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "test": "node --test tests/**/*.test.mjs",
+    "test": "node --test",
     "sync:manifest": "node scripts/sync-portfolio-metadata.mjs",
     "indexnow": "node scripts/indexnow-submit.mjs",
     "lint": "eslint app.js mime-handlers.js generate-previews.js share.js google-db todo",

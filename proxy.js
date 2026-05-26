@@ -308,9 +308,7 @@ class ProxyService {
             // when rate-limited. Without this check we'd cache that string and
             // surface it to every caller for the same URL.
             if (typeof options.validate === 'function' && !options.validate(content)) {
-              console.warn(
-                `Proxy ${proxy} returned body failing validation — treating as failure`
-              );
+              console.warn(`Proxy ${proxy} returned body failing validation — treating as failure`);
               this.updateProxyScore(proxy, false);
               this.proxyLastFailure.set(proxy, Date.now());
               continue;
@@ -558,6 +556,165 @@ class ProxyService {
     );
   }
 
+  /**
+   * Stream-download a binary URL through the proxy chain with progress
+   * callbacks. Same proxy-fallback contract as `fetchBinaryWithProxy`,
+   * but reads the response body chunk-by-chunk via `getReader()` so
+   * the caller can render a percentage while a large file (a 300 MB
+   * MP4 episode, say) downloads.
+   *
+   * Returns a `Blob` (instead of the `Uint8Array` from the buffered
+   * variant) because the typical destination is IndexedDB, where
+   * Blobs are stored as on-disk files rather than memory-resident
+   * typed arrays. Pass `contentType` to set the Blob's MIME type;
+   * defaults to `application/octet-stream`.
+   *
+   * @param {string} url
+   * @param {{
+   *   onProgress?: (p: { received: number, total: number, ratio: number }) => void,
+   *   signal?: AbortSignal,
+   *   skipDirect?: boolean,
+   *   maxRetries?: number,
+   *   contentType?: string,
+   *   headers?: Record<string, string>,
+   *   deferProxies?: string[]
+   * }} [options]
+   * @returns {Promise<Blob>}
+   */
+  async fetchBinaryStream(url, options = {}) {
+    const userAbort = options.signal;
+    const contentType = options.contentType || 'application/octet-stream';
+    const maxRetries = options.maxRetries ?? this.maxRetries;
+
+    // Try direct first — if the upstream allows CORS we save the
+    // round-trip through a public proxy (which adds latency and is
+    // rate-limited). Failure is expected for archive.org's MP4 URLs
+    // because the 302 redirect lands on dn710203.ca.archive.org, an
+    // origin that doesn't set Access-Control-Allow-Origin.
+    if (!options.skipDirect) {
+      try {
+        const blob = await this._streamToBlob(url, {
+          signal: userAbort,
+          onProgress: options.onProgress,
+          contentType,
+          headers: options.headers
+        });
+        if (blob) {
+          console.log('Direct binary stream succeeded (no proxy needed)');
+          return blob;
+        }
+      } catch (err) {
+        if (err && err.name === 'AbortError') throw err;
+        console.log(`Direct binary stream blocked: ${err && err.message}`);
+      }
+    }
+
+    const orderedProxies = this.getOrderedProxies(options);
+    let lastError = null;
+    for (let retry = 0; retry <= maxRetries; retry += 1) {
+      if (userAbort && userAbort.aborted) {
+        throw new DOMException('The operation was aborted.', 'AbortError');
+      }
+      for (const proxy of orderedProxies) {
+        const lastFail = this.proxyLastFailure.get(proxy);
+        if (lastFail && Date.now() - lastFail < this.proxyCooldownMs) continue;
+        try {
+          const proxyUrl = proxy + this.encodeUrlForProxy(url);
+          const startTime = Date.now();
+          console.log(`Trying streamed proxy: ${proxy.substring(0, 30)}...`);
+          const blob = await this._streamToBlob(proxyUrl, {
+            signal: userAbort,
+            onProgress: options.onProgress,
+            contentType,
+            headers: options.headers
+          });
+          if (blob) {
+            this.updateProxyScore(proxy, true, Date.now() - startTime);
+            return blob;
+          }
+        } catch (err) {
+          if (err && err.name === 'AbortError') throw err;
+          lastError = err;
+          console.warn(`Streamed proxy ${proxy} failed:`, err && err.message);
+          this.updateProxyScore(proxy, false);
+          this.proxyLastFailure.set(proxy, Date.now());
+        }
+      }
+      if (retry < maxRetries) {
+        if (userAbort && userAbort.aborted) {
+          throw new DOMException('The operation was aborted.', 'AbortError');
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (retry + 1)));
+      }
+    }
+    throw new Error(
+      `All proxies failed after ${maxRetries + 1} attempts: ${
+        lastError?.message || 'Unknown error'
+      }`
+    );
+  }
+
+  /**
+   * Shared streaming-fetch helper. Reads `url` via `getReader()` and
+   * collects chunks into a Blob, firing `onProgress` after each chunk.
+   * Cancels the reader on AbortSignal so a half-downloaded file
+   * doesn't leak the underlying connection.
+   *
+   * @private
+   * @param {string} url
+   * @param {{
+   *   signal?: AbortSignal,
+   *   onProgress?: (p: { received: number, total: number, ratio: number }) => void,
+   *   contentType: string,
+   *   headers?: Record<string, string>
+   * }} ctx
+   */
+  async _streamToBlob(url, ctx) {
+    const { signal, onProgress, contentType, headers } = ctx;
+    const res = await fetch(url, {
+      method: 'GET',
+      signal,
+      headers: {
+        Accept: 'application/octet-stream,*/*',
+        ...headers
+      }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.body) throw new Error('No response body');
+    const total = Number(res.headers.get('content-length')) || 0;
+    const reader = res.body.getReader();
+    /** @type {Uint8Array[]} */
+    const chunks = [];
+    let received = 0;
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (signal && signal.aborted) {
+          await reader.cancel().catch(() => {});
+          throw new DOMException('The operation was aborted.', 'AbortError');
+        }
+        chunks.push(value);
+        received += value.byteLength;
+        if (onProgress) {
+          onProgress({
+            received,
+            total,
+            ratio: total > 0 ? received / total : 0
+          });
+        }
+      }
+    } catch (err) {
+      try {
+        await reader.cancel();
+      } catch {
+        /* ignore */
+      }
+      throw err;
+    }
+    return new Blob(chunks, { type: contentType });
+  }
+
   // Set timeout for all requests
   setTimeout(timeoutMs) {
     this.timeoutMs = timeoutMs;
@@ -650,9 +807,7 @@ class ProxyService {
         /* keep host empty */
       }
       throw new Error(
-        host
-          ? `Couldn't read the response from ${host}.`
-          : "Couldn't read the response."
+        host ? `Couldn't read the response from ${host}.` : "Couldn't read the response."
       );
     }
   }

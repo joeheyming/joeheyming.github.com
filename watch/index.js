@@ -214,18 +214,18 @@ function updateBreadcrumbCurrent(label) {
  */
 function setPageTitle(view, show, params) {
   if (view === 'shows') {
-    document.title = '📺 Watch — Classic TV from the Internet Archive | Joe Heyming';
+    document.title = 'Watch — Classic TV from the Internet Archive | Joe Heyming 📺';
     return;
   }
   if (view === 'episodes' && show) {
-    document.title = `📺 ${show.name} · Episodes | Watch`;
+    document.title = `${show.name} · Episodes | Watch 📺`;
     return;
   }
   if (view === 'watch' && show) {
     const s = Number(params.get('s'));
     const e = Number(params.get('e'));
     const tag = s === 0 ? 'Movie' : `S${pad(s)}E${pad(e)}`;
-    document.title = `📺 ${show.name} · ${tag} | Watch`;
+    document.title = `${show.name} · ${tag} | Watch 📺`;
   }
 }
 

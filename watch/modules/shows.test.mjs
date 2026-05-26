@@ -11,39 +11,51 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { SHOWS, getShow, __testing } from '../watch/modules/shows.js';
+import { SHOWS, getShow } from './shows.js';
 
-const {
-  parseSimpsons,
-  parseSouthPark,
-  parseBeavis,
-  parseSmurfs,
-  parseDnD,
-  parseDBZ,
-  parseInspectorGadget,
-  parseAquaTeen,
-  parseRockyBullwinkle,
-  parseTMNT,
-  isSimpsonsMovie
-} = __testing;
+// Parsers and movieDetectors live inline on each SHOWS entry — pull
+// them out here so the test cases read the same as before.
+const parseSimpsons = getShow('simpsons').parser;
+const parseSouthPark = getShow('southpark').parser;
+const parseBeavis = getShow('beavis').parser;
+const parseSmurfs = getShow('smurfs').parser;
+const parseDnD = getShow('dnd').parser;
+const parseDBZ = getShow('dbz').parser;
+const parseInspectorGadget = getShow('inspector-gadget').parser;
+const parseAquaTeen = getShow('aqua-teen').parser;
+const parseRobotech = getShow('robotech').parser;
+const parseRockyBullwinkle = getShow('rocky-bullwinkle').parser;
+const parseTMNT = getShow('tmnt').parser;
+const parseSpeedRacer = getShow('speed-racer').parser;
+const parseVoltron = getShow('voltron').parser;
+const isSimpsonsMovie = getShow('simpsons').movieDetector;
 
 describe('SHOWS registry', () => {
-  it('contains the expected shows', () => {
+  it('contains the expected shows, sorted by id', () => {
     assert.deepEqual(
       SHOWS.map((s) => s.id),
       [
-        'simpsons',
-        'southpark',
-        'beavis',
-        'smurfs',
-        'dnd',
-        'dbz',
-        'inspector-gadget',
         'aqua-teen',
+        'beavis',
+        'dbz',
+        'dnd',
+        'inspector-gadget',
+        'robotech',
         'rocky-bullwinkle',
-        'tmnt'
+        'simpsons',
+        'smurfs',
+        'southpark',
+        'speed-racer',
+        'tmnt',
+        'voltron'
       ]
     );
+  });
+
+  it('is exposed in alphabetical order by id (so dropping a new entry anywhere still lands in the right slot)', () => {
+    const ids = SHOWS.map((s) => s.id);
+    const sorted = [...ids].sort((a, b) => a.localeCompare(b));
+    assert.deepEqual(ids, sorted);
   });
 
   it('every show declares the required fields', () => {
@@ -62,10 +74,12 @@ describe('SHOWS registry', () => {
     }
   });
 
-  it('TMNT is the (currently sole) multi-item show', () => {
-    const tmnt = getShow('tmnt');
-    assert.ok(Array.isArray(tmnt?.iaItem));
-    assert.ok(tmnt.iaItem.length >= 2, 'TMNT should pull from multiple IA items');
+  it('multi-item shows declare an iaItem array with > 1 entry', () => {
+    for (const id of ['tmnt', 'robotech']) {
+      const show = getShow(id);
+      assert.ok(Array.isArray(show?.iaItem), `${id} should declare iaItem as an array`);
+      assert.ok(show.iaItem.length >= 2, `${id} should pull from multiple IA items`);
+    }
   });
 
   it('getShow returns the entry or null', () => {
@@ -386,6 +400,48 @@ describe('parseAquaTeen', () => {
   });
 });
 
+describe('parseRobotech', () => {
+  it('parses Macross Saga (1x… = season 1)', () => {
+    assert.deepEqual(parseRobotech('Robotech - 1x01 - Boobytrap.mp4'), {
+      season: 1,
+      episode: 1,
+      title: 'Boobytrap'
+    });
+    assert.deepEqual(parseRobotech('Robotech - 1x36 - To the Stars.mp4'), {
+      season: 1,
+      episode: 36,
+      title: 'To the Stars'
+    });
+  });
+
+  it('parses Masters (2x… = season 2)', () => {
+    assert.deepEqual(parseRobotech("Robotech - 2x01 - Dana's Story.mp4"), {
+      season: 2,
+      episode: 1,
+      title: "Dana's Story"
+    });
+    assert.deepEqual(parseRobotech('Robotech - 2x24 - Catastrophe.mp4'), {
+      season: 2,
+      episode: 24,
+      title: 'Catastrophe'
+    });
+  });
+
+  it('parses New Generation (3x… = season 3)', () => {
+    assert.deepEqual(parseRobotech('Robotech - 3x25 - Symphony of Light.mp4'), {
+      season: 3,
+      episode: 25,
+      title: 'Symphony of Light'
+    });
+  });
+
+  it('returns null for unrelated files', () => {
+    assert.equal(parseRobotech('cover.jpg'), null);
+    assert.equal(parseRobotech('Robotech The Movie 1986.mp4'), null);
+    assert.equal(parseRobotech('Robotech - S01E01 - Boobytrap.mp4'), null);
+  });
+});
+
 describe('parseRockyBullwinkle', () => {
   it('parses the long-prefix form under Season-01/', () => {
     assert.deepEqual(
@@ -465,5 +521,59 @@ describe('parseTMNT', () => {
     assert.equal(parseTMNT('cover.jpg'), null);
     assert.equal(parseTMNT('TMNT 2007 Movie.mp4'), null);
     assert.equal(parseTMNT('Teenage Mutant Ninja Turtles - bonus.mp4'), null);
+  });
+});
+
+describe('parseSpeedRacer', () => {
+  it('strips the leftover Windows path prefix and parses S01E01', () => {
+    assert.deepEqual(
+      parseSpeedRacer(
+        'G:/Videos/Downloads/Speed Racer/Speed Racer - S01E01 - The Great Plan (Pt. 1).mp4'
+      ),
+      { season: 1, episode: 1, title: 'The Great Plan (Pt. 1)' }
+    );
+  });
+
+  it('parses the no-prefix form (the last two episodes ship that way)', () => {
+    assert.deepEqual(
+      parseSpeedRacer('Speed Racer - S01E51 - The Race Around the World (Pt. 1).mp4'),
+      { season: 1, episode: 51, title: 'The Race Around the World (Pt. 1)' }
+    );
+  });
+
+  it('preserves the fullwidth-colon glyph in S01E52 (Windows filename workaround)', () => {
+    assert.deepEqual(
+      parseSpeedRacer('Speed Racer - S01E52 - The Race Around the World： (Pt. 2).mp4'),
+      { season: 1, episode: 52, title: 'The Race Around the World： (Pt. 2)' }
+    );
+  });
+
+  it('returns null for unrelated files', () => {
+    assert.equal(parseSpeedRacer('cover.jpg'), null);
+    assert.equal(parseSpeedRacer('Speed Racer 2008 Movie.mp4'), null);
+    assert.equal(parseSpeedRacer('Mach Go Go Go S01E01.mp4'), null);
+  });
+});
+
+describe('parseVoltron', () => {
+  it('parses the canonical "NN - Title" form (no S/E prefix)', () => {
+    assert.deepEqual(parseVoltron('Voltron Vehicle Force - 01 - In Search Of New Worlds.mp4'), {
+      season: 1,
+      episode: 1,
+      title: 'In Search Of New Worlds'
+    });
+  });
+
+  it('handles two-digit episode numbers', () => {
+    assert.deepEqual(
+      parseVoltron('Voltron Vehicle Force - 52 - The End Of Hazar\u2019s World.mp4'),
+      { season: 1, episode: 52, title: 'The End Of Hazar\u2019s World' }
+    );
+  });
+
+  it('returns null for unrelated files', () => {
+    assert.equal(parseVoltron('cover.jpg'), null);
+    assert.equal(parseVoltron('Voltron - 01 - Space Explorers Captured.mp4'), null);
+    assert.equal(parseVoltron('Voltron Lion Force - 01 - Pilot.mp4'), null);
   });
 });

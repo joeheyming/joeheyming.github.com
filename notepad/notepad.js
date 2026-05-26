@@ -96,7 +96,7 @@ class RichNotepad {
         // Update current file info after Save As
         this.currentFilePath = data.path;
         this.currentFileName = data.fileName;
-        document.title = `📝 ${data.fileName} - Notepad`;
+        document.title = `${data.fileName} - Notepad 📝`;
 
         this.showNotification(`💾 Saved: ${data.fileName}`, 'success');
       }
@@ -109,7 +109,7 @@ class RichNotepad {
 
     // Update document title
     if (fileName) {
-      document.title = `📝 ${fileName} - Notepad`;
+      document.title = `${fileName} - Notepad 📝`;
     }
 
     const text = this.normalizeOpenFileContent(content);

@@ -116,6 +116,7 @@ a.tv-crumb:hover {
   color: var(--tv-text-dim);
   font-family: var(--font-mono);
   font-size: 14px;
+  text-decoration: none;
   width: 28px;
   height: 28px;
   border-radius: 6px;
@@ -262,11 +263,20 @@ a.tv-crumb:hover {
   gap: 18px;
 }
 
-.tv-show-card {
+/* Shared base for every grid card surface in /watch/ — landing show
+   tiles, Continue Watching cards, episode cards, and the player's
+   Up-next strip. Each variant below overrides border-radius,
+   transition, hover lift, focus ring, and any extras (continue-card
+   gets `position: relative` for its remove button etc.). Keeping the
+   skeleton in one place means "what a card looks like" is a single
+   concept rather than four copies that drift over time. */
+.tv-show-card,
+.tv-continue-card,
+.tv-ep-card,
+.tv-upnext-card {
   appearance: none;
   border: 1px solid var(--tv-card-border);
   background: var(--tv-card-bg);
-  border-radius: 14px;
   padding: 0;
   overflow: hidden;
   cursor: pointer;
@@ -275,6 +285,10 @@ a.tv-crumb:hover {
   align-items: stretch;
   text-align: left;
   color: var(--tv-text);
+}
+
+.tv-show-card {
+  border-radius: 14px;
   transition: transform 0.18s ease, border 0.18s ease, box-shadow 0.18s ease;
   /* `--show-accent` is set inline on each card from JS so the hover
      glow tracks each show's signature colour. */
@@ -358,18 +372,10 @@ a.tv-crumb:hover {
 }
 
 .tv-continue-card {
-  appearance: none;
-  border: 1px solid var(--tv-card-border);
-  background: var(--tv-card-bg);
+  /* Skeleton (border, padding, flex, etc.) inherited from the
+     shared `.tv-show-card, .tv-continue-card, .tv-ep-card,
+     .tv-upnext-card` base rule above. */
   border-radius: 12px;
-  padding: 0;
-  overflow: hidden;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  text-align: left;
-  color: var(--tv-text);
   text-decoration: none;
   position: relative;
   transition: transform 0.18s ease, border 0.18s ease, box-shadow 0.18s ease;
@@ -502,6 +508,95 @@ a.tv-crumb:hover {
   .tv-continue-remove {
     opacity: 0.85;
     transform: scale(1);
+  }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Landing view — "Saved offline" row                                       */
+/* ------------------------------------------------------------------------ */
+
+.tv-saved-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tv-saved-section.hidden {
+  display: none;
+}
+
+.tv-saved-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+/* Card chrome is shared with Continue Watching; the "saved" variant
+   adds a corner badge and a size line below the title. */
+.tv-saved-badge {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--tv-text);
+  background: rgba(8, 8, 12, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 3px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  z-index: 1;
+}
+
+.tv-saved-size {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--tv-text-dim);
+  letter-spacing: 0.5px;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Player view — Save-offline button states                                 */
+/* ------------------------------------------------------------------------ */
+
+.tv-save-btn.is-saved {
+  color: var(--tv-led);
+  border-color: color-mix(in srgb, var(--tv-led) 50%, transparent);
+  background: color-mix(in srgb, var(--tv-led) 8%, transparent);
+}
+
+.tv-save-btn.is-saved:hover {
+  background: color-mix(in srgb, var(--tv-led-red) 14%, transparent);
+  color: var(--tv-led-red);
+  border-color: color-mix(in srgb, var(--tv-led-red) 50%, transparent);
+}
+
+.tv-save-btn.is-downloading {
+  color: var(--tv-accent);
+  border-color: color-mix(in srgb, var(--tv-accent) 50%, transparent);
+  background: color-mix(in srgb, var(--tv-accent) 8%, transparent);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  /* Subtle pulse so the user has a fidget-target while a 200 MB file
+     downloads — eight seconds full-cycle reads as "active" without
+     feeling impatient. */
+  animation: tv-save-pulse 2s ease-in-out infinite;
+}
+
+@keyframes tv-save-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--tv-accent) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--tv-accent) 18%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-save-btn.is-downloading {
+    animation: none;
   }
 }
 
@@ -1161,18 +1256,8 @@ a.tv-crumb:hover {
 }
 
 .tv-ep-card {
-  appearance: none;
-  border: 1px solid var(--tv-card-border);
-  background: var(--tv-card-bg);
+  /* Skeleton inherited from the shared card-base rule. */
   border-radius: 10px;
-  padding: 0;
-  overflow: hidden;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  text-align: left;
-  color: var(--tv-text);
   transition: transform 0.15s ease, border 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -1418,17 +1503,8 @@ a.tv-crumb:hover {
 }
 
 .tv-upnext-card {
-  appearance: none;
-  background: var(--tv-card-bg);
-  border: 1px solid var(--tv-card-border);
+  /* Skeleton inherited from the shared card-base rule. */
   border-radius: 8px;
-  padding: 0;
-  overflow: hidden;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  text-align: left;
-  color: var(--tv-text);
   transition: transform 0.15s ease, border 0.15s ease;
 }
 
@@ -1560,7 +1636,8 @@ a.tv-crumb:hover {
 
   .tv-ep-grid,
   .tv-show-grid,
-  .tv-continue-grid {
+  .tv-continue-grid,
+  .tv-saved-grid {
     grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
     gap: 10px;
   }
@@ -1580,7 +1657,8 @@ a.tv-crumb:hover {
   }
 
   .tv-show-grid,
-  .tv-continue-grid {
+  .tv-continue-grid,
+  .tv-saved-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }

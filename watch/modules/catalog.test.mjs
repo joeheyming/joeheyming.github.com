@@ -15,9 +15,9 @@ import {
   mergeCatalogs,
   mergeDescriptions,
   getNextEpisode
-} from '../watch/modules/catalog.js';
-import { makeKey } from '../watch/modules/descriptions.js';
-import { getShow } from '../watch/modules/shows.js';
+} from './catalog.js';
+import { makeKey } from './descriptions.js';
+import { getShow } from './shows.js';
 
 /* ============================================================
  * buildCatalog
@@ -67,6 +67,27 @@ describe('buildCatalog — The Simpsons', () => {
     const ep = cat.seasons[0].episodes[0];
     assert.match(ep.url, /^https:\/\/archive\.org\/download\/doh_20240725\//);
     assert.match(ep.archiveUrl, /^https:\/\/archive\.org\/details\/doh_20240725/);
+  });
+
+  it('does not surface any archive.org thumbnail URL on episodes', () => {
+    // Thumbnails come from TVMaze only — the IA `.thumbs/` directory
+    // sometimes 403s and we'd rather show the emoji placeholder than
+    // a broken image. Even when archive.org's metadata lists thumb
+    // files, the builder must not stash them on the episode.
+    const meta = {
+      files: [
+        { name: 'The Simpsons S01, E01 - x.mp4' },
+        // A `.thumbs/` entry that previously would have populated
+        // `ep.thumbUrl`. The builder should ignore it now.
+        {
+          name: 'doh_20240725.thumbs/The Simpsons S01, E01 - x_000001.jpg',
+          format: 'Thumbnail'
+        }
+      ]
+    };
+    const cat = buildCatalog(show, meta);
+    const ep = cat.seasons[0].episodes[0];
+    assert.equal(ep.thumbUrl, undefined, 'thumbUrl should no longer exist on Episode');
   });
 });
 

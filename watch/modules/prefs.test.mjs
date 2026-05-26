@@ -43,7 +43,7 @@ const {
   clearLastEpisode,
   listContinueWatching,
   __testing
-} = await import('../watch/modules/prefs.js');
+} = await import('./prefs.js');
 
 beforeEach(() => {
   globalThis.localStorage.clear();
@@ -53,6 +53,7 @@ describe('loadPrefs', () => {
   it('returns defaults when storage is empty', () => {
     const p = loadPrefs();
     assert.equal(p.autoplayNext, true);
+    assert.equal(p.shuffle, false);
     assert.equal(p.subtitleLang, null);
   });
 
@@ -95,6 +96,28 @@ describe('loadPrefs', () => {
     assert.equal(p.subtitleLang, null);
   });
 
+  it('returns shuffle=false for legacy prefs missing the field', () => {
+    // Simulates a user who set prefs before shuffle-as-mode existed.
+    localStorage.setItem(
+      __testing.PREFS_KEY,
+      JSON.stringify({ autoplayNext: false, subtitleLang: 'eng' })
+    );
+    assert.equal(loadPrefs().shuffle, false);
+  });
+
+  it('round-trips shuffle=true', () => {
+    savePrefs({ autoplayNext: true, shuffle: true, subtitleLang: null });
+    assert.equal(loadPrefs().shuffle, true);
+  });
+
+  it('falls back to default shuffle when the stored value is not a boolean', () => {
+    localStorage.setItem(
+      __testing.PREFS_KEY,
+      JSON.stringify({ autoplayNext: true, shuffle: 'yes', subtitleLang: null })
+    );
+    assert.equal(loadPrefs().shuffle, false);
+  });
+
   it('survives garbage JSON in storage', () => {
     localStorage.setItem(__testing.PREFS_KEY, 'not-json{');
     const p = loadPrefs();
@@ -105,13 +128,13 @@ describe('loadPrefs', () => {
 
 describe('savePrefs', () => {
   it('round-trips through loadPrefs', () => {
-    savePrefs({ autoplayNext: false, subtitleLang: 'spa' });
-    assert.deepEqual(loadPrefs(), { autoplayNext: false, subtitleLang: 'spa' });
+    savePrefs({ autoplayNext: false, shuffle: true, subtitleLang: 'spa' });
+    assert.deepEqual(loadPrefs(), { autoplayNext: false, shuffle: true, subtitleLang: 'spa' });
   });
 
   it('persists subtitleLang=null when explicitly turned off', () => {
-    savePrefs({ autoplayNext: true, subtitleLang: 'eng' });
-    savePrefs({ autoplayNext: true, subtitleLang: null });
+    savePrefs({ autoplayNext: true, shuffle: false, subtitleLang: 'eng' });
+    savePrefs({ autoplayNext: true, shuffle: false, subtitleLang: null });
     assert.equal(loadPrefs().subtitleLang, null);
   });
 });

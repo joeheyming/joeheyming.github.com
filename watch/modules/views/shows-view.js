@@ -17,6 +17,11 @@
 
 import { SHOWS, getShow } from '../shows.js';
 import { listContinueWatching, clearLastEpisode } from '../prefs.js';
+import {
+  listSaved as listOfflineSaved,
+  deleteSavedEpisode as deleteOfflineEpisode,
+  formatBytes
+} from '../offline.js';
 
 /** @typedef {import('../shows.js').ShowConfig} ShowConfig */
 
@@ -42,7 +47,7 @@ export function mount(slot, ctx) {
   const introBlurb = document.createElement('p');
   introBlurb.className = 'tv-landing-blurb';
   introBlurb.textContent =
-    'Smart-TV style player that streams classic animated series straight from the Internet Archive. No accounts, no ads — MP4 over HTTPS. Cast to a Chromecast or AirPlay receiver from the player.';
+    'Smart-TV style player that streams classic TV series straight from the Internet Archive. No accounts, no ads — MP4 over HTTPS. Cast to a Chromecast or AirPlay receiver from the player.';
   intro.appendChild(introTitle);
   intro.appendChild(introBlurb);
 
@@ -66,6 +71,24 @@ export function mount(slot, ctx) {
   continueSection.appendChild(continueLabel);
   continueSection.appendChild(continueGrid);
 
+  // Saved-offline row. Sits between Continue watching and the show
+  // grid so the user's most-active state (cached episodes ready to
+  // play with no network) is closest to the fold. Hidden when empty.
+  const savedSection = document.createElement('div');
+  savedSection.className = 'tv-saved-section hidden';
+  const savedLabel = document.createElement('div');
+  savedLabel.className = 'tv-section-label';
+  const savedLabelText = document.createElement('span');
+  savedLabelText.textContent = 'Saved offline';
+  const savedLabelMeta = document.createElement('span');
+  savedLabelMeta.className = 'tv-section-meta';
+  savedLabel.appendChild(savedLabelText);
+  savedLabel.appendChild(savedLabelMeta);
+  const savedGrid = document.createElement('div');
+  savedGrid.className = 'tv-saved-grid';
+  savedSection.appendChild(savedLabel);
+  savedSection.appendChild(savedGrid);
+
   const grid = document.createElement('div');
   grid.className = 'tv-show-grid';
   grid.setAttribute('role', 'list');
@@ -75,10 +98,12 @@ export function mount(slot, ctx) {
 
   root.appendChild(intro);
   root.appendChild(continueSection);
+  root.appendChild(savedSection);
   root.appendChild(grid);
   slot.appendChild(root);
 
   renderContinue(continueSection, continueGrid, ctx);
+  void renderSaved(savedSection, savedGrid, savedLabelMeta, ctx);
 
   return {
     unmount() {
@@ -109,6 +134,136 @@ function renderContinue(section, gridEl, ctx) {
     rendered += 1;
   }
   section.classList.toggle('hidden', rendered === 0);
+}
+
+/**
+ * Build / rebuild the offline-cache row from IndexedDB. Re-runs after
+ * each remove. The label's meta text gets the cumulative footprint so
+ * users can see how much disk their saves are taking.
+ *
+ * @param {HTMLElement} section
+ * @param {HTMLElement} gridEl
+ * @param {HTMLElement} metaEl
+ * @param {MountCtx} ctx
+ */
+async function renderSaved(section, gridEl, metaEl, ctx) {
+  const entries = await listOfflineSaved();
+  gridEl.replaceChildren();
+  if (entries.length === 0) {
+    section.classList.add('hidden');
+    metaEl.textContent = '';
+    return;
+  }
+  section.classList.remove('hidden');
+  let total = 0;
+  for (const meta of entries) {
+    total += Number(meta.sizeBytes) || 0;
+    gridEl.appendChild(makeSavedCard(meta, ctx, () => renderSaved(section, gridEl, metaEl, ctx)));
+  }
+  metaEl.textContent = `${entries.length} ${
+    entries.length === 1 ? 'episode' : 'episodes'
+  } · ${formatBytes(total)} · tap ✕ to delete`;
+}
+
+/**
+ * @param {import('../offline.js').SavedEpisodeMeta} meta
+ * @param {MountCtx} ctx
+ * @param {() => void} onChange
+ */
+function makeSavedCard(meta, ctx, onChange) {
+  const card = document.createElement('a');
+  card.className = 'tv-continue-card tv-saved-card';
+  card.style.setProperty('--show-accent', meta.showAccent || 'var(--tv-accent)');
+  const query = new URLSearchParams({
+    show: meta.showId,
+    s: String(meta.season),
+    e: String(meta.episode)
+  });
+  card.href = `?${query.toString()}`;
+
+  const thumb = document.createElement('div');
+  thumb.className = 'tv-continue-thumb';
+  thumb.style.background = `linear-gradient(160deg, ${meta.showAccent || '#444'}33, #111)`;
+  if (meta.thumbUrl) {
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.alt = '';
+    img.src = meta.thumbUrl;
+    img.addEventListener(
+      'error',
+      () => {
+        img.remove();
+        thumb.classList.add('is-empty');
+        thumb.textContent = meta.showEmoji || '📺';
+      },
+      { once: true }
+    );
+    thumb.appendChild(img);
+  } else {
+    thumb.classList.add('is-empty');
+    thumb.textContent = meta.showEmoji || '📺';
+  }
+
+  const play = document.createElement('div');
+  play.className = 'tv-continue-play';
+  play.textContent = '▶';
+  thumb.appendChild(play);
+
+  // "Offline" chip in the corner doubles as visual confirmation that
+  // this card plays without a network — the home page renders the
+  // Continue-watching row right above with very similar styling.
+  const badge = document.createElement('span');
+  badge.className = 'tv-saved-badge';
+  badge.textContent = '💾 Offline';
+  thumb.appendChild(badge);
+
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'tv-continue-remove';
+  remove.setAttribute(
+    'aria-label',
+    `Delete saved copy of ${meta.showName} S${pad(meta.season)}E${pad(meta.episode)}`
+  );
+  remove.title = 'Delete this cached episode';
+  remove.textContent = '✕';
+  thumb.appendChild(remove);
+
+  const body = document.createElement('div');
+  body.className = 'tv-continue-meta';
+  const showLine = document.createElement('div');
+  showLine.className = 'tv-continue-show';
+  showLine.textContent = `${meta.showEmoji || '📺'} ${meta.showName}`;
+  const tagLine = document.createElement('div');
+  tagLine.className = 'tv-continue-tag';
+  const epLabel = meta.season === 0 ? 'Movie' : `S${pad(meta.season)}E${pad(meta.episode)}`;
+  tagLine.textContent = meta.title ? `${epLabel} · ${meta.title}` : epLabel;
+  const sizeLine = document.createElement('div');
+  sizeLine.className = 'tv-saved-size';
+  sizeLine.textContent = formatBytes(meta.sizeBytes);
+  body.appendChild(showLine);
+  body.appendChild(tagLine);
+  body.appendChild(sizeLine);
+
+  card.appendChild(thumb);
+  card.appendChild(body);
+
+  remove.addEventListener('click', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Confirm destructive action — saved videos take real disk, but
+    // re-downloading is also free, so we keep the prompt minimal.
+    if (!window.confirm(`Delete the cached copy of "${meta.title || epLabel}"?`)) return;
+    await deleteOfflineEpisode(meta.showId, meta.season, meta.episode);
+    onChange();
+  });
+  card.addEventListener('click', (e) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+    e.preventDefault();
+    ctx.navigate({ show: meta.showId, s: meta.season, e: meta.episode });
+  });
+
+  return card;
 }
 
 /**

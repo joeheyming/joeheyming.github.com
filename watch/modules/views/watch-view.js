@@ -15,19 +15,25 @@
  * On `<video>` end with autoplay on, the view skips to the next
  * episode in the same season (wrapping); the breadcrumb + URL update
  * to match.
+ *
+ * Structure: this view is the orchestrator. It builds the DOM, loads
+ * the catalog, owns the `current` episode, and routes events to
+ * three sibling controllers that own their own UI lifecycles:
+ *
+ *   - SubtitleController       (CC button + language menu + sync slider + <track>)
+ *   - OfflineSaveController    (Save button + IDB + AbortController + blob URL)
+ *   - EndCardController        (autoplay-next overlay + countdown timer)
+ *
+ * Each controller exposes `setEpisode` (or `hide` for end-card) +
+ * `dispose`; loadEpisode and unmount fan out to them.
  */
 
 import { getMergedCatalog, getNextEpisode } from '../catalog.js';
 import { createMarquee, createSummaryCard, describeEpisode, copyToClipboard, pad } from '../ui.js';
 import { loadPrefs, savePrefs, saveLastEpisode } from '../prefs.js';
-import {
-  searchSubtitles,
-  groupByLanguage,
-  sortLanguageGroups,
-  languageLabel,
-  loadVttUrl,
-  applyCueOffset
-} from '../subtitles.js';
+import { createSubtitleController } from './subtitle-controller.js';
+import { createOfflineSaveController } from './offline-save-controller.js';
+import { createEndCardController } from './endcard-controller.js';
 
 /** @typedef {import('../shows.js').ShowConfig} ShowConfig */
 /** @typedef {import('../catalog.js').Catalog} Catalog */
@@ -111,7 +117,9 @@ export async function mount(slot, ctx) {
   errorBanner.appendChild(errorMsg);
   errorBanner.appendChild(errorLink);
 
-  // End-of-episode "Up next" card — populated lazily by showEndCard().
+  // End-of-episode "Up next" card. Built here so the chassis layout
+  // stays in one place; the EndCardController owns its behavior and
+  // visibility, populated lazily when the video ends.
   const endCard = document.createElement('div');
   endCard.className = 'tv-endcard hidden';
   endCard.setAttribute('role', 'dialog');
@@ -180,7 +188,6 @@ export async function mount(slot, ctx) {
   const fwd10Btn = mkBtn('10s ⏩', 'tv-btn tv-btn--seek');
   fwd10Btn.title = 'Skip forward 10 seconds (L)';
   fwd10Btn.setAttribute('aria-label', 'Skip forward 10 seconds');
-  const shuffleBtn = mkBtn('⇄ Shuffle', 'tv-btn is-accent');
   const nextBtn = mkBtn('Next ▶', 'tv-btn');
   const autoplayLabel = document.createElement('label');
   autoplayLabel.className = 'tv-toggle';
@@ -191,8 +198,30 @@ export async function mount(slot, ctx) {
   autoplaySpan.textContent = 'Autoplay next';
   autoplayLabel.appendChild(autoplayInput);
   autoplayLabel.appendChild(autoplaySpan);
+
+  // Shuffle is a *mode* (mp3-player style), not a "shuffle now" button —
+  // clicking it doesn't load a new episode. It just flips Next/Prev and
+  // the end-card autoplay path to pick a random episode from the show's
+  // numbered seasons. Persisted across episodes via prefs.
+  const shuffleLabel = document.createElement('label');
+  shuffleLabel.className = 'tv-toggle';
+  shuffleLabel.title = 'Shuffle: Next / Previous pick a random episode';
+  const shuffleInput = document.createElement('input');
+  shuffleInput.type = 'checkbox';
+  shuffleInput.checked = prefs.shuffle;
+  const shuffleSpan = document.createElement('span');
+  shuffleSpan.textContent = '⇄ Shuffle';
+  shuffleLabel.appendChild(shuffleInput);
+  shuffleLabel.appendChild(shuffleSpan);
   const copyLinkBtn = mkBtn('⌘ Copy link', 'tv-btn tv-btn--ghost');
   const copyTitleBtn = mkBtn('✎ Copy title', 'tv-btn tv-btn--ghost');
+
+  // "Save offline" button. The label encodes three states (idle /
+  // downloading / saved) via classes + textContent — separate buttons
+  // would have been cleaner but worse for muscle memory: users expect
+  // one slot in the row that toggles between "save" and "remove".
+  const saveBtn = mkBtn('💾 Save offline', 'tv-btn tv-btn--ghost tv-save-btn');
+  saveBtn.title = 'Download this episode for offline playback';
 
   // CC button + lazy language menu. Only rendered when the show has
   // an IMDb id (Stremio's addon needs one to look up subtitles).
@@ -247,14 +276,15 @@ export async function mount(slot, ctx) {
 
   controls.appendChild(prevBtn);
   controls.appendChild(back10Btn);
-  controls.appendChild(shuffleBtn);
   controls.appendChild(fwd10Btn);
   controls.appendChild(nextBtn);
   if (show.imdbId) {
     controls.appendChild(subsWrap);
     controls.appendChild(subsSyncWrap);
   }
+  controls.appendChild(saveBtn);
   controls.appendChild(autoplayLabel);
+  controls.appendChild(shuffleLabel);
   controls.appendChild(copyLinkBtn);
   controls.appendChild(copyTitleBtn);
 
@@ -283,7 +313,7 @@ export async function mount(slot, ctx) {
   const help = document.createElement('div');
   help.className = 'tv-help';
   help.innerHTML =
-    '<kbd>◀</kbd><kbd>▶</kbd> prev / next · <kbd>J</kbd><kbd>L</kbd> ±10s · <kbd>R</kbd> shuffle · <kbd>Space</kbd> play';
+    '<kbd>◀</kbd><kbd>▶</kbd> prev / next · <kbd>J</kbd><kbd>L</kbd> ±10s · <kbd>R</kbd> toggle shuffle · <kbd>Space</kbd> play';
 
   root.appendChild(setEl);
   root.appendChild(marquee.root);
@@ -304,30 +334,6 @@ export async function mount(slot, ctx) {
     return b;
   }
 
-  // End-of-episode card state. Declared up here (before any code path
-  // that calls loadEpisode → hideEndCard) so the references aren't in
-  // the temporal dead zone when the initial episode is loaded.
-  /** @type {number | null} */
-  let countdownTimer = null;
-  /** @type {Episode | null} */
-  let pendingNext = null;
-
-  // Subtitle state. Declared early for the same TDZ reason — loadEpisode
-  // calls clearSubtitles() on entry so the old track doesn't carry over.
-  /** @type {HTMLTrackElement | null} */
-  let activeTrack = null;
-  /** @type {string | null} */
-  let activeTrackUrl = null;
-  /** @type {string | null} */
-  let activeLang = null;
-  /** @type {string | null} */
-  let menuCacheKey = null;
-  // Manual sync offset in seconds. Persists across episode changes
-  // within a session because most OpenSubtitles uploads for a given
-  // show come from the same source release — once the user has
-  // dialled in the right delay, it usually carries over.
-  let subtitleOffset = 0;
-
   try {
     catalog = await getMergedCatalog(show);
   } catch (err) {
@@ -347,17 +353,92 @@ export async function mount(slot, ctx) {
     return { unmount: () => root.remove() };
   }
 
-  // Find the requested episode, falling back to the season opener / a
-  // random pick when the URL points at a slot we don't have.
-  let initial = findEpisode(catalog, ctx.initialSeason, ctx.initialEpisode);
-  if (!initial) {
-    const season = catalog.seasons.find((s) => s.number === ctx.initialSeason);
-    initial = season?.episodes[0] || randomEpisode(catalog);
-  }
+  // Find the requested episode. The URL is the source of truth on
+  // mount — we do NOT silently substitute a different episode here.
+  // The previous behavior of falling through to a random pick when
+  // findEpisode returned null meant that refreshing a URL pointing
+  // at a slot the catalog can't find (e.g. a parser mismatch on a
+  // single file) yanked the user to a different episode and rewrote
+  // the URL, which reads as a bug.
+  const initial = findEpisode(catalog, ctx.initialSeason, ctx.initialEpisode);
   if (!initial) {
     noSignalOverlay.classList.remove('hidden');
+    const detail = noSignalOverlay.querySelector('.tv-overlay-detail');
+    if (detail) {
+      const slot =
+        ctx.initialSeason === 0
+          ? 'this special'
+          : `S${pad(ctx.initialSeason)}E${pad(ctx.initialEpisode)}`;
+      detail.textContent = '';
+      const head = document.createElement('span');
+      head.textContent = `Episode ${slot} isn't on this channel — pick another from `;
+      const link = document.createElement('a');
+      link.href = `?show=${encodeURIComponent(show.id)}`;
+      link.textContent = `${show.name} episodes`;
+      link.addEventListener('click', (e) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+        e.preventDefault();
+        ctx.navigate({ show: show.id });
+      });
+      const tail = document.createElement('span');
+      tail.textContent = '.';
+      detail.appendChild(head);
+      detail.appendChild(link);
+      detail.appendChild(tail);
+    }
     return { unmount: () => root.remove() };
   }
+
+  // ---- Controllers ----------------------------------------------------
+  // Each owns its own DOM region + state + event lifecycle. Mount
+  // routes episode changes via setEpisode / hide and teardown via
+  // dispose.
+  const subtitleCtrl = createSubtitleController({
+    video,
+    show,
+    prefs,
+    savePrefs,
+    flash: (msg) => marquee.flash(msg),
+    dom: { subsBtn, subsMenu, subsWrap, subsSyncWrap, subsSyncSlider, subsSyncReadout }
+  });
+
+  const offlineCtrl = createOfflineSaveController({
+    video,
+    show,
+    saveBtn,
+    flash: (msg) => marquee.flash(msg)
+  });
+
+  const endcardCtrl = createEndCardController({
+    video,
+    show,
+    dom: {
+      endCard,
+      endThumb,
+      endTitle,
+      endSub,
+      endEyebrow,
+      endPlayBtn,
+      endReplayBtn,
+      endShareBtn,
+      endBackBtn,
+      endCountdown
+    },
+    flash: (msg) => marquee.flash(msg),
+    // "What plays next?" — shuffle picks across all numbered seasons;
+    // sequential crosses season boundaries (unlike manual Prev/Next
+    // which wraps within the current season).
+    resolveNext: () => {
+      if (!catalog || !current) return null;
+      return prefs.shuffle ? shufflePick(catalog, current) : getNextEpisode(catalog, current);
+    },
+    shouldAutoplay: () => prefs.autoplayNext,
+    onAdvance: (ep) => loadEpisode(ep),
+    onNavigateBack: () => navigate({ show: show.id }),
+    shareCurrent: async () => (current ? shareEpisode(show, current) : false)
+  });
+
+  await offlineCtrl.hydrate();
 
   loadEpisode(initial, { autoplay: false });
 
@@ -367,40 +448,14 @@ export async function mount(slot, ctx) {
   back10Btn.addEventListener('click', () => seekRelative(-10));
   fwd10Btn.addEventListener('click', () => seekRelative(10));
 
-  // Subtitles: click CC to open / close the language picker. Click
-  // elsewhere on the page to dismiss. The menu is lazy — we don't
-  // search the addon until the user actually asks.
-  subsBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (subsMenu.classList.contains('hidden')) {
-      openSubsMenu();
-    } else {
-      closeSubsMenu();
-    }
-  });
-  const outsideClick = (e) => {
-    if (!subsWrap.contains(e.target instanceof Node ? e.target : null)) {
-      closeSubsMenu();
-    }
-  };
-  document.addEventListener('click', outsideClick);
-
-  // Slider drives the offset live as the user drags. The readout doubles
-  // as a "reset to zero" button so a misadjust is one click away from
-  // undo, no need to drag back to dead-center on a sticky range input.
-  subsSyncSlider.addEventListener('input', () => {
-    const v = parseFloat(subsSyncSlider.value);
-    if (Number.isFinite(v)) setSubtitleOffset(v);
-  });
-  subsSyncReadout.addEventListener('click', () => setSubtitleOffset(0));
-  shuffleBtn.addEventListener('click', () => {
-    if (!catalog) return;
-    const ep = randomEpisode(catalog);
-    if (ep) loadEpisode(ep);
-  });
   autoplayInput.addEventListener('change', () => {
     prefs.autoplayNext = autoplayInput.checked;
     savePrefs(prefs);
+  });
+  shuffleInput.addEventListener('change', () => {
+    prefs.shuffle = shuffleInput.checked;
+    savePrefs(prefs);
+    marquee.flash(prefs.shuffle ? 'SHUFFLE ON' : 'SHUFFLE OFF');
   });
   copyLinkBtn.addEventListener('click', () =>
     copyToClipboard(location.href, marquee, 'LINK COPIED', 'COPY FAILED')
@@ -409,47 +464,8 @@ export async function mount(slot, ctx) {
     copyToClipboard(describeEpisode(show, current), marquee, 'TITLE COPIED', 'COPY FAILED')
   );
 
-  video.addEventListener('ended', () => {
-    showEndCard();
-  });
   video.addEventListener('error', () => {
     errorBanner.classList.remove('hidden');
-  });
-
-  // ---- End-of-episode card wiring ----------------------------------
-  endPlayBtn.addEventListener('click', () => {
-    const target = pendingNext;
-    hideEndCard();
-    if (target) loadEpisode(target);
-  });
-  endReplayBtn.addEventListener('click', () => {
-    hideEndCard();
-    try {
-      video.currentTime = 0;
-      const p = video.play();
-      if (p && typeof p.catch === 'function') p.catch(() => {});
-    } catch {
-      /* ignore */
-    }
-  });
-  endShareBtn.addEventListener('click', async () => {
-    if (!current) return;
-    const ok = await shareEpisode(show, current);
-    marquee.flash(ok ? 'SHARED' : 'SHARE FAILED');
-  });
-  endBackBtn.addEventListener('click', () => {
-    hideEndCard();
-    navigate({ show: show.id });
-  });
-  // Clicking the backdrop (outside the inner card) cancels the
-  // countdown — but leaves the card visible so the user can still
-  // choose Replay / Share / Back.
-  endCard.addEventListener('click', (e) => {
-    if (e.target === endCard && countdownTimer != null) {
-      cancelCountdown();
-      endCountdown.textContent = 'Autoplay cancelled — pick something.';
-      endCountdown.classList.remove('hidden');
-    }
   });
 
   const keydown = (e) => {
@@ -482,7 +498,11 @@ export async function mount(slot, ctx) {
       case 'r':
       case 'R':
         e.preventDefault();
-        shuffleBtn.click();
+        // R now toggles the shuffle *mode* (mp3-player style) instead
+        // of doing a one-shot random jump. Click the checkbox so the
+        // change handler does the save + marquee flash for us.
+        shuffleInput.checked = !shuffleInput.checked;
+        shuffleInput.dispatchEvent(new Event('change'));
         break;
     }
   };
@@ -533,17 +553,11 @@ export async function mount(slot, ctx) {
   return {
     unmount() {
       document.removeEventListener('keydown', keydown);
-      document.removeEventListener('click', outsideClick);
-      // Cancel any in-flight end-card countdown before removing the
-      // DOM — leaking the interval would keep loadEpisode firing
-      // against a torn-down view.
-      if (countdownTimer != null) {
-        clearInterval(countdownTimer);
-        countdownTimer = null;
-      }
-      // Revoke any active subtitle blob URL so it doesn't sit in
-      // memory after the view is torn down.
-      clearSubtitles();
+      // Tear down each controller in turn — they each handle their
+      // own listeners + blob URLs + timers.
+      subtitleCtrl.dispose();
+      offlineCtrl.dispose();
+      endcardCtrl.dispose();
       try {
         // Stop playback before tearing down — otherwise Safari can keep
         // streaming the file in the background after the element is gone.
@@ -591,12 +605,7 @@ export async function mount(slot, ctx) {
 
     // Loading a new episode hides any leftover end-card. Important
     // for both autoplay and manual Prev/Next transitions.
-    hideEndCard();
-    // Subtitles are episode-specific — drop the old track + close the
-    // language menu so it isn't showing stale options for the previous
-    // episode the next time the user pokes CC.
-    clearSubtitles();
-    closeSubsMenu();
+    endcardCtrl.hide();
 
     marquee.update(show, ep);
     summary.update(ep);
@@ -614,9 +623,16 @@ export async function mount(slot, ctx) {
     if (urlSync) updateDeepLink(ep);
     saveLastEpisode(show.id, ep.season, ep.episode);
 
+    // Network URL is the safe default. The offline controller swaps
+    // to a Blob URL inside setEpisode() when the episode is cached;
+    // the swap is fire-and-forget so we never block initial src
+    // assignment on an IDB round-trip.
     if (video.src !== ep.url) {
       video.src = ep.url;
-      video.poster = ep.image || ep.thumbUrl || '';
+      // Poster is the TVMaze still when available; we don't fall back
+      // to archive.org's `.thumbs/` JPGs because the CDN sometimes
+      // 403s those and a missing poster reads better than a broken one.
+      video.poster = ep.image || '';
     }
     video.load();
     if (autoplay) {
@@ -624,18 +640,24 @@ export async function mount(slot, ctx) {
       if (p && typeof p.catch === 'function') p.catch(() => {});
     }
 
-    // Auto-apply the user's saved subtitle language (if any). Fired
-    // unawaited so video playback isn't blocked on a subtitle round-trip;
-    // a check inside maybeAutoLoadSubtitles bails if the user navigated
-    // away before the fetch resolved.
-    if (prefs.subtitleLang && show.imdbId && ep.season > 0) {
-      maybeAutoLoadSubtitles(ep, prefs.subtitleLang);
-    }
+    // Fan out the episode change to controllers. Each handles its
+    // own concern: subtitles auto-loads the saved language; offline
+    // swaps to a Blob URL if cached and repaints the save button.
+    offlineCtrl.setEpisode(ep, { autoplay });
+    subtitleCtrl.setEpisode(ep);
   }
 
   /** @param {1 | -1} delta */
   function stepEpisode(delta) {
     if (!catalog || !current) return;
+    if (prefs.shuffle) {
+      // Shuffle mode: ignore `delta` direction and pull a random
+      // episode from the full numbered-season pool. mp3 players don't
+      // distinguish next/prev under shuffle either — both jump.
+      const next = shufflePick(catalog, current);
+      if (next) loadEpisode(next);
+      return;
+    }
     if (current.season === 0) return;
     const season = catalog.seasons.find((s) => s.number === current.season);
     if (!season || season.episodes.length === 0) return;
@@ -645,91 +667,6 @@ export async function mount(slot, ctx) {
     const len = season.episodes.length;
     const next = (((idx + delta) % len) + len) % len;
     loadEpisode(season.episodes[next]);
-  }
-
-  /**
-   * Cancel the autoplay countdown timer (if running) without hiding
-   * the end-card. The card stays up so the user can still pick an
-   * action explicitly.
-   */
-  function cancelCountdown() {
-    if (countdownTimer != null) {
-      clearInterval(countdownTimer);
-      countdownTimer = null;
-    }
-  }
-
-  function hideEndCard() {
-    cancelCountdown();
-    endCard.classList.add('hidden');
-    endCountdown.classList.add('hidden');
-    pendingNext = null;
-  }
-
-  /**
-   * Display the end-of-episode card. Populated with the next episode
-   * (across seasons) when one exists; falls back to a "you've reached
-   * the end" state with only Replay / Share / Back available.
-   */
-  function showEndCard() {
-    if (!catalog || !current) return;
-    const next = getNextEpisode(catalog, current);
-    pendingNext = next;
-
-    endThumb.replaceChildren();
-    endThumb.classList.remove('is-empty');
-
-    if (next) {
-      endEyebrow.textContent = 'Up next';
-      endPlayBtn.classList.remove('hidden');
-      endTitle.textContent = next.title || `Episode ${next.episode}`;
-      endSub.textContent =
-        next.season === 0
-          ? 'Special'
-          : `${show.shortName} · S${pad(next.season)}E${pad(next.episode)}`;
-      const thumbSrc = next.image || next.thumbUrl;
-      if (thumbSrc) {
-        const img = document.createElement('img');
-        img.loading = 'lazy';
-        img.decoding = 'async';
-        img.alt = '';
-        img.src = thumbSrc;
-        endThumb.appendChild(img);
-      } else {
-        endThumb.classList.add('is-empty');
-        endThumb.textContent = '📺';
-      }
-    } else {
-      endEyebrow.textContent = 'Episode ended';
-      endPlayBtn.classList.add('hidden');
-      endTitle.textContent = "That's the last one on the shelf.";
-      endSub.textContent = `${show.name} — replay, share, or browse other shows.`;
-      endThumb.classList.add('is-empty');
-      endThumb.textContent = show.emoji || '📺';
-    }
-
-    endCard.classList.remove('hidden');
-
-    if (next && prefs.autoplayNext) {
-      let remaining = 8;
-      endCountdown.textContent = `Playing in ${remaining}s — tap outside to cancel.`;
-      endCountdown.classList.remove('hidden');
-      countdownTimer = window.setInterval(() => {
-        remaining -= 1;
-        if (remaining <= 0) {
-          const target = pendingNext;
-          cancelCountdown();
-          endCountdown.classList.add('hidden');
-          endCard.classList.add('hidden');
-          pendingNext = null;
-          if (target) loadEpisode(target);
-        } else {
-          endCountdown.textContent = `Playing in ${remaining}s — tap outside to cancel.`;
-        }
-      }, 1000);
-    } else {
-      endCountdown.classList.add('hidden');
-    }
   }
 
   function togglePlay() {
@@ -763,279 +700,6 @@ export async function mount(slot, ctx) {
     history.replaceState(null, '', `${location.pathname}?${params.toString()}`);
   }
 
-  /* ---------- Subtitles ---------- */
-
-  /**
-   * Set the absolute subtitle offset (in seconds) and re-apply it to
-   * the active track. Rounded to 100ms because the on-screen readout
-   * caps at one decimal anyway.
-   *
-   * @param {number} offsetSec
-   */
-  function setSubtitleOffset(offsetSec) {
-    const clamped = Math.max(-30, Math.min(30, offsetSec));
-    subtitleOffset = Math.round(clamped * 10) / 10;
-    applyOffsetToActiveTrack();
-    updateSyncReadout();
-  }
-
-  /**
-   * Apply the current `subtitleOffset` to whatever cues are currently
-   * loaded on the active track. No-op when no track is attached or
-   * when the cues haven't finished parsing yet — callers should also
-   * wire up the `<track>` `load` event so the offset re-applies once
-   * cues become available.
-   */
-  function applyOffsetToActiveTrack() {
-    if (!activeTrack || !activeTrack.track) return;
-    applyCueOffset(activeTrack.track.cues, subtitleOffset);
-  }
-
-  /** Refresh the on-screen offset readout + CC button label + slider. */
-  function updateSyncReadout() {
-    const sign = subtitleOffset > 0 ? '+' : subtitleOffset < 0 ? '−' : '';
-    const abs = Math.abs(subtitleOffset).toFixed(1);
-    subsSyncReadout.textContent = `${sign}${abs}s`;
-    if (subtitleOffset !== 0) {
-      subsSyncReadout.classList.add('is-shifted');
-    } else {
-      subsSyncReadout.classList.remove('is-shifted');
-    }
-    // Keep the slider's thumb in sync — important after the user hits
-    // Reset, on cross-episode auto-load, and any other path that
-    // mutates the offset without dragging the slider.
-    if (subsSyncSlider.value !== String(subtitleOffset)) {
-      subsSyncSlider.value = String(subtitleOffset);
-    }
-    // Reflect the offset on the CC button label so the user can tell
-    // at a glance that subs are shifted even when the sync row is
-    // off-screen on narrow viewports.
-    if (activeLang) {
-      subsBtn.textContent =
-        subtitleOffset === 0
-          ? `CC ${activeLang.toUpperCase()}`
-          : `CC ${activeLang.toUpperCase()} ${sign}${abs}s`;
-    }
-  }
-
-  /**
-   * Silently fetch + attach the user's preferred subtitle language for
-   * the given episode. Runs in the background after each episode load
-   * so "I want English on every episode" works without further input.
-   *
-   * Failures are silent — the visible CC button is the user's
-   * acknowledgement that captions are missing, not a toast.
-   *
-   * @param {Episode} ep
-   * @param {string} lang
-   */
-  async function maybeAutoLoadSubtitles(ep, lang) {
-    const stamp = `${ep.season}:${ep.episode}`;
-    const candidates = await searchSubtitles(show.imdbId || '', ep.season, ep.episode);
-    // Bail if the user navigated to a different episode while the
-    // search was in flight, or the current episode no longer matches.
-    if (!current || `${current.season}:${current.episode}` !== stamp) return;
-    const groups = groupByLanguage(candidates);
-    const group = groups.find((g) => g.lang === lang);
-    if (!group) return;
-    const url = await loadVttUrl(group.candidates);
-    if (!url) return;
-    if (!current || `${current.season}:${current.episode}` !== stamp) {
-      try {
-        URL.revokeObjectURL(url);
-      } catch {
-        /* ignore */
-      }
-      return;
-    }
-    attachSubtitleTrack(url, lang);
-  }
-
-  /**
-   * Tear down any active subtitle track. Safe to call when nothing is
-   * attached. Always revokes the blob URL even if the `<track>` is
-   * already detached.
-   */
-  function clearSubtitles() {
-    if (activeTrack && activeTrack.parentNode) {
-      activeTrack.remove();
-    }
-    if (activeTrackUrl) {
-      try {
-        URL.revokeObjectURL(activeTrackUrl);
-      } catch {
-        /* ignore */
-      }
-    }
-    activeTrack = null;
-    activeTrackUrl = null;
-    activeLang = null;
-    subsBtn.textContent = 'CC';
-    subsBtn.classList.remove('is-active');
-    subsBtn.setAttribute('aria-expanded', 'false');
-    // Hide the sync controls but keep `subtitleOffset` in place so the
-    // value carries over when the user re-enables subs on the next
-    // episode. The offset is reset only when the user explicitly
-    // clicks "Off" in the menu (see openSubsMenu()).
-    subsSyncWrap.classList.add('hidden');
-  }
-
-  function closeSubsMenu() {
-    subsMenu.classList.add('hidden');
-    subsBtn.setAttribute('aria-expanded', 'false');
-  }
-
-  /**
-   * Open the language picker, populating it lazily on first open per
-   * episode. Subsequent opens for the same episode reuse the rendered
-   * list so the UI doesn't flash a "Loading…" state needlessly.
-   */
-  async function openSubsMenu() {
-    if (!show.imdbId || !current) return;
-    subsMenu.classList.remove('hidden');
-    subsBtn.setAttribute('aria-expanded', 'true');
-
-    const epKey = `${current.season}:${current.episode}`;
-    if (menuCacheKey === epKey && subsMenu.childElementCount > 0) {
-      return;
-    }
-    menuCacheKey = epKey;
-
-    subsMenu.replaceChildren();
-    if (current.season === 0) {
-      subsMenu.appendChild(menuMessage('Subtitles for specials / movies are not supported yet.'));
-      return;
-    }
-
-    subsMenu.appendChild(menuMessage('Loading…'));
-
-    const candidates = await searchSubtitles(show.imdbId, current.season, current.episode);
-    if (menuCacheKey !== epKey) return; // user already navigated away
-
-    subsMenu.replaceChildren();
-
-    // Always include an "Off" entry first so the user has an easy
-    // out, even when no languages were returned. Picking Off also
-    // clears the saved preference so future episodes don't re-arm.
-    subsMenu.appendChild(
-      makeMenuItem('Off', null, () => {
-        clearSubtitles();
-        // Explicit "Off" also forgets the offset — the user is
-        // starting fresh next time they turn captions on.
-        setSubtitleOffset(0);
-        prefs.subtitleLang = null;
-        savePrefs(prefs);
-        closeSubsMenu();
-      })
-    );
-
-    const groups = sortLanguageGroups(groupByLanguage(candidates));
-    if (groups.length === 0) {
-      subsMenu.appendChild(menuMessage('No subtitles found for this episode.'));
-      return;
-    }
-    for (const g of groups) {
-      const label = `${languageLabel(g.lang)} · ${g.candidates.length}`;
-      subsMenu.appendChild(
-        makeMenuItem(label, g.lang, async () => {
-          // Persist the choice so subsequent episodes auto-load this
-          // language without a second visit to the menu.
-          prefs.subtitleLang = g.lang;
-          savePrefs(prefs);
-          // Optimistic UI: switch the button immediately so the user
-          // sees feedback while the SRT downloads.
-          subsBtn.textContent = `CC ${g.lang.toUpperCase()}`;
-          subsBtn.classList.add('is-active');
-          closeSubsMenu();
-          const url = await loadVttUrl(g.candidates);
-          if (!url) {
-            // Roll back the optimistic state — the download failed.
-            clearSubtitles();
-            marquee.flash('SUBS UNAVAILABLE');
-            return;
-          }
-          // Bail out if the episode changed while we were fetching.
-          if (menuCacheKey !== epKey || !current) {
-            try {
-              URL.revokeObjectURL(url);
-            } catch {
-              /* ignore */
-            }
-            return;
-          }
-          attachSubtitleTrack(url, g.lang);
-        })
-      );
-    }
-  }
-
-  /** @param {string} text */
-  function menuMessage(text) {
-    const p = document.createElement('p');
-    p.className = 'tv-subs-empty';
-    p.textContent = text;
-    return p;
-  }
-
-  /**
-   * @param {string} label
-   * @param {string | null} lang Currently-active lang gets a check; null = "Off" row.
-   * @param {() => void} onClick
-   */
-  function makeMenuItem(label, lang, onClick) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'tv-subs-item';
-    b.setAttribute('role', 'menuitem');
-    if (lang === activeLang || (lang === null && !activeLang)) {
-      b.classList.add('is-current');
-    }
-    b.textContent = label;
-    b.addEventListener('click', () => onClick());
-    return b;
-  }
-
-  /**
-   * Attach a `<track>` element pointing at the converted blob URL.
-   * Removes any prior track first; the player is single-track by design.
-   *
-   * @param {string} blobUrl
-   * @param {string} lang ISO 639-2 code.
-   */
-  function attachSubtitleTrack(blobUrl, lang) {
-    if (activeTrack && activeTrack.parentNode) activeTrack.remove();
-    if (activeTrackUrl) {
-      try {
-        URL.revokeObjectURL(activeTrackUrl);
-      } catch {
-        /* ignore */
-      }
-    }
-    const track = document.createElement('track');
-    track.kind = 'subtitles';
-    track.srclang = lang;
-    track.label = languageLabel(lang);
-    track.src = blobUrl;
-    track.default = true;
-    // The `load` event fires once the browser has parsed the WebVTT,
-    // which is when `track.track.cues` becomes non-empty. That's the
-    // earliest we can apply the user's manual offset.
-    track.addEventListener('load', () => {
-      if (subtitleOffset !== 0) applyCueOffset(track.track?.cues, subtitleOffset);
-    });
-    video.appendChild(track);
-    // `<track>.mode = 'showing'` is what actually flips captions on;
-    // setting `default` only matters when the element is added
-    // *before* the video starts playing. Set both for safety.
-    if (track.track) track.track.mode = 'showing';
-    activeTrack = track;
-    activeTrackUrl = blobUrl;
-    activeLang = lang;
-    subsBtn.classList.add('is-active');
-    subsSyncWrap.classList.remove('hidden');
-    updateSyncReadout();
-  }
-
   /** @param {Episode} ep */
   function renderUpNext(ep) {
     if (!catalog) return;
@@ -1065,16 +729,26 @@ export async function mount(slot, ctx) {
       card.className = 'tv-upnext-card';
       const t = document.createElement('div');
       t.className = 'tv-upnext-thumb';
-      const src = next.image || next.thumbUrl;
-      if (src) {
+      if (next.image) {
         const img = document.createElement('img');
         img.loading = 'lazy';
-        img.src = src;
+        img.src = next.image;
         img.alt = '';
+        // Hide and fall back to the show emoji if the TVMaze still
+        // can't be reached — the archive.org auto-thumbs aren't used.
+        img.addEventListener(
+          'error',
+          () => {
+            img.remove();
+            t.classList.add('is-empty');
+            t.textContent = show.emoji || '📺';
+          },
+          { once: true }
+        );
         t.appendChild(img);
       } else {
         t.classList.add('is-empty');
-        t.textContent = '📺';
+        t.textContent = show.emoji || '📺';
       }
       const label = document.createElement('span');
       label.className = 'tv-upnext-label';
@@ -1094,12 +768,40 @@ function findEpisode(catalog, s, e) {
   return season?.episodes.find((x) => x.episode === e) || null;
 }
 
-/** @param {Catalog} catalog */
-function randomEpisode(catalog) {
+/**
+ * Pool-respecting shuffle pick used by the Next/Prev buttons and the
+ * end-card autoplay path when `prefs.shuffle` is on.
+ *
+ *  - Skips season 0 (movies / specials). Shuffling into a Christmas
+ *    special between two regular episodes reads as a glitch.
+ *  - Avoids returning the currently-playing episode so a click on
+ *    Next can never land on the same one (which would feel broken).
+ *    Returns the current episode anyway if it's the only option in
+ *    the pool — better than `null` in that degenerate case.
+ *
+ * @param {Catalog} catalog
+ * @param {Episode|null} current
+ * @returns {Episode|null}
+ */
+function shufflePick(catalog, current) {
   const pool = [];
-  for (const season of catalog.seasons) pool.push(...season.episodes);
-  if (catalog.movie) pool.push(catalog.movie);
-  return pool[Math.floor(Math.random() * pool.length)];
+  for (const season of catalog.seasons) {
+    if (season.number === 0) continue;
+    pool.push(...season.episodes);
+  }
+  if (pool.length === 0) return null;
+  if (pool.length === 1) return pool[0];
+  let pick = pool[Math.floor(Math.random() * pool.length)];
+  if (current && pick.season === current.season && pick.episode === current.episode) {
+    // Bias away from a repeat by drawing once more — with 2+ entries
+    // the second draw is guaranteed to land somewhere, even if it
+    // happens to choose the same slot the first try did.
+    pick = pool[Math.floor(Math.random() * pool.length)];
+    if (pick.season === current.season && pick.episode === current.episode) {
+      pick = pool[(pool.indexOf(pick) + 1) % pool.length];
+    }
+  }
+  return pick;
 }
 
 /** @param {Episode} ep */

@@ -23,7 +23,7 @@ import {
   sortLanguageGroups,
   languageLabel,
   applyCueOffset
-} from '../watch/modules/subtitles.js';
+} from './subtitles.js';
 
 /* ============================================================
  * srtToVtt

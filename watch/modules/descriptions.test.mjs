@@ -11,7 +11,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildMap, makeKey } from '../watch/modules/descriptions.js';
+import { buildMap, makeKey } from './descriptions.js';
 
 describe('makeKey', () => {
   it('produces a stable zero-padded SxxEyy', () => {

@@ -28,7 +28,6 @@ import { loadDescriptions, makeKey as descKey } from './descriptions.js';
  * @property {string} file           File name inside the archive item.
  * @property {string} url            Direct download URL.
  * @property {string} archiveUrl     archive.org details URL for the file.
- * @property {string|null} thumbUrl  Auto-sampled preview JPG, if any.
  * @property {number} sizeBytes
  * @property {number} durationSec
  * @property {number} width
@@ -249,7 +248,6 @@ export function mergeCatalogs(show, catalogs) {
 export function buildCatalog(show, meta, itemId) {
   const useItem = itemId || normalizeItems(show.iaItem)[0] || '';
   const files = Array.isArray(meta?.files) ? meta.files : [];
-  const thumbs = buildThumbIndex(useItem, files);
   const accept = show.acceptFile || defaultAccept;
 
   // When a show accepts both `.mp4` and the auto-generated `.ia.mp4`
@@ -284,7 +282,6 @@ export function buildCatalog(show, meta, itemId) {
       file: name,
       url: buildDownloadUrl(useItem, name),
       archiveUrl: buildDetailsUrl(useItem, name),
-      thumbUrl: thumbs.get(stripVideoExt(name)) || null,
       sizeBytes: toNumber(raw.size),
       durationSec: toNumber(raw.length),
       width: toNumber(raw.width),
@@ -338,47 +335,6 @@ export function buildCatalog(show, meta, itemId) {
 function defaultAccept(raw) {
   const name = typeof raw?.name === 'string' ? raw.name : '';
   return /\.mp4$/i.test(name) && !/\.ia\.mp4$/i.test(name);
-}
-
-/**
- * Build a map from "filename without video extension" → preview thumbnail URL.
- * IA auto-samples a handful of JPGs per video into a sibling `<id>.thumbs/`
- * directory; we pick the earliest one so the episode card shows a frame
- * close to the cold open rather than the closing credits.
- *
- * @param {string} itemId
- * @param {Array<Record<string, unknown>>} files
- */
-function buildThumbIndex(itemId, files) {
-  const prefix = `${itemId}.thumbs/`;
-  /** @type {Map<string, { url: string, offset: number }>} */
-  const best = new Map();
-  for (const raw of files) {
-    if (typeof raw !== 'object' || raw === null) continue;
-    if (raw.format !== 'Thumbnail') continue;
-    const name = typeof raw.name === 'string' ? raw.name : '';
-    if (!name.startsWith(prefix)) continue;
-    const m = name.match(/^(.+)_(\d{4,8})\.jpg$/i);
-    if (!m) continue;
-    const baseInThumbs = m[1];
-    const offset = Number(m[2]);
-    // Strip the "<item>.thumbs/" prefix and any video extension so the
-    // lookup key matches `stripVideoExt(filename)` from the caller.
-    const baseInDownload = stripVideoExt(baseInThumbs.slice(prefix.length));
-    const url = buildDownloadUrl(itemId, name);
-    const existing = best.get(baseInDownload);
-    if (!existing || offset < existing.offset) {
-      best.set(baseInDownload, { url, offset });
-    }
-  }
-  const flat = new Map();
-  for (const [key, val] of best) flat.set(key, val.url);
-  return flat;
-}
-
-/** Strip every video extension we know about. */
-function stripVideoExt(name) {
-  return name.replace(/\.(ia\.)?mp4$|\.m4v$|\.mkv$/i, '');
 }
 
 function buildDownloadUrl(itemId, name) {

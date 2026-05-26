@@ -77,24 +77,25 @@ export function renderEpisodes(container, episodes, onSelect) {
 
     const thumb = document.createElement('div');
     thumb.className = 'tv-ep-thumb';
-    const imgSrc = ep.image || ep.thumbUrl;
-    if (imgSrc) {
+    if (ep.image) {
+      // Thumbnails come from TVMaze only; the archive.org metadata
+      // sometimes lists `.thumbs/` files that 403 at the CDN (notably
+      // for Seinfeld specials), so we don't bother with that fallback.
+      // If the TVMaze still fails, swap to the 📺 placeholder.
       const img = document.createElement('img');
       img.loading = 'lazy';
       img.decoding = 'async';
-      img.src = imgSrc;
+      img.src = ep.image;
       img.alt = '';
-      // If the TVMaze still 404s, fall back to the archive thumb so
-      // the card never shows a broken-image icon.
-      if (ep.image && ep.thumbUrl && ep.image !== ep.thumbUrl) {
-        img.addEventListener(
-          'error',
-          () => {
-            if (img.src !== ep.thumbUrl) img.src = ep.thumbUrl;
-          },
-          { once: true }
-        );
-      }
+      img.addEventListener(
+        'error',
+        () => {
+          img.remove();
+          thumb.classList.add('is-empty');
+          thumb.textContent = '📺';
+        },
+        { once: true }
+      );
       thumb.appendChild(img);
     } else {
       thumb.classList.add('is-empty');

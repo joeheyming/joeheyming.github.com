@@ -16,7 +16,7 @@
 
     <meta
       name="description"
-      content="Watch streams classic animated TV from the Internet Archive — The Simpsons, South Park, Beavis &amp; Butt-Head, The Smurfs, Dungeons &amp; Dragons, Dragon Ball Z, Inspector Gadget, Aqua Teen Hunger Force, Rocky &amp; Bullwinkle, and TMNT (1987), browsed like a smart-TV guide. H.264 + AAC, native browser playback, Cast / AirPlay supported."
+      content="A smart-TV style guide for classic TV on the Internet Archive — animation, sitcoms, and Saturday morning cartoons. Native MP4 playback in the browser, with Cast and AirPlay support."
     />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
@@ -24,7 +24,7 @@
     <meta name="theme-color" content="#0b0b10" />
     <meta
       name="keywords"
-      content="Watch, Internet Archive, classic TV streaming, Simpsons, South Park, Beavis and Butt-Head, Smurfs, Dungeons and Dragons, Dragon Ball Z, Inspector Gadget, Aqua Teen Hunger Force, Rocky and Bullwinkle, TMNT 1987, Teenage Mutant Ninja Turtles, Saturday morning cartoons, episode guide, Joe Heyming"
+      content="Watch, Internet Archive, classic TV streaming, animation, sitcoms, Saturday morning cartoons, episode guide, Chromecast, AirPlay, Joe Heyming"
     />
 
     <meta property="og:type" content="website" />
@@ -32,7 +32,7 @@
     <meta property="og:title" content="📺 Watch — Classic TV from the Internet Archive" />
     <meta
       property="og:description"
-      content="Smart-TV style player for classic animated TV on the Internet Archive: Simpsons, South Park, Beavis &amp; Butt-Head, Smurfs, D&amp;D, Dragon Ball Z, Inspector Gadget, Aqua Teen Hunger Force, Rocky &amp; Bullwinkle, TMNT (1987), and more. Native MP4 playback in the browser."
+      content="A smart-TV style guide for classic TV on the Internet Archive — animation, sitcoms, and Saturday morning cartoons. Native MP4 in the browser, with Cast and AirPlay."
     />
     <meta property="og:url" content="https://joeheyming.github.io/watch/" />
     <meta property="og:image" content="https://joeheyming.github.io/watch/watch-preview.png" />
@@ -47,7 +47,7 @@
     <meta name="twitter:title" content="📺 Watch — Classic TV from the Internet Archive" />
     <meta
       name="twitter:description"
-      content="Smart-TV style player streaming Simpsons, South Park, Beavis &amp; Butt-Head, Smurfs, D&amp;D, Dragon Ball Z, Inspector Gadget, Aqua Teen Hunger Force, Rocky &amp; Bullwinkle, and TMNT (1987) from the Internet Archive."
+      content="A smart-TV style guide for classic TV on the Internet Archive — animation, sitcoms, and Saturday morning cartoons. Native MP4 in the browser, with Cast and AirPlay."
     />
     <meta name="twitter:image" content="https://joeheyming.github.io/watch/watch-preview.png" />
 
@@ -62,7 +62,7 @@
             "name": "Watch",
             "applicationCategory": "MultimediaApplication",
             "operatingSystem": "Web Browser",
-            "description": "Smart-TV style player that streams classic animated TV from the Internet Archive in the browser.",
+            "description": "Smart-TV style player that streams classic TV from the Internet Archive in the browser.",
             "url": "https://joeheyming.github.io/watch/",
             "author": {
               "@type": "Person",
@@ -70,7 +70,7 @@
               "url": "https://joeheyming.github.io/"
             },
             "screenshot": "https://joeheyming.github.io/watch/watch-preview.png",
-            "keywords": "Internet Archive, classic TV, Simpsons, South Park, Beavis, Smurfs, Dungeons and Dragons, Dragon Ball Z, Inspector Gadget, Aqua Teen Hunger Force, Rocky and Bullwinkle, TMNT 1987, Joe Heyming",
+            "keywords": "Internet Archive, classic TV, animation, sitcoms, Saturday morning cartoons, episode guide, Chromecast, AirPlay, Joe Heyming",
             "inLanguage": "en"
           },
           {
@@ -90,6 +90,11 @@
     </script>
 
     <link rel="stylesheet" href="index.css" />
+    <!-- proxy.js must load BEFORE the app module so window.proxyService is
+         ready when offline.js / saveEpisode call it. archive.org's CDN
+         redirect (dn710203.ca.archive.org) doesn't set CORS headers, so
+         the proxy chain is the only way to download MP4 bytes from JS. -->
+    <script src="/proxy.js"></script>
     <script type="module" src="./index.js"></script>
     <script src="/back.js"></script>
     <script src="/feedback.js"></script>

@@ -15,6 +15,12 @@ const LAST_KEY_PREFIX = 'heyming.watch.last.';
 /**
  * @typedef {Object} Prefs
  * @property {boolean} autoplayNext
+ * @property {boolean} shuffle
+ *   Shuffle is a *mode*, not an action — when true, Next/Prev and the
+ *   end-of-episode autoplay path pick a random episode from the show's
+ *   numbered seasons instead of stepping sequentially. Modeled after
+ *   the toggle on every consumer mp3 player; the user expects clicking
+ *   "shuffle" to change behavior, not advance the track.
  * @property {string | null} subtitleLang
  *   Preferred subtitle language as an ISO 639-2/B code ("eng", "spa",
  *   …). `null` means "subtitles off". Persists across episodes so the
@@ -22,7 +28,7 @@ const LAST_KEY_PREFIX = 'heyming.watch.last.';
  */
 
 /** @type {Prefs} */
-const defaultPrefs = { autoplayNext: true, subtitleLang: null };
+const defaultPrefs = { autoplayNext: true, shuffle: false, subtitleLang: null };
 
 /** @returns {Prefs} */
 export function loadPrefs() {
@@ -31,6 +37,7 @@ export function loadPrefs() {
     return {
       autoplayNext:
         typeof raw.autoplayNext === 'boolean' ? raw.autoplayNext : defaultPrefs.autoplayNext,
+      shuffle: typeof raw.shuffle === 'boolean' ? raw.shuffle : defaultPrefs.shuffle,
       subtitleLang:
         typeof raw.subtitleLang === 'string' && raw.subtitleLang
           ? raw.subtitleLang.toLowerCase()
