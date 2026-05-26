@@ -300,7 +300,11 @@ export function buildCatalog(show, meta, itemId) {
       continue;
     }
 
-    const parsed = show.parser(name);
+    // Pass the source itemId as a second arg so multi-item shows whose
+    // per-item filenames overlap (G.I. Joe S1 and S2 both use plain
+    // `N. Title.mp4`) can disambiguate which season a file belongs to.
+    // Single-item shows ignore the extra arg — JavaScript is happy.
+    const parsed = show.parser(name, useItem);
     if (!parsed) continue;
     const slot = `${parsed.season}-${parsed.episode}`;
     if (seen.has(slot)) continue;

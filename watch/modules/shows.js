@@ -44,7 +44,11 @@
  * @property {(file: { name?: unknown, format?: unknown }) => boolean} [acceptFile]
  *   Filter applied to each raw file before parsing. Defaults to "mp4
  *   only, no .ia.mp4 derivative".
- * @property {(filename: string) => ({ season: number, episode: number, title: string } | null)} parser
+ * @property {(filename: string, itemId: string) => ({ season: number, episode: number, title: string } | null)} parser
+ *   The second `itemId` argument is the archive.org item the file came
+ *   from; single-item shows can ignore it. Multi-item shows whose
+ *   per-item filenames overlap (G.I. Joe S1 and S2 both use plain
+ *   `N. Title.mp4`) need it to disambiguate the season.
  * @property {(filename: string) => boolean} [movieDetector]
  *   When set, files matching this are surfaced as `catalog.movie`
  *   (season 0) without going through the regular parser.
@@ -123,6 +127,29 @@ export const SHOWS = [
     }
   },
   {
+    id: 'cosmos',
+    name: 'Cosmos: A Personal Voyage',
+    shortName: 'Cosmos',
+    emoji: '🌌',
+    accent: '#6366f1',
+    tagline: 'Carl Sagan walking the shores of the cosmic ocean · 13 episodes (PBS, 1980)',
+    iaItem: 'CosmosAPersonalVoyage',
+    tvmazeId: 1128,
+    imdbId: 'tt2395695',
+    acceptFile: defaultAcceptMp4,
+    parser: (file) => {
+      // "1980 Cosmos (A Personal Voyage) - Ep 01 The Shores of the Cosmic Ocean.mp4"
+      // Single-season documentary, all 13 episodes present, clean naming.
+      // Episode numbers are zero-padded 01..13, titles can contain
+      // anything (parens, apostrophes, etc.) and we keep them verbatim.
+      const m = basename(file).match(
+        /^1980 Cosmos \(A Personal Voyage\) - Ep (\d{1,2}) (.*)\.mp4$/i
+      );
+      if (!m) return null;
+      return { season: 1, episode: Number(m[1]), title: m[2].trim() };
+    }
+  },
+  {
     id: 'dbz',
     name: 'Dragon Ball Z',
     shortName: 'DBZ',
@@ -178,6 +205,53 @@ export const SHOWS = [
     }
   },
   {
+    id: 'gi-joe',
+    name: 'G.I. Joe: A Real American Hero',
+    shortName: 'G.I. Joe',
+    emoji: '🪖',
+    accent: '#16a34a',
+    tagline:
+      'Yo Joe! · 1983/84 mini-series + both Sunbow seasons + the 1987 movie · 96 entries total',
+    // Three sibling Sunbow-era uploads by `scottharriman@hotmail.com`.
+    // S1 (the 1985 regular run) and S2 (1986) both use plain
+    // `N. Title.mp4` so the catalog builder can't tell them apart from
+    // the filename alone — we use the `itemId` arg threaded through
+    // `show.parser(name, itemId)` to disambiguate.
+    iaItem: [
+      'gi-joe-1', // 1983/84 mini-series: MASS Device + Revenge of Cobra (10 parts)
+      'gi-joe-2', // 1985 Season 1 (55 episodes, opens with Pyramid of Darkness 5-parter)
+      'gi-joe-3' //  1986 Season 2 (30 episodes) + G.I. Joe: The Movie
+    ],
+    tvmazeId: 6880,
+    imdbId: 'tt0086719',
+    acceptFile: defaultAcceptMp4,
+    movieDetector: (file) => /^G\.I\. Joe The Movie\.mp4$/i.test(basename(file)),
+    movieTitle: 'G.I. Joe: The Movie (1987)',
+    parser: (file, itemId) => {
+      const base = basename(file);
+      if (itemId === 'gi-joe-1') {
+        // "1-1. The M.A.S.S. Device Part 1.mp4" — M = mini number
+        // (1 = MASS Device, 2 = Revenge of Cobra), N = part 1..5.
+        // Both minis are pre-S1 specials; we collapse them into a
+        // single "Season 0" with episodes 1..10 (E1-E5 = MASS Device,
+        // E6-E10 = Revenge of Cobra) so they show up in the catalog's
+        // specials/movie row alongside The Movie.
+        const m = base.match(/^(\d+)-(\d+)\. (.*)\.mp4$/i);
+        if (!m) return null;
+        const mini = Number(m[1]);
+        const part = Number(m[2]);
+        return { season: 0, episode: (mini - 1) * 5 + part, title: m[3].trim() };
+      }
+      // gi-joe-2 = the 1985 regular series (season 1)
+      // gi-joe-3 = the 1986 second season (the Movie is caught by
+      //           movieDetector above and never reaches this parser).
+      const season = itemId === 'gi-joe-3' ? 2 : 1;
+      const m = base.match(/^(\d+)\. (.*)\.mp4$/i);
+      if (!m) return null;
+      return { season, episode: Number(m[1]), title: m[2].trim() };
+    }
+  },
+  {
     id: 'inspector-gadget',
     name: 'Inspector Gadget',
     shortName: 'Gadget',
@@ -194,6 +268,63 @@ export const SHOWS = [
       const m = basename(file).match(/^Inspector Gadget S(\d{1,2})E(\d{1,2})\s+(.*)\.mp4$/i);
       if (!m) return null;
       return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
+    }
+  },
+  {
+    id: 'jem',
+    name: 'Jem and the Holograms',
+    shortName: 'Jem',
+    emoji: '🎤',
+    accent: '#ec4899',
+    tagline: 'Showtime, Synergy · 65 truly outrageous episodes (1985–88)',
+    iaItem: 'jem-1985_202604',
+    tvmazeId: 4053,
+    imdbId: 'tt0090461',
+    acceptFile: defaultAcceptMp4,
+    parser: (file) => {
+      // Two naming variants in the same upload:
+      //   "[HD] Jem Episode 01 - The Beginning.mp4"     (E1-E8 use a hyphen)
+      //   "[HD] Jem Episode 09 The World Hunger Shindig.mp4"   (no hyphen)
+      // Plus one outlier file that ships with a doubled extension:
+      //   "[HD] Jem Episode 32 The Fan.mp4.mp4"
+      // The regex allows either separator and tolerates an optional
+      // trailing ".mp4". Single-season run, hardcode season 1; titles
+      // get overwritten by TVMaze's canonical names when descriptions
+      // are merged in.
+      const m = basename(file).match(
+        /^\[HD\] Jem Episode (\d{1,2})(?:\s*-\s*|\s+)(.*?)\.mp4(?:\.mp4)?$/i
+      );
+      if (!m) return null;
+      return { season: 1, episode: Number(m[1]), title: m[2].trim() };
+    }
+  },
+  {
+    id: 'real-ghostbusters',
+    name: 'The Real Ghostbusters',
+    shortName: 'Ghostbusters',
+    emoji: '👻',
+    accent: '#a855f7',
+    tagline: "Who you gonna call · DiC's 1986 Saturday-morning Ghostbusters, 7 seasons",
+    iaItem: 'the-real-ghostbusters',
+    tvmazeId: 4299,
+    imdbId: 'tt0090506',
+    acceptFile: defaultAcceptMp4,
+    parser: (file) => {
+      // "The Real Ghostbusters/Season 02/The Real Ghostbusters - S02E55 - The Old College Spirit DVD.mp4"
+      // Files end with a source-quality tag (SDTV / DVD) that we strip
+      // from the title. Season 5 also has paired-episode files like
+      //   "S05E11-E12 - Trading Faces + Transcendental Tourists SDTV.mp4"
+      // — the regex captures only the first episode number, so the
+      // catalog has one entry per file. The second episode in each pair
+      // (E12, E14, E16, E18, E20) is therefore unreachable individually;
+      // playing the E11 slot plays both back-to-back. Pragmatic loss
+      // we accept until we model "pair" episodes properly.
+      const m = basename(file).match(
+        /^The Real Ghostbusters - S(\d{1,2})E(\d{1,2})(?:-E\d{1,2})? - (.+)\.mp4$/i
+      );
+      if (!m) return null;
+      const title = m[3].replace(/\s+(?:SDTV|DVD)$/i, '').trim();
+      return { season: Number(m[1]), episode: Number(m[2]), title };
     }
   },
   {
@@ -395,6 +526,33 @@ export const SHOWS = [
       const m = basename(file).match(
         /^(?:Teenage Mutant Ninja Turtles - )?(\d{1,2})x(\d{1,3})\s*-\s*(.*)\.mp4$/i
       );
+      if (!m) return null;
+      return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
+    }
+  },
+  {
+    id: 'twilight-zone',
+    name: 'The Twilight Zone (1959)',
+    shortName: 'Twilight Zone',
+    emoji: '🌀',
+    accent: '#0ea5e9',
+    tagline:
+      "Submitted for your approval · Rod Serling's 1959 B&W debut season + the original pilot",
+    iaItem: 'the-twilight-zone-1959-s-01-e-00-original-pilot',
+    tvmazeId: 787,
+    imdbId: 'tt0052520',
+    acceptFile: defaultAcceptMp4,
+    parser: (file) => {
+      // "The Twilight Zone 1959 S01E00 Original Pilot.mp4"
+      // "The Twilight Zone 1959 S01E18 The Last Flight.mp4"
+      // Item ships the original 1959 black-and-white run only — pilot
+      // (S01E00) plus all 36 regular S1 episodes. Seasons 2–5 exist on
+      // IA but only as colorized 720p remasters by a different uploader,
+      // which is a quality regression we don't bake into this entry.
+      // The pilot lands at episode 0; TVMaze's S1 numbering starts at
+      // 1 so its description graft skips the pilot — the filename
+      // title carries through unchanged.
+      const m = basename(file).match(/^The Twilight Zone 1959 S(\d{1,2})E(\d{1,2}) (.*)\.mp4$/i);
       if (!m) return null;
       return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
     }

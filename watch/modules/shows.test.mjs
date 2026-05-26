@@ -23,12 +23,18 @@ const parseDnD = getShow('dnd').parser;
 const parseDBZ = getShow('dbz').parser;
 const parseInspectorGadget = getShow('inspector-gadget').parser;
 const parseAquaTeen = getShow('aqua-teen').parser;
+const parseCosmos = getShow('cosmos').parser;
+const parseGiJoe = getShow('gi-joe').parser;
+const parseJem = getShow('jem').parser;
+const parseRealGhostbusters = getShow('real-ghostbusters').parser;
 const parseRobotech = getShow('robotech').parser;
 const parseRockyBullwinkle = getShow('rocky-bullwinkle').parser;
 const parseTMNT = getShow('tmnt').parser;
 const parseSpeedRacer = getShow('speed-racer').parser;
+const parseTwilightZone = getShow('twilight-zone').parser;
 const parseVoltron = getShow('voltron').parser;
 const isSimpsonsMovie = getShow('simpsons').movieDetector;
+const isGiJoeMovie = getShow('gi-joe').movieDetector;
 
 describe('SHOWS registry', () => {
   it('contains the expected shows, sorted by id', () => {
@@ -37,9 +43,13 @@ describe('SHOWS registry', () => {
       [
         'aqua-teen',
         'beavis',
+        'cosmos',
         'dbz',
         'dnd',
+        'gi-joe',
         'inspector-gadget',
+        'jem',
+        'real-ghostbusters',
         'robotech',
         'rocky-bullwinkle',
         'simpsons',
@@ -47,6 +57,7 @@ describe('SHOWS registry', () => {
         'southpark',
         'speed-racer',
         'tmnt',
+        'twilight-zone',
         'voltron'
       ]
     );
@@ -75,7 +86,7 @@ describe('SHOWS registry', () => {
   });
 
   it('multi-item shows declare an iaItem array with > 1 entry', () => {
-    for (const id of ['tmnt', 'robotech']) {
+    for (const id of ['tmnt', 'robotech', 'gi-joe']) {
       const show = getShow(id);
       assert.ok(Array.isArray(show?.iaItem), `${id} should declare iaItem as an array`);
       assert.ok(show.iaItem.length >= 2, `${id} should pull from multiple IA items`);
@@ -575,5 +586,220 @@ describe('parseVoltron', () => {
     assert.equal(parseVoltron('cover.jpg'), null);
     assert.equal(parseVoltron('Voltron - 01 - Space Explorers Captured.mp4'), null);
     assert.equal(parseVoltron('Voltron Lion Force - 01 - Pilot.mp4'), null);
+  });
+});
+
+describe('parseCosmos', () => {
+  it('parses the first episode', () => {
+    assert.deepEqual(
+      parseCosmos('1980 Cosmos (A Personal Voyage) - Ep 01 The Shores of the Cosmic Ocean.mp4'),
+      { season: 1, episode: 1, title: 'The Shores of the Cosmic Ocean' }
+    );
+  });
+
+  it('parses the finale (E13)', () => {
+    assert.deepEqual(
+      parseCosmos('1980 Cosmos (A Personal Voyage) - Ep 13 Who Speaks for Earth.mp4'),
+      { season: 1, episode: 13, title: 'Who Speaks for Earth' }
+    );
+  });
+
+  it('keeps apostrophes in titles', () => {
+    assert.deepEqual(parseCosmos("1980 Cosmos (A Personal Voyage) - Ep 06 Travellers' Tales.mp4"), {
+      season: 1,
+      episode: 6,
+      title: "Travellers' Tales"
+    });
+  });
+
+  it('returns null for unrelated files', () => {
+    assert.equal(parseCosmos('cover.jpg'), null);
+    assert.equal(parseCosmos('Cosmos 2014 (Neil deGrasse Tyson) - Ep 01 Standing Up.mp4'), null);
+    assert.equal(parseCosmos('1980 Cosmos - Bonus - Conversation with Carl Sagan.mp4'), null);
+  });
+});
+
+describe('parseGiJoe', () => {
+  it('maps the MASS Device mini-series (item gi-joe-1, mini 1) into S0E1..E5', () => {
+    assert.deepEqual(parseGiJoe('1-1. The M.A.S.S. Device Part 1.mp4', 'gi-joe-1'), {
+      season: 0,
+      episode: 1,
+      title: 'The M.A.S.S. Device Part 1'
+    });
+    assert.deepEqual(parseGiJoe('1-5. The M.A.S.S. Device Part 5.mp4', 'gi-joe-1'), {
+      season: 0,
+      episode: 5,
+      title: 'The M.A.S.S. Device Part 5'
+    });
+  });
+
+  it('maps the Revenge of Cobra mini-series (item gi-joe-1, mini 2) into S0E6..E10', () => {
+    assert.deepEqual(parseGiJoe('2-1. The Revenge of Cobra Part 1.mp4', 'gi-joe-1'), {
+      season: 0,
+      episode: 6,
+      title: 'The Revenge of Cobra Part 1'
+    });
+    assert.deepEqual(parseGiJoe('2-5. The Revenge Of Cobra Part 5.mp4', 'gi-joe-1'), {
+      season: 0,
+      episode: 10,
+      title: 'The Revenge Of Cobra Part 5'
+    });
+  });
+
+  it('parses gi-joe-2 (1985 regular series) as season 1', () => {
+    assert.deepEqual(parseGiJoe('1. The Pyramid of Darkness Part 1.mp4', 'gi-joe-2'), {
+      season: 1,
+      episode: 1,
+      title: 'The Pyramid of Darkness Part 1'
+    });
+    assert.deepEqual(parseGiJoe("55. There's No Place Like Springfield Part 2.mp4", 'gi-joe-2'), {
+      season: 1,
+      episode: 55,
+      title: "There's No Place Like Springfield Part 2"
+    });
+  });
+
+  it('parses gi-joe-3 (1986 second season) as season 2', () => {
+    assert.deepEqual(parseGiJoe('1. Arise, Serpentor, Arise! Part 1.mp4', 'gi-joe-3'), {
+      season: 2,
+      episode: 1,
+      title: 'Arise, Serpentor, Arise! Part 1'
+    });
+  });
+
+  it('movie file is caught by the movieDetector, not the parser', () => {
+    assert.equal(isGiJoeMovie('G.I. Joe The Movie.mp4'), true);
+    // The parser would still return null for it because it does not
+    // match either filename shape — confirms the movieDetector is
+    // load-bearing here.
+    assert.equal(parseGiJoe('G.I. Joe The Movie.mp4', 'gi-joe-3'), null);
+  });
+
+  it('returns null for unrelated files', () => {
+    assert.equal(parseGiJoe('cover.jpg', 'gi-joe-2'), null);
+    assert.equal(parseGiJoe('G.I. Joe - Spy Troops.mp4', 'gi-joe-2'), null);
+  });
+});
+
+describe('parseJem', () => {
+  it('parses the hyphen-separated form used by episodes 1-8', () => {
+    assert.deepEqual(parseJem('[HD] Jem Episode 01 - The Beginning.mp4'), {
+      season: 1,
+      episode: 1,
+      title: 'The Beginning'
+    });
+    assert.deepEqual(parseJem('[HD] Jem Episode 08 - Starbright Part 3 - Rising Star.mp4'), {
+      season: 1,
+      episode: 8,
+      title: 'Starbright Part 3 - Rising Star'
+    });
+  });
+
+  it('parses the no-hyphen form used by episodes 9+', () => {
+    assert.deepEqual(parseJem('[HD] Jem Episode 09 The World Hunger Shindig.mp4'), {
+      season: 1,
+      episode: 9,
+      title: 'The World Hunger Shindig'
+    });
+    assert.deepEqual(parseJem('[HD] Jem Episode 65 A Father Should Be.mp4'), {
+      season: 1,
+      episode: 65,
+      title: 'A Father Should Be'
+    });
+  });
+
+  it('tolerates the doubled-extension outlier on episode 32', () => {
+    assert.deepEqual(parseJem('[HD] Jem Episode 32 The Fan.mp4.mp4'), {
+      season: 1,
+      episode: 32,
+      title: 'The Fan'
+    });
+  });
+
+  it('returns null for unrelated files', () => {
+    assert.equal(parseJem('cover.jpg'), null);
+    assert.equal(parseJem('Jem and the Holograms 2015 trailer.mp4'), null);
+    assert.equal(parseJem('Jem Episode 01.mp4'), null); // missing the "[HD] " prefix
+  });
+});
+
+describe('parseRealGhostbusters', () => {
+  it('parses the season-folder + SDTV-suffix shape', () => {
+    assert.deepEqual(
+      parseRealGhostbusters(
+        'The Real Ghostbusters/Season 01/The Real Ghostbusters - S01E01 - Ghosts \u042f Us SDTV.mp4'
+      ),
+      { season: 1, episode: 1, title: 'Ghosts \u042f Us' }
+    );
+  });
+
+  it('strips the DVD suffix from season 2/3 titles', () => {
+    assert.deepEqual(
+      parseRealGhostbusters(
+        'The Real Ghostbusters/Season 02/The Real Ghostbusters - S02E55 - The Old College Spirit DVD.mp4'
+      ),
+      { season: 2, episode: 55, title: 'The Old College Spirit' }
+    );
+  });
+
+  it('keeps titles with commas, exclamation marks, and ampersands intact', () => {
+    assert.deepEqual(
+      parseRealGhostbusters(
+        'The Real Ghostbusters/Season 05/The Real Ghostbusters - S05E08 - Live! from Al Capone\u2019s Tomb SDTV.mp4'
+      ),
+      { season: 5, episode: 8, title: 'Live! from Al Capone\u2019s Tomb' }
+    );
+  });
+
+  it('captures only the first episode number from S05 paired files', () => {
+    assert.deepEqual(
+      parseRealGhostbusters(
+        'The Real Ghostbusters/Season 05/The Real Ghostbusters - S05E11-E12 - Trading Faces + Transcendental Tourists SDTV.mp4'
+      ),
+      { season: 5, episode: 11, title: 'Trading Faces + Transcendental Tourists' }
+    );
+  });
+
+  it('returns null for unrelated files', () => {
+    assert.equal(parseRealGhostbusters('cover.jpg'), null);
+    assert.equal(
+      parseRealGhostbusters('The Real Ghostbusters/Specials/RGB Christmas Special.mp4'),
+      null
+    );
+  });
+});
+
+describe('parseTwilightZone', () => {
+  it('parses the original 1959 pilot as S01E00', () => {
+    assert.deepEqual(parseTwilightZone('The Twilight Zone 1959 S01E00 Original Pilot.mp4'), {
+      season: 1,
+      episode: 0,
+      title: 'Original Pilot'
+    });
+  });
+
+  it('parses regular S1 episodes', () => {
+    assert.deepEqual(parseTwilightZone('The Twilight Zone 1959 S01E08 Time Enough at Last.mp4'), {
+      season: 1,
+      episode: 8,
+      title: 'Time Enough at Last'
+    });
+    assert.deepEqual(parseTwilightZone('The Twilight Zone 1959 S01E18 The Last Flight.mp4'), {
+      season: 1,
+      episode: 18,
+      title: 'The Last Flight'
+    });
+  });
+
+  it('returns null for the colorized S2-S4 items (different uploader, different shape)', () => {
+    // Sanity check — those alt-source files use lowercase "s2e1" and
+    // a "-colorized-720p-hd" suffix that our parser deliberately does
+    // not accept (they'd be a quality regression to mix in).
+    assert.equal(parseTwilightZone('the twilight zone-S2E1-colorized-720p-hd.mp4'), null);
+  });
+
+  it('returns null for unrelated files', () => {
+    assert.equal(parseTwilightZone('cover.jpg'), null);
+    assert.equal(parseTwilightZone('The Twilight Zone 2002 S01E01 Evergreen.mp4'), null);
   });
 });

@@ -51,6 +51,36 @@ export function mount(slot, ctx) {
   intro.appendChild(introTitle);
   intro.appendChild(introBlurb);
 
+  // Live filter for the show grid. The wrapper is also a click target
+  // for the clear button so the input + ✕ read as one widget. Continue
+  // Watching and Saved Offline rows are deliberately not filtered —
+  // those reflect user-specific state, not catalog browsing.
+  const searchWrap = document.createElement('div');
+  searchWrap.className = 'tv-search';
+  const searchInput = document.createElement('input');
+  searchInput.type = 'search';
+  searchInput.className = 'tv-search-input';
+  searchInput.placeholder = 'Search shows…';
+  searchInput.setAttribute('aria-label', 'Search shows');
+  searchInput.autocomplete = 'off';
+  searchInput.spellcheck = false;
+  const searchClear = document.createElement('button');
+  searchClear.type = 'button';
+  searchClear.className = 'tv-search-clear hidden';
+  searchClear.setAttribute('aria-label', 'Clear search');
+  searchClear.title = 'Clear search';
+  searchClear.textContent = '✕';
+  // Status region is visually hidden but announced — screen readers
+  // hear "3 shows match" without sighted users seeing a duplicate line.
+  const searchStatus = document.createElement('div');
+  searchStatus.className = 'tv-search-status';
+  searchStatus.setAttribute('role', 'status');
+  searchStatus.setAttribute('aria-live', 'polite');
+  searchWrap.appendChild(searchInput);
+  searchWrap.appendChild(searchClear);
+  searchWrap.appendChild(searchStatus);
+  intro.appendChild(searchWrap);
+
   // Continue-watching row. Lives between the intro and the grid; the
   // wrapper stays in the DOM even when there are no entries so the
   // ✕ button on the last card can re-render it back to empty/hidden
@@ -96,17 +126,69 @@ export function mount(slot, ctx) {
     grid.appendChild(makeShowCard(show, ctx));
   }
 
+  // Empty state lives alongside the grid (not inside it) so the grid's
+  // CSS `display: grid` doesn't try to lay the message out as a tile.
+  const empty = document.createElement('p');
+  empty.className = 'tv-search-empty hidden';
+
   root.appendChild(intro);
   root.appendChild(continueSection);
   root.appendChild(savedSection);
   root.appendChild(grid);
+  root.appendChild(empty);
   slot.appendChild(root);
 
   renderContinue(continueSection, continueGrid, ctx);
   void renderSaved(savedSection, savedGrid, savedLabelMeta, ctx);
 
+  const applyFilter = () => {
+    const query = searchInput.value.trim().toLowerCase();
+    searchClear.classList.toggle('hidden', query.length === 0);
+    let matches = 0;
+    for (const card of grid.children) {
+      const hay = card.getAttribute('data-search') || '';
+      const hit = query === '' || hay.includes(query);
+      card.classList.toggle('hidden', !hit);
+      if (hit) matches += 1;
+    }
+    if (query === '') {
+      empty.classList.add('hidden');
+      empty.textContent = '';
+      searchStatus.textContent = '';
+      return;
+    }
+    if (matches === 0) {
+      empty.textContent = `No shows match “${searchInput.value.trim()}”`;
+      empty.classList.remove('hidden');
+    } else {
+      empty.classList.add('hidden');
+      empty.textContent = '';
+    }
+    searchStatus.textContent = `${matches} ${matches === 1 ? 'show' : 'shows'} match`;
+  };
+
+  const onInput = () => applyFilter();
+  const onKeydown = (e) => {
+    if (e.key === 'Escape' && searchInput.value !== '') {
+      e.preventDefault();
+      searchInput.value = '';
+      applyFilter();
+    }
+  };
+  const onClear = () => {
+    searchInput.value = '';
+    applyFilter();
+    searchInput.focus();
+  };
+  searchInput.addEventListener('input', onInput);
+  searchInput.addEventListener('keydown', onKeydown);
+  searchClear.addEventListener('click', onClear);
+
   return {
     unmount() {
+      searchInput.removeEventListener('input', onInput);
+      searchInput.removeEventListener('keydown', onKeydown);
+      searchClear.removeEventListener('click', onClear);
       root.remove();
     }
   };
@@ -362,6 +444,13 @@ function makeShowCard(show, ctx) {
   card.className = 'tv-show-card';
   card.style.setProperty('--show-accent', show.accent);
   card.setAttribute('data-show', show.id);
+  // Lowercased haystack for the landing-page search input. Pre-computed
+  // so the filter loop is a plain `.includes()` instead of re-lowercasing
+  // four fields per card per keystroke.
+  card.setAttribute(
+    'data-search',
+    [show.name, show.shortName, show.tagline, show.emoji].filter(Boolean).join(' ').toLowerCase()
+  );
   card.href = `?show=${encodeURIComponent(show.id)}`;
   card.setAttribute('role', 'listitem');
 

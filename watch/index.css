@@ -177,6 +177,109 @@ a.tv-crumb:hover {
   line-height: 1.55;
 }
 
+/* Landing search input. Lives in the intro block, just below the blurb.
+   The clear ✕ is absolutely positioned over the input's trailing edge —
+   the input itself reserves the slot via right padding so typed text
+   never collides with the button. */
+.tv-search {
+  position: relative;
+  width: min(420px, 100%);
+  margin-top: 6px;
+}
+
+.tv-search-input {
+  appearance: none;
+  width: 100%;
+  font-family: var(--font-screen);
+  font-size: 15px;
+  color: var(--tv-text);
+  background: var(--tv-card-bg);
+  border: 1px solid var(--tv-card-border);
+  border-radius: 10px;
+  padding: 10px 36px 10px 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+/* Kill the native WebKit/Edge search clear so we only ship one ✕. */
+.tv-search-input::-webkit-search-cancel-button,
+.tv-search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.tv-search-input::placeholder {
+  color: var(--tv-text-dimmer);
+}
+
+.tv-search-input:hover {
+  border-color: var(--tv-accent-dim);
+}
+
+.tv-search-input:focus,
+.tv-search-input:focus-visible {
+  outline: none;
+  border-color: var(--tv-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tv-accent-dim) 35%, transparent);
+  background: #181820;
+}
+
+.tv-search-clear {
+  appearance: none;
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--tv-text-dim);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.tv-search-clear:hover,
+.tv-search-clear:focus-visible {
+  color: var(--tv-text);
+  border-color: var(--tv-accent-dim);
+  background: color-mix(in srgb, var(--tv-accent) 10%, transparent);
+  outline: none;
+}
+
+/* Visually hide the live-region announcement (screen readers still see it). */
+.tv-search-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.tv-search-empty {
+  margin: 4px 2px 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  color: var(--tv-text-dim);
+  text-align: center;
+  padding: 22px 12px;
+  border: 1px dashed var(--tv-card-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--tv-card-bg) 60%, transparent);
+}
+
 /* ------------------------------------------------------------------------ */
 /* Episodes view — per-show banner + grid                                   */
 /* ------------------------------------------------------------------------ */
