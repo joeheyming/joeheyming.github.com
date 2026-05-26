@@ -79,10 +79,10 @@
       "url": "/youtube/"
     },
     {
-      "name": "Simpleton TV",
-      "short_name": "SimpletonTV",
-      "description": "Browser smart-TV for the Simpletons archive",
-      "url": "/simpletons/"
+      "name": "Watch",
+      "short_name": "Watch",
+      "description": "Browser smart-TV for classic animated archives",
+      "url": "/watch/"
     },
     {
       "name": "Operation SHADOWBOX",

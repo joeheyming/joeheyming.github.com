@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+
+    <link
+      rel="icon"
+      id="site-favicon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📺</text></svg>"
+    />
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>📺 Watch — Classic TV from the Internet Archive | Joe Heyming</title>
+
+    <meta
+      name="description"
+      content="Watch streams classic animated TV from the Internet Archive — The Simpsons, South Park, and Beavis &amp; Butt-Head, browsed like a smart-TV guide. H.264 + AAC, native browser playback, Cast / AirPlay supported."
+    />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="theme-color" content="#0b0b10" />
+    <meta
+      name="keywords"
+      content="Watch, Internet Archive, classic TV streaming, Simpsons, South Park, Beavis and Butt-Head, episode guide, Joe Heyming"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Watch" />
+    <meta property="og:title" content="📺 Watch — Classic TV from the Internet Archive" />
+    <meta
+      property="og:description"
+      content="Smart-TV style player for classic animated TV on the Internet Archive: Simpsons, South Park, Beavis &amp; Butt-Head, and more. Native MP4 playback in the browser."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/watch/" />
+    <meta property="og:image" content="https://joeheyming.github.io/watch/watch-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Watch — flat-screen television guide" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="📺 Watch — Classic TV from the Internet Archive" />
+    <meta
+      name="twitter:description"
+      content="Smart-TV style player streaming Simpsons, South Park, and Beavis &amp; Butt-Head from the Internet Archive."
+    />
+    <meta name="twitter:image" content="https://joeheyming.github.io/watch/watch-preview.png" />
+
+    <link rel="canonical" href="https://joeheyming.github.io/watch/" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "name": "Watch",
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Smart-TV style player that streams classic animated TV from the Internet Archive in the browser.",
+            "url": "https://joeheyming.github.io/watch/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "screenshot": "https://joeheyming.github.io/watch/watch-preview.png",
+            "keywords": "Internet Archive, classic TV, Simpsons, South Park, Beavis, Joe Heyming",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              { "@type": "ListItem", "position": 2, "name": "Watch" }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <link rel="stylesheet" href="index.css" />
+    <script type="module" src="./index.js"></script>
+    <script src="/back.js"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+  </head>
+
+  <body>
+    <div class="tv-room">
+      <header class="tv-header">
+        <nav id="tv-breadcrumbs" class="tv-breadcrumbs" aria-label="Breadcrumb"></nav>
+      </header>
+
+      <!-- The router mounts the active view here. Views own their own DOM:
+           shows-view (grid), episodes-view (season + ep list), watch-view
+           (TV chassis + player). Only one is in the DOM at a time. -->
+      <main id="tv-view" class="tv-view" aria-live="polite"></main>
+
+      <p class="tv-fineprint">
+        Files served directly from the Internet Archive. This site only links — it does not host.
+      </p>
+
+      <share-button label="📤 Share" theme="glass"></share-button>
+    </div>
+  </body>
+</html>

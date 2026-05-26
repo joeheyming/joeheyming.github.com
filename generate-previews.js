@@ -84,9 +84,9 @@ const PAGES = [
     title: 'JoeTube'
   },
   {
-    url: `${BASE_URL}/simpletons/`,
-    output: 'simpletons/simpletons-preview.png',
-    title: 'Simpleton TV'
+    url: `${BASE_URL}/watch/`,
+    output: 'watch/watch-preview.png',
+    title: 'Watch'
   },
   {
     url: `${BASE_URL}/badapple/`,

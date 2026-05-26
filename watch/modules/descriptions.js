@@ -1,21 +1,18 @@
 /**
  * Episode descriptions and stills, sourced from the TVMaze API.
  *
- * One network call on first load: `GET /shows/83/episodes` (The
- * Simpsons, show id 83 on TVMaze). The response is keyed by season +
- * number, which lines up 1:1 with the archive.org catalog. Result is
- * cached in localStorage for ~30 days because the show's back catalog
- * doesn't change.
+ * For each show we make one network call: `GET /shows/<id>/episodes`.
+ * The response is keyed by `(season, episode)`, which lines up 1:1
+ * with the IA-derived catalog. Results are cached per-show in
+ * localStorage for ~30 days because back catalogs don't move.
  *
  * Failure modes are swallowed: if TVMaze is offline or returns
  * garbage, callers get an empty Map and the player falls back to the
- * archive.org thumbnails and the canned subtitle ("Season X · Episode
- * Y"). Descriptions are a nice-to-have, never a hard dependency.
+ * archive.org thumbnails and the canned subtitle. Descriptions are a
+ * nice-to-have, never a hard dependency.
  */
 
-const SHOW_ID = 83;
-const EPISODES_URL = `https://api.tvmaze.com/shows/${SHOW_ID}/episodes`;
-const CACHE_KEY = 'heyming.simpletons.tvmaze.v1';
+const CACHE_PREFIX = 'heyming.watch.tvmaze.';
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 /**
@@ -24,25 +21,29 @@ const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
  * @property {string|null} image    Medium-sized landscape still (~250 wide).
  * @property {string|null} imageHd  Original high-res still.
  * @property {string|null} airdate  ISO date string ("1989-12-17") or null.
- * @property {string|null} name     TVMaze's title, useful as a fallback.
+ * @property {string|null} name     TVMaze title — useful as a fallback.
  */
 
 /**
- * Fetch (or return cached) episode info, keyed by "SxxEyy".
+ * Fetch (or return cached) episode info for a show, keyed by "SxxEyy".
  *
+ * @param {number} tvmazeId
  * @returns {Promise<Map<string, EpisodeInfo>>}
  */
-export async function loadDescriptions() {
-  const cached = readCache();
+export async function loadDescriptions(tvmazeId) {
+  if (!Number.isFinite(tvmazeId)) return new Map();
+  const cached = readCache(tvmazeId);
   if (cached) return cached;
 
   try {
-    const res = await fetch(EPISODES_URL, { credentials: 'omit' });
+    const res = await fetch(`https://api.tvmaze.com/shows/${tvmazeId}/episodes`, {
+      credentials: 'omit'
+    });
     if (!res.ok) return new Map();
     const data = await res.json();
     if (!Array.isArray(data)) return new Map();
     const map = buildMap(data);
-    writeCache(map);
+    writeCache(tvmazeId, map);
     return map;
   } catch {
     return new Map();
@@ -96,9 +97,9 @@ function isImageObject(v) {
   return typeof v === 'object' && v !== null;
 }
 
-function readCache() {
+function readCache(tvmazeId) {
   try {
-    const raw = localStorage.getItem(CACHE_KEY);
+    const raw = localStorage.getItem(CACHE_PREFIX + tvmazeId);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return null;
@@ -111,15 +112,15 @@ function readCache() {
   }
 }
 
-function writeCache(map) {
+function writeCache(tvmazeId, map) {
   try {
     localStorage.setItem(
-      CACHE_KEY,
+      CACHE_PREFIX + tvmazeId,
       JSON.stringify({ ts: Date.now(), entries: Array.from(map.entries()) })
     );
   } catch {
-    // Quota exceeded or private-mode storage; descriptions just won't persist.
+    // Quota exceeded or private-mode storage; the next visit just refetches.
   }
 }
 
-export const __testing = { EPISODES_URL, CACHE_KEY, CACHE_TTL_MS };
+export const __testing = { CACHE_PREFIX, CACHE_TTL_MS };

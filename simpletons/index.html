@@ -1,232 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
-    <script src="/analytics.js"></script>
-
-    <link
-      rel="icon"
-      id="site-favicon"
-      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📺</text></svg>"
-    />
-
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Simpleton TV — Stream the Simpletons Archive | Joe Heyming 📺</title>
+    <title>Simpleton TV → Watch</title>
 
-    <meta
-      name="description"
-      content="Simpleton TV streams a public Simpsons archive from the Internet Archive — seasons 1 through 18 plus the movie, browsed like a smart-TV guide. H.264 + AAC, plays natively in the browser."
-    />
-    <meta name="author" content="Joe Heyming" />
-    <meta name="robots" content="index, follow" />
-    <meta name="language" content="English" />
-    <meta name="theme-color" content="#FAFAFA" />
-    <meta
-      name="keywords"
-      content="Simpleton TV, Internet Archive, classic TV streaming, episode guide, Joe Heyming"
-    />
+    <!-- noindex: this URL is a redirect stub; the indexable canonical
+         page is /watch/?show=simpsons. Keeps it out of the sitemap and
+         signals to Google that the old simpletons URL has merged into
+         the new multi-show /watch/ app. -->
+    <meta name="robots" content="noindex,follow" />
+    <link rel="canonical" href="https://joeheyming.github.io/watch/?show=simpsons" />
 
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Joe Heyming - Simpleton TV" />
-    <meta property="og:title" content="📺 Simpleton TV — Stream the Simpletons Archive" />
-    <meta
-      property="og:description"
-      content="Smart-TV style player that streams a public Simpsons archive: 18 seasons + the movie, native MP4 playback in the browser."
-    />
-    <meta property="og:url" content="https://joeheyming.github.io/simpletons/" />
-    <meta
-      property="og:image"
-      content="https://joeheyming.github.io/simpletons/simpletons-preview.png"
-    />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Simpleton TV flat-screen television" />
-    <meta property="og:locale" content="en_US" />
+    <meta http-equiv="refresh" content="0; url=/watch/?show=simpsons" />
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@joeheyming" />
-    <meta name="twitter:creator" content="@joeheyming" />
-
-    <meta name="twitter:title" content="📺 Simpleton TV — Stream the Simpletons Archive" />
-    <meta
-      name="twitter:description"
-      content="Smart-TV style player for a public Simpsons archive on the Internet Archive."
-    />
-    <meta
-      name="twitter:image"
-      content="https://joeheyming.github.io/simpletons/simpletons-preview.png"
-    />
-
-    <link rel="canonical" href="https://joeheyming.github.io/simpletons/" />
-
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@graph": [
-          {
-            "@type": "WebApplication",
-            "name": "Simpleton TV",
-            "applicationCategory": "MultimediaApplication",
-            "operatingSystem": "Web Browser",
-            "description": "Smart-TV style player that streams a public Simpsons archive from the Internet Archive in the browser.",
-            "url": "https://joeheyming.github.io/simpletons/",
-            "author": {
-              "@type": "Person",
-              "name": "Joe Heyming",
-              "url": "https://joeheyming.github.io/"
-            },
-            "screenshot": "https://joeheyming.github.io/simpletons/simpletons-preview.png",
-            "keywords": "Internet Archive, Simpletons, streaming, classic TV, Joe Heyming",
-            "inLanguage": "en"
-          },
-          {
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Joe Heyming",
-                "item": "https://joeheyming.github.io/"
-              },
-              { "@type": "ListItem", "position": 2, "name": "Simpleton TV" }
-            ]
-          }
-        ]
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0b0b10;
+        color: #f5f5f7;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
       }
-    </script>
-
-    <link rel="stylesheet" href="index.css" />
-    <script type="module" src="./index.js"></script>
-    <script src="/back.js"></script>
-    <script src="/feedback.js"></script>
-    <script src="/share.js"></script>
-
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
-    />
-    <link rel="stylesheet" href="/brand.css" />
+      a {
+        color: #ffb800;
+      }
+    </style>
   </head>
 
   <body>
-    <div class="tv-room">
-      <header class="tv-header">
-        <h1 class="tv-brand">
-          <span class="tv-led" aria-hidden="true"></span>
-          📺 Simpleton TV
-        </h1>
-        <p class="tv-tagline">
-          Streaming
-          <span id="tv-total">…</span>
-          channels from
-          <a href="https://archive.org/details/doh_20240725" target="_blank" rel="noopener">
-            archive.org
-          </a>
-        </p>
-      </header>
+    <p>
+      Simpleton TV has moved to
+      <a id="watch-link" href="/watch/?show=simpsons">/watch/?show=simpsons</a>
+      . Redirecting…
+    </p>
 
-      <!-- The flat-screen TV chassis -->
-      <section class="tv-set" aria-label="Simpleton TV display">
-        <div class="tv-bezel">
-          <div class="tv-bezel-label">
-            <span>FLATRON · ULTRA HD</span>
-            <span class="tv-channel-chip" id="tv-channel-chip">S00E00</span>
-          </div>
-
-          <div class="tv-screen">
-            <video id="tv-video" class="tv-video" controls playsinline preload="metadata"></video>
-
-            <div id="tv-loading" class="tv-overlay" role="status" aria-live="polite">
-              <p class="tv-overlay-title">TUNING</p>
-              <p class="tv-overlay-detail">Pulling the channel guide from the archive…</p>
-            </div>
-
-            <div id="tv-no-signal" class="tv-overlay hidden" role="alert">
-              <p class="tv-overlay-title">NO SIGNAL</p>
-              <p class="tv-overlay-detail">Channel is off the air. Try reloading later.</p>
-            </div>
-
-            <div id="tv-playback-error" class="tv-error hidden" role="alert">
-              <p>This episode failed to load. The source may be temporarily offline.</p>
-              <a
-                id="tv-archive-link"
-                class="tv-error-link"
-                target="_blank"
-                rel="noopener"
-                href="https://archive.org/details/doh_20240725"
-              >
-                ⇪ Open on archive.org
-              </a>
-            </div>
-          </div>
-
-          <div class="tv-base">
-            <div class="tv-stand"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Now-playing marquee under the TV -->
-      <div id="tv-marquee" class="tv-marquee" aria-live="polite">
-        <span class="tv-now-tag">
-          <span class="tv-rec-dot" aria-hidden="true"></span>
-          NOW PLAYING
-        </span>
-        <span class="tv-now-stack">
-          <span id="tv-title" class="tv-title">—</span>
-          <span id="tv-subtitle" class="tv-subtitle">Loading channel guide…</span>
-        </span>
-      </div>
-
-      <!-- Episode synopsis (TVMaze). Hidden until a description loads. -->
-      <aside id="tv-summary" class="tv-summary hidden" aria-live="polite">
-        <p id="tv-summary-text" class="tv-summary-text"></p>
-      </aside>
-
-      <!-- Remote-control row -->
-      <div class="tv-controls">
-        <button id="tv-prev" class="tv-btn" type="button">◀ Prev</button>
-        <button id="tv-shuffle" class="tv-btn is-accent" type="button">⇄ Shuffle</button>
-        <button id="tv-next" class="tv-btn" type="button">Next ▶</button>
-
-        <label class="tv-toggle">
-          <input id="tv-autoplay" type="checkbox" />
-          <span>Autoplay next</span>
-        </label>
-
-        <button id="tv-copy-link" class="tv-btn tv-btn--ghost" type="button">⌘ Copy link</button>
-        <button id="tv-copy-title" class="tv-btn tv-btn--ghost" type="button">✎ Copy title</button>
-      </div>
-
-      <!-- Season chips -->
-      <div class="tv-section">
-        <div class="tv-section-label">Seasons</div>
-        <div id="tv-season-chips" class="tv-chip-row" role="tablist"></div>
-      </div>
-
-      <!-- Episode grid for the active season -->
-      <div class="tv-section">
-        <div class="tv-section-label">Episodes</div>
-        <div id="tv-ep-grid" class="tv-ep-grid"></div>
-      </div>
-
-      <div class="tv-help">
-        <kbd>◀</kbd>
-        <kbd>▶</kbd>
-        prev / next ·
-        <kbd>R</kbd>
-        shuffle ·
-        <kbd>Space</kbd>
-        play
-      </div>
-
-      <p class="tv-fineprint">
-        Files served directly from the Internet Archive. This site only links — it does not host.
-      </p>
-
-      <share-button label="📤 Share" theme="glass"></share-button>
-    </div>
+    <script>
+      // Forward `?s=X&e=Y` deep links from the old simpletons URL to the new
+      // one. The `<meta http-equiv="refresh">` doesn't preserve the query
+      // string, so we replace location ourselves before it fires.
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        params.set('show', 'simpsons');
+        var target = '/watch/?' + params.toString();
+        document.getElementById('watch-link').href = target;
+        // Use replace so the back button skips this stub.
+        window.location.replace(target);
+      })();
+    </script>
   </body>
 </html>
