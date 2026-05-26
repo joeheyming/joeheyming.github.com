@@ -17,9 +17,17 @@
  * to match.
  */
 
-import { getMergedCatalog } from '../catalog.js';
+import { getMergedCatalog, getNextEpisode } from '../catalog.js';
 import { createMarquee, createSummaryCard, describeEpisode, copyToClipboard, pad } from '../ui.js';
 import { loadPrefs, savePrefs, saveLastEpisode } from '../prefs.js';
+import {
+  searchSubtitles,
+  groupByLanguage,
+  sortLanguageGroups,
+  languageLabel,
+  loadVttUrl,
+  applyCueOffset
+} from '../subtitles.js';
 
 /** @typedef {import('../shows.js').ShowConfig} ShowConfig */
 /** @typedef {import('../catalog.js').Catalog} Catalog */
@@ -102,10 +110,51 @@ export async function mount(slot, ctx) {
   errorLink.textContent = '⇪ Open on archive.org';
   errorBanner.appendChild(errorMsg);
   errorBanner.appendChild(errorLink);
+
+  // End-of-episode "Up next" card — populated lazily by showEndCard().
+  const endCard = document.createElement('div');
+  endCard.className = 'tv-endcard hidden';
+  endCard.setAttribute('role', 'dialog');
+  endCard.setAttribute('aria-label', 'Episode ended');
+  const endInner = document.createElement('div');
+  endInner.className = 'tv-endcard-inner';
+  const endEyebrow = document.createElement('p');
+  endEyebrow.className = 'tv-endcard-eyebrow';
+  endEyebrow.textContent = 'Up next';
+  const endThumb = document.createElement('div');
+  endThumb.className = 'tv-endcard-thumb';
+  const endMeta = document.createElement('div');
+  endMeta.className = 'tv-endcard-meta';
+  const endTitle = document.createElement('h3');
+  endTitle.className = 'tv-endcard-title';
+  const endSub = document.createElement('p');
+  endSub.className = 'tv-endcard-sub';
+  endMeta.appendChild(endTitle);
+  endMeta.appendChild(endSub);
+  const endCountdown = document.createElement('p');
+  endCountdown.className = 'tv-endcard-countdown hidden';
+  const endActions = document.createElement('div');
+  endActions.className = 'tv-endcard-actions';
+  const endPlayBtn = mkBtn('▶ Play next', 'tv-endcard-btn tv-endcard-btn--primary');
+  const endReplayBtn = mkBtn('↻ Replay', 'tv-endcard-btn');
+  const endShareBtn = mkBtn('📤 Share', 'tv-endcard-btn');
+  const endBackBtn = mkBtn('← All episodes', 'tv-endcard-btn');
+  endActions.appendChild(endPlayBtn);
+  endActions.appendChild(endReplayBtn);
+  endActions.appendChild(endShareBtn);
+  endActions.appendChild(endBackBtn);
+  endInner.appendChild(endEyebrow);
+  endInner.appendChild(endThumb);
+  endInner.appendChild(endMeta);
+  endInner.appendChild(endCountdown);
+  endInner.appendChild(endActions);
+  endCard.appendChild(endInner);
+
   screen.appendChild(video);
   screen.appendChild(loadingOverlay);
   screen.appendChild(noSignalOverlay);
   screen.appendChild(errorBanner);
+  screen.appendChild(endCard);
 
   const base = document.createElement('div');
   base.className = 'tv-base';
@@ -125,6 +174,12 @@ export async function mount(slot, ctx) {
   const controls = document.createElement('div');
   controls.className = 'tv-controls';
   const prevBtn = mkBtn('◀ Prev', 'tv-btn');
+  const back10Btn = mkBtn('⏪ 10s', 'tv-btn tv-btn--seek');
+  back10Btn.title = 'Skip back 10 seconds (J)';
+  back10Btn.setAttribute('aria-label', 'Skip back 10 seconds');
+  const fwd10Btn = mkBtn('10s ⏩', 'tv-btn tv-btn--seek');
+  fwd10Btn.title = 'Skip forward 10 seconds (L)';
+  fwd10Btn.setAttribute('aria-label', 'Skip forward 10 seconds');
   const shuffleBtn = mkBtn('⇄ Shuffle', 'tv-btn is-accent');
   const nextBtn = mkBtn('Next ▶', 'tv-btn');
   const autoplayLabel = document.createElement('label');
@@ -138,9 +193,67 @@ export async function mount(slot, ctx) {
   autoplayLabel.appendChild(autoplaySpan);
   const copyLinkBtn = mkBtn('⌘ Copy link', 'tv-btn tv-btn--ghost');
   const copyTitleBtn = mkBtn('✎ Copy title', 'tv-btn tv-btn--ghost');
+
+  // CC button + lazy language menu. Only rendered when the show has
+  // an IMDb id (Stremio's addon needs one to look up subtitles).
+  const subsWrap = document.createElement('div');
+  subsWrap.className = 'tv-subs-wrap';
+  const subsBtn = mkBtn('CC', 'tv-btn tv-btn--ghost tv-subs-btn');
+  subsBtn.setAttribute('aria-haspopup', 'menu');
+  subsBtn.setAttribute('aria-expanded', 'false');
+  subsBtn.title = 'Subtitles';
+  const subsMenu = document.createElement('div');
+  subsMenu.className = 'tv-subs-menu hidden';
+  subsMenu.setAttribute('role', 'menu');
+  subsWrap.appendChild(subsBtn);
+  subsWrap.appendChild(subsMenu);
+
+  // Subtitle sync slider — only visible while a track is active.
+  // A range input with directional labels removes the +/- guesswork:
+  // the user drags toward "Earlier" if dialogue happens before subs
+  // appear, or "Later" if subs flash before they hear words. Live
+  // preview means they can just feel their way to alignment without
+  // knowing the sign.
+  const subsSyncWrap = document.createElement('div');
+  subsSyncWrap.className = 'tv-subs-sync hidden';
+  subsSyncWrap.setAttribute('role', 'group');
+  subsSyncWrap.setAttribute('aria-label', 'Subtitle sync');
+  const subsSyncHint = document.createElement('span');
+  subsSyncHint.className = 'tv-subs-sync-hint tv-subs-sync-hint--left';
+  subsSyncHint.textContent = '⏪ Earlier';
+  const subsSyncSlider = document.createElement('input');
+  subsSyncSlider.type = 'range';
+  subsSyncSlider.min = '-10';
+  subsSyncSlider.max = '10';
+  subsSyncSlider.step = '0.5';
+  subsSyncSlider.value = '0';
+  subsSyncSlider.className = 'tv-subs-sync-slider';
+  subsSyncSlider.setAttribute('aria-label', 'Subtitle delay in seconds');
+  subsSyncSlider.title =
+    'Drag toward Earlier if dialogue happens before subtitles appear, or Later if subtitles flash before you hear the words.';
+  const subsSyncHintRight = document.createElement('span');
+  subsSyncHintRight.className = 'tv-subs-sync-hint tv-subs-sync-hint--right';
+  subsSyncHintRight.textContent = 'Later ⏩';
+  const subsSyncReadout = document.createElement('button');
+  subsSyncReadout.type = 'button';
+  subsSyncReadout.className = 'tv-subs-sync-readout';
+  subsSyncReadout.textContent = '0.0s';
+  subsSyncReadout.title = 'Reset subtitle delay to zero';
+  subsSyncReadout.setAttribute('aria-label', 'Reset subtitle delay');
+  subsSyncWrap.appendChild(subsSyncHint);
+  subsSyncWrap.appendChild(subsSyncSlider);
+  subsSyncWrap.appendChild(subsSyncHintRight);
+  subsSyncWrap.appendChild(subsSyncReadout);
+
   controls.appendChild(prevBtn);
+  controls.appendChild(back10Btn);
   controls.appendChild(shuffleBtn);
+  controls.appendChild(fwd10Btn);
   controls.appendChild(nextBtn);
+  if (show.imdbId) {
+    controls.appendChild(subsWrap);
+    controls.appendChild(subsSyncWrap);
+  }
   controls.appendChild(autoplayLabel);
   controls.appendChild(copyLinkBtn);
   controls.appendChild(copyTitleBtn);
@@ -170,7 +283,7 @@ export async function mount(slot, ctx) {
   const help = document.createElement('div');
   help.className = 'tv-help';
   help.innerHTML =
-    '<kbd>◀</kbd><kbd>▶</kbd> prev / next · <kbd>R</kbd> shuffle · <kbd>Space</kbd> play';
+    '<kbd>◀</kbd><kbd>▶</kbd> prev / next · <kbd>J</kbd><kbd>L</kbd> ±10s · <kbd>R</kbd> shuffle · <kbd>Space</kbd> play';
 
   root.appendChild(setEl);
   root.appendChild(marquee.root);
@@ -190,6 +303,30 @@ export async function mount(slot, ctx) {
     b.textContent = text;
     return b;
   }
+
+  // End-of-episode card state. Declared up here (before any code path
+  // that calls loadEpisode → hideEndCard) so the references aren't in
+  // the temporal dead zone when the initial episode is loaded.
+  /** @type {number | null} */
+  let countdownTimer = null;
+  /** @type {Episode | null} */
+  let pendingNext = null;
+
+  // Subtitle state. Declared early for the same TDZ reason — loadEpisode
+  // calls clearSubtitles() on entry so the old track doesn't carry over.
+  /** @type {HTMLTrackElement | null} */
+  let activeTrack = null;
+  /** @type {string | null} */
+  let activeTrackUrl = null;
+  /** @type {string | null} */
+  let activeLang = null;
+  /** @type {string | null} */
+  let menuCacheKey = null;
+  // Manual sync offset in seconds. Persists across episode changes
+  // within a session because most OpenSubtitles uploads for a given
+  // show come from the same source release — once the user has
+  // dialled in the right delay, it usually carries over.
+  let subtitleOffset = 0;
 
   try {
     catalog = await getMergedCatalog(show);
@@ -227,6 +364,35 @@ export async function mount(slot, ctx) {
   // ---- Event wiring -------------------------------------------------
   prevBtn.addEventListener('click', () => stepEpisode(-1));
   nextBtn.addEventListener('click', () => stepEpisode(1));
+  back10Btn.addEventListener('click', () => seekRelative(-10));
+  fwd10Btn.addEventListener('click', () => seekRelative(10));
+
+  // Subtitles: click CC to open / close the language picker. Click
+  // elsewhere on the page to dismiss. The menu is lazy — we don't
+  // search the addon until the user actually asks.
+  subsBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (subsMenu.classList.contains('hidden')) {
+      openSubsMenu();
+    } else {
+      closeSubsMenu();
+    }
+  });
+  const outsideClick = (e) => {
+    if (!subsWrap.contains(e.target instanceof Node ? e.target : null)) {
+      closeSubsMenu();
+    }
+  };
+  document.addEventListener('click', outsideClick);
+
+  // Slider drives the offset live as the user drags. The readout doubles
+  // as a "reset to zero" button so a misadjust is one click away from
+  // undo, no need to drag back to dead-center on a sticky range input.
+  subsSyncSlider.addEventListener('input', () => {
+    const v = parseFloat(subsSyncSlider.value);
+    if (Number.isFinite(v)) setSubtitleOffset(v);
+  });
+  subsSyncReadout.addEventListener('click', () => setSubtitleOffset(0));
   shuffleBtn.addEventListener('click', () => {
     if (!catalog) return;
     const ep = randomEpisode(catalog);
@@ -244,10 +410,46 @@ export async function mount(slot, ctx) {
   );
 
   video.addEventListener('ended', () => {
-    if (prefs.autoplayNext) stepEpisode(1);
+    showEndCard();
   });
   video.addEventListener('error', () => {
     errorBanner.classList.remove('hidden');
+  });
+
+  // ---- End-of-episode card wiring ----------------------------------
+  endPlayBtn.addEventListener('click', () => {
+    const target = pendingNext;
+    hideEndCard();
+    if (target) loadEpisode(target);
+  });
+  endReplayBtn.addEventListener('click', () => {
+    hideEndCard();
+    try {
+      video.currentTime = 0;
+      const p = video.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    } catch {
+      /* ignore */
+    }
+  });
+  endShareBtn.addEventListener('click', async () => {
+    if (!current) return;
+    const ok = await shareEpisode(show, current);
+    marquee.flash(ok ? 'SHARED' : 'SHARE FAILED');
+  });
+  endBackBtn.addEventListener('click', () => {
+    hideEndCard();
+    navigate({ show: show.id });
+  });
+  // Clicking the backdrop (outside the inner card) cancels the
+  // countdown — but leaves the card visible so the user can still
+  // choose Replay / Share / Back.
+  endCard.addEventListener('click', (e) => {
+    if (e.target === endCard && countdownTimer != null) {
+      cancelCountdown();
+      endCountdown.textContent = 'Autoplay cancelled — pick something.';
+      endCountdown.classList.remove('hidden');
+    }
   });
 
   const keydown = (e) => {
@@ -263,6 +465,19 @@ export async function mount(slot, ctx) {
       case 'ArrowRight':
         e.preventDefault();
         stepEpisode(1);
+        break;
+      // YouTube-style ±10s seek. Arrow keys are already claimed for
+      // episode navigation; J/L is the next-best convention and what
+      // people who watch a lot of video on the web reach for.
+      case 'j':
+      case 'J':
+        e.preventDefault();
+        seekRelative(-10);
+        break;
+      case 'l':
+      case 'L':
+        e.preventDefault();
+        seekRelative(10);
         break;
       case 'r':
       case 'R':
@@ -318,6 +533,17 @@ export async function mount(slot, ctx) {
   return {
     unmount() {
       document.removeEventListener('keydown', keydown);
+      document.removeEventListener('click', outsideClick);
+      // Cancel any in-flight end-card countdown before removing the
+      // DOM — leaking the interval would keep loadEpisode firing
+      // against a torn-down view.
+      if (countdownTimer != null) {
+        clearInterval(countdownTimer);
+        countdownTimer = null;
+      }
+      // Revoke any active subtitle blob URL so it doesn't sit in
+      // memory after the view is torn down.
+      clearSubtitles();
       try {
         // Stop playback before tearing down — otherwise Safari can keep
         // streaming the file in the background after the element is gone.
@@ -363,6 +589,15 @@ export async function mount(slot, ctx) {
     const urlSync = opts.urlSync !== false;
     current = ep;
 
+    // Loading a new episode hides any leftover end-card. Important
+    // for both autoplay and manual Prev/Next transitions.
+    hideEndCard();
+    // Subtitles are episode-specific — drop the old track + close the
+    // language menu so it isn't showing stale options for the previous
+    // episode the next time the user pokes CC.
+    clearSubtitles();
+    closeSubsMenu();
+
     marquee.update(show, ep);
     summary.update(ep);
     channelChip.textContent =
@@ -388,6 +623,14 @@ export async function mount(slot, ctx) {
       const p = video.play();
       if (p && typeof p.catch === 'function') p.catch(() => {});
     }
+
+    // Auto-apply the user's saved subtitle language (if any). Fired
+    // unawaited so video playback isn't blocked on a subtitle round-trip;
+    // a check inside maybeAutoLoadSubtitles bails if the user navigated
+    // away before the fetch resolved.
+    if (prefs.subtitleLang && show.imdbId && ep.season > 0) {
+      maybeAutoLoadSubtitles(ep, prefs.subtitleLang);
+    }
   }
 
   /** @param {1 | -1} delta */
@@ -402,6 +645,91 @@ export async function mount(slot, ctx) {
     const len = season.episodes.length;
     const next = (((idx + delta) % len) + len) % len;
     loadEpisode(season.episodes[next]);
+  }
+
+  /**
+   * Cancel the autoplay countdown timer (if running) without hiding
+   * the end-card. The card stays up so the user can still pick an
+   * action explicitly.
+   */
+  function cancelCountdown() {
+    if (countdownTimer != null) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
+  }
+
+  function hideEndCard() {
+    cancelCountdown();
+    endCard.classList.add('hidden');
+    endCountdown.classList.add('hidden');
+    pendingNext = null;
+  }
+
+  /**
+   * Display the end-of-episode card. Populated with the next episode
+   * (across seasons) when one exists; falls back to a "you've reached
+   * the end" state with only Replay / Share / Back available.
+   */
+  function showEndCard() {
+    if (!catalog || !current) return;
+    const next = getNextEpisode(catalog, current);
+    pendingNext = next;
+
+    endThumb.replaceChildren();
+    endThumb.classList.remove('is-empty');
+
+    if (next) {
+      endEyebrow.textContent = 'Up next';
+      endPlayBtn.classList.remove('hidden');
+      endTitle.textContent = next.title || `Episode ${next.episode}`;
+      endSub.textContent =
+        next.season === 0
+          ? 'Special'
+          : `${show.shortName} · S${pad(next.season)}E${pad(next.episode)}`;
+      const thumbSrc = next.image || next.thumbUrl;
+      if (thumbSrc) {
+        const img = document.createElement('img');
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        img.alt = '';
+        img.src = thumbSrc;
+        endThumb.appendChild(img);
+      } else {
+        endThumb.classList.add('is-empty');
+        endThumb.textContent = '📺';
+      }
+    } else {
+      endEyebrow.textContent = 'Episode ended';
+      endPlayBtn.classList.add('hidden');
+      endTitle.textContent = "That's the last one on the shelf.";
+      endSub.textContent = `${show.name} — replay, share, or browse other shows.`;
+      endThumb.classList.add('is-empty');
+      endThumb.textContent = show.emoji || '📺';
+    }
+
+    endCard.classList.remove('hidden');
+
+    if (next && prefs.autoplayNext) {
+      let remaining = 8;
+      endCountdown.textContent = `Playing in ${remaining}s — tap outside to cancel.`;
+      endCountdown.classList.remove('hidden');
+      countdownTimer = window.setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+          const target = pendingNext;
+          cancelCountdown();
+          endCountdown.classList.add('hidden');
+          endCard.classList.add('hidden');
+          pendingNext = null;
+          if (target) loadEpisode(target);
+        } else {
+          endCountdown.textContent = `Playing in ${remaining}s — tap outside to cancel.`;
+        }
+      }, 1000);
+    } else {
+      endCountdown.classList.add('hidden');
+    }
   }
 
   function togglePlay() {
@@ -433,6 +761,279 @@ export async function mount(slot, ctx) {
     params.set('s', String(ep.season));
     params.set('e', String(ep.episode));
     history.replaceState(null, '', `${location.pathname}?${params.toString()}`);
+  }
+
+  /* ---------- Subtitles ---------- */
+
+  /**
+   * Set the absolute subtitle offset (in seconds) and re-apply it to
+   * the active track. Rounded to 100ms because the on-screen readout
+   * caps at one decimal anyway.
+   *
+   * @param {number} offsetSec
+   */
+  function setSubtitleOffset(offsetSec) {
+    const clamped = Math.max(-30, Math.min(30, offsetSec));
+    subtitleOffset = Math.round(clamped * 10) / 10;
+    applyOffsetToActiveTrack();
+    updateSyncReadout();
+  }
+
+  /**
+   * Apply the current `subtitleOffset` to whatever cues are currently
+   * loaded on the active track. No-op when no track is attached or
+   * when the cues haven't finished parsing yet — callers should also
+   * wire up the `<track>` `load` event so the offset re-applies once
+   * cues become available.
+   */
+  function applyOffsetToActiveTrack() {
+    if (!activeTrack || !activeTrack.track) return;
+    applyCueOffset(activeTrack.track.cues, subtitleOffset);
+  }
+
+  /** Refresh the on-screen offset readout + CC button label + slider. */
+  function updateSyncReadout() {
+    const sign = subtitleOffset > 0 ? '+' : subtitleOffset < 0 ? '−' : '';
+    const abs = Math.abs(subtitleOffset).toFixed(1);
+    subsSyncReadout.textContent = `${sign}${abs}s`;
+    if (subtitleOffset !== 0) {
+      subsSyncReadout.classList.add('is-shifted');
+    } else {
+      subsSyncReadout.classList.remove('is-shifted');
+    }
+    // Keep the slider's thumb in sync — important after the user hits
+    // Reset, on cross-episode auto-load, and any other path that
+    // mutates the offset without dragging the slider.
+    if (subsSyncSlider.value !== String(subtitleOffset)) {
+      subsSyncSlider.value = String(subtitleOffset);
+    }
+    // Reflect the offset on the CC button label so the user can tell
+    // at a glance that subs are shifted even when the sync row is
+    // off-screen on narrow viewports.
+    if (activeLang) {
+      subsBtn.textContent =
+        subtitleOffset === 0
+          ? `CC ${activeLang.toUpperCase()}`
+          : `CC ${activeLang.toUpperCase()} ${sign}${abs}s`;
+    }
+  }
+
+  /**
+   * Silently fetch + attach the user's preferred subtitle language for
+   * the given episode. Runs in the background after each episode load
+   * so "I want English on every episode" works without further input.
+   *
+   * Failures are silent — the visible CC button is the user's
+   * acknowledgement that captions are missing, not a toast.
+   *
+   * @param {Episode} ep
+   * @param {string} lang
+   */
+  async function maybeAutoLoadSubtitles(ep, lang) {
+    const stamp = `${ep.season}:${ep.episode}`;
+    const candidates = await searchSubtitles(show.imdbId || '', ep.season, ep.episode);
+    // Bail if the user navigated to a different episode while the
+    // search was in flight, or the current episode no longer matches.
+    if (!current || `${current.season}:${current.episode}` !== stamp) return;
+    const groups = groupByLanguage(candidates);
+    const group = groups.find((g) => g.lang === lang);
+    if (!group) return;
+    const url = await loadVttUrl(group.candidates);
+    if (!url) return;
+    if (!current || `${current.season}:${current.episode}` !== stamp) {
+      try {
+        URL.revokeObjectURL(url);
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+    attachSubtitleTrack(url, lang);
+  }
+
+  /**
+   * Tear down any active subtitle track. Safe to call when nothing is
+   * attached. Always revokes the blob URL even if the `<track>` is
+   * already detached.
+   */
+  function clearSubtitles() {
+    if (activeTrack && activeTrack.parentNode) {
+      activeTrack.remove();
+    }
+    if (activeTrackUrl) {
+      try {
+        URL.revokeObjectURL(activeTrackUrl);
+      } catch {
+        /* ignore */
+      }
+    }
+    activeTrack = null;
+    activeTrackUrl = null;
+    activeLang = null;
+    subsBtn.textContent = 'CC';
+    subsBtn.classList.remove('is-active');
+    subsBtn.setAttribute('aria-expanded', 'false');
+    // Hide the sync controls but keep `subtitleOffset` in place so the
+    // value carries over when the user re-enables subs on the next
+    // episode. The offset is reset only when the user explicitly
+    // clicks "Off" in the menu (see openSubsMenu()).
+    subsSyncWrap.classList.add('hidden');
+  }
+
+  function closeSubsMenu() {
+    subsMenu.classList.add('hidden');
+    subsBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  /**
+   * Open the language picker, populating it lazily on first open per
+   * episode. Subsequent opens for the same episode reuse the rendered
+   * list so the UI doesn't flash a "Loading…" state needlessly.
+   */
+  async function openSubsMenu() {
+    if (!show.imdbId || !current) return;
+    subsMenu.classList.remove('hidden');
+    subsBtn.setAttribute('aria-expanded', 'true');
+
+    const epKey = `${current.season}:${current.episode}`;
+    if (menuCacheKey === epKey && subsMenu.childElementCount > 0) {
+      return;
+    }
+    menuCacheKey = epKey;
+
+    subsMenu.replaceChildren();
+    if (current.season === 0) {
+      subsMenu.appendChild(menuMessage('Subtitles for specials / movies are not supported yet.'));
+      return;
+    }
+
+    subsMenu.appendChild(menuMessage('Loading…'));
+
+    const candidates = await searchSubtitles(show.imdbId, current.season, current.episode);
+    if (menuCacheKey !== epKey) return; // user already navigated away
+
+    subsMenu.replaceChildren();
+
+    // Always include an "Off" entry first so the user has an easy
+    // out, even when no languages were returned. Picking Off also
+    // clears the saved preference so future episodes don't re-arm.
+    subsMenu.appendChild(
+      makeMenuItem('Off', null, () => {
+        clearSubtitles();
+        // Explicit "Off" also forgets the offset — the user is
+        // starting fresh next time they turn captions on.
+        setSubtitleOffset(0);
+        prefs.subtitleLang = null;
+        savePrefs(prefs);
+        closeSubsMenu();
+      })
+    );
+
+    const groups = sortLanguageGroups(groupByLanguage(candidates));
+    if (groups.length === 0) {
+      subsMenu.appendChild(menuMessage('No subtitles found for this episode.'));
+      return;
+    }
+    for (const g of groups) {
+      const label = `${languageLabel(g.lang)} · ${g.candidates.length}`;
+      subsMenu.appendChild(
+        makeMenuItem(label, g.lang, async () => {
+          // Persist the choice so subsequent episodes auto-load this
+          // language without a second visit to the menu.
+          prefs.subtitleLang = g.lang;
+          savePrefs(prefs);
+          // Optimistic UI: switch the button immediately so the user
+          // sees feedback while the SRT downloads.
+          subsBtn.textContent = `CC ${g.lang.toUpperCase()}`;
+          subsBtn.classList.add('is-active');
+          closeSubsMenu();
+          const url = await loadVttUrl(g.candidates);
+          if (!url) {
+            // Roll back the optimistic state — the download failed.
+            clearSubtitles();
+            marquee.flash('SUBS UNAVAILABLE');
+            return;
+          }
+          // Bail out if the episode changed while we were fetching.
+          if (menuCacheKey !== epKey || !current) {
+            try {
+              URL.revokeObjectURL(url);
+            } catch {
+              /* ignore */
+            }
+            return;
+          }
+          attachSubtitleTrack(url, g.lang);
+        })
+      );
+    }
+  }
+
+  /** @param {string} text */
+  function menuMessage(text) {
+    const p = document.createElement('p');
+    p.className = 'tv-subs-empty';
+    p.textContent = text;
+    return p;
+  }
+
+  /**
+   * @param {string} label
+   * @param {string | null} lang Currently-active lang gets a check; null = "Off" row.
+   * @param {() => void} onClick
+   */
+  function makeMenuItem(label, lang, onClick) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tv-subs-item';
+    b.setAttribute('role', 'menuitem');
+    if (lang === activeLang || (lang === null && !activeLang)) {
+      b.classList.add('is-current');
+    }
+    b.textContent = label;
+    b.addEventListener('click', () => onClick());
+    return b;
+  }
+
+  /**
+   * Attach a `<track>` element pointing at the converted blob URL.
+   * Removes any prior track first; the player is single-track by design.
+   *
+   * @param {string} blobUrl
+   * @param {string} lang ISO 639-2 code.
+   */
+  function attachSubtitleTrack(blobUrl, lang) {
+    if (activeTrack && activeTrack.parentNode) activeTrack.remove();
+    if (activeTrackUrl) {
+      try {
+        URL.revokeObjectURL(activeTrackUrl);
+      } catch {
+        /* ignore */
+      }
+    }
+    const track = document.createElement('track');
+    track.kind = 'subtitles';
+    track.srclang = lang;
+    track.label = languageLabel(lang);
+    track.src = blobUrl;
+    track.default = true;
+    // The `load` event fires once the browser has parsed the WebVTT,
+    // which is when `track.track.cues` becomes non-empty. That's the
+    // earliest we can apply the user's manual offset.
+    track.addEventListener('load', () => {
+      if (subtitleOffset !== 0) applyCueOffset(track.track?.cues, subtitleOffset);
+    });
+    video.appendChild(track);
+    // `<track>.mode = 'showing'` is what actually flips captions on;
+    // setting `default` only matters when the element is added
+    // *before* the video starts playing. Set both for safety.
+    if (track.track) track.track.mode = 'showing';
+    activeTrack = track;
+    activeTrackUrl = blobUrl;
+    activeLang = lang;
+    subsBtn.classList.add('is-active');
+    subsSyncWrap.classList.remove('hidden');
+    updateSyncReadout();
   }
 
   /** @param {Episode} ep */
@@ -506,4 +1107,38 @@ function crumbLabelFor(ep) {
   if (ep.season === 0) return ep.title || 'Movie';
   const tag = `S${pad(ep.season)}E${pad(ep.episode)}`;
   return ep.title ? `${tag} — ${ep.title}` : tag;
+}
+
+/**
+ * Share the current episode via the Web Share API when available,
+ * falling back to copying the canonical URL to the clipboard. Returns
+ * `true` when something user-visible happened (system share completed
+ * or clipboard write succeeded), `false` on outright failure or when
+ * the user cancelled the native share sheet.
+ *
+ * @param {ShowConfig} show
+ * @param {Episode} ep
+ * @returns {Promise<boolean>}
+ */
+async function shareEpisode(show, ep) {
+  const url = location.href;
+  const title = describeEpisode(show, ep);
+  if (navigator.share) {
+    try {
+      await navigator.share({ url, title, text: `Watching ${title}` });
+      return true;
+    } catch (err) {
+      // User dismissed the native sheet — treat as a no-op, don't
+      // fall back to clipboard (the user explicitly chose not to share).
+      if (err && /** @type {DOMException} */ (err).name === 'AbortError') {
+        return false;
+      }
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    return true;
+  } catch {
+    return false;
+  }
 }

@@ -27,8 +27,15 @@
  * @property {string} emoji
  * @property {string} accent          Hex color used in chip/highlight gradients.
  * @property {string} tagline         One-line description for the show card.
- * @property {string} iaItem          archive.org item identifier.
+ * @property {string | string[]} iaItem
+ *   archive.org item identifier, or an array of identifiers for shows
+ *   whose seasons are spread across separate uploads (TMNT 1987).
+ *   When an array, the catalog builder fetches each in parallel and
+ *   merges the seasons.
  * @property {number} tvmazeId        TVMaze numeric id (for descriptions + stills).
+ * @property {string} [imdbId]        IMDb id (with "tt" prefix) used by the
+ *                                    Stremio OpenSubtitles addon to find
+ *                                    subtitles. Omit to disable CC for the show.
  * @property {(file: { name?: unknown, format?: unknown }) => boolean} [acceptFile]
  *   Filter applied to each raw file before parsing. Defaults to "mp4
  *   only, no .ia.mp4 derivative".
@@ -105,6 +112,126 @@ function acceptBeavis(raw) {
   return /\.mp4$/i.test(name);
 }
 
+/* ---------- The Smurfs (smurfs-1981-complete-series-nbc) -------- */
+
+function parseSmurfs(file) {
+  // "The Smurfs/S01/S01 E01 - The Astrosmurf.mp4". Some titles end in
+  // a bracketed annotation like "[Supercut]"; strip it so the chip is
+  // clean. The S07 "Wild Side" supercut also ships a second-half
+  // "S07 E01b ..." file — that variant is intentionally dropped (it
+  // has no spare slot in the season's numbering and the supercut
+  // already covers it).
+  const base = basename(file);
+  // The `\s+` after `E\d+` is load-bearing: it forces a space between
+  // the episode number and the title, which rejects the lone "E01b"
+  // suffix variant outright (it has no spare slot in the season's
+  // numbering, and the supercut already covers it).
+  const m = base.match(/^S(\d{1,2})\s+E(\d{1,2})\s+-?\s*(.*?)(?:\s*\[[^\]]+\])?\.mp4$/i);
+  if (!m) return null;
+  return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
+}
+
+/* ---------- Dungeons & Dragons (dungeons-and-dragons_202605) ---- */
+
+function parseDnD(file) {
+  // "Dungeons and Dragons - S01E01 (The Night of No Tomorrow).mp4".
+  // The lost finale "Requiem" was reconstructed from the original
+  // script and lives in the archive as S03E07a + S03E07b. We map
+  // those to E07 + E08 so both halves are reachable in the grid (they
+  // become "Requiem (Part 1)" / "Requiem (Part 2)") and S03's
+  // canonical 6-episode run stays intact below them.
+  const base = basename(file);
+  const m = base.match(/^Dungeons and Dragons - S(\d{1,2})E(\d{1,2})([a-z]?)\s*\(([^)]+)\)\.mp4$/i);
+  if (!m) return null;
+  const suffix = m[3].toLowerCase();
+  const offset = suffix ? suffix.charCodeAt(0) - 'a'.charCodeAt(0) : 0;
+  const baseTitle = m[4].trim();
+  const title = suffix ? `${baseTitle} (Part ${offset + 1})` : baseTitle;
+  return { season: Number(m[1]), episode: Number(m[2]) + offset, title };
+}
+
+/* ---------- Inspector Gadget (inspector-gadget-go-go-gadget-series) - */
+
+function parseInspectorGadget(file) {
+  // "Inspector Gadget S01E01 Winter Olympics.mp4" — same general
+  // shape as South Park, just without the "[R]" remaster tag.
+  const m = basename(file).match(/^Inspector Gadget S(\d{1,2})E(\d{1,2})\s+(.*)\.mp4$/i);
+  if (!m) return null;
+  return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
+}
+
+/* ---------- Aqua Teen Hunger Force (aqua-teen-hunger-force-2000-…) -- */
+
+function parseAquaTeen(file) {
+  // "Aqua Teen Hunger Force (2000) - S06E02 - Shake Like Me (1080p
+  // WEB-DL x265 r00t).mp4". Quality tag in trailing parens is
+  // dropped from the title. The "(2000)" before the dash is the
+  // year, not an annotation — it's literally part of the show
+  // signature in every filename, so the regex anchors on it.
+  // Some files use lowercase `s06e02` instead of `S06E02`; both
+  // are accepted via the `i` flag.
+  const m = basename(file).match(
+    /^Aqua Teen Hunger Force \(2000\) - S(\d{1,2})E(\d{1,3}) - (.*?)(?:\s*\([^)]*\))?\.mp4$/i
+  );
+  if (!m) return null;
+  return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
+}
+
+/* ---------- Rocky & Bullwinkle & Friends (RockyBullwinkleFriends) -- */
+
+function parseRockyBullwinkle(file) {
+  // The archive uses three different prefixes — full title, no
+  // spaces, or short — but the trailing "Sxx[Ee]xx.mp4" is stable
+  // across all of them. None of the filenames embed episode titles,
+  // so we generate a placeholder ("Episode N") and rely on TVMaze
+  // to overwrite it with the real title at merge time.
+  //
+  // "/Extras/" files (puppet shorts, outtakes, commercials) don't
+  // line up with a season/episode slot — drop them.
+  if (file.includes('/Extras/')) return null;
+  const base = basename(file);
+  const m = base.match(/S(\d{1,2})[Ee](\d{1,2})\.mp4$/);
+  if (!m) return null;
+  return {
+    season: Number(m[1]),
+    episode: Number(m[2]),
+    title: `Episode ${Number(m[2])}`
+  };
+}
+
+/* ---------- Teenage Mutant Ninja Turtles 1987 (multi-item) ---------- */
+
+function parseTMNT(file) {
+  // Two filename styles ship side-by-side because the season packs
+  // come from different uploads:
+  //   "Teenage Mutant Ninja Turtles - 01x01 - Turtle Tracks.mp4"
+  //   "05x01 - Donatello`s Badd Time.mp4"
+  // The leading show-name prefix is therefore optional; the season
+  // and episode live in the `NNxNN` token, not in SxxExx.
+  const m = basename(file).match(
+    /^(?:Teenage Mutant Ninja Turtles - )?(\d{1,2})x(\d{1,3})\s*-\s*(.*)\.mp4$/i
+  );
+  if (!m) return null;
+  return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
+}
+
+/* ---------- Dragon Ball Z (dragon-ball-z-ocean-dub-mastered-complete) - */
+
+function parseDBZ(file) {
+  // "001 - The Arrival of Raditz.mp4". The archive numbers every
+  // episode 001..276 in a single flat directory rather than splitting
+  // by Funimation saga, and those absolute numbers don't line up with
+  // TVMaze's 9-season layout — so we surface the whole run as one
+  // long "Season 1" and episode titles come from the filenames.
+  // TVMaze descriptions / stills won't match (per-season numbering
+  // mismatch); that's intentional, the player just falls back to the
+  // archive thumbnail.
+  const base = basename(file);
+  const m = base.match(/^(\d{3,4})\s*-\s*(.*?)\.mp4$/);
+  if (!m) return null;
+  return { season: 1, episode: Number(m[1]), title: m[2].trim() };
+}
+
 /* ---------- Registry -------------------------------------------- */
 
 /** @type {ShowConfig[]} */
@@ -118,6 +245,7 @@ export const SHOWS = [
     tagline: 'Yellow family of Springfield · 18 seasons + the movie',
     iaItem: 'doh_20240725',
     tvmazeId: 83,
+    imdbId: 'tt0096697',
     acceptFile: defaultAcceptMp4,
     parser: parseSimpsons,
     movieDetector: isSimpsonsMovie,
@@ -132,6 +260,7 @@ export const SHOWS = [
     tagline: "Colorado's worst-behaved fourth-graders · S0–S20",
     iaItem: 'northplayground',
     tvmazeId: 112,
+    imdbId: 'tt0121955',
     acceptFile: defaultAcceptMp4,
     parser: parseSouthPark
   },
@@ -144,8 +273,103 @@ export const SHOWS = [
     tagline: 'Couch-bound music-video critics · seasons 4–8',
     iaItem: 's-7-ep-41-beavis-butthead-are-dead',
     tvmazeId: 910,
+    imdbId: 'tt0105950',
     acceptFile: acceptBeavis,
     parser: parseBeavis
+  },
+  {
+    id: 'smurfs',
+    name: 'The Smurfs',
+    shortName: 'Smurfs',
+    emoji: '🍄',
+    accent: '#4a9eff',
+    tagline: 'Tiny blue villagers of an enchanted forest · 9 seasons of NBC Saturday mornings',
+    iaItem: 'smurfs-1981-complete-series-nbc',
+    tvmazeId: 4583,
+    imdbId: 'tt0081933',
+    acceptFile: defaultAcceptMp4,
+    parser: parseSmurfs
+  },
+  {
+    id: 'dnd',
+    name: 'Dungeons & Dragons',
+    shortName: 'D&D',
+    emoji: '🐉',
+    accent: '#c14b1d',
+    tagline:
+      'Six kids stuck in a sword-and-sorcery world · all 27 episodes + the lost Requiem finale',
+    iaItem: 'dungeons-and-dragons_202605',
+    tvmazeId: 1129,
+    imdbId: 'tt0085011',
+    acceptFile: defaultAcceptMp4,
+    parser: parseDnD
+  },
+  {
+    id: 'dbz',
+    name: 'Dragon Ball Z',
+    shortName: 'DBZ',
+    emoji: '🔥',
+    accent: '#ff8c00',
+    tagline: 'Saiyan saga through Buu saga · the Ocean dub, 276 episodes in absolute order',
+    iaItem: 'dragon-ball-z-ocean-dub-mastered-complete',
+    tvmazeId: 2103,
+    imdbId: 'tt0121220',
+    acceptFile: defaultAcceptMp4,
+    parser: parseDBZ
+  },
+  {
+    id: 'inspector-gadget',
+    name: 'Inspector Gadget',
+    shortName: 'Gadget',
+    emoji: '🕵️',
+    accent: '#7fbf3f',
+    tagline: 'Go-go-gadget Saturday mornings · seasons 1 & 2 (1983–86), 86 episodes',
+    iaItem: 'inspector-gadget-go-go-gadget-series',
+    tvmazeId: 4579,
+    imdbId: 'tt0085033',
+    acceptFile: defaultAcceptMp4,
+    parser: parseInspectorGadget
+  },
+  {
+    id: 'aqua-teen',
+    name: 'Aqua Teen Hunger Force',
+    shortName: 'ATHF',
+    emoji: '🍟',
+    accent: '#d4ae3a',
+    tagline:
+      'Sentient fast-food roommates of South Jersey · all 11 seasons + the Aquadonk specials',
+    iaItem: 'aqua-teen-hunger-force-2000-s-01e-01-rabbot',
+    tvmazeId: 382,
+    imdbId: 'tt0297494',
+    acceptFile: defaultAcceptMp4,
+    parser: parseAquaTeen
+  },
+  {
+    id: 'rocky-bullwinkle',
+    name: 'The Rocky & Bullwinkle Show',
+    shortName: 'Bullwinkle',
+    emoji: '🐿️',
+    accent: '#c0c4cc',
+    tagline:
+      'Frostbite Falls moose and squirrel vs. Boris & Natasha · 5 seasons of Cold War mischief',
+    iaItem: 'RockyBullwinkleFriends',
+    tvmazeId: 5658,
+    imdbId: 'tt0052507',
+    acceptFile: defaultAcceptMp4,
+    parser: parseRockyBullwinkle
+  },
+  {
+    id: 'tmnt',
+    name: 'Teenage Mutant Ninja Turtles (1987)',
+    shortName: 'TMNT',
+    emoji: '🐢',
+    accent: '#3aa84a',
+    tagline: 'Heroes in a half shell, 1080p AI upscale · S1–S2, S3 Part 2, S5, S9–S10',
+    iaItem: ['tmnt-season-1-2', 'tmnt-season-3-2', 'tmnt-s05', 'tmnt-season-9-10'],
+    tvmazeId: 4159,
+    imdbId: 'tt0131613',
+    acceptFile: defaultAcceptMp4,
+    parser: parseTMNT
   }
 ];
 
@@ -164,5 +388,12 @@ export const __testing = {
   parseSimpsons,
   parseSouthPark,
   parseBeavis,
+  parseSmurfs,
+  parseDnD,
+  parseDBZ,
+  parseInspectorGadget,
+  parseAquaTeen,
+  parseRockyBullwinkle,
+  parseTMNT,
   isSimpsonsMovie
 };

@@ -4,12 +4,19 @@
  * A poster grid of every show in the registry. Clicking a card
  * navigates to that show's episodes view via `ctx.navigate({ show })`.
  *
+ * Above the grid we surface a "Continue watching" row built from the
+ * per-show resume entries in localStorage (see `prefs.js`). It's only
+ * rendered when there's at least one entry; each card links straight
+ * to the last-watched episode and ships with a ✕ button so users can
+ * forget shows they've finished or no longer want listed.
+ *
  * The poster URLs come from TVMaze; we cache the resolved image
  * locations in localStorage so subsequent visits don't redo the
  * lookup. If a lookup fails the card falls back to an emoji.
  */
 
-import { SHOWS } from '../shows.js';
+import { SHOWS, getShow } from '../shows.js';
+import { listContinueWatching, clearLastEpisode } from '../prefs.js';
 
 /** @typedef {import('../shows.js').ShowConfig} ShowConfig */
 
@@ -39,6 +46,26 @@ export function mount(slot, ctx) {
   intro.appendChild(introTitle);
   intro.appendChild(introBlurb);
 
+  // Continue-watching row. Lives between the intro and the grid; the
+  // wrapper stays in the DOM even when there are no entries so the
+  // ✕ button on the last card can re-render it back to empty/hidden
+  // without poking at sibling layout.
+  const continueSection = document.createElement('div');
+  continueSection.className = 'tv-continue-section hidden';
+  const continueLabel = document.createElement('div');
+  continueLabel.className = 'tv-section-label';
+  const continueLabelText = document.createElement('span');
+  continueLabelText.textContent = 'Continue watching';
+  const continueLabelMeta = document.createElement('span');
+  continueLabelMeta.className = 'tv-section-meta';
+  continueLabelMeta.textContent = 'tap ✕ to remove';
+  continueLabel.appendChild(continueLabelText);
+  continueLabel.appendChild(continueLabelMeta);
+  const continueGrid = document.createElement('div');
+  continueGrid.className = 'tv-continue-grid';
+  continueSection.appendChild(continueLabel);
+  continueSection.appendChild(continueGrid);
+
   const grid = document.createElement('div');
   grid.className = 'tv-show-grid';
   grid.setAttribute('role', 'list');
@@ -47,14 +74,128 @@ export function mount(slot, ctx) {
   }
 
   root.appendChild(intro);
+  root.appendChild(continueSection);
   root.appendChild(grid);
   slot.appendChild(root);
+
+  renderContinue(continueSection, continueGrid, ctx);
 
   return {
     unmount() {
       root.remove();
     }
   };
+}
+
+/**
+ * Build / rebuild the continue-watching row. Called once on mount and
+ * again after every successful remove so the row reflects storage
+ * without a full page reload.
+ *
+ * @param {HTMLElement} section
+ * @param {HTMLElement} gridEl
+ * @param {MountCtx} ctx
+ */
+function renderContinue(section, gridEl, ctx) {
+  const entries = listContinueWatching();
+  gridEl.replaceChildren();
+  let rendered = 0;
+  for (const entry of entries) {
+    const show = getShow(entry.showId);
+    if (!show) continue; // stale entry for a show we no longer ship
+    gridEl.appendChild(
+      makeContinueCard(show, entry, ctx, () => renderContinue(section, gridEl, ctx))
+    );
+    rendered += 1;
+  }
+  section.classList.toggle('hidden', rendered === 0);
+}
+
+/**
+ * @param {ShowConfig} show
+ * @param {{ season: number, episode: number }} entry
+ * @param {MountCtx} ctx
+ * @param {() => void} onChange  Called after a successful remove so the
+ *                               caller can re-render the row.
+ */
+function makeContinueCard(show, entry, ctx, onChange) {
+  const card = document.createElement('a');
+  card.className = 'tv-continue-card';
+  card.style.setProperty('--show-accent', show.accent);
+  const query = new URLSearchParams({
+    show: show.id,
+    s: String(entry.season),
+    e: String(entry.episode)
+  });
+  card.href = `?${query.toString()}`;
+
+  const thumb = document.createElement('div');
+  thumb.className = 'tv-continue-thumb';
+  thumb.style.background = `linear-gradient(160deg, ${show.accent}33, #111)`;
+  const img = document.createElement('img');
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  img.alt = '';
+  fetchPoster(show.tvmazeId).then((url) => {
+    if (url) img.src = url;
+  });
+  img.addEventListener(
+    'error',
+    () => {
+      img.remove();
+      thumb.classList.add('is-empty');
+      thumb.textContent = show.emoji;
+    },
+    { once: true }
+  );
+  thumb.appendChild(img);
+
+  // Play glyph overlays the thumb on hover/focus — same affordance as
+  // the per-show episode cards so users read it as a video tile.
+  const play = document.createElement('div');
+  play.className = 'tv-continue-play';
+  play.textContent = '▶';
+  thumb.appendChild(play);
+
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'tv-continue-remove';
+  remove.setAttribute('aria-label', `Remove ${show.name} from Continue watching`);
+  remove.title = 'Remove from Continue watching';
+  remove.textContent = '✕';
+  thumb.appendChild(remove);
+
+  const meta = document.createElement('div');
+  meta.className = 'tv-continue-meta';
+  const showName = document.createElement('div');
+  showName.className = 'tv-continue-show';
+  showName.textContent = `${show.emoji} ${show.shortName}`;
+  const tag = document.createElement('div');
+  tag.className = 'tv-continue-tag';
+  tag.textContent =
+    entry.season === 0 ? show.movieTitle || 'Movie' : `S${pad(entry.season)}E${pad(entry.episode)}`;
+  meta.appendChild(showName);
+  meta.appendChild(tag);
+
+  card.appendChild(thumb);
+  card.appendChild(meta);
+
+  remove.addEventListener('click', (e) => {
+    // ✕ sits inside the <a>, so we have to cancel the link nav on
+    // every modifier combination — otherwise ⌘-click on the corner
+    // would still open the watch view in a new tab.
+    e.preventDefault();
+    e.stopPropagation();
+    clearLastEpisode(show.id);
+    onChange();
+  });
+  card.addEventListener('click', (e) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+    e.preventDefault();
+    ctx.navigate({ show: show.id, s: entry.season, e: entry.episode });
+  });
+
+  return card;
 }
 
 /**
@@ -158,4 +299,8 @@ async function fetchPoster(tvmazeId) {
   } catch {
     return null;
   }
+}
+
+function pad(n) {
+  return String(n).padStart(2, '0');
 }

@@ -100,6 +100,38 @@ export async function getMergedCatalog(show) {
 }
 
 /**
+ * Cross-season "next episode" lookup used by the watch view's
+ * end-of-episode card. Advances within a season first, then jumps to
+ * the first episode of the next numbered season when the current
+ * season is exhausted. Returns `null` at the very end of the catalog
+ * or for season-0 entries (movies / specials don't have a meaningful
+ * "next"). Unlike the player's `stepEpisode` it does NOT wrap.
+ *
+ * @param {Catalog} catalog
+ * @param {Episode} current
+ * @returns {Episode | null}
+ */
+export function getNextEpisode(catalog, current) {
+  if (!catalog || !current) return null;
+  if (current.season === 0) return null;
+  const season = catalog.seasons.find((s) => s.number === current.season);
+  if (!season) return null;
+  const idx = season.episodes.findIndex(
+    (x) => x.episode === current.episode && x.season === current.season
+  );
+  if (idx >= 0 && idx + 1 < season.episodes.length) {
+    return season.episodes[idx + 1];
+  }
+  const numbered = catalog.seasons.filter((s) => s.number > 0).sort((a, b) => a.number - b.number);
+  const sIdx = numbered.findIndex((s) => s.number === current.season);
+  for (let i = sIdx + 1; i < numbered.length; i += 1) {
+    const cand = numbered[i];
+    if (cand.episodes.length > 0) return cand.episodes[0];
+  }
+  return null;
+}
+
+/**
  * Graft TVMaze descriptions + stills onto each episode in place.
  * Exposed for tests; views should generally call `getMergedCatalog`.
  *
@@ -126,15 +158,82 @@ export function mergeDescriptions(catalog, descMap) {
  * Fetch + build a catalog for a show. Lower-level than `getMergedCatalog`;
  * does not consult the in-memory cache and does not merge descriptions.
  *
+ * `show.iaItem` may be a single archive.org item id or an array of ids.
+ * The multi-item form exists for shows whose seasons are split across
+ * separate uploads (TMNT 1987 is the canonical example); we fetch all
+ * of them in parallel, build a per-item catalog, then merge the
+ * seasons into one logical channel.
+ *
  * @param {ShowConfig} show
  * @returns {Promise<Catalog>}
  */
 export async function loadCatalog(show) {
-  const url = `https://archive.org/metadata/${show.iaItem}`;
-  const res = await fetch(url, { credentials: 'omit' });
-  if (!res.ok) throw new Error(`Archive returned HTTP ${res.status}`);
-  const data = await res.json();
-  return buildCatalog(show, data);
+  const items = normalizeItems(show.iaItem);
+  if (items.length === 1) {
+    return buildCatalog(show, await fetchItem(items[0]), items[0]);
+  }
+  const catalogs = await Promise.all(
+    items.map(async (id) => buildCatalog(show, await fetchItem(id), id))
+  );
+  return mergeCatalogs(show, catalogs);
+}
+
+async function fetchItem(itemId) {
+  const res = await fetch(`https://archive.org/metadata/${itemId}`, { credentials: 'omit' });
+  if (!res.ok) throw new Error(`Archive returned HTTP ${res.status} for ${itemId}`);
+  return res.json();
+}
+
+/** @param {string | string[]} iaItem */
+function normalizeItems(iaItem) {
+  if (Array.isArray(iaItem)) return iaItem.filter((id) => typeof id === 'string' && id);
+  if (typeof iaItem === 'string' && iaItem) return [iaItem];
+  return [];
+}
+
+/**
+ * Merge several per-item catalogs into one. Seasons with the same
+ * number are concatenated and re-sorted by episode; on a duplicate
+ * (season, episode) slot the first-seen entry wins, matching the
+ * single-item dedup behaviour. The first non-null `movie` wins.
+ * Exposed for tests.
+ *
+ * @param {ShowConfig} show
+ * @param {Catalog[]} catalogs
+ * @returns {Catalog}
+ */
+export function mergeCatalogs(show, catalogs) {
+  /** @type {Map<number, Season>} */
+  const seasonMap = new Map();
+  /** @type {Episode|null} */
+  let movie = null;
+  for (const cat of catalogs) {
+    if (!cat) continue;
+    for (const season of cat.seasons) {
+      const existing = seasonMap.get(season.number);
+      if (existing) {
+        const seen = new Set(existing.episodes.map((e) => e.episode));
+        for (const ep of season.episodes) {
+          if (seen.has(ep.episode)) continue;
+          existing.episodes.push(ep);
+          seen.add(ep.episode);
+        }
+      } else {
+        seasonMap.set(season.number, {
+          number: season.number,
+          label: season.label,
+          episodes: [...season.episodes]
+        });
+      }
+    }
+    if (!movie && cat.movie) movie = cat.movie;
+  }
+  const seasons = Array.from(seasonMap.values()).sort((a, b) => a.number - b.number);
+  for (const season of seasons) {
+    season.episodes.sort((a, b) => a.episode - b.episode);
+  }
+  const total = seasons.reduce((sum, s) => sum + s.episodes.length, 0) + (movie ? 1 : 0);
+  return { show, seasons, movie, total };
 }
 
 /**
@@ -142,11 +241,15 @@ export async function loadCatalog(show) {
  *
  * @param {ShowConfig} show
  * @param {{ files?: Array<Record<string, unknown>> }} meta
+ * @param {string} [itemId]   archive.org item id to use for URL
+ *   construction (defaults to the show's `iaItem`; required when
+ *   `show.iaItem` is an array of items).
  * @returns {Catalog}
  */
-export function buildCatalog(show, meta) {
+export function buildCatalog(show, meta, itemId) {
+  const useItem = itemId || normalizeItems(show.iaItem)[0] || '';
   const files = Array.isArray(meta?.files) ? meta.files : [];
-  const thumbs = buildThumbIndex(show.iaItem, files);
+  const thumbs = buildThumbIndex(useItem, files);
   const accept = show.acceptFile || defaultAccept;
 
   // When a show accepts both `.mp4` and the auto-generated `.ia.mp4`
@@ -179,8 +282,8 @@ export function buildCatalog(show, meta) {
 
     const baseProps = {
       file: name,
-      url: buildDownloadUrl(show.iaItem, name),
-      archiveUrl: buildDetailsUrl(show.iaItem, name),
+      url: buildDownloadUrl(useItem, name),
+      archiveUrl: buildDetailsUrl(useItem, name),
       thumbUrl: thumbs.get(stripVideoExt(name)) || null,
       sizeBytes: toNumber(raw.size),
       durationSec: toNumber(raw.length),
