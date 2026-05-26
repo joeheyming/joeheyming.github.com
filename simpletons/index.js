@@ -6,14 +6,17 @@
  *   2. Render the season chip row + episode grid.
  *   3. Wire the <video> element to the selected episode.
  *   4. Handle keyboard shortcuts, deep-links, autoplay-next, copy/share.
+ *   5. Register Media Session handlers so OS-level / Bluetooth play-pause
+ *      and hardware keys drive the player.
  *
  * The source files are MP4 (H.264 + AAC), so the browser plays sound
- * natively. No audio sidecar, no proxy, no sync.
+ * natively. No audio sidecar, no proxy, no sync. Casting to a TV is
+ * delegated to the browser's built-in Cast / AirPlay UI on the video
+ * element — works on Chrome (Android/desktop) and Safari (iOS/macOS).
  */
 
 import { loadCatalog } from './modules/catalog.js';
 import { loadDescriptions, makeKey as descKey } from './modules/descriptions.js';
-import { enableSpatialNav } from './modules/nav.js';
 import {
   setLoadingVisible,
   showNoSignal,
@@ -52,13 +55,13 @@ function $(id) {
 async function main() {
   setLoadingVisible(true);
   loadPrefs();
-  applyTvMode();
 
   bindCopyButtons(() => STATE.current);
   bindShareButton(() => STATE.current);
   bindButtons();
   bindKeyboard();
   bindVideoEvents();
+  registerMediaSession();
 
   /** @type {Catalog} */
   let catalog;
@@ -244,33 +247,22 @@ function scrollToVideo() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-/**
- * Switch into TV mode (D-pad navigation, big focus rings, safe-area
- * padding, hide-cursor-on-idle) when the app is running in a context
- * that looks like a TV. We trust three signals:
- *
- *   - `?source=twa` — set by the per-app manifest's start_url so the
- *      Trusted Web Activity APK always lands in TV mode.
- *   - `?tv=1` — manual override for testing on a desktop browser.
- *   - Coarse pointer + ≥1900px viewport — a heuristic for "this is
- *      probably a TV browser" (Bravia Chrome reports both).
- *
- * Once enabled, install the spatial-nav module so the remote's D-pad
- * works. Cursor auto-hide is handled in CSS.
- */
-function applyTvMode() {
-  const params = new URLSearchParams(location.search);
-  const explicit = params.has('tv') || params.get('source') === 'twa';
-  const heuristic =
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(min-width: 1900px) and (pointer: coarse)').matches;
-  if (!explicit && !heuristic) return;
-  document.body.classList.add('is-tv');
-  enableSpatialNav({
-    // Skip the season chip row's horizontal-scroll arrows — D-pad on
-    // the chip row already handles left/right via the spatial algorithm.
-    focusableSelector: '.tv-chip, .tv-ep-card, .tv-btn, #tv-autoplay, #tv-video, #tv-archive-link'
-  });
+function registerMediaSession() {
+  if (!('mediaSession' in navigator)) return;
+  try {
+    navigator.mediaSession.setActionHandler('play', togglePlay);
+    navigator.mediaSession.setActionHandler('pause', togglePlay);
+    navigator.mediaSession.setActionHandler('nexttrack', () => stepEpisode(1));
+    navigator.mediaSession.setActionHandler('previoustrack', () => stepEpisode(-1));
+    navigator.mediaSession.setActionHandler('seekforward', (d) =>
+      seekRelative(d && d.seekOffset ? d.seekOffset : 10)
+    );
+    navigator.mediaSession.setActionHandler('seekbackward', (d) =>
+      seekRelative(-(d && d.seekOffset ? d.seekOffset : 10))
+    );
+  } catch {
+    /* Some browsers reject specific actions; ignore. */
+  }
 }
 
 /**
@@ -335,6 +327,26 @@ function bindKeyboard() {
         break;
     }
   });
+}
+
+/** Toggle the player's play/pause state. Used by the Media Session API. */
+function togglePlay() {
+  const video = /** @type {HTMLVideoElement|null} */ ($('tv-video'));
+  if (!video) return;
+  if (video.paused || video.ended) {
+    const p = video.play();
+    if (p && typeof p.catch === 'function') p.catch(() => {});
+  } else {
+    video.pause();
+  }
+}
+
+/** @param {number} seconds */
+function seekRelative(seconds) {
+  const video = /** @type {HTMLVideoElement|null} */ ($('tv-video'));
+  if (!video || !Number.isFinite(video.duration)) return;
+  const next = Math.max(0, Math.min(video.duration, video.currentTime + seconds));
+  video.currentTime = next;
 }
 
 function bindVideoEvents() {
