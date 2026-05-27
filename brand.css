@@ -20,10 +20,18 @@
  * For the canonical type, add this to <head> BEFORE this stylesheet:
  *   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
  *   <link rel="stylesheet"
- *     href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+ *     href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;600&display=optional">
  * Pages that skip the preconnect / fonts link fall back to system-ui +
  * Georgia — still readable, no FOUT, the brand just looks slightly
  * different on each platform.
+ *
+ * Note on `display=optional`: chosen over `display=swap` to eliminate the
+ * font-swap layout shift that drives a recurring CLS finding in Search
+ * Console. With `optional`, the webfont is used only if it arrives within
+ * the browser's short block period (~100ms); otherwise the fallback stays
+ * for the rest of the page session — no mid-paint swap, no CLS. The font
+ * is cached on subsequent visits so most repeat sessions still get the
+ * branded type.
  *
  * Accessibility:
  *   - Every color combination on :root has been verified against WCAG 2.2 AA.

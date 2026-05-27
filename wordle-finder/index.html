@@ -85,11 +85,16 @@
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json" />
 
-    <!-- Brand foundation -->
+    <!-- Brand foundation. Inter was previously requested here but the brand
+         UI font (var(--font-ui) in brand.css) is system-ui, so Inter was
+         downloaded and parsed for nothing. Only JetBrains Mono is actually
+         used. font-display: optional avoids the swap-in CLS reflow — if the
+         font doesn't arrive within ~100ms, fallbacks are used for the
+         session instead. -->
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=optional"
     />
     <link rel="stylesheet" href="/brand.css" />
     <link rel="stylesheet" href="/heyming-shell.css" />
@@ -383,7 +388,7 @@
           </div>
         </div>
       </div>
-      <div class="content" id="scorer" style="display: none">
+      <div class="content" id="scorer">
         <div class="form-row">
           <label class="form-label">Random start word</label>
           <div class="form-input fixed-input-control">

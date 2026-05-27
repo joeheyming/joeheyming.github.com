@@ -319,6 +319,20 @@
   margin-bottom: 28px;
 }
 
+/* CLS reservation: containers are populated by index.js after apps-registry
+ * is loaded. Reserve approximate rendered height so content below this strip
+ * (Featured strip, gallery, footer) doesn't shift when the cards appear.
+ * The `:empty` guard releases the reservation once JS injects content, so
+ * any small over-estimate doesn't leave dead whitespace. */
+.hos-featured-heroes:empty {
+  min-height: 320px;
+}
+@media (max-width: 768px) {
+  .hos-featured-heroes:empty {
+    min-height: 640px;
+  }
+}
+
 .hos-featured-hero {
   display: flex;
   flex-direction: column;
@@ -406,6 +420,19 @@
   margin-top: 20px;
 }
 
+/* CLS reservation. 8 cards in 4-5 cols on desktop = 2 rows of ~180px. On
+ * narrow screens cards stack into more rows; reserve enough to cover the
+ * stacked case so the gallery and footer below don't jump. Released via
+ * :empty once JS injects the strip. */
+.hos-featured-grid:empty {
+  min-height: 380px;
+}
+@media (max-width: 768px) {
+  .hos-featured-grid:empty {
+    min-height: 1500px;
+  }
+}
+
 .hos-featured-card {
   display: flex;
   flex-direction: column;
@@ -452,6 +479,20 @@
   display: flex;
   flex-direction: column;
   gap: 56px;
+}
+
+/* CLS reservation for the full 59-app gallery (3 category sections). The
+ * gallery is below the fold for most viewports, but its eventual height
+ * still pushes the footer and SEO copy down, which counts as a layout shift
+ * if it happens after first paint. Released via :empty once index.js
+ * renders the sections. */
+#app-gallery:empty {
+  min-height: 3000px;
+}
+@media (max-width: 768px) {
+  #app-gallery:empty {
+    min-height: 6000px;
+  }
 }
 
 .hos-gallery-section {

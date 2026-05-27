@@ -5,7 +5,7 @@
  * VHS-grade typography, scanlines and phosphor glow. Inspired by 70s-80s sets.
  * ========================================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=optional');
 
 :root {
   /* CRT identity palette — scoped tokens for the retro-TV theme.

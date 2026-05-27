@@ -27,14 +27,19 @@
   // in this file.
   const shareFabSuppressed = scriptTag?.dataset.shareFab === 'off';
 
-  function loadAppsRegistryForShareSync() {
+  // Kick off the registry fetch as early as possible, in parallel with the
+  // DOMContentLoaded wait. Previously this was a synchronous XHR which
+  // blocked DOMContentLoaded on every page that included share.js — that
+  // delayed first paint and stretched the timeline so other shifts (font
+  // swap, JS-rendered grids) more easily landed inside CLS's 5-second
+  // measurement window. The widget itself is `position: fixed`, so deferring
+  // its insertion until after the registry resolves never affects document
+  // flow.
+  async function loadAppsRegistry() {
     try {
-      const xhr = new XMLHttpRequest();
-      xhr.open('GET', '/apps-registry.json', false);
-      xhr.send(null);
-      const ok = xhr.status === 200 || xhr.status === 304 || xhr.status === 0;
-      if (!ok) return [];
-      const data = JSON.parse(xhr.responseText);
+      const res = await fetch('/apps-registry.json', { cache: 'default' });
+      if (!res.ok) return [];
+      const data = await res.json();
       return Array.isArray(data) ? data : [];
     } catch (e) {
       console.warn('[share.js] Could not load apps-registry.json', e);
@@ -42,22 +47,24 @@
     }
   }
 
-  const registryApps = loadAppsRegistryForShareSync();
-  const projectRelationships = {};
-  const projectMetadata = {};
-  for (const app of registryApps) {
-    projectMetadata[app.id] = {
-      name: app.shortName || app.name,
-      icon: app.icon || '📦',
-      description: app.description || ''
-    };
-    if (app.related && app.related.length) {
-      projectRelationships[app.id] = {
-        category: app.shareCategory || app.category || 'utility',
-        related: app.related
+  const registryMapsPromise = loadAppsRegistry().then((registryApps) => {
+    const projectRelationships = {};
+    const projectMetadata = {};
+    for (const app of registryApps) {
+      projectMetadata[app.id] = {
+        name: app.shortName || app.name,
+        icon: app.icon || '📦',
+        description: app.description || ''
       };
+      if (app.related && app.related.length) {
+        projectRelationships[app.id] = {
+          category: app.shareCategory || app.category || 'utility',
+          related: app.related
+        };
+      }
     }
-  }
+    return { projectRelationships, projectMetadata };
+  });
 
   // Get current project from URL
   function getCurrentProject() {
@@ -67,7 +74,7 @@
   }
 
   // Create related projects widget
-  function createRelatedProjects() {
+  function createRelatedProjects(projectRelationships, projectMetadata) {
     const currentProject = getCurrentProject();
     if (!currentProject || !projectRelationships[currentProject]) {
       return null;
@@ -641,9 +648,23 @@
     return fab;
   }
 
-  // Insert when DOM is ready
-  function insertWidget() {
-    const widget = createRelatedProjects();
+  // Insert when DOM is ready AND the registry has resolved. Both conditions
+  // are awaited independently so neither blocks the other. The widget is
+  // position: fixed, so inserting it slightly later than DOMContentLoaded
+  // never causes a layout shift.
+  function domReady() {
+    if (document.readyState !== 'loading') return Promise.resolve();
+    return new Promise((resolve) => {
+      document.addEventListener('DOMContentLoaded', resolve, { once: true });
+    });
+  }
+
+  async function insertWidget() {
+    const [{ projectRelationships, projectMetadata }] = await Promise.all([
+      registryMapsPromise,
+      domReady()
+    ]);
+    const widget = createRelatedProjects(projectRelationships, projectMetadata);
     if (widget) {
       document.head.appendChild(style);
       document.body.appendChild(widget);
@@ -652,10 +673,5 @@
     }
   }
 
-  // Wait for DOM to be ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', insertWidget);
-  } else {
-    insertWidget();
-  }
+  insertWidget();
 })();
