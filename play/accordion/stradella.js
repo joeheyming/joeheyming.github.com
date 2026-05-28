@@ -242,6 +242,13 @@ export function renderStradella(rootEl, opts) {
   // re-orient it without us having to re-author the data structure.
   // Valid: 'normal' | 'horizontal' | 'vertical' | 'both'.
   let currentFlip = FLIP_MODES.has(opts.flip) ? opts.flip : 'normal';
+  // Global octave shift in semitones (multiples of 12), driven from the
+  // accordion page's Octave control. Bass / counter-bass button labels
+  // are pitch-class names (C, D, F♯, …) and chord buttons are glyphs
+  // (M, m, 7, °) — none of them encode an octave, so the labels stay
+  // valid at any shift; only the underlying MIDI for each press is
+  // adjusted.
+  let octaveShift = Number.isInteger(opts.octaveShift) ? opts.octaveShift : 0;
 
   const build = () => {
     rootEl.innerHTML = '';
@@ -305,7 +312,7 @@ export function renderStradella(rootEl, opts) {
         btn.setAttribute('aria-label', `${ROW_LABELS[rowType] || rowType} ${col.name}`);
 
         const notes = notesForButton(rowType, col.pc);
-        btn._notes = notes;
+        btn._notes = octaveShift ? notes.map((m) => m + octaveShift) : notes;
         btn._pressed = false;
 
         row.appendChild(btn);
@@ -375,6 +382,13 @@ export function renderStradella(rootEl, opts) {
       surface.releaseAll();
       currentFlip = mode;
       rootEl.dataset.flip = currentFlip;
+    },
+    setOctaveShift(semis) {
+      const next = Number.isInteger(semis) ? semis : 0;
+      if (next === octaveShift) return;
+      surface.releaseAll();
+      octaveShift = next;
+      build();
     },
     clearActive() {
       surface.releaseAll();

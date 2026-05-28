@@ -223,9 +223,14 @@ export function renderChromatic(rootEl, opts) {
   // glyphs stay readable. Valid: 'normal' | 'horizontal' | 'vertical'
   // | 'both'.
   let currentFlip = FLIP_MODES.has(opts.flip) ? opts.flip : 'normal';
+  // Global octave shift in semitones (multiples of 12), driven from the
+  // accordion page's Octave control. Button labels are pitch-class only
+  // (C, D♯, F, …) so they remain accurate at any shift; only the
+  // emitted MIDI value changes.
+  let octaveShift = Number.isInteger(opts.octaveShift) ? opts.octaveShift : 0;
 
   const createButton = (rowIdx, colIdx) => {
-    const midi = midiForCell(rowIdx, colIdx, CHROMATIC_LAYOUTS[layoutId], system);
+    const midi = midiForCell(rowIdx, colIdx, CHROMATIC_LAYOUTS[layoutId], system) + octaveShift;
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = `chromatic-button chromatic-button-row-${rowIdx}`;
@@ -372,6 +377,13 @@ export function renderChromatic(rootEl, opts) {
       surface.releaseAll();
       currentFlip = mode;
       rootEl.dataset.flip = currentFlip;
+    },
+    setOctaveShift(semis) {
+      const next = Number.isInteger(semis) ? semis : 0;
+      if (next === octaveShift) return;
+      surface.releaseAll();
+      octaveShift = next;
+      build();
     },
     clearActive() {
       surface.releaseAll();

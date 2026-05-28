@@ -132,11 +132,15 @@ export function renderDiatonic(rootEl, opts) {
   const onRelease = opts.onRelease;
   const onActivity = opts.onActivity || (() => {});
 
-  let tuningId =
-    opts.tuning && DIATONIC_TUNINGS[opts.tuning] ? opts.tuning : DEFAULT_TUNING;
+  let tuningId = opts.tuning && DIATONIC_TUNINGS[opts.tuning] ? opts.tuning : DEFAULT_TUNING;
 
   let orientation = opts.orientation === 'vertical' ? 'vertical' : 'horizontal';
   let currentFlip = FLIP_MODES.has(opts.flip) ? opts.flip : 'normal';
+  // Global octave shift in semitones (multiples of 12), driven from the
+  // accordion page's Octave control. Button labels are pitch-class only
+  // (C, D, F♯, …) so they remain accurate at any shift; we just bump
+  // the per-button MIDI value.
+  let octaveShift = Number.isInteger(opts.octaveShift) ? opts.octaveShift : 0;
 
   // Mutex state: which half (if any) currently has buttons held. While
   // it's set, presses on the OTHER half are ignored — you can't push
@@ -215,7 +219,7 @@ export function renderDiatonic(rootEl, opts) {
       rowEl.appendChild(labelEl);
 
       row.buttons.forEach((pair, colIdx) => {
-        const midi = side === 'push' ? pair.push : pair.pull;
+        const midi = (side === 'push' ? pair.push : pair.pull) + octaveShift;
         rowEl.appendChild(createButton(rowIdx, colIdx, side, midi));
       });
 
@@ -318,6 +322,14 @@ export function renderDiatonic(rootEl, opts) {
       surface.releaseAll();
       currentFlip = mode;
       rootEl.dataset.flip = currentFlip;
+    },
+    setOctaveShift(semis) {
+      const next = Number.isInteger(semis) ? semis : 0;
+      if (next === octaveShift) return;
+      surface.releaseAll();
+      resetMutex();
+      octaveShift = next;
+      build();
     },
     /**
      * Pure visual hint from a phone bellows / Shift-key — does NOT gate

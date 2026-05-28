@@ -60,6 +60,9 @@ const handLabelEl = document.getElementById('register-hand');
 const toneStatus = document.getElementById('tone-status');
 const midiStatusEl = document.getElementById('midi-status');
 const instrumentHelpEl = document.getElementById('instrument-help');
+const octaveDownBtn = document.getElementById('octave-down');
+const octaveUpBtn = document.getElementById('octave-up');
+const octaveDisplay = document.getElementById('octave-display');
 
 // Collapse the "How to play" panel by default on touch-capable
 // devices (iPad Safari is the main offender — it's wider than the
@@ -177,7 +180,22 @@ const pianoLayoutFor = () => {
   const id = pianoLayoutEl ? pianoLayoutEl.value : '25';
   return PIANO_LAYOUTS[id] || PIANO_LAYOUTS[25];
 };
-let { startMidi, whiteKeyCount } = pianoLayoutFor();
+let { startMidi: baseStartMidi, whiteKeyCount } = pianoLayoutFor();
+
+// Global octave shift in semitones (always a multiple of 12). Applies
+// to every view: piano, chromatic, Stradella, diatonic, plus QWERTY
+// input (which inherits via the piano keyboard's shifted startMidi)
+// and external WebMIDI hardware (shifted in the MIDI handler below).
+// Range is clamped to ±MAX_OCTAVE_OFFSET so a small layout can still
+// reach the full piano range without the visible window walking off
+// the end of the MIDI space.
+const MAX_OCTAVE_OFFSET = 3;
+const clampOctaveOffset = (offset) => {
+  if (!Number.isFinite(offset)) return 0;
+  return Math.max(-MAX_OCTAVE_OFFSET, Math.min(MAX_OCTAVE_OFFSET, Math.trunc(offset)));
+};
+let octaveOffset = clampOctaveOffset(Number.isInteger(prefs.octaveOffset) ? prefs.octaveOffset : 0);
+let startMidi = baseStartMidi + octaveOffset * 12;
 
 let nowPlayingTimer = null;
 const announceNote = (midi) => {
@@ -240,6 +258,7 @@ const persist = () => {
     registerLeft: registerPatch.activeLeftRegisterId,
     showNotes: showNotesEl ? showNotesEl.checked : true,
     showKbd: showKbdEl ? showKbdEl.checked : false,
+    octaveOffset,
     bellowsMode: !!(bellowsToggleEl && bellowsToggleEl.checked)
   });
 };
@@ -401,8 +420,9 @@ if (showKbdEl) {
 
 const applyPianoLayout = () => {
   const cfg = pianoLayoutFor();
-  startMidi = cfg.startMidi;
+  baseStartMidi = cfg.startMidi;
   whiteKeyCount = cfg.whiteKeyCount;
+  startMidi = baseStartMidi + octaveOffset * 12;
   accordion.setStartMidi(startMidi);
   accordion.setWhiteKeyCount(whiteKeyCount);
 };
@@ -414,6 +434,53 @@ if (pianoLayoutEl) {
   });
 }
 applyPianoLayout();
+
+// Format the Octave display as a relative offset like "+1", "0", "−2".
+// We don't show a specific note (the way the standalone piano page does)
+// because the accordion has four different views with different note
+// ranges — a shared "octaves above/below default" reading travels
+// cleanly across all of them.
+const formatOctaveOffset = (n) => {
+  if (n === 0) return '0';
+  const sign = n > 0 ? '+' : '−'; // U+2212 minus, matching the button glyph
+  return `${sign}${Math.abs(n)}`;
+};
+
+const updateOctaveDisplay = () => {
+  if (octaveDisplay) octaveDisplay.textContent = formatOctaveOffset(octaveOffset);
+  if (octaveDownBtn) octaveDownBtn.disabled = octaveOffset <= -MAX_OCTAVE_OFFSET;
+  if (octaveUpBtn) octaveUpBtn.disabled = octaveOffset >= MAX_OCTAVE_OFFSET;
+};
+
+// Push the current `octaveOffset` out to every view at once. Each
+// renderer rebuilds with the shifted MIDI values; the piano view
+// re-anchors via `applyPianoLayout` since its keyboard owns its own
+// startMidi (so labels stay in sync with the played pitch).
+const applyOctaveShift = () => {
+  const semis = octaveOffset * 12;
+  applyPianoLayout();
+  if (chromatic && typeof chromatic.setOctaveShift === 'function') chromatic.setOctaveShift(semis);
+  if (stradella && typeof stradella.setOctaveShift === 'function') stradella.setOctaveShift(semis);
+  if (diatonic && typeof diatonic.setOctaveShift === 'function') diatonic.setOctaveShift(semis);
+  updateOctaveDisplay();
+};
+
+const shiftOctave = (direction) => {
+  const next = clampOctaveOffset(octaveOffset + direction);
+  if (next === octaveOffset) return;
+  // Drop any held notes before the rebuild — `setOctaveShift` releases
+  // its own pointer state, but voices held on the synth (especially
+  // Stradella triads still ringing) need to be cut so the shifted
+  // re-press sounds at the new pitch instead of stacking.
+  synth.allOff();
+  octaveOffset = next;
+  applyOctaveShift();
+  persist();
+};
+
+if (octaveDownBtn) octaveDownBtn.addEventListener('click', () => shiftOctave(-1));
+if (octaveUpBtn) octaveUpBtn.addEventListener('click', () => shiftOctave(+1));
+updateOctaveDisplay();
 
 if (bassSizeEl) {
   bassSizeEl.addEventListener('change', () => {
@@ -463,27 +530,38 @@ document.addEventListener('keydown', warm, { once: true });
 // physically held (and the bellows are moving), so we pass `null` and let
 // the input handler skip its sustain logic.
 //
-// No octave shift either: standard piano-accordion sizes already pin the
-// note range, and the user picks a Layout to change it. The Keyboard
-// arrow shortcuts simply do nothing on this page.
+// `shiftOctave` is wired so the standard ←/→ and `[` / `]` shortcuts
+// shift the global octave even when no piano-key is focused. The
+// chromatic / Stradella / diatonic views all pick up the new shift via
+// `applyOctaveShift`, so the shortcut works on every view.
 attachKeyboardInput({
   keyboard: accordion,
   synth,
   sustainEl: null,
   announceNote,
-  shiftOctave: null
+  shiftOctave
 });
 
+// External MIDI hardware: shift the incoming note by the current
+// octaveOffset so a physical keyboard tracks the on-screen instrument's
+// pitch. Without this, pressing C on a MIDI controller would always
+// play unshifted C while the on-screen "C" button plays C ± octaveOffset
+// — confusing for someone playing along with a tracked accompaniment.
+// The visual press animation lives only on the piano view's keyboard
+// (the button systems don't render MIDI-input feedback), so we pass the
+// shifted note through accordion.pressVisual unchanged.
 setupMidi({
   statusEl: midiStatusEl,
   onNoteOn: (note) => {
-    synth.noteOn(note);
-    accordion.pressVisual(note, true);
-    announceNote(note);
+    const m = note + octaveOffset * 12;
+    synth.noteOn(m);
+    accordion.pressVisual(m, true);
+    announceNote(m);
   },
   onNoteOff: (note) => {
-    synth.noteOff(note);
-    accordion.pressVisual(note, false);
+    const m = note + octaveOffset * 12;
+    synth.noteOff(m);
+    accordion.pressVisual(m, false);
   }
 });
 
@@ -521,6 +599,7 @@ const stradella = renderStradella(stradellaHostEl, {
   orientation: 'horizontal',
   size: bassSizeEl ? bassSizeEl.value : '120',
   flip: bassFlipEl ? bassFlipEl.value : 'normal',
+  octaveShift: octaveOffset * 12,
   ...leftHandHandlers
 });
 
@@ -529,6 +608,7 @@ const chromatic = renderChromatic(chromaticHostEl, {
   system: 'B',
   layout: chromaticButtonsEl ? chromaticButtonsEl.value : 64,
   flip: chromaticFlipEl ? chromaticFlipEl.value : 'normal',
+  octaveShift: octaveOffset * 12,
   ...rightHandHandlers
 });
 
@@ -539,6 +619,7 @@ const chromatic = renderChromatic(chromaticHostEl, {
 const diatonic = renderDiatonic(diatonicHostEl, {
   orientation: 'horizontal',
   tuning: diatonicTuningEl ? diatonicTuningEl.value : 'DG',
+  octaveShift: octaveOffset * 12,
   ...rightHandHandlers
 });
 

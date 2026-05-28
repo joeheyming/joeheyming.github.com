@@ -260,11 +260,24 @@
   border-color: var(--accent);
 }
 
+/* When the player is at the top or bottom of the octave-shift range,
+ * the matching ± button is disabled. Reads as "no further travel in
+ * this direction" without removing the button from the layout. */
+.octave-buttons button[disabled] {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.octave-buttons button[disabled]:hover {
+  border-color: var(--border);
+}
+
 .octave-display {
   min-width: 28px;
   text-align: center;
   color: var(--fg);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .toggle-control input[type='checkbox'] {

@@ -168,6 +168,21 @@
         <span class="hint" id="tone-status" aria-live="polite"></span>
       </div>
 
+      <!-- Global octave shift. Applies to every view (piano, chromatic,
+           Stradella, diatonic) so a player who feels the default pitch
+           is too high or too low can dial the whole instrument up or
+           down in 12-semitone steps. Pitch-class labels on the button
+           views (C, D, F♯, …) stay valid; the piano view's labels
+           follow the shift since they include the octave number. -->
+      <div class="control octave-control">
+        <label>Octave</label>
+        <div class="octave-buttons">
+          <button id="octave-down" type="button" aria-label="Octave down">−</button>
+          <span id="octave-display" class="octave-display" aria-live="polite">0</span>
+          <button id="octave-up" type="button" aria-label="Octave up">+</button>
+        </div>
+      </div>
+
       <!-- Standard MIDI-controller / piano keyboard sizes. Each layout
            pins a specific note range and white-key count to match real
            instruments and devices. -->
@@ -513,10 +528,8 @@
           <code>Z X C V B N M</code>
           /
           <code>Q W E R T Y U</code>
-          ) and
-          <strong>← / →</strong>
-          shifts the octave. A real accordion keeps a note ringing only while you press it, so
-          there's no sustain — just hold the key.
+          ). A real accordion keeps a note ringing only while you press it, so there's no sustain —
+          just hold the key.
           <a
             href="https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API"
             target="_blank"
@@ -525,6 +538,16 @@
             WebMIDI
           </a>
           works on every view.
+        </li>
+        <li>
+          The
+          <strong>Octave</strong>
+          buttons (or
+          <strong>← / →</strong>
+          /
+          <code>[ ]</code>
+          ) shift the whole instrument up or down an octave at a time — every view follows along, so
+          you can match the pitch of whatever you're playing along with.
         </li>
         <li class="bellows-help" hidden>
           <strong>Bellows mode</strong>
