@@ -76,12 +76,15 @@
    * 18px gives ~4px of breathing past the radius even at the tightest
    * 1280px desktop fit. */
   padding: 14px 18px;
+  /* Panel = shared accordion-body wood (see shared.css). Theme-aware:
+   * light walnut on light page, near-black wood on dark page. Falls
+   * back to the local dark-wood tokens if shared.css is missing. */
   background: linear-gradient(
     180deg,
-    var(--play-acc-strad-c01, #0b1220),
-    var(--play-acc-strad-c02, #1f2937)
+    var(--play-acc-panel-from, var(--play-acc-strad-c01, #1c1612)),
+    var(--play-acc-panel-to, var(--play-acc-strad-c02, #2a221a))
   );
-  border: 1px solid var(--border);
+  border: 1px solid var(--play-acc-panel-edge, var(--border));
   border-radius: 14px;
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white) 5%, transparent),
     0 8px 24px -16px color-mix(in srgb, var(--pure-black) 70%, transparent);
@@ -157,7 +160,9 @@
   margin-right: 8px;
   font-size: 10px;
   font-weight: 600;
-  color: var(--muted, #94a3b8);
+  /* Theme-aware muted text painted directly on the wood panel.
+   * See --play-acc-panel-label in shared.css for the contrast math. */
+  color: var(--play-acc-panel-label, #94a3b8);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   text-align: right;
@@ -483,7 +488,9 @@
   letter-spacing: 0;
   text-transform: none;
   text-align: center;
-  color: var(--muted, #cbd5e1);
+  /* Same wood-panel label token as the horizontal layout above —
+   * stays legible against the new light walnut and the dark walnut. */
+  color: var(--play-acc-panel-label, #cbd5e1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: clip;

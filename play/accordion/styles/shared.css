@@ -9,6 +9,59 @@
   --play-acc-shared-c01: var(--surface-2);
   --play-acc-shared-c02: var(--accent-primary);
   --play-acc-shared-c03: var(--accent-primary-soft);
+
+  /* Shared accordion body / panel gradient. The chromatic, Stradella,
+   * and diatonic keyboards all sit on the same wood chassis — defining
+   * the gradient here lets all three keyboards switch in lockstep when
+   * the page theme flips, instead of each one hard-coding a near-black
+   * wood that reads as a floating dark island on the cream page.
+   *
+   * Light mode: warm medium walnut, an honest piano-accordion body
+   *             finish that contrasts with both the cream page chrome
+   *             and the white/cream naturals on the keyboard.
+   * Dark mode:  near-black warm wood (the original identity) keeps the
+   *             keyboard the focal point on an inky page.
+   *
+   * Edge / border tone is provided separately so each mode can pick its
+   * own contrasting hairline against the panel (light-mode wood needs a
+   * darker hairline than the brand --border default to actually show). */
+  --play-acc-panel-from: #b08c64;
+  --play-acc-panel-to: #8c6b48;
+  --play-acc-panel-edge: rgba(74, 53, 32, 0.6);
+
+  /* Muted label text painted directly on the wood panel — the
+   * stradella row labels (COUNTER-BASS / BASS / MAJOR / …) and the
+   * diatonic row labels read this token. Needs enough contrast
+   * against the panel to be legible without competing with the
+   * buttons.
+   *   Light wood → warm dark walnut, in the same family as the
+   *                dark-mode panel for visual cohesion.
+   *   Dark wood  → warm cream-tan, reads as muted-but-legible on
+   *                the dark walnut without going all the way to
+   *                pure white. */
+  --play-acc-panel-label: #3d2c1c;
+}
+
+:root[data-theme='dark'] {
+  /* Lifted from near-black (#1c1612 → #2a221a) to a richer walnut so
+   * the panel reads as wood instead of just blending into the inky
+   * page chrome. Still plenty dark to make the white naturals pop. */
+  --play-acc-panel-from: #3d2c1c;
+  --play-acc-panel-to: #251a10;
+  --play-acc-panel-edge: var(--border);
+  --play-acc-panel-label: #c8b89c;
+}
+
+/* OS dark mode (no explicit toggle) — mirror the data-theme="dark"
+ * block above. Single source of truth keeps the three keyboards
+ * (chromatic, stradella, diatonic) consistent under OS-driven dark. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --play-acc-panel-from: #3d2c1c;
+    --play-acc-panel-to: #251a10;
+    --play-acc-panel-edge: var(--border);
+    --play-acc-panel-label: #c8b89c;
+  }
 }
 
 .accordion-stage {
@@ -151,6 +204,30 @@ details.instrument-help > summary:focus-visible {
   width: 100%;
   margin: 0 auto;
   max-width: 980px;
+}
+
+/* Desktop-short viewport fix (e.g. devtools open in a landscape window
+ * pinning the page to 1728×471). The shared piano-keyboard component
+ * has a `@media (max-width: 720px), (max-height: 540px)` rule in
+ * play/styles/keyboard.css that sets `height: 100%` on the keyboard —
+ * intended for narrow-width phones where the parent has an explicit
+ * height for that 100% to resolve against. On the accordion, the
+ * `.accordion-view` host has no explicit height, so the mobile rule
+ * collapses the keyboard to its own padding (~32px) and the keys
+ * squash into a thin strip.
+ *
+ * Scope this override to wide-but-short viewports only — narrow phones
+ * still want the shared keyboard's mobile sizing (full-bleed, scrolls
+ * sideways). At desktop widths, restore the standalone-page clamp so
+ * the keyboard renders at its declared 180–280px regardless of how
+ * cramped the page is vertically. */
+@media (max-height: 540px) and (min-width: 721px) {
+  .accordion-view .piano-keyboard {
+    height: clamp(180px, 32vh, 280px);
+    max-height: none;
+    min-width: 0;
+    max-width: 980px;
+  }
 }
 
 .accordion-view[data-kind='stradella'],

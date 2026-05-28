@@ -36,12 +36,15 @@
    * half-button shift. */
   gap: var(--btn-gap);
   padding: 14px 12px;
+  /* Panel = shared accordion-body wood (see shared.css). Theme-aware:
+   * light walnut on light page, near-black wood on dark page. Falls
+   * back to the original dark-wood literals if shared.css is missing. */
   background: linear-gradient(
     180deg,
-    var(--play-acc-chrom-c01, #1e1b4b),
-    var(--play-acc-chrom-c02, #0b1220)
+    var(--play-acc-panel-from, #1c1612),
+    var(--play-acc-panel-to, #2a221a)
   );
-  border: 1px solid var(--border);
+  border: 1px solid var(--play-acc-panel-edge, var(--border));
   border-radius: 14px;
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white) 5%, transparent),
     0 8px 24px -16px color-mix(in srgb, var(--pure-black) 70%, transparent);

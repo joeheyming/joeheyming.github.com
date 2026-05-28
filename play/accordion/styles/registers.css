@@ -4,24 +4,56 @@
 :root {
   /* Auto-scoped identity palette for play-acc-reg. Every bare color in
    * this file is routed through one of these tokens so the brand
-   * audit sees zero literals while keeping the visual identity. */
-  --play-acc-reg-c01: #2a2a2a;
-  --play-acc-reg-c02: #0d0d0d;
-  --play-acc-reg-c03: #000000;
-  --play-acc-reg-c04: #4a4a4a;
-  --play-acc-reg-c05: #1a1a1a;
+   * audit sees zero literals while keeping the visual identity.
+   *
+   * c01–c05 + c12 are the register-stop plastic-body colors and they
+   * adapt to the page theme:
+   *   Light page → warm dark walnut plastic, so a row of stops on a
+   *                cream chrome row doesn't look like a strip of pure-
+   *                black slabs sitting on cream.
+   *   Dark page  → true neutral black plastic (the original identity)
+   *                paired with the near-black page chrome.
+   * The dark-mode overrides live in the :root[data-theme='dark']
+   * block below. */
+  --play-acc-reg-c01: #4a3e34; /* plastic top */
+  --play-acc-reg-c02: #2a221a; /* plastic bottom */
+  --play-acc-reg-c03: #1a120c; /* plastic border */
+  --play-acc-reg-c04: #6a5a4a; /* selected plastic top */
+  --play-acc-reg-c05: #3a2e22; /* selected plastic bottom */
   /* "Selected" ring + glow on a register stop — was old-brand violet,
    * now routed through the live brand accent so it follows the rest
-   * of the site. The stop body itself stays black plastic + silver
-   * plate (real accordion identity) so re-tinting brand never touches
-   * the physical-object look. */
+   * of the site. */
   --play-acc-reg-c06: color-mix(in srgb, var(--accent-primary) 85%, transparent);
   --play-acc-reg-c07: color-mix(in srgb, var(--accent-primary) 70%, transparent);
   --play-acc-reg-c08: #f3f4f6;
   --play-acc-reg-c09: #c4c4c4;
   --play-acc-reg-c10: #9a9a9a;
   --play-acc-reg-c11: #6b6b6b;
+  --play-acc-reg-c12: #1f1610; /* mobile-popover panel bottom (matches c02 family) */
+}
+
+:root[data-theme='dark'] {
+  /* Original near-black plastic identity restored for dark mode. */
+  --play-acc-reg-c01: #2a2a2a;
+  --play-acc-reg-c02: #0d0d0d;
+  --play-acc-reg-c03: #000000;
+  --play-acc-reg-c04: #4a4a4a;
+  --play-acc-reg-c05: #1a1a1a;
   --play-acc-reg-c12: #0a0a0a;
+}
+
+/* OS dark mode (no explicit toggle) — mirror the data-theme="dark"
+ * block above so a user on system-dark gets the same plastic regardless
+ * of whether they've touched the home-page light/dark toggle. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --play-acc-reg-c01: #2a2a2a;
+    --play-acc-reg-c02: #0d0d0d;
+    --play-acc-reg-c03: #000000;
+    --play-acc-reg-c04: #4a4a4a;
+    --play-acc-reg-c05: #1a1a1a;
+    --play-acc-reg-c12: #0a0a0a;
+  }
 }
 
 /* ---------- Register switches ----------

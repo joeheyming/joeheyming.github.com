@@ -271,32 +271,89 @@ body:not(.mobile) .score-toggle {
   }
 }
 
-/* Restart button mobile icon-only mode */
+/* Songs / Feedback / Restart / Difficulty share one pill radius.
+   .zenius-browser-btn, .restart-btn, and .difficulty-select all hard-code
+   0.75rem. <feedback-button> reads border-radius from --radius, which
+   brand.css sets to 4px — much sharper than the other three. Overriding
+   the custom property on the host cascades through the shadow boundary
+   so the feedback pill matches without forking the shared component. */
+feedback-button {
+  --radius: 0.75rem;
+}
+
+/* Restart button — share the same pill shape as .zenius-browser-btn and
+   the <feedback-button> so the Songs / Feedback / Restart row reads as
+   one consistent control group. Mobile collapses to an icon-only square,
+   matching the other two buttons. */
+.restart-btn {
+  background: linear-gradient(to right, var(--accent-primary), var(--accent-primary-bg));
+  color: var(--text-on-accent);
+  font-weight: bold;
+  padding: 0.5rem 1.5rem;
+  border-radius: 0.75rem;
+  transition: all 0.2s;
+  transform: scale(1);
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.restart-btn:hover {
+  background: linear-gradient(
+    to right,
+    var(--accent-primary-hover),
+    var(--accent-primary-bg-hover)
+  );
+  transform: scale(1.05);
+}
+
+.restart-btn:active {
+  transform: scale(0.95);
+}
+
+.restart-btn:focus-visible {
+  outline: 2px solid var(--focus-ring-inner);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--focus-ring-outer);
+}
+
 .restart-btn .restart-icon-only {
-  display: none !important;
+  display: none;
 }
 
 .restart-btn .restart-text-label {
-  display: inline !important;
+  display: inline;
+}
+
+@media (max-width: 768px) {
+  .restart-btn {
+    padding: 0.25rem 0.75rem;
+    font-size: 12px;
+    height: 2rem;
+  }
 }
 
 @media (max-width: 640px) {
   .restart-btn {
-    padding: 0.5rem !important;
-    min-width: 2.5rem !important;
-    min-height: 2.5rem !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    padding: 0.5rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
   }
 
   .restart-btn .restart-text-label {
-    display: none !important;
+    display: none;
   }
 
   .restart-btn .restart-icon-only {
-    display: inline-block !important;
-    font-size: 1.25rem !important;
+    display: inline-block;
+    font-size: 1.25rem;
   }
 }
 

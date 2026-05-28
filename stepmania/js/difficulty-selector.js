@@ -42,9 +42,13 @@ class DifficultySelectorElement extends HTMLElement {
   }
 
   render() {
+    // The <label> stays in the DOM but is visually hidden — the <select>
+    // already exposes `aria-label="Difficulty"` for screen readers, and a
+    // visible label above the pill was making this control taller than
+    // the adjacent buttons and breaking row alignment.
     this.shadowRoot.innerHTML = `
       <span class="difficulty-selector" id="difficulty-selector">
-        <label class="difficulty-label" for="difficulty-select">Difficulty</label>
+        <label class="difficulty-label sr-only" for="difficulty-select">Difficulty</label>
         <select class="difficulty-select" id="difficulty-select" aria-label="Difficulty">
           <option value="">Difficulty</option>
         </select>
@@ -139,7 +143,7 @@ class DifficultySelectorElement extends HTMLElement {
   // Private methods
   renderDifficultyOptions() {
     const select = this.shadowRoot.getElementById('difficulty-select');
-    select.innerHTML = '<option value="">Level</option>';
+    select.innerHTML = '<option value="">Difficulty</option>';
 
     // Create difficulty options if charts are available
     if (this.charts && this.charts.length > 0) {

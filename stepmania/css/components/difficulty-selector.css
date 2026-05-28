@@ -19,6 +19,21 @@ difficulty-selector {
   display: none;
 }
 
+/* Visually hide the label while keeping it discoverable by screen readers.
+   The select itself carries `aria-label="Difficulty"`, but the <label>
+   stays in the DOM so form-label semantics aren't lost. */
+.difficulty-label.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .difficulty-select {
   display: flex;
   padding: 0.5rem 1.5rem;
