@@ -280,6 +280,72 @@ a.tv-crumb:hover {
   background: color-mix(in srgb, var(--tv-card-bg) 60%, transparent);
 }
 
+/* Tag-filter chip row — wraps under the search input. Each chip is a
+   real <button>; the active state lives on .is-active so the styles
+   work even if the JS hasn't set aria-pressed yet on first paint. */
+.tv-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  max-width: 720px;
+}
+
+.tv-tag-chip {
+  appearance: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border: 1px solid var(--tv-card-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tv-card-bg) 80%, transparent);
+  color: var(--tv-text-dim);
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease;
+}
+
+.tv-tag-chip:hover {
+  border-color: var(--tv-accent-dim);
+  color: var(--tv-text);
+}
+
+.tv-tag-chip:focus-visible {
+  outline: none;
+  border-color: var(--tv-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tv-accent-dim) 35%, transparent);
+}
+
+.tv-tag-chip.is-active {
+  background: color-mix(in srgb, var(--tv-accent) 18%, var(--tv-card-bg));
+  border-color: var(--tv-accent);
+  color: var(--tv-text);
+}
+
+.tv-tag-reset {
+  appearance: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: lowercase;
+  padding: 5px 10px;
+  border: 1px dashed var(--tv-card-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--tv-text-dimmer);
+  cursor: pointer;
+  margin-left: 4px;
+}
+
+.tv-tag-reset:hover,
+.tv-tag-reset:focus-visible {
+  outline: none;
+  color: var(--tv-text);
+  border-color: var(--tv-accent-dim);
+  border-style: solid;
+}
+
 /* ------------------------------------------------------------------------ */
 /* Episodes view — per-show banner + grid                                   */
 /* ------------------------------------------------------------------------ */

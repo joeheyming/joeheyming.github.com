@@ -15,7 +15,7 @@
  * lookup. If a lookup fails the card falls back to an emoji.
  */
 
-import { SHOWS, getShow } from '../shows.js';
+import { SHOWS, getShow, TAG_GROUPS } from '../shows.js';
 import { listContinueWatching, clearLastEpisode } from '../prefs.js';
 import {
   listSaved as listOfflineSaved,
@@ -81,6 +81,56 @@ export function mount(slot, ctx) {
   searchWrap.appendChild(searchStatus);
   intro.appendChild(searchWrap);
 
+  // Tag-filter chip row. One chip per canonical tag from TAG_GROUPS,
+  // rendered in semantic order (Format → Audience → Era → Genre).
+  // Chips are toggleable buttons; an active chip narrows the grid to
+  // shows carrying that tag. Multiple active chips combine with OR
+  // semantics (show appears if it matches ANY active chip) — the
+  // intersection model gives empty results too often on a catalog
+  // this small. The search input still ANDs on top so users can
+  // combine "comedy" + "tick" to find The Tick within the comedy
+  // subset.
+  const tagRow = document.createElement('div');
+  tagRow.className = 'tv-tags';
+  tagRow.setAttribute('role', 'group');
+  tagRow.setAttribute('aria-label', 'Filter shows by tag');
+  /** @type {Set<string>} */
+  const activeTags = new Set();
+  /** @type {HTMLButtonElement[]} */
+  const chipButtons = [];
+  // Only emit chips for tags that at least one show actually carries
+  // — keeps the row tight if the registry shrinks. Order is
+  // Format → Audience → Era → Genre; we walk TAG_GROUPS in that
+  // declared order rather than alphabetising.
+  const tagsInUse = new Set();
+  for (const show of SHOWS) for (const t of show.tags || []) tagsInUse.add(t);
+  for (const [groupName, tags] of /** @type {[string, readonly string[]][]} */ (
+    Object.entries(TAG_GROUPS)
+  )) {
+    for (const tag of tags) {
+      if (!tagsInUse.has(tag)) continue;
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'tv-tag-chip';
+      chip.dataset.tag = tag;
+      chip.dataset.group = groupName;
+      chip.setAttribute('aria-pressed', 'false');
+      chip.textContent = tag;
+      tagRow.appendChild(chip);
+      chipButtons.push(chip);
+    }
+  }
+  // "Clear filters" reset button sits at the end of the row; hidden
+  // until at least one chip is active. We don't need an "All" chip up
+  // front — when no chips are active the grid already shows
+  // everything.
+  const tagReset = document.createElement('button');
+  tagReset.type = 'button';
+  tagReset.className = 'tv-tag-reset hidden';
+  tagReset.textContent = 'clear filters';
+  tagRow.appendChild(tagReset);
+  intro.appendChild(tagRow);
+
   // Continue-watching row. Lives between the intro and the grid; the
   // wrapper stays in the DOM even when there are no entries so the
   // ✕ button on the last card can re-render it back to empty/hidden
@@ -144,21 +194,36 @@ export function mount(slot, ctx) {
   const applyFilter = () => {
     const query = searchInput.value.trim().toLowerCase();
     searchClear.classList.toggle('hidden', query.length === 0);
+    tagReset.classList.toggle('hidden', activeTags.size === 0);
     let matches = 0;
     for (const card of grid.children) {
       const hay = card.getAttribute('data-search') || '';
-      const hit = query === '' || hay.includes(query);
+      const cardTags = (card.getAttribute('data-tags') || '').split(' ').filter(Boolean);
+      const hitsSearch = query === '' || hay.includes(query);
+      const hitsTags = activeTags.size === 0 || cardTags.some((t) => activeTags.has(t));
+      const hit = hitsSearch && hitsTags;
       card.classList.toggle('hidden', !hit);
       if (hit) matches += 1;
     }
-    if (query === '') {
+    // Mirror the active state back onto the chips so re-renders (or
+    // future programmatic toggles) stay in sync with `activeTags`.
+    for (const chip of chipButtons) {
+      const on = activeTags.has(chip.dataset.tag || '');
+      chip.classList.toggle('is-active', on);
+      chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+    const noFilter = query === '' && activeTags.size === 0;
+    if (noFilter) {
       empty.classList.add('hidden');
       empty.textContent = '';
       searchStatus.textContent = '';
       return;
     }
     if (matches === 0) {
-      empty.textContent = `No shows match “${searchInput.value.trim()}”`;
+      const bits = [];
+      if (query) bits.push(`“${searchInput.value.trim()}”`);
+      if (activeTags.size) bits.push([...activeTags].join(' / '));
+      empty.textContent = `No shows match ${bits.join(' + ')}`;
       empty.classList.remove('hidden');
     } else {
       empty.classList.add('hidden');
@@ -180,15 +245,36 @@ export function mount(slot, ctx) {
     applyFilter();
     searchInput.focus();
   };
+  const onChipClick = (chip) => {
+    const tag = chip.dataset.tag;
+    if (!tag) return;
+    if (activeTags.has(tag)) activeTags.delete(tag);
+    else activeTags.add(tag);
+    applyFilter();
+  };
+  const onTagReset = () => {
+    activeTags.clear();
+    applyFilter();
+  };
   searchInput.addEventListener('input', onInput);
   searchInput.addEventListener('keydown', onKeydown);
   searchClear.addEventListener('click', onClear);
+  const chipHandlers = chipButtons.map((chip) => {
+    const handler = () => onChipClick(chip);
+    chip.addEventListener('click', handler);
+    return { chip, handler };
+  });
+  tagReset.addEventListener('click', onTagReset);
 
   return {
     unmount() {
       searchInput.removeEventListener('input', onInput);
       searchInput.removeEventListener('keydown', onKeydown);
       searchClear.removeEventListener('click', onClear);
+      for (const { chip, handler } of chipHandlers) {
+        chip.removeEventListener('click', handler);
+      }
+      tagReset.removeEventListener('click', onTagReset);
       root.remove();
     }
   };
@@ -451,6 +537,11 @@ function makeShowCard(show, ctx) {
     'data-search',
     [show.name, show.shortName, show.tagline, show.emoji].filter(Boolean).join(' ').toLowerCase()
   );
+  // Space-separated tag list for the chip filter to scan with a quick
+  // `.split(' ').some(...)` per card. Empty for shows missing tags
+  // (the registry test forbids that, but the default keeps the chip
+  // filter from blowing up if a future bug slips one through).
+  card.setAttribute('data-tags', (show.tags || []).join(' '));
   card.href = `?show=${encodeURIComponent(show.id)}`;
   card.setAttribute('role', 'listitem');
 
@@ -506,6 +597,15 @@ function makeShowCard(show, ctx) {
  * localStorage cache lives ~30 days; we'd rather show a slightly stale
  * poster than block the grid on a network round-trip.
  *
+ * TVMaze's CDN is reliable once warm but the *first* request to a
+ * cold-cached show id (e.g. one we just added to SHOWS) frequently
+ * hangs past the browser's CORS-preflight timeout, producing the
+ * "blocked by CORS policy: No 'Access-Control-Allow-Origin'" symptom
+ * in devtools. We handle that with: short per-attempt timeout (so a
+ * cold edge doesn't burn 30 s), one fast retry, then a fallback
+ * through `window.proxyService` (corsproxy.io etc.) which warms a
+ * different cache path.
+ *
  * @param {number} tvmazeId
  * @returns {Promise<string|null>}
  */
@@ -522,27 +622,51 @@ async function fetchPoster(tvmazeId) {
   } catch {
     /* refetch on parse error */
   }
+  // The main `/shows/<id>` endpoint already includes the canonical
+  // poster as `image.medium` / `image.original`. That's both more
+  // reliable than `/shows/<id>/images` (one request, one cache entry
+  // on TVMaze's side) and matches what most other TVMaze consumers
+  // use, so we hit a hotter CDN path.
+  const url = `https://api.tvmaze.com/shows/${tvmazeId}`;
+  const data = await fetchTvmazeShow(url);
+  const posterUrl = data?.image?.medium || data?.image?.original || null;
   try {
-    const res = await fetch(`https://api.tvmaze.com/shows/${tvmazeId}/images`, {
-      credentials: 'omit'
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (!Array.isArray(data)) return null;
-    // Posters are vertical (book-cover proportions) which suits TV-guide tiles.
-    // Fall back to anything with a `medium` resolution if no poster is tagged.
-    const posters = data.filter((img) => img?.type === 'poster' && img?.resolutions);
-    const pick = posters[0] || data.find((img) => img?.resolutions) || null;
-    const url = pick?.resolutions?.medium?.url || pick?.resolutions?.original?.url || null;
-    try {
-      localStorage.setItem(key, JSON.stringify({ ts: Date.now(), url }));
-    } catch {
-      /* quota; we just refetch next visit */
-    }
-    return url;
+    localStorage.setItem(key, JSON.stringify({ ts: Date.now(), url: posterUrl }));
   } catch {
-    return null;
+    /* quota; we just refetch next visit */
   }
+  return posterUrl;
+}
+
+/**
+ * Two direct attempts (5 s + 8 s) then one proxy attempt. Returns the
+ * parsed JSON object, or `null` if every path failed. We don't throw
+ * — a missing poster is recoverable (the emoji fallback kicks in via
+ * `img.error`) and we don't want to spam the console with rejections.
+ *
+ * @param {string} url
+ * @returns {Promise<any | null>}
+ */
+async function fetchTvmazeShow(url) {
+  for (const timeoutMs of [5000, 8000]) {
+    try {
+      const res = await fetch(url, {
+        credentials: 'omit',
+        signal: AbortSignal.timeout(timeoutMs)
+      });
+      if (res.ok) return await res.json();
+    } catch {
+      /* try next attempt */
+    }
+  }
+  if (typeof window !== 'undefined' && window.proxyService?.fetchJson) {
+    try {
+      return await window.proxyService.fetchJson(url, { skipDirect: true });
+    } catch {
+      /* swallow — caller handles null */
+    }
+  }
+  return null;
 }
 
 function pad(n) {
