@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Imagine — local browser image generator | Joe Heyming 🎨</title>
+
+    <meta
+      name="description"
+      content="Static-site image generator that runs entirely in your browser via WebGPU. No backend, no API key. Generate 512×512 images from a text prompt with SD-Turbo."
+    />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#FAFAFA" />
+    <meta
+      name="keywords"
+      content="ai image, text to image, stable diffusion, sd-turbo, webgpu, browser image gen, local diffusion, on-device"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming — Imagine" />
+    <meta property="og:title" content="🎨 Imagine — local browser image generator" />
+    <meta
+      property="og:description"
+      content="Backend-free text-to-image. Runs entirely in your browser via WebGPU. SD-Turbo at 512×512."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/imagine/" />
+    <meta property="og:image" content="https://joeheyming.github.io/imagine/imagine-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="🎨 Imagine — local browser image generator" />
+    <meta
+      name="twitter:description"
+      content="Backend-free text-to-image. Runs entirely in your browser via WebGPU."
+    />
+    <meta name="twitter:image" content="https://joeheyming.github.io/imagine/imagine-preview.png" />
+
+    <link rel="canonical" href="https://joeheyming.github.io/imagine/" />
+    <link rel="stylesheet" href="index.css" />
+    <link
+      rel="icon"
+      id="site-favicon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎨</text></svg>"
+    />
+
+    <!--
+      Import map for the diffusion stack. Without this, the SD-Turbo
+      adapter's bare-specifier dynamic imports (`onnxruntime-web/webgpu`)
+      fail in the browser. Pinned to exact versions; bump deliberately.
+      MUST appear before any module-script load (web-txt2img, our
+      index.js, etc.) — that's why it lives this high in <head>.
+
+      `.bundle.min.mjs` (not `.min.mjs`) is the variant with the WASM
+      blobs inlined as base64, so we don't need to set
+      `ort.env.wasm.wasmPaths` to a same-origin location. The bundled
+      build is bigger but completely self-contained.
+
+      `@xenova/transformers` is intentionally NOT in the map — we load
+      it directly from `dist/transformers.min.js` and inject the
+      tokenizer via the SD-Turbo adapter's tokenizerProvider DI hook.
+      See loadTokenizer() in diffusion-adapter.js for why.
+    -->
+    <script type="importmap">
+      {
+        "imports": {
+          "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0/dist/ort.webgpu.bundle.min.mjs",
+          "onnxruntime-web/webgpu": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0/dist/ort.webgpu.bundle.min.mjs",
+          "@huggingface/transformers": "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/dist/transformers.web.js"
+        }
+      }
+    </script>
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Imagine — local browser image generator",
+        "url": "https://joeheyming.github.io/imagine/",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Any (modern browser with WebGPU)",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
+  </head>
+  <body>
+    <div class="imagine-app" id="imagine-app">
+      <header class="imagine-header">
+        <div class="imagine-title">
+          <span class="imagine-emoji" aria-hidden="true">🎨</span>
+          <div class="imagine-title-text">
+            <h1>Imagine</h1>
+            <p id="imagine-mode-line">Local image generator</p>
+          </div>
+        </div>
+      </header>
+
+      <div id="imagine-unsupported" class="imagine-unsupported" role="alert" hidden>
+        <strong>This image generator needs WebGPU.</strong>
+        The whole model runs on your device — no backend, no keys — and that needs WebGPU.
+        <p class="imagine-unsupported-detail" data-role="detail" hidden></p>
+        <p class="imagine-unsupported-hint">
+          Supported: Chrome 113+, Edge 113+, Firefox 141+ (Windows/macOS), Safari 18+ (macOS).
+          You'll also want a discrete GPU — running diffusion on an integrated GPU works but takes
+          5–10× longer per image.
+        </p>
+      </div>
+
+      <main class="imagine-main" id="imagine-main">
+        <section class="imagine-install" id="imagine-install" hidden>
+          <span class="imagine-install-emoji" aria-hidden="true">📦</span>
+          <h2 class="imagine-install-title" id="imagine-install-title">
+            Install the local image model
+          </h2>
+          <p class="imagine-install-body" id="imagine-install-body">
+            This generator needs to install
+            <strong>SD-Turbo</strong>
+            (~2.3&nbsp;GB) into your browser cache. The full diffusion model runs on your GPU — no
+            backend, no API key, no third-party endpoint. After installing, generation takes a
+            couple of seconds per image and works offline.
+          </p>
+          <button type="button" id="imagine-install-btn" class="imagine-install-btn">
+            Install (~2.3&nbsp;GB)
+          </button>
+          <p class="imagine-install-hint">
+            Stored in your browser's Cache Storage. You can clear it anytime from browser settings.
+            First load takes a minute or two; everything after that runs from cache.
+          </p>
+        </section>
+
+        <section class="imagine-pane imagine-pane-generate" id="imagine-pane-generate">
+          <div class="imagine-output" id="imagine-output">
+            <div class="imagine-output-empty" id="imagine-output-empty">
+              <p class="imagine-output-title">Type a prompt and hit Generate.</p>
+              <p class="imagine-output-sub">
+                Each image is 512×512 and takes roughly 1–5&nbsp;seconds on a discrete GPU.
+              </p>
+              <ul class="imagine-suggestions">
+                <li>
+                  <button type="button" data-prompt="a cozy cabin in a snowy forest, watercolor">
+                    Watercolor cabin
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    data-prompt="a corgi astronaut floating over a candy planet, oil painting"
+                  >
+                    Corgi astronaut
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    data-prompt="vaporwave city skyline at sunset, neon palette"
+                  >
+                    Vaporwave skyline
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    data-prompt="a sleeping dragon curled around a stack of books, ink illustration"
+                  >
+                    Sleeping dragon
+                  </button>
+                </li>
+              </ul>
+            </div>
+            <figure class="imagine-current" id="imagine-current" hidden>
+              <div class="imagine-canvas-frame">
+                <img
+                  id="imagine-current-img"
+                  alt=""
+                  class="imagine-current-img"
+                  width="512"
+                  height="512"
+                />
+                <div class="imagine-progress-overlay" id="imagine-progress-overlay" hidden>
+                  <div class="imagine-progress-bar">
+                    <div class="imagine-progress-fill" id="imagine-progress-fill"></div>
+                  </div>
+                  <p class="imagine-progress-text" id="imagine-progress-text">Generating…</p>
+                </div>
+              </div>
+              <figcaption class="imagine-current-caption" id="imagine-current-caption"></figcaption>
+              <div class="imagine-current-actions">
+                <button type="button" id="imagine-download-btn" class="imagine-btn-ghost">
+                  Download
+                </button>
+                <button type="button" id="imagine-reuse-btn" class="imagine-btn-ghost">
+                  Use prompt
+                </button>
+              </div>
+            </figure>
+          </div>
+
+          <div class="imagine-history" id="imagine-history" hidden>
+            <div class="imagine-history-header">
+              <h3 class="imagine-history-title">Recent</h3>
+              <button
+                type="button"
+                id="imagine-history-clear-all"
+                class="imagine-history-clear-all"
+                title="Remove every recent image"
+              >
+                Clear all
+              </button>
+            </div>
+            <ol class="imagine-history-list" id="imagine-history-list"></ol>
+          </div>
+        </section>
+      </main>
+
+      <form class="imagine-composer" id="imagine-composer">
+        <div class="imagine-composer-row">
+          <textarea
+            id="imagine-prompt"
+            name="prompt"
+            rows="1"
+            autocomplete="off"
+            placeholder="Describe an image… (Enter for random seed, Shift+Enter for newline)"
+            aria-label="Prompt"
+          ></textarea>
+          <div class="imagine-composer-controls">
+            <label
+              class="imagine-model-label"
+              title="Choose which on-device model generates the image"
+            >
+              <span aria-hidden="true">🧠</span>
+              <select id="imagine-model" aria-label="Image model">
+                <option value="sd-turbo">SD-Turbo · fast</option>
+                <option value="janus-pro-1b">Janus-Pro 1B · slower</option>
+              </select>
+            </label>
+            <label class="imagine-seed-label" title="Random seed for reproducible images">
+              <span aria-hidden="true">🌱</span>
+              <input
+                type="number"
+                id="imagine-seed"
+                inputmode="numeric"
+                min="0"
+                max="4294967295"
+                step="1"
+                placeholder="seed"
+                aria-label="Seed (optional)"
+              />
+            </label>
+            <button
+              type="button"
+              id="imagine-seed-random"
+              class="imagine-btn-ghost imagine-btn-icon"
+              title="Randomize seed"
+              aria-label="Randomize seed"
+            >
+              🎲
+            </button>
+            <button
+              type="submit"
+              id="imagine-generate-btn"
+              class="imagine-generate-btn imagine-generate-btn-secondary"
+              title="Generate using the seed currently in the seed input"
+              aria-label="Generate using current seed"
+            >
+              Generate
+            </button>
+            <button
+              type="button"
+              id="imagine-generate-random-btn"
+              class="imagine-generate-btn"
+              title="Randomize the seed, then generate (Enter)"
+              aria-label="Randomize seed and generate"
+            >
+              <span aria-hidden="true">🎲</span>
+              <span>Generate Random</span>
+            </button>
+            <button
+              type="button"
+              id="imagine-stop-btn"
+              class="imagine-stop-btn"
+              hidden
+              aria-label="Stop generating"
+            >
+              Stop
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div id="imagine-toasts" class="notify-stack" aria-live="polite"></div>
+
+    <script type="module" src="./index.js"></script>
+  </body>
+</html>

@@ -1051,6 +1051,26 @@
     "appTier": "system"
   },
   {
+    "id": "imagine",
+    "name": "Imagine \ud83c\udfa8",
+    "shortName": "Imagine",
+    "description": "On-device AI image generator (SD-Turbo) that runs entirely in your browser",
+    "detailedDescription": "Static-site text-to-image generator powered by SD-Turbo + onnxruntime-web. The full diffusion model runs on your GPU via WebGPU \u2014 no backend, no API key, no third-party endpoint. Install once (~2.3 GB into your browser's Cache Storage); after that, each 512\u00d7512 image takes 1\u20135 seconds and works offline.",
+    "icon": "\ud83c\udfa8",
+    "path": "./imagine/",
+    "category": "utility",
+    "defaultWidth": 960,
+    "defaultHeight": 820,
+    "gradient": "from-fuchsia-500/20 to-violet-500/20",
+    "border": "border-fuchsia-500/30 hover:border-fuchsia-400/50",
+    "taskbarGradient": "from-fuchsia-500 to-violet-600",
+    "taskbarText": "text-white",
+    "tags": ["ai", "image", "stable-diffusion", "sd-turbo", "webgpu", "diffusion"],
+    "related": ["chat", "paint", "ascii", "image-viewer"],
+    "shareCategory": "utility",
+    "appTier": "experience"
+  },
+  {
     "id": "model-viewer",
     "name": "3D Viewer \ud83e\uddca",
     "shortName": "3D",

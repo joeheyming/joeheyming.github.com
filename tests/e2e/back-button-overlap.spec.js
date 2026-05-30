@@ -25,6 +25,7 @@ const APPS = [
   '/wordle-finder/',
   '/youtube/',
   '/chat/',
+  '/imagine/',
   '/listen/',
   '/read/',
   '/badapple/',

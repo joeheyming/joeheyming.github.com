@@ -313,6 +313,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://joeheyming.github.io/imagine/</loc>
+    <lastmod>2026-05-30T00:00:00+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://joeheyming.github.io/clock/</loc>
     <lastmod>2026-05-22T00:00:00+00:00</lastmod>
     <changefreq>monthly</changefreq>

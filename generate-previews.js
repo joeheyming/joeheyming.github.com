@@ -277,6 +277,38 @@ const PAGES = [
     title: 'About Joe Heyming'
   },
   {
+    url: `${BASE_URL}/imagine/`,
+    output: 'imagine/imagine-preview.png',
+    title: 'Imagine',
+    // Same WebGPU-gate workaround as /chat/: headless Chromium does
+    // not expose WebGPU, so the page renders the "browser unsupported"
+    // banner. Hide it and reveal the install card so the preview
+    // shows the actual landing experience.
+    setup: async (page) => {
+      await page.addStyleTag({
+        content:
+          '#imagine-unsupported { display: none !important; } ' +
+          '#imagine-install { display: flex !important; } ' +
+          '#imagine-prompt:disabled, #imagine-generate-btn:disabled, #imagine-install-btn:disabled { opacity: 1 !important; cursor: text !important; }'
+      });
+      await page.evaluate(() => {
+        const install = document.getElementById('imagine-install');
+        if (install) install.removeAttribute('hidden');
+        const prompt = document.getElementById('imagine-prompt');
+        if (prompt instanceof HTMLTextAreaElement) {
+          prompt.disabled = false;
+          prompt.value = 'a cozy cabin in a snowy forest, watercolor';
+        }
+        const gen = document.getElementById('imagine-generate-btn');
+        if (gen instanceof HTMLButtonElement) gen.disabled = false;
+        const installBtn = document.getElementById('imagine-install-btn');
+        if (installBtn instanceof HTMLButtonElement) installBtn.disabled = false;
+        const modeLine = document.getElementById('imagine-mode-line');
+        if (modeLine) modeLine.textContent = 'Local · sd-turbo · ~2.3 GB install required';
+      });
+    }
+  },
+  {
     url: `${BASE_URL}/surf/`,
     output: 'surf/surf-preview.png',
     title: 'Surf HTML Viewer'
