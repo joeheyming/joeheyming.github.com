@@ -55,6 +55,9 @@ body {
 
 .tv-room {
   min-height: 100vh;
+  /* Top padding clears the fixed .tv-header (~52px tall on desktop)
+     plus a small visual gap. The back button (z-index 999999) floats
+     ON TOP of the header, so we don't need extra clearance for it. */
   padding: 76px 16px 96px;
   max-width: 1280px;
   margin: 0 auto;
@@ -68,23 +71,49 @@ body {
 /* Header + breadcrumbs                                                     */
 /* ------------------------------------------------------------------------ */
 
+/* The header is fixed to the viewport top so the breadcrumb trail
+   stays reachable while scrolling through long episode grids. The
+   translucent backdrop + blur keep content readable as it scrolls
+   under. z-index sits below the back button (999999) so the back
+   pill floats over the bar rather than being clipped by it. */
 .tv-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: color-mix(in srgb, var(--tv-screen-off) 78%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid var(--tv-card-border);
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 6px;
 }
 
 .tv-breadcrumbs {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  /* Single-line trail. A fixed header that grows when breadcrumbs
+     wrap would crowd content underneath and require the .tv-room
+     top padding to be dynamic — neither is worth it. Long episode
+     titles instead truncate via the .tv-crumb ellipsis below. */
+  flex-wrap: nowrap;
+  min-width: 0;
   font-family: var(--font-mono);
   font-size: 12px;
   letter-spacing: 0.5px;
   color: var(--tv-text-dim);
-  padding: 4px 2px;
+  /* Match .tv-room's centering so the breadcrumbs visually line up
+     with the page content. The left padding clears the back button
+     (~100px wide at top-left); the right side gets a small breathing
+     gap. Centered inner block keeps wide viewports looking tidy. */
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 14px 18px 14px 130px;
+  box-sizing: border-box;
 }
 
 .tv-crumb {
@@ -92,6 +121,23 @@ body {
   text-decoration: none;
   border-bottom: 1px dotted transparent;
   transition: color 0.15s ease, border-color 0.15s ease;
+  /* Truncate gracefully when the trail outgrows the available width
+     (mostly the current-episode crumb on narrow viewports). */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.tv-crumb-sep {
+  flex: 0 0 auto;
+}
+
+/* The trailing "current" crumb soaks up remaining space so the
+   ellipsis lands on it (the episode title) instead of the show
+   name, which is shorter and useful as a backup to read. */
+.tv-crumb--current {
+  flex: 1 1 auto;
 }
 
 a.tv-crumb:hover {
@@ -125,6 +171,8 @@ a.tv-crumb:hover {
   align-items: center;
   justify-content: center;
   padding: 0;
+  /* Don't let flex shrink the back arrow — it's a fixed-size pill. */
+  flex: 0 0 auto;
   transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
@@ -877,6 +925,22 @@ a.tv-crumb:hover {
   height: 100%;
   background: #000;
   outline: none;
+  object-fit: contain;
+}
+
+/* Fullscreen (F key / browser controls). The screen wrapper is what
+   gets fullscreened so its child overlays (loading / no-signal / end
+   card) stay layered correctly. Strip the chassis-only chrome since
+   the bezel ring + aspect-ratio cap make no sense at 100vw/100vh. */
+.tv-screen:fullscreen,
+.tv-screen:-webkit-full-screen {
+  width: 100vw;
+  height: 100vh;
+  aspect-ratio: auto;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  background: #000;
 }
 
 .tv-base {
@@ -1739,6 +1803,7 @@ a.tv-crumb:hover {
   letter-spacing: 1.5px;
   color: var(--tv-text-dimmer);
   text-transform: uppercase;
+  line-height: 1.9;
 }
 
 .tv-help kbd {
@@ -1767,8 +1832,17 @@ a.tv-crumb:hover {
 
 @media (max-width: 768px) {
   .tv-room {
+    /* Same clearance rationale as desktop, just tightened: mobile
+       back button is smaller and the header reduces its padding. */
     padding: 64px 10px 80px;
     gap: 14px;
+  }
+
+  .tv-breadcrumbs {
+    /* Mobile back button is ~90px wide at top:12 left:12; 110px
+       leaves a small visual gap to the first breadcrumb. */
+    padding: 11px 12px 11px 110px;
+    font-size: 11px;
   }
 
   .tv-bezel {

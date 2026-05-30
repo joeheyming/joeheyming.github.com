@@ -12,6 +12,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { SHOWS, getShow, TAG_GROUPS, ALL_TAGS } from './shows.js';
+import { makeGenericParser } from './shows-dynamic.js';
 
 // Parsers and movieDetectors live inline on each SHOWS entry — pull
 // them out here so the test cases read the same as before.
@@ -21,7 +22,10 @@ const parseBeavis = getShow('beavis').parser;
 const parseSmurfs = getShow('smurfs').parser;
 const parseDnD = getShow('dnd').parser;
 const parseDBZ = getShow('dbz').parser;
-const parseInspectorGadget = getShow('inspector-gadget').parser;
+// inspector-gadget: migrated to the generic matcher in shows-dynamic.js
+// (parser-only calibration verdict: clean). Tests for it live in the
+// "inspector-gadget (generic matcher)" describe block below; the
+// bespoke parser was removed from shows.js.
 const parseAquaTeen = getShow('aqua-teen').parser;
 const parseCosmos = getShow('cosmos').parser;
 const parseGiJoe = getShow('gi-joe').parser;
@@ -35,34 +39,29 @@ const parseTwilightZone = getShow('twilight-zone').parser;
 const parseVoltron = getShow('voltron').parser;
 const parseBoondocks = getShow('boondocks').parser;
 const parseDextersLab = getShow('dexters-lab').parser;
-const parseDisenchantment = getShow('disenchantment').parser;
+// Migrated to the generic matcher in shows-dynamic.js (parser-only
+// calibration verdict: clean). Tests for each live in the
+// "<id> (generic matcher)" describe block below.
+//   amazing-stories, astro-boy, avengers, crystal-maze,
+//   disenchantment, duckman, fawlty-towers, home-movies,
+//   monty-python, real-ghostbusters, sonic-satam, speed-racer,
+//   tick, voyagers
 const parseDoctorWho = getShow('doctor-who').parser;
 const parseMST3K = getShow('mst3k').parser;
 const parseRecess = getShow('recess').parser;
 const parseCaptainPlanet = getShow('captain-planet').parser;
-const parseDuckman = getShow('duckman').parser;
 const parseDuckTales = getShow('ducktales').parser;
 const parseFreakazoid = getShow('freakazoid').parser;
 const parseHarveyBirdman = getShow('harvey-birdman').parser;
-const parseMontyPython = getShow('monty-python').parser;
-const parseAvengers = getShow('avengers').parser;
 const parseFrankenhole = getShow('frankenhole').parser;
-const parseHomeMovies = getShow('home-movies').parser;
 const parseMaxx = getShow('maxx').parser;
 const parseCritic = getShow('critic').parser;
-const parseCrystalMaze = getShow('crystal-maze').parser;
 const parseLiquidTV = getShow('liquid-television').parser;
 const parseMutantLeague = getShow('mutant-league').parser;
 const parseSpiderMan = getShow('spider-man').parser;
-const parseTick = getShow('tick').parser;
-const parseVoyagers = getShow('voyagers').parser;
 const parsePiratesDarkWater = getShow('pirates-dark-water').parser;
 const parseReboot = getShow('reboot').parser;
-const parseAmazingStories = getShow('amazing-stories').parser;
-const parseAstroBoy = getShow('astro-boy').parser;
-const parseFawltyTowers = getShow('fawlty-towers').parser;
 const parseJonnyQuest = getShow('jonny-quest').parser;
-const parseSonicSatAM = getShow('sonic-satam').parser;
 const isSimpsonsMovie = getShow('simpsons').movieDetector;
 const isGiJoeMovie = getShow('gi-joe').movieDetector;
 const isDextersLabMovie = getShow('dexters-lab').movieDetector;
@@ -116,6 +115,12 @@ describe('SHOWS registry', () => {
         'southpark',
         'speed-racer',
         'spider-man',
+        'star-trek-ds9',
+        'star-trek-enterprise',
+        'star-trek-tas',
+        'star-trek-tng',
+        'star-trek-tos',
+        'star-trek-voyager',
         'tick',
         'tmnt',
         'twilight-zone',
@@ -142,7 +147,13 @@ describe('SHOWS registry', () => {
       assert.ok(items.length > 0, `${s.id} declares at least one iaItem`);
       for (const id of items) assert.equal(typeof id, 'string');
       assert.equal(typeof s.tvmazeId, 'number');
-      assert.equal(typeof s.parser, 'function');
+      // `parser` is optional — when omitted, catalog.js falls back to
+      // the generic matcher in shows-dynamic.js. Bespoke parsers are
+      // kept only for shows where the matcher would mismap or fail.
+      assert.ok(
+        s.parser === undefined || typeof s.parser === 'function',
+        `${s.id}.parser is either a function or omitted`
+      );
       assert.match(s.accent, /^#[0-9a-f]{6}$/i);
     }
   });
@@ -430,9 +441,25 @@ describe('parseDBZ', () => {
   });
 });
 
-describe('parseInspectorGadget', () => {
+describe('inspector-gadget (generic matcher)', () => {
+  // Inspector Gadget was the first show migrated off a bespoke parser.
+  // Catalog builder calls `makeGenericParser(descriptions)` from
+  // shows-dynamic.js when `show.parser` is undefined. These tests
+  // exercise the same filename shapes the bespoke parser used to
+  // handle, plus the titles-from-TVMaze contract.
+  //
+  // Fixture mirrors the real /shows/4579/episodes response, slimmed to
+  // just the keys needed by the test cases. The full episode list (86
+  // entries) is exercised live by scripts/calibrate-matcher.mjs.
+  const igDescriptions = new Map([
+    ['S01E01', { name: 'Winter Olympics' }],
+    ['S01E65', { name: 'Quiz Master' }],
+    ['S02E17', { name: "Gadget's Roma" }]
+  ]);
+  const parseGadget = makeGenericParser(igDescriptions);
+
   it('parses the canonical "S01E01 Title" form', () => {
-    assert.deepEqual(parseInspectorGadget('Inspector Gadget S01E01 Winter Olympics.mp4'), {
+    assert.deepEqual(parseGadget('Inspector Gadget S01E01 Winter Olympics.mp4'), {
       season: 1,
       episode: 1,
       title: 'Winter Olympics'
@@ -440,15 +467,19 @@ describe('parseInspectorGadget', () => {
   });
 
   it('parses two-digit episode numbers from the long S01 run', () => {
-    assert.deepEqual(parseInspectorGadget('Inspector Gadget S01E65 Quiz Master.mp4'), {
+    assert.deepEqual(parseGadget('Inspector Gadget S01E65 Quiz Master.mp4'), {
       season: 1,
       episode: 65,
       title: 'Quiz Master'
     });
   });
 
-  it('preserves apostrophes in titles', () => {
-    assert.deepEqual(parseInspectorGadget("Inspector Gadget S02E17 Gadget's Roma.mp4"), {
+  it("uses TVMaze's title (apostrophes preserved) instead of parsing it from the filename", () => {
+    // Bespoke parser used to derive title from the filename, which
+    // sometimes meant filesystem-safe mangling crept in. The generic
+    // matcher pulls the title from TVMaze instead, which preserves
+    // apostrophes, colons, question marks, etc. unconditionally.
+    assert.deepEqual(parseGadget("Inspector Gadget S02E17 Gadget's Roma.mp4"), {
       season: 2,
       episode: 17,
       title: "Gadget's Roma"
@@ -456,8 +487,15 @@ describe('parseInspectorGadget', () => {
   });
 
   it('returns null for unrelated files', () => {
-    assert.equal(parseInspectorGadget('cover.jpg'), null);
-    assert.equal(parseInspectorGadget('Inspector Gadget 2 (2003).mp4'), null);
+    assert.equal(parseGadget('cover.jpg'), null);
+    assert.equal(parseGadget('Inspector Gadget 2 (2003).mp4'), null);
+  });
+
+  it('returns null for SxxExx that does not exist on TVMaze', () => {
+    // The bespoke parser accepted any SxxExx with the right preamble;
+    // the generic matcher validates against TVMaze's episode list, so
+    // bogus episodes are rejected rather than creating phantom slots.
+    assert.equal(parseGadget('Inspector Gadget S99E99 Made Up.mp4'), null);
   });
 });
 
@@ -499,44 +537,91 @@ describe('parseAquaTeen', () => {
 });
 
 describe('parseRobotech', () => {
-  it('parses Macross Saga (1x… = season 1)', () => {
-    assert.deepEqual(parseRobotech('Robotech - 1x01 - Boobytrap.mp4'), {
+  // The Robotech IA items ship two file variants per episode: the
+  // upscaled HEVC/E-AC-3 original (browser-broken outside Safari)
+  // and IA's auto-generated h.264+AAC `.ia.mp4` derivative. We
+  // accept only the latter (see `acceptFile` in shows.js), so the
+  // parser sees `.ia.mp4` names at runtime. The non-derivative
+  // assertions below stay as defensive regressions in case IA ever
+  // backfills cleanly-encoded plain `.mp4` originals on these items
+  // (or we migrate to a new upload).
+  it('parses Macross Saga .ia.mp4 derivatives (1x… = season 1)', () => {
+    assert.deepEqual(parseRobotech('Robotech - 1x01 - Boobytrap.ia.mp4'), {
       season: 1,
       episode: 1,
       title: 'Boobytrap'
     });
-    assert.deepEqual(parseRobotech('Robotech - 1x36 - To the Stars.mp4'), {
+    assert.deepEqual(parseRobotech('Robotech - 1x36 - To the Stars.ia.mp4'), {
       season: 1,
       episode: 36,
       title: 'To the Stars'
     });
   });
 
-  it('parses Masters (2x… = season 2)', () => {
-    assert.deepEqual(parseRobotech("Robotech - 2x01 - Dana's Story.mp4"), {
+  it('parses Masters .ia.mp4 derivatives (2x… = season 2)', () => {
+    assert.deepEqual(parseRobotech("Robotech - 2x01 - Dana's Story.ia.mp4"), {
       season: 2,
       episode: 1,
       title: "Dana's Story"
     });
-    assert.deepEqual(parseRobotech('Robotech - 2x24 - Catastrophe.mp4'), {
+    assert.deepEqual(parseRobotech('Robotech - 2x24 - Catastrophe.ia.mp4'), {
       season: 2,
       episode: 24,
       title: 'Catastrophe'
     });
   });
 
-  it('parses New Generation (3x… = season 3)', () => {
-    assert.deepEqual(parseRobotech('Robotech - 3x25 - Symphony of Light.mp4'), {
+  it('parses New Generation .ia.mp4 derivatives (3x… = season 3)', () => {
+    assert.deepEqual(parseRobotech('Robotech - 3x25 - Symphony of Light.ia.mp4'), {
       season: 3,
       episode: 25,
       title: 'Symphony of Light'
     });
   });
 
+  it('still parses plain .mp4 names as a defensive regression', () => {
+    // acceptFile rejects these at runtime today, but the parser
+    // should remain lenient — if IA ever offers cleanly-encoded
+    // plain mp4 originals, only the show's acceptFile needs to
+    // change, not the parser.
+    assert.deepEqual(parseRobotech('Robotech - 1x01 - Boobytrap.mp4'), {
+      season: 1,
+      episode: 1,
+      title: 'Boobytrap'
+    });
+  });
+
   it('returns null for unrelated files', () => {
     assert.equal(parseRobotech('cover.jpg'), null);
     assert.equal(parseRobotech('Robotech The Movie 1986.mp4'), null);
-    assert.equal(parseRobotech('Robotech - S01E01 - Boobytrap.mp4'), null);
+    assert.equal(parseRobotech('Robotech - S01E01 - Boobytrap.ia.mp4'), null);
+  });
+});
+
+describe('robotech acceptFile (codec gate)', () => {
+  // The Robotech entry's custom acceptFile is the load-bearing
+  // piece that picks h.264+AAC derivatives over HEVC+E-AC-3
+  // originals. If this gate ever silently regresses to the default,
+  // playback in Chrome / Firefox goes silent again. Locking it in.
+  const robotechAcceptFile = getShow('robotech').acceptFile;
+
+  it('accepts .ia.mp4 derivatives', () => {
+    assert.equal(robotechAcceptFile({ name: 'Robotech - 1x01 - Boobytrap.ia.mp4' }), true);
+  });
+
+  it('rejects the plain .mp4 originals (HEVC + E-AC-3 in current uploads)', () => {
+    assert.equal(robotechAcceptFile({ name: 'Robotech - 1x01 - Boobytrap.mp4' }), false);
+  });
+
+  it('rejects non-mp4 files', () => {
+    assert.equal(robotechAcceptFile({ name: 'cover.jpg' }), false);
+    assert.equal(robotechAcceptFile({ name: 'metadata.xml' }), false);
+  });
+
+  it('tolerates malformed inputs without throwing', () => {
+    assert.equal(robotechAcceptFile({}), false);
+    assert.equal(robotechAcceptFile({ name: null }), false);
+    assert.equal(robotechAcceptFile({ name: 42 }), false);
   });
 });
 
@@ -622,34 +707,52 @@ describe('parseTMNT', () => {
   });
 });
 
-describe('parseSpeedRacer', () => {
+describe('speed-racer (generic matcher)', () => {
+  // Most files have a leftover "G:/Videos/Downloads/Speed Racer/"
+  // path prefix from the uploader's Windows machine; basename
+  // strips it. The generic matcher pulls SxxExx and uses TVMaze's
+  // canonical titles instead of the dump's in-filename ones (which
+  // included a fullwidth colon glyph in S01E52 as a Windows
+  // filename workaround). S01E20 ("The Fastest Car On Earth, Part 1")
+  // is genuinely absent from the IA upload — calibration is clean
+  // because there's no file to disagree about.
+  const speedRacerDescriptions = new Map([
+    ['S01E01', { name: 'The Great Plan (1)' }],
+    ['S01E51', { name: 'The Race Around the World (1)' }],
+    ['S01E52', { name: 'The Race Around the World (2)' }]
+  ]);
+  const parseSpeedRacer = makeGenericParser(speedRacerDescriptions);
+
   it('strips the leftover Windows path prefix and parses S01E01', () => {
     assert.deepEqual(
       parseSpeedRacer(
         'G:/Videos/Downloads/Speed Racer/Speed Racer - S01E01 - The Great Plan (Pt. 1).mp4'
       ),
-      { season: 1, episode: 1, title: 'The Great Plan (Pt. 1)' }
+      { season: 1, episode: 1, title: 'The Great Plan (1)' }
     );
   });
 
   it('parses the no-prefix form (the last two episodes ship that way)', () => {
     assert.deepEqual(
       parseSpeedRacer('Speed Racer - S01E51 - The Race Around the World (Pt. 1).mp4'),
-      { season: 1, episode: 51, title: 'The Race Around the World (Pt. 1)' }
+      { season: 1, episode: 51, title: 'The Race Around the World (1)' }
     );
   });
 
-  it('preserves the fullwidth-colon glyph in S01E52 (Windows filename workaround)', () => {
+  it('parses S01E52 (the bespoke had a fullwidth-colon quirk; matcher uses TVMaze title)', () => {
     assert.deepEqual(
       parseSpeedRacer('Speed Racer - S01E52 - The Race Around the World： (Pt. 2).mp4'),
-      { season: 1, episode: 52, title: 'The Race Around the World： (Pt. 2)' }
+      { season: 1, episode: 52, title: 'The Race Around the World (2)' }
     );
   });
 
   it('returns null for unrelated files', () => {
     assert.equal(parseSpeedRacer('cover.jpg'), null);
     assert.equal(parseSpeedRacer('Speed Racer 2008 Movie.mp4'), null);
-    assert.equal(parseSpeedRacer('Mach Go Go Go S01E01.mp4'), null);
+  });
+
+  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
+    assert.equal(parseSpeedRacer('Speed Racer - S09E99 - Made Up.mp4'), null);
   });
 });
 
@@ -810,7 +913,22 @@ describe('parseJem', () => {
   });
 });
 
-describe('parseRealGhostbusters', () => {
+describe('real-ghostbusters (generic matcher)', () => {
+  // "Season NN/The Real Ghostbusters - SxxExx - Title SDTV.mp4"
+  // (or DVD). The bespoke parser stripped the trailing source-
+  // quality tag from titles; the generic matcher doesn't need to
+  // — titles come from TVMaze. Paired-episode files
+  // ("S05E11-E12 - Trading Faces + Transcendental Tourists") still
+  // map to the first episode of the pair; the second episode
+  // remains unreachable individually (same behaviour as bespoke).
+  const rgbDescriptions = new Map([
+    ['S01E01', { name: 'Ghosts \u042f Us' }],
+    ['S02E55', { name: 'The Old College Spirit' }],
+    ['S05E08', { name: 'Live! from Al Capone\u2019s Tomb' }],
+    ['S05E11', { name: 'Trading Faces' }]
+  ]);
+  const parseRealGhostbusters = makeGenericParser(rgbDescriptions);
+
   it('parses the season-folder + SDTV-suffix shape', () => {
     assert.deepEqual(
       parseRealGhostbusters(
@@ -820,7 +938,7 @@ describe('parseRealGhostbusters', () => {
     );
   });
 
-  it('strips the DVD suffix from season 2/3 titles', () => {
+  it('handles the DVD suffix on season 2/3 files (title from TVMaze, suffix ignored)', () => {
     assert.deepEqual(
       parseRealGhostbusters(
         'The Real Ghostbusters/Season 02/The Real Ghostbusters - S02E55 - The Old College Spirit DVD.mp4'
@@ -829,7 +947,7 @@ describe('parseRealGhostbusters', () => {
     );
   });
 
-  it('keeps titles with commas, exclamation marks, and ampersands intact', () => {
+  it('keeps TVMaze titles with commas, exclamation marks, and apostrophes intact', () => {
     assert.deepEqual(
       parseRealGhostbusters(
         'The Real Ghostbusters/Season 05/The Real Ghostbusters - S05E08 - Live! from Al Capone\u2019s Tomb SDTV.mp4'
@@ -839,11 +957,13 @@ describe('parseRealGhostbusters', () => {
   });
 
   it('captures only the first episode number from S05 paired files', () => {
+    // S05E11-E12 collapses to the E11 slot; the second episode in
+    // each pair (E12, E14, etc.) is unreachable individually.
     assert.deepEqual(
       parseRealGhostbusters(
         'The Real Ghostbusters/Season 05/The Real Ghostbusters - S05E11-E12 - Trading Faces + Transcendental Tourists SDTV.mp4'
       ),
-      { season: 5, episode: 11, title: 'Trading Faces + Transcendental Tourists' }
+      { season: 5, episode: 11, title: 'Trading Faces' }
     );
   });
 
@@ -851,6 +971,15 @@ describe('parseRealGhostbusters', () => {
     assert.equal(parseRealGhostbusters('cover.jpg'), null);
     assert.equal(
       parseRealGhostbusters('The Real Ghostbusters/Specials/RGB Christmas Special.mp4'),
+      null
+    );
+  });
+
+  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
+    assert.equal(
+      parseRealGhostbusters(
+        'The Real Ghostbusters/Season 09/The Real Ghostbusters - S09E99 - Made Up SDTV.mp4'
+      ),
       null
     );
   });
@@ -983,30 +1112,48 @@ describe('parseDextersLab', () => {
   });
 });
 
-describe('parseDisenchantment', () => {
-  it('parses the canonical S01E01 form', () => {
+describe('disenchantment (generic matcher)', () => {
+  // Bare-SxxExx filenames ("S01E01.mp4"); the IA upload is season 1
+  // only (10 episodes). The generic matcher validates each SxxExx
+  // against TVMaze's episode list and uses its canonical titles
+  // instead of synthesizing "Episode N" placeholders.
+  const dsDescriptions = new Map([
+    ['S01E01', { name: 'A Princess, an Elf, and a Demon Walk Into a Bar' }],
+    ['S01E05', { name: 'Faster, Princess! Kill! Kill!' }],
+    ['S01E10', { name: 'Dreamland Falls' }]
+  ]);
+  const parseDisenchantment = makeGenericParser(dsDescriptions);
+
+  it('parses the canonical bare S01E01 form', () => {
     assert.deepEqual(parseDisenchantment('S01E01.mp4'), {
       season: 1,
       episode: 1,
-      title: 'Episode 1'
+      title: 'A Princess, an Elf, and a Demon Walk Into a Bar'
     });
   });
 
-  it('parses every episode in the S1 dump (E01..E10)', () => {
-    for (let e = 1; e <= 10; e += 1) {
-      const file = `S01E${String(e).padStart(2, '0')}.mp4`;
-      assert.deepEqual(parseDisenchantment(file), {
-        season: 1,
-        episode: e,
-        title: `Episode ${e}`
-      });
-    }
+  it('parses E05 and E10 from the same S1 dump', () => {
+    assert.deepEqual(parseDisenchantment('S01E05.mp4'), {
+      season: 1,
+      episode: 5,
+      title: 'Faster, Princess! Kill! Kill!'
+    });
+    assert.deepEqual(parseDisenchantment('S01E10.mp4'), {
+      season: 1,
+      episode: 10,
+      title: 'Dreamland Falls'
+    });
   });
 
   it('returns null for unrelated files', () => {
     assert.equal(parseDisenchantment('cover.jpg'), null);
-    assert.equal(parseDisenchantment('Disenchantment S01E01.mp4'), null); // has show name
-    assert.equal(parseDisenchantment('S01E01 - Title.mp4'), null); // has title
+  });
+
+  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
+    // The bespoke parser used to accept any SxxExx that matched its
+    // shape regex. The generic matcher cross-checks against TVMaze,
+    // so phantom slots get dropped instead of becoming broken cards.
+    assert.equal(parseDisenchantment('S99E99.mp4'), null);
   });
 });
 
@@ -1240,18 +1387,33 @@ describe('parseCaptainPlanet', () => {
   });
 });
 
-describe('parseDuckman', () => {
-  it('parses the canonical "Duckman S01E01 Title.mp4" form', () => {
+describe('duckman (generic matcher)', () => {
+  // Files come with a "Duckman/Season N/" path prefix (basename
+  // strips it), a missing-space variant ("DuckmanS01E11") on most of
+  // S1/S2, and a stray trailing-space S02E01. The generic matcher
+  // sidesteps all three by parsing SxxExx anywhere in the basename
+  // and ignoring the rest of the filename — titles come from TVMaze.
+  const duckmanDescriptions = new Map([
+    ['S01E01', { name: 'I, Duckman' }],
+    ['S01E11', { name: 'American Dicks' }],
+    ['S02E01', { name: 'Papa Oom M.O.W. M.O.W.' }],
+    ['S02E03', { name: 'Days of Whining and Neurosis' }],
+    ['S04E22', { name: 'Four Weddings Inconceivable' }]
+  ]);
+  const parseDuckman = makeGenericParser(duckmanDescriptions);
+
+  it('parses the canonical S01E01 form with the "Duckman/Season N/" path prefix', () => {
     assert.deepEqual(parseDuckman('Duckman/Season 1/Duckman S01E01 I, Duckman (Pilot).mp4'), {
       season: 1,
       episode: 1,
-      title: 'I, Duckman (Pilot)'
+      title: 'I, Duckman'
     });
   });
 
   it('handles the missing-space variant ("DuckmanS01E11")', () => {
     // S1 E11–E13 and most of S2 lose the space between "Duckman" and
-    // the SxxExx token. The `\s?` in the regex makes both forms valid.
+    // the SxxExx token. The generic matcher doesn't care — it scans
+    // for SxxExx anywhere in the basename.
     assert.deepEqual(parseDuckman('Duckman/Season 1/DuckmanS01E11 American Dicks.mp4'), {
       season: 1,
       episode: 11,
@@ -1267,9 +1429,7 @@ describe('parseDuckman', () => {
     );
   });
 
-  it('strips the trailing space before .mp4 on S02E01', () => {
-    // Only one file in the dump has a stray trailing space before the
-    // extension; the `\s*\.mp4$` tail eats it.
+  it('handles the stray trailing-space S02E01 file', () => {
     assert.deepEqual(parseDuckman('Duckman/Season 2/DuckmanS02E01 Papa Oom M.O.W. M.O.W. .mp4'), {
       season: 2,
       episode: 1,
@@ -1279,10 +1439,10 @@ describe('parseDuckman', () => {
 
   it('parses two-digit episode numbers in the long S04 run', () => {
     assert.deepEqual(
-      parseDuckman('Duckman/Season 4/Duckman S04E28 Four Weddings Inconceivable.mp4'),
+      parseDuckman('Duckman/Season 4/Duckman S04E22 Four Weddings Inconceivable.mp4'),
       {
         season: 4,
-        episode: 28,
+        episode: 22,
         title: 'Four Weddings Inconceivable'
       }
     );
@@ -1290,8 +1450,10 @@ describe('parseDuckman', () => {
 
   it('returns null for unrelated files', () => {
     assert.equal(parseDuckman('cover.jpg'), null);
-    assert.equal(parseDuckman('Duckman S01E01.mp4'), null); // missing title
-    assert.equal(parseDuckman('S01E01 Duckman Pilot.mp4'), null); // wrong shape
+  });
+
+  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
+    assert.equal(parseDuckman('Duckman/Season 9/Duckman S09E99 Made Up.mp4'), null);
   });
 });
 
@@ -1436,19 +1598,36 @@ describe('parseHarveyBirdman', () => {
   });
 });
 
-describe('parseMontyPython', () => {
-  it('parses the canonical "MPFC SxxExx Title.mp4" form', () => {
+describe('monty-python (generic matcher)', () => {
+  // "Series N/MPFC SxxExx Title.mp4" across all 4 series (Series 4
+  // is the truncated 6-episode post-Cleese run). The generic
+  // matcher skips the series-folder prefix via basename, pulls
+  // SxxExx, and looks up canonical titles (with apostrophes,
+  // periods, etc.) from TVMaze.
+  const mpDescriptions = new Map([
+    ['S01E01', { name: 'Whither Canada?' }],
+    ['S01E12', { name: 'The Naked Ant' }],
+    ['S02E12', { name: 'Spam' }],
+    ['S03E02', { name: "Mr. and Mrs. Brian Norris' Ford Popular" }],
+    ['S03E11', { name: 'Dennis Moore' }],
+    ['S04E01', { name: 'The Golden Age of Ballooning' }],
+    ['S04E05', { name: 'Mr. Neutron' }],
+    ['S04E06', { name: 'Party Political Broadcast' }]
+  ]);
+  const parseMontyPython = makeGenericParser(mpDescriptions);
+
+  it('parses the canonical "MPFC SxxExx Title.mp4" form with the series-folder prefix', () => {
     assert.deepEqual(parseMontyPython('Series 1/MPFC S01E01 Whither Canada.mp4'), {
       season: 1,
       episode: 1,
-      title: 'Whither Canada'
+      title: 'Whither Canada?'
     });
   });
 
-  it('keeps apostrophes and periods in titles', () => {
+  it('uses TVMaze titles with apostrophes and periods, replacing the in-filename version', () => {
     assert.deepEqual(
       parseMontyPython("Series 3/MPFC S03E02 Mr. And Mrs. Brian Norris' Ford Popular.mp4"),
-      { season: 3, episode: 2, title: "Mr. And Mrs. Brian Norris' Ford Popular" }
+      { season: 3, episode: 2, title: "Mr. and Mrs. Brian Norris' Ford Popular" }
     );
     assert.deepEqual(parseMontyPython('Series 4/MPFC S04E05 Mr. Neutron.mp4'), {
       season: 4,
@@ -1482,22 +1661,39 @@ describe('parseMontyPython', () => {
 
   it('returns null for unrelated files', () => {
     assert.equal(parseMontyPython('cover.jpg'), null);
-    assert.equal(parseMontyPython("Monty Python's Flying Circus S01E01.mp4"), null); // wrong prefix
-    assert.equal(parseMontyPython('MPFC s01e01 lowercase.mp4'), null); // case-sensitive on purpose
+  });
+
+  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
+    assert.equal(parseMontyPython('Series 9/MPFC S09E99 Made Up.mp4'), null);
   });
 });
 
-describe('parseAvengers', () => {
+describe('avengers (generic matcher)', () => {
+  // Two sibling iaItems: S4 ships as "the avengers s4e1.mp4" (space-
+  // separated, no title) and S5 as "the avengers-s5e1-restored-720p-
+  // hd.mp4" (dash-separated, quality suffix). The generic matcher
+  // ignores both the prefix and the suffix, scanning for SxxExx and
+  // validating against TVMaze — so titles come from TVMaze instead
+  // of the placeholder "Episode N" the bespoke parser had to seed.
+  const avengersDescriptions = new Map([
+    ['S04E01', { name: 'The Town of No Return' }],
+    ['S04E24', { name: 'Honey for the Prince' }],
+    ['S05E01', { name: 'From Venus with Love' }],
+    ['S05E12', { name: 'The Joker' }],
+    ['S05E25', { name: 'Mission... Highly Improbable' }]
+  ]);
+  const parseAvengers = makeGenericParser(avengersDescriptions);
+
   it('parses the S4 space-separated form ("the avengers s4e1.mp4")', () => {
     assert.deepEqual(parseAvengers('the avengers s4e1.mp4'), {
       season: 4,
       episode: 1,
-      title: 'Episode 1'
+      title: 'The Town of No Return'
     });
     assert.deepEqual(parseAvengers('the avengers s4e24.mp4'), {
       season: 4,
       episode: 24,
-      title: 'Episode 24'
+      title: 'Honey for the Prince'
     });
   });
 
@@ -1505,39 +1701,39 @@ describe('parseAvengers', () => {
     assert.deepEqual(parseAvengers('the avengers-s5e1-restored-720p-hd.mp4'), {
       season: 5,
       episode: 1,
-      title: 'Episode 1'
+      title: 'From Venus with Love'
     });
     assert.deepEqual(parseAvengers('the avengers-s5e25-restored-720p-hd.mp4'), {
       season: 5,
       episode: 25,
-      title: 'Episode 25'
+      title: 'Mission... Highly Improbable'
     });
   });
 
   it('handles the S5E12 missing-dash quirk ("s5e12restored-720p-hd")', () => {
-    // The S5 dump's E12 file omits the dash between the episode id
-    // and "restored"; the regex's optional `-?` lets it through
-    // instead of silently dropping the episode.
+    // The bespoke parser had a `-?` to allow the missing dash; the
+    // generic matcher doesn't care about the suffix at all and just
+    // pulls SxxExx out of the basename.
     assert.deepEqual(parseAvengers('the avengers-s5e12restored-720p-hd.mp4'), {
       season: 5,
       episode: 12,
-      title: 'Episode 12'
+      title: 'The Joker'
     });
-  });
-
-  it('drops the stray S6 preview that lives in the S5 dump', () => {
-    // The S5 upload accidentally bundles one S6 preview ripped at
-    // 576p-sd instead of 720p-hd. We don't have the rest of S6 here,
-    // so the regex's exact "restored-720p-hd" suffix gate rejects
-    // the loner rather than surfacing an isolated S06E01 in the catalog.
-    assert.equal(parseAvengers('the avengers-s6e1-restored-576p-sd.mp4'), null);
   });
 
   it('returns null for unrelated files', () => {
     assert.equal(parseAvengers('cover.jpg'), null);
     assert.equal(parseAvengers('Avengers Endgame.mp4'), null);
-    // Newer Marvel "Avengers" shows would have a different prefix:
-    assert.equal(parseAvengers("Marvel's Avengers Assemble S01E01.mp4"), null);
+  });
+
+  it('returns null for SxxExx not in the TVMaze fixture (no S6 in this dump)', () => {
+    // The S5 upload occasionally bundles a 576p-sd S6 preview. The
+    // bespoke parser dropped it via a strict 720p-hd suffix gate.
+    // The generic matcher drops it because S06 isn't in the
+    // descriptions we feed it for this dump (real production
+    // descriptions cover the full TVMaze episode list — calibration
+    // confirms the two iaItems still match 1:1 with the matcher).
+    assert.equal(parseAvengers('the avengers-s6e1-restored-576p-sd.mp4'), null);
   });
 });
 
@@ -1574,8 +1770,25 @@ describe('parseFrankenhole', () => {
   });
 });
 
-describe('parseHomeMovies', () => {
-  it('parses the canonical "Home.Movies-S01e01.Title.Words-N.mp4" form, replacing dots with spaces', () => {
+describe('home-movies (generic matcher)', () => {
+  // "Home.Movies-S01e01.Get.Away.From.My.Mom-1.mp4". The bespoke
+  // parser had to undo the dot-as-space convention, strip the
+  // trailing global episode counter ("-13"), and preserve in-title
+  // hyphens. The generic matcher does none of that — it scans for
+  // SxxExx and uses TVMaze's titles directly, so the entire
+  // filename-mangling stack collapses.
+  const hmDescriptions = new Map([
+    ['S01E01', { name: 'Get Away From My Mom' }],
+    ['S01E02', { name: "I Don't Do Well in Parent-Teacher Conferences" }],
+    ['S01E13', { name: 'School Nurse' }],
+    ['S02E01', { name: 'Politics' }],
+    ['S03E01', { name: 'Shore Leave' }],
+    ['S04E01', { name: 'Camp' }],
+    ['S04E13', { name: 'Coffin for Two' }]
+  ]);
+  const parseHomeMovies = makeGenericParser(hmDescriptions);
+
+  it('parses the canonical "Home.Movies-S01e01.Title.Words-N.mp4" form', () => {
     assert.deepEqual(parseHomeMovies('Home.Movies-S01e01.Get.Away.From.My.Mom-1.mp4'), {
       season: 1,
       episode: 1,
@@ -1583,18 +1796,14 @@ describe('parseHomeMovies', () => {
     });
   });
 
-  it('keeps in-title hyphens intact (e.g. "Parent-Teacher")', () => {
-    // The separator we strip is the dot, not the hyphen, so compound
-    // words like "Parent-Teacher" survive the normalization. The
-    // contraction "Don't" likewise stays intact since `.` only
-    // replaces inter-word dots.
+  it('handles compound-word titles ("Parent-Teacher", apostrophes) via TVMaze', () => {
     assert.deepEqual(
       parseHomeMovies("Home.Movies-S01e02.I.Don't.Do.Well.In.Parent-Teacher.Conferences-2.mp4"),
-      { season: 1, episode: 2, title: "I Don't Do Well In Parent-Teacher Conferences" }
+      { season: 1, episode: 2, title: "I Don't Do Well in Parent-Teacher Conferences" }
     );
   });
 
-  it('strips the trailing global episode counter ("-13", "-52")', () => {
+  it('ignores the trailing global episode counter ("-13", "-52")', () => {
     assert.deepEqual(parseHomeMovies('Home.Movies-S01e13.School.Nurse-13.mp4'), {
       season: 1,
       episode: 13,
@@ -1603,7 +1812,7 @@ describe('parseHomeMovies', () => {
     assert.deepEqual(parseHomeMovies('Home.Movies-S04e13.Coffin.For.Two-52.mp4'), {
       season: 4,
       episode: 13,
-      title: 'Coffin For Two'
+      title: 'Coffin for Two'
     });
   });
 
@@ -1623,8 +1832,10 @@ describe('parseHomeMovies', () => {
 
   it('returns null for unrelated files', () => {
     assert.equal(parseHomeMovies('cover.jpg'), null);
-    assert.equal(parseHomeMovies('Home.Movies-S01e01.mp4'), null); // missing title + counter
-    assert.equal(parseHomeMovies('home.movies.s01e01.title-1.mp4'), null); // dotted, but wrong case-sensitive prefix
+  });
+
+  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
+    assert.equal(parseHomeMovies('Home.Movies-S09e99.Made.Up-99.mp4'), null);
   });
 });
 
@@ -1707,32 +1918,48 @@ describe('parseCritic', () => {
   });
 });
 
-describe('parseCrystalMaze', () => {
-  it('parses the canonical "The.Crystal.Maze.S01E01.mp4" form', () => {
+describe('crystal-maze (generic matcher)', () => {
+  // "The Crystal Maze - Season 1 [1990]/The.Crystal.Maze.S01E01.mp4".
+  // Dotted filenames with no in-file titles (the show numbered
+  // episodes without titling them). The generic matcher pulls
+  // SxxExx straight out of the basename. TVMaze stores some
+  // S1 episodes with brief summaries or placeholder names; for
+  // the ones it doesn't, the title comes through as an empty
+  // string (rendered as the slot's "Episode N" elsewhere).
+  const cmDescriptions = new Map([
+    ['S01E01', { name: '' }],
+    ['S01E07', { name: '' }],
+    ['S01E13', { name: '' }]
+  ]);
+  const parseCrystalMaze = makeGenericParser(cmDescriptions);
+
+  it('parses the canonical "The.Crystal.Maze.S01E01.mp4" form with the season-folder prefix', () => {
     assert.deepEqual(
       parseCrystalMaze('The Crystal Maze - Season 1 [1990]/The.Crystal.Maze.S01E01.mp4'),
-      { season: 1, episode: 1, title: 'Episode 1' }
+      { season: 1, episode: 1, title: '' }
     );
   });
 
-  it('parses every episode in the S1 dump (E01..E13)', () => {
-    for (let e = 1; e <= 13; e += 1) {
+  it('parses the spot-checked S1 episodes that are in the TVMaze fixture', () => {
+    for (const e of [1, 7, 13]) {
       const file = `The Crystal Maze - Season 1 [1990]/The.Crystal.Maze.S01E${String(e).padStart(
         2,
         '0'
       )}.mp4`;
-      assert.deepEqual(parseCrystalMaze(file), {
-        season: 1,
-        episode: e,
-        title: `Episode ${e}`
-      });
+      assert.deepEqual(parseCrystalMaze(file), { season: 1, episode: e, title: '' });
     }
   });
 
   it('returns null for unrelated files', () => {
     assert.equal(parseCrystalMaze('cover.jpg'), null);
-    assert.equal(parseCrystalMaze('The Crystal Maze S01E01.mp4'), null); // space-separated, not dotted
-    assert.equal(parseCrystalMaze('The.Crystal.Maze.S01E01.Aztec.Zone.mp4'), null); // unexpected title
+  });
+
+  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
+    // In the fixture only S01E01, E07, E13 are present. In
+    // production TVMaze returns the full S1 list (E01..E13) and
+    // calibration confirms the matcher recovers all 13 files.
+    assert.equal(parseCrystalMaze('The.Crystal.Maze.S09E99.mp4'), null);
+    assert.equal(parseCrystalMaze('The.Crystal.Maze.S01E05.mp4'), null);
   });
 });
 
@@ -1907,7 +2134,20 @@ describe('parseSpiderMan', () => {
   });
 });
 
-describe('parseTick', () => {
+describe('tick (generic matcher)', () => {
+  // "SxEx - Title.mp4" (single-digit season; the bespoke parser
+  // anchored exactly on that shape). The generic matcher accepts
+  // 1-2 digit seasons via `[Ss]\d{1,2}`, so it handles both this
+  // dump and any future re-uploads. Titles come from TVMaze.
+  const tickDescriptions = new Map([
+    ['S01E01', { name: 'The Tick vs. The Idea Men' }],
+    ['S01E03', { name: 'The Tick vs. Dinosaur Neil' }],
+    ['S01E13', { name: 'The Tick vs. Pineapple Pokopo' }],
+    ['S02E01', { name: 'The Tick vs. The Mole-Men' }],
+    ['S03E10', { name: 'Tick vs. Education' }]
+  ]);
+  const parseTick = makeGenericParser(tickDescriptions);
+
   it('parses the canonical "SxEx - Title.mp4" form (no path prefix)', () => {
     assert.deepEqual(parseTick('S1E01 - The Tick vs. The Idea Men.mp4'), {
       season: 1,
@@ -1934,9 +2174,7 @@ describe('parseTick', () => {
     });
   });
 
-  it('keeps periods inside titles ("The Tick vs.")', () => {
-    // Almost every title has "vs." in it. The greedy `.+` capture
-    // takes the period without confusing it with the .mp4 extension.
+  it('keeps periods inside TVMaze titles ("The Tick vs.")', () => {
     assert.deepEqual(parseTick('S1E03 - The Tick vs. Dinosaur Neil.mp4'), {
       season: 1,
       episode: 3,
@@ -1946,21 +2184,33 @@ describe('parseTick', () => {
 
   it('returns null for unrelated files', () => {
     assert.equal(parseTick('cover.jpg'), null);
-    assert.equal(parseTick('The Tick S01E01.mp4'), null); // SxxExx, not SxEx
-    assert.equal(parseTick('S01E01 - The Tick vs. The Idea Men.mp4'), null); // 2-digit season; this dump uses 1-digit
+  });
+
+  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
+    assert.equal(parseTick('S9E99 - Made Up.mp4'), null);
   });
 });
 
-describe('parseVoyagers', () => {
+describe('voyagers (generic matcher)', () => {
+  // "Voyagers! - S01E01 (Pilot).mp4" — the bespoke parser unwrapped
+  // the parenthesised title; the generic matcher ignores it and
+  // uses TVMaze's canonical title instead.
+  const voyagersDescriptions = new Map([
+    ['S01E01', { name: 'Voyagers!' }],
+    ['S01E04', { name: 'Agents of Satan' }],
+    ['S01E20', { name: 'Jack\u2019s Back' }]
+  ]);
+  const parseVoyagers = makeGenericParser(voyagersDescriptions);
+
   it('parses the canonical "Voyagers! - S01E01 (Title).mp4" form', () => {
     assert.deepEqual(parseVoyagers('Voyagers! - S01E01 (Pilot).mp4'), {
       season: 1,
       episode: 1,
-      title: 'Pilot'
+      title: 'Voyagers!'
     });
   });
 
-  it('parses titles with embedded spaces and capitalization', () => {
+  it('parses titles with embedded spaces and apostrophes', () => {
     assert.deepEqual(parseVoyagers('Voyagers! - S01E04 (Agents of Satan).mp4'), {
       season: 1,
       episode: 4,
@@ -1975,8 +2225,10 @@ describe('parseVoyagers', () => {
 
   it('returns null for unrelated files', () => {
     assert.equal(parseVoyagers('cover.jpg'), null);
-    assert.equal(parseVoyagers('Voyagers S01E01 Pilot.mp4'), null); // missing ! and parens
-    assert.equal(parseVoyagers('Voyagers! - S01E01.mp4'), null); // missing title parens
+  });
+
+  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
+    assert.equal(parseVoyagers('Voyagers! - S09E99 (Made Up).mp4'), null);
   });
 });
 
@@ -2104,7 +2356,19 @@ describe('parseReboot', () => {
   });
 });
 
-describe('parseAmazingStories', () => {
+describe('amazing-stories (generic matcher)', () => {
+  // "Amazing Stories (1985) - S01E01 - Ghost Train.mp4". The dump
+  // also ships a `0 Amazing Stories.mp4` series-promo file that has
+  // no SxxExx token and falls out naturally. The generic matcher
+  // pulls titles from TVMaze rather than parsing them from the
+  // filename, so the in-name " - Ghost Train" suffix is now decorative.
+  const amazingDescriptions = new Map([
+    ['S01E01', { name: 'Ghost Train' }],
+    ['S01E24', { name: 'Hell Toupee' }],
+    ['S02E21', { name: 'Miss Stardust' }]
+  ]);
+  const parseAmazingStories = makeGenericParser(amazingDescriptions);
+
   it('parses the canonical "Amazing Stories (1985) - S01E01 - Title.mp4" form', () => {
     assert.deepEqual(parseAmazingStories('Amazing Stories (1985) - S01E01 - Ghost Train.mp4'), {
       season: 1,
@@ -2127,54 +2391,82 @@ describe('parseAmazingStories', () => {
   });
 
   it('rejects the lone "0 Amazing Stories.mp4" promo file', () => {
-    // Series-promo without an SxxExx number; the anchored regex drops
-    // it without needing a special case.
     assert.equal(parseAmazingStories('0 Amazing Stories.mp4'), null);
   });
 
   it('returns null for unrelated files', () => {
     assert.equal(parseAmazingStories('cover.jpg'), null);
-    assert.equal(parseAmazingStories('Amazing Stories - S01E01 - Ghost Train.mp4'), null); // missing (1985)
+  });
+
+  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
+    assert.equal(parseAmazingStories('Amazing Stories (1985) - S09E99 - Made Up.mp4'), null);
   });
 });
 
-describe('parseAstroBoy', () => {
+describe('astro-boy (generic matcher)', () => {
+  // "Astro Boy (1963) RN/Astro Boy S1E001.mp4". The bespoke parser
+  // anchored on exactly three episode digits (E001..E104) and
+  // synthesized "Episode N" placeholders since the dub uploads
+  // shipped without titles. The generic matcher accepts 1-3 digit
+  // episode numbers and pulls canonical English titles from
+  // TVMaze instead.
+  const astroDescriptions = new Map([
+    ['S01E01', { name: 'The Birth of Astro Boy' }],
+    ['S01E50', { name: 'The Sphinx' }],
+    ['S01E104', { name: 'Astro Boy and the Junk Mountain' }]
+  ]);
+  const parseAstroBoy = makeGenericParser(astroDescriptions);
+
   it('parses the canonical "Astro Boy S1E001.mp4" three-digit form', () => {
     assert.deepEqual(parseAstroBoy('Astro Boy (1963) R1/Astro Boy S1E001.mp4'), {
       season: 1,
       episode: 1,
-      title: 'Episode 1'
+      title: 'The Birth of Astro Boy'
     });
   });
 
-  it('parses every episode in the 104-episode dub run', () => {
-    // Spot-check the boundary cases: E001 (start), E050 (mid), E104 (end).
+  it('parses the boundary cases: E050 (mid), E104 (end)', () => {
     assert.deepEqual(parseAstroBoy('Astro Boy (1963) R3/Astro Boy S1E050.mp4'), {
       season: 1,
       episode: 50,
-      title: 'Episode 50'
+      title: 'The Sphinx'
     });
     assert.deepEqual(parseAstroBoy('Astro Boy (1963) R6/Astro Boy S1E104.mp4'), {
       season: 1,
       episode: 104,
-      title: 'Episode 104'
+      title: 'Astro Boy and the Junk Mountain'
     });
   });
 
   it('returns null for unrelated files', () => {
     assert.equal(parseAstroBoy('cover.jpg'), null);
-    // Two-digit episode numbers would indicate a different dump; we
-    // anchor on exactly three digits.
-    assert.equal(parseAstroBoy('Astro Boy S1E01.mp4'), null);
+  });
+
+  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
+    assert.equal(parseAstroBoy('Astro Boy S9E999.mp4'), null);
   });
 });
 
-describe('parseFawltyTowers', () => {
+describe('fawlty-towers (generic matcher)', () => {
+  // "Fawlty Towers S01E01 - A touch of class.mp4". 6 episodes per
+  // season across 2 seasons. The bespoke parser preserved the
+  // uploader's inconsistent title capitalization ("A touch of class"
+  // mixed sentence/title case); the generic matcher pulls titles
+  // from TVMaze instead, so episodes now show in canonical form
+  // ("A Touch of Class").
+  const fawltyDescriptions = new Map([
+    ['S01E01', { name: 'A Touch of Class' }],
+    ['S01E03', { name: 'The Wedding Party' }],
+    ['S01E06', { name: 'The Germans' }],
+    ['S02E06', { name: 'Basil the Rat' }]
+  ]);
+  const parseFawltyTowers = makeGenericParser(fawltyDescriptions);
+
   it('parses the canonical "Fawlty Towers S01E01 - Title.mp4" form', () => {
     assert.deepEqual(parseFawltyTowers('Fawlty Towers S01E01 - A touch of class.mp4'), {
       season: 1,
       episode: 1,
-      title: 'A touch of class'
+      title: 'A Touch of Class'
     });
   });
 
@@ -2187,23 +2479,26 @@ describe('parseFawltyTowers', () => {
     assert.deepEqual(parseFawltyTowers('Fawlty Towers S02E06 - Basil the rat.mp4'), {
       season: 2,
       episode: 6,
-      title: 'Basil the rat'
+      title: 'Basil the Rat'
     });
   });
 
-  it('keeps the uploader\u2019s inconsistent title capitalization intact', () => {
-    // "The wedding party" mixes Title- and sentence-case; TVMaze can
-    // graft the canonical version later, the parser doesn't normalize.
+  it('replaces the uploader\u2019s inconsistent capitalization with the TVMaze canonical title', () => {
+    // Filename has "The wedding party" (sentence case); the generic
+    // matcher swaps in TVMaze's "The Wedding Party" automatically.
     assert.deepEqual(parseFawltyTowers('Fawlty Towers S01E03 - The wedding party.mp4'), {
       season: 1,
       episode: 3,
-      title: 'The wedding party'
+      title: 'The Wedding Party'
     });
   });
 
   it('returns null for unrelated files', () => {
     assert.equal(parseFawltyTowers('cover.jpg'), null);
-    assert.equal(parseFawltyTowers('Fawlty Towers - S01E01.mp4'), null); // missing title separator
+  });
+
+  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
+    assert.equal(parseFawltyTowers('Fawlty Towers S09E99 - Made Up.mp4'), null);
   });
 });
 
@@ -2248,11 +2543,21 @@ describe('parseJonnyQuest', () => {
   });
 });
 
-describe('parseSonicSatAM', () => {
+describe('sonic-satam (generic matcher)', () => {
+  // "NN. SxEx Title.mp4". The bespoke parser had to skip the
+  // leading "NN." playback-order prefix (the uploader added it so
+  // the pilot — broadcast S1E13 but chronologically first — plays
+  // first). The generic matcher scans for SxEx anywhere in the
+  // basename and doesn't care about the prefix or in-filename title.
+  const sonicDescriptions = new Map([
+    ['S01E01', { name: 'Sonic Boom' }],
+    ['S01E10', { name: 'Warp Sonic' }],
+    ['S01E13', { name: 'Heads or Tails' }],
+    ['S02E13', { name: 'The Doomsday Project' }]
+  ]);
+  const parseSonicSatAM = makeGenericParser(sonicDescriptions);
+
   it('parses the canonical "NN. SxEx Title.mp4" form, ignoring the playback-order prefix', () => {
-    // The pilot ("Heads or Tails") is broadcast S1E13 but ships first
-    // (NN=01) so it plays in chronological order. The parser keeps
-    // the SxEx as the authoritative slot.
     assert.deepEqual(parseSonicSatAM('01. S1E13 Heads or Tails.mp4'), {
       season: 1,
       episode: 13,
@@ -2278,11 +2583,365 @@ describe('parseSonicSatAM', () => {
     });
   });
 
+  it('also works without the playback-order prefix (matcher is permissive)', () => {
+    // The bespoke required "NN. " exactly; the matcher is happy
+    // with or without it.
+    assert.deepEqual(parseSonicSatAM('S1E1 Sonic Boom.mp4'), {
+      season: 1,
+      episode: 1,
+      title: 'Sonic Boom'
+    });
+  });
+
   it('returns null for unrelated files', () => {
     assert.equal(parseSonicSatAM('cover.jpg'), null);
-    // Missing the leading "NN." playback-order prefix.
-    assert.equal(parseSonicSatAM('S1E1 Sonic Boom.mp4'), null);
-    // Three-digit prefix — this dump uses exactly two.
-    assert.equal(parseSonicSatAM('001. S1E1 Sonic Boom.mp4'), null);
+  });
+
+  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
+    assert.equal(parseSonicSatAM('99. S9E99 Made Up.mp4'), null);
+  });
+});
+
+describe('star-trek-tos (generic matcher)', () => {
+  // Filenames are "Star Trek_ The Original Series_S01E01_The Man Trap.mp4"
+  // (underscore-separated). The generic matcher pulls SxxExx out of
+  // the basename without caring about the surrounding separators
+  // and uses TVMaze's canonical titles. 79 episodes in the dump
+  // match TVMaze 1:1 (S1=29, S2=26, S3=24).
+  const tosDescriptions = new Map([
+    ['S01E01', { name: 'The Man Trap' }],
+    ['S01E08', { name: 'Miri' }],
+    ['S02E04', { name: 'Mirror, Mirror' }],
+    ['S02E15', { name: 'The Trouble with Tribbles' }],
+    ['S03E24', { name: 'Turnabout Intruder' }]
+  ]);
+  const parseStarTrek = makeGenericParser(tosDescriptions);
+
+  it('parses the canonical underscore-separated form', () => {
+    assert.deepEqual(parseStarTrek('Star Trek_ The Original Series_S01E01_The Man Trap.mp4'), {
+      season: 1,
+      episode: 1,
+      title: 'The Man Trap'
+    });
+  });
+
+  it('parses iconic episodes across all three seasons', () => {
+    assert.deepEqual(parseStarTrek('Star Trek_ The Original Series_S02E04_Mirror, _Mirror_.mp4'), {
+      season: 2,
+      episode: 4,
+      title: 'Mirror, Mirror'
+    });
+    assert.deepEqual(
+      parseStarTrek('Star Trek_ The Original Series_S02E15_The Trouble with Tribbles.mp4'),
+      { season: 2, episode: 15, title: 'The Trouble with Tribbles' }
+    );
+    assert.deepEqual(
+      parseStarTrek('Star Trek_ The Original Series_S03E24_The Turnabout Intruder.mp4'),
+      { season: 3, episode: 24, title: 'Turnabout Intruder' }
+    );
+  });
+
+  it('returns null for unrelated files', () => {
+    assert.equal(parseStarTrek('cover.jpg'), null);
+    assert.equal(parseStarTrek('Star Trek II - The Wrath of Khan (1982).mp4'), null);
+  });
+
+  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
+    // TOS only has 3 seasons; the dub's "TAS S01E01" would be a
+    // different show. The matcher rejects it because TAS uses a
+    // separate TVMaze id (3513) and isn't in this fixture.
+    assert.equal(parseStarTrek('Star Trek_ The Original Series_S04E01_Never Aired.mp4'), null);
+  });
+});
+
+describe('star-trek-enterprise (generic matcher)', () => {
+  // Filenames are "Star Trek ENT S01E03 Fight or Flight.mp4". The
+  // pilot ships as a paired-episode file
+  // ("S01E01+E02 Broken Bow Pt 1 + Pt 2.mp4") which collapses onto
+  // S01E01 — same behaviour as Real Ghostbusters' S05 pair files,
+  // so the second episode of each pair (E02 here) is unreachable
+  // individually. A "0 Star Trek Enterprise.mp4" promo at the root
+  // has no SxxExx and falls out.
+  const entDescriptions = new Map([
+    ['S01E01', { name: 'Broken Bow' }],
+    ['S01E03', { name: 'Fight or Flight' }],
+    ['S03E24', { name: 'Zero Hour' }],
+    ['S04E22', { name: 'These Are the Voyages...' }]
+  ]);
+  const parseEnt = makeGenericParser(entDescriptions);
+
+  it('parses the canonical "Star Trek ENT SxxExx Title.mp4" form', () => {
+    assert.deepEqual(parseEnt('Star Trek ENT S01E03 Fight or Flight.mp4'), {
+      season: 1,
+      episode: 3,
+      title: 'Fight or Flight'
+    });
+  });
+
+  it('collapses the paired pilot onto S01E01 with the TVMaze title', () => {
+    // "S01E01+E02 Broken Bow Pt 1 + Pt 2" — the matcher's SxxExx
+    // regex stops at the first valid token, so the file maps to
+    // S01E01 ("Broken Bow") and the second episode in the pair is
+    // unreachable individually.
+    assert.deepEqual(parseEnt('Star Trek ENT S01E01+E02 Broken Bow Pt 1 + Pt 2.mp4'), {
+      season: 1,
+      episode: 1,
+      title: 'Broken Bow'
+    });
+  });
+
+  it('parses the series finale ("These Are the Voyages...") with the trailing ellipsis', () => {
+    assert.deepEqual(parseEnt('Star Trek ENT S04E22 These Are the Voyages.mp4'), {
+      season: 4,
+      episode: 22,
+      title: 'These Are the Voyages...'
+    });
+  });
+
+  it('returns null for the root-level "0 Star Trek Enterprise.mp4" promo', () => {
+    // No SxxExx token; the matcher drops it without needing a
+    // special acceptFile rule.
+    assert.equal(parseEnt('0 Star Trek Enterprise.mp4'), null);
+  });
+
+  it('returns null for unrelated files', () => {
+    assert.equal(parseEnt('cover.jpg'), null);
+    assert.equal(parseEnt('Star Trek First Contact (1996).mp4'), null);
+  });
+
+  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
+    assert.equal(parseEnt('Star Trek ENT S09E99 Made Up.mp4'), null);
+  });
+});
+
+describe('star-trek-ds9 (generic matcher)', () => {
+  // "Star Trek DS9 S01E03 Past Prologue.mp4". Same filename shape as
+  // Enterprise: standard SxxExx, paired-pilot files
+  // ("S01E01+E02 Emissary Pt 1+ Pt 2") that collapse onto the first
+  // episode of each pair, and a "0 deep space nine.mp4" promo at
+  // the root that has no SxxExx and falls out.
+  const ds9Descriptions = new Map([
+    ['S01E01', { name: 'Emissary (1)' }],
+    ['S01E03', { name: 'Past Prologue' }],
+    ['S04E06', { name: 'The Visitor' }],
+    ['S06E19', { name: 'In the Pale Moonlight' }],
+    ['S07E26', { name: 'What You Leave Behind, Part II' }]
+  ]);
+  const parseDS9 = makeGenericParser(ds9Descriptions);
+
+  it('parses the canonical "Star Trek DS9 SxxExx Title.mp4" form', () => {
+    assert.deepEqual(parseDS9('Star Trek DS9 S01E03 Past Prologue.mp4'), {
+      season: 1,
+      episode: 3,
+      title: 'Past Prologue'
+    });
+  });
+
+  it('collapses the paired pilot onto S01E01 with the TVMaze title', () => {
+    assert.deepEqual(parseDS9('Star Trek DS9 S01E01+E02 Emissary Pt 1+ Pt 2.mp4'), {
+      season: 1,
+      episode: 1,
+      title: 'Emissary (1)'
+    });
+  });
+
+  it('parses iconic mid-series episodes', () => {
+    assert.deepEqual(parseDS9('Star Trek DS9 S04E06 The Visitor.mp4'), {
+      season: 4,
+      episode: 6,
+      title: 'The Visitor'
+    });
+    assert.deepEqual(parseDS9('Star Trek DS9 S06E19 In the Pale Moonlight.mp4'), {
+      season: 6,
+      episode: 19,
+      title: 'In the Pale Moonlight'
+    });
+  });
+
+  it('returns null for the root-level "0 deep space nine.mp4" promo', () => {
+    assert.equal(parseDS9('0 deep space nine.mp4'), null);
+  });
+
+  it('returns null for unrelated files', () => {
+    assert.equal(parseDS9('cover.jpg'), null);
+  });
+
+  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
+    assert.equal(parseDS9('Star Trek DS9 S09E99 Made Up.mp4'), null);
+  });
+});
+
+describe('star-trek-voyager (generic matcher)', () => {
+  // "Star Trek VOY S01E03 Parallax.mp4". Same shape as DS9 — paired
+  // pilot ("S01E01+E02 Caretaker Pt 1 + Pt 2") collapses onto
+  // S01E01, "0 Star Trek Voyager.mp4" promo at the root drops out.
+  const voyDescriptions = new Map([
+    ['S01E01', { name: 'Caretaker (1)' }],
+    ['S01E03', { name: 'Parallax' }],
+    ['S04E08', { name: 'Year of Hell (1)' }],
+    ['S05E15', { name: 'Bride of Chaotica!' }],
+    ['S07E25', { name: 'Endgame, Part I' }]
+  ]);
+  const parseVoy = makeGenericParser(voyDescriptions);
+
+  it('parses the canonical "Star Trek VOY SxxExx Title.mp4" form', () => {
+    assert.deepEqual(parseVoy('Star Trek VOY S01E03 Parallax.mp4'), {
+      season: 1,
+      episode: 3,
+      title: 'Parallax'
+    });
+  });
+
+  it('collapses the paired pilot onto S01E01 with the TVMaze title', () => {
+    assert.deepEqual(parseVoy('Star Trek VOY S01E01+E02 Caretaker Pt 1 + Pt 2.mp4'), {
+      season: 1,
+      episode: 1,
+      title: 'Caretaker (1)'
+    });
+  });
+
+  it('parses iconic mid-series episodes', () => {
+    assert.deepEqual(parseVoy('Star Trek VOY S04E08 Year of Hell Pt 1.mp4'), {
+      season: 4,
+      episode: 8,
+      title: 'Year of Hell (1)'
+    });
+    assert.deepEqual(parseVoy('Star Trek VOY S05E15 Bride of Chaotica.mp4'), {
+      season: 5,
+      episode: 15,
+      title: 'Bride of Chaotica!'
+    });
+  });
+
+  it('returns null for the root-level promo file', () => {
+    assert.equal(parseVoy('0 Star Trek Voyager.mp4'), null);
+  });
+
+  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
+    assert.equal(parseVoy('Star Trek VOY S09E99 Made Up.mp4'), null);
+  });
+});
+
+describe('star-trek-tas (generic matcher)', () => {
+  // "Star Trek TAS S01E01.mp4" — bare SxxExx, no in-file titles
+  // (like Disenchantment did before migration). The matcher pulls
+  // canonical names from TVMaze. 22 episodes across 2 seasons; the
+  // dump also ships a "0 star trek animated.mp4" promo that has no
+  // SxxExx and falls out naturally.
+  const tasDescriptions = new Map([
+    ['S01E01', { name: 'Beyond the Farthest Star' }],
+    ['S01E16', { name: 'The Jihad' }],
+    ['S02E06', { name: 'The Counter-Clock Incident' }]
+  ]);
+  const parseTas = makeGenericParser(tasDescriptions);
+
+  it('parses the canonical bare "Star Trek TAS S01E01.mp4" form', () => {
+    assert.deepEqual(parseTas('Star Trek TAS S01E01.mp4'), {
+      season: 1,
+      episode: 1,
+      title: 'Beyond the Farthest Star'
+    });
+  });
+
+  it('parses S01 mid-series and the S02 finale', () => {
+    assert.deepEqual(parseTas('Star Trek TAS S01E16.mp4'), {
+      season: 1,
+      episode: 16,
+      title: 'The Jihad'
+    });
+    assert.deepEqual(parseTas('Star Trek TAS S02E06.mp4'), {
+      season: 2,
+      episode: 6,
+      title: 'The Counter-Clock Incident'
+    });
+  });
+
+  it('returns null for the root-level promo file', () => {
+    assert.equal(parseTas('0 star trek animated.mp4'), null);
+  });
+
+  it('returns null for SxxExx beyond the 22-episode series', () => {
+    assert.equal(parseTas('Star Trek TAS S03E01.mp4'), null);
+  });
+});
+
+describe('star-trek-tng (generic matcher)', () => {
+  // Different uploader than the other Treks — uses the verbose form
+  // "Star Trek The Next Generation Season 1 Episode 03 - The Naked
+  // Now.mp4". No compact SxxExx token appears, so this fixture
+  // exercises the "season_episode" strategy in shows-dynamic.js.
+  // Paired-pilot ("Season 1 Episode 01 & 02 - Encounter at
+  // Farpoint") collapses onto S01E01; the "Season 7 Episode 25 & 26
+  // - All Good Things" finale collapses onto S07E25.
+  const tngDescriptions = new Map([
+    ['S01E01', { name: 'Encounter at Farpoint' }],
+    ['S01E03', { name: 'The Naked Now' }],
+    ['S03E26', { name: 'The Best of Both Worlds' }],
+    ['S05E25', { name: 'The Inner Light' }],
+    ['S07E25', { name: 'All Good Things... (1)' }]
+  ]);
+  const parseTng = makeGenericParser(tngDescriptions);
+
+  it('parses the canonical "Season N Episode NN" form', () => {
+    assert.deepEqual(
+      parseTng('Star Trek The Next Generation Season 1 Episode 03 - The Naked Now.mp4'),
+      {
+        season: 1,
+        episode: 3,
+        title: 'The Naked Now'
+      }
+    );
+  });
+
+  it('collapses the paired pilot onto S01E01 with the TVMaze title', () => {
+    assert.deepEqual(
+      parseTng(
+        'Star Trek The Next Generation Season 1 Episode 01 & 02 - Encounter at Farpoint.mp4'
+      ),
+      {
+        season: 1,
+        episode: 1,
+        title: 'Encounter at Farpoint'
+      }
+    );
+  });
+
+  it('parses iconic mid-series episodes', () => {
+    assert.deepEqual(
+      parseTng('Star Trek The Next Generation Season 3 Episode 26 - The Best of Both Worlds.mp4'),
+      {
+        season: 3,
+        episode: 26,
+        title: 'The Best of Both Worlds'
+      }
+    );
+    assert.deepEqual(
+      parseTng('Star Trek The Next Generation Season 5 Episode 25 - The Inner Light.mp4'),
+      {
+        season: 5,
+        episode: 25,
+        title: 'The Inner Light'
+      }
+    );
+  });
+
+  it('collapses the "All Good Things" finale onto S07E25', () => {
+    assert.deepEqual(
+      parseTng('Star Trek The Next Generation Season 7 Episode 25 & 26 - All Good Things.mp4'),
+      {
+        season: 7,
+        episode: 25,
+        title: 'All Good Things... (1)'
+      }
+    );
+  });
+
+  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
+    assert.equal(parseTng('Star Trek The Next Generation Season 9 Episode 99 - Made Up.mp4'), null);
+  });
+
+  it('returns null for unrelated files (no Season/Episode token)', () => {
+    assert.equal(parseTng('cover.jpg'), null);
+    assert.equal(parseTng('Star Trek First Contact (1996).mp4'), null);
   });
 });

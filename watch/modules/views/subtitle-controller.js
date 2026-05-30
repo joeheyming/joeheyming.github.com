@@ -58,6 +58,7 @@ import {
  *   dispose: () => void,
  *   getActiveLang: () => string | null,
  *   getOffset: () => number,
+ *   toggleCaptions: () => void,
  * }}
  */
 export function createSubtitleController(deps) {
@@ -367,6 +368,44 @@ export function createSubtitleController(deps) {
     },
     getOffset() {
       return subtitleOffset;
+    },
+    /**
+     * YouTube-style `C` shortcut. Three behaviours, in priority order:
+     *
+     *  1. A `<track>` is already attached → flip its `mode` between
+     *     `showing` and `disabled`. No network round-trip; the user
+     *     gets instant on/off.
+     *  2. No track, but the show has an imdbId AND a saved language
+     *     for this session → kick off the same auto-load path the
+     *     episode-change flow uses, with a "LOADING…" toast.
+     *  3. Otherwise → pop the language menu so the user can pick.
+     *
+     * For shows without an imdbId (no subtitle source), flash a short
+     * "UNAVAILABLE" toast so the keypress doesn't feel inert.
+     */
+    toggleCaptions() {
+      if (activeTrack && activeTrack.track) {
+        if (activeTrack.track.mode === 'showing') {
+          activeTrack.track.mode = 'disabled';
+          subsBtn.classList.remove('is-active');
+          flash('CAPTIONS OFF');
+        } else {
+          activeTrack.track.mode = 'showing';
+          subsBtn.classList.add('is-active');
+          flash('CAPTIONS ON');
+        }
+        return;
+      }
+      if (!show.imdbId || !current) {
+        flash('CAPTIONS UNAVAILABLE');
+        return;
+      }
+      if (prefs.subtitleLang && current.season > 0) {
+        flash('LOADING CAPTIONS…');
+        void maybeAutoLoadSubtitles(current, prefs.subtitleLang);
+        return;
+      }
+      void openSubsMenu();
     }
   };
 }

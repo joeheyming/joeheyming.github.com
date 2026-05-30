@@ -16,6 +16,7 @@
  */
 
 import { loadDescriptions, makeKey as descKey } from './descriptions.js';
+import { makeGenericParser } from './shows-dynamic.js';
 
 /** @typedef {import('./shows.js').ShowConfig} ShowConfig */
 /** @typedef {import('./descriptions.js').EpisodeInfo} EpisodeInfo */
@@ -85,10 +86,25 @@ export async function getMergedCatalog(show) {
   if (pending) return pending;
 
   const work = (async () => {
-    const [catalog, descriptions] = await Promise.all([
-      loadCatalog(show),
-      loadDescriptions(show.tvmazeId)
-    ]);
+    // Two paths depending on whether the show ships a bespoke parser:
+    //   - With parser: original parallel fetch (catalog + descriptions)
+    //     — neither depends on the other.
+    //   - Without parser: descriptions MUST come first so we can build
+    //     the generic parser from TVMaze's episode list before walking
+    //     IA's files. TVMaze localStorage cache makes warm starts free;
+    //     cold starts pay the extra ~300-500ms of serial fetching.
+    let catalog;
+    let descriptions;
+    if (show.parser) {
+      [catalog, descriptions] = await Promise.all([
+        loadCatalog(show),
+        loadDescriptions(show.tvmazeId)
+      ]);
+    } else {
+      descriptions = await loadDescriptions(show.tvmazeId);
+      const effective = { ...show, parser: makeGenericParser(descriptions) };
+      catalog = await loadCatalog(effective);
+    }
     mergeDescriptions(catalog, descriptions);
     mergedCache.set(show.id, catalog);
     return catalog;

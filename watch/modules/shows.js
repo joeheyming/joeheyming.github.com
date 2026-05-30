@@ -78,9 +78,15 @@ export const ALL_TAGS = new Set(/** @type {string[]} */ (Object.values(TAG_GROUP
  * @property {(file: { name?: unknown, format?: unknown }) => boolean} [acceptFile]
  *   Filter applied to each raw file before parsing. Defaults to "mp4
  *   only, no .ia.mp4 derivative".
- * @property {(filename: string, itemId: string) => ({ season: number, episode: number, title: string } | null)} parser
- *   The second `itemId` argument is the archive.org item the file came
- *   from; single-item shows can ignore it. Multi-item shows whose
+ * @property {(filename: string, itemId: string) => ({ season: number, episode: number, title: string } | null)} [parser]
+ *   Filename → (season, episode, title) extractor. **Optional** as of
+ *   the parser-only calibration (`scripts/calibrate-matcher.mjs`):
+ *   when omitted, the catalog builder substitutes a generic matcher
+ *   (`makeGenericParser` in `shows-dynamic.js`) keyed off TVMaze's
+ *   episode list. Drop the bespoke parser when the calibration shows
+ *   the show as "clean" (100% recall, 0% disagreement); keep it for
+ *   "mismap" / "nomatch" verdicts. The second `itemId` argument is
+ *   the archive.org item the file came from; multi-item shows whose
  *   per-item filenames overlap (G.I. Joe S1 and S2 both use plain
  *   `N. Title.mp4`) need it to disambiguate the season.
  * @property {(filename: string) => boolean} [movieDetector]
@@ -110,6 +116,10 @@ function basename(file) {
 /** @type {ShowConfig[]} */
 export const SHOWS = [
   {
+    // Parser-only calibration verdict: clean, recall=100%, disagree=0%.
+    // The generic SxxExx matcher in shows-dynamic.js reproduces this
+    // show's filename mapping exactly; the `0 Amazing Stories.mp4`
+    // series-promo file has no SxxExx token and falls out naturally.
     id: 'amazing-stories',
     name: 'Amazing Stories',
     shortName: 'Amazing Stories',
@@ -121,16 +131,7 @@ export const SHOWS = [
     iaItem: 'amazing-stories-1985-1987-complete-series',
     tvmazeId: 1122,
     imdbId: 'tt0088478',
-    acceptFile: defaultAcceptMp4,
-    parser: (file) => {
-      // "Amazing Stories (1985) - S01E01 - Ghost Train.mp4". The dump
-      // also ships a `0 Amazing Stories.mp4` series-promo file that
-      // sits before the numbered episodes; the anchored regex drops
-      // it silently.
-      const m = basename(file).match(/^Amazing Stories \(1985\) - S(\d{2})E(\d{2}) - (.+)\.mp4$/);
-      if (!m) return null;
-      return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
-    }
+    acceptFile: defaultAcceptMp4
   },
   {
     id: 'aqua-teen',
@@ -161,6 +162,10 @@ export const SHOWS = [
     }
   },
   {
+    // Parser-only calibration verdict: clean, recall=100%, disagree=0%.
+    // The generic SxxExx matcher handles three-digit episode numbers
+    // (E001..E104) and uses TVMaze's canonical English titles instead
+    // of the placeholder "Episode N" the bespoke parser had to seed.
     id: 'astro-boy',
     name: 'Astro Boy (1963)',
     shortName: 'Astro Boy',
@@ -171,20 +176,16 @@ export const SHOWS = [
       'Tezuka\u2019s rocket-booted little robot in his original black-and-white 1963 run \u2014 the show that effectively invented TV anime, all 104 episodes English-dubbed',
     iaItem: 'astro-boy-1963',
     tvmazeId: 7788,
-    acceptFile: defaultAcceptMp4,
-    parser: (file) => {
-      // "Astro Boy (1963) R1/Astro Boy S1E001.mp4". The dump uses
-      // three-digit episode numbers (E001..E104) and no titles \u2014
-      // the original Japanese names map awkwardly to the English-dub
-      // broadcast order, so the uploader skipped them. We seed
-      // "Episode N" and let TVMaze fill in canonical titles on graft.
-      const m = basename(file).match(/^Astro Boy S(\d)E(\d{3})\.mp4$/i);
-      if (!m) return null;
-      const episode = Number(m[2]);
-      return { season: Number(m[1]), episode, title: `Episode ${episode}` };
-    }
+    acceptFile: defaultAcceptMp4
   },
   {
+    // Parser-only calibration verdict: clean, recall=100%, disagree=0%.
+    // The generic SxxExx matcher handles both filename shapes (S4's
+    // "the avengers s4e1.mp4" and S5's "the avengers-s5e1-restored-
+    // 720p-hd.mp4", including the missing-dash S5E12 variant) by
+    // ignoring the prefix and suffix and validating SxxExx against
+    // TVMaze's episode list. Titles come from TVMaze instead of a
+    // synthetic "Episode N" placeholder.
     id: 'avengers',
     name: 'The Avengers (1961)',
     shortName: 'The Avengers',
@@ -202,22 +203,7 @@ export const SHOWS = [
     ],
     tvmazeId: 1929,
     imdbId: 'tt0054518',
-    acceptFile: defaultAcceptMp4,
-    parser: (file) => {
-      // S4 ships as "the avengers s4e1.mp4" (space-separated) and S5
-      // as "the avengers-s5e1-restored-720p-hd.mp4" (dash-separated
-      // with a quality suffix). S5E12 specifically drops the dash
-      // before "restored" ("s5e12restored-720p-hd"), so the suffix
-      // group makes the leading hyphen optional. Neither dump
-      // carries titles — we seed "Episode N" so TVMaze can graft on
-      // "The Town of No Return" / "From Venus with Love" / etc.
-      const m = basename(file).match(
-        /^the avengers[ -]s(\d)e(\d{1,2})(?:-?restored-720p-hd)?\.mp4$/i
-      );
-      if (!m) return null;
-      const episode = Number(m[2]);
-      return { season: Number(m[1]), episode, title: `Episode ${episode}` };
-    }
+    acceptFile: defaultAcceptMp4
   },
   {
     id: 'beavis',
@@ -361,6 +347,10 @@ export const SHOWS = [
     }
   },
   {
+    // Parser-only calibration verdict: clean, recall=100%, disagree=0%.
+    // Dotted filenames ("The.Crystal.Maze.S01E01.mp4") with no in-file
+    // titles; the generic matcher pulls SxxExx out and lets TVMaze
+    // provide any episode summaries the catalog wants.
     id: 'crystal-maze',
     name: 'The Crystal Maze',
     shortName: 'Crystal Maze',
@@ -372,17 +362,7 @@ export const SHOWS = [
     iaItem: 'the-crystal-maze-season-1-1990',
     tvmazeId: 4713,
     imdbId: 'tt0098774',
-    acceptFile: defaultAcceptMp4,
-    parser: (file) => {
-      // "The Crystal Maze - Season 1 [1990]/The.Crystal.Maze.S01E01.mp4".
-      // No titles in the files (the show numbered episodes without
-      // titling them); we seed "Episode N" so TVMaze episode summaries
-      // can graft on later if the catalog wants them.
-      const m = basename(file).match(/^The\.Crystal\.Maze\.S(\d{2})E(\d{2})\.mp4$/i);
-      if (!m) return null;
-      const episode = Number(m[2]);
-      return { season: Number(m[1]), episode, title: `Episode ${episode}` };
-    }
+    acceptFile: defaultAcceptMp4
   },
   {
     id: 'dbz',
@@ -445,6 +425,10 @@ export const SHOWS = [
     }
   },
   {
+    // Parser-only calibration verdict: clean, recall=100%, disagree=0%.
+    // Bare-SxxExx filenames ("S01E01.mp4"); the generic matcher in
+    // shows-dynamic.js handles them and pulls real titles from TVMaze
+    // instead of placeholder "Episode N" strings.
     id: 'disenchantment',
     name: 'Disenchantment',
     shortName: 'Disenchantment',
@@ -456,21 +440,7 @@ export const SHOWS = [
     iaItem: 'SitCom-18',
     tvmazeId: 30715,
     imdbId: 'tt5363918',
-    acceptFile: defaultAcceptMp4,
-    parser: (file) => {
-      // "S01E01.mp4" — bare SxxExx, no show name or title in the
-      // filename. The IA upload is season 1 only (10 episodes); the
-      // four later parts that Netflix released as separate seasons
-      // are not in this dump. Placeholder titles get overwritten by
-      // TVMaze ("A Princess, an Elf, and a Demon Walk Into a Bar"…).
-      const m = basename(file).match(/^S(\d{2})E(\d{2})\.mp4$/i);
-      if (!m) return null;
-      return {
-        season: Number(m[1]),
-        episode: Number(m[2]),
-        title: `Episode ${Number(m[2])}`
-      };
-    }
+    acceptFile: defaultAcceptMp4
   },
   {
     id: 'dnd',
@@ -529,6 +499,12 @@ export const SHOWS = [
     }
   },
   {
+    // Parser-only calibration verdict: clean, recall=100%, disagree=0%.
+    // The generic SxxExx matcher handles the season-folder prefix
+    // (basename strips it), the optional space ("Duckman S01E01" vs
+    // "DuckmanS01E11"), and the stray trailing-space S02E01 file by
+    // ignoring the title in the filename entirely and pulling it
+    // from TVMaze.
     id: 'duckman',
     name: 'Duckman: Private Dick/Family Man',
     shortName: 'Duckman',
@@ -540,17 +516,7 @@ export const SHOWS = [
     iaItem: 'DuckmanComplete',
     tvmazeId: 414,
     imdbId: 'tt0108755',
-    acceptFile: defaultAcceptMp4,
-    parser: (file) => {
-      // "Duckman/Season 1/Duckman S01E01 I, Duckman (Pilot).mp4". The
-      // space between "Duckman" and "SxxExx" is missing on a chunk of
-      // S1/S2 ("DuckmanS01E11"), and one S2 file has a trailing space
-      // before the extension ("Papa Oom M.O.W. M.O.W. .mp4") — both
-      // are handled by the optional `\s?` and trailing `\s*`.
-      const m = basename(file).match(/^Duckman\s?S(\d{2})E(\d{2}) (.+?)\s*\.mp4$/i);
-      if (!m) return null;
-      return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
-    }
+    acceptFile: defaultAcceptMp4
   },
   {
     id: 'ducktales',
@@ -589,6 +555,11 @@ export const SHOWS = [
     }
   },
   {
+    // Parser-only calibration verdict: clean, recall=100%, disagree=0%.
+    // The bespoke parser used to preserve the uploader's inconsistent
+    // title capitalization ("A touch of class"); the generic matcher
+    // ignores the in-filename title and uses TVMaze's canonical form
+    // instead ("A Touch of Class"). All 12 episodes still map 1:1.
     id: 'fawlty-towers',
     name: 'Fawlty Towers',
     shortName: 'Fawlty Towers',
@@ -600,17 +571,7 @@ export const SHOWS = [
     iaItem: 'fawlty-towers-complete-series-1975',
     tvmazeId: 577,
     imdbId: 'tt0072500',
-    acceptFile: defaultAcceptMp4,
-    parser: (file) => {
-      // "Fawlty Towers S01E01 - A touch of class.mp4". 6 episodes per
-      // season across 2 seasons; titles are kept as the uploader
-      // wrote them (capitalization is inconsistent: "A touch of
-      // class" vs. "The Builders" \u2014 we leave them alone since the
-      // catalog can graft TVMaze's canonical titles on later).
-      const m = basename(file).match(/^Fawlty Towers S(\d{2})E(\d{2}) - (.+)\.mp4$/);
-      if (!m) return null;
-      return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
-    }
+    acceptFile: defaultAcceptMp4
   },
   {
     id: 'frankenhole',
@@ -744,6 +705,12 @@ export const SHOWS = [
     }
   },
   {
+    // Parser-only calibration verdict: clean, recall=100%, disagree=0%.
+    // The bespoke parser had to undo the uploader's dot-as-space
+    // convention ("Get.Away.From.My.Mom") and strip a trailing
+    // global episode counter ("-13"). The generic matcher sidesteps
+    // both by ignoring the in-filename title and using TVMaze's
+    // canonical titles directly.
     id: 'home-movies',
     name: 'Home Movies',
     shortName: 'Home Movies',
@@ -755,21 +722,13 @@ export const SHOWS = [
     iaItem: 'home-movies',
     tvmazeId: 7760,
     imdbId: 'tt0197159',
-    acceptFile: defaultAcceptMp4,
-    parser: (file) => {
-      // "Home.Movies-S01e01.Get.Away.From.My.Mom-1.mp4". Dots are
-      // word separators (literal periods would be doubled), and the
-      // trailing "-N" is the global episode counter across seasons
-      // (1..52) which duplicates the in-season SxxExx and we drop
-      // it. Title hyphens (e.g. "Parent-Teacher") are kept since the
-      // separator we strip is the dot, not the hyphen.
-      const m = basename(file).match(/^Home\.Movies-S(\d{2})e(\d{2})\.(.+)-\d+\.mp4$/i);
-      if (!m) return null;
-      const title = m[3].replace(/\./g, ' ').trim();
-      return { season: Number(m[1]), episode: Number(m[2]), title };
-    }
+    acceptFile: defaultAcceptMp4
   },
   {
+    // Parser-only calibration verdict: clean, recall=100%, disagree=0%.
+    // The generic SxxExx matcher in shows-dynamic.js reproduces this
+    // show's filename mapping exactly (86 of 86 files agree). No
+    // bespoke parser needed.
     id: 'inspector-gadget',
     name: 'Inspector Gadget',
     shortName: 'Gadget',
@@ -780,14 +739,7 @@ export const SHOWS = [
     iaItem: 'inspector-gadget-go-go-gadget-series',
     tvmazeId: 4579,
     imdbId: 'tt0085033',
-    acceptFile: defaultAcceptMp4,
-    parser: (file) => {
-      // "Inspector Gadget S01E01 Winter Olympics.mp4" — same general
-      // shape as South Park, just without the "[R]" remaster tag.
-      const m = basename(file).match(/^Inspector Gadget S(\d{1,2})E(\d{1,2})\s+(.*)\.mp4$/i);
-      if (!m) return null;
-      return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
-    }
+    acceptFile: defaultAcceptMp4
   },
   {
     id: 'jem',
@@ -898,6 +850,11 @@ export const SHOWS = [
     }
   },
   {
+    // Parser-only calibration verdict: clean, recall=100%, disagree=0%.
+    // "Series N/MPFC SxxExx Title.mp4" — series-folder prefix is
+    // stripped by basename, SxxExx is matched directly, and titles
+    // (with all their apostrophes and periods) come from TVMaze
+    // instead of being parsed out of the filename.
     id: 'monty-python',
     name: "Monty Python's Flying Circus",
     shortName: 'Monty Python',
@@ -909,17 +866,7 @@ export const SHOWS = [
     iaItem: 'mpfc-s-01-e-02-sex-and-violence',
     tvmazeId: 694,
     imdbId: 'tt0063929',
-    acceptFile: defaultAcceptMp4,
-    parser: (file) => {
-      // "Series 1/MPFC S01E01 Whither Canada.mp4". Titles include
-      // apostrophes ("Mr. And Mrs. Brian Norris' Ford Popular") and
-      // periods ("Mr. Neutron"); both pass through the `.+` greedy
-      // capture cleanly. Series 4 only has 6 episodes (the
-      // post-Cleese run) — TVMaze matches per-series numbering.
-      const m = basename(file).match(/^MPFC S(\d{2})E(\d{2}) (.+)\.mp4$/);
-      if (!m) return null;
-      return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
-    }
+    acceptFile: defaultAcceptMp4
   },
   {
     id: 'mst3k',
@@ -1003,6 +950,16 @@ export const SHOWS = [
     }
   },
   {
+    // Parser-only calibration verdict: clean, recall=100%, disagree=0%.
+    // The bespoke parser stripped a trailing source-quality tag
+    // (SDTV / DVD) from titles; the generic matcher doesn't need to
+    // because titles come from TVMaze. Paired-episode files
+    // ("S05E11-E12 - Trading Faces + Transcendental Tourists") still
+    // map to the first episode of the pair (the matcher's regex is
+    // non-greedy and stops at the first SxxExx token, same as the
+    // bespoke); the second episode in each pair remains unreachable
+    // individually — pragmatic loss until we model pair episodes
+    // properly.
     id: 'real-ghostbusters',
     name: 'The Real Ghostbusters',
     shortName: 'Ghostbusters',
@@ -1013,24 +970,7 @@ export const SHOWS = [
     iaItem: 'the-real-ghostbusters',
     tvmazeId: 4299,
     imdbId: 'tt0090506',
-    acceptFile: defaultAcceptMp4,
-    parser: (file) => {
-      // "The Real Ghostbusters/Season 02/The Real Ghostbusters - S02E55 - The Old College Spirit DVD.mp4"
-      // Files end with a source-quality tag (SDTV / DVD) that we strip
-      // from the title. Season 5 also has paired-episode files like
-      //   "S05E11-E12 - Trading Faces + Transcendental Tourists SDTV.mp4"
-      // — the regex captures only the first episode number, so the
-      // catalog has one entry per file. The second episode in each pair
-      // (E12, E14, E16, E18, E20) is therefore unreachable individually;
-      // playing the E11 slot plays both back-to-back. Pragmatic loss
-      // we accept until we model "pair" episodes properly.
-      const m = basename(file).match(
-        /^The Real Ghostbusters - S(\d{1,2})E(\d{1,2})(?:-E\d{1,2})? - (.+)\.mp4$/i
-      );
-      if (!m) return null;
-      const title = m[3].replace(/\s+(?:SDTV|DVD)$/i, '').trim();
-      return { season: Number(m[1]), episode: Number(m[2]), title };
-    }
+    acceptFile: defaultAcceptMp4
   },
   {
     id: 'reboot',
@@ -1133,19 +1073,35 @@ export const SHOWS = [
     ],
     tvmazeId: 6278,
     imdbId: 'tt0088595',
-    acceptFile: defaultAcceptMp4,
+    // .ia.mp4-only filter — the originals on these items are h.265
+    // (HEVC) video + E-AC-3 audio at 2880x2160 (an AI 4x upscale of
+    // the SD broadcast). Both codecs are Safari-only in browsers;
+    // Chrome / Firefox play silent video at best, nothing at worst.
+    // IA's auto-generated `.ia.mp4` derivative is plain h.264 + AAC
+    // stereo at the native 640x480, which works everywhere.
+    // Coverage today: Macross 36/36, New Generation 26/26, Masters
+    // 9/24 (IA's transcoder is still grinding through the Masters
+    // dump). The remaining Masters episodes will appear automatically
+    // once derivation completes — no code change needed.
+    acceptFile: (raw) => {
+      const name = typeof raw?.name === 'string' ? raw.name : '';
+      return /\.ia\.mp4$/i.test(name);
+    },
     parser: (file) => {
-      // "Robotech - 1x01 - Boobytrap.mp4"
-      // "Robotech - 2x24 - Catastrophe.mp4"
-      // "Robotech - 3x25 - Symphony of Light.mp4"
+      // "Robotech - 1x01 - Boobytrap.ia.mp4"
+      // "Robotech - 2x24 - Catastrophe.ia.mp4"
+      // "Robotech - 3x25 - Symphony of Light.ia.mp4"
       // All three items use the same `Robotech - SxxExx - Title.mp4`
-      // shape with `x` (lowercase) between season and episode. The
-      // cross-saga numbering (1x = Macross, 2x = Masters, 3x = New
-      // Generation) lines up directly with TVMaze's 36/24/25 split, so
-      // descriptions and stills graft cleanly. Filename titles are
-      // close-enough placeholders; mergeDescriptions() overwrites with
-      // TVMaze's canonical titles ("Booby Trap" vs "Boobytrap" etc.).
-      const m = basename(file).match(/^Robotech - (\d{1,2})x(\d{1,2}) - (.*)\.mp4$/i);
+      // shape with `x` (lowercase) between season and episode; the
+      // `(?:\.ia)?` makes the regex tolerate both the derivative
+      // (.ia.mp4) we actually accept here and any future plain-mp4
+      // alternative. The cross-saga numbering (1x = Macross,
+      // 2x = Masters, 3x = New Generation) lines up directly with
+      // TVMaze's 36/24/25 split, so descriptions and stills graft
+      // cleanly. Filename titles are close-enough placeholders;
+      // mergeDescriptions() overwrites with TVMaze's canonical
+      // titles ("Booby Trap" vs "Boobytrap" etc.).
+      const m = basename(file).match(/^Robotech - (\d{1,2})x(\d{1,2}) - (.*?)(?:\.ia)?\.mp4$/i);
       if (!m) return null;
       return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
     }
@@ -1238,6 +1194,13 @@ export const SHOWS = [
     }
   },
   {
+    // Parser-only calibration verdict: clean, recall=100%, disagree=0%.
+    // The bespoke parser preserved a fullwidth-colon glyph in S01E52's
+    // in-filename title; the generic matcher uses TVMaze's canonical
+    // title instead and that quirk no longer matters. S01E20 ("The
+    // Fastest Car On Earth, Part 1") is still genuinely absent from
+    // the IA upload — 51 of 52 episodes show, with a hole between
+    // E19 and E21. Not a parser issue.
     id: 'speed-racer',
     name: 'Speed Racer',
     shortName: 'Speed Racer',
@@ -1248,23 +1211,7 @@ export const SHOWS = [
     iaItem: 'Speed_Racer',
     tvmazeId: 14152,
     imdbId: 'tt0061300',
-    acceptFile: defaultAcceptMp4,
-    parser: (file) => {
-      // Most files have a leftover "G:/Videos/Downloads/Speed Racer/"
-      // path prefix from the uploader's Windows machine, but a few
-      // (the last two episodes) don't. basename() strips either way.
-      //   "G:/Videos/Downloads/Speed Racer/Speed Racer - S01E01 - The Great Plan (Pt. 1).mp4"
-      //   "Speed Racer - S01E52 - The Race Around the World： (Pt. 2).mp4"
-      // S01E52's title uses a fullwidth colon (`：`) where a normal
-      // `:` would be illegal in a Windows filename — kept as-is.
-      //
-      // S01E20 ("The Fastest Car On Earth, Part 1") is genuinely
-      // absent from the IA upload — the catalog will show 51 of 52
-      // episodes with a hole between E19 and E21. Not a parser bug.
-      const m = basename(file).match(/^Speed Racer - S(\d{1,2})E(\d{1,2}) - (.*)\.mp4$/i);
-      if (!m) return null;
-      return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
-    }
+    acceptFile: defaultAcceptMp4
   },
   {
     id: 'spider-man',
@@ -1311,6 +1258,146 @@ export const SHOWS = [
     }
   },
   {
+    // New show, added straight onto the generic matcher (no bespoke
+    // parser). Filenames are "Star Trek_ The Original Series_S01E01_
+    // The Man Trap.mp4" — underscore-separated, but the SxxExx token
+    // sits in the middle and the generic SxxExx matcher in
+    // shows-dynamic.js handles it without modification. 79 mp4
+    // episodes match TVMaze 1:1 (S1=29, S2=26, S3=24).
+    id: 'star-trek-tos',
+    name: 'Star Trek: The Original Series',
+    shortName: 'Star Trek',
+    emoji: '🖖',
+    accent: '#facc15',
+    tags: ['live-action', 'sci-fi', '60s'],
+    tagline:
+      'Boldly going where no man has gone before \u00b7 Kirk, Spock, McCoy and the USS Enterprise NCC-1701 \u00b7 NBC\u2019s 1966\u201369 original, all 79 episodes',
+    iaItem: 'star-trek-the-original-series-s-01-e-01-the-man-trap',
+    tvmazeId: 490,
+    imdbId: 'tt0060028',
+    acceptFile: defaultAcceptMp4
+  },
+  {
+    // New show, added straight onto the generic matcher (no bespoke
+    // parser). Filenames are "Star Trek ENT S01E03 Fight or Flight.mp4"
+    // with a paired-pilot file "S01E01+E02 Broken Bow Pt 1 + Pt 2.mp4"
+    // that collapses onto S01E01 (same behaviour as Real Ghostbusters'
+    // paired episodes). A "0 Star Trek Enterprise.mp4" promo at the
+    // root has no SxxExx and falls out naturally. 98 mp4 episodes
+    // match TVMaze 1:1 (the 4-season ENT run). Note: this dump is
+    // 640x360 — lower resolution than most other shows in the
+    // registry, but it was the only English-language complete-series
+    // upload available on IA at this scale.
+    id: 'star-trek-enterprise',
+    name: 'Star Trek: Enterprise',
+    shortName: 'Enterprise',
+    emoji: '🚀',
+    accent: '#2563eb',
+    tags: ['live-action', 'sci-fi', '2000s'],
+    tagline:
+      'Captain Archer and the first NX-01 crew \u00b7 the 100-years-pre-Kirk prequel \u00b7 UPN\u2019s 2001\u201305 run, all 4 seasons (98 episodes)',
+    iaItem: '0-star-trek-enterprise',
+    tvmazeId: 714,
+    imdbId: 'tt0244365',
+    acceptFile: defaultAcceptMp4
+  },
+  {
+    // New show, generic matcher only. Same uploader and filename
+    // shape as Star Trek: Enterprise — "Star Trek DS9 S01E03 Past
+    // Prologue.mp4" with a paired pilot ("S01E01+E02 Emissary Pt 1+
+    // Pt 2.mp4") and a "0 deep space nine.mp4" promo at the root
+    // that has no SxxExx and falls out. 174 mp4 episodes vs TVMaze's
+    // 176-episode count — the dump pairs E01+E02 and E25+E26
+    // bookends, so per-file count is below per-episode count by
+    // design. 720p source (much higher than ENT's 360p).
+    id: 'star-trek-ds9',
+    name: 'Star Trek: Deep Space Nine',
+    shortName: 'DS9',
+    emoji: '🌀',
+    accent: '#a855f7',
+    tags: ['live-action', 'sci-fi', '90s'],
+    tagline:
+      'Sisko, Kira, Odo, and the crew of the wormhole-adjacent station Bajor inherited from Cardassia \u00b7 Paramount\u2019s 1993\u201399 long-arc Trek, all 7 seasons (176 episodes, 174 files in the dump)',
+    iaItem: '0-star-trek-deep-space-9',
+    tvmazeId: 493,
+    imdbId: 'tt0106145',
+    acceptFile: defaultAcceptMp4
+  },
+  {
+    // New show, generic matcher only. Same uploader and filename
+    // shape as Enterprise/DS9 — "Star Trek VOY S01E03 Parallax.mp4"
+    // with a paired-pilot file ("S01E01+E02 Caretaker Pt 1 + Pt 2")
+    // and a "0 Star Trek Voyager.mp4" promo. 169 mp4 episodes vs
+    // TVMaze's 172 (the pair-collapses account for the difference).
+    // 720p source.
+    id: 'star-trek-voyager',
+    name: 'Star Trek: Voyager',
+    shortName: 'Voyager',
+    emoji: '🛰️',
+    accent: '#0ea5e9',
+    tags: ['live-action', 'sci-fi', '90s'],
+    tagline:
+      'Captain Janeway and the USS Voyager 70,000 light-years from home \u00b7 UPN\u2019s 1995\u20132001 Delta Quadrant run, all 7 seasons (172 episodes, 169 files in the dump)',
+    iaItem: '0-star-trek-voyager',
+    tvmazeId: 492,
+    imdbId: 'tt0112178',
+    acceptFile: defaultAcceptMp4
+  },
+  {
+    // New show, generic matcher only. Same uploader as Enterprise et
+    // al. — "Star Trek TAS S01E01.mp4". TAS files ship without
+    // titles in the filename (like Disenchantment did before
+    // migration); the matcher pulls canonical episode names from
+    // TVMaze. 22 episodes total across 2 seasons; the IA dump has
+    // 22 + 1 promo ("0 star trek animated.mp4") that drops naturally
+    // for having no SxxExx. 720p source.
+    id: 'star-trek-tas',
+    name: 'Star Trek: The Animated Series',
+    shortName: 'Star Trek (TAS)',
+    emoji: '👽',
+    accent: '#16a34a',
+    tags: ['animation', 'sci-fi', '70s'],
+    tagline:
+      'The 1973\u201374 Filmation Saturday-morning continuation of TOS \u00b7 Shatner, Nimoy, and most of the original cast return for 22 half-hour episodes',
+    iaItem: '0-star-trek-animated',
+    tvmazeId: 3513,
+    imdbId: 'tt0069637',
+    acceptFile: defaultAcceptMp4
+  },
+  {
+    // New show, generic matcher only. Different uploader than the
+    // other Treks — uses "Star Trek The Next Generation Season 1
+    // Episode 03 - The Naked Now.mp4". No compact SxxExx token
+    // appears anywhere in the file list, so this entry is the
+    // motivation for the matcher's third strategy
+    // ("season_episode") in shows-dynamic.js. Paired-pilot files
+    // ("Season 1 Episode 01 & 02 - Encounter at Farpoint") collapse
+    // onto S01E01; the S07E25/E26 finale "All Good Things" collapses
+    // onto S07E25, mirroring DS9/VOY behaviour. 176 mp4 files vs
+    // TVMaze's 178 episodes. The 720p Pedro-style upload was
+    // access-restricted (login-only) so this 480p version is the
+    // best publicly-streamable source on IA today.
+    id: 'star-trek-tng',
+    name: 'Star Trek: The Next Generation',
+    shortName: 'TNG',
+    emoji: '🛸',
+    accent: '#dc2626',
+    tags: ['live-action', 'sci-fi', '80s'],
+    tagline:
+      'Captain Picard, Riker, Data, and the Galaxy-class USS Enterprise-D \u00b7 syndicated 1987\u201394 flagship Trek, all 7 seasons (178 episodes, 176 files in the dump)',
+    iaItem: 'star-trek-the-next-generation-season-1-episode-01-02-encounter-at-farpoint',
+    tvmazeId: 491,
+    imdbId: 'tt0092455',
+    acceptFile: defaultAcceptMp4
+  },
+  {
+    // Parser-only calibration verdict: clean, recall=100%, disagree=0%.
+    // Bare "SxEx - Title.mp4" filenames; the generic matcher handles
+    // them and pulls titles from TVMaze instead of parsing the
+    // "The Tick vs. ..." pattern out of every filename. The IA file
+    // ships with the "MPEG4" format tag but the actual codec is
+    // H.264 inside an MP4 container (verified via ftyp/avc1 box),
+    // so browser playback works despite the misleading label.
     id: 'tick',
     name: 'The Tick (1994)',
     shortName: 'The Tick',
@@ -1322,18 +1409,15 @@ export const SHOWS = [
     iaItem: 'the-tick-full-series',
     tvmazeId: 1669,
     imdbId: 'tt0112196',
-    acceptFile: defaultAcceptMp4,
-    parser: (file) => {
-      // "S1E01 - The Tick vs. The Idea Men.mp4". The IA file ships
-      // with the "MPEG4" format tag but the actual codec is H.264
-      // inside an MP4 container (verified via ftyp/avc1 box), so
-      // browser playback works despite the misleading label.
-      const m = basename(file).match(/^S(\d)E(\d{2}) - (.+)\.mp4$/);
-      if (!m) return null;
-      return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
-    }
+    acceptFile: defaultAcceptMp4
   },
   {
+    // Parser-only calibration verdict: clean, recall=100%, disagree=0%.
+    // The bespoke parser had to skip a leading "NN." playback-order
+    // prefix the uploader added so the pilot ("Heads or Tails",
+    // broadcast S1E13 but chronologically first) plays first; the
+    // generic matcher scans for SxEx anywhere in the basename and
+    // doesn't care about the prefix.
     id: 'sonic-satam',
     name: 'Sonic the Hedgehog (SatAM)',
     shortName: 'Sonic SatAM',
@@ -1345,17 +1429,7 @@ export const SHOWS = [
     iaItem: 'Sonic-the-Hedgehog-SatAM-The-Complete-Series-Restored',
     tvmazeId: 19092,
     imdbId: 'tt0106140',
-    acceptFile: defaultAcceptMp4,
-    parser: (file) => {
-      // "01. S1E13 Heads or Tails.mp4". The leading "NN." is a
-      // playback-order prefix the uploader added so the pilot
-      // ("Heads or Tails", broadcast as S1E13 but chronologically
-      // first) plays before the rest of S1. We ignore that prefix
-      // and use the SxEx token as the authoritative episode id.
-      const m = basename(file).match(/^\d{2}\. S(\d)E(\d{1,2}) (.+)\.mp4$/);
-      if (!m) return null;
-      return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
-    }
+    acceptFile: defaultAcceptMp4
   },
   {
     id: 'southpark',
@@ -1468,6 +1542,10 @@ export const SHOWS = [
     }
   },
   {
+    // Parser-only calibration verdict: clean, recall=100%, disagree=0%.
+    // "Voyagers! - S01E01 (Title).mp4" — bespoke parser unwrapped the
+    // parenthesised titles, generic matcher ignores them and uses
+    // TVMaze's canonical titles instead.
     id: 'voyagers',
     name: 'Voyagers!',
     shortName: 'Voyagers',
@@ -1479,16 +1557,7 @@ export const SHOWS = [
     iaItem: 'voyagers-complete-series-1982',
     tvmazeId: 1507,
     imdbId: 'tt0083500',
-    acceptFile: defaultAcceptMp4,
-    parser: (file) => {
-      // "Voyagers! - S01E01 (Pilot).mp4". Titles ship inside
-      // parentheses; we keep the parens since they were the
-      // dump's chosen convention (TVMaze stores them differently
-      // and will overwrite on graft if descriptions are requested).
-      const m = basename(file).match(/^Voyagers! - S(\d{2})E(\d{2}) \((.+)\)\.mp4$/);
-      if (!m) return null;
-      return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
-    }
+    acceptFile: defaultAcceptMp4
   }
 ].sort((a, b) => a.id.localeCompare(b.id));
 

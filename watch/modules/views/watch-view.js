@@ -312,8 +312,13 @@ export async function mount(slot, ctx) {
 
   const help = document.createElement('div');
   help.className = 'tv-help';
+  // Two short rows so the line wrap stays predictable on narrow
+  // viewports. Order roughly matches YouTube's docs: playback, then
+  // seek, then volume / captions, then this app's prev/next.
   help.innerHTML =
-    '<kbd>◀</kbd><kbd>▶</kbd> prev / next · <kbd>J</kbd><kbd>L</kbd> ±10s · <kbd>R</kbd> toggle shuffle · <kbd>Space</kbd> play';
+    '<div><kbd>Space</kbd>/<kbd>K</kbd> play · <kbd>J</kbd>/<kbd>L</kbd> ±10s · <kbd>F</kbd> fullscreen · <kbd>M</kbd> mute · <kbd>C</kbd> captions</div>' +
+    '<div><kbd>↑</kbd>/<kbd>↓</kbd> volume · <kbd>0</kbd>–<kbd>9</kbd> seek · <kbd>Home</kbd>/<kbd>End</kbd> start/end · <kbd>&lt;</kbd>/<kbd>&gt;</kbd> speed</div>' +
+    '<div><kbd>◀</kbd>/<kbd>▶</kbd> or <kbd>N</kbd>/<kbd>P</kbd> prev / next episode · <kbd>R</kbd> shuffle</div>';
 
   root.appendChild(setEl);
   root.appendChild(marquee.root);
@@ -471,9 +476,24 @@ export async function mount(slot, ctx) {
   const keydown = (e) => {
     if (e.target instanceof HTMLElement) {
       const tag = e.target.tagName;
+      // Don't intercept anything while the user is typing in a real
+      // text field. Checkboxes / range sliders also live under INPUT,
+      // but Space on those produces a benign toggle/no-op that doesn't
+      // conflict with our shortcuts, so the broad INPUT bail is fine.
       if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
     }
+
+    // Modifier-bearing keys (Ctrl/Cmd/Alt) belong to the browser or OS.
+    // Shift is in-bounds because YouTube uses it for `<` / `>`.
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+
     switch (e.key) {
+      case ' ':
+      case 'k':
+      case 'K':
+        e.preventDefault();
+        togglePlay();
+        break;
       case 'ArrowLeft':
         e.preventDefault();
         stepEpisode(-1);
@@ -482,6 +502,14 @@ export async function mount(slot, ctx) {
         e.preventDefault();
         stepEpisode(1);
         break;
+      case 'ArrowUp':
+        e.preventDefault();
+        adjustVolume(0.05);
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        adjustVolume(-0.05);
+        break;
       // YouTube-style ±10s seek. Arrow keys are already claimed for
       // episode navigation; J/L is the next-best convention and what
       // people who watch a lot of video on the web reach for.
@@ -489,11 +517,60 @@ export async function mount(slot, ctx) {
       case 'J':
         e.preventDefault();
         seekRelative(-10);
+        flashSeek(-10);
         break;
       case 'l':
       case 'L':
         e.preventDefault();
         seekRelative(10);
+        flashSeek(10);
+        break;
+      case 'f':
+      case 'F':
+        e.preventDefault();
+        toggleFullscreen();
+        break;
+      case 'm':
+      case 'M':
+        e.preventDefault();
+        toggleMute();
+        break;
+      case 'c':
+      case 'C':
+        e.preventDefault();
+        subtitleCtrl.toggleCaptions();
+        break;
+      // Alias: N/P mirror YouTube's "next/previous in playlist" keys
+      // so muscle memory carries over. Same season-wrapping rules as
+      // the Next / Prev buttons.
+      case 'n':
+      case 'N':
+        e.preventDefault();
+        stepEpisode(1);
+        break;
+      case 'p':
+      case 'P':
+        e.preventDefault();
+        stepEpisode(-1);
+        break;
+      case 'Home':
+        e.preventDefault();
+        seekTo(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        if (Number.isFinite(video.duration)) seekTo(video.duration);
+        break;
+      // Shifted comma/period produce `<` / `>` on US layouts — same
+      // keys YouTube uses to step playback rate down/up. Hold Shift
+      // is implicit in the character itself, so we don't check shiftKey.
+      case '<':
+        e.preventDefault();
+        adjustPlaybackRate(-0.25);
+        break;
+      case '>':
+        e.preventDefault();
+        adjustPlaybackRate(0.25);
         break;
       case 'r':
       case 'R':
@@ -503,6 +580,14 @@ export async function mount(slot, ctx) {
         // change handler does the save + marquee flash for us.
         shuffleInput.checked = !shuffleInput.checked;
         shuffleInput.dispatchEvent(new Event('change'));
+        break;
+      default:
+        // Digit keys 0..9 seek to N×10% of the duration. `0` doubles
+        // as "rewind to start", matching YouTube.
+        if (/^[0-9]$/.test(e.key)) {
+          e.preventDefault();
+          seekPercent(Number(e.key) / 10);
+        }
         break;
     }
   };
@@ -673,8 +758,10 @@ export async function mount(slot, ctx) {
     if (video.paused || video.ended) {
       const p = video.play();
       if (p && typeof p.catch === 'function') p.catch(() => {});
+      marquee.flash('▶ PLAY');
     } else {
       video.pause();
+      marquee.flash('❚❚ PAUSED');
     }
   }
 
@@ -683,6 +770,78 @@ export async function mount(slot, ctx) {
     if (!Number.isFinite(video.duration)) return;
     const next = Math.max(0, Math.min(video.duration, video.currentTime + seconds));
     video.currentTime = next;
+  }
+
+  /** @param {number} time Absolute seconds. Clamped to [0, duration]. */
+  function seekTo(time) {
+    if (!Number.isFinite(video.duration)) return;
+    video.currentTime = Math.max(0, Math.min(video.duration, time));
+  }
+
+  /** @param {number} fraction `0` → start, `0.9` → 90% in, etc. */
+  function seekPercent(fraction) {
+    if (!Number.isFinite(video.duration)) return;
+    const clamped = Math.max(0, Math.min(1, fraction));
+    video.currentTime = clamped * video.duration;
+    marquee.flash(`⤳ ${Math.round(clamped * 100)}%`);
+  }
+
+  /** Marquee feedback for J/L; toggles direction glyph. @param {number} dt */
+  function flashSeek(dt) {
+    marquee.flash(dt < 0 ? `⏪ ${Math.abs(dt)}s` : `⏩ ${dt}s`);
+  }
+
+  /** @param {number} delta Added to `video.volume`, clamped [0, 1]. */
+  function adjustVolume(delta) {
+    const next = Math.max(0, Math.min(1, video.volume + delta));
+    video.volume = next;
+    // Bumping volume should un-mute — otherwise the on-screen change
+    // is invisible until the user presses M, which feels broken.
+    if (next > 0 && video.muted) video.muted = false;
+    marquee.flash(`🔊 VOL ${Math.round(next * 100)}%`);
+  }
+
+  function toggleMute() {
+    video.muted = !video.muted;
+    marquee.flash(video.muted ? '🔇 MUTED' : '🔊 UNMUTED');
+  }
+
+  /**
+   * Snap playback rate to the same 0.25-stop ladder YouTube uses
+   * (0.25, 0.5, …, 2.0). Rounding to two decimals keeps floating-point
+   * drift out of the marquee readout.
+   *
+   * @param {number} delta
+   */
+  function adjustPlaybackRate(delta) {
+    const next = Math.max(0.25, Math.min(2, video.playbackRate + delta));
+    video.playbackRate = Math.round(next * 100) / 100;
+    marquee.flash(`⏱ ${video.playbackRate}×`);
+  }
+
+  /**
+   * Fullscreen the screen element (video + overlays). Vendor-prefixed
+   * fallbacks cover Safari, where `requestFullscreen()` is still only
+   * on the webkit-prefixed variant for some surfaces.
+   */
+  function toggleFullscreen() {
+    const fsEl =
+      document.fullscreenElement || /** @type {any} */ (document).webkitFullscreenElement;
+    if (fsEl) {
+      const exit = document.exitFullscreen || /** @type {any} */ (document).webkitExitFullscreen;
+      if (exit) exit.call(document);
+      return;
+    }
+    const target = /** @type {any} */ (screen);
+    const req = target.requestFullscreen || target.webkitRequestFullscreen;
+    if (req) {
+      try {
+        const p = req.call(target);
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      } catch {
+        /* ignore */
+      }
+    }
   }
 
   /**

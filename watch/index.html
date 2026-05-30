@@ -109,11 +109,14 @@
   </head>
 
   <body>
-    <div class="tv-room">
-      <header class="tv-header">
-        <nav id="tv-breadcrumbs" class="tv-breadcrumbs" aria-label="Breadcrumb"></nav>
-      </header>
+    <!-- Page-level fixed banner. Lives outside .tv-room so the
+         translucent bar can span the viewport edge-to-edge while the
+         content underneath stays capped at .tv-room's max-width. -->
+    <header class="tv-header">
+      <nav id="tv-breadcrumbs" class="tv-breadcrumbs" aria-label="Breadcrumb"></nav>
+    </header>
 
+    <div class="tv-room">
       <!-- The router mounts the active view here. Views own their own DOM:
            shows-view (grid), episodes-view (season + ep list), watch-view
            (TV chassis + player). Only one is in the DOM at a time. -->

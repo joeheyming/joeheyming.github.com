@@ -236,6 +236,22 @@ describe('createSubtitleController — setEpisode', () => {
   });
 });
 
+describe('createSubtitleController — toggleCaptions', () => {
+  it('flashes UNAVAILABLE when the show has no imdbId', () => {
+    const { ctrl, flashed } = makeCtrl();
+    ctrl.setEpisode(ep(1, 1));
+    ctrl.toggleCaptions();
+    assert.deepEqual(flashed, ['CAPTIONS UNAVAILABLE']);
+  });
+
+  it('flashes UNAVAILABLE when no episode is loaded', () => {
+    const { ctrl, flashed } = makeCtrl();
+    // Never called setEpisode → current is null.
+    ctrl.toggleCaptions();
+    assert.deepEqual(flashed, ['CAPTIONS UNAVAILABLE']);
+  });
+});
+
 describe('createSubtitleController — dispose', () => {
   it('dispose removes slider, readout, and outside-click listeners', () => {
     const { ctrl, dom: d } = makeCtrl();
