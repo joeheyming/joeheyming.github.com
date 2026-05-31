@@ -38,7 +38,10 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  /* Extra left padding clears the fixed compact back button (~85px
+   * right edge) so the "Open" button isn't visually overlapped.
+   * Matches the same pattern in media-player/style.css. */
+  padding: 8px 12px 8px 90px;
   background: var(--surface-2);
   border-bottom: 1px solid var(--hairline);
   flex-shrink: 0;

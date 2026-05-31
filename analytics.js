@@ -1,28 +1,49 @@
 // =====================================================================
 // Theme bootstrap — runs on every page, before first paint.
 //
-// analytics.js is loaded synchronously in <head> on all 58 sitemap
-// pages, which makes it the cheapest (zero per-app HTML edit) place
-// to propagate the home-page theme switcher choice site-wide. The
-// home toggle persists 'light' or 'dark' to localStorage under
-// 'hos-theme'; this block reads that key and mirrors it onto the
-// <html> data-theme attribute so brand.css's :root[data-theme="dark"]
-// override block wins before any pixels paint. Absent / 'auto' /
-// invalid values fall through to brand.css's prefers-color-scheme
-// rule, so OS-level dark mode still auto-applies for users who
-// haven't picked an explicit theme.
+// analytics.js is loaded as a synchronous <script> in <head> on all 58
+// sitemap pages (including the home page) before any themed stylesheet
+// (brand.css) is fetched, which makes it the cheapest single place to
+// set <html data-theme="..."> before paint. The home toggle persists
+// 'light', 'dark', or 'auto' to localStorage under 'hos-theme'; this
+// block reads that key and mirrors it onto the <html> data-theme
+// attribute so brand.css's :root[data-theme] override blocks win
+// before any pixels paint.
+//
+// Default policy: when nothing is saved (first-time visitor, cleared
+// storage, or unparseable value), the site renders in dark mode. The
+// explicit 'auto' value — written only when the user clicks Auto in
+// the home switcher — clears data-theme and lets brand.css's
+// prefers-color-scheme rule follow the OS preference instead.
 //
 // Wrapped in try/catch because localStorage access throws in private
 // mode and on file:// URLs. A theme failure must never block GA.
+//
+// Load-order contract: this script MUST stay synchronous (no defer /
+// async) and MUST be loaded before any themed stylesheet. If you ever
+// switch this to defer/async, restore the inline bootstrap that used
+// to live in index.html, or you'll reintroduce a light-mode flash on
+// first paint.
 // =====================================================================
 (function bootHeymingTheme() {
   try {
     const t = localStorage.getItem('hos-theme');
     if (t === 'light' || t === 'dark') {
       document.documentElement.dataset.theme = t;
+    } else if (t !== 'auto') {
+      // No saved choice (or unparseable) — dark is the site default.
+      document.documentElement.dataset.theme = 'dark';
     }
+    // t === 'auto' falls through with no data-theme attribute, so
+    // brand.css's @media (prefers-color-scheme) rule decides.
   } catch (e) {
-    /* localStorage unavailable — fall back to OS preference via @media */
+    // localStorage unavailable (private mode, file://). Still apply
+    // the dark default so the page matches the rest of the site.
+    try {
+      document.documentElement.dataset.theme = 'dark';
+    } catch (_) {
+      /* document not ready — extremely unlikely from <head> sync script */
+    }
   }
 })();
 
@@ -188,11 +209,7 @@ window.trackError = function (errorData) {
     // both events fired for stack-bearing errors, which double-counted users
     // in the GA report.
     if (errorData.stack) {
-      window.trackEvent(
-        'exception',
-        'Error',
-        `${errorType} - ${errorMessage.substring(0, 100)}`
-      );
+      window.trackEvent('exception', 'Error', `${errorType} - ${errorMessage.substring(0, 100)}`);
     } else {
       window.trackEvent('error_occurred', 'Error', errorLabel);
     }

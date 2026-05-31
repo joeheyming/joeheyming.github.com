@@ -26,7 +26,16 @@ const PAGES = [
   {
     url: `${BASE_URL}/calculator/`,
     output: 'calculator/calculator-preview.png',
-    title: 'Calculator'
+    title: 'Calculator',
+    // Standard mode at "0" is indistinguishable from every other web
+    // calculator. Graph mode is the differentiator — auto-fills
+    // sin(x)/cos(x) so the preview shows a real plotted curve.
+    setup: async (page) => {
+      await page.click('button.calc-mode-tab[data-mode="graph"]');
+      await page.waitForSelector('#calc-panel-graph:not([hidden])');
+      await page.waitForSelector('#graph-canvas');
+      await page.waitForTimeout(500);
+    }
   },
   {
     url: `${BASE_URL}/doom/`,
@@ -41,7 +50,18 @@ const PAGES = [
   {
     url: `${BASE_URL}/stepmania/`,
     output: 'stepmania/stepmania-preview.png',
-    title: 'StepMania'
+    title: 'StepMania',
+    // The "Welcome to StepMania" prompt is injected ~500ms after load
+    // and completely blocks the actual game UI. Dismiss it so the
+    // preview shows the idle game (Lost background + step buttons).
+    setup: async (page) => {
+      const dismiss = page.locator('#dismiss-prompt');
+      if (await dismiss.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await dismiss.click();
+      }
+      await page.waitForSelector('#sm-micro');
+      await page.waitForTimeout(500);
+    }
   },
   {
     url: `${BASE_URL}/accordion-hero/`,
@@ -56,12 +76,118 @@ const PAGES = [
   {
     url: `${BASE_URL}/notepad/`,
     output: 'notepad/notepad-preview.png',
-    title: 'Notepad'
+    title: 'Notepad',
+    // Empty Quill editor looks like a blank textarea with chrome
+    // around it. Inject sample formatted content (heading + para +
+    // bullet list) so the preview demonstrates the rich-text
+    // capabilities visible in the toolbar.
+    setup: async (page) => {
+      await page.waitForSelector('.ql-editor', { timeout: 5000 });
+      // Use Quill's clipboard.dangerouslyPasteHTML so the editor's
+      // Delta model stays in sync with the DOM — setting innerHTML
+      // directly bypasses Quill's parser and the bullet list silently
+      // gets dropped on the next internal repaint.
+      await page.evaluate(() => {
+        const editor = /** @type {HTMLElement | null} */ (document.querySelector('.ql-editor'));
+        if (!editor) return;
+        const Q = /** @type {any} */ (window).Quill;
+        const html =
+          '<h2>Saturday notes</h2>' +
+          '<p>Ideas for the weekend project — keep it small, ship it Sunday.</p>' +
+          '<ul>' +
+          '<li>Sketch the home page layout</li>' +
+          '<li>Pick a color palette (warm, two accents)</li>' +
+          '<li>Export the hero image as PNG</li>' +
+          '<li>Wire up the share button</li>' +
+          '</ul>' +
+          '<p><strong>Open question:</strong> dark mode toggle now or later?</p>';
+        const quill = Q && typeof Q.find === 'function' ? Q.find(editor) : null;
+        if (quill && quill.clipboard) {
+          quill.setContents([]);
+          quill.clipboard.dangerouslyPasteHTML(0, html);
+        } else {
+          editor.innerHTML = html;
+        }
+        editor.classList.remove('ql-blank');
+      });
+      await page.waitForTimeout(400);
+    }
   },
   {
     url: `${BASE_URL}/todo/`,
     output: 'todo/todo-preview.png',
-    title: 'Todo'
+    title: 'Todo',
+    // Default load shows the "You're signed out — Sign in with Google"
+    // gate, which is the worst possible OG image (looks like a paywall).
+    // Hide the gate, reveal the panel, and inject mock rows that match
+    // the real renderer's DOM shape so the preview shows an actual list.
+    setup: async (page) => {
+      await page.evaluate(() => {
+        const gate = document.getElementById('signed-out-empty');
+        if (gate) gate.hidden = true;
+        const loading = document.getElementById('app-loading');
+        if (loading) loading.hidden = true;
+        const statusEl = document.getElementById('status');
+        if (statusEl) statusEl.textContent = '';
+
+        const panel = document.getElementById('todo-panel');
+        if (panel) panel.hidden = false;
+
+        const tabSelect = /** @type {HTMLSelectElement | null} */ (
+          document.getElementById('sheet-tab-select')
+        );
+        if (tabSelect) {
+          tabSelect.innerHTML = '';
+          const opt = document.createElement('option');
+          opt.value = 'Tasks';
+          opt.textContent = 'Tasks';
+          opt.selected = true;
+          tabSelect.appendChild(opt);
+        }
+
+        const list = document.getElementById('todo-list');
+        const empty = document.getElementById('todo-empty');
+        if (empty) empty.hidden = true;
+        if (!list) return;
+        list.replaceChildren();
+
+        const rows = [
+          { title: 'Buy groceries', done: false, date: '2026-05-30 09:14:00' },
+          { title: 'Renew passport', done: false, date: '2026-05-29 18:02:00' },
+          { title: 'Ship the design doc', done: true, date: '2026-05-28 14:30:00' },
+          { title: 'Call mom', done: false, date: '2026-05-28 11:15:00' },
+          { title: 'Pay rent', done: true, date: '2026-05-27 08:00:00' }
+        ];
+
+        for (const todo of rows) {
+          const li = document.createElement('li');
+          li.className = 'flex flex-nowrap items-center gap-3 py-2.5';
+
+          const chk = document.createElement('input');
+          chk.type = 'checkbox';
+          chk.checked = todo.done;
+          chk.className = 'h-4 w-4 shrink-0 accent-brand cursor-pointer';
+
+          const line = document.createElement('div');
+          line.className =
+            'min-w-0 flex-1 cursor-pointer touch-manipulation break-words pr-1 text-[0.95rem] [-webkit-tap-highlight-color:transparent]';
+          if (todo.done) line.classList.add('line-through', 'opacity-65');
+
+          const dateEl = document.createElement('span');
+          dateEl.className = 'mr-1.5 text-[0.82em] text-text-3';
+          dateEl.textContent = todo.date;
+
+          const contentEl = document.createElement('span');
+          contentEl.className = 'text-text-1';
+          contentEl.textContent = todo.title;
+
+          line.append(dateEl, contentEl);
+          li.append(chk, line);
+          list.appendChild(li);
+        }
+      });
+      await page.waitForTimeout(300);
+    }
   },
   {
     url: `${BASE_URL}/sadtrombone/`,
@@ -91,7 +217,39 @@ const PAGES = [
   {
     url: `${BASE_URL}/badapple/`,
     output: 'badapple/badapple-preview.png',
-    title: 'Bad Apple ASCII'
+    title: 'Bad Apple ASCII',
+    // Default capture shows the player chrome with no animation
+    // frame rendered. Seek paused to ~45s where the silhouette is
+    // clear and recognizable so the preview shows the actual art.
+    setup: async (page) => {
+      await page.evaluate(async () => {
+        const SEC = 45;
+        const FRAME_RATE = 30;
+        const audio = /** @type {HTMLAudioElement | null} */ (document.getElementById('audio'));
+        if (audio) {
+          audio.pause();
+          audio.currentTime = SEC;
+        }
+        const frameNum = Math.floor(SEC * FRAME_RATE) + 1;
+        try {
+          const res = await fetch(`frame/${frameNum}.html`);
+          const html = await res.text();
+          const m = html.match(/<pre>\s*([\s\S]*?)\s*<\/pre>/);
+          const target = document.getElementById('frame-display');
+          if (m && target) target.textContent = m[1];
+        } catch {
+          // network blip — leave the frame blank rather than crash
+        }
+        const duration = (audio && audio.duration) || 6572 / FRAME_RATE;
+        const pct = (SEC / duration) * 100;
+        const fill = /** @type {HTMLElement | null} */ (document.getElementById('progress-fill'));
+        if (fill) fill.style.width = pct + '%';
+        const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+        const tdisp = document.getElementById('time-display');
+        if (tdisp) tdisp.textContent = `${fmt(SEC)} / ${fmt(duration)}`;
+      });
+      await page.waitForTimeout(500);
+    }
   },
   {
     url: `${BASE_URL}/sayit/`,
@@ -111,7 +269,16 @@ const PAGES = [
   {
     url: `${BASE_URL}/sayhello/`,
     output: 'sayhello/sayhello-preview.png',
-    title: 'Say Hello TTS'
+    title: 'Say Hello TTS',
+    // Empty textarea reads as "broken form." Pre-fill with a friendly
+    // sample sentence so the preview shows the app's purpose.
+    setup: async (page) => {
+      await page.fill(
+        '#utterance',
+        'Hello from Joe Heyming dot io — pick a voice and hit Submit to hear it.'
+      );
+      await page.waitForTimeout(300);
+    }
   },
   {
     url: `${BASE_URL}/shadowbox/`,
@@ -126,12 +293,75 @@ const PAGES = [
   {
     url: `${BASE_URL}/os/`,
     output: 'os/os-preview.png',
-    title: 'Heyming OS'
+    title: 'Heyming OS',
+    // First boot shows the setup wizard ("Welcome to Heyming OS").
+    // Skip it by writing the username localStorage key the wizard
+    // would set, reload to land on the actual desktop, scaffold the
+    // FS so file icons appear, and open a couple of windows so the
+    // preview shows the OS in use rather than an empty wallpaper.
+    setup: async (page) => {
+      await page.evaluate(() => {
+        localStorage.setItem('heymingOS_username', 'joe');
+        localStorage.setItem('heymingOS_hostname', 'heyming-os');
+      });
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForSelector('#os-desktop', { timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(800);
+
+      await page.evaluate(async () => {
+        const os = /** @type {any} */ (window).heymingOS;
+        if (!os) return;
+        try {
+          if (os.fileSystemDB?.initializeWithScaffolding) {
+            await os.fileSystemDB.initializeWithScaffolding('joe');
+          }
+          if (os.desktop?.refresh) {
+            await os.desktop.refresh();
+          }
+        } catch {
+          // scaffolding/refresh failures shouldn't block the screenshot
+        }
+        try {
+          os.launchApp?.('notepad', 'preview');
+          os.launchApp?.('filemanager', 'preview');
+        } catch {
+          // best-effort
+        }
+      });
+
+      // Hide the boot toast that fires ~500ms after _showDesktop
+      await page.addStyleTag({
+        content: '#os-notification-region { display: none !important; }'
+      });
+      await page.waitForTimeout(2000);
+    }
   },
   {
     url: `${BASE_URL}/model-viewer/`,
     output: 'model-viewer/model-viewer-preview.png',
-    title: '3D Viewer'
+    title: '3D Viewer',
+    // Empty drop zone + ice-cube emoji is indistinguishable from
+    // every other file-drop viewer in the gallery. Loading the
+    // Damaged Helmet glTF demo gives an immediate PBR-rendered 3D
+    // object that signals "yes, this actually does 3D."
+    setup: async (page) => {
+      await page.click('#btn-demo');
+      await page.waitForSelector('#demo-menu.open');
+      await page.locator('#demo-menu button', { hasText: 'Damaged Helmet' }).click();
+      await page.waitForSelector('#model-wrapper:not(.hidden)', { timeout: 5000 }).catch(() => {});
+      await page
+        .locator('model-viewer#model')
+        .evaluate(
+          (el) =>
+            new Promise((resolve) => {
+              if (/** @type {any} */ (el).loaded) return resolve(undefined);
+              el.addEventListener('load', () => resolve(undefined), { once: true });
+              setTimeout(() => resolve(undefined), 15000);
+            })
+        )
+        .catch(() => {});
+      await page.waitForTimeout(1500);
+    }
   },
   {
     url: `${BASE_URL}/play/`,
@@ -196,7 +426,78 @@ const PAGES = [
   {
     url: `${BASE_URL}/paint/`,
     output: 'paint/paint-preview.png',
-    title: 'Paint'
+    title: 'Paint',
+    // Empty white canvas is indistinguishable from any paint chrome.
+    // Draw a simple landscape directly onto the first layer canvas
+    // (the overlay canvas is transient and would get cleared on the
+    // next tool interaction) so the preview shows actual artwork.
+    setup: async (page) => {
+      await page.waitForSelector('#canvas-stack .layer-canvas', { timeout: 5000 });
+      await page.evaluate(() => {
+        const canvas = /** @type {HTMLCanvasElement | null} */ (
+          document.querySelector('#canvas-stack canvas.layer-canvas')
+        );
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        const W = canvas.width;
+        const H = canvas.height;
+
+        // Sky gradient
+        const sky = ctx.createLinearGradient(0, 0, 0, H * 0.65);
+        sky.addColorStop(0, '#bce4ff');
+        sky.addColorStop(1, '#ffd6a8');
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, W, H * 0.7);
+
+        // Ground
+        ctx.fillStyle = '#86c06b';
+        ctx.fillRect(0, H * 0.7, W, H * 0.3);
+
+        // Sun
+        ctx.fillStyle = '#ffd84d';
+        ctx.beginPath();
+        ctx.arc(W * 0.78, H * 0.22, Math.min(W, H) * 0.07, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Distant hills
+        ctx.fillStyle = '#5a8f4f';
+        ctx.beginPath();
+        ctx.moveTo(0, H * 0.7);
+        ctx.lineTo(W * 0.22, H * 0.45);
+        ctx.lineTo(W * 0.42, H * 0.7);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(W * 0.35, H * 0.7);
+        ctx.lineTo(W * 0.6, H * 0.4);
+        ctx.lineTo(W * 0.85, H * 0.7);
+        ctx.closePath();
+        ctx.fill();
+
+        // A little tree
+        ctx.fillStyle = '#6b4423';
+        ctx.fillRect(W * 0.18 - 6, H * 0.74, 12, H * 0.1);
+        ctx.fillStyle = '#3f7d3a';
+        ctx.beginPath();
+        ctx.arc(W * 0.18, H * 0.72, Math.min(W, H) * 0.05, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Freehand "signature" pencil stroke
+        ctx.strokeStyle = '#1a1a1a';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        const baseX = W * 0.04;
+        const baseY = H * 0.92;
+        ctx.moveTo(baseX, baseY);
+        ctx.bezierCurveTo(baseX + 18, baseY - 14, baseX + 36, baseY + 4, baseX + 54, baseY - 10);
+        ctx.bezierCurveTo(baseX + 72, baseY - 6, baseX + 90, baseY - 18, baseX + 110, baseY - 4);
+        ctx.stroke();
+      });
+      await page.waitForTimeout(300);
+    }
   },
   {
     url: `${BASE_URL}/stock/`,
@@ -206,12 +507,47 @@ const PAGES = [
   {
     url: `${BASE_URL}/code-ide/`,
     output: 'code-ide/code-ide-preview.png',
-    title: 'Code IDE'
+    title: 'Code IDE',
+    // Empty welcome screen renders the "Code IDE" title in faint grey
+    // that's nearly invisible at OG dimensions. Loading the sample
+    // project opens /sample/index.js automatically and sells the
+    // whole point of the app — a real Monaco editor in the browser.
+    setup: async (page) => {
+      await page.click('button[data-welcome="sample"]');
+      await page.waitForSelector('#welcome.hidden', { timeout: 5000 }).catch(() => {});
+      await page.waitForSelector('.monaco-editor', { timeout: 10000 });
+      // loadSampleProject creates 3 files in quick succession; each
+      // fs change fires a concurrent tree.render() so the sidebar
+      // ends up with 3x duplicated rows. Wait for the storm to
+      // settle, then dedupe identical .tree-node[data-path] rows.
+      await page.waitForTimeout(2000);
+      await page.evaluate(() => {
+        const tree = document.getElementById('tree');
+        if (!tree) return;
+        const seen = new Set();
+        for (const node of Array.from(tree.querySelectorAll('.tree-node'))) {
+          const p = node.getAttribute('data-path') || '';
+          if (seen.has(p)) {
+            node.remove();
+          } else {
+            seen.add(p);
+          }
+        }
+      });
+      await page.waitForTimeout(300);
+    }
   },
   {
     url: `${BASE_URL}/clock/`,
     output: 'clock/clock-preview.png',
-    title: 'Clock'
+    title: 'Clock',
+    // Digital face looks like every other clock site. Flip face
+    // (split-flap digits) is the visual differentiator and shows
+    // off the most interesting render mode the app supports.
+    setup: async (page) => {
+      await page.click('button.face-btn[data-face="flip"]');
+      await page.waitForTimeout(800);
+    }
   },
   {
     url: `${BASE_URL}/starwars/`,
@@ -221,7 +557,28 @@ const PAGES = [
   {
     url: `${BASE_URL}/ascii/`,
     output: 'ascii/ascii-preview.png',
-    title: 'ASCII Art'
+    title: 'ASCII Art',
+    // Empty drop zone with monochrome controls doesn't sell the app.
+    // Set the hidden file input directly with the Ghostscript tiger
+    // so the converter runs its real pipeline and the preview shows
+    // an actual ASCII rendering rather than the upload prompt.
+    setup: async (page) => {
+      try {
+        await page.setInputFiles('#file-input', 'assets/ghostscript_tiger.svg');
+        await page.waitForFunction(
+          () => {
+            const overlay = /** @type {HTMLElement | null} */ (
+              document.getElementById('overlay-msg')
+            );
+            return !overlay || overlay.style.display === 'none' || !overlay.offsetHeight;
+          },
+          { timeout: 5000 }
+        );
+      } catch {
+        // best-effort — leave default capture if the input flow rejects
+      }
+      await page.waitForTimeout(800);
+    }
   },
   {
     url: `${BASE_URL}/countdown/`,
@@ -311,17 +668,167 @@ const PAGES = [
   {
     url: `${BASE_URL}/surf/`,
     output: 'surf/surf-preview.png',
-    title: 'Surf HTML Viewer'
+    title: 'Surf HTML Viewer',
+    // The default landing is one wave emoji on a blank page — gives
+    // a search visitor zero context. Inject a sample HTML doc into
+    // the sandboxed iframe via srcdoc and flip the empty-state toggles
+    // so the preview shows the app actually rendering a page.
+    setup: async (page) => {
+      await page.evaluate(() => {
+        const html = [
+          '<!doctype html>',
+          '<html lang="en">',
+          '<head>',
+          '<meta charset="utf-8">',
+          '<title>Preview</title>',
+          '<style>',
+          'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;color:#111;padding:32px 40px;line-height:1.55;max-width:640px;margin:0 auto;}',
+          'h1{font-size:28px;margin:0 0 8px;}',
+          '.byline{color:#666;font-size:13px;margin-bottom:18px;}',
+          'p{margin:0 0 12px;}',
+          'code{background:#f3f3f3;padding:2px 6px;border-radius:4px;font-size:13px;}',
+          '</style>',
+          '</head>',
+          '<body>',
+          '<h1>Surf renders local HTML in a sandboxed iframe</h1>',
+          '<p class="byline">preview.html · sandbox: <code>allow-scripts allow-same-origin</code></p>',
+          '<p>Drop any <code>.html</code> file from disk and Surf shows it inline, with a Source toggle and a New Tab button.</p>',
+          '<p>Useful for previewing static pages, debugging exported HTML, or peeking at a saved web archive without launching the full browser.</p>',
+          '</body>',
+          '</html>'
+        ].join('\n');
+        const landing = document.getElementById('landing');
+        const source = document.getElementById('source-view');
+        const frame = /** @type {HTMLIFrameElement | null} */ (
+          document.getElementById('html-frame')
+        );
+        const info = document.getElementById('file-info');
+        const newTab = /** @type {HTMLButtonElement | null} */ (
+          document.getElementById('btn-new-tab')
+        );
+        if (landing) landing.classList.remove('active');
+        if (source) source.classList.add('hidden');
+        if (frame) {
+          frame.classList.remove('hidden');
+          frame.srcdoc = html;
+        }
+        if (info) info.textContent = 'preview.html';
+        if (newTab) newTab.disabled = false;
+      });
+      await page.waitForTimeout(800);
+    }
   },
   {
     url: `${BASE_URL}/filemanager/`,
     output: 'filemanager/filemanager-preview.png',
-    title: 'File Manager'
+    title: 'File Manager',
+    // Default landing is the empty ~/user home (all 📁 folders, no
+    // distinguishing content). Seed a /tmp/preview folder with mixed
+    // file types and navigate into it so the preview shows variety:
+    // documents, images, audio, video, code, archives.
+    setup: async (page) => {
+      await page.waitForFunction(
+        () =>
+          /** @type {any} */ (window).fileManager?.fs?.isInitialized ||
+          /** @type {any} */ (window).fileManager?.fs,
+        { timeout: 5000 }
+      );
+      await page.evaluate(async () => {
+        const fm = /** @type {any} */ (window).fileManager;
+        if (!fm?.fs) return;
+        const fs = fm.fs;
+        const path = '/tmp/preview';
+        try {
+          await fs.createDirectory(path).catch(() => {});
+          const seeds = [
+            ['notes.txt', 'Some notes.'],
+            ['photo.png', ''],
+            ['vacation.jpg', ''],
+            ['demo.mp4', ''],
+            ['song.mp3', ''],
+            ['album.flac', ''],
+            ['index.html', '<!doctype html><title>hi</title>'],
+            ['app.js', 'console.log("hi");'],
+            ['style.css', 'body{margin:0}'],
+            ['data.json', '{"ok":true}'],
+            ['readme.md', '# Readme'],
+            ['archive.zip', ''],
+            ['contract.pdf', '']
+          ];
+          for (const [name, body] of seeds) {
+            await fs.createFile(`${path}/${name}`, body, true).catch(() => {});
+          }
+          await fm.navigateTo(path);
+        } catch {
+          // best-effort — leave default view if anything throws
+        }
+      });
+      await page.waitForTimeout(800);
+    }
   },
   {
     url: `${BASE_URL}/image-viewer/`,
     output: 'image-viewer/image-viewer-preview.png',
-    title: 'Image Viewer'
+    title: 'Image Viewer',
+    // Empty drop zone with a picture-frame emoji looks identical to
+    // every other file-drop viewer. Load the classic Ghostscript
+    // tiger SVG so the preview shows a real, colorful image being
+    // viewed (the viewer is also a real SVG renderer).
+    setup: async (page) => {
+      // #image lives inside #image-wrapper.hidden so the element is
+      // attached but not visible until we flip the empty state — use
+      // state:'attached' instead of the default visibility check.
+      await page.waitForSelector('#image', { state: 'attached', timeout: 5000 });
+      await page.evaluate(async () => {
+        const drop = document.getElementById('drop-zone');
+        const wrap = document.getElementById('image-wrapper');
+        const img = /** @type {HTMLImageElement | null} */ (document.getElementById('image'));
+        const container = document.getElementById('image-container');
+        const info = document.getElementById('image-info');
+        const zoom = document.getElementById('zoom-level');
+        if (!drop || !wrap || !img || !container) return;
+
+        drop.classList.remove('active');
+        wrap.classList.remove('hidden');
+
+        document.querySelectorAll('button[disabled]').forEach((b) => b.removeAttribute('disabled'));
+
+        // The Ghostscript tiger SVG ships without width/height
+        // attributes, so Chromium reports naturalSize as 150×150
+        // and the image renders as a small dot. Fetch it, inject
+        // explicit dimensions matching the viewBox, and load via
+        // a blob URL so the viewer gets proper natural dimensions.
+        let url = '/assets/ghostscript_tiger.svg';
+        let natW = 900;
+        let natH = 900;
+        try {
+          const r = await fetch(url);
+          const txt = await r.text();
+          const fixed = txt.replace(/<svg([^>]*?)>/, '<svg$1 width="900" height="900">');
+          const blob = new Blob([fixed], { type: 'image/svg+xml' });
+          url = URL.createObjectURL(blob);
+        } catch {
+          // fall through with original URL
+        }
+
+        await new Promise((resolve) => {
+          img.onload = () => resolve(undefined);
+          img.onerror = () => resolve(undefined);
+          img.src = url;
+        });
+
+        natW = img.naturalWidth || natW;
+        natH = img.naturalHeight || natH;
+        const wrapperRect = wrap.getBoundingClientRect();
+        const scaleX = wrapperRect.width / natW;
+        const scaleY = wrapperRect.height / natH;
+        const scale = Math.min(scaleX, scaleY, 1) * 0.95;
+        container.style.transform = `translate(0px, 0px) scale(${scale}) rotate(0deg)`;
+        if (zoom) zoom.textContent = `${Math.round(scale * 100)}%`;
+        if (info) info.textContent = `tiger.svg • ${natW}×${natH}`;
+      });
+      await page.waitForTimeout(600);
+    }
   },
   {
     url: `${BASE_URL}/programming-advice/`,
@@ -346,12 +853,97 @@ const PAGES = [
   {
     url: `${BASE_URL}/triplog/`,
     output: 'triplog/triplog-preview.png',
-    title: 'Trip Log'
+    title: 'Trip Log',
+    // Default capture shows a world-view Leaflet map with every stat
+    // at 0. The triplog state object isn't exposed on window, so we
+    // can't cleanly inject a real trip — but we can populate the
+    // stats rows (which IS visible in the OG card) so the preview
+    // reads as "an active recording" rather than "no data."
+    setup: async (page) => {
+      await page.waitForSelector('#app-main:not([hidden])', { timeout: 5000 }).catch(() => {});
+      await page.evaluate(() => {
+        const set = (id, text) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = text;
+        };
+        set('stat-distance', '5.20 km');
+        set('stat-duration', '32:15');
+        set('stat-elapsed', '35:42');
+        set('stat-speed', '6:12 /km');
+        set('stat-avg-speed', '6:45 /km');
+        set('stat-elevation', '42 m');
+        set('stat-accuracy', '±8 m');
+      });
+      await page.waitForTimeout(400);
+    }
   },
   {
     url: `${BASE_URL}/media-player/`,
     output: 'media-player/media-player-preview.png',
-    title: 'Media Player'
+    title: 'Media Player',
+    // Empty drop zone with a music-note emoji is the same generic
+    // empty state as image-viewer and model-viewer. There are no
+    // bundled media files to point at, so fake an "audio is loaded"
+    // state in the DOM (the audio-visual cover-art panel plus
+    // populated track / time text) — looks like a real player.
+    setup: async (page) => {
+      // Paint fake spectrum-analyzer bars onto the viz canvas so the
+      // mock-loaded state doesn't show an empty white rectangle where
+      // the visualizer would normally render.
+      await page.addStyleTag({
+        content:
+          '#audio-visual .album-art { font-size: 96px !important; line-height: 1; margin-bottom: 18px !important; }'
+      });
+      await page.evaluate(() => {
+        const drop = document.getElementById('drop-zone');
+        const wrap = document.getElementById('media-wrapper');
+        const visual = document.getElementById('audio-visual');
+        const title = document.getElementById('audio-title');
+        const artist = document.getElementById('audio-artist');
+        const name = document.getElementById('media-name');
+        const time = document.getElementById('time-display');
+        if (drop) drop.classList.remove('active');
+        if (wrap) {
+          wrap.classList.remove('hidden');
+          wrap.classList.add('audio-mode');
+        }
+        if (visual) visual.classList.add('visible');
+        if (title) title.textContent = 'Clair de Lune';
+        if (artist) artist.textContent = 'Claude Debussy';
+        if (name) name.textContent = 'clair-de-lune.mp3';
+        if (time) time.textContent = '1:42 / 4:58';
+        document.querySelectorAll('button[disabled]').forEach((b) => b.removeAttribute('disabled'));
+
+        const viz = /** @type {HTMLCanvasElement | null} */ (document.getElementById('viz-canvas'));
+        if (viz) {
+          const rect = viz.getBoundingClientRect();
+          viz.width = Math.max(Math.floor(rect.width), 600);
+          viz.height = Math.max(Math.floor(rect.height), 100);
+          const ctx = viz.getContext('2d');
+          if (ctx) {
+            const W = viz.width;
+            const H = viz.height;
+            ctx.clearRect(0, 0, W, H);
+            const bars = 48;
+            const gap = 4;
+            const barW = (W - gap * (bars + 1)) / bars;
+            for (let i = 0; i < bars; i++) {
+              const t = i / (bars - 1);
+              const envelope = Math.sin(t * Math.PI) ** 1.3;
+              const wobble = 0.55 + 0.45 * Math.sin(i * 1.7) * Math.cos(i * 0.6);
+              const h = H * (0.18 + envelope * wobble * 0.78);
+              const grad = ctx.createLinearGradient(0, H - h, 0, H);
+              grad.addColorStop(0, '#7dd3fc');
+              grad.addColorStop(1, '#0369a1');
+              ctx.fillStyle = grad;
+              const x = gap + i * (barW + gap);
+              ctx.fillRect(x, H - h, barW, h);
+            }
+          }
+        }
+      });
+      await page.waitForTimeout(400);
+    }
   },
   {
     url: `${BASE_URL}/airwave/`,
@@ -366,7 +958,28 @@ const PAGES = [
   {
     url: `${BASE_URL}/weather/`,
     output: 'weather/weather-preview.png',
-    title: 'Weather'
+    title: 'Weather',
+    // Empty state ("No locations yet" + city pills) doesn't sell
+    // the app. Click all four suggested-city pills so the preview
+    // shows real tiles with live forecast data from Open-Meteo.
+    setup: async (page) => {
+      for (const city of ['Seattle', 'New York', 'Paris', 'Tokyo']) {
+        await page
+          .locator(`button.suggested[data-add-suggested*="${city}"]`)
+          .click()
+          .catch(() => {});
+      }
+      await page
+        .waitForSelector('#tiles:not(.hidden) .weather-tile', { timeout: 5000 })
+        .catch(() => {});
+      // Wait for live forecast values so tiles don't show "Loading…"
+      await page
+        .waitForFunction(() => document.querySelectorAll('.weather-tile .tile-temp').length >= 4, {
+          timeout: 15000
+        })
+        .catch(() => {});
+      await page.waitForTimeout(1000);
+    }
   }
 ];
 
@@ -390,11 +1003,31 @@ async function takeScreenshot(page, pageConfig) {
     console.log(`📸 Capturing ${pageConfig.title}...`);
     console.log(`   URL: ${pageConfig.url}`);
 
-    // Navigate to page
-    await page.goto(pageConfig.url, {
-      waitUntil: 'networkidle',
-      timeout: 30000
-    });
+    // Two-phase navigation. We *prefer* networkidle so dynamic content
+    // (lazy fonts, async data fetches) settles before capture, but a
+    // handful of pages (e.g. /read/, /about/) keep cross-origin
+    // fetches alive via window.proxyService and never reach the
+    // 500ms-of-idle threshold. Falling back to a domcontentloaded
+    // wait + a fixed settle window lets those pages still produce a
+    // useful screenshot instead of a stale or missing one.
+    try {
+      await page.goto(pageConfig.url, {
+        waitUntil: 'networkidle',
+        timeout: 15000
+      });
+    } catch (gotoErr) {
+      console.warn(
+        `   ⚠️  networkidle wait timed out for ${pageConfig.title} — falling back to domcontentloaded`
+      );
+      await page.goto(pageConfig.url, {
+        waitUntil: 'domcontentloaded',
+        timeout: 30000
+      });
+      // Give the fallback page extra time so any above-the-fold
+      // hydration that *would* have completed during networkidle
+      // still has a chance to paint before we capture.
+      await page.waitForTimeout(2000);
+    }
 
     // Wait a bit for any animations or dynamic content
     await page.waitForTimeout(2000);

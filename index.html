@@ -1,20 +1,12 @@
 <!DOCTYPE html>
 <html lang="en" class="hos-page">
   <head>
-    <!-- Theme bootstrap — runs synchronously, before any stylesheet parse,
-         to set <html data-theme="..."> from the user's saved choice. The
-         same block ships in /analytics.js for every other app on the site;
-         duplicating it inline here prevents any flash on the home page
-         where the theme switcher itself lives. Auto / unset falls through
-         to brand.css's prefers-color-scheme: dark rule. -->
-    <script>
-      (function () {
-        try {
-          var t = localStorage.getItem('hos-theme');
-          if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
-        } catch (e) {}
-      })();
-    </script>
+    <!-- Theme bootstrap lives in /analytics.js (sync <script> below).
+         analytics.js is loaded synchronously before brand.css, so it
+         finishes setting <html data-theme="..."> before any themed
+         stylesheet is fetched — no flash, no need for an inline copy
+         here. If you ever change analytics.js to defer/async, restore
+         an inline bootstrap above the first themed stylesheet. -->
     <meta name="google-site-verification" content="G4xgpb4nOfGShosuh1Tg0z-702kfJqP3tuqbhh_2YRE" />
     <!-- Favicon - SVG for modern browsers, PNG fallbacks -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -45,7 +37,11 @@
     <meta name="application-name" content="Heyming OS" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
-    <meta name="theme-color" content="#FAFAFA" />
+    <!-- theme-color matches the site's dark default. The home-page
+         theme switcher (index.js → applyTheme) updates this tag
+         dynamically when the user picks Light or Auto so PWA chrome
+         and iOS status bars track the rendered surface. -->
+    <meta name="theme-color" content="#0e1217" />
     <meta
       name="keywords"
       content="Heyming OS, browser OS, browser desktop, DOOM browser, NES emulator online, 3D Pac-Man, StepMania online, Wordle answer finder, web terminal, browser apps, no install games, ad-free"
@@ -434,8 +430,9 @@
         persists to localStorage('hos-theme') and the data-theme on
         <html>; the choice propagates to every other app on the site
         through analytics.js's bootstrap (loaded synchronously on all
-        58 pages). Auto removes the override and falls through to
-        prefers-color-scheme.
+        58 pages). Default (no saved value) is Dark; Auto explicitly
+        clears data-theme so brand.css's prefers-color-scheme rule
+        follows the OS preference instead.
       -->
       <div class="hos-theme-switch" id="theme-switch" role="radiogroup" aria-label="Theme">
         <button
@@ -443,7 +440,7 @@
           class="hos-theme-option"
           data-theme-value="auto"
           role="radio"
-          aria-checked="true"
+          aria-checked="false"
           data-event="theme_set"
           data-event-category="Preferences"
           data-event-label="auto"
@@ -467,7 +464,7 @@
           class="hos-theme-option"
           data-theme-value="dark"
           role="radio"
-          aria-checked="false"
+          aria-checked="true"
           data-event="theme_set"
           data-event-category="Preferences"
           data-event-label="dark"

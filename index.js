@@ -619,11 +619,14 @@ function renderFooterSocial() {
 }
 
 /* ─── Theme switcher ─────────────────────────────────────────────────
- * Three-way control (Auto / Light / Dark). Auto removes the override and
- * lets brand.css's `prefers-color-scheme: dark` rule pick the theme;
- * Light/Dark write `data-theme` on <html> and persist to localStorage
- * under `hos-theme`. analytics.js mirrors the same key onto every other
- * app at script-load time, so the user's choice is site-wide.
+ * Three-way control (Auto / Light / Dark). Default policy: when no
+ * value is saved (first-time visitor or cleared storage), the site
+ * renders in dark mode — analytics.js writes data-theme="dark" before
+ * paint. Auto explicitly persists 'auto' to localStorage and clears
+ * data-theme so brand.css's `prefers-color-scheme` rule follows the
+ * OS preference; Light/Dark write data-theme on <html> and persist
+ * the matching string. analytics.js's bootstrap mirrors the saved
+ * value site-wide.
  *
  * Listens to `prefers-color-scheme` so the rendered "Auto" indicator
  * keeps re-painting if the user flips their OS theme without leaving
@@ -634,29 +637,49 @@ const VALID_THEMES = ['auto', 'light', 'dark'];
 function readSavedTheme() {
   try {
     const v = localStorage.getItem(THEME_KEY);
-    return v === 'light' || v === 'dark' ? v : 'auto';
+    if (v === 'light' || v === 'dark' || v === 'auto') return v;
+    // No saved choice — site default is dark.
+    return 'dark';
   } catch (_) {
-    return 'auto';
+    return 'dark';
   }
 }
 
-function applyTheme(value) {
-  if (!VALID_THEMES.includes(value)) value = 'auto';
+function applyTheme(value, options) {
+  const persist = !options || options.persist !== false;
+  if (!VALID_THEMES.includes(value)) value = 'dark';
   if (value === 'auto') {
     delete document.documentElement.dataset.theme;
-    try {
-      localStorage.removeItem(THEME_KEY);
-    } catch (_) {
-      /* localStorage unavailable — runtime apply still works */
-    }
   } else {
     document.documentElement.dataset.theme = value;
-    try {
-      localStorage.setItem(THEME_KEY, value);
-    } catch (_) {
-      /* same as above */
-    }
   }
+  updateThemeColorMeta(value);
+  if (!persist) return;
+  // Persist every explicit choice (including 'auto') so the
+  // analytics.js bootstrap on subsequent loads can distinguish
+  // "user picked auto" from "no saved value, apply dark default".
+  try {
+    localStorage.setItem(THEME_KEY, value);
+  } catch (_) {
+    /* localStorage unavailable — runtime apply still works */
+  }
+}
+
+// Keep <meta name="theme-color"> in sync with the live theme so PWA
+// chrome and iOS status bars track the rendered surface. For 'auto',
+// follow the OS preference via matchMedia. Light → #fafafa, dark →
+// #0e1217 (matches brand.css's --surface-0 token in each theme).
+function updateThemeColorMeta(value) {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) return;
+  let resolved = value;
+  if (resolved === 'auto') {
+    resolved =
+      window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light';
+  }
+  meta.setAttribute('content', resolved === 'dark' ? '#0e1217' : '#fafafa');
 }
 
 function reflectThemeState(value) {
@@ -671,7 +694,11 @@ function initThemeSwitch() {
   if (!root) return;
 
   const initial = readSavedTheme();
-  applyTheme(initial);
+  // Don't persist the resolved initial value — only an explicit user
+  // click should write to localStorage. This keeps "no saved choice"
+  // distinguishable from "user picked dark" so future default-policy
+  // tweaks can still target unset visitors.
+  applyTheme(initial, { persist: false });
   reflectThemeState(initial);
 
   root.addEventListener('click', (e) => {
@@ -684,14 +711,16 @@ function initThemeSwitch() {
 
   // Reflect OS dark/light flips while the page is open and the user is
   // on Auto. Doesn't change the saved value — just keeps the rendered
-  // surface in sync. Modern Safari/Firefox/Chrome all support
-  // addEventListener on a MediaQueryList.
+  // surface (via brand.css's @media block) and the theme-color meta in
+  // sync. Modern Safari/Firefox/Chrome all support addEventListener on
+  // a MediaQueryList.
   if (window.matchMedia) {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const onChange = () => {
       if (readSavedTheme() === 'auto') {
-        // No data-theme to set; brand.css's @media block re-evaluates
-        // automatically. Nothing to do beyond letting the cascade run.
+        // brand.css's @media block re-evaluates automatically; just
+        // mirror the resolved choice into the theme-color tag.
+        updateThemeColorMeta('auto');
       }
     };
     if (mq.addEventListener) mq.addEventListener('change', onChange);
