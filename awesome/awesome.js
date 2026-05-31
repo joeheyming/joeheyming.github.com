@@ -492,9 +492,12 @@ var awesomeNamespace = (function () {
         this.timerInterval = null;
       }
 
-      // Stop audio
+      // Stop audio. removeAttribute + load() rather than src='' so the
+      // browser doesn't try to load the document URL as audio (which
+      // would fire a fake resource_error in /analytics.js).
       this.audio.pause();
-      this.audio.src = '';
+      this.audio.removeAttribute('src');
+      this.audio.load();
 
       // Remove event listeners
       this.removeEvents();

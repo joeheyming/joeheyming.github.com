@@ -781,7 +781,7 @@ class MediaPlayer {
     this.mediaWrapper.classList.remove('audio-mode', 'playing', 'youtube-mode', 'loading', 'error');
     this.audioVisual.classList.remove('visible');
     this.youtubeContainer.classList.remove('visible');
-    this.youtubePlayer.src = '';
+    this.youtubePlayer.removeAttribute('src');
     const errorOverlay = this.mediaWrapper.querySelector('.media-error-overlay');
     if (errorOverlay) errorOverlay.remove();
     const coepOverlay = this.mediaWrapper.querySelector('.youtube-coep-error');

@@ -591,11 +591,11 @@
 
   // ─── One-click share FAB ────────────────────────────────────────────
   //
-  // Lever B3 of the moneyball plan: the existing "🔗 Share" button is
-  // buried two clicks deep inside the 🎯 related-projects panel, so almost
-  // nobody finds it (2 `shared_link_arrival` events in 28 days across the
-  // whole site). This FAB sits next to the 🎯 toggle and shares in one
-  // click. share_source tag is `share_fab` so GA can attribute arrivals.
+  // The existing "🔗 Share" button lives two clicks deep inside the 🎯
+  // related-projects panel, so almost nobody finds it (only a couple of
+  // `shared_link_arrival` events per month across the whole site pre-FAB).
+  // This FAB sits next to the 🎯 toggle and shares in one click.
+  // share_source tag is `share_fab` so GA can attribute arrivals.
   function createShareFab() {
     if (shareFabSuppressed) return null;
     const fab = document.createElement('button');

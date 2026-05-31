@@ -519,7 +519,10 @@ class ImageViewer {
 
   reset() {
     this._revokeImageBlobUrl();
-    this.image.src = '';
+    // removeAttribute rather than src='' so the browser doesn't
+    // attempt to load the document URL as an image (which fires a
+    // fake resource_error captured by /analytics.js).
+    this.image.removeAttribute('src');
     this.image.alt = '';
     this.image.setAttribute('role', 'presentation');
     this.image.style.width = '';

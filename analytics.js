@@ -161,11 +161,17 @@ function initErrorTracking() {
         // bucket per (tag, host, file) instead of one giant bucket for
         // every resource error on the site.
         const shortResource = summarizeResourceUrl(resource);
+        // Pages that need richer triage (e.g. stepmania video failures
+        // need the song title) can opt in by setting
+        // `el.dataset.errorContext` on the element. We pick it up here
+        // and append to the GA event_label.
+        const elementContext = (event.target.dataset && event.target.dataset.errorContext) || '';
         trackError({
           type: 'resource_error',
           message: `Failed to load ${tagName}: ${shortResource}`,
           resource: resource,
           tagName: tagName,
+          context: elementContext,
           url: window.location.href,
           timestamp: new Date().toISOString()
         });
@@ -190,6 +196,88 @@ function summarizeResourceUrl(resource) {
   }
 }
 
+// Errors we know we cannot meaningfully fix from our own JS. Each entry
+// corresponds to a real category we observed dominating the noise floor
+// in GA4 (third-party CDN flake, Emscripten-side pointer-lock cooldowns,
+// CORS-proxy timeouts, etc.). Suppressed errors still emit a single
+// `console.warn` so devtools can show them during local development;
+// they just don't fire a GA event.
+const SUPPRESSED_ERROR_PATTERNS = [
+  // Pointer-lock failures inside the Emscripten-compiled engine
+  // (`doom/uzdoom.js`). SDL2 calls `canvas.requestPointerLock()` from
+  // compiled C, so the Promise rejection is unreachable from our JS.
+  // The browser cooldown rule ("you can't reacquire pointer lock for
+  // ~1.25s after the user exits it") fires several hundred times a
+  // week as users tap-out and tap-in.
+  {
+    match: /pointer lock cannot be acquired immediately after the user/i,
+    types: ['unhandled_promise_rejection', 'javascript_error']
+  },
+  {
+    match: /pointer is already locked/i,
+    types: ['unhandled_promise_rejection', 'javascript_error']
+  },
+  {
+    match: /the user has exited the lock before this request was complete/i,
+    types: ['unhandled_promise_rejection', 'javascript_error']
+  },
+  {
+    match: /WrongDocumentError.*root document of this element is not valid/i,
+    types: ['unhandled_promise_rejection', 'javascript_error']
+  },
+  {
+    match: /NotSupportedError.*options asked for in this request are not supported/i,
+    types: ['unhandled_promise_rejection']
+  },
+  // proxy.js callers — `window.proxyService` rotates through a list of
+  // free CORS proxies, all of which flake unpredictably. Per the
+  // module's design, retries and circuit-breakers handle most of it
+  // and rejections that escape the wrapper are not actionable.
+  {
+    match: /^TypeError:?\s*Failed to fetch/i,
+    types: ['unhandled_promise_rejection']
+  }
+];
+
+// Resource URLs whose host (or full URL substring) is known to be
+// third-party flake or cached scrape content. These show up in GA as
+// `resource_error` rows but never represent a fixable bug on our side.
+const SUPPRESSED_RESOURCE_HOSTS = [
+  // Moddb scrape (mod browser): cached pages reference giphy/moddb
+  // assets that get rate-limited or expire. Not loaded by our code.
+  'media.giphy.com',
+  'media.moddb.com',
+  // canvas-toBlob polyfill referenced by some moddb-cached page
+  // content; not loaded by our code directly. Modern browsers
+  // implement canvas.toBlob natively, so the polyfill is unneeded.
+  'cdnjs.cloudflare.com',
+  // Third-party CDNs — periodic transient outages. If tailwind or
+  // emulatorjs is down, the user's page is broken; the GA event
+  // about it is redundant.
+  'cdn.tailwindcss.com',
+  'cdn.emulatorjs.org'
+];
+
+function shouldSuppressError(errorType, errorMessage, resource) {
+  for (const entry of SUPPRESSED_ERROR_PATTERNS) {
+    if (entry.types && !entry.types.includes(errorType)) continue;
+    const matches =
+      entry.match instanceof RegExp
+        ? entry.match.test(errorMessage)
+        : typeof errorMessage === 'string' && errorMessage.includes(entry.match);
+    if (matches) return true;
+  }
+  if (resource && errorType === 'resource_error') {
+    try {
+      const host = new URL(resource, window.location.href).host;
+      if (SUPPRESSED_RESOURCE_HOSTS.includes(host)) return true;
+    } catch (_) {
+      /* unparseable URL — fall through */
+    }
+  }
+  return false;
+}
+
 // Function to manually track errors with enhanced context
 window.trackError = function (errorData) {
   try {
@@ -197,6 +285,11 @@ window.trackError = function (errorData) {
     const errorMessage = errorData.message || 'Unknown error';
     const context = errorData.context || '';
     const recoverable = errorData.recoverable !== false;
+
+    if (shouldSuppressError(errorType, errorMessage, errorData.resource)) {
+      console.warn('[analytics] suppressed error:', errorType, '-', errorMessage);
+      return;
+    }
 
     // Enhanced error tracking with context
     const errorLabel = context

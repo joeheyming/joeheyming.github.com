@@ -141,7 +141,48 @@
   // arrayBuffer() if the body isn't readable, which is unusual
   // on modern browsers but worth handling so the page doesn't
   // hard-fail on some exotic transport.
+  //
+  // Wrapper applies one retry with a short backoff for transient
+  // network errors (CDN cache miss on first byte, 5xx, AbortError).
+  // The picker-side `Failed to fetch` TypeError is the dominant
+  // first-load failure mode we see, and most of those are first-byte
+  // CDN misses that recover on retry — cheap fix, 750ms cost on the
+  // unlucky path.
   async function fetchWithProgress(url, onProgress) {
+    try {
+      return await fetchWithProgressOnce(url, onProgress);
+    } catch (err) {
+      if (!isRetryableFetchError(err)) throw err;
+      var hostHint = '';
+      try {
+        hostHint = new URL(url, location.href).host;
+      } catch (_) {
+        /* ignore URL parse errors */
+      }
+      if (typeof window.trackEvent === 'function') {
+        window.trackEvent('doom_flavor_fetch_retry', 'Doom', hostHint);
+      }
+      await new Promise(function (r) {
+        setTimeout(r, 750);
+      });
+      return await fetchWithProgressOnce(url, onProgress);
+    }
+  }
+
+  // 4xx (other than 408/429) are definitive — the file is missing
+  // or the request is malformed. Don't waste time retrying those.
+  // 5xx, 408, 429, and network/abort errors are transient.
+  function isRetryableFetchError(err) {
+    var msg = String((err && err.message) || err);
+    var m = msg.match(/^HTTP (\d+)/);
+    if (m) {
+      var code = parseInt(m[1], 10);
+      return code === 408 || code === 429 || (code >= 500 && code <= 599);
+    }
+    return true;
+  }
+
+  async function fetchWithProgressOnce(url, onProgress) {
     var res = await fetch(url);
     if (!res.ok) throw new Error('HTTP ' + res.status + ' for ' + url);
     var total = parseInt(res.headers.get('content-length') || '0', 10) || 0;
@@ -154,12 +195,12 @@
     var reader = res.body.getReader();
     var chunks = [];
     var loaded = 0;
-    while (true) {
-      var r = await reader.read();
-      if (r.done) break;
+    var r = await reader.read();
+    while (!r.done) {
       chunks.push(r.value);
       loaded += r.value.byteLength;
       if (onProgress) onProgress({ loaded: loaded, total: total });
+      r = await reader.read();
     }
     var merged = new Uint8Array(loaded);
     var off = 0;
@@ -277,11 +318,7 @@
     var unsub = function () {};
     if (window.UZDoomLifecycle) {
       unsub = window.UZDoomLifecycle.subscribe(function (state) {
-        if (
-          state.phase === 'playing' ||
-          state.phase === 'error' ||
-          state.phase === 'exited'
-        ) {
+        if (state.phase === 'playing' || state.phase === 'error' || state.phase === 'exited') {
           mo.disconnect();
           if (unsub) unsub();
         }
@@ -333,9 +370,7 @@
       var loaded = prog.iwad.loaded + prog.mod.loaded;
       var total = prog.iwad.total + prog.mod.total;
       var label =
-        stage === 'mod'
-          ? cfg.modName || 'mod'
-          : cfg.iwadName || cfg.bundledIwad || 'engine';
+        stage === 'mod' ? cfg.modName || 'mod' : cfg.iwadName || cfg.bundledIwad || 'engine';
       onProgress({ stage: stage, loaded: loaded, total: total, label: label });
     }
 
@@ -377,8 +412,8 @@
       p.stage === 'mod'
         ? 'Downloading ' + p.label
         : p.stage === 'done'
-          ? 'Handoff to engine…'
-          : 'Downloading ' + p.label;
+        ? 'Handoff to engine…'
+        : 'Downloading ' + p.label;
     if (!p.total) {
       return prefix + ' — ' + fmtMb(p.loaded);
     }

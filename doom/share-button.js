@@ -1,7 +1,9 @@
 // Persistent "Share DOOM" button — fixed top-right, always visible regardless
-// of the flavor picker / clean-hero / moddb-browser mode the page is in. Lever
-// B2 of the moneyball plan: Doom is an emulator with no easy level-end hook,
-// so the share affordance has to be in the page chrome, not the gameplay loop.
+// of the flavor picker / clean-hero / moddb-browser mode the page is in.
+// Doom is an emulator with no easy level-end hook (uzdoom is Emscripten-wrapped
+// GZDoom; only stdout/stderr cross the JS boundary, and the C code doesn't
+// emit clean events), so the share affordance has to be in the page chrome
+// rather than tied to gameplay state.
 //
 // One click: navigator.share if available, clipboard fallback otherwise. URL
 // is built via window.buildSharedUrl('doom_chrome') so arrivals land as

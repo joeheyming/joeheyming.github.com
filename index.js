@@ -127,6 +127,41 @@ function featuredHrefFromPath(path) {
   return '/' + base + '/' + suffix;
 }
 
+// One shared IntersectionObserver for hero + strip impression tracking.
+// Without this we count tile *opens* but not tile *views*, so we can't
+// compute the actual CTR that justifies the dual-tile hero promotion vs
+// the strip layout. 50% threshold = "saw at least half the card" — a
+// stricter definition of "viewed" than just scrolled-past-the-top.
+let _impressionObserver = null;
+function getImpressionObserver() {
+  if (_impressionObserver || typeof IntersectionObserver === 'undefined') {
+    return _impressionObserver;
+  }
+  _impressionObserver = new IntersectionObserver(
+    (entries, obs) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        const ev = e.target.dataset.impressionEvent;
+        const label = e.target.dataset.impressionLabel || '';
+        if (ev && typeof window.trackEvent === 'function') {
+          window.trackEvent(ev, 'Engagement', label);
+        }
+        obs.unobserve(e.target);
+      });
+    },
+    { threshold: 0.5 }
+  );
+  return _impressionObserver;
+}
+
+function observeImpression(el, eventName, label) {
+  if (!el || !eventName) return;
+  el.dataset.impressionEvent = eventName;
+  el.dataset.impressionLabel = label || '';
+  const obs = getImpressionObserver();
+  if (obs) obs.observe(el);
+}
+
 // Hero tiles: Doom + Stepmania, oversized dual layout. Same data shape as the
 // Featured strip cards but bigger and ahead of the strip on the page.
 function renderFeaturedHeroes() {
@@ -178,6 +213,7 @@ function renderFeaturedHeroes() {
       '<span class="hos-featured-hero-cta" aria-hidden="true">Play now →</span>';
 
     grid.appendChild(link);
+    observeImpression(link, 'featured_hero_visible', positionLabel);
   });
 }
 
@@ -232,6 +268,7 @@ function renderFeaturedProjects() {
       '</p>';
 
     grid.appendChild(link);
+    observeImpression(link, 'featured_strip_visible', positionLabel);
   });
 }
 

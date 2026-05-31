@@ -9,7 +9,7 @@
 // Also defines `window.launchEmulator(romSource, romName)` which the
 // local-file picker and the ROM browser both call. That function sets
 // the EJS_* globals, drops in the loader.js, and fires a GA event so
-// `<console>_rom_loaded` shows up in Moneyball alongside the
+// `<console>_rom_loaded` shows up in our analytics alongside the
 // `nes_rom_loaded` event we used to emit from the old custom emulator.
 (function () {
   'use strict';
@@ -153,8 +153,9 @@
   // Public entry point: handed a File (preferred — keeps the filename
   // intact for the libretro zip sniffer) or an object URL string.
   // Sets the EJS_* globals based on the active console then injects
-  // the EmulatorJS loader. Also emits a Moneyball GA event so we keep
-  // visibility into ROM loads after killing the old custom NES emulator.
+  // the EmulatorJS loader. Also emits a GA `<console>_rom_loaded`
+  // event so we keep visibility into ROM loads after retiring the
+  // old custom NES emulator.
   window.launchEmulator = function launchEmulator(romSource, romName) {
     const cfg = window.getEmulatorConsole && window.getEmulatorConsole();
     if (!cfg) {

@@ -320,6 +320,13 @@ class VideoManager {
 
       this.gameArea.style.backgroundImage = 'none';
 
+      // Tag the element with current-song info so a global resource_error
+      // (which only sees the failed URL) can be correlated back to a
+      // specific simfile. The Zenius-uploaded preview videos occasionally
+      // 404; without this tag we can't tell which song is broken.
+      const songKey = songManager.getCurrentSongKey?.() || 'unknown';
+      this.videoElement.dataset.errorContext = `song=${String(songKey).slice(0, 60)}`;
+
       // Pause any current playback
       this.videoElement.pause();
       this.videoElement.src = videoUrl;
@@ -427,13 +434,23 @@ class VideoManager {
 
   /**
    * Stop and hide the video
+   *
+   * NOTE: We `removeAttribute('src')` + `load()` rather than `src = ''`
+   * because empty-string src resolves to the document URL, which the
+   * browser tries to load as video, fails, and fires `error`. The
+   * global resource-error listener in `/analytics.js` then reports a
+   * fake "Failed to load VIDEO: joeheyming.github.io/stepmania" event
+   * for every song stop. Until 2026-05-30 this single line accounted
+   * for ~89% of all `error_occurred` events on the entire site.
    */
   stop() {
     this._stopPeriodicSync();
     if (this.videoElement) {
       this.videoElement.pause();
-      this.videoElement.src = '';
+      this.videoElement.removeAttribute('src');
+      this.videoElement.load();
       this.videoElement.style.opacity = '0';
+      delete this.videoElement.dataset.errorContext;
     }
     this.currentVideoUrl = null;
     this.loadingUrl = null;
