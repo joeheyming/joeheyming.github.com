@@ -95,6 +95,12 @@ export class AirwavePlayer {
     this._currentTime = 0;
     this._duration = 0;
     this._lastState = 'unstarted';
+    // `infoDelivery.videoData.video_id` reports whatever video the
+    // iframe is *currently playing* — that drifts to the ad's id
+    // during pre/mid-roll ads, while `this.currentVideoId` stays on
+    // the track we asked it to load. Comparing the two is the
+    // cleanest "are we in an ad?" signal we get from the IFrame API.
+    this._playingVideoId = null;
   }
 
   /**
@@ -237,6 +243,9 @@ export class AirwavePlayer {
           if (typeof data.info.duration === 'number') {
             this._duration = data.info.duration;
           }
+          if (data.info.videoData && typeof data.info.videoData.video_id === 'string') {
+            this._playingVideoId = data.info.videoData.video_id;
+          }
           if (typeof data.info.playerState === 'number') {
             const name = stateName(data.info.playerState);
             if (name !== this._lastState) {
@@ -312,6 +321,7 @@ export class AirwavePlayer {
       return;
     }
     this.currentVideoId = videoId;
+    this._playingVideoId = null;
     this._postCommand('loadVideoById', [{ videoId, startSeconds }]);
   }
 
@@ -322,11 +332,17 @@ export class AirwavePlayer {
       return;
     }
     this.currentVideoId = videoId;
+    this._playingVideoId = null;
     this._postCommand('cueVideoById', [{ videoId, startSeconds }]);
   }
 
   loadPlaylist(listId, { index = 0 } = {}) {
     if (!this.iframe || !listId) return;
+    // YouTube drives next-track inside a playlist URL, so we lose
+    // track of which video is "current". Null it out — the ad
+    // detector keys off this and shouldn't false-fire here.
+    this.currentVideoId = null;
+    this._playingVideoId = null;
     this._postCommand('loadPlaylist', [{ list: listId, listType: 'playlist', index }]);
   }
 
@@ -373,6 +389,11 @@ export class AirwavePlayer {
   getStateName() {
     return this._lastState;
   }
+  /** What the iframe is *actually* playing right now. Differs from
+   * `currentVideoId` when YouTube is showing a pre/mid-roll ad. */
+  getPlayingVideoId() {
+    return this._playingVideoId;
+  }
 
   /* ── Teardown ─────────────────────────────────────────────────── */
 
@@ -393,6 +414,7 @@ export class AirwavePlayer {
     this._currentTime = 0;
     this._duration = 0;
     this._lastState = 'unstarted';
+    this._playingVideoId = null;
   }
 }
 

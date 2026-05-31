@@ -21,6 +21,21 @@ import { bindMediaSession, setPlaybackState, updatePosition } from './modules/me
 
 const POLL_MS = 500;
 const VOLUME_KEY = 'heyming.airwave.volume.v1';
+// Don't re-issue a "skip past ad" seek more often than this — YouTube
+// occasionally chains two pre-rolls back-to-back and we want to detect
+// the second one cleanly without seek-storming the iframe in the gap.
+const AD_SKIP_COOLDOWN_MS = 1500;
+
+// "Video paused. Continue watching?" — after long unattended playback
+// YouTube pauses the embed and shows a confirm dialog. We can't reach
+// that dialog button across origins, but a fresh `playVideo` from the
+// parent typically resumes the underlying playback. We wait a short
+// grace period after entering an unsolicited pause, then retry on a
+// 30s cadence with a hard cap so a genuinely broken state doesn't
+// loop forever.
+const AUTO_RESUME_FIRST_DELAY_MS = 8000;
+const AUTO_RESUME_RETRY_MS = 30 * 1000;
+const AUTO_RESUME_MAX_ATTEMPTS = 5;
 
 function $(id) {
   return document.getElementById(id);
@@ -88,6 +103,15 @@ class App {
     this.lastQuery = '';
     this.muted = false;
     this.preMuteVolume = 100;
+    this._lastAdSkipAt = 0;
+    // Auto-resume bookkeeping. `_userPaused` is the only signal that
+    // tells us "stay paused" — set whenever the user (or sleep timer)
+    // explicitly stops playback, cleared whenever something starts it.
+    this._userPaused = false;
+    this._lastPlayingAt = 0;
+    this._pausedSinceMs = 0;
+    this._lastAutoResumeAt = 0;
+    this._autoResumeAttempts = 0;
   }
 
   async boot() {
@@ -355,20 +379,33 @@ class App {
       this.dom.play.setAttribute('aria-label', 'Pause');
       this.dom.now.classList.add('is-playing');
       setPlaybackState('playing');
+      // Reaching `playing` from any source counts as resumed — clear
+      // the auto-resume retry counter so a future unsolicited pause
+      // gets a fresh budget of attempts.
+      this._userPaused = false;
+      this._lastPlayingAt = Date.now();
+      this._pausedSinceMs = 0;
+      this._autoResumeAttempts = 0;
     });
     this.player.on('paused', () => {
       this.dom.play.textContent = '▶';
       this.dom.play.setAttribute('aria-label', 'Play');
       this.dom.now.classList.remove('is-playing');
       setPlaybackState('paused');
+      // Stamp the moment we entered `paused`. The polling loop uses
+      // this to decide whether the pause is long enough to be the
+      // "still watching?" prompt.
+      if (!this._pausedSinceMs) this._pausedSinceMs = Date.now();
     });
     this.player.on('ended', () => {
       this.dom.now.classList.remove('is-playing');
       setPlaybackState('paused');
       // Auto-advance if there's another track in the queue.
       if (!this.queue.next()) {
-        // End of queue — leave the last track cued.
+        // End of queue — leave the last track cued and don't try to
+        // auto-resume back into the just-finished video.
         this.dom.play.textContent = '▶';
+        this._userPaused = true;
       }
     });
     this.player.on('error', (e) => {
@@ -548,9 +585,11 @@ class App {
   async togglePlay() {
     const state = this.player.getStateName();
     if (state === 'playing') {
+      this._userPaused = true;
       this.player.pause();
       return;
     }
+    this._userPaused = false;
     // If the player exists and has a video loaded, just resume.
     if (this.player.player && this.player.getDuration() > 0) {
       this.player.play();
@@ -595,6 +634,9 @@ class App {
     if (minutes > 0) {
       this.sleepDeadline = Date.now() + minutes * 60 * 1000;
       this.sleepTimer = setTimeout(() => {
+        // Mark the pause as user-driven so auto-resume doesn't fight
+        // the sleep timer.
+        this._userPaused = true;
         this.player.pause();
         this.dom.sleep.value = '0';
         this.sleepDeadline = null;
@@ -825,11 +867,86 @@ class App {
 
   /* ── Polling for progress ────────────────────────────────────── */
 
+  /**
+   * Detect a YouTube ad and seek past it.
+   *
+   * The IFrame API's `infoDelivery.videoData.video_id` reports the
+   * video the iframe is *currently rendering*. During a pre-roll or
+   * mid-roll, that drifts to the ad's id while `currentVideoId`
+   * stays on the track we asked it to load. When they disagree, we
+   * jump to the (ad's) end so the real track resumes promptly. For
+   * non-skippable ads the seek is clamped — that's fine, we just
+   * land at the latest legal point and the ad finishes shortly.
+   *
+   * Ignored when `currentVideoId` is null (e.g. playlist-URL mode,
+   * where YouTube legitimately advances the playing video itself).
+   */
+  _maybeSkipAd(duration) {
+    const expected = this.player.currentVideoId;
+    const actual = this.player.getPlayingVideoId();
+    if (!expected || !actual || expected === actual) return;
+    if (!Number.isFinite(duration) || duration <= 0) return;
+    const now = Date.now();
+    if (now - this._lastAdSkipAt < AD_SKIP_COOLDOWN_MS) return;
+    this._lastAdSkipAt = now;
+    this.player.seekTo(Math.max(0, duration - 0.1), true);
+    this.setSearchStatus('Skipped an ad.');
+  }
+
+  /**
+   * Detect a "Video paused. Continue watching?" prompt and resume.
+   *
+   * From inside YouTube's frame the bookmarklet can find the dialog
+   * and click `#confirm-button`. We can't reach the dialog across the
+   * iframe origin, but a fresh `playVideo` from the parent typically
+   * dismisses it (or at minimum resumes underlying playback when
+   * YouTube allows). We only fire when:
+   *   - The user did NOT explicitly pause us (`_userPaused`).
+   *   - We've reached `playing` at least once this session
+   *     (`_lastPlayingAt > 0`) — guards against fighting an autoplay
+   *     block at session start.
+   *   - We're currently in the `paused` state.
+   *   - Enough time has elapsed since pause / last attempt to look
+   *     like a "still watching?" prompt rather than a buffer hiccup.
+   *
+   * Caps at MAX_ATTEMPTS so a genuinely broken state doesn't loop.
+   */
+  _maybeAutoResume() {
+    if (this._userPaused) return;
+    if (!this._lastPlayingAt) return;
+    if (this.player.getStateName() !== 'paused') return;
+    if (!this._pausedSinceMs) return;
+    if (this._autoResumeAttempts >= AUTO_RESUME_MAX_ATTEMPTS) return;
+
+    const now = Date.now();
+    const sincePause = now - this._pausedSinceMs;
+    const sinceLastAttempt = now - this._lastAutoResumeAt;
+    const ready =
+      this._autoResumeAttempts === 0
+        ? sincePause >= AUTO_RESUME_FIRST_DELAY_MS
+        : sinceLastAttempt >= AUTO_RESUME_RETRY_MS;
+    if (!ready) return;
+
+    this._lastAutoResumeAt = now;
+    this._autoResumeAttempts++;
+    console.log(
+      '[airwave] auto-resume attempt',
+      this._autoResumeAttempts,
+      `after ${Math.round(sincePause / 1000)}s paused`
+    );
+    this.player.play();
+    if (this._autoResumeAttempts >= AUTO_RESUME_MAX_ATTEMPTS) {
+      this.setSearchStatus('Player paused. Tap Play to continue.');
+    }
+  }
+
   startPolling() {
     if (this.pollTimer) clearInterval(this.pollTimer);
     this.pollTimer = setInterval(() => {
       const t = this.player.getCurrentTime();
       const d = this.player.getDuration();
+      this._maybeSkipAd(d);
+      this._maybeAutoResume();
       if (!this.scrubbing) {
         if (Number.isFinite(d) && d > 0) {
           this.dom.seek.max = String(Math.floor(d));
@@ -886,8 +1003,17 @@ class App {
     this.disposeMediaSession = bindMediaSession({
       track: { ...track, thumbnailHi: pickThumbnail(track.id).best },
       handlers: {
-        play: () => this.player.play(),
-        pause: () => this.player.pause(),
+        // Lockscreen / headphone / Bluetooth pause counts as a user
+        // gesture — respect it the same as a click on the in-app
+        // play button, so auto-resume won't fight it.
+        play: () => {
+          this._userPaused = false;
+          this.player.play();
+        },
+        pause: () => {
+          this._userPaused = true;
+          this.player.pause();
+        },
         previoustrack: () => this.handlePrev(),
         nexttrack: () => this.handleNext(),
         seekbackward: (s) => this.player.nudge(-s),
