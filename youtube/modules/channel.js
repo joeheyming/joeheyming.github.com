@@ -5,8 +5,7 @@
  * @property {string} videoId
  */
 
-export const CHANNEL_URL =
-  'https://www.youtube.com/@joeyjojojojojojojojojojojojojo/videos';
+export const CHANNEL_URL = 'https://www.youtube.com/@joeyjojojojojojojojojojojojojo/videos';
 
 /** Extract the 11-char video ID from any YouTube URL. */
 export function getVideoId(url) {
@@ -196,12 +195,18 @@ function decodeJsStringLiteral(body) {
       if (hex) return String.fromCharCode(parseInt(hex, 16));
       if (unicode) return String.fromCharCode(parseInt(unicode, 16));
       switch (ch) {
-        case 'n': return '\n';
-        case 't': return '\t';
-        case 'r': return '\r';
-        case 'b': return '\b';
-        case 'f': return '\f';
-        case '0': return '\0';
+        case 'n':
+          return '\n';
+        case 't':
+          return '\t';
+        case 'r':
+          return '\r';
+        case 'b':
+          return '\b';
+        case 'f':
+          return '\f';
+        case '0':
+          return '\0';
         case "'":
         case '"':
         case '\\':

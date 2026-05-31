@@ -1,0 +1,576 @@
+/*
+ * Airwave — paper-cream audio player on top of a hidden YouTube embed.
+ * Layout: single-column shell, max ~720px wide. The "now playing" card
+ * is the visual centerpiece; search and queue sit above and below it.
+ */
+
+:root {
+  --aw-card-radius: 10px;
+  --aw-shadow: 0 1px 0 rgba(0, 0, 0, 0.04), 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--surface-0, #fafafa);
+  color: var(--text-1, #1a1a1a);
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: var(--text-body, 16px);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+.aw-shell {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px 20px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Library: two columns on desktop (search left, queue right) collapsing
+ * to a single stacked column on narrow screens. The columns work
+ * together visually so the user sees the queue while skimming search
+ * results — no tabs, no toggling. */
+.aw-library {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 800px) {
+  .aw-library {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+.aw-header {
+  text-align: center;
+  padding-top: 8px;
+}
+.aw-title {
+  font-size: 36px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.aw-subtitle {
+  margin: 4px 0 0;
+  color: var(--text-2, #555);
+  font-size: 15px;
+}
+
+/* ── Cards ──────────────────────────────────────────────────────────── */
+.aw-search,
+.aw-now,
+.aw-queue {
+  background: var(--surface-1, #fff);
+  border: 1px solid var(--hairline, #e5e5e0);
+  border-radius: var(--aw-card-radius);
+  box-shadow: var(--aw-shadow);
+  padding: 16px;
+}
+
+/* ── Search ─────────────────────────────────────────────────────────── */
+.aw-search-form {
+  display: flex;
+  gap: 8px;
+}
+.aw-search-input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 15px;
+  padding: 10px 12px;
+  border: 1px solid var(--hairline-strong, #c8c8c0);
+  border-radius: 6px;
+  background: var(--surface-0, #fafafa);
+  color: inherit;
+}
+.aw-search-input:focus {
+  outline: 2px solid var(--accent-primary, #1a73e8);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+.aw-search-status {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-3, #6e6e6e);
+  min-height: 18px;
+}
+.aw-search-status.is-error {
+  color: var(--accent-red, #ea4335);
+}
+
+.aw-search-results {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.aw-search-result {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  width: 100%;
+}
+.aw-search-result:hover,
+.aw-search-result:focus-visible {
+  background: var(--surface-2, #f0eee8);
+  border-color: var(--hairline, #e5e5e0);
+  outline: none;
+}
+.aw-search-result-thumb {
+  width: 80px;
+  height: 45px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #ddd;
+}
+.aw-search-result-meta {
+  min-width: 0;
+}
+.aw-search-result-title {
+  font-weight: 500;
+  font-size: 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.aw-search-result-author {
+  font-size: 12px;
+  color: var(--text-3, #6e6e6e);
+  margin-top: 2px;
+}
+.aw-search-result-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── Now playing ────────────────────────────────────────────────────── */
+.aw-now {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+}
+.aw-art-wrap {
+  position: relative;
+  width: 280px;
+  max-width: 80%;
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-2, #f0eee8);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+.aw-art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.aw-art-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.18) 100%);
+}
+.aw-now.is-playing .aw-art {
+  animation: aw-pulse 4s ease-in-out infinite;
+}
+@keyframes aw-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aw-now.is-playing .aw-art {
+    animation: none;
+  }
+}
+
+.aw-meta {
+  text-align: center;
+  width: 100%;
+}
+.aw-track-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.aw-track-author {
+  font-size: 14px;
+  color: var(--text-2, #555);
+  margin-top: 4px;
+}
+
+/* ── Progress ───────────────────────────────────────────────────────── */
+.aw-progress {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+.aw-time {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--text-3, #6e6e6e);
+  min-width: 38px;
+  text-align: center;
+}
+.aw-seek {
+  width: 100%;
+  accent-color: var(--accent-primary, #1a73e8);
+}
+
+/* ── Transport ──────────────────────────────────────────────────────── */
+.aw-transport {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+.aw-btn {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--hairline-strong, #c8c8c0);
+  background: var(--surface-1, #fff);
+  color: inherit;
+  padding: 8px 14px;
+  border-radius: 6px;
+  transition: background 120ms ease, border-color 120ms ease, transform 80ms ease;
+}
+.aw-btn:hover {
+  background: var(--surface-2, #f0eee8);
+}
+.aw-btn:active {
+  transform: translateY(1px);
+}
+.aw-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.aw-btn-icon {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.aw-btn-play {
+  width: 56px;
+  height: 56px;
+  font-size: 22px;
+  background: var(--accent-primary-bg, #1a73e8);
+  color: var(--text-on-accent, #fff);
+  border-color: transparent;
+}
+.aw-btn-play:hover {
+  background: var(--accent-primary-bg-hover, #1558b8);
+}
+.aw-btn-primary {
+  background: var(--accent-primary-bg, #1a73e8);
+  color: var(--text-on-accent, #fff);
+  border-color: transparent;
+}
+.aw-btn-primary:hover {
+  background: var(--accent-primary-bg-hover, #1558b8);
+}
+.aw-btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-3, #6e6e6e);
+  padding: 6px 10px;
+  font-size: 13px;
+}
+.aw-btn-ghost:hover {
+  background: var(--surface-2, #f0eee8);
+}
+.aw-btn-toggle[aria-pressed='true'] {
+  background: var(--accent-primary-soft, #e8f0fe);
+  border-color: var(--accent-primary, #1a73e8);
+  color: var(--accent-primary, #1a73e8);
+}
+
+/* ── Extra controls ────────────────────────────────────────────────── */
+.aw-extra-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+  width: 100%;
+  border-top: 1px solid var(--hairline, #e5e5e0);
+  padding-top: 14px;
+}
+.aw-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-2, #555);
+}
+.aw-control select,
+.aw-control input[type='range'] {
+  font: inherit;
+  font-size: 13px;
+}
+.aw-control select {
+  padding: 4px 6px;
+  border: 1px solid var(--hairline-strong, #c8c8c0);
+  border-radius: 4px;
+  background: var(--surface-0, #fafafa);
+  color: inherit;
+}
+.aw-control input[type='range'] {
+  width: 110px;
+  accent-color: var(--accent-primary, #1a73e8);
+}
+.aw-sleep-status {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-3, #6e6e6e);
+  text-align: center;
+}
+
+/* ── Queue ──────────────────────────────────────────────────────────── */
+.aw-queue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.aw-queue-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+.aw-queue-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.aw-playlists-select {
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 6px;
+  border: 1px solid var(--hairline-strong, #c8c8c0);
+  border-radius: 4px;
+  background: var(--surface-0, #fafafa);
+  color: inherit;
+  max-width: 160px;
+}
+.aw-queue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.aw-queue-empty {
+  color: var(--text-3, #6e6e6e);
+  font-size: 13px;
+  padding: 8px 4px;
+  text-align: center;
+}
+.aw-queue-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 36px;
+  align-items: stretch;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.aw-queue-item.is-current {
+  background: var(--accent-primary-soft, #e8f0fe);
+  border-color: var(--hairline-accent, rgba(26, 115, 232, 0.32));
+}
+
+.aw-queue-item-main {
+  min-width: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 6px;
+  background: transparent;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 120ms ease;
+}
+.aw-queue-item-main:hover,
+.aw-queue-item-main:focus-visible {
+  background: var(--surface-2, #f0eee8);
+  outline: none;
+}
+.aw-queue-item.is-current .aw-queue-item-main:hover {
+  background: rgba(26, 115, 232, 0.12);
+}
+
+.aw-queue-item-thumb {
+  width: 60px;
+  height: 34px;
+  object-fit: cover;
+  border-radius: 3px;
+  background: #ddd;
+}
+.aw-queue-item-meta {
+  min-width: 0;
+}
+.aw-queue-item-title {
+  font-size: 13px;
+  font-weight: 500;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.aw-queue-item.is-current .aw-queue-item-title {
+  color: var(--accent-primary, #1a73e8);
+}
+.aw-queue-item-author {
+  font-size: 11px;
+  color: var(--text-3, #6e6e6e);
+}
+
+.aw-queue-item-remove {
+  width: 36px;
+  min-width: 0;
+  height: 100%;
+  align-self: stretch;
+  background: transparent;
+  border: none;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-3, #6e6e6e);
+  cursor: pointer;
+  padding: 0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.aw-queue-item-remove:hover,
+.aw-queue-item-remove:focus-visible {
+  background: var(--surface-2, #f0eee8);
+  color: var(--accent-red, #ea4335);
+  outline: none;
+}
+
+/* ── Footer + hidden player ────────────────────────────────────────── */
+.aw-footer {
+  text-align: center;
+  color: var(--text-3, #6e6e6e);
+  font-size: 12px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.aw-footer-shortcuts {
+  font-size: 11px;
+  line-height: 1.6;
+}
+.aw-footer-shortcuts kbd {
+  display: inline-block;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  padding: 1px 5px;
+  border: 1px solid var(--hairline-strong, #c8c8c0);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  background: var(--surface-1, #fff);
+  color: var(--text-2, #555);
+  margin: 0 1px;
+}
+.aw-player-host {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  left: -9999px;
+  top: -9999px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Mobile tightening ─────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .aw-shell {
+    padding: 16px 12px 64px;
+    gap: 12px;
+  }
+  .aw-title {
+    font-size: 28px;
+  }
+  .aw-search-form {
+    flex-direction: column;
+  }
+  .aw-art-wrap {
+    width: 200px;
+  }
+  .aw-extra-controls {
+    gap: 10px;
+  }
+  .aw-control input[type='range'] {
+    width: 90px;
+  }
+  .aw-transport .aw-btn-icon {
+    width: 40px;
+    height: 40px;
+  }
+  .aw-btn-play {
+    width: 52px;
+    height: 52px;
+  }
+  /* Pad the header so the back button (compact mode) doesn't overlap. */
+  .aw-header {
+    padding-top: 36px;
+  }
+}

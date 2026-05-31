@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+
+    <link
+      rel="icon"
+      id="site-favicon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📻</text></svg>"
+    />
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Airwave 📻 — YouTube as Audio | Joe Heyming</title>
+
+    <meta
+      name="description"
+      content="Airwave plays any YouTube video as audio only. Search or paste a URL, get a clean audio-player UI with lockscreen controls, sleep timer, and a persistent queue."
+    />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="theme-color" content="#fafafa" />
+    <meta
+      name="keywords"
+      content="Airwave, YouTube audio, listen to YouTube, podcast YouTube, background music, audio only, YouTube as podcast"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Airwave" />
+    <meta property="og:title" content="📻 Airwave — YouTube as Audio" />
+    <meta
+      property="og:description"
+      content="Search or paste a URL — Airwave plays YouTube as audio with lockscreen controls and a persistent queue."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/airwave/" />
+    <meta property="og:image" content="https://joeheyming.github.io/airwave/airwave-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Airwave audio player for YouTube" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="📻 Airwave — YouTube as Audio" />
+    <meta
+      name="twitter:description"
+      content="Listen to YouTube as if it were a podcast. Search, queue, sleep timer, lockscreen controls."
+    />
+    <meta name="twitter:image" content="https://joeheyming.github.io/airwave/airwave-preview.png" />
+
+    <link rel="canonical" href="https://joeheyming.github.io/airwave/" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Airwave",
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Play YouTube videos as audio only — search, queue, sleep timer, lockscreen integration.",
+            "url": "https://joeheyming.github.io/airwave/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "screenshot": "https://joeheyming.github.io/airwave/airwave-preview.png",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              { "@type": "ListItem", "position": 2, "name": "Airwave" }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <script src="/proxy.js"></script>
+    <link rel="stylesheet" href="index.css" />
+    <script type="module" src="./index.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+  </head>
+  <body>
+    <main class="aw-shell">
+      <header class="aw-header">
+        <h1 class="aw-title">📻 Airwave</h1>
+        <p class="aw-subtitle">YouTube — but just the audio.</p>
+      </header>
+
+      <!-- NOW PLAYING — pinned at the top so the artwork/transport
+           is the first thing the user sees on every viewport. -->
+      <section class="aw-now" aria-label="Now playing">
+        <div class="aw-art-wrap">
+          <img
+            id="aw-art"
+            class="aw-art"
+            alt=""
+            src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 600'><rect width='600' height='600' fill='%23f0eee8'/><text x='50%25' y='52%25' font-size='180' text-anchor='middle' dominant-baseline='middle' font-family='system-ui'>📻</text></svg>"
+          />
+          <div class="aw-art-overlay" aria-hidden="true"></div>
+        </div>
+
+        <div class="aw-meta">
+          <div id="aw-track-title" class="aw-track-title">Nothing queued yet</div>
+          <div id="aw-track-author" class="aw-track-author">
+            Search below or paste a YouTube URL.
+          </div>
+        </div>
+
+        <div class="aw-progress">
+          <span id="aw-time-current" class="aw-time">0:00</span>
+          <input
+            id="aw-seek"
+            class="aw-seek"
+            type="range"
+            min="0"
+            max="0"
+            step="1"
+            value="0"
+            aria-label="Seek"
+          />
+          <span id="aw-time-total" class="aw-time">0:00</span>
+        </div>
+
+        <div class="aw-transport">
+          <button
+            id="aw-shuffle"
+            class="aw-btn aw-btn-icon aw-btn-toggle"
+            type="button"
+            aria-label="Shuffle"
+            aria-pressed="false"
+            title="Shuffle (S)"
+          >
+            🔀
+          </button>
+          <button
+            id="aw-prev"
+            class="aw-btn aw-btn-icon"
+            type="button"
+            aria-label="Previous track"
+            title="Previous (P)"
+          >
+            ⏮
+          </button>
+          <button
+            id="aw-back15"
+            class="aw-btn aw-btn-icon"
+            type="button"
+            aria-label="Back 10 seconds"
+            title="Back 10s (J)"
+          >
+            ↺10
+          </button>
+          <button
+            id="aw-play"
+            class="aw-btn aw-btn-icon aw-btn-play"
+            type="button"
+            aria-label="Play"
+            title="Play / pause (Space or K)"
+          >
+            ▶
+          </button>
+          <button
+            id="aw-fwd15"
+            class="aw-btn aw-btn-icon"
+            type="button"
+            aria-label="Forward 10 seconds"
+            title="Forward 10s (L)"
+          >
+            10↻
+          </button>
+          <button
+            id="aw-next"
+            class="aw-btn aw-btn-icon"
+            type="button"
+            aria-label="Next track"
+            title="Next (N)"
+          >
+            ⏭
+          </button>
+        </div>
+
+        <div class="aw-extra-controls">
+          <label class="aw-control">
+            Speed
+            <select id="aw-speed" aria-label="Playback speed">
+              <option value="0.75">0.75×</option>
+              <option value="1" selected>1×</option>
+              <option value="1.25">1.25×</option>
+              <option value="1.5">1.5×</option>
+              <option value="2">2×</option>
+            </select>
+          </label>
+          <label class="aw-control">
+            Volume
+            <input
+              id="aw-volume"
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value="100"
+              aria-label="Volume"
+            />
+          </label>
+          <label class="aw-control">
+            Sleep
+            <select id="aw-sleep" aria-label="Sleep timer">
+              <option value="0" selected>Off</option>
+              <option value="5">5 min</option>
+              <option value="15">15 min</option>
+              <option value="30">30 min</option>
+              <option value="60">60 min</option>
+            </select>
+          </label>
+        </div>
+
+        <p id="aw-sleep-status" class="aw-sleep-status" hidden></p>
+      </section>
+
+      <!-- LIBRARY: search and queue, side-by-side on desktop and stacked
+           on mobile. The two columns work together — search results
+           live in the left column, "Play" or "Queue" them into the
+           queue on the right. -->
+      <div class="aw-library">
+        <section class="aw-search" aria-label="Search">
+          <form id="aw-search-form" class="aw-search-form" autocomplete="off">
+            <input
+              id="aw-search-input"
+              class="aw-search-input"
+              type="search"
+              inputmode="search"
+              placeholder="Search YouTube or paste a video URL"
+              aria-label="Search YouTube or paste a URL"
+            />
+            <button id="aw-search-btn" class="aw-btn aw-btn-primary" type="submit">Search</button>
+          </form>
+          <div
+            id="aw-search-status"
+            class="aw-search-status"
+            role="status"
+            aria-live="polite"
+          ></div>
+          <ul id="aw-search-results" class="aw-search-results" hidden></ul>
+        </section>
+
+        <section class="aw-queue" aria-label="Queue">
+          <header class="aw-queue-header">
+            <h2 class="aw-queue-title">Up next</h2>
+            <div class="aw-queue-actions">
+              <select id="aw-playlists" class="aw-playlists-select" aria-label="Saved playlists">
+                <option value="">Playlists…</option>
+                <option value="__save__">＋ Save current queue…</option>
+              </select>
+              <button id="aw-clear-queue" class="aw-btn aw-btn-ghost" type="button">Clear</button>
+            </div>
+          </header>
+          <ol id="aw-queue-list" class="aw-queue-list" aria-live="polite">
+            <li class="aw-queue-empty">Queue is empty. Add tracks from search.</li>
+          </ol>
+        </section>
+      </div>
+
+      <footer class="aw-footer">
+        <small>
+          Audio comes from a hidden YouTube embed — video frames are still being streamed under the
+          hood. Airwave doesn't extract or download anything.
+        </small>
+        <small class="aw-footer-shortcuts">
+          Keys:
+          <kbd>Space</kbd>
+          /
+          <kbd>K</kbd>
+          play ·
+          <kbd>J</kbd>
+          /
+          <kbd>L</kbd>
+          ±10s ·
+          <kbd>←</kbd>
+          /
+          <kbd>→</kbd>
+          ±5s ·
+          <kbd>0</kbd>
+          –
+          <kbd>9</kbd>
+          seek % ·
+          <kbd>↑</kbd>
+          /
+          <kbd>↓</kbd>
+          volume ·
+          <kbd>M</kbd>
+          mute ·
+          <kbd>,</kbd>
+          /
+          <kbd>.</kbd>
+          speed ·
+          <kbd>N</kbd>
+          /
+          <kbd>P</kbd>
+          next/prev ·
+          <kbd>S</kbd>
+          shuffle
+        </small>
+      </footer>
+
+      <!-- Hidden YouTube iframe host. Replaced at runtime by the player module. -->
+      <div id="aw-player-host" class="aw-player-host" aria-hidden="true">
+        <div id="aw-yt-player"></div>
+      </div>
+
+      <share-button label="📤 Share" theme="paper"></share-button>
+    </main>
+  </body>
+</html>

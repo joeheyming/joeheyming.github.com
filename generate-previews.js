@@ -354,6 +354,11 @@ const PAGES = [
     title: 'Media Player'
   },
   {
+    url: `${BASE_URL}/airwave/`,
+    output: 'airwave/airwave-preview.png',
+    title: 'Airwave - YouTube as Audio'
+  },
+  {
     url: `${BASE_URL}/vibe-coding/`,
     output: 'vibe-coding/vibe-coding-preview.png',
     title: 'Vibe Coding'
