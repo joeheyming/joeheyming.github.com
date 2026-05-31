@@ -78,10 +78,19 @@
       fileExtsLabel: '.gb / .gbc',
       accentHex: '#8b5cf6',
       accentGoldHex: '#6d28d9',
-      // No public-domain Internet Archive collection wired up yet; drop a
-      // URL in here when we find one and the ROM browser flips on automatically.
-      iaBaseUrl: null,
-      iaDescriptionPrefix: 'Classic Game Boy game',
+      // Pull from two complementary IA items so the library spans both eras
+      // gambatte handles. First source wins on dedupe — DMG titles get the
+      // pristine no-intro builds, GBC-only games come from the curated
+      // gameboycolorsystemcollection. Combined: Pokémon Red/Blue/Yellow,
+      // Crystal/Gold/Silver, Metroid II, original Tetris, Super Mario Land
+      // 1+2, Wario Land 1/2/3, Kirby's Dream Land 1+2, FF Adventure /
+      // Legend, Castlevania I+II, Mega Man I-V, Zelda Link's Awakening +
+      // Oracle of Ages / Seasons, etc.
+      iaBaseUrl: [
+        'https://archive.org/download/theentiregameboycollection',
+        'https://archive.org/download/gameboycolorsystemcollection'
+      ],
+      iaDescriptionPrefix: 'Classic Game Boy / Color game',
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
         { label: 'A button', key: 'Z' },

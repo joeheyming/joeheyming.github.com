@@ -29,7 +29,8 @@ class RomBrowserElement extends HTMLElement {
     if (!cfg || !cfg.iaBaseUrl || !window.InternetArchiveRoms) return null;
     this._ia = new window.InternetArchiveRoms({
       baseUrl: cfg.iaBaseUrl,
-      descriptionPrefix: cfg.iaDescriptionPrefix
+      descriptionPrefix: cfg.iaDescriptionPrefix,
+      fileExtensions: cfg.iaFileExtensions
     });
     return this._ia;
   }
@@ -325,16 +326,21 @@ class RomBrowserElement extends HTMLElement {
 
       const romData = await ia.loadRom(rom);
 
-      // Wrap in a File so EmulatorJS sees the `.zip` filename and the
-      // libretro core (genesis_plus_gx, FCEUmm, gambatte) can detect
-      // the archive. A blob URL alone loses the filename and the
-      // core silently hangs while it scans the buffer for a header.
-      const romFile = new File([romData], `${rom.title}.zip`, { type: 'application/zip' });
+      // Wrap in a File so EmulatorJS sees a real filename — libretro cores
+      // (FCEUmm, genesis_plus_gx, gambatte) detect format from the suffix.
+      // Preserve the source extension: zip-based collections (NES / Sega)
+      // pass through as .zip and the core unzips, raw .gb / .gbc from the
+      // GameBoyColor item are handed to gambatte directly. Faking .zip on
+      // raw ROM bytes used to silently hang the core.
+      const ext = rom.fileExtension || '.zip';
+      const mimeType = ext === '.zip' ? 'application/zip' : 'application/octet-stream';
+      const filename = `${rom.title}${ext}`;
+      const romFile = new File([romData], filename, { type: mimeType });
 
       this.closeBrowser();
 
       if (typeof window.launchEmulator === 'function') {
-        window.launchEmulator(romFile, rom.title + '.zip');
+        window.launchEmulator(romFile, filename);
       } else {
         console.error('launchEmulator not available on window');
         alert('Emulator not ready. Please reload the page and try again.');

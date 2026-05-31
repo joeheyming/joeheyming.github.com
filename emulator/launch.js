@@ -180,6 +180,16 @@
       getComputedStyle(document.documentElement).getPropertyValue('--accent-bright').trim() ||
       cfg.accentHex;
     window.EJS_defaultControls = 1;
+    // Exit Emulation: by default EmulatorJS leaves the user staring at an
+    // "EmulatorJS has exited" message because a WASM instance can't be
+    // unloaded in place. Override the toolbar button to reload back to the
+    // current ?console=<id> URL, which re-renders the boot card with the
+    // ROM browser + local-file picker so they can pick another game.
+    window.EJS_Buttons = Object.assign({}, window.EJS_Buttons, {
+      exitEmulation: {
+        callback: () => window.location.reload()
+      }
+    });
 
     if (window.trackEvent) {
       const labelBase = (window.EJS_gameName || 'unknown').toString().slice(0, 80);
