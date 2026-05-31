@@ -53,6 +53,77 @@
 
     <link rel="canonical" href="https://joeheyming.github.io/todo/" />
 
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "name": "Todo (Google Sheets task manager)",
+            "alternateName": [
+              "Todo",
+              "Google Sheets todo",
+              "Browser todo Google Sheets",
+              "Spreadsheet todo list",
+              "Sheets-backed task manager",
+              "Free todo app no signup"
+            ],
+            "url": "https://joeheyming.github.io/todo/",
+            "applicationCategory": "ProductivityApplication",
+            "operatingSystem": "Web Browser",
+            "description": "A free browser todo app that stores your tasks in your own Google Sheet. Sign in with Google, and the app reads/writes a spreadsheet you own. Multiple lists as tabs, add/edit/check off tasks, works on phone and desktop. There's no Joe-Heyming backend; the only data path is browser ↔ your Google Drive.",
+            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Where are my tasks stored?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "In a Google Sheet you own. The app authenticates with Google and reads/writes a spreadsheet in your Drive. There is no Joe-Heyming backend; data goes browser ↔ Google. You can open the spreadsheet directly in Google Sheets at any time."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Why Google Sheets?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Because the data is yours, portable, sortable, exportable, and editable from any Google Sheets client. The static-site repo doesn't run a backend, so syncing through Drive lets the app cover phones and desktops without you trusting a new server."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I have multiple lists?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Each tab in your spreadsheet is one list. Add a tab in Sheets and it appears in the app; rename a tab and the app picks up the new name on next sync."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is it private?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The OAuth scope is limited to a single spreadsheet you authorize. The app never sees other Drive files. Joe Heyming never sees your data — there's no server in the loop."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does it work offline?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The page loads offline once cached, but reading and writing tasks needs a connection (you're talking to Google's servers, not a local cache). Edits made offline are not queued for replay today."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
     <meta name="format-detection" content="telephone=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />

@@ -290,3 +290,36 @@ section {
   margin-top: 1rem;
   font-weight: normal;
 }
+
+/*
+ * Evidence Capsule — TL;DR aside that lives at the top of <main>.
+ * Visible on the page; also surfaced by the FAQPage JSON-LD so AI
+ * agents can extract a direct answer without parsing the whole article.
+ */
+.evidence-capsule {
+  background: color-mix(in srgb, var(--accent-primary) 8%, var(--surface-1));
+  border-left: 3px solid var(--accent-primary);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin: 0 0 2.5rem;
+}
+
+.evidence-capsule p {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.evidence-capsule p:last-child {
+  margin-bottom: 0;
+}
+
+.evidence-capsule ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.95rem;
+}
+
+.evidence-capsule li {
+  margin-bottom: 0.25rem;
+}

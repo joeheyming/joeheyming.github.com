@@ -175,6 +175,67 @@
             ]
           },
           {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Is this the real DOOM?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — id Software's DOOM (1993) running through GZDoom compiled to WebAssembly (UZDoom). The page also ships Freedoom, the open-source replacement assets that play the same maps without proprietary content."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Do I need to install anything?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. DOOM runs entirely in your browser. There's nothing to install, no plugins, and no account. WAD files stream from disk on first load and cache locally for instant replay."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What flavors of DOOM are included?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Six: Classic DOOM (the 1993 original), Freedoom (open-source assets), Legend of DOOM (a Zelda-themed total conversion), Mario DOOM (Valigarmander's MarioDoom mod), Metroid DOOM (Spram's Metroidvania conversion), and Castlevania: Simon's Destiny (Batandy's standalone first-person Castlevania). All six are launchable via the flavor picker on the start screen."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What are the controls?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "WASD or arrow keys to move, mouse to aim, left-click to fire, space to open doors, 1–7 to switch weapons, Esc for the menu. The browser pointer-lock API captures the mouse for proper FPS control. On mobile, an on-screen joystick + fire/jump buttons appear automatically."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What is Legend of DOOM, Mario DOOM, Metroid DOOM, or Simon's Destiny?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Legend of DOOM is a fan-made Zelda-themed total conversion. Mario DOOM (MarioDoom by Valigarmander) replaces enemies and weapons with Mario-universe assets. Metroid DOOM (Spram's mod) is a Metroidvania-style conversion using Samus Aran. Castlevania: Simon's Destiny (Batandy's mod) is a standalone first-person Castlevania built on the GZDoom engine. All four are loaded as WADs alongside the engine."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is it safe to play DOOM in a browser?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — the entire stack (engine + WAD parser) runs in the browser sandbox. No code reaches your filesystem and no data is uploaded. The site is open source on GitHub."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Why isn't sound working?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Browsers require user interaction before audio can start. Click anywhere on the canvas to unlock sound. If audio is still silent, check that your browser tab isn't muted in the tab strip or in site permissions."
+                }
+              }
+            ]
+          },
+          {
             "@type": "BreadcrumbList",
             "itemListElement": [
               {

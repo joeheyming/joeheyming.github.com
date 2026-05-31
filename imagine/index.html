@@ -26,6 +26,10 @@
     />
     <meta property="og:url" content="https://joeheyming.github.io/imagine/" />
     <meta property="og:image" content="https://joeheyming.github.io/imagine/imagine-preview.png" />
+    <meta
+      property="og:image:alt"
+      content="In-browser AI image-generation app powered by SD-Turbo on WebGPU — a generated picture, a prompt input, and progress indicators with no server or API key."
+    />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="en_US" />
@@ -39,6 +43,10 @@
       content="Backend-free text-to-image. Runs entirely in your browser via WebGPU."
     />
     <meta name="twitter:image" content="https://joeheyming.github.io/imagine/imagine-preview.png" />
+    <meta
+      name="twitter:image:alt"
+      content="In-browser AI image-generation app powered by SD-Turbo on WebGPU — a generated picture, a prompt input, and progress indicators with no server or API key."
+    />
 
     <link rel="canonical" href="https://joeheyming.github.io/imagine/" />
     <link rel="stylesheet" href="index.css" />
@@ -91,12 +99,92 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Imagine — local browser image generator",
-        "url": "https://joeheyming.github.io/imagine/",
-        "applicationCategory": "MultimediaApplication",
-        "operatingSystem": "Any (modern browser with WebGPU)",
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Imagine — local browser image generator",
+            "alternateName": [
+              "Imagine",
+              "Local Stable Diffusion",
+              "Browser Stable Diffusion",
+              "WebGPU Stable Diffusion",
+              "SD-Turbo browser",
+              "On-device image generator"
+            ],
+            "url": "https://joeheyming.github.io/imagine/",
+            "applicationCategory": "MultimediaApplication",
+            "applicationSubCategory": "AI Image Generator",
+            "operatingSystem": "Any (modern browser with WebGPU)",
+            "softwareRequirements": "WebGPU-capable browser (Chrome 113+, Edge 113+, Safari 18+, Firefox 141+)",
+            "description": "Static-site text-to-image generator powered by SD-Turbo + onnxruntime-web. The full diffusion model runs on your GPU via WebGPU — no backend, no API key, no third-party endpoint. Install once (~2.3 GB into your browser's Cache Storage); after that, each 512×512 image takes 1–5 seconds and works offline.",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "featureList": [
+              "Stable Diffusion Turbo running locally on WebGPU",
+              "No API key, no backend, no third-party endpoint",
+              "~2.3 GB one-time install into browser Cache Storage",
+              "1–5 seconds per 512×512 image on a discrete GPU",
+              "Works offline after first install"
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What model does Imagine use?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Stability AI's SD-Turbo (Stable Diffusion Turbo) — a distilled diffusion model optimized for fast inference. It runs through onnxruntime-web on WebGPU."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How big is the install?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Roughly 2.3 GB on first run. The weights are stored in your browser's Cache Storage and reused on every subsequent visit."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How fast is generation?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "1–5 seconds per 512×512 image on a discrete GPU. Integrated GPUs work but are 5–10× slower."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does Imagine work offline?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — once the model has been cached, generation works offline. No data leaves your device."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I save the images?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Generated images are PNG-encoded in the browser; right-click to save, or use the download button. Nothing is uploaded."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Why does it require WebGPU?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "WebGPU exposes the local GPU to JavaScript so the diffusion model can run client-side without WebAssembly fallbacks. The page shows a clear unsupported message if the browser lacks WebGPU."
+                }
+              }
+            ]
+          }
+        ]
       }
     </script>
   </head>
@@ -306,6 +394,27 @@
     </div>
 
     <div id="imagine-toasts" class="notify-stack" aria-live="polite"></div>
+
+    <!-- Static AEO content; visually hidden but in the DOM. -->
+    <section class="imagine-seo" hidden aria-hidden="true">
+      <h2>Free Stable Diffusion in your browser — no API key, no backend</h2>
+      <p>
+        Imagine is a static text-to-image generator that runs SD-Turbo (Stable Diffusion Turbo)
+        locally on your GPU via WebGPU and onnxruntime-web. Install the model once (~2.3&nbsp;GB
+        into your browser's Cache Storage); after that, each 512×512 image renders in 1–5 seconds
+        and the page works offline.
+      </p>
+    </section>
+
+    <p class="seo-keywords-extended" hidden>
+      Free Stable Diffusion in browser, Stable Diffusion Turbo browser, SD-Turbo browser, WebGPU
+      Stable Diffusion, on-device image generator, browser AI image generator, no API key image
+      generator, free local Stable Diffusion, no signup AI image generator, run Stable Diffusion
+      locally, ONNX Runtime Web Stable Diffusion, browser text to image, text-to-image free no
+      account, AI image generator browser, free AI art browser. Common typos: stabe diffusion,
+      stable difusion, stable diffsion, stalbe diffusion, sd turbo, sd-turbo, sd_turbo, webgpu, web
+      gpu, web-gpu image gen.
+    </p>
 
     <script type="module" src="./index.js"></script>
   </body>

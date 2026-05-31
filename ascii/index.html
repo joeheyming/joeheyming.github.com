@@ -80,6 +80,51 @@
             "keywords": "ascii art, webcam, image converter, text art, matrix"
           },
           {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How does ASCII art conversion work?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The page samples each pixel of an image (or webcam frame), maps the brightness to a character from a ramp like ' .,:;ox%#@', and renders the result as a monospace text grid. Different ramps give different fidelity — a long ramp captures shading; a short ramp produces a stylised look."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does the webcam mode upload my video?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. Webcam frames are processed entirely in the browser via the MediaDevices API and a 2D canvas. Nothing is uploaded; the camera light goes off the moment you stop recording."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What can I export?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Plain text (.txt) for the raw ASCII grid, and PNG for a styled image of the rendered art (with the chosen font, colour mode, and background). Both export buttons are in the top toolbar."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is colour ASCII a thing?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — the page supports a full-colour mode that picks the character based on brightness but tints it with the original pixel's colour. Looks great as a PNG export, less terminal-friendly when copy-pasted as text."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I drop an image onto the page?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Drag-and-drop from your desktop or paste from the clipboard works. The picker also accepts the standard file types: JPG, PNG, GIF, and WebP."
+                }
+              }
+            ]
+          },
+          {
             "@type": "BreadcrumbList",
             "itemListElement": [
               {

@@ -4,7 +4,28 @@
  * element so the page can show "MIDI connected".
  *
  * Silently no-ops on browsers without WebMIDI (Safari, Firefox by default).
+ *
+ * Fires one `midi_first_play` GA event the first time the user actually
+ * plays a note on a connected MIDI device. We only need to know whether
+ * MIDI is used in the wild; per-note events would dwarf every other GA
+ * event on the site. The flag is module-scoped, so multiple instruments
+ * sharing this wrapper still report at most once per page load.
  */
+
+let firstPlayTracked = false;
+
+function instrumentNameFromPath() {
+  const m = location.pathname.match(/\/play\/([^/]+)\//);
+  return m ? m[1] : location.pathname;
+}
+
+function trackFirstMidiPlay() {
+  if (firstPlayTracked) return;
+  firstPlayTracked = true;
+  if (typeof window.trackEvent === 'function') {
+    window.trackEvent('midi_first_play', 'MIDI', instrumentNameFromPath());
+  }
+}
 
 export function setupMidi({ onNoteOn, onNoteOff, statusEl }) {
   if (!navigator.requestMIDIAccess) return;
@@ -23,6 +44,7 @@ export function setupMidi({ onNoteOn, onNoteOff, statusEl }) {
     const command = status & 0xf0;
 
     if (command === 0x90 && velocity > 0) {
+      trackFirstMidiPlay();
       onNoteOn?.(note, velocity / 127);
     } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
       onNoteOff?.(note);

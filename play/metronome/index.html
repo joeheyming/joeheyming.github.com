@@ -55,6 +55,86 @@
 
     <link rel="canonical" href="https://joeheyming.github.io/play/metronome/" />
 
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Metronome (Browser Metronome)",
+            "alternateName": [
+              "Browser metronome",
+              "Online metronome",
+              "Free metronome",
+              "Web metronome",
+              "HTML metronome",
+              "Tap tempo metronome browser"
+            ],
+            "url": "https://joeheyming.github.io/play/metronome/",
+            "applicationCategory": "MultimediaApplication",
+            "applicationSubCategory": "Metronome",
+            "operatingSystem": "Web Browser",
+            "description": "A free, accurate metronome that runs in your browser. Adjustable BPM (40–240), choice of time signatures (2/4, 3/4, 4/4, 6/8, 7/8, 5/4, 12/8), accent on the downbeat, and a visual pulse for silent practice. Tap-tempo input lets you set the BPM by clicking in time.",
+            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What time signatures does it support?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "2/4, 3/4, 4/4, 6/8, 7/8, 5/4, and 12/8. The first beat of each measure gets a higher-pitched accent click; subsequent beats get a normal click."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How accurate is the timing?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Better than 1ms drift over a long practice session. The metronome uses the Web Audio API's sample-accurate scheduler (AudioContext.currentTime) rather than setInterval, so timing doesn't drift if the page tab is briefly throttled."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What is tap tempo?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Click or tap the tempo button rhythmically and the metronome calculates the BPM from the average interval between your taps. Useful for matching the tempo of an existing recording."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I practice silently?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — the visual pulse on the page gives you a silent reference. Mute the audio (or your device speakers) and watch the flash. Useful when practising in shared spaces."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What's the BPM range?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "40 BPM (slow Largo) to 240 BPM (well past Prestissimo). Drag the slider, type a value, or tap the tempo button to set it."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Why practise with a metronome?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Metronomes can help improve timing and memorization of music. Locking to a steady pulse trains your internal clock, exposes rushed or dragged passages, and reinforces muscle memory by repeating phrases at a consistent tempo — start slow, then nudge the BPM up as the part becomes reliable."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
     <script>

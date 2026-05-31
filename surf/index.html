@@ -36,6 +36,70 @@
     <meta name="twitter:image" content="https://joeheyming.github.io/surf/surf-preview.png" />
 
     <link rel="canonical" href="https://joeheyming.github.io/surf/" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Surf — Minimal HTML Viewer",
+            "alternateName": [
+              "Surf",
+              "HTML file viewer browser",
+              "Sandboxed HTML preview",
+              "Local HTML viewer",
+              "View HTML file in browser",
+              "suckless surf web"
+            ],
+            "url": "https://joeheyming.github.io/surf/",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Open and preview a local HTML file in a sandboxed browser viewer. Toggle between rendered output and the raw source. Inspired by suckless surf — minimal, no install, no upload.",
+            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Is opening an HTML file in Surf safe?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Surf renders the file inside a sandboxed iframe (sandbox attribute restricts top navigation, popups, and same-origin access by default). Scripts in the file run, but they can't reach into the parent page or your other tabs."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Why was it inspired by suckless surf?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "suckless surf is a minimal WebKit-based browser from suckless.org built around the Unix-philosophy 'do one thing well' principle. This page is a static-site take on that idea: open one HTML file, see the rendered page or the source, no other features."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I see the raw source?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — toggle between rendered and source views. The source view is syntax-highlighted."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are my files uploaded?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. The HTML file stays on your device — Surf reads it via the standard file-input API and renders it locally. Nothing is sent to a server."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>"

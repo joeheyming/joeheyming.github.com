@@ -119,6 +119,43 @@
             "inLanguage": "en"
           },
           {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What can I count down to?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Any future date and time. The page has presets for common events (New Year's, Christmas) and a custom date picker. The countdown shows years, days, hours, minutes, and seconds in real time."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I share my countdown?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. The target date and label are encoded in the URL query string, so sharing the URL shares the exact same countdown — without any backend or signup."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does the countdown keep running if I close the tab?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The countdown is a wall-clock calculation: opening the page at any future point shows the correct remaining time. There's no background process; the page reads the current time and computes the difference."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What time zone is used?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Your browser's local time zone by default. The target date is stored as an ISO timestamp so it's unambiguous across time zones — sharing a URL between two countries shows the same absolute moment in each viewer's local time."
+                }
+              }
+            ]
+          },
+          {
             "@type": "BreadcrumbList",
             "itemListElement": [
               {

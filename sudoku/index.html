@@ -80,6 +80,63 @@
             "genre": "Puzzle",
             "keywords": "sudoku, puzzle, classic game, browser game",
             "inLanguage": "en"
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How do pencil marks work?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Toggle pencil mode (the 🖊️ button) and tap numbers to add/remove candidates in a cell. Pencil mode is a separate tap target so you can plan without committing. Auto-fill pencil marks fills every cell with all valid candidates given the current grid."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are puzzles unique-solution?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. The generator validates that each puzzle has exactly one solution, so logical play always reaches the right grid without guessing."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What's the difficulty range?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Four levels: Easy, Medium, Hard, and Expert. Difficulty is set by the number of givens and the techniques required to deduce the rest — Expert puzzles need X-wing-class reasoning, not just hidden singles."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does it work on mobile?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. The grid scales to the viewport and number entry uses an on-screen pad. Undo/redo, hint, and pause are all touch-friendly."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I import a puzzle?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Not yet — the New Game dialog generates puzzles in-browser. There's no paste-from-newspaper input today; the generator is the source of new puzzles."
+                }
+              }
+            ]
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              { "@type": "ListItem", "position": 2, "name": "Sudoku" }
+            ]
           }
         ]
       }
@@ -94,7 +151,7 @@
     <link rel="stylesheet" href="/brand.css" />
   </head>
   <body>
-    <div class="page">
+    <main class="page">
       <header class="page-header">
         <h1>🔢 Sudoku</h1>
         <div class="badges">
@@ -166,7 +223,7 @@
         <span class="sep">•</span>
         <share-button label="📤 Share" theme="dark"></share-button>
       </div>
-    </div>
+    </main>
 
     <!-- New Game Modal -->
     <div class="modal" id="newgame-modal">

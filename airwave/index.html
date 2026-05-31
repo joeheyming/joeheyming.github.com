@@ -74,6 +74,51 @@
             "inLanguage": "en"
           },
           {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What does Airwave do?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Plays YouTube videos as audio only — like a radio. Search, build a queue, set a sleep timer, and the lock-screen Media Session integration makes the next/previous/play buttons on your headset and car Bluetooth control playback even when the screen is off."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Why audio only?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "For lecturing, podcasts, music, or background-listening uses where the video frame is irrelevant. Audio-only saves data, lets the screen turn off, and keeps Bluetooth media-button controls reliable."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does it work in the car?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Airwave registers a MediaSession with your OS so the car Bluetooth's track-up/track-down/play-pause buttons control the queue. Most modern Android cars (Toyota, Honda, Mazda) and iPhone/Apple-CarPlay-paired devices work without any setup."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I queue a playlist?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — search results can be added to the queue individually or in bulk. The queue persists in localStorage so it survives a browser refresh."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is this a YouTube downloader?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No — Airwave streams the audio track from YouTube via the YouTube IFrame Player API. It doesn't download files or save audio for offline playback."
+                }
+              }
+            ]
+          },
+          {
             "@type": "BreadcrumbList",
             "itemListElement": [
               {

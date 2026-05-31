@@ -119,6 +119,51 @@
               "Shareable URL"
             ],
             "inLanguage": "en"
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Where does the weather data come from?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The Open-Meteo public weather API and the OpenStreetMap Nominatim geocoder. Both are free, ad-free, and require no API key. The page calls them directly from your browser."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does it support my country?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — Open-Meteo provides global coverage with hourly and daily forecasts for any latitude/longitude. The location search supports any city name worldwide; US ZIP codes also work as a shortcut."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does it work offline?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The page itself loads offline once it's been cached, and the most recently fetched forecast is held in localStorage. Fetching a fresh forecast requires a connection."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I switch between Celsius and Fahrenheit?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — toggle in the toolbar. The setting persists in localStorage so the next visit opens in your preferred unit."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I save multiple cities?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Add as many as you like; switch between them with one click. Locations and the current selection persist locally."
+                }
+              }
+            ]
           }
         ]
       }

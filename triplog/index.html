@@ -38,6 +38,10 @@
     />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Joe Heyming portfolio Open Graph card representing the Trip Log GPS-tracking web app."
+    />
     <meta property="og:locale" content="en_US" />
 
     <meta name="twitter:card" content="summary_large_image" />
@@ -45,6 +49,88 @@
     <meta name="twitter:creator" content="@joeheyming" />
 
     <link rel="canonical" href="https://joeheyming.github.io/triplog/" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "name": "Trip Log",
+            "alternateName": [
+              "Trip Log",
+              "Triplog",
+              "Browser GPS tracker",
+              "GPS trip recorder",
+              "Browser geolocation logger",
+              "Local-only GPS tracker"
+            ],
+            "applicationCategory": "TravelApplication",
+            "operatingSystem": "Any (modern mobile browser with GPS)",
+            "url": "https://joeheyming.github.io/triplog/",
+            "description": "Record real-world trips in the browser using your phone's GPS. Live map, distance, and time; trips stored locally in IndexedDB on the device. No sign-in, no servers, no upload.",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "featureList": [
+              "Live GPS recording with moving Leaflet map",
+              "Real-time distance and elapsed time",
+              "Trips stored locally in IndexedDB — no cloud upload",
+              "Works offline once installed (PWA-capable)",
+              "OpenStreetMap tiles, no API key required"
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Where are my trips stored?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "On your device, in your browser's IndexedDB. Trip Log has no backend; nothing is uploaded. Clearing site data deletes them."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does it work offline?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Recording uses the browser's geolocation API, which works offline. Map tiles are cached after first load, so previously-viewed areas render without a connection. New tiles need a connection to download."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Why does the page need GPS permission?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "To read your phone's GPS coordinates while you're recording a trip. The permission grant is browser-mediated; Trip Log can't access location without it."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I export a trip?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — trips can be exported as GPX (the standard GPS exchange format) for import into other mapping tools. Sharing also produces a static map image plus the trip's stats."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does it drain my battery?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Continuous high-accuracy GPS is battery-intensive — that's a hardware reality, not specific to Trip Log. The app keeps the screen on while recording so the GPS doesn't suspend, which compounds the drain. Plan for ~5–15% per hour."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
 
     <meta name="format-detection" content="telephone=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />

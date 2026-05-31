@@ -87,6 +87,43 @@
             "inLanguage": "en"
           },
           {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What is Bad Apple!!?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "A 2009 Touhou-Project music video by Anira (animation) and Alstroemeria Records (music) that has become a programming demoscene meme — porting it to obscure platforms (calculators, oscilloscopes, Game Boys) is a common 'hello world' for the rendering trick. This page renders it in pure ASCII, frame-by-frame in monospace text, with synced audio."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How is the animation rendered?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Each frame is pre-converted from the source video into a packed character grid. At runtime the page swaps the contents of a single <pre> element at the original frame rate, with the audio track played in sync via the standard <audio> element."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I download the ASCII frames?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The frame data is loaded statically from the page — view-source / network tools will show you the raw text. There's no built-in download button, but the rendering is intentionally view-source friendly."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How long is it?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "About three minutes and forty seconds — the full original Bad Apple!! video length. The audio plays from start to finish synchronised to the ASCII frames."
+                }
+              }
+            ]
+          },
+          {
             "@type": "BreadcrumbList",
             "itemListElement": [
               {

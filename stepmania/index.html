@@ -138,6 +138,51 @@
             "inLanguage": "en"
           },
           {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How do I add my own songs?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Open the built-in Zenius song browser and paste or click a simfile link from zenius-i-vanisher.com. The .sm chart and audio are fetched through a CORS proxy, parsed in the browser, and played. Recent plays and favorites are remembered in localStorage; the chart itself is re-fetched on the next visit. A default song (\"Lost\") is bundled and loads automatically when no song is specified."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What is a .sm file?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "StepMania's chart format. A .sm file describes the arrows for one song across multiple difficulties and references an audio file plus optional banner/background images. This browser version reads the .sm format used by desktop StepMania and ITGmania."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does this work with a dance pad?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — any USB or Bluetooth dance pad that emulates a keyboard/gamepad works. Map the pad's four arrows to the four lanes through your OS or pad firmware, or via the in-game key remap screen."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Do I need to install anything?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. StepMania runs entirely in the browser as static HTML/JS. No plugins, no install, no signup."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I play offline?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The page and the bundled \"Lost\" song work offline once they've loaded. Songs from the Zenius browser are network-fetched per play, so adding or replaying those needs a connection."
+                }
+              }
+            ]
+          },
+          {
             "@type": "BreadcrumbList",
             "itemListElement": [
               {

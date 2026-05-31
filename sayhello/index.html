@@ -92,6 +92,43 @@
             "inLanguage": "en"
           },
           {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How does Say Hello speak?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "It uses your browser's built-in speech synthesis (the Web Speech API SpeechSynthesis interface). The voices come from the operating system — every device has a different default voice list, with iOS / macOS / Windows / Android all providing their own."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Why does my voice list look different from yours?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Voices are provided by the OS, not the page. macOS ships a rich set of high-quality voices; Windows has Microsoft Voices; Android has Google TTS; iOS has Siri voices. The available list reflects whatever your device has installed."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is my text uploaded?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No — synthesis is local on most platforms. Some browsers may briefly route text through an OS-level cloud TTS for higher quality voices; that's controlled by your OS settings, not by Say Hello."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I download the audio?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The Web Speech API doesn't give the page access to the synthesised audio waveform — it's piped straight to your speakers. To export, use OS-level audio capture (Quicktime on macOS, Stereo Mix on Windows, OBS on either)."
+                }
+              }
+            ]
+          },
+          {
             "@type": "BreadcrumbList",
             "itemListElement": [
               {

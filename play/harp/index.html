@@ -49,6 +49,70 @@
 
     <link rel="canonical" href="https://joeheyming.github.io/play/harp/" />
 
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": ["SoftwareApplication", "MusicalInstrument"],
+            "name": "Harp (Browser Harp)",
+            "alternateName": [
+              "Browser harp",
+              "Online harp",
+              "Free harp browser",
+              "Virtual harp",
+              "Web harp",
+              "HTML harp simulator"
+            ],
+            "url": "https://joeheyming.github.io/play/harp/",
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "Web Browser",
+            "description": "A free virtual harp that plays in your browser. Pluck individual strings, run a glissando across them with mouse or finger, or play melodies with the computer keyboard. Sample-based for natural harp resonance.",
+            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "musicalInstrumentType": "Harp"
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How do I play a glissando?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Drag the cursor or finger across the strings. Each string the pointer crosses gets plucked in sequence — exactly how a real harp glissando works. The speed of your drag determines the speed of the run."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is this a pedal harp or a lever harp?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The default tuning is C major (no sharps or flats). A future extension could expose pedal- or lever-style accidentals; for now, you can pick the key from the toolbar to retune the strings."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What sound is the harp using?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Real recorded concert-harp samples served by the soundfont-player library. The decay is realistic: notes ring out for several seconds with the natural beating of an acoustic harp."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I damp the strings?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — pressing the spacebar (or tapping the damp button) cuts off all currently-ringing notes, like a harpist resting their palms on the strings."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
     <script>

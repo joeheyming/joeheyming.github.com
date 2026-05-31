@@ -1,11 +1,11 @@
 [
   {
     "id": "accordion-hero",
-    "name": "Accordion Hero \ud83e\ude97",
+    "name": "Accordion Hero 🪗",
     "shortName": "Accordion Hero",
-    "description": "Stradella rhythm game \u2014 play any voicing that fits",
-    "detailedDescription": "Stepmania-style scrolling-notes rhythm game where the lanes are Stradella accordion bass and chord buttons. Improvise voicings (C6, Cmaj7, Am7) and still score \u2014 the judge rewards musical substitutions, not button-for-button accuracy.",
-    "icon": "\ud83e\ude97",
+    "description": "Stradella rhythm game — play any voicing that fits",
+    "detailedDescription": "Stepmania-style scrolling-notes rhythm game where the lanes are Stradella accordion bass and chord buttons. Improvise voicings (C6, Cmaj7, Am7) and still score — the judge rewards musical substitutions, not button-for-button accuracy.",
+    "icon": "🪗",
     "path": "./accordion-hero/",
     "category": "game",
     "defaultWidth": 1000,
@@ -22,15 +22,16 @@
       "short_name": "AccHero",
       "description": "Stradella rhythm game in your browser"
     },
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "awesome",
-    "name": "Everything is Awesome \ud83c\udf89",
+    "name": "Everything is Awesome 🎉",
     "shortName": "Awesome",
     "description": "Pure joy in digital form",
     "detailedDescription": "Pure joy with music, animations, and good vibes!",
-    "icon": "\ud83c\udf89",
+    "icon": "🎉",
     "path": "./awesome/",
     "category": "entertainment",
     "gradient": "from-yellow-500/20 to-orange-500/20",
@@ -50,19 +51,20 @@
       "order": 4,
       "headline": "Everything is Awesome",
       "blurb": "Pure joy in digital form. Music, animations, and good vibes!",
-      "tagsLine": "\ud83c\udfaa Fun \u2022 \ud83c\udfb5 Music",
+      "tagsLine": "🎪 Fun • 🎵 Music",
       "preset": "awesome",
       "analyticsLabel": "Everything is Awesome"
     },
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "doom",
-    "name": "Doom \ud83d\udc80",
+    "name": "Doom 💀",
     "shortName": "Doom",
     "description": "Classic first-person shooter",
     "detailedDescription": "Classic FPS in your browser. Pick Classic DOOM, Freedoom, Legend of DOOM, Mario DOOM, Metroid DOOM, or Castlevania: Simon's Destiny at launch.",
-    "icon": "\ud83d\udc80",
+    "icon": "💀",
     "path": "./doom/",
     "category": "game",
     "defaultWidth": 1024,
@@ -79,20 +81,21 @@
     "featured": {
       "order": 1,
       "headline": "Play Doom",
-      "blurb": "Classic FPS in your browser. Six flavors \u2014 Classic, Freedoom, Zelda, Mario, Metroid, Castlevania \u2014 with music & sound.",
-      "tagsLine": "\ud83d\udd79\ufe0f Game \u2022 \u2b50 Popular",
+      "blurb": "Classic FPS in your browser. Six flavors — Classic, Freedoom, Zelda, Mario, Metroid, Castlevania — with music & sound.",
+      "tagsLine": "🕹️ Game • ⭐ Popular",
       "preset": "doom",
       "analyticsLabel": "Doom"
     },
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "doom-mods",
-    "name": "Browse Doom mods \ud83d\uded2",
+    "name": "Browse Doom mods 🛒",
     "shortName": "Doom Mods",
     "description": "Pick any Doom mod from moddb.com",
     "detailedDescription": "Browse, search, and launch Doom mods scraped live from moddb.com. Side-loads doom.wad/doom2.wad as needed; falls back to bundled Freedoom.",
-    "icon": "\ud83d\uded2",
+    "icon": "🛒",
     "path": "./doom/?manual=browse",
     "category": "game",
     "defaultWidth": 1024,
@@ -100,15 +103,16 @@
     "tags": ["fps", "retro", "mods"],
     "related": ["doom", "nes", "stepmania"],
     "shareCategory": "game",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": false
   },
   {
     "id": "dos",
-    "name": "DOS Player \ud83d\udcbe",
+    "name": "DOS Player 💾",
     "shortName": "DOS",
-    "description": "Browser DOSBox \u2014 bring your own game zip",
+    "description": "Browser DOSBox — bring your own game zip",
     "detailedDescription": "Play classic MS-DOS games in your browser. Load a game zip from disk or paste an Internet Archive URL; the player auto-detects the boot EXE, caches the bundle locally in IndexedDB, and persists save files across sessions. Powered by js-dos v8 and DOSBox-x compiled to WebAssembly.",
-    "icon": "\ud83d\udcbe",
+    "icon": "💾",
     "path": "./dos/",
     "category": "game",
     "defaultWidth": 1024,
@@ -125,15 +129,16 @@
       "short_name": "DOS",
       "description": "Play DOS games in your browser"
     },
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "farm",
-    "name": "Farm Adventures \ud83d\ude9c",
+    "name": "Farm Adventures 🚜",
     "shortName": "Farm",
     "description": "Digital agriculture adventures",
     "detailedDescription": "Digital farming experience",
-    "icon": "\ud83d\ude9c",
+    "icon": "🚜",
     "path": "./farm/",
     "category": "game",
     "gradient": "from-green-500/20 to-emerald-500/20",
@@ -143,15 +148,16 @@
     "desktopIcon": true,
     "related": ["awesome", "pacman", "doom"],
     "shareCategory": "game",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "notepad",
-    "name": "Notepad \ud83d\udcdd",
+    "name": "Notepad 📝",
     "shortName": "Notepad",
     "description": "Simple text editor",
     "detailedDescription": "A simple text editor for taking notes",
-    "icon": "\ud83d\udcdd",
+    "icon": "📝",
     "path": "./notepad/",
     "category": "utility",
     "gradient": "from-blue-500/20 to-indigo-500/20",
@@ -180,15 +186,16 @@
       "short_name": "Notepad",
       "description": "Web-based notepad"
     },
-    "appTier": "system"
+    "appTier": "system",
+    "geo": true
   },
   {
     "id": "surf",
-    "name": "Surf \ud83c\udf0a",
+    "name": "Surf 🌊",
     "shortName": "Surf",
     "description": "Minimal HTML viewer",
     "detailedDescription": "Renders HTML files in a sandboxed preview, inspired by suckless surf",
-    "icon": "\ud83c\udf0a",
+    "icon": "🌊",
     "path": "./surf/",
     "category": "utility",
     "gradient": "from-teal-500/20 to-cyan-500/20",
@@ -199,15 +206,16 @@
     "defaultHeight": 600,
     "system": true,
     "handles": ["text/html"],
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "pacman",
-    "name": "Pac-Man \ud83d\udc7b",
+    "name": "Pac-Man 👻",
     "shortName": "Pac-Man",
     "description": "Classic arcade game",
     "detailedDescription": "Classic 3D arcade game - eat pellets, avoid ghosts, chase high scores!",
-    "icon": "\ud83d\udc7b",
+    "icon": "👻",
     "path": "./pacman/",
     "category": "game",
     "gradient": "from-yellow-400/20 to-yellow-600/20",
@@ -223,19 +231,20 @@
       "order": 2,
       "headline": "Pac-Man",
       "blurb": "Classic arcade game. Eat pellets, avoid ghosts, chase high scores!",
-      "tagsLine": "\ud83d\udd79\ufe0f Game \u2022 \ud83c\udfae Retro",
+      "tagsLine": "🕹️ Game • 🎮 Retro",
       "preset": "pacman",
       "analyticsLabel": "Pac-Man"
     },
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "pacman-infinite",
-    "name": "Pac-Infinite \u267e\ufe0f",
+    "name": "Pac-Infinite ♾️",
     "shortName": "Pac-Infinite",
     "description": "Endless procedural 3D Pac-Man",
     "detailedDescription": "Endless 3D Pac-Man maze: procedurally-generated chunks with mountains, jumps, hunger, ghosts, fruits, and difficulty modes.",
-    "icon": "\u267e\ufe0f",
+    "icon": "♾️",
     "path": "./pacman-infinite/",
     "category": "game",
     "gradient": "from-yellow-400/20 to-pink-500/20",
@@ -251,19 +260,20 @@
       "order": 11,
       "headline": "Pac-Infinite",
       "blurb": "Endless 3D Pac-Man maze. Procedurally-generated chunks with mountains, jumps, hunger, ghosts, fruits, and difficulty modes.",
-      "tagsLine": "\ud83d\udd79\ufe0f Game \u2022 \u267e\ufe0f Endless",
+      "tagsLine": "🕹️ Game • ♾️ Endless",
       "preset": "pacman-infinite",
       "analyticsLabel": "Pac-Infinite"
     },
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "periodic-speller",
-    "name": "Periodic Speller \u269b\ufe0f",
+    "name": "Periodic Speller ⚛️",
     "shortName": "Periodic",
     "description": "Spell words with element symbols",
     "detailedDescription": "Spell words using periodic table element symbols. Export as PNG.",
-    "icon": "\u269b\ufe0f",
+    "icon": "⚛️",
     "path": "./periodic-speller/",
     "category": "utility",
     "gradient": "from-cyan-500/20 to-blue-500/20",
@@ -275,15 +285,16 @@
     "tags": ["science", "chemistry", "fun", "export"],
     "related": ["wordle-finder", "calculator", "countdown"],
     "shareCategory": "utility",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "pbs",
-    "name": "Pirate Broadcast System \ud83c\udff4\u200d\u2620\ufe0f",
+    "name": "Pirate Broadcast System 🏴‍☠️",
     "shortName": "Pirates",
     "description": "Ahoy! Interactive pirate fun",
     "detailedDescription": "Arrr! Pirate broadcast system",
-    "icon": "\ud83c\udff4\u200d\u2620\ufe0f",
+    "icon": "🏴‍☠️",
     "path": "./pbs/",
     "category": "entertainment",
     "gradient": "from-red-500/20 to-pink-500/20",
@@ -292,15 +303,16 @@
     "taskbarText": "text-white",
     "related": ["awesome", "sadtrombone", "sayhello"],
     "shareCategory": "entertainment",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "sadtrombone",
-    "name": "Sad Trombone \ud83c\udfba",
+    "name": "Sad Trombone 🎺",
     "shortName": "Sad Trombone",
     "description": "For those \"oops\" moments",
     "detailedDescription": "For those disappointing moments",
-    "icon": "\ud83c\udfba",
+    "icon": "🎺",
     "path": "./sadtrombone/",
     "category": "entertainment",
     "gradient": "from-amber-500/20 to-yellow-500/20",
@@ -309,15 +321,16 @@
     "taskbarText": "text-black",
     "related": ["pbs", "awesome", "sayhello"],
     "shareCategory": "entertainment",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "sayhello",
-    "name": "Say Hello \ud83d\udc4b",
+    "name": "Say Hello 👋",
     "shortName": "Say Hello",
     "description": "Speech synthesis magic",
     "detailedDescription": "Text-to-speech greetings",
-    "icon": "\ud83d\udc4b",
+    "icon": "👋",
     "path": "./sayhello/",
     "category": "entertainment",
     "gradient": "from-purple-500/20 to-indigo-500/20",
@@ -326,15 +339,16 @@
     "taskbarText": "text-white",
     "related": ["sayit", "pbs", "sadtrombone"],
     "shareCategory": "utility",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "sayit",
-    "name": "Say It \ud83d\udde3\ufe0f",
+    "name": "Say It 🗣️",
     "shortName": "Say It",
     "description": "Text-to-speech experiments",
     "detailedDescription": "Advanced text-to-speech",
-    "icon": "\ud83d\udde3\ufe0f",
+    "icon": "🗣️",
     "path": "./sayit/",
     "category": "utility",
     "gradient": "from-indigo-500/20 to-blue-600/20",
@@ -348,15 +362,16 @@
       "short_name": "Say It",
       "description": "OCR text recognition tool"
     },
-    "appTier": "app"
+    "appTier": "app",
+    "geo": true
   },
   {
     "id": "stepmania",
-    "name": "Stepmania \ud83d\udc83",
+    "name": "Stepmania 💃",
     "shortName": "Stepmania",
     "description": "Rhythm game excellence",
-    "detailedDescription": "Browser StepMania \u2014 scrolling arrows, your own songs, keyboard or dance pad. Bring a .sm chart or pick from the built-in pack.",
-    "icon": "\ud83d\udc83",
+    "detailedDescription": "Browser StepMania — scrolling arrows, your own songs, keyboard or dance pad. Bring a .sm chart or pick from the built-in pack.",
+    "icon": "💃",
     "path": "./stepmania/",
     "category": "game",
     "defaultWidth": 1000,
@@ -376,20 +391,21 @@
     "featured": {
       "order": 8,
       "headline": "StepMania",
-      "blurb": "Browser rhythm game \u2014 scrolling arrows, your own songs, keyboard or dance pad.",
-      "tagsLine": "\ud83d\udd79\ufe0f Game \u2022 \ud83c\udfb5 Rhythm",
+      "blurb": "Browser rhythm game — scrolling arrows, your own songs, keyboard or dance pad.",
+      "tagsLine": "🕹️ Game • 🎵 Rhythm",
       "preset": "stepmania",
       "analyticsLabel": "StepMania"
     },
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "wordle-finder",
-    "name": "Wordle Finder \ud83d\udd24",
+    "name": "Wordle Finder 🔤",
     "shortName": "Wordle",
     "description": "Word puzzle solving tools",
-    "detailedDescription": "Wordle solver and word explorer \u2014 filter by greens, yellows, and grays. Anagram and pattern search built in.",
-    "icon": "\ud83d\udd24",
+    "detailedDescription": "Wordle solver and word explorer — filter by greens, yellows, and grays. Anagram and pattern search built in.",
+    "icon": "🔤",
     "path": "./wordle-finder/",
     "category": "utility",
     "defaultWidth": 800,
@@ -410,20 +426,21 @@
     "featured": {
       "order": 9,
       "headline": "Wordle Finder",
-      "blurb": "Wordle solver and word explorer \u2014 filter by greens, yellows, and grays.",
-      "tagsLine": "\ud83d\udd24 Words \u2022 \ud83e\udde0 Puzzle",
+      "blurb": "Wordle solver and word explorer — filter by greens, yellows, and grays.",
+      "tagsLine": "🔤 Words • 🧠 Puzzle",
       "preset": "wordle-finder",
       "analyticsLabel": "Wordle Finder"
     },
-    "appTier": "system"
+    "appTier": "system",
+    "geo": true
   },
   {
     "id": "youtube",
-    "name": "JoeTube \ud83c\udfa5",
+    "name": "JoeTube 🎥",
     "shortName": "JoeTube",
     "description": "Joe's digital adventures & coding magic",
     "detailedDescription": "Watch JoeTube",
-    "icon": "\ud83c\udfa5",
+    "icon": "🎥",
     "path": "./youtube/",
     "category": "utility",
     "gradient": "from-red-500/20 to-red-600/20",
@@ -439,15 +456,16 @@
       "short_name": "JoeTube",
       "description": "YouTube link extractor"
     },
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "watch",
-    "name": "Watch \ud83d\udcfa",
+    "name": "Watch 📺",
     "shortName": "Watch",
     "description": "Browse classic TV from the Internet Archive in a smart-TV style player",
-    "detailedDescription": "Smart-TV style player for a curated shelf of classic TV on the Internet Archive \u2014 animation, sitcoms, and Saturday morning cartoons. Browse like a channel guide, click an episode, MP4 streams straight into the browser. Per-episode descriptions and stills via TVMaze, optional subtitles via OpenSubtitles, Cast / AirPlay supported.",
-    "icon": "\ud83d\udcfa",
+    "detailedDescription": "Smart-TV style player for a curated shelf of classic TV on the Internet Archive — animation, sitcoms, and Saturday morning cartoons. Browse like a channel guide, click an episode, MP4 streams straight into the browser. Per-episode descriptions and stills via TVMaze, optional subtitles via OpenSubtitles, Cast / AirPlay supported.",
+    "icon": "📺",
     "path": "./watch/",
     "category": "entertainment",
     "gradient": "from-fuchsia-500/20 to-purple-700/20",
@@ -477,15 +495,16 @@
       "short_name": "Watch",
       "description": "Browser smart-TV for classic animated archives"
     },
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "shadowbox",
-    "name": "Shadowbox \ud83d\udd75\ufe0f",
+    "name": "Shadowbox 🕵️",
     "shortName": "Shadowbox",
     "description": "Classified surveillance mode",
     "detailedDescription": "Classified surveillance mode",
-    "icon": "\ud83d\udd75\ufe0f",
+    "icon": "🕵️",
     "path": "./shadowbox/",
     "category": "utility",
     "gradient": "from-gray-600/20 to-gray-700/20",
@@ -499,15 +518,16 @@
       "short_name": "SHADOWBOX",
       "description": "Operation SHADOWBOX"
     },
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "ascii",
-    "name": "ASCII Art \ud83d\udd21",
+    "name": "ASCII Art 🔡",
     "shortName": "ASCII",
     "description": "Turn images and live webcam into ASCII art",
     "detailedDescription": "Convert any image or your live webcam feed into ASCII art. Choose from Classic, Dense, Block, or Braille character sets. Full color, green matrix, amber terminal, or monochrome. Export as PNG or text.",
-    "icon": "\ud83d\udd21",
+    "icon": "🔡",
     "path": "./ascii/",
     "category": "entertainment",
     "gradient": "from-green-900/20 to-gray-900/20",
@@ -519,15 +539,16 @@
     "tags": ["ascii", "art", "webcam", "image", "creative", "matrix"],
     "related": ["badapple", "starwars", "paint"],
     "shareCategory": "entertainment",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "badapple",
-    "name": "Bad Apple \ud83c\udf4e",
+    "name": "Bad Apple 🍎",
     "shortName": "Bad Apple",
     "description": "ASCII-art Bad Apple animation",
     "detailedDescription": "The Touhou meme rendered as a 6,500-frame ASCII animation, synced to the music. Click play and watch your browser do the impossible.",
-    "icon": "\ud83c\udf4e",
+    "icon": "🍎",
     "path": "./badapple/",
     "category": "entertainment",
     "defaultWidth": 900,
@@ -548,19 +569,20 @@
       "order": 10,
       "headline": "Bad Apple",
       "blurb": "The Touhou meme as a 6,500-frame ASCII animation, synced to the music.",
-      "tagsLine": "\ud83c\udf89 Fun \u2022 \ud83c\udf4e Meme",
+      "tagsLine": "🎉 Fun • 🍎 Meme",
       "preset": "badapple",
       "analyticsLabel": "Bad Apple"
     },
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "starwars",
-    "name": "ASCII Star Wars \ud83c\udf1f",
+    "name": "ASCII Star Wars 🌟",
     "shortName": "Star Wars",
     "description": "Star Wars Episode IV recreated in ASCII art",
-    "detailedDescription": "Simon Jansen's legendary asciimation \u2014 Star Wars Episode IV retold entirely in ASCII art. The classic late-90s internet masterpiece, now playable in your browser.",
-    "icon": "\ud83c\udf1f",
+    "detailedDescription": "Simon Jansen's legendary asciimation — Star Wars Episode IV retold entirely in ASCII art. The classic late-90s internet masterpiece, now playable in your browser.",
+    "icon": "🌟",
     "path": "./starwars/",
     "category": "entertainment",
     "defaultWidth": 900,
@@ -572,7 +594,8 @@
     "tags": ["ascii", "animation", "starwars", "retro", "classic"],
     "related": ["badapple", "terminal", "nes"],
     "shareCategory": "entertainment",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "terminal",
@@ -580,7 +603,7 @@
     "shortName": "Terminal",
     "description": "Command line interface",
     "detailedDescription": "Interactive command line with filesystem. Type \"help\" to explore!",
-    "icon": "\ud83d\udcbb",
+    "icon": "💻",
     "path": "./terminal/",
     "category": "utility",
     "gradient": "from-gray-500/20 to-gray-700/20",
@@ -605,19 +628,20 @@
       "order": 5,
       "headline": "Terminal",
       "blurb": "Interactive command line with filesystem. Type 'help' to explore!",
-      "tagsLine": "\ud83d\udee0\ufe0f Utility \u2022 \ud83d\udcbe Interactive",
+      "tagsLine": "🛠️ Utility • 💾 Interactive",
       "preset": "terminal",
       "analyticsLabel": "Terminal"
     },
-    "appTier": "system"
+    "appTier": "system",
+    "geo": true
   },
   {
     "id": "todo",
-    "name": "Todo \u2705",
+    "name": "Todo ✅",
     "shortName": "Todo",
     "description": "Google Sheets task lists",
-    "detailedDescription": "Sign in with Google and manage todos in your spreadsheet\u2014multiple lists (tabs), rename, add, and remove tasks.",
-    "icon": "\u2705",
+    "detailedDescription": "Sign in with Google and manage todos in your spreadsheet—multiple lists (tabs), rename, add, and remove tasks.",
+    "icon": "✅",
     "path": "./todo/",
     "category": "utility",
     "gradient": "from-violet-500/20 to-fuchsia-500/20",
@@ -630,15 +654,16 @@
     "tags": ["productivity", "google", "sheets", "tasks"],
     "related": ["notepad", "terminal", "wordle-finder"],
     "shareCategory": "utility",
-    "appTier": "system"
+    "appTier": "system",
+    "geo": true
   },
   {
     "id": "triplog",
-    "name": "Trip Log \ud83d\uddfa\ufe0f",
+    "name": "Trip Log 🗺️",
     "shortName": "Trip Log",
     "description": "Record GPS trips with a live map",
-    "detailedDescription": "Record real-world trips with your phone's GPS. Live map of where you've been, distance and time as you go. Trips are saved locally in your browser (IndexedDB)\u2014no sign-in, no servers, fully offline-capable.",
-    "icon": "\ud83d\uddfa\ufe0f",
+    "detailedDescription": "Record real-world trips with your phone's GPS. Live map of where you've been, distance and time as you go. Trips are saved locally in your browser (IndexedDB)—no sign-in, no servers, fully offline-capable.",
+    "icon": "🗺️",
     "path": "./triplog/",
     "category": "utility",
     "gradient": "from-violet-500/20 to-emerald-500/20",
@@ -656,7 +681,8 @@
       "short_name": "Trip Log",
       "description": "Record GPS trips in your browser"
     },
-    "appTier": "system"
+    "appTier": "system",
+    "geo": true
   },
   {
     "id": "calculator",
@@ -664,7 +690,7 @@
     "shortName": "Calculator",
     "description": "Calculator",
     "detailedDescription": "Calculator",
-    "icon": "\ud83d\udd22",
+    "icon": "🔢",
     "path": "./calculator/",
     "category": "utility",
     "system": true,
@@ -680,15 +706,16 @@
       "short_name": "Calc",
       "description": "Web calculator"
     },
-    "appTier": "system"
+    "appTier": "system",
+    "geo": true
   },
   {
     "id": "code-ide",
-    "name": "Code IDE \u2728",
+    "name": "Code IDE ✨",
     "shortName": "Code IDE",
     "description": "Monaco editor with an on-device AI assistant",
     "detailedDescription": "A full code editor in your browser, powered by Monaco (the engine behind VS Code). Multi-file project tree, tabs, syntax highlighting, Vim keybindings, Prettier format-on-save, sandboxed JS runner, side-by-side diff, and git integration. Includes an opt-in on-device AI assistant (Hermes-3 via WebLLM, runs over WebGPU) that reads and edits workspace files through a dry-run + Apply diff. Saves to the HeymingOS filesystem when embedded, or to a real folder on disk via the File System Access API. No backend, no telemetry.",
-    "icon": "\ud83d\udcbb",
+    "icon": "💻",
     "path": "./code-ide/",
     "category": "utility",
     "gradient": "from-slate-600/20 to-emerald-500/20",
@@ -749,19 +776,20 @@
       "order": 8,
       "headline": "Code IDE with on-device AI",
       "blurb": "A VS Code-style editor that runs entirely in the browser. Monaco, Vim, Prettier, git, and an opt-in on-device AI assistant (Hermes-3 via WebLLM) that proposes edits through a dry-run + Apply diff.",
-      "tagsLine": "\u2728 AI \u2022 \ud83d\udcbb Editor \u2022 Monaco \u2022 Vim",
+      "tagsLine": "✨ AI • 💻 Editor • Monaco • Vim",
       "preset": "code-ide",
       "analyticsLabel": "Code IDE"
     },
-    "appTier": "app"
+    "appTier": "app",
+    "geo": true
   },
   {
     "id": "clock",
-    "name": "Clock \ud83d\udd50",
+    "name": "Clock 🕐",
     "shortName": "Clock",
-    "description": "Clock, stopwatch, and timer \u2014 all in one",
+    "description": "Clock, stopwatch, and timer — all in one",
     "detailedDescription": "A full-featured clock app in your browser. Live time with world clocks, a centisecond stopwatch with lap tracking, and a timer with Pomodoro presets and a progress ring. Works offline.",
-    "icon": "\ud83d\udd50",
+    "icon": "🕐",
     "path": "./clock/",
     "category": "utility",
     "gradient": "from-gray-800/20 to-slate-900/20",
@@ -778,15 +806,16 @@
       "short_name": "Clock",
       "description": "Clock, stopwatch, and timer"
     },
-    "appTier": "system"
+    "appTier": "system",
+    "geo": true
   },
   {
     "id": "countdown",
-    "name": "Countdown \u23f1\ufe0f",
+    "name": "Countdown ⏱️",
     "shortName": "Countdown",
     "description": "Event countdown timer",
     "detailedDescription": "Track events with style. Multiple display modes & animations.",
-    "icon": "\u23f1\ufe0f",
+    "icon": "⏱️",
     "path": "./countdown/",
     "category": "utility",
     "gradient": "from-amber-500/20 to-orange-500/20",
@@ -802,19 +831,20 @@
       "order": 6,
       "headline": "Countdown Timer",
       "blurb": "Track events with style. Multiple display modes & animations.",
-      "tagsLine": "\ud83d\udee0\ufe0f Utility \u2022 \u23f0 Time",
+      "tagsLine": "🛠️ Utility • ⏰ Time",
       "preset": "countdown",
       "analyticsLabel": "Countdown"
     },
-    "appTier": "system"
+    "appTier": "system",
+    "geo": true
   },
   {
     "id": "programming-advice",
-    "name": "Programming Wisdom \ud83d\udca1",
+    "name": "Programming Wisdom 💡",
     "shortName": "Wisdom",
     "description": "Click anywhere for instant wisdom",
     "detailedDescription": "230+ pieces of programming wisdom from legendary developers like Linus Torvalds, Rich Hickey, Uncle Bob, and more. Simple one-click interface. Every quote properly attributed with source links.",
-    "icon": "\ud83d\udca1",
+    "icon": "💡",
     "path": "./programming-advice/",
     "category": "utility",
     "gradient": "from-purple-500/20 to-indigo-500/20",
@@ -827,15 +857,16 @@
     "desktopIcon": true,
     "related": ["terminal", "notepad", "wordle-finder"],
     "shareCategory": "utility",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "minesweeper",
-    "name": "Minesweeper \ud83d\udca3",
+    "name": "Minesweeper 💣",
     "shortName": "Minesweeper",
     "description": "Classic puzzle game",
     "detailedDescription": "Clear the minefield without detonating mines - Windows classic with modern UI!",
-    "icon": "\ud83d\udca3",
+    "icon": "💣",
     "path": "./minesweeper/",
     "category": "game",
     "gradient": "from-gray-500/20 to-slate-600/20",
@@ -851,19 +882,20 @@
       "order": 3,
       "headline": "Minesweeper",
       "blurb": "Clear the minefield! The original Windows classic with modern UI.",
-      "tagsLine": "\ud83e\udde9 Puzzle \u2022 \ud83e\udde0 Strategy",
+      "tagsLine": "🧩 Puzzle • 🧠 Strategy",
       "preset": "minesweeper",
       "analyticsLabel": "Minesweeper"
     },
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "sudoku",
-    "name": "Sudoku \ud83d\udd22",
+    "name": "Sudoku 🔢",
     "shortName": "Sudoku",
-    "description": "Classic 9\u00d79 puzzle game",
-    "detailedDescription": "Classic 9\u00d79 Sudoku in your browser. Pencil marks, undo/redo, hints, auto-check, and mobile-friendly touch controls. Four difficulty levels.",
-    "icon": "\ud83d\udd22",
+    "description": "Classic 9×9 puzzle game",
+    "detailedDescription": "Classic 9×9 Sudoku in your browser. Pencil marks, undo/redo, hints, auto-check, and mobile-friendly touch controls. Four difficulty levels.",
+    "icon": "🔢",
     "path": "./sudoku/",
     "category": "game",
     "gradient": "from-indigo-500/20 to-purple-600/20",
@@ -878,17 +910,18 @@
     "pwaShortcut": {
       "name": "Sudoku",
       "short_name": "Sudoku",
-      "description": "Classic 9\u00d79 Sudoku in your browser"
+      "description": "Classic 9×9 Sudoku in your browser"
     },
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "nes",
-    "name": "NES \ud83d\udd79\ufe0f",
+    "name": "NES 🕹️",
     "shortName": "NES",
     "description": "Classic Nintendo emulator",
-    "detailedDescription": "Play classic NES games right in your browser. Save states, ROM browser, gamepad support \u2014 bring your own .nes ROM, or pick from the built-in collection. Now part of the unified emulator shell (EmulatorJS / FCEUmm).",
-    "icon": "\ud83d\udd79\ufe0f",
+    "detailedDescription": "Play classic NES games right in your browser. Save states, ROM browser, gamepad support — bring your own .nes ROM, or pick from the built-in collection. Now part of the unified emulator shell (EmulatorJS / FCEUmm).",
+    "icon": "🕹️",
     "path": "./emulator/?console=nes",
     "category": "game",
     "defaultWidth": 1024,
@@ -909,19 +942,20 @@
       "order": 7,
       "headline": "NES Emulator",
       "blurb": "Classic Nintendo in your browser. Save states, ROM browser, gamepad support.",
-      "tagsLine": "\ud83d\udd79\ufe0f Game \u2022 \ud83c\udfae Retro",
+      "tagsLine": "🕹️ Game • 🎮 Retro",
       "preset": "nes",
       "analyticsLabel": "NES"
     },
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": false
   },
   {
     "id": "sega",
-    "name": "Sega Genesis \ud83d\udd79\ufe0f",
+    "name": "Sega Genesis 🕹️",
     "shortName": "Sega",
     "description": "Sega Genesis / Mega Drive emulator",
-    "detailedDescription": "Play classic Sega Genesis and Mega Drive games in your browser. Save states, ROM browser, gamepad support \u2014 bring your own .bin/.md ROM, or pick from the built-in collection via Internet Archive. Part of the unified emulator shell (EmulatorJS / genesis_plus_gx).",
-    "icon": "\ud83d\udd79\ufe0f",
+    "detailedDescription": "Play classic Sega Genesis and Mega Drive games in your browser. Save states, ROM browser, gamepad support — bring your own .bin/.md ROM, or pick from the built-in collection via Internet Archive. Part of the unified emulator shell (EmulatorJS / genesis_plus_gx).",
+    "icon": "🕹️",
     "path": "./emulator/?console=sega",
     "category": "game",
     "defaultWidth": 1024,
@@ -942,19 +976,20 @@
       "order": 12,
       "headline": "Sega Genesis Emulator",
       "blurb": "Classic 16-bit Sega in your browser. Save states, ROM browser, gamepad support.",
-      "tagsLine": "\ud83d\udd79\ufe0f Game \u2022 \ud83c\udfae Retro",
+      "tagsLine": "🕹️ Game • 🎮 Retro",
       "preset": "sega",
       "analyticsLabel": "Sega"
     },
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": false
   },
   {
     "id": "gameboy",
-    "name": "Game Boy \ud83d\udc7e",
+    "name": "Game Boy 👾",
     "shortName": "Game Boy",
     "description": "Game Boy & Game Boy Color emulator",
-    "detailedDescription": "Play classic Game Boy and Game Boy Color games in your browser. Save states, gamepad support \u2014 bring your own .gb / .gbc ROM. Part of the unified emulator shell (EmulatorJS / gambatte).",
-    "icon": "\ud83d\udc7e",
+    "detailedDescription": "Play classic Game Boy and Game Boy Color games in your browser. Save states, gamepad support — bring your own .gb / .gbc ROM. Part of the unified emulator shell (EmulatorJS / gambatte).",
+    "icon": "👾",
     "path": "./emulator/?console=gb",
     "category": "game",
     "defaultWidth": 1024,
@@ -966,15 +1001,16 @@
     "tags": ["retro", "emulator", "nintendo", "gameboy", "8-bit"],
     "related": ["nes", "sega", "doom", "pacman"],
     "shareCategory": "game",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": false
   },
   {
     "id": "vibe-coding",
-    "name": "Vibe Coding \ud83e\udd16",
+    "name": "Vibe Coding 🤖",
     "shortName": "Vibe Coding",
     "description": "The art of building websites that don't suck",
     "detailedDescription": "Stop building shitty websites. Learn vibe coding - the art of creating fast, beautiful, accessible sites without the bullshit.",
-    "icon": "\ud83e\udd16",
+    "icon": "🤖",
     "path": "./vibe-coding/",
     "category": "utility",
     "gradient": "from-purple-500/20 to-indigo-500/20",
@@ -985,15 +1021,16 @@
     "defaultHeight": 600,
     "related": ["youtube", "terminal", "notepad"],
     "shareCategory": "utility",
-    "appTier": "app"
+    "appTier": "app",
+    "geo": true
   },
   {
     "id": "filemanager",
-    "name": "File Manager \ud83d\udcc2",
+    "name": "File Manager 📂",
     "shortName": "Files",
     "description": "Browse your filesystem",
     "detailedDescription": "File manager for files saved in your browser",
-    "icon": "\ud83d\udcc2",
+    "icon": "📂",
     "path": "./filemanager/",
     "category": "utility",
     "gradient": "from-amber-500/20 to-yellow-500/20",
@@ -1006,15 +1043,16 @@
     "system": true,
     "related": ["terminal", "notepad", "image-viewer", "media-player"],
     "shareCategory": "utility",
-    "appTier": "system"
+    "appTier": "system",
+    "geo": true
   },
   {
     "id": "media-player",
-    "name": "Media Player \ud83c\udfb5",
+    "name": "Media Player 🎵",
     "shortName": "Media",
     "description": "Play video and audio files",
     "detailedDescription": "Media player for video (MP4, WebM) and audio (MP3, WAV, OGG)",
-    "icon": "\ud83c\udfb5",
+    "icon": "🎵",
     "path": "./media-player/",
     "category": "utility",
     "gradient": "from-rose-500/20 to-pink-500/20",
@@ -1027,15 +1065,16 @@
     "handles": ["video/*", "audio/*", "application/x-youtube"],
     "related": ["filemanager", "youtube", "airwave", "awesome"],
     "shareCategory": "utility",
-    "appTier": "system"
+    "appTier": "system",
+    "geo": true
   },
   {
     "id": "airwave",
-    "name": "Airwave \ud83d\udcfb",
+    "name": "Airwave 📻",
     "shortName": "Airwave",
     "description": "Listen to YouTube as audio",
-    "detailedDescription": "Search YouTube or paste a URL and Airwave plays it as audio with a clean player UI \u2014 lockscreen controls, sleep timer, persistent queue, speed and volume. The video iframe is hidden in the background; nothing is downloaded or extracted.",
-    "icon": "\ud83d\udcfb",
+    "detailedDescription": "Search YouTube or paste a URL and Airwave plays it as audio with a clean player UI — lockscreen controls, sleep timer, persistent queue, speed and volume. The video iframe is hidden in the background; nothing is downloaded or extracted.",
+    "icon": "📻",
     "path": "./airwave/",
     "category": "entertainment",
     "gradient": "from-amber-500/20 to-orange-500/20",
@@ -1047,15 +1086,16 @@
     "tags": ["youtube", "audio", "podcast", "music", "background", "media"],
     "related": ["media-player", "youtube", "awesome"],
     "shareCategory": "entertainment",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "image-viewer",
-    "name": "Image Viewer \ud83d\uddbc\ufe0f",
+    "name": "Image Viewer 🖼️",
     "shortName": "Images",
     "description": "View image files",
     "detailedDescription": "Image viewer with zoom, pan, and rotate for PNG, JPG, GIF, WebP, SVG",
-    "icon": "\ud83d\uddbc\ufe0f",
+    "icon": "🖼️",
     "path": "./image-viewer/",
     "category": "utility",
     "gradient": "from-cyan-500/20 to-blue-500/20",
@@ -1068,15 +1108,16 @@
     "handles": ["image/*"],
     "related": ["filemanager", "shadowbox", "badapple"],
     "shareCategory": "utility",
-    "appTier": "system"
+    "appTier": "system",
+    "geo": true
   },
   {
     "id": "imagine",
-    "name": "Imagine \ud83c\udfa8",
+    "name": "Imagine 🎨",
     "shortName": "Imagine",
     "description": "On-device AI image generator (SD-Turbo) that runs entirely in your browser",
-    "detailedDescription": "Static-site text-to-image generator powered by SD-Turbo + onnxruntime-web. The full diffusion model runs on your GPU via WebGPU \u2014 no backend, no API key, no third-party endpoint. Install once (~2.3 GB into your browser's Cache Storage); after that, each 512\u00d7512 image takes 1\u20135 seconds and works offline.",
-    "icon": "\ud83c\udfa8",
+    "detailedDescription": "Static-site text-to-image generator powered by SD-Turbo + onnxruntime-web. The full diffusion model runs on your GPU via WebGPU — no backend, no API key, no third-party endpoint. Install once (~2.3 GB into your browser's Cache Storage); after that, each 512×512 image takes 1–5 seconds and works offline.",
+    "icon": "🎨",
     "path": "./imagine/",
     "category": "utility",
     "defaultWidth": 960,
@@ -1088,15 +1129,16 @@
     "tags": ["ai", "image", "stable-diffusion", "sd-turbo", "webgpu", "diffusion"],
     "related": ["chat", "paint", "ascii", "image-viewer"],
     "shareCategory": "utility",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "model-viewer",
-    "name": "3D Viewer \ud83e\uddca",
+    "name": "3D Viewer 🧊",
     "shortName": "3D",
     "description": "View 3D models (glTF, STL, OBJ, PLY, FBX, 3MF)",
     "detailedDescription": "3D model viewer. Drop or open .glb/.gltf, .stl, .obj, .ply, .fbx, or .3mf files; rotate, zoom, swap lighting environments, and try built-in demos. Non-glTF formats are converted to glb in-browser.",
-    "icon": "\ud83e\uddca",
+    "icon": "🧊",
     "path": "./model-viewer/",
     "category": "utility",
     "gradient": "from-purple-500/20 to-pink-500/20",
@@ -1118,15 +1160,16 @@
     ],
     "related": ["filemanager", "image-viewer"],
     "shareCategory": "utility",
-    "appTier": "app"
+    "appTier": "app",
+    "geo": true
   },
   {
     "id": "play",
-    "name": "Play \ud83c\udfb5",
+    "name": "Play 🎵",
     "shortName": "Play",
     "description": "Make music in your browser",
-    "detailedDescription": "Pick an instrument and play it right in your browser. Piano, accordion, drums, guitar, and synth \u2014 all free and ad-free.",
-    "icon": "\ud83c\udfb5",
+    "detailedDescription": "Pick an instrument and play it right in your browser. Piano, accordion, drums, guitar, and synth — all free and ad-free.",
+    "icon": "🎵",
     "path": "./play/",
     "category": "entertainment",
     "gradient": "from-indigo-500/20 to-purple-500/20",
@@ -1144,15 +1187,16 @@
       "short_name": "Play",
       "description": "Make music in your browser"
     },
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "play-piano",
-    "name": "Piano \ud83c\udfb9",
+    "name": "Piano 🎹",
     "shortName": "Piano",
     "description": "Play a piano in your browser",
     "detailedDescription": "Acoustic grand and electric pianos, plus retro waveform tones. Mouse, touch, MIDI, or computer keyboard.",
-    "icon": "\ud83c\udfb9",
+    "icon": "🎹",
     "path": "./play/piano/",
     "category": "entertainment",
     "gradient": "from-slate-500/20 to-indigo-500/20",
@@ -1164,15 +1208,16 @@
     "tags": ["music", "piano", "midi", "audio"],
     "related": ["play", "play-accordion", "play-synth", "play-metronome", "play-tuner"],
     "shareCategory": "entertainment",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "play-accordion",
-    "name": "Accordion \ud83e\ude97",
+    "name": "Accordion 🪗",
     "shortName": "Accordion",
     "description": "Play an accordion in your browser",
     "detailedDescription": "Reedy keyboard with breathing-bellows animation. Stradella bass and chromatic right hand.",
-    "icon": "\ud83e\ude97",
+    "icon": "🪗",
     "path": "./play/accordion/",
     "category": "entertainment",
     "gradient": "from-red-500/20 to-amber-500/20",
@@ -1184,15 +1229,16 @@
     "tags": ["music", "accordion", "audio"],
     "related": ["play", "play-piano", "play-synth"],
     "shareCategory": "entertainment",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "play-drums",
-    "name": "Drums \ud83e\udd41",
+    "name": "Drums 🥁",
     "shortName": "Drums",
     "description": "Play a drum kit in your browser",
     "detailedDescription": "Twelve-pad kit with kick, snare, hi-hats, toms, and cymbals. Click or use your computer keyboard.",
-    "icon": "\ud83e\udd41",
+    "icon": "🥁",
     "path": "./play/drums/",
     "category": "entertainment",
     "gradient": "from-stone-500/20 to-slate-600/20",
@@ -1204,15 +1250,16 @@
     "tags": ["music", "drums", "percussion", "audio"],
     "related": ["play", "play-guitar", "play-synth", "play-metronome"],
     "shareCategory": "entertainment",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "play-guitar",
-    "name": "Strings \ud83c\udfb8",
+    "name": "Strings 🎸",
     "shortName": "Strings",
-    "description": "Browser fretboard for guitar, bass, ukulele, banjo, and mandolin",
-    "detailedDescription": "One fretboard, five instruments \u2014 Guitar, Bass, Ukulele, Banjo, and Mandolin. Click frets to pluck or use the chord builder to strum. Mouse, touch, or MIDI.",
-    "icon": "\ud83c\udfb8",
+    "description": "Learn chords on a browser fretboard for guitar, ukulele, bass, banjo, and mandolin",
+    "detailedDescription": "One fretboard, five instruments — Guitar, Ukulele, Bass, Banjo, and Mandolin. Pick a root and quality and the chord builder shows the shape with finger numbers, then strums it. Every chord you play pins to a Strum Bar for one-tap recall, or type a chord by name (Em, Cmaj7, Bb7). Mouse, touch, or MIDI.",
+    "icon": "🎸",
     "path": "./play/strings/",
     "category": "entertainment",
     "gradient": "from-amber-500/20 to-orange-500/20",
@@ -1221,18 +1268,19 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": ["music", "guitar", "bass", "ukulele", "banjo", "mandolin", "strings", "audio"],
+    "tags": ["music", "guitar", "bass", "ukulele", "banjo", "mandolin", "strings", "chords", "chord trainer", "learn chords", "audio"],
     "related": ["play", "play-drums", "play-piano"],
     "shareCategory": "entertainment",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": false
   },
   {
     "id": "play-synth",
-    "name": "Synth \ud83c\udf9b\ufe0f",
+    "name": "Synth 🎛️",
     "shortName": "Synth",
     "description": "Subtractive synth in your browser",
     "detailedDescription": "Subtractive synth with filter envelope, detune, and vibrato. Tweak knobs in real time.",
-    "icon": "\ud83c\udf9b\ufe0f",
+    "icon": "🎛️",
     "path": "./play/synth/",
     "category": "entertainment",
     "gradient": "from-cyan-500/20 to-purple-500/20",
@@ -1244,15 +1292,16 @@
     "tags": ["music", "synth", "audio", "electronic"],
     "related": ["play", "play-piano", "play-drums", "play-theremin"],
     "shareCategory": "entertainment",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "play-metronome",
-    "name": "Browser Metronome \ud83c\udfb5",
+    "name": "Browser Metronome 🎵",
     "shortName": "Metronome",
     "description": "Precision metronome with tap tempo",
     "detailedDescription": "Precision metronome with adjustable BPM, tap tempo, and multiple time signatures. Perfect for practice.",
-    "icon": "\ud83c\udfb5",
+    "icon": "🎵",
     "path": "./play/metronome/",
     "category": "entertainment",
     "gradient": "from-purple-500/20 to-indigo-500/20",
@@ -1264,15 +1313,16 @@
     "tags": ["music", "metronome", "tempo", "practice", "audio"],
     "related": ["play-piano", "play-drums", "play-synth"],
     "shareCategory": "entertainment",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "play-harp",
-    "name": "Browser Harp \ud83c\udfb5",
+    "name": "Browser Harp 🎵",
     "shortName": "Harp",
     "description": "Play a virtual harp in your browser",
     "detailedDescription": "Pluck strings on a virtual concert harp. Click or touch individual strings to play notes across multiple octaves.",
-    "icon": "\ud83c\udfb5",
+    "icon": "🎵",
     "path": "./play/harp/",
     "category": "entertainment",
     "gradient": "from-teal-500/20 to-green-500/20",
@@ -1284,15 +1334,16 @@
     "tags": ["music", "harp", "strings", "audio"],
     "related": ["play-piano", "play-guitar", "play-mallets"],
     "shareCategory": "entertainment",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "play-steeldrum",
-    "name": "Browser Steel Drum \ud83e\udd41",
+    "name": "Browser Steel Drum 🥁",
     "shortName": "Steel Drum",
     "description": "Play Caribbean steel pan drums in your browser",
     "detailedDescription": "Caribbean steel pan with authentic tuning. Click or tap the pan segments to play island rhythms.",
-    "icon": "\ud83e\udd41",
+    "icon": "🥁",
     "path": "./play/steeldrum/",
     "category": "entertainment",
     "gradient": "from-yellow-500/20 to-orange-500/20",
@@ -1304,15 +1355,16 @@
     "tags": ["music", "steeldrum", "percussion", "caribbean", "audio"],
     "related": ["play-drums", "play-mallets", "play-harp"],
     "shareCategory": "entertainment",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "play-mallets",
-    "name": "Browser Mallet Keyboard \ud83c\udfb9",
+    "name": "Browser Mallet Keyboard 🎹",
     "shortName": "Mallets",
     "description": "Xylophone, marimba, and vibraphone in your browser",
     "detailedDescription": "Switch between xylophone, marimba, and vibraphone. Click or use keyboard to play. Rich, resonant tones.",
-    "icon": "\ud83c\udfb9",
+    "icon": "🎹",
     "path": "./play/mallets/",
     "category": "entertainment",
     "gradient": "from-lime-500/20 to-amber-500/20",
@@ -1324,15 +1376,16 @@
     "tags": ["music", "xylophone", "marimba", "vibraphone", "percussion", "audio"],
     "related": ["play-harp", "play-steeldrum", "play-piano"],
     "shareCategory": "entertainment",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "play-theremin",
-    "name": "Browser Theremin \ud83c\udf0a",
+    "name": "Browser Theremin 🌊",
     "shortName": "Theremin",
     "description": "Play a theremin with hand gestures via your webcam",
     "detailedDescription": "Control pitch and volume with hand movements detected by your webcam. No touching required.",
-    "icon": "\ud83c\udf0a",
+    "icon": "🌊",
     "path": "./play/theremin/",
     "category": "entertainment",
     "gradient": "from-blue-500/20 to-violet-500/20",
@@ -1344,15 +1397,16 @@
     "tags": ["music", "theremin", "webcam", "gesture", "electronic", "audio"],
     "related": ["play-synth", "play-piano", "play-tuner"],
     "shareCategory": "entertainment",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "play-tuner",
-    "name": "Browser Tuner \ud83c\udfb8",
+    "name": "Browser Tuner 🎸",
     "shortName": "Tuner",
     "description": "Chromatic instrument tuner using your microphone",
     "detailedDescription": "Chromatic tuner that listens via your microphone and displays pitch, note name, and cents deviation in real time.",
-    "icon": "\ud83c\udfb8",
+    "icon": "🎸",
     "path": "./play/tuner/",
     "category": "entertainment",
     "gradient": "from-emerald-500/20 to-teal-500/20",
@@ -1364,15 +1418,16 @@
     "tags": ["music", "tuner", "microphone", "pitch", "audio"],
     "related": ["play-theremin", "play-piano", "play-metronome"],
     "shareCategory": "entertainment",
-    "appTier": "experience"
+    "appTier": "experience",
+    "geo": true
   },
   {
     "id": "weather",
-    "name": "Weather \ud83c\udf24\ufe0f",
+    "name": "Weather 🌤️",
     "shortName": "Weather",
-    "description": "Forecast for any city or ZIP \u2014 current, hourly, and 7-day",
+    "description": "Forecast for any city or ZIP — current, hourly, and 7-day",
     "detailedDescription": "Add cities or US ZIP codes and see current conditions, hourly forecast for the next 24 hours, and a 7-day outlook. Toggle Fahrenheit / Celsius, use \"Locate me\" to add your current spot, and share any location via URL. Locations saved in your browser.",
-    "icon": "\ud83c\udf24\ufe0f",
+    "icon": "🌤️",
     "path": "./weather/",
     "category": "utility",
     "gradient": "from-sky-500/20 to-indigo-500/20",
@@ -1389,15 +1444,16 @@
       "short_name": "Weather",
       "description": "City and ZIP forecast in your browser"
     },
-    "appTier": "system"
+    "appTier": "system",
+    "geo": true
   },
   {
     "id": "stock",
-    "name": "Stock Ticker \ud83d\udcc8",
+    "name": "Stock Ticker 📈",
     "shortName": "Stocks",
     "description": "Track and graph the tickers you care about",
     "detailedDescription": "Add the stocks you care about and graph them on one chart. Quick presets for 1D, 5D, 1M, 3M, 6M, 1Y, 5Y, and MAX. Optional % change overlay for comparing returns. Watchlist saved in your browser. Quotes may be delayed.",
-    "icon": "\ud83d\udcc8",
+    "icon": "📈",
     "path": "./stock/",
     "category": "utility",
     "gradient": "from-emerald-500/20 to-sky-500/20",
@@ -1414,15 +1470,16 @@
       "short_name": "Stocks",
       "description": "Track and graph stock tickers in your browser"
     },
-    "appTier": "system"
+    "appTier": "system",
+    "geo": true
   },
   {
     "id": "chat",
-    "name": "Chat \ud83e\udd16",
+    "name": "Chat 🤖",
     "shortName": "Chat",
     "description": "On-device AI agent (Hermes-3 8B) that runs entirely in your browser",
-    "detailedDescription": "Static-site LLM agent powered by WebLLM. The full model (Hermes-3-Llama-3.1-8B) runs on your GPU via WebGPU \u2014 no backend, no API key, no third-party LLM endpoint. Install once (~4.5 GB into your browser's OPFS cache); after that, chat is instant and works offline. Knows the HeymingOS app registry, can launch apps for you, and can read files in your virtual filesystem.",
-    "icon": "\ud83e\udd16",
+    "detailedDescription": "Static-site LLM agent powered by WebLLM. The full model (Hermes-3-Llama-3.1-8B) runs on your GPU via WebGPU — no backend, no API key, no third-party LLM endpoint. Install once (~4.5 GB into your browser's OPFS cache); after that, chat is instant and works offline. Knows the HeymingOS app registry, can launch apps for you, and can read files in your virtual filesystem.",
+    "icon": "🤖",
     "path": "./chat/",
     "category": "utility",
     "defaultWidth": 720,
@@ -1435,15 +1492,16 @@
     "tags": ["ai", "assistant", "chat", "llm", "agent"],
     "related": ["notepad", "terminal", "filemanager"],
     "shareCategory": "utility",
-    "appTier": "system"
+    "appTier": "system",
+    "geo": true
   },
   {
     "id": "listen",
-    "name": "Audiobooks \ud83c\udfa7",
+    "name": "Audiobooks 🎧",
     "shortName": "Audiobooks",
     "description": "Free public-domain audiobooks from LibriVox",
     "detailedDescription": "Stream thousands of free audiobooks from LibriVox's public-domain catalog. Chapter navigation, playback speed control, and Bluetooth/car media button support via the Web Media Session API. Resumes where you left off.",
-    "icon": "\ud83c\udfa7",
+    "icon": "🎧",
     "path": "./listen/",
     "category": "utility",
     "gradient": "from-violet-500/20 to-purple-600/20",
@@ -1460,15 +1518,16 @@
       "short_name": "Audiobooks",
       "description": "Free public-domain audiobooks"
     },
-    "appTier": "app"
+    "appTier": "app",
+    "geo": true
   },
   {
     "id": "read",
-    "name": "Books \ud83d\udcda",
+    "name": "Books 📚",
     "shortName": "Books",
     "description": "Free public-domain e-books from Project Gutenberg",
     "detailedDescription": "Read thousands of free public-domain books from Project Gutenberg via the Gutendex API. Adjustable font size and family, dark/sepia/light themes. Your reading position is saved automatically per book.",
-    "icon": "\ud83d\udcda",
+    "icon": "📚",
     "path": "./read/",
     "category": "utility",
     "gradient": "from-indigo-500/20 to-blue-600/20",
@@ -1485,15 +1544,16 @@
       "short_name": "Books",
       "description": "Free public-domain e-books"
     },
-    "appTier": "system"
+    "appTier": "system",
+    "geo": true
   },
   {
     "id": "paint",
-    "name": "Paint \ud83c\udfa8",
+    "name": "Paint 🎨",
     "shortName": "Paint",
     "description": "Draw and sketch in your browser",
-    "detailedDescription": "MS Paint-inspired canvas app. Pencil, brush, shapes, flood fill, eyedropper, undo/redo \u2014 all in the browser.",
-    "icon": "\ud83c\udfa8",
+    "detailedDescription": "MS Paint-inspired canvas app. Pencil, brush, shapes, flood fill, eyedropper, undo/redo — all in the browser.",
+    "icon": "🎨",
     "path": "./paint/",
     "category": "utility",
     "gradient": "from-pink-500/20 to-purple-500/20",
@@ -1507,6 +1567,7 @@
     "tags": ["art", "drawing", "paint", "creative", "canvas"],
     "related": ["notepad"],
     "shareCategory": "utility",
-    "appTier": "app"
+    "appTier": "app",
+    "geo": true
   }
 ]

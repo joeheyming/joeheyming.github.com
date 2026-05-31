@@ -105,6 +105,51 @@
             "inLanguage": "en"
           },
           {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Is this real Pac-Man?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "It's a 3D recreation inspired by the classic Pac-Man arcade game — same dots, same ghosts, same chase loop, originally built as a UCSB Computer Science project. It's not the official Bandai Namco release."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What are the controls?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Arrow keys or WASD to move; on mobile, drag anywhere on the canvas as a virtual joystick. There's also a camera toggle (Top-Down, Birds-Eye Follow, First Person). Score, high score, and lives appear in the HUD."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are there ghosts and power pellets?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — all four classic ghost personalities (Blinky, Pinky, Inky, Clyde) chase you with bounded BFS pathing. Power pellets temporarily flip the chase: ghosts flee and you can eat them for bonus points."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is the maze 3D?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. The maze is a real 3D environment rendered with three.js. Three camera modes: classic top-down (closest to the arcade view), Birds-Eye Follow (third-person trailing), and First Person (inside Pac-Man's head)."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How do I save high scores?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Automatically — high scores persist to your browser's localStorage. Clearing site data resets them. There's no leaderboard, no signup, and no server-side storage."
+                }
+              }
+            ]
+          },
+          {
             "@type": "BreadcrumbList",
             "itemListElement": [
               {

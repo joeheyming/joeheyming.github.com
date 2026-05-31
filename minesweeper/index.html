@@ -92,6 +92,43 @@
             "inLanguage": "en"
           },
           {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How do I flag a mine?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Right-click on a covered cell, or long-press on touch. The flag toggles between flagged, question-mark, and clear. Flags don't affect win/loss directly — they're a memory aid — but the cell can't be opened until the flag is removed."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What are the difficulty levels?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Beginner (9×9, 10 mines), Intermediate (16×16, 40 mines), Expert (16×30, 99 mines), and Custom (any size and mine count). The board scales to fit the viewport."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is this the original Windows Minesweeper?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "It's a faithful re-implementation of the rules — same number-flood-fill behaviour, same chord (middle-click) logic, same first-click-is-safe guarantee. Visually it uses a modern UI rather than the Windows 95 chrome."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are there hints?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "There's no auto-solver, but the chord action (clicking a number with as many flags around it as its count) clears all remaining unflagged neighbours — the standard Minesweeper speedrun trick."
+                }
+              }
+            ]
+          },
+          {
             "@type": "BreadcrumbList",
             "itemListElement": [
               {
@@ -121,7 +158,7 @@
     <meta name="theme-color" content="#FAFAFA" />
   </head>
   <body>
-    <div class="game-wrapper">
+    <main class="game-wrapper">
       <header class="game-header">
         <h1>💣 Minesweeper</h1>
       </header>
@@ -164,7 +201,7 @@
         <span>•</span>
         <share-button label="📤 Share" theme="light"></share-button>
       </div>
-    </div>
+    </main>
 
     <!-- Custom Game Modal -->
     <div class="modal" id="custom-modal">

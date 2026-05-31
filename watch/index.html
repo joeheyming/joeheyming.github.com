@@ -74,6 +74,51 @@
             "inLanguage": "en"
           },
           {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Where do the videos come from?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The Internet Archive (archive.org). Watch curates a smart-TV-style channel grid pointing at IA collections of classic TV shows, animation, and Saturday-morning cartoons that are public-domain or otherwise available for streaming."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Why do some videos fail to load?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The Internet Archive's CDN sometimes redirects to subdomains (dn710203.ca.archive.org) that don't set CORS headers, so the player has to route the bytes through a CORS proxy. If both proxies are down or the original file has been removed, playback fails. Selecting a different episode usually works."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I cast to my TV?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — the player exposes the standard HTML5 video element so AirPlay (Safari) and Chromecast (Chrome on Android) icons appear automatically. Pick the destination from your browser's video controls."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are saves persistent?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. The page tracks which episode you watched last and how far through it you were, persisted to IndexedDB. Closing the tab and coming back later resumes from the same spot."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What is the channel-grid layout?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "A smart-TV-style 2D grid of channels (rows) and episodes (columns) you can navigate with arrow keys, a TV remote, or the on-screen pointer. Designed to feel like classic cable channel surfing."
+                }
+              }
+            ]
+          },
+          {
             "@type": "BreadcrumbList",
             "itemListElement": [
               {

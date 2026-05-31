@@ -32,15 +32,105 @@
     />
     <meta property="og:url" content="https://joeheyming.github.io/listen/" />
     <meta property="og:image" content="https://joeheyming.github.io/listen/listen-preview.png" />
+    <meta
+      property="og:image:alt"
+      content="Public-domain audiobook player showing a queue of LibriVox titles with cover art, current track, and audio transport controls."
+    />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="🎧 Audiobooks — Free Public-Domain Audio" />
     <meta name="twitter:image" content="https://joeheyming.github.io/listen/listen-preview.png" />
+    <meta
+      name="twitter:image:alt"
+      content="Public-domain audiobook player showing a queue of LibriVox titles with cover art, current track, and audio transport controls."
+    />
 
     <link rel="canonical" href="https://joeheyming.github.io/listen/" />
     <link rel="manifest" href="/manifest.json" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "name": "Audiobooks (Listen)",
+            "alternateName": [
+              "Listen",
+              "Free LibriVox player",
+              "Public domain audiobook player",
+              "Audiobook browser",
+              "Free audiobooks browser"
+            ],
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "Web Browser",
+            "url": "https://joeheyming.github.io/listen/",
+            "description": "Browse and stream free public-domain audiobooks from LibriVox. Chapter navigation, adjustable playback speed, lock-screen / Bluetooth car-button controls, and resume position saved per book.",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "screenshot": "https://joeheyming.github.io/listen/listen-preview.png",
+            "featureList": [
+              "Browse and search the full LibriVox catalog",
+              "Chapter-level navigation",
+              "Variable playback speed (0.5×–3×)",
+              "Bluetooth car-button + lock-screen MediaSession controls",
+              "Resume position saved per book"
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Where do the audiobooks come from?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "LibriVox — a volunteer-run project that records and releases public-domain audiobooks for free. The page browses the full LibriVox catalog and streams audio directly."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are these books really free and legal?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. LibriVox only records works in the public domain in the United States — typically anything published before 1929 (or with explicit author release). The recordings themselves are also released under the public domain."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does the lock-screen / car Bluetooth work?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — the player registers with the browser's MediaSession API so play/pause, next-chapter, and previous-chapter buttons on Bluetooth headphones, car stereos, and lock-screen widgets control playback even when the screen is off."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Where is my position saved?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Per-book resume position is saved to your browser's localStorage. Closing and reopening the tab resumes where you left off; clearing site data resets all positions."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I download a book?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The player streams audio rather than downloading. To download a LibriVox book for offline listening, visit librivox.org directly — they offer ZIP and torrent downloads."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
 
     <link rel="stylesheet" href="style.css" />
     <script type="module" src="app.js"></script>
@@ -62,7 +152,7 @@
       <div class="spinner"></div>
     </div>
 
-    <div class="page-wrap">
+    <main class="page-wrap">
       <!-- Header -->
       <header class="app-header">
         <h1>🎧 Audiobooks</h1>
@@ -120,7 +210,7 @@
         <!-- Book cover / description -->
         <div id="book-detail-header"></div>
       </div>
-    </div>
+    </main>
 
     <!-- Chapter bottom sheet -->
     <div id="chapter-sheet-overlay" class="hidden" aria-hidden="true"></div>

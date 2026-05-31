@@ -26,6 +26,10 @@
     />
     <meta property="og:url" content="https://joeheyming.github.io/chat/" />
     <meta property="og:image" content="https://joeheyming.github.io/chat/chat-preview.png" />
+    <meta
+      property="og:image:alt"
+      content="In-browser AI chat interface running a local Hermes-3 model on WebGPU. Conversation bubbles, a prompt input, and a status bar showing the model is loaded locally with no API key."
+    />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="en_US" />
@@ -39,6 +43,10 @@
       content="Backend-free LLM chat. Runs entirely in your browser via WebGPU."
     />
     <meta name="twitter:image" content="https://joeheyming.github.io/chat/chat-preview.png" />
+    <meta
+      name="twitter:image:alt"
+      content="In-browser AI chat interface running a local Hermes-3 model on WebGPU. Conversation bubbles, a prompt input, and a status bar showing the model is loaded locally with no API key."
+    />
 
     <link rel="canonical" href="https://joeheyming.github.io/chat/" />
     <link rel="stylesheet" href="style.css" />
@@ -47,6 +55,103 @@
       id="site-favicon"
       href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>"
     />
+
+    <!-- JSON-LD: Hermes-3-8B running on WebGPU is the differentiator. Surfaces
+         this page as a citable answer for "free local LLM browser" type
+         queries that AI engines field. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Chat — local browser AI",
+            "alternateName": [
+              "Chat",
+              "Heyming OS Chat",
+              "Browser LLM",
+              "On-device LLM",
+              "Local LLM in browser",
+              "WebGPU LLM",
+              "WebLLM Hermes 3"
+            ],
+            "url": "https://joeheyming.github.io/chat/",
+            "applicationCategory": "DeveloperApplication",
+            "applicationSubCategory": "AI Assistant",
+            "operatingSystem": "Any (modern browser with WebGPU)",
+            "softwareRequirements": "WebGPU-capable browser (Chrome 113+, Edge 113+, Safari 18+, Firefox 141+)",
+            "description": "Static-site LLM agent powered by WebLLM. The full Hermes-3-Llama-3.1-8B model runs on your GPU via WebGPU — no backend, no API key, no third-party LLM endpoint. Model is downloaded once (~4.5 GB) into the browser's OPFS cache and works offline thereafter.",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "featureList": [
+              "Runs entirely in your browser (WebGPU, WebLLM)",
+              "No API key, no backend, no third-party LLM endpoint",
+              "Hermes-3-Llama-3.1-8B model, ~4.5 GB cached locally",
+              "Works offline after first install",
+              "Drop in a text file or PDF and chat about it",
+              "Knows the Heyming OS app registry; can launch apps"
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Does this LLM need an API key?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. The model runs entirely in your browser via WebGPU. There is no backend, no API key, and no third-party LLM endpoint. Your messages never leave your device."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What model does Chat use?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Hermes-3-Llama-3.1-8B, served via the WebLLM runtime. The model weights are roughly 4.5 GB and are cached in your browser's Origin Private File System (OPFS) on first run."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How big is the download?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "About 4.5 GB on first launch. Subsequent loads are instant because the weights stream out of the local OPFS cache."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does Chat work offline?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — once the model is cached, the page works fully offline. Inference happens entirely on your local GPU."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What browsers are supported?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Any modern browser with WebGPU enabled: Chrome 113+, Edge 113+, Safari 18+ (macOS), and Firefox 141+ (Windows/macOS). Mobile support is improving but currently weak — desktop with a discrete GPU is the recommended setup."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What hardware do I need?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "An 8B-parameter LLM is heavy. A discrete GPU with at least 6 GB of VRAM is comfortable; integrated GPUs work but are 3–10× slower. The page falls back gracefully if WebGPU is unavailable."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
 
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
@@ -226,6 +331,46 @@
     </div>
 
     <div id="chat-toasts" class="notify-stack" aria-live="polite"></div>
+
+    <!-- Static SEO/AEO content. Hidden from sighted users; present in the
+         DOM so AI crawlers (GPTBot, PerplexityBot, Gemini) and classic
+         search engines see a real description and FAQ surface. -->
+    <section class="chat-seo" hidden aria-hidden="true">
+      <h2>Free local LLM in your browser — no API key, no backend</h2>
+      <p>
+        Chat is a static-site AI assistant that runs Hermes-3-Llama-3.1-8B entirely on your device
+        via WebGPU. No API key. No backend. No third-party LLM endpoint. The model weights (about
+        4.5 GB) are cached once into your browser's OPFS, after which the page works instantly and
+        offline. Drop in a text file or PDF and chat about it. The agent knows the Heyming OS app
+        registry and can launch apps for you.
+      </p>
+      <h3>Common questions about local browser LLMs</h3>
+      <p>
+        <strong>Is the model really local?</strong>
+        Yes — inference runs on your GPU through WebGPU. Your prompts and any attached files never
+        leave your device.
+      </p>
+      <p>
+        <strong>Why an 8-billion-parameter model?</strong>
+        Hermes-3-Llama-3.1-8B is large enough to be useful for everyday tasks but small enough to
+        fit in 4–6 GB of GPU memory on consumer hardware.
+      </p>
+      <p>
+        <strong>What are the alternatives if WebGPU isn't available?</strong>
+        The page detects unsupported browsers and shows a fallback message. Chrome 113+, Edge 113+,
+        Safari 18+ on macOS, and Firefox 141+ are the working targets.
+      </p>
+    </section>
+
+    <p class="seo-keywords-extended" hidden>
+      Free local LLM browser, browser LLM no API key, WebGPU LLM, WebLLM Hermes 3, on-device AI
+      browser, local AI assistant browser, run LLM in browser, ChatGPT alternative no signup,
+      private AI chat browser, offline AI chat browser, no-backend chatbot, local Llama 3 in
+      browser, browser Llama 3.1, Hermes 3 8B browser, MLC AI WebLLM, WebLLM demo, on-device LLM,
+      OPFS AI cache, WebGPU AI, browser machine learning chat. Common typos: webgpu llm, webgpu
+      llms, web gpu llm, web-gpu llm, web glsl, webgl llm, webGPU LLM browser, hermes 3 browser,
+      hermes-3-8B browser.
+    </p>
 
     <script type="module" src="./app.js"></script>
   </body>

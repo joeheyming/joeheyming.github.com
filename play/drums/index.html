@@ -52,6 +52,70 @@
 
     <link rel="canonical" href="https://joeheyming.github.io/play/drums/" />
 
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": ["SoftwareApplication", "MusicalInstrument"],
+            "name": "Drum Kit (Browser Drums)",
+            "alternateName": [
+              "Browser drums",
+              "Online drums",
+              "Free drum kit browser",
+              "Virtual drum kit",
+              "Web drum machine",
+              "HTML drum pads"
+            ],
+            "url": "https://joeheyming.github.io/play/drums/",
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "Web Browser",
+            "description": "A free virtual drum kit that plays in your browser. Click or tap pads, or hammer keyboard keys for low-latency drumming. Includes kick, snare, hi-hat (open + closed), toms, cymbals, and clap.",
+            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "musicalInstrumentType": "Drum Kit"
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How are the drums mapped to the keyboard?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The home row maps to the most-used pads (kick, snare, hi-hat, clap) so you can play steady rhythms with two hands. The full mapping is shown on each pad's label, and Tab cycles between mappings."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What kit pieces are included?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "A standard rock kit: kick drum, snare, closed hi-hat, open hi-hat, three toms (high/mid/floor), crash, ride, and a hand clap. Each pad is sample-based via the Web Audio API."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is there low latency on mobile?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Modern Chrome on Android and Safari on iOS both expose Web Audio with sub-50ms latency on most devices. The page uses pre-decoded AudioBuffers and a pooled BufferSource per voice so triggers fire instantly."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I play multiple pads at once?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — multi-touch is supported on phones and tablets, and the keyboard registers simultaneous keypresses. Each pad has its own voice so layering kick + snare + hi-hat works without choking."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
     <script>

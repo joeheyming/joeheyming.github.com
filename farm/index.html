@@ -29,6 +29,10 @@
     <meta property="og:url" content="https://joeheyming.github.io/farm/" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://joeheyming.github.io/farm/farm-preview.png" />
+    <meta
+      property="og:image:alt"
+      content="Retro green-on-black CI dashboard simulator showing fictional build statuses across a build farm grid — passing, failing, and queued jobs."
+    />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
@@ -42,9 +46,71 @@
       content="AMP Farm Monitor — a retro CI dashboard simulating Aruba Networks Airwave build farm jobs with bear-wrapper and Condor queue output."
     />
     <meta name="twitter:image" content="https://joeheyming.github.io/farm/farm-preview.png" />
+    <meta
+      name="twitter:image:alt"
+      content="Retro green-on-black CI dashboard simulator showing fictional build statuses across a build farm grid — passing, failing, and queued jobs."
+    />
 
     <!-- Canonical URL -->
     <link rel="canonical" href="https://joeheyming.github.io/farm/" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "name": "AMP Farm Monitor",
+            "alternateName": [
+              "AMP Farm Monitor",
+              "Aruba Airwave CI dashboard",
+              "Aruba Airwave farm",
+              "Build farm simulator",
+              "bear-wrapper Condor dashboard"
+            ],
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Web Browser",
+            "url": "https://joeheyming.github.io/farm/",
+            "description": "Retro CI dashboard simulating Aruba Networks Airwave (AMP) build-farm jobs — bear-wrapper compile output, Condor queue status, mock SVN check-in monitoring. A nostalgia piece, not a real CI system.",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Is this a real CI system?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. AMP Farm Monitor is a static-site simulation of an Aruba Networks Airwave (AMP) build-farm dashboard. The 'jobs', 'queue status', and SVN check-in monitor are all client-side fakes. It's a tribute to the actual internal CI Joe used to build at Aruba."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What are bear-wrapper and Condor?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Bear-wrapper was a build-tool wrapper used at Aruba Networks; HTCondor is a real distributed-batch scheduler used by some build farms. The dashboard mimics their output for nostalgia value."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I run my own builds through this?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No — there's no backend. It only generates plausible-looking job logs in your browser when you click Submit Farm Job."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
 
     <link rel="stylesheet" href="index.css" />
 
@@ -65,11 +131,11 @@
     <meta name="theme-color" content="#FAFAFA" />
   </head>
   <body>
-    <div class="container">
-      <div class="header">
+    <main class="container">
+      <header class="header">
         <h1>🏗️ AMP Farm Monitor</h1>
         <p>Continuous Integration & Test Farm (bear-wrapper + Condor)</p>
-      </div>
+      </header>
 
       <div id="build-status" class="status status-idle">● Farm Ready - Monitoring SVN Checkins</div>
 
@@ -101,7 +167,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </main>
     <script src="index.js"></script>
   </body>
 </html>

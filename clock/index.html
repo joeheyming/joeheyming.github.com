@@ -85,6 +85,43 @@
             "inLanguage": "en"
           },
           {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What modes does the clock have?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Three: Clock (the current time, with optional 12/24-hour toggle and seconds), Stopwatch (start/stop/lap with millisecond precision), and Timer (countdown with chime alert and Pomodoro presets)."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does the alarm go off if my screen is locked?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "On most platforms the chime will play if the tab is in the background, but a fully-locked phone may suppress it. For reliable alarms with the device locked, the OS-level Clock app is more reliable."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What is the Pomodoro timer?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Pomodoro is a time-management technique: 25-minute focused work blocks separated by 5-minute breaks. The clock has it built in as a one-click preset."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are saved laps persistent?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The current stopwatch session (running time + laps) survives reloads via localStorage. Closing and reopening the tab continues the timer."
+                }
+              }
+            ]
+          },
+          {
             "@type": "BreadcrumbList",
             "itemListElement": [
               {

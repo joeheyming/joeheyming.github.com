@@ -49,6 +49,73 @@
 
     <link rel="canonical" href="https://joeheyming.github.io/accordion-hero/" />
 
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "VideoGame",
+            "name": "Accordion Hero",
+            "alternateName": [
+              "Accordion Hero",
+              "Stradella Hero",
+              "Accordion rhythm game",
+              "Browser accordion game",
+              "Stradella bass rhythm game"
+            ],
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Web Browser",
+            "url": "https://joeheyming.github.io/accordion-hero/",
+            "description": "Stepmania-style scrolling-notes rhythm game where the lanes are Stradella accordion bass and chord buttons. Improvise voicings (C6, Cmaj7, Am7) and still score — the judge rewards musical substitutions, not button-for-button accuracy.",
+            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "gamePlatform": "Web Browser",
+            "genre": ["Rhythm Game", "Music Game"],
+            "screenshot": "https://joeheyming.github.io/accordion-hero/accordion-hero-preview.png",
+            "keywords": "accordion hero, stradella bass, rhythm game accordion, browser music game, voicing, chord substitution",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What is Stradella bass?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The standard bass-side layout on a chromatic accordion: a grid where the inner two columns are bass notes in a circle-of-fifths arrangement and the outer four are pre-built major/minor/seventh/diminished chords. Accordion Hero's left side mirrors this layout."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How is scoring done?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Each falling note has a target voicing, but anything that fits the chord earns points. Hit the suggested combo for a full match (max points), or play a smooth substitution (Cmaj7 over C, Am7 over Am, relative-minor swap) for a slightly lower but still positive score."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Why does the judge reward voicings?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Real accordion playing is improvisational on the chord side; demanding button-for-button accuracy would be musically wrong. The scoring engine recognises that a Cmaj7 voicing 'fits' a C major chord and rewards musical substitution rather than punishing it."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Do I need an accordion controller?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. The game maps the Stradella button grid to your computer keyboard; mouse and touch also work. Any MIDI accordion that emits standard MIDI notes will play correctly via the browser's Web MIDI API."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
     <script src="/back.js" data-back-size="compact"></script>

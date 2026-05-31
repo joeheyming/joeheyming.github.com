@@ -52,6 +52,86 @@
 
     <link rel="canonical" href="https://joeheyming.github.io/play/piano/" />
 
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": ["SoftwareApplication", "MusicalInstrument"],
+            "name": "Piano (Browser Piano)",
+            "alternateName": [
+              "Browser piano",
+              "Online piano",
+              "Free piano in browser",
+              "Virtual piano",
+              "HTML piano keyboard",
+              "Web piano keyboard"
+            ],
+            "url": "https://joeheyming.github.io/play/piano/",
+            "applicationCategory": "MultimediaApplication",
+            "applicationSubCategory": "Virtual Musical Instrument",
+            "operatingSystem": "Web Browser",
+            "description": "A free virtual piano that plays in your browser via the Web Audio API and the soundfont-player library. Click keys with the mouse, tap on touch, or use your computer keyboard. Adjustable octave, volume, and tone. Multi-touch friendly on phones and tablets. No install, no signup.",
+            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "musicalInstrumentType": "Piano",
+            "featureList": [
+              "Mouse, multi-touch, and computer-keyboard input",
+              "Adjustable octave and volume",
+              "Multiple tone presets (Acoustic Grand, Electric, Synth)",
+              "Multi-touch friendly on phones and tablets",
+              "MIDI keyboard support via Web MIDI API"
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How do I play piano with my computer keyboard?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The home row maps to the white keys of one octave (A S D F G H J K → C D E F G A B C), and the row above gives you the black keys (W E _ T Y U). The arrow keys (or buttons in the toolbar) shift the active octave up and down."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does my MIDI keyboard work?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Plug a USB or Bluetooth MIDI keyboard in and the page picks it up via the Web MIDI API (Chrome, Edge, Opera; Safari and Firefox require the relevant permission). Velocity is honoured."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What sound is the piano using?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Real sampled instruments served by the soundfont-player library and Benjamin Gleitzman's MIDI.js Soundfonts repository — the default is acoustic_grand_piano. The toolbar lets you switch to electric piano, harpsichord, organ, and other GM presets."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does it work on mobile?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — the page is multi-touch friendly. Press multiple keys simultaneously on phones and tablets to play chords. The keyboard width auto-fits the viewport and scrolls horizontally on small screens."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I record what I play?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "There's no built-in recorder today. The page is for free-form live playing. Use your OS's screen-capture tool with audio routing if you want to capture a performance."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
     <script>

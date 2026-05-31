@@ -42,6 +42,67 @@
     />
 
     <link rel="canonical" href="https://joeheyming.github.io/filemanager/" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "File Manager (Heyming OS)",
+            "alternateName": [
+              "Heyming OS File Manager",
+              "Browser file manager",
+              "Heyming OS file explorer",
+              "Browser virtual filesystem browser"
+            ],
+            "url": "https://joeheyming.github.io/filemanager/",
+            "applicationCategory": "ProductivityApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Browse and manage files stored in the Heyming OS in-browser virtual filesystem. Create folders, rename, delete, paste from the clipboard, and open files with the matching app (Notepad for text, Image Viewer for images, Media Player for audio/video).",
+            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What filesystem am I browsing?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The Heyming OS virtual filesystem — an IndexedDB-backed tree that lives in your browser. Apps like Notepad, Code IDE, and Paint write to it; File Manager browses the same tree. It's not your real OS filesystem; nothing here can read your hard drive."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How does 'Open with' work?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Each file's MIME type is dispatched through Heyming OS's mime-handlers registry: text/* opens in Notepad, image/* in Image Viewer, audio/* and video/* in Media Player, and so on. The handler list is shared across all OS apps."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I drag a file in from disk?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — drag-and-drop a file from your desktop and it's copied into the virtual filesystem. The original on disk is untouched. Paste from the clipboard also works."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are my files private?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Files live in your browser's IndexedDB scoped to joeheyming.github.io. They're never uploaded; clearing site data deletes them."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📂</text></svg>"

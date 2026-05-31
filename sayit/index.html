@@ -86,6 +86,43 @@
             "inLanguage": "en"
           },
           {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How does the OCR work?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Tesseract.js — a WebAssembly port of the open-source Tesseract OCR engine — runs entirely in your browser. Drop in or paste an image and the recognised text appears on the page. The result can then be read aloud via the browser's built-in speech synthesis."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are images uploaded?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. The image is decoded in the browser and processed locally by Tesseract.js compiled to WebAssembly. Nothing leaves your device."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What languages does it recognise?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "English by default. Tesseract.js supports 100+ languages; the language packs are downloaded on demand from a CDN when you switch."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can it read handwriting?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Tesseract is optimised for printed text and is unreliable on cursive handwriting. Block-printed handwriting works in some cases; printed text from books, screenshots, and signs is its sweet spot."
+                }
+              }
+            ]
+          },
+          {
             "@type": "BreadcrumbList",
             "itemListElement": [
               {

@@ -34,6 +34,93 @@
     <meta property="og:image" content="https://joeheyming.github.io/os/os-preview.png" />
     <link rel="canonical" href="https://joeheyming.github.io/os/" />
 
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Heyming OS (the desktop)",
+            "alternateName": [
+              "Heyming OS",
+              "Heyming OS desktop",
+              "Browser desktop environment",
+              "Web desktop OS",
+              "Browser OS",
+              "Static-site OS",
+              "Desktop in a tab"
+            ],
+            "url": "https://joeheyming.github.io/os/",
+            "applicationCategory": "OperatingSystem",
+            "applicationSubCategory": "Browser Desktop",
+            "operatingSystem": "Web Browser",
+            "softwareVersion": "1.0",
+            "description": "A browser-based desktop environment: draggable windows, taskbar, virtual filesystem (IndexedDB), and 50+ built-in apps. Loads any registered app inside a window iframe; supports 'Open with' MIME-type routing and a desktop with shortcuts.",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "featureList": [
+              "Draggable, resizable, snap-to-edge windows",
+              "Taskbar with running-app indicators",
+              "App launcher with categories and search",
+              "Virtual filesystem in IndexedDB",
+              "MIME-handler routing ('Open with…')",
+              "Desktop shortcuts and themes",
+              "First-run setup wizard"
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Is Heyming OS a real OS?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No — it's a desktop-style web app that runs inside your browser tab. You get windows, a taskbar, a virtual filesystem, and 50+ apps, but it doesn't replace your real operating system."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How do apps run inside the OS?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Each app's own index.html is loaded inside a sandboxed iframe by the OS window manager. The app sees the same DOM it would on its own URL — it just lives in a movable, resizable window. Sensitive features (microphone, camera) require the same permission grants as standalone use."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Where are my files stored?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "In an IndexedDB-backed virtual filesystem scoped to joeheyming.github.io. Notepad, Code IDE, Paint, and File Manager all read/write the same tree. Nothing is uploaded; clearing site data deletes everything."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I install Heyming OS?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — it's a Progressive Web App. On Chrome/Edge, the address bar shows an Install button; on iOS Safari, use 'Add to Home Screen'. The installed app launches in standalone mode without browser chrome."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What is 'Open with'?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "When you double-click a file in File Manager (or use the OS's open-with picker), the file's MIME type is dispatched through a registry: text/* → Notepad, image/* → Image Viewer, audio/video → Media Player, .glb/.stl → 3D Viewer, .pdf → media-player's PDF mode, and so on."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
     <!-- Brand foundation. Load order matters:
          1. preconnect + Inter font CDN
          2. Tailwind CDN — installs window.tailwind on boot

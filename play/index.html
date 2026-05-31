@@ -49,6 +49,94 @@
 
     <link rel="canonical" href="https://joeheyming.github.io/play/" />
 
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "name": "Play — Browser Music Studio",
+            "alternateName": [
+              "Play",
+              "Heyming OS Play",
+              "Free browser music studio",
+              "Browser instruments hub",
+              "Online musical instruments"
+            ],
+            "url": "https://joeheyming.github.io/play/",
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "Web Browser",
+            "description": "A free, ad-free hub of virtual musical instruments that play in your browser. Piano, accordion, drums, strings (guitar/bass), synthesizer, theremin, harp, mallets (marimba/xylophone/vibraphone), steel drum — plus a chromatic tuner and a precision metronome. No install, no signup, no ads.",
+            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          },
+          {
+            "@type": "ItemList",
+            "name": "Play — instruments",
+            "description": "Virtual musical instruments and music tools available on Heyming OS.",
+            "itemListElement": [
+              { "@type": "ListItem", "position": 1, "name": "Piano", "url": "https://joeheyming.github.io/play/piano/" },
+              { "@type": "ListItem", "position": 2, "name": "Accordion", "url": "https://joeheyming.github.io/play/accordion/" },
+              { "@type": "ListItem", "position": 3, "name": "Drums", "url": "https://joeheyming.github.io/play/drums/" },
+              { "@type": "ListItem", "position": 4, "name": "Strings (Guitar / Bass)", "url": "https://joeheyming.github.io/play/strings/" },
+              { "@type": "ListItem", "position": 5, "name": "Synth", "url": "https://joeheyming.github.io/play/synth/" },
+              { "@type": "ListItem", "position": 6, "name": "Theremin", "url": "https://joeheyming.github.io/play/theremin/" },
+              { "@type": "ListItem", "position": 7, "name": "Harp", "url": "https://joeheyming.github.io/play/harp/" },
+              { "@type": "ListItem", "position": 8, "name": "Mallets (Marimba / Xylophone / Vibraphone)", "url": "https://joeheyming.github.io/play/mallets/" },
+              { "@type": "ListItem", "position": 9, "name": "Steel Drum", "url": "https://joeheyming.github.io/play/steeldrum/" },
+              { "@type": "ListItem", "position": 10, "name": "Tuner", "url": "https://joeheyming.github.io/play/tuner/" },
+              { "@type": "ListItem", "position": 11, "name": "Metronome", "url": "https://joeheyming.github.io/play/metronome/" }
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Are these real musical instruments or just toys?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Real working instruments. Most use sampled audio from real instruments (via the soundfont-player library), and the synth uses subtractive Web Audio synthesis. Plug in a MIDI keyboard or accordion for full velocity-sensitive performance; play with your computer keyboard or touch screen for casual jamming."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Do they work offline?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Once each instrument's samples have been cached on first load, yes — most instruments work offline. The hub is a Progressive Web App you can 'install to home screen' on iOS and Android."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I install Play as an app?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. The page declares a web manifest, so on Chrome, Edge, or Safari (iOS) you can use 'Add to Home Screen' or the install prompt. The installed app launches in standalone mode without browser chrome."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What do I need to play?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Any modern browser. A MIDI keyboard is optional but works (Web MIDI API). For the tuner, microphone permission is required so the page can hear your instrument."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are there ads?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. Free, ad-free, no signup. Static HTML hosted on GitHub Pages."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
     <script>
@@ -131,8 +219,8 @@
         <div class="instrument-icon" aria-hidden="true">🎸</div>
         <div class="instrument-name">Strings</div>
         <div class="instrument-blurb">
-          One fretboard, five instruments — Guitar, Bass, Ukulele, Banjo, and Mandolin. Pluck notes
-          or strum chords.
+          Learn chords on one fretboard, five instruments — Guitar, Ukulele, Bass, Banjo, and
+          Mandolin. Pick a root and quality, see the shape, strum it.
         </div>
         <div class="instrument-status">Play now</div>
       </a>

@@ -119,6 +119,43 @@
             "inLanguage": "en"
           },
           {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Is this a real shell?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "It's a JavaScript-implemented shell with a virtual filesystem, not a real Unix shell. The familiar commands (ls, cd, cat, pwd, mkdir, rm, echo, grep, history, clear) work against the in-browser virtual filesystem; commands like sudo, ssh, or apt are intentionally not implemented."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I run real shell scripts?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No — there's no actual sh interpreter, just a tokenised JS-side router for the supported commands. The terminal is for browsing the virtual filesystem, demoing common commands, and casual play."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What is the virtual filesystem?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Inside Heyming OS, files created by Notepad, Code IDE, and other apps live in an IndexedDB-backed virtual filesystem. The terminal navigates the same tree — ls in /home shows files saved by other apps; cat reads them."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is there tab completion?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — Tab completes paths and command names. Up/Down arrows scroll the input history; Ctrl-L clears the screen; Ctrl-C cancels the current line."
+                }
+              }
+            ]
+          },
+          {
             "@type": "BreadcrumbList",
             "itemListElement": [
               {

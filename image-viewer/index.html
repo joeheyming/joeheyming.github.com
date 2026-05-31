@@ -42,6 +42,68 @@
     />
 
     <link rel="canonical" href="https://joeheyming.github.io/image-viewer/" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Image Viewer",
+            "alternateName": [
+              "Browser image viewer",
+              "HTML image viewer",
+              "Web image viewer",
+              "Online image viewer free",
+              "Zoom and pan image viewer"
+            ],
+            "url": "https://joeheyming.github.io/image-viewer/",
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "Web Browser",
+            "description": "View image files in your browser with zoom, pan, rotate, and fullscreen controls. Supports PNG, JPG, GIF, WebP, SVG, and BMP. Drop a file or click Open. Nothing is uploaded — images are decoded locally.",
+            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What file types are supported?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "PNG, JPG / JPEG, GIF (including animated), WebP, SVG, BMP, and TIFF. Whatever your browser decodes natively, the viewer can show."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are my images uploaded?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. The image is loaded as a local object URL and rendered in the browser. Nothing is sent to a server; the page works offline once cached."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How do I zoom and pan?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Scroll-wheel or pinch to zoom; click-and-drag (or one-finger drag) to pan. Double-click resets to fit-to-window. Keyboard arrows nudge the view; +/- zoom; R rotates 90 degrees."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I view multi-page TIFF or animated GIF?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Animated GIF and WebP play automatically. Multi-page TIFF browser support is limited — the viewer shows the first page on most browsers."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🖼️</text></svg>"

@@ -80,6 +80,43 @@
             "inLanguage": "en"
           },
           {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What is JoeTube?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "A retro CRT-style YouTube player. Search, build a queue, and watch in a vintage-TV frame with chromatic aberration and scanline effects. The video stream itself is YouTube's official IFrame embed."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does it skip ads?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. The page uses YouTube's official IFrame Player API; ads, content restrictions, and copyright rules apply exactly as they would on youtube.com."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I queue a playlist?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — paste a YouTube playlist URL or build a queue from search results. The current queue persists in localStorage so a refresh doesn't lose your place."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is the CRT effect adjustable?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Toggle scanlines and chromatic-aberration overlays from the settings. The base IFrame is unmodified; the CRT effect is just CSS layering on top."
+                }
+              }
+            ]
+          },
+          {
             "@type": "BreadcrumbList",
             "itemListElement": [
               {

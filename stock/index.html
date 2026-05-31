@@ -142,6 +142,51 @@
               "Shareable URL state"
             ],
             "inLanguage": "en"
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Where do the quotes come from?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yahoo Finance public endpoints, accessed through a CORS proxy from the browser. There's no backend on this site; quotes are fetched live and held in memory."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are the quotes real-time?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yahoo Finance provides delayed quotes (15 minutes for US markets, longer for some international exchanges). The page is not a real-time trading tool — it's a free dashboard for monitoring positions."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are my watchlists private?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Watchlists, portfolio shares, and price alerts all live in your browser's localStorage. Nothing is uploaded; the site has no backend, no signup, and no tracking beyond standard web analytics."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What technical indicators are supported?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Simple Moving Average (SMA), Exponential Moving Average (EMA), Bollinger Bands as overlays, plus RSI and MACD as separate subpanes. Toggle each from the chart toolbar."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How do price alerts work?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Set a threshold per ticker; when the next polled quote crosses it, the page fires a browser notification (after granting permission). Alerts only run while the tab is open — there's no server-side push."
+                }
+              }
+            ]
           }
         ]
       }

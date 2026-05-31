@@ -41,6 +41,69 @@
 
     <link rel="canonical" href="https://joeheyming.github.io/paint/" />
 
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Paint",
+            "alternateName": [
+              "Browser Paint",
+              "MS Paint clone",
+              "Online paint app",
+              "Free browser paint",
+              "Web paint",
+              "HTML5 paint"
+            ],
+            "url": "https://joeheyming.github.io/paint/",
+            "applicationCategory": "DesignApplication",
+            "operatingSystem": "Web Browser",
+            "description": "A free MS-Paint-style raster drawing app in your browser. Pencil, brush, eraser, fill, line, rectangle, ellipse, picker, and selection tools. Export PNG; nothing is uploaded.",
+            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What tools are included?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Pencil (1px), brush (variable width), eraser, fill bucket, line, rectangle (filled or outlined), ellipse (filled or outlined), colour picker, and rectangular selection. The toolbox layout deliberately echoes the original Microsoft Paint."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I export my drawing?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — the canvas exports to PNG via the standard browser download flow. Nothing is uploaded; the PNG is encoded in your browser using canvas.toBlob."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does it support pressure-sensitive styluses?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Pointer Events expose pressure for compatible styluses (Apple Pencil, Wacom, Surface Pen) — the brush tool varies its width with pressure on supported devices. Mouse and touch fall back to a constant width."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is there an undo?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — Ctrl/Cmd+Z undoes; Ctrl/Cmd+Shift+Z (or Ctrl+Y) redoes. The history is bounded to keep memory in check."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
     <script>

@@ -108,6 +108,51 @@
             "gamePlatform": ["Web Browser", "HTML5"]
           },
           {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Where do ROMs come from?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "You bring your own. The picker accepts any .nes, .md / .bin / .gen / .smd, .gb, or .gbc file from disk; the optional ROM browser surfaces public-domain titles hosted on the Internet Archive. No ROMs are bundled with the page itself."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is bringing my own ROM legal?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "It depends on your jurisdiction and how you obtained the ROM. The general consensus is that backups of cartridges you own are fine for personal use; downloading copyrighted ROMs from the internet typically isn't. Public-domain games (homebrew, demos, abandonware) are unambiguously legal."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Do save states work?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — quick-save (F5) and quick-load (F9) on desktop, or via the on-screen menu on mobile. Save states are stored in the browser's IndexedDB and persist across sessions. SRAM/battery-backed saves also persist."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does my gamepad work?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Any USB or Bluetooth gamepad recognised by the browser's Gamepad API works. Xbox, PlayStation, and 8BitDo controllers are tested; any HID-compliant pad should map automatically."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What emulator cores are used?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The shell is EmulatorJS, which embeds RetroArch cores compiled to WebAssembly. Each console runs the standard core: FCEUmm for NES, genesis_plus_gx for Sega Genesis / Mega Drive, and gambatte for Game Boy / Game Boy Color."
+                }
+              }
+            ]
+          },
+          {
             "@type": "BreadcrumbList",
             "itemListElement": [
               {

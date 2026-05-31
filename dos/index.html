@@ -52,14 +52,79 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "DOS Player",
-        "applicationCategory": "GameApplication",
-        "operatingSystem": "Web Browser",
-        "url": "https://joeheyming.github.io/dos/",
-        "description": "Browser-based MS-DOS game player powered by js-dos and DOSBox-x. Load any DOS game zip from disk or paste an Internet Archive item URL.",
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-        "author": { "@type": "Person", "name": "Joe Heyming" }
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "DOS Player",
+            "alternateName": [
+              "DOS Player",
+              "Browser DOSBox",
+              "DOSBox in browser",
+              "MS-DOS in browser",
+              "js-dos browser",
+              "DOSBox-x browser",
+              "Online DOS emulator"
+            ],
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Web Browser",
+            "url": "https://joeheyming.github.io/dos/",
+            "description": "Browser-based MS-DOS game player powered by js-dos v8 and DOSBox-x compiled to WebAssembly. Load any DOS game zip from disk or paste an Internet Archive item URL. Boot EXE auto-detected, save files persist locally in IndexedDB.",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "featureList": [
+              "Plays MS-DOS games in your browser via DOSBox-x WebAssembly",
+              "Auto-detects boot EXE in uploaded game zips",
+              "Loads from disk or Internet Archive item URL",
+              "Save files persist locally in IndexedDB",
+              "Library of recently-played games is preserved"
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Where do I get DOS game zips?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Public-domain and shareware DOS games are widely hosted on the Internet Archive (archive.org). The advanced 'Add a custom game' panel accepts an Internet Archive item URL or a local .zip from disk. The boot EXE is auto-detected; complex setups can include a .jsdos/dosbox.conf override."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What is an Internet Archive URL?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "A page like archive.org/details/msdos_X — the page that hosts a single DOS game item. Paste that URL and the player downloads the zip directly. CORS is handled by a static CORS proxy with circuit-breaker fallback."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are saves persistent?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. The DOSBox-x runtime persists save files into IndexedDB scoped to the game zip's hash. Closing the tab or rebooting your computer doesn't lose them; clearing site data does."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What engine powers this?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "js-dos v8 — open-source DOSBox-x compiled to WebAssembly with a JavaScript host. Pinned to v8.3.20; the matching emulators package is 8.3.8."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What games actually work?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Most CGA / EGA / VGA single-player games run cleanly. Games that require specific sound cards (Sound Blaster, AdLib) usually work; games that depend on raw CD-ROM audio or proprietary copy protection may not. Modern Win-DOS hybrids (early Windows 9x titles) are out of scope."
+                }
+              }
+            ]
+          }
+        ]
       }
     </script>
 

@@ -52,6 +52,79 @@
 
     <link rel="canonical" href="https://joeheyming.github.io/play/tuner/" />
 
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Tuner (Browser Instrument Tuner)",
+            "alternateName": [
+              "Browser tuner",
+              "Online guitar tuner",
+              "Free guitar tuner",
+              "Free chromatic tuner",
+              "Web tuner",
+              "Browser pitch detector",
+              "HTML tuner"
+            ],
+            "url": "https://joeheyming.github.io/play/tuner/",
+            "applicationCategory": "MultimediaApplication",
+            "applicationSubCategory": "Tuner",
+            "operatingSystem": "Web Browser",
+            "description": "A free chromatic instrument tuner that runs in your browser. Plays the note your microphone hears, shows the cents-off-pitch needle, and never uploads audio — pitch detection runs locally on the device.",
+            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Does the tuner upload my audio?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. Pitch detection runs entirely in your browser using the Web Audio API. The microphone stream stays on your device; nothing is uploaded. You can disconnect from the internet after the page loads and the tuner will keep working."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What instruments can I tune?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Any pitched instrument: guitar, bass, ukulele, violin, viola, cello, mandolin, banjo, harp, brass, woodwind, voice. The tuner is chromatic — it identifies whatever note it hears and tells you how many cents sharp or flat you are."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Why does the tuner need microphone permission?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "To listen to your instrument. The browser asks for microphone access on first use; the audio never leaves your device. Denying permission means the tuner can't function."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How accurate is it?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Sub-cent accurate for clean, sustained tones from a quiet room. The autocorrelation pitch detector is robust against typical instrument noise but can struggle with very short notes (under 100 ms) or polyphonic input (chords)."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What is A=440 Hz, and can I change it?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "A=440 Hz is the standard concert-pitch reference for the note A above middle C. Some classical performers prefer A=442 Hz; baroque ensembles often use A=415 Hz. The tuner's reference is adjustable in the settings."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
     <script>

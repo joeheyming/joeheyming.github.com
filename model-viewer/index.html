@@ -56,6 +56,72 @@
 
     <link rel="canonical" href="https://joeheyming.github.io/model-viewer/" />
 
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "3D Viewer (Model Viewer)",
+            "alternateName": [
+              "Browser 3D viewer",
+              "glTF browser viewer",
+              "STL viewer browser",
+              "OBJ viewer browser",
+              "FBX viewer browser",
+              "PLY viewer browser",
+              "3MF viewer browser",
+              "Free 3D model viewer online",
+              "Drag and drop STL viewer"
+            ],
+            "url": "https://joeheyming.github.io/model-viewer/",
+            "applicationCategory": "DesignApplication",
+            "operatingSystem": "Web Browser",
+            "description": "A free in-browser 3D model viewer that opens .glb, .gltf, .stl, .obj, .ply, .fbx, and .3mf files. Drag-and-drop, orbit/pan/zoom with the mouse, and switch between solid, wireframe, and X-ray modes. Three.js rendering, runs entirely on your device.",
+            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What 3D file formats are supported?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "glTF / GLB (the native format), STL, OBJ, PLY, FBX, and 3MF. Non-glTF formats are converted on-the-fly using a worker that streams the data through Three.js loaders."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are my models uploaded?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. The file is decoded in your browser via Three.js. Nothing is sent to a server. The viewer also works offline once loaded."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How do I orbit, pan, and zoom?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Left-click and drag to orbit, right-click (or two-finger drag on touch) to pan, scroll-wheel or pinch to zoom. Standard Three.js OrbitControls behaviour."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Why is my STL solid black?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "STL files don't carry colour or material information — every face uses the default material. Use OBJ or glTF if you want vertex colours, textures, or per-face materials."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
     <link rel="stylesheet" href="style.css" />
     <!--
       Importmap is consumed by format-converter.js (dynamically imported when the user opens

@@ -52,6 +52,10 @@
     />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="A name spelled out as periodic-table tiles — for example 'JOE' rendered as the element symbols J + O + E — on a colorful chemistry-themed background."
+    />
 
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -68,6 +72,10 @@
     <meta
       name="twitter:image"
       content="https://joeheyming.github.io/periodic-speller/periodic-speller-preview.png"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="A name spelled out as periodic-table tiles — for example 'JOE' rendered as the element symbols J + O + E — on a colorful chemistry-themed background."
     />
 
     <!-- Canonical URL -->
@@ -103,6 +111,51 @@
               "priceCurrency": "USD"
             },
             "keywords": "periodic table, element speller, chemistry, spell with elements"
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How does periodic table spelling work?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Type any word and the speller breaks it into a sequence of element symbols. For example, 'JOE' becomes Iodine + Oxygen + Erbium (I + O + Er, but Joe spells as J — which has no element — so the speller flags untranslatable letters). Names like 'PAUL' work cleanly: Phosphorus + Astatine + Uranium + Lithium (P + At + U + Li)."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Why can't every word be spelled?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Only 26 letters appear as the first letter of an element symbol, and only some letter combinations exist as valid two-letter symbols (Cu, Fe, Ag, Au, etc.). Letters J and Q never start an element symbol, so any word containing them can't be fully translated. The speller highlights untranslatable letters."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are the symbols clickable?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — each tile shows the element's atomic number, name, and category (metal, noble gas, halogen, etc.). The full periodic table view colour-codes elements by category."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What's the longest word that can be spelled in elements?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Quite long, since two-letter symbols give the algorithm a lot of flexibility. 'ScIeNcEs' spells out using Scandium + Iodine + Nitrogen + Carbon + Einsteinium + Sulfur. The speller's auto-segmenter finds a valid split when one exists; common phrases up to ~20 letters work."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I share my name as element tiles?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — the share button generates a static image of your name in tiled form. The URL also encodes the input so deep-linking works."
+                }
+              }
+            ]
           },
           {
             "@type": "BreadcrumbList",

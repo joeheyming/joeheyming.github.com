@@ -47,11 +47,111 @@
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta
+      property="og:image:alt"
+      content="Endless 3D Pac-Man maze with neon-lit walls, glowing pellets, ghosts, and the yellow Pac-Man character viewed from a third-person angle."
+    />
+    <meta
       name="twitter:image"
       content="https://joeheyming.github.io/pacman-infinite/pacman-infinite-preview.png"
     />
+    <meta
+      name="twitter:image:alt"
+      content="Endless 3D Pac-Man maze with neon-lit walls, glowing pellets, ghosts, and the yellow Pac-Man character viewed from a third-person angle."
+    />
 
     <link rel="canonical" href="https://joeheyming.github.io/pacman-infinite/" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "VideoGame",
+            "name": "Pac-Infinite",
+            "alternateName": [
+              "Pac-Infinite",
+              "Pacman Infinite",
+              "Endless 3D Pac-Man",
+              "Procedural Pac-Man",
+              "Infinite Pacman browser",
+              "3D Pacman endless"
+            ],
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Web Browser",
+            "description": "An endless 3D Pac-Man variant: procedurally-generated chunks with mountains, water, lava, mud, jumps, hunger, ghosts, fruits, and difficulty modes. The farther you wander from the spawn point, the deadlier the world becomes — but the score multiplier rises with you.",
+            "url": "https://joeheyming.github.io/pacman-infinite/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "gamePlatform": "Web Browser",
+            "genre": ["Arcade", "Survival", "Endless Runner"],
+            "screenshot": "https://joeheyming.github.io/pacman-infinite/pacman-infinite-preview.png",
+            "keywords": "pacman infinite, infinite pacman, endless pacman, procedural pacman, 3d pacman, pacman survival",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How is the maze generated?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Procedurally. The world streams as Minecraft-style chunks around the player. Each chunk uses a seeded PRNG and a template catalog so wandering deeper produces new biomes (water lakes, lava flows, mud swamps, volcano cones) without ever repeating exactly the same layout."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does the difficulty scale?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — distance from the spawn point is the primary difficulty knob. Walking far raises ghost speed, ghost count, hunger drain, hazard density, and the score multiplier on every pickup. Easy/Normal/Hard presets stack on top: Hard thins out the dot trail and starves you faster."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is this related to classic Pac-Man?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "It's an open-world variant, not a remake. The four ghost personalities (Blinky, Pinky, Inky, Clyde), dots, and power pellets are present, but jumping, hunger, hazard biomes, and an endless world are added. It's most fun played as a survival score-chase."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What are the difficulty modes?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Easy, Normal, and Hard. Each adjusts ghost speed, dot density, hunger drain, fruit cadence, and hazard density. Hard also thins dots in the cross corridors so you can't graze through to safety."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I play offline?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — once loaded, the page works fully offline. Saves and high scores live in your browser's localStorage."
+                }
+              }
+            ]
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              { "@type": "ListItem", "position": 2, "name": "Pac-Infinite" }
+            ]
+          }
+        ]
+      }
+    </script>
 
     <!-- Three.js -->
     <script type="importmap">

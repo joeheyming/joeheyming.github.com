@@ -165,8 +165,8 @@
               {
                 "@type": "ListItem",
                 "position": 2,
-                "url": "https://joeheyming.github.io/nes/",
-                "name": "NES Emulator Online"
+                "url": "https://joeheyming.github.io/emulator/",
+                "name": "Retro Game Emulator (NES, Sega Genesis, Game Boy)"
               },
               {
                 "@type": "ListItem",
@@ -189,20 +189,97 @@
               {
                 "@type": "ListItem",
                 "position": 6,
-                "url": "https://joeheyming.github.io/minesweeper/",
-                "name": "Minesweeper"
+                "url": "https://joeheyming.github.io/chat/",
+                "name": "Chat — local browser AI (WebGPU)"
               },
               {
                 "@type": "ListItem",
                 "position": 7,
+                "url": "https://joeheyming.github.io/imagine/",
+                "name": "Imagine — local browser image generator"
+              },
+              {
+                "@type": "ListItem",
+                "position": 8,
+                "url": "https://joeheyming.github.io/code-ide/",
+                "name": "Code IDE — Monaco editor with on-device AI"
+              },
+              {
+                "@type": "ListItem",
+                "position": 9,
+                "url": "https://joeheyming.github.io/programming-advice/",
+                "name": "Programming Wisdom — quotes from software legends"
+              },
+              {
+                "@type": "ListItem",
+                "position": 10,
+                "url": "https://joeheyming.github.io/play/",
+                "name": "Play — browser music studio"
+              },
+              {
+                "@type": "ListItem",
+                "position": 11,
                 "url": "https://joeheyming.github.io/badapple/",
                 "name": "Bad Apple ASCII Animation"
               },
               {
                 "@type": "ListItem",
-                "position": 8,
+                "position": 12,
                 "url": "https://joeheyming.github.io/terminal/",
                 "name": "Web Terminal"
+              }
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What is Heyming OS?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "A browser desktop environment with 50+ built-in apps and games — DOOM, a 3D Pac-Man, a Wordle solver, an NES / Sega Genesis / Game Boy emulator, a Stable-Diffusion image generator that runs on WebGPU, an in-browser LLM agent, a Monaco-based code editor, a music studio, and more. Hosted as static HTML on GitHub Pages; no install, no signup, no ads."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is Heyming OS really an operating system?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "It's a desktop-style web app (a 'browser OS') — windows, a taskbar, a virtual filesystem, an app launcher — built entirely in HTML/CSS/JavaScript. It runs inside your browser tab; it doesn't replace your real operating system."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is everything free?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Every app is free, ad-free, no signup, no email gate. The site is open source and hosted on GitHub Pages."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does it work offline?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Most apps are static HTML/JS and work offline once cached. Some (like Chat and Imagine) need an initial download of large model weights, after which they run offline on your GPU. A few (Watch, Listen, Read) stream from external sources and need a connection."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Who built this?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Joe Heyming — UI Engineer at Roblox, previously Cloudera, Aruba Networks, and Hewlett Packard. UCSB Computer Science. Based in Campbell, California."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I install it as a PWA?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — Heyming OS declares a web manifest, so Chrome / Edge / Safari (iOS) all show 'Add to Home Screen' or 'Install'. Several apps (Play, Triplog, Listen, Read) have their own PWA shortcuts that install standalone."
+                }
               }
             ]
           }

@@ -95,6 +95,59 @@
             "inLanguage": "en"
           },
           {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Is Code IDE the same as VS Code?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "It uses Monaco — the same editor engine that powers VS Code — but it's a separate, browser-only application. There are no extensions, no language servers, and no terminal; the focus is editing, formatting, and running JavaScript in a sandbox."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does the AI assistant need an API key?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. The AI assistant runs Hermes-3 locally via WebLLM on WebGPU. Nothing leaves your browser. The assistant proposes file edits as a dry-run diff that you Apply or discard."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I open a real folder on my computer?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — the editor uses the File System Access API to read and write a folder on disk. Inside Heyming OS, the same UI saves to the virtual filesystem instead."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does git really work?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "There is git integration scoped to the workspace; it surfaces diffs, dirty state, and basic operations against a project. It's not a full git client and does not push/pull from remotes."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What languages and formats are supported?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Syntax highlighting works for JavaScript, TypeScript, JSON, Markdown, CSS, HTML, Python, Shell, YAML, C/C++, Java, Go, and Rust. Prettier formats JS, TS, JSON, CSS, HTML, and Markdown. The sandboxed runner only executes JavaScript."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What is WebLLM?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "WebLLM is the runtime that streams an LLM into the browser and runs it on WebGPU. Code IDE uses it to host the on-device AI assistant (Hermes-3-Llama-3.1-8B). The model is downloaded once into OPFS and reused offline."
+                }
+              }
+            ]
+          },
+          {
             "@type": "BreadcrumbList",
             "itemListElement": [
               {
@@ -350,6 +403,31 @@
       };
     </script>
     <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.46.0/min/vs/loader.js"></script>
+
+    <!-- Static AEO content; visually hidden but DOM-present so AI crawlers
+         can extract a real description and FAQ surface for queries about
+         a free in-browser IDE with on-device AI. -->
+    <section class="code-ide-seo" hidden aria-hidden="true">
+      <h2>Free browser IDE with on-device AI assistant</h2>
+      <p>
+        Code IDE is a browser-based code editor powered by Monaco (the same engine that runs
+        VS Code) with a project file tree, tabs, Vim keybindings, Prettier format-on-save, a
+        sandboxed JavaScript runner, side-by-side diff, and basic git integration. The optional
+        AI assistant runs Hermes-3 locally via WebLLM on WebGPU — no API key, no backend, no
+        third-party LLM endpoint. Files can be loaded from a real folder on disk via the File
+        System Access API or from the Heyming OS virtual filesystem.
+      </p>
+    </section>
+
+    <p class="seo-keywords-extended" hidden>
+      Free browser IDE, online code editor, Monaco editor browser, VS Code in browser, web
+      VS Code, browser code editor with AI, on-device AI code editor, WebGPU code assistant,
+      Cursor alternative no signup, Cursor browser, free code editor with AI no API key,
+      Hermes 3 code editor, WebLLM IDE, Prettier in browser, format on save browser, JS
+      sandbox browser, run JavaScript in browser, file system access API editor, github
+      pages code editor. Common typos: monoco editor, monaco editor browser, vs code online,
+      vs-code browser, vs code in browser, web ide, browser ide, browser-ide.
+    </p>
 
     <script type="module" src="app.js"></script>
   </body>

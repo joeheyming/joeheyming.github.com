@@ -52,6 +52,71 @@
 
     <link rel="canonical" href="https://joeheyming.github.io/play/synth/" />
 
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": ["SoftwareApplication", "MusicalInstrument"],
+            "name": "Synth (Browser Synthesizer)",
+            "alternateName": [
+              "Synth",
+              "Browser synth",
+              "Online synthesizer",
+              "Free synth browser",
+              "Web synth",
+              "HTML synthesizer",
+              "WebAudio synth"
+            ],
+            "url": "https://joeheyming.github.io/play/synth/",
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "Web Browser",
+            "description": "A free virtual analog-style synthesizer that plays in your browser via the Web Audio API. Pick an oscillator (sine, square, saw, triangle), shape it with an ADSR envelope, run it through a low-pass filter, and play with mouse, touch, computer keyboard, or a MIDI controller.",
+            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "musicalInstrumentType": "Synthesizer"
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What kind of synthesis is this?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Subtractive: oscillator → low-pass filter with adjustable cutoff and resonance → ADSR amplitude envelope → output. The classic analog-synth signal chain. Each note is one voice; the engine is polyphonic up to 16 voices."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What oscillator shapes are available?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The four standard Web Audio oscillator types: sine (pure tone), square (hollow / video-game), sawtooth (bright / aggressive), and triangle (mellow). Switch between them on the fly without retriggering the envelope."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does the filter have resonance?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes — adjust both the filter cutoff frequency and the Q (resonance) value. Standard low-pass behaviour: low cutoff = warm, high resonance = self-oscillating peak at the cutoff frequency."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I use a MIDI controller?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Plug in a USB or Bluetooth MIDI keyboard and the page picks it up via the Web MIDI API. Velocity is mapped to amplitude; the modulation wheel is mapped to filter cutoff by default."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
     <script>

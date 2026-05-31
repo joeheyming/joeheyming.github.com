@@ -32,15 +32,105 @@
     />
     <meta property="og:url" content="https://joeheyming.github.io/read/" />
     <meta property="og:image" content="https://joeheyming.github.io/read/read-preview.png" />
+    <meta
+      property="og:image:alt"
+      content="Public-domain e-book reader showing a Project Gutenberg classic with a clean, page-like reading layout and themeable typography."
+    />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="📚 Books — Free Public-Domain E-Books" />
     <meta name="twitter:image" content="https://joeheyming.github.io/read/read-preview.png" />
+    <meta
+      name="twitter:image:alt"
+      content="Public-domain e-book reader showing a Project Gutenberg classic with a clean, page-like reading layout and themeable typography."
+    />
 
     <link rel="canonical" href="https://joeheyming.github.io/read/" />
     <link rel="manifest" href="/manifest.json" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "name": "Books (Read)",
+            "alternateName": [
+              "Read",
+              "Free Project Gutenberg reader",
+              "Public domain ebook reader",
+              "Browser ebook reader",
+              "Free classics reader"
+            ],
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "Web Browser",
+            "url": "https://joeheyming.github.io/read/",
+            "description": "Browse and read free public-domain books from Project Gutenberg. Adjustable font size, dark / sepia / light themes, and reading position saved automatically per book.",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "screenshot": "https://joeheyming.github.io/read/read-preview.png",
+            "featureList": [
+              "Browse and search Project Gutenberg",
+              "Adjustable font size and reading width",
+              "Dark, sepia, and light themes",
+              "Reading position saved automatically",
+              "Works offline once a book is loaded"
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Where do the books come from?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Project Gutenberg — the oldest and largest digital library of public-domain books. The page browses Gutenberg's catalog and streams the EPUB/HTML text directly."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are these books really free?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Project Gutenberg only hosts books in the public domain in the United States — typically pre-1929 works whose copyright has expired. They're free to read, share, and (in most cases) redistribute."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is my reading position saved?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. The page tracks scroll position per book in localStorage, so coming back later resumes from where you left off."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I read offline?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Once a book has been loaded, it lives in the browser cache and can be re-read offline. Browsing or downloading new books needs a connection."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are there themes?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Three: dark (white text on near-black), sepia (warm easy-on-the-eyes), and light (black on white). Plus adjustable font size and reading-column width."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
 
     <link rel="stylesheet" href="style.css" />
     <script type="module" src="app.js"></script>
@@ -55,7 +145,7 @@
   </head>
   <body>
     <!-- Browse view -->
-    <div id="browse-view">
+    <main id="browse-view">
       <div class="page-wrap">
         <header class="app-header">
           <h1>📚 Books</h1>
@@ -94,7 +184,7 @@
           <div id="featured-grid" class="books-grid"></div>
         </section>
       </div>
-    </div>
+    </main>
 
     <!-- Reader view (full-screen overlay) -->
     <div id="reader-view" class="hidden">

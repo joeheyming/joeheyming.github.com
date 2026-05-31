@@ -84,6 +84,43 @@
             }
           },
           {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What file formats does Media Player support?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Whatever your browser supports natively — typically MP4, WebM, MOV (H.264), MKV (limited), MP3, WAV, OGG, M4A, FLAC. Drag-and-drop a file or pick from disk; the player uses the standard <video>/<audio> elements."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are my files uploaded?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. Files stay on your device — the player uses object URLs (URL.createObjectURL) to feed the local file directly to the video/audio element. Nothing is uploaded; no server is involved."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I cast to my TV?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "AirPlay (Safari) and Chromecast (Chrome on Android) icons appear automatically in the standard browser video controls. Local files cast successfully on most modern TVs."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does it remember my play position?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Per-file resume position is stored in localStorage keyed by file name and size, so reopening the same file picks up where you left off."
+                }
+              }
+            ]
+          },
+          {
             "@type": "BreadcrumbList",
             "itemListElement": [
               {
