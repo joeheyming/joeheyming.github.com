@@ -466,55 +466,44 @@ function initDataEventTracking() {
 }
 
 // Engagement Time Tracking
-// Track how long users spend on each page and send periodic engagement pings
+// Track how long users spend on each page. Final engaged time is captured
+// once on `pagehide` (mobile-reliable) and once on `beforeunload` (desktop
+// fallback). Sessions ≥30s also fire the `engaged_session` conversion.
+//
+// Note: we deliberately do NOT fire a periodic `engagement_ping` heartbeat.
+// GA4's automatic `user_engagement` event already powers the "Average
+// engagement time per page" metric in the standard Pages-and-screens
+// report, which is the input to our quality-minutes calculation. A custom
+// 30-second cumulative ping was redundant with that and dominated the
+// event-count rankings, drowning out the sparse-but-actionable custom
+// events (project_open, doom_flavor_pick, song_complete, etc.). If you
+// want a session-survival curve in the future, prefer querying GA4's
+// native engagement metrics instead of re-adding the ping here.
 (function initEngagementTracking() {
-  let pageStartTime = Date.now();
-  let lastPingTime = Date.now();
+  let lastVisibleAt = Date.now();
   let isPageVisible = !document.hidden;
   let totalEngagedTime = 0;
 
   const PAGE_NAME = getPageName();
-  const PING_INTERVAL = 30000; // Send engagement ping every 30 seconds
   const MIN_ENGAGEMENT_TIME = 10000; // Min 10 seconds before tracking
 
-  // Track visibility changes
+  // Track visibility changes — going hidden flushes the current visible
+  // window into `totalEngagedTime`; coming back resets the start anchor.
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) {
-      // User switched away - record time
-      const engagedDuration = Date.now() - lastPingTime;
+      const engagedDuration = Date.now() - lastVisibleAt;
       totalEngagedTime += engagedDuration;
       isPageVisible = false;
     } else {
-      // User came back
       isPageVisible = true;
-      lastPingTime = Date.now();
+      lastVisibleAt = Date.now();
     }
   });
 
-  // Send periodic engagement pings while user is active
-  const engagementInterval = setInterval(function () {
-    if (isPageVisible) {
-      const currentTime = Date.now();
-      const engagedDuration = currentTime - lastPingTime;
-      totalEngagedTime += engagedDuration;
-
-      // Send engagement ping
-      window.trackEvent(
-        'engagement_ping',
-        'Engagement',
-        PAGE_NAME,
-        Math.round(totalEngagedTime / 1000)
-      );
-
-      lastPingTime = currentTime;
-    }
-  }, PING_INTERVAL);
-
   // Track total time on page when user leaves
   window.addEventListener('beforeunload', function () {
-    const totalTime = Date.now() - pageStartTime;
     const finalEngagedTime = isPageVisible
-      ? totalEngagedTime + (Date.now() - lastPingTime)
+      ? totalEngagedTime + (Date.now() - lastVisibleAt)
       : totalEngagedTime;
 
     // Only track if user spent meaningful time
@@ -531,7 +520,7 @@ function initDataEventTracking() {
   // Track pagehide event for better mobile support
   window.addEventListener('pagehide', function () {
     const finalEngagedTime = isPageVisible
-      ? totalEngagedTime + (Date.now() - lastPingTime)
+      ? totalEngagedTime + (Date.now() - lastVisibleAt)
       : totalEngagedTime;
 
     if (finalEngagedTime >= MIN_ENGAGEMENT_TIME) {
