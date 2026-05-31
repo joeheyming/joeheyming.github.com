@@ -1,0 +1,60 @@
+# Jekyll config for joeheyming.github.io.
+#
+# Only purpose: keep dev tooling, tests, and build config inside the repo
+# (versioned, reviewable, useful for `npm test`, `npm run sync:manifest`,
+# `python3 scripts/dev-server.py`, etc.) but OUT of what GitHub Pages
+# actually serves at https://joeheyming.github.io. None of the entries
+# below are loaded by any HTML on the site; serving them as static
+# assets just gives Google (and AI crawlers) low-value URLs to chew on
+# and, in the case of scripts/.dev-cert/, was a real security smell
+# (committed TLS private key).
+#
+# How it works: GitHub Pages runs Jekyll by default unless a .nojekyll
+# file is present. Jekyll consults `exclude:` when deciding what to copy
+# into the published _site. The patterns are fnmatch style — `*` matches
+# a single path segment, `**` matches any depth.
+#
+# Rule of thumb: when adding a new dev-only file, add it here. When
+# unsure, ship it visibly first and add it later — accidentally
+# excluding a real asset is a deploy failure, accidentally including a
+# dev artifact is just noise.
+
+exclude:
+  # --- Jekyll defaults (declared explicitly so our list doesn't replace them) ---
+  - Gemfile
+  - Gemfile.lock
+  - node_modules/
+  - vendor/
+
+  # --- Tests: never loaded by any browser HTML, only by `node --test` and Playwright ---
+  - tests/
+  - terminal/test/
+  - stepmania/test/
+  - airwave/modules/*.test.mjs
+  - watch/modules/*.test.mjs
+  - watch/modules/views/*.test.mjs
+
+  # --- Dev tooling: only useful from a developer's machine ---
+  - scripts/
+  - mime-handlers-core.mjs
+
+  # --- Build / lint / typecheck config ---
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - playwright.config.js
+  - .eslintrc.js
+  - .prettierrc
+
+  # --- TypeScript ambient types: only consumed by `tsc --noEmit` ---
+  - types/
+
+  # --- Per-app dev READMEs. The root README.md stays public because
+  #     GitHub renders it on the repo page. `*/README.md` matches only
+  #     one-level-deep README files, so root README.md is unaffected. ---
+  - "*/README.md"
+  - AGENTS.md
+
+  # --- Local-only docs. Also matched by *.local.md in .gitignore, but
+  #     belt-and-suspenders in case one slips into the working tree. ---
+  - "*.local.md"

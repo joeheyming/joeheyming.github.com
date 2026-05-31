@@ -11,13 +11,8 @@
 
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
 import { JSDOM } from 'jsdom';
 import { parsers } from '../doom/moddb-browser-parsers.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 let internal;
 
@@ -116,6 +111,201 @@ const CLOUDFLARE_HTML = `
 </body></html>
 `;
 
+const MODDB_GLOBAL_KW_LEGEND_OF_DOOM_HTML = `
+<!doctype html>
+<html><body>
+<title>Mods for Games - ModDB</title>
+<div class="mods-listing">
+<div class="row rowcontent rowreleased1 rowgenre16 rowgenre14 rowtheme10 rowplayers1 rowtimeframe5 rowgame99 clear">
+				<a href="/mods/empires-total-war" title="Empires Total War" class="image"><img src="https://media.moddb.com/cache/images/mods/1/48/47086/crop_120x90/splash.jpg" alt="Empires Total War" /></a>
+				<div class="content">
+			 
+			<a href="/games/rome-total-war" title="Rome: Total War"><img src="https://media.moddb.com/images/games/1/1/99/icon.gif" alt="Rome: Total War" width="32" height="32" style="float: right; padding-left: 4px;" /></a>
+			 
+			<h4><a href="/mods/empires-total-war">Empires Total War</a></h4>
+			<span class="date">
+				<time datetime="2026-05-04T03:17:52+00:00">2mins ago</time>			</span>
+			<span class="subheading">
+				<time datetime="2020-08-14">Released 2020</time> Turn Based Strategy  			</span>
+			<p>Empires: a modification for Rome Total War dedicated to European and colonial wars in XVIII-XIX centuries. Previously named New Time Total Wars</p>		</div>
+	</div>
+			<div class="row rowcontent rowreleased3 rowgenre3 rowgenre1 rowtheme9 rowplayers1 rowtimeframe5 rowgame1 clear">
+				<a href="/mods/fps1" title="Half-Life-Walter" class="image"><img src="https://media.moddb.com/cache/images/mods/1/58/57356/crop_120x90/walterthumb.2.png" alt="Half-Life-Walter" /></a>
+				<div class="content">
+			 
+			<a href="/games/half-life" title="Half-Life"><img src="https://media.moddb.com/images/games/1/1/1/half-life.png" alt="Half-Life" width="32" height="32" style="float: right; padding-left: 4px;" /></a>
+			 
+			<h4><a href="/mods/fps1">Half-Life-Walter</a></h4>
+			<span class="date">
+				<time datetime="2026-05-04T02:59:50+00:00">20mins ago</time>			</span>
+			<span class="subheading">
+				<time>TBD</time> First Person Shooter  			</span>
+			<p>Half-Life: Walter puts in the role of a scientist working at the Black Mesa research facility during the Black Mesa incident. Being one of the survivors...</p>		</div>
+	</div>
+			<div class="row rowcontent rowreleased1 rowgenre39 rowgenre1 rowtheme18 rowplayers1 rowtimeframe5 rowgame47754 clear">
+				<a href="/mods/playmore" title="Playmore -Modding Concepts-" class="image"><img src="https://media.moddb.com/cache/images/mods/1/50/49419/crop_120x90/0-Playmore.png" alt="Playmore -Modding Concepts-" /></a>
+				<div class="content">
+			 
+			<a href="/games/ace-combat-7" title="Ace Combat 7: Skies Unknown"><img src="https://media.moddb.com/images/games/1/48/47754/Icon_Ac7.png" alt="Ace Combat 7: Skies Unknown" width="32" height="32" style="float: right; padding-left: 4px;" /></a>
+			 
+			<h4><a href="/mods/playmore">Playmore -Modding Concepts-</a></h4>
+			<span class="date">
+				<time datetime="2026-05-04T02:48:43+00:00">32mins ago</time>			</span>
+			<span class="subheading">
+				<time datetime="2025-08-16">Released Aug 16, 2025</time> Arcade  			</span>
+			<p>A branch project focused at works featuring advanced modding techniques, also the host of Enhanced Gunplay A5, and UEVR/Pre-campaign</p>		</div>
+	</div>
+			<div class="row rowcontent rowreleased1 rowgenre11 rowgenre10 rowtheme9 rowplayers1 rowtimeframe5 rowgame237 clear">
+				<a href="/mods/kotor-omega" title="Knights Of The Old Republic: Edge Of Darkness" class="image"><img src="https://media.moddb.com/cache/images/mods/1/55/54697/crop_120x90/EdgeOfDarkness_Logo.png" alt="Knights Of The Old Republic: Edge Of Darkness" /></a>
+				<div class="content">
+			 
+			<a href="/games/star-wars-knights-of-the-old-republic-ii" title="Star Wars: Knights of the Old Republic II"><img src="https://media.moddb.com/images/games/1/1/237/icon.png" alt="Star Wars: Knights of the Old Republic II" width="32" height="32" style="float: right; padding-left: 4px;" /></a>
+			 
+			<h4><a href="/mods/kotor-omega">Knights Of The Old Republic: Edge Of Darkness</a></h4>
+			<span class="date">
+				<time datetime="2026-05-04T02:28:35+00:00">52mins ago</time>			</span>
+			<span class="subheading">
+				<time datetime="2023-11-15">Released 2023</time> Role Playing  			</span>
+			<p>Travel the ancient Star Wars Galaxy in an Ebon Hawk rebuilt by Sith StealthOps for a secret mission. </p>		</div>
+	</div>
+			<div class="row rowcontent rowreleased1 rowgenre2 rowgenre5 rowtheme9 rowplayers1 rowtimeframe1 rowgame15273 clear">
+				<a href="/mods/star-wars-the-force-unleashed-ii-dlc-unlocked-cinematics-fmv-fix" title="STAR_WARS_The_Force_Unleashed_II_DLC_Unlocked_Cinematics_FMV-Fix" class="image"><img src="https://media.moddb.com/cache/images/mods/1/71/70925/crop_120x90/Star_Wars_The_Force_Unleashed_I.png" alt="STAR_WARS_The_Force_Unleashed_II_DLC_Unlocked_Cinematics_FMV-Fix" /></a>
+				<div class="content">
+			 
+			<a href="/games/star-wars-the-force-unleashed-2" title="Star Wars: The Force Unleashed 2"><img src="https://media.moddb.com/images/games/1/16/15273/SWTFU2_003.png" alt="Star Wars: The Force Unleashed 2" width="32" height="32" style="float: right; padding-left: 4px;" /></a>
+			 
+			<h4><a href="/mods/star-wars-the-force-unleashed-ii-dlc-unlocked-cinematics-fmv-fix">STAR_WARS_The_Force_Unleashed_II_DLC_Unlocked_Cinematics_FMV-Fix</a></h4>
+			<span class="date">
+				<time datetime="2026-05-04T02:25:25+00:00">55mins ago</time>			</span>
+			<span class="subheading">
+				<time datetime="2026-05-03">Released May 3, 2026</time> Adventure  			</span>
+			<p>Mod made by DenisNinja: I fixed all the cinematic FMV videos in the game, which always caused the game to crash for everyone. The original FMVs in this...</p>		</div>
+	</div>
+			<div class="row rowcontent rowreleased3 rowgenre4 rowgenre1 rowtheme4 rowplayers1 rowtimeframe5 rowgame71 clear">
+				<a href="/mods/the-clone-wars-recreated-total-conversion" title="The Clone Wars Recreated Total Conversion (v1.0)" class="image"><img src="https://media.moddb.com/cache/images/mods/1/58/57396/crop_120x90/recreated_2026_logomoddb.7.jpg" alt="The Clone Wars Recreated Total Conversion (v1.0)" /></a>
+				<div class="content">
+			 
+			<a href="/games/star-wars-jedi-academy" title="Star Wars: Jedi Academy"><img src="https://media.moddb.com/images/games/1/1/71/icon.gif" alt="Star Wars: Jedi Academy" width="32" height="32" style="float: right; padding-left: 4px;" /></a>
+			 
+			<h4><a href="/mods/the-clone-wars-recreated-total-conversion">The Clone Wars Recreated Total Conversion (v1.0)</a></h4>
+			<span class="date">
+				<time datetime="2026-05-04T02:24:50+00:00">55mins ago</time>			</span>
+			<span class="subheading">
+				<time>TBD</time> Tactical Shooter  			</span>
+			<p>The Clone Wars Recreated is the modification for Jedi Academy, which is made from scratch and allows you to play ALL Seven Seasons from TV Show. The idea...</p>		</div>
+	</div>
+			<div class="row rowcontent rowreleased3 rowgenre15 rowgenre14 rowtheme9 rowplayers1 rowplayers2 rowtimeframe5 rowgame14342 clear">
+				<a href="/mods/halo-sins-of-the-prophets" title="Sins of the Prophets" class="image"><img src="https://media.moddb.com/cache/images/mods/1/12/11043/crop_120x90/moddb_icon.1.png" alt="Sins of the Prophets" /></a>
+				<div class="content">
+			 
+			<a href="/games/sins-of-a-solar-empire-rebellion" title="Sins of a Solar Empire: Rebellion"><img src="https://media.moddb.com/images/games/1/15/14342/icon.png" alt="Sins of a Solar Empire: Rebellion" width="32" height="32" style="float: right; padding-left: 4px;" /></a>
+			 
+			<h4><a href="/mods/halo-sins-of-the-prophets">Sins of the Prophets</a></h4>
+			<span class="date">
+				<time datetime="2026-05-04T01:09:32+00:00">2hours ago</time>			</span>
+			<span class="subheading">
+				<time>TBD</time> Real Time Strategy  			</span>
+			<p>A Halo mod for the critically acclaimed Sins of a Solar Empire, that aims to capture the fast paced intensity of the Halo series.</p>		</div>
+	</div>
+			<div class="row rowcontent rowreleased1 rowgenre15 rowgenre14 rowtheme9 rowplayers1 rowplayers2 rowtimeframe5 rowgame35 clear">
+				<a href="/mods/fleet-ops-roots" title="Fleet Ops: Roots" class="image"><img src="https://media.moddb.com/cache/images/mods/1/44/43052/crop_120x90/S1.3.png" alt="Fleet Ops: Roots" /></a>
+				<div class="content">
+			 
+			<a href="/games/star-trek-armada-ii" title="Star Trek: Armada II"><img src="https://media.moddb.com/images/games/1/1/35/armada2ei8.gif" alt="Star Trek: Armada II" width="32" height="32" style="float: right; padding-left: 4px;" /></a>
+			 
+			<h4><a href="/mods/fleet-ops-roots">Fleet Ops: Roots</a></h4>
+			<span class="date">
+				<time datetime="2026-05-04T00:24:35+00:00">2hours ago</time>			</span>
+			<span class="subheading">
+				<time datetime="2019-06-27">Released 2019</time> Real Time Strategy  			</span>
+			<p>Fleet Operations: Roots is a total conversion of the popular space-based RTS game Star Trek Armada II. To celebrate the re-release of Star Trek Armada...</p>		</div>
+	</div>
+			
+</div>
+</body></html>
+`;
+
+const MODDB_BRUTAL_DOOM_DOWNLOADS_HTML = `
+<!doctype html>
+<html><body>
+<aside>
+  <a href="/downloads/top">Top downloads</a>
+  <a href="/downloads/popular">Popular this week</a>
+</aside>
+<div class="downloads-list">
+<div class="row rowcontent rowcategory3 rowcategory1 rowcategoryaddon3 rowtimeframe5 clear">
+				<a href="/mods/brutal-doom/downloads/brutal-doom-v22-beta-test" title="Brutal Doom v22 Beta Test 6" class="image"><img src="https://media.moddb.com/cache/images/downloads/1/266/265147/crop_120x90/COVER.jpg" alt="Brutal Doom v22 Beta Test 6" /></a>
+				<div class="content">
+			 
+			<h4><a href="/mods/brutal-doom/downloads/brutal-doom-v22-beta-test">Brutal Doom v22 Beta Test 6</a></h4>
+			<span class="date">
+				<time datetime="2026-04-01T04:39:42+00:00">Mar 31 2026</time>			</span>
+			<span class="subheading">
+				Demo <a href="/mods/brutal-doom/downloads/brutal-doom-v22-beta-test" class="commenticon">298 comments</a>  			</span>
+			<p>Latest bleeding edge version under development Requires Zandronum 3.2 or more modern to work. Probably any version of GZDoom can run this. Zandronum 3.3...</p>		</div>
+	</div>
+			<div class="row rowcontent rowcategory2 rowcategory1 rowcategoryaddon2 rowtimeframe5 clear">
+				<a href="/mods/brutal-doom/downloads/brutal-doom-v21-beta" title="Brutal Doom v21" class="image"><img src="https://media.moddb.com/cache/images/downloads/1/96/95667/crop_120x90/moddb_reader.jpg" alt="Brutal Doom v21" /></a>
+				<div class="content">
+			 
+			<h4><a href="/mods/brutal-doom/downloads/brutal-doom-v21-beta">Brutal Doom v21</a></h4>
+			<span class="date">
+				<time datetime="2019-05-18T00:40:03+00:00">May 17 2019</time>			</span>
+			<span class="subheading">
+				Full Version <a href="/mods/brutal-doom/downloads/brutal-doom-v21-beta" class="commenticon">1389 comments</a>  			</span>
+			<p>Version 21 Gold.
+READ THE MANUAL INCLUDED IN THE DOWNLOAD FILE.</p>		</div>
+	</div>
+			<div class="row rowcontent rowcategory2 rowcategory1 rowcategoryaddon2 rowtimeframe5 clear">
+				<a href="/mods/brutal-doom/downloads/doom-metal-soundtrack-mod-volume-5" title="Doom Metal Soundtrack Mod - Volume 5" class="image"><img src="https://media.moddb.com/cache/images/downloads/1/180/179574/crop_120x90/Doom_Metal.jpg" alt="Doom Metal Soundtrack Mod - Volume 5" /></a>
+				<div class="content">
+			 
+			<h4><a href="/mods/brutal-doom/downloads/doom-metal-soundtrack-mod-volume-5">Doom Metal Soundtrack Mod - Volume 5</a></h4>
+			<span class="date">
+				<time datetime="2019-06-14T20:57:42+00:00">Jun 14 2019</time>			</span>
+			<span class="subheading">
+				Full Version <a href="/mods/brutal-doom/downloads/doom-metal-soundtrack-mod-volume-5" class="commenticon">38 comments</a>  			</span>
+			<p>This is a compilation with rock/metal remixes of doom's original songs composed by many community artists.</p>		</div>
+	</div>
+			<div class="row rowcontent rowcategory4 rowcategory1 rowcategoryaddon4 rowtimeframe5 clear">
+				<a href="/mods/brutal-doom/downloads/bdv21-monsters-only-version" title="BDv21 Monsters Only Version" class="image"><img src="https://media.moddb.com/cache/images/downloads/1/180/179866/crop_120x90/2019-06-21_21_43_37-ZANDRONUM_3.png" alt="BDv21 Monsters Only Version" /></a>
+				<div class="content">
+			 
+			<h4><a href="/mods/brutal-doom/downloads/bdv21-monsters-only-version">BDv21 Monsters Only Version</a></h4>
+			<span class="date">
+				<time datetime="2019-06-22T04:05:18+00:00">Jun 21 2019</time>			</span>
+			<span class="subheading">
+				Patch <a href="/mods/brutal-doom/downloads/bdv21-monsters-only-version" class="commenticon">72 comments</a>  			</span>
+			<p>This version only features the monsters, and is meant to be used with other weapon mods, so you can play other mods and all have all the gore with full...</p>		</div>
+	</div>
+			<div class="row rowcontent rowcategory9 rowcategory6 rowcategoryaddon9 rowtimeframe3 clear">
+				<a href="/mods/brutal-doom/downloads/idfka-reimagined" title="IDFKA Reimagined" class="image"><img src="https://media.moddb.com/cache/images/downloads/1/309/308397/crop_120x90/You_Doodle_2026-04-11T13_37_45Z.jpg" alt="IDFKA Reimagined" /></a>
+				<div class="content">
+			 
+			<h4><a href="/mods/brutal-doom/downloads/idfka-reimagined">IDFKA Reimagined</a></h4>
+			<span class="date">
+				<time datetime="2026-04-25T20:33:02+00:00">Apr 25 2026</time>			</span>
+			<span class="subheading">
+				Music <a href="/mods/brutal-doom/downloads/idfka-reimagined" class="commenticon">2 comments</a>  			</span>
+			<p>Listen for reimagine doom music on your doom vanilla game</p>		</div>
+	</div>
+			<div class="row rowcontent rowcategory2 rowcategory1 rowcategoryaddon2 rowtimeframe3 clear">
+				<a href="/mods/brutal-doom/downloads/bd22test6beta-with-xvmemonsters" title="BDv22 Beta Test 6 with XVME Monster Expansion NEW UPDATE" class="image"><img src="https://media.moddb.com/cache/images/downloads/1/308/307385/crop_120x90/add-image-to-image-2026-04-09T20.2.png" alt="BDv22 Beta Test 6 with XVME Monster Expansion NEW UPDATE" /></a>
+				<div class="content">
+			 
+			<h4><a href="/mods/brutal-doom/downloads/bd22test6beta-with-xvmemonsters">BDv22 Beta Test 6 with XVME Monster Expansion NEW UPDATE</a></h4>
+			<span class="date">
+				<time datetime="2026-04-16T05:04:07+00:00">Apr 16 2026</time>			</span>
+			<span class="subheading">
+				Full Version <a href="/mods/brutal-doom/downloads/bd22test6beta-with-xvmemonsters" class="commenticon">4 comments</a>  			</span>
+			<p>so in April 9th, 2026, I wanted to make a doom fork for the first time ever. so I made my idea true, it's basic, its brutal doom v22 test 6 with xvme...</p>		</div>
+	</div>
+			
+</div>
+<a href="/mods/some-other-mod/downloads/some-other-release-v1">Other mod (cross-link, must drop)</a>
+</body></html>
+`;
+
 // ---- parseListing ------------------------------------------------------
 
 describe('parseListing', () => {
@@ -142,10 +332,7 @@ describe('parseListing', () => {
     //   https://www.moddb.com/mods?game=26&kw=legend+of+doom
     // via api.allorigins.win — every card is from a non-Doom game
     // (Half-Life, Rome: Total War, Star Wars, etc.).
-    const html = readFileSync(
-      join(__dirname, 'fixtures', 'moddb-global-kw-legend-of-doom.html'),
-      'utf8'
-    );
+    const html = MODDB_GLOBAL_KW_LEGEND_OF_DOOM_HTML;
     const r = parsers.parseListing(html, 'https://www.moddb.com/mods');
     assert.ok(r.mods.length >= 5, `expected several rows, got ${r.mods.length}`);
 
@@ -356,10 +543,7 @@ describe('parseDownloadsList + pickBestDownload', () => {
     // The fixture also contains:
     //   - global nav links (/downloads/top, /downloads/popular) — must drop
     //   - a cross-mod link (/mods/some-other-mod/downloads/...) — must drop
-    const html = readFileSync(
-      join(__dirname, 'fixtures', 'moddb-brutal-doom-downloads.html'),
-      'utf8'
-    );
+    const html = MODDB_BRUTAL_DOOM_DOWNLOADS_HTML;
     const list = parsers.parseDownloadsList(
       html,
       'https://www.moddb.com/mods/brutal-doom/downloads'
