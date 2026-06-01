@@ -64,6 +64,17 @@ const PAGES = [
     }
   },
   {
+    url: `${BASE_URL}/piano-hero/`,
+    output: 'piano-hero/piano-hero-preview.png',
+    title: 'Piano Hero',
+    // The empty stage is mostly blank. Wait for the keyboard to render
+    // so the preview shows the piano + falling-notes canvas + toolbar.
+    setup: async (page) => {
+      await page.waitForSelector('.piano-keyboard .piano-key', { timeout: 5000 });
+      await page.waitForTimeout(300);
+    }
+  },
+  {
     url: `${BASE_URL}/accordion-hero/`,
     output: 'accordion-hero/accordion-hero-preview.png',
     title: 'Accordion Hero'

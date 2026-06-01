@@ -1,0 +1,237 @@
+/* =========================================================================
+ * Piano Hero — page-specific styles.
+ *
+ * The shared /play/style.css + /play/piano/style.css imports give us the
+ * full instrument-page chrome (header, controls bar, keyboard) and the
+ * piano-keyboard component. This file just adds:
+ *   - the falling-notes canvas, stacked above the keyboard
+ *   - the fullscreen drag-and-drop overlay
+ *   - a tweaked piano-stage (vertical layout: canvas on top, keyboard below)
+ *   - small toolbar buttons for Pick-a-song / Play / Restart
+ * Everything else flows from the shared family chrome.
+ * ========================================================================= */
+
+/* The shared `.instrument-body` rule is `min-height: 100vh`, which on a
+ * standard "free play" instrument page is fine — the page can scroll if
+ * help text + keyboard run long. Piano Hero is different: the falling-
+ * notes canvas needs to sit directly above the keyboard, and the keyboard
+ * itself must always be visible (it's the target the notes fall onto).
+ *
+ * Lock the body to viewport height so chrome + stage always fit, the
+ * keyboard pins to the bottom, and the canvas takes the rest. The inline
+ * `.instrument-help` panel is hidden in favour of the shared `?`
+ * help-popup (loaded by /play/shared/help-popup.js) — that mechanism
+ * already exists for phones and we just promote it to all viewports
+ * here so the keyboard never gets pushed off-screen by a help block. */
+.piano-hero-body {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.piano-hero-body .instrument-help {
+  display: none;
+}
+
+/* The shared `.piano-stage` rule is `display: flex; align-items: center;`
+ * which centers a single keyboard. We need a vertical stack: canvas on
+ * top (fills remaining height), keyboard pinned to the bottom. */
+.piano-hero-stage {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px;
+  flex: 1 1 0;
+  /* Allow this flex child to shrink below its content's intrinsic height
+   * inside the body's locked 100dvh box — without `min-height: 0` the
+   * canvas's intrinsic size would push the keyboard off the bottom. */
+  min-height: 0;
+  position: relative;
+}
+
+#note-stage {
+  flex: 1 1 0;
+  width: 100%;
+  /* No hard min-height: on short viewports the canvas yields space to
+   * the keyboard rather than pushing the page past 100dvh. The renderer
+   * is happy with whatever vertical room it gets — falling-note speed is
+   * derived from canvas height at draw time. */
+  min-height: 0;
+  display: block;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface-2) 80%, transparent),
+    color-mix(in srgb, var(--surface-0) 90%, transparent)
+  );
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pure-white) 4%, transparent);
+}
+
+/* The reused keyboard component pads itself with 14px on each side and
+ * has `width: min(100%, 1100px)`. The note-stage canvas above must visually
+ * line up with the keys — the renderer queries each key's getBoundingClientRect
+ * so the alignment is automatic regardless of width. */
+.piano-hero-stage .piano-keyboard {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  flex: 0 0 auto;
+}
+
+/* Promote the shared "?" help-popup trigger to all viewports on this
+ * page (the default rule in /play/styles/help-popup.css only shows it on
+ * phones). The inline `.instrument-help` is hidden above, so the popup
+ * is the only way to read the instructions on desktop too. */
+.piano-hero-body .help-popup-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Sit just left of the "Piano" instruments pill in the header, with a
+   * 6px gap so the cluster reads as one control group. */
+  top: 14px;
+  right: 110px;
+}
+
+@media (max-width: 720px), (max-height: 540px) {
+  .piano-hero-body .help-popup-button {
+    /* Fall back to the shared mobile placement (top: 6, right: 50). */
+    top: 6px;
+    right: 50px;
+  }
+}
+
+/* ---------- Toolbar ----------------------------------------------------- */
+
+.ph-primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  background: var(--accent-primary-bg);
+  color: var(--text-on-accent);
+  border: 1px solid var(--accent-primary-bg);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 200ms ease, transform 200ms ease;
+}
+
+.ph-primary-button:hover,
+.ph-primary-button:focus-visible {
+  background: var(--accent-primary-bg-hover);
+  border-color: var(--accent-primary-bg-hover);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.ph-control-button {
+  background: var(--surface-1);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+  min-width: 64px;
+}
+
+.ph-control-button:hover:not([disabled]),
+.ph-control-button:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.ph-control-button[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---------- Drag-and-drop overlay -------------------------------------- */
+
+/* The drop overlay covers the whole viewport while a file is being
+ * dragged over the page. file-loader.js toggles `.dragging` on
+ * <body> when a dragenter that contains files fires, and clears it on
+ * dragleave/drop. */
+.piano-hero-drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999990;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--surface-2) 75%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  pointer-events: none;
+  font-family: var(--font-display, var(--font-sans));
+}
+
+.piano-hero-body.dragging .piano-hero-drop-overlay {
+  display: flex;
+}
+
+.piano-hero-drop-overlay .drop-card {
+  border: 2px dashed var(--accent);
+  border-radius: 16px;
+  padding: 32px 48px;
+  background: color-mix(in srgb, var(--surface-0) 70%, transparent);
+  color: var(--fg);
+  text-align: center;
+  box-shadow: 0 24px 60px -20px color-mix(in srgb, var(--pure-black) 60%, transparent);
+}
+
+.piano-hero-drop-overlay .drop-icon {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.piano-hero-drop-overlay .drop-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.piano-hero-drop-overlay .drop-sub {
+  font-size: 14px;
+  color: var(--fg-dim);
+}
+
+/* ---------- Mobile -------------------------------------------------------
+ *
+ * Below 720px (matches the shared keyboard mobile breakpoint), tighten the
+ * controls bar so the toolbar wraps cleanly and the falling-notes canvas
+ * doesn't get crushed. */
+@media (max-width: 720px), (max-height: 540px) {
+  .piano-hero-stage {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  #note-stage {
+    min-height: 160px;
+    border-radius: 10px;
+  }
+
+  .ph-primary-button {
+    padding: 7px 14px;
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ph-primary-button,
+  .ph-control-button {
+    transition: none !important;
+  }
+  .ph-primary-button:hover {
+    transform: none !important;
+  }
+}

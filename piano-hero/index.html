@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="robots" content="index, follow" />
+    <title>Piano Hero - Synthesia-style MIDI Game in Your Browser | Joe Heyming 🎹</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎹</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="Play piano like Guitar Hero. Drag-and-drop a MIDI file or pick one from Internet Archive — notes fall onto a real piano keyboard. Watch mode, play-along scoring, Web MIDI keyboard support."
+    />
+    <meta name="theme-color" content="#0f172a" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming" />
+    <meta property="og:title" content="🎹 Piano Hero - Synthesia-style MIDI Game" />
+    <meta
+      property="og:description"
+      content="Drop a MIDI file and play along — notes fall onto a real piano keyboard, Synthesia-style. Internet Archive search and curated public-domain pieces included."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/piano-hero/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/piano-hero/piano-hero-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Piano Hero — falling notes onto a piano keyboard" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="🎹 Piano Hero - Synthesia-style MIDI Game" />
+    <meta
+      name="twitter:description"
+      content="Drop a MIDI file and play along — notes fall onto a real piano keyboard."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/piano-hero/piano-hero-preview.png"
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/piano-hero/" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": ["SoftwareApplication", "Game"],
+            "name": "Piano Hero",
+            "alternateName": [
+              "Browser Synthesia",
+              "Online MIDI piano game",
+              "Falling-notes piano",
+              "Web piano hero"
+            ],
+            "url": "https://joeheyming.github.io/piano-hero/",
+            "applicationCategory": "GameApplication",
+            "applicationSubCategory": "Rhythm Game",
+            "operatingSystem": "Web Browser",
+            "description": "A free Synthesia-style piano rhythm game in the browser. Load a MIDI file via drag-and-drop, file picker, curated public-domain pieces, or Internet Archive search. Notes fall from the top onto a real piano keyboard. Watch mode plays the song through a high-quality multi-sampled grand piano; play-along mode scores your timing using the computer keyboard or a connected Web MIDI device.",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "featureList": [
+              "Drag-and-drop MIDI file ingest",
+              "Internet Archive MIDI search",
+              "Curated public-domain quick-picks",
+              "Synthesia-style falling notes aligned to a real piano keyboard",
+              "Watch mode (auto-play visualization) and Play-along mode (timed scoring)",
+              "Computer-keyboard and Web MIDI controller input",
+              "Multi-sampled grand piano (CC-BY samples) with soundfont and oscillator fallbacks",
+              "Tempo control and per-hand visibility filter"
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What MIDI files can I play?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Any Standard MIDI File (.mid / .midi). Drop one onto the page, click the file-picker button, choose a curated public-domain piece, or search Internet Archive's MIDI collections from inside the song browser."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does my MIDI keyboard work?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Plug a USB or Bluetooth MIDI keyboard in and the page picks it up via the Web MIDI API (Chrome, Edge, Opera; Safari and Firefox require the relevant permission). In Play-along mode, notes you play are matched against the falling notes for scoring."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What does it sound like?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The same multi-sampled grand piano used by the free-play Piano page — real samples from the public-domain tonejs-instruments catalog. If samples aren't loaded yet, a soundfont and finally a synthesised tone fill in so you always hear something."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How does scoring work?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "In Play-along mode, each note has a Perfect / Great / Good / Bad / Miss timing window. Hits in tighter windows score more points. The score panel shows your combo and a letter grade based on dance-points percentage."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/back.js" data-back-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+    <script src="/proxy.js"></script>
+    <!-- Inline `.instrument-help` is hidden on this page (the keyboard
+         must always be on-screen above the falling-notes canvas). The
+         help-popup script injects a "?" button + modal that shows the
+         same content; piano-hero/style.css promotes the trigger to all
+         viewports. -->
+    <script src="/play/shared/help-popup.js" defer></script>
+    <!-- soundfont-player powers the SAMPLE_TONES fallback in PianoSynth.
+         Same CDN tag the /play/piano/ page uses; sets window.Soundfont. -->
+    <script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js"></script>
+
+    <!-- @tonejs/midi parses Standard MIDI Files into note events. ESM via
+         esm.sh, pinned to an exact version. ~30 KB gzipped. Same import-
+         map pattern as /stock/ and /model-viewer/. -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@tonejs/midi": "https://esm.sh/@tonejs/midi@2.0.28"
+        }
+      }
+    </script>
+
+    <!-- Inherit the /play/ family chrome + keyboard styles so this page
+         reads as a sibling of /play/piano/. Page-specific bits (note
+         stage, drop overlay, HUD) live in style.css. -->
+    <link rel="stylesheet" href="/play/style.css" />
+    <link rel="stylesheet" href="/play/piano/style.css" />
+    <link rel="stylesheet" href="style.css" />
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+  </head>
+  <body class="instrument-body piano-hero-body">
+    <header class="instrument-header">
+      <div class="instrument-page-title">
+        <span aria-hidden="true">🎹</span>
+        <h1>Piano Hero</h1>
+      </div>
+      <div class="header-status">
+        <div class="now-playing" id="now-playing" aria-live="polite">No song</div>
+        <div class="midi-status" id="midi-status" hidden>
+          <span class="midi-dot" aria-hidden="true"></span>
+          <span class="midi-label">MIDI</span>
+        </div>
+      </div>
+      <a class="instruments-link" href="/play/piano/" aria-label="Free-play piano">
+        <span class="instruments-link-icon" aria-hidden="true">🎹</span>
+        <span class="instruments-link-text">Piano</span>
+      </a>
+    </header>
+
+    <section class="instrument-controls" aria-label="Piano Hero controls">
+      <button id="open-song-browser" class="ph-primary-button" type="button">
+        <span aria-hidden="true">🎵</span>
+        <span>Pick a song</span>
+      </button>
+
+      <div class="control">
+        <label for="mode">Mode</label>
+        <select id="mode">
+          <option value="watch" selected>Watch</option>
+          <option value="play-along">Play-along</option>
+        </select>
+      </div>
+
+      <div class="control">
+        <label for="tempo">Tempo</label>
+        <input id="tempo" type="range" min="50" max="150" value="100" step="5" />
+        <span class="hint" id="tempo-display">100%</span>
+      </div>
+
+      <div class="control" role="group" aria-label="Hands">
+        <label id="hands-label">Hands</label>
+        <div class="show-options" aria-labelledby="hands-label">
+          <label class="show-option">
+            <input id="hand-left" type="checkbox" checked />
+            <span>Left</span>
+          </label>
+          <label class="show-option">
+            <input id="hand-right" type="checkbox" checked />
+            <span>Right</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="control toggle-control">
+        <button id="play-pause" class="ph-control-button" type="button" disabled>
+          <span id="play-pause-label">Play</span>
+        </button>
+        <button id="restart" class="ph-control-button" type="button" disabled>Restart</button>
+      </div>
+
+      <div class="control">
+        <label for="volume">Volume</label>
+        <input id="volume" type="range" min="0" max="100" value="65" />
+      </div>
+    </section>
+
+    <section class="piano-stage piano-hero-stage" aria-label="Falling notes and keyboard">
+      <canvas id="note-stage" aria-hidden="true"></canvas>
+      <div class="piano-keyboard" id="piano-keyboard"></div>
+    </section>
+
+    <section class="instrument-help">
+      <h2>How to play</h2>
+      <ul>
+        <li>
+          <strong>Drop</strong>
+          a
+          <code>.mid</code>
+          file anywhere on this page, or click
+          <strong>Pick a song</strong>
+          to choose from curated pieces or search Internet Archive.
+        </li>
+        <li>
+          <strong>Watch</strong>
+          mode plays the MIDI through a real-piano sampler so you can follow along.
+        </li>
+        <li>
+          <strong>Play-along</strong>
+          mode scores your timing. The QWERTY letters drawn on each key show what to press —
+          <code>Z X C V B N M</code>
+          covers the C3 octave,
+          <code>Q W E R T Y U</code>
+          jumps to C4 (middle C), and
+          <code>I O P</code>
+          reaches into C5. Plug in a MIDI controller for full-range playing.
+        </li>
+        <li>
+          <strong>Tempo</strong>
+          slows things down for practice; the
+          <strong>Hands</strong>
+          toggles let you mute one hand to learn the other.
+        </li>
+      </ul>
+    </section>
+
+    <piano-hero-loading-overlay id="loading-overlay"></piano-hero-loading-overlay>
+    <piano-hero-score-panel id="score-panel" hidden></piano-hero-score-panel>
+    <piano-hero-game-over-modal id="game-over"></piano-hero-game-over-modal>
+    <piano-hero-song-browser id="song-browser"></piano-hero-song-browser>
+
+    <input id="file-picker-input" type="file" accept=".mid,.midi,audio/midi" hidden />
+
+    <script type="module" src="index.js"></script>
+  </body>
+</html>

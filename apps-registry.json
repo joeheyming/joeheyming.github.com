@@ -381,7 +381,7 @@
     "taskbarGradient": "from-pink-500 to-rose-500",
     "taskbarText": "text-white",
     "tags": ["rhythm", "music", "dance", "popular"],
-    "related": ["accordion-hero", "play", "awesome", "doom", "nes"],
+    "related": ["piano-hero", "accordion-hero", "play", "awesome", "doom", "nes"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "StepMania",
@@ -396,6 +396,28 @@
       "preset": "stepmania",
       "analyticsLabel": "StepMania"
     },
+    "appTier": "experience",
+    "geo": true
+  },
+  {
+    "id": "piano-hero",
+    "name": "Piano Hero 🎹",
+    "shortName": "Piano Hero",
+    "description": "Synthesia-style MIDI piano game",
+    "detailedDescription": "Drop a MIDI file or pick one from Internet Archive — notes fall onto a real piano keyboard, Synthesia-style. Watch mode, play-along scoring, Web MIDI keyboard support, real grand piano samples.",
+    "icon": "🎹",
+    "path": "./piano-hero/",
+    "category": "game",
+    "defaultWidth": 1100,
+    "defaultHeight": 750,
+    "gradient": "from-indigo-500/20 to-rose-500/20",
+    "border": "border-indigo-500/30 hover:border-indigo-400/50",
+    "taskbarGradient": "from-indigo-500 to-rose-500",
+    "taskbarText": "text-white",
+    "tags": ["piano", "midi", "rhythm", "music game", "synthesia", "guitar hero"],
+    "related": ["play-piano", "stepmania", "play", "accordion-hero"],
+    "shareCategory": "game",
+    "handles": ["audio/midi", "audio/x-midi"],
     "appTier": "experience",
     "geo": true
   },

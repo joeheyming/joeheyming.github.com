@@ -55,6 +55,19 @@ export class Keyboard {
     this.whiteKeyCount = opts.whiteKeyCount;
     this.synth = opts.synth;
     this.onActivity = opts.onActivity || (() => {});
+    // Anchor for the QWERTY → MIDI mapping. By default it tracks
+    // `startMidi` (free-play instruments want pressing `z` to play the
+    // leftmost visible key — same as the original behavior, and the
+    // octave-shift buttons on /play/piano move both together). Pages
+    // that want a wide visible piano with QWERTY centered on a melodic
+    // octave (piano-hero shows C2..C6 but maps `z` to C3) can pass an
+    // explicit `kbdBase` to decouple the two; in that case octave-shift
+    // calls to `setStartMidi` won't disturb the QWERTY anchor. The
+    // on-key QWERTY labels (rendered when `.show-kbd` is on) follow
+    // this anchor too, so the letters appear on the keys they actually
+    // trigger.
+    this._kbdBaseExplicit = typeof opts.kbdBase === 'number';
+    this.kbdBase = this._kbdBaseExplicit ? opts.kbdBase : opts.startMidi;
     // Opt-in: render a pitch label on accidental keys too. Default off
     // because piano-style layouts squeeze the black keys above the
     // whites — there's no room for a label without crowding. Pages that
@@ -78,7 +91,14 @@ export class Keyboard {
 
   setStartMidi(midi) {
     this.startMidi = midi;
+    if (!this._kbdBaseExplicit) this.kbdBase = midi;
     this.synth.allOff();
+    this.render();
+  }
+
+  setKbdBase(midi) {
+    this.kbdBase = midi;
+    this._kbdBaseExplicit = true;
     this.render();
   }
 
@@ -184,7 +204,7 @@ export class Keyboard {
   }
 
   kbdForMidi(midi) {
-    const offset = midi - this.startMidi;
+    const offset = midi - this.kbdBase;
     for (const [k, v] of Object.entries(KEYBOARD_MAP)) {
       if (v === offset) return k;
     }
@@ -195,7 +215,7 @@ export class Keyboard {
     const key = rawKey.toLowerCase();
     const offset = KEYBOARD_MAP[key];
     if (offset === undefined) return null;
-    return this.startMidi + offset;
+    return this.kbdBase + offset;
   }
 
   attachPointerHandlers() {

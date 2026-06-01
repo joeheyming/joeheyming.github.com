@@ -1,0 +1,82 @@
+[
+  {
+    "id": "fur-elise",
+    "name": "Für Elise",
+    "composer": "Beethoven",
+    "blurb": "The friendliest classical earworm — perfect for first runs.",
+    "archiveItem": "for-elise-by-beethoven-2",
+    "archiveFile": "for_elise_by_beethoven (2).mid"
+  },
+  {
+    "id": "moonlight-sonata",
+    "name": "Moonlight Sonata",
+    "composer": "Beethoven",
+    "blurb": "Slow, repeating triplets — kind to play-along beginners.",
+    "archiveItem": "MoonlightSonata_201303",
+    "archiveFile": "Moonlight Sonata.mid"
+  },
+  {
+    "id": "canon-in-d",
+    "name": "Canon in D",
+    "composer": "Pachelbel",
+    "blurb": "The wedding favourite. Gentle layering between hands.",
+    "archiveItem": "pachelbel-canon-in-d",
+    "archiveFile": "Pachelbel -- Canon in D.mid"
+  },
+  {
+    "id": "rondo-alla-turca",
+    "name": "Rondo Alla Turca",
+    "composer": "Mozart",
+    "blurb": "Mozart's Turkish March — bright, fast right-hand runs.",
+    "archiveItem": "RondoAllaTurca_201401",
+    "archiveFile": "Rondo_Alla_Turca.mid"
+  },
+  {
+    "id": "fantaisie-impromptu",
+    "name": "Fantaisie-Impromptu, Op. 66",
+    "composer": "Chopin",
+    "blurb": "Whirling cross-rhythms — a stretch goal for play-along mode.",
+    "archiveItem": "chopin-fantaisie-impromptu-op.-66-you-tube",
+    "archiveFile": "Chopin - Fantaisie-Impromptu (Op. 66)_YouTube.mid"
+  },
+  {
+    "id": "nocturne-op9-2",
+    "name": "Nocturne in B♭ minor",
+    "composer": "Chopin",
+    "blurb": "Lyrical right-hand melody over rolling left-hand chords.",
+    "archiveItem": "NocturneNo.2InBFlatMinor",
+    "archiveFile": "NocturneNo.2InBFlatMinor.mid"
+  },
+  {
+    "id": "the-entertainer",
+    "name": "Pineapple Rag",
+    "composer": "Scott Joplin",
+    "blurb": "Ragtime classic. Right hand carries the syncopation.",
+    "archiveItem": "qrs-524-pineapple-rag-scott-joplin-oakes-williams",
+    "archiveFile": "QRS_524_Pineapple_Rag_-_Scott_Joplin_-_Oakes__Williams.mid"
+  },
+  {
+    "id": "osanpo-rag",
+    "name": "Osanpo Rag",
+    "composer": "Scott Joplin tradition",
+    "blurb": "Short, breezy rag — easy on both hands.",
+    "archiveItem": "osanpo-rag",
+    "archiveFile": "OsanpoRag.mid"
+  },
+  {
+    "id": "mozart-k331",
+    "name": "Sonata in A, K.331 (Theme)",
+    "composer": "Mozart",
+    "blurb": "The opening theme of the Turkish March sonata.",
+    "archiveItem": "themefrommozarts17423gut",
+    "archiveFile": "17423-mid/17423-mid.mid"
+  },
+  {
+    "id": "jingle-bells",
+    "name": "Jingle Bells",
+    "composer": "James Lord Pierpont",
+    "blurb": "Holiday classic — short, simple, instantly recognizable.",
+    "archiveItem": "JingleBellsMidi",
+    "archiveFile": "jinglebells.mid"
+  }
+]
