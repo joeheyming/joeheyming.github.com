@@ -34,6 +34,7 @@ export class CommandRegistry {
       nc: 'commands/system/nc.js',
       wget: 'commands/system/wget.js',
       vi: 'commands/system/vi.js',
+      joe: 'commands/system/joe.js',
       less: 'commands/system/less.js',
       'proxy-stats': 'commands/system/proxy-stats.js',
       top: 'commands/system/top.js',
