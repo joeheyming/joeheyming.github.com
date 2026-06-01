@@ -54,6 +54,15 @@ export function renderFrame({
 
   drawStrikeLine(ctx, width, strikeY);
 
+  // Pre-roll "Get Ready" overlay during the lead-in window. The engine
+  // seeds the clock at a small negative songNow so the first notes
+  // scroll into view before any audio fires; this label tells the
+  // player that the song is about to start. Drawn before the early-
+  // return so it shows even when there are no visible notes yet.
+  if (songNow < -0.05) {
+    drawGetReady(ctx, width, strikeY, songNow);
+  }
+
   if (!keyEls || keyEls.size === 0 || !notes || notes.length === 0) {
     drawHitFlash(ctx, keyEls, activeHits, width, strikeY, canvasManager);
     return;
@@ -145,6 +154,37 @@ export function drawStrikeLine(ctx, width, strikeY) {
   ctx.fillRect(0, strikeY - 1, width, 2);
   ctx.fillStyle = 'rgba(99, 102, 241, 0.55)';
   ctx.fillRect(0, strikeY, width, 1);
+  ctx.restore();
+}
+
+/**
+ * Render the lead-in "Get Ready" label centered above the strike line.
+ * Fades out as the playhead approaches songSec=0 so the transition
+ * into the actual song feels smooth.
+ */
+export function drawGetReady(ctx, width, strikeY, songNow) {
+  // songNow is negative during the lead-in. Map -2.5..0 → 1..0 alpha.
+  const fade = Math.max(0, Math.min(1, -songNow / 2.5));
+  if (fade <= 0) return;
+  // Show a single-digit countdown when it's tight, otherwise just a label.
+  const remaining = Math.ceil(-songNow);
+  const label = remaining <= 3 ? String(remaining) : 'GET READY';
+
+  ctx.save();
+  ctx.globalAlpha = fade;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  if (label === 'GET READY') {
+    ctx.font = '600 18px "Inter", system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(199, 210, 254, 0.85)';
+    ctx.fillText(label, width / 2, strikeY - 60);
+  } else {
+    ctx.font = '700 64px "Inter", system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(254, 243, 199, 0.95)';
+    ctx.shadowColor = 'rgba(99, 102, 241, 0.55)';
+    ctx.shadowBlur = 16;
+    ctx.fillText(label, width / 2, strikeY - 80);
+  }
   ctx.restore();
 }
 

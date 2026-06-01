@@ -28,6 +28,13 @@ class HeroEngine {
     /** Tail-end of song padding (seconds) — keep rendering after the last
      *  note finishes so the user sees their final hits land. */
     this._endPadSec = 1.5;
+    /** Pre-roll "Get Ready" lead-in (seconds). The clock starts at
+     *  `-LEAD_IN_SEC` on a fresh play, so the first wave of falling
+     *  notes scrolls into view before song time 0 — gives the player a
+     *  beat to focus before any audio or scoring begins. Resume-from-
+     *  pause skips this (we only want the breathing room at the very
+     *  start of a run, not every time you tap Pause/Play). */
+    this._leadInSec = 2.5;
 
     /** Index of the next note we haven't yet scheduled note-on for in Watch mode. */
     this._watchCursor = 0;
@@ -82,12 +89,19 @@ class HeroEngine {
    * @param {Object} args
    * @param {HTMLCanvasElement} args.canvas    The note-stage canvas.
    * @param {Map<number, HTMLElement>} args.keyEls
+   * @param {{ pressVisual: (midi:number, on:boolean) => void,
+   *           clearActiveVisuals?: () => void }} [args.keyboard]
+   *        Optional Keyboard instance. When provided, Watch-mode auto-
+   *        play also lights up the matching on-screen piano key (via
+   *        the same `.active` class the play-along input toggles), so
+   *        the keyboard "plays itself" visibly during a Watch run.
    */
-  init({ canvas, keyEls }) {
+  init({ canvas, keyEls, keyboard }) {
     this.synth = new PianoSynth();
     this.synth.setTone('grand_piano_samples');
     canvasManager.init(canvas);
     this.keyEls = keyEls;
+    this.keyboard = keyboard || null;
     this._loop = this._loop.bind(this);
     this._rafId = requestAnimationFrame(this._loop);
   }
@@ -133,6 +147,12 @@ class HeroEngine {
       this.restart();
       return;
     }
+    // Fresh start (after loadChart / restart): seed the playhead behind
+    // song time 0 so notes scroll into view before audio fires. Resume
+    // from pause keeps the clock where it was.
+    if (gameState.status === 'idle') {
+      clock.seek(-this._leadInSec);
+    }
     clock.start();
     gameState.setStatus('playing');
   }
@@ -142,6 +162,9 @@ class HeroEngine {
     if (this.synth) this.synth.allOff();
     this._activeNotes.clear();
     this._activeHits.clear();
+    if (this.keyboard && this.keyboard.clearActiveVisuals) {
+      this.keyboard.clearActiveVisuals();
+    }
     if (gameState.chart) gameState.setStatus('paused');
   }
 
@@ -150,6 +173,9 @@ class HeroEngine {
     if (this.synth) this.synth.allOff();
     this._activeNotes.clear();
     this._activeHits.clear();
+    if (this.keyboard && this.keyboard.clearActiveVisuals) {
+      this.keyboard.clearActiveVisuals();
+    }
     this._watchCursor = 0;
     this._expectedCursor = { start: 0 };
     if (this._expected) {
@@ -231,11 +257,17 @@ class HeroEngine {
       this._watchCursor += 1;
       if (!this.synth) continue;
       this.synth.noteOn(note.midi);
+      const wasActive = this._activeHits.has(note.midi);
       this._activeNotes.set(this._uniqueKey(note), {
         midi: note.midi,
         offTime: note.time + note.duration
       });
       this._activeHits.add(note.midi);
+      // Light up the matching on-screen piano key — only on the first
+      // overlapping voice for this midi (a chord with two left/right
+      // hand voices on the same pitch shouldn't double-toggle the
+      // `.active` class).
+      if (!wasActive && this.keyboard) this.keyboard.pressVisual(note.midi, true);
     }
     // Note-off any active notes whose duration has elapsed.
     for (const [key, info] of Array.from(this._activeNotes.entries())) {
@@ -250,7 +282,10 @@ class HeroEngine {
             break;
           }
         }
-        if (!stillActive) this._activeHits.delete(info.midi);
+        if (!stillActive) {
+          this._activeHits.delete(info.midi);
+          if (this.keyboard) this.keyboard.pressVisual(info.midi, false);
+        }
       }
     }
   }

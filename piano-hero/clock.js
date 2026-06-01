@@ -56,9 +56,12 @@ class Clock {
 
   /**
    * Seek to a specific song-second. Maintains play/paused state.
+   * Negative values are accepted — the engine uses them to seed a
+   * pre-roll "Get Ready" lead-in before song time 0 (notes scroll into
+   * view but no audio fires until songSec crosses 0).
    */
   seek(songSec) {
-    const t = Math.max(0, Number(songSec) || 0);
+    const t = Number(songSec) || 0;
     if (this._running) {
       this._startSongSec = t;
       this._startCtxSec = this.ctxNow();

@@ -99,7 +99,7 @@ keyboardEl.classList.add('show-kbd');
 
 // ---------- Engine init -----------------------------------------------------
 
-engine.init({ canvas: canvasEl, keyEls: keyboard.keyEls });
+engine.init({ canvas: canvasEl, keyEls: keyboard.keyEls, keyboard });
 
 // ---------- File-loading entry points ---------------------------------------
 
