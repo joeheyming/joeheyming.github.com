@@ -47,7 +47,7 @@ export async function mount(slot, ctx) {
   bannerEmoji.textContent = show.emoji;
   const bannerText = document.createElement('div');
   bannerText.className = 'tv-show-banner-text';
-  const bannerName = document.createElement('h1');
+  const bannerName = document.createElement('h2');
   bannerName.className = 'tv-show-banner-name';
   bannerName.textContent = show.name;
   const bannerTagline = document.createElement('p');

@@ -71,7 +71,7 @@ async function fetchRecentBooks() {
     output: 'json',
     'fl[]': ['identifier', 'title', 'creator', 'description'],
     rows: 16,
-    page: 1,
+    page: 1
   });
   return (data?.response?.docs || []).map(normalizeBook);
 }
@@ -83,7 +83,7 @@ async function searchBooks(query) {
     output: 'json',
     'fl[]': ['identifier', 'title', 'creator', 'description'],
     rows: 20,
-    page: 1,
+    page: 1
   });
   return (data?.response?.docs || []).map(normalizeBook);
 }
@@ -100,7 +100,7 @@ async function fetchBookSections(identifier) {
       title: f.title || f.name?.replace(/\.mp3$/i, '') || '',
       listen_url: `${IA_DOWNLOAD}/${identifier}/${f.name}`,
       playtime: parseFloat(f.length) || 0,
-      _trackSort: trackSortKey(f),
+      _trackSort: trackSortKey(f)
     }))
     .sort((a, b) => a._trackSort.localeCompare(b._trackSort));
 
@@ -108,7 +108,7 @@ async function fetchBookSections(identifier) {
     sections: mp3s,
     description: Array.isArray(meta.description)
       ? meta.description.join(' ')
-      : String(meta.description || ''),
+      : String(meta.description || '')
   };
 }
 
@@ -124,14 +124,10 @@ function normalizeBook(doc) {
   return {
     id: doc.identifier,
     identifier: doc.identifier,
-    title: Array.isArray(doc.title) ? doc.title[0] : (doc.title || 'Untitled'),
-    creator: Array.isArray(doc.creator)
-      ? doc.creator.join(', ')
-      : (doc.creator || 'Unknown'),
-    description: Array.isArray(doc.description)
-      ? doc.description[0]
-      : (doc.description || ''),
-    sections: null, // loaded on demand
+    title: Array.isArray(doc.title) ? doc.title[0] : doc.title || 'Untitled',
+    creator: Array.isArray(doc.creator) ? doc.creator.join(', ') : doc.creator || 'Unknown',
+    description: Array.isArray(doc.description) ? doc.description[0] : doc.description || '',
+    sections: null // loaded on demand
   };
 }
 
@@ -266,7 +262,7 @@ async function fetchAndResumeBook(identifier, sectionIndex, position) {
       identifier,
       title: meta.title || identifier,
       creator: meta.creator,
-      description: meta.description,
+      description: meta.description
     });
     openBook(book, sectionIndex, position);
   } catch {
@@ -317,14 +313,17 @@ async function runSearch(query) {
     const books = await searchBooks(query);
     searchResultsGrid.innerHTML = '';
     if (!books.length) {
-      searchResultsGrid.innerHTML = `<p class="empty-message">No results for "<em>${escapeHtml(query)}</em>".</p>`;
+      searchResultsGrid.innerHTML = `<p class="empty-message">No results for "<em>${escapeHtml(
+        query
+      )}</em>".</p>`;
       return;
     }
     for (const book of books) {
       searchResultsGrid.appendChild(createBookCard(book));
     }
   } catch (err) {
-    searchResultsGrid.innerHTML = '<p class="empty-message">Search failed. Check your connection.</p>';
+    searchResultsGrid.innerHTML =
+      '<p class="empty-message">Search failed. Check your connection.</p>';
     console.error('Search error:', err);
   }
 }
@@ -348,7 +347,7 @@ async function openBook(book, startSectionIndex = null, startPosition = 0) {
 
     const saved = getBookProgress(book.id);
     const sectionIndex = startSectionIndex ?? saved?.sectionIndex ?? 0;
-    const position = startSectionIndex !== null ? startPosition : (saved?.position ?? 0);
+    const position = startSectionIndex !== null ? startPosition : saved?.position ?? 0;
 
     currentBook = book;
     showDetailView(book, sectionIndex);
@@ -380,9 +379,15 @@ function showDetailView(book, activeSectionIndex) {
         }
       </div>
       <div class="detail-meta">
-        <h1 class="detail-title">${escapeHtml(book.title)}</h1>
+        <h2 class="detail-title">${escapeHtml(book.title)}</h2>
         <p class="detail-author">${escapeHtml(book.creator)}</p>
-        ${desc ? `<p class="detail-desc">${escapeHtml(desc.slice(0, 300))}${desc.length > 300 ? '…' : ''}</p>` : ''}
+        ${
+          desc
+            ? `<p class="detail-desc">${escapeHtml(desc.slice(0, 300))}${
+                desc.length > 300 ? '…' : ''
+              }</p>`
+            : ''
+        }
       </div>
     </div>
   `;
@@ -415,7 +420,11 @@ function renderChapterList(sections, activeIndex) {
     li.innerHTML = `
       <span class="chapter-number">${i + 1}</span>
       <span class="chapter-name">${escapeHtml(section.title || `Chapter ${i + 1}`)}</span>
-      ${section.playtime ? `<span class="chapter-duration">${formatTime(section.playtime)}</span>` : ''}
+      ${
+        section.playtime
+          ? `<span class="chapter-duration">${formatTime(section.playtime)}</span>`
+          : ''
+      }
     `;
 
     li.addEventListener('click', () => {
@@ -466,7 +475,7 @@ function startProgressSaving() {
       title: currentBook.title,
       author: currentBook.creator,
       coverUrl: getCoverUrl(currentBook),
-      totalSections: player.sections.length,
+      totalSections: player.sections.length
     });
   }, PROGRESS_INTERVAL_MS);
 }
@@ -540,7 +549,7 @@ audioEl.addEventListener('pause', () => {
     title: currentBook.title,
     author: currentBook.creator,
     coverUrl: getCoverUrl(currentBook),
-    totalSections: player.sections.length,
+    totalSections: player.sections.length
   });
   renderContinueSection();
 });

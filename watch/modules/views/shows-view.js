@@ -41,7 +41,7 @@ export function mount(slot, ctx) {
 
   const intro = document.createElement('div');
   intro.className = 'tv-landing-intro';
-  const introTitle = document.createElement('h1');
+  const introTitle = document.createElement('h2');
   introTitle.className = 'tv-landing-title';
   introTitle.textContent = '📺 Watch';
   const introBlurb = document.createElement('p');

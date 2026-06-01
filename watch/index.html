@@ -162,6 +162,28 @@
     </header>
 
     <div class="tv-room">
+      <!--
+        Visually-hidden page heading. The TV-room UI is a channel grid
+        with no visible title strip, but search engines and screen
+        readers expect one <h1> per page. Positioned absolute + 1px
+        clip is the standard "sr-only" pattern (no Tailwind utility
+        is loaded here, so we inline-style it).
+      -->
+      <h1
+        style="
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        "
+      >
+        Watch — Classic TV from the Internet Archive
+      </h1>
       <!-- The router mounts the active view here. Views own their own DOM:
            shows-view (grid), episodes-view (season + ep list), watch-view
            (TV chassis + player). Only one is in the DOM at a time. -->
