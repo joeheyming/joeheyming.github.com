@@ -113,6 +113,14 @@ export class TerminalOutputMixin {
     } = options;
     const text = ShellCore.coerceShellString(output);
 
+    // Auto-engage ANSI processing when escape sequences are present. Otherwise
+    // the plain-text path (textContent) would strip the invisible \x1b but
+    // leave the bracket codes visible — e.g. `[33m` showing up in stdout. The
+    // .ansi-output CSS already maps the literal color names to themed palette
+    // variables, so this is strictly an upgrade for any colored stdout.
+    // eslint-disable-next-line no-control-regex
+    const effectiveAnsi = preserveAnsi || /\x1b\[/.test(text);
+
     // Check if we're in a windowed mode or using main terminal
     const windowElement = this.windowId ? document.getElementById(`window-${this.windowId}`) : null;
 
@@ -128,7 +136,7 @@ export class TerminalOutputMixin {
         }
       }
 
-      if (block && !preserveAnsi && !streaming) {
+      if (block && !effectiveAnsi && !streaming) {
         const outputElement = this._createBlockOutputElement(
           text,
           outputClass,
@@ -142,7 +150,7 @@ export class TerminalOutputMixin {
         return;
       }
 
-      if (preserveAnsi) {
+      if (effectiveAnsi) {
         // Process ANSI sequences
         const processedOutput = this.processAnsiSequences(text);
         const outputElement = document.createElement('div');
@@ -177,7 +185,7 @@ export class TerminalOutputMixin {
         terminalOutput.innerHTML = '';
       }
 
-      if (block && !preserveAnsi && !streaming) {
+      if (block && !effectiveAnsi && !streaming) {
         const outputElement = this._createBlockOutputElement(
           text,
           outputClass,
@@ -191,7 +199,7 @@ export class TerminalOutputMixin {
         return;
       }
 
-      if (preserveAnsi) {
+      if (effectiveAnsi) {
         // Process ANSI sequences for animations
         const processedOutput = this.processAnsiSequences(text);
         const outputElement = document.createElement('div');
