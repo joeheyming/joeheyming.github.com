@@ -200,16 +200,32 @@ body {
   overflow: hidden;
 }
 
+/* Small visible window-title bar at the top of the terminal. Was previously
+ * sr-only via clip:rect() — Bing Webmaster Tools flags clip-hidden H1s as
+ * "missing", and a visible title also helps users grok the page on landing.
+ * Auto-hides when the terminal is embedded inside Heyming OS (the OS window
+ * chrome already shows the app name). */
 .page-title {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px 8px;
+  font-family: 'Hack', 'Courier New', Courier, ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: normal;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--terminal-text, #dff8e4);
+  opacity: 0.35;
+  background: transparent;
+  pointer-events: none;
+  z-index: 1;
+}
+html.terminal-embed-os .page-title {
+  display: none;
 }
 
 #terminal-container {
