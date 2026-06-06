@@ -5,6 +5,7 @@ import { SimfileParser } from '../js/simfileParser.js';
 import { secondsToBeats, beatsToSeconds, getBPMAtBeat } from '../js/timing.js';
 import { TAP_NOTE_POINTS } from '../js/judgmentPolicy.js';
 import { adjudicateColumnPress } from '../js/columnPressAdjudication.js';
+import { calculateDancePoints, calculateGrade } from '../js/score-panel.js';
 
 // ==========================================================================
 // GameState
@@ -22,9 +23,9 @@ describe('GameState', () => {
     });
 
     it('tracks actual points', () => {
-      gameState.addPoints(TAP_NOTE_POINTS[0]); // +3
-      gameState.addPoints(TAP_NOTE_POINTS[2]); // +2
-      assert.equal(gameState.getActualPoints(), 5);
+      gameState.addPoints(TAP_NOTE_POINTS[0]); // Perfect (+3)
+      gameState.addPoints(TAP_NOTE_POINTS[2]); // Good (+1)
+      assert.equal(gameState.getActualPoints(), 4);
     });
 
     it('ignores out-of-range score indices', () => {
@@ -115,6 +116,101 @@ describe('GameState', () => {
       assert.equal(gameState.getCombo(), 0);
       assert.equal(gameState.getHealth(), 50);
       assert.equal(gameState.getBpm(), 200);
+    });
+  });
+});
+
+// ==========================================================================
+// Scoring (dance points + grades) — mirrors SM `_fallback` 3/2/1/0/0
+// ==========================================================================
+
+describe('Scoring', () => {
+  // tapNoteScores layout: [perfect, great, good, bad, miss, mine]
+
+  describe('calculateDancePoints', () => {
+    it('100% DP only when all notes are Perfect (max = totalNotes * 3)', () => {
+      const { earned, max, percentage } = calculateDancePoints([10, 0, 0, 0, 0, 0]);
+      assert.equal(earned, 30);
+      assert.equal(max, 30);
+      assert.equal(percentage, 100);
+    });
+
+    it('mix of perfect+great yields a sub-100% DP', () => {
+      // 8 perfects (24) + 2 greats (4) out of 30 max = 93.33%
+      const { earned, max, percentage } = calculateDancePoints([8, 2, 0, 0, 0, 0]);
+      assert.equal(earned, 28);
+      assert.equal(max, 30);
+      assert(Math.abs(percentage - 93.33) < 0.01);
+    });
+
+    it('uses SM-canonical weights (3/2/1/0/0)', () => {
+      // 1 of each weighted judgment: 3 + 2 + 1 + 0 + 0 = 6 out of 15
+      const { earned, percentage } = calculateDancePoints([1, 1, 1, 1, 1, 0]);
+      assert.equal(earned, 6);
+      assert.equal(percentage, 40);
+    });
+
+    it('returns 0% for an all-miss chart', () => {
+      const { earned, percentage } = calculateDancePoints([0, 0, 0, 0, 10, 0]);
+      assert.equal(earned, 0);
+      assert.equal(percentage, 0);
+    });
+
+    it('handles a zero-length chart without dividing by zero', () => {
+      const { earned, max, percentage } = calculateDancePoints([0, 0, 0, 0, 0, 0]);
+      assert.equal(earned, 0);
+      assert.equal(max, 0);
+      assert.equal(percentage, 0);
+    });
+  });
+
+  describe('calculateGrade', () => {
+    it('AAAA at exactly 100%', () => {
+      assert.equal(calculateGrade([10, 0, 0, 0, 0, 0], 10).letter, 'AAAA');
+    });
+
+    it('AA at 93%+', () => {
+      // 28/30 = 93.33%
+      assert.equal(calculateGrade([8, 2, 0, 0, 0, 0], 10).letter, 'AA');
+    });
+
+    it('A between 80% and 93%', () => {
+      // 25/30 = 83.33%
+      assert.equal(calculateGrade([5, 5, 0, 0, 0, 0], 10).letter, 'A');
+    });
+
+    it('B between 70% and 80%', () => {
+      // 22/30 = 73.33%
+      assert.equal(calculateGrade([4, 5, 1, 0, 0, 0], 10).letter, 'B');
+    });
+
+    it('C between 60% and 70%', () => {
+      // 19/30 = 63.33%
+      assert.equal(calculateGrade([3, 5, 0, 0, 2, 0], 10).letter, 'C');
+    });
+
+    it('D between 50% and 60%', () => {
+      // 17/30 = 56.67%
+      assert.equal(calculateGrade([2, 5, 1, 0, 2, 0], 10).letter, 'D');
+    });
+
+    it('F under 50%', () => {
+      // 10/30 = 33.33%
+      assert.equal(calculateGrade([2, 1, 2, 0, 5, 0], 10).letter, 'F');
+    });
+
+    it('dpPercentage is formatted to two decimal places', () => {
+      assert.equal(calculateGrade([8, 2, 0, 0, 0, 0], 10).dpPercentage, '93.33');
+      assert.equal(calculateGrade([10, 0, 0, 0, 0, 0], 10).dpPercentage, '100.00');
+    });
+  });
+
+  describe('canonical SM regression', () => {
+    it('TAP_NOTE_POINTS matches SM _fallback PercentScoreWeight (3/2/1/0/0)', () => {
+      // Mines are domain-specific (-5 here, -2 in SM `_fallback`); only
+      // assert the tap-row indices to keep the test stable if we ever
+      // tune the mine penalty.
+      assert.deepEqual(TAP_NOTE_POINTS.slice(0, 5), [3, 2, 1, 0, 0]);
     });
   });
 });
@@ -365,13 +461,7 @@ describe('Freeze arrow scoring (regression)', () => {
   /** Uses production adjudicateColumnPress (same module as stepmania.js step()). */
   function simulateStep(noteData, col, songBeats) {
     const activeHolds = {};
-    const { hit, tapNoteScore } = adjudicateColumnPress(
-      songBeats,
-      col,
-      noteData,
-      activeHolds,
-      0
-    );
+    const { hit, tapNoteScore } = adjudicateColumnPress(songBeats, col, noteData, activeHolds, 0);
     return { hit, tapNoteScore, activeHolds };
   }
 
@@ -566,7 +656,10 @@ describe('CMod note positioning', () => {
       const offset12 = yBeat12 - TARGETS_Y; // 2s + 1s = 3 seconds total
 
       // offset12 should be 1.5x offset8 (3 seconds vs 2 seconds)
-      assert.ok(Math.abs(offset12 / offset8 - 1.5) < 0.01, `ratio=${offset12 / offset8} expected=1.5`);
+      assert.ok(
+        Math.abs(offset12 / offset8 - 1.5) < 0.01,
+        `ratio=${offset12 / offset8} expected=1.5`
+      );
     });
   });
 });

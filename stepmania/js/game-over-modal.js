@@ -7,6 +7,9 @@ import gameState from './gameState.js';
 import { songManager } from './songManager.js';
 import { calculateGrade, createScoreMessage, ScorePanel } from './score-panel.js';
 import { getURLParam } from './urlUtils.js';
+import { scoreboard } from './scoreboard.js';
+
+const SCOPE = 'stepmania';
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -125,6 +128,13 @@ class GameOverModalElement extends HTMLElement {
     this._totalNotes = 0;
     this._totalPoints = 0;
 
+    /**
+     * Scoreboard comparison populated in show(). Null when the song wasn't
+     * eligible (no song key, failed run, autoplay).
+     * @type {{ isNewPB: boolean, previousPB: import('./scoreboard.js').ScoreEntry|null }|null}
+     */
+    this._pbResult = null;
+
     // Callbacks
     this._onRestart = null;
     this._onClose = null;
@@ -143,6 +153,8 @@ class GameOverModalElement extends HTMLElement {
     const failedBadge = this._failed
       ? '<div class="failed-badge" style="background: var(--danger); color: var(--text-on-accent); padding: 4px 12px; border-radius: 999px; font-size: 12px; margin-bottom: 8px;">Health Depleted</div>'
       : '';
+
+    const pbBadge = this._renderPBBadge();
 
     // Host animation styles; content styles from components/game-over.css via adoptSharedStyles
     this.shadowRoot.innerHTML = `
@@ -172,6 +184,39 @@ class GameOverModalElement extends HTMLElement {
         }
         .stat-value.score { color: #60a5fa; }
         .stat-value.combo { color: #fbbf24; }
+        .pb-row {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          margin-top: 0.5rem;
+          font-size: 0.75rem;
+        }
+        .pb-badge {
+          background: linear-gradient(135deg, #fbbf24, #f59e0b);
+          color: #1a1a1a;
+          padding: 4px 12px;
+          border-radius: 999px;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          animation: pbPulse 1.6s ease-in-out infinite;
+        }
+        @keyframes pbPulse {
+          0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
+          50%      { transform: scale(1.04); box-shadow: 0 0 0 6px rgba(251, 191, 36, 0); }
+        }
+        .pb-previous {
+          color: rgba(255, 255, 255, 0.65);
+        }
+        .pb-previous .pb-delta {
+          color: #34d399;
+          font-weight: 600;
+          margin-left: 4px;
+        }
+        .pb-previous .pb-delta.negative {
+          color: #f87171;
+        }
       </style>
       <div class="game-over-content">
         <h2 style="${titleColor}">${title}</h2>
@@ -180,6 +225,7 @@ class GameOverModalElement extends HTMLElement {
         <div class="score-box">
           <div class="grade" style="color: ${this._grade.color}">${this._grade.letter}</div>
           <div class="percentage">${this._percentage}</div>
+          ${pbBadge}
           <div class="stats-row">
             <div class="stat-item">
               <div class="stat-label">Score</div>
@@ -210,6 +256,61 @@ class GameOverModalElement extends HTMLElement {
 
     adoptSharedStyles(this.shadowRoot);
     this._bindEvents();
+  }
+
+  /**
+   * Render the PB row that sits between the percentage and the stats. Three
+   * possible outputs:
+   *   - "🏆 NEW PB!" pill + delta vs previous (when isNewPB and we had one)
+   *   - "🏆 NEW PB!" pill only (first time playing this chart)
+   *   - "PB: 94.2% · A   (+1.8%)" subtext (when we didn't beat it)
+   *   - "" when the run wasn't scoreboard-eligible (failed/autoplay/no-song)
+   *
+   * @private
+   * @returns {string}
+   */
+  _renderPBBadge() {
+    if (!this._pbResult) return '';
+
+    const { isNewPB, previousPB } = this._pbResult;
+    const currentPercent = parseFloat(this._percentage);
+
+    if (isNewPB) {
+      if (!previousPB) {
+        return `
+          <div class="pb-row">
+            <span class="pb-badge">🏆 First clear!</span>
+          </div>
+        `;
+      }
+      const delta = currentPercent - previousPB.percent;
+      const deltaStr = delta >= 0 ? `+${delta.toFixed(2)}%` : `${delta.toFixed(2)}%`;
+      return `
+        <div class="pb-row">
+          <span class="pb-badge">🏆 New PB!</span>
+          <span class="pb-previous">
+            Previous: ${previousPB.percent.toFixed(2)}% · ${previousPB.grade}
+            <span class="pb-delta">${deltaStr}</span>
+          </span>
+        </div>
+      `;
+    }
+
+    if (previousPB) {
+      const delta = currentPercent - previousPB.percent;
+      const deltaStr = delta >= 0 ? `+${delta.toFixed(2)}%` : `${delta.toFixed(2)}%`;
+      const deltaClass = delta < 0 ? 'pb-delta negative' : 'pb-delta';
+      return `
+        <div class="pb-row">
+          <span class="pb-previous">
+            PB: ${previousPB.percent.toFixed(2)}% · ${previousPB.grade}
+            <span class="${deltaClass}">${deltaStr}</span>
+          </span>
+        </div>
+      `;
+    }
+
+    return '';
   }
 
   _bindEvents() {
@@ -387,14 +488,60 @@ class GameOverModalElement extends HTMLElement {
     this._score = gameState.getScore();
     this._maxCombo = gameState.getMaxCombo();
 
+    // Record the play in the scoreboard (and capture the PB delta for
+    // render()). Skipped for failed runs and autoplay, both of which would
+    // otherwise pollute the leaderboard.
+    this._pbResult = this._recordToScoreboard({ scores, totalNotes, percentage });
+
     // Track analytics event
     if (typeof window.trackEvent === 'function') {
       const status = this._failed ? 'Failed' : 'Complete';
       window.trackEvent('song_complete', 'StepMania', `Song ${status} - ${percentage}`, totalNotes);
+
+      if (this._pbResult?.isNewPB) {
+        const songInfo = getCurrentSongInfo();
+        window.trackEvent(
+          'game_over_new_pb',
+          'StepMania',
+          `New PB - ${songInfo.title}`,
+          Math.round(parseFloat(percentage))
+        );
+      }
     }
 
     this._visible = true;
     this.render();
+  }
+
+  /**
+   * @private
+   * @param {{ scores: number[], totalNotes: number, percentage: string }} data
+   * @returns {{ isNewPB: boolean, previousPB: import('./scoreboard.js').ScoreEntry|null }|null}
+   */
+  _recordToScoreboard({ scores, totalNotes, percentage }) {
+    if (this._failed) return null;
+    if (typeof gameState.isAutoplay === 'function' && gameState.isAutoplay()) return null;
+
+    const songKey = songManager.getCurrentSongKey?.();
+    if (!songKey) return null;
+
+    const difficultyIndex = songManager.getCurrentDifficulty?.() ?? 0;
+    const chart = songManager.getCurrentChart?.();
+    const difficultyName = chart?.difficulty || '';
+
+    const percentNumber = parseFloat(percentage);
+    if (!Number.isFinite(percentNumber)) return null;
+
+    const result = scoreboard.recordPlay(SCOPE, songKey, difficultyIndex, difficultyName, {
+      percent: percentNumber,
+      grade: this._grade.letter,
+      score: this._score,
+      maxCombo: this._maxCombo,
+      judgments: scores.slice(),
+      totalNotes
+    });
+
+    return { isNewPB: result.isNewPB, previousPB: result.previousPB };
   }
 
   /**

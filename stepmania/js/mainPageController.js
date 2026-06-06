@@ -302,8 +302,9 @@ export class MainPageController {
 
         songManager.cacheParsedData(defaultSong, parsedData);
 
-        // Update difficulty selector with the default chart
-        DifficultySelector.setCharts(parsedData.charts);
+        // Update difficulty selector with the default chart (passing
+        // songKey so PB chips render in the dropdown labels).
+        DifficultySelector.setCharts(parsedData.charts, defaultSong);
       }
     }
   }
@@ -326,7 +327,7 @@ export class MainPageController {
       // during programmatic difficulty changes
       this.isUpdatingDifficulty = true;
       try {
-        DifficultySelector.setCharts(parsedData.charts);
+        DifficultySelector.setCharts(parsedData.charts, currentSong.key);
         DifficultySelector.selectDifficultyByIndex(difficulty);
       } finally {
         this.isUpdatingDifficulty = false;
@@ -340,7 +341,7 @@ export class MainPageController {
 
     songManager.cacheParsedData(currentSongKey, parsedData);
 
-    DifficultySelector.setCharts(parsedData.charts);
+    DifficultySelector.setCharts(parsedData.charts, currentSongKey);
     DifficultySelector.syncFromURL();
   }
 

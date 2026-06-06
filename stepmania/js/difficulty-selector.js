@@ -1,6 +1,9 @@
 // Difficulty Selector Web Component - ES Module
 import { adoptSharedStyles } from './sharedStyles.js';
 import { createComponentProxy } from './componentProxy.js';
+import { scoreboard } from './scoreboard.js';
+
+const SCOPE = 'stepmania';
 
 /**
  * Get difficulty from URL as a number (or null)
@@ -32,6 +35,8 @@ class DifficultySelectorElement extends HTMLElement {
     this.selectedDifficulty = null;
     this.charts = [];
     this.onChangeCallback = null;
+    /** @type {string|null} Song key for PB lookups (null = skip the chip) */
+    this.songKey = null;
     this.attachShadow({ mode: 'open' });
   }
 
@@ -59,7 +64,7 @@ class DifficultySelectorElement extends HTMLElement {
   bindEvents() {
     // Listen for custom events from parent
     this.addEventListener('setCharts', (event) => {
-      this.setCharts(event.detail.charts);
+      this.setCharts(event.detail.charts, event.detail.songKey);
     });
 
     this.addEventListener('selectDifficulty', (event) => {
@@ -72,8 +77,16 @@ class DifficultySelectorElement extends HTMLElement {
   }
 
   // Public API methods
-  setCharts(charts) {
+  /**
+   * @param {Array} charts
+   * @param {string|null} [songKey] - Stable song key for PB lookups.
+   *   When provided, each option label is decorated with the player's PB
+   *   for that chart (e.g. "Hard (12) · PB 94.2%"). Omit/pass null to
+   *   keep the dropdown PB-free (used by tests / contexts without a song).
+   */
+  setCharts(charts, songKey = null) {
     this.charts = charts;
+    this.songKey = songKey || null;
     this.renderDifficultyOptions();
     if (charts && charts.length > 0) {
       this.show();
@@ -150,7 +163,7 @@ class DifficultySelectorElement extends HTMLElement {
       this.charts.forEach((chart, index) => {
         const option = document.createElement('option');
         option.value = index;
-        option.textContent = `${chart.difficulty} (${chart.rating})`;
+        option.textContent = this._labelForChart(chart, index);
         select.appendChild(option);
       });
     } else {
@@ -169,6 +182,27 @@ class DifficultySelectorElement extends HTMLElement {
         this.handleDifficultySelection(selectedIndex);
       }
     });
+  }
+
+  /**
+   * Format the dropdown label for a single chart. When a song key has been
+   * supplied (i.e. setCharts was called from the real app path, not a
+   * test), append the player's PB if one exists. Native <option> elements
+   * don't support markup, so this is plain text — the gold star suffix is
+   * deliberately compact so it doesn't blow out the dropdown width on
+   * mobile.
+   *
+   * @private
+   * @param {{difficulty: string, rating: number|string}} chart
+   * @param {number} index
+   * @returns {string}
+   */
+  _labelForChart(chart, index) {
+    const base = `${chart.difficulty} (${chart.rating})`;
+    if (!this.songKey) return base;
+    const pb = scoreboard.getPB(SCOPE, this.songKey, index, chart.difficulty);
+    if (!pb) return base;
+    return `${base} · PB ${pb.percent.toFixed(1)}% ${pb.grade}`;
   }
 
   handleDifficultySelection(chartIndex) {

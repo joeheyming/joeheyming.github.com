@@ -12,11 +12,22 @@ export { SCORING, TAP_NOTE_POINTS };
 // ============================================================================
 
 /**
- * Grade thresholds and colors for dance point percentage
+ * Grade thresholds and colors for dance-points percentage. Ordered most
+ * generous → strictest so the iteration in calculateGrade can stop on
+ * first match.
+ *
+ * Thresholds for AA / A roughly follow StepMania `_fallback` theme. B / C
+ * / D are slightly stricter (we want the recovery curve to feel less
+ * forgiving than the canonical fallback, but never harsher than the
+ * `default` theme).
+ *
+ * AAAA collapses with what SM calls "AAA" in `_fallback` because
+ * `GradeTier01IsAllW2s` is false in that theme — both fire at 100% DP.
+ * Since 100% DP under our 3/2/1/0/0 weighting requires all perfects
+ * anyway, we expose just one top tier (AAAA).
  */
 export const GRADE_THRESHOLDS = [
-  { minPercent: 100, perfectsRequired: true, letter: 'AAAA', color: '#FFD700' },
-  { minPercent: 100, perfectsRequired: false, letter: 'AAA', color: '#FFD700' },
+  { minPercent: 100, letter: 'AAAA', color: '#FFD700' },
   { minPercent: 93, letter: 'AA', color: '#C0C0C0' },
   { minPercent: 80, letter: 'A', color: '#10B981' },
   { minPercent: 70, letter: 'B', color: '#3B82F6' },
@@ -26,7 +37,11 @@ export const GRADE_THRESHOLDS = [
 ];
 
 /**
- * Calculate dance points from tap note scores
+ * Calculate dance points from tap note scores.
+ *
+ * Uses the canonical StepMania `_fallback` weighting (3/2/1/0/0). The max
+ * is `totalNotes * 3`, so 100% DP requires every note to be a Perfect.
+ *
  * @param {number[]} tapNoteScores - Array of [perfect, great, good, bad, miss, mine]
  * @returns {{earned: number, max: number, percentage: number}}
  */
@@ -34,47 +49,34 @@ export function calculateDancePoints(tapNoteScores) {
   const [perfect, great, good, bad, miss] = tapNoteScores;
   const totalNotes = tapNoteScores.reduce((sum, count) => sum + count, 0);
 
-  const earned = perfect * 2 + great * 1 + good * 0.5 + bad * 0 + miss * 0;
-  const max = totalNotes * 2;
+  const earned = perfect * 3 + great * 2 + good * 1 + bad * 0 + miss * 0;
+  const max = totalNotes * 3;
   const percentage = max > 0 ? (earned / max) * 100 : 0;
 
   return { earned, max, percentage };
 }
 
 /**
- * Calculate the grade based on tap note scores
+ * Calculate the grade based on tap note scores.
+ *
  * @param {number[]} tapNoteScores - Array of [perfect, great, good, bad, miss, mine]
- * @param {number} totalNotes - Total number of notes
+ * @param {number} _totalNotes - Total notes (accepted for API compat; recomputed inside calculateDancePoints)
  * @returns {{letter: string, color: string, dpPercentage: string}}
  */
-export function calculateGrade(tapNoteScores, totalNotes) {
-  const [perfect] = tapNoteScores;
+// eslint-disable-next-line no-unused-vars
+export function calculateGrade(tapNoteScores, _totalNotes) {
   const { percentage } = calculateDancePoints(tapNoteScores);
+  const dpPercentage = percentage.toFixed(2);
 
-  // Check for AAAA (all perfects)
-  if (percentage === 100 && perfect === totalNotes) {
-    return { letter: 'AAAA', color: '#FFD700', dpPercentage: '100.00' };
-  }
-
-  // Check for AAA (100% but not all perfects)
-  if (percentage === 100) {
-    return { letter: 'AAA', color: '#FFD700', dpPercentage: '100.00' };
-  }
-
-  // Find matching grade threshold
   for (const threshold of GRADE_THRESHOLDS) {
-    if (threshold.perfectsRequired) continue; // Skip AAAA, already handled
     if (percentage >= threshold.minPercent) {
-      return {
-        letter: threshold.letter,
-        color: threshold.color,
-        dpPercentage: percentage.toFixed(2)
-      };
+      return { letter: threshold.letter, color: threshold.color, dpPercentage };
     }
   }
 
-  // Fallback to F
-  return { letter: 'F', color: '#7F1D1D', dpPercentage: percentage.toFixed(2) };
+  // Theoretically unreachable: the last threshold has minPercent=0. Kept
+  // as a defensive fallback so a NaN/negative DP doesn't return undefined.
+  return { letter: 'F', color: '#7F1D1D', dpPercentage };
 }
 
 /**
@@ -147,7 +149,13 @@ const SCORE_LABELS = [
   { name: 'Miss', color: 'rgb(252, 165, 165)' } // red-300
 ];
 
-class ScorePanelElement extends HTMLElement {
+// SSR-safe base: in browsers extends the real HTMLElement; under
+// node --test (where pure-function exports get imported) falls back to a
+// no-op class so the file's module evaluation doesn't crash. The custom-
+// element registration below is similarly guarded.
+const HTMLElementBase = typeof HTMLElement !== 'undefined' ? HTMLElement : class {};
+
+class ScorePanelElement extends HTMLElementBase {
   /** @type {ScorePanelElement|null} */
   static _instance = null;
 
@@ -458,7 +466,9 @@ class ScorePanelElement extends HTMLElement {
 }
 
 // Register the web component
-customElements.define('score-panel', ScorePanelElement);
+if (typeof customElements !== 'undefined') {
+  customElements.define('score-panel', ScorePanelElement);
+}
 
 // Create proxy for singleton access: ScorePanel.update(...) instead of ScorePanel.get()?.update(...)
 export const ScorePanel = createComponentProxy(ScorePanelElement);

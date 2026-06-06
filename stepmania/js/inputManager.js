@@ -38,13 +38,19 @@ const DEFAULT_KEY_BINDINGS = {
 };
 
 /**
- * Special action key bindings
+ * Special action key bindings.
+ *
+ * The rate-mod controls reuse the SPEED_DOWN / SPEED_UP keys plus Shift
+ * (handled in _onKeyDown). Pitch-preserve toggle lives on backslash, which
+ * is right next to `[` `]` on a US QWERTY layout — kept close to the rate
+ * keys on purpose.
  */
 const ACTION_KEYS = {
   TOGGLE_PLAY: 32, // Space
   SPEED_DOWN: 219, // [
   SPEED_UP: 221, // ]
-  TOGGLE_SCROLL_MODE: 192 // ` (backtick)
+  TOGGLE_SCROLL_MODE: 192, // ` (backtick)
+  TOGGLE_PITCH_PRESERVE: 220 // \ (backslash)
 };
 
 class InputManager {
@@ -69,7 +75,9 @@ class InputManager {
       release: [],
       togglePlay: [],
       speedChange: [],
-      scrollModeChange: []
+      scrollModeChange: [],
+      rateChange: [],
+      togglePitchPreserve: []
     };
 
     /** Bound event handlers for cleanup */
@@ -269,6 +277,33 @@ class InputManager {
     };
   }
 
+  /**
+   * Subscribe to audio rate-change events (Shift+[ / Shift+]).
+   * @param {Function} callback - Called with (direction) where direction
+   *   is 1 (faster) or -1 (slower). Step size is left to the consumer.
+   * @returns {Function} Unsubscribe function
+   */
+  onRateChange(callback) {
+    this._callbacks.rateChange.push(callback);
+    return () => {
+      const index = this._callbacks.rateChange.indexOf(callback);
+      if (index > -1) this._callbacks.rateChange.splice(index, 1);
+    };
+  }
+
+  /**
+   * Subscribe to pitch-preservation toggle events (backslash key).
+   * @param {Function} callback
+   * @returns {Function} Unsubscribe function
+   */
+  onTogglePitchPreserve(callback) {
+    this._callbacks.togglePitchPreserve.push(callback);
+    return () => {
+      const index = this._callbacks.togglePitchPreserve.indexOf(callback);
+      if (index > -1) this._callbacks.togglePitchPreserve.splice(index, 1);
+    };
+  }
+
   // ===========================================================================
   // INTERNAL EVENT HANDLERS
   // ===========================================================================
@@ -310,9 +345,16 @@ class InputManager {
       return;
     }
 
-    // Check for action keys
+    // Check for action keys. Shift+[ / Shift+] reroute to rate change
+    // before the bare keys fall through to scroll-speed change.
     if (keyCode === ACTION_KEYS.TOGGLE_PLAY) {
       this._emitTogglePlay();
+      event.preventDefault();
+    } else if (keyCode === ACTION_KEYS.SPEED_UP && event.shiftKey) {
+      this._emitRateChange(1);
+      event.preventDefault();
+    } else if (keyCode === ACTION_KEYS.SPEED_DOWN && event.shiftKey) {
+      this._emitRateChange(-1);
       event.preventDefault();
     } else if (keyCode === ACTION_KEYS.SPEED_UP) {
       this._emitSpeedChange(1);
@@ -322,6 +364,9 @@ class InputManager {
       event.preventDefault();
     } else if (keyCode === ACTION_KEYS.TOGGLE_SCROLL_MODE) {
       this._emitScrollModeChange();
+      event.preventDefault();
+    } else if (keyCode === ACTION_KEYS.TOGGLE_PITCH_PRESERVE) {
+      this._emitTogglePitchPreserve();
       event.preventDefault();
     }
   }
@@ -438,6 +483,26 @@ class InputManager {
         callback();
       } catch (e) {
         console.error('Error in scrollModeChange callback:', e);
+      }
+    });
+  }
+
+  _emitRateChange(direction) {
+    this._callbacks.rateChange.forEach((callback) => {
+      try {
+        callback(direction);
+      } catch (e) {
+        console.error('Error in rateChange callback:', e);
+      }
+    });
+  }
+
+  _emitTogglePitchPreserve() {
+    this._callbacks.togglePitchPreserve.forEach((callback) => {
+      try {
+        callback();
+      } catch (e) {
+        console.error('Error in togglePitchPreserve callback:', e);
       }
     });
   }

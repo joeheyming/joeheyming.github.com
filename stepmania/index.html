@@ -210,9 +210,15 @@
     />
     <link rel="stylesheet" href="/brand.css" />
   </head>
-  <body class="bg-surface-0 h-screen overflow-hidden">
+  <!-- Body uses flex-col so the main container can claim the leftover
+       viewport height with `flex-1` instead of a magic `calc(100vh - 80px)`
+       that drifts whenever the responsive H1 changes size. -->
+  <body class="bg-surface-0 h-screen overflow-hidden flex flex-col">
     <!-- Title Header -->
-    <div class="text-center py-2 md:py-3" style="text-align: center; padding-top: 3.5rem">
+    <div
+      class="text-center py-2 md:py-3 flex-shrink-0"
+      style="text-align: center; padding-top: 3.5rem"
+    >
       <h1
         class="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-purple mb-1"
       >
@@ -232,19 +238,20 @@
       📊 Score
     </button>
 
-    <!-- Main Game Container - Fixed Layout -->
+    <!-- Main Game Container - Fixed Layout.
+         `lg:items-stretch` (not items-start) so the side score panel gets
+         a definite height from the flex row — required for its
+         `lg:max-h-full lg:overflow-y-auto` to actually clip + scroll
+         instead of overflowing the parent's `overflow: hidden`. -->
     <div
-      class="flex flex-col lg:flex-row items-center lg:items-start lg:justify-center gap-3 px-4 max-w-7xl mx-auto main-game-container"
-      style="
-        height: calc(100vh - 80px - env(safe-area-inset-bottom));
-        max-height: calc(100vh - 80px - env(safe-area-inset-bottom));
-        overflow: hidden;
-      "
+      class="flex flex-col lg:flex-row items-center lg:items-stretch lg:justify-center gap-3 px-4 max-w-7xl mx-auto main-game-container flex-1 min-h-0"
+      style="overflow: hidden"
     >
-      <!-- Game Area -->
+      <!-- Game Area. `min-h-0` so the inner column can shrink below
+           content size, letting the flex-1 canvas container actually take
+           leftover space instead of overflowing. -->
       <div
-        class="flex flex-col items-center justify-between w-full max-w-4xl lg:max-w-none lg:flex-1 h-full overflow-hidden"
-        style="margin-bottom: 60px"
+        class="flex flex-col items-center justify-between w-full max-w-4xl lg:max-w-none lg:flex-1 h-full min-h-0 overflow-hidden"
       >
         <!-- Song Library Browser, Share Button, and Difficulty Selector Row -->
         <div class="w-full flex flex-row items-center justify-center gap-2 pr-3 md:pr-6 mb-2">
@@ -300,10 +307,12 @@
           </div>
         </div>
 
-        <!-- Game Canvas Container -->
+        <!-- Game Canvas Container. `flex-1 min-h-0` lets it absorb the
+             leftover vertical space in the game column instead of being
+             pinned to its content size (which clipped under overflow:hidden). -->
         <div
           id="sm-micro"
-          class="relative bg-surface-0/50 rounded-2xl md:rounded-3xl p-3 md:p-6 shadow-2xl border border-hairline-accent overflow-hidden touch-manipulation flex-shrink-0"
+          class="relative bg-surface-0/50 rounded-2xl md:rounded-3xl p-3 md:p-6 shadow-2xl border border-hairline-accent overflow-hidden touch-manipulation flex-1 min-h-0"
           style="
             background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
               url(songs/Lost/background.png);
@@ -439,9 +448,13 @@
         </div>
       </div>
 
-      <!-- Score Panel - Right Side -->
+      <!-- Score Panel - Right Side.
+           `lg:min-h-0` is non-obvious but required: flex items default to
+           min-height: auto (= content size), which silently defeats
+           `lg:max-h-full`. With min-h-0 the panel can shrink to the row's
+           cross-axis size, and `lg:overflow-y-auto` actually scrolls. -->
       <div
-        class="score-panel w-full lg:w-80 xl:w-96 lg:flex-shrink-0 bg-surface-0/30 backdrop-blur-lg rounded-2xl p-4 md:p-6 border border-hairline-accent lg:max-h-full lg:overflow-y-auto"
+        class="score-panel w-full lg:w-80 xl:w-96 lg:flex-shrink-0 bg-surface-0/30 backdrop-blur-lg rounded-2xl p-4 md:p-6 border border-hairline-accent lg:min-h-0 lg:max-h-full lg:overflow-y-auto"
         tabindex="0"
         aria-label="Score and controls"
       >
@@ -524,6 +537,15 @@
               <div class="flex justify-between">
                 <span>XMod / CMod</span>
                 <kbd class="text-accent-primary font-semibold">`</kbd>
+              </div>
+              <div class="border-t border-hairline-accent my-1"></div>
+              <div class="flex justify-between">
+                <span>Rate −/+</span>
+                <kbd class="text-accent-primary font-semibold">⇧ [ ]</kbd>
+              </div>
+              <div class="flex justify-between">
+                <span>Preserve pitch</span>
+                <kbd class="text-accent-primary font-semibold">\</kbd>
               </div>
             </div>
           </div>

@@ -3,6 +3,16 @@
 
 import gameState from './gameState.js';
 
+/**
+ * Hard cap on playbackRate. Browsers technically accept up to 16, but the
+ * built-in time-stretching algorithm artifacts badly past ~2× when
+ * preservesPitch is on, and past ~3× even without it. We expose 0.5×–2.0×
+ * with pitch preservation (and 0.5×–3.0× without, see setPlaybackRate).
+ */
+const RATE_MIN = 0.5;
+const RATE_MAX_PITCH_PRESERVED = 2.0;
+const RATE_MAX_PITCH_FREE = 3.0;
+
 class AudioManager {
   constructor() {
     if (AudioManager.instance) {
@@ -15,6 +25,19 @@ class AudioManager {
 
     /** Track current blob URL for cleanup */
     this._currentBlobUrl = null;
+
+    /**
+     * Cached playback rate so we can re-apply it after the audio element
+     * gets a new source (`<source>` swap resets playbackRate on some
+     * browsers). Single source of truth: the JS value, not the DOM.
+     */
+    this._playbackRate = 1.0;
+
+    /**
+     * Whether to preserve pitch when changing playbackRate. Stored alongside
+     * the rate because both have to be re-applied together after a load.
+     */
+    this._preservePitch = true;
 
     /** Event listeners storage for cleanup */
     this._listeners = {
@@ -58,6 +81,9 @@ class AudioManager {
     }
 
     this._attachElementListeners();
+    // Apply any rate/pitch state that was set before init() ran (e.g. when
+    // a future userPrefs module restores prefs at boot).
+    this.setPlaybackRate(this._playbackRate, this._preservePitch);
   }
 
   /**
@@ -233,6 +259,88 @@ class AudioManager {
   }
 
   /**
+   * Current playback rate (1.0 = normal). Read from cached JS state, not
+   * the DOM, because the element value resets on source swaps.
+   * @returns {number}
+   */
+  get playbackRate() {
+    return this._playbackRate;
+  }
+
+  /**
+   * Whether pitch is preserved when the playback rate changes.
+   * @returns {boolean}
+   */
+  get preservesPitch() {
+    return this._preservePitch;
+  }
+
+  /**
+   * Set audio playback rate, with optional pitch preservation.
+   *
+   * - With `preservePitch=true` (default), the song stays in key but
+   *   artifacts above ~2× because we exceed Chrome's stretch algorithm's
+   *   sweet spot. Clamped to [0.5, 2.0].
+   * - With `preservePitch=false`, classic "DDR rate mod" chipmunk effect.
+   *   Clamped to [0.5, 3.0] — past 3× even the raw resampler sounds bad
+   *   and lookup tables in note timing get unreliable.
+   *
+   * The chosen rate is cached so it can be re-applied when a new song
+   * loads (some browsers reset `playbackRate` on a `<source>` swap). The
+   * vendor-prefixed properties are set on every call: `preservesPitch`
+   * (standard / Chrome 92+), `mozPreservesPitch` (Firefox), and
+   * `webkitPreservesPitch` (Safari 18+ on macOS). Setting all three is a
+   * no-op on browsers that don't recognize the property.
+   *
+   * @param {number} rate
+   * @param {boolean} [preservePitch=this._preservePitch]
+   * @returns {number} The actual rate after clamping
+   */
+  setPlaybackRate(rate, preservePitch = this._preservePitch) {
+    const max = preservePitch ? RATE_MAX_PITCH_PRESERVED : RATE_MAX_PITCH_FREE;
+    const clamped = Math.max(RATE_MIN, Math.min(max, rate));
+    const rounded = Math.round(clamped * 100) / 100;
+
+    this._playbackRate = rounded;
+    this._preservePitch = preservePitch;
+
+    if (this.element) {
+      this.element.playbackRate = rounded;
+      // Set all three pitch-preservation variants. Browsers ignore unknown
+      // properties silently; only one will actually take effect.
+      try {
+        this.element.preservesPitch = preservePitch;
+      } catch {
+        /* property may be read-only on older Safari — ignore */
+      }
+      try {
+        this.element.mozPreservesPitch = preservePitch;
+      } catch {
+        /* not Firefox — ignore */
+      }
+      try {
+        this.element.webkitPreservesPitch = preservePitch;
+      } catch {
+        /* not Safari — ignore */
+      }
+    }
+
+    return rounded;
+  }
+
+  /**
+   * Returns the clamp range for the current pitch-preservation mode so UI
+   * can disable buttons at the edges.
+   * @returns {{ min: number, max: number }}
+   */
+  getRateRange() {
+    return {
+      min: RATE_MIN,
+      max: this._preservePitch ? RATE_MAX_PITCH_PRESERVED : RATE_MAX_PITCH_FREE
+    };
+  }
+
+  /**
    * Reset to beginning and pause
    */
   reset() {
@@ -276,6 +384,11 @@ class AudioManager {
       // Set up one-time listeners for load completion
       const onCanPlay = () => {
         this.element.removeEventListener('error', onError);
+        // Re-apply rate + pitch preservation: Chrome and Safari reset
+        // playbackRate on a fresh <source> in some scenarios, and the
+        // pitch-preserve flag is similarly volatile. Cheap to set even
+        // when unchanged.
+        this.setPlaybackRate(this._playbackRate, this._preservePitch);
         resolve();
       };
 
@@ -449,7 +562,10 @@ class AudioManager {
 // Create and export singleton instance
 const audioManager = new AudioManager();
 
-// Make globally accessible for non-module scripts
-window.audioManager = audioManager;
+// Make globally accessible for non-module scripts. Guarded so this file
+// can be imported from Node tests without a window.
+if (typeof window !== 'undefined') {
+  window.audioManager = audioManager;
+}
 
 export { AudioManager, audioManager };

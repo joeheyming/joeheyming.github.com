@@ -422,11 +422,11 @@ feedback-button {
   }
 }
 
-/* Ensure the main container uses full height */
+/* Main container claims the leftover viewport height via flex layout on
+   the <body> (see index.html). The `padding-bottom` keeps clear of the
+   home indicator / safe-area on iOS. Flex direction is left to the
+   Tailwind classes on the element so we don't fight them here. */
 .main-game-container {
-  height: calc(100vh - 80px - env(safe-area-inset-bottom, 0px));
-  display: flex;
-  flex-direction: column;
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 

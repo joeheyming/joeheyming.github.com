@@ -387,7 +387,10 @@ function update(deltaSeconds) {
     lastSeenCurrentTime = audioManager.currentTime;
     currentTime = lastSeenCurrentTime;
   } else {
-    if (!audioManager.paused) currentTime += deltaSeconds;
+    // Extrapolation path (almost never taken since audio.currentTime
+    // updates faster than our 90fps loop). Scale by playbackRate so a
+    // 1.5× rate mod still advances the chart at song-time.
+    if (!audioManager.paused) currentTime += deltaSeconds * audioManager.playbackRate;
   }
 
   updateBackgroundChanges();
@@ -532,6 +535,17 @@ function initManagers() {
     gameState.toggleScrollMode();
     showSpeedOverlay();
   });
+  inputManager.onRateChange((direction) => {
+    // 0.05× per press matches ITGmania's "rate mod" granularity. Clamping
+    // happens inside audioManager.setPlaybackRate.
+    const next = audioManager.playbackRate + direction * 0.05;
+    audioManager.setPlaybackRate(next);
+    showSpeedOverlay();
+  });
+  inputManager.onTogglePitchPreserve(() => {
+    audioManager.setPlaybackRate(audioManager.playbackRate, !audioManager.preservesPitch);
+    showSpeedOverlay();
+  });
 }
 
 /**
@@ -595,8 +609,17 @@ function drawSpeedOverlay(deltaSeconds) {
 
   const ctx = CanvasManager.ctx;
   const alpha = Math.min(1, speedOverlayTimer / 0.3);
-  const label = gameState.getScrollSpeedLabel();
+  const scrollLabel = gameState.getScrollSpeedLabel();
   const canvasWidth = CanvasManager.width;
+
+  // Show rate on a second line when it isn't 1.0×. The "pp" suffix means
+  // pitch-preserved (Chrome/Safari/Firefox time-stretch); without it the
+  // pitch slides up/down with the rate (classic chipmunk effect).
+  const rate = audioManager.playbackRate;
+  const showRate = Math.abs(rate - 1.0) > 0.001;
+  const rateLabel = showRate
+    ? `${rate.toFixed(2)}× ${audioManager.preservesPitch ? 'pp' : 'free'}`
+    : null;
 
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -604,12 +627,22 @@ function drawSpeedOverlay(deltaSeconds) {
   ctx.textAlign = 'right';
   ctx.textBaseline = 'top';
 
+  const scrollWidth = ctx.measureText(scrollLabel).width;
+  const rateWidth = rateLabel ? ctx.measureText(rateLabel).width : 0;
+  const boxWidth = Math.max(scrollWidth, rateWidth) + 14;
+  const boxHeight = rateLabel ? 60 : 30;
+
   ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-  const textWidth = ctx.measureText(label).width;
-  ctx.fillRect(canvasWidth - textWidth - 20, 6, textWidth + 14, 30);
+  ctx.fillRect(canvasWidth - boxWidth - 20, 6, boxWidth + 6, boxHeight);
 
   ctx.fillStyle = gameState.getScrollMode() === 'cmod' ? '#4fc3f7' : '#fff';
-  ctx.fillText(label, canvasWidth - 10, 10);
+  ctx.fillText(scrollLabel, canvasWidth - 10, 10);
+
+  if (rateLabel) {
+    ctx.fillStyle = audioManager.preservesPitch ? '#fbbf24' : '#f87171';
+    ctx.fillText(rateLabel, canvasWidth - 10, 40);
+  }
+
   ctx.restore();
 }
 
@@ -902,6 +935,16 @@ function initStepmaniaDomAndLoop() {
   }
 
   initializeCanvas();
+
+  // #sm-micro is now `flex-1` and sized from leftover space in the game
+  // column. Web components (difficulty-selector, zenius-browser, etc.)
+  // upgrade after this script first runs and can shift sibling heights,
+  // which means the height we just read may be stale. Re-read the
+  // container after the next paint — `resize` only updates dimensions
+  // and does not recreate the canvas or reset actors.
+  requestAnimationFrame(() => {
+    setTimeout(() => CanvasManager.resize('sm-micro'), 50);
+  });
 
   const scoreToggle = document.getElementById('scoreToggle');
   if (scoreToggle) {
