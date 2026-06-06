@@ -11,6 +11,11 @@
 
 const PREFS_KEY = 'heyming.watch.prefs';
 const LAST_KEY_PREFIX = 'heyming.watch.last.';
+// Per-episode resume points. Keyed by `<showId>.s<n>e<n>` so each
+// episode of a show keeps its own scrub position — Plex/Netflix style.
+// `last.<showId>` only tracks "which episode was most recent"; the
+// actual playback time comes from this namespace.
+const POS_KEY_PREFIX = 'heyming.watch.pos.';
 
 /**
  * @typedef {Object} Prefs
@@ -180,4 +185,93 @@ export function listContinueWatching() {
   return entries;
 }
 
-export const __testing = { PREFS_KEY, LAST_KEY_PREFIX };
+/** @param {string} showId @param {number} season @param {number} episode */
+function posKey(showId, season, episode) {
+  return `${POS_KEY_PREFIX}${showId}.s${season}e${episode}`;
+}
+
+/**
+ * @typedef {Object} ResumePosition
+ * @property {number} position  Seconds into the video.
+ * @property {number} duration  Total duration in seconds (best-known).
+ * @property {number|null} updatedAt   ms epoch.
+ */
+
+/**
+ * Read the saved resume point for one episode. Returns `null` if there
+ * is no entry, the entry is malformed, or the saved position falls
+ * outside the "worth resuming" band (too close to the start or to the
+ * end). Callers don't need to filter again.
+ *
+ * @param {string} showId
+ * @param {number} season
+ * @param {number} episode
+ * @returns {ResumePosition|null}
+ */
+export function loadResumePosition(showId, season, episode) {
+  try {
+    const raw = localStorage.getItem(posKey(showId, season, episode));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const position = Number(parsed?.position);
+    const duration = Number(parsed?.duration);
+    if (!Number.isFinite(position) || position <= 0) return null;
+    if (!Number.isFinite(duration) || duration <= 0) return null;
+    // Don't bother resuming the first 15s (probably a quick exit) or
+    // the last 60s (basically watched the episode — let it start over).
+    if (position < 15) return null;
+    if (duration - position < 60) return null;
+    return {
+      position,
+      duration,
+      updatedAt: Number.isFinite(Number(parsed?.updatedAt)) ? Number(parsed.updatedAt) : null
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Persist a scrub position. No-op for invalid inputs or for trivial
+ * positions — saving "1.4s into the episode" pollutes storage and
+ * triggers spurious resume prompts on the next visit.
+ *
+ * @param {string} showId
+ * @param {number} season
+ * @param {number} episode
+ * @param {number} position
+ * @param {number} duration
+ */
+export function saveResumePosition(showId, season, episode, position, duration) {
+  if (!Number.isFinite(position) || position < 15) return;
+  if (!Number.isFinite(duration) || duration <= 0) return;
+  // If we're within a minute of the end, treat the watch as finished
+  // — clear instead of saving so the next visit starts from zero.
+  if (duration - position < 60) {
+    clearResumePosition(showId, season, episode);
+    return;
+  }
+  try {
+    localStorage.setItem(
+      posKey(showId, season, episode),
+      JSON.stringify({ position, duration, updatedAt: Date.now() })
+    );
+  } catch {
+    /* quota; skip */
+  }
+}
+
+/**
+ * @param {string} showId
+ * @param {number} season
+ * @param {number} episode
+ */
+export function clearResumePosition(showId, season, episode) {
+  try {
+    localStorage.removeItem(posKey(showId, season, episode));
+  } catch {
+    /* skip */
+  }
+}
+
+export const __testing = { PREFS_KEY, LAST_KEY_PREFIX, POS_KEY_PREFIX };

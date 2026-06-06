@@ -474,10 +474,15 @@ a.tv-crumb:hover {
   display: none;
 }
 
+/* Plex/Netflix-style compact poster wall — small minmax + tight
+   gaps so the page reads as a streaming-service landing rather than
+   a blog list. Caption sits below the poster in muted weight so the
+   artwork leads. Tighter than .tv-ep-grid's 220px because portrait
+   posters read fine at 110–130px wide. */
 .tv-show-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 14px 12px;
 }
 
 /* Shared base for every grid card surface in /watch/ — landing show
@@ -505,21 +510,33 @@ a.tv-crumb:hover {
 }
 
 .tv-show-card {
-  border-radius: 14px;
-  transition: transform 0.18s ease, border 0.18s ease, box-shadow 0.18s ease;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  transition: transform 0.18s ease;
   /* `--show-accent` is set inline on each card from JS so the hover
      glow tracks each show's signature colour. */
   --show-accent: var(--tv-accent);
 }
 
-.tv-show-card:hover {
+/* Hover lift now lives on the poster only, so the caption underneath
+   stays put while the artwork slides up — same effect Plex / Apple TV
+   use to make rows feel responsive without re-flowing the labels. */
+.tv-show-card:hover .tv-show-poster {
   transform: translateY(-3px);
-  border-color: var(--show-accent);
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--show-accent),
     0 0 24px color-mix(in srgb, var(--show-accent) 30%, transparent);
 }
 
+.tv-show-card:hover .tv-show-name {
+  color: var(--tv-text);
+}
+
 .tv-show-card:focus-visible {
+  outline: none;
+}
+
+.tv-show-card:focus-visible .tv-show-poster {
   outline: 2px solid var(--show-accent);
   outline-offset: 2px;
 }
@@ -533,6 +550,8 @@ a.tv-crumb:hover {
   justify-content: center;
   overflow: hidden;
   font-size: 80px;
+  border-radius: 8px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, outline 0.18s ease;
 }
 
 .tv-show-poster.is-empty {
@@ -547,20 +566,29 @@ a.tv-crumb:hover {
 }
 
 .tv-show-meta {
-  padding: 14px 16px 16px;
+  padding: 8px 2px 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
 }
 
 .tv-show-name {
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--tv-text);
-  line-height: 1.25;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tv-text-dim);
+  line-height: 1.3;
+  /* Single-line caption to mirror Plex / Apple-TV: long show names
+     truncate with an ellipsis instead of pushing tile heights uneven.
+     The full name is still available via the parent card's hover
+     `title` attribute. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/* Legacy `.tv-show-tag` styling kept for any callers we missed; the
+   shows view no longer renders this element on the home grid. */
 .tv-show-tag {
   margin: 0;
   font-size: 12.5px;
@@ -688,10 +716,22 @@ a.tv-crumb:hover {
   transform: scale(1);
 }
 
-.tv-continue-remove:hover {
+.tv-continue-remove:hover,
+.tv-continue-remove:focus-visible {
   background: var(--tv-led-red);
   border-color: var(--tv-led-red);
   color: #fff;
+}
+
+/* When the ✕ is the active focus target (user pressed ArrowUp on
+   the card to "drill into" the remove action), give it a clearly
+   stronger ring than the card-level :focus-within glow. Without
+   this the highlight is subtle from 10ft away. */
+.tv-continue-remove:focus-visible {
+  outline: 3px solid var(--tv-led-red);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(255, 87, 87, 0.25);
+  transform: scale(1.12);
 }
 
 .tv-continue-meta {
@@ -1726,6 +1766,145 @@ a.tv-crumb:hover {
 }
 
 /* ------------------------------------------------------------------------ */
+/* Watch view — resume / restart prompt                                     */
+/* ------------------------------------------------------------------------ */
+
+/* Bottom-anchored prompt that appears for ~6s when the user re-enters
+   an episode they had previously paused. Unlike `.tv-endcard` (which
+   covers the whole screen), this leaves the picture visible behind a
+   gradient — the video has already seeked to the resume point, so the
+   user sees their next frame and can confirm it's the right spot. */
+.tv-resume {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(to top, rgba(8, 8, 12, 0.94) 0%, rgba(8, 8, 12, 0.6) 60%, transparent);
+  z-index: 6;
+  animation: tv-resume-in 0.25s ease-out;
+}
+
+.tv-resume.hidden {
+  display: none;
+}
+
+@keyframes tv-resume-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tv-resume-inner {
+  max-width: 720px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.tv-resume-eyebrow {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--tv-accent);
+  text-transform: uppercase;
+}
+
+.tv-resume-title {
+  margin: 0;
+  font-size: clamp(16px, 2.2vw, 20px);
+  font-weight: 700;
+  color: var(--tv-text);
+  line-height: 1.2;
+}
+
+.tv-resume-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.tv-resume-btn {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--tv-card-border);
+  color: var(--tv-text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 1px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.tv-resume-btn:hover,
+.tv-resume-btn:focus-visible {
+  border-color: var(--tv-accent);
+  background: rgba(255, 255, 255, 0.14);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.tv-resume-btn--primary {
+  background: var(--tv-accent);
+  color: #0a0a10;
+  border-color: var(--tv-accent);
+  font-weight: 700;
+}
+
+.tv-resume-btn--primary:hover,
+.tv-resume-btn--primary:focus-visible {
+  background: color-mix(in srgb, var(--tv-accent) 88%, white);
+}
+
+/* Subtle styling for the secondary "← Back" button. Slightly lower
+   contrast than the default tv-resume-btn so the eye still treats
+   Resume as the primary action, but readable enough to be
+   discoverable for users who don't remember the remote's back key. */
+.tv-resume-btn--ghost {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--tv-text-muted, rgba(255, 255, 255, 0.7));
+}
+
+/* TV mode: bigger touch targets + heavier weight so the prompt reads
+   from the couch. Same focus ring rules the rest of the TV chrome
+   uses, so D-pad navigation between the two buttons looks consistent
+   with chips / cards / controls. */
+:root[data-mode='tv'] .tv-resume {
+  padding: clamp(28px, 5vh, 56px) clamp(32px, 4vw, 64px);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.55) 70%, transparent);
+}
+
+:root[data-mode='tv'] .tv-resume-eyebrow {
+  font-size: 13px;
+}
+
+:root[data-mode='tv'] .tv-resume-title {
+  font-size: clamp(20px, 2.6vw, 26px);
+}
+
+:root[data-mode='tv'] .tv-resume-btn {
+  font-size: 14px;
+  padding: 14px 22px;
+}
+
+:root[data-mode='tv'] .tv-resume-btn:focus-visible {
+  box-shadow: 0 0 0 3px var(--tv-accent);
+}
+
+/* ------------------------------------------------------------------------ */
 /* Watch view — up-next strip + nav links                                   */
 /* ------------------------------------------------------------------------ */
 
@@ -1949,4 +2128,334 @@ a.tv-crumb:hover {
   .tv-ep-card:hover {
     transform: none;
   }
+}
+
+/* ============================================================================
+ * TV mode overlay
+ * ============================================================================
+ * Activates when the document root carries `data-mode="tv"`. The mode is set
+ * by `modules/mode.js` based on three signals (in priority order): the
+ * `?tv=1` query param (manual override, useful for desktop preview), a
+ * `window.__WATCH_TV__` flag injected by the native Android-TV WebView shell,
+ * and a UA fingerprint of TV-class browsers (Bravia, Tizen, WebOS, HbbTV).
+ *
+ * Goal of these overrides: bigger UI for ~8-foot living-room viewing, focus
+ * rings strong enough to read across the room, and remove mouse-only chrome
+ * the remote can't reach. Almost no behavior changes — just typography,
+ * spacing, and focus-ring styling.
+ *
+ * Modality (data-modality) is also flipped here so a focus ring only paints
+ * when the user is currently driving with the keyboard / D-pad. Pointer
+ * users on a TV (rare — Bluetooth mouse plugged into the Bravia) get the
+ * same hover-friendly experience the desktop site has.
+ * ========================================================================= */
+
+:root[data-mode='tv'] {
+  /* Bravia + most Android TVs expose a 960×540 CSS viewport at 2×
+     dpr (1920×1080 device pixels). These knobs are sized for that
+     canvas — NOT 1920 CSS px. Trying to declare a 1920 viewport
+     just causes horizontal scroll on 320dpi panels because
+     `loadWithOverviewMode` doesn't reliably scale the page back
+     down. So we design for 960 CSS and let the OS scale up. */
+  --tv-base-size: 18px;
+  /* `--tv-tile-min` sizes 16:9 cards (episode grid + Up-next strip).
+     140px keeps thumbnails legible — drop below that and the still
+     image inside the thumb starts losing detail. The Continue-Watching
+     and Saved Offline rails also use this width, so 1–2 entries don't
+     bloat to half-screen. */
+  --tv-tile-min: 140px;
+  /* `--tv-poster-min` sizes 2:3 portrait posters (only the home-page
+     show wall, currently). Posters carry the show title in artwork,
+     so they stay readable at much narrower widths than 16:9 thumbs.
+     110px on the 960 CSS-px Bravia panel = 6–7 poster columns,
+     matching Plex's TV home-page density. */
+  --tv-poster-min: 110px;
+  --tv-tile-gap: 14px;
+}
+
+:root[data-mode='tv'] body {
+  font-size: var(--tv-base-size);
+  /* Disable text smoothing tricks that look worse at TV scaling. */
+  -webkit-font-smoothing: antialiased;
+}
+
+/* On TV we open the .tv-room out from its default 1280px max-width
+   to fill the full safe area. 940px CSS px still leaves a ~10px
+   inset for TVs that slightly overscan the visible region. */
+:root[data-mode='tv'] .tv-room {
+  max-width: 940px;
+  padding: 32px 24px 64px;
+  gap: 20px;
+}
+
+:root[data-mode='tv'] .tv-header {
+  /* Header padding scales with the larger base font; the breadcrumbs
+     inside also bump font-size below. */
+  padding: 8px 0;
+}
+
+:root[data-mode='tv'] .tv-breadcrumbs {
+  font-size: 16px;
+  padding: 0 48px;
+}
+
+/* TV-mode landing trims the marketing chrome. Streaming-app
+   convention: posters dominate the home screen, the user already
+   chose to open the app so re-pitching it ("Smart-TV style player
+   that streams classic TV…") just delays them seeing content. The
+   title shrinks to a small section header and the blurb is hidden
+   entirely — Plex / Apple TV / Roku do the same thing on their
+   home pages. The search input + tag chip row are kept because they
+   actually filter the grid. */
+:root[data-mode='tv'] .tv-landing-intro {
+  max-width: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  align-items: stretch;
+  gap: 12px;
+}
+
+:root[data-mode='tv'] .tv-landing-title {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--tv-text-dim);
+}
+
+:root[data-mode='tv'] .tv-landing-blurb {
+  display: none;
+}
+
+/* Original TV-mode blurb sizing, kept here so the cascade rule below
+   (which would otherwise apply to a hidden element) doesn't carry
+   surprise impact when the rule is unhidden in a future redesign. */
+:root[data-mode='tv'] .tv-landing-blurb.show {
+  display: block;
+  font-size: 18px;
+  max-width: 64ch;
+}
+
+/* Bigger search box; on TV the on-screen keyboard takes a chunk of
+   the screen, so a tall input target reads better. */
+:root[data-mode='tv'] .tv-search-input {
+  font-size: 22px;
+  padding: 14px 18px;
+}
+
+:root[data-mode='tv'] .tv-tag-chip {
+  font-size: 14px;
+  padding: 8px 14px;
+}
+
+/* Episode grid uses the 16:9-thumb tile size (`--tv-tile-min`).
+   1fr lets tiles expand to fill the row evenly when the season is
+   large; on a fully-populated grid this looks tidy. */
+:root[data-mode='tv'] .tv-ep-grid {
+  grid-template-columns: repeat(auto-fill, minmax(var(--tv-tile-min), 1fr));
+  gap: var(--tv-tile-gap);
+}
+
+/* Show grid uses the smaller poster-width (`--tv-poster-min`) so the
+   home page reads as a Plex-style poster wall rather than a row of
+   tall billboards. Same 1fr stretch behavior — the minmax is the
+   only thing that differs between these grids. */
+:root[data-mode='tv'] .tv-show-grid {
+  grid-template-columns: repeat(auto-fill, minmax(var(--tv-poster-min), 1fr));
+  gap: var(--tv-tile-gap);
+}
+
+/* "Rail"-style grids (Continue Watching, Saved Offline) only ever
+   hold the user's recent items — usually 1–4. With minmax(_, 1fr)
+   those expand to "fill" the row, blowing 1–2 cards up to half-screen
+   each (the "gigantic cards" Bravia bug). Fixed track width pins
+   them to poster proportions and aligns left like a Plex / Netflix
+   carousel; the rest of the row just sits empty. */
+:root[data-mode='tv'] .tv-continue-grid,
+:root[data-mode='tv'] .tv-saved-grid {
+  grid-template-columns: repeat(auto-fill, var(--tv-tile-min));
+  gap: var(--tv-tile-gap);
+  justify-content: start;
+}
+
+:root[data-mode='tv'] .tv-show-name {
+  font-size: 12px;
+  font-weight: 500;
+  /* Couch-readable but kept compact so the caption doesn't dominate
+     the poster — Plex's TV grid uses 12–13px captions on a 1080p
+     panel for the same reason. We also drop the line-height a touch
+     (default 1.3 → 1.2) so a single-line caption slot feels close
+     to its poster instead of floating mid-air. */
+  line-height: 1.2;
+}
+
+:root[data-mode='tv'] .tv-show-tag {
+  font-size: 15px;
+}
+
+:root[data-mode='tv'] .tv-section-label {
+  font-size: 18px;
+}
+
+:root[data-mode='tv'] .tv-chip {
+  font-size: 14px;
+  padding: 8px 14px;
+}
+
+/* Chip row: drop the horizontal scroll on TV. With a remote, `auto`
+   overflow on a focusable container is a focus trap — Chromium
+   spatial-nav skips chips inside an overflow-scrolling row when
+   navigating from below, leaving the user unable to reach the
+   season chips on shows with many seasons (Aqua Teen has 12). Wrap
+   instead — taller chip cluster, every chip directly reachable. */
+:root[data-mode='tv'] .tv-chip-row {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  scroll-snap-type: none;
+}
+
+:root[data-mode='tv'] .tv-btn {
+  font-size: 18px;
+  padding: 12px 22px;
+}
+
+/* Focus styling — the headline TV-mode change. Across all interactive
+   surfaces, focus paints a thick accent ring + slight scale to read
+   from the couch. We rely on `:focus-visible` so a finger-tap on a
+   touchscreen TV doesn't leave a stuck ring. Show cards moved to a
+   poster-wall layout (transparent card, rounded poster) so the ring
+   lands on `.tv-show-poster` instead of the card itself; without
+   that override the ring would frame the caption text too. */
+:root[data-mode='tv'] .tv-show-card:focus-visible {
+  outline: none;
+}
+
+:root[data-mode='tv'] .tv-show-card:focus-visible .tv-show-poster {
+  outline: 4px solid var(--show-accent, var(--tv-accent));
+  outline-offset: 4px;
+  transform: scale(1.04);
+  z-index: 1;
+  box-shadow: 0 0 0 1px var(--show-accent, var(--tv-accent)), 0 12px 30px rgba(0, 0, 0, 0.65),
+    0 0 32px color-mix(in srgb, var(--show-accent, var(--tv-accent)) 45%, transparent);
+}
+
+:root[data-mode='tv'] .tv-show-card:focus-visible .tv-show-name {
+  color: var(--tv-text);
+}
+
+:root[data-mode='tv'] .tv-continue-card:focus-visible,
+:root[data-mode='tv'] .tv-ep-card:focus-visible,
+:root[data-mode='tv'] .tv-upnext-card:focus-visible {
+  outline: 4px solid var(--show-accent, var(--tv-accent));
+  outline-offset: 4px;
+  transform: scale(1.04);
+  z-index: 1;
+  box-shadow: 0 0 0 1px var(--show-accent, var(--tv-accent)), 0 12px 30px rgba(0, 0, 0, 0.65),
+    0 0 32px color-mix(in srgb, var(--show-accent, var(--tv-accent)) 45%, transparent);
+}
+
+:root[data-mode='tv'] .tv-tag-chip:focus-visible,
+:root[data-mode='tv'] .tv-chip:focus-visible,
+:root[data-mode='tv'] .tv-btn:focus-visible {
+  outline: 4px solid var(--tv-accent);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 1px var(--tv-accent),
+    0 0 24px color-mix(in srgb, var(--tv-accent) 50%, transparent);
+}
+
+:root[data-mode='tv'] .tv-search-input:focus-visible {
+  outline: 4px solid var(--tv-accent);
+  outline-offset: 0;
+}
+
+/* Chrome that mouse-driven UX leans on but a remote can't reach.
+   `back.js`, `feedback-button`, and `share-button` all live in the
+   global launcher styles; on TV we hide them and rely on the
+   in-app breadcrumb trail + hardware Back key for navigation. */
+/* ====================================================================
+ * Fullscreen player layout (TV mode, watch view only)
+ * ====================================================================
+ * The CRT chassis (bezel, marquee, base, up-next rail, controls row)
+ * burns half the panel on decoration. On TV we collapse it: watch-view.js
+ * sets `data-fullscreen="player"` on <html> at mount and clears it on
+ * unmount; these rules pin <video> to the viewport. Hardware Back
+ * unwinds pushState to the episode list — the only "exit fullscreen"
+ * gesture that exists on a TV remote. */
+:root[data-mode='tv'][data-fullscreen='player'] {
+  overflow: hidden;
+}
+
+:root[data-mode='tv'][data-fullscreen='player'] body,
+:root[data-mode='tv'][data-fullscreen='player'] .tv-room {
+  background: #000 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+/* Hide chrome OUTSIDE the player but keep the slot wrapper
+   (`.tv-view` / `.tv-room`) intact — they're the ancestors of
+   `.tv-player`, and a `display: none` on either collapses the whole
+   video tree. We only hide the chassis bits inside `.tv-player`
+   that aren't the video surface itself. */
+:root[data-mode='tv'][data-fullscreen='player'] .tv-header,
+:root[data-mode='tv'][data-fullscreen='player'] .tv-breadcrumbs,
+:root[data-mode='tv'][data-fullscreen='player'] .tv-player .tv-bezel-label,
+:root[data-mode='tv'][data-fullscreen='player'] .tv-player .tv-channel-chip,
+:root[data-mode='tv'][data-fullscreen='player'] .tv-player .tv-base,
+:root[data-mode='tv'][data-fullscreen='player'] .tv-player .tv-stand,
+:root[data-mode='tv'][data-fullscreen='player'] .tv-player .tv-marquee,
+:root[data-mode='tv'][data-fullscreen='player'] .tv-player .tv-controls,
+:root[data-mode='tv'][data-fullscreen='player'] .tv-player .tv-summary-card,
+:root[data-mode='tv'][data-fullscreen='player'] .tv-player .tv-upnext-rail {
+  display: none !important;
+}
+
+/* Flatten the `.tv-player → .tv-set → .tv-bezel → .tv-screen` nesting
+   to a single fullscreen layer. All four are forced to the viewport
+   bounds; the innermost (`.tv-screen`) holds the <video>, overlays,
+   and the end-card. The aspect-ratio rule on `.tv-screen` (16:9 in
+   the chassis CSS) is overridden so it can match the panel exactly. */
+:root[data-mode='tv'][data-fullscreen='player'] .tv-player,
+:root[data-mode='tv'][data-fullscreen='player'] .tv-set,
+:root[data-mode='tv'][data-fullscreen='player'] .tv-bezel,
+:root[data-mode='tv'][data-fullscreen='player'] .tv-screen {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  aspect-ratio: auto !important;
+  background: #000 !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+:root[data-mode='tv'][data-fullscreen='player'] .tv-video {
+  width: 100vw !important;
+  height: 100vh !important;
+  object-fit: contain;
+}
+
+:root[data-mode='tv'] .back-to-launcher,
+:root[data-mode='tv'] feedback-button,
+:root[data-mode='tv'] share-button,
+:root[data-mode='tv'] .tv-fineprint {
+  display: none !important;
+}
+
+/* Pointer modality — a hover-equipped session, regardless of device
+   class. Suppress focus outlines so a click doesn't leave a stuck
+   ring on mouse-driven TVs. We deliberately do NOT touch
+   `:focus-visible` — the browser already handles modality for that
+   selector; this just covers the ambient `:focus`. */
+:root[data-modality='pointer'] *:focus:not(:focus-visible) {
+  outline: none;
 }

@@ -30,7 +30,15 @@
 
 import { getMergedCatalog, getNextEpisode } from '../catalog.js';
 import { createMarquee, createSummaryCard, describeEpisode, copyToClipboard, pad } from '../ui.js';
-import { loadPrefs, savePrefs, saveLastEpisode } from '../prefs.js';
+import {
+  loadPrefs,
+  savePrefs,
+  saveLastEpisode,
+  loadResumePosition,
+  saveResumePosition,
+  clearResumePosition
+} from '../prefs.js';
+import { isTvMode } from '../mode.js';
 import { createSubtitleController } from './subtitle-controller.js';
 import { createOfflineSaveController } from './offline-save-controller.js';
 import { createEndCardController } from './endcard-controller.js';
@@ -63,6 +71,17 @@ export async function mount(slot, ctx) {
   let catalog = null;
   /** @type {Episode | null} */
   let current = null;
+  /**
+   * One-shot `loadedmetadata` handler for the pending resume seek.
+   * Tracked so a rapid Prev/Next can detach it before it fires
+   * against the wrong episode.
+   * @type {(() => void) | null}
+   */
+  let resumeArmed = null;
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let resumeHideTimer = null;
+  /** Throttle floor for `snapshotPosition`. ms epoch. */
+  let lastSnapshotAt = 0;
 
   // ---- DOM -----------------------------------------------------------
   const root = document.createElement('section');
@@ -158,10 +177,43 @@ export async function mount(slot, ctx) {
   endInner.appendChild(endActions);
   endCard.appendChild(endInner);
 
+  // Resume / restart prompt. Shown for ~6s when the user re-enters an
+  // episode they previously abandoned mid-playback. Plex/Netflix-style
+  // — Resume is the focused default so a single OK on the remote
+  // confirms it; Play-from-start is one D-pad right away. The overlay
+  // disposes itself if the user touches any other key, so it never
+  // blocks input for long.
+  const resumeOverlay = document.createElement('div');
+  resumeOverlay.className = 'tv-resume hidden';
+  resumeOverlay.setAttribute('role', 'dialog');
+  resumeOverlay.setAttribute('aria-label', 'Resume playback');
+  const resumeInner = document.createElement('div');
+  resumeInner.className = 'tv-resume-inner';
+  const resumeEyebrow = document.createElement('p');
+  resumeEyebrow.className = 'tv-resume-eyebrow';
+  resumeEyebrow.textContent = '↻ Continue watching';
+  const resumeTitle = document.createElement('h3');
+  resumeTitle.className = 'tv-resume-title';
+  const resumeActions = document.createElement('div');
+  resumeActions.className = 'tv-resume-actions';
+  // Visible Back fallback for users who forget the hardware key.
+  // Resume stays the autofocused primary action (see showResumeOverlay).
+  const backFromOverlayBtn = mkBtn('← Back', 'tv-resume-btn tv-resume-btn--ghost');
+  const resumeBtn = mkBtn('▶ Resume', 'tv-resume-btn tv-resume-btn--primary');
+  const restartFromOverlayBtn = mkBtn('↺ From start', 'tv-resume-btn');
+  resumeActions.appendChild(backFromOverlayBtn);
+  resumeActions.appendChild(resumeBtn);
+  resumeActions.appendChild(restartFromOverlayBtn);
+  resumeInner.appendChild(resumeEyebrow);
+  resumeInner.appendChild(resumeTitle);
+  resumeInner.appendChild(resumeActions);
+  resumeOverlay.appendChild(resumeInner);
+
   screen.appendChild(video);
   screen.appendChild(loadingOverlay);
   screen.appendChild(noSignalOverlay);
   screen.appendChild(errorBanner);
+  screen.appendChild(resumeOverlay);
   screen.appendChild(endCard);
 
   const base = document.createElement('div');
@@ -188,6 +240,12 @@ export async function mount(slot, ctx) {
   const fwd10Btn = mkBtn('10s ⏩', 'tv-btn tv-btn--seek');
   fwd10Btn.title = 'Skip forward 10 seconds (L)';
   fwd10Btn.setAttribute('aria-label', 'Skip forward 10 seconds');
+  // "Restart this episode" — surfaces the same action as the resume
+  // overlay's "Play from start", but persistently. Listed alongside
+  // the seek buttons so it sits next to the existing scrub affordances.
+  const restartBtn = mkBtn('↺ Restart', 'tv-btn tv-btn--seek');
+  restartBtn.title = 'Restart this episode from the beginning (Home)';
+  restartBtn.setAttribute('aria-label', 'Restart episode from the beginning');
   const nextBtn = mkBtn('Next ▶', 'tv-btn');
   const autoplayLabel = document.createElement('label');
   autoplayLabel.className = 'tv-toggle';
@@ -277,6 +335,7 @@ export async function mount(slot, ctx) {
   controls.appendChild(prevBtn);
   controls.appendChild(back10Btn);
   controls.appendChild(fwd10Btn);
+  controls.appendChild(restartBtn);
   controls.appendChild(nextBtn);
   if (show.imdbId) {
     controls.appendChild(subsWrap);
@@ -452,6 +511,53 @@ export async function mount(slot, ctx) {
   nextBtn.addEventListener('click', () => stepEpisode(1));
   back10Btn.addEventListener('click', () => seekRelative(-10));
   fwd10Btn.addEventListener('click', () => seekRelative(10));
+  restartBtn.addEventListener('click', () => restartEpisode());
+
+  // Resume = explicit dismiss (video already seeked). From start =
+  // wipe + rewind. Back = walk history (lands on the episode list).
+  backFromOverlayBtn.addEventListener('click', () => {
+    hideResumeOverlay();
+    history.back();
+  });
+  resumeBtn.addEventListener('click', () => hideResumeOverlay());
+  restartFromOverlayBtn.addEventListener('click', () => restartEpisode());
+
+  // Save the scrub position at a coarse cadence while playing, plus
+  // on every pause (covers the common "user pauses, walks away,
+  // closes the tab" path). The throttle inside snapshotPosition()
+  // keeps this from hammering localStorage.
+  video.addEventListener('timeupdate', snapshotPosition);
+  video.addEventListener('pause', flushPosition);
+  // End of episode is "watched" — drop the resume point so a future
+  // visit starts fresh. The end-card controller handles autoplay-next
+  // separately; this only owns the storage write.
+  video.addEventListener('ended', () => {
+    if (current) clearResumePosition(show.id, current.season, current.episode);
+  });
+  // Any keypress outside the overlay dismisses it. Inside the
+  // overlay we have to shield the main player keydown handler
+  // (also on document/capture) from claiming ArrowLeft/Right for
+  // seek and 'k' for togglePlay while the user is picking a button.
+  const overlayDismiss = (e) => {
+    if (resumeOverlay.classList.contains('hidden')) return;
+    const inOverlay = e.target instanceof Node && resumeOverlay.contains(e.target);
+    if (!inOverlay) {
+      hideResumeOverlay();
+      return;
+    }
+    // stopImmediatePropagation, not stopPropagation — both listeners
+    // live on `document` and we have to keep this event from reaching
+    // the sibling listener on the same node.
+    e.stopImmediatePropagation();
+    // The TV remote's OK arrives as 'k' — translate to a button
+    // click so OK actually picks Resume / From-start. Enter / Space
+    // already fire native clicks.
+    if (e.key === 'k' || e.key === 'K') {
+      e.preventDefault();
+      if (e.target instanceof HTMLButtonElement) e.target.click();
+    }
+  };
+  document.addEventListener('keydown', overlayDismiss, true);
 
   autoplayInput.addEventListener('change', () => {
     prefs.autoplayNext = autoplayInput.checked;
@@ -494,13 +600,27 @@ export async function mount(slot, ctx) {
         e.preventDefault();
         togglePlay();
         break;
+      // ArrowLeft/Right scrub ±10s on TV (Plex/Netflix convention) but
+      // step prev/next episode on desktop (mirrors the chevron buttons).
+      // TV episode nav is still available via Channel +/-, N/P, and the
+      // Prev/Next buttons.
       case 'ArrowLeft':
         e.preventDefault();
-        stepEpisode(-1);
+        if (isTvMode) {
+          seekRelative(-10);
+          flashSeek(-10);
+        } else {
+          stepEpisode(-1);
+        }
         break;
       case 'ArrowRight':
         e.preventDefault();
-        stepEpisode(1);
+        if (isTvMode) {
+          seekRelative(10);
+          flashSeek(10);
+        } else {
+          stepEpisode(1);
+        }
         break;
       case 'ArrowUp':
         e.preventDefault();
@@ -591,7 +711,27 @@ export async function mount(slot, ctx) {
         break;
     }
   };
-  document.addEventListener('keydown', keydown);
+  // Capture-phase listener. Chromium-based WebViews on Android TV
+  // (and any browser launched with `--enable-spatial-navigation`)
+  // route arrow keys to focus moves at user-agent priority. A normal
+  // bubble-phase listener fires too late to call preventDefault on
+  // them — spatial nav will have already consumed the keystroke. By
+  // listening in capture, we see the keydown before the UA, and our
+  // preventDefault() suppresses the focus-shift default action so
+  // ArrowLeft/Right in TV mode actually scrub the timeline instead
+  // of moving focus to the previous/next on-screen control.
+  document.addEventListener('keydown', keydown, true);
+
+  // TV mode: collapse the chassis chrome (bezel label, marquee,
+  // controls row, summary, up-next rail, header / breadcrumbs) and
+  // float the video to fill the panel — Plex/Netflix-style fullscreen
+  // by default. The CSS for this lives behind the
+  // [data-fullscreen='player'] attribute on <html>; we set/remove
+  // it here so the home / episodes views stay in their normal
+  // 10-foot layout.
+  if (isTvMode) {
+    document.documentElement.dataset.fullscreen = 'player';
+  }
 
   // Media Session integration so OS-level / Bluetooth media keys drive
   // the player. Best-effort; some browsers reject specific actions.
@@ -637,7 +777,23 @@ export async function mount(slot, ctx) {
 
   return {
     unmount() {
-      document.removeEventListener('keydown', keydown);
+      // Snapshot the scrub position FIRST so the back-button path
+      // ("watching, hit Back, come back later") restores where the
+      // user left off. Has to happen before video.pause() / src
+      // removal because both can reset currentTime.
+      flushPosition();
+      hideResumeOverlay();
+      if (resumeArmed) {
+        video.removeEventListener('loadedmetadata', resumeArmed);
+        resumeArmed = null;
+      }
+      document.removeEventListener('keydown', keydown, true);
+      document.removeEventListener('keydown', overlayDismiss, true);
+      // Restore normal layout when leaving the player so the
+      // episodes view paints with its full chrome again.
+      if (document.documentElement.dataset.fullscreen === 'player') {
+        delete document.documentElement.dataset.fullscreen;
+      }
       // Tear down each controller in turn — they each handle their
       // own listeners + blob URLs + timers.
       subtitleCtrl.dispose();
@@ -686,6 +842,13 @@ export async function mount(slot, ctx) {
   function loadEpisode(ep, opts = {}) {
     const autoplay = opts.autoplay !== false;
     const urlSync = opts.urlSync !== false;
+
+    // Snapshot the outgoing episode's scrub position before we swap
+    // sources. If the user is jumping Prev/Next mid-episode we want
+    // to remember where they left so coming back to it later resumes.
+    snapshotPosition();
+    hideResumeOverlay();
+
     current = ep;
 
     // Loading a new episode hides any leftover end-card. Important
@@ -720,6 +883,14 @@ export async function mount(slot, ctx) {
       video.poster = ep.image || '';
     }
     video.load();
+
+    // Resume point: fire-and-forget seek as soon as we know the
+    // duration, plus a brief overlay so the user can choose to start
+    // from zero instead. Reading from storage at mount time means
+    // we don't depend on the previous in-memory `current` — works
+    // for the cold-start case (new tab, refreshed URL) too.
+    armResumeFor(ep);
+
     if (autoplay) {
       const p = video.play();
       if (p && typeof p.catch === 'function') p.catch(() => {});
@@ -772,10 +943,136 @@ export async function mount(slot, ctx) {
     video.currentTime = next;
   }
 
+  /**
+   * Resume / restart machinery. Pulls the saved scrub position for
+   * `ep`, seeks the video as soon as `loadedmetadata` fires, and
+   * shows the bottom-of-screen prompt for ~6s with focus on Resume.
+   * The actual seek is unconditional — picking "From start" just
+   * undoes it. This matches Netflix: the video is already at the
+   * resume point when the prompt appears, so doing nothing is the
+   * commit path.
+   *
+   * @param {Episode} ep
+   */
+  function armResumeFor(ep) {
+    if (resumeArmed) {
+      // Detach a previous arming if the user thrashed Prev/Next
+      // before the metadata of the prior episode arrived.
+      video.removeEventListener('loadedmetadata', resumeArmed);
+      resumeArmed = null;
+    }
+    const saved = loadResumePosition(show.id, ep.season, ep.episode);
+    if (!saved) return;
+    const apply = () => {
+      // Bail if the video swapped to a different episode while we
+      // were still waiting on metadata (rapid Prev/Next).
+      if (current !== ep) return;
+      const target = Math.max(0, Math.min(saved.position, video.duration - 5));
+      try {
+        video.currentTime = target;
+      } catch {
+        /* some sources fail seeks before the buffer arrives */
+      }
+      showResumeOverlay(ep, target);
+    };
+    if (Number.isFinite(video.duration) && video.duration > 0) {
+      apply();
+    } else {
+      resumeArmed = apply;
+      video.addEventListener('loadedmetadata', apply, { once: true });
+    }
+  }
+
+  /**
+   * Render the resume prompt for the active episode. Auto-focus the
+   * primary "Resume" button so a single OK confirms; auto-hides on
+   * a 6s timer so the overlay doesn't sit on the screen forever.
+   *
+   * @param {Episode} ep
+   * @param {number} resumeAt seconds the video has already seeked to
+   */
+  function showResumeOverlay(ep, resumeAt) {
+    resumeTitle.textContent = `${describeEpisode(show, ep)} · ${formatClock(resumeAt)}`;
+    resumeOverlay.classList.remove('hidden');
+    if (resumeHideTimer) {
+      clearTimeout(resumeHideTimer);
+    }
+    resumeHideTimer = setTimeout(hideResumeOverlay, 6000);
+    // Defer focus until after the browser has finished its own focus
+    // pass — otherwise spatial-nav can yank focus back to whatever
+    // was active in the slot.
+    setTimeout(() => {
+      try {
+        resumeBtn.focus();
+      } catch {
+        /* ignore */
+      }
+    }, 0);
+  }
+
+  function hideResumeOverlay() {
+    resumeOverlay.classList.add('hidden');
+    if (resumeHideTimer) {
+      clearTimeout(resumeHideTimer);
+      resumeHideTimer = null;
+    }
+  }
+
+  /**
+   * Persist the active scrub position for the current episode. Called
+   * frequently (timeupdate throttle, pause, unmount) so it has to be
+   * cheap and self-throttling. The 5-second floor keeps storage
+   * writes well under 1Hz even during scrub-heavy sessions.
+   */
+  function snapshotPosition() {
+    if (!current) return;
+    const t = video.currentTime;
+    const d = video.duration;
+    if (!Number.isFinite(t) || !Number.isFinite(d) || d <= 0) return;
+    const now = Date.now();
+    if (now - lastSnapshotAt < 4000) return;
+    lastSnapshotAt = now;
+    saveResumePosition(show.id, current.season, current.episode, t, d);
+  }
+
+  /** Force a save regardless of throttle; used on unmount + pause. */
+  function flushPosition() {
+    lastSnapshotAt = 0;
+    snapshotPosition();
+  }
+
+  /** @param {number} seconds */
+  function formatClock(seconds) {
+    const total = Math.max(0, Math.floor(seconds));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+
   /** @param {number} time Absolute seconds. Clamped to [0, duration]. */
   function seekTo(time) {
     if (!Number.isFinite(video.duration)) return;
     video.currentTime = Math.max(0, Math.min(video.duration, time));
+  }
+
+  /**
+   * Restart the active episode from the beginning. Clears the saved
+   * resume point so the next visit also starts fresh — otherwise the
+   * "From start" button would only reset the current session and the
+   * resume prompt would re-appear on the next entry.
+   */
+  function restartEpisode() {
+    if (!current) return;
+    clearResumePosition(show.id, current.season, current.episode);
+    hideResumeOverlay();
+    seekTo(0);
+    marquee.flash('↺ FROM START');
+    if (video.paused) {
+      const p = video.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    }
   }
 
   /** @param {number} fraction `0` → start, `0.9` → 90% in, etc. */
@@ -928,15 +1225,9 @@ function findEpisode(catalog, s, e) {
 }
 
 /**
- * Pool-respecting shuffle pick used by the Next/Prev buttons and the
- * end-card autoplay path when `prefs.shuffle` is on.
- *
- *  - Skips season 0 (movies / specials). Shuffling into a Christmas
- *    special between two regular episodes reads as a glitch.
- *  - Avoids returning the currently-playing episode so a click on
- *    Next can never land on the same one (which would feel broken).
- *    Returns the current episode anyway if it's the only option in
- *    the pool — better than `null` in that degenerate case.
+ * Random episode pick for shuffle mode. Skips season 0 (specials
+ * mid-shuffle reads as a glitch) and biases away from `current`
+ * unless it's the only one in the pool.
  *
  * @param {Catalog} catalog
  * @param {Episode|null} current

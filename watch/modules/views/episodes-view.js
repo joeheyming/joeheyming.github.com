@@ -15,6 +15,8 @@
 import { getMergedCatalog } from '../catalog.js';
 import { renderSeasonChips, renderEpisodes } from '../ui.js';
 import { loadLastEpisode } from '../prefs.js';
+import { isTvMode } from '../mode.js';
+import { applyRovingTabindex } from '../roving-tabindex.js';
 
 /** @typedef {import('../shows.js').ShowConfig} ShowConfig */
 /** @typedef {import('../catalog.js').Catalog} Catalog */
@@ -149,6 +151,17 @@ export async function mount(slot, ctx) {
     showSeason(s, { push: true });
   });
 
+  // Roving-tabindex ONLY on the 2D episode grid. The chip row is
+  // one-dimensional (single horizontal strip) so the WebView's native
+  // spatial navigation handles left/right within it perfectly without
+  // a managed cursor — and crucially, leaving it as plain natural
+  // focus means every chip stays at `tabindex=0`, so arrow-up from
+  // the first episode card lands on the nearest chip instead of
+  // skipping over the whole row to the breadcrumbs (which is what
+  // happens when 7 of 8 chips have `tabindex=-1` from a roving
+  // helper — Chromium's spatial-nav excludes those).
+  const gridRoving = applyRovingTabindex(grid, { selector: '.tv-ep-card' });
+
   // Decide which season to show first: URL ?s, then last-watched, then 1.
   // Guard against missing `?s` — `Number(null)` is 0 and would otherwise
   // route every fresh `?show=X` landing to the movie tab.
@@ -168,6 +181,10 @@ export async function mount(slot, ctx) {
     }
   }
   showSeason(initialSeason, { push: false });
+
+  // On TV mode, drop the user straight onto the first episode card so
+  // the remote can press OK to start watching. Skipped on desktop.
+  if (isTvMode) gridRoving.focusFirst();
 
   shuffle.addEventListener('click', () => {
     if (!catalog) return;
@@ -192,6 +209,9 @@ export async function mount(slot, ctx) {
     renderEpisodes(grid, episodes, (ep) => {
       navigate({ show: show.id, s: ep.season, e: ep.episode });
     });
+    // Episode cards just got rebuilt; tell the roving helper to
+    // re-scan so its tabindex assignments + cursor stay valid.
+    gridRoving.refresh();
     // Reflect the chosen season in the URL so refresh / share preserves it.
     if (opts.push !== false) {
       const params = new URLSearchParams();
@@ -205,6 +225,7 @@ export async function mount(slot, ctx) {
   return {
     unmount() {
       abort.abort();
+      gridRoving.dispose();
       root.remove();
     }
   };

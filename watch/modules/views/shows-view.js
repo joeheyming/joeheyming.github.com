@@ -22,6 +22,8 @@ import {
   deleteSavedEpisode as deleteOfflineEpisode,
   formatBytes
 } from '../offline.js';
+import { isTvMode } from '../mode.js';
+import { applyRovingTabindex } from '../roving-tabindex.js';
 
 /** @typedef {import('../shows.js').ShowConfig} ShowConfig */
 
@@ -29,6 +31,134 @@ import {
  * @typedef {Object} MountCtx
  * @property {(params: { show?: string, s?: number, e?: number }) => void} navigate
  */
+
+/**
+ * Best-scoring focusable element in `dir` from `src`'s center.
+ * Fallback for when Chromium spatial-nav refuses to run — notably
+ * from a tabindex=-1 element, which the WebView won't navigate
+ * away from. Scoring follows the W3C spatial-nav draft: primary
+ * axis = direction, secondary axis ×1.5 so well-aligned candidates
+ * win over closer-but-skewed ones.
+ *
+ * @param {DOMRect} src
+ * @param {Element} self  Excluded from results along with its
+ *                        ancestors and descendants.
+ * @param {'up'|'down'|'left'|'right'} dir
+ * @returns {HTMLElement|null}
+ */
+function findFocusableInDirection(src, self, dir) {
+  const sx = src.left + src.width / 2;
+  const sy = src.top + src.height / 2;
+  const candidates = /** @type {HTMLElement[]} */ (
+    Array.from(
+      document.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]'
+      )
+    ).filter((el) => {
+      if (el === self) return false;
+      // Skip ancestors and descendants — the ✕ shouldn't navigate
+      // back into its own card via "spatial up", and the card
+      // shouldn't see its own ✕ as a navigation target.
+      if (self.contains(el) || el.contains(self)) return false;
+      const ti = /** @type {HTMLElement} */ (el).tabIndex;
+      if (ti < 0) return false;
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return false;
+      // offsetParent === null catches display:none and detached
+      // subtrees; visibility:hidden also yields a 0-sized rect.
+      if (/** @type {HTMLElement} */ (el).offsetParent === null) return false;
+      const ex = rect.left + rect.width / 2;
+      const ey = rect.top + rect.height / 2;
+      if (dir === 'up' && ey >= sy) return false;
+      if (dir === 'down' && ey <= sy) return false;
+      if (dir === 'left' && ex >= sx) return false;
+      if (dir === 'right' && ex <= sx) return false;
+      return true;
+    })
+  );
+
+  let best = null;
+  let bestScore = Infinity;
+  for (const el of candidates) {
+    const r = el.getBoundingClientRect();
+    const ex = r.left + r.width / 2;
+    const ey = r.top + r.height / 2;
+    const dx = ex - sx;
+    const dy = ey - sy;
+    const primary = dir === 'up' || dir === 'down' ? Math.abs(dy) : Math.abs(dx);
+    const orthogonal = dir === 'up' || dir === 'down' ? Math.abs(dx) : Math.abs(dy);
+    const score = primary + orthogonal * 1.5;
+    if (score < bestScore) {
+      bestScore = score;
+      best = el;
+    }
+  }
+  return best;
+}
+
+/**
+ * D-pad sub-navigation between a card and its inline ✕ button.
+ * The ✕ stays at tabindex=-1 so spatial-nav doesn't accidentally
+ * land on it from outside the card; this is how a remote-only user
+ * still reaches it.
+ *
+ *   on card:  ArrowUp → focus ✕  ·  Delete/Backspace → click ✕  ·  MediaPlay → click card
+ *   on ✕:     ArrowDown → focus card  ·  ArrowUp/Left/Right → findFocusableInDirection
+ *
+ * Up/Left/Right on the ✕ uses findFocusableInDirection because
+ * Chromium WebView won't run native spatial-nav from a tabindex=-1
+ * element.
+ *
+ * @param {HTMLAnchorElement} card
+ * @param {HTMLButtonElement} remove
+ */
+function wireRemoveSubNav(card, remove) {
+  card.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      e.stopPropagation();
+      remove.focus();
+      return;
+    }
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      e.stopPropagation();
+      remove.click();
+      return;
+    }
+    // Treat the remote's Play key like OK on the home grid — the
+    // shell's 'k' translation only matters inside the player view.
+    if (e.key === 'MediaPlay' || e.key === 'MediaPlayPause') {
+      e.preventDefault();
+      e.stopPropagation();
+      card.click();
+    }
+  });
+
+  remove.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') {
+      // Inverse of card.ArrowUp — return focus to the card body.
+      e.preventDefault();
+      e.stopPropagation();
+      card.focus();
+      return;
+    }
+    /** @type {Record<string, 'up'|'left'|'right'>} */
+    const dirMap = { ArrowUp: 'up', ArrowLeft: 'left', ArrowRight: 'right' };
+    const dir = dirMap[e.key];
+    if (!dir) return;
+
+    // Use the card's rect, not the ✕'s — the ✕ in the top-right
+    // corner would skew ArrowLeft toward the previous card's own
+    // ✕ (filtered out, and nothing else nearby).
+    const next = findFocusableInDirection(card.getBoundingClientRect(), card, dir);
+    if (next) {
+      e.preventDefault();
+      e.stopPropagation();
+      next.focus();
+    }
+  });
+}
 
 /**
  * @param {HTMLElement} slot
@@ -266,6 +396,15 @@ export function mount(slot, ctx) {
   });
   tagReset.addEventListener('click', onTagReset);
 
+  // Roving-tabindex on the show grid so a single Tab puts you in the
+  // grid and arrow keys move between tiles. Always-on (helps desktop
+  // keyboard users too); the visible focus ring is what TV mode adds.
+  const gridRoving = applyRovingTabindex(grid, { selector: '.tv-show-card' });
+  // On TV mode, autofocus the first show card so the remote can drive
+  // immediately without a "press any key" beat. Skipped on desktop —
+  // we don't want to steal focus from the search input or the URL bar.
+  if (isTvMode) gridRoving.focusFirst();
+
   return {
     unmount() {
       searchInput.removeEventListener('input', onInput);
@@ -275,6 +414,7 @@ export function mount(slot, ctx) {
         chip.removeEventListener('click', handler);
       }
       tagReset.removeEventListener('click', onTagReset);
+      gridRoving.dispose();
       root.remove();
     }
   };
@@ -389,11 +529,13 @@ function makeSavedCard(meta, ctx, onChange) {
   const remove = document.createElement('button');
   remove.type = 'button';
   remove.className = 'tv-continue-remove';
+  // tabindex=-1 — see makeContinueCard for the rationale.
+  remove.tabIndex = -1;
   remove.setAttribute(
     'aria-label',
     `Delete saved copy of ${meta.showName} S${pad(meta.season)}E${pad(meta.episode)}`
   );
-  remove.title = 'Delete this cached episode';
+  remove.title = 'Delete this cached episode (Delete)';
   remove.textContent = '✕';
   thumb.appendChild(remove);
 
@@ -430,6 +572,9 @@ function makeSavedCard(meta, ctx, onChange) {
     e.preventDefault();
     ctx.navigate({ show: meta.showId, s: meta.season, e: meta.episode });
   });
+  // Delete shortcut still routes through the window.confirm above,
+  // so accidental keypresses are gated.
+  wireRemoveSubNav(card, remove);
 
   return card;
 }
@@ -483,8 +628,13 @@ function makeContinueCard(show, entry, ctx, onChange) {
   const remove = document.createElement('button');
   remove.type = 'button';
   remove.className = 'tv-continue-remove';
+  // tabindex=-1 takes ✕ out of the spatial-nav graph — otherwise a
+  // D-pad press from the row above frequently lands focus on the ✕
+  // (top-right of the thumb) and OK *removes* the entry instead of
+  // playing it. wireRemoveSubNav adds the explicit D-pad path back.
+  remove.tabIndex = -1;
   remove.setAttribute('aria-label', `Remove ${show.name} from Continue watching`);
-  remove.title = 'Remove from Continue watching';
+  remove.title = 'Remove from Continue watching (Delete)';
   remove.textContent = '✕';
   thumb.appendChild(remove);
 
@@ -517,6 +667,7 @@ function makeContinueCard(show, entry, ctx, onChange) {
     e.preventDefault();
     ctx.navigate({ show: show.id, s: entry.season, e: entry.episode });
   });
+  wireRemoveSubNav(card, remove);
 
   return card;
 }
@@ -569,16 +720,20 @@ function makeShowCard(show, ctx) {
   );
   poster.appendChild(img);
 
+  // Plex/Netflix-style compact caption: just the show title, single
+  // line, sub-poster. No tagline blurb — the row reads as a poster
+  // wall first, with the title there for shows whose poster art
+  // doesn't include the name. The full tagline + emoji etc. live on
+  // the show's own episodes view if a user wants more context.
   const meta = document.createElement('div');
   meta.className = 'tv-show-meta';
   const name = document.createElement('h2');
   name.className = 'tv-show-name';
-  name.textContent = `${show.emoji} ${show.name}`;
-  const tag = document.createElement('p');
-  tag.className = 'tv-show-tag';
-  tag.textContent = show.tagline;
+  // shortName when present keeps very long titles ("Spider-Man: The
+  // Animated Series") from blowing past the ellipsis on narrow tiles.
+  name.textContent = show.shortName || show.name;
+  name.title = show.name;
   meta.appendChild(name);
-  meta.appendChild(tag);
 
   card.appendChild(poster);
   card.appendChild(meta);

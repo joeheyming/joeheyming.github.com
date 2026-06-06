@@ -10,6 +10,11 @@
  * deep-link refresh) Just Works.
  */
 
+// Side-effect import: mode.js stamps `data-mode` + `data-modality`
+// on <html> at module-load time and wires up the modality flippers.
+// It MUST run before any view mounts so view code can branch on
+// `isTvMode` consistently from first paint.
+import './modules/mode.js';
 import { getShow } from './modules/shows.js';
 import { renderBreadcrumbs } from './modules/breadcrumbs.js';
 
