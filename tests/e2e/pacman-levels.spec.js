@@ -37,7 +37,7 @@ test.describe('Pacman levels & fruit', () => {
   });
 
   test('multi-island level parses 4-endpoint teleport group', async ({ page }) => {
-    await startPacman(page, 'level=level-islands');
+    await startPacman(page, 'level=level6');
     const info = await page.evaluate(() => {
       const g = window.game.level.teleportGroups[0];
       return {
@@ -53,8 +53,33 @@ test.describe('Pacman levels & fruit', () => {
     expect(info.ghostHomes).toBeGreaterThanOrEqual(4);
   });
 
+  test('level7 has the harder 3-island layout with distributed ghosts', async ({ page }) => {
+    await startPacman(page, 'level=level7');
+    const info = await page.evaluate(() => {
+      const g = window.game.level.teleportGroups[0];
+      // Group ghost-home tiles by island half. Top island sits above the
+      // dividing void row (y < 11 in JSON; world-space y is flipped so
+      // we read it back from level.ghostHome which holds world-flipped y).
+      // For test purposes, just sample the y-spread to confirm ghosts are
+      // not all clustered.
+      const ys = window.game.level.ghostHome.map((g) => g.y);
+      return {
+        mode: g.mode,
+        endpointCount: g.endpoints.length,
+        dots: window.game.level.dots.length,
+        ghostCount: window.game.ghosts.length,
+        ghostYSpread: Math.max(...ys) - Math.min(...ys)
+      };
+    });
+    expect(info.mode).toBe('next');
+    expect(info.endpointCount).toBe(3); // 3 islands
+    expect(info.dots).toBeGreaterThan(170); // bigger than level6
+    expect(info.ghostCount).toBe(4);
+    expect(info.ghostYSpread).toBeGreaterThan(5); // ghosts not all in one island
+  });
+
   test('next-mode teleport actually warps pacman through the cycle', async ({ page }) => {
-    await startPacman(page, 'level=level-islands');
+    await startPacman(page, 'level=level6');
     // Move Pacman directly onto the first teleport endpoint and tick once.
     // The endpoint coordinates are in level-space (Y-flipped from JSON).
     const result = await page.evaluate(() => {
@@ -67,8 +92,9 @@ test.describe('Pacman levels & fruit', () => {
       game.pacman.lastTeleportTileKey = null;
       game.pacman.checkTeleport();
       return {
-        atEp1: Math.round(game.pacman.position.x) === Math.round(ep1.x * s) &&
-               Math.round(game.pacman.position.y) === Math.round(ep1.y * s),
+        atEp1:
+          Math.round(game.pacman.position.x) === Math.round(ep1.x * s) &&
+          Math.round(game.pacman.position.y) === Math.round(ep1.y * s),
         ep1
       };
     });
@@ -113,11 +139,9 @@ test.describe('Pacman levels & fruit', () => {
     await page.evaluate(async () => {
       await window.game.nextLevel();
     });
-    await page.waitForFunction(
-      () => window.game?.currentLevelName === 'level1',
-      null,
-      { timeout: 15_000 }
-    );
+    await page.waitForFunction(() => window.game?.currentLevelName === 'level1', null, {
+      timeout: 15_000
+    });
 
     const after = await page.evaluate(() => ({
       name: window.game.currentLevelName,

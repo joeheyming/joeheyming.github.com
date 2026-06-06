@@ -96,7 +96,20 @@ export const TILE = {
 // when they finish a level. `level0` is the arcade-style intro, then the
 // numbered originals. Add new levels here to make them part of the linear
 // run-through; ad-hoc levels can still be loaded via ?level=name.
-export const LEVEL_ORDER = ['level0', 'level1', 'level2', 'level3', 'level4', 'level5'];
+export const LEVEL_ORDER = [
+  'level0',
+  'level1',
+  'level2',
+  'level3',
+  'level4',
+  'level5',
+  // Multi-island levels using 'next'-mode teleport groups. level6 is a
+  // gentle 4-way cycle (small islands); level7 is the difficulty spike —
+  // bigger islands, denser mazes, three-way cycle, 2 ghosts in the
+  // gauntlet island.
+  'level6',
+  'level7'
+];
 
 // =============================================================================
 // FRUIT TYPES (Ms. Pac-Man style bonus items, classic spawn rules)

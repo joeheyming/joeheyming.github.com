@@ -1,5 +1,5 @@
 {
-  "_comment": "Multi-island showcase level. Four 9x9 islands separated by void, connected by a single 4-way teleport group that cycles NW -> NE -> SE -> SW. Each island has its own ghost home so all four ghosts threaten Pacman across the map. Load via ?level=level-islands.",
+  "_comment": "Campaign finale. Four 9x9 islands separated by void, connected by a single 4-way teleport group that cycles NW -> NE -> SE -> SW. Each island has its own ghost home so all four ghosts threaten Pacman across the map. Showcases the 'next'-mode teleport group format.",
   "scale": 10,
   "numGhosts": 4,
   "teleports": [

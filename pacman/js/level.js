@@ -559,13 +559,13 @@ export class Level {
       }
     }
 
-    // Ghost home area (no dots there) - calculate dynamically based on ghost home positions
-    if (this.ghostHome.length > 0) {
-      const minX = Math.min(...this.ghostHome.map((g) => g.x)) - 1;
-      const maxX = Math.max(...this.ghostHome.map((g) => g.x)) + 1;
-      const minY = Math.min(...this.ghostHome.map((g) => g.y)) - 1;
-      const maxY = Math.max(...this.ghostHome.map((g) => g.y)) + 1;
-      if (x >= minX && x <= maxX && y >= minY && y <= maxY) return true;
+    // Ghost-home neighborhood (no dots there). Previously this was a single
+    // bounding box around all ghost-home tiles, which worked for the classic
+    // case of one clustered ghost house but stripped dots from the whole map
+    // on island levels with ghost homes spread far apart. Instead, exclude
+    // only the Chebyshev-radius-1 neighborhood of each ghost-home tile.
+    for (const g of this.ghostHome) {
+      if (Math.abs(x - g.x) <= 1 && Math.abs(y - g.y) <= 1) return true;
     }
 
     return false;
