@@ -33,6 +33,11 @@ export class Pacman {
     this._chasing = false; // Power mode (true when power pill active)
     this.chaseTimer = 0;
 
+    // Most-recent teleport destination tile key ("x,y"), used to debounce
+    // 'next'-mode multi-island teleports so the player doesn't bounce in a
+    // loop when standing on the destination after a jump.
+    this.lastTeleportTileKey = null;
+
     // Animation
     this.mouthAngle = 0; // Current mouth opening (0-45 degrees)
     this.mouthMaxAngle = GAMEPLAY.PACMAN_MOUTH_MAX_ANGLE;
@@ -424,72 +429,91 @@ export class Pacman {
     const gridX = this.level.worldToGrid(this.position.x);
     const gridY = this.level.worldToGrid(this.position.y);
 
-    // Teleports work like the original C++ implementation:
-    // - Each teleport pair links two tiles
-    // - Walking past the edge of one teleport sends you to the other
-    // We check if Pacman has walked past the teleport tile's edge
+    // Two trigger styles, normalized into `teleportGroups`:
+    //   - mode 'pair': edge-walking trigger (original C++ behavior, good for
+    //     tunnels through the wall border)
+    //   - mode 'next': step-on-tile trigger that cycles through N endpoints
+    //     (good for islands where teleports sit on interior tiles)
+    const groups = this.level.teleportGroups;
+    if (!groups || groups.length === 0) return;
 
-    if (!this.level.teleports || this.level.teleports.length === 0) return;
-
-    // Iterate through all teleport pairs
-    for (const pair of this.level.teleports) {
-      if (!Array.isArray(pair) || pair.length !== 2) continue;
-
-      const teleport0 = pair[0];
-      const teleport1 = pair[1];
-
-      // Check if walked west past left teleport (teleport0)
-      if (gridY === teleport0.y) {
-        const teleportWorldX = this.level.gridToWorld(teleport0.x);
-        const halfScale = this.level.scale / 2;
-
-        // If Pacman is at or past the left edge of teleport 0, send to teleport 1
-        if (this.position.x < teleportWorldX - halfScale + this.radius) {
-          this.position.x = this.level.gridToWorld(teleport1.x);
-          this.position.y = this.level.gridToWorld(teleport1.y);
-          return;
-        }
-      }
-
-      // Check if walked east past right teleport (teleport1)
-      if (gridY === teleport1.y) {
-        const teleportWorldX = this.level.gridToWorld(teleport1.x);
-        const halfScale = this.level.scale / 2;
-
-        // If Pacman is at or past the right edge of teleport 1, send to teleport 0
-        if (this.position.x > teleportWorldX + halfScale - this.radius) {
-          this.position.x = this.level.gridToWorld(teleport0.x);
-          this.position.y = this.level.gridToWorld(teleport0.y);
-          return;
-        }
-      }
-
-      // Check if walked north past top teleport (teleport0) - vertical teleport
-      if (gridX === teleport0.x) {
-        const teleportWorldY = this.level.gridToWorld(teleport0.y);
-        const halfScale = this.level.scale / 2;
-
-        // If Pacman is at or past the top edge of teleport 0, send to teleport 1
-        if (this.position.y > teleportWorldY + halfScale - this.radius) {
-          this.position.x = this.level.gridToWorld(teleport1.x);
-          this.position.y = this.level.gridToWorld(teleport1.y);
-          return;
-        }
-      }
-
-      // Check if walked south past bottom teleport (teleport1) - vertical teleport
-      if (gridX === teleport1.x) {
-        const teleportWorldY = this.level.gridToWorld(teleport1.y);
-        const halfScale = this.level.scale / 2;
-
-        // If Pacman is at or past the bottom edge of teleport 1, send to teleport 0
-        if (this.position.y < teleportWorldY - halfScale + this.radius) {
-          this.position.x = this.level.gridToWorld(teleport0.x);
-          this.position.y = this.level.gridToWorld(teleport0.y);
-          return;
-        }
+    for (const group of groups) {
+      if (group.mode === 'pair' && group.endpoints.length === 2) {
+        if (this._tryPairTeleport(group.endpoints, gridX, gridY)) return;
+      } else if (group.mode === 'next' && group.endpoints.length >= 2) {
+        if (this._tryNextTeleport(group.endpoints, gridX, gridY)) return;
       }
     }
+  }
+
+  // Original behavior: walk past one tile's outer edge to teleport to the other.
+  _tryPairTeleport(endpoints, gridX, gridY) {
+    const [teleport0, teleport1] = endpoints;
+    const halfScale = this.level.scale / 2;
+
+    if (gridY === teleport0.y) {
+      const teleportWorldX = this.level.gridToWorld(teleport0.x);
+      if (this.position.x < teleportWorldX - halfScale + this.radius) {
+        this.position.x = this.level.gridToWorld(teleport1.x);
+        this.position.y = this.level.gridToWorld(teleport1.y);
+        return true;
+      }
+    }
+    if (gridY === teleport1.y) {
+      const teleportWorldX = this.level.gridToWorld(teleport1.x);
+      if (this.position.x > teleportWorldX + halfScale - this.radius) {
+        this.position.x = this.level.gridToWorld(teleport0.x);
+        this.position.y = this.level.gridToWorld(teleport0.y);
+        return true;
+      }
+    }
+    if (gridX === teleport0.x) {
+      const teleportWorldY = this.level.gridToWorld(teleport0.y);
+      if (this.position.y > teleportWorldY + halfScale - this.radius) {
+        this.position.x = this.level.gridToWorld(teleport1.x);
+        this.position.y = this.level.gridToWorld(teleport1.y);
+        return true;
+      }
+    }
+    if (gridX === teleport1.x) {
+      const teleportWorldY = this.level.gridToWorld(teleport1.y);
+      if (this.position.y < teleportWorldY - halfScale + this.radius) {
+        this.position.x = this.level.gridToWorld(teleport0.x);
+        this.position.y = this.level.gridToWorld(teleport0.y);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Multi-island: stepping centered onto endpoint N sends to endpoint N+1
+  // (cycling). Cooldown via `lastTeleportTileKey` avoids re-trigger loops
+  // when the player camps on a destination tile.
+  _tryNextTeleport(endpoints, gridX, gridY) {
+    for (let i = 0; i < endpoints.length; i++) {
+      const ep = endpoints[i];
+      if (ep.x !== gridX || ep.y !== gridY) continue;
+
+      // Need to be close to the center of the tile to count as "on it"
+      const cx = this.level.gridToWorld(ep.x);
+      const cy = this.level.gridToWorld(ep.y);
+      const dx = this.position.x - cx;
+      const dy = this.position.y - cy;
+      if (dx * dx + dy * dy > (this.level.scale * 0.35) ** 2) continue;
+
+      const key = `${ep.x},${ep.y}`;
+      if (this.lastTeleportTileKey === key) return false;
+
+      const next = endpoints[(i + 1) % endpoints.length];
+      this.position.x = this.level.gridToWorld(next.x);
+      this.position.y = this.level.gridToWorld(next.y);
+      this.lastTeleportTileKey = `${next.x},${next.y}`;
+      return true;
+    }
+
+    // No endpoint matches → clear the cooldown so the next step-on works
+    this.lastTeleportTileKey = null;
+    return false;
   }
 
   getPosition() {
@@ -525,6 +549,7 @@ export class Pacman {
     this.strafe.set(-1, 0, 0);
     this.mouthAngle = 0;
     this.mouthAnimating = false;
+    this.lastTeleportTileKey = null;
     this.animateMouth(0);
     this.group.position.copy(this.position);
     this.group.rotation.z = (this.yaw * Math.PI) / 180;

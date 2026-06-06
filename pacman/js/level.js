@@ -34,6 +34,16 @@ export class Level {
     this.powerPills = [];
     this.dotGroup = new THREE.Group();
 
+    // Fruit spawn (optional; set to first tile of type FRUIT_SPAWN, else null).
+    // Game code falls back to a sensible default (below ghost house) when null.
+    this.fruitSpawn = null;
+
+    // Teleport groups: normalized form of `teleports`. Each entry is
+    //   { mode: 'pair' | 'next', endpoints: [{x,y,level}, ...] }
+    // 'pair' uses the legacy edge-walking trigger (good for tunnels through
+    // the wall border). 'next' uses step-on-tile trigger (good for islands).
+    this.teleportGroups = [];
+
     // Materials
     this.wallMaterial = null;
     this.floorMaterial = null;
@@ -187,52 +197,51 @@ export class Level {
       this.powerPillLocations
     );
 
-    // Teleport pairs (flip Y for each position in each pair)
-    // Teleports are represented as pairs: [[{x, y}, {x, y}], ...]
+    // Teleports — accept three formats and normalize into `teleportGroups`:
+    //   1. Pair (legacy): `[{x,y}, {x,y}]` — edge-walking trigger
+    //   2. Flat array (very legacy): `[{x,y}, {x,y}, ...]` paired up in order
+    //   3. Group (new): `{ "endpoints": [{x,y}, ...], "mode": "next" }`
+    //      — step-on-tile trigger, cycles through N>=2 endpoints. Use for
+    //      island maps where teleports aren't on the wall border.
+    //
+    // `this.teleports` is kept as the legacy pair array because
+    // pacman.js still reads it via the pair shape; teleportGroups is the
+    // generalized form that island levels read.
     this.teleports = [];
+    this.teleportGroups = [];
+
+    const flipEndpoint = (ep) => ({
+      x: ep.x,
+      y: flipY(ep.y),
+      level: ep.level || 0
+    });
+
     if (Array.isArray(data.teleports)) {
-      for (const pair of data.teleports) {
-        if (Array.isArray(pair) && pair.length === 2) {
-          // New format: pairs
-          this.teleports.push([
-            {
-              x: pair[0].x,
-              y: flipY(pair[0].y),
-              level: pair[0].level || 0
-            },
-            {
-              x: pair[1].x,
-              y: flipY(pair[1].y),
-              level: pair[1].level || 0
-            }
-          ]);
-        } else if (pair.x !== undefined && pair.y !== undefined) {
-          // Legacy format: flat array of coordinates
-          // This will be handled below for backward compatibility
+      for (const entry of data.teleports) {
+        if (Array.isArray(entry) && entry.length === 2) {
+          const flipped = [flipEndpoint(entry[0]), flipEndpoint(entry[1])];
+          this.teleports.push(flipped);
+          this.teleportGroups.push({ mode: 'pair', endpoints: flipped });
+        } else if (entry && Array.isArray(entry.endpoints) && entry.endpoints.length >= 2) {
+          const flipped = entry.endpoints.map(flipEndpoint);
+          const mode = entry.mode === 'pair' && flipped.length === 2 ? 'pair' : 'next';
+          this.teleportGroups.push({ mode, endpoints: flipped });
+          // Mirror into legacy `teleports` only for pure pair groups
+          if (mode === 'pair') this.teleports.push(flipped);
         }
       }
-    }
 
-    // Backward compatibility: if teleports is a flat array, convert to pairs
-    if (this.teleports.length === 0 && data.teleports && data.teleports.length >= 2) {
-      // Check if it's the old format (flat array)
-      if (data.teleports[0].x !== undefined) {
-        // Group into pairs (assume even number of teleports)
-        for (let i = 0; i < data.teleports.length; i += 2) {
-          if (i + 1 < data.teleports.length) {
-            this.teleports.push([
-              {
-                x: data.teleports[i].x,
-                y: flipY(data.teleports[i].y),
-                level: data.teleports[i].level || 0
-              },
-              {
-                x: data.teleports[i + 1].x,
-                y: flipY(data.teleports[i + 1].y),
-                level: data.teleports[i + 1].level || 0
-              }
-            ]);
-          }
+      // Very legacy flat-array fallback
+      if (
+        this.teleports.length === 0 &&
+        this.teleportGroups.length === 0 &&
+        data.teleports.length >= 2 &&
+        data.teleports[0].x !== undefined
+      ) {
+        for (let i = 0; i + 1 < data.teleports.length; i += 2) {
+          const pair = [flipEndpoint(data.teleports[i]), flipEndpoint(data.teleports[i + 1])];
+          this.teleports.push(pair);
+          this.teleportGroups.push({ mode: 'pair', endpoints: pair });
         }
       }
     }
@@ -249,6 +258,22 @@ export class Level {
 
     if (teleportTiles.length > 0) {
       console.log(`Found ${teleportTiles.length} teleport tiles in map:`, teleportTiles);
+    }
+
+    // Fruit spawn — first FRUIT_SPAWN tile in the map (only one expected;
+    // multiples just pick the first). Falls back to a tile under the ghost
+    // house in game.js if absent.
+    this.fruitSpawn = null;
+    for (let y = 0; y < this.map.length && !this.fruitSpawn; y++) {
+      for (let x = 0; x < this.map[y].length; x++) {
+        if (this.map[y][x] === TILE.FRUIT_SPAWN) {
+          this.fruitSpawn = { x, y, level: 0 };
+          break;
+        }
+      }
+    }
+    if (this.fruitSpawn) {
+      console.log('Found fruit spawn:', this.fruitSpawn);
     }
 
     console.log(`Loaded level: ${this.width}x${this.height}, scale=${this.scale}`);
@@ -465,7 +490,8 @@ export class Level {
         if (
           (this.map[y][x] === TILE.FLOOR ||
             this.map[y][x] === TILE.TELEPORT ||
-            this.map[y][x] === TILE.POWER_PILL) &&
+            this.map[y][x] === TILE.POWER_PILL ||
+            this.map[y][x] === TILE.FRUIT_SPAWN) &&
           !this.isSpecialLocation(x, y)
         ) {
           const dot = new THREE.Mesh(dotGeometry, this.dotMaterial);
@@ -514,6 +540,23 @@ export class Level {
     // Power pill tiles don't have dots
     if (this.map[y]?.[x] === TILE.POWER_PILL) {
       return true;
+    }
+
+    // Fruit spawn tile is reserved for the bonus fruit; no dot there.
+    if (this.map[y]?.[x] === TILE.FRUIT_SPAWN) {
+      return true;
+    }
+
+    // Step-on-tile teleport endpoints (group mode 'next') should stay clear so
+    // ghost respawn paths and the trigger reads land on a real walkable cell.
+    if (Array.isArray(this.teleportGroups)) {
+      for (const group of this.teleportGroups) {
+        if (group.mode === 'next') {
+          for (const ep of group.endpoints) {
+            if (ep.x === x && ep.y === y) return true;
+          }
+        }
+      }
     }
 
     // Ghost home area (no dots there) - calculate dynamically based on ghost home positions
@@ -605,6 +648,19 @@ export class Level {
     scene.add(this.dotGroup);
   }
 
+  // Remove all of this level's THREE objects from the scene. Used when
+  // advancing to the next level so geometry from the old maze doesn't stack
+  // on top of the new one.
+  removeFromScene(scene) {
+    if (this.mazeMesh) scene.remove(this.mazeMesh);
+    if (this.floorMesh) scene.remove(this.floorMesh);
+    if (this.teleportGroup) scene.remove(this.teleportGroup);
+    if (this.ghostHomeGroup) scene.remove(this.ghostHomeGroup);
+    if (this.pacmanStartGroup) scene.remove(this.pacmanStartGroup);
+    if (this.gridHelper) scene.remove(this.gridHelper);
+    if (this.dotGroup) scene.remove(this.dotGroup);
+  }
+
   // Convert grid coordinates to world coordinates
   gridToWorld(gridCoord) {
     return gridCoord * this.scale;
@@ -626,13 +682,15 @@ export class Level {
       return false;
     }
     const tile = this.map[gridY][gridX];
-    // Floor, ghost home, teleport, power pill, and pacman start tiles are walkable
+    // Floor, ghost home, teleport, power pill, pacman start, and fruit spawn
+    // are walkable. (Fruit spawn is just a marker — same effect as floor.)
     return (
       tile === TILE.FLOOR ||
       tile === TILE.GHOST_HOME ||
       tile === TILE.TELEPORT ||
       tile === TILE.POWER_PILL ||
-      tile === TILE.PACMAN_START
+      tile === TILE.PACMAN_START ||
+      tile === TILE.FRUIT_SPAWN
     );
   }
 

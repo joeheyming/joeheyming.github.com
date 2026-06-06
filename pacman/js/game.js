@@ -12,7 +12,16 @@ import { CameraController } from './camera.js';
 import { Controls } from './controls.js';
 import { AudioManager } from './audio.js';
 import { Minimap } from './minimap.js';
-import { GAME_STATES, GHOST_COLORS, GAMEPLAY, CAMERA, ANIMATION } from './constants.js';
+import { Fruit } from './fruit.js';
+import {
+  GAME_STATES,
+  GHOST_COLORS,
+  GAMEPLAY,
+  CAMERA,
+  ANIMATION,
+  LEVEL_ORDER,
+  FRUIT_TYPES
+} from './constants.js';
 
 class Game {
   constructor() {
@@ -30,9 +39,23 @@ class Game {
     const urlParams = new URLSearchParams(window.location.search);
     this.debugMode = urlParams.get('debug') === 'true';
 
-    // Level selection - defaults to level1 if not specified
+    // Level selection — URL param > saved progress > start of LEVEL_ORDER.
+    // If the requested level is part of LEVEL_ORDER, "Next Level" advances
+    // through the rest of the list. If it's a one-off level outside that list
+    // (e.g. ?level=level-islands), Next Level just restarts it.
     const levelParam = urlParams.get('level');
-    this.levelPath = levelParam ? `levels/${levelParam}.json` : 'levels/level1.json';
+    const savedLevelName = localStorage.getItem('pacman-current-level');
+    const defaultLevelName = LEVEL_ORDER[0] || 'level1';
+    const requestedName = levelParam || savedLevelName || defaultLevelName;
+    this.currentLevelName = requestedName;
+    this.levelPath = `levels/${requestedName}.json`;
+    this.levelOrderIndex = LEVEL_ORDER.indexOf(requestedName);
+
+    // Per-level state, reset on each level load. Tracks fruit spawning and
+    // ghost-eat chain bonuses.
+    this.activeFruit = null;
+    this.fruitsSpawnedThisLevel = 0;
+    this.ghostChainCount = 0;
 
     // Number of ghosts - defaults to 4 if not specified
     const numGhostsParam = urlParams.get('numghosts');
@@ -523,6 +546,14 @@ class Game {
     this.ghosts.forEach((ghost) => ghost.reset());
     this.level.resetDots();
 
+    // Per-level transient state
+    if (this.activeFruit) {
+      this.activeFruit.removeFromScene(this.scene);
+      this.activeFruit = null;
+    }
+    this.fruitsSpawnedThisLevel = 0;
+    this.ghostChainCount = 0;
+
     // Update UI
     this.updateUI();
 
@@ -549,9 +580,68 @@ class Game {
     this.introScreen.classList.add('hidden');
   }
 
-  nextLevel() {
-    // For now, just restart with same level
+  async nextLevel() {
+    // If the player is on an ordered level, advance to the next one.
+    // If on a one-off (?level=X where X isn't in LEVEL_ORDER), or already
+    // past the end, fall back to restarting the current level.
+    const nextIndex = this.levelOrderIndex + 1;
+    if (this.levelOrderIndex >= 0 && nextIndex < LEVEL_ORDER.length) {
+      const nextName = LEVEL_ORDER[nextIndex];
+      try {
+        localStorage.setItem('pacman-current-level', nextName);
+      } catch (_) {
+        // Ignore — storage quota / private mode shouldn't break progression.
+      }
+      this.currentLevelName = nextName;
+      this.levelOrderIndex = nextIndex;
+      this.levelPath = `levels/${nextName}.json`;
+      await this.advanceToCurrentLevel();
+      return;
+    }
+
+    // Hit the end of LEVEL_ORDER (or playing a one-off level) — just replay.
     this.restartGame();
+  }
+
+  /**
+   * Tear down the existing level/Pacman/ghosts and load whatever is at
+   * `this.levelPath`, preserving score and lives so progression feels
+   * continuous. Used by nextLevel() — restartGame() is the right entry
+   * point for full resets.
+   */
+  async advanceToCurrentLevel() {
+    // Remove old fruit + entities from scene
+    if (this.activeFruit) {
+      this.activeFruit.removeFromScene(this.scene);
+      this.activeFruit = null;
+    }
+    if (this.level) {
+      this.level.removeFromScene?.(this.scene);
+    }
+    if (this.pacman) {
+      this.scene.remove(this.pacman.group);
+    }
+    this.ghosts.forEach((g) => this.scene.remove(g.group));
+    this.ghosts = [];
+
+    this.fruitsSpawnedThisLevel = 0;
+    this.ghostChainCount = 0;
+    this.powerModeTimer = 0;
+
+    // Hide win screen; keep score/lives
+    this.winScreen.classList.add('hidden');
+
+    await this.loadLevel();
+
+    // Camera controller cares about level dimensions
+    if (this.cameraController) {
+      this.cameraController.scale = this.level.scale;
+      this.cameraController.levelWidth = this.level.width;
+      this.cameraController.levelHeight = this.level.height;
+    }
+
+    this.updateUI();
+    this.showIntro();
   }
 
   gameOver() {
@@ -676,6 +766,8 @@ class Game {
 
   activatePowerMode() {
     this.powerModeTimer = this.powerModeDuration;
+    // Reset ghost-eat chain — each fresh power pill restarts the 200/400/800/1600 series
+    this.ghostChainCount = 0;
     this.ghosts.forEach((ghost) => ghost.setScared(true));
     this.audioManager.playPowerPill();
   }
@@ -795,6 +887,16 @@ class Game {
       }
     }
 
+    // Tick the active fruit (bobbing, blink-before-expire, despawn).
+    // Despawned fruit is removed from the scene so the next spawn slot is free.
+    if (this.activeFruit) {
+      this.activeFruit.update(this.deltaTime, elapsedTime);
+      if (this.activeFruit.expired || this.activeFruit.collected) {
+        this.activeFruit.removeFromScene(this.scene);
+        this.activeFruit = null;
+      }
+    }
+
     // Update Pacman.
     //
     // Birds-Eye Follow used to force `direction = 'up'` when the
@@ -839,7 +941,7 @@ class Game {
     if (this.cameraController.currentMode === 2) {
       // FPPOV
       this.controls.updateMouthOverlay(this.pacman.getMouthAngle());
-      this.minimap.update(this.level, this.pacman, this.ghosts);
+      this.minimap.update(this.level, this.pacman, this.ghosts, this.activeFruit);
       this.updateDangerWarning();
     } else {
       // Hide danger overlay when not in FPS mode
@@ -970,6 +1072,7 @@ class Game {
         this.addScore(GAMEPLAY.SCORE_DOT);
         this.audioManager.playChomp();
         this.pacman.startChomp();
+        this.maybeSpawnFruit();
       }
     });
 
@@ -982,6 +1085,86 @@ class Game {
         this.pacman.startChomp();
       }
     });
+
+    // Check fruit
+    if (this.activeFruit && this.activeFruit.isCollectibleAt(pacmanPos, collectRadius)) {
+      const points = this.activeFruit.collect();
+      this.addScore(points);
+      this.audioManager.playGhostEaten?.(); // reuse jingle; fine until a fruit SFX exists
+      this.showFruitToast(this.activeFruit.type, points);
+    }
+  }
+
+  /**
+   * Classic arcade rule: fruit appears at fixed thresholds (~30% and ~70%
+   * of dots eaten). The fruit type is keyed off the current level index so
+   * later levels show higher-value fruit.
+   */
+  maybeSpawnFruit() {
+    if (this.fruitsSpawnedThisLevel >= 2) return;
+
+    const totalDots = this.level.dots.length;
+    if (totalDots === 0) return;
+    const eaten = this.level.dots.filter((d) => !d.visible).length;
+    const eatenFrac = eaten / totalDots;
+
+    const thresholds = [GAMEPLAY.FRUIT_FIRST_SPAWN_FRAC, GAMEPLAY.FRUIT_SECOND_SPAWN_FRAC];
+    const needed = thresholds[this.fruitsSpawnedThisLevel];
+    if (eatenFrac < needed) return;
+
+    // Spawn at the level's marked tile, or default to one tile south of the
+    // ghost-house centroid.
+    let spawn = this.level.fruitSpawn;
+    if (!spawn && this.level.ghostHome.length > 0) {
+      const avgX = Math.round(
+        this.level.ghostHome.reduce((s, g) => s + g.x, 0) / this.level.ghostHome.length
+      );
+      const minY = Math.min(...this.level.ghostHome.map((g) => g.y));
+      spawn = { x: avgX, y: minY - 1 };
+    }
+    if (!spawn) return;
+
+    // Clear any leftover fruit before spawning a new one
+    if (this.activeFruit) {
+      this.activeFruit.removeFromScene(this.scene);
+      this.activeFruit = null;
+    }
+
+    const fruitLevelIdx = this.levelOrderIndex >= 0 ? this.levelOrderIndex : 0;
+    this.activeFruit = new Fruit(spawn, this.level.scale, fruitLevelIdx);
+    this.activeFruit.addToScene(this.scene);
+    this.fruitsSpawnedThisLevel++;
+  }
+
+  /**
+   * Lightweight floating-text feedback when a fruit is eaten. Uses the
+   * existing intro-countdown element style for consistency but lives in
+   * its own transient div so it doesn't fight the intro.
+   */
+  showFruitToast(fruitType, points) {
+    const toast = document.createElement('div');
+    toast.textContent = `${fruitType.emoji} +${points}`;
+    toast.style.cssText = [
+      'position:fixed',
+      'top:30%',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'font-family:monospace',
+      'font-size:2.5rem',
+      'font-weight:bold',
+      'color:#ffea4d',
+      'text-shadow:0 0 8px rgba(255,150,0,0.9)',
+      'pointer-events:none',
+      'z-index:9999',
+      'transition:opacity 1.2s ease-out, transform 1.2s ease-out'
+    ].join(';');
+    document.body.appendChild(toast);
+    // Animate up and fade
+    requestAnimationFrame(() => {
+      toast.style.transform = 'translate(-50%, -40px)';
+      toast.style.opacity = '0';
+    });
+    setTimeout(() => toast.remove(), 1300);
   }
 
   checkGhostCollision() {
@@ -995,9 +1178,12 @@ class Game {
 
       if (distance < collisionRadius) {
         if (ghost.isScared()) {
-          // Eat the ghost
+          // Eat the ghost — classic 200/400/800/1600 chain per power pill
           ghost.die();
-          this.addScore(GAMEPLAY.SCORE_GHOST);
+          const chain = GAMEPLAY.GHOST_CHAIN_SCORES;
+          const idx = Math.min(this.ghostChainCount, chain.length - 1);
+          this.addScore(chain[idx]);
+          this.ghostChainCount++;
           this.audioManager.playGhostEaten();
         } else {
           // Pacman dies

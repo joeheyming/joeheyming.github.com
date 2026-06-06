@@ -20,8 +20,9 @@ export class Minimap {
    * @param {Level} level - The game level
    * @param {Pacman} pacman - The player
    * @param {Ghost[]} ghosts - Array of ghosts
+   * @param {Fruit|null} [fruit] - Optional bonus fruit currently on the board
    */
-  update(level, pacman, ghosts) {
+  update(level, pacman, ghosts, fruit) {
     if (!this.ctx || !level || !pacman) return;
 
     const ctx = this.ctx;
@@ -56,10 +57,33 @@ export class Minimap {
     // Draw ghosts
     this.drawGhosts(ctx, level, ghosts, playerGridX, playerGridY, centerX, centerY, tileSize);
 
+    // Draw fruit (if any)
+    if (fruit && !fruit.collected && !fruit.expired) {
+      this.drawFruit(ctx, level, fruit, playerGridX, playerGridY, centerX, centerY, tileSize);
+    }
+
     // Draw player
     this.drawPlayer(ctx, pacman, centerX, centerY, tileSize);
 
     ctx.restore(); // Restore from clip
+  }
+
+  drawFruit(ctx, level, fruit, playerGridX, playerGridY, centerX, centerY, tileSize) {
+    const fGridX = level.worldToGrid(fruit.group.position.x);
+    const fGridY = level.worldToGrid(fruit.group.position.y);
+    const dx = fGridX - playerGridX;
+    const dy = fGridY - playerGridY;
+    if (Math.abs(dx) > this.viewRadius || Math.abs(dy) > this.viewRadius) return;
+
+    const screenX = centerX + dx * tileSize;
+    const screenY = centerY - dy * tileSize;
+
+    // Pulse for visibility
+    const pulse = 1 + Math.sin(Date.now() / 180) * 0.25;
+    ctx.fillStyle = '#' + fruit.type.color.toString(16).padStart(6, '0');
+    ctx.beginPath();
+    ctx.arc(screenX, screenY, (tileSize / 2.5) * pulse, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   drawTiles(ctx, level, playerGridX, playerGridY, centerX, centerY, tileSize) {
@@ -84,8 +108,9 @@ export class Minimap {
             ctx.fillStyle = this.colors.powerPill;
           } else if (tile === 3) {
             ctx.fillStyle = this.colors.ghostHome;
-          } else if (tile === 1 || tile === 6) {
-            // Floor tiles and pacman start tiles look the same
+          } else if (tile === 1 || tile === 6 || tile === 7) {
+            // Floor, pacman start, and fruit spawn all paint as floor.
+            // (Active fruit is drawn as a separate sprite via the game loop.)
             ctx.fillStyle = this.colors.floor;
           } else {
             ctx.fillStyle = this.colors.void;

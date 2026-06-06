@@ -61,6 +61,9 @@ export class Ghost {
     this.chaseDuration = GAMEPLAY.GHOST_CHASE_DURATION;
     this.inChaseMode = false;
 
+    // Multi-island teleport cooldown — see Pacman.lastTeleportTileKey
+    this.lastTeleportTileKey = null;
+
     // Reference to other ghosts (for Inky's behavior)
     this.blinkyRef = null;
 
@@ -502,12 +505,101 @@ export class Ghost {
       this.moveAlongPath(deltaTime, this.moveSpeed);
     }
 
+    // Ghosts use teleports too — but only when alive and not in the
+    // returning-eyes state (eyes need to walk back to the home tile).
+    if (!this.dead) {
+      this.checkTeleport();
+    }
+
     // Update visual position
     this.group.position.copy(this.position);
     this.group.rotation.z = (this.yaw * Math.PI) / 180;
 
     // Update pupil direction to look at pacman
     this.updatePupilDirection(pacmanPos);
+  }
+
+  /**
+   * Teleport check for ghosts.
+   *
+   * Pair mode (legacy tunnels): trigger when the ghost crosses the outer
+   * edge of either endpoint tile, mirroring Pacman's logic.
+   *
+   * Next mode (multi-island): trigger when the ghost is centered on any
+   * endpoint tile and cycle to the next endpoint. A small cooldown prevents
+   * re-trigger loops when the ghost camps on the destination tile.
+   */
+  checkTeleport() {
+    const groups = this.level.teleportGroups;
+    if (!groups || groups.length === 0) return;
+
+    const gridX = this.level.worldToGrid(this.position.x);
+    const gridY = this.level.worldToGrid(this.position.y);
+    const halfScale = this.level.scale / 2;
+
+    for (const group of groups) {
+      if (group.mode === 'pair' && group.endpoints.length === 2) {
+        const [a, b] = group.endpoints;
+        if (
+          gridY === a.y &&
+          this.position.x < this.level.gridToWorld(a.x) - halfScale + this.radius
+        ) {
+          this.position.x = this.level.gridToWorld(b.x);
+          this.position.y = this.level.gridToWorld(b.y);
+          this.path = [];
+          return;
+        }
+        if (
+          gridY === b.y &&
+          this.position.x > this.level.gridToWorld(b.x) + halfScale - this.radius
+        ) {
+          this.position.x = this.level.gridToWorld(a.x);
+          this.position.y = this.level.gridToWorld(a.y);
+          this.path = [];
+          return;
+        }
+        if (
+          gridX === a.x &&
+          this.position.y > this.level.gridToWorld(a.y) + halfScale - this.radius
+        ) {
+          this.position.x = this.level.gridToWorld(b.x);
+          this.position.y = this.level.gridToWorld(b.y);
+          this.path = [];
+          return;
+        }
+        if (
+          gridX === b.x &&
+          this.position.y < this.level.gridToWorld(b.y) - halfScale + this.radius
+        ) {
+          this.position.x = this.level.gridToWorld(a.x);
+          this.position.y = this.level.gridToWorld(a.y);
+          this.path = [];
+          return;
+        }
+      } else if (group.mode === 'next' && group.endpoints.length >= 2) {
+        for (let i = 0; i < group.endpoints.length; i++) {
+          const ep = group.endpoints[i];
+          if (ep.x !== gridX || ep.y !== gridY) continue;
+
+          const cx = this.level.gridToWorld(ep.x);
+          const cy = this.level.gridToWorld(ep.y);
+          const dx = this.position.x - cx;
+          const dy = this.position.y - cy;
+          if (dx * dx + dy * dy > (this.level.scale * 0.35) ** 2) continue;
+
+          const key = `${ep.x},${ep.y}`;
+          if (this.lastTeleportTileKey === key) break;
+
+          const next = group.endpoints[(i + 1) % group.endpoints.length];
+          this.position.x = this.level.gridToWorld(next.x);
+          this.position.y = this.level.gridToWorld(next.y);
+          this.lastTeleportTileKey = `${next.x},${next.y}`;
+          this.path = [];
+          return;
+        }
+      }
+    }
+    this.lastTeleportTileKey = null;
   }
 
   updatePupilDirection(pacmanPos) {
@@ -826,6 +918,7 @@ export class Ghost {
     this.scared = false;
     this.exitingHome = false;
     this.state = GHOST_STATE.SCATTER;
+    this.lastTeleportTileKey = null;
 
     // Reset visuals
     this.headMesh.visible = true;

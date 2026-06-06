@@ -85,8 +85,34 @@ export const TILE = {
   GHOST_HOME: 3,
   TELEPORT: 4,
   POWER_PILL: 5,
-  PACMAN_START: 6
+  PACMAN_START: 6,
+  FRUIT_SPAWN: 7
 };
+
+// =============================================================================
+// LEVEL PROGRESSION
+// =============================================================================
+// Order players advance through when the "NEXT LEVEL" button is pressed or
+// when they finish a level. `level0` is the arcade-style intro, then the
+// numbered originals. Add new levels here to make them part of the linear
+// run-through; ad-hoc levels can still be loaded via ?level=name.
+export const LEVEL_ORDER = ['level0', 'level1', 'level2', 'level3', 'level4', 'level5'];
+
+// =============================================================================
+// FRUIT TYPES (Ms. Pac-Man style bonus items, classic spawn rules)
+// =============================================================================
+// Indexed by current level number — higher levels show higher-score fruit.
+// Color is a hex int for the 3D mesh; emoji is the HUD glyph.
+export const FRUIT_TYPES = [
+  { name: 'cherry', color: 0xff2222, score: 100, emoji: '🍒' },
+  { name: 'strawberry', color: 0xff66aa, score: 300, emoji: '🍓' },
+  { name: 'orange', color: 0xff9933, score: 500, emoji: '🍊' },
+  { name: 'apple', color: 0xcc0000, score: 700, emoji: '🍎' },
+  { name: 'melon', color: 0x77cc44, score: 1000, emoji: '🍉' },
+  { name: 'galaxian', color: 0x66ccff, score: 2000, emoji: '👾' },
+  { name: 'bell', color: 0xffff44, score: 3000, emoji: '🔔' },
+  { name: 'key', color: 0xcc9933, score: 5000, emoji: '🔑' }
+];
 
 // =============================================================================
 // GAMEPLAY CONSTANTS
@@ -120,7 +146,15 @@ export const GAMEPLAY = {
   GHOST_COLLISION_PADDING: 2, // additional radius for ghost collision
 
   // FPS danger warning
-  DANGER_WARNING_RADIUS: 5 // tiles distance to trigger warning
+  DANGER_WARNING_RADIUS: 5, // tiles distance to trigger warning
+
+  // Fruit (classic arcade rules: appears at fixed spawn after dot thresholds)
+  FRUIT_LIFETIME: 10, // seconds visible before despawning
+  FRUIT_FIRST_SPAWN_FRAC: 0.3, // spawn 1st fruit after ~30% dots eaten
+  FRUIT_SECOND_SPAWN_FRAC: 0.7, // spawn 2nd fruit after ~70% dots eaten
+
+  // Ghost-eat scoring chain (200, 400, 800, 1600 per ghost during one power mode)
+  GHOST_CHAIN_SCORES: [200, 400, 800, 1600]
 };
 
 // =============================================================================
