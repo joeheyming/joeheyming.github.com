@@ -216,6 +216,7 @@
     <script async src="scorer.js"></script>
     <script async src="playWords.js"></script>
     <script src="words.js"></script>
+    <script defer src="wordle-game.js"></script>
     <script defer src="index.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/moment.min.js"></script>
   </head>
@@ -370,11 +371,12 @@
               <select id="solverMode">
                 <option value="score">Help me solve wordle</option>
                 <option value="play">Play with helper</option>
+                <option value="wordle">Play Wordle 🎮</option>
               </select>
             </div>
           </div>
         </div>
-        <div class="form-row">
+        <div class="form-row" id="strategy-row">
           <label class="form-label" for="strategySelect">Strategy</label>
           <div class="form-input fixed-input-control">
             <div class="custom-select">
@@ -601,6 +603,18 @@
             <span id="playWordsCount"></span>
           </h2>
         </div>
+      </div>
+
+      <div class="content" id="wordle-game" style="display: none">
+        <div class="wg-header">
+          <button class="btn-primary btn-bordered wg-new-game" type="button">New Game</button>
+          <div class="wg-status" aria-live="polite"></div>
+        </div>
+        <div class="wg-board-wrap">
+          <div class="wg-message" role="status" aria-live="polite"></div>
+          <div class="wg-board" aria-label="Wordle board"></div>
+        </div>
+        <div class="wg-keyboard" aria-label="On-screen keyboard"></div>
       </div>
     </main>
     <div id="results" hidden>

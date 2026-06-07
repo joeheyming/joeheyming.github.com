@@ -116,16 +116,34 @@ function helpClick() {
 }
 
 function setMode(mode) {
+  var wordleGame = document.getElementById('wordle-game');
+  var strategyRow = document.getElementById('strategy-row');
+
   if (mode === 'play') {
     resetPlayer();
     scorer.style.display = 'none';
     results.style.display = 'none';
     player.style.display = '';
+    if (wordleGame) wordleGame.style.display = 'none';
+    if (strategyRow) strategyRow.style.display = '';
+  } else if (mode === 'wordle') {
+    resetScorer();
+    resetPlayer();
+    scorer.style.display = 'none';
+    results.style.display = 'none';
+    player.style.display = 'none';
+    if (strategyRow) strategyRow.style.display = 'none';
+    if (wordleGame) wordleGame.style.display = '';
+    if (typeof window.startWordleGame === 'function') {
+      window.startWordleGame();
+    }
   } else {
     resetScorer();
     scorer.style.display = '';
     results.style.display = '';
     player.style.display = 'none';
+    if (wordleGame) wordleGame.style.display = 'none';
+    if (strategyRow) strategyRow.style.display = '';
   }
 }
 

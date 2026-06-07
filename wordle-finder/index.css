@@ -633,6 +633,287 @@ label.form-input,
   justify-content: space-around;
 }
 
+/* ─── Wordle clone (Play Wordle mode) ──────────────────────────────── */
+
+#wordle-game {
+  align-items: center;
+  gap: 12px;
+}
+
+.wg-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  justify-content: space-between;
+  min-height: 44px;
+}
+
+.wg-status {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  color: var(--text-2);
+  text-align: right;
+  flex: 1;
+}
+
+.wg-status-win {
+  color: var(--wordle-green);
+}
+
+.wg-status-lose {
+  color: var(--wordle-yellow);
+}
+
+.wg-board-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Floating toast — "Not in word list", "Need 5 letters", win banner. */
+.wg-message {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  background: var(--surface-2);
+  color: var(--text-1);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  padding: 6px 12px;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 2;
+  box-shadow: var(--shadow-modal, 0 6px 18px rgba(0, 0, 0, 0.35));
+}
+
+.wg-message.visible {
+  opacity: 1;
+}
+
+.wg-board {
+  display: grid;
+  grid-template-rows: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.wg-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.wg-tile {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 28px;
+  text-transform: uppercase;
+  color: var(--text-1);
+  background-color: transparent;
+  border: 2px solid var(--hairline-strong);
+  border-radius: 6px;
+  user-select: none;
+  transition: transform 0.12s ease, background-color 0.2s ease, border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.wg-tile.filled {
+  border-color: var(--text-2);
+  transform: scale(1.03);
+}
+
+.wg-tile.correct {
+  background-color: var(--wordle-green);
+  border-color: var(--wordle-green);
+  color: var(--wordle-text-on-tile);
+  animation: wg-flip 0.45s ease both;
+}
+
+.wg-tile.maybecorrect {
+  background-color: var(--wordle-yellow);
+  border-color: var(--wordle-yellow);
+  color: var(--wordle-text-on-tile-dark);
+  animation: wg-flip 0.45s ease both;
+}
+
+.wg-tile.incorrect {
+  background-color: var(--wordle-gray);
+  border-color: var(--wordle-gray);
+  color: var(--wordle-text-on-tile);
+  animation: wg-flip 0.45s ease both;
+}
+
+/* Stagger the reveal so it reads left-to-right. */
+.wg-row .wg-tile:nth-child(1).correct,
+.wg-row .wg-tile:nth-child(1).maybecorrect,
+.wg-row .wg-tile:nth-child(1).incorrect {
+  animation-delay: 0s;
+}
+.wg-row .wg-tile:nth-child(2).correct,
+.wg-row .wg-tile:nth-child(2).maybecorrect,
+.wg-row .wg-tile:nth-child(2).incorrect {
+  animation-delay: 0.08s;
+}
+.wg-row .wg-tile:nth-child(3).correct,
+.wg-row .wg-tile:nth-child(3).maybecorrect,
+.wg-row .wg-tile:nth-child(3).incorrect {
+  animation-delay: 0.16s;
+}
+.wg-row .wg-tile:nth-child(4).correct,
+.wg-row .wg-tile:nth-child(4).maybecorrect,
+.wg-row .wg-tile:nth-child(4).incorrect {
+  animation-delay: 0.24s;
+}
+.wg-row .wg-tile:nth-child(5).correct,
+.wg-row .wg-tile:nth-child(5).maybecorrect,
+.wg-row .wg-tile:nth-child(5).incorrect {
+  animation-delay: 0.32s;
+}
+
+@keyframes wg-flip {
+  0% {
+    transform: rotateX(0deg);
+  }
+  50% {
+    transform: rotateX(90deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+
+.wg-shake {
+  animation: wg-shake 0.4s ease;
+}
+
+@keyframes wg-shake {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
+}
+
+.wg-keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 500px;
+  margin-top: 4px;
+}
+
+.wg-key-row {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.wg-key {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 52px;
+  padding: 0;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  background-color: var(--surface-2);
+  color: var(--text-1);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.wg-key:hover {
+  background-color: var(--surface-1);
+}
+
+.wg-key.wg-key-wide {
+  flex: 1.7 1 0;
+  font-size: 13px;
+}
+
+.wg-key.correct {
+  background-color: var(--wordle-green);
+  border-color: var(--wordle-green);
+  color: var(--wordle-text-on-tile);
+}
+
+.wg-key.maybecorrect {
+  background-color: var(--wordle-yellow);
+  border-color: var(--wordle-yellow);
+  color: var(--wordle-text-on-tile-dark);
+}
+
+.wg-key.incorrect {
+  background-color: var(--wordle-gray);
+  border-color: var(--wordle-gray);
+  color: var(--wordle-text-on-tile);
+}
+
+@media screen and (max-width: 479px) {
+  .wg-tile {
+    width: 52px;
+    height: 52px;
+    font-size: 26px;
+  }
+
+  .wg-key {
+    min-height: 48px;
+    font-size: 13px;
+  }
+
+  .wg-key.wg-key-wide {
+    font-size: 12px;
+  }
+}
+
+@media screen and (max-width: 360px) {
+  .wg-tile {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wg-tile,
+  .wg-tile.correct,
+  .wg-tile.maybecorrect,
+  .wg-tile.incorrect,
+  .wg-shake {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 select {
   width: 190px;
   height: 44px;
