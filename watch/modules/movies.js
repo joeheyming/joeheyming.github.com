@@ -324,8 +324,16 @@ export const MOVIES = [
     // The trilogy of Naked Gun movies and the 1982 Police Squad! TV
     // series they were spun off from all live in the same IA item
     // (`PoliceSquad`). Each movie picks its own basename out of that
-    // shared upload via `iaFile`. The same upload also ships 6 episodes
-    // of the TV series (~25 min each) as native h.264 MP4s — could be
+    // shared upload via `iaFile`. The source `.mp4`s on that item
+    // are MPEG-4 Part 2 (DivX-era `mp4v` codec, 640×480) which
+    // Chrome's WebView can't decode — symptom is audio plays but no
+    // video. Switch to the IA-generated `.ia.mp4` derivatives, which
+    // are H.264 + AAC at 852×480 and browser-safe. Because iaFile is
+    // set explicitly, buildMovieCatalog does an exact basename match
+    // and bypasses the default "no .ia.mp4" acceptor.
+    //
+    // The same upload also ships 6 episodes of the TV series
+    // (~25 min each) as native h.264 MP4s — could be
     // a separate ShowConfig entry someday; the 6 episodes are too few
     // for the chip filter to matter much but the legacy is significant.
     //
@@ -341,7 +349,7 @@ export const MOVIES = [
     tagline:
       'Frank Drebin investigates an attempt on the Queen of England · the 1988 ZAZ-team Leslie Nielsen flagship that proved Police Squad! works at feature length',
     iaItem: 'PoliceSquad',
-    iaFile: '1988 - The Naked Gun.mp4',
+    iaFile: '1988 - The Naked Gun.ia.mp4',
     imdbId: 'tt0095705',
     posterUrl: 'https://upload.wikimedia.org/wikipedia/en/5/5f/The_Naked_Gun_Poster.jpg'
   },
@@ -356,7 +364,7 @@ export const MOVIES = [
       'Frank Drebin vs. the energy lobby and Robert Goulet · the 1991 sequel where Drebin gets reactivated to investigate Quentin Hapsburg',
     iaItem: 'PoliceSquad',
     // Note the DOUBLE SPACE between `-` and `The`.
-    iaFile: '1991 -  The Naked Gun 2 The Smell Of Fear.mp4',
+    iaFile: '1991 -  The Naked Gun 2 The Smell Of Fear.ia.mp4',
     imdbId: 'tt0102510',
     posterUrl: 'https://upload.wikimedia.org/wikipedia/en/d/d1/Naked_Gun_2.jpg'
   },
@@ -371,7 +379,7 @@ export const MOVIES = [
       'Frank Drebin retired with Jane, then dragged back to infiltrate the Rocco Dillon gang · the 1994 trilogy finale with O.J. Simpson’s last theatrical role',
     iaItem: 'PoliceSquad',
     // Note the DOUBLE SPACE between `-` and `The`.
-    iaFile: '1994 -  The Naked Gun 3 The Final Insult.mp4',
+    iaFile: '1994 -  The Naked Gun 3 The Final Insult.ia.mp4',
     imdbId: 'tt0110622',
     posterUrl: 'https://upload.wikimedia.org/wikipedia/en/1/14/Naked_Gun_3_poster.jpg'
   },
