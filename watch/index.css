@@ -948,6 +948,18 @@ a.tv-crumb:hover {
   }
 }
 
+/* Hide on the player view in TV mode. On the Android-TV WebView the
+   rail overlaps the player chrome (left bezel label, save-offline
+   button, scrub controls) and the user reported it physically gets
+   in the way of remote-control navigation during playback. The
+   `tv-quicknav--hidden-on-player` class is toggled from
+   `quicknav.js:updateActive` whenever `isTvMode && isPlayerView(loc)`
+   — desktop / mouse browsers keep the rail on the player view since
+   it doesn't compete with anything there. */
+.tv-quicknav.tv-quicknav--hidden-on-player {
+  display: none;
+}
+
 /* ------------------------------------------------------------------------ */
 /* Player view — Save-offline button states                                 */
 /* ------------------------------------------------------------------------ */

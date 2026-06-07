@@ -18,6 +18,14 @@
  *   - Auto-hides on narrow viewports (CSS media query) so the rail
  *     doesn't overlap the video player on phones; the breadcrumb +
  *     back button cover the mobile case.
+ *   - Auto-hides on the watch view *in TV mode only*. On a 10-foot
+ *     Android-TV display the rail intercepts D-pad focus and
+ *     overlaps the player chrome (and the user reported it physically
+ *     gets in the way during playback). Desktop / mouse browsers
+ *     keep the rail on every view — same `isTvMode` check that the
+ *     watch view itself uses to decide between TV chrome and laptop
+ *     chrome. The "player view" is detected by the same `e=` / `movie=`
+ *     query-string heuristic the Android shell's `isWatchUrl` uses.
  *   - The Movies button writes a `#movies` hash before re-routing.
  *     `shows-view` reads the hash on mount and scrolls its Movies
  *     section into view.
@@ -27,7 +35,26 @@
  */
 
 import { MOVIES } from './movies.js';
+import { isTvMode } from './mode.js';
 import { listContinueWatching } from './prefs.js';
+
+/**
+ * Match the Android shell's `isWatchUrl` heuristic: any `?show=…&e=`
+ * or `?movie=` URL is a playback view. Episodes-list URLs
+ * (`?show=foo` with no `e=`) and the landing page itself do *not*
+ * count — those are navigation views where the rail is useful.
+ *
+ * Keep this in lockstep with `MainActivity.kt` in the watch-tv repo;
+ * both files care about the same set of URL shapes for different
+ * reasons (rail visibility here, D-pad center-press routing there).
+ *
+ * @param {Location} loc
+ */
+function isPlayerView(loc) {
+  const q = loc.search.startsWith('?') ? loc.search.slice(1) : loc.search;
+  if (!q) return false;
+  return q.split('&').some((p) => p.startsWith('e=') || p.startsWith('movie='));
+}
 
 /**
  * Run the rail mount. Guards against double-mount (the script could
@@ -118,6 +145,11 @@ function init() {
 
   function updateActive() {
     const loc = window.location;
+    // Hide the entire rail on the player view *in TV mode only*. On
+    // the Android-TV WebView the rail intercepts D-pad focus and
+    // overlaps the chassis chrome; on desktop / mouse browsers it
+    // stays put on every view (the user can just move the mouse).
+    nav.classList.toggle('tv-quicknav--hidden-on-player', isTvMode && isPlayerView(loc));
     for (const node of nav.querySelectorAll('[data-quicknav]')) {
       const matches = matchersById[/** @type {HTMLElement} */ (node).dataset.quicknav || ''];
       if (matches && matches(loc)) node.classList.add('is-active');
