@@ -137,6 +137,35 @@
       </footer>
     </main>
 
+    <!-- Jump-to-checkbox widget. Floating bottom-right. Type a
+         1-indexed cell number, hit Enter (or the arrow), and the page
+         smooth-scrolls so the target cell sits in the middle of the
+         viewport with a brief pulse ring around it. Mirrors the
+         "jump to" affordance the original OMCB had in its corner. -->
+    <form id="cb-jump" class="cb-jump" autocomplete="off">
+      <label for="cb-jump-input" class="visually-hidden">Jump to checkbox number</label>
+      <input
+        id="cb-jump-input"
+        type="text"
+        inputmode="numeric"
+        pattern="[0-9, ]*"
+        placeholder="Jump to #"
+        aria-label="Jump to checkbox number"
+      />
+      <button type="submit" class="cb-jump-btn" aria-label="Jump to that checkbox">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+          <path
+            d="M5 12h14M13 6l6 6-6 6"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+    </form>
+
     <!-- Floating "about" button. Mirrors the back button at top-left.
          Click opens #cb-info (a tribute to the original OMCB). -->
     <button id="cb-info-btn" type="button" class="cb-info-btn" aria-label="About this page">

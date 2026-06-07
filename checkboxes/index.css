@@ -126,6 +126,154 @@
   padding: 4px 0 12px;
 }
 
+/* Jump-to-checkbox widget. Pill-shaped input + arrow button floating
+   at bottom-right; mirrors the "jump to checkbox" corner widget the
+   original onemillioncheckboxes.com had. JS reads the 1-indexed
+   number and smooth-scrolls to that cell with a brief pulse ring. */
+.cb-jump {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
+  display: flex;
+  align-items: stretch;
+  background: var(--surface-1, #ffffff);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  font-family: inherit;
+  overflow: hidden;
+}
+
+.cb-jump input {
+  width: 130px;
+  padding: 8px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text-1, #1a1a1a);
+  font-size: 0.9rem;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+
+.cb-jump input::placeholder {
+  color: var(--text-2, #777);
+}
+
+.cb-jump-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  border: 0;
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+  background: transparent;
+  color: var(--cb-accent);
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.cb-jump-btn:hover,
+.cb-jump-btn:focus-visible {
+  background: var(--cb-accent);
+  color: var(--cb-accent-fg);
+  outline: none;
+}
+
+@media (max-width: 480px) {
+  .cb-jump {
+    bottom: 12px;
+    right: 12px;
+  }
+
+  .cb-jump input {
+    width: 100px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+  }
+
+  .cb-jump-btn {
+    width: 36px;
+  }
+}
+
+:root[data-theme='dark'] .cb-jump {
+  background: var(--surface-1, #161b22);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme='dark'] .cb-jump-btn {
+  border-left-color: rgba(255, 255, 255, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .cb-jump {
+    background: var(--surface-1, #161b22);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+
+  :root:not([data-theme='light']) .cb-jump-btn {
+    border-left-color: rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* Pulse ring drawn on top of the grid after a jump. Positioned
+   absolutely inside .cb-grid by JS (which sets left/top/width/height).
+   Sized to wrap the cell with a small halo, then animated out. */
+.cb-jump-highlight {
+  position: absolute;
+  pointer-events: none;
+  border: 2px solid var(--cb-accent);
+  border-radius: 3px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--cb-accent) 30%, transparent);
+  animation: cb-jump-pulse 1.6s ease-out forwards;
+}
+
+@keyframes cb-jump-pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1.4);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+/* Shake the input briefly when an out-of-range / non-numeric entry
+   is rejected. */
+.cb-jump-error {
+  animation: cb-jump-shake 0.4s ease-in-out;
+}
+
+@keyframes cb-jump-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
 /* Floating "about" button. Sits opposite the back button at top-right
    and opens #cb-info. Stays visible everywhere (including OS iframes
    and PWA standalone) — unlike back.js, the credit is content-level,

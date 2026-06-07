@@ -382,6 +382,79 @@ grid.addEventListener('click', (e) => {
   updateChecked();
 });
 
+// ---------------------------------------------------------------------
+// Jump-to-checkbox widget. 1-indexed input → smooth-scroll to that
+// cell, with a brief pulse ring drawn on top of the grid. Tile mounts
+// auto-trigger via the IntersectionObserver as the scroll lands, so
+// the cell is painted by the time the user gets there.
+// ---------------------------------------------------------------------
+const jumpFormEl = /** @type {HTMLFormElement | null} */ (document.getElementById('cb-jump'));
+const jumpInputEl = /** @type {HTMLInputElement | null} */ (
+  document.getElementById('cb-jump-input')
+);
+
+function jumpToCell(cellId) {
+  if (cellId < 0 || cellId >= N || COLS === 0) return;
+  const row = Math.floor(cellId / COLS);
+  const col = cellId % COLS;
+  const x = col * STEP;
+  const y = row * STEP;
+
+  // Center the cell vertically in the viewport. The grid is positioned
+  // inside .cb-wrapper which has top padding, so we go through
+  // getBoundingClientRect to get the real document-relative position.
+  const gridRect = grid.getBoundingClientRect();
+  const targetY = gridRect.top + window.scrollY + y - window.innerHeight / 2 + STEP / 2;
+  window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+
+  showJumpHighlight(x, y);
+}
+
+// One reused overlay rather than spawning a new <div> per jump; we
+// retrigger the CSS animation by toggling the class off/on across a
+// frame boundary.
+/** @type {HTMLElement | null} */
+let highlightEl = null;
+function showJumpHighlight(x, y) {
+  // `highlightEl` can get detached when buildTiles() calls
+  // grid.replaceChildren() on resize — re-create if the reference is
+  // stale rather than coupling buildTiles to know about it.
+  if (!highlightEl || highlightEl.parentNode !== grid) {
+    highlightEl = document.createElement('div');
+    highlightEl.className = 'cb-jump-highlight';
+    grid.appendChild(highlightEl);
+  }
+  highlightEl.style.left = `${x - 6}px`;
+  highlightEl.style.top = `${y - 6}px`;
+  highlightEl.style.width = `${CELL + 12}px`;
+  highlightEl.style.height = `${CELL + 12}px`;
+
+  // Restart the animation: drop the class, force a reflow so the
+  // browser commits the "no-animation" state, then re-add it.
+  highlightEl.classList.remove('cb-jump-highlight');
+  void highlightEl.offsetWidth;
+  highlightEl.classList.add('cb-jump-highlight');
+}
+
+if (jumpFormEl && jumpInputEl) {
+  jumpFormEl.addEventListener('submit', (e) => {
+    e.preventDefault();
+    // Tolerate "500,000" or "500 000" — strip any non-digit so users
+    // can copy-paste numbers from the counter without re-typing them.
+    const raw = jumpInputEl.value.replace(/[^0-9]/g, '');
+    const n = parseInt(raw, 10);
+    if (!Number.isFinite(n) || n < 1 || n > N) {
+      jumpInputEl.classList.remove('cb-jump-error');
+      void jumpInputEl.offsetWidth;
+      jumpInputEl.classList.add('cb-jump-error');
+      jumpInputEl.select();
+      return;
+    }
+    jumpToCell(n - 1);
+    jumpInputEl.blur();
+  });
+}
+
 // Resize: recompute COLS, rebuild tile layout. Debounced because the
 // browser fires resize at ~60Hz on continuous drags.
 let resizeTimer = 0;
