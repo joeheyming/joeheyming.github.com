@@ -307,7 +307,16 @@ export const MOVIES = [
     tagline:
       'As you wish · Rob Reiner’s 1987 storybook romance with sword fights, ROUS, the Cliffs of Insanity, and inconceivable miracle pills, from William Goldman’s novel',
     iaItem: 'the-princess-bride_202402',
-    iaFile: 'The Princess Bride.mp4',
+    // The source `The Princess Bride.mp4` (3.3 GB) ships its audio
+    // as E-AC-3 5.1 (Dolby Digital Plus) which Chrome's WebView
+    // can't decode — the video plays but the audio is silent.
+    // Switch to the IA-generated `.ia.mp4` derivative (3.2 GB) which
+    // re-encodes to plain AAC stereo at 92 kbps, browser-safe. Same
+    // h.264 720p video stream, same 98-min length. When iaFile is
+    // set explicitly buildMovieCatalog does an exact basename match
+    // and bypasses the default "no .ia.mp4" acceptor, so no
+    // acceptFile override is needed.
+    iaFile: 'The Princess Bride.ia.mp4',
     imdbId: 'tt0093779',
     posterUrl: 'https://upload.wikimedia.org/wikipedia/en/d/db/Princess_bride.jpg'
   },
