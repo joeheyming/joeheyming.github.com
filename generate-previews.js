@@ -862,6 +862,51 @@ const PAGES = [
     title: 'Sudoku'
   },
   {
+    url: `${BASE_URL}/2048/`,
+    output: '2048/2048-preview.png',
+    title: '2048',
+    // Default capture is two random low-value tiles on a near-empty
+    // board, which doesn't read as "2048" at OG dimensions. Seed a
+    // mid-game position with a 1024 + 512 + 256 ladder so the preview
+    // shows the iconic warm-color tile cascade the game is known for.
+    setup: async (page) => {
+      await page.evaluate(() => {
+        const tiles = document.getElementById('tiles');
+        const score = document.getElementById('score');
+        const best = document.getElementById('best');
+        if (!tiles) return;
+        tiles.replaceChildren();
+        // Hand-placed snapshot — picks values across the warm palette
+        // tier (8/16/32/64) plus a 128/256/512/1024 ladder so the
+        // preview reads as a real, satisfying mid-game state.
+        const layout = [
+          [2, 4, 8, 16],
+          [4, 16, 32, 64],
+          [8, 32, 128, 256],
+          [64, 512, 1024, 2048]
+        ];
+        let id = 1;
+        for (let r = 0; r < 4; r++) {
+          for (let c = 0; c < 4; c++) {
+            const v = layout[r][c];
+            const el = document.createElement('div');
+            el.className = 'tile';
+            el.dataset.id = String(id++);
+            el.dataset.value = String(v);
+            el.textContent = String(v);
+            const x = `calc((var(--cell-size) + var(--gap)) * ${c})`;
+            const y = `calc((var(--cell-size) + var(--gap)) * ${r})`;
+            el.style.transform = `translate(${x}, ${y})`;
+            tiles.appendChild(el);
+          }
+        }
+        if (score) score.textContent = '11380';
+        if (best) best.textContent = '24576';
+      });
+      await page.waitForTimeout(300);
+    }
+  },
+  {
     url: `${BASE_URL}/triplog/`,
     output: 'triplog/triplog-preview.png',
     title: 'Trip Log',
@@ -954,6 +999,76 @@ const PAGES = [
         }
       });
       await page.waitForTimeout(400);
+    }
+  },
+  {
+    url: `${BASE_URL}/checkboxes/`,
+    output: 'checkboxes/checkboxes-preview.png',
+    title: 'Checkboxes',
+    // The shared grid loads empty in demo mode (no form configured for
+    // local dev) — an OG image of 1024 blank squares reads as "broken
+    // page." Flip a heart-shape pattern into the grid so the preview
+    // signals "yes, the boxes are checkable, and yes, this is shared."
+    setup: async (page) => {
+      await page.waitForSelector('#cb-grid .cb-cell', { timeout: 5000 });
+      await page.evaluate(() => {
+        const COLS = 32;
+        const ROWS = 32;
+        // Heart-ish silhouette centered in the grid.
+        const heart = [
+          '................................',
+          '................................',
+          '................................',
+          '................................',
+          '...........XX........XX.........',
+          '..........XXXX......XXXX........',
+          '.........XXXXXX....XXXXXX.......',
+          '........XXXXXXXX..XXXXXXXX......',
+          '........XXXXXXXXXXXXXXXXXX......',
+          '.........XXXXXXXXXXXXXXXX.......',
+          '..........XXXXXXXXXXXXXX........',
+          '...........XXXXXXXXXXXX.........',
+          '............XXXXXXXXXX..........',
+          '.............XXXXXXXX...........',
+          '..............XXXXXX............',
+          '...............XXXX.............',
+          '................XX..............',
+          '................................',
+          '................................',
+          '................................',
+          '................................',
+          '................................',
+          '................................',
+          '................................',
+          '................................',
+          '................................',
+          '................................',
+          '................................',
+          '................................',
+          '................................',
+          '................................',
+          '................................'
+        ];
+        const cells = document.querySelectorAll('#cb-grid .cb-cell');
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (heart[r][c] === 'X') {
+              const idx = r * COLS + c;
+              const el = cells[idx];
+              if (el) el.classList.add('on');
+            }
+          }
+        }
+        // Update the counter so footer reads as a real session.
+        const checked = document.querySelectorAll('#cb-grid .cb-cell.on').length;
+        const checkedEl = document.getElementById('cb-checked');
+        if (checkedEl) checkedEl.textContent = String(checked);
+        const status = document.getElementById('cb-status');
+        if (status) status.textContent = 'live';
+        const banner = document.getElementById('cb-banner');
+        if (banner) banner.hidden = true;
+      });
+      await page.waitForTimeout(300);
     }
   },
   {

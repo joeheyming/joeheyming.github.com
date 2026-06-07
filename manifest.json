@@ -127,6 +127,12 @@
       "url": "/clock/"
     },
     {
+      "name": "2048",
+      "short_name": "2048",
+      "description": "Slide tiles to reach 2048",
+      "url": "/2048/"
+    },
+    {
       "name": "Sudoku",
       "short_name": "Sudoku",
       "description": "Classic 9×9 Sudoku in your browser",

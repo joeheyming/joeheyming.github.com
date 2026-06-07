@@ -1,0 +1,556 @@
+/* 2048 — Aurora theme. Not the original tan/orange palette: a cool
+ * dark board with a spectrum-walk of saturated tiles (slate → blue →
+ * cyan → teal → emerald → lime → amber → orange → red → magenta) so
+ * the 2048 win-tile reads as a hot-pink crescendo with a soft glow. */
+
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --g2048-board: #1a1f3a;
+  --g2048-empty: #262d52;
+  --g2048-text-light: #f9f6f2;
+  --g2048-text-dark: #1a1f3a;
+
+  /* Tile palette — distinct hue per tier. Low values are cool/desaturated
+   * to feel "background"; mid-tiers walk through cyan→teal→emerald→lime;
+   * high tiers warm into amber/orange/red; the 2048 tile lands on hot
+   * magenta. Super (>2048) is deep indigo with a violet outline. */
+  --tile-2-bg: #3a4f78;
+  --tile-2-fg: var(--g2048-text-light);
+  --tile-4-bg: #4865c2;
+  --tile-4-fg: var(--g2048-text-light);
+  --tile-8-bg: #1d80d8;
+  --tile-8-fg: var(--g2048-text-light);
+  --tile-16-bg: #06a6ce;
+  --tile-16-fg: var(--g2048-text-light);
+  --tile-32-bg: #14b8a6;
+  --tile-32-fg: var(--g2048-text-light);
+  --tile-64-bg: #22c55e;
+  --tile-64-fg: var(--g2048-text-light);
+  --tile-128-bg: #84cc16;
+  --tile-128-fg: var(--g2048-text-dark);
+  --tile-256-bg: #eab308;
+  --tile-256-fg: var(--g2048-text-dark);
+  --tile-512-bg: #f59e0b;
+  --tile-512-fg: var(--g2048-text-light);
+  --tile-1024-bg: #f43f5e;
+  --tile-1024-fg: var(--g2048-text-light);
+  --tile-2048-bg: #ec4899;
+  --tile-2048-fg: var(--g2048-text-light);
+  --tile-super-bg: #312e81;
+  --tile-super-fg: var(--g2048-text-light);
+
+  /* Board sizing: vmin keeps it square-friendly on tall phones, and the
+   * single --cell-size formula is what tile transforms key off of. */
+  --board-size: min(92vmin, 480px);
+  --grid: 4;
+  --gap: clamp(6px, 2vmin, 12px);
+  --cell-size: calc((var(--board-size) - var(--gap) * (var(--grid) + 1)) / var(--grid));
+  --tile-radius: clamp(5px, 1.6vmin, 10px);
+
+  /* Motion: the slide curve is a custom ease-out so tiles glide into
+   * their slot rather than snapping. The duration is intentionally
+   * long enough to feel deliberate on a swipe (~180ms). */
+  --slide-duration: 180ms;
+  --slide-curve: cubic-bezier(0.22, 0.85, 0.32, 1);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--surface-0);
+  color: var(--text-1);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  /* Lock the page from scrolling/rubberbanding while interacting with
+   * the board on mobile. The page itself is short (header + board +
+   * help bar) so this rarely matters on desktop. */
+  overscroll-behavior: contain;
+}
+
+body {
+  min-height: 100dvh;
+  padding: max(8px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: center;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 540px;
+}
+
+/* Header */
+.page-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 7vw, 3.25rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-1);
+  line-height: 1;
+  background: linear-gradient(135deg, var(--tile-16-bg), var(--tile-2048-bg));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.scores {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.score-box {
+  background: var(--g2048-board);
+  color: var(--g2048-text-light);
+  padding: 6px 14px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 70px;
+  position: relative;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--g2048-board) 60%, transparent);
+}
+
+.score-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--g2048-text-light) 70%, transparent);
+}
+
+.score-value {
+  font-weight: 700;
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-delta {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--tile-128-bg);
+  pointer-events: none;
+  animation: score-pop 0.6s ease-out forwards;
+}
+
+@keyframes score-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -32px);
+  }
+}
+
+.tagline {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-2);
+}
+
+.tagline strong {
+  color: var(--text-1);
+  font-weight: 700;
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.btn {
+  background: var(--surface-1);
+  color: var(--text-1);
+  border: 1px solid var(--hairline-strong);
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn:hover {
+  background: var(--surface-2);
+  border-color: var(--accent-primary);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn.primary {
+  background: linear-gradient(135deg, var(--tile-16-bg), var(--tile-2048-bg));
+  color: var(--g2048-text-light);
+  border-color: transparent;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--tile-2048-bg) 30%, transparent);
+}
+
+.btn.primary:hover {
+  filter: brightness(1.1);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Board */
+.board-wrap {
+  position: relative;
+  width: var(--board-size);
+  height: var(--board-size);
+  /* Dropping a soft glow under the board ties the page chrome to the
+   * neon palette without painting on the play surface itself. */
+  filter: drop-shadow(0 12px 32px color-mix(in srgb, var(--tile-2048-bg) 18%, transparent));
+}
+
+.board {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--g2048-board);
+  border-radius: 12px;
+  padding: var(--gap);
+  /* touch-action:none keeps the browser from claiming the gesture
+   * (scroll, pinch, pull-to-refresh) while the user is swiping. The
+   * page itself uses overscroll-behavior:contain as a backstop. */
+  touch-action: none;
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.board:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 50%, transparent);
+}
+
+.grid-bg {
+  position: absolute;
+  inset: var(--gap);
+  display: grid;
+  gap: var(--gap);
+  grid-template-columns: repeat(var(--grid), 1fr);
+  grid-template-rows: repeat(var(--grid), 1fr);
+}
+
+.grid-bg .cell-bg {
+  background: var(--g2048-empty);
+  border-radius: var(--tile-radius);
+}
+
+.tiles {
+  position: absolute;
+  inset: var(--gap);
+  pointer-events: none;
+  /* Live-drag preview: while the user is mid-swipe the JS sets
+   * --drag-x / --drag-y to a small rubber-banded offset. Tiles
+   * inherit translate from --pos via transform, so we apply the
+   * drag at the container level instead — it composes cleanly. */
+  transform: translate(var(--drag-x, 0), var(--drag-y, 0));
+  transition: transform 0.18s var(--slide-curve);
+}
+
+.tiles.dragging {
+  transition: none;
+}
+
+/* Tile */
+.tile {
+  position: absolute;
+  width: var(--cell-size);
+  height: var(--cell-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--tile-radius);
+  background: var(--tile-2-bg);
+  color: var(--tile-2-fg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(1.6rem, 5.5vmin, 2.4rem);
+  letter-spacing: -0.02em;
+  /* The slide is the visible motion on every move. Keep this curve
+   * in sync with --slide-duration / --slide-curve so JS timeouts
+   * line up with when the slide actually completes. */
+  transition: transform var(--slide-duration) var(--slide-curve), background-color 0.2s ease,
+    color 0.2s ease, box-shadow 0.2s ease;
+  will-change: transform;
+}
+
+.tile.appear {
+  animation: tile-appear 0.22s ease-out 0.12s both;
+}
+
+.tile.merged {
+  animation: tile-merge 0.22s ease-out both;
+  z-index: 2;
+}
+
+@keyframes tile-appear {
+  0% {
+    transform: var(--pos) scale(0);
+  }
+  60% {
+    transform: var(--pos) scale(1.08);
+  }
+  100% {
+    transform: var(--pos) scale(1);
+  }
+}
+
+@keyframes tile-merge {
+  0% {
+    transform: var(--pos) scale(1);
+  }
+  40% {
+    transform: var(--pos) scale(1.22);
+  }
+  100% {
+    transform: var(--pos) scale(1);
+  }
+}
+
+/* Tile color tiers */
+.tile[data-value='2'] {
+  background: var(--tile-2-bg);
+  color: var(--tile-2-fg);
+}
+.tile[data-value='4'] {
+  background: var(--tile-4-bg);
+  color: var(--tile-4-fg);
+}
+.tile[data-value='8'] {
+  background: var(--tile-8-bg);
+  color: var(--tile-8-fg);
+}
+.tile[data-value='16'] {
+  background: var(--tile-16-bg);
+  color: var(--tile-16-fg);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--tile-16-bg) 0%, transparent);
+}
+.tile[data-value='32'] {
+  background: var(--tile-32-bg);
+  color: var(--tile-32-fg);
+  box-shadow: 0 0 18px 0 color-mix(in srgb, var(--tile-32-bg) 30%, transparent);
+}
+.tile[data-value='64'] {
+  background: var(--tile-64-bg);
+  color: var(--tile-64-fg);
+  box-shadow: 0 0 22px 0 color-mix(in srgb, var(--tile-64-bg) 35%, transparent);
+}
+.tile[data-value='128'] {
+  background: var(--tile-128-bg);
+  color: var(--tile-128-fg);
+  font-size: clamp(1.4rem, 5vmin, 2.1rem);
+  box-shadow: 0 0 26px 0 color-mix(in srgb, var(--tile-128-bg) 40%, transparent);
+}
+.tile[data-value='256'] {
+  background: var(--tile-256-bg);
+  color: var(--tile-256-fg);
+  font-size: clamp(1.4rem, 5vmin, 2.1rem);
+  box-shadow: 0 0 28px 0 color-mix(in srgb, var(--tile-256-bg) 45%, transparent);
+}
+.tile[data-value='512'] {
+  background: var(--tile-512-bg);
+  color: var(--tile-512-fg);
+  font-size: clamp(1.4rem, 5vmin, 2.1rem);
+  box-shadow: 0 0 32px 0 color-mix(in srgb, var(--tile-512-bg) 50%, transparent);
+}
+.tile[data-value='1024'] {
+  background: var(--tile-1024-bg);
+  color: var(--tile-1024-fg);
+  font-size: clamp(1.1rem, 4vmin, 1.7rem);
+  box-shadow: 0 0 36px 0 color-mix(in srgb, var(--tile-1024-bg) 55%, transparent);
+}
+.tile[data-value='2048'] {
+  background: var(--tile-2048-bg);
+  color: var(--tile-2048-fg);
+  font-size: clamp(1.1rem, 4vmin, 1.7rem);
+  box-shadow: 0 0 42px 4px color-mix(in srgb, var(--tile-2048-bg) 65%, transparent);
+}
+.tile.super {
+  background: linear-gradient(135deg, var(--tile-super-bg), #6d28d9);
+  color: var(--tile-super-fg);
+  font-size: clamp(0.95rem, 3.4vmin, 1.5rem);
+  box-shadow: 0 0 44px 4px color-mix(in srgb, #8b5cf6 60%, transparent);
+}
+
+/* Overlay (game over / win) */
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--g2048-board) 88%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  z-index: 10;
+  animation: overlay-fade 0.4s ease-out 0.3s both;
+  backdrop-filter: blur(2px);
+}
+
+.overlay[hidden] {
+  display: none;
+}
+
+.overlay.win {
+  background: color-mix(in srgb, var(--tile-2048-bg) 82%, transparent);
+}
+
+@keyframes overlay-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.overlay-card {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px;
+  max-width: 90%;
+}
+
+.overlay-title {
+  font-size: clamp(2rem, 7vmin, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--g2048-text-light);
+}
+
+.overlay-sub {
+  font-size: 1rem;
+  color: color-mix(in srgb, var(--g2048-text-light) 80%, transparent);
+}
+
+.overlay-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.overlay .btn {
+  background: var(--g2048-text-light);
+  color: var(--g2048-board);
+  border-color: transparent;
+}
+
+.overlay .btn:hover {
+  background: color-mix(in srgb, var(--g2048-text-light) 85%, var(--tile-2048-bg));
+  color: var(--g2048-text-light);
+}
+
+/* Help bar */
+.help {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-3);
+  text-align: center;
+}
+
+.help .sep {
+  opacity: 0.4;
+}
+
+/* Mobile: stack the title above the score boxes when it gets tight,
+ * and bump tap targets so the buttons are reachable one-handed. */
+@media (max-width: 480px) {
+  .page-header h1 {
+    font-size: 2.5rem;
+  }
+  .help {
+    font-size: 0.78rem;
+  }
+  .score-box {
+    min-width: 64px;
+    padding: 5px 12px;
+  }
+  .score-value {
+    font-size: 1rem;
+  }
+  .btn {
+    padding: 11px 16px;
+    font-size: 0.95rem;
+  }
+  .tagline {
+    font-size: 0.88rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .scores {
+    align-self: flex-end;
+  }
+}
+
+/* Honor reduced-motion: collapse all animations to instant snaps. The
+ * game logic still runs the same, just without the slide/pop. */
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .tile.appear,
+  .tile.merged,
+  .tiles,
+  .score-delta,
+  .overlay {
+    animation: none !important;
+    transition: none !important;
+  }
+}

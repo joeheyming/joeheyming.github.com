@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#faf8ef" />
+    <title>2048 🔢 - Joe Heyming</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔢</text></svg>"
+    />
+    <link rel="stylesheet" href="index.css" />
+    <script src="../back.js" data-back-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+
+    <meta
+      name="description"
+      content="Play 2048 in your browser. Slide tiles, combine matching numbers, and reach 2048. Mobile-friendly with swipe controls, undo, and persistent best score. Free, no ads."
+    />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta
+      name="keywords"
+      content="2048, puzzle game, browser game, free, no ads, mobile, swipe, tile game"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming" />
+    <meta property="og:title" content="2048 🔢" />
+    <meta
+      property="og:description"
+      content="Play 2048 in your browser. Slide tiles, combine matching numbers, reach 2048. Swipe controls, undo, persistent best score."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/2048/" />
+    <meta property="og:image" content="https://joeheyming.github.io/2048/2048-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="2048 — slide tiles to reach 2048" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="2048 🔢" />
+    <meta
+      name="twitter:description"
+      content="Play 2048 in your browser. Slide tiles, combine matching numbers, reach 2048."
+    />
+    <meta name="twitter:image" content="https://joeheyming.github.io/2048/2048-preview.png" />
+
+    <link rel="canonical" href="https://joeheyming.github.io/2048/" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "VideoGame",
+            "name": "2048",
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Slide tiles to combine matching numbers and reach 2048. Mobile-friendly with swipe controls, undo, and persistent best score.",
+            "url": "https://joeheyming.github.io/2048/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "gamePlatform": "Web Browser",
+            "genre": "Puzzle",
+            "keywords": "2048, puzzle, tile game, browser game",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              { "@type": "ListItem", "position": 2, "name": "2048" }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,500;14..32,600;14..32,700;14..32,800&display=optional"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="page-header">
+        <div class="title-row">
+          <h1>2048</h1>
+          <div class="scores">
+            <div class="score-box" id="score-box">
+              <span class="score-label">Score</span>
+              <span class="score-value" id="score">0</span>
+            </div>
+            <div class="score-box" id="best-box">
+              <span class="score-label">Best</span>
+              <span class="score-value" id="best">0</span>
+            </div>
+          </div>
+        </div>
+        <p class="tagline">
+          Join the tiles, reach
+          <strong>2048</strong>
+          ! Use arrow keys, WASD, or swipe.
+        </p>
+      </header>
+
+      <div class="toolbar">
+        <button class="btn primary" id="new-game-btn" type="button">＋ New Game</button>
+        <button class="btn" id="undo-btn" type="button" title="Undo (Ctrl/Cmd+Z)">↶ Undo</button>
+        <share-button label="📤 Share" theme="dark"></share-button>
+      </div>
+
+      <div class="board-wrap" id="board-wrap">
+        <div class="board" id="board" role="grid" aria-label="2048 board" tabindex="0">
+          <div class="grid-bg" aria-hidden="true"></div>
+          <div class="tiles" id="tiles" aria-live="polite"></div>
+        </div>
+
+        <div class="overlay" id="overlay" hidden>
+          <div class="overlay-card">
+            <div class="overlay-title" id="overlay-title">Game Over</div>
+            <div class="overlay-sub" id="overlay-sub">No moves left.</div>
+            <div class="overlay-actions">
+              <button class="btn primary" id="overlay-continue" type="button" hidden>
+                Keep Going
+              </button>
+              <button class="btn primary" id="overlay-restart" type="button">Try Again</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="help">
+        <span>← ↑ → ↓ or WASD to move</span>
+        <span class="sep">•</span>
+        <span>Swipe on mobile</span>
+        <span class="sep">•</span>
+        <span>Ctrl/Cmd+Z to undo</span>
+      </div>
+    </main>
+
+    <script type="module" src="index.js"></script>
+  </body>
+</html>

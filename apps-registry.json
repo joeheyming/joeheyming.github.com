@@ -912,6 +912,32 @@
     "geo": true
   },
   {
+    "id": "2048",
+    "name": "2048 🔢",
+    "shortName": "2048",
+    "description": "Slide tiles, merge matching numbers, reach 2048",
+    "detailedDescription": "Classic 2048 in your browser. Slide tiles with arrow keys, WASD, or swipe; matching pairs merge into the next power of two. Persistent best score, undo, and a polished tile palette. Free, no ads, works offline once cached.",
+    "icon": "🔢",
+    "path": "./2048/",
+    "category": "game",
+    "gradient": "from-amber-400/20 to-orange-500/20",
+    "border": "border-amber-500/30 hover:border-amber-400/50",
+    "taskbarGradient": "from-amber-500 to-orange-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 540,
+    "defaultHeight": 720,
+    "tags": ["puzzle", "2048", "tiles", "numbers", "logic", "classic"],
+    "related": ["sudoku", "minesweeper", "wordle-finder", "calculator"],
+    "shareCategory": "game",
+    "pwaShortcut": {
+      "name": "2048",
+      "short_name": "2048",
+      "description": "Slide tiles to reach 2048"
+    },
+    "appTier": "experience",
+    "geo": true
+  },
+  {
     "id": "sudoku",
     "name": "Sudoku 🔢",
     "shortName": "Sudoku",
