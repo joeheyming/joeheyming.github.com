@@ -106,6 +106,20 @@ export { ALL_TAGS, TAG_GROUPS } from './shows.js';
  */
 export const MOVIES = [
   {
+    id: 'dracula-dead-and-loving-it',
+    name: 'Dracula: Dead and Loving It (1995)',
+    shortName: 'Dracula: Dead and Loving It',
+    emoji: '🧛',
+    accent: '#991b1b',
+    tags: ['live-action', 'adult', 'comedy', 'satire', 'fantasy', '90s'],
+    tagline:
+      'Leslie Nielsen as Count Dracula, Mel Brooks as Van Helsing · the 1995 ZAZ-meets-Brooks vampire parody and Brooks’ final theatrical feature as director',
+    iaItem: 'dracula.-dead.-and.-loving.-it.-1995.1080p.-blu-ray.x-264.-aac-yts.-mx',
+    iaFile: 'Dracula.Dead.And.Loving.It.1995.1080p.BluRay.x264.AAC-[YTS.MX].mp4',
+    imdbId: 'tt0112896',
+    posterUrl: 'https://upload.wikimedia.org/wikipedia/en/5/54/Drac_dead_and_loving_it.jpg'
+  },
+  {
     id: 'dougs-1st-movie',
     name: "Doug's 1st Movie (1999)",
     shortName: "Doug's 1st Movie",
@@ -122,6 +136,35 @@ export const MOVIES = [
     iaFile: 'videoplayback.mp4',
     imdbId: 'tt0187819',
     posterUrl: 'https://upload.wikimedia.org/wikipedia/en/c/c5/Doug%27s_1st_Movie_Poster.jpg'
+  },
+  {
+    id: 'blazing-saddles',
+    name: 'Blazing Saddles (1974)',
+    shortName: 'Blazing Saddles',
+    emoji: '🤠',
+    accent: '#c2410c',
+    tags: ['live-action', 'adult', 'comedy', 'satire', '70s'],
+    tagline:
+      'Sheriff Bart and the Waco Kid clean up Rock Ridge · Mel Brooks’ 1974 western whose racial-slur-laden satire famously couldn’t be made today',
+    iaItem: 'blazing-saddles-1974_202210',
+    // Filename has a double space before `(1974)`. Keep it exact.
+    iaFile: 'BLAZING SADDLES  (1974).mp4',
+    imdbId: 'tt0071230',
+    posterUrl: 'https://upload.wikimedia.org/wikipedia/en/7/7b/Blazing_saddles_movie_poster.jpg'
+  },
+  {
+    id: 'caddyshack',
+    name: 'Caddyshack (1980)',
+    shortName: 'Caddyshack',
+    emoji: '⛳',
+    accent: '#65a30d',
+    tags: ['live-action', 'adult', 'comedy', '80s'],
+    tagline:
+      'Bushwood Country Club vs. a gopher (and Bill Murray’s groundskeeper) · the 1980 Harold Ramis golf comedy with Chevy Chase, Rodney Dangerfield, and Ted Knight',
+    iaItem: 'caddyshack.1980.1080p.brrip.x264.yify___65af351121b4c',
+    iaFile: 'caddyshack.1980.1080p.brrip.x264.yify___65af351121b4c.mp4',
+    imdbId: 'tt0080487',
+    posterUrl: 'https://upload.wikimedia.org/wikipedia/en/8/84/Caddyshack_poster.jpg'
   },
   {
     id: 'dexters-lab-ego-trip',
@@ -142,6 +185,20 @@ export const MOVIES = [
     posterUrl: 'https://upload.wikimedia.org/wikipedia/en/6/67/Dexter_Ego_Trip_VHS.jpg'
   },
   {
+    id: 'galaxy-quest',
+    name: 'Galaxy Quest (1999)',
+    shortName: 'Galaxy Quest',
+    emoji: '🖖',
+    accent: '#1d4ed8',
+    tags: ['live-action', 'comedy', 'sci-fi', '90s'],
+    tagline:
+      'Never give up, never surrender · the 1999 Star Trek parody where the obsessive alien fans are real and the washed-up cast has to fly the actual ship',
+    iaItem: 'title-01_20220430',
+    iaFile: 'TITLE01.mp4',
+    imdbId: 'tt0177789',
+    posterUrl: 'https://upload.wikimedia.org/wikipedia/en/1/1f/Galaxy_Quest_poster.jpg'
+  },
+  {
     id: 'gi-joe-the-movie',
     name: 'G.I. Joe: The Movie (1987)',
     shortName: 'G.I. Joe: The Movie',
@@ -159,6 +216,66 @@ export const MOVIES = [
     iaFile: 'G.I. Joe The Movie.mp4',
     imdbId: 'tt0093066',
     posterUrl: 'https://upload.wikimedia.org/wikipedia/en/e/ef/250px-GIJoeMovie1987.jpg'
+  },
+  {
+    id: 'history-of-the-world-part-i',
+    name: 'History of the World, Part I (1981)',
+    shortName: 'History of the World, Part I',
+    emoji: '📜',
+    accent: '#a16207',
+    tags: ['live-action', 'adult', 'comedy', 'satire', 'anthology', '80s'],
+    tagline:
+      'Stone Age, Roman Empire, Spanish Inquisition (it’s a musical!), French Revolution · Mel Brooks’ 1981 anthology of historical sketches, narrated by Orson Welles',
+    iaItem: 'HistoryOfTheWorldPartI',
+    iaFile: 'History of the World Part I.mp4',
+    imdbId: 'tt0082517',
+    posterUrl: 'https://upload.wikimedia.org/wikipedia/en/5/59/History_of_the_World_poster.jpg'
+  },
+  {
+    id: 'monty-python-hollywood-bowl',
+    name: 'Monty Python Live at the Hollywood Bowl (1982)',
+    shortName: 'Monty Python: Hollywood Bowl',
+    emoji: '🎤',
+    accent: '#7c3aed',
+    tags: ['live-action', 'adult', 'comedy', 'satire', '80s'],
+    tagline:
+      'Dead Parrot, Spanish Inquisition, Crunchy Frog, Argument Clinic, Lumberjack Song · the 1982 Python live concert film cut from four nights at the Hollywood Bowl',
+    iaItem: 'monty-python-live-on-the-hollywood-bowl-full-show',
+    iaFile: 'Monty Python Live On The Hollywood Bowl FULL SHOW.mp4',
+    imdbId: 'tt0084352',
+    posterUrl: 'https://upload.wikimedia.org/wikipedia/en/d/d2/MontyPythonHollywoodBowlPoster.jpg'
+  },
+  {
+    id: 'monty-python-holy-grail',
+    name: 'Monty Python and the Holy Grail (1975)',
+    shortName: 'Monty Python: Holy Grail',
+    emoji: '🥥',
+    accent: '#b91c1c',
+    tags: ['live-action', 'comedy', 'satire', 'fantasy', '70s'],
+    tagline:
+      'King Arthur, the Knights of the Round Table, coconuts, the Black Knight, killer rabbits · the 1975 Python feature that defined British comedy export',
+    iaItem: 'Monty.Python.And.The.Holy.Grail.1975.720p.BluRay.x264YTS.AM',
+    iaFile: 'Monty.Python.And.The.Holy.Grail.1975.720p.BluRay.x264-[YTS.AM].mp4',
+    imdbId: 'tt0071853',
+    posterUrl: 'https://upload.wikimedia.org/wikipedia/en/0/08/Monty-Python-1975-poster.png'
+  },
+  {
+    id: 'monty-python-life-of-brian',
+    name: "Monty Python's Life of Brian (1979)",
+    shortName: 'Monty Python: Life of Brian',
+    emoji: '👶',
+    accent: '#d97706',
+    tags: ['live-action', 'adult', 'comedy', 'satire', '70s'],
+    tagline:
+      'Brian Cohen, born in the stable next door to Jesus, mistaken for the messiah · the 1979 Python biblical satire (banned in several places on release)',
+    // Item is titled "Definitely not the full monty python life of
+    // brian movie" — that's the uploader's anti-takedown winking
+    // misdirection. The .mp4 inside is plainly named `Life Of Brian.mp4`
+    // and is the actual 93-minute feature.
+    iaItem: '20230811_20230811_1910',
+    iaFile: 'Life Of Brian.mp4',
+    imdbId: 'tt0079470',
+    posterUrl: 'https://upload.wikimedia.org/wikipedia/en/1/18/Lifeofbrianfilmposter.jpg'
   },
   {
     id: 'mlp-the-movie-1986',
@@ -181,6 +298,75 @@ export const MOVIES = [
     posterUrl: 'https://upload.wikimedia.org/wikipedia/en/5/57/Mylittleponymovieposter.jpg'
   },
   {
+    id: 'princess-bride',
+    name: 'The Princess Bride (1987)',
+    shortName: 'The Princess Bride',
+    emoji: '👰',
+    accent: '#f9a8d4',
+    tags: ['live-action', 'comedy', 'fantasy', '80s'],
+    tagline:
+      'As you wish · Rob Reiner’s 1987 storybook romance with sword fights, ROUS, the Cliffs of Insanity, and inconceivable miracle pills, from William Goldman’s novel',
+    iaItem: 'the-princess-bride_202402',
+    iaFile: 'The Princess Bride.mp4',
+    imdbId: 'tt0093779',
+    posterUrl: 'https://upload.wikimedia.org/wikipedia/en/d/db/Princess_bride.jpg'
+  },
+  {
+    // The trilogy of Naked Gun movies and the 1982 Police Squad! TV
+    // series they were spun off from all live in the same IA item
+    // (`PoliceSquad`). Each movie picks its own basename out of that
+    // shared upload via `iaFile`. The same upload also ships 6 episodes
+    // of the TV series (~25 min each) as native h.264 MP4s — could be
+    // a separate ShowConfig entry someday; the 6 episodes are too few
+    // for the chip filter to matter much but the legacy is significant.
+    //
+    // Filename trap: the 1991 and 1994 entries have a DOUBLE SPACE
+    // after the year-dash separator. The 1988 entry has a single
+    // space. Keep these exact or the basename match fails silently.
+    id: 'naked-gun-1',
+    name: 'The Naked Gun: From the Files of Police Squad! (1988)',
+    shortName: 'The Naked Gun',
+    emoji: '🚓',
+    accent: '#1d4ed8',
+    tags: ['live-action', 'adult', 'comedy', 'satire', 'spy', '80s'],
+    tagline:
+      'Frank Drebin investigates an attempt on the Queen of England · the 1988 ZAZ-team Leslie Nielsen flagship that proved Police Squad! works at feature length',
+    iaItem: 'PoliceSquad',
+    iaFile: '1988 - The Naked Gun.mp4',
+    imdbId: 'tt0095705',
+    posterUrl: 'https://upload.wikimedia.org/wikipedia/en/5/5f/The_Naked_Gun_Poster.jpg'
+  },
+  {
+    id: 'naked-gun-2',
+    name: 'The Naked Gun 2½: The Smell of Fear (1991)',
+    shortName: 'The Naked Gun 2½',
+    emoji: '🚓',
+    accent: '#1e40af',
+    tags: ['live-action', 'adult', 'comedy', 'satire', 'spy', '90s'],
+    tagline:
+      'Frank Drebin vs. the energy lobby and Robert Goulet · the 1991 sequel where Drebin gets reactivated to investigate Quentin Hapsburg',
+    iaItem: 'PoliceSquad',
+    // Note the DOUBLE SPACE between `-` and `The`.
+    iaFile: '1991 -  The Naked Gun 2 The Smell Of Fear.mp4',
+    imdbId: 'tt0102510',
+    posterUrl: 'https://upload.wikimedia.org/wikipedia/en/d/d1/Naked_Gun_2.jpg'
+  },
+  {
+    id: 'naked-gun-3',
+    name: 'Naked Gun 33⅓: The Final Insult (1994)',
+    shortName: 'Naked Gun 33⅓',
+    emoji: '🚓',
+    accent: '#1e3a8a',
+    tags: ['live-action', 'adult', 'comedy', 'satire', 'spy', '90s'],
+    tagline:
+      'Frank Drebin retired with Jane, then dragged back to infiltrate the Rocco Dillon gang · the 1994 trilogy finale with O.J. Simpson’s last theatrical role',
+    iaItem: 'PoliceSquad',
+    // Note the DOUBLE SPACE between `-` and `The`.
+    iaFile: '1994 -  The Naked Gun 3 The Final Insult.mp4',
+    imdbId: 'tt0110622',
+    posterUrl: 'https://upload.wikimedia.org/wikipedia/en/1/14/Naked_Gun_3_poster.jpg'
+  },
+  {
     id: 'powerpuff-girls-movie',
     name: 'The Powerpuff Girls Movie (2002)',
     shortName: 'Powerpuff Girls Movie',
@@ -199,6 +385,20 @@ export const MOVIES = [
     iaFile: 'FullSizeRender.mp4',
     imdbId: 'tt0289408',
     posterUrl: 'https://upload.wikimedia.org/wikipedia/en/7/78/Powerpuff_Girls_Movie_poster.jpg'
+  },
+  {
+    id: 'robin-hood-men-in-tights',
+    name: 'Robin Hood: Men in Tights (1993)',
+    shortName: 'Robin Hood: Men in Tights',
+    emoji: '🏹',
+    accent: '#15803d',
+    tags: ['live-action', 'adult', 'comedy', 'satire', '90s'],
+    tagline:
+      'We’re men, we’re men in tights · Mel Brooks’ 1993 Robin Hood parody starring Cary Elwes, Dave Chappelle’s screen debut, and Patrick Stewart cameo-ing as King Richard',
+    iaItem: 'robin-hood-men-in-tights-1993',
+    iaFile: 'Robin Hood Men In Tights 1993.mp4',
+    imdbId: 'tt0107977',
+    posterUrl: 'https://upload.wikimedia.org/wikipedia/en/1/12/RobinHoodMeninTights_Poster.jpg'
   },
   {
     id: 'recess-schools-out',
@@ -222,6 +422,34 @@ export const MOVIES = [
     posterUrl: 'https://upload.wikimedia.org/wikipedia/en/0/0b/Recess_Schools_Out_film.jpg'
   },
   {
+    id: 'spaceballs',
+    name: 'Spaceballs (1987)',
+    shortName: 'Spaceballs',
+    emoji: '🚀',
+    accent: '#0891b2',
+    tags: ['live-action', 'adult', 'comedy', 'satire', 'sci-fi', '80s'],
+    tagline:
+      'May the Schwartz be with you · Mel Brooks’ 1987 Star Wars parody starring Bill Pullman, John Candy as Barf, and Rick Moranis as Dark Helmet',
+    iaItem: 'spaceballs1987',
+    iaFile: 'Spaceballs.1987.1080p.BluRay.x264.mp4',
+    imdbId: 'tt0094012',
+    posterUrl: 'https://upload.wikimedia.org/wikipedia/en/4/45/Spaceballs.jpg'
+  },
+  {
+    id: 'spy-hard',
+    name: 'Spy Hard (1996)',
+    shortName: 'Spy Hard',
+    emoji: '🕵️',
+    accent: '#71717a',
+    tags: ['live-action', 'adult', 'comedy', 'satire', 'spy', '90s'],
+    tagline:
+      'Agent WD-40 vs. General Rancor · the 1996 Leslie Nielsen Bond parody, complete with a Weird Al opening theme and Andy Griffith as the villain',
+    iaItem: '564712573638',
+    iaFile: '564712573638.mp4',
+    imdbId: 'tt0117723',
+    posterUrl: 'https://upload.wikimedia.org/wikipedia/en/4/42/Spyhardposter.jpg'
+  },
+  {
     id: 'simpsons-movie',
     name: 'The Simpsons Movie (2007)',
     shortName: 'Simpsons Movie',
@@ -243,6 +471,20 @@ export const MOVIES = [
     iaFile: 'Zhe Simpsons Movie (2007).mp4',
     imdbId: 'tt0462538',
     posterUrl: 'https://upload.wikimedia.org/wikipedia/en/d/d5/The_Simpsons_Movie_%282007%29.png'
+  },
+  {
+    id: 'wrongfully-accused',
+    name: 'Wrongfully Accused (1998)',
+    shortName: 'Wrongfully Accused',
+    emoji: '🚔',
+    accent: '#f97316',
+    tags: ['live-action', 'adult', 'comedy', 'satire', '90s'],
+    tagline:
+      'Ryan Harrison hunted by Marshal Fergus Falls · the 1998 Leslie Nielsen Fugitive parody from a Naked Gun co-writer (Pat Proft)',
+    iaItem: '1014128183846',
+    iaFile: '1014128183846.mp4',
+    imdbId: 'tt0120901',
+    posterUrl: 'https://upload.wikimedia.org/wikipedia/en/f/f5/Wrongfully_Accused.jpg'
   }
 ]
   .sort((a, b) => a.id.localeCompare(b.id))

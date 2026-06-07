@@ -660,12 +660,20 @@ function makeSavedCard(meta, ctx, onChange) {
   const thumb = document.createElement('div');
   thumb.className = 'tv-continue-thumb';
   thumb.style.background = `linear-gradient(160deg, ${meta.showAccent || '#444'}33, #111)`;
-  if (meta.thumbUrl) {
+  // `meta.thumbUrl` is stamped at save-time from `ep.image` (TVMaze
+  // episode still). Standalone movies don't have an episode still, so
+  // for any movie record (including ones saved before saveEpisode
+  // learned to fall back to `show.posterUrl`) we recover the thumb
+  // from the current registry's posterUrl by id. Stale records (movie
+  // removed from registry) just keep the emoji fallback.
+  const recoveredPosterUrl = isMovie ? getMovie(meta.showId)?.posterUrl : null;
+  const thumbSrc = meta.thumbUrl || recoveredPosterUrl || null;
+  if (thumbSrc) {
     const img = document.createElement('img');
     img.loading = 'lazy';
     img.decoding = 'async';
     img.alt = '';
-    img.src = meta.thumbUrl;
+    img.src = thumbSrc;
     img.addEventListener(
       'error',
       () => {
@@ -778,11 +786,36 @@ function makeContinueCard(show, entry, ctx, onChange) {
   const thumb = document.createElement('div');
   thumb.className = 'tv-continue-thumb';
   thumb.style.background = `linear-gradient(160deg, ${show.accent}33, #111)`;
-  // Movies often lack a TVMaze id (TVMaze covers series, not movies)
-  // — fall back to the emoji on the accent gradient when the lookup
-  // would otherwise 404. Series cards keep the existing fetch path.
+  // Three-tier thumbnail strategy, same priority order as makeMovieCard:
+  //
+  //   1. `posterUrl` (movies) — direct https URL the registry author
+  //      curated. No round-trip, no cache layer.
+  //   2. `tvmazeId` (shows) — async fetch of the TVMaze series poster.
+  //      Movies never have this since TVMaze is series-only.
+  //   3. emoji on the accent gradient — fallback when neither matches.
+  //
+  // Previously this only checked tvmazeId, so every movie in
+  // continue-watching collapsed to step 3 — the row read as a wall of
+  // emoji while the show cards on the same row showed real posters.
+  const posterUrl = /** @type {any} */ (show).posterUrl;
   const tvmazeId = /** @type {any} */ (show).tvmazeId;
-  if (tvmazeId) {
+  if (posterUrl) {
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.alt = '';
+    img.src = posterUrl;
+    img.addEventListener(
+      'error',
+      () => {
+        img.remove();
+        thumb.classList.add('is-empty');
+        thumb.textContent = show.emoji;
+      },
+      { once: true }
+    );
+    thumb.appendChild(img);
+  } else if (tvmazeId) {
     const img = document.createElement('img');
     img.loading = 'lazy';
     img.decoding = 'async';

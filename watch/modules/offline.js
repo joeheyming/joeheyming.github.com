@@ -290,7 +290,11 @@ export async function saveEpisode(show, ep, opts = {}) {
     episode: ep.episode,
     title: ep.title || '',
     description: ep.description || '',
-    thumbUrl: ep.image || null,
+    // Episode still (`ep.image`) is set for series — TVMaze ships an
+    // episode-specific frame. Standalone movies (MovieConfig) have no
+    // per-episode still, so we fall back to the movie's own posterUrl
+    // when present so the saved-card thumbnail isn't an emoji.
+    thumbUrl: ep.image || /** @type {any} */ (show).posterUrl || null,
     archiveUrl: ep.archiveUrl,
     sizeBytes: blob.size,
     savedAt: Date.now(),
