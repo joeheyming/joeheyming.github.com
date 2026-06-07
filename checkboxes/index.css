@@ -1,0 +1,217 @@
+/* Shared checkbox grid. Cells are drawn on canvas tiles (see
+   index.js); the page is just chrome + a tall scrolling area for
+   the tiles to live in.
+
+   Cell colors are defined here as CSS variables and read by index.js
+   via getComputedStyle. That keeps style decisions in one place and
+   means the grid follows whatever theme mechanism brand.css uses
+   (system @media prefers-color-scheme + manual [data-theme] toggle). */
+.cb-wrapper {
+  /* Light mode: cells are a faint step darker than the cream page bg,
+     reading as recessed paper-form fields. */
+  --cb-accent: #b45309; /* amber-700 */
+  --cb-accent-fg: #ffffff;
+  --cb-cell-bg: #e3e0d6;
+  min-height: 100vh;
+  padding: 80px 12px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  background: var(--surface-2, #f0eee8);
+  color: var(--text-1, #1a1a1a);
+  font-family: var(--font-ui), system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* Dark mode: cells go a noticeable step DARKER than the dark page bg
+   (--surface-2 = #1f262f), giving the grid a "wells punched into the
+   surface" feel rather than a wall of bright squares. The stronger
+   step in dark mode is intentional — same %-luminance reads weaker
+   on dark backgrounds, so symmetric values look asymmetric in practice.
+
+   Two selectors to match brand.css's theme-toggle machinery:
+     1. Manual override:  :root[data-theme='dark']
+     2. System pref:      @media + :root:not([data-theme='light']) */
+:root[data-theme='dark'] .cb-wrapper {
+  --cb-accent: #f59e0b; /* amber-500 — pops harder on dark */
+  --cb-accent-fg: #1a1a1a;
+  --cb-cell-bg: #161b22; /* matches brand --surface-1 dark */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .cb-wrapper {
+    --cb-accent: #f59e0b;
+    --cb-accent-fg: #1a1a1a;
+    --cb-cell-bg: #161b22;
+  }
+}
+
+.cb-header {
+  text-align: center;
+  max-width: 880px;
+  width: 100%;
+}
+
+.cb-header h1 {
+  margin: 0 0 6px;
+  font-size: clamp(1.75rem, 4.5vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.cb-counter {
+  margin: 0;
+  font-size: clamp(1rem, 2.4vw, 1.25rem);
+  color: var(--text-2, #555);
+  font-variant-numeric: tabular-nums;
+}
+
+.cb-counter strong {
+  color: var(--cb-accent);
+  font-weight: 700;
+}
+
+.cb-banner {
+  max-width: min(880px, 96vw);
+  width: 100%;
+  padding: 10px 14px;
+  background: #fff7ed;
+  color: #7c2d12;
+  border: 1px solid #fdba74;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.cb-banner code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--font-mono, ui-monospace, Menlo, monospace);
+  font-size: 0.85em;
+}
+
+/* The grid is the page's tall scrolling area. JS sets explicit
+   width/height: width = COLS * 20px - 4px, height = ROWS * 20px - 4px
+   where ROWS = ceil(N / COLS). At 1M cells this is ~16,000+ rows — a
+   long vertical scroll, the OMCB feel.
+
+   Tiles position absolutely inside .cb-grid. We don't draw cells in
+   CSS at this scale; tiles mount canvases as they enter the viewport
+   and unmount when they leave (see index.js). */
+.cb-grid {
+  position: relative;
+  align-self: center;
+  /* Width and height are set inline from JS based on COLS and ROWS. */
+}
+
+.cb-tile {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  /* Empty placeholder until mounted. The empty card height keeps the
+     scroll position stable while tiles fly in/out. */
+}
+
+.cb-tile canvas {
+  display: block;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cb-footer {
+  font-size: 0.85rem;
+  color: var(--text-2, #555);
+  font-variant-numeric: tabular-nums;
+  padding: 4px 0 12px;
+}
+
+/* Achievement modal. Hidden by default until JS calls showModal() —
+   the <dialog> element handles focus trap, ESC-to-close, and backdrop
+   for free. Sized to a comfortable centered card around the meme. */
+.cb-meme {
+  border: none;
+  padding: 24px;
+  background: var(--surface-1, #ffffff);
+  color: var(--text-1, #1a1a1a);
+  border-radius: 12px;
+  max-width: min(560px, 92vw);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+
+.cb-meme::backdrop {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.cb-meme img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 0 auto;
+}
+
+.cb-meme-caption {
+  margin: 16px 0 0;
+  font-size: 1rem;
+  color: var(--text-2, #555);
+}
+
+.cb-meme-close {
+  margin-top: 16px;
+  padding: 8px 20px;
+  background: var(--cb-accent);
+  color: var(--cb-accent-fg);
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.cb-meme-close:hover,
+.cb-meme-close:focus-visible {
+  filter: brightness(1.08);
+  outline: 2px solid var(--cb-accent);
+  outline-offset: 2px;
+}
+
+/* Screen-reader-only h2 inside the dialog so it has an accessible
+   name without crowding the visual layout. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 480px) {
+  .cb-wrapper {
+    padding: 70px 6px 24px;
+  }
+}
+
+/* Dark-mode banner palette. The cell colors and accent are handled
+   above (alongside their light-mode counterparts). */
+:root[data-theme='dark'] .cb-banner {
+  background: #2a1d10;
+  color: #fed7aa;
+  border-color: #c2410c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .cb-banner {
+    background: #2a1d10;
+    color: #fed7aa;
+    border-color: #c2410c;
+  }
+}

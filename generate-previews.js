@@ -1005,21 +1005,61 @@ const PAGES = [
     url: `${BASE_URL}/checkboxes/`,
     output: 'checkboxes/checkboxes-preview.png',
     title: 'Checkboxes',
-    // The shared grid loads empty in demo mode (no form configured for
-    // local dev) — an OG image of 1024 blank squares reads as "broken
-    // page." Flip a heart-shape pattern into the grid so the preview
-    // signals "yes, the boxes are checkable, and yes, this is shared."
+    // 1M-cell version renders to canvas tiles, not DOM. The grid's
+    // column count depends on viewport width (auto-fill at runtime),
+    // so we read it back from the inline width on #cb-grid before
+    // computing where to stamp the heart pattern. Then:
+    //   1. Sparse random scatter across the visible top rows so the
+    //      OG card reads as "lots of people clicking."
+    //   2. A centered heart shape stamped on top — recognizable at
+    //      thumbnail size, ties back to the original 32×32 preview.
+    // The app exposes window.cbState (the packed bitmap) and
+    // window.cbPaintAll (full repaint) for exactly this purpose.
     setup: async (page) => {
-      await page.waitForSelector('#cb-grid .cb-cell', { timeout: 5000 });
+      await page.waitForSelector('#cb-grid .cb-tile', { timeout: 8000 });
+      // Let the IntersectionObserver mount the visible tiles before
+      // we try to repaint — they paint from `state` at mount time.
+      await page.waitForTimeout(300);
       await page.evaluate(() => {
-        const COLS = 32;
-        const ROWS = 32;
-        // Heart-ish silhouette centered in the grid.
+        const w = /** @type {any} */ (window);
+        const state = /** @type {Uint8Array | undefined} */ (w.cbState);
+        const repaint = /** @type {(() => void) | undefined} */ (w.cbPaintAll);
+        if (!state || !repaint) return;
+
+        // Reverse-engineer COLS from the grid container's inline width
+        // (set in index.js as `COLS * STEP - GAP` px, with STEP=20, GAP=4).
+        const grid = document.getElementById('cb-grid');
+        if (!grid) return;
+        const widthPx = parseInt(grid.style.width, 10);
+        if (!isFinite(widthPx) || widthPx <= 0) return;
+        const STEP = 20;
+        const GAP = 4;
+        const COLS = Math.floor((widthPx + GAP) / STEP);
+        const N = state.length * 8;
+        const setBit = (idx) => {
+          if (idx < 0 || idx >= N) return;
+          state[idx >> 3] |= 1 << (idx & 7);
+        };
+
+        // 1. Seeded random scatter across the first ~35 rows (the area
+        //    inside the 1200×630 OG viewport). Density ~10% reads as
+        //    "active" without crowding out the heart.
+        let seed = 73431;
+        const rand = () => {
+          seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+          return seed / 0x7fffffff;
+        };
+        const SCATTER_ROWS = 35;
+        for (let r = 0; r < SCATTER_ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (rand() < 0.1) setBit(r * COLS + c);
+          }
+        }
+
+        // 2. Stamp a centered heart. 32 wide × 13 tall — fits inside
+        //    any viewport COLS >= 36. Skip on narrow grids (mobile-
+        //    sized OG renders, which we don't currently produce).
         const heart = [
-          '................................',
-          '................................',
-          '................................',
-          '................................',
           '...........XX........XX.........',
           '..........XXXX......XXXX........',
           '.........XXXXXX....XXXXXX.......',
@@ -1032,43 +1072,39 @@ const PAGES = [
           '.............XXXXXXXX...........',
           '..............XXXXXX............',
           '...............XXXX.............',
-          '................XX..............',
-          '................................',
-          '................................',
-          '................................',
-          '................................',
-          '................................',
-          '................................',
-          '................................',
-          '................................',
-          '................................',
-          '................................',
-          '................................',
-          '................................',
-          '................................',
-          '................................',
-          '................................'
+          '................XX..............'
         ];
-        const cells = document.querySelectorAll('#cb-grid .cb-cell');
-        for (let r = 0; r < ROWS; r++) {
-          for (let c = 0; c < COLS; c++) {
-            if (heart[r][c] === 'X') {
-              const idx = r * COLS + c;
-              const el = cells[idx];
-              if (el) el.classList.add('on');
+        const HW = 32;
+        const HH = heart.length;
+        if (COLS >= HW + 4) {
+          const startRow = 5;
+          const startCol = Math.floor((COLS - HW) / 2);
+          for (let r = 0; r < HH; r++) {
+            for (let c = 0; c < HW; c++) {
+              if (heart[r][c] === 'X') setBit((startRow + r) * COLS + (startCol + c));
             }
           }
         }
-        // Update the counter so footer reads as a real session.
-        const checked = document.querySelectorAll('#cb-grid .cb-cell.on').length;
+
+        // Counter, status, banner — make the page read like a real session.
+        let count = 0;
+        for (let i = 0; i < state.length; i++) {
+          let b = state[i];
+          while (b) {
+            b &= b - 1;
+            count++;
+          }
+        }
         const checkedEl = document.getElementById('cb-checked');
-        if (checkedEl) checkedEl.textContent = String(checked);
+        if (checkedEl) checkedEl.textContent = count.toLocaleString();
         const status = document.getElementById('cb-status');
         if (status) status.textContent = 'live';
         const banner = document.getElementById('cb-banner');
         if (banner) banner.hidden = true;
+
+        repaint();
       });
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(500);
     }
   },
   {

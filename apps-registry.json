@@ -1316,7 +1316,19 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": ["music", "guitar", "bass", "ukulele", "banjo", "mandolin", "strings", "chords", "chord trainer", "learn chords", "audio"],
+    "tags": [
+      "music",
+      "guitar",
+      "bass",
+      "ukulele",
+      "banjo",
+      "mandolin",
+      "strings",
+      "chords",
+      "chord trainer",
+      "learn chords",
+      "audio"
+    ],
     "related": ["play", "play-drums", "play-piano"],
     "shareCategory": "entertainment",
     "appTier": "experience",
@@ -1593,6 +1605,27 @@
       "description": "Free public-domain e-books"
     },
     "appTier": "system",
+    "geo": true
+  },
+  {
+    "id": "checkboxes",
+    "name": "Checkboxes ☑️",
+    "shortName": "Checkboxes",
+    "description": "One million shared checkboxes — click one and everyone sees it",
+    "detailedDescription": "A scrolling grid of one million shared checkboxes. Click one and everyone else's page eventually sees it flip. Backed entirely by a Google Form (writes) and the linked Sheet (reads) — no server, no accounts. The page polls every few seconds, renders to canvas tiles for performance, and an Apps Script periodically compacts the response log into a packed-bitmap snapshot.",
+    "icon": "☑️",
+    "path": "./checkboxes/",
+    "category": "entertainment",
+    "gradient": "from-blue-500/20 to-cyan-500/20",
+    "border": "border-blue-500/30 hover:border-blue-400/50",
+    "taskbarGradient": "from-blue-500 to-cyan-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 720,
+    "defaultHeight": 820,
+    "tags": ["multiplayer", "shared", "checkboxes", "google-forms", "google-sheets", "social"],
+    "related": ["minesweeper", "sudoku", "pacman"],
+    "shareCategory": "entertainment",
+    "appTier": "experience",
     "geo": true
   },
   {
