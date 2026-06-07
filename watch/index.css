@@ -814,6 +814,141 @@ a.tv-crumb:hover {
 }
 
 /* ------------------------------------------------------------------------ */
+/* Landing page — Shows + Movies section split                              */
+/* ------------------------------------------------------------------------ */
+
+/* Both grids use the same .tv-show-grid layout; the section wrapper
+   just gives each its own label + spacing. The Movies section lives
+   below the Shows section so the eye reads "main catalog, then
+   alt-catalog" without needing tabs. */
+.tv-shows-section,
+.tv-movies-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tv-movies-section {
+  margin-top: 24px;
+}
+
+/* "Movie" pill in the top-right corner of a movie poster — the
+   saved-badge styles handle font + chrome; this just relocates a
+   copy of them to the opposite corner so the two badge variants
+   don't collide if a movie is ever also offline-cached. */
+.tv-movie-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  bottom: auto;
+  left: auto;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Quick nav — fixed left-edge rail with Shows / Movies shortcuts.          */
+/* ------------------------------------------------------------------------ */
+
+/* Mounted to <body> by `modules/quicknav.js` at first paint. The rail
+   is reachable from every view (landing, episodes, watch, movie watch)
+   so the user can jump between shows / movies without going through
+   the breadcrumb-then-scroll path. Hidden inside iframes (the script
+   guards on window.top !== window) and on narrow viewports (the media
+   query at the bottom of this block) so it doesn't overlap the player
+   chrome on phones. */
+.tv-quicknav {
+  position: fixed;
+  /* Vertically-centered so it sits visually independent of the
+     header and the back button. The two pills together are ~160px
+     tall so transform-translateY centers them rather than the rail
+     box's outer edge. */
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* Above the header backdrop (z-index 50) but below the back-button
+     pill (z-index 999999) — back-button takes precedence if the user
+     scrolls to a state where the two would visually overlap. */
+  z-index: 100;
+  pointer-events: none;
+}
+
+.tv-quicknav-btn {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 60px;
+  padding: 12px 6px;
+  border-radius: 14px;
+  text-decoration: none;
+  color: var(--tv-text-bright, #f5f7fa);
+  background: color-mix(in srgb, var(--tv-screen-off, #0a0c10) 78%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid var(--tv-card-border, rgba(255, 255, 255, 0.12));
+  /* Subtle drop shadow so the pill reads as floating over content
+     rather than sitting flat on the page background. */
+  box-shadow: 0 4px 14px -6px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.tv-quicknav-btn:hover,
+.tv-quicknav-btn:focus-visible {
+  background: color-mix(in srgb, var(--tv-screen-off, #0a0c10) 92%, transparent);
+  border-color: color-mix(in srgb, var(--tv-accent, #6aa9ff) 60%, transparent);
+  transform: translateX(2px);
+  outline: none;
+  box-shadow: 0 6px 18px -6px rgba(0, 0, 0, 0.55);
+}
+
+/* Active pill (URL matches the section's route). The accent variable
+   is set per-show by the router on the episodes / watch views, so on
+   those pages the active pill picks up the show's color. On the
+   landing page the accent is unset and we fall back to a neutral
+   high-contrast border. */
+.tv-quicknav-btn.is-active {
+  background: color-mix(
+    in srgb,
+    var(--tv-accent, var(--tv-text-bright, #f5f7fa)) 28%,
+    var(--tv-screen-off, #0a0c10)
+  );
+  border-color: color-mix(in srgb, var(--tv-accent, #f5f7fa) 70%, transparent);
+}
+
+.tv-quicknav-emoji {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.tv-quicknav-label {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--tv-text-dim, #b6bcc6);
+}
+
+.tv-quicknav-btn.is-active .tv-quicknav-label {
+  color: var(--tv-text-bright, #f5f7fa);
+}
+
+/* Hide on narrow viewports. The video player + episode grid get the
+   full width on phones, and the breadcrumb + back-button cover
+   "jump out of this view" already. The breakpoint matches the
+   .tv-room one-column reflow threshold below. */
+@media (max-width: 900px) {
+  .tv-quicknav {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------------ */
 /* Player view — Save-offline button states                                 */
 /* ------------------------------------------------------------------------ */
 
@@ -1781,7 +1916,12 @@ a.tv-crumb:hover {
   align-items: flex-end;
   justify-content: center;
   padding: 24px;
-  background: linear-gradient(to top, rgba(8, 8, 12, 0.94) 0%, rgba(8, 8, 12, 0.6) 60%, transparent);
+  background: linear-gradient(
+    to top,
+    rgba(8, 8, 12, 0.94) 0%,
+    rgba(8, 8, 12, 0.6) 60%,
+    transparent
+  );
   z-index: 6;
   animation: tv-resume-in 0.25s ease-out;
 }

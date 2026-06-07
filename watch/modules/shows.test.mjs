@@ -43,9 +43,8 @@ const parseDextersLab = getShow('dexters-lab').parser;
 // calibration verdict: clean). Tests for each live in the
 // "<id> (generic matcher)" describe block below.
 //   amazing-stories, astro-boy, avengers, crystal-maze,
-//   disenchantment, duckman, fawlty-towers, home-movies,
-//   monty-python, real-ghostbusters, sonic-satam, speed-racer,
-//   tick, voyagers
+//   duckman, fawlty-towers, home-movies, monty-python,
+//   real-ghostbusters, sonic-satam, speed-racer, tick, voyagers
 const parseDoctorWho = getShow('doctor-who').parser;
 const parseMST3K = getShow('mst3k').parser;
 const parseRecess = getShow('recess').parser;
@@ -62,10 +61,6 @@ const parseSpiderMan = getShow('spider-man').parser;
 const parsePiratesDarkWater = getShow('pirates-dark-water').parser;
 const parseReboot = getShow('reboot').parser;
 const parseJonnyQuest = getShow('jonny-quest').parser;
-const isSimpsonsMovie = getShow('simpsons').movieDetector;
-const isGiJoeMovie = getShow('gi-joe').movieDetector;
-const isDextersLabMovie = getShow('dexters-lab').movieDetector;
-const isRecessMovie = getShow('recess').movieDetector;
 
 describe('SHOWS registry', () => {
   it('contains the expected shows, sorted by id', () => {
@@ -84,7 +79,6 @@ describe('SHOWS registry', () => {
         'crystal-maze',
         'dbz',
         'dexters-lab',
-        'disenchantment',
         'dnd',
         'doctor-who',
         'duckman',
@@ -234,15 +228,15 @@ describe('parseSimpsons', () => {
   });
 
   it('returns null for unrelated files', () => {
+    // `Zhe Simpsons Movie.mp4` (and the live `Zhe Simpsons Movie (2007).mp4`
+    // basename it abbreviates) MUST be dropped here — the movie is now
+    // surfaced via the MOVIES registry as `?movie=simpsons-movie`, and
+    // any episode-shaped match here would re-introduce a double listing
+    // in the show's catalog.
     assert.equal(parseSimpsons('Zhe Simpsons Movie.mp4'), null);
+    assert.equal(parseSimpsons('Zhe Simpsons Movie (2007).mp4'), null);
     assert.equal(parseSimpsons('Zhe Family Guy S13, E1 - The Simpsons Guy.mp4'), null);
     assert.equal(parseSimpsons('random.mp4'), null);
-  });
-
-  it('isSimpsonsMovie matches the takedown-safe filename only', () => {
-    assert.equal(isSimpsonsMovie('Zhe Simpsons Movie.mp4'), true);
-    assert.equal(isSimpsonsMovie('The Simpsons Movie.mp4'), false);
-    assert.equal(isSimpsonsMovie('The Simpsons S01, E01 - x.mp4'), false);
   });
 });
 
@@ -857,12 +851,14 @@ describe('parseGiJoe', () => {
     });
   });
 
-  it('movie file is caught by the movieDetector, not the parser', () => {
-    assert.equal(isGiJoeMovie('G.I. Joe The Movie.mp4'), true);
-    // The parser would still return null for it because it does not
-    // match either filename shape — confirms the movieDetector is
-    // load-bearing here.
+  it('rejects the bundled movie file (now surfaced via MOVIES)', () => {
+    // `G.I. Joe The Movie.mp4` ships in the `gi-joe-3` IA item
+    // alongside S2. The parser regex `^(\d+)\. (.*)\.mp4` does NOT
+    // match the movie filename, so it gets dropped from the show
+    // catalog — intentional, the movie is exposed via the MOVIES
+    // registry instead (`?movie=gi-joe-the-movie`).
     assert.equal(parseGiJoe('G.I. Joe The Movie.mp4', 'gi-joe-3'), null);
+    assert.equal(parseGiJoe('G.I. Joe The Movie.mp4', 'gi-joe-2'), null);
   });
 
   it('returns null for unrelated files', () => {
@@ -1096,64 +1092,22 @@ describe('parseDextersLab', () => {
     }
   });
 
-  it('movie file is caught by the movieDetector, not the parser', () => {
-    assert.equal(isDextersLabMovie('Dexter’s_Laboratory_-_Ego_Trip.mp4'), true);
-    // ASCII apostrophe variant also accepted in case the IA derives one
-    // with a straightened glyph.
-    assert.equal(isDextersLabMovie("Dexter's_Laboratory_-_Ego_Trip.mp4"), true);
-    // The regular parser deliberately rejects it (different filename shape).
+  it('rejects the bundled Ego Trip movie file (now surfaced via MOVIES)', () => {
+    // `Dexter’s_Laboratory_-_Ego_Trip.mp4` (curly apostrophe) ships
+    // in the same IA item as the series. The parser regex requires
+    // `S(\d{2})E(\d{2})` and rejects the movie filename — the file
+    // is dropped from the show catalog and surfaced via the MOVIES
+    // registry instead (`?movie=dexters-lab-ego-trip`).
     assert.equal(parseDextersLab('Dexter’s_Laboratory_-_Ego_Trip.mp4'), null);
+    // ASCII apostrophe variant rejected too, in case the IA ever
+    // derives one with a straightened glyph.
+    assert.equal(parseDextersLab("Dexter's_Laboratory_-_Ego_Trip.mp4"), null);
   });
 
   it('returns null for unrelated files', () => {
     assert.equal(parseDextersLab('cover.jpg'), null);
     assert.equal(parseDextersLab('Dexter Season 1 Episode 1.mp4'), null);
     assert.equal(parseDextersLab('Dexters_Lab_S01E01.mp4'), null); // wrong show-name shape
-  });
-});
-
-describe('disenchantment (generic matcher)', () => {
-  // Bare-SxxExx filenames ("S01E01.mp4"); the IA upload is season 1
-  // only (10 episodes). The generic matcher validates each SxxExx
-  // against TVMaze's episode list and uses its canonical titles
-  // instead of synthesizing "Episode N" placeholders.
-  const dsDescriptions = new Map([
-    ['S01E01', { name: 'A Princess, an Elf, and a Demon Walk Into a Bar' }],
-    ['S01E05', { name: 'Faster, Princess! Kill! Kill!' }],
-    ['S01E10', { name: 'Dreamland Falls' }]
-  ]);
-  const parseDisenchantment = makeGenericParser(dsDescriptions);
-
-  it('parses the canonical bare S01E01 form', () => {
-    assert.deepEqual(parseDisenchantment('S01E01.mp4'), {
-      season: 1,
-      episode: 1,
-      title: 'A Princess, an Elf, and a Demon Walk Into a Bar'
-    });
-  });
-
-  it('parses E05 and E10 from the same S1 dump', () => {
-    assert.deepEqual(parseDisenchantment('S01E05.mp4'), {
-      season: 1,
-      episode: 5,
-      title: 'Faster, Princess! Kill! Kill!'
-    });
-    assert.deepEqual(parseDisenchantment('S01E10.mp4'), {
-      season: 1,
-      episode: 10,
-      title: 'Dreamland Falls'
-    });
-  });
-
-  it('returns null for unrelated files', () => {
-    assert.equal(parseDisenchantment('cover.jpg'), null);
-  });
-
-  it('returns null for SxxExx that does not exist in the TVMaze episode list', () => {
-    // The bespoke parser used to accept any SxxExx that matched its
-    // shape regex. The generic matcher cross-checks against TVMaze,
-    // so phantom slots get dropped instead of becoming broken cards.
-    assert.equal(parseDisenchantment('S99E99.mp4'), null);
   });
 });
 
@@ -1302,17 +1256,16 @@ describe('parseRecess', () => {
     );
   });
 
-  it('rejects everything under /Movies/ (theatrical is caught by movieDetector)', () => {
+  it('rejects everything under /Movies/ (theatrical surfaces via MOVIES instead)', () => {
+    // The whole /Movies/ subtree is dropped from the show catalog —
+    // the 2001 theatrical ("Recess Schools Out") is surfaced via the
+    // MOVIES registry as `?movie=recess-schools-out`, and the three
+    // made-for-TV movies are intentionally not surfaced anywhere
+    // (clip-show territory).
     assert.equal(parseRecess('Recess/Movies/All Growed Down.mp4'), null);
     assert.equal(parseRecess('Recess/Movies/Miracle On Third Street.mp4'), null);
     assert.equal(parseRecess('Recess/Movies/Recess Schools Out.mp4'), null);
     assert.equal(parseRecess('Recess/Movies/Taking The Fifth Grade.mp4'), null);
-  });
-
-  it('movieDetector picks the 2001 theatrical only, not the made-for-TV movies', () => {
-    assert.equal(isRecessMovie('Recess/Movies/Recess Schools Out.mp4'), true);
-    assert.equal(isRecessMovie('Recess/Movies/All Growed Down.mp4'), false);
-    assert.equal(isRecessMovie('Recess/Movies/Miracle On Third Street.mp4'), false);
   });
 
   it('returns null for unrelated files', () => {
@@ -2823,11 +2776,10 @@ describe('star-trek-voyager (generic matcher)', () => {
 });
 
 describe('star-trek-tas (generic matcher)', () => {
-  // "Star Trek TAS S01E01.mp4" — bare SxxExx, no in-file titles
-  // (like Disenchantment did before migration). The matcher pulls
-  // canonical names from TVMaze. 22 episodes across 2 seasons; the
-  // dump also ships a "0 star trek animated.mp4" promo that has no
-  // SxxExx and falls out naturally.
+  // "Star Trek TAS S01E01.mp4" — bare SxxExx, no in-file titles. The
+  // matcher pulls canonical names from TVMaze. 22 episodes across 2
+  // seasons; the dump also ships a "0 star trek animated.mp4" promo
+  // that has no SxxExx and falls out naturally.
   const tasDescriptions = new Map([
     ['S01E01', { name: 'Beyond the Farthest Star' }],
     ['S01E16', { name: 'The Jihad' }],

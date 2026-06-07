@@ -19,7 +19,21 @@ import { loadDescriptions, makeKey as descKey } from './descriptions.js';
 import { makeGenericParser } from './shows-dynamic.js';
 
 /** @typedef {import('./shows.js').ShowConfig} ShowConfig */
+/** @typedef {import('./movies.js').MovieConfig} MovieConfig */
 /** @typedef {import('./descriptions.js').EpisodeInfo} EpisodeInfo */
+
+/**
+ * Catalogs can be backed by either a ShowConfig (multi-season series)
+ * or a MovieConfig (single playable file). The `Catalog.show` field
+ * carries whichever shape the caller passed in; downstream views
+ * branch on `subject.kind` (movies always set it; shows leave it
+ * undefined) when behavior differs (e.g. hiding Prev/Next in the
+ * player for movies). The field name stays `show` for backwards
+ * compatibility with the existing call sites — it's an internal
+ * field, not part of any public URL.
+ *
+ * @typedef {ShowConfig | MovieConfig} CatalogSubject
+ */
 
 /**
  * @typedef {Object} Episode
@@ -47,9 +61,16 @@ import { makeGenericParser } from './shows-dynamic.js';
 
 /**
  * @typedef {Object} Catalog
- * @property {ShowConfig} show
- * @property {Season[]} seasons
+ * @property {CatalogSubject} show
+ *   Either a ShowConfig (regular series) or a MovieConfig (standalone
+ *   movie). Field name is `show` for historical reasons — see
+ *   {@link CatalogSubject}.
+ * @property {Season[]} seasons      Empty for standalone-movie catalogs.
  * @property {Episode|null} movie
+ *   Single-file playable. For ShowConfig-backed catalogs this is the
+ *   show's optional bundled movie (Simpsons Movie, GI Joe Movie etc.,
+ *   driven by `movieDetector`); for MovieConfig-backed catalogs it's
+ *   the only Episode and `seasons` is empty.
  * @property {number} total
  */
 
@@ -73,8 +94,11 @@ const mergedCache = new Map();
 const inflight = new Map();
 
 /**
- * Get a Catalog with TVMaze descriptions + stills already merged in.
- * Cached per session; safe to call from any view.
+ * Get a Catalog with TVMaze descriptions + stills already merged in
+ * for a regular show. Cached per session; safe to call from any
+ * view. For standalone movies use {@link getMovieCatalog} instead —
+ * movies aren't keyed by TVMaze's per-episode list so the description-
+ * graft step doesn't apply.
  *
  * @param {ShowConfig} show
  * @returns {Promise<Catalog>}
@@ -111,6 +135,36 @@ export async function getMergedCatalog(show) {
   })().finally(() => inflight.delete(show.id));
 
   inflight.set(show.id, work);
+  return work;
+}
+
+/**
+ * Get a single-file Catalog for a standalone movie. Cached per session.
+ *
+ * Unlike `getMergedCatalog`, this skips the TVMaze description graft
+ * — movies aren't keyed by per-episode summaries the way series are,
+ * and the IA item description is shown directly on the watch view's
+ * summary card via the Episode's `description` field (set from the
+ * IA file's `description` if present, otherwise the MovieConfig's
+ * `tagline`).
+ *
+ * @param {MovieConfig} movie
+ * @returns {Promise<Catalog>}
+ */
+export async function getMovieCatalog(movie) {
+  const cached = mergedCache.get(movie.id);
+  if (cached) return cached;
+  const pending = inflight.get(movie.id);
+  if (pending) return pending;
+
+  const work = (async () => {
+    const meta = await fetchItem(movie.iaItem);
+    const catalog = buildMovieCatalog(movie, meta);
+    mergedCache.set(movie.id, catalog);
+    return catalog;
+  })().finally(() => inflight.delete(movie.id));
+
+  inflight.set(movie.id, work);
   return work;
 }
 
@@ -355,6 +409,111 @@ export function buildCatalog(show, meta, itemId) {
 function defaultAccept(raw) {
   const name = typeof raw?.name === 'string' ? raw.name : '';
   return /\.mp4$/i.test(name) && !/\.ia\.mp4$/i.test(name);
+}
+
+/**
+ * Build a single-file movie Catalog from an archive.org metadata blob.
+ * Exposed for tests; runtime callers should go through
+ * {@link getMovieCatalog}.
+ *
+ * File-selection rules, in order:
+ *
+ *   1. If `movie.iaFile` is set, the file whose basename matches it
+ *      exactly wins. Use this for items that bundle bonus material
+ *      (trailers, alternate audio, "the making of") alongside the
+ *      movie.
+ *   2. Otherwise, the first file passing `movie.acceptFile` (default:
+ *      plain `.mp4`, not `.ia.mp4`) wins. Suitable for items dedicated
+ *      to one movie.
+ *
+ * Returns a Catalog with `seasons: []`, `movie: <Episode>`, `total: 1`
+ * on success. Returns `seasons: []`, `movie: null`, `total: 0` when
+ * no file matches — the watch view treats `total === 0` as a
+ * "channel off the air" failure mode, the same as a show with zero
+ * parseable files.
+ *
+ * @param {MovieConfig} movie
+ * @param {{ files?: Array<Record<string, unknown>> }} meta
+ * @param {string} [itemId]   archive.org item id used for URL
+ *   construction; defaults to `movie.iaItem`. Kept for symmetry with
+ *   `buildCatalog`'s signature even though movies always have a
+ *   single iaItem.
+ * @returns {Catalog}
+ */
+export function buildMovieCatalog(movie, meta, itemId) {
+  const useItem = itemId || movie.iaItem || '';
+  const files = Array.isArray(meta?.files) ? meta.files : [];
+  const accept = movie.acceptFile || defaultAccept;
+
+  /** @type {Record<string, unknown> | null} */
+  let chosen = null;
+  if (movie.iaFile) {
+    // Exact basename match. Bonus material sitting in subdirectories
+    // (e.g. "Extras/Trailer.mp4") doesn't collide because we only
+    // compare the basename — the iaFile field stays
+    // path-component-free by convention.
+    for (const raw of files) {
+      if (typeof raw !== 'object' || raw === null) continue;
+      const name = typeof raw.name === 'string' ? raw.name : '';
+      if (!name) continue;
+      const base = basename(name);
+      if (base === movie.iaFile) {
+        chosen = raw;
+        break;
+      }
+    }
+  } else {
+    // No explicit pick → first accepted file wins. The .ia.mp4
+    // derivative loses to its plain-.mp4 sibling via the same
+    // sort-then-iterate trick the show builder uses, so an item
+    // shipping both flavours selects the plain one.
+    const sortedFiles = [...files].sort((a, b) => {
+      const an = typeof a?.name === 'string' ? a.name : '';
+      const bn = typeof b?.name === 'string' ? b.name : '';
+      const aIa = /\.ia\.mp4$/i.test(an);
+      const bIa = /\.ia\.mp4$/i.test(bn);
+      if (aIa && !bIa) return 1;
+      if (!aIa && bIa) return -1;
+      return 0;
+    });
+    for (const raw of sortedFiles) {
+      if (typeof raw !== 'object' || raw === null) continue;
+      if (!accept(raw)) continue;
+      chosen = raw;
+      break;
+    }
+  }
+
+  if (!chosen) {
+    return { show: movie, seasons: [], movie: null, total: 0 };
+  }
+
+  const name = typeof chosen.name === 'string' ? chosen.name : '';
+  /** @type {Episode} */
+  const ep = {
+    file: name,
+    url: buildDownloadUrl(useItem, name),
+    archiveUrl: buildDetailsUrl(useItem, name),
+    sizeBytes: toNumber(chosen.size),
+    durationSec: toNumber(chosen.length),
+    width: toNumber(chosen.width),
+    height: toNumber(chosen.height),
+    season: 0,
+    episode: 0,
+    title: movie.name,
+    // The IA file's own description, when present, is usually a short
+    // synopsis the uploader wrote. Fall back to the registry tagline
+    // so the player's summary card always has something to render.
+    description: typeof chosen.description === 'string' ? chosen.description : movie.tagline || ''
+  };
+
+  return { show: movie, seasons: [], movie: ep, total: 1 };
+}
+
+/** Strip the directory component of a path. */
+function basename(p) {
+  const slash = p.lastIndexOf('/');
+  return slash >= 0 ? p.slice(slash + 1) : p;
 }
 
 function buildDownloadUrl(itemId, name) {

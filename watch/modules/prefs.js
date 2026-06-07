@@ -3,7 +3,14 @@
  *
  * Two stores:
  *   - `heyming.watch.prefs`            — global toggles (e.g. autoplay).
- *   - `heyming.watch.last.<showId>`    — per-show "where I left off".
+ *   - `heyming.watch.last.<id>`        — per-subject "where I left off".
+ *
+ * `<id>` is whatever registry identifier the watch view passes in:
+ * a ShowConfig id, or a MovieConfig id. The two registries are
+ * required to use disjoint id namespaces (the registry test enforces
+ * this), so a `heyming.watch.last.<id>` row unambiguously belongs to
+ * one subject. Movie entries always carry season=0, episode=0 and the
+ * landing page renders them through the movies path.
  *
  * All accessors swallow JSON / quota errors. The user can play the
  * site happily even in private-mode storage; prefs just won't persist.

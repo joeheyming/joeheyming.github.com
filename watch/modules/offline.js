@@ -8,6 +8,15 @@
  * MP4 doesn't pull the file into memory; we just pay a one-time
  * download.
  *
+ * "Episode" in this file is shorthand for any single playable file —
+ * a series episode or a standalone movie. Saved-offline records key
+ * by `${id}|${season}|${episode}` where `id` is the ShowConfig or
+ * MovieConfig id (the two registries enforce disjoint id namespaces,
+ * so the key is unambiguous). Movies always store at season=0,
+ * episode=0; the landing page's "Saved offline" row checks the
+ * movies registry first to decide whether to render the card with a
+ * `?movie=` or `?show=` link.
+ *
  * Why IDB rather than the Cache API + a service worker:
  *   - The site is a static GitHub Pages deploy; bringing in a service
  *     worker would need careful scope + update plumbing on top of the
@@ -246,7 +255,9 @@ export async function ensurePersistent() {
  * AND skips the IDB write, so a half-downloaded file never ends up in
  * storage.
  *
- * @param {import('./shows.js').ShowConfig} show
+ * @param {import('./shows.js').ShowConfig | import('./movies.js').MovieConfig} show
+ *   Either a series or a standalone movie config — both carry the
+ *   `id` / `name` / `emoji` / `accent` fields the IDB record stamps.
  * @param {import('./catalog.js').Episode} ep
  * @param {{ onProgress?: (p: SaveProgress) => void, signal?: AbortSignal }} [opts]
  * @returns {Promise<SavedEpisodeMeta>}

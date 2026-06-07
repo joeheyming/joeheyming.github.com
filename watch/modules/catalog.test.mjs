@@ -12,12 +12,46 @@ import assert from 'node:assert/strict';
 
 import {
   buildCatalog,
+  buildMovieCatalog,
   mergeCatalogs,
   mergeDescriptions,
   getNextEpisode
 } from './catalog.js';
 import { makeKey } from './descriptions.js';
 import { getShow } from './shows.js';
+
+/**
+ * Synthetic ShowConfig with a `movieDetector` for testing the
+ * buildCatalog bundled-movie code path.
+ *
+ * No production show currently uses `movieDetector` — the four
+ * shows that historically did (Simpsons, G.I. Joe, Dexter's Lab,
+ * Recess) all had their bundled movies migrated to the standalone
+ * MOVIES registry. The field stays on ShowConfig for any future
+ * show that genuinely ships a feature alongside its episodes in a
+ * single IA upload, and this fixture pins the contract under test
+ * so the code path can't bit-rot.
+ *
+ * @type {import('./shows.js').ShowConfig}
+ */
+const bundledMovieShowFixture = {
+  id: 'fixture-bundled-movie',
+  name: 'Fixture Show With Bundled Movie',
+  shortName: 'Fixture',
+  emoji: '🧪',
+  accent: '#000000',
+  tags: ['animation', '90s'],
+  tagline: 'synthetic fixture — not a real registered show',
+  iaItem: 'fixture-item',
+  tvmazeId: 0,
+  parser: (file) => {
+    const m = /^E(\d+)\.mp4$/i.exec(file);
+    if (!m) return null;
+    return { season: 1, episode: Number(m[1]), title: `Episode ${m[1]}` };
+  },
+  movieDetector: (name) => /^Bundled Movie\.mp4$/i.test(name),
+  movieTitle: 'Bundled Movie (2000)'
+};
 
 /* ============================================================
  * buildCatalog
@@ -26,25 +60,30 @@ import { getShow } from './shows.js';
 describe('buildCatalog — The Simpsons', () => {
   const show = getShow('simpsons');
 
-  it('groups episodes by season and surfaces the movie separately', () => {
+  it('groups episodes by season and drops the (now-orphaned) movie file', () => {
+    // The same `doh_20240725` IA item ships the movie at the top
+    // level alongside the per-episode MP4s. Pre-migration, the
+    // show carried a movieDetector that surfaced `Zhe Simpsons
+    // Movie (2007).mp4` as `catalog.movie`. Post-migration, the
+    // detector is gone — the movie is exposed through the MOVIES
+    // registry instead (`?movie=simpsons-movie`), and the show's
+    // parser must drop the orphaned file rather than re-surface it.
     const meta = {
       files: [
         { name: 'The Simpsons S01, E01 - Simpsons Roasting on an Open Fire.mp4' },
         { name: 'The Simpsons S01, E02 - Bart the Genius.mp4' },
         { name: 'The Simpsons S02, E01 - Bart Gets an F.mp4' },
-        { name: 'Zhe Simpsons Movie.mp4' },
+        { name: 'Zhe Simpsons Movie (2007).mp4' },
         { name: 'cover.jpg' }
       ]
     };
     const cat = buildCatalog(show, meta);
-    // 3 episodes + 1 movie = 4 (total includes the movie).
-    assert.equal(cat.total, 4);
+    assert.equal(cat.total, 3, 'movie file must not be counted in the show catalog');
     assert.equal(cat.seasons.length, 2);
     assert.equal(cat.seasons[0].number, 1);
     assert.equal(cat.seasons[0].episodes.length, 2);
     assert.equal(cat.seasons[1].number, 2);
-    assert.equal(cat.movie?.title, show.movieTitle);
-    assert.equal(cat.movie?.season, 0);
+    assert.equal(cat.movie, null, 'simpsons must no longer carry a bundled movie');
   });
 
   it('drops files the parser rejects', () => {
@@ -88,6 +127,41 @@ describe('buildCatalog — The Simpsons', () => {
     const cat = buildCatalog(show, meta);
     const ep = cat.seasons[0].episodes[0];
     assert.equal(ep.thumbUrl, undefined, 'thumbUrl should no longer exist on Episode');
+  });
+});
+
+describe('buildCatalog — bundled-movie code path (synthetic fixture)', () => {
+  // No production show carries `movieDetector` anymore — the four
+  // historical bundled movies (Simpsons, G.I. Joe, Dexter's Lab,
+  // Recess) all migrated to the standalone MOVIES registry. The
+  // field stays on ShowConfig for any future show that might ship a
+  // feature alongside its episodes in a single IA upload, and this
+  // synthetic fixture pins the contract under test so the code path
+  // can't bit-rot.
+
+  it('surfaces matched files as catalog.movie with season=0', () => {
+    const meta = {
+      files: [
+        { name: 'E01.mp4' },
+        { name: 'E02.mp4' },
+        { name: 'Bundled Movie.mp4' },
+        { name: 'cover.jpg' }
+      ]
+    };
+    const cat = buildCatalog(bundledMovieShowFixture, meta);
+    assert.equal(cat.total, 3, '2 episodes + 1 movie');
+    assert.equal(cat.seasons.length, 1);
+    assert.equal(cat.seasons[0].episodes.length, 2);
+    assert.equal(cat.movie?.title, bundledMovieShowFixture.movieTitle);
+    assert.equal(cat.movie?.season, 0);
+  });
+
+  it('falls back to show.name when movieTitle is undefined', () => {
+    const fixtureNoTitle = { ...bundledMovieShowFixture, movieTitle: undefined };
+    const cat = buildCatalog(fixtureNoTitle, {
+      files: [{ name: 'Bundled Movie.mp4' }]
+    });
+    assert.equal(cat.movie?.title, fixtureNoTitle.name);
   });
 });
 
@@ -195,20 +269,18 @@ describe('mergeCatalogs', () => {
   });
 
   it('keeps the first non-null movie across catalogs', () => {
-    const simpsons = getShow('simpsons');
-    const noMovie = buildCatalog(
-      simpsons,
-      { files: [{ name: 'The Simpsons S01, E01 - x.mp4' }] },
-      'doh_20240725'
-    );
-    const withMovie = buildCatalog(
-      simpsons,
-      { files: [{ name: 'Zhe Simpsons Movie.mp4' }] },
-      'doh_20240725'
-    );
-    const merged = mergeCatalogs(simpsons, [noMovie, withMovie]);
+    // Uses the synthetic bundled-movie fixture rather than a real
+    // show — no production show currently carries `movieDetector`,
+    // so we'd otherwise be unable to exercise mergeCatalogs's
+    // movie-preservation branch with a registered show.
+    const noMovie = buildCatalog(bundledMovieShowFixture, { files: [{ name: 'E01.mp4' }] });
+    const withMovie = buildCatalog(bundledMovieShowFixture, {
+      files: [{ name: 'Bundled Movie.mp4' }]
+    });
+    const merged = mergeCatalogs(bundledMovieShowFixture, [noMovie, withMovie]);
     assert.ok(merged.movie);
     assert.equal(merged.movie.season, 0);
+    assert.equal(merged.movie.title, bundledMovieShowFixture.movieTitle);
   });
 
   it('ignores null entries (defensive)', () => {
@@ -295,15 +367,26 @@ describe('mergeDescriptions', () => {
  * ============================================================ */
 
 describe('getNextEpisode', () => {
-  const show = getShow('simpsons');
+  // Uses the synthetic bundled-movie fixture so we can exercise the
+  // "next-after-movie" path. The fixture's parser puts everything
+  // matched into season 1, so we extend it locally to also accept a
+  // season 2 shape for the cross-season-jump assertions.
+  const show = /** @type {import('./shows.js').ShowConfig} */ ({
+    ...bundledMovieShowFixture,
+    parser: (/** @type {string} */ file) => {
+      const m = /^S(\d+)E(\d+)\.mp4$/i.exec(file);
+      if (!m) return null;
+      return { season: Number(m[1]), episode: Number(m[2]), title: `Episode ${m[2]}` };
+    }
+  });
   const cat = buildCatalog(show, {
     files: [
-      { name: 'The Simpsons S01, E01 - A.mp4' },
-      { name: 'The Simpsons S01, E02 - B.mp4' },
-      { name: 'The Simpsons S01, E03 - C.mp4' },
-      { name: 'The Simpsons S02, E01 - D.mp4' },
-      { name: 'The Simpsons S02, E02 - E.mp4' },
-      { name: 'Zhe Simpsons Movie.mp4' }
+      { name: 'S1E01.mp4' },
+      { name: 'S1E02.mp4' },
+      { name: 'S1E03.mp4' },
+      { name: 'S2E01.mp4' },
+      { name: 'S2E02.mp4' },
+      { name: 'Bundled Movie.mp4' }
     ]
   });
 
@@ -353,5 +436,146 @@ describe('getNextEpisode', () => {
     const next = getNextEpisode(sparse, sparse.seasons[0].episodes[0]);
     assert.equal(next?.season, 3);
     assert.equal(next?.episode, 1);
+  });
+});
+
+/* ============================================================
+ * buildMovieCatalog
+ * ============================================================ */
+
+describe('buildMovieCatalog', () => {
+  // Synthetic MovieConfig — we don't import from movies.js because
+  // the registry ships empty by design; the builder is generic over
+  // any object with the expected shape and these tests pin that
+  // contract.
+  const baseMovie = {
+    id: 'test-movie',
+    name: 'Test Movie (2020)',
+    shortName: 'Test',
+    emoji: '🎬',
+    accent: '#888888',
+    tags: ['live-action', '2020s'],
+    tagline: 'A fixture used by the catalog tests.',
+    iaItem: 'test-movie-item'
+  };
+
+  it('picks the file matching `iaFile` exactly and surfaces it as catalog.movie', () => {
+    const meta = {
+      files: [
+        { name: 'trailer.mp4', size: '12345' },
+        { name: 'Test Movie (2020).mp4', size: '987654321', length: '5400' },
+        { name: 'behind-the-scenes.mp4', size: '111111' }
+      ]
+    };
+    const cat = buildMovieCatalog({ ...baseMovie, iaFile: 'Test Movie (2020).mp4' }, meta);
+    assert.equal(cat.total, 1);
+    assert.deepEqual(cat.seasons, []);
+    assert.ok(cat.movie);
+    assert.equal(cat.movie.title, baseMovie.name);
+    assert.equal(cat.movie.season, 0);
+    assert.equal(cat.movie.episode, 0);
+    assert.equal(cat.movie.sizeBytes, 987654321);
+    assert.equal(cat.movie.durationSec, 5400);
+    assert.match(cat.movie.url, /^https:\/\/archive\.org\/download\/test-movie-item\//);
+  });
+
+  it('falls back to the first plain mp4 when iaFile is omitted', () => {
+    // No iaFile means "first acceptable file wins". `cover.jpg`
+    // fails the default acceptor; the mp4 below it is picked.
+    const meta = {
+      files: [
+        { name: 'cover.jpg' },
+        { name: 'movie.mp4', size: '50000' },
+        { name: 'also-movie.mp4', size: '99999' }
+      ]
+    };
+    const cat = buildMovieCatalog(baseMovie, meta);
+    assert.equal(cat.total, 1);
+    assert.equal(cat.movie?.file, 'movie.mp4');
+  });
+
+  it('prefers plain .mp4 over .ia.mp4 when iaFile is omitted', () => {
+    // Same dedup story as the show path: an item that ships both
+    // flavours should pick the higher-bitrate plain one.
+    const meta = {
+      files: [
+        { name: 'movie.ia.mp4', size: '100' },
+        { name: 'movie.mp4', size: '200' }
+      ]
+    };
+    const cat = buildMovieCatalog(baseMovie, meta);
+    assert.equal(cat.movie?.file, 'movie.mp4');
+  });
+
+  it('returns total=0 when no file matches iaFile', () => {
+    const meta = { files: [{ name: 'something-else.mp4' }] };
+    const movie = { ...baseMovie, iaFile: 'expected.mp4' };
+    const cat = buildMovieCatalog(movie, meta);
+    assert.equal(cat.total, 0);
+    assert.equal(cat.movie, null);
+    assert.deepEqual(cat.seasons, []);
+    // Subject is still set so the watch view's `show` reference
+    // works (the "channel off the air" fallback reads `.iaItem`
+    // off it to populate the archive.org error link).
+    assert.equal(cat.show, movie);
+  });
+
+  it('returns total=0 when the item has no acceptable files', () => {
+    const meta = {
+      files: [{ name: 'cover.jpg' }, { name: 'metadata.xml' }, { name: 'movie.mkv' }]
+    };
+    const cat = buildMovieCatalog(baseMovie, meta);
+    assert.equal(cat.total, 0);
+    assert.equal(cat.movie, null);
+  });
+
+  it('iaFile matches on basename, not full path', () => {
+    // An item that nests the movie under a subdirectory still
+    // matches when iaFile is just the filename. This keeps the
+    // registry entries terse — no need to know how the uploader
+    // structured their item.
+    const meta = {
+      files: [{ name: 'Extras/trailer.mp4' }, { name: 'Feature/movie.mp4', size: '7777' }]
+    };
+    const cat = buildMovieCatalog({ ...baseMovie, iaFile: 'movie.mp4' }, meta);
+    assert.equal(cat.total, 1);
+    assert.equal(cat.movie?.file, 'Feature/movie.mp4');
+    assert.equal(cat.movie?.sizeBytes, 7777);
+  });
+
+  it('uses the IA file description when present, else the registry tagline', () => {
+    const metaWithDesc = {
+      files: [{ name: 'movie.mp4', description: 'A synopsis the uploader wrote.' }]
+    };
+    const catWithDesc = buildMovieCatalog(baseMovie, metaWithDesc);
+    assert.equal(catWithDesc.movie?.description, 'A synopsis the uploader wrote.');
+
+    const metaNoDesc = { files: [{ name: 'movie.mp4' }] };
+    const catNoDesc = buildMovieCatalog(baseMovie, metaNoDesc);
+    assert.equal(catNoDesc.movie?.description, baseMovie.tagline);
+  });
+
+  it('honours a custom acceptFile predicate', () => {
+    // A movie whose only available file is the auto-generated
+    // `.ia.mp4` derivative would override the default acceptor (same
+    // pattern as the Robotech show entry). The custom acceptor wins
+    // when iaFile isn't set.
+    const meta = {
+      files: [{ name: 'movie.ia.mp4', size: '12345' }]
+    };
+    const movie = {
+      ...baseMovie,
+      acceptFile: (raw) => /\.ia\.mp4$/i.test(raw.name)
+    };
+    const cat = buildMovieCatalog(movie, meta);
+    assert.equal(cat.total, 1);
+    assert.equal(cat.movie?.file, 'movie.ia.mp4');
+  });
+
+  it('itemId arg overrides movie.iaItem in URL construction', () => {
+    const meta = { files: [{ name: 'movie.mp4' }] };
+    const cat = buildMovieCatalog(baseMovie, meta, 'different-item-id');
+    assert.match(cat.movie?.url, /\/different-item-id\//);
+    assert.match(cat.movie?.archiveUrl, /\/different-item-id\//);
   });
 });

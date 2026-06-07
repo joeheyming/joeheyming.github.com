@@ -1,13 +1,26 @@
 /**
  * /watch/ router.
  *
- * URL shape is `?show=<id>&s=<n>&e=<n>` (static-hosting friendly). One
- * route function reads `location.search`, picks the right view module,
- * unmounts the previous view, and mounts the new one into the
- * `<main id="tv-view">` slot.
+ * Two URL shapes, both static-hosting friendly:
  *
- * `popstate` re-runs the router so the browser back button (and any
- * deep-link refresh) Just Works.
+ *   - `?show=<id>` / `?show=<id>&s=<n>&e=<n>`  — series flow. The
+ *     landing page links to `?show=<id>`, which renders the episodes
+ *     view; clicking through to a specific episode adds `&s` and `&e`
+ *     and mounts the watch view.
+ *   - `?movie=<id>`                              — standalone-movie
+ *     flow. Always mounts the watch view directly; there's no
+ *     intermediate episode picker because there's only one file. The
+ *     watch view writes back the same `?movie=<id>` URL when it
+ *     refreshes the deep link.
+ *
+ * The route function reads `location.search`, picks the right view
+ * module, unmounts the previous view, and mounts the new one into the
+ * `<main id="tv-view">` slot. `popstate` re-runs the router so the
+ * browser back button (and any deep-link refresh) Just Works.
+ *
+ * When both `?show` and `?movie` are present the movie param wins —
+ * it's the more specific intent and writing a deep link with both set
+ * usually means the URL was hand-edited.
  */
 
 // Side-effect import: mode.js stamps `data-mode` + `data-modality`
@@ -15,10 +28,17 @@
 // It MUST run before any view mounts so view code can branch on
 // `isTvMode` consistently from first paint.
 import './modules/mode.js';
+// Side-effect import: quicknav.js mounts a fixed left-edge rail
+// with Shows / Movies shortcuts. Mounts to <body> on
+// DOMContentLoaded, self-contained, no API surface other than the
+// `popstate` it listens for to refresh its active-state.
+import './modules/quicknav.js';
 import { getShow } from './modules/shows.js';
+import { getMovie } from './modules/movies.js';
 import { renderBreadcrumbs } from './modules/breadcrumbs.js';
 
 /** @typedef {import('./modules/shows.js').ShowConfig} ShowConfig */
+/** @typedef {import('./modules/movies.js').MovieConfig} MovieConfig */
 
 /**
  * @typedef {Object} ViewHandle
@@ -32,7 +52,11 @@ import { renderBreadcrumbs } from './modules/breadcrumbs.js';
  * Tracks the currently-mounted view so `route()` can decide between
  * a hot update (`jumpTo`) and a full unmount/mount cycle.
  *
- * @type {{ name: string, showId: string | null, handle: ViewHandle } | null}
+ * `subjectId` is either a show id (for the shows / episodes / watch
+ * views in series mode) or a movie id (for the movie watch view); the
+ * jump-to fast path only applies within the same subject.
+ *
+ * @type {{ name: string, subjectId: string | null, handle: ViewHandle } | null}
  */
 let current = null;
 
@@ -64,14 +88,22 @@ function readNum(params, key) {
 /** Read the URL and mount whichever view it asks for. */
 async function route() {
   const params = new URLSearchParams(location.search);
+  const movieId = params.get('movie');
   const showId = params.get('show');
   const s = readNum(params, 's');
   const e = readNum(params, 'e');
-  const show = showId ? getShow(showId) : null;
+
+  // Movie takes precedence over show when both are present — a deep
+  // link with both is almost always a hand-edit; honouring the more
+  // specific intent matches what the user typed last.
+  const movie = movieId ? getMovie(movieId) : null;
+  const show = !movie && showId ? getShow(showId) : null;
 
   // ---- Decide which view ---------------------------------------------
   let nextView;
-  if (!show) {
+  if (movie) {
+    nextView = 'movie';
+  } else if (!show) {
     nextView = 'shows';
   } else if (Number.isFinite(s) && Number.isFinite(e)) {
     nextView = 'watch';
@@ -82,10 +114,13 @@ async function route() {
   // Hot path: same show + same view + same view supports updates →
   // call `jumpTo` instead of re-mounting. Currently only the watch
   // view does (so Prev/Next on the URL doesn't reload the video chrome).
+  // Movies skip this entirely: there's only one file, so a same-subject
+  // remount can't happen via URL change (the movie URL has no S/E
+  // params to flip).
   if (
     nextView === 'watch' &&
     current?.name === 'watch' &&
-    current.showId === show?.id &&
+    current.subjectId === show?.id &&
     current.handle.jumpTo
   ) {
     current.handle.jumpTo(s, e);
@@ -101,13 +136,18 @@ async function route() {
 
   // ---- Mount the new one ---------------------------------------------
   if (!slot) return;
-  setBreadcrumbsFor(nextView, show, params);
-  setPageTitle(nextView, show, params);
+  if (nextView === 'movie' && movie) {
+    setBreadcrumbsFor('movie', movie, params);
+    setPageTitleForMovie(movie);
+  } else {
+    setBreadcrumbsFor(nextView, show, params);
+    setPageTitle(nextView, show, params);
+  }
 
   if (nextView === 'shows') {
     const mod = await import('./modules/views/shows-view.js');
     const handle = await mod.mount(slot, { navigate });
-    current = { name: 'shows', showId: null, handle };
+    current = { name: 'shows', subjectId: null, handle };
     document.documentElement.style.removeProperty('--tv-accent');
     return;
   }
@@ -116,7 +156,7 @@ async function route() {
     const mod = await import('./modules/views/episodes-view.js');
     document.documentElement.style.setProperty('--tv-accent', show.accent);
     const handle = await mod.mount(slot, { show, params, navigate });
-    current = { name: 'episodes', showId: show.id, handle };
+    current = { name: 'episodes', subjectId: show.id, handle };
     return;
   }
 
@@ -130,7 +170,25 @@ async function route() {
       navigate,
       setBreadcrumbTitle: (label) => updateBreadcrumbCurrent(label)
     });
-    current = { name: 'watch', showId: show.id, handle };
+    current = { name: 'watch', subjectId: show.id, handle };
+    return;
+  }
+
+  if (nextView === 'movie' && movie) {
+    const mod = await import('./modules/views/watch-view.js');
+    document.documentElement.style.setProperty('--tv-accent', movie.accent);
+    // Movies always mount at S0E0 — the catalog has exactly one
+    // Episode and findEpisode(s=0) returns it. The watch view reads
+    // `show.kind === 'movie'` (set on MovieConfig but not ShowConfig)
+    // to suppress Prev/Next/Shuffle/Up-next chrome.
+    const handle = await mod.mount(slot, {
+      show: movie,
+      initialSeason: 0,
+      initialEpisode: 0,
+      navigate,
+      setBreadcrumbTitle: (label) => updateBreadcrumbCurrent(label)
+    });
+    current = { name: 'watch', subjectId: movie.id, handle };
     return;
   }
 
@@ -140,49 +198,69 @@ async function route() {
 
 /**
  * Programmatic navigation. Pushes a new history entry by default so
- * the browser back button steps through view changes (catalog → show →
- * episode). Pass `{ replace: true }` to update the URL without growing
- * history (used e.g. when the watch view changes seasons internally).
+ * the browser back button steps through view changes (catalog → show
+ * → episode, or catalog → movie). Pass `{ replace: true }` to update
+ * the URL without growing history (used e.g. when the watch view
+ * changes episodes internally).
  *
- * @param {{ show?: string, s?: number, e?: number }} update
+ * The two URL shapes (`?show=` and `?movie=`) are mutually exclusive
+ * — passing `update.movie` writes the movie URL and clears any show
+ * params; passing `update.show` writes the show URL.
+ *
+ * @param {{ show?: string, movie?: string, s?: number, e?: number }} update
  * @param {{ replace?: boolean }} [opts]
  */
 function navigate(update, opts = {}) {
   const params = new URLSearchParams();
-  if (update.show) params.set('show', update.show);
-  if (typeof update.s === 'number') params.set('s', String(update.s));
-  if (typeof update.e === 'number') params.set('e', String(update.e));
+  if (update.movie) {
+    params.set('movie', update.movie);
+  } else {
+    if (update.show) params.set('show', update.show);
+    if (typeof update.s === 'number') params.set('s', String(update.s));
+    if (typeof update.e === 'number') params.set('e', String(update.e));
+  }
   const qs = params.toString();
   const url = qs ? `${location.pathname}?${qs}` : location.pathname;
   if (opts.replace) history.replaceState(null, '', url);
   else history.pushState(null, '', url);
-  void route();
+  // Dispatch popstate so every listener gets a single, consistent
+  // route-change signal — `route()` itself is wired through popstate
+  // (see `main()`), so a manually-dispatched event covers both the
+  // router re-mount AND any cross-cutting subscribers (currently the
+  // quicknav rail, which uses popstate to refresh its active-state).
+  // `pushState` / `replaceState` don't auto-emit popstate; this is
+  // the one place we materialise the signal so the rest of the app
+  // can listen to a single source of truth.
+  window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
 /**
- * Set up the breadcrumb trail for the given view + show. The watch
+ * Set up the breadcrumb trail for the given view + subject. The watch
  * view then updates the trailing crumb's label once it knows the
- * episode title (see `setBreadcrumbTitle` in MountCtx).
+ * episode/movie title (see `setBreadcrumbTitle` in MountCtx).
  *
- * @param {'shows'|'episodes'|'watch'} view
- * @param {ShowConfig|null} show
+ * For the movie flow the trail is shorter (`📺 Watch › 🎬 <name>`)
+ * because there's no intermediate "all episodes" view.
+ *
+ * @param {'shows'|'episodes'|'watch'|'movie'} view
+ * @param {ShowConfig|MovieConfig|null} subject
  * @param {URLSearchParams} params
  */
-function setBreadcrumbsFor(view, show, params) {
+function setBreadcrumbsFor(view, subject, params) {
   const slot = $('tv-breadcrumbs');
   if (!slot) return;
   const crumbs = [];
   if (view === 'shows') {
     crumbs.push({ label: '📺 Watch' });
-  } else if (view === 'episodes' && show) {
+  } else if (view === 'episodes' && subject) {
     crumbs.push({ label: 'Watch', emoji: '📺', href: '' });
-    crumbs.push({ label: show.name, emoji: show.emoji });
-  } else if (view === 'watch' && show) {
+    crumbs.push({ label: subject.name, emoji: subject.emoji });
+  } else if (view === 'watch' && subject) {
     crumbs.push({ label: 'Watch', emoji: '📺', href: '' });
     crumbs.push({
-      label: show.name,
-      emoji: show.emoji,
-      href: `?show=${encodeURIComponent(show.id)}`
+      label: subject.name,
+      emoji: subject.emoji,
+      href: `?show=${encodeURIComponent(subject.id)}`
     });
     // Initial placeholder; the watch view updates it once the episode
     // is resolved against the catalog.
@@ -190,6 +268,13 @@ function setBreadcrumbsFor(view, show, params) {
     const e = Number(params.get('e'));
     const seasonLabel = s === 0 ? 'Movie' : `S${pad(s)}E${pad(e)}`;
     crumbs.push({ label: seasonLabel });
+  } else if (view === 'movie' && subject) {
+    crumbs.push({ label: 'Watch', emoji: '📺', href: '' });
+    // No intermediate "all episodes" crumb — there's nothing to browse.
+    // Use 🎬 as the emoji-side glyph regardless of what the registry
+    // entry chose (the registry emoji feels like a poster, the
+    // breadcrumb glyph is a context tag for "this is a movie").
+    crumbs.push({ label: subject.name, emoji: '🎬' });
   }
   renderBreadcrumbs(slot, crumbs, (href) => {
     const target = href ? `${location.pathname}${href}` : location.pathname;
@@ -232,6 +317,16 @@ function setPageTitle(view, show, params) {
     const tag = s === 0 ? 'Movie' : `S${pad(s)}E${pad(e)}`;
     document.title = `${show.name} · ${tag} | Watch 📺`;
   }
+}
+
+/**
+ * Page title for the standalone-movie watch view. Movies don't carry
+ * an S/E tag in the title — the movie name is the whole identifier.
+ *
+ * @param {MovieConfig} movie
+ */
+function setPageTitleForMovie(movie) {
+  document.title = `${movie.name} · Movie | Watch 🎬`;
 }
 
 function pad(n) {

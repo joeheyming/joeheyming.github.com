@@ -29,6 +29,7 @@ import {
 } from '../subtitles.js';
 
 /** @typedef {import('../shows.js').ShowConfig} ShowConfig */
+/** @typedef {import('../movies.js').MovieConfig} MovieConfig */
 /** @typedef {import('../catalog.js').Episode} Episode */
 
 /**
@@ -44,7 +45,12 @@ import {
 /**
  * @typedef {Object} SubtitleControllerDeps
  * @property {HTMLVideoElement} video Target for `<track>` attachment.
- * @property {ShowConfig} show Read: `imdbId`.
+ * @property {ShowConfig | MovieConfig} show Read: `imdbId`.
+ *   For a standalone movie the auto-attach branch is gated off
+ *   (`ep.season > 0`); a follow-up could special-case movie subtitle
+ *   lookup against the OpenSubtitles addon's no-S/E path. Today,
+ *   movies that need CC should omit `imdbId` so the CC button never
+ *   appears at all.
  * @property {{ subtitleLang: string | null }} prefs Mutable prefs reference.
  * @property {(prefs: any) => void} savePrefs Persist the prefs blob.
  * @property {(msg: string) => void} flash Marquee toast helper.

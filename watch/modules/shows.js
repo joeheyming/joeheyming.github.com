@@ -403,12 +403,11 @@ export const SHOWS = [
     tvmazeId: 1953,
     imdbId: 'tt0115157',
     acceptFile: defaultAcceptMp4,
-    // The standalone hour-long "Ego Trip" finale movie ships with
-    // curly-apostrophe + underscore separators that the regular
-    // parser regex deliberately doesn't accept; route it to the
-    // movie row instead.
-    movieDetector: (name) => /Dexter[’']s_Laboratory_-_Ego_Trip\.mp4$/i.test(basename(name)),
-    movieTitle: "Dexter's Laboratory: Ego Trip (1999)",
+    // The same IA upload also carries `Dexter’s_Laboratory_-_Ego_Trip.mp4`
+    // (curly apostrophe + underscore separators). The parser below
+    // deliberately doesn't match it, so the file is dropped here and
+    // surfaced via the MOVIES registry instead
+    // (`?movie=dexters-lab-ego-trip`).
     parser: (file) => {
       // "Dexter_s_Laboratory_S01E01.mp4". No episode titles in the
       // filenames — every regular episode is just SxxExx. We seed
@@ -423,24 +422,6 @@ export const SHOWS = [
         title: `Episode ${Number(m[2])}`
       };
     }
-  },
-  {
-    // Parser-only calibration verdict: clean, recall=100%, disagree=0%.
-    // Bare-SxxExx filenames ("S01E01.mp4"); the generic matcher in
-    // shows-dynamic.js handles them and pulls real titles from TVMaze
-    // instead of placeholder "Episode N" strings.
-    id: 'disenchantment',
-    name: 'Disenchantment',
-    shortName: 'Disenchantment',
-    emoji: '🏰',
-    accent: '#2563eb',
-    tags: ['animation', 'comedy', 'fantasy', '2010s'],
-    tagline:
-      'Princess Bean of Dreamland, an elf, and a personal demon · season 1 of Groening’s Netflix fantasy (2018)',
-    iaItem: 'SitCom-18',
-    tvmazeId: 30715,
-    imdbId: 'tt5363918',
-    acceptFile: defaultAcceptMp4
   },
   {
     id: 'dnd',
@@ -632,22 +613,25 @@ export const SHOWS = [
     accent: '#16a34a',
     tags: ['animation', 'kids', 'action', '80s'],
     tagline:
-      'Yo Joe! · 1983/84 mini-series + both Sunbow seasons + the 1987 movie · 96 entries total',
+      'Yo Joe! · 1983/84 mini-series + both Sunbow seasons · 95 episodes across three IA uploads',
     // Three sibling Sunbow-era uploads by `scottharriman@hotmail.com`.
     // S1 (the 1985 regular run) and S2 (1986) both use plain
     // `N. Title.mp4` so the catalog builder can't tell them apart from
     // the filename alone — we use the `itemId` arg threaded through
     // `show.parser(name, itemId)` to disambiguate.
+    //
+    // `gi-joe-3` also carries `G.I. Joe The Movie.mp4` at the top
+    // level. That file doesn't match the parser regex and is dropped
+    // here; it surfaces via the MOVIES registry as
+    // `?movie=gi-joe-the-movie`.
     iaItem: [
       'gi-joe-1', // 1983/84 mini-series: MASS Device + Revenge of Cobra (10 parts)
       'gi-joe-2', // 1985 Season 1 (55 episodes, opens with Pyramid of Darkness 5-parter)
-      'gi-joe-3' //  1986 Season 2 (30 episodes) + G.I. Joe: The Movie
+      'gi-joe-3' //  1986 Season 2 (30 episodes); the 1987 movie ships here too, see comment above
     ],
     tvmazeId: 6880,
     imdbId: 'tt0086719',
     acceptFile: defaultAcceptMp4,
-    movieDetector: (file) => /^G\.I\. Joe The Movie\.mp4$/i.test(basename(file)),
-    movieTitle: 'G.I. Joe: The Movie (1987)',
     parser: (file, itemId) => {
       const base = basename(file);
       if (itemId === 'gi-joe-1') {
@@ -655,8 +639,7 @@ export const SHOWS = [
         // (1 = MASS Device, 2 = Revenge of Cobra), N = part 1..5.
         // Both minis are pre-S1 specials; we collapse them into a
         // single "Season 0" with episodes 1..10 (E1-E5 = MASS Device,
-        // E6-E10 = Revenge of Cobra) so they show up in the catalog's
-        // specials/movie row alongside The Movie.
+        // E6-E10 = Revenge of Cobra).
         const m = base.match(/^(\d+)-(\d+)\. (.*)\.mp4$/i);
         if (!m) return null;
         const mini = Number(m[1]);
@@ -664,8 +647,10 @@ export const SHOWS = [
         return { season: 0, episode: (mini - 1) * 5 + part, title: m[3].trim() };
       }
       // gi-joe-2 = the 1985 regular series (season 1)
-      // gi-joe-3 = the 1986 second season (the Movie is caught by
-      //           movieDetector above and never reaches this parser).
+      // gi-joe-3 = the 1986 second season. `G.I. Joe The Movie.mp4`
+      //           also lives in gi-joe-3 but its filename doesn't
+      //           match `(\d+)\. .*\.mp4` below, so it falls through
+      //           to the null return — intentional.
       const season = itemId === 'gi-joe-3' ? 2 : 1;
       const m = base.match(/^(\d+)\. (.*)\.mp4$/i);
       if (!m) return null;
@@ -1022,19 +1007,21 @@ export const SHOWS = [
     tvmazeId: 5935,
     imdbId: 'tt0126170',
     acceptFile: defaultAcceptMp4,
-    // The 2001 theatrical "Recess: School's Out" lives in the
-    // archive's /Movies/ folder alongside three made-for-TV movies
-    // ("All Growed Down", "Miracle on Third Street", "Taking the
-    // Fifth Grade"). Only the canon theatrical one is surfaced as
-    // the movie row; the others would clutter season 0 with
-    // duplicate-of-clip-show entries.
-    movieDetector: (name) => /Recess Schools Out\.mp4$/i.test(basename(name)),
-    movieTitle: "Recess: School's Out (2001)",
+    // The IA item also carries a `/Movies/` subtree with the 2001
+    // theatrical ("Recess Schools Out.mp4") plus three made-for-TV
+    // movies ("All Growed Down", "Miracle on Third Street", "Taking
+    // the Fifth Grade"). The parser below drops everything in
+    // `/Movies/` outright; the canon theatrical is then surfaced
+    // independently via the MOVIES registry as
+    // `?movie=recess-schools-out`. The three made-for-TV movies are
+    // intentionally not surfaced anywhere — they're clip-show
+    // territory and would dilute the catalog.
     parser: (file) => {
       // "Recess/Season 1/recess_-_s01e01_-_the_break_in_[jpv711].mp4".
       // The whole /Movies/ subtree (3 made-for-TV movies + the
-      // theatrical) doesn't follow this shape; the theatrical is
-      // caught by movieDetector and the rest are dropped.
+      // theatrical) doesn't follow this shape and is dropped here;
+      // the theatrical is surfaced separately via MOVIES (see the
+      // comment above).
       //
       // Some files are paired-episode rips named
       // `s05e11_&_s05e12_-_lawson_and_his_crew_part,_1_&_2`; we
@@ -1145,7 +1132,12 @@ export const SHOWS = [
     emoji: '🍩',
     accent: '#ffb800',
     tags: ['animation', 'comedy', '90s'],
-    tagline: 'Yellow family of Springfield · 18 seasons + the movie',
+    tagline: 'Yellow family of Springfield · 18 seasons of America’s longest-running sitcom',
+    // The same upload also carries `Zhe Simpsons Movie (2007).mp4`
+    // (the takedown-safe spelling) at the top level. That file is
+    // not a series episode and the parser below correctly drops it;
+    // it surfaces instead via the MOVIES registry as a standalone
+    // entry (`?movie=simpsons-movie`).
     iaItem: 'doh_20240725',
     tvmazeId: 83,
     imdbId: 'tt0096697',
@@ -1153,15 +1145,15 @@ export const SHOWS = [
     parser: (file) => {
       // "The Simpsons S01, E01 - Bart the Genius.mp4" — tolerates
       // `S01,E01`, `S01 E01`, and a missing dash before the title.
+      // Returns null for `Zhe Simpsons Movie (2007).mp4` — see the
+      // iaItem comment above; that file is intentionally routed
+      // through MOVIES instead.
       const m = basename(file).match(
         /^The\s+Simpsons\s+S(\d{1,2}),?\s*E(\d{1,2})\s*-?\s*(.*)\.mp4$/i
       );
       if (!m) return null;
       return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
-    },
-    // Filename uses the anti-takedown spelling "Zhe Simpsons Movie".
-    movieDetector: (name) => /Zhe\s+Simpsons\s+Movie/i.test(name),
-    movieTitle: 'The Simpsons Movie (2007)'
+    }
   },
   {
     id: 'smurfs',
@@ -1346,9 +1338,8 @@ export const SHOWS = [
   {
     // New show, generic matcher only. Same uploader as Enterprise et
     // al. — "Star Trek TAS S01E01.mp4". TAS files ship without
-    // titles in the filename (like Disenchantment did before
-    // migration); the matcher pulls canonical episode names from
-    // TVMaze. 22 episodes total across 2 seasons; the IA dump has
+    // titles in the filename, so the matcher pulls canonical episode
+    // names from TVMaze. 22 episodes total across 2 seasons; the IA dump has
     // 22 + 1 promo ("0 star trek animated.mp4") that drops naturally
     // for having no SxxExx. 720p source.
     id: 'star-trek-tas',

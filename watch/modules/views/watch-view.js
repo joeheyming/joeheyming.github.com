@@ -28,7 +28,7 @@
  * `dispose`; loadEpisode and unmount fan out to them.
  */
 
-import { getMergedCatalog, getNextEpisode } from '../catalog.js';
+import { getMergedCatalog, getMovieCatalog, getNextEpisode } from '../catalog.js';
 import { createMarquee, createSummaryCard, describeEpisode, copyToClipboard, pad } from '../ui.js';
 import {
   loadPrefs,
@@ -44,15 +44,24 @@ import { createOfflineSaveController } from './offline-save-controller.js';
 import { createEndCardController } from './endcard-controller.js';
 
 /** @typedef {import('../shows.js').ShowConfig} ShowConfig */
+/** @typedef {import('../movies.js').MovieConfig} MovieConfig */
 /** @typedef {import('../catalog.js').Catalog} Catalog */
 /** @typedef {import('../catalog.js').Episode} Episode */
 
 /**
  * @typedef {Object} MountCtx
- * @property {ShowConfig} show
+ * @property {ShowConfig | MovieConfig} show
+ *   The "subject" for this watch session. Either a series (ShowConfig)
+ *   or a standalone movie (MovieConfig, with `kind === 'movie'`). The
+ *   field name stays `show` for historical reasons; the view branches
+ *   on `show.kind === 'movie'` where movie-specific behaviour
+ *   diverges (no Prev/Next, no autoplay-next, single-file catalog,
+ *   `?movie=` deep-link shape).
  * @property {number} initialSeason
+ *   For movies the router always passes 0; the catalog's single
+ *   Episode lives at (s=0, e=0).
  * @property {number} initialEpisode
- * @property {(params: { show?: string, s?: number, e?: number }) => void} navigate
+ * @property {(params: { show?: string, movie?: string, s?: number, e?: number }) => void} navigate
  * @property {(label: string) => void} setBreadcrumbTitle
  *   The router hands us a setter so the breadcrumb's "current page"
  *   crumb stays in sync as the user steps Prev / Next.
@@ -66,6 +75,13 @@ import { createEndCardController } from './endcard-controller.js';
 export async function mount(slot, ctx) {
   const { show, navigate, setBreadcrumbTitle } = ctx;
   const prefs = loadPrefs();
+
+  // `show.kind === 'movie'` is the discriminator for standalone-movie
+  // mode. Pulled out once here so every branch below can ask the
+  // same question without re-reading the field. Movies hide
+  // Prev/Next/Shuffle/Autoplay-next/Up-next, route through a
+  // single-file catalog loader, and write `?movie=<id>` URLs.
+  const isMovie = /** @type {any} */ (show).kind === 'movie';
 
   /** @type {Catalog | null} */
   let catalog = null;
@@ -332,18 +348,23 @@ export async function mount(slot, ctx) {
   subsSyncWrap.appendChild(subsSyncHintRight);
   subsSyncWrap.appendChild(subsSyncReadout);
 
-  controls.appendChild(prevBtn);
+  // Movies suppress Prev/Next (no neighbour episode), Autoplay-next
+  // (nothing to autoplay), and Shuffle (no pool to shuffle through).
+  // The seek buttons + Restart + Save + Copy + CC all still apply
+  // because they operate on the active file, which is identical in
+  // shape between an episode and a standalone movie.
+  if (!isMovie) controls.appendChild(prevBtn);
   controls.appendChild(back10Btn);
   controls.appendChild(fwd10Btn);
   controls.appendChild(restartBtn);
-  controls.appendChild(nextBtn);
+  if (!isMovie) controls.appendChild(nextBtn);
   if (show.imdbId) {
     controls.appendChild(subsWrap);
     controls.appendChild(subsSyncWrap);
   }
   controls.appendChild(saveBtn);
-  controls.appendChild(autoplayLabel);
-  controls.appendChild(shuffleLabel);
+  if (!isMovie) controls.appendChild(autoplayLabel);
+  if (!isMovie) controls.appendChild(shuffleLabel);
   controls.appendChild(copyLinkBtn);
   controls.appendChild(copyTitleBtn);
 
@@ -358,16 +379,28 @@ export async function mount(slot, ctx) {
   upNextSection.appendChild(upNextLabel);
   upNextSection.appendChild(upNextRow);
 
-  // "All episodes" link to bounce back to the episode browser.
+  // "All episodes" link to bounce back to the episode browser. Movies
+  // don't have an episode browser to return to — back to the landing
+  // page is the natural exit.
   const allEpsLink = document.createElement('a');
   allEpsLink.className = 'tv-all-eps-link';
-  allEpsLink.href = `?show=${encodeURIComponent(show.id)}`;
-  allEpsLink.textContent = `All episodes of ${show.name} →`;
-  allEpsLink.addEventListener('click', (e) => {
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
-    e.preventDefault();
-    navigate({ show: show.id });
-  });
+  if (isMovie) {
+    allEpsLink.href = './';
+    allEpsLink.textContent = '← All movies';
+    allEpsLink.addEventListener('click', (e) => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+      e.preventDefault();
+      navigate({});
+    });
+  } else {
+    allEpsLink.href = `?show=${encodeURIComponent(show.id)}`;
+    allEpsLink.textContent = `All episodes of ${show.name} →`;
+    allEpsLink.addEventListener('click', (e) => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+      e.preventDefault();
+      navigate({ show: show.id });
+    });
+  }
 
   const help = document.createElement('div');
   help.className = 'tv-help';
@@ -399,7 +432,9 @@ export async function mount(slot, ctx) {
   }
 
   try {
-    catalog = await getMergedCatalog(show);
+    catalog = isMovie
+      ? await getMovieCatalog(/** @type {MovieConfig} */ (show))
+      : await getMergedCatalog(/** @type {ShowConfig} */ (show));
   } catch (err) {
     loadingOverlay.classList.add('hidden');
     noSignalOverlay.classList.remove('hidden');
@@ -429,26 +464,49 @@ export async function mount(slot, ctx) {
     noSignalOverlay.classList.remove('hidden');
     const detail = noSignalOverlay.querySelector('.tv-overlay-detail');
     if (detail) {
-      const slot =
-        ctx.initialSeason === 0
-          ? 'this special'
-          : `S${pad(ctx.initialSeason)}E${pad(ctx.initialEpisode)}`;
       detail.textContent = '';
-      const head = document.createElement('span');
-      head.textContent = `Episode ${slot} isn't on this channel — pick another from `;
-      const link = document.createElement('a');
-      link.href = `?show=${encodeURIComponent(show.id)}`;
-      link.textContent = `${show.name} episodes`;
-      link.addEventListener('click', (e) => {
-        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
-        e.preventDefault();
-        ctx.navigate({ show: show.id });
-      });
-      const tail = document.createElement('span');
-      tail.textContent = '.';
-      detail.appendChild(head);
-      detail.appendChild(link);
-      detail.appendChild(tail);
+      if (isMovie) {
+        // A movie that can't be found on the catalog means the IA
+        // metadata didn't contain a matching file (most likely the
+        // `iaFile` exact-basename match failed). Direct the user back
+        // to the landing page; there's nowhere more useful to send
+        // them inside this view.
+        const head = document.createElement('span');
+        head.textContent = `${show.name} couldn't be found on archive.org — try `;
+        const link = document.createElement('a');
+        link.href = './';
+        link.textContent = 'all movies';
+        link.addEventListener('click', (e) => {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+          e.preventDefault();
+          ctx.navigate({});
+        });
+        const tail = document.createElement('span');
+        tail.textContent = '.';
+        detail.appendChild(head);
+        detail.appendChild(link);
+        detail.appendChild(tail);
+      } else {
+        const slot =
+          ctx.initialSeason === 0
+            ? 'this special'
+            : `S${pad(ctx.initialSeason)}E${pad(ctx.initialEpisode)}`;
+        const head = document.createElement('span');
+        head.textContent = `Episode ${slot} isn't on this channel — pick another from `;
+        const link = document.createElement('a');
+        link.href = `?show=${encodeURIComponent(show.id)}`;
+        link.textContent = `${show.name} episodes`;
+        link.addEventListener('click', (e) => {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+          e.preventDefault();
+          ctx.navigate({ show: show.id });
+        });
+        const tail = document.createElement('span');
+        tail.textContent = '.';
+        detail.appendChild(head);
+        detail.appendChild(link);
+        detail.appendChild(tail);
+      }
     }
     return { unmount: () => root.remove() };
   }
@@ -491,14 +549,20 @@ export async function mount(slot, ctx) {
     flash: (msg) => marquee.flash(msg),
     // "What plays next?" — shuffle picks across all numbered seasons;
     // sequential crosses season boundaries (unlike manual Prev/Next
-    // which wraps within the current season).
+    // which wraps within the current season). Movies always return
+    // null (resolveNext returns null when the current episode is in
+    // season 0, which is how every movie / special is keyed); the
+    // end-card then collapses its "Play next" affordance to Replay /
+    // Share / Back only.
     resolveNext: () => {
       if (!catalog || !current) return null;
       return prefs.shuffle ? shufflePick(catalog, current) : getNextEpisode(catalog, current);
     },
     shouldAutoplay: () => prefs.autoplayNext,
     onAdvance: (ep) => loadEpisode(ep),
-    onNavigateBack: () => navigate({ show: show.id }),
+    // Movies don't have an episodes view to return to; send the user
+    // back to the landing page (where they'll see the Movies grid).
+    onNavigateBack: () => navigate(isMovie ? {} : { show: show.id }),
     shareCurrent: async () => (current ? shareEpisode(show, current) : false)
   });
 
@@ -857,15 +921,19 @@ export async function mount(slot, ctx) {
 
     marquee.update(show, ep);
     summary.update(ep);
+    // Channel chip — for series this is the SxxExx tag; for the
+    // bundled-movie case (Simpsons Movie etc., where the show carries
+    // a `movieDetector`) and for standalone movies we show "MOV". Any
+    // other season-0 entry (specials, behind-the-scenes) stays "SPC".
     channelChip.textContent =
       ep.season === 0
-        ? show.movieDetector
+        ? isMovie || /** @type {any} */ (show).movieDetector
           ? 'MOV'
           : 'SPC'
         : `S${pad(ep.season)}E${pad(ep.episode)}`;
     errorLink.href = ep.archiveUrl;
     errorBanner.classList.add('hidden');
-    setBreadcrumbTitle(crumbLabelFor(ep));
+    setBreadcrumbTitle(isMovie ? show.name : crumbLabelFor(ep));
     renderUpNext(ep);
 
     if (urlSync) updateDeepLink(ep);
@@ -1144,15 +1212,20 @@ export async function mount(slot, ctx) {
   /**
    * Replace the URL with the active episode without pushing a history
    * entry. Stepping through 30 episodes shouldn't bury the browser
-   * back button under 30 back presses.
+   * back button under 30 back presses. For movies the canonical URL
+   * is just `?movie=<id>` (no S/E) regardless of how the user arrived.
    *
    * @param {Episode} ep
    */
   function updateDeepLink(ep) {
     const params = new URLSearchParams();
-    params.set('show', show.id);
-    params.set('s', String(ep.season));
-    params.set('e', String(ep.episode));
+    if (isMovie) {
+      params.set('movie', show.id);
+    } else {
+      params.set('show', show.id);
+      params.set('s', String(ep.season));
+      params.set('e', String(ep.episode));
+    }
     history.replaceState(null, '', `${location.pathname}?${params.toString()}`);
   }
 
@@ -1268,7 +1341,7 @@ function crumbLabelFor(ep) {
  * or clipboard write succeeded), `false` on outright failure or when
  * the user cancelled the native share sheet.
  *
- * @param {ShowConfig} show
+ * @param {ShowConfig | MovieConfig} show
  * @param {Episode} ep
  * @returns {Promise<boolean>}
  */

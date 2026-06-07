@@ -16,6 +16,7 @@
  */
 
 import { SHOWS, getShow, TAG_GROUPS } from '../shows.js';
+import { MOVIES, getMovie } from '../movies.js';
 import { listContinueWatching, clearLastEpisode } from '../prefs.js';
 import {
   listSaved as listOfflineSaved,
@@ -26,10 +27,29 @@ import { isTvMode } from '../mode.js';
 import { applyRovingTabindex } from '../roving-tabindex.js';
 
 /** @typedef {import('../shows.js').ShowConfig} ShowConfig */
+/** @typedef {import('../movies.js').MovieConfig} MovieConfig */
+
+/**
+ * Look up a continue-watching / saved-offline subject by id, trying
+ * the shows registry first and the movies registry second. Returns
+ * `null` for stale entries pointing at something neither registry
+ * remembers. The two registries enforce non-collision at test time
+ * (movie ids ≠ show ids), so falling through here can't return the
+ * wrong-kind subject.
+ *
+ * @param {string} id
+ * @returns {ShowConfig | MovieConfig | null}
+ */
+function getSubject(id) {
+  return getShow(id) || getMovie(id);
+}
 
 /**
  * @typedef {Object} MountCtx
- * @property {(params: { show?: string, s?: number, e?: number }) => void} navigate
+ * @property {(params: { show?: string, movie?: string, s?: number, e?: number }) => void} navigate
+ *   Series flow uses `show` + optional `s`/`e`; standalone movies use
+ *   `movie`. The router rejects mixed parameters — pass one or the
+ *   other, not both.
  */
 
 /**
@@ -187,6 +207,11 @@ export function mount(slot, ctx) {
   // those reflect user-specific state, not catalog browsing.
   const searchWrap = document.createElement('div');
   searchWrap.className = 'tv-search';
+  // Scroll anchor for `#search` — the quicknav rail's Search button
+  // writes `./#search`, the hash handler scrolls here, focuses the
+  // input, and then clears the hash from the URL so a subsequent
+  // refresh doesn't auto-focus mid-typing.
+  searchWrap.id = 'search';
   const searchInput = document.createElement('input');
   searchInput.type = 'search';
   searchInput.className = 'tv-search-input';
@@ -228,12 +253,13 @@ export function mount(slot, ctx) {
   const activeTags = new Set();
   /** @type {HTMLButtonElement[]} */
   const chipButtons = [];
-  // Only emit chips for tags that at least one show actually carries
-  // — keeps the row tight if the registry shrinks. Order is
-  // Format → Audience → Era → Genre; we walk TAG_GROUPS in that
-  // declared order rather than alphabetising.
+  // Only emit chips for tags that at least one registry entry (show
+  // OR movie) actually carries — keeps the row tight if either
+  // registry shrinks. Order is Format → Audience → Era → Genre; we
+  // walk TAG_GROUPS in that declared order rather than alphabetising.
   const tagsInUse = new Set();
   for (const show of SHOWS) for (const t of show.tags || []) tagsInUse.add(t);
+  for (const movie of MOVIES) for (const t of movie.tags || []) tagsInUse.add(t);
   for (const [groupName, tags] of /** @type {[string, readonly string[]][]} */ (
     Object.entries(TAG_GROUPS)
   )) {
@@ -267,6 +293,11 @@ export function mount(slot, ctx) {
   // without poking at sibling layout.
   const continueSection = document.createElement('div');
   continueSection.className = 'tv-continue-section hidden';
+  // Scroll anchor for `#continue` — the quicknav rail's "Recent"
+  // button writes `./#continue` and relies on this id. The section
+  // keeps the `hidden` class when there are no entries; the hash
+  // scroll falls through to "top of page" in that case.
+  continueSection.id = 'continue';
   const continueLabel = document.createElement('div');
   continueLabel.className = 'tv-section-label';
   const continueLabelText = document.createElement('span');
@@ -299,22 +330,68 @@ export function mount(slot, ctx) {
   savedSection.appendChild(savedLabel);
   savedSection.appendChild(savedGrid);
 
+  // Shows section: label + grid. We always render the label so the
+  // page has a stable "📺 Shows" heading even when the search/chip
+  // filter zeroes the grid out — it makes the empty-state message
+  // ("No shows match …") less surprising.
+  const showsSection = document.createElement('div');
+  showsSection.className = 'tv-shows-section';
+  // ID is the scroll anchor the quicknav rail's "📺 Shows" button
+  // jumps to (via `#shows`). The id is generic — matches both the
+  // hash name in the URL and the role this block plays in the page.
+  showsSection.id = 'shows';
+  const showsLabel = document.createElement('div');
+  showsLabel.className = 'tv-section-label';
+  const showsLabelText = document.createElement('span');
+  showsLabelText.textContent = '📺 Shows';
+  showsLabel.appendChild(showsLabelText);
   const grid = document.createElement('div');
   grid.className = 'tv-show-grid';
   grid.setAttribute('role', 'list');
   for (const show of SHOWS) {
     grid.appendChild(makeShowCard(show, ctx));
   }
+  showsSection.appendChild(showsLabel);
+  showsSection.appendChild(grid);
+
+  // Movies section: same shape, separate grid. Renders nothing (whole
+  // section hidden) when the MOVIES registry is empty so the
+  // framework can ship before any movies are added. When movies exist
+  // they're filtered by the same search + chip row as the shows grid
+  // (one filter pass walks both grids).
+  const moviesSection = document.createElement('div');
+  moviesSection.className = 'tv-movies-section';
+  // Scroll anchor for `#movies` — see the matching `id` on
+  // `showsSection` above for the pattern. The quicknav rail's
+  // Movies button writes `./#movies` and relies on this id.
+  moviesSection.id = 'movies';
+  if (MOVIES.length === 0) moviesSection.classList.add('hidden');
+  const moviesLabel = document.createElement('div');
+  moviesLabel.className = 'tv-section-label';
+  const moviesLabelText = document.createElement('span');
+  moviesLabelText.textContent = '🎬 Movies';
+  moviesLabel.appendChild(moviesLabelText);
+  const moviesGrid = document.createElement('div');
+  moviesGrid.className = 'tv-show-grid tv-movie-grid';
+  moviesGrid.setAttribute('role', 'list');
+  for (const movie of MOVIES) {
+    moviesGrid.appendChild(makeMovieCard(movie, ctx));
+  }
+  moviesSection.appendChild(moviesLabel);
+  moviesSection.appendChild(moviesGrid);
 
   // Empty state lives alongside the grid (not inside it) so the grid's
   // CSS `display: grid` doesn't try to lay the message out as a tile.
+  // One shared empty-state covers both grids — when no entry across
+  // shows + movies matches, the message reflects the whole search.
   const empty = document.createElement('p');
   empty.className = 'tv-search-empty hidden';
 
   root.appendChild(intro);
   root.appendChild(continueSection);
   root.appendChild(savedSection);
-  root.appendChild(grid);
+  root.appendChild(showsSection);
+  root.appendChild(moviesSection);
   root.appendChild(empty);
   slot.appendChild(root);
 
@@ -325,7 +402,7 @@ export function mount(slot, ctx) {
     const query = searchInput.value.trim().toLowerCase();
     searchClear.classList.toggle('hidden', query.length === 0);
     tagReset.classList.toggle('hidden', activeTags.size === 0);
-    let matches = 0;
+    let showMatches = 0;
     for (const card of grid.children) {
       const hay = card.getAttribute('data-search') || '';
       const cardTags = (card.getAttribute('data-tags') || '').split(' ').filter(Boolean);
@@ -333,7 +410,26 @@ export function mount(slot, ctx) {
       const hitsTags = activeTags.size === 0 || cardTags.some((t) => activeTags.has(t));
       const hit = hitsSearch && hitsTags;
       card.classList.toggle('hidden', !hit);
-      if (hit) matches += 1;
+      if (hit) showMatches += 1;
+    }
+    let movieMatches = 0;
+    for (const card of moviesGrid.children) {
+      const hay = card.getAttribute('data-search') || '';
+      const cardTags = (card.getAttribute('data-tags') || '').split(' ').filter(Boolean);
+      const hitsSearch = query === '' || hay.includes(query);
+      const hitsTags = activeTags.size === 0 || cardTags.some((t) => activeTags.has(t));
+      const hit = hitsSearch && hitsTags;
+      card.classList.toggle('hidden', !hit);
+      if (hit) movieMatches += 1;
+    }
+    // Hide the whole section when its grid has zero matching cards,
+    // so an active filter doesn't leave a lonely section label
+    // floating over an empty grid. The Movies section additionally
+    // stays hidden when the registry is empty regardless of filter
+    // state — handled by the .hidden class set at mount time.
+    showsSection.classList.toggle('hidden', showMatches === 0);
+    if (MOVIES.length > 0) {
+      moviesSection.classList.toggle('hidden', movieMatches === 0);
     }
     // Mirror the active state back onto the chips so re-renders (or
     // future programmatic toggles) stay in sync with `activeTags`.
@@ -342,6 +438,7 @@ export function mount(slot, ctx) {
       chip.classList.toggle('is-active', on);
       chip.setAttribute('aria-pressed', on ? 'true' : 'false');
     }
+    const totalMatches = showMatches + movieMatches;
     const noFilter = query === '' && activeTags.size === 0;
     if (noFilter) {
       empty.classList.add('hidden');
@@ -349,17 +446,27 @@ export function mount(slot, ctx) {
       searchStatus.textContent = '';
       return;
     }
-    if (matches === 0) {
+    if (totalMatches === 0) {
       const bits = [];
       if (query) bits.push(`“${searchInput.value.trim()}”`);
       if (activeTags.size) bits.push([...activeTags].join(' / '));
-      empty.textContent = `No shows match ${bits.join(' + ')}`;
+      // "shows" copy stays accurate even with movies registered —
+      // both registries contribute to the same search, and "shows"
+      // here is shorthand for "anything in the catalog".
+      empty.textContent = `Nothing matches ${bits.join(' + ')}`;
       empty.classList.remove('hidden');
     } else {
       empty.classList.add('hidden');
       empty.textContent = '';
     }
-    searchStatus.textContent = `${matches} ${matches === 1 ? 'show' : 'shows'} match`;
+    // Status string mentions movies only when at least one is
+    // registered; the framework can ship empty without the screen-
+    // reader announcement reading "0 movies match".
+    const parts = [`${showMatches} ${showMatches === 1 ? 'show' : 'shows'}`];
+    if (MOVIES.length > 0) {
+      parts.push(`${movieMatches} ${movieMatches === 1 ? 'movie' : 'movies'}`);
+    }
+    searchStatus.textContent = `${parts.join(' · ')} match`;
   };
 
   const onInput = () => applyFilter();
@@ -400,10 +507,55 @@ export function mount(slot, ctx) {
   // grid and arrow keys move between tiles. Always-on (helps desktop
   // keyboard users too); the visible focus ring is what TV mode adds.
   const gridRoving = applyRovingTabindex(grid, { selector: '.tv-show-card' });
+  // Movies grid gets its own roving region when there are movies to
+  // navigate — keeps the two grids as independent tabstops. When the
+  // registry is empty we skip wiring (no children to roam) and the
+  // section is hidden anyway.
+  const moviesRoving =
+    MOVIES.length > 0 ? applyRovingTabindex(moviesGrid, { selector: '.tv-show-card' }) : null;
   // On TV mode, autofocus the first show card so the remote can drive
   // immediately without a "press any key" beat. Skipped on desktop —
   // we don't want to steal focus from the search input or the URL bar.
   if (isTvMode) gridRoving.focusFirst();
+
+  // Honour deep-link hashes by scrolling the corresponding section
+  // into view (and, for `#search`, focusing the input) after first
+  // paint. The quicknav rail writes these hashes, but direct URL-bar
+  // hits / bookmarks work the same way:
+  //
+  //   #shows     → scroll the Shows section to top
+  //   #movies    → scroll the Movies section to top
+  //   #continue  → scroll the Continue Watching row to top
+  //                (falls through to "scroll to top of page" when the
+  //                section is empty/hidden — the user pressed Recent
+  //                while they had nothing to resume, the next-best
+  //                landing spot is the top of the home grid)
+  //   #search    → scroll top + focus the search input, then clear
+  //                the hash from the URL so a refresh doesn't
+  //                re-focus mid-typing
+  //
+  // Two rAFs because grid layout settles after first paint.
+  const hash = window.location.hash;
+  if (hash === '#search' || hash === '#continue' || hash === '#shows' || hash === '#movies') {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (hash === '#search') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          searchInput.focus({ preventScroll: true });
+          // Pop the hash off the URL — it was a one-shot action
+          // signal, not a persistent state we want to round-trip.
+          history.replaceState(null, '', window.location.pathname + window.location.search);
+          return;
+        }
+        const target = document.getElementById(hash.slice(1));
+        if (target && !target.classList.contains('hidden')) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+    });
+  }
 
   return {
     unmount() {
@@ -415,6 +567,7 @@ export function mount(slot, ctx) {
       }
       tagReset.removeEventListener('click', onTagReset);
       gridRoving.dispose();
+      moviesRoving?.dispose();
       root.remove();
     }
   };
@@ -434,10 +587,14 @@ function renderContinue(section, gridEl, ctx) {
   gridEl.replaceChildren();
   let rendered = 0;
   for (const entry of entries) {
-    const show = getShow(entry.showId);
-    if (!show) continue; // stale entry for a show we no longer ship
+    // Falls back from shows registry to movies registry. Stale
+    // entries (the user once watched something we no longer ship)
+    // resolve to null and get dropped silently — same behaviour as
+    // pre-movies, just over a wider lookup space.
+    const subject = getSubject(entry.showId);
+    if (!subject) continue;
     gridEl.appendChild(
-      makeContinueCard(show, entry, ctx, () => renderContinue(section, gridEl, ctx))
+      makeContinueCard(subject, entry, ctx, () => renderContinue(section, gridEl, ctx))
     );
     rendered += 1;
   }
@@ -479,14 +636,25 @@ async function renderSaved(section, gridEl, metaEl, ctx) {
  * @param {() => void} onChange
  */
 function makeSavedCard(meta, ctx, onChange) {
+  // Saved offline records don't carry a `kind` field — they were
+  // written before movies existed and the schema is meant to be
+  // ID-agnostic. We re-derive the kind here by checking whether the
+  // showId resolves to a movie in the registry; for the saved-offline
+  // path that's enough because the record's showId is the only thing
+  // we'd otherwise dispatch on. Stale entries (movie removed from
+  // the registry) fall through to the legacy `?show=` URL, which the
+  // router will refuse and bounce back to the landing page.
+  const isMovie = /** @type {any} */ (getMovie(meta.showId)) !== null;
   const card = document.createElement('a');
   card.className = 'tv-continue-card tv-saved-card';
   card.style.setProperty('--show-accent', meta.showAccent || 'var(--tv-accent)');
-  const query = new URLSearchParams({
-    show: meta.showId,
-    s: String(meta.season),
-    e: String(meta.episode)
-  });
+  const query = isMovie
+    ? new URLSearchParams({ movie: meta.showId })
+    : new URLSearchParams({
+        show: meta.showId,
+        s: String(meta.season),
+        e: String(meta.episode)
+      });
   card.href = `?${query.toString()}`;
 
   const thumb = document.createElement('div');
@@ -570,7 +738,11 @@ function makeSavedCard(meta, ctx, onChange) {
   card.addEventListener('click', (e) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
     e.preventDefault();
-    ctx.navigate({ show: meta.showId, s: meta.season, e: meta.episode });
+    if (isMovie) {
+      ctx.navigate({ movie: meta.showId });
+    } else {
+      ctx.navigate({ show: meta.showId, s: meta.season, e: meta.episode });
+    }
   });
   // Delete shortcut still routes through the window.confirm above,
   // so accidental keypresses are gated.
@@ -580,43 +752,58 @@ function makeSavedCard(meta, ctx, onChange) {
 }
 
 /**
- * @param {ShowConfig} show
+ * @param {ShowConfig | MovieConfig} show
  * @param {{ season: number, episode: number }} entry
  * @param {MountCtx} ctx
  * @param {() => void} onChange  Called after a successful remove so the
  *                               caller can re-render the row.
  */
 function makeContinueCard(show, entry, ctx, onChange) {
+  const isMovie = /** @type {any} */ (show).kind === 'movie';
   const card = document.createElement('a');
   card.className = 'tv-continue-card';
   card.style.setProperty('--show-accent', show.accent);
-  const query = new URLSearchParams({
-    show: show.id,
-    s: String(entry.season),
-    e: String(entry.episode)
-  });
+  // URL shape mirrors how the user would reach this episode via the
+  // landing-page card: `?movie=<id>` for standalone movies (no S/E
+  // since there's only one file), `?show=<id>&s&e` for series.
+  const query = isMovie
+    ? new URLSearchParams({ movie: show.id })
+    : new URLSearchParams({
+        show: show.id,
+        s: String(entry.season),
+        e: String(entry.episode)
+      });
   card.href = `?${query.toString()}`;
 
   const thumb = document.createElement('div');
   thumb.className = 'tv-continue-thumb';
   thumb.style.background = `linear-gradient(160deg, ${show.accent}33, #111)`;
-  const img = document.createElement('img');
-  img.loading = 'lazy';
-  img.decoding = 'async';
-  img.alt = '';
-  fetchPoster(show.tvmazeId).then((url) => {
-    if (url) img.src = url;
-  });
-  img.addEventListener(
-    'error',
-    () => {
-      img.remove();
-      thumb.classList.add('is-empty');
-      thumb.textContent = show.emoji;
-    },
-    { once: true }
-  );
-  thumb.appendChild(img);
+  // Movies often lack a TVMaze id (TVMaze covers series, not movies)
+  // — fall back to the emoji on the accent gradient when the lookup
+  // would otherwise 404. Series cards keep the existing fetch path.
+  const tvmazeId = /** @type {any} */ (show).tvmazeId;
+  if (tvmazeId) {
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.alt = '';
+    fetchPoster(tvmazeId).then((url) => {
+      if (url) img.src = url;
+    });
+    img.addEventListener(
+      'error',
+      () => {
+        img.remove();
+        thumb.classList.add('is-empty');
+        thumb.textContent = show.emoji;
+      },
+      { once: true }
+    );
+    thumb.appendChild(img);
+  } else {
+    thumb.classList.add('is-empty');
+    thumb.textContent = show.emoji;
+  }
 
   // Play glyph overlays the thumb on hover/focus — same affordance as
   // the per-show episode cards so users read it as a video tile.
@@ -645,8 +832,16 @@ function makeContinueCard(show, entry, ctx, onChange) {
   showName.textContent = `${show.emoji} ${show.shortName}`;
   const tag = document.createElement('div');
   tag.className = 'tv-continue-tag';
-  tag.textContent =
-    entry.season === 0 ? show.movieTitle || 'Movie' : `S${pad(entry.season)}E${pad(entry.episode)}`;
+  // Standalone movies: tag is "🎬 Movie" (the title is already on the
+  // top line). Bundled-with-show movies (show.movieTitle set): use
+  // the movie's title there. Series: SxxExx.
+  if (isMovie) {
+    tag.textContent = '🎬 Movie';
+  } else if (entry.season === 0) {
+    tag.textContent = /** @type {any} */ (show).movieTitle || 'Movie';
+  } else {
+    tag.textContent = `S${pad(entry.season)}E${pad(entry.episode)}`;
+  }
   meta.appendChild(showName);
   meta.appendChild(tag);
 
@@ -665,10 +860,122 @@ function makeContinueCard(show, entry, ctx, onChange) {
   card.addEventListener('click', (e) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
     e.preventDefault();
-    ctx.navigate({ show: show.id, s: entry.season, e: entry.episode });
+    if (isMovie) {
+      ctx.navigate({ movie: show.id });
+    } else {
+      ctx.navigate({ show: show.id, s: entry.season, e: entry.episode });
+    }
   });
   wireRemoveSubNav(card, remove);
 
+  return card;
+}
+
+/**
+ * Build a poster card for a standalone movie. Uses the same DOM
+ * shape as the show card (same .tv-show-card class so the existing
+ * grid CSS, hover, and roving-tabindex apply uniformly) but the link
+ * target is `?movie=<id>` instead of `?show=<id>` and a small "Movie"
+ * badge sits in the corner of the poster so the user reads the tile
+ * differently at a glance.
+ *
+ * @param {MovieConfig} movie
+ * @param {MountCtx} ctx
+ */
+function makeMovieCard(movie, ctx) {
+  const card = document.createElement('a');
+  card.className = 'tv-show-card tv-movie-card';
+  card.style.setProperty('--show-accent', movie.accent);
+  card.setAttribute('data-movie', movie.id);
+  card.setAttribute(
+    'data-search',
+    [movie.name, movie.shortName, movie.tagline, movie.emoji]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+  );
+  card.setAttribute('data-tags', (movie.tags || []).join(' '));
+  card.href = `?movie=${encodeURIComponent(movie.id)}`;
+  card.setAttribute('role', 'listitem');
+
+  const poster = document.createElement('div');
+  poster.className = 'tv-show-poster';
+  poster.style.background = `linear-gradient(160deg, ${movie.accent}33, #111)`;
+
+  // Poster strategy for movies:
+  //
+  //   1. `posterUrl` (preferred) — author-curated direct URL (usually
+  //      Wikipedia's `upload.wikimedia.org` infobox poster). Synchronous
+  //      `<img src>`, no network round-trip to resolve, no localStorage
+  //      cache layer. Cheapest path.
+  //   2. `tvmazeId` (fallback for the rare movie that's in TVMaze) —
+  //      same `fetchPoster` flow the show grid uses.
+  //   3. Emoji on the accent gradient — the placeholder both above
+  //      paths fall back to on `<img>` error, and the bare default when
+  //      neither field is set.
+  if (movie.posterUrl) {
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.alt = '';
+    img.src = movie.posterUrl;
+    img.addEventListener(
+      'error',
+      () => {
+        img.remove();
+        poster.classList.add('is-empty');
+        poster.textContent = movie.emoji;
+      },
+      { once: true }
+    );
+    poster.appendChild(img);
+  } else if (movie.tvmazeId) {
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.alt = '';
+    fetchPoster(movie.tvmazeId).then((url) => {
+      if (url) img.src = url;
+    });
+    img.addEventListener(
+      'error',
+      () => {
+        img.remove();
+        poster.classList.add('is-empty');
+        poster.textContent = movie.emoji;
+      },
+      { once: true }
+    );
+    poster.appendChild(img);
+  } else {
+    poster.classList.add('is-empty');
+    poster.textContent = movie.emoji;
+  }
+
+  // Small "MOVIE" pill in the top-right corner of the poster so the
+  // card reads as a movie even when the poster art does a good job
+  // looking like a show. Doubles as visual hint that clicking goes
+  // straight to playback (no episode picker in between).
+  const badge = document.createElement('span');
+  badge.className = 'tv-saved-badge tv-movie-badge';
+  badge.textContent = '🎬 Movie';
+  poster.appendChild(badge);
+
+  const meta = document.createElement('div');
+  meta.className = 'tv-show-meta';
+  const name = document.createElement('h2');
+  name.className = 'tv-show-name';
+  name.textContent = movie.shortName || movie.name;
+  name.title = movie.name;
+  meta.appendChild(name);
+
+  card.appendChild(poster);
+  card.appendChild(meta);
+  card.addEventListener('click', (e) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+    e.preventDefault();
+    ctx.navigate({ movie: movie.id });
+  });
   return card;
 }
 

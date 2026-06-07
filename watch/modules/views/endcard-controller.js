@@ -26,6 +26,7 @@
 import { pad } from '../ui.js';
 
 /** @typedef {import('../shows.js').ShowConfig} ShowConfig */
+/** @typedef {import('../movies.js').MovieConfig} MovieConfig */
 /** @typedef {import('../catalog.js').Episode} Episode */
 
 /**
@@ -45,7 +46,9 @@ import { pad } from '../ui.js';
 /**
  * @typedef {Object} EndCardControllerDeps
  * @property {HTMLVideoElement} video Listened to for `ended`; replayed on Replay.
- * @property {ShowConfig} show Read: `name`, `shortName`, `emoji`.
+ * @property {ShowConfig | MovieConfig} show Read: `name`, `shortName`, `emoji`,
+ *   and `kind` (movies omit the "browse other shows" copy in the
+ *   no-next branch).
  * @property {EndCardControllerDom} dom DOM nodes built by mount().
  * @property {(msg: string) => void} flash Marquee toast helper (for share result).
  * @property {() => Episode | null} resolveNext
@@ -147,10 +150,18 @@ export function createEndCardController(deps) {
           ? 'Special'
           : `${show.shortName} · S${pad(next.season)}E${pad(next.episode)}`;
     } else {
-      endEyebrow.textContent = 'Episode ended';
+      // No next entry — series ran out, or this was a movie / special
+      // (resolveNext returns null for season 0). Movies get an
+      // "all done" sub that doesn't pretend they were watching one of
+      // many episodes; series get the regular "browse other shows"
+      // copy.
+      const isMovie = /** @type {any} */ (show).kind === 'movie';
+      endEyebrow.textContent = isMovie ? 'Movie ended' : 'Episode ended';
       endPlayBtn.classList.add('hidden');
-      endTitle.textContent = "That's the last one on the shelf.";
-      endSub.textContent = `${show.name} — replay, share, or browse other shows.`;
+      endTitle.textContent = isMovie ? 'Roll credits.' : "That's the last one on the shelf.";
+      endSub.textContent = isMovie
+        ? `${show.name} — replay, share, or browse the catalog.`
+        : `${show.name} — replay, share, or browse other shows.`;
     }
 
     endCard.classList.remove('hidden');

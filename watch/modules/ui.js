@@ -11,7 +11,9 @@
  */
 
 /** @typedef {import('./shows.js').ShowConfig} ShowConfig */
+/** @typedef {import('./movies.js').MovieConfig} MovieConfig */
 /** @typedef {import('./catalog.js').Catalog} Catalog */
+/** @typedef {import('./catalog.js').CatalogSubject} CatalogSubject */
 /** @typedef {import('./catalog.js').Episode} Episode */
 /** @typedef {import('./catalog.js').Season} Season */
 
@@ -177,7 +179,7 @@ export function createMarquee() {
 
   return {
     root,
-    /** @param {ShowConfig|null} show @param {Episode|null} ep */
+    /** @param {CatalogSubject|null} show @param {Episode|null} ep */
     update(show, ep) {
       title.textContent = ep ? ep.title || `Episode ${ep.episode}` : '—';
       subtitle.textContent = formatSubtitle(show, ep);
@@ -195,10 +197,16 @@ export function createMarquee() {
   };
 }
 
-/** @param {ShowConfig|null} show @param {Episode|null} ep */
+/** @param {CatalogSubject|null} show @param {Episode|null} ep */
 function formatSubtitle(show, ep) {
   if (!ep) return 'No signal';
-  if (ep.season === 0 && show?.movieDetector) return 'Feature film';
+  // Standalone movie (`kind: 'movie'`) and bundled-with-show movie
+  // (`show.movieDetector`) both surface as a single feature-film
+  // entry at season 0.
+  const subject = /** @type {any} */ (show);
+  if (ep.season === 0 && (subject?.kind === 'movie' || subject?.movieDetector)) {
+    return 'Feature film';
+  }
   if (ep.season === 0) return `Special · Episode ${ep.episode}`;
   const base = `Season ${ep.season} · Episode ${ep.episode}`;
   return ep.airdate ? `${base} · Aired ${formatAirdate(ep.airdate)}` : base;
@@ -249,12 +257,25 @@ function formatAirdate(iso) {
   }
 }
 
-/** Build a human label for an episode. Used by share-button + copy. */
+/**
+ * Build a human label for an episode. Used by share-button + copy.
+ *
+ * @param {CatalogSubject|null} show
+ * @param {Episode|null} ep
+ */
 export function describeEpisode(show, ep) {
   if (!ep) return show ? show.name : 'Watch';
   const showLabel = show ? show.name : 'Watch';
-  if (ep.season === 0 && show?.movieDetector) {
-    return show.movieTitle || `${showLabel} — movie`;
+  const subject = /** @type {any} */ (show);
+  // Standalone movie: name is self-contained ("Spirited Away (2001)");
+  // adding the show-label / SxxExx tag would just repeat it.
+  if (ep.season === 0 && subject?.kind === 'movie') {
+    return show ? show.name : showLabel;
+  }
+  // Bundled-with-show movie (Simpsons Movie etc.) — show carries the
+  // movieDetector and an explicit `movieTitle`.
+  if (ep.season === 0 && subject?.movieDetector) {
+    return subject.movieTitle || `${showLabel} — movie`;
   }
   const tag = `S${pad(ep.season)}E${pad(ep.episode)}`;
   const inner = ep.title ? `${tag} — ${ep.title}` : tag;

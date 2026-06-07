@@ -30,12 +30,16 @@ import {
 } from '../offline.js';
 
 /** @typedef {import('../shows.js').ShowConfig} ShowConfig */
+/** @typedef {import('../movies.js').MovieConfig} MovieConfig */
 /** @typedef {import('../catalog.js').Episode} Episode */
 
 /**
  * @typedef {Object} OfflineSaveControllerDeps
  * @property {HTMLVideoElement} video Target for the blob-URL swap.
- * @property {ShowConfig} show Read: `id`.
+ * @property {ShowConfig | MovieConfig} show
+ *   Read: `id`, plus the fields the underlying `saveEpisode()` call
+ *   stamps onto the IDB record (`name`, `emoji`, `accent`). Both
+ *   ShowConfig and MovieConfig carry all of those.
  * @property {HTMLButtonElement} saveBtn Three-mode toggle button.
  * @property {(msg: string) => void} flash Marquee toast helper.
  */
