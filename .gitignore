@@ -37,3 +37,9 @@ node_modules
 # Local scratch notes (checkpoints, progress logs). Anything named
 # *.local.md is intentionally never committed.
 *.local.md
+
+# Local Apps Script source (e.g. checkboxes/apps-script.local.gs). The
+# canonical copy lives in the bound Google Apps Script project; the
+# in-repo file is a working scratchpad whose tweaks shouldn't churn
+# the diff.
+*.local.gs

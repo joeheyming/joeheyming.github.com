@@ -137,6 +137,48 @@
       </footer>
     </main>
 
+    <!-- Floating "about" button. Mirrors the back button at top-left.
+         Click opens #cb-info (a tribute to the original OMCB). -->
+    <button id="cb-info-btn" type="button" class="cb-info-btn" aria-label="About this page">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.8" />
+        <circle cx="12" cy="7.6" r="1.1" fill="currentColor" />
+        <line
+          x1="12"
+          y1="11"
+          x2="12"
+          y2="17"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        />
+      </svg>
+    </button>
+
+    <!-- About dialog. Tribute to the original onemillioncheckboxes.com
+         by Nolen Royalty. Closes on ESC, close button, or backdrop click.
+         prettier-ignore on the paragraph below keeps the OMCB link on
+         one line — wrapping it would produce a leading/trailing space
+         inside the <a> that browsers render with an underline. -->
+    <dialog id="cb-info" class="cb-info" aria-labelledby="cb-info-title">
+      <h2 id="cb-info-title">A tribute</h2>
+      <!-- prettier-ignore -->
+      <p>
+        This page is a loving tribute to <a href="https://onemillioncheckboxes.com/" target="_blank" rel="noopener noreferrer">onemillioncheckboxes.com</a> — a shared grid of one million checkboxes built by <a href="https://eieio.games/" target="_blank" rel="noopener noreferrer">Nolen Royalty</a>, which captured the internet for a very strange and delightful summer in 2024.
+      </p>
+      <p>
+        The original is no longer live. This is a static-site re-creation of the same idea: no
+        backend, no accounts. Writes go through a Google Form, reads come from a Google Sheet. Click
+        any box and everyone else's page sees it flip.
+      </p>
+      <p>
+        Go read Nolen's
+        <a href="https://eieio.games/" target="_blank" rel="noopener noreferrer">blog</a>
+        — the engineering writeups about the original are great.
+      </p>
+      <button id="cb-info-close" type="button" class="cb-info-close">Close</button>
+    </dialog>
+
     <!-- Achievement modal. Auto-shown by index.js the moment the live
          count of checked cells crosses to N (i.e. every box is checked).
          Closes on ESC, the close button, or backdrop click. -->

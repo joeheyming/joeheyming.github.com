@@ -126,6 +126,142 @@
   padding: 4px 0 12px;
 }
 
+/* Floating "about" button. Sits opposite the back button at top-right
+   and opens #cb-info. Stays visible everywhere (including OS iframes
+   and PWA standalone) — unlike back.js, the credit is content-level,
+   not navigation chrome. */
+.cb-info-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-1, #ffffff);
+  color: var(--text-1, #1a1a1a);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  font-family: inherit;
+}
+
+.cb-info-btn:hover,
+.cb-info-btn:focus-visible {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  outline: 2px solid var(--cb-accent);
+  outline-offset: 2px;
+}
+
+.cb-info-btn svg {
+  display: block;
+}
+
+@media (max-width: 480px) {
+  .cb-info-btn {
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .cb-info-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Dark-mode chrome for the info button — match the cell-bg recessed
+   feel rather than a bright white circle on the dark page. */
+:root[data-theme='dark'] .cb-info-btn {
+  background: var(--surface-1, #161b22);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .cb-info-btn {
+    background: var(--surface-1, #161b22);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* About dialog. Same focus-trap / ESC behavior as the achievement
+   dialog below; just a content-only card with the OMCB tribute. */
+.cb-info {
+  border: none;
+  padding: 28px;
+  background: var(--surface-1, #ffffff);
+  color: var(--text-1, #1a1a1a);
+  border-radius: 12px;
+  max-width: min(520px, 92vw);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+  line-height: 1.55;
+}
+
+.cb-info::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.cb-info h2 {
+  margin: 0 0 12px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.cb-info p {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+  color: var(--text-1, #1a1a1a);
+}
+
+.cb-info p:last-of-type {
+  margin-bottom: 20px;
+}
+
+.cb-info a {
+  color: var(--cb-accent);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cb-info a:hover,
+.cb-info a:focus-visible {
+  filter: brightness(1.1);
+}
+
+.cb-info-close {
+  padding: 8px 20px;
+  background: var(--cb-accent);
+  color: var(--cb-accent-fg);
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+  display: block;
+  margin-left: auto;
+}
+
+.cb-info-close:hover,
+.cb-info-close:focus-visible {
+  filter: brightness(1.08);
+  outline: 2px solid var(--cb-accent);
+  outline-offset: 2px;
+}
+
 /* Achievement modal. Hidden by default until JS calls showModal() —
    the <dialog> element handles focus trap, ESC-to-close, and backdrop
    for free. Sized to a comfortable centered card around the meme. */

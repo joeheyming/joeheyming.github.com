@@ -94,6 +94,26 @@ if (memeCloseEl && memeEl) {
   });
 }
 
+// ---------------------------------------------------------------------
+// About dialog: tribute to the original onemillioncheckboxes.com.
+// Opened by clicking the floating ⓘ button at top-right.
+// ---------------------------------------------------------------------
+const infoEl = /** @type {HTMLDialogElement | null} */ (document.getElementById('cb-info'));
+const infoBtnEl = document.getElementById('cb-info-btn');
+const infoCloseEl = document.getElementById('cb-info-close');
+
+if (infoEl && infoBtnEl && typeof infoEl.showModal === 'function') {
+  infoBtnEl.addEventListener('click', () => {
+    if (!infoEl.open) infoEl.showModal();
+  });
+  if (infoCloseEl) {
+    infoCloseEl.addEventListener('click', () => infoEl.close());
+  }
+  infoEl.addEventListener('click', (e) => {
+    if (e.target === infoEl) infoEl.close();
+  });
+}
+
 function getBit(idx) {
   return (state[idx >> 3] >> (idx & 7)) & 1;
 }
