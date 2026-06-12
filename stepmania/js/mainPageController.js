@@ -510,9 +510,13 @@ export class MainPageController {
         if (useMainLoading) {
           LoadingOverlay.updateProgress('Downloading audio file...', audioProgress + 5);
         }
+        // No deferProxies: corsproxy.io is the most reliable proxy for
+        // zenius binaries (see proxy.js default list). Deferring it pushed
+        // the audio download through 3 less-reliable proxies first; on
+        // mobile they all 400/403'd and the fetch never reached corsproxy
+        // before retries gave up. Default order works.
         const audioData = await songManager.getProxyTransport().fetchBinary(audioUrl, {
           skipDirect: true,
-          deferProxies: ['https://corsproxy.io/'],
           headers: {
             Referer: 'https://zenius-i-vanisher.com/',
             Origin: 'https://zenius-i-vanisher.com'

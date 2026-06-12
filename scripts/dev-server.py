@@ -41,14 +41,12 @@ from __future__ import annotations
 import argparse
 import http.server
 import ipaddress
-import json
 import os
 import socket
 import socketserver
 import ssl
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 # When run via `npm run dev`, stdout is a pipe, and Python switches from
@@ -256,9 +254,6 @@ def is_cacheable(path: str) -> bool:
     return any(frag in lower for frag in CACHEABLE_PATH_FRAGMENTS)
 
 
-PHONELOG_SNIPPET = b'<script src="/scripts/phone-console.js"></script>'
-
-
 class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
     """SimpleHTTPRequestHandler with split caching policy.
 
@@ -272,13 +267,6 @@ class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
     produces. That way phone reloads stay fast on the 10 MB+ engine
     payload, but still revalidate once an hour in case we do replace
     the wasm.
-
-    Also handles dev-only HTML rewriting: when a request URL carries
-    `?phonelog=1`, the response body for HTML files is rewritten to
-    inject `<script src="/scripts/phone-console.js"></script>` right
-    after the opening `<head>` tag. That way the production HTML
-    never references the relay script, but any page becomes phone-
-    debuggable just by appending the query param.
     """
 
     def address_string(self) -> str:
@@ -286,121 +274,6 @@ class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
         # of reverse-DNS lookups; they hang the handler for 5s when
         # the phone's hostname doesn't resolve.
         return self.client_address[0]
-
-    # Suppress per-request access logging for /__devlog (every
-    # console.log from the phone generates one, which drowns out the
-    # actual phone output). Regular file requests still log.
-    def log_message(self, fmt, *args):
-        if args and isinstance(args[0], str) and "/__devlog" in args[0]:
-            return
-        super().log_message(fmt, *args)
-
-    def do_GET(self) -> None:
-        if self._maybe_inject_phonelog():
-            return
-        super().do_GET()
-
-    def _wants_phonelog(self) -> bool:
-        if "?" not in self.path:
-            return False
-        query = self.path.split("?", 1)[1]
-        for pair in query.split("&"):
-            if pair == "phonelog=1" or pair.startswith("phonelog=1#"):
-                return True
-        return False
-
-    def _resolve_html_path(self) -> str | None:
-        """Map the request to an HTML file on disk, or None if this
-        request isn't serving HTML. Mirrors SimpleHTTPRequestHandler's
-        directory-index resolution so `/youtube/`, `/youtube/index.html`,
-        and `/` all behave the same."""
-        fs_path = self.translate_path(self.path)
-        if os.path.isdir(fs_path):
-            for index in ("index.html", "index.htm"):
-                candidate = os.path.join(fs_path, index)
-                if os.path.exists(candidate):
-                    return candidate
-            return None
-        if fs_path.lower().endswith((".html", ".htm")) and os.path.isfile(fs_path):
-            return fs_path
-        return None
-
-    def _maybe_inject_phonelog(self) -> bool:
-        """If this is a `?phonelog=1` request for an HTML file, rewrite
-        the body to inject the relay script and serve it ourselves.
-        Returns True if the request was handled."""
-        if not self._wants_phonelog():
-            return False
-        path = self._resolve_html_path()
-        if path is None:
-            return False
-        try:
-            with open(path, "rb") as f:
-                body = f.read()
-        except OSError:
-            return False
-
-        # Inject right after the first `<head ...>` tag so the relay
-        # patches console.* before any of the page's own scripts run.
-        lower = body.lower()
-        head_open = lower.find(b"<head")
-        if head_open >= 0:
-            close_idx = body.find(b">", head_open)
-            if close_idx >= 0:
-                body = body[: close_idx + 1] + PHONELOG_SNIPPET + body[close_idx + 1 :]
-            else:
-                # Malformed but recoverable: prepend the snippet.
-                body = PHONELOG_SNIPPET + body
-        else:
-            body = PHONELOG_SNIPPET + body
-
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        # `end_headers` below appends the no-cache headers via the
-        # override, so we don't need to send Cache-Control here.
-        self.end_headers()
-        self.wfile.write(body)
-        return True
-
-    def do_POST(self) -> None:
-        # Phone-console relay endpoint. Accepts a JSON payload of the
-        # shape { batch: [{level, t, msg}...], ua, href } and prints
-        # each entry to stdout with a [phone LEVEL] prefix. Replies
-        # 204 so the client doesn't bother parsing a body.
-        if self.path.split("?", 1)[0] in ("/__devlog", "/__devlog/"):
-            length = int(self.headers.get("Content-Length") or 0)
-            raw = self.rfile.read(length) if length > 0 else b"{}"
-            try:
-                data = json.loads(raw.decode("utf-8", errors="replace"))
-            except Exception:
-                data = {}
-            ua = str(data.get("ua") or "?")[:60]
-            # Extract a short device tag so multi-device debugging stays
-            # readable: "iPhone", "Android 14; Pixel 7", etc.
-            tag = "phone"
-            if "iPhone" in ua or "iPad" in ua or "iPod" in ua:
-                tag = "iOS"
-            elif "Android" in ua:
-                tag = "Android"
-            for entry in data.get("batch") or []:
-                level = str(entry.get("level") or "log").upper()
-                msg = str(entry.get("msg") or "")
-                ts = time.strftime("%H:%M:%S")
-                # Color-free output keeps the lines copy-pasteable into
-                # bug reports. One line per entry even if msg has
-                # newlines in it — otherwise grepping the terminal
-                # scrollback breaks.
-                flat = msg.replace("\n", " ⏎ ")
-                print(f"[{tag} {ts} {level:5s}] {flat}", flush=True)
-            self.send_response(204)
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-            return
-        # Anything else: let SimpleHTTPRequestHandler return its usual
-        # 501 Unsupported method, which is fine for static dev serving.
-        self.send_response(405)
-        self.end_headers()
 
     def end_headers(self) -> None:
         if is_cacheable(self.path):
@@ -540,10 +413,6 @@ def run(port: int, use_https: bool, directory: Path, prefer_openssl: bool) -> No
     if use_https:
         print_phone_setup(backend, ips, port)
     print("")
-    print("[dev-server] Phone console relay:")
-    print("[dev-server]   Add ?phonelog=1 to any URL on the phone; console.log")
-    print("[dev-server]   and unhandled errors from the phone will appear here")
-    print("[dev-server]   tagged [Android HH:MM:SS LEVEL].")
     print("[dev-server] Ctrl+C to stop.")
     try:
         httpd.serve_forever()

@@ -179,10 +179,14 @@ export async function fetchZeniusAudioFromZip(simfileId, transport) {
   const zipUrl = `https://zenius-i-vanisher.com/v5.2/download.php?type=ddrsimfile&simfileid=${simfileId}`;
 
   try {
-    // Download ZIP through proxy
+    // No deferProxies: corsproxy.io is the most reliable proxy for
+    // zenius binaries. Deferring it forced the ZIP fetch through 3
+    // less-reliable proxies first, which all 400/403'd on mobile;
+    // by the time the chain reached corsproxy.io it had been rate-
+    // limited by the spotlight page-load fetches and 403'd too.
+    // Default proxy order works.
     const zipData = await t.fetchBinary(zipUrl, {
       skipDirect: true,
-      deferProxies: ['https://corsproxy.io/'],
       timeout: ZIP_DOWNLOAD_TIMEOUT,
       maxRetries: ZIP_MAX_RETRIES
     });

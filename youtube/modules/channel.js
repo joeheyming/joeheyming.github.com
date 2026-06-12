@@ -7,6 +7,15 @@
 
 export const CHANNEL_URL = 'https://www.youtube.com/@joeyjojojojojojojojojojojojojo/videos';
 
+/**
+ * Hard-coded channel id matching CHANNEL_URL. Used for the RSS fallback that
+ * the mobile path takes (RSS keys off channel_id, not handle).
+ */
+export const CHANNEL_ID = 'UC6R_br1QP8tczjO4KMfzejw';
+
+/** YouTube's public RSS feed for a channel — 15 most recent uploads, UA-agnostic. */
+export const CHANNEL_RSS_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
+
 /** Extract the 11-char video ID from any YouTube URL. */
 export function getVideoId(url) {
   const m = String(url || '').match(
@@ -16,13 +25,39 @@ export function getVideoId(url) {
 }
 
 /**
+ * Heuristic: are we running in a mobile browser?
+ *
+ * The bug we're working around is that the CORS proxies (corsproxy.io,
+ * proxy.corsfix.com) forward the *client* User-Agent upstream to YouTube.
+ * From a mobile browser that means YouTube returns the m.youtube.com
+ * channel page, which uses singleColumnBrowseResultsRenderer and ships
+ * NO videoIds in its initial HTML — the mobile site paints the video list
+ * client-side after hydration. The HTML scrape therefore returns 0 videos.
+ *
+ * Desktop pages embed the full list, so the HTML path stays on desktop
+ * and we only switch to the RSS feed (15 latest, structured XML, no UA
+ * dependency) when the user is on a mobile UA.
+ *
+ * @returns {boolean}
+ */
+export function isMobileUserAgent() {
+  if (typeof navigator === 'undefined') return false;
+  const uaData = /** @type {{ mobile?: boolean } | undefined} */ (navigator.userAgentData);
+  if (uaData && typeof uaData.mobile === 'boolean') return uaData.mobile;
+  return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+}
+
+/**
  * Fetch the channel listing HTML through the shared cross-origin proxy.
  * YouTube blocks CORS for browsers, so we always skip the direct attempt.
  *
- * We defer `corsproxy.io` because it forwards the client's User-Agent. On a
- * mobile browser that means YouTube returns the m.youtube.com HTML with a
- * totally different `ytInitialData` shape. The other proxies use their own
- * server-side UA, so they always serve the parseable desktop page.
+ * Only called from the desktop branch of loadVideos(). On mobile, all of
+ * our usable proxies (corsproxy.io is explicit about it; corsfix does it
+ * in practice) forward the client User-Agent upstream, so the mobile path
+ * uses the RSS feed instead — see isMobileUserAgent.
+ *
+ * corsproxy.io stays deferred so that any quirky desktop UA still has the
+ * other proxies tried first; it's a no-op in the common case.
  */
 export async function fetchChannelHtml() {
   if (!window.proxyService || typeof window.proxyService.fetchWithProxy !== 'function') {
@@ -124,8 +159,76 @@ export function extractVideoData(html) {
   return Array.from(videoMap.values());
 }
 
-/** Convenience: fetch and parse in one call. */
+/**
+ * Fetch the channel's RSS feed through the shared proxy. The RSS endpoint
+ * is UA-agnostic, so any of the proxies returns the same XML regardless of
+ * the client device.
+ */
+export async function fetchChannelRssXml() {
+  if (!window.proxyService || typeof window.proxyService.fetchWithProxy !== 'function') {
+    throw new Error("Couldn't reach the channel feed. Try reloading the page.");
+  }
+  return window.proxyService.fetchWithProxy(CHANNEL_RSS_URL, {
+    skipDirect: true,
+    timeout: 15000,
+    maxRetries: 2
+  });
+}
+
+/**
+ * Pull {title, url, videoId} entries from the channel's Atom/RSS XML.
+ * Each `<entry>` carries `<yt:videoId>` and `<title>`; we synthesise the
+ * canonical /watch URL from the id so downstream consumers can treat
+ * RSS-sourced and HTML-sourced entries identically.
+ *
+ * @param {string} xml
+ * @returns {VideoEntry[]}
+ */
+export function extractVideoDataFromRss(xml) {
+  /** @type {VideoEntry[]} */
+  const out = [];
+  if (!xml) return out;
+
+  let doc = null;
+  try {
+    doc = new DOMParser().parseFromString(xml, 'application/xml');
+  } catch (_e) {
+    return out;
+  }
+  if (!doc || doc.querySelector('parsererror')) return out;
+
+  const seen = new Set();
+  const entries = doc.getElementsByTagName('entry');
+  for (const entry of entries) {
+    // yt:videoId is namespaced; getElementsByTagName with the local name works
+    // in HTML quirks but on XML we need the namespaced form. Try both.
+    const idNode =
+      entry.getElementsByTagName('yt:videoId')[0] ||
+      entry.getElementsByTagNameNS('*', 'videoId')[0];
+    const titleNode = entry.getElementsByTagName('title')[0];
+    const videoId = (idNode?.textContent || '').trim();
+    if (!videoId || !/^[A-Za-z0-9_-]{11}$/.test(videoId) || seen.has(videoId)) continue;
+    seen.add(videoId);
+    const title = (titleNode?.textContent || '').trim() || `Video ${videoId}`;
+    out.push({
+      title,
+      url: `https://www.youtube.com/watch?v=${videoId}`,
+      videoId
+    });
+  }
+  return out;
+}
+
+/**
+ * Fetch + parse in one call. Routes mobile clients to the RSS feed because
+ * the HTML scrape returns the m.youtube.com channel page on mobile UAs and
+ * that page has no videoIds in its SSR (see isMobileUserAgent).
+ */
 export async function loadVideos() {
+  if (isMobileUserAgent()) {
+    const xml = await fetchChannelRssXml();
+    return extractVideoDataFromRss(xml);
+  }
   const html = await fetchChannelHtml();
   return extractVideoData(html);
 }
