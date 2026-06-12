@@ -506,6 +506,12 @@ class ZeniusBrowserElement extends HTMLElement {
 
       if (typeof window.trackEvent === 'function') {
         window.trackEvent('zenius_search', 'StepMania', `${songTitle} | ${songArtist}`);
+        // GA4-standard `view_search_results` fires in parallel with our
+        // custom event so GA4's built-in site-search reports pick it up.
+        // Label = search term (clipped to ~40 chars to fit GA's label cap),
+        // value = number of results returned.
+        const term = `${songTitle} ${songArtist}`.trim().slice(0, 40);
+        window.trackEvent('view_search_results', 'zenius_browser', term, results.length);
       }
     } catch (error) {
       if (error && error.name === 'AbortError') {

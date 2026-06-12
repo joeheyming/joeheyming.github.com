@@ -104,6 +104,13 @@
 
     if (typeof window.trackEvent === 'function') {
       window.trackEvent('doom_share_click', 'Doom', 'doom_chrome');
+      // GA4-standard `share` event in parallel so the built-in share
+      // report aggregates across surfaces (share.js FAB + related widget
+      // + this DOOM button) without needing a custom funnel.
+      window.trackEvent('share', 'doom_chrome', 'doom');
+    }
+    if (typeof window.trackConversion === 'function') {
+      window.trackConversion('content_shared', 1);
     }
 
     if (navigator.share && window.isSecureContext) {

@@ -498,6 +498,14 @@ class GameOverModalElement extends HTMLElement {
       const status = this._failed ? 'Failed' : 'Complete';
       window.trackEvent('song_complete', 'StepMania', `Song ${status} - ${percentage}`, totalNotes);
 
+      // Successful completions are a strong "got value" signal — fire the
+      // shared `game_completed` Key Event so StepMania, 2048, and Pac-Man
+      // all roll up into one conversion in GA4. Failed runs are excluded
+      // intentionally (they're the inverse signal).
+      if (!this._failed && typeof window.trackConversion === 'function') {
+        window.trackConversion('game_completed', totalNotes);
+      }
+
       if (this._pbResult?.isNewPB) {
         const songInfo = getCurrentSongInfo();
         window.trackEvent(

@@ -1,4 +1,42 @@
 // =====================================================================
+// KEY EVENTS (GA4 conversions)
+//
+// GA4 reports "0 Key Events" until each event below is explicitly toggled
+// in GA4 Admin → Data display → Events → "Mark as key event". The events
+// themselves fire from `window.trackConversion(name, value)` already; the
+// toggle is a one-time UI config per event name.
+//
+// Marked-as-Key-Event recommendations (high → low priority):
+//
+//   deep_engagement       2+ min engaged on any page    (analytics.js)
+//   project_opened        Any project/app launched      (analytics.js → trackProjectOpen)
+//   multi_app_session     ≥2 distinct apps in tab       (analytics.js → trackProjectOpen)
+//   pwa_install           Installed as standalone app   (analytics.js → appinstalled)
+//   game_completed        Finished a game/song          (2048, stepmania, pacman)
+//   content_shared        Shared a page/score           (share.js, doom/share-button.js)
+//   hero_cta_launch       Clicked the home-page CTA     (index.html data-event-conversion)
+//   engaged_session       30s+ engaged                  (analytics.js — lower-bar baseline)
+//
+// Existing events already firing — toggle in GA4 Admin only (no code):
+//
+//   doom_engine_launched  WASM engine booted             (DOOM)
+//   zenius_search         StepMania song-library search  (Stepmania)
+//   song_browser_open     Opened StepMania library       (Stepmania)
+//   doom_flavor_pick      Committed to a DOOM flavor     (DOOM)
+//   featured_strip_visible Top-of-fold brand impression  (home gallery)
+//
+// GA4-standard event names we fire IN PARALLEL with custom ones (so
+// GA4's built-in reports work alongside our custom labels):
+//
+//   share                  Standard GA4 share event       (share.js, doom/share-button.js)
+//   view_search_results    Standard GA4 site-search event (index.js home filters, stepmania zenius)
+//
+// When adding a new Key Event: call `window.trackConversion('your_name', value)`
+// from the surface that produces the signal, then add the event name and a
+// one-line description here so the GA4 admin toggle list stays accurate.
+// =====================================================================
+
+// =====================================================================
 // Theme bootstrap — runs on every page, before first paint.
 //
 // analytics.js is loaded as a synchronous <script> in <head> on all 58
@@ -442,7 +480,17 @@ window.trackEvent = function (eventName, eventCategory, eventLabel, eventValue) 
   }
 };
 
-// Data-event click tracking functionality
+// Data-event click tracking functionality.
+//
+// Attributes:
+//   data-event              required, GA event name
+//   data-event-category     optional, defaults to "Interaction"
+//   data-event-label        optional, defaults to data-event
+//   data-event-value        optional numeric value
+//   data-event-conversion   optional — when present, ALSO fires
+//                           trackConversion(<attr value>, <data-event-value or 1>)
+//                           so high-intent CTAs can be marked as Key
+//                           Events in GA4 Admin without touching JS.
 function initDataEventTracking() {
   // Listen for clicks on elements with data-event attribute
   document.addEventListener(
@@ -459,6 +507,14 @@ function initDataEventTracking() {
         const dataEventValue = valueAttr ? parseFloat(valueAttr) : undefined;
 
         window.trackEvent(dataEvent, dataEventCategory, dataEventLabel, dataEventValue);
+
+        const conversionName = target.getAttribute('data-event-conversion');
+        if (conversionName) {
+          window.trackConversion(
+            conversionName,
+            dataEventValue !== undefined && !isNaN(dataEventValue) ? dataEventValue : 1
+          );
+        }
       }
     },
     true
@@ -468,7 +524,8 @@ function initDataEventTracking() {
 // Engagement Time Tracking
 // Track how long users spend on each page. Final engaged time is captured
 // once on `pagehide` (mobile-reliable) and once on `beforeunload` (desktop
-// fallback). Sessions ≥30s also fire the `engaged_session` conversion.
+// fallback). Sessions ≥30s also fire the `engaged_session` conversion, and
+// sessions ≥120s additionally fire the stronger `deep_engagement` Key Event.
 //
 // Note: we deliberately do NOT fire a periodic `engagement_ping` heartbeat.
 // GA4's automatic `user_engagement` event already powers the "Average
@@ -479,6 +536,12 @@ function initDataEventTracking() {
 // events (project_open, doom_flavor_pick, song_complete, etc.). If you
 // want a session-survival curve in the future, prefer querying GA4's
 // native engagement metrics instead of re-adding the ping here.
+//
+// The `deep_engagement` conversion at 120s is the exception: it fires
+// EXACTLY ONCE per page-load (not a heartbeat) and represents a much
+// stronger "got value" signal than the 30s `engaged_session` baseline.
+// It's the primary Key Event candidate for GA4 Admin (see KEY_EVENTS
+// block at top of file).
 (function initEngagementTracking() {
   let lastVisibleAt = Date.now();
   let isPageVisible = !document.hidden;
@@ -486,6 +549,48 @@ function initDataEventTracking() {
 
   const PAGE_NAME = getPageName();
   const MIN_ENGAGEMENT_TIME = 10000; // Min 10 seconds before tracking
+  const DEEP_ENGAGEMENT_MS = 120000; // 2 minutes engaged → strong Key Event
+
+  let deepEngagementFired = false;
+  let deepEngagementTimer = null;
+
+  function currentEngagedMs() {
+    return isPageVisible ? totalEngagedTime + (Date.now() - lastVisibleAt) : totalEngagedTime;
+  }
+
+  // Fire `deep_engagement` exactly once per page-load when cumulative
+  // engaged time (visibility-aware) crosses DEEP_ENGAGEMENT_MS. Scheduled
+  // via setTimeout — when the tab goes hidden we cancel the pending fire
+  // and reschedule on visible with the remaining time, so background tabs
+  // don't accrue toward the threshold.
+  function scheduleDeepEngagementCheck() {
+    if (deepEngagementFired || !isPageVisible) return;
+    if (deepEngagementTimer) clearTimeout(deepEngagementTimer);
+    const remaining = DEEP_ENGAGEMENT_MS - currentEngagedMs();
+    if (remaining <= 0) {
+      fireDeepEngagement();
+      return;
+    }
+    deepEngagementTimer = setTimeout(() => {
+      if (currentEngagedMs() >= DEEP_ENGAGEMENT_MS) fireDeepEngagement();
+      else scheduleDeepEngagementCheck();
+    }, remaining);
+  }
+
+  function fireDeepEngagement() {
+    if (deepEngagementFired) return;
+    deepEngagementFired = true;
+    if (deepEngagementTimer) {
+      clearTimeout(deepEngagementTimer);
+      deepEngagementTimer = null;
+    }
+    window.trackConversion(
+      'deep_engagement',
+      Math.max(120, Math.round(currentEngagedMs() / 1000))
+    );
+  }
+
+  if (!document.hidden) scheduleDeepEngagementCheck();
 
   // Track visibility changes — going hidden flushes the current visible
   // window into `totalEngagedTime`; coming back resets the start anchor.
@@ -494,17 +599,20 @@ function initDataEventTracking() {
       const engagedDuration = Date.now() - lastVisibleAt;
       totalEngagedTime += engagedDuration;
       isPageVisible = false;
+      if (deepEngagementTimer) {
+        clearTimeout(deepEngagementTimer);
+        deepEngagementTimer = null;
+      }
     } else {
       isPageVisible = true;
       lastVisibleAt = Date.now();
+      scheduleDeepEngagementCheck();
     }
   });
 
   // Track total time on page when user leaves
   window.addEventListener('beforeunload', function () {
-    const finalEngagedTime = isPageVisible
-      ? totalEngagedTime + (Date.now() - lastVisibleAt)
-      : totalEngagedTime;
+    const finalEngagedTime = currentEngagedMs();
 
     // Only track if user spent meaningful time
     if (finalEngagedTime >= MIN_ENGAGEMENT_TIME) {
@@ -514,17 +622,24 @@ function initDataEventTracking() {
       if (finalEngagedTime >= 30000) {
         window.trackConversion('engaged_session', 1);
       }
+      // Backstop: if the user blew past 120s without our timer firing
+      // (e.g. they were continuously visible but the tab was throttled),
+      // emit deep_engagement at unload so we don't undercount.
+      if (finalEngagedTime >= DEEP_ENGAGEMENT_MS && !deepEngagementFired) {
+        fireDeepEngagement();
+      }
     }
   });
 
   // Track pagehide event for better mobile support
   window.addEventListener('pagehide', function () {
-    const finalEngagedTime = isPageVisible
-      ? totalEngagedTime + (Date.now() - lastVisibleAt)
-      : totalEngagedTime;
+    const finalEngagedTime = currentEngagedMs();
 
     if (finalEngagedTime >= MIN_ENGAGEMENT_TIME) {
       window.trackEvent('page_hide', 'Engagement', PAGE_NAME, Math.round(finalEngagedTime / 1000));
+    }
+    if (finalEngagedTime >= DEEP_ENGAGEMENT_MS && !deepEngagementFired) {
+      fireDeepEngagement();
     }
   });
 })();
@@ -550,11 +665,51 @@ window.trackConversion = function (conversionType, value) {
   console.log('Conversion tracked:', conversionType, value);
 };
 
-// Track when users open/interact with projects
+// Track when users open/interact with projects. Also drives the
+// `multi_app_session` Key Event below — when a single tab-session opens
+// 2+ DISTINCT projects, that's a much stronger "explored the suite"
+// signal than a single project_opened.
 window.trackProjectOpen = function (projectName) {
-  window.trackEvent('project_open', 'Projects', projectName);
+  const name = projectName || 'unknown';
+  window.trackEvent('project_open', 'Projects', name);
   window.trackConversion('project_opened', 1);
+  trackMultiAppSession(name);
 };
+
+// sessionStorage-backed counter of distinct project names opened in
+// this tab session. Fires `multi_app_session` exactly once, when the
+// 2nd distinct project opens. We cap stored payload size to a handful
+// of names to keep the JSON small; once we've fired the conversion
+// the only thing we care about is the boolean "fired" flag.
+const MULTI_APP_KEY = 'hos-session-projects';
+const MULTI_APP_FIRED_KEY = 'hos-session-multi-fired';
+function trackMultiAppSession(projectName) {
+  try {
+    if (sessionStorage.getItem(MULTI_APP_FIRED_KEY) === '1') return;
+    const raw = sessionStorage.getItem(MULTI_APP_KEY);
+    /** @type {string[]} */
+    const prev = raw ? JSON.parse(raw) : [];
+    if (prev.includes(projectName)) return;
+    prev.push(projectName);
+    // Cap at 8 names — we only need to know "have we seen ≥2 distinct".
+    const trimmed = prev.slice(-8);
+    sessionStorage.setItem(MULTI_APP_KEY, JSON.stringify(trimmed));
+    if (trimmed.length >= 2) {
+      sessionStorage.setItem(MULTI_APP_FIRED_KEY, '1');
+      window.trackConversion('multi_app_session', trimmed.length);
+    }
+  } catch (_) {
+    /* sessionStorage unavailable (private mode, sandboxed iframe) — skip */
+  }
+}
+
+// PWA install — fires when the browser (Chrome/Edge/iOS Safari "Add to
+// Home Screen") finishes installing the site as a standalone app. This
+// is the highest-intent signal a casual visitor can produce and is a
+// natural Key Event.
+window.addEventListener('appinstalled', function () {
+  window.trackConversion('pwa_install', 1);
+});
 
 // =====================================================================
 // GA bootstrap — runs synchronously when this script finishes evaluating.

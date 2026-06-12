@@ -220,6 +220,13 @@
           });
         if (window.trackEvent) {
           window.trackEvent('share_url_click', 'Engagement', currentProject);
+          // GA4-standard `share` event in parallel with the custom one so
+          // GA4's built-in share reporting picks it up too. Label encodes
+          // surface + page so the standard event is still triagable.
+          window.trackEvent('share', 'related_widget', currentProject);
+        }
+        if (window.trackConversion) {
+          window.trackConversion('content_shared', 1);
         }
       });
     }
@@ -615,6 +622,12 @@
 
       if (window.trackEvent) {
         window.trackEvent('share_fab_click', 'Engagement', window.location.pathname);
+        // GA4-standard `share` event in parallel — see comment in the
+        // related-widget share handler above.
+        window.trackEvent('share', 'share_fab', window.location.pathname);
+      }
+      if (window.trackConversion) {
+        window.trackConversion('content_shared', 1);
       }
 
       if (navigator.share && window.isSecureContext) {

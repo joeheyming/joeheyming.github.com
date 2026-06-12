@@ -29,6 +29,43 @@ const HERO_APP_IDS = ['doom', 'stepmania'];
 // attention with the apps that retain users.
 const LOW_ENGAGEMENT_APP_IDS = new Set(['awesome', 'sadtrombone', 'farm', 'badapple']);
 
+// Debounced GA4-standard `view_search_results` tracker, factored out so
+// the home gallery filter and the hamburger filter share one
+// implementation. Fires ~600 ms after the user pauses typing, skips
+// empty queries, and ignores repeats of the same term so a fast typist
+// who clears and retypes only generates one event per distinct query.
+// `location` becomes the GA event_category so dashboards can split
+// "home_gallery" from "hamburger_menu" usage.
+function makeSearchTracker(location) {
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let timer = null;
+  let lastTerm = '';
+  return function trackSearch(term, resultCount) {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    const trimmed = (term || '').trim();
+    if (!trimmed) {
+      lastTerm = '';
+      return;
+    }
+    if (trimmed === lastTerm) return;
+    timer = setTimeout(() => {
+      timer = null;
+      lastTerm = trimmed;
+      if (typeof window.trackEvent === 'function') {
+        window.trackEvent(
+          'view_search_results',
+          location,
+          trimmed.slice(0, 40),
+          Number.isFinite(resultCount) ? resultCount : 0
+        );
+      }
+    }, 600);
+  };
+}
+
 // Apps that map to the highest-value search queries get an explicit "Featured"
 // pin on the home page. Order matches the keyword-report priority: DOOM first
 // (~14k impressions/mo), then NES, Pac-Man, StepMania, Wordle, etc. The hero
@@ -397,6 +434,7 @@ function bindGalleryFilter() {
   if (!input || !root || typeof AppFilter === 'undefined') return;
 
   const popularSection = document.getElementById('popular-section');
+  const trackGallerySearch = makeSearchTracker('home_gallery');
 
   const ctrl = AppFilter.create({
     container: root,
@@ -404,7 +442,7 @@ function bindGalleryFilter() {
     noResultsEl: noResults,
     clearButton: clearBtn,
     getSearchText: (el) => el.getAttribute('data-search') || el.textContent.toLowerCase(),
-    onFilter: ({ searchTerm }) => {
+    onFilter: ({ searchTerm, visibleCount }) => {
       root.querySelectorAll('.hos-gallery-section').forEach((sec) => {
         const visible = Array.from(sec.querySelectorAll('.hos-app-card')).some(
           (card) => card.style.display !== 'none'
@@ -418,6 +456,8 @@ function bindGalleryFilter() {
       if (popularSection) {
         popularSection.style.display = searchTerm ? 'none' : '';
       }
+
+      trackGallerySearch(searchTerm, visibleCount);
     }
   });
   ctrl.bindKeyboardShortcuts({});
@@ -515,12 +555,15 @@ function initHamburgerMenu() {
 
   let isMenuOpen = false;
 
+  const trackHamburgerSearch = makeSearchTracker('hamburger_menu');
+
   const filterController = AppFilter.create({
     container: menuContainer,
     filterInput: filterInput,
     noResultsEl: noResults,
     clearButton: filterClear,
-    getSearchText: (el) => el.getAttribute('data-search') || el.textContent.toLowerCase()
+    getSearchText: (el) => el.getAttribute('data-search') || el.textContent.toLowerCase(),
+    onFilter: ({ searchTerm, visibleCount }) => trackHamburgerSearch(searchTerm, visibleCount)
   });
 
   filterController.bindKeyboardShortcuts({

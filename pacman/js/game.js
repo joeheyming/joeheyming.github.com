@@ -673,6 +673,12 @@ class Game {
       else if (s >= 100) bucket = '100-499';
       else if (s > 0) bucket = '1-99';
       window.trackEvent('pacman_game_over', 'Pacman', bucket, s);
+      // Only count non-zero runs as completions — score=0 means the
+      // player died on dot 0/1 and tells us nothing about engagement.
+      // Rolls up into the shared `game_completed` Key Event.
+      if (s > 0 && typeof window.trackConversion === 'function') {
+        window.trackConversion('game_completed', s);
+      }
     }
   }
 
@@ -680,6 +686,16 @@ class Game {
     this.state = GAME_STATES.WIN;
     document.getElementById('win-score').textContent = this.score;
     this.winScreen.classList.remove('hidden');
+
+    // Clearing the maze is the strongest completion signal Pac-Man emits.
+    // Mirror game_over's conversion call but with a `_win` event so the
+    // win/loss split is queryable in GA.
+    if (typeof window.trackEvent === 'function') {
+      window.trackEvent('pacman_win', 'Pacman', 'maze_cleared', this.score);
+    }
+    if (typeof window.trackConversion === 'function') {
+      window.trackConversion('game_completed', this.score);
+    }
 
     // Release pointer lock so user can click buttons
     if (document.pointerLockElement) {
