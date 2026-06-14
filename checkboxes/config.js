@@ -58,9 +58,12 @@ export const CONFIG = {
   // hammering the gviz endpoint or burning battery on idle tabs.
   pollIntervalMs: 7000,
 
-  // Per-client write throttle. The form has no rate limit; this caps a
-  // single tab to ~5 flips/sec so a runaway script in one user's
-  // devtools can't unilaterally fill the sheet.
+  // Queue dispatch interval. The write queue in index.js drains one
+  // POST every minWriteIntervalMs; rapid clicks pile into the queue
+  // (coalesced per cell) rather than firing in parallel. 200ms ≈ 5
+  // POSTs/sec — fast enough that the queue rarely visibly backs up,
+  // slow enough that a runaway script in one user's devtools can't
+  // unilaterally fill the sheet.
   minWriteIntervalMs: 200,
 
   // Google Form `formResponse` URL.

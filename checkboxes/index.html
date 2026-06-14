@@ -186,9 +186,9 @@
 
     <!-- About dialog. Tribute to the original onemillioncheckboxes.com
          by Nolen Royalty. Closes on ESC, close button, or backdrop click.
-         prettier-ignore on the paragraph below keeps the OMCB link on
-         one line — wrapping it would produce a leading/trailing space
-         inside the <a> that browsers render with an underline. -->
+         prettier-ignore on the paragraphs below keeps long inline links
+         on one line — wrapping them would produce a leading/trailing
+         space inside the <a> that browsers render with an underline. -->
     <dialog id="cb-info" class="cb-info" aria-labelledby="cb-info-title">
       <h2 id="cb-info-title">A tribute</h2>
       <!-- prettier-ignore -->
@@ -200,6 +200,10 @@
         backend, no accounts. Writes go through a Google Form, reads come from a Google Sheet. Click
         any box and everyone else's page sees it flip.
       </p>
+      <!-- prettier-ignore -->
+      <p>
+        Press <kbd>i</kbd> to see the grid as a 1000×1000 image — the rendering a group of teenagers in a Discord server used to hide URLs, QR codes, and pixel art inside the original. Press <kbd>i</kbd> again for the 24‑bit RGB view they invented for color, or <kbd>esc</kbd> to come back. <a href="https://eieio.games/blog/the-secret-inside-one-million-checkboxes/" target="_blank" rel="noopener noreferrer">Read the story.</a>
+      </p>
       <p>
         Go read Nolen's
         <a href="https://eieio.games/" target="_blank" rel="noopener noreferrer">blog</a>
@@ -207,6 +211,33 @@
       </p>
       <button id="cb-info-close" type="button" class="cb-info-close">Close</button>
     </dialog>
+
+    <!-- Image view overlay. Hidden by default; pressing `i` cycles
+         through grid → mono (1000×1000, 1 bit per pixel) → rgb (204×204,
+         24 bits per pixel) → grid. ESC always returns to grid. Clicking
+         a pixel in mono view jumps to that cellId in the grid (the
+         teens did this manually by hand-counting; we get to be lazy).
+         The bitmap is the same `state` Uint8Array the canvas grid
+         renders from — this is purely a different view, not a copy. -->
+    <div id="cb-image-overlay" class="cb-image-overlay" hidden>
+      <div class="cb-image-stage">
+        <canvas
+          id="cb-image-canvas"
+          class="cb-image-canvas"
+          aria-label="Checkboxes rendered as a grid of pixels"
+        ></canvas>
+      </div>
+      <div class="cb-image-hud">
+        <span id="cb-image-label" class="cb-image-label">mono</span>
+        <span class="cb-image-hint">
+          press
+          <kbd>i</kbd>
+          to cycle ·
+          <kbd>esc</kbd>
+          to exit
+        </span>
+      </div>
+    </div>
 
     <!-- Achievement modal. Auto-shown by index.js the moment the live
          count of checked cells crosses to N (i.e. every box is checked).

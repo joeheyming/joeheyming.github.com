@@ -389,6 +389,33 @@
   filter: brightness(1.1);
 }
 
+.cb-info kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  margin: 0 1px;
+  background: rgba(0, 0, 0, 0.07);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+  font-family: var(--font-mono, ui-monospace, 'SF Mono', Menlo, monospace);
+  font-size: 0.85em;
+  line-height: 1.2;
+  color: var(--text-1, #1a1a1a);
+}
+
+:root[data-theme='dark'] .cb-info kbd {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .cb-info kbd {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.95);
+  }
+}
+
 .cb-info-close {
   padding: 8px 20px;
   background: var(--cb-accent);
@@ -462,6 +489,107 @@
   filter: brightness(1.08);
   outline: 2px solid var(--cb-accent);
   outline-offset: 2px;
+}
+
+/* Image-view overlay. Full-screen modal-feel surface that replaces
+   the checkbox grid with a raster rendering of the same bitset — a
+   1000×1000 monochrome image (one bit per pixel) or a 204×204 RGB
+   image (24 bits per pixel). Used to show how the OMCB Discord crowd
+   actually viewed the data they were drawing on. */
+.cb-image-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(8, 8, 10, 0.94);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+}
+
+.cb-image-overlay[hidden] {
+  display: none;
+}
+
+/* The stage soaks up whatever space is left after the HUD so the
+   canvas can max out its short axis. The canvas itself stays square
+   via aspect-ratio + object-fit. */
+.cb-image-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: min(90vw, calc(100vh - 120px));
+}
+
+/* The native canvas is 1000×1000 (mono) or 204×204 (rgb). CSS scales
+   it up to fill the stage; `image-rendering: pixelated` is the
+   important bit — without it browsers blur the upscale into
+   unreadable mush. */
+.cb-image-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: crosshair;
+}
+
+.cb-image-hud {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: rgba(255, 255, 255, 0.78);
+  font-family: var(--font-mono, ui-monospace, 'SF Mono', Menlo, monospace);
+  font-size: 0.85rem;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.cb-image-label {
+  color: var(--cb-accent);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.cb-image-hint kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  margin: 0 1px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.85em;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+@media (max-width: 480px) {
+  .cb-image-overlay {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .cb-image-stage {
+    max-width: min(94vw, calc(100vh - 100px));
+  }
+
+  .cb-image-hud {
+    font-size: 0.78rem;
+  }
 }
 
 /* Screen-reader-only h2 inside the dialog so it has an accessible

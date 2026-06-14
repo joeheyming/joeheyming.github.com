@@ -40,14 +40,42 @@ let palette = readPalette();
 
 // ---------------------------------------------------------------------
 // State. The bitmap (one bit per cell, packed) is the source of truth.
-// cellLastTs lets us discard stale delta rows on reconciliation. Pending
-// is the optimistic-flip set: cellId → expected new value while a POST
-// is in flight, cleared on the next confirming poll or after 30s.
+// cellLastTs lets us discard stale delta rows on reconciliation.
+//
+// pending : Map<cellId, { value: boolean, sentAt: number | null }>
+//   "we have a local intent for this cell that the server hasn't
+//   confirmed yet". sentAt is null while still in the writeQueue (not
+//   yet POSTed), then a timestamp once the POST has been dispatched.
+//   Pending values shield the cell against being clobbered by stale
+//   snapshot/delta data. Cleared on confirming delta, or after
+//   PENDING_CONFIRM_MS once sentAt is set (give-up case — Forms
+//   probably ate the write).
+//
+// writeQueue : Map<cellId, { value: boolean, attempts: number }>
+//   FIFO (by Map insertion order) of writes the worker hasn't sent
+//   yet. Coalesced per cell: re-clicking the same cell before its
+//   write goes out updates the entry in place rather than queueing a
+//   second POST. Persisted to localStorage so reloads don't drop
+//   in-flight clicks.
 // ---------------------------------------------------------------------
 const state = new Uint8Array(N >> 3);
 const cellLastTs = new Float64Array(N);
 let snapshotMaxTs = 0;
+/** @type {Map<number, { value: boolean, sentAt: number | null }>} */
 const pending = new Map();
+/** @type {Map<number, { value: boolean, attempts: number }>} */
+const writeQueue = new Map();
+
+const QUEUE_STORAGE_KEY = 'checkboxes:writeQueue:v1';
+// Time after a POST has been dispatched before we give up on confirming
+// it and let the next snapshot/delta have the cell back. Forms→Sheet
+// sync is usually <10s; Apps Script compaction runs hourly. 120s
+// catches the common case (sync delay) without leaving a permanently
+// stuck cell if Forms silently rejected the write.
+const PENDING_CONFIRM_MS = 120000;
+// Worker pacing for the write queue. Starts at minWriteIntervalMs;
+// doubles on network error up to MAX_BACKOFF_MS.
+const MAX_BACKOFF_MS = 30000;
 
 const grid = /** @type {HTMLElement} */ (document.getElementById('cb-grid'));
 const checkedEl = /** @type {HTMLElement} */ (document.getElementById('cb-checked'));
@@ -368,14 +396,7 @@ grid.addEventListener('click', (e) => {
   cellLastTs[cellId] = Date.now();
 
   if (CONFIGURED) {
-    const sent = submitFlip(cellId, next);
-    if (sent) {
-      pending.set(cellId, next);
-      setTimeout(() => {
-        pending.delete(cellId);
-        paintCellId(cellId);
-      }, 30000);
-    }
+    enqueueWrite(cellId, next);
   }
 
   paintCellId(cellId);
@@ -499,30 +520,192 @@ function getClientId() {
 }
 
 // ---------------------------------------------------------------------
-// Write path: opaque POST to the form's formResponse endpoint. CORS
-// blocks reading the response, so we don't observe success — the next
-// poll either confirms the optimistic flip or reverts it.
+// Write path: queued, coalesced, best-effort persistent.
+//
+// Every click enqueues a (cellId → desired value) into writeQueue and
+// records a pending entry for visual + reconciliation use. A single
+// worker drains the queue, dispatching one POST every
+// minWriteIntervalMs. Re-clicking the same cell before its entry is
+// sent updates the entry in place (coalesced — Forms only ever sees
+// the most recent intent). On network error the entry stays in the
+// queue and the worker retries with exponential backoff.
+//
+// The queue is persisted to localStorage on every change so a reload
+// or browser crash doesn't lose un-sent writes; on boot we restore
+// the queue, re-apply the local intent to the bitmap, and resume
+// draining.
+//
+// Writes are no-cors so fetch only rejects on a true network error
+// (offline, DNS failure, CORS preflight failure). Forms returning
+// 4xx/5xx looks like success to us; the only way we'll find out a
+// write was actually dropped is via the pending TTL expiring without
+// a confirming delta.
 // ---------------------------------------------------------------------
-let lastWriteAt = 0;
 
-function submitFlip(cellId, value) {
-  if (!CONFIGURED) return false;
-  const now = Date.now();
-  if (now - lastWriteAt < CONFIG.minWriteIntervalMs) return false;
-  lastWriteAt = now;
+let workerBusy = false;
+let workerBackoffMs = 0;
 
+function buildFormBody(cellId, value) {
   const body = new URLSearchParams();
   body.set(CONFIG.entryIds.cellId, String(cellId));
   body.set(CONFIG.entryIds.value, value ? 'TRUE' : 'FALSE');
   body.set(CONFIG.entryIds.clientId, getClientId());
   body.set(CONFIG.entryIds.honeypot, '');
+  return body;
+}
 
-  fetch(CONFIG.formActionUrl, {
-    method: 'POST',
-    mode: 'no-cors',
-    body
-  }).catch(() => {});
-  return true;
+function persistQueue() {
+  try {
+    /** @type {Array<[number, boolean]>} */
+    const arr = [];
+    for (const [cellId, entry] of writeQueue) arr.push([cellId, entry.value]);
+    if (arr.length === 0) localStorage.removeItem(QUEUE_STORAGE_KEY);
+    else localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(arr));
+  } catch {
+    // Quota / disabled storage / private mode — non-fatal. The queue
+    // still works for the current session, just not across reloads.
+  }
+}
+
+function restoreQueue() {
+  let arr;
+  try {
+    const raw = localStorage.getItem(QUEUE_STORAGE_KEY);
+    if (!raw) return;
+    arr = JSON.parse(raw);
+  } catch {
+    return;
+  }
+  if (!Array.isArray(arr)) return;
+  for (const item of arr) {
+    if (!Array.isArray(item) || item.length < 2) continue;
+    const cellId = Number(item[0]);
+    const value = !!item[1];
+    if (!Number.isInteger(cellId) || cellId < 0 || cellId >= N) continue;
+    writeQueue.set(cellId, { value, attempts: 0 });
+    pending.set(cellId, { value, sentAt: null });
+    setBit(cellId, value ? 1 : 0);
+    cellLastTs[cellId] = Date.now();
+  }
+}
+
+function enqueueWrite(cellId, value) {
+  writeQueue.set(cellId, { value, attempts: 0 });
+  pending.set(cellId, { value, sentAt: null });
+  persistQueue();
+  updateStatus();
+  scheduleDrain(0);
+}
+
+let drainTimer = 0;
+function scheduleDrain(delayMs) {
+  if (drainTimer) clearTimeout(drainTimer);
+  drainTimer = window.setTimeout(() => {
+    drainTimer = 0;
+    void drainQueue();
+  }, delayMs);
+}
+
+async function drainQueue() {
+  if (workerBusy || !CONFIGURED) return;
+  if (writeQueue.size === 0) return;
+  workerBusy = true;
+  try {
+    while (writeQueue.size > 0) {
+      // Map iteration is insertion-ordered → FIFO.
+      const next = writeQueue.entries().next();
+      if (next.done) break;
+      const [cellId, entry] = next.value;
+      try {
+        await fetch(CONFIG.formActionUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: buildFormBody(cellId, entry.value)
+        });
+        const current = writeQueue.get(cellId);
+        if (current === entry) {
+          // No re-click landed while our POST was in flight, so this
+          // entry's intent is still the latest. Clear it from the queue
+          // and mark the pending ring as dispatched (sentAt). If
+          // `current !== entry`, the user re-clicked mid-flight — leave
+          // the new entry in the queue; the next drain iteration will
+          // POST it.
+          writeQueue.delete(cellId);
+          const p = pending.get(cellId);
+          if (p && p.value === entry.value) p.sentAt = Date.now();
+        }
+        workerBackoffMs = 0;
+        persistQueue();
+        updateStatus();
+        if (writeQueue.size > 0) {
+          await sleep(CONFIG.minWriteIntervalMs);
+        }
+      } catch {
+        entry.attempts++;
+        workerBackoffMs = Math.min(
+          MAX_BACKOFF_MS,
+          Math.max(CONFIG.minWriteIntervalMs, workerBackoffMs ? workerBackoffMs * 2 : 1000)
+        );
+        updateStatus();
+        await sleep(workerBackoffMs);
+      }
+    }
+  } finally {
+    workerBusy = false;
+  }
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Best-effort flush when the tab is closing/backgrounded. sendBeacon
+// is the only API that reliably fires after unload; we batch one
+// beacon per queued cell, FIFO. Forms accepts duplicate clientId+cellId
+// rows, so worst case (the worker also sent it) Sheets gets one extra
+// row that compaction will fold idempotently. Anything not flushed
+// here is still in localStorage and replays on the next visit.
+function flushOnHide() {
+  if (writeQueue.size === 0) return;
+  if (typeof navigator === 'undefined' || !navigator.sendBeacon) return;
+  for (const [cellId, entry] of writeQueue) {
+    const body = buildFormBody(cellId, entry.value);
+    // sendBeacon needs a Blob with the right content-type; passing
+    // URLSearchParams directly works in some browsers but not all.
+    const blob = new Blob([body.toString()], {
+      type: 'application/x-www-form-urlencoded;charset=UTF-8'
+    });
+    try {
+      navigator.sendBeacon(CONFIG.formActionUrl, blob);
+    } catch {
+      // Quota / payload-too-large — give up; the queue is still in
+      // localStorage and will replay next time.
+    }
+  }
+}
+// 'pagehide' fires reliably on tab close + bfcache navigation; the
+// 'visibilitychange→hidden' case (tab switch, browser minimized)
+// gives us a chance to flush during otherwise-idle backgrounding.
+window.addEventListener('pagehide', flushOnHide);
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushOnHide();
+});
+
+// Sweep pending entries that have been "sent" for longer than
+// PENDING_CONFIRM_MS without a confirming delta. Treat them as lost
+// and surrender the cell to whatever the server currently says — the
+// next snapshot/delta apply will paint the authoritative value.
+function sweepPending() {
+  const now = Date.now();
+  /** @type {Set<number>} */
+  const repaint = new Set();
+  for (const [cellId, p] of pending) {
+    if (p.sentAt != null && now - p.sentAt > PENDING_CONFIRM_MS) {
+      pending.delete(cellId);
+      repaint.add(cellId);
+    }
+  }
+  for (const cellId of repaint) paintCellId(cellId);
 }
 
 // ---------------------------------------------------------------------
@@ -574,12 +757,37 @@ function parseTs(v) {
 
 // Decode a base64 string into the existing `state` Uint8Array. atob
 // in modern browsers handles ~200KB strings fine in one shot.
+// Pending overlay is re-applied by the caller (fetchSnapshot).
 function applyEncodedSnapshot(b64) {
   const decoded = atob(b64);
   const len = Math.min(decoded.length, state.length);
   for (let i = 0; i < len; i++) state[i] = decoded.charCodeAt(i);
-  // Any trailing bytes in `state` past the snapshot length are kept as
-  // local optimistic flips — the snapshot doesn't speak about them yet.
+}
+
+// Overlay any in-flight local intents on top of the just-loaded
+// bitmap. Without this, a click the user just made that Forms hasn't
+// folded into the snapshot yet would silently revert on the next
+// snapshot poll (~60s) — this was the headline reason persistence
+// felt flaky before the queue refactor.
+//
+// Bonus job: snapshot-agreement auto-confirm. If we've already
+// dispatched a write (sentAt != null) and the freshly-loaded snapshot
+// already shows the value we asked for, the write made it all the way
+// through Forms → Sheet → Apps Script compaction. We don't need to
+// wait for a confirming delta row — and in fact we won't see one,
+// because compaction's deleteRows() truncates the response log it was
+// going to come from. Without this, the dashed-pending ring would
+// linger until the 120s TTL sweep fired, which is the long-pending-ring
+// case users were seeing.
+function reapplyPending() {
+  for (const [cellId, p] of pending) {
+    const serverBit = (state[cellId >> 3] >> (cellId & 7)) & 1;
+    if (p.sentAt != null && (serverBit === 1) === p.value) {
+      pending.delete(cellId);
+      continue;
+    }
+    setBit(cellId, p.value ? 1 : 0);
+  }
 }
 
 async function fetchSnapshot() {
@@ -620,19 +828,24 @@ async function fetchSnapshot() {
     if (parts.length > 0) applyEncodedSnapshot(parts.join(''));
     maxTs = parseTs(map.get('maxTs'));
   } else {
-    // Old format. Each row is [cellId, value, lastTs].
+    // Old format. Each row is [cellId, value, lastTs]. Skip cells that
+    // have a pending local intent — reapplyPending() below would just
+    // overwrite our setBit anyway, but skipping also avoids stomping
+    // cellLastTs with a server timestamp older than our click.
     for (const row of rows) {
       const id = Number(row[0]);
       const bit = toBit(row[1]);
       const ts = parseTs(row[2]);
       if (!Number.isInteger(id) || id < 0 || id >= N) continue;
       if (bit < 0) continue;
+      if (pending.has(id)) continue;
       setBit(id, bit);
       cellLastTs[id] = ts;
       if (ts > maxTs) maxTs = ts;
     }
   }
   if (maxTs > snapshotMaxTs) snapshotMaxTs = maxTs;
+  reapplyPending();
 }
 
 function applyDelta(rows) {
@@ -649,19 +862,29 @@ function applyDelta(rows) {
     parsed.push({ ts, id, bit });
   }
   parsed.sort((a, b) => a.ts - b.ts);
-  // Track per-cell which tiles need a repaint after this batch.
   const dirtyTiles = new Set();
   for (const { ts, id, bit } of parsed) {
+    // Pending-confirm before staleness-skip. The row's `ts` is the
+    // Sheet's clock; `cellLastTs[id]` is the browser's clock at click
+    // time. If the browser clock is fast (or the sheet's timezone
+    // setting parses oddly through gviz) the row can look stale even
+    // though it's the very confirmation we're waiting for.
+    const p = pending.get(id);
+    if (p !== undefined) {
+      if (p.value === !!bit) {
+        pending.delete(id);
+        dirtyTiles.add(Math.floor(id / COLS / ROWS_PER_TILE));
+      }
+      if (ts >= cellLastTs[id]) cellLastTs[id] = ts;
+      continue;
+    }
+
     if (ts < cellLastTs[id]) continue;
+    cellLastTs[id] = ts;
+
     const prev = getBit(id);
     if (prev !== bit) {
       setBit(id, bit);
-      dirtyTiles.add(Math.floor(id / COLS / ROWS_PER_TILE));
-    }
-    cellLastTs[id] = ts;
-    const pendingValue = pending.get(id);
-    if (pendingValue !== undefined && pendingValue === !!bit) {
-      pending.delete(id);
       dirtyTiles.add(Math.floor(id / COLS / ROWS_PER_TILE));
     }
   }
@@ -676,12 +899,15 @@ let polling = false;
 let lastSyncAt = 0;
 let lastSnapshotFetchAt = 0;
 const SNAPSHOT_REFRESH_MS = 60000;
+/** @type {'init' | 'syncing' | 'live' | 'offline'} */
+let connStatus = 'init';
 
 async function poll() {
   if (polling) return;
   polling = true;
+  connStatus = 'syncing';
+  updateStatus();
   try {
-    statusEl.textContent = 'syncing…';
     const now = Date.now();
     const wantSnapshot = !lastSnapshotFetchAt || now - lastSnapshotFetchAt > SNAPSHOT_REFRESH_MS;
     if (wantSnapshot) {
@@ -692,20 +918,211 @@ async function poll() {
     applyDelta(delta);
     if (wantSnapshot) paintAllTiles();
     else updateChecked();
+    if (imageMode !== 'off') renderImageView();
     lastSyncAt = Date.now();
-    statusEl.textContent = 'live';
+    connStatus = 'live';
   } catch (err) {
-    statusEl.textContent = 'offline (retrying)';
+    connStatus = 'offline';
     console.warn('[checkboxes] poll failed', err);
   } finally {
     polling = false;
+    updateStatus();
   }
 }
 
-function setStatusIdle() {
-  if (!lastSyncAt) return;
-  const ago = Math.round((Date.now() - lastSyncAt) / 1000);
-  statusEl.textContent = ago < 5 ? 'live' : `synced ${ago}s ago`;
+// Single source of truth for the footer text. Combines the read-path
+// connection state (poll loop) with the write-path queue depth so a
+// user can tell at a glance whether their clicks are caught up.
+function updateStatus() {
+  if (!CONFIGURED) {
+    statusEl.textContent = 'demo mode';
+    return;
+  }
+  const queued = writeQueue.size;
+  const queuedNote = queued > 0 ? ` · ${queued} queued` : '';
+  if (connStatus === 'syncing') {
+    statusEl.textContent = `syncing…${queuedNote}`;
+    return;
+  }
+  if (connStatus === 'offline') {
+    statusEl.textContent = `offline (retrying)${queuedNote}`;
+    return;
+  }
+  if (connStatus === 'init') {
+    statusEl.textContent = `connecting…${queuedNote}`;
+    return;
+  }
+  const ago = lastSyncAt ? Math.round((Date.now() - lastSyncAt) / 1000) : 0;
+  const sync = ago < 5 ? 'live' : `synced ${ago}s ago`;
+  statusEl.textContent = `${sync}${queuedNote}`;
+}
+
+// ---------------------------------------------------------------------
+// Image-view easter egg. Renders the same `state` Uint8Array as an
+// image — either a 1000×1000 monochrome grid (one bit per pixel, the
+// way the OMCB Discord crowd visualized the canvas to draw pixel art
+// and QR codes) or a 204×204 RGB grid (24 bits per pixel, the color
+// protocol they invented).
+//
+// Press `i` to cycle  off → mono → rgb → off. ESC always returns to
+// the checkbox view. Deep-linkable via ?view=mono or ?view=rgb.
+// Clicking a pixel in mono view jumps to the corresponding cell in
+// the regular grid; in RGB view a click is ambiguous (24 cells per
+// pixel) so we just close the overlay.
+//
+// This is purely a re-renderer of the in-memory bitmap. It doesn't
+// touch the persistence layer, the write queue, or the read polling.
+// ---------------------------------------------------------------------
+const MONO_SIDE = Math.ceil(Math.sqrt(N)); // 1000 for N=1,000,000
+const RGB_SIDE = Math.floor(Math.sqrt(state.length / 3)); // 204 for N=1M
+
+const imageOverlay = /** @type {HTMLElement | null} */ (
+  document.getElementById('cb-image-overlay')
+);
+const imageCanvas = /** @type {HTMLCanvasElement | null} */ (
+  document.getElementById('cb-image-canvas')
+);
+const imageLabel = /** @type {HTMLElement | null} */ (document.getElementById('cb-image-label'));
+const imageCtx =
+  imageCanvas instanceof HTMLCanvasElement
+    ? /** @type {CanvasRenderingContext2D | null} */ (imageCanvas.getContext('2d'))
+    : null;
+
+/** @type {'off' | 'mono' | 'rgb'} */
+let imageMode = 'off';
+
+function renderImageView() {
+  if (imageMode === 'off' || !imageCanvas || !imageCtx) return;
+
+  if (imageMode === 'mono') {
+    if (imageCanvas.width !== MONO_SIDE || imageCanvas.height !== MONO_SIDE) {
+      imageCanvas.width = MONO_SIDE;
+      imageCanvas.height = MONO_SIDE;
+    }
+    const img = imageCtx.createImageData(MONO_SIDE, MONO_SIDE);
+    const data = img.data;
+    // Off-pixels are a soft warm gray so the canvas reads as paper rather
+    // than a flat white wall; on-pixels are the accent color so the
+    // image matches the on-grid checkboxes. Faithful to OMCB's two-color
+    // look, just inverted from black/white to amber/cream.
+    const onR = 180,
+      onG = 83,
+      onB = 9; // #b45309, our --cb-accent
+    const offR = 227,
+      offG = 224,
+      offB = 214; // #e3e0d6, our --cb-cell-bg
+    const max = Math.min(N, MONO_SIDE * MONO_SIDE);
+    for (let cellId = 0; cellId < max; cellId++) {
+      const bit = (state[cellId >> 3] >> (cellId & 7)) & 1;
+      const off = cellId * 4;
+      if (bit) {
+        data[off] = onR;
+        data[off + 1] = onG;
+        data[off + 2] = onB;
+      } else {
+        data[off] = offR;
+        data[off + 1] = offG;
+        data[off + 2] = offB;
+      }
+      data[off + 3] = 255;
+    }
+    imageCtx.putImageData(img, 0, 0);
+  } else {
+    if (imageCanvas.width !== RGB_SIDE || imageCanvas.height !== RGB_SIDE) {
+      imageCanvas.width = RGB_SIDE;
+      imageCanvas.height = RGB_SIDE;
+    }
+    const img = imageCtx.createImageData(RGB_SIDE, RGB_SIDE);
+    const data = img.data;
+    const total = RGB_SIDE * RGB_SIDE;
+    for (let i = 0; i < total; i++) {
+      const off = i * 4;
+      const src = i * 3;
+      // Take three consecutive bitmap bytes as R, G, B. With most cells
+      // unchecked the image will be mostly near-black until users
+      // actively encode something — that's the same "blank canvas"
+      // feeling the OMCB botters started from.
+      data[off] = state[src] || 0;
+      data[off + 1] = state[src + 1] || 0;
+      data[off + 2] = state[src + 2] || 0;
+      data[off + 3] = 255;
+    }
+    imageCtx.putImageData(img, 0, 0);
+  }
+}
+
+function setImageMode(mode) {
+  imageMode = mode;
+  if (!imageOverlay || !imageLabel) return;
+  if (mode === 'off') {
+    imageOverlay.hidden = true;
+    return;
+  }
+  imageOverlay.hidden = false;
+  imageLabel.textContent =
+    mode === 'mono'
+      ? `${MONO_SIDE}×${MONO_SIDE} mono · 1 bit/pixel`
+      : `${RGB_SIDE}×${RGB_SIDE} rgb · 24 bits/pixel`;
+  renderImageView();
+}
+
+document.addEventListener('keydown', (e) => {
+  // Don't steal `i` while the user is typing in the jump widget — they
+  // might want to type "1000" without surprise mode swaps. Same for
+  // contenteditable surfaces if any get added later.
+  const t = e.target;
+  if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) return;
+  if (t instanceof HTMLElement && t.isContentEditable) return;
+
+  if (e.key === 'i' || e.key === 'I') {
+    // No modifier — Ctrl/Cmd+I is browser-reserved (italic, dev tools).
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    e.preventDefault();
+    const next = imageMode === 'off' ? 'mono' : imageMode === 'mono' ? 'rgb' : 'off';
+    setImageMode(next);
+  } else if (e.key === 'Escape' && imageMode !== 'off') {
+    e.preventDefault();
+    setImageMode('off');
+  }
+});
+
+// Click-to-jump in mono view: pixel coords map 1:1 to cellId (since
+// MONO_SIDE * MONO_SIDE = N). Translate the click from CSS-display
+// coords back to the canvas's logical 1000×1000 grid.
+if (imageCanvas) {
+  imageCanvas.addEventListener('click', (e) => {
+    if (imageMode !== 'mono') return;
+    const rect = imageCanvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    const px = Math.floor(((e.clientX - rect.left) * imageCanvas.width) / rect.width);
+    const py = Math.floor(((e.clientY - rect.top) * imageCanvas.height) / rect.height);
+    const cellId = py * MONO_SIDE + px;
+    if (cellId < 0 || cellId >= N) return;
+    setImageMode('off');
+    // Defer the jump one frame so the overlay's display:none commit
+    // happens before getBoundingClientRect inside jumpToCell.
+    requestAnimationFrame(() => jumpToCell(cellId));
+  });
+}
+
+// Backdrop click (anywhere outside the canvas) closes the overlay.
+// Lets the overlay feel like the existing <dialog> chrome even though
+// it's a div (we need keyboard-cycle semantics that <dialog>'s built-in
+// ESC handling doesn't compose with cleanly).
+if (imageOverlay) {
+  imageOverlay.addEventListener('click', (e) => {
+    if (e.target === imageOverlay) setImageMode('off');
+  });
+}
+
+// Deep-link: ?view=mono or ?view=rgb opens the overlay on load. Useful
+// for sharing a specific data view. Anything else (including no
+// param) leaves the grid in its normal state.
+try {
+  const v = new URLSearchParams(window.location.search).get('view');
+  if (v === 'mono' || v === 'rgb') setImageMode(v);
+} catch {
+  // SSR / locked-down embed — ignore.
 }
 
 // Hooks for the OG-preview generator (generate-previews.js). Lets the
@@ -718,9 +1135,20 @@ buildTiles();
 paintAllTiles();
 
 if (CONFIGURED) {
+  // Restore any clicks that were queued in a previous session and
+  // never made it out. Done before the first poll so the pending
+  // overlay (re-applied at the end of fetchSnapshot) keeps the
+  // restored bits visible across the initial refresh.
+  restoreQueue();
+  paintAllTiles();
   poll();
   setInterval(poll, CONFIG.pollIntervalMs);
-  setInterval(setStatusIdle, 1000);
+  setInterval(updateStatus, 1000);
+  // Periodic pending-TTL sweep. Cheap (iterates pending, typically
+  // empty or a handful of entries); a stuck pending eventually
+  // unsticks itself instead of permanently masking the server view.
+  setInterval(sweepPending, 5000);
+  scheduleDrain(0);
 } else {
-  statusEl.textContent = 'demo mode';
+  updateStatus();
 }
