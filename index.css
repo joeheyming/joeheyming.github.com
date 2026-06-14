@@ -323,13 +323,22 @@
  * is loaded. Reserve approximate rendered height so content below this strip
  * (Featured strip, gallery, footer) doesn't shift when the cards appear.
  * The `:empty` guard releases the reservation once JS injects content, so
- * any small over-estimate doesn't leave dead whitespace. */
+ * any small over-estimate doesn't leave dead whitespace.
+ *
+ * Grid wraps as `auto-fit minmax(320px, 1fr)`. With three heroes today
+ * (Doom + Stepmania + NES, promoted 2026-06-13): wide desktop = 1 row,
+ * tablet = 2 rows, narrow mobile = 3 rows. */
 .hos-featured-heroes:empty {
   min-height: 320px;
 }
-@media (max-width: 768px) {
+@media (max-width: 1000px) {
   .hos-featured-heroes:empty {
     min-height: 640px;
+  }
+}
+@media (max-width: 640px) {
+  .hos-featured-heroes:empty {
+    min-height: 960px;
   }
 }
 

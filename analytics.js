@@ -240,6 +240,16 @@ function summarizeResourceUrl(resource) {
 // CORS-proxy timeouts, etc.). Suppressed errors still emit a single
 // `console.warn` so devtools can show them during local development;
 // they just don't fire a GA event.
+//
+// Regex authoring rule: keep patterns to the SHORTEST uniquely-identifying
+// substring. The first version of this list used long literal phrases like
+// "Pointer lock cannot be acquired immediately after the user" — but the
+// actual Chrome message is "…following a request to exit pointer lock"
+// (not "after the user"), so the regex never matched and ~37 false-fire
+// events per day kept flowing to GA. Verified by the 2026-06-13 dashboard
+// pull: exception count dropped only -36% post-Lever D vs predicted -70%.
+// Verbose regexes that *look* defensive are actually the opposite — they're
+// trivially defeated by browsers changing one word in the error text.
 const SUPPRESSED_ERROR_PATTERNS = [
   // Pointer-lock failures inside the Emscripten-compiled engine
   // (`doom/uzdoom.js`). SDL2 calls `canvas.requestPointerLock()` from
@@ -248,7 +258,7 @@ const SUPPRESSED_ERROR_PATTERNS = [
   // ~1.25s after the user exits it") fires several hundred times a
   // week as users tap-out and tap-in.
   {
-    match: /pointer lock cannot be acquired immediately after the user/i,
+    match: /pointer lock cannot be acquired immediately/i,
     types: ['unhandled_promise_rejection', 'javascript_error']
   },
   {
@@ -256,15 +266,15 @@ const SUPPRESSED_ERROR_PATTERNS = [
     types: ['unhandled_promise_rejection', 'javascript_error']
   },
   {
-    match: /the user has exited the lock before this request was complete/i,
+    match: /user has exited the lock before/i,
     types: ['unhandled_promise_rejection', 'javascript_error']
   },
   {
-    match: /WrongDocumentError.*root document of this element is not valid/i,
+    match: /WrongDocumentError.*root document of this element/i,
     types: ['unhandled_promise_rejection', 'javascript_error']
   },
   {
-    match: /NotSupportedError.*options asked for in this request are not supported/i,
+    match: /NotSupportedError.*options asked for in this request/i,
     types: ['unhandled_promise_rejection']
   },
   // proxy.js callers — `window.proxyService` rotates through a list of

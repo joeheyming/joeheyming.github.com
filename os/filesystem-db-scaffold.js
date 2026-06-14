@@ -313,7 +313,7 @@ export function applyFileSystemDbScaffold(FileSystemDB) {
       });
 
       // Store all default items
-      const transaction = this.db.transaction(['files'], 'readwrite');
+      const transaction = await this._safeTransaction(['files'], 'readwrite');
       const store = transaction.objectStore('files');
 
       for (const item of defaultStructure) {

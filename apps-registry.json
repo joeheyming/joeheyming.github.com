@@ -390,9 +390,9 @@
     },
     "featured": {
       "order": 8,
-      "headline": "StepMania",
-      "blurb": "Browser rhythm game — scrolling arrows, your own songs, keyboard or dance pad.",
-      "tagsLine": "🕹️ Game • 🎵 Rhythm",
+      "headline": "Dance to your music",
+      "blurb": "Browser rhythm game. Drop in any .sm file or pick from a built-in pack. Keyboard, dance pad, or autoplay.",
+      "tagsLine": "🕹️ Game • 🎵 Bring your own songs",
       "preset": "stepmania",
       "analyticsLabel": "StepMania"
     },
@@ -516,6 +516,14 @@
       "name": "Watch",
       "short_name": "Watch",
       "description": "Browser smart-TV for classic animated archives"
+    },
+    "featured": {
+      "order": 2,
+      "headline": "Watch classic TV",
+      "blurb": "Smart-TV style player for a curated shelf of animation, sitcoms, and Saturday-morning cartoons from the Internet Archive. Browse like a channel guide, click and play. Cast / AirPlay supported.",
+      "tagsLine": "📺 TV • 🎞️ Archive",
+      "preset": "watch",
+      "analyticsLabel": "Watch"
     },
     "appTier": "experience",
     "geo": true

@@ -12,12 +12,34 @@ function makeFakeIdb(rows) {
   // Tiny in-memory shim that supports the minimum we exercise:
   //   db.transaction(['files'|'metadata'], mode).objectStore(name).getAll()/put()
   //   tx.oncomplete / tx.onerror
+  //
+  // NOTE: tx.oncomplete uses a SETTER so the microtask is queued at handler-
+  // assign time, not at transaction() call time. The IDB safe-transaction
+  // refactor (2026-06-13) introduced one `await` between getting the tx and
+  // attaching tx.oncomplete; the original eager-microtask shape made that
+  // callback fire too early and the test deadlock. The setter pattern
+  // matches what the mock already does for request.onsuccess on each store
+  // op, and is closer to real IDB semantics (oncomplete fires after the
+  // queued ops drain).
   const stores = { files: rows.slice(), metadata: [] };
   return {
-    transaction(names) {
+    transaction(_names) {
+      let oncompleteHandler = null;
+      let onerrorHandler = null;
       const tx = {
-        oncomplete: null,
-        onerror: null,
+        set oncomplete(fn) {
+          oncompleteHandler = fn;
+          queueMicrotask(() => oncompleteHandler && oncompleteHandler({}));
+        },
+        get oncomplete() {
+          return oncompleteHandler;
+        },
+        set onerror(fn) {
+          onerrorHandler = fn;
+        },
+        get onerror() {
+          return onerrorHandler;
+        },
         objectStore(n) {
           const arr = stores[n];
           return {
@@ -44,7 +66,6 @@ function makeFakeIdb(rows) {
           };
         }
       };
-      queueMicrotask(() => tx.oncomplete && tx.oncomplete({}));
       return tx;
     },
     _stores: stores
@@ -75,9 +96,7 @@ test('backfillModeUidGid: fills in defaults for legacy rows', async () => {
 test('backfillModeUidGid: preserves explicit mode/uid/gid', async () => {
   const fake = new FakeDB();
   fake.isInitialized = true;
-  fake.db = makeFakeIdb([
-    { path: '/secret', type: 'file', mode: 0o600, uid: 42, gid: 7 }
-  ]);
+  fake.db = makeFakeIdb([{ path: '/secret', type: 'file', mode: 0o600, uid: 42, gid: 7 }]);
   await fake.backfillModeUidGid();
   const row = fake.db._stores.files.find((r) => r.path === '/secret');
   assert.equal(row.mode, 0o600);
@@ -88,9 +107,7 @@ test('backfillModeUidGid: preserves explicit mode/uid/gid', async () => {
 test('backfillModeUidGid: idempotent when flag already set', async () => {
   const fake = new FakeDB();
   fake.isInitialized = true;
-  fake.db = makeFakeIdb([
-    { path: '/x', type: 'file' }
-  ]);
+  fake.db = makeFakeIdb([{ path: '/x', type: 'file' }]);
   fake.db._stores.metadata.push({ key: 'fs_schema_v2_backfill_done', value: true });
   await fake.backfillModeUidGid();
   // mode should still be undefined because we early-returned.

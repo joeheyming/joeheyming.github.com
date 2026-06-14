@@ -55,9 +55,32 @@ function mockDb() {
     putCalls,
     db: {
       transaction(_stores, _mode) {
+        // Use setter-fires-microtask for tx.oncomplete (same pattern the
+        // mock uses for request.onsuccess below). This matches real IDB
+        // semantics: oncomplete fires AFTER the consumer attaches the
+        // handler, not at transaction() call time. Originally this mock
+        // fired oncomplete via an eager `queueMicrotask` inside
+        // `transaction()`, which was fine while every callsite attached
+        // oncomplete synchronously in the same executor — but the IDB
+        // safe-transaction refactor (2026-06-13) introduced one `await`
+        // between getting the tx and attaching handlers, which made the
+        // eager microtask fire too early and the test deadlock.
+        let oncompleteHandler = null;
+        let onerrorHandler = null;
         const tx = {
-          oncomplete: null,
-          onerror: null,
+          set oncomplete(fn) {
+            oncompleteHandler = fn;
+            queueMicrotask(() => oncompleteHandler && oncompleteHandler());
+          },
+          get oncomplete() {
+            return oncompleteHandler;
+          },
+          set onerror(fn) {
+            onerrorHandler = fn;
+          },
+          get onerror() {
+            return onerrorHandler;
+          },
           objectStore(_name) {
             return {
               put(item) {
@@ -85,7 +108,6 @@ function mockDb() {
             };
           }
         };
-        queueMicrotask(() => tx.oncomplete && tx.oncomplete());
         return tx;
       }
     }

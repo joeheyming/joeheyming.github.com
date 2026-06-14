@@ -92,6 +92,47 @@ export function applyFileSystemDbStore(FileSystemDB) {
     },
 
     /**
+     * Create an IDB transaction with a single retry on `InvalidStateError`.
+     * That error fires when another tab opens the same DB at a newer
+     * version and triggers `versionchange`, closing our handle. The
+     * `onversionchange` / `onclose` listeners installed in `initialize`
+     * already reset `this.db = null` so the next `initialize()` re-opens
+     * cleanly, but every direct `this.db.transaction(...)` callsite still
+     * had a race: the `await` before the Promise yielded control, and
+     * `versionchange` could fire during that microtask gap. Route every
+     * transaction through this helper to close that race — this was the
+     * #1 residual exception in the 2026-06-13 dashboard pull (1283 events
+     * / 388 users), and refactoring all callsites here is the surgical
+     * fix queued by Lever D's "fix when it rises to top of smaller list"
+     * tier.
+     *
+     * @param {string|string[]} stores
+     * @param {IDBTransactionMode} mode
+     * @returns {Promise<IDBTransaction>}
+     */
+    async _safeTransaction(stores, mode) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (!this.db || !this.isInitialized) {
+          await this.initialize();
+        }
+        try {
+          // Synchronous after the optional init above — IDB only throws
+          // InvalidStateError here when the handle is mid-close.
+          return this.db.transaction(stores, mode);
+        } catch (err) {
+          if (attempt === 0 && err && err.name === 'InvalidStateError') {
+            FileSystemDB._debug?.('IDB versionchange race — reopening DB');
+            this.db = null;
+            this.isInitialized = false;
+            continue;
+          }
+          throw err;
+        }
+      }
+      throw new Error('IndexedDB transaction failed after retry');
+    },
+
+    /**
      * v2 schema backfill: ensure every row has reasonable mode / uid / gid
      * defaults. Idempotent: a metadata flag (`fs_schema_v2_backfill_done`)
      * gates further runs, and the per-row check still skips rows that
@@ -113,9 +154,9 @@ export function applyFileSystemDbStore(FileSystemDB) {
       let changed = 0;
       let touched = 0;
 
+      const rowsTx = await this._safeTransaction(['files'], 'readonly');
       const rows = await new Promise((resolve, reject) => {
-        const tx = this.db.transaction(['files'], 'readonly');
-        const store = tx.objectStore('files');
+        const store = rowsTx.objectStore('files');
         const req = store.getAll();
         req.onsuccess = () => resolve(req.result || []);
         req.onerror = () => reject(req.error);
@@ -157,8 +198,8 @@ export function applyFileSystemDbStore(FileSystemDB) {
       }
 
       if (updates.length > 0) {
+        const tx = await this._safeTransaction(['files'], 'readwrite');
         await new Promise((resolve, reject) => {
-          const tx = this.db.transaction(['files'], 'readwrite');
           const store = tx.objectStore('files');
           tx.oncomplete = () => resolve();
           tx.onerror = () => reject(tx.error);
@@ -186,9 +227,8 @@ export function applyFileSystemDbStore(FileSystemDB) {
 
     // Get metadata
     async getMetadata(key) {
-      if (!this.isInitialized) await this.initialize();
+      const transaction = await this._safeTransaction(['metadata'], 'readonly');
       return new Promise((resolve, reject) => {
-        const transaction = this.db.transaction(['metadata'], 'readonly');
         const store = transaction.objectStore('metadata');
         const request = store.get(key);
 
@@ -201,9 +241,8 @@ export function applyFileSystemDbStore(FileSystemDB) {
 
     // Set metadata
     async setMetadata(key, value) {
-      if (!this.isInitialized) await this.initialize();
+      const transaction = await this._safeTransaction(['metadata'], 'readwrite');
       return new Promise((resolve, reject) => {
-        const transaction = this.db.transaction(['metadata'], 'readwrite');
         const store = transaction.objectStore('metadata');
         const request = store.put({ key, value });
 
@@ -214,10 +253,8 @@ export function applyFileSystemDbStore(FileSystemDB) {
 
     // Get file or directory by path
     async getItem(path) {
-      if (!this.isInitialized) await this.initialize();
-
+      const transaction = await this._safeTransaction(['files'], 'readonly');
       return new Promise((resolve, reject) => {
-        const transaction = this.db.transaction(['files'], 'readonly');
         const store = transaction.objectStore('files');
         const request = store.get(path);
 
@@ -230,10 +267,8 @@ export function applyFileSystemDbStore(FileSystemDB) {
 
     // List directory contents
     async listDirectory(path) {
-      if (!this.isInitialized) await this.initialize();
-
+      const transaction = await this._safeTransaction(['files'], 'readonly');
       return new Promise((resolve, reject) => {
-        const transaction = this.db.transaction(['files'], 'readonly');
         const store = transaction.objectStore('files');
         const index = store.index('parentPath');
         const request = index.getAll(path);
@@ -259,10 +294,8 @@ export function applyFileSystemDbStore(FileSystemDB) {
      * @returns {Promise<string[]>} absolute paths of direct children
      */
     async listDirectoryNames(parentPath) {
-      if (!this.isInitialized) await this.initialize();
-
+      const transaction = await this._safeTransaction(['files'], 'readonly');
       return new Promise((resolve, reject) => {
-        const transaction = this.db.transaction(['files'], 'readonly');
         const store = transaction.objectStore('files');
         const index = store.index('parentPath');
         const request = index.getAllKeys(parentPath);
@@ -337,10 +370,8 @@ export function applyFileSystemDbStore(FileSystemDB) {
 
     // Get filesystem statistics
     async getStats() {
-      if (!this.isInitialized) await this.initialize();
-
+      const transaction = await this._safeTransaction(['files'], 'readonly');
       return new Promise((resolve, reject) => {
-        const transaction = this.db.transaction(['files'], 'readonly');
         const store = transaction.objectStore('files');
         const request = store.getAll();
 
@@ -362,9 +393,7 @@ export function applyFileSystemDbStore(FileSystemDB) {
 
     // Clear the entire database
     async clearDatabase() {
-      if (!this.isInitialized) await this.initialize();
-
-      const transaction = this.db.transaction(['files', 'metadata'], 'readwrite');
+      const transaction = await this._safeTransaction(['files', 'metadata'], 'readwrite');
       const filesStore = transaction.objectStore('files');
       const metadataStore = transaction.objectStore('metadata');
 

@@ -29,8 +29,8 @@ export function applyFileSystemDbOps(FileSystemDB) {
         modified: new Date()
       };
 
+      const transaction = await this._safeTransaction(['files'], 'readwrite');
       return new Promise((resolve, reject) => {
-        const transaction = this.db.transaction(['files'], 'readwrite');
         const store = transaction.objectStore('files');
         const request = store.put(link);
 
@@ -101,8 +101,8 @@ export function applyFileSystemDbOps(FileSystemDB) {
         file.contentBytes = contentBytes;
       }
 
+      const transaction = await this._safeTransaction(['files'], 'readwrite');
       return new Promise((resolve, reject) => {
-        const transaction = this.db.transaction(['files'], 'readwrite');
         const store = transaction.objectStore('files');
         const request = store.put(file);
 
@@ -157,8 +157,8 @@ export function applyFileSystemDbOps(FileSystemDB) {
         file.contentBytes = contentBytes;
       }
 
+      const transaction = await this._safeTransaction(['files'], 'readwrite');
       return new Promise((resolve, reject) => {
-        const transaction = this.db.transaction(['files'], 'readwrite');
         const store = transaction.objectStore('files');
         const request = store.put(file);
         request.onsuccess = () => resolve(file);
@@ -183,7 +183,7 @@ export function applyFileSystemDbOps(FileSystemDB) {
         if (pending.length === 0) return;
         const batch = pending;
         pending = [];
-        const tx = self.db.transaction(['files'], 'readwrite');
+        const tx = await self._safeTransaction(['files'], 'readwrite');
         const store = tx.objectStore('files');
         for (const item of batch) {
           store.put(item);
@@ -274,8 +274,8 @@ export function applyFileSystemDbOps(FileSystemDB) {
         modified: new Date()
       };
 
+      const transaction = await this._safeTransaction(['files'], 'readwrite');
       return new Promise((resolve, reject) => {
-        const transaction = this.db.transaction(['files'], 'readwrite');
         const store = transaction.objectStore('files');
         const request = store.put(directory);
 
@@ -301,8 +301,8 @@ export function applyFileSystemDbOps(FileSystemDB) {
         created: new Date(),
         modified: new Date()
       };
+      const transaction = await this._safeTransaction(['files'], 'readwrite');
       return new Promise((resolve, reject) => {
-        const transaction = this.db.transaction(['files'], 'readwrite');
         const store = transaction.objectStore('files');
         const request = store.put(directory);
         request.onsuccess = () => resolve(directory);
@@ -333,8 +333,8 @@ export function applyFileSystemDbOps(FileSystemDB) {
         created: now,
         modified: now
       }));
+      const tx = await this._safeTransaction(['files'], 'readwrite');
       return new Promise((resolve, reject) => {
-        const tx = this.db.transaction(['files'], 'readwrite');
         const store = tx.objectStore('files');
         for (const rec of records) store.put(rec);
         tx.oncomplete = () => resolve(records.length);
@@ -366,8 +366,8 @@ export function applyFileSystemDbOps(FileSystemDB) {
         }
       }
 
+      const transaction = await this._safeTransaction(['files'], 'readwrite');
       return new Promise((resolve, reject) => {
-        const transaction = this.db.transaction(['files'], 'readwrite');
         const store = transaction.objectStore('files');
         const request = store.delete(path);
 
@@ -411,7 +411,7 @@ export function applyFileSystemDbOps(FileSystemDB) {
       // If it's a directory, update all children paths
       if (item.type === 'directory') {
         const children = await this.getAllChildren(oldPath);
-        const transaction = this.db.transaction(['files'], 'readwrite');
+        const transaction = await this._safeTransaction(['files'], 'readwrite');
         const store = transaction.objectStore('files');
 
         // Update all children
@@ -442,8 +442,8 @@ export function applyFileSystemDbOps(FileSystemDB) {
       }
 
       // Update the main item and delete old one
+      const transaction = await this._safeTransaction(['files'], 'readwrite');
       return new Promise((resolve, reject) => {
-        const transaction = this.db.transaction(['files'], 'readwrite');
         const store = transaction.objectStore('files');
 
         const putRequest = store.put(updatedItem);

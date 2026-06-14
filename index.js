@@ -18,10 +18,16 @@
  */
 
 // Hero apps drive ~94% of engaged minutes on the site (Doom 56%, Stepmania
-// 38% per 2026-04/05 GA4). They get an oversized dual-tile slot above the
-// rest of the Featured strip so the highest-value entry points are visually
+// 38% per 2026-04/05 GA4). They get an oversized tile slot above the rest
+// of the Featured strip so the highest-value entry points are visually
 // dominant on first paint.
-const HERO_APP_IDS = ['doom', 'stepmania'];
+//
+// 2026-06-13: promoted NES from the strip to a 3rd hero. NES strip CTR was
+// 11.4% (Doom hero 37.5%, Stepmania hero 7.0%) — 2-9× typical strip CTR
+// per the dashboard pull, easily the strongest "next slot up" candidate.
+// The grid uses `auto-fit minmax(320px, 1fr)`, so 3-up wraps cleanly to
+// 1 row on desktop, 2 rows on tablet, and 3 rows on mobile.
+const HERO_APP_IDS = ['doom', 'stepmania', 'nes'];
 
 // Low-engagement novelties (avg engagement <35s per 2026-04/05 GA4). They
 // stay in the gallery so the catalog is complete, but get a muted visual
@@ -67,21 +73,25 @@ function makeSearchTracker(location) {
 }
 
 // Apps that map to the highest-value search queries get an explicit "Featured"
-// pin on the home page. Order matches the keyword-report priority: DOOM first
-// (~14k impressions/mo), then NES, Pac-Man, StepMania, Wordle, etc. The hero
-// apps are rendered separately above by renderFeaturedHeroes() and filtered
-// out of this strip by renderFeaturedProjects() so they don't double-render.
+// pin on the home page. Hero apps (HERO_APP_IDS) are rendered separately above
+// by renderFeaturedHeroes() and filtered out of this strip by
+// renderFeaturedProjects() so they don't double-render — they're listed here
+// only so the home gallery's "popular first" ordering still works for them.
+//
+// 2026-06-13: per the dashboard pull, demoted three low-CTR strip cards
+// out of POPULAR_APP_IDS (they remain in the full gallery, just no strip
+// real estate): Wordle Finder (1.3% CTR), Code IDE (1.7%), Pac-Infinite
+// (2.4%) — all 2-4× lower than the strip median. Watch added at slot 2
+// (right after NES, which is now a hero so filters out of the strip).
 const POPULAR_APP_IDS = [
   'doom',
   'nes',
+  'watch',
   'pacman',
-  'pacman-infinite',
   'stepmania',
-  'wordle-finder',
   'minesweeper',
   'badapple',
-  'terminal',
-  'code-ide'
+  'terminal'
 ];
 
 // Section grouping for the full gallery. Order is presentation order on
