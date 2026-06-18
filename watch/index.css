@@ -2289,7 +2289,7 @@ a.tv-crumb:hover {
  * by `modules/mode.js` based on three signals (in priority order): the
  * `?tv=1` query param (manual override, useful for desktop preview), a
  * `window.__WATCH_TV__` flag injected by the native Android-TV WebView shell,
- * and a UA fingerprint of TV-class browsers (Bravia, Tizen, WebOS, HbbTV).
+ * and a UA fingerprint of TV-class browsers (Android TV, Tizen, WebOS, HbbTV).
  *
  * Goal of these overrides: bigger UI for ~8-foot living-room viewing, focus
  * rings strong enough to read across the room, and remove mouse-only chrome
@@ -2298,12 +2298,12 @@ a.tv-crumb:hover {
  *
  * Modality (data-modality) is also flipped here so a focus ring only paints
  * when the user is currently driving with the keyboard / D-pad. Pointer
- * users on a TV (rare — Bluetooth mouse plugged into the Bravia) get the
+ * users on a TV (rare — Bluetooth mouse plugged into the set) get the
  * same hover-friendly experience the desktop site has.
  * ========================================================================= */
 
 :root[data-mode='tv'] {
-  /* Bravia + most Android TVs expose a 960×540 CSS viewport at 2×
+  /* Most Android TVs expose a 960×540 CSS viewport at 2×
      dpr (1920×1080 device pixels). These knobs are sized for that
      canvas — NOT 1920 CSS px. Trying to declare a 1920 viewport
      just causes horizontal scroll on 320dpi panels because
@@ -2319,7 +2319,7 @@ a.tv-crumb:hover {
   /* `--tv-poster-min` sizes 2:3 portrait posters (only the home-page
      show wall, currently). Posters carry the show title in artwork,
      so they stay readable at much narrower widths than 16:9 thumbs.
-     110px on the 960 CSS-px Bravia panel = 6–7 poster columns,
+     110px on a 960 CSS-px TV viewport = 6–7 poster columns,
      matching Plex's TV home-page density. */
   --tv-poster-min: 110px;
   --tv-tile-gap: 14px;
@@ -2329,6 +2329,18 @@ a.tv-crumb:hover {
   font-size: var(--tv-base-size);
   /* Disable text smoothing tricks that look worse at TV scaling. */
   -webkit-font-smoothing: antialiased;
+  /* Reserve a real left column for the quicknav rail. The rail is
+     `position: fixed; left: 14px; width: 60px`, so on typical TV
+     viewports it lands right where `.tv-room` (centered, ~940
+     max-width) starts — making it visually float on top of the
+     show / movie grid. Shifting body content right by 88px (rail
+     left-inset 14 + rail width 60 + 14 gap) gives the rail its own
+     column without changing its anchor or the rail's own styles.
+     Desktop and mobile keep the original floating layout — mobile
+     hides the rail entirely (see the .tv-quicknav @media block),
+     and desktop has enough room around .tv-room that the overlap
+     never happens. */
+  padding-left: 88px;
 }
 
 /* On TV we open the .tv-room out from its default 1280px max-width
@@ -2421,7 +2433,7 @@ a.tv-crumb:hover {
 /* "Rail"-style grids (Continue Watching, Saved Offline) only ever
    hold the user's recent items — usually 1–4. With minmax(_, 1fr)
    those expand to "fill" the row, blowing 1–2 cards up to half-screen
-   each (the "gigantic cards" Bravia bug). Fixed track width pins
+   each (the "gigantic cards" TV-layout bug). Fixed track width pins
    them to poster proportions and aligns left like a Plex / Netflix
    carousel; the rest of the row just sits empty. */
 :root[data-mode='tv'] .tv-continue-grid,
