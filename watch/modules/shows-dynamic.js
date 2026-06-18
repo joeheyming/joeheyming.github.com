@@ -17,9 +17,10 @@
  * extractor strategies (SxxExx, NxNN, title-substring). Whichever
  * strategy covers the most episodes wins.
  *
- * This is a sibling of `shows.js`. The two never see each other; the
+ * This module is parallel to the sheet-backed registry: the discovery
+ * path knows nothing about the curated entries in the sheet. The
  * idea is that if the dynamic path can independently rediscover the
- * curated entries' iaItem + season/episode mapping for a meaningful
+ * curated subjects' iaItem + season/episode mapping for a meaningful
  * fraction of the registry, then the curated registry can shrink to
  * just the long tail and editorial flavor (emoji, accent, tagline).
  *

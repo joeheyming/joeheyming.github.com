@@ -594,10 +594,7 @@ function initDataEventTracking() {
       clearTimeout(deepEngagementTimer);
       deepEngagementTimer = null;
     }
-    window.trackConversion(
-      'deep_engagement',
-      Math.max(120, Math.round(currentEngagedMs() / 1000))
-    );
+    window.trackConversion('deep_engagement', Math.max(120, Math.round(currentEngagedMs() / 1000)));
   }
 
   if (!document.hidden) scheduleDeepEngagementCheck();

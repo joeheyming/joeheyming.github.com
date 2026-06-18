@@ -33,8 +33,7 @@ import './modules/mode.js';
 // DOMContentLoaded, self-contained, no API surface other than the
 // `popstate` it listens for to refresh its active-state.
 import './modules/quicknav.js';
-import { getShow } from './modules/shows.js';
-import { getMovie } from './modules/movies.js';
+import { getShow, getMovie } from './modules/data-source.js';
 import { renderBreadcrumbs } from './modules/breadcrumbs.js';
 
 /** @typedef {import('./modules/shows.js').ShowConfig} ShowConfig */
@@ -96,8 +95,8 @@ async function route() {
   // Movie takes precedence over show when both are present — a deep
   // link with both is almost always a hand-edit; honouring the more
   // specific intent matches what the user typed last.
-  const movie = movieId ? getMovie(movieId) : null;
-  const show = !movie && showId ? getShow(showId) : null;
+  const movie = movieId ? await getMovie(movieId) : null;
+  const show = !movie && showId ? await getShow(showId) : null;
 
   // ---- Decide which view ---------------------------------------------
   let nextView;

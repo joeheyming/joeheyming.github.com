@@ -1,10 +1,18 @@
 /**
  * Catalog-builder tests for the /watch/ player.
  *
- * Uses small synthetic Internet Archive metadata fixtures rather than
- * hitting `archive.org`, so the tests are deterministic and offline.
- * The shapes match what `https://archive.org/metadata/<item>` actually
- * returns (we keep just the fields the builder reads: `name` + `size`).
+ * Uses small synthetic ShowConfig + Internet Archive metadata
+ * fixtures rather than hitting `archive.org` or the live Google
+ * Sheet — the tests are deterministic, offline, and don't depend
+ * on the registry's current contents.
+ *
+ * The fixture shapes match what
+ * `https://archive.org/metadata/<item>` actually returns (we keep
+ * just the fields the builder reads: `name`, `size`, optionally
+ * `format` and `length`). The fixture parsers are minimal regex
+ * extractors that produce the `{ season, episode, title }` tuples
+ * the builder expects — not faithful reproductions of any specific
+ * show's parser.
  */
 
 import { describe, it } from 'node:test';
@@ -18,21 +26,60 @@ import {
   getNextEpisode
 } from './catalog.js';
 import { makeKey } from './descriptions.js';
-import { getShow } from './shows.js';
+
+/** @typedef {import('./shows.js').ShowConfig} ShowConfig */
+
+/** Default file filter — plain `.mp4` only, skip auto-derived `.ia.mp4`. */
+function defaultAcceptMp4(raw) {
+  const name = typeof raw?.name === 'string' ? raw.name : '';
+  if (!/\.mp4$/i.test(name)) return false;
+  if (/\.ia\.mp4$/i.test(name)) return false;
+  return true;
+}
+
+/** Helper: drop the directory component of a path. */
+function basename(file) {
+  const i = file.lastIndexOf('/');
+  return i >= 0 ? file.slice(i + 1) : file;
+}
 
 /**
- * Synthetic ShowConfig with a `movieDetector` for testing the
- * buildCatalog bundled-movie code path.
+ * Synthetic show with the "S01, E01 - Title.mp4" filename shape +
+ * a `movieDetector` for exercising the buildCatalog bundled-movie
+ * code path. No production registry entry currently uses
+ * `movieDetector` (all four historical bundled movies migrated to
+ * standalone `type='movie'` subjects), but the field is still part
+ * of the ShowConfig contract and this fixture pins its semantics.
  *
- * No production show currently uses `movieDetector` — the four
- * shows that historically did (Simpsons, G.I. Joe, Dexter's Lab,
- * Recess) all had their bundled movies migrated to the standalone
- * MOVIES registry. The field stays on ShowConfig for any future
- * show that genuinely ships a feature alongside its episodes in a
- * single IA upload, and this fixture pins the contract under test
- * so the code path can't bit-rot.
+ * @type {ShowConfig & { movieDetector: (name: string) => boolean, movieTitle: string }}
+ */
+const simpsonsLikeShow = {
+  id: 'fixture-simpsons-like',
+  name: 'Fixture: The Simpsons-like Show',
+  shortName: 'Fixture',
+  emoji: '🧪',
+  accent: '#FFD90F',
+  tags: ['animation', '90s'],
+  tagline: 'synthetic fixture — not a real registered show',
+  iaItem: 'doh_20240725',
+  tvmazeId: 0,
+  acceptFile: defaultAcceptMp4,
+  parser: (file) => {
+    const m = basename(file).match(/^The Simpsons S(\d{1,2}), E(\d{1,2}) - (.+)\.mp4$/i);
+    if (!m) return null;
+    return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
+  },
+  movieDetector: (name) => /^Zhe Simpsons Movie \(\d{4}\)\.mp4$/i.test(name),
+  movieTitle: 'The Simpsons Movie (2007)'
+};
+
+/**
+ * Synthetic show with a minimal "E<NN>.mp4 → season 1" parser, used
+ * by the bundled-movie + cross-season fixtures. The fixture has a
+ * `movieDetector` so the same shape can exercise the catalog.movie
+ * branch without dragging in the heavier simpsons-like parser.
  *
- * @type {import('./shows.js').ShowConfig}
+ * @type {ShowConfig & { movieDetector: (name: string) => boolean, movieTitle: string }}
  */
 const bundledMovieShowFixture = {
   id: 'fixture-bundled-movie',
@@ -53,37 +100,121 @@ const bundledMovieShowFixture = {
   movieTitle: 'Bundled Movie (2000)'
 };
 
+/**
+ * Synthetic Beavis-style show: accepts both `.mp4` and `.ia.mp4`,
+ * parser pulls season + episode out of `Sn/Sn EP NN Title.mp4`. The
+ * dedup test relies on the parser accepting both flavours so the
+ * builder's "prefer non-derivative" sort is what picks the winner.
+ *
+ * @type {ShowConfig}
+ */
+const beavisLikeShow = {
+  id: 'fixture-beavis-like',
+  name: 'Fixture: Beavis-like Show',
+  shortName: 'Fixture',
+  emoji: '🧪',
+  accent: '#FFA500',
+  tags: ['animation', '90s'],
+  tagline: 'synthetic fixture — not a real registered show',
+  iaItem: 'beavis-like-item',
+  tvmazeId: 0,
+  acceptFile: (raw) => /\.mp4$/i.test(/** @type {string} */ (raw?.name) || ''),
+  parser: (file) => {
+    const m = file.match(/(?:^|\/)S(\d+)\/S\d+ EP (\d+) (.+?)\.(?:ia\.)?mp4$/i);
+    if (!m) return null;
+    return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
+  }
+};
+
+/**
+ * Synthetic TMNT-style multi-item show: accepts the `Title - SSxEE -
+ * Name.mp4` shape from items 1+2 and the bare `SSxEE - Name.mp4`
+ * shape from item 3. Used to exercise mergeCatalogs across items.
+ *
+ * @type {ShowConfig}
+ */
+const tmntLikeShow = {
+  id: 'fixture-tmnt-like',
+  name: 'Fixture: TMNT-like Show',
+  shortName: 'Fixture',
+  emoji: '🧪',
+  accent: '#22cc22',
+  tags: ['animation', '80s'],
+  tagline: 'synthetic fixture — not a real registered show',
+  iaItem: ['tmnt-season-1-2', 'tmnt-s05'],
+  tvmazeId: 0,
+  acceptFile: defaultAcceptMp4,
+  parser: (file) => {
+    const base = basename(file);
+    const m =
+      base.match(/^Teenage Mutant Ninja Turtles - (\d{2})x(\d{2}) - (.+)\.mp4$/i) ||
+      base.match(/^(\d{2})x(\d{2}) - (.+)\.mp4$/i);
+    if (!m) return null;
+    return { season: Number(m[1]), episode: Number(m[2]), title: m[3].trim() };
+  }
+};
+
+/**
+ * Synthetic South Park-style show: same season-0-shorts-in-subdir
+ * shape as the real one (a path-derived season 0 alongside a
+ * standard `SnnEnn` season 1+).
+ *
+ * @type {ShowConfig}
+ */
+const southParkLikeShow = {
+  id: 'fixture-southpark-like',
+  name: 'Fixture: South Park-like Show',
+  shortName: 'Fixture',
+  emoji: '🧪',
+  accent: '#9b59b6',
+  tags: ['animation', '90s'],
+  tagline: 'synthetic fixture — not a real registered show',
+  iaItem: 'southpark-like-item',
+  tvmazeId: 0,
+  acceptFile: defaultAcceptMp4,
+  parser: (file) => {
+    const s0 = file.match(/(?:^|\/)The Spirit of Christmas E(\d+) (.+)\.mp4$/i);
+    if (s0) return { season: 0, episode: Number(s0[1]), title: s0[2].trim() };
+    const std = basename(file).match(/^South Park S(\d{2})E(\d{2}) (.+)\.mp4$/i);
+    if (std) return { season: Number(std[1]), episode: Number(std[2]), title: std[3].trim() };
+    return null;
+  }
+};
+
 /* ============================================================
- * buildCatalog
+ * buildCatalog — Simpsons-like fixture
  * ============================================================ */
 
-describe('buildCatalog — The Simpsons', () => {
-  const show = getShow('simpsons');
+describe('buildCatalog — Simpsons-like fixture', () => {
+  const show = simpsonsLikeShow;
 
-  it('groups episodes by season and drops the (now-orphaned) movie file', () => {
-    // The same `doh_20240725` IA item ships the movie at the top
-    // level alongside the per-episode MP4s. Pre-migration, the
-    // show carried a movieDetector that surfaced `Zhe Simpsons
-    // Movie (2007).mp4` as `catalog.movie`. Post-migration, the
-    // detector is gone — the movie is exposed through the MOVIES
-    // registry instead (`?movie=simpsons-movie`), and the show's
-    // parser must drop the orphaned file rather than re-surface it.
+  it('groups episodes by season and drops files the parser rejects', () => {
+    // The real-world story: the `doh_20240725` item ships the movie
+    // alongside per-episode MP4s. Without a `movieDetector` the
+    // movie file's name doesn't match `S01, E01 - …` so it gets
+    // dropped from the show catalog (and surfaced separately as
+    // a `type='movie'` subject in the sheet). The fixture below
+    // exercises both that drop and basic season grouping.
     const meta = {
       files: [
         { name: 'The Simpsons S01, E01 - Simpsons Roasting on an Open Fire.mp4' },
         { name: 'The Simpsons S01, E02 - Bart the Genius.mp4' },
         { name: 'The Simpsons S02, E01 - Bart Gets an F.mp4' },
+        // The movie file matches `movieDetector`, so it lands on
+        // `catalog.movie` rather than getting dropped. The test
+        // checking the "drop when no detector" path is a separate
+        // case below.
         { name: 'Zhe Simpsons Movie (2007).mp4' },
         { name: 'cover.jpg' }
       ]
     };
     const cat = buildCatalog(show, meta);
-    assert.equal(cat.total, 3, 'movie file must not be counted in the show catalog');
+    assert.equal(cat.total, 4, '3 episodes + 1 movie');
     assert.equal(cat.seasons.length, 2);
     assert.equal(cat.seasons[0].number, 1);
     assert.equal(cat.seasons[0].episodes.length, 2);
     assert.equal(cat.seasons[1].number, 2);
-    assert.equal(cat.movie, null, 'simpsons must no longer carry a bundled movie');
+    assert.equal(cat.movie?.title, show.movieTitle);
   });
 
   it('drops files the parser rejects', () => {
@@ -131,13 +262,11 @@ describe('buildCatalog — The Simpsons', () => {
 });
 
 describe('buildCatalog — bundled-movie code path (synthetic fixture)', () => {
-  // No production show carries `movieDetector` anymore — the four
-  // historical bundled movies (Simpsons, G.I. Joe, Dexter's Lab,
-  // Recess) all migrated to the standalone MOVIES registry. The
-  // field stays on ShowConfig for any future show that might ship a
-  // feature alongside its episodes in a single IA upload, and this
-  // synthetic fixture pins the contract under test so the code path
-  // can't bit-rot.
+  // No production show carries `movieDetector` in the sheet
+  // (every historical bundled movie was migrated to a standalone
+  // `type='movie'` subject). The field stays on ShowConfig for any
+  // future show that might ship a feature alongside its episodes
+  // in a single IA upload, and this fixture pins the contract.
 
   it('surfaces matched files as catalog.movie with season=0', () => {
     const meta = {
@@ -165,8 +294,8 @@ describe('buildCatalog — bundled-movie code path (synthetic fixture)', () => {
   });
 });
 
-describe('buildCatalog — Beavis dedup', () => {
-  const show = getShow('beavis');
+describe('buildCatalog — dedup (synthetic Beavis-like fixture)', () => {
+  const show = beavisLikeShow;
 
   it('prefers plain .mp4 over the lower-bitrate .ia.mp4 derivative', () => {
     // Alphabetically `.ia.mp4` sorts before `.mp4`, so without the
@@ -184,7 +313,7 @@ describe('buildCatalog — Beavis dedup', () => {
     assert.ok(!ep.url.includes('.ia.mp4'));
   });
 
-  it('keeps .ia.mp4 when no plain .mp4 exists (S8)', () => {
+  it('keeps .ia.mp4 when no plain .mp4 exists', () => {
     const meta = {
       files: [{ name: 'S8/S8 EP 01 Wherewovles of Highland .. Crying.ia.mp4' }]
     };
@@ -194,8 +323,8 @@ describe('buildCatalog — Beavis dedup', () => {
   });
 });
 
-describe('buildCatalog — multi-item URL construction', () => {
-  const show = getShow('tmnt');
+describe('buildCatalog — multi-item URL construction (synthetic TMNT-like fixture)', () => {
+  const show = tmntLikeShow;
 
   it('uses the explicit itemId arg over show.iaItem when given', () => {
     const meta = {
@@ -217,8 +346,12 @@ describe('buildCatalog — multi-item URL construction', () => {
   });
 });
 
+/* ============================================================
+ * mergeCatalogs
+ * ============================================================ */
+
 describe('mergeCatalogs', () => {
-  const show = getShow('tmnt');
+  const show = tmntLikeShow;
 
   it('merges per-item catalogs into one channel, sorted by (season, episode)', () => {
     const a = buildCatalog(
@@ -294,10 +427,10 @@ describe('mergeCatalogs', () => {
   });
 });
 
-describe('buildCatalog — South Park', () => {
-  const show = getShow('southpark');
+describe('buildCatalog — season-0 shorts (synthetic South Park-like fixture)', () => {
+  const show = southParkLikeShow;
 
-  it('places Spirit of Christmas shorts in a season-0 row', () => {
+  it('places shorts under a path prefix in a season-0 row', () => {
     const meta = {
       files: [
         {
@@ -319,7 +452,7 @@ describe('buildCatalog — South Park', () => {
  * ============================================================ */
 
 describe('mergeDescriptions', () => {
-  const show = getShow('simpsons');
+  const show = simpsonsLikeShow;
 
   it('grafts summary, image, airdate, and prefers TVMaze title', () => {
     const meta = {
@@ -371,7 +504,7 @@ describe('getNextEpisode', () => {
   // "next-after-movie" path. The fixture's parser puts everything
   // matched into season 1, so we extend it locally to also accept a
   // season 2 shape for the cross-season-jump assertions.
-  const show = /** @type {import('./shows.js').ShowConfig} */ ({
+  const show = /** @type {ShowConfig} */ ({
     ...bundledMovieShowFixture,
     parser: (/** @type {string} */ file) => {
       const m = /^S(\d+)E(\d+)\.mp4$/i.exec(file);
@@ -444,10 +577,8 @@ describe('getNextEpisode', () => {
  * ============================================================ */
 
 describe('buildMovieCatalog', () => {
-  // Synthetic MovieConfig — we don't import from movies.js because
-  // the registry ships empty by design; the builder is generic over
-  // any object with the expected shape and these tests pin that
-  // contract.
+  // Synthetic MovieConfig — the builder is generic over any object
+  // with the expected shape and these tests pin that contract.
   const baseMovie = {
     id: 'test-movie',
     name: 'Test Movie (2020)',

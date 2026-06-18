@@ -29,12 +29,12 @@
  *   - The Movies button writes a `#movies` hash before re-routing.
  *     `shows-view` reads the hash on mount and scrolls its Movies
  *     section into view.
- *   - If the MOVIES registry is empty the rail still renders but the
- *     Movies button is hidden — keeps the Shows button useful as a
- *     "back to all shows" shortcut.
+ *   - If the sheet has no `type='movie'` subjects the rail still
+ *     renders but the Movies button is hidden — keeps the Shows button
+ *     useful as a "back to all shows" shortcut.
  */
 
-import { MOVIES } from './movies.js';
+import { getMovies } from './data-source.js';
 import { isTvMode } from './mode.js';
 import { listContinueWatching } from './prefs.js';
 
@@ -60,8 +60,15 @@ function isPlayerView(loc) {
  * Run the rail mount. Guards against double-mount (the script could
  * in principle be imported twice through a refactor) by checking for
  * an existing `#tv-quicknav` node.
+ *
+ * Async because the Movies-pill visibility depends on the registry
+ * size (`getMovies().length > 0`); the registry comes from a gviz
+ * fetch the data-source layer caches client-side, so cold start is
+ * one round-trip and every subsequent mount is a cache hit. The mount
+ * is fire-and-forget from the boot site — the rail just appears a
+ * frame later on the very first page load.
  */
-function init() {
+async function init() {
   // Inside an iframe (Heyming OS windowed app, embedded preview,
   // etc.) the parent shell owns the navigation. The same hide-rule
   // back.js uses keeps the two in lockstep — if one hides the other
@@ -115,7 +122,8 @@ function init() {
 
   // Hide the Movies pill entirely when the registry has no entries —
   // the Shows pill stays useful as a one-tap "home" shortcut.
-  if (MOVIES.length > 0) {
+  const movies = await getMovies();
+  if (movies.length > 0) {
     const moviesBtn = makeNavButton({
       emoji: '🎬',
       label: 'Movies',
@@ -235,7 +243,9 @@ function scrollForHash(hash) {
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', () => {
+    void init();
+  });
 } else {
-  init();
+  void init();
 }

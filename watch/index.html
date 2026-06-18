@@ -12,11 +12,11 @@
 
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Watch — Classic TV from the Internet Archive | Joe Heyming 📺</title>
+    <title>Watch Classic TV — Internet Archive Smart-TV Channel Guide | Joe Heyming 📺</title>
 
     <meta
       name="description"
-      content="A smart-TV style guide for classic TV on the Internet Archive — animation, sitcoms, and Saturday morning cartoons. Native MP4 playback in the browser, with Cast and AirPlay support."
+      content="Free smart-TV channel guide for classic TV from the Internet Archive — animation, sitcoms, and Saturday-morning cartoons. Resume episodes, save offline, and cast with AirPlay or Chromecast. No signup, plays in any browser."
     />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
@@ -24,15 +24,15 @@
     <meta name="theme-color" content="#0b0b10" />
     <meta
       name="keywords"
-      content="Watch, Internet Archive, classic TV streaming, animation, sitcoms, Saturday morning cartoons, episode guide, Chromecast, AirPlay, Joe Heyming"
+      content="Watch, Internet Archive TV, classic TV streaming, free public-domain TV, smart-TV channel guide, browser TV player, animation, sitcoms, Saturday morning cartoons, episode guide, offline TV, Chromecast, AirPlay, Joe Heyming"
     />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Watch" />
-    <meta property="og:title" content="📺 Watch — Classic TV from the Internet Archive" />
+    <meta property="og:title" content="📺 Watch — Internet Archive Smart-TV Channel Guide" />
     <meta
       property="og:description"
-      content="A smart-TV style guide for classic TV on the Internet Archive — animation, sitcoms, and Saturday morning cartoons. Native MP4 in the browser, with Cast and AirPlay."
+      content="Free smart-TV channel guide for classic TV on the Internet Archive — animation, sitcoms, and Saturday-morning cartoons. Resume episodes, save offline, cast with AirPlay or Chromecast."
     />
     <meta property="og:url" content="https://joeheyming.github.io/watch/" />
     <meta property="og:image" content="https://joeheyming.github.io/watch/watch-preview.png" />
@@ -44,10 +44,10 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="📺 Watch — Classic TV from the Internet Archive" />
+    <meta name="twitter:title" content="📺 Watch — Internet Archive Smart-TV Channel Guide" />
     <meta
       name="twitter:description"
-      content="A smart-TV style guide for classic TV on the Internet Archive — animation, sitcoms, and Saturday morning cartoons. Native MP4 in the browser, with Cast and AirPlay."
+      content="Free smart-TV channel guide for classic TV on the Internet Archive — animation, sitcoms, and Saturday-morning cartoons. Resume episodes, save offline, cast with AirPlay or Chromecast."
     />
     <meta name="twitter:image" content="https://joeheyming.github.io/watch/watch-preview.png" />
 
@@ -59,10 +59,13 @@
         "@graph": [
           {
             "@type": "WebApplication",
-            "name": "Watch",
+            "name": "Watch — Internet Archive Smart-TV Channel Guide",
+            "alternateName": "Watch",
             "applicationCategory": "MultimediaApplication",
+            "applicationSubCategory": "VideoApplication",
             "operatingSystem": "Web Browser",
-            "description": "Smart-TV style player that streams classic TV from the Internet Archive in the browser.",
+            "browserRequirements": "Requires JavaScript and an HTML5-video-capable browser.",
+            "description": "Smart-TV style channel guide that streams classic public-domain TV from the Internet Archive — animation, sitcoms, and Saturday-morning cartoons. Native browser playback with Continue Watching, offline saves, and Cast / AirPlay.",
             "url": "https://joeheyming.github.io/watch/",
             "author": {
               "@type": "Person",
@@ -70,7 +73,20 @@
               "url": "https://joeheyming.github.io/"
             },
             "screenshot": "https://joeheyming.github.io/watch/watch-preview.png",
-            "keywords": "Internet Archive, classic TV, animation, sitcoms, Saturday morning cartoons, episode guide, Chromecast, AirPlay, Joe Heyming",
+            "featureList": [
+              "Smart-TV style channel grid navigable with arrow keys, TV remote, or pointer",
+              "Continue Watching across episodes per show, persisted in localStorage",
+              "Offline episode saves via IndexedDB Blob storage",
+              "Optional closed-caption subtitles via OpenSubtitles",
+              "Cast to Chromecast or AirPlay through the standard browser video controls",
+              "Streams MP4 directly from the Internet Archive — no signup, no ads"
+            ],
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "keywords": "Internet Archive TV, classic TV streaming, free public-domain TV, smart-TV channel guide, browser TV player, animation, sitcoms, Saturday morning cartoons, episode guide, offline TV, Chromecast, AirPlay, Joe Heyming",
             "inLanguage": "en"
           },
           {
@@ -114,6 +130,38 @@
                 "acceptedAnswer": {
                   "@type": "Answer",
                   "text": "A smart-TV-style 2D grid of channels (rows) and episodes (columns) you can navigate with arrow keys, a TV remote, or the on-screen pointer. Designed to feel like classic cable channel surfing."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is Watch free to use?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Watch is a free, static GitHub Pages site that links to public-domain video already hosted on the Internet Archive. There's no signup, no account, no ads, and nothing to install. The site never hosts the video itself — it only points the browser's <video> element at archive.org."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What kinds of shows are available?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The channel guide curates public-domain and openly-streamable classic TV from the Internet Archive: animation and animated TV, classic sitcoms, Saturday-morning cartoons, and a handful of standalone classic feature films. The roster shifts as items are added or removed from archive.org; the page reflects whatever currently streams cleanly."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I save episodes for offline viewing?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. The Save button on the player streams the full MP4 into an IndexedDB Blob store, with progress reported live. Saved episodes play back from local storage with no network access required. The browser is asked to mark the storage as persistent so it isn't evicted under disk pressure."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does Watch work on mobile and TV?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. The layout responds to mobile viewports, and a TV remote / D-pad navigation mode is built into the channel grid so the page is usable on a TV browser. Pair it with Chromecast (Chrome on Android) or AirPlay (Safari) to cast the underlying <video> stream to a TV instead of watching on the small screen."
                 }
               }
             ]
@@ -182,8 +230,56 @@
           border: 0;
         "
       >
-        Watch — Classic TV from the Internet Archive
+        Watch Classic TV Online — Internet Archive Smart-TV Channel Guide
       </h1>
+
+      <!--
+        SEO fallback for crawlers that don't render JS and for users with
+        JavaScript disabled. The interactive view (`<main id="tv-view">`)
+        below is JS-rendered, so the static body would otherwise contain
+        no keyword-bearing content. This block is roster-independent on
+        purpose: it describes the experience and category mix, not the
+        currently-loaded shows, so the Sheet-backed registry can churn
+        without touching SEO copy.
+      -->
+      <noscript>
+        <section class="tv-seo-fallback">
+          <h2>Internet Archive Smart-TV Channel Guide</h2>
+          <p>
+            Watch is a browser-based smart-TV channel guide for classic public-domain television
+            hosted on the
+            <a href="https://archive.org/">Internet Archive</a>
+            . Episodes stream as plain H.264 MP4 directly into an HTML5
+            <code>&lt;video&gt;</code>
+            element — no signup, no account, no ads, no app install. The page itself is a static
+            GitHub Pages deploy; the only "backend" is archive.org's public file endpoints plus
+            public TVMaze and OpenSubtitles JSON.
+          </p>
+          <h3>What's on the channel guide</h3>
+          <ul>
+            <li>Classic animation and animated TV.</li>
+            <li>Public-domain sitcoms and live-action classics.</li>
+            <li>Saturday-morning cartoons.</li>
+            <li>Standalone classic and public-domain feature films.</li>
+          </ul>
+          <h3>Features</h3>
+          <ul>
+            <li>Channel-grid navigation by arrow keys, TV remote / D-pad, or pointer.</li>
+            <li>Continue Watching tracks where you left off in each show.</li>
+            <li>Save full episodes offline to IndexedDB for later playback without a network.</li>
+            <li>Optional CC subtitles via the OpenSubtitles addon, where available.</li>
+            <li>
+              Cast to a Chromecast or AirPlay-compatible TV through the standard browser video
+              controls.
+            </li>
+          </ul>
+          <p>
+            This page requires JavaScript.
+            <a href="/">← Browse all apps on joeheyming.github.io</a>
+          </p>
+        </section>
+      </noscript>
+
       <!-- The router mounts the active view here. Views own their own DOM:
            shows-view (grid), episodes-view (season + ep list), watch-view
            (TV chassis + player). Only one is in the DOM at a time. -->

@@ -3,8 +3,10 @@
  *
  * Fetches an Internet Archive item's metadata, then turns its file
  * listing into seasons + episodes by delegating to the show's parser
- * (see `shows.js`). The output shape is identical regardless of which
- * show it came from, so the UI can stay show-agnostic.
+ * (synthesised from the sheet's `parserKind` / `parserSpec` columns by
+ * `sheets-loader.js#subjectToShowConfig`). The output shape is
+ * identical regardless of which show it came from, so the UI can
+ * stay show-agnostic.
  *
  * `getMergedCatalog(show)` is the high-level entry point: it returns
  * an in-memory cached Catalog with TVMaze descriptions + stills already

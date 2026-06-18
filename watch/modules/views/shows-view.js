@@ -15,8 +15,7 @@
  * lookup. If a lookup fails the card falls back to an emoji.
  */
 
-import { SHOWS, getShow, TAG_GROUPS } from '../shows.js';
-import { MOVIES, getMovie } from '../movies.js';
+import { getShows, getMovies, TAG_GROUPS } from '../data-source.js';
 import { listContinueWatching, clearLastEpisode } from '../prefs.js';
 import {
   listSaved as listOfflineSaved,
@@ -28,6 +27,34 @@ import { applyRovingTabindex } from '../roving-tabindex.js';
 
 /** @typedef {import('../shows.js').ShowConfig} ShowConfig */
 /** @typedef {import('../movies.js').MovieConfig} MovieConfig */
+
+// Module-scope refs populated by `mount()`. The data-source layer is
+// async (the registry lives in a Google Sheet fetched via gviz), but
+// once mount has resolved the registry we want all the in-view
+// helpers (`getSubject`, `makeSavedCard`, etc.) to stay synchronous —
+// they run during rendering and React-ish re-renders, and threading
+// a Promise through every call site would obscure the logic. The
+// refs are guaranteed to be populated by the time any helper here
+// runs because mount() awaits them before building DOM.
+
+/** @type {import('../shows.js').ShowConfig[]} */
+let _shows = [];
+/** @type {import('../movies.js').MovieConfig[]} */
+let _movies = [];
+/** @type {Map<string, import('../movies.js').MovieConfig>} */
+let _moviesById = new Map();
+/** @type {Map<string, ShowConfig | MovieConfig>} */
+let _subjectById = new Map();
+
+/**
+ * Sync movie lookup, populated by `mount()`. Used by `makeSavedCard`
+ * to decide whether a stale continue-watching record points at a
+ * series episode or a movie.
+ * @param {string} id
+ */
+function getMovieById(id) {
+  return _moviesById.get(id) || null;
+}
 
 /**
  * Look up a continue-watching / saved-offline subject by id, trying
@@ -41,7 +68,7 @@ import { applyRovingTabindex } from '../roving-tabindex.js';
  * @returns {ShowConfig | MovieConfig | null}
  */
 function getSubject(id) {
-  return getShow(id) || getMovie(id);
+  return _subjectById.get(id) || null;
 }
 
 /**
@@ -183,9 +210,26 @@ function wireRemoveSubNav(card, remove) {
 /**
  * @param {HTMLElement} slot
  * @param {MountCtx} ctx
- * @returns {{ unmount: () => void }}
+ * @returns {Promise<{ unmount: () => void }>}
  */
-export function mount(slot, ctx) {
+export async function mount(slot, ctx) {
+  // Resolve the registry once at mount time. The data-source layer
+  // pays one gviz round-trip on cold start, then serves everything
+  // from a localStorage-cached + in-memory snapshot. Module-scope
+  // refs let the in-view helpers (`getSubject`, `makeSavedCard`)
+  // stay synchronous — they're called dozens of times during render
+  // and we don't want every lookup to be a Promise.
+  const [shows, movies] = await Promise.all([getShows(), getMovies()]);
+  _shows = shows;
+  _movies = movies;
+  _moviesById = new Map(movies.map((m) => /** @type {[string, MovieConfig]} */ ([m.id, m])));
+  /** @type {Array<[string, ShowConfig | MovieConfig]>} */
+  const subjectEntries = [
+    ...shows.map((s) => /** @type {[string, ShowConfig]} */ ([s.id, s])),
+    ...movies.map((m) => /** @type {[string, MovieConfig]} */ ([m.id, m]))
+  ];
+  _subjectById = new Map(subjectEntries);
+
   const root = document.createElement('section');
   root.className = 'tv-landing';
 
@@ -258,8 +302,8 @@ export function mount(slot, ctx) {
   // registry shrinks. Order is Format → Audience → Era → Genre; we
   // walk TAG_GROUPS in that declared order rather than alphabetising.
   const tagsInUse = new Set();
-  for (const show of SHOWS) for (const t of show.tags || []) tagsInUse.add(t);
-  for (const movie of MOVIES) for (const t of movie.tags || []) tagsInUse.add(t);
+  for (const show of shows) for (const t of show.tags || []) tagsInUse.add(t);
+  for (const movie of movies) for (const t of movie.tags || []) tagsInUse.add(t);
   for (const [groupName, tags] of /** @type {[string, readonly string[]][]} */ (
     Object.entries(TAG_GROUPS)
   )) {
@@ -348,14 +392,14 @@ export function mount(slot, ctx) {
   const grid = document.createElement('div');
   grid.className = 'tv-show-grid';
   grid.setAttribute('role', 'list');
-  for (const show of SHOWS) {
+  for (const show of shows) {
     grid.appendChild(makeShowCard(show, ctx));
   }
   showsSection.appendChild(showsLabel);
   showsSection.appendChild(grid);
 
   // Movies section: same shape, separate grid. Renders nothing (whole
-  // section hidden) when the MOVIES registry is empty so the
+  // section hidden) when no movies are registered in the sheet so the
   // framework can ship before any movies are added. When movies exist
   // they're filtered by the same search + chip row as the shows grid
   // (one filter pass walks both grids).
@@ -365,7 +409,7 @@ export function mount(slot, ctx) {
   // `showsSection` above for the pattern. The quicknav rail's
   // Movies button writes `./#movies` and relies on this id.
   moviesSection.id = 'movies';
-  if (MOVIES.length === 0) moviesSection.classList.add('hidden');
+  if (movies.length === 0) moviesSection.classList.add('hidden');
   const moviesLabel = document.createElement('div');
   moviesLabel.className = 'tv-section-label';
   const moviesLabelText = document.createElement('span');
@@ -374,7 +418,7 @@ export function mount(slot, ctx) {
   const moviesGrid = document.createElement('div');
   moviesGrid.className = 'tv-show-grid tv-movie-grid';
   moviesGrid.setAttribute('role', 'list');
-  for (const movie of MOVIES) {
+  for (const movie of movies) {
     moviesGrid.appendChild(makeMovieCard(movie, ctx));
   }
   moviesSection.appendChild(moviesLabel);
@@ -428,7 +472,7 @@ export function mount(slot, ctx) {
     // stays hidden when the registry is empty regardless of filter
     // state — handled by the .hidden class set at mount time.
     showsSection.classList.toggle('hidden', showMatches === 0);
-    if (MOVIES.length > 0) {
+    if (movies.length > 0) {
       moviesSection.classList.toggle('hidden', movieMatches === 0);
     }
     // Mirror the active state back onto the chips so re-renders (or
@@ -463,7 +507,7 @@ export function mount(slot, ctx) {
     // registered; the framework can ship empty without the screen-
     // reader announcement reading "0 movies match".
     const parts = [`${showMatches} ${showMatches === 1 ? 'show' : 'shows'}`];
-    if (MOVIES.length > 0) {
+    if (movies.length > 0) {
       parts.push(`${movieMatches} ${movieMatches === 1 ? 'movie' : 'movies'}`);
     }
     searchStatus.textContent = `${parts.join(' · ')} match`;
@@ -512,7 +556,7 @@ export function mount(slot, ctx) {
   // registry is empty we skip wiring (no children to roam) and the
   // section is hidden anyway.
   const moviesRoving =
-    MOVIES.length > 0 ? applyRovingTabindex(moviesGrid, { selector: '.tv-show-card' }) : null;
+    movies.length > 0 ? applyRovingTabindex(moviesGrid, { selector: '.tv-show-card' }) : null;
   // On TV mode, autofocus the first show card so the remote can drive
   // immediately without a "press any key" beat. Skipped on desktop —
   // we don't want to steal focus from the search input or the URL bar.
@@ -644,7 +688,7 @@ function makeSavedCard(meta, ctx, onChange) {
   // we'd otherwise dispatch on. Stale entries (movie removed from
   // the registry) fall through to the legacy `?show=` URL, which the
   // router will refuse and bounce back to the landing page.
-  const isMovie = /** @type {any} */ (getMovie(meta.showId)) !== null;
+  const isMovie = getMovieById(meta.showId) !== null;
   const card = document.createElement('a');
   card.className = 'tv-continue-card tv-saved-card';
   card.style.setProperty('--show-accent', meta.showAccent || 'var(--tv-accent)');
@@ -666,7 +710,7 @@ function makeSavedCard(meta, ctx, onChange) {
   // learned to fall back to `show.posterUrl`) we recover the thumb
   // from the current registry's posterUrl by id. Stale records (movie
   // removed from registry) just keep the emoji fallback.
-  const recoveredPosterUrl = isMovie ? getMovie(meta.showId)?.posterUrl : null;
+  const recoveredPosterUrl = isMovie ? getMovieById(meta.showId)?.posterUrl : null;
   const thumbSrc = meta.thumbUrl || recoveredPosterUrl || null;
   if (thumbSrc) {
     const img = document.createElement('img');
@@ -1093,8 +1137,8 @@ function makeShowCard(show, ctx) {
  * poster than block the grid on a network round-trip.
  *
  * TVMaze's CDN is reliable once warm but the *first* request to a
- * cold-cached show id (e.g. one we just added to SHOWS) frequently
- * hangs past the browser's CORS-preflight timeout, producing the
+ * cold-cached show id (e.g. one whose sheet row was just added)
+ * frequently hangs past the browser's CORS-preflight timeout, producing the
  * "blocked by CORS policy: No 'Access-Control-Allow-Origin'" symptom
  * in devtools. We handle that with: short per-attempt timeout (so a
  * cold edge doesn't burn 30 s), one fast retry, then a fallback

@@ -6,9 +6,9 @@
  * the suite hermetic and lets us script all the failure modes.
  *
  * Fixtures are hand-crafted to mirror the filename conventions we
- * actually see in the curated `shows.js` registry, so a passing test
- * here is a real signal that the matcher could have rediscovered those
- * shows without bespoke parsers.
+ * actually see in the sheet-backed show registry, so a passing test
+ * here is a real signal that the matcher could have rediscovered
+ * those shows without bespoke parsers.
  */
 
 import { describe, it } from 'node:test';
