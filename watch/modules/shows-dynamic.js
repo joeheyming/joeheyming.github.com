@@ -507,6 +507,10 @@ function yearFromPremiered(premiered) {
 
 function eraFromYear(year) {
   if (!Number.isFinite(year)) return null;
+  if (year < 1930) return '20s';
+  if (year < 1940) return '30s';
+  if (year < 1950) return '40s';
+  if (year < 1960) return '50s';
   if (year < 1970) return '60s';
   if (year < 1980) return '70s';
   if (year < 1990) return '80s';

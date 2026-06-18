@@ -28,7 +28,7 @@
 export const TAG_GROUPS = /** @type {const} */ ({
   format: ['animation', 'live-action', 'documentary'],
   audience: ['kids', 'adult'],
-  era: ['60s', '70s', '80s', '90s', '2000s', '2010s', '2020s'],
+  era: ['20s', '30s', '40s', '50s', '60s', '70s', '80s', '90s', '2000s', '2010s', '2020s'],
   genre: [
     'action',
     'anime',
