@@ -17,9 +17,16 @@
  * "Anyone with the link → Viewer" so the gviz endpoint accepts
  * anonymous reads. Schema lives in {@link SubjectRow} below.
  *
- * The localStorage cache is cache-aside with a 6h TTL plus an
- * indefinite stale fallback: a transient gviz/network blip serves
- * the last good value rather than empty-stating the landing page.
+ * No cross-session caching: every cold page load (fresh tab,
+ * reload, navigation into /watch/ from elsewhere) hits gviz fresh.
+ * `data-source.js` holds the resolved arrays in module-scope memory
+ * so within a single page session the round-trip happens at most
+ * once. This trades a ~500-1500ms cold-start cost for catching
+ * sheet edits immediately — the previous 6h localStorage TTL made
+ * authoring painful (edits invisible without `localStorage.clear()`)
+ * and let a single bad row poison the page for hours after it was
+ * fixed upstream. If gviz outages bite in practice we'll revisit
+ * with stale-while-revalidate.
  */
 
 import { compileSerialized } from './parser-specs.js';
@@ -27,8 +34,12 @@ import { getJsParser } from './parsers-js.js';
 
 const SHEET_ID = '1zUu3tCdnJ8tYDsxVbjtlqYFpawR6n32S5369SZ4mKjU';
 const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq`;
-const CACHE_PREFIX = 'heyming.watch.sheet.';
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+// Legacy localStorage key prefix from when this loader cached gviz
+// responses with a 6h TTL. The cache is gone (every page load now
+// hits gviz fresh) but `clearCache()` still walks the keyspace to
+// reclaim space in long-lived browsers that visited an older build.
+// Safe to remove after a few release cycles.
+const LEGACY_CACHE_PREFIX = 'heyming.watch.sheet.';
 
 /**
  * One raw row from the `subjects` tab — gviz cell values straight
@@ -160,16 +171,17 @@ export function subjectToMovieConfig(row) {
 }
 
 /**
- * Force-clear the in-localStorage cache for this loader. Useful from
- * devtools when the sheet was just edited and you don't want to wait
- * out the 6h TTL.
+ * Reclaim localStorage entries written by an older build of this
+ * loader. The runtime no longer caches gviz responses (see the
+ * module header for why), but a returning user's browser may still
+ * hold rows from before the change. Safe no-op after a few cycles.
  */
 export function clearCache() {
   try {
     const drop = [];
     for (let i = 0; i < localStorage.length; i += 1) {
       const k = localStorage.key(i);
-      if (k && k.startsWith(CACHE_PREFIX)) drop.push(k);
+      if (k && k.startsWith(LEGACY_CACHE_PREFIX)) drop.push(k);
     }
     for (const k of drop) localStorage.removeItem(k);
   } catch {
@@ -306,33 +318,28 @@ export function makeAcceptFile(kind) {
   }
 }
 
-// ──────────── gviz fetch + cache ────────────
+// ──────────── gviz fetch ────────────
 
 /**
+ * Pull a tab (optionally filtered by a gviz SQL `tq` expression) and
+ * return its rows as plain objects keyed by header. No caching here:
+ * `data-source.js` holds the result in module-scope memory for the
+ * lifetime of the page, but each fresh page load pays one round-trip
+ * — the deliberate price for not serving stale catalog data after a
+ * sheet edit. See the module header for the longer rationale.
+ *
  * @internal
  * @param {string} tab
  * @param {string} [sql]
  * @returns {Promise<Array<Record<string, unknown>>>}
  */
 export async function readSheet(tab, sql) {
-  const cacheKey = `${CACHE_PREFIX}${tab}.${sql || 'all'}`;
-  const cached = readCache(cacheKey);
-  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
-    return cached.value;
-  }
-  try {
-    const url = buildGvizUrl(tab, sql);
-    const res = await fetch(url, { credentials: 'omit' });
-    if (!res.ok) throw new Error(`gviz HTTP ${res.status} for ${tab}`);
-    const text = await res.text();
-    const table = parseGvizResponse(text);
-    const objects = rowsToObjects(table);
-    writeCache(cacheKey, objects);
-    return objects;
-  } catch (e) {
-    if (cached) return cached.value;
-    throw e;
-  }
+  const url = buildGvizUrl(tab, sql);
+  const res = await fetch(url, { credentials: 'omit' });
+  if (!res.ok) throw new Error(`gviz HTTP ${res.status} for ${tab}`);
+  const text = await res.text();
+  const table = parseGvizResponse(text);
+  return rowsToObjects(table);
 }
 
 /**
@@ -431,35 +438,4 @@ export function escapeSqlValue(v) {
   return String(v).replace(/'/g, "''");
 }
 
-// ──────────── localStorage cache ────────────
-
-/**
- * @param {string} key
- * @returns {{ ts: number, value: Array<Record<string, unknown>> } | null}
- */
-function readCache(key) {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return null;
-    if (typeof parsed.ts !== 'number' || !Array.isArray(parsed.value)) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * @param {string} key
- * @param {unknown} value
- */
-function writeCache(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify({ ts: Date.now(), value }));
-  } catch {
-    // Quota exceeded or private-mode storage — fine, next call refetches.
-  }
-}
-
-export const __testing = { CACHE_PREFIX, CACHE_TTL_MS, SHEET_ID, BASE_URL };
+export const __testing = { LEGACY_CACHE_PREFIX, SHEET_ID, BASE_URL };

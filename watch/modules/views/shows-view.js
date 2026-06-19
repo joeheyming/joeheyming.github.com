@@ -245,11 +245,11 @@ export async function mount(slot, ctx) {
   // Resolve the registry. The data-source layer pays one gviz
   // round-trip on cold start (eagerly kicked off at module import,
   // so it's usually already in flight by the time we await it),
-  // then serves everything from a localStorage-cached + in-memory
-  // snapshot. Module-scope refs let the in-view helpers
-  // (`getSubject`, `makeSavedCard`) stay synchronous — they're called
-  // dozens of times during render and we don't want every lookup to
-  // be a Promise.
+  // then serves everything from a module-scope in-memory snapshot
+  // for the rest of the page session. Module-scope refs let the
+  // in-view helpers (`getSubject`, `makeSavedCard`) stay synchronous
+  // — they're called dozens of times during render and we don't want
+  // every lookup to be a Promise.
   const [shows, movies] = await Promise.all([getShows(), getMovies()]);
   // The skeleton served its purpose; wipe it before we rebuild the
   // real DOM. `root` stays in the slot so the rest of mount can keep
