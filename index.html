@@ -88,6 +88,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Heyming OS" />
 
+    <!-- LCP hint: the hero OS-preview image is the Largest Contentful Paint
+         element on /. Preloading with fetchpriority=high lets the browser
+         start the fetch before HTML parsing reaches the <img>, shaving
+         ~200–400ms off LCP on cold loads. -->
+    <link rel="preload" as="image" href="/os/os-preview.png" fetchpriority="high" />
+
     <!-- Brand foundation (load order matters):
          1. preconnect + Source Serif 4 + JetBrains Mono font CDN
          2. Tailwind CDN — installs window.tailwind first
@@ -381,13 +387,38 @@
           <p class="hos-hero-eyebrow text-micro" id="hos-hero-title">
             Version 1.0 — Browser desktop environment
           </p>
-          <img
-            class="wordmark wordmark-xl hos-hero-wordmark"
-            src="/brand/heyming-os-wordmark.svg"
-            alt="Heyming OS"
-            width="360"
-            height="64"
-          />
+          <!--
+            Wordmark + splash share a position:relative wrapper so the
+            Minecraft-style MOTD can pin to the wordmark's top-right
+            corner regardless of viewport. Keeps the splash glued to
+            the logo even when the hero column reflows on mobile.
+          -->
+          <div class="hos-hero-wordmark-wrap">
+            <img
+              class="wordmark wordmark-xl hos-hero-wordmark"
+              src="/brand/heyming-os-wordmark.svg"
+              alt="Heyming OS"
+              width="360"
+              height="64"
+            />
+            <!--
+              Minecraft-style "splash" message of the day. Filled in by
+              index.js (renderMOTD) on boot; clicking it picks a new one.
+              Empty by default so SSR/no-JS visitors don't see placeholder
+              text. role="button" because clicking is meaningful but it's
+              not navigation; aria-live so screen readers can announce
+              re-picks without taking focus.
+            -->
+            <p
+              id="hos-motd"
+              class="hos-motd"
+              role="button"
+              tabindex="0"
+              aria-live="polite"
+              aria-label="Random whimsical message — click for another"
+              hidden
+            ></p>
+          </div>
           <h1 class="hos-hero-tagline">A desktop that fits in a tab.</h1>
           <p class="hos-hero-description">
             A browser desktop with windows, a taskbar, a virtual filesystem, and 50+ built-in apps.
@@ -415,7 +446,8 @@
               alt="Heyming OS desktop preview — windows, taskbar, and app launcher running in a browser tab"
               width="1200"
               height="630"
-              loading="lazy"
+              fetchpriority="high"
+              decoding="async"
             />
           </div>
           <div class="hos-hero-art-glow"></div>

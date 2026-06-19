@@ -34,12 +34,6 @@ import { getJsParser } from './parsers-js.js';
 
 const SHEET_ID = '1zUu3tCdnJ8tYDsxVbjtlqYFpawR6n32S5369SZ4mKjU';
 const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq`;
-// Legacy localStorage key prefix from when this loader cached gviz
-// responses with a 6h TTL. The cache is gone (every page load now
-// hits gviz fresh) but `clearCache()` still walks the keyspace to
-// reclaim space in long-lived browsers that visited an older build.
-// Safe to remove after a few release cycles.
-const LEGACY_CACHE_PREFIX = 'heyming.watch.sheet.';
 
 /**
  * One raw row from the `subjects` tab — gviz cell values straight
@@ -168,25 +162,6 @@ export function subjectToMovieConfig(row) {
     posterUrl: row.posterUrl || '',
     acceptFile: makeAcceptFile(row.acceptFile)
   };
-}
-
-/**
- * Reclaim localStorage entries written by an older build of this
- * loader. The runtime no longer caches gviz responses (see the
- * module header for why), but a returning user's browser may still
- * hold rows from before the change. Safe no-op after a few cycles.
- */
-export function clearCache() {
-  try {
-    const drop = [];
-    for (let i = 0; i < localStorage.length; i += 1) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith(LEGACY_CACHE_PREFIX)) drop.push(k);
-    }
-    for (const k of drop) localStorage.removeItem(k);
-  } catch {
-    // localStorage unavailable (Safari private mode etc.); no-op.
-  }
 }
 
 // ──────────── helpers — exported for tests ────────────
@@ -438,4 +413,4 @@ export function escapeSqlValue(v) {
   return String(v).replace(/'/g, "''");
 }
 
-export const __testing = { LEGACY_CACHE_PREFIX, SHEET_ID, BASE_URL };
+export const __testing = { SHEET_ID, BASE_URL };

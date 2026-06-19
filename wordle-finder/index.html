@@ -148,6 +148,50 @@
             ]
           },
           {
+            "@type": "HowTo",
+            "name": "How to find today's Wordle answer with the Wordle Answer Finder",
+            "description": "Use the Wordle Answer Finder to narrow down possible solutions and pick a high-information next guess. Works for any 5-letter word puzzle.",
+            "totalTime": "PT2M",
+            "tool": [
+              {
+                "@type": "HowToTool",
+                "name": "Wordle Answer Finder (https://joeheyming.github.io/wordle-finder/)"
+              }
+            ],
+            "step": [
+              {
+                "@type": "HowToStep",
+                "position": 1,
+                "name": "Pick a starting word",
+                "text": "Open the tool and pick a strong opening word — STARE, RAISE, ADIEU, SLATE, CRANE, or TRACE all rank near the top by entropy. Click 'Random start word' for a fresh suggestion with non-repeating letters."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 2,
+                "name": "Enter your green letters",
+                "text": "After your guess, type each green (correct-spot) letter into its matching position field. The solver will only return words with that letter in that exact slot."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 3,
+                "name": "Enter your yellow letters",
+                "text": "Put each yellow (wrong-spot) letter into the position where you tried it. The solver requires the letter to be present somewhere else in the word, but never in that slot."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 4,
+                "name": "Enter your gray letters",
+                "text": "Add every gray (eliminated) letter to the exclude box. The solver removes any word containing those letters."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 5,
+                "name": "Pick the top entropy-ranked guess",
+                "text": "Submit. The remaining candidates are ranked by information gain — the top word splits the remaining possibilities most evenly. Use it as your next guess and repeat. Most boards solve in 2–3 more turns."
+              }
+            ]
+          },
+          {
             "@type": "FAQPage",
             "mainEntity": [
               {

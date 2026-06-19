@@ -113,6 +113,50 @@
             "keywords": "periodic table, element speller, chemistry, spell with elements"
           },
           {
+            "@type": "HowTo",
+            "name": "How to spell a word with periodic-table element symbols",
+            "description": "Convert any name or word into a sequence of element-symbol tiles using the Periodic Table Speller.",
+            "totalTime": "PT1M",
+            "tool": [
+              {
+                "@type": "HowToTool",
+                "name": "Periodic Table Speller (https://joeheyming.github.io/periodic-speller/)"
+              }
+            ],
+            "step": [
+              {
+                "@type": "HowToStep",
+                "position": 1,
+                "name": "Type a word",
+                "text": "Open the Speller and type any word into the input — your name, a phrase, anything alphabetic. The speller updates live as you type."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 2,
+                "name": "Read the element tiles",
+                "text": "The speller segments your word into the longest valid element symbols. For example, 'PAUL' becomes Phosphorus + Astatine + Uranium + Lithium (P + At + U + Li)."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 3,
+                "name": "Handle untranslatable letters",
+                "text": "Letters J and Q never start a real element symbol, so words containing them are flagged. Try a variant spelling or remove the unsupported letter."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 4,
+                "name": "Inspect each element",
+                "text": "Tap any tile to see the element's atomic number, full name, and category (metal, noble gas, halogen, etc.). The full periodic table view colour-codes by category."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 5,
+                "name": "Share your name",
+                "text": "Tap Share to generate an image of your spelled name. The URL also encodes the input, so the deep link reproduces the same tiles for anyone who opens it."
+              }
+            ]
+          },
+          {
             "@type": "FAQPage",
             "mainEntity": [
               {

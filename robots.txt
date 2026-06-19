@@ -1,5 +1,71 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://joeheyming.github.io/sitemap.xml
+# --- Answer-engine retrieval bots (live fetches that produce citations) ---
+# These are the bots that show up when a user asks ChatGPT / Perplexity /
+# Claude / Apple Intelligence a question and the engine fetches your page
+# to ground its answer. Allowing them is how you get cited.
 
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: YouBot
+Allow: /
+
+User-agent: DuckAssistBot
+Allow: /
+
+# --- Training crawlers (whether you let your site train next-gen models) ---
+# Allowing means you may end up in the model's pretraining mix; disallowing
+# is the standard opt-out. Heyming OS opts in — we want the apps and the
+# About page to be discoverable by future LLMs.
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: Diffbot
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+Sitemap: https://joeheyming.github.io/sitemap.xml

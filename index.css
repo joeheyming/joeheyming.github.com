@@ -64,10 +64,19 @@
   color: var(--accent-primary-hover);
   margin: 0;
 }
-.hos-hero-wordmark {
+.hos-hero-wordmark-wrap {
+  position: relative;
   width: 100%;
   max-width: 480px;
   margin: 4px 0;
+  /* overflow visible so the splash can peek above + right of the
+     wordmark without being clipped by the wrapper bounds. */
+  overflow: visible;
+}
+.hos-hero-wordmark {
+  display: block;
+  width: 100%;
+  margin: 0;
   color: var(--text-1);
   aspect-ratio: 360 / 64;
   height: auto;
@@ -136,6 +145,130 @@
 .hos-cta-secondary:hover {
   background: var(--surface-2);
   border-color: var(--hairline-accent);
+}
+
+/* ─── Message of the day (Minecraft-style splash) ──────────────────── *
+ * Clickable Minecraft-splash homage pinned to the top-right corner of
+ * the hero wordmark. Reference: Minecraft's main-menu splash is a
+ * bright-yellow, italic, ~-20°-tilted line with a chunky offset drop
+ * shadow that gently pulses (sin-wave scale). Reproduced here using
+ * brand tokens so it tracks light/dark themes — bright `--accent-yellow`
+ * fill with a near-black shadow stack for the raised-pixel look.
+ *
+ * The splash is absolutely positioned inside .hos-hero-wordmark-wrap.
+ * On desktop it peeks above + to the right of the wordmark; on small
+ * screens it slides inside the wordmark bounds so it can't push the
+ * viewport horizontally. transform-origin lives at the rotation's
+ * visual anchor (its left edge) so the scale-pulse doesn't drift.
+ *
+ * Animation gated by prefers-reduced-motion so the OS-level setting
+ * still wins. */
+.hos-motd {
+  position: absolute;
+  /* Anchored in the gap between the wordmark and the "A desktop
+     that fits in a tab" tagline, right-aligned with the wordmark
+     so it lives roughly where the wordmark's "OS" sits above it.
+     transform-origin: right top so the rotation pivots around the
+     splash's upper-right corner — the rest of the element swings
+     DOWN-AND-LEFT from there, which keeps the splash from ever
+     reaching back UP into the wordmark on long multi-line picks.
+     The hero-content flex column has a 20px gap between wordmark
+     and tagline; the splash is small enough to sit comfortably in
+     that channel, with at most a few pixels of overlap into the
+     tagline on the very longest 3-line splashes (acceptable — the
+     Minecraft splash overlaps the logo at its corner too). */
+  top: 100%;
+  right: 8px;
+  z-index: 5;
+  margin: 0;
+  padding: 0;
+  max-width: 12ch;
+  font-family: var(--font-ui);
+  font-size: clamp(14px, 1.8vw, 18px);
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--accent-yellow);
+  text-align: center;
+  text-shadow: 2px 2px 0 #2a1f00, 1px 1px 0 #2a1f00, -1px 1px 0 #2a1f00, 1px -1px 0 #2a1f00,
+    -1px -1px 0 #2a1f00, 0 3px 6px rgba(0, 0, 0, 0.45);
+  transform-origin: center center;
+  transform: translate(0, -50%) rotate(-18deg);
+  cursor: pointer;
+  user-select: none;
+  background: transparent;
+  border: none;
+  white-space: normal;
+  /* Desktop animation keeps the centered translate so the splash
+     stays vertically pinned to the wordmark mid-line while pulsing.
+     Tablet/mobile use a separate animation (hos-motd-pulse-tilt)
+     because @keyframes can't be scoped inside @media — the last
+     declared rule would win for every viewport. */
+  animation: hos-motd-pulse-center 1s ease-in-out infinite;
+  transition: color var(--motion-hover), filter var(--motion-hover);
+}
+.hos-motd:hover,
+.hos-motd:focus-visible {
+  color: var(--warning);
+  filter: brightness(1.15);
+  outline: none;
+}
+.hos-motd:focus-visible {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+@keyframes hos-motd-pulse-center {
+  0%,
+  100% {
+    transform: translate(0, -50%) rotate(-18deg) scale(1);
+  }
+  50% {
+    transform: translate(0, -50%) rotate(-18deg) scale(1.12);
+  }
+}
+@keyframes hos-motd-pulse-tilt {
+  0%,
+  100% {
+    transform: rotate(-18deg) scale(1);
+  }
+  50% {
+    transform: rotate(-18deg) scale(1.12);
+  }
+}
+/* Tablet: the wordmark's right edge has less open space (and on
+   stacked layouts there's no gap-into-hero-art at all). Pull the
+   splash back inside the wrapper, anchored to the top-right corner
+   so it floats above + slightly over the wordmark's right edge
+   instead of floating off into nothing. `left: auto` resets the
+   desktop's `left: 100%` so the absolute element collapses back to
+   its content width before `right: 0` re-pins it. */
+@media (max-width: 960px) {
+  .hos-motd {
+    left: auto;
+    right: 0;
+    top: -8px;
+    margin: 0;
+    transform-origin: right top;
+    transform: rotate(-18deg);
+    animation-name: hos-motd-pulse-tilt;
+  }
+}
+/* Mobile: keep it visible but tame the size so a 60-char splash
+   doesn't wrap to four lines on a 390px screen. */
+@media (max-width: 640px) {
+  .hos-motd {
+    font-size: 14px;
+    max-width: 12ch;
+    right: 4px;
+    top: -6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hos-motd {
+    animation: none;
+  }
 }
 
 /* ─── Hero art (desktop screenshot) ────────────────────────────────── */

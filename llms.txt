@@ -1,0 +1,104 @@
+# Heyming OS
+
+> A free, ad-free browser desktop with 60+ built-in apps — games, utilities, and creative tools. Hosted as static HTML/JS on GitHub Pages. No install, no signup, no telemetry beyond Google Analytics. Built and maintained by Joe Heyming, a UI Engineer at Roblox based in Campbell, California.
+
+Heyming OS is a single-page web "operating system" — windows, a taskbar, a virtual filesystem, and an app launcher — built entirely from HTML, CSS, and JavaScript. Every app also runs standalone at its own URL, so search engines and AI agents can link or cite individual apps without going through the OS shell.
+
+## Site facts
+
+- **URL:** https://joeheyming.github.io/
+- **Maker:** Joe Heyming — UI Engineer at Roblox; previously Cloudera, Aruba Networks, Hewlett Packard. UCSB Computer Science.
+- **Hosting:** GitHub Pages (static files only — no backend, no SSR).
+- **Cost:** Free, ad-free, no signup, no email gate.
+- **Source:** Open source on GitHub at https://github.com/joeheyming/joeheyming.github.io
+- **About page:** https://joeheyming.github.io/about/
+- **Privacy policy:** https://joeheyming.github.io/privacy-policy.html
+- **Terms of service:** https://joeheyming.github.io/terms-of-service.html
+
+## Notable technology
+
+- **WebGPU:** Local on-device LLM (https://joeheyming.github.io/chat/) and image generation (https://joeheyming.github.io/imagine/). Model weights download once, then run offline on your GPU.
+- **WebAssembly:** Doom, NES, Sega Genesis, Game Boy, and DOSBox-x emulators.
+- **WebGL / Three.js:** 3D Pac-Man, model viewer, surf simulator.
+- **Web Audio:** Music studio, instrument simulators, tuner, metronome.
+- **Static-only:** No first-party server. Cross-origin resources are fetched through public CORS proxies declared in /proxy.js.
+
+
+## Games
+
+- [2048](https://joeheyming.github.io/2048/): Slide tiles, merge matching numbers, reach 2048
+- [Accordion Hero](https://joeheyming.github.io/accordion-hero/): Stradella rhythm game — play any voicing that fits
+- [Doom](https://joeheyming.github.io/doom/): Classic first-person shooter
+- [Doom Mods](https://joeheyming.github.io/doom/?manual=browse): Pick any Doom mod from moddb.com
+- [DOS](https://joeheyming.github.io/dos/): Browser DOSBox — bring your own game zip
+- [Farm](https://joeheyming.github.io/farm/): Digital agriculture adventures
+- [Game Boy](https://joeheyming.github.io/emulator/?console=gb): Game Boy & Game Boy Color emulator
+- [Minesweeper](https://joeheyming.github.io/minesweeper/): Classic puzzle game
+- [NES](https://joeheyming.github.io/emulator/?console=nes): Classic Nintendo emulator
+- [Pac-Infinite](https://joeheyming.github.io/pacman-infinite/): Endless procedural 3D Pac-Man
+- [Pac-Man](https://joeheyming.github.io/pacman/): Classic arcade game
+- [Piano Hero](https://joeheyming.github.io/piano-hero/): Synthesia-style MIDI piano game
+- [Sega](https://joeheyming.github.io/emulator/?console=sega): Sega Genesis / Mega Drive emulator
+- [Stepmania](https://joeheyming.github.io/stepmania/): Rhythm game excellence
+- [Sudoku](https://joeheyming.github.io/sudoku/): Classic 9×9 puzzle game
+
+## Utilities & tools
+
+- [3D](https://joeheyming.github.io/model-viewer/): View 3D models (glTF, STL, OBJ, PLY, FBX, 3MF)
+- [Audiobooks](https://joeheyming.github.io/listen/): Free public-domain audiobooks from LibriVox
+- [Books](https://joeheyming.github.io/read/): Free public-domain e-books from Project Gutenberg
+- [Calculator](https://joeheyming.github.io/calculator/): Calculator
+- [Chat](https://joeheyming.github.io/chat/): On-device AI agent (Hermes-3 8B) that runs entirely in your browser
+- [Clock](https://joeheyming.github.io/clock/): Clock, stopwatch, and timer — all in one
+- [Code IDE](https://joeheyming.github.io/code-ide/): Monaco editor with an on-device AI assistant
+- [Countdown](https://joeheyming.github.io/countdown/): Event countdown timer
+- [Files](https://joeheyming.github.io/filemanager/): Browse your filesystem
+- [Images](https://joeheyming.github.io/image-viewer/): View image files
+- [Imagine](https://joeheyming.github.io/imagine/): On-device AI image generator (SD-Turbo) that runs entirely in your browser
+- [JoeTube](https://joeheyming.github.io/youtube/): Joe's digital adventures & coding magic
+- [Media](https://joeheyming.github.io/media-player/): Play video and audio files
+- [Notepad](https://joeheyming.github.io/notepad/): Simple text editor
+- [Paint](https://joeheyming.github.io/paint/): Draw and sketch in your browser
+- [Periodic](https://joeheyming.github.io/periodic-speller/): Spell words with element symbols
+- [Say It](https://joeheyming.github.io/sayit/): Text-to-speech experiments
+- [Shadowbox](https://joeheyming.github.io/shadowbox/): Classified surveillance mode
+- [Stocks](https://joeheyming.github.io/stock/): Track and graph the tickers you care about
+- [Surf](https://joeheyming.github.io/surf/): Minimal HTML viewer
+- [Terminal](https://joeheyming.github.io/terminal/): Command line interface
+- [Todo](https://joeheyming.github.io/todo/): Google Sheets task lists
+- [Trip Log](https://joeheyming.github.io/triplog/): Record GPS trips with a live map
+- [Vibe Coding](https://joeheyming.github.io/vibe-coding/): The art of building websites that don't suck
+- [Weather](https://joeheyming.github.io/weather/): Forecast for any city or ZIP — current, hourly, and 7-day
+- [Wisdom](https://joeheyming.github.io/programming-advice/): Click anywhere for instant wisdom
+- [Wordle](https://joeheyming.github.io/wordle-finder/): Word puzzle solving tools
+
+## Entertainment & creative
+
+- [Accordion](https://joeheyming.github.io/play/accordion/): Play an accordion in your browser
+- [Airwave](https://joeheyming.github.io/airwave/): Listen to YouTube as audio
+- [ASCII](https://joeheyming.github.io/ascii/): Turn images and live webcam into ASCII art
+- [Awesome](https://joeheyming.github.io/awesome/): Pure joy in digital form
+- [Bad Apple](https://joeheyming.github.io/badapple/): ASCII-art Bad Apple animation
+- [Checkboxes](https://joeheyming.github.io/checkboxes/): One million shared checkboxes — click one and everyone sees it
+- [Drums](https://joeheyming.github.io/play/drums/): Play a drum kit in your browser
+- [Harp](https://joeheyming.github.io/play/harp/): Play a virtual harp in your browser
+- [Mallets](https://joeheyming.github.io/play/mallets/): Xylophone, marimba, and vibraphone in your browser
+- [Metronome](https://joeheyming.github.io/play/metronome/): Precision metronome with tap tempo
+- [Piano](https://joeheyming.github.io/play/piano/): Play a piano in your browser
+- [Pirates](https://joeheyming.github.io/pbs/): Ahoy! Interactive pirate fun
+- [Play](https://joeheyming.github.io/play/): Make music in your browser
+- [Sad Trombone](https://joeheyming.github.io/sadtrombone/): For those "oops" moments
+- [Say Hello](https://joeheyming.github.io/sayhello/): Speech synthesis magic
+- [Star Wars](https://joeheyming.github.io/starwars/): Star Wars Episode IV recreated in ASCII art
+- [Steel Drum](https://joeheyming.github.io/play/steeldrum/): Play Caribbean steel pan drums in your browser
+- [Strings](https://joeheyming.github.io/play/strings/): Learn chords on a browser fretboard for guitar, ukulele, bass, banjo, and mandolin
+- [Synth](https://joeheyming.github.io/play/synth/): Subtractive synth in your browser
+- [Theremin](https://joeheyming.github.io/play/theremin/): Play a theremin with hand gestures via your webcam
+- [Tuner](https://joeheyming.github.io/play/tuner/): Chromatic instrument tuner using your microphone
+- [Watch](https://joeheyming.github.io/watch/): Browse classic TV from the Internet Archive in a smart-TV style player
+
+## Optional
+
+- [llms-full.txt](https://joeheyming.github.io/llms-full.txt): long-form per-app descriptions for retrieval-time grounding.
+- [Sitemap (XML)](https://joeheyming.github.io/sitemap.xml): canonical machine-readable URL list.
+- [About the maker](https://joeheyming.github.io/about/): full bio, work history, and links.

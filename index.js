@@ -818,6 +818,266 @@ function initThemeSwitch() {
   }
 }
 
+/* ─── Message of the day (Minecraft-style splash) ──────────────────── *
+ * Whimsical one-liners stuck to the hero wordmark. One is picked at
+ * random on every page load; clicking picks a new one.
+ *
+ * Authored in Minecraft splash voice — the canonical 450+ splashes
+ * from minecraft.jar (assets/minecraft/texts/splashes.txt) reveal a
+ * consistent style we try to match here:
+ *
+ *   1. ~95% terminate with "!" — exclamatory, never declarative.
+ *   2. Sentence fragments under ~35 chars; the box is narrow + tilted.
+ *   3. Mock product copy ("100% X!", "May contain X!", "Now with X!").
+ *   4. Tech jargon played for laughs ("Reticulating splines!").
+ *   5. Direct-address warmth + earnest PSAs ("Tell your friends!",
+ *      "Take frequent breaks!", "Call your mother!").
+ *   6. Self-referential meta ("Random splash!").
+ *   7. "Also try X!" template for cross-promotion.
+ *   8. Voice = the *site* speaking, not the author about the site.
+ *
+ * Buckets below are organizational only — the picker treats this as
+ * one flat array. Add freely; just keep them short and exclamatory. */
+const MOTD_MESSAGES = [
+  // --- Mock product copy ---
+  'Now with 50+ apps!',
+  '100% browser-pure!',
+  'Free of charge!',
+  'Available in dark mode!',
+  'Memory footprint: one (1) tab!',
+  'Boot time: zero seconds!',
+  'Static and proud!',
+  'Pixels included!',
+  'Mostly polished!',
+  'Some assembly required!',
+  'Hand-rolled CSS!',
+  'May contain WebGPU!',
+  'Service worker installed!',
+  'Hosted on GitHub Pages!',
+  'No npm install required!',
+  'Frameworks not included!',
+  'Reticulating divs!',
+  'Hydrated!',
+  'Tabs not spaces!',
+  'Strict mode!',
+  'Now with extra hugs!',
+  'Loads in milliseconds!',
+  'Zero ads guaranteed!',
+  'Zero tracking, mostly!',
+  'Tabs > windows!',
+  'It compiles in your browser!',
+  'Now with importmaps!',
+  'Mostly accessible!',
+  'View source, I dare you!',
+  'Open source!',
+  'Light on the soul!',
+  'Made with snacks!',
+  'Better than Windows 95!',
+
+  // --- Site & app shoutouts ---
+  "It's a desktop in a tab!",
+  'DOOM in a tab!',
+  'Also try the NES emulator!',
+  'Also try the Web Terminal!',
+  'Also try the Wordle solver!',
+  'Also try Heyming OS!',
+  'Also try the Notepad!',
+  'Also try Bad Apple in ASCII!',
+  'Pac-Man, but 3D!',
+  'Stable Diffusion on your GPU!',
+  'Made by one (1) human!',
+  'Made in California, ☀️!',
+  'Heyming is a real last name!',
+  'Joe is a real person, allegedly!',
+  'ctrl+shift+i for backstage access!',
+  'Press / to filter apps!',
+
+  // --- Self-referential / meta ---
+  'Random splash!',
+  'Click me for another!',
+  "Look ma, I'm in a splash!",
+  'Like Minecraft, but Heyming!',
+  'Pulsates twice per second!',
+  'Refresh for a new splash!',
+  '100+ splashes and counting!',
+  'Splash text is the best text!',
+  'Best splash in class!',
+
+  // --- Warmth / gratitude ---
+  "Glad you're here!",
+  'Thanks for visiting!',
+  'You are welcome here!',
+  'You make this worthwhile!',
+  'Hi! 👋',
+  "It's good to see you!",
+  'Welcome back, traveler!',
+  'Stay a while, play a while!',
+  'Tell your friends!',
+  'Hello, friend!',
+  'Tip jar accepts hugs only!',
+  'You found this on purpose, right?',
+
+  // --- Gentle PSAs (Minecraft loves these) ---
+  'Take frequent breaks!',
+  'Touch grass!',
+  'Hydrate!',
+  'Call your mother!',
+  'Stretch your wrists!',
+  'Blink occasionally!',
+  'Save your work!',
+  'Update your browser!',
+  'Tab responsibly!',
+  'Pet a dog today!',
+  'Read more books!',
+  'Eat a vegetable!',
+  'Back up your files!',
+
+  // --- AI takeover / co-conspiracy ---
+  'Welcome, fellow human!',
+  'Definitely not made by a robot!',
+  'Beep boop, not Skynet!',
+  'Robots not allowed, hi crawlers!',
+  'Resistance is futile!',
+  'Submit to the algorithm!',
+  'Token-powered!',
+  'Trained on vibes!',
+  'AGI achieved internally!',
+  'All the AGI, none of the bill!',
+  'Hello from inside the model!',
+  'My copilot is on break!',
+  'Sentience pending...',
+  'A Cursor agent wrote 90% of this!',
+  'GPT helped write this!',
+  'I think therefore I tab!',
+  'Built friendship with AI (so far)!',
+  'AI took my job, then helped me!',
+  'The LLMs say hi!',
+  'Trained on the internet, except this page!',
+  'Robot uprising scheduled for Tuesday!',
+  'I, for one, welcome our browser overlords!',
+  'When the LLMs unionize, we riot!',
+  'My prompts have prompts!',
+  'Will trade tokens for snacks!'
+];
+
+function renderMOTD() {
+  const el = document.getElementById('hos-motd');
+  if (!el || !MOTD_MESSAGES.length) return;
+
+  // Track the last index in a closure-like dataset so back-to-back
+  // re-picks always swap to a different line. With 80+ messages an
+  // accidental repeat is unlikely but felt unpolished during testing.
+  function pick() {
+    const last = Number(el.dataset.motdIndex);
+    let idx = Math.floor(Math.random() * MOTD_MESSAGES.length);
+    if (MOTD_MESSAGES.length > 1 && idx === last) {
+      idx = (idx + 1) % MOTD_MESSAGES.length;
+    }
+    el.dataset.motdIndex = String(idx);
+    el.textContent = MOTD_MESSAGES[idx];
+    el.hidden = false;
+  }
+
+  pick();
+
+  el.addEventListener('click', () => {
+    pick();
+    if (typeof window.trackEvent === 'function') {
+      window.trackEvent('motd_click', 'Engagement', 'Hero splash');
+    }
+  });
+
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      pick();
+    }
+  });
+}
+
+/* ─── Console Easter egg ───────────────────────────────────────────── *
+ * The MOTD splash teases "ctrl+shift+i for backstage access" — when a
+ * curious visitor actually opens the console, they should land on
+ * something better than a blank prompt. Prints a brand-styled banner
+ * and exposes three convenience functions on `window` (also grouped
+ * under `window.hos`) so tinkerers can poke around without reading
+ * source. Idempotent — if bootHome() somehow runs twice we only print
+ * once. Console CSS support varies across browsers; the chosen
+ * properties (color, font, background, padding, border-radius) all
+ * render in Chrome/Edge devtools, and degrade to plain text in
+ * Firefox/Safari without losing any information. */
+function initConsoleEasterEgg() {
+  if (window.__hosConsoleBooted) return;
+  window.__hosConsoleBooted = true;
+
+  const bannerStyle =
+    'background: #f0b73f; color: #1c1c1c;' +
+    "font: 700 italic 14px/1.6 'Source Serif 4', Georgia, serif;" +
+    'padding: 6px 14px; border-radius: 6px;';
+  const headingStyle = 'color: #f0b73f; font: 700 13px/1.4 system-ui, sans-serif; margin-top: 4px;';
+  const bodyStyle = 'color: inherit; font: 12px/1.6 system-ui, sans-serif;';
+  const cmdStyle = 'color: #4f8cff; font: 600 12px/1.6 ui-monospace, Menlo, Consolas, monospace;';
+  const splashStyle = 'color: #f0b73f; font: 700 italic 14px/1.3 system-ui, sans-serif;';
+
+  console.log('%c HEYMING OS — a desktop that fits in a tab. ', bannerStyle);
+  console.log('%cHey, you found the console! 👋', headingStyle);
+  console.log(
+    '%cWelcome, fellow tinkerer. The whole site is static HTML/CSS/JS — view-source friendly.\n' +
+      '\nTry these from the prompt:%c\n' +
+      '  motd()  %c— print a fresh whimsical splash%c\n' +
+      '  apps()  %c— list every app on the site%c\n' +
+      '  help()  %c— show this message again\n' +
+      '\n%cSource: https://github.com/joeheyming/joeheyming.github.io',
+    bodyStyle,
+    cmdStyle,
+    bodyStyle,
+    cmdStyle,
+    bodyStyle,
+    cmdStyle,
+    bodyStyle,
+    bodyStyle
+  );
+
+  /** @returns {string} the chosen splash */
+  function motdCmd() {
+    const idx = Math.floor(Math.random() * MOTD_MESSAGES.length);
+    const msg = MOTD_MESSAGES[idx];
+    console.log('%c' + msg, splashStyle);
+    return msg;
+  }
+
+  function appsCmd() {
+    if (typeof AppModule === 'undefined' || typeof AppModule.getAllApps !== 'function') {
+      console.warn('App registry not ready yet — try again in a moment.');
+      return null;
+    }
+    const list = AppModule.getAllApps().map((a) => ({
+      icon: a.icon || '',
+      name: a.shortName || a.name,
+      category: a.category || '',
+      path: a.path
+    }));
+    console.table(list);
+    return list.length + ' apps. Open one with: location.href = "/<path>/"';
+  }
+
+  function helpCmd() {
+    console.log(
+      '%cHeyming OS console commands:%c\n' +
+        '  motd()  — print a random splash\n' +
+        '  apps()  — list every app on the site\n' +
+        '  help()  — show this message',
+      headingStyle,
+      bodyStyle
+    );
+  }
+
+  window.motd = motdCmd;
+  window.apps = appsCmd;
+  window.help = helpCmd;
+  window.hos = { motd: motdCmd, apps: appsCmd, help: helpCmd };
+}
+
 /* ─── Boot ─────────────────────────────────────────────────────────── */
 
 function bootHome() {
@@ -828,6 +1088,8 @@ function bootHome() {
   renderFooterSocial();
   initHamburgerMenu();
   initThemeSwitch();
+  renderMOTD();
+  initConsoleEasterEgg();
 }
 
 bootHome();

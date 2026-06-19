@@ -73,8 +73,62 @@
             "applicationSubCategory": "Tuner",
             "operatingSystem": "Web Browser",
             "description": "A free chromatic instrument tuner that runs in your browser. Plays the note your microphone hears, shows the cents-off-pitch needle, and never uploads audio — pitch detection runs locally on the device.",
-            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          },
+          {
+            "@type": "HowTo",
+            "name": "How to tune a guitar (or any string instrument) in your browser",
+            "description": "Use the chromatic browser tuner to bring a guitar, bass, ukulele, violin, mandolin, banjo, or any pitched instrument into tune. Pitch detection runs locally — no audio leaves your device.",
+            "totalTime": "PT3M",
+            "tool": [
+              {
+                "@type": "HowToTool",
+                "name": "Browser Tuner (https://joeheyming.github.io/play/tuner/)"
+              }
+            ],
+            "step": [
+              {
+                "@type": "HowToStep",
+                "position": 1,
+                "name": "Allow microphone access",
+                "text": "Open the tuner and grant microphone permission when the browser asks. The audio never leaves your device — pitch detection runs locally with the Web Audio API."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 2,
+                "name": "Pick your instrument preset",
+                "text": "Choose a preset (Guitar, Bass, Ukulele, Violin, Viola, Cello, Mandolin, Banjo) so the tuner knows which target notes to expect. Use Chromatic for anything else."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 3,
+                "name": "Set the A4 reference (optional)",
+                "text": "Standard concert pitch is A=440 Hz. Many classical groups use A=442 Hz; baroque ensembles use A=415 Hz. Adjust A4 in the settings if you tune to a different reference."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 4,
+                "name": "Pluck a single string",
+                "text": "Pluck one string at a time and let it sustain. The needle shows how many cents sharp (right) or flat (left) you are; the displayed note name is the closest target."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 5,
+                "name": "Adjust the tuning peg",
+                "text": "Turn the peg slowly. If the needle is left of zero you're flat — tighten. If it's right of zero you're sharp — loosen. The tuner is sub-cent accurate for sustained, clean tones."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 6,
+                "name": "Repeat for every string",
+                "text": "Move through each string in order. Octave-prone instruments like 12-strings or detuned guitars benefit from the locked-target mode so the tuner doesn't jump to the wrong octave between plucks."
+              }
+            ]
           },
           {
             "@type": "FAQPage",
