@@ -65,6 +65,24 @@ export function resetDataSource() {
   _dataPromise = null;
 }
 
+// Eagerly kick off the registry fetch at module-import time so it runs
+// in parallel with the rest of the JS bundle being parsed and the
+// router wiring itself up. Every entry point of /watch/ (router,
+// quicknav, shows-view) imports this module synchronously, so importing
+// here means the gviz round-trip starts ~200-500ms before any view's
+// mount() reaches its first `await getShows()`. The fetch is idempotent
+// (single in-flight promise, shared with subsequent callers via
+// `_dataPromise`), so this just warms the cache — it doesn't add
+// network load. `void` discards the promise rejection in the rare case
+// of a startup-time network failure; the next `getShows()` caller will
+// see a fresh attempt because `_data` and `_dataPromise` are both null
+// after a rejection, and the surfacing error path stays unchanged.
+void loadAll().catch(() => {
+  // Reset so a later call retries instead of returning the rejected
+  // promise. The next getShows()/getMovies() will start fresh.
+  _dataPromise = null;
+});
+
 /** @returns {Promise<ShowConfig[]>} */
 export async function getShows() {
   return (await loadAll()).shows;

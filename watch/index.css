@@ -485,6 +485,18 @@ a.tv-crumb:hover {
   gap: 14px 12px;
 }
 
+/* Invisible sliver placed right after the shows / movies grid for
+   scroll-based windowing. An IntersectionObserver in shows-view.js
+   watches it; when it crosses into the viewport (with rootMargin
+   ahead-of-fold) the next page of cards is appended to the grid
+   above. 1px tall is enough for the observer to fire, but small
+   enough that it doesn't add visible whitespace between sections. */
+.tv-scroll-sentinel {
+  width: 100%;
+  height: 1px;
+  pointer-events: none;
+}
+
 /* Shared base for every grid card surface in /watch/ — landing show
    tiles, Continue Watching cards, episode cards, and the player's
    Up-next strip. Each variant below overrides border-radius,
@@ -507,6 +519,23 @@ a.tv-crumb:hover {
   align-items: stretch;
   text-align: left;
   color: var(--tv-text);
+  /* Skip rendering paint/layout/style for off-screen cards (Chromium 85+,
+     Safari 18+). Matters most for the long-running shows that put a
+     hundred+ episodes in a single season grid (X-Men '92's 76-ep season,
+     Astro Boy '63's 104, Aqua Teen / Beavis specials), and for the home
+     poster wall which is 85 cards today and growing. The browser still
+     keeps every card in the DOM (so spatial-nav + roving-tabindex still
+     find them) but it doesn't pay layout / paint cost until the card is
+     within ~50vh of the viewport, after which it stays "rendered" via
+     the `auto` memoization. `contain-intrinsic-size: auto 220px` reserves
+     a placeholder box of that height before first render so the grid's
+     row count + scroll height match the eventual layout — without it,
+     the scrollbar jumps as cards hydrate on first scroll. Width is
+     `auto` so the grid's `minmax(N, 1fr)` track sizing still controls
+     it. Cheap, declarative, no JS — a real windowing/virtualization
+     pass would be heavier than the gain. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 220px;
 }
 
 .tv-show-card {

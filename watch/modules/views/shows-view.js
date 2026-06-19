@@ -213,13 +213,48 @@ function wireRemoveSubNav(card, remove) {
  * @returns {Promise<{ unmount: () => void }>}
  */
 export async function mount(slot, ctx) {
-  // Resolve the registry once at mount time. The data-source layer
-  // pays one gviz round-trip on cold start, then serves everything
-  // from a localStorage-cached + in-memory snapshot. Module-scope
-  // refs let the in-view helpers (`getSubject`, `makeSavedCard`)
-  // stay synchronous — they're called dozens of times during render
-  // and we don't want every lookup to be a Promise.
+  // Render a synchronous shell skeleton (title + "Loading channel
+  // guide…") into the slot before awaiting the registry, so the user
+  // sees *something* in the same frame the router clears the slot.
+  // Without this the screen is blank for the duration of the gviz
+  // round-trip (~200-2000ms on a cold cache) — fast enough on desktop,
+  // perceived as a hang on a TV where you can't open devtools to see
+  // what's happening. The placeholder is wiped and replaced with the
+  // real DOM as soon as the await resolves, so steady-state behaviour
+  // is unchanged.
+  //
+  // data-source eagerly kicks off the same fetch at module-import
+  // time, so by the time we get here the promise is usually already
+  // in flight or fulfilled — the skeleton frame is brief on first
+  // boot and instant on warm navigation.
+  const root = document.createElement('section');
+  root.className = 'tv-landing';
+  const bootIntro = document.createElement('div');
+  bootIntro.className = 'tv-landing-intro';
+  const bootTitle = document.createElement('h2');
+  bootTitle.className = 'tv-landing-title';
+  bootTitle.textContent = '📺 Watch';
+  const bootStatus = document.createElement('p');
+  bootStatus.className = 'tv-landing-blurb tv-inline-loading';
+  bootStatus.textContent = 'Loading channel guide…';
+  bootIntro.appendChild(bootTitle);
+  bootIntro.appendChild(bootStatus);
+  root.appendChild(bootIntro);
+  slot.appendChild(root);
+
+  // Resolve the registry. The data-source layer pays one gviz
+  // round-trip on cold start (eagerly kicked off at module import,
+  // so it's usually already in flight by the time we await it),
+  // then serves everything from a localStorage-cached + in-memory
+  // snapshot. Module-scope refs let the in-view helpers
+  // (`getSubject`, `makeSavedCard`) stay synchronous — they're called
+  // dozens of times during render and we don't want every lookup to
+  // be a Promise.
   const [shows, movies] = await Promise.all([getShows(), getMovies()]);
+  // The skeleton served its purpose; wipe it before we rebuild the
+  // real DOM. `root` stays in the slot so the rest of mount can keep
+  // appending to it.
+  root.replaceChildren();
   _shows = shows;
   _movies = movies;
   _moviesById = new Map(movies.map((m) => /** @type {[string, MovieConfig]} */ ([m.id, m])));
@@ -230,8 +265,8 @@ export async function mount(slot, ctx) {
   ];
   _subjectById = new Map(subjectEntries);
 
-  const root = document.createElement('section');
-  root.className = 'tv-landing';
+  // `root` was created (and inserted into `slot`) above as the boot
+  // skeleton; the rest of this function appends the real DOM to it.
 
   const intro = document.createElement('div');
   intro.className = 'tv-landing-intro';
@@ -392,11 +427,18 @@ export async function mount(slot, ctx) {
   const grid = document.createElement('div');
   grid.className = 'tv-show-grid';
   grid.setAttribute('role', 'list');
-  for (const show of shows) {
-    grid.appendChild(makeShowCard(show, ctx));
-  }
+  // Sentinel for scroll-based windowing: a thin invisible sliver right
+  // after the grid that an IntersectionObserver watches. When it enters
+  // view (with rootMargin ahead-of-fold), the next page of cards is
+  // appended. Cards start empty here — `applyFilter()` below runs once
+  // at mount-time and renders the first page; subsequent pages append
+  // as the user scrolls.
+  const showsSentinel = document.createElement('div');
+  showsSentinel.className = 'tv-scroll-sentinel';
+  showsSentinel.setAttribute('aria-hidden', 'true');
   showsSection.appendChild(showsLabel);
   showsSection.appendChild(grid);
+  showsSection.appendChild(showsSentinel);
 
   // Movies section: same shape, separate grid. Renders nothing (whole
   // section hidden) when no movies are registered in the sheet so the
@@ -418,11 +460,15 @@ export async function mount(slot, ctx) {
   const moviesGrid = document.createElement('div');
   moviesGrid.className = 'tv-show-grid tv-movie-grid';
   moviesGrid.setAttribute('role', 'list');
-  for (const movie of movies) {
-    moviesGrid.appendChild(makeMovieCard(movie, ctx));
-  }
+  // Same windowing pattern as the shows grid above — sentinel sits
+  // after the grid so the observer can spot it without re-positioning
+  // it as pages get appended.
+  const moviesSentinel = document.createElement('div');
+  moviesSentinel.className = 'tv-scroll-sentinel';
+  moviesSentinel.setAttribute('aria-hidden', 'true');
   moviesSection.appendChild(moviesLabel);
   moviesSection.appendChild(moviesGrid);
+  moviesSection.appendChild(moviesSentinel);
 
   // Empty state lives alongside the grid (not inside it) so the grid's
   // CSS `display: grid` doesn't try to lay the message out as a tile.
@@ -437,40 +483,167 @@ export async function mount(slot, ctx) {
   root.appendChild(showsSection);
   root.appendChild(moviesSection);
   root.appendChild(empty);
-  slot.appendChild(root);
+  // root is already in slot (appended above as the boot skeleton); we
+  // just hydrated its contents in place.
 
   renderContinue(continueSection, continueGrid, ctx);
   void renderSaved(savedSection, savedGrid, savedLabelMeta, ctx);
+
+  // ─── Scroll-loaded windowing for the shows + movies grids ─────────
+  //
+  // We render the catalog in pages of `PAGE_SIZE` cards instead of
+  // dumping all 100+ tiles into the DOM upfront. An IntersectionObserver
+  // watches a sentinel sliver placed just after each grid; when the
+  // sentinel enters view (with a generous ahead-of-fold margin) the
+  // next page is appended. Filter changes rewind the window from the
+  // top of the newly-filtered set.
+  //
+  // Why this matters on a TV: building 100 card subtrees on cold boot
+  // is the dominant chunk of mount() time, and most of those tiles
+  // are below the fold on first paint anyway. CSS `content-visibility`
+  // already defers their *paint*, but the DOM-creation cost still
+  // happens; windowing removes it from the critical path.
+  //
+  // Filter semantics are unchanged: search input + active tag chips
+  // narrow `shows` / `movies` to `filteredShows` / `filteredMovies`,
+  // and the windowed grid renders pages of that subset.
+  const PAGE_SIZE = 24;
+
+  /**
+   * @param {ShowConfig | MovieConfig} item
+   * @returns {string}
+   */
+  const haystackFor = (item) =>
+    [item.name, item.shortName, item.tagline, item.emoji].filter(Boolean).join(' ').toLowerCase();
+  // Precompute haystacks once — the filter runs on every keystroke and
+  // string concat per item per keystroke adds up at scale. Map keys are
+  // the item objects themselves so we don't have to thread ids around.
+  /** @type {Map<ShowConfig, string>} */
+  const showHays = new Map(shows.map((s) => [s, haystackFor(s)]));
+  /** @type {Map<MovieConfig, string>} */
+  const movieHays = new Map(movies.map((m) => [m, haystackFor(m)]));
+
+  /** @type {ShowConfig[]} */
+  let filteredShows = shows.slice();
+  /** @type {MovieConfig[]} */
+  let filteredMovies = movies.slice();
+  let renderedShowsCount = 0;
+  let renderedMoviesCount = 0;
+
+  // Roving-tabindex defined up front (before any append) so the page-
+  // append helpers can call `.refresh()` after adding cards. The grids
+  // are empty at this point; applyRovingTabindex tolerates that and
+  // picks up children on each `.refresh()` call.
+  // Always-on (helps desktop keyboard users too); the visible focus
+  // ring is what TV mode adds.
+  const gridRoving = applyRovingTabindex(grid, { selector: '.tv-show-card' });
+  // Movies grid gets its own roving region when there are movies to
+  // navigate — keeps the two grids as independent tabstops. When the
+  // registry is empty we skip wiring (no children to roam) and the
+  // section is hidden anyway.
+  const moviesRoving =
+    movies.length > 0 ? applyRovingTabindex(moviesGrid, { selector: '.tv-show-card' }) : null;
+
+  const appendNextShows = () => {
+    if (renderedShowsCount >= filteredShows.length) return;
+    const next = filteredShows.slice(renderedShowsCount, renderedShowsCount + PAGE_SIZE);
+    const frag = document.createDocumentFragment();
+    for (const show of next) frag.appendChild(makeShowCard(show, ctx));
+    grid.appendChild(frag);
+    renderedShowsCount += next.length;
+    gridRoving.refresh();
+  };
+
+  const appendNextMovies = () => {
+    if (renderedMoviesCount >= filteredMovies.length) return;
+    const next = filteredMovies.slice(renderedMoviesCount, renderedMoviesCount + PAGE_SIZE);
+    const frag = document.createDocumentFragment();
+    for (const movie of next) frag.appendChild(makeMovieCard(movie, ctx));
+    moviesGrid.appendChild(frag);
+    renderedMoviesCount += next.length;
+    moviesRoving?.refresh();
+  };
+
+  // Sentinel observer: fires when each grid's trailing sliver scrolls
+  // into the (extended) viewport. 600px rootMargin starts loading
+  // before the user actually sees the bottom of the rendered set,
+  // which on TV at fast scroll speeds keeps the experience seamless.
+  // Falls back to "render everything upfront" when IntersectionObserver
+  // is unavailable (very old browsers) — we'd rather pay the upfront
+  // cost than break the page.
+  /** @type {IntersectionObserver | null} */
+  const sentinelObserver =
+    typeof IntersectionObserver === 'undefined'
+      ? null
+      : new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue;
+              if (entry.target === showsSentinel) appendNextShows();
+              else if (entry.target === moviesSentinel) appendNextMovies();
+            }
+          },
+          { rootMargin: '600px 0px' }
+        );
+  if (sentinelObserver) {
+    sentinelObserver.observe(showsSentinel);
+    sentinelObserver.observe(moviesSentinel);
+  }
+
+  // Cancel any pending lazy-poster observations on cards we're about
+  // to throw away. The IntersectionObserver inside lazyResolvePoster
+  // holds *strong* refs to its observed nodes, so without an explicit
+  // unobserve, every filter change leaks the previous window's cards.
+  /** @param {HTMLElement} container */
+  const releaseLazyPostersIn = (container) => {
+    const imgs = container.querySelectorAll('img');
+    for (const img of imgs) cancelLazyPoster(/** @type {HTMLElement} */ (img));
+  };
 
   const applyFilter = () => {
     const query = searchInput.value.trim().toLowerCase();
     searchClear.classList.toggle('hidden', query.length === 0);
     tagReset.classList.toggle('hidden', activeTags.size === 0);
-    let showMatches = 0;
-    for (const card of grid.children) {
-      const hay = card.getAttribute('data-search') || '';
-      const cardTags = (card.getAttribute('data-tags') || '').split(' ').filter(Boolean);
+
+    // Walk the in-memory registries (not the DOM) so the count reflects
+    // the *full* filtered set, not just what's currently windowed in.
+    filteredShows = shows.filter((s) => {
+      const hay = showHays.get(s) || '';
       const hitsSearch = query === '' || hay.includes(query);
-      const hitsTags = activeTags.size === 0 || cardTags.some((t) => activeTags.has(t));
-      const hit = hitsSearch && hitsTags;
-      card.classList.toggle('hidden', !hit);
-      if (hit) showMatches += 1;
-    }
-    let movieMatches = 0;
-    for (const card of moviesGrid.children) {
-      const hay = card.getAttribute('data-search') || '';
-      const cardTags = (card.getAttribute('data-tags') || '').split(' ').filter(Boolean);
+      const hitsTags = activeTags.size === 0 || (s.tags || []).some((t) => activeTags.has(t));
+      return hitsSearch && hitsTags;
+    });
+    filteredMovies = movies.filter((m) => {
+      const hay = movieHays.get(m) || '';
       const hitsSearch = query === '' || hay.includes(query);
-      const hitsTags = activeTags.size === 0 || cardTags.some((t) => activeTags.has(t));
-      const hit = hitsSearch && hitsTags;
-      card.classList.toggle('hidden', !hit);
-      if (hit) movieMatches += 1;
-    }
-    // Hide the whole section when its grid has zero matching cards,
-    // so an active filter doesn't leave a lonely section label
-    // floating over an empty grid. The Movies section additionally
-    // stays hidden when the registry is empty regardless of filter
-    // state — handled by the .hidden class set at mount time.
+      const hitsTags = activeTags.size === 0 || (m.tags || []).some((t) => activeTags.has(t));
+      return hitsSearch && hitsTags;
+    });
+
+    // Rewind both windows: clear the rendered cards, reset counters,
+    // append the first page of the freshly-filtered set. The sentinel
+    // stays in place (we appended it to the section, not the grid);
+    // if it's still in view after appending one page (e.g. small
+    // filtered set + tall viewport), the observer will re-fire and
+    // append the next page automatically until it scrolls below fold.
+    releaseLazyPostersIn(grid);
+    releaseLazyPostersIn(moviesGrid);
+    grid.replaceChildren();
+    moviesGrid.replaceChildren();
+    renderedShowsCount = 0;
+    renderedMoviesCount = 0;
+    appendNextShows();
+    appendNextMovies();
+
+    const showMatches = filteredShows.length;
+    const movieMatches = filteredMovies.length;
+
+    // Hide the whole section when its filtered set is empty so an
+    // active filter doesn't leave a lonely section label floating
+    // over a blank grid. The Movies section additionally stays hidden
+    // when the registry has no entries at all — `movies.length === 0`
+    // already produces `filteredMovies.length === 0`, so the same
+    // toggle covers both cases.
     showsSection.classList.toggle('hidden', showMatches === 0);
     if (movies.length > 0) {
       moviesSection.classList.toggle('hidden', movieMatches === 0);
@@ -513,6 +686,10 @@ export async function mount(slot, ctx) {
     searchStatus.textContent = `${parts.join(' · ')} match`;
   };
 
+  // Render the initial (no-filter) window. Must happen before any
+  // focus call below — `focusFirst()` needs at least one card in DOM.
+  applyFilter();
+
   const onInput = () => applyFilter();
   const onKeydown = (e) => {
     if (e.key === 'Escape' && searchInput.value !== '') {
@@ -547,19 +724,12 @@ export async function mount(slot, ctx) {
   });
   tagReset.addEventListener('click', onTagReset);
 
-  // Roving-tabindex on the show grid so a single Tab puts you in the
-  // grid and arrow keys move between tiles. Always-on (helps desktop
-  // keyboard users too); the visible focus ring is what TV mode adds.
-  const gridRoving = applyRovingTabindex(grid, { selector: '.tv-show-card' });
-  // Movies grid gets its own roving region when there are movies to
-  // navigate — keeps the two grids as independent tabstops. When the
-  // registry is empty we skip wiring (no children to roam) and the
-  // section is hidden anyway.
-  const moviesRoving =
-    movies.length > 0 ? applyRovingTabindex(moviesGrid, { selector: '.tv-show-card' }) : null;
   // On TV mode, autofocus the first show card so the remote can drive
   // immediately without a "press any key" beat. Skipped on desktop —
   // we don't want to steal focus from the search input or the URL bar.
+  // `gridRoving` was set up above (alongside the windowing helpers),
+  // and `applyFilter()` already rendered the first page of cards, so
+  // there's a tile to land on.
   if (isTvMode) gridRoving.focusFirst();
 
   // Honour deep-link hashes by scrolling the corresponding section
@@ -612,6 +782,13 @@ export async function mount(slot, ctx) {
       tagReset.removeEventListener('click', onTagReset);
       gridRoving.dispose();
       moviesRoving?.dispose();
+      // Tear down scroll-windowing wiring: stop watching the sentinels
+      // and release any pending lazy-poster observations on cards
+      // still in DOM. Both observers hold strong refs to their targets
+      // and would keep this view's DOM alive past unmount otherwise.
+      sentinelObserver?.disconnect();
+      releaseLazyPostersIn(grid);
+      releaseLazyPostersIn(moviesGrid);
       root.remove();
     }
   };
@@ -864,8 +1041,10 @@ function makeContinueCard(show, entry, ctx, onChange) {
     img.loading = 'lazy';
     img.decoding = 'async';
     img.alt = '';
-    fetchPoster(tvmazeId).then((url) => {
-      if (url) img.src = url;
+    lazyResolvePoster(img, () => {
+      fetchPoster(tvmazeId).then((url) => {
+        if (url) img.src = url;
+      });
     });
     img.addEventListener(
       'error',
@@ -1011,8 +1190,10 @@ function makeMovieCard(movie, ctx) {
     img.loading = 'lazy';
     img.decoding = 'async';
     img.alt = '';
-    fetchPoster(movie.tvmazeId).then((url) => {
-      if (url) img.src = url;
+    lazyResolvePoster(img, () => {
+      fetchPoster(movie.tvmazeId).then((url) => {
+        if (url) img.src = url;
+      });
     });
     img.addEventListener(
       'error',
@@ -1088,10 +1269,16 @@ function makeShowCard(show, ctx) {
   img.loading = 'lazy';
   img.decoding = 'async';
   img.alt = '';
-  // Asynchronously resolve the actual poster URL — until then the
-  // gradient background fills the tile so we don't show a broken icon.
-  fetchPoster(show.tvmazeId).then((url) => {
-    if (url) img.src = url;
+  // Resolve the actual poster URL via TVMaze only once this card is
+  // near the viewport. See `lazyResolvePoster` for why — TL;DR
+  // `loading="lazy"` defers the byte download once src is set, but
+  // not the metadata round-trip that produces the src. Until the
+  // observer fires the gradient background fills the tile so we
+  // don't show a broken icon.
+  lazyResolvePoster(img, () => {
+    fetchPoster(show.tvmazeId).then((url) => {
+      if (url) img.src = url;
+    });
   });
   img.addEventListener(
     'error',
@@ -1210,4 +1397,96 @@ async function fetchTvmazeShow(url) {
 
 function pad(n) {
   return String(n).padStart(2, '0');
+}
+
+/**
+ * Single shared IntersectionObserver that defers TVMaze poster
+ * resolution until a card is about to enter the viewport. The native
+ * `loading="lazy"` attribute on the `<img>` itself already handles
+ * deferring the byte download once `img.src` is set, but the metadata
+ * round-trip that *produces* that src (`fetchPoster` → TVMaze API +
+ * localStorage cache) still fires synchronously at card-creation
+ * time. On a cold cache with 50+ cards on the home grid that's a
+ * burst of TVMaze requests for cards the user may never scroll to.
+ *
+ * `rootMargin: 400px` is generous on purpose: we'd rather start
+ * resolving 1–2 viewport-heights early than have the user see a
+ * placeholder gradient flash in. The cost is asymmetric — a
+ * speculative fetch is cheap (cached for 30 days after) but a
+ * visible placeholder where art should be is a UX miss, especially
+ * on TV where you can't quickly scroll back to "double-check" what
+ * a card was. Threshold 0 fires as soon as any pixel intersects.
+ *
+ * Falls back to immediate (synchronous) loading when
+ * `IntersectionObserver` isn't available — older WebViews on cheap
+ * TV firmware sometimes ship without it.
+ * @type {IntersectionObserver | null}
+ */
+const _posterObserver =
+  typeof IntersectionObserver === 'undefined'
+    ? null
+    : new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            const el = entry.target;
+            _posterObserver?.unobserve(el);
+            const fn = _posterLoaders.get(el);
+            if (!fn) continue;
+            _posterLoaders.delete(el);
+            try {
+              fn();
+            } catch {
+              /* loader is the caller's TVMaze fetch; failures are
+                 already surfaced via img.error → emoji fallback. */
+            }
+          }
+        },
+        { rootMargin: '400px 0px', threshold: 0 }
+      );
+
+/**
+ * Per-element loader registry. WeakMap so removing a card from the
+ * DOM before the observer fires lets the entry GC naturally without
+ * us tracking unmount lifecycles.
+ * @type {WeakMap<Element, () => void>}
+ */
+const _posterLoaders = new WeakMap();
+
+/**
+ * Register a callback that resolves an `<img>`'s `src` lazily — fired
+ * once when the element is within ~400px of the viewport. Use this
+ * for cards whose poster URL has to be looked up asynchronously
+ * (TVMaze) rather than handed in directly. Callers whose poster URL
+ * is already known (`posterUrl` registry field) should just set
+ * `img.src` synchronously; the browser's native `loading="lazy"`
+ * already handles deferring the byte download.
+ *
+ * @param {HTMLElement} el      The element to observe (usually the `<img>` itself).
+ * @param {() => void} load     Synchronous trigger; called at most once.
+ */
+function lazyResolvePoster(el, load) {
+  if (!_posterObserver) {
+    load();
+    return;
+  }
+  _posterLoaders.set(el, load);
+  _posterObserver.observe(el);
+}
+
+/**
+ * Release a lazy-poster observation early — call when the host card is
+ * about to be removed from the DOM (e.g. the scroll window rewinds on
+ * a filter change). IntersectionObserver targets are *strong* refs
+ * inside the observer, so without an explicit `unobserve` the removed
+ * card and its `<img>` stay alive for as long as the observer does.
+ *
+ * Idempotent: safe to call on elements that were never registered.
+ *
+ * @param {HTMLElement} el
+ */
+function cancelLazyPoster(el) {
+  if (!_posterObserver) return;
+  _posterLoaders.delete(el);
+  _posterObserver.unobserve(el);
 }
