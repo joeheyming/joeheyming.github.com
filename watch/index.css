@@ -2592,7 +2592,9 @@ a.tv-crumb:hover {
    (`.tv-view` / `.tv-room`) intact — they're the ancestors of
    `.tv-player`, and a `display: none` on either collapses the whole
    video tree. We only hide the chassis bits inside `.tv-player`
-   that aren't the video surface itself. */
+   that aren't the video surface itself. The resume overlay and
+   end-card are children of `.tv-screen` so they stay visible —
+   they ARE the only legit non-video controls on a playing TV. */
 :root[data-mode='tv'][data-fullscreen='player'] .tv-header,
 :root[data-mode='tv'][data-fullscreen='player'] .tv-breadcrumbs,
 :root[data-mode='tv'][data-fullscreen='player'] .tv-player .tv-bezel-label,
@@ -2601,8 +2603,10 @@ a.tv-crumb:hover {
 :root[data-mode='tv'][data-fullscreen='player'] .tv-player .tv-stand,
 :root[data-mode='tv'][data-fullscreen='player'] .tv-player .tv-marquee,
 :root[data-mode='tv'][data-fullscreen='player'] .tv-player .tv-controls,
-:root[data-mode='tv'][data-fullscreen='player'] .tv-player .tv-summary-card,
-:root[data-mode='tv'][data-fullscreen='player'] .tv-player .tv-upnext-rail {
+:root[data-mode='tv'][data-fullscreen='player'] .tv-player .tv-summary,
+:root[data-mode='tv'][data-fullscreen='player'] .tv-player .tv-section,
+:root[data-mode='tv'][data-fullscreen='player'] .tv-player .tv-all-eps-link,
+:root[data-mode='tv'][data-fullscreen='player'] .tv-player .tv-help {
   display: none !important;
 }
 
