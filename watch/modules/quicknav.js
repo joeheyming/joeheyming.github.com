@@ -13,7 +13,7 @@
  *     single `<aside>` to `document.body` at first paint and updates
  *     the active-state on `popstate` (matches the router's own
  *     re-route trigger). No coupling to specific view modules.
- *   - Auto-hides inside an iframe (same heuristic `back.js` uses) so
+ *   - Auto-hides inside an iframe (same heuristic `nav.js` uses) so
  *     Heyming OS windows don't double up with the OS taskbar.
  *   - Auto-hides on narrow viewports (CSS media query) so the rail
  *     doesn't overlap the video player on phones; the breadcrumb +
@@ -71,7 +71,7 @@ function isPlayerView(loc) {
 async function init() {
   // Inside an iframe (Heyming OS windowed app, embedded preview,
   // etc.) the parent shell owns the navigation. The same hide-rule
-  // back.js uses keeps the two in lockstep — if one hides the other
+  // nav.js uses keeps the two in lockstep — if one hides the other
   // should hide too.
   if (window.top !== window) return;
   if (document.getElementById('tv-quicknav')) return;

@@ -187,7 +187,7 @@ drag.
 Tested in playwright at portrait 390×844 and landscape 667×375 (and
 844×390 for layout math). Do not regress these:
 
-- **Back button.** `<script src="/back.js" data-back-size="compact">`
+- **Back button.** `<script src="/nav.js" data-nav-size="compact">`
   renders at `top/left ≈ 8–12px`, ~90 px wide once "← Back" text is
   visible. The mobile `#hud { padding-left: 108px }` rule in both
   apps' `style.css` is what keeps SCORE from sliding under it. The

@@ -1010,7 +1010,7 @@ test.describe('/watch/ — TV mode floating chrome is hidden', () => {
       return el ? getComputedStyle(el).display : 'absent';
     });
     // Either the element isn't on this page (some apps drop it via
-    // back.js's iframe check) or the overlay hid it. Both pass.
+    // nav.js's iframe check) or the overlay hid it. Both pass.
     expect(['none', 'absent']).toContain(display);
   });
 

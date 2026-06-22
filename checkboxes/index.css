@@ -276,7 +276,7 @@
 
 /* Floating "about" button. Sits opposite the back button at top-right
    and opens #cb-info. Stays visible everywhere (including OS iframes
-   and PWA standalone) — unlike back.js, the credit is content-level,
+   and PWA standalone) — unlike nav.js, the credit is content-level,
    not navigation chrome. */
 .cb-info-btn {
   position: fixed;

@@ -912,25 +912,6 @@ input[type='file'].hidden-file {
   opacity: 0.85;
 }
 
-/* ── Back link ──────────────────────────────── */
-.back-to-portfolio {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--fg-dim);
-  text-decoration: none;
-  font-size: 12px;
-  padding: 4px 8px;
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  transition: color 0.1s, border-color 0.1s;
-  flex-shrink: 0;
-}
-.back-to-portfolio:hover {
-  color: var(--fg);
-  border-color: var(--fg-dim);
-}
-
 /* ── Mobile ─────────────────────────────────── */
 @media (max-width: 600px) {
   .paint-header {

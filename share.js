@@ -7,7 +7,7 @@
   // Capture our own <script> tag immediately. `document.currentScript` is
   // only defined during the synchronous execution of this file, so we read
   // its data attributes here before any async DOM work could shadow it.
-  // Matches the convention used by /back.js (`data-back-size="compact"`).
+  // Matches the convention used by /nav.js (`data-nav-size="compact"`).
   const scriptTag = document.currentScript;
 
   // Only run once

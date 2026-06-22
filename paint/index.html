@@ -116,15 +116,15 @@
           window.navigator.standalone === true ||
           (document.referrer || '').indexOf('android-app://') === 0
         ) {
-          window.backButtonInitialized = true;
+          window.heymingNavInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent = '.back-to-portfolio{display:none!important}';
+          s.textContent = '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop{display:none!important}';
           document.head.appendChild(s);
         }
       })();
     </script>
-    <script src="/back.js" data-back-size="compact"></script>
+    <script src="/nav.js" data-nav-size="compact"></script>
     <script src="/feedback.js"></script>
     <script src="/share.js"></script>
 

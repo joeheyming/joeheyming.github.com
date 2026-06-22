@@ -805,9 +805,9 @@ body {
 
 @media (max-width: 768px) {
   .crt-room {
-    /* Top padding clears the fixed `.back-to-portfolio` button (top: 20px,
+    /* Top padding clears the fixed `.heyming-nav-toggle` (top: 20px,
      * height: ~40px). Phones get an extra ~52px so the brand strip lands
-     * below the back button instead of behind it. */
+     * below the toggle instead of behind it. */
     padding: 64px 8px 60px;
   }
 

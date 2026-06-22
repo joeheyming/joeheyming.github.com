@@ -2563,7 +2563,7 @@ a.tv-crumb:hover {
 }
 
 /* Chrome that mouse-driven UX leans on but a remote can't reach.
-   `back.js`, `feedback-button`, and `share-button` all live in the
+   `nav.js`, `feedback-button`, and `share-button` all live in the
    global launcher styles; on TV we hide them and rely on the
    in-app breadcrumb trail + hardware Back key for navigation. */
 /* ====================================================================

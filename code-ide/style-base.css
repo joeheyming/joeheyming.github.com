@@ -82,8 +82,8 @@ body {
   height: var(--titlebar-h);
 }
 
-/* When not embedded in HeymingOS the global back-to-portfolio button is
- * pinned at the top-left and would overlap the titlebar. Reserve room. */
+/* When not embedded in HeymingOS the global nav toggle (.heyming-nav-toggle)
+ * is pinned at the top-left and would overlap the titlebar. Reserve room. */
 body.standalone .titlebar {
   padding-left: 92px;
 }

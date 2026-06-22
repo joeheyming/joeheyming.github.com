@@ -36,7 +36,7 @@ Copy the `<head>` from a recent app and adapt the title, description, canonical 
 - **`meta name="robots" content="index, follow"`** — required for Google indexing (see [Search indexing & SEO](#search-indexing--seo))
 - `description`, `og:*`, `twitter:*`, `canonical` pointing to `https://joeheyming.github.io/my-app/`
 - `og:image` / `twitter:image` pointing to the preview PNG (generated in step 4)
-- The four shared scripts in order: async gtag loader, `/analytics.js`, `/back.js`, `/feedback.js`, `/share.js`
+- The four shared scripts in order: async gtag loader, `/analytics.js`, `/nav.js`, `/feedback.js`, `/share.js`
 - JSON-LD `SoftwareApplication` + breadcrumb (optional but good for SEO)
 
 ### 3. Register in `apps-registry.json`
@@ -126,7 +126,7 @@ These are what GSC looks for on the live test. Missing them is a common reason p
 | `<meta name="twitter:card" />`, `twitter:title`, `twitter:description`, `twitter:image` | Twitter/X cards; mirror OG content. |
 | JSON-LD `SoftwareApplication` | Structured data; optional breadcrumb `BreadcrumbList` is good practice. |
 
-Also load the shared scripts listed in step 2 (`analytics.js`, `back.js`, etc.). OS apps loaded in iframes still need a full `<head>` on their standalone `index.html` — the iframe context does not replace crawl metadata.
+Also load the shared scripts listed in step 2 (`analytics.js`, `nav.js`, etc.). OS apps loaded in iframes still need a full `<head>` on their standalone `index.html` — the iframe context does not replace crawl metadata.
 
 **Reference heads:** `notepad/index.html`, `media-player/index.html`, `ascii/index.html`.
 
@@ -167,27 +167,27 @@ When adding or fixing an app for Search:
 | File | What it does | When to load |
 |------|-------------|--------------|
 | `/analytics.js` | GA init, `trackEvent`, engagement pings, shared-link tracking | Almost always (with the async gtag loader) |
-| `/back.js` | Fixed "← Back" button to `/`; hides itself inside iframes and standalone PWA | All standalone pages |
+| `/nav.js` | Hamburger toggle (top-left) + left-rail drawer with all apps from `apps-registry.json`; hides itself inside iframes and standalone PWA | All standalone pages |
 | `/feedback.js` | `<feedback-button>` web component → Google Form | Most apps |
 | `/share.js` | Related-projects panel from `apps-registry.json` `related` field | Apps with `related` entries |
 | `/proxy.js` | `window.proxyService` — CORS-safe fetch with fallback proxies, caching, circuit breaker | Only when fetching cross-origin resources (ROMs, APIs, etc.) |
 
-### Back button clearance
+### Nav toggle clearance
 
-The back button is `position: fixed` at `top: 20px; left: 20px` (desktop) and `top: 12px; left: 12px` (mobile ≤640px). Its rendered size is roughly **44px tall × 100px wide** on desktop and **40px tall × 90px wide** on mobile portrait.
+The hamburger nav toggle is `position: fixed` at `top: 20px; left: 20px` (desktop) and `top: 12px; left: 12px` (mobile ≤640px). Its rendered size is roughly **44px tall × ~100px wide** on desktop and **40px tall × ~90px wide** on mobile portrait. While the drawer is open the toggle is hidden (`[aria-expanded="true"]` / `[hidden]`), so overlap only matters in the closed state.
 
 **Every app header must clear it.** Common fixes:
 
-- Titles or nav links at top-left: add `padding-left` equal to or greater than the button width + gap (≥ 120px desktop, ≥ 100px mobile). See `ascii/index.css` for an example.
-- Short app headers: opt into compact mode — the button shrinks to ~26px tall × 65px wide, and drops opacity:
+- Titles or nav links at top-left: add `padding-left` equal to or greater than the toggle width + gap (≥ 120px desktop, ≥ 100px mobile). See `ascii/index.css` for an example.
+- Short app headers: opt into compact mode — the toggle shrinks and drops opacity:
   ```html
-  <script src="/back.js" data-back-size="compact"></script>
+  <script src="/nav.js" data-nav-size="compact"></script>
   ```
-- Full-bleed hero layouts: use `padding-top` ≥ 60px on the first content block so the button doesn't land on a heading.
+- Full-bleed hero layouts: use `padding-top` ≥ 60px on the first content block so the toggle doesn't land on a heading.
 
-The automated test `tests/e2e/back-button-overlap.spec.js` checks all apps at desktop (1280×720), mobile portrait (390×844), and mobile landscape (844×390). Run it after any header or layout change:
+The automated test `tests/e2e/nav-toggle-overlap.spec.js` checks all apps at desktop (1280×720), mobile portrait (390×844), and mobile landscape (844×390). Run it after any header or layout change:
 ```bash
-npx playwright test back-button-overlap
+npx playwright test nav-toggle-overlap
 ```
 Failing tests save a screenshot to `tests/e2e/screenshots/` for visual debugging.
 ```
@@ -196,7 +196,7 @@ Failing tests save a screenshot to `tests/e2e/screenshots/` for visual debugging
 
 ## Heyming OS integration
 
-The same `index.html` is loaded inside an `<iframe>` by `os/WindowManager.js`. Shared scripts auto-hide inside iframes (`back.js`, `feedback.js`). Registry fields that matter for OS:
+The same `index.html` is loaded inside an `<iframe>` by `os/WindowManager.js`. Shared scripts auto-hide inside iframes (`nav.js`, `feedback.js`). Registry fields that matter for OS:
 
 - `defaultWidth` / `defaultHeight` — initial window size
 - `system`, `desktopIcon`, `desktopPosition` — desktop shortcut placement

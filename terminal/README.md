@@ -128,4 +128,4 @@ No npm packages. All dependencies are loaded via CDN or from the parent site:
 
 - **Tailwind CSS 2.2.19** — utility classes (CDN)
 - **../os/filesystem-db.js** — shared IndexedDB virtual filesystem
-- **analytics.js, feedback.js, share.js, back.js, proxy.js** — site-wide utilities
+- **analytics.js, feedback.js, share.js, nav.js, proxy.js** — site-wide utilities

@@ -27,7 +27,7 @@ export function renderBreadcrumbs(container, crumbs, onNavigate) {
   container.replaceChildren();
   // A leading "← Back" affordance gives the user a one-click way to
   // step up the breadcrumb. We don't show it on the root page (the
-  // global /back.js button covers leaving the app entirely). It's a
+  // global /nav.js button covers leaving the app entirely). It's a
   // real <a> (not a <button>) so Cmd-click / middle-click open the
   // parent crumb in a new tab.
   if (crumbs.length > 1) {
