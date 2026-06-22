@@ -595,7 +595,7 @@ body.fullscreen-mode .locale-selector-wrapper {
 }
 
 .year-input {
-  width: 70px;
+  width: 6ch;
   background: transparent;
   border: none;
   color: var(--cd-gold);
