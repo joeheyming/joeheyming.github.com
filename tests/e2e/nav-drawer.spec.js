@@ -164,4 +164,95 @@ test.describe('Nav drawer', () => {
     await expect(active).toHaveAttribute('aria-current', 'page');
     await expect(active).toContainText(/Calculator/i);
   });
+
+  test('ArrowDown from search focuses the first nav item; ArrowUp returns to search', async ({
+    page
+  }) => {
+    await page.goto('/calculator/');
+    await page.locator('.heyming-nav-toggle').click();
+    const search = page.locator('.heyming-nav-search-input');
+    await expect(search).toBeFocused();
+
+    // Wait for the registry-driven sections to populate so the focus
+    // ring includes more than just the static system rows.
+    await page.waitForSelector('.heyming-nav-sections .heyming-nav-item');
+
+    await page.keyboard.press('ArrowDown');
+    const firstItemHref = await page.evaluate(() => {
+      const all = document.querySelectorAll(
+        '.heyming-nav-system .heyming-nav-item, .heyming-nav-sections .heyming-nav-item'
+      );
+      return all[0] && all[0].getAttribute('href');
+    });
+    const focusedHref = await page.evaluate(() => document.activeElement.getAttribute('href'));
+    expect(focusedHref).toBe(firstItemHref);
+
+    await page.keyboard.press('ArrowUp');
+    await expect(search).toBeFocused();
+  });
+
+  test('ArrowDown wraps from the last visible item back to the search input', async ({ page }) => {
+    await page.goto('/calculator/');
+    await page.locator('.heyming-nav-toggle').click();
+    await page.waitForSelector('.heyming-nav-sections .heyming-nav-item');
+
+    await page.evaluate(() => {
+      const items = document.querySelectorAll(
+        '.heyming-nav-system .heyming-nav-item, .heyming-nav-sections .heyming-nav-item'
+      );
+      const last = items[items.length - 1];
+      last.focus();
+    });
+    await page.keyboard.press('ArrowDown');
+    await expect(page.locator('.heyming-nav-search-input')).toBeFocused();
+  });
+
+  test('Home jumps to the first nav item, End to the last', async ({ page }) => {
+    await page.goto('/calculator/');
+    await page.locator('.heyming-nav-toggle').click();
+    await expect(page.locator('.heyming-nav-search-input')).toBeFocused();
+    await page.waitForSelector('.heyming-nav-sections .heyming-nav-item');
+
+    await page.keyboard.press('End');
+    const endHref = await page.evaluate(() => document.activeElement.getAttribute('href'));
+    const lastHref = await page.evaluate(() => {
+      const all = document.querySelectorAll(
+        '.heyming-nav-system .heyming-nav-item, .heyming-nav-sections .heyming-nav-item'
+      );
+      return all[all.length - 1].getAttribute('href');
+    });
+    expect(endHref).toBe(lastHref);
+
+    await page.keyboard.press('Home');
+    const homeHref = await page.evaluate(() => document.activeElement.getAttribute('href'));
+    const firstHref = await page.evaluate(() => {
+      const all = document.querySelectorAll(
+        '.heyming-nav-system .heyming-nav-item, .heyming-nav-sections .heyming-nav-item'
+      );
+      return all[0].getAttribute('href');
+    });
+    expect(homeHref).toBe(firstHref);
+  });
+
+  test('arrow keys skip rows hidden by the search filter', async ({ page }) => {
+    await page.goto('/calculator/');
+    await page.locator('.heyming-nav-toggle').click();
+    await expect(page.locator('.heyming-nav-search-input')).toBeFocused();
+    await page.waitForSelector('.heyming-nav-sections .heyming-nav-item');
+
+    // Filter to "calc" so only one or two rows remain (Calculator + maybe Calendar).
+    await page.locator('.heyming-nav-search-input').fill('calc');
+    await page.waitForTimeout(50);
+
+    await page.keyboard.press('ArrowDown');
+    const focusedDisplay = await page.evaluate(() => {
+      const el = document.activeElement;
+      return el && el.style ? el.style.display : null;
+    });
+    // Whatever item we landed on must be visible (display !== 'none').
+    expect(focusedDisplay).not.toBe('none');
+    // And it must be a nav item.
+    const focusedClass = await page.evaluate(() => document.activeElement.className);
+    expect(focusedClass).toContain('heyming-nav-item');
+  });
 });

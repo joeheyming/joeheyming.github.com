@@ -32,6 +32,17 @@
 //                      itself is intentionally not logged.
 //   nav_app_click      label = app id. From the registry rows.
 //   nav_home / nav_os / nav_brand_home — static rows.
+//
+// Keyboard:
+//   Esc         close the drawer
+//   ↓ / ↑       move focus through [search, item0, …, itemN] (wraps).
+//               Hidden rows (when the search filter trims them) are
+//               skipped automatically so the focus ring matches what
+//               the user actually sees.
+//   Home / End  jump to the first / last visible row (skips the search
+//               input, per the listbox-keyboard convention).
+//   Enter       activates the focused row natively. From the search
+//               input, Enter clicks the first visible row.
 
 (function () {
   'use strict';
@@ -684,6 +695,62 @@
     if (e.key === 'Escape' && isOpen) {
       e.stopPropagation();
       closeDrawer('escape');
+    }
+  });
+
+  // ─── Arrow-key navigation inside the drawer ──────────────────────────
+  // Builds a circular focus ring of [search input, …visible items] so
+  // ↓ from search lands on the first row, ↑ from the first row goes
+  // back to search, and the same wrap happens at the bottom. We pull
+  // visible items each time (instead of caching) so search-filter
+  // hiding takes effect immediately without rebuild bookkeeping.
+  function getVisibleNavItems() {
+    const all = drawer.querySelectorAll(
+      '.heyming-nav-system .heyming-nav-item, .heyming-nav-sections .heyming-nav-item'
+    );
+    return Array.from(all).filter((el) => el.style.display !== 'none');
+  }
+
+  drawer.addEventListener('keydown', (e) => {
+    if (!isOpen) return;
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Home' && e.key !== 'End') {
+      return;
+    }
+    const input = drawer.querySelector('.heyming-nav-search-input');
+    const active = document.activeElement;
+    const isOnSearch = active === input;
+    const isOnItem = active instanceof HTMLElement && active.classList.contains('heyming-nav-item');
+    // Only steer arrow keys when focus is on a row in the ring. Lets
+    // the close button / brand link keep native behavior.
+    if (!isOnSearch && !isOnItem) return;
+
+    const items = getVisibleNavItems();
+    const ring = input ? [input, ...items] : items;
+    if (ring.length <= 1) return;
+
+    const currentIdx = ring.indexOf(active);
+    let nextIdx = currentIdx;
+    switch (e.key) {
+      case 'ArrowDown':
+        nextIdx = currentIdx < 0 ? 0 : (currentIdx + 1) % ring.length;
+        break;
+      case 'ArrowUp':
+        nextIdx = currentIdx < 0 ? ring.length - 1 : (currentIdx - 1 + ring.length) % ring.length;
+        break;
+      case 'Home':
+        // First visible item, skipping the search input. If there are
+        // no items (filter zeroed the list), fall back to the search.
+        nextIdx = items.length ? (input ? 1 : 0) : 0;
+        break;
+      case 'End':
+        nextIdx = ring.length - 1;
+        break;
+    }
+    if (nextIdx === currentIdx) return;
+    e.preventDefault();
+    const target = ring[nextIdx];
+    if (target && typeof target.focus === 'function') {
+      target.focus();
     }
   });
 
