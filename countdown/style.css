@@ -596,14 +596,16 @@ body.fullscreen-mode .locale-selector-wrapper {
 
 .year-input {
   width: 6ch;
-  background: transparent;
-  border: none;
+  background: color-mix(in srgb, var(--cd-amber) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cd-amber) 30%, transparent);
+  border-radius: 6px;
   color: var(--cd-gold);
   font-family: 'Orbitron', monospace;
   font-size: 1.1rem;
   font-weight: 600;
   text-align: center;
   outline: none;
+  padding: 0.15em 0.3em;
   -moz-appearance: textfield;
   appearance: textfield;
 }
@@ -615,8 +617,8 @@ body.fullscreen-mode .locale-selector-wrapper {
 }
 
 .year-input:focus {
-  background: color-mix(in srgb, var(--cd-amber) 10%, transparent);
-  border-radius: 4px;
+  background: color-mix(in srgb, var(--cd-amber) 22%, transparent);
+  border-color: var(--cd-amber);
 }
 
 .year-input.invalid {
@@ -663,7 +665,7 @@ body.fullscreen-mode .locale-selector-wrapper {
 }
 
 .time-value {
-  font-family: 'Orbitron', monospace;
+  font-family: 'Share Tech Mono', ui-monospace, 'Menlo', monospace;
   font-size: clamp(2.5rem, 10vw, 5rem);
   font-weight: 700;
   color: var(--text-primary);

@@ -16,11 +16,12 @@ class DecimalDisplay extends BaseCountdownDisplay {
         }
 
         .decimal-value {
-          font-family: 'Orbitron', monospace;
+          font-family: 'Share Tech Mono', ui-monospace, 'Menlo', monospace;
           font-size: clamp(2.5rem, 10vw, 5rem);
           font-weight: 700;
           color: #f8fafc;
           text-shadow: 0 0 40px rgba(245, 158, 11, 0.4);
+          font-variant-numeric: tabular-nums;
           display: block;
         }
 

@@ -188,7 +188,7 @@ export const hiddenClass = `
  */
 export const timeValueStyles = `
   .time-value {
-    font-family: 'Orbitron', monospace;
+    font-family: 'Share Tech Mono', ui-monospace, 'Menlo', monospace;
     font-weight: 700;
     color: #f8fafc;
     line-height: 1;

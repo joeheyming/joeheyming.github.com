@@ -41,7 +41,7 @@ class StandardDisplay extends BaseCountdownDisplay {
         }
 
         .time-value {
-          font-family: 'Orbitron', monospace;
+          font-family: 'Share Tech Mono', ui-monospace, 'Menlo', monospace;
           font-size: clamp(2.5rem, 10vw, 5rem);
           font-weight: 700;
           color: #f8fafc;
