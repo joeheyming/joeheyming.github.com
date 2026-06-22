@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meme Generator 🖼️ — Joe Heyming</title>
+    <meta
+      name="description"
+      content="A fast, free, no-watermark meme generator. Pick from 30+ classic templates, upload your own, drop on draggable text and emoji stickers, and download or copy the result in one click."
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://joeheyming.github.io/meme/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://joeheyming.github.io/meme/" />
+    <meta property="og:title" content="Meme Generator — drag, type, download. No watermark." />
+    <meta
+      property="og:description"
+      content="Browser-based meme generator. 30+ classic templates, custom upload, draggable text + emoji stickers, Impact font with stroke, one-click PNG download."
+    />
+    <meta property="og:image" content="https://joeheyming.github.io/meme/meme-preview.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://joeheyming.github.io/meme/" />
+    <meta name="twitter:title" content="Meme Generator — drag, type, download." />
+    <meta
+      name="twitter:description"
+      content="Browser-based meme generator. 30+ classic templates, custom upload, draggable text + emoji stickers, Impact font with stroke, one-click PNG download."
+    />
+    <meta name="twitter:image" content="https://joeheyming.github.io/meme/meme-preview.png" />
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%96%BC%EF%B8%8F%3C/text%3E%3C/svg%3E"
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Meme Generator",
+        "description": "A fast, free, no-watermark meme generator with 30+ classic templates, custom upload, draggable text, emoji stickers, and PNG download.",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Web",
+        "url": "https://joeheyming.github.io/meme/",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "creator": { "@type": "Person", "name": "Joe Heyming" }
+      }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="index.css" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-N9TT4YDF6Y"></script>
+    <script src="/analytics.js"></script>
+    <script src="/nav.js" data-nav-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1 class="brand">
+          Meme Generator
+          <span class="brand-emoji" aria-hidden="true">🖼️</span>
+        </h1>
+        <span class="brand-tag">drag · type · download · no watermark</span>
+      </div>
+      <div class="topbar-actions">
+        <button
+          type="button"
+          class="btn btn-ghost"
+          data-action="reset"
+          title="Start over with a blank canvas"
+        >
+          Reset
+        </button>
+        <button
+          type="button"
+          class="btn btn-ghost"
+          data-action="share"
+          title="Copy a shareable link to this meme"
+        >
+          Share link
+        </button>
+        <button
+          type="button"
+          class="btn btn-ghost"
+          data-action="copy"
+          title="Copy as PNG to clipboard"
+        >
+          Copy
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          data-action="download"
+          title="Download as PNG"
+        >
+          Download PNG
+        </button>
+      </div>
+    </header>
+
+    <main class="app">
+      <!-- Left: template gallery + upload -->
+      <aside class="panel panel-left" aria-label="Choose a template">
+        <div class="panel-header">
+          <h2>Templates</h2>
+          <input
+            type="search"
+            id="tpl-search"
+            placeholder="Search…"
+            aria-label="Search templates"
+          />
+        </div>
+        <div class="upload-row">
+          <label class="btn btn-secondary upload-btn">
+            Upload your own
+            <input type="file" id="upload-input" accept="image/*" hidden />
+          </label>
+          <button
+            type="button"
+            class="btn btn-ghost btn-icon"
+            id="paste-btn"
+            title="Paste image from clipboard"
+            aria-label="Paste image from clipboard"
+          >
+            📋
+          </button>
+        </div>
+        <div class="template-grid" id="tpl-grid" role="listbox" aria-label="Meme templates">
+          <!-- Thumbnails injected by JS -->
+        </div>
+      </aside>
+
+      <!-- Center: canvas editor -->
+      <section class="editor" aria-label="Meme editor">
+        <div class="stage" id="stage">
+          <canvas id="bg-canvas" aria-label="Meme background"></canvas>
+          <div class="overlay" id="overlay">
+            <!-- Text boxes and stickers injected by JS, positioned absolute. -->
+          </div>
+          <div class="empty-state" id="empty-state">
+            <p class="empty-title">Pick a template, upload, or paste an image to start</p>
+            <p class="empty-sub">Tip: Cmd/Ctrl+V to paste from clipboard</p>
+          </div>
+        </div>
+        <div class="stage-tip" id="stage-tip" aria-live="polite"></div>
+      </section>
+
+      <!-- Right: properties + stickers -->
+      <aside class="panel panel-right" aria-label="Edit properties">
+        <div class="panel-section">
+          <div class="section-header">
+            <h2>Text boxes</h2>
+            <button type="button" class="btn btn-secondary btn-sm" id="add-box-btn">
+              + Add box
+            </button>
+          </div>
+          <ul class="box-list" id="box-list">
+            <!-- Box editors injected by JS -->
+          </ul>
+        </div>
+
+        <div class="panel-section">
+          <h2>Stickers</h2>
+          <div
+            class="sticker-palette"
+            id="sticker-palette"
+            role="listbox"
+            aria-label="Sticker palette"
+          >
+            <!-- Emoji stickers injected by JS -->
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h2>Image</h2>
+          <label class="control">
+            <span>Background blur</span>
+            <input type="range" id="blur-slider" min="0" max="30" step="1" value="0" />
+            <span class="control-value" id="blur-value">0px</span>
+          </label>
+          <button type="button" class="btn btn-ghost btn-sm" id="clear-stickers-btn">
+            Clear stickers
+          </button>
+        </div>
+
+        <div class="panel-section panel-section-footer">
+          <p class="hint">
+            All editing happens in your browser. Nothing is uploaded.
+            <a
+              href="https://github.com/joeheyming/joeheyming.github.com/tree/master/meme"
+              target="_blank"
+              rel="noopener"
+            >
+              Source
+            </a>
+            .
+          </p>
+        </div>
+      </aside>
+    </main>
+
+    <script type="module" src="index.js"></script>
+  </body>
+</html>

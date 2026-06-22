@@ -1142,6 +1142,35 @@ const PAGES = [
         .catch(() => {});
       await page.waitForTimeout(1000);
     }
+  },
+  {
+    url: `${BASE_URL}/meme/`,
+    output: 'meme/meme-preview.png',
+    title: 'Meme Generator',
+    // The default landing loads the Drake template with empty boxes.
+    // For the OG image we swap to a wider template + caption so the
+    // 1200x630 social card actually reads as a meme generator, not a
+    // dark UI with a placeholder.
+    setup: async (page) => {
+      await page.waitForSelector('.tpl-card[data-id="this-is-fine"]', { timeout: 10000 });
+      await page.click('.tpl-card[data-id="this-is-fine"]');
+      await page.waitForFunction(
+        () => document.querySelector('#stage')?.dataset.loaded === '1',
+        null,
+        { timeout: 8000 }
+      );
+      const textareas = await page.$$('textarea[data-field="text"]');
+      if (textareas[0]) {
+        await textareas[0].fill('WHEN A MEME GENERATOR');
+        await textareas[0].dispatchEvent('input');
+      }
+      if (textareas[1]) {
+        await textareas[1].fill('HAS NO WATERMARK');
+        await textareas[1].dispatchEvent('input');
+      }
+      // Let one paint cycle settle so the canvas reflects the typing.
+      await page.waitForTimeout(400);
+    }
   }
 ];
 

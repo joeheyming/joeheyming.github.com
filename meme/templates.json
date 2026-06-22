@@ -1,0 +1,852 @@
+[
+  {
+    "id": "drake-hotline-bling",
+    "name": "Drake Hotline Bling",
+    "file": "drake-hotline-bling.jpg",
+    "width": 1200,
+    "height": 1200,
+    "boxCount": 2,
+    "imgflipId": "181913649",
+    "defaultBoxes": [
+      {
+        "x": 0.5,
+        "y": 0.04,
+        "w": 0.46,
+        "h": 0.42
+      },
+      {
+        "x": 0.5,
+        "y": 0.54,
+        "w": 0.46,
+        "h": 0.42
+      }
+    ]
+  },
+  {
+    "id": "two-buttons",
+    "name": "Two Buttons",
+    "file": "two-buttons.jpg",
+    "width": 600,
+    "height": 908,
+    "boxCount": 3,
+    "imgflipId": "87743020",
+    "defaultBoxes": [
+      {
+        "x": 0.1,
+        "y": 0.17,
+        "w": 0.32,
+        "h": 0.08
+      },
+      {
+        "x": 0.46,
+        "y": 0.15,
+        "w": 0.32,
+        "h": 0.08
+      },
+      {
+        "x": 0.05,
+        "y": 0.52,
+        "w": 0.9,
+        "h": 0.07
+      }
+    ]
+  },
+  {
+    "id": "distracted-boyfriend",
+    "name": "Distracted Boyfriend",
+    "file": "distracted-boyfriend.jpg",
+    "width": 1200,
+    "height": 800,
+    "boxCount": 3,
+    "imgflipId": "112126428",
+    "defaultBoxes": [
+      {
+        "x": 0.02,
+        "y": 0.02,
+        "w": 0.3,
+        "h": 0.14
+      },
+      {
+        "x": 0.36,
+        "y": 0.02,
+        "w": 0.28,
+        "h": 0.14
+      },
+      {
+        "x": 0.68,
+        "y": 0.02,
+        "w": 0.3,
+        "h": 0.14
+      }
+    ]
+  },
+  {
+    "id": "uno-draw-25-cards",
+    "name": "UNO Draw 25 Cards",
+    "file": "uno-draw-25-cards.jpg",
+    "width": 500,
+    "height": 494,
+    "boxCount": 2,
+    "imgflipId": "217743513",
+    "defaultBoxes": [
+      {
+        "x": 0.04,
+        "y": 0.08,
+        "w": 0.4,
+        "h": 0.18
+      },
+      {
+        "x": 0.05,
+        "y": 0.86,
+        "w": 0.9,
+        "h": 0.12
+      }
+    ]
+  },
+  {
+    "id": "left-exit-12-off-ramp",
+    "name": "Left Exit 12 Off Ramp",
+    "file": "left-exit-12-off-ramp.jpg",
+    "width": 804,
+    "height": 767,
+    "boxCount": 3,
+    "imgflipId": "124822590",
+    "defaultBoxes": [
+      {
+        "x": 0.3,
+        "y": 0.23,
+        "w": 0.2,
+        "h": 0.08
+      },
+      {
+        "x": 0.5,
+        "y": 0.15,
+        "w": 0.27,
+        "h": 0.08
+      },
+      {
+        "x": 0.2,
+        "y": 0.74,
+        "w": 0.55,
+        "h": 0.08
+      }
+    ]
+  },
+  {
+    "id": "bernie-i-am-once-again-asking-for-your-support",
+    "name": "Bernie I Am Once Again Asking For Your Support",
+    "file": "bernie-i-am-once-again-asking-for-your-support.jpg",
+    "width": 750,
+    "height": 750,
+    "boxCount": 2,
+    "imgflipId": "222403160",
+    "defaultBoxes": [
+      {
+        "x": 0.05,
+        "y": 0.02,
+        "w": 0.9,
+        "h": 0.1
+      },
+      {
+        "x": 0.05,
+        "y": 0.88,
+        "w": 0.9,
+        "h": 0.1
+      }
+    ]
+  },
+  {
+    "id": "running-away-balloon",
+    "name": "Running Away Balloon",
+    "file": "running-away-balloon.jpg",
+    "width": 761,
+    "height": 1024,
+    "boxCount": 5,
+    "imgflipId": "131087935",
+    "defaultBoxes": [
+      {
+        "x": 0.05,
+        "y": 0.18,
+        "w": 0.25,
+        "h": 0.08
+      },
+      {
+        "x": 0.55,
+        "y": 0.14,
+        "w": 0.4,
+        "h": 0.1
+      },
+      {
+        "x": 0.05,
+        "y": 0.72,
+        "w": 0.25,
+        "h": 0.08
+      },
+      {
+        "x": 0.32,
+        "y": 0.71,
+        "w": 0.2,
+        "h": 0.07
+      },
+      {
+        "x": 0.7,
+        "y": 0.62,
+        "w": 0.28,
+        "h": 0.08
+      }
+    ]
+  },
+  {
+    "id": "always-has-been",
+    "name": "Always Has Been",
+    "file": "always-has-been.png",
+    "width": 960,
+    "height": 540,
+    "boxCount": 2,
+    "imgflipId": "252600902",
+    "defaultBoxes": [
+      {
+        "x": 0.3,
+        "y": 0.34,
+        "w": 0.3,
+        "h": 0.14
+      },
+      {
+        "x": 0.6,
+        "y": 0.04,
+        "w": 0.35,
+        "h": 0.14
+      }
+    ]
+  },
+  {
+    "id": "epic-handshake",
+    "name": "Epic Handshake",
+    "file": "epic-handshake.jpg",
+    "width": 900,
+    "height": 645,
+    "boxCount": 3,
+    "imgflipId": "135256802",
+    "defaultBoxes": [
+      {
+        "x": 0.02,
+        "y": 0.7,
+        "w": 0.32,
+        "h": 0.18
+      },
+      {
+        "x": 0.66,
+        "y": 0.7,
+        "w": 0.32,
+        "h": 0.18
+      },
+      {
+        "x": 0.05,
+        "y": 0.02,
+        "w": 0.9,
+        "h": 0.12
+      }
+    ]
+  },
+  {
+    "id": "anakin-padme-4-panel",
+    "name": "Anakin Padme 4 Panel",
+    "file": "anakin-padme-4-panel.png",
+    "width": 768,
+    "height": 768,
+    "boxCount": 3,
+    "imgflipId": "322841258",
+    "defaultBoxes": [
+      {
+        "x": 0.02,
+        "y": 0.4,
+        "w": 0.46,
+        "h": 0.1
+      },
+      {
+        "x": 0.52,
+        "y": 0.4,
+        "w": 0.46,
+        "h": 0.1
+      },
+      {
+        "x": 0.52,
+        "y": 0.9,
+        "w": 0.46,
+        "h": 0.1
+      }
+    ]
+  },
+  {
+    "id": "waiting-skeleton",
+    "name": "Waiting Skeleton",
+    "file": "waiting-skeleton.jpg",
+    "width": 298,
+    "height": 403,
+    "boxCount": 2,
+    "imgflipId": "4087833",
+    "defaultBoxes": [
+      {
+        "x": 0.05,
+        "y": 0,
+        "w": 0.9,
+        "h": 0.2
+      },
+      {
+        "x": 0.05,
+        "y": 0.8,
+        "w": 0.9,
+        "h": 0.2
+      }
+    ]
+  },
+  {
+    "id": "gru-s-plan",
+    "name": "Gru's Plan",
+    "file": "gru-s-plan.jpg",
+    "width": 700,
+    "height": 449,
+    "boxCount": 4,
+    "imgflipId": "131940431",
+    "defaultBoxes": [
+      {
+        "x": 0.25,
+        "y": 0.08,
+        "w": 0.22,
+        "h": 0.36
+      },
+      {
+        "x": 0.75,
+        "y": 0.08,
+        "w": 0.22,
+        "h": 0.36
+      },
+      {
+        "x": 0.25,
+        "y": 0.56,
+        "w": 0.22,
+        "h": 0.36
+      },
+      {
+        "x": 0.75,
+        "y": 0.56,
+        "w": 0.22,
+        "h": 0.36
+      }
+    ]
+  },
+  {
+    "id": "disaster-girl",
+    "name": "Disaster Girl",
+    "file": "disaster-girl.jpg",
+    "width": 500,
+    "height": 375,
+    "boxCount": 2,
+    "imgflipId": "97984",
+    "defaultBoxes": [
+      {
+        "x": 0.05,
+        "y": 0,
+        "w": 0.9,
+        "h": 0.2
+      },
+      {
+        "x": 0.05,
+        "y": 0.8,
+        "w": 0.9,
+        "h": 0.2
+      }
+    ]
+  },
+  {
+    "id": "sad-pablo-escobar",
+    "name": "Sad Pablo Escobar",
+    "file": "sad-pablo-escobar.jpg",
+    "width": 720,
+    "height": 709,
+    "boxCount": 3,
+    "imgflipId": "80707627",
+    "defaultBoxes": [
+      {
+        "x": 0.05,
+        "y": 0.02,
+        "w": 0.9,
+        "h": 0.1
+      },
+      {
+        "x": 0.04,
+        "y": 0.52,
+        "w": 0.42,
+        "h": 0.08
+      },
+      {
+        "x": 0.54,
+        "y": 0.52,
+        "w": 0.42,
+        "h": 0.08
+      }
+    ]
+  },
+  {
+    "id": "x-x-everywhere",
+    "name": "X, X Everywhere",
+    "file": "x-x-everywhere.jpg",
+    "width": 2118,
+    "height": 1440,
+    "boxCount": 2,
+    "imgflipId": "91538330",
+    "defaultBoxes": [
+      {
+        "x": 0.05,
+        "y": 0.04,
+        "w": 0.9,
+        "h": 0.16
+      },
+      {
+        "x": 0.05,
+        "y": 0.8,
+        "w": 0.9,
+        "h": 0.16
+      }
+    ]
+  },
+  {
+    "id": "woman-yelling-at-cat",
+    "name": "Woman Yelling At Cat",
+    "file": "woman-yelling-at-cat.jpg",
+    "width": 680,
+    "height": 438,
+    "boxCount": 2,
+    "imgflipId": "188390779",
+    "defaultBoxes": [
+      {
+        "x": 0.02,
+        "y": 0.02,
+        "w": 0.46,
+        "h": 0.18
+      },
+      {
+        "x": 0.52,
+        "y": 0.02,
+        "w": 0.46,
+        "h": 0.18
+      }
+    ]
+  },
+  {
+    "id": "mocking-spongebob",
+    "name": "Mocking Spongebob",
+    "file": "mocking-spongebob.jpg",
+    "width": 502,
+    "height": 353,
+    "boxCount": 2,
+    "imgflipId": "102156234",
+    "defaultBoxes": [
+      {
+        "x": 0.05,
+        "y": 0,
+        "w": 0.9,
+        "h": 0.2
+      },
+      {
+        "x": 0.05,
+        "y": 0.78,
+        "w": 0.9,
+        "h": 0.2
+      }
+    ]
+  },
+  {
+    "id": "change-my-mind",
+    "name": "Change My Mind",
+    "file": "change-my-mind.jpg",
+    "width": 482,
+    "height": 361,
+    "boxCount": 2,
+    "imgflipId": "129242436",
+    "defaultBoxes": [
+      {
+        "x": 0.42,
+        "y": 0.48,
+        "w": 0.55,
+        "h": 0.2
+      },
+      {
+        "x": 0.05,
+        "y": 0.02,
+        "w": 0.9,
+        "h": 0.08
+      }
+    ]
+  },
+  {
+    "id": "batman-slapping-robin",
+    "name": "Batman Slapping Robin",
+    "file": "batman-slapping-robin.jpg",
+    "width": 400,
+    "height": 387,
+    "boxCount": 2,
+    "imgflipId": "438680",
+    "defaultBoxes": [
+      {
+        "x": 0.05,
+        "y": 0.04,
+        "w": 0.25,
+        "h": 0.24
+      },
+      {
+        "x": 0.32,
+        "y": 0.04,
+        "w": 0.58,
+        "h": 0.25
+      }
+    ]
+  },
+  {
+    "id": "trade-offer",
+    "name": "Trade Offer",
+    "file": "trade-offer.jpg",
+    "width": 607,
+    "height": 794,
+    "boxCount": 3,
+    "imgflipId": "309868304",
+    "defaultBoxes": [
+      {
+        "x": 0.05,
+        "y": 0.22,
+        "w": 0.4,
+        "h": 0.1
+      },
+      {
+        "x": 0.55,
+        "y": 0.22,
+        "w": 0.4,
+        "h": 0.1
+      },
+      {
+        "x": 0.2,
+        "y": 0.02,
+        "w": 0.6,
+        "h": 0.07
+      }
+    ]
+  },
+  {
+    "id": "ancient-aliens",
+    "name": "Ancient Aliens",
+    "file": "ancient-aliens.jpg",
+    "width": 500,
+    "height": 437,
+    "boxCount": 2,
+    "imgflipId": "101470",
+    "defaultBoxes": [
+      {
+        "x": 0.05,
+        "y": 0,
+        "w": 0.9,
+        "h": 0.2
+      },
+      {
+        "x": 0.05,
+        "y": 0.8,
+        "w": 0.9,
+        "h": 0.2
+      }
+    ]
+  },
+  {
+    "id": "expanding-brain",
+    "name": "Expanding Brain",
+    "file": "expanding-brain.jpg",
+    "width": 857,
+    "height": 1202,
+    "boxCount": 4,
+    "imgflipId": "93895088",
+    "defaultBoxes": [
+      {
+        "x": 0.02,
+        "y": 0.02,
+        "w": 0.48,
+        "h": 0.21
+      },
+      {
+        "x": 0.02,
+        "y": 0.27,
+        "w": 0.48,
+        "h": 0.21
+      },
+      {
+        "x": 0.02,
+        "y": 0.52,
+        "w": 0.48,
+        "h": 0.21
+      },
+      {
+        "x": 0.02,
+        "y": 0.77,
+        "w": 0.48,
+        "h": 0.21
+      }
+    ]
+  },
+  {
+    "id": "y-all-got-any-more-of-that",
+    "name": "Y'all Got Any More Of That",
+    "file": "y-all-got-any-more-of-that.jpg",
+    "width": 600,
+    "height": 471,
+    "boxCount": 2,
+    "imgflipId": "124055727",
+    "defaultBoxes": [
+      {
+        "x": 0.05,
+        "y": 0.02,
+        "w": 0.9,
+        "h": 0.2
+      },
+      {
+        "x": 0.05,
+        "y": 0.78,
+        "w": 0.9,
+        "h": 0.2
+      }
+    ]
+  },
+  {
+    "id": "buff-doge-vs-cheems",
+    "name": "Buff Doge vs. Cheems",
+    "file": "buff-doge-vs-cheems.png",
+    "width": 937,
+    "height": 720,
+    "boxCount": 4,
+    "imgflipId": "247375501",
+    "defaultBoxes": [
+      {
+        "x": 0.02,
+        "y": 0.02,
+        "w": 0.46,
+        "h": 0.14
+      },
+      {
+        "x": 0.52,
+        "y": 0.02,
+        "w": 0.46,
+        "h": 0.14
+      },
+      {
+        "x": 0.02,
+        "y": 0.84,
+        "w": 0.46,
+        "h": 0.14
+      },
+      {
+        "x": 0.52,
+        "y": 0.84,
+        "w": 0.46,
+        "h": 0.14
+      }
+    ]
+  },
+  {
+    "id": "absolute-cinema",
+    "name": "Absolute Cinema",
+    "file": "absolute-cinema.png",
+    "width": 936,
+    "height": 725,
+    "boxCount": 2,
+    "imgflipId": "505705955",
+    "defaultBoxes": [
+      {
+        "x": 0.05,
+        "y": 0,
+        "w": 0.9,
+        "h": 0.2
+      },
+      {
+        "x": 0.05,
+        "y": 0.8,
+        "w": 0.9,
+        "h": 0.2
+      }
+    ]
+  },
+  {
+    "id": "one-does-not-simply",
+    "name": "One Does Not Simply",
+    "file": "one-does-not-simply.jpg",
+    "width": 568,
+    "height": 335,
+    "boxCount": 2,
+    "imgflipId": "61579",
+    "defaultBoxes": [
+      {
+        "x": 0.05,
+        "y": 0,
+        "w": 0.9,
+        "h": 0.2
+      },
+      {
+        "x": 0.05,
+        "y": 0.8,
+        "w": 0.9,
+        "h": 0.2
+      }
+    ]
+  },
+  {
+    "id": "tuxedo-winnie-the-pooh",
+    "name": "Tuxedo Winnie The Pooh",
+    "file": "tuxedo-winnie-the-pooh.png",
+    "width": 800,
+    "height": 582,
+    "boxCount": 2,
+    "imgflipId": "178591752",
+    "defaultBoxes": [
+      {
+        "x": 0.42,
+        "y": 0.04,
+        "w": 0.55,
+        "h": 0.42
+      },
+      {
+        "x": 0.42,
+        "y": 0.54,
+        "w": 0.55,
+        "h": 0.42
+      }
+    ]
+  },
+  {
+    "id": "bike-fall",
+    "name": "Bike Fall",
+    "file": "bike-fall.jpg",
+    "width": 500,
+    "height": 680,
+    "boxCount": 3,
+    "imgflipId": "79132341",
+    "defaultBoxes": [
+      {
+        "x": 0.05,
+        "y": 0.02,
+        "w": 0.9,
+        "h": 0.07
+      },
+      {
+        "x": 0.05,
+        "y": 0.35,
+        "w": 0.9,
+        "h": 0.07
+      },
+      {
+        "x": 0.05,
+        "y": 0.68,
+        "w": 0.9,
+        "h": 0.07
+      }
+    ]
+  },
+  {
+    "id": "bernie-sanders-once-again-asking",
+    "name": "Bernie Sanders Once Again Asking",
+    "file": "bernie-sanders-once-again-asking.png",
+    "width": 926,
+    "height": 688,
+    "boxCount": 2,
+    "imgflipId": "224015000",
+    "defaultBoxes": [
+      {
+        "x": 0.05,
+        "y": 0,
+        "w": 0.9,
+        "h": 0.2
+      },
+      {
+        "x": 0.05,
+        "y": 0.8,
+        "w": 0.9,
+        "h": 0.2
+      }
+    ]
+  },
+  {
+    "id": "mother-ignoring-kid-drowning-in-a-pool",
+    "name": "Mother Ignoring Kid Drowning In A Pool",
+    "file": "mother-ignoring-kid-drowning-in-a-pool.jpg",
+    "width": 782,
+    "height": 1032,
+    "boxCount": 4,
+    "imgflipId": "252758727",
+    "defaultBoxes": [
+      {
+        "x": 0.35,
+        "y": 0.02,
+        "w": 0.3,
+        "h": 0.06
+      },
+      {
+        "x": 0.65,
+        "y": 0.14,
+        "w": 0.33,
+        "h": 0.06
+      },
+      {
+        "x": 0.04,
+        "y": 0.32,
+        "w": 0.36,
+        "h": 0.06
+      },
+      {
+        "x": 0.2,
+        "y": 0.64,
+        "w": 0.6,
+        "h": 0.07
+      }
+    ]
+  },
+  {
+    "id": "0-days-without-lenny-simpsons",
+    "name": "0 days without (Lenny, Simpsons)",
+    "file": "0-days-without-lenny-simpsons.png",
+    "width": 619,
+    "height": 403,
+    "boxCount": 2,
+    "imgflipId": "427308417",
+    "defaultBoxes": [
+      {
+        "x": 0.28,
+        "y": 0.3,
+        "w": 0.65,
+        "h": 0.18
+      },
+      {
+        "x": 0.05,
+        "y": 0.86,
+        "w": 0.9,
+        "h": 0.12
+      }
+    ]
+  },
+  {
+    "id": "this-is-fine",
+    "name": "This Is Fine",
+    "file": "this-is-fine.jpg",
+    "width": 580,
+    "height": 282,
+    "boxCount": 2,
+    "imgflipId": "55311130",
+    "defaultBoxes": [
+      {
+        "x": 0.05,
+        "y": 0.04,
+        "w": 0.9,
+        "h": 0.18
+      },
+      {
+        "x": 0.05,
+        "y": 0.78,
+        "w": 0.9,
+        "h": 0.18
+      }
+    ]
+  }
+]

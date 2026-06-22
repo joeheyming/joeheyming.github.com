@@ -1,0 +1,825 @@
+/* /meme/ — Meme Generator
+ *
+ * Dark, focused editor UI in the Imgflip / Canva genre. Three-column
+ * layout on desktop (templates · stage · properties); collapses to
+ * stacked sections on narrow screens.
+ *
+ * Typography note: meme text on the canvas defaults to Impact, which
+ * is present on Windows + macOS + iOS by default. Where it isn't,
+ * the cascade falls back to Haettenschweiler / Arial Narrow Bold /
+ * a generic sans — close enough that memes still read as memes.
+ */
+
+:root {
+  --bg-0: #0e1015;
+  --bg-1: #161a22;
+  --bg-2: #1d222d;
+  --bg-3: #262d3b;
+  --line: #2a3142;
+  --text-0: #f3f5fb;
+  --text-1: #c3c9d6;
+  --text-2: #8a91a3;
+  --accent: #4f8cff;
+  --accent-hot: #6aa3ff;
+  --accent-text: #ffffff;
+  --danger: #ff6b6b;
+  --ok: #36c08e;
+  --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --header-h: 56px;
+  --meme-font: Impact, Haettenschweiler, 'Arial Narrow Bold', 'Franklin Gothic Bold',
+    'Helvetica Inserat', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg-0);
+  color: var(--text-0);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Top bar ---------- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-h);
+  padding: 0 16px 0 130px; /* leave room for the global back button at top-left */
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+  box-shadow: var(--shadow-1);
+}
+
+.topbar-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
+
+.brand {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.brand-emoji {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+
+.brand-tag {
+  color: var(--text-2);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.1s ease, border-color 0.1s ease, transform 0.05s ease;
+  user-select: none;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hot);
+}
+
+.btn-secondary {
+  background: var(--bg-3);
+  color: var(--text-0);
+}
+
+.btn-secondary:hover {
+  background: #2f374a;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-1);
+  border-color: var(--line);
+}
+
+.btn-ghost:hover {
+  background: var(--bg-2);
+  color: var(--text-0);
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.btn-icon {
+  padding: 6px 10px;
+}
+
+/* ---------- Main 3-column layout ---------- */
+
+.app {
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  gap: 0;
+  height: calc(100vh - var(--header-h));
+  min-height: 480px;
+}
+
+.panel {
+  background: var(--bg-1);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-left {
+  border-right: 1px solid var(--line);
+}
+
+.panel-right {
+  border-left: 1px solid var(--line);
+}
+
+.panel-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 14px 10px;
+  position: sticky;
+  top: 0;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+  z-index: 1;
+}
+
+.panel-header h2,
+.panel-section h2 {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-2);
+}
+
+input[type='search'],
+input[type='text'],
+input[type='number'] {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--text-0);
+  font: inherit;
+  outline: none;
+}
+
+input[type='search']:focus,
+input[type='text']:focus,
+input[type='number']:focus {
+  border-color: var(--accent);
+}
+
+.upload-row {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.upload-row .upload-btn {
+  flex: 1;
+  cursor: pointer;
+}
+
+/* ---------- Template grid ---------- */
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 12px;
+}
+
+.tpl-card {
+  position: relative;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.05s ease;
+  aspect-ratio: 1 / 1;
+}
+
+.tpl-card:hover {
+  border-color: var(--accent);
+}
+
+.tpl-card.is-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
+.tpl-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tpl-card-label {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 6px 8px;
+  font-size: 11px;
+  color: #fff;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.85));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Editor stage ---------- */
+
+.editor {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(circle at 30% 20%, #161b27 0%, #0c0e14 70%);
+  /* CRITICAL: grid items default to `min-width: auto`, which means the
+     1fr column refuses to shrink below the intrinsic width of its
+     content (here .stage, which JS sizes explicitly in pixels). At
+     narrow viewports that pushes .panel-right off-screen entirely.
+     `min-width: 0` lets the column shrink — and our .stage already has
+     `max-width: 100%`, so it follows the column down. */
+  min-width: 0;
+  min-height: 0;
+}
+
+.stage {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #111;
+  box-shadow: var(--shadow-2);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  /* `manipulation` keeps useful pinch-zoom + pan but disables the
+     250ms double-tap-zoom heuristic that fires when a drag is
+     mistaken for a double-tap. Without this the stage flashes a
+     browser zoom on quick repeated taps. */
+  touch-action: manipulation;
+  /* aspect-ratio + size constraints are set dynamically when an image
+     loads. Before that, give the empty state a visible canvas so the
+     "Pick a template…" hint actually appears. */
+}
+
+.stage:not([data-loaded='1']) {
+  width: min(70vw, 520px);
+  height: min(60vh, 360px);
+}
+
+#bg-canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: 100%;
+  height: 100%;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none; /* boxes individually re-enable it */
+}
+
+.empty-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px;
+  text-align: center;
+  background: transparent;
+  pointer-events: none;
+}
+
+.empty-title {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-1);
+}
+
+.empty-sub {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.stage[data-loaded='1'] .empty-state {
+  display: none;
+}
+
+.stage-tip {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-2);
+  min-height: 16px;
+}
+
+/* ---------- Draggable text boxes (overlay) ---------- */
+
+.text-box {
+  position: absolute;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: 1px dashed transparent;
+  cursor: move;
+  user-select: none;
+  -webkit-user-select: none;
+  transform-origin: center center;
+  /* Without this, trackpad / touchscreen drags get interpreted as a
+     native browser gesture (pan + pinch-to-zoom), which makes the
+     whole viewport appear to zoom in while you're trying to move a
+     text box. `none` makes the element a pure pointer-event surface. */
+  touch-action: none;
+  /* Same defense against iOS Safari's tap-to-zoom heuristic. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+.text-box:hover,
+.text-box.is-selected {
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.text-box.is-selected {
+  border-color: var(--accent);
+  background: rgba(79, 140, 255, 0.05);
+}
+
+.text-box-inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-align: center;
+  /* The inner is just a display surface — text is edited in the
+     sidebar, which keeps gestures away from the browser's
+     text-selection / loupe behavior. Inherit the box's "move" cursor. */
+  cursor: inherit;
+  user-select: none;
+  -webkit-user-select: none;
+  /* Defaults; per-box overrides set inline via style attribute. */
+  font-family: var(--meme-font);
+  color: #fff;
+  -webkit-text-stroke: 2px #000;
+  paint-order: stroke fill;
+}
+
+.text-box-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--accent);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 0.1s;
+  /* Same rationale as .text-box — keep gestures off the handles too. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.text-box.is-selected .text-box-handle {
+  opacity: 1;
+}
+
+.text-box-handle.handle-resize {
+  right: -6px;
+  bottom: -6px;
+  cursor: nwse-resize;
+}
+
+.text-box-handle.handle-rotate {
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: grab;
+  background: var(--ok);
+}
+
+.text-box-handle.handle-delete {
+  top: -22px;
+  right: -6px;
+  background: var(--danger);
+  border-color: #fff;
+  color: #fff;
+  font-size: 10px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* ---------- Right panel ---------- */
+
+.panel-section {
+  padding: 14px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.box-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.box-item {
+  padding: 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.box-item.is-selected {
+  border-color: var(--accent);
+}
+
+.box-item-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.box-item-header .box-handle {
+  font-size: 11px;
+  color: var(--text-2);
+  flex: 0 0 auto;
+}
+
+.box-item-header .box-delete {
+  margin-left: auto;
+  background: transparent;
+  border: 0;
+  color: var(--text-2);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.box-item-header .box-delete:hover {
+  color: var(--danger);
+}
+
+.box-item textarea {
+  width: 100%;
+  min-height: 50px;
+  padding: 6px 8px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--text-0);
+  font: inherit;
+  resize: vertical;
+}
+
+.box-item textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.box-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.box-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.box-controls select,
+.box-controls input[type='number'],
+.box-controls input[type='color'] {
+  padding: 4px 6px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text-0);
+  font: inherit;
+  font-size: 12px;
+}
+
+.box-controls input[type='color'] {
+  padding: 2px;
+  height: 28px;
+  cursor: pointer;
+}
+
+.box-controls-row-full {
+  grid-column: 1 / -1;
+}
+
+.box-toggles {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.box-toggles button {
+  flex: 1;
+  padding: 4px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  color: var(--text-1);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.box-toggles button.is-on {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* ---------- Sticker palette ---------- */
+
+.sticker-palette {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.sticker-palette button {
+  font-size: 18px;
+  padding: 6px 0;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.sticker-palette button:hover {
+  background: var(--bg-3);
+}
+
+/* On-canvas sticker overlay element */
+.sticker {
+  position: absolute;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: move;
+  user-select: none;
+  -webkit-user-select: none;
+  border: 1px dashed transparent;
+  transform-origin: center center;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sticker.is-selected {
+  border-color: var(--accent);
+}
+
+.sticker-inner {
+  font-size: 48px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.sticker .text-box-handle {
+  opacity: 0;
+}
+
+.sticker.is-selected .text-box-handle {
+  opacity: 1;
+}
+
+/* ---------- Controls ---------- */
+
+.control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-1);
+}
+
+.control > span:first-child {
+  flex: 0 0 auto;
+}
+
+.control input[type='range'] {
+  flex: 1;
+  min-width: 0;
+}
+
+.control-value {
+  flex: 0 0 40px;
+  text-align: right;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+
+.panel-section-footer {
+  margin-top: auto;
+  border-bottom: 0;
+}
+
+.hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.hint a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.hint a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Toast / inline notifications ---------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 32px;
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text-0);
+  font-size: 13px;
+  box-shadow: var(--shadow-2);
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+}
+
+.toast.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-4px);
+}
+
+.toast.is-ok {
+  border-color: var(--ok);
+}
+
+.toast.is-err {
+  border-color: var(--danger);
+}
+
+/* ---------- Responsive: stack on narrow screens ---------- */
+
+@media (max-width: 1080px) {
+  .app {
+    grid-template-columns: 240px 1fr 280px;
+  }
+}
+
+@media (max-width: 880px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    height: auto;
+    min-height: 0;
+  }
+
+  .panel-left,
+  .panel-right {
+    max-height: 360px;
+    border-right: 0;
+    border-left: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .editor {
+    padding: 16px;
+    min-height: 60vh;
+  }
+
+  .template-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 12px 16px 12px 110px;
+    gap: 8px;
+  }
+
+  .brand-tag {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .topbar {
+    padding-left: 100px;
+  }
+
+  .topbar-actions .btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .sticker-palette {
+    grid-template-columns: repeat(8, 1fr);
+  }
+
+  .template-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

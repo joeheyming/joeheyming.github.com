@@ -1,6 +1,31 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 
+// Stub `window.gtag` before any page script runs so we can inspect
+// what the drawer reports to GA. analytics.js short-circuits its
+// data-event capture delegate on localhost, so the drawer always
+// fires its events through manual `trackEvent` calls — those still
+// land in `gtag`, which our stub captures.
+async function captureGtag(page) {
+  await page.addInitScript(() => {
+    window.__gtagCalls = [];
+    Object.defineProperty(window, 'gtag', {
+      configurable: true,
+      get: () => (...args) => window.__gtagCalls.push(args),
+      set: () => {}
+    });
+  });
+}
+
+async function gtagEvents(page) {
+  return page.evaluate(() => {
+    const calls = window.__gtagCalls || [];
+    return calls
+      .filter((c) => c[0] === 'event')
+      .map((c) => ({ name: c[1], params: c[2] || {} }));
+  });
+}
+
 test.describe('Nav drawer', () => {
   test('default mode: toggle visible with standard styles on a non-compact page', async ({
     page
@@ -32,11 +57,61 @@ test.describe('Nav drawer', () => {
     expect(val).toBeGreaterThan(0);
   });
 
-  test('page name label derived from URL path', async ({ page }) => {
+  test('nav_drawer_open fires once with the current page name as label', async ({ page }) => {
+    await captureGtag(page);
     await page.goto('/terminal/');
-    await page.waitForSelector('.heyming-nav-toggle', { timeout: 10_000 });
-    const label = await page.locator('.heyming-nav-toggle').getAttribute('data-event-label');
-    expect(label).toBe('Terminal');
+    await page.locator('.heyming-nav-toggle').click();
+    await page.waitForSelector('.heyming-nav-drawer.open');
+
+    const events = await gtagEvents(page);
+    const opens = events.filter((e) => e.name === 'nav_drawer_open');
+    expect(opens).toHaveLength(1);
+    expect(opens[0].params.event_category).toBe('Navigation');
+    expect(opens[0].params.event_label).toBe('Terminal');
+  });
+
+  test('Escape close fires nav_drawer_close with reason="escape"', async ({ page }) => {
+    await captureGtag(page);
+    await page.goto('/calculator/');
+    await page.locator('.heyming-nav-toggle').click();
+    await page.waitForSelector('.heyming-nav-drawer.open');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.querySelector('.heyming-nav-drawer.open'));
+
+    const closes = (await gtagEvents(page)).filter((e) => e.name === 'nav_drawer_close');
+    expect(closes).toHaveLength(1);
+    expect(closes[0].params.event_label).toBe('escape');
+  });
+
+  test('backdrop click fires nav_drawer_close with reason="backdrop"', async ({ page }) => {
+    await captureGtag(page);
+    await page.goto('/calculator/');
+    await page.locator('.heyming-nav-toggle').click();
+    await page.waitForSelector('.heyming-nav-drawer.open');
+    await page.locator('.heyming-nav-backdrop').click();
+    await page.waitForFunction(() => !document.querySelector('.heyming-nav-drawer.open'));
+
+    const closes = (await gtagEvents(page)).filter((e) => e.name === 'nav_drawer_close');
+    expect(closes).toHaveLength(1);
+    expect(closes[0].params.event_label).toBe('backdrop');
+  });
+
+  test('search debounces into a single nav_drawer_search event with result count', async ({
+    page
+  }) => {
+    await captureGtag(page);
+    await page.goto('/calculator/');
+    await page.locator('.heyming-nav-toggle').click();
+    await page.waitForSelector('.heyming-nav-search-input');
+    await page.locator('.heyming-nav-search-input').fill('cal');
+    // Debounce is 700ms; wait a beat past that.
+    await page.waitForTimeout(1000);
+
+    const searches = (await gtagEvents(page)).filter((e) => e.name === 'nav_drawer_search');
+    expect(searches).toHaveLength(1);
+    expect(searches[0].params.event_category).toBe('Navigation');
+    expect(parseInt(searches[0].params.event_label, 10)).toBeGreaterThan(0);
+    expect(searches[0].params.value).toBe(3);
   });
 
   test('not shown on /os/ path', async ({ page }) => {
