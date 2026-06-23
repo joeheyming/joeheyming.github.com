@@ -7,8 +7,17 @@
 //   options.validate: (text)=>boolean — optional body check; on false the proxy
 //     is treated as failed and the chain advances. `fetchJson` sets this by
 //     default to reject non-JSON bodies (catches codetabs' rate-limit garbage).
+//
+// Auto-invalidation: proxies that return well-known "dead" response bodies
+// (paywall blobs, "domain not registered", "bad request" landing JSON) are
+// banned for a long TTL so we don't burn budget hammering services that
+// pulled the rug. Bans are scoped by mode ('text' | 'binary' | '*') because
+// some proxies (e.g. corsproxy.io as of mid-2026) work fine for text but
+// have paywalled binary content types. Bans persist to localStorage so a
+// reload doesn't re-probe the same dead services.
 
 const PROXY_HEALTH_STORAGE_KEY = 'heyming.proxyService.v1';
+const DEAD_PROXY_TTL_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Cheap pre-flight check used by `fetchJson`'s default `validate`. CORS
@@ -24,6 +33,79 @@ function looksLikeJsonBody(text) {
   if (!trimmed) return false;
   const first = trimmed[0];
   return first === '{' || first === '[';
+}
+
+/**
+ * Signatures that identify a proxy as terminally broken (paywall, dead
+ * endpoint, missing domain registration). When a response body matches
+ * one of these, the proxy gets banned for `DEAD_PROXY_TTL_MS` so we
+ * don't keep trying it.
+ *
+ * `mode` controls the ban scope:
+ *   - 'binary' — only ban for binary requests (proxy may still work for text).
+ *   - '*'      — ban universally.
+ *
+ * Add new signatures here when a proxy starts failing in a recognizable
+ * way; the regex needs to match an excerpt of the body that uniquely
+ * identifies the failure mode.
+ *
+ * @type {Array<{ name: string, mode: 'binary' | '*', re: RegExp }>}
+ */
+const DEAD_PROXY_SIGNATURES = [
+  // corsproxy.io free plan (mid-2026) — blocks binary content types but
+  // still serves HTML, so this is a binary-only kill. The full body is
+  // {"error":"This content type is not allowed on the free plan. Upgrade at https://corsproxy.io/pricing/"}
+  {
+    name: 'corsproxy_paywall_content_type',
+    mode: 'binary',
+    re: /content type is not allowed on the free plan/i
+  },
+  // corsproxy.io also blocks server-side requests on the free plan; if we
+  // ever hit this from a Node test runner we want to ban universally so the
+  // test doesn't loop. From a real browser this path shouldn't fire.
+  {
+    name: 'corsproxy_paywall_serverside',
+    mode: '*',
+    re: /server-side requests are not allowed on your plan/i
+  },
+  // corsfix.com requires the calling domain to be registered with their
+  // service; for an unregistered domain every request fails the same way.
+  {
+    name: 'corsfix_domain_unregistered',
+    mode: '*',
+    re: /"corsfix_error"\s*:\s*"domain_not_registered"/i
+  },
+  {
+    name: 'corsfix_invalid_origin',
+    mode: '*',
+    re: /"corsfix_error"\s*:\s*"invalid_origin"/i
+  },
+  // codetabs's /v1/proxy endpoint started returning this for every input
+  // shape in 2026. No URL variant works.
+  {
+    name: 'codetabs_bad_request',
+    mode: '*',
+    re: /Bad request, valid format is.*api\.codetabs\.com/i
+  }
+];
+
+/**
+ * Match a response body against {@link DEAD_PROXY_SIGNATURES}.
+ *
+ * @param {string} body — Response body text (or excerpt).
+ * @returns {{ name: string, mode: 'binary' | '*' } | null}
+ */
+function detectDeadProxySignature(body) {
+  if (typeof body !== 'string' || !body) return null;
+  // Cap the regex work — dead-signature bodies are always tiny, but a
+  // misclassified binary body could otherwise eat real CPU.
+  const sample = body.length > 4096 ? body.slice(0, 4096) : body;
+  for (const sig of DEAD_PROXY_SIGNATURES) {
+    if (sig.re.test(sample)) {
+      return { name: sig.name, mode: sig.mode };
+    }
+  }
+  return null;
 }
 
 /** @param {number} timeoutMs @param {AbortSignal|undefined|null} userSignal */
@@ -50,13 +132,30 @@ function mergeFetchAbortSignal(timeoutMs, userSignal) {
 
 class ProxyService {
   constructor() {
-    // Proxy services ordered roughly by reliability (as of late 2024-2025)
-    // Note: Free proxies can become unreliable - check/update periodically
+    // Proxy services ordered roughly by current reliability.
+    //
+    // The "known dead" entries (codetabs, allorigins, corsfix) are kept in
+    // the list on purpose — the auto-invalidator bans them after the first
+    // failed request, but the ban expires after DEAD_PROXY_TTL_MS so we
+    // re-probe periodically. If one of them comes back online we benefit
+    // automatically. The working ones go first so a fresh-cache session
+    // doesn't pay first-request latency on a dead proxy.
+    //
+    // Note: Free proxies can become unreliable - check/update periodically.
+    // See DEAD_PROXY_SIGNATURES above for the kill rules.
     this.proxyOptions = [
-      'https://corsproxy.io/?', // Most reliable as of 2025
-      'https://api.codetabs.com/v1/proxy?quest=', // Rate limited but works
-      'https://api.allorigins.win/raw?url=', // Can be unreliable; run test:proxy to verify
-      'https://proxy.corsfix.com/?url=' // Same format as allorigins; 400 if using ? only
+      // Working for both text + binary (verified June 2026 against
+      // zenius-i-vanisher .sm + .ogg + .zip downloads).
+      'https://allorigins.hexlet.app/raw?url=', // Hexlet-hosted allorigins fork; serves real binary bodies
+      'https://corsmirror.com/v1?url=', // Cloudflare-fronted; passes through Content-Type from upstream
+      // Working for text only; binary content types are paywalled on the
+      // free plan as of mid-2026 (banned for mode='binary' automatically).
+      'https://corsproxy.io/?',
+      // Historical entries — currently broken; auto-ban will skip them
+      // until the next 24h probe window. Left in so they can recover.
+      'https://api.codetabs.com/v1/proxy?quest=',
+      'https://api.allorigins.win/raw?url=',
+      'https://proxy.corsfix.com/?url='
     ];
     this.cache = new Map();
     /** @type {number | null} */
@@ -75,6 +174,14 @@ class ProxyService {
     this.proxyAttempts = new Map();
     this.proxySuccesses = new Map();
 
+    // Hard-ban state. Keyed by "<proxy>|<mode>" where mode is 'binary' or
+    // '*' (universal). Value is the timestamp the ban expires at, plus the
+    // signature name that triggered the ban for diagnostics.
+    /** @type {Map<string, number>} */
+    this.proxyDeadUntil = new Map();
+    /** @type {Map<string, string>} */
+    this.proxyDeadReason = new Map();
+
     // Initialize scores for all proxies
     this.proxyOptions.forEach((proxy) => {
       this.proxyScores.set(proxy, 1.0); // Start with neutral score
@@ -83,6 +190,55 @@ class ProxyService {
     });
 
     this._loadPersistedProxyHealth();
+  }
+
+  /** Build the composite key used in {@link proxyDeadUntil}. */
+  _deadKey(proxy, mode) {
+    return `${proxy}|${mode || '*'}`;
+  }
+
+  /**
+   * @param {string} proxy
+   * @param {'text' | 'binary'} [mode] — request mode being attempted.
+   * @returns {boolean} true if the proxy is currently banned for this mode.
+   */
+  isProxyDead(proxy, mode) {
+    const now = Date.now();
+    const universal = this.proxyDeadUntil.get(this._deadKey(proxy, '*'));
+    if (universal && universal > now) return true;
+    if (mode) {
+      const scoped = this.proxyDeadUntil.get(this._deadKey(proxy, mode));
+      if (scoped && scoped > now) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Ban a proxy (mode-scoped or universal) for `ttlMs`. Persisted to
+   * localStorage so the ban survives reloads.
+   * @param {string} proxy
+   * @param {'text' | 'binary' | '*'} mode
+   * @param {string} reason — signature name or short tag.
+   * @param {number} [ttlMs]
+   */
+  _markProxyDead(proxy, mode, reason, ttlMs = DEAD_PROXY_TTL_MS) {
+    const key = this._deadKey(proxy, mode);
+    this.proxyDeadUntil.set(key, Date.now() + ttlMs);
+    this.proxyDeadReason.set(key, reason);
+    const scope = mode === '*' ? 'all requests' : `${mode} requests`;
+    console.warn(
+      `Disabling proxy ${proxy} for ${Math.round(ttlMs / 3600000)}h ` +
+        `(${scope}): ${reason}`
+    );
+    this._schedulePersistProxyHealth();
+  }
+
+  /** Inspect a response body for known dead signatures and ban on match. */
+  _maybeMarkDeadFromBody(proxy, body) {
+    const sig = detectDeadProxySignature(body);
+    if (!sig) return null;
+    this._markProxyDead(proxy, sig.mode, sig.name);
+    return sig;
   }
 
   _cacheSet(key, value) {
@@ -123,6 +279,21 @@ class ProxyService {
           this.proxySuccesses.set(proxy, row.successes);
         }
       }
+      const dead = data && data.dead;
+      if (dead && typeof dead === 'object') {
+        const now = Date.now();
+        for (const key of Object.keys(dead)) {
+          const row = dead[key];
+          if (!row || typeof row !== 'object') continue;
+          const until = typeof row.until === 'number' ? row.until : 0;
+          // Drop expired entries on load so the in-memory map is small.
+          if (!until || until <= now) continue;
+          this.proxyDeadUntil.set(key, until);
+          if (typeof row.reason === 'string') {
+            this.proxyDeadReason.set(key, row.reason);
+          }
+        }
+      }
     } catch {
       /* ignore corrupt or private mode */
     }
@@ -146,9 +317,15 @@ class ProxyService {
             successes: this.proxySuccesses.get(proxy) ?? 0
           };
         }
+        const now = Date.now();
+        const dead = {};
+        for (const [key, until] of this.proxyDeadUntil.entries()) {
+          if (typeof until !== 'number' || until <= now) continue;
+          dead[key] = { until, reason: this.proxyDeadReason.get(key) || '' };
+        }
         localStorage.setItem(
           PROXY_HEALTH_STORAGE_KEY,
-          JSON.stringify({ v: 1, savedAt: Date.now(), proxies })
+          JSON.stringify({ v: 1, savedAt: Date.now(), proxies, dead })
         );
       } catch {
         /* quota, private mode */
@@ -182,8 +359,14 @@ class ProxyService {
 
   // Get proxies ordered by score (best first).
   // options.deferProxies: string[] — URL prefixes to try last (e.g. ['https://corsproxy.io/']).
+  // options.mode: 'text' | 'binary' — request mode used for dead-list filtering.
   getOrderedProxies(options = {}) {
-    const byScore = this.proxyOptions
+    const mode = options.mode;
+    const alive = this.proxyOptions.filter((p) => !this.isProxyDead(p, mode));
+    // If every proxy is banned, fall back to the full list (lets recovered
+    // services get a re-probe instead of blocking the user entirely).
+    const candidates = alive.length > 0 ? alive : this.proxyOptions;
+    const byScore = candidates
       .map((proxy) => ({
         proxy,
         score: this.proxyScores.get(proxy) || 1.0,
@@ -260,7 +443,7 @@ class ProxyService {
     const maxRetries = options.maxRetries || this.maxRetries;
     let lastError = null;
 
-    const orderedProxies = this.getOrderedProxies(options);
+    const orderedProxies = this.getOrderedProxies({ ...options, mode: 'text' });
     console.log(`Trying ${orderedProxies.length} proxies for: ${url.substring(0, 80)}...`);
 
     for (let retry = 0; retry <= maxRetries; retry++) {
@@ -268,6 +451,8 @@ class ProxyService {
         throw new DOMException('The operation was aborted.', 'AbortError');
       }
       for (const proxy of orderedProxies) {
+        // Skip proxies banned mid-loop (e.g. another await marked them dead).
+        if (this.isProxyDead(proxy, 'text')) continue;
         // Circuit breaker: skip proxy briefly after a failure to try others first
         const lastFail = this.proxyLastFailure.get(proxy);
         if (lastFail && Date.now() - lastFail < this.proxyCooldownMs) continue;
@@ -302,6 +487,10 @@ class ProxyService {
               continue;
             }
 
+            // Known-dead signature even on a 200 (some proxies return their
+            // paywall blob with status 200 + JSON body). Ban and advance.
+            if (this._maybeMarkDeadFromBody(proxy, content)) continue;
+
             // Caller-supplied body validation. Catches proxies that return 200 OK
             // with a non-empty body that isn't what we asked for — e.g. codetabs
             // returning "Edge: Too Many Requests" as a plain-text 23-byte body
@@ -326,6 +515,17 @@ class ProxyService {
 
             return content;
           } else {
+            // Read the (likely small) error body to check for dead signatures
+            // before just penalizing the score. This is what catches the
+            // corsproxy.io content-type paywall, codetabs's bad-request JSON,
+            // and corsfix's domain_not_registered blob.
+            let errBody = '';
+            try {
+              errBody = await response.text();
+            } catch {
+              /* ignore */
+            }
+            if (this._maybeMarkDeadFromBody(proxy, errBody)) continue;
             console.warn(`Proxy ${proxy} returned status ${response.status}`);
             this.updateProxyScore(proxy, false);
             this.proxyLastFailure.set(proxy, Date.now());
@@ -429,9 +629,17 @@ class ProxyService {
 
           if (response.ok) {
             const content = await response.text();
+            if (this._maybeMarkDeadFromBody(proxy, content)) continue;
             console.log(`POST via ${proxy} succeeded in ${responseTime}ms`);
             return content;
           } else {
+            let errBody = '';
+            try {
+              errBody = await response.text();
+            } catch {
+              /* ignore */
+            }
+            if (this._maybeMarkDeadFromBody(proxy, errBody)) continue;
             console.warn(`POST proxy ${proxy} returned status ${response.status}`);
           }
         } catch (error) {
@@ -484,13 +692,14 @@ class ProxyService {
     const maxRetries = options.maxRetries || this.maxRetries;
     let lastError = null;
 
-    const orderedProxies = this.getOrderedProxies(options);
+    const orderedProxies = this.getOrderedProxies({ ...options, mode: 'binary' });
 
     for (let retry = 0; retry <= maxRetries; retry++) {
       if (userAbort && userAbort.aborted) {
         throw new DOMException('The operation was aborted.', 'AbortError');
       }
       for (const proxy of orderedProxies) {
+        if (this.isProxyDead(proxy, 'binary')) continue;
         const lastFail = this.proxyLastFailure.get(proxy);
         if (lastFail && Date.now() - lastFail < this.proxyCooldownMs) continue;
 
@@ -511,6 +720,32 @@ class ProxyService {
           const responseTime = Date.now() - startTime;
 
           if (response.ok) {
+            // Some proxies return 200 with a JSON paywall/error blob instead
+            // of the binary payload (corsproxy.io's free-plan content-type
+            // gate is the canonical example). If the response advertises a
+            // text/JSON content-type, read it as text first and check the
+            // dead signatures. Real binary will have application/zip,
+            // audio/*, application/octet-stream, etc.
+            const ct = (response.headers.get('content-type') || '').toLowerCase();
+            const looksTextual =
+              ct.includes('application/json') ||
+              ct.startsWith('text/') ||
+              ct.includes('xml');
+            if (looksTextual) {
+              let bodyText = '';
+              try {
+                bodyText = await response.text();
+              } catch {
+                /* ignore */
+              }
+              if (this._maybeMarkDeadFromBody(proxy, bodyText)) continue;
+              console.warn(
+                `Proxy ${proxy} returned ${ct} for binary request — treating as failure`
+              );
+              this.updateProxyScore(proxy, false);
+              this.proxyLastFailure.set(proxy, Date.now());
+              continue;
+            }
             const arrayBuffer = await response.arrayBuffer();
             const uint8Array = new Uint8Array(arrayBuffer);
             this._cacheSet(cacheKey, uint8Array);
@@ -524,6 +759,13 @@ class ProxyService {
 
             return uint8Array;
           } else {
+            let errBody = '';
+            try {
+              errBody = await response.text();
+            } catch {
+              /* ignore */
+            }
+            if (this._maybeMarkDeadFromBody(proxy, errBody)) continue;
             console.warn(`Proxy ${proxy} returned status ${response.status}`);
             this.updateProxyScore(proxy, false);
             this.proxyLastFailure.set(proxy, Date.now());
@@ -737,6 +979,7 @@ class ProxyService {
 
   // Get proxy statistics with scores
   getProxyStats() {
+    const now = Date.now();
     const stats = [];
     this.proxyOptions.forEach((proxy) => {
       const attempts = this.proxyAttempts.get(proxy) || 0;
@@ -744,12 +987,27 @@ class ProxyService {
       const score = this.proxyScores.get(proxy) || 1.0;
       const successRate = attempts > 0 ? ((successes / attempts) * 100).toFixed(1) : '0.0';
 
+      const bans = [];
+      for (const mode of ['*', 'text', 'binary']) {
+        const key = this._deadKey(proxy, mode);
+        const until = this.proxyDeadUntil.get(key);
+        if (until && until > now) {
+          bans.push({
+            mode,
+            reason: this.proxyDeadReason.get(key) || '',
+            until,
+            remainingMs: until - now
+          });
+        }
+      }
+
       stats.push({
         proxy,
         score: score.toFixed(2),
         attempts,
         successes,
-        successRate: `${successRate}%`
+        successRate: `${successRate}%`,
+        bans
       });
     });
 
@@ -760,6 +1018,47 @@ class ProxyService {
       cacheSize: this.cache.size,
       proxyStats: stats.sort((a, b) => parseFloat(b.score) - parseFloat(a.score))
     };
+  }
+
+  /**
+   * Manually ban a proxy. Useful from devtools / terminal when a proxy is
+   * clearly misbehaving in a way the auto-detector doesn't catch yet.
+   * @param {string} proxy — must match a `proxyOptions` entry exactly.
+   * @param {{ mode?: 'text' | 'binary' | '*', ttlMs?: number, reason?: string }} [options]
+   */
+  disableProxy(proxy, options = {}) {
+    if (!this.proxyOptions.includes(proxy)) {
+      console.warn(`disableProxy: unknown proxy ${proxy}`);
+      return false;
+    }
+    this._markProxyDead(
+      proxy,
+      options.mode || '*',
+      options.reason || 'manual',
+      options.ttlMs ?? DEAD_PROXY_TTL_MS
+    );
+    return true;
+  }
+
+  /**
+   * Lift a previously-applied ban for a proxy. Clears the matching entry
+   * (or all entries when `mode` is omitted).
+   * @param {string} proxy
+   * @param {'text' | 'binary' | '*'} [mode]
+   */
+  enableProxy(proxy, mode) {
+    if (mode) {
+      const key = this._deadKey(proxy, mode);
+      this.proxyDeadUntil.delete(key);
+      this.proxyDeadReason.delete(key);
+    } else {
+      for (const m of ['*', 'text', 'binary']) {
+        const key = this._deadKey(proxy, m);
+        this.proxyDeadUntil.delete(key);
+        this.proxyDeadReason.delete(key);
+      }
+    }
+    this._schedulePersistProxyHealth();
   }
 
   /**
@@ -890,13 +1189,18 @@ class ProxyService {
     return value;
   }
 
-  // Reset all proxy scores (useful for testing)
+  // Reset all proxy scores (useful for testing). Also clears the dead-list
+  // and circuit-breaker state so a stuck client can recover without a
+  // full localStorage wipe.
   resetProxyScores() {
     this.proxyOptions.forEach((proxy) => {
       this.proxyScores.set(proxy, 1.0);
       this.proxyAttempts.set(proxy, 0);
       this.proxySuccesses.set(proxy, 0);
     });
+    this.proxyDeadUntil.clear();
+    this.proxyDeadReason.clear();
+    this.proxyLastFailure.clear();
     if (typeof localStorage !== 'undefined') {
       try {
         localStorage.removeItem(PROXY_HEALTH_STORAGE_KEY);
