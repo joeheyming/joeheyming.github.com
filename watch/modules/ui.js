@@ -88,7 +88,9 @@ export function renderEpisodes(container, episodes, onSelect) {
       img.loading = 'lazy';
       img.decoding = 'async';
       img.src = ep.image;
-      img.alt = '';
+      img.alt = ep.title
+        ? `S${pad(ep.season)}E${pad(ep.episode)} — ${ep.title}`
+        : `Season ${ep.season} Episode ${ep.episode}`;
       img.addEventListener(
         'error',
         () => {

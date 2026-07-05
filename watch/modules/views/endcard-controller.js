@@ -115,7 +115,9 @@ export function createEndCardController(deps) {
       const img = document.createElement('img');
       img.loading = 'lazy';
       img.decoding = 'async';
-      img.alt = '';
+      img.alt = `Up next: ${show.name} — S${pad(next.season)}E${pad(next.episode)}${
+        next.title ? ` ${next.title}` : ''
+      }`;
       img.src = next.image;
       // Fall back to the show emoji if the TVMaze still fails — we
       // explicitly don't fall back to archive.org's auto-thumbs.

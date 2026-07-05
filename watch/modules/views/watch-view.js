@@ -1262,7 +1262,9 @@ export async function mount(slot, ctx) {
         const img = document.createElement('img');
         img.loading = 'lazy';
         img.src = next.image;
-        img.alt = '';
+        img.alt = `${show.name} — S${pad(next.season)}E${pad(next.episode)}${
+          next.title ? ` ${next.title}` : ''
+        }`;
         // Hide and fall back to the show emoji if the TVMaze still
         // can't be reached — the archive.org auto-thumbs aren't used.
         img.addEventListener(

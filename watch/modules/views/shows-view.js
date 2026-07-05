@@ -893,7 +893,12 @@ function makeSavedCard(meta, ctx, onChange) {
     const img = document.createElement('img');
     img.loading = 'lazy';
     img.decoding = 'async';
-    img.alt = '';
+    img.alt = isMovie
+      ? `${meta.showName} poster`
+      : `${meta.showName} — ${
+          meta.title ||
+          `S${String(meta.season).padStart(2, '0')}E${String(meta.episode).padStart(2, '0')}`
+        }`;
     img.src = thumbSrc;
     img.addEventListener(
       'error',
@@ -1024,7 +1029,7 @@ function makeContinueCard(show, entry, ctx, onChange) {
     const img = document.createElement('img');
     img.loading = 'lazy';
     img.decoding = 'async';
-    img.alt = '';
+    img.alt = `${show.name} poster`;
     img.src = posterUrl;
     img.addEventListener(
       'error',
@@ -1040,7 +1045,7 @@ function makeContinueCard(show, entry, ctx, onChange) {
     const img = document.createElement('img');
     img.loading = 'lazy';
     img.decoding = 'async';
-    img.alt = '';
+    img.alt = `${show.name} poster`;
     lazyResolvePoster(img, () => {
       fetchPoster(tvmazeId).then((url) => {
         if (url) img.src = url;
@@ -1173,7 +1178,7 @@ function makeMovieCard(movie, ctx) {
     const img = document.createElement('img');
     img.loading = 'lazy';
     img.decoding = 'async';
-    img.alt = '';
+    img.alt = `${movie.name} poster`;
     img.src = movie.posterUrl;
     img.addEventListener(
       'error',
@@ -1189,7 +1194,7 @@ function makeMovieCard(movie, ctx) {
     const img = document.createElement('img');
     img.loading = 'lazy';
     img.decoding = 'async';
-    img.alt = '';
+    img.alt = `${movie.name} poster`;
     lazyResolvePoster(img, () => {
       fetchPoster(movie.tvmazeId).then((url) => {
         if (url) img.src = url;
@@ -1268,7 +1273,7 @@ function makeShowCard(show, ctx) {
   const img = document.createElement('img');
   img.loading = 'lazy';
   img.decoding = 'async';
-  img.alt = '';
+  img.alt = `${show.name} poster`;
   // Resolve the actual poster URL via TVMaze only once this card is
   // near the viewport. See `lazyResolvePoster` for why — TL;DR
   // `loading="lazy"` defers the byte download once src is set, but
