@@ -20,7 +20,7 @@
     <!-- SEO Meta Tags -->
     <meta
       name="description"
-      content="A shared grid of one million checkboxes — click any box and everyone else's page sees the change. No accounts, no install. Backed by a Google Form (writes) and Sheet (reads) instead of a server."
+      content="A shared grid of one million checkboxes — click any box and everyone else's page sees it flip. No accounts, no install, no server."
     />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
@@ -35,7 +35,7 @@
     <meta property="og:title" content="Checkboxes ☑️ - Joe Heyming" />
     <meta
       property="og:description"
-      content="A shared grid of one million checkboxes — click any box and everyone else's page sees the change. No accounts, no install."
+      content="A shared grid of one million checkboxes — click any box and everyone else's page sees it flip. No accounts, no install, no server."
     />
     <meta property="og:url" content="https://joeheyming.github.io/checkboxes/" />
     <meta
@@ -54,7 +54,7 @@
     <meta name="twitter:title" content="Checkboxes ☑️" />
     <meta
       name="twitter:description"
-      content="A small shared grid of checkboxes — click a box and everyone else's page sees it flip."
+      content="A shared grid of one million checkboxes — click any box and everyone else's page sees it flip. No accounts, no install, no server."
     />
     <meta
       name="twitter:image"
@@ -72,7 +72,7 @@
             "name": "Checkboxes",
             "applicationCategory": "EntertainmentApplication",
             "operatingSystem": "Web Browser",
-            "description": "A shared grid of one million checkboxes. Clicks propagate to all viewers via a Google Form + Sheet — no backend.",
+            "description": "A shared grid of one million checkboxes — click any box and everyone else's page sees it flip. No accounts, no install, no server.",
             "url": "https://joeheyming.github.io/checkboxes/",
             "author": {
               "@type": "Person",
@@ -84,6 +84,59 @@
               "price": "0",
               "priceCurrency": "USD"
             }
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What is One Million Checkboxes?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "A shared grid of one million checkboxes on a static site. Click any box and everyone else viewing the page eventually sees it flip. It's a loving tribute to Nolen Royalty's original onemillioncheckboxes.com, which captured the internet for a strange and delightful summer in 2024. The original is offline; this is a static-site re-creation of the same idea."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How does it work without a server?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Clicks are submitted through a hidden Google Form, and every page reads from the linked Google Sheet a few seconds apart. An Apps Script periodically compacts the response log into a packed-bitmap snapshot so the sheet stays small. There is no first-party backend — just Forms, Sheets, and static HTML on GitHub Pages."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Who made the original one million checkboxes?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Nolen Royalty (eieio.games) built the original onemillioncheckboxes.com. This page is a static-site tribute. Their engineering write-ups about the original, including the story of the teenagers who hid URLs, QR codes, and pixel art inside the grid, are well worth reading."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What do the i and esc keys do?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Press i to see the grid rendered as a 1000×1000 image at one bit per pixel — the mono view a group of teenagers in a Discord server used to hide URLs, QR codes, and pixel art inside the original. Press i again for the 24-bit RGB view they invented to embed color, or esc to return to the grid."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Are the checks persistent across visits?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Every check is written to the shared Google Sheet, so the state is the same for everyone and survives page reloads. There are no per-user accounts; the grid is a single shared canvas that persists as long as the sheet does."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is Checkboxes free to use?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. No accounts, no install, no ads, no signup. The page is a static GitHub Pages deploy and every click, read, and render runs client-side in the browser."
+                }
+              }
+            ]
           },
           {
             "@type": "BreadcrumbList",
@@ -112,7 +165,12 @@
   <body>
     <main class="cb-wrapper">
       <header class="cb-header">
-        <h1 id="cb-title">Checkboxes</h1>
+        <!-- Static fallback text — index.js overwrites this at module
+             load with `${N.toLocaleString()} Checkboxes`, so the visible
+             heading tracks whatever config.js sets N to. The static
+             value here is what search-engine crawlers, initial-paint
+             snapshots, and (rarely) no-JS visitors see. -->
+        <h1 id="cb-title">One Million Checkboxes</h1>
         <p class="cb-counter" aria-live="polite">
           <strong><span id="cb-checked">0</span></strong>
           /
@@ -135,6 +193,41 @@
       <footer class="cb-footer" aria-live="polite">
         <span id="cb-status">connecting…</span>
       </footer>
+
+      <!-- SEO fallback for crawlers that don't render JS, and for users
+           with JavaScript disabled. The grid, counter, image views, and
+           tribute dialog are all JS-rendered, so the static body would
+           otherwise contain almost no keyword-bearing content. This
+           block describes what the page is and links back to the home
+           page. Screen-reader users still get the same information via
+           the visible headings and aria-labels once JS runs. -->
+      <noscript>
+        <section class="cb-seo-fallback">
+          <h2>One Million Shared Checkboxes</h2>
+          <p>
+            This page is a shared grid of one million checkboxes. Click any box and every other
+            person viewing the page eventually sees it flip. There are no accounts, no signup, and
+            nothing to install — the state is the same for everyone.
+          </p>
+          <p>
+            It's a loving tribute to
+            <a href="https://onemillioncheckboxes.com/">onemillioncheckboxes.com</a>
+            by
+            <a href="https://eieio.games/">Nolen Royalty</a>
+            , which captured the internet for a strange and delightful summer in 2024. The original
+            is offline; this is a static-site re-creation of the same idea, hosted on GitHub Pages.
+          </p>
+          <p>
+            There is no backend server. Clicks are written to a hidden Google Form and reads come
+            from the linked Google Sheet, compacted by an Apps Script into a packed-bitmap
+            snapshot. Everything else runs client-side in the browser.
+          </p>
+          <p>
+            This page requires JavaScript to render the interactive grid.
+            <a href="/">← Browse all apps on joeheyming.github.io</a>
+          </p>
+        </section>
+      </noscript>
     </main>
 
     <!-- Jump-to-checkbox widget. Floating bottom-right. Type a
