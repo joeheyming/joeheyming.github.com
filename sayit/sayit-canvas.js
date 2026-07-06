@@ -1,5 +1,5 @@
 import { S, MAX_CANVAS_HISTORY, INK_LUMA_SUM_MAX } from './sayit-state.js';
-import { displayImage, hideResults, showResults } from './sayit-ui.js';
+import { displayImage, hideResults, showLoading, showResults } from './sayit-ui.js';
 import { recognize } from './sayit-tesseract.js';
 
 function setupEraserHoverOverlay() {
@@ -497,19 +497,35 @@ export function setupCanvasEvents() {
   S.redoCanvasBtn.addEventListener('click', redoCanvas);
 }
 
-function readCanvasDrawing() {
-  var imageData = S.drawingCanvas.toDataURL('image/png');
-
-  saveCanvasToStorage();
+// The "Read aloud" click used to run two full toDataURL('image/png')
+// encodes back-to-back on an 800×400 canvas (once for OCR, once for
+// localStorage) — the encode is synchronous and can be 30-80ms on mid-
+// range mobile, so INP for this button routinely blew past the 200ms
+// "good" threshold. Now we encode once, paint a "Processing…" state,
+// yield to the browser, and only then do the heavy work.
+async function readCanvasDrawing() {
+  var yieldFn =
+    typeof window.yieldToMain === 'function'
+      ? window.yieldToMain
+      : function () {
+          return new Promise(function (r) {
+            setTimeout(r, 0);
+          });
+        };
 
   showResults();
+  showLoading();
+  await yieldFn();
+
+  var imageData = S.drawingCanvas.toDataURL('image/png');
+  saveCanvasToStorage(imageData);
   displayImage(imageData);
   recognize(imageData, true);
 }
 
-function saveCanvasToStorage() {
+function saveCanvasToStorage(preEncoded) {
   try {
-    var imageData = S.drawingCanvas.toDataURL('image/png');
+    var imageData = preEncoded || S.drawingCanvas.toDataURL('image/png');
     localStorage.setItem('sayit-canvas-drawing', imageData);
     console.log('Canvas saved to localStorage');
   } catch (error) {

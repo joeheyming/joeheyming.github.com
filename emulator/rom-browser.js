@@ -239,7 +239,19 @@ class RomBrowserElement extends HTMLElement {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) this.closeBrowser();
     });
-    searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
+    // Debounce the ROM search — full fuzzy-score + grid re-render on every
+    // keystroke was the dominant INP cost on this page (hundreds of cards
+    // rebuilt via innerHTML inside the keypress handler). 120ms is short
+    // enough to feel live while still batching a fast typist's 3-5 char
+    // burst into a single render.
+    searchInput.addEventListener('input', (e) => {
+      const value = e.target.value;
+      if (this._searchDebounce) clearTimeout(this._searchDebounce);
+      this._searchDebounce = setTimeout(() => {
+        this._searchDebounce = null;
+        this.handleSearch(value);
+      }, 120);
+    });
   }
 
   async openBrowser() {

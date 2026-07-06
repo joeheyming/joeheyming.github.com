@@ -131,6 +131,25 @@ function normalizeBook(doc) {
   };
 }
 
+// --- URL persistence ---
+// Track the open book in the query string so refresh keeps you on the
+// same audiobook (its saved chapter/position lives in localStorage).
+// Uses `replaceState` — refresh works, back button still leaves the site.
+
+function getBookIdFromUrl() {
+  return new URLSearchParams(window.location.search).get('book') || null;
+}
+
+function setBookIdInUrl(bookId) {
+  const url = new URL(window.location.href);
+  if (bookId) {
+    url.searchParams.set('book', String(bookId));
+  } else {
+    url.searchParams.delete('book');
+  }
+  history.replaceState(null, '', url.pathname + url.search + url.hash);
+}
+
 // --- UI helpers ---
 
 function formatTime(seconds) {
@@ -338,6 +357,12 @@ async function openBook(book, startSectionIndex = null, startPosition = 0) {
       const { sections, description } = await fetchBookSections(book.identifier);
       book.sections = sections;
       if (!book.description && description) book.description = description;
+    } else if (typeof window.yieldToMain === 'function') {
+      // Cache hit — no network `await` above, so nothing has yielded yet
+      // and the click handler would otherwise run showDetailView +
+      // renderChapterList (up to 100+ chapter <li>s) inside the click's
+      // INP window. Yield once so the "Loading…" state paints first.
+      await window.yieldToMain();
     }
 
     if (!book.sections.length) {
@@ -350,6 +375,7 @@ async function openBook(book, startSectionIndex = null, startPosition = 0) {
     const position = startSectionIndex !== null ? startPosition : saved?.position ?? 0;
 
     currentBook = book;
+    setBookIdInUrl(book.identifier);
     showDetailView(book, sectionIndex);
     loadBookIntoPlayer(book, sectionIndex, position);
   } catch (err) {
@@ -467,17 +493,19 @@ function showPlayerBar(book) {
   playerTitle.textContent = book.title;
 }
 
+function saveCurrentProgress() {
+  if (!currentBook) return;
+  saveProgress(currentBook.id, player.currentIndex, player.currentTime, {
+    title: currentBook.title,
+    author: currentBook.creator,
+    coverUrl: getCoverUrl(currentBook),
+    totalSections: player.sections.length
+  });
+}
+
 function startProgressSaving() {
   clearInterval(progressTimer);
-  progressTimer = setInterval(() => {
-    if (!currentBook) return;
-    saveProgress(currentBook.id, player.currentIndex, player.currentTime, {
-      title: currentBook.title,
-      author: currentBook.creator,
-      coverUrl: getCoverUrl(currentBook),
-      totalSections: player.sections.length
-    });
-  }, PROGRESS_INTERVAL_MS);
+  progressTimer = setInterval(saveCurrentProgress, PROGRESS_INTERVAL_MS);
 }
 
 // --- Player bar event handlers ---
@@ -534,6 +562,9 @@ player.onChapterChange = (index) => {
   const section = player.currentSection;
   playerChapter.textContent = section?.title || `Chapter ${index + 1}`;
   highlightActiveChapter(index);
+  // Persist immediately so a refresh right after skipping to a new
+  // chapter (before the 5s interval fires) still restores correctly.
+  saveCurrentProgress();
 };
 
 player.onEnded = () => {
@@ -544,14 +575,18 @@ player.onEnded = () => {
 
 // Save progress on pause
 audioEl.addEventListener('pause', () => {
-  if (!currentBook) return;
-  saveProgress(currentBook.id, player.currentIndex, player.currentTime, {
-    title: currentBook.title,
-    author: currentBook.creator,
-    coverUrl: getCoverUrl(currentBook),
-    totalSections: player.sections.length
-  });
+  saveCurrentProgress();
   renderContinueSection();
+});
+
+// Flush save on tab close / navigate away / iOS background. The 5s
+// interval + pause-event save wouldn't catch a refresh mid-chapter
+// while audio is playing. Three overlapping signals cover the browsers
+// that only fire one of pagehide/beforeunload/visibilitychange reliably.
+window.addEventListener('pagehide', saveCurrentProgress);
+window.addEventListener('beforeunload', saveCurrentProgress);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveCurrentProgress();
 });
 
 // --- Chapter sheet ---
@@ -587,6 +622,7 @@ backBtn.addEventListener('click', () => {
   closeChapterSheet();
   detailView.classList.add('hidden');
   browseView.classList.remove('hidden');
+  setBookIdInUrl(null);
   renderContinueSection();
 });
 
@@ -600,5 +636,29 @@ searchClear.addEventListener('click', () => {
 
 // --- Init ---
 
+async function restoreBookFromUrl() {
+  const identifier = getBookIdFromUrl();
+  if (!identifier) return;
+  setLoading(true);
+  try {
+    const data = await iaMetadata(identifier);
+    const meta = data.metadata || {};
+    const book = normalizeBook({
+      identifier,
+      title: meta.title || identifier,
+      creator: meta.creator,
+      description: meta.description
+    });
+    await openBook(book);
+  } catch {
+    // Bad ID or offline — drop the param so a stale link doesn't stick.
+    setBookIdInUrl(null);
+    showToast('Could not open that book.', 'error');
+  } finally {
+    setLoading(false);
+  }
+}
+
 renderContinueSection();
 renderBrowse();
+restoreBookFromUrl();

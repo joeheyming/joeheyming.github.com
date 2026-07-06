@@ -455,6 +455,29 @@ function getPageName() {
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
+// Yield control back to the browser so it can paint (and process other
+// input) before the next chunk of JS runs. Heavy click handlers should
+// paint a "working…" state, `await window.yieldToMain()`, and then do the
+// long compute in the resumed continuation — post-yield work no longer
+// counts toward the click's INP. Site-wide utility because every app has
+// at least one interaction that could push INP past the 200ms threshold
+// without the pattern.
+//
+// Uses `scheduler.yield()` when available (Chromium 129+ — highest-priority
+// continuation, respects task priority, no throttling in background tabs).
+// Falls back to a 0ms `setTimeout`, which still creates a new task boundary
+// and gives the renderer a chance to paint. Placed on `analytics.js`
+// because it loads synchronously in `<head>` on every page, so callers can
+// rely on `window.yieldToMain` being defined before any user interaction.
+window.yieldToMain = function yieldToMain() {
+  if (typeof scheduler !== 'undefined' && typeof scheduler.yield === 'function') {
+    return scheduler.yield();
+  }
+  return new Promise(function (resolve) {
+    setTimeout(resolve, 0);
+  });
+};
+
 // Run on page load
 window.addEventListener('load', function () {
   setTimeout(trackSharedLinkArrival, 100);

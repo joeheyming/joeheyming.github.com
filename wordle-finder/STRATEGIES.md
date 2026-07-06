@@ -125,27 +125,29 @@ between actual answers.
 any valid word, we'd need to use the full dictionary. In practice, every Wordle answer comes
 from the known set.
 
-### 6. Out-of-Set Guessing
+### 6. Out-of-Set Guessing (removed from the helper UI)
 
-**File:** `filter.js` — `addPatternEntropyScore` (solutions ≤ 20 path)
+**File:** `filter.js` — `addPatternEntropyScore`
 
-When 20 or fewer solutions remain, the solver scores **all 2,309 wordleAnswers** as
-potential guesses — not just the remaining matches. This allows "discriminator" guesses:
-words that aren't possible answers but whose feedback pattern uniquely identifies the
-correct answer.
+Historically, when the solution pool was small, the solver scored **all 2,309
+wordleAnswers** as potential guesses — not just the remaining matches — to surface
+"discriminator" guesses: words that aren't possible answers but whose feedback pattern
+uniquely identifies the correct answer.
 
 Classic example: if the remaining words are `light, might, night, sight, tight`, guessing
 one of those only eliminates one word at a time (the other four produce identical feedback).
-But an out-of-set word that tests the distinguishing first letters — like "psalm" (tests
-p, s) or "month" (tests m, n, t) — can narrow it down much faster.
+An out-of-set word that tests the distinguishing first letters — like `psalm` (tests p, s)
+or `month` (tests m, n, t) — can narrow it down much faster.
 
-**Why it works:** When remaining solutions share a structural pattern, the optimal
-discriminator is often outside the remaining set.
+**Why it was removed from the helper:** In the "Help me solve wordle" flow, users type
+in their green/yellow/gray constraints and reasonably expect the Best Guess tab to only
+suggest words consistent with those constraints. Surfacing an out-of-set discriminator
+(e.g. suggesting `alter` when the user has locked position 1 to Q) was confusing enough
+that it read as a bug. The scorer now always draws candidates from the filtered `matched`
+set, matching hard-mode behavior.
 
-**Tradeoff:** Scoring all 2,309 words is feasible when solutions are few (2309 × 20 =
-~46k operations), but too expensive for the first guess (2309 × 2309 = ~5.3M). The
-threshold of 20 is a performance/accuracy balance. For medium pools (21–300), we mix
-solutions with additional wordleAnswers up to the 300-word cap.
+The auto-play / benchmark code paths still exist and can be extended later if we want to
+expose an "advanced / discriminator" mode; for now, all UI strategies score matched only.
 
 ### 7. Constraint Tracking
 
@@ -272,9 +274,10 @@ Metrics like **expected solve probability** or **partition variance** could comp
 entropy.
 
 **Hard Mode support.** Wordle's hard mode requires every guess to use all known green and
-yellow letters. This eliminates out-of-set guessing, making the problem harder. The solver
-could offer a hard-mode toggle that restricts candidates to `matched` only and adjusts the
-strategy accordingly — likely shifting toward minimax to avoid worst-case traps.
+yellow letters. The helper already restricts candidates to `matched` for every strategy,
+so it is effectively hard-mode compatible today. A future toggle could re-enable
+out-of-set discriminators as an "advanced / discriminator" mode — likely shifting toward
+minimax to avoid worst-case traps.
 
 **WebAssembly / Web Workers.** Move the entropy computation to WASM or a background
 worker. This would allow scoring all 2,309+ candidates without blocking the UI, removing

@@ -228,7 +228,7 @@ function calculateEntropyFast(guessCodes, solutionCodesList, patternCounts) {
 
 /**
  * Read the active strategy from the UI dropdown, falling back to 'pure-entropy'.
- * Strategies: 'pure-entropy', 'entropy-popularity', 'frequency', 'hard-mode'
+ * Strategies: 'pure-entropy', 'entropy-popularity', 'frequency'
  */
 function getStrategy() {
   if (typeof window !== 'undefined' && window.strategySelect) {
@@ -434,29 +434,17 @@ function addPatternEntropyScore(filtered, stats, options) {
 
   var maxWordsToScore = options.maxWordsToScore || 300;
   var wordsToScore;
-  var isHardMode = strategy === 'hard-mode';
 
-  if (isHardMode) {
-    // Hard mode: only guess from remaining matches (no out-of-set words)
-    if (matched.length > maxWordsToScore) {
-      if (stats.frequencyScore && stats.frequencyScore.length > 0) {
-        wordsToScore = stats.frequencyScore.slice(0, maxWordsToScore).map(function (item) {
-          return item[0];
-        });
-      } else {
-        wordsToScore = matched.slice(0, maxWordsToScore);
-      }
-    } else {
-      wordsToScore = matched;
-    }
-  } else if (hasWordleAnswers && solutions.length <= maxWordsToScore) {
-    // Small/medium pool: score ALL wordleAnswers for out-of-set discrimination
-    wordsToScore = Array.from(window.wordleAnswers);
-    solutions.forEach(function (w) {
-      if (!window.wordleAnswers.has(w)) wordsToScore.push(w);
-    });
-  } else if (matched.length > maxWordsToScore) {
-    // Large pool (first guess): top candidates by frequency score
+  // Always draw candidate guesses from the filtered `matched` set. Users
+  // reasonably expect Best Guess to respect the constraints they typed in
+  // (green/yellow/gray letters); scoring out-of-set discriminators here
+  // surfaced entropy-optimal but constraint-violating words (e.g. suggesting
+  // "alter" when the user has already fixed the first letter to Q). All
+  // strategies now behave like hard-mode with respect to filtering — the
+  // strategy still controls *how* candidates are scored (pure entropy vs.
+  // popularity blend vs. letter frequency), just not *which* candidates are
+  // eligible.
+  if (matched.length > maxWordsToScore) {
     if (stats.frequencyScore && stats.frequencyScore.length > 0) {
       wordsToScore = stats.frequencyScore.slice(0, maxWordsToScore).map(function (item) {
         return item[0];

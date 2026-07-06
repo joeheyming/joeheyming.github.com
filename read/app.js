@@ -46,7 +46,22 @@ const reader = new Reader(readerContainer, readerControls);
 reader.setupPageZones(document.getElementById('zone-prev'), document.getElementById('zone-next'));
 
 const THEMES = ['sepia', 'light', 'dark'];
-let themeIndex = 0;
+const THEME_LABELS = { dark: '🌙 Dark', sepia: '📜 Sepia', light: '☀️ Light' };
+
+// Match the site's dark/light mode on first load. Honors an explicit
+// `<html data-theme="…">` override first (set by the site's theme toggle),
+// then falls back to the OS-level prefers-color-scheme.
+function detectSiteDarkMode() {
+  const explicit = document.documentElement.getAttribute('data-theme');
+  if (explicit === 'dark') return true;
+  if (explicit === 'light') return false;
+  return Boolean(window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+}
+
+const initialTheme = detectSiteDarkMode() ? 'dark' : 'sepia';
+let themeIndex = THEMES.indexOf(initialTheme);
+reader.setTheme(initialTheme);
+btnTheme.textContent = THEME_LABELS[initialTheme];
 
 // --- Gutendex API ---
 
@@ -67,6 +82,45 @@ async function fetchFeaturedBooks() {
 async function searchBooks(query) {
   const data = await fetchBooks({ search: query });
   return (data.results || []).filter(hasReadableText);
+}
+
+// --- URL persistence ---
+// Track the open book in the query string so the reader survives refresh
+// and can be linked to. Uses `replaceState` (matches the pattern in
+// watch/) — refresh works, but the browser back button still leaves the
+// site rather than closing the book.
+//
+// URL shape: `?book=<gutenberg-id>-<slug>` (e.g. `?book=45-anne-of-green-gables`).
+// The Gutenberg ID is stable forever (like an ISBN); the slug is purely
+// cosmetic — parsing takes the leading digits and ignores everything
+// after, so a stale or missing slug still resolves to the right book.
+
+function slugifyTitle(title) {
+  return String(title || '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '') // strip accents
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60);
+}
+
+function getBookIdFromUrl() {
+  const raw = new URLSearchParams(window.location.search).get('book');
+  if (!raw) return null;
+  const match = String(raw).match(/^(\d+)/);
+  return match ? match[1] : null;
+}
+
+function setBookIdInUrl(bookId, title = null) {
+  const url = new URL(window.location.href);
+  if (bookId) {
+    const slug = title ? slugifyTitle(title) : '';
+    url.searchParams.set('book', slug ? `${bookId}-${slug}` : String(bookId));
+  } else {
+    url.searchParams.delete('book');
+  }
+  history.replaceState(null, '', url.pathname + url.search + url.hash);
 }
 
 // --- Helpers ---
@@ -314,6 +368,7 @@ tocSheet.addEventListener('keydown', (e) => {
 
 async function openBook(book) {
   saveToShelf(book);
+  setBookIdInUrl(book.id, book.title);
   readerTitle.textContent = book.title;
   tocSheetBookTitle.textContent = book.title;
 
@@ -351,6 +406,7 @@ btnCloseReader.addEventListener('click', () => {
   closeTocSheet();
   readerView.classList.add('hidden');
   browseView.classList.remove('hidden');
+  setBookIdInUrl(null);
   renderShelf();
 });
 
@@ -361,8 +417,7 @@ btnTheme.addEventListener('click', () => {
   themeIndex = (themeIndex + 1) % THEMES.length;
   const theme = THEMES[themeIndex];
   reader.setTheme(theme);
-  const labels = { dark: '🌙 Dark', sepia: '📜 Sepia', light: '☀️ Light' };
-  btnTheme.textContent = labels[theme];
+  btnTheme.textContent = THEME_LABELS[theme];
 });
 
 btnFontFamily.addEventListener('click', () => {
@@ -380,5 +435,23 @@ btnFontFamily.addEventListener('click', () => {
 
 // --- Init ---
 
+async function restoreBookFromUrl() {
+  const bookId = getBookIdFromUrl();
+  if (!bookId) return;
+  try {
+    const data = await fetchBooks({ ids: bookId });
+    const book = data.results?.[0];
+    if (book) {
+      openBook(book);
+    } else {
+      // Unknown ID — drop the param so it doesn't stick on refresh.
+      setBookIdInUrl(null);
+    }
+  } catch {
+    // Network hiccup — leave the URL alone so a retry (refresh) still works.
+  }
+}
+
 renderShelf();
 renderFeatured();
+restoreBookFromUrl();

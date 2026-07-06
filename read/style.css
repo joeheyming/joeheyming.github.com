@@ -415,25 +415,26 @@ body {
   pointer-events: none;
 }
 
-/* ===== Reader container (paged — no scroll) ===== */
+/* ===== Reader container (native scroll + step-paging) =====
+ * Container scrolls natively (wheel, keyboard, touch, dragging the
+ * scrollbar). The chevron page-turn buttons snap by `stepHeight` via
+ * `scrollTo({ behavior: 'smooth' })`, so both interaction models coexist.
+ */
 #reader-container {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
   background: var(--reader-bg, #0f172a);
   color: var(--reader-text, #e2e8f0);
-  /* No padding — handled by the wrapper/article below */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* The wrapper gets the translateY transform on each page flip */
 .reader-page-wrapper {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  /* transition gives a quick page-turn feel without being slow */
-  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform;
+  /* Plain block flow — no transform, no absolute positioning. The
+   * container is the scroller. */
+  position: relative;
 }
 
 /* Spacer at end of article so last page clears the nav bar */
@@ -586,35 +587,39 @@ body {
 }
 
 .page-chevron {
-  font-size: 2rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  /* Chip color tracks the reader theme. Alpha is baked into the mix so
+   * the chip is visible on sepia cream, dark navy, and pure-white paper
+   * without an outer opacity fading the glyph itself. */
+  background: color-mix(in srgb, var(--reader-text, #e2e8f0) 20%, transparent);
   color: var(--reader-text, #e2e8f0);
-  opacity: 0.18;
-  transition: opacity 0.15s;
+  font-size: 1.5rem;
+  line-height: 1;
+  transition: background 0.15s, transform 0.15s;
   pointer-events: none;
-  /* slight font tweak for cleaner look */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-weight: 300;
+  font-weight: 500;
 }
 
-/* Show chevrons a bit more on hover (desktop) */
 .page-zone:hover .page-chevron {
-  opacity: 0.45;
+  background: color-mix(in srgb, var(--reader-text, #e2e8f0) 32%, transparent);
 }
 
-/* Tap feedback */
 .page-zone.tapped .page-chevron {
-  opacity: 0.7;
+  background: color-mix(in srgb, var(--reader-text, #e2e8f0) 45%, transparent);
+  transform: scale(0.92);
 }
 
-/* On small screens, make chevrons slightly larger for easier targeting */
 @media (max-width: 480px) {
-  .page-zone {
-    width: 36px;
-  }
   .page-chevron {
-    font-size: 1.75rem;
-    opacity: 0.25;
+    width: 34px;
+    height: 34px;
+    font-size: 1.4rem;
   }
 }
 
@@ -693,8 +698,12 @@ body {
   height: auto;
 }
 
-/* ===== Theme: sepia ===== */
-[data-reader-theme='sepia'] body {
+/* ===== Theme: sepia =====
+ * Reader themes are scoped to #reader-view only. Painting <body> here
+ * would leak into the browse view (which is what the user sees before
+ * ever opening a book) and clash with the site's dark-mode text color,
+ * giving near-white text on a cream page. */
+[data-reader-theme='sepia'] #reader-view {
   background: var(--read-sepia-bg, #f5f0e8);
 }
 [data-reader-theme='sepia'] #reader-container {
@@ -728,7 +737,7 @@ body {
 }
 
 /* ===== Theme: light ===== */
-[data-reader-theme='light'] body {
+[data-reader-theme='light'] #reader-view {
   background: var(--pure-white);
 }
 [data-reader-theme='light'] #reader-container {

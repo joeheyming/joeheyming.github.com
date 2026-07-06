@@ -22,19 +22,15 @@ function renderFrequencyScoreTab(stats) {
 var strategyLabels = {
   'pure-entropy': {
     title: 'Best Guesses by Pure Entropy',
-    desc: 'Higher = more information per guess (bits). No popularity bias.'
+    desc: 'Ranked by information gain (bits) against the words that still match your filter.'
   },
   'entropy-popularity': {
     title: 'Best Guesses by Entropy + Popularity',
-    desc: 'Entropy with a 15% boost for common words.'
+    desc: 'Entropy against remaining matches, with a 15% boost for common words.'
   },
   frequency: {
     title: 'Best Guesses by Letter Frequency',
     desc: 'Scored by how common each letter is in the remaining words.'
-  },
-  'hard-mode': {
-    title: 'Best Guesses (Hard Mode)',
-    desc: 'Entropy-based, but only guesses from remaining matches.'
   }
 };
 

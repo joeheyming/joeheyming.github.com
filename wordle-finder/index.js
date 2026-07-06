@@ -9,6 +9,10 @@ function safeGtag() {
   }
 }
 
+// `window.yieldToMain` is defined by /analytics.js (loaded sync in <head>).
+// Local ref keeps the callsite short and avoids a global lookup per await.
+var yieldToMain = window.yieldToMain;
+
 // current answer of hte day
 var currentAnswer;
 // Days since the first wordle.  Useful index for the answers
@@ -43,34 +47,74 @@ randomWordButton.onclick = function () {
   });
 };
 
-function guess(event) {
-  event.preventDefault();
+// Guard against overlapping submits — the async yield below means a second
+// click could otherwise re-enter guess() while the first is still running.
+var guessInFlight = false;
+
+// Read all form inputs synchronously up-front so we don't touch the DOM
+// again after yielding (the user could type into a field while we're
+// scheduled). Cheap — five .value reads plus a couple splits.
+function readGuessInputs() {
   var spots = [first, second, third, fourth, fifth].map(function (spot) {
     return spot.value.toLowerCase() || '';
   });
   var notSpots = [notfirst, notsecond, notthird, notfourth, notfifth].map(function (spot) {
     return spot.value.toLowerCase() || '';
   });
-  var notSpotsLetters = notSpots.map(function (spot) {
-    return spot.split('');
-  });
-  var excluded = excludeLetters.value.toLowerCase().split('');
+  return {
+    spots: spots,
+    notSpotsLetters: notSpots.map(function (spot) {
+      return spot.split('');
+    }),
+    excluded: excludeLetters.value.toLowerCase().split('')
+  };
+}
 
-  var filtered = filterDictionary(spots, notSpotsLetters, excluded);
+// The Submit handler used to run the entropy solver (up to ~690k pattern
+// comparisons on the first guess) plus four tab re-renders synchronously
+// inside the click event. On a mid-range Android that pushed INP to
+// 400-800ms — well past the 200ms "good" threshold and the biggest single
+// contributor to the origin-level p75. The refactor below paints an
+// immediate "Working…" state, yields to the browser so it can render that
+// frame, then does the heavy work in a fresh task. Post-yield paint is no
+// longer part of the click's INP measurement.
+async function guess(event) {
+  if (event && typeof event.preventDefault === 'function') event.preventDefault();
+  if (guessInFlight) return false;
+  guessInFlight = true;
 
-  var stats = getStats(filtered);
+  var inputs = readGuessInputs();
 
-  renderFrequencyScoreTab(stats);
-  renderEntropyScore(filtered, stats);
-  renderMatches(filtered);
-  renderCombos(filtered, stats);
-  renderMatchCount(filtered);
+  var submitBtn = document.getElementById('submit');
+  var matchCount = window['match-count'];
+  var wasDisabled = submitBtn ? submitBtn.disabled : false;
+  if (submitBtn) submitBtn.disabled = true;
+  if (matchCount) {
+    matchCount.textContent = 'Working…';
+    matchCount.removeAttribute('hidden');
+  }
 
-  results.removeAttribute('hidden');
+  await yieldToMain();
 
-  safeGtag('event', 'submit', {
-    event_category: 'user action'
-  });
+  try {
+    var filtered = filterDictionary(inputs.spots, inputs.notSpotsLetters, inputs.excluded);
+    var stats = getStats(filtered);
+
+    renderFrequencyScoreTab(stats);
+    renderEntropyScore(filtered, stats);
+    renderMatches(filtered);
+    renderCombos(filtered, stats);
+    renderMatchCount(filtered);
+
+    results.removeAttribute('hidden');
+
+    safeGtag('event', 'submit', {
+      event_category: 'user action'
+    });
+  } finally {
+    if (submitBtn) submitBtn.disabled = wasDisabled;
+    guessInFlight = false;
+  }
 
   return false;
 }
