@@ -86,6 +86,16 @@ const DEAD_PROXY_SIGNATURES = [
     name: 'codetabs_bad_request',
     mode: '*',
     re: /Bad request, valid format is.*api\.codetabs\.com/i
+  },
+  // blkproxy.vercel.app blocks video/audio content types, .mp4/.mp3
+  // extensions, and range requests with this body. Scoped to 'binary'
+  // because text mode never asks for media URLs; the ban lets
+  // stepmania/archive.org sessions fall through to hexlet instead of
+  // re-probing blkproxy every 30s.
+  {
+    name: 'blkproxy_media_blocked',
+    mode: 'binary',
+    re: /Media files are not supported/i
   }
 ];
 
@@ -134,28 +144,67 @@ class ProxyService {
   constructor() {
     // Proxy services ordered roughly by current reliability.
     //
-    // The "known dead" entries (codetabs, allorigins, corsfix) are kept in
-    // the list on purpose — the auto-invalidator bans them after the first
-    // failed request, but the ban expires after DEAD_PROXY_TTL_MS so we
-    // re-probe periodically. If one of them comes back online we benefit
-    // automatically. The working ones go first so a fresh-cache session
-    // doesn't pay first-request latency on a dead proxy.
+    // The auto-ban system pulls a proxy from the pool when it either
+    // returns a known dead-signature body (see DEAD_PROXY_SIGNATURES)
+    // or racks up `autoBanHardFailureThreshold` consecutive "hard"
+    // failures — timeouts, 5xx statuses, or network errors (see
+    // `_recordProxyHardFailure`). Bans persist to localStorage with a
+    // TTL so a periodically broken proxy gets re-probed automatically.
+    //
+    // If a proxy is confirmed dead in a way the auto-ban can't detect
+    // (e.g. always returns 404 with the service's marketing HTML) it's
+    // simpler to prune it here than to add a special-case signature.
     //
     // Note: Free proxies can become unreliable - check/update periodically.
-    // See DEAD_PROXY_SIGNATURES above for the kill rules.
     this.proxyOptions = [
-      // Working for both text + binary (verified June 2026 against
-      // zenius-i-vanisher .sm + .ogg + .zip downloads).
-      'https://allorigins.hexlet.app/raw?url=', // Hexlet-hosted allorigins fork; serves real binary bodies
-      'https://corsmirror.com/v1?url=', // Cloudflare-fronted; passes through Content-Type from upstream
-      // Working for text only; binary content types are paywalled on the
-      // free plan as of mid-2026 (banned for mode='binary' automatically).
+      // Working for both text + binary (re-verified July 2026 against
+      // example.com HTML and httpbin.org/bytes/1024 payloads).
+      'https://allorigins.hexlet.app/raw?url=', // Hexlet-hosted allorigins fork; serves real binary bodies.
+      // Vercel-hosted; fastest of the alternatives (~130ms typical
+      // response) and serves both text and binary. Caveat: blocks
+      // media extensions (.mp4/.mp3/etc.) and audio/video content types
+      // with a 403 "Media files are not supported." body — the
+      // blkproxy_media_blocked signature auto-bans it for mode='binary'
+      // the first time this fires, so stepmania songs and archive.org
+      // videos naturally route to hexlet instead. Also caps responses
+      // at 5MB, so large binaries fall through to the next proxy.
+      'https://blkproxy.vercel.app/api/proxy?url=',
+      // Working for text only from browser origins. Server-side callers
+      // get a 403 "server-side requests are not allowed" (harmless — the
+      // auto-ban catches it via the corsproxy_paywall_serverside
+      // signature). Binary content types are paywalled on the free plan
+      // and get auto-banned for mode='binary' on the first request via
+      // the corsproxy_paywall_content_type signature.
       'https://corsproxy.io/?',
-      // Historical entries — currently broken; auto-ban will skip them
-      // until the next 24h probe window. Left in so they can recover.
-      'https://api.codetabs.com/v1/proxy?quest=',
-      'https://api.allorigins.win/raw?url=',
-      'https://proxy.corsfix.com/?url='
+      // CorsBridge (Syrins). Reliable "unlimited free public API" with
+      // no rate limits observed in our probe. Slower than the others
+      // (~400ms warm, ~1300ms cold) so it lives at the bottom as a
+      // last-resort fallback. Works for both text and binary.
+      'https://api.cors.syrins.tech/?url='
+      // Pruned July 2026 (see git log for the probe results):
+      //   - corsmirror.com/v1?url=   — /v1 handler returns HTTP 404 for every URL
+      //     (including their own documented "Try it out" example). Service is up,
+      //     proxy endpoint is not.
+      //   - api.codetabs.com/v1/proxy?quest= — chronic 12s+ timeouts,
+      //     Cloudflare 522 when it does respond.
+      //   - api.allorigins.win/raw?url= — chronic 10-12s timeouts,
+      //     occasional 502. Distinct from the Hexlet-hosted fork above.
+      //   - proxy.corsfix.com/?url= — requires the calling domain to be
+      //     registered with a paid corsfix plan.
+      //   - thingproxy.freeboard.io/fetch/ — DNS ENOTFOUND, domain gone.
+      //   - api.cors.lol/?url= — works, but per-IP rate limits (HTTP 429)
+      //     are aggressive. Real users each get their own budget, but a
+      //     single user doing 3+ requests in quick succession triggers
+      //     the limit and there's no way to distinguish that from a
+      //     genuinely dead proxy. Skipped for now.
+      //   - proxy.cors.sh/ — returns HTTP 401 whenever the request has an
+      //     `Origin` header (which browsers always send) unless a valid
+      //     API key is supplied. Their free tier requires signup with a
+      //     GitHub-hosted project registered. Not usable without setup.
+      //   - creprox.vercel.app/ — text-only, uses an unusual URL shape
+      //     (no `https://` prefix on the target) that doesn't fit the
+      //     `prefix + encodedUrl` contract this file assumes.
+      // If any of these come back online, add them back here.
     ];
     this.cache = new Map();
     /** @type {number | null} */
@@ -168,6 +217,22 @@ class ProxyService {
     // Circuit breaker: skip a proxy for this long after it fails (avoids hammering a down proxy)
     this.proxyCooldownMs = 30000; // 30 seconds
     this.proxyLastFailure = new Map();
+
+    // Auto-ban tracking. Distinct from the 30s score-based cooldown
+    // above — that only defers a proxy for one loop iteration and every
+    // fresh call re-probes it. If a proxy is genuinely dead (as opposed
+    // to "one slow request") it will burn 15s of timeout budget on
+    // every subsequent call, which is exactly the "dirt slow" behavior
+    // the previous version had for codetabs / allorigins.win.
+    //
+    // The counter increments on any "hard" failure — a timeout, a 5xx,
+    // or a network error — and resets on the next success (see
+    // `updateProxyScore`). Hitting the threshold triggers a full
+    // localStorage-persisted ban for `autoBanHardFailureTtlMs`.
+    /** @type {Map<string, number>} */
+    this.proxyConsecutiveHardFailures = new Map();
+    this.autoBanHardFailureThreshold = 3;
+    this.autoBanHardFailureTtlMs = 60 * 60 * 1000; // 1 hour
 
     // Proxy scoring system
     this.proxyScores = new Map();
@@ -227,8 +292,7 @@ class ProxyService {
     this.proxyDeadReason.set(key, reason);
     const scope = mode === '*' ? 'all requests' : `${mode} requests`;
     console.warn(
-      `Disabling proxy ${proxy} for ${Math.round(ttlMs / 3600000)}h ` +
-        `(${scope}): ${reason}`
+      `Disabling proxy ${proxy} for ${Math.round(ttlMs / 3600000)}h ` + `(${scope}): ${reason}`
     );
     this._schedulePersistProxyHealth();
   }
@@ -239,6 +303,46 @@ class ProxyService {
     if (!sig) return null;
     this._markProxyDead(proxy, sig.mode, sig.name);
     return sig;
+  }
+
+  /**
+   * Track "hard" failures — timeouts, 5xx statuses, and generic network
+   * errors — separately from the score-based cooldown. After
+   * `autoBanHardFailureThreshold` in a row for the same proxy, apply a
+   * full ban for `autoBanHardFailureTtlMs` so the proxy stops eating
+   * timeout budget on every subsequent request. A subsequent success
+   * (via `updateProxyScore(_, true, _)`) resets the counter, so an
+   * intermittent hiccup on a mostly-healthy proxy doesn't accumulate.
+   *
+   * @param {string} proxy
+   * @param {string} failureType — short human-readable tag ("timeout",
+   *   "HTTP 522", "network error") used only for the ban-reason log.
+   */
+  _recordProxyHardFailure(proxy, failureType) {
+    const count = (this.proxyConsecutiveHardFailures.get(proxy) || 0) + 1;
+    this.proxyConsecutiveHardFailures.set(proxy, count);
+    if (count >= this.autoBanHardFailureThreshold) {
+      this._markProxyDead(
+        proxy,
+        '*',
+        `auto-ban: ${count} consecutive ${failureType}`,
+        this.autoBanHardFailureTtlMs
+      );
+      this.proxyConsecutiveHardFailures.set(proxy, 0);
+    }
+  }
+
+  /**
+   * Classify a caught fetch error as a "hard failure" if it's a
+   * timeout, a network failure, or anything other than a caller-issued
+   * AbortError. Returns the short tag for the ban reason, or null when
+   * the error shouldn't be counted (e.g. the caller cancelled).
+   */
+  _hardFailureTypeForError(error) {
+    if (!error) return 'unknown error';
+    if (error.name === 'AbortError') return null;
+    if (error.name === 'TimeoutError') return 'timeout';
+    return 'network error';
   }
 
   _cacheSet(key, value) {
@@ -288,6 +392,10 @@ class ProxyService {
           const until = typeof row.until === 'number' ? row.until : 0;
           // Drop expired entries on load so the in-memory map is small.
           if (!until || until <= now) continue;
+          // Also drop entries for proxies that are no longer in the
+          // current list (e.g. after a prune). Keys are `${proxy}|${mode}`.
+          const proxyPart = key.split('|')[0];
+          if (!this.proxyOptions.includes(proxyPart)) continue;
           this.proxyDeadUntil.set(key, until);
           if (typeof row.reason === 'string') {
             this.proxyDeadReason.set(key, row.reason);
@@ -350,6 +458,9 @@ class ProxyService {
         scoreBoost += 0.05; // Extra boost for fast responses
       }
       this.proxyScores.set(proxy, Math.min(2.0, currentScore + scoreBoost));
+      // Reset the auto-ban counter so intermittent blips don't
+      // accumulate into a ban on a mostly-healthy proxy.
+      this.proxyConsecutiveHardFailures.set(proxy, 0);
     } else {
       // Penalize score for failure
       this.proxyScores.set(proxy, Math.max(0.1, currentScore - 0.2));
@@ -529,6 +640,9 @@ class ProxyService {
             console.warn(`Proxy ${proxy} returned status ${response.status}`);
             this.updateProxyScore(proxy, false);
             this.proxyLastFailure.set(proxy, Date.now());
+            if (response.status >= 500) {
+              this._recordProxyHardFailure(proxy, `HTTP ${response.status}`);
+            }
           }
         } catch (error) {
           if (error && error.name === 'AbortError') {
@@ -538,6 +652,8 @@ class ProxyService {
           console.warn(`Proxy ${proxy} failed (attempt ${retry + 1}):`, error.message);
           this.updateProxyScore(proxy, false);
           this.proxyLastFailure.set(proxy, Date.now());
+          const failureType = this._hardFailureTypeForError(error);
+          if (failureType) this._recordProxyHardFailure(proxy, failureType);
           continue;
         }
       }
@@ -728,9 +844,7 @@ class ProxyService {
             // audio/*, application/octet-stream, etc.
             const ct = (response.headers.get('content-type') || '').toLowerCase();
             const looksTextual =
-              ct.includes('application/json') ||
-              ct.startsWith('text/') ||
-              ct.includes('xml');
+              ct.includes('application/json') || ct.startsWith('text/') || ct.includes('xml');
             if (looksTextual) {
               let bodyText = '';
               try {
@@ -769,6 +883,9 @@ class ProxyService {
             console.warn(`Proxy ${proxy} returned status ${response.status}`);
             this.updateProxyScore(proxy, false);
             this.proxyLastFailure.set(proxy, Date.now());
+            if (response.status >= 500) {
+              this._recordProxyHardFailure(proxy, `HTTP ${response.status}`);
+            }
           }
         } catch (error) {
           if (error && error.name === 'AbortError') {
@@ -778,6 +895,8 @@ class ProxyService {
           console.warn(`Proxy ${proxy} failed (attempt ${retry + 1}):`, error && error.message);
           this.updateProxyScore(proxy, false);
           this.proxyLastFailure.set(proxy, Date.now());
+          const failureType = this._hardFailureTypeForError(error);
+          if (failureType) this._recordProxyHardFailure(proxy, failureType);
           continue;
         }
       }
@@ -880,6 +999,19 @@ class ProxyService {
           console.warn(`Streamed proxy ${proxy} failed:`, err && err.message);
           this.updateProxyScore(proxy, false);
           this.proxyLastFailure.set(proxy, Date.now());
+          // `_streamToBlob` throws `new Error('HTTP ${status}')` for
+          // non-2xx responses; parse that back out so we can gate the
+          // hard-failure counter on 5xx like the buffered paths do.
+          const httpMatch = /^HTTP (\d+)$/.exec(err && err.message);
+          if (httpMatch) {
+            const status = Number(httpMatch[1]);
+            if (status >= 500) {
+              this._recordProxyHardFailure(proxy, `HTTP ${status}`);
+            }
+          } else {
+            const failureType = this._hardFailureTypeForError(err);
+            if (failureType) this._recordProxyHardFailure(proxy, failureType);
+          }
         }
       }
       if (retry < maxRetries) {
@@ -1201,6 +1333,7 @@ class ProxyService {
     this.proxyDeadUntil.clear();
     this.proxyDeadReason.clear();
     this.proxyLastFailure.clear();
+    this.proxyConsecutiveHardFailures.clear();
     if (typeof localStorage !== 'undefined') {
       try {
         localStorage.removeItem(PROXY_HEALTH_STORAGE_KEY);
