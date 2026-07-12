@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blockbuster — Walk the Aisles | Joe Heyming 📼</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📼</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="Walk a 3D video store, aim at a movie box, and rent it — plays in Watch from the Internet Archive."
+    />
+    <meta name="theme-color" content="#0a1628" />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta
+      name="keywords"
+      content="blockbuster, video store, 3d, vhs, movies, watch, internet archive, first person"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming" />
+    <meta property="og:title" content="📼 Blockbuster — Walk the Aisles" />
+    <meta
+      property="og:description"
+      content="First-person video store. Pick a box off the shelf; Watch streams it from the Archive."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/blockbuster/" />
+    <meta property="og:locale" content="en_US" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/blockbuster/blockbuster-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="📼 Blockbuster — Walk the Aisles" />
+    <meta
+      name="twitter:description"
+      content="First-person video store. Aim at a box, rent it, play in Watch."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/blockbuster/blockbuster-preview.png"
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/blockbuster/" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/nav.js" data-nav-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+        }
+      }
+    </script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Blockbuster",
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Walk a 3D video store and rent movies that play in Watch from the Internet Archive.",
+            "url": "https://joeheyming.github.io/blockbuster/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "featureList": [
+              "First-person store walkthrough",
+              "Movie boxes from the Watch catalog",
+              "Opens playback in Watch"
+            ],
+            "keywords": "blockbuster, video store, 3d, movies, vhs"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blockbuster",
+                "item": "https://joeheyming.github.io/blockbuster/"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="store-canvas" tabindex="0" aria-label="Video store 3D view"></canvas>
+
+      <div id="hud" class="hud">
+        <header class="hud-brand">
+          <p class="hud-logo">BLOCKBUSTER</p>
+          <p class="hud-tag">Be kind — rewind</p>
+        </header>
+
+        <div class="crosshair" aria-hidden="true"></div>
+
+        <div id="target-card" class="target-card" hidden>
+          <p id="target-title" class="target-title"></p>
+          <p id="target-tagline" class="target-tagline"></p>
+          <p id="target-hint" class="target-hint">
+            Click or press
+            <kbd>E</kbd>
+            to pick up
+          </p>
+        </div>
+
+        <p id="load-status" class="load-status">Stocking shelves…</p>
+
+        <footer class="hud-footer">
+          <p class="hud-keys">
+            <kbd>W</kbd>
+            <kbd>A</kbd>
+            <kbd>S</kbd>
+            <kbd>D</kbd>
+            move · click to look ·
+            <kbd>Esc</kbd>
+            release
+          </p>
+          <a class="hud-watch" href="/watch/#movies">Browse in Watch →</a>
+        </footer>
+      </div>
+    </div>
+
+    <script type="module" src="index.js"></script>
+  </body>
+</html>

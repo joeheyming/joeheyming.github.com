@@ -226,6 +226,17 @@ const PAGES = [
     title: 'Watch'
   },
   {
+    url: `${BASE_URL}/blockbuster/`,
+    output: 'blockbuster/blockbuster-preview.png',
+    title: 'Blockbuster',
+    // Wait until shelves are stocked so OG shows face-out cases, not empty aisles.
+    setup: async (page) => {
+      await page.waitForSelector('#load-status[hidden]', { timeout: 25000 });
+      // Posters resolve async after stock; give a couple frames to land.
+      await page.waitForTimeout(2500);
+    }
+  },
+  {
     url: `${BASE_URL}/badapple/`,
     output: 'badapple/badapple-preview.png',
     title: 'Bad Apple ASCII',

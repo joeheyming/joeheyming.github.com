@@ -678,6 +678,7 @@
       "chromecast"
     ],
     "related": [
+      "blockbuster",
       "youtube",
       "media-player",
       "awesome"
@@ -698,6 +699,35 @@
     },
     "appTier": "experience",
     "geo": true
+  },
+  {
+    "id": "blockbuster",
+    "name": "Blockbuster 📼",
+    "shortName": "Blockbuster",
+    "description": "Walk a 3D video store and rent movies that play in Watch",
+    "detailedDescription": "First-person video rental store stocked from the Watch catalog. Walk the aisles, aim at a box, and rent it — playback opens in Watch streaming from the Internet Archive.",
+    "icon": "📼",
+    "path": "./blockbuster/",
+    "category": "entertainment",
+    "gradient": "from-yellow-400/20 to-blue-900/20",
+    "border": "border-yellow-500/30 hover:border-yellow-400/50",
+    "taskbarGradient": "from-blue-900 to-yellow-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 1100,
+    "defaultHeight": 780,
+    "tags": [
+      "movies",
+      "3d",
+      "video store",
+      "vhs",
+      "blockbuster",
+      "watch",
+      "archive",
+      "first person"
+    ],
+    "related": ["watch", "pacman", "media-player"],
+    "shareCategory": "entertainment",
+    "appTier": "experience"
   },
   {
     "id": "shadowbox",

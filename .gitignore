@@ -34,4 +34,7 @@ node_modules
 .brand-audit/
 .playwright-cli/
 
+# Local GA4 CSV exports for moneyball analysis
+/ga4dl/
+
 *.local.*

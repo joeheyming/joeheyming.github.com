@@ -1,0 +1,299 @@
+/* Blockbuster — navy / ticket-yellow rental-store HUD */
+
+@font-face {
+  font-family: 'Bebas Neue';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/fontsource/fonts/bebas-neue@5.2.5/latin-400-normal.woff2')
+    format('woff2');
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.2.5/latin-400-normal.woff2')
+    format('woff2');
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.2.5/latin-600-normal.woff2')
+    format('woff2');
+}
+
+:root {
+  --navy: #0a1628;
+  --navy-mid: #132844;
+  --carpet: #1c2f4a;
+  --yellow: #f5c518;
+  --yellow-dim: #c9a012;
+  --cream: #f2ead8;
+  --mute: #9bb0c9;
+  --danger: #e85d4c;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--navy);
+  color: var(--cream);
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+#app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+#store-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+  cursor: crosshair;
+}
+
+/* —— HUD —— */
+
+.hud {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.hud[hidden] {
+  display: none;
+}
+
+.hud-brand {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  padding-top: 0.25rem;
+}
+
+.hud-logo {
+  margin: 0;
+  font-family: 'Bebas Neue', Impact, sans-serif;
+  font-size: 1.35rem;
+  letter-spacing: 0.18em;
+  color: var(--yellow);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65);
+}
+
+.hud-tag {
+  margin: 0.1rem 0 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+
+.crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid rgba(242, 234, 216, 0.55);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(10, 22, 40, 0.4);
+}
+
+.crosshair::before,
+.crosshair::after {
+  content: '';
+  position: absolute;
+  background: rgba(242, 234, 216, 0.7);
+}
+
+.crosshair::before {
+  top: 50%;
+  left: 3px;
+  right: 3px;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+.crosshair::after {
+  left: 50%;
+  top: 3px;
+  bottom: 3px;
+  width: 1px;
+  transform: translateX(-50%);
+}
+
+.hud.has-target .crosshair {
+  border-color: var(--yellow);
+}
+
+.hud.is-holding .crosshair {
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 1px rgba(245, 197, 24, 0.35);
+}
+
+/* Keep the held case readable — card goes under the brand, tagline hidden */
+.hud.is-holding .target-card {
+  top: 4.25rem;
+  bottom: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(17rem, calc(100% - 2rem));
+  padding: 0.5rem 0.75rem 0.55rem;
+  text-align: center;
+}
+
+.hud.is-holding .target-title {
+  margin: 0 0 0.2rem;
+  font-size: 1.15rem;
+}
+
+.hud.is-holding .target-tagline {
+  display: none;
+}
+
+.hud.is-holding .target-hint {
+  font-size: 0.7rem;
+}
+
+.hud.is-busy .crosshair {
+  opacity: 0.35;
+}
+
+.hud.is-busy .target-hint {
+  opacity: 0.7;
+}
+
+.load-status {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.85rem;
+  color: var(--cream);
+  background: rgba(10, 22, 40, 0.82);
+  border: 1px solid rgba(245, 197, 24, 0.35);
+  border-radius: 2px;
+}
+
+.load-status[hidden] {
+  display: none;
+}
+
+.target-card {
+  position: absolute;
+  left: 50%;
+  bottom: 5.5rem;
+  transform: translateX(-50%);
+  width: min(22rem, calc(100% - 2rem));
+  padding: 0.85rem 1.1rem;
+  background: rgba(10, 22, 40, 0.88);
+  border: 1px solid rgba(245, 197, 24, 0.45);
+  border-radius: 2px;
+  text-align: center;
+  backdrop-filter: blur(6px);
+}
+
+.target-card[hidden] {
+  display: none;
+}
+
+.target-title {
+  margin: 0 0 0.25rem;
+  font-family: 'Bebas Neue', Impact, sans-serif;
+  font-size: 1.45rem;
+  letter-spacing: 0.04em;
+  color: var(--yellow);
+}
+
+.target-tagline {
+  margin: 0 0 0.55rem;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--mute);
+}
+
+.target-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--cream);
+}
+
+.target-hint kbd,
+.hud-keys kbd {
+  display: inline-block;
+  padding: 0.05em 0.35em;
+  margin: 0 0.1em;
+  font-family: inherit;
+  font-size: 0.85em;
+  border: 1px solid rgba(155, 176, 201, 0.45);
+  border-radius: 2px;
+  background: rgba(19, 40, 68, 0.8);
+}
+
+.hud-footer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, rgba(10, 22, 40, 0.85));
+  pointer-events: none;
+}
+
+.hud-keys {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--mute);
+}
+
+.hud-watch {
+  pointer-events: auto;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--yellow);
+  text-decoration: none;
+}
+
+.hud-watch:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .hud-brand {
+    left: auto;
+    right: 12px;
+    transform: none;
+    text-align: right;
+  }
+
+  .hud-keys {
+    font-size: 0.68rem;
+  }
+}

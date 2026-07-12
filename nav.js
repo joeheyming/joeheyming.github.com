@@ -723,6 +723,18 @@
     .addEventListener('click', () => closeDrawer('close_button'));
 
   document.addEventListener('keydown', (e) => {
+    // Cmd/Ctrl+K — standard "command palette" shortcut. Opens the drawer
+    // and focuses the filter (openDrawer() already focuses the input on
+    // an 80ms delay). Toggles closed if already open. preventDefault
+    // suppresses the browser's own binding (Firefox routes Cmd+K to the
+    // location bar's search field).
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (isOpen) closeDrawer('cmd_k');
+      else openDrawer();
+      return;
+    }
     if (e.key === 'Escape' && isOpen) {
       e.stopPropagation();
       closeDrawer('escape');
@@ -783,6 +795,20 @@
     if (target && typeof target.focus === 'function') {
       target.focus();
     }
+  });
+
+  // Games and other apps attach document-level keyboard listeners for
+  // controls (2048 → WASD, stepmania → arrows, doom → shooter keys, …).
+  // Any key inside the drawer should stay in the drawer so typing
+  // "watch" into the filter doesn't also move a 2048 tile on the `w`,
+  // and ↑/↓ walking the item ring doesn't drive the game underneath.
+  // Escape intentionally still bubbles so the document-level Esc-to-close
+  // above continues to work when focus isn't on a drawer descendant.
+  ['keydown', 'keyup', 'keypress'].forEach((type) => {
+    drawer.addEventListener(type, (e) => {
+      if (e.key === 'Escape') return;
+      e.stopPropagation();
+    });
   });
 
   // ─── Registry load + drawer population ───────────────────────────────
