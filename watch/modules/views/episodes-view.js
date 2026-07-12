@@ -17,6 +17,7 @@ import { renderSeasonChips, renderEpisodes } from '../ui.js';
 import { loadLastEpisode } from '../prefs.js';
 import { isTvMode } from '../mode.js';
 import { applyRovingTabindex } from '../roving-tabindex.js';
+import { mediaLabel, trackWatch } from '../track.js';
 
 /** @typedef {import('../shows.js').ShowConfig} ShowConfig */
 /** @typedef {import('../catalog.js').Catalog} Catalog */
@@ -189,7 +190,10 @@ export async function mount(slot, ctx) {
   shuffle.addEventListener('click', () => {
     if (!catalog) return;
     const ep = randomEpisode(catalog);
-    if (ep) navigate({ show: show.id, s: ep.season, e: ep.episode });
+    if (ep) {
+      trackWatch('watch_episode_select', `${mediaLabel('show', show.id, ep)}|shuffle`);
+      navigate({ show: show.id, s: ep.season, e: ep.episode });
+    }
   });
 
   /**
@@ -207,6 +211,7 @@ export async function mount(slot, ctx) {
           : catalog.seasons.find((sx) => sx.number === 0)?.episodes || []
         : catalog.seasons.find((sx) => sx.number === seasonNumber)?.episodes || [];
     renderEpisodes(grid, episodes, (ep) => {
+      trackWatch('watch_episode_select', mediaLabel('show', show.id, ep));
       navigate({ show: show.id, s: ep.season, e: ep.episode });
     });
     // Episode cards just got rebuilt; tell the roving helper to

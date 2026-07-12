@@ -132,6 +132,13 @@ export function createPickup({
     hud.setBusy(true);
     clearKeys?.();
     hud.showStatus(vacated.item.name, vacated.item.tagline || '', 'Picking up…');
+    if (typeof window.trackEvent === 'function') {
+      window.trackEvent(
+        'blockbuster_pickup',
+        'entertainment',
+        `${vacated.item.kind}:${vacated.item.id}`
+      );
+    }
   }
 
   function startPlace() {
@@ -146,6 +153,9 @@ export function createPickup({
     hud.setBusy(true);
     clearKeys?.();
     hud.showStatus(heldItem.name, '', 'Shelving…');
+    if (typeof window.trackEvent === 'function') {
+      window.trackEvent('blockbuster_place', 'entertainment', `${heldItem.kind}:${heldItem.id}`);
+    }
   }
 
   function startInsertTv() {
@@ -160,6 +170,13 @@ export function createPickup({
     clearKeys?.();
     aimedTv = false;
     hud.showStatus(heldItem.name, '', 'Inserting…');
+    if (typeof window.trackEvent === 'function') {
+      window.trackEvent(
+        'blockbuster_tv_insert',
+        'entertainment',
+        `${heldItem.kind}:${heldItem.id}`
+      );
+    }
   }
 
   function rentHeld() {
@@ -506,6 +523,10 @@ export function createPickup({
     updateAim,
     onInteract,
     onRentOrGrabKey,
-    isLocked
+    isLocked,
+    /** True while a case is carried and free to place / rent / insert. */
+    isHolding() {
+      return pickupState === 'holding';
+    }
   };
 }

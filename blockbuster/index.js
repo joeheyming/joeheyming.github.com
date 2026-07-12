@@ -15,6 +15,7 @@ import { createHand } from './modules/hand.js';
 import { createHud } from './modules/hud.js';
 import { createPlayer } from './modules/player.js';
 import { createPickup } from './modules/pickup.js';
+import { installTouchControls, TOUCH_LOOK_SENS } from './modules/touch-controls.js';
 
 const canvas = /** @type {HTMLCanvasElement} */ (document.getElementById('store-canvas'));
 const loadStatus = /** @type {HTMLElement} */ (document.getElementById('load-status'));
@@ -65,13 +66,36 @@ pickup = createPickup({
       window.trackEvent('blockbuster_rent', 'entertainment', `${item.kind}:${item.id}`);
     }
     const param = item.kind === 'show' ? 'show' : 'movie';
-    window.location.href = `/watch/?${param}=${encodeURIComponent(item.id)}`;
+    window.location.href = `/watch/?${param}=${encodeURIComponent(item.id)}&from=blockbuster`;
   },
   clearKeys: () => playerCtrl.clearKeys(),
   getWalk: () => playerCtrl.getWalk()
 });
 
 let pointerLocked = false;
+/** Ignore the browser's synthetic click that follows a touch tap. */
+let suppressClick = false;
+
+// Twin-stick for real touch pointers (pacman FPPOV pattern). Desktop
+// mouse still uses pointer-lock below — the two paths co-exist.
+const touchUi = installTouchControls({
+  canvas,
+  setKey: (key, down) => playerCtrl.setKey(key, down),
+  look(dx, dy) {
+    playerCtrl.yaw -= dx * TOUCH_LOOK_SENS;
+    playerCtrl.pitch -= dy * TOUCH_LOOK_SENS;
+  },
+  onInteract: () => {
+    suppressClick = true;
+    pickup?.onInteract();
+  },
+  onRentOrGrab: () => {
+    suppressClick = true;
+    pickup?.onRentOrGrabKey();
+  },
+  isLocked: () => pickup?.isLocked() ?? false,
+  isHolding: () => pickup?.isHolding() ?? false
+});
 
 /* ------------------------------------------------------------------ */
 /* Boot                                                                */
@@ -120,14 +144,19 @@ function animate() {
   playerCtrl.update(dt);
   pickup?.update(dt);
   pickup?.updateAim(raycaster, camera);
+  touchUi.update();
   renderer.render(scene, camera);
 }
 
 /* ------------------------------------------------------------------ */
-/* Input                                                               */
+/* Input — desktop pointer lock                                        */
 /* ------------------------------------------------------------------ */
 
 canvas.addEventListener('click', () => {
+  if (suppressClick) {
+    suppressClick = false;
+    return;
+  }
   if (!pointerLocked) {
     canvas.requestPointerLock();
     return;

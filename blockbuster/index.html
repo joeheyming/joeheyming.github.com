@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <title>Blockbuster — Walk the Aisles | Joe Heyming 📼</title>
 
     <link
@@ -139,7 +142,7 @@
         <p id="load-status" class="load-status">Stocking shelves…</p>
 
         <footer class="hud-footer">
-          <p class="hud-keys">
+          <p class="hud-keys hud-keys-desktop">
             <kbd>W</kbd>
             <kbd>A</kbd>
             <kbd>S</kbd>
@@ -148,8 +151,21 @@
             <kbd>Esc</kbd>
             release
           </p>
-          <a class="hud-watch" href="/watch/#movies">Browse in Watch →</a>
+          <p class="hud-keys hud-keys-touch">left drag move · right drag look · tap grab</p>
+          <a
+            class="hud-watch"
+            href="/watch/#movies"
+            data-event="blockbuster_browse_watch"
+            data-event-category="entertainment"
+            data-event-label="hud"
+          >
+            Browse in Watch →
+          </a>
         </footer>
+      </div>
+
+      <div id="touch-ui" class="touch-ui" aria-hidden="true">
+        <button id="touch-rent" class="touch-rent" type="button" hidden>Rent</button>
       </div>
     </div>
 

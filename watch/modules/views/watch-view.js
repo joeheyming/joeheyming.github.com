@@ -42,6 +42,7 @@ import { isTvMode } from '../mode.js';
 import { createSubtitleController } from './subtitle-controller.js';
 import { createOfflineSaveController } from './offline-save-controller.js';
 import { createEndCardController } from './endcard-controller.js';
+import { mediaLabel, trackWatch, trackWatchConversion } from '../track.js';
 
 /** @typedef {import('../shows.js').ShowConfig} ShowConfig */
 /** @typedef {import('../movies.js').MovieConfig} MovieConfig */
@@ -87,6 +88,8 @@ export async function mount(slot, ctx) {
   let catalog = null;
   /** @type {Episode | null} */
   let current = null;
+  /** One-shot play tracking — reset whenever loadEpisode swaps the source. */
+  let playStartTracked = false;
   /**
    * One-shot `loadedmetadata` handler for the pending resume seek.
    * Tracked so a rapid Prev/Next can detach it before it fires
@@ -641,6 +644,16 @@ export async function mount(slot, ctx) {
 
   video.addEventListener('error', () => {
     errorBanner.classList.remove('hidden');
+    if (current) {
+      trackWatch('watch_playback_error', mediaLabel(isMovie ? 'movie' : 'show', show.id, current));
+    }
+  });
+
+  video.addEventListener('play', () => {
+    if (playStartTracked || !current) return;
+    playStartTracked = true;
+    trackWatch('watch_play_start', mediaLabel(isMovie ? 'movie' : 'show', show.id, current));
+    trackWatchConversion('watch_played', 1);
   });
 
   const keydown = (e) => {
@@ -914,6 +927,7 @@ export async function mount(slot, ctx) {
     hideResumeOverlay();
 
     current = ep;
+    playStartTracked = false;
 
     // Loading a new episode hides any leftover end-card. Important
     // for both autoplay and manual Prev/Next transitions.
@@ -938,6 +952,8 @@ export async function mount(slot, ctx) {
 
     if (urlSync) updateDeepLink(ep);
     saveLastEpisode(show.id, ep.season, ep.episode);
+
+    trackWatch('watch_episode_open', mediaLabel(isMovie ? 'movie' : 'show', show.id, ep));
 
     // Network URL is the safe default. The offline controller swaps
     // to a Blob URL inside setEpisode() when the episode is cached;

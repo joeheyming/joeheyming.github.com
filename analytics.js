@@ -1,39 +1,18 @@
 // =====================================================================
 // KEY EVENTS (GA4 conversions)
 //
-// GA4 reports "0 Key Events" until each event below is explicitly toggled
-// in GA4 Admin → Data display → Events → "Mark as key event". The events
-// themselves fire from `window.trackConversion(name, value)` already; the
-// toggle is a one-time UI config per event name.
+// GA4 reports "0 Key Events" until each conversion name is toggled in
+// GA4 Admin → Data display → Events → "Mark as key event". Apps fire
+// their own conversions via trackConversion(); this list is only the
+// site-wide ones owned by analytics.js / shared chrome:
 //
-// Marked-as-Key-Event recommendations (high → low priority):
-//
-//   deep_engagement       2+ min engaged on any page    (analytics.js)
-//   project_opened        Any project/app launched      (analytics.js → trackProjectOpen)
-//   multi_app_session     ≥2 distinct apps in tab       (analytics.js → trackProjectOpen)
-//   pwa_install           Installed as standalone app   (analytics.js → appinstalled)
-//   game_completed        Finished a game/song          (2048, stepmania, pacman)
-//   content_shared        Shared a page/score           (share.js, doom/share-button.js)
-//   hero_cta_launch       Clicked the home-page CTA     (index.html data-event-conversion)
-//   engaged_session       30s+ engaged                  (analytics.js — lower-bar baseline)
-//
-// Existing events already firing — toggle in GA4 Admin only (no code):
-//
-//   doom_engine_launched  WASM engine booted             (DOOM)
-//   zenius_search         StepMania song-library search  (Stepmania)
-//   song_browser_open     Opened StepMania library       (Stepmania)
-//   doom_flavor_pick      Committed to a DOOM flavor     (DOOM)
-//   featured_strip_visible Top-of-fold brand impression  (home gallery)
-//
-// GA4-standard event names we fire IN PARALLEL with custom ones (so
-// GA4's built-in reports work alongside our custom labels):
-//
-//   share                  Standard GA4 share event       (share.js, doom/share-button.js)
-//   view_search_results    Standard GA4 site-search event (index.js home filters, stepmania zenius)
-//
-// When adding a new Key Event: call `window.trackConversion('your_name', value)`
-// from the surface that produces the signal, then add the event name and a
-// one-line description here so the GA4 admin toggle list stays accurate.
+//   deep_engagement    2+ min engaged
+//   project_opened     Any project/app launched (trackProjectOpen)
+//   multi_app_session  ≥2 distinct apps in one tab
+//   pwa_install        Installed as standalone app
+//   engaged_session    30s+ engaged
+//   content_shared     Shared via share.js / share FAB
+//   hero_cta_launch    Home-page CTA (data-event-conversion)
 // =====================================================================
 
 // =====================================================================

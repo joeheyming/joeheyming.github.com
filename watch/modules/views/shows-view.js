@@ -24,6 +24,7 @@ import {
 } from '../offline.js';
 import { isTvMode } from '../mode.js';
 import { applyRovingTabindex } from '../roving-tabindex.js';
+import { mediaLabel, trackWatch } from '../track.js';
 
 /** @typedef {import('../shows.js').ShowConfig} ShowConfig */
 /** @typedef {import('../movies.js').MovieConfig} MovieConfig */
@@ -690,16 +691,38 @@ export async function mount(slot, ctx) {
   // focus call below — `focusFirst()` needs at least one card in DOM.
   applyFilter();
 
-  const onInput = () => applyFilter();
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let searchTrackTimer = null;
+  let lastTrackedQuery = '';
+
+  const onInput = () => {
+    applyFilter();
+    if (searchTrackTimer) clearTimeout(searchTrackTimer);
+    searchTrackTimer = setTimeout(() => {
+      searchTrackTimer = null;
+      const q = searchInput.value.trim();
+      if (q.length < 2 || q === lastTrackedQuery) return;
+      lastTrackedQuery = q;
+      const showsN = filteredShows.length;
+      const moviesN = filteredMovies.length;
+      trackWatch(
+        'watch_search',
+        `${q.slice(0, 40)} → ${showsN} shows · ${moviesN} movies`,
+        showsN + moviesN
+      );
+    }, 500);
+  };
   const onKeydown = (e) => {
     if (e.key === 'Escape' && searchInput.value !== '') {
       e.preventDefault();
       searchInput.value = '';
+      lastTrackedQuery = '';
       applyFilter();
     }
   };
   const onClear = () => {
     searchInput.value = '';
+    lastTrackedQuery = '';
     applyFilter();
     searchInput.focus();
   };
@@ -707,7 +730,10 @@ export async function mount(slot, ctx) {
     const tag = chip.dataset.tag;
     if (!tag) return;
     if (activeTags.has(tag)) activeTags.delete(tag);
-    else activeTags.add(tag);
+    else {
+      activeTags.add(tag);
+      trackWatch('watch_tag_filter', tag);
+    }
     applyFilter();
   };
   const onTagReset = () => {
@@ -773,6 +799,7 @@ export async function mount(slot, ctx) {
 
   return {
     unmount() {
+      if (searchTrackTimer) clearTimeout(searchTrackTimer);
       searchInput.removeEventListener('input', onInput);
       searchInput.removeEventListener('keydown', onKeydown);
       searchClear.removeEventListener('click', onClear);
@@ -973,8 +1000,13 @@ function makeSavedCard(meta, ctx, onChange) {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
     e.preventDefault();
     if (isMovie) {
+      trackWatch('watch_saved_select', mediaLabel('movie', meta.showId));
       ctx.navigate({ movie: meta.showId });
     } else {
+      trackWatch(
+        'watch_saved_select',
+        mediaLabel('show', meta.showId, { season: meta.season, episode: meta.episode })
+      );
       ctx.navigate({ show: meta.showId, s: meta.season, e: meta.episode });
     }
   });
@@ -1122,8 +1154,13 @@ function makeContinueCard(show, entry, ctx, onChange) {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
     e.preventDefault();
     if (isMovie) {
+      trackWatch('watch_continue_select', mediaLabel('movie', show.id));
       ctx.navigate({ movie: show.id });
     } else {
+      trackWatch(
+        'watch_continue_select',
+        mediaLabel('show', show.id, { season: entry.season, episode: entry.episode })
+      );
       ctx.navigate({ show: show.id, s: entry.season, e: entry.episode });
     }
   });
@@ -1237,6 +1274,7 @@ function makeMovieCard(movie, ctx) {
   card.addEventListener('click', (e) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
     e.preventDefault();
+    trackWatch('watch_catalog_select', mediaLabel('movie', movie.id));
     ctx.navigate({ movie: movie.id });
   });
   return card;
@@ -1318,6 +1356,7 @@ function makeShowCard(show, ctx) {
     // otherwise route in-app so we don't blow away in-memory state.
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
     e.preventDefault();
+    trackWatch('watch_catalog_select', mediaLabel('show', show.id));
     ctx.navigate({ show: show.id });
   });
   return card;

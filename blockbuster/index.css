@@ -52,6 +52,7 @@ body {
   color: var(--cream);
   font-family: 'IBM Plex Sans', system-ui, sans-serif;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 #app {
@@ -66,6 +67,9 @@ body {
   height: 100%;
   outline: none;
   cursor: crosshair;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* —— HUD —— */
@@ -285,6 +289,10 @@ body {
   text-decoration: underline;
 }
 
+.hud-keys-touch {
+  display: none;
+}
+
 @media (max-width: 640px) {
   .hud-brand {
     left: auto;
@@ -295,5 +303,61 @@ body {
 
   .hud-keys {
     font-size: 0.68rem;
+  }
+}
+
+/* Twin-stick chrome (pacman pattern): Rent only — walk/look are on-canvas. */
+.touch-ui {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
+
+.touch-rent {
+  display: none;
+  pointer-events: auto;
+  position: absolute;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(120px, calc(env(safe-area-inset-bottom) + 112px));
+  min-width: 88px;
+  min-height: 88px;
+  padding: 0.65rem 1rem;
+  border-radius: 50%;
+  border: 1px solid rgba(245, 197, 24, 0.55);
+  background: rgba(245, 197, 24, 0.88);
+  color: var(--navy);
+  font-family: 'Bebas Neue', Impact, sans-serif;
+  font-size: 1.35rem;
+  letter-spacing: 0.12em;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.touch-rent:active {
+  transform: scale(0.94);
+  background: var(--yellow);
+}
+
+@media (max-width: 768px), (pointer: coarse) {
+  .hud-keys-desktop {
+    display: none;
+  }
+
+  .hud-keys-touch {
+    display: block;
+  }
+
+  .touch-rent:not([hidden]) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hud-footer {
+    padding-right: 110px;
   }
 }

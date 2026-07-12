@@ -28,6 +28,7 @@ import {
   listSaved as listOfflineSaved,
   makeKey as offlineKey
 } from '../offline.js';
+import { mediaLabel, trackWatch, trackWatchConversion } from '../track.js';
 
 /** @typedef {import('../shows.js').ShowConfig} ShowConfig */
 /** @typedef {import('../movies.js').MovieConfig} MovieConfig */
@@ -146,6 +147,10 @@ export function createOfflineSaveController(deps) {
           }
         }
         flash('REMOVED');
+        trackWatch(
+          'watch_offline_delete',
+          mediaLabel(/** @type {any} */ (show).kind === 'movie' ? 'movie' : 'show', show.id, ep)
+        );
       } else {
         flash('REMOVE FAILED');
       }
@@ -168,6 +173,11 @@ export function createOfflineSaveController(deps) {
         }
       });
       savedKeys.add(key);
+      trackWatch(
+        'watch_offline_save',
+        mediaLabel(/** @type {any} */ (show).kind === 'movie' ? 'movie' : 'show', show.id, ep)
+      );
+      trackWatchConversion('offline_episode_saved', 1);
       if (current === ep) {
         flash('SAVED OFFLINE');
         void applyOfflineSrc(ep);
