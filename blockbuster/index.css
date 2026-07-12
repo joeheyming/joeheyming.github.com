@@ -98,7 +98,9 @@ body {
   margin: 0;
   font-family: 'Bebas Neue', Impact, sans-serif;
   font-size: 1.35rem;
+  font-weight: 400;
   letter-spacing: 0.18em;
+  text-transform: uppercase;
   color: var(--yellow);
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65);
 }
