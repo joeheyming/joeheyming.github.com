@@ -36,13 +36,26 @@
   --canvas-judgment-shadow: black;
 
   /* ── stepmania: scoped UI palette ─────────────────────────────────
-   * The judgment / grade text colors and the simfile difficulty
-   * badge gradients are StepMania-genre conventions (DDR/ITG
-   * traditions). They live as scoped --sm-* tokens so the brand
-   * audit sees zero bare literals while the gameplay convention is
-   * preserved. */
-  --sm-judgment-perfect: var(--sm-judgment-perfect, #f472b6); /* pink "Perfect" pop */
-  --sm-judgment-great: var(--sm-judgment-great, #00f5ff); /* cyan "Great" pop */
+   * Judgment label colors and arrow tints are StepMania-genre
+   * conventions (DDR/ITG traditions). Light-mode defaults are
+   * saturated for AA on cream/white; dark-mode overrides below
+   * restore the neon pastels that read on near-black surfaces. */
+  --sm-judgment-marvelous: #7c3aed;
+  --sm-judgment-perfect: #2563eb;
+  --sm-judgment-great: #15803d;
+  --sm-judgment-good: #a16207;
+  --sm-judgment-boo: #c2410c;
+  --sm-judgment-miss: #dc2626;
+  /* Hero percent + fullscreen overlay pops */
+  --sm-judgment-perfect-pop: #db2777;
+  --sm-judgment-great-pop: #0891b2;
+  --sm-percent-lo: #1a73e8;
+  --sm-percent-hi: #7c3aed;
+  /* DDR arrow lane colors (controls panel) */
+  --sm-arrow-left: #dc2626;
+  --sm-arrow-right: #a16207;
+  --sm-arrow-up: #15803d;
+  --sm-arrow-down: #1d4ed8;
   --sm-badge-sky-lo: #0ea5e9;
   --sm-badge-sky-hi: #38bdf8;
   --sm-badge-orange-lo: #f97316;
@@ -56,8 +69,59 @@
   --sm-badge-teal-lo: #0d9488;
   --sm-badge-teal-hi: #14b8a6;
   /* Zenius browser cyan/blue gradient header */
-  --sm-zb-accent-cyan: var(--sm-judgment-great, #00f5ff);
+  --sm-zb-accent-cyan: var(--sm-judgment-great-pop);
   --sm-zb-accent-blue: #3b82f6;
+}
+
+/* Dark theme — neon pastels for near-black surfaces */
+:root[data-theme='dark'] {
+  --sm-judgment-marvelous: #d8b4fe;
+  --sm-judgment-perfect: #93c5fd;
+  --sm-judgment-great: #86efac;
+  --sm-judgment-good: #fde047;
+  --sm-judgment-boo: #fdba74;
+  --sm-judgment-miss: #fca5a5;
+  --sm-judgment-perfect-pop: #f472b6;
+  --sm-judgment-great-pop: #00f5ff;
+  --sm-percent-lo: #00d4ff;
+  --sm-percent-hi: #a855f7;
+  --sm-arrow-left: #fca5a5;
+  --sm-arrow-right: #fde68a;
+  --sm-arrow-up: #86efac;
+  --sm-arrow-down: #93c5fd;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --sm-judgment-marvelous: #d8b4fe;
+    --sm-judgment-perfect: #93c5fd;
+    --sm-judgment-great: #86efac;
+    --sm-judgment-good: #fde047;
+    --sm-judgment-boo: #fdba74;
+    --sm-judgment-miss: #fca5a5;
+    --sm-judgment-perfect-pop: #f472b6;
+    --sm-judgment-great-pop: #00f5ff;
+    --sm-percent-lo: #00d4ff;
+    --sm-percent-hi: #a855f7;
+    --sm-arrow-left: #fca5a5;
+    --sm-arrow-right: #fde68a;
+    --sm-arrow-up: #86efac;
+    --sm-arrow-down: #93c5fd;
+  }
+}
+
+/* Route Tailwind sm-arrow utilities through theme tokens */
+.text-sm-arrow-left {
+  color: var(--sm-arrow-left);
+}
+.text-sm-arrow-right {
+  color: var(--sm-arrow-right);
+}
+.text-sm-arrow-up {
+  color: var(--sm-arrow-up);
+}
+.text-sm-arrow-down {
+  color: var(--sm-arrow-down);
 }
 
 /* Base styles that complement Tailwind */
@@ -678,8 +742,8 @@ game-over-modal.visible {
 .fs-score-percent {
   font-size: 2rem;
   font-weight: bold;
-  color: var(--sm-judgment-perfect, #f472b6);
-  text-shadow: 0 0 10px color-mix(in srgb, var(--sm-judgment-perfect, #f472b6) 50%, transparent);
+  color: var(--sm-judgment-perfect-pop);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--sm-judgment-perfect-pop) 50%, transparent);
   margin-bottom: 12px;
 }
 
@@ -705,7 +769,7 @@ game-over-modal.visible {
 .fs-stat-value {
   font-size: 1.1rem;
   font-weight: bold;
-  color: var(--sm-judgment-great, #00f5ff);
+  color: var(--sm-judgment-great-pop);
 }
 
 /* Larger score on bigger screens */

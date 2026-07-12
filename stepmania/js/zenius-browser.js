@@ -14,7 +14,8 @@ import {
   showZeniusSearchEmptyState,
   displayZeniusFavoritesGrid,
   renderZeniusRecentChips,
-  updateZeniusSavedButtonLabel
+  updateZeniusSavedButtonLabel,
+  updateZeniusBrowserLayout
 } from './zeniusRender.js';
 
 class ZeniusBrowserElement extends HTMLElement {
@@ -90,6 +91,8 @@ class ZeniusBrowserElement extends HTMLElement {
     this._spotlightAbort = null;
     /** @type {Array<{ label: string, href: string }>|null} */
     this._lastSpotlightSourceLinks = null;
+    /** @type {'zenius'|'local'} */
+    this._searchMode = 'zenius';
     this.attachShadow({ mode: 'open' });
   }
 
@@ -207,8 +210,27 @@ class ZeniusBrowserElement extends HTMLElement {
     });
 
     this.shadowRoot.getElementById('zenius-saved-btn').addEventListener('click', () => {
+      if (typeof window.trackEvent === 'function') {
+        window.trackEvent('zenius_saved_click', 'StepMania', 'Saved');
+      }
       this.displayFavoritesList();
     });
+
+    this.shadowRoot
+      .getElementById('zenius-browse-categories-btn')
+      ?.addEventListener('click', () => {
+        if (typeof window.trackEvent === 'function') {
+          const content = this.cache.get(this.getCurrentUrl());
+          const count = content?.items?.length ?? 0;
+          window.trackEvent(
+            'zenius_browse_categories_click',
+            'StepMania',
+            'Browse all collections',
+            count > 0 ? count : undefined
+          );
+        }
+        this.setSearchMode('local');
+      });
 
     const modal = this.shadowRoot.getElementById('zenius-browser-modal');
     modal.addEventListener('keydown', this._onModalKeydownBound);
@@ -241,6 +263,7 @@ class ZeniusBrowserElement extends HTMLElement {
     if (this._lastSpotlightSourceLinks && this._lastSpotlightSourceLinks.length > 0) {
       void this.startSimfileSpotlight(this._lastSpotlightSourceLinks);
     }
+    updateZeniusBrowserLayout(this);
 
     requestAnimationFrame(() => {
       this.moveFocusIntoModal();
@@ -435,6 +458,8 @@ class ZeniusBrowserElement extends HTMLElement {
     const localFields = this.shadowRoot.getElementById('local-search-fields');
     const zeniusFields = this.shadowRoot.getElementById('zenius-search-fields');
 
+    this._searchMode = mode === 'local' ? 'local' : 'zenius';
+
     if (mode === 'zenius') {
       localTab.classList.remove('active');
       zeniusTab.classList.add('active');
@@ -450,7 +475,18 @@ class ZeniusBrowserElement extends HTMLElement {
     if (mode === 'local' && this._favoritesViewActive) {
       this._favoritesViewActive = false;
       void this.loadContent(this.currentPath);
+    } else if (
+      this.currentPath === '' &&
+      !this._favoritesViewActive &&
+      this._lastListPath !== 'search'
+    ) {
+      const content = this.cache.get(this.getCurrentUrl());
+      if (content) {
+        this.displayContent(content, this.currentPath);
+      }
     }
+
+    updateZeniusBrowserLayout(this);
   }
 
   async runZeniusSearch() {

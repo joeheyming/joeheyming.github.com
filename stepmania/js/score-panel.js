@@ -141,12 +141,12 @@ ${shareUrl}`;
  * Score labels and their corresponding colors
  */
 const SCORE_LABELS = [
-  { name: 'Marvelous', color: 'rgb(216, 180, 254)' }, // purple-300
-  { name: 'Perfect', color: 'rgb(147, 197, 253)' }, // blue-300
-  { name: 'Great', color: 'rgb(134, 239, 172)' }, // green-300
-  { name: 'Good', color: 'rgb(253, 224, 71)' }, // yellow-300
-  { name: 'Boo', color: 'rgb(253, 186, 116)' }, // orange-300
-  { name: 'Miss', color: 'rgb(252, 165, 165)' } // red-300
+  { name: 'Marvelous', color: 'var(--sm-judgment-marvelous)' },
+  { name: 'Perfect', color: 'var(--sm-judgment-perfect)' },
+  { name: 'Great', color: 'var(--sm-judgment-great)' },
+  { name: 'Good', color: 'var(--sm-judgment-good)' },
+  { name: 'Boo', color: 'var(--sm-judgment-boo)' },
+  { name: 'Miss', color: 'var(--sm-judgment-miss)' }
 ];
 
 // SSR-safe base: in browsers extends the real HTMLElement; under
@@ -228,7 +228,7 @@ class ScorePanelElement extends HTMLElementBase {
         .stat-label {
           font-size: 0.625rem;
           text-transform: uppercase;
-          color: var(--text-3);
+          color: var(--text-2);
           margin-bottom: 0.25rem;
         }
         .stat-value {
@@ -248,7 +248,7 @@ class ScorePanelElement extends HTMLElementBase {
           font-size: 1.875rem;
           font-weight: 700;
           text-align: center;
-          background: linear-gradient(to right, #00d4ff, #a855f7);
+          background: linear-gradient(to right, var(--sm-percent-lo), var(--sm-percent-hi));
           -webkit-background-clip: text;
           background-clip: text;
           color: transparent;

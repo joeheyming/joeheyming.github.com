@@ -33,14 +33,13 @@
  */
 
 (function () {
-  // StepMania arrow tints — pastel red / yellow / green / blue, mapped
-  // to ←/→/↑/↓ on the simfile-input chip. AA-checked against dark-tile
-  // backgrounds in stepmania/css/components/.
+  // StepMania arrow tints — light-mode defaults; screen.css overrides
+  // these via --sm-arrow-* when dark theme is active.
   const SM_ARROW = {
-    left: '#FCA5A5',
-    right: '#FDE68A',
-    up: '#86EFAC',
-    down: '#93C5FD'
+    left: '#dc2626',
+    right: '#a16207',
+    up: '#15803d',
+    down: '#1d4ed8'
   };
 
   function applyConfig() {

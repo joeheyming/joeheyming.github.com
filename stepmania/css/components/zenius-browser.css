@@ -119,22 +119,22 @@ zenius-browser.modal-open .modal {
   border-radius: 1.5rem;
   max-width: 90rem;
   width: min(100% - 1.5rem, 90rem);
+  height: min(90vh, 100dvh);
   max-height: min(90vh, 100dvh);
   display: flex;
   flex-direction: column;
-  /* Clip inner scroll; body below scrolls. Do not set min-height:0 on this box (collapses with flex). */
   overflow: hidden;
   border: 1px solid var(--hairline-accent);
   box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--pure-black) 25%, transparent);
 }
 
 .modal-header {
-  padding: 2rem 2rem 1rem;
+  padding: 1.25rem 1.5rem 0.75rem;
   flex-shrink: 0;
 }
 
 .modal-title {
-  font-size: 2.25rem;
+  font-size: 1.75rem;
   font-weight: bold;
   /* PRESERVED: cyan→blue rhythm-game title gradient, mirrors the
      main StepMania <h1> neon identity. */
@@ -181,15 +181,81 @@ zenius-browser.modal-open .modal {
   padding: 0.25rem 0.5rem;
 }
 
-/* Use auto flex-basis so short content still gets height; min-height:0 + overflow for scroll when capped by max-height */
+/* Three-row grid: search (auto) · results (scroll) · helpers (pinned) */
 .modal-body {
   flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding: 0 1.5rem 0.75rem;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+}
+
+.modal-body.is-search-home {
+  /* Search home: compact hint row, helpers fill remaining space */
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.zenius-main-scroll {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  padding: 0 2rem 1.5rem;
-  padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+}
+
+.modal-body.is-search-home .zenius-main-scroll {
+  overflow: visible;
+}
+
+.zenius-helper-panel {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.6rem;
+  margin-top: 0.25rem;
+  border-top: 1px solid var(--hairline);
+  background: linear-gradient(to top, var(--surface-1) 70%, transparent);
+}
+
+.modal-body.is-search-home .zenius-helper-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.zenius-search-home {
+  text-align: center;
+  padding: 0.15rem 0 0.5rem;
+}
+
+.zenius-search-home-lead {
+  margin: 0 0 0.55rem;
+  font-size: 0.82rem;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+
+.zenius-browse-categories-btn {
+  background: var(--accent-primary-soft);
+  color: var(--text-1);
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--hairline-accent);
+  cursor: pointer;
+}
+
+.zenius-browse-categories-btn:hover {
+  border-color: var(--accent-primary);
+  filter: brightness(1.05);
+}
+
+.zenius-browse-categories-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 .content-grid {
@@ -252,7 +318,7 @@ zenius-browser.modal-open .modal {
   align-items: flex-start;
   gap: 0.75rem;
   flex-wrap: wrap;
-  margin-bottom: 0.75rem;
+  flex-shrink: 0;
 }
 
 .zenius-recent-block {
@@ -505,12 +571,11 @@ a.content-item-body {
 }
 
 .search-container {
-  position: sticky;
-  top: 0;
+  flex-shrink: 0;
   z-index: 10;
   background: var(--surface-0);
-  padding-bottom: 1rem;
-  margin-bottom: 0.5rem;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.25rem;
   overflow: hidden;
 }
 
@@ -600,12 +665,25 @@ a.content-item-body {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  margin-top: 0.5rem;
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: min(38%, 16rem);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   padding: 0.5rem 0.6rem 0.35rem;
-  margin-bottom: 0.5rem;
   border-radius: 0.5rem;
   background: color-mix(in srgb, var(--surface-0) 22%, transparent); /* surface-0 @ 0.22 */
   border: 1px solid var(--hairline-accent);
+}
+
+.modal-body.is-search-home .zenius-spotlight {
+  flex: 1 1 auto;
+  max-height: none;
+}
+
+.zenius-spotlight[hidden] {
+  display: none;
 }
 
 .zenius-spotlight-hint {
@@ -761,6 +839,29 @@ a.zenius-spotlight-title-link:hover {
   margin-bottom: 1rem;
   color: var(--accent-primary-hover);
   font-size: 0.875rem;
+}
+
+.stats.hidden {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .modal-header {
+    padding: 1rem 1rem 0.5rem;
+  }
+
+  .modal-body {
+    padding: 0 1rem 0.65rem;
+  }
+
+  .modal-title {
+    font-size: 1.35rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .modal-footer {
+    padding: 0.65rem 1rem 0.85rem;
+  }
 }
 
 .zenius-link {

@@ -7,6 +7,52 @@ import {
 import { fetchTopSimfilesFromListUrl } from './zeniusFetch.js';
 import { SPOTLIGHT_TOP_N } from './zeniusParsers.js';
 
+function trackZeniusBrowserEvent(eventName, label, value) {
+  if (typeof window.trackEvent === 'function') {
+    window.trackEvent(eventName, 'StepMania', label, value);
+  }
+}
+
+function resetZeniusMainScroll(browser) {
+  const pane = browser.shadowRoot.getElementById('zenius-main-scroll');
+  if (pane) {
+    pane.scrollTop = 0;
+  }
+}
+
+export function isZeniusSearchHome(browser) {
+  return (
+    browser._searchMode === 'zenius' &&
+    browser.currentPath === '' &&
+    !browser._favoritesViewActive &&
+    browser._lastListPath !== 'search'
+  );
+}
+
+export function updateZeniusBrowserLayout(browser) {
+  const body = browser.shadowRoot.querySelector('.modal-body');
+  const searchHome = browser.shadowRoot.getElementById('zenius-search-home');
+  const stats = browser.shadowRoot.getElementById('stats');
+  const browseBtn = browser.shadowRoot.getElementById('zenius-browse-categories-btn');
+  const isHome = isZeniusSearchHome(browser);
+
+  if (body) {
+    body.classList.toggle('is-search-home', isHome);
+  }
+  if (searchHome) {
+    searchHome.hidden = !isHome;
+  }
+  if (stats) {
+    stats.classList.toggle('hidden', isHome);
+  }
+  if (browseBtn && typeof browser.getCurrentUrl === 'function') {
+    const content = browser.cache.get(browser.getCurrentUrl());
+    const count = content?.items?.length ?? 0;
+    browseBtn.textContent =
+      count > 0 ? `📂 Browse all collections (${count})` : '📂 Browse all collections';
+  }
+}
+
 export const ZENIUS_BROWSER_SHADOW_HTML = `      <style>
         /* Critical styles to prevent FOUC - modal hidden by default */
         .modal { opacity: 0; visibility: hidden; }
@@ -60,45 +106,58 @@ export const ZENIUS_BROWSER_SHADOW_HTML = `      <style>
                 <button class="search-btn" id="zenius-search-btn">🔍 Search</button>
               </div>
             </div>
-            
-            <div class="list-toolbar hidden" id="list-toolbar" aria-label="List options">
-              <label class="list-toolbar-label" for="zenius-sort-select">Sort</label>
-              <select class="zenius-sort-select" id="zenius-sort-select" title="Sort current list">
-                <option value="name-asc">A–Z</option>
-                <option value="name-desc">Z–A</option>
-                <option value="video-first">Video first</option>
-              </select>
-            </div>
-            
-            <div class="stats" id="stats">
-              <span id="item-count">0 items</span>
-              <span id="current-path">Home</span>
-            </div>
-            
-            <div class="content-grid" id="content-grid">
-              <!-- Content will be populated here -->
-            </div>
-            
-            <div class="zenius-spotlight" id="zenius-spotlight" hidden>
-              <p class="zenius-spotlight-hint" id="zenius-spotlight-hint" hidden>Loading lists…</p>
-              <div id="zenius-spotlight-sections" class="zenius-spotlight-sections"></div>
-            </div>
-            
-            <div class="zenius-secondary-row" id="zenius-secondary-row">
-              <div class="zenius-recent-block" id="zenius-recent-block">
-                <span class="zenius-recent-label">Recent</span>
-                <div class="zenius-recent-chips" id="zenius-recent-chips" role="list"></div>
+
+            <div class="zenius-main-scroll" id="zenius-main-scroll">
+              <div class="list-toolbar hidden" id="list-toolbar" aria-label="List options">
+                <label class="list-toolbar-label" for="zenius-sort-select">Sort</label>
+                <select class="zenius-sort-select" id="zenius-sort-select" title="Sort current list">
+                  <option value="name-asc">A–Z</option>
+                  <option value="name-desc">Z–A</option>
+                  <option value="video-first">Video first</option>
+                </select>
               </div>
-              <button type="button" class="zenius-saved-btn" id="zenius-saved-btn" title="Songs you starred">
-                Saved
-              </button>
+
+              <div class="stats" id="stats">
+                <span id="item-count">0 items</span>
+                <span id="current-path">Home</span>
+              </div>
+
+              <div class="zenius-search-home" id="zenius-search-home" hidden>
+                <p class="zenius-search-home-lead">
+                  Search above, or pick from the latest lists and recent plays below.
+                </p>
+                <button type="button" class="zenius-browse-categories-btn" id="zenius-browse-categories-btn">
+                  📂 Browse all collections
+                </button>
+              </div>
+
+              <div class="content-grid" id="content-grid">
+                <!-- Content will be populated here -->
+              </div>
+
+              <div class="loading-indicator" id="loading-indicator">
+                <div class="spinner"></div>
+                <p class="loading-text" id="loading-text">Loading content...</p>
+                <div class="loading-progress">
+                  <div class="loading-progress-bar" id="loading-progress-bar"></div>
+                </div>
+              </div>
             </div>
-            
-            <div class="loading-indicator" id="loading-indicator">
-              <div class="spinner"></div>
-              <p class="loading-text" id="loading-text">Loading content...</p>
-              <div class="loading-progress">
-                <div class="loading-progress-bar" id="loading-progress-bar"></div>
+
+            <div class="zenius-helper-panel" id="zenius-helper-panel">
+              <div class="zenius-spotlight" id="zenius-spotlight" hidden>
+                <p class="zenius-spotlight-hint" id="zenius-spotlight-hint" hidden>Loading lists…</p>
+                <div id="zenius-spotlight-sections" class="zenius-spotlight-sections"></div>
+              </div>
+
+              <div class="zenius-secondary-row" id="zenius-secondary-row">
+                <div class="zenius-recent-block" id="zenius-recent-block">
+                  <span class="zenius-recent-label">Recent</span>
+                  <div class="zenius-recent-chips" id="zenius-recent-chips" role="list"></div>
+                </div>
+                <button type="button" class="zenius-saved-btn" id="zenius-saved-btn" title="Songs you starred">
+                  Saved
+                </button>
               </div>
             </div>
           </div>
@@ -186,8 +245,10 @@ export function createZeniusContentCard(browser, item, currentPath) {
     }
 
     mainLink.addEventListener('click', () => {
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent('song_browser_song_select', 'StepMania', item.name);
+      if (currentPath === 'spotlight') {
+        trackZeniusBrowserEvent('zenius_spotlight_song_click', item.name);
+      } else {
+        trackZeniusBrowserEvent('song_browser_song_select', item.name);
       }
       if (browser.currentPath.startsWith('categoryid=')) {
         browser.lastBrowsedCategoryId = browser.currentPath.replace('categoryid=', '');
@@ -310,6 +371,9 @@ export async function runZeniusSpotlight(browser, sourceLinks) {
       link.rel = 'noopener noreferrer';
       link.className = 'zenius-spotlight-title-link';
       link.textContent = label;
+      link.addEventListener('click', () => {
+        trackZeniusBrowserEvent('zenius_spotlight_link_click', label);
+      });
       h.appendChild(link);
       sec.appendChild(h);
       if (items.length === 0) {
@@ -334,9 +398,7 @@ export async function runZeniusSpotlight(browser, sourceLinks) {
         sec.appendChild(grid);
       }
       sections.appendChild(sec);
-      if (typeof window.trackEvent === 'function') {
-        window.trackEvent('zenius_spotlight_list', 'StepMania', label);
-      }
+      trackZeniusBrowserEvent('zenius_spotlight_list', label);
     }
   } catch (e) {
     if (e && /** @type {Error} */ (e).name === 'AbortError') {
@@ -385,7 +447,18 @@ export function displayZeniusGridContent(browser, content, path) {
   }
 
   const onlySimfiles = items.every((i) => i.type === 'simfile');
-  const onlyDirs = items.every((i) => i.type === 'directory');
+  const onlyDirs = items.length > 0 && items.every((i) => i.type === 'directory');
+
+  if (path === '' && onlyDirs && browser._searchMode === 'zenius') {
+    gridEl.innerHTML = '';
+    browser._lastSimfileListForSort = [];
+    browser._lastListPath = '';
+    browser.shadowRoot.getElementById('list-toolbar').classList.add('hidden');
+    updateZeniusBrowserLayout(browser);
+    browser.updateStats();
+    return;
+  }
+
   if (onlySimfiles) {
     browser._lastSimfileListForSort = items.map((i) => ({ ...i }));
     browser._lastListPath = path;
@@ -410,6 +483,7 @@ export function displayZeniusGridContent(browser, content, path) {
     browser.initGridRovingTabIndex();
   }
   browser.updateStats();
+  updateZeniusBrowserLayout(browser);
 }
 
 export function displayZeniusSearchResultsGrid(browser, results, itemPath = '') {
@@ -430,9 +504,8 @@ export function displayZeniusSearchResultsGrid(browser, results, itemPath = '') 
     </div>
   `;
     browser.initGridRovingTabIndex();
-    requestAnimationFrame(() => {
-      gridEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    });
+    resetZeniusMainScroll(browser);
+    updateZeniusBrowserLayout(browser);
     return;
   }
 
@@ -444,9 +517,8 @@ export function displayZeniusSearchResultsGrid(browser, results, itemPath = '') 
   });
   browser.initGridRovingTabIndex();
   browser.setZeniusSpotlightUiVisible(false);
-  requestAnimationFrame(() => {
-    gridEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  });
+  resetZeniusMainScroll(browser);
+  updateZeniusBrowserLayout(browser);
 }
 
 export function showZeniusLoadingOverlay(browser, text) {
@@ -496,6 +568,7 @@ export function showZeniusGridError(browser, message, retryCallback = null) {
 export function showZeniusSearchEmptyState(browser, message) {
   browser.setZeniusSpotlightUiVisible(false);
   browser._lastSimfileListForSort = [];
+  browser._lastListPath = 'search';
   browser.shadowRoot.getElementById('list-toolbar').classList.add('hidden');
   const gridEl = browser.shadowRoot.getElementById('content-grid');
   gridEl.innerHTML = `
@@ -508,9 +581,8 @@ export function showZeniusSearchEmptyState(browser, message) {
   const p = gridEl.querySelector('.search-empty-msg');
   if (p) p.textContent = message;
   browser.initGridRovingTabIndex();
-  requestAnimationFrame(() => {
-    gridEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  });
+  resetZeniusMainScroll(browser);
+  updateZeniusBrowserLayout(browser);
 }
 
 export function displayZeniusFavoritesGrid(browser) {
@@ -544,6 +616,7 @@ export function displayZeniusFavoritesGrid(browser) {
     </div>
   `;
     browser.initGridRovingTabIndex();
+    updateZeniusBrowserLayout(browser);
     return;
   }
 
@@ -553,6 +626,7 @@ export function displayZeniusFavoritesGrid(browser) {
     gridEl.appendChild(createZeniusContentCard(browser, item, ''));
   });
   browser.initGridRovingTabIndex();
+  updateZeniusBrowserLayout(browser);
 }
 
 export function renderZeniusRecentChips(browser) {
@@ -577,6 +651,7 @@ export function renderZeniusRecentChips(browser) {
       a.setAttribute('role', 'listitem');
       a.title = r.title;
       a.addEventListener('click', (ev) => {
+        trackZeniusBrowserEvent('zenius_recent_click', r.title);
         ev.stopPropagation();
       });
       wrap.appendChild(a);
