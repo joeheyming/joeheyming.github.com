@@ -645,8 +645,18 @@ class ProxyService {
             }
           }
         } catch (error) {
+          // Per-attempt AbortSignal.timeout() also surfaces as AbortError.
+          // Only bail out of the whole chain when the *caller* aborted —
+          // otherwise a single slow proxy would skip every remaining host
+          // (especially painful on mobile networks).
           if (error && error.name === 'AbortError') {
-            throw error;
+            if (userAbort && userAbort.aborted) throw error;
+            lastError = error;
+            console.warn(`Proxy ${proxy} timed out (attempt ${retry + 1})`);
+            this.updateProxyScore(proxy, false);
+            this.proxyLastFailure.set(proxy, Date.now());
+            this._recordProxyHardFailure(proxy, 'timeout');
+            continue;
           }
           lastError = error;
           console.warn(`Proxy ${proxy} failed (attempt ${retry + 1}):`, error.message);
@@ -669,6 +679,9 @@ class ProxyService {
       }
     }
 
+    if (userAbort && userAbort.aborted) {
+      throw new DOMException('The operation was aborted.', 'AbortError');
+    }
     throw new Error(
       `All proxies failed after ${maxRetries + 1} attempts: ${
         lastError?.message || 'Unknown error'
