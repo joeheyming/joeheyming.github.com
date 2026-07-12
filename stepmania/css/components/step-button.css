@@ -23,6 +23,11 @@ step-button {
   position: relative;
   transition: all 0.15s ease;
   transform: translateZ(0);
+  /* Long hold notes need a finger to stay pressed for hundreds of ms.
+     touch-action:none stops the browser from turning that into a
+     scroll/zoom gesture (which would also fire pointercancel and drop
+     the hold). Paired with e.preventDefault() on pointerdown. */
+  touch-action: none;
 }
 
 .step-button:hover {

@@ -78,39 +78,55 @@ function makeSearchTracker(location) {
 // renderFeaturedProjects() so they don't double-render — they're listed here
 // only so the home gallery's "popular first" ordering still works for them.
 //
-// 2026-06-13: per the dashboard pull, demoted three low-CTR strip cards
-// out of POPULAR_APP_IDS (they remain in the full gallery, just no strip
-// real estate): Wordle Finder (1.3% CTR), Code IDE (1.7%), Pac-Infinite
-// (2.4%) — all 2-4× lower than the strip median. Watch added at slot 2
-// (right after NES, which is now a hero so filters out of the strip).
+// 2026-07-12: rebuilt from nav-drawer click ranking — the drawer is the
+// primary cross-app-discovery surface. Console family (sega + gameboy) is
+// grouped alongside nes so the emulators are discoverable together.
+// Dropped from strip (still in the gallery): minesweeper, badapple, terminal.
 const POPULAR_APP_IDS = [
   'doom',
   'nes',
-  'watch',
-  'pacman',
   'stepmania',
-  'minesweeper',
-  'badapple',
-  'terminal'
+  'dos',
+  'pacman',
+  'pacman-infinite',
+  'model-viewer',
+  'farm',
+  'watch',
+  'sega',
+  'gameboy'
 ];
 
 // Section grouping for the full gallery. Order is presentation order on
 // the page. Each section pulls from the registry by category, with the
 // /play/* music family carved out so it gets its own bucket.
+//
+// Sub-category carve-outs (registry field `subCategory`, see apps-registry.json):
+//   "console" — nes / sega / gameboy get their own "Retro consoles" bucket
+//                instead of appearing under "Games".
+//   "music"   — piano-hero / accordion-hero join the /play/* music family
+//                under "Make music" instead of appearing under "Games".
 const GALLERY_SECTIONS = [
   {
     id: 'games',
     icon: '🕹️',
     title: 'Games',
     blurb: 'Browser games — no install, no signup, no ads.',
-    filter: (app) => app.category === 'game'
+    filter: (app) =>
+      app.category === 'game' && app.subCategory !== 'console' && app.subCategory !== 'music'
+  },
+  {
+    id: 'consoles',
+    icon: '🎮',
+    title: 'Retro consoles',
+    blurb: 'Emulate NES, Sega Genesis, and Game Boy right in the browser.',
+    filter: (app) => app.subCategory === 'console'
   },
   {
     id: 'music',
     icon: '🎵',
     title: 'Make music',
     blurb: 'Pick an instrument and play it right in your browser.',
-    filter: (app) => app.id === 'play' || /^play-/.test(app.id)
+    filter: (app) => app.id === 'play' || /^play-/.test(app.id) || app.subCategory === 'music'
   },
   {
     id: 'tools',

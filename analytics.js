@@ -425,23 +425,44 @@ function trackSharedLinkArrival() {
 
 // Build a URL pointing at the current page tagged for shared-link attribution.
 // Sets ?shared=1 plus an optional share_source so GA can tell which surface
-// produced the link. Strips any existing shared/share_source params first so
-// chained shares don't accumulate stale tags.
+// produced the link. Also sets the three GA-standard utm_* params so chat
+// apps and unfurlers that normalize URLs (Slack/Discord/iMessage/Gmail)
+// preserve at least the utm tags — those are recognized universally, while
+// custom `?shared=1` is often stripped. This closes the "94 share events → 4
+// arrivals" attribution gap (see MONEYBALL Appendix C, Fix B).
+//
+// GA4 automatically maps utm_source/utm_medium/utm_campaign onto the
+// Session source / Session medium / Session campaign dimensions, so shared
+// arrivals show up in the standard Acquisition report next to google/bing/
+// direct without any extra instrumentation.
+//
+// Strips any existing shared/share_source/utm_* params first so chained
+// shares don't accumulate stale tags.
 window.buildSharedUrl = function (source) {
+  const utmSource = 'joeheyming';
+  const utmMedium = 'share_link';
+  const utmCampaign = source || 'share';
   try {
     const url = new URL(window.location.href);
-    url.searchParams.delete('shared');
-    url.searchParams.delete('share_source');
+    ['shared', 'share_source', 'utm_source', 'utm_medium', 'utm_campaign'].forEach((p) =>
+      url.searchParams.delete(p)
+    );
     url.searchParams.set('shared', '1');
     if (source) {
       url.searchParams.set('share_source', source);
     }
+    url.searchParams.set('utm_source', utmSource);
+    url.searchParams.set('utm_medium', utmMedium);
+    url.searchParams.set('utm_campaign', utmCampaign);
     return url.toString();
   } catch (_) {
-    // Fallback for environments where URL construction fails (very old browsers).
     const sep = window.location.href.includes('?') ? '&' : '?';
     const sourceTag = source ? `&share_source=${encodeURIComponent(source)}` : '';
-    return `${window.location.href}${sep}shared=1${sourceTag}`;
+    const utm =
+      `&utm_source=${utmSource}` +
+      `&utm_medium=${utmMedium}` +
+      `&utm_campaign=${encodeURIComponent(utmCampaign)}`;
+    return `${window.location.href}${sep}shared=1${sourceTag}${utm}`;
   }
 };
 

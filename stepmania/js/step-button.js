@@ -126,9 +126,13 @@ export class StepButton extends HTMLElement {
     const buttonId = this.getAttribute('id') || 'button0';
     const direction = this.getAttribute('direction') || 'up';
 
-    const handleClick = () => {
+    // Track which pointer id currently owns this button so we only fire
+    // one press/release pair even if extra fingers land on the pad.
+    let activePointerId = null;
+
+    const dispatchPress = () => {
       this.dispatchEvent(
-        new CustomEvent('stepButtonClick', {
+        new CustomEvent('stepButtonPress', {
           detail: { buttonId, direction },
           bubbles: true,
           composed: true
@@ -136,16 +140,46 @@ export class StepButton extends HTMLElement {
       );
     };
 
-    button.addEventListener('click', handleClick);
+    const dispatchRelease = () => {
+      this.dispatchEvent(
+        new CustomEvent('stepButtonRelease', {
+          detail: { buttonId, direction },
+          bubbles: true,
+          composed: true
+        })
+      );
+    };
 
-    button.addEventListener(
-      'touchstart',
-      (e) => {
-        e.preventDefault();
-        handleClick();
-      },
-      { passive: false }
-    );
+    // Use pointer events so mouse, touch, and pen all go through one
+    // press/release lifecycle. setPointerCapture keeps us receiving
+    // pointerup even if the finger drifts off the button — important
+    // for long hold notes on small mobile pads.
+    button.addEventListener('pointerdown', (e) => {
+      if (activePointerId !== null) return;
+      activePointerId = e.pointerId;
+      try {
+        button.setPointerCapture(e.pointerId);
+      } catch {
+        // Some browsers/environments (e.g. jsdom, older Safari) may throw.
+        // Falling back to bubbled pointerup is fine.
+      }
+      e.preventDefault();
+      dispatchPress();
+    });
+
+    const endPointer = (e) => {
+      if (activePointerId !== e.pointerId) return;
+      activePointerId = null;
+      try {
+        button.releasePointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
+      dispatchRelease();
+    };
+
+    button.addEventListener('pointerup', endPointer);
+    button.addEventListener('pointercancel', endPointer);
   }
 
   addPressedFeedback() {

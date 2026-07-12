@@ -8,6 +8,7 @@
     "icon": "🪗",
     "path": "./accordion-hero/",
     "category": "game",
+    "subCategory": "music",
     "defaultWidth": 1000,
     "defaultHeight": 720,
     "gradient": "from-indigo-500/20 to-fuchsia-500/20",
@@ -178,6 +179,14 @@
       "short_name": "DOS",
       "description": "Play DOS games in your browser"
     },
+    "featured": {
+      "order": 2,
+      "headline": "Play DOS Games",
+      "blurb": "Classic MS-DOS titles in the browser. Load a .zip or Internet Archive URL; auto-boots and saves progress.",
+      "tagsLine": "🕹️ Game • 💾 Retro",
+      "preset": "dos",
+      "analyticsLabel": "DOS"
+    },
     "appTier": "experience",
     "geo": true
   },
@@ -201,6 +210,14 @@
       "doom"
     ],
     "shareCategory": "game",
+    "featured": {
+      "order": 6,
+      "headline": "Farm Adventures",
+      "blurb": "Digital agriculture — plant, grow, harvest. A lightweight farming toy.",
+      "tagsLine": "🕹️ Game • 🚜 Sim",
+      "preset": "farm",
+      "analyticsLabel": "Farm"
+    },
     "appTier": "experience",
     "geo": true
   },
@@ -526,6 +543,7 @@
     "icon": "🎹",
     "path": "./piano-hero/",
     "category": "game",
+    "subCategory": "music",
     "defaultWidth": 1100,
     "defaultHeight": 750,
     "gradient": "from-indigo-500/20 to-rose-500/20",
@@ -1271,6 +1289,7 @@
     "icon": "🕹️",
     "path": "./emulator/?console=nes",
     "category": "game",
+    "subCategory": "console",
     "defaultWidth": 1024,
     "defaultHeight": 768,
     "gradient": "from-stone-600/20 to-indigo-700/20",
@@ -1316,6 +1335,7 @@
     "icon": "🕹️",
     "path": "./emulator/?console=sega",
     "category": "game",
+    "subCategory": "console",
     "defaultWidth": 1024,
     "defaultHeight": 768,
     "gradient": "from-blue-700/20 to-cyan-600/20",
@@ -1360,6 +1380,7 @@
     "icon": "👾",
     "path": "./emulator/?console=gb",
     "category": "game",
+    "subCategory": "console",
     "defaultWidth": 1024,
     "defaultHeight": 768,
     "gradient": "from-violet-700/20 to-purple-600/20",
@@ -1380,6 +1401,14 @@
       "pacman"
     ],
     "shareCategory": "game",
+    "featured": {
+      "order": 13,
+      "headline": "Game Boy Emulator",
+      "blurb": "Play Game Boy and Game Boy Color games in your browser. Save states, gamepad support.",
+      "tagsLine": "🕹️ Game • 🎮 Retro",
+      "preset": "gameboy",
+      "analyticsLabel": "GameBoy"
+    },
     "appTier": "experience",
     "geo": false
   },
@@ -1589,6 +1618,14 @@
       "image-viewer"
     ],
     "shareCategory": "utility",
+    "featured": {
+      "order": 5,
+      "headline": "3D Model Viewer",
+      "blurb": "Drop or open .glb/.stl/.obj/.fbx/.3mf. Rotate, zoom, swap lighting — all in the browser.",
+      "tagsLine": "🛠️ Tool • 🧊 3D",
+      "preset": "model-viewer",
+      "analyticsLabel": "3DViewer"
+    },
     "appTier": "app",
     "geo": true
   },

@@ -75,12 +75,43 @@
   }
 
   // Section grouping for the drawer. Order = render order in the rail.
-  // Anything in apps-registry.json with a category outside this list
-  // falls through to "More" so we never silently drop apps.
+  // Each def has a `filter(app)` that decides membership; the first matching
+  // section wins (so put more-specific sub-category buckets before their
+  // parent category). Anything left over lands in "More" so we never
+  // silently drop apps. Mirror-ish of GALLERY_SECTIONS in index.js — the
+  // drawer and home page should categorize apps the same way, so users
+  // don't have to re-learn where things live per surface.
+  //
+  // `subCategory` is a registry field on apps-registry.json:
+  //   "console" — nes / sega / gameboy (Retro consoles)
+  //   "music"   — piano-hero / accordion-hero (Make music)
   const SECTION_DEFS = [
-    { id: 'utility', label: 'Utilities', categories: ['utility'] },
-    { id: 'game', label: 'Games', categories: ['game'] },
-    { id: 'entertainment', label: 'Entertainment', categories: ['entertainment'] }
+    {
+      id: 'utility',
+      label: 'Utilities',
+      filter: (app) => app.category === 'utility'
+    },
+    {
+      id: 'game',
+      label: 'Games',
+      filter: (app) =>
+        app.category === 'game' && app.subCategory !== 'console' && app.subCategory !== 'music'
+    },
+    {
+      id: 'console',
+      label: 'Retro consoles',
+      filter: (app) => app.subCategory === 'console'
+    },
+    {
+      id: 'music',
+      label: 'Make music',
+      filter: (app) => app.id === 'play' || /^play-/.test(app.id) || app.subCategory === 'music'
+    },
+    {
+      id: 'entertainment',
+      label: 'Entertainment',
+      filter: (app) => app.category === 'entertainment'
+    }
   ];
 
   function getCurrentProject() {
@@ -834,31 +865,34 @@
       return;
     }
 
+    // Build the set of "canonical" (query-free) app paths so we can
+    // de-duplicate stub entries. Rule: an entry whose `path` includes `?`
+    // is treated as a stub only when *another* registry entry has the
+    // same base path with no query — that's the `doom-mods` → `doom`
+    // case. Standalone query-string entries (e.g. `nes` at
+    // `./emulator/?console=nes` — there is no plain `./emulator/` entry)
+    // stay visible; they're the only surface for that app in the drawer.
+    const canonicalBasePaths = new Set();
+    for (const app of registry) {
+      const p = app.path || '';
+      if (p && !p.includes('?')) canonicalBasePaths.add(p);
+    }
     const visible = registry.filter((app) => {
-      // Hide redirect-style stubs (e.g. doom-mods, emulator console aliases)
-      // by skipping any path that contains a query string. Direct app
-      // entries (path: "./foo/") are kept.
       const path = app.path || '';
-      return path && !path.includes('?');
+      if (!path) return false;
+      if (!path.includes('?')) return true;
+      const base = path.split('?')[0];
+      return !canonicalBasePaths.has(base);
     });
 
+    // First-match-wins: iterate defs in order, each pulls its apps out of
+    // `visible` via its filter, and the app is marked placed so later
+    // (more-general) defs skip it. This is what lets `Consoles` claim
+    // nes/sega/gameboy before `Games` can grab them.
     const placed = new Set();
-    const byCategory = new Map();
-    for (const app of visible) {
-      const cat = app.category || 'utility';
-      if (!byCategory.has(cat)) byCategory.set(cat, []);
-      byCategory.get(cat).push(app);
-    }
-
     for (const def of SECTION_DEFS) {
-      const apps = [];
-      for (const cat of def.categories) {
-        const list = byCategory.get(cat) || [];
-        for (const app of list) {
-          apps.push(app);
-          placed.add(app.id);
-        }
-      }
+      const apps = visible.filter((app) => !placed.has(app.id) && def.filter(app));
+      for (const app of apps) placed.add(app.id);
       apps.sort((a, b) =>
         (a.shortName || a.name || a.id).localeCompare(b.shortName || b.name || b.id)
       );

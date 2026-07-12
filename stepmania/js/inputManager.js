@@ -66,6 +66,9 @@ class InputManager {
     /** @type {Object<number, boolean>} Currently held keys */
     this.heldKeys = {};
 
+    /** @type {Set<number>} Columns currently held via pointer/touch on step buttons */
+    this.touchHeldColumns = new Set();
+
     /** @type {boolean} Whether input is enabled */
     this.enabled = true;
 
@@ -84,7 +87,8 @@ class InputManager {
     this._boundHandlers = {
       onKeyDown: this._onKeyDown.bind(this),
       onKeyUp: this._onKeyUp.bind(this),
-      onStepButtonClick: this._onStepButtonClick.bind(this)
+      onStepButtonPress: this._onStepButtonPress.bind(this),
+      onStepButtonRelease: this._onStepButtonRelease.bind(this)
     };
 
     this._initialized = false;
@@ -98,7 +102,8 @@ class InputManager {
 
     document.addEventListener('keydown', this._boundHandlers.onKeyDown);
     document.addEventListener('keyup', this._boundHandlers.onKeyUp);
-    document.addEventListener('stepButtonClick', this._boundHandlers.onStepButtonClick);
+    document.addEventListener('stepButtonPress', this._boundHandlers.onStepButtonPress);
+    document.addEventListener('stepButtonRelease', this._boundHandlers.onStepButtonRelease);
 
     this._initialized = true;
   }
@@ -109,10 +114,12 @@ class InputManager {
   destroy() {
     document.removeEventListener('keydown', this._boundHandlers.onKeyDown);
     document.removeEventListener('keyup', this._boundHandlers.onKeyUp);
-    document.removeEventListener('stepButtonClick', this._boundHandlers.onStepButtonClick);
+    document.removeEventListener('stepButtonPress', this._boundHandlers.onStepButtonPress);
+    document.removeEventListener('stepButtonRelease', this._boundHandlers.onStepButtonRelease);
 
     this._initialized = false;
     this.heldKeys = {};
+    this.touchHeldColumns.clear();
   }
 
   // ===========================================================================
@@ -182,6 +189,7 @@ class InputManager {
    * @returns {boolean}
    */
   isColumnHeld(column) {
+    if (this.touchHeldColumns.has(column)) return true;
     const keys = this.getKeysForColumn(column);
     return keys.some((keyCode) => this.heldKeys[keyCode]);
   }
@@ -199,6 +207,7 @@ class InputManager {
   disable() {
     this.enabled = false;
     this.heldKeys = {};
+    this.touchHeldColumns.clear();
   }
 
   /**
@@ -206,6 +215,7 @@ class InputManager {
    */
   resetHeldKeys() {
     this.heldKeys = {};
+    this.touchHeldColumns.clear();
   }
 
   // ===========================================================================
@@ -390,24 +400,58 @@ class InputManager {
   }
 
   /**
-   * Handle step button click events (touch)
+   * Parse the column index (0-3) out of a step-button id like `button2`
+   * or `fs-button2` (fullscreen variant). Returns null when the id
+   * doesn't match the expected shape.
+   * @param {string} buttonId
+   * @returns {number|null}
+   */
+  _columnFromButtonId(buttonId) {
+    if (typeof buttonId !== 'string') return null;
+    const match = buttonId.match(/button(\d+)$/);
+    if (!match) return null;
+    const column = parseInt(match[1], 10);
+    if (isNaN(column) || column < 0 || column > 3) return null;
+    return column;
+  }
+
+  /**
+   * Handle step button press events (touch / mouse / pen).
+   * Marks the column as held so long-note tracking in updateHolds()
+   * treats a finger on the pad the same as a held key.
    * @param {CustomEvent} event
    */
-  _onStepButtonClick(event) {
+  _onStepButtonPress(event) {
     if (!this.enabled) return;
 
-    const buttonId = event.detail.buttonId;
-    const column = parseInt(buttonId.replace('button', ''));
+    const column = this._columnFromButtonId(event.detail && event.detail.buttonId);
+    if (column === null) return;
 
-    if (!isNaN(column) && column >= 0 && column <= 3) {
-      this._emitStep(column, 'touch');
+    if (this.touchHeldColumns.has(column)) return;
+    this.touchHeldColumns.add(column);
+    this._emitStep(column, 'touch');
 
-      // Provide visual feedback
-      const stepButton = event.target;
-      if (stepButton && stepButton.addPressedFeedback) {
-        stepButton.addPressedFeedback();
-      }
+    const stepButton = event.target;
+    if (stepButton && stepButton.addPressedFeedback) {
+      stepButton.addPressedFeedback();
     }
+  }
+
+  /**
+   * Handle step button release events (pointerup / pointercancel).
+   * Clears the held state and fires a release so an in-progress hold
+   * can be judged as dropped instead of silently completing.
+   * @param {CustomEvent} event
+   */
+  _onStepButtonRelease(event) {
+    if (!this.enabled) return;
+
+    const column = this._columnFromButtonId(event.detail && event.detail.buttonId);
+    if (column === null) return;
+
+    if (!this.touchHeldColumns.has(column)) return;
+    this.touchHeldColumns.delete(column);
+    this._emitRelease(column, 'touch');
   }
 
   /**
