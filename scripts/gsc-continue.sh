@@ -14,7 +14,6 @@
 #   /nes/            -> /emulator/?console=nes
 #   /legend-of-doom/ -> /doom/?flavor=legend
 #   /play/guitar/    -> /play/strings/
-#   /simpletons/     -> /watch/?show=simpsons
 # Each has <meta name="robots" content="noindex"> and a meta-refresh; do not
 # add them to the priority list.
 

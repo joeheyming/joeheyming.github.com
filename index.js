@@ -611,13 +611,6 @@ function initHamburgerMenu() {
       setTimeout(() => {
         filterInput.focus();
       }, 300);
-
-      const links = hamburgerPanel.querySelectorAll('.hamburger-app-link');
-      links.forEach((link, index) => {
-        setTimeout(() => {
-          link.style.opacity = '1';
-        }, index * 50);
-      });
     } else {
       if (window.trackEvent) {
         window.trackEvent('hamburger_menu_close', 'Navigation', 'Main Menu');
@@ -626,11 +619,6 @@ function initHamburgerMenu() {
       hamburgerToggle.classList.remove('active');
       hamburgerPanel.classList.remove('show');
       filterController.reset();
-
-      const links = hamburgerPanel.querySelectorAll('.hamburger-app-link');
-      links.forEach((link) => {
-        link.style.opacity = '0';
-      });
     }
   }
 

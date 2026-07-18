@@ -145,15 +145,37 @@
     const toggleBtn = container.querySelector('.related-projects-toggle');
     const panel = container.querySelector('.related-projects-panel');
 
+    function closePanel() {
+      panel.classList.remove('open');
+      document.removeEventListener('click', closePanelFromOutside);
+      document.removeEventListener('keydown', closePanelOnEscape);
+    }
+
+    function closePanelFromOutside(e) {
+      if (!container.contains(e.target)) closePanel();
+    }
+
+    function closePanelOnEscape(e) {
+      if (e.key !== 'Escape') return;
+      closePanel();
+      e.stopPropagation();
+    }
+
+    function openPanel() {
+      panel.classList.add('open');
+      document.addEventListener('click', closePanelFromOutside);
+      document.addEventListener('keydown', closePanelOnEscape);
+    }
+
     toggleBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation(); // Prevent triggering parent elements
       const isOpen = panel.classList.contains('open');
 
       if (isOpen) {
-        panel.classList.remove('open');
+        closePanel();
       } else {
-        panel.classList.add('open');
+        openPanel();
         // Track opening
         if (window.trackEvent) {
           window.trackEvent('related_projects_opened', 'Engagement', currentProject);
@@ -166,22 +188,7 @@
     closeBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      panel.classList.remove('open');
-    });
-
-    // Close panel when clicking outside
-    document.addEventListener('click', (e) => {
-      if (panel.classList.contains('open') && !container.contains(e.target)) {
-        panel.classList.remove('open');
-      }
-    });
-
-    // Close panel on Escape key
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && panel.classList.contains('open')) {
-        panel.classList.remove('open');
-        e.stopPropagation();
-      }
+      closePanel();
     });
 
     // Prevent clicks inside panel from closing it
@@ -244,7 +251,7 @@
         }
 
         // Close the related-projects panel first so it doesn’t cover the modal
-        panel.classList.remove('open');
+        closePanel();
 
         // Prefer existing feedback-button on the page; call openModal() directly
         const existingFeedback = document.querySelector('feedback-button');

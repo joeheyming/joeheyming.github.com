@@ -374,6 +374,69 @@ window.trackPerformance = function () {
   }
 };
 
+// Capture the slowest real interaction on each page so grouped Search
+// Console INP reports can be traced back to an event and element. Event
+// Timing exposes no input values or text; the label contains only the event
+// type and a short structural selector such as "click button#submit".
+function initInpTracking() {
+  if (typeof PerformanceObserver === 'undefined') return;
+
+  let worstInteraction = null;
+  let lastReportedDuration = 0;
+  let observer = null;
+
+  function describeTarget(target) {
+    if (!(target instanceof Element)) return 'unknown';
+    let label = target.tagName.toLowerCase();
+    if (target.id) {
+      label += `#${target.id.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32)}`;
+    } else if (target.classList.length) {
+      const classes = Array.from(target.classList)
+        .slice(0, 2)
+        .map((name) => name.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24))
+        .filter(Boolean);
+      if (classes.length) label += `.${classes.join('.')}`;
+    }
+    return label.slice(0, 70);
+  }
+
+  function considerEntries(entries) {
+    for (const entry of entries) {
+      if (!entry.interactionId) continue;
+      if (!worstInteraction || entry.duration > worstInteraction.duration) {
+        worstInteraction = entry;
+      }
+    }
+  }
+
+  function reportWorstInteraction() {
+    if (observer) considerEntries(observer.takeRecords());
+    if (!worstInteraction || worstInteraction.duration <= lastReportedDuration) return;
+    lastReportedDuration = worstInteraction.duration;
+    window.trackEvent(
+      'web_vital_inp',
+      'Web Vitals',
+      `${worstInteraction.name} ${describeTarget(worstInteraction.target)}`.slice(0, 100),
+      Math.round(worstInteraction.duration)
+    );
+  }
+
+  try {
+    observer = new PerformanceObserver((list) => {
+      considerEntries(list.getEntries());
+    });
+    observer.observe({ type: 'event', buffered: true, durationThreshold: 40 });
+  } catch (_) {
+    // Event Timing is not available in this browser.
+    return;
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) reportWorstInteraction();
+  });
+  window.addEventListener('pagehide', reportWorstInteraction);
+}
+
 // Track performance when page is fully loaded
 window.addEventListener('load', function () {
   setTimeout(trackPerformance, 1000); // Wait a bit for everything to settle
@@ -692,7 +755,9 @@ window.trackConversion = function (conversionType, value) {
     value: value || 1
   });
 
-  console.log('Conversion tracked:', conversionType, value);
+  if (isLocalDevHost()) {
+    console.log('Conversion tracked:', conversionType, value);
+  }
 };
 
 // Track when users open/interact with projects. Also drives the
@@ -779,6 +844,7 @@ if (isLocalDevHost()) {
 
   initErrorTracking();
   initDataEventTracking();
+  initInpTracking();
 
   // Track if the site is being served from an unexpected hostname
   // or embedded in an iframe outside of joeheyming.github.io.

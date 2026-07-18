@@ -64,6 +64,9 @@ const AppFilter = {
     const { container, filterInput, noResultsEl, clearButton, getSearchText, onFilter } = config;
 
     const controller = {
+      filterTimer: null,
+      pendingSearchTerm: null,
+
       filter(searchTerm) {
         const term = (searchTerm || '').toLowerCase().trim();
         const items = container.querySelectorAll('[data-filterable="true"]');
@@ -99,7 +102,34 @@ const AppFilter = {
         return visibleCount;
       },
 
+      scheduleFilter(searchTerm) {
+        this.pendingSearchTerm = searchTerm;
+        if (this.filterTimer) clearTimeout(this.filterTimer);
+        this.filterTimer = setTimeout(() => {
+          this.filterTimer = null;
+          const pending = this.pendingSearchTerm;
+          this.pendingSearchTerm = null;
+          this.filter(pending);
+        }, 120);
+      },
+
+      flushScheduledFilter() {
+        if (!this.filterTimer) return;
+        clearTimeout(this.filterTimer);
+        this.filterTimer = null;
+        const pending = this.pendingSearchTerm;
+        this.pendingSearchTerm = null;
+        this.filter(pending);
+      },
+
+      cancelScheduledFilter() {
+        if (this.filterTimer) clearTimeout(this.filterTimer);
+        this.filterTimer = null;
+        this.pendingSearchTerm = null;
+      },
+
       clear() {
+        this.cancelScheduledFilter();
         if (filterInput) {
           filterInput.value = '';
         }
@@ -110,6 +140,7 @@ const AppFilter = {
       },
 
       reset() {
+        this.cancelScheduledFilter();
         if (filterInput) {
           filterInput.value = '';
         }
@@ -141,6 +172,7 @@ const AppFilter = {
                 onEscape();
               }
             } else if (e.key === 'Enter') {
+              this.flushScheduledFilter();
               const first = this.getFirstVisible();
               if (first) {
                 if (onEnter) {
@@ -150,6 +182,7 @@ const AppFilter = {
                 }
               }
             } else if (e.key === 'ArrowDown') {
+              this.flushScheduledFilter();
               e.preventDefault();
               const first = this.getFirstVisible();
               if (first) {
@@ -160,7 +193,7 @@ const AppFilter = {
 
           // Bind input event
           filterInput.addEventListener('input', (e) => {
-            this.filter(e.target.value);
+            this.scheduleFilter(e.target.value);
           });
         }
 

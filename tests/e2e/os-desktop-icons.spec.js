@@ -55,6 +55,92 @@ test.describe('Heyming OS desktop icons (Theme E)', () => {
     expect(cleared).toBe(true);
   });
 
+  test('rubber-band selection caches geometry and coalesces pointer updates', async ({ page }) => {
+    const result = await page.evaluate(async () => {
+      const desktop = document.getElementById('os-desktop');
+      const desktopController = window.heymingOS.desktop;
+      if (!desktop || !desktopController) {
+        return null;
+      }
+
+      const testIcon = document.createElement('div');
+      testIcon.className = 'desktop-icon file-icon';
+      testIcon.dataset.path = '/rubber-band-test.txt';
+      desktop.appendChild(testIcon);
+      desktopController.fileIcons.push(testIcon);
+
+      const fileIcons = desktopController.fileIcons;
+      let rectReads = 0;
+      for (const icon of fileIcons) {
+        icon.getBoundingClientRect = () => {
+          rectReads++;
+          return {
+            left: 10,
+            right: 50,
+            top: 10,
+            bottom: 50,
+            width: 40,
+            height: 40,
+            x: 10,
+            y: 10,
+            toJSON: () => ({})
+          };
+        };
+      }
+
+      const nativeRequestAnimationFrame = window.requestAnimationFrame.bind(window);
+      let scheduledFrames = 0;
+      window.requestAnimationFrame = (callback) => {
+        scheduledFrames++;
+        return nativeRequestAnimationFrame(callback);
+      };
+
+      desktop.dispatchEvent(
+        new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: 0, clientY: 0 })
+      );
+      document.dispatchEvent(new MouseEvent('mousemove', { clientX: 20, clientY: 20 }));
+      document.dispatchEvent(new MouseEvent('mousemove', { clientX: 40, clientY: 40 }));
+      document.dispatchEvent(new MouseEvent('mousemove', { clientX: 60, clientY: 60 }));
+
+      const readsAtDragStart = rectReads;
+      const framesForMoves = scheduledFrames;
+      await new Promise((resolve) => nativeRequestAnimationFrame(resolve));
+      const readsAfterMoveFrame = rectReads;
+
+      window.dispatchEvent(new Event('resize'));
+      await new Promise((resolve) => nativeRequestAnimationFrame(resolve));
+      const readsAfterResize = rectReads;
+      const selectedAfterLatestMove = desktopController.selectedFiles.has(testIcon.dataset.path);
+
+      document.dispatchEvent(new MouseEvent('mouseup'));
+      const dragStateCleared =
+        desktopController.dragSelectionFrame === null &&
+        desktopController.dragSelectionPointer === null &&
+        desktopController.dragSelectionIconRects === null;
+      window.requestAnimationFrame = nativeRequestAnimationFrame;
+      testIcon.remove();
+      desktopController.fileIcons = desktopController.fileIcons.filter((icon) => icon !== testIcon);
+
+      return {
+        iconCount: fileIcons.length,
+        readsAtDragStart,
+        framesForMoves,
+        readsAfterMoveFrame,
+        readsAfterResize,
+        selectedAfterLatestMove,
+        dragStateCleared
+      };
+    });
+
+    expect(result).not.toBeNull();
+    expect(result.readsAtDragStart).toBe(result.iconCount);
+    expect(result.framesForMoves).toBe(1);
+    expect(result.readsAfterMoveFrame).toBe(result.iconCount);
+    expect(result.readsAfterResize).toBe(result.iconCount * 2);
+    expect(result.selectedAfterLatestMove).toBe(true);
+    expect(result.dragStateCleared).toBe(true);
+  });
+
   test('Theme E: Quick Look — dialog semantics, Esc hint, focus, Escape closes', async ({
     page
   }) => {

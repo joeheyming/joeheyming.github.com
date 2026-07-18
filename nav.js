@@ -655,6 +655,7 @@
   // we don't fire `nav_drawer_search` once per keystroke.
   let searchFiredThisOpen = false;
   let searchDebounce = null;
+  let filterDebounce = null;
 
   function openDrawer() {
     if (isOpen) return;
@@ -691,6 +692,10 @@
     if (searchDebounce) {
       clearTimeout(searchDebounce);
       searchDebounce = null;
+    }
+    if (filterDebounce) {
+      clearTimeout(filterDebounce);
+      filterDebounce = null;
     }
     drawer.classList.remove('open');
     backdrop.classList.remove('open');
@@ -950,8 +955,7 @@
     const sectionsHost = drawer.querySelector('.heyming-nav-sections');
     if (!input || !sectionsHost) return;
 
-    input.addEventListener('input', () => {
-      const raw = input.value;
+    function applySearchFilter(raw) {
       const q = raw.trim().toLowerCase();
       const sections = sectionsHost.querySelectorAll('.heyming-nav-section');
 
@@ -999,10 +1003,26 @@
           window.trackEvent('nav_drawer_search', 'Navigation', String(visibleCount), queryLen);
         }, 700);
       }
+    }
+
+    // Filtering rewrites the visibility of every app row. Move that work
+    // out of the keystroke interaction and batch quick bursts of typing.
+    input.addEventListener('input', () => {
+      const raw = input.value;
+      if (filterDebounce) clearTimeout(filterDebounce);
+      filterDebounce = setTimeout(() => {
+        filterDebounce = null;
+        applySearchFilter(raw);
+      }, 120);
     });
 
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
+        if (filterDebounce) {
+          clearTimeout(filterDebounce);
+          filterDebounce = null;
+          applySearchFilter(input.value);
+        }
         const firstVisible = drawer.querySelector(
           '.heyming-nav-sections .heyming-nav-item:not([style*="display: none"])'
         );

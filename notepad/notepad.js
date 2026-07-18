@@ -12,6 +12,8 @@ class RichNotepad {
     this.quill = null;
     this.currentFilePath = null;
     this.currentFileName = null;
+    this.autoSaveTimer = null;
+    this.autoSaveDirty = false;
     this.init();
   }
 
@@ -275,11 +277,39 @@ class RichNotepad {
   }
 
   setupAutoSave() {
-    // Save content on text change
+    // Quill can produce a large Delta. Serializing it and writing to
+    // localStorage synchronously on every keystroke blocks the interaction
+    // that produced the edit, so wait until typing pauses instead.
     this.quill.on('text-change', () => {
+      this.autoSaveDirty = true;
+      if (this.autoSaveTimer) {
+        clearTimeout(this.autoSaveTimer);
+      }
+      this.autoSaveTimer = setTimeout(() => this.flushAutoSave(), 750);
+    });
+
+    window.addEventListener('pagehide', () => this.flushAutoSave());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        this.flushAutoSave();
+      }
+    });
+  }
+
+  flushAutoSave() {
+    if (!this.autoSaveDirty || !this.quill) return;
+    if (this.autoSaveTimer) {
+      clearTimeout(this.autoSaveTimer);
+      this.autoSaveTimer = null;
+    }
+
+    try {
       const content = this.quill.getContents();
       localStorage.setItem('notepad-rich-content', JSON.stringify(content));
-    });
+      this.autoSaveDirty = false;
+    } catch (error) {
+      debug('Could not auto-save content', error);
+    }
   }
 
   loadSavedContent() {

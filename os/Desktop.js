@@ -27,6 +27,9 @@ export class Desktop {
     this.isDragSelecting = false;
     this.dragSelectStart = null;
     this.selectionBox = null;
+    this.dragSelectionFrame = null;
+    this.dragSelectionPointer = null;
+    this.dragSelectionIconRects = null;
 
     // Quick Look preview
     this.quickLook = null;
@@ -145,6 +148,8 @@ export class Desktop {
   async _loadDesktopFiles() {
     if (!this.fs) return;
 
+    this._invalidateDragSelectionGeometry();
+
     // Remove existing file icons
     this.fileIcons.forEach((icon) => icon.remove());
     this.fileIcons = [];
@@ -205,6 +210,8 @@ export class Desktop {
     } catch (error) {
       console.warn('Failed to load desktop files:', error);
     }
+
+    this._handleDragSelectionGeometryChange();
   }
 
   _createAppIcon(iconData) {
@@ -737,11 +744,13 @@ export class Desktop {
 
       this.isDragSelecting = true;
       this.dragSelectStart = { x: e.clientX, y: e.clientY };
+      this.dragSelectionPointer = null;
 
       // Clear selection unless holding Shift or Cmd
       if (!e.shiftKey && !e.metaKey && !e.ctrlKey) {
         this._clearSelection();
       }
+      this._cacheDragSelectionIconRects();
 
       // Show selection box at start position
       this.selectionBox.style.left = e.clientX + 'px';
@@ -755,32 +764,92 @@ export class Desktop {
     document.addEventListener('mousemove', (e) => {
       if (!this.isDragSelecting) return;
 
-      const startX = this.dragSelectStart.x;
-      const startY = this.dragSelectStart.y;
-      const currentX = e.clientX;
-      const currentY = e.clientY;
-
-      const left = Math.min(startX, currentX);
-      const top = Math.min(startY, currentY);
-      const width = Math.abs(currentX - startX);
-      const height = Math.abs(currentY - startY);
-
-      this.selectionBox.style.left = left + 'px';
-      this.selectionBox.style.top = top + 'px';
-      this.selectionBox.style.width = width + 'px';
-      this.selectionBox.style.height = height + 'px';
-
-      // Select files that intersect with the selection box
-      this._selectIntersectingFiles(left, top, width, height, e.shiftKey || e.metaKey || e.ctrlKey);
+      this.dragSelectionPointer = {
+        x: e.clientX,
+        y: e.clientY,
+        additive: e.shiftKey || e.metaKey || e.ctrlKey
+      };
+      this._scheduleDragSelectionUpdate();
     });
 
     // Mouse up - end drag selection
     document.addEventListener('mouseup', () => {
-      if (!this.isDragSelecting) return;
-
-      this.isDragSelecting = false;
-      this.selectionBox.style.display = 'none';
+      this._endDragSelection(true);
     });
+
+    window.addEventListener('blur', () => this._endDragSelection(false));
+    window.addEventListener('resize', () => this._handleDragSelectionGeometryChange());
+    document.addEventListener('scroll', () => this._handleDragSelectionGeometryChange(), true);
+  }
+
+  _scheduleDragSelectionUpdate() {
+    if (this.dragSelectionFrame !== null || !this.dragSelectionPointer) return;
+
+    this.dragSelectionFrame = window.requestAnimationFrame(() => {
+      this.dragSelectionFrame = null;
+      if (this.isDragSelecting) {
+        this._updateDragSelection();
+      }
+    });
+  }
+
+  _updateDragSelection() {
+    if (!this.dragSelectStart || !this.dragSelectionPointer) return;
+
+    const startX = this.dragSelectStart.x;
+    const startY = this.dragSelectStart.y;
+    const { x: currentX, y: currentY, additive } = this.dragSelectionPointer;
+    const left = Math.min(startX, currentX);
+    const top = Math.min(startY, currentY);
+    const width = Math.abs(currentX - startX);
+    const height = Math.abs(currentY - startY);
+
+    this.selectionBox.style.left = left + 'px';
+    this.selectionBox.style.top = top + 'px';
+    this.selectionBox.style.width = width + 'px';
+    this.selectionBox.style.height = height + 'px';
+
+    this._selectIntersectingFiles(left, top, width, height, additive);
+  }
+
+  _endDragSelection(flushPending) {
+    if (!this.isDragSelecting) return;
+
+    if (this.dragSelectionFrame !== null) {
+      window.cancelAnimationFrame(this.dragSelectionFrame);
+      this.dragSelectionFrame = null;
+      if (flushPending) {
+        this._updateDragSelection();
+      }
+    }
+
+    this.isDragSelecting = false;
+    this.dragSelectStart = null;
+    this.dragSelectionPointer = null;
+    this.dragSelectionIconRects = null;
+    this.selectionBox.style.display = 'none';
+  }
+
+  _handleDragSelectionGeometryChange() {
+    this._invalidateDragSelectionGeometry();
+    if (this.isDragSelecting) {
+      this._scheduleDragSelectionUpdate();
+    }
+  }
+
+  _invalidateDragSelectionGeometry() {
+    this.dragSelectionIconRects = null;
+  }
+
+  _cacheDragSelectionIconRects() {
+    this.dragSelectionIconRects = this.fileIcons
+      .map((icon) => {
+        const path = icon.dataset.path;
+        if (!path) return null;
+        return { icon, path, rect: icon.getBoundingClientRect() };
+      })
+      .filter(Boolean);
+    return this.dragSelectionIconRects;
   }
 
   _selectIntersectingFiles(boxLeft, boxTop, boxWidth, boxHeight, additive) {
@@ -788,10 +857,8 @@ export class Desktop {
     const boxBottom = boxTop + boxHeight;
 
     // Only check file icons, not app icons
-    this.fileIcons.forEach((icon) => {
-      const rect = icon.getBoundingClientRect();
-      const path = icon.dataset.path;
-
+    const iconRects = this.dragSelectionIconRects || this._cacheDragSelectionIconRects();
+    iconRects.forEach(({ icon, path, rect }) => {
       // Check if icon intersects with selection box
       const intersects =
         rect.left < boxRight &&

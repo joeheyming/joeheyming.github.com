@@ -417,52 +417,89 @@
       const TOTAL_FRAMES = 6572; // Total frames at 30 FPS (3:39 video duration)
       const DURATION = TOTAL_FRAMES / FRAME_RATE; // ~219 seconds
       let frames = {}; // Cache for loaded frames
+      let frameLoads = {}; // In-flight frame requests
+      let preloadQueue = new Set();
+      let preloadPromise = null;
       let isPlaying = false;
       let lastFrameNum = 0;
       let animationId = null;
       let currentSpeed = 1;
+      let seekRequestId = 0;
+
+      const yieldToMain =
+        typeof window.yieldToMain === 'function'
+          ? window.yieldToMain
+          : () => new Promise((resolve) => setTimeout(resolve, 0));
 
       // Load frame data from existing HTML files
       async function loadFrame(frameNum) {
         if (frames[frameNum]) return frames[frameNum];
+        if (frameLoads[frameNum]) return frameLoads[frameNum];
 
-        try {
-          const response = await fetch(`frame/${frameNum}.html`);
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const frameLoad = (async () => {
+          try {
+            const response = await fetch(`frame/${frameNum}.html`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-          const html = await response.text();
-          // Extract the ASCII art from between <pre> tags
-          const match = html.match(/<pre>\s*([\s\S]*?)\s*<\/pre>/);
-          if (match) {
-            frames[frameNum] = match[1];
-            return frames[frameNum];
-          } else {
-            throw new Error('No <pre> tag found');
+            const html = await response.text();
+            // Extract the ASCII art from between <pre> tags
+            const match = html.match(/<pre>\s*([\s\S]*?)\s*<\/pre>/);
+            if (match) {
+              frames[frameNum] = match[1];
+              return frames[frameNum];
+            } else {
+              throw new Error('No <pre> tag found');
+            }
+          } catch (error) {
+            console.error(`Could not load frame ${frameNum}:`, error);
+            return '';
           }
-        } catch (error) {
-          console.error(`Could not load frame ${frameNum}:`, error);
-          return '';
+        })();
+
+        frameLoads[frameNum] = frameLoad;
+        try {
+          return await frameLoad;
+        } finally {
+          delete frameLoads[frameNum];
         }
       }
 
       // Preload nearby frames for smoother playback at 30 FPS
-      async function preloadFrames(centerFrame, radius = 30) {
-        const promises = [];
+      function preloadFrames(centerFrame, radius = 30) {
         for (
           let i = Math.max(1, centerFrame - radius);
           i <= Math.min(TOTAL_FRAMES, centerFrame + radius);
           i++
         ) {
-          if (!frames[i]) {
-            promises.push(loadFrame(i));
+          if (!frames[i] && !frameLoads[i]) {
+            preloadQueue.add(i);
           }
         }
-        // Process in batches to avoid overwhelming the browser
-        const batchSize = 5;
-        for (let i = 0; i < promises.length; i += batchSize) {
-          const batch = promises.slice(i, i + batchSize);
-          await Promise.all(batch);
+
+        if (!preloadPromise) {
+          preloadPromise = (async () => {
+            // Process in batches to avoid overwhelming the browser.
+            while (preloadQueue.size > 0) {
+              const batch = Array.from(preloadQueue).slice(0, 5);
+              batch.forEach((frameNum) => preloadQueue.delete(frameNum));
+              await Promise.all(batch.map((frameNum) => loadFrame(frameNum)));
+            }
+          })().finally(() => {
+            preloadPromise = null;
+          });
         }
+
+        return preloadPromise;
+      }
+
+      function startPreloading(centerFrame, radius, replaceQueued = false) {
+        if (replaceQueued) {
+          // Keep the active batch, but discard stale work so this range runs next.
+          preloadQueue.clear();
+        }
+        preloadFrames(centerFrame, radius).catch((error) => {
+          console.error('Frame preloading failed:', error);
+        });
       }
 
       function updateFrame() {
@@ -511,14 +548,24 @@
       async function play() {
         try {
           playBtn.disabled = true;
-
-          // Preload first few frames for 30 FPS
-          await preloadFrames(1, 60); // Preload first 2 seconds at 30 FPS
-
-          isPlaying = true;
-          await audio.play();
-
           playBtn.textContent = '⏸ Pause';
+          isPlaying = true;
+
+          // Start playback while the user activation is still available, but let
+          // the updated button paint before frame requests begin.
+          const playbackResult = Promise.resolve(audio.play()).then(
+            () => ({ error: null }),
+            (error) => ({ error })
+          );
+          await yieldToMain();
+
+          if (isPlaying) {
+            const currentFrame = Math.floor(audio.currentTime * FRAME_RATE) + 1;
+            startPreloading(currentFrame, 60);
+          }
+
+          const { error } = await playbackResult;
+          if (error) throw error;
           playBtn.disabled = false;
 
           // Start the animation loop
@@ -526,6 +573,7 @@
         } catch (error) {
           console.error('Playback failed:', error);
           playBtn.disabled = false;
+          playBtn.textContent = '▶ Play';
           isPlaying = false;
         }
       }
@@ -556,29 +604,34 @@
         timeDisplay.textContent = formatTime(current) + ' / ' + formatTime(duration);
       }
 
-      function seek(event) {
+      async function seek(event) {
         const rect = progressBar.getBoundingClientRect();
         const percent = (event.clientX - rect.left) / rect.width;
         const newTime = percent * (audio.duration || DURATION);
         audio.currentTime = Math.max(0, Math.min(newTime, audio.duration || DURATION));
         lastFrameNum = 0; // Reset to force frame update
         updateProgress();
-        // If playing, preload frames around the new position
-        if (isPlaying) {
-          const newFrame = Math.floor(newTime * FRAME_RATE) + 1;
-          preloadFrames(newFrame, 30);
-        }
+
+        const requestId = ++seekRequestId;
+        await yieldToMain();
+        if (!isPlaying || requestId !== seekRequestId) return;
+
+        const newFrame = Math.floor(audio.currentTime * FRAME_RATE) + 1;
+        startPreloading(newFrame, 30, true);
       }
 
-      function skip(seconds) {
+      async function skip(seconds) {
         const newTime = audio.currentTime + seconds;
         audio.currentTime = Math.max(0, Math.min(newTime, audio.duration || DURATION));
         lastFrameNum = 0;
         updateProgress();
-        if (isPlaying) {
-          const newFrame = Math.floor(audio.currentTime * FRAME_RATE) + 1;
-          preloadFrames(newFrame, 30);
-        }
+
+        const requestId = ++seekRequestId;
+        await yieldToMain();
+        if (!isPlaying || requestId !== seekRequestId) return;
+
+        const newFrame = Math.floor(audio.currentTime * FRAME_RATE) + 1;
+        startPreloading(newFrame, 30, true);
       }
 
       function setSpeed(speed) {

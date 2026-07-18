@@ -3,6 +3,8 @@ import { getLocalizedEventLabel, CATEGORY_EMOJIS } from './events.js';
 import { localeService } from './i18n/locale-service.js';
 import { onClickOutside, dropdownStyles, chevronStyles } from './components/shared-styles.js';
 
+const FILTER_DEBOUNCE_MS = 120;
+
 /**
  * Event Autocomplete Web Component
  * A searchable dropdown for selecting countdown events
@@ -17,6 +19,8 @@ class EventAutocomplete extends HTMLElement {
     this.selectedEvent = null;
     this.isOpen = false;
     this._clickOutsideCleanup = null;
+    this._filterTimer = null;
+    this._pendingFilterQuery = null;
   }
 
   async connectedCallback() {
@@ -45,6 +49,7 @@ class EventAutocomplete extends HTMLElement {
   }
 
   disconnectedCallback() {
+    this.cancelPendingFilter();
     if (this._localeUnsubscribe) this._localeUnsubscribe();
     if (this._clickOutsideCleanup) this._clickOutsideCleanup();
   }
@@ -87,6 +92,7 @@ class EventAutocomplete extends HTMLElement {
   }
 
   setEvents(events) {
+    this.cancelPendingFilter();
     this.events = events;
     // Sort by date (nearest first)
     this.filteredEvents = [...events].sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
@@ -94,6 +100,7 @@ class EventAutocomplete extends HTMLElement {
   }
 
   setSelectedEvent(event) {
+    this.cancelPendingFilter();
     this.selectedEvent = event;
     if (event && this.input) {
       this.input.value = `${event.emoji} ${event.label}`;
@@ -372,6 +379,7 @@ class EventAutocomplete extends HTMLElement {
   }
 
   filterEvents(query) {
+    this.cancelPendingFilter();
     const sorted = [...this.events].sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
 
     if (!query.trim()) {
@@ -392,15 +400,46 @@ class EventAutocomplete extends HTMLElement {
     this.renderDropdown();
   }
 
-  open() {
+  scheduleFilter(query) {
+    this.cancelPendingFilter();
+    this._pendingFilterQuery = query;
+    this._filterTimer = setTimeout(() => {
+      const pendingQuery = this._pendingFilterQuery;
+      this._filterTimer = null;
+      this._pendingFilterQuery = null;
+      this.filterEvents(pendingQuery);
+    }, FILTER_DEBOUNCE_MS);
+  }
+
+  flushPendingFilter() {
+    if (this._pendingFilterQuery === null) return false;
+
+    const pendingQuery = this._pendingFilterQuery;
+    this.cancelPendingFilter();
+    this.filterEvents(pendingQuery);
+    return true;
+  }
+
+  cancelPendingFilter() {
+    if (this._filterTimer !== null) {
+      clearTimeout(this._filterTimer);
+      this._filterTimer = null;
+    }
+    this._pendingFilterQuery = null;
+  }
+
+  open(resetFilter = true) {
     this.isOpen = true;
     this.dropdown.classList.add('open');
     this.chevron.classList.add('open');
     // Show all events when opening - user can type to filter
-    this.filterEvents('');
+    if (resetFilter) {
+      this.filterEvents('');
+    }
   }
 
   close() {
+    this.cancelPendingFilter();
     this.isOpen = false;
     this.dropdown.classList.remove('open');
     this.chevron.classList.remove('open');
@@ -410,6 +449,7 @@ class EventAutocomplete extends HTMLElement {
   }
 
   selectEvent(eventId) {
+    this.cancelPendingFilter();
     const event = this.events.find((e) => e.id === eventId);
     if (event) {
       this.selectedEvent = event;
@@ -466,10 +506,10 @@ class EventAutocomplete extends HTMLElement {
     // Input filtering - clear selection state when user types
     this.input.addEventListener('input', (e) => {
       const query = e.target.value;
-      this.filterEvents(query);
       if (!this.isOpen) {
-        this.open();
+        this.open(false);
       }
+      this.scheduleFilter(query);
     });
 
     // Keyboard navigation - let browser handle modifier keys (Ctrl+A, Cmd+C, etc.)
@@ -482,11 +522,15 @@ class EventAutocomplete extends HTMLElement {
       // User is typing without modifiers, don't auto-select on next focus
       shouldSelectAll = false;
 
+      const flushedPendingFilter = ['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)
+        ? this.flushPendingFilter()
+        : false;
+
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
           if (!this.isOpen) {
-            this.open();
+            this.open(!flushedPendingFilter);
           } else {
             this.highlightedIndex = Math.min(
               this.highlightedIndex + 1,
