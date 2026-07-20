@@ -2178,6 +2178,30 @@ a.tv-crumb:hover {
   font-size: 10px;
 }
 
+.tv-about {
+  width: min(760px, 100%);
+  margin: 18px auto 0;
+  padding-top: 24px;
+  border-top: 1px solid var(--tv-card-border);
+  color: var(--tv-text-dim);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.tv-about h2 {
+  margin: 0 0 10px;
+  color: var(--tv-text);
+  font-size: 20px;
+}
+
+.tv-about p {
+  margin: 8px 0 0;
+}
+
+.tv-about a {
+  color: var(--tv-accent);
+}
+
 .tv-fineprint {
   text-align: center;
   font-size: 11px;

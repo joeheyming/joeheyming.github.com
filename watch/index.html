@@ -90,83 +90,6 @@
             "inLanguage": "en"
           },
           {
-            "@type": "FAQPage",
-            "mainEntity": [
-              {
-                "@type": "Question",
-                "name": "Where do the videos come from?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "The Internet Archive (archive.org). Watch curates a smart-TV-style channel grid pointing at IA collections of classic TV shows, animation, and Saturday-morning cartoons that are public-domain or otherwise available for streaming."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "Why do some videos fail to load?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "The Internet Archive's CDN sometimes redirects to subdomains (dn710203.ca.archive.org) that don't set CORS headers, so the player has to route the bytes through a CORS proxy. If both proxies are down or the original file has been removed, playback fails. Selecting a different episode usually works."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "Can I cast to my TV?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Yes — the player exposes the standard HTML5 video element so AirPlay (Safari) and Chromecast (Chrome on Android) icons appear automatically. Pick the destination from your browser's video controls."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "Are saves persistent?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Yes. The page tracks which episode you watched last and how far through it you were, persisted to IndexedDB. Closing the tab and coming back later resumes from the same spot."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "What is the channel-grid layout?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "A smart-TV-style 2D grid of channels (rows) and episodes (columns) you can navigate with arrow keys, a TV remote, or the on-screen pointer. Designed to feel like classic cable channel surfing."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "Is Watch free to use?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Yes. Watch is a free, static GitHub Pages site that links to public-domain video already hosted on the Internet Archive. There's no signup, no account, no ads, and nothing to install. The site never hosts the video itself — it only points the browser's <video> element at archive.org."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "What kinds of shows are available?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "The channel guide curates public-domain and openly-streamable classic TV from the Internet Archive: animation and animated TV, classic sitcoms, Saturday-morning cartoons, and a handful of standalone classic feature films. The roster shifts as items are added or removed from archive.org; the page reflects whatever currently streams cleanly."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "Can I save episodes for offline viewing?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Yes. The Save button on the player streams the full MP4 into an IndexedDB Blob store, with progress reported live. Saved episodes play back from local storage with no network access required. The browser is asked to mark the storage as persistent so it isn't evicted under disk pressure."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "Does Watch work on mobile and TV?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Yes. The layout responds to mobile viewports, and a TV remote / D-pad navigation mode is built into the channel grid so the page is usable on a TV browser. Pair it with Chromecast (Chrome on Android) or AirPlay (Safari) to cast the underlying <video> stream to a TV instead of watching on the small screen."
-                }
-              }
-            ]
-          },
-          {
             "@type": "BreadcrumbList",
             "itemListElement": [
               {
@@ -233,57 +156,31 @@
         Watch Classic TV Online — Internet Archive Smart-TV Channel Guide
       </h1>
 
-      <!--
-        SEO fallback for crawlers that don't render JS and for users with
-        JavaScript disabled. The interactive view (`<main id="tv-view">`)
-        below is JS-rendered, so the static body would otherwise contain
-        no keyword-bearing content. This block is roster-independent on
-        purpose: it describes the experience and category mix, not the
-        currently-loaded shows, so the Sheet-backed registry can churn
-        without touching SEO copy.
-      -->
-      <noscript>
-        <section class="tv-seo-fallback">
-          <h2>Internet Archive Smart-TV Channel Guide</h2>
-          <p>
-            Watch is a browser-based smart-TV channel guide for classic public-domain television
-            hosted on the
-            <a href="https://archive.org/">Internet Archive</a>
-            . Episodes stream as plain H.264 MP4 directly into an HTML5
-            <code>&lt;video&gt;</code>
-            element — no signup, no account, no ads, no app install. The page itself is a static
-            GitHub Pages deploy; the only "backend" is archive.org's public file endpoints plus
-            public TVMaze and OpenSubtitles JSON.
-          </p>
-          <h3>What's on the channel guide</h3>
-          <ul>
-            <li>Classic animation and animated TV.</li>
-            <li>Public-domain sitcoms and live-action classics.</li>
-            <li>Saturday-morning cartoons.</li>
-            <li>Standalone classic and public-domain feature films.</li>
-          </ul>
-          <h3>Features</h3>
-          <ul>
-            <li>Channel-grid navigation by arrow keys, TV remote / D-pad, or pointer.</li>
-            <li>Continue Watching tracks where you left off in each show.</li>
-            <li>Save full episodes offline to IndexedDB for later playback without a network.</li>
-            <li>Optional CC subtitles via the OpenSubtitles addon, where available.</li>
-            <li>
-              Cast to a Chromecast or AirPlay-compatible TV through the standard browser video
-              controls.
-            </li>
-          </ul>
-          <p>
-            This page requires JavaScript.
-            <a href="/">← Browse all apps on joeheyming.github.io</a>
-          </p>
-        </section>
-      </noscript>
-
       <!-- The router mounts the active view here. Views own their own DOM:
            shows-view (grid), episodes-view (season + ep list), watch-view
            (TV chassis + player). Only one is in the DOM at a time. -->
       <main id="tv-view" class="tv-view" aria-live="polite"></main>
+
+      <section class="tv-about" aria-labelledby="tv-about-title">
+        <h2 id="tv-about-title">Classic TV from the Internet Archive</h2>
+        <p>
+          Watch is a free guide to classic public-domain television on the
+          <a href="https://archive.org/">Internet Archive.</a>
+          Browse animation, sitcoms, Saturday morning cartoons, and classic films without an account
+          or app install.
+        </p>
+        <p>
+          Episodes stream as browser-friendly MP4 video. The player supports TV remote and keyboard
+          navigation, resume progress, optional captions, offline saves, Chromecast, and AirPlay.
+          Files stay on the Internet Archive; this site only organizes and links to them.
+        </p>
+        <noscript>
+          <p>
+            The interactive channel guide requires JavaScript.
+            <a href="/">Browse the other Heyming OS apps instead.</a>
+          </p>
+        </noscript>
+      </section>
 
       <p class="tv-fineprint">
         Files served directly from the Internet Archive. This site only links — it does not host.
