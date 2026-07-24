@@ -328,6 +328,22 @@
   box-shadow: 0 0 18px -4px color-mix(in srgb, var(--success) 50%, transparent);
 }
 
+.loop-post {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.loop-post-status {
+  flex-basis: 100%;
+  min-height: 1em;
+  font-size: 12px;
+  color: var(--fg-dim);
+  text-align: center;
+}
+
+.loop-post-status.error {
+  color: var(--play-drums-rec);
+}
+
 @keyframes loop-rec-pulse {
   0%,
   100% {

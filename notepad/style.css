@@ -272,6 +272,7 @@ body {
 .ql-copy-button,
 .ql-export-button,
 .ql-import-button,
+.ql-post-button,
 .ql-save-button,
 .ql-save-as-button {
   background: transparent !important;
@@ -289,9 +290,19 @@ body {
   justify-content: center;
 }
 
+.ql-post-button {
+  width: auto !important;
+  padding: 0 10px !important;
+  font-size: 12px !important;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text-1);
+}
+
 .ql-copy-button:hover,
 .ql-export-button:hover,
 .ql-import-button:hover,
+.ql-post-button:hover,
 .ql-save-button:hover,
 .ql-save-as-button:hover {
   background: var(--surface-1) !important;
@@ -301,6 +312,7 @@ body {
 .ql-copy-button:active,
 .ql-export-button:active,
 .ql-import-button:active,
+.ql-post-button:active,
 .ql-save-button:active,
 .ql-save-as-button:active {
   background: var(--accent-primary-soft) !important;

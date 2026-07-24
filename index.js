@@ -86,6 +86,7 @@ const POPULAR_APP_IDS = [
   'doom',
   'nes',
   'stepmania',
+  'posts',
   'dos',
   'pacman',
   'pacman-infinite',

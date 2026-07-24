@@ -1182,6 +1182,11 @@ const PAGES = [
       // Let one paint cycle settle so the canvas reflects the typing.
       await page.waitForTimeout(400);
     }
+  },
+  {
+    url: `${BASE_URL}/posts/`,
+    output: 'posts/posts-preview.png',
+    title: 'Posts'
   }
 ];
 

@@ -71,7 +71,11 @@
             "applicationCategory": "MultimediaApplication",
             "operatingSystem": "Web Browser",
             "description": "A free virtual drum kit that plays in your browser. Click or tap pads, or hammer keyboard keys for low-latency drumming. Includes kick, snare, hi-hat (open + closed), toms, cymbals, and clap.",
-            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
             "musicalInstrumentType": "Drum Kit"
           },
@@ -137,7 +141,8 @@
           window.heymingNavInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent = '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
+          s.textContent =
+            '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
           document.head.appendChild(s);
         }
       })();
@@ -224,7 +229,17 @@
         >
           Clear
         </button>
+        <button
+          id="loop-post"
+          class="loop-btn loop-post"
+          type="button"
+          title="Make a Post"
+          disabled
+        >
+          Make a Post
+        </button>
         <span class="loop-status" id="loop-status" aria-live="polite"></span>
+        <span class="loop-post-status" id="loop-post-status" aria-live="polite"></span>
       </div>
     </section>
 

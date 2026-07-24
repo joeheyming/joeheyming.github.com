@@ -204,6 +204,12 @@ function main() {
   const btnTripViewDelete = $('btn-trip-view-delete');
   /** @type {HTMLButtonElement} */
   const btnTripViewCrop = $('btn-trip-view-crop');
+  /** @type {HTMLButtonElement} */
+  const btnTripViewPost = $('btn-trip-view-post');
+  /** @type {HTMLInputElement} */
+  const tripViewPostMap = $('trip-view-post-map');
+  /** @type {HTMLElement} */
+  const tripViewPostMapOption = $('trip-view-post-map-option');
   /** @type {HTMLElement} */
   const cropBar = $('crop-bar');
   /** @type {HTMLInputElement} */
@@ -407,6 +413,9 @@ function main() {
       tvSplitsSummary,
       btnTripViewCrop,
       btnTripViewDelete,
+      btnTripViewPost,
+      tripViewPostMap,
+      tripViewPostMapOption,
       cropBar,
       cropSlider,
       cropKeepSummary,
@@ -620,6 +629,7 @@ function main() {
   btnTripViewClose.addEventListener('click', () => tripView.close());
   btnTripViewDelete.addEventListener('click', () => void tripView.deleteCurrent());
   btnTripViewCrop.addEventListener('click', () => tripView.enterCrop());
+  btnTripViewPost.addEventListener('click', () => void tripView.sharePost());
   btnCropCancel.addEventListener('click', () => tripView.exitCrop());
   btnCropSave.addEventListener('click', () => void tripView.saveCrop());
   cropSlider.addEventListener('input', () => tripView.renderCropSummary());

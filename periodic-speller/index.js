@@ -8,7 +8,7 @@ import {
 } from './elements.js';
 import { render } from './tiles.js';
 import { buildThemePopover } from './themes.js';
-import { exportPNG } from './export.js';
+import { exportPNG, renderToCanvas } from './export.js';
 import { initPeriodicTableModal } from './periodic-table.js';
 import { decodeShareState, applyShareState, initShareLink } from './share-link.js';
 
@@ -144,6 +144,27 @@ clearBtn.addEventListener('click', function () {
 // --- Export ---
 
 document.getElementById('exportBtn').addEventListener('click', exportPNG);
+
+document.getElementById('postBtn').addEventListener('click', function () {
+  var canvas = renderToCanvas();
+  if (!canvas) return;
+  var rawText = input.value.replace(/[^a-zA-Z\s]/g, '').trim();
+  canvas.toBlob(function (blob) {
+    if (!blob) return;
+    import('/posts/share-client.js').then(function (mod) {
+      return mod.share({
+        text:
+          'Periodic Speller' +
+          (rawText ? ': **' + rawText + '**' : '') +
+          '\n\nMade with [Periodic Speller](https://joeheyming.github.io/periodic-speller/).',
+        attachments: [blob]
+      });
+    });
+    if (window.trackEvent) {
+      window.trackEvent('posts_share', 'Engagement', 'periodic-speller');
+    }
+  }, 'image/png');
+});
 
 // --- Theme popover ---
 

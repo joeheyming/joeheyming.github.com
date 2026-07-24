@@ -60,9 +60,27 @@ const MIME_CANDIDATES = [
   'video/mp4'
 ];
 
+const AUDIO_MIME_CANDIDATES = [
+  'audio/webm;codecs=opus',
+  'audio/webm',
+  'audio/mp4;codecs=mp4a.40.2',
+  'audio/mp4'
+];
+const POSTS_AUDIO_BITS_PER_SECOND = 8000;
+// About 240k base64 characters; Posts splits this across Form responses.
+const POSTS_AUDIO_MAX_BYTES = 180000;
+
 const pickMimeType = () => {
   if (typeof MediaRecorder === 'undefined') return null;
   for (const m of MIME_CANDIDATES) {
+    if (MediaRecorder.isTypeSupported?.(m)) return m;
+  }
+  return null;
+};
+
+const pickAudioMimeType = () => {
+  if (typeof MediaRecorder === 'undefined') return null;
+  for (const m of AUDIO_MIME_CANDIDATES) {
     if (MediaRecorder.isTypeSupported?.(m)) return m;
   }
   return null;
@@ -99,6 +117,7 @@ const baseMime = (mime) => {
  * @param {HTMLElement} opts.modalEl
  * @param {HTMLVideoElement} opts.videoPreviewEl
  * @param {HTMLButtonElement} opts.shareBtn
+ * @param {HTMLButtonElement} [opts.postBtn]
  * @param {HTMLButtonElement} opts.downloadBtn
  * @param {HTMLButtonElement} opts.discardBtn
  * @param {HTMLElement|null} opts.backdropEl
@@ -130,6 +149,7 @@ export const initRecorder = ({
   modalEl,
   videoPreviewEl,
   shareBtn,
+  postBtn,
   downloadBtn,
   discardBtn,
   backdropEl,
@@ -142,6 +162,7 @@ export const initRecorder = ({
   onPreviewToggle
 }) => {
   const mimeType = pickMimeType();
+  const audioMimeType = pickAudioMimeType();
   if (!mimeType) {
     // No recorder support — disable the buttons with a hover hint
     // rather than hiding them, so it's discoverable that the feature
@@ -204,7 +225,8 @@ export const initRecorder = ({
     const wrap = micWrap();
     if (wrap) {
       wrap.classList.add('is-blocked');
-      wrap.title = "Mic is blocked in your browser's site settings — allow it there and re-tick Voice to retry.";
+      wrap.title =
+        "Mic is blocked in your browser's site settings — allow it there and re-tick Voice to retry.";
     }
     // Fire change so prefs persist the new (off) state, matching how
     // the user toggling it manually behaves.
@@ -556,16 +578,69 @@ export const initRecorder = ({
 
   let recorder = null;
   let chunks = [];
+  let audioRecorder = null;
+  let audioChunks = [];
   let activeBtn = null;
   let countdownTimer = null;
   let stopTimer = null;
   let lastRecording = null; // Blob
+  let lastAudioRecording = null; // low-bitrate Blob for Posts
+  /** @type {(text: string, opts?: {level?: string, sticky?: boolean}) => void} */
+  let setShareStatus = () => {};
 
   // Cooperative cancel: while ensureMicTap is awaiting the
   // permission prompt, the user may click the active button to
   // bail out. We can't actually abort getUserMedia, but once it
   // resolves we check this flag and skip starting the recorder.
   let startupAborted = false;
+
+  const setPostButtonState = (state, detail = '') => {
+    if (!postBtn) return;
+    if (state === 'ready') {
+      postBtn.disabled = false;
+      postBtn.title = 'Create a post with this recording’s audio';
+      return;
+    }
+    postBtn.disabled = true;
+    if (state === 'preparing') {
+      postBtn.title = 'Preparing the audio-only copy…';
+    } else if (state === 'unsupported') {
+      postBtn.title = 'Audio posting is not supported in this browser';
+    } else if (state === 'too-large') {
+      postBtn.title = detail || 'This audio is too large for Posts';
+      setShareStatus(detail || 'Audio is too large for Posts — try stopping sooner.', {
+        level: 'error',
+        sticky: true
+      });
+    } else if (state === 'empty') {
+      postBtn.title = 'Could not capture audio for posting';
+      setShareStatus('Could not capture audio for posting.', { level: 'error', sticky: true });
+    }
+  };
+
+  /**
+   * Keep the complete audio capture. Posts chunks its data URL across
+   * multiple Form responses rather than silently trimming the clip.
+   * @param {Blob} blob
+   */
+  const finalizePostsAudio = (blob) => {
+    if (!postBtn) return;
+    if (!(blob instanceof Blob) || blob.size === 0) {
+      setPostButtonState('empty');
+      return;
+    }
+    if (blob.size <= POSTS_AUDIO_MAX_BYTES) {
+      lastAudioRecording = blob;
+      setPostButtonState('ready');
+      setShareStatus(`Ready to post the full ${Math.round(blob.size / 1024)} KB audio clip.`);
+      return;
+    }
+    lastAudioRecording = null;
+    setPostButtonState(
+      'too-large',
+      'This complete recording is too large for Posts. Use the 10-second recorder or stop sooner.'
+    );
+  };
 
   const resetButtonsToIdle = () => {
     for (const b of recordButtons) {
@@ -591,6 +666,14 @@ export const initRecorder = ({
       startupAborted = true;
       stopMicTap();
       resetButtonsToIdle();
+    }
+    if (audioRecorder && audioRecorder.state !== 'inactive') {
+      try {
+        audioRecorder.requestData?.();
+        audioRecorder.stop();
+      } catch (_) {
+        /* ignore */
+      }
     }
     if (stopTimer) {
       clearTimeout(stopTimer);
@@ -642,6 +725,10 @@ export const initRecorder = ({
     ]);
 
     chunks = [];
+    audioChunks = [];
+    lastAudioRecording = null;
+    let audioTrackClones = [];
+    setPostButtonState(audioMimeType ? 'preparing' : 'unsupported');
     try {
       recorder = new MediaRecorder(combined, { mimeType });
     } catch (err) {
@@ -649,6 +736,45 @@ export const initRecorder = ({
       stopMicTap();
       resetButtonsToIdle();
       return;
+    }
+
+    if (audioMimeType) {
+      try {
+        // Clone tracks so the audio-only recorder doesn't fight the
+        // video MediaRecorder over the same MediaStreamTrack.
+        audioTrackClones = recordDest.stream.getAudioTracks().map((t) => t.clone());
+        const audioOnlyStream = new MediaStream(audioTrackClones);
+        audioRecorder = new MediaRecorder(audioOnlyStream, {
+          mimeType: audioMimeType,
+          audioBitsPerSecond: POSTS_AUDIO_BITS_PER_SECOND
+        });
+        audioRecorder.ondataavailable = (event) => {
+          if (event.data?.size) audioChunks.push(event.data);
+        };
+        audioRecorder.onstop = () => {
+          for (const track of audioTrackClones) {
+            try {
+              track.stop();
+            } catch (_) {
+              /* ignore */
+            }
+          }
+          audioTrackClones = [];
+          void finalizePostsAudio(new Blob(audioChunks, { type: audioMimeType }));
+        };
+      } catch (err) {
+        console.warn('Audio-only MediaRecorder construction failed', err);
+        audioRecorder = null;
+        for (const track of audioTrackClones) {
+          try {
+            track.stop();
+          } catch (_) {
+            /* ignore */
+          }
+        }
+        audioTrackClones = [];
+        setPostButtonState('unsupported');
+      }
     }
     recorder.ondataavailable = (e) => {
       if (e.data && e.data.size) chunks.push(e.data);
@@ -671,6 +797,14 @@ export const initRecorder = ({
     // browsers stall captureStream until the canvas has had a paint.
     drawFrame();
     recorder.start();
+    try {
+      // timeslice keeps chunks flowing; some browsers buffer until stop otherwise.
+      audioRecorder?.start(1000);
+    } catch (err) {
+      console.warn('Audio-only recording failed to start', err);
+      audioRecorder = null;
+      setPostButtonState('unsupported');
+    }
 
     // Auto-stop after the chosen duration. The exact-length cap is
     // important: shareable clips have known durations.
@@ -732,7 +866,7 @@ export const initRecorder = ({
    *   level:  'info' | 'error' — purely cosmetic (controls colour).
    *   sticky: true to leave the message until manually cleared.
    */
-  const setShareStatus = (text, { level = 'info', sticky = false } = {}) => {
+  setShareStatus = (text, { level = 'info', sticky = false } = {}) => {
     if (!shareStatusEl) return;
     if (shareStatusTimer) {
       clearTimeout(shareStatusTimer);
@@ -795,7 +929,12 @@ export const initRecorder = ({
     videoPreviewEl.src = previewObjectUrl;
     videoPreviewEl.load?.();
     modalEl.hidden = false;
-    setShareStatus('');
+    // Don't wipe a "shrinking audio…" / ready message from finalizePostsAudio.
+    if (!lastAudioRecording && postBtn?.disabled) {
+      setShareStatus(postBtn.title || 'Preparing the audio-only copy…', { sticky: true });
+    } else {
+      setShareStatus('');
+    }
     onPreviewToggle?.(true);
     // Try autoplay (muted off — user explicitly hit record, so they
     // expect to hear the result). If the browser blocks autoplay,
@@ -812,6 +951,8 @@ export const initRecorder = ({
     const probeFile = buildShareFile(blob, filename);
     shareBtn.hidden = !canShareFile(probeFile);
     shareBtn.dataset.filename = filename;
+
+    if (lastAudioRecording) setPostButtonState('ready');
   };
 
   const downloadCurrent = () => {
@@ -879,15 +1020,37 @@ export const initRecorder = ({
           return;
         }
         console.warn('Share failed, falling back to download', err);
-        setShareStatus(
-          `Share didn't work (${err?.name || 'error'}) — downloaded instead.`,
-          { level: 'error' }
-        );
+        setShareStatus(`Share didn't work (${err?.name || 'error'}) — downloaded instead.`, {
+          level: 'error'
+        });
         downloadCurrent();
       });
   };
 
+  const postAudioCurrent = async () => {
+    if (!lastAudioRecording) {
+      setShareStatus('Audio isn’t ready to post yet. Wait a moment, or record again.', {
+        level: 'error'
+      });
+      return;
+    }
+    try {
+      postBtn.disabled = true;
+      setShareStatus('Opening Posts with the audio…', { sticky: true });
+      const { share } = await import('/posts/share-client.js');
+      await share({
+        text: '🎵 Theremin recording\n\nMade with [Theremin](/play/theremin/)',
+        attachments: [lastAudioRecording]
+      });
+    } catch (err) {
+      console.warn('Posting Theremin audio failed', err);
+      postBtn.disabled = false;
+      setShareStatus('Could not prepare the audio post.', { level: 'error' });
+    }
+  };
+
   shareBtn.addEventListener('click', shareCurrent);
+  postBtn?.addEventListener('click', postAudioCurrent);
   downloadBtn.addEventListener('click', downloadCurrent);
   discardBtn.addEventListener('click', closePreview);
   if (backdropEl) backdropEl.addEventListener('click', closePreview);

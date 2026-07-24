@@ -587,6 +587,23 @@ btnCopy.addEventListener('click', copyText);
 btnPng.addEventListener('click', downloadPng);
 btnTxt.addEventListener('click', downloadTxt);
 
+const btnPost = $id('btn-post');
+btnPost.addEventListener('click', shareAsPost);
+
+async function shareAsPost() {
+  if (!asciiCanvas.width || !asciiCanvas.height) return;
+  const blob = await new Promise((resolve) => {
+    asciiCanvas.toBlob((b) => resolve(b), 'image/png');
+  });
+  if (!blob) return;
+  const { share } = await import('/posts/share-client.js');
+  await share({
+    text: 'ASCII Art\n\nMade with [ASCII Art](https://joeheyming.github.io/ascii/).',
+    attachments: [blob]
+  });
+  window.trackEvent?.('posts_share', 'Engagement', 'ascii');
+}
+
 // ── Take On Me mode ───────────────────────────────────────────
 // Oscillates ASCII settings while the a-ha music video plays in PiP.
 

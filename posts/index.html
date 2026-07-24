@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#b9824e" />
+    <title>Posts | Joe Heyming</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>"
+    />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="index.css" />
+
+    <meta
+      name="description"
+      content="A public sticky-note message board. Markdown, attachments, no accounts — backed by a Google Form and Sheet."
+    />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta
+      name="keywords"
+      content="posts, message board, sticky notes, markdown, google form, google sheet, static site"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming" />
+    <meta property="og:title" content="Posts" />
+    <meta
+      property="og:description"
+      content="Pin sticky notes on a public board. Markdown + attachments. No accounts."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/posts/" />
+    <meta property="og:image" content="https://joeheyming.github.io/posts/posts-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Posts message board" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="Posts" />
+    <meta name="twitter:description" content="Pin sticky notes on a public board. No accounts." />
+    <meta name="twitter:image" content="https://joeheyming.github.io/posts/posts-preview.png" />
+
+    <link rel="canonical" href="https://joeheyming.github.io/posts/" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/nav.js" data-nav-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Posts",
+            "applicationCategory": "SocialNetworkingApplication",
+            "operatingSystem": "Web Browser",
+            "description": "A public sticky-note message board. Writes go through a Google Form; the board reads a public Google Sheet.",
+            "url": "https://joeheyming.github.io/posts/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Posts",
+                "item": "https://joeheyming.github.io/posts/"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <div id="setup-banner" class="banner" hidden>
+      Google Form not configured yet — notes stay in this browser only. See
+      <a href="SETUP.md">SETUP.md</a>
+      .
+    </div>
+
+    <header class="board-chrome" aria-label="Board controls">
+      <h1 class="brand">Posts</h1>
+      <button type="button" id="refresh-btn" class="btn ghost sm" title="Refresh board">
+        Refresh
+      </button>
+    </header>
+
+    <main id="board" class="board" aria-label="Message board">
+      <p id="board-empty" class="empty" hidden>Tap or drop a screenshot to place a note.</p>
+    </main>
+
+    <button type="button" id="add-note" class="add-note" aria-label="Add a note" title="Add a note">
+      +
+    </button>
+
+    <p id="board-status" class="board-status" role="status" aria-live="polite"></p>
+
+    <input id="note-file" type="file" accept="image/*,audio/*" hidden />
+    <input
+      id="note-honeypot"
+      type="text"
+      name="website"
+      tabindex="-1"
+      autocomplete="off"
+      aria-hidden="true"
+      class="honeypot"
+    />
+
+    <dialog id="lightbox" class="lightbox" aria-label="Attachment preview">
+      <form method="dialog" class="lightbox-bar">
+        <button type="submit" class="btn ghost sm" value="close" aria-label="Close">Close</button>
+      </form>
+      <img id="lightbox-img" alt="" />
+    </dialog>
+
+    <script type="module" src="index.js"></script>
+  </body>
+</html>

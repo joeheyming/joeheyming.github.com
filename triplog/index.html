@@ -157,6 +157,7 @@
       integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
       crossorigin=""
     ></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
     <!-- Tailwind CDN must load BEFORE brand-tailwind.js — the CDN
          installs window.tailwind on boot and overwrites any pre-set
@@ -505,6 +506,22 @@
             <p id="trip-view-summary" class="mt-0.5 truncate text-xs text-text-2 sm:text-sm"></p>
           </div>
           <div class="flex shrink-0 items-center gap-2">
+            <label
+              id="trip-view-post-map-option"
+              class="flex cursor-pointer items-center gap-1.5 text-xs text-text-2"
+              hidden
+            >
+              <input id="trip-view-post-map" type="checkbox" class="accent-accent-primary" />
+              Include map
+            </label>
+            <button
+              type="button"
+              id="btn-trip-view-post"
+              class="rounded-full border border-accent-primary bg-surface-2 px-4 py-2 text-sm font-medium text-accent-primary shadow-sm hover:bg-accent-primary/15"
+              hidden
+            >
+              Make a Post
+            </button>
             <button
               type="button"
               id="btn-trip-view-crop"

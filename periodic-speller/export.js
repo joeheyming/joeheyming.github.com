@@ -17,8 +17,8 @@ function drawTileOnCanvas(ctx, el, x, y) {
   var borderColor = el.unmatched
     ? t.unmatchedBorder
     : typeof t.border === 'function'
-      ? t.border(el.category)
-      : t.border;
+    ? t.border(el.category)
+    : t.border;
   var fillColor = el.unmatched ? t.unmatchedBg : t.tileBg;
 
   ctx.beginPath();
@@ -79,8 +79,8 @@ function measureWordWidth(items) {
   return items.length * EXPORT_TILE_W + (items.length - 1) * EXPORT_GAP;
 }
 
-export function exportPNG() {
-  if (!state.lastDecomposition || state.lastDecomposition.length === 0) return;
+export function renderToCanvas() {
+  if (!state.lastDecomposition || state.lastDecomposition.length === 0) return null;
 
   var wordRows = state.lastDecomposition;
   var maxRowW = 0;
@@ -115,6 +115,13 @@ export function exportPNG() {
       x += EXPORT_TILE_W;
     });
   });
+
+  return canvas;
+}
+
+export function exportPNG() {
+  var canvas = renderToCanvas();
+  if (!canvas) return;
 
   var link = document.createElement('a');
   var rawText = document

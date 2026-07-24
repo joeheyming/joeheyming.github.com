@@ -1,11 +1,33 @@
-import { TOOLS, TOOL_OPTION_SCHEMA, floodSelect, scanlineFill, defaultToolOptions } from './tools.js';
-import { buildToolbar, buildPalette, updateFgSwatch, updateColorHistory,
-         renderToolOptions } from './ui.js';
-import { createLayer, insertLayerBefore, removeLayerFromDOM, syncLayerDOM,
-         flattenToCanvas, renderLayerPanel } from './layers.js';
+import {
+  TOOLS,
+  TOOL_OPTION_SCHEMA,
+  floodSelect,
+  scanlineFill,
+  defaultToolOptions
+} from './tools.js';
+import {
+  buildToolbar,
+  buildPalette,
+  updateFgSwatch,
+  updateColorHistory,
+  renderToolOptions
+} from './ui.js';
+import {
+  createLayer,
+  insertLayerBefore,
+  removeLayerFromDOM,
+  syncLayerDOM,
+  flattenToCanvas,
+  renderLayerPanel
+} from './layers.js';
 import { renderHistoryPanel as buildHistoryPanel } from './history.js';
-import { deserializeProject, readProjectFile,
-         scheduleAutosave, readAutosave, clearAutosave } from './project.js';
+import {
+  deserializeProject,
+  readProjectFile,
+  scheduleAutosave,
+  readAutosave,
+  clearAutosave
+} from './project.js';
 import {
   startSelectionAnimation,
   commitSelection as doCommitSelection,
@@ -15,7 +37,7 @@ import {
   applySelectionWithMask as doApplySelectionWithMask,
   selectAll as doSelectAll,
   invertSelection as doInvertSelection,
-  selectionModeFor,
+  selectionModeFor
 } from './selection.js';
 import {
   openAdjust as doOpenAdjust,
@@ -23,7 +45,7 @@ import {
   commitAdjust,
   buildAdjustMenu as doBuildAdjustMenu,
   toggleAdjustMenu,
-  closeAdjustMenu,
+  closeAdjustMenu
 } from './adjust-modal.js';
 import { installOSBridge } from './os-bridge.js';
 import {
@@ -38,6 +60,7 @@ import {
   downloadPNG,
   downloadJPEG,
   downloadProjectFile,
+  exportPNGBlob
 } from './file-menu.js';
 import { createPointerController } from './pointer.js';
 
@@ -54,8 +77,10 @@ const state = {
   shapeFill: false,
   toolOptions: defaultToolOptions(),
   drawing: false,
-  startX: 0, startY: 0,
-  lastX: 0, lastY: 0,
+  startX: 0,
+  startY: 0,
+  lastX: 0,
+  lastY: 0,
 
   // Layers
   layers: [],
@@ -63,10 +88,13 @@ const state = {
 
   // Zoom + pan
   zoom: 1,
-  panX: 0, panY: 0,
+  panX: 0,
+  panY: 0,
   panning: false,
-  panStartClientX: 0, panStartClientY: 0,
-  panStartX: 0, panStartY: 0,
+  panStartClientX: 0,
+  panStartClientY: 0,
+  panStartX: 0,
+  panStartY: 0,
   spaceDown: false,
 
   // Pointer
@@ -74,7 +102,10 @@ const state = {
 
   // Selection
   sel: { mode: 'none', x: 0, y: 0, w: 0, h: 0, data: null, mask: null, baseData: null },
-  selStartMoveX: 0, selStartMoveY: 0, selOrigX: 0, selOrigY: 0,
+  selStartMoveX: 0,
+  selStartMoveY: 0,
+  selOrigX: 0,
+  selOrigY: 0,
   lassoPath: [],
 
   // Clipboard
@@ -84,7 +115,9 @@ const state = {
   colorHistory: [],
 
   // Spray internals
-  sprayTimer: null, sprayX: 0, sprayY: 0,
+  sprayTimer: null,
+  sprayX: 0,
+  sprayY: 0,
 
   // Undo
   undoStack: [],
@@ -96,7 +129,7 @@ const state = {
   showTextInput: null,
   commitSelection: null,
   doMagicWand: null,
-  scanlineFill: null,
+  scanlineFill: null
 };
 
 // ── Canvas / layer helpers ───────────────────────────────────────────────────
@@ -105,10 +138,18 @@ const overlayCanvas = document.getElementById('overlay-canvas');
 const ov = overlayCanvas.getContext('2d', { willReadFrequently: true });
 const stackEl = document.getElementById('canvas-stack');
 
-function canvasW() { return state.layers[0]?.canvas.width ?? 800; }
-function canvasH() { return state.layers[0]?.canvas.height ?? 600; }
-function activeLayer() { return state.layers[state.activeLayerIdx]; }
-function activeCtx() { return activeLayer().ctx; }
+function canvasW() {
+  return state.layers[0]?.canvas.width ?? 800;
+}
+function canvasH() {
+  return state.layers[0]?.canvas.height ?? 600;
+}
+function activeLayer() {
+  return state.layers[state.activeLayerIdx];
+}
+function activeCtx() {
+  return activeLayer().ctx;
+}
 
 function initCanvas() {
   const area = document.getElementById('canvas-area');
@@ -161,10 +202,16 @@ function pushUndo(label = 'Draw') {
 function undo() {
   if (!state.undoStack.length) return;
   const entry = state.undoStack.pop();
-  const target = state.layers.find(l => l.id === entry.layerId);
-  if (!target) { updateUndoButtons(); return; }
-  state.redoStack.push({ layerId: entry.layerId, label: entry.label,
-    data: target.ctx.getImageData(0, 0, target.canvas.width, target.canvas.height) });
+  const target = state.layers.find((l) => l.id === entry.layerId);
+  if (!target) {
+    updateUndoButtons();
+    return;
+  }
+  state.redoStack.push({
+    layerId: entry.layerId,
+    label: entry.label,
+    data: target.ctx.getImageData(0, 0, target.canvas.width, target.canvas.height)
+  });
   target.ctx.putImageData(entry.data, 0, 0);
   updateUndoButtons();
   refreshLayerPanelUI();
@@ -174,10 +221,16 @@ function undo() {
 function redo() {
   if (!state.redoStack.length) return;
   const entry = state.redoStack.pop();
-  const target = state.layers.find(l => l.id === entry.layerId);
-  if (!target) { updateUndoButtons(); return; }
-  state.undoStack.push({ layerId: entry.layerId, label: entry.label,
-    data: target.ctx.getImageData(0, 0, target.canvas.width, target.canvas.height) });
+  const target = state.layers.find((l) => l.id === entry.layerId);
+  if (!target) {
+    updateUndoButtons();
+    return;
+  }
+  state.undoStack.push({
+    layerId: entry.layerId,
+    label: entry.label,
+    data: target.ctx.getImageData(0, 0, target.canvas.width, target.canvas.height)
+  });
   target.ctx.putImageData(entry.data, 0, 0);
   updateUndoButtons();
   refreshLayerPanelUI();
@@ -197,10 +250,13 @@ function jumpHistoryUndo(steps) {
   for (let i = 0; i < steps; i++) {
     if (!state.undoStack.length) break;
     const entry = state.undoStack.pop();
-    const target = state.layers.find(l => l.id === entry.layerId);
+    const target = state.layers.find((l) => l.id === entry.layerId);
     if (target) {
-      state.redoStack.push({ layerId: entry.layerId, label: entry.label,
-        data: target.ctx.getImageData(0, 0, target.canvas.width, target.canvas.height) });
+      state.redoStack.push({
+        layerId: entry.layerId,
+        label: entry.label,
+        data: target.ctx.getImageData(0, 0, target.canvas.width, target.canvas.height)
+      });
       target.ctx.putImageData(entry.data, 0, 0);
     }
   }
@@ -213,10 +269,13 @@ function jumpHistoryRedo(steps) {
   for (let i = 0; i < steps; i++) {
     if (!state.redoStack.length) break;
     const entry = state.redoStack.pop();
-    const target = state.layers.find(l => l.id === entry.layerId);
+    const target = state.layers.find((l) => l.id === entry.layerId);
     if (target) {
-      state.undoStack.push({ layerId: entry.layerId, label: entry.label,
-        data: target.ctx.getImageData(0, 0, target.canvas.width, target.canvas.height) });
+      state.undoStack.push({
+        layerId: entry.layerId,
+        label: entry.label,
+        data: target.ctx.getImageData(0, 0, target.canvas.width, target.canvas.height)
+      });
       target.ctx.putImageData(entry.data, 0, 0);
     }
   }
@@ -228,8 +287,7 @@ function jumpHistoryRedo(steps) {
 function renderHistoryPanel() {
   const container = document.getElementById('history-list-container');
   if (!container) return;
-  buildHistoryPanel(container, state.undoStack, state.redoStack,
-    jumpHistoryUndo, jumpHistoryRedo);
+  buildHistoryPanel(container, state.undoStack, state.redoStack, jumpHistoryUndo, jumpHistoryRedo);
 }
 
 // ── Zoom / Pan ───────────────────────────────────────────────────────────────
@@ -243,7 +301,8 @@ function updateTransform() {
 function zoomToward(clientX, clientY, factor) {
   const area = document.getElementById('canvas-area');
   const rect = area.getBoundingClientRect();
-  const mx = clientX - rect.left, my = clientY - rect.top;
+  const mx = clientX - rect.left,
+    my = clientY - rect.top;
   const prev = state.zoom;
   state.zoom = Math.max(0.1, Math.min(16, prev * factor));
   state.panX = mx - (mx - state.panX) * (state.zoom / prev);
@@ -256,15 +315,27 @@ function zoomToward(clientX, clientY, factor) {
 // inject the shared `state`, the overlay context `ov`, and a couple of
 // closures so the rest of paint.js can keep its no-arg call sites unchanged.
 
-function commitSelection() { doCommitSelection(state, ov); }
-function copySelection(ctx, cut) { doCopySelection(state, ov, ctx, cut, pushUndo); }
-function pasteClipboard(ctx) { doPasteClipboard(state, ctx, pushUndo); }
-function deleteSelection(ctx) { doDeleteSelection(state, ov, ctx, pushUndo); }
+function commitSelection() {
+  doCommitSelection(state, ov);
+}
+function copySelection(ctx, cut) {
+  doCopySelection(state, ov, ctx, cut, pushUndo);
+}
+function pasteClipboard(ctx) {
+  doPasteClipboard(state, ctx, pushUndo);
+}
+function deleteSelection(ctx) {
+  doDeleteSelection(state, ov, ctx, pushUndo);
+}
 function applySelectionWithMask(newMask, W, H, mode) {
   doApplySelectionWithMask(state, newMask, W, H, mode);
 }
-function selectAll() { doSelectAll(state, ov, canvasW(), canvasH()); }
-function invertSelection() { doInvertSelection(state, ov, canvasW(), canvasH()); }
+function selectAll() {
+  doSelectAll(state, ov, canvasW(), canvasH());
+}
+function invertSelection() {
+  doInvertSelection(state, ov, canvasW(), canvasH());
+}
 
 // ── Layer panel ───────────────────────────────────────────────────────────────
 
@@ -281,12 +352,13 @@ function refreshLayerPanelUI() {
     onMoveUp: moveLayerUp,
     onMoveDown: moveLayerDown,
     onRename: () => refreshLayerPanelUI(),
-    onFlatten: flattenLayers,
+    onFlatten: flattenLayers
   });
 }
 
 function addLayer() {
-  const w = canvasW(), h = canvasH();
+  const w = canvasW(),
+    h = canvasH();
   const name = `Layer ${state.layers.length + 1}`;
   const layer = createLayer(name, w, h);
   state.layers.push(layer);
@@ -348,7 +420,8 @@ function moveLayerDown(idx) {
 }
 
 function flattenLayers() {
-  const w = canvasW(), h = canvasH();
+  const w = canvasW(),
+    h = canvasH();
   const flat = flattenToCanvas(state.layers, state.bgColor, w, h);
   // Remove all layers except the first
   for (let i = state.layers.length - 1; i >= 1; i--) {
@@ -365,12 +438,11 @@ function flattenLayers() {
 
 function loadAnyFile(file) {
   const looksLikeProject =
-    file.name?.toLowerCase().endsWith('.paintproj') ||
-    file.type === 'application/json';
+    file.name?.toLowerCase().endsWith('.paintproj') || file.type === 'application/json';
   if (looksLikeProject) {
     readProjectFile(file)
       .then(loadProjectData)
-      .catch(err => alert('Could not open project: ' + err.message));
+      .catch((err) => alert('Could not open project: ' + err.message));
   } else if (file.type?.startsWith('image/')) {
     loadImageFile(file);
   }
@@ -397,7 +469,8 @@ async function loadProjectData(data) {
     state.bgColor = bgColor;
     state.color = fgColor;
     state.activeColor = fgColor;
-    state.undoStack = []; state.redoStack = [];
+    state.undoStack = [];
+    state.redoStack = [];
     // Resize stack DOM
     overlayCanvas.width = width;
     overlayCanvas.height = height;
@@ -416,8 +489,8 @@ async function loadProjectData(data) {
 // ── Color history ─────────────────────────────────────────────────────────────
 
 function addToColorHistory(hex) {
-  state.colorHistory = [hex, ...state.colorHistory.filter(c => c !== hex)].slice(0, 8);
-  updateColorHistory(state.colorHistory, color => {
+  state.colorHistory = [hex, ...state.colorHistory.filter((c) => c !== hex)].slice(0, 8);
+  updateColorHistory(state.colorHistory, (color) => {
     state.color = color;
     state.activeColor = color;
     updateFgSwatch(color);
@@ -427,9 +500,14 @@ function addToColorHistory(hex) {
 // ── Pointer controller (lives in ./pointer.js) ───────────────────────────────
 
 const pointer = createPointerController({
-  state, overlayCanvas, ov, activeCtx, activeLayer,
-  pushUndo, updateTransform,
-  refreshLayerPanel: refreshLayerPanelUI,
+  state,
+  overlayCanvas,
+  ov,
+  activeCtx,
+  activeLayer,
+  pushUndo,
+  updateTransform,
+  refreshLayerPanel: refreshLayerPanelUI
 });
 
 // ── Clear / new project ──────────────────────────────────────────────────────
@@ -444,7 +522,8 @@ function clearCanvas() {
 }
 
 function newProject() {
-  if (state.undoStack.length > 0 && !confirm('Start a new project? Unsaved changes will be lost.')) return;
+  if (state.undoStack.length > 0 && !confirm('Start a new project? Unsaved changes will be lost.'))
+    return;
   for (const l of state.layers) removeLayerFromDOM(l);
   state.layers = [];
   state.undoStack = [];
@@ -474,20 +553,24 @@ function newProject() {
 function initPanelResize() {
   const handle = document.getElementById('panel-resize-handle');
   if (!handle) return;
-  const MIN_W = 120, MAX_W = 520;
-  let startX = 0, startW = 0;
+  const MIN_W = 120,
+    MAX_W = 520;
+  let startX = 0,
+    startW = 0;
 
-  handle.addEventListener('pointerdown', e => {
+  handle.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     startX = e.clientX;
-    startW = parseInt(
-      getComputedStyle(document.documentElement).getPropertyValue('--layer-panel-w'), 10
-    ) || 200;
+    startW =
+      parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue('--layer-panel-w'),
+        10
+      ) || 200;
     handle.setPointerCapture(e.pointerId);
     handle.classList.add('dragging');
   });
 
-  handle.addEventListener('pointermove', e => {
+  handle.addEventListener('pointermove', (e) => {
     if (!handle.classList.contains('dragging')) return;
     // Drag left = wider panel (right panel grows leftward)
     const newW = Math.max(MIN_W, Math.min(MAX_W, startW + (startX - e.clientX)));
@@ -508,11 +591,13 @@ function openAdjust(id) {
   doOpenAdjust(id, state, {
     activeCtx,
     pushUndo,
-    onCommit: refreshLayerPanelUI,
+    onCommit: refreshLayerPanelUI
   });
 }
 
-function buildAdjustMenu() { doBuildAdjustMenu(openAdjust); }
+function buildAdjustMenu() {
+  doBuildAdjustMenu(openAdjust);
+}
 
 // ── Tool activation + options panel ──────────────────────────────────────────
 
@@ -525,7 +610,7 @@ function setActiveTool(id) {
   if (typeof opts.size === 'number') state.brushSize = opts.size;
   if (typeof opts.fill === 'boolean') state.shapeFill = opts.fill;
   refreshToolOptions();
-  document.querySelectorAll('.tool-btn').forEach(b => {
+  document.querySelectorAll('.tool-btn').forEach((b) => {
     b.classList.toggle('active', b.dataset.tool === id);
   });
 }
@@ -561,7 +646,7 @@ function init() {
   state.selectionModeFor = selectionModeFor;
 
   // Toolbar
-  buildToolbar(TOOLS, state, document.getElementById('tool-buttons'), id => {
+  buildToolbar(TOOLS, state, document.getElementById('tool-buttons'), (id) => {
     if (state.sel.mode !== 'none' && id !== 'rectSelect' && id !== 'lasso' && id !== 'magicWand') {
       commitSelection();
     }
@@ -573,21 +658,26 @@ function init() {
   refreshToolOptions();
 
   // Palette
-  buildPalette(state, document.getElementById('palette-bar'),
-    color => {
-      state.color = color; state.activeColor = color;
+  buildPalette(
+    state,
+    document.getElementById('palette-bar'),
+    (color) => {
+      state.color = color;
+      state.activeColor = color;
       addToColorHistory(color);
     },
-    color => { state.bgColor = color; },
+    (color) => {
+      state.bgColor = color;
+    }
   );
 
   // Eyedropper callbacks
-  state.onColorChange = color => {
+  state.onColorChange = (color) => {
     state.activeColor = color;
     updateFgSwatch(color);
     addToColorHistory(color);
   };
-  state.onBgColorChange = color => {
+  state.onBgColorChange = (color) => {
     const el = document.getElementById('bg-swatch');
     if (el) el.style.background = color;
     const inp = document.getElementById('bg-color-input');
@@ -598,17 +688,24 @@ function init() {
   overlayCanvas.addEventListener('pointerdown', pointer.onPointerDown);
   overlayCanvas.addEventListener('pointermove', pointer.onPointerMove);
   overlayCanvas.addEventListener('pointerup', pointer.onPointerUp);
-  overlayCanvas.addEventListener('pointerleave', e => {
-    if (state.panning) { state.panning = false; overlayCanvas.style.cursor = TOOLS[state.tool]?.cursor ?? 'crosshair'; }
+  overlayCanvas.addEventListener('pointerleave', (e) => {
+    if (state.panning) {
+      state.panning = false;
+      overlayCanvas.style.cursor = TOOLS[state.tool]?.cursor ?? 'crosshair';
+    }
     if (state.drawing) pointer.onPointerUp(e);
   });
-  overlayCanvas.addEventListener('contextmenu', e => e.preventDefault());
+  overlayCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
   // Zoom via scroll wheel
-  document.getElementById('canvas-area').addEventListener('wheel', e => {
-    e.preventDefault();
-    zoomToward(e.clientX, e.clientY, e.deltaY < 0 ? 1.15 : 1 / 1.15);
-  }, { passive: false });
+  document.getElementById('canvas-area').addEventListener(
+    'wheel',
+    (e) => {
+      e.preventDefault();
+      zoomToward(e.clientX, e.clientY, e.deltaY < 0 ? 1.15 : 1 / 1.15);
+    },
+    { passive: false }
+  );
 
   // Zoom buttons
   document.getElementById('btn-zoom-in')?.addEventListener('click', () => {
@@ -622,7 +719,10 @@ function init() {
     zoomToward(r.left + r.width / 2, r.top + r.height / 2, 1 / 1.25);
   });
   document.getElementById('btn-zoom-reset')?.addEventListener('click', () => {
-    state.zoom = 1; state.panX = 0; state.panY = 0; updateTransform();
+    state.zoom = 1;
+    state.panX = 0;
+    state.panY = 0;
+    updateTransform();
   });
 
   // Action buttons
@@ -631,47 +731,77 @@ function init() {
   document.getElementById('btn-clear').addEventListener('click', clearCanvas);
 
   // File menu
-  document.getElementById('btn-file')?.addEventListener('click', e => {
+  document.getElementById('btn-file')?.addEventListener('click', (e) => {
     e.stopPropagation();
     toggleFileMenu();
   });
-  document.addEventListener('click', e => {
+  document.addEventListener('click', (e) => {
     const wrap = document.getElementById('file-menu-wrap');
     if (wrap && !wrap.contains(e.target)) closeFileMenu();
   });
   const uploadInput = document.getElementById('upload-input');
-  document.querySelectorAll('#file-menu-list [data-file]').forEach(btn => {
+  document.querySelectorAll('#file-menu-list [data-file]').forEach((btn) => {
     btn.addEventListener('click', () => {
       closeFileMenu();
       const kind = btn.dataset.file;
       if (kind === 'new') newProject();
       else if (kind === 'open-computer') uploadInput?.click();
-      else if (kind === 'save-png') openFilenameModal('untitled.png', f => downloadPNG(f, state, canvasW(), canvasH()));
-      else if (kind === 'save-jpeg') openFilenameModal('untitled.jpg', f => downloadJPEG(f, state, canvasW(), canvasH()));
-      else if (kind === 'save-project') openFilenameModal('untitled.paintproj', f => downloadProjectFile(f, state, canvasW(), canvasH()));
+      else if (kind === 'save-png')
+        openFilenameModal('untitled.png', (f) => downloadPNG(f, state, canvasW(), canvasH()));
+      else if (kind === 'save-jpeg')
+        openFilenameModal('untitled.jpg', (f) => downloadJPEG(f, state, canvasW(), canvasH()));
+      else if (kind === 'save-project')
+        openFilenameModal('untitled.paintproj', (f) =>
+          downloadProjectFile(f, state, canvasW(), canvasH())
+        );
     });
+  });
+
+  document.getElementById('btn-post')?.addEventListener('click', async () => {
+    try {
+      const blob = await exportPNGBlob(state, canvasW(), canvasH());
+      if (!blob) throw new Error('Could not export drawing');
+      const { share } = await import('/posts/share-client.js');
+      await share({
+        text: 'Paint\n\nMade with [Paint](https://joeheyming.github.io/paint/).',
+        attachments: [blob]
+      });
+      window.trackEvent?.('posts_share', 'Engagement', 'paint');
+    } catch (err) {
+      console.warn('Could not share Paint as a post', err);
+    }
   });
 
   // Filename modal
   document.getElementById('filename-ok')?.addEventListener('click', confirmFilenameModal);
   document.getElementById('filename-cancel')?.addEventListener('click', closeFilenameModal);
-  document.getElementById('filename-input')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); confirmFilenameModal(); }
-    if (e.key === 'Escape') { e.preventDefault(); closeFilenameModal(); }
+  document.getElementById('filename-input')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      confirmFilenameModal();
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeFilenameModal();
+    }
   });
 
   // Resize modal
-  document.getElementById('btn-resize')?.addEventListener('click', () => openResizeModalUI(canvasW(), canvasH()));
-  document.getElementById('resize-ok')?.addEventListener('click', () => confirmResizeUI(resizeStack));
+  document
+    .getElementById('btn-resize')
+    ?.addEventListener('click', () => openResizeModalUI(canvasW(), canvasH()));
+  document
+    .getElementById('resize-ok')
+    ?.addEventListener('click', () => confirmResizeUI(resizeStack));
   document.getElementById('resize-cancel')?.addEventListener('click', closeResizeModal);
 
   // Adjust menu
   buildAdjustMenu();
-  document.getElementById('btn-adjust')?.addEventListener('click', e => {
+  document.getElementById('btn-adjust')?.addEventListener('click', (e) => {
     e.stopPropagation();
     toggleAdjustMenu();
   });
-  document.addEventListener('click', e => {
+  document.addEventListener('click', (e) => {
     const wrap = document.getElementById('adjust-menu-wrap');
     if (wrap && !wrap.contains(e.target)) closeAdjustMenu();
   });
@@ -679,14 +809,17 @@ function init() {
   document.getElementById('adjust-cancel')?.addEventListener('click', cancelAdjust);
 
   // File input change — triggered by "Open from Computer" in file menu
-  uploadInput?.addEventListener('change', e => {
-    if (e.target.files[0]) { loadAnyFile(e.target.files[0]); e.target.value = ''; }
+  uploadInput?.addEventListener('change', (e) => {
+    if (e.target.files[0]) {
+      loadAnyFile(e.target.files[0]);
+      e.target.value = '';
+    }
   });
 
   // Drag-drop onto canvas
   const area = document.getElementById('canvas-area');
-  area.addEventListener('dragover', e => e.preventDefault());
-  area.addEventListener('drop', e => {
+  area.addEventListener('dragover', (e) => e.preventDefault());
+  area.addEventListener('drop', (e) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     if (file) loadAnyFile(file);
@@ -694,14 +827,21 @@ function init() {
 
   // Text input
   const textInput = document.getElementById('text-input');
-  textInput?.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { textInput.style.display = 'none'; textInput.value = ''; e.preventDefault(); }
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); pointer.commitTextInput(); }
+  textInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      textInput.style.display = 'none';
+      textInput.value = '';
+      e.preventDefault();
+    }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      pointer.commitTextInput();
+    }
   });
   textInput?.addEventListener('blur', pointer.commitTextInput);
 
   // Accordion panel section toggles
-  document.querySelectorAll('.panel-section-header').forEach(header => {
+  document.querySelectorAll('.panel-section-header').forEach((header) => {
     header.addEventListener('click', () => {
       const section = header.parentElement;
       const collapsing = !section.classList.contains('collapsed');
@@ -716,25 +856,61 @@ function init() {
   renderHistoryPanel();
 
   // Keyboard shortcuts
-  document.addEventListener('keydown', e => {
+  document.addEventListener('keydown', (e) => {
     const tag = document.activeElement.tagName;
     const inInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
 
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') { e.preventDefault(); undo(); return; }
-    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); redo(); return; }
-
-    if ((e.ctrlKey || e.metaKey) && e.key === 'c') { e.preventDefault(); copySelection(activeCtx(), false); return; }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'x') { e.preventDefault(); copySelection(activeCtx(), true); return; }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'v') { e.preventDefault(); pasteClipboard(activeCtx()); return; }
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'a') { e.preventDefault(); selectAll(); return; }
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'd') { e.preventDefault(); commitSelection(); return; }
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'i' || e.key === 'I')) {
-      e.preventDefault(); invertSelection(); return;
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
+      e.preventDefault();
+      undo();
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+      e.preventDefault();
+      redo();
+      return;
     }
 
-    if (e.key === 'Escape') { commitSelection(); pointer.commitTextInput(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+      e.preventDefault();
+      copySelection(activeCtx(), false);
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'x') {
+      e.preventDefault();
+      copySelection(activeCtx(), true);
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+      e.preventDefault();
+      pasteClipboard(activeCtx());
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'a') {
+      e.preventDefault();
+      selectAll();
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'd') {
+      e.preventDefault();
+      commitSelection();
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'i' || e.key === 'I')) {
+      e.preventDefault();
+      invertSelection();
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      commitSelection();
+      pointer.commitTextInput();
+      return;
+    }
     if ((e.key === 'Delete' || e.key === 'Backspace') && !inInput) {
-      e.preventDefault(); deleteSelection(activeCtx()); return;
+      e.preventDefault();
+      deleteSelection(activeCtx());
+      return;
     }
 
     if (inInput) return;
@@ -747,32 +923,48 @@ function init() {
     }
 
     const shortcuts = {
-      p: 'pencil', b: 'brush', e: 'eraser', s: 'spray', f: 'fill',
-      i: 'eyedropper', t: 'text', l: 'line', r: 'rect', o: 'ellipse',
-      m: 'rectSelect', g: 'lasso', w: 'magicWand',
+      p: 'pencil',
+      b: 'brush',
+      e: 'eraser',
+      s: 'spray',
+      f: 'fill',
+      i: 'eyedropper',
+      t: 'text',
+      l: 'line',
+      r: 'rect',
+      o: 'ellipse',
+      m: 'rectSelect',
+      g: 'lasso',
+      w: 'magicWand'
     };
     const toolId = shortcuts[e.key.toLowerCase()];
     if (toolId) {
       pointer.commitTextInput();
-      if (state.sel.mode !== 'none' && !['rectSelect','lasso','magicWand'].includes(toolId)) commitSelection();
+      if (state.sel.mode !== 'none' && !['rectSelect', 'lasso', 'magicWand'].includes(toolId))
+        commitSelection();
       setActiveTool(toolId);
       return;
     }
 
     if ((e.key === '+' || e.key === '=') && !e.ctrlKey) {
-      const a = document.getElementById('canvas-area'), r = a.getBoundingClientRect();
+      const a = document.getElementById('canvas-area'),
+        r = a.getBoundingClientRect();
       zoomToward(r.left + r.width / 2, r.top + r.height / 2, 1.25);
     }
     if (e.key === '-' && !e.ctrlKey) {
-      const a = document.getElementById('canvas-area'), r = a.getBoundingClientRect();
+      const a = document.getElementById('canvas-area'),
+        r = a.getBoundingClientRect();
       zoomToward(r.left + r.width / 2, r.top + r.height / 2, 1 / 1.25);
     }
     if (e.key === '0' && !e.ctrlKey) {
-      state.zoom = 1; state.panX = 0; state.panY = 0; updateTransform();
+      state.zoom = 1;
+      state.panX = 0;
+      state.panY = 0;
+      updateTransform();
     }
   });
 
-  document.addEventListener('keyup', e => {
+  document.addEventListener('keyup', (e) => {
     if (e.code === 'Space' && state.spaceDown) {
       state.spaceDown = false;
       if (!state.panning) {
@@ -793,7 +985,7 @@ function init() {
     pushUndo,
     refreshLayerPanel: refreshLayerPanelUI,
     closeFileMenu,
-    loadProjectData,
+    loadProjectData
   });
 
   maybeOfferRestore();
@@ -807,12 +999,16 @@ function maybeOfferRestore() {
   const layerCount = auto.data.layers?.length ?? 0;
   if (layerCount === 0) return;
   const ageMin = Math.round((Date.now() - (auto.savedAt ?? 0)) / 60000);
-  const ageStr = ageMin < 1 ? 'less than a minute ago' :
-                 ageMin === 1 ? '1 minute ago' :
-                 ageMin < 60 ? `${ageMin} minutes ago` :
-                 `${Math.round(ageMin / 60)} hour(s) ago`;
+  const ageStr =
+    ageMin < 1
+      ? 'less than a minute ago'
+      : ageMin === 1
+      ? '1 minute ago'
+      : ageMin < 60
+      ? `${ageMin} minutes ago`
+      : `${Math.round(ageMin / 60)} hour(s) ago`;
   if (confirm(`Restore your previous Paint session from ${ageStr}?`)) {
-    loadProjectData(auto.data).catch(err => alert('Restore failed: ' + err.message));
+    loadProjectData(auto.data).catch((err) => alert('Restore failed: ' + err.message));
   } else {
     clearAutosave();
   }

@@ -66,6 +66,7 @@ const recordModalEl = document.getElementById('theremin-record-modal');
 const recordModalBackdropEl = document.getElementById('theremin-record-modal-backdrop');
 const recordPreviewEl = document.getElementById('theremin-record-preview');
 const recordShareBtn = document.getElementById('theremin-record-share');
+const recordPostBtn = document.getElementById('theremin-record-post');
 const recordDownloadBtn = document.getElementById('theremin-record-download');
 const recordDiscardBtn = document.getElementById('theremin-record-discard');
 const recordStatusEl = document.getElementById('theremin-record-status');
@@ -228,6 +229,7 @@ initRecorder({
   modalEl: recordModalEl,
   videoPreviewEl: recordPreviewEl,
   shareBtn: recordShareBtn,
+  postBtn: recordPostBtn,
   downloadBtn: recordDownloadBtn,
   discardBtn: recordDiscardBtn,
   backdropEl: recordModalBackdropEl,

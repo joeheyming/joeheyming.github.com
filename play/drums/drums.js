@@ -120,6 +120,15 @@ const SAMPLE_KIT_GAINS = {
 };
 
 const SAMPLED_KITS = new Set(Object.keys(SAMPLED_KIT_CATALOGS));
+const AUDIO_MIME_CANDIDATES = [
+  'audio/webm;codecs=opus',
+  'audio/webm',
+  'audio/mp4;codecs=mp4a.40.2',
+  'audio/mp4'
+];
+const RECORDING_TAIL_MS = 1500;
+const POSTS_AUDIO_BITS_PER_SECOND = 12000;
+const POSTS_AUDIO_MAX_BYTES = 180000;
 
 class DrumKit {
   constructor() {
@@ -190,18 +199,18 @@ class DrumKit {
     return src;
   }
 
-  hit(name) {
+  hit(name, destination = null, when = null) {
     const ctx = getCtx();
     if (ctx.state === 'suspended') resumeIfSuspended();
-    const master = getMaster();
-    const now = ctx.currentTime;
+    const master = destination || getMaster();
+    const now = when ?? ctx.currentTime;
 
     // Sampled kits: try the buffer first; fall through to the synth voice
     // if this specific pad hasn't loaded yet (or permanently failed).
     if (SAMPLED_KITS.has(this.kit)) {
       const kit = this._sampleKits.get(this.kit);
       if (kit && kit.has(name)) {
-        kit.play(name, { gain: SAMPLE_KIT_GAINS[name] ?? 0.9 });
+        kit.play(name, { gain: SAMPLE_KIT_GAINS[name] ?? 0.9, destination: master, when: now });
         return;
       }
       // Fall through to a synth voice that approximates this pad.
@@ -475,6 +484,82 @@ class DrumKit {
   }
 }
 
+const pickAudioMimeType = () => {
+  if (typeof MediaRecorder === 'undefined') return null;
+  return AUDIO_MIME_CANDIDATES.find((mime) => MediaRecorder.isTypeSupported?.(mime)) || '';
+};
+
+/**
+ * Capture one deliberate pass of the loop into an isolated Web Audio output.
+ * This does not stop, restart, or otherwise disturb the live LoopTrack.
+ */
+async function renderLoopAudio(loopTrack, drumKit) {
+  if (!loopTrack.hasLoop()) throw new Error('Record a loop before making a post.');
+
+  const mimeType = pickAudioMimeType();
+  if (mimeType == null) throw new Error("This browser can't create an audio attachment.");
+
+  const ctx = getCtx();
+  await ctx.resume();
+  const recordDestination = ctx.createMediaStreamDestination();
+  const recordGain = ctx.createGain();
+  recordGain.gain.value = Number(volumeEl.value) / 100;
+  recordGain.connect(recordDestination);
+
+  const chunks = [];
+  let recorder;
+  try {
+    recorder = new MediaRecorder(recordDestination.stream, {
+      ...(mimeType ? { mimeType } : {}),
+      audioBitsPerSecond: POSTS_AUDIO_BITS_PER_SECOND
+    });
+  } catch (error) {
+    recordGain.disconnect();
+    recordDestination.stream.getTracks().forEach((track) => track.stop());
+    throw new Error("This browser can't create an audio attachment.", { cause: error });
+  }
+
+  const recording = new Promise((resolve, reject) => {
+    recorder.ondataavailable = (event) => {
+      if (event.data?.size) chunks.push(event.data);
+    };
+    recorder.onerror = () => reject(recorder.error || new Error('Audio recording failed.'));
+    recorder.onstop = () => {
+      const type = recorder.mimeType || mimeType || 'audio/webm';
+      const blob = new Blob(chunks, { type: type.split(';')[0] });
+      if (blob.size === 0) reject(new Error('The browser produced an empty audio recording.'));
+      else resolve(blob);
+    };
+  });
+
+  const leadSeconds = 0.05;
+  recorder.start();
+  const startAt = ctx.currentTime + leadSeconds;
+  for (const event of loopTrack.events.slice().sort((a, b) => a.time - b.time)) {
+    drumKit.hit(event.id, recordGain, startAt + event.time / 1000);
+  }
+
+  const stopDelay = leadSeconds * 1000 + loopTrack.loopLength + RECORDING_TAIL_MS;
+  const stopTimer = window.setTimeout(() => {
+    if (recorder.state !== 'inactive') recorder.stop();
+  }, stopDelay);
+
+  try {
+    return await recording;
+  } finally {
+    window.clearTimeout(stopTimer);
+    if (recorder.state !== 'inactive') {
+      try {
+        recorder.stop();
+      } catch {
+        /* already stopping */
+      }
+    }
+    recordGain.disconnect();
+    recordDestination.stream.getTracks().forEach((track) => track.stop());
+  }
+}
+
 // ---------- Page wiring ----------
 
 const padsContainer = document.getElementById('drum-pads');
@@ -635,6 +720,8 @@ window.addEventListener('focus', () => resumeIfSuspended());
 const recBtn = document.getElementById('loop-record');
 const playBtn = document.getElementById('loop-play');
 const clearBtn = document.getElementById('loop-clear');
+const postBtn = document.getElementById('loop-post');
+const postStatusEl = document.getElementById('loop-post-status');
 
 createLoopTrackController(looper, {
   recBtn,
@@ -645,7 +732,46 @@ createLoopTrackController(looper, {
   barFillEl: document.getElementById('loop-bar-fill'),
   playLabelEl: playBtn.querySelector('.loop-btn-label'),
   playIconEl: playBtn.querySelector('.loop-btn-icon'),
-  onUserAction: () => resumeIfSuspended(),
+  onUserAction: () => resumeIfSuspended()
+});
+
+let postBusy = false;
+const updatePostButton = () => {
+  const ready = looper.hasLoop();
+  postBtn.disabled = postBusy || !ready;
+  postBtn.title = postBusy
+    ? 'Preparing post…'
+    : ready
+    ? 'Make a Post'
+    : 'Record a loop first, then make a post';
+};
+looper.on(updatePostButton);
+updatePostButton();
+
+postBtn.addEventListener('click', async () => {
+  if (postBusy || !looper.hasLoop()) return;
+  postBusy = true;
+  updatePostButton();
+  postStatusEl.classList.remove('error');
+  postStatusEl.textContent = 'Preparing audio…';
+  try {
+    const audio = await renderLoopAudio(looper, kit);
+    if (audio.size > POSTS_AUDIO_MAX_BYTES) {
+      throw new Error('This loop is too long to attach. Record a shorter loop and try again.');
+    }
+    postStatusEl.textContent = 'Opening Posts…';
+    const { share } = await import('/posts/share-client.js');
+    await share({
+      text: '🥁 Drum loop\n\nMade with [Drums](/play/drums/)',
+      attachments: [audio]
+    });
+  } catch (error) {
+    console.warn('Posting drum loop failed', error);
+    postBusy = false;
+    updatePostButton();
+    postStatusEl.classList.add('error');
+    postStatusEl.textContent = error instanceof Error ? error.message : 'Could not make a post.';
+  }
 });
 
 // Keyboard shortcuts: Space = Rec, P = Play/Stop. Skip when typing in inputs.

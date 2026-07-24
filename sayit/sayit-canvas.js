@@ -1,5 +1,5 @@
 import { S, MAX_CANVAS_HISTORY, INK_LUMA_SUM_MAX } from './sayit-state.js';
-import { displayImage, hideResults, showLoading, showResults } from './sayit-ui.js';
+import { displayImage, hideResults, showAppMessage, showLoading, showResults } from './sayit-ui.js';
 import { recognize } from './sayit-tesseract.js';
 
 function setupEraserHoverOverlay() {
@@ -493,8 +493,67 @@ export function setupCanvasEvents() {
   S.clearCanvasBtn.addEventListener('click', clearCanvas);
   S.penSizeSlider.addEventListener('input', updatePenSize);
   S.readDrawingBtn.addEventListener('click', readCanvasDrawing);
+  S.postDrawingBtn?.addEventListener('click', postCanvasDrawing);
   S.undoCanvasBtn.addEventListener('click', undoCanvas);
   S.redoCanvasBtn.addEventListener('click', redoCanvas);
+}
+
+function canvasHasInk() {
+  if (!S.canvasCtx || !S.drawingCanvas) return false;
+  var pixels = S.canvasCtx.getImageData(0, 0, S.drawingCanvas.width, S.drawingCanvas.height).data;
+  for (var i = 0; i < pixels.length; i += 4) {
+    if (pixels[i] + pixels[i + 1] + pixels[i + 2] < INK_LUMA_SUM_MAX) return true;
+  }
+  return false;
+}
+
+function canvasToBlob() {
+  return new Promise(function (resolve, reject) {
+    S.drawingCanvas.toBlob(function (blob) {
+      if (blob) resolve(blob);
+      else reject(new Error('Could not capture the whiteboard'));
+    }, 'image/png');
+  });
+}
+
+function recognizedTextForPost() {
+  if (!S.parsedContent) return '';
+  var text = S.parsedContent.textContent.trim();
+  if (
+    !text ||
+    text === 'Processing...' ||
+    text === 'Processing image...' ||
+    text.includes('Error') ||
+    text.includes('No text could be extracted')
+  ) {
+    return '';
+  }
+  return text;
+}
+
+async function postCanvasDrawing() {
+  if (!canvasHasInk()) {
+    showAppMessage('Write something on the whiteboard before posting it.', true);
+    return;
+  }
+
+  if (S.postDrawingBtn) S.postDrawingBtn.disabled = true;
+  showAppMessage('Preparing your whiteboard note…', false);
+  try {
+    var blob = await canvasToBlob();
+    var posts = await import('/posts/share-client.js');
+    var recognizedText = recognizedTextForPost();
+    await posts.share({
+      text: recognizedText
+        ? recognizedText + '\n\n— Whiteboard message from [Say It](/sayit/)'
+        : 'Whiteboard message from [Say It](/sayit/)',
+      attachments: [blob]
+    });
+  } catch (error) {
+    console.error('Failed to post Say It drawing:', error);
+    showAppMessage('Could not prepare the whiteboard post. Please try again.', true);
+    if (S.postDrawingBtn) S.postDrawingBtn.disabled = false;
+  }
 }
 
 // The "Read aloud" click used to run two full toDataURL('image/png')

@@ -11,7 +11,13 @@
  * no module-level DOM refs — each function takes what it needs.
  */
 
-import { METERS_PER_FOOT, METERS_PER_KM, METERS_PER_MILE, UNITS } from './triplog-constants.js';
+import {
+  ACTIVITY_TUNING,
+  METERS_PER_FOOT,
+  METERS_PER_KM,
+  METERS_PER_MILE,
+  UNITS
+} from './triplog-constants.js';
 
 const STATUS_BASE = 'min-w-0 flex-1 break-words text-right empty:hidden text-xs sm:text-sm';
 
@@ -164,4 +170,43 @@ export function formatTripStartedAt(iso) {
     hour: 'numeric',
     minute: '2-digit'
   });
+}
+
+/**
+ * Privacy-conscious markdown summary for Posts. Aggregate stats only —
+ * never include lat/lon, polyline, map images, or other location
+ * identifiers from the GPS track.
+ *
+ * @param {import('./triplog-db.js').TripRecord} trip
+ * @param {import('./triplog-constants.js').Unit} [unit]
+ */
+export function formatTripShareMarkdown(trip, unit = UNITS.METRIC) {
+  const activityKey =
+    trip.activity && Object.prototype.hasOwnProperty.call(ACTIVITY_TUNING, trip.activity)
+      ? /** @type {import('./triplog-constants.js').Activity} */ (trip.activity)
+      : 'other';
+  const tuning = ACTIVITY_TUNING[activityKey];
+  const name = trip.name || 'Untitled trip';
+  const when = formatTripStartedAt(trip.startedAt);
+  const avgMs = trip.durationSec > 0 ? trip.distanceMeters / trip.durationSec : 0;
+  const lines = [
+    `## ${name}`,
+    '',
+    `${tuning.emoji} ${tuning.label} · ${when}`,
+    '',
+    `- **Distance:** ${formatDistance(trip.distanceMeters, unit)}`,
+    `- **Moving time:** ${formatDuration(trip.durationSec)}`,
+    `- **Elapsed:** ${formatDuration(trip.elapsedSec ?? trip.durationSec)}`
+  ];
+  if (tuning.prefersPace) {
+    lines.push(`- **Avg pace:** ${formatPace(avgMs, unit)}`);
+  } else {
+    lines.push(`- **Avg speed:** ${formatSpeed(avgMs, unit)}`);
+  }
+  lines.push(
+    `- **Elevation gain:** ${formatElevation(trip.elevationGainM ?? 0, unit)}`,
+    '',
+    'Made with [Trip Log](https://joeheyming.github.io/triplog/).'
+  );
+  return lines.join('\n');
 }

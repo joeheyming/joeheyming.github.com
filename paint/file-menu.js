@@ -81,6 +81,14 @@ export function downloadPNG(filename, state, w, h) {
   link.click();
 }
 
+/** Flatten layers to a PNG Blob (same path as downloadPNG). */
+export function exportPNGBlob(state, w, h) {
+  const flat = flattenToCanvas(state.layers, state.bgColor, w, h, { transparentBg: true });
+  return new Promise((resolve) => {
+    flat.toBlob((blob) => resolve(blob), 'image/png');
+  });
+}
+
 export function downloadJPEG(filename, state, w, h) {
   const flat = flattenToCanvas(state.layers, state.bgColor, w, h);
   const link = document.createElement('a');

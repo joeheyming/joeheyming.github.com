@@ -42,6 +42,7 @@ const $log = /** @type {HTMLInputElement} */ ($('log-toggle'));
 const $autoRefresh = /** @type {HTMLSelectElement} */ ($('auto-refresh'));
 const $refresh = $('refresh-btn');
 const $exportPng = $('export-png');
+const $makePost = /** @type {HTMLButtonElement} */ ($('make-post'));
 const $copyLink = $('copy-link');
 const $helpBtn = $('help-btn');
 const $helpModal = $('help-modal');
@@ -549,6 +550,35 @@ function exportPng() {
   a.remove();
 }
 
+async function makePost() {
+  const dataUrl = chartView.toPNG();
+  if (!dataUrl) {
+    showToast('No chart to post — add a ticker first.', 'error');
+    return;
+  }
+
+  const list = activeList();
+  const symbol = list?.symbols.find((entry) => entry.visible)?.symbol || list?.symbols[0]?.symbol;
+  if (!symbol) {
+    showToast('No chart to post — add a ticker first.', 'error');
+    return;
+  }
+
+  const range = RANGES.find((candidate) => candidate.id === state.range)?.label || state.range;
+  $makePost.disabled = true;
+  try {
+    const { share } = await import('/posts/share-client.js');
+    await share({
+      text: `${symbol} · ${range} chart\n\nMade with [Stock Ticker](/stock/)`,
+      attachments: [dataUrl]
+    });
+  } catch (err) {
+    console.error('Could not share stock chart to Posts:', err);
+    showToast('Could not prepare the chart post. Please try again.', 'error');
+    $makePost.disabled = false;
+  }
+}
+
 // --- Share link ---
 
 async function copyShareLink() {
@@ -654,6 +684,7 @@ function init() {
 
   $refresh.addEventListener('click', () => refreshAll());
   $exportPng.addEventListener('click', exportPng);
+  $makePost.addEventListener('click', makePost);
   $copyLink.addEventListener('click', copyShareLink);
   $helpBtn.addEventListener('click', () => $helpModal.classList.remove('hidden'));
   $helpClose.addEventListener('click', () => $helpModal.classList.add('hidden'));

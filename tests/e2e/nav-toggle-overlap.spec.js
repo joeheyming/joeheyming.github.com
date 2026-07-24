@@ -33,6 +33,7 @@ const APPS = [
   '/sayit/',
   '/model-viewer/',
   '/periodic-speller/',
+  '/posts/',
   '/pbs/',
   '/sadtrombone/',
   '/shadowbox/',

@@ -103,6 +103,7 @@ export function createLiveMap(container, opts = {}) {
   }).setView([startView.lat, startView.lon], startView.zoom);
 
   L.tileLayer(TILE_URL, {
+    crossOrigin: true,
     // OSM has real tiles up through zoom 19. Above that, Leaflet
     // upscales the z19 tile so the user can pinch in further and still
     // see *something* (just blurrier). Useful on a trip recorder where
@@ -271,6 +272,7 @@ export function createReplayMap(container) {
   const L = leaflet();
   const map = L.map(container, { zoomControl: true }).setView([0, 0], 2);
   L.tileLayer(TILE_URL, {
+    crossOrigin: true,
     maxNativeZoom: 19,
     maxZoom: 22,
     attribution: TILE_ATTR

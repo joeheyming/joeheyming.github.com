@@ -355,6 +355,7 @@ class RichNotepad {
       'ql-copy-button': 'Copy all content',
       'ql-export-button': 'Export notes',
       'ql-import-button': 'Import notes',
+      'ql-post-button': 'Make a Post',
       'ql-save-button': 'Save',
       'ql-save-as-button': 'Save as'
     };
@@ -458,6 +459,16 @@ class RichNotepad {
       toolbarContainer.appendChild(importButton);
     }
 
+    // Share note as an editable Posts draft (does not publish)
+    const postButton = document.createElement('button');
+    postButton.textContent = 'Make a Post';
+    postButton.title = 'Make a Post';
+    postButton.setAttribute('aria-label', 'Make a Post');
+    postButton.type = 'button';
+    postButton.className = 'ql-post-button';
+    postButton.addEventListener('click', () => this.shareAsPost());
+    toolbarContainer.appendChild(postButton);
+
     // Hidden file input for import
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -509,6 +520,21 @@ class RichNotepad {
       copyButton.innerHTML = originalText;
       copyButton.style.background = '';
     }, 1000);
+  }
+
+  async shareAsPost() {
+    try {
+      const htmlContent = this.quill.root.innerHTML;
+      const text = this.htmlToMarkdown(htmlContent);
+      const { share } = await import('/posts/share-client.js');
+      await share({ text });
+      if (window.trackEvent) {
+        window.trackEvent('posts_share', 'Engagement', 'notepad');
+      }
+    } catch (err) {
+      console.error('Failed to share note as a post:', err);
+      this.showNotification('Could not prepare the post. Please try again.', 'error');
+    }
   }
 
   async exportNotes() {

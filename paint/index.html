@@ -60,7 +60,11 @@
             "applicationCategory": "DesignApplication",
             "operatingSystem": "Web Browser",
             "description": "A free MS-Paint-style raster drawing app in your browser. Pencil, brush, eraser, fill, line, rectangle, ellipse, picker, and selection tools. Export PNG; nothing is uploaded.",
-            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
           },
           {
@@ -119,7 +123,8 @@
           window.heymingNavInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent = '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop{display:none!important}';
+          s.textContent =
+            '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop{display:none!important}';
           document.head.appendChild(s);
         }
       })();
@@ -208,6 +213,16 @@
               <!-- Save to OS submenu injected here by initOSBridge() -->
             </div>
           </div>
+          <button
+            class="action-btn"
+            id="btn-post"
+            type="button"
+            title="Share drawing as a post"
+            aria-label="Make a Post"
+          >
+            <span class="btn-icon" aria-hidden="true">📝</span>
+            <span>Make a Post</span>
+          </button>
           <button class="action-btn" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>
             <span class="btn-icon" aria-hidden="true">↩</span>
             <span>Undo</span>
