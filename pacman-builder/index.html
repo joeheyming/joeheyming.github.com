@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pac-Man Level Builder — Design a 3D Maze</title>
+    <meta
+      name="description"
+      content="Build, validate, share, and play custom Pac-Man mazes in a polished browser-based grid editor."
+    />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#050711" />
+    <meta
+      name="keywords"
+      content="Pac-Man level builder, maze editor, Pacman map maker, custom Pac-Man level"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Heyming OS" />
+    <meta property="og:title" content="Pac-Man Level Builder" />
+    <meta
+      property="og:description"
+      content="Paint a maze, connect teleports, validate it, and play your creation in 3D."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/pacman-builder/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/pacman-builder/pacman-builder-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Pac-Man Level Builder grid editor" />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Pac-Man Level Builder" />
+    <meta
+      name="twitter:description"
+      content="Paint, validate, share, and play custom Pac-Man mazes in your browser."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/pacman-builder/pacman-builder-preview.png"
+    />
+    <link rel="canonical" href="https://joeheyming.github.io/pacman-builder/" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🟡</text></svg>"
+    />
+    <link rel="stylesheet" href="index.css" />
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/nav.js" data-nav-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js" data-share-fab="off"></script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Pac-Man Level Builder",
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Web Browser",
+            "description": "A browser-based editor for building, validating, sharing, and playing custom 3D Pac-Man mazes.",
+            "url": "https://joeheyming.github.io/pacman-builder/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "featureList": [
+              "Pointer painting",
+              "Teleport group editor",
+              "Live level validation",
+              "Local autosave",
+              "JSON import and export",
+              "Shareable level links"
+            ],
+            "screenshot": "https://joeheyming.github.io/pacman-builder/pacman-builder-preview.png",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Heyming OS",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Pac-Man Level Builder"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">CUSTOM MAZE WORKSHOP</p>
+        <h1>
+          <span aria-hidden="true">●</span>
+          Pac-Man Level Builder
+        </h1>
+        <p class="subtitle">Paint a maze, connect portals, then chase it in 3D.</p>
+      </div>
+      <div class="header-actions">
+        <button id="undoButton" class="icon-button" type="button" aria-label="Undo" title="Undo">
+          ↶
+        </button>
+        <button id="redoButton" class="icon-button" type="button" aria-label="Redo" title="Redo">
+          ↷
+        </button>
+        <div class="mode-switch" role="group" aria-label="Builder mode">
+          <button class="mode-button active" type="button" aria-pressed="true" disabled>
+            ✎ Build
+          </button>
+          <button id="playButton" class="mode-button play-mode-button" type="button">▶ Play</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="panel tools-panel" aria-label="Level tools">
+        <section class="template-picker">
+          <div class="section-heading">
+            <h2>Start from a level</h2>
+            <span>8 templates</span>
+          </div>
+          <label for="templateSelect">Pac-Man maze</label>
+          <div class="template-row">
+            <select id="templateSelect">
+              <option value="level0">Arcade Classic</option>
+              <option value="level1">Original Maze 1</option>
+              <option value="level2">Original Maze 2</option>
+              <option value="level3">Original Maze 3</option>
+              <option value="level4">Original Maze 4</option>
+              <option value="level5">Original Maze 5</option>
+              <option value="level6">Four Islands</option>
+              <option value="level7">Island Gauntlet</option>
+            </select>
+            <button id="loadTemplateButton" type="button">Load</button>
+          </div>
+          <p id="templateDescription" class="hint" aria-live="polite">
+            The familiar arcade layout with tunnels, power pills, and four ghosts.
+          </p>
+        </section>
+
+        <section>
+          <h2>Level setup</h2>
+          <div class="field-grid">
+            <label>
+              Width
+              <input id="widthInput" type="number" min="5" max="50" inputmode="numeric" />
+            </label>
+            <label>
+              Height
+              <input id="heightInput" type="number" min="5" max="50" inputmode="numeric" />
+            </label>
+            <label>
+              Ghosts
+              <select id="ghostCount">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+              </select>
+            </label>
+          </div>
+          <div class="button-row">
+            <button id="resizeButton" type="button">Resize map</button>
+            <button id="clearButton" type="button">Clear</button>
+            <button id="resetButton" type="button">Reset</button>
+          </div>
+        </section>
+
+        <section class="teleport-editor">
+          <div class="section-heading">
+            <h2>Teleports</h2>
+            <button id="addTeleportGroup" class="small-button" type="button">+ Group</button>
+          </div>
+          <p class="hint">Select a group, then paint Teleport endpoints on the grid.</p>
+          <div id="teleportGroups" class="teleport-groups"></div>
+          <div id="teleportControls" class="teleport-controls" hidden>
+            <label>
+              Routing
+              <select id="teleportMode">
+                <option value="pair">Pair (two-way)</option>
+                <option value="next">Cycle / next</option>
+              </select>
+            </label>
+            <button id="deleteTeleportGroup" class="danger-button" type="button">
+              Delete group
+            </button>
+          </div>
+        </section>
+      </aside>
+
+      <section class="editor-column" aria-label="Maze editor">
+        <div class="grid-toolbar">
+          <div>
+            <strong id="mapSize">11 × 9</strong>
+            <span id="saveState" role="status">Draft ready</span>
+          </div>
+          <span id="cursorPosition" aria-live="polite">Point at a tile</span>
+        </div>
+        <div class="grid-shell">
+          <div
+            id="grid"
+            class="level-grid"
+            role="grid"
+            aria-label="Pac-Man level map"
+            tabindex="0"
+          ></div>
+        </div>
+        <div class="legend" aria-label="Map legend">
+          <span>
+            <i class="legend-dot floor"></i>
+            Dot path
+          </span>
+          <span>
+            <i class="legend-dot power"></i>
+            Power pill
+          </span>
+          <span>
+            <i class="legend-dot teleport"></i>
+            Teleport
+          </span>
+        </div>
+      </section>
+
+      <aside class="panel status-panel" aria-label="Validation and file actions">
+        <section>
+          <div class="section-heading">
+            <h2>Level check</h2>
+            <span id="validationBadge" class="badge">Checking…</span>
+          </div>
+          <div id="validationSummary" class="validation-summary" aria-live="polite"></div>
+          <ul id="validationList" class="validation-list"></ul>
+        </section>
+
+        <section>
+          <h2>Save &amp; share</h2>
+          <div class="stacked-actions">
+            <button id="copyLinkButton" type="button">🔗 Copy share link</button>
+            <button id="downloadButton" type="button">↓ Download JSON</button>
+            <button id="importButton" type="button">↑ Import JSON</button>
+            <input id="fileInput" type="file" accept="application/json,.json" hidden />
+          </div>
+          <p class="privacy-note">
+            Your maze stays in this browser unless you share or download it.
+          </p>
+        </section>
+
+        <section class="shortcut-card">
+          <h2>Shortcuts</h2>
+          <p>
+            <kbd>⌘/Ctrl</kbd>
+            +
+            <kbd>Z</kbd>
+            Undo
+          </p>
+          <p>
+            <kbd>⌘/Ctrl</kbd>
+            +
+            <kbd>Shift</kbd>
+            +
+            <kbd>Z</kbd>
+            Redo
+          </p>
+        </section>
+      </aside>
+    </main>
+
+    <section class="tool-dock" aria-label="Build tools">
+      <div class="dock-heading">
+        <div>
+          <span class="dock-kicker">BUILD TOOLS</span>
+          <strong id="selectedTileLabel">Floor / dot path</strong>
+        </div>
+        <span class="dock-hint">Pick a tile, then click or drag to paint</span>
+      </div>
+      <div id="palette" class="palette" role="toolbar" aria-label="Tile palette"></div>
+    </section>
+
+    <section id="playtestOverlay" class="playtest-overlay" aria-label="3D playtest" hidden>
+      <header class="playtest-bar">
+        <button id="exitPlaytestButton" class="back-to-build" type="button">← Back to Build</button>
+        <div>
+          <strong>PLAYTEST</strong>
+          <span>Your draft is running live</span>
+        </div>
+        <button id="restartPlaytestButton" type="button">↻ Restart</button>
+      </header>
+      <iframe
+        id="playtestFrame"
+        title="3D Pac-Man level playtest"
+        allow="autoplay; fullscreen"
+      ></iframe>
+    </section>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="index.js"></script>
+  </body>
+</html>

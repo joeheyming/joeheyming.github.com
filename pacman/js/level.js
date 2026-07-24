@@ -6,10 +6,12 @@
 
 import * as THREE from 'three';
 import { TILE, ANIMATION } from './constants.js';
+import { normalizeLevelData } from './level-data.js';
 
 export class Level {
-  constructor(levelPath = 'levels/level1.json') {
+  constructor(levelPath = 'levels/level1.json', levelData = null) {
     this.levelPath = levelPath;
+    this.levelData = levelData;
 
     // Level data (will be loaded from file)
     this.width = 0;
@@ -71,212 +73,35 @@ export class Level {
    */
   async loadLevelFile() {
     try {
-      const response = await fetch(this.levelPath);
-      if (!response.ok) {
-        throw new Error(`Failed to load level: ${response.status}`);
+      if (this.levelData) {
+        this.parseLevel(this.levelData);
+        return;
       }
+      const response = await fetch(this.levelPath);
+      if (!response.ok) throw new Error(`Failed to load level: ${response.status}`);
       const data = await response.json();
       this.parseLevel(data);
     } catch (error) {
       console.error('Error loading level file:', error);
+      if (this.levelData) throw error;
       // Fall back to a minimal default level
       this.loadDefaultLevel();
     }
   }
 
   parseLevel(data) {
-    // Parse JSON level format
-    this.scale = data.scale;
-
-    // Flip map so row 0 in JSON = top of screen (WYSIWYG)
-    // Renderer treats Y=0 as bottom, so we reverse the array
-    this.map = [...data.map].reverse();
-
-    // Calculate width and height from map dimensions
-    // Height is number of rows, width is number of columns (assuming all rows have same width)
-    this.height = this.map.length;
-    if (this.height === 0) {
-      throw new Error('Map must have at least one row');
-    }
-    this.width = this.map[0].length;
-
-    // Validate all rows have the same width
-    for (let y = 0; y < this.height; y++) {
-      if (this.map[y].length !== this.width) {
-        throw new Error(`Map row ${y} has width ${this.map[y].length}, expected ${this.width}`);
-      }
-    }
-
-    // Use provided width/height if they exist (for backward compatibility), but warn if they don't match
-    if (data.width !== undefined && data.width !== this.width) {
-      console.warn(
-        `Provided width ${data.width} doesn't match map width ${this.width}, using map width`
-      );
-    }
-    if (data.height !== undefined && data.height !== this.height) {
-      console.warn(
-        `Provided height ${data.height} doesn't match map height ${this.height}, using map height`
-      );
-    }
-
-    // Helper to flip Y coordinates from JSON to internal
-    const flipY = (y) => this.height - 1 - y;
-
-    // Scan map for pacman start tile (type 6)
-    this.pacmanStart = null;
-    for (let y = 0; y < this.map.length; y++) {
-      for (let x = 0; x < this.map[y].length; x++) {
-        if (this.map[y][x] === TILE.PACMAN_START) {
-          if (this.pacmanStart !== null) {
-            throw new Error(`Multiple pacman start tiles found. Only one is allowed.`);
-          }
-          this.pacmanStart = { x, y, level: 0 };
-        }
-      }
-    }
-
-    // Backward compatibility: if no pacman start tile found in map, fall back to data.pacmanStart
-    if (this.pacmanStart === null && data.pacmanStart) {
-      this.pacmanStart = {
-        x: data.pacmanStart.x,
-        y: flipY(data.pacmanStart.y),
-        level: data.pacmanStart.level || 0
-      };
-    }
-
-    if (this.pacmanStart === null) {
-      throw new Error(
-        `No pacman start position found. Please add a pacman start tile (type 6) to the map.`
-      );
-    }
-
-    console.log(`Found pacman start position:`, this.pacmanStart);
-
-    // Scan map for ghost home tiles (type 3)
-    this.ghostHome = [];
-    for (let y = 0; y < this.map.length; y++) {
-      for (let x = 0; x < this.map[y].length; x++) {
-        if (this.map[y][x] === 3) {
-          this.ghostHome.push({ x, y, level: 0 });
-        }
-      }
-    }
-
-    // If no ghost home tiles found in map, fall back to data.ghostHome
-    if (this.ghostHome.length === 0 && data.ghostHome) {
-      this.ghostHome = data.ghostHome.map((g) => ({
-        x: g.x,
-        y: flipY(g.y),
-        level: g.level || 0
-      }));
-    }
-
-    console.log(`Found ${this.ghostHome.length} ghost home positions:`, this.ghostHome);
-
-    // Scan map for power pill tiles (type 5)
-    this.powerPillLocations = [];
-    for (let y = 0; y < this.map.length; y++) {
-      for (let x = 0; x < this.map[y].length; x++) {
-        if (this.map[y][x] === TILE.POWER_PILL) {
-          this.powerPillLocations.push({ x, y, level: 0 });
-        }
-      }
-    }
-
-    // Backward compatibility: if no power pill tiles found in map, fall back to data.powerPills
-    if (this.powerPillLocations.length === 0 && data.powerPills) {
-      this.powerPillLocations = data.powerPills.map((p) => ({
-        x: p.x,
-        y: flipY(p.y),
-        level: p.level || 0
-      }));
-    }
-
-    console.log(
-      `Found ${this.powerPillLocations.length} power pill positions:`,
-      this.powerPillLocations
-    );
-
-    // Teleports — accept three formats and normalize into `teleportGroups`:
-    //   1. Pair (legacy): `[{x,y}, {x,y}]` — edge-walking trigger
-    //   2. Flat array (very legacy): `[{x,y}, {x,y}, ...]` paired up in order
-    //   3. Group (new): `{ "endpoints": [{x,y}, ...], "mode": "next" }`
-    //      — step-on-tile trigger, cycles through N>=2 endpoints. Use for
-    //      island maps where teleports aren't on the wall border.
-    //
-    // `this.teleports` is kept as the legacy pair array because
-    // pacman.js still reads it via the pair shape; teleportGroups is the
-    // generalized form that island levels read.
-    this.teleports = [];
-    this.teleportGroups = [];
-
-    const flipEndpoint = (ep) => ({
-      x: ep.x,
-      y: flipY(ep.y),
-      level: ep.level || 0
-    });
-
-    if (Array.isArray(data.teleports)) {
-      for (const entry of data.teleports) {
-        if (Array.isArray(entry) && entry.length === 2) {
-          const flipped = [flipEndpoint(entry[0]), flipEndpoint(entry[1])];
-          this.teleports.push(flipped);
-          this.teleportGroups.push({ mode: 'pair', endpoints: flipped });
-        } else if (entry && Array.isArray(entry.endpoints) && entry.endpoints.length >= 2) {
-          const flipped = entry.endpoints.map(flipEndpoint);
-          const mode = entry.mode === 'pair' && flipped.length === 2 ? 'pair' : 'next';
-          this.teleportGroups.push({ mode, endpoints: flipped });
-          // Mirror into legacy `teleports` only for pure pair groups
-          if (mode === 'pair') this.teleports.push(flipped);
-        }
-      }
-
-      // Very legacy flat-array fallback
-      if (
-        this.teleports.length === 0 &&
-        this.teleportGroups.length === 0 &&
-        data.teleports.length >= 2 &&
-        data.teleports[0].x !== undefined
-      ) {
-        for (let i = 0; i + 1 < data.teleports.length; i += 2) {
-          const pair = [flipEndpoint(data.teleports[i]), flipEndpoint(data.teleports[i + 1])];
-          this.teleports.push(pair);
-          this.teleportGroups.push({ mode: 'pair', endpoints: pair });
-        }
-      }
-    }
-
-    // Also scan map for teleport tiles and validate/auto-link if needed
-    const teleportTiles = [];
-    for (let y = 0; y < this.map.length; y++) {
-      for (let x = 0; x < this.map[y].length; x++) {
-        if (this.map[y][x] === TILE.TELEPORT) {
-          teleportTiles.push({ x, y });
-        }
-      }
-    }
-
-    if (teleportTiles.length > 0) {
-      console.log(`Found ${teleportTiles.length} teleport tiles in map:`, teleportTiles);
-    }
-
-    // Fruit spawn — first FRUIT_SPAWN tile in the map (only one expected;
-    // multiples just pick the first). Falls back to a tile under the ghost
-    // house in game.js if absent.
-    this.fruitSpawn = null;
-    for (let y = 0; y < this.map.length && !this.fruitSpawn; y++) {
-      for (let x = 0; x < this.map[y].length; x++) {
-        if (this.map[y][x] === TILE.FRUIT_SPAWN) {
-          this.fruitSpawn = { x, y, level: 0 };
-          break;
-        }
-      }
-    }
-    if (this.fruitSpawn) {
-      console.log('Found fruit spawn:', this.fruitSpawn);
-    }
-
-    console.log(`Loaded level: ${this.width}x${this.height}, scale=${this.scale}`);
+    const parsed = normalizeLevelData(data);
+    this.scale = parsed.scale;
+    this.numGhosts = parsed.numGhosts;
+    this.width = parsed.width;
+    this.height = parsed.height;
+    this.map = parsed.map;
+    this.pacmanStart = parsed.pacmanStart;
+    this.ghostHome = parsed.ghostHome;
+    this.powerPillLocations = parsed.powerPillLocations;
+    this.teleports = parsed.teleports;
+    this.teleportGroups = parsed.teleportGroups;
+    this.fruitSpawn = parsed.fruitSpawn;
   }
 
   loadDefaultLevel() {

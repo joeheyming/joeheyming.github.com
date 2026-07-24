@@ -1184,6 +1184,11 @@ const PAGES = [
     }
   },
   {
+    url: `${BASE_URL}/pacman-builder/`,
+    output: 'pacman-builder/pacman-builder-preview.png',
+    title: 'Pac-Man Level Builder'
+  },
+  {
     url: `${BASE_URL}/posts/`,
     output: 'posts/posts-preview.png',
     title: 'Posts'

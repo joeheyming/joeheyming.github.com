@@ -19,6 +19,7 @@ const APPS = [
   '/paint/',
   '/terminal/',
   '/doom/',
+  '/pacman-builder/',
   '/emulator/',
   '/stepmania/',
   '/stock/',

@@ -20,6 +20,35 @@ async function startPacman(page, params) {
 }
 
 test.describe('Pacman levels & fruit', () => {
+  test('loads a validated custom level from a compact URL', async ({ page }) => {
+    const { encodeLevelData } = await import('../../pacman/js/level-data.js');
+    const customLevel = {
+      scale: 10,
+      numGhosts: 1,
+      map: [
+        [2, 2, 2, 2, 2],
+        [2, 6, 1, 5, 2],
+        [2, 1, 3, 1, 2],
+        [2, 1, 7, 1, 2],
+        [2, 2, 2, 2, 2]
+      ],
+      teleports: []
+    };
+
+    await startPacman(page, `custom=${encodeLevelData(customLevel)}`);
+    const info = await page.evaluate(() => ({
+      name: window.game.currentLevelName,
+      width: window.game.level.width,
+      ghosts: window.game.ghosts.length,
+      builderHref: document.getElementById('level-builder-link')?.getAttribute('href')
+    }));
+
+    expect(info.name).toBe('custom');
+    expect(info.width).toBe(5);
+    expect(info.ghosts).toBe(1);
+    expect(info.builderHref).toContain('/pacman-builder/#level=');
+  });
+
   test('level0 loads with a fruit-spawn tile', async ({ page }) => {
     await startPacman(page, 'level=level0');
     const info = await page.evaluate(() => ({

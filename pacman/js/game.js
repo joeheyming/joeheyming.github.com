@@ -13,6 +13,7 @@ import { Controls } from './controls.js';
 import { AudioManager } from './audio.js';
 import { Minimap } from './minimap.js';
 import { Fruit } from './fruit.js';
+import { decodeLevelData } from './level-data.js';
 import {
   GAME_STATES,
   GHOST_COLORS,
@@ -38,6 +39,17 @@ class Game {
     // Debug mode - check URL query string for debug=true
     const urlParams = new URLSearchParams(window.location.search);
     this.debugMode = urlParams.get('debug') === 'true';
+    this.customLevelCode = urlParams.get('custom');
+    this.customLevelData = null;
+    this.customLevelError = null;
+    if (this.customLevelCode) {
+      try {
+        this.customLevelData = decodeLevelData(this.customLevelCode);
+      } catch (error) {
+        this.customLevelError = error;
+      }
+    }
+    this.autoStart = Boolean(this.customLevelData && urlParams.get('autostart') === 'true');
 
     // Level selection — URL param > saved progress > start of LEVEL_ORDER.
     // If the requested level is part of LEVEL_ORDER, "Next Level" advances
@@ -46,9 +58,11 @@ class Game {
     const levelParam = urlParams.get('level');
     const savedLevelName = localStorage.getItem('pacman-current-level');
     const defaultLevelName = LEVEL_ORDER[0] || 'level1';
-    const requestedName = levelParam || savedLevelName || defaultLevelName;
+    const requestedName = this.customLevelData
+      ? 'custom'
+      : levelParam || savedLevelName || defaultLevelName;
     this.currentLevelName = requestedName;
-    this.levelPath = `levels/${requestedName}.json`;
+    this.levelPath = this.customLevelData ? null : `levels/${requestedName}.json`;
     this.levelOrderIndex = LEVEL_ORDER.indexOf(requestedName);
 
     // Per-level state, reset on each level load. Tracks fruit spawning and
@@ -59,7 +73,9 @@ class Game {
 
     // Number of ghosts - defaults to 4 if not specified
     const numGhostsParam = urlParams.get('numghosts');
-    this.numGhosts = numGhostsParam !== null ? parseInt(numGhostsParam, 10) : 4;
+    this.hasGhostCountOverride = numGhostsParam !== null;
+    this.numGhosts =
+      numGhostsParam !== null ? parseInt(numGhostsParam, 10) : this.customLevelData?.numGhosts ?? 4;
 
     // Starting camera mode - birdseye, follow, fps
     // URL param takes priority, then localStorage, then default (null = birdseye)
@@ -139,6 +155,17 @@ class Game {
   }
 
   async init() {
+    const builderLink = document.getElementById('level-builder-link');
+    if (builderLink && this.customLevelCode) {
+      builderLink.href = `/pacman-builder/#level=${this.customLevelCode}`;
+      builderLink.textContent = 'EDIT THIS LEVEL';
+    }
+
+    if (this.customLevelError) {
+      this.showCustomLevelError(this.customLevelError);
+      return;
+    }
+
     // Initialize Three.js
     this.initThreeJS();
 
@@ -196,6 +223,8 @@ class Game {
 
     // Setup event listeners
     this.setupEventListeners();
+
+    if (this.autoStart) await this.startGame();
 
     // Start render loop
     this.animate();
@@ -265,8 +294,9 @@ class Game {
   }
 
   async loadLevel() {
-    this.level = new Level(this.levelPath);
+    this.level = new Level(this.levelPath, this.customLevelData);
     await this.level.load();
+    if (!this.hasGhostCountOverride) this.numGhosts = this.level.numGhosts ?? 4;
 
     // Add level geometry to scene
     this.level.addToScene(this.scene);
@@ -313,6 +343,27 @@ class Game {
 
     // Create danger indicator sprites for each ghost
     this.createDangerIndicators();
+  }
+
+  showCustomLevelError(error) {
+    const title = this.startScreen.querySelector('h1');
+    const startButton = this.startScreen.querySelector('#start-btn');
+    if (title) title.textContent = 'CUSTOM LEVEL ERROR';
+    if (startButton) startButton.remove();
+
+    const message = document.createElement('p');
+    message.className = 'max-w-xl px-6 text-center text-text-1';
+    message.textContent = error.message || 'This custom level could not be loaded.';
+
+    const builderLink = document.createElement('a');
+    builderLink.className =
+      'mt-6 px-6 py-3 bg-pac-yellow text-black font-bold rounded-lg transition-opacity hover:opacity-80';
+    builderLink.href = this.customLevelCode
+      ? `/pacman-builder/#level=${this.customLevelCode}`
+      : '/pacman-builder/';
+    builderLink.textContent = 'EDIT IN LEVEL BUILDER';
+
+    this.startScreen.append(message, builderLink);
   }
 
   /**
