@@ -11,6 +11,20 @@ const MIN_SIZE = 5;
 const MAX_SIZE = 50;
 const HISTORY_LIMIT = 80;
 const TELEPORT_COLORS = ['#2de2e6', '#ff70c9', '#ffb84d', '#8d7dff', '#54e37d', '#ff6678'];
+const WALKABLE_TILES = new Set([
+  TILE.FLOOR,
+  TILE.GHOST_HOME,
+  TILE.TELEPORT,
+  TILE.POWER_PILL,
+  TILE.PACMAN_START,
+  TILE.FRUIT_SPAWN
+]);
+const RAMP_DELTAS = {
+  n: { x: 0, y: -1 },
+  e: { x: 1, y: 0 },
+  s: { x: 0, y: 1 },
+  w: { x: -1, y: 0 }
+};
 const LEVEL_TEMPLATES = {
   level0: 'The familiar arcade layout with tunnels, power pills, and four ghosts.',
   level1: 'A roomy original maze with a classic side tunnel.',
@@ -19,7 +33,8 @@ const LEVEL_TEMPLATES = {
   level4: 'A dense original maze built for quick direction changes.',
   level5: 'A challenging original maze with narrow escape routes.',
   level6: 'Four compact islands connected by cycling teleports.',
-  level7: 'A larger three-island gauntlet with all four ghosts.'
+  level7: 'A larger three-island gauntlet with all four ghosts.',
+  elevated: 'A two-level starter with an upper platform and a north-facing ramp.'
 };
 
 const TILE_OPTIONS = [
@@ -32,10 +47,21 @@ const TILE_OPTIONS = [
   { value: TILE.PACMAN_START, label: 'Pac-Man start' },
   { value: TILE.FRUIT_SPAWN, label: 'Fruit spawn' }
 ];
+const ELEVATION_OPTIONS = [
+  { value: 'ground', label: 'Ground', glyph: '0' },
+  { value: 'upper', label: 'Upper', glyph: '1' },
+  { value: 'ramp-n', label: 'Ramp north', glyph: '↑' },
+  { value: 'ramp-e', label: 'Ramp east', glyph: '→' },
+  { value: 'ramp-s', label: 'Ramp south', glyph: '↓' },
+  { value: 'ramp-w', label: 'Ramp west', glyph: '←' }
+];
 
 const elements = {
   grid: document.querySelector('#grid'),
   palette: document.querySelector('#palette'),
+  elevationPalette: document.querySelector('#elevationPalette'),
+  tilesTab: document.querySelector('#tilesTab'),
+  elevationTab: document.querySelector('#elevationTab'),
   selectedTileLabel: document.querySelector('#selectedTileLabel'),
   templateSelect: document.querySelector('#templateSelect'),
   templateDescription: document.querySelector('#templateDescription'),
@@ -52,6 +78,7 @@ const elements = {
   playtestOverlay: document.querySelector('#playtestOverlay'),
   playtestFrame: document.querySelector('#playtestFrame'),
   exitPlaytestButton: document.querySelector('#exitPlaytestButton'),
+  changeViewButton: document.querySelector('#changeViewButton'),
   restartPlaytestButton: document.querySelector('#restartPlaytestButton'),
   addTeleportGroup: document.querySelector('#addTeleportGroup'),
   teleportGroups: document.querySelector('#teleportGroups'),
@@ -73,6 +100,8 @@ const elements = {
 
 let level = createStarterLevel();
 let selectedTile = TILE.FLOOR;
+let selectedToolCategory = 'tiles';
+let selectedElevation = 'ground';
 let selectedTeleportGroup = null;
 let undoStack = [];
 let redoStack = [];
@@ -99,14 +128,45 @@ function createStarterLevel() {
   map[4][6] = TILE.GHOST_HOME;
   map[5][5] = TILE.FRUIT_SPAWN;
   map[height - 2][5] = TILE.PACMAN_START;
-  return { scale: 10, numGhosts: 2, map, teleports: [] };
+  return {
+    scale: 10,
+    numGhosts: 2,
+    map,
+    heights: Array.from({ length: height }, () => Array(width).fill(0)),
+    ramps: [],
+    teleports: []
+  };
+}
+
+function createElevatedStarterLevel() {
+  const starter = createStarterLevel();
+  for (let y = 2; y <= 5; y++) {
+    for (let x = 3; x <= 7; x++) {
+      starter.heights[y][x] = 1;
+    }
+  }
+  starter.heights[5][3] = 1;
+  starter.ramps.push({ x: 3, y: 6, dir: 'n' });
+  return starter;
 }
 
 function cloneLevel(value = level) {
+  const height = value.map.length;
+  const width = value.map[0].length;
+  const heights =
+    Array.isArray(value.heights) && value.heights.length === height
+      ? value.heights.map((row) =>
+          Array.from({ length: width }, (_, x) => (row?.[x] === 1 ? 1 : 0))
+        )
+      : Array.from({ length: height }, () => Array(width).fill(0));
   return {
     scale: value.scale,
     numGhosts: value.numGhosts,
     map: value.map.map((row) => [...row]),
+    heights,
+    ramps: Array.isArray(value.ramps)
+      ? value.ramps.map((ramp) => ({ x: ramp.x, y: ramp.y, dir: ramp.dir }))
+      : [],
     teleports: value.teleports.map((group) => ({
       mode: group.mode,
       endpoints: group.endpoints.map((point) => ({ x: point.x, y: point.y }))
@@ -173,11 +233,16 @@ async function loadTemplate() {
   elements.loadTemplateButton.disabled = true;
   elements.loadTemplateButton.textContent = 'Loading…';
   try {
-    const response = await fetch(`/pacman/levels/${templateName}.json`);
-    if (!response.ok) throw new Error(`Template request failed with status ${response.status}.`);
-    const template = canonicalizeLevelData(await response.json());
+    let template;
+    if (templateName === 'elevated') {
+      template = createElevatedStarterLevel();
+    } else {
+      const response = await fetch(`/pacman/levels/${templateName}.json`);
+      if (!response.ok) throw new Error(`Template request failed with status ${response.status}.`);
+      template = canonicalizeLevelData(await response.json());
+    }
     const previous = cloneLevel();
-    level = template;
+    level = cloneLevel(template);
     selectedTeleportGroup = null;
     keyboardCursor = { x: 1, y: 1 };
     if (!commit(previous, `load_template:${templateName}`)) render();
@@ -270,9 +335,37 @@ function renderPalette() {
       return button;
     })
   );
+  elements.elevationPalette.replaceChildren(
+    ...ELEVATION_OPTIONS.map((option) => {
+      const button = document.createElement('button');
+      const swatch = document.createElement('span');
+      const label = document.createElement('span');
+      button.type = 'button';
+      button.className = 'tile-button elevation-button';
+      button.dataset.elevation = option.value;
+      button.setAttribute('aria-pressed', String(selectedElevation === option.value));
+      button.setAttribute('aria-label', `Paint ${option.label}`);
+      swatch.className = 'elevation-swatch';
+      swatch.dataset.elevation = option.value;
+      swatch.setAttribute('aria-hidden', 'true');
+      swatch.textContent = option.glyph;
+      label.textContent = option.label;
+      button.append(swatch, label);
+      button.addEventListener('click', () => selectElevation(option.value));
+      return button;
+    })
+  );
+  const tilesSelected = selectedToolCategory === 'tiles';
+  elements.tilesTab.classList.toggle('active', tilesSelected);
+  elements.elevationTab.classList.toggle('active', !tilesSelected);
+  elements.tilesTab.setAttribute('aria-selected', String(tilesSelected));
+  elements.elevationTab.setAttribute('aria-selected', String(!tilesSelected));
+  elements.palette.hidden = !tilesSelected;
+  elements.elevationPalette.hidden = tilesSelected;
 }
 
 function selectTile(tile) {
+  selectedToolCategory = 'tiles';
   selectedTile = tile;
   const option = TILE_OPTIONS.find((item) => item.value === tile);
   elements.selectedTileLabel.textContent = option?.label || 'Tile';
@@ -280,6 +373,26 @@ function selectTile(tile) {
   if (tile === TILE.TELEPORT && selectedTeleportGroup === null) {
     showToast('Create or select a teleport group before painting endpoints.');
   }
+}
+
+function selectElevation(tool) {
+  selectedToolCategory = 'elevation';
+  selectedElevation = tool;
+  const option = ELEVATION_OPTIONS.find((item) => item.value === tool);
+  elements.selectedTileLabel.textContent = option?.label || 'Elevation';
+  renderPalette();
+}
+
+function selectToolCategory(category) {
+  selectedToolCategory = category;
+  if (category === 'tiles') {
+    const option = TILE_OPTIONS.find((item) => item.value === selectedTile);
+    elements.selectedTileLabel.textContent = option?.label || 'Tile';
+  } else {
+    const option = ELEVATION_OPTIONS.find((item) => item.value === selectedElevation);
+    elements.selectedTileLabel.textContent = option?.label || 'Elevation';
+  }
+  renderPalette();
 }
 
 function pointKey(point) {
@@ -290,6 +403,27 @@ function teleportGroupAt(x, y) {
   return level.teleports.findIndex((group) =>
     group.endpoints.some((point) => point.x === x && point.y === y)
   );
+}
+
+function rampDestination(ramp) {
+  const delta = RAMP_DELTAS[ramp.dir];
+  return delta ? { x: ramp.x + delta.x, y: ramp.y + delta.y } : null;
+}
+
+function rampAtOrigin(x, y) {
+  return level.ramps.find((ramp) => ramp.x === x && ramp.y === y);
+}
+
+function removeRampsTouching(...points) {
+  const pointKeys = new Set(points.map(pointKey));
+  const previousLength = level.ramps.length;
+  level.ramps = level.ramps.filter((ramp) => {
+    const destination = rampDestination(ramp);
+    return (
+      !pointKeys.has(pointKey(ramp)) && (!destination || !pointKeys.has(pointKey(destination)))
+    );
+  });
+  return level.ramps.length !== previousLength;
 }
 
 function renderGrid() {
@@ -304,12 +438,40 @@ function renderGrid() {
       const cell = document.createElement('div');
       const groupIndex = tile === TILE.TELEPORT ? teleportGroupAt(x, y) : -1;
       const tileName = TILE_OPTIONS.find((option) => option.value === tile)?.label || 'Unknown';
+      const cellHeight = level.heights[y][x];
+      const ramp = rampAtOrigin(x, y);
+      const elevationName = cellHeight === 1 ? 'upper level' : 'ground level';
       cell.className = 'cell';
       cell.dataset.x = String(x);
       cell.dataset.y = String(y);
       cell.dataset.tile = String(tile);
+      cell.dataset.height = String(cellHeight);
+      if (cellHeight === 1) cell.classList.add('is-upper');
       cell.setAttribute('role', 'gridcell');
-      cell.setAttribute('aria-label', `Column ${x + 1}, row ${y + 1}: ${tileName}`);
+      cell.setAttribute(
+        'aria-label',
+        `Column ${x + 1}, row ${y + 1}: ${tileName}, ${elevationName}${
+          ramp ? `, ramp ${ramp.dir}` : ''
+        }`
+      );
+      if (cellHeight === 1) {
+        const marker = document.createElement('span');
+        marker.className = 'upper-marker';
+        marker.setAttribute('aria-hidden', 'true');
+        marker.textContent = '▲';
+        cell.append(marker);
+      }
+      if (ramp) {
+        const marker = document.createElement('span');
+        marker.className = 'ramp-marker';
+        marker.dataset.direction = ramp.dir;
+        marker.setAttribute('aria-hidden', 'true');
+        marker.textContent = ELEVATION_OPTIONS.find(
+          (option) => option.value === `ramp-${ramp.dir}`
+        )?.glyph;
+        cell.dataset.rampDir = ramp.dir;
+        cell.append(marker);
+      }
       if (groupIndex >= 0) {
         cell.style.setProperty(
           '--teleport-color',
@@ -339,6 +501,7 @@ function renderTeleportGroups() {
     button.append(name, count);
     button.addEventListener('click', () => {
       selectedTeleportGroup = index;
+      selectedToolCategory = 'tiles';
       selectedTile = TILE.TELEPORT;
       render();
     });
@@ -397,8 +560,52 @@ function removePointFromGroups(x, y, exceptGroup = null) {
   });
 }
 
+function paintElevation(x, y) {
+  if (!level.map[y] || level.map[y][x] === undefined) return false;
+  const point = { x, y };
+
+  if (selectedElevation === 'ground') {
+    const heightChanged = level.heights[y][x] !== 0;
+    const rampsChanged = removeRampsTouching(point);
+    level.heights[y][x] = 0;
+    return heightChanged || rampsChanged;
+  }
+
+  if (selectedElevation === 'upper') {
+    if (!WALKABLE_TILES.has(level.map[y][x])) {
+      showToast('Upper elevation can only be painted on walkable tiles.');
+      return false;
+    }
+    const heightChanged = level.heights[y][x] !== 1;
+    const rampsChanged = removeRampsTouching(point);
+    level.heights[y][x] = 1;
+    return heightChanged || rampsChanged;
+  }
+
+  const direction = selectedElevation.replace('ramp-', '');
+  const delta = RAMP_DELTAS[direction];
+  if (!delta) return false;
+  const destination = { x: x + delta.x, y: y + delta.y };
+  if (
+    !level.map[destination.y] ||
+    level.map[destination.y][destination.x] === undefined ||
+    !WALKABLE_TILES.has(level.map[y][x]) ||
+    !WALKABLE_TILES.has(level.map[destination.y][destination.x])
+  ) {
+    showToast('A ramp needs two adjacent walkable tiles.');
+    return false;
+  }
+
+  removeRampsTouching(point, destination);
+  level.heights[y][x] = 0;
+  level.heights[destination.y][destination.x] = 1;
+  level.ramps.push({ x, y, dir: direction });
+  return true;
+}
+
 function paintTile(x, y) {
   if (!level.map[y] || level.map[y][x] === undefined) return false;
+  if (selectedToolCategory === 'elevation') return paintElevation(x, y);
   const oldTile = level.map[y][x];
 
   if (selectedTile === TILE.TELEPORT) {
@@ -418,7 +625,13 @@ function paintTile(x, y) {
     return true;
   }
 
-  if (oldTile === selectedTile) return false;
+  if (oldTile === selectedTile) {
+    if (selectedTile !== TILE.WALL && selectedTile !== TILE.VOID) return false;
+    const heightChanged = level.heights[y][x] !== 0;
+    const rampsChanged = removeRampsTouching({ x, y });
+    level.heights[y][x] = 0;
+    return heightChanged || rampsChanged;
+  }
   if (selectedTile === TILE.PACMAN_START || selectedTile === TILE.FRUIT_SPAWN) {
     level.map.forEach((row, rowIndex) => {
       row.forEach((tile, columnIndex) => {
@@ -428,6 +641,10 @@ function paintTile(x, y) {
   }
   if (oldTile === TILE.TELEPORT) removePointFromGroups(x, y);
   level.map[y][x] = selectedTile;
+  if (selectedTile === TILE.WALL || selectedTile === TILE.VOID) {
+    level.heights[y][x] = 0;
+    removeRampsTouching({ x, y });
+  }
   return true;
 }
 
@@ -487,7 +704,23 @@ function resizeMap() {
     const nextMap = Array.from({ length: height }, (_, y) =>
       Array.from({ length: width }, (_, x) => level.map[y]?.[x] ?? TILE.VOID)
     );
+    const nextHeights = Array.from({ length: height }, (_, y) =>
+      Array.from({ length: width }, (_, x) => level.heights[y]?.[x] ?? 0)
+    );
     level.map = nextMap;
+    level.heights = nextHeights;
+    level.ramps = level.ramps.filter((ramp) => {
+      const destination = rampDestination(ramp);
+      return (
+        ramp.x < width &&
+        ramp.y < height &&
+        destination &&
+        destination.x >= 0 &&
+        destination.x < width &&
+        destination.y >= 0 &&
+        destination.y < height
+      );
+    });
     level.teleports.forEach((group) => {
       group.endpoints = group.endpoints.filter((point) => point.x < width && point.y < height);
     });
@@ -498,6 +731,8 @@ function resizeMap() {
 function clearMap() {
   changeLevel(() => {
     level.map = level.map.map((row) => row.map(() => TILE.VOID));
+    level.heights = level.heights.map((row) => row.map(() => 0));
+    level.ramps = [];
     level.teleports = [];
     selectedTeleportGroup = null;
   }, 'clear');
@@ -532,6 +767,7 @@ function addTeleportGroup() {
   changeLevel(() => {
     level.teleports.push({ mode: 'pair', endpoints: [] });
     selectedTeleportGroup = level.teleports.length - 1;
+    selectedToolCategory = 'tiles';
     selectedTile = TILE.TELEPORT;
   }, 'add_teleport_group');
   showToast('Teleport group added. Paint two endpoints.');
@@ -635,9 +871,7 @@ async function importJson(file) {
 function openPlaytest() {
   const canonical = getCanonicalLevel();
   if (!canonical) return;
-  playtestUrl = `/pacman/?custom=${encodeLevelData(
-    canonical
-  )}&debug=true&autostart=true&startcamera=birdseye`;
+  playtestUrl = `/pacman/?custom=${encodeLevelData(canonical)}&debug=true&autostart=true`;
   elements.playtestFrame.src = playtestUrl;
   elements.playtestOverlay.hidden = false;
   document.body.classList.add('playtesting');
@@ -661,6 +895,17 @@ function restartPlaytest() {
     elements.playtestFrame.src = playtestUrl;
   });
   track('playtest_restart');
+}
+
+function changePlaytestView() {
+  const playtestWindow = elements.playtestFrame.contentWindow;
+  const game = playtestWindow ? Reflect.get(playtestWindow, 'game') : null;
+  if (!game?.controls) {
+    showToast('The playtest is still loading.');
+    return;
+  }
+  game.controls.cycleCamera();
+  track('playtest_change_view');
 }
 
 function handleGridKeyboard(event) {
@@ -700,6 +945,8 @@ function handleShortcut(event) {
 function bindEvents() {
   elements.templateSelect.addEventListener('change', updateTemplateDescription);
   elements.loadTemplateButton.addEventListener('click', loadTemplate);
+  elements.tilesTab.addEventListener('click', () => selectToolCategory('tiles'));
+  elements.elevationTab.addEventListener('click', () => selectToolCategory('elevation'));
   elements.grid.addEventListener('pointerdown', beginPainting);
   elements.grid.addEventListener('pointermove', (event) => {
     const point = cellFromPointer(event);
@@ -718,6 +965,7 @@ function bindEvents() {
   elements.redoButton.addEventListener('click', redo);
   elements.playButton.addEventListener('click', openPlaytest);
   elements.exitPlaytestButton.addEventListener('click', closePlaytest);
+  elements.changeViewButton.addEventListener('click', changePlaytestView);
   elements.restartPlaytestButton.addEventListener('click', restartPlaytest);
   elements.addTeleportGroup.addEventListener('click', addTeleportGroup);
   elements.deleteTeleportGroup.addEventListener('click', deleteTeleportGroup);

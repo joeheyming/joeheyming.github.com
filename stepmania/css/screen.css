@@ -137,7 +137,7 @@ body {
   width: 100%;
   height: 100%;
   max-width: 800px;
-  min-height: 150px;
+  min-height: clamp(220px, 42vh, 480px);
   margin: 0 auto;
   display: flex;
   justify-content: center;
@@ -145,6 +145,38 @@ body {
   flex-shrink: 0;
   max-height: 60vh;
   overflow: hidden;
+}
+
+/* Reserve space before custom elements upgrade (CLS). */
+zenius-browser:not(:defined),
+feedback-button:not(:defined),
+difficulty-selector:not(:defined),
+share-button:not(:defined) {
+  display: inline-block;
+  min-width: 6.5rem;
+  height: 2.5rem;
+  vertical-align: middle;
+}
+
+/* Keep toolbar hosts inline after upgrade (CE default can be block). */
+zenius-browser,
+feedback-button,
+difficulty-selector,
+share-button {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+step-button:not(:defined) {
+  display: inline-block;
+  width: 60px;
+  height: 60px;
+  vertical-align: middle;
+}
+
+score-panel:not(:defined) {
+  display: block;
+  min-height: 12rem;
 }
 
 /* Logo styling */
@@ -335,12 +367,12 @@ body:not(.mobile) .score-toggle {
   }
 }
 
-/* Songs / Feedback / Restart / Difficulty share one pill radius.
+/* Songs / Share / Feedback / Restart / Difficulty share one pill radius.
    .zenius-browser-btn, .restart-btn, and .difficulty-select all hard-code
-   0.75rem. <feedback-button> reads border-radius from --radius, which
-   brand.css sets to 4px — much sharper than the other three. Overriding
-   the custom property on the host cascades through the shadow boundary
-   so the feedback pill matches without forking the shared component. */
+   0.75rem. <share-button> and <feedback-button> read border-radius from
+   --radius, which brand.css sets to 4px — much sharper than the other
+   controls. Override it on both hosts so it cascades through shadow DOM. */
+share-button,
 feedback-button {
   --radius: 0.75rem;
 }

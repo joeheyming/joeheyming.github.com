@@ -9,6 +9,13 @@ const WALKABLE_TILES = new Set([
   TILE.PACMAN_START,
   TILE.FRUIT_SPAWN
 ]);
+const SOURCE_RAMP_DELTAS = {
+  n: { x: 0, y: -1 },
+  e: { x: 1, y: 0 },
+  s: { x: 0, y: 1 },
+  w: { x: -1, y: 0 }
+};
+const RAMP_DIRECTION_CODES = ['n', 'e', 's', 'w'];
 
 export class LevelValidationError extends Error {
   constructor(issues) {
@@ -24,6 +31,10 @@ function issue(code, message) {
 
 function pointKey(point) {
   return `${point.x},${point.y}`;
+}
+
+function edgeKey(first, second) {
+  return [pointKey(first), pointKey(second)].sort().join('|');
 }
 
 function isCoordinate(value) {
@@ -108,6 +119,24 @@ function inBounds(point, width, height) {
   return point.x >= 0 && point.x < width && point.y >= 0 && point.y < height;
 }
 
+function sourceHeights(data, width, height) {
+  if (!Array.isArray(data.heights)) {
+    return Array.from({ length: height }, () => Array(width).fill(0));
+  }
+  return data.heights.map((row) => [...row]);
+}
+
+function sourceRamps(data) {
+  return Array.isArray(data.ramps)
+    ? data.ramps.map((ramp) => ({ x: ramp.x, y: ramp.y, dir: ramp.dir }))
+    : [];
+}
+
+function rampDestination(ramp) {
+  const delta = SOURCE_RAMP_DELTAS[ramp.dir];
+  return delta ? { x: ramp.x + delta.x, y: ramp.y + delta.y } : null;
+}
+
 function isSpecialSourceLocation(x, y, map, pacmanStart, ghostHomes, groups) {
   if (pacmanStart && pacmanStart.x === x && pacmanStart.y === y) return true;
   if (ghostHomes.some((home) => home.x === x && home.y === y)) return true;
@@ -118,13 +147,21 @@ function isSpecialSourceLocation(x, y, map, pacmanStart, ghostHomes, groups) {
   return ghostHomes.some((home) => Math.abs(x - home.x) <= 1 && Math.abs(y - home.y) <= 1);
 }
 
-function findUnreachableCollectibles(data, groups, pacmanStart, ghostHomes) {
+function findUnreachableCollectibles(data, groups, pacmanStart, ghostHomes, heights, ramps) {
   const map = data.map;
   const height = map.length;
   const width = map[0].length;
   const visited = new Set([pointKey(pacmanStart)]);
   const queue = [pacmanStart];
   const teleportDestinations = new Map();
+  const rampEdges = new Set(
+    ramps
+      .map((ramp) => {
+        const destination = rampDestination(ramp);
+        return destination ? edgeKey(ramp, destination) : null;
+      })
+      .filter(Boolean)
+  );
 
   for (const group of groups) {
     group.endpoints.forEach((endpoint, index) => {
@@ -138,13 +175,18 @@ function findUnreachableCollectibles(data, groups, pacmanStart, ghostHomes) {
 
   while (queue.length > 0) {
     const current = queue.shift();
-    const neighbors = [
+    const adjacent = [
       { x: current.x + 1, y: current.y },
       { x: current.x - 1, y: current.y },
       { x: current.x, y: current.y + 1 },
-      { x: current.x, y: current.y - 1 },
-      ...(teleportDestinations.get(pointKey(current)) || [])
+      { x: current.x, y: current.y - 1 }
     ];
+    const neighbors = adjacent.filter(
+      (neighbor) =>
+        heights[current.y][current.x] === heights[neighbor.y]?.[neighbor.x] ||
+        rampEdges.has(edgeKey(current, neighbor))
+    );
+    neighbors.push(...(teleportDestinations.get(pointKey(current)) || []));
 
     for (const neighbor of neighbors) {
       if (!inBounds(neighbor, width, height)) continue;
@@ -213,6 +255,73 @@ export function validateLevelData(data) {
       }
     }
   }
+  if (data.heights !== undefined) {
+    if (!Array.isArray(data.heights) || data.heights.length !== height) {
+      errors.push(issue('invalid_heights', 'Heights must have one row for every map row.'));
+    } else {
+      for (let y = 0; y < height; y++) {
+        const row = data.heights[y];
+        if (!Array.isArray(row) || row.length !== width) {
+          errors.push(
+            issue('invalid_heights', `Height row ${y + 1} must contain exactly ${width} values.`)
+          );
+          continue;
+        }
+        for (let x = 0; x < width; x++) {
+          if (row[x] !== 0 && row[x] !== 1) {
+            errors.push(
+              issue('invalid_height', `Height at (${x}, ${y}) must be ground (0) or upper (1).`)
+            );
+          } else if (row[x] === 1 && !WALKABLE_TILES.has(data.map[y][x])) {
+            errors.push(issue('height_on_unwalkable', `Upper tile (${x}, ${y}) must be walkable.`));
+          }
+        }
+      }
+    }
+  }
+  if (errors.length > 0) return { errors, warnings };
+
+  const heights = sourceHeights(data, width, height);
+  const ramps = sourceRamps(data);
+  const rampOrigins = new Set();
+  const rampEdges = new Set();
+  ramps.forEach((ramp, index) => {
+    if (
+      !ramp ||
+      !Number.isInteger(ramp.x) ||
+      !Number.isInteger(ramp.y) ||
+      !Object.hasOwn(SOURCE_RAMP_DELTAS, ramp.dir)
+    ) {
+      errors.push(issue('ramp_invalid', `Ramp ${index + 1} has invalid coordinates or direction.`));
+      return;
+    }
+    const destination = rampDestination(ramp);
+    if (
+      !inBounds(ramp, width, height) ||
+      !destination ||
+      !inBounds(destination, width, height) ||
+      !isWalkableSource(data.map, ramp.x, ramp.y) ||
+      !isWalkableSource(data.map, destination.x, destination.y) ||
+      heights[ramp.y][ramp.x] !== 0 ||
+      heights[destination.y][destination.x] !== 1
+    ) {
+      errors.push(
+        issue(
+          'ramp_invalid',
+          `Ramp ${index + 1} must run from walkable ground to an adjacent upper tile.`
+        )
+      );
+      return;
+    }
+    const originKey = pointKey(ramp);
+    const connectionKey = edgeKey(ramp, destination);
+    if (rampOrigins.has(originKey) || rampEdges.has(connectionKey)) {
+      errors.push(issue('ramp_overlap', `Ramp ${index + 1} overlaps another ramp.`));
+      return;
+    }
+    rampOrigins.add(originKey);
+    rampEdges.add(connectionKey);
+  });
   if (errors.length > 0) return { errors, warnings };
 
   const starts = scanMap(data.map, TILE.PACMAN_START);
@@ -338,7 +447,14 @@ export function validateLevelData(data) {
   }
 
   if (pacmanStart && errors.length === 0) {
-    const unreachable = findUnreachableCollectibles(data, groups, pacmanStart, ghostHomes);
+    const unreachable = findUnreachableCollectibles(
+      data,
+      groups,
+      pacmanStart,
+      ghostHomes,
+      heights,
+      ramps
+    );
     if (unreachable.length > 0) {
       errors.push(
         issue(
@@ -360,10 +476,12 @@ export function normalizeLevelData(data) {
 
   const sourceMap = data.map.map((row) => [...row]);
   const height = sourceMap.length;
+  const width = sourceMap[0].length;
+  const elevations = sourceHeights(data, width, height);
   const flipPoint = (point) => ({
     x: point.x,
     y: height - 1 - point.y,
-    level: point.level || 0
+    level: elevations[point.y]?.[point.x] ?? point.level ?? 0
   });
   const sourceGroups = sourceTeleportGroups(data);
   const teleportGroups = sourceGroups.map((group) => ({
@@ -371,6 +489,12 @@ export function normalizeLevelData(data) {
     endpoints: group.endpoints.map(flipPoint)
   }));
   const map = [...sourceMap].reverse();
+  const heights = [...elevations].reverse();
+  const ramps = sourceRamps(data).map((ramp) => ({
+    x: ramp.x,
+    y: height - 1 - ramp.y,
+    dir: ramp.dir
+  }));
   const mapStarts = scanMap(sourceMap, TILE.PACMAN_START);
   const sourcePacmanStart = mapStarts[0] || data.pacmanStart;
   const sourceGhostHomes = scanMap(sourceMap, TILE.GHOST_HOME);
@@ -381,9 +505,11 @@ export function normalizeLevelData(data) {
     scale: Number.isFinite(data.scale) && data.scale > 0 ? data.scale : 10,
     numGhosts:
       Number.isInteger(data.numGhosts) && data.numGhosts >= 0 ? Math.min(data.numGhosts, 4) : 4,
-    width: sourceMap[0].length,
+    width,
     height,
     map,
+    heights,
+    ramps,
     pacmanStart: flipPoint(sourcePacmanStart),
     ghostHome: (sourceGhostHomes.length > 0 ? sourceGhostHomes : data.ghostHome || []).map(
       flipPoint
@@ -408,6 +534,8 @@ export function canonicalizeLevelData(data) {
     scale: normalized.scale,
     numGhosts: normalized.numGhosts,
     map: data.map.map((row) => [...row]),
+    heights: sourceHeights(data, normalized.width, normalized.height),
+    ramps: sourceRamps(data),
     teleports: sourceGroups.map((group) => ({
       mode: group.mode,
       endpoints: (orderedPairEndpoints(group.endpoints, data.map) || group.endpoints).map(
@@ -440,8 +568,10 @@ function decodeBase64Url(value) {
 
 export function encodeLevelData(data) {
   const canonical = canonicalizeLevelData(data);
+  const hasElevation =
+    canonical.ramps.length > 0 || canonical.heights.some((row) => row.some((value) => value === 1));
   const payload = {
-    v: 1,
+    v: hasElevation ? 2 : 1,
     s: canonical.scale,
     g: canonical.numGhosts,
     m: canonical.map.map((row) => row.join('')),
@@ -450,6 +580,14 @@ export function encodeLevelData(data) {
       e: group.endpoints.map((point) => [point.x, point.y])
     }))
   };
+  if (hasElevation) {
+    payload.h = canonical.heights.map((row) => row.join(''));
+    payload.r = canonical.ramps.map((ramp) => [
+      ramp.x,
+      ramp.y,
+      RAMP_DIRECTION_CODES.indexOf(ramp.dir)
+    ]);
+  }
   return encodeBase64Url(JSON.stringify(payload));
 }
 
@@ -467,7 +605,7 @@ export function decodeLevelData(code) {
       issue('invalid_code', `Could not read the custom level code: ${error.message}`)
     ]);
   }
-  if (payload?.v !== 1 || !Array.isArray(payload.m)) {
+  if ((payload?.v !== 1 && payload?.v !== 2) || !Array.isArray(payload.m)) {
     throw new LevelValidationError([issue('unsupported_code', 'Unsupported custom level format.')]);
   }
 
@@ -475,6 +613,18 @@ export function decodeLevelData(code) {
     scale: payload.s,
     numGhosts: payload.g,
     map: payload.m.map((row) => [...row].map((tile) => Number.parseInt(tile, 10))),
+    heights:
+      payload.v === 2 && Array.isArray(payload.h)
+        ? payload.h.map((row) => [...row].map((height) => Number.parseInt(height, 10)))
+        : undefined,
+    ramps:
+      payload.v === 2 && Array.isArray(payload.r)
+        ? payload.r.map(([x, y, direction]) => ({
+            x,
+            y,
+            dir: RAMP_DIRECTION_CODES[direction]
+          }))
+        : [],
     teleports: Array.isArray(payload.t)
       ? payload.t.map((group) => ({
           mode: group.m === 'p' ? 'pair' : 'next',

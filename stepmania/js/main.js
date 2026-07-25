@@ -1,10 +1,16 @@
 // StepMania Main Entry Point - ES Module
-// Loads all modules in the correct order
+// Loads all modules in the correct order.
+// Boot splash (CSS + press animation + reveal) lives entirely in index.html.
+
+// Kick off shared shadow CSS fetch before custom elements connect,
+// so zenius-browser's modal is less likely to paint without position:fixed.
+import { getSharedStyleSheet } from './sharedStyles.js';
+void getSharedStyleSheet();
 
 // Core game engine (no dependencies on other app modules)
 import { startStepmania } from './stepmania.js';
 
-// Page controller (depends on stepmania.js exports)
+// Page controller (depends on stepmania.js exports) — also pulls zenius-browser
 import './mainPageController.js';
 
 // Input handlers (depend on stepmania.js exports)

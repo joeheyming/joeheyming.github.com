@@ -27,7 +27,11 @@ export class Ghost {
     this.radius = scale / 2.5;
 
     // Position
-    this.position = new THREE.Vector3(startX * scale, startY * scale, scale / 2);
+    this.position = new THREE.Vector3(
+      startX * scale,
+      startY * scale,
+      level.getEntityZ(startX, startY)
+    );
 
     // Home position for respawning
     this.homePosition = this.position.clone();
@@ -510,6 +514,8 @@ export class Ghost {
     if (!this.dead) {
       this.checkTeleport();
     }
+    this.position.z =
+      this.level.getSurfaceZAtWorld(this.position.x, this.position.y) + this.scale / 2;
 
     // Update visual position
     this.group.position.copy(this.position);

@@ -49,6 +49,8 @@
   padding: 8px 16px 24px;
   align-items: center;
   justify-content: center;
+  /* Reserve space before fretboard JS mounts (CLS). */
+  min-height: clamp(200px, 36vh, 360px);
 }
 
 .fretboard {

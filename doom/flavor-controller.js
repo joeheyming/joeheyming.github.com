@@ -482,9 +482,19 @@
         }
       });
     }
-    btn.addEventListener('click', function () {
+    btn.addEventListener('click', async function () {
       if (window.UZDoomLifecycle && window.UZDoomLifecycle.get() !== 'primed') return;
       trackDoomEvent('doom_engine_launched', flavor + ':autolaunch');
+      btn.textContent = 'Loading…';
+      btn.disabled = true;
+      // Yield so the Loading label paints before WASM boot work.
+      if (typeof window.yieldToMain === 'function') {
+        await window.yieldToMain();
+      } else {
+        await new Promise(function (r) {
+          setTimeout(r, 0);
+        });
+      }
       if (window.UZDoomLoader) window.UZDoomLoader.launch();
     });
     return ui;
@@ -571,6 +581,17 @@
         var ui = attachLoadInfo(card);
         if (ui) ui.set('Preparing…', null);
         var stopMirror = null;
+
+        // Paint Loading before multi-MB prime + WASM launch so the
+        // click's INP closes on the visual feedback frame (Search
+        // Console flagged /doom/ just over the 200ms good threshold).
+        if (typeof window.yieldToMain === 'function') {
+          await window.yieldToMain();
+        } else {
+          await new Promise(function (r) {
+            setTimeout(r, 0);
+          });
+        }
 
         try {
           applyFlavorBranding(flavor);

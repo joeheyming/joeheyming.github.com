@@ -18,7 +18,11 @@ export class Pacman {
     this.radius = (2 * scale) / 5;
 
     // Position
-    this.position = new THREE.Vector3(startX * scale, startY * scale, scale / 2);
+    this.position = new THREE.Vector3(
+      startX * scale,
+      startY * scale,
+      level.getEntityZ(startX, startY)
+    );
 
     // Movement
     this.moveSpeed = GAMEPLAY.PACMAN_SPEED;
@@ -260,19 +264,39 @@ export class Pacman {
     // Try both axes first, then each axis separately to allow sliding along walls
     const collisionRadius = this.radius * 0.4;
 
-    if (!this.level.canMoveTo(this.position.x, this.position.y, collisionRadius)) {
+    if (
+      !this.level.canMoveTo(
+        this.position.x,
+        this.position.y,
+        collisionRadius,
+        oldPosition.x,
+        oldPosition.y
+      )
+    ) {
       // Full movement blocked - try sliding along walls
       const newX = this.position.x;
       const newY = this.position.y;
 
       // Try moving only on X axis
       this.position.y = oldPosition.y;
-      const canMoveX = this.level.canMoveTo(this.position.x, this.position.y, collisionRadius);
+      const canMoveX = this.level.canMoveTo(
+        this.position.x,
+        this.position.y,
+        collisionRadius,
+        oldPosition.x,
+        oldPosition.y
+      );
 
       // Try moving only on Y axis
       this.position.x = oldPosition.x;
       this.position.y = newY;
-      const canMoveY = this.level.canMoveTo(this.position.x, this.position.y, collisionRadius);
+      const canMoveY = this.level.canMoveTo(
+        this.position.x,
+        this.position.y,
+        collisionRadius,
+        oldPosition.x,
+        oldPosition.y
+      );
 
       if (canMoveX && !canMoveY) {
         // Can only slide on X axis
@@ -301,6 +325,8 @@ export class Pacman {
 
     // Handle teleports
     this.checkTeleport();
+    this.position.z =
+      this.level.getSurfaceZAtWorld(this.position.x, this.position.y) + this.scale / 2;
   }
 
   // KEY_STRAFE: FPS-style movement (forward/back + strafe)
@@ -542,7 +568,11 @@ export class Pacman {
 
   reset() {
     // Reset to starting position
-    this.position.set(this.startX * this.scale, this.startY * this.scale, this.scale / 2);
+    this.position.set(
+      this.startX * this.scale,
+      this.startY * this.scale,
+      this.level.getEntityZ(this.startX, this.startY)
+    );
     this.yaw = 180;
     this.pitch = 0;
     this.facing.set(0, -1, 0);

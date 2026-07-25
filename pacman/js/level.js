@@ -18,6 +18,8 @@ export class Level {
     this.height = 0;
     this.scale = 10;
     this.map = [];
+    this.heights = [];
+    this.ramps = [];
     this.pacmanStart = { x: 0, y: 0, level: 0 };
     this.ghostHome = [];
     this.powerPillLocations = [];
@@ -26,6 +28,8 @@ export class Level {
     // 3D objects
     this.mazeMesh = null;
     this.floorMesh = null;
+    this.elevatedFloorMesh = null;
+    this.rampMesh = null;
     this.teleportTiles = [];
     this.teleportGroup = new THREE.Group();
     this.ghostHomeTiles = [];
@@ -96,6 +100,8 @@ export class Level {
     this.width = parsed.width;
     this.height = parsed.height;
     this.map = parsed.map;
+    this.heights = parsed.heights;
+    this.ramps = parsed.ramps;
     this.pacmanStart = parsed.pacmanStart;
     this.ghostHome = parsed.ghostHome;
     this.powerPillLocations = parsed.powerPillLocations;
@@ -113,6 +119,8 @@ export class Level {
     this.ghostHome = [{ x: 2, y: 1, level: 0 }];
     this.powerPillLocations = [];
     this.teleports = [];
+    this.teleportGroups = [];
+    this.ramps = [];
     this.map = [
       [2, 2, 2, 2, 2],
       [2, 1, 1, 1, 2],
@@ -120,6 +128,7 @@ export class Level {
       [2, 1, 1, 1, 2],
       [2, 2, 2, 2, 2]
     ];
+    this.heights = Array.from({ length: this.height }, () => Array(this.width).fill(0));
   }
 
   createMaterials() {
@@ -184,13 +193,19 @@ export class Level {
   }
 
   createMaze() {
-    const wallHeight = this.scale;
     const geometries = [];
 
     // Iterate through map and create wall blocks
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
         if (this.map[y][x] === TILE.WALL) {
+          const adjacentHeight = Math.max(
+            this.getTileHeight(x - 1, y),
+            this.getTileHeight(x + 1, y),
+            this.getTileHeight(x, y - 1),
+            this.getTileHeight(x, y + 1)
+          );
+          const wallHeight = this.scale * (adjacentHeight + 1);
           const geometry = new THREE.BoxGeometry(this.scale, this.scale, wallHeight);
 
           // Position the geometry
@@ -225,6 +240,31 @@ export class Level {
     );
     this.floorMesh.receiveShadow = true;
 
+    const elevatedFloorGeometries = [];
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        if (!this.isWalkable(x, y) || this.getTileHeight(x, y) === 0) continue;
+        const geometry = new THREE.BoxGeometry(this.scale * 0.96, this.scale * 0.96, this.scale);
+        geometry.translate(this.gridToWorld(x), this.gridToWorld(y), this.scale / 2);
+        elevatedFloorGeometries.push(geometry);
+      }
+    }
+    if (elevatedFloorGeometries.length > 0) {
+      this.elevatedFloorMesh = new THREE.Mesh(
+        this.mergeGeometries(elevatedFloorGeometries),
+        this.floorMaterial
+      );
+      this.elevatedFloorMesh.castShadow = true;
+      this.elevatedFloorMesh.receiveShadow = true;
+    }
+
+    const rampGeometries = this.ramps.map((ramp) => this.createRampGeometry(ramp));
+    if (rampGeometries.length > 0) {
+      this.rampMesh = new THREE.Mesh(this.mergeGeometries(rampGeometries), this.floorMaterial);
+      this.rampMesh.castShadow = true;
+      this.rampMesh.receiveShadow = true;
+    }
+
     // Create teleport tiles as raised platforms
     const teleportHeight = this.scale * 0.1; // Slightly raised
     const teleportGeometry = new THREE.BoxGeometry(
@@ -237,7 +277,11 @@ export class Level {
       for (let x = 0; x < this.width; x++) {
         if (this.map[y][x] === TILE.TELEPORT) {
           const teleportTile = new THREE.Mesh(teleportGeometry, this.teleportMaterial);
-          teleportTile.position.set(this.gridToWorld(x), this.gridToWorld(y), teleportHeight / 2);
+          teleportTile.position.set(
+            this.gridToWorld(x),
+            this.gridToWorld(y),
+            this.getFloorZ(x, y) + teleportHeight / 2
+          );
           teleportTile.castShadow = true;
           teleportTile.receiveShadow = true;
           this.teleportTiles.push(teleportTile);
@@ -258,7 +302,11 @@ export class Level {
       for (let x = 0; x < this.width; x++) {
         if (this.map[y][x] === TILE.GHOST_HOME) {
           const ghostHomeTile = new THREE.Mesh(ghostHomeGeometry, this.ghostHomeMaterial);
-          ghostHomeTile.position.set(this.gridToWorld(x), this.gridToWorld(y), ghostHomeHeight / 2);
+          ghostHomeTile.position.set(
+            this.gridToWorld(x),
+            this.gridToWorld(y),
+            this.getFloorZ(x, y) + ghostHomeHeight / 2
+          );
           ghostHomeTile.castShadow = true;
           ghostHomeTile.receiveShadow = true;
           this.ghostHomeTiles.push(ghostHomeTile);
@@ -282,7 +330,7 @@ export class Level {
           pacmanStartTile.position.set(
             this.gridToWorld(x),
             this.gridToWorld(y),
-            pacmanStartHeight / 2
+            this.getFloorZ(x, y) + pacmanStartHeight / 2
           );
           pacmanStartTile.castShadow = true;
           pacmanStartTile.receiveShadow = true;
@@ -305,6 +353,22 @@ export class Level {
     this.gridHelper = gridHelper;
   }
 
+  createRampGeometry(ramp) {
+    const destination = this.getRampDestination(ramp);
+    const dx = destination.x - ramp.x;
+    const dy = destination.y - ramp.y;
+    const slopeLength = Math.hypot(this.scale, this.scale);
+    const geometry = new THREE.BoxGeometry(this.scale * 0.72, slopeLength, this.scale * 0.08);
+    geometry.rotateX(Math.atan2(this.scale, this.scale));
+    geometry.rotateZ(Math.atan2(-dx, dy));
+    geometry.translate(
+      (this.gridToWorld(ramp.x) + this.gridToWorld(destination.x)) / 2,
+      (this.gridToWorld(ramp.y) + this.gridToWorld(destination.y)) / 2,
+      this.scale / 2
+    );
+    return geometry;
+  }
+
   createDots() {
     const dotRadius = this.scale * 0.08;
     const dotGeometry = new THREE.SphereGeometry(dotRadius, 8, 8);
@@ -320,8 +384,8 @@ export class Level {
           !this.isSpecialLocation(x, y)
         ) {
           const dot = new THREE.Mesh(dotGeometry, this.dotMaterial);
-          dot.position.set(this.gridToWorld(x), this.gridToWorld(y), this.scale / 2);
-          dot.userData = { x, y, collected: false };
+          dot.position.set(this.gridToWorld(x), this.gridToWorld(y), this.getEntityZ(x, y));
+          dot.userData = { x, y, level: this.getTileHeight(x, y), collected: false };
           this.dots.push(dot);
           this.dotGroup.add(dot);
         }
@@ -336,8 +400,17 @@ export class Level {
     for (const loc of this.powerPillLocations) {
       // Power pills are now marked as tile type 5, so we don't need to check for conflicts
       const pill = new THREE.Mesh(pillGeometry, this.powerPillMaterial);
-      pill.position.set(this.gridToWorld(loc.x), this.gridToWorld(loc.y), this.scale / 2);
-      pill.userData = { x: loc.x, y: loc.y, collected: false };
+      pill.position.set(
+        this.gridToWorld(loc.x),
+        this.gridToWorld(loc.y),
+        this.getEntityZ(loc.x, loc.y)
+      );
+      pill.userData = {
+        x: loc.x,
+        y: loc.y,
+        level: this.getTileHeight(loc.x, loc.y),
+        collected: false
+      };
       this.powerPills.push(pill);
       this.dotGroup.add(pill);
     }
@@ -466,6 +539,8 @@ export class Level {
   addToScene(scene) {
     if (this.mazeMesh) scene.add(this.mazeMesh);
     if (this.floorMesh) scene.add(this.floorMesh);
+    if (this.elevatedFloorMesh) scene.add(this.elevatedFloorMesh);
+    if (this.rampMesh) scene.add(this.rampMesh);
     if (this.teleportGroup) scene.add(this.teleportGroup);
     if (this.ghostHomeGroup) scene.add(this.ghostHomeGroup);
     if (this.pacmanStartGroup) scene.add(this.pacmanStartGroup);
@@ -479,6 +554,8 @@ export class Level {
   removeFromScene(scene) {
     if (this.mazeMesh) scene.remove(this.mazeMesh);
     if (this.floorMesh) scene.remove(this.floorMesh);
+    if (this.elevatedFloorMesh) scene.remove(this.elevatedFloorMesh);
+    if (this.rampMesh) scene.remove(this.rampMesh);
     if (this.teleportGroup) scene.remove(this.teleportGroup);
     if (this.ghostHomeGroup) scene.remove(this.ghostHomeGroup);
     if (this.pacmanStartGroup) scene.remove(this.pacmanStartGroup);
@@ -496,9 +573,104 @@ export class Level {
     return Math.round(worldCoord / this.scale);
   }
 
+  getTileHeight(gridX, gridY) {
+    return this.heights[gridY]?.[gridX] ?? 0;
+  }
+
+  getFloorZ(gridX, gridY) {
+    return this.getTileHeight(gridX, gridY) * this.scale;
+  }
+
+  getEntityZ(gridX, gridY) {
+    return this.getFloorZ(gridX, gridY) + this.scale / 2;
+  }
+
+  getRampDestination(ramp) {
+    const deltas = {
+      n: { x: 0, y: 1 },
+      e: { x: 1, y: 0 },
+      s: { x: 0, y: -1 },
+      w: { x: -1, y: 0 }
+    };
+    const delta = deltas[ramp.dir];
+    return { x: ramp.x + delta.x, y: ramp.y + delta.y };
+  }
+
+  hasRampBetween(firstX, firstY, secondX, secondY) {
+    return this.ramps.some((ramp) => {
+      const destination = this.getRampDestination(ramp);
+      return (
+        (ramp.x === firstX &&
+          ramp.y === firstY &&
+          destination.x === secondX &&
+          destination.y === secondY) ||
+        (ramp.x === secondX &&
+          ramp.y === secondY &&
+          destination.x === firstX &&
+          destination.y === firstY)
+      );
+    });
+  }
+
+  canTraverse(firstX, firstY, secondX, secondY) {
+    if (!this.isWalkable(firstX, firstY) || !this.isWalkable(secondX, secondY)) return false;
+    if (Math.abs(firstX - secondX) + Math.abs(firstY - secondY) !== 1) return false;
+    return (
+      this.getTileHeight(firstX, firstY) === this.getTileHeight(secondX, secondY) ||
+      this.hasRampBetween(firstX, firstY, secondX, secondY)
+    );
+  }
+
+  isOnRampPath(firstX, firstY, secondX, secondY, worldX, worldY) {
+    const ramp = this.ramps.find((candidate) => {
+      const destination = this.getRampDestination(candidate);
+      return (
+        (candidate.x === firstX &&
+          candidate.y === firstY &&
+          destination.x === secondX &&
+          destination.y === secondY) ||
+        (candidate.x === secondX &&
+          candidate.y === secondY &&
+          destination.x === firstX &&
+          destination.y === firstY)
+      );
+    });
+    if (!ramp) return false;
+    if (ramp.dir === 'n' || ramp.dir === 's') {
+      return Math.abs(worldX - this.gridToWorld(ramp.x)) <= this.scale * 0.42;
+    }
+    return Math.abs(worldY - this.gridToWorld(ramp.y)) <= this.scale * 0.42;
+  }
+
+  getSurfaceZAtWorld(worldX, worldY) {
+    for (const ramp of this.ramps) {
+      const destination = this.getRampDestination(ramp);
+      const startX = this.gridToWorld(ramp.x);
+      const startY = this.gridToWorld(ramp.y);
+      const endX = this.gridToWorld(destination.x);
+      const endY = this.gridToWorld(destination.y);
+      const segmentX = endX - startX;
+      const segmentY = endY - startY;
+      const lengthSquared = segmentX * segmentX + segmentY * segmentY;
+      const progress =
+        ((worldX - startX) * segmentX + (worldY - startY) * segmentY) / lengthSquared;
+      if (progress < 0 || progress > 1) continue;
+      const closestX = startX + segmentX * progress;
+      const closestY = startY + segmentY * progress;
+      if (Math.hypot(worldX - closestX, worldY - closestY) <= this.scale * 0.42) {
+        return progress * this.scale;
+      }
+    }
+    return this.getFloorZ(this.worldToGrid(worldX), this.worldToGrid(worldY));
+  }
+
   // Get world position for a grid cell
   getWorldPosition(gridX, gridY) {
-    return new THREE.Vector3(this.gridToWorld(gridX), this.gridToWorld(gridY), this.scale / 2);
+    return new THREE.Vector3(
+      this.gridToWorld(gridX),
+      this.gridToWorld(gridY),
+      this.getEntityZ(gridX, gridY)
+    );
   }
 
   // Check if a grid position is walkable
@@ -520,9 +692,24 @@ export class Level {
   }
 
   // Check if position can be moved to (for collision detection)
-  canMoveTo(worldX, worldY, radius) {
+  canMoveTo(worldX, worldY, radius, fromWorldX = worldX, fromWorldY = worldY) {
     const gridX = this.worldToGrid(worldX);
     const gridY = this.worldToGrid(worldY);
+    const fromGridX = this.worldToGrid(fromWorldX);
+    const fromGridY = this.worldToGrid(fromWorldY);
+
+    if (
+      (gridX !== fromGridX || gridY !== fromGridY) &&
+      !this.canTraverse(fromGridX, fromGridY, gridX, gridY)
+    ) {
+      return false;
+    }
+    if (
+      this.getTileHeight(gridX, gridY) !== this.getTileHeight(fromGridX, fromGridY) &&
+      !this.isOnRampPath(fromGridX, fromGridY, gridX, gridY, worldX, worldY)
+    ) {
+      return false;
+    }
 
     // Check current and adjacent cells
     const cellsToCheck = [
@@ -568,7 +755,7 @@ export class Level {
     for (const dir of directions) {
       const nx = gridX + dir.x;
       const ny = gridY + dir.y;
-      if (this.isWalkable(nx, ny)) {
+      if (this.canTraverse(gridX, gridY, nx, ny)) {
         neighbors.push({ x: nx, y: ny });
       }
     }

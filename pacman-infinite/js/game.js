@@ -35,6 +35,7 @@ const POST_RESPAWN_GRACE_S = 1.5;
 class Game {
   constructor() {
     this.state = GAME_STATES.START;
+    this._staticFrameDirty = true;
     this.world = null;
     this.pacman = null;
 
@@ -542,6 +543,15 @@ class Game {
 
   animate() {
     requestAnimationFrame(() => this.animate());
+
+    // Menu / overlay: skip update+render unless UI dirtied a frame.
+    // Continuous WebGL on START was the main INP tax on difficulty clicks.
+    const activeGameplay = this.state === GAME_STATES.PLAYING || this.state === GAME_STATES.DEATH;
+    if (!activeGameplay) {
+      if (!this._staticFrameDirty) return;
+      this._staticFrameDirty = false;
+    }
+
     this.update();
     this.renderer.render(this.scene, this.camera);
   }

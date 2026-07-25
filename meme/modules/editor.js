@@ -79,27 +79,12 @@ async function renderBg(state) {
 
   bgCanvas.width = naturalSize.w;
   bgCanvas.height = naturalSize.h;
-  // Match the stage's aspect ratio so the overlay coords map correctly.
-  // We size the stage by max-fitting into the editor area.
+  // Keep the stage footprint CSS-driven (width + aspect-ratio). Setting
+  // explicit pixel width/height here was the main CLS jump when the
+  // default template auto-loaded after first paint.
   stageEl.style.aspectRatio = `${naturalSize.w} / ${naturalSize.h}`;
-  const editorRect = stageEl.parentElement.getBoundingClientRect();
-  // .editor has padding: 24px (48 total each axis). Reserve another
-  // ~30px below the stage for the .stage-tip live-region. The grid
-  // column also needs `min-width: 0` (see index.css) so the editor
-  // is allowed to shrink below this; otherwise the stage's explicit
-  // width pushes the whole column wide and the right panel falls off
-  // screen at narrow viewports.
-  const maxW = editorRect.width - 48;
-  const maxH = editorRect.height - 48 - 30;
-  const imgAR = naturalSize.w / naturalSize.h;
-  let dispW = maxW;
-  let dispH = dispW / imgAR;
-  if (dispH > maxH) {
-    dispH = maxH;
-    dispW = dispH * imgAR;
-  }
-  stageEl.style.width = dispW + 'px';
-  stageEl.style.height = dispH + 'px';
+  stageEl.style.width = '';
+  stageEl.style.height = '';
 
   const ctx = bgCanvas.getContext('2d');
   ctx.clearRect(0, 0, naturalSize.w, naturalSize.h);

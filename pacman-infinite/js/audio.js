@@ -25,10 +25,22 @@ export class AudioManager {
 
     // Pre-bind methods
     this.init = this.init.bind(this);
+    this._initPromise = null;
 
-    // Try to initialize on any user interaction (browser requirement)
+    // Warm the WAV cache during idle time so START GAME does not pay
+    // five sequential canplaythrough waits on the first user gesture.
+    const warm = () => {
+      this.init().catch(() => {});
+    };
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(warm, { timeout: 2000 });
+    } else {
+      setTimeout(warm, 0);
+    }
+
+    // Browsers may still require a gesture before decode completes.
     const initOnInteraction = () => {
-      this.init();
+      this.init().catch(() => {});
       document.removeEventListener('click', initOnInteraction);
       document.removeEventListener('keydown', initOnInteraction);
       document.removeEventListener('touchstart', initOnInteraction);
@@ -41,44 +53,48 @@ export class AudioManager {
 
   async init() {
     if (this.initialized) return;
+    if (this._initPromise) return this._initPromise;
 
-    try {
-      // Load all sound files
-      await this.loadSounds();
-      this.initialized = true;
-      console.log('Audio initialized with WAV files');
-    } catch (e) {
-      console.warn('Audio initialization failed:', e);
-      this.enabled = false;
-    }
+    this._initPromise = (async () => {
+      try {
+        await this.loadSounds();
+        this.initialized = true;
+        console.log('Audio initialized with WAV files');
+      } catch (e) {
+        console.warn('Audio initialization failed:', e);
+        this.enabled = false;
+      } finally {
+        this._initPromise = null;
+      }
+    })();
+
+    return this._initPromise;
   }
 
   async loadSounds() {
-    // Create Audio elements for each sound
-    for (const [name, path] of Object.entries(this.soundFiles)) {
-      try {
-        const audio = new Audio(path);
-        audio.preload = 'auto';
+    await Promise.all(
+      Object.entries(this.soundFiles).map(async ([name, path]) => {
+        try {
+          const audio = new Audio(path);
+          audio.preload = 'auto';
 
-        // Wait for the audio to be loaded
-        await new Promise((resolve, reject) => {
-          audio.addEventListener('canplaythrough', resolve, { once: true });
-          audio.addEventListener('error', reject, { once: true });
-          audio.load();
-        });
+          await new Promise((resolve, reject) => {
+            audio.addEventListener('canplaythrough', resolve, { once: true });
+            audio.addEventListener('error', reject, { once: true });
+            audio.load();
+          });
 
-        this.sounds[name] = audio;
+          this.sounds[name] = audio;
 
-        // Create pool for frequently played sounds (chomp is played most often)
-        if (name === 'chomp') {
-          this.createPool(name, AUDIO.CHOMP_POOL_SIZE);
+          if (name === 'chomp') {
+            this.createPool(name, AUDIO.CHOMP_POOL_SIZE);
+          }
+        } catch (e) {
+          console.warn(`Failed to load sound ${name}:`, e);
+          this.sounds[name] = null;
         }
-      } catch (e) {
-        console.warn(`Failed to load sound ${name}:`, e);
-        // Create a dummy function if loading fails
-        this.sounds[name] = null;
-      }
-    }
+      })
+    );
   }
 
   /**

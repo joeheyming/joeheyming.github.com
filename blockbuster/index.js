@@ -75,6 +75,8 @@ pickup = createPickup({
 let pointerLocked = false;
 /** Ignore the browser's synthetic click that follows a touch tap. */
 let suppressClick = false;
+/** Menu/idle: only re-render when something visually changed. */
+let staticFrameDirty = true;
 
 // Twin-stick for real touch pointers (pacman FPPOV pattern). Desktop
 // mouse still uses pointer-lock below — the two paths co-exist.
@@ -126,6 +128,7 @@ async function boot() {
 
   const sections = buildSections(catalog);
   inventory.stockStore(sections);
+  staticFrameDirty = true;
   loadStatus.hidden = true;
   if (typeof window.trackEvent === 'function') {
     window.trackEvent('blockbuster_enter', 'entertainment', String(catalog.length));
@@ -136,15 +139,23 @@ function onResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  staticFrameDirty = true;
 }
 
 function animate() {
   requestAnimationFrame(animate);
+  const needsContinuous = pointerLocked || (pickup?.isLocked?.() ?? false);
+  if (!needsContinuous) {
+    if (!staticFrameDirty) return;
+    staticFrameDirty = false;
+  }
   const dt = Math.min(clock.getDelta(), 0.05);
-  playerCtrl.update(dt);
-  pickup?.update(dt);
-  pickup?.updateAim(raycaster, camera);
-  touchUi.update();
+  if (needsContinuous) {
+    playerCtrl.update(dt);
+    pickup?.update(dt);
+    pickup?.updateAim(raycaster, camera);
+    touchUi.update();
+  }
   renderer.render(scene, camera);
 }
 
@@ -158,6 +169,7 @@ canvas.addEventListener('click', () => {
     return;
   }
   if (!pointerLocked) {
+    staticFrameDirty = true;
     canvas.requestPointerLock();
     return;
   }
@@ -166,6 +178,7 @@ canvas.addEventListener('click', () => {
 
 document.addEventListener('pointerlockchange', () => {
   pointerLocked = document.pointerLockElement === canvas;
+  staticFrameDirty = true;
 });
 
 document.addEventListener('mousemove', (e) => {

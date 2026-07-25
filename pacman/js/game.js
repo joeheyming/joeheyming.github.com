@@ -248,12 +248,20 @@ class Game {
     // Add camera to scene so child objects (like danger indicators) render
     this.scene.add(this.camera);
 
-    // Create renderer
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    // Create renderer. Cap DPR and soft-shadow cost on coarse pointers —
+    // an always-on 2× / 2048 PCF path was delaying the next paint after
+    // every click (Search Console INP on /pacman/).
+    const coarsePointer =
+      typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: !coarsePointer,
+      powerPreference: 'high-performance'
+    });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = true;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, coarsePointer ? 1.25 : 1.5));
+    this.renderer.shadowMap.enabled = !coarsePointer;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this._staticFrameDirty = true;
     this.container.insertBefore(this.renderer.domElement, this.container.firstChild);
     // Disable native touch gestures on the WebGL canvas so pointer
     // events can drive the in-game joystick / mouse-aim instead of
@@ -276,9 +284,10 @@ class Game {
     // Main directional light (diffuse light from original)
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
     directionalLight.position.set(0, 0, 100);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
+    directionalLight.castShadow = this.renderer.shadowMap.enabled;
+    const shadowSize = this.renderer.shadowMap.enabled ? 1024 : 512;
+    directionalLight.shadow.mapSize.width = shadowSize;
+    directionalLight.shadow.mapSize.height = shadowSize;
     directionalLight.shadow.camera.near = 1;
     directionalLight.shadow.camera.far = 200;
     directionalLight.shadow.camera.left = -100;
@@ -435,7 +444,8 @@ class Game {
   }
 
   setupEventListeners() {
-    // Start button
+    // Start button — paint intro immediately, yield so INP can close,
+    // then run audio / state work off the click's critical path.
     document.getElementById('start-btn').addEventListener('click', () => {
       this.startGame();
     });
@@ -487,6 +497,14 @@ class Game {
     });
   }
 
+  async yieldForPaint() {
+    if (typeof window !== 'undefined' && typeof window.yieldToMain === 'function') {
+      await window.yieldToMain();
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+
   async startGame() {
     this.startScreen.classList.add('hidden');
 
@@ -497,6 +515,7 @@ class Game {
     // In debug mode, skip the intro sound and start immediately
     if (this.debugMode) {
       this.state = GAME_STATES.PLAYING;
+      this._staticFrameDirty = true;
       return;
     }
 
@@ -508,11 +527,15 @@ class Game {
     // Start with intro - play start sound and wait for it to finish
     this.state = GAME_STATES.INTRO;
     this.introScreen.classList.remove('hidden');
+    this._staticFrameDirty = true;
 
     // Update intro text
     if (this.introCountdown) {
       this.introCountdown.textContent = 'READY!';
     }
+
+    // Let the browser paint READY! before audio init / decode work.
+    await this.yieldForPaint();
 
     // Play start sound and wait for it to finish
     await this.audioManager.playStart(true);
@@ -520,12 +543,14 @@ class Game {
     // Start the game
     this.state = GAME_STATES.PLAYING;
     this.introScreen.classList.add('hidden');
+    this._staticFrameDirty = true;
   }
 
   pauseGame() {
     if (this.state === GAME_STATES.PLAYING) {
       this.state = GAME_STATES.PAUSED;
       this.pauseScreen.classList.remove('hidden');
+      this._staticFrameDirty = true;
       // Release pointer lock so user can click pause screen
       if (document.pointerLockElement) {
         document.exitPointerLock();
@@ -537,6 +562,7 @@ class Game {
     if (this.state === GAME_STATES.PAUSED) {
       this.state = GAME_STATES.PLAYING;
       this.pauseScreen.classList.add('hidden');
+      this._staticFrameDirty = true;
     }
   }
 
@@ -553,6 +579,7 @@ class Game {
     // In debug mode, skip the intro sound and start immediately
     if (this.debugMode) {
       this.state = GAME_STATES.PLAYING;
+      this._staticFrameDirty = true;
       return;
     }
 
@@ -564,11 +591,14 @@ class Game {
     // Show intro screen
     this.state = GAME_STATES.INTRO;
     this.introScreen.classList.remove('hidden');
+    this._staticFrameDirty = true;
 
     // Update intro text
     if (this.introCountdown) {
       this.introCountdown.textContent = 'READY!';
     }
+
+    await this.yieldForPaint();
 
     // Play start sound and wait for it to finish
     await this.audioManager.playStart(true);
@@ -576,6 +606,7 @@ class Game {
     // Resume the game
     this.state = GAME_STATES.PLAYING;
     this.introScreen.classList.add('hidden');
+    this._staticFrameDirty = true;
   }
 
   async restartGame() {
@@ -611,17 +642,21 @@ class Game {
     // In debug mode, skip the intro sound and start immediately
     if (this.debugMode) {
       this.state = GAME_STATES.PLAYING;
+      this._staticFrameDirty = true;
       return;
     }
 
     // Start with intro
     this.state = GAME_STATES.INTRO;
     this.introScreen.classList.remove('hidden');
+    this._staticFrameDirty = true;
 
     // Update intro text
     if (this.introCountdown) {
       this.introCountdown.textContent = 'READY!';
     }
+
+    await this.yieldForPaint();
 
     // Play start sound and wait for it to finish
     await this.audioManager.playStart(true);
@@ -629,6 +664,7 @@ class Game {
     // Start the game
     this.state = GAME_STATES.PLAYING;
     this.introScreen.classList.add('hidden');
+    this._staticFrameDirty = true;
   }
 
   async nextLevel() {
@@ -681,6 +717,8 @@ class Game {
 
     // Hide win screen; keep score/lives
     this.winScreen.classList.add('hidden');
+    this._staticFrameDirty = true;
+    await this.yieldForPaint();
 
     await this.loadLevel();
 
@@ -699,6 +737,7 @@ class Game {
     this.state = GAME_STATES.GAME_OVER;
     document.getElementById('final-score').textContent = this.score;
     this.gameOverScreen.classList.remove('hidden');
+    this._staticFrameDirty = true;
 
     // Release pointer lock so user can click buttons
     if (document.pointerLockElement) {
@@ -737,6 +776,7 @@ class Game {
     this.state = GAME_STATES.WIN;
     document.getElementById('win-score').textContent = this.score;
     this.winScreen.classList.remove('hidden');
+    this._staticFrameDirty = true;
 
     // Clearing the maze is the strongest completion signal Pac-Man emits.
     // Mirror game_over's conversion call but with a `_win` event so the
@@ -869,7 +909,7 @@ class Game {
     this.deathCameraAngle += this.deltaTime * ANIMATION.DEATH_CAMERA_ORBIT_SPEED;
     const targetX = pacPos.x + Math.cos(this.deathCameraAngle) * orbitRadius;
     const targetY = pacPos.y + Math.sin(this.deathCameraAngle) * orbitRadius;
-    const targetZ = cameraHeight;
+    const targetZ = pacPos.z + cameraHeight;
 
     // Update transition time
     this.deathCameraTransitionTime += this.deltaTime;
@@ -891,7 +931,7 @@ class Game {
       this.camera.position.set(targetX, targetY, targetZ);
     }
 
-    this.camera.lookAt(pacPos.x, pacPos.y, this.level.scale / 2);
+    this.camera.lookAt(pacPos);
   }
 
   // Parse camera mode from URL param string
@@ -1198,7 +1238,12 @@ class Game {
     }
 
     const fruitLevelIdx = this.levelOrderIndex >= 0 ? this.levelOrderIndex : 0;
-    this.activeFruit = new Fruit(spawn, this.level.scale, fruitLevelIdx);
+    this.activeFruit = new Fruit(
+      spawn,
+      this.level.scale,
+      fruitLevelIdx,
+      this.level.getEntityZ(spawn.x, spawn.y)
+    );
     this.activeFruit.addToScene(this.scene);
     this.fruitsSpawnedThisLevel++;
   }
@@ -1264,6 +1309,18 @@ class Game {
     requestAnimationFrame(() => this.animate());
 
     this.update();
+
+    // Menu / overlay states only need a fresh WebGL frame when the UI
+    // changed. Rendering every rAF on the start/intro screens was the
+    // main presentation-delay tax on START GAME INP — READY! is a DOM
+    // overlay and does not need continuous Three.js frames.
+    const activeGameplay =
+      this.state === GAME_STATES.PLAYING || this.state === GAME_STATES.DEATH;
+    if (!activeGameplay) {
+      if (!this._staticFrameDirty) return;
+      this._staticFrameDirty = false;
+    }
+
     this.renderer.render(this.scene, this.camera);
   }
 }

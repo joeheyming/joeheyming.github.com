@@ -73,6 +73,7 @@ export const gameInput = {
   pauseGame() {
     if (this.state !== GAME_STATES.PLAYING) return;
     this.state = GAME_STATES.PAUSED;
+    this._staticFrameDirty = true;
     if (this.pauseScreen) this.pauseScreen.classList.remove('hidden');
     if (document.pointerLockElement) document.exitPointerLock();
   },
@@ -80,6 +81,7 @@ export const gameInput = {
   resumeGame() {
     if (this.state !== GAME_STATES.PAUSED) return;
     this.state = GAME_STATES.PLAYING;
+    this._staticFrameDirty = true;
     if (this.pauseScreen) this.pauseScreen.classList.add('hidden');
   },
 
@@ -154,5 +156,6 @@ export const gameInput = {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     if (this.cameraController) this.cameraController.onResize();
+    this._staticFrameDirty = true;
   }
 };

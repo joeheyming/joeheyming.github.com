@@ -12,6 +12,7 @@ export const gameState = {
     if (this.startScreen) this.startScreen.classList.add('hidden');
     const wasContinue = this.state !== GAME_STATES.PLAYING && this._savedState != null;
     this.state = GAME_STATES.PLAYING;
+    this._staticFrameDirty = true;
     // From here on we can persist progress (and pagehide will flush).
     this._canSave = true;
     if (typeof window !== 'undefined' && window.trackEvent) {
@@ -303,6 +304,7 @@ export const gameState = {
   _enterDeath() {
     const cause = this.pacman?._deathCause || 'void';
     this.state = GAME_STATES.DEATH;
+    this._staticFrameDirty = true;
     this._respawnTimer = RESPAWN_DELAY;
     this._deathCause = cause;
     this._applyDeathMessage(cause);
@@ -352,6 +354,7 @@ export const gameState = {
       return;
     }
     this.state = GAME_STATES.PLAYING;
+    this._staticFrameDirty = true;
     this._postRespawnGrace = POST_RESPAWN_GRACE_S;
     // Force-stream new chunks around the respawn point in case it's far
     // from the death site.
@@ -385,12 +388,14 @@ export const gameState = {
     // animation has time to play. _respawn() runs at the end and will
     // detect lives<=0 and roll into GAME_OVER for us.
     this.state = GAME_STATES.DEATH;
+    this._staticFrameDirty = true;
     this._respawnTimer = GAMEPLAY.PACMAN_DEATH_ANIM_DURATION;
     this.pacman.dieByGhost();
   },
 
   _enterGameOver() {
     this.state = GAME_STATES.GAME_OVER;
+    this._staticFrameDirty = true;
     this.audioManager.playGameOver?.();
     // Final-screen flavour line reflects whatever killed Pacman last.
     this._applyDeathMessage(this._deathCause ?? 'ghost');
@@ -469,6 +474,7 @@ export const gameState = {
     this.lives = GAMEPLAY.STARTING_LIVES;
     this.food = GAMEPLAY.FOOD_START;
     this.state = GAME_STATES.START;
+    this._staticFrameDirty = true;
     if (this.world?.clearGhosts) this.world.clearGhosts();
     this._despawnFruit();
     // Re-derive the saved-state view of the world so the menu's CONTINUE

@@ -115,7 +115,12 @@ class ZeniusBrowserElement extends HTMLElement {
       if (typeof window.trackEvent === 'function') {
         window.trackEvent('song_browser_open', 'StepMania', 'Song Browser Open');
       }
-      this.showBrowser();
+      // Changing the host to a fixed full-screen element also hides this
+      // button. Do that after click dispatch so the browser can finish the
+      // button's activation/focus work against a stable event target.
+      setTimeout(() => {
+        void this.showBrowser();
+      }, 0);
     });
 
     // Close browser

@@ -1,3 +1,302 @@
+// Share button web component + related-projects widget.
+// Usage: <share-button label="📤 Share" theme="gradient"></share-button>
+//
+// ShareButtonElement used to live here, then this file was rewritten as the
+// related-projects FAB only — every <share-button> on the site became an
+// empty undefined custom element. StepMania's CLS reserve then held a blank
+// 6.5rem hole in the toolbar. Restore the CE first; the widget IIFE follows.
+
+class ShareButtonElement extends HTMLElement {
+  static get observedAttributes() {
+    return ['title', 'text', 'url', 'theme', 'label'];
+  }
+
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this._urlGenerator = null;
+    this._textGenerator = null;
+    this._titleGenerator = null;
+  }
+
+  connectedCallback() {
+    if (window.self !== window.top) {
+      this.style.display = 'none';
+      return;
+    }
+    this.render();
+    this.bindEvents();
+  }
+
+  attributeChangedCallback() {
+    if (this.shadowRoot.innerHTML) {
+      this.render();
+      this.bindEvents();
+    }
+  }
+
+  set urlGenerator(fn) {
+    this._urlGenerator = fn;
+  }
+  get urlGenerator() {
+    return this._urlGenerator;
+  }
+  set textGenerator(fn) {
+    this._textGenerator = fn;
+  }
+  get textGenerator() {
+    return this._textGenerator;
+  }
+  set titleGenerator(fn) {
+    this._titleGenerator = fn;
+  }
+  get titleGenerator() {
+    return this._titleGenerator;
+  }
+
+  get shareTitle() {
+    if (typeof this._titleGenerator === 'function') return this._titleGenerator();
+    return this.getAttribute('title') || document.title;
+  }
+
+  get shareText() {
+    if (typeof this._textGenerator === 'function') return this._textGenerator();
+    return this.getAttribute('text') || '';
+  }
+
+  get shareUrl() {
+    if (typeof this._urlGenerator === 'function') return this._urlGenerator();
+    if (this.getAttribute('url')) return this.getAttribute('url');
+    if (typeof window.buildSharedUrl === 'function') {
+      return window.buildSharedUrl('share_button');
+    }
+    return window.location.href;
+  }
+
+  get theme() {
+    const t = this.getAttribute('theme') || 'primary';
+    return t === 'gradient' ? 'primary' : t;
+  }
+
+  get label() {
+    return this.getAttribute('label') || '📤 Share';
+  }
+
+  extractIcon(label) {
+    const emojiMatch = label.match(
+      /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u
+    );
+    return emojiMatch ? emojiMatch[0] : label.charAt(0);
+  }
+
+  extractText(label) {
+    const emojiMatch = label.match(
+      /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u
+    );
+    if (emojiMatch) return label.replace(emojiMatch[0], '').trim();
+    return label;
+  }
+
+  getThemeStyles() {
+    const themes = {
+      primary: `
+        background: var(--accent-primary-bg);
+        color: var(--text-on-accent);
+        border: 1px solid var(--accent-primary-bg-hover);
+      `,
+      dark: `
+        background: var(--surface-1);
+        color: var(--accent-primary);
+        border: 1px solid var(--accent-primary);
+      `,
+      light: `
+        background: var(--surface-1);
+        color: var(--accent-primary);
+        border: 1px solid var(--accent-primary);
+      `,
+      glass: `
+        background: var(--accent-primary-bg);
+        color: var(--text-on-accent);
+        border: 1px solid var(--accent-primary-bg-hover);
+      `,
+      retro: `
+        background: var(--surface-2, #1a1a2e);
+        color: var(--success, #00ff00);
+        border: 2px solid var(--success, #00ff00);
+        font-family: var(--font-mono), 'Courier New', monospace;
+      `,
+      paper: `
+        background: var(--accent-primary-bg);
+        color: var(--text-on-accent);
+        border: 1px solid var(--accent-primary-bg-hover);
+      `
+    };
+    return themes[this.theme] || themes.primary;
+  }
+
+  render() {
+    this.shadowRoot.innerHTML = `
+      <style>
+        :host { display: inline-block; }
+        .share-btn {
+          ${this.getThemeStyles()}
+          box-sizing: border-box;
+          font-family: var(--font-ui), -apple-system, 'Segoe UI', Roboto, sans-serif;
+          font-weight: 600;
+          padding: 0.5rem 1.25rem;
+          border-radius: var(--radius, 0.75rem);
+          transition: all 0.2s ease;
+          transform: scale(1);
+          cursor: pointer;
+          font-size: 14px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          height: 2.5rem;
+          min-height: 2.5rem;
+          white-space: nowrap;
+        }
+        .share-btn .icon-only { display: none; }
+        @media (max-width: 640px) {
+          .share-btn {
+            padding: 0.5rem !important;
+            min-width: 2.5rem !important;
+            min-height: 2.5rem !important;
+            justify-content: center !important;
+          }
+          .share-btn .text-label { display: none !important; }
+          .share-btn .icon-only {
+            display: inline-block !important;
+            font-size: 1.25rem !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .share-btn {
+            padding: 0.4rem 0.9rem;
+            font-size: 13px;
+            min-height: 2.25rem;
+            gap: 0.35rem;
+          }
+        }
+        .share-btn:hover {
+          transform: scale(1.04);
+          filter: brightness(0.96);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+        .share-btn:active { transform: scale(0.95); }
+        .share-btn:focus-visible {
+          outline: 2px solid var(--focus-ring-inner, #1a73e8);
+          outline-offset: 2px;
+          box-shadow: 0 0 0 4px var(--focus-ring-outer, rgba(26, 115, 232, 0.25));
+        }
+        .tooltip {
+          position: fixed;
+          background: var(--surface-2, #1f2937);
+          color: var(--text-1, #fff);
+          font-size: 0.8rem;
+          border-radius: var(--radius, 0.5rem);
+          padding: 0.5rem 0.75rem;
+          opacity: 0;
+          visibility: hidden;
+          transition: all 0.2s ease;
+          pointer-events: none;
+          white-space: nowrap;
+          z-index: 10000;
+          transform: translateX(-50%);
+        }
+        .tooltip.show { opacity: 1; visibility: visible; }
+        .tooltip.success { background: var(--success, #10b981); color: #fff; }
+        .tooltip.error { background: var(--danger, #ef4444); color: #fff; }
+      </style>
+      <button type="button" class="share-btn" id="share-btn" aria-label="Share this page">
+        <span class="icon-only">${this.extractIcon(this.label)}</span>
+        <span class="text-label">${this.extractText(this.label)}</span>
+      </button>
+      <div class="tooltip" id="tooltip" role="status"></div>
+    `;
+  }
+
+  bindEvents() {
+    const btn = this.shadowRoot.getElementById('share-btn');
+    btn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      void this.handleShare();
+    });
+  }
+
+  async handleShare() {
+    if (typeof window.trackEvent === 'function') {
+      window.trackEvent('share_button_click', 'Engagement', window.location.pathname);
+      window.trackEvent('share', 'share_button', window.location.pathname);
+    }
+    if (typeof window.trackConversion === 'function') {
+      window.trackConversion('content_shared', 1);
+    }
+
+    const shareData = {
+      title: this.shareTitle,
+      text: this.shareText,
+      url: this.shareUrl
+    };
+
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
+    if (navigator.share && window.isSecureContext && isMobile) {
+      try {
+        await navigator.share(shareData);
+        this.showTooltip('Shared!', 'success');
+        return;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+      }
+    }
+
+    await this.copyToClipboard();
+  }
+
+  async copyToClipboard() {
+    const textToCopy = this.shareText ? `${this.shareText} ${this.shareUrl}` : this.shareUrl;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(textToCopy);
+      } else {
+        const input = document.createElement('input');
+        input.value = textToCopy;
+        input.style.position = 'fixed';
+        input.style.left = '-9999px';
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+      }
+      this.showTooltip('Link copied!', 'success');
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      this.showTooltip('Copy failed', 'error');
+    }
+  }
+
+  showTooltip(message, type) {
+    const tooltip = this.shadowRoot.getElementById('tooltip');
+    const button = this.shadowRoot.getElementById('share-btn');
+    if (!tooltip || !button) return;
+    tooltip.textContent = message;
+    tooltip.className = `tooltip ${type} show`;
+    const rect = button.getBoundingClientRect();
+    tooltip.style.left = `${rect.left + rect.width / 2}px`;
+    tooltip.style.top = `${rect.top - 40}px`;
+    setTimeout(() => tooltip.classList.remove('show'), 2000);
+  }
+}
+
+if (!customElements.get('share-button')) {
+  customElements.define('share-button', ShareButtonElement);
+}
+window.ShareButton = ShareButtonElement;
+
 // Related Projects Component
 // Include this script on project pages to suggest related projects
 

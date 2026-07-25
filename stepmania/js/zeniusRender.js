@@ -54,8 +54,25 @@ export function updateZeniusBrowserLayout(browser) {
 }
 
 export const ZENIUS_BROWSER_SHADOW_HTML = `      <style>
-        /* Critical styles to prevent FOUC - modal hidden by default */
-        .modal { opacity: 0; visibility: hidden; }
+        /* Critical FOUC guard — must keep the modal OUT OF FLOW before
+           adoptSharedStyles() finishes. opacity/visibility alone still
+           size the host (~460px) and crush #sm-micro (lab CLS ~0.57). */
+        :host { display: inline-block; vertical-align: middle; }
+        .zenius-browser-container { display: flex; }
+        .modal {
+          position: fixed;
+          inset: 0;
+          display: flex;
+          opacity: 0;
+          visibility: hidden;
+          pointer-events: none;
+          z-index: 100;
+        }
+        .modal.show {
+          opacity: 1;
+          visibility: visible;
+          pointer-events: auto;
+        }
       </style>
       <div class="zenius-browser-container">
         <button class="zenius-browser-btn" id="open-zenius-browser">

@@ -19,11 +19,13 @@ export class Fruit {
    * @param {{x:number, y:number}} spawn - grid coords (already Y-flipped)
    * @param {number} scale - world units per tile
    * @param {number} levelIndex - 0-based level index into FRUIT_TYPES
+   * @param {number} baseZ - world-space height of the fruit's center
    */
-  constructor(spawn, scale, levelIndex) {
+  constructor(spawn, scale, levelIndex, baseZ = scale / 2) {
     this.spawn = spawn;
     this.scale = scale;
     this.type = FRUIT_TYPES[Math.min(levelIndex, FRUIT_TYPES.length - 1)];
+    this.baseZ = baseZ;
 
     this.timer = 0;
     this.lifetime = GAMEPLAY.FRUIT_LIFETIME;
@@ -32,7 +34,7 @@ export class Fruit {
 
     this.radius = scale * 0.28;
     this.group = new THREE.Group();
-    this.group.position.set(spawn.x * scale, spawn.y * scale, scale / 2);
+    this.group.position.set(spawn.x * scale, spawn.y * scale, this.baseZ);
 
     this._buildModel();
   }
@@ -86,7 +88,7 @@ export class Fruit {
 
     // Gentle hover + rotation
     const bob = Math.sin(elapsedTime * 3) * this.scale * 0.06;
-    this.group.position.z = this.scale / 2 + bob;
+    this.group.position.z = this.baseZ + bob;
     this.group.rotation.z = elapsedTime * 1.2;
 
     // Blink during the final 2 seconds so the player knows it's about to leave

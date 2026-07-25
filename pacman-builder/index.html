@@ -130,7 +130,7 @@
         <section class="template-picker">
           <div class="section-heading">
             <h2>Start from a level</h2>
-            <span>8 templates</span>
+            <span>9 templates</span>
           </div>
           <label for="templateSelect">Pac-Man maze</label>
           <div class="template-row">
@@ -143,6 +143,7 @@
               <option value="level5">Original Maze 5</option>
               <option value="level6">Four Islands</option>
               <option value="level7">Island Gauntlet</option>
+              <option value="elevated">Skyway Starter</option>
             </select>
             <button id="loadTemplateButton" type="button">Load</button>
           </div>
@@ -204,7 +205,7 @@
 
       <section class="editor-column" aria-label="Maze editor">
         <div class="grid-toolbar">
-          <div>
+          <div class="playtest-title">
             <strong id="mapSize">11 × 9</strong>
             <span id="saveState" role="status">Draft ready</span>
           </div>
@@ -286,7 +287,38 @@
         </div>
         <span class="dock-hint">Pick a tile, then click or drag to paint</span>
       </div>
-      <div id="palette" class="palette" role="toolbar" aria-label="Tile palette"></div>
+      <div class="dock-tools">
+        <div class="dock-tabs" role="tablist" aria-label="Build tool category">
+          <button
+            id="tilesTab"
+            class="dock-tab active"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            aria-controls="palette"
+          >
+            Tiles
+          </button>
+          <button
+            id="elevationTab"
+            class="dock-tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="elevationPalette"
+          >
+            Elevation
+          </button>
+        </div>
+        <div id="palette" class="palette" role="tabpanel" aria-labelledby="tilesTab"></div>
+        <div
+          id="elevationPalette"
+          class="palette elevation-palette"
+          role="tabpanel"
+          aria-labelledby="elevationTab"
+          hidden
+        ></div>
+      </div>
     </section>
 
     <section id="playtestOverlay" class="playtest-overlay" aria-label="3D playtest" hidden>
@@ -296,7 +328,10 @@
           <strong>PLAYTEST</strong>
           <span>Your draft is running live</span>
         </div>
-        <button id="restartPlaytestButton" type="button">↻ Restart</button>
+        <div class="playtest-actions">
+          <button id="changeViewButton" type="button">👁 Change View</button>
+          <button id="restartPlaytestButton" type="button">↻ Restart</button>
+        </div>
       </header>
       <iframe
         id="playtestFrame"

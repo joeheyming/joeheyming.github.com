@@ -101,6 +101,7 @@ if (typeof window === 'undefined') {
 
     if (window.crossOriginIsolated) {
       sessionStorage.removeItem(attemptsKey);
+      document.documentElement.classList.remove('coi-pending');
       console.log('✓ Cross-origin isolated - SharedArrayBuffer available');
       return;
     }
@@ -127,6 +128,7 @@ if (typeof window === 'undefined') {
         // Clear the counter so a manual reload starts fresh instead of
         // being trapped in the "give up" branch forever.
         sessionStorage.removeItem(attemptsKey);
+        document.documentElement.classList.remove('coi-pending');
         return;
       }
       sessionStorage.setItem(attemptsKey, String(attempt + 1));
@@ -196,6 +198,7 @@ if (typeof window === 'undefined') {
           scheduleReload(reason);
         } else {
           sessionStorage.removeItem(attemptsKey);
+          document.documentElement.classList.remove('coi-pending');
           console.log('✓ Cross-origin isolated');
         }
       })

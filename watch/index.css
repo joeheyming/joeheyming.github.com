@@ -188,6 +188,7 @@ a.tv-crumb:hover {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-height: clamp(320px, 50vh, 640px);
 }
 
 /* ------------------------------------------------------------------------ */
