@@ -32,6 +32,7 @@ Use `<script type="module" src="index.js">` when the JS file is standalone (it p
 Copy the `<head>` from a recent app and adapt the title, description, canonical URL, OG/Twitter tags, and JSON-LD name. Every head needs:
 
 - charset + viewport
+- A unique, concise `<title>` using `App Name — Descriptive Phrase [emoji]`; use an em dash, put any emoji last, omit `Joe Heyming` except on `/about/`, and keep `og:title` / `twitter:title` aligned (see `.cursor/rules/page-title-standards.mdc`)
 - Emoji favicon (inline SVG data-URL — no image file needed; see any existing app)
 - **`meta name="robots" content="index, follow"`** — required for Google indexing (see [Search indexing & SEO](#search-indexing--seo))
 - `description`, `og:*`, `twitter:*`, `canonical` pointing to `https://joeheyming.github.io/my-app/`

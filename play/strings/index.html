@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <meta name="robots" content="index, follow" />
-    <title>Learn Guitar &amp; Ukulele Chords Online — Free Browser Fretboard</title>
+    <title>Guitar &amp; Ukulele Chords — Free Browser Fretboard</title>
 
     <link
       rel="icon"
@@ -25,7 +25,7 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Play" />
-    <meta property="og:title" content="Learn Guitar &amp; Ukulele Chords — Free Browser Fretboard" />
+    <meta property="og:title" content="Guitar &amp; Ukulele Chords — Free Browser Fretboard" />
     <meta
       property="og:description"
       content="Learn and play chords for guitar, ukulele, bass, banjo, and mandolin. Pick a root, see the shape with finger numbers, and strum — right in your browser."
@@ -43,7 +43,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="Learn Guitar &amp; Ukulele Chords — Free Browser Fretboard" />
+    <meta name="twitter:title" content="Guitar &amp; Ukulele Chords — Free Browser Fretboard" />
     <meta
       name="twitter:description"
       content="Learn and play chords for guitar, ukulele, bass, banjo, and mandolin. Pick a root, see the shape with finger numbers, and strum — right in your browser."
@@ -79,7 +79,11 @@
             "applicationCategory": "MultimediaApplication",
             "operatingSystem": "Web Browser",
             "description": "A free in-browser chord trainer and stringed-instrument simulator. Pick a root (C, D, E…) and quality (major, minor, 7, sus4, dim, aug, m7♭5, mMaj7…) and the fretboard shows the chord shape with finger numbers, root note, and any barre, open, or muted strings — for guitar, ukulele, bass, banjo, or mandolin. Strum it, pluck individual strings, or pin chords to a Strum Bar for one-tap recall.",
-            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
             "musicalInstrumentType": ["Guitar", "Bass Guitar", "Stringed Instrument"]
           },
@@ -153,7 +157,8 @@
           window.heymingNavInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent = '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
+          s.textContent =
+            '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
           document.head.appendChild(s);
         }
       })();

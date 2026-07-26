@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="index, follow" />
-    <title>Play - Make Music in Your Browser | Joe Heyming 🎵</title>
+    <title>Play — Make Music in Your Browser 🎵</title>
 
     <link
       rel="icon"
@@ -25,7 +25,7 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Play" />
-    <meta property="og:title" content="🎵 Play - Make Music in Your Browser" />
+    <meta property="og:title" content="Play — Make Music in Your Browser 🎵" />
     <meta
       property="og:description"
       content="Pick an instrument and play it right in your browser. No downloads, no ads."
@@ -40,7 +40,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="🎵 Play - Make Music in Your Browser" />
+    <meta name="twitter:title" content="Play — Make Music in Your Browser 🎵" />
     <meta
       name="twitter:description"
       content="Pick an instrument and play it right in your browser. No downloads, no ads."
@@ -67,7 +67,11 @@
             "applicationCategory": "MultimediaApplication",
             "operatingSystem": "Web Browser",
             "description": "A free, ad-free hub of virtual musical instruments that play in your browser. Piano, accordion, drums, strings (guitar/bass), synthesizer, theremin, harp, mallets (marimba/xylophone/vibraphone), steel drum — plus a chromatic tuner and a precision metronome. No install, no signup, no ads.",
-            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
           },
           {
@@ -75,17 +79,72 @@
             "name": "Play — instruments",
             "description": "Virtual musical instruments and music tools available on Heyming OS.",
             "itemListElement": [
-              { "@type": "ListItem", "position": 1, "name": "Piano", "url": "https://joeheyming.github.io/play/piano/" },
-              { "@type": "ListItem", "position": 2, "name": "Accordion", "url": "https://joeheyming.github.io/play/accordion/" },
-              { "@type": "ListItem", "position": 3, "name": "Drums", "url": "https://joeheyming.github.io/play/drums/" },
-              { "@type": "ListItem", "position": 4, "name": "Strings (Guitar / Bass)", "url": "https://joeheyming.github.io/play/strings/" },
-              { "@type": "ListItem", "position": 5, "name": "Synth", "url": "https://joeheyming.github.io/play/synth/" },
-              { "@type": "ListItem", "position": 6, "name": "Theremin", "url": "https://joeheyming.github.io/play/theremin/" },
-              { "@type": "ListItem", "position": 7, "name": "Harp", "url": "https://joeheyming.github.io/play/harp/" },
-              { "@type": "ListItem", "position": 8, "name": "Mallets (Marimba / Xylophone / Vibraphone)", "url": "https://joeheyming.github.io/play/mallets/" },
-              { "@type": "ListItem", "position": 9, "name": "Steel Drum", "url": "https://joeheyming.github.io/play/steeldrum/" },
-              { "@type": "ListItem", "position": 10, "name": "Tuner", "url": "https://joeheyming.github.io/play/tuner/" },
-              { "@type": "ListItem", "position": 11, "name": "Metronome", "url": "https://joeheyming.github.io/play/metronome/" }
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Piano",
+                "url": "https://joeheyming.github.io/play/piano/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Accordion",
+                "url": "https://joeheyming.github.io/play/accordion/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Drums",
+                "url": "https://joeheyming.github.io/play/drums/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 4,
+                "name": "Strings (Guitar / Bass)",
+                "url": "https://joeheyming.github.io/play/strings/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 5,
+                "name": "Synth",
+                "url": "https://joeheyming.github.io/play/synth/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 6,
+                "name": "Theremin",
+                "url": "https://joeheyming.github.io/play/theremin/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 7,
+                "name": "Harp",
+                "url": "https://joeheyming.github.io/play/harp/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 8,
+                "name": "Mallets (Marimba / Xylophone / Vibraphone)",
+                "url": "https://joeheyming.github.io/play/mallets/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 9,
+                "name": "Steel Drum",
+                "url": "https://joeheyming.github.io/play/steeldrum/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 10,
+                "name": "Tuner",
+                "url": "https://joeheyming.github.io/play/tuner/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 11,
+                "name": "Metronome",
+                "url": "https://joeheyming.github.io/play/metronome/"
+              }
             ]
           },
           {
@@ -158,7 +217,8 @@
           window.heymingNavInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent = '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
+          s.textContent =
+            '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
           document.head.appendChild(s);
         }
       })();

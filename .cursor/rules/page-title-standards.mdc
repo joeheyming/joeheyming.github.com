@@ -1,0 +1,28 @@
+---
+description: Page title and social title standards for public site pages
+globs: "**/*.{html,js}"
+alwaysApply: false
+---
+
+# Page title standards
+
+- Give every standalone public page one unique `<title>`.
+- Format descriptive titles as `App Name — Descriptive Phrase [emoji]`.
+- Use an em dash (`—`), not ` - ` or ` | `, as the section separator.
+- Use title case for the app name and description. Keep ordinary short
+  prepositions and articles lowercase.
+- Use canonical product spelling consistently, such as `Pac-Man` and
+  `Steel Drum`.
+- Emoji are optional. When present in `<title>`, place one at the end.
+- Keep titles near 60 characters or fewer. Shorten wording before removing
+  the app name or its distinguishing search terms.
+- Do not append `Joe Heyming`. The `/about/` page may include the name; the
+  home page may include it when the page is specifically about the person.
+- Base `og:title` and `twitter:title` on the document title. Keep product
+  spelling and capitalization identical; prefer the exact title unless a
+  social platform requires a shorter variant.
+- When JavaScript changes `document.title`, keep the route's base title
+  identical to the static `<title>`. Dynamic episode, file, or game-state
+  context may be prepended.
+- Redirect stubs, verification files, generated animation frames, and minimal
+  legal pages do not need Open Graph or Twitter title metadata.

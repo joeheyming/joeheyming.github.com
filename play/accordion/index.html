@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <meta name="robots" content="index, follow" />
-    <title>Play & Learn Accordion Online — Stradella, Chromatic & Diatonic</title>
+    <title>Accordion Online — Stradella, Chromatic &amp; Diatonic</title>
 
     <link
       rel="icon"
@@ -25,7 +25,7 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Play" />
-    <meta property="og:title" content="Play & Learn Accordion Online — Stradella, Chromatic & Diatonic" />
+    <meta property="og:title" content="Accordion Online — Stradella, Chromatic &amp; Diatonic" />
     <meta
       property="og:description"
       content="Free online accordion. Practice Stradella bass, free bass, chromatic B/C-system, piano, and diatonic melodeon layouts with breathing-bellows dynamics."
@@ -43,7 +43,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="Play & Learn Accordion Online — Stradella, Chromatic & Diatonic" />
+    <meta name="twitter:title" content="Accordion Online — Stradella, Chromatic &amp; Diatonic" />
     <meta
       name="twitter:description"
       content="Free online accordion. Practice Stradella bass, free bass, chromatic B/C-system, piano, and diatonic melodeon layouts with breathing-bellows dynamics."
@@ -81,7 +81,11 @@
             "applicationCategory": "MultimediaApplication",
             "operatingSystem": "Web Browser",
             "description": "A free virtual accordion for playing and learning multiple accordion systems in your browser. Left-hand options: Stradella bass (8–120-button), Eastern 5-row, and free bass. Right-hand options: piano keyboard, chromatic B-system, and chromatic C-system. Diatonic melodeon tunings include Cajun C, D/G, G/C, and Irish B/C. Bellows-pressure dynamics give realistic phrasing, and mouse, multi-touch, computer keyboard, or a MIDI accordion all work.",
-            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
             "musicalInstrumentType": "Accordion"
           },
@@ -171,7 +175,8 @@
           window.heymingNavInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent = '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
+          s.textContent =
+            '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
           document.head.appendChild(s);
         }
       })();

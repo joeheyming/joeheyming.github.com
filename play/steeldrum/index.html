@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <meta name="robots" content="index, follow" />
-    <title>Steel drum - Play in Your Browser | Joe Heyming 🥁</title>
+    <title>Steel Drum — Play in Your Browser 🥁</title>
 
     <link
       rel="icon"
@@ -25,7 +25,7 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Play" />
-    <meta property="og:title" content="🥁 Steel drum - Play in Your Browser" />
+    <meta property="og:title" content="Steel Drum — Play in Your Browser 🥁" />
     <meta
       property="og:description"
       content="Tap the tongues of a browser handpan. Multi-touch friendly."
@@ -43,7 +43,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="🥁 Steel drum - Play in Your Browser" />
+    <meta name="twitter:title" content="Steel Drum — Play in Your Browser 🥁" />
     <meta
       name="twitter:description"
       content="Tap the tongues of a browser handpan. Multi-touch friendly."
@@ -75,7 +75,11 @@
             "applicationCategory": "MultimediaApplication",
             "operatingSystem": "Web Browser",
             "description": "A free virtual steel drum (steel pan) that plays in your browser. Click or tap the pan's note pockets, or use the computer keyboard. The instrument that defined Caribbean and calypso music, recreated in HTML/JS with sampled audio.",
-            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
             "musicalInstrumentType": "Steel Pan"
           },
@@ -141,7 +145,8 @@
           window.heymingNavInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent = '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
+          s.textContent =
+            '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
           document.head.appendChild(s);
         }
       })();

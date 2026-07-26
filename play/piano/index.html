@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <meta name="robots" content="index, follow" />
-    <title>Piano - Play in Your Browser | Joe Heyming 🎹</title>
+    <title>Piano — Play in Your Browser 🎹</title>
 
     <link
       rel="icon"
@@ -25,7 +25,7 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Play" />
-    <meta property="og:title" content="🎹 Piano - Play in Your Browser" />
+    <meta property="og:title" content="Piano — Play in Your Browser 🎹" />
     <meta
       property="og:description"
       content="A free browser piano. Play with your mouse, finger, or computer keyboard."
@@ -40,7 +40,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="🎹 Piano - Play in Your Browser" />
+    <meta name="twitter:title" content="Piano — Play in Your Browser 🎹" />
     <meta
       name="twitter:description"
       content="A free browser piano. Play with your mouse, finger, or computer keyboard."
@@ -72,7 +72,11 @@
             "applicationSubCategory": "Virtual Musical Instrument",
             "operatingSystem": "Web Browser",
             "description": "A free virtual piano that plays in your browser via the Web Audio API and the soundfont-player library. Click keys with the mouse, tap on touch, or use your computer keyboard. Adjustable octave, volume, and tone. Multi-touch friendly on phones and tablets. No install, no signup.",
-            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
             "musicalInstrumentType": "Piano",
             "featureList": [
@@ -153,7 +157,8 @@
           window.heymingNavInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent = '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
+          s.textContent =
+            '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
           document.head.appendChild(s);
         }
       })();

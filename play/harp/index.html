@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <meta name="robots" content="index, follow" />
-    <title>Harp - Play in Your Browser | Joe Heyming 🎵</title>
+    <title>Harp — Play in Your Browser 🎵</title>
 
     <link
       rel="icon"
@@ -25,7 +25,7 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Play" />
-    <meta property="og:title" content="🎵 Harp - Play in Your Browser" />
+    <meta property="og:title" content="Harp — Play in Your Browser 🎵" />
     <meta
       property="og:description"
       content="A free browser harp. Strum the strings with your finger or mouse."
@@ -40,7 +40,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="🎵 Harp - Play in Your Browser" />
+    <meta name="twitter:title" content="Harp — Play in Your Browser 🎵" />
     <meta
       name="twitter:description"
       content="A free browser harp. Strum the strings with your finger or mouse."
@@ -68,7 +68,11 @@
             "applicationCategory": "MultimediaApplication",
             "operatingSystem": "Web Browser",
             "description": "A free virtual harp that plays in your browser. Pluck individual strings, run a glissando across them with mouse or finger, or play melodies with the computer keyboard. Sample-based for natural harp resonance.",
-            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
             "musicalInstrumentType": "Harp"
           },
@@ -134,7 +138,8 @@
           window.heymingNavInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent = '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
+          s.textContent =
+            '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
           document.head.appendChild(s);
         }
       })();

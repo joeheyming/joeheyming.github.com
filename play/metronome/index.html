@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <meta name="robots" content="index, follow" />
-    <title>Metronome - Practice in Your Browser | Joe Heyming ⏱️</title>
+    <title>Metronome — Practice in Your Browser ⏱️</title>
 
     <link
       rel="icon"
@@ -25,7 +25,7 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Play" />
-    <meta property="og:title" content="⏱️ Metronome - Practice in Your Browser" />
+    <meta property="og:title" content="Metronome — Practice in Your Browser ⏱️" />
     <meta
       property="og:description"
       content="A free browser metronome with tap tempo, time signatures, and beat subdivisions."
@@ -43,7 +43,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="⏱️ Metronome - Practice in Your Browser" />
+    <meta name="twitter:title" content="Metronome — Practice in Your Browser ⏱️" />
     <meta
       name="twitter:description"
       content="A free browser metronome with tap tempo, time signatures, and beat subdivisions."
@@ -75,7 +75,11 @@
             "applicationSubCategory": "Metronome",
             "operatingSystem": "Web Browser",
             "description": "A free, accurate metronome that runs in your browser. Adjustable BPM (40–240), choice of time signatures (2/4, 3/4, 4/4, 6/8, 7/8, 5/4, 12/8), accent on the downbeat, and a visual pulse for silent practice. Tap-tempo input lets you set the BPM by clicking in time.",
-            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
           },
           {
@@ -156,7 +160,8 @@
           window.heymingNavInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent = '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
+          s.textContent =
+            '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
           document.head.appendChild(s);
         }
       })();

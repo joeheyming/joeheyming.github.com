@@ -303,7 +303,7 @@ function updateBreadcrumbCurrent(label) {
  */
 function setPageTitle(view, show, params) {
   if (view === 'shows') {
-    document.title = 'Watch — Classic TV from the Internet Archive | Joe Heyming 📺';
+    document.title = 'Watch — Classic TV from the Internet Archive 📺';
     return;
   }
   if (view === 'episodes' && show) {

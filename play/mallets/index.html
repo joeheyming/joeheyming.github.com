@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <meta name="robots" content="index, follow" />
-    <title>Mallets — Xylophone, Marimba &amp; More | Joe Heyming</title>
+    <title>Mallets — Xylophone, Marimba &amp; More</title>
 
     <link
       rel="icon"
@@ -25,7 +25,7 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Play" />
-    <meta property="og:title" content="🎶 Mallets - Browser Bar Keyboard" />
+    <meta property="og:title" content="Mallets — Xylophone, Marimba &amp; More" />
     <meta
       property="og:description"
       content="One bar keyboard, four pitched-percussion voices: xylophone, marimba, vibraphone, glockenspiel."
@@ -43,7 +43,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="🎶 Mallets - Browser Bar Keyboard" />
+    <meta name="twitter:title" content="Mallets — Xylophone, Marimba &amp; More" />
     <meta
       name="twitter:description"
       content="One bar keyboard, four pitched-percussion voices: xylophone, marimba, vibraphone, glockenspiel."
@@ -75,7 +75,11 @@
             "applicationCategory": "MultimediaApplication",
             "operatingSystem": "Web Browser",
             "description": "A free virtual mallet-percussion instrument that plays in your browser. Switch between marimba, xylophone, vibraphone, and glockenspiel; play with mouse, multi-touch, or computer keyboard.",
-            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
             "musicalInstrumentType": ["Marimba", "Xylophone", "Vibraphone", "Glockenspiel"]
           },
@@ -141,7 +145,8 @@
           window.heymingNavInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent = '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
+          s.textContent =
+            '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
           document.head.appendChild(s);
         }
       })();
