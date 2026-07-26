@@ -375,3 +375,90 @@ body.standalone .titlebar {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Narrow viewports: wrap the titlebar and drop secondary chrome so the
+ * document never grows past the viewport width (e.g. 320px phones). */
+@media (max-width: 720px) {
+  #app {
+    grid-template-rows: auto 1fr var(--statusbar-h);
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  #app > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .titlebar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: var(--titlebar-h);
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    row-gap: 2px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  body.standalone .titlebar {
+    padding-left: 80px;
+  }
+
+  .app-name,
+  .project-label {
+    display: none;
+  }
+
+  .menubar {
+    flex: 1 1 auto;
+    order: 3;
+    margin-left: 0;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .menubar .menu {
+    padding: 3px 5px;
+    font-size: 12px;
+  }
+
+  .menubar .menu[data-menu='help'] {
+    display: none;
+  }
+
+  .titlebar-right {
+    margin-left: auto;
+    order: 2;
+    flex: 0 0 auto;
+  }
+
+  /* Format / Diff / Vim remain available via the menubar. */
+  #cmd-format,
+  #cmd-diff,
+  #cmd-vim {
+    display: none;
+  }
+
+  /* Sidebar + welcome actions are wider than 320px together; collapse to
+   * a single editor column and let welcome buttons wrap. */
+  .workspace,
+  .workspace.has-panel {
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .editor-area {
+    min-width: 0;
+    max-width: 100%;
+  }
+}

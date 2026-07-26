@@ -195,3 +195,57 @@ body {
   word-wrap: break-word;
   tab-size: 2;
 }
+
+/* Narrow viewports: wrap the toolbar so Open / Source / New Tab / file info
+ * fit without horizontal document scroll (e.g. 320px phones). */
+@media (max-width: 640px) {
+  #surf-container {
+    max-width: 100%;
+  }
+
+  #toolbar {
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 100%;
+    gap: 4px;
+    row-gap: 6px;
+    padding: 8px 8px 8px 80px;
+    box-sizing: border-box;
+  }
+
+  .toolbar-group {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+
+  .toolbar-divider,
+  .toolbar-spacer {
+    display: none;
+  }
+
+  #toolbar button {
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+
+  #file-info {
+    max-width: 100%;
+    font-size: 12px;
+  }
+
+  .landing-content {
+    padding: 24px 16px;
+  }
+
+  .landing-content h1 {
+    font-size: 24px;
+  }
+
+  .landing-content p {
+    font-size: 14px;
+  }
+
+  .landing-content .seo-intro {
+    font-size: 13px;
+  }
+}

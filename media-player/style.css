@@ -358,3 +358,50 @@ body {
   text-align: center;
   padding: 40px;
 }
+
+/* Narrow viewports: wrap the toolbar and drop secondary labels/time so the
+ * chrome fits without horizontal document scroll (e.g. 320px phones). */
+@media (max-width: 640px) {
+  #player-container {
+    max-width: 100%;
+  }
+
+  #toolbar {
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 100%;
+    gap: 4px;
+    row-gap: 6px;
+    padding: 8px 8px 8px 100px;
+  }
+
+  .toolbar-divider,
+  .toolbar-spacer {
+    display: none;
+  }
+
+  #toolbar button {
+    padding: 6px 8px;
+  }
+
+  .btn-label {
+    display: none;
+  }
+
+  #time-display {
+    display: none;
+  }
+
+  #drop-zone {
+    margin: 12px;
+  }
+
+  .drop-content {
+    padding: 20px 12px;
+  }
+
+  .drop-content .formats {
+    white-space: normal;
+    padding: 0 4px;
+  }
+}

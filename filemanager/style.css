@@ -21,7 +21,8 @@ body {
     'sidebar content'
     'status status';
   height: 100vh;
-  width: 100vw;
+  width: 100%;
+  max-width: 100%;
 }
 
 /* Toolbar */
@@ -850,4 +851,45 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent-primary);
+}
+
+/* Narrow viewports: wrap the toolbar so nav + path + actions stack instead
+ * of forcing horizontal document scroll (e.g. 320px phones). */
+@media (max-width: 640px) {
+  #file-manager {
+    grid-template-rows: auto 1fr 28px;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'toolbar'
+      'content'
+      'status';
+  }
+
+  #sidebar {
+    display: none;
+  }
+
+  #toolbar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 48px;
+    padding: 6px 8px;
+    gap: 4px;
+  }
+
+  #toolbar button {
+    padding: 5px 8px;
+  }
+
+  #path-bar {
+    flex: 1 1 100%;
+    order: 2;
+    min-width: 0;
+  }
+
+  #btn-new-folder,
+  #btn-new-file,
+  #btn-view-toggle {
+    order: 3;
+  }
 }

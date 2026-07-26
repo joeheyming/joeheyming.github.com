@@ -370,3 +370,47 @@ body.theme-light .statusbar {
   height: 0;
   border: 0;
 }
+
+@media (max-width: 720px) {
+  .welcome-inner {
+    max-width: 100%;
+    width: 100%;
+    padding: 0 12px;
+    box-sizing: border-box;
+  }
+
+  .welcome-actions {
+    flex-wrap: wrap;
+  }
+
+  .welcome-actions button {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  .shortcuts kbd,
+  .status-pill {
+    font-size: 12px;
+  }
+
+  .statusbar {
+    gap: 6px;
+    padding: 0 6px;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .status-item {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Secondary chrome — still available on desktop. */
+  #status-encoding,
+  #status-indent,
+  #status-env {
+    display: none;
+  }
+}

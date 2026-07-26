@@ -960,7 +960,7 @@ body {
      to a 2-line max. */
   body > div > footer.mt-6 {
     margin-top: 0.6rem !important;
-    font-size: 0.62rem;
+    font-size: 12px;
     line-height: 1.25;
   }
 

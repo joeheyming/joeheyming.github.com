@@ -9,6 +9,7 @@
 /* ─── Identity strip (top) ─────────────────────────────────────────── */
 .hos-identity-strip {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 12px;
@@ -446,7 +447,9 @@
  * compact Featured strip with the next 8 popular apps. */
 .hos-featured-heroes {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  /* min(100%, 320px) so a 320px viewport with section padding can still
+   * form a single column — bare minmax(320px, 1fr) forced horizontal scroll. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: 20px;
   margin-top: 20px;
   margin-bottom: 28px;
@@ -759,7 +762,7 @@
   top: 12px;
   right: 12px;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -902,7 +905,9 @@
 }
 .hos-footer-legal {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   font-size: var(--text-caption);
   color: var(--text-3);
@@ -996,13 +1001,14 @@
 }
 
 @media (max-width: 640px) {
+  /* Keep the closed panel off-screen via transform only. Negative `right`
+   * values expand document scrollWidth and fail Yandex's 320px check. */
   #hamburger-panel {
-    width: 90vw;
-    right: -45vw;
+    position: fixed;
+    top: 64px;
+    right: 12px;
+    width: min(90vw, 20rem);
     max-width: none;
-  }
-  #hamburger-panel.show {
-    right: -5vw;
   }
   #hamburger-toggle {
     min-height: 56px;

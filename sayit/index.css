@@ -60,7 +60,7 @@
 
 body {
   font-family: var(--font-ui);
-  max-width: 1200px;
+  max-width: min(1200px, 100%);
   margin: 0 auto;
   padding-top: max(20px, env(safe-area-inset-top, 0px));
   padding-right: max(20px, env(safe-area-inset-right, 0px));
@@ -117,11 +117,15 @@ body {
 .has-tip::after {
   content: attr(data-tip);
   position: absolute;
-  left: 50%;
+  /* Keep tips inside the trigger box so abspos tips don't expand
+   * document scrollWidth on narrow viewports (even while hidden). */
+  left: 0;
+  right: 0;
   bottom: calc(100% + 10px);
-  transform: translateX(-50%);
+  margin-inline: auto;
+  transform: none;
   padding: 8px 10px;
-  max-width: min(340px, 92vw);
+  max-width: 100%;
   width: max-content;
   box-sizing: border-box;
   font-size: 12px;
@@ -257,6 +261,9 @@ body {
   box-shadow: var(--shadow-soft);
   position: relative;
   z-index: 1;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .tool-group {
@@ -577,8 +584,31 @@ body {
     padding: 10px;
   }
 
+  .tool-group,
+  .history-group {
+    max-width: 100%;
+    min-width: 0;
+  }
+
   .tool-button {
-    padding: 10px 16px;
+    padding: 10px 12px;
+    font-size: 14px;
+    min-width: 0;
+  }
+
+  .history-button {
+    padding: 10px 12px;
+    font-size: 14px;
+    min-width: 0;
+  }
+
+  .read-button,
+  .post-button {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    white-space: normal;
+    text-align: center;
     font-size: 15px;
   }
 

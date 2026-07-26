@@ -322,7 +322,7 @@ body {
 
 .ctrl-label {
   color: var(--fg3);
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.07em;
   white-space: nowrap;
@@ -504,30 +504,63 @@ input[type='text']:focus {
 
 .export-label {
   color: var(--fg3);
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.07em;
   margin-right: 2px;
 }
 
+@media (max-width: 640px) {
+  html[data-nav-size='compact'] .heyming-nav-toggle {
+    font-size: 12px;
+  }
+}
+
 /* ── Mobile ───────────────────────────────── */
 @media (max-width: 600px) {
+  .app-header {
+    height: auto;
+    min-height: 52px;
+    flex-wrap: wrap;
+    padding: 8px 10px 8px 90px;
+    gap: 8px;
+  }
   .app-title {
     font-size: 13px;
+    min-width: 0;
+  }
+  .tabs {
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: stretch;
   }
   .tab-btn {
-    padding: 6px 12px;
-    min-width: 66px;
+    flex: 1 1 0;
+    padding: 6px 8px;
+    min-width: 0;
     font-size: 12px;
+    justify-content: center;
   }
   .controls-panel {
     max-height: 220px;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .ctrl-row,
+  .export-row,
+  .webcam-ctrl-row {
+    max-width: 100%;
+  }
+  .drop-hint {
+    max-width: calc(100% - 24px);
+    padding: 28px 20px;
   }
   input[type='range'] {
     width: 72px !important;
   }
   input[type='text'] {
     width: 110px;
+    max-width: 100%;
   }
   .btn {
     font-size: 12px;
@@ -535,5 +568,20 @@ input[type='text']:focus {
   }
   .btn-primary {
     padding: 9px 18px;
+  }
+}
+
+@media (max-width: 380px) {
+  .app-header {
+    padding-left: 76px;
+  }
+  .app-title {
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+  .tab-btn {
+    padding: 6px 6px;
+    gap: 4px;
+    font-size: 12px;
   }
 }

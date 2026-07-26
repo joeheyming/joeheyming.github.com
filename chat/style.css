@@ -159,7 +159,7 @@ body {
   border: 1px solid var(--hairline);
   border-radius: 4px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
   color: var(--text-2);
   word-break: break-all;
@@ -176,7 +176,7 @@ body {
   border: 1px solid var(--hairline);
   padding: 1px 5px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 /* ---------- Scroll / messages ---------- */
@@ -457,7 +457,7 @@ body {
   overflow-x: auto;
   max-height: 280px;
   overflow-y: auto;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--chat-fg);
 }
 
@@ -797,24 +797,83 @@ body {
 
 /* ---------- Small screens ---------- */
 @media (max-width: 600px) {
+  .chat-app {
+    max-width: 100%;
+  }
   .chat-header {
     padding: 10px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
   }
   .chat-title {
     padding-left: 100px;
+    flex: 1 1 auto;
+    min-width: 0;
   }
   .chat-title-text h1 {
     font-size: 15px;
   }
+  .chat-title-text p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .chat-header-actions {
-    gap: 8px;
+    gap: 6px;
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  .chat-btn-ghost {
+    padding: 6px 8px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .chat-btn-reload {
+    padding: 5px 8px;
   }
   .chat-scroll {
     padding: 16px 12px 8px;
+    min-width: 0;
   }
   .chat-unsupported {
     margin: 10px 12px 0;
     font-size: 12px;
+    max-width: calc(100% - 24px);
+  }
+  .chat-composer {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .chat-composer-row {
+    min-width: 0;
+  }
+  .chat-drop-overlay-inner {
+    max-width: calc(100% - 32px);
+    padding: 20px 16px;
+  }
+  .notify-stack {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+  }
+  .notify {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 380px) {
+  .chat-title {
+    padding-left: 90px;
+  }
+  .chat-emoji {
+    font-size: 22px;
+  }
+  .chat-header-actions {
+    width: 100%;
+    padding-left: 90px;
+    justify-content: flex-end;
   }
 }
 

@@ -151,11 +151,18 @@ function activeCtx() {
   return activeLayer().ctx;
 }
 
+function defaultCanvasSize(area) {
+  const rect = area.getBoundingClientRect();
+  // Prefer the available area; only fall back to 400×300 when layout
+  // hasn't measured yet (rect can be 0 during early init).
+  const W = Math.floor(rect.width) > 0 ? Math.floor(rect.width) : 400;
+  const H = Math.floor(rect.height) > 0 ? Math.floor(rect.height) : 300;
+  return { W, H };
+}
+
 function initCanvas() {
   const area = document.getElementById('canvas-area');
-  const rect = area.getBoundingClientRect();
-  const W = Math.max(Math.floor(rect.width), 400);
-  const H = Math.max(Math.floor(rect.height), 300);
+  const { W, H } = defaultCanvasSize(area);
 
   const layer0 = createLayer('Layer 1', W, H);
   layer0.ctx.fillStyle = state.bgColor;
@@ -530,9 +537,7 @@ function newProject() {
   state.redoStack = [];
   state.activeLayerIdx = 0;
   const area = document.getElementById('canvas-area');
-  const rect = area.getBoundingClientRect();
-  const W = Math.max(Math.floor(rect.width), 400);
-  const H = Math.max(Math.floor(rect.height), 300);
+  const { W, H } = defaultCanvasSize(area);
   const layer0 = createLayer('Layer 1', W, H);
   layer0.ctx.fillStyle = state.bgColor;
   layer0.ctx.fillRect(0, 0, W, H);

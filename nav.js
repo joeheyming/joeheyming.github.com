@@ -480,7 +480,7 @@
 
     .heyming-nav-section-label {
       padding: 12px 10px 6px;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
@@ -580,7 +580,7 @@
       top: 10px;
       left: 10px;
       padding: 6px 10px;
-      font-size: 11px;
+      font-size: 12px;
       opacity: 0.65;
     }
 
@@ -610,7 +610,7 @@
         top: 8px;
         left: 8px;
         padding: 5px 8px;
-        font-size: 10px;
+        font-size: 12px;
       }
     }
 

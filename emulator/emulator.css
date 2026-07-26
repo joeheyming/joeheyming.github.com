@@ -89,7 +89,7 @@ body {
 
 .brand .sub {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 4px;
   color: var(--text-dim);
   font-weight: 400;
@@ -338,7 +338,7 @@ kbd {
 }
 
 .picker-sub {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-dim);
   text-align: center;
   letter-spacing: 0.5px;

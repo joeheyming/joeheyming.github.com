@@ -38,22 +38,19 @@ export class UI {
    * Calculate optimal cell size to fit the viewport
    */
   calculateCellSize(rows, cols) {
-    // Measure actual available space more accurately
-    const wrapper = document.querySelector('.game-wrapper');
     const header = document.querySelector('.game-header');
     const controls = document.querySelector('.controls');
     const statusBar = document.querySelector('.status-bar');
     const helpText = document.querySelector('.help-text');
     const gameContainer = document.querySelector('.game-container');
 
-    // Get computed heights of UI elements
     const headerHeight = header?.offsetHeight || 48;
     const controlsHeight = controls?.offsetHeight || 50;
     const statusBarHeight = statusBar?.offsetHeight || 80;
     const helpTextHeight = helpText?.offsetHeight || 30;
     const containerPadding = 16 + 8 + 6; // game-container padding + border + board border
-    const wrapperGap = 12 * 4; // gaps between elements
-    const bodyPadding = 24; // body padding
+    const wrapperGap = 12 * 4;
+    const bodyPadding = 24;
 
     const verticalPadding =
       headerHeight +
@@ -63,28 +60,45 @@ export class UI {
       containerPadding +
       wrapperGap +
       bodyPadding;
-    // Less padding on narrow screens
-    const horizontalPadding = window.innerWidth < 500 ? 30 : 60;
 
-    const availableWidth = window.innerWidth - horizontalPadding;
+    // Horizontal chrome: body padding + game-container + board border/padding
+    const bodyStyles = getComputedStyle(document.body);
+    const bodyPadX =
+      (parseFloat(bodyStyles.paddingLeft) || 0) + (parseFloat(bodyStyles.paddingRight) || 0);
+    let containerChrome = 22;
+    if (gameContainer) {
+      const cs = getComputedStyle(gameContainer);
+      containerChrome =
+        (parseFloat(cs.paddingLeft) || 0) +
+        (parseFloat(cs.paddingRight) || 0) +
+        (parseFloat(cs.borderLeftWidth) || 0) +
+        (parseFloat(cs.borderRightWidth) || 0);
+    }
+    const boardChrome = 10; // .game-board border 3+3 + padding 2+2
+    const availableWidth = Math.max(
+      0,
+      window.innerWidth - bodyPadX - containerChrome - boardChrome
+    );
     const availableHeight = window.innerHeight - verticalPadding;
 
-    // Calculate max cell size for each dimension
     const maxCellWidth = Math.floor(availableWidth / cols);
     const maxCellHeight = Math.floor(availableHeight / rows);
-
-    // Use smaller of width/height to fit screen, but respect MIN for touch targets
     const idealSize = Math.min(maxCellWidth, maxCellHeight);
 
-    // For large boards (like expert: 16x30), use a smaller minimum to fit on screen
-    // Expert mode has 30 columns, so allow smaller cells
+    // Large boards (expert 16×30) keep a touch-friendly floor and scroll inside
+    // .game-container. Smaller boards shrink below the soft min so the document
+    // never needs horizontal scrolling on narrow phones (e.g. 320px).
     const isLargeBoard = cols >= 20 || rows >= 16;
-    const minSize = isLargeBoard ? MIN_CELL_SIZE_EXPERT : MIN_CELL_SIZE;
+    const preferredMin = isLargeBoard ? MIN_CELL_SIZE_EXPERT : MIN_CELL_SIZE;
+    const absoluteFloor = 18;
 
-    // If ideal size is too small, use MIN and allow scrolling
-    const fittedSize = Math.max(minSize, Math.min(MAX_CELL_SIZE, idealSize));
-
-    return fittedSize;
+    if (idealSize >= preferredMin) {
+      return Math.min(MAX_CELL_SIZE, idealSize);
+    }
+    if (!isLargeBoard && idealSize >= absoluteFloor) {
+      return idealSize;
+    }
+    return preferredMin;
   }
 
   /**

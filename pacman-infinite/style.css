@@ -471,14 +471,57 @@ button:hover {
 /* Mobile responsive */
 @media (max-width: 768px) {
   #hud {
-    padding: 8px;
-    /* Leave room for the global Back button (left: 8-12px in compact
-       mode, ~90px wide once the "← Back" text is rendered). Without
-       this clearance the HUD's score box slides under the Back pill
-       on phones. */
-    padding-left: 108px;
-    flex-direction: column;
-    gap: 8px;
+    /* Use the space beside the compact Menu button, but keep the HUD
+       shallow so it does not cover the mobile playfield. */
+    width: 100%;
+    padding: 6px 6px 0 100px;
+  }
+
+  #hud > div:first-child {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 3px 8px;
+    width: 100%;
+    padding: 6px 8px;
+    border-width: 1px;
+    border-radius: 8px;
+  }
+
+  /* Tailwind's space-y utilities create a tall desktop stack. Flatten
+     the survival stats into the HUD grid on phones instead. */
+  #hud > div:first-child > *,
+  #hud > div:first-child > .mt-2 > * {
+    margin-top: 0 !important;
+  }
+
+  #hud > div:first-child > .mt-2 {
+    display: contents;
+  }
+
+  #dash-line {
+    grid-column: 1 / -1;
+  }
+
+  #food-meter,
+  #power-timer,
+  #breath-meter,
+  #camera-toggle {
+    margin-top: 2px !important;
+  }
+
+  #food-meter > div:nth-child(2),
+  #power-timer > div:nth-child(2),
+  #breath-meter > div:nth-child(2) {
+    width: 100% !important;
+  }
+
+  #power-timer,
+  #breath-meter {
+    grid-column: 1 / -1;
+  }
+
+  #camera-toggle {
+    align-self: end;
   }
 
   #hud .text-2xl {
@@ -486,11 +529,11 @@ button:hover {
   }
 
   #hud .text-sm {
-    font-size: 0.7rem;
+    font-size: 12px;
   }
 
   #hud .text-xs {
-    font-size: 0.6rem;
+    font-size: 12px;
   }
 
   #controls-help {
@@ -515,11 +558,12 @@ button:hover {
 
   /* Make camera mode display more compact */
   #camera-mode {
-    display: block;
-    max-width: 100px;
+    display: inline-block;
+    max-width: 72px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    padding: 2px 4px;
   }
 
   /* Adjust minimap size for mobile */

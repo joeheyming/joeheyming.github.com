@@ -152,6 +152,7 @@ main {
   display: flex;
   gap: 0.6rem;
   justify-content: center;
+  max-width: 100%;
 }
 
 .tile {
@@ -259,4 +260,17 @@ main {
 .no-match-hint {
   font-size: 0.85rem;
   color: var(--unmatched-text);
+}
+
+@media (max-width: 480px) {
+  .tile-word {
+    flex-wrap: wrap;
+  }
+
+  .tile-number,
+  .tile-name,
+  .tile-mass,
+  .tile-unmatched .tile-name {
+    font-size: 0.75rem;
+  }
 }

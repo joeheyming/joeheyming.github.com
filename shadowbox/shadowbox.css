@@ -262,7 +262,7 @@ body {
 .data-stream {
   height: 100%;
   overflow: hidden;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.2;
   position: relative;
 }
@@ -353,7 +353,7 @@ body {
   text-align: center;
   display: block;
   margin-top: 8px;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--shadow-spy-mint);
 }
 

@@ -623,6 +623,33 @@ body {
 }
 
 @media (max-width: 360px) {
+  .heyming-nav-toggle-label {
+    font-size: 12px;
+  }
+
+  .ah-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 8px;
+  }
+
+  .ah-title {
+    min-width: 0;
+  }
+
+  .ah-title > span {
+    display: none;
+  }
+
+  .ah-header-status {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  .ah-home-link {
+    padding-inline: 10px;
+  }
+
   .ah-control {
     grid-template-columns: 70px 1fr auto;
   }

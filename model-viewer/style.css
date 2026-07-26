@@ -315,3 +315,66 @@ body {
   z-index: 10;
   max-width: 80%;
 }
+
+/* Narrow viewports: wrap the toolbar so chrome fits without horizontal
+ * document scroll (e.g. 320px phones). Mirrors image-viewer. */
+@media (max-width: 640px) {
+  #viewer-container {
+    max-width: 100%;
+  }
+
+  #toolbar {
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 100%;
+    gap: 4px;
+    row-gap: 6px;
+    padding: 8px 8px 8px 100px;
+    box-sizing: border-box;
+  }
+
+  .toolbar-group {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+
+  .toolbar-divider,
+  .toolbar-spacer {
+    display: none;
+  }
+
+  #toolbar button,
+  #toolbar select {
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+
+  .toolbar-label {
+    font-size: 12px;
+  }
+
+  #model-info {
+    max-width: 100%;
+    font-size: 12px;
+  }
+
+  #drop-zone {
+    margin: 12px;
+  }
+
+  .drop-content {
+    padding: 20px 12px;
+  }
+
+  .drop-content h1 {
+    font-size: 22px;
+  }
+
+  .drop-content p {
+    font-size: 14px;
+  }
+
+  .drop-content .formats {
+    font-size: 12px;
+  }
+}
