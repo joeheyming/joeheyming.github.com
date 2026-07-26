@@ -47,9 +47,19 @@
 }
 
 .cb-header {
+  position: sticky;
+  top: 8px;
+  z-index: 90;
   text-align: center;
   max-width: 880px;
   width: 100%;
+  box-sizing: border-box;
+  padding: 10px 110px;
+  background: color-mix(in srgb, var(--surface-1, #ffffff) 94%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-1, #1a1a1a) 12%, transparent);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(8px);
 }
 
 .cb-header h1 {
@@ -124,6 +134,134 @@
   color: var(--text-2, #555);
   font-variant-numeric: tabular-nums;
   padding: 4px 0 12px;
+}
+
+/* Mobile scroll scrubber. Fixed vertical track on the right edge so
+   a short finger drag covers the full million-cell document. Hidden
+   on wider viewports — wheel/trackpad already skip fine there, and
+   the right edge is crowded with the info + jump widgets. */
+.cb-scrub {
+  display: none;
+  position: fixed;
+  top: 72px;
+  bottom: 72px;
+  right: 4px;
+  z-index: 95;
+  width: 36px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.cb-scrub-input {
+  pointer-events: auto;
+  /* Vertical range: writing-mode alone puts min at the top / max at
+     the bottom (scrollbar metaphor). direction:rtl would flip that. */
+  writing-mode: vertical-lr;
+  -webkit-appearance: slider-vertical;
+  width: 28px;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.cb-scrub-input::-webkit-slider-runnable-track {
+  width: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-1, #1a1a1a) 14%, transparent);
+}
+
+.cb-scrub-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-left: -8px;
+  border-radius: 50%;
+  background: var(--cb-accent, #b45309);
+  border: 2px solid var(--cb-accent-fg, #ffffff);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.cb-scrub-input::-moz-range-track {
+  width: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-1, #1a1a1a) 14%, transparent);
+}
+
+.cb-scrub-input::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--cb-accent, #b45309);
+  border: 2px solid var(--cb-accent-fg, #ffffff);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.cb-scrub-label {
+  pointer-events: none;
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--surface-1, #ffffff) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-1, #1a1a1a) 12%, transparent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  color: var(--text-1, #1a1a1a);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  font-family: inherit;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.cb-scrub.is-scrubbing .cb-scrub-label {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .cb-scrub {
+    display: flex;
+  }
+
+  /* Nudge the jump widget left so it doesn't sit under the scrubber. */
+  .cb-jump {
+    right: 48px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cb-scrub {
+    top: 64px;
+    bottom: 64px;
+    right: 2px;
+  }
+
+  .cb-jump {
+    right: 42px;
+  }
+}
+
+:root[data-theme='dark'] .cb-scrub-label {
+  background: color-mix(in srgb, var(--surface-1, #161b22) 92%, transparent);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .cb-scrub-label {
+    background: color-mix(in srgb, var(--surface-1, #161b22) 92%, transparent);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  }
 }
 
 /* Jump-to-checkbox widget. Pill-shaped input + arrow button floating
@@ -609,6 +747,20 @@
 @media (max-width: 480px) {
   .cb-wrapper {
     padding: 70px 6px 24px;
+  }
+
+  .cb-header {
+    top: 6px;
+    padding: 8px 54px;
+  }
+
+  .cb-header h1 {
+    margin-bottom: 2px;
+    font-size: 1rem;
+  }
+
+  .cb-counter {
+    font-size: 0.85rem;
   }
 }
 

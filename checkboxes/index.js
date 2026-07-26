@@ -236,6 +236,9 @@ function buildTiles() {
     tiles.push(tile);
     tileObserver.observe(tileEl);
   }
+  // Document height just changed — keep the scrubber's 0..1000 scale
+  // aligned with the new maxScrollY.
+  updateScrubFromScroll();
 }
 
 function mountTile(tile) {
@@ -474,6 +477,81 @@ if (jumpFormEl && jumpInputEl) {
     jumpToCell(n - 1);
     jumpInputEl.blur();
   });
+}
+
+// ---------------------------------------------------------------------
+// Mobile scroll scrubber. Maps a short vertical range (0..SCRUB_MAX)
+// onto the full document scroll height so a finger drag can skip
+// tens of thousands of rows — the native scrollbar thumb is a few
+// pixels tall at 1M cells and effectively unusable on phones.
+//
+// Instant scroll (no smooth) while dragging so the tiles keep up.
+// The floating label shows the approximate 1-indexed cell at the
+// top of the viewport. Syncs back from window scroll when the user
+// isn't actively scrubbing.
+// ---------------------------------------------------------------------
+const SCRUB_MAX = 1000;
+const scrubEl = /** @type {HTMLElement | null} */ (document.getElementById('cb-scrub'));
+const scrubInputEl = /** @type {HTMLInputElement | null} */ (
+  document.getElementById('cb-scrub-input')
+);
+const scrubLabelEl = /** @type {HTMLElement | null} */ (document.getElementById('cb-scrub-label'));
+let scrubbing = false;
+
+function maxScrollY() {
+  return Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+}
+
+function cellAtViewportTop() {
+  if (COLS === 0) return 1;
+  const gridRect = grid.getBoundingClientRect();
+  // Distance from the top of the grid to the top of the viewport,
+  // in grid coordinates. Negative while the header is still on screen.
+  const yInGrid = Math.max(0, -gridRect.top);
+  const row = Math.min(ROWS - 1, Math.floor(yInGrid / STEP));
+  return Math.min(N, row * COLS + 1);
+}
+
+function updateScrubFromScroll() {
+  if (!scrubInputEl || scrubbing) return;
+  const max = maxScrollY();
+  const t = max <= 0 ? 0 : Math.round((window.scrollY / max) * SCRUB_MAX);
+  scrubInputEl.value = String(Math.max(0, Math.min(SCRUB_MAX, t)));
+  scrubInputEl.setAttribute('aria-valuenow', scrubInputEl.value);
+  if (scrubLabelEl) scrubLabelEl.textContent = `#${cellAtViewportTop().toLocaleString()}`;
+}
+
+function scrubToValue(raw) {
+  const t = Number(raw);
+  if (!Number.isFinite(t)) return;
+  const max = maxScrollY();
+  const y = max <= 0 ? 0 : (t / SCRUB_MAX) * max;
+  window.scrollTo({ top: y, behavior: 'auto' });
+  if (scrubLabelEl) scrubLabelEl.textContent = `#${cellAtViewportTop().toLocaleString()}`;
+  if (scrubInputEl) scrubInputEl.setAttribute('aria-valuenow', String(t));
+}
+
+if (scrubInputEl && scrubEl) {
+  scrubInputEl.addEventListener('pointerdown', () => {
+    scrubbing = true;
+    scrubEl.classList.add('is-scrubbing');
+  });
+  // pointerup can land outside the thumb after a fast drag — listen
+  // on window so we don't get stuck in scrubbing mode and stop syncing.
+  window.addEventListener('pointerup', () => {
+    if (!scrubbing) return;
+    scrubbing = false;
+    scrubEl.classList.remove('is-scrubbing');
+    updateScrubFromScroll();
+  });
+  scrubInputEl.addEventListener('input', () => {
+    scrubbing = true;
+    scrubEl.classList.add('is-scrubbing');
+    scrubToValue(scrubInputEl.value);
+  });
+  window.addEventListener('scroll', updateScrubFromScroll, { passive: true });
+  window.addEventListener('resize', updateScrubFromScroll);
+  updateScrubFromScroll();
 }
 
 // Resize: recompute COLS, rebuild tile layout. Debounced because the

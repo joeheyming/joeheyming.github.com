@@ -219,8 +219,8 @@
           </p>
           <p>
             There is no backend server. Clicks are written to a hidden Google Form and reads come
-            from the linked Google Sheet, compacted by an Apps Script into a packed-bitmap
-            snapshot. Everything else runs client-side in the browser.
+            from the linked Google Sheet, compacted by an Apps Script into a packed-bitmap snapshot.
+            Everything else runs client-side in the browser.
           </p>
           <p>
             This page requires JavaScript to render the interactive grid.
@@ -229,6 +229,29 @@
         </section>
       </noscript>
     </main>
+
+    <!-- Mobile scroll scrubber. Native scrollbars are useless on a
+         ~300k-px-tall 1M-cell grid; this range maps the full document
+         height to a short vertical track so a finger drag can skip
+         tens of thousands of rows at once. Hidden on wide viewports
+         (CSS) where a mouse wheel / trackpad already moves fast. -->
+    <div id="cb-scrub" class="cb-scrub" aria-hidden="false">
+      <label for="cb-scrub-input" class="visually-hidden">Scroll through checkboxes</label>
+      <input
+        id="cb-scrub-input"
+        class="cb-scrub-input"
+        type="range"
+        min="0"
+        max="1000"
+        value="0"
+        step="1"
+        aria-label="Scroll through checkboxes"
+        aria-valuemin="0"
+        aria-valuemax="1000"
+        aria-valuenow="0"
+      />
+      <span id="cb-scrub-label" class="cb-scrub-label" aria-hidden="true">#1</span>
+    </div>
 
     <!-- Jump-to-checkbox widget. Floating bottom-right. Type a
          1-indexed cell number, hit Enter (or the arrow), and the page
