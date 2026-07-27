@@ -104,8 +104,12 @@ class FeedbackButtonElement extends HTMLElement {
   render() {
     this.shadowRoot.innerHTML = `
       <style>
+        /* See the matching note in share.js: -webkit-text-fill-color is
+           inherited and crosses the shadow boundary, so a gradient-text
+           ancestor would blank out this button's label. */
         :host {
           display: inline-block;
+          -webkit-text-fill-color: currentColor;
         }
         :host([hide-trigger]) {
           position: fixed;

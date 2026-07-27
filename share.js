@@ -137,7 +137,16 @@ class ShareButtonElement extends HTMLElement {
   render() {
     this.shadowRoot.innerHTML = `
       <style>
-        :host { display: inline-block; }
+        /* Reset the gradient-text trick (-webkit-background-clip: text +
+           -webkit-text-fill-color: transparent) if an ancestor uses it.
+           -webkit-text-fill-color is inherited and crosses the shadow
+           boundary, so a <share-button> placed inside a gradient <h1>
+           (periodic-speller) rendered as an accent-colored box with
+           invisible label text. */
+        :host {
+          display: inline-block;
+          -webkit-text-fill-color: currentColor;
+        }
         .share-btn {
           ${this.getThemeStyles()}
           box-sizing: border-box;
