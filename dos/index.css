@@ -81,7 +81,9 @@ code {
 }
 
 #app {
-  max-width: 760px;
+  /* Wide enough for a 4-col catalog at desktop; advanced/info stay
+   * constrained below so the disclosure panels don't sprawl. */
+  max-width: 1200px;
   margin: 0 auto;
   /* 64px top clears the back-button (44px tall + 20px top + gap). */
   padding: 64px 20px 40px;
@@ -138,7 +140,7 @@ code {
 
 .catalog {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 14px;
   min-height: 18rem;
 }
@@ -149,7 +151,7 @@ code {
   background: var(--dos-bg-panel);
   border: 1px solid var(--card-border, var(--dos-border));
   border-radius: 6px;
-  padding: 18px 18px 16px;
+  padding: 16px 16px 14px;
   cursor: pointer;
   text-align: left;
   font: inherit;
@@ -193,16 +195,16 @@ code {
 }
 
 .card-icon {
-  font-size: 32px;
+  font-size: 28px;
   line-height: 1;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.25));
 }
 
 .card-name {
   margin: 0 0 4px;
   font-family: var(--font-mono);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--dos-text);
   letter-spacing: 0.01em;
@@ -219,8 +221,8 @@ code {
 
 .card-blurb {
   margin: 0 0 14px;
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.45;
   color: var(--dos-text-dim);
   flex: 1;
 }
@@ -343,12 +345,18 @@ code {
 
 .library-section {
   margin-top: 8px;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* ----- Advanced disclosure ----- */
 
 .advanced {
   margin-top: 28px;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
   background: var(--dos-bg-panel);
   border: 1px solid var(--dos-border);
   border-radius: 6px;
@@ -659,6 +667,9 @@ button.ghost:hover {
 
 .info {
   margin-top: 24px;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
   background: var(--dos-bg-panel);
   border: 1px solid var(--dos-border);
   border-radius: 6px;
@@ -829,6 +840,40 @@ button.ghost:hover {
 
   .app-title {
     font-size: 26px;
+  }
+
+  /* Icon sits beside the title/meta so cards read denser in a
+   * single-column stack — blurbs and CTAs still span full width. */
+  .card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 12px;
+    padding: 14px 16px 13px;
+  }
+
+  .card-icon {
+    grid-row: 1 / span 2;
+    margin: 2px 0 0;
+    font-size: 26px;
+  }
+
+  .card-name {
+    align-self: end;
+  }
+
+  .card-meta {
+    align-self: start;
+    margin-bottom: 0;
+  }
+
+  .card-blurb,
+  .card-cta,
+  .card-progress {
+    grid-column: 1 / -1;
+  }
+
+  .card-blurb {
+    margin: 10px 0 12px;
   }
 
   .loader-card {
