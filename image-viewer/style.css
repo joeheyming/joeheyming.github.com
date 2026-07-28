@@ -45,6 +45,8 @@ body {
   background: var(--surface-2);
   border-bottom: 1px solid var(--hairline);
   flex-shrink: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .toolbar-group {
@@ -103,13 +105,21 @@ body {
   font-family: var(--font-mono);
 }
 
+.toolbar-group:has(#image-info) {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
 #image-info {
+  display: block;
   font-size: 13px;
   color: var(--text-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 300px;
+  max-width: 100%;
+  min-width: 0;
 }
 
 /* Drop zone */
@@ -119,6 +129,7 @@ body {
   align-items: center;
   justify-content: center;
   flex: 1;
+  min-width: 0;
   border: 3px dashed var(--hairline-strong);
   border-radius: 16px;
   margin: 20px;
@@ -191,6 +202,7 @@ body {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  min-width: 0;
   background: var(--surface-0);
   position: relative;
   cursor: grab;
@@ -251,9 +263,10 @@ body {
   transition: transform 0.2s ease-out;
 }
 
-/* Narrow viewports: wrap the toolbar and drop secondary labels/info so the
- * chrome fits without horizontal document scroll (e.g. 320px phones). */
-@media (max-width: 640px) {
+/* Narrow / landscape phones: wrap the toolbar and drop secondary labels/info
+ * so the chrome fits without horizontal document scroll. 900px covers the
+ * desktop-toolbar gap above 640px where #image-info still forced overflow. */
+@media (max-width: 900px) {
   #viewer-container {
     max-width: 100%;
   }
@@ -264,12 +277,20 @@ body {
     max-width: 100%;
     gap: 4px;
     row-gap: 6px;
-    padding: 8px 8px 8px 100px;
+    /* Give the fixed nav control its own vertical space. Reserving 100px on
+     * every wrapped row left too little room for the zoom controls and could
+     * force the toolbar wider than a phone viewport. */
+    padding: 58px 8px 8px;
+    justify-content: center;
   }
 
   .toolbar-divider,
   .toolbar-spacer {
     display: none;
+  }
+
+  .toolbar-group {
+    min-width: 0;
   }
 
   #toolbar button {
@@ -286,9 +307,12 @@ body {
 
   #drop-zone {
     margin: 12px;
+    min-width: 0;
   }
 
   .drop-content {
+    max-width: 100%;
     padding: 20px 12px;
+    overflow-wrap: anywhere;
   }
 }

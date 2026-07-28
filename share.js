@@ -406,7 +406,7 @@ window.ShareButton = ShareButtonElement;
       <button class="related-projects-toggle" aria-label="View related projects" title="More projects like this">
         🎯
       </button>
-      <div class="related-projects-panel">
+      <div class="related-projects-panel" aria-hidden="true">
         <button class="related-projects-close" aria-label="Close suggestions" title="Close">
           ×
         </button>
@@ -455,6 +455,7 @@ window.ShareButton = ShareButtonElement;
 
     function closePanel() {
       panel.classList.remove('open');
+      panel.setAttribute('aria-hidden', 'true');
       document.removeEventListener('click', closePanelFromOutside);
       document.removeEventListener('keydown', closePanelOnEscape);
     }
@@ -471,6 +472,7 @@ window.ShareButton = ShareButtonElement;
 
     function openPanel() {
       panel.classList.add('open');
+      panel.setAttribute('aria-hidden', 'false');
       document.addEventListener('click', closePanelFromOutside);
       document.addEventListener('keydown', closePanelOnEscape);
     }
@@ -651,6 +653,7 @@ window.ShareButton = ShareButtonElement;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
       border: 1px solid var(--hairline-strong);
       opacity: 0;
+      visibility: hidden;
       transform: translateY(10px) scale(0.95);
       pointer-events: none;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -658,6 +661,7 @@ window.ShareButton = ShareButtonElement;
 
     .related-projects-panel.open {
       opacity: 1;
+      visibility: visible;
       transform: translateY(0) scale(1);
       pointer-events: auto;
     }
@@ -884,7 +888,7 @@ window.ShareButton = ShareButtonElement;
       }
 
       .related-project-description {
-        font-size: 11px;
+        font-size: 13px;
       }
     }
 

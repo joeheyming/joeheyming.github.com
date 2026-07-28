@@ -265,6 +265,10 @@ body {
   font-size: 12px;
   line-height: 1.2;
   position: relative;
+  /* Feed lines are joined with \n in shadowbox.js; without pre-wrap they
+   * collapse into one paragraph and wrap character-by-character on phones. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .data-stream::before {
@@ -464,4 +468,68 @@ body {
 .stealth-mode {
   opacity: 0;
   transition: opacity 0.5s ease;
+}
+
+/* Phones need a readable, scrollable dashboard rather than a desktop grid
+ * compressed into three narrow columns. */
+@media (max-width: 640px) {
+  body {
+    height: auto;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .classification-banner {
+    justify-content: center;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+
+  .classification-banner .operation-name,
+  .classification-banner .timestamp,
+  .classification-banner .clearance-level,
+  .classification-banner .agency {
+    display: none;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    height: auto;
+    min-height: 100dvh;
+    gap: 12px;
+    padding: 42px 8px 112px;
+  }
+
+  .panel {
+    min-height: 220px;
+  }
+
+  .panel-header,
+  .data-stream,
+  .progress-text {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .panel-status {
+    font-size: 12px;
+  }
+
+  .exit-controls {
+    top: auto;
+    right: 8px;
+    bottom: 38px;
+    left: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .abort-btn,
+  .stealth-btn {
+    padding: 9px 10px;
+    font-size: 14px;
+  }
 }

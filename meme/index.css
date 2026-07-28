@@ -47,6 +47,8 @@ body {
   font-size: 14px;
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 /* ---------- Top bar ---------- */
@@ -824,6 +826,11 @@ input[type='number']:focus {
 }
 
 @media (max-width: 520px) {
+  html,
+  body {
+    font-size: 16px;
+  }
+
   .topbar {
     padding: 10px 10px 10px 100px;
   }
@@ -839,11 +846,36 @@ input[type='number']:focus {
 
   .topbar-actions .btn {
     padding: 6px 8px;
-    font-size: 12px;
+    font-size: 14px;
     flex: 0 1 auto;
   }
 
   .brand {
+    font-size: 18px;
+  }
+
+  .panel-header h2,
+  .panel-section h2,
+  .btn-sm,
+  .tpl-card-label,
+  .empty-sub,
+  .stage-tip,
+  .box-item-header .box-handle,
+  .box-controls label,
+  .box-controls select,
+  .box-controls input[type='number'],
+  .box-controls input[type='color'],
+  .box-toggles button,
+  .control,
+  .control-value,
+  .hint {
+    font-size: 14px;
+  }
+
+  input[type='search'],
+  input[type='text'],
+  input[type='number'],
+  .box-item textarea {
     font-size: 16px;
   }
 
@@ -857,7 +889,7 @@ input[type='number']:focus {
 
   .stage {
     width: 100%;
-    max-height: min(50vh, 100vw);
+    max-height: min(60vh, 100vw);
   }
 
   .editor {
@@ -872,7 +904,7 @@ input[type='number']:focus {
 
   .topbar-actions .btn {
     padding: 5px 8px;
-    font-size: 12px;
+    font-size: 14px;
     gap: 4px;
   }
 }
