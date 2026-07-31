@@ -18,6 +18,7 @@
  */
 
 import { loadDescriptions, makeKey as descKey } from './descriptions.js';
+import { buildDownloadUrl, extractIaLocation, iaDerivativeFileName } from './playback-urls.js';
 import { makeGenericParser } from './shows-dynamic.js';
 
 /** @typedef {import('./shows.js').ShowConfig} ShowConfig */
@@ -45,6 +46,9 @@ import { makeGenericParser } from './shows-dynamic.js';
  * @property {string} file           File name inside the archive item.
  * @property {string} url            Direct download URL.
  * @property {string} archiveUrl     archive.org details URL for the file.
+ * @property {string} [iaItem]       Source IA item id (CDN fallback key).
+ * @property {string[]} [urlAlternates]
+ *   Softer playback URLs (e.g. `.ia.mp4` sibling) tried after `url`.
  * @property {number} sizeBytes
  * @property {number} durationSec
  * @property {number} width
@@ -74,6 +78,9 @@ import { makeGenericParser } from './shows-dynamic.js';
  *   driven by `movieDetector`); for MovieConfig-backed catalogs it's
  *   the only Episode and `seasons` is empty.
  * @property {number} total
+ * @property {Record<string, import('./playback-urls.js').IaLocation>} [iaLocations]
+ *   Per-item CDN dir/servers from IA metadata, used only as playback
+ *   fallbacks (see `buildPlaybackQueue`).
  */
 
 /**
@@ -278,8 +285,11 @@ export function mergeCatalogs(show, catalogs) {
   const seasonMap = new Map();
   /** @type {Episode|null} */
   let movie = null;
+  /** @type {Record<string, import('./playback-urls.js').IaLocation>} */
+  const iaLocations = {};
   for (const cat of catalogs) {
     if (!cat) continue;
+    if (cat.iaLocations) Object.assign(iaLocations, cat.iaLocations);
     for (const season of cat.seasons) {
       const existing = seasonMap.get(season.number);
       if (existing) {
@@ -304,7 +314,10 @@ export function mergeCatalogs(show, catalogs) {
     season.episodes.sort((a, b) => a.episode - b.episode);
   }
   const total = seasons.reduce((sum, s) => sum + s.episodes.length, 0) + (movie ? 1 : 0);
-  return { show, seasons, movie, total };
+  /** @type {Catalog} */
+  const out = { show, seasons, movie, total };
+  if (Object.keys(iaLocations).length) out.iaLocations = iaLocations;
+  return out;
 }
 
 /**
@@ -321,12 +334,17 @@ export function buildCatalog(show, meta, itemId) {
   const useItem = itemId || normalizeItems(show.iaItem)[0] || '';
   const files = Array.isArray(meta?.files) ? meta.files : [];
   const accept = show.acceptFile || defaultAccept;
+  const fileNames = new Set(
+    files.map((f) => (typeof f?.name === 'string' ? f.name : '')).filter(Boolean)
+  );
 
   // When a show accepts both `.mp4` and the auto-generated `.ia.mp4`
   // derivative (Beavis is the canonical example), iterate the plain
   // `.mp4` files first so they win the dedup race for any slot that
   // has both. The `.ia.mp4` derivatives are a lower-bitrate fallback
-  // we only want when they're the *only* file for that episode.
+  // we only want when they're the *only* file for that episode —
+  // but we still record the sibling URL on `urlAlternates` for
+  // playback retry when the plain file's CDN is flaky.
   const sortedFiles = [...files].sort((a, b) => {
     const an = typeof a?.name === 'string' ? a.name : '';
     const bn = typeof b?.name === 'string' ? b.name : '';
@@ -343,6 +361,8 @@ export function buildCatalog(show, meta, itemId) {
   let movie = null;
   /** @type {Set<string>} keyed `S-E` to dedupe when multiple files land on the same slot. */
   const seen = new Set();
+  /** @type {Map<string, Episode>} slot → episode, for attaching .ia alternates after dedup. */
+  const bySlot = new Map();
 
   for (const raw of sortedFiles) {
     if (typeof raw !== 'object' || raw === null) continue;
@@ -350,15 +370,7 @@ export function buildCatalog(show, meta, itemId) {
     const name = typeof raw.name === 'string' ? raw.name : '';
     if (!name) continue;
 
-    const baseProps = {
-      file: name,
-      url: buildDownloadUrl(useItem, name),
-      archiveUrl: buildDetailsUrl(useItem, name),
-      sizeBytes: toNumber(raw.size),
-      durationSec: toNumber(raw.length),
-      width: toNumber(raw.width),
-      height: toNumber(raw.height)
-    };
+    const baseProps = episodeBaseProps(useItem, name, raw, fileNames);
 
     if (show.movieDetector && show.movieDetector(name)) {
       if (!movie) {
@@ -379,7 +391,19 @@ export function buildCatalog(show, meta, itemId) {
     const parsed = show.parser(name, useItem);
     if (!parsed) continue;
     const slot = `${parsed.season}-${parsed.episode}`;
-    if (seen.has(slot)) continue;
+    if (seen.has(slot)) {
+      // Later file for the same slot (usually `.ia.mp4` after plain).
+      // Prefer attaching it as an alternate rather than discarding.
+      const existing = bySlot.get(slot);
+      if (existing && /\.ia\.mp4$/i.test(name)) {
+        const alt = buildDownloadUrl(useItem, name);
+        if (!existing.urlAlternates) existing.urlAlternates = [];
+        if (!existing.urlAlternates.includes(alt) && alt !== existing.url) {
+          existing.urlAlternates.push(alt);
+        }
+      }
+      continue;
+    }
     seen.add(slot);
 
     /** @type {Episode} */
@@ -389,6 +413,7 @@ export function buildCatalog(show, meta, itemId) {
       episode: parsed.episode,
       title: parsed.title
     };
+    bySlot.set(slot, ep);
     const season = seasonMap.get(ep.season) || {
       number: ep.season,
       label: ep.season === 0 ? 'Specials' : `Season ${ep.season}`,
@@ -404,7 +429,40 @@ export function buildCatalog(show, meta, itemId) {
   }
 
   const total = seasons.reduce((sum, s) => sum + s.episodes.length, 0) + (movie ? 1 : 0);
-  return { show, seasons, movie, total };
+  /** @type {Catalog} */
+  const catalog = { show, seasons, movie, total };
+  const loc = extractIaLocation(/** @type {Record<string, unknown>} */ (meta));
+  if (loc && useItem) catalog.iaLocations = { [useItem]: loc };
+  return catalog;
+}
+
+/**
+ * Shared Episode fields from an IA file row.
+ *
+ * @param {string} useItem
+ * @param {string} name
+ * @param {Record<string, unknown>} raw
+ * @param {Set<string>} fileNames
+ */
+function episodeBaseProps(useItem, name, raw, fileNames) {
+  /** @type {Record<string, unknown>} */
+  const base = {
+    file: name,
+    url: buildDownloadUrl(useItem, name),
+    archiveUrl: buildDetailsUrl(useItem, name),
+    iaItem: useItem,
+    sizeBytes: toNumber(raw.size),
+    durationSec: toNumber(raw.length),
+    width: toNumber(raw.width),
+    height: toNumber(raw.height)
+  };
+  // Even when acceptFile rejects `.ia.mp4` (Simpsons default), record
+  // the sibling URL if the item ships one — playback retry can use it.
+  const deriv = iaDerivativeFileName(name);
+  if (deriv && fileNames.has(deriv)) {
+    base.urlAlternates = [buildDownloadUrl(useItem, deriv)];
+  }
+  return base;
 }
 
 /** Fallback file filter when the show doesn't override one. */
@@ -491,15 +549,13 @@ export function buildMovieCatalog(movie, meta, itemId) {
   }
 
   const name = typeof chosen.name === 'string' ? chosen.name : '';
+  const fileNames = new Set(
+    files.map((f) => (typeof f?.name === 'string' ? f.name : '')).filter(Boolean)
+  );
+  const base = episodeBaseProps(useItem, name, chosen, fileNames);
   /** @type {Episode} */
   const ep = {
-    file: name,
-    url: buildDownloadUrl(useItem, name),
-    archiveUrl: buildDetailsUrl(useItem, name),
-    sizeBytes: toNumber(chosen.size),
-    durationSec: toNumber(chosen.length),
-    width: toNumber(chosen.width),
-    height: toNumber(chosen.height),
+    ...base,
     season: 0,
     episode: 0,
     title: movie.name,
@@ -509,17 +565,17 @@ export function buildMovieCatalog(movie, meta, itemId) {
     description: typeof chosen.description === 'string' ? chosen.description : movie.tagline || ''
   };
 
-  return { show: movie, seasons: [], movie: ep, total: 1 };
+  /** @type {Catalog} */
+  const catalog = { show: movie, seasons: [], movie: ep, total: 1 };
+  const loc = extractIaLocation(/** @type {Record<string, unknown>} */ (meta));
+  if (loc && useItem) catalog.iaLocations = { [useItem]: loc };
+  return catalog;
 }
 
 /** Strip the directory component of a path. */
 function basename(p) {
   const slash = p.lastIndexOf('/');
   return slash >= 0 ? p.slice(slash + 1) : p;
-}
-
-function buildDownloadUrl(itemId, name) {
-  return `https://archive.org/download/${itemId}/${encodePath(name)}`;
 }
 
 function buildDetailsUrl(itemId, name) {

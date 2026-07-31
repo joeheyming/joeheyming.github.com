@@ -29,6 +29,7 @@
  */
 
 import { getMergedCatalog, getMovieCatalog, getNextEpisode } from '../catalog.js';
+import { buildPlaybackQueue } from '../playback-urls.js';
 import { createMarquee, createSummaryCard, describeEpisode, copyToClipboard, pad } from '../ui.js';
 import {
   loadPrefs,
@@ -88,6 +89,9 @@ export async function mount(slot, ctx) {
   let catalog = null;
   /** @type {Episode | null} */
   let current = null;
+  /** Ordered network URLs for the active episode; advanced on `<video>` error. */
+  let playbackQueue = /** @type {string[]} */ ([]);
+  let playbackIndex = 0;
   /** One-shot play tracking — reset whenever loadEpisode swaps the source. */
   let playStartTracked = false;
   /**
@@ -643,6 +647,15 @@ export async function mount(slot, ctx) {
   );
 
   video.addEventListener('error', () => {
+    // Offline blob failures: fall back into the network queue rather
+    // than giving up immediately — a corrupt IDB blob shouldn't brick
+    // an episode that still has archive.org mirrors.
+    const src = video.currentSrc || video.src || '';
+    if (src.startsWith('blob:') && current && playbackQueue.length === 0) {
+      playbackQueue = buildPlaybackQueue(current, catalog);
+      playbackIndex = -1;
+    }
+    if (tryNextPlaybackUrl()) return;
     errorBanner.classList.remove('hidden');
     if (current) {
       trackWatch('watch_playback_error', mediaLabel(isMovie ? 'movie' : 'show', show.id, current));
@@ -955,12 +968,14 @@ export async function mount(slot, ctx) {
 
     trackWatch('watch_episode_open', mediaLabel(isMovie ? 'movie' : 'show', show.id, ep));
 
-    // Network URL is the safe default. The offline controller swaps
-    // to a Blob URL inside setEpisode() when the episode is cached;
-    // the swap is fire-and-forget so we never block initial src
-    // assignment on an IDB round-trip.
-    if (video.src !== ep.url) {
-      video.src = ep.url;
+    // Build the soft-fallback queue once per episode. Offline controller
+    // may still swap to a Blob URL after this; network retries only run
+    // when the active src fails.
+    playbackQueue = buildPlaybackQueue(ep, catalog);
+    playbackIndex = 0;
+    const primary = playbackQueue[0] || ep.url;
+    if (video.src !== primary) {
+      video.src = primary;
       // Poster is the TVMaze still when available; we don't fall back
       // to archive.org's `.thumbs/` JPGs because the CDN sometimes
       // 403s those and a missing poster reads better than a broken one.
@@ -985,6 +1000,25 @@ export async function mount(slot, ctx) {
     // swaps to a Blob URL if cached and repaints the save button.
     offlineCtrl.setEpisode(ep, { autoplay });
     subtitleCtrl.setEpisode(ep);
+  }
+
+  /**
+   * Advance to the next candidate in `playbackQueue`. Returns true when
+   * a new src was assigned (caller should not show the error banner yet).
+   * @returns {boolean}
+   */
+  function tryNextPlaybackUrl() {
+    if (!playbackQueue.length) return false;
+    const next = playbackIndex + 1;
+    if (next >= playbackQueue.length) return false;
+    playbackIndex = next;
+    const url = playbackQueue[playbackIndex];
+    console.warn(`[watch] playback fallback ${playbackIndex + 1}/${playbackQueue.length}:`, url);
+    video.src = url;
+    video.load();
+    const p = video.play();
+    if (p && typeof p.catch === 'function') p.catch(() => {});
+    return true;
   }
 
   /** @param {1 | -1} delta */

@@ -304,13 +304,20 @@ describe('buildCatalog — dedup (synthetic Beavis-like fixture)', () => {
       files: [
         { name: 'S4/S4 EP 01 Wall Of Youth.ia.mp4' },
         { name: 'S4/S4 EP 01 Wall Of Youth.mp4' }
-      ]
+      ],
+      dir: '/9/items/fixture',
+      server: 'ia800001.us.archive.org',
+      workable_servers: ['ia800001.us.archive.org', 'ia600001.us.archive.org']
     };
     const cat = buildCatalog(show, meta);
     assert.equal(cat.total, 1);
     const ep = cat.seasons[0].episodes[0];
     assert.ok(ep.url.endsWith('Wall%20Of%20Youth.mp4'), `expected plain mp4, got ${ep.url}`);
     assert.ok(!ep.url.includes('.ia.mp4'));
+    assert.ok(Array.isArray(ep.urlAlternates) && ep.urlAlternates.length >= 1);
+    assert.ok(ep.urlAlternates.some((u) => u.includes('.ia.mp4')));
+    assert.equal(ep.iaItem, show.iaItem);
+    assert.ok(cat.iaLocations?.[show.iaItem]?.servers?.includes('ia800001.us.archive.org'));
   });
 
   it('keeps .ia.mp4 when no plain .mp4 exists', () => {
