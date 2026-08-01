@@ -1,9 +1,10 @@
 // Project save/load — serializes the canvas state (size, layers, blend modes,
-// opacity, names, color settings) into a JSON-friendly object whose layer
-// pixels are stored as PNG data URLs. Round-trips losslessly through
-// download/upload AND through localStorage autosave (subject to quota).
+// opacity, names, color settings, placed objects) into a JSON-friendly object
+// whose layer/object pixels are stored as PNG data URLs. Round-trips losslessly
+// through download/upload AND through localStorage autosave (subject to quota).
 
 import { createLayer } from './layers.js';
+import { serializeObjects, deserializeObjects } from './objects.js';
 
 const PROJECT_VERSION = 1;
 const AUTOSAVE_KEY = 'paint.autosave.v1';
@@ -20,41 +21,47 @@ export function serializeProject(state, canvasW, canvasH) {
     bgColor: state.bgColor,
     fgColor: state.color,
     activeLayerIdx: state.activeLayerIdx,
-    layers: state.layers.map(layer => ({
+    layers: state.layers.map((layer) => ({
       name: layer.name,
       opacity: layer.opacity,
       visible: layer.visible,
       blendMode: layer.blendMode || 'source-over',
-      dataUrl: layer.canvas.toDataURL('image/png'),
+      dataUrl: layer.canvas.toDataURL('image/png')
     })),
+    objects: serializeObjects(state.objects)
   };
 }
 
 // Restore a serialized project into the live state.
 // `apply` is a callback the caller provides to swap in the new layers and
-// rewire DOM/UI. Signature: apply({ width, height, layers, bgColor, fgColor, activeLayerIdx })
+// rewire DOM/UI. Signature: apply({ width, height, layers, bgColor, fgColor, activeLayerIdx, objects })
 export async function deserializeProject(data, apply) {
   if (!data || data.version !== PROJECT_VERSION) {
     throw new Error('Unknown project version: ' + data?.version);
   }
   const { width, height, layers, bgColor, fgColor, activeLayerIdx } = data;
-  const built = await Promise.all(layers.map(async (l, i) => {
-    const layer = createLayer(l.name || `Layer ${i + 1}`, width, height);
-    layer.opacity = typeof l.opacity === 'number' ? l.opacity : 1;
-    layer.visible = l.visible !== false;
-    layer.blendMode = l.blendMode || 'source-over';
-    if (l.dataUrl) {
-      const img = await loadImage(l.dataUrl);
-      layer.ctx.drawImage(img, 0, 0);
-    }
-    return layer;
-  }));
+  const built = await Promise.all(
+    layers.map(async (l, i) => {
+      const layer = createLayer(l.name || `Layer ${i + 1}`, width, height);
+      layer.opacity = typeof l.opacity === 'number' ? l.opacity : 1;
+      layer.visible = l.visible !== false;
+      layer.blendMode = l.blendMode || 'source-over';
+      if (l.dataUrl) {
+        const img = await loadImage(l.dataUrl);
+        layer.ctx.drawImage(img, 0, 0);
+      }
+      return layer;
+    })
+  );
+  const objects = await deserializeObjects(data.objects || []);
   apply({
-    width, height,
+    width,
+    height,
     bgColor: bgColor || '#ffffff',
     fgColor: fgColor || '#000000',
     activeLayerIdx: typeof activeLayerIdx === 'number' ? activeLayerIdx : 0,
     layers: built,
+    objects
   });
 }
 
@@ -99,7 +106,11 @@ function doAutosave(state, canvasW, canvasH) {
     const json = JSON.stringify({ savedAt: Date.now(), data });
     if (json.length > AUTOSAVE_MAX_BYTES) {
       // Too big to fit — drop any prior autosave so we don't restore a stale one.
-      try { localStorage.removeItem(AUTOSAVE_KEY); } catch {}
+      try {
+        localStorage.removeItem(AUTOSAVE_KEY);
+      } catch {
+        /* ignore */
+      }
       return;
     }
     localStorage.setItem(AUTOSAVE_KEY, json);
@@ -120,5 +131,9 @@ export function readAutosave() {
 }
 
 export function clearAutosave() {
-  try { localStorage.removeItem(AUTOSAVE_KEY); } catch {}
+  try {
+    localStorage.removeItem(AUTOSAVE_KEY);
+  } catch {
+    /* ignore */
+  }
 }

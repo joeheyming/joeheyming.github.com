@@ -233,6 +233,33 @@
             <span class="btn-icon" aria-hidden="true">⇲</span>
             <span>Resize</span>
           </button>
+          <button
+            class="action-btn"
+            id="btn-crop"
+            title="Crop canvas to selection"
+            aria-label="Crop to selection"
+          >
+            <span class="btn-icon" aria-hidden="true">✂</span>
+            <span>Crop</span>
+          </button>
+          <button
+            class="action-btn"
+            id="btn-flip-h"
+            title="Flip horizontal (selection or layer)"
+            aria-label="Flip horizontal"
+          >
+            <span class="btn-icon" aria-hidden="true">⇆</span>
+            <span>Flip H</span>
+          </button>
+          <button
+            class="action-btn"
+            id="btn-flip-v"
+            title="Flip vertical (selection or layer)"
+            aria-label="Flip vertical"
+          >
+            <span class="btn-icon" aria-hidden="true">⇅</span>
+            <span>Flip V</span>
+          </button>
           <div class="action-menu" id="adjust-menu-wrap">
             <button
               class="action-btn"
@@ -278,7 +305,27 @@
         <div id="canvas-area" aria-label="Drawing canvas">
           <div class="canvas-stack" id="canvas-stack">
             <!-- Layer canvases inserted here by JS -->
+            <canvas id="objects-canvas" aria-hidden="true"></canvas>
             <canvas id="overlay-canvas" role="img" aria-label="Draw here"></canvas>
+            <div
+              id="canvas-resize-ghost"
+              class="canvas-resize-ghost hidden"
+              aria-hidden="true"
+            ></div>
+            <div
+              id="canvas-resize-handle"
+              class="canvas-resize-handle"
+              title="Resize canvas"
+              role="slider"
+              aria-label="Resize canvas"
+              aria-valuemin="1"
+              aria-valuemax="8000"
+            ></div>
+            <div
+              id="canvas-resize-label"
+              class="canvas-resize-label hidden"
+              aria-hidden="true"
+            ></div>
           </div>
           <!-- Text tool input -->
           <textarea id="text-input" rows="1" aria-label="Type text to add"></textarea>
@@ -315,6 +362,7 @@
         <div id="palette-bar"></div>
         <div class="status-bar">
           <span id="status-coords" aria-live="polite" aria-atomic="true">0, 0</span>
+          <span id="status-size" hidden aria-live="polite" aria-atomic="true"></span>
         </div>
       </div>
     </div>

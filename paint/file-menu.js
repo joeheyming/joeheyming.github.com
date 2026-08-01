@@ -2,6 +2,15 @@
 
 import { flattenToCanvas } from './layers.js';
 import { serializeProject, downloadProject } from './project.js';
+import { drawObjectsOnto } from './objects.js';
+
+function exportFlattenOpts(state, transparentBg) {
+  return {
+    transparentBg,
+    objects: state.objects,
+    drawObjects: drawObjectsOnto
+  };
+}
 
 export function toggleFileMenu() {
   const list = document.getElementById('file-menu-list');
@@ -74,7 +83,7 @@ export function confirmResize(onApply) {
 }
 
 export function downloadPNG(filename, state, w, h) {
-  const flat = flattenToCanvas(state.layers, state.bgColor, w, h, { transparentBg: true });
+  const flat = flattenToCanvas(state.layers, state.bgColor, w, h, exportFlattenOpts(state, true));
   const link = document.createElement('a');
   link.download = filename;
   link.href = flat.toDataURL('image/png');
@@ -83,14 +92,14 @@ export function downloadPNG(filename, state, w, h) {
 
 /** Flatten layers to a PNG Blob (same path as downloadPNG). */
 export function exportPNGBlob(state, w, h) {
-  const flat = flattenToCanvas(state.layers, state.bgColor, w, h, { transparentBg: true });
+  const flat = flattenToCanvas(state.layers, state.bgColor, w, h, exportFlattenOpts(state, true));
   return new Promise((resolve) => {
     flat.toBlob((blob) => resolve(blob), 'image/png');
   });
 }
 
 export function downloadJPEG(filename, state, w, h) {
-  const flat = flattenToCanvas(state.layers, state.bgColor, w, h);
+  const flat = flattenToCanvas(state.layers, state.bgColor, w, h, exportFlattenOpts(state, false));
   const link = document.createElement('a');
   link.download = filename;
   link.href = flat.toDataURL('image/jpeg', 0.92);

@@ -5,9 +5,50 @@
 
 import { TOOLS } from './tools.js';
 import { updateStatus } from './ui.js';
+import { updateMove, endMove, isInsideSelection } from './selection.js';
+import { hitTestHandle, handleCursor, objectsBounds } from './objects.js';
 
 const UNDOABLE_ON_DOWN = new Set(['pencil', 'brush', 'eraser', 'fill', 'spray']);
 const UNDOABLE_ON_UP = new Set(['line', 'rect', 'ellipse']);
+const SELECTION_TOOLS = new Set(['rectSelect', 'lasso', 'magicWand']);
+
+function statusSizeFor(state) {
+  const drag = state.objectDrag;
+  if (drag?.mode === 'marquee') {
+    const w = Math.abs((drag.x ?? drag.startX) - drag.startX);
+    const h = Math.abs((drag.y ?? drag.startY) - drag.startY);
+    if (w >= 1 && h >= 1) return { w, h };
+  }
+  if (drag?.mode === 'resize') {
+    const obj = state.objects?.find((o) => o.id === drag.id);
+    if (obj && obj.w >= 1 && obj.h >= 1) return { w: obj.w, h: obj.h };
+  }
+  if (drag?.mode === 'move' && drag.ids?.length) {
+    const moved = drag.ids.map((id) => state.objects?.find((o) => o.id === id)).filter(Boolean);
+    const bounds = objectsBounds(moved);
+    if (bounds) return { w: bounds.w, h: bounds.h };
+  }
+  if (state.selectedObjectIds?.length > 1) {
+    const selected = state.selectedObjectIds
+      .map((id) => state.objects?.find((o) => o.id === id))
+      .filter(Boolean);
+    const bounds = objectsBounds(selected);
+    if (bounds) return { w: bounds.w, h: bounds.h };
+  } else if (state.selectedObjectId != null) {
+    const obj = state.objects?.find((o) => o.id === state.selectedObjectId);
+    if (obj && obj.w >= 1 && obj.h >= 1) return { w: obj.w, h: obj.h };
+  }
+  const sel = state.sel;
+  if (
+    sel &&
+    (sel.mode === 'drawing' || sel.mode === 'active' || sel.mode === 'moving') &&
+    sel.w >= 1 &&
+    sel.h >= 1
+  ) {
+    return { w: sel.w, h: sel.h };
+  }
+  return null;
+}
 
 /**
  * @param {{
@@ -22,7 +63,16 @@ const UNDOABLE_ON_UP = new Set(['line', 'rect', 'ellipse']);
  * }} deps
  */
 export function createPointerController(deps) {
-  const { state, overlayCanvas, ov, activeCtx, activeLayer, pushUndo, updateTransform, refreshLayerPanel } = deps;
+  const {
+    state,
+    overlayCanvas,
+    ov,
+    activeCtx,
+    activeLayer,
+    pushUndo,
+    updateTransform,
+    refreshLayerPanel
+  } = deps;
 
   function getCanvasCoords(e) {
     const rect = overlayCanvas.getBoundingClientRect();
@@ -61,11 +111,11 @@ export function createPointerController(deps) {
     const { spec, size } = textFontSpec();
     const opts = state.toolOptions.text || {};
 
-    const input = /** @type {HTMLInputElement} */ (document.getElementById('text-input'));
+    const input = /** @type {HTMLTextAreaElement} */ (document.getElementById('text-input'));
     input.style.left = screenX + 'px';
     input.style.top = screenY + 'px';
     input.style.fontFamily = opts.family ?? 'sans-serif';
-    input.style.fontSize = (size * state.zoom) + 'px';
+    input.style.fontSize = size * state.zoom + 'px';
     input.style.fontWeight = opts.bold ? 'bold' : 'normal';
     input.style.fontStyle = opts.italic ? 'italic' : 'normal';
     input.style.color = state.activeColor;
@@ -76,31 +126,51 @@ export function createPointerController(deps) {
     input.dataset.layerId = String(activeLayer().id);
     input.dataset.fontSpec = spec;
     input.dataset.fontSize = String(size);
+    delete input.dataset.editingObjectId;
     input.focus();
   }
 
   function commitTextInput() {
-    const input = /** @type {HTMLInputElement} */ (document.getElementById('text-input'));
+    const input = /** @type {HTMLTextAreaElement} */ (document.getElementById('text-input'));
     if (!input || input.style.display === 'none') return;
     const text = input.value.trim();
-    if (text) {
-      const canvasX = parseFloat(input.dataset.canvasX);
-      const canvasY = parseFloat(input.dataset.canvasY);
-      const layerId = parseInt(input.dataset.layerId, 10);
-      const fontSpec = input.dataset.fontSpec || '16px sans-serif';
-      const fontSize = parseFloat(input.dataset.fontSize) || 16;
-      const layer = state.layers.find((l) => l.id === layerId);
-      if (layer) {
-        pushUndo('Text');
-        layer.ctx.font = fontSpec;
-        layer.ctx.fillStyle = state.activeColor;
-        layer.ctx.globalAlpha = 1;
-        layer.ctx.globalCompositeOperation = 'source-over';
-        layer.ctx.fillText(text, canvasX, canvasY + fontSize);
-      }
-    }
+    const editingId = input.dataset.editingObjectId
+      ? parseInt(input.dataset.editingObjectId, 10)
+      : null;
+    const canvasX = parseFloat(input.dataset.canvasX);
+    const canvasY = parseFloat(input.dataset.canvasY);
+    const fontSpec = input.dataset.fontSpec || '16px sans-serif';
+    const fontSize = parseFloat(input.dataset.fontSize) || 16;
+    const opts = state.toolOptions.text || {};
+
     input.style.display = 'none';
     input.value = '';
+
+    if (editingId != null && !Number.isNaN(editingId)) {
+      state.commitTextObjectEdit?.(editingId, text, {
+        fontSpec,
+        fontSize,
+        color: state.activeColor,
+        family: opts.family ?? 'sans-serif',
+        bold: !!opts.bold,
+        italic: !!opts.italic
+      });
+      delete input.dataset.editingObjectId;
+      return;
+    }
+
+    if (!text) return;
+    state.placeTextObject?.({
+      text,
+      canvasX,
+      canvasY,
+      fontSpec,
+      fontSize,
+      color: state.activeColor,
+      family: opts.family ?? 'sans-serif',
+      bold: !!opts.bold,
+      italic: !!opts.italic
+    });
   }
 
   function doSprayDot(x, y) {
@@ -136,6 +206,18 @@ export function createPointerController(deps) {
       return;
     }
     if (e.button !== 0 && e.button !== 2) return;
+
+    // Opposite mouse button cancels an in-progress stroke (JS Paint)
+    if (
+      state.drawing &&
+      ((state.strokeButton === 0 && e.button === 2) ||
+        (state.strokeButton === 2 && e.button === 0)) &&
+      state.cancelStroke?.()
+    ) {
+      e.preventDefault();
+      return;
+    }
+
     e.preventDefault();
     overlayCanvas.setPointerCapture(e.pointerId);
 
@@ -148,6 +230,7 @@ export function createPointerController(deps) {
     // modifier on a real left-click, otherwise color-picking with right-click
     // would also subtract from the selection.
     state.ctrlKey = !isRight && (e.ctrlKey || e.metaKey);
+    state.strokeButton = e.button;
 
     const { x, y } = getCanvasCoords(e);
     const tool = TOOLS[state.tool];
@@ -167,14 +250,49 @@ export function createPointerController(deps) {
       return;
     }
     state.pressure = pressureFor(e);
+    state.shiftKey = e.shiftKey;
+    state.altKey = e.altKey;
+    state.ctrlKey = e.ctrlKey || e.metaKey;
     const { x, y } = getCanvasCoords(e);
-    updateStatus(x, y);
+    updateStatus(x, y, statusSizeFor(state));
     if (state.tool === 'spray') {
       state.sprayX = x;
       state.sprayY = y;
     }
-    if (!state.drawing && state.sel.mode !== 'moving') return;
+
+    // Global floating-selection move (works from any selection tool)
+    if (state.sel.mode === 'moving') {
+      updateMove(state, activeCtx(), x, y);
+      updateStatus(x, y, statusSizeFor(state));
+      return;
+    }
+
+    // Move / resize cursor when hovering selectable content
+    if (!state.drawing && state.tool === 'select') {
+      const selected =
+        state.selectedObjectIds?.length === 1 && state.selectedObjectId != null
+          ? state.objects.find((o) => o.id === state.selectedObjectId)
+          : null;
+      let cursor = 'default';
+      if (selected) {
+        const handle = hitTestHandle(selected, x, y, state.zoom);
+        if (handle) cursor = handleCursor(handle);
+      }
+      if (cursor === 'default') {
+        const hit = state.objects?.some(
+          (o) => x >= o.x && x <= o.x + o.w && y >= o.y && y <= o.y + o.h && !o._hiddenWhileEdit
+        );
+        cursor = hit ? 'move' : 'crosshair';
+      }
+      overlayCanvas.style.cursor = cursor;
+    } else if (!state.drawing && state.sel.mode === 'active' && SELECTION_TOOLS.has(state.tool)) {
+      const inside = isInsideSelection(state.sel, x, y, overlayCanvas.width);
+      overlayCanvas.style.cursor = inside ? 'move' : 'crosshair';
+    }
+
+    if (!state.drawing) return;
     TOOLS[state.tool].onMove(activeCtx(), ov, state, x, y);
+    updateStatus(x, y, statusSizeFor(state));
   }
 
   function onPointerUp(e) {
@@ -183,7 +301,12 @@ export function createPointerController(deps) {
       overlayCanvas.style.cursor = TOOLS[state.tool]?.cursor ?? 'crosshair';
       return;
     }
-    if (!state.drawing && state.sel.mode !== 'moving') return;
+    if (state.sel.mode === 'moving') {
+      endMove(state, activeCtx());
+      refreshLayerPanel();
+      return;
+    }
+    if (!state.drawing) return;
     const { x, y } = getCanvasCoords(e);
     const tool = TOOLS[state.tool];
 

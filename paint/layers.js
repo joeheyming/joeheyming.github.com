@@ -5,22 +5,22 @@ let nextLayerId = 1;
 // Blend modes mapped to canvas globalCompositeOperation values.
 // CSS mix-blend-mode uses the same names (with 'normal' = 'source-over').
 export const BLEND_MODES = [
-  { value: 'source-over',  label: 'Normal' },
-  { value: 'multiply',     label: 'Multiply' },
-  { value: 'screen',       label: 'Screen' },
-  { value: 'overlay',      label: 'Overlay' },
-  { value: 'darken',       label: 'Darken' },
-  { value: 'lighten',      label: 'Lighten' },
-  { value: 'color-dodge',  label: 'Color Dodge' },
-  { value: 'color-burn',   label: 'Color Burn' },
-  { value: 'hard-light',   label: 'Hard Light' },
-  { value: 'soft-light',   label: 'Soft Light' },
-  { value: 'difference',   label: 'Difference' },
-  { value: 'exclusion',    label: 'Exclusion' },
-  { value: 'hue',          label: 'Hue' },
-  { value: 'saturation',   label: 'Saturation' },
-  { value: 'color',        label: 'Color' },
-  { value: 'luminosity',   label: 'Luminosity' },
+  { value: 'source-over', label: 'Normal' },
+  { value: 'multiply', label: 'Multiply' },
+  { value: 'screen', label: 'Screen' },
+  { value: 'overlay', label: 'Overlay' },
+  { value: 'darken', label: 'Darken' },
+  { value: 'lighten', label: 'Lighten' },
+  { value: 'color-dodge', label: 'Color Dodge' },
+  { value: 'color-burn', label: 'Color Burn' },
+  { value: 'hard-light', label: 'Hard Light' },
+  { value: 'soft-light', label: 'Soft Light' },
+  { value: 'difference', label: 'Difference' },
+  { value: 'exclusion', label: 'Exclusion' },
+  { value: 'hue', label: 'Hue' },
+  { value: 'saturation', label: 'Saturation' },
+  { value: 'color', label: 'Color' },
+  { value: 'luminosity', label: 'Luminosity' }
 ];
 
 function blendCssValue(mode) {
@@ -41,7 +41,7 @@ export function createLayer(name, w, h) {
     ctx,
     opacity: 1,
     visible: true,
-    blendMode: 'source-over',
+    blendMode: 'source-over'
   };
 }
 
@@ -62,9 +62,11 @@ export function syncLayerDOM(layer) {
 
 // Returns a flat offscreen canvas compositing all visible layers,
 // applying each layer's blendMode via globalCompositeOperation.
+// opts.objects — optional placed text/image objects drawn on top.
 export function flattenToCanvas(layers, bgColor, w, h, opts = {}) {
   const flat = document.createElement('canvas');
-  flat.width = w; flat.height = h;
+  flat.width = w;
+  flat.height = h;
   const flatCtx = flat.getContext('2d', { willReadFrequently: true });
   if (opts.transparentBg !== true) {
     flatCtx.fillStyle = bgColor;
@@ -78,6 +80,9 @@ export function flattenToCanvas(layers, bgColor, w, h, opts = {}) {
   }
   flatCtx.globalAlpha = 1;
   flatCtx.globalCompositeOperation = 'source-over';
+  if (opts.objects?.length && opts.drawObjects) {
+    opts.drawObjects(flatCtx, opts.objects);
+  }
   return flat;
 }
 
@@ -99,11 +104,15 @@ export function renderLayerPanel(layers, activeIdx, container, callbacks) {
     visBtn.className = 'layer-vis-btn';
     visBtn.title = 'Toggle visibility';
     visBtn.textContent = layer.visible ? '👁' : '◌';
-    visBtn.addEventListener('click', e => { e.stopPropagation(); callbacks.onToggleVisible(i); });
+    visBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      callbacks.onToggleVisible(i);
+    });
 
     const thumb = document.createElement('canvas');
     thumb.className = 'layer-thumb';
-    thumb.width = 32; thumb.height = 24;
+    thumb.width = 32;
+    thumb.height = 24;
     drawLayerThumb(thumb, layer);
 
     const nameWrap = document.createElement('div');
@@ -113,7 +122,7 @@ export function renderLayerPanel(layers, activeIdx, container, callbacks) {
     nameEl.className = 'layer-name';
     nameEl.textContent = layer.name;
     nameEl.title = 'Click to rename';
-    nameEl.addEventListener('dblclick', e => {
+    nameEl.addEventListener('dblclick', (e) => {
       e.stopPropagation();
       const val = prompt('Layer name:', layer.name);
       if (val !== null && val.trim()) {
@@ -133,24 +142,25 @@ export function renderLayerPanel(layers, activeIdx, container, callbacks) {
       if ((layer.blendMode || 'source-over') === value) opt.selected = true;
       blendEl.appendChild(opt);
     }
-    blendEl.addEventListener('change', e => {
+    blendEl.addEventListener('change', (e) => {
       e.stopPropagation();
       callbacks.onBlendModeChange(i, e.target.value);
     });
-    blendEl.addEventListener('click', e => e.stopPropagation());
+    blendEl.addEventListener('click', (e) => e.stopPropagation());
 
     const opacityEl = document.createElement('input');
     opacityEl.type = 'range';
-    opacityEl.min = '0'; opacityEl.max = '100';
+    opacityEl.min = '0';
+    opacityEl.max = '100';
     opacityEl.value = Math.round(layer.opacity * 100);
     opacityEl.className = 'layer-opacity';
     opacityEl.title = `Opacity: ${Math.round(layer.opacity * 100)}%`;
     opacityEl.setAttribute('aria-label', `${layer.name} opacity`);
-    opacityEl.addEventListener('input', e => {
+    opacityEl.addEventListener('input', (e) => {
       e.stopPropagation();
       callbacks.onOpacityChange(i, parseInt(e.target.value, 10) / 100);
     });
-    opacityEl.addEventListener('click', e => e.stopPropagation());
+    opacityEl.addEventListener('click', (e) => e.stopPropagation());
 
     nameWrap.appendChild(nameEl);
     nameWrap.appendChild(blendEl);
@@ -164,21 +174,30 @@ export function renderLayerPanel(layers, activeIdx, container, callbacks) {
     upBtn.textContent = '↑';
     upBtn.title = 'Move layer up';
     upBtn.disabled = i === layers.length - 1;
-    upBtn.addEventListener('click', e => { e.stopPropagation(); callbacks.onMoveUp(i); });
+    upBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      callbacks.onMoveUp(i);
+    });
 
     const downBtn = document.createElement('button');
     downBtn.className = 'layer-move-btn';
     downBtn.textContent = '↓';
     downBtn.title = 'Move layer down';
     downBtn.disabled = i === 0;
-    downBtn.addEventListener('click', e => { e.stopPropagation(); callbacks.onMoveDown(i); });
+    downBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      callbacks.onMoveDown(i);
+    });
 
     const delBtn = document.createElement('button');
     delBtn.className = 'layer-del-btn';
     delBtn.title = 'Delete layer';
     delBtn.textContent = '×';
     delBtn.disabled = layers.length <= 1;
-    delBtn.addEventListener('click', e => { e.stopPropagation(); callbacks.onDelete(i); });
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      callbacks.onDelete(i);
+    });
 
     moveWrap.appendChild(upBtn);
     moveWrap.appendChild(downBtn);
@@ -220,7 +239,7 @@ function drawLayerThumb(thumbCanvas, layer) {
   // Checkerboard for transparency
   tc.fillStyle = '#888';
   for (let y = 0; y < thumbCanvas.height; y += 4) {
-    for (let x = (y / 4 % 2) * 4; x < thumbCanvas.width; x += 8) {
+    for (let x = ((y / 4) % 2) * 4; x < thumbCanvas.width; x += 8) {
       tc.fillRect(x, y, 4, 4);
     }
   }

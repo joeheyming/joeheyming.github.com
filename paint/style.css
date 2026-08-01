@@ -422,6 +422,14 @@ input[type='file'].hidden-file {
   position: relative;
   flex-shrink: 0;
   transform-origin: 0 0;
+  /* Checkerboard so erased/transparent pixels are visible (PS/GIMP convention) */
+  background-color: #c8c8c8;
+  background-image: linear-gradient(45deg, #a8a8a8 25%, transparent 25%),
+    linear-gradient(-45deg, #a8a8a8 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #a8a8a8 75%),
+    linear-gradient(-45deg, transparent 75%, #a8a8a8 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
 }
 
 .layer-canvas,
@@ -433,6 +441,15 @@ input[type='file'].hidden-file {
   pointer-events: none;
 }
 
+#objects-canvas {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
 #overlay-canvas {
   display: block;
   position: absolute;
@@ -440,6 +457,59 @@ input[type='file'].hidden-file {
   left: 0;
   cursor: crosshair;
   touch-action: none;
+  z-index: 3;
+}
+
+/* ── Canvas pixel-size resize handle (bottom-right) ── */
+
+.canvas-resize-handle {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  background: var(--accent-primary, #5b8def);
+  border: 1px solid color-mix(in srgb, var(--pure-white) 70%, transparent);
+  box-sizing: border-box;
+  cursor: nwse-resize;
+  z-index: 20;
+  touch-action: none;
+  pointer-events: auto;
+}
+.canvas-resize-handle:hover,
+.canvas-resize-handle.dragging {
+  background: color-mix(in srgb, var(--accent-primary, #5b8def) 80%, var(--pure-white));
+  transform: scale(1.15);
+}
+
+.canvas-resize-ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  border: 1px dashed color-mix(in srgb, var(--pure-white) 65%, transparent);
+  background: color-mix(in srgb, var(--accent-primary, #5b8def) 12%, transparent);
+  pointer-events: none;
+  z-index: 15;
+}
+.canvas-resize-ghost.hidden,
+.canvas-resize-label.hidden {
+  display: none;
+}
+
+.canvas-resize-label {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pure-white);
+  background: color-mix(in srgb, var(--pure-black) 70%, transparent);
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 21;
+  white-space: nowrap;
 }
 
 /* Text input overlay. Color is intentionally pure black because the
@@ -460,6 +530,8 @@ input[type='file'].hidden-file {
   overflow: hidden;
   z-index: 10;
   line-height: 1.2;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* ── Panel resize handle ─────────────────────── */
@@ -842,6 +914,11 @@ input[type='file'].hidden-file {
   font-size: 12px;
   white-space: nowrap;
   margin-left: auto;
+}
+#status-size:not([hidden])::before {
+  content: '·';
+  margin-right: 8px;
+  opacity: 0.5;
 }
 
 /* ── Resize modal ───────────────────────────── */

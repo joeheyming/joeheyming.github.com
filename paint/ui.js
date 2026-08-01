@@ -1,10 +1,34 @@
 // UI helpers — toolbar, palette, color history, status
 
 export const PALETTE_COLORS = [
-  '#000000', '#3d3d3d', '#7f7f7f', '#c0c0c0', '#ffffff', '#8b4513', '#a52a2a',
-  '#dc143c', '#ff0000', '#ff6600', '#ffa500', '#ffd700', '#ffff00', '#adff2f',
-  '#008000', '#00ff00', '#006400', '#00ffff', '#00bfff', '#1e90ff', '#0000ff',
-  '#000080', '#4b0082', '#8a2be2', '#ff00ff', '#ff1493', '#ff69b4', '#ffa07a',
+  '#000000',
+  '#3d3d3d',
+  '#7f7f7f',
+  '#c0c0c0',
+  '#ffffff',
+  '#8b4513',
+  '#a52a2a',
+  '#dc143c',
+  '#ff0000',
+  '#ff6600',
+  '#ffa500',
+  '#ffd700',
+  '#ffff00',
+  '#adff2f',
+  '#008000',
+  '#00ff00',
+  '#006400',
+  '#00ffff',
+  '#00bfff',
+  '#1e90ff',
+  '#0000ff',
+  '#000080',
+  '#4b0082',
+  '#8a2be2',
+  '#ff00ff',
+  '#ff1493',
+  '#ff69b4',
+  '#ffa07a'
 ];
 
 export function buildToolbar(toolDefs, state, container, onChange) {
@@ -13,12 +37,13 @@ export function buildToolbar(toolDefs, state, container, onChange) {
     const btn = document.createElement('button');
     btn.className = 'tool-btn';
     btn.dataset.tool = id;
-    btn.title = `${tool.label} (${getShortcut(id)})`;
+    const shortcut = getShortcut(id);
+    btn.title = shortcut ? `${tool.label} (${shortcut})` : tool.label;
     btn.setAttribute('aria-label', tool.label);
     btn.textContent = tool.icon;
     if (id === state.tool) btn.classList.add('active');
     btn.addEventListener('click', () => {
-      container.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+      container.querySelectorAll('.tool-btn').forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
       onChange(id);
     });
@@ -27,9 +52,22 @@ export function buildToolbar(toolDefs, state, container, onChange) {
 }
 
 function getShortcut(id) {
-  const map = { pencil:'P', brush:'B', eraser:'E', spray:'S', fill:'F',
-    eyedropper:'I', text:'T', line:'L', rect:'R', ellipse:'O',
-    rectSelect:'M', lasso:'G', magicWand:'W' };
+  const map = {
+    select: 'V',
+    pencil: 'P',
+    brush: 'B',
+    eraser: 'E',
+    spray: 'S',
+    fill: 'F',
+    eyedropper: 'I',
+    text: 'T',
+    line: 'L',
+    rect: 'R',
+    ellipse: 'O',
+    rectSelect: 'M',
+    lasso: 'G',
+    magicWand: 'W'
+  };
   return map[id] ?? '';
 }
 
@@ -55,19 +93,29 @@ export function buildPalette(state, container, onFgChange, onBgChange) {
   fgSwatch.id = 'fg-swatch';
 
   const fgInput = document.createElement('input');
-  fgInput.type = 'color'; fgInput.id = 'fg-color-input';
-  fgInput.value = state.color; fgInput.className = 'hidden-color-input';
+  fgInput.type = 'color';
+  fgInput.id = 'fg-color-input';
+  fgInput.value = state.color;
+  fgInput.className = 'hidden-color-input';
   fgInput.setAttribute('aria-label', 'Foreground color');
 
   const bgInput = document.createElement('input');
-  bgInput.type = 'color'; bgInput.id = 'bg-color-input';
-  bgInput.value = state.bgColor; bgInput.className = 'hidden-color-input';
+  bgInput.type = 'color';
+  bgInput.id = 'bg-color-input';
+  bgInput.value = state.bgColor;
+  bgInput.className = 'hidden-color-input';
   bgInput.setAttribute('aria-label', 'Background color');
 
   fgSwatch.addEventListener('click', () => fgInput.click());
   bgSwatch.addEventListener('click', () => bgInput.click());
-  fgInput.addEventListener('input', e => { fgSwatch.style.background = e.target.value; onFgChange(e.target.value); });
-  bgInput.addEventListener('input', e => { bgSwatch.style.background = e.target.value; onBgChange(e.target.value); });
+  fgInput.addEventListener('input', (e) => {
+    fgSwatch.style.background = e.target.value;
+    onFgChange(e.target.value);
+  });
+  bgInput.addEventListener('input', (e) => {
+    bgSwatch.style.background = e.target.value;
+    onBgChange(e.target.value);
+  });
 
   fbWrap.appendChild(bgSwatch);
   fbWrap.appendChild(fgSwatch);
@@ -75,7 +123,9 @@ export function buildPalette(state, container, onFgChange, onBgChange) {
   fbWrap.appendChild(bgInput);
   container.appendChild(fbWrap);
 
-  const sep = document.createElement('div'); sep.className = 'palette-sep'; container.appendChild(sep);
+  const sep = document.createElement('div');
+  sep.className = 'palette-sep';
+  container.appendChild(sep);
 
   // Color swatches
   const swatchGrid = document.createElement('div');
@@ -91,7 +141,7 @@ export function buildPalette(state, container, onFgChange, onBgChange) {
       document.getElementById('fg-color-input').value = color;
       onFgChange(color);
     });
-    sw.addEventListener('contextmenu', e => {
+    sw.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       document.getElementById('bg-swatch').style.background = color;
       document.getElementById('bg-color-input').value = color;
@@ -102,9 +152,12 @@ export function buildPalette(state, container, onFgChange, onBgChange) {
   container.appendChild(swatchGrid);
 
   // Color history placeholder
-  const sep2 = document.createElement('div'); sep2.className = 'palette-sep'; container.appendChild(sep2);
+  const sep2 = document.createElement('div');
+  sep2.className = 'palette-sep';
+  container.appendChild(sep2);
   const historyRow = document.createElement('div');
-  historyRow.id = 'color-history'; historyRow.className = 'color-history';
+  historyRow.id = 'color-history';
+  historyRow.className = 'color-history';
   historyRow.title = 'Recent colors';
   container.appendChild(historyRow);
 }
@@ -130,9 +183,19 @@ export function updateFgSwatch(color) {
   if (inp) inp.value = color;
 }
 
-export function updateStatus(x, y) {
+/** Update pointer coords and optional live W×H (selection / object resize). */
+export function updateStatus(x, y, size) {
   const el = document.getElementById('status-coords');
   if (el) el.textContent = `${Math.round(x)}, ${Math.round(y)}`;
+  const sizeEl = document.getElementById('status-size');
+  if (!sizeEl) return;
+  if (size && size.w >= 1 && size.h >= 1) {
+    sizeEl.textContent = `${Math.round(size.w)} × ${Math.round(size.h)}`;
+    sizeEl.hidden = false;
+  } else {
+    sizeEl.textContent = '';
+    sizeEl.hidden = true;
+  }
 }
 
 // Render the per-tool option strip from a schema. Calls onChange(key, value)
@@ -167,7 +230,7 @@ export function renderToolOptions(schema, values, container, onChange) {
       display.className = 'tool-opt-value';
       display.textContent = input.value;
 
-      input.addEventListener('input', e => {
+      input.addEventListener('input', (e) => {
         const v = parseFloat(e.target.value);
         display.textContent = String(v);
         input.title = `${opt.label}: ${v}`;
@@ -186,7 +249,7 @@ export function renderToolOptions(schema, values, container, onChange) {
       input.id = 'opt-' + opt.key;
       input.checked = Boolean(values[opt.key] ?? opt.default);
 
-      input.addEventListener('change', e => onChange(opt.key, e.target.checked));
+      input.addEventListener('change', (e) => onChange(opt.key, e.target.checked));
 
       label.appendChild(input);
       label.appendChild(document.createTextNode(' ' + opt.label));
@@ -206,7 +269,7 @@ export function renderToolOptions(schema, values, container, onChange) {
         if (o.value === cur) optEl.selected = true;
         select.appendChild(optEl);
       }
-      select.addEventListener('change', e => onChange(opt.key, e.target.value));
+      select.addEventListener('change', (e) => onChange(opt.key, e.target.value));
 
       wrap.appendChild(label);
       wrap.appendChild(select);
