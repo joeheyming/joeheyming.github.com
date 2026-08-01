@@ -599,6 +599,9 @@ export async function mount(slot, ctx) {
   // keeps this from hammering localStorage.
   video.addEventListener('timeupdate', snapshotPosition);
   video.addEventListener('pause', flushPosition);
+  // Dual-audio IA dumps often put Spanish (or another dub) first;
+  // prefer an English track when the browser exposes audioTracks.
+  video.addEventListener('loadedmetadata', () => preferEnglishAudio(video));
   // End of episode is "watched" — drop the resume point so a future
   // visit starts fresh. The end-card controller handles autoplay-next
   // separately; this only owns the storage write.
@@ -1343,6 +1346,36 @@ export async function mount(slot, ctx) {
 }
 
 /** @param {Catalog} catalog @param {number} s @param {number} e */
+/**
+ * When a file has multiple audio tracks, enable English if present.
+ * No-op when `audioTracks` is missing (common) or already single-track.
+ * Dual-audio Latin-American dumps on archive.org often list `spa`
+ * before `eng`; without this the browser plays Spanish by default.
+ *
+ * @param {HTMLVideoElement} video
+ */
+function preferEnglishAudio(video) {
+  const tracks =
+    /** @type {{ length: number, [i: number]: { language?: string, enabled: boolean } } | undefined} */ (
+      /** @type {unknown} */ (video).audioTracks
+    );
+  if (!tracks || tracks.length < 2) return;
+  let eng = -1;
+  for (let i = 0; i < tracks.length; i++) {
+    const lang = String(tracks[i].language || '')
+      .toLowerCase()
+      .trim();
+    if (lang === 'eng' || lang === 'en') {
+      eng = i;
+      break;
+    }
+  }
+  if (eng < 0) return;
+  for (let i = 0; i < tracks.length; i++) {
+    tracks[i].enabled = i === eng;
+  }
+}
+
 function findEpisode(catalog, s, e) {
   if (s === 0 && catalog.movie) return catalog.movie;
   const season = catalog.seasons.find((x) => x.number === s);
