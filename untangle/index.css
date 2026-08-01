@@ -1,0 +1,314 @@
+:root {
+  --bg0: #d9e3ec;
+  --bg1: #eef3f7;
+  --ink: #1a2330;
+  --muted: #5c6b7a;
+  --panel: rgba(255, 255, 255, 0.72);
+  --panel-border: rgba(26, 35, 48, 0.1);
+  --edge: #7a8fa3;
+  --node: #1a2330;
+  --node-stroke: #ffffff;
+  --node-active: #0d6e6e;
+  --accent: #0d6e6e;
+  --accent-ink: #ffffff;
+  --shadow: 0 10px 30px rgba(26, 35, 48, 0.08);
+  --font-display: 'Outfit', system-ui, sans-serif;
+  --font-body: 'Source Sans 3', system-ui, sans-serif;
+  --hud-pad-left: 120px;
+  --node-r: 11;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: linear-gradient(160deg, var(--bg0) 0%, var(--bg1) 55%, #f7fafc 100%);
+  color: var(--ink);
+  font-family: var(--font-body);
+  overflow: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(26, 35, 48, 0.045) 1px, transparent 1px);
+  background-size: 18px 18px;
+  opacity: 0.7;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100dvh;
+  position: relative;
+}
+
+.hud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 14px 18px 14px var(--hud-pad-left);
+  background: var(--panel);
+  border-bottom: 1px solid var(--panel-border);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.brand h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.tagline {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.stat {
+  min-width: 64px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--panel-border);
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.stat-value {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: 1px;
+}
+
+.stat-value.clear {
+  color: var(--accent);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid var(--panel-border);
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: rgba(13, 110, 110, 0.45);
+  background: #f3faf9;
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #0a5a5a;
+  border-color: #0a5a5a;
+  color: var(--accent-ink);
+}
+
+.stage-wrap {
+  position: relative;
+  z-index: 0;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+
+#stage {
+  display: block;
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+
+#stage.dragging {
+  cursor: grabbing;
+}
+
+/* Canvas can composite above position:fixed siblings on mobile WebKit
+   regardless of z-index. While the related-projects panel is open,
+   pull the canvas out of the compositor entirely. */
+body.related-panel-open #stage,
+body.related-panel-open .win-banner {
+  visibility: hidden;
+}
+
+.win-banner {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  transform: translateX(-50%) translateY(0);
+  padding: 16px 26px 18px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(13, 110, 110, 0.25);
+  box-shadow: 0 16px 40px rgba(26, 35, 48, 0.15);
+  text-align: center;
+  pointer-events: none;
+  animation: win-pop 0.45s ease both;
+  z-index: 5;
+}
+
+.win-banner strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--accent);
+  letter-spacing: -0.01em;
+}
+
+.win-grade {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.win-grade-letter {
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.win-grade-letter[data-grade='A'] {
+  color: #0d6e6e;
+}
+
+.win-grade-letter[data-grade='B'] {
+  color: #1a6b3c;
+}
+
+.win-grade-letter[data-grade='C'] {
+  color: #8a6d1d;
+}
+
+.win-grade-letter[data-grade='D'] {
+  color: #b35a1a;
+}
+
+.win-grade-letter[data-grade='F'] {
+  color: #b83228;
+}
+
+.win-grade-detail {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+@keyframes win-pop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 720px) {
+  :root {
+    --hud-pad-left: 100px;
+    --node-r: 13;
+  }
+
+  .hud {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    gap: 10px;
+  }
+
+  .brand h1 {
+    font-size: 1.3rem;
+  }
+
+  .tagline {
+    display: none;
+  }
+
+  .stats {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .stat {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .btn {
+    flex: 1;
+  }
+}

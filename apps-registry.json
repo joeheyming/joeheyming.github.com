@@ -1003,12 +1003,38 @@
     "defaultWidth": 540,
     "defaultHeight": 720,
     "tags": ["puzzle", "2048", "tiles", "numbers", "logic", "classic"],
-    "related": ["sudoku", "minesweeper", "wordle-finder", "calculator"],
+    "related": ["sudoku", "minesweeper", "wordle-finder", "calculator", "untangle"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "2048",
       "short_name": "2048",
       "description": "Slide tiles to reach 2048"
+    },
+    "appTier": "experience",
+    "geo": true
+  },
+  {
+    "id": "untangle",
+    "name": "Untangle 🪢",
+    "shortName": "Untangle",
+    "description": "Drag nodes until no lines cross",
+    "detailedDescription": "Classic Planarity-style graph puzzle. Drag vertices of a tangled planar graph until no edges cross. Progressive levels generated from line arrangements — the same idea as the old eBaum's World Untangle game.",
+    "icon": "🪢",
+    "path": "./untangle/",
+    "category": "game",
+    "gradient": "from-teal-500/20 to-slate-600/20",
+    "border": "border-teal-600/30 hover:border-teal-500/50",
+    "taskbarGradient": "from-teal-700 to-slate-800",
+    "taskbarText": "text-white",
+    "defaultWidth": 900,
+    "defaultHeight": 700,
+    "tags": ["puzzle", "graph", "untangle", "planarity", "logic", "classic"],
+    "related": ["sudoku", "minesweeper", "2048"],
+    "shareCategory": "game",
+    "pwaShortcut": {
+      "name": "Untangle",
+      "short_name": "Untangle",
+      "description": "Drag nodes until no lines cross"
     },
     "appTier": "experience",
     "geo": true

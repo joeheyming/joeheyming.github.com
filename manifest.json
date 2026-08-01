@@ -133,6 +133,12 @@
       "url": "/2048/"
     },
     {
+      "name": "Untangle",
+      "short_name": "Untangle",
+      "description": "Drag nodes until no lines cross",
+      "url": "/untangle/"
+    },
+    {
       "name": "Sudoku",
       "short_name": "Sudoku",
       "description": "Classic 9×9 Sudoku in your browser",

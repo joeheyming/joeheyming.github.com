@@ -456,6 +456,7 @@ window.ShareButton = ShareButtonElement;
     function closePanel() {
       panel.classList.remove('open');
       panel.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('related-panel-open');
       document.removeEventListener('click', closePanelFromOutside);
       document.removeEventListener('keydown', closePanelOnEscape);
     }
@@ -473,6 +474,10 @@ window.ShareButton = ShareButtonElement;
     function openPanel() {
       panel.classList.add('open');
       panel.setAttribute('aria-hidden', 'false');
+      // Signal canvas/WebGL apps to demote their surfaces — on mobile WebKit
+      // accelerated canvases can composite above position:fixed UI regardless
+      // of z-index (see untangle/ and similar full-bleed canvas pages).
+      document.body.classList.add('related-panel-open');
       document.addEventListener('click', closePanelFromOutside);
       document.addEventListener('keydown', closePanelOnEscape);
     }

@@ -100,6 +100,13 @@ interface Window {
     [k: string]: unknown;
   }) => void;
   trackPerformance?: () => void;
+
+  /** Untangle puzzle debug/preview API (`untangle/index.js`). */
+  untangleGame?: {
+    startLevel: (level: number, opts?: { scrambleOnly?: boolean }) => void;
+    getState: () => unknown;
+    scramble: () => void;
+  };
 }
 
 // ---------------------------------------------------------------------------

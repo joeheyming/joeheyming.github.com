@@ -873,6 +873,20 @@ const PAGES = [
     title: 'Sudoku'
   },
   {
+    url: `${BASE_URL}/untangle/`,
+    output: 'untangle/untangle-preview.png',
+    title: 'Untangle',
+    // Seed a mid-size tangled layout so the OG card shows crossings,
+    // not a tiny level-1 hex.
+    setup: async (page) => {
+      await page.waitForFunction(() => window.untangleGame, { timeout: 5000 }).catch(() => {});
+      await page.evaluate(() => {
+        if (window.untangleGame) window.untangleGame.startLevel(3);
+      });
+      await page.waitForTimeout(400);
+    }
+  },
+  {
     url: `${BASE_URL}/2048/`,
     output: '2048/2048-preview.png',
     title: '2048',
