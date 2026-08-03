@@ -11,13 +11,7 @@
  */
 import { resumeIfSuspended } from './audio.js';
 
-export function attachKeyboardInput({
-  keyboard,
-  synth,
-  sustainEl,
-  announceNote,
-  shiftOctave,
-}) {
+export function attachKeyboardInput({ keyboard, synth, sustainEl, announceNote, shiftOctave }) {
   const heldKeys = new Map();
   const focusHeld = new Set();
 
@@ -43,8 +37,7 @@ export function attachKeyboardInput({
     if (event.repeat) return;
     const target = event.target;
     const isFormField =
-      target instanceof HTMLElement &&
-      ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
+      target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
     if (isFormField && target.type !== 'checkbox' && target.type !== 'range') return;
 
     if (event.key === 'Enter') {
@@ -83,10 +76,13 @@ export function attachKeyboardInput({
       return;
     }
 
-    const midi = keyboard.midiForKbd(event.key);
+    // Lowercase so Shift/CapsLock can't desync keydown vs keyup Map keys
+    // (e.g. keydown "A" then keyup "a" after releasing Shift → stuck note).
+    const key = String(event.key || '').toLowerCase();
+    const midi = keyboard.midiForKbd(key);
     if (midi == null) return;
-    if (heldKeys.has(event.key)) return;
-    heldKeys.set(event.key, midi);
+    if (heldKeys.has(key)) return;
+    heldKeys.set(key, midi);
     playNote(midi);
     event.preventDefault();
   });
@@ -107,9 +103,10 @@ export function attachKeyboardInput({
       }
       return;
     }
-    const midi = heldKeys.get(event.key);
+    const key = String(event.key || '').toLowerCase();
+    const midi = heldKeys.get(key);
     if (midi == null) return;
-    heldKeys.delete(event.key);
+    heldKeys.delete(key);
     releaseNote(midi);
   });
 

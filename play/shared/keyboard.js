@@ -109,6 +109,12 @@ export class Keyboard {
   }
 
   render() {
+    // Drop any in-flight pointer holds before wiping the DOM — otherwise
+    // detached key nodes stay in PointerSurface's active map and a later
+    // pointerup/lostpointercapture can misfire against stale targets.
+    if (this.surface) this.surface.releaseAll();
+    this._activePointers.clear();
+
     this.root.innerHTML = '';
     this.keyEls.clear();
 

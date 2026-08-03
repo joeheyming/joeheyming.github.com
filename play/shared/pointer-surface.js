@@ -31,9 +31,9 @@
  *       onEnter → pluck,   onLeave → noop,     onRelease → noop
  *
  * `onLeave` is fired during drag (target changes mid-press). `onRelease` is
- * fired exactly once per pointerdown, on pointerup or pointercancel. The
- * release `target` is the last-entered target (or null if the pointer was
- * dragged off).
+ * fired exactly once per pointerdown, on pointerup, pointercancel, or
+ * lostpointercapture. The release `target` is the last-entered target (or
+ * null if the pointer was dragged off). Duplicate end events are ignored.
  *
  * `hitTest` defaults to `document.elementFromPoint(x, y)?.closest(selector)`.
  * Override it for circular / polar geometries (steeldrum tongues, future
@@ -175,6 +175,15 @@ export function createPointerSurface(rootEl, opts = {}) {
     releaseCurrent(event.pointerId, event);
   };
 
+  // Capture can drop without a paired pointerup/cancel (DOM rebuild,
+  // another element steals capture, OS gesture takeover). Treat it the
+  // same as cancel so held notes don't stick. Safe if pointerup already
+  // ran — releaseCurrent is idempotent.
+  const handleLostCapture = (event) => {
+    if (scrollGesture) scrollGesture.cancel(event.pointerId);
+    releaseCurrent(event.pointerId, event);
+  };
+
   // Native-scroll suppression for committed pointers.
   //
   // The host instruments use `touch-action: pan-x` (piano keyboard) or
@@ -209,6 +218,7 @@ export function createPointerSurface(rootEl, opts = {}) {
   rootEl.addEventListener('pointermove', handleMove);
   rootEl.addEventListener('pointerup', handleUp);
   rootEl.addEventListener('pointercancel', handleCancel);
+  rootEl.addEventListener('lostpointercapture', handleLostCapture);
   rootEl.addEventListener('touchmove', handleTouchMove, { passive: false });
 
   return {
@@ -228,6 +238,7 @@ export function createPointerSurface(rootEl, opts = {}) {
       rootEl.removeEventListener('pointermove', handleMove);
       rootEl.removeEventListener('pointerup', handleUp);
       rootEl.removeEventListener('pointercancel', handleCancel);
+      rootEl.removeEventListener('lostpointercapture', handleLostCapture);
       rootEl.removeEventListener('touchmove', handleTouchMove);
       // The scroll gesture has internal timers per pointerId; cancel them.
       if (scrollGesture) {
