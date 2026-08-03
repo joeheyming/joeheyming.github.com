@@ -6,19 +6,40 @@
 //   - swaps the static boot card out for a console picker so the
 //     visitor can choose between NES / Sega / Game Boy / ...
 //
-// Also defines `window.launchEmulator(romSource, romName)` which the
+// Also defines `window.launchEmulator(romSource, romName, opts)` which the
 // local-file picker and the ROM browser both call. That function sets
 // the EJS_* globals, drops in the loader.js, and fires a GA event so
 // `<console>_rom_loaded` shows up in our analytics alongside the
 // `nes_rom_loaded` event we used to emit from the old custom emulator.
+//
+// Lean-back (TV / console): hides the file picker, soft-fails when
+// crossOriginIsolated is false, supports `?rom=<name>` deep links, and
+// wires D-pad focus via emulatorLeanback.applyRovingTabindex.
 (function () {
   'use strict';
 
   const SHELL_LOADED_AT = Date.now();
+  let coiBlocked = false;
+  let pickerRoving = null;
 
   function ready(fn) {
     if (document.readyState !== 'loading') fn();
     else document.addEventListener('DOMContentLoaded', fn);
+  }
+
+  function leanback() {
+    return window.emulatorLeanback || null;
+  }
+
+  function isTv() {
+    return !!(leanback() && leanback().isTv);
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(
+      /[&<>"']/g,
+      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
+    );
   }
 
   function applyConsoleIdentity(cfg) {
@@ -38,6 +59,72 @@
     if (!m) return hex;
     const n = parseInt(m[1], 16);
     return `rgba(${(n >> 16) & 0xff}, ${(n >> 8) & 0xff}, ${n & 0xff}, ${alpha})`;
+  }
+
+  function gamepadBannerHtml() {
+    const lb = leanback();
+    const show = isTv() || (lb && lb.hasGamepad);
+    if (!show) return '';
+    const connected = lb && lb.hasGamepad;
+    const msg = connected
+      ? 'Controller connected — use D-pad to pick a game'
+      : 'Connect a controller, or use the remote D-pad to navigate';
+    return `<p class="leanback-banner" id="leanbackBanner" data-connected="${
+      connected ? '1' : '0'
+    }">${escapeHtml(msg)}</p>`;
+  }
+
+  function refreshGamepadBanner() {
+    const el = document.getElementById('leanbackBanner');
+    const lb = leanback();
+    if (!el || !lb) return;
+    const connected = lb.hasGamepad;
+    el.dataset.connected = connected ? '1' : '0';
+    el.textContent = connected
+      ? 'Controller connected — use D-pad to pick a game'
+      : 'Connect a controller, or use the remote D-pad to navigate';
+  }
+
+  function renderCoiSoftFail() {
+    const bootCard = document.getElementById('boot-card');
+    if (!bootCard) return;
+    bootCard.innerHTML = `
+      <h2>Emulator unavailable</h2>
+      <p class="coi-fail-copy">
+        This browser can't run the emulator (missing cross-origin isolation /
+        SharedArrayBuffer). Try Chrome, Edge, Firefox, or the Xbox / PlayStation
+        browser.
+      </p>
+      <p class="picker-help">
+        Preview the lean-back layout anytime with <code>?tv=1</code> on a desktop
+        browser that supports COI.
+      </p>
+    `;
+  }
+
+  function wireTvFocus(bootCard) {
+    const lb = leanback();
+    if (!lb || !isTv()) return;
+
+    if (pickerRoving) {
+      pickerRoving.dispose();
+      pickerRoving = null;
+    }
+
+    const grid = bootCard.querySelector('.picker-grid');
+    if (grid) {
+      pickerRoving = lb.applyRovingTabindex(grid, { selector: '.picker-tile' });
+      pickerRoving.focusFirst();
+      return;
+    }
+
+    // Console boot card: focus the IA browse button inside the shadow root.
+    const romBrowser = bootCard.querySelector('rom-browser');
+    const openBtn =
+      romBrowser && romBrowser.shadowRoot && romBrowser.shadowRoot.getElementById('openBrowserBtn');
+    if (openBtn) {
+      openBtn.focus({ preventScroll: false });
+    }
   }
 
   function renderBootCard(cfg) {
@@ -62,18 +149,31 @@
       )
       .join('');
 
-    bootCard.innerHTML = `
-      <h2>🕹️ Load a ROM to play</h2>
-      <div class="btn-stack">
-        <rom-browser console="${cfg.id}"></rom-browser>
+    const tv = isTv();
+    const filePickerHtml = tv
+      ? ''
+      : `
         <div class="divider">OR</div>
         <button class="btn btn-secondary" id="loadRomBtn" type="button">
           <span>📁</span>
           <span>Load Local ROM File (${escapeHtml(cfg.fileExtsLabel)})</span>
-        </button>
+        </button>`;
+
+    const controlsSummary = tv ? 'Controls' : 'Keyboard Controls';
+    const gamepadHint = tv
+      ? `<p class="controls-gamepad-hint">Gamepad works in-game via the browser Gamepad API.</p>`
+      : '';
+
+    bootCard.innerHTML = `
+      <h2>🕹️ Load a ROM to play</h2>
+      ${gamepadBannerHtml()}
+      <div class="btn-stack">
+        <rom-browser console="${cfg.id}"></rom-browser>
+        ${filePickerHtml}
       </div>
       <details class="controls-info">
-        <summary>Keyboard Controls</summary>
+        <summary>${controlsSummary}</summary>
+        ${gamepadHint}
         <div class="controls-grid">${controlsRows}</div>
       </details>
     `;
@@ -85,6 +185,8 @@
     if (loadBtn && romInput) {
       loadBtn.addEventListener('click', () => romInput.click());
     }
+
+    wireTvFocus(bootCard);
   }
 
   function renderPicker() {
@@ -116,29 +218,133 @@
 
     bootCard.innerHTML = `
       <h2>🕹️ Pick a console</h2>
+      ${gamepadBannerHtml()}
       <div class="picker-grid">${tiles}</div>
       <p class="picker-help">
         Free, browser-based emulators. No install, no ads. Bring your own ROM
         or browse the built-in public-domain collection.
       </p>
     `;
+
+    wireTvFocus(bootCard);
   }
 
-  function escapeHtml(s) {
-    return String(s).replace(
-      /[&<>"']/g,
-      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
-    );
+  function createIaClient(cfg) {
+    if (!cfg || !cfg.iaBaseUrl || !window.InternetArchiveRoms) return null;
+    return new window.InternetArchiveRoms({
+      baseUrl: cfg.iaBaseUrl,
+      descriptionPrefix: cfg.iaDescriptionPrefix,
+      fileExtensions: cfg.iaFileExtensions
+    });
+  }
+
+  /**
+   * Deep link: ?console=nes&rom=<IA rom.name>
+   * @param {object} cfg
+   * @param {string} romQuery
+   */
+  async function tryDeeplinkRom(cfg, romQuery) {
+    const bootCard = document.getElementById('boot-card');
+    const wanted = romQuery.trim();
+    if (!wanted || !bootCard) return false;
+
+    bootCard.innerHTML = `
+      <h2>Loading ROM</h2>
+      <p class="picker-help">Loading ${escapeHtml(wanted)}…</p>
+    `;
+
+    try {
+      const ia = createIaClient(cfg);
+      if (!ia) throw new Error('ROM browser is not configured for this console.');
+
+      const roms = await ia.getAllRoms();
+      const lower = wanted.toLowerCase();
+      const rom = roms.find(
+        (r) =>
+          r.name.toLowerCase() === lower ||
+          r.title.toLowerCase() === lower ||
+          `${r.name}${r.fileExtension || ''}`.toLowerCase() === lower
+      );
+      if (!rom) throw new Error(`ROM not found: ${wanted}`);
+
+      const romData = await ia.loadRom(rom);
+      const ext = rom.fileExtension || '.zip';
+      const mimeType = ext === '.zip' ? 'application/zip' : 'application/octet-stream';
+      const filename = `${rom.title}${ext}`;
+      const romFile = new File([romData], filename, { type: mimeType });
+      window.launchEmulator(romFile, filename, { deeplink: true });
+      return true;
+    } catch (err) {
+      console.error('Deep-link ROM load failed:', err);
+      renderBootCard(cfg);
+      const boot = document.getElementById('boot-card');
+      if (boot) {
+        const note = document.createElement('p');
+        note.className = 'deeplink-error';
+        note.textContent =
+          'Could not load “' + wanted + '”. Pick a ROM from the collection instead.';
+        boot.insertBefore(note, boot.firstChild.nextSibling);
+      }
+      return false;
+    }
+  }
+
+  function markCoiUnavailable() {
+    if (coiBlocked) return;
+    coiBlocked = true;
+    renderCoiSoftFail();
+    if (window.trackEvent) {
+      const ua = (navigator.userAgent || '').slice(0, 80);
+      window.trackEvent('emulator_coi_unavailable', 'Emulator', ua, 0);
+    }
   }
 
   ready(() => {
+    window.addEventListener('emulator-gamepad-change', refreshGamepadBanner);
+
     const cfg = window.getEmulatorConsole && window.getEmulatorConsole();
-    if (cfg) {
-      applyConsoleIdentity(cfg);
-      renderBootCard(cfg);
+    const params = new URLSearchParams(window.location.search);
+    const romQuery = params.get('rom');
+    let booted = false;
+
+    const bootUi = () => {
+      if (booted || coiBlocked) return;
+      booted = true;
+      if (cfg) {
+        applyConsoleIdentity(cfg);
+        if (romQuery) {
+          tryDeeplinkRom(cfg, romQuery);
+        } else {
+          renderBootCard(cfg);
+        }
+      } else {
+        renderPicker();
+      }
+    };
+
+    const lb = leanback();
+    const settle =
+      lb && lb.whenCoiSettled ? lb.whenCoiSettled() : Promise.resolve(!!window.crossOriginIsolated);
+
+    // Paint immediately when already isolated; otherwise wait for the COI
+    // reload dance to settle (or soft-fail).
+    if (window.crossOriginIsolated) {
+      bootUi();
     } else {
-      renderPicker();
+      const bootCard = document.getElementById('boot-card');
+      if (bootCard) {
+        bootCard.innerHTML =
+          '<h2>Starting…</h2><p class="picker-help">Preparing the emulator runtime.</p>';
+      }
     }
+
+    settle.then((ok) => {
+      if (!ok) {
+        markCoiUnavailable();
+        return;
+      }
+      bootUi();
+    });
 
     const romInput = document.getElementById('romFileInput');
     if (romInput) {
@@ -156,10 +362,18 @@
   // the EmulatorJS loader. Also emits a GA `<console>_rom_loaded`
   // event so we keep visibility into ROM loads after retiring the
   // old custom NES emulator.
-  window.launchEmulator = function launchEmulator(romSource, romName) {
+  //
+  // opts.deeplink — prefix the GA label with `deeplink:` for deep-link loads.
+  window.launchEmulator = function launchEmulator(romSource, romName, opts) {
+    opts = opts || {};
     const cfg = window.getEmulatorConsole && window.getEmulatorConsole();
     if (!cfg) {
       console.error('launchEmulator: no active console; bailing.');
+      return;
+    }
+
+    if (!window.crossOriginIsolated) {
+      markCoiUnavailable();
       return;
     }
 
@@ -193,7 +407,8 @@
     });
 
     if (window.trackEvent) {
-      const labelBase = (window.EJS_gameName || 'unknown').toString().slice(0, 80);
+      const raw = (window.EJS_gameName || 'unknown').toString().slice(0, 80);
+      const labelBase = opts.deeplink ? `deeplink:${raw}` : raw;
       const timeOnPage = Math.round((Date.now() - SHELL_LOADED_AT) / 1000);
       window.trackEvent(`${cfg.id}_rom_loaded`, 'Emulator', labelBase, timeOnPage);
     }

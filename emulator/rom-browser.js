@@ -5,11 +5,16 @@
 // the console has no Internet Archive collection wired up (e.g. Game
 // Boy at the moment) the element hides itself entirely so the boot
 // card just shows the local-file picker.
+//
+// Lean-back (TV): cards are focusable with roving tabindex, search is
+// demoted behind a toggle, Escape/Backspace closes the modal.
 class RomBrowserElement extends HTMLElement {
   constructor() {
     super();
     this.allRoms = [];
     this.filteredRoms = [];
+    this._romRoving = null;
+    this._onModalKey = null;
     this.attachShadow({ mode: 'open' });
   }
 
@@ -35,9 +40,21 @@ class RomBrowserElement extends HTMLElement {
     return this._ia;
   }
 
+  get isTv() {
+    return document.documentElement.dataset.mode === 'tv';
+  }
+
   connectedCallback() {
     this.render();
     this.init();
+  }
+
+  disconnectedCallback() {
+    this.teardownModalKeys();
+    if (this._romRoving) {
+      this._romRoving.dispose();
+      this._romRoving = null;
+    }
   }
 
   render() {
@@ -49,6 +66,8 @@ class RomBrowserElement extends HTMLElement {
       this.shadowRoot.innerHTML = '<style>:host{display:none}</style>';
       return;
     }
+
+    const tv = this.isTv;
 
     // All chrome reads from /brand.css through the host page; identity
     // colors (`--accent-bright`, `--accent-gold`) are set on `:root` by
@@ -80,6 +99,10 @@ class RomBrowserElement extends HTMLElement {
           box-shadow: var(--shadow-card);
         }
         .rom-browser-btn:hover { filter: brightness(0.88); transform: scale(1.05); }
+        .rom-browser-btn:focus-visible {
+          outline: 4px solid var(--accent-bright);
+          outline-offset: 3px;
+        }
         .modal {
           position: fixed;
           inset: 0;
@@ -113,9 +136,9 @@ class RomBrowserElement extends HTMLElement {
           text-align: center;
         }
         .modal-subtitle { color: var(--text-2); text-align: center; font-size: 1rem; }
-        .modal-body { flex: 1; overflow: hidden; padding: 0 2rem; }
-        .modal-footer { padding: 1rem 2rem 2rem; display: flex; justify-content: center; }
-        .close-btn {
+        .modal-body { flex: 1; overflow: hidden; padding: 0 2rem; display: flex; flex-direction: column; gap: 0.75rem; }
+        .modal-footer { padding: 1rem 2rem 2rem; display: flex; justify-content: center; gap: 0.75rem; }
+        .close-btn, .search-toggle {
           background: var(--surface-2);
           color: var(--text-1);
           font-weight: bold;
@@ -125,13 +148,18 @@ class RomBrowserElement extends HTMLElement {
           cursor: pointer;
           transition: background-color 0.2s, transform 0.2s;
         }
-        .close-btn:hover { background: var(--accent-primary-soft); transform: scale(1.05); }
+        .close-btn:hover, .search-toggle:hover { background: var(--accent-primary-soft); transform: scale(1.05); }
+        .close-btn:focus-visible, .search-toggle:focus-visible {
+          outline: 4px solid var(--accent-bright);
+          outline-offset: 3px;
+        }
         .content-area {
           height: 60vh;
           overflow-y: auto;
           border: 1px solid var(--hairline);
           border-radius: 0.75rem;
           background: var(--surface-2);
+          flex: 1;
         }
         .loading {
           display: flex;
@@ -153,15 +181,15 @@ class RomBrowserElement extends HTMLElement {
         }
         .rom-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 1rem;
+          grid-template-columns: repeat(auto-fill, minmax(${tv ? '220px' : '300px'}, 1fr));
+          gap: ${tv ? '1.25rem' : '1rem'};
           padding: 1rem;
         }
         .rom-card {
           background: var(--surface-1);
           border: 1px solid var(--hairline);
           border-radius: 0.75rem;
-          padding: 1rem;
+          padding: ${tv ? '1.25rem' : '1rem'};
           cursor: pointer;
           transition: all 0.2s;
         }
@@ -171,15 +199,22 @@ class RomBrowserElement extends HTMLElement {
           transform: translateY(-2px);
           box-shadow: var(--shadow-card);
         }
+        .rom-card:focus-visible {
+          outline: 4px solid var(--accent-bright);
+          outline-offset: 3px;
+          background: var(--accent-bright-soft);
+          border-color: var(--accent-bright);
+        }
         .rom-title {
           font-weight: bold;
           color: var(--accent-gold);
           margin-bottom: 0.5rem;
-          font-size: 1.1rem;
+          font-size: ${tv ? '1.25rem' : '1.1rem'};
         }
         .rom-info { color: var(--text-1); font-size: 0.875rem; line-height: 1.4; }
         .rom-size { color: var(--text-3); font-size: 0.75rem; margin-top: 0.25rem; }
-        .search-container { margin-bottom: 1rem; position: relative; }
+        .search-container { margin-bottom: 0; position: relative; }
+        .search-container[hidden] { display: none !important; }
         .search-input {
           width: 100%;
           padding: 0.75rem 1rem;
@@ -199,20 +234,20 @@ class RomBrowserElement extends HTMLElement {
       </style>
 
       <div class="rom-browser-container">
-        <button class="rom-browser-btn" id="openBrowserBtn">
+        <button class="rom-browser-btn" id="openBrowserBtn" type="button">
           <span>🗂️</span>
           <span>Browse ${cfg.title} ROM Collection</span>
         </button>
       </div>
 
-      <div class="modal" id="browserModal">
+      <div class="modal" id="browserModal" role="dialog" aria-modal="true" aria-labelledby="romBrowserTitle">
         <div class="modal-content">
           <div class="modal-header">
-            <h2 class="modal-title">${cfg.title} ROM Browser</h2>
+            <h2 class="modal-title" id="romBrowserTitle">${cfg.title} ROM Browser</h2>
             <p class="modal-subtitle">Browse and load ${cfg.title} ROMs from Internet Archive</p>
           </div>
           <div class="modal-body">
-            <div class="search-container">
+            <div class="search-container" id="searchContainer" ${tv ? 'hidden' : ''}>
               <input type="text" class="search-input" id="searchInput" placeholder="Search ROMs...">
             </div>
             <div class="content-area" id="contentArea">
@@ -220,7 +255,12 @@ class RomBrowserElement extends HTMLElement {
             </div>
           </div>
           <div class="modal-footer">
-            <button class="close-btn" id="closeBrowserBtn">Close</button>
+            ${
+              tv
+                ? '<button class="search-toggle" id="searchToggleBtn" type="button">Search</button>'
+                : ''
+            }
+            <button class="close-btn" id="closeBrowserBtn" type="button">Close</button>
           </div>
         </div>
       </div>
@@ -239,6 +279,24 @@ class RomBrowserElement extends HTMLElement {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) this.closeBrowser();
     });
+
+    const searchToggle = this.shadowRoot.getElementById('searchToggleBtn');
+    if (searchToggle) {
+      searchToggle.addEventListener('click', () => {
+        const box = this.shadowRoot.getElementById('searchContainer');
+        if (!box) return;
+        const show = box.hasAttribute('hidden');
+        if (show) {
+          box.removeAttribute('hidden');
+          searchInput.focus();
+        } else {
+          box.setAttribute('hidden', '');
+          searchInput.value = '';
+          this.handleSearch('');
+        }
+      });
+    }
+
     // Debounce the ROM search — full fuzzy-score + grid re-render on every
     // keystroke was the dominant INP cost on this page (hundreds of cards
     // rebuilt via innerHTML inside the keypress handler). 120ms is short
@@ -254,12 +312,40 @@ class RomBrowserElement extends HTMLElement {
     });
   }
 
+  setupModalKeys() {
+    this.teardownModalKeys();
+    this._onModalKey = (e) => {
+      if (e.key === 'Escape' || e.key === 'Backspace') {
+        // Don't steal Backspace while typing in search.
+        if (e.key === 'Backspace') {
+          const t = e.target;
+          if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+        }
+        e.preventDefault();
+        this.closeBrowser();
+      }
+    };
+    document.addEventListener('keydown', this._onModalKey, true);
+  }
+
+  teardownModalKeys() {
+    if (this._onModalKey) {
+      document.removeEventListener('keydown', this._onModalKey, true);
+      this._onModalKey = null;
+    }
+  }
+
   async openBrowser() {
     const modal = this.shadowRoot.getElementById('browserModal');
     modal.classList.add('show');
+    this.setupModalKeys();
 
     const searchInput = this.shadowRoot.getElementById('searchInput');
     searchInput.value = '';
+    if (this.isTv) {
+      const box = this.shadowRoot.getElementById('searchContainer');
+      if (box) box.setAttribute('hidden', '');
+    }
 
     if (this.allRoms.length === 0) {
       await this.loadAllRoms();
@@ -272,6 +358,13 @@ class RomBrowserElement extends HTMLElement {
   closeBrowser() {
     const modal = this.shadowRoot.getElementById('browserModal');
     modal.classList.remove('show');
+    this.teardownModalKeys();
+    if (this._romRoving) {
+      this._romRoving.dispose();
+      this._romRoving = null;
+    }
+    const openBtn = this.shadowRoot.getElementById('openBrowserBtn');
+    if (openBtn) openBtn.focus({ preventScroll: false });
   }
 
   async loadAllRoms() {
@@ -303,23 +396,45 @@ class RomBrowserElement extends HTMLElement {
 
   renderRoms(roms) {
     const contentArea = this.shadowRoot.getElementById('contentArea');
+    if (this._romRoving) {
+      this._romRoving.dispose();
+      this._romRoving = null;
+    }
+
     const romGrid = document.createElement('div');
     romGrid.className = 'rom-grid';
 
     roms.forEach((rom) => {
       const romCard = document.createElement('div');
       romCard.className = 'rom-card';
+      romCard.setAttribute('role', 'button');
+      romCard.tabIndex = 0;
       romCard.innerHTML = `
         <div class="rom-title">${rom.title}</div>
         <div class="rom-info">${rom.description}</div>
         <div class="rom-size">${rom.size}</div>
       `;
       romCard.addEventListener('click', () => this.loadRom(rom));
+      romCard.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.loadRom(rom);
+        }
+      });
       romGrid.appendChild(romCard);
     });
 
     contentArea.innerHTML = '';
     contentArea.appendChild(romGrid);
+
+    const lb = window.emulatorLeanback;
+    if (lb && typeof lb.applyRovingTabindex === 'function') {
+      this._romRoving = lb.applyRovingTabindex(romGrid, { selector: '.rom-card' });
+      if (this.isTv) this._romRoving.focusFirst();
+    } else if (this.isTv) {
+      const first = romGrid.querySelector('.rom-card');
+      if (first) first.focus({ preventScroll: false });
+    }
   }
 
   async loadRom(rom) {

@@ -363,3 +363,130 @@ kbd {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Lean-back / TV mode (data-mode stamped by leanback.js) ───────── */
+
+.leanback-banner {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--accent-bright-soft);
+  border: 1px solid var(--accent-bright-ring);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.leanback-banner[data-connected='1'] {
+  border-color: var(--accent-bright);
+}
+
+.coi-fail-copy {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.deeplink-error {
+  color: var(--danger, #dc2626);
+  font-size: 14px;
+  margin: 0 0 12px;
+  line-height: 1.4;
+}
+
+.controls-gamepad-hint {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+:root[data-modality='pointer'] *:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:root[data-mode='tv'] {
+  --tv-focus-ring: 4px solid var(--accent-bright);
+}
+
+:root[data-mode='tv'] #boot {
+  padding: 40px 48px;
+  overflow-y: auto;
+}
+
+:root[data-mode='tv'] .brand-logo {
+  font-size: 88px;
+}
+
+:root[data-mode='tv'] .brand h1 {
+  font-size: clamp(32px, 4vw, 48px);
+}
+
+:root[data-mode='tv'] .brand .sub {
+  font-size: 14px;
+  letter-spacing: 3px;
+}
+
+:root[data-mode='tv'] .boot-card {
+  max-width: 720px;
+  padding: 36px;
+}
+
+:root[data-mode='tv'] .boot-card h2 {
+  font-size: 18px;
+  margin-bottom: 24px;
+}
+
+:root[data-mode='tv'] .picker-grid {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+:root[data-mode='tv'] .picker-tile {
+  padding: 28px 16px;
+  gap: 10px;
+}
+
+:root[data-mode='tv'] .picker-emoji {
+  font-size: 48px;
+}
+
+:root[data-mode='tv'] .picker-title {
+  font-size: 20px;
+}
+
+:root[data-mode='tv'] .picker-sub {
+  font-size: 14px;
+}
+
+:root[data-mode='tv'] .picker-tile:focus-visible,
+:root[data-mode='tv'] .btn:focus-visible,
+:root[data-mode='tv'] .leanback-banner:focus-visible {
+  outline: var(--tv-focus-ring);
+  outline-offset: 4px;
+  transform: scale(1.03);
+}
+
+:root[data-mode='tv'] .btn {
+  padding: 18px 24px;
+  font-size: 17px;
+}
+
+:root[data-mode='tv'] .leanback-banner {
+  font-size: 16px;
+  padding: 14px 18px;
+}
+
+:root[data-mode='tv'] .picker-help,
+:root[data-mode='tv'] .coi-fail-copy {
+  font-size: 15px;
+}
+
+/* Hide mouse-oriented site chrome on lean-back surfaces */
+:root[data-mode='tv'] feedback-button,
+:root[data-mode='tv'] share-button,
+:root[data-mode='tv'] .share-overlay {
+  display: none !important;
+}

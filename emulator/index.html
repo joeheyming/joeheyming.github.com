@@ -25,10 +25,7 @@
     <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Retro Emulator" />
-    <meta
-      property="og:title"
-      content="Retro Game Emulator — NES, Sega &amp; Game Boy Online"
-    />
+    <meta property="og:title" content="Retro Game Emulator — NES, Sega &amp; Game Boy Online" />
     <meta
       property="og:description"
       content="Play NES, Sega Genesis, and Game Boy games in your browser. Powered by EmulatorJS. Free, no install, no ads. Bring your own ROM or browse the built-in collection."
@@ -47,10 +44,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta
-      name="twitter:title"
-      content="Retro Game Emulator — NES, Sega &amp; Game Boy Online"
-    />
+    <meta name="twitter:title" content="Retro Game Emulator — NES, Sega &amp; Game Boy Online" />
     <meta
       name="twitter:description"
       content="Play NES, Sega Genesis, and Game Boy games in your browser. Free, no install. Bring your own ROM."
@@ -144,6 +138,14 @@
               },
               {
                 "@type": "Question",
+                "name": "Can I play on a TV, Xbox, or PlayStation browser?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Often yes on Xbox and PlayStation browsers when the page can enable cross-origin isolation (needed for EmulatorJS). Use the on-screen ROM collection — there is no local file picker on those devices — and a controller or remote D-pad to navigate. Smart TVs vary; if the emulator cannot start you will see a clear message. Preview the lean-back layout on desktop with ?tv=1. Deep-link a title with ?console=nes&rom=GameName."
+                }
+              },
+              {
+                "@type": "Question",
                 "name": "What emulator cores are used?",
                 "acceptedAnswer": {
                   "@type": "Answer",
@@ -179,8 +181,9 @@
     <script src="/share.js"></script>
     <script src="/proxy.js"></script>
 
-    <!-- Shared emulator shell. Load order matters: registry → IA client →
-         web component → orchestrator (orchestrator reads from the others). -->
+    <!-- Shared emulator shell. Load order matters: leanback (mode) →
+         registry → IA client → web component → orchestrator. -->
+    <script src="leanback.js"></script>
     <script src="consoles.js"></script>
     <script src="internet-archive.js"></script>
     <script src="rom-browser.js"></script>
