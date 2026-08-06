@@ -596,8 +596,8 @@
 .hos-presence-tip {
   position: fixed;
   z-index: 1000001;
-  max-width: 220px;
-  padding: 6px 9px;
+  max-width: 280px;
+  padding: 8px 10px;
   border-radius: var(--radius, 4px);
   font-size: 12px;
   font-weight: 500;
@@ -615,6 +615,35 @@
 .hos-presence-tip.is-visible {
   opacity: 1;
   transform: translateY(0);
+}
+.hos-presence-tip-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hos-presence-tip-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.hos-presence-tip-list .hos-presence-tip-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hos-presence-tip-list .hos-presence-tip-count {
+  flex-shrink: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #9ecbff;
+}
+.hos-presence-live {
+  cursor: help;
 }
 .hos-featured-hero .app-icon-frame {
   --icon-frame-size: 72px;
@@ -859,6 +888,26 @@
   font-weight: 600;
   letter-spacing: -0.005em;
   margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+.hos-app-card-presence {
+  flex-shrink: 0;
+  min-width: 1.35rem;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--card-accent, var(--accent-primary));
+  background: color-mix(in srgb, var(--card-accent, var(--accent-primary)) 14%, var(--surface-1));
+  border: 1px solid var(--card-accent-hairline, var(--hairline));
+  cursor: help;
+}
+.hos-app-card-presence[hidden] {
+  display: none !important;
 }
 .hos-app-card-blurb {
   margin: 0;
