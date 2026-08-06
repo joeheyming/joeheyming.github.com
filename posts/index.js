@@ -1,4 +1,5 @@
 import { CONFIG, isConfigured } from './config.js';
+import { assertImagesSafe, isImageAttachment } from './moderate.js';
 import { encodeAttachments, formBodyByteLength } from './upload.js';
 import { loadDraft } from './share-client.js';
 
@@ -388,6 +389,12 @@ async function pinDraft(note) {
       max: CONFIG.maxAttachmentsPerPost,
       maxTotalChars: hasAudio ? CONFIG.maxAudioAttachmentFieldChars : CONFIG.maxAttachmentFieldChars
     });
+
+    const imageUrls = attachmentUrls.filter(isImageAttachment);
+    if (imageUrls.length) {
+      setStatus('Checking image…');
+      await assertImagesSafe(imageUrls);
+    }
 
     const metadata = {
       id: note.id,
