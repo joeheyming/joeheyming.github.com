@@ -337,19 +337,63 @@ async function handleAttachmentDrop(event, files) {
   setStatus('Dropped onto a new note');
 }
 
+/**
+ * True when paste belongs to some other page control (nav search, etc.).
+ * Draft note fields are ours to handle for attachments.
+ * @param {EventTarget|null} target
+ */
+function isForeignEditable(target) {
+  if (!(target instanceof Element)) return false;
+  const editable = target.closest(
+    'textarea, input:not([type="file"]):not([type="hidden"]), [contenteditable="true"]'
+  );
+  if (!editable) return false;
+  if (editable.closest('.post.draft')) return false;
+  if (editable.id === 'note-honeypot') return false;
+  return true;
+}
+
 async function onPaste(e) {
-  const note = posts.find((p) => p.id === activeDraftId && p.draft);
-  if (!note || !e.clipboardData) return;
-  const items = [...e.clipboardData.items];
-  for (const item of items) {
-    if (!item.type.startsWith('image/')) continue;
-    const file = item.getAsFile();
-    if (!file) continue;
+  if (!e.clipboardData) return;
+  if (isForeignEditable(e.target)) return;
+
+  const files = filesFromDataTransfer(e.clipboardData).filter(
+    (file) => file.type.startsWith('image/') || file.type.startsWith('audio/')
+  );
+
+  if (files.length) {
     e.preventDefault();
-    await addAttachmentToNote(note, file);
-    renderBoard();
-    setStatus('Attachment added');
+    const note = posts.find((p) => p.id === activeDraftId && p.draft);
+    if (!note) {
+      await createDraftNote({
+        attachments: files.slice(0, CONFIG.maxAttachmentsPerPost)
+      });
+      setStatus('Pasted onto a new note');
+      return;
+    }
+    await addFilesToDraft(note, files);
+    return;
   }
+
+  // Native paste into the draft textarea/name field.
+  if (e.target instanceof Element && e.target.closest('.post.draft textarea, .post.draft input')) {
+    return;
+  }
+
+  const text = e.clipboardData.getData('text/plain');
+  if (!text) return;
+
+  e.preventDefault();
+  const note = posts.find((p) => p.id === activeDraftId && p.draft);
+  if (!note) {
+    await createDraftNote({ text });
+    setStatus('Pasted onto a new note');
+    return;
+  }
+  note.text = note.text ? `${note.text}${text}` : text;
+  renderBoard();
+  focusDraft(note.id);
+  setStatus('Text pasted');
 }
 
 function discardDraft(note) {
