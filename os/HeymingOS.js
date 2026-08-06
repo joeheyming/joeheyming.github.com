@@ -14,6 +14,7 @@ import { Launcher } from './Launcher.js';
 import { Desktop } from './Desktop.js';
 import { NotificationService } from './NotificationService.js';
 import { Clock } from './Clock.js';
+import { PresenceIndicator } from './PresenceIndicator.js';
 import { ContextMenu } from './ContextMenu.js';
 import { FileDialog } from './FileDialog.js';
 import { FileSystemDB } from './filesystem-db.js';
@@ -41,6 +42,7 @@ export class HeymingOS {
     );
     this.notifications = new NotificationService();
     this.clock = new Clock();
+    this.presence = new PresenceIndicator(this.windowManager);
     this.contextMenu = new ContextMenu(this);
     this.fileDialog = new FileDialog(this);
     this.setupWizard = new SetupWizardController(this);
@@ -66,6 +68,7 @@ export class HeymingOS {
     await this._safeInit('desktop', () => this.desktop.init());
     this.launcher.init();
     this.clock.init();
+    this.presence.init();
     this.contextMenu.init();
     this.fileDialog.init();
 
@@ -204,6 +207,7 @@ export class HeymingOS {
         // Ensure the new window is active and on top
         this.windowManager.makeWindowActive(win.id);
         this.taskbar.update();
+        this.presence?.syncHeartbeat();
         // Single chokepoint for "user opened an app inside the OS".
         // `source` distinguishes the start menu, desktop double-click,
         // right-click "Open with", cross-app launch (iframe message),
@@ -335,6 +339,7 @@ export class HeymingOS {
     this.windowManager.on('close', (windowId) => {
       this.taskbar.removeButton(windowId);
       this.taskbar.update();
+      this.presence?.syncHeartbeat();
     });
 
     this.windowManager.on('minimize', () => {

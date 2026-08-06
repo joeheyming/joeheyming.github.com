@@ -6,6 +6,8 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
     <script src="/analytics.js"></script>
+    <script src="/presence/config.js"></script>
+    <script src="/presence.js"></script>
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
@@ -373,6 +375,17 @@
             aria-pressed="false"
             aria-label="Clock, show or hide seconds"
           ></time>
+
+          <!-- Live site presence — filled by PresenceIndicator.js -->
+          <span
+            id="taskbar-presence"
+            class="taskbar-presence"
+            hidden
+            role="status"
+            tabindex="0"
+            aria-live="polite"
+            title="People on the site right now"
+          ></span>
 
           <!-- System Info — clicking opens "About Heyming OS". -->
           <button

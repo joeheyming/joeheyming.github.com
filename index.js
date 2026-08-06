@@ -243,6 +243,7 @@ function renderFeaturedHeroes() {
     const link = document.createElement('a');
     link.href = featuredHrefFromPath(app.path);
     link.className = 'hos-featured-hero';
+    link.dataset.appId = app.id;
     if (app.category) link.setAttribute('data-category', app.category);
     const labelBase = (f && f.analyticsLabel) || app.shortName || app.name;
     const positionLabel = labelBase + ':featured-hero';
@@ -270,11 +271,21 @@ function renderFeaturedHeroes() {
       '</h3>' +
       (tagsLine ? '<p class="hos-featured-hero-tags">' + tagsLine + '</p>' : '') +
       '</div>' +
+      '<span class="hos-featured-hero-presence" hidden></span>' +
       '</div>' +
       '<p class="hos-featured-hero-blurb">' +
       blurb +
       '</p>' +
       '<span class="hos-featured-hero-cta" aria-hidden="true">Play now →</span>';
+
+    const presenceBadge = link.querySelector('.hos-featured-hero-presence');
+    if (presenceBadge) {
+      presenceBadge.addEventListener('pointerenter', (e) => {
+        e.stopPropagation();
+        showHomePresenceTip(presenceBadge);
+      });
+      presenceBadge.addEventListener('pointerleave', hideHomePresenceTip);
+    }
 
     grid.appendChild(link);
     observeImpression(link, 'featured_hero_visible', positionLabel);
@@ -1083,6 +1094,144 @@ function initConsoleEasterEgg() {
   window.hos = { motd: motdCmd, apps: appsCmd, help: helpCmd };
 }
 
+/* ─── Live presence (who's on the site right now) ──────────────────── */
+
+const HOME_PRESENCE_PAGE = 'home';
+const HOME_PRESENCE_REFRESH_MS = 60000;
+const HOME_PRESENCE_TIP_DELAY_MS = 60;
+
+function presenceLiveLabel(total) {
+  if (total === 1) return 'person here right now';
+  return 'people here right now';
+}
+
+function presenceAppLabel(n) {
+  return n === 1 ? '1 person on this page right now' : n + ' people on this page right now';
+}
+
+let homePresenceTipEl = null;
+/** @type {ReturnType<typeof setTimeout> | null} */
+let homePresenceTipTimer = null;
+
+function positionHomePresenceTip(badge) {
+  if (!homePresenceTipEl) return;
+  const rect = badge.getBoundingClientRect();
+  const tipRect = homePresenceTipEl.getBoundingClientRect();
+  const gap = 8;
+  let left = rect.left + (rect.width - tipRect.width) / 2;
+  let top = rect.bottom + gap;
+  if (left < 8) left = 8;
+  if (left + tipRect.width > window.innerWidth - 8) {
+    left = window.innerWidth - tipRect.width - 8;
+  }
+  if (top + tipRect.height > window.innerHeight - 8) {
+    top = rect.top - tipRect.height - gap;
+  }
+  homePresenceTipEl.style.left = Math.round(left) + 'px';
+  homePresenceTipEl.style.top = Math.round(top) + 'px';
+}
+
+function showHomePresenceTip(badge) {
+  const text = badge.getAttribute('data-tip');
+  if (!text || badge.hidden) return;
+  hideHomePresenceTip();
+  homePresenceTipTimer = setTimeout(() => {
+    homePresenceTipTimer = null;
+    homePresenceTipEl = document.createElement('div');
+    homePresenceTipEl.className = 'hos-presence-tip';
+    homePresenceTipEl.setAttribute('role', 'tooltip');
+    homePresenceTipEl.textContent = text;
+    document.body.appendChild(homePresenceTipEl);
+    positionHomePresenceTip(badge);
+    requestAnimationFrame(() => {
+      if (homePresenceTipEl) homePresenceTipEl.classList.add('is-visible');
+    });
+  }, HOME_PRESENCE_TIP_DELAY_MS);
+}
+
+function hideHomePresenceTip() {
+  if (homePresenceTipTimer != null) {
+    clearTimeout(homePresenceTipTimer);
+    homePresenceTipTimer = null;
+  }
+  if (homePresenceTipEl) {
+    homePresenceTipEl.remove();
+    homePresenceTipEl = null;
+  }
+}
+
+function stampFeaturedHeroPresence(counts) {
+  document.querySelectorAll('.hos-featured-hero[data-app-id]').forEach((card) => {
+    const id = card.dataset.appId;
+    const n = (counts && counts[id]) || 0;
+    const badge = card.querySelector('.hos-featured-hero-presence');
+    if (!badge) return;
+    if (n > 0) {
+      const label = presenceAppLabel(n);
+      badge.hidden = false;
+      badge.textContent = String(n);
+      badge.setAttribute('aria-label', label);
+      badge.setAttribute('data-tip', label);
+    } else {
+      badge.hidden = true;
+      badge.textContent = '';
+      badge.removeAttribute('aria-label');
+      badge.removeAttribute('data-tip');
+    }
+  });
+}
+
+async function refreshHomePresence() {
+  const el = document.getElementById('hos-presence-live');
+  const api = window.heymingPresence;
+  if (!api || typeof api.isConfigured !== 'function' || !api.isConfigured()) {
+    if (el) el.hidden = true;
+    stampFeaturedHeroPresence({});
+    return;
+  }
+
+  try {
+    const counts = await api.fetchCounts(HOME_PRESENCE_PAGE);
+    stampFeaturedHeroPresence(counts);
+
+    if (!el) return;
+    // Home aggregate includes you — otherwise the pill vanishes when you're
+    // alone (fetchCounts excludes self on the current page).
+    let total = 1;
+    for (const n of Object.values(counts || {})) {
+      total += Number(n) || 0;
+    }
+    const label = presenceLiveLabel(total);
+    const aria = total === 1 ? '1 person here right now' : total + ' people here right now';
+    el.hidden = false;
+    el.setAttribute('aria-label', aria);
+    el.innerHTML =
+      '<span class="hos-presence-live-dot" aria-hidden="true"></span>' +
+      '<span class="hos-presence-live-count" aria-hidden="true"></span>' +
+      '<span class="hos-presence-live-text" aria-hidden="true"></span>';
+    const countEl = el.querySelector('.hos-presence-live-count');
+    const text = el.querySelector('.hos-presence-live-text');
+    if (countEl) countEl.textContent = String(total);
+    if (text) text.textContent = label;
+    el.setAttribute('title', 'Active visitors across Heyming OS apps in the last few minutes');
+  } catch (err) {
+    console.warn('[index.js] Presence live line failed', err);
+    if (el) el.hidden = true;
+    stampFeaturedHeroPresence({});
+  }
+}
+
+function initHomePresence() {
+  const api = window.heymingPresence;
+  if (!api || typeof api.isConfigured !== 'function' || !api.isConfigured()) return;
+  if (typeof api.start === 'function') api.start(HOME_PRESENCE_PAGE);
+  refreshHomePresence();
+  setInterval(refreshHomePresence, HOME_PRESENCE_REFRESH_MS);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshHomePresence();
+  });
+}
+
 /* ─── Boot ─────────────────────────────────────────────────────────── */
 
 function bootHome() {
@@ -1095,6 +1244,7 @@ function bootHome() {
   initThemeSwitch();
   renderMOTD();
   initConsoleEasterEgg();
+  initHomePresence();
 }
 
 bootHome();

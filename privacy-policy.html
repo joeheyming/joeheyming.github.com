@@ -54,14 +54,16 @@
       <strong>joeheyming.github.io</strong>
       (personal projects and demos by Joe Heyming) handles information.
       <strong>Last updated:</strong>
-      March 22, 2025.
+      August 6, 2026.
     </p>
 
     <h2>Summary</h2>
     <p>
       This site is mostly static pages in your browser. Some tools use
       <strong>Google Analytics</strong>
-      to understand aggregate traffic. Features that use
+      to understand aggregate traffic. The navigation drawer may use an anonymous
+      <strong>presence heartbeat</strong>
+      (Google Form + Sheet) to show how many other people are on each app. Features that use
       <strong>Sign in with Google</strong>
       talk directly to Google’s services from your device; this site does not operate a backend that
       stores your Google account or spreadsheet content on my servers.
@@ -111,6 +113,22 @@
       (or similar browser APIs) so settings persist between visits. Analytics uses cookies or
       similar storage as described by Google. You can clear site data in your browser settings at
       any time.
+    </p>
+
+    <h2>Active presence (nav drawer)</h2>
+    <p>
+      Standalone app pages may send an anonymous
+      <strong>presence heartbeat</strong>
+      so the site navigation drawer can show how many other people are currently on each app. A
+      random id is stored in your browser’s
+      <strong>local storage</strong>
+      (not your name or email). About once a minute while the tab is visible, the page submits that
+      id and the current app path to a
+      <strong>Google Form</strong>
+      ; a linked
+      <strong>Google Sheet</strong>
+      (publicly readable) holds one row per id with the last-seen time. Closing the tab stops
+      heartbeats; stale rows expire after a few minutes. This is separate from Google Analytics.
     </p>
 
     <h2>Other sites and links</h2>

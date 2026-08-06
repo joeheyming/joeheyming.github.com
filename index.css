@@ -40,18 +40,18 @@
 .hos-hero {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 48px;
+  gap: 40px;
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 72px 24px 96px;
+  padding: 48px 24px 40px;
   position: relative;
 }
 @media (min-width: 960px) {
   .hos-hero {
     grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-    gap: 64px;
-    padding: 120px 32px 160px;
+    gap: 56px;
+    padding: 72px 32px 48px;
   }
 }
 
@@ -59,7 +59,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 20px;
+  gap: 14px;
 }
 .hos-hero-eyebrow {
   color: var(--accent-primary-hover);
@@ -102,15 +102,84 @@
   font-size: var(--text-body);
   line-height: 1.55;
   color: var(--text-2);
-  margin: 4px 0 0;
+  margin: 0;
   max-width: 48ch;
+}
+
+.hos-presence-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 8px 14px 8px 10px;
+  border-radius: 999px;
+  font-size: var(--text-body, 1rem);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-1);
+  background: color-mix(in srgb, var(--accent-primary, #1a73e8) 14%, var(--surface-1, #fff));
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #1a73e8) 35%, var(--hairline, #e5e5e0));
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--accent-primary, #1a73e8) 12%, transparent);
+  max-width: max-content;
+}
+
+.hos-presence-live[hidden] {
+  display: none !important;
+}
+
+.hos-presence-live-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-primary, #1a73e8);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary, #1a73e8) 50%, transparent);
+  animation: hos-presence-pulse 2s ease-out infinite;
+  flex-shrink: 0;
+}
+
+.hos-presence-live-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.95em;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--text-on-accent, #fff);
+  background: var(--accent-primary, #1a73e8);
+}
+
+.hos-presence-live-text {
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+@keyframes hos-presence-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary, #1a73e8) 45%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hos-presence-live-dot {
+    animation: none;
+  }
 }
 
 .hos-hero-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 12px;
+  margin-top: 2px;
 }
 .hos-cta-primary,
 .hos-cta-secondary {
@@ -173,7 +242,7 @@
      splash's upper-right corner — the rest of the element swings
      DOWN-AND-LEFT from there, which keeps the splash from ever
      reaching back UP into the wordmark on long multi-line picks.
-     The hero-content flex column has a 20px gap between wordmark
+     The hero-content flex column has a 14px gap between wordmark
      and tagline; the splash is small enough to sit comfortably in
      that channel, with at most a few pixels of overlap into the
      tagline on the very longest 3-line splashes (acceptable — the
@@ -326,19 +395,19 @@
 .hos-section {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 56px 24px;
+  padding: 40px 24px;
 }
 @media (min-width: 960px) {
   .hos-section {
-    padding: 72px 32px;
+    padding: 48px 32px;
   }
 }
 
 .hos-section-header {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-bottom: 28px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 @media (min-width: 768px) {
   .hos-section-header {
@@ -451,8 +520,8 @@
    * form a single column — bare minmax(320px, 1fr) forced horizontal scroll. */
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: 20px;
-  margin-top: 20px;
-  margin-bottom: 28px;
+  margin-top: 12px;
+  margin-bottom: 20px;
 }
 
 /* CLS reservation: containers are populated by index.js after apps-registry
@@ -503,6 +572,49 @@
   display: flex;
   align-items: center;
   gap: 16px;
+}
+.hos-featured-hero-presence {
+  margin-left: auto;
+  flex-shrink: 0;
+  align-self: flex-start;
+  min-width: 1.5rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--card-accent, var(--accent-primary));
+  background: color-mix(in srgb, var(--card-accent, var(--accent-primary)) 16%, var(--surface-1));
+  border: 1px solid var(--card-accent-hairline, var(--hairline));
+  cursor: help;
+}
+.hos-featured-hero-presence[hidden] {
+  display: none !important;
+}
+.hos-presence-tip {
+  position: fixed;
+  z-index: 1000001;
+  max-width: 220px;
+  padding: 6px 9px;
+  border-radius: var(--radius, 4px);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  /* Fixed inverse tip — don't use --text-1 as bg (it flips light in dark mode). */
+  color: #f0f3f6;
+  background: #1c2128;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 80ms ease, transform 80ms ease;
+}
+.hos-presence-tip.is-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 .hos-featured-hero .app-icon-frame {
   --icon-frame-size: 72px;
