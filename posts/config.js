@@ -15,19 +15,19 @@ export const CONFIG = {
   // Google Form `formResponse` URL.
   // https://docs.google.com/forms/d/e/<FORM_ID>/formResponse
   formActionUrl:
-    'https://docs.google.com/forms/d/e/1FAIpQLSelIs-pxwVanJixZqUM7SZcgEWfSS9D6e_T9b43Oswcv9GgaA/formResponse',
+    'https://docs.google.com/forms/d/e/1FAIpQLSeNg3wkQ5sgF51BsHIIyLrLazyCkLLQEQPgGG8I3SAsd5fblg/formResponse',
 
   // entry.NNNNNNNN field IDs from the form's prefilled / viewform URL.
   entryIds: {
-    text: 'entry.1103329710',
-    attachment: 'entry.54080658',
-    email: 'entry.566184464',
-    metadata: 'entry.1055123464',
-    honeypot: 'entry.1513752823'
+    text: 'entry.947783301',
+    attachment: 'entry.103900252',
+    email: 'entry.1401609934',
+    metadata: 'entry.2101642131',
+    honeypot: 'entry.53437001'
   },
 
   // Spreadsheet ID (between /spreadsheets/d/ and /edit).
-  sheetId: '1-81osylEfyUTKwgrca2MfizCcmqnHCSG0MnVw5CbP-w',
+  sheetId: '12Jwsh6AMSOuozwjGAGinuSpfqJK02oYV0uorUNAZdRQ',
   responsesTab: 'Form Responses 1',
 
   // Images are resized for the board, then split across Form rows when needed.

@@ -68,20 +68,20 @@ export const CONFIG = {
 
   // Google Form `formResponse` URL.
   formActionUrl:
-    'https://docs.google.com/forms/d/e/1FAIpQLSdy1_mWY3SkfXhhelUZIp6Xa9NfVCENnUrirkYEdG0Ncfgjxg/formResponse',
+    'https://docs.google.com/forms/d/e/1FAIpQLSeVySzGYHn38HPloGbpcqQNSHy57OEd_Y8RwEV511UbkBYalA/formResponse',
 
   // entry.NNNNNNNN field IDs, extracted from the form's viewform HTML.
   entryIds: {
-    cellId: 'entry.1624013032',
-    value: 'entry.1256130769',
-    clientId: 'entry.66245254',
-    honeypot: 'entry.444578648'
+    cellId: 'entry.340356038',
+    value: 'entry.852605546',
+    clientId: 'entry.2075832161',
+    honeypot: 'entry.387710486'
   },
 
   // Spreadsheet ID and the two tab names.
   // gviz URL pattern:
   //   https://docs.google.com/spreadsheets/d/<SHEET_ID>/gviz/tq?tqx=out:json&sheet=<TAB>
-  sheetId: '1sfibfkvwEQsB6uFcFZCg5EOCNUWssawb85xr464S-5k',
+  sheetId: '13p66uB6sJA4rxJMkYN32L1IEfAJzibVwFkgGNn8PHT4',
   responsesTab: 'Form Responses 1',
   snapshotTab: 'Snapshot'
 };
