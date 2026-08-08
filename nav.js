@@ -179,7 +179,7 @@
   // don't have to re-learn where things live per surface.
   //
   // `subCategory` is a registry field on apps-registry.json:
-  //   "console" — nes / sega / gameboy (Retro consoles)
+  //   "console" — nes / sega / gameboy / neogeo (Retro consoles)
   //   "music"   — piano-hero / accordion-hero (Make music)
   const SECTION_DEFS = [
     {
@@ -1120,7 +1120,7 @@
     // First-match-wins: iterate defs in order, each pulls its apps out of
     // `visible` via its filter, and the app is marked placed so later
     // (more-general) defs skip it. This is what lets `Consoles` claim
-    // nes/sega/gameboy before `Games` can grab them.
+    // nes/sega/gameboy/neogeo before `Games` can grab them.
     const placed = new Set();
     for (const def of SECTION_DEFS) {
       const apps = visible.filter((app) => !placed.has(app.id) && def.filter(app));

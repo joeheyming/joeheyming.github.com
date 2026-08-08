@@ -8,27 +8,30 @@
       content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover"
     />
 
-    <title>Retro Game Emulator — NES, Sega &amp; Game Boy Online</title>
+    <title>Retro Game Emulator — NES, Sega, Game Boy &amp; Neo Geo Online</title>
     <meta name="theme-color" content="#FAFAFA" />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
     <meta
       name="description"
-      content="Free retro game emulator online — play NES, Sega Genesis / Mega Drive, and Game Boy games directly in your browser. Powered by EmulatorJS. No install, no ads. Bring your own ROM."
+      content="Free retro game emulator online — play NES, Sega Genesis / Mega Drive, Game Boy, and Neo Geo games directly in your browser. Powered by EmulatorJS. No install, no ads. Bring your own ROM."
     />
     <meta
       name="keywords"
-      content="online emulator, retro game emulator, NES emulator online, Sega Genesis emulator, Mega Drive emulator, Game Boy emulator, browser emulator, play retro games online, 8-bit emulator, 16-bit emulator, EmulatorJS, free emulator, no install emulator"
+      content="online emulator, retro game emulator, NES emulator online, Sega Genesis emulator, Mega Drive emulator, Game Boy emulator, Neo Geo emulator, browser emulator, play retro games online, 8-bit emulator, 16-bit emulator, EmulatorJS, free emulator, no install emulator"
     />
 
     <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Retro Emulator" />
-    <meta property="og:title" content="Retro Game Emulator — NES, Sega &amp; Game Boy Online" />
+    <meta
+      property="og:title"
+      content="Retro Game Emulator — NES, Sega, Game Boy &amp; Neo Geo Online"
+    />
     <meta
       property="og:description"
-      content="Play NES, Sega Genesis, and Game Boy games in your browser. Powered by EmulatorJS. Free, no install, no ads. Bring your own ROM or browse the built-in collection."
+      content="Play NES, Sega Genesis, Game Boy, and Neo Geo games in your browser. Powered by EmulatorJS. Free, no install, no ads. Bring your own ROM or browse the built-in collection."
     />
     <meta property="og:url" content="https://joeheyming.github.io/emulator/" />
     <meta
@@ -44,10 +47,13 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="Retro Game Emulator — NES, Sega &amp; Game Boy Online" />
+    <meta
+      name="twitter:title"
+      content="Retro Game Emulator — NES, Sega, Game Boy &amp; Neo Geo Online"
+    />
     <meta
       name="twitter:description"
-      content="Play NES, Sega Genesis, and Game Boy games in your browser. Free, no install. Bring your own ROM."
+      content="Play NES, Sega Genesis, Game Boy, and Neo Geo games in your browser. Free, no install. Bring your own ROM."
     />
     <meta
       name="twitter:image"
@@ -76,11 +82,12 @@
               "NES Emulator Online",
               "Sega Genesis Emulator Online",
               "Game Boy Emulator Online",
+              "Neo Geo Emulator Online",
               "Mega Drive Emulator Browser"
             ],
             "applicationCategory": "GameApplication",
             "operatingSystem": "Web Browser",
-            "description": "Free online emulator for NES, Sega Genesis / Mega Drive, and Game Boy. Powered by EmulatorJS WebAssembly cores. No install, no ads. Bring your own ROM file or browse the built-in public-domain collection.",
+            "description": "Free online emulator for NES, Sega Genesis / Mega Drive, Game Boy, and Neo Geo. Powered by EmulatorJS WebAssembly cores. No install, no ads. Bring your own ROM file or browse the built-in public-domain collection.",
             "url": "https://joeheyming.github.io/emulator/",
             "author": {
               "@type": "Person",
@@ -89,7 +96,7 @@
             },
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
             "featureList": [
-              "Play NES, Sega Genesis, and Game Boy games in your browser",
+              "Play NES, Sega Genesis, Game Boy, and Neo Geo games in your browser",
               "Save and load game states (F5 / F9)",
               "Keyboard and gamepad controller support",
               "Touch controls on mobile",
@@ -97,7 +104,7 @@
               "Bring your own ROM file or browse Internet Archive collection",
               "No install, no ads, no signup"
             ],
-            "keywords": "online emulator, NES emulator, Sega Genesis emulator, Game Boy emulator, retro gaming, EmulatorJS",
+            "keywords": "online emulator, NES emulator, Sega Genesis emulator, Game Boy emulator, Neo Geo emulator, retro gaming, EmulatorJS",
             "inLanguage": "en",
             "gamePlatform": ["Web Browser", "HTML5"]
           },
@@ -109,7 +116,7 @@
                 "name": "Where do ROMs come from?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "You bring your own. The picker accepts any .nes, .md / .bin / .gen / .smd, .gb, or .gbc file from disk; the optional ROM browser surfaces public-domain titles hosted on the Internet Archive. No ROMs are bundled with the page itself."
+                  "text": "You bring your own. The picker accepts any .nes, .md / .bin / .gen / .smd, .gb, .gbc, or arcade .zip file from disk; the optional ROM browser surfaces titles hosted on the Internet Archive (including a Neo Geo FBNeo set). Neo Geo auto-fetches neogeo.zip BIOS on first play. No ROMs are bundled with the page itself."
                 }
               },
               {
@@ -141,7 +148,7 @@
                 "name": "Can I play on a TV, Xbox, or PlayStation browser?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Often yes on Xbox and PlayStation browsers when the page can enable cross-origin isolation (needed for EmulatorJS). Use the on-screen ROM collection — there is no local file picker on those devices — and a controller or remote D-pad to navigate. Smart TVs vary; if the emulator cannot start you will see a clear message. Preview the lean-back layout on desktop with ?tv=1. Deep-link a title with ?console=nes&rom=GameName."
+                  "text": "Often yes on Xbox and PlayStation browsers when the page can enable cross-origin isolation (needed for EmulatorJS). Use the on-screen ROM collection — there is no local file picker on those devices — and a controller or remote D-pad to navigate. Smart TVs vary; if the emulator cannot start you will see a clear message. Preview the lean-back layout on desktop with ?tv=1. Deep-link a title with ?console=nes&rom=GameName. Neo Geo is desktop-only for now (BIOS + local ZIP)."
                 }
               },
               {
@@ -149,7 +156,7 @@
                 "name": "What emulator cores are used?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "The shell is EmulatorJS, which embeds RetroArch cores compiled to WebAssembly. Each console runs the standard core: FCEUmm for NES, genesis_plus_gx for Sega Genesis / Mega Drive, and gambatte for Game Boy / Game Boy Color."
+                  "text": "The shell is EmulatorJS, which embeds RetroArch cores compiled to WebAssembly. Each console runs the standard core: FCEUmm for NES, genesis_plus_gx for Sega Genesis / Mega Drive, gambatte for Game Boy / Game Boy Color, and FinalBurn Neo (arcade) for Neo Geo."
                 }
               }
             ]
@@ -209,6 +216,7 @@
       class="hidden-input"
       accept=".nes,.md,.bin,.gen,.smd,.gb,.gbc,.zip,.7z"
     />
+    <input type="file" id="biosFileInput" class="hidden-input" accept=".zip,.7z" />
 
     <!-- Boot overlay. The two child slots (#brand, #boot-card) are
          filled in by launch.js based on `?console=`. Static fallback
@@ -218,7 +226,7 @@
         <span class="brand-logo">🎮</span>
         <h1>
           Retro Game Emulator
-          <span class="sub">NES · Sega Genesis · Game Boy · in your browser</span>
+          <span class="sub">NES · Sega · Game Boy · Neo Geo · in your browser</span>
         </h1>
       </div>
 
@@ -240,6 +248,11 @@
             <span class="picker-title">Game Boy</span>
             <span class="picker-sub">Game Boy &amp; Game Boy Color</span>
           </a>
+          <a class="picker-tile" href="?console=neogeo">
+            <span class="picker-emoji">🥊</span>
+            <span class="picker-title">Neo Geo</span>
+            <span class="picker-sub">AES / MVS Arcade</span>
+          </a>
         </div>
         <p class="picker-help">
           Free, browser-based emulators. No install, no ads. Bring your own ROM or browse the
@@ -251,8 +264,8 @@
       <footer class="seo-intro" hidden>
         <h2>Free Online Retro Game Emulator</h2>
         <p>
-          Play classic NES (Nintendo Entertainment System), Sega Genesis / Mega Drive, and Game Boy
-          games directly in your browser. No download, no install, no ads. Bring your own
+          Play classic NES (Nintendo Entertainment System), Sega Genesis / Mega Drive, Game Boy, and
+          Neo Geo games directly in your browser. No download, no install, no ads. Bring your own
           <code>.nes</code>
           ,
           <code>.md</code>
@@ -262,10 +275,14 @@
           <code>.gen</code>
           ,
           <code>.gb</code>
-          , or
+          ,
           <code>.gbc</code>
-          ROM file, or browse a built-in public-domain collection. Powered by EmulatorJS with the
-          FCEUmm, genesis_plus_gx, and gambatte libretro cores.
+          , or arcade
+          <code>.zip</code>
+          ROM file, or browse a built-in public-domain collection. Neo Geo needs a one-time
+          <code>neogeo.zip</code>
+          system BIOS. Powered by EmulatorJS with the FCEUmm, genesis_plus_gx, gambatte, and
+          FinalBurn Neo libretro cores.
         </p>
         <nav aria-label="More retro games">
           <strong>More retro games from Joe Heyming:</strong>

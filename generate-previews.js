@@ -21,7 +21,7 @@ const PAGES = [
   {
     url: `${BASE_URL}/emulator/`,
     output: 'emulator/emulator-preview.png',
-    title: 'Retro Emulator (NES / Sega / Game Boy)'
+    title: 'Retro Emulator (NES / Sega / Game Boy / Neo Geo)'
   },
   {
     url: `${BASE_URL}/calculator/`,

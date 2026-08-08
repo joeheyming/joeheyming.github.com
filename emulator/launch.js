@@ -19,8 +19,13 @@
   'use strict';
 
   const SHELL_LOADED_AT = Date.now();
+  const BIOS_IDB_NAME = 'heyming-emulator-bios';
+  const BIOS_IDB_VERSION = 1;
+  const BIOS_STORE = 'bios';
   let coiBlocked = false;
   let pickerRoving = null;
+  /** @type {File|null} BIOS file for the active console (IndexedDB or picker). */
+  let activeBiosFile = null;
 
   function ready(fn) {
     if (document.readyState !== 'loading') fn();
@@ -59,6 +64,217 @@
     if (!m) return hex;
     const n = parseInt(m[1], 16);
     return `rgba(${(n >> 16) & 0xff}, ${(n >> 8) & 0xff}, ${n & 0xff}, ${alpha})`;
+  }
+
+  function openBiosDb() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(BIOS_IDB_NAME, BIOS_IDB_VERSION);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(BIOS_STORE)) {
+          db.createObjectStore(BIOS_STORE);
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function loadBiosFromIdb(key) {
+    const db = await openBiosDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(BIOS_STORE, 'readonly');
+      const req = tx.objectStore(BIOS_STORE).get(key);
+      req.onsuccess = () => {
+        const record = req.result;
+        if (!record || !record.buffer) {
+          resolve(null);
+          return;
+        }
+        resolve(
+          new File([record.buffer], record.name || 'neogeo.zip', {
+            type: record.type || 'application/zip'
+          })
+        );
+      };
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function saveBiosToIdb(key, file) {
+    const buffer = await file.arrayBuffer();
+    const record = {
+      name: file.name || 'neogeo.zip',
+      type: file.type || 'application/zip',
+      buffer
+    };
+    const db = await openBiosDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(BIOS_STORE, 'readwrite');
+      const req = tx.objectStore(BIOS_STORE).put(record, key);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function clearBiosFromIdb(key) {
+    const db = await openBiosDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(BIOS_STORE, 'readwrite');
+      const req = tx.objectStore(BIOS_STORE).delete(key);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  /** Ensure FBNeo sees the canonical BIOS filename regardless of upload name. */
+  function normalizeBiosFile(file, cfg) {
+    const wanted = (cfg && cfg.biosFileName) || 'neogeo.zip';
+    if (file.name === wanted) return file;
+    return new File([file], wanted, { type: file.type || 'application/zip' });
+  }
+
+  function updateBiosStatusUi(cfg) {
+    const status = document.getElementById('biosStatus');
+    const clearBtn = document.getElementById('clearBiosBtn');
+    if (!status) return;
+    if (activeBiosFile) {
+      status.textContent = `BIOS ready (${activeBiosFile.name}) — stored in this browser.`;
+      status.dataset.ready = '1';
+      if (clearBtn) clearBtn.hidden = false;
+    } else {
+      status.textContent = `BIOS needed: load ${(cfg && cfg.biosFileName) || 'neogeo.zip'} once.`;
+      status.dataset.ready = '0';
+      if (clearBtn) clearBtn.hidden = true;
+    }
+  }
+
+  function biosIaUrl(cfg) {
+    if (!cfg || !cfg.iaBaseUrl || !cfg.biosFileName) return null;
+    const bases = Array.isArray(cfg.iaBaseUrl) ? cfg.iaBaseUrl : [cfg.iaBaseUrl];
+    const base = bases.find(Boolean);
+    if (!base) return null;
+    return `${String(base).replace(/\/$/, '')}/${cfg.biosFileName}`;
+  }
+
+  async function fetchBiosFromIa(cfg) {
+    const url = biosIaUrl(cfg);
+    if (!url || !window.proxyService) return null;
+    const data = await window.proxyService.fetchBinaryWithProxy(url, {
+      headers: { Accept: 'application/octet-stream,*/*' },
+      timeout: 60000,
+      maxRetries: 3
+    });
+    if (!data) return null;
+    return new File([data], cfg.biosFileName, { type: 'application/zip' });
+  }
+
+  /**
+   * Resolve BIOS from memory → IndexedDB → Internet Archive (when the
+   * console ships biosFileName inside its IA collection). Persists a
+   * successful IA fetch so the next visit skips the download.
+   */
+  async function ensureActiveBios(cfg, opts) {
+    opts = opts || {};
+    if (!cfg || !cfg.biosRequired) return true;
+    if (activeBiosFile) return true;
+
+    const key = cfg.biosStorageKey || cfg.id;
+    try {
+      const fromDb = await loadBiosFromIdb(key);
+      if (fromDb) {
+        activeBiosFile = normalizeBiosFile(fromDb, cfg);
+        updateBiosStatusUi(cfg);
+        return true;
+      }
+    } catch (err) {
+      console.warn('BIOS IndexedDB read failed:', err);
+    }
+
+    if (!biosIaUrl(cfg)) return false;
+
+    if (opts.statusMessage !== false) {
+      const status = document.getElementById('biosStatus');
+      if (status) {
+        status.textContent = `Fetching ${cfg.biosFileName} from Internet Archive…`;
+        status.dataset.ready = '0';
+      }
+    }
+
+    try {
+      const file = await fetchBiosFromIa(cfg);
+      if (!file) throw new Error('Empty BIOS download');
+      const normalized = normalizeBiosFile(file, cfg);
+      try {
+        await saveBiosToIdb(key, normalized);
+      } catch (err) {
+        console.warn('BIOS IndexedDB save failed:', err);
+      }
+      activeBiosFile = normalized;
+      updateBiosStatusUi(cfg);
+      return true;
+    } catch (err) {
+      console.warn('BIOS Internet Archive fetch failed:', err);
+      statusBiosError(`Could not fetch ${cfg.biosFileName}. Load it manually, then try again.`);
+      return false;
+    }
+  }
+
+  function wireBiosControls(cfg) {
+    if (!cfg || !cfg.biosRequired) {
+      activeBiosFile = null;
+      return;
+    }
+
+    const biosInput = document.getElementById('biosFileInput');
+    const loadBiosBtn = document.getElementById('loadBiosBtn');
+    const clearBiosBtn = document.getElementById('clearBiosBtn');
+
+    const key = cfg.biosStorageKey || cfg.id;
+    activeBiosFile = null;
+    updateBiosStatusUi(cfg);
+
+    // IDB first, then auto-pull from the IA collection when available.
+    ensureActiveBios(cfg).catch((err) => {
+      console.warn('BIOS ensure failed:', err);
+    });
+
+    if (loadBiosBtn && biosInput) {
+      loadBiosBtn.addEventListener('click', () => biosInput.click());
+      biosInput.onchange = async function () {
+        const file = this.files && this.files[0];
+        this.value = '';
+        if (!file) return;
+        try {
+          const normalized = normalizeBiosFile(file, cfg);
+          await saveBiosToIdb(key, normalized);
+          activeBiosFile = normalized;
+          updateBiosStatusUi(cfg);
+        } catch (err) {
+          console.error('BIOS save failed:', err);
+          statusBiosError('Could not save BIOS in this browser. Try again.');
+        }
+      };
+    }
+
+    if (clearBiosBtn) {
+      clearBiosBtn.addEventListener('click', async () => {
+        try {
+          await clearBiosFromIdb(key);
+        } catch (err) {
+          console.warn('BIOS IndexedDB clear failed:', err);
+        }
+        activeBiosFile = null;
+        updateBiosStatusUi(cfg);
+      });
+    }
+  }
+
+  function statusBiosError(message) {
+    const status = document.getElementById('biosStatus');
+    if (!status) return;
+    status.textContent = message;
+    status.dataset.ready = '0';
   }
 
   function gamepadBannerHtml() {
@@ -159,6 +375,30 @@
           <span>Load Local ROM File (${escapeHtml(cfg.fileExtsLabel)})</span>
         </button>`;
 
+    const biosPanelHtml =
+      cfg.biosRequired && !tv
+        ? `
+        <div class="bios-panel" id="biosPanel">
+          <p class="bios-status" id="biosStatus" data-ready="0"></p>
+          <div class="bios-actions">
+            <button class="btn btn-secondary" id="loadBiosBtn" type="button">
+              <span>🧬</span>
+              <span>Load BIOS (${escapeHtml(cfg.biosFileName || 'neogeo.zip')})</span>
+            </button>
+            <button class="btn-text" id="clearBiosBtn" type="button" hidden>Clear BIOS</button>
+          </div>
+          <p class="bios-help">${escapeHtml(cfg.biosHelp || '')}</p>
+        </div>`
+        : '';
+
+    const tvNoCollectionHtml =
+      tv && !cfg.iaBaseUrl
+        ? `<p class="picker-help">
+            This console has no built-in collection yet. Open it on a desktop browser
+            to load a local BIOS + ROM.
+          </p>`
+        : '';
+
     const controlsSummary = tv ? 'Controls' : 'Keyboard Controls';
     const gamepadHint = tv
       ? `<p class="controls-gamepad-hint">Gamepad works in-game via the browser Gamepad API.</p>`
@@ -167,10 +407,12 @@
     bootCard.innerHTML = `
       <h2>🕹️ Load a ROM to play</h2>
       ${gamepadBannerHtml()}
+      ${biosPanelHtml}
       <div class="btn-stack">
         <rom-browser console="${cfg.id}"></rom-browser>
         ${filePickerHtml}
       </div>
+      ${tvNoCollectionHtml}
       <details class="controls-info">
         <summary>${controlsSummary}</summary>
         ${gamepadHint}
@@ -186,6 +428,7 @@
       loadBtn.addEventListener('click', () => romInput.click());
     }
 
+    wireBiosControls(cfg);
     wireTvFocus(bootCard);
   }
 
@@ -198,7 +441,7 @@
       <span class="brand-logo">🎮</span>
       <h1>
         Retro Game Emulator
-        <span class="sub">NES · Sega Genesis · Game Boy · in your browser</span>
+        <span class="sub">NES · Sega · Game Boy · Neo Geo · in your browser</span>
       </h1>
     `;
 
@@ -234,7 +477,8 @@
     return new window.InternetArchiveRoms({
       baseUrl: cfg.iaBaseUrl,
       descriptionPrefix: cfg.iaDescriptionPrefix,
-      fileExtensions: cfg.iaFileExtensions
+      fileExtensions: cfg.iaFileExtensions,
+      excludeNames: cfg.iaExcludeNames
     });
   }
 
@@ -364,7 +608,7 @@
   // old custom NES emulator.
   //
   // opts.deeplink — prefix the GA label with `deeplink:` for deep-link loads.
-  window.launchEmulator = function launchEmulator(romSource, romName, opts) {
+  window.launchEmulator = async function launchEmulator(romSource, romName, opts) {
     opts = opts || {};
     const cfg = window.getEmulatorConsole && window.getEmulatorConsole();
     if (!cfg) {
@@ -375,6 +619,15 @@
     if (!window.crossOriginIsolated) {
       markCoiUnavailable();
       return;
+    }
+
+    if (cfg.biosRequired) {
+      const ok = await ensureActiveBios(cfg);
+      if (!ok || !activeBiosFile) {
+        renderBootCard(cfg);
+        statusBiosError(`Load ${cfg.biosFileName || 'neogeo.zip'} before starting a game.`);
+        return;
+      }
     }
 
     const bootEl = document.getElementById('boot');
@@ -395,6 +648,12 @@
       getComputedStyle(document.documentElement).getPropertyValue('--accent-bright').trim() ||
       cfg.accentHex;
     window.EJS_defaultControls = 1;
+
+    if (cfg.biosRequired && activeBiosFile) {
+      // Same shape as EJS_gameUrl (File). EmulatorJS reads .name so the
+      // canonical neogeo.zip filename is preserved for FBNeo.
+      window.EJS_biosUrl = activeBiosFile;
+    }
     // Exit Emulation: by default EmulatorJS leaves the user staring at an
     // "EmulatorJS has exited" message because a WASM instance can't be
     // unloaded in place. Override the toolbar button to reload back to the

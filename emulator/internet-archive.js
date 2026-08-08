@@ -34,6 +34,9 @@
         config.fileExtensions && config.fileExtensions.length ? config.fileExtensions : ['.zip']
       ).map((e) => e.toLowerCase());
       this.fileExtensions = exts.slice().sort((a, b) => b.length - a.length);
+      // Optional lowercase basenames to drop from the directory listing
+      // (e.g. Neo Geo's neogeo.zip / gg-bios.zip system files).
+      this.excludeNames = new Set((config.excludeNames || []).map((n) => String(n).toLowerCase()));
       this.romCache = null;
       this.cacheTimestamp = null;
       this.cacheExpiry = 30 * 60 * 1000;
@@ -125,6 +128,7 @@
         if (!ext) return;
         const romName = filename.slice(0, filename.length - ext.length).trim();
         if (!romName) return;
+        if (this.excludeNames.has(romName.toLowerCase())) return;
         if (roms.some((rom) => rom.name === romName)) return;
         // IA's directory listing always serves a pre-encoded relative href
         // (e.g. `Pokemon%20Yellow%20...gbc`). Prefer that exact encoding —

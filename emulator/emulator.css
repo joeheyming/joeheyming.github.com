@@ -170,6 +170,58 @@ body {
   width: 100%;
 }
 
+.bios-panel {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--accent-bright-soft);
+}
+
+.bios-status {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.bios-status[data-ready='1'] {
+  color: var(--accent-gold);
+  font-weight: 600;
+}
+
+.bios-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.bios-actions .btn {
+  flex: 1 1 auto;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 4px 2px;
+}
+
+.btn-text:hover {
+  color: var(--text);
+}
+
+.bios-help {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.45;
+}
+
 .divider {
   text-align: center;
   color: var(--text-dim);
@@ -291,18 +343,19 @@ kbd {
   display: none;
 }
 
-/* Picker (when no ?console= is set) — three tiles that mirror the
+/* Picker (when no ?console= is set) — tiles that mirror the
  * boot-card identity language. Hover behavior matches .btn-primary
- * so the affordance reads the same. */
+ * so the affordance reads the same. Four consoles → 2×2 by default,
+ * one row on wide viewports. */
 .picker-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
-@media (min-width: 540px) {
+@media (min-width: 720px) {
   .picker-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 

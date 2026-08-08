@@ -79,8 +79,8 @@ function makeSearchTracker(location) {
 // only so the home gallery's "popular first" ordering still works for them.
 //
 // 2026-07-12: rebuilt from nav-drawer click ranking — the drawer is the
-// primary cross-app-discovery surface. Console family (sega + gameboy) is
-// grouped alongside nes so the emulators are discoverable together.
+// primary cross-app-discovery surface. Console family (sega + gameboy +
+// neogeo) is grouped alongside nes so the emulators are discoverable together.
 // Dropped from strip (still in the gallery): minesweeper, badapple, terminal.
 const POPULAR_APP_IDS = [
   'doom',
@@ -94,7 +94,8 @@ const POPULAR_APP_IDS = [
   'farm',
   'watch',
   'sega',
-  'gameboy'
+  'gameboy',
+  'neogeo'
 ];
 
 // Section grouping for the full gallery. Order is presentation order on
@@ -102,7 +103,7 @@ const POPULAR_APP_IDS = [
 // /play/* music family carved out so it gets its own bucket.
 //
 // Sub-category carve-outs (registry field `subCategory`, see apps-registry.json):
-//   "console" — nes / sega / gameboy get their own "Retro consoles" bucket
+//   "console" — nes / sega / gameboy / neogeo get their own "Retro consoles" bucket
 //                instead of appearing under "Games".
 //   "music"   — piano-hero / accordion-hero join the /play/* music family
 //                under "Make music" instead of appearing under "Games".
@@ -119,7 +120,7 @@ const GALLERY_SECTIONS = [
     id: 'consoles',
     icon: '🎮',
     title: 'Retro consoles',
-    blurb: 'Emulate NES, Sega Genesis, and Game Boy right in the browser.',
+    blurb: 'Emulate NES, Sega Genesis, Game Boy, and Neo Geo right in the browser.',
     filter: (app) => app.subCategory === 'console'
   },
   {

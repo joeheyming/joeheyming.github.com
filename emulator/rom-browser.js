@@ -35,7 +35,8 @@ class RomBrowserElement extends HTMLElement {
     this._ia = new window.InternetArchiveRoms({
       baseUrl: cfg.iaBaseUrl,
       descriptionPrefix: cfg.iaDescriptionPrefix,
-      fileExtensions: cfg.iaFileExtensions
+      fileExtensions: cfg.iaFileExtensions,
+      excludeNames: cfg.iaExcludeNames
     });
     return this._ia;
   }

@@ -1082,7 +1082,7 @@
     "taskbarGradient": "from-stone-600 to-indigo-700",
     "taskbarText": "text-white",
     "tags": ["retro", "emulator", "nintendo", "8-bit", "popular"],
-    "related": ["doom", "pacman", "stepmania", "minesweeper"],
+    "related": ["sega", "gameboy", "neogeo", "doom", "pacman", "stepmania", "minesweeper"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "NES Emulator",
@@ -1117,7 +1117,7 @@
     "taskbarGradient": "from-blue-700 to-cyan-600",
     "taskbarText": "text-white",
     "tags": ["retro", "emulator", "sega", "16-bit"],
-    "related": ["nes", "doom", "pacman", "stepmania"],
+    "related": ["nes", "gameboy", "neogeo", "doom", "pacman", "stepmania"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "Sega Genesis",
@@ -1152,7 +1152,7 @@
     "taskbarGradient": "from-violet-700 to-purple-600",
     "taskbarText": "text-white",
     "tags": ["retro", "emulator", "nintendo", "gameboy", "8-bit"],
-    "related": ["nes", "sega", "doom", "pacman"],
+    "related": ["nes", "sega", "neogeo", "doom", "pacman"],
     "shareCategory": "game",
     "featured": {
       "order": 13,
@@ -1161,6 +1161,36 @@
       "tagsLine": "🕹️ Game • 🎮 Retro",
       "preset": "gameboy",
       "analyticsLabel": "GameBoy"
+    },
+    "appTier": "experience",
+    "geo": false
+  },
+  {
+    "id": "neogeo",
+    "name": "Neo Geo 🥊",
+    "shortName": "Neo Geo",
+    "description": "Neo Geo AES / MVS emulator",
+    "detailedDescription": "Play Neo Geo AES and MVS arcade games in your browser. Browse the built-in Internet Archive collection or bring your own FBNeo .zip — neogeo.zip BIOS auto-loads once and stays locally. Part of the unified emulator shell (EmulatorJS / FinalBurn Neo).",
+    "icon": "🥊",
+    "path": "./emulator/?console=neogeo",
+    "category": "game",
+    "subCategory": "console",
+    "defaultWidth": 1024,
+    "defaultHeight": 768,
+    "gradient": "from-yellow-600/20 to-stone-800/20",
+    "border": "border-yellow-500/30 hover:border-yellow-400/50",
+    "taskbarGradient": "from-yellow-600 to-stone-800",
+    "taskbarText": "text-white",
+    "tags": ["retro", "emulator", "neogeo", "arcade", "snk", "16-bit"],
+    "related": ["nes", "sega", "gameboy", "doom"],
+    "shareCategory": "game",
+    "featured": {
+      "order": 14,
+      "headline": "Neo Geo Emulator",
+      "blurb": "SNK arcade classics in your browser. Built-in collection + optional local ROMs.",
+      "tagsLine": "🕹️ Game • 🎮 Arcade",
+      "preset": "neogeo",
+      "analyticsLabel": "NeoGeo"
     },
     "appTier": "experience",
     "geo": false

@@ -4,6 +4,8 @@
 // matter of dropping a record in here and pushing a card on the picker —
 // every other shared file (rom-browser, launch, internet-archive) reads
 // from this object and reconfigures itself automatically.
+// Consoles that need a system BIOS (Neo Geo) set `biosRequired` +
+// `biosFileName`; launch.js persists the upload in IndexedDB.
 //
 // EmulatorJS core IDs come from https://emulatorjs.org/docs/Options#ejs_core.
 // `iaBaseUrl` is the Internet Archive collection used by the ROM browser;
@@ -96,6 +98,42 @@
         { label: 'A button', key: 'Z' },
         { label: 'B button', key: 'X' },
         { label: 'Select', key: 'V' },
+        { label: 'Start', key: 'Enter' },
+        { label: 'Save state', key: 'F5' },
+        { label: 'Load state', key: 'F9' }
+      ]
+    },
+
+    neogeo: {
+      id: 'neogeo',
+      title: 'Neo Geo',
+      subtitle: 'AES / MVS Arcade',
+      emoji: '🥊',
+      // EmulatorJS arcade core → FinalBurn Neo (handles Neo Geo AES/MVS).
+      ejsCore: 'arcade',
+      fileAccept: '.zip,.7z',
+      fileExtsLabel: '.zip (FBNeo set)',
+      // SNK yellow-on-black identity.
+      accentHex: '#eab308',
+      accentGoldHex: '#a16207',
+      // Flat per-game FBNeo zips (includes neogeo.zip BIOS in the same item).
+      iaBaseUrl: 'https://archive.org/download/Neo-geoRomCollectionByGhostware',
+      iaDescriptionPrefix: 'Neo Geo game',
+      // BIOS / system zips live in the collection but aren't playable titles.
+      iaExcludeNames: ['neogeo', 'gg-bios'],
+      // FBNeo looks up the BIOS by filename; keep this exact.
+      biosRequired: true,
+      biosFileName: 'neogeo.zip',
+      biosStorageKey: 'neogeo',
+      biosHelp:
+        'BIOS (neogeo.zip) auto-loads from the collection on first play and stays in this browser. You can also upload your own.',
+      controls: [
+        { label: 'D-Pad', key: 'Arrow keys' },
+        { label: 'A button', key: 'Z' },
+        { label: 'B button', key: 'X' },
+        { label: 'C button', key: 'A' },
+        { label: 'D button', key: 'S' },
+        { label: 'Coin / Select', key: 'V' },
         { label: 'Start', key: 'Enter' },
         { label: 'Save state', key: 'F5' },
         { label: 'Load state', key: 'F9' }
