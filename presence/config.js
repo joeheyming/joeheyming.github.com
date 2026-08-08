@@ -18,18 +18,18 @@
     // Google Form `formResponse` URL.
     // https://docs.google.com/forms/d/e/<FORM_ID>/formResponse
     formActionUrl:
-      'https://docs.google.com/forms/d/e/1FAIpQLSemGs2Xiri6tPcjiyMAex9gzhtNTQY6JUxxm_BtaoJuZ3YkgA/formResponse',
+      'https://docs.google.com/forms/d/e/1FAIpQLScofWTub-sqgHSpV6VbSnBWLCTfnafIAClXHk8nUMmPvUJbpA/formResponse',
 
     // entry.NNNNNNNN field IDs from the form's prefilled / viewform URL.
     entryIds: {
-      uuid: 'entry.557403110',
-      page: 'entry.1467466193',
-      honeypot: 'entry.1849045856'
+      uuid: 'entry.932545744',
+      page: 'entry.477995220',
+      honeypot: 'entry.593284956'
     },
 
     // Spreadsheet ID (between /spreadsheets/d/ and /edit) and Presence tab name.
     // gviz: https://docs.google.com/spreadsheets/d/<SHEET_ID>/gviz/tq?tqx=out:json&sheet=Presence
-    sheetId: '1_-qPON0DxlzskNV5dJsKN5uLS2AyjL6VOg9wkLyD3DM',
+    sheetId: '1DkHeVQf6C8d636fHyTqlLDTkL8laXtuMUlbnUguos84',
     presenceTab: 'Presence'
   };
 
