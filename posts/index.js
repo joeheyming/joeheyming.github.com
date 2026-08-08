@@ -1,5 +1,5 @@
 import { CONFIG, isConfigured } from './config.js';
-import { assertImagesSafe, isImageAttachment } from './moderate.js';
+import { assertImagesSafe, assertTextSafe, isImageAttachment } from './moderate.js';
 import { encodeAttachments, formBodyByteLength } from './upload.js';
 import { loadDraft } from './share-client.js';
 
@@ -17,7 +17,8 @@ const NOTE_COLORS = ['#fff3a6', '#ffd6e7', '#cceeff', '#d9f7be', '#ffe0b5', '#e4
  *   x?: number,
  *   y?: number,
  *   draft?: boolean,
- *   pending?: boolean
+ *   pending?: boolean,
+ *   pinning?: boolean
  * }} Post
  */
 
@@ -397,6 +398,10 @@ async function onPaste(e) {
 }
 
 function discardDraft(note) {
+  if (note.pinning) {
+    setStatus('Still pinning — wait for moderation to finish', true);
+    return;
+  }
   for (const item of note.attachments) {
     if (item && typeof item === 'object' && item.revoke) URL.revokeObjectURL(item.url);
   }
@@ -407,6 +412,7 @@ function discardDraft(note) {
 }
 
 async function pinDraft(note) {
+  if (note.pinning) return;
   if (els.honeypot?.value.trim()) {
     setStatus('Thanks!');
     return;
@@ -417,8 +423,16 @@ async function pinDraft(note) {
     return;
   }
 
-  setStatus(note.attachments.length ? 'Encoding attachments…' : 'Pinning…');
+  note.pinning = true;
+  renderBoard();
+
   try {
+    if (text) {
+      setStatus('Checking text…');
+      await assertTextSafe(text);
+    }
+
+    setStatus(note.attachments.length ? 'Encoding attachments…' : 'Pinning…');
     const rawInputs = note.attachments.map((item) =>
       typeof item === 'string' ? item : item.blob || item.url
     );
@@ -494,6 +508,9 @@ async function pinDraft(note) {
   } catch (err) {
     console.error(err);
     setStatus(err instanceof Error ? err.message : 'Pin failed', true);
+  } finally {
+    note.pinning = false;
+    if (posts.some((p) => p.id === note.id && p.draft)) renderBoard();
   }
 }
 
@@ -857,6 +874,7 @@ function attachNoteDragging(article, post) {
   let drag = null;
 
   article.addEventListener('pointerdown', (event) => {
+    if (post.pinning) return;
     if (event.button !== 0 || isInteractiveDragTarget(event.target)) return;
     const surface = article.parentElement;
     if (!surface) return;
@@ -928,6 +946,7 @@ function attachNoteKeyboardMovement(article, post) {
   };
 
   article.addEventListener('keydown', (event) => {
+    if (post.pinning) return;
     if (event.target !== article || !(event.key in deltas)) return;
     event.preventDefault();
 
@@ -997,7 +1016,7 @@ async function persistMove(post, previousPosition) {
 
 function renderDraftNote(post) {
   const article = document.createElement('article');
-  article.className = 'post draft';
+  article.className = 'post draft' + (post.pinning ? ' pinning' : '');
   styleNote(article, post);
 
   const discard = document.createElement('button');
@@ -1006,6 +1025,7 @@ function renderDraftNote(post) {
   discard.textContent = '×';
   discard.title = 'Discard draft';
   discard.setAttribute('aria-label', 'Discard draft');
+  discard.disabled = Boolean(post.pinning);
   discard.addEventListener('click', () => discardDraft(post));
 
   const editor = document.createElement('div');
@@ -1015,6 +1035,7 @@ function renderDraftNote(post) {
   text.placeholder = 'Write on this note… (markdown ok)';
   text.maxLength = 8000;
   text.value = post.text;
+  text.disabled = Boolean(post.pinning);
   text.addEventListener('input', () => {
     post.text = text.value;
   });
@@ -1034,6 +1055,7 @@ function renderDraftNote(post) {
   name.placeholder = 'Name or email (optional)';
   name.autocomplete = 'name';
   name.value = post.email;
+  name.disabled = Boolean(post.pinning);
   name.addEventListener('input', () => {
     post.email = name.value;
   });
@@ -1049,6 +1071,7 @@ function renderDraftNote(post) {
   fileBtn.className = 'file-btn';
   fileBtn.textContent = 'Attach';
   fileBtn.title = 'Attach an image or audio file, or drop one on this note';
+  fileBtn.disabled = Boolean(post.pinning);
   fileBtn.addEventListener('click', () => {
     activeDraftId = post.id;
     els.file?.click();
@@ -1057,7 +1080,8 @@ function renderDraftNote(post) {
   const pin = document.createElement('button');
   pin.type = 'button';
   pin.className = 'btn primary sm';
-  pin.textContent = 'Pin';
+  pin.textContent = post.pinning ? 'Pinning…' : 'Pin';
+  pin.disabled = Boolean(post.pinning);
   pin.addEventListener('click', () => {
     activeDraftId = post.id;
     void pinDraft(post);
@@ -1086,7 +1110,9 @@ function renderDraftThumbs(post, thumbs) {
     btn.type = 'button';
     btn.setAttribute('aria-label', 'Remove attachment');
     btn.textContent = '×';
+    btn.disabled = Boolean(post.pinning);
     btn.addEventListener('click', () => {
+      if (post.pinning) return;
       const removed = post.attachments.splice(i, 1)[0];
       if (removed && typeof removed === 'object' && removed.revoke) {
         URL.revokeObjectURL(removed.url);

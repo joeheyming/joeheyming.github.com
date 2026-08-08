@@ -1,6 +1,11 @@
-// Soft client-side NSFW gate for Posts image attachments (nsfwjs).
-// Lazy-loads TensorFlow.js + nsfwjs on first image pin. https:// URLs and
-// audio are skipped here — Apps Script covers public image URLs when configured.
+// Soft client-side image gate for Posts (nsfwjs).
+// Lazy-loads TensorFlow.js models on first use. https:// image URLs and audio
+// are skipped here — Apps Script covers public image URLs when configured.
+// Text gate lives in textfilter.js (re-exported below for callers).
+
+import { assertTextSafe } from './textfilter.js';
+
+export { assertTextSafe };
 
 const NSFW_THRESHOLD = 0.6;
 const BLOCK_CLASSES = new Set(['Porn', 'Hentai']);
@@ -8,7 +13,7 @@ const TFJS_URL = 'https://esm.sh/@tensorflow/tfjs@4.22.0';
 const NSFWJS_URL = 'https://esm.sh/nsfwjs@4.2.1?deps=@tensorflow/tfjs@4.22.0';
 
 /** @type {Promise<{ classify: (img: HTMLImageElement) => Promise<Array<{ className: string, probability: number }>> }>|null} */
-let modelPromise = null;
+let imageModelPromise = null;
 
 /**
  * True for in-browser image blobs / data URLs. False for audio and https://
@@ -27,18 +32,18 @@ export function isImageAttachment(input) {
 /**
  * @returns {Promise<{ classify: (img: HTMLImageElement) => Promise<Array<{ className: string, probability: number }>> }>}
  */
-function getModel() {
-  if (!modelPromise) {
-    modelPromise = (async () => {
+function getImageModel() {
+  if (!imageModelPromise) {
+    imageModelPromise = (async () => {
       await import(/* @vite-ignore */ TFJS_URL);
       const nsfwjs = await import(/* @vite-ignore */ NSFWJS_URL);
       return nsfwjs.load();
     })().catch((err) => {
-      modelPromise = null;
+      imageModelPromise = null;
       throw err;
     });
   }
-  return modelPromise;
+  return imageModelPromise;
 }
 
 /**
@@ -79,7 +84,7 @@ export async function assertImageSafe(input) {
 
   let model;
   try {
-    model = await getModel();
+    model = await getImageModel();
   } catch (err) {
     console.warn('Posts image moderation skipped — model load failed', err);
     return;

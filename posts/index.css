@@ -305,6 +305,11 @@ body {
   max-height: none;
 }
 
+.post.draft.pinning {
+  opacity: 0.85;
+  cursor: wait;
+}
+
 .post.draft.drop-target {
   outline: 2px solid var(--accent-primary);
   outline-offset: -3px;
