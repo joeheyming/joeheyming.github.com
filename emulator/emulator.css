@@ -230,6 +230,38 @@ body {
   text-align: left;
 }
 
+.howto {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.howto summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  user-select: none;
+  list-style: none;
+}
+
+.howto summary::-webkit-details-marker {
+  display: none;
+}
+
+.howto ol {
+  margin: 10px 0 0;
+  padding-left: 1.25rem;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.howto li + li {
+  margin-top: 4px;
+}
+
 .divider {
   text-align: center;
   color: var(--text-dim);
@@ -363,7 +395,13 @@ kbd {
 
 @media (min-width: 720px) {
   .picker-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 960px) {
+  .picker-grid {
+    grid-template-columns: repeat(5, 1fr);
   }
 }
 

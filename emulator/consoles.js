@@ -125,12 +125,13 @@
       biosRequired: true,
       biosFileName: 'neogeo.zip',
       biosStorageKey: 'neogeo',
-      biosHelp:
-        'BIOS (neogeo.zip) auto-loads from the collection on first play and stays in this browser. You can also upload your own.',
-      // Shown under the load buttons — arcade dumps from random sites are
-      // the #1 support failure mode (wrong CRC / incomplete zip / no BIOS).
-      romHelp:
-        'Use Browse Collection for Metal Slug and other titles — those zips match this emulator. Random “Neo Geo ROM” downloads (romsgames, etc.) are often incomplete or the wrong FBNeo version and show “romsets is missing files”.',
+      biosHelp: 'BIOS auto-loads once from Internet Archive, then stays in this browser.',
+      // Short steps on the boot card — keep it terse.
+      howto: [
+        'Wait for BIOS “ready”.',
+        'Use Browse Collection (Internet Archive sets).',
+        'Skip random ROM sites — .bin dumps usually fail.'
+      ],
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
         { label: 'A button', key: 'Z' },
@@ -138,6 +139,33 @@
         { label: 'C button', key: 'A' },
         { label: 'D button', key: 'S' },
         { label: 'Coin / Select', key: 'V' },
+        { label: 'Start', key: 'Enter' },
+        { label: 'Save state', key: 'F5' },
+        { label: 'Load state', key: 'F9' }
+      ]
+    },
+
+    snes: {
+      id: 'snes',
+      title: 'SNES',
+      subtitle: 'Super Nintendo',
+      emoji: '🟣',
+      // EmulatorJS core: snes9x.
+      ejsCore: 'snes',
+      fileAccept: '.sfc,.smc,.zip,.7z',
+      fileExtsLabel: '.sfc / .smc',
+      accentHex: '#7c3aed',
+      accentGoldHex: '#5b21b6',
+      iaBaseUrl: 'https://archive.org/download/snes-collection_202406',
+      iaDescriptionPrefix: 'Classic SNES game',
+      controls: [
+        { label: 'D-Pad', key: 'Arrow keys' },
+        { label: 'A button', key: 'X' },
+        { label: 'B button', key: 'Z' },
+        { label: 'X button', key: 'S' },
+        { label: 'Y button', key: 'A' },
+        { label: 'L / R', key: 'Q / W' },
+        { label: 'Select', key: 'V' },
         { label: 'Start', key: 'Enter' },
         { label: 'Save state', key: 'F5' },
         { label: 'Load state', key: 'F9' }

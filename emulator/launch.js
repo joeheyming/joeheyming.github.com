@@ -162,8 +162,10 @@
     if (!url || !window.proxyService) return null;
     const data = await window.proxyService.fetchBinaryWithProxy(url, {
       headers: { Accept: 'application/octet-stream,*/*' },
-      timeout: 60000,
-      maxRetries: 3
+      timeout: 120000,
+      maxRetries: 4,
+      validateBinary: (bytes) =>
+        !!(bytes && bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b)
     });
     if (!data) return null;
     return new File([data], cfg.biosFileName, { type: 'application/zip' });
@@ -399,6 +401,14 @@
           </p>`
         : '';
 
+    const howtoHtml =
+      cfg.howto && cfg.howto.length
+        ? `<details class="howto">
+        <summary>How to play</summary>
+        <ol>${cfg.howto.map((step) => `<li>${escapeHtml(step)}</li>`).join('')}</ol>
+      </details>`
+        : '';
+
     const romHelpHtml = cfg.romHelp ? `<p class="rom-help">${escapeHtml(cfg.romHelp)}</p>` : '';
 
     const controlsSummary = tv ? 'Controls' : 'Keyboard Controls';
@@ -414,6 +424,7 @@
         <rom-browser console="${cfg.id}"></rom-browser>
         ${filePickerHtml}
       </div>
+      ${howtoHtml}
       ${romHelpHtml}
       ${tvNoCollectionHtml}
       <details class="controls-info">
@@ -444,7 +455,7 @@
       <span class="brand-logo">🎮</span>
       <h1>
         Retro Game Emulator
-        <span class="sub">NES · Sega · Game Boy · Neo Geo · in your browser</span>
+        <span class="sub">NES · Sega · SNES · Game Boy · Neo Geo</span>
       </h1>
     `;
 

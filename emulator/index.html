@@ -156,7 +156,7 @@
                 "name": "Why does Neo Geo say romsets is missing files?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Neo Geo uses FinalBurn Neo, which needs exact FBNeo-matching ZIP contents (specific filenames and CRC checksums) plus a matching neogeo.zip BIOS. Random downloads from ROM sites are often incomplete or built for a different emulator version. Use the built-in Browse Collection on the Neo Geo page, which ships FBNeo-style sets; avoid renaming or repacking the ZIP."
+                  "text": "Neo Geo needs FBNeo-matching ZIPs plus neogeo.zip BIOS. Use Browse Collection (Internet Archive). Random ROM-site dumps often fail."
                 }
               },
               {
@@ -222,7 +222,7 @@
       type="file"
       id="romFileInput"
       class="hidden-input"
-      accept=".nes,.md,.bin,.gen,.smd,.gb,.gbc,.zip,.7z"
+      accept=".nes,.md,.bin,.gen,.smd,.gb,.gbc,.sfc,.smc,.zip,.7z"
     />
     <input type="file" id="biosFileInput" class="hidden-input" accept=".zip,.7z" />
 
@@ -234,7 +234,7 @@
         <span class="brand-logo">🎮</span>
         <h1>
           Retro Game Emulator
-          <span class="sub">NES · Sega · Game Boy · Neo Geo · in your browser</span>
+          <span class="sub">NES · Sega · SNES · Game Boy · Neo Geo</span>
         </h1>
       </div>
 
@@ -255,6 +255,11 @@
             <span class="picker-emoji">👾</span>
             <span class="picker-title">Game Boy</span>
             <span class="picker-sub">Game Boy &amp; Game Boy Color</span>
+          </a>
+          <a class="picker-tile" href="?console=snes">
+            <span class="picker-emoji">🟣</span>
+            <span class="picker-title">SNES</span>
+            <span class="picker-sub">Super Nintendo</span>
           </a>
           <a class="picker-tile" href="?console=neogeo">
             <span class="picker-emoji">🥊</span>

@@ -7,11 +7,65 @@
 (function () {
   'use strict';
 
-  async function fetchRom(url) {
+  /** ZIP local/empty/spanned file signatures (PK..). */
+  function looksLikeZip(bytes) {
+    if (!bytes || bytes.length < 4) return false;
+    return (
+      bytes[0] === 0x50 &&
+      bytes[1] === 0x4b &&
+      (bytes[2] === 0x03 || bytes[2] === 0x05 || bytes[2] === 0x07)
+    );
+  }
+
+  /** 7z signature. */
+  function looksLike7z(bytes) {
+    if (!bytes || bytes.length < 6) return false;
+    return (
+      bytes[0] === 0x37 &&
+      bytes[1] === 0x7a &&
+      bytes[2] === 0xbc &&
+      bytes[3] === 0xaf &&
+      bytes[4] === 0x27 &&
+      bytes[5] === 0x1c
+    );
+  }
+
+  /**
+   * Reject empty / error-page payloads. Archive extensions get magic checks;
+   * raw ROM dumps (.gb/.gbc/.sfc/…) just need a non-trivial size.
+   * @param {string} ext lowercase with leading dot
+   * @param {Uint8Array} bytes
+   */
+  function looksLikeRomPayload(ext, bytes) {
+    if (!bytes || bytes.length < 64) return false;
+    if (ext === '.zip') return looksLikeZip(bytes);
+    if (ext === '.7z') return looksLike7z(bytes);
+    return true;
+  }
+
+  function extensionOfUrl(url) {
+    try {
+      const path = new URL(url).pathname;
+      const m = path.toLowerCase().match(/(\.[a-z0-9]+)$/);
+      return m ? m[1] : '';
+    } catch {
+      const m = String(url)
+        .toLowerCase()
+        .match(/(\.[a-z0-9]+)(?:\?|#|$)/);
+      return m ? m[1] : '';
+    }
+  }
+
+  async function fetchRom(url, opts) {
+    opts = opts || {};
+    const ext = extensionOfUrl(url);
     return window.proxyService.fetchBinaryWithProxy(url, {
       headers: { Accept: 'application/octet-stream,*/*' },
-      timeout: 30000,
-      maxRetries: 3
+      // Arcade / SNES zips are large; flaky proxies need headroom + retries.
+      timeout: opts.timeout || 120000,
+      maxRetries: opts.maxRetries != null ? opts.maxRetries : 4,
+      skipDirect: opts.skipDirect === true,
+      validateBinary: (bytes) => looksLikeRomPayload(ext, bytes)
     });
   }
 
@@ -37,6 +91,9 @@
       // Optional lowercase basenames to drop from the directory listing
       // (e.g. Neo Geo's neogeo.zip / gg-bios.zip system files).
       this.excludeNames = new Set((config.excludeNames || []).map((n) => String(n).toLowerCase()));
+      this.listTimeout = config.listTimeout || 45000;
+      this.binaryTimeout = config.binaryTimeout || 120000;
+      this.maxRetries = config.maxRetries != null ? config.maxRetries : 4;
       this.romCache = null;
       this.cacheTimestamp = null;
       this.cacheExpiry = 30 * 60 * 1000;
@@ -85,28 +142,121 @@
       return merged;
     }
 
+    /** Bust the in-memory list cache (used by the Retry button). */
+    clearListCache() {
+      this.romCache = null;
+      this.cacheTimestamp = null;
+    }
+
+    _iaIdentifier(baseUrl) {
+      const m = String(baseUrl).match(/archive\.org\/download\/([^/?#]+)/i);
+      return m ? decodeURIComponent(m[1]) : null;
+    }
+
+    _isIaOfflineHtml(html) {
+      return (
+        html.includes('Temporarily Offline') ||
+        html.includes('Internet Archive services are temporarily offline') ||
+        html.includes('The Wayback Machine is temporarily offline')
+      );
+    }
+
+    _listingLooksValid(html) {
+      if (!html || this._isIaOfflineHtml(html)) return false;
+      const lower = html.toLowerCase();
+      return this.fileExtensions.some((ext) => lower.includes(ext));
+    }
+
     async _fetchOneSource(baseUrl) {
+      // Prefer the HTML directory listing (matches existing parsers), then
+      // fall back to IA's metadata JSON when proxies return junk HTML.
       try {
         const html = await window.proxyService.fetchWithProxy(baseUrl, {
           skipDirect: true,
-          timeout: 30000,
-          maxRetries: 3,
+          timeout: this.listTimeout,
+          maxRetries: this.maxRetries,
           headers: {
             Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-          }
+          },
+          validate: (body) => this._listingLooksValid(body)
         });
-        if (
-          html.includes('Temporarily Offline') ||
-          html.includes('Internet Archive services are temporarily offline') ||
-          html.includes('The Wayback Machine is temporarily offline')
-        ) {
-          throw new Error('Internet Archive is temporarily offline.');
-        }
-        return this.parseRomList(html, baseUrl);
+        const fromHtml = this.parseRomList(html, baseUrl);
+        if (fromHtml.length) return fromHtml;
       } catch (err) {
-        console.warn(`ROM source ${baseUrl} failed:`, err);
-        return [];
+        console.warn(`ROM HTML listing ${baseUrl} failed:`, err);
       }
+
+      try {
+        const fromMeta = await this._fetchOneSourceViaMetadata(baseUrl);
+        if (fromMeta.length) return fromMeta;
+      } catch (err) {
+        console.warn(`ROM metadata listing ${baseUrl} failed:`, err);
+      }
+
+      return [];
+    }
+
+    async _fetchOneSourceViaMetadata(baseUrl) {
+      const id = this._iaIdentifier(baseUrl);
+      if (!id) return [];
+      const metaUrl = `https://archive.org/metadata/${encodeURIComponent(id)}`;
+      const jsonText = await window.proxyService.fetchWithProxy(metaUrl, {
+        skipDirect: true,
+        timeout: this.listTimeout,
+        maxRetries: this.maxRetries,
+        headers: { Accept: 'application/json,*/*' },
+        validate: (body) => {
+          try {
+            const j = JSON.parse(body);
+            return !!(j && Array.isArray(j.files));
+          } catch {
+            return false;
+          }
+        }
+      });
+      const meta = JSON.parse(jsonText);
+      return this.parseRomListFromMetadata(meta, baseUrl);
+    }
+
+    parseRomListFromMetadata(meta, baseUrl) {
+      const roms = [];
+      const files = (meta && meta.files) || [];
+      const base = String(baseUrl).replace(/\/$/, '');
+
+      for (const file of files) {
+        const filename = file && file.name;
+        if (!filename || String(filename).includes('/')) continue;
+        const lower = String(filename).toLowerCase();
+        const ext = this.fileExtensions.find((e) => lower.endsWith(e));
+        if (!ext) continue;
+        const romName = String(filename)
+          .slice(0, String(filename).length - ext.length)
+          .trim();
+        if (!romName) continue;
+        if (this.excludeNames.has(romName.toLowerCase())) continue;
+        if (roms.some((rom) => rom.name === romName)) continue;
+        const firstChar = romName.charAt(0).toUpperCase();
+        const category = /[A-Z]/.test(firstChar) ? firstChar : '#';
+        const sizeNum = Number(file.size);
+        roms.push({
+          name: romName,
+          title: romName,
+          downloadUrl: `${base}/${filename.split('/').map(encodeURIComponent).join('/')}`,
+          fileExtension: ext,
+          category: category,
+          description: `${this.descriptionPrefix}: ${romName}`,
+          size: Number.isFinite(sizeNum) && sizeNum > 0 ? this._formatSize(sizeNum) : 'Unknown'
+        });
+      }
+
+      roms.sort((a, b) => a.name.localeCompare(b.name));
+      return roms;
+    }
+
+    _formatSize(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     }
 
     parseRomList(html, baseUrl) {
@@ -166,7 +316,10 @@
       if (!window.proxyService) {
         throw new Error('Proxy service not available');
       }
-      return fetchRom(rom.downloadUrl);
+      return fetchRom(rom.downloadUrl, {
+        timeout: this.binaryTimeout,
+        maxRetries: this.maxRetries
+      });
     }
   }
 

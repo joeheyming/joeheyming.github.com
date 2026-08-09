@@ -306,6 +306,31 @@ class ProxyService {
   }
 
   /**
+   * Proxies sometimes return HTML/JSON error pages with a binary-ish
+   * Content-Type. Spot the common prefixes so we don't cache garbage as a ROM.
+   * @param {Uint8Array} bytes
+   * @returns {boolean}
+   */
+  _looksLikeTextErrorPayload(bytes) {
+    if (!bytes || bytes.length < 1) return true;
+    let i = 0;
+    // Skip UTF-8 BOM / leading whitespace.
+    if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) i = 3;
+    while (
+      i < bytes.length &&
+      (bytes[i] === 0x20 || bytes[i] === 0x09 || bytes[i] === 0x0a || bytes[i] === 0x0d)
+    ) {
+      i += 1;
+    }
+    if (i >= bytes.length) return true;
+    const c0 = bytes[i];
+    // `<!` / `<?` / `<h` (html) / `{` / `[` JSON wrappers.
+    if (c0 === 0x3c) return true; // <
+    if (c0 === 0x7b || c0 === 0x5b) return true; // { [
+    return false;
+  }
+
+  /**
    * Track "hard" failures — timeouts, 5xx statuses, and generic network
    * errors — separately from the score-based cooldown. After
    * `autoBanHardFailureThreshold` in a row for the same proxy, apply a
@@ -504,9 +529,10 @@ class ProxyService {
 
   // Try direct fetch first (in case server allows CORS). Caller passes skipDirect: true to skip.
   async tryDirectFetch(url, options = {}) {
+    const userAbort = options.signal;
     try {
-      const timeoutMs = options.timeout || 3000; // Short timeout for direct attempt
-      const signal = mergeFetchAbortSignal(timeoutMs, options.signal);
+      const timeoutMs = 3000; // Short probe — don't burn the full proxy timeout here.
+      const signal = mergeFetchAbortSignal(timeoutMs, userAbort);
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -518,10 +544,13 @@ class ProxyService {
       });
       if (response.ok) {
         console.log('Direct fetch succeeded (no proxy needed)');
-        return await response.text();
+        const text = await response.text();
+        if (!text) return null;
+        if (typeof options.validate === 'function' && !options.validate(text)) return null;
+        return text;
       }
     } catch (error) {
-      if (error && error.name === 'AbortError') {
+      if (error && error.name === 'AbortError' && userAbort && userAbort.aborted) {
         throw error;
       }
       // Expected - most sites block CORS, continue to proxies
@@ -564,9 +593,12 @@ class ProxyService {
       for (const proxy of orderedProxies) {
         // Skip proxies banned mid-loop (e.g. another await marked them dead).
         if (this.isProxyDead(proxy, 'text')) continue;
-        // Circuit breaker: skip proxy briefly after a failure to try others first
-        const lastFail = this.proxyLastFailure.get(proxy);
-        if (lastFail && Date.now() - lastFail < this.proxyCooldownMs) continue;
+        // Circuit breaker only on the first pass — later retries must re-probe
+        // the same hosts or maxRetries is a no-op (cooldown is 30s; backoff is 1–3s).
+        if (retry === 0) {
+          const lastFail = this.proxyLastFailure.get(proxy);
+          if (lastFail && Date.now() - lastFail < this.proxyCooldownMs) continue;
+        }
 
         try {
           const proxyUrl = proxy + this.encodeUrlForProxy(url);
@@ -691,9 +723,13 @@ class ProxyService {
 
   // Try direct binary fetch first (in case server allows CORS). Caller passes skipDirect: true to skip.
   async tryDirectBinaryFetch(url, options = {}) {
+    const userAbort = options.signal;
     try {
-      const timeoutMs = options.timeout || 3000;
-      const signal = mergeFetchAbortSignal(timeoutMs, options.signal);
+      // Keep the probe short — options.timeout is for the full proxy chain
+      // (often 30–120s for large ROMs). Spending that budget on a CORS
+      // failure that will never succeed just delays the real download.
+      const timeoutMs = 3000;
+      const signal = mergeFetchAbortSignal(timeoutMs, userAbort);
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -706,10 +742,17 @@ class ProxyService {
       if (response.ok) {
         console.log('Direct binary fetch succeeded (no proxy needed)');
         const arrayBuffer = await response.arrayBuffer();
-        return new Uint8Array(arrayBuffer);
+        const uint8Array = new Uint8Array(arrayBuffer);
+        if (!uint8Array.length) return null;
+        if (typeof options.validateBinary === 'function' && !options.validateBinary(uint8Array)) {
+          console.warn('Direct binary fetch failed validation — falling through to proxies');
+          return null;
+        }
+        return uint8Array;
       }
     } catch (error) {
-      if (error && error.name === 'AbortError') {
+      // Only rethrow a caller AbortSignal — probe timeouts must fall through.
+      if (error && error.name === 'AbortError' && userAbort && userAbort.aborted) {
         throw error;
       }
       // Expected - most sites block CORS
@@ -802,11 +845,20 @@ class ProxyService {
 
   // Fetch content as binary (for ROMs)
   async fetchBinaryWithProxy(url, options = {}) {
-    const { signal: userAbort, ...optionsForKey } = options;
+    const { signal: userAbort, validateBinary, ...optionsForKey } = options;
     const cacheKey = `binary-${url}-${JSON.stringify(optionsForKey)}`;
 
     if (!userAbort && this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey);
+      const cached = this.cache.get(cacheKey);
+      if (
+        cached &&
+        cached.length &&
+        !this._looksLikeTextErrorPayload(cached) &&
+        !(typeof validateBinary === 'function' && !validateBinary(cached))
+      ) {
+        return cached;
+      }
+      this.cache.delete(cacheKey);
     }
 
     if (!options.skipDirect) {
@@ -829,8 +881,11 @@ class ProxyService {
       }
       for (const proxy of orderedProxies) {
         if (this.isProxyDead(proxy, 'binary')) continue;
-        const lastFail = this.proxyLastFailure.get(proxy);
-        if (lastFail && Date.now() - lastFail < this.proxyCooldownMs) continue;
+        // Same as text path: cooldown only on the first pass so retries re-probe.
+        if (retry === 0) {
+          const lastFail = this.proxyLastFailure.get(proxy);
+          if (lastFail && Date.now() - lastFail < this.proxyCooldownMs) continue;
+        }
 
         try {
           const proxyUrl = proxy + this.encodeUrlForProxy(url);
@@ -875,6 +930,31 @@ class ProxyService {
             }
             const arrayBuffer = await response.arrayBuffer();
             const uint8Array = new Uint8Array(arrayBuffer);
+            if (!uint8Array.length) {
+              console.warn(`Proxy ${proxy} returned empty binary body — treating as failure`);
+              this.updateProxyScore(proxy, false);
+              this.proxyLastFailure.set(proxy, Date.now());
+              continue;
+            }
+            // Reject HTML/JSON error pages mislabeled as octet-stream, and
+            // let callers enforce format (e.g. ZIP magic for ROM zips).
+            if (this._looksLikeTextErrorPayload(uint8Array)) {
+              console.warn(`Proxy ${proxy} returned text error as binary — treating as failure`);
+              this.updateProxyScore(proxy, false);
+              this.proxyLastFailure.set(proxy, Date.now());
+              continue;
+            }
+            if (
+              typeof options.validateBinary === 'function' &&
+              !options.validateBinary(uint8Array)
+            ) {
+              console.warn(
+                `Proxy ${proxy} returned binary failing validation — treating as failure`
+              );
+              this.updateProxyScore(proxy, false);
+              this.proxyLastFailure.set(proxy, Date.now());
+              continue;
+            }
             this._cacheSet(cacheKey, uint8Array);
 
             this.updateProxyScore(proxy, true, responseTime);
@@ -901,8 +981,18 @@ class ProxyService {
             }
           }
         } catch (error) {
+          // Per-proxy AbortSignal.timeout must advance to the next host —
+          // only a caller-supplied AbortSignal should abort the whole chain.
+          // (Text fetchWithProxy already did this; binary used to throw on
+          // every timeout and never tried another proxy.)
           if (error && error.name === 'AbortError') {
-            throw error;
+            if (userAbort && userAbort.aborted) throw error;
+            lastError = error;
+            console.warn(`Proxy ${proxy} timed out (attempt ${retry + 1})`);
+            this.updateProxyScore(proxy, false);
+            this.proxyLastFailure.set(proxy, Date.now());
+            this._recordProxyHardFailure(proxy, 'timeout');
+            continue;
           }
           lastError = error;
           console.warn(`Proxy ${proxy} failed (attempt ${retry + 1}):`, error && error.message);

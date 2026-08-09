@@ -1082,7 +1082,7 @@
     "taskbarGradient": "from-stone-600 to-indigo-700",
     "taskbarText": "text-white",
     "tags": ["retro", "emulator", "nintendo", "8-bit", "popular"],
-    "related": ["sega", "gameboy", "neogeo", "doom", "pacman", "stepmania", "minesweeper"],
+    "related": ["sega", "gameboy", "neogeo", "snes", "doom", "pacman", "stepmania", "minesweeper"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "NES Emulator",
@@ -1117,7 +1117,7 @@
     "taskbarGradient": "from-blue-700 to-cyan-600",
     "taskbarText": "text-white",
     "tags": ["retro", "emulator", "sega", "16-bit"],
-    "related": ["nes", "gameboy", "neogeo", "doom", "pacman", "stepmania"],
+    "related": ["nes", "gameboy", "neogeo", "snes", "doom", "pacman", "stepmania"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "Sega Genesis",
@@ -1152,7 +1152,7 @@
     "taskbarGradient": "from-violet-700 to-purple-600",
     "taskbarText": "text-white",
     "tags": ["retro", "emulator", "nintendo", "gameboy", "8-bit"],
-    "related": ["nes", "sega", "neogeo", "doom", "pacman"],
+    "related": ["nes", "sega", "neogeo", "snes", "doom", "pacman"],
     "shareCategory": "game",
     "featured": {
       "order": 13,
@@ -1182,7 +1182,7 @@
     "taskbarGradient": "from-yellow-600 to-stone-800",
     "taskbarText": "text-white",
     "tags": ["retro", "emulator", "neogeo", "arcade", "snk", "16-bit"],
-    "related": ["nes", "sega", "gameboy", "doom", "flash"],
+    "related": ["nes", "sega", "gameboy", "snes", "doom", "flash"],
     "shareCategory": "game",
     "featured": {
       "order": 14,
@@ -1191,6 +1191,36 @@
       "tagsLine": "🕹️ Game • 🎮 Arcade",
       "preset": "neogeo",
       "analyticsLabel": "NeoGeo"
+    },
+    "appTier": "experience",
+    "geo": false
+  },
+  {
+    "id": "snes",
+    "name": "SNES 🟣",
+    "shortName": "SNES",
+    "description": "Super Nintendo emulator",
+    "detailedDescription": "Play SNES / Super Famicom games in your browser. Browse the built-in collection or bring your own .sfc / .smc ROM. Part of the unified emulator shell (EmulatorJS / snes9x).",
+    "icon": "🟣",
+    "path": "./emulator/?console=snes",
+    "category": "game",
+    "subCategory": "console",
+    "defaultWidth": 1024,
+    "defaultHeight": 768,
+    "gradient": "from-violet-700/20 to-purple-600/20",
+    "border": "border-violet-500/30 hover:border-violet-400/50",
+    "taskbarGradient": "from-violet-700 to-purple-600",
+    "taskbarText": "text-white",
+    "tags": ["retro", "emulator", "nintendo", "snes", "16-bit"],
+    "related": ["nes", "sega", "gameboy", "neogeo"],
+    "shareCategory": "game",
+    "featured": {
+      "order": 16,
+      "headline": "SNES Emulator",
+      "blurb": "Super Nintendo in your browser. Save states, ROM browser, gamepad support.",
+      "tagsLine": "🕹️ Game • 🎮 Retro",
+      "preset": "snes",
+      "analyticsLabel": "SNES"
     },
     "appTier": "experience",
     "geo": false

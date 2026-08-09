@@ -162,23 +162,60 @@ class RomBrowserElement extends HTMLElement {
           background: var(--surface-2);
           flex: 1;
         }
-        .loading {
+        .error {
           display: flex;
+          flex-direction: column;
           justify-content: center;
           align-items: center;
+          gap: 0.75rem;
+          min-height: 200px;
+          color: var(--danger);
+          font-size: 1.1rem;
+          text-align: center;
+          padding: 1rem;
+        }
+        .error-detail {
+          color: var(--text-2);
+          font-size: 0.9rem;
+          max-width: 36rem;
+          line-height: 1.4;
+        }
+        .error-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          justify-content: center;
+        }
+        .error-actions button {
+          appearance: none;
+          border: 1px solid var(--hairline);
+          background: var(--surface-1);
+          color: var(--text-1);
+          border-radius: 0.5rem;
+          padding: 0.5rem 0.9rem;
+          font: inherit;
+          cursor: pointer;
+        }
+        .error-actions button.primary {
+          border-color: var(--accent-bright);
+          background: var(--accent-bright-soft);
+        }
+        .loading {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          gap: 0.5rem;
           height: 200px;
           color: var(--text-2);
           font-size: 1.25rem;
-        }
-        .error {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          height: 200px;
-          color: var(--danger);
-          font-size: 1.25rem;
           text-align: center;
           padding: 1rem;
+        }
+        .loading-hint {
+          font-size: 0.9rem;
+          opacity: 0.85;
+          max-width: 28rem;
         }
         .rom-grid {
           display: grid;
@@ -370,7 +407,9 @@ class RomBrowserElement extends HTMLElement {
 
   async loadAllRoms() {
     const contentArea = this.shadowRoot.getElementById('contentArea');
-    contentArea.innerHTML = '<div class="loading">Loading ROM collection...</div>';
+    contentArea.innerHTML =
+      '<div class="loading">Loading ROM collection…' +
+      '<div class="loading-hint">Fetching via CORS proxies — retries automatically if one is flaky.</div></div>';
 
     try {
       const ia = this.iaClient;
@@ -383,16 +422,40 @@ class RomBrowserElement extends HTMLElement {
 
       if (this.allRoms.length === 0) {
         contentArea.innerHTML =
-          '<div class="error">No ROMs found. Please check your connection and try again.</div>';
+          '<div class="error">No ROMs found. Please check your connection and try again.' +
+          '<div class="error-actions"><button type="button" class="primary" data-action="retry-list">Retry</button></div></div>';
+        contentArea.querySelector('[data-action="retry-list"]')?.addEventListener('click', () => {
+          ia.clearListCache();
+          this.allRoms = [];
+          this.loadAllRoms();
+        });
         return;
       }
 
       this.renderRoms(this.filteredRoms);
     } catch (error) {
       console.error('Error loading ROMs:', error);
+      const detail = (error && error.message) || 'Unknown error';
       contentArea.innerHTML =
-        '<div class="error">Failed to load ROMs from Internet Archive. Please try again.</div>';
+        '<div class="error">Failed to load ROMs from Internet Archive.' +
+        `<div class="error-detail">${this._escapeHtml(
+          detail
+        )} Proxies can be flaky — retry often works.</div>` +
+        '<div class="error-actions"><button type="button" class="primary" data-action="retry-list">Retry</button></div></div>';
+      contentArea.querySelector('[data-action="retry-list"]')?.addEventListener('click', () => {
+        if (this.iaClient) this.iaClient.clearListCache();
+        this.allRoms = [];
+        this.loadAllRoms();
+      });
     }
+  }
+
+  _escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
   renderRoms(roms) {
@@ -440,11 +503,15 @@ class RomBrowserElement extends HTMLElement {
 
   async loadRom(rom) {
     const contentArea = this.shadowRoot.getElementById('contentArea');
-    const originalContent = contentArea ? contentArea.innerHTML : '';
+    const restoreList = () => {
+      if (contentArea) this.renderRoms(this.filteredRoms.length ? this.filteredRoms : this.allRoms);
+    };
 
     try {
       if (contentArea) {
-        contentArea.innerHTML = `<div class="loading">Loading ${rom.title}...</div>`;
+        contentArea.innerHTML =
+          `<div class="loading">Loading ${this._escapeHtml(rom.title)}…` +
+          '<div class="loading-hint">Large zips can take a minute while proxies rotate.</div></div>';
       }
 
       const ia = this.iaClient;
@@ -475,8 +542,24 @@ class RomBrowserElement extends HTMLElement {
       }
     } catch (error) {
       console.error('Error loading ROM:', error);
-      alert('Failed to load ROM: ' + error.message);
-      if (contentArea) contentArea.innerHTML = originalContent;
+      const detail = (error && error.message) || 'Unknown error';
+      if (contentArea) {
+        contentArea.innerHTML =
+          `<div class="error">Failed to load ${this._escapeHtml(rom.title)}.` +
+          `<div class="error-detail">${this._escapeHtml(detail)}</div>` +
+          '<div class="error-actions">' +
+          '<button type="button" class="primary" data-action="retry-rom">Retry download</button>' +
+          '<button type="button" data-action="back-list">Back to list</button>' +
+          '</div></div>';
+        contentArea.querySelector('[data-action="retry-rom"]')?.addEventListener('click', () => {
+          this.loadRom(rom);
+        });
+        contentArea
+          .querySelector('[data-action="back-list"]')
+          ?.addEventListener('click', restoreList);
+      } else {
+        alert('Failed to load ROM: ' + detail);
+      }
     }
   }
 
