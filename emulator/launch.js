@@ -399,6 +399,8 @@
           </p>`
         : '';
 
+    const romHelpHtml = cfg.romHelp ? `<p class="rom-help">${escapeHtml(cfg.romHelp)}</p>` : '';
+
     const controlsSummary = tv ? 'Controls' : 'Keyboard Controls';
     const gamepadHint = tv
       ? `<p class="controls-gamepad-hint">Gamepad works in-game via the browser Gamepad API.</p>`
@@ -412,6 +414,7 @@
         <rom-browser console="${cfg.id}"></rom-browser>
         ${filePickerHtml}
       </div>
+      ${romHelpHtml}
       ${tvNoCollectionHtml}
       <details class="controls-info">
         <summary>${controlsSummary}</summary>

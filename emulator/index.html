@@ -148,7 +148,15 @@
                 "name": "Can I play on a TV, Xbox, or PlayStation browser?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Often yes on Xbox and PlayStation browsers when the page can enable cross-origin isolation (needed for EmulatorJS). Use the on-screen ROM collection — there is no local file picker on those devices — and a controller or remote D-pad to navigate. Smart TVs vary; if the emulator cannot start you will see a clear message. Preview the lean-back layout on desktop with ?tv=1. Deep-link a title with ?console=nes&rom=GameName. Neo Geo is desktop-only for now (BIOS + local ZIP)."
+                  "text": "Often yes on Xbox and PlayStation browsers when the page can enable cross-origin isolation (needed for EmulatorJS). Use the on-screen ROM collection — there is no local file picker on those devices — and a controller or remote D-pad to navigate. Smart TVs vary; if the emulator cannot start you will see a clear message. Preview the lean-back layout on desktop with ?tv=1. Deep-link a title with ?console=nes&rom=GameName."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Why does Neo Geo say romsets is missing files?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Neo Geo uses FinalBurn Neo, which needs exact FBNeo-matching ZIP contents (specific filenames and CRC checksums) plus a matching neogeo.zip BIOS. Random downloads from ROM sites are often incomplete or built for a different emulator version. Use the built-in Browse Collection on the Neo Geo page, which ships FBNeo-style sets; avoid renaming or repacking the ZIP."
                 }
               },
               {

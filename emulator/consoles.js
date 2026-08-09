@@ -127,6 +127,10 @@
       biosStorageKey: 'neogeo',
       biosHelp:
         'BIOS (neogeo.zip) auto-loads from the collection on first play and stays in this browser. You can also upload your own.',
+      // Shown under the load buttons — arcade dumps from random sites are
+      // the #1 support failure mode (wrong CRC / incomplete zip / no BIOS).
+      romHelp:
+        'Use Browse Collection for Metal Slug and other titles — those zips match this emulator. Random “Neo Geo ROM” downloads (romsgames, etc.) are often incomplete or the wrong FBNeo version and show “romsets is missing files”.',
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
         { label: 'A button', key: 'Z' },
