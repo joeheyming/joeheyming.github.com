@@ -1082,7 +1082,17 @@
     "taskbarGradient": "from-stone-600 to-indigo-700",
     "taskbarText": "text-white",
     "tags": ["retro", "emulator", "nintendo", "8-bit", "popular"],
-    "related": ["sega", "gameboy", "neogeo", "snes", "doom", "pacman", "stepmania", "minesweeper"],
+    "related": [
+      "sega",
+      "gameboy",
+      "neogeo",
+      "snes",
+      "ps1",
+      "doom",
+      "pacman",
+      "stepmania",
+      "minesweeper"
+    ],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "NES Emulator",
@@ -1117,7 +1127,7 @@
     "taskbarGradient": "from-blue-700 to-cyan-600",
     "taskbarText": "text-white",
     "tags": ["retro", "emulator", "sega", "16-bit"],
-    "related": ["nes", "gameboy", "neogeo", "snes", "doom", "pacman", "stepmania"],
+    "related": ["nes", "gameboy", "neogeo", "snes", "ps1", "doom", "pacman", "stepmania"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "Sega Genesis",
@@ -1152,7 +1162,7 @@
     "taskbarGradient": "from-violet-700 to-purple-600",
     "taskbarText": "text-white",
     "tags": ["retro", "emulator", "nintendo", "gameboy", "8-bit"],
-    "related": ["nes", "sega", "neogeo", "snes", "doom", "pacman"],
+    "related": ["nes", "sega", "neogeo", "snes", "ps1", "doom", "pacman"],
     "shareCategory": "game",
     "featured": {
       "order": 13,
@@ -1182,7 +1192,7 @@
     "taskbarGradient": "from-yellow-600 to-stone-800",
     "taskbarText": "text-white",
     "tags": ["retro", "emulator", "neogeo", "arcade", "snk", "16-bit"],
-    "related": ["nes", "sega", "gameboy", "snes", "doom", "flash"],
+    "related": ["nes", "sega", "gameboy", "snes", "ps1", "doom", "flash"],
     "shareCategory": "game",
     "featured": {
       "order": 14,
@@ -1212,7 +1222,7 @@
     "taskbarGradient": "from-violet-700 to-purple-600",
     "taskbarText": "text-white",
     "tags": ["retro", "emulator", "nintendo", "snes", "16-bit"],
-    "related": ["nes", "sega", "gameboy", "neogeo"],
+    "related": ["nes", "sega", "gameboy", "neogeo", "ps1"],
     "shareCategory": "game",
     "featured": {
       "order": 16,
@@ -1222,6 +1232,28 @@
       "preset": "snes",
       "analyticsLabel": "SNES"
     },
+    "appTier": "experience",
+    "geo": false
+  },
+  {
+    "id": "ps1",
+    "name": "PS1 💿",
+    "shortName": "PS1",
+    "description": "PlayStation emulator",
+    "detailedDescription": "Play PlayStation (PS1) games in your browser. US BIOS auto-loads once; search CHD discs on Internet Archive (download in a new tab, then load locally) or bring your own .chd / .pbp / .iso. Gamepad recommended. Part of the unified emulator shell (EmulatorJS / pcsx_rearmed).",
+    "icon": "💿",
+    "path": "./emulator/?console=ps1",
+    "category": "game",
+    "subCategory": "console",
+    "defaultWidth": 1024,
+    "defaultHeight": 768,
+    "gradient": "from-blue-700/20 to-slate-800/20",
+    "border": "border-blue-600/30 hover:border-blue-500/50",
+    "taskbarGradient": "from-blue-700 to-slate-900",
+    "taskbarText": "text-white",
+    "tags": ["retro", "emulator", "playstation", "ps1", "psx", "32-bit"],
+    "related": ["nes", "sega", "gameboy", "neogeo", "snes"],
+    "shareCategory": "game",
     "appTier": "experience",
     "geo": false
   },

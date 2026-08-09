@@ -40,6 +40,19 @@
     if (!bytes || bytes.length < 64) return false;
     if (ext === '.zip') return looksLikeZip(bytes);
     if (ext === '.7z') return looksLike7z(bytes);
+    // MAME CHD / libretro CHD magic ("MComprHD").
+    if (ext === '.chd') {
+      return (
+        bytes[0] === 0x4d &&
+        bytes[1] === 0x43 &&
+        bytes[2] === 0x6f &&
+        bytes[3] === 0x6d &&
+        bytes[4] === 0x70 &&
+        bytes[5] === 0x72 &&
+        bytes[6] === 0x48 &&
+        bytes[7] === 0x44
+      );
+    }
     return true;
   }
 
@@ -94,6 +107,8 @@
       this.listTimeout = config.listTimeout || 45000;
       this.binaryTimeout = config.binaryTimeout || 120000;
       this.maxRetries = config.maxRetries != null ? config.maxRetries : 4;
+      // Prefer IA metadata JSON (has file sizes) over HTML directory listings.
+      this.preferMetadata = config.preferMetadata === true;
       this.romCache = null;
       this.cacheTimestamp = null;
       this.cacheExpiry = 30 * 60 * 1000;
@@ -170,7 +185,9 @@
     async _fetchOneSource(baseUrl) {
       // Prefer the HTML directory listing (matches existing parsers), then
       // fall back to IA's metadata JSON when proxies return junk HTML.
-      try {
+      // preferMetadata flips the order so callers that need file sizes
+      // (PS1 CHD handoff UI) get them without a second round-trip.
+      const tryHtml = async () => {
         const html = await window.proxyService.fetchWithProxy(baseUrl, {
           skipDirect: true,
           timeout: this.listTimeout,
@@ -180,17 +197,27 @@
           },
           validate: (body) => this._listingLooksValid(body)
         });
-        const fromHtml = this.parseRomList(html, baseUrl);
-        if (fromHtml.length) return fromHtml;
-      } catch (err) {
-        console.warn(`ROM HTML listing ${baseUrl} failed:`, err);
-      }
+        return this.parseRomList(html, baseUrl);
+      };
+      const tryMeta = async () => this._fetchOneSourceViaMetadata(baseUrl);
 
-      try {
-        const fromMeta = await this._fetchOneSourceViaMetadata(baseUrl);
-        if (fromMeta.length) return fromMeta;
-      } catch (err) {
-        console.warn(`ROM metadata listing ${baseUrl} failed:`, err);
+      const order = this.preferMetadata
+        ? [
+            ['metadata', tryMeta],
+            ['HTML listing', tryHtml]
+          ]
+        : [
+            ['HTML listing', tryHtml],
+            ['metadata', tryMeta]
+          ];
+
+      for (const [label, fn] of order) {
+        try {
+          const list = await fn();
+          if (list.length) return list;
+        } catch (err) {
+          console.warn(`ROM ${label} ${baseUrl} failed:`, err);
+        }
       }
 
       return [];

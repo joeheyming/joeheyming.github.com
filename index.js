@@ -80,7 +80,7 @@ function makeSearchTracker(location) {
 //
 // 2026-07-12: rebuilt from nav-drawer click ranking — the drawer is the
 // primary cross-app-discovery surface. Console family (sega + gameboy +
-// neogeo + snes) is grouped alongside nes so the emulators are discoverable together.
+// neogeo + snes + ps1) is grouped alongside nes so the emulators are discoverable together.
 // Dropped from strip (still in the gallery): minesweeper, badapple, terminal.
 const POPULAR_APP_IDS = [
   'doom',
@@ -96,7 +96,8 @@ const POPULAR_APP_IDS = [
   'sega',
   'gameboy',
   'neogeo',
-  'snes'
+  'snes',
+  'ps1'
 ];
 
 // Section grouping for the full gallery. Order is presentation order on
@@ -104,7 +105,7 @@ const POPULAR_APP_IDS = [
 // /play/* music family carved out so it gets its own bucket.
 //
 // Sub-category carve-outs (registry field `subCategory`, see apps-registry.json):
-//   "console" — nes / sega / gameboy / neogeo / snes get their own "Retro consoles" bucket
+//   "console" — nes / sega / gameboy / neogeo / snes / ps1 get their own "Retro consoles" bucket
 //                instead of appearing under "Games".
 //   "music"   — piano-hero / accordion-hero join the /play/* music family
 //                under "Make music" instead of appearing under "Games".

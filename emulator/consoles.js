@@ -4,8 +4,10 @@
 // matter of dropping a record in here and pushing a card on the picker —
 // every other shared file (rom-browser, launch, internet-archive) reads
 // from this object and reconfigures itself automatically.
-// Consoles that need a system BIOS (Neo Geo) set `biosRequired` +
+// Consoles that need a system BIOS (Neo Geo, PS1) set `biosRequired` +
 // `biosFileName`; launch.js persists the upload in IndexedDB.
+// Optional `biosIaBaseUrl` fetches BIOS from a different IA item than
+// the game library (PS1: games are local-only, BIOS still auto-loads).
 //
 // EmulatorJS core IDs come from https://emulatorjs.org/docs/Options#ejs_core.
 // `iaBaseUrl` is the Internet Archive collection used by the ROM browser;
@@ -165,6 +167,59 @@
         { label: 'X button', key: 'S' },
         { label: 'Y button', key: 'A' },
         { label: 'L / R', key: 'Q / W' },
+        { label: 'Select', key: 'V' },
+        { label: 'Start', key: 'Enter' },
+        { label: 'Save state', key: 'F5' },
+        { label: 'Load state', key: 'F9' }
+      ]
+    },
+
+    ps1: {
+      id: 'ps1',
+      title: 'PS1',
+      subtitle: 'PlayStation',
+      emoji: '💿',
+      // EmulatorJS core: pcsx_rearmed.
+      ejsCore: 'psx',
+      // Prefer single-file disc images; .bin+.cue needs companions and is awkward.
+      fileAccept: '.chd,.pbp,.iso,.bin,.cue,.zip,.7z',
+      fileExtsLabel: '.chd / .pbp / .iso',
+      // PlayStation brand blue (not purple — site bias avoid).
+      accentHex: '#0070d1',
+      accentGoldHex: '#003791',
+      // Curated Redump → CHD set (single-file discs EmulatorJS can load).
+      // Raw .iso dumps are rare as flat IA listings; CHD is the searchable stand-in.
+      // Disc images are 100–500+ MB — free CORS proxies cannot ferry them, so the
+      // browser opens the IA download and the user loads the saved file locally.
+      iaBaseUrl: 'https://archive.org/download/CuratedPSXRedumpCHDs',
+      iaDescriptionPrefix: 'PlayStation game',
+      iaFileExtensions: ['.chd'],
+      iaPreferMetadata: true,
+      iaExternalDownload: true,
+      biosRequired: true,
+      // Canonical name for pcsx_rearmed; IA source file is renamed on fetch.
+      biosFileName: 'scph5501.bin',
+      biosStorageKey: 'ps1',
+      // PlayStationBIOSFilesNAEUJP returns 401; nested zip path works.
+      biosIaBaseUrl: 'https://archive.org/download/PlayStationBios/PlayStation%20Bios.zip',
+      biosIaFileName: 'SCPH-7001.bin',
+      biosHelp:
+        'US BIOS auto-loads once from Internet Archive, then stays in this browser (IndexedDB). EU/JP: load scph5502.bin / scph5500.bin manually.',
+      howto: [
+        'Wait for BIOS “ready”.',
+        'Browse Collection → pick a title → download from Archive → Load local disc image.',
+        'Gamepad recommended.'
+      ],
+      romHelp:
+        'PS1 discs are too large for in-page download. Search the catalog, save the CHD from Internet Archive, then load it here.',
+      controls: [
+        { label: 'D-Pad', key: 'Arrow keys' },
+        { label: '× Cross', key: 'X' },
+        { label: '○ Circle', key: 'S' },
+        { label: '□ Square', key: 'A' },
+        { label: '△ Triangle', key: 'W' },
+        { label: 'L1 / R1', key: 'Q / E' },
+        { label: 'L2 / R2', key: 'R / F' },
         { label: 'Select', key: 'V' },
         { label: 'Start', key: 'Enter' },
         { label: 'Save state', key: 'F5' },

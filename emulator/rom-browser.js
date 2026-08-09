@@ -4,7 +4,7 @@
 // from `window.getEmulatorConsole()` (resolved off `?console=`). When
 // the console has no Internet Archive collection wired up (e.g. Game
 // Boy at the moment) the element hides itself entirely so the boot
-// card just shows the local-file picker.
+// card just shows the local-file picker. Same for PS1 (local disc only).
 //
 // Lean-back (TV): cards are focusable with roving tabindex, search is
 // demoted behind a toggle, Escape/Backspace closes the modal.
@@ -36,7 +36,10 @@ class RomBrowserElement extends HTMLElement {
       baseUrl: cfg.iaBaseUrl,
       descriptionPrefix: cfg.iaDescriptionPrefix,
       fileExtensions: cfg.iaFileExtensions,
-      excludeNames: cfg.iaExcludeNames
+      excludeNames: cfg.iaExcludeNames,
+      binaryTimeout: cfg.iaBinaryTimeout,
+      maxRetries: cfg.iaMaxRetries,
+      preferMetadata: cfg.iaPreferMetadata === true
     });
     return this._ia;
   }
@@ -132,7 +135,9 @@ class RomBrowserElement extends HTMLElement {
         .modal-title {
           font-size: 2rem;
           font-weight: bold;
-          color: var(--accent-bright);
+          /* Headings use brand text tokens — console accents (PS1 navy /
+           * SNES deep purple) fail AA on dark surfaces. */
+          color: var(--text-1);
           margin-bottom: 0.5rem;
           text-align: center;
         }
@@ -217,6 +222,64 @@ class RomBrowserElement extends HTMLElement {
           opacity: 0.85;
           max-width: 28rem;
         }
+        .external-download {
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0.85rem;
+          max-width: 32rem;
+          margin: 1.5rem auto;
+          padding: 1.25rem 1.5rem;
+          text-align: left;
+          color: var(--text-1);
+          background: var(--surface-1);
+          border: 1px solid var(--hairline);
+          border-radius: 0.75rem;
+        }
+        .external-download h3 {
+          margin: 0;
+          font-size: 1.15rem;
+          line-height: 1.3;
+        }
+        .external-download p {
+          margin: 0;
+          color: var(--text-2);
+          font-size: 0.95rem;
+          line-height: 1.45;
+        }
+        .external-download .size-line {
+          font-variant-numeric: tabular-nums;
+          color: var(--text-1);
+          font-weight: 600;
+        }
+        .external-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.6rem;
+          margin-top: 0.25rem;
+        }
+        .external-actions button,
+        .external-actions a.buttonish {
+          appearance: none;
+          border: 1px solid var(--hairline);
+          background: var(--surface-0);
+          color: var(--text-1);
+          border-radius: 0.5rem;
+          padding: 0.65rem 0.9rem;
+          font-size: 0.95rem;
+          cursor: pointer;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .external-actions button.primary,
+        .external-actions a.buttonish.primary {
+          border-color: var(--accent-bright);
+          background: var(--accent-bright);
+          color: var(--text-on-accent);
+          font-weight: 600;
+        }
         .rom-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(${tv ? '220px' : '300px'}, 1fr));
@@ -245,11 +308,11 @@ class RomBrowserElement extends HTMLElement {
         }
         .rom-title {
           font-weight: bold;
-          color: var(--accent-gold);
+          color: var(--text-1);
           margin-bottom: 0.5rem;
           font-size: ${tv ? '1.25rem' : '1.1rem'};
         }
-        .rom-info { color: var(--text-1); font-size: 0.875rem; line-height: 1.4; }
+        .rom-info { color: var(--text-2); font-size: 0.875rem; line-height: 1.4; }
         .rom-size { color: var(--text-3); font-size: 0.75rem; margin-top: 0.25rem; }
         .search-container { margin-bottom: 0; position: relative; }
         .search-container[hidden] { display: none !important; }
@@ -274,15 +337,25 @@ class RomBrowserElement extends HTMLElement {
       <div class="rom-browser-container">
         <button class="rom-browser-btn" id="openBrowserBtn" type="button">
           <span>🗂️</span>
-          <span>Browse ${cfg.title} ROM Collection</span>
+          <span>${
+            cfg.iaExternalDownload
+              ? `Browse ${cfg.title} Disc Catalog`
+              : `Browse ${cfg.title} ROM Collection`
+          }</span>
         </button>
       </div>
 
       <div class="modal" id="browserModal" role="dialog" aria-modal="true" aria-labelledby="romBrowserTitle">
         <div class="modal-content">
           <div class="modal-header">
-            <h2 class="modal-title" id="romBrowserTitle">${cfg.title} ROM Browser</h2>
-            <p class="modal-subtitle">Browse and load ${cfg.title} ROMs from Internet Archive</p>
+            <h2 class="modal-title" id="romBrowserTitle">${cfg.title} ${
+      cfg.iaExternalDownload ? 'Disc Catalog' : 'ROM Browser'
+    }</h2>
+            <p class="modal-subtitle">${
+              cfg.iaExternalDownload
+                ? `Search Internet Archive, download the disc, then load it locally`
+                : `Browse and load ${cfg.title} ROMs from Internet Archive`
+            }</p>
           </div>
           <div class="modal-body">
             <div class="search-container" id="searchContainer" ${tv ? 'hidden' : ''}>
@@ -507,6 +580,12 @@ class RomBrowserElement extends HTMLElement {
       if (contentArea) this.renderRoms(this.filteredRoms.length ? this.filteredRoms : this.allRoms);
     };
 
+    const cfg = this.consoleConfig;
+    if (cfg && cfg.iaExternalDownload) {
+      this.showExternalDownload(rom, restoreList);
+      return;
+    }
+
     try {
       if (contentArea) {
         contentArea.innerHTML =
@@ -561,6 +640,45 @@ class RomBrowserElement extends HTMLElement {
         alert('Failed to load ROM: ' + detail);
       }
     }
+  }
+
+  /**
+   * PS1-size disc images cannot ride the free CORS proxy chain (400s /
+   * timeouts on 100–500+ MB files). Hand the user the Archive download
+   * URL, then the local file picker once the browser finishes saving.
+   */
+  showExternalDownload(rom, restoreList) {
+    const contentArea = this.shadowRoot.getElementById('contentArea');
+    if (!contentArea) return;
+
+    const sizeLabel = rom.size && rom.size !== 'Unknown' ? rom.size : 'often 100–500+ MB';
+    const href = rom.downloadUrl || '#';
+
+    contentArea.innerHTML = `
+      <div class="external-download">
+        <h3>${this._escapeHtml(rom.title)}</h3>
+        <p class="size-line">Disc image size: ${this._escapeHtml(sizeLabel)}</p>
+        <p>
+          PlayStation discs are too large to download through this page’s proxies
+          (browser CORS limits). Download from Internet Archive in a new tab, then
+          load the saved <code>.chd</code> file here.
+        </p>
+        <div class="external-actions">
+          <a class="buttonish primary" data-action="open-ia" href="${this._escapeHtml(
+            href
+          )}" target="_blank" rel="noopener noreferrer">Download from Internet Archive</a>
+          <button type="button" class="primary" data-action="load-local">I have the file — load it</button>
+          <button type="button" data-action="back-list">Back to list</button>
+        </div>
+      </div>
+    `;
+
+    contentArea.querySelector('[data-action="back-list"]')?.addEventListener('click', restoreList);
+    contentArea.querySelector('[data-action="load-local"]')?.addEventListener('click', () => {
+      this.closeBrowser();
+      const input = document.getElementById('romFileInput');
+      if (input) input.click();
+    });
   }
 
   // Fuzzy match score (higher = better, 0 = no match). Borrowed from
