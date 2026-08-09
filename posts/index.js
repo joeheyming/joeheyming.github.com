@@ -28,6 +28,15 @@ let posts = [];
 let activeDraftId = null;
 /** @type {ReturnType<typeof setTimeout>|null} */
 let statusTimer = null;
+/** @type {ReturnType<typeof setTimeout>|null} */
+let flashTimer = null;
+/** @type {string|null} */
+let pendingFocusPostId = null;
+let archiveOpen = false;
+
+/** @type {{ x: number, y: number, zoom: number }} */
+const camera = { x: 0, y: 0, zoom: 1 };
+let cameraReady = false;
 
 const els = {
   setupBanner: document.getElementById('setup-banner'),
@@ -35,6 +44,13 @@ const els = {
   empty: document.getElementById('board-empty'),
   add: document.getElementById('add-note'),
   refresh: document.getElementById('refresh-btn'),
+  resetView: document.getElementById('reset-view-btn'),
+  archiveBtn: document.getElementById('archive-btn'),
+  archiveClose: document.getElementById('archive-close'),
+  archivePanel: document.getElementById('archive-panel'),
+  archiveBackdrop: document.getElementById('archive-backdrop'),
+  archiveList: document.getElementById('archive-list'),
+  jumpNewest: document.getElementById('jump-newest-btn'),
   status: document.getElementById('board-status'),
   file: document.getElementById('note-file'),
   honeypot: document.getElementById('note-honeypot'),
@@ -47,8 +63,18 @@ const configured = isConfigured();
 init();
 
 async function init() {
-  els.add?.addEventListener('click', () => createDraftNote());
-  setupBoardPlacement();
+  els.add?.addEventListener('click', () => {
+    const point = pointInView();
+    void createDraftNote(
+      point ? { x: point.x, y: point.y, avoidOverlap: true } : { avoidOverlap: true }
+    );
+  });
+  setupBoardCamera();
+  setupArchiveUi();
+  els.jumpNewest?.addEventListener('click', () => jumpToNewest());
+  els.resetView?.addEventListener('click', () => {
+    resetCamera({ announce: true });
+  });
   els.refresh?.addEventListener('click', () => {
     if (configured) pollFeed();
     else {
@@ -62,20 +88,35 @@ async function init() {
   document.addEventListener('paste', onPaste);
   setupDropTargets();
   setupLightbox();
+  window.addEventListener('resize', () => {
+    sizeBoardSurface();
+    applyCamera();
+  });
 
   const params = new URLSearchParams(window.location.search);
   const wantsCompose = params.get('compose') === '1';
-  if (wantsCompose) history.replaceState({}, '', '/posts/');
+  const focusPostId = params.get('post');
+  if (focusPostId) pendingFocusPostId = focusPostId;
+  if (wantsCompose || focusPostId) {
+    const next = new URL(window.location.href);
+    next.searchParams.delete('compose');
+    next.searchParams.delete('post');
+    history.replaceState({}, '', `${next.pathname}${next.search}${next.hash}` || '/posts/');
+  }
 
   const draft = await loadDraft();
   if (draft) {
+    const point = pointInView();
     await createDraftNote({
       text: draft.text || '',
       email: draft.email || '',
-      attachments: draft.attachments || draft.images || []
+      attachments: draft.attachments || draft.images || [],
+      ...(point || {}),
+      avoidOverlap: true
     });
   } else if (wantsCompose) {
-    createDraftNote();
+    const point = pointInView();
+    void createDraftNote(point ? { ...point, avoidOverlap: true } : { avoidOverlap: true });
   }
 
   if (!configured) {
@@ -83,20 +124,25 @@ async function init() {
     const drafts = posts.filter((p) => p.draft);
     posts = [...drafts, ...loadDemoPosts()];
     renderBoard();
+    maybeFocusPendingPost();
     return;
   }
 
   await pollFeed();
+  maybeFocusPendingPost();
   setInterval(() => {
     pollFeed().catch(() => {});
   }, CONFIG.pollIntervalMs);
 }
 
 /**
- * @param {{ text?: string, email?: string, attachments?: Array<string|Blob>, x?: number, y?: number }} [seed]
+ * @param {{ text?: string, email?: string, attachments?: Array<string|Blob>, x?: number, y?: number, avoidOverlap?: boolean }} [seed]
  */
 async function createDraftNote(seed = {}) {
-  const metadata = createPostMetadata(seed.x, seed.y);
+  const placed = Number.isFinite(Number(seed.x)) || Number.isFinite(Number(seed.y));
+  const metadata = createPostMetadata(seed.x, seed.y, {
+    avoidOverlap: seed.avoidOverlap ?? !placed
+  });
   /** @type {Post} */
   const note = {
     id: metadata.id,
@@ -121,51 +167,177 @@ async function createDraftNote(seed = {}) {
   setStatus('Edit the note, then pin it');
 }
 
-/** @type {{ pointerId: number, x: number, y: number, moved: boolean }|null} */
-let boardPlaceGesture = null;
+/**
+ * @type {{
+ *   pointerId: number,
+ *   startX: number,
+ *   startY: number,
+ *   originPanX: number,
+ *   originPanY: number
+ * }|null}
+ */
+let boardGesture = null;
+/** @type {Map<number, { x: number, y: number }>} */
+const activePointers = new Map();
+/**
+ * @type {{
+ *   distance: number,
+ *   zoom: number,
+ *   worldX: number,
+ *   worldY: number
+ * }|null}
+ */
+let pinchState = null;
 
-function setupBoardPlacement() {
+function setupBoardCamera() {
   if (!els.board) return;
 
+  els.board.addEventListener(
+    'wheel',
+    (event) => {
+      if (archiveOpen) return;
+      event.preventDefault();
+      const factor = Math.exp(-event.deltaY * 0.0015);
+      zoomAtClient(event.clientX, event.clientY, camera.zoom * factor);
+    },
+    { passive: false }
+  );
+
   els.board.addEventListener('pointerdown', (event) => {
-    if (event.button !== 0) return;
     if (!(event.target instanceof Element)) return;
     if (event.target.closest('.post, button, a, input, textarea, audio, video, dialog')) return;
-    boardPlaceGesture = {
-      pointerId: event.pointerId,
-      x: event.clientX,
-      y: event.clientY,
-      moved: false
-    };
-  });
+    if (event.button !== 0 && event.button !== 1) return;
 
-  els.board.addEventListener('pointermove', (event) => {
-    if (!boardPlaceGesture || event.pointerId !== boardPlaceGesture.pointerId) return;
-    if (Math.hypot(event.clientX - boardPlaceGesture.x, event.clientY - boardPlaceGesture.y) > 8) {
-      boardPlaceGesture.moved = true;
+    event.preventDefault();
+    activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    if (activePointers.size >= 2) {
+      boardGesture = null;
+      pinchState = capturePinchState();
+      els.board.classList.add('is-panning');
+      return;
+    }
+
+    boardGesture = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originPanX: camera.x,
+      originPanY: camera.y
+    };
+    pinchState = null;
+    els.board.classList.add('is-panning');
+    try {
+      els.board.setPointerCapture(event.pointerId);
+    } catch {
+      /* ignore */
     }
   });
 
-  const finishPlace = (event) => {
-    if (!boardPlaceGesture || event.pointerId !== boardPlaceGesture.pointerId) return;
-    const gesture = boardPlaceGesture;
-    boardPlaceGesture = null;
-    if (gesture.moved) return;
-    if (event.target instanceof Element && event.target.closest('.post')) return;
-    const point = boardPointFromClient(gesture.x, gesture.y);
-    if (!point) return;
-    void createDraftNote({ x: point.x, y: point.y });
+  els.board.addEventListener('pointermove', (event) => {
+    if (activePointers.has(event.pointerId)) {
+      activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    }
+
+    if (activePointers.size >= 2) {
+      if (!pinchState) pinchState = capturePinchState();
+      const next = capturePinchLive();
+      if (!pinchState || !next || !els.board) return;
+      event.preventDefault();
+      const ratio = next.distance / Math.max(1, pinchState.distance);
+      const zoom = clampZoom(pinchState.zoom * ratio);
+      const boardRect = els.board.getBoundingClientRect();
+      camera.zoom = zoom;
+      camera.x = next.midX - boardRect.left - pinchState.worldX * zoom;
+      camera.y = next.midY - boardRect.top - pinchState.worldY * zoom;
+      applyCamera();
+      return;
+    }
+
+    if (!boardGesture || event.pointerId !== boardGesture.pointerId) return;
+    event.preventDefault();
+    const dx = event.clientX - boardGesture.startX;
+    const dy = event.clientY - boardGesture.startY;
+    camera.x = boardGesture.originPanX + dx;
+    camera.y = boardGesture.originPanY + dy;
+    applyCamera();
+  });
+
+  const endPointer = (event) => {
+    activePointers.delete(event.pointerId);
+
+    if (activePointers.size >= 2) {
+      pinchState = capturePinchState();
+      return;
+    }
+
+    if (activePointers.size === 1) {
+      // Drop from pinch to one-finger pan from the remaining contact.
+      pinchState = null;
+      const [pointerId, point] = [...activePointers.entries()][0];
+      boardGesture = {
+        pointerId,
+        startX: point.x,
+        startY: point.y,
+        originPanX: camera.x,
+        originPanY: camera.y
+      };
+      return;
+    }
+
+    pinchState = null;
+    if (boardGesture && event.pointerId === boardGesture.pointerId) {
+      boardGesture = null;
+      if (els.board?.hasPointerCapture(event.pointerId)) {
+        els.board.releasePointerCapture(event.pointerId);
+      }
+    }
+    if (activePointers.size === 0) {
+      boardGesture = null;
+      els.board?.classList.remove('is-panning');
+    }
   };
 
-  els.board.addEventListener('pointerup', finishPlace);
-  els.board.addEventListener('pointercancel', () => {
-    boardPlaceGesture = null;
+  els.board.addEventListener('pointerup', endPointer);
+  els.board.addEventListener('pointercancel', endPointer);
+  els.board.addEventListener('lostpointercapture', () => {
+    if (activePointers.size === 0) {
+      boardGesture = null;
+      pinchState = null;
+      els.board?.classList.remove('is-panning');
+    }
   });
+
+  sizeBoardSurface();
+  resetCamera();
+}
+
+function capturePinchLive() {
+  if (activePointers.size < 2) return null;
+  const points = [...activePointers.values()];
+  const [a, b] = points;
+  return {
+    distance: Math.hypot(a.x - b.x, a.y - b.y),
+    midX: (a.x + b.x) / 2,
+    midY: (a.y + b.y) / 2
+  };
+}
+
+function capturePinchState() {
+  if (!els.board || activePointers.size < 2) return null;
+  const live = capturePinchLive();
+  if (!live) return null;
+  const boardRect = els.board.getBoundingClientRect();
+  return {
+    distance: live.distance,
+    zoom: camera.zoom,
+    worldX: (live.midX - boardRect.left - camera.x) / camera.zoom,
+    worldY: (live.midY - boardRect.top - camera.y) / camera.zoom
+  };
 }
 
 function boardPointFromClient(clientX, clientY) {
-  const surface =
-    els.board?.querySelector('.board-surface') || /** @type {HTMLElement|null} */ (els.board);
+  const surface = getBoardSurface();
   if (!surface) return null;
   const rect = surface.getBoundingClientRect();
   if (rect.width < 1 || rect.height < 1) return null;
@@ -173,6 +345,77 @@ function boardPointFromClient(clientX, clientY) {
     x: clampCoordinate((clientX - rect.left) / rect.width, 0.5),
     y: clampCoordinate((clientY - rect.top) / rect.height, 0.5)
   };
+}
+
+/** Center of the current viewport, in board coordinates. */
+function pointInView() {
+  if (!els.board) return null;
+  const rect = els.board.getBoundingClientRect();
+  if (rect.width < 1 || rect.height < 1) return null;
+  return boardPointFromClient(rect.left + rect.width / 2, rect.top + rect.height / 2);
+}
+
+function clampZoom(value) {
+  const min = CONFIG.minZoom || 0.4;
+  const max = CONFIG.maxZoom || 2.75;
+  return Math.min(max, Math.max(min, value));
+}
+
+function zoomAtClient(clientX, clientY, nextZoom) {
+  if (!els.board) return;
+  const zoom = clampZoom(nextZoom);
+  const boardRect = els.board.getBoundingClientRect();
+  const vx = clientX - boardRect.left;
+  const vy = clientY - boardRect.top;
+  const wx = (vx - camera.x) / camera.zoom;
+  const wy = (vy - camera.y) / camera.zoom;
+  camera.zoom = zoom;
+  camera.x = vx - wx * camera.zoom;
+  camera.y = vy - wy * camera.zoom;
+  applyCamera();
+}
+
+function applyCamera() {
+  const surface = getBoardSurface();
+  if (!surface) return;
+  surface.style.transform = `translate(${camera.x}px, ${camera.y}px) scale(${camera.zoom})`;
+}
+
+function sizeBoardSurface() {
+  const surface = getBoardSurface();
+  if (!els.board || !surface) return;
+  const scale = CONFIG.worldScale || 1.85;
+  const width = Math.max(els.board.clientWidth * scale, els.board.clientWidth);
+  const height = Math.max(els.board.clientHeight * scale, els.board.clientHeight);
+  surface.style.width = `${Math.round(width)}px`;
+  surface.style.height = `${Math.round(height)}px`;
+  surface.style.minHeight = `${Math.round(height)}px`;
+}
+
+function centerCameraOnWorld(wx, wy, { zoom = camera.zoom } = {}) {
+  if (!els.board) return;
+  camera.zoom = clampZoom(zoom);
+  camera.x = els.board.clientWidth / 2 - wx * camera.zoom;
+  camera.y = els.board.clientHeight / 2 - wy * camera.zoom;
+  applyCamera();
+}
+
+function resetCamera({ announce = false } = {}) {
+  sizeBoardSurface();
+  const surface = getBoardSurface();
+  if (!els.board || !surface) return;
+  camera.zoom = 1;
+  camera.x = (els.board.clientWidth - surface.offsetWidth) / 2;
+  camera.y = (els.board.clientHeight - surface.offsetHeight) / 2;
+  applyCamera();
+  cameraReady = true;
+  if (announce) setStatus('View reset');
+}
+
+function panCameraToNormalized(x, y) {
+  const surface = getBoardSurface();
+  if (!surface) return;
+  centerCameraOnWorld(x * surface.offsetWidth, y * surface.offsetHeight);
 }
 
 function focusDraft(id) {
@@ -366,8 +609,11 @@ async function onPaste(e) {
     e.preventDefault();
     const note = posts.find((p) => p.id === activeDraftId && p.draft);
     if (!note) {
+      const point = pointInView();
       await createDraftNote({
-        attachments: files.slice(0, CONFIG.maxAttachmentsPerPost)
+        attachments: files.slice(0, CONFIG.maxAttachmentsPerPost),
+        ...(point || {}),
+        avoidOverlap: true
       });
       setStatus('Pasted onto a new note');
       return;
@@ -387,7 +633,12 @@ async function onPaste(e) {
   e.preventDefault();
   const note = posts.find((p) => p.id === activeDraftId && p.draft);
   if (!note) {
-    await createDraftNote({ text });
+    const point = pointInView();
+    await createDraftNote({
+      text,
+      ...(point || {}),
+      avoidOverlap: true
+    });
     setStatus('Pasted onto a new note');
     return;
   }
@@ -547,17 +798,51 @@ function buildFormBodies(text, attachmentUrls, email, metadata) {
   });
 }
 
-function createPostMetadata(x, y) {
+function createPostMetadata(x, y, { avoidOverlap = false } = {}) {
+  const hasX = Number.isFinite(Number(x));
+  const hasY = Number.isFinite(Number(y));
+  let nextX = hasX ? clampCoordinate(x, 0.5) : Number((0.18 + Math.random() * 0.64).toFixed(4));
+  let nextY = hasY ? clampCoordinate(y, 0.5) : Number((0.18 + Math.random() * 0.64).toFixed(4));
+
+  if (avoidOverlap) {
+    const cleared = findClearPosition(nextX, nextY);
+    nextX = cleared.x;
+    nextY = cleared.y;
+  }
+
   return {
     id: `post-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     action: 'post',
-    x: Number.isFinite(Number(x))
-      ? clampCoordinate(x, 0.5)
-      : Number((0.18 + Math.random() * 0.64).toFixed(4)),
-    y: Number.isFinite(Number(y))
-      ? clampCoordinate(y, 0.5)
-      : Number((0.18 + Math.random() * 0.64).toFixed(4))
+    x: nextX,
+    y: nextY
   };
+}
+
+/**
+ * Spiral away from neighbors so random pins don't stack.
+ * @param {number} x
+ * @param {number} y
+ * @param {string} [excludeId]
+ */
+function findClearPosition(x, y, excludeId) {
+  const clearance = CONFIG.noteClearance || 0.09;
+  const occupied = partitionPosts().board.filter((p) => p.id !== excludeId);
+  let px = clampCoordinate(x, 0.5);
+  let py = clampCoordinate(y, 0.5);
+
+  for (let attempt = 0; attempt < 14; attempt++) {
+    const clash = occupied.some((p) => {
+      const pos = positionFor(p.id, p);
+      return Math.hypot(pos.x - px, pos.y - py) < clearance;
+    });
+    if (!clash) return { x: Number(px.toFixed(4)), y: Number(py.toFixed(4)) };
+    const angle = attempt * 2.399;
+    const radius = clearance + attempt * 0.025;
+    px = clampCoordinate(x + Math.cos(angle) * radius, 0.5);
+    py = clampCoordinate(y + Math.sin(angle) * radius, 0.5);
+  }
+
+  return { x: Number(px.toFixed(4)), y: Number(py.toFixed(4)) };
 }
 
 function assertFormBodyFits(body) {
@@ -818,25 +1103,303 @@ function hashStr(s) {
   return (h >>> 0).toString(36);
 }
 
+/** @param {string} id */
+function livePost(id) {
+  return posts.find((p) => p.id === id) || null;
+}
+
+function partitionPosts() {
+  const drafts = [];
+  const pending = [];
+  const published = [];
+  for (const post of posts) {
+    if (post.draft) drafts.push(post);
+    else if (post.pending) pending.push(post);
+    else published.push(post);
+  }
+  published.sort((a, b) => b.ts - a.ts);
+  const max = CONFIG.boardMaxNotes || 24;
+  return {
+    board: [...drafts, ...pending, ...published.slice(0, max)],
+    archive: published.slice(max),
+    newestPublished: published[0] || pending[0] || null
+  };
+}
+
+/** @param {Post} post */
+function attachmentSignature(post) {
+  return post.attachments
+    .map((item) => {
+      if (typeof item === 'string') {
+        return `${item.length}:${item.slice(0, 24)}:${item.slice(-16)}`;
+      }
+      const url = item.url || '';
+      return `obj:${url.length}:${url.slice(0, 24)}`;
+    })
+    .join('|');
+}
+
+/** @param {Post} post */
+function noteSignature(post) {
+  if (post.draft) {
+    return `d|${post.pinning ? 1 : 0}|${attachmentSignature(post)}`;
+  }
+  return `p|${post.pending ? 1 : 0}|${post.email}|${post.text}|${attachmentSignature(post)}`;
+}
+
+function getBoardSurface() {
+  if (!els.board) return null;
+  let surface = els.board.querySelector('.board-surface');
+  if (!(surface instanceof HTMLElement)) {
+    surface = document.createElement('div');
+    surface.className = 'board-surface';
+    els.board.replaceChildren(surface);
+  }
+  return surface;
+}
+
 function renderBoard() {
   if (!els.board) return;
-  const surface = document.createElement('div');
-  surface.className = 'board-surface';
-  surface.style.minHeight = `${Math.max(
-    window.innerHeight,
-    720 + Math.ceil(posts.length / 10) * 120
-  )}px`;
+  const surface = getBoardSurface();
+  if (!surface) return;
+
+  const { board, archive, newestPublished } = partitionPosts();
+  sizeBoardSurface();
+  if (!cameraReady) resetCamera();
+  else applyCamera();
 
   if (els.empty) {
     els.empty.hidden = posts.length > 0;
-    surface.append(els.empty);
+    if (els.empty.parentElement !== surface) surface.prepend(els.empty);
   }
 
-  for (const post of posts) {
-    surface.append(post.draft ? renderDraftNote(post) : renderPublishedNote(post));
+  const keep = new Set(board.map((post) => post.id));
+  for (const node of [...surface.querySelectorAll('.post')]) {
+    if (!(node instanceof HTMLElement)) continue;
+    const id = node.dataset.postId;
+    if (!id || !keep.has(id)) node.remove();
   }
 
-  els.board.replaceChildren(surface);
+  for (const post of board) {
+    const existing = surface.querySelector(`[data-post-id="${CSS.escape(post.id)}"]`);
+    const sig = noteSignature(post);
+    if (existing instanceof HTMLElement && existing.dataset.sig === sig) {
+      applyNotePosition(existing, post);
+      continue;
+    }
+    const next = post.draft ? renderDraftNote(post) : renderPublishedNote(post);
+    next.dataset.sig = sig;
+    if (existing) existing.replaceWith(next);
+    else surface.append(next);
+  }
+
+  renderArchiveList(archive);
+  updateChromeActions(archive.length, newestPublished);
+}
+
+/**
+ * @param {Post[]} archive
+ */
+function renderArchiveList(archive) {
+  if (!els.archiveList) return;
+  if (!archiveOpen) {
+    els.archiveList.replaceChildren();
+    return;
+  }
+  els.archiveList.replaceChildren();
+  if (!archive.length) {
+    const empty = document.createElement('p');
+    empty.className = 'archive-empty';
+    empty.textContent = 'No older notes yet — the board still fits everyone.';
+    els.archiveList.append(empty);
+    return;
+  }
+
+  for (const post of archive) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'archive-item';
+    btn.dataset.archiveId = post.id;
+    btn.setAttribute('role', 'listitem');
+
+    const thumb = document.createElement('div');
+    const first = post.attachments.find((item) => typeof item === 'string');
+    if (typeof first === 'string' && first.startsWith('data:audio/')) {
+      thumb.className = 'archive-thumb audio';
+      thumb.textContent = 'Audio';
+    } else if (typeof first === 'string') {
+      thumb.className = 'archive-thumb';
+      const img = document.createElement('img');
+      img.src = first;
+      img.alt = '';
+      img.loading = 'lazy';
+      thumb.append(img);
+    } else {
+      thumb.className = 'archive-thumb blank';
+      thumb.textContent = 'Note';
+    }
+
+    const body = document.createElement('div');
+    body.className = 'archive-item-body';
+    const when = document.createElement('span');
+    when.className = 'archive-item-when';
+    when.textContent = formatWhen(post.ts);
+    const text = document.createElement('p');
+    text.className = 'archive-item-text';
+    text.textContent = previewText(post.text) || '(attachment only)';
+    body.append(when, text);
+    if (post.email) {
+      const author = document.createElement('span');
+      author.className = 'archive-item-author';
+      author.textContent = post.email;
+      body.append(author);
+    }
+
+    btn.append(thumb, body);
+    btn.addEventListener('click', () => openArchiveReader(post));
+    els.archiveList.append(btn);
+  }
+}
+
+/** @param {string} text */
+function previewText(text) {
+  return String(text || '')
+    .replace(/[#>*_`~\-[\]]/g, ' ')
+    .replace(/[()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * @param {number} archiveCount
+ * @param {Post|null} newestPublished
+ */
+function updateChromeActions(archiveCount, newestPublished) {
+  if (els.archiveBtn) {
+    els.archiveBtn.hidden = archiveCount === 0 && !archiveOpen;
+    els.archiveBtn.textContent = archiveCount ? `Older (${archiveCount})` : 'Older';
+    els.archiveBtn.setAttribute('aria-expanded', archiveOpen ? 'true' : 'false');
+  }
+  if (els.jumpNewest) {
+    els.jumpNewest.hidden = !newestPublished;
+  }
+}
+
+function setupArchiveUi() {
+  els.archiveBtn?.addEventListener('click', () => {
+    if (archiveOpen) closeArchive();
+    else openArchive();
+  });
+  els.archiveClose?.addEventListener('click', () => closeArchive());
+  els.archiveBackdrop?.addEventListener('click', () => closeArchive());
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && archiveOpen) closeArchive();
+  });
+}
+
+function openArchive() {
+  archiveOpen = true;
+  if (els.archivePanel) els.archivePanel.hidden = false;
+  if (els.archiveBackdrop) els.archiveBackdrop.hidden = false;
+  if (els.archiveBtn) els.archiveBtn.setAttribute('aria-expanded', 'true');
+  const archive = partitionPosts().archive;
+  renderArchiveList(archive);
+  window.trackEvent?.('posts_archive_open', 'Engagement', String(archive.length));
+}
+
+function closeArchive() {
+  archiveOpen = false;
+  if (els.archivePanel) els.archivePanel.hidden = true;
+  if (els.archiveBackdrop) els.archiveBackdrop.hidden = true;
+  if (els.archiveBtn) els.archiveBtn.setAttribute('aria-expanded', 'false');
+  if (els.archiveList) els.archiveList.replaceChildren();
+}
+
+/** @param {Post} post */
+function openArchiveReader(post) {
+  const dialog = els.lightbox;
+  if (!dialog || !els.lightboxImg) return;
+
+  const urls = post.attachments.filter((item) => typeof item === 'string');
+  const image = urls.find((src) => !src.startsWith('data:audio/'));
+  if (image) {
+    openLightbox(image);
+  }
+
+  const snippet = previewText(post.text);
+  setStatus(
+    snippet
+      ? `${formatWhen(post.ts)} — ${snippet.slice(0, 120)}${snippet.length > 120 ? '…' : ''}`
+      : `Archived note from ${formatWhen(post.ts)}`
+  );
+
+  const url = new URL(window.location.href);
+  url.searchParams.set('post', post.id);
+  history.replaceState({}, '', `${url.pathname}?post=${encodeURIComponent(post.id)}`);
+  window.trackEvent?.('posts_archive_read', 'Engagement', post.id);
+}
+
+function jumpToNewest() {
+  const { newestPublished } = partitionPosts();
+  if (!newestPublished) {
+    setStatus('No pinned notes yet', true);
+    return;
+  }
+  focusBoardPost(newestPublished.id);
+}
+
+function maybeFocusPendingPost() {
+  if (!pendingFocusPostId) return;
+  const id = pendingFocusPostId;
+  pendingFocusPostId = null;
+  focusBoardPost(id);
+}
+
+/** @param {string} id */
+function focusBoardPost(id) {
+  const onBoard = els.board?.querySelector(`[data-post-id="${CSS.escape(id)}"]`);
+  if (onBoard instanceof HTMLElement) {
+    closeArchive();
+    const post = livePost(id);
+    if (post) {
+      const position = positionFor(post.id, post);
+      panCameraToNormalized(position.x, position.y);
+    }
+    flashElement(onBoard);
+    onBoard.focus({ preventScroll: true });
+    setStatus('Found that note');
+    return true;
+  }
+
+  const archived = partitionPosts().archive.find((post) => post.id === id);
+  if (archived) {
+    openArchive();
+    requestAnimationFrame(() => {
+      const row = els.archiveList?.querySelector(`[data-archive-id="${CSS.escape(id)}"]`);
+      if (row instanceof HTMLElement) {
+        row.scrollIntoView({ block: 'nearest' });
+        flashElement(row);
+        row.focus();
+      }
+    });
+    setStatus('That note is in Older');
+    return true;
+  }
+
+  setStatus('Could not find that note', true);
+  return false;
+}
+
+/** @param {HTMLElement} el */
+function flashElement(el) {
+  el.classList.remove('is-flash');
+  // Force restart when the same note is focused twice.
+  void el.offsetWidth;
+  el.classList.add('is-flash');
+  if (flashTimer) clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => {
+    el.classList.remove('is-flash');
+  }, 1500);
 }
 
 function styleNote(article, post) {
@@ -858,8 +1421,8 @@ function styleNote(article, post) {
   article.style.setProperty('--ty', `${position.y * -100}%`);
   article.style.setProperty('--rotation', `${angle}deg`);
   article.style.setProperty('--note-color', NOTE_COLORS[colorIndex]);
-  attachNoteDragging(article, post);
-  attachNoteKeyboardMovement(article, post);
+  attachNoteDragging(article);
+  attachNoteKeyboardMovement(article);
 }
 
 function applyNotePosition(article, post) {
@@ -870,11 +1433,12 @@ function applyNotePosition(article, post) {
   article.style.setProperty('--ty', `${position.y * -100}%`);
 }
 
-function attachNoteDragging(article, post) {
+function attachNoteDragging(article) {
   let drag = null;
 
   article.addEventListener('pointerdown', (event) => {
-    if (post.pinning) return;
+    const post = livePost(article.dataset.postId || '');
+    if (!post || post.pinning) return;
     if (event.button !== 0 || isInteractiveDragTarget(event.target)) return;
     const surface = article.parentElement;
     if (!surface) return;
@@ -897,6 +1461,8 @@ function attachNoteDragging(article, post) {
 
   article.addEventListener('pointermove', (event) => {
     if (!drag || event.pointerId !== drag.pointerId) return;
+    const post = livePost(article.dataset.postId || '');
+    if (!post) return;
     const dx = event.clientX - drag.startClientX;
     const dy = event.clientY - drag.startClientY;
     if (!drag.moved && Math.hypot(dx, dy) < 4) return;
@@ -911,11 +1477,12 @@ function attachNoteDragging(article, post) {
 
   const finishDrag = (event, cancelled = false) => {
     if (!drag || event.pointerId !== drag.pointerId) return;
+    const post = livePost(article.dataset.postId || '');
     const completed = drag;
     drag = null;
     article.classList.remove('dragging');
     if (article.hasPointerCapture(event.pointerId)) article.releasePointerCapture(event.pointerId);
-    if (!completed.moved) return;
+    if (!completed.moved || !post) return;
 
     if (cancelled) {
       post.x = completed.startX;
@@ -935,7 +1502,7 @@ function attachNoteDragging(article, post) {
   article.addEventListener('pointercancel', (event) => finishDrag(event, true));
 }
 
-function attachNoteKeyboardMovement(article, post) {
+function attachNoteKeyboardMovement(article) {
   let startingPosition = null;
   let persistTimer = 0;
   const deltas = {
@@ -946,7 +1513,8 @@ function attachNoteKeyboardMovement(article, post) {
   };
 
   article.addEventListener('keydown', (event) => {
-    if (post.pinning) return;
+    const post = livePost(article.dataset.postId || '');
+    if (!post || post.pinning) return;
     if (event.target !== article || !(event.key in deltas)) return;
     event.preventDefault();
 
@@ -971,9 +1539,10 @@ function attachNoteKeyboardMovement(article, post) {
     setStatus('Moving note…');
     window.clearTimeout(persistTimer);
     persistTimer = window.setTimeout(() => {
+      const live = livePost(article.dataset.postId || '');
       const previousPosition = startingPosition;
       startingPosition = null;
-      if (previousPosition) void persistMove(post, previousPosition);
+      if (live && previousPosition) void persistMove(live, previousPosition);
     }, 300);
   });
 }

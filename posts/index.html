@@ -108,16 +108,65 @@
 
     <header class="board-chrome" aria-label="Board controls">
       <h1 class="brand">Posts</h1>
-      <button type="button" id="refresh-btn" class="btn ghost sm" title="Refresh board">
-        Refresh
-      </button>
+      <div class="board-chrome-actions">
+        <button
+          type="button"
+          id="archive-btn"
+          class="btn ghost sm"
+          hidden
+          aria-expanded="false"
+          aria-controls="archive-panel"
+          title="Older notes"
+        >
+          Older
+        </button>
+        <button
+          type="button"
+          id="jump-newest-btn"
+          class="btn ghost sm"
+          hidden
+          title="Jump to newest note"
+        >
+          Newest
+        </button>
+        <button type="button" id="reset-view-btn" class="btn ghost sm" title="Reset pan and zoom">
+          Reset view
+        </button>
+        <button type="button" id="refresh-btn" class="btn ghost sm" title="Refresh board">
+          Refresh
+        </button>
+      </div>
     </header>
 
     <main id="board" class="board" aria-label="Message board">
-      <p id="board-empty" class="empty" hidden>Tap, paste, or drop a screenshot to place a note.</p>
+      <div class="board-surface" style="min-height: 100%">
+        <p id="board-empty" class="empty" hidden>
+          Drag to pan · scroll or pinch to zoom · tap + to add a note.
+        </p>
+      </div>
     </main>
 
-    <button type="button" id="add-note" class="add-note" aria-label="Add a note" title="Add a note">
+    <aside id="archive-panel" class="archive-panel" hidden aria-label="Older notes">
+      <div class="archive-panel-head">
+        <h2 class="archive-panel-title">Older notes</h2>
+        <button type="button" id="archive-close" class="btn ghost sm" aria-label="Close archive">
+          Close
+        </button>
+      </div>
+      <p class="archive-panel-hint">
+        The board keeps the newest notes pinned. Everything older lives here.
+      </p>
+      <div id="archive-list" class="archive-list" role="list"></div>
+    </aside>
+    <div id="archive-backdrop" class="archive-backdrop" hidden></div>
+
+    <button
+      type="button"
+      id="add-note"
+      class="add-note"
+      aria-label="Add a note"
+      title="Add a note in view"
+    >
       +
     </button>
 

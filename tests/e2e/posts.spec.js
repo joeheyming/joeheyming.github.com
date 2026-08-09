@@ -35,7 +35,9 @@ test.describe('Posts', () => {
     await expect(page.getByRole('heading', { name: 'Posts', exact: true })).toBeVisible();
     await expect(page.getByRole('main', { name: 'Message board' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Add a note' })).toBeVisible();
-    await expect(page.locator('#board-empty')).toContainText('Tap or drop');
+    expect(await page.locator('#board-empty').evaluate((el) => el.textContent || '')).toMatch(
+      /tap \+ to add/i
+    );
   });
 
   test('plus creates an editable draft note', async ({ page }) => {
@@ -48,17 +50,74 @@ test.describe('Posts', () => {
     await expect(page.getByRole('button', { name: 'Pin' })).toBeVisible();
   });
 
-  test('tapping blank board space places a draft note there', async ({ page }) => {
+  test('tapping blank board space pans instead of placing a note', async ({ page }) => {
     await page.goto('/posts/');
+    await expect(page.locator('.board-surface')).toHaveAttribute('style', /translate\(/);
     const board = page.locator('#board');
     const box = await board.boundingBox();
     expect(box).not.toBeNull();
     if (!box) return;
     await page.mouse.click(box.x + box.width * 0.72, box.y + box.height * 0.28);
+    await expect(page.locator('.post.draft')).toHaveCount(0);
+  });
+
+  test('plus drops a note inside the current view', async ({ page }) => {
+    await page.goto('/posts/');
+    await page.getByRole('button', { name: 'Add a note' }).click();
     const note = page.locator('.post.draft');
     await expect(note).toHaveCount(1);
-    await expect(note).toHaveAttribute('style', /left: 7[0-9](\.\d+)?%;/);
-    await expect(note).toHaveAttribute('style', /top: 2[0-9](\.\d+)?%;/);
+    const inView = await note.evaluate((el) => {
+      const boardEl = document.getElementById('board');
+      if (!boardEl) return false;
+      const noteRect = el.getBoundingClientRect();
+      const boardRect = boardEl.getBoundingClientRect();
+      const cx = noteRect.left + noteRect.width / 2;
+      const cy = noteRect.top + noteRect.height / 2;
+      return (
+        cx >= boardRect.left &&
+        cx <= boardRect.right &&
+        cy >= boardRect.top &&
+        cy <= boardRect.bottom
+      );
+    });
+    expect(inView).toBe(true);
+  });
+
+  test('board uses grab cursor and grabbing while panning', async ({ page }) => {
+    await page.goto('/posts/');
+    const board = page.locator('#board');
+    await expect(board).toHaveCSS('cursor', 'grab');
+    const box = await board.boundingBox();
+    expect(box).not.toBeNull();
+    if (!box) return;
+    await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5);
+    await page.mouse.down();
+    await expect(board).toHaveClass(/is-panning/);
+    await expect(board).toHaveCSS('cursor', 'grabbing');
+    await page.mouse.move(box.x + box.width * 0.5 + 40, box.y + box.height * 0.5 + 20, {
+      steps: 4
+    });
+    await page.mouse.up();
+    await expect(board).not.toHaveClass(/is-panning/);
+    await expect(board).toHaveCSS('cursor', 'grab');
+  });
+
+  test('dragging empty cork pans the camera', async ({ page }) => {
+    await page.goto('/posts/');
+    const board = page.locator('#board');
+    const box = await board.boundingBox();
+    expect(box).not.toBeNull();
+    if (!box) return;
+    const before = await page.locator('.board-surface').getAttribute('style');
+    await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.5 + 120, box.y + box.height * 0.5 + 80, {
+      steps: 8
+    });
+    await page.mouse.up();
+    const after = await page.locator('.board-surface').getAttribute('style');
+    expect(after).not.toEqual(before);
+    await expect(page.locator('.post.draft')).toHaveCount(0);
   });
 
   test('hydrates a cross-app share as a prefilled draft note', async ({ page }) => {
@@ -116,7 +175,7 @@ test.describe('Posts', () => {
     });
     await page.getByRole('button', { name: 'Pin' }).click();
     await expect(page.locator('#board-status')).toContainText('Pinned');
-    expect(new URLSearchParams(formBody).get('entry.54080658')).toBe(
+    expect(new URLSearchParams(formBody).get('entry.103900252')).toBe(
       `data:image/png;base64,${TINY_PNG_BASE64}`
     );
   });
@@ -167,17 +226,20 @@ test.describe('Posts', () => {
     await page.getByRole('button', { name: 'Pin' }).click();
     await expect(page.locator('#board-status')).toContainText('Pinned');
 
-    expect(formBodies.length).toBeGreaterThan(1);
-    const attachmentValues = formBodies.map(
-      (body) => new URLSearchParams(body).get('entry.54080658') || ''
+    const pinBodies = formBodies.filter((body) =>
+      Boolean(new URLSearchParams(body).get('entry.103900252'))
+    );
+    expect(pinBodies.length).toBeGreaterThan(1);
+    const attachmentValues = pinBodies.map(
+      (body) => new URLSearchParams(body).get('entry.103900252') || ''
     );
     expect(attachmentValues.every((value) => value.startsWith('posts-attachment-chunk-v1|'))).toBe(
       true
     );
-    expect(new URLSearchParams(formBodies[0]).get('entry.1103329710')).toBe(
+    expect(new URLSearchParams(pinBodies[0]).get('entry.947783301')).toBe(
       'Complete Theremin recording'
     );
-    const metadata = JSON.parse(new URLSearchParams(formBodies[0]).get('entry.1055123464') || '{}');
+    const metadata = JSON.parse(new URLSearchParams(pinBodies[0]).get('entry.53437001') || '{}');
     expect(metadata.action).toBe('post');
     expect(metadata.id).toMatch(/^post-/);
     expect(metadata.x).toBeGreaterThan(0);
@@ -223,9 +285,12 @@ test.describe('Posts', () => {
     await page.getByRole('button', { name: 'Pin' }).click();
     await expect(page.locator('#board-status')).toContainText('Pinned');
 
-    expect(formBodies.length).toBeGreaterThan(1);
-    const attachmentValues = formBodies.map(
-      (body) => new URLSearchParams(body).get('entry.54080658') || ''
+    const pinBodies = formBodies.filter((body) =>
+      Boolean(new URLSearchParams(body).get('entry.103900252'))
+    );
+    expect(pinBodies.length).toBeGreaterThan(1);
+    const attachmentValues = pinBodies.map(
+      (body) => new URLSearchParams(body).get('entry.103900252') || ''
     );
     expect(attachmentValues.every((value) => value.startsWith('posts-attachment-chunk-v1|'))).toBe(
       true
@@ -302,7 +367,7 @@ test.describe('Posts', () => {
     let removalMetadata = '';
     await page.route('https://docs.google.com/forms/**', async (route) => {
       removalMetadata =
-        new URLSearchParams(route.request().postData() || '').get('entry.1055123464') || '';
+        new URLSearchParams(route.request().postData() || '').get('entry.53437001') || '';
       await route.fulfill({ status: 204, body: '' });
     });
     page.on('dialog', (dialog) => dialog.accept());
@@ -364,7 +429,7 @@ test.describe('Posts', () => {
     let moveMetadata = '';
     await page.route('https://docs.google.com/forms/**', async (route) => {
       moveMetadata =
-        new URLSearchParams(route.request().postData() || '').get('entry.1055123464') || '';
+        new URLSearchParams(route.request().postData() || '').get('entry.53437001') || '';
       await route.fulfill({ status: 204, body: '' });
     });
 
@@ -397,5 +462,53 @@ test.describe('Posts', () => {
     expect(keyboardMetadata.action).toBe('move');
     expect(keyboardMetadata.targetId).toBe('post-move-me');
     expect(keyboardMetadata.x).toBeGreaterThan(metadata.x);
+  });
+
+  test('keeps newest notes on the board and archives the rest', async ({ page }) => {
+    const cols = ['Timestamp', 'Text', 'Attachment', 'Name', 'Metadata', 'Honeypot'].map(
+      (label) => ({ label })
+    );
+    const rows = Array.from({ length: 26 }, (_, index) => ({
+      c: [
+        { v: `Date(2026,7,8,12,0,${index})` },
+        { v: `Note number ${index + 1}` },
+        { v: '' },
+        { v: '' },
+        {
+          v: JSON.stringify({
+            id: `post-scale-${index + 1}`,
+            action: 'post',
+            x: 0.2 + (index % 5) * 0.12,
+            y: 0.2 + Math.floor(index / 5) * 0.12
+          })
+        },
+        { v: '' }
+      ]
+    }));
+    await page.route('https://docs.google.com/spreadsheets/**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/javascript',
+        body: `google.visualization.Query.setResponse(${JSON.stringify({
+          table: { cols, rows }
+        })});`
+      });
+    });
+
+    await page.goto('/posts/');
+    await expect(page.locator('#board .post')).toHaveCount(24);
+    await expect(page.getByRole('button', { name: 'Older (2)' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Newest' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Older (2)' }).click();
+    await expect(page.locator('#archive-panel')).toBeVisible();
+    await expect(page.locator('.archive-item')).toHaveCount(2);
+    await expect(page.locator('[data-archive-id="post-scale-1"]')).toContainText('Note number 1');
+
+    await page.getByRole('button', { name: 'Newest' }).click();
+    await expect(page.locator('#archive-panel')).toBeHidden();
+    const newest = page.locator('[data-post-id="post-scale-26"]');
+    await expect(newest).toBeVisible();
+    await expect(newest).toHaveClass(/is-flash/);
   });
 });

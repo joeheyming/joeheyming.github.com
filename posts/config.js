@@ -12,6 +12,17 @@
 export const CONFIG = {
   pollIntervalMs: 12000,
 
+  // Newest published notes stay on the corkboard; older ones move to Archive.
+  boardMaxNotes: 24,
+  // Normalized distance under which a new random pin nudges away from neighbors.
+  noteClearance: 0.09,
+
+  // Figma-style canvas camera.
+  minZoom: 0.4,
+  maxZoom: 2.75,
+  // World size as a multiple of the viewport (gives room to pan).
+  worldScale: 1.85,
+
   // Google Form `formResponse` URL.
   // https://docs.google.com/forms/d/e/<FORM_ID>/formResponse
   formActionUrl:
