@@ -1,0 +1,221 @@
+/* Flash Player — Macromedia-red accent on dark charcoal. Identity is
+ * deliberate Flash-era chrome, not generic purple glass. */
+
+:root {
+  --flash-bg: #141414;
+  --flash-panel: #1c1c1c;
+  --flash-border: #2e2e2e;
+  --flash-text: #f2f2f2;
+  --flash-muted: #9a9a9a;
+  --flash-accent: #e31c25;
+  --flash-accent-soft: rgba(227, 28, 37, 0.14);
+  --flash-accent-deep: #9f1218;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: radial-gradient(
+      ellipse 80% 50% at 50% -10%,
+      var(--flash-accent-soft),
+      transparent 55%
+    ),
+    var(--flash-bg);
+  color: var(--flash-text);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px 12px 120px;
+  background: var(--flash-panel);
+  border-bottom: 1px solid var(--flash-border);
+}
+
+.app-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.app-sub {
+  font-size: 0.82rem;
+  color: var(--flash-muted);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: min(42vw, 360px);
+}
+
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid var(--flash-border);
+  background: #262626;
+  color: var(--flash-text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--flash-accent);
+  background: var(--flash-accent-soft);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  background: transparent;
+}
+
+.stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 20px;
+}
+
+.boot {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.dropzone {
+  width: min(560px, 100%);
+  padding: 48px 28px;
+  border: 2px dashed var(--flash-border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--flash-panel) 88%, black);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s, transform 0.15s;
+}
+
+.dropzone:hover,
+.dropzone:focus-visible,
+.dropzone.is-dragover {
+  border-color: var(--flash-accent);
+  background: var(--flash-accent-soft);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.drop-emoji {
+  margin: 0 0 8px;
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.drop-title {
+  margin: 0 0 6px;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.drop-title code,
+.hint code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.92em;
+  color: #ffb4b8;
+}
+
+.drop-sub {
+  margin: 0;
+  color: var(--flash-muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.hint {
+  margin: 0;
+  max-width: 36rem;
+  text-align: center;
+  color: var(--flash-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.hint a {
+  color: #ff8a90;
+}
+
+.player-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  border: 1px solid var(--flash-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.player-wrap ruffle-player,
+.player-wrap .ruffle-embed {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.share-overlay {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 200;
+}
+
+@media (max-width: 640px) {
+  .app-header {
+    padding-left: 100px;
+  }
+
+  .app-sub {
+    display: none;
+  }
+
+  .stage {
+    padding: 12px;
+  }
+}

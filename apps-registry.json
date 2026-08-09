@@ -123,7 +123,7 @@
     "taskbarGradient": "from-amber-600 to-orange-700",
     "taskbarText": "text-white",
     "tags": ["dos", "dosbox", "retro", "emulator", "pc", "rpg", "adventure"],
-    "related": ["doom", "nes", "sega", "stepmania"],
+    "related": ["doom", "nes", "sega", "flash", "stepmania"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "DOS Player",
@@ -1182,7 +1182,7 @@
     "taskbarGradient": "from-yellow-600 to-stone-800",
     "taskbarText": "text-white",
     "tags": ["retro", "emulator", "neogeo", "arcade", "snk", "16-bit"],
-    "related": ["nes", "sega", "gameboy", "doom"],
+    "related": ["nes", "sega", "gameboy", "doom", "flash"],
     "shareCategory": "game",
     "featured": {
       "order": 14,
@@ -1191,6 +1191,36 @@
       "tagsLine": "🕹️ Game • 🎮 Arcade",
       "preset": "neogeo",
       "analyticsLabel": "NeoGeo"
+    },
+    "appTier": "experience",
+    "geo": false
+  },
+  {
+    "id": "flash",
+    "name": "Flash Player ⚡",
+    "shortName": "Flash",
+    "description": "Play .swf Flash files in your browser",
+    "detailedDescription": "Drop an Adobe Flash (.swf) file and play it in your browser via Ruffle (Rust → WebAssembly). Fullscreen, no install, no ads. For DOS zip → auto-run .exe demos, use DOS Player instead.",
+    "icon": "⚡",
+    "path": "./flash/",
+    "category": "game",
+    "defaultWidth": 960,
+    "defaultHeight": 720,
+    "gradient": "from-red-700/20 to-stone-900/20",
+    "border": "border-red-600/30 hover:border-red-500/50",
+    "taskbarGradient": "from-red-700 to-stone-900",
+    "taskbarText": "text-white",
+    "tags": ["flash", "swf", "ruffle", "emulator", "retro", "adobe"],
+    "related": ["dos", "nes", "neogeo", "badapple"],
+    "shareCategory": "game",
+    "handles": ["application/x-shockwave-flash"],
+    "featured": {
+      "order": 15,
+      "headline": "Flash Player",
+      "blurb": "Play .swf files in your browser with Ruffle. Drop a file and go.",
+      "tagsLine": "⚡ Flash • 🎮 Retro",
+      "preset": "flash",
+      "analyticsLabel": "Flash"
     },
     "appTier": "experience",
     "geo": false

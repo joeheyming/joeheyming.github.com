@@ -24,6 +24,11 @@ const PAGES = [
     title: 'Retro Emulator (NES / Sega / Game Boy / Neo Geo)'
   },
   {
+    url: `${BASE_URL}/flash/`,
+    output: 'flash/flash-preview.png',
+    title: 'Flash Player'
+  },
+  {
     url: `${BASE_URL}/calculator/`,
     output: 'calculator/calculator-preview.png',
     title: 'Calculator',

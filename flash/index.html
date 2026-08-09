@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <title>Flash Player — Play .SWF Files Online ⚡</title>
+    <meta name="theme-color" content="#1a1a1a" />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta
+      name="description"
+      content="Play Adobe Flash (.swf) files in your browser with Ruffle. Drop a SWF, fullscreen, no install, no ads. Free Flash emulator online."
+    />
+    <meta
+      name="keywords"
+      content="flash player online, swf player, ruffle, adobe flash emulator, play swf in browser, flash games online, free flash player"
+    />
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming" />
+    <meta property="og:title" content="Flash Player — Play .SWF Files Online ⚡" />
+    <meta
+      property="og:description"
+      content="Play Adobe Flash (.swf) files in your browser with Ruffle. Drop a SWF — no install, no ads."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/flash/" />
+    <meta property="og:image" content="https://joeheyming.github.io/flash/flash-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Browser Flash player powered by Ruffle" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="Flash Player — Play .SWF Files Online ⚡" />
+    <meta
+      name="twitter:description"
+      content="Play Adobe Flash (.swf) files in your browser with Ruffle. Drop a SWF — no install, no ads."
+    />
+    <meta name="twitter:image" content="https://joeheyming.github.io/flash/flash-preview.png" />
+
+    <link rel="canonical" href="https://joeheyming.github.io/flash/" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Flash Player Online",
+            "alternateName": ["SWF Player", "Ruffle Flash Emulator", "Browser Flash Player"],
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Play Adobe Flash (.swf) movies and games in your browser using the Ruffle WebAssembly emulator. Bring your own SWF file. No install, no ads.",
+            "url": "https://joeheyming.github.io/flash/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "featureList": [
+              "Play .swf Flash files in the browser",
+              "Drag-and-drop or file picker",
+              "Fullscreen mode",
+              "Powered by Ruffle WASM",
+              "No install, no ads"
+            ],
+            "keywords": "flash player, swf, ruffle, adobe flash emulator"
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Does this run real Adobe Flash?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. Adobe Flash Player is discontinued. This page uses Ruffle, an open-source Flash emulator written in Rust and compiled to WebAssembly. Compatibility is high for many games and animations, but some ActionScript-heavy titles may not work yet."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Where do I get .swf files?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Bring your own. Backups of Flash content you own, public-domain animations, and homebrew are fine. Downloading copyrighted SWFs you don't have rights to typically isn't. Nothing is uploaded — files stay in this browser tab."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I run Windows .exe demos here?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Not in this Flash player. For DOS-era zip packs that auto-boot an .exe, use the site's DOS Player (/dos/) — drop a zip and it launches the boot EXE in DOSBox."
+                }
+              }
+            ]
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              { "@type": "ListItem", "position": 2, "name": "Flash Player" }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/nav.js" data-nav-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="index.css" />
+
+    <!-- Pin Ruffle; nightlies move fast. 0.5.0 is the current jsDelivr "latest" tag. -->
+    <script>
+      window.RufflePlayer = window.RufflePlayer || {};
+      window.RufflePlayer.config = {
+        autoplay: 'on',
+        unmuteOverlay: 'hidden',
+        letterbox: 'on',
+        contextMenu: 'on',
+        splashScreen: false
+      };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle@0.5.0/ruffle.min.js"></script>
+  </head>
+
+  <body>
+    <header class="app-header">
+      <h1 class="app-title">Flash Player</h1>
+      <span class="app-sub" id="fileLabel">No file loaded</span>
+      <div class="header-actions">
+        <button type="button" class="btn" id="loadBtn">Load .swf</button>
+        <button type="button" class="btn" id="fullscreenBtn" disabled>Fullscreen</button>
+        <button type="button" class="btn btn-ghost" id="unloadBtn" disabled>Unload</button>
+      </div>
+    </header>
+
+    <main class="stage" id="stage">
+      <div class="boot" id="boot">
+        <div
+          class="dropzone"
+          id="dropzone"
+          tabindex="0"
+          role="button"
+          aria-label="Load a Flash SWF file"
+        >
+          <p class="drop-emoji" aria-hidden="true">⚡</p>
+          <p class="drop-title">
+            Drop a
+            <code>.swf</code>
+            here
+          </p>
+          <p class="drop-sub">or click to browse — runs entirely in this tab via Ruffle</p>
+        </div>
+        <p class="hint">
+          Looking for zip → auto-run
+          <code>.exe</code>
+          ? Try the
+          <a href="/dos/">DOS Player</a>
+          for DOS demos.
+        </p>
+      </div>
+      <div class="player-wrap" id="playerWrap" hidden></div>
+    </main>
+
+    <input
+      type="file"
+      id="fileInput"
+      class="hidden-input"
+      accept=".swf,application/x-shockwave-flash"
+    />
+
+    <div class="share-overlay">
+      <share-button label="📤 Share" theme="retro"></share-button>
+    </div>
+
+    <script type="module" src="index.js"></script>
+  </body>
+</html>
