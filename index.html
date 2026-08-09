@@ -439,6 +439,15 @@
             </a>
             <a href="#apps" class="hos-cta-secondary">Browse apps</a>
             <a href="/watch/" class="hos-cta-secondary">Watch classic TV</a>
+            <a
+              href="/posts/"
+              class="hos-cta-secondary"
+              data-event="hero_posts"
+              data-event-category="Engagement"
+              data-event-label="Posts board"
+            >
+              Posts board
+            </a>
           </div>
         </div>
         <div class="hos-hero-art" aria-hidden="true">
@@ -455,6 +464,51 @@
           <div class="hos-hero-art-glow"></div>
         </div>
       </header>
+
+      <!--
+        Live teaser from the public Posts sheet. Hidden until a note loads
+        so a quiet board (or offline Sheet) doesn't leave an empty band.
+      -->
+      <section
+        id="posts-teaser"
+        class="hos-section hos-posts-teaser"
+        aria-labelledby="posts-teaser-heading"
+        hidden
+      >
+        <div class="hos-posts-teaser-card" data-category="entertainment">
+          <div class="hos-posts-teaser-copy">
+            <p class="hos-posts-teaser-eyebrow">
+              <span aria-hidden="true">📝</span>
+              <span id="posts-teaser-heading">Latest note</span>
+            </p>
+            <time class="hos-posts-teaser-when" data-posts-when></time>
+            <p class="hos-posts-teaser-body" data-posts-body></p>
+          </div>
+          <div class="hos-posts-teaser-actions">
+            <a
+              class="hos-cta-primary hos-posts-teaser-primary"
+              data-posts-view
+              data-event="home_posts_view_note"
+              data-event-category="Engagement"
+              data-event-label="View latest note"
+              hidden
+            >
+              View note
+              <span aria-hidden="true">→</span>
+            </a>
+            <a
+              href="/posts/"
+              class="hos-cta-secondary"
+              data-posts-board
+              data-event="home_posts_open_board"
+              data-event-category="Engagement"
+              data-event-label="Open Posts board"
+            >
+              Open board
+            </a>
+          </div>
+        </div>
+      </section>
 
       <!--
         Featured — editorial picks from the bundled app suite. Hidden by
@@ -602,5 +656,6 @@
     <script src="/presence/config.js"></script>
     <script src="/presence.js"></script>
     <script src="/index.js"></script>
+    <script type="module" src="/posts/home-teaser.js"></script>
   </body>
 </html>

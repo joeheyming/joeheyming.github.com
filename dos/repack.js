@@ -99,6 +99,15 @@ export async function repackToJsdos(input, options = {}) {
     );
   }
 
+  if (candidate.ext === 'exe') {
+    const pe = await zipEntryIsWindowsPe(zip, candidate.path);
+    if (pe) {
+      throw new Error(
+        `"${candidate.path}" is a Windows program (PE), not an MS-DOS executable. DOS Player only runs classic DOS games — Steam/Windows demos will not work here.`
+      );
+    }
+  }
+
   const autoexec = buildAutoexec(candidate);
   zip.file(JSDOS_CONF_PATH, autoexec);
 
@@ -220,6 +229,41 @@ function depth(p) {
   let d = 1;
   for (let i = 0; i < p.length; i++) if (p[i] === '/') d++;
   return d;
+}
+
+/**
+ * True when `bytes` look like a Windows PE executable (MZ + PE\0\0 at
+ * e_lfanew). Classic DOS MZ EXEs are not PE and return false — those
+ * are what DOSBox can actually run.
+ *
+ * @param {Uint8Array} bytes
+ * @returns {boolean}
+ */
+export function isWindowsPeExecutable(bytes) {
+  if (!bytes || bytes.length < 0x40) return false;
+  // MZ
+  if (bytes[0] !== 0x4d || bytes[1] !== 0x5a) return false;
+  const peOffset = bytes[0x3c] | (bytes[0x3d] << 8) | (bytes[0x3e] << 16) | (bytes[0x3f] << 24);
+  if (peOffset < 0x40 || peOffset + 4 > bytes.length) return false;
+  return (
+    bytes[peOffset] === 0x50 &&
+    bytes[peOffset + 1] === 0x45 &&
+    bytes[peOffset + 2] === 0x00 &&
+    bytes[peOffset + 3] === 0x00
+  );
+}
+
+/**
+ * @param {InstanceType<typeof JSZip>} zip
+ * @param {string} path
+ * @returns {Promise<boolean>}
+ */
+async function zipEntryIsWindowsPe(zip, path) {
+  const file = zip.file(path);
+  if (!file) return false;
+  // Only need the header — PE offset is typically small; read a chunk.
+  const bytes = await file.async('uint8array');
+  return isWindowsPeExecutable(bytes);
 }
 
 /**
