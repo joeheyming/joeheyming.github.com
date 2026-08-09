@@ -111,8 +111,8 @@
     "id": "dos",
     "name": "DOS Player 💾",
     "shortName": "DOS",
-    "description": "Browser DOSBox — bring your own game zip",
-    "detailedDescription": "Play classic MS-DOS games in your browser. Load a game zip from disk or paste an Internet Archive URL; the player auto-detects the boot EXE, caches the bundle locally in IndexedDB, and persists save files across sessions. Powered by js-dos v8 and DOSBox-x compiled to WebAssembly.",
+    "description": "Browser DOSBox — classic MS-DOS game zips",
+    "detailedDescription": "Play classic MS-DOS games in your browser. Load a DOS game zip from disk or paste an Internet Archive URL; the player auto-detects the boot EXE, caches the bundle locally in IndexedDB, and persists save files across sessions. Not for Windows or Steam .exe demos. Powered by js-dos v8 and DOSBox-x compiled to WebAssembly.",
     "icon": "💾",
     "path": "./dos/",
     "category": "game",
@@ -133,7 +133,7 @@
     "featured": {
       "order": 2,
       "headline": "Play DOS Games",
-      "blurb": "Classic MS-DOS titles in the browser. Load a .zip or Internet Archive URL; auto-boots and saves progress.",
+      "blurb": "Classic MS-DOS titles in the browser (not Windows/Steam). Load a .zip or Archive URL; auto-boots and saves progress.",
       "tagsLine": "🕹️ Game • 💾 Retro",
       "preset": "dos",
       "analyticsLabel": "DOS"
@@ -1200,7 +1200,7 @@
     "name": "Flash Player ⚡",
     "shortName": "Flash",
     "description": "Play .swf Flash files in your browser",
-    "detailedDescription": "Drop an Adobe Flash (.swf) file and play it in your browser via Ruffle (Rust → WebAssembly). Fullscreen, no install, no ads. For DOS zip → auto-run .exe demos, use DOS Player instead.",
+    "detailedDescription": "Drop an Adobe Flash (.swf) file and play it in your browser via Ruffle (Rust → WebAssembly). Fullscreen, no install, no ads. Not for Windows/Steam .exe — for classic MS-DOS game zips, use DOS Player.",
     "icon": "⚡",
     "path": "./flash/",
     "category": "game",

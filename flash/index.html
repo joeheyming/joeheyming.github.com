@@ -99,7 +99,7 @@
                 "name": "Can I run Windows .exe demos here?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Not in this Flash player. For DOS-era zip packs that auto-boot an .exe, use the site's DOS Player (/dos/) — drop a zip and it launches the boot EXE in DOSBox."
+                  "text": "No. Windows and Steam .exe demos cannot run in this browser Flash player. For old MS-DOS game zips that auto-boot an .exe, use the site's DOS Player (/dos/). Modern Windows programs need a real PC or a Windows VM — not a static web page."
                 }
               }
             ]
@@ -177,11 +177,13 @@
           <p class="drop-sub">or click to browse — runs entirely in this tab via Ruffle</p>
         </div>
         <p class="hint">
-          Looking for zip → auto-run
+          This plays Adobe Flash
+          <code>.swf</code>
+          only — not Windows or Steam
           <code>.exe</code>
-          ? Try the
+          demos (those can’t run in the browser). Old MS-DOS game zips belong in the
           <a href="/dos/">DOS Player</a>
-          for DOS demos.
+          .
         </p>
       </div>
       <div class="player-wrap" id="playerWrap" hidden></div>

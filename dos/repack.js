@@ -95,7 +95,7 @@ export async function repackToJsdos(input, options = {}) {
       );
     }
     throw new Error(
-      'Could not find a .exe/.com/.bat to boot inside the zip. Is this actually a DOS game?'
+      'Could not find a DOS .exe/.com/.bat to boot inside the zip. This player is for MS-DOS games only — Windows/Steam .exe demos will not work.'
     );
   }
 

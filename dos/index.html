@@ -70,7 +70,11 @@
             "url": "https://joeheyming.github.io/dos/",
             "description": "Browser-based MS-DOS game player powered by js-dos v8 and DOSBox-x compiled to WebAssembly. Load any DOS game zip from disk or paste an Internet Archive item URL. Boot EXE auto-detected, save files persist locally in IndexedDB.",
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
             "featureList": [
               "Plays MS-DOS games in your browser via DOSBox-x WebAssembly",
               "Auto-detects boot EXE in uploaded game zips",
@@ -119,7 +123,15 @@
                 "name": "What games actually work?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Most CGA / EGA / VGA single-player games run cleanly. Games that require specific sound cards (Sound Blaster, AdLib) usually work; games that depend on raw CD-ROM audio or proprietary copy protection may not. Modern Win-DOS hybrids (early Windows 9x titles) are out of scope."
+                  "text": "Most CGA / EGA / VGA single-player MS-DOS games run cleanly. Games that require specific sound cards (Sound Blaster, AdLib) usually work; games that depend on raw CD-ROM audio or proprietary copy protection may not. Modern Win-DOS hybrids (early Windows 9x titles) are out of scope."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I run Windows or Steam .exe demos?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. This player is DOSBox for classic MS-DOS games only (Doom, Commander Keen, Civilization, etc.). Windows and Steam .exe demos are modern Win32/64 programs and cannot run here. Drop an MS-DOS game .zip — not a Windows installer or Steam demo."
                 }
               }
             ]
@@ -227,13 +239,16 @@
             <div class="tab-panel" data-panel="file">
               <div class="dropzone" id="dropzone" tabindex="0">
                 <div class="dropzone-inner">
-                  <strong>Drop a .zip or .jsdos here</strong>
-                  <span>or click to browse</span>
+                  <strong>Drop an MS-DOS .zip or .jsdos here</strong>
+                  <span>or click to browse — not Windows / Steam .exe demos</span>
                 </div>
                 <input type="file" id="fileInput" accept=".zip,.jsdos,application/zip" hidden />
               </div>
               <p class="field-hint">
-                Game files stay on your device. Nothing uploads anywhere — DOSBox runs in this tab.
+                MS-DOS games only (auto-boots the DOS
+                <code>.exe</code>
+                inside the zip). Windows and Steam demos will not work. Files stay on your device —
+                nothing uploads; DOSBox runs in this tab.
               </p>
             </div>
           </div>
@@ -242,6 +257,13 @@
         <details class="info">
           <summary>How this works</summary>
           <ul>
+            <li>
+              This is
+              <strong>MS-DOS only</strong>
+              — not Windows or Steam
+              <code>.exe</code>
+              demos. Drop a classic DOS game zip (the player auto-detects the boot EXE).
+            </li>
             <li>
               Powered by
               <a href="https://js-dos.com/" target="_blank" rel="noopener">js-dos v8</a>
