@@ -6,8 +6,8 @@
 // opens a drawer populated from /apps-registry.json.
 //
 // Also loads /presence/config.js + /presence.js for live per-app
-// active-user badges (Form heartbeats → Presence sheet → gviz). See
-// presence/SETUP.md. No-ops until config placeholders are replaced.
+// active-user badges (Form heartbeats → Presence sheet → gviz).
+// No-ops until config placeholders are replaced.
 //
 // Behavior:
 //   • Skipped on /os/ (the OS shell renders its own taskbar/launcher

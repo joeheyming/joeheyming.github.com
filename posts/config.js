@@ -7,7 +7,7 @@
 // Binding limit is Google Forms POST size (413 Content Too Large), not
 // Sheets' 50k cell cap. Keep attachment payloads small.
 //
-// See SETUP.md for the one-time Google Form / Sheet wiring steps.
+// Replace placeholders after one-time Google Form / Sheet wiring.
 
 export const CONFIG = {
   pollIntervalMs: 12000,

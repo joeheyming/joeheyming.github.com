@@ -54,7 +54,7 @@
       <strong>joeheyming.github.io</strong>
       (personal projects and demos by Joe Heyming) handles information.
       <strong>Last updated:</strong>
-      August 6, 2026.
+      August 9, 2026.
     </p>
 
     <h2>Summary</h2>
@@ -63,7 +63,9 @@
       <strong>Google Analytics</strong>
       to understand aggregate traffic. The navigation drawer may use an anonymous
       <strong>presence heartbeat</strong>
-      (Google Form + Sheet) to show how many other people are on each app. Features that use
+      (Google Form + Sheet) to show how many other people are on each app.
+      <strong>Posts</strong>
+      lets visitors pin notes to a shared board via another Google Form + Sheet. Features that use
       <strong>Sign in with Google</strong>
       talk directly to Google’s services from your device; this site does not operate a backend that
       stores your Google account or spreadsheet content on my servers.
@@ -128,7 +130,38 @@
       ; a linked
       <strong>Google Sheet</strong>
       (publicly readable) holds one row per id with the last-seen time. Closing the tab stops
-      heartbeats; stale rows expire after a few minutes. This is separate from Google Analytics.
+      heartbeats; stale rows expire after a few minutes. Heartbeats are disabled on
+      <code>localhost</code>
+      and other local/dev hosts (same rule as Analytics). This is separate from Google Analytics.
+    </p>
+
+    <h2>Posts (shared corkboard)</h2>
+    <p>
+      The
+      <a href="/posts/">Posts</a>
+      page (and other apps that call into it) lets you pin a note to a shared board. When you
+      publish, the browser submits your note to a
+      <strong>Google Form</strong>
+      linked to a
+      <strong>Google Sheet</strong>
+      that is publicly readable so the board can load without a backend. You may include:
+    </p>
+    <ul>
+      <li>Note text (including markdown)</li>
+      <li>Optional display name or contact string (email collection is off in Form settings; this is a free-text field)</li>
+      <li>Optional image or short audio attachments (stored as data in the Sheet)</li>
+      <li>Client-managed metadata such as a note id and board position</li>
+    </ul>
+    <p>
+      Anyone who can open the board can see published notes and attachments. Drafts and board
+      preferences may stay in your browser’s
+      <strong>local storage</strong>
+      until you publish or clear site data. Before a pin is sent, the page may run
+      <strong>client-side</strong>
+      checks (for example toxicity or NSFW image screening) to block some content in the UI; those
+      checks are not a guarantee. Automated maintenance on the linked Sheet may move or remove
+      rows (spam, removals, or policy filters). Do not post secrets or personal data you would not
+      want on a public board.
     </p>
 
     <h2>Other sites and links</h2>

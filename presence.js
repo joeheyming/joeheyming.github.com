@@ -1,7 +1,7 @@
 // Site-wide presence heartbeats + gviz aggregation for the nav drawer.
 //
 // Loaded by nav.js (after /presence/config.js). Exposes window.heymingPresence.
-// No-ops until presence/config.js placeholders are replaced (see presence/SETUP.md).
+// No-ops until presence/config.js placeholders are replaced.
 
 (function () {
   'use strict';
@@ -9,6 +9,23 @@
   const STORAGE_KEY = 'heyming-presence-id';
   const DEFAULT_HEARTBEAT_MS = 60000;
   const DEFAULT_ACTIVE_MS = 180000;
+
+  // Mirror analytics.js — do not write Form heartbeats from local/dev hosts.
+  const PRIVATE_IPV4 =
+    /^(?:127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|169\.254\.\d+\.\d+)$/;
+
+  function isLocalDevHost() {
+    try {
+      const h = location.hostname;
+      if (h === 'localhost' || h === '::1' || h === '') return true;
+      if (PRIVATE_IPV4.test(h)) return true;
+      if (/\.local$/.test(h)) return true;
+      if (/HeadlessChrome|Playwright/i.test(navigator.userAgent)) return true;
+    } catch {
+      // Ignore — treat as non-local if location is unavailable.
+    }
+    return false;
+  }
 
   function getConfig() {
     return window.HEYMING_PRESENCE_CONFIG || null;
@@ -58,6 +75,10 @@
 
   function ping(page) {
     if (!isConfigured() || !page) return;
+    if (isLocalDevHost()) {
+      console.log('Presence heartbeat skipped (localhost):', page);
+      return;
+    }
     const cfg = getConfig();
     const body = buildFormBody(page);
     try {

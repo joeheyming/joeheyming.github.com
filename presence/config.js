@@ -4,7 +4,7 @@
 // Reads  — fetch the Presence tab via the public gviz JSON endpoint.
 //
 // Until placeholders are replaced, presence.js no-ops (no POSTs, no badges).
-// See presence/SETUP.md for the one-time Form + Apps Script wiring.
+// Replace placeholders after one-time Form + Apps Script wiring.
 
 (function () {
   'use strict';
