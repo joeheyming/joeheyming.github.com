@@ -70,7 +70,8 @@ body {
 
 .play-header {
   text-align: center;
-  padding: 56px 24px 24px;
+  /* Clears the fixed .app-header breadcrumb bar (~52px) + a small gap. */
+  padding: 72px 24px 24px;
 }
 
 .play-title {

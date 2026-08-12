@@ -5,21 +5,11 @@
 @media (max-width: 640px) {
   .instrument-header {
     padding-left: 110px;
-    padding-right: 100px;
+    padding-right: 16px;
     gap: 10px;
   }
-  .instruments-link {
-    top: 12px;
-    right: 12px;
-    padding: 8px 12px;
-    font-size: 12px;
-    border-radius: 10px;
-  }
-  .instruments-link-text {
-    display: none;
-  }
-  .instruments-link-icon {
-    font-size: 18px;
+  .instrument-body {
+    padding-top: 48px;
   }
   .now-playing {
     font-size: 12px;
@@ -77,18 +67,6 @@
   }
   .instrument-page-title h1 {
     font-size: clamp(18px, 4vw, 22px);
-  }
-  .instruments-link {
-    top: 6px;
-    right: 6px;
-    padding: 6px 8px;
-    font-size: 12px;
-  }
-  .instruments-link-text {
-    display: none;
-  }
-  .instruments-link-icon {
-    font-size: 16px;
   }
   .instrument-controls {
     gap: 4px 12px;
@@ -220,9 +198,8 @@
 /* PWA standalone mode: when the user has installed Play as an app,
  * hide cross-app navigation (the hamburger nav toggle / drawer /
  * backdrop injected by /nav.js, and the "Back home" link in the
- * gallery footer). The in-app instrument switcher (.instruments-link)
- * stays visible — that's the router *inside* the music app, not a
- * way out of it.
+ * gallery footer). In-app breadcrumbs (.app-breadcrumbs) stay visible —
+ * that's the router *inside* the music app, not a way out of it.
  *
  * Two-pronged detection:
  *   1. The `@media (display-mode: standalone)` query — modern iOS

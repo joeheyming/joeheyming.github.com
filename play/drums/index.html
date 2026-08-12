@@ -164,8 +164,16 @@
       href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
     />
     <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="/shared/breadcrumbs.css" />
   </head>
   <body class="instrument-body">
+    <header class="app-header">
+      <nav
+        class="app-breadcrumbs"
+        aria-label="Breadcrumb"
+        data-crumbs='[{"emoji":"🎵","label":"Instruments","href":"../"},{"emoji":"🥁","label":"Drums"}]'
+      ></nav>
+    </header>
     <header class="instrument-header">
       <div class="instrument-page-title">
         <span aria-hidden="true">🥁</span>
@@ -174,10 +182,6 @@
       <div class="header-status">
         <div class="now-playing" id="now-playing" aria-live="polite">—</div>
       </div>
-      <a class="instruments-link" href="../" aria-label="Back to instruments">
-        <span class="instruments-link-icon" aria-hidden="true">🎵</span>
-        <span class="instruments-link-text">Instruments</span>
-      </a>
     </header>
 
     <section class="instrument-controls" aria-label="Drum controls">
@@ -298,5 +302,6 @@
     </section>
 
     <script type="module" src="drums.js"></script>
+    <script src="/shared/breadcrumbs.js"></script>
   </body>
 </html>

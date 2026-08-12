@@ -179,7 +179,7 @@
   // don't have to re-learn where things live per surface.
   //
   // `subCategory` is a registry field on apps-registry.json:
-  //   "console" — nes / sega / gameboy / neogeo / snes (Retro consoles)
+  //   "console" — nes / sega / gamegear / sega32x / gameboy / neogeo / snes / ps1
   //   "music"   — piano-hero / accordion-hero (Make music)
   const SECTION_DEFS = [
     {
@@ -1102,25 +1102,31 @@
     // is treated as a stub only when *another* registry entry has the
     // same base path with no query — that's the `doom-mods` → `doom`
     // case. Standalone query-string entries (e.g. `nes` at
-    // `./emulator/?console=nes` — there is no plain `./emulator/` entry)
-    // stay visible; they're the only surface for that app in the drawer.
+    // `./emulator/?console=nes`) stay visible unless a hub exists *and*
+    // that hub does not opt into `navKeepQueryChildren` (emulator hub
+    // wants both the picker and each console in the drawer).
     const canonicalBasePaths = new Set();
+    const keepQueryChildrenBases = new Set();
     for (const app of cachedRegistry) {
       const p = app.path || '';
-      if (p && !p.includes('?')) canonicalBasePaths.add(p);
+      if (p && !p.includes('?')) {
+        canonicalBasePaths.add(p);
+        if (app.navKeepQueryChildren) keepQueryChildrenBases.add(p);
+      }
     }
     const visible = cachedRegistry.filter((app) => {
       const path = app.path || '';
       if (!path) return false;
       if (!path.includes('?')) return true;
       const base = path.split('?')[0];
+      if (keepQueryChildrenBases.has(base)) return true;
       return !canonicalBasePaths.has(base);
     });
 
     // First-match-wins: iterate defs in order, each pulls its apps out of
     // `visible` via its filter, and the app is marked placed so later
     // (more-general) defs skip it. This is what lets `Consoles` claim
-    // nes/sega/gameboy/neogeo/snes before `Games` can grab them.
+    // nes/sega/gamegear/sega32x/gameboy/neogeo/snes/ps1 before `Games` can grab them.
     const placed = new Set();
     for (const def of SECTION_DEFS) {
       const apps = visible.filter((app) => !placed.has(app.id) && def.filter(app));

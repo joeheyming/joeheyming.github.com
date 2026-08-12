@@ -47,11 +47,21 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 100;
-  padding: 24px;
+  /* Top pad clears the fixed .app-header breadcrumb bar. */
+  padding: 72px 24px 24px;
   overflow-y: auto;
 }
 
 #boot.hidden {
+  display: none;
+}
+
+/* Sit above the boot overlay; below /nav.js (999999). */
+#emu-header.app-header {
+  z-index: 150;
+}
+
+#emu-header.is-playing {
   display: none;
 }
 
@@ -558,6 +568,10 @@ kbd {
   --tv-focus-ring: 4px solid var(--accent-bright);
 }
 
+:root[data-mode='tv'] #emu-header {
+  display: none !important;
+}
+
 :root[data-mode='tv'] #boot {
   padding: 40px 48px;
   overflow-y: auto;
@@ -636,4 +650,10 @@ kbd {
 :root[data-mode='tv'] share-button,
 :root[data-mode='tv'] .share-overlay {
   display: none !important;
+}
+
+@media (max-width: 768px) {
+  #boot {
+    padding: 64px 16px 24px;
+  }
 }

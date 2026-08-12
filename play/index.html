@@ -237,8 +237,16 @@
       href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
     />
     <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="/shared/breadcrumbs.css" />
   </head>
   <body>
+    <header class="app-header">
+      <nav
+        class="app-breadcrumbs"
+        aria-label="Breadcrumb"
+        data-crumbs='[{"emoji":"🎵","label":"Instruments"}]'
+      ></nav>
+    </header>
     <header class="play-header">
       <div class="play-title">
         <span class="play-emoji" aria-hidden="true">🎵</span>
@@ -358,5 +366,6 @@
       <a href="/">← Back home</a>
       <a href="./CREDITS.md">Sample credits</a>
     </footer>
+    <script src="/shared/breadcrumbs.js"></script>
   </body>
 </html>

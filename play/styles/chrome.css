@@ -57,7 +57,7 @@
 
 /* =========================================================================
  * Shared instrument-page chrome
- * Header, instruments-link pill, controls, MIDI status, etc.
+ * Header, controls, MIDI status, etc.
  * Used by /play/piano/, /play/accordion/, /play/synth/, /play/drums/, /play/strings/
  * ========================================================================= */
 
@@ -66,6 +66,8 @@
   flex-direction: column;
   min-height: 100vh;
   padding-bottom: 24px;
+  /* Clear the fixed .app-header breadcrumb bar (~52px). */
+  padding-top: 56px;
 }
 
 .instrument-header {
@@ -74,10 +76,10 @@
   justify-content: center;
   gap: 16px;
   padding: 18px 24px 8px;
-  /* Leave room for the global Back button (top-left) and our Instruments
-   * pill (top-right). */
+  /* Leave room for the global Back / Menu button (top-left). The
+   * Instruments trail lives in the fixed .app-header above. */
   padding-left: 160px;
-  padding-right: 160px;
+  padding-right: 24px;
   position: relative;
 }
 
@@ -95,37 +97,10 @@
   color: var(--text-1);
 }
 
+/* Legacy Instruments pill — kept inert so old cached CSS/HTML doesn't
+ * break; new pages use /shared/breadcrumbs.css instead. */
 .instruments-link {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 999998;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: var(--radius);
-  text-decoration: none;
-  color: var(--text-on-accent);
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  background: var(--accent-primary-bg);
-  border: 1px solid var(--accent-primary-bg);
-  transition: background 200ms ease, transform 200ms ease;
-}
-
-.instruments-link:hover,
-.instruments-link:focus-visible {
-  transform: translateY(-1px);
-  background: var(--accent-primary-bg-hover);
-  border-color: var(--accent-primary-bg-hover);
-  outline: none;
-}
-
-.instruments-link-icon {
-  font-size: 16px;
-  line-height: 1;
+  display: none !important;
 }
 
 .header-status {

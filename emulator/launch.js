@@ -492,10 +492,37 @@
     }
   }
 
+  function renderEmuBreadcrumbs(cfg) {
+    const nav = document.getElementById('emu-breadcrumbs');
+    const header = document.getElementById('emu-header');
+    if (!nav || typeof window.renderBreadcrumbs !== 'function') return;
+
+    if (header) header.classList.remove('is-playing');
+
+    // Lean-back / TV: D-pad focuses the picker; hide the trail so it
+    // doesn't steal visual hierarchy (same idea as watch fullscreen).
+    if (isTv()) {
+      if (header) header.hidden = true;
+      return;
+    }
+    if (header) header.hidden = false;
+
+    if (!cfg) {
+      window.renderBreadcrumbs(nav, [{ emoji: '🎮', label: 'Emulator' }]);
+      return;
+    }
+    window.renderBreadcrumbs(nav, [
+      { emoji: '🎮', label: 'Emulator', href: '/emulator/' },
+      { emoji: cfg.emoji, label: cfg.title }
+    ]);
+  }
+
   function renderBootCard(cfg) {
     const brand = document.getElementById('brand');
     const bootCard = document.getElementById('boot-card');
     if (!brand || !bootCard) return;
+
+    renderEmuBreadcrumbs(cfg);
 
     brand.innerHTML = `
       <span class="brand-logo">${cfg.emoji}</span>
@@ -611,11 +638,13 @@
     const bootCard = document.getElementById('boot-card');
     if (!brand || !bootCard) return;
 
+    renderEmuBreadcrumbs(null);
+
     brand.innerHTML = `
       <span class="brand-logo">🎮</span>
       <h1>
         Retro Game Emulator
-        <span class="sub">NES · Sega · SNES · Game Boy · Neo Geo · PS1</span>
+        <span class="sub">NES · Sega · Game Gear · 32X · SNES · Game Boy · Neo Geo · PS1</span>
       </h1>
     `;
 
@@ -811,8 +840,10 @@
 
     const bootEl = document.getElementById('boot');
     const gameContainer = document.getElementById('game-container');
+    const emuHeader = document.getElementById('emu-header');
     if (bootEl) bootEl.classList.add('hidden');
     if (gameContainer) gameContainer.classList.add('visible');
+    if (emuHeader) emuHeader.classList.add('is-playing');
 
     window.EJS_player = '#game';
     window.EJS_core = cfg.ejsCore;

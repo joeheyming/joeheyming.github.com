@@ -77,7 +77,11 @@
             "applicationCategory": "MultimediaApplication",
             "operatingSystem": "Web Browser",
             "description": "A free virtual theremin that plays in your browser. Move your cursor (or finger on touch) horizontally for pitch, vertically for volume — the same two-axis no-touch control scheme as Léon Theremin's original 1928 instrument. Pure sine-wave or harmonic-rich timbres.",
-            "author": { "@type": "Person", "name": "Joe Heyming", "url": "https://joeheyming.github.io/about/" },
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
             "musicalInstrumentType": "Theremin"
           },
@@ -143,7 +147,8 @@
           window.heymingNavInitialized = true;
           document.documentElement.classList.add('pwa-standalone');
           var s = document.createElement('style');
-          s.textContent = '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
+          s.textContent =
+            '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
           document.head.appendChild(s);
         }
       })();
@@ -162,8 +167,16 @@
       href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
     />
     <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="/shared/breadcrumbs.css" />
   </head>
   <body class="instrument-body">
+    <header class="app-header">
+      <nav
+        class="app-breadcrumbs"
+        aria-label="Breadcrumb"
+        data-crumbs='[{"emoji":"🎵","label":"Instruments","href":"../"},{"emoji":"📻","label":"Theremin"}]'
+      ></nav>
+    </header>
     <header class="instrument-header">
       <div class="instrument-page-title">
         <span aria-hidden="true">📻</span>
@@ -172,10 +185,6 @@
       <div class="header-status">
         <div class="now-playing" id="now-playing" aria-live="polite">—</div>
       </div>
-      <a class="instruments-link" href="../" aria-label="Back to instruments">
-        <span class="instruments-link-icon" aria-hidden="true">🎵</span>
-        <span class="instruments-link-text">Instruments</span>
-      </a>
     </header>
 
     <section class="instrument-controls" aria-label="Theremin controls">
@@ -406,5 +415,6 @@
     </section>
 
     <script type="module" src="theremin.js"></script>
+    <script src="/shared/breadcrumbs.js"></script>
   </body>
 </html>

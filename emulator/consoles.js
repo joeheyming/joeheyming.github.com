@@ -71,6 +71,78 @@
       ]
     },
 
+    gg: {
+      id: 'gg',
+      title: 'Game Gear',
+      subtitle: 'Sega handheld',
+      emoji: '📟',
+      // EmulatorJS core: genesis_plus_gx (same family as Genesis).
+      ejsCore: 'segaGG',
+      fileAccept: '.gg,.zip,.7z',
+      fileExtsLabel: '.gg',
+      // Handheld teal — distinct from Genesis pink and GB violet.
+      accentHex: '#0d9488',
+      accentGoldHex: '#0f766e',
+      // No-Intro flat per-game .7z set.
+      iaBaseUrl: 'https://archive.org/download/nointro.gg',
+      iaDescriptionPrefix: 'Classic Game Gear game',
+      iaFileExtensions: ['.7z'],
+      iaPreferMetadata: true,
+      iaExcludeNames: ['[BIOS] Sega Game Gear (USA)'],
+      controls: [
+        { label: 'D-Pad', key: 'Arrow keys' },
+        { label: 'Button 1', key: 'Z' },
+        { label: 'Button 2', key: 'X' },
+        { label: 'Start', key: 'Enter' },
+        { label: 'Save state', key: 'F5' },
+        { label: 'Load state', key: 'F9' }
+      ]
+    },
+
+    sega32x: {
+      id: 'sega32x',
+      title: 'Sega 32X',
+      subtitle: 'Genesis add-on',
+      emoji: '🚀',
+      // EmulatorJS core: picodrive.
+      ejsCore: 'sega32x',
+      fileAccept: '.32x,.bin,.zip,.7z',
+      fileExtsLabel: '.32x / .bin',
+      // Mars orange — adjacent to Genesis without colliding.
+      accentHex: '#ea580c',
+      accentGoldHex: '#c2410c',
+      iaBaseUrl: 'https://archive.org/download/nointro.32x',
+      iaDescriptionPrefix: 'Classic Sega 32X game',
+      iaFileExtensions: ['.7z'],
+      iaPreferMetadata: true,
+      // BIOS dumps + SDK carts aren't playable titles.
+      iaExcludeNames: [
+        '[BIOS] 32X M68000 (USA)',
+        '[BIOS] 32X SH-2 Master (USA)',
+        '[BIOS] 32X SH-2 Slave (USA)',
+        '32X Sample Program - PWM Sound Demo (Unknown) (SDK Build)',
+        'Mars Check Program Version 1.0 (Unknown) (SDK Build) (Set 1)',
+        'Mars Check Program Version 1.0 (Unknown) (SDK Build) (Set 2)',
+        'Mars Sample Program - Gnu Sierra (Unknown) (SDK Build)',
+        'Mars Sample Program - Pharaoh (Unknown) (SDK Build)',
+        'Mars Sample Program - Runlength Mode Test (Unknown) (SDK Build)',
+        'Mars Sample Program - Texture Test (Unknown) (SDK Build)',
+        'Time Warner 32X CMD Download Cartridge (USA) (Program)'
+      ],
+      controls: [
+        { label: 'D-Pad', key: 'Arrow keys' },
+        { label: 'A button', key: 'Z' },
+        { label: 'B button', key: 'X' },
+        { label: 'C button', key: 'C' },
+        { label: 'X button', key: 'A' },
+        { label: 'Y button', key: 'S' },
+        { label: 'Z button', key: 'D' },
+        { label: 'Start', key: 'Enter' },
+        { label: 'Save state', key: 'F5' },
+        { label: 'Load state', key: 'F9' }
+      ]
+    },
+
     gb: {
       id: 'gb',
       title: 'Game Boy',

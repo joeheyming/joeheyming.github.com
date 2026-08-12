@@ -1,0 +1,111 @@
+/* Shared breadcrumb chrome — same pattern as /watch/ (.tv-breadcrumbs),
+ * using brand tokens so play / emulator / future hubs can share one trail. */
+
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: color-mix(in srgb, var(--surface-0, #0a0a0a) 78%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid var(--hairline, rgba(255, 255, 255, 0.08));
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.app-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  min-width: 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: var(--text-2, #a3a3a3);
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  /* Left pad clears /nav.js hamburger (~100px + gap). */
+  padding: 14px 18px 14px 130px;
+  box-sizing: border-box;
+}
+
+.app-crumb {
+  color: var(--text-2, #a3a3a3);
+  text-decoration: none;
+  border-bottom: 1px dotted transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.app-crumb-sep {
+  flex: 0 0 auto;
+  color: var(--text-3, #737373);
+  font-size: 14px;
+}
+
+.app-crumb--current {
+  flex: 1 1 auto;
+  color: var(--text-1, #fafafa);
+  font-weight: 600;
+}
+
+a.app-crumb:hover,
+a.app-crumb:focus-visible {
+  color: var(--text-1, #fafafa);
+  border-bottom-color: var(--accent-primary, #38bdf8);
+  outline: none;
+}
+
+.app-crumb-back {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--hairline-strong, rgba(255, 255, 255, 0.14));
+  color: var(--text-2, #a3a3a3);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 14px;
+  text-decoration: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex: 0 0 auto;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.app-crumb-back:hover,
+.app-crumb-back:focus-visible {
+  color: var(--text-1, #fafafa);
+  border-color: var(--accent-primary, #38bdf8);
+  background: color-mix(in srgb, var(--accent-primary, #38bdf8) 8%, transparent);
+  outline: none;
+}
+
+@media (max-width: 768px) {
+  .app-breadcrumbs {
+    padding: 11px 12px 11px 110px;
+    font-size: 11px;
+  }
+}
+
+/* PWA standalone: no site nav toggle, so reclaim left pad. */
+html.pwa-standalone .app-breadcrumbs {
+  padding-left: 18px;
+}
+
+@media (max-width: 768px) {
+  html.pwa-standalone .app-breadcrumbs {
+    padding-left: 12px;
+  }
+}
