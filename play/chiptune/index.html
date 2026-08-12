@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="robots" content="index, follow" />
+    <title>Chiptune — Browser Chip Tracker 👾</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👾</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="Paint chip melodies in your browser — multi-channel pitch grid, square/pulse/triangle/saw/noise voices, patterns, song arrangement, and shareable URL links. No install."
+    />
+    <meta name="theme-color" content="#0b0d12" />
+
+    <link rel="manifest" href="/play/manifest.json" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/play/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Play" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Play" />
+    <meta property="og:title" content="Chiptune — Browser Chip Tracker 👾" />
+    <meta
+      property="og:description"
+      content="A BeepBox-style chiptune tracker built for the Play suite. Paint notes, layer chip voices, chain patterns, share via URL."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/play/chiptune/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/play/chiptune/chiptune-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Browser chiptune tracker" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="Chiptune — Browser Chip Tracker 👾" />
+    <meta
+      name="twitter:description"
+      content="Paint chip melodies in your browser — multi-channel grid, patterns, and shareable links."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/play/chiptune/chiptune-preview.png"
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/play/chiptune/" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Chiptune (Browser Chip Tracker)",
+            "alternateName": ["Chiptune", "Browser BeepBox-style tracker", "Chip tracker"],
+            "url": "https://joeheyming.github.io/play/chiptune/",
+            "applicationCategory": "MultimediaApplication",
+            "applicationSubCategory": "Music Sequencer",
+            "operatingSystem": "Web Browser",
+            "description": "A free in-browser chiptune tracker with a pitch grid, chip waveforms, multi-pattern songs, and URL sharing.",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Play",
+                "item": "https://joeheyming.github.io/play/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Chiptune",
+                "item": "https://joeheyming.github.io/play/chiptune/"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script>
+      (function () {
+        var standalone =
+          window.matchMedia('(display-mode: standalone)').matches ||
+          window.navigator.standalone === true;
+        if (standalone) {
+          document.documentElement.classList.add('pwa-standalone');
+          var s = document.createElement('style');
+          s.textContent =
+            '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
+          document.head.appendChild(s);
+        }
+      })();
+    </script>
+    <script src="/nav.js" data-nav-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="/shared/breadcrumbs.css" />
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="instrument-body">
+    <header class="app-header">
+      <nav
+        class="app-breadcrumbs"
+        aria-label="Breadcrumb"
+        data-crumbs='[{"emoji":"🎵","label":"Instruments","href":"../"},{"emoji":"👾","label":"Chiptune"}]'
+      ></nav>
+    </header>
+    <header class="instrument-header">
+      <div class="instrument-page-title">
+        <span aria-hidden="true">👾</span>
+        <h1>Chiptune</h1>
+      </div>
+      <div class="header-status">
+        <div class="now-playing" id="now-playing" aria-live="polite">Ready</div>
+      </div>
+    </header>
+
+    <section class="chip-toolbar" aria-label="Transport and song">
+      <div class="control control-actions">
+        <button id="play-btn" class="primary-btn" type="button" aria-pressed="false">
+          <span class="btn-icon" aria-hidden="true">▶</span>
+          <span class="btn-label">Play</span>
+        </button>
+        <button id="stop-btn" class="secondary-btn" type="button" aria-label="Stop">
+          <span class="btn-icon" aria-hidden="true">■</span>
+          <span class="btn-label">Stop</span>
+        </button>
+      </div>
+
+      <div class="control control-tempo">
+        <button type="button" class="tempo-face" id="bpm-face" aria-describedby="bpm-hint">
+          <span class="tempo-caption">Tempo</span>
+          <span class="tempo-value" id="bpm-value">120</span>
+        </button>
+        <div class="tempo-flyout" role="group" aria-label="Tempo BPM">
+          <span class="tempo-flyout-max" aria-hidden="true">280</span>
+          <input
+            id="bpm"
+            type="range"
+            min="40"
+            max="280"
+            step="1"
+            value="120"
+            aria-valuetext="120 BPM"
+          />
+          <span class="tempo-flyout-min" aria-hidden="true">40</span>
+          <span id="bpm-hint" class="visually-hidden">
+            Vertical slider below — hover or focus to adjust
+          </span>
+        </div>
+      </div>
+
+      <div class="control control-bars">
+        <label for="measures">Bars</label>
+        <div class="bars-row">
+          <button
+            id="bars-minus"
+            class="secondary-btn bars-step"
+            type="button"
+            aria-label="Remove bar"
+          >
+            −
+          </button>
+          <input
+            id="measures"
+            type="number"
+            min="1"
+            max="16"
+            step="1"
+            value="2"
+            inputmode="numeric"
+          />
+          <button id="bars-plus" class="secondary-btn bars-step" type="button" aria-label="Add bar">
+            +
+          </button>
+        </div>
+      </div>
+
+      <div class="control">
+        <label for="volume">Volume</label>
+        <input id="volume" type="range" min="0" max="100" value="70" />
+      </div>
+
+      <div class="control">
+        <label for="examples">Examples</label>
+        <select id="examples" aria-label="Load example song">
+          <option value="">Load example…</option>
+        </select>
+      </div>
+
+      <div class="control control-actions">
+        <button id="undo" class="secondary-btn" type="button" aria-label="Undo (Ctrl+Z)">
+          Undo
+        </button>
+        <button id="redo" class="secondary-btn" type="button" aria-label="Redo (Ctrl+Shift+Z)">
+          Redo
+        </button>
+        <button id="new-song" class="secondary-btn" type="button">New</button>
+        <button id="export-song" class="secondary-btn" type="button" title="Download JSON">
+          Export
+        </button>
+        <button id="import-song" class="secondary-btn" type="button" title="Open JSON">
+          Import
+        </button>
+        <input id="import-file" type="file" accept="application/json,.json,.chiptune.json" hidden />
+        <button id="copy-link" class="secondary-btn" type="button">Copy link</button>
+        <button id="share-post" class="secondary-btn" type="button" title="Make a Post">
+          Make a Post
+        </button>
+      </div>
+    </section>
+
+    <div class="chip-layout">
+      <aside class="chip-sidebar" aria-label="Channels and patterns">
+        <div>
+          <h2>Channels</h2>
+          <div id="channel-list" class="channel-list"></div>
+        </div>
+
+        <div class="channel-params">
+          <h2>Channel</h2>
+          <div class="control">
+            <label for="wave">Wave</label>
+            <select id="wave"></select>
+          </div>
+          <div class="control">
+            <label for="ch-volume">Level</label>
+            <input id="ch-volume" type="range" min="0" max="100" value="65" />
+          </div>
+          <div class="control">
+            <label for="attack">Attack ms</label>
+            <input id="attack" type="number" min="1" max="500" value="10" />
+          </div>
+          <div class="control">
+            <label for="release">Release ms</label>
+            <input id="release" type="number" min="1" max="1000" value="60" />
+          </div>
+          <div class="row">
+            <button id="mute-btn" class="secondary-btn" type="button" aria-pressed="false">
+              Mute
+            </button>
+            <button id="solo-btn" class="secondary-btn" type="button" aria-pressed="false">
+              Solo
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <h2>Patterns</h2>
+          <div id="pattern-tabs" class="pattern-tabs"></div>
+          <button id="add-pattern" class="secondary-btn" type="button" style="margin-top: 0.4rem">
+            + Pattern
+          </button>
+        </div>
+
+        <p class="hint">
+          Click/drag the grid to paint. Drag sideways to lengthen a note. Use Bars to lengthen the
+          pattern (max 16). Space play/stop. ⌘/Ctrl+Z undo, ⌘/Ctrl+Shift+Z redo.
+        </p>
+      </aside>
+
+      <div class="grid-wrap">
+        <canvas id="grid" width="800" height="600" aria-label="Pitch grid"></canvas>
+      </div>
+    </div>
+
+    <section class="arrangement-bar" aria-label="Song arrangement">
+      <h2>Song</h2>
+      <div id="arrangement"></div>
+      <button id="add-arrange" class="secondary-btn" type="button">+ Active pattern</button>
+      <button id="clear-arrange" class="secondary-btn" type="button">Reset chain</button>
+    </section>
+
+    <script type="module" src="chiptune.js"></script>
+    <script src="/shared/breadcrumbs.js"></script>
+  </body>
+</html>

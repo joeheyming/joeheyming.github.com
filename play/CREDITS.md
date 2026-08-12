@@ -83,6 +83,12 @@ notes outside the recorded range.
 [`play/synth`](./synth/) is intentionally a subtractive synthesiser; it
 uses no samples at all.
 
+## Chiptune
+
+[`play/chiptune`](./chiptune/) is an original browser chip tracker (Web
+Audio oscillators + noise). Inspired by [BeepBox](https://www.beepbox.co/)
+and [JummBox](https://jummb.us/) — no vendored tracker code or iframes.
+
 ## Loader
 
 The shared loader lives in [`play/shared/samples.js`](./shared/samples.js)

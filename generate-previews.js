@@ -426,6 +426,11 @@ const PAGES = [
     title: 'Browser Metronome'
   },
   {
+    url: `${BASE_URL}/play/chiptune/`,
+    output: 'play/chiptune/chiptune-preview.png',
+    title: 'Chiptune'
+  },
+  {
     url: `${BASE_URL}/play/harp/`,
     output: 'play/harp/harp-preview.png',
     title: 'Browser Harp'

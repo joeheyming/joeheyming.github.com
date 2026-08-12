@@ -1,0 +1,22 @@
+{
+  "examples": [
+    {
+      "id": "blink",
+      "title": "Blink Arpeggio",
+      "blurb": "C-major sparkle over a triangle bass",
+      "file": "blink.json"
+    },
+    {
+      "id": "bassline",
+      "title": "Bassline + Hats",
+      "blurb": "Pulse bass with noise hats",
+      "file": "bassline.json"
+    },
+    {
+      "id": "lead",
+      "title": "Lead Climb",
+      "blurb": "Four-bar square lead over triangle roots",
+      "file": "lead.json"
+    }
+  ]
+}
