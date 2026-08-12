@@ -524,8 +524,8 @@
     "id": "watch",
     "name": "Watch 📺",
     "shortName": "Watch",
-    "description": "Browse classic TV from the Internet Archive in a smart-TV style player",
-    "detailedDescription": "Smart-TV style player for a curated shelf of classic TV on the Internet Archive — animation, sitcoms, and Saturday morning cartoons. Browse like a channel guide, click an episode, MP4 streams straight into the browser. Per-episode descriptions and stills via TVMaze, optional subtitles via OpenSubtitles, Cast / AirPlay supported.",
+    "description": "Browse Internet Archive TV and film items in a smart-TV style player",
+    "detailedDescription": "Smart-TV style browser guide for a curated shelf of TV and film items on the Internet Archive — animation, sitcoms, and Saturday morning cartoons. Browse like a channel guide, click an episode, MP4 streams from archive.org. This site organizes links only; it does not host files. Per-episode descriptions and stills via TVMaze, optional subtitles via OpenSubtitles, Cast / AirPlay supported.",
     "icon": "📺",
     "path": "./watch/",
     "category": "entertainment",
@@ -554,12 +554,12 @@
     "pwaShortcut": {
       "name": "Watch",
       "short_name": "Watch",
-      "description": "Browser smart-TV for classic animated archives"
+      "description": "Browser smart-TV guide for Internet Archive TV items"
     },
     "featured": {
       "order": 2,
       "headline": "Watch classic TV",
-      "blurb": "Smart-TV style player for a curated shelf of animation, sitcoms, and Saturday-morning cartoons from the Internet Archive. Browse like a channel guide, click and play. Cast / AirPlay supported.",
+      "blurb": "Smart-TV style browser guide for a curated shelf of animation, sitcoms, and Saturday-morning cartoons hosted on the Internet Archive. Organizes links only — streams from archive.org. Cast / AirPlay supported.",
       "tagsLine": "📺 TV • 🎞️ Archive",
       "preset": "watch",
       "analyticsLabel": "Watch"

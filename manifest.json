@@ -81,7 +81,7 @@
     {
       "name": "Watch",
       "short_name": "Watch",
-      "description": "Browser smart-TV for classic animated archives",
+      "description": "Browser smart-TV guide for Internet Archive TV items",
       "url": "/watch/"
     },
     {
