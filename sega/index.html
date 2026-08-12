@@ -19,13 +19,13 @@
       and bookmarks to the old URL still work.
 
       Same redirect pattern as /legend-of-doom/ → /doom/?flavor=legend:
-        * <meta http-equiv="refresh" content="0; url=...">
+        * JS location.replace() that preserves query string / fragment
         * <link rel="canonical" href="...">
-        * JS that preserves any query string / fragment
+        * Visible <a> fallback for no-JS / crawlers
         * <meta name="robots" content="noindex,follow">
+      (No MetaRefresh — Bing flags those.)
     -->
     <meta name="robots" content="noindex,follow" />
-    <meta http-equiv="refresh" content="0; url=/emulator/?console=sega" />
     <link rel="canonical" href="https://joeheyming.github.io/emulator/?console=sega" />
 
     <link

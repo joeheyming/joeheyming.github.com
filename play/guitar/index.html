@@ -17,17 +17,14 @@
       results, the OS app registry from older builds) still works.
 
       Static GitHub Pages — no real 301 redirects available. The combo of:
-        * <meta http-equiv="refresh" content="0; url=...">
+        * JS location.replace() that preserves inbound query / fragment
         * <link rel="canonical" href=".../play/strings/">
-        * JS that preserves any inbound query string / fragment
+        * Visible <a> fallback for no-JS / crawlers
         * <meta name="robots" content="noindex,follow">
-      is what Google et al treat as equivalent to a 301: search signal
-      consolidates onto /play/strings/, the old URL drops out of the
-      index, and any UTM params / fragments survive the bounce. Modeled
-      on /legend-of-doom/index.html (the unified-DOOM redirect).
+      consolidates search signal onto /play/strings/ without a MetaRefresh
+      tag (Bing flags those). Modeled on /legend-of-doom/index.html.
     -->
     <meta name="robots" content="noindex,follow" />
-    <meta http-equiv="refresh" content="0; url=/play/strings/" />
     <link rel="canonical" href="https://joeheyming.github.io/play/strings/" />
 
     <link

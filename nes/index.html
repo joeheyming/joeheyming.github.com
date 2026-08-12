@@ -19,17 +19,15 @@
       bookmarks to the old URL still work.
 
       Static site, no real 301 redirects available. The combo of:
-        * <meta http-equiv="refresh" content="0; url=...">
+        * JS location.replace() that preserves query string / fragment
         * <link rel="canonical" href="...">
-        * JS that preserves any query string / fragment
+        * Visible <a> fallback for no-JS / crawlers
         * <meta name="robots" content="noindex,follow">
-      is what Google et al treat as equivalent to a 301: the search
-      signal consolidates onto /emulator/?console=nes, the old URL
-      drops out of the index, and any UTM params / fragments survive
-      the bounce.
+      consolidates search signal onto /emulator/?console=nes without a
+      MetaRefresh tag (Bing flags those). The old URL drops out of the
+      index, and any UTM params / fragments survive the bounce.
     -->
     <meta name="robots" content="noindex,follow" />
-    <meta http-equiv="refresh" content="0; url=/emulator/?console=nes" />
     <link rel="canonical" href="https://joeheyming.github.io/emulator/?console=nes" />
 
     <link
