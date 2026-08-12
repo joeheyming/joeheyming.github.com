@@ -73,6 +73,18 @@
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   }
 
+  const DEFAULT_DOCUMENT_TITLE = 'Retro Game Emulator — Play Console Games in Browser';
+
+  /** Keep the tab title in sync with ?console= (picker vs active console). */
+  function setDocumentTitle(cfg) {
+    if (!cfg) {
+      document.title = DEFAULT_DOCUMENT_TITLE;
+      return;
+    }
+    // App Name — Descriptive Phrase [emoji] (page-title-standards).
+    document.title = `${cfg.title} Emulator — ${cfg.subtitle} ${cfg.emoji}`;
+  }
+
   function applyConsoleIdentity(cfg) {
     // Identity tokens live on :root so brand.css cascades pick them up
     // and the rom-browser shadow DOM inherits them automatically. One
@@ -91,6 +103,7 @@
     root.style.setProperty('--accent-bright-ring', hexToRgba(bright, dark ? 0.35 : 0.25));
     root.style.setProperty('--accent-gold', gold);
     root.setAttribute('data-emulator-console', cfg.id);
+    setDocumentTitle(cfg);
   }
 
   let identityCfg = null;
@@ -638,6 +651,7 @@
     const bootCard = document.getElementById('boot-card');
     if (!brand || !bootCard) return;
 
+    setDocumentTitle(null);
     renderEmuBreadcrumbs(null);
 
     brand.innerHTML = `
