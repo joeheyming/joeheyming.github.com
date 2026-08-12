@@ -319,12 +319,9 @@ body {
   width: 100%;
   height: 80px;
   border-radius: 8px;
-  /* The canvas needs to stay a dark slab so the frequency bars (drawn
-   * in JS using brand accent + white) read as bright glyphs against it.
-   * The old pure-black @ 30% tint expected a dark page surface; on the
-   * cream brand it became a barely-visible cream tint that hid the bars.
-   * --text-1 (#1a1a1a) keeps it a true near-black under light theme. */
-  background: var(--text-1);
+  /* Always-dark slab so frequency bars (brand accent + white) stay
+   * readable. Do not use --text-1 — it flips near-white in dark mode. */
+  background: var(--pure-black);
   display: block;
 }
 

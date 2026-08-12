@@ -575,7 +575,10 @@ body {
 }
 
 .modal-content {
+  /* Paper surface is always light — pin ink so dark-mode --text-1
+   * (near-white) does not inherit onto Easy/Hard pills, titles, etc. */
   background: var(--sud-paper-surface);
+  color: var(--sud-ink);
   border-radius: 16px;
   max-width: 460px;
   width: 100%;
@@ -661,6 +664,7 @@ body {
   display: inline-flex;
   align-items: center;
   background: var(--sud-paper-surface-soft);
+  color: var(--sud-ink);
   border: 1px solid var(--sud-line);
   border-radius: 999px;
   padding: 8px 14px;
@@ -687,6 +691,7 @@ body {
   display: flex;
   flex-direction: column;
   background: var(--sud-paper-surface-soft);
+  color: var(--sud-ink);
   border: 2px solid var(--sud-line);
   border-radius: 12px;
   padding: 12px 14px;

@@ -91,7 +91,8 @@ body {
   font-family: 'VT323', monospace;
   font-size: 3rem;
   font-weight: 400;
-  color: var(--text-light);
+  /* Theme with page surface — white-on-cream failed in light mode. */
+  color: var(--text-1);
   letter-spacing: 0.05em;
   text-shadow: 2px 2px 0 color-mix(in srgb, var(--pure-black) 50%, transparent);
 }
@@ -119,6 +120,7 @@ body {
   background: var(--surface);
   border: 2px solid;
   border-color: var(--highlight) var(--shadow-dark) var(--shadow-dark) var(--highlight);
+  border-radius: 0;
   color: var(--text);
   cursor: pointer;
   transition: all 0.1s;
@@ -126,16 +128,22 @@ body {
 
 .diff-btn:hover {
   background: var(--surface-light);
+  color: var(--text);
 }
 
 .diff-btn:active {
   border-color: var(--shadow-dark) var(--highlight) var(--highlight) var(--shadow-dark);
+  color: var(--text);
 }
 
 .diff-btn.active {
   background: var(--accent);
   color: var(--text-light);
   border-color: var(--shadow-dark) var(--highlight) var(--highlight) var(--shadow-dark);
+}
+
+.diff-btn.active:hover {
+  color: var(--text-light);
 }
 
 /* Game Container */
@@ -207,6 +215,7 @@ body {
   padding: 0;
   border: 3px solid;
   border-color: var(--highlight) var(--shadow-dark) var(--shadow-dark) var(--highlight);
+  border-radius: 0;
   background: var(--surface);
   cursor: pointer;
   transition: all 0.05s;
@@ -336,7 +345,10 @@ body {
 }
 
 .modal-content {
+  /* Win95 gray is always light — pin classic black ink so dark-mode
+   * --text-1 (near-white) does not inherit onto labels/inputs. */
   background: var(--surface);
+  color: var(--text);
   border: 3px solid;
   border-color: var(--highlight) var(--shadow-dark) var(--shadow-dark) var(--highlight);
   max-width: 400px;
@@ -364,6 +376,7 @@ body {
   background: var(--surface);
   border: 2px solid;
   border-color: var(--highlight) var(--shadow-dark) var(--shadow-dark) var(--highlight);
+  border-radius: 0;
   font-size: 1rem;
   color: var(--text);
   cursor: pointer;
@@ -372,10 +385,12 @@ body {
 
 .modal-close:hover {
   background: var(--surface-light);
+  color: var(--text);
 }
 
 .modal-close:active {
   border-color: var(--shadow-dark) var(--highlight) var(--highlight) var(--shadow-dark);
+  color: var(--text);
 }
 
 .modal-body {
@@ -405,6 +420,7 @@ body {
   border: 2px solid;
   border-color: var(--shadow-dark) var(--highlight) var(--highlight) var(--shadow-dark);
   background: white;
+  color: var(--text);
 }
 
 .form-row input:focus {
@@ -433,19 +449,23 @@ body {
   font-family: 'VT323', monospace;
   font-size: 1.25rem;
   background: var(--surface);
+  color: var(--text);
   border: 2px solid;
   border-color: var(--highlight) var(--shadow-dark) var(--shadow-dark) var(--highlight);
+  border-radius: 0;
   cursor: pointer;
 }
 
 .btn-ok:hover,
 .btn-cancel:hover {
   background: var(--surface-light);
+  color: var(--text);
 }
 
 .btn-ok:active,
 .btn-cancel:active {
   border-color: var(--shadow-dark) var(--highlight) var(--highlight) var(--shadow-dark);
+  color: var(--text);
 }
 
 /* Animations */

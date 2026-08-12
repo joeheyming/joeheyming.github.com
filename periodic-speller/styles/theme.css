@@ -7,6 +7,10 @@
  * data, not chrome, and intentionally non-brand. */
 :root {
   --ps-pastel-bg: #f0f4ff;
+  --ps-pastel-ink: #1a1a1a;
+  --ps-pastel-unmatched-bg: #1a1a1a;
+  --ps-pastel-unmatched-name: #e6edf3;
+  --ps-mono-bg: #161b22;
   --ps-mono-symbol: #f8fafc;
 
   --ps-heisenberg-bg: #0c1a0c;
@@ -89,23 +93,25 @@
   border-width: 2px;
 }
 .tiles[data-theme='pastel'] .tile .tile-symbol {
-  color: var(--surface-1);
+  /* Always-light pastel tiles — pin dark ink; --surface-1 flips light. */
+  color: var(--ps-pastel-ink, #1a1a1a);
 }
 .tiles[data-theme='pastel'] .tile .tile-name {
-  color: var(--text-3);
+  color: color-mix(in srgb, var(--ps-pastel-ink, #1a1a1a) 65%, transparent);
 }
 .tiles[data-theme='pastel'] .tile .tile-mass {
-  color: var(--text-2);
+  color: color-mix(in srgb, var(--ps-pastel-ink, #1a1a1a) 55%, transparent);
 }
 .tiles[data-theme='pastel'] .tile-unmatched {
-  background: var(--text-1);
-  border-color: var(--text-1);
+  background: var(--ps-pastel-unmatched-bg, #1a1a1a);
+  border-color: var(--ps-pastel-unmatched-bg, #1a1a1a);
 }
 .tiles[data-theme='pastel'] .tile-unmatched .tile-symbol {
   color: var(--text-2);
 }
 .tiles[data-theme='pastel'] .tile-unmatched .tile-name {
-  color: var(--text-1);
+  /* Must contrast the always-dark unmatched slab — not --text-1. */
+  color: var(--ps-pastel-unmatched-name, #e6edf3);
 }
 
 .tiles[data-theme='neon'] .tile {
@@ -119,16 +125,17 @@
 
 .tiles[data-theme='mono'] .tile {
   border-color: var(--text-1);
-  background: var(--tile-bg);
+  /* Always-dark mono slab so --ps-mono-symbol (#f8fafc) stays readable. */
+  background: var(--ps-mono-bg, #161b22);
 }
 .tiles[data-theme='mono'] .tile .tile-number {
-  color: var(--text-1);
+  color: var(--ps-mono-symbol, #f8fafc);
 }
 .tiles[data-theme='mono'] .tile .tile-symbol {
   color: var(--ps-mono-symbol, #f8fafc);
 }
 .tiles[data-theme='mono'] .tile .tile-name {
-  color: var(--text-2);
+  color: color-mix(in srgb, var(--ps-mono-symbol, #f8fafc) 70%, transparent);
 }
 
 .tiles[data-theme='heisenberg'] .tile {
