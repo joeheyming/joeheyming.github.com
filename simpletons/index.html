@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simpleton TV — moved to /watch/?show=simpsons</title>
+
+    <meta
+      name="description"
+      content="Simpleton TV has moved to /watch/?show=simpsons — part of a multi-show smart-TV channel guide for classic TV from the Internet Archive."
+    />
+
+    <!--
+      /simpletons/ was folded into /watch/?show=simpsons. This page exists
+      so inbound links, search results, and bookmarks to the old URL still
+      work — and so Bing can recrawl something other than the deleted
+      MetaRefresh stub (which it still flags for missing h1 + MetaRefresh).
+
+      Static site, no real 301 redirects available. The combo of:
+        * JS location.replace() that preserves query string / fragment
+        * <link rel="canonical" href="...">
+        * Visible <a> fallback for no-JS / crawlers
+        * <meta name="robots" content="noindex,follow">
+      consolidates search signal onto /watch/?show=simpsons without a
+      MetaRefresh tag (Bing flags those). The old URL drops out of the
+      index, and any UTM params / ?s=&e= deep links survive the bounce.
+    -->
+    <meta name="robots" content="noindex,follow" />
+    <link rel="canonical" href="https://joeheyming.github.io/watch/?show=simpsons" />
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📺</text></svg>"
+    />
+
+    <link rel="stylesheet" href="/brand.css" />
+
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: var(--surface-0);
+        color: var(--text-1);
+        font-family: var(--font-ui);
+        text-align: center;
+        padding: 1.5rem;
+      }
+      main {
+        max-width: 32rem;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 0.5rem;
+      }
+      p {
+        margin: 0.5rem 0;
+        line-height: 1.5;
+        color: var(--text-2);
+      }
+      a {
+        color: var(--accent-primary);
+      }
+      a:hover {
+        color: var(--accent-primary-hover);
+      }
+      .cta {
+        display: inline-block;
+        margin-top: 1rem;
+        padding: 0.75rem 1.25rem;
+        background: var(--accent-primary);
+        color: var(--text-on-accent);
+        text-decoration: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
+      }
+    </style>
+
+    <script>
+      // Forward ?s=&e= (and any UTM / fragment) from the old simpletons URL
+      // onto /watch/, and make sure show=simpsons is set. replace() so the
+      // back button skips this stub.
+      (function () {
+        var inbound = new URLSearchParams(window.location.search);
+        if (!inbound.has('show')) inbound.set('show', 'simpsons');
+        var qs = inbound.toString();
+        var target = '/watch/' + (qs ? '?' + qs : '') + (window.location.hash || '');
+        window.location.replace(target);
+      })();
+    </script>
+  </head>
+  <body>
+    <main>
+      <h1>Simpleton TV moved</h1>
+      <p>
+        Simpleton TV now lives at
+        <a href="/watch/?show=simpsons">/watch/?show=simpsons</a>
+        as one of the channels in the Watch app.
+      </p>
+      <p>Redirecting you now…</p>
+      <a class="cta" href="/watch/?show=simpsons">Open Watch →</a>
+    </main>
+  </body>
+</html>
