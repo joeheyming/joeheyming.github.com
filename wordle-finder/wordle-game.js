@@ -391,6 +391,24 @@
     });
   }
 
+  /** Wipe the board without starting a playable game (e.g. while WOTD loads). */
+  function clearBoard(statusText) {
+    initWordleGame();
+    state.answer = '';
+    state.guesses = [];
+    state.results = [];
+    state.currentGuess = '';
+    state.status = 'idle';
+    state.letterStates = {};
+    clearMessage();
+    renderBoard();
+    renderKeyboard();
+    if (statusEl) {
+      statusEl.textContent = statusText || '';
+      statusEl.className = 'wg-status';
+    }
+  }
+
   function initWordleGame() {
     if (initialized) return;
     gameRoot = document.getElementById('wordle-game');
@@ -422,6 +440,7 @@
 
   // Expose the lifecycle hooks index.js / nyt-wordle.js call when the mode switches.
   window.initWordleGame = initWordleGame;
+  window.clearWordleBoard = clearBoard;
   window.startWordleGame = function (forcedAnswer) {
     initWordleGame();
     startNewGame(forcedAnswer);

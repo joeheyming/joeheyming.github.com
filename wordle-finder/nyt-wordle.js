@@ -97,11 +97,15 @@
       return;
     }
 
-    setStatusMessage("Loading today's puzzle…");
+    // Reset immediately so changing Word never leaves prior guesses up.
+    if (typeof window.clearWordleBoard === 'function') {
+      window.clearWordleBoard("Loading today's puzzle…");
+    } else {
+      setStatusMessage("Loading today's puzzle…");
+    }
     try {
       var data = await fetchTodaysPuzzle();
       var word = String(data.solution).toLowerCase();
-      currentAnswer = word;
       window.startWordleGame(word);
       setStatusMessage("Today's Wordle");
       if (typeof window.trackEvent === 'function') {

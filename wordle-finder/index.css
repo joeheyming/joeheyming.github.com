@@ -573,6 +573,11 @@ input:focus-visible {
   margin-bottom: 6px;
 }
 
+/* Class display:flex beats the UA [hidden] rule; keep source row gated. */
+.form-row[hidden] {
+  display: none !important;
+}
+
 label.form-input,
 .form-label {
   font-family: var(--font-ui);

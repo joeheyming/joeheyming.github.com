@@ -164,7 +164,12 @@ function setMode(mode) {
   var strategyRow = document.getElementById('strategy-row');
   var sourceRow = document.getElementById('wordle-source-row');
 
-  if (sourceRow) sourceRow.hidden = mode !== 'wordle';
+  // Word source is Play Wordle only — not solver or Play with helper.
+  if (sourceRow) {
+    var showSource = mode === 'wordle';
+    sourceRow.hidden = !showSource;
+    sourceRow.style.display = showSource ? '' : 'none';
+  }
 
   if (mode === 'play') {
     resetPlayer();
