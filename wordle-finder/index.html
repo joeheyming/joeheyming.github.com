@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" dir="ltr" class="hos-page">
   <head>
     <base href="./" />
-    <title>Wordle Answer Finder — Best Next Guess for Today's Wordle</title>
+    <title>Wordle Answer Finder — Best Next Guess</title>
 
     <!-- Preconnect to external resources for better performance -->
     <link rel="preconnect" href="https://code.jquery.com" />
@@ -11,12 +11,6 @@
     <link rel="preconnect" href="https://momentjs.com" />
     <meta charset="UTF-8" />
     <script src="/nav.js"></script>
-    <link
-      rel="search"
-      type="application/opensearchdescription+xml"
-      href="/Wiki/opensearch_desc.php"
-      title="Word Finder (English)"
-    />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="language" content="English" />
     <meta name="robots" content="index, follow" />
@@ -24,15 +18,15 @@
     <meta name="theme-color" content="#FAFAFA" />
     <meta
       name="description"
-      content="Free Wordle answer finder. Enter green/yellow/gray letters, see the best next guess ranked by entropy. Solve today's Wordle in 2-3 tries. No ads, no signup."
+      content="Enter green, yellow, and gray letters. Get the best next Wordle guess ranked by entropy. Free, no ads."
     />
     <meta
       name="og:description"
-      content="Free Wordle answer finder. Enter green/yellow/gray letters, see the best next guess ranked by entropy. Solve today's Wordle in 2-3 tries. No ads, no signup."
+      content="Enter green, yellow, and gray letters. Get the best next Wordle guess ranked by entropy. Free, no ads."
     />
     <meta
       property="og:description"
-      content="Free Wordle answer finder. Enter green/yellow/gray letters, see the best next guess ranked by entropy. Solve today's Wordle in 2-3 tries. No ads, no signup."
+      content="Enter green, yellow, and gray letters. Get the best next Wordle guess ranked by entropy. Free, no ads."
     />
 
     <meta name="google-site-verification" content="G4xgpb4nOfGShosuh1Tg0z-702kfJqP3tuqbhh_2YRE" />
@@ -45,31 +39,18 @@
     <meta name="image:width" content="359" />
     <meta name="og:image:width" content="359" />
     <meta property="og:image:width" content="359" />
-    <meta
-      name="keywords"
-      content="wordle solver, wordle answer finder, wordle finder, wordle helper, wordle word finder, wordle cheat, today's wordle, best next guess, entropy, 5 letter word finder, wordle löser, wordle hilfe, wordle lösungen, wordle helper deutsch"
-    />
-    <meta name="title" content="Wordle Answer Finder — Best Next Guess for Today's Wordle" />
-    <meta
-      name="og:title"
-      content="Wordle Answer Finder — Best Next Guess for Today&#x27;s Wordle"
-    />
-    <meta
-      property="og:title"
-      content="Wordle Answer Finder — Best Next Guess for Today&#x27;s Wordle"
-    />
+    <meta name="title" content="Wordle Answer Finder — Best Next Guess" />
+    <meta name="og:title" content="Wordle Answer Finder — Best Next Guess" />
+    <meta property="og:title" content="Wordle Answer Finder — Best Next Guess" />
     <meta property="og:site_name" content="Joe Heyming" />
     <meta property="og:locale" content="en_US" />
 
     <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta
-      name="twitter:title"
-      content="Wordle Answer Finder — Best Next Guess for Today&#x27;s Wordle"
-    />
+    <meta name="twitter:title" content="Wordle Answer Finder — Best Next Guess" />
     <meta
       name="twitter:description"
-      content="Free Wordle answer finder. Enter green/yellow/gray letters, see the best next guess ranked by entropy. Solve today's Wordle in 2-3 tries. No ads, no signup."
+      content="Enter green, yellow, and gray letters. Get the best next Wordle guess ranked by entropy. Free, no ads."
     />
     <meta name="twitter:image" content="https://joeheyming.github.io/wordle-finder/thumbnail.png" />
 
@@ -126,7 +107,7 @@
               "Wordle Löser",
               "Wordle Helper Deutsch"
             ],
-            "description": "Wordle solver with entropy-ranked best next guess. Filter by green, yellow, and gray letters and crack today's Wordle in 2-3 tries.",
+            "description": "Enter green, yellow, and gray letters. Get the best next Wordle guess ranked by entropy. Free, no ads.",
             "url": "https://joeheyming.github.io/wordle-finder/",
             "operatingSystem": "Web Browser",
             "browserRequirements": "Requires JavaScript",
@@ -134,8 +115,7 @@
               "@type": "Offer",
               "price": "0",
               "priceCurrency": "USD"
-            },
-            "keywords": "wordle solver, wordle answer finder, wordle helper, today's wordle, best next guess, entropy, 5 letter word finder, wordle löser, wordle hilfe deutsch"
+            }
           },
           {
             "@type": "BreadcrumbList",
@@ -213,7 +193,7 @@
                 "name": "Does it know today's Wordle answer?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "No. It doesn't look anything up online. It uses the public Wordle word list locally in your browser, and after one or two guesses the filter usually narrows the answer to a handful of words."
+                  "text": "In Play Wordle mode, choose Today's Wordle to play the official puzzle for today's date. The solver modes still filter the public word list locally with entropy ranking."
                 }
               },
               {
@@ -260,6 +240,7 @@
     <script src="/analytics.js"></script>
     <script src="/feedback.js"></script>
     <script src="/share.js"></script>
+    <script src="/proxy.js"></script>
     <script async src="tabs.js"></script>
     <script src="wordFrequency.js"></script>
     <script async src="filter.js"></script>
@@ -268,6 +249,7 @@
     <script src="words.js"></script>
     <script defer src="wordle-game.js"></script>
     <script defer src="index.js"></script>
+    <script defer src="nyt-wordle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/moment.min.js"></script>
   </head>
   <body class="hos-page">
@@ -353,7 +335,7 @@
            {today, today solver, today finder} query cluster (~80 imp/yr at
            pos 30-70). Static fallback text so crawlers see it; JS upgrades
            it to a real date for users. -->
-      <p id="todays-wordle">Today's Wordle answer finder</p>
+      <p id="todays-wordle">Enter green letters below for today's best next guess</p>
       <script>
         (function () {
           var el = document.getElementById('todays-wordle');
@@ -364,7 +346,7 @@
             month: 'long',
             day: 'numeric'
           });
-          el.textContent = "Today's Wordle — " + fmt;
+          el.textContent = "Today's Wordle — " + fmt + '. Enter green letters below.';
         })();
       </script>
       <!-- Hidden SEO copy. Stays in the DOM for crawlers; visible UI is
@@ -426,6 +408,17 @@
             </div>
           </div>
         </div>
+        <div class="form-row" id="wordle-source-row" hidden>
+          <label class="form-label" for="wordleSource">Word</label>
+          <div class="form-input fixed-input-control">
+            <div class="custom-select">
+              <select id="wordleSource">
+                <option value="random">Random word</option>
+                <option value="today">Today's Wordle</option>
+              </select>
+            </div>
+          </div>
+        </div>
         <div class="form-row" id="strategy-row">
           <label class="form-label" for="strategySelect">Strategy</label>
           <div class="form-input fixed-input-control">
@@ -449,7 +442,7 @@
         </div>
         <form id="guessForm" autocomplete="off">
           <div class="corrects form-row">
-            <label class="form-label">Include in these spots</label>
+            <label class="form-label">Green (correct spot)</label>
             <div class="form-input form-grid">
               <input
                 autocomplete="off"
@@ -458,7 +451,8 @@
                 size="1"
                 id="first"
                 class="wordle-style"
-                aria-label="Include letter in position 1"
+                aria-label="Green letter in position 1"
+                autofocus
               />
               <input
                 autocomplete="off"
@@ -499,7 +493,7 @@
             </div>
           </div>
           <div class="maybecorrects form-row">
-            <label class="form-label">Ignore in these spots</label>
+            <label class="form-label">Yellow (wrong spot)</label>
             <div class="form-input form-grid">
               <input
                 autocomplete="off"
@@ -549,14 +543,14 @@
             </div>
           </div>
           <div class="form-row">
-            <label class="form-label">Exclude</label>
+            <label class="form-label">Gray (not in word)</label>
             <div class="form-input">
               <input
                 autocomplete="off"
                 class="incorrect wordle-style"
                 type="text"
                 id="excludeLetters"
-                placeholder="Bad letters"
+                placeholder="Excluded letters"
                 data-lpignore="true"
               />
             </div>
@@ -752,9 +746,14 @@
 
         <h3>Does it know today&rsquo;s Wordle answer?</h3>
         <p>
-          No &mdash; it doesn&rsquo;t look anything up online or scrape the New York Times. It uses
-          the public Wordle word list locally in your browser. After your first one or two guesses,
-          the filter usually narrows the answer down to a handful of words.
+          In
+          <strong>Play Wordle</strong>
+          mode, set
+          <strong>Word</strong>
+          to
+          <strong>Today&rsquo;s Wordle</strong>
+          to play the official puzzle for today&rsquo;s date (fetched via a CORS proxy). Solver
+          modes still run entirely in your browser on the public word list.
         </p>
 
         <h3>What are the best starting words?</h3>

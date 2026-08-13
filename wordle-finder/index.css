@@ -21,7 +21,10 @@
   --wordle-gray: #3a3a44;
   --wordle-text-on-tile: var(--pure-white);
   --wordle-text-on-tile-dark: #1a1a1a;
-  --long-input-width: 182px;
+  /* Match the 5-tile yellow/green grids: 5×44px tiles + 4×6px gaps = 244px */
+  --tile-size: 44px;
+  --tile-gap: 6px;
+  --long-input-width: calc(5 * var(--tile-size) + 4 * var(--tile-gap));
 }
 
 * {
@@ -204,10 +207,10 @@ input.correct {
  * mobile viewport (the "yellow squares scrolling off-screen" bug).
  * Explicitly zero padding here so the tile shape stays. */
 .corrects input {
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
+  width: var(--tile-size);
+  height: var(--tile-size);
+  min-width: var(--tile-size);
+  min-height: var(--tile-size);
   padding: 0;
 }
 
@@ -234,16 +237,16 @@ input.incorrect {
 .maybecorrects input {
   background-color: var(--wordle-yellow);
   color: var(--wordle-text-on-tile-dark, #1a1a1a);
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
+  width: var(--tile-size);
+  height: var(--tile-size);
+  min-width: var(--tile-size);
+  min-height: var(--tile-size);
   padding: 0;
 }
 
 .form-input.form-grid {
   display: grid;
-  grid-gap: 6px;
+  grid-gap: var(--tile-gap);
   grid-template-columns: repeat(5, 1fr);
 }
 
@@ -1007,6 +1010,11 @@ footer {
   .maybecorrects input {
     width: auto;
     min-width: 0;
+  }
+
+  input.incorrect,
+  input.correct {
+    width: 100%;
   }
 
   .form-controls {

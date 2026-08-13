@@ -72,7 +72,7 @@
     "defaultHeight": 768,
     "desktopIcon": true,
     "tags": ["fps", "retro", "popular"],
-    "related": ["pacman", "nes", "minesweeper", "stepmania"],
+    "related": ["badapple", "starwars", "pacman", "minesweeper"],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "DOOM",
@@ -549,7 +549,7 @@
       "airplay",
       "chromecast"
     ],
-    "related": ["blockbuster", "youtube", "media-player", "awesome"],
+    "related": ["blockbuster", "youtube", "media-player", "badapple", "doom"],
     "shareCategory": "entertainment",
     "pwaShortcut": {
       "name": "Watch",
@@ -2041,7 +2041,7 @@
     "system": true,
     "handles": ["application/x-paintproj"],
     "tags": ["art", "drawing", "paint", "creative", "canvas"],
-    "related": ["notepad", "posts"],
+    "related": ["imagine", "ascii", "model-viewer", "meme"],
     "shareCategory": "utility",
     "appTier": "app",
     "geo": true

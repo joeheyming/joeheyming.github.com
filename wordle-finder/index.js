@@ -162,6 +162,9 @@ function helpClick() {
 function setMode(mode) {
   var wordleGame = document.getElementById('wordle-game');
   var strategyRow = document.getElementById('strategy-row');
+  var sourceRow = document.getElementById('wordle-source-row');
+
+  if (sourceRow) sourceRow.hidden = mode !== 'wordle';
 
   if (mode === 'play') {
     resetPlayer();
@@ -178,7 +181,9 @@ function setMode(mode) {
     player.style.display = 'none';
     if (strategyRow) strategyRow.style.display = 'none';
     if (wordleGame) wordleGame.style.display = '';
-    if (typeof window.startWordleGame === 'function') {
+    if (typeof window.startWordleFromSource === 'function') {
+      window.startWordleFromSource();
+    } else if (typeof window.startWordleGame === 'function') {
       window.startWordleGame();
     }
   } else {
@@ -281,6 +286,14 @@ window.addEventListener('load', function () {
     solverMode.onchange = function () {
       setMode(this.value);
     };
+    var wordleSource = document.getElementById('wordleSource');
+    if (wordleSource) {
+      wordleSource.onchange = function () {
+        if (solverMode.value === 'wordle' && typeof window.startWordleFromSource === 'function') {
+          window.startWordleFromSource();
+        }
+      };
+    }
 
     //solverMode.value = 'play';
     solverMode.value = 'score';

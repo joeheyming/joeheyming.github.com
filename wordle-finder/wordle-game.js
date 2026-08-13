@@ -317,7 +317,13 @@
   function handleKey(key) {
     if (!key) return;
     if (state.status !== 'playing') {
-      if (key === 'enter') startNewGame();
+      if (key === 'enter') {
+        if (typeof window.startWordleFromSource === 'function') {
+          window.startWordleFromSource();
+        } else {
+          startNewGame();
+        }
+      }
       return;
     }
     if (key === 'enter') {
@@ -363,8 +369,12 @@
     }
   }
 
-  function startNewGame() {
-    state.answer = (pickRandomAnswer() || 'crane').toLowerCase();
+  function startNewGame(forcedAnswer) {
+    var answer =
+      typeof forcedAnswer === 'string' && forcedAnswer.length === WORDLE_WORD_LEN
+        ? forcedAnswer.toLowerCase()
+        : pickRandomAnswer() || 'crane';
+    state.answer = answer.toLowerCase();
     state.guesses = [];
     state.results = [];
     state.currentGuess = '';
@@ -376,7 +386,8 @@
     renderStatus();
     if (newGameBtn) newGameBtn.textContent = 'New Game';
     safeGtag('event', 'wordle_clone_new_game', {
-      event_category: 'play'
+      event_category: 'play',
+      event_label: forcedAnswer ? 'today' : 'random'
     });
   }
 
@@ -398,17 +409,21 @@
 
     if (newGameBtn) {
       newGameBtn.addEventListener('click', function () {
-        startNewGame();
+        if (typeof window.startWordleFromSource === 'function') {
+          window.startWordleFromSource();
+        } else {
+          startNewGame();
+        }
       });
     }
     document.addEventListener('keydown', onKeydown);
     initialized = true;
   }
 
-  // Expose the lifecycle hooks index.js calls when the mode switches.
+  // Expose the lifecycle hooks index.js / nyt-wordle.js call when the mode switches.
   window.initWordleGame = initWordleGame;
-  window.startWordleGame = function () {
+  window.startWordleGame = function (forcedAnswer) {
     initWordleGame();
-    if (state.status === 'idle') startNewGame();
+    startNewGame(forcedAnswer);
   };
 })();

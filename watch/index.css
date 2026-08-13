@@ -2204,6 +2204,10 @@ a.tv-crumb:hover {
   color: var(--tv-accent);
 }
 
+.tv-more-apps {
+  margin-top: 14px;
+}
+
 .tv-fineprint {
   text-align: center;
   font-size: 11px;
