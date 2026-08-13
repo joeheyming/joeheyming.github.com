@@ -42,9 +42,6 @@ randomWordButton.onclick = function () {
     word = wordList[item];
   } while (!isIsogram(word));
   randomWord.textContent = word;
-  safeGtag('event', 'generate_random_word', {
-    event_category: 'user action'
-  });
 };
 
 // Guard against overlapping submits — the async yield below means a second
@@ -138,9 +135,6 @@ function resetScorer() {
 
 reset.onclick = function () {
   resetScorer();
-  safeGtag('event', 'reset', {
-    event_category: 'user action'
-  });
 };
 
 function fetchWords() {
@@ -154,9 +148,6 @@ function fetchWords() {
 
 function helpClick() {
   dialog.style.display = '';
-  safeGtag('event', 'help_click', {
-    event_category: 'user action'
-  });
 }
 
 function setMode(mode) {
@@ -289,7 +280,11 @@ window.addEventListener('load', function () {
 
     initTabs();
     solverMode.onchange = function () {
-      setMode(this.value);
+      var mode = this.value;
+      if (typeof window.trackEvent === 'function') {
+        window.trackEvent('wordle_mode_change', 'Wordle', mode);
+      }
+      setMode(mode);
     };
     var wordleSource = document.getElementById('wordleSource');
     if (wordleSource) {

@@ -294,6 +294,7 @@
       state.status = 'won';
       safeGtag('event', 'wordle_clone_win', {
         event_category: 'play',
+        event_label: cloneSourceLabel(),
         value: state.guesses.length
       });
       showMessage(
@@ -305,7 +306,8 @@
     } else if (state.guesses.length >= WORDLE_MAX_GUESSES) {
       state.status = 'lost';
       safeGtag('event', 'wordle_clone_loss', {
-        event_category: 'play'
+        event_category: 'play',
+        event_label: cloneSourceLabel()
       });
     }
 
@@ -369,6 +371,11 @@
     }
   }
 
+  function cloneSourceLabel() {
+    var sel = document.getElementById('wordleSource');
+    return sel && sel.value === 'today' ? 'today' : 'random';
+  }
+
   function startNewGame(forcedAnswer) {
     var answer =
       typeof forcedAnswer === 'string' && forcedAnswer.length === WORDLE_WORD_LEN
@@ -387,7 +394,7 @@
     if (newGameBtn) newGameBtn.textContent = 'New Game';
     safeGtag('event', 'wordle_clone_new_game', {
       event_category: 'play',
-      event_label: forcedAnswer ? 'today' : 'random'
+      event_label: forcedAnswer ? 'today' : cloneSourceLabel()
     });
   }
 

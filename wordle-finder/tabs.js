@@ -19,8 +19,6 @@ function changeTabs(target) {
   var panel = grandparent.parentNode.querySelector('#' + target.getAttribute('aria-controls'));
   panel.removeAttribute('hidden');
   panel.parentNode.scrollTop = 0;
-  var tabName = panel.getAttribute('aria-labelledby');
-  window.trackEvent('tab_change', 'Wordle', tabName);
 }
 
 function updateTabContent(tabId, html) {

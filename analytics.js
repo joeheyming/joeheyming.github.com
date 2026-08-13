@@ -13,6 +13,12 @@
 //   engaged_session    30s+ engaged
 //   content_shared     Shared via share.js / share FAB
 //   hero_cta_launch    Home-page CTA (data-event-conversion)
+//
+// Exploration events (not Key Events unless marked in Admin later):
+//   hub_crosslink_click   Watch/Doom visible fan-out links (data-event)
+//   related_project_click share.js related cards
+//   wordle_mode_change    Wordle solverMode user switch (score|play|wordle)
+//   wordle_play_today     Play Wordle seeded from NYT WOTD
 // =====================================================================
 
 // =====================================================================
@@ -619,9 +625,9 @@ function initDataEventTracking() {
 
 // Engagement Time Tracking
 // Track how long users spend on each page. Final engaged time is captured
-// once on `pagehide` (mobile-reliable) and once on `beforeunload` (desktop
-// fallback). Sessions ≥30s also fire the `engaged_session` conversion, and
-// sessions ≥120s additionally fire the stronger `deep_engagement` Key Event.
+// once on `pagehide` (mobile-reliable). Sessions ≥30s also fire the
+// `engaged_session` conversion on beforeunload, and sessions ≥120s
+// additionally fire the stronger `deep_engagement` Key Event.
 //
 // Note: we deliberately do NOT fire a periodic `engagement_ping` heartbeat.
 // GA4's automatic `user_engagement` event already powers the "Average
@@ -703,14 +709,13 @@ function initDataEventTracking() {
     }
   });
 
-  // Track total time on page when user leaves
+  // Track total time on page when user leaves. Prefer pagehide for the
+  // engaged-time event (mobile-reliable); beforeunload only keeps the
+  // conversion backstops that must still fire on desktop unload.
   window.addEventListener('beforeunload', function () {
     const finalEngagedTime = currentEngagedMs();
 
-    // Only track if user spent meaningful time
     if (finalEngagedTime >= MIN_ENGAGEMENT_TIME) {
-      window.trackEvent('page_exit', 'Engagement', PAGE_NAME, Math.round(finalEngagedTime / 1000));
-
       // Track as conversion if user was engaged for 30+ seconds
       if (finalEngagedTime >= 30000) {
         window.trackConversion('engaged_session', 1);

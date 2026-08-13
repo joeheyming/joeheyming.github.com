@@ -237,7 +237,6 @@ class ShareButtonElement extends HTMLElement {
 
   async handleShare() {
     if (typeof window.trackEvent === 'function') {
-      window.trackEvent('share_button_click', 'Engagement', window.location.pathname);
       window.trackEvent('share', 'share_button', window.location.pathname);
     }
     if (typeof window.trackConversion === 'function') {
