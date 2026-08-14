@@ -162,6 +162,10 @@ function setMode(mode) {
     sourceRow.style.display = showSource ? '' : 'none';
   }
 
+  // Mobile: hide share/related FAB while the on-screen keyboard is up so it
+  // doesn't cover keys (see index.css body.wordle-playing rule).
+  document.body.classList.toggle('wordle-playing', mode === 'wordle');
+
   if (mode === 'play') {
     resetPlayer();
     scorer.style.display = 'none';

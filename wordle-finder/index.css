@@ -1047,3 +1047,10 @@ footer {
     width: 100%;
   }
 }
+
+/* Play Wordle: share/related FAB sits over the on-screen keyboard on phones. */
+@media screen and (max-width: 768px) {
+  body.wordle-playing .related-projects-container {
+    display: none !important;
+  }
+}
