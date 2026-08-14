@@ -64,12 +64,13 @@ export function caseGrabHandleWorld(caseGroup, out) {
  * @param {THREE.Quaternion} outQuat
  * @param {THREE.Object3D} palmSocket
  * @param {THREE.Camera} camera
- * @param {{ scale?: number, lean?: number, swayY?: number }} [opts]
+ * @param {{ scale?: number, lean?: number, swayY?: number, flip?: number }} [opts]
  */
 export function computePalmHoldPose(outPos, outQuat, palmSocket, camera, opts = {}) {
   const scale = opts.scale ?? PALM_CASE_SCALE;
   const lean = opts.lean ?? HOLD_LEAN;
   const swayY = opts.swayY ?? 0;
+  const flip = opts.flip ?? 0;
 
   palmSocket.updateMatrixWorld(true);
   camera.updateMatrixWorld(true);
@@ -81,6 +82,13 @@ export function computePalmHoldPose(outPos, outQuat, palmSocket, camera, opts = 
   if (_axisZ.lengthSq() < 1e-8) _axisZ.set(0, 0, 1);
   else _axisZ.normalize();
 
+  // Flip: reverse cover normal so the back faces the camera
+  if (flip > 0.001) {
+    _axisZ.multiplyScalar(1 - 2 * flip);
+    if (_axisZ.lengthSq() < 1e-8) _axisZ.set(0, 0, -1);
+    else _axisZ.normalize();
+  }
+
   _axisX.crossVectors(_worldUp, _axisZ);
   if (_axisX.lengthSq() < 1e-8) _axisX.set(1, 0, 0);
   else _axisX.normalize();
@@ -89,7 +97,7 @@ export function computePalmHoldPose(outPos, outQuat, palmSocket, camera, opts = 
   _basis.makeBasis(_axisX, _axisY, _axisZ);
   _desiredQuat.setFromRotationMatrix(_basis);
   // Shelf-style lean + optional inspect sway
-  _leanEuler.set(lean, swayY, 0, 'YXZ');
+  _leanEuler.set(lean * (1 - flip * 2), swayY, 0, 'YXZ');
   _leanQ.setFromEuler(_leanEuler);
   _desiredQuat.multiply(_leanQ);
 

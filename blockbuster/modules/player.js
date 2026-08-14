@@ -3,10 +3,13 @@ import {
   BOB_ROLL,
   BOB_X,
   BOB_Y,
+  CROUCH_EYE_HEIGHT,
+  CROUCH_SPEED,
   EYE_HEIGHT,
   MOVE_SPEED,
   PITCH_LIMIT,
   ROOM,
+  SPRINT_SPEED,
   STEP_SPACING
 } from './constants.js';
 import { clamp } from './util.js';
@@ -19,13 +22,17 @@ import { clamp } from './util.js';
  * }} opts
  */
 export function createPlayer({ camera, getBlockers, isLocked }) {
-  const keys = { w: false, a: false, s: false, d: false };
+  const keys = { w: false, a: false, s: false, d: false, crouch: false, sprint: false };
   let yaw = 0;
   let pitch = 0;
   /** Radians along the walk cycle (advances with distance moved). */
   let walkPhase = 0;
   /** Smooth 0→1 blend so bob eases in/out instead of popping. */
   let walkAmount = 0;
+  /** Smooth 0→1 crouch blend (Shift / sneak). */
+  let crouchAmount = 0;
+  /** Smooth 0→1 sprint blend (Ctrl). */
+  let sprintAmount = 0;
   let lastStepIndex = -1;
   /** @type {AudioContext | null} */
   let audioCtx = null;
@@ -33,7 +40,7 @@ export function createPlayer({ camera, getBlockers, isLocked }) {
   const player = { x: 0, z: ROOM.d / 2 - 1.6 };
 
   /**
-   * @param {'w'|'a'|'s'|'d'} key
+   * @param {'w'|'a'|'s'|'d'|'crouch'|'sprint'} key
    * @param {boolean} down
    */
   function setKey(key, down) {
@@ -96,9 +103,21 @@ export function createPlayer({ camera, getBlockers, isLocked }) {
   /** @param {number} dt */
   function update(dt) {
     const locked = isLocked();
+    const crouchTarget = keys.crouch ? 1 : 0;
+    crouchAmount += (crouchTarget - crouchAmount) * Math.min(1, dt * 12);
+    const crouching = crouchAmount > 0.5;
+    // Crouch wins over sprint (Minecraft)
+    const sprintTarget =
+      keys.sprint && !keys.crouch && (keys.w || keys.s || keys.a || keys.d) ? 1 : 0;
+    sprintAmount += (sprintTarget - sprintAmount) * Math.min(1, dt * 8);
+
     const forward = locked ? 0 : (keys.w ? 1 : 0) - (keys.s ? 1 : 0);
     const strafe = locked ? 0 : (keys.d ? 1 : 0) - (keys.a ? 1 : 0);
     const wantMove = forward !== 0 || strafe !== 0;
+    const speed =
+      MOVE_SPEED *
+      (1 - crouchAmount * (1 - CROUCH_SPEED)) *
+      (1 + sprintAmount * (SPRINT_SPEED - 1));
 
     let moved = 0;
     if (wantMove) {
@@ -106,8 +125,8 @@ export function createPlayer({ camera, getBlockers, isLocked }) {
       const cos = Math.cos(yaw);
       // Normalize diagonal so strafe+forward isn't faster
       const len = Math.hypot(forward, strafe) || 1;
-      const dx = ((-forward * sin + strafe * cos) / len) * MOVE_SPEED * dt;
-      const dz = ((-forward * cos - strafe * sin) / len) * MOVE_SPEED * dt;
+      const dx = ((-forward * sin + strafe * cos) / len) * speed * dt;
+      const dz = ((-forward * cos - strafe * sin) / len) * speed * dt;
       const prevX = player.x;
       const prevZ = player.z;
       const nextX = player.x + dx;
@@ -125,7 +144,9 @@ export function createPlayer({ camera, getBlockers, isLocked }) {
     const walkTarget = moved > 0.0005 ? 1 : 0;
     const ease = walkTarget ? 5 : 4;
     walkAmount += (walkTarget - walkAmount) * Math.min(1, dt * ease);
-    const bob = walkAmount * walkAmount * (3 - 2 * walkAmount); // smoothstep
+    // Sneak damps head-bob; sprint pumps it
+    const bobScale = (1 - crouchAmount * 0.85) * (1 + sprintAmount * 0.55);
+    const bob = walkAmount * walkAmount * (3 - 2 * walkAmount) * bobScale; // smoothstep
 
     if (moved > 0) {
       walkPhase += (moved / STEP_SPACING) * Math.PI;
@@ -138,10 +159,12 @@ export function createPlayer({ camera, getBlockers, isLocked }) {
 
     // Footfall click at each low point of the vertical bob
     const stepIndex = Math.floor(walkPhase / Math.PI);
-    if (bob > 0.4 && stepIndex !== lastStepIndex) {
+    if (bob > 0.4 && !crouching && stepIndex !== lastStepIndex) {
       lastStepIndex = stepIndex;
       playFootstep(stepIndex);
     }
+
+    const eyeY = EYE_HEIGHT + (CROUCH_EYE_HEIGHT - EYE_HEIGHT) * crouchAmount;
 
     camera.rotation.order = 'YXZ';
     camera.rotation.y = yaw;
@@ -149,7 +172,7 @@ export function createPlayer({ camera, getBlockers, isLocked }) {
     camera.rotation.z = bobRoll;
     camera.position.set(
       player.x + bobX * Math.cos(yaw),
-      EYE_HEIGHT + bobY,
+      eyeY + bobY,
       player.z + bobX * Math.sin(yaw)
     );
   }
@@ -170,7 +193,7 @@ export function createPlayer({ camera, getBlockers, isLocked }) {
     set pitch(v) {
       pitch = clamp(v, -PITCH_LIMIT, PITCH_LIMIT);
     },
-    /** Clear WASD while an animation locks movement. */
+    /** Clear WASD while an animation locks movement (keeps Shift/Ctrl modifiers). */
     clearKeys() {
       keys.w = keys.a = keys.s = keys.d = false;
     },

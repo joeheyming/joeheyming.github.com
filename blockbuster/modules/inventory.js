@@ -3,6 +3,7 @@ import {
   BOX,
   CASE_GAP,
   CASE_LEAN,
+  ENTRANCE_CLEARANCE,
   GONDOLA_HALF,
   MAX_AISLE_LEN,
   MIN_WALKWAY,
@@ -45,55 +46,169 @@ export function createInventory({ scene }) {
   const blockers = [];
 
   /**
-   * Build parallel gondolas from the spreadsheet-derived sections.
-   * Each face gets exactly one section (large sections are split into
-   * labeled chunks so shelves fill edge-to-edge instead of one lonely
-   * cluster on a long empty plank).
+   * Build gondolas from spreadsheet sections. Faces are shuffled and packed
+   * with jitter so aisles feel irregular — still clamped inside the room
+   * with foyer clearance and walkway gaps.
    * @param {Section[]} sections
+   * @param {Section | null} [entranceSection] Staff Picks endcap near the door
    */
-  function stockStore(sections) {
+  function stockStore(sections, entranceSection = null) {
     const pitch = BOX.w + CASE_GAP;
-    // Prefer TARGET_PER_FACE so big genres/TV bands become multiple shelves;
-    // still never exceed what fits on MAX_AISLE_LEN.
+
+    if (entranceSection?.items?.length) {
+      stockEntranceEndcap(entranceSection, pitch);
+    }
+
     const maxCols = Math.max(4, Math.floor(MAX_AISLE_LEN / pitch));
     const maxPerFace = Math.min(TARGET_PER_FACE, maxCols * STOCK_ROWS);
-    const faces = expandSections(sections, maxPerFace);
+    const faces = shuffleInPlace(expandSections(sections, maxPerFace));
     if (!faces.length) return;
 
-    // Pair faces onto double-sided gondolas
     /** @type {[Section, Section | null][]} */
     const pairs = [];
     for (let i = 0; i < faces.length; i += 2) {
       pairs.push([faces[i], faces[i + 1] || null]);
     }
+    shuffleInPlace(pairs);
 
-    // Footprint of one gondola across X, plus a real walkway between them
-    const gondolaSpan = (GONDOLA_HALF + SHELF.depth) * 2;
-    const centerGap = gondolaSpan + MIN_WALKWAY;
-    const usableW = ROOM.w - 3;
-    const cols = Math.max(1, Math.floor(usableW / centerGap) + 1);
-    const rowsNeeded = Math.ceil(pairs.length / cols);
-    const rowPitch = Math.min(MAX_AISLE_LEN + 2.5, (ROOM.d - 4) / Math.max(1, rowsNeeded));
-
-    for (let i = 0; i < pairs.length; i++) {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const rowWidth = Math.min(cols, pairs.length - row * cols);
-      const spanX = (rowWidth - 1) * centerGap;
-      const cx = -spanX / 2 + col * centerGap;
-      const zCenter = ROOM.d / 2 - 3.5 - row * rowPitch - MAX_AISLE_LEN / 2;
-
-      const [west, east] = pairs[i];
+    for (const [west, east] of pairs) {
       const lenW = sectionLength(west, pitch);
       const lenE = east ? sectionLength(east, pitch) : lenW;
       const length = Math.max(lenW, lenE);
-
-      addGondola(cx, zCenter, length, STOCK_ROWS);
-      stockSection(west, new THREE.Vector3(cx - GONDOLA_HALF, 0, zCenter), -Math.PI / 2, pitch);
+      const spot = findGondolaSpot(length);
+      if (!spot) continue;
+      addGondola(spot.cx, spot.zCenter, length, STOCK_ROWS);
+      stockSection(
+        west,
+        new THREE.Vector3(spot.cx - GONDOLA_HALF, 0, spot.zCenter),
+        -Math.PI / 2,
+        pitch
+      );
       if (east) {
-        stockSection(east, new THREE.Vector3(cx + GONDOLA_HALF, 0, zCenter), Math.PI / 2, pitch);
+        stockSection(
+          east,
+          new THREE.Vector3(spot.cx + GONDOLA_HALF, 0, spot.zCenter),
+          Math.PI / 2,
+          pitch
+        );
       }
     }
+  }
+
+  /**
+   * Staff Picks on the left side of the foyer (not centered in front of spawn).
+   * Light jitter so it isn't glued to the same tile every load.
+   * @param {Section} section
+   * @param {number} pitch
+   */
+  function stockEntranceEndcap(section, pitch) {
+    const cols = Math.max(1, Math.ceil(section.items.length / STOCK_ROWS));
+    const length = Math.min(5.5, cols * pitch + 0.35);
+    const baseCx = -(MIN_WALKWAY * 0.5 + GONDOLA_HALF + SHELF.depth + 2.4);
+    const baseZ = ROOM.d / 2 - ENTRANCE_CLEARANCE + length * 0.15;
+    const cx = clampToRoomX(baseCx + (Math.random() - 0.5) * 1.6, length);
+    const zCenter = clampToRoomZ(baseZ + (Math.random() - 0.5) * 1.2, length, true);
+
+    addGondola(cx, zCenter, length, STOCK_ROWS);
+    stockSection(section, new THREE.Vector3(cx + GONDOLA_HALF, 0, zCenter), Math.PI / 2, pitch);
+  }
+
+  /**
+   * Pick a random in-bounds gondola center that keeps walkway clearance.
+   * @param {number} length
+   * @returns {{ cx: number, zCenter: number } | null}
+   */
+  function findGondolaSpot(length) {
+    const wall = 1.15;
+    const halfX = GONDOLA_HALF + SHELF.depth;
+    const xLo = -ROOM.w / 2 + wall + halfX;
+    const xHi = ROOM.w / 2 - wall - halfX;
+    const zLo = -ROOM.d / 2 + wall + length / 2;
+    // Keep the entrance foyer clear of aisle stock
+    const zHi = ROOM.d / 2 - ENTRANCE_CLEARANCE - length / 2;
+    if (xHi <= xLo || zHi <= zLo) return null;
+
+    for (let attempt = 0; attempt < 48; attempt++) {
+      const cx = xLo + Math.random() * (xHi - xLo);
+      // Slight bias toward the middle of the stock zone so edges don't fill first
+      const t = Math.random() * 0.7 + Math.random() * 0.3;
+      const zCenter = zLo + t * (zHi - zLo);
+      if (gondolaFits(cx, zCenter, length)) return { cx, zCenter };
+    }
+
+    // Deterministic fallback scan if random packing got unlucky
+    const stepX = MIN_WALKWAY + halfX * 2;
+    const stepZ = Math.max(2.4, length * 0.35);
+    for (let z = zHi; z >= zLo; z -= stepZ) {
+      for (let x = xLo; x <= xHi; x += stepX * (0.85 + Math.random() * 0.3)) {
+        const cx = x + (Math.random() - 0.5) * 0.8;
+        const zCenter = z + (Math.random() - 0.5) * 0.6;
+        if (gondolaFits(cx, zCenter, length)) return { cx, zCenter };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * @param {number} cx
+   * @param {number} zCenter
+   * @param {number} length
+   */
+  function gondolaFits(cx, zCenter, length) {
+    const wall = 1.05;
+    const halfX = GONDOLA_HALF + SHELF.depth + 0.1;
+    const halfZ = length / 2 + 0.15;
+    const minX = cx - halfX;
+    const maxX = cx + halfX;
+    const minZ = zCenter - halfZ;
+    const maxZ = zCenter + halfZ;
+    if (minX < -ROOM.w / 2 + wall || maxX > ROOM.w / 2 - wall) return false;
+    if (minZ < -ROOM.d / 2 + wall || maxZ > ROOM.d / 2 - ENTRANCE_CLEARANCE) return false;
+
+    const gap = MIN_WALKWAY * 0.55;
+    for (const b of blockers) {
+      if (
+        minX < b.maxX + gap &&
+        maxX > b.minX - gap &&
+        minZ < b.maxZ + gap &&
+        maxZ > b.minZ - gap
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** @param {number} cx @param {number} _length */
+  function clampToRoomX(cx, _length) {
+    const wall = 1.15;
+    const halfX = GONDOLA_HALF + SHELF.depth;
+    return Math.max(-ROOM.w / 2 + wall + halfX, Math.min(ROOM.w / 2 - wall - halfX, cx));
+  }
+
+  /**
+   * @param {number} z
+   * @param {number} length
+   * @param {boolean} [inFoyer]
+   */
+  function clampToRoomZ(z, length, inFoyer = false) {
+    const wall = 1.15;
+    const lo = -ROOM.d / 2 + wall + length / 2;
+    const hi = inFoyer
+      ? ROOM.d / 2 - ENTRANCE_CLEARANCE * 0.35 - length / 2
+      : ROOM.d / 2 - ENTRANCE_CLEARANCE - length / 2;
+    return Math.max(lo, Math.min(hi, z));
+  }
+
+  /** @template T @param {T[]} arr @returns {T[]} */
+  function shuffleInPlace(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+    }
+    return arr;
   }
 
   /**
@@ -370,6 +485,43 @@ export function createInventory({ scene }) {
     return slots.filter((s) => !s.item).map((s) => s.proxy);
   }
 
+  /**
+   * Loose case (bargain bin pile) — still vacate/occupy compatible via a slot.
+   * @param {CatalogItem} item
+   * @param {THREE.Vector3} position
+   * @param {{ x?: number, y?: number, z?: number }} [rotation]
+   */
+  function addLooseCase(item, position, rotation = {}) {
+    const origin = position.clone();
+    origin.y = 0;
+    const slot = createSlot(
+      `loose-${item.kind}-${item.id}-${slots.length}`,
+      0,
+      0,
+      origin,
+      rotation.y || 0,
+      0,
+      position.y
+    );
+    // Override proxy to match the messy pose
+    slot.proxy.position.copy(position);
+    slot.proxy.rotation.set(rotation.x || 0, rotation.y || 0, rotation.z || 0);
+    occupy(slot, item);
+    if (slot.group) {
+      slot.group.position.copy(position);
+      slot.group.rotation.order = 'YXZ';
+      slot.group.rotation.set(rotation.x || 0, rotation.y || 0, rotation.z || 0);
+    }
+    return slot;
+  }
+
+  /**
+   * @param {{ minX: number, maxX: number, minZ: number, maxZ: number }} box
+   */
+  function addBlocker(box) {
+    blockers.push(box);
+  }
+
   return {
     slots,
     cases,
@@ -378,6 +530,8 @@ export function createInventory({ scene }) {
     vacate,
     occupy,
     emptyProxies,
+    addLooseCase,
+    addBlocker,
     slotWorldPosition,
     slotWorldQuaternion
   };

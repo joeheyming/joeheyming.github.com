@@ -1,10 +1,16 @@
 import * as THREE from 'three';
 import { ROOM } from './constants.js';
 import { roundRect } from './util.js';
+import { createTvScreen } from './tv-screen.js';
 
 /**
  * @param {THREE.Scene} scene
- * @returns {{ wallTvHit: THREE.Mesh, tvInsertPos: THREE.Vector3 }}
+ * @returns {{
+ *   wallTvHit: THREE.Mesh,
+ *   tvInsertPos: THREE.Vector3,
+ *   tvScreen: ReturnType<typeof createTvScreen>,
+ *   updateAtmosphere: (dt: number) => boolean
+ * }}
  */
 export function buildRoom(scene) {
   const halfW = ROOM.w / 2;
@@ -49,23 +55,31 @@ export function buildRoom(scene) {
   scene.add(new THREE.AmbientLight(0xd0dae8, 0.95));
   scene.add(new THREE.HemisphereLight(0xffffff, 0x1a3050, 0.45));
 
+  /** @type {{ light: THREE.PointLight, panel: THREE.Mesh, base: number, next: number, flick: number }[]} */
+  const fluorescents = [];
+
   // Fluorescent panels running down the aisles
   for (let z = -9; z <= 9; z += 3.5) {
     for (const x of [-4.4, 0, 4.4]) {
       const bulb = new THREE.PointLight(0xfff6e0, 1.35, 11, 1.7);
       bulb.position.set(x, ROOM.h - 0.2, z);
       scene.add(bulb);
-      const panel = new THREE.Mesh(
-        new THREE.BoxGeometry(2.4, 0.05, 1.1),
-        new THREE.MeshStandardMaterial({
-          color: 0xfffaf0,
-          emissive: 0xfff0c8,
-          emissiveIntensity: 0.85,
-          roughness: 0.35
-        })
-      );
+      const panelMat = new THREE.MeshStandardMaterial({
+        color: 0xfffaf0,
+        emissive: 0xfff0c8,
+        emissiveIntensity: 0.85,
+        roughness: 0.35
+      });
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.05, 1.1), panelMat);
       panel.position.set(x, ROOM.h - 0.03, z);
       scene.add(panel);
+      fluorescents.push({
+        light: bulb,
+        panel,
+        base: 1.35,
+        next: 4 + Math.random() * 18,
+        flick: 0
+      });
     }
   }
 
@@ -73,10 +87,43 @@ export function buildRoom(scene) {
   fill.position.set(2, 6, 4);
   scene.add(fill);
 
+  // Night parking glow + rain streaks on the entrance wall
+  const rain = addEntranceAtmosphere(scene, halfD);
+
   // Marquee on the entrance wall (clear of the aisle gondolas)
   addMarqueeSign(scene, 0, 2.4, halfD - 0.05, Math.PI);
   // Demo TV + VCR on the back wall (opposite the entrance logo)
-  return addWallTv(scene, 0, 1.2, -halfD + 0.06, 0);
+  const tv = addWallTv(scene, 0, 1.2, -halfD + 0.06, 0);
+
+  /**
+   * @param {number} dt
+   * @returns {boolean}
+   */
+  function updateAtmosphere(dt) {
+    let dirty = rain.update(dt);
+    for (const f of fluorescents) {
+      f.next -= dt;
+      if (f.flick > 0) {
+        f.flick -= dt;
+        const pulse = 0.25 + Math.random() * 0.9;
+        f.light.intensity = f.base * pulse;
+        /** @type {THREE.MeshStandardMaterial} */ (f.panel.material).emissiveIntensity =
+          0.3 + pulse * 0.55;
+        dirty = true;
+        if (f.flick <= 0) {
+          f.light.intensity = f.base;
+          /** @type {THREE.MeshStandardMaterial} */ (f.panel.material).emissiveIntensity = 0.85;
+          f.next = 6 + Math.random() * 22;
+        }
+      } else if (f.next <= 0) {
+        // Rare short flicker burst
+        f.flick = 0.12 + Math.random() * 0.35;
+      }
+    }
+    return dirty;
+  }
+
+  return { ...tv, updateAtmosphere };
 }
 
 /**
@@ -152,15 +199,96 @@ function addMarqueeSign(scene, x, y, z, facing = 0) {
 }
 
 /**
- * Wall CRT + VCR on the entrance wall. Aim a held case at it and click to play.
+ * Parking-lot sodium glow + animated rain on the entrance glass.
+ * @param {THREE.Scene} scene
+ * @param {number} halfD
+ */
+function addEntranceAtmosphere(scene, halfD) {
+  const lot = new THREE.PointLight(0xffaa55, 0.55, 14, 2);
+  lot.position.set(0, 2.2, halfD + 2.5);
+  scene.add(lot);
+
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 512;
+  const ctx = c.getContext('2d');
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const glass = new THREE.Mesh(
+    new THREE.PlaneGeometry(5.5, ROOM.h * 0.85),
+    new THREE.MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false
+    })
+  );
+  glass.position.set(0, ROOM.h * 0.45, halfD - 0.08);
+  glass.rotation.y = Math.PI;
+  scene.add(glass);
+
+  /** @type {{ x: number, y: number, len: number, speed: number }[]} */
+  const drops = [];
+  for (let i = 0; i < 48; i++) {
+    drops.push({
+      x: Math.random() * 256,
+      y: Math.random() * 512,
+      len: 8 + Math.random() * 18,
+      speed: 140 + Math.random() * 220
+    });
+  }
+  let acc = 0;
+
+  return {
+    /** @param {number} dt */
+    update(dt) {
+      if (!ctx) return false;
+      acc += dt;
+      // ~20fps paint is enough for rain
+      if (acc < 0.05) return false;
+      const step = acc;
+      acc = 0;
+      ctx.clearRect(0, 0, 256, 512);
+      // Wet night glass wash
+      const g = ctx.createLinearGradient(0, 0, 0, 512);
+      g.addColorStop(0, 'rgba(20, 30, 50, 0.15)');
+      g.addColorStop(1, 'rgba(255, 170, 80, 0.12)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 256, 512);
+      ctx.strokeStyle = 'rgba(200, 220, 255, 0.45)';
+      ctx.lineWidth = 1.2;
+      for (const d of drops) {
+        d.y += d.speed * step;
+        if (d.y > 512 + d.len) {
+          d.y = -d.len;
+          d.x = Math.random() * 256;
+        }
+        ctx.beginPath();
+        ctx.moveTo(d.x, d.y);
+        ctx.lineTo(d.x - 1.5, d.y + d.len);
+        ctx.stroke();
+      }
+      tex.needsUpdate = true;
+      return true;
+    }
+  };
+}
+
+/**
+ * Wall CRT + VCR on the back wall. Aim a held case at it and click to preview.
  * @param {THREE.Scene} scene
  * @param {number} x
  * @param {number} y
  * @param {number} z
  * @param {number} facing
- * @returns {{ wallTvHit: THREE.Mesh, tvInsertPos: THREE.Vector3 }}
+ * @returns {{
+ *   wallTvHit: THREE.Mesh,
+ *   tvInsertPos: THREE.Vector3,
+ *   tvScreen: ReturnType<typeof createTvScreen>
+ * }}
  */
 function addWallTv(scene, x, y, z, facing) {
+  const tvScreen = createTvScreen();
   const group = new THREE.Group();
   group.position.set(x, y, z);
   group.rotation.y = facing;
@@ -180,10 +308,7 @@ function addWallTv(scene, x, y, z, facing) {
   bezel.position.set(0, 0.08, 0.27);
   group.add(bezel);
 
-  const screen = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.02, 0.66),
-    new THREE.MeshBasicMaterial({ map: makeTvScreenTexture() })
-  );
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.02, 0.66), tvScreen.material);
   screen.position.set(0, 0.08, 0.295);
   group.add(screen);
 
@@ -221,36 +346,7 @@ function addWallTv(scene, x, y, z, facing) {
   group.updateMatrixWorld(true);
   const tvInsertPos = new THREE.Vector3(0, -0.52, 0.55).applyMatrix4(group.matrixWorld);
 
-  return { wallTvHit: hit, tvInsertPos };
-}
-
-/** @returns {THREE.CanvasTexture} */
-function makeTvScreenTexture() {
-  const c = document.createElement('canvas');
-  c.width = 512;
-  c.height = 320;
-  const ctx = c.getContext('2d');
-  if (ctx) {
-    const g = ctx.createLinearGradient(0, 0, 512, 320);
-    g.addColorStop(0, '#0b1a33');
-    g.addColorStop(1, '#123a6e');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, 512, 320);
-    // Scanlines
-    ctx.fillStyle = 'rgba(0,0,0,0.18)';
-    for (let y = 0; y < 320; y += 4) ctx.fillRect(0, y, 512, 2);
-    ctx.fillStyle = '#f5c518';
-    ctx.font = '800 42px "Arial Black", Impact, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('NOW PLAYING', 256, 130);
-    ctx.fillStyle = '#d4e0f0';
-    ctx.font = '600 22px Helvetica, Arial, sans-serif';
-    ctx.fillText('Insert a tape to watch', 256, 185);
-  }
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+  return { wallTvHit: hit, tvInsertPos, tvScreen };
 }
 
 /** @returns {THREE.CanvasTexture} */

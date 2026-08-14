@@ -106,6 +106,56 @@ export function buildSections(items) {
 }
 
 /**
+ * Curated entrance endcap — Staff Picks / New Releases mix from the catalog.
+ * Prefers movies with posters, spreads genres, caps at 12.
+ * @param {CatalogItem[]} catalog
+ * @returns {Section | null}
+ */
+export function buildStaffPicksSection(catalog) {
+  if (!catalog.length) return null;
+  const movies = catalog.filter((i) => i.kind === 'movie');
+  const shows = catalog.filter((i) => i.kind === 'show');
+  /** @type {CatalogItem[]} */
+  const picks = [];
+  const seen = new Set();
+
+  /** @param {CatalogItem[]} list */
+  function takeDiverse(list) {
+    const byTag = new Map();
+    for (const item of list) {
+      const tag = (item.tags && item.tags[0]) || 'other';
+      if (!byTag.has(tag)) byTag.set(tag, []);
+      byTag.get(tag)?.push(item);
+    }
+    const queues = [...byTag.values()].map((arr) => [...arr].sort(() => Math.random() - 0.5));
+    let guard = 0;
+    while (picks.length < 12 && queues.some((q) => q.length) && guard++ < 64) {
+      for (const q of queues) {
+        if (picks.length >= 12) break;
+        const next = q.shift();
+        if (!next || seen.has(`${next.kind}:${next.id}`)) continue;
+        seen.add(`${next.kind}:${next.id}`);
+        picks.push(next);
+      }
+    }
+  }
+
+  // Prefer titled movies first, then fill with shows
+  takeDiverse(movies.length ? movies : catalog);
+  if (picks.length < 8) takeDiverse(shows);
+
+  if (!picks.length) {
+    picks.push(...catalog.slice(0, Math.min(12, catalog.length)));
+  }
+
+  return {
+    id: 'staff-picks',
+    label: 'Staff Picks',
+    items: picks.slice(0, 12)
+  };
+}
+
+/**
  * Split shows into letter-range shelves (classic store aisle signage).
  * @param {CatalogItem[]} shows
  * @returns {Section[]}

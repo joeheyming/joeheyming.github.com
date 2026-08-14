@@ -32,7 +32,7 @@ export function prefersTouchUi() {
 /**
  * @param {{
  *   canvas: HTMLCanvasElement,
- *   setKey: (key: 'w'|'a'|'s'|'d', down: boolean) => void,
+ *   setKey: (key: 'w'|'a'|'s'|'d'|'crouch'|'sprint', down: boolean) => void,
  *   look: (dx: number, dy: number) => void,
  *   onInteract: () => void,
  *   onRentOrGrab: () => void,

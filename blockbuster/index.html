@@ -125,9 +125,21 @@
         <header class="hud-brand">
           <h1 class="hud-logo">Blockbuster</h1>
           <p class="hud-tag">Be kind — rewind</p>
+          <button
+            id="mute-btn"
+            class="mute-btn"
+            type="button"
+            hidden
+            aria-pressed="false"
+            title="Mute store ambience"
+          >
+            Mute
+          </button>
         </header>
 
         <div class="crosshair" aria-hidden="true"></div>
+
+        <p id="challenge-banner" class="challenge-banner" hidden></p>
 
         <div id="target-card" class="target-card" hidden>
           <p id="target-title" class="target-title"></p>
@@ -147,7 +159,13 @@
             <kbd>A</kbd>
             <kbd>S</kbd>
             <kbd>D</kbd>
-            move · click to look ·
+            move ·
+            <kbd>Shift</kbd>
+            crouch ·
+            <kbd>Ctrl</kbd>
+            sprint ·
+            <kbd>F</kbd>
+            flip · click to look ·
             <kbd>Esc</kbd>
             release
           </p>

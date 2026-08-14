@@ -20,9 +20,22 @@ export const MAX_AISLE_LEN = 16;
 export const TARGET_PER_FACE = 16;
 /** Clear walkway between gondola outsides (meters). */
 export const MIN_WALKWAY = 2.1;
+/**
+ * Open foyer from the entrance before the first aisle row — enough empty
+ * carpet that you walk toward the demo TV before shelves appear.
+ */
+export const ENTRANCE_CLEARANCE = 9;
 
 export const EYE_HEIGHT = 1.72;
+/** Sneak eye height (Minecraft-ish — Shift lowers the camera). */
+export const CROUCH_EYE_HEIGHT = 1.22;
 export const MOVE_SPEED = 3.4;
+/** Sneak speed multiplier (~Minecraft walk→sneak ratio). */
+export const CROUCH_SPEED = 0.3;
+/** Sprint multiplier (Ctrl — Minecraft Java sprint). */
+export const SPRINT_SPEED = 1.35;
+/** Chance a VHS insert triggers the Be Kind — Rewind gag. */
+export const REWIND_CHANCE = 0.22;
 export const MOUSE_SENS = 0.0022;
 export const PITCH_LIMIT = Math.PI / 2 - 0.12;
 /** Walk-cycle — longer stride + gentler bob reads as a normal adult gait. */

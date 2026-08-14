@@ -113,6 +113,57 @@ body {
   color: var(--mute);
 }
 
+.mute-btn {
+  pointer-events: auto;
+  margin-top: 0.45rem;
+  padding: 0.2rem 0.65rem;
+  border: 1px solid rgba(155, 176, 201, 0.4);
+  border-radius: 2px;
+  background: rgba(10, 22, 40, 0.75);
+  color: var(--mute);
+  font-family: inherit;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.mute-btn:hover {
+  color: var(--cream);
+  border-color: rgba(245, 197, 24, 0.45);
+}
+
+.mute-btn[aria-pressed='true'] {
+  color: var(--yellow);
+  border-color: rgba(245, 197, 24, 0.55);
+}
+
+.mute-btn[hidden] {
+  display: none;
+}
+
+.challenge-banner {
+  position: absolute;
+  top: max(4.5rem, calc(env(safe-area-inset-top) + 3.8rem));
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(26rem, calc(100% - 2rem));
+  margin: 0;
+  padding: 0.45rem 0.85rem;
+  background: rgba(10, 22, 40, 0.88);
+  border: 1px solid rgba(245, 197, 24, 0.5);
+  border-radius: 2px;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--yellow);
+  text-align: center;
+  pointer-events: none;
+}
+
+.challenge-banner[hidden] {
+  display: none;
+}
+
 .crosshair {
   position: absolute;
   top: 50%;

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { REWIND_CHANCE } from './constants.js';
 import { bezier2, easeInOut, easeOutCubic } from './util.js';
 import {
   HAND_CARRY,
@@ -15,6 +16,7 @@ import {
 /**
  * @typedef {import('./catalog.js').CatalogItem} CatalogItem
  * @typedef {import('./inventory.js').ShelfSlot} ShelfSlot
+ * @typedef {import('./tv-screen.js').createTvScreen} createTvScreen
  */
 
 /** @typedef {'idle'|'grabbing'|'inspecting'|'holding'|'placing'|'inserting'|'renting'} PickupState */
@@ -32,10 +34,16 @@ const GRAB_TOTAL = GRAB_ANTICIPATE + GRAB_REACH + GRAB_CLOSE + GRAB_PULL;
  *   hand: THREE.Group,
  *   inventory: ReturnType<import('./inventory.js').createInventory>,
  *   hud: ReturnType<import('./hud.js').createHud>,
- *   getWallTv: () => { hit: THREE.Mesh | null, insertPos: THREE.Vector3 },
+ *   getWallTv: () => {
+ *     hit: THREE.Mesh | null,
+ *     insertPos: THREE.Vector3,
+ *     tvScreen: ReturnType<typeof import('./tv-screen.js').createTvScreen> | null
+ *   },
+ *   getStoreProps?: () => ReturnType<typeof import('./store-props.js').createStoreProps> | null,
  *   onRent: (item: CatalogItem) => void,
  *   clearKeys?: () => void,
- *   getWalk?: () => { phase: number, amount: number }
+ *   getWalk?: () => { phase: number, amount: number },
+ *   onDirty?: () => void
  * }} opts
  */
 export function createPickup({
@@ -45,9 +53,11 @@ export function createPickup({
   inventory,
   hud,
   getWallTv,
+  getStoreProps,
   onRent,
   clearKeys,
-  getWalk
+  getWalk,
+  onDirty
 }) {
   /** @type {PickupState} */
   let pickupState = 'idle';
@@ -59,6 +69,9 @@ export function createPickup({
   let placeTarget = null;
   let animElapsed = 0;
   let grabAttached = false;
+  /** 0 cover → 1 back-of-box */
+  let flipAmount = 0;
+  let flipTarget = 0;
 
   /** @type {CatalogItem | null} */
   let aimed = null;
@@ -67,6 +80,11 @@ export function createPickup({
   /** @type {ShelfSlot | null} */
   let aimedSlot = null;
   let aimedTv = false;
+  /** @type {'return'|'clerk'|'backDoor'|null} */
+  let aimedProp = null;
+  /** Item waiting on the CRT after insert preview */
+  /** @type {CatalogItem | null} */
+  let tvQueued = null;
 
   const placeStartPos = new THREE.Vector3();
   const placeStartQuat = new THREE.Quaternion();
@@ -90,7 +108,8 @@ export function createPickup({
   function refreshHoldPose(swayY = 0) {
     computePalmHoldPose(palmCasePos, palmCaseQuat, getPalmSocket(hand), camera, {
       scale: PALM_CASE_SCALE,
-      swayY
+      swayY,
+      flip: flipAmount
     });
   }
 
@@ -109,6 +128,24 @@ export function createPickup({
     aimedMesh = null;
     aimedSlot = null;
     aimedTv = false;
+    aimedProp = null;
+  }
+
+  function disposeHeldMesh() {
+    if (!heldGroup) return;
+    scene.attach(heldGroup);
+    heldGroup.removeFromParent();
+    heldGroup.traverse((obj) => {
+      if (obj instanceof THREE.Mesh) {
+        obj.geometry?.dispose?.();
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        for (const m of mats) {
+          if (m?.map) m.map.dispose?.();
+          m?.dispose?.();
+        }
+      }
+    });
+    heldGroup = null;
   }
 
   function startGrab() {
@@ -120,8 +157,11 @@ export function createPickup({
 
     heldItem = vacated.item;
     heldGroup = vacated.group;
+    flipTarget = 0;
+    flipAmount = 0;
     caseGrabHandleWorld(vacated.group, grabHandleWorld);
     resetAim();
+    getStoreProps?.()?.onPickedUp?.(vacated.item);
 
     grabAttached = false;
     animElapsed = 0;
@@ -179,16 +219,100 @@ export function createPickup({
     }
   }
 
-  function rentHeld() {
+  /** Finish insert: optional rewind gag → CRT preview → rent CTA (no auto-navigate). */
+  function finishInsert() {
     if (!heldItem) return;
-    if (pickupState !== 'holding' && pickupState !== 'inserting') return;
-    pickupState = 'renting';
-    hud.setBusy(true);
-    onRent(heldItem);
+    const item = heldItem;
+    tvQueued = item;
+    disposeHeldMesh();
+    heldItem = null;
+    hand.visible = true;
+    idleReach.copy(HAND_REST);
+    setHandReach(hand, HAND_REST);
+    setHandGrip(hand, 0.12);
+    pickupState = 'idle';
+    hud.setBusy(false);
+    flipTarget = 0;
+    flipAmount = 0;
+
+    const { tvScreen } = getWallTv();
+    if (!tvScreen) {
+      hud.showRentPrompt(item);
+      return;
+    }
+
+    const doPreview = () => {
+      tvScreen.playPreview(item, () => {
+        tvScreen.showRentPrompt(item);
+        hud.showRentPrompt(item);
+        onDirty?.();
+      });
+      hud.showStatus(item.name, item.tagline || '', 'Previewing on the demo TV…');
+      onDirty?.();
+    };
+
+    const wantRewind = Math.random() < REWIND_CHANCE;
+    if (wantRewind) {
+      if (typeof window.trackEvent === 'function') {
+        window.trackEvent('blockbuster_rewind', 'entertainment', `${item.kind}:${item.id}`);
+      }
+      hud.showStatus(item.name, 'Be kind — rewind', 'Tape is a little tangled…');
+      tvScreen.playRewind(item, doPreview);
+      onDirty?.();
+    } else {
+      doPreview();
+    }
+  }
+
+  function rentHeld() {
+    if (pickupState === 'holding' && heldItem) {
+      pickupState = 'renting';
+      hud.setBusy(true);
+      onRent(heldItem);
+      return;
+    }
+    // Rent the tape currently queued on the CRT
+    if (tvQueued) {
+      pickupState = 'renting';
+      hud.setBusy(true);
+      onRent(tvQueued);
+    }
+  }
+
+  function startReturn() {
+    if (pickupState !== 'holding' || !heldItem || !heldGroup) return;
+    const item = heldItem;
+    disposeHeldMesh();
+    heldItem = null;
+    flipTarget = 0;
+    flipAmount = 0;
+    hand.visible = true;
+    idleReach.copy(HAND_REST);
+    setHandReach(hand, HAND_REST);
+    setHandGrip(hand, 0.12);
+    pickupState = 'idle';
+    hud.setBusy(false);
+    resetAim();
+    hud.showStatus('Returned', 'Thanks, member #0001.', 'Be kind — rewind.');
+    if (typeof window.trackEvent === 'function') {
+      window.trackEvent('blockbuster_return', 'entertainment', `${item.kind}:${item.id}`);
+    }
+    onDirty?.();
   }
 
   function onInteract() {
     if (isLocked()) return;
+    // Click TV while a preview is ready → rent
+    if (pickupState === 'idle' && aimedTv && tvQueued) {
+      rentHeld();
+      return;
+    }
+    const props = getStoreProps?.() || null;
+    if (aimedProp && props) {
+      const consume = props.interactProp(aimedProp, pickupState === 'holding');
+      if (consume && aimedProp === 'return') startReturn();
+      return;
+    }
     if (pickupState === 'holding') {
       if (aimedTv) startInsertTv();
       else if (aimedSlot) startPlace();
@@ -199,11 +323,28 @@ export function createPickup({
 
   function onRentOrGrabKey() {
     if (isLocked()) return;
+    if (tvQueued && pickupState === 'idle') {
+      rentHeld();
+      return;
+    }
     if (pickupState === 'holding') {
       rentHeld();
       return;
     }
     if (aimedMesh) startGrab();
+  }
+
+  /** Toggle back-of-box while holding (F / right-click). */
+  function toggleFlip() {
+    if (pickupState !== 'holding') return;
+    setFlip(flipTarget > 0.5 ? 0 : 1);
+  }
+
+  /** @param {number} target 0 cover · 1 back */
+  function setFlip(target) {
+    if (pickupState !== 'holding') return;
+    flipTarget = target > 0.5 ? 1 : 0;
+    if (heldItem) hud.showHolding({ heldItem, aimedSlot, aimedTv, flipped: flipTarget > 0.5 });
   }
 
   /**
@@ -214,7 +355,8 @@ export function createPickup({
     if (isLocked()) return;
 
     raycaster.setFromCamera(ndcCenter, cam);
-    const { hit: wallTvHit } = getWallTv();
+    const { hit: wallTvHit, tvScreen } = getWallTv();
+    const props = getStoreProps?.() || null;
 
     if (pickupState === 'holding') {
       /** @type {THREE.Object3D[]} */
@@ -224,12 +366,31 @@ export function createPickup({
       const hit = hits.find((h) => h.distance < 6);
       const isTv = !!(hit && hit.object.userData.isWallTv);
       const nextSlot = hit && !isTv ? /** @type {ShelfSlot} */ (hit.object.userData.slot) : null;
-      if (isTv === aimedTv && nextSlot === aimedSlot) return;
+
+      // Prefer return box when holding
+      const propKind = props?.raycastProp(raycaster, cam) || null;
+      if (propKind === 'return') {
+        if (aimedProp === 'return' && !aimedTv && !aimedSlot) return;
+        aimedProp = 'return';
+        aimedTv = false;
+        aimedSlot = null;
+        aimed = null;
+        aimedMesh = null;
+        const d = props.describeProp('return');
+        if (d && heldItem) {
+          hud.showHolding({ heldItem, aimedSlot: null, aimedTv: false, flipped: flipTarget > 0.5 });
+          hud.showStatus(heldItem.name, d.tagline, d.hint);
+        }
+        return;
+      }
+
+      if (isTv === aimedTv && nextSlot === aimedSlot && !aimedProp) return;
+      aimedProp = null;
       aimedTv = isTv;
       aimedSlot = nextSlot;
       aimed = null;
       aimedMesh = null;
-      if (heldItem) hud.showHolding({ heldItem, aimedSlot, aimedTv });
+      if (heldItem) hud.showHolding({ heldItem, aimedSlot, aimedTv, flipped: flipTarget > 0.5 });
       return;
     }
 
@@ -240,11 +401,12 @@ export function createPickup({
       const nextMesh = /** @type {THREE.Mesh} */ (caseHit.object);
       /** @type {CatalogItem | null} */
       const next = nextMesh.userData.item || null;
-      if (next?.id === aimed?.id && next?.kind === aimed?.kind) return;
+      if (next?.id === aimed?.id && next?.kind === aimed?.kind && !aimedProp) return;
       aimed = next;
       aimedMesh = nextMesh;
       aimedSlot = null;
       aimedTv = false;
+      aimedProp = null;
       if (aimed) hud.showIdleTarget(aimed);
       else {
         resetAim();
@@ -253,23 +415,44 @@ export function createPickup({
       return;
     }
 
+    const propKind = props?.raycastProp(raycaster, cam) || null;
+    if (propKind) {
+      if (aimedProp === propKind) return;
+      aimedProp = propKind;
+      aimed = null;
+      aimedMesh = null;
+      aimedSlot = null;
+      aimedTv = false;
+      const d = props.describeProp(propKind);
+      if (d) hud.showStatus(d.title, d.tagline, d.hint);
+      return;
+    }
+
     if (wallTvHit) {
       const tvHits = raycaster.intersectObject(wallTvHit, false);
       const tvHit = tvHits.find((h) => h.distance < 6);
       if (tvHit) {
-        if (aimedTv && !aimed) return;
+        const wasTv = aimedTv;
         aimed = null;
         aimedMesh = null;
         aimedSlot = null;
         aimedTv = true;
-        hud.showDemoTv();
+        aimedProp = null;
+        if (tvQueued) {
+          hud.showRentPrompt(tvQueued);
+        } else {
+          const featured = tvScreen?.getFeatured?.() || null;
+          if (!wasTv && tvScreen) tvScreen.cycleFeatured();
+          hud.showDemoTv(featured || tvScreen?.getFeatured?.() || null);
+        }
         return;
       }
     }
 
-    if (aimed || aimedMesh || aimedTv) {
+    if (aimed || aimedMesh || aimedTv || aimedProp) {
       resetAim();
-      hud.clearTarget();
+      if (tvQueued) hud.showRentPrompt(tvQueued);
+      else hud.clearTarget();
     }
   }
 
@@ -338,6 +521,11 @@ export function createPickup({
 
   /** @param {number} dt */
   function update(dt) {
+    flipAmount += (flipTarget - flipAmount) * Math.min(1, dt * 10);
+
+    const { tvScreen } = getWallTv();
+    if (tvScreen?.update(dt)) onDirty?.();
+
     if (pickupState === 'idle') {
       updateIdleHand(dt);
       return;
@@ -385,7 +573,7 @@ export function createPickup({
         animElapsed = 0;
         reachPos.copy(HAND_INSPECT);
         hud.setBusy(false);
-        if (heldItem) hud.showHolding({ heldItem, aimedSlot, aimedTv });
+        if (heldItem) hud.showHolding({ heldItem, aimedSlot, aimedTv, flipped: false });
       }
       return;
     }
@@ -439,7 +627,7 @@ export function createPickup({
       setHandGrip(hand, 0.9 - u * 0.45);
       if (u >= 1) {
         hand.visible = false;
-        rentHeld();
+        finishInsert();
       }
     }
   }
@@ -523,10 +711,20 @@ export function createPickup({
     updateAim,
     onInteract,
     onRentOrGrabKey,
+    toggleFlip,
+    setFlip,
     isLocked,
     /** True while a case is carried and free to place / rent / insert. */
     isHolding() {
       return pickupState === 'holding';
+    },
+    /** True while CRT is animating rewind/preview (needs continuous frames). */
+    needsTvFrames() {
+      const { tvScreen } = getWallTv();
+      return !!(tvScreen?.isBusy?.() || tvQueued);
+    },
+    hasTvQueued() {
+      return !!tvQueued;
     }
   };
 }
