@@ -749,9 +749,29 @@ export async function mount(slot, ctx) {
     activeTags.clear();
     applyFilter();
   };
+  // Pressing "/" focuses the search input (skipped when already typing
+  // in a field). Same affordance as the site home gallery.
+  const onSlashFocus = (e) => {
+    if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+    const target = e.target;
+    const tag = target && /** @type {Element} */ (target).tagName;
+    if (
+      tag === 'INPUT' ||
+      tag === 'TEXTAREA' ||
+      tag === 'SELECT' ||
+      (target instanceof HTMLElement && target.isContentEditable)
+    ) {
+      return;
+    }
+    e.preventDefault();
+    searchInput.focus();
+    searchInput.select();
+  };
+
   searchInput.addEventListener('input', onInput);
   searchInput.addEventListener('keydown', onKeydown);
   searchClear.addEventListener('click', onClear);
+  document.addEventListener('keydown', onSlashFocus);
   const chipHandlers = chipButtons.map((chip) => {
     const handler = () => onChipClick(chip);
     chip.addEventListener('click', handler);
@@ -812,6 +832,7 @@ export async function mount(slot, ctx) {
       searchInput.removeEventListener('input', onInput);
       searchInput.removeEventListener('keydown', onKeydown);
       searchClear.removeEventListener('click', onClear);
+      document.removeEventListener('keydown', onSlashFocus);
       for (const { chip, handler } of chipHandlers) {
         chip.removeEventListener('click', handler);
       }

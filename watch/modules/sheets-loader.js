@@ -13,7 +13,7 @@
  * episodes tab dropped the sheet from ~941 KB to ~28 KB and turned
  * "add a show" into a one-row edit.
  *
- * Sheet ID `1zUu3tCdnJ8tYDsxVbjtlqYFpawR6n32S5369SZ4mKjU` is shared
+ * Sheet ID `117LmsqWtmBJ9Jo6RVs-AIfkosriMiPdP0riIl9XS-xE` is shared
  * "Anyone with the link → Viewer" so the gviz endpoint accepts
  * anonymous reads. Schema lives in {@link SubjectRow} below.
  *
@@ -32,7 +32,7 @@
 import { compileSerialized } from './parser-specs.js';
 import { getJsParser } from './parsers-js.js';
 
-const SHEET_ID = '1zUu3tCdnJ8tYDsxVbjtlqYFpawR6n32S5369SZ4mKjU';
+const SHEET_ID = '117LmsqWtmBJ9Jo6RVs-AIfkosriMiPdP0riIl9XS-xE';
 const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq`;
 
 /**
