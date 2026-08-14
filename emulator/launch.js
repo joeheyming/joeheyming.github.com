@@ -1,6 +1,6 @@
 // Boot orchestrator for the unified /emulator/ shell.
 //
-// Reads `?console=` and either:
+// Reads `/emulator/<console>/` (or legacy `?console=`) and either:
 //   - specializes the static boot card (brand, file-accept, controls
 //     help, identity accent CSS variables) for that console, OR
 //   - swaps the static boot card out for a console picker so the
@@ -75,7 +75,7 @@
 
   const DEFAULT_DOCUMENT_TITLE = 'Retro Game Emulator — Play Console Games in Browser';
 
-  /** Keep the tab title in sync with ?console= (picker vs active console). */
+  /** Keep the tab title in sync with the active console (picker vs lander). */
   function setDocumentTitle(cfg) {
     if (!cfg) {
       document.title = DEFAULT_DOCUMENT_TITLE;
@@ -662,12 +662,11 @@
       </h1>
     `;
 
+    const pathFor = window.emulatorConsolePath || ((id) => `/emulator/${encodeURIComponent(id)}/`);
     const tiles = Object.values(window.EMULATOR_CONSOLES || {})
       .map((cfg) => {
         return `
-          <a class="picker-tile" href="?console=${encodeURIComponent(cfg.id)}" data-console="${
-          cfg.id
-        }">
+          <a class="picker-tile" href="${pathFor(cfg.id)}" data-console="${cfg.id}">
             <span class="picker-emoji">${cfg.emoji}</span>
             <span class="picker-title">${escapeHtml(cfg.title)}</span>
             <span class="picker-sub">${escapeHtml(cfg.subtitle)}</span>
@@ -703,7 +702,7 @@
   }
 
   /**
-   * Deep link: ?console=nes&rom=<IA rom.name>
+   * Deep link: /emulator/nes/?rom=<IA rom.name> (legacy: ?console=nes&rom=…)
    * @param {object} cfg
    * @param {string} romQuery
    */
@@ -765,6 +764,11 @@
 
   ready(() => {
     window.addEventListener('emulator-gamepad-change', refreshGamepadBanner);
+
+    // Hub + ?console=nes → /emulator/nes/ (keeps rom=/tv=/hash).
+    if (window.canonicalizeEmulatorConsoleUrl && window.canonicalizeEmulatorConsoleUrl()) {
+      return;
+    }
 
     const cfg = window.getEmulatorConsole && window.getEmulatorConsole();
     const params = new URLSearchParams(window.location.search);
@@ -881,7 +885,7 @@
     // Exit Emulation: by default EmulatorJS leaves the user staring at an
     // "EmulatorJS has exited" message because a WASM instance can't be
     // unloaded in place. Override the toolbar button to reload back to the
-    // current ?console=<id> URL, which re-renders the boot card with the
+    // current console lander URL, which re-renders the boot card with the
     // ROM browser + local-file picker so they can pick another game.
     window.EJS_Buttons = Object.assign({}, window.EJS_Buttons, {
       exitEmulation: {

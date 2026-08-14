@@ -300,13 +300,60 @@
     }
   };
 
-  // Read `?console=` query param and resolve it against the registry.
-  // Returns null when the param is missing or unknown so the host page
-  // can render its picker UI instead of guessing.
-  function getConsoleId() {
-    const params = new URLSearchParams(window.location.search);
+  /**
+   * Path landers: /emulator/nes/, /emulator/sega/, …
+   * Legacy query: /emulator/?console=nes (rewritten to the path form).
+   */
+  function getConsoleIdFromPathname(pathname) {
+    const parts = String(pathname || '')
+      .replace(/\/+$/, '')
+      .split('/')
+      .filter(Boolean);
+    if (parts[0] !== 'emulator' || !parts[1]) return null;
+    const id = parts[1].toLowerCase();
+    return CONSOLES[id] ? id : null;
+  }
+
+  function getConsoleIdFromSearch(search) {
+    const params = new URLSearchParams(search || '');
     const requested = (params.get('console') || '').toLowerCase();
     return CONSOLES[requested] ? requested : null;
+  }
+
+  // Prefer path landers; fall back to ?console= for old bookmarks / embeds.
+  function getConsoleId() {
+    return (
+      getConsoleIdFromPathname(window.location.pathname) ||
+      getConsoleIdFromSearch(window.location.search)
+    );
+  }
+
+  /** Canonical deep-link path for a console id (`nes` → `/emulator/nes/`). */
+  function emulatorConsolePath(id) {
+    return `/emulator/${id}/`;
+  }
+
+  /**
+   * On the hub (`/emulator/`) with `?console=<id>`, replace with the
+   * path lander so sitemap/canonical and the live URL match. Preserves
+   * other query params (`rom`, `tv`, …) and the hash.
+   * @returns {boolean} true if a navigation was started
+   */
+  function canonicalizeEmulatorConsoleUrl() {
+    if (getConsoleIdFromPathname(window.location.pathname)) return false;
+    const id = getConsoleIdFromSearch(window.location.search);
+    if (!id) return false;
+    const norm = String(window.location.pathname || '/')
+      .replace(/\/+$/, '')
+      .replace(/\/index\.html$/i, '');
+    if (norm !== '/emulator') return false;
+
+    const params = new URLSearchParams(window.location.search);
+    params.delete('console');
+    const qs = params.toString();
+    const dest = emulatorConsolePath(id) + (qs ? `?${qs}` : '') + (window.location.hash || '');
+    window.location.replace(dest);
+    return true;
   }
 
   window.EMULATOR_CONSOLES = CONSOLES;
@@ -315,4 +362,7 @@
     return id ? CONSOLES[id] : null;
   };
   window.getEmulatorConsoleId = getConsoleId;
+  window.getEmulatorConsoleIdFromPathname = getConsoleIdFromPathname;
+  window.emulatorConsolePath = emulatorConsolePath;
+  window.canonicalizeEmulatorConsoleUrl = canonicalizeEmulatorConsoleUrl;
 })();

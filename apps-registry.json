@@ -15,8 +15,17 @@
     "border": "border-indigo-500/30 hover:border-indigo-400/50",
     "taskbarGradient": "from-indigo-500 to-fuchsia-500",
     "taskbarText": "text-white",
-    "tags": ["rhythm", "music", "accordion", "game"],
-    "related": ["stepmania", "awesome", "sadtrombone"],
+    "tags": [
+      "rhythm",
+      "music",
+      "accordion",
+      "game"
+    ],
+    "related": [
+      "stepmania",
+      "awesome",
+      "sadtrombone"
+    ],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "Accordion Hero",
@@ -40,8 +49,18 @@
     "taskbarGradient": "from-yellow-400 to-orange-500",
     "taskbarText": "text-black",
     "desktopIcon": true,
-    "tags": ["fun", "music", "popular", "interactive"],
-    "related": ["badapple", "stepmania", "farm", "pbs"],
+    "tags": [
+      "fun",
+      "music",
+      "popular",
+      "interactive"
+    ],
+    "related": [
+      "badapple",
+      "stepmania",
+      "farm",
+      "pbs"
+    ],
     "shareCategory": "entertainment",
     "pwaShortcut": {
       "name": "Everything is Awesome",
@@ -71,8 +90,17 @@
     "defaultWidth": 1024,
     "defaultHeight": 768,
     "desktopIcon": true,
-    "tags": ["fps", "retro", "popular"],
-    "related": ["badapple", "starwars", "pacman", "minesweeper"],
+    "tags": [
+      "fps",
+      "retro",
+      "popular"
+    ],
+    "related": [
+      "badapple",
+      "starwars",
+      "pacman",
+      "minesweeper"
+    ],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "DOOM",
@@ -101,8 +129,16 @@
     "category": "game",
     "defaultWidth": 1024,
     "defaultHeight": 768,
-    "tags": ["fps", "retro", "mods"],
-    "related": ["doom", "nes", "stepmania"],
+    "tags": [
+      "fps",
+      "retro",
+      "mods"
+    ],
+    "related": [
+      "doom",
+      "nes",
+      "stepmania"
+    ],
     "shareCategory": "game",
     "appTier": "experience",
     "geo": false
@@ -122,8 +158,22 @@
     "border": "border-amber-500/30 hover:border-amber-400/50",
     "taskbarGradient": "from-amber-600 to-orange-700",
     "taskbarText": "text-white",
-    "tags": ["dos", "dosbox", "retro", "emulator", "pc", "rpg", "adventure"],
-    "related": ["doom", "nes", "sega", "flash", "stepmania"],
+    "tags": [
+      "dos",
+      "dosbox",
+      "retro",
+      "emulator",
+      "pc",
+      "rpg",
+      "adventure"
+    ],
+    "related": [
+      "doom",
+      "nes",
+      "sega",
+      "flash",
+      "stepmania"
+    ],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "DOS Player",
@@ -155,7 +205,11 @@
     "taskbarGradient": "from-green-400 to-emerald-500",
     "taskbarText": "text-white",
     "desktopIcon": true,
-    "related": ["awesome", "pacman", "doom"],
+    "related": [
+      "awesome",
+      "pacman",
+      "doom"
+    ],
     "shareCategory": "game",
     "featured": {
       "order": 6,
@@ -196,7 +250,13 @@
       "application/xml",
       "application/x-sh"
     ],
-    "related": ["terminal", "todo", "filemanager", "calculator", "posts"],
+    "related": [
+      "terminal",
+      "todo",
+      "filemanager",
+      "calculator",
+      "posts"
+    ],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Notepad",
@@ -222,7 +282,9 @@
     "defaultWidth": 900,
     "defaultHeight": 600,
     "system": true,
-    "handles": ["text/html"],
+    "handles": [
+      "text/html"
+    ],
     "appTier": "experience",
     "geo": true
   },
@@ -241,8 +303,18 @@
     "taskbarText": "text-black",
     "defaultWidth": 900,
     "defaultHeight": 700,
-    "tags": ["arcade", "retro", "popular", "3d"],
-    "related": ["pacman-builder", "pacman-infinite", "doom", "nes"],
+    "tags": [
+      "arcade",
+      "retro",
+      "popular",
+      "3d"
+    ],
+    "related": [
+      "pacman-builder",
+      "pacman-infinite",
+      "doom",
+      "nes"
+    ],
     "shareCategory": "game",
     "featured": {
       "order": 2,
@@ -270,8 +342,19 @@
     "taskbarText": "text-white",
     "defaultWidth": 1100,
     "defaultHeight": 760,
-    "tags": ["pac-man", "arcade", "level editor", "maze", "game builder"],
-    "related": ["pacman", "pacman-infinite", "minesweeper", "nes"],
+    "tags": [
+      "pac-man",
+      "arcade",
+      "level editor",
+      "maze",
+      "game builder"
+    ],
+    "related": [
+      "pacman",
+      "pacman-infinite",
+      "minesweeper",
+      "nes"
+    ],
     "shareCategory": "utility",
     "appTier": "app",
     "geo": true
@@ -291,8 +374,19 @@
     "taskbarText": "text-black",
     "defaultWidth": 900,
     "defaultHeight": 700,
-    "tags": ["arcade", "retro", "3d", "endless", "procedural"],
-    "related": ["pacman", "doom", "nes", "minesweeper"],
+    "tags": [
+      "arcade",
+      "retro",
+      "3d",
+      "endless",
+      "procedural"
+    ],
+    "related": [
+      "pacman",
+      "doom",
+      "nes",
+      "minesweeper"
+    ],
     "shareCategory": "game",
     "featured": {
       "order": 11,
@@ -320,8 +414,18 @@
     "taskbarText": "text-white",
     "defaultWidth": 800,
     "defaultHeight": 600,
-    "tags": ["science", "chemistry", "fun", "export"],
-    "related": ["wordle-finder", "calculator", "countdown", "posts"],
+    "tags": [
+      "science",
+      "chemistry",
+      "fun",
+      "export"
+    ],
+    "related": [
+      "wordle-finder",
+      "calculator",
+      "countdown",
+      "posts"
+    ],
     "shareCategory": "utility",
     "appTier": "experience",
     "geo": true
@@ -339,7 +443,11 @@
     "border": "border-red-500/30 hover:border-red-400/50",
     "taskbarGradient": "from-red-500 to-pink-500",
     "taskbarText": "text-white",
-    "related": ["awesome", "sadtrombone", "sayhello"],
+    "related": [
+      "awesome",
+      "sadtrombone",
+      "sayhello"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true
@@ -357,7 +465,11 @@
     "border": "border-amber-500/30 hover:border-amber-400/50",
     "taskbarGradient": "from-amber-400 to-yellow-500",
     "taskbarText": "text-black",
-    "related": ["pbs", "awesome", "sayhello"],
+    "related": [
+      "pbs",
+      "awesome",
+      "sayhello"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true
@@ -375,7 +487,11 @@
     "border": "border-purple-500/30 hover:border-purple-400/50",
     "taskbarGradient": "from-purple-500 to-indigo-500",
     "taskbarText": "text-white",
-    "related": ["sayit", "pbs", "sadtrombone"],
+    "related": [
+      "sayit",
+      "pbs",
+      "sadtrombone"
+    ],
     "shareCategory": "utility",
     "appTier": "experience",
     "geo": true
@@ -393,7 +509,12 @@
     "border": "border-indigo-500/30 hover:border-indigo-400/50",
     "taskbarGradient": "from-indigo-500 to-blue-600",
     "taskbarText": "text-white",
-    "related": ["sayhello", "pbs", "awesome", "posts"],
+    "related": [
+      "sayhello",
+      "pbs",
+      "awesome",
+      "posts"
+    ],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Say It OCR",
@@ -418,8 +539,20 @@
     "border": "border-pink-500/30 hover:border-pink-400/50",
     "taskbarGradient": "from-pink-500 to-rose-500",
     "taskbarText": "text-white",
-    "tags": ["rhythm", "music", "dance", "popular"],
-    "related": ["piano-hero", "accordion-hero", "play", "awesome", "doom", "nes"],
+    "tags": [
+      "rhythm",
+      "music",
+      "dance",
+      "popular"
+    ],
+    "related": [
+      "piano-hero",
+      "accordion-hero",
+      "play",
+      "awesome",
+      "doom",
+      "nes"
+    ],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "StepMania",
@@ -453,10 +586,25 @@
     "border": "border-indigo-500/30 hover:border-indigo-400/50",
     "taskbarGradient": "from-indigo-500 to-rose-500",
     "taskbarText": "text-white",
-    "tags": ["piano", "midi", "rhythm", "music game", "synthesia", "guitar hero"],
-    "related": ["play-piano", "stepmania", "play", "accordion-hero"],
+    "tags": [
+      "piano",
+      "midi",
+      "rhythm",
+      "music game",
+      "synthesia",
+      "guitar hero"
+    ],
+    "related": [
+      "play-piano",
+      "stepmania",
+      "play",
+      "accordion-hero"
+    ],
     "shareCategory": "game",
-    "handles": ["audio/midi", "audio/x-midi"],
+    "handles": [
+      "audio/midi",
+      "audio/x-midi"
+    ],
     "appTier": "experience",
     "geo": true
   },
@@ -476,8 +624,19 @@
     "taskbarGradient": "from-teal-500 to-cyan-500",
     "taskbarText": "text-white",
     "desktopIcon": true,
-    "tags": ["wordle", "words", "puzzle", "solver", "popular"],
-    "related": ["minesweeper", "terminal", "calculator", "todo"],
+    "tags": [
+      "wordle",
+      "words",
+      "puzzle",
+      "solver",
+      "popular"
+    ],
+    "related": [
+      "minesweeper",
+      "terminal",
+      "calculator",
+      "todo"
+    ],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Wordle Finder",
@@ -510,7 +669,12 @@
     "taskbarText": "text-white",
     "defaultWidth": 540,
     "defaultHeight": 780,
-    "related": ["media-player", "watch", "vibe-coding", "awesome"],
+    "related": [
+      "media-player",
+      "watch",
+      "vibe-coding",
+      "awesome"
+    ],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "JoeTube",
@@ -549,7 +713,13 @@
       "airplay",
       "chromecast"
     ],
-    "related": ["blockbuster", "youtube", "media-player", "badapple", "doom"],
+    "related": [
+      "blockbuster",
+      "youtube",
+      "media-player",
+      "badapple",
+      "doom"
+    ],
     "shareCategory": "entertainment",
     "pwaShortcut": {
       "name": "Watch",
@@ -592,7 +762,11 @@
       "archive",
       "first person"
     ],
-    "related": ["watch", "pacman", "media-player"],
+    "related": [
+      "watch",
+      "pacman",
+      "media-player"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience"
   },
@@ -609,7 +783,11 @@
     "border": "border-gray-500/30 hover:border-gray-400/50",
     "taskbarGradient": "from-gray-600 to-gray-700",
     "taskbarText": "text-white",
-    "related": ["badapple", "image-viewer", "terminal"],
+    "related": [
+      "badapple",
+      "image-viewer",
+      "terminal"
+    ],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Operation SHADOWBOX",
@@ -634,8 +812,20 @@
     "taskbarText": "text-green-400",
     "defaultWidth": 900,
     "defaultHeight": 700,
-    "tags": ["ascii", "art", "webcam", "image", "creative", "matrix"],
-    "related": ["badapple", "starwars", "paint", "posts"],
+    "tags": [
+      "ascii",
+      "art",
+      "webcam",
+      "image",
+      "creative",
+      "matrix"
+    ],
+    "related": [
+      "badapple",
+      "starwars",
+      "paint",
+      "posts"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true
@@ -655,8 +845,19 @@
     "border": "border-red-500/30 hover:border-red-400/50",
     "taskbarGradient": "from-gray-800 to-red-700",
     "taskbarText": "text-white",
-    "tags": ["ascii", "animation", "meme", "touhou", "music"],
-    "related": ["awesome", "shadowbox", "pbs", "terminal"],
+    "tags": [
+      "ascii",
+      "animation",
+      "meme",
+      "touhou",
+      "music"
+    ],
+    "related": [
+      "awesome",
+      "shadowbox",
+      "pbs",
+      "terminal"
+    ],
     "shareCategory": "entertainment",
     "pwaShortcut": {
       "name": "Bad Apple",
@@ -689,8 +890,18 @@
     "border": "border-yellow-500/30 hover:border-yellow-400/50",
     "taskbarGradient": "from-yellow-700 to-black",
     "taskbarText": "text-yellow-300",
-    "tags": ["ascii", "animation", "starwars", "retro", "classic"],
-    "related": ["badapple", "terminal", "nes"],
+    "tags": [
+      "ascii",
+      "animation",
+      "starwars",
+      "retro",
+      "classic"
+    ],
+    "related": [
+      "badapple",
+      "terminal",
+      "nes"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true
@@ -714,8 +925,18 @@
       "x": 30,
       "y": 30
     },
-    "tags": ["utility", "cli", "filesystem", "interactive"],
-    "related": ["notepad", "filemanager", "calculator", "countdown"],
+    "tags": [
+      "utility",
+      "cli",
+      "filesystem",
+      "interactive"
+    ],
+    "related": [
+      "notepad",
+      "filemanager",
+      "calculator",
+      "countdown"
+    ],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Terminal",
@@ -749,8 +970,17 @@
     "defaultWidth": 440,
     "defaultHeight": 720,
     "desktopIcon": true,
-    "tags": ["productivity", "google", "sheets", "tasks"],
-    "related": ["notepad", "terminal", "wordle-finder"],
+    "tags": [
+      "productivity",
+      "google",
+      "sheets",
+      "tasks"
+    ],
+    "related": [
+      "notepad",
+      "terminal",
+      "wordle-finder"
+    ],
     "shareCategory": "utility",
     "appTier": "system",
     "geo": true
@@ -771,8 +1001,21 @@
     "defaultWidth": 720,
     "defaultHeight": 820,
     "desktopIcon": true,
-    "tags": ["gps", "map", "geolocation", "fitness", "tracker", "offline", "indexeddb"],
-    "related": ["notepad", "terminal", "stock", "posts"],
+    "tags": [
+      "gps",
+      "map",
+      "geolocation",
+      "fitness",
+      "tracker",
+      "offline",
+      "indexeddb"
+    ],
+    "related": [
+      "notepad",
+      "terminal",
+      "stock",
+      "posts"
+    ],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Trip Log",
@@ -797,7 +1040,11 @@
       "x": 30,
       "y": 130
     },
-    "related": ["terminal", "notepad", "countdown"],
+    "related": [
+      "terminal",
+      "notepad",
+      "countdown"
+    ],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Calculator",
@@ -863,7 +1110,13 @@
       "hermes",
       "popular"
     ],
-    "related": ["notepad", "terminal", "filemanager", "chat", "calculator"],
+    "related": [
+      "notepad",
+      "terminal",
+      "filemanager",
+      "chat",
+      "calculator"
+    ],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Code IDE",
@@ -896,8 +1149,20 @@
     "taskbarText": "text-white",
     "defaultWidth": 400,
     "defaultHeight": 780,
-    "tags": ["clock", "timer", "stopwatch", "world clock", "pomodoro", "utility"],
-    "related": ["countdown", "calculator", "todo", "posts"],
+    "tags": [
+      "clock",
+      "timer",
+      "stopwatch",
+      "world clock",
+      "pomodoro",
+      "utility"
+    ],
+    "related": [
+      "countdown",
+      "calculator",
+      "todo",
+      "posts"
+    ],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Clock",
@@ -922,8 +1187,17 @@
     "taskbarText": "text-black",
     "defaultWidth": 900,
     "defaultHeight": 700,
-    "tags": ["utility", "time", "events", "timer"],
-    "related": ["calculator", "terminal", "wordle-finder"],
+    "tags": [
+      "utility",
+      "time",
+      "events",
+      "timer"
+    ],
+    "related": [
+      "calculator",
+      "terminal",
+      "wordle-finder"
+    ],
     "shareCategory": "utility",
     "featured": {
       "order": 6,
@@ -951,9 +1225,20 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 700,
-    "tags": ["wisdom", "learning", "advice", "quotes", "developers"],
+    "tags": [
+      "wisdom",
+      "learning",
+      "advice",
+      "quotes",
+      "developers"
+    ],
     "desktopIcon": true,
-    "related": ["terminal", "notepad", "wordle-finder", "posts"],
+    "related": [
+      "terminal",
+      "notepad",
+      "wordle-finder",
+      "posts"
+    ],
     "shareCategory": "utility",
     "appTier": "experience",
     "geo": true
@@ -973,8 +1258,17 @@
     "taskbarText": "text-white",
     "defaultWidth": 400,
     "defaultHeight": 500,
-    "tags": ["puzzle", "strategy", "retro", "classic"],
-    "related": ["pacman", "doom", "wordle-finder"],
+    "tags": [
+      "puzzle",
+      "strategy",
+      "retro",
+      "classic"
+    ],
+    "related": [
+      "pacman",
+      "doom",
+      "wordle-finder"
+    ],
     "shareCategory": "game",
     "featured": {
       "order": 3,
@@ -1002,8 +1296,21 @@
     "taskbarText": "text-white",
     "defaultWidth": 540,
     "defaultHeight": 720,
-    "tags": ["puzzle", "2048", "tiles", "numbers", "logic", "classic"],
-    "related": ["sudoku", "minesweeper", "wordle-finder", "calculator", "untangle"],
+    "tags": [
+      "puzzle",
+      "2048",
+      "tiles",
+      "numbers",
+      "logic",
+      "classic"
+    ],
+    "related": [
+      "sudoku",
+      "minesweeper",
+      "wordle-finder",
+      "calculator",
+      "untangle"
+    ],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "2048",
@@ -1028,8 +1335,19 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 700,
-    "tags": ["puzzle", "graph", "untangle", "planarity", "logic", "classic"],
-    "related": ["sudoku", "minesweeper", "2048"],
+    "tags": [
+      "puzzle",
+      "graph",
+      "untangle",
+      "planarity",
+      "logic",
+      "classic"
+    ],
+    "related": [
+      "sudoku",
+      "minesweeper",
+      "2048"
+    ],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "Untangle",
@@ -1054,8 +1372,18 @@
     "taskbarText": "text-white",
     "defaultWidth": 600,
     "defaultHeight": 800,
-    "tags": ["puzzle", "sudoku", "logic", "numbers", "classic"],
-    "related": ["minesweeper", "wordle-finder", "calculator"],
+    "tags": [
+      "puzzle",
+      "sudoku",
+      "logic",
+      "numbers",
+      "classic"
+    ],
+    "related": [
+      "minesweeper",
+      "wordle-finder",
+      "calculator"
+    ],
     "shareCategory": "game",
     "pwaShortcut": {
       "name": "Sudoku",
@@ -1075,14 +1403,23 @@
     "path": "./emulator/",
     "category": "game",
     "subCategory": "console",
-    "navKeepQueryChildren": true,
     "defaultWidth": 1024,
     "defaultHeight": 768,
     "gradient": "from-stone-600/20 to-cyan-700/20",
     "border": "border-stone-500/30 hover:border-stone-400/50",
     "taskbarGradient": "from-stone-700 to-cyan-800",
     "taskbarText": "text-white",
-    "tags": ["retro", "emulator", "console", "nes", "sega", "snes", "gameboy", "neogeo", "ps1"],
+    "tags": [
+      "retro",
+      "emulator",
+      "console",
+      "nes",
+      "sega",
+      "snes",
+      "gameboy",
+      "neogeo",
+      "ps1"
+    ],
     "related": [
       "nes",
       "sega",
@@ -1104,7 +1441,7 @@
     "description": "Classic Nintendo emulator",
     "detailedDescription": "Play classic NES games right in your browser. Save states, ROM browser, gamepad support — bring your own .nes ROM, or pick from the built-in collection. Now part of the unified emulator shell (EmulatorJS / FCEUmm).",
     "icon": "🕹️",
-    "path": "./emulator/?console=nes",
+    "path": "./emulator/nes/",
     "category": "game",
     "subCategory": "console",
     "defaultWidth": 1024,
@@ -1113,7 +1450,13 @@
     "border": "border-stone-500/30 hover:border-stone-400/50",
     "taskbarGradient": "from-stone-600 to-indigo-700",
     "taskbarText": "text-white",
-    "tags": ["retro", "emulator", "nintendo", "8-bit", "popular"],
+    "tags": [
+      "retro",
+      "emulator",
+      "nintendo",
+      "8-bit",
+      "popular"
+    ],
     "related": [
       "sega",
       "gamegear",
@@ -1151,7 +1494,7 @@
     "description": "Sega Genesis / Mega Drive emulator",
     "detailedDescription": "Play classic Sega Genesis and Mega Drive games in your browser. Save states, ROM browser, gamepad support — bring your own .bin/.md ROM, or pick from the built-in collection via Internet Archive. Part of the unified emulator shell (EmulatorJS / genesis_plus_gx).",
     "icon": "🕹️",
-    "path": "./emulator/?console=sega",
+    "path": "./emulator/sega/",
     "category": "game",
     "subCategory": "console",
     "defaultWidth": 1024,
@@ -1160,7 +1503,12 @@
     "border": "border-blue-500/30 hover:border-blue-400/50",
     "taskbarGradient": "from-blue-700 to-cyan-600",
     "taskbarText": "text-white",
-    "tags": ["retro", "emulator", "sega", "16-bit"],
+    "tags": [
+      "retro",
+      "emulator",
+      "sega",
+      "16-bit"
+    ],
     "related": [
       "nes",
       "gamegear",
@@ -1197,7 +1545,7 @@
     "description": "Sega Game Gear emulator",
     "detailedDescription": "Play classic Sega Game Gear games in your browser. Save states, ROM browser, gamepad support — bring your own .gg ROM, or pick from the built-in Internet Archive No-Intro collection. Part of the unified emulator shell (EmulatorJS / genesis_plus_gx).",
     "icon": "📟",
-    "path": "./emulator/?console=gg",
+    "path": "./emulator/gg/",
     "category": "game",
     "subCategory": "console",
     "defaultWidth": 1024,
@@ -1206,8 +1554,23 @@
     "border": "border-teal-500/30 hover:border-teal-400/50",
     "taskbarGradient": "from-teal-700 to-cyan-600",
     "taskbarText": "text-white",
-    "tags": ["retro", "emulator", "sega", "gamegear", "handheld", "8-bit"],
-    "related": ["sega", "sega32x", "gameboy", "nes", "snes", "neogeo", "ps1"],
+    "tags": [
+      "retro",
+      "emulator",
+      "sega",
+      "gamegear",
+      "handheld",
+      "8-bit"
+    ],
+    "related": [
+      "sega",
+      "sega32x",
+      "gameboy",
+      "nes",
+      "snes",
+      "neogeo",
+      "ps1"
+    ],
     "shareCategory": "game",
     "appTier": "experience",
     "geo": false
@@ -1219,7 +1582,7 @@
     "description": "Sega 32X emulator",
     "detailedDescription": "Play classic Sega 32X games in your browser. Save states, ROM browser, gamepad support — bring your own .32x ROM, or pick from the built-in Internet Archive No-Intro collection. Part of the unified emulator shell (EmulatorJS / picodrive).",
     "icon": "🚀",
-    "path": "./emulator/?console=sega32x",
+    "path": "./emulator/sega32x/",
     "category": "game",
     "subCategory": "console",
     "defaultWidth": 1024,
@@ -1228,8 +1591,22 @@
     "border": "border-orange-500/30 hover:border-orange-400/50",
     "taskbarGradient": "from-orange-700 to-red-800",
     "taskbarText": "text-white",
-    "tags": ["retro", "emulator", "sega", "32x", "16-bit"],
-    "related": ["sega", "gamegear", "nes", "snes", "gameboy", "neogeo", "ps1"],
+    "tags": [
+      "retro",
+      "emulator",
+      "sega",
+      "32x",
+      "16-bit"
+    ],
+    "related": [
+      "sega",
+      "gamegear",
+      "nes",
+      "snes",
+      "gameboy",
+      "neogeo",
+      "ps1"
+    ],
     "shareCategory": "game",
     "appTier": "experience",
     "geo": false
@@ -1241,7 +1618,7 @@
     "description": "Game Boy & Game Boy Color emulator",
     "detailedDescription": "Play classic Game Boy and Game Boy Color games in your browser. Save states, gamepad support — bring your own .gb / .gbc ROM. Part of the unified emulator shell (EmulatorJS / gambatte).",
     "icon": "👾",
-    "path": "./emulator/?console=gb",
+    "path": "./emulator/gb/",
     "category": "game",
     "subCategory": "console",
     "defaultWidth": 1024,
@@ -1250,8 +1627,24 @@
     "border": "border-violet-500/30 hover:border-violet-400/50",
     "taskbarGradient": "from-violet-700 to-purple-600",
     "taskbarText": "text-white",
-    "tags": ["retro", "emulator", "nintendo", "gameboy", "8-bit"],
-    "related": ["nes", "sega", "gamegear", "sega32x", "neogeo", "snes", "ps1", "doom", "pacman"],
+    "tags": [
+      "retro",
+      "emulator",
+      "nintendo",
+      "gameboy",
+      "8-bit"
+    ],
+    "related": [
+      "nes",
+      "sega",
+      "gamegear",
+      "sega32x",
+      "neogeo",
+      "snes",
+      "ps1",
+      "doom",
+      "pacman"
+    ],
     "shareCategory": "game",
     "featured": {
       "order": 13,
@@ -1271,7 +1664,7 @@
     "description": "Neo Geo AES / MVS emulator",
     "detailedDescription": "Play Neo Geo AES and MVS arcade games in your browser. Browse the built-in Internet Archive collection or bring your own FBNeo .zip — neogeo.zip BIOS auto-loads once and stays locally. Part of the unified emulator shell (EmulatorJS / FinalBurn Neo).",
     "icon": "🥊",
-    "path": "./emulator/?console=neogeo",
+    "path": "./emulator/neogeo/",
     "category": "game",
     "subCategory": "console",
     "defaultWidth": 1024,
@@ -1280,8 +1673,25 @@
     "border": "border-yellow-500/30 hover:border-yellow-400/50",
     "taskbarGradient": "from-yellow-600 to-stone-800",
     "taskbarText": "text-white",
-    "tags": ["retro", "emulator", "neogeo", "arcade", "snk", "16-bit"],
-    "related": ["nes", "sega", "gamegear", "sega32x", "gameboy", "snes", "ps1", "doom", "flash"],
+    "tags": [
+      "retro",
+      "emulator",
+      "neogeo",
+      "arcade",
+      "snk",
+      "16-bit"
+    ],
+    "related": [
+      "nes",
+      "sega",
+      "gamegear",
+      "sega32x",
+      "gameboy",
+      "snes",
+      "ps1",
+      "doom",
+      "flash"
+    ],
     "shareCategory": "game",
     "featured": {
       "order": 14,
@@ -1301,7 +1711,7 @@
     "description": "Super Nintendo emulator",
     "detailedDescription": "Play SNES / Super Famicom games in your browser. Browse the built-in collection or bring your own .sfc / .smc ROM. Part of the unified emulator shell (EmulatorJS / snes9x).",
     "icon": "🟣",
-    "path": "./emulator/?console=snes",
+    "path": "./emulator/snes/",
     "category": "game",
     "subCategory": "console",
     "defaultWidth": 1024,
@@ -1310,8 +1720,22 @@
     "border": "border-violet-500/30 hover:border-violet-400/50",
     "taskbarGradient": "from-violet-700 to-purple-600",
     "taskbarText": "text-white",
-    "tags": ["retro", "emulator", "nintendo", "snes", "16-bit"],
-    "related": ["nes", "sega", "gamegear", "sega32x", "gameboy", "neogeo", "ps1"],
+    "tags": [
+      "retro",
+      "emulator",
+      "nintendo",
+      "snes",
+      "16-bit"
+    ],
+    "related": [
+      "nes",
+      "sega",
+      "gamegear",
+      "sega32x",
+      "gameboy",
+      "neogeo",
+      "ps1"
+    ],
     "shareCategory": "game",
     "featured": {
       "order": 16,
@@ -1331,7 +1755,7 @@
     "description": "PlayStation emulator",
     "detailedDescription": "Play PlayStation (PS1) games in your browser. US BIOS auto-loads once; search CHD discs on Internet Archive (download in a new tab, then load locally) or bring your own .chd / .pbp / .iso. Gamepad recommended. Part of the unified emulator shell (EmulatorJS / pcsx_rearmed).",
     "icon": "💿",
-    "path": "./emulator/?console=ps1",
+    "path": "./emulator/ps1/",
     "category": "game",
     "subCategory": "console",
     "defaultWidth": 1024,
@@ -1340,8 +1764,23 @@
     "border": "border-blue-600/30 hover:border-blue-500/50",
     "taskbarGradient": "from-blue-700 to-slate-900",
     "taskbarText": "text-white",
-    "tags": ["retro", "emulator", "playstation", "ps1", "psx", "32-bit"],
-    "related": ["nes", "sega", "gamegear", "sega32x", "gameboy", "neogeo", "snes"],
+    "tags": [
+      "retro",
+      "emulator",
+      "playstation",
+      "ps1",
+      "psx",
+      "32-bit"
+    ],
+    "related": [
+      "nes",
+      "sega",
+      "gamegear",
+      "sega32x",
+      "gameboy",
+      "neogeo",
+      "snes"
+    ],
     "shareCategory": "game",
     "appTier": "experience",
     "geo": false
@@ -1361,10 +1800,24 @@
     "border": "border-red-600/30 hover:border-red-500/50",
     "taskbarGradient": "from-red-700 to-stone-900",
     "taskbarText": "text-white",
-    "tags": ["flash", "swf", "ruffle", "emulator", "retro", "adobe"],
-    "related": ["dos", "nes", "neogeo", "badapple"],
+    "tags": [
+      "flash",
+      "swf",
+      "ruffle",
+      "emulator",
+      "retro",
+      "adobe"
+    ],
+    "related": [
+      "dos",
+      "nes",
+      "neogeo",
+      "badapple"
+    ],
     "shareCategory": "game",
-    "handles": ["application/x-shockwave-flash"],
+    "handles": [
+      "application/x-shockwave-flash"
+    ],
     "featured": {
       "order": 15,
       "headline": "Flash Player",
@@ -1391,7 +1844,11 @@
     "taskbarText": "text-white",
     "defaultWidth": 800,
     "defaultHeight": 600,
-    "related": ["youtube", "terminal", "notepad"],
+    "related": [
+      "youtube",
+      "terminal",
+      "notepad"
+    ],
     "shareCategory": "utility",
     "appTier": "app",
     "geo": true
@@ -1413,7 +1870,12 @@
     "defaultHeight": 600,
     "desktopIcon": true,
     "system": true,
-    "related": ["terminal", "notepad", "image-viewer", "media-player"],
+    "related": [
+      "terminal",
+      "notepad",
+      "image-viewer",
+      "media-player"
+    ],
     "shareCategory": "utility",
     "appTier": "system",
     "geo": true
@@ -1434,8 +1896,17 @@
     "defaultWidth": 800,
     "defaultHeight": 500,
     "system": true,
-    "handles": ["video/*", "audio/*", "application/x-youtube"],
-    "related": ["filemanager", "youtube", "airwave", "awesome"],
+    "handles": [
+      "video/*",
+      "audio/*",
+      "application/x-youtube"
+    ],
+    "related": [
+      "filemanager",
+      "youtube",
+      "airwave",
+      "awesome"
+    ],
     "shareCategory": "utility",
     "appTier": "system",
     "geo": true
@@ -1455,8 +1926,19 @@
     "taskbarText": "text-black",
     "defaultWidth": 760,
     "defaultHeight": 760,
-    "tags": ["youtube", "audio", "podcast", "music", "background", "media"],
-    "related": ["media-player", "youtube", "awesome"],
+    "tags": [
+      "youtube",
+      "audio",
+      "podcast",
+      "music",
+      "background",
+      "media"
+    ],
+    "related": [
+      "media-player",
+      "youtube",
+      "awesome"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true
@@ -1477,8 +1959,14 @@
     "defaultWidth": 800,
     "defaultHeight": 600,
     "system": true,
-    "handles": ["image/*"],
-    "related": ["filemanager", "shadowbox", "badapple"],
+    "handles": [
+      "image/*"
+    ],
+    "related": [
+      "filemanager",
+      "shadowbox",
+      "badapple"
+    ],
     "shareCategory": "utility",
     "appTier": "system",
     "geo": true
@@ -1498,8 +1986,20 @@
     "border": "border-fuchsia-500/30 hover:border-fuchsia-400/50",
     "taskbarGradient": "from-fuchsia-500 to-violet-600",
     "taskbarText": "text-white",
-    "tags": ["ai", "image", "stable-diffusion", "sd-turbo", "webgpu", "diffusion"],
-    "related": ["chat", "paint", "ascii", "image-viewer"],
+    "tags": [
+      "ai",
+      "image",
+      "stable-diffusion",
+      "sd-turbo",
+      "webgpu",
+      "diffusion"
+    ],
+    "related": [
+      "chat",
+      "paint",
+      "ascii",
+      "image-viewer"
+    ],
     "shareCategory": "utility",
     "appTier": "experience",
     "geo": true
@@ -1530,7 +2030,10 @@
       "application/x-ply",
       "application/x-fbx"
     ],
-    "related": ["filemanager", "image-viewer"],
+    "related": [
+      "filemanager",
+      "image-viewer"
+    ],
     "shareCategory": "utility",
     "featured": {
       "order": 5,
@@ -1559,8 +2062,20 @@
     "defaultWidth": 900,
     "defaultHeight": 700,
     "desktopIcon": true,
-    "tags": ["music", "instruments", "audio", "fun"],
-    "related": ["play-piano", "play-drums", "play-guitar", "awesome", "posts"],
+    "tags": [
+      "music",
+      "instruments",
+      "audio",
+      "fun"
+    ],
+    "related": [
+      "play-piano",
+      "play-drums",
+      "play-guitar",
+      "play-composer",
+      "awesome",
+      "posts"
+    ],
     "shareCategory": "entertainment",
     "pwaShortcut": {
       "name": "Play",
@@ -1585,8 +2100,19 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": ["music", "piano", "midi", "audio"],
-    "related": ["play", "play-accordion", "play-synth", "play-metronome", "play-tuner"],
+    "tags": [
+      "music",
+      "piano",
+      "midi",
+      "audio"
+    ],
+    "related": [
+      "play",
+      "play-accordion",
+      "play-synth",
+      "play-metronome",
+      "play-tuner"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true
@@ -1606,8 +2132,16 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": ["music", "accordion", "audio"],
-    "related": ["play", "play-piano", "play-synth"],
+    "tags": [
+      "music",
+      "accordion",
+      "audio"
+    ],
+    "related": [
+      "play",
+      "play-piano",
+      "play-synth"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true
@@ -1627,8 +2161,18 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": ["music", "drums", "percussion", "audio"],
-    "related": ["play", "play-guitar", "play-synth", "play-metronome"],
+    "tags": [
+      "music",
+      "drums",
+      "percussion",
+      "audio"
+    ],
+    "related": [
+      "play",
+      "play-guitar",
+      "play-synth",
+      "play-metronome"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true
@@ -1661,7 +2205,11 @@
       "learn chords",
       "audio"
     ],
-    "related": ["play", "play-drums", "play-piano"],
+    "related": [
+      "play",
+      "play-drums",
+      "play-piano"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": false
@@ -1681,8 +2229,18 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": ["music", "synth", "audio", "electronic"],
-    "related": ["play", "play-piano", "play-drums", "play-theremin"],
+    "tags": [
+      "music",
+      "synth",
+      "audio",
+      "electronic"
+    ],
+    "related": [
+      "play",
+      "play-piano",
+      "play-drums",
+      "play-theremin"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true
@@ -1702,8 +2260,53 @@
     "taskbarText": "text-white",
     "defaultWidth": 600,
     "defaultHeight": 500,
-    "tags": ["music", "metronome", "tempo", "practice", "audio"],
-    "related": ["play-piano", "play-drums", "play-synth"],
+    "tags": [
+      "music",
+      "metronome",
+      "tempo",
+      "practice",
+      "audio"
+    ],
+    "related": [
+      "play-piano",
+      "play-drums",
+      "play-synth",
+      "play-composer"
+    ],
+    "shareCategory": "entertainment",
+    "appTier": "experience",
+    "geo": true
+  },
+  {
+    "id": "play-composer",
+    "name": "Composer 🎼",
+    "shortName": "Composer",
+    "description": "Write and play sheet music in your browser",
+    "detailedDescription": "Grand-staff notation editor: click to place notes and rests, choose durations, change time and key signatures, add accidentals, ties, beams, dynamics, and play back with real piano samples.",
+    "icon": "🎼",
+    "path": "./play/composer/",
+    "category": "entertainment",
+    "gradient": "from-amber-500/20 to-stone-500/20",
+    "border": "border-amber-600/30 hover:border-amber-500/50",
+    "taskbarGradient": "from-amber-700 to-stone-800",
+    "taskbarText": "text-white",
+    "defaultWidth": 1000,
+    "defaultHeight": 700,
+    "tags": [
+      "music",
+      "composer",
+      "sheet music",
+      "notation",
+      "score",
+      "audio"
+    ],
+    "related": [
+      "play",
+      "play-piano",
+      "play-metronome",
+      "play-synth",
+      "play-chiptune"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true
@@ -1723,8 +2326,21 @@
     "taskbarText": "text-white",
     "defaultWidth": 1100,
     "defaultHeight": 760,
-    "tags": ["music", "chiptune", "tracker", "beepbox", "synth", "sequencer", "audio"],
-    "related": ["play-synth", "play-composer", "play-drums", "posts"],
+    "tags": [
+      "music",
+      "chiptune",
+      "tracker",
+      "beepbox",
+      "synth",
+      "sequencer",
+      "audio"
+    ],
+    "related": [
+      "play-synth",
+      "play-composer",
+      "play-drums",
+      "posts"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true
@@ -1744,8 +2360,17 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": ["music", "harp", "strings", "audio"],
-    "related": ["play-piano", "play-guitar", "play-mallets"],
+    "tags": [
+      "music",
+      "harp",
+      "strings",
+      "audio"
+    ],
+    "related": [
+      "play-piano",
+      "play-guitar",
+      "play-mallets"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true
@@ -1765,8 +2390,18 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": ["music", "steeldrum", "percussion", "caribbean", "audio"],
-    "related": ["play-drums", "play-mallets", "play-harp"],
+    "tags": [
+      "music",
+      "steeldrum",
+      "percussion",
+      "caribbean",
+      "audio"
+    ],
+    "related": [
+      "play-drums",
+      "play-mallets",
+      "play-harp"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true
@@ -1786,8 +2421,19 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": ["music", "xylophone", "marimba", "vibraphone", "percussion", "audio"],
-    "related": ["play-harp", "play-steeldrum", "play-piano"],
+    "tags": [
+      "music",
+      "xylophone",
+      "marimba",
+      "vibraphone",
+      "percussion",
+      "audio"
+    ],
+    "related": [
+      "play-harp",
+      "play-steeldrum",
+      "play-piano"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true
@@ -1807,8 +2453,19 @@
     "taskbarText": "text-white",
     "defaultWidth": 900,
     "defaultHeight": 600,
-    "tags": ["music", "theremin", "webcam", "gesture", "electronic", "audio"],
-    "related": ["play-synth", "play-piano", "play-tuner"],
+    "tags": [
+      "music",
+      "theremin",
+      "webcam",
+      "gesture",
+      "electronic",
+      "audio"
+    ],
+    "related": [
+      "play-synth",
+      "play-piano",
+      "play-tuner"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true
@@ -1828,8 +2485,18 @@
     "taskbarText": "text-white",
     "defaultWidth": 700,
     "defaultHeight": 500,
-    "tags": ["music", "tuner", "microphone", "pitch", "audio"],
-    "related": ["play-theremin", "play-piano", "play-metronome"],
+    "tags": [
+      "music",
+      "tuner",
+      "microphone",
+      "pitch",
+      "audio"
+    ],
+    "related": [
+      "play-theremin",
+      "play-piano",
+      "play-metronome"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true
@@ -1849,8 +2516,18 @@
     "taskbarText": "text-white",
     "defaultWidth": 960,
     "defaultHeight": 740,
-    "tags": ["weather", "forecast", "zip code", "city", "hourly"],
-    "related": ["stock", "countdown", "calculator"],
+    "tags": [
+      "weather",
+      "forecast",
+      "zip code",
+      "city",
+      "hourly"
+    ],
+    "related": [
+      "stock",
+      "countdown",
+      "calculator"
+    ],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Weather",
@@ -1875,8 +2552,19 @@
     "taskbarText": "text-white",
     "defaultWidth": 1100,
     "defaultHeight": 740,
-    "tags": ["stocks", "finance", "chart", "ticker", "watchlist"],
-    "related": ["calculator", "countdown", "wordle-finder", "posts"],
+    "tags": [
+      "stocks",
+      "finance",
+      "chart",
+      "ticker",
+      "watchlist"
+    ],
+    "related": [
+      "calculator",
+      "countdown",
+      "wordle-finder",
+      "posts"
+    ],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Stock Ticker",
@@ -1902,8 +2590,18 @@
     "taskbarGradient": "from-cyan-500 to-violet-600",
     "taskbarText": "text-white",
     "desktopIcon": true,
-    "tags": ["ai", "assistant", "chat", "llm", "agent"],
-    "related": ["notepad", "terminal", "filemanager"],
+    "tags": [
+      "ai",
+      "assistant",
+      "chat",
+      "llm",
+      "agent"
+    ],
+    "related": [
+      "notepad",
+      "terminal",
+      "filemanager"
+    ],
     "shareCategory": "utility",
     "appTier": "system",
     "geo": true
@@ -1923,8 +2621,18 @@
     "taskbarText": "text-white",
     "defaultWidth": 600,
     "defaultHeight": 820,
-    "tags": ["audio", "books", "audiobooks", "librivox", "public domain"],
-    "related": ["read", "media-player", "play"],
+    "tags": [
+      "audio",
+      "books",
+      "audiobooks",
+      "librivox",
+      "public domain"
+    ],
+    "related": [
+      "read",
+      "media-player",
+      "play"
+    ],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Audiobooks",
@@ -1949,8 +2657,18 @@
     "taskbarText": "text-white",
     "defaultWidth": 700,
     "defaultHeight": 860,
-    "tags": ["books", "reading", "ebooks", "gutenberg", "public domain"],
-    "related": ["listen", "notepad", "programming-advice"],
+    "tags": [
+      "books",
+      "reading",
+      "ebooks",
+      "gutenberg",
+      "public domain"
+    ],
+    "related": [
+      "listen",
+      "notepad",
+      "programming-advice"
+    ],
     "shareCategory": "utility",
     "pwaShortcut": {
       "name": "Books",
@@ -1975,8 +2693,54 @@
     "taskbarText": "text-white",
     "defaultWidth": 720,
     "defaultHeight": 820,
-    "tags": ["multiplayer", "shared", "checkboxes", "google-forms", "google-sheets", "social"],
-    "related": ["minesweeper", "sudoku", "pacman", "posts"],
+    "tags": [
+      "multiplayer",
+      "shared",
+      "checkboxes",
+      "google-forms",
+      "google-sheets",
+      "social"
+    ],
+    "related": [
+      "minesweeper",
+      "sudoku",
+      "pacman",
+      "posts",
+      "trivia"
+    ],
+    "shareCategory": "entertainment",
+    "appTier": "experience",
+    "geo": true
+  },
+  {
+    "id": "trivia",
+    "name": "Trivia 🎯",
+    "shortName": "Trivia",
+    "description": "Same three questions for everyone — new set every 30 minutes",
+    "detailedDescription": "Global simultaneous trivia. Everyone on the site gets the same opinion, estimate, and fact prompts for a 30-minute window, then tallies and reveals roll over. Writes go through a Google Form; Round, Current, and Tallies are read from the linked Sheet via gviz. No accounts.",
+    "icon": "🎯",
+    "path": "./trivia/",
+    "category": "entertainment",
+    "gradient": "from-amber-500/20 to-emerald-700/20",
+    "border": "border-amber-500/30 hover:border-amber-400/50",
+    "taskbarGradient": "from-emerald-800 to-amber-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 720,
+    "defaultHeight": 860,
+    "tags": [
+      "trivia",
+      "quiz",
+      "multiplayer",
+      "google-forms",
+      "google-sheets",
+      "social"
+    ],
+    "related": [
+      "checkboxes",
+      "posts",
+      "sudoku",
+      "minesweeper"
+    ],
     "shareCategory": "entertainment",
     "appTier": "experience",
     "geo": true
@@ -1996,7 +2760,14 @@
     "taskbarText": "text-white",
     "defaultWidth": 720,
     "defaultHeight": 860,
-    "tags": ["posts", "social", "markdown", "attachments", "google-forms", "google-sheets"],
+    "tags": [
+      "posts",
+      "social",
+      "markdown",
+      "attachments",
+      "google-forms",
+      "google-sheets"
+    ],
     "related": [
       "ascii",
       "meme",
@@ -2039,9 +2810,22 @@
     "defaultWidth": 950,
     "defaultHeight": 720,
     "system": true,
-    "handles": ["application/x-paintproj"],
-    "tags": ["art", "drawing", "paint", "creative", "canvas"],
-    "related": ["imagine", "ascii", "model-viewer", "meme"],
+    "handles": [
+      "application/x-paintproj"
+    ],
+    "tags": [
+      "art",
+      "drawing",
+      "paint",
+      "creative",
+      "canvas"
+    ],
+    "related": [
+      "imagine",
+      "ascii",
+      "model-viewer",
+      "meme"
+    ],
     "shareCategory": "utility",
     "appTier": "app",
     "geo": true
@@ -2061,8 +2845,21 @@
     "taskbarText": "text-white",
     "defaultWidth": 1280,
     "defaultHeight": 820,
-    "tags": ["meme", "image", "generator", "captions", "imgflip", "impact", "creative"],
-    "related": ["paint", "ascii", "notepad", "posts"],
+    "tags": [
+      "meme",
+      "image",
+      "generator",
+      "captions",
+      "imgflip",
+      "impact",
+      "creative"
+    ],
+    "related": [
+      "paint",
+      "ascii",
+      "notepad",
+      "posts"
+    ],
     "shareCategory": "utility",
     "appTier": "experience",
     "geo": true

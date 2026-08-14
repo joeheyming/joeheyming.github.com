@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover"
+    />
+
+    <title>Game Gear Emulator — Play Sega Handheld Games in Browser 📟</title>
+    <meta name="theme-color" content="#FAFAFA" />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="description" content="Free Sega Game Gear emulator online. Save states, gamepad support, No-Intro collection or bring your own .gg ROM. Powered by EmulatorJS / genesis_plus_gx." />
+    <meta name="keywords" content="Game Gear emulator online, Sega handheld emulator, play Game Gear in browser, EmulatorJS, free Game Gear emulator" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Retro Emulator" />
+    <meta property="og:title" content="Game Gear Emulator — Play Sega Handheld Games in Browser" />
+    <meta property="og:description" content="Free Sega Game Gear emulator online. Save states, gamepad support, No-Intro collection or bring your own .gg ROM. Powered by EmulatorJS / genesis_plus_gx." />
+    <meta property="og:url" content="https://joeheyming.github.io/emulator/gg/" />
+    <meta property="og:image" content="https://joeheyming.github.io/emulator/gg/gg-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Game Gear emulator running in a web browser"
+    />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="Game Gear Emulator — Play Sega Handheld Games in Browser" />
+    <meta name="twitter:description" content="Free Sega Game Gear emulator online. Save states, gamepad support, No-Intro collection or bring your own .gg ROM. Powered by EmulatorJS / genesis_plus_gx." />
+    <meta name="twitter:image" content="https://joeheyming.github.io/emulator/gg/gg-preview.png" />
+
+    <link rel="canonical" href="https://joeheyming.github.io/emulator/gg/" />
+
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📟</text></svg>" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": [
+              "SoftwareApplication",
+              "VideoGame"
+            ],
+            "name": "Game Gear Emulator Online",
+            "alternateName": [
+              "Game Gear Emulator",
+              "Play Game Gear in Browser"
+            ],
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Free Sega Game Gear emulator online. Save states, gamepad support, No-Intro collection or bring your own .gg ROM. Powered by EmulatorJS / genesis_plus_gx.",
+            "url": "https://joeheyming.github.io/emulator/gg/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "keywords": "Game Gear emulator online, Sega handheld emulator, play Game Gear in browser, EmulatorJS, free Game Gear emulator",
+            "inLanguage": "en",
+            "gamePlatform": [
+              "Web Browser",
+              "HTML5"
+            ]
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Retro Game Emulator",
+                "item": "https://joeheyming.github.io/emulator/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Game Gear Emulator"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <script src="/coi-serviceworker.js"></script>
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/nav.js" data-nav-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+    <script src="/proxy.js"></script>
+
+    <script src="/emulator/leanback.js"></script>
+    <script src="/emulator/consoles.js"></script>
+    <script src="/emulator/internet-archive.js"></script>
+    <script src="/emulator/rom-browser.js"></script>
+    <script src="/shared/breadcrumbs.js"></script>
+    <script src="/emulator/launch.js"></script>
+
+    <link rel="stylesheet" href="/emulator/emulator.css" />
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="/shared/breadcrumbs.css" />
+  </head>
+
+  <body>
+    <header class="app-header" id="emu-header">
+      <nav id="emu-breadcrumbs" class="app-breadcrumbs" aria-label="Breadcrumb"></nav>
+    </header>
+
+    <input
+      type="file"
+      id="romFileInput"
+      class="hidden-input"
+      accept=".nes,.md,.bin,.gen,.smd,.gg,.32x,.gb,.gbc,.sfc,.smc,.chd,.pbp,.iso,.cue,.zip,.7z"
+    />
+    <input type="file" id="biosFileInput" class="hidden-input" accept=".zip,.7z,.bin" />
+
+    <!-- Static fallback for crawlers / no-JS; launch.js replaces #brand / #boot-card. -->
+    <div id="boot">
+      <div class="brand" id="brand">
+        <span class="brand-logo">📟</span>
+        <h1>
+          Game Gear
+          <span class="sub">Sega handheld</span>
+        </h1>
+      </div>
+
+      <div class="boot-card" id="boot-card">
+        <h2>📟 Game Gear Emulator</h2>
+        <p class="picker-help">
+          Free Game Gear emulator in your browser. No install, no ads. Bring your own
+          <code>.gg</code>
+          ROM or browse the built-in collection. Powered by EmulatorJS (genesis_plus_gx).
+        </p>
+        <p class="picker-help">
+          <a href="/emulator/">All consoles</a>
+          &middot;
+          <a href="/doom/">DOOM</a>
+          &middot;
+          <a href="/pacman/">Pac-Man</a>
+          &middot;
+          <a href="/about/">About</a>
+        </p>
+      </div>
+
+      <footer class="seo-intro" hidden>
+        <h2>Game Gear Emulator — Play Sega Handheld Games in Browser</h2>
+        <p>Free Sega Game Gear emulator online. Save states, gamepad support, No-Intro collection or bring your own .gg ROM. Powered by EmulatorJS / genesis_plus_gx.</p>
+        <nav aria-label="More retro games">
+          <strong>More retro games:</strong>
+          <a href="/emulator/">All emulators</a>
+          &middot;
+          <a href="/doom/">DOOM</a>
+          &middot;
+          <a href="/pacman/">3D Pac-Man</a>
+          &middot;
+          <a href="/stepmania/">StepMania</a>
+        </nav>
+      </footer>
+    </div>
+
+    <div id="game-container">
+      <div id="game"></div>
+    </div>
+
+    <div class="share-overlay">
+      <share-button label="📤 Share" theme="retro"></share-button>
+    </div>
+  </body>
+</html>

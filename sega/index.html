@@ -3,15 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sega Genesis Emulator — moved to /emulator/?console=sega</title>
+    <title>Sega Genesis Emulator — moved to /emulator/sega/</title>
 
     <meta
       name="description"
-      content="The Sega Genesis / Mega Drive emulator has moved to /emulator/?console=sega — part of a unified retro emulator shell that also covers NES and Game Boy."
+      content="The Sega Genesis / Mega Drive emulator has moved to /emulator/sega/ — part of a unified retro emulator shell that also covers NES and Game Boy."
     />
 
     <!--
-      /sega/ was folded into /emulator/?console=sega as part of the
+      /sega/ was folded into /emulator/sega/ as part of the
       shared-emulator consolidation. The unified shell uses
       EmulatorJS (genesis_plus_gx core) under the hood and shares
       its boot card, ROM browser, and identity layer with /nes/
@@ -26,7 +26,7 @@
       (No MetaRefresh — Bing flags those.)
     -->
     <meta name="robots" content="noindex,follow" />
-    <link rel="canonical" href="https://joeheyming.github.io/emulator/?console=sega" />
+    <link rel="canonical" href="https://joeheyming.github.io/emulator/sega/" />
 
     <link
       rel="icon"
@@ -78,14 +78,13 @@
     </style>
 
     <script>
-      // Preserve any inbound query string / fragment, but make sure
-      // ?console=sega reaches the unified shell. replace() (not
-      // assign) so the back button skips this stub.
+      // Preserve inbound query / fragment; land on the path lander.
+      // replace() so the back button skips this stub.
       (function () {
         var inbound = new URLSearchParams(window.location.search);
-        if (!inbound.has('console')) inbound.set('console', 'sega');
+        inbound.delete('console');
         var qs = inbound.toString();
-        var target = '/emulator/' + (qs ? '?' + qs : '') + (window.location.hash || '');
+        var target = '/emulator/sega/' + (qs ? '?' + qs : '') + (window.location.hash || '');
         window.location.replace(target);
       })();
     </script>
@@ -95,11 +94,11 @@
       <h1>Sega Genesis Emulator moved</h1>
       <p>
         The Sega Genesis / Mega Drive emulator now lives at
-        <a href="/emulator/?console=sega">/emulator/?console=sega</a>
+        <a href="/emulator/sega/">/emulator/sega/</a>
         as one of three consoles in the unified emulator shell.
       </p>
       <p>Redirecting you now…</p>
-      <a class="cta" href="/emulator/?console=sega">Play Sega Genesis games →</a>
+      <a class="cta" href="/emulator/sega/">Play Sega Genesis games →</a>
     </main>
   </body>
 </html>

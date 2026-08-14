@@ -3,20 +3,20 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PS1 Emulator — moved to /emulator/?console=ps1</title>
+    <title>PS1 Emulator — moved to /emulator/ps1/</title>
 
     <meta
       name="description"
-      content="The PlayStation emulator lives at /emulator/?console=ps1 — part of a unified retro emulator shell that also covers NES, Sega Genesis, SNES, Game Boy, and Neo Geo."
+      content="The PlayStation emulator lives at /emulator/ps1/ — part of a unified retro emulator shell that also covers NES, Sega Genesis, SNES, Game Boy, and Neo Geo."
     />
 
     <!--
-      Convenience stub for /ps1/ → /emulator/?console=ps1.
+      Convenience stub for /ps1/ → /emulator/ps1/.
       Same redirect pattern as /nes/ and /sega/: JS replace + canonical +
       noindex + visible link fallback. No MetaRefresh (Bing flags those).
     -->
     <meta name="robots" content="noindex,follow" />
-    <link rel="canonical" href="https://joeheyming.github.io/emulator/?console=ps1" />
+    <link rel="canonical" href="https://joeheyming.github.io/emulator/ps1/" />
 
     <link
       rel="icon"
@@ -68,11 +68,13 @@
     </style>
 
     <script>
+      // Preserve inbound query / fragment; land on the path lander.
+      // replace() so the back button skips this stub.
       (function () {
         var inbound = new URLSearchParams(window.location.search);
-        if (!inbound.has('console')) inbound.set('console', 'ps1');
+        inbound.delete('console');
         var qs = inbound.toString();
-        var target = '/emulator/' + (qs ? '?' + qs : '') + (window.location.hash || '');
+        var target = '/emulator/ps1/' + (qs ? '?' + qs : '') + (window.location.hash || '');
         window.location.replace(target);
       })();
     </script>
@@ -82,11 +84,11 @@
       <h1>PS1 Emulator</h1>
       <p>
         The PlayStation emulator lives at
-        <a href="/emulator/?console=ps1">/emulator/?console=ps1</a>
+        <a href="/emulator/ps1/">/emulator/ps1/</a>
         in the unified emulator shell.
       </p>
       <p>Redirecting you now…</p>
-      <a class="cta" href="/emulator/?console=ps1">Play PS1 games →</a>
+      <a class="cta" href="/emulator/ps1/">Play PS1 games →</a>
     </main>
   </body>
 </html>

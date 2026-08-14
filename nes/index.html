@@ -3,15 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NES Emulator — moved to /emulator/?console=nes</title>
+    <title>NES Emulator — moved to /emulator/nes/</title>
 
     <meta
       name="description"
-      content="The NES emulator has moved to /emulator/?console=nes — part of a unified retro emulator shell that also covers Sega Genesis and Game Boy."
+      content="The NES emulator has moved to /emulator/nes/ — part of a unified retro emulator shell that also covers Sega Genesis and Game Boy."
     />
 
     <!--
-      /nes/ was folded into /emulator/?console=nes as part of the
+      /nes/ was folded into /emulator/nes/ as part of the
       shared-emulator consolidation. The unified shell uses
       EmulatorJS (FCEUmm core) under the hood and shares its boot
       card, ROM browser, and identity layer with /sega/ and /gb/.
@@ -23,12 +23,12 @@
         * <link rel="canonical" href="...">
         * Visible <a> fallback for no-JS / crawlers
         * <meta name="robots" content="noindex,follow">
-      consolidates search signal onto /emulator/?console=nes without a
+      consolidates search signal onto /emulator/nes/ without a
       MetaRefresh tag (Bing flags those). The old URL drops out of the
       index, and any UTM params / fragments survive the bounce.
     -->
     <meta name="robots" content="noindex,follow" />
-    <link rel="canonical" href="https://joeheyming.github.io/emulator/?console=nes" />
+    <link rel="canonical" href="https://joeheyming.github.io/emulator/nes/" />
 
     <link
       rel="icon"
@@ -80,16 +80,13 @@
     </style>
 
     <script>
-      // Preserve any inbound query string / fragment, but make sure
-      // ?console=nes reaches the unified shell. If the visitor already
-      // had ?console=<something>, let that take precedence so the URL
-      // can be shared verbatim. replace() (not assign) so the back
-      // button skips this stub.
+      // Preserve inbound query / fragment; land on the path lander.
+      // replace() so the back button skips this stub.
       (function () {
         var inbound = new URLSearchParams(window.location.search);
-        if (!inbound.has('console')) inbound.set('console', 'nes');
+        inbound.delete('console');
         var qs = inbound.toString();
-        var target = '/emulator/' + (qs ? '?' + qs : '') + (window.location.hash || '');
+        var target = '/emulator/nes/' + (qs ? '?' + qs : '') + (window.location.hash || '');
         window.location.replace(target);
       })();
     </script>
@@ -99,11 +96,11 @@
       <h1>NES Emulator moved</h1>
       <p>
         The NES emulator now lives at
-        <a href="/emulator/?console=nes">/emulator/?console=nes</a>
+        <a href="/emulator/nes/">/emulator/nes/</a>
         as one of three consoles in the unified emulator shell.
       </p>
       <p>Redirecting you now…</p>
-      <a class="cta" href="/emulator/?console=nes">Play NES games →</a>
+      <a class="cta" href="/emulator/nes/">Play NES games →</a>
     </main>
   </body>
 </html>

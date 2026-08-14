@@ -24,6 +24,46 @@ const PAGES = [
     title: 'Retro Emulator (NES / Sega / SNES / GB / Neo Geo)'
   },
   {
+    url: `${BASE_URL}/emulator/nes/`,
+    output: 'emulator/nes/nes-preview.png',
+    title: 'NES Emulator'
+  },
+  {
+    url: `${BASE_URL}/emulator/sega/`,
+    output: 'emulator/sega/sega-preview.png',
+    title: 'Sega Genesis Emulator'
+  },
+  {
+    url: `${BASE_URL}/emulator/gg/`,
+    output: 'emulator/gg/gg-preview.png',
+    title: 'Game Gear Emulator'
+  },
+  {
+    url: `${BASE_URL}/emulator/sega32x/`,
+    output: 'emulator/sega32x/sega32x-preview.png',
+    title: 'Sega 32X Emulator'
+  },
+  {
+    url: `${BASE_URL}/emulator/gb/`,
+    output: 'emulator/gb/gb-preview.png',
+    title: 'Game Boy Emulator'
+  },
+  {
+    url: `${BASE_URL}/emulator/snes/`,
+    output: 'emulator/snes/snes-preview.png',
+    title: 'SNES Emulator'
+  },
+  {
+    url: `${BASE_URL}/emulator/neogeo/`,
+    output: 'emulator/neogeo/neogeo-preview.png',
+    title: 'Neo Geo Emulator'
+  },
+  {
+    url: `${BASE_URL}/emulator/ps1/`,
+    output: 'emulator/ps1/ps1-preview.png',
+    title: 'PS1 Emulator'
+  },
+  {
     url: `${BASE_URL}/flash/`,
     output: 'flash/flash-preview.png',
     title: 'Flash Player'

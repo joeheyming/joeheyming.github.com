@@ -986,7 +986,7 @@
     return p;
   }
 
-  /** Split a registry `path` (`./play/drums/` or `./emulator/?console=nes`) into parts. */
+  /** Split a registry `path` (`./play/drums/` or `./emulator/nes/`) into parts. */
   function registryPathParts(app) {
     const raw = app.path || '';
     const withoutDot = raw.startsWith('./')
@@ -1101,10 +1101,9 @@
     // de-duplicate stub entries. Rule: an entry whose `path` includes `?`
     // is treated as a stub only when *another* registry entry has the
     // same base path with no query — that's the `doom-mods` → `doom`
-    // case. Standalone query-string entries (e.g. `nes` at
-    // `./emulator/?console=nes`) stay visible unless a hub exists *and*
-    // that hub does not opt into `navKeepQueryChildren` (emulator hub
-    // wants both the picker and each console in the drawer).
+    // case. Console apps live at path landers (`./emulator/nes/`).
+    // `navKeepQueryChildren` keeps query children visible alongside a hub
+    // when needed.
     const canonicalBasePaths = new Set();
     const keepQueryChildrenBases = new Set();
     for (const app of cachedRegistry) {

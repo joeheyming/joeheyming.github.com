@@ -25,10 +25,7 @@
     <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Retro Emulator" />
-    <meta
-      property="og:title"
-      content="Retro Game Emulator — Play Console Games in Browser"
-    />
+    <meta property="og:title" content="Retro Game Emulator — Play Console Games in Browser" />
     <meta
       property="og:description"
       content="Play NES, Sega Genesis, Game Gear, 32X, SNES, Game Boy, Neo Geo, and PlayStation games in your browser. Powered by EmulatorJS. Free, no install, no ads. Bring your own ROM or browse the built-in collection."
@@ -47,10 +44,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta
-      name="twitter:title"
-      content="Retro Game Emulator — Play Console Games in Browser"
-    />
+    <meta name="twitter:title" content="Retro Game Emulator — Play Console Games in Browser" />
     <meta
       name="twitter:description"
       content="Play NES, Sega Genesis, Game Gear, 32X, SNES, Game Boy, Neo Geo, and PlayStation games in your browser. Free, no install. Bring your own ROM."
@@ -153,7 +147,7 @@
                 "name": "Can I play on a TV, Xbox, or PlayStation browser?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Often yes on Xbox and PlayStation browsers when the page can enable cross-origin isolation (needed for EmulatorJS). Use the on-screen ROM collection — there is no local file picker on those devices — and a controller or remote D-pad to navigate. Smart TVs vary; if the emulator cannot start you will see a clear message. Preview the lean-back layout on desktop with ?tv=1. Deep-link a title with ?console=nes&rom=GameName. PS1 currently requires a desktop browser for local disc images."
+                  "text": "Often yes on Xbox and PlayStation browsers when the page can enable cross-origin isolation (needed for EmulatorJS). Use the on-screen ROM collection — there is no local file picker on those devices — and a controller or remote D-pad to navigate. Smart TVs vary; if the emulator cannot start you will see a clear message. Preview the lean-back layout on desktop with ?tv=1. Deep-link a title with /emulator/nes/?rom=GameName. PS1 currently requires a desktop browser for local disc images."
                 }
               },
               {
@@ -210,15 +204,17 @@
     <script src="/proxy.js"></script>
 
     <!-- Shared emulator shell. Load order matters: leanback (mode) →
-         registry → IA client → web component → orchestrator. -->
-    <script src="leanback.js"></script>
-    <script src="consoles.js"></script>
-    <script src="internet-archive.js"></script>
-    <script src="rom-browser.js"></script>
+         registry → IA client → web component → orchestrator.
+         Absolute /emulator/ paths so console landers (/emulator/nes/)
+         can reuse the same scripts. -->
+    <script src="/emulator/leanback.js"></script>
+    <script src="/emulator/consoles.js"></script>
+    <script src="/emulator/internet-archive.js"></script>
+    <script src="/emulator/rom-browser.js"></script>
     <script src="/shared/breadcrumbs.js"></script>
-    <script src="launch.js"></script>
+    <script src="/emulator/launch.js"></script>
 
-    <link rel="stylesheet" href="emulator.css" />
+    <link rel="stylesheet" href="/emulator/emulator.css" />
 
     <!-- Heyming OS brand foundation -->
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -246,7 +242,8 @@
     <input type="file" id="biosFileInput" class="hidden-input" accept=".zip,.7z,.bin" />
 
     <!-- Boot overlay. The two child slots (#brand, #boot-card) are
-         filled in by launch.js based on `?console=`. Static fallback
+         filled in by launch.js based on the active console path
+         (/emulator/nes/) or legacy ?console=. Static fallback
          content here is what crawlers / no-JS visitors see. -->
     <div id="boot">
       <div class="brand" id="brand">
@@ -260,42 +257,42 @@
       <div class="boot-card" id="boot-card">
         <h2>🕹️ Pick a console</h2>
         <div class="picker-grid">
-          <a class="picker-tile" href="?console=nes">
+          <a class="picker-tile" href="/emulator/nes/">
             <span class="picker-emoji">🕹️</span>
             <span class="picker-title">NES</span>
             <span class="picker-sub">Nintendo Entertainment System</span>
           </a>
-          <a class="picker-tile" href="?console=sega">
+          <a class="picker-tile" href="/emulator/sega/">
             <span class="picker-emoji">🎮</span>
             <span class="picker-title">Sega Genesis</span>
             <span class="picker-sub">Mega Drive Emulator</span>
           </a>
-          <a class="picker-tile" href="?console=gg">
+          <a class="picker-tile" href="/emulator/gg/">
             <span class="picker-emoji">📟</span>
             <span class="picker-title">Game Gear</span>
             <span class="picker-sub">Sega handheld</span>
           </a>
-          <a class="picker-tile" href="?console=sega32x">
+          <a class="picker-tile" href="/emulator/sega32x/">
             <span class="picker-emoji">🚀</span>
             <span class="picker-title">Sega 32X</span>
             <span class="picker-sub">Genesis add-on</span>
           </a>
-          <a class="picker-tile" href="?console=gb">
+          <a class="picker-tile" href="/emulator/gb/">
             <span class="picker-emoji">👾</span>
             <span class="picker-title">Game Boy</span>
             <span class="picker-sub">Game Boy &amp; Game Boy Color</span>
           </a>
-          <a class="picker-tile" href="?console=snes">
+          <a class="picker-tile" href="/emulator/snes/">
             <span class="picker-emoji">🟣</span>
             <span class="picker-title">SNES</span>
             <span class="picker-sub">Super Nintendo</span>
           </a>
-          <a class="picker-tile" href="?console=neogeo">
+          <a class="picker-tile" href="/emulator/neogeo/">
             <span class="picker-emoji">🥊</span>
             <span class="picker-title">Neo Geo</span>
             <span class="picker-sub">AES / MVS Arcade</span>
           </a>
-          <a class="picker-tile" href="?console=ps1">
+          <a class="picker-tile" href="/emulator/ps1/">
             <span class="picker-emoji">💿</span>
             <span class="picker-title">PS1</span>
             <span class="picker-sub">PlayStation</span>
