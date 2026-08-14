@@ -1,10 +1,13 @@
 /**
  * Facade over the show + movie registry. Everything is sourced from
  * the `Watch` Google Sheet via {@link ../modules/sheets-loader.js} —
- * there is no in-bundle fallback. The facade exists so consumers
- * (`index.js`, `quicknav.js`, `shows-view.js`) can stay agnostic of
- * where the registry lives; swapping the sheet for a static JSON
- * snapshot or a different backend would touch only this file.
+ * there is no in-bundle fallback for real users. The facade exists so
+ * consumers (`index.js`, `quicknav.js`, `shows-view.js`) can stay
+ * agnostic of where the registry lives.
+ *
+ * Exception: search crawlers (Googlebot, Bingbot, …) and `?preview=1`
+ * get the fictional catalog from {@link ./preview-catalog.js} so OG /
+ * Search Console renders don't show real show posters.
  *
  * One gviz round-trip per page load, deduped via a single in-flight
  * promise. After the first call resolves, `_data` holds the live
@@ -19,6 +22,7 @@
  */
 
 import { loadSubjects, subjectToShowConfig, subjectToMovieConfig } from './sheets-loader.js';
+import { getPreviewCatalog, shouldUsePreviewCatalog } from './preview-catalog.js';
 
 export { TAG_GROUPS, ALL_TAGS } from './shows.js';
 
@@ -68,6 +72,10 @@ async function loadAll() {
   if (_data) return _data;
   if (_dataPromise) return _dataPromise;
   _dataPromise = (async () => {
+    if (shouldUsePreviewCatalog()) {
+      _data = getPreviewCatalog();
+      return _data;
+    }
     const subjects = await loadSubjects();
     const shows = hydrateRows(subjects, 'show', subjectToShowConfig);
     const movies = hydrateRows(subjects, 'movie', subjectToMovieConfig);
@@ -115,7 +123,7 @@ void loadAll().catch(() => {
  * contract — anything reaching for these from production code should
  * import the dedicated facade method instead.
  */
-export const __testing = { hydrateRows };
+export const __testing = { hydrateRows, shouldUsePreviewCatalog };
 
 /** @returns {Promise<ShowConfig[]>} */
 export async function getShows() {

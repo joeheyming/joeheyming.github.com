@@ -226,9 +226,17 @@ const PAGES = [
     title: 'JoeTube'
   },
   {
-    url: `${BASE_URL}/watch/`,
+    // `?preview=1` loads the fictional catalog from
+    // watch/modules/preview-catalog.js (same tiles Googlebot sees).
+    url: `${BASE_URL}/watch/?preview=1`,
     output: 'watch/watch-preview.png',
-    title: 'Watch'
+    title: 'Watch',
+    setup: async (page) => {
+      await page.waitForSelector('.tv-show-card[data-show="genre-animation"]', {
+        timeout: 15000
+      });
+      await page.waitForTimeout(300);
+    }
   },
   {
     url: `${BASE_URL}/blockbuster/`,

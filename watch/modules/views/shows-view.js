@@ -1308,31 +1308,54 @@ function makeShowCard(show, ctx) {
   poster.className = 'tv-show-poster';
   poster.style.background = `linear-gradient(160deg, ${show.accent}33, #111)`;
 
-  const img = document.createElement('img');
-  img.loading = 'lazy';
-  img.decoding = 'async';
-  img.alt = `${show.name} poster`;
-  // Resolve the actual poster URL via TVMaze only once this card is
-  // near the viewport. See `lazyResolvePoster` for why — TL;DR
-  // `loading="lazy"` defers the byte download once src is set, but
-  // not the metadata round-trip that produces the src. Until the
-  // observer fires the gradient background fills the tile so we
-  // don't show a broken icon.
-  lazyResolvePoster(img, () => {
-    fetchPoster(show.tvmazeId).then((url) => {
-      if (url) img.src = url;
+  // Preview-catalog tiles (and any future row without TVMaze / poster)
+  // skip the network and render the emoji placeholder directly.
+  if (show.posterUrl) {
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.alt = `${show.name} poster`;
+    img.src = show.posterUrl;
+    img.addEventListener(
+      'error',
+      () => {
+        img.remove();
+        poster.classList.add('is-empty');
+        poster.textContent = show.emoji;
+      },
+      { once: true }
+    );
+    poster.appendChild(img);
+  } else if (show.tvmazeId) {
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.alt = `${show.name} poster`;
+    // Resolve the actual poster URL via TVMaze only once this card is
+    // near the viewport. See `lazyResolvePoster` for why — TL;DR
+    // `loading="lazy"` defers the byte download once src is set, but
+    // not the metadata round-trip that produces the src. Until the
+    // observer fires the gradient background fills the tile so we
+    // don't show a broken icon.
+    lazyResolvePoster(img, () => {
+      fetchPoster(show.tvmazeId).then((url) => {
+        if (url) img.src = url;
+      });
     });
-  });
-  img.addEventListener(
-    'error',
-    () => {
-      img.remove();
-      poster.classList.add('is-empty');
-      poster.textContent = show.emoji;
-    },
-    { once: true }
-  );
-  poster.appendChild(img);
+    img.addEventListener(
+      'error',
+      () => {
+        img.remove();
+        poster.classList.add('is-empty');
+        poster.textContent = show.emoji;
+      },
+      { once: true }
+    );
+    poster.appendChild(img);
+  } else {
+    poster.classList.add('is-empty');
+    poster.textContent = show.emoji;
+  }
 
   // Plex/Netflix-style compact caption: just the show title, single
   // line, sub-poster. No tagline blurb — the row reads as a poster
