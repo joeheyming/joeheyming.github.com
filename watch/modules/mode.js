@@ -36,6 +36,8 @@
 
 /* eslint-env browser */
 
+import { shouldUsePreviewCatalog } from './preview-catalog.js';
+
 const TV_UA_RE = /BRAVIA|SmartTV|SMART-TV|Tizen|Web0S|HbbTV/i;
 
 /**
@@ -68,7 +70,7 @@ const KEY_NAVIGATION = new Set([
 /**
  * @typedef {Object} ModeResult
  * @property {boolean} isTv
- * @property {'queryParam'|'nativeBridge'|'userAgent'|null} source
+ * @property {'queryParam'|'nativeBridge'|'userAgent'|'previewCatalog'|null} source
  *   Which signal triggered TV mode (handy for debugging "why did it
  *   pick TV?" reports). `null` when not TV.
  */
@@ -85,6 +87,12 @@ export function detectMode(env) {
   if (params.get('tv') === '1') return { isTv: true, source: 'queryParam' };
   if (env.nativeFlag === true) return { isTv: true, source: 'nativeBridge' };
   if (TV_UA_RE.test(env.userAgent || '')) return { isTv: true, source: 'userAgent' };
+  // OG / Search Console / Bing crawls use the fictional genre catalog —
+  // present that as the TV-app shell so the screenshot reads as a
+  // living-room app rather than a desktop marketing page.
+  if (shouldUsePreviewCatalog({ userAgent: env.userAgent, search: env.search })) {
+    return { isTv: true, source: 'previewCatalog' };
+  }
   return { isTv: false, source: null };
 }
 

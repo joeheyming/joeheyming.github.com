@@ -4,9 +4,9 @@
  * Search Console live tests while leaving the page chrome + SEO copy
  * unchanged for humans.
  *
- * Tiles are genre / vibe invitations (not fake show titles) so the
- * OG card still sells "classic TV from the Archive" without naming
- * any real series.
+ * Preview / crawler landings use {@link getPreviewHome} — a Netflix-
+ * style hero + horizontal genre rails. {@link getPreviewCatalog} still
+ * exposes a flat ShowConfig list so the data-source facade stays happy.
  *
  * Triggered by:
  *   - `?preview=1` (generate-previews.js, manual QA)
@@ -15,6 +15,41 @@
 
 /** @typedef {import('./shows.js').ShowConfig} ShowConfig */
 /** @typedef {import('./movies.js').MovieConfig} MovieConfig */
+
+/**
+ * @typedef {Object} PreviewTile
+ * @property {string} id
+ * @property {string} name
+ * @property {string} shortName
+ * @property {string} emoji
+ * @property {string} accent
+ * @property {string} tagline
+ * @property {string[]} tags
+ */
+
+/**
+ * @typedef {Object} PreviewHero
+ * @property {string} id
+ * @property {string} name
+ * @property {string} emoji
+ * @property {string} accent
+ * @property {string} headline
+ * @property {string} tagline
+ * @property {string} cta
+ */
+
+/**
+ * @typedef {Object} PreviewRail
+ * @property {string} id
+ * @property {string} title
+ * @property {PreviewTile[]} items
+ */
+
+/**
+ * @typedef {Object} PreviewHome
+ * @property {PreviewHero} hero
+ * @property {PreviewRail[]} rails
+ */
 
 /**
  * @typedef {Object} PreviewCatalogOpts
@@ -35,23 +70,16 @@ export function shouldUsePreviewCatalog(opts = {}) {
   return new URLSearchParams(search).has('preview');
 }
 
-/**
- * Genre / vibe tiles. Each row mirrors a real filter chip so the
- * preview grid reads like a streaming home row of moods to browse.
- *
- * @type {Omit<ShowConfig, 'parser' | 'acceptFile' | 'imdbId' | 'posterUrl'>[]}
- */
-const PREVIEW_SHOWS = [
+/** @type {PreviewTile[]} */
+const GENRE_TILES = [
   {
     id: 'genre-animation',
     name: 'Animation',
     shortName: 'Animation',
     emoji: '🎨',
     accent: '#f59e0b',
-    tags: ['animation', 'kids', '80s'],
     tagline: 'Hand-drawn classics & Saturday morning',
-    iaItem: 'preview-placeholder',
-    tvmazeId: 0
+    tags: ['animation', 'kids', '80s']
   },
   {
     id: 'genre-comedy',
@@ -59,10 +87,8 @@ const PREVIEW_SHOWS = [
     shortName: 'Comedy',
     emoji: '😂',
     accent: '#eab308',
-    tags: ['live-action', 'comedy', '90s'],
     tagline: 'Sitcoms, sketches & silly hours',
-    iaItem: 'preview-placeholder',
-    tvmazeId: 0
+    tags: ['live-action', 'comedy', '90s']
   },
   {
     id: 'genre-sci-fi',
@@ -70,10 +96,8 @@ const PREVIEW_SHOWS = [
     shortName: 'Sci-Fi',
     emoji: '🚀',
     accent: '#3b82f6',
-    tags: ['live-action', 'sci-fi', '60s'],
     tagline: 'Rocket ships & far-out futures',
-    iaItem: 'preview-placeholder',
-    tvmazeId: 0
+    tags: ['live-action', 'sci-fi', '60s']
   },
   {
     id: 'genre-superhero',
@@ -81,10 +105,8 @@ const PREVIEW_SHOWS = [
     shortName: 'Superhero',
     emoji: '🦸',
     accent: '#ef4444',
-    tags: ['animation', 'superhero', '90s'],
     tagline: 'Capes, masks & origin stories',
-    iaItem: 'preview-placeholder',
-    tvmazeId: 0
+    tags: ['animation', 'superhero', '90s']
   },
   {
     id: 'genre-anthology',
@@ -92,10 +114,8 @@ const PREVIEW_SHOWS = [
     shortName: 'Anthology',
     emoji: '🎭',
     accent: '#a855f7',
-    tags: ['live-action', 'anthology', '50s'],
     tagline: 'A new story every week',
-    iaItem: 'preview-placeholder',
-    tvmazeId: 0
+    tags: ['live-action', 'anthology', '50s']
   },
   {
     id: 'genre-fantasy',
@@ -103,10 +123,8 @@ const PREVIEW_SHOWS = [
     shortName: 'Fantasy',
     emoji: '🧙',
     accent: '#8b5cf6',
-    tags: ['live-action', 'fantasy', '80s'],
     tagline: 'Magic, quests & enchanted realms',
-    iaItem: 'preview-placeholder',
-    tvmazeId: 0
+    tags: ['live-action', 'fantasy', '80s']
   },
   {
     id: 'genre-action',
@@ -114,10 +132,8 @@ const PREVIEW_SHOWS = [
     shortName: 'Action',
     emoji: '💥',
     accent: '#f97316',
-    tags: ['animation', 'action', '80s'],
     tagline: 'Chases, fights & cliffhangers',
-    iaItem: 'preview-placeholder',
-    tvmazeId: 0
+    tags: ['animation', 'action', '80s']
   },
   {
     id: 'genre-spy',
@@ -125,10 +141,8 @@ const PREVIEW_SHOWS = [
     shortName: 'Spy',
     emoji: '🕵️',
     accent: '#64748b',
-    tags: ['live-action', 'spy', '60s'],
     tagline: 'Gadgets, intrigue & cool cars',
-    iaItem: 'preview-placeholder',
-    tvmazeId: 0
+    tags: ['live-action', 'spy', '60s']
   },
   {
     id: 'genre-anime',
@@ -136,10 +150,8 @@ const PREVIEW_SHOWS = [
     shortName: 'Anime',
     emoji: '🎌',
     accent: '#ec4899',
-    tags: ['animation', 'anime', '90s'],
     tagline: 'Imported animation classics',
-    iaItem: 'preview-placeholder',
-    tvmazeId: 0
+    tags: ['animation', 'anime', '90s']
   },
   {
     id: 'genre-kids',
@@ -147,65 +159,21 @@ const PREVIEW_SHOWS = [
     shortName: 'Kids',
     emoji: '🧸',
     accent: '#22c55e',
-    tags: ['animation', 'kids', '90s'],
     tagline: 'After-school & Saturday morning',
-    iaItem: 'preview-placeholder',
-    tvmazeId: 0
-  },
-  {
-    id: 'genre-game-show',
-    name: 'Game Shows',
-    shortName: 'Game Shows',
-    emoji: '🎯',
-    accent: '#14b8a6',
-    tags: ['live-action', 'game-show', '70s'],
-    tagline: 'Buzzers, prizes & panelists',
-    iaItem: 'preview-placeholder',
-    tvmazeId: 0
-  },
-  {
-    id: 'genre-satire',
-    name: 'Satire',
-    shortName: 'Satire',
-    emoji: '📰',
-    accent: '#06b6d4',
-    tags: ['animation', 'satire', '90s'],
-    tagline: 'Sharp takes & sideways humor',
-    iaItem: 'preview-placeholder',
-    tvmazeId: 0
-  },
-  {
-    id: 'genre-documentary',
-    name: 'Documentary',
-    shortName: 'Documentary',
-    emoji: '🎬',
-    accent: '#0ea5e9',
-    tags: ['documentary', '70s'],
-    tagline: 'Real stories from the Archive',
-    iaItem: 'preview-placeholder',
-    tvmazeId: 0
-  },
-  {
-    id: 'genre-sports',
-    name: 'Sports',
-    shortName: 'Sports',
-    emoji: '🏆',
-    accent: '#84cc16',
-    tags: ['live-action', 'sports', '80s'],
-    tagline: 'Highlights, matches & underdogs',
-    iaItem: 'preview-placeholder',
-    tvmazeId: 0
-  },
+    tags: ['animation', 'kids', '90s']
+  }
+];
+
+/** @type {PreviewTile[]} */
+const ERA_TILES = [
   {
     id: 'era-80s',
     name: '80s Classics',
     shortName: '80s',
     emoji: '📼',
     accent: '#d946ef',
-    tags: ['live-action', '80s'],
     tagline: 'Neon, synth & rerun gold',
-    iaItem: 'preview-placeholder',
-    tvmazeId: 0
+    tags: ['live-action', '80s']
   },
   {
     id: 'era-90s',
@@ -213,10 +181,8 @@ const PREVIEW_SHOWS = [
     shortName: '90s',
     emoji: '📺',
     accent: '#38bdf8',
-    tags: ['animation', 'kids', '90s'],
     tagline: 'After-school channel surfing',
-    iaItem: 'preview-placeholder',
-    tvmazeId: 0
+    tags: ['animation', 'kids', '90s']
   },
   {
     id: 'era-60s',
@@ -224,10 +190,8 @@ const PREVIEW_SHOWS = [
     shortName: '60s',
     emoji: '🕺',
     accent: '#f43f5e',
-    tags: ['live-action', '60s'],
     tagline: 'Mod style & black-and-white charm',
-    iaItem: 'preview-placeholder',
-    tvmazeId: 0
+    tags: ['live-action', '60s']
   },
   {
     id: 'era-golden',
@@ -235,20 +199,95 @@ const PREVIEW_SHOWS = [
     shortName: 'Golden Age',
     emoji: '✨',
     accent: '#eab308',
-    tags: ['live-action', '50s'],
     tagline: 'Early television treasures',
-    iaItem: 'preview-placeholder',
-    tvmazeId: 0
+    tags: ['live-action', '50s']
+  },
+  {
+    id: 'genre-game-show',
+    name: 'Game Shows',
+    shortName: 'Game Shows',
+    emoji: '🎯',
+    accent: '#14b8a6',
+    tagline: 'Buzzers, prizes & panelists',
+    tags: ['live-action', 'game-show', '70s']
+  },
+  {
+    id: 'genre-documentary',
+    name: 'Documentary',
+    shortName: 'Documentary',
+    emoji: '🎬',
+    accent: '#0ea5e9',
+    tagline: 'Real stories from the Archive',
+    tags: ['documentary', '70s']
   }
 ];
 
 /**
+ * Netflix-style home payload for the preview / crawler shell.
+ * @returns {PreviewHome}
+ */
+export function getPreviewHome() {
+  const featured = GENRE_TILES.find((t) => t.id === 'genre-sci-fi') || GENRE_TILES[0];
+  return {
+    hero: {
+      id: featured.id,
+      name: featured.name,
+      emoji: featured.emoji,
+      accent: featured.accent,
+      headline: 'Classic TV, streaming free',
+      tagline: 'Browse decades of animation, sitcoms, and sci-fi from the Internet Archive.',
+      cta: 'Play'
+    },
+    rails: [
+      {
+        id: 'popular-genres',
+        title: 'Popular genres',
+        items: GENRE_TILES.slice(0, 8)
+      },
+      {
+        id: 'decades',
+        title: 'Decades & more',
+        items: ERA_TILES
+      }
+    ]
+  };
+}
+
+/**
+ * Flat registry used by {@link ./data-source.js} when preview mode is
+ * on. Deep links still resolve; the landing UI uses {@link getPreviewHome}.
+ *
  * @returns {{ shows: ShowConfig[], movies: MovieConfig[], byId: Map<string, ShowConfig | MovieConfig> }}
  */
 export function getPreviewCatalog() {
+  const home = getPreviewHome();
+  /** @type {Map<string, PreviewTile>} */
+  const seen = new Map();
+  for (const rail of home.rails) {
+    for (const item of rail.items) seen.set(item.id, item);
+  }
+  // Include the hero tile even if it already appears in a rail.
+  seen.set(home.hero.id, {
+    id: home.hero.id,
+    name: home.hero.name,
+    shortName: home.hero.name,
+    emoji: home.hero.emoji,
+    accent: home.hero.accent,
+    tagline: home.hero.tagline,
+    tags: ['live-action', 'sci-fi', '60s']
+  });
+
   /** @type {ShowConfig[]} */
-  const shows = PREVIEW_SHOWS.map((s) => ({
-    ...s,
+  const shows = [...seen.values()].map((t) => ({
+    id: t.id,
+    name: t.name,
+    shortName: t.shortName,
+    emoji: t.emoji,
+    accent: t.accent,
+    tags: t.tags,
+    tagline: t.tagline,
+    iaItem: 'preview-placeholder',
+    tvmazeId: 0,
     parser: null
   }));
   /** @type {MovieConfig[]} */

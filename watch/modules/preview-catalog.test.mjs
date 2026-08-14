@@ -6,7 +6,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { ALL_TAGS } from './shows.js';
-import { getPreviewCatalog, shouldUsePreviewCatalog } from './preview-catalog.js';
+import { getPreviewCatalog, getPreviewHome, shouldUsePreviewCatalog } from './preview-catalog.js';
 
 describe('shouldUsePreviewCatalog', () => {
   it('matches Googlebot user agents', () => {
@@ -68,6 +68,20 @@ describe('shouldUsePreviewCatalog', () => {
       }),
       false
     );
+  });
+});
+
+describe('getPreviewHome', () => {
+  it('returns a hero billboard and horizontal rails', () => {
+    const home = getPreviewHome();
+    assert.ok(home.hero.headline);
+    assert.ok(home.hero.cta);
+    assert.equal(home.rails.length, 2);
+    assert.equal(home.rails[0].id, 'popular-genres');
+    assert.equal(home.rails[1].id, 'decades');
+    assert.ok(home.rails[0].items.length >= 6);
+    assert.ok(home.rails[1].items.length >= 4);
+    assert.ok(home.rails[0].items.some((t) => t.id === 'genre-animation'));
   });
 });
 

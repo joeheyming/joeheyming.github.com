@@ -2674,7 +2674,11 @@ a.tv-crumb:hover {
 :root[data-mode='tv'] .back-to-launcher,
 :root[data-mode='tv'] feedback-button,
 :root[data-mode='tv'] share-button,
-:root[data-mode='tv'] .tv-fineprint {
+:root[data-mode='tv'] .tv-fineprint,
+:root[data-mode='tv'] .tv-about,
+:root[data-mode='tv'] .heyming-nav-toggle,
+:root[data-mode='tv'] .heyming-nav-backdrop,
+:root[data-mode='tv'] .heyming-nav-drawer {
   display: none !important;
 }
 
@@ -2685,4 +2689,241 @@ a.tv-crumb:hover {
    selector; this just covers the ambient `:focus`. */
 :root[data-modality='pointer'] *:focus:not(:focus-visible) {
   outline: none;
+}
+
+/* =========================================================================
+ * Netflix-style preview / crawler home (html.tv-stream-preview)
+ * Full-bleed hero + horizontal genre rails. Only mounted when
+ * shouldUsePreviewCatalog() is true — humans never see this shell.
+ * ========================================================================= */
+
+html.tv-stream-preview {
+  --stream-pad-x: clamp(20px, 4vw, 48px);
+}
+
+html.tv-stream-preview body {
+  padding-left: 0 !important;
+  background: #050507;
+}
+
+html.tv-stream-preview .tv-room {
+  max-width: none;
+  padding: 0;
+  margin: 0;
+  gap: 0;
+  min-height: 100vh;
+}
+
+html.tv-stream-preview .tv-header,
+html.tv-stream-preview .tv-breadcrumbs,
+html.tv-stream-preview .tv-quicknav,
+html.tv-stream-preview .tv-about,
+html.tv-stream-preview .tv-fineprint,
+html.tv-stream-preview .tv-more-apps,
+html.tv-stream-preview feedback-button,
+html.tv-stream-preview share-button,
+html.tv-stream-preview .heyming-nav-toggle,
+html.tv-stream-preview .heyming-nav-backdrop,
+html.tv-stream-preview .heyming-nav-drawer {
+  display: none !important;
+}
+
+html.tv-stream-preview #tv-view {
+  flex: 1;
+  display: block;
+}
+
+.tv-stream-home {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  color: var(--tv-text);
+  background: #050507;
+}
+
+.tv-stream-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  padding: 18px var(--stream-pad-x);
+  pointer-events: none;
+}
+
+.tv-stream-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55);
+}
+
+.tv-stream-brand-emoji {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.tv-stream-hero {
+  position: relative;
+  isolation: isolate;
+  min-height: 340px;
+  padding: 88px var(--stream-pad-x) 56px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  background: linear-gradient(
+      90deg,
+      rgba(5, 5, 7, 0.92) 0%,
+      rgba(5, 5, 7, 0.55) 42%,
+      rgba(5, 5, 7, 0.15) 70%
+    ),
+    linear-gradient(0deg, #050507 0%, transparent 42%),
+    radial-gradient(
+      ellipse 80% 90% at 78% 40%,
+      color-mix(in srgb, var(--hero-accent, #3b82f6) 55%, transparent),
+      transparent 70%
+    ),
+    linear-gradient(145deg, #12121a 0%, #0a0a10 55%, #050507 100%);
+}
+
+.tv-stream-hero-glow {
+  position: absolute;
+  right: 6%;
+  top: 50%;
+  transform: translateY(-52%);
+  font-size: clamp(120px, 22vw, 220px);
+  line-height: 1;
+  opacity: 0.28;
+  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.45));
+  pointer-events: none;
+  z-index: 0;
+  user-select: none;
+}
+
+.tv-stream-hero-body {
+  position: relative;
+  z-index: 1;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.tv-stream-hero-eyebrow {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--hero-accent, #3b82f6) 85%, #fff);
+}
+
+.tv-stream-hero-headline {
+  margin: 0;
+  font-size: clamp(32px, 4.5vw, 48px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: #fff;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
+}
+
+.tv-stream-hero-tagline {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.45;
+  color: rgba(245, 245, 247, 0.82);
+  max-width: 42ch;
+}
+
+.tv-stream-hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 12px 22px;
+  border-radius: 6px;
+  background: #fff;
+  color: #111;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.tv-stream-rails {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 8px 0 48px;
+  margin-top: -28px;
+  position: relative;
+  z-index: 2;
+}
+
+.tv-stream-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tv-stream-rail-title {
+  margin: 0;
+  padding: 0 var(--stream-pad-x);
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.01em;
+}
+
+.tv-stream-rail-track {
+  display: flex;
+  gap: 12px;
+  padding: 4px var(--stream-pad-x) 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tv-stream-rail-track::-webkit-scrollbar {
+  display: none;
+}
+
+.tv-stream-tile {
+  flex: 0 0 auto;
+  width: 118px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tv-stream-tile-poster {
+  aspect-ratio: 2 / 3;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 42px;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--tile-accent, #888) 45%, #1a1a22),
+    #0d0d12 75%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+
+.tv-stream-tile-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(245, 245, 247, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

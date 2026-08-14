@@ -16,6 +16,8 @@
  */
 
 import { getShows, getMovies, TAG_GROUPS } from '../data-source.js';
+import { shouldUsePreviewCatalog } from '../preview-catalog.js';
+import { mountPreviewHome } from './preview-home.js';
 import { listContinueWatching, clearLastEpisode } from '../prefs.js';
 import {
   listSaved as listOfflineSaved,
@@ -214,6 +216,13 @@ function wireRemoveSubNav(card, remove) {
  * @returns {Promise<{ unmount: () => void }>}
  */
 export async function mount(slot, ctx) {
+  // OG / crawler path: Netflix-style hero + rails with fictional genre
+  // tiles. Humans never hit this — shouldUsePreviewCatalog is false for
+  // ordinary browsers without ?preview=1.
+  if (shouldUsePreviewCatalog()) {
+    return mountPreviewHome(slot);
+  }
+
   // Render a synchronous shell skeleton (title + "Loading channel
   // guide…") into the slot before awaiting the registry, so the user
   // sees *something* in the same frame the router clears the slot.

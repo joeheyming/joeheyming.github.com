@@ -226,16 +226,17 @@ const PAGES = [
     title: 'JoeTube'
   },
   {
-    // `?preview=1` loads the fictional catalog from
-    // watch/modules/preview-catalog.js (same tiles Googlebot sees).
+    // Netflix-style preview home (hero + genre rails) from
+    // watch/modules/views/preview-home.js — same shell crawlers see.
     url: `${BASE_URL}/watch/?preview=1`,
     output: 'watch/watch-preview.png',
     title: 'Watch',
     setup: async (page) => {
-      await page.waitForSelector('.tv-show-card[data-show="genre-animation"]', {
+      await page.waitForSelector('.tv-stream-home .tv-stream-hero', {
         timeout: 15000
       });
-      await page.waitForTimeout(300);
+      await page.waitForSelector('.tv-stream-tile[data-tile="genre-animation"]');
+      await page.waitForTimeout(400);
     }
   },
   {

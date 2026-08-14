@@ -91,4 +91,24 @@ describe('detectMode', () => {
     assert.equal(r.isTv, false);
     assert.equal(r.source, null);
   });
+
+  it('preview catalog (?preview=1) uses the TV-app shell', () => {
+    const r = detectMode({
+      search: '?preview=1',
+      userAgent: 'Mozilla/5.0',
+      nativeFlag: false
+    });
+    assert.equal(r.isTv, true);
+    assert.equal(r.source, 'previewCatalog');
+  });
+
+  it('Googlebot preview catalog uses the TV-app shell', () => {
+    const r = detectMode({
+      search: '',
+      userAgent: 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+      nativeFlag: false
+    });
+    assert.equal(r.isTv, true);
+    assert.equal(r.source, 'previewCatalog');
+  });
 });
