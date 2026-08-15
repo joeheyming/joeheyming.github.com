@@ -491,7 +491,11 @@
 
     const grid = bootCard.querySelector('.picker-grid');
     if (grid) {
-      pickerRoving = lb.applyRovingTabindex(grid, { selector: '.picker-tile' });
+      // Include showcase tiles outside the console grid (e.g. Flash).
+      const focusRoot = bootCard;
+      pickerRoving = lb.applyRovingTabindex(focusRoot, {
+        selector: '.picker-grid .picker-tile, .picker-extra .picker-tile'
+      });
       pickerRoving.focusFirst();
       return;
     }
@@ -679,9 +683,18 @@
       <h2>🕹️ Pick a console</h2>
       ${gamepadBannerHtml()}
       <div class="picker-grid">${tiles}</div>
+      <div class="picker-extra">
+        <h3 class="picker-extra-heading">Also try</h3>
+        <a class="picker-tile picker-tile-flash" href="/flash/" data-extra="flash">
+          <span class="picker-emoji">⚡</span>
+          <span class="picker-title">Flash Player</span>
+          <span class="picker-sub">Classic .swf games via Ruffle · Archive collection</span>
+        </a>
+      </div>
       <p class="picker-help">
         Free, browser-based emulators. No install, no ads. Bring your own ROM
-        or browse the built-in public-domain collection.
+        or browse the built-in public-domain collection. Flash games live on a
+        separate Ruffle player.
       </p>
     `;
 

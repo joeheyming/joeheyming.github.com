@@ -4,17 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-    <title>Flash Player — Play .SWF Files Online ⚡</title>
+    <title>Flash Player — Play Classic Flash Games Online ⚡</title>
     <meta name="theme-color" content="#1a1a1a" />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta
       name="description"
-      content="Play Adobe Flash (.swf) files in your browser with Ruffle. Drop a SWF, fullscreen, no install, no ads. Free Flash emulator online."
+      content="Play classic Adobe Flash (.swf) games in your browser with Ruffle. Browse an Internet Archive collection or load your own SWF. Fullscreen, no install, no ads."
     />
     <meta
       name="keywords"
-      content="flash player online, swf player, ruffle, adobe flash emulator, play swf in browser, flash games online, free flash player"
+      content="flash player online, swf player, ruffle, adobe flash emulator, play swf in browser, flash games online, free flash player, internet archive flash"
     />
 
     <link
@@ -24,10 +24,10 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming" />
-    <meta property="og:title" content="Flash Player — Play .SWF Files Online ⚡" />
+    <meta property="og:title" content="Flash Player — Play Classic Flash Games Online ⚡" />
     <meta
       property="og:description"
-      content="Play Adobe Flash (.swf) files in your browser with Ruffle. Drop a SWF — no install, no ads."
+      content="Play classic Flash (.swf) games in your browser with Ruffle. Browse Internet Archive or load your own SWF — no install, no ads."
     />
     <meta property="og:url" content="https://joeheyming.github.io/flash/" />
     <meta property="og:image" content="https://joeheyming.github.io/flash/flash-preview.png" />
@@ -39,10 +39,10 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="Flash Player — Play .SWF Files Online ⚡" />
+    <meta name="twitter:title" content="Flash Player — Play Classic Flash Games Online ⚡" />
     <meta
       name="twitter:description"
-      content="Play Adobe Flash (.swf) files in your browser with Ruffle. Drop a SWF — no install, no ads."
+      content="Play classic Flash (.swf) games in your browser with Ruffle. Browse Internet Archive or load your own SWF — no install, no ads."
     />
     <meta name="twitter:image" content="https://joeheyming.github.io/flash/flash-preview.png" />
 
@@ -58,7 +58,7 @@
             "alternateName": ["SWF Player", "Ruffle Flash Emulator", "Browser Flash Player"],
             "applicationCategory": "GameApplication",
             "operatingSystem": "Web Browser",
-            "description": "Play Adobe Flash (.swf) movies and games in your browser using the Ruffle WebAssembly emulator. Bring your own SWF file. No install, no ads.",
+            "description": "Play Adobe Flash (.swf) movies and games in your browser using the Ruffle WebAssembly emulator. Browse a built-in Internet Archive collection or bring your own SWF. No install, no ads.",
             "url": "https://joeheyming.github.io/flash/",
             "author": {
               "@type": "Person",
@@ -67,13 +67,14 @@
             },
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
             "featureList": [
+              "Browse Flash games from Internet Archive",
               "Play .swf Flash files in the browser",
-              "Drag-and-drop or file picker",
+              "Optional local file load",
               "Fullscreen mode",
               "Powered by Ruffle WASM",
               "No install, no ads"
             ],
-            "keywords": "flash player, swf, ruffle, adobe flash emulator"
+            "keywords": "flash player, swf, ruffle, adobe flash emulator, internet archive"
           },
           {
             "@type": "FAQPage",
@@ -88,10 +89,10 @@
               },
               {
                 "@type": "Question",
-                "name": "Where do I get .swf files?",
+                "name": "Where do the Flash games come from?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Bring your own. Backups of Flash content you own, public-domain animations, and homebrew are fine. Downloading copyrighted SWFs you don't have rights to typically isn't. Nothing is uploaded — files stay in this browser tab."
+                  "text": "Browse Collection loads .swf files from an Internet Archive item (banned-from-equestria-daily-1.5). You can also load a local .swf you already have. Files are fetched into this browser tab and are not uploaded to this site."
                 }
               },
               {
@@ -99,7 +100,7 @@
                 "name": "Can I run Windows .exe demos here?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "No. Windows and Steam .exe demos cannot run in this browser Flash player. For old MS-DOS game zips that auto-boot an .exe, use the site's DOS Player (/dos/). Modern Windows programs need a real PC or a Windows VM — not a static web page."
+                  "text": "No — this player only runs Adobe Flash .swf files via Ruffle. For classic MS-DOS game zips, use the site's DOS Player (/dos/)."
                 }
               }
             ]
@@ -125,6 +126,8 @@
     <script src="/nav.js" data-nav-size="compact"></script>
     <script src="/feedback.js"></script>
     <script src="/share.js"></script>
+    <script src="/proxy.js"></script>
+    <script src="/emulator/internet-archive.js"></script>
 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -153,41 +156,85 @@
       <h1 class="app-title">Flash Player</h1>
       <span class="app-sub" id="fileLabel">No file loaded</span>
       <div class="header-actions">
-        <button type="button" class="btn" id="loadBtn">Load .swf</button>
+        <button type="button" class="btn" id="browseBtn">Browse</button>
+        <button type="button" class="btn btn-ghost" id="loadBtn">Load .swf</button>
         <button type="button" class="btn" id="fullscreenBtn" disabled>Fullscreen</button>
         <button type="button" class="btn btn-ghost" id="unloadBtn" disabled>Unload</button>
       </div>
     </header>
 
     <main class="stage" id="stage">
-      <div class="boot" id="boot">
-        <div
-          class="dropzone"
-          id="dropzone"
-          tabindex="0"
-          role="button"
-          aria-label="Load a Flash SWF file"
-        >
-          <p class="drop-emoji" aria-hidden="true">⚡</p>
-          <p class="drop-title">
-            Drop a
-            <code>.swf</code>
-            here
-          </p>
-          <p class="drop-sub">or click to browse — runs entirely in this tab via Ruffle</p>
-        </div>
-        <p class="hint">
-          This plays Adobe Flash
-          <code>.swf</code>
-          only — not Windows or Steam
-          <code>.exe</code>
-          demos (those can’t run in the browser). Old MS-DOS game zips belong in the
-          <a href="/dos/">DOS Player</a>
-          .
-        </p>
-      </div>
-      <div class="player-wrap" id="playerWrap" hidden></div>
+      <div class="player-wrap" id="playerWrap"></div>
     </main>
+
+    <div class="modal" id="loadModal" role="dialog" aria-modal="true" aria-labelledby="loadTitle">
+      <div class="modal-panel modal-panel-compact">
+        <div class="brand">
+          <span class="brand-logo" aria-hidden="true">⚡</span>
+          <h2 class="brand-title" id="loadTitle">
+            Flash Player
+            <span class="brand-sub">Ruffle · Internet Archive · .swf</span>
+          </h2>
+        </div>
+        <div class="boot-card">
+          <h3 class="boot-heading">Load a Flash game</h3>
+          <div class="btn-stack">
+            <button type="button" class="btn btn-primary" id="browseBootBtn">
+              <span aria-hidden="true">🗂️</span>
+              <span>Browse Flash Collection</span>
+            </button>
+            <div class="divider" aria-hidden="true">OR</div>
+            <button type="button" class="btn btn-secondary" id="loadBootBtn">
+              <span aria-hidden="true">📁</span>
+              <span>Load local .swf</span>
+            </button>
+          </div>
+          <p class="hint">
+            Collection from
+            <a
+              href="https://archive.org/details/banned-from-equestria-daily-1.5"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Internet Archive
+            </a>
+            · plays entirely in this tab via Ruffle
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal"
+      id="browserModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="browserTitle"
+      hidden
+    >
+      <div class="modal-panel">
+        <div class="modal-header">
+          <h2 class="modal-title" id="browserTitle">Flash Collection</h2>
+          <p class="modal-subtitle">Browse and load .swf games from Internet Archive</p>
+        </div>
+        <div class="modal-body">
+          <label class="sr-only" for="searchInput">Search Flash games</label>
+          <input
+            type="search"
+            class="search-input"
+            id="searchInput"
+            placeholder="Search Flash games…"
+            autocomplete="off"
+          />
+          <div class="content-area" id="contentArea">
+            <div class="loading">Loading collection…</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn" id="closeBrowserBtn">Close</button>
+        </div>
+      </div>
+    </div>
 
     <input
       type="file"

@@ -1428,7 +1428,8 @@
       "gameboy",
       "snes",
       "neogeo",
-      "ps1"
+      "ps1",
+      "flash"
     ],
     "shareCategory": "game",
     "appTier": "experience",
@@ -1789,8 +1790,8 @@
     "id": "flash",
     "name": "Flash Player ⚡",
     "shortName": "Flash",
-    "description": "Play .swf Flash files in your browser",
-    "detailedDescription": "Drop an Adobe Flash (.swf) file and play it in your browser via Ruffle (Rust → WebAssembly). Fullscreen, no install, no ads. Not for Windows/Steam .exe — for classic MS-DOS game zips, use DOS Player.",
+    "description": "Play classic Flash games in your browser",
+    "detailedDescription": "Browse an Internet Archive Flash collection or load your own .swf — plays in the browser via Ruffle (Rust → WebAssembly). Fullscreen, no install, no ads. For classic MS-DOS game zips, use DOS Player.",
     "icon": "⚡",
     "path": "./flash/",
     "category": "game",
@@ -1809,6 +1810,7 @@
       "adobe"
     ],
     "related": [
+      "emulator",
       "dos",
       "nes",
       "neogeo",
@@ -1821,7 +1823,7 @@
     "featured": {
       "order": 15,
       "headline": "Flash Player",
-      "blurb": "Play .swf files in your browser with Ruffle. Drop a file and go.",
+      "blurb": "Classic Flash games in your browser via Ruffle. Browse Archive or load a .swf.",
       "tagsLine": "⚡ Flash • 🎮 Retro",
       "preset": "flash",
       "analyticsLabel": "Flash"

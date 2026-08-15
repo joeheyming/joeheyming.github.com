@@ -501,6 +501,50 @@ kbd {
   letter-spacing: 0.5px;
 }
 
+.picker-extra {
+  margin-top: 18px;
+}
+
+.picker-extra-heading {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.picker-tile-flash {
+  width: 100%;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  text-align: left;
+  /* Flash-era red — distinct from console accent tiles. */
+  border-color: color-mix(in srgb, #e31c25 45%, var(--border));
+  background: color-mix(in srgb, #e31c25 8%, var(--surface));
+}
+
+.picker-tile-flash:hover {
+  border-color: #e31c25;
+  background: color-mix(in srgb, #e31c25 14%, var(--surface));
+}
+
+.picker-tile-flash .picker-emoji {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.picker-tile-flash .picker-title,
+.picker-tile-flash .picker-sub {
+  text-align: left;
+}
+
+.picker-tile-flash .picker-title {
+  line-height: 1.2;
+}
+
 .picker-help {
   margin-top: 16px;
   font-size: 12px;
