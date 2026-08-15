@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="robots" content="index, follow" />
+    <title>Composer — Piano Sketchpad in Your Browser 🎼</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎼</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="A free browser piano sketchpad: grand staff, click or A–G entry, rests, ties, beams, and piano playback. Sketch a melody and share a link."
+    />
+    <meta name="theme-color" content="#FAFAFA" />
+
+    <link rel="manifest" href="/play/manifest.json" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/play/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Play" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming - Play" />
+    <meta property="og:title" content="Composer — Piano Sketchpad in Your Browser 🎼" />
+    <meta
+      property="og:description"
+      content="Browser piano sketchpad on a grand staff — durations, rests, key/time signatures, and piano playback."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/play/composer/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/play/composer/composer-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Browser sheet music composer" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="Composer — Piano Sketchpad in Your Browser 🎼" />
+    <meta
+      name="twitter:description"
+      content="Browser piano sketchpad on a grand staff — durations, rests, key/time signatures, and piano playback."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/play/composer/composer-preview.png"
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/play/composer/" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Composer (Piano Sketchpad)",
+            "alternateName": [
+              "Browser piano sketchpad",
+              "Online sheet music sketchpad",
+              "Web music notation",
+              "Free browser composer"
+            ],
+            "url": "https://joeheyming.github.io/play/composer/",
+            "applicationCategory": "MultimediaApplication",
+            "applicationSubCategory": "Music Notation",
+            "operatingSystem": "Web Browser",
+            "description": "A free in-browser piano sketchpad with grand staff, note durations, rests, time and key signatures, ties, beams, dynamics, and piano playback.",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/about/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Play",
+                "item": "https://joeheyming.github.io/play/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Composer",
+                "item": "https://joeheyming.github.io/play/composer/"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script>
+      (function () {
+        var m = window.matchMedia;
+        if (
+          (m && m('(display-mode: standalone)').matches) ||
+          (m && m('(display-mode: fullscreen)').matches) ||
+          (m && m('(display-mode: minimal-ui)').matches) ||
+          window.navigator.standalone === true ||
+          (document.referrer || '').indexOf('android-app://') === 0
+        ) {
+          window.heymingNavInitialized = true;
+          document.documentElement.classList.add('pwa-standalone');
+          var s = document.createElement('style');
+          s.textContent =
+            '.heyming-nav-toggle,.heyming-nav-drawer,.heyming-nav-backdrop,.play-footer a[href="/"]{display:none!important}';
+          document.head.appendChild(s);
+        }
+      })();
+    </script>
+    <script src="/nav.js" data-nav-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+    <script src="/play/shared/help-popup.js" defer></script>
+
+    <link rel="stylesheet" href="../style.css" />
+    <link rel="stylesheet" href="style.css" />
+
+    <script src="/proxy.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js"></script>
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="/shared/breadcrumbs.css" />
+  </head>
+  <body class="instrument-body">
+    <header class="app-header">
+      <nav
+        class="app-breadcrumbs"
+        aria-label="Breadcrumb"
+        data-crumbs='[{"emoji":"🎵","label":"Instruments","href":"../"},{"emoji":"🎼","label":"Composer"}]'
+      ></nav>
+    </header>
+    <header class="instrument-header">
+      <div class="instrument-page-title">
+        <span aria-hidden="true">🎼</span>
+        <h1>Composer</h1>
+      </div>
+      <div class="header-status">
+        <div class="now-playing" id="now-playing" aria-live="polite">Ready</div>
+      </div>
+    </header>
+
+    <section class="instrument-controls" aria-label="Composer controls">
+      <div class="control">
+        <label for="volume">Volume</label>
+        <input id="volume" type="range" min="0" max="100" value="70" />
+      </div>
+
+      <div class="control control-tempo">
+        <label for="bpm-face">Tempo</label>
+        <button type="button" class="tempo-face" id="bpm-face" aria-describedby="bpm-hint">
+          <span class="tempo-value" id="bpm-value">100</span>
+        </button>
+        <div class="tempo-flyout" role="group" aria-label="Tempo BPM">
+          <span class="tempo-flyout-max" aria-hidden="true">280</span>
+          <input
+            id="bpm"
+            type="range"
+            min="40"
+            max="280"
+            step="1"
+            value="100"
+            aria-valuetext="100 BPM"
+          />
+          <span class="tempo-flyout-min" aria-hidden="true">40</span>
+          <span id="bpm-hint" class="visually-hidden">
+            Vertical slider below — hover or focus to adjust
+          </span>
+        </div>
+      </div>
+
+      <div class="control control-bars">
+        <label for="measures">Bars</label>
+        <div class="bars-row">
+          <button
+            id="bars-minus"
+            class="secondary-btn bars-step"
+            type="button"
+            aria-label="Remove last bar"
+          >
+            −
+          </button>
+          <input
+            id="measures"
+            type="number"
+            min="1"
+            max="16"
+            step="1"
+            value="4"
+            inputmode="numeric"
+          />
+          <button id="bars-plus" class="secondary-btn bars-step" type="button" aria-label="Add bar">
+            +
+          </button>
+        </div>
+      </div>
+
+      <div class="control">
+        <label for="time-sig">Time</label>
+        <select id="time-sig">
+          <option value="2/4">2/4</option>
+          <option value="3/4">3/4</option>
+          <option value="4/4" selected>4/4</option>
+          <option value="5/4">5/4</option>
+          <option value="6/8">6/8</option>
+          <option value="7/8">7/8</option>
+          <option value="9/8">9/8</option>
+          <option value="12/8">12/8</option>
+        </select>
+      </div>
+
+      <div class="control">
+        <label for="key-sig">Key</label>
+        <select id="key-sig">
+          <option value="-7">C♭ major</option>
+          <option value="-6">G♭ major</option>
+          <option value="-5">D♭ major</option>
+          <option value="-4">A♭ major</option>
+          <option value="-3">E♭ major</option>
+          <option value="-2">B♭ major</option>
+          <option value="-1">F major</option>
+          <option value="0" selected>C major</option>
+          <option value="1">G major</option>
+          <option value="2">D major</option>
+          <option value="3">A major</option>
+          <option value="4">E major</option>
+          <option value="5">B major</option>
+          <option value="6">F♯ major</option>
+          <option value="7">C♯ major</option>
+        </select>
+      </div>
+
+      <div class="control control-actions">
+        <button id="play-pause" class="primary-btn" type="button" aria-pressed="false">
+          <span class="btn-icon" aria-hidden="true">▶</span>
+          <span class="btn-label">Play</span>
+        </button>
+        <button id="stop" class="secondary-btn" type="button" aria-label="Stop and rewind">
+          <span class="btn-icon" aria-hidden="true">■</span>
+          <span class="btn-label">Stop</span>
+        </button>
+        <button
+          id="loop"
+          class="secondary-btn"
+          type="button"
+          aria-pressed="false"
+          aria-label="Loop playback"
+          title="Loop playback"
+        >
+          <span class="btn-icon" aria-hidden="true">↻</span>
+          <span class="btn-label">Loop</span>
+        </button>
+        <button
+          id="metronome"
+          class="secondary-btn"
+          type="button"
+          aria-pressed="false"
+          aria-label="Metronome click"
+          title="Metronome click"
+        >
+          <span class="btn-icon" aria-hidden="true">🎵</span>
+          <span class="btn-label">Click</span>
+        </button>
+        <button id="undo" class="secondary-btn" type="button" aria-label="Undo (Ctrl+Z)">
+          Undo
+        </button>
+        <button id="redo" class="secondary-btn" type="button" aria-label="Redo (Ctrl+Shift+Z)">
+          Redo
+        </button>
+        <button id="clear" class="secondary-btn" type="button" aria-label="Clear all notes">
+          Clear
+        </button>
+        <button
+          id="shortcuts-btn"
+          class="secondary-btn"
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-label="Keyboard shortcuts"
+          title="Keyboard shortcuts (?)"
+        >
+          ?
+        </button>
+      </div>
+
+      <details class="control control-more">
+        <summary class="secondary-btn more-summary">More</summary>
+        <div class="more-panel">
+          <label class="more-label" for="examples">Examples</label>
+          <select id="examples" aria-label="Load example score">
+            <option value="">Load example…</option>
+          </select>
+          <button id="export-score" class="secondary-btn" type="button" title="Download JSON">
+            Export
+          </button>
+          <button id="import-score" class="secondary-btn" type="button" title="Import JSON">
+            Import
+          </button>
+          <input id="import-file" type="file" accept="application/json,.json" hidden />
+          <button id="copy-link" class="secondary-btn" type="button">Copy link</button>
+          <button id="share-post" class="secondary-btn" type="button" title="Make a Post">
+            Make a Post
+          </button>
+        </div>
+      </details>
+    </section>
+
+    <section class="notation-toolbar" aria-label="Notation tools" id="palette">
+      <div class="tool-group" role="group" aria-label="Note or rest duration">
+        <button
+          type="button"
+          class="tool-btn"
+          data-dur="16"
+          aria-pressed="false"
+          title="Whole note or rest (1)"
+        >
+          <span class="dur-note">1</span>
+          <svg
+            class="dur-rest tool-icon"
+            viewBox="0 0 14 22"
+            width="12"
+            height="18"
+            aria-hidden="true"
+          >
+            <rect x="2" y="5" width="10" height="4.5" rx="0.5" fill="currentColor" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="tool-btn"
+          data-dur="8"
+          aria-pressed="false"
+          title="Half note or rest (2)"
+        >
+          <span class="dur-note">½</span>
+          <svg
+            class="dur-rest tool-icon"
+            viewBox="0 0 14 22"
+            width="12"
+            height="18"
+            aria-hidden="true"
+          >
+            <rect x="2" y="11" width="10" height="4.5" rx="0.5" fill="currentColor" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="tool-btn"
+          data-dur="4"
+          aria-pressed="true"
+          title="Quarter note or rest (3)"
+        >
+          <span class="dur-note">♩</span>
+          <svg
+            class="dur-rest tool-icon"
+            viewBox="0 0 14 22"
+            width="12"
+            height="18"
+            aria-hidden="true"
+          >
+            <path
+              fill="currentColor"
+              d="M9.2 1.2c.3 1.4-.4 2.6-1.6 3.8L4.2 8.4c1.8.9 3.2 2 3.2 3.8 0 1.7-1.2 2.9-3 4.2 1.7 1.5 2.9 3.2 3.1 5.4H5.2c-.3-1.6-1.3-3-3-4.5C.8 15.8-.2 14.2-.2 12.4c0-2.5 2-3.9 4.2-5.1L7.8 3.6c.9-.9 1.2-1.6 1.4-2.4z"
+            />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="tool-btn"
+          data-dur="2"
+          aria-pressed="false"
+          title="Eighth note or rest (4)"
+        >
+          <span class="dur-note">♪</span>
+          <svg
+            class="dur-rest tool-icon"
+            viewBox="0 0 14 22"
+            width="12"
+            height="18"
+            aria-hidden="true"
+          >
+            <ellipse cx="4.5" cy="8" rx="3" ry="2.4" fill="currentColor" />
+            <path
+              d="M7 9 L11 2"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="tool-btn"
+          data-dur="1"
+          aria-pressed="false"
+          title="Sixteenth note or rest (5)"
+        >
+          <span class="dur-note">♬</span>
+          <svg
+            class="dur-rest tool-icon"
+            viewBox="0 0 14 22"
+            width="12"
+            height="18"
+            aria-hidden="true"
+          >
+            <ellipse cx="4.2" cy="6" rx="2.8" ry="2.2" fill="currentColor" />
+            <ellipse cx="4.2" cy="12" rx="2.8" ry="2.2" fill="currentColor" />
+            <path
+              d="M6.8 7 L11 1.5 M6.8 13 L11 7.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="tool-btn"
+          id="tool-dot"
+          aria-pressed="false"
+          title="Dotted (.)"
+        >
+          ·.
+        </button>
+        <button
+          type="button"
+          class="tool-btn"
+          id="tool-rest"
+          aria-pressed="false"
+          title="Rest mode (R)"
+        >
+          <svg class="tool-icon" viewBox="0 0 14 22" width="12" height="18" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M9.2 1.2c.3 1.4-.4 2.6-1.6 3.8L4.2 8.4c1.8.9 3.2 2 3.2 3.8 0 1.7-1.2 2.9-3 4.2 1.7 1.5 2.9 3.2 3.1 5.4H5.2c-.3-1.6-1.3-3-3-4.5C.8 15.8-.2 14.2-.2 12.4c0-2.5 2-3.9 4.2-5.1L7.8 3.6c.9-.9 1.2-1.6 1.4-2.4z"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div class="tool-group" role="group" aria-label="Voice and articulations">
+        <label class="tool-label" for="voice">Voice</label>
+        <select id="voice">
+          <option value="0" selected>1 (up)</option>
+          <option value="1">2 (down)</option>
+        </select>
+        <button type="button" class="tool-btn" id="tool-tie" title="Tie (T)">⁀ Tie</button>
+      </div>
+
+      <div class="tool-group" role="group" aria-label="Dynamics">
+        <button type="button" class="tool-btn dyn" data-dynamic="p" title="Piano">p</button>
+        <button type="button" class="tool-btn dyn" data-dynamic="mp" title="Mezzo-piano">mp</button>
+        <button type="button" class="tool-btn dyn" data-dynamic="mf" title="Mezzo-forte">mf</button>
+        <button type="button" class="tool-btn dyn" data-dynamic="f" title="Forte">f</button>
+      </div>
+    </section>
+
+    <section class="composer-stage" aria-label="Sheet music">
+      <div class="score-scroll" id="score-scroll">
+        <svg id="score" class="score" role="img" aria-label="Grand staff notation"></svg>
+      </div>
+    </section>
+
+    <section class="instrument-help">
+      <h2>How to use</h2>
+      <ul>
+        <li>
+          Pick a
+          <strong>duration</strong>
+          (
+          <code>1</code>
+          –
+          <code>5</code>
+          ), then click the staff — a
+          <strong>preview</strong>
+          follows the cursor. Or type
+          <code>A</code>
+          –
+          <code>G</code>
+          at the playhead.
+          <code>R</code>
+          toggles rest mode;
+          <code>0</code>
+          places a rest. Click to select. Delete removes a rest, or turns a note into a rest.
+        </li>
+        <li>
+          <strong>Drag</strong>
+          a note up/down for pitch, left/right for timing. Arrow keys nudge pitch/timing (Shift+←/→
+          = one 16th). Stack pitches on the same beat for chords. Notes that don’t fit a bar are
+          split and auto-tied into the next.
+          <code>.</code>
+          dots the current duration,
+          <code>T</code>
+          tie adjacent same-pitch notes.
+          <code>Ctrl/Cmd+C</code>
+          /
+          <code>V</code>
+          copy/paste at the playhead. Dynamics (
+          <code>p</code>
+          –
+          <code>f</code>
+          ) and Voice apply to the selection.
+        </li>
+        <li>
+          Accidentals:
+          <code>#</code>
+          /
+          <code>s</code>
+          sharp,
+          <code>-</code>
+          flat,
+          <code>n</code>
+          natural. Change
+          <strong>Time</strong>
+          and
+          <strong>Key</strong>
+          in the toolbar. Use Bars
+          <strong>+</strong>
+          /
+          <strong>−</strong>
+          (or hover a bar) to add or remove measures. Pick an
+          <strong>Example</strong>
+          to load a starter score.
+        </li>
+        <li>
+          <code>Space</code>
+          play/pause; Stop rewinds. Drag the red playhead (or click above/below the staff) to scrub.
+          <code>⌘/Ctrl+Z</code>
+          undo,
+          <code>⌘/Ctrl+Shift+Z</code>
+          redo. Scores auto-save here; Export or Copy link to share.
+        </li>
+      </ul>
+    </section>
+
+    <script type="module" src="composer.js"></script>
+    <script src="/shared/breadcrumbs.js"></script>
+  </body>
+</html>

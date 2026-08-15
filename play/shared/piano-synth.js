@@ -141,18 +141,18 @@ export class PianoSynth {
     return true;
   }
 
-  noteOn(midi) {
+  noteOn(midi, { gain = 0.85 } = {}) {
     getCtx();
     resumeIfSuspended();
 
     if (this.isMultiSampleTone(this.tone)) {
       if (this.multiSampler && this.multiSampler.isReady()) {
-        this.multiSampler.noteOn(midi, { gain: 0.85 });
+        this.multiSampler.noteOn(midi, { gain: Math.max(0.05, Math.min(1, gain)) });
         return;
       }
       // Sample not loaded yet: fall through to oscillator for instant feedback.
       this.ensureMultiSamplerLoaded();
-      this.oscNoteOn(midi);
+      this.oscNoteOn(midi, gain);
       return;
     }
 
@@ -175,7 +175,7 @@ export class PianoSynth {
       this.ensureSampleLoaded(this.tone);
     }
 
-    this.oscNoteOn(midi);
+    this.oscNoteOn(midi, gain);
   }
 
   noteOff(midi, instant = false) {
@@ -197,13 +197,15 @@ export class PianoSynth {
     this.oscNoteOff(midi, instant);
   }
 
-  oscNoteOn(midi) {
+  oscNoteOn(midi, gainScale = 0.85) {
     if (this.voices.has(midi)) this.oscNoteOff(midi, true);
 
     const ctx = getCtx();
     const master = getMaster();
     const now = ctx.currentTime;
     const freq = midiToFreq(midi);
+    const peak = 0.6 * Math.max(0.05, Math.min(1, gainScale));
+    const sustain = 0.35 * Math.max(0.05, Math.min(1, gainScale));
 
     const osc = ctx.createOscillator();
     osc.type = OSCILLATOR_TONES.has(this.tone) ? this.tone : 'triangle';
@@ -218,8 +220,8 @@ export class PianoSynth {
 
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.6, now + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.35, now + 0.25);
+    gain.gain.linearRampToValueAtTime(peak, now + 0.005);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.001, sustain), now + 0.25);
 
     osc.connect(gain);
     osc2Gain.connect(gain);

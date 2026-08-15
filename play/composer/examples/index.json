@@ -1,0 +1,34 @@
+{
+  "examples": [
+    {
+      "id": "twinkle",
+      "title": "Twinkle Twinkle",
+      "blurb": "Classic starter melody in C",
+      "file": "twinkle.json"
+    },
+    {
+      "id": "ode",
+      "title": "Ode to Joy",
+      "blurb": "Beethoven fragment with bass roots",
+      "file": "ode.json"
+    },
+    {
+      "id": "scale",
+      "title": "C Major Scale",
+      "blurb": "Ascending and descending with pedal",
+      "file": "scale.json"
+    },
+    {
+      "id": "blues",
+      "title": "G Blues Lick",
+      "blurb": "Blue notes over a G groove",
+      "file": "blues.json"
+    },
+    {
+      "id": "hymn",
+      "title": "Pop Progression",
+      "blurb": "I–V–vi–IV melody with bass",
+      "file": "hymn.json"
+    }
+  ]
+}

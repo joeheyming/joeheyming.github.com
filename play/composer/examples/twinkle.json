@@ -1,0 +1,30 @@
+{
+  "v": 1,
+  "bpm": 100,
+  "vol": 70,
+  "m": 4,
+  "ts": [4, 4],
+  "ks": 0,
+  "n": [
+    [0, 0, 0, 4, 9, null, null, null, 0, "n23"],
+    [1, 0, 0, 16, 8, null, null, null, 1, "n28"],
+    [1, 0, 16, 16, 8, null, null, null, 1, "n29"],
+    [1, 0, 32, 16, 8, null, null, null, 1, "n30"],
+    [1, 0, 48, 16, 8, null, null, null, 1, "n31"],
+    [0, 0, 4, 4, 9, null, null, null, 0, "n32"],
+    [0, 0, 8, 4, 13, null, null, null, 0, "n34"],
+    [0, 0, 12, 4, 13, null, null, null, 0, "n36"],
+    [0, 0, 16, 4, 14, null, null, null, 0, "n37"],
+    [0, 0, 20, 4, 14, null, null, null, 0, "n39"],
+    [0, 0, 24, 4, 13, null, null, null, 0, "n41"],
+    [0, 0, 28, 4, 8, null, null, null, 1, "n42"],
+    [0, 0, 32, 4, 12, null, null, null, 0, "n43"],
+    [0, 0, 36, 4, 12, null, null, null, 0, "n45"],
+    [0, 0, 40, 4, 11, null, null, null, 0, "n47"],
+    [0, 0, 44, 4, 11, null, null, null, 0, "n49"],
+    [0, 0, 48, 4, 10, null, null, null, 0, "n50"],
+    [0, 0, 52, 4, 10, null, null, null, 0, "n52"],
+    [0, 0, 56, 4, 9, null, null, null, 0, "n54"],
+    [0, 0, 60, 4, 8, null, null, null, 1, "n55"]
+  ]
+}

@@ -49,6 +49,7 @@ const APPS = [
   '/play/metronome/',
   '/play/theremin/',
   '/play/tuner/',
+  '/play/composer/',
   '/media-player/',
   '/image-viewer/'
 ];

@@ -475,6 +475,28 @@ const PAGES = [
     title: 'Browser Metronome'
   },
   {
+    url: `${BASE_URL}/play/composer/`,
+    output: 'play/composer/composer-preview.png',
+    title: 'Composer',
+    // Blank default score reads as an empty staff. Seed Twinkle via the
+    // share-hash path (examples are compact v1 payloads, not prefs v2).
+    setup: async (page) => {
+      await page.evaluate(async () => {
+        const res = await fetch('examples/twinkle.json');
+        const data = await res.json();
+        const json = JSON.stringify(data);
+        const b64 = btoa(unescape(encodeURIComponent(json)))
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=+$/, '');
+        location.hash = `m1.${b64}`;
+      });
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('#score .note', { timeout: 10000 });
+      await page.waitForTimeout(600);
+    }
+  },
+  {
     url: `${BASE_URL}/play/chiptune/`,
     output: 'play/chiptune/chiptune-preview.png',
     title: 'Chiptune'
