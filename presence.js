@@ -1,4 +1,5 @@
-// Site-wide presence heartbeats + gviz aggregation for the nav drawer.
+// Site-wide presence heartbeats + gviz aggregation for the nav drawer
+// and the public /analytics/ presence charts.
 //
 // Loaded by nav.js (after /presence/config.js). Exposes window.heymingPresence.
 // No-ops until presence/config.js placeholders are replaced.
@@ -103,16 +104,23 @@
     );
   }
 
-  async function fetchPresenceRows() {
-    const cfg = getConfig();
-    const text = await fetch(gvizUrl(cfg.presenceTab || 'Presence'), {
-      cache: 'no-store'
-    }).then((r) => r.text());
+  async function fetchGvizRows(tab) {
+    const text = await fetch(gvizUrl(tab), { cache: 'no-store' }).then((r) => r.text());
     const m = text.match(/setResponse\(([\s\S]*)\);?\s*$/);
     if (!m) throw new Error('gviz parse failed');
     const json = JSON.parse(m[1]);
     if (!json.table || !json.table.rows) return [];
     return json.table.rows.map((r) => (r.c || []).map((c) => (c == null ? null : c.v)));
+  }
+
+  async function fetchPresenceRows() {
+    const cfg = getConfig();
+    return fetchGvizRows(cfg.presenceTab || 'Presence');
+  }
+
+  async function fetchAnalyticsRows() {
+    const cfg = getConfig();
+    return fetchGvizRows(cfg.analyticsTab || 'Presence Analytics');
   }
 
   function parseTs(v) {
@@ -128,6 +136,76 @@
       return Number.isNaN(t) ? 0 : t;
     }
     return 0;
+  }
+
+  /** Normalize gviz / Sheets date cells to yyyy-MM-dd. */
+  function parseDayKey(v) {
+    if (v == null) return '';
+    if (typeof v === 'string') {
+      const iso = v.trim().match(/^(\d{4}-\d{2}-\d{2})/);
+      if (iso) return iso[1];
+      const gviz = v.match(/^Date\((\d+),(\d+),(\d+)/);
+      if (gviz) {
+        const y = +gviz[1];
+        const m = +gviz[2] + 1;
+        const d = +gviz[3];
+        return (
+          String(y).padStart(4, '0') +
+          '-' +
+          String(m).padStart(2, '0') +
+          '-' +
+          String(d).padStart(2, '0')
+        );
+      }
+    }
+    if (v instanceof Date && !Number.isNaN(v.getTime())) {
+      const y = v.getFullYear();
+      const m = v.getMonth() + 1;
+      const d = v.getDate();
+      return (
+        String(y).padStart(4, '0') +
+        '-' +
+        String(m).padStart(2, '0') +
+        '-' +
+        String(d).padStart(2, '0')
+      );
+    }
+    const ts = parseTs(v);
+    if (!ts) return '';
+    const dt = new Date(ts);
+    return (
+      String(dt.getFullYear()).padStart(4, '0') +
+      '-' +
+      String(dt.getMonth() + 1).padStart(2, '0') +
+      '-' +
+      String(dt.getDate()).padStart(2, '0')
+    );
+  }
+
+  /**
+   * Daily presence rollups from the Presence Analytics sheet tab.
+   * @returns {Promise<Array<{ date: string, page: string, peak: number, sum: number, samples: number, avg: number, lastAt: string }>>}
+   */
+  async function fetchAnalytics() {
+    if (!isConfigured()) return [];
+    const rows = await fetchAnalyticsRows();
+    /** @type {Array<{ date: string, page: string, peak: number, sum: number, samples: number, avg: number, lastAt: string }>} */
+    const out = [];
+    for (const row of rows) {
+      const date = parseDayKey(row[0]);
+      const page = row[1] != null ? String(row[1]).trim() : '';
+      if (!date || !page || page.toLowerCase() === 'page' || date.toLowerCase() === 'date') {
+        continue;
+      }
+      const peak = Number(row[2]) || 0;
+      const sum = Number(row[3]) || 0;
+      const samples = Number(row[4]) || 0;
+      const avg = samples > 0 ? sum / samples : 0;
+      const lastAt = row[5] != null ? String(row[5]) : '';
+      out.push({ date, page, peak, sum, samples, avg, lastAt });
+    }
+    out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.page.localeCompare(b.page)));
+    return out;
   }
 
   /**
@@ -258,7 +336,10 @@
       if (currentPage) ping(currentPage);
     },
     fetchCounts,
+    fetchAnalytics,
     getUuid,
     isConfigured
   };
+
+  if (document.currentScript) document.currentScript.dataset.loaded = '1';
 })();

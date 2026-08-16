@@ -1946,6 +1946,37 @@
     "geo": true
   },
   {
+    "id": "analytics",
+    "name": "Presence 📊",
+    "shortName": "Presence",
+    "description": "Live concurrent users and 90-day presence charts",
+    "detailedDescription": "See who is on the site right now and chart daily peak and average concurrent users per app for the last 90 days. Anonymous presence counts — not pageviews.",
+    "icon": "📊",
+    "path": "./analytics/",
+    "category": "utility",
+    "gradient": "from-teal-500/20 to-sky-500/20",
+    "border": "border-teal-500/30 hover:border-teal-400/50",
+    "taskbarGradient": "from-teal-600 to-sky-700",
+    "taskbarText": "text-white",
+    "defaultWidth": 1000,
+    "defaultHeight": 780,
+    "tags": [
+      "presence",
+      "analytics",
+      "stats",
+      "concurrent",
+      "charts"
+    ],
+    "related": [
+      "stock",
+      "weather",
+      "countdown"
+    ],
+    "shareCategory": "utility",
+    "appTier": "system",
+    "geo": true
+  },
+  {
     "id": "image-viewer",
     "name": "Image Viewer 🖼️",
     "shortName": "Images",

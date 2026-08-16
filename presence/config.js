@@ -1,7 +1,7 @@
 // Presence — Google Form / Sheet config (classic script; loaded before /presence.js).
 //
 // Writes — POST to a Google Form `formResponse` endpoint (CORS-blind).
-// Reads  — fetch the Presence tab via the public gviz JSON endpoint.
+// Reads  — fetch Presence + Presence Analytics tabs via the public gviz JSON endpoint.
 //
 // Until placeholders are replaced, presence.js no-ops (no POSTs, no badges).
 // Replace placeholders after one-time Form + Apps Script wiring.
@@ -27,10 +27,12 @@
       honeypot: 'entry.593284956'
     },
 
-    // Spreadsheet ID (between /spreadsheets/d/ and /edit) and Presence tab name.
+    // Spreadsheet ID (between /spreadsheets/d/ and /edit) and tab names.
     // gviz: https://docs.google.com/spreadsheets/d/<SHEET_ID>/gviz/tq?tqx=out:json&sheet=Presence
     sheetId: '1DkHeVQf6C8d636fHyTqlLDTkL8laXtuMUlbnUguos84',
-    presenceTab: 'Presence'
+    presenceTab: 'Presence',
+    // Daily rollups: date | page | peak | sum | samples | lastAt (90-day retention).
+    analyticsTab: 'Presence Analytics'
   };
 
   window.heymingPresenceIsConfigured = function (c) {
@@ -42,4 +44,6 @@
       !String(cfg.entryIds && cfg.entryIds.uuid).includes('111111111')
     );
   };
+
+  if (document.currentScript) document.currentScript.dataset.loaded = '1';
 })();

@@ -63,7 +63,10 @@
       <strong>Google Analytics</strong>
       to understand aggregate traffic. The navigation drawer may use an anonymous
       <strong>presence heartbeat</strong>
-      (Google Form + Sheet) to show how many other people are on each app.
+      (Google Form + Sheet) to show how many other people are on each app; daily aggregates from
+      that sheet are also charted on the public
+      <a href="/analytics/">Presence</a>
+      page.
       <strong>Posts</strong>
       lets visitors pin notes to a shared board via another Google Form + Sheet. Features that use
       <strong>Sign in with Google</strong>
@@ -133,6 +136,14 @@
       heartbeats; stale rows expire after a few minutes. Heartbeats are disabled on
       <code>localhost</code>
       and other local/dev hosts (same rule as Analytics). This is separate from Google Analytics.
+    </p>
+    <p>
+      The same sheet also keeps
+      <strong>daily aggregate</strong>
+      concurrent-user rollups (peak and average per app, about 90 days). The public
+      <a href="/analytics/">Presence</a>
+      page charts those aggregates for anyone to view. They are concurrent-presence counts, not
+      pageviews or unique-visitor totals, and they do not include names, emails, or IP addresses.
     </p>
 
     <h2>Posts (shared corkboard)</h2>
