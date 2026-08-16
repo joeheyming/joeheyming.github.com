@@ -314,6 +314,8 @@
          moddb" item or ?manual=browse). The browser itself doesn't pull
          the engine — that still requires user action. -->
     <link rel="stylesheet" href="moddb-browser.css" />
+    <!-- Reusable live chat overlay (desktop). Demo mode until Form/Sheet wired. -->
+    <link rel="stylesheet" href="/live-chat/live-chat.css" />
 
     <!-- Heyming OS brand foundation -->
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -782,8 +784,9 @@
             data-event="hub_crosslink_click"
             data-event-category="Engagement"
             data-event-label="doom→badapple"
-            >Bad Apple</a
           >
+            Bad Apple
+          </a>
           or
           <a
             href="/pacman/"
@@ -791,17 +794,19 @@
             data-event="hub_crosslink_click"
             data-event-category="Engagement"
             data-event-label="doom→pacman"
-            >3D Pac-Man</a
-          >,
-          or head back
+          >
+            3D Pac-Man
+          </a>
+          , or head back
           <a
             href="/"
             style="color: var(--accent)"
             data-event="hub_crosslink_click"
             data-event-category="Engagement"
             data-event-label="doom→home"
-            >home</a
           >
+            home
+          </a>
           .
         </div>
         <div class="reason" id="exitReason"></div>
@@ -917,5 +922,10 @@
          would on a single hero-button click. The hero is unused in picker
          mode and stays hidden via body.picker-mode CSS. -->
     <script src="flavor-controller.js"></script>
+    <!-- Live chat (desktop only). room=doom; Meta!A1 kill switch when wired. -->
+    <script type="module">
+      import { mountLiveChat } from '/live-chat/index.js';
+      mountLiveChat({ room: 'doom' });
+    </script>
   </body>
 </html>

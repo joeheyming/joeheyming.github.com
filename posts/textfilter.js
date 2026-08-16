@@ -3,6 +3,9 @@
 //
 // esm.sh must pin tfjs-core + tfjs-converter: toxicity@1.2.2 still depends on
 // ^1.3.3, and `?deps=@tensorflow/tfjs@4.22.0` alone does not remap those.
+//
+// Fail open when: model import/load throws, load hangs past LOAD_TIMEOUT_MS,
+// or the page is cross-origin isolated (COEP blocks esm.sh — e.g. Doom).
 
 const TOXICITY_THRESHOLD = 0.9;
 const TOXICITY_LABELS = [
@@ -13,6 +16,9 @@ const TOXICITY_LABELS = [
   'toxicity',
   'obscene'
 ];
+
+/** First-time CDN + weight download; hangs must not block the UI forever. */
+const LOAD_TIMEOUT_MS = 20000;
 
 export const TFJS_URL = 'https://esm.sh/@tensorflow/tfjs@4.22.0';
 
@@ -28,21 +34,62 @@ export const TOXICITY_URL =
 /** @type {Promise<ToxicityModel>|null} */
 let textModelPromise = null;
 
+function isCrossOriginIsolated() {
+  return typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated;
+}
+
+/**
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {number} ms
+ * @param {string} message
+ * @returns {Promise<T>}
+ */
+function withTimeout(promise, ms, message) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(t);
+        resolve(v);
+      },
+      (err) => {
+        clearTimeout(t);
+        reject(err);
+      }
+    );
+  });
+}
+
 /**
  * @returns {Promise<ToxicityModel>}
  */
 export function getTextModel() {
+  if (isCrossOriginIsolated()) {
+    return Promise.reject(new Error('Toxicity model unavailable under crossOriginIsolated'));
+  }
   if (!textModelPromise) {
-    textModelPromise = (async () => {
-      await import(/* @vite-ignore */ TFJS_URL);
-      const toxicity = await import(/* @vite-ignore */ TOXICITY_URL);
-      return toxicity.load(TOXICITY_THRESHOLD, TOXICITY_LABELS);
-    })().catch((err) => {
+    textModelPromise = withTimeout(
+      (async () => {
+        await import(/* @vite-ignore */ TFJS_URL);
+        const toxicity = await import(/* @vite-ignore */ TOXICITY_URL);
+        return toxicity.load(TOXICITY_THRESHOLD, TOXICITY_LABELS);
+      })(),
+      LOAD_TIMEOUT_MS,
+      'Toxicity model load timed out'
+    ).catch((err) => {
       textModelPromise = null;
       throw err;
     });
   }
   return textModelPromise;
+}
+
+/**
+ * Kick off model download in the background (no-op on COI / failure).
+ */
+export function preloadTextModel() {
+  getTextModel().catch(() => {});
 }
 
 /**

@@ -68,7 +68,10 @@
       <a href="/analytics/">Presence</a>
       page.
       <strong>Posts</strong>
-      lets visitors pin notes to a shared board via another Google Form + Sheet. Features that use
+      lets visitors pin notes to a shared board via another Google Form + Sheet. Some apps may offer
+      a
+      <strong>live chat</strong>
+      overlay backed by a Google Form + Sheet (nickname + message text). Features that use
       <strong>Sign in with Google</strong>
       talk directly to Google’s services from your device; this site does not operate a backend that
       stores your Google account or spreadsheet content on my servers.
@@ -159,7 +162,10 @@
     </p>
     <ul>
       <li>Note text (including markdown)</li>
-      <li>Optional display name or contact string (email collection is off in Form settings; this is a free-text field)</li>
+      <li>
+        Optional display name or contact string (email collection is off in Form settings; this is a
+        free-text field)
+      </li>
       <li>Optional image or short audio attachments (stored as data in the Sheet)</li>
       <li>Client-managed metadata such as a note id and board position</li>
     </ul>
@@ -170,9 +176,28 @@
       until you publish or clear site data. Before a pin is sent, the page may run
       <strong>client-side</strong>
       checks (for example toxicity or NSFW image screening) to block some content in the UI; those
-      checks are not a guarantee. Automated maintenance on the linked Sheet may move or remove
-      rows (spam, removals, or policy filters). Do not post secrets or personal data you would not
-      want on a public board.
+      checks are not a guarantee. Automated maintenance on the linked Sheet may move or remove rows
+      (spam, removals, or policy filters). Do not post secrets or personal data you would not want
+      on a public board.
+    </p>
+
+    <h2>Live chat</h2>
+    <p>
+      Selected desktop apps (starting with
+      <a href="/doom/">DOOM</a>
+      ) may show an optional floating live chat. When enabled, the browser submits a nickname and
+      short message to a
+      <strong>Google Form</strong>
+      linked to a publicly readable
+      <strong>Google Sheet</strong>
+      . An anonymous id (often the same one used for presence) is stored in
+      <strong>local storage</strong>
+      along with your chosen nickname and whether the panel is open. Chat is not shown on mobile.
+      Before send, the page may run
+      <strong>client-side</strong>
+      text checks; Sheet-side scripts may quarantine spam or over-limit messages. Do not post
+      secrets or personal data. The feature can be turned off remotely via a cell on the linked
+      Sheet.
     </p>
 
     <h2>Other sites and links</h2>
