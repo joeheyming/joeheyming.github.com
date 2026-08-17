@@ -710,7 +710,7 @@
       excludeNames: cfg.iaExcludeNames,
       binaryTimeout: cfg.iaBinaryTimeout,
       maxRetries: cfg.iaMaxRetries,
-      preferMetadata: cfg.iaPreferMetadata === true
+      preferMetadata: cfg.iaPreferMetadata !== false
     });
   }
 

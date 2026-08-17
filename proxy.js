@@ -160,6 +160,11 @@ class ProxyService {
       // Working for both text + binary (re-verified July 2026 against
       // example.com HTML and httpbin.org/bytes/1024 payloads).
       'https://allorigins.hexlet.app/raw?url=', // Hexlet-hosted allorigins fork; serves real binary bodies.
+      // Cloudflare-fronted; very fast for IA CDN hosts (dn*.archive.org)
+      // once metadata has resolved the redirect. archive.org/download/…
+      // URLs are flakier (occasional 502 HTML) — fine as a fallback after
+      // the emulator's CDN resolve path.
+      'https://cors.eu.org/',
       // Vercel-hosted; fastest of the alternatives (~130ms typical
       // response) and serves both text and binary. Caveat: blocks
       // media extensions (.mp4/.mp3/etc.) and audio/video content types
@@ -204,6 +209,7 @@ class ProxyService {
       //   - creprox.vercel.app/ — text-only, uses an unusual URL shape
       //     (no `https://` prefix on the target) that doesn't fit the
       //     `prefix + encodedUrl` contract this file assumes.
+      //   - corsproxy.org/? — redirects to hide.mn (dead / hijacked).
       // If any of these come back online, add them back here.
     ];
     this.cache = new Map();
@@ -214,7 +220,9 @@ class ProxyService {
     this.binaryTimeoutMs = 25000; // Longer for video/audio
     this.maxRetries = 3; // More retries for better success rate
 
-    // Circuit breaker: skip a proxy for this long after it fails (avoids hammering a down proxy)
+    // Circuit breaker: skip a proxy for this long after it fails (avoids hammering a down proxy).
+    // Keys are `${proxy}|${mode}` so a slow HTML listing timeout does not skip the
+    // same host for a subsequent ROM binary download (and vice versa).
     this.proxyCooldownMs = 30000; // 30 seconds
     this.proxyLastFailure = new Map();
 
@@ -227,8 +235,9 @@ class ProxyService {
     //
     // The counter increments on any "hard" failure — a timeout, a 5xx,
     // or a network error — and resets on the next success (see
-    // `updateProxyScore`). Hitting the threshold triggers a full
+    // `updateProxyScore`). Hitting the threshold triggers a mode-scoped
     // localStorage-persisted ban for `autoBanHardFailureTtlMs`.
+    // Keys are `${proxy}|${mode}` (mode defaults to '*').
     /** @type {Map<string, number>} */
     this.proxyConsecutiveHardFailures = new Map();
     this.autoBanHardFailureThreshold = 3;
@@ -330,30 +339,49 @@ class ProxyService {
     return false;
   }
 
+  /** @param {string} proxy @param {'text' | 'binary' | '*'} [mode] */
+  _cooldownKey(proxy, mode) {
+    return `${proxy}|${mode || '*'}`;
+  }
+
+  _noteProxyFailure(proxy, mode) {
+    this.proxyLastFailure.set(this._cooldownKey(proxy, mode || '*'), Date.now());
+  }
+
+  _proxyInCooldown(proxy, mode) {
+    const lastFail = this.proxyLastFailure.get(this._cooldownKey(proxy, mode || '*'));
+    return !!(lastFail && Date.now() - lastFail < this.proxyCooldownMs);
+  }
+
   /**
    * Track "hard" failures — timeouts, 5xx statuses, and generic network
    * errors — separately from the score-based cooldown. After
-   * `autoBanHardFailureThreshold` in a row for the same proxy, apply a
-   * full ban for `autoBanHardFailureTtlMs` so the proxy stops eating
-   * timeout budget on every subsequent request. A subsequent success
-   * (via `updateProxyScore(_, true, _)`) resets the counter, so an
+   * `autoBanHardFailureThreshold` in a row for the same proxy+mode, apply a
+   * mode-scoped ban for `autoBanHardFailureTtlMs` so the proxy stops eating
+   * timeout budget on every subsequent request of that mode. A subsequent
+   * success (via `updateProxyScore(_, true, _)`) resets the counter, so an
    * intermittent hiccup on a mostly-healthy proxy doesn't accumulate.
+   *
+   * Binary 502s must not ban a proxy for text (corsproxy.io is a common
+   * case: fine for HTML, useless for ZIP).
    *
    * @param {string} proxy
    * @param {string} failureType — short human-readable tag ("timeout",
    *   "HTTP 522", "network error") used only for the ban-reason log.
+   * @param {'text' | 'binary' | '*'} [mode='*']
    */
-  _recordProxyHardFailure(proxy, failureType) {
-    const count = (this.proxyConsecutiveHardFailures.get(proxy) || 0) + 1;
-    this.proxyConsecutiveHardFailures.set(proxy, count);
+  _recordProxyHardFailure(proxy, failureType, mode = '*') {
+    const key = this._cooldownKey(proxy, mode);
+    const count = (this.proxyConsecutiveHardFailures.get(key) || 0) + 1;
+    this.proxyConsecutiveHardFailures.set(key, count);
     if (count >= this.autoBanHardFailureThreshold) {
       this._markProxyDead(
         proxy,
-        '*',
+        mode,
         `auto-ban: ${count} consecutive ${failureType}`,
         this.autoBanHardFailureTtlMs
       );
-      this.proxyConsecutiveHardFailures.set(proxy, 0);
+      this.proxyConsecutiveHardFailures.set(key, 0);
     }
   }
 
@@ -483,9 +511,13 @@ class ProxyService {
         scoreBoost += 0.05; // Extra boost for fast responses
       }
       this.proxyScores.set(proxy, Math.min(2.0, currentScore + scoreBoost));
-      // Reset the auto-ban counter so intermittent blips don't
+      // Reset auto-ban counters (all modes) so intermittent blips don't
       // accumulate into a ban on a mostly-healthy proxy.
-      this.proxyConsecutiveHardFailures.set(proxy, 0);
+      for (const key of [...this.proxyConsecutiveHardFailures.keys()]) {
+        if (key === proxy || key.startsWith(`${proxy}|`)) {
+          this.proxyConsecutiveHardFailures.set(key, 0);
+        }
+      }
     } else {
       // Penalize score for failure
       this.proxyScores.set(proxy, Math.max(0.1, currentScore - 0.2));
@@ -595,10 +627,7 @@ class ProxyService {
         if (this.isProxyDead(proxy, 'text')) continue;
         // Circuit breaker only on the first pass — later retries must re-probe
         // the same hosts or maxRetries is a no-op (cooldown is 30s; backoff is 1–3s).
-        if (retry === 0) {
-          const lastFail = this.proxyLastFailure.get(proxy);
-          if (lastFail && Date.now() - lastFail < this.proxyCooldownMs) continue;
-        }
+        if (retry === 0 && this._proxyInCooldown(proxy, 'text')) continue;
 
         try {
           const proxyUrl = proxy + this.encodeUrlForProxy(url);
@@ -626,7 +655,7 @@ class ProxyService {
             if (!content) {
               console.warn(`Proxy ${proxy} returned empty body — treating as failure`);
               this.updateProxyScore(proxy, false);
-              this.proxyLastFailure.set(proxy, Date.now());
+              this._noteProxyFailure(proxy, 'text');
               continue;
             }
 
@@ -642,7 +671,7 @@ class ProxyService {
             if (typeof options.validate === 'function' && !options.validate(content)) {
               console.warn(`Proxy ${proxy} returned body failing validation — treating as failure`);
               this.updateProxyScore(proxy, false);
-              this.proxyLastFailure.set(proxy, Date.now());
+              this._noteProxyFailure(proxy, 'text');
               continue;
             }
 
@@ -671,9 +700,9 @@ class ProxyService {
             if (this._maybeMarkDeadFromBody(proxy, errBody)) continue;
             console.warn(`Proxy ${proxy} returned status ${response.status}`);
             this.updateProxyScore(proxy, false);
-            this.proxyLastFailure.set(proxy, Date.now());
+            this._noteProxyFailure(proxy, 'text');
             if (response.status >= 500) {
-              this._recordProxyHardFailure(proxy, `HTTP ${response.status}`);
+              this._recordProxyHardFailure(proxy, `HTTP ${response.status}`, 'text');
             }
           }
         } catch (error) {
@@ -686,16 +715,16 @@ class ProxyService {
             lastError = error;
             console.warn(`Proxy ${proxy} timed out (attempt ${retry + 1})`);
             this.updateProxyScore(proxy, false);
-            this.proxyLastFailure.set(proxy, Date.now());
-            this._recordProxyHardFailure(proxy, 'timeout');
+            this._noteProxyFailure(proxy, 'text');
+            this._recordProxyHardFailure(proxy, 'timeout', 'text');
             continue;
           }
           lastError = error;
           console.warn(`Proxy ${proxy} failed (attempt ${retry + 1}):`, error.message);
           this.updateProxyScore(proxy, false);
-          this.proxyLastFailure.set(proxy, Date.now());
+          this._noteProxyFailure(proxy, 'text');
           const failureType = this._hardFailureTypeForError(error);
-          if (failureType) this._recordProxyHardFailure(proxy, failureType);
+          if (failureType) this._recordProxyHardFailure(proxy, failureType, 'text');
           continue;
         }
       }
@@ -873,7 +902,15 @@ class ProxyService {
     const maxRetries = options.maxRetries || this.maxRetries;
     let lastError = null;
 
-    const orderedProxies = this.getOrderedProxies({ ...options, mode: 'binary' });
+    // corsproxy.io free plan is text-oriented; it often 502s on ZIP/ROM
+    // downloads. Defer it so hexlet/syrins get first crack unless the
+    // caller already set deferProxies.
+    const binaryOpts = {
+      ...options,
+      mode: 'binary',
+      deferProxies: options.deferProxies || ['https://corsproxy.io/?']
+    };
+    const orderedProxies = this.getOrderedProxies(binaryOpts);
 
     for (let retry = 0; retry <= maxRetries; retry++) {
       if (userAbort && userAbort.aborted) {
@@ -882,10 +919,7 @@ class ProxyService {
       for (const proxy of orderedProxies) {
         if (this.isProxyDead(proxy, 'binary')) continue;
         // Same as text path: cooldown only on the first pass so retries re-probe.
-        if (retry === 0) {
-          const lastFail = this.proxyLastFailure.get(proxy);
-          if (lastFail && Date.now() - lastFail < this.proxyCooldownMs) continue;
-        }
+        if (retry === 0 && this._proxyInCooldown(proxy, 'binary')) continue;
 
         try {
           const proxyUrl = proxy + this.encodeUrlForProxy(url);
@@ -925,7 +959,7 @@ class ProxyService {
                 `Proxy ${proxy} returned ${ct} for binary request — treating as failure`
               );
               this.updateProxyScore(proxy, false);
-              this.proxyLastFailure.set(proxy, Date.now());
+              this._noteProxyFailure(proxy, 'binary');
               continue;
             }
             const arrayBuffer = await response.arrayBuffer();
@@ -933,7 +967,7 @@ class ProxyService {
             if (!uint8Array.length) {
               console.warn(`Proxy ${proxy} returned empty binary body — treating as failure`);
               this.updateProxyScore(proxy, false);
-              this.proxyLastFailure.set(proxy, Date.now());
+              this._noteProxyFailure(proxy, 'binary');
               continue;
             }
             // Reject HTML/JSON error pages mislabeled as octet-stream, and
@@ -941,7 +975,7 @@ class ProxyService {
             if (this._looksLikeTextErrorPayload(uint8Array)) {
               console.warn(`Proxy ${proxy} returned text error as binary — treating as failure`);
               this.updateProxyScore(proxy, false);
-              this.proxyLastFailure.set(proxy, Date.now());
+              this._noteProxyFailure(proxy, 'binary');
               continue;
             }
             if (
@@ -952,7 +986,7 @@ class ProxyService {
                 `Proxy ${proxy} returned binary failing validation — treating as failure`
               );
               this.updateProxyScore(proxy, false);
-              this.proxyLastFailure.set(proxy, Date.now());
+              this._noteProxyFailure(proxy, 'binary');
               continue;
             }
             this._cacheSet(cacheKey, uint8Array);
@@ -975,9 +1009,9 @@ class ProxyService {
             if (this._maybeMarkDeadFromBody(proxy, errBody)) continue;
             console.warn(`Proxy ${proxy} returned status ${response.status}`);
             this.updateProxyScore(proxy, false);
-            this.proxyLastFailure.set(proxy, Date.now());
+            this._noteProxyFailure(proxy, 'binary');
             if (response.status >= 500) {
-              this._recordProxyHardFailure(proxy, `HTTP ${response.status}`);
+              this._recordProxyHardFailure(proxy, `HTTP ${response.status}`, 'binary');
             }
           }
         } catch (error) {
@@ -990,16 +1024,16 @@ class ProxyService {
             lastError = error;
             console.warn(`Proxy ${proxy} timed out (attempt ${retry + 1})`);
             this.updateProxyScore(proxy, false);
-            this.proxyLastFailure.set(proxy, Date.now());
-            this._recordProxyHardFailure(proxy, 'timeout');
+            this._noteProxyFailure(proxy, 'binary');
+            this._recordProxyHardFailure(proxy, 'timeout', 'binary');
             continue;
           }
           lastError = error;
           console.warn(`Proxy ${proxy} failed (attempt ${retry + 1}):`, error && error.message);
           this.updateProxyScore(proxy, false);
-          this.proxyLastFailure.set(proxy, Date.now());
+          this._noteProxyFailure(proxy, 'binary');
           const failureType = this._hardFailureTypeForError(error);
-          if (failureType) this._recordProxyHardFailure(proxy, failureType);
+          if (failureType) this._recordProxyHardFailure(proxy, failureType, 'binary');
           continue;
         }
       }
@@ -1073,15 +1107,19 @@ class ProxyService {
       }
     }
 
-    const orderedProxies = this.getOrderedProxies(options);
+    const orderedProxies = this.getOrderedProxies({
+      ...options,
+      mode: 'binary',
+      deferProxies: options.deferProxies || ['https://corsproxy.io/?']
+    });
     let lastError = null;
     for (let retry = 0; retry <= maxRetries; retry += 1) {
       if (userAbort && userAbort.aborted) {
         throw new DOMException('The operation was aborted.', 'AbortError');
       }
       for (const proxy of orderedProxies) {
-        const lastFail = this.proxyLastFailure.get(proxy);
-        if (lastFail && Date.now() - lastFail < this.proxyCooldownMs) continue;
+        if (this.isProxyDead(proxy, 'binary')) continue;
+        if (retry === 0 && this._proxyInCooldown(proxy, 'binary')) continue;
         try {
           const proxyUrl = proxy + this.encodeUrlForProxy(url);
           const startTime = Date.now();
@@ -1101,7 +1139,7 @@ class ProxyService {
           lastError = err;
           console.warn(`Streamed proxy ${proxy} failed:`, err && err.message);
           this.updateProxyScore(proxy, false);
-          this.proxyLastFailure.set(proxy, Date.now());
+          this._noteProxyFailure(proxy, 'binary');
           // `_streamToBlob` throws `new Error('HTTP ${status}')` for
           // non-2xx responses; parse that back out so we can gate the
           // hard-failure counter on 5xx like the buffered paths do.
@@ -1109,11 +1147,11 @@ class ProxyService {
           if (httpMatch) {
             const status = Number(httpMatch[1]);
             if (status >= 500) {
-              this._recordProxyHardFailure(proxy, `HTTP ${status}`);
+              this._recordProxyHardFailure(proxy, `HTTP ${status}`, 'binary');
             }
           } else {
             const failureType = this._hardFailureTypeForError(err);
-            if (failureType) this._recordProxyHardFailure(proxy, failureType);
+            if (failureType) this._recordProxyHardFailure(proxy, failureType, 'binary');
           }
         }
       }

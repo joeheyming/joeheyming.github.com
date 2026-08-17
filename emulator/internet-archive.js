@@ -107,11 +107,18 @@
       this.listTimeout = config.listTimeout || 45000;
       this.binaryTimeout = config.binaryTimeout || 120000;
       this.maxRetries = config.maxRetries != null ? config.maxRetries : 4;
-      // Prefer IA metadata JSON (has file sizes) over HTML directory listings.
-      this.preferMetadata = config.preferMetadata === true;
+      // Prefer IA metadata JSON by default: smaller than HTML listings, includes
+      // sizes, and archive.org/metadata serves Access-Control-Allow-Origin: *
+      // so the browser can fetch it without a CORS proxy. Set
+      // preferMetadata: false to force the HTML directory listing first.
+      this.preferMetadata = config.preferMetadata !== false;
       this.romCache = null;
       this.cacheTimestamp = null;
       this.cacheExpiry = 30 * 60 * 1000;
+      // itemId → `https://{d1}{dir}` from the last successful metadata fetch.
+      // Used so HTML-listing fallbacks can still resolve CDN download URLs.
+      /** @type {Map<string, string>} */
+      this._cdnBases = new Map();
     }
 
     async fetchRomList() {
@@ -223,12 +230,25 @@
       return [];
     }
 
+    /**
+     * Build `https://{d1}{dir}` from IA metadata. Proxies handle these CDN
+     * hosts far more reliably than archive.org/download/… (which 302s).
+     * @param {object} meta
+     * @returns {string|null}
+     */
+    _cdnBaseFromMeta(meta) {
+      const d1 = meta && meta.d1;
+      const dir = meta && meta.dir;
+      if (!d1 || !dir) return null;
+      const path = String(dir).startsWith('/') ? String(dir) : `/${dir}`;
+      return `https://${d1}${path}`.replace(/\/$/, '');
+    }
+
     async _fetchOneSourceViaMetadata(baseUrl) {
       const id = this._iaIdentifier(baseUrl);
       if (!id) return [];
       const metaUrl = `https://archive.org/metadata/${encodeURIComponent(id)}`;
       const jsonText = await window.proxyService.fetchWithProxy(metaUrl, {
-        skipDirect: true,
         timeout: this.listTimeout,
         maxRetries: this.maxRetries,
         headers: { Accept: 'application/json,*/*' },
@@ -242,13 +262,48 @@
         }
       });
       const meta = JSON.parse(jsonText);
-      return this.parseRomListFromMetadata(meta, baseUrl);
+      const cdnBase = this._cdnBaseFromMeta(meta);
+      if (cdnBase) this._cdnBases.set(id, cdnBase);
+      return this.parseRomListFromMetadata(meta, baseUrl, cdnBase);
     }
 
-    parseRomListFromMetadata(meta, baseUrl) {
+    /**
+     * Resolve an archive.org/download/… URL to the item's CDN file URL when
+     * we know (or can fetch) metadata. No-ops for already-CDN URLs.
+     * @param {string} downloadUrl
+     * @returns {Promise<string>}
+     */
+    async _resolveCdnDownloadUrl(downloadUrl) {
+      const m = String(downloadUrl).match(
+        /^https?:\/\/(?:www\.)?archive\.org\/download\/([^/?#]+)\/(.+)$/i
+      );
+      if (!m) return downloadUrl;
+      const itemId = decodeURIComponent(m[1]);
+      let filePath = m[2];
+      try {
+        filePath = decodeURIComponent(filePath);
+      } catch {
+        /* keep encoded */
+      }
+      let cdnBase = this._cdnBases.get(itemId);
+      if (!cdnBase) {
+        try {
+          await this._fetchOneSourceViaMetadata(
+            `https://archive.org/download/${encodeURIComponent(itemId)}`
+          );
+          cdnBase = this._cdnBases.get(itemId);
+        } catch (err) {
+          console.warn('CDN resolve via metadata failed:', err);
+        }
+      }
+      if (!cdnBase) return downloadUrl;
+      return `${cdnBase}/${filePath.split('/').map(encodeURIComponent).join('/')}`;
+    }
+
+    parseRomListFromMetadata(meta, baseUrl, cdnBase) {
       const roms = [];
       const files = (meta && meta.files) || [];
-      const base = String(baseUrl).replace(/\/$/, '');
+      const base = (cdnBase || String(baseUrl)).replace(/\/$/, '');
 
       for (const file of files) {
         const filename = file && file.name;
@@ -343,7 +398,8 @@
       if (!window.proxyService) {
         throw new Error('Proxy service not available');
       }
-      return fetchRom(rom.downloadUrl, {
+      const url = await this._resolveCdnDownloadUrl(rom.downloadUrl);
+      return fetchRom(url, {
         timeout: this.binaryTimeout,
         maxRetries: this.maxRetries
       });

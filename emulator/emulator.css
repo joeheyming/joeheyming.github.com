@@ -432,9 +432,58 @@ kbd {
 
 .share-overlay {
   position: fixed;
-  bottom: 20px;
-  left: 20px;
+  /* Top-right cluster with the related-projects 🎯 FAB — keeps both
+   * clear of the boot card / game canvas (they used to sit bottom-left
+   * and bottom-right and collided with controls). */
+  top: 10px;
+  right: 84px;
+  bottom: auto;
+  left: auto;
   z-index: 200;
+}
+
+/* Pull the sitewide 🎯 related-projects FAB up into the same cluster.
+ * Panel opens downward; share-fab (if present) stacks below the toggle. */
+.related-projects-container {
+  top: 6px !important;
+  right: 16px !important;
+  bottom: auto !important;
+}
+
+.related-projects-panel {
+  top: 70px !important;
+  bottom: auto !important;
+  transform: translateY(-8px) scale(0.95) !important;
+}
+
+.related-projects-panel.open {
+  transform: translateY(0) scale(1) !important;
+}
+
+.related-projects-container .share-fab {
+  top: 68px !important;
+  bottom: auto !important;
+}
+
+/* Leave room for the top-right share + 🎯 cluster over the breadcrumb bar. */
+#emu-header.app-header .app-breadcrumbs {
+  padding-right: 170px;
+}
+
+@media (max-width: 768px) {
+  .share-overlay {
+    top: 8px;
+    right: 72px;
+  }
+
+  .related-projects-container {
+    top: 6px !important;
+    right: 12px !important;
+  }
+
+  #emu-header.app-header .app-breadcrumbs {
+    padding-right: 140px;
+  }
 }
 
 .seo-intro {
@@ -692,7 +741,8 @@ kbd {
 /* Hide mouse-oriented site chrome on lean-back surfaces */
 :root[data-mode='tv'] feedback-button,
 :root[data-mode='tv'] share-button,
-:root[data-mode='tv'] .share-overlay {
+:root[data-mode='tv'] .share-overlay,
+:root[data-mode='tv'] .related-projects-container {
   display: none !important;
 }
 
