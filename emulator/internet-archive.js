@@ -248,18 +248,58 @@
       const id = this._iaIdentifier(baseUrl);
       if (!id) return [];
       const metaUrl = `https://archive.org/metadata/${encodeURIComponent(id)}`;
-      const jsonText = await window.proxyService.fetchWithProxy(metaUrl, {
-        timeout: this.listTimeout,
-        maxRetries: this.maxRetries,
-        headers: { Accept: 'application/json,*/*' },
-        validate: (body) => {
-          try {
-            const j = JSON.parse(body);
-            return !!(j && Array.isArray(j.files));
-          } catch {
-            return false;
-          }
+
+      const acceptMeta = (body) => {
+        try {
+          const j = JSON.parse(body);
+          // Empty `{}` / error payloads are common when IA is busy or the
+          // item is darked — treat as invalid so we don't cache them.
+          return !!(j && Array.isArray(j.files) && j.files.length > 0 && !j.error);
+        } catch {
+          return false;
         }
+      };
+
+      // archive.org/metadata is CORS-enabled. Try a full-timeout direct fetch
+      // before spending proxy budget. Soft-empty responses (`{}`, no files)
+      // return [] immediately so the caller can fall back to the HTML listing
+      // instead of retrying the same dead payload through every proxy.
+      try {
+        const signal =
+          typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+            ? AbortSignal.timeout(this.listTimeout)
+            : undefined;
+        const res = await fetch(metaUrl, {
+          method: 'GET',
+          headers: { Accept: 'application/json,*/*' },
+          mode: 'cors',
+          signal
+        });
+        if (res.ok) {
+          const text = await res.text();
+          if (acceptMeta(text)) {
+            const meta = JSON.parse(text);
+            const cdnBase = this._cdnBaseFromMeta(meta);
+            if (cdnBase) this._cdnBases.set(id, cdnBase);
+            return this.parseRomListFromMetadata(meta, baseUrl, cdnBase);
+          }
+          console.warn(
+            `IA metadata for ${id} has no files (item missing/darked or IA busy) — skipping proxy retries`
+          );
+          return [];
+        }
+      } catch (err) {
+        console.warn(`Direct IA metadata failed for ${id}:`, err && err.message);
+      }
+
+      const jsonText = await window.proxyService.fetchWithProxy(metaUrl, {
+        // Direct already tried above with the full timeout.
+        skipDirect: true,
+        timeout: this.listTimeout,
+        // Soft failures (empty {}) shouldn't burn a long retry ladder.
+        maxRetries: Math.min(this.maxRetries, 1),
+        headers: { Accept: 'application/json,*/*' },
+        validate: acceptMeta
       });
       const meta = JSON.parse(jsonText);
       const cdnBase = this._cdnBaseFromMeta(meta);
@@ -304,16 +344,24 @@
       const roms = [];
       const files = (meta && meta.files) || [];
       const base = (cdnBase || String(baseUrl)).replace(/\/$/, '');
+      // Some IA items nest games under `…/roms/…` (and also ship theme/artwork
+      // zips). When a roms/ folder exists, only index those files.
+      const hasRomsDir = files.some((f) => f && f.name && /\/roms\//i.test(String(f.name)));
 
       for (const file of files) {
         const filename = file && file.name;
-        if (!filename || String(filename).includes('/')) continue;
+        if (!filename) continue;
+        if (hasRomsDir) {
+          if (!/\/roms\//i.test(String(filename))) continue;
+        } else if (String(filename).includes('/')) {
+          // Flat collections (nes-collection style): skip nested metadata noise.
+          continue;
+        }
         const lower = String(filename).toLowerCase();
         const ext = this.fileExtensions.find((e) => lower.endsWith(e));
         if (!ext) continue;
-        const romName = String(filename)
-          .slice(0, String(filename).length - ext.length)
-          .trim();
+        const baseName = String(filename).split('/').pop();
+        const romName = baseName.slice(0, baseName.length - ext.length).trim();
         if (!romName) continue;
         if (this.excludeNames.has(romName.toLowerCase())) continue;
         if (roms.some((rom) => rom.name === romName)) continue;
@@ -323,7 +371,7 @@
         roms.push({
           name: romName,
           title: romName,
-          downloadUrl: `${base}/${filename.split('/').map(encodeURIComponent).join('/')}`,
+          downloadUrl: `${base}/${String(filename).split('/').map(encodeURIComponent).join('/')}`,
           fileExtension: ext,
           category: category,
           description: `${this.descriptionPrefix}: ${romName}`,

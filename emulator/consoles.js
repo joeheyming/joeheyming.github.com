@@ -30,7 +30,10 @@
       // the EJS chrome (EJS_color). Sega / GB get their own hue below.
       accentHex: '#dc2626',
       accentGoldHex: '#7c2d12',
-      iaBaseUrl: 'https://archive.org/download/nes-collection',
+      // Per-game .zip listing. `nes-collection` still appears in IA search but
+      // metadata/files APIs return empty / "Couldn't locate item" (darked or
+      // deranged item). `NintendoEntertainmentSystem` serves a real file list.
+      iaBaseUrl: 'https://archive.org/download/NintendoEntertainmentSystem',
       iaDescriptionPrefix: 'Classic NES game',
       // Keyboard help — EmulatorJS default bindings (EJS_defaultControls = 1).
       controls: [

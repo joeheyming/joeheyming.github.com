@@ -563,7 +563,9 @@ class ProxyService {
   async tryDirectFetch(url, options = {}) {
     const userAbort = options.signal;
     try {
-      const timeoutMs = 3000; // Short probe — don't burn the full proxy timeout here.
+      // Honor caller timeout when set (e.g. IA metadata often needs 10–45s).
+      // Default stays a short CORS probe so blocked origins fall through fast.
+      const timeoutMs = options.timeout != null ? options.timeout : 3000;
       const signal = mergeFetchAbortSignal(timeoutMs, userAbort);
       const response = await fetch(url, {
         method: 'GET',
@@ -575,10 +577,13 @@ class ProxyService {
         signal
       });
       if (response.ok) {
-        console.log('Direct fetch succeeded (no proxy needed)');
         const text = await response.text();
         if (!text) return null;
-        if (typeof options.validate === 'function' && !options.validate(text)) return null;
+        if (typeof options.validate === 'function' && !options.validate(text)) {
+          console.warn('Direct fetch failed validation — falling through to proxies');
+          return null;
+        }
+        console.log('Direct fetch succeeded (no proxy needed)');
         return text;
       }
     } catch (error) {
