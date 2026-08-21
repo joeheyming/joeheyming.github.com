@@ -299,11 +299,27 @@ body {
   transition: none;
 }
 
-/* Tile */
+/* Tile.
+ *
+ * Two nodes on purpose: .tile owns the cell-to-cell slide, .tile-inner owns
+ * the appear/merge scale. Both effects want `transform`, and an animation
+ * beats an inline style in the cascade — sharing one node would let a
+ * finished spawn animation hold the tile at its birth cell forever, so moves
+ * would jump instead of slide. Splitting them keeps the two independent. */
 .tile {
   position: absolute;
   width: var(--cell-size);
   height: var(--cell-size);
+  /* The slide is the visible motion on every move. Keep this curve
+   * in sync with --slide-duration / --slide-curve so JS timeouts
+   * line up with when the slide actually completes. */
+  transition: transform var(--slide-duration) var(--slide-curve);
+  will-change: transform;
+}
+
+.tile-inner {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -314,106 +330,105 @@ body {
   font-variant-numeric: tabular-nums;
   font-size: clamp(1.6rem, 5.5vmin, 2.4rem);
   letter-spacing: -0.02em;
-  /* The slide is the visible motion on every move. Keep this curve
-   * in sync with --slide-duration / --slide-curve so JS timeouts
-   * line up with when the slide actually completes. */
-  transition: transform var(--slide-duration) var(--slide-curve), background-color 0.2s ease,
-    color 0.2s ease, box-shadow 0.2s ease;
-  will-change: transform;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.tile.appear {
+/* The delay holds the new tile at scale(0) until the slide has settled. */
+.tile.appear .tile-inner {
   animation: tile-appear 0.22s ease-out 0.12s both;
 }
 
 .tile.merged {
-  animation: tile-merge 0.22s ease-out both;
   z-index: 2;
+}
+
+.tile.merged .tile-inner {
+  animation: tile-merge 0.22s ease-out both;
 }
 
 @keyframes tile-appear {
   0% {
-    transform: var(--pos) scale(0);
+    transform: scale(0);
   }
   60% {
-    transform: var(--pos) scale(1.08);
+    transform: scale(1.08);
   }
   100% {
-    transform: var(--pos) scale(1);
+    transform: scale(1);
   }
 }
 
 @keyframes tile-merge {
   0% {
-    transform: var(--pos) scale(1);
+    transform: scale(1);
   }
   40% {
-    transform: var(--pos) scale(1.22);
+    transform: scale(1.22);
   }
   100% {
-    transform: var(--pos) scale(1);
+    transform: scale(1);
   }
 }
 
 /* Tile color tiers */
-.tile[data-value='2'] {
+.tile[data-value='2'] .tile-inner {
   background: var(--tile-2-bg);
   color: var(--tile-2-fg);
 }
-.tile[data-value='4'] {
+.tile[data-value='4'] .tile-inner {
   background: var(--tile-4-bg);
   color: var(--tile-4-fg);
 }
-.tile[data-value='8'] {
+.tile[data-value='8'] .tile-inner {
   background: var(--tile-8-bg);
   color: var(--tile-8-fg);
 }
-.tile[data-value='16'] {
+.tile[data-value='16'] .tile-inner {
   background: var(--tile-16-bg);
   color: var(--tile-16-fg);
   box-shadow: 0 0 0 0 color-mix(in srgb, var(--tile-16-bg) 0%, transparent);
 }
-.tile[data-value='32'] {
+.tile[data-value='32'] .tile-inner {
   background: var(--tile-32-bg);
   color: var(--tile-32-fg);
   box-shadow: 0 0 18px 0 color-mix(in srgb, var(--tile-32-bg) 30%, transparent);
 }
-.tile[data-value='64'] {
+.tile[data-value='64'] .tile-inner {
   background: var(--tile-64-bg);
   color: var(--tile-64-fg);
   box-shadow: 0 0 22px 0 color-mix(in srgb, var(--tile-64-bg) 35%, transparent);
 }
-.tile[data-value='128'] {
+.tile[data-value='128'] .tile-inner {
   background: var(--tile-128-bg);
   color: var(--tile-128-fg);
   font-size: clamp(1.4rem, 5vmin, 2.1rem);
   box-shadow: 0 0 26px 0 color-mix(in srgb, var(--tile-128-bg) 40%, transparent);
 }
-.tile[data-value='256'] {
+.tile[data-value='256'] .tile-inner {
   background: var(--tile-256-bg);
   color: var(--tile-256-fg);
   font-size: clamp(1.4rem, 5vmin, 2.1rem);
   box-shadow: 0 0 28px 0 color-mix(in srgb, var(--tile-256-bg) 45%, transparent);
 }
-.tile[data-value='512'] {
+.tile[data-value='512'] .tile-inner {
   background: var(--tile-512-bg);
   color: var(--tile-512-fg);
   font-size: clamp(1.4rem, 5vmin, 2.1rem);
   box-shadow: 0 0 32px 0 color-mix(in srgb, var(--tile-512-bg) 50%, transparent);
 }
-.tile[data-value='1024'] {
+.tile[data-value='1024'] .tile-inner {
   background: var(--tile-1024-bg);
   color: var(--tile-1024-fg);
   font-size: clamp(1.1rem, 4vmin, 1.7rem);
   box-shadow: 0 0 36px 0 color-mix(in srgb, var(--tile-1024-bg) 55%, transparent);
 }
-.tile[data-value='2048'] {
+.tile[data-value='2048'] .tile-inner {
   background: var(--tile-2048-bg);
   color: var(--tile-2048-fg);
   font-size: clamp(1.1rem, 4vmin, 1.7rem);
   box-shadow: 0 0 42px 4px color-mix(in srgb, var(--tile-2048-bg) 65%, transparent);
 }
-.tile.super {
+.tile.super .tile-inner {
   background: linear-gradient(135deg, var(--tile-super-bg), #6d28d9);
   color: var(--tile-super-fg);
   font-size: clamp(0.95rem, 3.4vmin, 1.5rem);
@@ -554,8 +569,7 @@ body {
  * game logic still runs the same, just without the slide/pop. */
 @media (prefers-reduced-motion: reduce) {
   .tile,
-  .tile.appear,
-  .tile.merged,
+  .tile-inner,
   .tiles,
   .score-delta,
   .overlay {

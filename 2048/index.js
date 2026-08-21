@@ -96,10 +96,13 @@ function createTileEl(tile, opts) {
   const el = document.createElement('div');
   el.className = 'tile';
   el.dataset.id = String(tile.id);
+  // The inner node carries the appear/merge scale animations. Keeping them
+  // off the outer node matters: an animation outranks inline styles, so a
+  // scale animation sharing `transform` with the slide would pin the tile to
+  // its birth cell for good and turn every later move into a teleport.
+  el.appendChild(document.createElement('div')).className = 'tile-inner';
   applyTileStyle(el, tile);
-  const transform = tilePosTransform(tile.row, tile.col);
-  el.style.transform = transform;
-  el.style.setProperty('--pos', transform);
+  el.style.transform = tilePosTransform(tile.row, tile.col);
   if (opts?.appear) el.classList.add('appear');
   if (opts?.merged) el.classList.add('merged');
   els.tiles.appendChild(el);
@@ -117,7 +120,8 @@ function applyTileStyle(el, tile) {
   } else {
     el.classList.remove('super');
   }
-  el.textContent = String(tile.value);
+  const inner = el.querySelector('.tile-inner');
+  if (inner) inner.textContent = String(tile.value);
 }
 
 /**
@@ -411,9 +415,7 @@ function move(dir) {
     if (mergedTileIds.has(t.id)) continue; // brand-new merged tile
     const el = tileEl(t);
     if (!el) continue;
-    const transform = tilePosTransform(t.row, t.col);
-    el.style.transform = transform;
-    el.style.setProperty('--pos', transform);
+    el.style.transform = tilePosTransform(t.row, t.col);
   }
 
   // Slide consumed tiles onto the merge winner's position so the merge
