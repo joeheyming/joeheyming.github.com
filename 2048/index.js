@@ -332,7 +332,10 @@ function writeLine(dir, idx, line) {
  * @param {'left' | 'right' | 'up' | 'down'} dir
  */
 function move(dir) {
-  if (isAnimating) return;
+  // Match the canonical game's termination guard: while the win/game-over
+  // prompt is asking for a decision, directional input must not mutate the
+  // board behind it. Undo remains available as an explicit escape hatch.
+  if (isAnimating || !els.overlay.hidden) return;
   const snapshot = snapshotGrid();
   // Clear the previous grid array; we'll overwrite each line below.
   /** @type {(Tile | null)[][]} */
@@ -458,6 +461,7 @@ function move(dir) {
         window.trackConversion('game_completed', score);
       }
     } else if (!hasMoves()) {
+      clearPersistedState();
       showOverlay({ kind: 'lose' });
       trackEvent('2048_game_over', { score });
     }
@@ -598,6 +602,14 @@ function persistState() {
   }
 }
 
+function clearPersistedState() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Storage disabled — there is no persisted state to clear.
+  }
+}
+
 /**
  * @returns {boolean} whether a saved state was restored
  */
@@ -699,6 +711,16 @@ function directionFromKey(ev) {
  * @param {KeyboardEvent} ev
  */
 function onKeyDown(ev) {
+  const hasModifier = ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey;
+  if (
+    !hasModifier &&
+    (ev.code === 'KeyR' || ev.key === 'r' || ev.key === 'R' || ev.keyCode === 82)
+  ) {
+    ev.preventDefault();
+    newGame();
+    return;
+  }
+
   if (ev.metaKey || ev.ctrlKey) {
     if (ev.code === 'KeyZ' || ev.key === 'z' || ev.key === 'Z') {
       ev.preventDefault();

@@ -506,6 +506,15 @@ body {
   opacity: 0.4;
 }
 
+.help a {
+  color: inherit;
+  text-underline-offset: 2px;
+}
+
+.help a:hover {
+  color: var(--text-2);
+}
+
 /* Mobile: stack the title above the score boxes when it gets tight,
  * and bump tap targets so the buttons are reachable one-handed. */
 @media (max-width: 480px) {
