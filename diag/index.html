@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Browser Diagnostics — Engine, Audio, and Gamepad Probe 🔬</title>
+    <meta
+      name="description"
+      content="A dependency-free capability probe: WebAssembly, WebGL, Web Audio, Pointer Events, and live gamepad state. Built for browsers with no developer tools, like console web views."
+    />
+    <!-- Internal debugging surface, not a public app: deliberately kept out of
+         apps-registry.json and sitemap.xml, and excluded from Search. -->
+    <meta name="robots" content="noindex, follow" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔬</text></svg>"
+    />
+    <link rel="stylesheet" href="index.css" />
+    <!-- Classic script, no modules, no shared site scripts: this page has to
+         survive engines where those are exactly what's broken. The module
+         probe below is the one place we *want* to detect module support. -->
+    <script type="module">
+      window.__esModules = true;
+    </script>
+  </head>
+  <body>
+    <h1>Browser diagnostics 🔬</h1>
+    <p class="lede">
+      Everything on this page runs locally with no imports, no build step, and no other site
+      scripts. On a game console, press
+      <strong>X</strong>
+      (PlayStation) or
+      <strong>A</strong>
+      (Xbox) to click a button.
+    </p>
+
+    <section>
+      <h2>Engine</h2>
+      <div id="engine" class="rows">Probing…</div>
+    </section>
+
+    <section>
+      <h2>Audio</h2>
+      <p class="hint">
+        Plays a 440&nbsp;Hz tone for one second and meters the signal
+        <em>inside</em>
+        the audio graph. If the meter reads a level but you hear nothing, the graph runs and the
+        browser is not routing it to the speakers.
+      </p>
+      <button id="tone" type="button">Play test tone</button>
+      <div id="audio" class="rows">Not run yet.</div>
+    </section>
+
+    <section>
+      <h2>Input events</h2>
+      <p class="hint">
+        Press buttons and move the stick or D-pad. Nothing appearing here means the page never
+        receives the input at all.
+      </p>
+      <button id="clear" type="button">Clear log</button>
+      <div id="events" class="log">Waiting for input…</div>
+    </section>
+
+    <section>
+      <h2>Gamepads</h2>
+      <p class="hint">
+        Live
+        <code>navigator.getGamepads()</code>
+        output. Some browsers only reveal a pad after the first button press.
+      </p>
+      <div id="pads" class="rows">Probing…</div>
+    </section>
+
+    <script src="index.js"></script>
+  </body>
+</html>

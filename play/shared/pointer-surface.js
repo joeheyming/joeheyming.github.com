@@ -97,8 +97,14 @@ export function createPointerSurface(rootEl, opts = {}) {
     committed.delete(ptrId);
   };
 
+  // Some console web views re-dispatch `pointerdown` as the cursor is dragged
+  // with the button held, and never send a `pointerup` for the key it left.
+  // Without releasing the previous target here, the host is told to start a
+  // note it is never told to stop.
   const enter = (target, ptrId, event) => {
+    const prev = active.get(ptrId);
     active.set(ptrId, target);
+    if (prev && prev !== target) onLeave(prev, ptrId, event);
     if (target) onEnter(target, ptrId, event);
   };
 
@@ -156,13 +162,14 @@ export function createPointerSurface(rootEl, opts = {}) {
     const next = hitTest(event.clientX, event.clientY);
     const prev = active.get(event.pointerId);
     if (next === prev) return;
+    // Record the new target before running host callbacks. A callback that
+    // throws — a synth whose AudioContext the browser won't create, say —
+    // would otherwise leave this pointer tracking the old target, stranding
+    // the key it just entered in its pressed state with nothing able to
+    // release it. Every drag across the surface then leaves a stuck key.
+    active.set(event.pointerId, next || null);
     if (prev) onLeave(prev, event.pointerId, event);
-    if (next) {
-      onEnter(next, event.pointerId, event);
-      active.set(event.pointerId, next);
-    } else {
-      active.set(event.pointerId, null);
-    }
+    if (next) onEnter(next, event.pointerId, event);
   };
 
   const handleUp = (event) => {

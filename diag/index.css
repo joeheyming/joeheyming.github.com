@@ -1,0 +1,130 @@
+:root {
+  --bg: #0b1020;
+  --panel: #151c33;
+  --border: #2a3355;
+  --text: #e8ecf8;
+  --muted: #9aa6c9;
+  --pass: #5ce08a;
+  --fail: #ff7b72;
+  --warn: #ffd166;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  /* Consoles overscan and are viewed from a couch: oversized type, generous
+     padding, and a left inset that clears the fixed nav toggle used by the
+     rest of the site. */
+  padding: 60px 40px 80px 130px;
+  background: var(--bg);
+  color: var(--text);
+  font: 18px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-size: 34px;
+}
+
+h2 {
+  margin: 0 0 10px;
+  font-size: 24px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.lede {
+  max-width: 70ch;
+  margin: 0 0 36px;
+  color: var(--muted);
+}
+
+.hint {
+  max-width: 70ch;
+  margin: 0 0 14px;
+  font-size: 16px;
+  color: var(--muted);
+}
+
+section {
+  max-width: 1000px;
+  margin: 0 0 40px;
+  padding: 24px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.rows {
+  display: grid;
+  /* Values can be long UA strings, so let the value column wrap freely. */
+  grid-template-columns: minmax(180px, 22ch) 1fr;
+  gap: 6px 20px;
+}
+
+.rows .k {
+  color: var(--muted);
+}
+
+.rows .v {
+  overflow-wrap: anywhere;
+}
+
+.pass {
+  color: var(--pass);
+}
+
+.fail {
+  color: var(--fail);
+}
+
+.warn {
+  color: var(--warn);
+}
+
+button {
+  margin: 0 12px 18px 0;
+  padding: 14px 28px;
+  background: #24305a;
+  color: var(--text);
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+button:focus {
+  /* Console cursors give no hover affordance, so make focus loud. */
+  outline: 3px solid var(--warn);
+  outline-offset: 3px;
+}
+
+.log {
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 14px;
+  background: #0d1226;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 16px;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 640px) {
+  body {
+    padding: 56px 16px 60px;
+  }
+
+  .rows {
+    grid-template-columns: 1fr;
+    gap: 2px 0;
+  }
+
+  .rows .k {
+    margin-top: 10px;
+  }
+}
