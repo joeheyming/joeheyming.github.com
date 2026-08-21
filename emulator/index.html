@@ -147,7 +147,7 @@
                 "name": "Can I play on a TV, Xbox, or PlayStation browser?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Often yes on Xbox and PlayStation browsers when the page can enable cross-origin isolation (needed for EmulatorJS). Use the on-screen ROM collection — there is no local file picker on those devices — and a controller or remote D-pad to navigate. Smart TVs vary; if the emulator cannot start you will see a clear message. Preview the lean-back layout on desktop with ?tv=1. Deep-link a title with /emulator/nes/?rom=GameName. PS1 currently requires a desktop browser for local disc images."
+                  "text": "Often yes. NES, SNES, Game Boy, Game Gear, and Genesis run single-threaded, so they work even where SharedArrayBuffer is unavailable — including Xbox Edge and the PS5 system web view. Sega 32X, Neo Geo, and PS1 need WebAssembly threads (cross-origin isolation) and will show a clear message instead. Use the on-screen ROM collection — there is no local file picker on those devices — and a controller or remote D-pad to navigate. Preview the lean-back layout on desktop with ?tv=1. Deep-link a title with /emulator/nes/?rom=GameName."
                 }
               },
               {

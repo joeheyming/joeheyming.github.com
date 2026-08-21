@@ -173,6 +173,7 @@ When adding or fixing an app for Search:
 | `/feedback.js` | `<feedback-button>` web component → Google Form | Most apps |
 | `/share.js` | Related-projects panel from `apps-registry.json` `related` field | Apps with `related` entries |
 | `/proxy.js` | `window.proxyService` — CORS-safe fetch with fallback proxies, caching, circuit breaker | Only when fetching cross-origin resources (ROMs, APIs, etc.) |
+| `/gamepad-keys.js` | Polls the Gamepad API and synthesizes arrow / Enter / Escape key events, so keyboard-driven apps work with a controller on TV and console browsers | Opt-in: keyboard-driven games (see `2048/`). **Never** on pages that read the Gamepad API themselves (`emulator/`, `stepmania/`, `doom/`) |
 
 ### Nav toggle clearance
 

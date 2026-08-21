@@ -47,6 +47,8 @@ interface HeymingOSNamespace {
 interface Window {
   HeymingOS: HeymingOSNamespace;
   heymingOS: import('../terminal/core/heyming-os').HeymingOS;
+  /** Controller → arrow-key bridge (`gamepad-keys.js`, opt-in per page). */
+  gamepadKeys?: GamepadKeysApi;
 
   // Shared filesystem (classic script, can't import)
   FileSystemDB: typeof FileSystemDB;
@@ -107,6 +109,16 @@ interface Window {
     getState: () => unknown;
     scramble: () => void;
   };
+}
+
+interface GamepadKeysApi {
+  start(): void;
+  stop(): void;
+  readonly isActive: boolean;
+  readonly hasGamepad: boolean;
+  /** Turn the bridge off for pages that read the Gamepad API themselves. */
+  disable(): void;
+  enable(): void;
 }
 
 // ---------------------------------------------------------------------------

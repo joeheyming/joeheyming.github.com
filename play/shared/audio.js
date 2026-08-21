@@ -7,6 +7,10 @@
  *
  * The soundfont-player library is loaded as a classic <script> tag in each
  * page that needs samples; it sets `window.Soundfont`, which we read here.
+ *
+ * Every instrument routes through getCtx() / resumeIfSuspended(), so the
+ * WebKit unlock handling below is what keeps audio working in Safari and in
+ * the WebKit web views on game consoles.
  */
 
 export const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -31,6 +35,61 @@ export function isC(midi) {
 let ctx = null;
 let master = null;
 let masterVolume = 0.65;
+let outputUnlocked = false;
+let gestureUnlockArmed = false;
+
+/**
+ * WebKit parks a context in `interrupted` (not `suspended`) when the audio
+ * session is taken away — another app grabs output, the console web view is
+ * backgrounded. `resume()` is what brings it back, so treat both states the
+ * same everywhere we check.
+ */
+function needsResume(target) {
+  return target.state === 'suspended' || target.state === 'interrupted';
+}
+
+/**
+ * WebKit keeps a context's output silent until at least one buffer has
+ * started from inside a user gesture — `resume()` alone reports `running`
+ * while producing nothing. Playing a single silent frame is the standard
+ * unlock, and it's a no-op on engines that don't need it. Without this,
+ * Safari and the WebKit web views used by consoles (the PS5 system browser
+ * among them) render every /play/ instrument mute.
+ */
+function unlockOutput(target) {
+  if (outputUnlocked) return;
+  try {
+    const src = target.createBufferSource();
+    src.buffer = target.createBuffer(1, 1, target.sampleRate);
+    src.connect(target.destination);
+    src.start(0);
+    outputUnlocked = true;
+  } catch (_) {
+    /* retry on the next gesture */
+  }
+}
+
+/**
+ * Safety net for pages that build their graph at load time (metronome,
+ * chiptune) instead of on the first note: unlock from the first real gesture
+ * anywhere on the page, whatever the instrument's own handlers do.
+ */
+function armGestureUnlock() {
+  if (gestureUnlockArmed || typeof window === 'undefined') return;
+  gestureUnlockArmed = true;
+  const events = ['pointerdown', 'touchend', 'mousedown', 'keydown'];
+  const onGesture = () => {
+    if (!ctx) return;
+    if (needsResume(ctx)) ctx.resume().catch(() => {});
+    unlockOutput(ctx);
+    if (outputUnlocked) {
+      for (const type of events) window.removeEventListener(type, onGesture, true);
+    }
+  };
+  for (const type of events) {
+    window.addEventListener(type, onGesture, { capture: true, passive: true });
+  }
+}
 
 export function getCtx() {
   if (ctx) return ctx;
@@ -39,6 +98,7 @@ export function getCtx() {
   master = ctx.createGain();
   master.gain.value = masterVolume;
   master.connect(ctx.destination);
+  armGestureUnlock();
   return ctx;
 }
 
@@ -62,8 +122,11 @@ export function getMaster() {
 // event with no real instrument interaction.
 let _firstInteractionFired = false;
 export function resumeIfSuspended() {
-  const wasSuspended = ctx && ctx.state === 'suspended';
+  const wasSuspended = !!ctx && needsResume(ctx);
   if (wasSuspended) ctx.resume().catch(() => {});
+  // Every note-on funnels through here, so this is also the reliable
+  // in-gesture moment to unlock WebKit output.
+  if (ctx) unlockOutput(ctx);
   if (
     wasSuspended &&
     !_firstInteractionFired &&

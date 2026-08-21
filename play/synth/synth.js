@@ -5,7 +5,14 @@
  * Each voice owns its own filter so per-note "filter envelope" effects could
  * be added later without affecting other notes.
  */
-import { midiToFreq, midiToName, getCtx, getMaster, setMasterVolume } from '../shared/audio.js';
+import {
+  midiToFreq,
+  midiToName,
+  getCtx,
+  getMaster,
+  setMasterVolume,
+  resumeIfSuspended
+} from '../shared/audio.js';
 import { Keyboard } from '../shared/keyboard.js';
 import { setupMidi } from '../shared/midi.js';
 import { makePrefs } from '../shared/prefs.js';
@@ -62,7 +69,7 @@ class SubtractiveSynth {
 
   noteOn(midi) {
     const ctx = getCtx();
-    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    resumeIfSuspended();
     if (this.voices.has(midi)) this.noteOff(midi, true);
     this.ensureLfo();
 

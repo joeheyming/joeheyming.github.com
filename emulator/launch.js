@@ -12,9 +12,12 @@
 // `<console>_rom_loaded` shows up in our analytics alongside the
 // `nes_rom_loaded` event we used to emit from the old custom emulator.
 //
-// Lean-back (TV / console): hides the file picker, soft-fails when
-// crossOriginIsolated is false, supports `?rom=<name>` deep links, and
-// wires D-pad focus via emulatorLeanback.applyRovingTabindex.
+// Lean-back (TV / console): hides the file picker, supports `?rom=<name>`
+// deep links, and wires D-pad focus via emulatorLeanback.applyRovingTabindex.
+//
+// Without cross-origin isolation there is no SharedArrayBuffer, so only
+// `threadsRequired` consoles (see consoles.js) soft-fail; everything else
+// boots single-threaded with EJS_threads pinned off.
 (function () {
   'use strict';
 
@@ -23,6 +26,8 @@
   const BIOS_IDB_VERSION = 1;
   const BIOS_STORE = 'bios';
   let coiBlocked = false;
+  /** True when we booted a core without cross-origin isolation (no threads). */
+  let singleThreadMode = false;
   let pickerRoving = null;
   /** @type {File|null} BIOS file for the active console (IndexedDB or picker). */
   let activeBiosFile = null;
@@ -463,21 +468,58 @@
       : 'Connect a controller, or use the remote D-pad to navigate';
   }
 
-  function renderCoiSoftFail() {
+  function wasmSupported() {
+    return typeof WebAssembly === 'object' && typeof WebAssembly.instantiate === 'function';
+  }
+
+  /**
+   * Cross-origin isolation only buys us SharedArrayBuffer, which EmulatorJS
+   * needs for *threaded* cores. The 8/16-bit cores run single-threaded, so a
+   * browser stuck without COI (console web views, in-app browsers) can still
+   * play them. Only `threadsRequired` consoles and missing WASM are fatal.
+   * @param {object|null} cfg
+   * @returns {boolean}
+   */
+  function canRunWithoutCoi(cfg) {
+    // Picker page: nothing to emulate yet, always let it render.
+    if (!cfg) return true;
+    if (!wasmSupported()) return false;
+    return !cfg.threadsRequired;
+  }
+
+  function renderCoiSoftFail(cfg) {
     const bootCard = document.getElementById('boot-card');
     if (!bootCard) return;
+    const reason = !wasmSupported()
+      ? 'This browser has no WebAssembly support, so no emulator core can run here.'
+      : `${escapeHtml(
+          (cfg && cfg.title) || 'This console'
+        )} needs WebAssembly threads (SharedArrayBuffer via cross-origin
+         isolation), which this browser doesn't provide.`;
+    const alternative =
+      wasmSupported() && cfg && cfg.threadsRequired
+        ? `<p class="picker-help">
+             NES, SNES, Game Boy, Game Gear, and Genesis run single-threaded —
+             <a href="/emulator/">try one of those instead</a>.
+           </p>`
+        : '';
     bootCard.innerHTML = `
       <h2>Emulator unavailable</h2>
-      <p class="coi-fail-copy">
-        This browser can't run the emulator (missing cross-origin isolation /
-        SharedArrayBuffer). Try Chrome, Edge, Firefox, or the Xbox / PlayStation
-        browser.
-      </p>
+      <p class="coi-fail-copy">${reason}</p>
+      ${alternative}
       <p class="picker-help">
-        Preview the lean-back layout anytime with <code>?tv=1</code> on a desktop
-        browser that supports COI.
+        Desktop Chrome, Edge, Firefox, and Safari support every console here.
       </p>
     `;
+  }
+
+  /** Boot-card banner for single-thread mode; expectation-setting, not an error. */
+  function singleThreadNoticeHtml() {
+    if (!singleThreadMode) return '';
+    return `<p class="leanback-banner" data-connected="0">
+        Single-thread mode — this browser has no SharedArrayBuffer, so frame
+        rates may dip. Save states still work.
+      </p>`;
   }
 
   function wireTvFocus(bootCard) {
@@ -623,6 +665,7 @@
     bootCard.innerHTML = `
       <h2>🕹️ Load a ${cfg.id === 'ps1' ? 'disc' : 'ROM'} to play</h2>
       ${gamepadBannerHtml()}
+      ${singleThreadNoticeHtml()}
       ${biosPanelHtml}
       <div class="btn-stack">
         <rom-browser console="${cfg.id}"></rom-browser>
@@ -765,10 +808,10 @@
     }
   }
 
-  function markCoiUnavailable() {
+  function markCoiUnavailable(cfg) {
     if (coiBlocked) return;
     coiBlocked = true;
-    renderCoiSoftFail();
+    renderCoiSoftFail(cfg);
     if (window.trackEvent) {
       const ua = (navigator.userAgent || '').slice(0, 80);
       window.trackEvent('emulator_coi_unavailable', 'Emulator', ua, 0);
@@ -823,8 +866,15 @@
 
     settle.then((ok) => {
       if (!ok) {
-        markCoiUnavailable();
-        return;
+        if (!canRunWithoutCoi(cfg)) {
+          markCoiUnavailable(cfg);
+          return;
+        }
+        // Playable single-threaded: boot anyway and say so on the card.
+        singleThreadMode = true;
+        if (window.trackEvent) {
+          window.trackEvent('emulator_single_thread', 'Emulator', (cfg && cfg.id) || 'picker', 0);
+        }
       }
       bootUi();
     });
@@ -856,8 +906,11 @@
     }
 
     if (!window.crossOriginIsolated) {
-      markCoiUnavailable();
-      return;
+      if (!canRunWithoutCoi(cfg)) {
+        markCoiUnavailable(cfg);
+        return;
+      }
+      singleThreadMode = true;
     }
 
     if (cfg.biosRequired) {
@@ -883,6 +936,13 @@
       romName || (romSource && typeof romSource === 'object' && romSource.name) || '';
     window.EJS_pathtodata = 'https://cdn.emulatorjs.org/latest/data/';
     window.EJS_startOnLoaded = true;
+    // Threads need SharedArrayBuffer. When SAB exists we leave EJS_threads
+    // alone so EmulatorJS keeps offering its own opt-in; without SAB, pin it
+    // off so the loader picks the single-thread core instead of tripping over
+    // a missing SharedArrayBuffer constructor.
+    if (!window.crossOriginIsolated) {
+      window.EJS_threads = false;
+    }
     // EJS_color wants a string; pull from the computed accent so a
     // future identity tweak only has to touch consoles.js.
     window.EJS_color =

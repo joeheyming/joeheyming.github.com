@@ -13,6 +13,12 @@
 // `iaBaseUrl` is the Internet Archive collection used by the ROM browser;
 // leave it `null` and the ROM browser silently hides itself so the user
 // is steered to the local-file picker instead.
+//
+// `threadsRequired: true` marks cores that are unusable without WASM
+// threads (SharedArrayBuffer, i.e. cross-origin isolation). The 8/16-bit
+// cores run fine single-threaded, so they stay playable in browsers that
+// can't reach an isolated context — console web views, in-app browsers.
+// launch.js reads this to decide between soft-fail and single-thread boot.
 (function () {
   'use strict';
 
@@ -109,6 +115,8 @@
       emoji: '🚀',
       // EmulatorJS core: picodrive.
       ejsCore: 'sega32x',
+      // Dual SH-2 + 68000 emulation is too heavy for a single thread.
+      threadsRequired: true,
       fileAccept: '.32x,.bin,.zip,.7z',
       fileExtsLabel: '.32x / .bin',
       // Mars orange — adjacent to Genesis without colliding.
@@ -188,6 +196,8 @@
       emoji: '🥊',
       // EmulatorJS arcade core → FinalBurn Neo (handles Neo Geo AES/MVS).
       ejsCore: 'arcade',
+      // FBNeo audio/video sync falls apart without threads.
+      threadsRequired: true,
       fileAccept: '.zip,.7z',
       fileExtsLabel: '.zip (FBNeo set)',
       // SNK yellow-on-black identity.
@@ -256,6 +266,8 @@
       emoji: '💿',
       // EmulatorJS core: pcsx_rearmed.
       ejsCore: 'psx',
+      // pcsx_rearmed needs threads for playable frame rates.
+      threadsRequired: true,
       // Prefer single-file disc images; .bin+.cue needs companions and is awkward.
       fileAccept: '.chd,.pbp,.iso,.bin,.cue,.zip,.7z',
       fileExtsLabel: '.chd / .pbp / .iso',
