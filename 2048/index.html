@@ -162,8 +162,8 @@
     </main>
 
     <script src="/achievements.js"></script>
-    <!-- D-pad / left stick → arrow keys, for TV and console browsers that
-         give the controller to their own cursor instead of the page. -->
+    <!-- D-pad / left stick → arrow keys where the browser exposes a Gamepad
+         but does not translate it into keyboard events. No-op otherwise. -->
     <script src="/gamepad-keys.js"></script>
     <script type="module" src="index.js"></script>
   </body>

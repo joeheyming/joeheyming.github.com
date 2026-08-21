@@ -9,8 +9,8 @@
  * page that needs samples; it sets `window.Soundfont`, which we read here.
  *
  * Every instrument routes through getCtx() / resumeIfSuspended(), so the
- * WebKit unlock handling below is what keeps audio working in Safari and in
- * the WebKit web views on game consoles.
+ * WebKit unlock handling below is shared by Safari and other WebKit engines
+ * that actually expose the Web Audio API.
  */
 
 export const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -40,7 +40,7 @@ let gestureUnlockArmed = false;
 
 /**
  * WebKit parks a context in `interrupted` (not `suspended`) when the audio
- * session is taken away — another app grabs output, the console web view is
+ * session is taken away — another app grabs output or the page is
  * backgrounded. `resume()` is what brings it back, so treat both states the
  * same everywhere we check.
  */
@@ -52,9 +52,7 @@ function needsResume(target) {
  * WebKit keeps a context's output silent until at least one buffer has
  * started from inside a user gesture — `resume()` alone reports `running`
  * while producing nothing. Playing a single silent frame is the standard
- * unlock, and it's a no-op on engines that don't need it. Without this,
- * Safari and the WebKit web views used by consoles (the PS5 system browser
- * among them) render every /play/ instrument mute.
+ * unlock, and it's a no-op on engines that don't need it.
  */
 function unlockOutput(target) {
   if (outputUnlocked) return;

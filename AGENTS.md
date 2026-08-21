@@ -173,7 +173,7 @@ When adding or fixing an app for Search:
 | `/feedback.js` | `<feedback-button>` web component → Google Form | Most apps |
 | `/share.js` | Related-projects panel from `apps-registry.json` `related` field | Apps with `related` entries |
 | `/proxy.js` | `window.proxyService` — CORS-safe fetch with fallback proxies, caching, circuit breaker | Only when fetching cross-origin resources (ROMs, APIs, etc.) |
-| `/gamepad-keys.js` | Polls the Gamepad API and synthesizes arrow / Enter / Escape key events, so keyboard-driven apps work with a controller on TV and console browsers | Opt-in: keyboard-driven games (see `2048/`). **Never** on pages that read the Gamepad API themselves (`emulator/`, `stepmania/`, `doom/`) |
+| `/gamepad-keys.js` | Polls the Gamepad API and synthesizes arrow / Enter / Escape when a browser exposes a pad but no keyboard events; no-op when the API is absent | Opt-in: keyboard-driven games (see `2048/`). **Never** on pages that read the Gamepad API themselves (`emulator/`, `stepmania/`, `doom/`) |
 
 ### Nav toggle clearance
 
@@ -194,6 +194,33 @@ npx playwright test nav-toggle-overlap
 ```
 Failing tests save a screenshot to `tests/e2e/screenshots/` for visual debugging.
 ```
+
+---
+
+## Console web views (PS5)
+
+The PS5 has no browser app. You reach its hidden WebKit view via Settings → Users and Accounts → Linked Services → YouTube → Use Browser → Terms → the Google footer link, or by opening a URL sent to yourself in a PSN message. The card has **△ Reload**, so cache-busting query params are unnecessary.
+
+Measured on retail PS5 firmware in August 2026, via `/diag/`:
+
+| Capability | Result |
+|---|---|
+| ES modules, Pointer Events, `new KeyboardEvent()` | **yes** |
+| WebAssembly | **missing entirely** — not just `SharedArrayBuffer` |
+| WebGL 1 and WebGL 2 | **both false** |
+| `AudioContext` / `webkitAudioContext` | **neither exists** |
+| `navigator.getGamepads` | **not a function** |
+| Touch Events | false |
+| Viewport / DPR | 1540 × 700, ratio 1 |
+
+**Input model:** the controller drives a mouse cursor. X is a left click, arriving as `pointerdown` / `mousedown` / `click` with `pointerType=mouse`. The D-pad **does** emit `keydown` / `keyup` in addition to moving the pointer, so keyboard-driven games are reachable — but not through `/gamepad-keys.js`, which correctly no-ops because the Gamepad API is absent. The exact `key` / `code` / `keyCode` values have not yet been recorded. `2048/index.js` defensively resolves all three forms pending a device retest; do not claim a specific field mismatch as the root cause without that log evidence.
+
+What this rules out on that device: everything under `/emulator/` plus `/doom/` and `/dos/` (WASM cores), all of `/play/` (no Web Audio — `getCtx()` throws on every note), and anything WebGL including `/model-viewer/`, `/pacman/`, and `/pacman-infinite/`. DOM-and-CSS apps are fine. HTML5 video also works: shows play in the Watch app when its external proxy succeeds.
+
+Two consequences for code:
+
+- A host callback that throws must not corrupt shared state. `play/shared/pointer-surface.js` records its pointer tracking *before* invoking `onEnter` / `onLeave` precisely because a throwing synth would otherwise strand keys in a pressed state on this device.
+- Feature-detect before promising a platform works. Re-verify with `/diag/` rather than assuming; it is dependency-free (classic script, no imports, no shared site scripts) so it still reports on engines where the normal machinery is what's broken.
 
 ---
 

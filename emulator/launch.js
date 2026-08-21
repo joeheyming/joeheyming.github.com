@@ -15,9 +15,9 @@
 // Lean-back (TV / console): hides the file picker, supports `?rom=<name>`
 // deep links, and wires D-pad focus via emulatorLeanback.applyRovingTabindex.
 //
-// Without cross-origin isolation there is no SharedArrayBuffer, so only
-// `threadsRequired` consoles (see consoles.js) soft-fail; everything else
-// boots single-threaded with EJS_threads pinned off.
+// Without cross-origin isolation there is no SharedArrayBuffer, so EmulatorJS
+// boots its normal single-thread cores with EJS_threads pinned off. Missing
+// WebAssembly itself is fatal.
 (function () {
   'use strict';
 
@@ -25,7 +25,7 @@
   const BIOS_IDB_NAME = 'heyming-emulator-bios';
   const BIOS_IDB_VERSION = 1;
   const BIOS_STORE = 'bios';
-  let coiBlocked = false;
+  let runtimeBlocked = false;
   /** True when we booted a core without cross-origin isolation (no threads). */
   let singleThreadMode = false;
   let pickerRoving = null;
@@ -469,44 +469,35 @@
   }
 
   function wasmSupported() {
-    return typeof WebAssembly === 'object' && typeof WebAssembly.instantiate === 'function';
+    if (typeof WebAssembly !== 'object' || typeof WebAssembly.Module !== 'function') return false;
+    try {
+      // Empty valid WASM module: namespace presence alone is not proof that
+      // this embedded engine permits compilation.
+      new WebAssembly.Module(new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0]));
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
-  /**
-   * Cross-origin isolation only buys us SharedArrayBuffer, which EmulatorJS
-   * needs for *threaded* cores. The 8/16-bit cores run single-threaded, so a
-   * browser stuck without COI (console web views, in-app browsers) can still
-   * play them. Only `threadsRequired` consoles and missing WASM are fatal.
-   * @param {object|null} cfg
-   * @returns {boolean}
-   */
+  /** @param {object|null} cfg */
   function canRunWithoutCoi(cfg) {
     // Picker page: nothing to emulate yet, always let it render.
     if (!cfg) return true;
-    if (!wasmSupported()) return false;
-    return !cfg.threadsRequired;
+    // EmulatorJS defaults EJS_threads to false. COI improves performance by
+    // making threaded builds available; it is not required by the cores in
+    // this registry. A browser without WebAssembly cannot run any of them.
+    return wasmSupported();
   }
 
-  function renderCoiSoftFail(cfg) {
+  function renderRuntimeUnavailable() {
     const bootCard = document.getElementById('boot-card');
     if (!bootCard) return;
-    const reason = !wasmSupported()
-      ? 'This browser has no WebAssembly support, so no emulator core can run here.'
-      : `${escapeHtml(
-          (cfg && cfg.title) || 'This console'
-        )} needs WebAssembly threads (SharedArrayBuffer via cross-origin
-         isolation), which this browser doesn't provide.`;
-    const alternative =
-      wasmSupported() && cfg && cfg.threadsRequired
-        ? `<p class="picker-help">
-             NES, SNES, Game Boy, Game Gear, and Genesis run single-threaded —
-             <a href="/emulator/">try one of those instead</a>.
-           </p>`
-        : '';
     bootCard.innerHTML = `
       <h2>Emulator unavailable</h2>
-      <p class="coi-fail-copy">${reason}</p>
-      ${alternative}
+      <p class="coi-fail-copy">
+        This browser has no WebAssembly support, so no emulator core can run here.
+      </p>
       <p class="picker-help">
         Desktop Chrome, Edge, Firefox, and Safari support every console here.
       </p>
@@ -808,13 +799,13 @@
     }
   }
 
-  function markCoiUnavailable(cfg) {
-    if (coiBlocked) return;
-    coiBlocked = true;
-    renderCoiSoftFail(cfg);
+  function markRuntimeUnavailable() {
+    if (runtimeBlocked) return;
+    runtimeBlocked = true;
+    renderRuntimeUnavailable();
     if (window.trackEvent) {
       const ua = (navigator.userAgent || '').slice(0, 80);
-      window.trackEvent('emulator_coi_unavailable', 'Emulator', ua, 0);
+      window.trackEvent('emulator_wasm_unavailable', 'Emulator', ua, 0);
     }
   }
 
@@ -832,7 +823,7 @@
     let booted = false;
 
     const bootUi = () => {
-      if (booted || coiBlocked) return;
+      if (booted || runtimeBlocked) return;
       booted = true;
       if (cfg) {
         identityCfg = cfg;
@@ -852,9 +843,11 @@
     const settle =
       lb && lb.whenCoiSettled ? lb.whenCoiSettled() : Promise.resolve(!!window.crossOriginIsolated);
 
-    // Paint immediately when already isolated; otherwise wait for the COI
-    // reload dance to settle (or soft-fail).
-    if (window.crossOriginIsolated) {
+    // WebAssembly support and cross-origin isolation are independent. Check
+    // the former even when the page is already isolated.
+    if (cfg && !wasmSupported()) {
+      markRuntimeUnavailable();
+    } else if (window.crossOriginIsolated) {
       bootUi();
     } else {
       const bootCard = document.getElementById('boot-card');
@@ -867,7 +860,7 @@
     settle.then((ok) => {
       if (!ok) {
         if (!canRunWithoutCoi(cfg)) {
-          markCoiUnavailable(cfg);
+          markRuntimeUnavailable();
           return;
         }
         // Playable single-threaded: boot anyway and say so on the card.
@@ -905,11 +898,11 @@
       return;
     }
 
+    if (!wasmSupported()) {
+      markRuntimeUnavailable();
+      return;
+    }
     if (!window.crossOriginIsolated) {
-      if (!canRunWithoutCoi(cfg)) {
-        markCoiUnavailable(cfg);
-        return;
-      }
       singleThreadMode = true;
     }
 

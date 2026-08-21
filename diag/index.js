@@ -1,7 +1,6 @@
 /**
  * Capability probe for browsers with no developer tools — console web views
- * above all (the PS5 system browser has no console, no reload button, and no
- * remote inspector).
+ * above all (the PS5 system browser has no console or remote inspector).
  *
  * Deliberate constraints, since this page is the thing you reach for when the
  * normal machinery is what's suspect:

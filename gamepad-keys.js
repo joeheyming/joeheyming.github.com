@@ -1,10 +1,9 @@
 // Controller → keyboard bridge for keyboard-driven apps.
 //
-// Console and TV browsers hand the D-pad to their own on-screen cursor
-// instead of the page, so a game listening for `keydown` / ArrowUp never
-// hears anything from a controller. The Gamepad API still reports the pad,
-// so we poll it and synthesize the arrow / Enter / Escape events the app
-// already handles. Nothing else about the app has to change.
+// Some TV and embedded browsers expose a controller through the Gamepad API
+// without translating its buttons into keyboard events. Poll the pad and
+// synthesize the arrow / Enter / Escape events the app already handles.
+// Browsers without the Gamepad API simply leave this bridge inactive.
 //
 // Opt-in per page — add `<script src="/gamepad-keys.js"></script>`. Do NOT
 // load it on pages that consume the Gamepad API directly (the emulator,

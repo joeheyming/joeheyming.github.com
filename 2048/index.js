@@ -655,21 +655,61 @@ const keyMap = {
   KeyJ: 'down'
 };
 
+// Legacy arrow names, still what some embedded and older WebKit builds put
+// in `key`. The PS5 system web view sends its D-pad as key events, but its
+// exact field values still need to be captured.
+const LEGACY_ARROWS = {
+  Up: 'ArrowUp',
+  Down: 'ArrowDown',
+  Left: 'ArrowLeft',
+  Right: 'ArrowRight'
+};
+
+const LEGACY_KEY_CODES = {
+  37: 'ArrowLeft',
+  38: 'ArrowUp',
+  39: 'ArrowRight',
+  40: 'ArrowDown'
+};
+
+/**
+ * Resolve a move direction from a key event across engines that disagree
+ * about which field carries the arrow. `code` is the modern answer, but some
+ * browsers leave it empty and report only `key` — occasionally under the
+ * legacy `Up` / `Down` names — or nothing but the deprecated `keyCode`.
+ *
+ * @param {KeyboardEvent} ev
+ * @returns {'left' | 'right' | 'up' | 'down' | null}
+ */
+function directionFromKey(ev) {
+  const { code, key, keyCode } = ev;
+
+  const candidates = [code, key, LEGACY_ARROWS[key], LEGACY_KEY_CODES[keyCode]];
+  // A bare letter in `key` belongs to the WASD / HJKL bindings, which are
+  // named by physical code ('a' → 'KeyA').
+  if (key && /^[a-zA-Z]$/.test(key)) candidates.push('Key' + key.toUpperCase());
+
+  for (const name of candidates) {
+    if (name && keyMap[name]) return keyMap[name];
+  }
+  return null;
+}
+
 /**
  * @param {KeyboardEvent} ev
  */
 function onKeyDown(ev) {
   if (ev.metaKey || ev.ctrlKey) {
-    if (ev.code === 'KeyZ') {
+    if (ev.code === 'KeyZ' || ev.key === 'z' || ev.key === 'Z') {
       ev.preventDefault();
       undo();
     }
     return;
   }
-  const dir = keyMap[/** @type {keyof typeof keyMap} */ (ev.code)];
+  const dir = directionFromKey(ev);
   if (!dir) return;
   ev.preventDefault();
-  move(/** @type {'left' | 'right' | 'up' | 'down'} */ (dir));
+  move(dir);
 }
 
 /* Touch / swipe.

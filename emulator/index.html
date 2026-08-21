@@ -147,7 +147,7 @@
                 "name": "Can I play on a TV, Xbox, or PlayStation browser?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Often yes. NES, SNES, Game Boy, Game Gear, and Genesis run single-threaded, so they work even where SharedArrayBuffer is unavailable — including Xbox Edge and the PS5 system web view. Sega 32X, Neo Geo, and PS1 need WebAssembly threads (cross-origin isolation) and will show a clear message instead. Use the on-screen ROM collection — there is no local file picker on those devices — and a controller or remote D-pad to navigate. Preview the lean-back layout on desktop with ?tv=1. Deep-link a title with /emulator/nes/?rom=GameName."
+                  "text": "It depends on the engine. EmulatorJS can run these cores single-threaded where WebAssembly is available but SharedArrayBuffer is not, although demanding systems may be slower. The PS5 system web view is a different case: it exposes no WebAssembly at all, so no console can run there, and the page says so rather than hanging. Where emulation does work, use the on-screen ROM collection — there may be no local file picker on TV devices — and a controller or remote D-pad to navigate. Preview the lean-back layout on desktop with ?tv=1. Deep-link a title with /emulator/nes/?rom=GameName."
                 }
               },
               {

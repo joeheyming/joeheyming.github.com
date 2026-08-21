@@ -97,10 +97,10 @@ export function createPointerSurface(rootEl, opts = {}) {
     committed.delete(ptrId);
   };
 
-  // Some console web views re-dispatch `pointerdown` as the cursor is dragged
-  // with the button held, and never send a `pointerup` for the key it left.
-  // Without releasing the previous target here, the host is told to start a
-  // note it is never told to stop.
+  // Treat a repeated pointerdown for the same id as replacing its previous
+  // target. It should not happen in a well-formed pointer sequence, but
+  // recovering here prevents an interrupted or synthetic sequence from
+  // stranding the previous target.
   const enter = (target, ptrId, event) => {
     const prev = active.get(ptrId);
     active.set(ptrId, target);
