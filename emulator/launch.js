@@ -444,12 +444,18 @@
     status.dataset.ready = '0';
   }
 
+  function hasGamepadApi() {
+    return typeof navigator.getGamepads === 'function';
+  }
+
   function gamepadBannerHtml() {
     const lb = leanback();
     const show = isTv() || (lb && lb.hasGamepad);
     if (!show) return '';
     const connected = lb && lb.hasGamepad;
-    const msg = connected
+    const msg = !hasGamepadApi()
+      ? 'Use the D-pad to navigate'
+      : connected
       ? 'Controller connected — use D-pad to pick a game'
       : 'Connect a controller, or use the remote D-pad to navigate';
     return `<p class="leanback-banner" id="leanbackBanner" data-connected="${
@@ -463,7 +469,9 @@
     if (!el || !lb) return;
     const connected = lb.hasGamepad;
     el.dataset.connected = connected ? '1' : '0';
-    el.textContent = connected
+    el.textContent = !hasGamepadApi()
+      ? 'Use the D-pad to navigate'
+      : connected
       ? 'Controller connected — use D-pad to pick a game'
       : 'Connect a controller, or use the remote D-pad to navigate';
   }
@@ -635,7 +643,9 @@
     const controlsSummary = tv ? 'Controls' : 'Keyboard Controls';
     const gamepadHint =
       tv || cfg.id === 'ps1'
-        ? `<p class="controls-gamepad-hint">Gamepad recommended — works via the browser Gamepad API.</p>`
+        ? hasGamepadApi()
+          ? `<p class="controls-gamepad-hint">Gamepad recommended — works via the browser Gamepad API.</p>`
+          : `<p class="controls-gamepad-hint">Use D-pad or keyboard controls; this browser does not expose the Gamepad API.</p>`
         : '';
 
     const loadLabel =
@@ -858,7 +868,7 @@
     }
 
     settle.then((ok) => {
-      if (!ok) {
+      if (!ok && cfg) {
         if (!canRunWithoutCoi(cfg)) {
           markRuntimeUnavailable();
           return;
@@ -866,7 +876,7 @@
         // Playable single-threaded: boot anyway and say so on the card.
         singleThreadMode = true;
         if (window.trackEvent) {
-          window.trackEvent('emulator_single_thread', 'Emulator', (cfg && cfg.id) || 'picker', 0);
+          window.trackEvent('emulator_single_thread', 'Emulator', cfg.id, 0);
         }
       }
       bootUi();
