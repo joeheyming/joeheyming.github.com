@@ -130,6 +130,7 @@ function expressSadness() {
 
 function playTrombone() {
   isPlaying = true;
+  window.heymingAchievements?.unlockForCurrentApp('first-action');
   const sadnessValue = parseInt(sadnessSlider.value);
 
   // Update stats

@@ -66,5 +66,6 @@ export function speakText(text) {
   }
   setTimeout(function () {
     window.speechSynthesis.speak(utterance);
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
   }, 0);
 }

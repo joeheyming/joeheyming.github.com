@@ -876,6 +876,7 @@ function openPlaytest() {
   elements.playtestOverlay.hidden = false;
   document.body.classList.add('playtesting');
   elements.exitPlaytestButton.focus();
+  window.heymingAchievements?.unlockForCurrentApp('first-action');
   track('playtest_start');
 }
 

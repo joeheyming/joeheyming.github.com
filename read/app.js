@@ -391,6 +391,7 @@ async function openBook(book) {
 
   try {
     await reader.loadBook(book, savedPos);
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
   } catch (err) {
     showToast(err.message || 'Failed to load book', 'error');
   }

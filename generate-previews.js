@@ -19,6 +19,11 @@ const PAGES = [
     title: 'Joe Heyming Portfolio'
   },
   {
+    url: `${BASE_URL}/achievements/`,
+    output: 'achievements/achievements-preview.png',
+    title: 'Site Achievements'
+  },
+  {
     url: `${BASE_URL}/emulator/`,
     output: 'emulator/emulator-preview.png',
     title: 'Retro Emulator (NES / Sega / SNES / GB / Neo Geo)'

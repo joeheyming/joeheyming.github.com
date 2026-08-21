@@ -242,6 +242,7 @@ export function createRecorder(deps) {
       );
 
       setStatus(dom.statusEl, 'Recording.');
+      window.heymingAchievements?.unlockForCurrentApp('first-action');
       embed.notify('Trip Log: started recording.', { kind: 'info' });
       void callbacks.refreshTripsList();
     } catch (err) {

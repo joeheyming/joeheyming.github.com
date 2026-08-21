@@ -104,6 +104,7 @@ async function guess(event) {
     renderMatchCount(filtered);
 
     results.removeAttribute('hidden');
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
 
     safeGtag('event', 'submit', {
       event_category: 'user action'

@@ -476,6 +476,7 @@ function setupEventListeners() {
 
         // Set the countdown
         setCountdown(customDate.toISOString(), customEvent.name, eventId, emoji);
+        window.heymingAchievements?.unlockForCurrentApp('first-action');
 
         // Update the autocomplete display
         eventAutocomplete.setSelectedEvent(customEvent);

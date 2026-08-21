@@ -668,6 +668,7 @@ export async function mount(slot, ctx) {
   video.addEventListener('play', () => {
     if (playStartTracked || !current) return;
     playStartTracked = true;
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
     trackWatch('watch_play_start', mediaLabel(isMovie ? 'movie' : 'show', show.id, current));
     trackWatchConversion('watch_played', 1);
   });

@@ -142,6 +142,7 @@ class HeroEngine {
 
   play() {
     if (!gameState.chart) return;
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
     resumeIfSuspended();
     if (gameState.status === 'finished') {
       this.restart();

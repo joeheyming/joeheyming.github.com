@@ -38,3 +38,4 @@ node_modules
 /ga4dl/
 
 *.local.*
+.agent-memory/

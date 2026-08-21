@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Achievement Tree — Explore Your Progress 🏆</title>
+    <meta
+      name="description"
+      content="Explore achievements unlocked across Joe Heyming's games and apps in a connected, interactive tree."
+    />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#172114" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming" />
+    <meta property="og:title" content="Achievement Tree — Explore Your Progress 🏆" />
+    <meta
+      property="og:description"
+      content="Explore achievements unlocked across Joe Heyming's games and apps in a connected, interactive tree."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/achievements/" />
+    <meta
+      property="og:image"
+      content="https://joeheyming.github.io/achievements/achievements-preview.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Joe Heyming site achievement tree" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Achievement Tree — Explore Your Progress 🏆" />
+    <meta
+      name="twitter:description"
+      content="Explore achievements unlocked across Joe Heyming's games and apps in a connected, interactive tree."
+    />
+    <meta
+      name="twitter:image"
+      content="https://joeheyming.github.io/achievements/achievements-preview.png"
+    />
+
+    <link rel="canonical" href="https://joeheyming.github.io/achievements/" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏆</text></svg>"
+    />
+    <link rel="stylesheet" href="index.css" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/nav.js" data-nav-size="compact"></script>
+    <script src="/achievements.js"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Achievement Tree",
+            "applicationCategory": "EntertainmentApplication",
+            "operatingSystem": "Web Browser",
+            "description": "An interactive dashboard for exploring achievements across Joe Heyming's games and apps.",
+            "url": "https://joeheyming.github.io/achievements/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "inLanguage": "en"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Joe Heyming",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Achievement Tree"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#achievement-tree">Skip to achievement tree</a>
+    <main class="dashboard">
+      <header class="dashboard-header">
+        <div class="heading">
+          <span class="heading-icon" aria-hidden="true">🏆</span>
+          <div>
+            <h1>Achievement Tree</h1>
+          </div>
+        </div>
+
+        <section class="progress-card" aria-labelledby="progress-label">
+          <div class="progress-copy">
+            <span id="progress-label">Total progress</span>
+            <strong id="progress-count">0 / 0</strong>
+          </div>
+          <div
+            class="progress-track"
+            role="progressbar"
+            aria-labelledby="progress-label"
+            aria-valuemin="0"
+            aria-valuemax="0"
+            aria-valuenow="0"
+          >
+            <span id="progress-fill"></span>
+          </div>
+          <span id="progress-percent" class="progress-percent">0%</span>
+        </section>
+      </header>
+
+      <section class="tree-card" aria-label="Interactive achievement tree">
+        <div class="tree-toolbar">
+          <p id="tree-help">
+            Hover or focus a node for details · Drag to pan · Scroll to zoom · Use arrow keys
+          </p>
+          <button id="reset-view" class="pixel-button" type="button" title="Center and reset view">
+            <span aria-hidden="true">⌖</span>
+            Center
+          </button>
+        </div>
+
+        <div
+          id="achievement-tree"
+          class="tree-viewport"
+          tabindex="0"
+          aria-describedby="tree-help"
+          aria-busy="true"
+        >
+          <div id="tree-plane" class="tree-plane">
+            <div id="app-regions" class="app-regions" aria-hidden="true"></div>
+            <svg id="tree-connectors" class="tree-connectors" aria-hidden="true"></svg>
+            <div id="tree-nodes" class="tree-nodes" role="tree"></div>
+          </div>
+          <div id="tree-status" class="tree-status" role="status">Loading achievement tree…</div>
+          <aside id="achievement-hover-card" class="achievement-hover-card" role="tooltip" hidden>
+            <div id="hover-card-state" class="hover-card-state"></div>
+            <div class="hover-card-content">
+              <div id="hover-card-icon" class="hover-card-icon" aria-hidden="true"></div>
+              <div>
+                <p id="hover-card-app" class="hover-card-app"></p>
+                <h2 id="hover-card-title"></h2>
+                <p id="hover-card-description"></p>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="index.js"></script>
+  </body>
+</html>

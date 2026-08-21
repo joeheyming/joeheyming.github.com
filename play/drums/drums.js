@@ -645,6 +645,7 @@ const playPad = (id) => {
 };
 
 const triggerPad = (id) => {
+  window.heymingAchievements?.unlockForCurrentApp('first-action');
   playPad(id);
   looper.noteHit(id);
 };

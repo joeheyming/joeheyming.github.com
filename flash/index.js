@@ -112,6 +112,7 @@ async function loadSwfBlob(blob, name) {
   objectUrl = URL.createObjectURL(blob);
   await playerEl.ruffle().load(objectUrl);
   setPlayingUi(name);
+  window.heymingAchievements?.unlockForCurrentApp('first-action');
 
   if (window.trackEvent) {
     window.trackEvent('flash_swf_loaded', 'Flash', name.slice(0, 80), 0);

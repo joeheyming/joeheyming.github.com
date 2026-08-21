@@ -362,6 +362,7 @@ export class Game {
     this.won = true;
     this.paused = true;
     this.elapsedBeforePause = this.elapsedMs();
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
     this.emit('win');
     return true;
   }

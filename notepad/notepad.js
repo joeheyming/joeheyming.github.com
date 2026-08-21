@@ -280,8 +280,11 @@ class RichNotepad {
     // Quill can produce a large Delta. Serializing it and writing to
     // localStorage synchronously on every keystroke blocks the interaction
     // that produced the edit, so wait until typing pauses instead.
-    this.quill.on('text-change', () => {
+    this.quill.on('text-change', (...args) => {
       this.autoSaveDirty = true;
+      if (args[2] === 'user') {
+        window.heymingAchievements?.unlockForCurrentApp('first-action');
+      }
       if (this.autoSaveTimer) {
         clearTimeout(this.autoSaveTimer);
       }

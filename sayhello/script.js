@@ -32,6 +32,7 @@ window.addEventListener('load', function () {
       indicator.classList.remove('active');
     };
     window.speechSynthesis.speak(utter);
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
   };
 
   // Add keyboard shortcut: Cmd+Enter or Ctrl+Enter to submit

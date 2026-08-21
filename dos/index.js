@@ -762,6 +762,7 @@ async function launch(entry) {
     const handle = await launchJsDos(els.dosHost, entry.bytes, save ? save.bytes : null, (label) =>
       setStatus(label)
     );
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
     activeSession = {
       id: entry.id,
       stop: handle.stop,

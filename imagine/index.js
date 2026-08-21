@@ -319,6 +319,7 @@ async function generateTurn(prompt, seed) {
     });
 
     setCurrentImage(result);
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
     notify(`Generated in ${formatSeconds(result.timeMs)}s`, 'success');
 
     try {

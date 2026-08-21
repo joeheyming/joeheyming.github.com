@@ -592,6 +592,7 @@ function startRefVoice(midi, btn) {
   osc.connect(gain);
   gain.connect(master);
   osc.start(now);
+  window.heymingAchievements?.unlockForCurrentApp('first-action');
 
   activeRefVoice = { osc, gain };
   activeRefBtn = btn;

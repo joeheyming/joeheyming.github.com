@@ -85,6 +85,7 @@ export class Carousel {
     this._applyTransform(opts.animate);
     this._updateChannelDisplay();
     loadIframe(this.els.track.children[clamped], { autoplay: opts.animate !== false });
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
     this._emit();
   }
 

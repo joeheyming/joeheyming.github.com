@@ -80,6 +80,7 @@ pickup = createPickup({
   }),
   getStoreProps: () => storeProps,
   onRent(item) {
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
     if (typeof window.trackEvent === 'function') {
       window.trackEvent('blockbuster_rent', 'entertainment', `${item.kind}:${item.id}`);
     }

@@ -22,6 +22,7 @@ export function attachKeyboardInput({ keyboard, synth, sustainEl, announceNote, 
   };
 
   const playNote = (midi) => {
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
     keyboard.pressVisual(midi, true);
     synth.noteOn(midi);
     announceNote(midi);

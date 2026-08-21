@@ -396,6 +396,7 @@ grid.addEventListener('click', (e) => {
 
   const next = !getBit(cellId);
   setBit(cellId, next);
+  window.heymingAchievements?.unlockForCurrentApp('first-action');
   cellLastTs[cellId] = Date.now();
 
   if (CONFIGURED) {

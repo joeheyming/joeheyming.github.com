@@ -292,6 +292,7 @@ function loadFile(file) {
       state.sourceImg = img;
       overlayMsg.style.display = 'none';
       renderImage();
+      window.heymingAchievements?.unlockForCurrentApp('first-action');
     };
     img.src = e.target.result;
   };
@@ -351,6 +352,7 @@ async function startCamera() {
     btnTom.style.display = '';
     asciiCanvas.classList.toggle('mirrored', cfg.facingMode === 'user');
     state.rafId = requestAnimationFrame(webcamLoop);
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
   } catch (err) {
     let msg;
     if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {

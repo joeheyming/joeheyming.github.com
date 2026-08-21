@@ -152,6 +152,7 @@ var awesomeNamespace = (function () {
      */
     onAudioPlay: function () {
       this.showTimer();
+      window.heymingAchievements?.unlockForCurrentApp('first-action');
     },
 
     /**

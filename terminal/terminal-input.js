@@ -24,6 +24,9 @@ export class TerminalInputMixin {
 
   async handleCommand(input) {
     const command = input.value.trim();
+    if (command) {
+      window.heymingAchievements?.unlockForCurrentApp('first-action');
+    }
 
     // Handle heredoc mode
     if (this.heredocMode) {

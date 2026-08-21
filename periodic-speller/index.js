@@ -131,6 +131,9 @@ function _spellerScheduleEvent() {
 input.addEventListener('input', function () {
   clearBtn.style.display = input.value ? 'block' : 'none';
   reRender();
+  if (input.value.trim()) {
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
+  }
   _spellerScheduleEvent();
 });
 

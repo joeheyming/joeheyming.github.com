@@ -324,6 +324,7 @@ function executeStep(stepIndex) {
       setTimeout(() => {
         step.logs.forEach((log) => addTerminalLine(log.type, log.text));
         updateBuildStatus('status-success', '✅ FARM SUCCESS - Merged to Trunk');
+        window.heymingAchievements?.unlockForCurrentApp('first-action');
         stopBuild();
       }, step.delay);
     } else {

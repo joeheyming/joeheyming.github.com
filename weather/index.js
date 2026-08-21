@@ -579,6 +579,7 @@ function addLocation(/** @type {SavedLocation|GeoHit} */ loc) {
     return;
   }
   state.locations.push(norm);
+  window.heymingAchievements?.unlockForCurrentApp('first-action');
   state.activeLocationId = norm.id;
   saveState();
   renderAll();

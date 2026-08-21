@@ -962,6 +962,7 @@ function initStepmaniaDomAndLoop() {
 
   audioManager.onPlay(() => {
     LoadingOverlay.hide();
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
   });
 
   audioManager.onEnded(() => {

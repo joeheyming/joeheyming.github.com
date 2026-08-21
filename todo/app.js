@@ -556,6 +556,7 @@ function main() {
       try {
         setStatus(statusEl, 'Adding…');
         await state.client.addTodo(title);
+        window.heymingAchievements?.unlockForCurrentApp('first-action');
         newTitle.value = '';
         await refreshTodos();
         setStatus(statusEl, '');

@@ -1,0 +1,705 @@
+{
+  "version": 1,
+  "achievements": [
+    {
+      "id": "achievements:first-action",
+      "appId": "achievements",
+      "title": "Node Inspector",
+      "description": "Inspect an achievement node to read what unlocks it.",
+      "icon": "🏆",
+      "parentId": null,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "terminal:first-action",
+      "appId": "terminal",
+      "title": "Hello, Shell",
+      "description": "Run your first command at the prompt.",
+      "icon": "💻",
+      "parentId": "achievements:first-action",
+      "x": -3254,
+      "y": 160
+    },
+    {
+      "id": "notepad:first-action",
+      "appId": "notepad",
+      "title": "Draft Started",
+      "description": "Type into the notepad and let it autosave your edit.",
+      "icon": "📝",
+      "parentId": "terminal:first-action",
+      "x": -3824,
+      "y": 320
+    },
+    {
+      "id": "todo:first-action",
+      "appId": "todo",
+      "title": "First Task Added",
+      "description": "Add a task to one of your lists.",
+      "icon": "✅",
+      "parentId": "notepad:first-action",
+      "x": -3824,
+      "y": 480
+    },
+    {
+      "id": "read:first-action",
+      "appId": "read",
+      "title": "Page Turned",
+      "description": "Open a Gutenberg book and let it remember your place.",
+      "icon": "📚",
+      "parentId": "notepad:first-action",
+      "x": -3634,
+      "y": 480
+    },
+    {
+      "id": "listen:first-action",
+      "appId": "listen",
+      "title": "Chapter Queued",
+      "description": "Start a LibriVox chapter playing.",
+      "icon": "🎧",
+      "parentId": "read:first-action",
+      "x": -3634,
+      "y": 640
+    },
+    {
+      "id": "model-viewer:first-action",
+      "appId": "model-viewer",
+      "title": "Model Loaded",
+      "description": "Load a 3D model into the viewer.",
+      "icon": "🧊",
+      "parentId": "terminal:first-action",
+      "x": -3444,
+      "y": 640
+    },
+    {
+      "id": "media-player:first-action",
+      "appId": "media-player",
+      "title": "Playback Started",
+      "description": "Start playing a video or audio file.",
+      "icon": "🎬",
+      "parentId": "terminal:first-action",
+      "x": -3254,
+      "y": 480
+    },
+    {
+      "id": "airwave:first-action",
+      "appId": "airwave",
+      "title": "Audio Only",
+      "description": "Get a YouTube track playing as audio only.",
+      "icon": "📻",
+      "parentId": "media-player:first-action",
+      "x": -3254,
+      "y": 640
+    },
+    {
+      "id": "countdown:first-action",
+      "appId": "countdown",
+      "title": "T-Minus",
+      "description": "Start a countdown toward a real date on your calendar.",
+      "icon": "⏱️",
+      "parentId": "terminal:first-action",
+      "x": -2874,
+      "y": 640
+    },
+    {
+      "id": "stock:first-action",
+      "appId": "stock",
+      "title": "Watchlist Started",
+      "description": "Add a ticker to your watchlist.",
+      "icon": "📈",
+      "parentId": "terminal:first-action",
+      "x": -2684,
+      "y": 480
+    },
+    {
+      "id": "weather:first-action",
+      "appId": "weather",
+      "title": "Forecast Pinned",
+      "description": "Save a city or ZIP to your locations.",
+      "icon": "🌤️",
+      "parentId": "terminal:first-action",
+      "x": -2494,
+      "y": 480
+    },
+    {
+      "id": "triplog:first-action",
+      "appId": "triplog",
+      "title": "Recording Started",
+      "description": "Start recording a GPS track.",
+      "icon": "🗺️",
+      "parentId": "weather:first-action",
+      "x": -2494,
+      "y": 640
+    },
+    {
+      "id": "doom:first-action",
+      "appId": "doom",
+      "title": "Rip and Tear",
+      "description": "Launch the Doom engine and drop into a map.",
+      "icon": "💀",
+      "parentId": "achievements:first-action",
+      "x": -1852,
+      "y": 160
+    },
+    {
+      "id": "doom-mods:first-action",
+      "appId": "doom-mods",
+      "title": "Mod Loaded",
+      "description": "Launch a mod pulled live from moddb.",
+      "icon": "🛒",
+      "parentId": "doom:first-action",
+      "x": -2304,
+      "y": 320
+    },
+    {
+      "id": "dos:first-action",
+      "appId": "dos",
+      "title": "Boot Sector",
+      "description": "Boot a DOS game bundle in the browser.",
+      "icon": "💾",
+      "parentId": "doom:first-action",
+      "x": -2114,
+      "y": 320
+    },
+    {
+      "id": "flash:first-action",
+      "appId": "flash",
+      "title": "Ruffled",
+      "description": "Load a .swf into the Ruffle player.",
+      "icon": "⚡",
+      "parentId": "dos:first-action",
+      "x": -2114,
+      "y": 480
+    },
+    {
+      "id": "nes:first-action",
+      "appId": "nes",
+      "title": "Cart Inserted",
+      "description": "Get an NES ROM running on the core.",
+      "icon": "🕹️",
+      "parentId": "doom:first-action",
+      "x": -1829,
+      "y": 480
+    },
+    {
+      "id": "gameboy:first-action",
+      "appId": "gameboy",
+      "title": "Pocket Cart",
+      "description": "Run a .gb or .gbc cart on the handheld core.",
+      "icon": "🟩",
+      "parentId": "nes:first-action",
+      "x": -1924,
+      "y": 640
+    },
+    {
+      "id": "snes:first-action",
+      "appId": "snes",
+      "title": "Super Famicom Boot",
+      "description": "Load an .sfc cart and start it running.",
+      "icon": "🟣",
+      "parentId": "nes:first-action",
+      "x": -1734,
+      "y": 640
+    },
+    {
+      "id": "sega:first-action",
+      "appId": "sega",
+      "title": "Blast Processing",
+      "description": "Boot a Genesis ROM and start playing.",
+      "icon": "🦔",
+      "parentId": "doom:first-action",
+      "x": -1449,
+      "y": 480
+    },
+    {
+      "id": "gamegear:first-action",
+      "appId": "gamegear",
+      "title": "Batteries Optional",
+      "description": "Run a Game Gear cart on the handheld core.",
+      "icon": "📟",
+      "parentId": "sega:first-action",
+      "x": -1544,
+      "y": 640
+    },
+    {
+      "id": "sega32x:first-action",
+      "appId": "sega32x",
+      "title": "Mushroom Attached",
+      "description": "Boot a 32X ROM through the picodrive core.",
+      "icon": "🚀",
+      "parentId": "sega:first-action",
+      "x": -1354,
+      "y": 640
+    },
+    {
+      "id": "neogeo:first-action",
+      "appId": "neogeo",
+      "title": "BIOS Cached",
+      "description": "Get a Neo Geo ROM booted with the BIOS cached.",
+      "icon": "🥊",
+      "parentId": "doom:first-action",
+      "x": -1164,
+      "y": 480
+    },
+    {
+      "id": "ps1:first-action",
+      "appId": "ps1",
+      "title": "Disc Spun Up",
+      "description": "Load a disc image and start it spinning.",
+      "icon": "💿",
+      "parentId": "doom:first-action",
+      "x": -974,
+      "y": 480
+    },
+    {
+      "id": "play-piano:first-action",
+      "appId": "play-piano",
+      "title": "First Note",
+      "description": "Play a note on the acoustic grand.",
+      "icon": "🎹",
+      "parentId": "achievements:first-action",
+      "x": -594,
+      "y": 320
+    },
+    {
+      "id": "play-accordion:first-action",
+      "appId": "play-accordion",
+      "title": "Bellows Breathing",
+      "description": "Sound a note on the accordion.",
+      "icon": "🪗",
+      "parentId": "play-piano:first-action",
+      "x": -784,
+      "y": 480
+    },
+    {
+      "id": "accordion-hero:first-action",
+      "appId": "accordion-hero",
+      "title": "Run Finished",
+      "description": "Finish a run and see your results screen.",
+      "icon": "🎶",
+      "parentId": "play-accordion:first-action",
+      "x": -784,
+      "y": 640
+    },
+    {
+      "id": "piano-hero:first-action",
+      "appId": "piano-hero",
+      "title": "Falling Notes",
+      "description": "Start playing along with a loaded MIDI chart.",
+      "icon": "🎼",
+      "parentId": "play-piano:first-action",
+      "x": -594,
+      "y": 480
+    },
+    {
+      "id": "play-composer:first-action",
+      "appId": "play-composer",
+      "title": "Score Written",
+      "description": "Play your score back on the grand staff.",
+      "icon": "📜",
+      "parentId": "play-piano:first-action",
+      "x": -404,
+      "y": 480
+    },
+    {
+      "id": "play-chiptune:first-action",
+      "appId": "play-chiptune",
+      "title": "Song Playing",
+      "description": "Start a chiptune song playing.",
+      "icon": "👾",
+      "parentId": "play-composer:first-action",
+      "x": -404,
+      "y": 640
+    },
+    {
+      "id": "play-drums:first-action",
+      "appId": "play-drums",
+      "title": "First Hit",
+      "description": "Strike a pad on the kit.",
+      "icon": "🥁",
+      "parentId": "achievements:first-action",
+      "x": -24,
+      "y": 320
+    },
+    {
+      "id": "play-steeldrum:first-action",
+      "appId": "play-steeldrum",
+      "title": "Island Rhythm",
+      "description": "Strike a tongue on the steel pan.",
+      "icon": "🛢️",
+      "parentId": "play-drums:first-action",
+      "x": -214,
+      "y": 480
+    },
+    {
+      "id": "play-metronome:first-action",
+      "appId": "play-metronome",
+      "title": "Tempo Running",
+      "description": "Start the metronome ticking.",
+      "icon": "🎚️",
+      "parentId": "play-drums:first-action",
+      "x": -24,
+      "y": 480
+    },
+    {
+      "id": "stepmania:first-action",
+      "appId": "stepmania",
+      "title": "Chart Started",
+      "description": "Start a chart playing.",
+      "icon": "💃",
+      "parentId": "play-metronome:first-action",
+      "x": -24,
+      "y": 640
+    },
+    {
+      "id": "play-mallets:first-action",
+      "appId": "play-mallets",
+      "title": "Mallet Struck",
+      "description": "Play a note on the mallet keyboard.",
+      "icon": "🪵",
+      "parentId": "play-drums:first-action",
+      "x": 166,
+      "y": 480
+    },
+    {
+      "id": "play-guitar:first-action",
+      "appId": "play-guitar",
+      "title": "String Plucked",
+      "description": "Pluck a string on the fretboard.",
+      "icon": "🎸",
+      "parentId": "achievements:first-action",
+      "x": 546,
+      "y": 320
+    },
+    {
+      "id": "play-harp:first-action",
+      "appId": "play-harp",
+      "title": "Harp Plucked",
+      "description": "Pluck one of the harp strings.",
+      "icon": "🎻",
+      "parentId": "play-guitar:first-action",
+      "x": 356,
+      "y": 480
+    },
+    {
+      "id": "play-synth:first-action",
+      "appId": "play-synth",
+      "title": "Synth Voiced",
+      "description": "Play a note through the synth.",
+      "icon": "🎛️",
+      "parentId": "play-guitar:first-action",
+      "x": 546,
+      "y": 480
+    },
+    {
+      "id": "play-theremin:first-action",
+      "appId": "play-theremin",
+      "title": "Hands Free",
+      "description": "Produce a pitch on the theremin.",
+      "icon": "🌊",
+      "parentId": "play-synth:first-action",
+      "x": 546,
+      "y": 640
+    },
+    {
+      "id": "play-tuner:first-action",
+      "appId": "play-tuner",
+      "title": "Reference Tone",
+      "description": "Sound the reference tone for a target note.",
+      "icon": "👂",
+      "parentId": "play-guitar:first-action",
+      "x": 736,
+      "y": 480
+    },
+    {
+      "id": "ascii:first-action",
+      "appId": "ascii",
+      "title": "Pixels to Glyphs",
+      "description": "Turn an image or a webcam frame into ASCII.",
+      "icon": "🔡",
+      "parentId": "achievements:first-action",
+      "x": 1401,
+      "y": 160
+    },
+    {
+      "id": "paint:first-action",
+      "appId": "paint",
+      "title": "First Stroke",
+      "description": "Put a tool down on the canvas.",
+      "icon": "🎨",
+      "parentId": "ascii:first-action",
+      "x": 1021,
+      "y": 320
+    },
+    {
+      "id": "meme:first-action",
+      "appId": "meme",
+      "title": "Meme Exported",
+      "description": "Download your meme as a PNG.",
+      "icon": "😂",
+      "parentId": "paint:first-action",
+      "x": 926,
+      "y": 480
+    },
+    {
+      "id": "imagine:first-action",
+      "appId": "imagine",
+      "title": "Prompt Rendered",
+      "description": "Generate an image from a prompt on your own GPU.",
+      "icon": "🪄",
+      "parentId": "paint:first-action",
+      "x": 1116,
+      "y": 480
+    },
+    {
+      "id": "badapple:first-action",
+      "appId": "badapple",
+      "title": "Synced to the Beat",
+      "description": "Start the ASCII animation playing.",
+      "icon": "🍎",
+      "parentId": "ascii:first-action",
+      "x": 1401,
+      "y": 320
+    },
+    {
+      "id": "starwars:first-action",
+      "appId": "starwars",
+      "title": "Crawl Rolling",
+      "description": "Start the asciimation playing.",
+      "icon": "🌟",
+      "parentId": "badapple:first-action",
+      "x": 1306,
+      "y": 480
+    },
+    {
+      "id": "shadowbox:first-action",
+      "appId": "shadowbox",
+      "title": "Eyes On",
+      "description": "Toggle stealth mode.",
+      "icon": "🕵️",
+      "parentId": "badapple:first-action",
+      "x": 1496,
+      "y": 480
+    },
+    {
+      "id": "watch:first-action",
+      "appId": "watch",
+      "title": "Channel Surfed",
+      "description": "Start an episode playing.",
+      "icon": "📺",
+      "parentId": "ascii:first-action",
+      "x": 1781,
+      "y": 320
+    },
+    {
+      "id": "blockbuster:first-action",
+      "appId": "blockbuster",
+      "title": "Rental Complete",
+      "description": "Pull a box off the shelf and rent what is on it.",
+      "icon": "📼",
+      "parentId": "watch:first-action",
+      "x": 1686,
+      "y": 480
+    },
+    {
+      "id": "youtube:first-action",
+      "appId": "youtube",
+      "title": "Channel Tuned",
+      "description": "Tune the carousel to a channel and load it.",
+      "icon": "🎥",
+      "parentId": "watch:first-action",
+      "x": 1876,
+      "y": 480
+    },
+    {
+      "id": "posts:first-action",
+      "appId": "posts",
+      "title": "Note Pinned",
+      "description": "Pin a post to the board.",
+      "icon": "📌",
+      "parentId": "achievements:first-action",
+      "x": 2399,
+      "y": 160
+    },
+    {
+      "id": "checkboxes:first-action",
+      "appId": "checkboxes",
+      "title": "One of a Million",
+      "description": "Flip a checkbox that everybody else will see flip.",
+      "icon": "☑️",
+      "parentId": "posts:first-action",
+      "x": 2066,
+      "y": 320
+    },
+    {
+      "id": "trivia:first-action",
+      "appId": "trivia",
+      "title": "Beat the Buzzer",
+      "description": "Submit an answer before the round rolls over.",
+      "icon": "🎯",
+      "parentId": "checkboxes:first-action",
+      "x": 2066,
+      "y": 480
+    },
+    {
+      "id": "sayhello:first-action",
+      "appId": "sayhello",
+      "title": "Voice Given",
+      "description": "Make the browser speak a greeting out loud.",
+      "icon": "👋",
+      "parentId": "posts:first-action",
+      "x": 2351,
+      "y": 320
+    },
+    {
+      "id": "sayit:first-action",
+      "appId": "sayit",
+      "title": "Read Aloud",
+      "description": "Push a full block of text through speech synthesis.",
+      "icon": "🗣️",
+      "parentId": "sayhello:first-action",
+      "x": 2256,
+      "y": 480
+    },
+    {
+      "id": "pbs:first-action",
+      "appId": "pbs",
+      "title": "Broadcast Hijacked",
+      "description": "Fire off one of the pirate sounds.",
+      "icon": "🏴‍☠️",
+      "parentId": "sayhello:first-action",
+      "x": 2446,
+      "y": 480
+    },
+    {
+      "id": "sadtrombone:first-action",
+      "appId": "sadtrombone",
+      "title": "Womp Womp",
+      "description": "Land the trombone at exactly the wrong moment.",
+      "icon": "🎺",
+      "parentId": "pbs:first-action",
+      "x": 2446,
+      "y": 640
+    },
+    {
+      "id": "awesome:first-action",
+      "appId": "awesome",
+      "title": "Maximum Awesome",
+      "description": "Set off the music and animations all at once.",
+      "icon": "🎉",
+      "parentId": "posts:first-action",
+      "x": 2731,
+      "y": 320
+    },
+    {
+      "id": "farm:first-action",
+      "appId": "farm",
+      "title": "Build Merged",
+      "description": "Run a farm job through to a green build.",
+      "icon": "🚜",
+      "parentId": "awesome:first-action",
+      "x": 2636,
+      "y": 480
+    },
+    {
+      "id": "vibe-coding:first-action",
+      "appId": "vibe-coding",
+      "title": "Egg Found",
+      "description": "Find the easter egg hiding on the page.",
+      "icon": "🤖",
+      "parentId": "awesome:first-action",
+      "x": 2826,
+      "y": 640
+    },
+    {
+      "id": "minesweeper:first-action",
+      "appId": "minesweeper",
+      "title": "Board Swept",
+      "description": "Win a game without hitting a mine.",
+      "icon": "💣",
+      "parentId": "achievements:first-action",
+      "x": 3254,
+      "y": 160
+    },
+    {
+      "id": "sudoku:first-action",
+      "appId": "sudoku",
+      "title": "Puzzle Solved",
+      "description": "Solve a full puzzle.",
+      "icon": "🔟",
+      "parentId": "minesweeper:first-action",
+      "x": 3016,
+      "y": 320
+    },
+    {
+      "id": "2048:first-action",
+      "appId": "2048",
+      "title": "2048 Reached",
+      "description": "Merge all the way up to the 2048 tile.",
+      "icon": "🧮",
+      "parentId": "sudoku:first-action",
+      "x": 3016,
+      "y": 480
+    },
+    {
+      "id": "untangle:first-action",
+      "appId": "untangle",
+      "title": "No Crossings",
+      "description": "Drag a level into a layout with zero crossing edges.",
+      "icon": "🪢",
+      "parentId": "2048:first-action",
+      "x": 3016,
+      "y": 640
+    },
+    {
+      "id": "wordle-finder:first-action",
+      "appId": "wordle-finder",
+      "title": "Greens and Yellows",
+      "description": "Filter the word list down to matching answers.",
+      "icon": "🔤",
+      "parentId": "minesweeper:first-action",
+      "x": 3206,
+      "y": 320
+    },
+    {
+      "id": "periodic-speller:first-action",
+      "appId": "periodic-speller",
+      "title": "Spelled in Elements",
+      "description": "Type something for the table to spell out.",
+      "icon": "⚛️",
+      "parentId": "wordle-finder:first-action",
+      "x": 3206,
+      "y": 480
+    },
+    {
+      "id": "pacman:first-action",
+      "appId": "pacman",
+      "title": "Game Started",
+      "description": "Start a game and leave the start screen.",
+      "icon": "👻",
+      "parentId": "minesweeper:first-action",
+      "x": 3491,
+      "y": 320
+    },
+    {
+      "id": "pacman-builder:first-action",
+      "appId": "pacman-builder",
+      "title": "Maze Author",
+      "description": "Design a custom maze and test-play it yourself.",
+      "icon": "🧱",
+      "parentId": "pacman:first-action",
+      "x": 3396,
+      "y": 480
+    },
+    {
+      "id": "pacman-infinite:first-action",
+      "appId": "pacman-infinite",
+      "title": "Run Started",
+      "description": "Start or resume an endless run.",
+      "icon": "♾️",
+      "parentId": "pacman:first-action",
+      "x": 3586,
+      "y": 480
+    }
+  ]
+}

@@ -446,6 +446,7 @@ function move(dir) {
 
     if (!won && hasValue(2048)) {
       won = true;
+      window.heymingAchievements?.unlockForCurrentApp('first-action');
       if (!continueAfterWin) {
         showOverlay({ kind: 'win' });
       }

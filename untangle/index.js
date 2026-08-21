@@ -323,6 +323,7 @@ function checkWin() {
   elGradeDetail.textContent = `${moveLabel} · level ${state.level}`;
   elWin.hidden = false;
   btnNext.disabled = false;
+  window.heymingAchievements?.unlockForCurrentApp('first-action');
   if (typeof window.trackEvent === 'function') {
     window.trackEvent(
       'untangle_level_clear',

@@ -290,6 +290,7 @@ const pluckString = (stringEl) => {
   stringEl.classList.add('plucked');
 
   pluck(midi);
+  window.heymingAchievements?.unlockForCurrentApp('first-action');
   announceNote(midi);
 
   setTimeout(() => {

@@ -13,6 +13,7 @@ export const gameState = {
     const wasContinue = this.state !== GAME_STATES.PLAYING && this._savedState != null;
     this.state = GAME_STATES.PLAYING;
     this._staticFrameDirty = true;
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
     // From here on we can persist progress (and pagehide will flush).
     this._canSave = true;
     if (typeof window !== 'undefined' && window.trackEvent) {

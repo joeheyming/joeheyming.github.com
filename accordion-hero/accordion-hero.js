@@ -837,6 +837,7 @@ function finishSong() {
   resMissEl.textContent = String(counts.voicing.wrong || 0);
   stopRun();
   showResults();
+  window.heymingAchievements?.unlockForCurrentApp('first-action');
 }
 
 // ----- Buttons -----

@@ -137,6 +137,7 @@ const getCfg = () => ({
 
 let nowPlayingTimer = null;
 onMidi((midi) => {
+  window.heymingAchievements?.unlockForCurrentApp('first-action');
   nowPlaying.textContent = midiToName(Math.round(midi));
   nowPlaying.classList.add('active');
   clearTimeout(nowPlayingTimer);

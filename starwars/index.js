@@ -89,6 +89,7 @@ function pausePlay() {
 }
 
 function togglePlayPause() {
+  window.heymingAchievements?.unlockForCurrentApp('first-action');
   if (isPlaying) {
     pausePlay();
   } else {

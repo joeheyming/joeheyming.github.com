@@ -245,6 +245,7 @@ class ModelViewerApp {
 
   setupModelEvents() {
     this.modelEl.addEventListener('load', () => {
+      window.heymingAchievements?.unlockForCurrentApp('first-action');
       this.loadingOverlay.classList.add('hidden');
       this.updateModelInfo();
     });

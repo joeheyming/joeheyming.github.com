@@ -507,6 +507,7 @@ class Game {
 
   async startGame() {
     this.startScreen.classList.add('hidden');
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
 
     if (typeof window !== 'undefined' && window.trackEvent) {
       window.trackEvent('pacman_game_start', 'Pacman', 'start');

@@ -312,6 +312,7 @@ const triggerStrike = (tongueEl) => {
   tongueEl.classList.add('struck');
 
   strike(midi);
+  window.heymingAchievements?.unlockForCurrentApp('first-action');
   announceNote(midi);
 
   const prevTimer = struckTimers.get(tongueEl);

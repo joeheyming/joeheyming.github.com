@@ -143,6 +143,7 @@ export class StringEngine {
     resumeIfSuspended();
     const ok = this._trigger(midi);
     if (!ok) return false;
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
     if (this.paired) {
       // Mandolin tremolo: a quick second strike ~55ms later. Real
       // mandolin tremolo is a continuous trill, but a single retrigger

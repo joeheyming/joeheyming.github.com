@@ -756,6 +756,7 @@ async function pinDraft(note) {
       configured ? 'Pinned — may take a few seconds for everyone' : 'Pinned (demo — local only)'
     );
     window.trackEvent?.('posts_submit', 'Engagement', String(attachmentUrls.length));
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
   } catch (err) {
     console.error(err);
     setStatus(err instanceof Error ? err.message : 'Pin failed', true);

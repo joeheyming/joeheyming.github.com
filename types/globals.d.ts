@@ -47,6 +47,7 @@ interface HeymingOSNamespace {
 interface Window {
   HeymingOS: HeymingOSNamespace;
   heymingOS: import('../terminal/core/heyming-os').HeymingOS;
+  heymingAchievements?: HeymingAchievements;
   /** Controller → arrow-key bridge (`gamepad-keys.js`, opt-in per page). */
   gamepadKeys?: GamepadKeysApi;
 
@@ -109,6 +110,38 @@ interface Window {
     getState: () => unknown;
     scramble: () => void;
   };
+}
+
+interface AchievementUnlockRecord {
+  unlockedAt: string;
+}
+
+interface AchievementChange {
+  id: string | null;
+  source: 'local' | 'storage';
+  unlocked: Record<string, AchievementUnlockRecord>;
+}
+
+interface AchievementDefinition {
+  id: string;
+  appId: string;
+  title: string;
+  description: string;
+  icon: string;
+  parentId: string | null;
+  x: number;
+  y: number;
+}
+
+interface HeymingAchievements {
+  ready: Promise<{ catalog: AchievementDefinition[]; currentAppId: string }>;
+  unlock(id: string): Promise<boolean>;
+  unlockForCurrentApp(slug: string): Promise<boolean>;
+  isUnlocked(id: string): boolean;
+  getUnlocked(): Record<string, AchievementUnlockRecord>;
+  getCurrentAppId(): string;
+  subscribe(listener: (change: AchievementChange) => void): () => void;
+  storageKey: string;
 }
 
 interface GamepadKeysApi {

@@ -284,6 +284,7 @@ class Metronome {
     resumeIfSuspended();
     const ctx = getCtx();
     this.running = true;
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
     this._subIndex = 0;
     // Tiny lead so the very first click isn't clipped by a still-warming graph.
     this._nextTick = ctx.currentTime + 0.06;

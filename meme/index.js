@@ -143,6 +143,7 @@ async function handleAction(action) {
     case 'download':
       try {
         await downloadPng();
+        window.heymingAchievements?.unlockForCurrentApp('first-action');
         if (window.trackEvent) {
           window.trackEvent('meme_download', 'Meme', store.get().template?.id || 'custom');
         }

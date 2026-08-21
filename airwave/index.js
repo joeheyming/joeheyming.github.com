@@ -375,6 +375,7 @@ class App {
     });
 
     this.player.on('playing', () => {
+      window.heymingAchievements?.unlockForCurrentApp('first-action');
       this.dom.play.textContent = '⏸';
       this.dom.play.setAttribute('aria-label', 'Pause');
       this.dom.now.classList.add('is-playing');

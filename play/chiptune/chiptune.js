@@ -324,6 +324,7 @@ function fillWaveSelect() {
 function bind() {
   els.play?.addEventListener('click', () => {
     transport.toggle();
+    if (transport.playing) window.heymingAchievements?.unlockForCurrentApp('first-action');
     updatePlayButton();
     if (transport.playing && els.status) els.status.textContent = 'Playing…';
   });

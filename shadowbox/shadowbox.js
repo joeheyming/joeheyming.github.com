@@ -230,6 +230,7 @@ function initializeEventHandlers() {
 
   document.getElementById('stealth-mode').addEventListener('click', function () {
     isStealthMode = !isStealthMode;
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
     const body = document.body;
     const btn = document.getElementById('stealth-mode');
 

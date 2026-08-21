@@ -322,6 +322,7 @@ const { bootEngine } = installUzdomLoaderEngine({
 $('launchBtn').addEventListener('click', async () => {
   if (LC.get() !== 'primed') return;
   LC.markLaunching();
+  window.heymingAchievements?.unlockForCurrentApp('first-action');
   $('launchBtn').disabled = true;
   setStatus('Launching engine…');
 

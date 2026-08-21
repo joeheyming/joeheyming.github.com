@@ -277,6 +277,7 @@ class MediaPlayer {
     });
 
     this.media.addEventListener('play', () => {
+      window.heymingAchievements?.unlockForCurrentApp('first-action');
       this.btnPlayPause.textContent = '⏸️';
       this.btnPlayPause.title = 'Pause (Space)';
       this.mediaWrapper.classList.add('playing');

@@ -2896,5 +2896,36 @@
     "shareCategory": "utility",
     "appTier": "experience",
     "geo": true
+  },
+  {
+    "id": "achievements",
+    "name": "Achievements 🏆",
+    "shortName": "Achievements",
+    "description": "Track milestones unlocked across the site",
+    "detailedDescription": "Explore a Minecraft-inspired tree of achievements earned by playing games, creating things, and using apps across the site.",
+    "icon": "🏆",
+    "path": "./achievements/",
+    "category": "utility",
+    "gradient": "from-amber-500/20 to-yellow-500/20",
+    "border": "border-amber-500/30 hover:border-yellow-400/50",
+    "taskbarGradient": "from-amber-600 to-yellow-600",
+    "taskbarText": "text-white",
+    "defaultWidth": 1100,
+    "defaultHeight": 760,
+    "tags": [
+      "achievements",
+      "progress",
+      "games",
+      "milestones"
+    ],
+    "related": [
+      "2048",
+      "pacman",
+      "stepmania",
+      "checkboxes"
+    ],
+    "shareCategory": "utility",
+    "appTier": "experience",
+    "geo": false
   }
 ]

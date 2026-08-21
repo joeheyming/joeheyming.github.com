@@ -136,6 +136,7 @@ function addSymbolToActive(symbol, name) {
   if (!list) return;
   if (list.symbols.some((e) => e.symbol === sym)) return;
   list.symbols.push({ symbol: sym, name: name || '', visible: true });
+  window.heymingAchievements?.unlockForCurrentApp('first-action');
   saveState();
   refreshAll();
 }

@@ -379,6 +379,7 @@ function bindChrome() {
 
   els.playPause.addEventListener('click', () => {
     playback.toggle(score);
+    if (playback.state.playing) window.heymingAchievements?.unlockForCurrentApp('first-action');
     ui.playheadStart = playback.state.playheadStart;
     updatePlayButton();
   });

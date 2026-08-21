@@ -241,6 +241,7 @@ export class Game {
       this.ui.updateMineCounter(0);
       this.ui.setFace('won');
       this.ui.animateWindow('won');
+      window.heymingAchievements?.unlockForCurrentApp('first-action');
     }
   }
 

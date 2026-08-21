@@ -549,6 +549,7 @@ speedSelect.addEventListener('change', () => {
 // --- Player callbacks ---
 
 player.onStateChange = ({ playing, currentTime, duration }) => {
+  if (playing) window.heymingAchievements?.unlockForCurrentApp('first-action');
   btnPlayPause.textContent = playing ? '⏸' : '▶';
   btnPlayPause.setAttribute('aria-label', playing ? 'Pause' : 'Play');
 

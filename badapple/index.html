@@ -421,6 +421,7 @@
 
     <hr />
 
+    <script src="/achievements.js"></script>
     <script>
       const audio = document.getElementById('audio');
       const frameDisplay = document.getElementById('frame-display');
@@ -583,6 +584,7 @@
           const { error } = await playbackResult;
           if (error) throw error;
           playBtn.disabled = false;
+          window.heymingAchievements?.unlockForCurrentApp('first-action');
 
           // Start the animation loop
           updateFrame();

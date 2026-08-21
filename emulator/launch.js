@@ -928,6 +928,9 @@
     if (bootEl) bootEl.classList.add('hidden');
     if (gameContainer) gameContainer.classList.add('visible');
     if (emuHeader) emuHeader.classList.add('is-playing');
+    if (cfg.id === 'nes') {
+      window.heymingAchievements?.unlockForCurrentApp('first-action');
+    }
 
     window.EJS_player = '#game';
     window.EJS_core = cfg.ejsCore;
@@ -971,6 +974,10 @@
       const labelBase = opts.deeplink ? `deeplink:${raw}` : raw;
       const timeOnPage = Math.round((Date.now() - SHELL_LOADED_AT) / 1000);
       window.trackEvent(`${cfg.id}_rom_loaded`, 'Emulator', labelBase, timeOnPage);
+    }
+
+    if (['sega', 'gg', 'sega32x', 'gb', 'neogeo', 'snes', 'ps1'].includes(cfg.id)) {
+      window.heymingAchievements?.unlockForCurrentApp('first-action');
     }
 
     const script = document.createElement('script');

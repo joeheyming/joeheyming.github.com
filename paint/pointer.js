@@ -240,6 +240,7 @@ export function createPointerController(deps) {
     commitTextInput();
 
     tool.onDown(activeCtx(), ov, state, x, y, isRight);
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
   }
 
   function onPointerMove(e) {

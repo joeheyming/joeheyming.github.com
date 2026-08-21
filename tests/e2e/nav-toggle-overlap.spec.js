@@ -51,7 +51,8 @@ const APPS = [
   '/play/tuner/',
   '/play/composer/',
   '/media-player/',
-  '/image-viewer/'
+  '/image-viewer/',
+  '/achievements/'
 ];
 
 for (const app of APPS) {
