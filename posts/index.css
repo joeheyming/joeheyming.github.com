@@ -136,6 +136,23 @@ body {
   font-size: 0.85rem;
 }
 
+.archive-search {
+  width: 100%;
+  margin-bottom: 0.7rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  background: var(--surface-0);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 0.88rem;
+}
+
+.archive-search:focus-visible {
+  outline: 2px solid var(--focus-ring-inner);
+  outline-offset: 1px;
+}
+
 .archive-list {
   flex: 1;
   overflow: auto;
@@ -533,6 +550,27 @@ body {
   outline: 2px dashed rgba(41, 36, 25, 0.42);
   outline-offset: -5px;
   opacity: 0.85;
+}
+
+/* Tidy view: fixed-width cards packed into columns, each as tall as its content. */
+.board.is-tidy .post {
+  width: var(--tidy-note-w, 270px);
+  height: auto;
+  max-height: none;
+  overflow: visible;
+  cursor: default;
+}
+
+/* Zoomed far out the text is unreadable anyway, so trim each note to a headline. */
+.board.is-far:not(.is-tidy) .post:not(.draft) {
+  max-height: 132px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, #000 72%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 72%, transparent 100%);
+}
+
+.board.is-far:not(.is-tidy) .post:not(.draft) .post-attachments {
+  display: none;
 }
 
 .post-meta {

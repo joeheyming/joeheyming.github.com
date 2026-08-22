@@ -4,8 +4,17 @@ import { encodeAttachments, formBodyByteLength } from './upload.js';
 import { loadDraft } from './share-client.js';
 
 const DEMO_KEY = 'posts-demo-v1';
+const LAYOUT_KEY = 'posts-layout-v1';
 const ATTACHMENT_CHUNK_PREFIX = 'posts-attachment-chunk-v1';
 const NOTE_COLORS = ['#fff3a6', '#ffd6e7', '#cceeff', '#d9f7be', '#ffe0b5', '#e4d7ff'];
+
+// Tidy view geometry, in surface pixels.
+const TIDY_GAP = 28;
+const TIDY_NOTE_MAX_W = 270;
+// Only used when a card somehow reports no height (display:none, detached).
+const TIDY_FALLBACK_H = 210;
+// Below this zoom a note is too small to read, so it collapses to a headline.
+const FAR_ZOOM = 0.7;
 
 /**
  * @typedef {{
@@ -33,6 +42,12 @@ let flashTimer = null;
 /** @type {string|null} */
 let pendingFocusPostId = null;
 let archiveOpen = false;
+let archiveQuery = '';
+
+/** @type {'scatter'|'tidy'} */
+let layoutMode = loadLayoutMode();
+/** Grid slots keyed by post id, only populated in tidy mode. @type {Map<string, {x: number, y: number}>} */
+let tidySlots = new Map();
 
 /** @type {{ x: number, y: number, zoom: number }} */
 const camera = { x: 0, y: 0, zoom: 1 };
@@ -50,7 +65,9 @@ const els = {
   archivePanel: document.getElementById('archive-panel'),
   archiveBackdrop: document.getElementById('archive-backdrop'),
   archiveList: document.getElementById('archive-list'),
+  archiveSearch: document.getElementById('archive-search'),
   jumpNewest: document.getElementById('jump-newest-btn'),
+  tidyBtn: document.getElementById('tidy-btn'),
   status: document.getElementById('board-status'),
   file: document.getElementById('note-file'),
   honeypot: document.getElementById('note-honeypot'),
@@ -69,8 +86,12 @@ async function init() {
       point ? { x: point.x, y: point.y, avoidOverlap: true } : { avoidOverlap: true }
     );
   });
+  els.board?.classList.toggle('is-tidy', layoutMode === 'tidy');
   setupBoardCamera();
   setupArchiveUi();
+  els.tidyBtn?.addEventListener('click', () => {
+    setLayoutMode(layoutMode === 'tidy' ? 'scatter' : 'tidy');
+  });
   els.jumpNewest?.addEventListener('click', () => jumpToNewest());
   els.resetView?.addEventListener('click', () => {
     resetCamera({ announce: true });
@@ -89,7 +110,9 @@ async function init() {
   setupDropTargets();
   setupLightbox();
   window.addEventListener('resize', () => {
-    sizeBoardSurface();
+    // Tidy columns depend on viewport width, so the grid has to be recomputed.
+    if (layoutMode === 'tidy') renderBoard();
+    else sizeBoardSurface();
     applyCamera();
   });
 
@@ -205,7 +228,9 @@ function setupBoardCamera() {
 
   els.board.addEventListener('pointerdown', (event) => {
     if (!(event.target instanceof Element)) return;
-    if (event.target.closest('.post, button, a, input, textarea, audio, video, dialog')) return;
+    // Tidy cards can't be dragged, so they pan the board like bare cork does.
+    const controls = 'button, a, input, textarea, audio, video, dialog';
+    if (event.target.closest(layoutMode === 'tidy' ? controls : `.post, ${controls}`)) return;
     if (event.button !== 0 && event.button !== 1) return;
 
     event.preventDefault();
@@ -379,17 +404,119 @@ function applyCamera() {
   const surface = getBoardSurface();
   if (!surface) return;
   surface.style.transform = `translate(${camera.x}px, ${camera.y}px) scale(${camera.zoom})`;
+  els.board?.classList.toggle('is-far', camera.zoom < FAR_ZOOM);
+}
+
+/** @returns {'scatter'|'tidy'} */
+function loadLayoutMode() {
+  try {
+    return localStorage.getItem(LAYOUT_KEY) === 'tidy' ? 'tidy' : 'scatter';
+  } catch {
+    return 'scatter';
+  }
+}
+
+/** @param {'scatter'|'tidy'} mode */
+function setLayoutMode(mode) {
+  layoutMode = mode === 'tidy' ? 'tidy' : 'scatter';
+  try {
+    localStorage.setItem(LAYOUT_KEY, layoutMode);
+  } catch {
+    /* private mode — the toggle just won't stick */
+  }
+  els.board?.classList.toggle('is-tidy', layoutMode === 'tidy');
+  renderBoard();
+  resetCamera();
+  setStatus(layoutMode === 'tidy' ? 'Tidied — newest note first' : 'Back to the cork board');
+  window.trackEvent?.('posts_layout', 'Engagement', layoutMode);
+}
+
+/** Card width and column count for the tidy grid, derived from the viewport. */
+function tidyMetrics() {
+  const view = Math.max(els.board?.clientWidth || 0, 240);
+  const noteW = Math.max(180, Math.min(TIDY_NOTE_MAX_W, view - TIDY_GAP * 2));
+  const cols = Math.max(1, Math.floor((view - TIDY_GAP) / (noteW + TIDY_GAP)));
+  return { noteW, cols };
 }
 
 function sizeBoardSurface() {
   const surface = getBoardSurface();
   if (!els.board || !surface) return;
-  const scale = CONFIG.worldScale || 1.85;
-  const width = Math.max(els.board.clientWidth * scale, els.board.clientWidth);
-  const height = Math.max(els.board.clientHeight * scale, els.board.clientHeight);
+
+  let width;
+  let height;
+  if (layoutMode === 'tidy') {
+    // Provisional only — packTidyGrid grows the surface once cards are measured.
+    els.board.style.setProperty('--tidy-note-w', `${tidyMetrics().noteW}px`);
+    width = els.board.clientWidth;
+    height = els.board.clientHeight;
+  } else {
+    const scale = CONFIG.worldScale || 1.85;
+    width = Math.max(els.board.clientWidth * scale, els.board.clientWidth);
+    height = Math.max(els.board.clientHeight * scale, els.board.clientHeight);
+  }
+
   surface.style.width = `${Math.round(width)}px`;
   surface.style.height = `${Math.round(height)}px`;
   surface.style.minHeight = `${Math.round(height)}px`;
+}
+
+/**
+ * Pack the rendered notes into newest-first columns, each card keeping its own
+ * height so nothing is clipped, then grow the surface to fit. Must run after the
+ * cards are in the DOM — it measures them.
+ * @param {Post[]} list
+ * @param {HTMLElement} surface
+ */
+function packTidyGrid(list, surface) {
+  const { noteW, cols } = tidyMetrics();
+  const width = surface.offsetWidth || 1;
+  const cellW = noteW + TIDY_GAP;
+  const startX = Math.max(TIDY_GAP, (width - (cols * cellW - TIDY_GAP)) / 2);
+  const columnBottoms = new Array(cols).fill(TIDY_GAP);
+
+  /** @type {Array<{post: Post, el: HTMLElement, centerX: number, centerY: number}>} */
+  const placements = [];
+  for (const post of list) {
+    const el = surface.querySelector(`[data-post-id="${CSS.escape(post.id)}"]`);
+    if (!(el instanceof HTMLElement)) continue;
+
+    let col = 0;
+    for (let i = 1; i < cols; i++) {
+      if (columnBottoms[i] < columnBottoms[col]) col = i;
+    }
+
+    const noteH = el.offsetHeight || TIDY_FALLBACK_H;
+    const top = columnBottoms[col];
+    columnBottoms[col] = top + noteH + TIDY_GAP;
+    placements.push({
+      post,
+      el,
+      centerX: startX + col * cellW + noteW / 2,
+      centerY: top + noteH / 2
+    });
+  }
+
+  const height = Math.max(els.board?.clientHeight || 0, ...columnBottoms);
+  surface.style.height = `${Math.round(height)}px`;
+  surface.style.minHeight = `${Math.round(height)}px`;
+
+  tidySlots = new Map(
+    placements.map(({ post, centerX, centerY }) => [
+      post.id,
+      { x: centerX / width, y: centerY / height }
+    ])
+  );
+  for (const { el, post } of placements) applyNotePosition(el, post);
+}
+
+/**
+ * Where a note is drawn right now — its grid slot in tidy mode, otherwise the
+ * coordinates everyone else sees.
+ * @param {Post} post
+ */
+function displayPosition(post) {
+  return tidySlots.get(post.id) || positionFor(post.id, post);
 }
 
 function centerCameraOnWorld(wx, wy, { zoom = camera.zoom } = {}) {
@@ -401,12 +528,14 @@ function centerCameraOnWorld(wx, wy, { zoom = camera.zoom } = {}) {
 }
 
 function resetCamera({ announce = false } = {}) {
-  sizeBoardSurface();
+  // In tidy mode the packed height is authoritative; re-sizing here would squash it.
+  if (layoutMode !== 'tidy') sizeBoardSurface();
   const surface = getBoardSurface();
   if (!els.board || !surface) return;
   camera.zoom = 1;
   camera.x = (els.board.clientWidth - surface.offsetWidth) / 2;
-  camera.y = (els.board.clientHeight - surface.offsetHeight) / 2;
+  // Tidy mode reads top-down, so start at the newest row instead of the middle.
+  camera.y = layoutMode === 'tidy' ? 0 : (els.board.clientHeight - surface.offsetHeight) / 2;
   applyCamera();
   cameraReady = true;
   if (announce) setStatus('View reset');
@@ -1143,9 +1272,11 @@ function attachmentSignature(post) {
 /** @param {Post} post */
 function noteSignature(post) {
   if (post.draft) {
-    return `d|${post.pinning ? 1 : 0}|${attachmentSignature(post)}`;
+    return `${layoutMode}|d|${post.pinning ? 1 : 0}|${attachmentSignature(post)}`;
   }
-  return `p|${post.pending ? 1 : 0}|${post.email}|${post.text}|${attachmentSignature(post)}`;
+  return `${layoutMode}|p|${post.pending ? 1 : 0}|${post.email}|${post.text}|${attachmentSignature(
+    post
+  )}`;
 }
 
 function getBoardSurface() {
@@ -1165,6 +1296,7 @@ function renderBoard() {
   if (!surface) return;
 
   const { board, archive, newestPublished } = partitionPosts();
+  if (layoutMode !== 'tidy') tidySlots = new Map();
   sizeBoardSurface();
   if (!cameraReady) resetCamera();
   else applyCamera();
@@ -1194,6 +1326,8 @@ function renderBoard() {
     else surface.append(next);
   }
 
+  if (layoutMode === 'tidy') packTidyGrid(board, surface);
+
   renderArchiveList(archive);
   updateChromeActions(archive.length, newestPublished);
 }
@@ -1208,15 +1342,20 @@ function renderArchiveList(archive) {
     return;
   }
   els.archiveList.replaceChildren();
-  if (!archive.length) {
+  const matches = archiveQuery
+    ? archive.filter((post) => `${post.text} ${post.email}`.toLowerCase().includes(archiveQuery))
+    : archive;
+
+  if (!matches.length) {
     const empty = document.createElement('p');
     empty.className = 'archive-empty';
-    empty.textContent = 'No older notes yet — the board still fits everyone.';
+    if (archiveQuery) empty.textContent = `Nothing older matches “${archiveQuery}”.`;
+    else empty.textContent = 'No older notes yet — the board still fits everyone.';
     els.archiveList.append(empty);
     return;
   }
 
-  for (const post of archive) {
+  for (const post of matches) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'archive-item';
@@ -1284,6 +1423,14 @@ function updateChromeActions(archiveCount, newestPublished) {
   if (els.jumpNewest) {
     els.jumpNewest.hidden = !newestPublished;
   }
+  if (els.tidyBtn) {
+    const tidy = layoutMode === 'tidy';
+    els.tidyBtn.textContent = tidy ? 'Scatter' : 'Tidy';
+    els.tidyBtn.setAttribute('aria-pressed', tidy ? 'true' : 'false');
+    els.tidyBtn.title = tidy
+      ? 'Scatter the notes back across the cork'
+      : 'Stack every note in a neat grid, newest first';
+  }
 }
 
 function setupArchiveUi() {
@@ -1293,6 +1440,10 @@ function setupArchiveUi() {
   });
   els.archiveClose?.addEventListener('click', () => closeArchive());
   els.archiveBackdrop?.addEventListener('click', () => closeArchive());
+  els.archiveSearch?.addEventListener('input', () => {
+    archiveQuery = (els.archiveSearch?.value || '').trim().toLowerCase();
+    renderArchiveList(partitionPosts().archive);
+  });
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && archiveOpen) closeArchive();
   });
@@ -1310,9 +1461,11 @@ function openArchive() {
 
 function closeArchive() {
   archiveOpen = false;
+  archiveQuery = '';
   if (els.archivePanel) els.archivePanel.hidden = true;
   if (els.archiveBackdrop) els.archiveBackdrop.hidden = true;
   if (els.archiveBtn) els.archiveBtn.setAttribute('aria-expanded', 'false');
+  if (els.archiveSearch) els.archiveSearch.value = '';
   if (els.archiveList) els.archiveList.replaceChildren();
 }
 
@@ -1363,7 +1516,7 @@ function focusBoardPost(id) {
     closeArchive();
     const post = livePost(id);
     if (post) {
-      const position = positionFor(post.id, post);
+      const position = displayPosition(post);
       panCameraToNormalized(position.x, position.y);
     }
     flashElement(onBoard);
@@ -1404,18 +1557,18 @@ function flashElement(el) {
 }
 
 function styleNote(article, post) {
-  const position = positionFor(post.id, post);
-  const angle = (parseInt(hashStr(`${post.id}:angle`), 36) % 7) - 3;
+  const position = displayPosition(post);
+  const angle = layoutMode === 'tidy' ? 0 : (parseInt(hashStr(`${post.id}:angle`), 36) % 7) - 3;
   const colorIndex = parseInt(hashStr(`${post.id}:color`), 36) % NOTE_COLORS.length;
   article.dataset.postId = post.id;
   article.tabIndex = 0;
+  const kind = post.draft ? 'Draft note' : 'Pinned note';
   article.setAttribute(
     'aria-label',
-    post.draft
-      ? 'Draft note. Use the arrow keys to move it.'
-      : 'Pinned note. Use the arrow keys to move it.'
+    layoutMode === 'tidy' ? `${kind}.` : `${kind}. Use the arrow keys to move it.`
   );
-  article.setAttribute('aria-keyshortcuts', 'ArrowUp ArrowDown ArrowLeft ArrowRight');
+  if (layoutMode === 'tidy') article.removeAttribute('aria-keyshortcuts');
+  else article.setAttribute('aria-keyshortcuts', 'ArrowUp ArrowDown ArrowLeft ArrowRight');
   article.style.left = `${position.x * 100}%`;
   article.style.top = `${position.y * 100}%`;
   article.style.setProperty('--tx', `${position.x * -100}%`);
@@ -1427,7 +1580,7 @@ function styleNote(article, post) {
 }
 
 function applyNotePosition(article, post) {
-  const position = positionFor(post.id, post);
+  const position = displayPosition(post);
   article.style.left = `${position.x * 100}%`;
   article.style.top = `${position.y * 100}%`;
   article.style.setProperty('--tx', `${position.x * -100}%`);
@@ -1439,7 +1592,7 @@ function attachNoteDragging(article) {
 
   article.addEventListener('pointerdown', (event) => {
     const post = livePost(article.dataset.postId || '');
-    if (!post || post.pinning) return;
+    if (!post || post.pinning || layoutMode === 'tidy') return;
     if (event.button !== 0 || isInteractiveDragTarget(event.target)) return;
     const surface = article.parentElement;
     if (!surface) return;
@@ -1518,6 +1671,11 @@ function attachNoteKeyboardMovement(article) {
     if (!post || post.pinning) return;
     if (event.target !== article || !(event.key in deltas)) return;
     event.preventDefault();
+
+    if (layoutMode === 'tidy') {
+      setStatus('The grid holds every note in place — switch off Tidy to rearrange');
+      return;
+    }
 
     const delta = deltas[event.key];
     const step = event.shiftKey ? 0.05 : 0.015;

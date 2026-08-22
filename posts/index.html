@@ -110,6 +110,15 @@
       <div class="board-chrome-actions">
         <button
           type="button"
+          id="tidy-btn"
+          class="btn ghost sm"
+          aria-pressed="false"
+          title="Stack every note in a neat grid, newest first"
+        >
+          Tidy
+        </button>
+        <button
+          type="button"
           id="archive-btn"
           class="btn ghost sm"
           hidden
@@ -155,6 +164,14 @@
       <p class="archive-panel-hint">
         The board keeps the newest notes pinned. Everything older lives here.
       </p>
+      <input
+        id="archive-search"
+        class="archive-search"
+        type="search"
+        placeholder="Search older notes"
+        aria-label="Search older notes"
+        autocomplete="off"
+      />
       <div id="archive-list" class="archive-list" role="list"></div>
     </aside>
     <div id="archive-backdrop" class="archive-backdrop" hidden></div>
