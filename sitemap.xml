@@ -463,6 +463,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://joeheyming.github.io/trivia/</loc>
+    <lastmod>2026-08-21T00:00:00+00:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://joeheyming.github.io/triplog/</loc>
     <lastmod>2026-05-22T00:00:00+00:00</lastmod>
     <changefreq>monthly</changefreq>

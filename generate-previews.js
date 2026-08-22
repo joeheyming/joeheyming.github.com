@@ -1023,6 +1023,11 @@ const PAGES = [
     }
   },
   {
+    url: `${BASE_URL}/trivia/`,
+    output: 'trivia/trivia-preview.png',
+    title: 'Trivia'
+  },
+  {
     url: `${BASE_URL}/triplog/`,
     output: 'triplog/triplog-preview.png',
     title: 'Trip Log',

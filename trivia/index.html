@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trivia — Global 30-Minute Rounds 🎯</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>"
+    />
+
+    <meta
+      name="description"
+      content="Answer the same three trivia questions as everyone else on the site. Opinion, estimate, and fact rounds refresh every 30 minutes."
+    />
+    <meta name="theme-color" content="#fafafa" />
+    <meta name="author" content="Joe Heyming" />
+    <meta name="robots" content="index, follow" />
+    <meta
+      name="keywords"
+      content="trivia, quiz, multiplayer, google forms, would you rather, estimate game, global quiz"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Joe Heyming" />
+    <meta property="og:title" content="Trivia — Global 30-Minute Rounds 🎯" />
+    <meta
+      property="og:description"
+      content="Same three questions for everyone. Vote, estimate, and check the worldwide tallies every half hour."
+    />
+    <meta property="og:url" content="https://joeheyming.github.io/trivia/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://joeheyming.github.io/trivia/trivia-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@joeheyming" />
+    <meta name="twitter:creator" content="@joeheyming" />
+    <meta name="twitter:title" content="Trivia — Global 30-Minute Rounds 🎯" />
+    <meta
+      name="twitter:description"
+      content="Same three questions for everyone. Vote, estimate, and check the worldwide tallies every half hour."
+    />
+    <meta name="twitter:image" content="https://joeheyming.github.io/trivia/trivia-preview.png" />
+
+    <link rel="canonical" href="https://joeheyming.github.io/trivia/" />
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;600&display=optional"
+    />
+    <link rel="stylesheet" href="/brand.css" />
+    <link rel="stylesheet" href="index.css" />
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62Q3E20Y0"></script>
+    <script src="/analytics.js"></script>
+    <script src="/achievements.js"></script>
+    <script src="/nav.js" data-nav-size="compact"></script>
+    <script src="/feedback.js"></script>
+    <script src="/share.js"></script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Trivia",
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Web Browser",
+            "description": "Global simultaneous trivia rounds that refresh every 30 minutes.",
+            "url": "https://joeheyming.github.io/trivia/",
+            "author": {
+              "@type": "Person",
+              "name": "Joe Heyming",
+              "url": "https://joeheyming.github.io/"
+            },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "featureList": [
+              "Shared 30-minute rounds",
+              "Opinion, estimate, and fact modes",
+              "Live worldwide tallies"
+            ],
+            "keywords": "trivia, quiz, multiplayer"
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://joeheyming.github.io/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Trivia",
+                "item": "https://joeheyming.github.io/trivia/"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <div class="app">
+      <header class="hero">
+        <p class="eyebrow">Live worldwide</p>
+        <h1>Trivia</h1>
+        <p class="tagline">Three questions. Same set for everyone. New round every 30 minutes.</p>
+        <div id="round-bar" class="round-bar" aria-live="polite" hidden>
+          <span id="round-status" class="pill">Loading…</span>
+          <span id="round-timer" class="timer"></span>
+        </div>
+      </header>
+
+      <div id="banner" class="banner" hidden></div>
+
+      <main id="stage" class="stage" aria-busy="true"></main>
+    </div>
+
+    <feedback-button></feedback-button>
+
+    <script src="config.js"></script>
+    <script type="module" src="index.js"></script>
+  </body>
+</html>
