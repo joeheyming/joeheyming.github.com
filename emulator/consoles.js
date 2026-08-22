@@ -249,7 +249,7 @@
         'Tap a game to play, or load your own .gba file.'
       ],
       romHelp:
-        'This is GBA, not Game Boy. Carts are small and usually play in the browser. For GB/GBC use /emulator/gb/.',
+        'This is GBA, not Game Boy. Carts are small and usually play in the browser. For GB/GBC use the Game Boy page.',
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
         { label: 'A button', key: 'Z' },
@@ -350,12 +350,12 @@
       iaBinaryTimeout: 180000,
       iaAllowExternalDownload: true,
       howto: [
-        'Tap a game, then Play now.',
-        'Or tap Download locally, wait for the file, then load the saved ROM.',
+        'Tap a game, then Play in browser.',
+        'If it hangs, tap Download instead, wait for the file, then Load saved ROM.',
         'A gamepad helps. Keyboard still works for menus.'
       ],
       romHelp:
-        'These games are big (often 8–64 MB). If Play now times out, use Download locally and load the saved ROM.',
+        'These games are big (often 8–64 MB). If Play in browser times out, use Download instead, then Load saved ROM.',
       controls: [
         { label: 'Analog stick', key: 'Arrow keys' },
         { label: 'A / B', key: 'X / Z' },
@@ -401,15 +401,15 @@
       biosIaBaseUrl: 'https://archive.org/download/PlayStationBios/PlayStation%20Bios.zip',
       biosIaFileName: 'SCPH-7001.bin',
       biosHelp:
-        'US BIOS auto-loads once from Internet Archive, then stays in this browser (IndexedDB). EU/JP: load scph5502.bin / scph5500.bin manually.',
+        'US BIOS auto-loads once, then stays in this browser. EU/JP: load scph5502.bin / scph5500.bin manually.',
       howto: [
         'Wait for BIOS “ready”.',
         'Browse Collection → Play in browser, or Download instead then Load local disc.',
-        'Use Save (F5) / Load (F9) on the bar — that is the emulator snapshot, not the in-game memory card menu.',
+        'Use Save (F5) / Load (F9) on the bar — that is a quick save, not the in-game memory card menu.',
         'Gamepad recommended.'
       ],
       romHelp:
-        'PS1 discs are large. If Play in browser times out, Download instead, then Load local disc. F5 saves a snapshot; F9 loads it. That is not the in-game memory card menu.',
+        'PS1 discs are large. If Play in browser times out, Download instead, then Load local disc. F5 quick-saves; F9 loads it. That is not the in-game memory card menu.',
       showSaveStates: true,
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },

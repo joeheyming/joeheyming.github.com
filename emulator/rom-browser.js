@@ -517,7 +517,7 @@ class RomBrowserElement extends HTMLElement {
     const contentArea = this.shadowRoot.getElementById('contentArea');
     contentArea.innerHTML =
       '<div class="loading">Loading ROM collection…' +
-      '<div class="loading-hint">Fetching via CORS proxies — retries automatically if one is flaky.</div></div>';
+      '<div class="loading-hint">This can take a minute on slow connections.</div></div>';
 
     try {
       const ia = this.iaClient;
@@ -530,7 +530,7 @@ class RomBrowserElement extends HTMLElement {
 
       if (this.allRoms.length === 0) {
         contentArea.innerHTML =
-          '<div class="error">No ROMs found. Please check your connection and try again.' +
+          '<div class="error">No ROMs found. Check your connection and try again.' +
           '<div class="error-actions"><button type="button" class="primary" data-action="retry-list">Retry</button></div></div>';
         contentArea.querySelector('[data-action="retry-list"]')?.addEventListener('click', () => {
           ia.clearListCache();
@@ -543,12 +543,9 @@ class RomBrowserElement extends HTMLElement {
       this.renderRoms(this.filteredRoms);
     } catch (error) {
       console.error('Error loading ROMs:', error);
-      const detail = (error && error.message) || 'Unknown error';
       contentArea.innerHTML =
-        '<div class="error">Failed to load ROMs from Internet Archive.' +
-        `<div class="error-detail">${this._escapeHtml(
-          detail
-        )} Proxies can be flaky — retry often works.</div>` +
+        '<div class="error">Could not load the game list.' +
+        '<div class="error-detail">Try again in a moment.</div>' +
         '<div class="error-actions"><button type="button" class="primary" data-action="retry-list">Retry</button></div></div>';
       contentArea.querySelector('[data-action="retry-list"]')?.addEventListener('click', () => {
         if (this.iaClient) this.iaClient.clearListCache();
@@ -657,7 +654,7 @@ class RomBrowserElement extends HTMLElement {
       if (contentArea) {
         contentArea.innerHTML =
           `<div class="loading">Loading ${this._escapeHtml(rom.title)}…` +
-          '<div class="loading-hint">Large zips can take a minute while proxies rotate.</div>' +
+          '<div class="loading-hint">Large games can take a minute.</div>' +
           '<div class="error-actions"><button type="button" data-action="cancel-rom">Cancel — back to game list</button></div></div>';
         contentArea.querySelector('[data-action="cancel-rom"]')?.addEventListener('click', () => {
           controller.abort();
@@ -695,7 +692,6 @@ class RomBrowserElement extends HTMLElement {
     } catch (error) {
       if (controller.signal.aborted || (error && error.name === 'AbortError')) return;
       console.error('Error loading ROM:', error);
-      const detail = (error && error.message) || 'Unknown error';
       const canDownload = !!(cfg && cfg.iaBaseUrl && rom.downloadUrl);
       const downloadAction = canDownload
         ? `<a class="primary" href="${this._escapeHtml(
@@ -705,10 +701,10 @@ class RomBrowserElement extends HTMLElement {
         : '';
       if (contentArea) {
         contentArea.innerHTML =
-          `<div class="error">Failed to load ${this._escapeHtml(rom.title)}.` +
-          `<div class="error-detail">${this._escapeHtml(detail)}</div>` +
+          `<div class="error">Could not load ${this._escapeHtml(rom.title)}.` +
+          '<div class="error-detail">Try again, or download the file and load it from your device.</div>' +
           '<div class="error-actions">' +
-          '<button type="button" class="primary" data-action="retry-rom">Retry download</button>' +
+          '<button type="button" class="primary" data-action="retry-rom">Try again</button>' +
           downloadAction +
           '<button type="button" data-action="back-list">Back to list</button>' +
           '</div></div>';
@@ -723,7 +719,7 @@ class RomBrowserElement extends HTMLElement {
           document.getElementById('romFileInput')?.click();
         });
       } else {
-        alert('Failed to load ROM: ' + detail);
+        alert('Could not load this game. Try again or load a saved file.');
       }
     } finally {
       if (this._romLoadController === controller) this._romLoadController = null;

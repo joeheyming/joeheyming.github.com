@@ -133,7 +133,7 @@
                 "name": "Do save states work?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Yes — quick-save (F5) and quick-load (F9) on desktop, or via the on-screen menu on mobile. Save states are stored in the browser's IndexedDB and persist across sessions. SRAM/battery-backed saves also persist."
+                  "text": "Yes — quick-save (F5) and quick-load (F9) on desktop, or via the on-screen menu on mobile. They stay saved in this browser between visits."
                 }
               },
               {
@@ -141,7 +141,7 @@
                 "name": "Does my gamepad work?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Any USB or Bluetooth gamepad recognised by the browser's Gamepad API works. Xbox, PlayStation, and 8BitDo controllers are tested; any HID-compliant pad should map automatically. A gamepad is especially recommended for N64 and PS1. The PS5 system web view does not expose the Gamepad API; its D-pad can navigate the page, but it cannot provide in-emulator controller input."
+                  "text": "Most USB and Bluetooth controllers work — Xbox, PlayStation, and 8BitDo pads are tested. A gamepad is especially helpful for N64 and PS1. The PS5 hidden browser can move around the page with the D-pad, but it cannot drive in-game controls."
                 }
               },
               {
@@ -149,7 +149,7 @@
                 "name": "Can I play on a TV, Xbox, or PlayStation browser?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "It depends on the engine. EmulatorJS can run these cores single-threaded where WebAssembly is available but SharedArrayBuffer is not, although demanding systems may be slower. The PS5 system web view is a different case: it exposes no WebAssembly at all, so no console can run there, and the page says so rather than hanging. Where emulation does work, use the on-screen ROM collection — there may be no local file picker on TV devices — and a controller or remote D-pad to navigate. Preview the lean-back layout on desktop with ?tv=1. Deep-link a title with /emulator/nes/?rom=GameName."
+                  "text": "On most laptops and phones, yes. School Chromebooks and TV browsers vary — some run everything, some struggle with bigger discs, and the PS5 hidden browser cannot run these emulators at all. Where it works, use the on-screen game list; there may be no way to pick a file from disk on a TV. Preview the lean-back layout on desktop with ?tv=1."
                 }
               },
               {
@@ -157,7 +157,7 @@
                 "name": "Why does Neo Geo say romsets is missing files?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Neo Geo needs FBNeo-matching ZIPs plus neogeo.zip BIOS. Use Browse Collection (Internet Archive). Random ROM-site dumps often fail."
+                  "text": "Neo Geo needs matching arcade zips from the built-in collection. Random ROM-site dumps often fail."
                 }
               },
               {
@@ -165,7 +165,7 @@
                 "name": "What do I need for PlayStation / PS1?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "A US BIOS auto-loads once from Internet Archive. Browse the disc collection to find a CHD, then choose Play now or Download locally and load the saved file manually. PS1 images are large, so direct play is best-effort. You can also load a local .chd / .pbp / .iso directly."
+                  "text": "A US BIOS auto-loads once. Browse the disc collection, then Play in browser or Download instead and load the saved file. PS1 discs are large, so direct play may time out on slow connections. You can also load a local .chd / .pbp / .iso."
                 }
               },
               {

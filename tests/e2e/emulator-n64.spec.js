@@ -122,7 +122,7 @@ test.describe('N64 emulator suite', () => {
     await openMockCollection(page);
 
     await page.getByRole('button', { name: 'Play in browser' }).click();
-    await page.getByRole('button', { name: 'Cancel loading / Game list' }).click();
+    await page.getByRole('button', { name: 'Back to game list' }).click();
 
     await expect(page.getByRole('button', { name: 'Browse N64 ROM Collection' })).toBeVisible();
     await expect(page.locator('#game-container')).not.toHaveClass(/visible/);

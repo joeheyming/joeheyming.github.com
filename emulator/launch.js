@@ -645,8 +645,8 @@
     const gamepadHint =
       tv || cfg.id === 'ps1' || cfg.id === 'n64' || cfg.id === 'segacd'
         ? hasGamepadApi()
-          ? `<p class="controls-gamepad-hint">Gamepad recommended — works via the browser Gamepad API.</p>`
-          : `<p class="controls-gamepad-hint">Use D-pad or keyboard controls; this browser does not expose the Gamepad API.</p>`
+          ? `<p class="controls-gamepad-hint">A gamepad works best if you have one plugged in.</p>`
+          : `<p class="controls-gamepad-hint">Use the keyboard or on-screen controls; this browser does not support gamepads.</p>`
         : '';
 
     const isDisc = !!cfg.iaExternalDownload;
@@ -753,7 +753,7 @@
       document.body.appendChild(bar);
     }
     const bits = [
-      '<button type="button" class="emu-chrome-btn" id="emu-game-list-btn">Cancel loading / Game list</button>'
+      '<button type="button" class="emu-chrome-btn" id="emu-game-list-btn">Back to game list</button>'
     ];
     if (cfg.audioUnlock || cfg.audioNote) {
       bits.push(
@@ -768,7 +768,7 @@
         '<button type="button" class="emu-chrome-btn" id="emu-load-btn">Load (F9)</button>'
       );
       bits.push(
-        '<span class="emu-chrome-note">Emulator snapshot — not the in-game memory card menu.</span>'
+        '<span class="emu-chrome-note">Quick save — not the in-game memory card menu.</span>'
       );
     }
     bar.innerHTML = bits.join('');

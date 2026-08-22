@@ -1,6 +1,4 @@
-// Dismissible "How to play" card. Players who already know WASD should
-// not have it covering the canvas every session, so the choice persists
-// in localStorage; the "Controls" chip brings it back.
+// Dismissible controls card; choice persists in localStorage.
 
 (function () {
   var STORAGE_KEY = 'doom:play-help-hidden';
