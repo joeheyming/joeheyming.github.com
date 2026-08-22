@@ -568,10 +568,13 @@ player.onChapterChange = (index) => {
   saveCurrentProgress();
 };
 
+// Only fires when the final chapter ends — the player advances itself
+// through every earlier chapter without emitting this.
 player.onEnded = () => {
   if (!currentBook) return;
   clearProgress(currentBook.id);
   showToast('Audiobook finished!', 'success');
+  window.heymingAchievements?.unlockForCurrentApp('book-finished');
 };
 
 // Save progress on pause

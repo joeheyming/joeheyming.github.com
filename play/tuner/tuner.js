@@ -39,6 +39,7 @@ import {
 const Prefs = makePrefs('play.tuner.prefs.v2');
 
 const IN_TUNE_CENTS = 5;
+const IN_TUNE_HOLD_MS = 1200; // sustained inside IN_TUNE_CENTS before it counts
 const NEEDLE_RANGE_CENTS = 100; // dial spans ±100 ¢
 const SMOOTHING_FRAMES = 5;
 const STALE_DETECTION_MS = 250;
@@ -194,6 +195,12 @@ let rafId = null;
 let listening = false;
 let lastDetectionAt = 0;
 let lastRenderedMidi = null;
+// Tracked as a timestamp rather than a timeout: the render loop already
+// ticks every frame, and a pitch that drifts out of tolerance has to
+// restart the hold from zero.
+let inTuneSince = 0;
+let inTuneAwarded = false;
+let detectionAwarded = false;
 const recentFreqs = [];
 
 function median(values) {
@@ -341,6 +348,7 @@ function stopListening() {
   nowPlayingEl.classList.remove('active');
   recentFreqs.length = 0;
   lastRenderedMidi = null;
+  inTuneSince = 0;
   renderInitialCarousel();
   renderTargetText(null);
   micBtn.disabled = false;
@@ -364,6 +372,7 @@ function loop() {
 }
 
 function renderListeningIdle() {
+  inTuneSince = 0;
   centsEl.textContent = '— ¢';
   freqEl.textContent = 'Play a single sustained note';
   armEl.style.setProperty('--needle', '0');
@@ -386,6 +395,13 @@ function renderDetection(freq) {
   const info = freqToNoteInfo(freq, { a4: a4Ref, temperament, targetMidi });
   if (!info) return;
 
+  // Tuning by ear off the reference tone is optional, so a mic-only session
+  // has to be able to earn level 1 or the in-tune unlock stays gated.
+  if (!detectionAwarded) {
+    detectionAwarded = true;
+    window.heymingAchievements?.unlockForCurrentApp('first-action');
+  }
+
   // Carousel: AUTO tracks detected note; LOCKED stays pinned to target.
   const carouselMidi = lockedMidi != null ? lockedMidi : info.midi;
   if (carouselMidi !== lastRenderedMidi) {
@@ -406,7 +422,14 @@ function renderDetection(freq) {
     cardEl.dataset.state = 'in-tune';
     statusPillEl.dataset.status = 'in-tune';
     statusPillEl.textContent = 'In tune';
+    const now = performance.now();
+    if (!inTuneSince) inTuneSince = now;
+    if (!inTuneAwarded && now - inTuneSince >= IN_TUNE_HOLD_MS) {
+      inTuneAwarded = true;
+      window.heymingAchievements?.unlockForCurrentApp('in-tune');
+    }
   } else {
+    inTuneSince = 0;
     cardEl.dataset.state = 'listening';
     if (cents < 0) {
       statusPillEl.dataset.status = 'flat';

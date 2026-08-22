@@ -766,6 +766,7 @@ postBtn.addEventListener('click', async () => {
       text: '🥁 Drum loop\n\nMade with [Drums](/play/drums/)',
       attachments: [audio]
     });
+    window.heymingAchievements?.unlockForCurrentApp('loop-posted');
   } catch (error) {
     console.warn('Posting drum loop failed', error);
     postBusy = false;

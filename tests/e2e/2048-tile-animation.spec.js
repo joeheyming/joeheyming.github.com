@@ -102,4 +102,49 @@ test.describe('2048 tile motion', () => {
     expect(paint.background).not.toBe('rgba(0, 0, 0, 0)');
     expect(paint.coversCell).toBe(true);
   });
+
+  test('merging a 4096 tile awards the level-two achievement', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        'g2048.state.v1',
+        JSON.stringify({
+          grid: [
+            [
+              { id: 1, value: 2048, row: 0, col: 0 },
+              { id: 2, value: 2048, row: 0, col: 1 },
+              null,
+              null
+            ],
+            [null, null, null, null],
+            [null, null, null, null],
+            [null, null, null, null]
+          ],
+          score: 0,
+          won: true,
+          continueAfterWin: true,
+          nextTileId: 3
+        })
+      );
+      localStorage.setItem(
+        'heyming.achievements.v1',
+        JSON.stringify({
+          version: 1,
+          unlocked: {
+            '2048:first-action': { unlockedAt: new Date().toISOString() }
+          }
+        })
+      );
+    });
+    await page.goto('/2048/');
+
+    await page.keyboard.press('ArrowLeft');
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const saved = JSON.parse(localStorage.getItem('heyming.achievements.v1') || '{}');
+          return Boolean(saved.unlocked?.['2048:4096']);
+        })
+      )
+      .toBe(true);
+  });
 });

@@ -289,6 +289,12 @@ h1 {
   filter: drop-shadow(0 0 4px rgb(125 209 74 / 45%));
 }
 
+.connector.is-available {
+  stroke: #d3bd55;
+  stroke-dasharray: 8 6;
+  filter: drop-shadow(0 0 3px rgb(255 216 90 / 35%));
+}
+
 .tree-nodes {
   z-index: 2;
 }
@@ -335,6 +341,22 @@ h1 {
   background: #47772e;
   content: '✓';
   color: white;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.achievement-node.is-available {
+  border-color: #d3bd55;
+  background: linear-gradient(135deg, rgb(255 255 255 / 14%), transparent 45%), #554d28;
+  box-shadow: inset -5px -5px #332d16, inset 4px 4px #756a36, 0 0 10px rgb(255 216 90 / 18%),
+    5px 5px #080b07;
+}
+
+.achievement-node.is-available::after {
+  border-color: #d3bd55;
+  color: #211d0d;
+  background: #e6cd61;
+  content: '!';
   font-size: 13px;
   font-weight: 900;
 }
@@ -391,6 +413,11 @@ h1 {
   background: #416d2e;
 }
 
+.hover-card-state.is-available {
+  color: #fff5bd;
+  background: #665a27;
+}
+
 .hover-card-state.is-locked {
   color: #d1d1c7;
   background: #3b4239;
@@ -431,6 +458,15 @@ h1 {
   margin-bottom: 3px;
   color: #9dcc7c;
   font-size: 0.65rem;
+}
+
+.achievement-hover-card .hover-card-requirement {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 2px solid #465044;
+  color: #e5cf6b;
+  font-size: 0.72rem;
+  font-weight: 800;
 }
 
 @media (max-width: 850px) {

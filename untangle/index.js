@@ -324,6 +324,9 @@ function checkWin() {
   elWin.hidden = false;
   btnNext.disabled = false;
   window.heymingAchievements?.unlockForCurrentApp('first-action');
+  if (grade === 'A' && state.level >= 3) {
+    window.heymingAchievements?.unlockForCurrentApp('a-rank');
+  }
   if (typeof window.trackEvent === 'function') {
     window.trackEvent(
       'untangle_level_clear',

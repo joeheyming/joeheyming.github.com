@@ -966,6 +966,9 @@ function initStepmaniaDomAndLoop() {
   });
 
   audioManager.onEnded(() => {
+    if (!gameState.hasFailed() && !gameState.isAutoplay()) {
+      window.heymingAchievements?.unlockForCurrentApp('chart-cleared');
+    }
     GameOverModal.show({
       failed: gameState.hasFailed(),
       onRestart: function () {

@@ -443,6 +443,15 @@ function move(dir) {
       if (!t) continue;
       createTileEl(t, { merged: true });
     }
+    // A 4096 tile can only be born from a merge, so scanning this move's
+    // merged tiles is enough — no need to walk the whole board.
+    for (const id of mergedTileIds) {
+      const t = newTilesById.get(id);
+      if (t && t.value >= 4096) {
+        window.heymingAchievements?.unlockForCurrentApp('4096');
+        break;
+      }
+    }
     // Spawn a new tile and re-evaluate.
     spawnTile();
     updateScore();

@@ -404,6 +404,7 @@ export function createRecorder(deps) {
         )}`,
         { kind: 'success' }
       );
+      window.heymingAchievements?.unlockForCurrentApp('trip-saved');
     } catch (err) {
       console.error('[triplog] saveTrip', err);
       setStatus(dom.statusEl, err instanceof Error ? err.message : String(err), true);

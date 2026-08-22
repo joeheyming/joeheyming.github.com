@@ -88,6 +88,7 @@ export function downloadPNG(filename, state, w, h) {
   link.download = filename;
   link.href = flat.toDataURL('image/png');
   link.click();
+  window.heymingAchievements?.unlockForCurrentApp('canvas-exported');
 }
 
 /** Flatten layers to a PNG Blob (same path as downloadPNG). */

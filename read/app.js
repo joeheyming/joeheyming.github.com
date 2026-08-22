@@ -387,6 +387,9 @@ async function openBook(book) {
     if (readingProgress) readingProgress.style.width = `${pct}%`;
     if (readerProgressPct)
       readerProgressPct.textContent = total > 0 ? `${page + 1} / ${total}` : '';
+    if (total > 1 && page === total - 1) {
+      window.heymingAchievements?.unlockForCurrentApp('last-page');
+    }
   };
 
   try {

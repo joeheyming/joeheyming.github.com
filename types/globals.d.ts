@@ -131,6 +131,8 @@ interface AchievementDefinition {
   parentId: string | null;
   x: number;
   y: number;
+  tier?: 1 | 2;
+  requiresId?: string | null;
 }
 
 interface HeymingAchievements {

@@ -606,6 +606,7 @@ export async function mount(slot, ctx) {
   // visit starts fresh. The end-card controller handles autoplay-next
   // separately; this only owns the storage write.
   video.addEventListener('ended', () => {
+    window.heymingAchievements?.unlockForCurrentApp('credits-rolled');
     if (current) clearResumePosition(show.id, current.season, current.episode);
   });
   // Any keypress outside the overlay dismisses it. Inside the

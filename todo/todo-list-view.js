@@ -137,6 +137,9 @@ export function createTodoListView(opts) {
           try {
             setStatus(statusEl, next ? 'Marking done…' : 'Marking active…');
             await state.client.setTodoDone(todo.id, next);
+            if (next) {
+              window.heymingAchievements?.unlockForCurrentApp('task-completed');
+            }
             setStatus(statusEl, '');
             await refreshTodos();
           } catch (e) {

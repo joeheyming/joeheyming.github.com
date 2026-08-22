@@ -287,11 +287,18 @@
     state.currentGuess = '';
     updateLetterStates(guess, graded);
 
+    if (window.heymingAchievements) {
+      window.heymingAchievements.unlockForCurrentApp('first-action');
+    }
+
     var won = graded.every(function (g) {
       return g === 'correct';
     });
     if (won) {
       state.status = 'won';
+      if (window.heymingAchievements) {
+        window.heymingAchievements.unlockForCurrentApp('word-guessed');
+      }
       safeGtag('event', 'wordle_clone_win', {
         event_category: 'play',
         event_label: cloneSourceLabel(),

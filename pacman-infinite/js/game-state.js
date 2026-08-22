@@ -401,6 +401,7 @@ export const gameState = {
     // Final-screen flavour line reflects whatever killed Pacman last.
     this._applyDeathMessage(this._deathCause ?? 'ghost');
     if (this.score > this.highScore) {
+      window.heymingAchievements?.unlockForCurrentApp('personal-best');
       this.highScore = this.score;
     }
     if (this.gameOverScreen) {

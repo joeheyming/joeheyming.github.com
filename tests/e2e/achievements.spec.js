@@ -59,7 +59,7 @@ test('renders the connected catalog and persists an unlocked node', async ({ pag
   await page.goto('/achievements/');
   const nodes = page.locator('[data-achievement-id]');
   await expect(nodes.first()).toBeVisible();
-  expect(await nodes.count()).toBeGreaterThanOrEqual(70);
+  expect(await nodes.count()).toBeGreaterThanOrEqual(93);
 
   await page.evaluate(async () => {
     await window.heymingAchievements?.unlock('2048:first-action');
@@ -202,4 +202,43 @@ test('shows hover cards and dedupes node inspection analytics', async ({ page })
   ).toEqual(['2048:first-action', 'pacman:first-action']);
 
   expect(achievementEvents(await gtagEvents(page), 'achievement_tree_viewed')).toHaveLength(1);
+});
+
+test('gates level 2 until level 1 and shows locked, available, and unlocked states', async ({
+  page
+}) => {
+  await captureGtag(page);
+  await page.goto('/achievements/');
+
+  const levelTwo = page.locator('[data-achievement-id="2048:4096"]');
+  const connector = page.locator('[data-to-id="2048:4096"]');
+  await expect(levelTwo).toBeVisible();
+  await levelTwo.hover();
+  await expect(page.locator('#hover-card-state')).toHaveText('Level 1 required');
+  await expect(page.locator('#hover-card-requirement')).toContainText('2048 Reached');
+
+  const blockedResults = await page.evaluate(async () => [
+    await window.heymingAchievements?.unlock('2048:4096'),
+    await window.heymingAchievements?.unlock('2048:4096')
+  ]);
+  expect(blockedResults).toEqual([false, false]);
+  await expect(levelTwo).not.toHaveClass(/is-unlocked|is-available/);
+  expect(achievementEvents(await gtagEvents(page), 'achievement_unlock_blocked')).toHaveLength(1);
+
+  await page.evaluate(async () => {
+    await window.heymingAchievements?.unlock('2048:first-action');
+  });
+  await expect(levelTwo).toHaveClass(/is-available/);
+  await expect(connector).toHaveClass(/is-available/);
+  await expect(page.locator('#hover-card-state')).toHaveText('Challenge available');
+
+  await page.evaluate(async () => {
+    await window.heymingAchievements?.unlock('2048:4096');
+  });
+  await expect(levelTwo).toHaveClass(/is-unlocked/);
+  await expect(connector).toHaveClass(/is-unlocked/);
+  await expect(page.locator('#hover-card-state')).toHaveText('Achievement unlocked');
+
+  await page.reload();
+  await expect(page.locator('[data-achievement-id="2048:4096"]')).toHaveClass(/is-unlocked/);
 });

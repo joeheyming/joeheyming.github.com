@@ -8,6 +8,7 @@
   const DESKTOP_QUERY = '(min-width: 769px)';
   const listeners = new Set();
   const toastQueue = [];
+  const blockedAnalyticsIds = new Set();
   let showingToast = false;
   let catalog = [];
   let registry = [];
@@ -315,6 +316,13 @@
     const definition = getDefinition(id);
     if (!definition) {
       console.warn(`[achievements] Unknown achievement: ${id}`);
+      return false;
+    }
+    if (definition.requiresId && !isUnlocked(definition.requiresId)) {
+      if (!blockedAnalyticsIds.has(id)) {
+        blockedAnalyticsIds.add(id);
+        track('achievement_unlock_blocked', id);
+      }
       return false;
     }
 

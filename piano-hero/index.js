@@ -21,6 +21,7 @@ import midiManager from './midi-manager.js';
 import engine from './engine.js';
 import { attachDropTarget, attachFilePicker } from './file-loader.js';
 import { attachPlayAlongInput } from './play-along-input.js';
+import { calculateGrade } from './scoring.js';
 
 // Custom elements — importing for side-effects (customElements.define).
 import './loading-overlay.js';
@@ -166,6 +167,11 @@ engine.on('judgment', () => {
 
 engine.on('gameOver', ({ tapNoteScores, totalNotes, maxCombo, mode }) => {
   if (mode !== 'play-along') return; // No score in Watch mode
+  // A or better is every GRADE_THRESHOLDS letter starting with 'A':
+  // A, AA, AAA, AAAA.
+  if (calculateGrade(tapNoteScores, totalNotes).letter.startsWith('A')) {
+    window.heymingAchievements?.unlockForCurrentApp('a-grade');
+  }
   gameOverModal.setHandlers({
     onRetry: () => engine.restart(),
     onPickAnother: () => songBrowser.open()

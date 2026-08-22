@@ -492,6 +492,7 @@ export class DetailView {
         condition: /** @type {'above'|'below'} */ (cond),
         price
       });
+      window.heymingAchievements?.unlockForCurrentApp('alert-armed');
       this.refresh();
     });
 

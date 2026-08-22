@@ -15,6 +15,7 @@ const hoverCardIcon = document.querySelector('#hover-card-icon');
 const hoverCardApp = document.querySelector('#hover-card-app');
 const hoverCardTitle = document.querySelector('#hover-card-title');
 const hoverCardDescription = document.querySelector('#hover-card-description');
+const hoverCardRequirement = document.querySelector('#hover-card-requirement');
 
 const NODE_SIZE = 64;
 const WORLD_PADDING = 120;
@@ -73,7 +74,7 @@ function resetView() {
   setTransform();
 }
 
-function createConnector(from, to, unlocked) {
+function createConnector(from, to, stateClass = '') {
   const namespace = 'http://www.w3.org/2000/svg';
   const middleY = from.viewY + (to.viewY - from.viewY) / 2;
   const pathData = `M ${from.viewX} ${from.viewY} V ${middleY} H ${to.viewX} V ${to.viewY}`;
@@ -84,7 +85,9 @@ function createConnector(from, to, unlocked) {
 
   const connector = document.createElementNS(namespace, 'path');
   connector.setAttribute('d', pathData);
-  connector.setAttribute('class', `connector${unlocked ? ' is-unlocked' : ''}`);
+  connector.setAttribute('class', `connector${stateClass ? ` ${stateClass}` : ''}`);
+  connector.dataset.fromId = from.id;
+  connector.dataset.toId = to.id;
 
   connectorLayer.append(shadow, connector);
 }
@@ -150,12 +153,36 @@ function positionHoverCard(node) {
 
 function updateHoverCard(achievement) {
   const unlocked = unlockedIds.has(achievement.id);
-  hoverCardState.textContent = unlocked ? 'Achievement unlocked' : 'Achievement locked';
-  hoverCardState.className = `hover-card-state ${unlocked ? 'is-unlocked' : 'is-locked'}`;
+  const prerequisite = achievement.requiresId ? achievementById.get(achievement.requiresId) : null;
+  const prerequisiteMet = !achievement.requiresId || unlockedIds.has(achievement.requiresId);
+  const available = !unlocked && achievement.tier === 2 && prerequisiteMet;
+
+  if (unlocked) {
+    hoverCardState.textContent = 'Achievement unlocked';
+    hoverCardState.className = 'hover-card-state is-unlocked';
+  } else if (available) {
+    hoverCardState.textContent = 'Challenge available';
+    hoverCardState.className = 'hover-card-state is-available';
+  } else if (achievement.requiresId) {
+    hoverCardState.textContent = 'Level 1 required';
+    hoverCardState.className = 'hover-card-state is-locked';
+  } else {
+    hoverCardState.textContent = 'Achievement locked';
+    hoverCardState.className = 'hover-card-state is-locked';
+  }
+
   hoverCardIcon.textContent = achievement.icon;
   hoverCardApp.textContent = appLabel(achievement.appId);
   hoverCardTitle.textContent = achievement.title;
   hoverCardDescription.textContent = achievement.description;
+  hoverCardRequirement.hidden = !prerequisite;
+  if (prerequisite) {
+    hoverCardRequirement.textContent = unlocked
+      ? `Unlocked after: ${prerequisite.title}`
+      : prerequisiteMet
+      ? `Level 1 complete: ${prerequisite.title}`
+      : `Requires: ${prerequisite.title}`;
+  }
 }
 
 function showHoverCard(achievement, node) {
@@ -206,10 +233,16 @@ function renderUnlockState() {
   achievements.forEach((achievement) => {
     const node = document.querySelector(`[data-achievement-id="${CSS.escape(achievement.id)}"]`);
     const unlocked = unlockedIds.has(achievement.id);
+    const available =
+      !unlocked &&
+      achievement.tier === 2 &&
+      Boolean(achievement.requiresId && unlockedIds.has(achievement.requiresId));
+    const stateLabel = unlocked ? 'unlocked' : available ? 'available' : 'locked';
     node?.classList.toggle('is-unlocked', unlocked);
+    node?.classList.toggle('is-available', available);
     node?.setAttribute(
       'aria-label',
-      `${achievement.title}, ${unlocked ? 'unlocked' : 'locked'}. ${achievement.description}`
+      `${achievement.title}, ${stateLabel}. ${achievement.description}`
     );
   });
 
@@ -217,10 +250,15 @@ function renderUnlockState() {
   achievements.forEach((achievement) => {
     const parent = achievement.parentId ? achievementById.get(achievement.parentId) : undefined;
     if (parent) {
+      const unlocked = unlockedIds.has(achievement.id);
+      const available =
+        !unlocked &&
+        achievement.tier === 2 &&
+        Boolean(achievement.requiresId && unlockedIds.has(achievement.requiresId));
       createConnector(
         parent,
         achievement,
-        unlockedIds.has(parent.id) && unlockedIds.has(achievement.id)
+        unlockedIds.has(parent.id) && unlocked ? 'is-unlocked' : available ? 'is-available' : ''
       );
     }
   });
@@ -311,7 +349,7 @@ function renderTree() {
 
   achievements.forEach((achievement, index) => {
     const node = document.createElement('button');
-    const level = achievement.parentId ? 2 : 1;
+    const level = achievement.tier ?? 1;
     node.type = 'button';
     node.className = 'achievement-node';
     node.dataset.achievementId = achievement.id;
@@ -355,6 +393,10 @@ function validAchievement(item) {
     typeof item.title === 'string' &&
     typeof item.description === 'string' &&
     typeof item.icon === 'string' &&
+    (item.tier === undefined || item.tier === 1 || item.tier === 2) &&
+    (item.requiresId === undefined ||
+      item.requiresId === null ||
+      typeof item.requiresId === 'string') &&
     Number.isFinite(item.x) &&
     Number.isFinite(item.y)
   );

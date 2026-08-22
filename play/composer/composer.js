@@ -19,6 +19,7 @@ import {
   updateNote,
   chainHead,
   chainNotes,
+  isTieContinue,
   notesSoundingAt
 } from './model.js';
 import { DUR, KEY_NAMES, TIME_SIGS, clamp, parseTimeSig, timeSigLabel } from './notation.js';
@@ -28,6 +29,8 @@ import { decodeScore, downloadScoreJson, encodeScore, scoreUrlFromHash } from '.
 
 const Prefs = makePrefs('play.composer.prefs.v2');
 const PrefsV1 = makePrefs('play.composer.prefs.v1');
+
+const EXPORT_ACHIEVEMENT_MIN_NOTES = 8;
 
 const els = {
   score: document.getElementById('score'),
@@ -96,6 +99,11 @@ function setUi(patch) {
 
 function setStatus(text) {
   if (els.nowPlaying) els.nowPlaying.textContent = text;
+}
+
+/** Attacks the listener actually hears: no rests, and tied tails don't re-count. */
+function soundedNoteCount(s) {
+  return s.notes.filter((n) => !n.rest && !isTieContinue(s, n)).length;
 }
 
 const playback = createPlayback({
@@ -471,6 +479,9 @@ function bindChrome() {
     downloadScoreJson(score, 'composer-score.json');
     setStatus('Exported');
     window.trackEvent?.('composer_export', 'Engagement', 'json');
+    if (soundedNoteCount(score) >= EXPORT_ACHIEVEMENT_MIN_NOTES) {
+      window.heymingAchievements?.unlockForCurrentApp('score-exported');
+    }
   });
   els.importScore?.addEventListener('click', () => els.importFile?.click());
   els.importFile?.addEventListener('change', async () => {

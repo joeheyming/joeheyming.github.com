@@ -577,6 +577,8 @@ class RichNotepad {
 
         this.showExportFeedback();
       }
+
+      window.heymingAchievements?.unlockForCurrentApp('notes-exported');
     } catch (err) {
       if (err.name === 'AbortError') {
         // User cancelled the save dialog

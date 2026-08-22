@@ -363,6 +363,9 @@ export class Game {
     this.paused = true;
     this.elapsedBeforePause = this.elapsedMs();
     window.heymingAchievements?.unlockForCurrentApp('first-action');
+    if (this.difficulty === 'expert' && this.hintsUsed === 0) {
+      window.heymingAchievements?.unlockForCurrentApp('expert-no-hints');
+    }
     this.emit('win');
     return true;
   }

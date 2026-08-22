@@ -242,6 +242,9 @@ export class Game {
       this.ui.setFace('won');
       this.ui.animateWindow('won');
       window.heymingAchievements?.unlockForCurrentApp('first-action');
+      if (this.currentDifficulty === 'expert') {
+        window.heymingAchievements?.unlockForCurrentApp('expert-win');
+      }
     }
   }
 

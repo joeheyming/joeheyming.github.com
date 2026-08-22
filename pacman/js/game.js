@@ -778,6 +778,7 @@ class Game {
     document.getElementById('win-score').textContent = this.score;
     this.winScreen.classList.remove('hidden');
     this._staticFrameDirty = true;
+    window.heymingAchievements?.unlockForCurrentApp('maze-cleared');
 
     // Clearing the maze is the strongest completion signal Pac-Man emits.
     // Mirror game_over's conversion call but with a `_win` event so the
