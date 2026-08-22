@@ -12,7 +12,7 @@
 export const CONFIG = {
   pollIntervalMs: 12000,
 
-  // Newest published notes stay on the corkboard; older ones move to Archive.
+  // Newest published notes stay on the corkboard; Browse still lists every post.
   boardMaxNotes: 24,
   // Normalized distance under which a new random pin nudges away from neighbors.
   noteClearance: 0.09,

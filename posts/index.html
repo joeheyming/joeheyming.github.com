@@ -124,9 +124,9 @@
           hidden
           aria-expanded="false"
           aria-controls="archive-panel"
-          title="Older notes"
+          title="Browse all posts"
         >
-          Older
+          Browse
         </button>
         <button
           type="button"
@@ -154,22 +154,20 @@
       </div>
     </main>
 
-    <aside id="archive-panel" class="archive-panel" hidden aria-label="Older notes">
+    <aside id="archive-panel" class="archive-panel" hidden aria-label="All posts">
       <div class="archive-panel-head">
-        <h2 class="archive-panel-title">Older notes</h2>
-        <button type="button" id="archive-close" class="btn ghost sm" aria-label="Close archive">
+        <h2 class="archive-panel-title">All posts</h2>
+        <button type="button" id="archive-close" class="btn ghost sm" aria-label="Close all posts">
           Close
         </button>
       </div>
-      <p class="archive-panel-hint">
-        The board keeps the newest notes pinned. Everything older lives here.
-      </p>
+      <p class="archive-panel-hint">Search every post, newest first.</p>
       <input
         id="archive-search"
         class="archive-search"
         type="search"
-        placeholder="Search older notes"
-        aria-label="Search older notes"
+        placeholder="Search all posts"
+        aria-label="Search all posts"
         autocomplete="off"
       />
       <div id="archive-list" class="archive-list" role="list"></div>

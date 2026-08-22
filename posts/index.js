@@ -1252,6 +1252,7 @@ function partitionPosts() {
   return {
     board: [...drafts, ...pending, ...published.slice(0, max)],
     archive: published.slice(max),
+    all: [...pending, ...published],
     newestPublished: published[0] || pending[0] || null
   };
 }
@@ -1295,7 +1296,7 @@ function renderBoard() {
   const surface = getBoardSurface();
   if (!surface) return;
 
-  const { board, archive, newestPublished } = partitionPosts();
+  const { board, all, newestPublished } = partitionPosts();
   if (layoutMode !== 'tidy') tidySlots = new Map();
   sizeBoardSurface();
   if (!cameraReady) resetCamera();
@@ -1328,14 +1329,14 @@ function renderBoard() {
 
   if (layoutMode === 'tidy') packTidyGrid(board, surface);
 
-  renderArchiveList(archive);
-  updateChromeActions(archive.length, newestPublished);
+  renderArchiveList(all);
+  updateChromeActions(all.length, newestPublished);
 }
 
 /**
- * @param {Post[]} archive
+ * @param {Post[]} all
  */
-function renderArchiveList(archive) {
+function renderArchiveList(all) {
   if (!els.archiveList) return;
   if (!archiveOpen) {
     els.archiveList.replaceChildren();
@@ -1343,14 +1344,14 @@ function renderArchiveList(archive) {
   }
   els.archiveList.replaceChildren();
   const matches = archiveQuery
-    ? archive.filter((post) => `${post.text} ${post.email}`.toLowerCase().includes(archiveQuery))
-    : archive;
+    ? all.filter((post) => `${post.text} ${post.email}`.toLowerCase().includes(archiveQuery))
+    : all;
 
   if (!matches.length) {
     const empty = document.createElement('p');
     empty.className = 'archive-empty';
-    if (archiveQuery) empty.textContent = `Nothing older matches “${archiveQuery}”.`;
-    else empty.textContent = 'No older notes yet — the board still fits everyone.';
+    if (archiveQuery) empty.textContent = `No posts match “${archiveQuery}”.`;
+    else empty.textContent = 'No posts yet.';
     els.archiveList.append(empty);
     return;
   }
@@ -1396,7 +1397,11 @@ function renderArchiveList(archive) {
     }
 
     btn.append(thumb, body);
-    btn.addEventListener('click', () => openArchiveReader(post));
+    btn.addEventListener('click', () => {
+      const onBoard = els.board?.querySelector(`[data-post-id="${CSS.escape(post.id)}"]`);
+      if (onBoard) focusBoardPost(post.id);
+      else openArchiveReader(post);
+    });
     els.archiveList.append(btn);
   }
 }
@@ -1411,13 +1416,13 @@ function previewText(text) {
 }
 
 /**
- * @param {number} archiveCount
+ * @param {number} totalCount
  * @param {Post|null} newestPublished
  */
-function updateChromeActions(archiveCount, newestPublished) {
+function updateChromeActions(totalCount, newestPublished) {
   if (els.archiveBtn) {
-    els.archiveBtn.hidden = archiveCount === 0 && !archiveOpen;
-    els.archiveBtn.textContent = archiveCount ? `Older (${archiveCount})` : 'Older';
+    els.archiveBtn.hidden = totalCount === 0 && !archiveOpen;
+    els.archiveBtn.textContent = totalCount ? `Browse (${totalCount})` : 'Browse';
     els.archiveBtn.setAttribute('aria-expanded', archiveOpen ? 'true' : 'false');
   }
   if (els.jumpNewest) {
@@ -1442,7 +1447,7 @@ function setupArchiveUi() {
   els.archiveBackdrop?.addEventListener('click', () => closeArchive());
   els.archiveSearch?.addEventListener('input', () => {
     archiveQuery = (els.archiveSearch?.value || '').trim().toLowerCase();
-    renderArchiveList(partitionPosts().archive);
+    renderArchiveList(partitionPosts().all);
   });
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && archiveOpen) closeArchive();
@@ -1454,9 +1459,9 @@ function openArchive() {
   if (els.archivePanel) els.archivePanel.hidden = false;
   if (els.archiveBackdrop) els.archiveBackdrop.hidden = false;
   if (els.archiveBtn) els.archiveBtn.setAttribute('aria-expanded', 'true');
-  const archive = partitionPosts().archive;
-  renderArchiveList(archive);
-  window.trackEvent?.('posts_archive_open', 'Engagement', String(archive.length));
+  const all = partitionPosts().all;
+  renderArchiveList(all);
+  window.trackEvent?.('posts_browse_open', 'Engagement', String(all.length));
 }
 
 function closeArchive() {
@@ -1490,7 +1495,7 @@ function openArchiveReader(post) {
   const url = new URL(window.location.href);
   url.searchParams.set('post', post.id);
   history.replaceState({}, '', `${url.pathname}?post=${encodeURIComponent(post.id)}`);
-  window.trackEvent?.('posts_archive_read', 'Engagement', post.id);
+  window.trackEvent?.('posts_browse_read', 'Engagement', post.id);
 }
 
 function jumpToNewest() {
@@ -1536,7 +1541,7 @@ function focusBoardPost(id) {
         row.focus();
       }
     });
-    setStatus('That note is in Older');
+    setStatus('That note is in Browse');
     return true;
   }
 
