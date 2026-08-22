@@ -1097,6 +1097,11 @@
 
     mountPlayChrome(cfg);
 
+    // Arrow keys are the d-pad from here on, so opposing pairs have to be
+    // cleaned before EmulatorJS binds its own key handler. Deferred to now
+    // because the boot card and ROM browser navigate with the same keys.
+    window.emulatorSocd?.install();
+
     const script = document.createElement('script');
     script.src = 'https://cdn.emulatorjs.org/latest/data/loader.js';
     document.body.appendChild(script);
