@@ -288,6 +288,17 @@ body {
   text-align: left;
 }
 
+.audio-note {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--accent-bright-soft);
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.45;
+  text-align: left;
+}
 
 #emu-play-chrome {
   position: fixed;

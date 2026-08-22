@@ -389,7 +389,7 @@ class RomBrowserElement extends HTMLElement {
             <p class="modal-subtitle">${
               downloadOnly
                 ? `Search Internet Archive, download the disc, then load it locally`
-                : `Play now or download locally from Internet Archive`
+                : `Play in browser, or Download instead if it is slow`
             }</p>
           </div>
           <div class="modal-body">
@@ -576,7 +576,8 @@ class RomBrowserElement extends HTMLElement {
     const romGrid = document.createElement('div');
     romGrid.className = 'rom-grid';
     const cfg = this.consoleConfig;
-    const allowExternalDownload = !!(cfg && cfg.iaBaseUrl);
+    const allowInBrowser = !(cfg && cfg.iaExternalDownload && !cfg.iaAllowInBrowser);
+    const showDownload = !!(cfg && cfg.iaBaseUrl);
 
     roms.forEach((rom) => {
       const romCard = document.createElement('div');
@@ -585,26 +586,27 @@ class RomBrowserElement extends HTMLElement {
       const description = this._escapeHtml(rom.description);
       const size = this._escapeHtml(rom.size);
 
-      if (!allowExternalDownload) {
+      if (!showDownload) {
         romCard.setAttribute('role', 'button');
         romCard.tabIndex = 0;
       }
+      const actions = showDownload
+        ? `<div class="rom-actions">
+                <button type="button" data-action="play-rom">${
+                  allowInBrowser ? 'Play in browser' : 'Get this disc'
+                }</button>
+                <a href="${this._escapeHtml(
+                  rom.downloadUrl || '#'
+                )}" target="_blank" rel="noopener noreferrer">Download instead</a>
+              </div>`
+        : '';
       romCard.innerHTML = `
         <div class="rom-title">${title}</div>
         <div class="rom-info">${description}</div>
         <div class="rom-size">${size}</div>
-        ${
-          allowExternalDownload
-            ? `<div class="rom-actions">
-                <button type="button" data-action="play-rom">Play now</button>
-                <a href="${this._escapeHtml(
-                  rom.downloadUrl || '#'
-                )}" target="_blank" rel="noopener noreferrer">Download locally</a>
-              </div>`
-            : ''
-        }
+        ${actions}
       `;
-      if (allowExternalDownload) {
+      if (showDownload) {
         romCard
           .querySelector('[data-action="play-rom"]')
           ?.addEventListener('click', () => this.loadRom(rom));
@@ -626,13 +628,11 @@ class RomBrowserElement extends HTMLElement {
     const lb = window.emulatorLeanback;
     if (lb && typeof lb.applyRovingTabindex === 'function') {
       this._romRoving = lb.applyRovingTabindex(romGrid, {
-        selector: allowExternalDownload ? '[data-action="play-rom"]' : '.rom-card'
+        selector: showDownload ? '[data-action="play-rom"]' : '.rom-card'
       });
       if (this.isTv) this._romRoving.focusFirst();
     } else if (this.isTv) {
-      const first = romGrid.querySelector(
-        allowExternalDownload ? '[data-action="play-rom"]' : '.rom-card'
-      );
+      const first = romGrid.querySelector(showDownload ? '[data-action="play-rom"]' : '.rom-card');
       if (first) first.focus({ preventScroll: false });
     }
   }
@@ -700,7 +700,7 @@ class RomBrowserElement extends HTMLElement {
       const downloadAction = canDownload
         ? `<a class="primary" href="${this._escapeHtml(
             rom.downloadUrl
-          )}" target="_blank" rel="noopener noreferrer">Download locally</a>` +
+          )}" target="_blank" rel="noopener noreferrer">Download instead</a>` +
           '<button type="button" data-action="load-local">Load saved ROM</button>'
         : '';
       if (contentArea) {
@@ -745,7 +745,9 @@ class RomBrowserElement extends HTMLElement {
         : 'size unavailable';
     const href = rom.downloadUrl || '#';
     const explanation = isDisc
-      ? `${this._escapeHtml(cfg.title)} discs are too large to load in the page. Download from Internet Archive in a new tab, then load the saved file here. Chromebooks with little disk space may not have room.`
+      ? `${this._escapeHtml(
+          cfg.title
+        )} discs are too large to load in the page. Download from Internet Archive in a new tab, then load the saved file here. Chromebooks with little disk space may not have room.`
       : 'Download this ROM directly from Internet Archive, then load the saved file here.';
 
     contentArea.innerHTML = `

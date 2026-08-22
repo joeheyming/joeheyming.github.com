@@ -123,7 +123,7 @@ const GALLERY_SECTIONS = [
     id: 'consoles',
     icon: '🎮',
     title: 'Retro consoles',
-    blurb: 'Emulate NES, Sega, SNES, Game Boy, Neo Geo, N64, and more in the browser.',
+    blurb: 'Emulate NES, Sega, SNES, Game Boy, GBA, Neo Geo, N64, and more in the browser.',
     filter: (app) => app.subCategory === 'console'
   },
   {

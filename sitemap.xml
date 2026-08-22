@@ -169,6 +169,18 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://joeheyming.github.io/emulator/gba/</loc>
+    <lastmod>2026-08-21T00:00:00+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://joeheyming.github.io/emulator/segacd/</loc>
+    <lastmod>2026-08-21T00:00:00+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://joeheyming.github.io/emulator/ps1/</loc>
     <lastmod>2026-08-13T00:00:00+00:00</lastmod>
     <changefreq>weekly</changefreq>

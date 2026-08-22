@@ -119,6 +119,9 @@
       iaFileExtensions: ['.7z'],
       iaPreferMetadata: true,
       // BIOS dumps + SDK carts aren't playable titles.
+      audioUnlock: true,
+      audioNote:
+        'Click the game once if it is silent. 32X music is often missing in the browser; sound effects may still play.',
       iaExcludeNames: [
         '[BIOS] 32X M68000 (USA)',
         '[BIOS] 32X SH-2 Master (USA)',
@@ -140,6 +143,50 @@
         { label: 'X button', key: 'A' },
         { label: 'Y button', key: 'S' },
         { label: 'Z button', key: 'D' },
+        { label: 'Start', key: 'Enter' },
+        { label: 'Save state', key: 'F5' },
+        { label: 'Load state', key: 'F9' }
+      ]
+    },
+
+    segacd: {
+      id: 'segacd',
+      title: 'Sega CD',
+      subtitle: 'Mega CD',
+      emoji: '📀',
+      ejsCore: 'segaCD',
+      fileAccept: '.chd,.iso,.bin,.cue,.zip,.7z',
+      fileExtsLabel: '.zip / .chd / .iso',
+      accentHex: '#0ea5e9',
+      accentGoldHex: '#0369a1',
+      // Redump set, flat per-game .zip (each ~250-400 MB). `chd_segacd`
+      // is `is_dark: true` and 404s through every proxy.
+      iaBaseUrl: 'https://archive.org/download/sega_mega-cd_sega-cd',
+      iaDescriptionPrefix: 'Sega CD game',
+      iaPreferMetadata: true,
+      iaExternalDownload: true,
+      biosRequired: true,
+      biosFileName: 'bios_CD_U.bin',
+      biosStorageKey: 'segacd',
+      // US Model 1 v1.10 dump is a fixed 128 KiB.
+      biosMinBytes: 128 * 1024,
+      biosIaBaseUrl: 'https://archive.org/download/SEGACDBIOS/Sega%20Mega%20CD%20BIOS.zip',
+      biosIaFileName:
+        'Sega%20Mega%20CD%20BIOS%2FSega%20CD%20%28U%29%20-%20Model%201%20v1.10%20%281992%29.bin',
+      biosHelp:
+        'US BIOS (bios_CD_U.bin) — load once if auto-download fails, then it stays in this browser. EU/JP: bios_CD_E.bin / bios_CD_J.bin.',
+      howto: [
+        'Wait until BIOS says ready.',
+        'These discs are too big to play through the page. Download the .zip from Archive, then Load local disc.',
+        'Chromebooks with little disk space may not have room for a full CD image.'
+      ],
+      romHelp:
+        'Too big to load in the page. Download from Archive, then Load local file. School Chromebooks with tiny disks may fail.',
+      controls: [
+        { label: 'D-Pad', key: 'Arrow keys' },
+        { label: 'A button', key: 'Z' },
+        { label: 'B button', key: 'X' },
+        { label: 'C button', key: 'C' },
         { label: 'Start', key: 'Enter' },
         { label: 'Save state', key: 'F5' },
         { label: 'Load state', key: 'F9' }
@@ -174,6 +221,40 @@
         { label: 'D-Pad', key: 'Arrow keys' },
         { label: 'A button', key: 'Z' },
         { label: 'B button', key: 'X' },
+        { label: 'Select', key: 'V' },
+        { label: 'Start', key: 'Enter' },
+        { label: 'Save state', key: 'F5' },
+        { label: 'Load state', key: 'F9' }
+      ]
+    },
+
+    gba: {
+      id: 'gba',
+      title: 'GBA',
+      subtitle: 'Game Boy Advance',
+      emoji: '🟪',
+      ejsCore: 'gba',
+      fileAccept: '.gba,.zip,.7z',
+      fileExtsLabel: '.gba',
+      accentHex: '#7c3aed',
+      accentGoldHex: '#6d28d9',
+      // Sibling upload to the Game Boy item above: flat per-game .zip.
+      // `nointro.gba` looks live but is `is_dark: true`, so every proxy
+      // 404s on the directory listing.
+      iaBaseUrl: 'https://archive.org/download/theentiregameboyadvancecollection',
+      iaDescriptionPrefix: 'Game Boy Advance game',
+      iaPreferMetadata: true,
+      howto: [
+        'This is Game Boy Advance, not Game Boy. For GB/GBC use the Game Boy page.',
+        'Tap a game to play, or load your own .gba file.'
+      ],
+      romHelp:
+        'This is GBA, not Game Boy. Carts are small and usually play in the browser. For GB/GBC use /emulator/gb/.',
+      controls: [
+        { label: 'D-Pad', key: 'Arrow keys' },
+        { label: 'A button', key: 'Z' },
+        { label: 'B button', key: 'X' },
+        { label: 'L / R', key: 'Q / W' },
         { label: 'Select', key: 'V' },
         { label: 'Start', key: 'Enter' },
         { label: 'Save state', key: 'F5' },
@@ -323,11 +404,13 @@
         'US BIOS auto-loads once from Internet Archive, then stays in this browser (IndexedDB). EU/JP: load scph5502.bin / scph5500.bin manually.',
       howto: [
         'Wait for BIOS “ready”.',
-        'Browse Collection → Play now, or Download locally then load the saved disc.',
+        'Browse Collection → Play in browser, or Download instead then Load local disc.',
+        'Use Save (F5) / Load (F9) on the bar — that is the emulator snapshot, not the in-game memory card menu.',
         'Gamepad recommended.'
       ],
       romHelp:
-        'PS1 discs are large. If Play now times out, Download locally, then load the saved disc.',
+        'PS1 discs are large. If Play in browser times out, Download instead, then Load local disc. F5 saves a snapshot; F9 loads it. That is not the in-game memory card menu.',
+      showSaveStates: true,
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
         { label: '× Cross', key: 'X' },

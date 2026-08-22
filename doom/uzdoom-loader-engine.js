@@ -240,10 +240,15 @@ export function installUzdomLoaderEngine(ctx) {
       }
       try {
         var cfg =
+          'bind w "+forward"\n' +
+          'bind s "+back"\n' +
+          'bind a "+moveleft"\n' +
+          'bind d "+moveright"\n' +
+          'bind e "+use"\n' +
+          'bind space "+use"\n' +
           'bind ctrl "+attack"\n' +
           'bind leftarrow "+left"\n' +
           'bind rightarrow "+right"\n' +
-          'bind space "+jump"\n' +
           // Mobile-only touch buttons (ALT / WPN) dispatch synthetic
           // KeyboardEvents on these otherwise-unused keys. Bound on
           // desktop too so curious keyboard players get the same

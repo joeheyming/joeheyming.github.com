@@ -69,6 +69,16 @@ const PAGES = [
     title: 'N64 Emulator'
   },
   {
+    url: `${BASE_URL}/emulator/gba/`,
+    output: 'emulator/gba/gba-preview.png',
+    title: 'GBA Emulator'
+  },
+  {
+    url: `${BASE_URL}/emulator/segacd/`,
+    output: 'emulator/segacd/segacd-preview.png',
+    title: 'Sega CD Emulator'
+  },
+  {
     url: `${BASE_URL}/emulator/ps1/`,
     output: 'emulator/ps1/ps1-preview.png',
     title: 'PS1 Emulator'

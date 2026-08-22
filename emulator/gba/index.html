@@ -8,52 +8,49 @@
       content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover"
     />
 
-    <title>PS1 Emulator — Play PlayStation Games in Browser 💿</title>
+    <title>GBA Emulator — Play Game Boy Advance Games in Browser 🟪</title>
     <meta name="theme-color" content="#FAFAFA" />
     <meta name="author" content="Joe Heyming" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
     <meta
       name="description"
-      content="Free PlayStation (PS1) emulator online. US BIOS auto-loads; play CHD discs from Internet Archive now, download locally, or bring your own .chd / .pbp / .iso. Gamepad recommended."
+      content="Free Game Boy Advance (GBA) emulator online. This is GBA, not Game Boy. Save states, gamepad support — bring your own .gba ROM. Powered by EmulatorJS / mGBA."
     />
     <meta
       name="keywords"
-      content="PS1 emulator online, PlayStation emulator browser, pcsx_rearmed, EmulatorJS, free PS1 emulator, CHD"
+      content="GBA emulator online, Game Boy Advance emulator browser, play GBA in browser, mGBA, EmulatorJS, free GBA emulator"
     />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Joe Heyming - Retro Emulator" />
-    <meta property="og:title" content="PS1 Emulator — Play PlayStation Games in Browser" />
+    <meta property="og:title" content="GBA Emulator — Play Game Boy Advance Games in Browser" />
     <meta
       property="og:description"
-      content="Free PlayStation (PS1) emulator online. Play CHD discs from Internet Archive now, download locally, or bring your own disc image. Gamepad recommended."
+      content="Free Game Boy Advance (GBA) emulator online. This is GBA, not Game Boy. Save states, gamepad support — bring your own .gba ROM. Powered by EmulatorJS / mGBA."
     />
-    <meta property="og:url" content="https://joeheyming.github.io/emulator/ps1/" />
-    <meta property="og:image" content="https://joeheyming.github.io/emulator/ps1/ps1-preview.png" />
+    <meta property="og:url" content="https://joeheyming.github.io/emulator/gba/" />
+    <meta property="og:image" content="https://joeheyming.github.io/emulator/gba/gba-preview.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="PS1 emulator running in a web browser" />
+    <meta property="og:image:alt" content="GBA emulator running in a web browser" />
     <meta property="og:locale" content="en_US" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@joeheyming" />
     <meta name="twitter:creator" content="@joeheyming" />
-    <meta name="twitter:title" content="PS1 Emulator — Play PlayStation Games in Browser" />
+    <meta name="twitter:title" content="GBA Emulator — Play Game Boy Advance Games in Browser" />
     <meta
       name="twitter:description"
-      content="Free PS1 emulator online. Play CHD discs from Internet Archive now, download locally, or bring your own disc image."
+      content="Free Game Boy Advance (GBA) emulator online. This is GBA, not Game Boy. Save states, gamepad support — bring your own .gba ROM. Powered by EmulatorJS / mGBA."
     />
-    <meta
-      name="twitter:image"
-      content="https://joeheyming.github.io/emulator/ps1/ps1-preview.png"
-    />
+    <meta name="twitter:image" content="https://joeheyming.github.io/emulator/gba/gba-preview.png" />
 
-    <link rel="canonical" href="https://joeheyming.github.io/emulator/ps1/" />
+    <link rel="canonical" href="https://joeheyming.github.io/emulator/gba/" />
 
     <link
       rel="icon"
-      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💿</text></svg>"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🟪</text></svg>"
     />
 
     <script type="application/ld+json">
@@ -62,12 +59,12 @@
         "@graph": [
           {
             "@type": ["SoftwareApplication", "VideoGame"],
-            "name": "PS1 Emulator Online",
-            "alternateName": ["PS1 Emulator", "Play PS1 in Browser"],
+            "name": "GBA Emulator Online",
+            "alternateName": ["GBA Emulator", "Play GBA in Browser"],
             "applicationCategory": "GameApplication",
             "operatingSystem": "Web Browser",
-            "description": "Free PlayStation (PS1) emulator online. US BIOS auto-loads; play CHD discs from Internet Archive now, download locally, or bring your own .chd / .pbp / .iso. Gamepad recommended.",
-            "url": "https://joeheyming.github.io/emulator/ps1/",
+            "description": "Free Game Boy Advance (GBA) emulator online. This is GBA, not Game Boy. Save states, gamepad support — bring your own .gba ROM. Powered by EmulatorJS / mGBA.",
+            "url": "https://joeheyming.github.io/emulator/gba/",
             "author": {
               "@type": "Person",
               "name": "Joe Heyming",
@@ -78,7 +75,7 @@
               "price": "0",
               "priceCurrency": "USD"
             },
-            "keywords": "PS1 emulator online, PlayStation emulator browser, pcsx_rearmed, EmulatorJS, free PS1 emulator, CHD",
+            "keywords": "GBA emulator online, Game Boy Advance emulator browser, play GBA in browser, mGBA, EmulatorJS, free GBA emulator",
             "inLanguage": "en",
             "gamePlatform": ["Web Browser", "HTML5"]
           },
@@ -100,7 +97,7 @@
               {
                 "@type": "ListItem",
                 "position": 3,
-                "name": "PS1 Emulator"
+                "name": "GBA Emulator"
               }
             ]
           }
@@ -145,27 +142,28 @@
       type="file"
       id="romFileInput"
       class="hidden-input"
-      accept=".nes,.md,.bin,.gen,.smd,.gg,.32x,.gb,.gbc,.sfc,.smc,.chd,.pbp,.iso,.cue,.zip,.7z"
+      accept=".nes,.md,.bin,.gen,.smd,.gg,.32x,.gb,.gbc,.gba,.sfc,.smc,.z64,.n64,.v64,.chd,.pbp,.iso,.cue,.zip,.7z"
     />
     <input type="file" id="biosFileInput" class="hidden-input" accept=".zip,.7z,.bin" />
 
     <!-- Static fallback for crawlers / no-JS; launch.js replaces #brand / #boot-card. -->
     <div id="boot">
       <div class="brand" id="brand">
-        <span class="brand-logo">💿</span>
+        <span class="brand-logo">👾</span>
         <h1>
-          PS1
-          <span class="sub">PlayStation</span>
+          GBA
+          <span class="sub">Game Boy Advance</span>
         </h1>
       </div>
 
       <div class="boot-card" id="boot-card">
-        <h2>💿 PS1 Emulator</h2>
+        <h2>🟪 GBA Emulator</h2>
         <p class="picker-help">
-          Free PS1 emulator in your browser. No install, no ads. Bring your own
-          <code>.chd / .pbp / .iso</code>
-          ROM or browse the collection. Use Save (F5) / Load (F9) for emulator snapshots — that is
-          not the in-game memory card menu. Powered by EmulatorJS (pcsx_rearmed).
+          Free Game Boy Advance emulator in your browser. This is GBA, not Game Boy (use
+          <a href="/emulator/gb/">Game Boy</a>
+          for GB/GBC). Bring your own
+          <code>.gba</code>
+          ROM or browse the collection. Powered by EmulatorJS (mGBA).
         </p>
         <p class="picker-help">
           <a href="/emulator/">All consoles</a>
@@ -179,10 +177,10 @@
       </div>
 
       <footer class="seo-intro" hidden>
-        <h2>PS1 Emulator — Play PlayStation Games in Browser</h2>
+        <h2>GBA Emulator — Play Game Boy Advance Games in Browser</h2>
         <p>
-          Free PlayStation (PS1) emulator online. US BIOS auto-loads; play CHD discs from Internet
-          Archive now, download locally, or bring your own .chd / .pbp / .iso. Gamepad recommended.
+          Free Game Boy Advance (GBA) emulator online. This is GBA, not Game Boy. Save states,
+          gamepad support — bring your own .gba ROM. Powered by EmulatorJS / mGBA.
         </p>
         <nav aria-label="More retro games">
           <strong>More retro games:</strong>

@@ -819,6 +819,40 @@
 
     <button class="hidden" id="fsBtn" title="Toggle fullscreen (F11 also works)">Fullscreen</button>
 
+    <aside id="playHelp" class="play-help" aria-label="How to play">
+      <button type="button" id="playHelpClose" class="play-help-close" aria-label="Hide controls">
+        ✕
+      </button>
+      <p class="play-help-title">How to play</p>
+      <ul>
+        <li>
+          <strong>Move</strong>
+          WASD or arrows
+        </li>
+        <li>
+          <strong>Look</strong>
+          mouse (click the game)
+        </li>
+        <li>
+          <strong>Fire</strong>
+          left click or Ctrl
+        </li>
+        <li>
+          <strong>Open doors</strong>
+          Space or E
+        </li>
+        <li>
+          <strong>Menu</strong>
+          Esc
+        </li>
+      </ul>
+      <p>
+        <a href="/doom/?manual=browse">Mods</a>
+      </p>
+    </aside>
+    <button type="button" id="playHelpOpen" class="play-help-open" hidden>Controls</button>
+    <script src="play-help.js"></script>
+
     <!-- In-game flavor switcher. Hidden until lifecycle reaches `playing`
          (flavor controller toggles `.hidden`). Click the button to open
          the menu; pick a flavor to reload the page with ?flavor=NAME and

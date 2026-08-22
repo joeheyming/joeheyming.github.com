@@ -1619,6 +1619,42 @@
     "geo": false
   },
   {
+    "id": "segacd",
+    "name": "Sega CD 📀",
+    "shortName": "Sega CD",
+    "description": "Sega CD / Mega CD emulator",
+    "detailedDescription": "Play Sega CD (Mega CD) games in your browser. Discs are too large to load in the page — download from Internet Archive, then load locally. US BIOS loads once. Part of the unified emulator shell (EmulatorJS / genesis_plus_gx).",
+    "icon": "📀",
+    "path": "./emulator/segacd/",
+    "category": "game",
+    "subCategory": "console",
+    "defaultWidth": 1024,
+    "defaultHeight": 768,
+    "gradient": "from-sky-600/20 to-cyan-800/20",
+    "border": "border-sky-500/30 hover:border-sky-400/50",
+    "taskbarGradient": "from-sky-600 to-cyan-900",
+    "taskbarText": "text-white",
+    "tags": [
+      "retro",
+      "emulator",
+      "sega",
+      "sega cd",
+      "mega cd",
+      "cd"
+    ],
+    "related": [
+      "sega",
+      "sega32x",
+      "gamegear",
+      "ps1",
+      "n64",
+      "doom"
+    ],
+    "shareCategory": "game",
+    "appTier": "experience",
+    "geo": false
+  },
+  {
     "id": "gameboy",
     "name": "Game Boy 👾",
     "shortName": "Game Boy",
@@ -1662,6 +1698,42 @@
       "preset": "gameboy",
       "analyticsLabel": "GameBoy"
     },
+    "appTier": "experience",
+    "geo": false
+  },
+  {
+    "id": "gba",
+    "name": "GBA 🟪",
+    "shortName": "GBA",
+    "description": "Game Boy Advance emulator",
+    "detailedDescription": "Play Game Boy Advance games in your browser. This is GBA, not original Game Boy. Save states, gamepad support — bring your own .gba ROM or browse Internet Archive. Part of the unified emulator shell (EmulatorJS / mGBA).",
+    "icon": "🟪",
+    "path": "./emulator/gba/",
+    "category": "game",
+    "subCategory": "console",
+    "defaultWidth": 1024,
+    "defaultHeight": 768,
+    "gradient": "from-indigo-600/20 to-violet-700/20",
+    "border": "border-indigo-500/30 hover:border-indigo-400/50",
+    "taskbarGradient": "from-indigo-600 to-violet-800",
+    "taskbarText": "text-white",
+    "tags": [
+      "retro",
+      "emulator",
+      "nintendo",
+      "gba",
+      "game boy advance",
+      "32-bit"
+    ],
+    "related": [
+      "gameboy",
+      "nes",
+      "snes",
+      "n64",
+      "doom",
+      "pacman"
+    ],
+    "shareCategory": "game",
     "appTier": "experience",
     "geo": false
   },

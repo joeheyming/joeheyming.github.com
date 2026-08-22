@@ -161,7 +161,8 @@
       return bytes[0] === 0x50 && bytes[1] === 0x4b;
     }
     if (/\.bin$/i.test(name)) {
-      return bytes.length >= 512 * 1024;
+      const min = (cfg && cfg.biosMinBytes) || 512 * 1024;
+      return bytes.length >= min;
     }
     return true;
   }
@@ -279,7 +280,7 @@
   /** Prefer biosIaBaseUrl (PS1); fall back to game iaBaseUrl (Neo Geo). */
   function biosIaUrl(cfg) {
     if (!cfg || !cfg.biosFileName) return null;
-    const baseRaw = cfg.biosIaBaseUrl || cfg.iaBaseUrl;
+    const baseRaw = cfg.biosIaBaseUrl || (cfg.iaExternalDownload ? null : cfg.iaBaseUrl);
     if (!baseRaw) return null;
     const bases = Array.isArray(baseRaw) ? baseRaw : [baseRaw];
     const base = bases.find(Boolean);
@@ -298,7 +299,7 @@
 
     // PS1 SCPH dumps are a fixed 512 KiB — use as progress total when proxies
     // omit Content-Length.
-    const knownTotal = /\.bin$/i.test(cfg.biosFileName || '') ? 512 * 1024 : 0;
+    const knownTotal = /\.bin$/i.test(cfg.biosFileName || '') ? cfg.biosMinBytes || 512 * 1024 : 0;
 
     try {
       let blob;
@@ -642,16 +643,16 @@
 
     const controlsSummary = tv ? 'Controls' : 'Keyboard Controls';
     const gamepadHint =
-      tv || cfg.id === 'ps1' || cfg.id === 'n64'
+      tv || cfg.id === 'ps1' || cfg.id === 'n64' || cfg.id === 'segacd'
         ? hasGamepadApi()
           ? `<p class="controls-gamepad-hint">Gamepad recommended — works via the browser Gamepad API.</p>`
           : `<p class="controls-gamepad-hint">Use D-pad or keyboard controls; this browser does not expose the Gamepad API.</p>`
         : '';
 
-    const loadLabel =
-      cfg.id === 'ps1'
-        ? `Load Local Disc Image (${escapeHtml(cfg.fileExtsLabel)})`
-        : `Load Local ROM File (${escapeHtml(cfg.fileExtsLabel)})`;
+    const isDisc = !!cfg.iaExternalDownload;
+    const loadLabel = isDisc
+      ? `Load Local Disc Image (${escapeHtml(cfg.fileExtsLabel)})`
+      : `Load Local ROM File (${escapeHtml(cfg.fileExtsLabel)})`;
 
     const hasIa = !!cfg.iaBaseUrl;
     const filePickerHtml = tv
@@ -664,9 +665,10 @@
         </button>`;
 
     bootCard.innerHTML = `
-      <h2>🕹️ Load a ${cfg.id === 'ps1' ? 'disc' : 'ROM'} to play</h2>
+      <h2>🕹️ Load a ${isDisc ? 'disc' : 'ROM'} to play</h2>
       ${gamepadBannerHtml()}
       ${singleThreadNoticeHtml()}
+      ${cfg.audioNote ? `<p class="audio-note" role="status">${escapeHtml(cfg.audioNote)}</p>` : ''}
       ${biosPanelHtml}
       <div class="btn-stack">
         <rom-browser console="${cfg.id}"></rom-browser>
@@ -694,6 +696,48 @@
     wireTvFocus(bootCard);
   }
 
+  function sendEmuKey(code, key, keyCode) {
+    const opts = {
+      key,
+      code,
+      keyCode,
+      which: keyCode,
+      bubbles: true,
+      cancelable: true
+    };
+    const targets = [window, document, document.getElementById('game')].filter(Boolean);
+    const iframe = document.querySelector('#game iframe');
+    if (iframe && iframe.contentWindow) targets.push(iframe.contentWindow);
+    ['keydown', 'keyup'].forEach((type) => {
+      targets.forEach((target) => {
+        try {
+          target.dispatchEvent(new KeyboardEvent(type, opts));
+        } catch {
+          /* cross-origin iframe */
+        }
+      });
+    });
+  }
+
+  async function unlockGameAudio() {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (Ctx) {
+      try {
+        const ctx = new Ctx();
+        if (ctx.state === 'suspended') await ctx.resume();
+      } catch {
+        /* ignore */
+      }
+    }
+    document.querySelectorAll('audio, video').forEach((el) => {
+      el.muted = false;
+      const play = el.play && el.play();
+      if (play && typeof play.catch === 'function') play.catch(() => {});
+    });
+    const btn = document.getElementById('emu-sound-btn');
+    if (btn) btn.textContent = 'Sound on — click the game if still silent';
+  }
+
   function returnToGameList() {
     const url = new URL(window.location.href);
     url.searchParams.delete('rom');
@@ -701,17 +745,50 @@
     window.location.assign(`${url.pathname}${url.search}`);
   }
 
-  function mountPlayChrome() {
+  function mountPlayChrome(cfg) {
     let bar = document.getElementById('emu-play-chrome');
     if (!bar) {
       bar = document.createElement('div');
       bar.id = 'emu-play-chrome';
       document.body.appendChild(bar);
     }
-    bar.innerHTML =
-      '<button type="button" class="emu-chrome-btn" id="emu-game-list-btn">Cancel loading / Game list</button>';
-    bar.hidden = false;
+    const bits = [
+      '<button type="button" class="emu-chrome-btn" id="emu-game-list-btn">Cancel loading / Game list</button>'
+    ];
+    if (cfg.audioUnlock || cfg.audioNote) {
+      bits.push(
+        '<button type="button" class="emu-chrome-btn" id="emu-sound-btn">Sound off — click to enable</button>'
+      );
+    }
+    if (cfg.showSaveStates) {
+      bits.push(
+        '<button type="button" class="emu-chrome-btn" id="emu-save-btn">Save (F5)</button>'
+      );
+      bits.push(
+        '<button type="button" class="emu-chrome-btn" id="emu-load-btn">Load (F9)</button>'
+      );
+      bits.push(
+        '<span class="emu-chrome-note">Emulator snapshot — not the in-game memory card menu.</span>'
+      );
+    }
+    bar.innerHTML = bits.join('');
+    bar.hidden = bits.length === 0;
+
     document.getElementById('emu-game-list-btn')?.addEventListener('click', returnToGameList);
+    document.getElementById('emu-sound-btn')?.addEventListener('click', unlockGameAudio);
+    document
+      .getElementById('emu-save-btn')
+      ?.addEventListener('click', () => sendEmuKey('F5', 'F5', 116));
+    document
+      .getElementById('emu-load-btn')
+      ?.addEventListener('click', () => sendEmuKey('F9', 'F9', 120));
+    document.getElementById('game-container')?.addEventListener(
+      'pointerdown',
+      () => {
+        if (cfg.audioUnlock || cfg.audioNote) unlockGameAudio();
+      },
+      { once: true }
+    );
   }
 
   function renderPicker() {
@@ -726,7 +803,7 @@
       <span class="brand-logo">🎮</span>
       <h1>
         Retro Game Emulator
-        <span class="sub">NES · Sega · Game Gear · 32X · SNES · Game Boy · Neo Geo · N64 · PS1</span>
+        <span class="sub">NES · Sega · Game Gear · 32X · Sega CD · SNES · Game Boy · GBA · Neo Geo · N64 · PS1</span>
       </h1>
     `;
 
@@ -1010,11 +1087,15 @@
       window.trackEvent(`${cfg.id}_rom_loaded`, 'Emulator', labelBase, timeOnPage);
     }
 
-    if (['sega', 'gg', 'sega32x', 'gb', 'neogeo', 'snes', 'n64', 'ps1'].includes(cfg.id)) {
+    if (
+      ['sega', 'gg', 'sega32x', 'segacd', 'gb', 'gba', 'neogeo', 'snes', 'n64', 'ps1'].includes(
+        cfg.id
+      )
+    ) {
       window.heymingAchievements?.unlockForCurrentApp('first-action');
     }
 
-    mountPlayChrome();
+    mountPlayChrome(cfg);
 
     const script = document.createElement('script');
     script.src = 'https://cdn.emulatorjs.org/latest/data/loader.js';

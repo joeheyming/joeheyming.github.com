@@ -54,12 +54,12 @@ test.describe('N64 emulator suite', () => {
       'accept',
       '.z64,.n64,.v64,.zip,.7z'
     );
-    await expect(page.getByRole('link', { name: 'Download locally' })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: 'Download instead' })).toHaveAttribute(
       'href',
       /Test%20Game%20\(USA\)\.z64$/
     );
 
-    await page.getByRole('button', { name: 'Play now' }).click();
+    await page.getByRole('button', { name: 'Play in browser' }).click();
     await expect(page.locator('#game-container')).toHaveClass(/visible/);
     await expect
       .poll(() =>
@@ -85,10 +85,10 @@ test.describe('N64 emulator suite', () => {
       };
     });
 
-    await page.getByRole('button', { name: 'Play now' }).click();
+    await page.getByRole('button', { name: 'Play in browser' }).click();
 
     await expect(page.getByText('Failed to load Test Game (USA).')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Download locally' })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: 'Download instead' })).toHaveAttribute(
       'href',
       /Test%20Game%20\(USA\)\.z64$/
     );
@@ -110,7 +110,7 @@ test.describe('N64 emulator suite', () => {
         });
     });
 
-    await page.getByRole('button', { name: 'Play now' }).click();
+    await page.getByRole('button', { name: 'Play in browser' }).click();
     await page.getByRole('button', { name: 'Cancel — back to game list' }).click();
 
     await expect(page.getByText('Test Game (USA)', { exact: true })).toBeVisible();
@@ -121,7 +121,7 @@ test.describe('N64 emulator suite', () => {
     await mockRomDownload(page);
     await openMockCollection(page);
 
-    await page.getByRole('button', { name: 'Play now' }).click();
+    await page.getByRole('button', { name: 'Play in browser' }).click();
     await page.getByRole('button', { name: 'Cancel loading / Game list' }).click();
 
     await expect(page.getByRole('button', { name: 'Browse N64 ROM Collection' })).toBeVisible();
@@ -144,8 +144,8 @@ test('PS1 also offers best-effort play and local download', async ({ page }) => 
   await page.getByRole('button', { name: 'Browse PS1 Disc Collection' }).click();
   await expect(page.getByText('Test Disc', { exact: true })).toBeVisible();
 
-  await expect(page.getByRole('button', { name: 'Play now' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Download locally' })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: 'Play in browser' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Download instead' })).toHaveAttribute(
     'href',
     /CuratedPSXRedumpCHDs\/Test%20Disc\.chd$/
   );
@@ -159,6 +159,6 @@ test('PS1 also offers best-effort play and local download', async ({ page }) => 
       throw new Error('mock proxy timeout');
     };
   });
-  await page.getByRole('button', { name: 'Play now' }).click();
+  await page.getByRole('button', { name: 'Play in browser' }).click();
   await expect(page.getByText('Failed to load Test Disc.')).toBeVisible();
 });

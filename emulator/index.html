@@ -15,7 +15,7 @@
     <meta name="language" content="English" />
     <meta
       name="description"
-      content="Free retro game emulator online — play NES, Sega Genesis / Mega Drive, Game Gear, Sega 32X, SNES, Game Boy, Neo Geo, Nintendo 64 (N64), and PlayStation (PS1) games in your browser. Powered by EmulatorJS. No install, no ads. Bring your own ROM."
+      content="Free retro game emulator online — play NES, Sega Genesis / Mega Drive, Game Gear, Sega 32X, Sega CD, SNES, Game Boy, Game Boy Advance (GBA), Neo Geo, Nintendo 64 (N64), and PlayStation (PS1) games in your browser. Powered by EmulatorJS. No install, no ads. Bring your own ROM."
     />
     <meta
       name="keywords"
@@ -173,7 +173,7 @@
                 "name": "What emulator cores are used?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "The shell is EmulatorJS, which embeds RetroArch cores compiled to WebAssembly. Each console runs the standard core: FCEUmm for NES, genesis_plus_gx for Sega Genesis / Mega Drive and Game Gear, picodrive for Sega 32X, snes9x for SNES, gambatte for Game Boy / Game Boy Color, FinalBurn Neo (arcade) for Neo Geo, mupen64plus_next for N64, and pcsx_rearmed for PlayStation."
+                  "text": "The shell is EmulatorJS, which embeds RetroArch cores compiled to WebAssembly. Each console runs the standard core: FCEUmm for NES, genesis_plus_gx for Sega Genesis / Mega Drive, Game Gear, and Sega CD, picodrive for Sega 32X, snes9x for SNES, gambatte for Game Boy / Game Boy Color, mGBA for Game Boy Advance, FinalBurn Neo (arcade) for Neo Geo, mupen64plus_next for N64, and pcsx_rearmed for PlayStation."
                 }
               }
             ]
@@ -239,7 +239,7 @@
       type="file"
       id="romFileInput"
       class="hidden-input"
-      accept=".nes,.md,.bin,.gen,.smd,.gg,.32x,.gb,.gbc,.sfc,.smc,.z64,.n64,.v64,.chd,.pbp,.iso,.cue,.zip,.7z"
+      accept=".nes,.md,.bin,.gen,.smd,.gg,.32x,.gb,.gbc,.gba,.sfc,.smc,.z64,.n64,.v64,.chd,.pbp,.iso,.cue,.zip,.7z"
     />
     <input type="file" id="biosFileInput" class="hidden-input" accept=".zip,.7z,.bin" />
 
@@ -281,10 +281,20 @@
             <span class="picker-title">Sega 32X</span>
             <span class="picker-sub">Genesis add-on</span>
           </a>
+          <a class="picker-tile" href="/emulator/segacd/">
+            <span class="picker-emoji">📀</span>
+            <span class="picker-title">Sega CD</span>
+            <span class="picker-sub">Mega CD</span>
+          </a>
           <a class="picker-tile" href="/emulator/gb/">
             <span class="picker-emoji">👾</span>
             <span class="picker-title">Game Boy</span>
             <span class="picker-sub">Game Boy &amp; Game Boy Color</span>
+          </a>
+          <a class="picker-tile" href="/emulator/gba/">
+            <span class="picker-emoji">🟪</span>
+            <span class="picker-title">GBA</span>
+            <span class="picker-sub">Game Boy Advance</span>
           </a>
           <a class="picker-tile" href="/emulator/snes/">
             <span class="picker-emoji">🟣</span>
