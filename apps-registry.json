@@ -1767,6 +1767,7 @@
       "gamegear",
       "sega32x",
       "gameboy",
+      "ngp",
       "snes",
       "n64",
       "ps1",
@@ -1782,6 +1783,45 @@
       "preset": "neogeo",
       "analyticsLabel": "NeoGeo"
     },
+    "appTier": "experience",
+    "geo": false
+  },
+  {
+    "id": "ngp",
+    "name": "Neo Geo Pocket 🟠",
+    "shortName": "NGP",
+    "description": "Neo Geo Pocket & Color emulator",
+    "detailedDescription": "Play Neo Geo Pocket and Pocket Color games in your browser. This is the SNK handheld, not AES/MVS arcade. Browse the built-in Internet Archive collection or bring your own .ngp / .ngc ROM. Part of the unified emulator shell (EmulatorJS / mednafen_ngp).",
+    "icon": "🟠",
+    "path": "./emulator/ngp/",
+    "category": "game",
+    "subCategory": "console",
+    "defaultWidth": 1024,
+    "defaultHeight": 768,
+    "gradient": "from-orange-500/20 to-amber-700/20",
+    "border": "border-orange-500/30 hover:border-orange-400/50",
+    "taskbarGradient": "from-orange-500 to-amber-800",
+    "taskbarText": "text-white",
+    "tags": [
+      "retro",
+      "emulator",
+      "neogeo",
+      "neo geo pocket",
+      "ngp",
+      "ngpc",
+      "handheld",
+      "snk"
+    ],
+    "related": [
+      "neogeo",
+      "gameboy",
+      "gamegear",
+      "gba",
+      "sega",
+      "doom",
+      "pacman"
+    ],
+    "shareCategory": "game",
     "appTier": "experience",
     "geo": false
   },

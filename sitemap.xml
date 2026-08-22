@@ -163,6 +163,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://joeheyming.github.io/emulator/ngp/</loc>
+    <lastmod>2026-08-22T00:00:00+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://joeheyming.github.io/emulator/n64/</loc>
     <lastmod>2026-08-21T00:00:00+00:00</lastmod>
     <changefreq>weekly</changefreq>

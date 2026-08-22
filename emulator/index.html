@@ -97,7 +97,7 @@
             },
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
             "featureList": [
-              "Play NES, Sega Genesis, Game Gear, Sega 32X, SNES, Game Boy, Neo Geo, N64, and PlayStation games in your browser",
+              "Play NES, Sega Genesis, Game Gear, Sega 32X, SNES, Game Boy, Neo Geo, Neo Geo Pocket, N64, and PlayStation games in your browser",
               "Save and load game states (F5 / F9)",
               "Keyboard and gamepad controller support",
               "Touch controls on mobile",
@@ -105,7 +105,7 @@
               "Bring your own ROM file or browse Internet Archive collection",
               "No install, no ads, no signup"
             ],
-            "keywords": "online emulator, NES emulator, Sega Genesis emulator, Game Gear emulator, Sega 32X emulator, SNES emulator, Game Boy emulator, Neo Geo emulator, N64 emulator, Nintendo 64 emulator, PlayStation emulator, PS1 emulator, retro gaming, EmulatorJS",
+            "keywords": "online emulator, NES emulator, Sega Genesis emulator, Game Gear emulator, Sega 32X emulator, SNES emulator, Game Boy emulator, Neo Geo emulator, Neo Geo Pocket emulator, N64 emulator, Nintendo 64 emulator, PlayStation emulator, PS1 emulator, retro gaming, EmulatorJS",
             "inLanguage": "en",
             "gamePlatform": ["Web Browser", "HTML5"]
           },
@@ -117,7 +117,7 @@
                 "name": "Where do ROMs come from?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "You bring your own, or browse Internet Archive collections where wired. The picker accepts .nes, .md / .bin / .gen / .smd, .gg, .32x, .sfc / .smc, .gb / .gbc, arcade .zip, Nintendo 64 .z64 / .n64 / .v64, and PlayStation disc images (.chd / .pbp / .iso). N64 offers direct play plus a download fallback for larger files. PS1 browse uses CHD disc images. Neo Geo auto-fetches neogeo.zip BIOS; PS1 auto-fetches a US BIOS. No ROMs are bundled with the page itself."
+                  "text": "You bring your own, or browse Internet Archive collections where wired. The picker accepts .nes, .md / .bin / .gen / .smd, .gg, .32x, .sfc / .smc, .gb / .gbc, .ngp / .ngc, arcade .zip, Nintendo 64 .z64 / .n64 / .v64, and PlayStation disc images (.chd / .pbp / .iso). N64 offers direct play plus a download fallback for larger files. PS1 browse uses CHD disc images. Neo Geo auto-fetches neogeo.zip BIOS; PS1 auto-fetches a US BIOS. No ROMs are bundled with the page itself."
                 }
               },
               {
@@ -307,6 +307,11 @@
             <span class="picker-title">Neo Geo</span>
             <span class="picker-sub">AES / MVS Arcade</span>
           </a>
+          <a class="picker-tile" href="/emulator/ngp/">
+            <span class="picker-emoji">🟠</span>
+            <span class="picker-title">Neo Geo Pocket</span>
+            <span class="picker-sub">NGP &amp; Color</span>
+          </a>
           <a class="picker-tile" href="/emulator/n64/">
             <span class="picker-emoji">🎲</span>
             <span class="picker-title">N64</span>
@@ -337,8 +342,8 @@
         <h2>Free Online Retro Game Emulator</h2>
         <p>
           Play classic NES (Nintendo Entertainment System), Sega Genesis / Mega Drive, Game Gear,
-          Sega 32X, SNES, Game Boy, Neo Geo, Nintendo 64 (N64), and PlayStation (PS1) games directly
-          in your browser. No download, no install, no ads. Bring your own
+          Sega 32X, SNES, Game Boy, Neo Geo, Neo Geo Pocket, Nintendo 64 (N64), and PlayStation (PS1)
+          games directly in your browser. No download, no install, no ads. Bring your own
           <code>.nes</code>
           ,
           <code>.md</code>
@@ -356,6 +361,10 @@
           <code>.gb</code>
           ,
           <code>.gbc</code>
+          ,
+          <code>.ngp</code>
+          ,
+          <code>.ngc</code>
           , arcade
           <code>.zip</code>
           , Nintendo 64
@@ -369,7 +378,7 @@
           system BIOS; PS1 needs a region BIOS (US
           <code>scph5501.bin</code>
           auto-loads). Powered by EmulatorJS with the FCEUmm, genesis_plus_gx, picodrive, snes9x,
-          gambatte, FinalBurn Neo, mupen64plus_next, and pcsx_rearmed libretro cores.
+          gambatte, FinalBurn Neo, mednafen_ngp, mupen64plus_next, and pcsx_rearmed libretro cores.
         </p>
         <nav aria-label="More retro games">
           <strong>More retro games from Joe Heyming:</strong>

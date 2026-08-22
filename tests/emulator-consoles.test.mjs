@@ -113,4 +113,16 @@ describe('emulator console registry', () => {
     assert.ok(gba.fileAccept.includes('.gba'));
     assert.ok(!gb.fileAccept.includes('.gba'));
   });
+
+  it('tells Neo Geo Pocket apart from arcade Neo Geo', () => {
+    const ngp = consoles.ngp;
+    const neogeo = consoles.neogeo;
+    assert.ok(ngp && neogeo, 'expected both ngp and neogeo consoles');
+    assert.equal(ngp.ejsCore, 'ngp');
+    assert.equal(neogeo.ejsCore, 'arcade');
+    assert.notEqual(Boolean(ngp.biosRequired), Boolean(neogeo.biosRequired));
+    assert.match(`${ngp.romHelp} ${(ngp.howto || []).join(' ')}`, /not.*arcade|handheld/i);
+    assert.ok(ngp.fileAccept.includes('.ngp'));
+    assert.ok(!neogeo.fileAccept.includes('.ngp'));
+  });
 });

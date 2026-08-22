@@ -64,6 +64,11 @@ const PAGES = [
     title: 'Neo Geo Emulator'
   },
   {
+    url: `${BASE_URL}/emulator/ngp/`,
+    output: 'emulator/ngp/ngp-preview.png',
+    title: 'Neo Geo Pocket Emulator'
+  },
+  {
     url: `${BASE_URL}/emulator/n64/`,
     output: 'emulator/n64/n64-preview.png',
     title: 'N64 Emulator'

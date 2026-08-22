@@ -303,6 +303,38 @@
       ]
     },
 
+    ngp: {
+      id: 'ngp',
+      title: 'Neo Geo Pocket',
+      subtitle: 'NGP & Color',
+      emoji: '🟠',
+      // EmulatorJS core → mednafen_ngp (original + Color carts).
+      ejsCore: 'ngp',
+      fileAccept: '.ngp,.ngc,.zip,.7z',
+      fileExtsLabel: '.ngp / .ngc',
+      // SNK orange — distinct from arcade yellow so the hub tiles don't collide.
+      accentHex: '#f97316',
+      accentGoldHex: '#c2410c',
+      // Flat per-game zips (same Ghostware shape as the arcade Neo Geo item).
+      iaBaseUrl: 'https://archive.org/download/Neo-GeoPocketColorRomCollectionByGhostware',
+      iaDescriptionPrefix: 'Neo Geo Pocket Color game',
+      howto: [
+        'This is Neo Geo Pocket / Color — the handheld. For AES/MVS arcade, use Neo Geo.',
+        'Tap a game to play, or load your own .ngp / .ngc file.'
+      ],
+      romHelp:
+        'This is Neo Geo Pocket, not the arcade AES/MVS. Carts are small and usually play in the browser. For arcade titles use the Neo Geo page.',
+      controls: [
+        { label: 'D-Pad', key: 'Arrow keys' },
+        { label: 'A button', key: 'Z' },
+        { label: 'B button', key: 'X' },
+        { label: 'Option', key: 'V' },
+        { label: 'Start', key: 'Enter' },
+        { label: 'Save state', key: 'F5' },
+        { label: 'Load state', key: 'F9' }
+      ]
+    },
+
     snes: {
       id: 'snes',
       title: 'SNES',

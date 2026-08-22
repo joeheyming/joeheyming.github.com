@@ -262,6 +262,16 @@
       "y": 480
     },
     {
+      "id": "ngp:first-action",
+      "appId": "ngp",
+      "title": "Pocket Color",
+      "description": "Play a Neo Geo Pocket or Pocket Color game.",
+      "icon": "🟠",
+      "parentId": "neogeo:first-action",
+      "x": -1164,
+      "y": 800
+    },
+    {
       "id": "ps1:first-action",
       "appId": "ps1",
       "title": "Disc Spun Up",

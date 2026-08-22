@@ -1088,9 +1088,19 @@
     }
 
     if (
-      ['sega', 'gg', 'sega32x', 'segacd', 'gb', 'gba', 'neogeo', 'snes', 'n64', 'ps1'].includes(
-        cfg.id
-      )
+      [
+        'sega',
+        'gg',
+        'sega32x',
+        'segacd',
+        'gb',
+        'gba',
+        'neogeo',
+        'ngp',
+        'snes',
+        'n64',
+        'ps1'
+      ].includes(cfg.id)
     ) {
       window.heymingAchievements?.unlockForCurrentApp('first-action');
     }
