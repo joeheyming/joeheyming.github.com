@@ -269,12 +269,12 @@
       iaBinaryTimeout: 180000,
       iaAllowExternalDownload: true,
       howto: [
-        'Pick a game from Internet Archive or load your own ROM.',
-        'If a large ROM times out, use Download instead and load the saved file.',
-        'Use a gamepad for analog-stick games.'
+        'Tap a game, then Play now.',
+        'Or tap Download locally, wait for the file, then load the saved ROM.',
+        'A gamepad helps. Keyboard still works for menus.'
       ],
       romHelp:
-        'N64 ROMs can be large. This page tries to load them directly; Download instead is available when a browser proxy is slow.',
+        'These games are big (often 8–64 MB). If Play now times out, use Download locally and load the saved ROM.',
       controls: [
         { label: 'Analog stick', key: 'Arrow keys' },
         { label: 'A / B', key: 'X / Z' },
@@ -302,13 +302,16 @@
       accentGoldHex: '#003791',
       // Curated Redump → CHD set (single-file discs EmulatorJS can load).
       // Raw .iso dumps are rare as flat IA listings; CHD is the searchable stand-in.
-      // Disc images are 100–500+ MB — free CORS proxies cannot ferry them, so the
-      // browser opens the IA download and the user loads the saved file locally.
+      // Disc images are 100–500+ MB. Direct play is best-effort; downloading
+      // locally remains available when browser proxies cannot ferry the file.
       iaBaseUrl: 'https://archive.org/download/CuratedPSXRedumpCHDs',
       iaDescriptionPrefix: 'PlayStation game',
       iaFileExtensions: ['.chd'],
       iaPreferMetadata: true,
       iaExternalDownload: true,
+      iaAllowInBrowser: true,
+      iaBinaryTimeout: 300000,
+      iaMaxRetries: 1,
       biosRequired: true,
       // Canonical name for pcsx_rearmed; IA source file is renamed on fetch.
       biosFileName: 'scph5501.bin',
@@ -320,11 +323,11 @@
         'US BIOS auto-loads once from Internet Archive, then stays in this browser (IndexedDB). EU/JP: load scph5502.bin / scph5500.bin manually.',
       howto: [
         'Wait for BIOS “ready”.',
-        'Browse Collection → pick a title → download from Archive → Load local disc image.',
+        'Browse Collection → Play now, or Download locally then load the saved disc.',
         'Gamepad recommended.'
       ],
       romHelp:
-        'PS1 discs are too large for in-page download. Search the catalog, save the CHD from Internet Archive, then load it here.',
+        'PS1 discs are large. If Play now times out, Download locally, then load the saved disc.',
       controls: [
         { label: 'D-Pad', key: 'Arrow keys' },
         { label: '× Cross', key: 'X' },

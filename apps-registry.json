@@ -1804,7 +1804,7 @@
     "name": "PS1 💿",
     "shortName": "PS1",
     "description": "PlayStation emulator",
-    "detailedDescription": "Play PlayStation (PS1) games in your browser. US BIOS auto-loads once; search CHD discs on Internet Archive (download in a new tab, then load locally) or bring your own .chd / .pbp / .iso. Gamepad recommended. Part of the unified emulator shell (EmulatorJS / pcsx_rearmed).",
+    "detailedDescription": "Play PlayStation (PS1) games in your browser. US BIOS auto-loads once; search CHD discs on Internet Archive, then play now or download locally and load manually. Bring-your-own .chd / .pbp / .iso files also work. Gamepad recommended. Part of the unified emulator shell (EmulatorJS / pcsx_rearmed).",
     "icon": "💿",
     "path": "./emulator/ps1/",
     "category": "game",

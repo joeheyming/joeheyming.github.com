@@ -2,9 +2,8 @@
 //
 // Reads the active console either from a `console="nes"` attribute or
 // from `window.getEmulatorConsole()` (resolved off `?console=`). When
-// the console has no Internet Archive collection wired up (e.g. Game
-// Boy at the moment) the element hides itself entirely so the boot
-// card just shows the local-file picker. Same for PS1 (local disc only).
+// a console has no Internet Archive collection wired up, the element
+// hides itself so the boot card just shows the local-file picker.
 //
 // Lean-back (TV): cards are focusable with roving tabindex, search is
 // demoted behind a toggle, Escape/Backspace closes the modal.
@@ -15,6 +14,7 @@ class RomBrowserElement extends HTMLElement {
     this.filteredRoms = [];
     this._romRoving = null;
     this._onModalKey = null;
+    this._romLoadController = null;
     this.attachShadow({ mode: 'open' });
   }
 
@@ -54,6 +54,7 @@ class RomBrowserElement extends HTMLElement {
   }
 
   disconnectedCallback() {
+    if (this._romLoadController) this._romLoadController.abort();
     this.teardownModalKeys();
     if (this._romRoving) {
       this._romRoving.dispose();
@@ -72,6 +73,8 @@ class RomBrowserElement extends HTMLElement {
     }
 
     const tv = this.isTv;
+    const isDisc = !!cfg.iaExternalDownload;
+    const downloadOnly = isDisc && !cfg.iaAllowInBrowser;
 
     // All chrome reads from /brand.css through the host page; identity
     // colors (`--accent-bright`, `--accent-gold`) are set on `:root` by
@@ -372,9 +375,7 @@ class RomBrowserElement extends HTMLElement {
         <button class="rom-browser-btn" id="openBrowserBtn" type="button">
           <span>🗂️</span>
           <span>${
-            cfg.iaExternalDownload
-              ? `Browse ${cfg.title} Disc Catalog`
-              : `Browse ${cfg.title} ROM Collection`
+            isDisc ? `Browse ${cfg.title} Disc Collection` : `Browse ${cfg.title} ROM Collection`
           }</span>
         </button>
       </div>
@@ -383,12 +384,12 @@ class RomBrowserElement extends HTMLElement {
         <div class="modal-content">
           <div class="modal-header">
             <h2 class="modal-title" id="romBrowserTitle">${cfg.title} ${
-      cfg.iaExternalDownload ? 'Disc Catalog' : 'ROM Browser'
+      isDisc ? 'Disc Browser' : 'ROM Browser'
     }</h2>
             <p class="modal-subtitle">${
-              cfg.iaExternalDownload
+              downloadOnly
                 ? `Search Internet Archive, download the disc, then load it locally`
-                : `Browse and load ${cfg.title} ROMs from Internet Archive`
+                : `Play now or download locally from Internet Archive`
             }</p>
           </div>
           <div class="modal-body">
@@ -575,7 +576,7 @@ class RomBrowserElement extends HTMLElement {
     const romGrid = document.createElement('div');
     romGrid.className = 'rom-grid';
     const cfg = this.consoleConfig;
-    const allowExternalDownload = !!(cfg && cfg.iaAllowExternalDownload);
+    const allowExternalDownload = !!(cfg && cfg.iaBaseUrl);
 
     roms.forEach((rom) => {
       const romCard = document.createElement('div');
@@ -595,10 +596,10 @@ class RomBrowserElement extends HTMLElement {
         ${
           allowExternalDownload
             ? `<div class="rom-actions">
-                <button type="button" data-action="play-rom">Play in browser</button>
+                <button type="button" data-action="play-rom">Play now</button>
                 <a href="${this._escapeHtml(
                   rom.downloadUrl || '#'
-                )}" target="_blank" rel="noopener noreferrer">Download instead</a>
+                )}" target="_blank" rel="noopener noreferrer">Download locally</a>
               </div>`
             : ''
         }
@@ -643,16 +644,25 @@ class RomBrowserElement extends HTMLElement {
     };
 
     const cfg = this.consoleConfig;
-    if (cfg && cfg.iaExternalDownload) {
+    if (cfg && cfg.iaExternalDownload && !cfg.iaAllowInBrowser) {
       this.showExternalDownload(rom, restoreList);
       return;
     }
+
+    if (this._romLoadController) this._romLoadController.abort();
+    const controller = new AbortController();
+    this._romLoadController = controller;
 
     try {
       if (contentArea) {
         contentArea.innerHTML =
           `<div class="loading">Loading ${this._escapeHtml(rom.title)}…` +
-          '<div class="loading-hint">Large zips can take a minute while proxies rotate.</div></div>';
+          '<div class="loading-hint">Large zips can take a minute while proxies rotate.</div>' +
+          '<div class="error-actions"><button type="button" data-action="cancel-rom">Cancel — back to game list</button></div></div>';
+        contentArea.querySelector('[data-action="cancel-rom"]')?.addEventListener('click', () => {
+          controller.abort();
+          restoreList();
+        });
       }
 
       const ia = this.iaClient;
@@ -660,7 +670,8 @@ class RomBrowserElement extends HTMLElement {
         throw new Error('ROM source unavailable.');
       }
 
-      const romData = await ia.loadRom(rom);
+      const romData = await ia.loadRom(rom, { signal: controller.signal });
+      if (controller.signal.aborted) return;
 
       // Wrap in a File so EmulatorJS sees a real filename — libretro cores
       // (FCEUmm, genesis_plus_gx, gambatte) detect format from the suffix.
@@ -682,13 +693,14 @@ class RomBrowserElement extends HTMLElement {
         alert('Emulator not ready. Please reload the page and try again.');
       }
     } catch (error) {
+      if (controller.signal.aborted || (error && error.name === 'AbortError')) return;
       console.error('Error loading ROM:', error);
       const detail = (error && error.message) || 'Unknown error';
-      const canDownload = !!(cfg && cfg.iaAllowExternalDownload && rom.downloadUrl);
+      const canDownload = !!(cfg && cfg.iaBaseUrl && rom.downloadUrl);
       const downloadAction = canDownload
         ? `<a class="primary" href="${this._escapeHtml(
             rom.downloadUrl
-          )}" target="_blank" rel="noopener noreferrer">Download instead</a>` +
+          )}" target="_blank" rel="noopener noreferrer">Download locally</a>` +
           '<button type="button" data-action="load-local">Load saved ROM</button>'
         : '';
       if (contentArea) {
@@ -713,6 +725,8 @@ class RomBrowserElement extends HTMLElement {
       } else {
         alert('Failed to load ROM: ' + detail);
       }
+    } finally {
+      if (this._romLoadController === controller) this._romLoadController = null;
     }
   }
 
@@ -731,9 +745,7 @@ class RomBrowserElement extends HTMLElement {
         : 'size unavailable';
     const href = rom.downloadUrl || '#';
     const explanation = isDisc
-      ? 'PlayStation discs are too large to download through this page’s proxies ' +
-        '(browser CORS limits). Download from Internet Archive in a new tab, then ' +
-        'load the saved <code>.chd</code> file here.'
+      ? `${this._escapeHtml(cfg.title)} discs are too large to load in the page. Download from Internet Archive in a new tab, then load the saved file here. Chromebooks with little disk space may not have room.`
       : 'Download this ROM directly from Internet Archive, then load the saved file here.';
 
     contentArea.innerHTML = `
